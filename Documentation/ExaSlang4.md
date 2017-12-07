@@ -35,7 +35,7 @@ The following statements are allowed:
     * [external field declaration](#external-field-declaration)
     * [direct stencil declaration](#direct-stencil-declaration)
     * [stencil declaration from expression](#stencil-from-expression)
-    * [stencil declaration from defau](#stencil-from-default)
+    * [stencil declaration from default](#stencil-from-default)
 * [stencil field declaration](#stencil-field-declaration)
 * [global section](#global-section)
 * function declarations
@@ -43,6 +43,34 @@ The following statements are allowed:
     * [function template declaration](#function-template)
     * [function instantiation](#function-instantiation)
 
+
+
+## Inner Statements
+The following statements are allowed:
+* local declartions
+    * [variable declaration](#variable-declaration)
+    * [value declaration](#value-declaration)
+* [assignment](#basic-assignment) and [compound assignment](#compound-assignment)
+* loops
+    * [fixed-length loop](#fixed-length-loop)
+    * [conditional loop](#conditional-loop)
+    * [contraction loop](#contraction-loop)
+    * [field loop](#field-loop)
+    * [fragment loop](#fragment-loop)
+* [conditional](#conditional)
+* [function call](#function-call); implicitly wrapped in an expression statement
+* [apply bc](#apply-bc)
+* [communicate](#communicate)
+* [advance](#advance)
+* [return statement](#return-statement)
+* [level scope](#level-scope)
+* [local solve](#local-solve)
+* [color statement](#color-statement)
+
+
+
+## Concepts
+TODO
 
 
 # Basic Language Constructs
@@ -93,7 +121,7 @@ Represents a simple data type.
 * a [higher dimensional data type](#higher-dimensional-data-types)
 
 #### Example
-cf examples for [variable declarations](#variable-declaration) and [function declarations](#function-declaration)
+cf examples for [variable declarations](#variable-declaration) and [function declarations](#function-declaration).
 
 
 
@@ -137,6 +165,7 @@ A group of levels used for declarations.
 
 #### Example
 <pre>@10</pre>
+<pre>@(finest - 1)</pre>
 
 
 
@@ -192,7 +221,7 @@ A list of levels used for [level declarations](#level-declaration).
 <pre>
 (
   <i>levels</i>
-  /* optionally */ but <i>exclude</i>
+  /* optional */ but <i>exclude</i>
   )
 </pre>
 
@@ -201,8 +230,8 @@ A list of levels used for [level declarations](#level-declaration).
 *exclude*, if provided, must be a valid [level list](#level-list) without any nested *exclude*. The not keyword may be used instead of the but keyword.
 
 #### Example
-<pre>@(0, 2, 4)</pre>
-<pre>@(all but finest)</pre>
+<pre>(0, 2, 4)</pre>
+<pre>(all but finest)</pre>
 
 
 
@@ -218,7 +247,7 @@ A range of levels used for [level declarations](#level-declaration).
 *begin* and *end* must be constants or suitable [level aliases](#level-alias) evaluating to single levels.
 
 #### Example
-<pre>@(coarsest to finest)</pre>
+<pre>(coarsest to finest)</pre>
 
 
 
@@ -246,6 +275,7 @@ noinline may be used to disallow inling for this function.
 The function declaration is regarded as leveled if *levels* is specified. Must be a valid [level selection for declarations](#level-declaration).
 *arguments*, if provided, has to be a list of [function arguments](#function-argument). May be empty.
 *returnType*, if provided, has to be a valid [language datatype](#data-types). In this case, at least one [return statement](#return-statement) must be present in the *body*. If *returnType* is not provided, an implicit Unit type is assumed.
+*body* must be a list of suitable [statements](#inner-statements). May be empty.
 
 #### Example
 <pre>
@@ -285,7 +315,7 @@ Statement used to exit a function and to optionally return a value.
 #### Syntax
 <pre>
 return
-  /* optionally */ <i>returnValue</i>
+  /* optional */ <i>returnValue</i>
 </pre>
 
 #### Details
@@ -382,6 +412,51 @@ Val a : Real = 10.5 * 4.
 
 
 
+## Assignments
+
+
+
+### Basic Assignment
+Assigns *src* to *dest*.
+
+#### Syntax
+<pre>
+<i>dest</i> = <i>src</i>
+</pre>
+
+#### Details
+*dest* must be a valid access.
+*src* maybe an arbitrary expression evaluating to the data type of *dest*.
+
+#### Example
+<pre>
+Var cnt : Int
+cnt = 0
+</pre>
+
+
+
+### Compound Assignment
+Performs a compound assignment from *src* to *dest* with the specified operation.
+
+#### Syntax
+<pre><i>dest</i> += <i>src</i></pre>
+<pre><i>dest</i> -= <i>src</i></pre>
+<pre><i>dest</i> *= <i>src</i></pre>
+<pre><i>dest</i> /= <i>src</i></pre>
+
+#### Details
+*dest* must be a valid access.
+*src* maybe an arbitrary expression evaluating to the data type of *dest*.
+
+#### Example
+<pre>
+Var cnt : Int = 0
+cnt += 1
+</pre>
+
+
+
 ## Basic Loops
 
 
@@ -393,12 +468,13 @@ Executes statements a constant number of times.
 <pre>
 repeat <i>n</i> times
   /* optional */ count <i>variable</i>
-{ <i>body</i> }
+  { <i>body</i> }
 </pre>
 
 #### Details
-*n* must be an integral number. *body* must be a non-empty list of statements.
+*n* must be an integral number.
 The current iteration number is stored in *variable*, if provided, which needs to be declared beforehand.
+*body* must be a list of suitable [statements](#inner-statements). May be empty.
 
 #### Example
 <pre>
@@ -418,6 +494,8 @@ Executes statements while or until a given condition is met.
 <pre> repeat while <i>condition</i> { body } </pre>
 
 #### Details
+*condition* may be an arbitrary expression evaluating to a Boolean value.
+*body* must be a list of suitable [statements](#inner-statements). May be empty.
 
 #### Example
 <pre>
@@ -436,16 +514,16 @@ brief
 #### Syntax
 <pre>
 if ( <i>condition</i> ) { ifBranch }
-  /* optionally */ else <i>elseBranch</i>
+  /* optional */ else <i>elseBranch</i>
 </pre>
 
 #### Details
 Exectues *ifBranch* if *condition* evaluates to true, *elseBranch* otherwise (if it is specified).
 *condition* may be an arbitrart expression evaluating to a Boolean.
-*ifBranch* may be any list of statements or nothing.
+*ifBranch* must be a list of suitable [statements](#inner-statements). May be empty.
 *elseBranch* may be
 * another [conditional](#conditional)
-* a list of statements surrounded by curly brackets; the list may be empty
+* a list of suitable [statements](#inner-statements); may be empty
 
 #### Example
 <pre>
@@ -501,7 +579,7 @@ Declares a new field layout with the given *name* and *options*.
 #### Syntax
 <pre>
 Layout <i>name</i> &lt; <i>dataType</i> , <i>localization</i> &gt; 
-  /* optionally */ <i>levels</i>
+  /* optional */ <i>levels</i>
   { <i>options</i> }
 </pre>
 
@@ -534,7 +612,7 @@ Specification of an option to be used for [field layouts](#field-layout-declarat
 #### Syntax
 <pre>
 <i>option</i> = <i>index</i>
-  /* optionally */ with communication
+  /* optional */ with communication
 </pre>
 
 #### Details
@@ -558,8 +636,8 @@ Declares a new field with the given *name* and the provided options.
 #### Syntax
 <pre>
 Field <i>name</i> &lt; <i>domain</i> , <i>layout</i> , <i>boundaryCondition</i> &gt;
-  /* optionally */ [ <i>numSlots</i> ]
-  /* optionally */ <i>levels</i>
+  /* optional */ [ <i>numSlots</i> ]
+  /* optional */ <i>levels</i>
 </pre>
 
 #### Details
@@ -582,7 +660,7 @@ Specifies the boundary conditions to be used for a given [field](#field-declarat
 <pre>None</pre>
 <pre>
 Neumann
-  /* optionally */ ( <i>order</i> )
+  /* optional */ ( <i>order</i> )
 </pre>
 <pre><i>dirichlet</i></pre>
 <pre><i>bcFunction</i> ( )</pre>
@@ -639,7 +717,7 @@ Declares a new stencil with the given *name* and the provided *entries*.
 #### Syntax
 <pre>
 Stencil <i>name</i>
-  /* optionally */ <i>levels</i>
+  /* optional */ <i>levels</i>
   { <i>entries</i> }
 </pre>
 
@@ -712,7 +790,7 @@ Declares a new stencil with the given *name* and constructs it based on *express
 #### Syntax
 <pre>
 Stencil <i>name</i>
-  /* optionally */ <i>levels</i>
+  /* optional */ <i>levels</i>
   from <i>expression</i>
 </pre>
 
@@ -740,7 +818,7 @@ Declares a new stencil with the given *name* and constructs it based on the spec
 #### Syntax
 <pre>
 Stencil <i>name</i>
-  /* optionally */ <i>levels</i>
+  /* optional */ <i>levels</i>
   from default <i>operation</i> on <i>localization</i> with <i>parameter</i>
 </pre>
 
@@ -762,7 +840,7 @@ Declares a new stencil field with the given *name*, using the shape of *stencil*
 #### Syntax
 <pre>
 StencilField <i>name</i> &lt; field =&gt; stencil &gt;
-  /* optionally */ <i>levels</i>
+  /* optional */ <i>levels</i>
 </pre>
 
 #### Details
@@ -784,11 +862,404 @@ StencilField StoredFivePoint &lt; StencilData =&gt; FivePointShape &gt;
 
 
 
+# Domain-Specific Features
+
+
+
+## Special Loops
+
+
+
+### Field Loop
+Loops over the given *field* and executes the *body* at each point.
+
+#### Syntax
+<pre>
+loop over <i>field</i>
+  /* optional */ only <i>region</i>
+  /* optional */ sequentially
+  /* optional */ where <i>condition</i>
+  /* optional */ starting <i>offsetBegin</i>
+  /* optional */ ending <i>offsetEnd</i>
+  /* optional */ stepping <i>stepSize</i>
+  /* optional */ with <i>reduction</i>
+  /* optional */ <i>preComm</i>
+  /* optional */ <i>postComm</i>
+  { <i>body</i> }
+</pre>
+
+#### Details
+If no level is provided for *field*, an implicit [@current](#level-alias) is assumed. Other modifiers such as slot, offset or direction access are ignored.
+
+only *region* may be used to restrict iteration to a specific [region](#region). If it is not provided, inner is assumed.
+
+sequentially prevents shared memory parallelization. **This is only a temporary workaround**.
+
+where *condition* may be used to restrict the execution of *body* to only cases where condition is fullfilled. Prominent applications are [colored kernels](#color-with).
+
+*offsetBegin* and *offsetEnd* may be used to extend or restrict the iteration space. [Constant indices](#constant-index) are required. *offsetBegin* is added to the loop start while *offsetEnd* is subtracted from the loop end.
+
+*stepSize* may be used to adapt the geneated loops' step size. It must be a positive, non-zero [constant indices](#constant-index).
+
+*reduction* must be a valid [reduction](#reduction).
+
+*preComm* and *postComm*, if defined, must be one or more expressions in the form of [pre- and postcomm](#pre-and-postcomm).
+
+*body* must be a list of suitable [statements](#inner-statements). May be empty.
+
+If a field loop is not in the scope of a [fragment loop](#fragment-loop), an implicit [fragment loop](#fragment-loop) is wrapped around the field loop in the generation processs.
+
+#### Example
+<pre>loop over u { /* ... */ }</pre>
+<pre>loop over u where 0 == ( i0 + i1 ) % 2 { /* ... */ }</pre>
+<pre>loop over u only ghost [0, -1] on boundary { /* ... */ }</pre>
+<pre>loop over u starting [1, 0] stepping [2, 1] { /* ... */ }</pre>
+<pre>
+Var curErr : Real = 0.0
+loop over u with reduction ( max, curErr ) { /* ... */ }
+</pre>
+
+
+
+### Region
+Specifies an iteration region for a [field loop](#field-loop).
+
+#### Syntax
+<pre>
+<i>target</i> <i>direction</i>
+  /* optional */ on boundary
+</pre>
+
+#### Details
+*target* may be one of the following:
+* inner
+* dup
+* ghost
+
+dup corresponds to duplicate layers. ghost corresponds to ghost layers. inner corresponds to inner layers.
+
+*direction* specifies which part of the current fragment's grid is selected. For example, [1, 0] would select the right edge. *direction* must be a [constant indices](#constant-index). In case of inner as *target*, *direction* is ignored but should be zero in all dimensions by convention.
+
+If on boundary is specified, the loop is only executed at outer boundaries, i.e., for fragments that don't have a neighbor in the specified *direction*.
+
+#### Example
+<pre>
+only dup [0, -1] on boundary
+</pre>
+
+
+
+### Fragment Loop
+Loops over all fragments.
+
+#### Syntax
+<pre>
+loop over fragments
+  /* optional */ with <i>reduction</i>
+  { <i>body</i> }
+</pre>
+
+#### Details
+*reduction* must be a valid [reduction](#reduction).
+
+*body* must be a list of suitable [statements](#inner-statements). May be empty.
+
+*body* usually contains at least one [field loop](#field-loop). [Communicate statements](#communicate-statement) and [apply bc statements](apply-bc-statement) inside fragment loops are supported.
+
+#### Example
+<pre>
+Var sum : Real = 0.0
+loop over fragments with reduction ( + : sum ) {
+  loop over u with reduction ( + : sum ) { /* ... */ }
+}
+</pre>
+
+
+
+### Reduction
+Specifies a reduction to be performed for an associated [special loop](#special-loops).
+
+#### Syntax
+<pre>
+reduction ( <i>op</i> : <i>target</i> )
+</pre>
+
+#### Details
+*op* may be one of the following:
+* \+ or \*
+* min or max
+
+*target* must be the name of a previously declared variable.
+
+If Knowledge.experimental_trimBoundsForReductionLoops is enabled, iteration spaces are adapted such that duplicate points are only handled on one fragment. This prevents adding the contibution of the same duplicate point mulitple times.
+
+#### Example
+<pre>
+Var sum : Real = 0.0
+loop over u with reduction ( + : sum ) { /* ... */ }
+</pre>
+
+
+
+### Contraction Loop
+TODO: Stefan
+
+#### Syntax
+<pre>
+repeat <i>n</i> times
+  /* optional */ count <i>variable</i>
+  with contraction posExtent
+  /* optional */ , negExtent
+  { <i>body</i> }
+</pre>
+
+#### Details
+*n* must be an integral number.
+
+The current iteration number is stored in *variable*, if provided, which needs to be declared beforehand.
+
+*body* must be a list of suitable [statements](#inner-statements). May be empty.
+
+TODO: Stefan
+
+#### Example
+<pre>
+TODO: Stefan
+</pre>
+
+
+
+## Communication
+
+
+
+### Communicate
+Triggers data exchange for the given *field*.
+
+#### Syntax
+<pre>
+/* optional */ begin
+  /* optional */ finish
+  communicate <i>targets</i> of <i>field</i>
+  /* optional */ where <i>condition</i>
+</pre>
+
+#### Details
+begin and finish are mutually exclusive. They trigger the start and end of a communication phase. The user is responsible for ensuring that matching pairs exist and are called accordingly. If neither is given, a full communication is performed.
+
+communicating can be used instead of communicate.
+
+*targets* must be a list of valid [communicate targets](#communicate-target). It may be empty in which case all is assumed.
+
+*field* must be a valid reference to a field to be communicated. An implicit [@current](#level-alias) is assumed if no level specification is given. Slot modifiers are honored. Other modifiers such as offst and direction access are ignored.
+
+*condition* can be used to restrict exchange to data points fulfilling the given *condition*. It may be an arbitrary expression evaluating to a Boolean. **NOT IMPLEMENTED YET**
+
+#### Example
+<pre>communicate u[next]@current</pre>
+<pre>
+begin communicating u
+/* ... */
+finish communicating u
+</pre>
+
+
+
+### Communicate Target
+brief
+
+#### Syntax
+<pre>
+<i>target</i>
+  /* optional */ <i>start</i> 
+  /* optional */ to <i>end</i> // inclusive indices
+</pre>
+
+#### Details
+*target* can be one of the following:
+* all
+* dup
+* ghost
+
+dup corresponds to duplicate layers. ghost corresponds to ghost layers. all corresponds to ghost and duplicate layers.
+
+*start* and *end* have to be constant indices. Both are inclusive. If defined, the range of applicable layers to be communicated is restricted to the given range.
+
+#### Example
+<pre>
+examples of usage
+</pre>
+
+
+
+### Pre- and PostComm
+Specifies a communication step to be performed before or after an associated [loop](#field-loop).
+
+#### Syntax
+<pre>
+preComm
+  /* optional */ <i>op</i>
+  <i>target</i>  
+  of <i>field</i>
+  /* optional */ where <i>condition</i>
+</pre>
+<pre>
+postComm
+  /* optional */ <i>op</i>
+  <i>target</i>  
+  of <i>field</i>
+  /* optional */ where <i>condition</i>
+</pre>
+
+#### Details
+
+*op* can be one of the following:
+* begin
+* finish
+
+If *op* is not given, a synchronous (w.r.t. the Layer 4 execution path) communication is performed.
+
+*target* must be a valid [communicate target](#communicate-target).
+
+*condition* can be used to restrict the communication to points fulfilling it. **This function is not fully implement yet.**
+
+#### Example
+<pre>precomm all of Solution@current</pre>
+<pre>postcomm dup of Solution where 0 == ( i0 + i1 ) % 2</pre>
+
+
+
+## Field Operations
+
+
+
+### Apply BC
+Applies the boundary conditions of a given *field*.
+
+#### Syntax
+<pre>
+apply bc to <i>field</i>
+</pre>
+
+#### Details
+*field* must be a valid reference to a field to be updated. An implicit [@current](#level-alias) is assumed if no level specification is given. Slot modifiers are honored. Other modifiers such as offst and direction access are ignored.
+
+#### Example
+<pre>
+apply bc to u
+</pre>
+
+
+
+### Advance
+Advances the slot of a given *field*.
+
+#### Syntax
+<pre>
+advance <i>field</i>
+</pre>
+
+#### Details
+*field* must be a valid reference to a field. An implicit [@current](#level-alias) is assumed if no level specification is given. Slot modifiers and other modifiers such as offst and direction access are ignored.
+
+#### Example
+<pre>
+advance u
+</pre>
+
+
+
+## Solver Extensions
+
+
+
+### Local Solve
+Solves for multiple unknowns at once.
+
+#### Syntax
+<pre>
+solve locally
+  /* optional */ with jacobi
+  /* optional */ relax <i>omega</i>
+  { <i>components</i> }
+</pre>
+
+#### Details
+
+Internally, a system of equations based on the given *components* is construced and solved. The solution to the system is then written back to the unknowns.
+
+with jacobi specifies that the writeback should be performed to the next slot of the unknowns' fields.
+
+*omega*, if provided, will be used to relax the found solution to the local system. It may be an arbitrary expression that evaluated to Double.
+
+*components* must be a list of of valid [solve components](#solve-component).
+
+Must be inside the scope of a [field loop](#field-loop).
+
+#### Example
+<pre>
+loop over u {
+  solve locally relax 0.8 {
+    u@[0, 0] =&gt; laplace@[0, 0] * u@[0, 0] == rhs_u@[0, 0]
+    u@[1, 0] =&gt; laplace@[1, 0] * u@[1, 0] == rhs_u@[1, 0]
+  }
+}
+</pre>
+
+
+
+### Solve Component
+Specifies one component of a [local solve block](#local-solve).
+
+#### Syntax
+<pre>
+<i>unknown</i> =&gt; <i>lhs</i> == <i>rhs</i>
+</pre>
+
+#### Details
+*unknown* must be a valid reference to a field. An implicit [@current](#level-alias) is assumed if no level specification is given. Other modifiers are honored.
+
+*lhs* and *rhs* are the left- and right-hand sides of the equation to be solved. They may be arbitrary expressions evaluating to the same data type. Equations not including the *unknown* are supported.
+
+#### Example
+<pre>u =&gt; laplace * u == 0.0</pre>
+<pre>u@[1, 0] =&gt; laplace@[1, 0] * u@[1, 0] == rhs_u@[1, 0]</pre>
+
+
+
+### Color Statement
+Colors a set of statements in a *body* with given *colors*.
+
+#### Syntax
+<pre>
+color with { <i>colors</i> , <i>body</i> }
+</pre>
+
+#### Details
+*colors* must be a comma-separated list of arbitrary expressions, each evaluating to Boolean.
+
+*body* must be a list of suitable [statements](#inner-statements). May be empty. Currently only [field loops](#field-loop) are colored. Other statements remain untouched. In future versions, [apply bc](#apply-bc) and [communicate](#communicate) will be handled as well.
+
+During unfolding, the *body* is duplicated once for each color. It is then adapted to the current color by adding the color expression to, e.g., [field loops](#field-loop) as (potentially additional) condition.
+
+#### Example
+<pre>
+color with {
+  ( 0 == ( i0 + i1 ) % 2 ),
+  ( 1 == ( i0 + i1 ) % 2 ),
+  
+  loop over p { /* ... */ }
+  communicate p
+}
+</pre>
+
+
+
 # Language Extensions
 
 
 
-## Top-Level statements
+## Top-Level
 
 
 
@@ -869,6 +1340,7 @@ FuncTemplate can be used instead of FunctionTemplate.
 *functionParams* must be a list of [function arguments](#function-argument). May be separated by comma. May be empty.
 *returnType* must be a valid [language data type](#data-types).
 This statement will not map to a function without suitable [function instantiations](#function-instantiation).
+*body* must be a list of suitable [statements](#inner-statements). May be empty.
 
 #### Example
 <pre>
@@ -887,7 +1359,7 @@ Instantiates a [function template](#function-template) as a new function with th
 #### Syntax
 <pre>
 Instantiate <i>template</i> &lt; <i>templateArgs</i> &gt; as <i>name</i>
-  /* optionally */ <i>levels</i>
+  /* optional */ <i>levels</i>
 </pre>
 
 #### Details
@@ -905,92 +1377,46 @@ Instantiate SetFieldComponent &lt; v@current &gt; as SetSolution_v@all
 
 
 
+### Layout Transformation
+TODO: Stefan
 
-# DONE
+
+
+## Inner
+
+
 
 ### LevelScope
 Conditional execution of statements depending on the surrounding scope's level.
 
 #### Syntax
 <pre>
-@<i>levels</i> { <i>body</i> }
+<i>levels</i> { <i>body</i> }
 </pre>
 
 #### Details
 *body* is only executed if the current level (usually given by a surrounding function) matches the given *levels*, or, in case of a given range or list, is included in it.
 
+*levels* must be a valid [level declaration](#level-declaration).
+
+*body* must be a list of suitable [statements](#inner-statements). May be empty.
+
 #### Example
 <pre>
-Function recursiveFct@all () {
-  // do work
+Function recursive@all () {
+  /* ... */
 
   @(all but coarsest) {
-    recursiveFct@coarser ( )
+    recursive@coarser ( )
   }
 }
 </pre>
 
 
 
-### communicate target
-
-#### Syntax
-<pre>
-<i>target</i>
-  /* optional */ <i>start</i> 
-  /* optional */ to <i>end</i> // inclusive indices
-</pre>
-
-#### Details
-*target* can be one of the following:
-* all
-* dup
-* ghost
-
-dup corresponds to duplicate layers. ghost corresponds to ghost layers. all corresponds to ghost and duplicate layers.
-
-*start* and *end* have to be constant indices. Both are inclusive. If defined, the range of applicable layers to be communicated is restricted to the given range.
-
-#### Example
+# TO BE INTEGRATED
 
 
-
-### pre- and postComm
-brief
-
-#### Syntax
-<pre>
-preComm
-  /* optional */ <i>op</i>
-  <i>communicateTarget</i>  
-  of <i>field</i>
-  /* optional */ where <i>condition</i>
-</pre>
-<pre>
-postComm
-  /* optional */ <i>op</i>
-  <i>communicateTarget</i>  
-  of <i>field</i>
-  /* optional */ where <i>condition</i>
-</pre>
-
-#### Details
-
-*op* can be one of the following:
-* begin
-* finish
-
-If *op* is not given, a synchronous (w.r.t. the Layer 4 execution path) communication is performed.
-
-*communicateTarget* is specified by [communicate target](#communicate-target)
-
-*condition* can be used to restrict the communication to points fulfilling it. **not fully implement yet** 
-
-#### Example
-<pre>
-precomm all of Solution@current
-postcomm dup of Solution where 0 == ( i0 + i1 ) % 2
-</pre>
 
 ## Higher-Dimensional Data Types
 ### Vectors
@@ -1045,77 +1471,16 @@ Var m2 : Matrix&lt;Real, 2, 3&gt; = [1 2 3; 4 5 6]
 
 
 
-# IN PROGRESS
-
-### loop over fields
-Loops over a given field and executes statements at each point.
-
-#### Syntax
-<pre>
-loop over <i>field</i>
-  /* optional */ only <i>region</i>
-  /* optional */ sequentially
-  /* optional */ where <i>condition</i>
-  /* optional */ starting <i>offsetBegin</i>
-  /* optional */ ending <i>offsetEnd</i>
-  /* optional */ stepping <i>stepSize</i>
-  /* optional */ with <i>reduction</i>
-  /* optional */ <i>preComm</i>
-  /* optional */ <i>postComm</i>
-{ <i>body</i> }
-</pre>
-
-preComm and postComm can be one or more expressions in the form of [pre- and postcomm](#pre-and-postcomm)
-
-#### Details
-
-
-#### Example
-<pre>
-</pre>
-
-
-
 # TODO
 
-### Layout Transformations
-
-DS features
-Features from other languages
 expression/statement
-breakStatement
-assignment
-Operatorassignment TODO: assignment vs compound assignment
 binop
 Literals
-Language extensions
 
-Globals
 Index
-Function templates & instantiation
-Domains
-Fields and layouts
-Apply bc
-Slots
-advanceStatement
-Operators
-Stencils
 Offset notation
 Mapping notation
 Diag()
 inverse()
-stencilFields
-Advanced domain specific features
 unresolvedAccess
-contractionLoop
-loopOver
 fieldIteratorAccess
-Reduction
-...
-loopOverFragments
-applyBCsStatement
-communicateStatement
-solveLocallyStatement
-colorWithStatement
-parallelization/partitioning
-communicate
