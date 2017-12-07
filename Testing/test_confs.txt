@@ -17,6 +17,7 @@
 # NumCoresPerRank  is the number of physical cores to be associated with each MPI rank
 # Constraint  specifies features the nodes must have when executing the generated test code
 #  for hardware definitions and available flags see hwinfo.txt
+#  "memXG" specifies that X GB RAM should be available per requested CPU core; this cannot be used in conjunction with other constraints
 
 # if the last four fields are not set (as in the first structure above), the
 # generated code is only compiled, but not executed
@@ -60,7 +61,7 @@ CommBasic_Strategy26Cell  Main  CommBasic/Strategy26Cell.knowledge  *  CommBasic
 #################################################################################################
 
 # 10 OMP threads
-Large_Hybrid  Main  Large/Hybrid.knowledge  *  Large/Hybrid.results  4  10  E5
+Large_Hybrid  Main  Large/Hybrid.knowledge  *  Large/Hybrid.results  4  10  mem6G
 
 #################################################################################################
 # OPTIMIZATION TESTS                                                                            #
