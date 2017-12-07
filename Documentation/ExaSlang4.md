@@ -25,7 +25,7 @@ examples of usage
 
 
 ## Top-Level Statements
-The following statements are allowed:
+The following statements are supported:
 * [import](#import)
 * [inline knowledge](#inline-knowledge)
 * declarations of knowledge objects
@@ -46,7 +46,7 @@ The following statements are allowed:
 
 
 ## Inner Statements
-The following statements are allowed:
+The following statements are supported:
 * local declartions
     * [variable declaration](#variable-declaration)
     * [value declaration](#value-declaration)
@@ -66,6 +66,16 @@ The following statements are allowed:
 * [level scope](#level-scope)
 * [local solve](#local-solve)
 * [color statement](#color-statement)
+
+
+
+## Expressions
+The following expressions are supported:
+* [literal](#literals)
+* [access](#access)
+* [function call](#function-call)
+* [unary operations](#unary-operations) and [binary operations](#binary-operations)
+* [field iterator access](#field-iterator-access)
 
 
 
@@ -122,6 +132,30 @@ Represents a simple data type.
 
 #### Example
 cf examples for [variable declarations](#variable-declaration) and [function declarations](#function-declaration).
+
+
+
+## Literals
+Literals.
+
+#### Syntax
+<pre><i>number</i></pre>
+<pre><i>boolean</i></pre>
+<pre>'<i>string</i>'</pre>
+<pre>"<i>string</i>"</pre>
+
+#### Details
+*number* may be integral or real.
+
+*boolean* may be true or false.
+
+#### Example
+<pre>1</pre>
+<pre>1.5</pre>
+<pre>1.0e30</pre>
+<pre>true</pre>
+<pre>'some string'</pre>
+<pre>"some string"</pre>
 
 
 
@@ -457,6 +491,69 @@ cnt += 1
 
 
 
+## Unary Operations
+Performs basic calculations.
+
+#### Syntax
+<pre>
+<i>op</i> <i>target</i>
+</pre>
+
+#### Details
+*target* may be arbitrary [expressions](#expressions).
+
+*op* may be one of the following:
+* for numeric expressions
+  * \-
+* for boolean expressions
+  * \!
+
+
+#### Example
+<pre>-1</pre>
+<pre>!true</pre>
+
+
+
+
+## Binary Operations
+Performs basic calculations.
+
+#### Syntax
+<pre>
+<i>left</i> <i>op</i> <i>right</i>
+</pre>
+
+#### Details
+
+*left* and *right* may be arbitrary [expressions](#expressions).
+
+*op* may be one of the following:
+* for numeric expressions
+  * \+ \- \* \/
+  * \% for modulo operations
+  * \*\* or \^ for power operations
+* for boolean expressions
+  * \|\| or 'or'
+  * \&\& or 'and'
+  * < <= > >= == and != for comparison operations
+
+the precedence is given by:
+* for numeric expressions
+  * \*\* \^
+  * \* \/ \%
+  * \+ \- 
+* for boolean expressions
+  * \|\| or
+  * \&\& and
+  * < <= > >= == !=
+
+#### Example
+<pre>1 + 2</pre>
+<pre>MyStencil * MyField</pre>
+
+
+
 ## Basic Loops
 
 
@@ -539,6 +636,44 @@ if ( 0. == someVar or 1. == someVar ) {
   // ...
 }
 </pre>
+
+
+
+## Index
+
+
+
+### Constant Index
+A constant index which can, e.g., be used as [offset or direction](#access).
+
+#### Syntax
+<pre>[ <i>i_0</i> ]</pre>
+<pre>[ <i>i_0</i> , <i>i_1</i> ]</pre>
+<pre>[ <i>i_0</i> , <i>i_1</i> , <i>i_2</i> ]</pre>
+
+#### Details
+*i_n* must be integral constants. More than 3 dimensions are supported, but omitted here.
+
+#### Example
+<pre>[ 1, 0 ]</pre>
+<pre>[ 0, 1, -1 ]</pre>
+
+
+
+### Expression Index
+An index with expressions.
+
+#### Syntax
+<pre>[ <i>e_0</i> ]</pre>
+<pre>[ <i>e_0</i> , <i>e_1</i> ]</pre>
+<pre>[ <i>e_0</i> , <i>e_1</i> , <i>e_2</i> ]</pre>
+
+#### Details
+*e_n* may be arbitrary [expressions](#expressions) evaluating to Int. More than 3 dimensions are supported, but omitted here.
+
+#### Example
+<pre>[ 0, 1, -1 ]</pre>
+<pre>[ ( i0 % 2 ), ( i1 % 2 ) ]</pre>
 
 
 
@@ -866,6 +1001,44 @@ StencilField StoredFivePoint &lt; StencilData =&gt; FivePointShape &gt;
 
 
 
+## Access
+Access to a [variable](#variable-declaration), a [value](#value-declaration) or a [knowledge object](#knowledge-objects).
+
+#### Syntax
+<pre>
+<i>target</i>
+  /* optional */ [ <i>slot</i> ]
+  /* optional */ @ <i>level</i>
+  /* optional */ @ <i>offet</i>
+  /* optional */ : <i>direction</i>
+  /* optional */ [ <i>component</i> ]
+</pre>
+
+#### Details
+
+The actual type of access is defered by the code generator. Depending on the type, invalid modifiers will be ignored.
+
+*slot*, if specified, must be a valid [slot access](#slot-access). It is only valid if *target* is a field. The field may be un-slotted.
+
+*level*, if specified, must be a valid [access level](#access-level). It is only valid if *target* is leveled.
+
+*offset*, if specified, must be a valid [constant index](#constant-index). It is only valid if *target* is either a [field](@field-declaration), a [stencil](#stencils) or a [stencil field](#stencil-field). In this case, *target* is not evaluated at the current point of iteration, given by the surrounding [field loop](#field-loop), but at the current point plus the given *offset*.
+
+*direction*, if specified, must be a valid [constant index](#constant-index). It is only valid if *target* is either a [stencil](#stencils) or a [stencil field](#stencil-field). In this case, *target* is evaluated in the given *direction*. This effectively means, that the entry of the *target* stencil (field) is selected that has the *direction* as offset. This selected entry is used instead of *target*.
+
+*component*, if specified, must be an integral constant. If *target* is a vector field or a stencil field, a component of the vector of *target* is used instead of *target*. **This feature will be removed in future versions of the language**.
+
+*direction* and *component* are currently mutually exclusive.
+
+#### Example
+<pre>someVar</pre>
+<pre>someField[active]@current@[1, 0]</pre>
+<pre>someStencil@current:[0, 0]</pre>
+<pre>someStencilField@[1, 0]:[0, 0]</pre>
+
+
+
+
 ## Special Loops
 
 
@@ -1148,6 +1321,50 @@ apply bc to <i>field</i>
 <pre>
 apply bc to u
 </pre>
+
+
+
+### Field Iterator Access
+Access to the iterator of a surrounding [field loop](#field-loop).
+
+#### Syntax
+<pre>i0</pre>
+<pre>i1</pre>
+<pre>i2</pre>
+
+#### Details
+i0 through i2 access the iterator in the corresponding dimension of a surrounding [field loop](#field-loop). Only valid in the scope of a [field loop](#field-loop).
+
+x, y and z can be used as well. **This feature will be removed in future versions of the language**.
+
+#### Example
+<pre>
+0 == ( i0 + i1 + i2 ) % 2
+</pre>
+
+
+
+## Field Slotting
+
+
+
+### Slot Access
+Selects the slot of a field.
+
+#### Syntax
+<pre>
+<i>target</i>
+</pre>
+
+#### Details
+*target* may be one of the following:
+* active, activeSlot or currentSlot
+* next or nextSlot
+* previous or previousSlot
+* an integral constant
+
+#### Example
+cf example of [access](#access).
 
 
 
@@ -1468,19 +1685,3 @@ Var m2 : Matrix&lt;Real, 2, 3&gt; = [1 2 3; 4 5 6]
 * `det()` to calculate the determinant
 * supported operators for binary expression: `+`, `-`, `*`, `/`
 * supported element-wise operations: `.*`, `*./`, `.%` (modulo), `.^` (power)
-
-
-
-# TODO
-
-expression/statement
-binop
-Literals
-
-Index
-Offset notation
-Mapping notation
-Diag()
-inverse()
-unresolvedAccess
-fieldIteratorAccess
