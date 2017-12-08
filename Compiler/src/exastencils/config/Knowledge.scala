@@ -387,7 +387,7 @@ object Knowledge {
   // specifies if CUDA devices are to be synchronized after each (device) kernel call -> recommended to debug, required for reasonable performance measurements
   var cuda_syncDeviceAfterKernelCalls : Boolean = true
   // specifies if fields with (exclusive) write accesses should be synchronized before host kernel executions
-  var cuda_syncHostForWrites : Boolean = false
+  var cuda_syncHostForWrites : Boolean = true
   // specifies if fields with (exclusive) write accesses should be synchronized before device kernel executions
   var cuda_syncDeviceForWrites : Boolean = true
 
