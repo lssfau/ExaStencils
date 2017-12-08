@@ -11,6 +11,7 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.field.ir._
+import exastencils.logger.Logger
 import exastencils.util.ir.IR_FctNameCollector
 
 /// CUDA_PrepareHostCode
@@ -55,6 +56,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     // don't filter here - memory transfer code is still required
+    Logger.pushLevel(Logger.WARNING)
     val gatherFields = new CUDA_GatherFieldAccess()
     this.register(gatherFields)
     this.execute(new Transformation("Gather local FieldAccess nodes", PartialFunction.empty), Some(IR_Scope(body)))
@@ -63,6 +65,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     this.register(gatherBuffers)
     this.execute(new Transformation("Gather local buffer access nodes", PartialFunction.empty), Some(IR_Scope(body)))
     this.unregister(gatherBuffers)
+    Logger.popLevel()
 
     // host sync stmts
 
