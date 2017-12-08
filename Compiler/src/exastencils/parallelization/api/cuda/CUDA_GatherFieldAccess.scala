@@ -19,20 +19,24 @@ class CUDA_GatherFieldAccess extends Collector {
   }
 
   val fieldAccesses = HashMap[String, IR_MultiDimFieldAccess]()
-  private var isRead : Boolean = false
+  private var isRead : Boolean = true
   private var isWrite : Boolean = false
 
   override def reset() : Unit = {
     fieldAccesses.clear()
-    isRead = false
+    isRead = true
     isWrite = false
   }
 
   override def enter(node : Node) : Unit = {
 
     node.getAnnotation(Access.ANNOT) match {
-      case Some(Access.READ)   => isRead = true
-      case Some(Access.WRITE)  => isWrite = true
+      case Some(Access.READ)   =>
+        isRead = true
+        isWrite = false
+      case Some(Access.WRITE)  =>
+        isRead = false
+        isWrite = true
       case Some(Access.UPDATE) =>
         isRead = true
         isWrite = true
@@ -71,7 +75,7 @@ class CUDA_GatherFieldAccess extends Collector {
 
   override def leave(node : Node) : Unit = {
     if (node.removeAnnotation(Access.ANNOT).isDefined) {
-      isRead = false
+      isRead = true
       isWrite = false
     }
   }
