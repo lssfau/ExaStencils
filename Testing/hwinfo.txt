@@ -1,12 +1,13 @@
 Chimaira (Cluster)
-  Constraints: E5, AVX
+  Constraints: chimaira, E5, AVX
   16 Nodes mit je:
     1 Xeon E5-2690 v2 (http://ark.intel.com/de/products/75279/Intel-Xeon-Processor-E5-2690-v2-25M-Cache-3_00-GHz)
       Ivy Bridge EP
       10 Kerne
       20 Threads
       3,0 GHz Basis
-      3,6 GHz Turbo
+      3,3 GHz All-Cores Turbo
+      3,6 GHz Single-Core Turbo
       25 MB L3-Cache
       AVX
     64 GB RAM (DDR3 1866 - quadchannel)
@@ -27,9 +28,24 @@ Chimaira (Cluster)
       IMCI
 
 
+Zeus (Cluster)
+  Constraints: zeus, E5, AVX
+  24 Nodes mit je:
+    2 Xeon E5-2650 v2 (https://ark.intel.com/de/products/75269/Intel-Xeon-Processor-E5-2650-v2-20M-Cache-2_60-GHz)
+      Ivy Bridge EP
+      8 Kerne
+      16 Threads
+      2,6 GHz Basis
+      3,1 GHz All-Cores Turbo
+      3,4 GHz Single-Core Turbo
+      20 MB L3-Cache
+      AVX
+    128 GB RAM (64 GB pro Sockel)
+
+
 Zmiy (Pseudo-Cluster)
   4 Systeme mit je:
-    Constraints: AVX, AVX2
+    Constraints: zmiy, i7, AVX, AVX2
     Intel Core i7-4790 (http://ark.intel.com/de/products/80806/Intel-Core-i7-4790-Processor-8M-Cache-up-to-4_00-GHz)
       Haswell
       4 Kerne
@@ -40,7 +56,7 @@ Zmiy (Pseudo-Cluster)
       AVX2 (& FMA)
     16 GB RAM (dualchannel)
   14 Systeme mit je:
-    Constraints: AVX, AVX2
+    Constraints: zmiy, i5, AVX, AVX2
     Intel Core i5-4590 (http://ark.intel.com/de/products/80815/Intel-Core-i5-4590-Processor-6M-Cache-up-to-3_70-GHz)
       Haswell
       4 Kerne

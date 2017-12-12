@@ -150,12 +150,14 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
 
     val processedLayouts = new IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex]()
     val colCondColl = new ColorCondCollector()
-    this.register(colCondColl)
-    this.execute(new Transformation("transform", {
-      case dfa : IR_DirectFieldAccess =>
-        processDFA(dfa, transformations, processedLayouts, colCondColl)
-        dfa
-    }))
+    if (!transformations.isEmpty) {
+      this.register(colCondColl)
+      this.execute(new Transformation("transform", {
+        case dfa : IR_DirectFieldAccess =>
+          processDFA(dfa, transformations, processedLayouts, colCondColl)
+          dfa
+      }))
+    }
 
     val fieldReplace = new IdentityHashMap[IR_Field, (IR_Field, Int)]()
     for (fConc <- fieldConcs)

@@ -4,38 +4,71 @@ import scala.collection.mutable._
 
 import exastencils.base.ir._
 import exastencils.communication.ir._
+import exastencils.core.collectors.Collector
 import exastencils.datastructures._
+import exastencils.field.ir.IR_MultiDimFieldAccess
+import exastencils.field.ir.IR_SlotAccess
 
-/// CUDA_GatherBufferAccess
+class CUDA_GatherBufferAccess extends Collector {
 
-object CUDA_GatherBufferAccess extends QuietDefaultStrategy("Gather local buffer access nodes") {
-  var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
-  var inWriteOp = false
+  /** constants for read/write annotations */
+  private final object Access extends Enumeration {
+    type Access = Value
+    val ANNOT : String = "CUDAAcc"
+    val READ, WRITE, UPDATE = Value
 
-  def clear() = {
+    exastencils.core.Duplicate.registerConstant(this)
+  }
+
+  val bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
+  private var isRead : Boolean = true
+  private var isWrite : Boolean = false
+
+  override def reset() : Unit = {
     bufferAccesses.clear()
-    inWriteOp = false
+    isRead = true
+    isWrite = false
   }
 
-  def mapBuffer(buffer : IR_IV_CommBuffer) = {
-    var identifier = buffer.resolveName()
-    identifier = (if (inWriteOp) "write_" else "read_") + identifier
+  override def enter(node : Node) : Unit = {
 
-    bufferAccesses.put(identifier, buffer)
+    node.getAnnotation(Access.ANNOT) match {
+      case Some(Access.READ)   =>
+        isRead = true
+        isWrite = false
+      case Some(Access.WRITE)  =>
+        isRead = false
+        isWrite = true
+      case Some(Access.UPDATE) =>
+        isRead = true
+        isWrite = true
+      case None                =>
+    }
+
+    node match {
+      case assign : IR_Assignment =>
+        assign.op match {
+          case "=" => assign.dest.annotate(Access.ANNOT, Access.WRITE)
+          case _   => assign.dest.annotate(Access.ANNOT, Access.UPDATE)
+        }
+        assign.src.annotate(Access.ANNOT, Access.READ)
+
+      case buffer : IR_IV_CommBuffer =>
+        val identifier = buffer.resolveName()
+
+        if (isRead)
+          bufferAccesses.put("read_" + identifier, buffer)
+        if (isWrite)
+          bufferAccesses.put("write_" + identifier, buffer)
+
+      case _ =>
+    }
   }
 
-  this += new Transformation("Searching", {
-    case assign : IR_Assignment =>
-      inWriteOp = true
-      CUDA_GatherBufferAccess.applyStandalone(IR_ExpressionStatement(assign.dest))
-      inWriteOp = false
-      if ("=" != assign.op) // add compound assignments as read and write accesses
-        CUDA_GatherBufferAccess.applyStandalone(IR_ExpressionStatement(assign.dest))
-      CUDA_GatherBufferAccess.applyStandalone(IR_ExpressionStatement(assign.src))
-      assign
-
-    case buffer : IR_IV_CommBuffer =>
-      mapBuffer(buffer)
-      buffer
-  }, false)
+  override def leave(node : Node) : Unit = {
+    if (node.removeAnnotation(Access.ANNOT).isDefined) {
+      isRead = true
+      isWrite = false
+    }
+  }
 }
