@@ -434,6 +434,7 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   private def optimize(scop : Scop, confID : Int) : Unit = {
     Knowledge.poly_scheduleAlgorithm match {
       case "exploration" => optimizeExpl(scop, confID)
+      case "external"    => useExternalSchedule(scop)
       case _             => optimizeIsl(scop)
     }
   }
@@ -490,6 +491,33 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     }
 
     scop.schedule = Isl.simplify(scheduleMap)
+    scop.updateLoopVars()
+  }
+
+  private def useExternalSchedule(scop : Scop) : Unit = {
+    if (Knowledge.poly_extSched_unrollTime) {
+      val map : isl.Map = isl.Map.readFromStr(scop.domain.getCtx(), Knowledge.poly_externalSchedule)
+      scop.noParDims.clear()
+      var schedule = isl.UnionMap.empty(isl.Space.mapFromSet(scop.domain.getSpace()))
+      for ((stmt, i) <- scop.stmts.keySet.toArray.sorted.zipWithIndex) {
+        val m = map.fixVal(T_IN, 0, i).projectOut(T_IN, 0, 1).setTupleName(T_IN, stmt)
+        schedule = schedule.addMap(m)
+      }
+      scop.schedule = Isl.simplify(schedule)
+    } else {
+      val schedule : isl.UnionMap = isl.UnionMap.readFromStr(scop.domain.getCtx(), Knowledge.poly_externalSchedule)
+      scop.schedule = Isl.simplify(schedule)
+    }
+    scop.noParDims.clear()
+
+    val tilableDims : Int = Knowledge.poly_extSched_outerBandSize
+    if (tilableDims > 1) {
+      // apply tiling
+      if (scop.optLevel >= 3 && tilableDims > 1 && tilableDims <= 4)
+        scop.schedule = tileSchedule(scop.schedule, scop, tilableDims, scop.tileSizes)
+    }
+
+    scop.schedule = Isl.simplify(scop.schedule)
     scop.updateLoopVars()
   }
 
