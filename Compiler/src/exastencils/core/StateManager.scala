@@ -1,11 +1,10 @@
 package exastencils.core
 
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Stack
+import scala.collection.mutable.{ HashMap, ListBuffer, Stack }
 import scala.language.existentials
 import scala.reflect.ClassTag
 
+import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.logger._
@@ -171,6 +170,7 @@ object StateManager {
               if (m ne n) {
                 nextNode = m
                 m.annotate(n)
+                if (Knowledge.parser_annotateLocation) m.location = n.location
                 if (!Vars.set(node, field, m)) {
                   Logger.error(s"""Could not set "$field" in transformation ${ transformation.name }""")
                 }
@@ -182,6 +182,7 @@ object StateManager {
               if (mNode ne n) {
                 nextNode = mNode
                 mNode.annotate(n)
+                if (Knowledge.parser_annotateLocation) mNode.location = n.location
                 if (!Vars.set(node, field, mNode)) {
                   Logger.error(s"""Could not set "$field" in transformation ${ transformation.name }""")
                 }
@@ -205,6 +206,7 @@ object StateManager {
                 if (m ne n) {
                   nextNode = m
                   m.annotate(n)
+                  if (Knowledge.parser_annotateLocation) m.location = n.location
                   if (!Vars.set(node, field, Some(m))) {
                     Logger.error(s"""Could not set "$field" in transformation ${ transformation.name }""")
                   }
@@ -216,6 +218,7 @@ object StateManager {
                 if (mNode != n) {
                   nextNode = mNode
                   mNode.annotate(n)
+                  if (Knowledge.parser_annotateLocation) mNode.location = n.location
                   if (!Vars.set(node, field, Some(mNode))) {
                     Logger.error(s"""Could not set "$field" in transformation ${ transformation.name }""")
                   }
@@ -249,6 +252,7 @@ object StateManager {
 
               case newN : Node =>
                 newN.annotate(n)
+                if (Knowledge.parser_annotateLocation) newN.location = n.location
                 if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                   replace(newN, transformation) // Recursive call for new element
                 }
@@ -259,6 +263,7 @@ object StateManager {
                   newN.nodes.foreach(replace(_, transformation)) // recursive call for new elements
                 }
                 newN.nodes.foreach(_.annotate(n))
+                if (Knowledge.parser_annotateLocation) newN.nodes.foreach(_.location = n.location)
                 newN.nodes // elements of type Node were returned => use them
 
               case None => List()
@@ -281,6 +286,7 @@ object StateManager {
                   replace(newN, transformation) // Recursive call for new element
                 }
                 newN.annotate(n)
+                if (Knowledge.parser_annotateLocation) newN.location = n.location
                 List(newN) // element of type Node was returned => use it
 
               case newN : NodeList =>
@@ -288,6 +294,7 @@ object StateManager {
                   newN.nodes.foreach(replace(_, transformation)) // recursive call for new elements
                 }
                 newN.nodes.foreach(_.annotate(n))
+                if (Knowledge.parser_annotateLocation) newN.nodes.foreach(_.location = n.location)
                 newN.nodes // elements of type Node were returned => use them
 
               case None => List()
@@ -314,6 +321,7 @@ object StateManager {
                   replace(newN, transformation) // Recursive call for new element
                 }
                 newN.annotate(n)
+                if (Knowledge.parser_annotateLocation) newN.location = n.location
                 List(newN) // element of type Node was returned => use it
 
               case newN : NodeList =>
@@ -321,6 +329,7 @@ object StateManager {
                   newN.nodes.foreach(replace(_, transformation)) // recursive call for new elements
                 }
                 newN.nodes.foreach(_.annotate(n))
+                if (Knowledge.parser_annotateLocation) newN.nodes.foreach(_.location = n.location)
                 newN.nodes // elements of type Node were returned => use them
 
               case None => List()
@@ -337,6 +346,7 @@ object StateManager {
                       replace(newN, transformation) // Recursive call for new element
                     }
                     newN.annotate(n)
+                    if (Knowledge.parser_annotateLocation) newN.location = n.location
                     List(newN) // element of type Node was returned => use it
 
                   case newN : NodeList =>
@@ -344,6 +354,7 @@ object StateManager {
                       newN.nodes.foreach(replace(_, transformation)) // recursive call for new elements
                     }
                     newN.nodes.foreach(_.annotate(n))
+                    if (Knowledge.parser_annotateLocation) newN.nodes.foreach(_.location = n.location)
                     newN.nodes // elements of type Node were returned => use them
 
                   case None => List(_f)
@@ -376,6 +387,7 @@ object StateManager {
                     replace(newN, transformation) // Recursive call for new element
                   }
                   newN.annotate(n)
+                  if (Knowledge.parser_annotateLocation) newN.location = n.location
                   newN
               }
 
@@ -404,6 +416,7 @@ object StateManager {
                     replace(newN, transformation) // Recursive call for new element
                   }
                   newN.annotate(n)
+                  if (Knowledge.parser_annotateLocation) newN.location = n.location
                   newN // element of type Node was returned => use it
 
                 case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
@@ -431,6 +444,7 @@ object StateManager {
                     replace(newN, transformation) // Recursive call for new element
                   }
                   newN.annotate(n)
+                  if (Knowledge.parser_annotateLocation) newN.location = n.location
                   newN // element of type Node was returned => use it
 
                 case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
@@ -555,7 +569,7 @@ object StateManager {
     * Finds all instances of a certain type meeting a certain condition in the current program state.
     *
     * @param predicate The predicate to test a node instance for.
-    * @param node  The node where to start the recursive search.
+    * @param node      The node where to start the recursive search.
     * @return A List containing all instances of Nodes of type T.
     */
   def findAll[T <: AnyRef : ClassTag](predicate : Node => Boolean, node : Node = root) : List[T] = {
