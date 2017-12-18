@@ -3,7 +3,9 @@ package exastencils.datastructures
 import scala.collection.GenTraversableOnce
 
 /** The basic trait every matchable (in terms of [[exastencils.datastructures.Transformation]] matching) entity has to subclass. */
-trait Node extends Annotatable with Product with Serializable
+trait Node extends Annotatable with Product with Serializable {
+  var location = SourceLocation()
+}
 
 final case class HelperNode(node : Node) extends Node
 

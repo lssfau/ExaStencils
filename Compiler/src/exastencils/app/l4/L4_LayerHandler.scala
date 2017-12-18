@@ -83,7 +83,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     if (Knowledge.l3tmp_generateL4) {
       val l3gen_root = l3Generate.Root()
       val l4_code = l3gen_root.print()
-      ExaRootNode.mergeL4(L4_Parser.parse(l4_code).asInstanceOf[L4_Root])
+      ExaRootNode.mergeL4(L4_Parser.parse(l4_code, "l3gen_root").asInstanceOf[L4_Root])
     }
 
     ExaRootNode.mergeL4(L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node)))
@@ -107,7 +107,8 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     // re-parse the code to check for errors - also clear knowledge collections
     L4_KnowledgeContainer.clear()
 
-    ExaRootNode.l4_root = L4_Parser.parse(oldL4Code).asInstanceOf[L4_Root]
+    val l4FileName = if (Settings.getDebugL4file.nonEmpty) Settings.getDebugL4file else "debugLayer4"
+    ExaRootNode.l4_root = L4_Parser.parse(oldL4Code, l4FileName).asInstanceOf[L4_Root]
     ExaRootNode.l4_root.flatten()
 
     if (ExaRootNode.l4_root.nodes.nonEmpty) {

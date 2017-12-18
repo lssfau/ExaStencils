@@ -24,8 +24,11 @@ import exastencils.solver.l4._
 object L4_Parser extends ExaParser with PackratParsers {
   override val lexical : ExaLexer = new L4_Lexer()
 
-  def parse(s : String) : Node = {
-    parseTokens(new lexical.Scanner(s))
+  def parse(s : String, filename : String = "") : L4_Root = {
+    filenames.push(filename)
+    val ret = parseTokens(new lexical.Scanner(s))
+    filenames.pop()
+    ret.asInstanceOf[L4_Root]
   }
 
   private val prevDirs = new Stack[java.io.File]().push(null)
@@ -33,10 +36,9 @@ object L4_Parser extends ExaParser with PackratParsers {
     val file = new java.io.File(prevDirs.top, filename)
     val lines = scala.io.Source.fromFile(file).getLines
     val reader = new PagedSeqReader(PagedSeq.fromLines(lines))
-    val scanner = new lexical.Scanner(reader)
 
     prevDirs.push(file.getAbsoluteFile.getParentFile)
-    val ret = parseTokens(scanner)
+    val ret = parse(reader.source.toString, file.getName)
     prevDirs.pop()
     ret.asInstanceOf[L4_Root]
   }

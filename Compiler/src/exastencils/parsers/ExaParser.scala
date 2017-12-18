@@ -1,14 +1,16 @@
 package exastencils.parsers
 
+import scala.collection.mutable.Stack
 import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.combinator.syntactical.StandardTokenParsers
 
-import exastencils.config._
 import exastencils.datastructures._
 
 class ExaParser extends StandardTokenParsers with PackratParsers {
   val IntRegEx = """[+-]?(\d+)""".r
   val DoubleRegEx = """[+-]?\d+(\.\d*)?""".r
+
+  var filenames = Stack[String]()
 
   protected def isInt(str : String) : Boolean = {
     val x = IntRegEx.findFirstIn(str)
@@ -22,8 +24,14 @@ class ExaParser extends StandardTokenParsers with PackratParsers {
 
   def locationize[T <: Annotatable](p : => Parser[T]) : Parser[T] = Parser { in =>
     p(in) match {
-      case Success(t, in1) => Success({ if (Knowledge.parser_annotateLocation) { t.annotate("location", Some(in.pos)) }; t }, in1)
-      case ns : NoSuccess  => ns
+      case hit @ Success(t : Node, _) =>
+        t.location.position = Some(in.pos)
+        if (filenames.nonEmpty)
+          t.location.fileName = Some(filenames.top)
+
+        hit
+
+      case other => other
     }
   }
 
@@ -40,11 +48,11 @@ class ExaParser extends StandardTokenParsers with PackratParsers {
 
   lazy val integerLit = (
     numericLit ^^ { case n if isInt(n) => n.toInt }
-    ||| ("-" ~> numericLit ^^ { case n if isInt(n) => -n.toInt }))
+      ||| ("-" ~> numericLit ^^ { case n if isInt(n) => -n.toInt }))
 
   lazy val realLit = (
     numericLit ^^ { case n if isReal(n) => n.toDouble }
-    ||| ("-" ~> numericLit ^^ { case n if isReal(n) => -n.toDouble }))
+      ||| ("-" ~> numericLit ^^ { case n if isReal(n) => -n.toDouble }))
 
   lazy val booleanLit : Parser[Boolean] = ("true" ||| "false") ^^ (b => b == "true")
 }
