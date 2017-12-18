@@ -105,19 +105,37 @@ object Logger {
     */
   def info(s : AnyRef) : Unit = macro infoImpl
 
+  def isInNodeScope(c : blackbox.Context) = {
+    var inNode = false
+
+    var enclosing = c.internal.enclosingOwner
+    while (!inNode && enclosing != c.universe.NoSymbol) {
+      if (enclosing.isClass)
+        if (enclosing.asClass.baseClasses.exists(_.fullName == "exastencils.datastructures.Node"))
+          inNode = true
+
+      enclosing = enclosing.owner
+    }
+
+    inNode
+  }
+
   def errorImpl(c : blackbox.Context)(s : c.Expr[AnyRef]) : c.Expr[Nothing] = {
     import c.universe._
     val result = {
       val fileName = Literal(Constant(c.enclosingPosition.source.file.file.getAbsolutePath))
       val line = Literal(Constant(c.enclosingPosition.line))
 
+      def message = if (isInNodeScope(c)) q"$s + location.toAppendString" else q"$s"
+
       //q"""if (exastencils.logger.Logger.getLevel >= 0) {
       q"""{
         if (exastencils.config.Settings.produceHtmlLog) {
-          exastencils.core.logger.Logger_HTML.printErr($fileName, $line, $s)
+          exastencils.core.logger.Logger_HTML.printErr($fileName, $line, $message)
           exastencils.core.logger.Logger_HTML.finish
         }
-        sys.error("ERROR: " + $s)
+
+        sys.error("ERROR: " + $message)
         sys.exit(-1) // just to be extra sure
        }
     """
@@ -131,26 +149,30 @@ object Logger {
       val fileName = Literal(Constant(c.enclosingPosition.source.file.file.getAbsolutePath))
       val line = Literal(Constant(c.enclosingPosition.line))
 
+      def message = if (isInNodeScope(c)) q"$s + location.toAppendString" else q"$s"
+
       q"""if (exastencils.logger.Logger.getLevel >= 1) {
-        println("WARN:  " + $s)
+        println("WARN:  " + $message)
         if (exastencils.config.Settings.produceHtmlLog)
-          exastencils.core.logger.Logger_HTML.printWarn($fileName, $line, $s)
+          exastencils.core.logger.Logger_HTML.printWarn($fileName, $line, $message)
       }
     """
     }
     c.Expr[Unit](result)
   }
 
-  def dbgImpl(c : blackbox.Context)(s : c.Expr[AnyRef]) : c.Expr[Unit] = {
+  def dbgImpl(c : whitebox.Context)(s : c.Expr[AnyRef]) : c.Expr[Unit] = {
     import c.universe._
     val result = {
       val fileName = Literal(Constant(c.enclosingPosition.source.file.file.getAbsolutePath))
       val line = Literal(Constant(c.enclosingPosition.line))
 
+      def message = if (isInNodeScope(c)) q"$s + location.toAppendString" else q"$s"
+
       q"""if (exastencils.logger.Logger.getLevel >= 2) {
-        println("DBG:   " + $s)
+        println("DBG:   " + $message)
         if (exastencils.config.Settings.produceHtmlLog)
-          exastencils.core.logger.Logger_HTML.printDbg($fileName, $line, $s)
+          exastencils.core.logger.Logger_HTML.printDbg($fileName, $line, $message)
       }
     """
     }
@@ -163,10 +185,12 @@ object Logger {
       val fileName = Literal(Constant(c.enclosingPosition.source.file.file.getAbsolutePath))
       val line = Literal(Constant(c.enclosingPosition.line))
 
+      def message = if (isInNodeScope(c)) q"$s + location.toAppendString" else q"$s"
+
       q"""if (exastencils.logger.Logger.getLevel >= 4) {
-        println("INFO:  " + $s)
+        println("INFO:  " + $message)
         if (exastencils.config.Settings.produceHtmlLog)
-          exastencils.core.logger.Logger_HTML.printInfo($fileName, $line, $s)
+          exastencils.core.logger.Logger_HTML.printInfo($fileName, $line, $message)
       }
     """
     }
