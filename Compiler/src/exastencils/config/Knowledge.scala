@@ -6,7 +6,7 @@ object Knowledge {
   // === Parser ===
 
   // adds annotations containing location information to all parsed nodes
-  var parser_annotateLocation : Boolean = false
+  var parser_annotateLocation : Boolean = true
 
   /// === Layer 1 ===
 
