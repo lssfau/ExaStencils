@@ -291,7 +291,7 @@ object Knowledge {
 
   // [true|false] // specify separately if the outermost loop should be tiled
   var poly_tileOuterLoop : Boolean = false
-  // [isl|feautrier|exploration] // choose which schedule algorithm should be used in PolyOpt
+  // [isl|feautrier|exploration|external] // choose which schedule algorithm should be used in PolyOpt
   var poly_scheduleAlgorithm : String = "isl"
   // [all|raw|rar] // specifies which dependences should be optimized; "all" means all validity dependences (raw, war, waw)
   var poly_optimizeDeps : String = "raw"
@@ -310,6 +310,11 @@ object Knowledge {
   // [(-1)~inf] // enforces that the coefficients for variable and parameter dimensions in the calculated schedule are not larger than the specified value (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
   var poly_maxCoefficient : Int = -1
   var poly_printDebug : Boolean = false
+
+  // an external schedule that should be used when poly_scheduleAlgorithm is set to "external"
+  var poly_externalSchedule : String = ""
+  var poly_extSched_unrollTime : Boolean = false
+  var poly_extSched_outerBandSize : Int = 1
 
   // --- general optimization ---
 

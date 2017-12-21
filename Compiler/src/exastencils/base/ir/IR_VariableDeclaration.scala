@@ -19,8 +19,8 @@ case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String,
   override def prettyprint(out : PpStream) : Unit = {
     // TODO: extract specialized behavior
     datatype match {
-      case x : IR_VectorDatatype =>
-        out << x << ' ' << name
+      case dt : IR_VectorDatatype =>
+        out << dt << ' ' << name
         if (initialValue.isDefined) {
           out << "("
           initialValue.get match {
@@ -30,12 +30,13 @@ case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String,
           out << ")"
         }
 
-      case x : IR_MatrixDatatype => if (exastencils.config.Knowledge.experimental_internalHighDimTypes) {
-        x.prettyprint(out)
+      case dt : IR_MatrixDatatype => if (exastencils.config.Knowledge.experimental_internalHighDimTypes) {
+        dt.prettyprint(out)
         out << ' ' << name
         initialValue match {
-          case Some(x : IR_MatrixExpression) => out << ' '; x.prettyprintInner(out)
-          case Some(x)                       => out << " = " << x
+          case Some(e : IR_MatrixExpression) => out << ' '; e.prettyprintInner(out)
+          case Some(e) if(e.datatype.isInstanceOf[IR_ScalarDatatype]) => out << ' ' << '{'; for(i <- 0 until dt.sizeM * dt.sizeN) {e.prettyprint(out); out << ',' }; out.removeLast(); out << '}'
+          case Some(e)                       => out << " = " << e
           case _                             =>
         }
       }

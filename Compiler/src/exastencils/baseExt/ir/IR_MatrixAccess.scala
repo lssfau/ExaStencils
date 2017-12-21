@@ -130,7 +130,7 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
 
       if (selfassign) {
         var newStmts = ListBuffer[IR_Statement]()
-        val decl = IR_VariableDeclaration(dest.datatype, "_matrixExp" + matExpCounter, None)
+        val decl = IR_VariableDeclaration(dest.datatype, "_matrixExp" + matExpCounter, src)
         newStmts += decl
         stmt.dest = IR_VariableAccess(decl)
         newStmts += stmt
@@ -161,15 +161,15 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
       decl
   }, applyAtNode = StateManager.findFirst[IR_GlobalCollection]())
 
-  this += new Transformation("declarations", {
+//  this += new Transformation("declarations", {
     // Definition of matrix variable including initialisation -> split into decl and assignment
-    case decl @ IR_VariableDeclaration(matrix : IR_MatrixDatatype, _, Some(exp : IR_Expression), _) =>
-      val newStmts = ListBuffer[IR_Statement]()
-      // split declaration and definition so each part can be handled by subsequent transformations
-      newStmts += IR_VariableDeclaration(matrix, decl.name, None)
-      newStmts += IR_Assignment(IR_VariableAccess(Duplicate(decl)), exp)
-      newStmts
-  })
+//    case decl @ IR_VariableDeclaration(matrix : IR_MatrixDatatype, _, Some(exp : IR_Expression), _) =>
+//      val newStmts = ListBuffer[IR_Statement]()
+//      // split declaration and definition so each part can be handled by subsequent transformations
+//      newStmts += IR_VariableDeclaration(matrix, decl.name, None)
+//      newStmts += IR_Assignment(IR_VariableAccess(Duplicate(decl)), exp)
+//      newStmts
+//  })
 
   this += new Transformation("extract function calls 1/2", {
     case stmt @ IR_Assignment(_, src, _) if (src.datatype.isInstanceOf[IR_MatrixDatatype])    =>
@@ -257,9 +257,8 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
         case argexp : IR_MultiDimFieldAccess                                             => argexp
         case argexp : IR_VariableAccess                                                  => argexp
         case argexp : IR_Expression if (argexp.datatype.isInstanceOf[IR_MatrixDatatype]) => {
-          var decl = IR_VariableDeclaration(argexp.datatype, "_matrixExp" + matExpCounter, None)
+          var decl = IR_VariableDeclaration(argexp.datatype, "_matrixExp" + matExpCounter, argexp)
           newStmts += decl
-          newStmts += IR_Assignment(IR_VariableAccess(decl), argexp)
           IR_VariableAccess(decl)
         }
         case arg                                                                         => arg
@@ -273,9 +272,8 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
         case argexp : IR_MultiDimFieldAccess                                             => argexp
         case argexp : IR_VariableAccess                                                  => argexp
         case argexp : IR_Expression if (argexp.datatype.isInstanceOf[IR_MatrixDatatype]) => {
-          var decl = IR_VariableDeclaration(argexp.datatype, "_matrixExp" + matExpCounter, None)
+          var decl = IR_VariableDeclaration(argexp.datatype, "_matrixExp" + matExpCounter, argexp)
           newStmts += decl
-          newStmts += IR_Assignment(IR_VariableAccess(decl), argexp)
           IR_VariableAccess(decl)
         }
         case arg                                                                         => arg
@@ -807,6 +805,7 @@ object IR_ResolveMatrixAssignments extends DefaultStrategy("Resolve assignments 
   val annotationMatrixCol = "IR_ResolveMatrices.matrixCol"
 
   this += new Transformation("scalarize 1/2", {
+    case stmt : IR_VariableDeclaration => stmt
     case stmt @ IR_Assignment(dest, _, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype]) =>
       val matrix = dest.datatype.asInstanceOf[IR_MatrixDatatype]
       var newStmts = ListBuffer[IR_Statement]()
