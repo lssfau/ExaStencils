@@ -17,8 +17,6 @@ object Printer {
       string = string.replaceAllLiterally("|NEXT_LC|", layer.next.lc)
 
     string = string.replaceAll("\r\n", "\n")
-    if (true)
-      string = string.replaceAll("\n", "\r\n")
 
     string
   }

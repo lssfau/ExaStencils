@@ -8,6 +8,8 @@ object CodeMuncher {
   // package -> classNames
   val metaClassList = HashMap[String, ListBuffer[String]]()
 
+  var handledFiles = HashSet[String]()
+
   def generateGeneratorList() = {
     val printer = new Printer
 
@@ -49,11 +51,25 @@ object CodeMuncher {
 
     val codeVariants = HashMap[String, ListBuffer[Layer]]()
 
+    (Layer.all -- layers).foreach(layer => {
+      var filename = metaFilename
+      filename = Printer.process(filename, layer)
+      if (new java.io.File(filename).exists)
+        println(s"Unregistered file for $className in $filePackage found (${ layer.lc })")
+    })
+
     layers.foreach(layer => {
       var filename = metaFilename
       filename = Printer.process(filename, layer)
+      handledFiles += filename
 
       var string = scala.io.Source.fromFile(filename).mkString
+
+      // unify line endings
+      string = string.replace("\r\n", "\n")
+
+      if (Config.wrapProgressFunctionsWithLocation)
+        string = WrapWithProgressLocation(string)
 
       def replaceIn(input : String, prefixes : List[String], postfixes : List[String]) = {
         var processed = input
@@ -149,7 +165,7 @@ object CodeMuncher {
     printer <<< "  override def generateForLayer(layer : Layer) = {"
     printer <<< "    val printer = new Printer"
 
-    var variantList = codeVariants.map(v => Variant(v._1.split("\r\n").toList, v._2)).to[ListBuffer]
+    var variantList = codeVariants.map(v => Variant(v._1.split("\n").toList, v._2)).to[ListBuffer]
     var depth = 0
 
     while (variantList.nonEmpty) {
@@ -245,5 +261,12 @@ object CodeMuncher {
         printer <<< ""
     }
     printer.getBuffer.setLength(printer.getBuffer.length - 1)
+  }
+
+  def checkForUnhandledFiles() = {
+    val files = UpdateMuncherList.collectApplicableFiles()
+
+    val unhandled = files./*map(_.getPath.replace('\\', '/')).*/ filterNot(handledFiles.contains)
+    unhandled.foreach(u => println(s"Found unhandled file $u"))
   }
 }

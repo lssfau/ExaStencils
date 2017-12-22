@@ -6,6 +6,10 @@ import scala.collection.mutable.ListBuffer
 
 object Generatable {
   def printToFile(filename : String, content : String) = {
+    var withLineEndings = content
+    if (Config.windows)
+      withLineEndings = withLineEndings.replaceAll("\n", "\r\n")
+
     if (!new java.io.File(filename).exists) {
       println("Creating " + filename)
 
@@ -13,13 +17,13 @@ object Generatable {
       if (!file.getParentFile.exists()) file.getParentFile.mkdirs()
 
       val outFile = new java.io.FileWriter(filename)
-      outFile.write(content)
+      outFile.write(withLineEndings)
       outFile.close()
-    } else if (content != scala.io.Source.fromFile(filename).mkString) {
+    } else if (withLineEndings != scala.io.Source.fromFile(filename).mkString) {
       println("Updating " + filename)
 
       val outFile = new java.io.FileWriter(filename)
-      outFile.write(content)
+      outFile.write(withLineEndings)
       outFile.close()
     } else {
       println("Skipping " + filename)

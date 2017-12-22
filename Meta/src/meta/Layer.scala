@@ -9,11 +9,42 @@ object Layer {
   def allButIR = ListBuffer(L1, L2, L3, L4)
   def L2AndUp = ListBuffer(L2, L3, L4, IR)
   def L3AndUp = ListBuffer(L3, L4, IR)
-  def L4AndUp = ListBuffer(L4, IR)
+  def L4AndUp = ListBuffer[Layer](L4, IR)
   def L1_L2_L3 = ListBuffer(L1, L2, L3)
   def L2_L3 = ListBuffer(L2, L3)
   def L3_L4 = ListBuffer(L3, L4)
   def L2_L3_L4 = ListBuffer(L2, L3, L4)
+
+  def matchLc(lc : String) = lc match {
+    case "l1"   => L1
+    case "l2"   => L2
+    case "l3"   => L3
+    case "l4"   => L4
+    case "ir"   => IR
+    case "meta" => MetaLayer
+  }
+
+  def matchLayerList(l : ListBuffer[Layer]) = l match {
+    case ListBuffer(L1) => "L1"
+    case ListBuffer(L2) => "L2"
+    case ListBuffer(L3) => "L3"
+    case ListBuffer(L4) => "L4"
+    case ListBuffer(IR) => "IR"
+
+    case ListBuffer(IR, L1, L2, L3, L4) => "all"
+    case ListBuffer(L1, L2, L3, L4)     => "allButIR"
+    case ListBuffer(IR, L2, L3, L4)     => "L2AndUp"
+    case ListBuffer(IR, L3, L4)         => "L3AndUp"
+    case ListBuffer(IR, L4)             => "L4AndUp"
+    case ListBuffer(L1, L2, L3)         => "L1_L2_L3"
+    case ListBuffer(L2, L3)             => "L2_L3"
+    case ListBuffer(L3, L4)             => "L3_L4"
+    case ListBuffer(L2, L3, L4)         => "L2_L3_L4"
+
+    case other if other.contains(IR) => s"""ListBuffer(${ (other.last +: other.dropRight(1)).map(_.uc).mkString(", ") })"""
+
+    case other => s"""ListBuffer(${ other.map(_.uc).mkString(", ") })"""
+  }
 }
 
 abstract class Layer {

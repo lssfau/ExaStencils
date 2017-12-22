@@ -5,6 +5,7 @@ object Main {
     println(s"Performing operation '${ args(0) }'")
 
     args(0) match {
+      case "update"    => update()
       case "collect"   => collect()
       case "generate"  => generate()
       case "duplicate" => duplicate()
@@ -12,10 +13,15 @@ object Main {
     }
   }
 
+  def update() = {
+    UpdateMuncherList.update()
+  }
+
   def collect() = {
     for (entry <- MuncherList.entries)
       CodeMuncher.process(entry)
     CodeMuncher.generateGeneratorList()
+    CodeMuncher.checkForUnhandledFiles()
   }
 
   def generate() = {
@@ -30,7 +36,7 @@ object Main {
 
 //    for (entry <- GeneratorList.entries)
 //      entry.duplicateFromTo(L2, L3)
-
+//
 //    ME_XXX.duplicateFromTo(IR, L2)
   }
 }
