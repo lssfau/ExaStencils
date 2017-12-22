@@ -11,10 +11,17 @@ Layout Vec2Cell < Vector<Real, 2>, Cell > @all {
   ghostLayers     = [ 1, 1, 1 ] with communication
 }
 
+Layout Vec9Cell < Vector<Real, 9>, Cell > @all {
+  duplicateLayers = [ 0, 0, 0 ]
+  ghostLayers     = [ 1, 1, 1 ] with communication
+}
+
 Layout IntCell < Int, Cell > @all {
   duplicateLayers = [ 0, 0, 0 ]
   ghostLayers     = [ 1, 1, 1 ] with communication
 }
+
+Field PdfAsVec < global, Vec9Cell, None >[2] @all
 
 Field Pdf_C  < global, ScalarCell, None >[2] @all
 Field Pdf_N  < global, ScalarCell, None >[2] @all
@@ -33,9 +40,12 @@ Field denVis < global, ScalarCell, None >@all
 
 Globals {
   Var t       : Int  = 0
-  Var maxTime : Int  = 10000
+  Var maxTime : Int  = 1000
   Var tau     : Real = 1.0
 
+  Val unitVec9 : Vector<Real, 9> = { 1., 1., 1., 1., 1., 1., 1., 1., 1. }T
+
+  Val latticeWeightAsVec : Vector<Real, 9> = { 4./9., 1./9., 1./9., 1./9., 1./9., 1./36., 1./36., 1./36., 1./36. }T
   Val latticeWeight_C  : Real = 4./9.
   Val latticeWeight_N  : Real = 1./9.
   Val latticeWeight_E  : Real = 1./9.
@@ -45,6 +55,22 @@ Globals {
   Val latticeWeight_SE : Real = 1./36.
   Val latticeWeight_SW : Real = 1./36.
   Val latticeWeight_NW : Real = 1./36.
+
+  Val latticeVelAsVec : Matrix<Real, 9, 2> = {
+    {  0,  0 },
+    {  0,  1 },
+    {  1,  0 },
+    {  0, -1 },
+    { -1,  0 },
+    {  1,  1 },
+    {  1, -1 },
+    { -1, -1 },
+    { -1,  1 }
+  }
+  Val latticeVelAsVecTransp : Matrix<Real, 2, 9> = {
+    { 0, 0, 1, 0, -1, 1, 1, -1, -1 },
+    { 0, 1, 0, -1, 0, 1, -1, -1, 1 }
+  }
 
   Val latticeVel_C  : Vec2 = { 0,  0}T
   Val latticeVel_N  : Vec2 = { 0,  1}T
@@ -58,6 +84,26 @@ Globals {
 
   Var topVel  : Real = 0.1
   Val ubb1Vel : Vec2 = { topVel, 0.0 }T
+}
+
+Function copyToPdfVec@all {
+  loop over PdfAsVec {
+    PdfAsVec = { Pdf_C, Pdf_N, Pdf_E, Pdf_S, Pdf_W, Pdf_NE, Pdf_SE, Pdf_SW, Pdf_NW }T
+  }
+}
+
+Function copyFromPdfVec@all {
+  loop over PdfAsVec {
+    Pdf_C  = dot ( PdfAsVec, { 1, 0, 0, 0, 0, 0, 0, 0, 0 }T )
+    Pdf_N  = dot ( PdfAsVec, { 0, 1, 0, 0, 0, 0, 0, 0, 0 }T )
+    Pdf_E  = dot ( PdfAsVec, { 0, 0, 1, 0, 0, 0, 0, 0, 0 }T )
+    Pdf_S  = dot ( PdfAsVec, { 0, 0, 0, 1, 0, 0, 0, 0, 0 }T )
+    Pdf_W  = dot ( PdfAsVec, { 0, 0, 0, 0, 1, 0, 0, 0, 0 }T )
+    Pdf_NE = dot ( PdfAsVec, { 0, 0, 0, 0, 0, 1, 0, 0, 0 }T )
+    Pdf_SE = dot ( PdfAsVec, { 0, 0, 0, 0, 0, 0, 1, 0, 0 }T )
+    Pdf_SW = dot ( PdfAsVec, { 0, 0, 0, 0, 0, 0, 0, 1, 0 }T )
+    Pdf_NW = dot ( PdfAsVec, { 0, 0, 0, 0, 0, 0, 0, 0, 1 }T )
+  }
 }
 
 Function SetBoundaries@finest ( ) {
@@ -100,39 +146,41 @@ Function InitFields@finest ( ) {
 }
 
 Function CollideStep@all ( ) {
+  copyToPdfVec ( )
+
   loop over den {
-    den = Pdf_C + Pdf_N + Pdf_E + Pdf_S + Pdf_W + Pdf_NE + Pdf_SE + Pdf_SW + Pdf_NW
+    den = dot ( PdfAsVec, unitVec9 )
   }
 
   loop over vel {
-    Val momDen : Vec2 = ( Pdf_C * latticeVel_C
-      + Pdf_N  * latticeVel_N  + Pdf_E  * latticeVel_E  + Pdf_S  * latticeVel_S  + Pdf_W  * latticeVel_W
-      + Pdf_NE * latticeVel_NE + Pdf_SE * latticeVel_SE + Pdf_SW * latticeVel_SW + Pdf_NW * latticeVel_NW )
-
-    vel = momDen / den
+    //vel = ( transpose ( latticeVelAsVec ) * PdfAsVec ) / den
+    vel = ( latticeVelAsVecTransp * PdfAsVec ) / den
   }
 
   loop over Pdf_C {
-    Val feq_C  : Real = latticeWeight_C  * den * (1. + 3. * dot ( vel, latticeVel_C  ) + 9. * ( dot ( vel, latticeVel_C  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
-    Val feq_N  : Real = latticeWeight_N  * den * (1. + 3. * dot ( vel, latticeVel_N  ) + 9. * ( dot ( vel, latticeVel_N  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
-    Val feq_E  : Real = latticeWeight_E  * den * (1. + 3. * dot ( vel, latticeVel_E  ) + 9. * ( dot ( vel, latticeVel_E  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
-    Val feq_S  : Real = latticeWeight_S  * den * (1. + 3. * dot ( vel, latticeVel_S  ) + 9. * ( dot ( vel, latticeVel_S  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
-    Val feq_W  : Real = latticeWeight_W  * den * (1. + 3. * dot ( vel, latticeVel_W  ) + 9. * ( dot ( vel, latticeVel_W  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
-    Val feq_NE : Real = latticeWeight_NE * den * (1. + 3. * dot ( vel, latticeVel_NE ) + 9. * ( dot ( vel, latticeVel_NE ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
-    Val feq_SE : Real = latticeWeight_SE * den * (1. + 3. * dot ( vel, latticeVel_SE ) + 9. * ( dot ( vel, latticeVel_SE ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
-    Val feq_SW : Real = latticeWeight_SW * den * (1. + 3. * dot ( vel, latticeVel_SW ) + 9. * ( dot ( vel, latticeVel_SW ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
-    Val feq_NW : Real = latticeWeight_NW * den * (1. + 3. * dot ( vel, latticeVel_NW ) + 9. * ( dot ( vel, latticeVel_NW ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+    //Var tmp0 : Vector<Real, 9> = den * latticeWeightAsVec
+    //Var tmp1 : Vector<Real, 9> = 3. * ( latticeVelAsVec * vel )
+    //Var tmp2 : Vector<Real, 9> = latticeVelAsVec * vel
+    //Var tmp3 : Vector<Real, 9> = 9. * ( tmp2 .* tmp2 ) / 2.
+    //Var tmp4 : Vector<Real, 9> = 3. * dot ( vel, vel ) / 2. * unitVec9
+    //Var feqAsVec : Vector<Real, 9> = ( den * latticeWeightAsVec ) .* (1. + 3. * ( latticeVelAsVec * vel ) + 9. * ( ( latticeVelAsVec * vel ) .** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+    //Var feqAsVec : Vector<Real, 9> = ( den * latticeWeightAsVec ) .* (1. + 3. * ( latticeVelAsVec * vel ) + 9. * ( ( latticeVelAsVec * vel ) .** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
 
-    Pdf_C  = Pdf_C  - 1. / tau * ( Pdf_C  - feq_C  )
-    Pdf_N  = Pdf_N  - 1. / tau * ( Pdf_N  - feq_N  )
-    Pdf_E  = Pdf_E  - 1. / tau * ( Pdf_E  - feq_E  )
-    Pdf_S  = Pdf_S  - 1. / tau * ( Pdf_S  - feq_S  )
-    Pdf_W  = Pdf_W  - 1. / tau * ( Pdf_W  - feq_W  )
-    Pdf_NE = Pdf_NE - 1. / tau * ( Pdf_NE - feq_NE )
-    Pdf_SE = Pdf_SE - 1. / tau * ( Pdf_SE - feq_SE )
-    Pdf_SW = Pdf_SW - 1. / tau * ( Pdf_SW - feq_SW )
-    Pdf_NW = Pdf_NW - 1. / tau * ( Pdf_NW - feq_NW )
+    Var feq_C  : Real = latticeWeight_C  * den * (1. + 3. * dot ( vel, latticeVel_C  ) + 9. * ( dot ( vel, latticeVel_C  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+    Var feq_N  : Real = latticeWeight_N  * den * (1. + 3. * dot ( vel, latticeVel_N  ) + 9. * ( dot ( vel, latticeVel_N  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+    Var feq_E  : Real = latticeWeight_E  * den * (1. + 3. * dot ( vel, latticeVel_E  ) + 9. * ( dot ( vel, latticeVel_E  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+    Var feq_S  : Real = latticeWeight_S  * den * (1. + 3. * dot ( vel, latticeVel_S  ) + 9. * ( dot ( vel, latticeVel_S  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+    Var feq_W  : Real = latticeWeight_W  * den * (1. + 3. * dot ( vel, latticeVel_W  ) + 9. * ( dot ( vel, latticeVel_W  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+    Var feq_NE : Real = latticeWeight_NE * den * (1. + 3. * dot ( vel, latticeVel_NE ) + 9. * ( dot ( vel, latticeVel_NE ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+    Var feq_SE : Real = latticeWeight_SE * den * (1. + 3. * dot ( vel, latticeVel_SE ) + 9. * ( dot ( vel, latticeVel_SE ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+    Var feq_SW : Real = latticeWeight_SW * den * (1. + 3. * dot ( vel, latticeVel_SW ) + 9. * ( dot ( vel, latticeVel_SW ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+    Var feq_NW : Real = latticeWeight_NW * den * (1. + 3. * dot ( vel, latticeVel_NW ) + 9. * ( dot ( vel, latticeVel_NW ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+
+    Val feqAsVec : Vector<Real, 9> = { feq_C, feq_N, feq_E, feq_S, feq_W, feq_NE, feq_SE, feq_SW, feq_NW }T
+
+    PdfAsVec = PdfAsVec - 1. / tau * ( PdfAsVec - feqAsVec )
   }
+  copyFromPdfVec ( )
 }
 
 Function TreatBoundaries@all ( ) {
@@ -272,14 +320,14 @@ Function StreamStep@all ( ) {
 
   loop over Pdf_C {
     Pdf_C[next]  = Pdf_C[active]
-    Pdf_S[next]  = Pdf_S[active] @[ 0,  1]
-    Pdf_W[next]  = Pdf_W[active] @[ 1,  0]
     Pdf_N[next]  = Pdf_N[active] @[ 0, -1]
     Pdf_E[next]  = Pdf_E[active] @[-1,  0]
-    Pdf_SW[next] = Pdf_SW[active]@[ 1,  1]
-    Pdf_NW[next] = Pdf_NW[active]@[ 1, -1]
+    Pdf_S[next]  = Pdf_S[active] @[ 0,  1]
+    Pdf_W[next]  = Pdf_W[active] @[ 1,  0]
     Pdf_NE[next] = Pdf_NE[active]@[-1, -1]
     Pdf_SE[next] = Pdf_SE[active]@[-1,  1]
+    Pdf_SW[next] = Pdf_SW[active]@[ 1,  1]
+    Pdf_NW[next] = Pdf_NW[active]@[ 1, -1]
   }
 }
 
@@ -312,6 +360,8 @@ Function TimeLoop@finest ( ) {
     }
   }
 
+  Visualize ( )
+
   print ( t, ' / ', maxTime )
 }
 
@@ -334,8 +384,6 @@ Function Application ( ) {
   print ( maxTime, 'iterations took', timeSpent, 's' )
   print ( '#cells:', numCells )
   print ( 'MLUpS:', 1e-6 * numCells * maxTime / timeSpent )
-
-  Visualize@finest ( )
 
   destroyGlobals ( )
 }

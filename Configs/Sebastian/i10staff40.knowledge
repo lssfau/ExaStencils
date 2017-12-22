@@ -1,16 +1,16 @@
 dimensionality                 = 2
 
-minLevel                       = 2
-maxLevel                       = 6
+minLevel                       = 8
+maxLevel                       = 8
 
 grid_isUniform                 = true
-grid_isStaggered               = true
-grid_isAxisAligned             = true
+//grid_isStaggered               = true
+//grid_isAxisAligned             = true
 
-grid_spacingModel              = "linearFct"
+//grid_spacingModel              = "linearFct"
 //grid_halveStagBoundaryVolumes  = true
 
-discr_type                     = "FV"
+discr_type                     = "FD"
 
 domain_onlyRectangular         = true
 domain_numBlocks               = 1
