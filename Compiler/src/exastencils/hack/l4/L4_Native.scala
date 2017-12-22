@@ -2,6 +2,7 @@ package exastencils.hack.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.hack.ir.HACK_IR_Native
@@ -12,7 +13,7 @@ import exastencils.prettyprinting.PpStream
 
 case class HACK_L4_Native(nativeCode : String) extends L4_Expression {
   override def prettyprint(out : PpStream) = out << "native ( " << nativeCode << " )"
-  override def progress = HACK_IR_Native(nativeCode)
+  override def progress = ProgressLocation(HACK_IR_Native(nativeCode))
 }
 
 /// L4_ResolveNativeFunctions

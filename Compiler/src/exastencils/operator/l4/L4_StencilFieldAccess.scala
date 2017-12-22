@@ -1,5 +1,6 @@
 package exastencils.operator.l4
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.l4._
@@ -50,7 +51,7 @@ case class L4_StencilFieldAccess(
     }
   }
 
-  def progress : IR_StencilFieldAccess = {
+  override def progress : IR_StencilFieldAccess = ProgressLocation {
     if (arrayIndex.isDefined) Logger.warn("Unresolved arrayIndex")
     if (dirAccess.isDefined) Logger.warn("Unresolved dirAccess")
 

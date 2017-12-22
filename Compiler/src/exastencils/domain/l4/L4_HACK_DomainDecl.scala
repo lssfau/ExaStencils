@@ -34,7 +34,7 @@ case class L4_HACK_DomainDecl(var name : String, var lower : Any, var upper : An
     }
   }
 
-  def progress : IR_Domain = {
+  def progress : IR_Domain = { // no ProgressLocation since hack
     import L4_HACK_DomainDecl.runningIndex
 
     val index = runningIndex

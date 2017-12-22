@@ -2,6 +2,7 @@ package exastencils.knowledge.l2
 
 import scala.collection.mutable._
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l2.L2_Statement
 import exastencils.datastructures._
 import exastencils.knowledge.l3._
@@ -16,14 +17,14 @@ object L2_InlineKnowledge {
 
 case class L2_InlineKnowledge(parameters : ListBuffer[L2_KnowledgeParameter]) extends L2_Statement {
   override def prettyprint(out : PpStream) = out << "Knowledge {\n" <<< (parameters, "\n") << "\n}"
-  override def progress = L3_InlineKnowledge(parameters.map(_.progress))
+  override def progress = ProgressLocation(L3_InlineKnowledge(parameters.map(_.progress)))
 }
 
 /// L2_KnowledgeParameter
 
 case class L2_KnowledgeParameter(var name : String, var value : Any) extends L2_Statement with L2_GeneralParameter {
   override def prettyprint(out : PpStream) = out << name << " = " << printVal
-  override def progress = L3_KnowledgeParameter(name, value)
+  override def progress = ProgressLocation(L3_KnowledgeParameter(name, value))
 }
 
 /// L2_ProcessInlineKnowledge

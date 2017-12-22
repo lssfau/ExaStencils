@@ -1,5 +1,6 @@
 package exastencils.baseExt.l2
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l2._
 import exastencils.baseExt.l3.L3_FieldIteratorAccess
 import exastencils.logger.Logger
@@ -35,7 +36,7 @@ class L2_FieldIteratorAccess() extends L2_PlainVariableAccess("i", L2_IntegerDat
   }
   def dim = dim_
 
-  override def progress = L3_FieldIteratorAccess(dim)
+  override def progress = ProgressLocation(L3_FieldIteratorAccess(dim))
 
   override def equals(obj : scala.Any) = {
     obj match {

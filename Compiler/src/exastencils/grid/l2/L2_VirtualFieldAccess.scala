@@ -1,5 +1,6 @@
 package exastencils.grid.l2
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l2._
 import exastencils.baseExt.l2._
 import exastencils.config.Knowledge
@@ -52,7 +53,7 @@ case class L2_VirtualFieldAccess(
     }
   }
 
-  override def progress = L3_VirtualFieldAccess(target.getProgressedObj(), index.progress)
+  override def progress = ProgressLocation(L3_VirtualFieldAccess(target.getProgressedObj(), index.progress))
 }
 
 /// L2_ResolveVirtualFieldAccesses

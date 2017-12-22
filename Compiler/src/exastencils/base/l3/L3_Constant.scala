@@ -1,5 +1,6 @@
 package exastencils.base.l3
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.prettyprinting._
@@ -18,21 +19,21 @@ trait L3_Number extends L3_ConstantExpression {
 case class L3_StringLiteral(var value : String) extends L3_ConstantExpression {
   override def prettyprint(out : PpStream) : Unit = out << value
   override def toString : String = value
-  override def progress = L4_StringLiteral(value)
+  override def progress = ProgressLocation(L4_StringLiteral(value))
 }
 
 /// L3_StringConstant
 
 case class L3_StringConstant(var value : String) extends L3_ConstantExpression {
   override def prettyprint(out : PpStream) : Unit = out << '"' << value << '"'
-  override def progress = L4_StringConstant(value)
+  override def progress = ProgressLocation(L4_StringConstant(value))
 }
 
 /// L3_IntegerConstant
 case class L3_IntegerConstant(var v : Long) extends L3_Number {
   override def prettyprint(out : PpStream) : Unit = out << v
   override def value = v
-  override def progress = L4_IntegerConstant(value)
+  override def progress = ProgressLocation(L4_IntegerConstant(value))
 }
 
 /// L3_RealConstant
@@ -41,14 +42,14 @@ case class L3_RealConstant(var v : Double) extends L3_Number {
     out << value // this uses value.toString(), which is Locale-independent and the string can be parsed without a loss of precision later
   }
   override def value = v
-  override def progress = L4_RealConstant(value)
+  override def progress = ProgressLocation(L4_RealConstant(value))
 }
 
 /// L3_BooleanConstant
 
 case class L3_BooleanConstant(var value : Boolean) extends L3_ConstantExpression {
   override def prettyprint(out : PpStream) : Unit = out << value
-  override def progress = L4_BooleanConstant(value)
+  override def progress = ProgressLocation(L4_BooleanConstant(value))
 }
 
 // L3_ConvertStringConstantsToLiterals

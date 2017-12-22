@@ -1,5 +1,6 @@
 package exastencils.solver.l2
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l2._
 import exastencils.baseExt.l2.L2_UnresolvedAccess
 import exastencils.datastructures._
@@ -20,7 +21,7 @@ case class L2_FutureEquationAccess(
     if (offset.isDefined) out << '@' << offset.get
   }
 
-  def progress = {
+  override def progress = ProgressLocation {
     Logger.warn(s"Trying to progress future equation access to $name on level $level")
     L3_FutureEquationAccess(name, level, L2_ProgressOption(offset)(_.progress))
   }

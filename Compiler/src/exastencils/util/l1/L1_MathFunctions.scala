@@ -1,5 +1,6 @@
 package exastencils.util.l1
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l1._
 import exastencils.datastructures._
 import exastencils.logger.Logger
@@ -39,7 +40,7 @@ object L1_MathFunctions {
 /// L1_MathFunctionReference
 
 case class L1_MathFunctionReference(var name : String, var returnType : L1_Datatype) extends L1_PlainFunctionReference {
-  override def progress = L2_MathFunctionReference(name, returnType.progress)
+  override def progress = ProgressLocation(L2_MathFunctionReference(name, returnType.progress))
 }
 
 /// L1_ResolveMathFunctions

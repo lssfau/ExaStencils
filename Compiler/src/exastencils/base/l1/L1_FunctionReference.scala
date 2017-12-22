@@ -1,5 +1,6 @@
 package exastencils.base.l1
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l2._
 import exastencils.prettyprinting._
 
@@ -37,5 +38,5 @@ case class L1_UnresolvedFunctionReference(
     if (level.isDefined) out << '@' << level.get
   }
 
-  override def progress = L2_UnresolvedFunctionReference(name, L1_ProgressOption(level)(_.progress), None)
+  override def progress = ProgressLocation(L2_UnresolvedFunctionReference(name, L1_ProgressOption(level)(_.progress), None))
 }

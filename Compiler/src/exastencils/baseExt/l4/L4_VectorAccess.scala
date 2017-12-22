@@ -2,6 +2,7 @@ package exastencils.baseExt.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
@@ -40,7 +41,7 @@ case class L4_VectorExpression(
       out << '{' <<< (expressions, ", ") << '}'
   }
 
-  def progress = {
+  override def progress = ProgressLocation {
     if (Knowledge.experimental_internalHighDimTypes) {
       val rows = if (!rowVector) expressions.length else 1
       val cols = if (rowVector) expressions.length else 1

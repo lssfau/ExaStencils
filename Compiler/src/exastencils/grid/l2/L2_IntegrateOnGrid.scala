@@ -2,6 +2,7 @@ package exastencils.grid.l2
 
 import scala.collection.mutable._
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l2.L2_ImplicitConversion._
 import exastencils.base.l2._
 import exastencils.baseExt.l2.L2_FieldIteratorAccess
@@ -276,7 +277,7 @@ case class L2_IntegrateOnGrid(
     result
   }
 
-  override def progress = L3_IntegrateOnGrid(name, level, expression.progress, L2_ProgressOption(offset)(_.progress))
+  override def progress = ProgressLocation(L3_IntegrateOnGrid(name, level, expression.progress, L2_ProgressOption(offset)(_.progress)))
 }
 
 /// L2_ResolveIntegrateOnGrid

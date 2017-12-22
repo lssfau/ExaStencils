@@ -1,5 +1,6 @@
 package exastencils.base.l3
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.prettyprinting._
 
@@ -22,7 +23,7 @@ case object L3_UnknownDatatype extends L3_Datatype {
   exastencils.core.Duplicate.registerConstant(this)
 
   override def prettyprint(out : PpStream) : Unit = out << "???"
-  override def progress = L4_UnknownDatatype
+  override def progress = ProgressLocation(L4_UnknownDatatype)
 
   override def dimensionality : Int = 0
   override def getSizeArray : Array[Int] = Array()
@@ -36,7 +37,7 @@ case object L3_UnknownDatatype extends L3_Datatype {
 
 case class L3_SpecialDatatype(typeName : String) extends L3_Datatype {
   override def prettyprint(out : PpStream) : Unit = out << typeName
-  override def progress = L4_SpecialDatatype(typeName)
+  override def progress = ProgressLocation(L4_SpecialDatatype(typeName))
 
   // unknown
   override def dimensionality : Int = ???
@@ -51,7 +52,7 @@ case object L3_UnitDatatype extends L3_Datatype {
   exastencils.core.Duplicate.registerConstant(this)
 
   override def prettyprint(out : PpStream) : Unit = out << "Unit"
-  override def progress = L4_UnitDatatype
+  override def progress = ProgressLocation(L4_UnitDatatype)
 
   override def dimensionality : Int = 0
   override def getSizeArray : Array[Int] = Array()
@@ -75,7 +76,7 @@ case object L3_BooleanDatatype extends L3_ScalarDatatype {
   exastencils.core.Duplicate.registerConstant(this)
 
   override def prettyprint(out : PpStream) : Unit = out << "Boolean"
-  override def progress = L4_BooleanDatatype
+  override def progress = ProgressLocation(L4_BooleanDatatype)
 
   override def typicalByteSize = 1
 }
@@ -84,7 +85,7 @@ case object L3_IntegerDatatype extends L3_ScalarDatatype {
   exastencils.core.Duplicate.registerConstant(this)
 
   override def prettyprint(out : PpStream) : Unit = out << "Integer"
-  override def progress = L4_IntegerDatatype
+  override def progress = ProgressLocation(L4_IntegerDatatype)
 
   override def typicalByteSize = 3
 }
@@ -93,7 +94,7 @@ case object L3_RealDatatype extends L3_ScalarDatatype {
   exastencils.core.Duplicate.registerConstant(this)
 
   override def prettyprint(out : PpStream) : Unit = out << "Real"
-  override def progress = L4_RealDatatype // TODO: print warning here?
+  override def progress = ProgressLocation(L4_RealDatatype) // TODO: print warning here?
 
   override def typicalByteSize = ???
 }
@@ -103,7 +104,7 @@ case object L3_FloatDatatype extends L3_ScalarDatatype {
 
   // TODO: ensure parser support
   override def prettyprint(out : PpStream) : Unit = out << "Float"
-  override def progress = L4_FloatDatatype
+  override def progress = ProgressLocation(L4_FloatDatatype)
 
   override def typicalByteSize = 3
 }
@@ -113,7 +114,7 @@ case object L3_DoubleDatatype extends L3_ScalarDatatype {
 
   // TODO: ensure parser support
   override def prettyprint(out : PpStream) : Unit = out << "Double"
-  override def progress = L4_DoubleDatatype
+  override def progress = ProgressLocation(L4_DoubleDatatype)
 
   override def typicalByteSize = 8
 }
@@ -122,7 +123,7 @@ case object L3_CharDatatype extends L3_ScalarDatatype {
   exastencils.core.Duplicate.registerConstant(this)
 
   override def prettyprint(out : PpStream) : Unit = out << "char"
-  override def progress = L4_CharDatatype
+  override def progress = ProgressLocation(L4_CharDatatype)
 
   override def typicalByteSize = 1
 }
@@ -134,7 +135,7 @@ case object L3_StringDatatype extends L3_Datatype {
 
   // TODO: ensure parser support
   override def prettyprint(out : PpStream) : Unit = out << "String"
-  override def progress = L4_StringDatatype
+  override def progress = ProgressLocation(L4_StringDatatype)
 
   override def dimensionality : Int = 0
   override def getSizeArray : Array[Int] = Array()
@@ -146,7 +147,7 @@ case object L3_StringDatatype extends L3_Datatype {
 
 case class L3_ComplexDatatype(datatype : L3_Datatype) extends L3_Datatype {
   override def prettyprint(out : PpStream) = { out << "Complex[" << datatype << ']' }
-  override def progress = L4_ComplexDatatype(datatype.progress)
+  override def progress = ProgressLocation(L4_ComplexDatatype(datatype.progress))
 
   // TODO: treat like a vec2 or like a struct?
 

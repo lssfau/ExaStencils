@@ -2,6 +2,7 @@ package exastencils.base.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.ir.IR_Scope
 import exastencils.prettyprinting.PpStream
 
@@ -17,5 +18,5 @@ case class L4_Scope(var body : ListBuffer[L4_Statement]) extends L4_Statement {
     out << "\n}"
   }
 
-  override def progress = IR_Scope(body.map(_.progress))
+  override def progress = ProgressLocation(IR_Scope(body.map(_.progress)))
 }

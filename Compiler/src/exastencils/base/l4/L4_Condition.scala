@@ -2,6 +2,7 @@ package exastencils.base.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.ir.IR_IfCondition
 import exastencils.prettyprinting.PpStream
 
@@ -18,5 +19,5 @@ case class L4_IfCondition(var condition : L4_Expression, var trueBody : ListBuff
     out << "\n}"
   }
 
-  override def progress = IR_IfCondition(condition.progress, trueBody.map(_.progress), falseBody.map(_.progress))
+  override def progress = ProgressLocation(IR_IfCondition(condition.progress, trueBody.map(_.progress), falseBody.map(_.progress)))
 }

@@ -2,6 +2,7 @@ package exastencils.baseExt.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.prettyprinting._
@@ -9,13 +10,13 @@ import exastencils.prettyprinting._
 /// L4_ContractionSpecification
 
 /// TODO: inline L4/IR_ContractionSpecification into respective ContractingLoop node?
-case class L4_ContractionSpecification(var posExt : L4_ConstIndex, var negExt : Option[L4_ConstIndex]) extends L4_Node with PrettyPrintable {
+case class L4_ContractionSpecification(var posExt : L4_ConstIndex, var negExt : Option[L4_ConstIndex]) extends L4_Node with L4_Progressable with PrettyPrintable {
   override def prettyprint(out : PpStream) = {
     out << posExt
     if (negExt.isDefined) out << ", " << negExt
   }
 
-  def progress = IR_ContractionSpecification(posExt.progress, negExt.getOrElse(posExt).progress)
+  override def progress = ProgressLocation(IR_ContractionSpecification(posExt.progress, negExt.getOrElse(posExt).progress))
 }
 
 /// L4_ContractingLoop
@@ -38,5 +39,5 @@ case class L4_ContractingLoop(
     out << " {\n" <<< (body, "\n") << "\n}"
   }
 
-  override def progress = IR_ContractingLoop(number, L4_ProgressOption(iterator)(_.progress), body.map(_.progress), contraction.progress)
+  override def progress = ProgressLocation(IR_ContractingLoop(number, L4_ProgressOption(iterator)(_.progress), body.map(_.progress), contraction.progress))
 }

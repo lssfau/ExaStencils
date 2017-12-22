@@ -11,12 +11,7 @@ import exastencils.util.l4.L4_LevelCollector
 
 case class L4_FutureDomainAccess(var name : String) extends L4_FutureKnowledgeAccess {
   override def prettyprint(out : PpStream) = out << name
-
-  def progress = {
-    Logger.warn(s"Trying to progress future domain access to $name")
-    ??? // TODO
-  }
-
+  override def progress = Logger.error(s"Trying to progress future domain access to $name")
   def toDomainAccess = L4_DomainAccess(this)
 }
 

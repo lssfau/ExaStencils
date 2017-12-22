@@ -52,4 +52,3 @@ case class IR_VectorExpression(var innerDatatype : Option[IR_Datatype], var expr
     out << ')'
   }
 }
-

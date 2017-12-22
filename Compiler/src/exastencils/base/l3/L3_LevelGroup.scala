@@ -2,6 +2,7 @@ package exastencils.base.l3
 
 import scala.collection.mutable.HashSet
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -17,14 +18,14 @@ trait L3_LevelGroup extends L3_DeclarationLevelSpecification {
 case object L3_AllLevels extends L3_LevelGroup {
   exastencils.core.Duplicate.registerConstant(this)
   def prettyprint(out : PpStream) = out << "all"
-  override def progress = L4_AllLevels
+  override def progress = ProgressLocation(L4_AllLevels)
 }
 
 /// L3_LevelRange
 
 case class L3_LevelRange(var begin : L3_LevelSpecification, var end : L3_LevelSpecification) extends L3_LevelGroup {
   def prettyprint(out : PpStream) = out << '(' << begin << " to " << end << ')'
-  override def progress = L4_LevelRange(begin.progress, end.progress)
+  override def progress = ProgressLocation(L4_LevelRange(begin.progress, end.progress))
 }
 
 /// L3_LevelList
@@ -44,7 +45,7 @@ case class L3_LevelList(var levels : HashSet[L3_DeclarationLevelSpecification]) 
     out << ")"
   }
 
-  override def progress = L4_LevelList(levels.map(_.progress))
+  override def progress = ProgressLocation(L4_LevelList(levels.map(_.progress)))
 
   def flatten() : Unit = {
     levels.foreach {
@@ -68,5 +69,5 @@ object L3_NegatedLevelList {
 
 case class L3_NegatedLevelList(var levels : L3_LevelList) extends L3_LevelGroup {
   def prettyprint(out : PpStream) = out << "but " << levels
-  override def progress = L4_NegatedLevelList(levels.progress)
+  override def progress = ProgressLocation(L4_NegatedLevelList(levels.progress))
 }

@@ -1,5 +1,6 @@
 package exastencils.base.l4
 
+import exastencils.base.ProgressLocation
 import exastencils.base.ir._
 import exastencils.baseExt.l4._
 import exastencils.core.Duplicate
@@ -50,7 +51,7 @@ case class L4_VariableDeclaration(
     })
   }
 
-  override def progress = {
+  override def progress = ProgressLocation {
     val newName = if (levels.isDefined) name + "_" + levels.get.resolveLevel else name
     IR_VariableDeclaration(datatype.progress, newName, L4_ProgressOption(initialValue)(_.progress), isConst)
   }

@@ -1,5 +1,6 @@
 package exastencils.operator.l3
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l3._
 import exastencils.datastructures._
 import exastencils.operator.l4.L4_StencilAccess
@@ -30,7 +31,7 @@ case class L3_StencilAccess(
       offset = Some(offset.get + newOffset)
   }
 
-  def progress = {
+  override def progress = ProgressLocation {
     L4_StencilAccess(target.getProgressedObj(),
       L3_ProgressOption(offset)(_.progress),
       L3_ProgressOption(dirAccess)(_.progress))

@@ -2,6 +2,7 @@ package exastencils.base.l3
 
 import scala.collection.mutable._
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
@@ -18,7 +19,7 @@ object L3_Function {
 
   case class Argument(var name : String, var datatype : L3_Datatype) extends L3_Node with PrettyPrintable with L3_Progressable {
     override def prettyprint(out : PpStream) = out << name << " : " << datatype
-    override def progress = L4_Function.Argument(name, datatype.progress)
+    override def progress = ProgressLocation(L4_Function.Argument(name, datatype.progress))
   }
 
 }
@@ -43,7 +44,7 @@ case class L3_PlainFunction(
     out << " {\n" <<< (body, "\n") << "\n}"
   }
 
-  override def progress = L4_PlainFunction(name, datatype.progress, parameters.map(_.progress), body.map(_.progress))
+  override def progress = ProgressLocation(L4_PlainFunction(name, datatype.progress, parameters.map(_.progress), body.map(_.progress)))
 }
 
 /// L3_LeveledFunction
@@ -62,7 +63,7 @@ case class L3_LeveledFunction(
     out << " {\n" <<< (body, "\n") << "\n}"
   }
 
-  override def progress = L4_LeveledFunction(name, level, datatype.progress, parameters.map(_.progress), body.map(_.progress))
+  override def progress = ProgressLocation(L4_LeveledFunction(name, level, datatype.progress, parameters.map(_.progress), body.map(_.progress)))
 }
 
 /// L3_FunctionCollector

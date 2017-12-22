@@ -3,6 +3,7 @@ package exastencils.solver.l2
 import scala.collection.mutable._
 
 import exastencils.base.ExaRootNode
+import exastencils.base.ProgressLocation
 import exastencils.prettyprinting.PpStream
 import exastencils.solver.l3.L3_SolverForEquation
 
@@ -15,5 +16,5 @@ object L2_SolverForEquation {
 case class L2_SolverForEquation(var entries : ListBuffer[L2_SolverForEqEntry]) extends L2_SolverHint {
   override def prettyprint(out : PpStream) = out << "generate solver for " <<< (entries, " and ")
   override def process() = ExaRootNode.l2_root.nodes += this // append to l2 root; use automatic progression
-  override def progress = L3_SolverForEquation(entries.map(_.progress))
+  override def progress = ProgressLocation(L3_SolverForEquation(entries.map(_.progress)))
 }

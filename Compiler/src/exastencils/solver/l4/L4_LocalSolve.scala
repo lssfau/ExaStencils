@@ -2,6 +2,7 @@ package exastencils.solver.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.core.Duplicate
@@ -37,7 +38,7 @@ case class L4_LocalSolve(
     out << "}"
   }
 
-  override def progress = {
+  override def progress = ProgressLocation {
     IR_LocalSolve(
       unknowns.map(_.progress.asInstanceOf[IR_FieldAccess]),
       equations.map(_.progress),

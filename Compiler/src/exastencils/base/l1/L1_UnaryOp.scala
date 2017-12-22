@@ -1,5 +1,6 @@
 package exastencils.base.l1
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l2._
 import exastencils.prettyprinting._
 
@@ -23,12 +24,12 @@ object L1_UnaryOperators extends Enumeration {
 
 case class L1_Negative(var left : L1_Expression) extends L1_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "(-" << left << ')'
-  override def progress = L2_Negative(left.progress)
+  override def progress = ProgressLocation(L2_Negative(left.progress))
 }
 
 /// logical operations
 
 case class L1_Negation(var left : L1_Expression) extends L1_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '!' << '(' << left << ')'
-  override def progress = L2_Negation(left.progress)
+  override def progress = ProgressLocation(L2_Negation(left.progress))
 }

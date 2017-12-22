@@ -37,4 +37,3 @@ object IR_AdaptTimerFunctions extends DefaultStrategy("Adapt function calls to t
       fctCall
   })
 }
-

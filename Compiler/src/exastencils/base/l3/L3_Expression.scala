@@ -1,5 +1,6 @@
 package exastencils.base.l3
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.prettyprinting._
 
@@ -46,5 +47,5 @@ case object L3_NullExpression extends L3_Expression {
   exastencils.core.Duplicate.registerConstant(this)
 
   override def prettyprint(out : PpStream) : Unit = {}
-  override def progress = L4_NullExpression
+  override def progress = ProgressLocation(L4_NullExpression)
 }

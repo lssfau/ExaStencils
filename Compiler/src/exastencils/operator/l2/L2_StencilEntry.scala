@@ -1,5 +1,6 @@
 package exastencils.operator.l2
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l2.L2_ImplicitConversion._
 import exastencils.base.l2._
 import exastencils.baseExt.l2.L2_FieldIteratorAccess
@@ -28,7 +29,7 @@ abstract class L2_StencilEntry extends L2_Node with L2_Progressable with PrettyP
 
 case class L2_StencilOffsetEntry(var offset : L2_ConstIndex, var coefficient : L2_Expression) extends L2_StencilEntry {
   override def prettyprint(out : PpStream) = out << offset << " => " << coefficient
-  override def progress = L3_StencilOffsetEntry(offset.progress, coefficient.progress)
+  override def progress = ProgressLocation(L3_StencilOffsetEntry(offset.progress, coefficient.progress))
 
   override def asStencilOffsetEntry = this
   override def asStencilMappingEntry = {
@@ -52,7 +53,7 @@ case class L2_StencilMappingEntry(var row : L2_ExpressionIndex, var col : L2_Exp
     out << row << " from " << col << " with " << coefficient
   }
 
-  override def progress = L3_StencilMappingEntry(row.progress, col.progress, coefficient.progress)
+  override def progress = ProgressLocation(L3_StencilMappingEntry(row.progress, col.progress, coefficient.progress))
 
   override def asStencilOffsetEntry = {
     val offset = Duplicate(col)

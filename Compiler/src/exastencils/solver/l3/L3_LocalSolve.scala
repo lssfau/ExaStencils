@@ -2,6 +2,7 @@ package exastencils.solver.l3
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l3._
 import exastencils.baseExt.l3.L3_UnresolvedAccess
 import exastencils.prettyprinting._
@@ -32,7 +33,7 @@ case class L3_LocalSolve(
     out << "}"
   }
 
-  override def progress = {
+  override def progress = ProgressLocation {
     val ret = L4_LocalSolve(
       unknowns.map(_.progress),
       equations.map(_.progress),

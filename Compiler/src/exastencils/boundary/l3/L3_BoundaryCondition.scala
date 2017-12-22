@@ -1,5 +1,6 @@
 package exastencils.boundary.l3
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l3._
 import exastencils.boundary.l4._
 import exastencils.prettyprinting._
@@ -16,5 +17,5 @@ case object L3_NoBC extends L3_BoundaryCondition {
   exastencils.core.Duplicate.registerConstant(this)
 
   override def prettyprint(out : PpStream) = out << "None"
-  override def progress = L4_NoBC
+  override def progress = ProgressLocation(L4_NoBC)
 }

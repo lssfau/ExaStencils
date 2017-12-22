@@ -2,6 +2,7 @@ package exastencils.timing.l4
 
 import scala.collection.immutable.HashMap
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.logger.Logger
@@ -31,7 +32,7 @@ object L4_TimerFunctions {
 /// L4_TimerFunctionReference
 
 case class L4_TimerFunctionReference(var name : String, var returnType : L4_Datatype) extends L4_PlainFunctionReference {
-  override def progress = IR_TimerFunctionReference(name, returnType.progress)
+  override def progress = ProgressLocation(IR_TimerFunctionReference(name, returnType.progress))
 }
 
 /// L4_ResolveTimerFunctions
@@ -50,4 +51,3 @@ object L4_ResolveTimerFunctions extends DefaultStrategy("Resolve timer function 
       fctCall
   })
 }
-

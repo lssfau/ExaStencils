@@ -290,7 +290,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
   def calculateDeterminant(m : IR_MatrixExpression) : IR_Expression = {
     if (m.rows != m.columns) {
       Logger.error("determinant for non-quadratic matrices not implemented")
-      // FIXME Nullzeilen/-spalten ergänzen
+      // FIXME Nullzeilen/-spalten ergaenzen
     }
     if (m.rows <= 0) {
       Logger.error("MatrixExpression of size <= 0")

@@ -1,5 +1,6 @@
 package exastencils.solver.l2
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l2._
 import exastencils.datastructures._
 import exastencils.knowledge.l2.L2_LeveledKnowledgeAccess
@@ -29,7 +30,7 @@ case class L2_EquationAccess(
       offset = Some(offset.get + newOffset)
   }
 
-  override def progress = L3_EquationAccess(target.getProgressedObj(), L2_ProgressOption(offset)(_.progress))
+  override def progress = ProgressLocation(L3_EquationAccess(target.getProgressedObj(), L2_ProgressOption(offset)(_.progress)))
 }
 
 /// L2_ResolveEquationAccesses

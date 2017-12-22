@@ -1,5 +1,6 @@
 package exastencils.baseExt.l3
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l3._
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.field.l3.L3_SlotSpecification
@@ -30,7 +31,7 @@ case class L3_UnresolvedAccess(
     if (dirAccess.isDefined) out << ':' << dirAccess.get
   }
 
-  def progress = {
+  override def progress = ProgressLocation {
     Logger.warn(s"Progressing unresolved access on L3: $name" + (if (level.isDefined) s"@${ level.get }" else ""))
 
     L4_UnresolvedAccess(

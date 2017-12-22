@@ -1,5 +1,6 @@
 package exastencils.boundary.l4
 
+import exastencils.base.ProgressLocation
 import exastencils.boundary.ir.IR_NeumannBC
 import exastencils.config.Knowledge
 import exastencils.prettyprinting.PpStream
@@ -13,5 +14,5 @@ object L4_NeumannBC {
 
 case class L4_NeumannBC(var order : Int) extends L4_BoundaryCondition {
   override def prettyprint(out : PpStream) = out << "Neumann" << '(' << order << ')'
-  override def progress = IR_NeumannBC(order)
+  override def progress = ProgressLocation(IR_NeumannBC(order))
 }

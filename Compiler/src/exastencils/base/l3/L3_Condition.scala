@@ -2,6 +2,7 @@ package exastencils.base.l3
 
 import scala.collection.mutable._
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4.L4_IfCondition
 import exastencils.prettyprinting._
 
@@ -18,5 +19,5 @@ case class L3_IfCondition(var condition : L3_Expression, var trueBody : ListBuff
     out << "\n}"
   }
 
-  override def progress = L4_IfCondition(condition.progress, trueBody.map(_.progress), falseBody.map(_.progress))
+  override def progress = ProgressLocation(L4_IfCondition(condition.progress, trueBody.map(_.progress), falseBody.map(_.progress)))
 }

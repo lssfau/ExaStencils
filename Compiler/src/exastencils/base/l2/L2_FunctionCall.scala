@@ -2,6 +2,7 @@ package exastencils.base.l2
 
 import scala.collection.mutable._
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l3._
 import exastencils.prettyprinting._
 
@@ -17,6 +18,6 @@ object L2_FunctionCall {
 
 case class L2_FunctionCall(var function : L2_FunctionReference, var arguments : ListBuffer[L2_Expression]) extends L2_Expression {
   def prettyprint(out : PpStream) = { out << function << " ( " <<< (arguments, ", ") << " )" }
-  def progress = L3_FunctionCall(function.progress, arguments.map(_.progress))
+  override def progress = ProgressLocation(L3_FunctionCall(function.progress, arguments.map(_.progress)))
   def name = function.name
 }

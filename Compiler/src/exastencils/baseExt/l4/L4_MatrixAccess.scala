@@ -1,5 +1,6 @@
 package exastencils.baseExt.l4
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_MatrixExpression
 import exastencils.logger.Logger
@@ -21,7 +22,7 @@ case class L4_MatrixExpression(
     out << " }"
   }
 
-  def progress = IR_MatrixExpression(L4_ProgressOption(datatype)(_.progress), this.rows, this.columns, expressions.flatten.map(_.progress).toArray)
+  override def progress = ProgressLocation(IR_MatrixExpression(L4_ProgressOption(datatype)(_.progress), this.rows, this.columns, expressions.flatten.map(_.progress).toArray))
 
   def rows = expressions.length
   def columns = expressions(0).length

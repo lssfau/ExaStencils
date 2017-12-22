@@ -2,6 +2,7 @@ package exastencils.base.l1
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l2.L2_Root
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
@@ -24,7 +25,7 @@ case class L1_Root(var nodes : ListBuffer[L1_Node]) extends L1_Node with L1_Prog
     }
   }
 
-  override def progress = {
+  override def progress = ProgressLocation {
     val (progressable, invalid) = nodes.partition(_.isInstanceOf[L1_Progressable])
     invalid.foreach(node => Logger.warn(s"Trying to progress unsupported L1 node $node"))
 

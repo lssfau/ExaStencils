@@ -24,11 +24,7 @@ case class L4_FutureStencilAccess(
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
   }
 
-  def progress = {
-    Logger.warn(s"Trying to progress future stencil access to $name on level $level")
-    ??? // TODO
-  }
-
+  override def progress = Logger.error(s"Trying to progress future stencil access to $name on level $level")
   def toStencilAccess = L4_StencilAccess(this)
 }
 

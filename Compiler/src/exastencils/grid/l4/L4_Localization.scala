@@ -1,5 +1,6 @@
 package exastencils.grid.l4
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.grid.ir._
 import exastencils.prettyprinting._
@@ -31,7 +32,7 @@ case object L4_AtNode extends L4_Localization {
   exastencils.core.Duplicate.registerConstant(this)
 
   def name = "Node"
-  def progress = IR_AtNode
+  override def progress = ProgressLocation(IR_AtNode)
 }
 
 /// L4_AtCells
@@ -40,14 +41,14 @@ case object L4_AtCellCenter extends L4_Localization {
   exastencils.core.Duplicate.registerConstant(this)
 
   def name = "Cell"
-  def progress = IR_AtCellCenter
+  override def progress = ProgressLocation(IR_AtCellCenter)
 }
 
 /// L4_AtFace
 
 case class L4_AtFaceCenter(dim : Int) extends L4_Localization {
   def name = s"Face_${ L4_Localization.dimToString(dim) }"
-  def progress = IR_AtFaceCenter(dim)
+  override def progress = ProgressLocation(IR_AtFaceCenter(dim))
 }
 
 /// L4_AtBoundary
@@ -57,7 +58,7 @@ case object L4_AtBoundary extends L4_Localization {
   exastencils.core.Duplicate.registerConstant(this)
 
   def name = "Boundary"
-  def progress = IR_AtBoundary
+  override def progress = ProgressLocation(IR_AtBoundary)
 }
 
 /// L4_HACK_OtherLocalization

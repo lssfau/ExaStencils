@@ -2,6 +2,7 @@ package exastencils.base.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.ir._
 import exastencils.prettyprinting.PpStream
 
@@ -94,7 +95,7 @@ case class L4_Addition(var summands : ListBuffer[L4_Expression]) extends L4_Expr
   import L4_BinaryOperators._
 
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket <<< (summands, " + ") << beforeClosingBracket << ')'
-  override def progress = IR_Addition(summands.map(_.progress))
+  override def progress = ProgressLocation(IR_Addition(summands.map(_.progress)))
 }
 
 case class L4_Subtraction(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
@@ -102,7 +103,7 @@ case class L4_Subtraction(var left : L4_Expression, var right : L4_Expression) e
   import L4_BinaryOperators._
 
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " - " << right << beforeClosingBracket << ')'
-  override def progress = IR_Subtraction(left.progress, right.progress)
+  override def progress = ProgressLocation(IR_Subtraction(left.progress, right.progress))
 }
 
 object L4_Multiplication {
@@ -114,7 +115,7 @@ case class L4_Multiplication(var factors : ListBuffer[L4_Expression]) extends L4
   import L4_BinaryOperators._
 
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket <<< (factors, " * ") << beforeClosingBracket << ')'
-  override def progress = IR_Multiplication(factors.map(_.progress))
+  override def progress = ProgressLocation(IR_Multiplication(factors.map(_.progress)))
 }
 
 case class L4_Division(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
@@ -122,7 +123,7 @@ case class L4_Division(var left : L4_Expression, var right : L4_Expression) exte
   import L4_BinaryOperators._
 
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " / " << right << beforeClosingBracket << ')'
-  override def progress = IR_Division(left.progress, right.progress)
+  override def progress = ProgressLocation(IR_Division(left.progress, right.progress))
 }
 
 case class L4_Modulo(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
@@ -130,7 +131,7 @@ case class L4_Modulo(var left : L4_Expression, var right : L4_Expression) extend
   import L4_BinaryOperators._
 
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " % " << right << beforeClosingBracket << ')'
-  override def progress = IR_Modulo(left.progress, right.progress)
+  override def progress = ProgressLocation(IR_Modulo(left.progress, right.progress))
 }
 
 case class L4_Power(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
@@ -138,7 +139,7 @@ case class L4_Power(var left : L4_Expression, var right : L4_Expression) extends
   import L4_BinaryOperators._
 
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " ** " << right << beforeClosingBracket << ')'
-  override def progress = IR_Power(left.progress, right.progress)
+  override def progress = ProgressLocation(IR_Power(left.progress, right.progress))
 }
 
 /// element-wise arithmetic operations
@@ -148,7 +149,7 @@ case class L4_ElementwiseMultiplication(var left : L4_Expression, var right : L4
   import L4_BinaryOperators._
 
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " .* " << right << beforeClosingBracket << ')'
-  override def progress = IR_ElementwiseMultiplication(left.progress, right.progress)
+  override def progress = ProgressLocation(IR_ElementwiseMultiplication(left.progress, right.progress))
 }
 
 case class L4_ElementwiseDivision(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
@@ -156,7 +157,7 @@ case class L4_ElementwiseDivision(var left : L4_Expression, var right : L4_Expre
   import L4_BinaryOperators._
 
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " ./ " << right << beforeClosingBracket << ')'
-  override def progress = IR_ElementwiseDivision(left.progress, right.progress)
+  override def progress = ProgressLocation(IR_ElementwiseDivision(left.progress, right.progress))
 }
 
 case class L4_ElementwiseModulo(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
@@ -164,7 +165,7 @@ case class L4_ElementwiseModulo(var left : L4_Expression, var right : L4_Express
   import L4_BinaryOperators._
 
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " .% " << right << beforeClosingBracket << ')'
-  override def progress = IR_ElementwiseModulo(left.progress, right.progress)
+  override def progress = ProgressLocation(IR_ElementwiseModulo(left.progress, right.progress))
 }
 
 case class L4_ElementwisePower(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
@@ -173,7 +174,7 @@ case class L4_ElementwisePower(var left : L4_Expression, var right : L4_Expressi
 
   override def prettyprint(out : PpStream) = out << "dotpow ( " << left << ", " << right << beforeClosingBracket << ')'
   // FIXME: check for integer constant => use pown
-  override def progress = IR_ElementwisePower(left.progress, right.progress)
+  override def progress = ProgressLocation(IR_ElementwisePower(left.progress, right.progress))
 }
 
 /// logical comparison operations
@@ -183,7 +184,7 @@ case class L4_EqEq(var left : L4_Expression, var right : L4_Expression) extends 
   import L4_BinaryOperators._
 
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " == " << right << beforeClosingBracket << ')'
-  override def progress = IR_EqEq(left.progress, right.progress)
+  override def progress = ProgressLocation(IR_EqEq(left.progress, right.progress))
 }
 
 case class L4_Neq(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
@@ -191,7 +192,7 @@ case class L4_Neq(var left : L4_Expression, var right : L4_Expression) extends L
   import L4_BinaryOperators._
 
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " != " << right << beforeClosingBracket << ')'
-  override def progress = IR_Neq(left.progress, right.progress)
+  override def progress = ProgressLocation(IR_Neq(left.progress, right.progress))
 }
 
 case class L4_Lower(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
@@ -199,7 +200,7 @@ case class L4_Lower(var left : L4_Expression, var right : L4_Expression) extends
   import L4_BinaryOperators._
 
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " < " << right << beforeClosingBracket << ')'
-  override def progress = IR_Lower(left.progress, right.progress)
+  override def progress = ProgressLocation(IR_Lower(left.progress, right.progress))
 }
 
 case class L4_Greater(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
@@ -207,7 +208,7 @@ case class L4_Greater(var left : L4_Expression, var right : L4_Expression) exten
   import L4_BinaryOperators._
 
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " > " << right << beforeClosingBracket << ')'
-  override def progress = IR_Greater(left.progress, right.progress)
+  override def progress = ProgressLocation(IR_Greater(left.progress, right.progress))
 }
 
 case class L4_LowerEqual(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
@@ -215,7 +216,7 @@ case class L4_LowerEqual(var left : L4_Expression, var right : L4_Expression) ex
   import L4_BinaryOperators._
 
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " <= " << right << beforeClosingBracket << ')'
-  override def progress = IR_LowerEqual(left.progress, right.progress)
+  override def progress = ProgressLocation(IR_LowerEqual(left.progress, right.progress))
 }
 
 case class L4_GreaterEqual(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
@@ -223,7 +224,7 @@ case class L4_GreaterEqual(var left : L4_Expression, var right : L4_Expression) 
   import L4_BinaryOperators._
 
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " >= " << right << beforeClosingBracket << ')'
-  override def progress = IR_GreaterEqual(left.progress, right.progress)
+  override def progress = ProgressLocation(IR_GreaterEqual(left.progress, right.progress))
 }
 
 /// (scalar) logical operations
@@ -233,7 +234,7 @@ case class L4_AndAnd(var left : L4_Expression, var right : L4_Expression) extend
   import L4_BinaryOperators._
 
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " && " << right << beforeClosingBracket << ')'
-  override def progress = IR_AndAnd(left.progress, right.progress)
+  override def progress = ProgressLocation(IR_AndAnd(left.progress, right.progress))
 }
 
 case class L4_OrOr(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
@@ -241,7 +242,7 @@ case class L4_OrOr(var left : L4_Expression, var right : L4_Expression) extends 
   import L4_BinaryOperators._
 
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " || " << right << beforeClosingBracket << ')'
-  override def progress = IR_OrOr(left.progress, right.progress)
+  override def progress = ProgressLocation(IR_OrOr(left.progress, right.progress))
 }
 
 /// min/max operations
@@ -252,7 +253,7 @@ object L4_Minimum {
 
 case class L4_Minimum(var args : ListBuffer[L4_Expression]) extends L4_Expression {
   override def prettyprint(out : PpStream) = out << "min ( " <<< (args, ", ") << " )"
-  override def progress = IR_Minimum(args.map(_.progress))
+  override def progress = ProgressLocation(IR_Minimum(args.map(_.progress)))
 }
 
 object L4_Maximum {
@@ -261,5 +262,5 @@ object L4_Maximum {
 
 case class L4_Maximum(var args : ListBuffer[L4_Expression]) extends L4_Expression {
   override def prettyprint(out : PpStream) = out << "max ( " <<< (args, ", ") << " )"
-  override def progress = IR_Maximum(args.map(_.progress))
+  override def progress = ProgressLocation(IR_Maximum(args.map(_.progress)))
 }

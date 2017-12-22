@@ -1,5 +1,6 @@
 package exastencils.field.l3
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l3._
 import exastencils.datastructures._
 import exastencils.field.l4._
@@ -33,7 +34,7 @@ case class L3_FieldAccess(
       offset = Some(offset.get + newOffset)
   }
 
-  override def progress = {
+  override def progress = ProgressLocation {
     L4_FieldAccess(target.getProgressedObj(),
       slot.progress,
       L3_ProgressOption(offset)(_.progress))

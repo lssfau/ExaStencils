@@ -1,5 +1,6 @@
 package exastencils.grid.l4
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4.L4_ImplicitConversion._
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
@@ -58,7 +59,7 @@ case class L4_VirtualFieldAccess(
     }
   }
 
-  def progress : IR_VirtualFieldAccess = {
+  override def progress : IR_VirtualFieldAccess = ProgressLocation {
     if (target.datatype.dimensionality > 0) {
       index.indices ++= Array.fill(target.datatype.dimensionality)(0 : L4_Expression)
       if (arrayIndex.isDefined)

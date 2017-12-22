@@ -1,5 +1,6 @@
 package exastencils.operator.l2
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l2._
 import exastencils.baseExt.l2.L2_UnresolvedAccess
 import exastencils.datastructures._
@@ -22,7 +23,7 @@ case class L2_FutureStencilAccess(
     if (dirAccess.isDefined) out << ':' << dirAccess.get
   }
 
-  def progress = {
+  override def progress = ProgressLocation {
     Logger.warn(s"Trying to progress future stencil access to $name on level $level")
     L3_FutureStencilAccess(name, level,
       L2_ProgressOption(offset)(_.progress),

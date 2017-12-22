@@ -1,5 +1,6 @@
 package exastencils.field.l1
 
+import exastencils.base.ProgressLocation
 import exastencils.baseExt.l1.L1_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.field.l2.L2_FutureFieldAccess
@@ -13,7 +14,7 @@ import exastencils.util.l1.L1_LevelCollector
 case class L1_FutureFieldAccess(var name : String, var level : Int) extends L1_FutureKnowledgeAccess {
   override def prettyprint(out : PpStream) = out << name << '@' << level
 
-  def progress = {
+  override def progress = ProgressLocation {
     Logger.warn(s"Trying to progress future field access to $name on level $level")
     L2_FutureFieldAccess(name, level, None)
   }

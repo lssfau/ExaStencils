@@ -16,7 +16,7 @@ import exastencils.optimization.ir.IR_SimplifyExpression
 
 /// IR_ContractionSpecification
 
-case class IR_ContractionSpecification(var posExt : IR_ConstIndex, var negExt : IR_ConstIndex)
+case class IR_ContractionSpecification(var posExt : IR_ConstIndex, var negExt : IR_ConstIndex) extends IR_Node
 
 /// IR_ContractingLoop
 

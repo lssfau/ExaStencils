@@ -1,5 +1,6 @@
 package exastencils.base.l4
 
+import exastencils.base.ProgressLocation
 import exastencils.base.ir._
 import exastencils.datastructures._
 import exastencils.logger.Logger
@@ -8,13 +9,13 @@ import exastencils.util.l4.L4_LevelCollector
 /// L4_PlainDslFunctionReference
 
 case class L4_PlainDslFunctionReference(var name : String, var returnType : L4_Datatype) extends L4_PlainFunctionReference {
-  override def progress = IR_PlainDslFunctionReference(name, returnType.progress)
+  override def progress = ProgressLocation(IR_PlainDslFunctionReference(name, returnType.progress))
 }
 
 /// L4_LeveledDslFunctionReference
 
 case class L4_LeveledDslFunctionReference(var name : String, var level : Int, var returnType : L4_Datatype) extends L4_LeveledFunctionReference {
-  override def progress = IR_LeveledDslFunctionReference(name, level, returnType.progress)
+  override def progress = ProgressLocation(IR_LeveledDslFunctionReference(name, level, returnType.progress))
 }
 
 /// L4_ResolveDslFunctionReferences

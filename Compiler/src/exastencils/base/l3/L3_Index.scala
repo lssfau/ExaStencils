@@ -1,5 +1,6 @@
 package exastencils.base.l3
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.core._
 import exastencils.logger.Logger
@@ -40,7 +41,7 @@ object L3_ExpressionIndex {
 
 case class L3_ExpressionIndex(override var indices : Array[L3_Expression]) extends L3_Index with L3_ArrayBasedIndex[L3_Expression] {
   override def prettyprint(out : PpStream) = out << '[' <<< (this, ", ") << ']'
-  override def progress = L4_ExpressionIndex(indices.map(_.progress))
+  override def progress = ProgressLocation(L4_ExpressionIndex(indices.map(_.progress)))
 
   override def +(that : L3_Index) : L3_ExpressionIndex = L3_ExpressionIndex(this, that.toExpressionIndex, _ + _)
   override def -(that : L3_Index) : L3_ExpressionIndex = L3_ExpressionIndex(this, that.toExpressionIndex, _ - _)
@@ -78,7 +79,7 @@ object L3_ConstIndex {
 
 case class L3_ConstIndex(override var indices : Array[Int]) extends L3_Index with L3_ArrayBasedIndex[Int] {
   override def prettyprint(out : PpStream) = out << '[' << indices.mkString(", ") << ']'
-  override def progress = L4_ConstIndex(indices)
+  override def progress = ProgressLocation(L4_ConstIndex(indices))
 
   def +(that : L3_ConstIndex) = L3_ConstIndex(this, that, _ + _)
   override def +(that : L3_Index) = L3_ExpressionIndex(this.toExpressionIndex, that.toExpressionIndex, _ + _)

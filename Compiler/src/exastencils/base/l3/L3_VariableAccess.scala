@@ -1,5 +1,6 @@
 package exastencils.base.l3
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.baseExt.l3.L3_UnresolvedAccess
 import exastencils.config.Knowledge
@@ -19,14 +20,14 @@ trait L3_VariableAccess extends L3_Access {
 
 case class L3_PlainVariableAccess(var name : String, var datatype : L3_Datatype, var isConst : Boolean) extends L3_VariableAccess {
   override def prettyprint(out : PpStream) : Unit = out << name
-  override def progress = L4_PlainVariableAccess(name, datatype.progress, isConst)
+  override def progress = ProgressLocation(L4_PlainVariableAccess(name, datatype.progress, isConst))
 }
 
 /// L3_LeveledVariableAccess
 
 case class L3_LeveledVariableAccess(var name : String, var level : Int, var datatype : L3_Datatype, var isConst : Boolean) extends L3_VariableAccess {
   override def prettyprint(out : PpStream) : Unit = out << name << '@' << level
-  override def progress = L4_LeveledVariableAccess(name, level, datatype.progress, isConst)
+  override def progress = ProgressLocation(L4_LeveledVariableAccess(name, level, datatype.progress, isConst))
 }
 
 /// L3_ResolveVariableAccesses

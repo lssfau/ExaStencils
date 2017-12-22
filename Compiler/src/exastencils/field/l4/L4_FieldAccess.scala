@@ -1,5 +1,6 @@
 package exastencils.field.l4
 
+import exastencils.base.ProgressLocation
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
@@ -52,7 +53,7 @@ case class L4_FieldAccess(
       offset = Some(offset.get + newOffset)
   }
 
-  def progress : IR_FieldAccess = {
+  override def progress : IR_FieldAccess = ProgressLocation {
     val field = target.getProgressedObj()
 
     val numDims = field.fieldLayout.numDimsGrid

@@ -2,6 +2,7 @@ package exastencils.communication.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.communication.ir._
 import exastencils.core.Duplicate
@@ -29,7 +30,7 @@ case class L4_Communicate(
     if (condition.isDefined) out << " where " << condition.get
   }
 
-  override def progress : IR_Communicate = {
+  override def progress : IR_Communicate = ProgressLocation {
     // TODO: extract to strategy replacing stencil field accesses with corresponding field accesses
     // FIXME: honor component accesses
     val progressedField = Duplicate(field match {
@@ -63,5 +64,5 @@ case class L4_CommunicateTarget(
   }
 
   // FIXME: remove .toExpressionIndex
-  override def progress = IR_CommunicateTarget(target, L4_ProgressOption(begin)(_.progress.toExpressionIndex), L4_ProgressOption(end)(_.progress.toExpressionIndex))
+  override def progress = ProgressLocation(IR_CommunicateTarget(target, L4_ProgressOption(begin)(_.progress.toExpressionIndex), L4_ProgressOption(end)(_.progress.toExpressionIndex)))
 }

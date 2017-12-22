@@ -1,5 +1,6 @@
 package exastencils.domain.l1
 
+import exastencils.base.ProgressLocation
 import exastencils.datastructures._
 import exastencils.domain.l2.L2_DomainAccess
 import exastencils.knowledge.l1._
@@ -17,7 +18,7 @@ object L1_DomainAccess {
 
 case class L1_DomainAccess(var target : L1_Domain) extends L1_KnowledgeAccess {
   override def prettyprint(out : PpStream) = out << target.name
-  override def progress = L2_DomainAccess(target.getProgressedObj())
+  override def progress = ProgressLocation(L2_DomainAccess(target.getProgressedObj()))
 }
 
 /// L1_ResolveDomainAccesses

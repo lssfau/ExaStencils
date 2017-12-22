@@ -2,6 +2,7 @@ package exastencils.field.l3
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l3._
 import exastencils.datastructures._
 import exastencils.field.l4.L4_FieldFieldConvolution
@@ -11,7 +12,7 @@ import exastencils.prettyprinting.PpStream
 
 case class L3_FieldFieldConvolution(var lhs : L3_FieldAccess, var rhs : L3_FieldAccess) extends L3_Expression {
   override def prettyprint(out : PpStream) = out << lhs << " * " << rhs
-  override def progress = L4_FieldFieldConvolution(lhs.progress, rhs.progress)
+  override def progress = ProgressLocation(L4_FieldFieldConvolution(lhs.progress, rhs.progress))
 }
 
 /// L3_ResolveFieldFieldConvolutions

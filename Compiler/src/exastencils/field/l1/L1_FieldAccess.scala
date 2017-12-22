@@ -1,5 +1,6 @@
 package exastencils.field.l1
 
+import exastencils.base.ProgressLocation
 import exastencils.datastructures._
 import exastencils.field.l2.L2_FieldAccess
 import exastencils.knowledge.l1._
@@ -14,7 +15,7 @@ object L1_FieldAccess {
 
 case class L1_FieldAccess(var target : L1_Field) extends L1_LeveledKnowledgeAccess {
   override def prettyprint(out : PpStream) = out << target.name << '@' << target.level
-  override def progress = L2_FieldAccess(target.getProgressedObj(), None)
+  override def progress = ProgressLocation(L2_FieldAccess(target.getProgressedObj(), None))
 }
 
 /// L1_ResolveFieldAccesses

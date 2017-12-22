@@ -1,5 +1,6 @@
 package exastencils.operator.l1
 
+import exastencils.base.ProgressLocation
 import exastencils.datastructures._
 import exastencils.knowledge.l1.L1_LeveledKnowledgeAccess
 import exastencils.operator.l2.L2_StencilAccess
@@ -14,7 +15,7 @@ object L1_OperatorAccess {
 
 case class L1_OperatorAccess(var target : L1_Operator) extends L1_LeveledKnowledgeAccess {
   override def prettyprint(out : PpStream) = out << name << '@' << level
-  def progress = L2_StencilAccess(target.getProgressedObj(), None, None)
+  override def progress = ProgressLocation(L2_StencilAccess(target.getProgressedObj(), None, None))
 }
 
 /// L1_ResolveOperatorAccesses

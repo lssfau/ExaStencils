@@ -1,5 +1,6 @@
 package exastencils.baseExt.l1
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l1._
 import exastencils.baseExt.l2.L2_UnresolvedAccess
 import exastencils.logger.Logger
@@ -20,7 +21,7 @@ case class L1_UnresolvedAccess(
     if (level.isDefined) out << '@' << level.get
   }
 
-  def progress = {
+  override def progress = ProgressLocation {
     Logger.warn(s"Progressing unresolved access on L1: $name" + (if (level.isDefined) s"@${ level.get }" else ""))
     L2_UnresolvedAccess(name, L1_ProgressOption(level)(_.progress))
   }

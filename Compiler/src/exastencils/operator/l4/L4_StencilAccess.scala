@@ -1,5 +1,6 @@
 package exastencils.operator.l4
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.core.Duplicate
@@ -34,7 +35,7 @@ case class L4_StencilAccess(
       offset = Some(offset.get + newOffset)
   }
 
-  def progress : IR_StencilAccess = {
+  override def progress : IR_StencilAccess = ProgressLocation {
     if (arrayIndex.isDefined) Logger.warn("Unresolved arrayIndex")
     if (dirAccess.isDefined) Logger.warn("Unresolved dirAccess")
 

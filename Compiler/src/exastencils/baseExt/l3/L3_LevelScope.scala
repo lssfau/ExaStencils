@@ -2,6 +2,7 @@ package exastencils.baseExt.l3
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l3._
 import exastencils.baseExt.l4.L4_LevelScope
 import exastencils.datastructures._
@@ -16,7 +17,7 @@ object L3_LevelScope {
 
 case class L3_LevelScope(var level : L3_LevelSpecification, var body : ListBuffer[L3_Statement]) extends L3_Statement {
   override def prettyprint(out : PpStream) = out << "@" << level << " {\n" <<< (body, "\n") << "\n}"
-  override def progress = L4_LevelScope(level.progress, body.map(_.progress))
+  override def progress = ProgressLocation(L4_LevelScope(level.progress, body.map(_.progress)))
 }
 
 /// L3_ResolveLevelScopes

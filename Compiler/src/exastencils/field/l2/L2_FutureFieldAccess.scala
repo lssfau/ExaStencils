@@ -1,5 +1,6 @@
 package exastencils.field.l2
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l2._
 import exastencils.baseExt.l2.L2_UnresolvedAccess
 import exastencils.datastructures._
@@ -21,7 +22,7 @@ case class L2_FutureFieldAccess(
     if (offset.isDefined) out << '@' << offset.get
   }
 
-  def progress = {
+  override def progress = ProgressLocation {
     Logger.warn(s"Trying to progress future field access to $name on level $level")
     L3_FutureFieldAccess(name, level,
       L3_ActiveSlot,

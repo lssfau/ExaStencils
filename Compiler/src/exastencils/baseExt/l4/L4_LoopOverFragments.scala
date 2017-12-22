@@ -2,6 +2,7 @@ package exastencils.baseExt.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.parallelization.ir.IR_ParallelizationInfo
@@ -26,7 +27,7 @@ case class L4_LoopOverFragments(
     out << "{\n" <<< (body, "\n") << "\n}"
   }
 
-  override def progress = {
+  override def progress = ProgressLocation {
     // TODO: introduce L4_ParallelizationInfo
     val parallelization = IR_ParallelizationInfo()
     // assume parallelizabilty by default

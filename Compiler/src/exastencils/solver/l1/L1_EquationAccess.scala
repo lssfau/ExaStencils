@@ -1,5 +1,6 @@
 package exastencils.solver.l1
 
+import exastencils.base.ProgressLocation
 import exastencils.datastructures._
 import exastencils.knowledge.l1.L1_LeveledKnowledgeAccess
 import exastencils.prettyprinting.PpStream
@@ -14,7 +15,7 @@ object L1_EquationAccess {
 
 case class L1_EquationAccess(var target : L1_NamedEquation) extends L1_LeveledKnowledgeAccess {
   override def prettyprint(out : PpStream) = out << target.name << '@' << target.level
-  override def progress = L2_EquationAccess(target.getProgressedObj(), None)
+  override def progress = ProgressLocation(L2_EquationAccess(target.getProgressedObj(), None))
 }
 
 /// L1_ResolveEquationAccesses

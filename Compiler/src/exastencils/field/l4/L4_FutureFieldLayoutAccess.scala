@@ -11,12 +11,7 @@ import exastencils.util.l4.L4_LevelCollector
 
 case class L4_FutureFieldLayoutAccess(var name : String, var level : Int) extends L4_FutureKnowledgeAccess {
   override def prettyprint(out : PpStream) = out << name << '@' << level
-
-  def progress = {
-    Logger.warn(s"Trying to progress future field layout access to $name on level $level")
-    ??? // TODO
-  }
-
+  override def progress = Logger.error(s"Trying to progress future field layout access to $name on level $level")
   def toFieldLayoutAccess = L4_FieldLayoutAccess(this)
 }
 

@@ -2,6 +2,7 @@ package exastencils.baseExt.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.core.Duplicate
@@ -35,7 +36,7 @@ case class L4_ColorLoops(var colors : ListBuffer[L4_Expression], var stmts : Lis
     newStmts
   }
 
-  override def progress : IR_Scope = {
+  override def progress : IR_Scope = ProgressLocation {
     // TODO: extract loop duplication to separate transformation
     val newStmts = colors.flatMap(generateStmtsForColor)
     IR_Scope(newStmts.map(_.progress : IR_Statement))

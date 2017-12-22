@@ -2,6 +2,7 @@ package exastencils.baseExt.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
@@ -14,13 +15,13 @@ import exastencils.prettyprinting._
 
 /// L4_RegionSpecification
 
-case class L4_RegionSpecification(var region : String, var dir : L4_ConstIndex, var onlyOnBoundary : Boolean) extends L4_Node with PrettyPrintable {
+case class L4_RegionSpecification(var region : String, var dir : L4_ConstIndex, var onlyOnBoundary : Boolean) extends L4_Node with L4_Progressable with PrettyPrintable {
   override def prettyprint(out : PpStream) = {
     out << region << ' ' << dir
     if (onlyOnBoundary) out << " on boundary"
   }
 
-  def progress = IR_RegionSpecification(region, dir.progress, onlyOnBoundary)
+  override def progress = ProgressLocation(IR_RegionSpecification(region, dir.progress, onlyOnBoundary))
 }
 
 /// L4_LoopOverField
@@ -63,7 +64,7 @@ case class L4_LoopOverField(
     out << "{\n" <<< (body, "\n") << "\n}"
   }
 
-  override def progress : IR_LoopOverPoints = {
+  override def progress : IR_LoopOverPoints = ProgressLocation {
     val resolvedField = field match {
       case access : L4_FieldAccess        => access.target.getProgressedObj()
       case access : L4_StencilFieldAccess => access.target.getProgressedObj().field

@@ -23,11 +23,7 @@ case class L4_FutureFieldAccess(
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
   }
 
-  def progress = {
-    Logger.warn(s"Trying to progress future field access to $name on level $level")
-    ??? // TODO
-  }
-
+  override def progress = Logger.error(s"Trying to progress future field access to $name on level $level")
   def toFieldAccess = L4_FieldAccess(this)
 }
 

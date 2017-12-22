@@ -1,5 +1,6 @@
 package exastencils.base.l1
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l2._
 import exastencils.prettyprinting._
 
@@ -30,7 +31,7 @@ object L1_ConstIndex {
 
 case class L1_ConstIndex(override var indices : Array[Int]) extends L1_Index with L1_ArrayBasedIndex[Int] {
   override def prettyprint(out : PpStream) = out << '[' << indices.mkString(", ") << ']'
-  override def progress = L2_ConstIndex(indices)
+  override def progress = ProgressLocation(L2_ConstIndex(indices))
 
   def +(that : L1_ConstIndex) = L1_ConstIndex(this, that, _ + _)
   def -(that : L1_ConstIndex) = L1_ConstIndex(this, that, _ - _)

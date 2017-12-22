@@ -2,6 +2,7 @@ package exastencils.operator.l4
 
 import scala.collection.mutable.HashSet
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.logger.Logger
@@ -21,7 +22,7 @@ object L4_StencilFunctions {
 /// L4_StencilFunctionReference
 
 case class L4_StencilFunctionReference(var name : String, var returnType : L4_Datatype) extends L4_PlainFunctionReference {
-  override def progress = IR_StencilFunctionReference(name, returnType.progress)
+  override def progress = ProgressLocation(IR_StencilFunctionReference(name, returnType.progress))
 }
 
 /// L4_ResolveStencilFunctions

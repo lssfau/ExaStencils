@@ -3,6 +3,7 @@ package exastencils.baseExt.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ExaRootNode
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.globals.ir.IR_GlobalCollection
@@ -20,7 +21,7 @@ case class L4_GlobalSection(var declarations : ListBuffer[L4_VariableDeclaration
     if (declarations.nonEmpty) out << "Globals {\n" <<< (declarations, "\n") << "\n}"
   }
 
-  override def progress = IR_GlobalCollection(declarations.map(_.progress))
+  override def progress = ProgressLocation(IR_GlobalCollection(declarations.map(_.progress)))
 }
 
 /// L4_UnifyGlobalSections

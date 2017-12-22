@@ -2,6 +2,7 @@ package exastencils.field.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.field.ir.IR_PrintField
@@ -17,7 +18,7 @@ case class L4_PrintField(var filename : L4_Expression, var field : L4_FieldAcces
     if (condition.isDefined) out << ", " << condition.get
     out << " )"
   }
-  override def progress = IR_PrintField(filename.progress, field.progress.fieldSelection, condition.getOrElse(L4_BooleanConstant(true)).progress)
+  override def progress = ProgressLocation(IR_PrintField(filename.progress, field.progress.fieldSelection, condition.getOrElse(L4_BooleanConstant(true)).progress))
 }
 
 /// L4_ResolvePrintFieldFunctions

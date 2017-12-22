@@ -2,6 +2,7 @@ package exastencils.base.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.ir._
 import exastencils.core.Duplicate
 import exastencils.prettyprinting.PpStream
@@ -24,7 +25,7 @@ case class L4_ForLoop(
     out << " {\n" <<< (body, "\n") << "\n}"
   }
 
-  override def progress : IR_Statement = {
+  override def progress : IR_Statement = ProgressLocation {
     // FIXME: refactor -> access needs to be variable access, no StringLit, etc
     val (loopVar, begin) =
       if (iterator.isDefined) {
@@ -61,7 +62,7 @@ case class L4_WhileLoop(var comparison : L4_Expression, var body : ListBuffer[L4
     out << "\n}"
   }
 
-  override def progress = IR_WhileLoop(comparison.progress, body.map(_.progress))
+  override def progress = ProgressLocation(IR_WhileLoop(comparison.progress, body.map(_.progress)))
 }
 
 /// L4_UntilLoop
@@ -78,12 +79,12 @@ case class L4_UntilLoop(var comparison : L4_Expression, var body : ListBuffer[L4
   }
 
   // TODO: internally process L4_UntilLoops to L4_WhileLoops and remove progress
-  override def progress = IR_WhileLoop(IR_Negation(comparison.progress), body.map(_.progress))
+  override def progress = ProgressLocation(IR_WhileLoop(IR_Negation(comparison.progress), body.map(_.progress)))
 }
 
 /// L4_Break
 
 case class L4_Break() extends L4_Statement {
   override def prettyprint(out : PpStream) = out << "break\n"
-  override def progress = IR_Break()
+  override def progress = ProgressLocation(IR_Break())
 }

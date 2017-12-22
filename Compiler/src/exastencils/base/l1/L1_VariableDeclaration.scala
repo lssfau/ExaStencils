@@ -1,5 +1,6 @@
 package exastencils.base.l1
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l2._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
@@ -33,7 +34,7 @@ case class L1_VariableDeclaration(
     })
   }
 
-  override def progress = {
+  override def progress = ProgressLocation {
     L2_VariableDeclaration(
       name,
       L1_ProgressOption(levels)(_.progress),

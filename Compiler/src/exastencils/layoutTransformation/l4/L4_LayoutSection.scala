@@ -3,6 +3,7 @@ package exastencils.layoutTransformation.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ExaRootNode
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.layoutTransformation.ir.IR_LayoutTransformationCollection
@@ -15,7 +16,7 @@ case class L4_LayoutSection(var statements : ListBuffer[L4_LayoutTransformStatem
     if (statements.nonEmpty) out << "LayoutTransformations {\n" <<< (statements, "\n") << "\n}"
   }
 
-  override def progress = IR_LayoutTransformationCollection(statements.map(_.progress))
+  override def progress = ProgressLocation(IR_LayoutTransformationCollection(statements.map(_.progress)))
 }
 
 /// L4_UnifyGlobalSections

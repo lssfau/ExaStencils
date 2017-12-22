@@ -2,6 +2,7 @@ package exastencils.baseExt.l3
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l3._
 import exastencils.baseExt.l4.L4_FunctionTemplate
 import exastencils.prettyprinting._
@@ -29,5 +30,5 @@ case class L3_FunctionTemplate(
     out << "\n}"
   }
 
-  override def progress = L4_FunctionTemplate(name, datatype.progress, templateArgs, functionArgs.map(_.progress), statements.map(_.progress))
+  override def progress = ProgressLocation(L4_FunctionTemplate(name, datatype.progress, templateArgs, functionArgs.map(_.progress), statements.map(_.progress)))
 }

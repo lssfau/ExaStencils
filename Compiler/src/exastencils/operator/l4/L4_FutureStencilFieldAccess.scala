@@ -20,12 +20,7 @@ case class L4_FutureStencilFieldAccess(
     var arrayIndex : Option[Int] = None) extends L4_FutureKnowledgeAccess {
 
   override def prettyprint(out : PpStream) = out << name << '@' << level
-
-  def progress = {
-    Logger.warn(s"Trying to progress future stencil field access to $name on level $level")
-    ??? // TODO
-  }
-
+  override def progress = Logger.error(s"Trying to progress future stencil field access to $name on level $level")
   def toStencilFieldAccess = L4_StencilFieldAccess(this)
 }
 

@@ -2,6 +2,7 @@ package exastencils.base.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.ir.IR_Root
 import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.knowledge.l4.L4_PrintKnowledgeDecl
@@ -26,7 +27,7 @@ case class L4_Root(var nodes : ListBuffer[L4_Node]) extends L4_Node with L4_Prog
     }
   }
 
-  override def progress : IR_Root = {
+  override def progress : IR_Root = ProgressLocation {
     var newRoot = IR_Root()
 
     val functions = IR_UserFunctions()

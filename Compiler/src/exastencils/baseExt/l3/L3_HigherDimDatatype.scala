@@ -1,5 +1,6 @@
 package exastencils.baseExt.l3
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l3._
 import exastencils.baseExt.l4._
 import exastencils.prettyprinting.PpStream
@@ -25,7 +26,7 @@ case class L3_VectorDatatype(var datatype : L3_Datatype, var numElements : Int, 
     out << "<" << datatype << ',' << numElements << '>'
   }
 
-  override def progress = L4_VectorDatatype(datatype.progress, numElements, isRow)
+  override def progress = ProgressLocation(L4_VectorDatatype(datatype.progress, numElements, isRow))
 
   override def dimensionality : Int = 1 + datatype.dimensionality
   override def getSizeArray : Array[Int] = Array(numElements) ++ datatype.getSizeArray
@@ -38,7 +39,7 @@ case class L3_VectorDatatype(var datatype : L3_Datatype, var numElements : Int, 
 
 case class L3_MatrixDatatype(var datatype : L3_Datatype, var numRows : Int, var numColumns : Int) extends L3_HigherDimDatatype {
   override def prettyprint(out : PpStream) : Unit = out << "Matrix<" << datatype << ',' << numRows << ',' << numColumns << '>'
-  override def progress = L4_MatrixDatatype(datatype.progress, numRows, numColumns)
+  override def progress = ProgressLocation(L4_MatrixDatatype(datatype.progress, numRows, numColumns))
 
   override def dimensionality : Int = 3 + datatype.dimensionality
   override def getSizeArray : Array[Int] = Array(numRows, numColumns) ++ datatype.getSizeArray

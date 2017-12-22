@@ -1,5 +1,6 @@
 package exastencils.baseExt.l4
 
+import exastencils.base.ProgressLocation
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.field.l4.L4_SlotSpecification
@@ -30,7 +31,7 @@ case class L4_UnresolvedAccess(
     if (dirAccess.isDefined) out << ':' << dirAccess.get
   }
 
-  def progress : IR_Expression = {
+  override def progress : IR_Expression = ProgressLocation {
     Logger.warn(s"Progressing unresolved access on L4: $name" + (if (level.isDefined) s"@${ level.get }" else ""))
 
     if (slot.isDefined) Logger.warn("Discarding meaningless slot access on basic or leveled access")

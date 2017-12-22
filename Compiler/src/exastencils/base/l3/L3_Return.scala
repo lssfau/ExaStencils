@@ -1,5 +1,6 @@
 package exastencils.base.l3
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.prettyprinting._
 
@@ -11,5 +12,5 @@ case class L3_Return(var expr : Option[L3_Expression]) extends L3_Statement {
     if (expr.isDefined) out << ' ' << expr.get.prettyprint()
   }
 
-  override def progress = L4_Return(L3_ProgressOption(expr)(_.progress))
+  override def progress = ProgressLocation(L4_Return(L3_ProgressOption(expr)(_.progress)))
 }

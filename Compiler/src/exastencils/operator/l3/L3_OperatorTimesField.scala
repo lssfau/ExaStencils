@@ -2,6 +2,7 @@ package exastencils.operator.l3
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l3._
 import exastencils.datastructures._
 import exastencils.field.l3._
@@ -14,7 +15,7 @@ import exastencils.prettyprinting.PpStream
 
 case class L3_OperatorTimesField(var lhs : L3_OperatorAccess, var rhs : L3_FieldAccess) extends L3_Expression {
   def prettyprint(out : PpStream) = out << lhs << " * " << rhs
-  def progress = L4_OperatorTimesField(lhs.progress, rhs.progress)
+  override def progress = ProgressLocation(L4_OperatorTimesField(lhs.progress, rhs.progress))
 }
 
 /// L3_ResolveOperatorTimesField

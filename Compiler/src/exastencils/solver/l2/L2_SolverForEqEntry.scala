@@ -1,5 +1,6 @@
 package exastencils.solver.l2
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l2._
 import exastencils.field.l2.L2_FieldCollection
 import exastencils.prettyprinting._
@@ -13,5 +14,5 @@ case class L2_SolverForEqEntry(unknownName : String, eqName : String) extends L2
   def getSolField(level : Int) = L2_FieldCollection.getByIdentifier(unknownName, level).get
   def getEq(level : Int) = L2_EquationCollection.getByIdentifier(eqName, level).get
 
-  override def progress = L3_SolverForEqEntry(unknownName, eqName)
+  override def progress = ProgressLocation(L3_SolverForEqEntry(unknownName, eqName))
 }

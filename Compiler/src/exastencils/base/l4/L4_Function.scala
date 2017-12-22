@@ -2,6 +2,7 @@ package exastencils.base.l4
 
 import scala.collection.mutable._
 
+import exastencils.base.ProgressLocation
 import exastencils.base.ir._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
@@ -18,7 +19,7 @@ object L4_Function {
 
   case class Argument(var name : String, var datatype : L4_Datatype) extends L4_Node with PrettyPrintable with L4_Progressable {
     override def prettyprint(out : PpStream) = out << name << " : " << datatype
-    override def progress = IR_FunctionArgument(name, datatype.progress)
+    override def progress = ProgressLocation(IR_FunctionArgument(name, datatype.progress))
   }
 
 }
@@ -48,7 +49,7 @@ case class L4_PlainFunction(
     out << " {\n" <<< (body, "\n") << "\n}"
   }
 
-  override def progress = {
+  override def progress = ProgressLocation {
     val fct = IR_PlainFunction(name, datatype.progress, parameters.map(_.progress), body.map(_.progress))
     fct.allowInlining = allowInlining
     fct
@@ -72,7 +73,7 @@ case class L4_LeveledFunction(
     out << " {\n" <<< (body, "\n") << "\n}"
   }
 
-  override def progress = {
+  override def progress = ProgressLocation {
     val fct = IR_LeveledFunction(name, level, datatype.progress, parameters.map(_.progress), body.map(_.progress))
     fct.allowInlining = allowInlining
     fct

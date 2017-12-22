@@ -89,4 +89,3 @@ object IR_HACK_TypeAliases extends DefaultStrategy("Register type aliases") {
     case t : IR_HasTypeAlias => global.registerTypeAlias(t.asInstanceOf[IR_Datatype], t.aliasFor); t
   })
 }
-

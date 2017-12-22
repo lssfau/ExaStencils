@@ -2,6 +2,7 @@ package exastencils.util.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.logger.Logger
@@ -12,7 +13,7 @@ import exastencils.util.ir._
 
 case class L4_BuildString(var stringName : L4_Expression, var toPrint : ListBuffer[L4_Expression]) extends L4_Statement {
   override def prettyprint(out : PpStream) = out << "buildString ( " << stringName << ", " <<< (toPrint, ", ") << " )"
-  override def progress = IR_BuildString(stringName.progress, toPrint.map(_.progress))
+  override def progress = ProgressLocation(IR_BuildString(stringName.progress, toPrint.map(_.progress)))
 }
 
 /// L4_ResolveBuildStringFunctions
