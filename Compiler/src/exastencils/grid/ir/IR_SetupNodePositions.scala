@@ -7,13 +7,15 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.DefaultNeighbors
 import exastencils.communication.ir._
-import exastencils.config.Knowledge
+import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.deprecated.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir._
+import exastencils.hack.ir.HACK_IR_Native
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
+import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_MathFunctionReference
 
 /// IR_SetupNodePositions
@@ -45,6 +47,7 @@ object IR_SetupNodePositions {
         IR_LoopOverDimensions.defItForDim(dim)
       else
         IR_VariableAccess(s"global_${ IR_DimToString(dim) }", IR_IntegerDatatype)
+
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
@@ -137,7 +140,9 @@ object IR_SetupNodePositions {
 
     // look up field and compile access to base element
     val field = IR_VF_NodePositionPerDim.find(level, dim).associatedField
+
     def baseIndex = IR_LoopOverDimensions.defIt(numDims)
+
     def baseAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), baseIndex)
 
     // fix the inner iterator -> used for zone checks
@@ -146,6 +151,7 @@ object IR_SetupNodePositions {
         IR_LoopOverDimensions.defItForDim(dim)
       else
         IR_VariableAccess(s"global_${ IR_DimToString(dim) }", IR_IntegerDatatype)
+
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
@@ -159,6 +165,7 @@ object IR_SetupNodePositions {
 
     val leftGhostIndex = IR_ExpressionIndex(Array.fill(numDims)(0))
     leftGhostIndex(dim) = -2
+
     def leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
 
     val leftBoundaryUpdate = IR_IfCondition(
@@ -175,6 +182,7 @@ object IR_SetupNodePositions {
 
     val rightGhostIndex = IR_ExpressionIndex(Array.fill(numDims)(0))
     rightGhostIndex(dim) = numCellsPerFrag + 2
+
     def rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
 
     val rightBoundaryUpdate = IR_IfCondition(
@@ -359,6 +367,7 @@ object IR_SetupNodePositions {
           IR_LoopOverDimensions.defItForDim(dim)
         else
           IR_VariableAccess(s"global_${ IR_DimToString(dim) }", IR_IntegerDatatype)
+
       val innerItDecl =
         if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
           IR_NullStatement
@@ -393,6 +402,20 @@ object IR_SetupNodePositions {
 
     // init with uniform first
     stmts ++= for_nonAA_Uniform(level)
+
+    // add randn function
+    if (level == Knowledge.maxLevel) {
+      val dim = 0 // FIXME: which dim?
+      val numCellsTotal = ((1 << level) * Knowledge.domain_fragmentLengthAsVec(dim)) * Knowledge.domain_rect_numFragsTotalAsVec(dim)
+      val domainBounds = domain.asInstanceOf[IR_DomainFromAABB].aabb
+      val defGridWidth = IR_SimplifyExpression.evalFloating((domainBounds.upper(dim) - domainBounds.lower(dim)) / numCellsTotal)
+
+      Settings.additionalIncludes = (Settings.additionalIncludes :+ "functional").distinct
+
+      stmts += HACK_IR_Native(s"std::default_random_engine generator(${ if (Knowledge.mpi_enabled) MPI_IV_MpiRank.prettyprint() else 0 })")
+      stmts += HACK_IR_Native(s"static std::uniform_real_distribution <double> distribution(${ -0.1 * defGridWidth }, ${ 0.1 * defGridWidth })")
+      stmts += HACK_IR_Native(s"static auto randn = std::bind (distribution, generator)")
+    }
 
     // apply modification of positions
     for (dim <- 0 until numDims) {
@@ -475,8 +498,10 @@ object IR_SetupNodePositions {
 
     // compile final loop
     val offset = -1
+
     //val offset = -2
     def innerIt = IR_LoopOverDimensions.defItForDim(dim)
+
     val innerLoop = IR_LoopOverPoints(coarseField, None,
       IR_GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(numDims)(0)), offset, dim),
       IR_GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(numDims)(0)), offset, dim),

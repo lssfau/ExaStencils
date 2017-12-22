@@ -88,8 +88,11 @@ case class IR_VF_NodePositionPerDim(
       index(dim) * IR_VF_CellWidthPerDim.access(level, dim, Duplicate(index)) + IR_IV_FragmentPositionBegin(dim)
     else if (Knowledge.grid_isAxisAligned)
       IR_FieldAccess(IR_FieldSelection(associatedField, level, 0), IR_GridUtil.projectIdx(index, dim))
-    else
-      IR_FieldAccess(IR_FieldSelection(associatedField, level, 0), index)
+    else {
+      val hdIndex = index
+      index.indices :+= (dim : IR_Expression)
+      IR_FieldAccess(IR_FieldSelection(IR_VF_NodePositionAsVec.find(level).associatedField, level, 0), hdIndex)
+    }
   }
 
   override def generateInitCode() = {
