@@ -84,7 +84,8 @@ object WrapWithProgressLocation {
         processed += "\n"
     }
 
-    if (!(processed.contains("import exastencils.base.ProgressLocation\n") || processed.contains("import exastencils.base._\n"))) {
+    if (processed != input
+      && (!(processed.contains("import exastencils.base.ProgressLocation\n") || processed.contains("import exastencils.base._\n")))) {
       processed = addImport(processed)
     }
 
