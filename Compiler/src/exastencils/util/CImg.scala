@@ -12,7 +12,7 @@ object CImg {
 
     if (Knowledge.library_CImg)
       Platform.targetOS match {
-        case "Windows"       => flags += " -lgdi32 "
+        case "Windows"         => flags += " -lgdi32 "
         case "Linux" | "macOS" => flags += " -lm -lpthread -lX11"
       }
 

@@ -1,16 +1,14 @@
 package exastencils.polyhedron.exploration
 
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.ArrayStack
+import scala.collection.mutable.{ ArrayBuffer, ArrayStack }
 
 import java.io.PrintStream
 
 import exastencils.config.Knowledge
 import exastencils.polyhedron.Isl
 import exastencils.polyhedron.Isl.TypeAliases._
-import org.exastencils.schedopt.chernikova.Chernikova
-import org.exastencils.schedopt.chernikova.Generators
+import org.exastencils.schedopt.chernikova._
 
 class ExplorationError(msg : String) extends Error(msg)
 
@@ -135,7 +133,7 @@ object Exploration {
         }
         val remove : Boolean = (filterAlignVec && !cstVect) || // remove those which cannot be vectorized without aligned memory accesses
           (filterInnerPar && nrCarried.view.slice(1, bands(0)).exists(_ != 0)) // remove those whose inner loops in the outer band are not parallel
-        val wrap = new SchedVecWrapper(schedVect)
+      val wrap = new SchedVecWrapper(schedVect)
         if (!previous.contains(wrap) && !remove) {
           previous += wrap
           if (filterTextDeps) {
@@ -275,7 +273,7 @@ object Exploration {
       // remove all with a coefficient or the constant (offset) larger than 2
       for (i <- 0 until coeffSpacePoints.length) {
         val vec : Array[Int] = coeffSpacePoints(i)
-        if (vec.view.take(nrIt).exists(_ > 2) || vec(cstStart+1) > 2) // vec(cstStart) is always 0 (see above)
+        if (vec.view.take(nrIt).exists(_ > 2) || vec(cstStart + 1) > 2) // vec(cstStart) is always 0 (see above)
           toRemove.add(i)
       }
     }

@@ -2,8 +2,7 @@ package exastencils.field.l2
 
 import exastencils.base.l2._
 import exastencils.datastructures._
-import exastencils.field.l3.L3_ActiveSlot
-import exastencils.field.l3.L3_FieldAccess
+import exastencils.field.l3._
 import exastencils.knowledge.l2._
 import exastencils.prettyprinting.PpStream
 

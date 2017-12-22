@@ -16,7 +16,7 @@ trait IR_PolyArrayAccessLike {
   def uniqueID : String
 
   // should be inherited from scala.Product (each case class is a subclass of scala.Product)
-  def productIterator: Iterator[Any]
+  def productIterator : Iterator[Any]
 
   def replaceSpecial(str : StringBuilder) : StringBuilder = {
     var i : Int = 0
@@ -40,5 +40,5 @@ trait IR_PolyScalarAccessLike {
   def uniqueID : String
 
   // should be inherited from scala.Product (each case class is a subclass of scala.Product)
-  def productIterator: Iterator[Any]
+  def productIterator : Iterator[Any]
 }

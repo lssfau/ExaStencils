@@ -3,8 +3,7 @@ package exastencils.field.l2
 import exastencils.base.l2._
 import exastencils.baseExt.l2.L2_UnresolvedAccess
 import exastencils.datastructures._
-import exastencils.field.l3.L3_ActiveSlot
-import exastencils.field.l3.L3_FutureFieldAccess
+import exastencils.field.l3._
 import exastencils.knowledge.l2.L2_FutureKnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream

@@ -4,7 +4,6 @@ import scala.collection.mutable._
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
-import isl.Conversions._
 
 // since Scop can be cloned by Duplicate make sure NONE of the isl wrapper objects it uses is cloned by it
 //   (register all required classes as not cloneable in IslUtil.scala)

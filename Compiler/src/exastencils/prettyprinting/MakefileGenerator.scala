@@ -18,7 +18,6 @@ object MakefileGenerator extends BuildfileGenerator {
       if (Knowledge.cuda_enabled) cppObjectFiles ++ cuObjectFiles
       else cppObjectFiles
 
-
     printer <<< "CXX = " + Platform.resolveCompiler
     if (Knowledge.cuda_enabled)
       printer <<< "NVCC = " + Platform.resolveCudaCompiler
@@ -83,7 +82,7 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< ""
 
     printer <<< mkStringTrimFlat("${BINARY}:", "${ALL_OBJ}")
-    printer <<< "\t" + mkStringTrimFlat(      "${CXX} -o ${BINARY}", "${LDFLAGS}", "${ALL_OBJ}", "${LDLIBS}")
+    printer <<< "\t" + mkStringTrimFlat("${CXX} -o ${BINARY}", "${LDFLAGS}", "${ALL_OBJ}", "${LDLIBS}")
     printer <<< ""
 
     if (Settings.makefile_makeLibs) {
@@ -112,7 +111,6 @@ object MakefileGenerator extends BuildfileGenerator {
     })
     printer <<< "# end: additionalFiles targets"
     printer <<< ""
-
 
     if (Knowledge.cuda_enabled) {
       printer <<< "# begin: CUDA targets"

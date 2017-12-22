@@ -44,7 +44,7 @@ object ResolveAlias {
         output += "$" + varName
 
       changed |= output != toProcess
-      
+
       output
     } else toProcess // nothing to do
   }

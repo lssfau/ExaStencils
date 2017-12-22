@@ -2,8 +2,6 @@ package test.isl
 
 import exastencils.polyhedron.Isl
 
-import isl.Conversions.convertLambdaToVoidCallback1
-
 object Bindings {
 
   def main(args : Array[String]) = {

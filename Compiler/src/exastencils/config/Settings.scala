@@ -186,7 +186,7 @@ object Settings {
     // handle CUDA
     if (Knowledge.cuda_enabled) {
       Platform.targetOS match {
-        case "Windows"       =>
+        case "Windows"         =>
           if (!additionalLibs.contains("cuda.lib")) additionalLibs += "cuda.lib"
           if (!additionalLibs.contains("cudart.lib")) additionalLibs += "cudart.lib"
           if (!pathsInc.contains("$(CUDA_INC_PATH)")) pathsInc += "$(CUDA_INC_PATH)"

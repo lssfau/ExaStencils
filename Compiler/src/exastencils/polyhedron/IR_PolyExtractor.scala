@@ -562,13 +562,13 @@ class IR_PolyExtractor extends Collector {
 
     if (curScop.exists())
       node match {
-        case l : IR_LoopOverDimensions        => leaveLoop(l)
-        case c : IR_IfCondition               => leaveCondition(c)
-        case _ : IR_Assignment                => leaveAssign()
-        case _ : IR_PolyScalarAccessLike      => leaveScalarAccess()
-        case _ : IR_PolyArrayAccessLike       => leaveArrayAccess()
-        case _ : IR_VariableDeclaration       => leaveDecl()
-        case _                                =>
+        case l : IR_LoopOverDimensions   => leaveLoop(l)
+        case c : IR_IfCondition          => leaveCondition(c)
+        case _ : IR_Assignment           => leaveAssign()
+        case _ : IR_PolyScalarAccessLike => leaveScalarAccess()
+        case _ : IR_PolyArrayAccessLike  => leaveArrayAccess()
+        case _ : IR_VariableDeclaration  => leaveDecl()
+        case _                           =>
       }
   }
 

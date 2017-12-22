@@ -56,11 +56,11 @@ case class IR_CopyToExternalField(var src : IR_Field, var dest : IR_ExternalFiel
       IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
       IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxEnd(dim)))),
       ListBuffer[IR_Statement](loopBody))
-      loop.polyOptLevel =
-        if (Knowledge.maxLevel - dest.level < Knowledge.poly_numFinestLevels)
-          Knowledge.poly_optLevel_fine
-        else
-          Knowledge.poly_optLevel_coarse
+    loop.polyOptLevel =
+      if (Knowledge.maxLevel - dest.level < Knowledge.poly_numFinestLevels)
+        Knowledge.poly_optLevel_fine
+      else
+        Knowledge.poly_optLevel_coarse
     loop.parallelization.potentiallyParallel = true
 
     // compile final function

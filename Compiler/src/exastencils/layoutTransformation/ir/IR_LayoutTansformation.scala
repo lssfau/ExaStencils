@@ -1,7 +1,6 @@
 package exastencils.layoutTransformation.ir
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.{ ArrayBuffer, HashMap }
 
 import java.util.IdentityHashMap
 
@@ -10,21 +9,14 @@ import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.communication.ir._
 import exastencils.core.Duplicate
 import exastencils.core.collectors.Collector
-import exastencils.datastructures.CustomStrategy
-import exastencils.datastructures.Node
-import exastencils.datastructures.QuietDefaultStrategy
-import exastencils.datastructures.Transformation
-import exastencils.deprecated.ir.IR_FieldSelection
-import exastencils.deprecated.ir.InitGeomCoords
+import exastencils.datastructures._
+import exastencils.deprecated.ir._
 import exastencils.field.ir._
-import exastencils.interfacing.ir.IR_CopyFromExternalField
-import exastencils.interfacing.ir.IR_CopyToExternalField
+import exastencils.interfacing.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
-import exastencils.polyhedron.IR_ASTExpressionBuilder
-import exastencils.polyhedron.IR_PolyOpt
-import exastencils.polyhedron.Isl
 import exastencils.polyhedron.Isl.TypeAliases._
+import exastencils.polyhedron._
 
 object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
 
@@ -167,7 +159,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
       for (level <- alias.oldLevels)
         IR_FieldCollection.getByIdentifier(alias.oldName, level) match {
           case Some(field) => field.name = alias.newName
-          case None        => Logger.error(s"field ${alias.oldName}@$level should be renamed, but does not exist")
+          case None        => Logger.error(s"field ${ alias.oldName }@$level should be renamed, but does not exist")
         }
 
     if (!fieldReplace.isEmpty()) {

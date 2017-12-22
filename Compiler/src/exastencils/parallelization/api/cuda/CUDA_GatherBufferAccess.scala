@@ -6,8 +6,6 @@ import exastencils.base.ir._
 import exastencils.communication.ir._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
-import exastencils.field.ir.IR_MultiDimFieldAccess
-import exastencils.field.ir.IR_SlotAccess
 
 class CUDA_GatherBufferAccess extends Collector {
 

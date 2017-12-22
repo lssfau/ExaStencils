@@ -62,7 +62,7 @@ object CUDA_Util {
           l.right
         case e : IR_LowerEqual =>
           IR_Addition(e.right, IR_IntegerConstant(1))
-        case o                           => o
+        case o                 => o
       })
       stepSize += (loop.inc match {
         case IR_Assignment(_, src : IR_Expression, "=") => src

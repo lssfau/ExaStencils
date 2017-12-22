@@ -1,10 +1,6 @@
 package exastencils.datastructures
 
-import exastencils.core.StateManager
-import exastencils.datastructures._
 import scala.collection.immutable.List
-import scala.collection.mutable.Queue
-import scala.annotation.Annotation
 
 /**
   * Defines an interface for an entity that governs traversal of the abstract syntax tree.
@@ -13,13 +9,15 @@ import scala.annotation.Annotation
 abstract trait Traverser {
   /**
     * The enter method is called when a new element is visited.
-    * @param element The element currently visited.
+    *
+    * @param element  The element currently visited.
     * @param elements Its sub-elements.
     */
   def enter(element : Any, elements : List[scala.reflect.runtime.universe.MethodSymbol]) : Unit
 
   /**
     * The enter method is called when a element is left.
+    *
     * @param element The element left.
     */
   def leave(element : Any) : Unit

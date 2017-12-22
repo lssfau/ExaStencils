@@ -4,8 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.config._
-import exastencils.core.ObjectWithState
-import exastencils.core.StateManager
+import exastencils.core._
 
 /// IR_CommunicationFunctions
 

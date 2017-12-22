@@ -1,7 +1,7 @@
 package exastencils.core
 
-import scala.language.implicitConversions
 import scala.collection.mutable.ListBuffer
+import scala.language.implicitConversions
 
 object ImplicitConversions {
   implicit def LBtoL[T](lb : ListBuffer[T]) : List[T] = { lb.toList }

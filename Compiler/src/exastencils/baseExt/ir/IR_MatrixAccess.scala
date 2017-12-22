@@ -162,7 +162,7 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
   }, applyAtNode = StateManager.findFirst[IR_GlobalCollection]())
 
 //  this += new Transformation("declarations", {
-    // Definition of matrix variable including initialisation -> split into decl and assignment
+  // Definition of matrix variable including initialisation -> split into decl and assignment
 //    case decl @ IR_VariableDeclaration(matrix : IR_MatrixDatatype, _, Some(exp : IR_Expression), _) =>
 //      val newStmts = ListBuffer[IR_Statement]()
 //      // split declaration and definition so each part can be handled by subsequent transformations
@@ -805,7 +805,7 @@ object IR_ResolveMatrixAssignments extends DefaultStrategy("Resolve assignments 
   val annotationMatrixCol = "IR_ResolveMatrices.matrixCol"
 
   this += new Transformation("scalarize 1/2", {
-    case stmt : IR_VariableDeclaration => stmt
+    case stmt : IR_VariableDeclaration                                                       => stmt
     case stmt @ IR_Assignment(dest, _, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype]) =>
       val matrix = dest.datatype.asInstanceOf[IR_MatrixDatatype]
       var newStmts = ListBuffer[IR_Statement]()

@@ -1,13 +1,8 @@
 package exastencils.core
 
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Stack
+import scala.collection.mutable._
 import scala.language.existentials
-import scala.reflect.ClassTag
 
-import exastencils.datastructures._
-import exastencils.datastructures.Transformation._
 import exastencils.logger._
 
 object Vars {
@@ -20,8 +15,8 @@ object Vars {
   def apply[T](o : AnyRef) : List[java.lang.reflect.Field] = {
     cache.getOrElseUpdate(o.getClass(), {
       val vars = gettt(o.getClass).filterNot(p => p.getName().endsWith("$$annotations_")).filterNot(p => p.getName().endsWith("MODULE$"))
-      Logger.info(s"""StateManager::Vars: Caching ${vars.length} members of class "${o.getClass.getName()}"""")
-      Logger.info(s"""StateManager::Vars: "${o.getClass.getName()}": ${vars}""")
+      Logger.info(s"""StateManager::Vars: Caching ${ vars.length } members of class "${ o.getClass.getName() }"""")
+      Logger.info(s"""StateManager::Vars: "${ o.getClass.getName() }": ${ vars }""")
       vars
     })
   }
@@ -40,7 +35,7 @@ object Vars {
     try {
       method.invoke(o, value.asInstanceOf[AnyRef])
     } catch {
-      case e : Exception => Logger.error(s"""Error setting ${o.toString()}.${method.getName} to '${value}'""")
+      case e : Exception => Logger.error(s"""Error setting ${ o.toString() }.${ method.getName } to '${ value }'""")
     }
     true
   }
@@ -50,7 +45,7 @@ object Vars {
     try {
       field.set(o, value)
     } catch {
-      case e : Exception => Logger.error(s"""Error setting ${o.toString()}.${field.getName} to '${value}'""")
+      case e : Exception => Logger.error(s"""Error setting ${ o.toString() }.${ field.getName } to '${ value }'""")
     }
     true
   }

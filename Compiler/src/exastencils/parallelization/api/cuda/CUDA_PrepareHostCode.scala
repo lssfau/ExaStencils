@@ -1,7 +1,6 @@
 package exastencils.parallelization.api.cuda
 
-import scala.collection.Iterable
-import scala.collection.mutable
+import scala.collection.{ Iterable, mutable }
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._

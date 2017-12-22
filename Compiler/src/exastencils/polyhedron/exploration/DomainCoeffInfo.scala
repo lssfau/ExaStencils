@@ -40,7 +40,7 @@ object DomainCoeffInfo {
   }
 }
 
-class DomainCoeffInfo private (val nrIt : Int, val nrParPS : Int, val stmtInfo : Map[String, StmtCoeffInfo],
+class DomainCoeffInfo private(val nrIt : Int, val nrParPS : Int, val stmtInfo : Map[String, StmtCoeffInfo],
     val universe : isl.Set, val scheduleParamSpace : isl.Space) {
 
   val ctx : isl.Ctx = universe.getCtx()

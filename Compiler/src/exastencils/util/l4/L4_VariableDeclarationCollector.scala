@@ -6,8 +6,7 @@ import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
-import exastencils.layoutTransformation.l4.L4_GenericTransform
-import exastencils.layoutTransformation.l4.L4_LayoutSection
+import exastencils.layoutTransformation.l4._
 
 class L4_VariableDeclarationCollector extends Collector {
   var plainDeclarations = ListBuffer[HashMap[String, L4_VariableDeclaration]]()

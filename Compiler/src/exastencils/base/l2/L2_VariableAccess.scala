@@ -35,7 +35,7 @@ object L2_ResolveVariableAccesses extends DefaultStrategy("Resolve value and var
 
   val levelCollector = new L2_LevelCollector
   this.register(levelCollector)
-  
+
   this.onBefore = () => this.resetCollectors()
 
   this += new Transformation("Resolve", {

@@ -3,8 +3,7 @@ package exastencils.baseExt.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.config._
-import exastencils.core.ObjectWithState
-import exastencils.core.StateManager
+import exastencils.core._
 import exastencils.field.ir.IR_InitFieldsWithZero
 import exastencils.simd.SIMD_NeonDivision
 

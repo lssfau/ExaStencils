@@ -2,14 +2,9 @@ package exastencils.solver.l3
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.l3.L3_Access
-import exastencils.base.l3.L3_DeclarationLevelSpecification
-import exastencils.base.l3.L3_LevelSpecification
-import exastencils.base.l3.L3_SingleLevel
-import exastencils.base.l3.L3_Statement
+import exastencils.base.l3._
 import exastencils.core.Duplicate
-import exastencils.datastructures.DefaultStrategy
-import exastencils.datastructures.Transformation
+import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 

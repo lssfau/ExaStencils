@@ -34,10 +34,10 @@ object IR_UnifyInnerTypes extends DefaultStrategy("Unify inner types of (constan
         val reals = matrix.expressions.count(_.isInstanceOf[IR_RealConstant])
         val ints = matrix.expressions.count(_.isInstanceOf[IR_IntegerConstant])
         if (ints > 0 && reals > 0) {
-          for(i <- 0 until matrix.expressions.length) {
+          for (i <- 0 until matrix.expressions.length) {
             matrix.expressions(i) match {
               case c : IR_IntegerConstant => matrix.expressions(i) = IR_RealConstant(c.v)
-              case _ =>
+              case _                      =>
             }
           }
         }

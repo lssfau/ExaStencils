@@ -6,8 +6,7 @@ import exastencils.base.ir.IR_Expression
 import exastencils.base.l4._
 import exastencils.baseExt.l4.L4_LoopOverField
 import exastencils.communication.l4.L4_Communicate
-import exastencils.core.Duplicate
-import exastencils.core.ObjectWithState
+import exastencils.core._
 import exastencils.datastructures._
 import exastencils.prettyprinting.PpStream
 

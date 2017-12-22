@@ -154,7 +154,7 @@ object L1_SectionParser {
     *
     * @param l1Code L1-Code as String (including new lines)
     * @return a Map with the section names as keys and the section bodies as values
-    **/
+    * */
   def parse(l1Code : String) : Map[String, String] = {
     val headSection = """\s*([A-Z][a-z]*):\s*\n([\s\S]*)""".r // pattern matching the first section
     val tailSection =

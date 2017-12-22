@@ -9,10 +9,10 @@ object Indenter {
 
     for (c <- toIndent) {
       c match {
-        case '{' =>
+        case '{'  =>
           indent += 1
           output.append(c)
-        case '}' =>
+        case '}'  =>
           indent -= 1
           if ('\t' == output.charAt(output.length - 1))
             output.deleteCharAt(output.length - 1) // remove last tab
@@ -21,7 +21,7 @@ object Indenter {
           output.append(c)
           for (_ <- 0 until indent)
             output.append('\t')
-        case _ =>
+        case _    =>
           output.append(c)
       }
     }

@@ -1,6 +1,5 @@
 package devel
 
-
 import scala.collection.mutable.ListBuffer
 
 import exastencils.constraints._
@@ -217,7 +216,7 @@ object CommTests_hybrid {
 
       for (n <- Stream.iterate(1)(_ * 2).takeWhile(_ <= 32 * 1024)) {
         val numNodes = if (n > 28672) 28672 else n // limit node number
-        val configName = s"commTest_${numDims}_${numNodes}_${useOMP}_${if (useMPITypes) "t" else "f"}_${commStrategy}_${if (mergeComm) s"t" else "f"}${mergeCommThres}"
+        val configName = s"commTest_${ numDims }_${ numNodes }_${ useOMP }_${ if (useMPITypes) "t" else "f" }_${ commStrategy }_${ if (mergeComm) s"t" else "f" }${ mergeCommThres }"
         //val configName = s"commTest_${numDims}_${numNodes}_${if (useMPITypes) "t" else "f"}${if (6 == commStrategy) "" else s"_$commStrategy"}"
 
         val outSettingsFile = { val tmp = settingsFile.split("\\."); tmp.dropRight(1).mkString(".") + "_" + configName + "." + tmp.last }
@@ -236,7 +235,7 @@ object CommTests_hybrid {
         setKnowledgeParams += "comm_strategyFragment" -> commStrategy
 
         val numBlocksTotal = partitions(numNodes)._1._1 * partitions(numNodes)._1._2 * partitions(numNodes)._1._3
-        Constraints.condWarn(numNodes * (if (useOMP) 16 else 64) != numBlocksTotal, s"${numNodes * (if (useOMP) 16 else 64)} != $numBlocksTotal")
+        Constraints.condWarn(numNodes * (if (useOMP) 16 else 64) != numBlocksTotal, s"${ numNodes * (if (useOMP) 16 else 64) } != $numBlocksTotal")
         setKnowledgeParams += "domain_numBlocks" -> numBlocksTotal
         setKnowledgeParams += "domain_rect_numBlocks_x" -> partitions(numNodes)._1._1
         setKnowledgeParams += "domain_rect_numBlocks_y" -> partitions(numNodes)._1._2
@@ -299,9 +298,9 @@ object CommTests_hybrid {
 
         generateScript += (
           "java.exe -Xmx2G -Xms2G -cp \"C:\\Eclipse\\plugins\\*;.\\Compiler\\bin;.\\CompilerMacros\\CompilerMacros\\bin;.\\Compiler\\lib\\*\" Main "
-          + outSettingsFile + " "
-          + outKnowledgeFile + " "
-          + platformFile + "\n")
+            + outSettingsFile + " "
+            + outKnowledgeFile + " "
+            + platformFile + "\n")
 
         compileScript += s"cd $configName\n"
         compileScript += s"make clean && time make -j\n"
@@ -344,7 +343,7 @@ object CommTests_hybrid {
 
       for (n <- Stream.iterate(1)(_ * 2).takeWhile(_ <= 32 * 1024)) {
         val numNodes = if (n > 28672) 28672 else n // limit node number
-        val configName = s"commTest_${numDims}_${numNodes}_${useOMP}_${if (useMPITypes) "t" else "f"}_${commStrategy}_${if (mergeComm) s"t" else "f"}${mergeCommThres}"
+        val configName = s"commTest_${ numDims }_${ numNodes }_${ useOMP }_${ if (useMPITypes) "t" else "f" }_${ commStrategy }_${ if (mergeComm) s"t" else "f" }${ mergeCommThres }"
         //val configName = s"commTest_${numDims}_${numNodes}_${if (useMPITypes) "t" else "f"}${if (6 == commStrategy) "" else s"_$commStrategy"}"
 
         val path = ".\\comm_paper\\"
@@ -358,7 +357,7 @@ object CommTests_hybrid {
 
           if (onlyOneFile)
             outputTimes += s"$numDims;$useOMP;$useMPITypes;$commStrategy;$mergeComm;$mergeCommThres;" +
-              s"commTest_${numDims}_${useOMP}_${if (useMPITypes) "t" else "f"}_${commStrategy}_${if (mergeComm) s"t" else "f"}${mergeCommThres};"
+              s"commTest_${ numDims }_${ useOMP }_${ if (useMPITypes) "t" else "f" }_${ commStrategy }_${ if (mergeComm) s"t" else "f" }${ mergeCommThres };"
 
           outputTimes += (numNodes * 64) + ";"
           outputTimes += timings.get("timeToSolve").get._1 + ";"
@@ -375,7 +374,7 @@ object CommTests_hybrid {
       }
 
       if (!onlyOneFile) {
-        val filename = s"collectedTimes_${numDims}_${useOMP}_${if (useMPITypes) "t" else "f"}_${commStrategy}_${if (mergeComm) s"t" else "f"}${mergeCommThres}.csv"
+        val filename = s"collectedTimes_${ numDims }_${ useOMP }_${ if (useMPITypes) "t" else "f" }_${ commStrategy }_${ if (mergeComm) s"t" else "f" }${ mergeCommThres }.csv"
         Logger.debug(s"Writing to file $filename")
         writeToFile(filename, outputTimes)
       }

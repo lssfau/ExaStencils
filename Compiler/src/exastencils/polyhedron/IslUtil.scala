@@ -51,11 +51,11 @@ object Isl {
     if (tmpDir.exists()) {
       // remove old libs
       val markers : Array[java.io.File] =
-      tmpDir.listFiles(new java.io.FilenameFilter() {
-        def accept(dir : java.io.File, name : String) : Boolean = {
-          name.endsWith(markerSuffix)
-        }
-      })
+        tmpDir.listFiles(new java.io.FilenameFilter() {
+          def accept(dir : java.io.File, name : String) : Boolean = {
+            name.endsWith(markerSuffix)
+          }
+        })
       for (m <- markers) {
         var oldLibName : String = m.getName()
         oldLibName = oldLibName.substring(0, oldLibName.length() - markerSuffix.length())

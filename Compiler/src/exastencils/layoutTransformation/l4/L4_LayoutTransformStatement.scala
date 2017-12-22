@@ -1,20 +1,9 @@
 package exastencils.layoutTransformation.l4
 
-import scala.collection.mutable.ListBuffer
-
-import exastencils.base.l4.L4_DeclarationLevelSpecification
-import exastencils.base.l4.L4_ExpressionIndex
-import exastencils.base.l4.L4_LevelSpecification
-import exastencils.base.l4.L4_Node
-import exastencils.base.l4.L4_PlainVariableAccess
-import exastencils.base.l4.L4_Statement
-import exastencils.layoutTransformation.ir.IR_ExternalFieldAlias
-import exastencils.layoutTransformation.ir.IR_FieldConcatenation
-import exastencils.layoutTransformation.ir.IR_GenericTransform
-import exastencils.layoutTransformation.ir.IR_LayoutTransformStatement
+import exastencils.base.l4._
+import exastencils.layoutTransformation.ir._
 import exastencils.logger.Logger
-import exastencils.prettyprinting.PpStream
-import exastencils.prettyprinting.PrettyPrintable
+import exastencils.prettyprinting._
 
 sealed abstract class L4_LayoutTransformStatement extends L4_Statement {
   override def progress : IR_LayoutTransformStatement

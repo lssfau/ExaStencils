@@ -2,7 +2,6 @@ package exastencils.optimization.ir
 
 import scala.collection.immutable.StringLike
 import scala.collection.mutable._
-import scala.util.DynamicVariable
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_InternalVariable

@@ -1,8 +1,8 @@
 package exastencils.datastructures
 
 import scala.collection.mutable.HashMap
-import exastencils.core.Duplicate
-import exastencils.core.Vars
+
+import exastencils.core._
 
 /** Marks a class as annotatable, meaning annotations holding metadata can be added. */
 trait Annotatable {
@@ -11,7 +11,7 @@ trait Annotatable {
   /**
     * Adds a new annotation to this instance.
     *
-    * @param id A key-like identifier denoting the kind of information this annotation holds.
+    * @param id    A key-like identifier denoting the kind of information this annotation holds.
     * @param value The information this annotation holds.
     */
   def annotate(id : String, value : Any) : Unit = {
@@ -21,7 +21,7 @@ trait Annotatable {
   /**
     * Adds a new annotation to this instance and recursively to all its children.
     *
-    * @param id A key-like identifier denoting the kind of information this annotation holds.
+    * @param id    A key-like identifier denoting the kind of information this annotation holds.
     * @param value The information this annotation holds.
     */
   def annotateRecursively(id : String, value : Any) : Unit = {

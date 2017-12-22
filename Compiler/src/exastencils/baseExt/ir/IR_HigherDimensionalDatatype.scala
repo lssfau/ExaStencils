@@ -1,9 +1,7 @@
 package exastencils.baseExt.ir
 
 import exastencils.base.ir._
-import exastencils.datastructures.DefaultStrategy
-import exastencils.datastructures.Node
-import exastencils.datastructures.Transformation
+import exastencils.datastructures._
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.prettyprinting.PpStream
 

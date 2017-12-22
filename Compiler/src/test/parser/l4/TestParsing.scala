@@ -1,10 +1,10 @@
 package test.parser.l4
 
-import scala.util.parsing.combinator._
 import scala.util.parsing.combinator.syntactical._
 
 object TestParsing {
-  class MyParser extends StandardTokenParsers  {
+
+  class MyParser extends StandardTokenParsers {
     lexical.reserved += ("foo", "bar")
     lexical.delimiters += ","
 

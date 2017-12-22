@@ -1,14 +1,13 @@
 package exastencils.core
 
-import exastencils.core._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation.convFromNode
+import exastencils.datastructures._
 
 object NodeCounter extends CustomStrategy("internal::NodeCounter") {
   var iteration = 0
   var hits = 0
   var t = new Transformation("Count", { case x => hits += 1; x })
-  
+
   println("nodecounter;strategy;transformation;iteration;nodes\\\\")
 
   def count(strategy : Option[String], transformation : Option[String]) : Unit = {
@@ -36,7 +35,7 @@ object NodeCounter extends CustomStrategy("internal::NodeCounter") {
   def resetHits() = {
     hits = 0
   }
-  
+
   def reset() = {
     iteration = 0
     hits = 0

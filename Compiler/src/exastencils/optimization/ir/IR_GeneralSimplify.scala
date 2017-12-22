@@ -1,8 +1,6 @@
 package exastencils.optimization.ir
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Queue
+import scala.collection.mutable.{ ArrayBuffer, ListBuffer, Queue }
 
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -115,9 +113,9 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
 
     case IR_Scope(ListBuffer(IR_Scope(body))) => IR_Scope(body)
 
-    case IR_IfCondition(cond, ListBuffer(IR_Scope(trueBody)), falseBody) => IR_IfCondition(cond, trueBody, falseBody)
-    case IR_IfCondition(cond, trueBody, ListBuffer(IR_Scope(falseBody))) => IR_IfCondition(cond, trueBody, falseBody)
-    case l @ IR_ForLoop(beg, end, inc, ListBuffer(IR_Scope(body)), red)  =>
+    case IR_IfCondition(cond, ListBuffer(IR_Scope(trueBody)), falseBody)         => IR_IfCondition(cond, trueBody, falseBody)
+    case IR_IfCondition(cond, trueBody, ListBuffer(IR_Scope(falseBody)))         => IR_IfCondition(cond, trueBody, falseBody)
+    case l @ IR_ForLoop(beg, end, inc, ListBuffer(IR_Scope(body)), red)          =>
       l.body = body; l // preserve original node instance to ensure all traits and annotations are still present
     case l @ IR_LoopOverDimensions(_, _, ListBuffer(IR_Scope(body)), _, _, _, _) =>
       l.body = body; l // preserve original node instance to ensure all traits and annotations are still present
@@ -294,14 +292,14 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       do {
         val expr = workQ.dequeue()
         expr match {
-          case IR_IntegerConstant(iv)                            => intCst *= iv
-          case IR_RealConstant(fv)                               => floatCst *= fv
-          case IR_Negative(e)                                    =>
+          case IR_IntegerConstant(iv)                  => intCst *= iv
+          case IR_RealConstant(fv)                     => floatCst *= fv
+          case IR_Negative(e)                          =>
             workQ.enqueue(e)
             intCst = -intCst
-          case IR_Multiplication(iFacs)                          =>
+          case IR_Multiplication(iFacs)                =>
             workQ.enqueue(iFacs : _*)
-          case d @ IR_Division(IR_RealConstant(fv), _)           =>
+          case d @ IR_Division(IR_RealConstant(fv), _) =>
             floatCst *= fv
             d.left = IR_RealConstant(1.0)
             if (div == null)

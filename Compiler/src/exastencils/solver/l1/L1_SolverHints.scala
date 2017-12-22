@@ -3,7 +3,6 @@ package exastencils.solver.l1
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l1.L1_Statement
-import exastencils.knowledge.l1.L1_KnowledgeParameter
 import exastencils.prettyprinting.PpStream
 import exastencils.solver.l2._
 import exastencils.util.l1.L1_GeneralParameter

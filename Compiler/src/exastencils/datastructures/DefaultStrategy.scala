@@ -1,7 +1,6 @@
 package exastencils.datastructures
 
-import scala.collection.mutable.Buffer
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ Buffer, ListBuffer }
 
 import exastencils.config.Settings
 import exastencils.core._

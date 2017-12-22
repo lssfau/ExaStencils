@@ -39,6 +39,15 @@ object Duplicate {
     cloned
   }
 
+  /**
+    * Deep clones the given object instance multiple times.
+    *
+    * @param t The object instance to be cloned.
+    * @param n The number of clones to be created.
+    * @return A [[scala.collection.immutable.List]] holding the cloned instances.
+    */
+  def apply[T](t : T, n : Int) : List[T] = List.fill(n)(this (t))
+
   def withMultiplication[T](t : T) : T = {
     val cloned = multiplicationCloner.deepCloneWithMultiplication(t)
 
@@ -59,15 +68,6 @@ object Duplicate {
   def forceClone[T](t : T) : T = {
     forceCloner.deepClone(t)
   }
-
-  /**
-    * Deep clones the given object instance multiple times.
-    *
-    * @param t The object instance to be cloned.
-    * @param n The number of clones to be created.
-    * @return A [[scala.collection.immutable.List]] holding the cloned instances.
-    */
-  def apply[T](t : T, n : Int) : List[T] = List.fill(n)(cloner.deepClone(t))
 
   /**
     * Enable or disable debug output.
@@ -95,7 +95,7 @@ object Duplicate {
   /**
     * Register a class as immutable, which does not need to be cloned.
     *
-    * @param t The class to be registered as immutable.
+    * @param t        The class to be registered as immutable.
     * @param forceToo If set, it is not cloned via forceClone(..), too.
     */
   def registerImmutable(t : Class[_], forceToo : Boolean = false) = {

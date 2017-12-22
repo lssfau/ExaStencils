@@ -2,9 +2,8 @@ package exastencils.hack.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_FunctionCall
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir._
+import exastencils.base.ir.{ IR_FunctionCall, _ }
 import exastencils.baseExt.ir._
 import exastencils.boundary.ir._
 import exastencils.communication.DefaultNeighbors

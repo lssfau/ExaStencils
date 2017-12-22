@@ -1,17 +1,13 @@
 package exastencils.layoutTransformation.ir
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer }
 
 import java.util.IdentityHashMap
 
 import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.field.ir.IR_Field
-import exastencils.field.ir.IR_FieldCollection
-import exastencils.field.ir.IR_FieldLayoutPerDim
+import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.polyhedron.Isl
 import exastencils.polyhedron.Isl.TypeAliases.T_SET
@@ -127,7 +123,7 @@ case class IR_FieldConcatenation(mergedFieldName : String, fieldsToMerge : Seq[S
               if (c > nLpD(i).numInnerLayers)
                 nLpD(i).numInnerLayers = c.toInt
             case _                     =>
-              Logger.error(s"size of field ${field.name} for dimension $i is not constant")
+              Logger.error(s"size of field ${ field.name } for dimension $i is not constant")
           }
         }
 

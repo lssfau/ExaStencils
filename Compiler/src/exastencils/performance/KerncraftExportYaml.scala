@@ -1,25 +1,23 @@
 package exastencils.performance
 
-import java.io.PrintWriter
-import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.{FileSystems, Files, Path, Paths}
-
-import exastencils.base.ir._
-import exastencils.baseExt.ir.{IR_ArrayDatatype, IR_HigherDimensionalDatatype, IR_InternalVariable, IR_LoopOverDimensions}
-import exastencils.config.{Knowledge, Settings}
-import exastencils.core.collectors.Collector
-import exastencils.datastructures.{DefaultStrategy, Node, Transformation}
-import exastencils.deprecated.ir.IR_DimToString
-import exastencils.field.ir.{IR_Field, IR_MultiDimFieldAccess}
-import exastencils.logger.Logger
-import exastencils.performance.KerncraftExport.curFunLoopCounter
-
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import java.util.Date
-import java.text.SimpleDateFormat
-import java.util.function.{BiPredicate, Consumer}
 
+import java.io.PrintWriter
+import java.nio.file._
+import java.nio.file.attribute.BasicFileAttributes
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.function._
+
+import exastencils.base.ir._
+import exastencils.baseExt.ir._
+import exastencils.config._
+import exastencils.core.collectors.Collector
+import exastencils.datastructures._
+import exastencils.deprecated.ir.IR_DimToString
+import exastencils.field.ir._
+import exastencils.logger.Logger
 
 // FIXME: irAccess should be of type IR_Access, but field accesses are not derived from IR_Access
 
@@ -37,7 +35,7 @@ private case class WriteAccess(irAccess : IR_Expression) extends Access
   *
   * @param loopIdx Linear index to the IR_LoopOverDimensions in the function body, i.e. the n-th loop in the function.
   */
-private class KernelInfo(val loop : IR_LoopOverDimensions, val function:IR_Function, val loopIdx:Int) {
+private class KernelInfo(val loop : IR_LoopOverDimensions, val function : IR_Function, val loopIdx : Int) {
 
   val accesses = mutable.HashSet[Access]()
 
@@ -66,7 +64,7 @@ private class KernelInfo(val loop : IR_LoopOverDimensions, val function:IR_Funct
 }
 
 private object KernelInfo {
-  def apply( loop : IR_LoopOverDimensions,  function:IR_Function,  loopIdx:Int) : KernelInfo =
+  def apply(loop : IR_LoopOverDimensions, function : IR_Function, loopIdx : Int) : KernelInfo =
     new KernelInfo(loop, function, loopIdx)
 }
 
@@ -78,7 +76,7 @@ object KerncraftExportYaml extends DefaultStrategy("Kernkraft YAML") {
   var exportDir : Option[String] = None
   var debug : Boolean = false
 
-  def export(pathToDir:String = Paths.get(Settings.getBasePath, "kerncraft").toString ) : Unit = {
+  def export(pathToDir : String = Paths.get(Settings.getBasePath, "kerncraft").toString) : Unit = {
     val oldExportDir = exportDir
     try {
       exportDir = Some(pathToDir)
@@ -92,19 +90,19 @@ object KerncraftExportYaml extends DefaultStrategy("Kernkraft YAML") {
 
     override def enter(node : Node) : Unit = {
       node match {
-        case fun : IR_Function =>
+        case fun : IR_Function            =>
           curFunLoopCounter = 0
           curFun = fun
         case loop : IR_LoopOverDimensions => curLoop = loop
-        case _ =>
+        case _                            =>
       }
     }
 
     override def leave(node : Node) : Unit = {
       node match {
-        case fun : IR_Function => curFun = null
+        case fun : IR_Function            => curFun = null
         case loop : IR_LoopOverDimensions => curLoop = null
-        case _ =>
+        case _                            =>
       }
     }
 
@@ -120,7 +118,6 @@ object KerncraftExportYaml extends DefaultStrategy("Kernkraft YAML") {
       println("function %s kernel".format(curFun.name))
       //println("loop AST: %s".format(loop.toString()))
       val analysis = KernelAnalysis(loop, curFun, curFunLoopCounter)
-
 
       if (debug) {
         println(KernelInfoToYaml(analysis.kernelInfo))
@@ -173,9 +170,8 @@ object KerncraftExportYaml extends DefaultStrategy("Kernkraft YAML") {
 }
 
 // FIXME: CompoundAssignments are not handled. Ideally fix IR_CompoundAssignment implementation before.
-private class KernelAnalysis(loop : IR_LoopOverDimensions, function: IR_Function, loopIdx:Int)
-  extends DefaultStrategy("Analyzing loop kernel")
-{
+private class KernelAnalysis(loop : IR_LoopOverDimensions, function : IR_Function, loopIdx : Int)
+  extends DefaultStrategy("Analyzing loop kernel") {
 
   private val fields = ListBuffer[FieldWithSlotId]()
   var hasInternalVariables = false
@@ -201,7 +197,7 @@ private class KernelAnalysis(loop : IR_LoopOverDimensions, function: IR_Function
 
     override def leave(node : Node) : Unit = {
       node match {
-        case IR_Assignment(dest, src, op) =>
+        case IR_Assignment(dest, src, op)         =>
           //println("leave IR_Assignment")
           assignmentDest = None
           assignmentSrc = None
@@ -209,7 +205,7 @@ private class KernelAnalysis(loop : IR_LoopOverDimensions, function: IR_Function
           //println("leave IR_CompoundAssignment")
           assignmentDest = None
           assignmentSrc = None
-        case _ =>
+        case _                                    =>
       }
       if (assignmentDest.isDefined && node == assignmentDest.get) {
         inDest = false
@@ -220,7 +216,7 @@ private class KernelAnalysis(loop : IR_LoopOverDimensions, function: IR_Function
 
     override def enter(node : Node) : Unit = {
       node match {
-        case IR_Assignment(dest, src, op) =>
+        case IR_Assignment(dest, src, op)         =>
           //println("enter IR_Assignment")
           assignmentDest = Some(dest)
           assignmentSrc = Some(src)
@@ -228,7 +224,7 @@ private class KernelAnalysis(loop : IR_LoopOverDimensions, function: IR_Function
           //println("enter IR_CompoundAssignment")
           assignmentDest = Some(dest)
           assignmentSrc = Some(src)
-        case _ =>
+        case _                                    =>
       }
 
       if (assignmentDest.isDefined && node == assignmentDest.get) {
@@ -257,29 +253,29 @@ private class KernelAnalysis(loop : IR_LoopOverDimensions, function: IR_Function
             inSrcInt,
             assignmentDest.isDefined,
             assignmentSrc.isDefined))
-        case ac : IR_Access =>
+        case ac : IR_Access              =>
           recordAccess(ac)
 
-        case IR_Assignment(dest, src, op) =>
+        case IR_Assignment(dest, src, op)         =>
         case IR_CompoundAssignment(dest, src, op) => ???
-        case op : IR_Addition =>
+        case op : IR_Addition                     =>
           countOp(op, op.datatype, op.summands.length - 1,
             kernelInfo.incrementNIntAdd, kernelInfo.incrementNFloatAdd, kernelInfo.incrementNDoubleAdd);
-        case op : IR_Subtraction =>
+        case op : IR_Subtraction                  =>
           countOp(op, op.datatype, 1,
             kernelInfo.incrementNIntAdd, kernelInfo.incrementNFloatAdd, kernelInfo.incrementNDoubleAdd);
-        case op : IR_Multiplication =>
+        case op : IR_Multiplication               =>
           countOp(op, op.datatype, op.factors.length - 1,
             kernelInfo.incrementNIntMul, kernelInfo.incrementNFloatMul, kernelInfo.incrementNDoubleMul);
-        case op : IR_Division =>
+        case op : IR_Division                     =>
           countOp(op, op.datatype, 1,
             kernelInfo.incrementNIntMul, kernelInfo.incrementNFloatMul, kernelInfo.incrementNDoubleMul);
-        case _ =>
+        case _                                    =>
       }
 
       def handleAssignment(dest : IR_Expression, src : IR_Expression, op : Option[IR_BinaryOperators.BinaryOperators]) : Unit = {
         op match {
-          case None => // noop
+          case None    => // noop
           case Some(x) =>
 
         }
@@ -309,20 +305,20 @@ private class KernelAnalysis(loop : IR_LoopOverDimensions, function: IR_Function
   }
 
   def countOp(op : IR_Expression, datatype : IR_Datatype, nops : Int,
-              intInc : (Int) => Unit, floatInc : (Int) => Unit, doubleInc : (Int) => Unit) : Unit = {
+      intInc : (Int) => Unit, floatInc : (Int) => Unit, doubleInc : (Int) => Unit) : Unit = {
     assert(nops > 0)
 
     datatype match {
-      case IR_IntegerDatatype => intInc(nops)
-      case IR_FloatDatatype => floatInc(nops)
-      case IR_DoubleDatatype => doubleInc(nops)
-      case IR_RealDatatype =>
+      case IR_IntegerDatatype               => intInc(nops)
+      case IR_FloatDatatype                 => floatInc(nops)
+      case IR_DoubleDatatype                => doubleInc(nops)
+      case IR_RealDatatype                  =>
         if (Knowledge.useDblPrecision) doubleInc(nops)
         else floatInc(nops)
       case h : IR_HigherDimensionalDatatype =>
         val baseDatatype = h.resolveBaseDatatype
         countOp(op, baseDatatype, nops, intInc, floatInc, doubleInc)
-      case x => Logger.warn(this.getClass.getName + ".countOp(): "+
+      case x                                => Logger.warn(this.getClass.getName + ".countOp(): " +
         "unexpected datatype %s. Expression: %s".format(x.toString, op.prettyprint()))
     }
   }
@@ -331,8 +327,8 @@ private class KernelAnalysis(loop : IR_LoopOverDimensions, function: IR_Function
 }
 
 private object KernelAnalysis {
-    def apply(loop : IR_LoopOverDimensions, function:IR_Function, loopIdx:Int) : KernelAnalysis = {
-      
+  def apply(loop : IR_LoopOverDimensions, function : IR_Function, loopIdx : Int) : KernelAnalysis = {
+
     val a = new KernelAnalysis(loop, function, loopIdx)
     // KernelAnalysis only looks at the loop body, loop control instructions are ignored!
     a.applyStandalone(loop.body)
@@ -360,19 +356,15 @@ private class KernelInfoToYaml(val kernelInfo : KernelInfo) {
   // DONE: loop variable info sectio
   // n
 
-
-
   yaml ++= yamlGeneral()
   yaml ++= yamlArrays()
   yaml ++= yamlLoops()
   yaml ++= yamlData()
   yaml ++= yamlFlops()
 
-
   // TODO: data sources/destinations, (fl)ops
 
   def yindent(level : Int) = (0 until level).map(_ => "  ").mkString("")
-
 
   def yamlGeneral() : String = {
     val buf = new StringBuilder()
@@ -418,7 +410,7 @@ private class KernelInfoToYaml(val kernelInfo : KernelInfo) {
     buf.toString()
   }
 
-  def yamlLoops() :String = {
+  def yamlLoops() : String = {
     val buf = new StringBuilder()
     buf ++= "loops:\n"
     val loop = kernelInfo.loop
@@ -431,7 +423,6 @@ private class KernelInfoToYaml(val kernelInfo : KernelInfo) {
       buf ++= yindent(1)
       buf ++= "-\n"
 
-
       val varName = IR_DimToString(d)
 
       buf ++= yindent(2) + "index: " + varName + "\n"
@@ -443,28 +434,27 @@ private class KernelInfoToYaml(val kernelInfo : KernelInfo) {
     buf.toString()
   }
 
-  // FIXME: print set of access exprns instead of list 
+  // FIXME: print set of access exprns instead of list
   //
   def yamlData() : String = {
 
     // split access list in sources and destinations
     val sources = ListBuffer[IR_MultiDimFieldAccess]()
     val destinations = ListBuffer[IR_MultiDimFieldAccess]()
-    kernelInfo.accesses.foreach({a =>
+    kernelInfo.accesses.foreach({ a =>
       a match {
-        case ReadAccess(ira:IR_MultiDimFieldAccess) =>
+        case ReadAccess(ira : IR_MultiDimFieldAccess)  =>
           sources += ira
-        case WriteAccess(ira:IR_MultiDimFieldAccess) =>
+        case WriteAccess(ira : IR_MultiDimFieldAccess) =>
           destinations += ira
-        case _ => // don't care about scalar variables
+        case _                                         => // don't care about scalar variables
       }
     })
 
     // map each field id to a list of index expression tuples
     def buildExprList(accesses : ListBuffer[IR_MultiDimFieldAccess])
-      : mutable.HashMap[String, ListBuffer[List[String]]] =
-    {
-      val exprMap =  mutable.HashMap[String, ListBuffer[List[String]]]()
+    : mutable.HashMap[String, ListBuffer[List[String]]] = {
+      val exprMap = mutable.HashMap[String, ListBuffer[List[String]]]()
       accesses.foreach({ a =>
         val fieldId = fieldsWithSlotId(a).identifierName
         // TODO reverse?
@@ -479,7 +469,7 @@ private class KernelInfoToYaml(val kernelInfo : KernelInfo) {
     val destinationExprns = buildExprList(destinations)
 
     val buf = new StringBuilder()
-    def yamlExprns(yamlKey:String, exprMap : mutable.HashMap[String, ListBuffer[List[String]]]) : Unit = {
+    def yamlExprns(yamlKey : String, exprMap : mutable.HashMap[String, ListBuffer[List[String]]]) : Unit = {
       buf ++= yamlKey + ":\n"
       exprMap.keySet.foreach(fieldId => {
         buf ++= yindent(1)
@@ -495,12 +485,10 @@ private class KernelInfoToYaml(val kernelInfo : KernelInfo) {
     buf.toString()
   }
 
-
-
   def yamlFlops() : String = {
     val buf = new StringBuilder()
 
-    def flopEntry(sym:String, v:Int) = {
+    def flopEntry(sym : String, v : Int) = {
       buf ++= yindent(1)
       buf ++= "\"%s\": %d\n".format(sym, v)
     }
@@ -511,8 +499,8 @@ private class KernelInfoToYaml(val kernelInfo : KernelInfo) {
     flopEntry("*", kernelInfo.nIntMul)
     flopEntry("/", kernelInfo.nIntDiv)
     flopEntry("f+", kernelInfo.nFloatAdd + kernelInfo.nDoubleAdd)
-    flopEntry("f*",  kernelInfo.nFloatMul + kernelInfo.nDoubleMul)
-    flopEntry("f/",  kernelInfo.nFloatDiv + kernelInfo.nDoubleDiv)
+    flopEntry("f*", kernelInfo.nFloatMul + kernelInfo.nDoubleMul)
+    flopEntry("f/", kernelInfo.nFloatDiv + kernelInfo.nDoubleDiv)
     buf.toString()
   }
 }
@@ -541,7 +529,7 @@ private object EnumerateFieldsWithSlots {
       val slotId : Int = {
         slotExprId.get((fa.fieldSelection.field, fa.fieldSelection.slot)) match {
           case Some(id) => id
-          case None =>
+          case None     =>
             val id = nextSlotId.getOrElse(fa.fieldSelection.field, 0)
             nextSlotId(fa.fieldSelection.field) = id + 1
             slotExprId((fa.fieldSelection.field, fa.fieldSelection.slot)) = id

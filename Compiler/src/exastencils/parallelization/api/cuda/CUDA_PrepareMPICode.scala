@@ -7,8 +7,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.ir.IR_IV_CommBuffer
-import exastencils.config.Knowledge
-import exastencils.config.Platform
+import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.field.ir._
