@@ -58,8 +58,11 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       vectorizeLoop(node.asInstanceOf[IR_ForLoop])
     } catch {
       case ex : VectorizationException =>
-        if (DEBUG)
-          println("[vect]  unable to vectorize loop: " + ex.msg + "  (line " + ex.getStackTrace()(0).getLineNumber + ')') // print directly, logger may be silenced by any surrounding strategy
+        if (DEBUG) {
+          val msg : String = "[vect]  unable to vectorize loop: " + ex.msg + "  (line " + ex.getStackTrace()(0).getLineNumber + ')'
+          println(msg) // print directly, logger may be silenced by any surrounding strategy
+          return List(IR_Comment(msg), node)
+        }
         node
     }
   }
