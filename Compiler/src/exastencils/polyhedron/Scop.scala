@@ -16,6 +16,7 @@ class Scop(val root : IR_LoopOverDimensions, var localContext : isl.Set, var glo
   def getContext() : isl.Set = localContext.intersect(globalContext)
   var domain : isl.UnionSet = null
   var schedule : isl.UnionMap = null
+  // map from label (String, used in isl representation) to (statements, old loop iterators)
   val stmts = new HashMap[String, (ListBuffer[IR_Statement], ArrayBuffer[String])]()
   val decls = new ListBuffer[IR_VariableDeclaration]()
 
