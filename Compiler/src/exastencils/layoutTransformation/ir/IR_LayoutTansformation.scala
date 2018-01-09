@@ -7,6 +7,8 @@ import java.util.IdentityHashMap
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.communication.ir._
+import exastencils.config.Knowledge
+import exastencils.config.Platform
 import exastencils.core.Duplicate
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
@@ -83,8 +85,12 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
           val c = aff.getConstantVal()
           ensure(c.getDenSi() == 1, "upper bound of transformed memory layout is not an integral number?! " + c)
           val cl : Long = c.getNumSi()
-          ensure(cl <= Int.MaxValue, "upper bound of transformed memory layout is greater or equal Int.MaxValue?! " + cl)
-          val ext = c.getNumSi() + 1
+          ensure(cl < Int.MaxValue, "upper bound of transformed memory layout is greater or equal Int.MaxValue?! " + cl)
+          var ext = c.getNumSi() + 1
+          if (Knowledge.data_alignFieldPointers && i == 0) { // align extent of innermost dimension only
+            val vsDec : Int = Platform.simd_vectorSize - 1
+            ext = (ext + vsDec) & (~vsDec)
+          }
           val flpd = IR_FieldLayoutPerDim(0, 0, 0, ext.toInt, 0, 0, 0)
           flpd.updateTotal()
           newLayoutsPerDim(i) = flpd
