@@ -237,7 +237,8 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     this.commit()
   }
 
-  def processDFA(dfa : IR_DirectFieldAccess, transformations : HashMap[(String, Int), ArrayBuffer[IR_GenericTransform]], processedLayouts : IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex], colColl : ColorCondCollector) : Unit = {
+  def processDFA(dfa : IR_DirectFieldAccess, transformations : HashMap[(String, Int), ArrayBuffer[IR_GenericTransform]],
+      processedLayouts : IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex], colColl : ColorCondCollector) : Unit = {
     val fieldID : (String, Int) = (dfa.fieldSelection.field.name, dfa.fieldSelection.field.level)
     val layout : IR_FieldLayout = dfa.fieldSelection.fieldLayout
     var newIndex : IR_ExpressionIndex = null
@@ -318,6 +319,10 @@ class ColorCondCollector extends Collector {
 
   override def leave(node : Node) : Unit = {
     node match {
+      case loop : IR_LoopOverDimensions if loop.condition.isDefined && loop.condition.get.isInstanceOf[IR_EqEq] =>
+        reset()
+      case IR_IfCondition(_ : IR_EqEq, _, fB) if fB.isEmpty =>
+        reset()
       case _ =>
         if (node.removeAnnotation(TMP_ANNOT).isDefined)
           reset()
