@@ -62,6 +62,10 @@ Function applyBC_hv@all ( ) : Unit {
 Function Update@all {
   // TODO: if ( h < 0 ) set everything to zero
 
+	communicate h
+	communicate hu
+	communicate hv
+
   loop over hNew {
     hNew = h // old time step
 
