@@ -6,12 +6,12 @@ Globals {
 
 Function InitTestcase@finest {
   loop over h {
-    b = 0.0
+    b = 0.0 // 10 * ( 1.0 - sin ( PI * vf_cellCenter_x / 1000.0 ) ) * ( 1.0 - sin ( PI * vf_cellCenter_y / 1000.0 ) )
 
     if ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) < 100.0 ) {
-      hNew = 15.0
+      hNew = 15.0 - b
     } else {
-      hNew = 10.0
+      hNew = 10.0 - b
     }
 
     huNew = 0.0 * hNew
@@ -81,8 +81,10 @@ Function Update@all {
     hNew += ( dt / vf_gridWidth_x ) * ( flux_G_H_right - flux_G_H_left )
 
     if ( hNew < 0.0 ) {
-      print ( 'negative h at', i0, i1, hNew )
-      hNew = 1e-6
+      //print ( 'negative h at', i0, i1, hNew )
+      hNew = 0
+			hu = 0
+			hv = 0
     }
   }
   apply bc to hNew
@@ -178,11 +180,11 @@ Function UpdateVis@finest {
   }
   Var hMax : Real = 0.0
   loop over h with reduction( max : hMax ) {
-    hMax = max ( hMax, fabs ( h ) )
+    hMax = max ( hMax, fabs ( h + b ) )
   }
   Var hMin : Real = 1.0e30
   loop over h with reduction( min : hMin ) {
-    hMin = min ( hMin, fabs ( h ) )
+    hMin = min ( hMin, fabs ( h + b ) )
   }
 
   Val scaleH : Real = 1.0 / ( hMax - hMin )
@@ -192,7 +194,7 @@ Function UpdateVis@finest {
     velMag = scaleVel * sqrt ( ( hu / h )**2  + ( hv / h )**2 )
     uVis = 0.5 + 0.5 * scaleVel * ( hu / h )
     vVis = 0.5 + 0.5 * scaleVel * ( hv / h )
-    hVis = scaleH * ( h - hMin )
+    hVis = scaleH * ( h + b - hMin )
   }
 
   print ( 'hMin:', hMin, 'hMax:', hMax, 'uMax:', uMax, 'vMax:', vMax )
