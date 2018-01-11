@@ -5,6 +5,7 @@ import scala.collection.mutable.{ ArrayBuffer, ArrayStack, HashSet, ListBuffer, 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
+import exastencils.core.Duplicate
 import exastencils.core.collectors._
 import exastencils.datastructures._
 import exastencils.domain.ir._
@@ -412,6 +413,11 @@ class IR_PolyExtractor extends Collector {
     def finish() : Scop = {
       val res = scop_
       discard()
+      // add condition annotation to all statements
+      for (cond <- res.root.condition) // Option
+        for ((_, (stmts, _)) <- res.stmts)
+          for (stmt <- stmts)
+            stmt.annotate(IR_PolyOpt.IMPL_CONDITION_ANNOT, Duplicate(cond))
       res
     }
 

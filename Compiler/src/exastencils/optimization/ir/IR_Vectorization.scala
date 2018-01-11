@@ -58,8 +58,11 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       vectorizeLoop(node.asInstanceOf[IR_ForLoop])
     } catch {
       case ex : VectorizationException =>
-        if (DEBUG)
-          println("[vect]  unable to vectorize loop: " + ex.msg + "  (line " + ex.getStackTrace()(0).getLineNumber + ')') // print directly, logger may be silenced by any surrounding strategy
+        if (DEBUG) {
+          val msg : String = "[vect]  unable to vectorize loop: " + ex.msg + "  (line " + ex.getStackTrace()(0).getLineNumber + ')'
+          println(msg) // print directly, logger may be silenced by any surrounding strategy
+          return List(IR_Comment(msg), node)
+        }
         node
     }
   }
@@ -106,6 +109,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     private val vectStmtsStack = new ArrayBuffer[ListBuffer[IR_Statement]]()
     var storesTmp : IR_Statement = null
     var ignIncr : Boolean = false
+    var divResidue : Long = -1
 
     private val preLoopStmts = new ListBuffer[IR_Statement]()
     private val postLoopStmts = new ListBuffer[IR_Statement]()
@@ -271,61 +275,82 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           case IR_Assignment(acc @ IR_ArrayAccess(_, index, true), _, _) =>
             val annot = acc.getAnnotation(IR_AddressPrecalculation.ORIG_IND_ANNOT)
             val ind : IR_Expression = if (annot.isDefined) annot.get.asInstanceOf[IR_Expression] else index
-            val const : Long = IR_SimplifyExpression.extractIntegralSum(ind).getOrElse(IR_SimplifyExpression.constName, 0L)
+            val indExprs = IR_SimplifyExpression.extractIntegralSum(ind)
+            val const : Long = indExprs.remove(IR_SimplifyExpression.constName).getOrElse(0L)
+            for (iE <- indExprs) iE match {
+              case (IR_Division(IR_VariableAccess(name, IR_IntegerDatatype), IR_IntegerConstant(_)), 1L) if name == ctx.itName                 =>
+                ctx.divResidue = 0
+              case (IR_Division(IR_Addition(ListBuffer(
+              IR_VariableAccess(name, IR_IntegerDatatype), IR_IntegerConstant(summand))), IR_IntegerConstant(divs)), 1L) if name == ctx.itName =>
+                ctx.divResidue = (summand % divs + divs) % divs
+              case (IR_Division(IR_Addition(ListBuffer(
+              IR_IntegerConstant(summand), IR_VariableAccess(name, IR_IntegerDatatype))), IR_IntegerConstant(divs)), 1L) if name == ctx.itName =>
+                ctx.divResidue = (summand % divs + divs) % divs
+              case (IR_VariableAccess(name, IR_IntegerDatatype), 1L) if name == ctx.itName                                                     =>
+              // nothing to do here
+              case (mod : IR_Modulo, _) =>
+                if (containsVarAcc(mod, ctx.itName))
+                  throw new VectorizationException("no linear memory access: " + mod.prettyprint())
+              case _ =>
+                if (containsVarAcc(iE._1, ctx.itName))
+                  throw new VectorizationException("cannot deal with summand \"" + iE + '"')
+            }
             val residue : Long = (const % vs + vs) % vs
             ctx.setAlignedResidue(residue)
             alignmentExpr = ind
           case _                                                         =>
         }
 
-      val indexExprs = new ListBuffer[HashMap[IR_Expression, Long]]()
-      val collectIndexExprs = new QuietDefaultStrategy("Collect all array index expressions...")
-      collectIndexExprs += new Transformation("seaching...", {
-        case acc @ IR_ArrayAccess(_, index, true) =>
-          if (containsVarAcc(index, ctx.itName)) {
-            val annot = acc.removeAnnotation(IR_AddressPrecalculation.ORIG_IND_ANNOT)
-            indexExprs += IR_SimplifyExpression.extractIntegralSum(if (annot.isDefined) annot.get.asInstanceOf[IR_Expression] else index)
+      if (Knowledge.simd_avoidUnaligned) {
+        val indexExprs = new ListBuffer[HashMap[IR_Expression, Long]]()
+        val collectIndexExprs = new QuietDefaultStrategy("Collect all array index expressions...")
+        collectIndexExprs += new Transformation("seaching...", {
+          case acc @ IR_ArrayAccess(_, index, true) =>
+            if (containsVarAcc(index, ctx.itName)) {
+              val annot = acc.removeAnnotation(IR_AddressPrecalculation.ORIG_IND_ANNOT)
+              indexExprs += IR_SimplifyExpression.extractIntegralSum(if (annot.isDefined) annot.get.asInstanceOf[IR_Expression] else index)
+            }
+            acc
+        })
+        collectIndexExprs.applyStandalone(body)
+
+        // no store available, so align as many loads as possible
+        if (alignmentExpr == null) {
+          alignmentExpr = IR_SimplifyExpression.recreateExprFromIntSum(indexExprs.head)
+          val counts = new Array[Long](vs)
+          for (ind <- indexExprs) {
+            val const : Long = ind.remove(IR_SimplifyExpression.constName).getOrElse(0L)
+            val residue : Long = (const % vs + vs) % vs
+            counts(residue.toInt) += 1
           }
-          acc
-      })
-      collectIndexExprs.applyStandalone(body)
+          var max = (0, counts(0))
+          for (i <- 1 until vs)
+            if (counts(i) > max._2)
+              max = (i, counts(i))
+          ctx.setAlignedResidue(max._1)
 
-      // no store available, so align as many loads as possible
-      if (alignmentExpr == null) {
-        alignmentExpr = IR_SimplifyExpression.recreateExprFromIntSum(indexExprs.head)
-        val counts = new Array[Long](vs)
-        for (ind <- indexExprs) {
-          val const : Long = ind.remove(IR_SimplifyExpression.constName).getOrElse(0L)
-          val residue : Long = (const % vs + vs) % vs
-          counts(residue.toInt) += 1
+        } else
+          for (ind <- indexExprs)
+            ind.remove(IR_SimplifyExpression.constName)
+
+        // check if index expressions are "good", i.e., all (except the constant summand) have the same residue
+        while (indexExprs.head.nonEmpty) {
+          val key : IR_Expression = indexExprs.head.head._1
+          var residue : Long = -1
+          for (ind <- indexExprs) {
+            val res = (ind.remove(key).getOrElse(0L) % vs + vs) % vs
+            if (residue < 0)
+              residue = res
+            else if (res != residue)
+              throw new VectorizationException("Cannot determine alignment properly")
+          }
         }
-        var max = (0, counts(0))
-        for (i <- 1 until vs)
-          if (counts(i) > max._2)
-            max = (i, counts(i))
-        ctx.setAlignedResidue(max._1)
-
-      } else
+        // at least one sum is empty, so all remaining coefficients must be evenly divisible
         for (ind <- indexExprs)
-          ind.remove(IR_SimplifyExpression.constName)
-
-      // check if index expressions are "good", i.e., all (except the constant summand) have the same residue
-      while (indexExprs.head.nonEmpty) {
-        val key : IR_Expression = indexExprs.head.head._1
-        var residue : Long = -1
-        for (ind <- indexExprs) {
-          val res = (ind.remove(key).getOrElse(0L) % vs + vs) % vs
-          if (residue < 0)
-            residue = res
-          else if (res != residue)
-            throw new VectorizationException("Cannot determine alignment properly")
-        }
+          for ((_, coeff) <- ind)
+            if (coeff % vs != 0)
+              throw new VectorizationException("Cannot determine alignment properly")
       }
-      // at least one sum is empty, so all remaining coefficients must be evenly divisible
-      for (ind <- indexExprs)
-        for ((_, coeff) <- ind)
-          if (coeff % vs != 0)
-            throw new VectorizationException("Cannot determine alignment properly")
     }
 
     for (stmt <- body)
@@ -366,8 +391,9 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       })
       // ensure node itself is found, too
       replItVar.applyStandalone(wrappedAlignExpr)
+      // don't forget to multiply alignment correction summand by the divisior of the loop iterator in the access, which must correspond to the loop increment
       val preEndExpr = IR_Minimum(IR_Unrolling.endVarAcc,
-        IR_Unrolling.startVarAcc + ((IR_IntegerConstant(vs) - (wrappedAlignExpr.expression Mod IR_IntegerConstant(vs))) Mod IR_IntegerConstant(vs)))
+        IR_Unrolling.startVarAcc + (IR_IntegerConstant(incr) * ((IR_IntegerConstant(vs) - (wrappedAlignExpr.expression Mod IR_IntegerConstant(vs))) Mod IR_IntegerConstant(vs))))
       res += IR_VariableDeclaration(IR_IntegerDatatype, preEndVar, preEndExpr)
 
       res += IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, itVar, IR_Unrolling.startVarAcc),
@@ -489,6 +515,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           val inds : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(index)
           val const : Option[Long] = inds.remove(IR_SimplifyExpression.constName)
           var access1 : Boolean = true
+          var mayAligned : Boolean = true
           for (ind <- inds) ind match {
             case (IR_VariableAccess(name, IR_IntegerDatatype), value) =>
               if (name == ctx.itName) {
@@ -499,13 +526,15 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
             case (IR_Division(divd, IR_IntegerConstant(divs)), 1L) if (ctx.incr == divs) =>
               val summands : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(divd)
-              summands.remove(IR_SimplifyExpression.constName)
+              val divdCst = summands.remove(IR_SimplifyExpression.constName).getOrElse(0L)
               for (s <- summands) s match {
                 case (IR_VariableAccess(name, IR_IntegerDatatype), coeff) =>
                   if (name == ctx.itName) {
                     if (coeff != 1L)
                       throw new VectorizationException("no linear memory access;  loop increment: " + ctx.incr + "  index: " + index.prettyprint())
                     access1 = false
+                    if (ctx.divResidue >= 0)
+                      mayAligned &= (divdCst - ctx.divResidue) % divs == 0
                   }
                 case (e, _)                                               =>
                   if (containsVarAcc(e, ctx.itName))
@@ -520,7 +549,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
             access1 = true
 
           val vs = Platform.simd_vectorSize
-          val aligned : Boolean = alignedBase && (const.getOrElse(0L) - ctx.getAlignedResidue()) % vs == 0
+          val aligned : Boolean = alignedBase && mayAligned && (const.getOrElse(0L) - ctx.getAlignedResidue()) % vs == 0
           base match {
             // ---- special handling of loop-carried cse variables ----
             case _ : IR_IV_LoopCarriedCSBuffer if access1 => //if(access1 && ctx.isStore() && !ctx.isLoad()) =>

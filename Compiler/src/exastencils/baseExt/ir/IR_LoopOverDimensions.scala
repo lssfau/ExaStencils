@@ -196,7 +196,6 @@ case class IR_LoopOverDimensions(
     if (condition.isDefined)
       wrappedBody = ListBuffer[IR_Statement](IR_IfCondition(condition.get, wrappedBody))
 
-    var anyPar : Boolean = false
     val outerPar = if (parDims.isEmpty) -1 else parDims.max
     val inds = if (explParLoop) ompIndices else indices
     // compile loop(s)

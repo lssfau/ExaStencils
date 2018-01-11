@@ -7,6 +7,8 @@ import java.util.IdentityHashMap
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.communication.ir._
+import exastencils.config.Knowledge
+import exastencils.config.Platform
 import exastencils.core.Duplicate
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
@@ -83,8 +85,12 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
           val c = aff.getConstantVal()
           ensure(c.getDenSi() == 1, "upper bound of transformed memory layout is not an integral number?! " + c)
           val cl : Long = c.getNumSi()
-          ensure(cl <= Int.MaxValue, "upper bound of transformed memory layout is greater or equal Int.MaxValue?! " + cl)
-          val ext = c.getNumSi() + 1
+          ensure(cl < Int.MaxValue, "upper bound of transformed memory layout is greater or equal Int.MaxValue?! " + cl)
+          var ext = c.getNumSi() + 1
+          if (Knowledge.data_alignFieldPointers && i == 0) { // align extent of innermost dimension only
+            val vsDec : Int = Platform.simd_vectorSize - 1
+            ext = (ext + vsDec) & (~vsDec)
+          }
           val flpd = IR_FieldLayoutPerDim(0, 0, 0, ext.toInt, 0, 0, 0)
           flpd.updateTotal()
           newLayoutsPerDim(i) = flpd
@@ -231,7 +237,8 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     this.commit()
   }
 
-  def processDFA(dfa : IR_DirectFieldAccess, transformations : HashMap[(String, Int), ArrayBuffer[IR_GenericTransform]], processedLayouts : IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex], colColl : ColorCondCollector) : Unit = {
+  def processDFA(dfa : IR_DirectFieldAccess, transformations : HashMap[(String, Int), ArrayBuffer[IR_GenericTransform]],
+      processedLayouts : IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex], colColl : ColorCondCollector) : Unit = {
     val fieldID : (String, Int) = (dfa.fieldSelection.field.name, dfa.fieldSelection.field.level)
     val layout : IR_FieldLayout = dfa.fieldSelection.fieldLayout
     var newIndex : IR_ExpressionIndex = null
@@ -312,6 +319,10 @@ class ColorCondCollector extends Collector {
 
   override def leave(node : Node) : Unit = {
     node match {
+      case loop : IR_LoopOverDimensions if loop.condition.isDefined && loop.condition.get.isInstanceOf[IR_EqEq] =>
+        reset()
+      case IR_IfCondition(_ : IR_EqEq, _, fB) if fB.isEmpty =>
+        reset()
       case _ =>
         if (node.removeAnnotation(TMP_ANNOT).isDefined)
           reset()

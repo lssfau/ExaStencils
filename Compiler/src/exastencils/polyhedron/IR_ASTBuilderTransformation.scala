@@ -27,7 +27,6 @@ private final class IR_ASTBuilderFunction()
   private var vecDims : Set[String] = null
   private var parallelize_omp : Boolean = false
   private var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()
-  private var condition : IR_Expression = null
 
   private def invalidateScop(scop : Scop) : Unit = {
     // remove all annotations for the merged scops, as they are invalid now
@@ -50,7 +49,6 @@ private final class IR_ASTBuilderFunction()
     if (scop.remove)
       return IR_NullStatement
     parallelization = Duplicate(scop.root.parallelization)
-    condition = scop.root.condition.orNull
 
     // find all sequential loops
     parallelize_omp = scop.parallelize
@@ -234,12 +232,9 @@ private final class IR_ASTBuilderFunction()
 
         IR_ReplaceVariableAccess.replace = repl
         IR_ReplaceVariableAccess.applyStandalone(IR_Scope(stmts))
-        if (condition != null)
-          for (stmt <- stmts) {
-            val cond : IR_Expression = Duplicate(condition)
-            IR_ReplaceVariableAccess.applyStandalone(cond)
-            stmt.annotate(IR_PolyOpt.IMPL_CONDITION_ANNOT, cond)
-          }
+        for (stmt <- stmts)
+          for (cond <- stmt.getAnnotation(IR_PolyOpt.IMPL_CONDITION_ANNOT)) // Option
+            IR_ReplaceVariableAccess.applyStandalone(cond.asInstanceOf[IR_Expression])
         stmts
 
       case isl.AstNodeType.NodeMark  => throw PolyASTBuilderException("unexpected and unknown mark node found...")
