@@ -28,7 +28,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
 
   implicit def long2val(l : Long) : isl.Val = isl.Val.intFromSi(Isl.ctx, l)
 
-  private val tmpNamePrefix : String = "__ir_layout_toReplace_"
+  private val tmpNamePrefix : String = "__LRep"
   private def tmpName(i : Int) : String = tmpNamePrefix + i
   private def tmpNameIdx(s : String) : Int = s.substring(tmpNamePrefix.length()).toInt
 
@@ -241,10 +241,10 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
       processedLayouts : IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex], colColl : ColorCondCollector) : Unit = {
     val fieldID : (String, Int) = (dfa.fieldSelection.field.name, dfa.fieldSelection.field.level)
     val layout : IR_FieldLayout = dfa.fieldSelection.fieldLayout
-    var newIndex : IR_ExpressionIndex = null
-    if (processedLayouts.containsKey(layout)) {
-      newIndex = Duplicate(processedLayouts.get(layout))
-    } else for (trafos <- transformations.get(fieldID)) {
+    var newIndex : IR_ExpressionIndex = processedLayouts.get(layout)
+    if (newIndex != null) {
+      newIndex = Duplicate(newIndex)
+    } else for (trafos <- transformations.get(fieldID)) { // Option
       val trafoMaff : isl.MultiAff = createIslTrafo(trafos)
       adaptLayout(layout, trafoMaff, fieldID)
       val exprs : IR_ExpressionIndex = createASTforMultiAff(trafoMaff)
@@ -252,13 +252,14 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
       newIndex = Duplicate(exprs)
     }
     if (newIndex != null) {
-      QuietDefaultStrategy("replace", new Transformation("now", {
+      val qStrat = QuietDefaultStrategy("quiet")
+      qStrat += new Transformation("replace", {
         case IR_StringLiteral(id) if id.startsWith(tmpNamePrefix)     => Duplicate.apply[IR_Expression](dfa.index(tmpNameIdx(id))) // IntelliJ workaround: specify IR_Expression explicitly
         case IR_VariableAccess(id, _) if id.startsWith(tmpNamePrefix) => Duplicate.apply[IR_Expression](dfa.index(tmpNameIdx(id))) // HACK to deal with the HACK in IR_ExpressionIndex
-      })).applyStandalone(newIndex)
+      })
       val cSumMap : HashMap[IR_Expression, Long] = colColl.sum
       if (cSumMap != null) {
-        QuietDefaultStrategy("simplify color", new Transformation("now", {
+        qStrat += new Transformation("simplify color", {
           case mod @ IR_Modulo(sum, IR_IntegerConstant(nrCol)) if colColl.nrCol == nrCol =>
             val sumMap : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(sum)
             val sumCst : Long = sumMap.remove(IR_SimplifyExpression.constName).getOrElse(0L)
@@ -266,10 +267,12 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
               IR_IntegerConstant(((sumCst + colColl.color) % nrCol + nrCol) % nrCol)
             else
               mod
-        })).applyStandalone(newIndex)
+        })
       }
-      for (i <- 0 until newIndex.length)
-        newIndex(i) = IR_SimplifyExpression.simplifyIntegralExpr(newIndex(i))
+      qStrat.applyStandalone(newIndex)
+      // simplifying here is very time intense, but may not be required... test
+      // for (i <- 0 until newIndex.length)
+      //   newIndex(i) = IR_SimplifyExpression.simplifyIntegralExpr(newIndex(i))
       dfa.index = newIndex
     }
   }
