@@ -19,6 +19,7 @@ import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.polyhedron.Isl.TypeAliases._
 import exastencils.polyhedron._
+import exastencils.util.StackedMap
 
 object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
 
@@ -257,16 +258,20 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
         case IR_StringLiteral(id) if id.startsWith(tmpNamePrefix)     => Duplicate.apply[IR_Expression](dfa.index(tmpNameIdx(id))) // IntelliJ workaround: specify IR_Expression explicitly
         case IR_VariableAccess(id, _) if id.startsWith(tmpNamePrefix) => Duplicate.apply[IR_Expression](dfa.index(tmpNameIdx(id))) // HACK to deal with the HACK in IR_ExpressionIndex
       })
-      val cSumMap : HashMap[IR_Expression, Long] = colColl.sum
-      if (cSumMap != null) {
+      val colorInfo : StackedMap[HashMap[IR_Expression, Long], (Long, Long)] = colColl.colorInfo
+      if (!colorInfo.isEmpty) {
         qStrat += new Transformation("simplify color", {
-          case mod @ IR_Modulo(sum, IR_IntegerConstant(nrCol)) if colColl.nrCol == nrCol =>
+          case mod @ IR_Modulo(sum, IR_IntegerConstant(nrCol)) =>
             val sumMap : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(sum)
             val sumCst : Long = sumMap.remove(IR_SimplifyExpression.constName).getOrElse(0L)
-            if (sumMap == cSumMap)
-              IR_IntegerConstant(((sumCst + colColl.color) % nrCol + nrCol) % nrCol)
-            else
-              mod
+            colorInfo.get(sumMap) match {
+              case Some((color, nrColor)) if (nrCol == nrColor) =>
+                IR_IntegerConstant(((sumCst + color) % nrCol + nrCol) % nrCol)
+              case o                                            =>
+                if (o.isDefined)
+                  Logger.warning(s"[layout trafo]  divisor of modulo operation in index ($nrCol) does not match the one in a surrounding condition (${ o.get._2 }) for expression  " + mod.prettyprint())
+                mod
+            }
         })
       }
       qStrat.applyStandalone(newIndex)
@@ -281,9 +286,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
 class ColorCondCollector extends Collector {
 
   private final val TMP_ANNOT : String = "CCCtmp"
-  var sum : HashMap[IR_Expression, Long] = null
-  var color : Long = -1
-  var nrCol : Long = 0
+  val colorInfo = StackedMap[HashMap[IR_Expression, Long], (Long, Long)]()
 
   override def enter(node : Node) : Unit = {
 
@@ -294,47 +297,49 @@ class ColorCondCollector extends Collector {
       case IR_IfCondition(c : IR_EqEq, _, fB) if fB.isEmpty                                                     =>
         cond = c
       case _                                                                                                    =>
-        val annot : Option[Any] = node.getAnnotation(IR_PolyOpt.IMPL_CONDITION_ANNOT)
-        if (annot.isDefined && annot.get.isInstanceOf[IR_EqEq])
-          cond = annot.get.asInstanceOf[IR_Expression]
+        node.getAnnotation(IR_PolyOpt.IMPL_CONDITION_ANNOT) match {
+          case Some(c : IR_Expression) =>
+            cond = c
+          case _                       =>
+        }
     }
 
-    var fixCst = false
+    if (cond != null) {
+      colorInfo.push()
+      processCondition(cond)
+      node.annotate(TMP_ANNOT)
+    }
+  }
+
+  private def processCondition(cond : IR_Expression) : Unit = {
+
+    // prevent code duplication
+    def storeColor(sumExpr : IR_Expression, color : Long, nrCol : Long) : Unit = {
+      val sum : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(sumExpr)
+      var colorFixed = color
+      for (cst <- sum.remove(IR_SimplifyExpression.constName)) // Option
+        colorFixed = ((color - cst) % nrCol + nrCol) % nrCol
+      colorInfo.put(sum, (colorFixed, nrCol))
+    }
+
     cond match {
       case IR_EqEq(IR_IntegerConstant(c), IR_Modulo(s, IR_IntegerConstant(nr))) =>
-        sum = IR_SimplifyExpression.extractIntegralSum(s)
-        color = c
-        nrCol = nr
-        node.annotate(TMP_ANNOT)
-        fixCst = true
+        storeColor(s, c, nr)
       case IR_EqEq(IR_Modulo(s, IR_IntegerConstant(nr)), IR_IntegerConstant(c)) =>
-        sum = IR_SimplifyExpression.extractIntegralSum(s)
-        color = c
-        nrCol = nr
-        node.annotate(TMP_ANNOT)
-        fixCst = true
+        storeColor(s, c, nr)
+      case IR_AndAnd(l, r)                                                      =>
+        processCondition(l)
+        processCondition(r)
       case _                                                                    =>
     }
-    if (fixCst)
-      for (cst <- sum.remove(IR_SimplifyExpression.constName))
-        color = ((color - cst) % nrCol + nrCol) % nrCol
   }
 
   override def leave(node : Node) : Unit = {
-    node match {
-      case loop : IR_LoopOverDimensions if loop.condition.isDefined && loop.condition.get.isInstanceOf[IR_EqEq] =>
-        reset()
-      case IR_IfCondition(_ : IR_EqEq, _, fB) if fB.isEmpty =>
-        reset()
-      case _ =>
-        if (node.removeAnnotation(TMP_ANNOT).isDefined)
-          reset()
-    }
+    if (node.removeAnnotation(TMP_ANNOT).isDefined)
+      colorInfo.pop()
   }
 
   override def reset() : Unit = {
-    sum = null
-    color = -1
-    nrCol = 0
+    colorInfo.clear()
   }
 }
