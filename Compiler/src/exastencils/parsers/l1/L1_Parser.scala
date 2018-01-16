@@ -246,7 +246,7 @@ object L1_Parser extends ExaParser with PackratParsers {
   lazy val fieldDiscr = locationize(ident ~ levelDecl.? ~ ("=>" ~> ident).? ~ ("on" ~> localization)
     ^^ { case src ~ levels ~ map ~ local => L1_FieldDiscretization(src, levels, map, local) })
 
-  lazy val operatorDiscr = locationize(ident ~ levelDecl.? ~ ("=>" ~> ident).? ~ ("with" ~> stringLit).? ~ ("on" ~> ident) ~ ("order" ~> integerLit).? ~ ("direction" ~> integerLit).?
+  lazy val operatorDiscr = locationize(ident ~ levelDecl.? ~ ("=>" ~> ident).? ~ ("with" ~> stringLit).? ~ ("on" ~> domainIdent) ~ ("order" ~> integerLit).? ~ ("direction" ~> integerLit).?
     ^^ { case src ~ levels ~ map ~ discr ~ domain ~ order ~ dir => L1_OperatorDiscretization(src, levels, map, discr, domain, order, dir) })
 
   lazy val equationDiscr = locationize(ident ~ levelDecl.? ~ ("=>" ~> ident).?
@@ -261,14 +261,16 @@ object L1_Parser extends ExaParser with PackratParsers {
   // ################################### DOMAIN ##################################
   // #############################################################################
 
+  lazy val domainIdent = ident ||| L1_ReservedSigns.capitalOmega
+
   // ######################################
   // ##### L1_DomainDecl
   // ######################################
 
   lazy val realIndex = /*locationize*/ "[" ~> realLit ~ ("," ~> realLit).* <~ "]" ^^ { case b ~ l => (List(b) ++ l).toArray }
-  lazy val domainDeclaration = (locationize(("Domain" ~> ident <~ "=") ~ interval ~ (L1_ReservedSigns.times ~> interval).*
+  lazy val domainDeclaration = (locationize(("Domain" ~> domainIdent <~ "=") ~ interval ~ (L1_ReservedSigns.times ~> interval).*
     ^^ { case id ~ head ~ tail => L1_DomainFromIntervalsDecl(id, List(head) ++ tail) })
-    ||| locationize(("Domain" ~> ident <~ "=") ~ (realIndex <~ "to") ~ realIndex ^^ { case id ~ l ~ u => L1_DomainFromAABBDecl(id, l, u) })
+    ||| locationize(("Domain" ~> domainIdent <~ "=") ~ (realIndex <~ "to") ~ realIndex ^^ { case id ~ l ~ u => L1_DomainFromAABBDecl(id, l, u) })
     )
 
   // #############################################################################
@@ -281,9 +283,9 @@ object L1_Parser extends ExaParser with PackratParsers {
 
   lazy val fieldDeclaration = baseFieldDeclaration ||| boundaryFieldDeclaration
 
-  lazy val baseFieldDeclaration = locationize(("Field" ~> ident) ~ levelDecl.? ~ (L1_ReservedSigns.elemOf ~> ident) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
+  lazy val baseFieldDeclaration = locationize(("Field" ~> ident) ~ levelDecl.? ~ (L1_ReservedSigns.elemOf ~> domainIdent) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
     ^^ { case id ~ levels ~ domain ~ initial => L1_BaseFieldDecl(id, levels, domain, initial) })
-  lazy val boundaryFieldDeclaration = locationize(("Field" ~> ident) ~ levelDecl.? ~ ((L1_ReservedSigns.elemOf ~ L1_ReservedSigns.partial) ~> ident) ~ ("=" ~> fieldBoundary)
+  lazy val boundaryFieldDeclaration = locationize(("Field" ~> ident) ~ levelDecl.? ~ ((L1_ReservedSigns.elemOf ~ L1_ReservedSigns.partial) ~> domainIdent) ~ ("=" ~> fieldBoundary)
     ^^ { case id ~ levels ~ domain ~ bc => L1_BoundaryFieldDecl(id, levels, domain, bc) })
 
   // #############################################################################

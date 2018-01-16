@@ -19,4 +19,12 @@ object L1_DomainCollection extends L1_BasicKnowledgeCollection[L1_Domain, L2_Dom
 
   override def name = "L1_DomainCollection"
   override def progress() = objects.foreach(obj => L2_DomainCollection.add(obj.progress()))
+
+  def handleAliases() = {
+    val aliasForGlobal = List("\\Omega", "\\u03a9", "Omega")
+    objects.foreach {
+      case d if aliasForGlobal.contains(d.name) => d.name = "global"
+      case _                                    =>
+    }
+  }
 }

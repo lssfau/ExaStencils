@@ -1,22 +1,22 @@
 
 /// problem specification
 
-Domain global = ( 0, 3 ) \times ( 0, 3 )
+Domain \Omega = ( 0, 3 ) \times ( 0, 3 )
 
-Field u \in global = 0.0
-Field v \in global = 0.0
-Field p \in global = 0.0
+Field u \in \Omega = 0.0
+Field v \in \Omega = 0.0
+Field p \in \Omega = 0.0
 
-Field u@finest \in \partial global = -4.0 * cos ( 4.0 * vf_boundaryCoord_y )
-Field u@(all but finest) \in \partial global = 0.0
-Field v@finest \in \partial global = 2.0 * cos ( 2.0 * vf_boundaryCoord_x )
-Field v@(all but finest) \in \partial global = 0.0
-Field p \in \partial global = Neumann
+Field u@finest \in \partial \Omega = -4.0 * cos ( 4.0 * vf_boundaryCoord_y )
+Field u@(all but finest) \in \partial \Omega = 0.0
+Field v@finest \in \partial \Omega = 2.0 * cos ( 2.0 * vf_boundaryCoord_x )
+Field v@(all but finest) \in \partial \Omega = 0.0
+Field p \in \partial \Omega = Neumann
 
 // TODO: handle virtual fields properly and make @current implicit again
-Field f_u@finest \in global = 4.0 * sin ( 2.0 * vf_cellCenter_y@current ) * cos ( 4.0 * vf_nodePosition_x@current ) - 64.0 * cos ( 4.0 * vf_cellCenter_y@current )
-Field f_v@finest \in global = 2.0 * sin ( 4.0 * vf_cellCenter_x@current ) * cos ( 2.0 * vf_nodePosition_y@current ) + 8.0  * cos ( 2.0 * vf_cellCenter_x@current )
-Field f_p@finest \in global = 0.0
+Field f_u@finest \in \Omega = 4.0 * sin ( 2.0 * vf_cellCenter_y@current ) * cos ( 4.0 * vf_nodePosition_x@current ) - 64.0 * cos ( 4.0 * vf_cellCenter_y@current )
+Field f_v@finest \in \Omega = 2.0 * sin ( 4.0 * vf_cellCenter_x@current ) * cos ( 2.0 * vf_nodePosition_y@current ) + 8.0  * cos ( 2.0 * vf_cellCenter_x@current )
+Field f_p@finest \in \Omega = 0.0
 
 Operator Laplace = - \Delta // alt: - ( \partial_{xx} + \partial_{yy} )
 
@@ -45,11 +45,11 @@ DiscretizationHints { // alt: Discretize, L2Hint(s)
   f_v on Face_y
   f_p on Cell
 
-  Laplace on global order 2
-  dxFwd   on global order 1 direction 1
-  dyFwd   on global order 1 direction 1
-  dxBwd   on global order 1 direction -1
-  dyBwd   on global order 1 direction -1
+  Laplace on \Omega order 2
+  dxFwd   on \Omega order 1 direction 1
+  dyFwd   on \Omega order 1 direction 1
+  dxBwd   on \Omega order 1 direction -1
+  dyBwd   on \Omega order 1 direction -1
 
   uEq
   vEq

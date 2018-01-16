@@ -19,6 +19,8 @@ object L1_Lexer extends ExaLexer {
 
   delimiters += ("\u2206", "\\Delta")
 
+  delimiters += ("\u03a9", "\\Omega")
+
   // import functionality
   reserved += "import"
 
@@ -63,4 +65,6 @@ object L1_ReservedSigns {
   val times = ("\u00D7", "\\times") // cartesian product or cross product
 
   val capitalDelta = ("\u2206", "\\Delta")
+
+  val capitalOmega = ("\u03a9", "\\Omega")
 }

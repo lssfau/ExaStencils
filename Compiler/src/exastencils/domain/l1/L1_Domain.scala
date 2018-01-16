@@ -9,16 +9,14 @@ import exastencils.prettyprinting.PpStream
 /// L1_Domain
 
 abstract class L1_Domain extends L1_KnowledgeObject[L2_Domain] {
+  var name : String
   def numDims : Int
-
-//  override def prettyprintDecl(out : PpStream) : Unit = ???
-//  override def progressImpl() = L2_Domain(name)
 }
 
 /// L1_DummyDomain
 
 case class L1_DummyDomain() extends L1_Domain {
-  override def name = "dummy"
+  override var name = "dummy"
   override def numDims = Knowledge.dimensionality
   override def prettyprintDecl(out : PpStream) = Logger.error("Trying to print l1 dummy domain; unsupported")
   override def progressImpl() = Logger.error("Trying to progress l1 dummy domain; unsupported")

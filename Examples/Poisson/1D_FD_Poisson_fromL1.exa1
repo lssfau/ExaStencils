@@ -9,13 +9,13 @@ Knowledge {
 
 /// problem specification
 
-Domain global = ( 0, 1 )
+Domain \Omega = ( 0, 1 )
 
-Field f@finest \in global = 0.0
-Field u \in global = 0.0
+Field f@finest \in \Omega = 0.0
+Field u \in \Omega = 0.0
 
-Field u@finest \in \partial global = sin ( 0.5 * PI * vf_boundaryCoord_x )
-Field u@(all but finest) \in \partial global = 0.0
+Field u@finest \in \partial \Omega = sin ( 0.5 * PI * vf_boundaryCoord_x )
+Field u@(all but finest) \in \partial \Omega = 0.0
 
 Operator op = - \Delta // alt: - \partial_{xx}
 
@@ -28,7 +28,7 @@ DiscretizationHints { // alt: Discretize, L2Hint(s)
   f on Node
   u on Node
 
-  op on global
+  op on \Omega
 
   uEq
 
