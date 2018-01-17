@@ -58,10 +58,11 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     Isl.ctx.optionsSetTileShiftPointLoops(0)
 
     Knowledge.poly_scheduleAlgorithm match {
-      case "isl"         => Isl.ctx.optionsSetScheduleAlgorithm(0)
-      case "feautrier"   => Isl.ctx.optionsSetScheduleAlgorithm(1)
-      case "exploration" => Isl.ctx.optionsSetScheduleAlgorithm(0)
-      case unknown       => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
+      case "isl"        => Isl.ctx.optionsSetScheduleAlgorithm(0)
+      case "feautrier"  => Isl.ctx.optionsSetScheduleAlgorithm(1)
+      case "exploration"
+           | "external" => // isl scheduler is not called
+      case unknown      => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
     }
 
     Isl.ctx.optionsSetScheduleSeparateComponents(if (Knowledge.poly_separateComponents) 1 else 0)
@@ -216,6 +217,7 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
           scop.stmts(lab) = (mergedStmts, mergedLoopIts)
         else
           scop.stmts -= lab
+
       // adjust read and write accesses
       def adjust(umap : isl.UnionMap) : isl.UnionMap = {
         var nju : isl.UnionMap = null
@@ -233,6 +235,7 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         })
         nju
       }
+
       scop.reads = adjust(scop.reads)
       scop.writes = adjust(scop.writes)
 
@@ -634,7 +637,7 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         if (tileSize <= 0)
           1
         else if (scop.origIterationCount != null)
-          scop.origIterationCount(i) / tileSize
+          (scop.origIterationCount(i) + tileSize - 1) / tileSize // ceil division
         else {
           spamcount += 1
           if (spamcount < 4)
