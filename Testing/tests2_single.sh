@@ -90,6 +90,7 @@ touch "${SETTINGS}"
 echo "outputPath = \"${TEST_DIR}\"" >> "${SETTINGS}"
 echo "binary = \"${BIN}\"" >> "${SETTINGS}"
 echo "poly_explorationConfig = \"${EXPL_CFG}\"" >> "${SETTINGS}"
+echo "poly_exploration_appendID2path = false" >> "${SETTINGS}"
 IFS=';' read -a files <<< $EXAFILES
 for f in "${files[@]}"; do
   case ${f} in
