@@ -63,31 +63,37 @@ object Settings {
 
   var poly_explorationConfig : String = ""
 
+  // specifies if the  poly exploration config id should be appended to the output path (only used if Knowledge.poly_scheduleAlgorithm == "exploration")
+  var poly_exploration_appendID2path : Boolean = true
+
   /// output
 
   var outputPath : String = ""
+  var outputPath_suffix : String = ""
 
   def defOutputPath : String = {
     if (basePathPrefix.isEmpty) {
       if ("MSVC" == Platform.targetCompiler)
-        "../generated/"
+        "../generated"
       else
-        "/tmp/"
+        "/tmp"
     } else {
-      getBasePath + "generated/"
+      getBasePath + "generated"
     }
   }
 
   def getOutputPath : String = {
-    if (outputPath.isEmpty)
-      defOutputPath
-    else
-      getBasePath + (
-        if (outputPath.endsWith("/") || outputPath.endsWith("\\"))
-          outputPath
-        else
-          outputPath + "/"
-        )
+    val path =
+      if (outputPath.isEmpty)
+        defOutputPath
+      else
+        getBasePath + (
+          if (outputPath.endsWith("/") || outputPath.endsWith("\\"))
+            outputPath.substring(0, outputPath.length() - 1)
+          else
+            outputPath
+          )
+    path + outputPath_suffix + '/'
   }
 
   var cancelIfOutFolderExists : Boolean = false

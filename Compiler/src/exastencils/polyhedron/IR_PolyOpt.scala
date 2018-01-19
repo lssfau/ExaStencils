@@ -526,6 +526,10 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def optimizeExpl(scop : Scop, confID : Int) : Unit = {
 
+    var validity = scop.deps.validity()
+    if (validity.isEmpty()) // TODO: allow/implement exploration for scops without any data dependence?
+      return
+
     val df = new DecimalFormat()
     df.setMinimumIntegerDigits(5)
     df.setGroupingUsed(false)
@@ -533,51 +537,44 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val explConfig = new java.io.File(Settings.poly_explorationConfig)
     if (!explConfig.exists() || explConfig.length() == 0) {
       Logger.debug("[PolyOpt] Exploration: no configuration file found or file empty, perform exploration and create it")
-      performExploration(scop, explConfig, df)
-      Logger.debug("[PolyOpt] Exploration: configuration finished, creating base version (without any schedule changes)")
+      val domain = scop.domain.intersectParams(scop.getContext())
+
+      if (Knowledge.poly_simplifyDeps) {
+        validity = validity.gistRange(domain)
+        validity = validity.gistDomain(domain)
+      }
+
+      explConfig.getAbsoluteFile().getParentFile().mkdirs()
+      val eConfOut = new java.io.PrintWriter(explConfig)
+      eConfOut.println(domain)
+      eConfOut.println(validity)
+      eConfOut.println(Knowledge.poly_exploration_extended)
+      eConfOut.println()
+      var i : Int = 0
+      Exploration.guidedExploration(domain, validity, Knowledge.poly_exploration_extended, Console.out, {
+        (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int], nrCarried : Seq[Int], cstVectable : Boolean) =>
+          i += 1
+          eConfOut.print(df.format(i))
+          eConfOut.print('\t')
+          eConfOut.print(bands.mkString(","))
+          eConfOut.print('\t')
+          eConfOut.print(sched)
+          eConfOut.print('\t')
+          eConfOut.print(schedVect.map(arr => java.util.Arrays.toString(arr)).mkString(", "))
+          eConfOut.print('\t')
+          eConfOut.print(nrCarried.mkString(","))
+          eConfOut.print('\t')
+          eConfOut.print(cstVectable)
+          eConfOut.println()
+      })
+      eConfOut.flush()
+      eConfOut.close()
+      Logger.debug(s"[PolyOpt] Exploration finished: found $i configurations")
     }
-    if (confID != 0) {
+    if (confID != 0)
       applyConfig(scop, explConfig, df.format(confID))
-      Settings.outputPath += df.format(confID)
-    }
-  }
-
-  private def performExploration(scop : Scop, explConfig : java.io.File, df : DecimalFormat) : Unit = {
-
-    val domain = scop.domain.intersectParams(scop.getContext())
-    var validity = scop.deps.validity()
-
-    if (Knowledge.poly_simplifyDeps) {
-      validity = validity.gistRange(domain)
-      validity = validity.gistDomain(domain)
-    }
-
-    explConfig.getAbsoluteFile().getParentFile().mkdirs()
-    val eConfOut = new java.io.PrintWriter(explConfig)
-    eConfOut.println(domain)
-    eConfOut.println(validity)
-    eConfOut.println(Knowledge.poly_exploration_extended)
-    eConfOut.println()
-    var i : Int = 0
-    Exploration.guidedExploration(domain, validity, Knowledge.poly_exploration_extended, Console.out, {
-      (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int], nrCarried : Seq[Int], cstVectable : Boolean) =>
-        i += 1
-        eConfOut.print(df.format(i))
-        eConfOut.print('\t')
-        eConfOut.print(bands.mkString(","))
-        eConfOut.print('\t')
-        eConfOut.print(sched)
-        eConfOut.print('\t')
-        eConfOut.print(schedVect.map(arr => java.util.Arrays.toString(arr)).mkString(", "))
-        eConfOut.print('\t')
-        eConfOut.print(nrCarried.mkString(","))
-        eConfOut.print('\t')
-        eConfOut.print(cstVectable)
-        eConfOut.println()
-    })
-    eConfOut.flush()
-    eConfOut.close()
-    Logger.debug(s"[PolyOpt] Exploration: found $i configurations")
+    if (Settings.poly_exploration_appendID2path)
+      Settings.outputPath_suffix += df.format(confID)
   }
 
   private def applyConfig(scop : Scop, explConfig : java.io.File, confID : String) : Unit = {
