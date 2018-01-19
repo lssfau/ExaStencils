@@ -131,7 +131,7 @@ case class IR_LoopOverDimensions(
 
   def explParLoop = lcCSEApplied && parallelization.potentiallyParallel &&
     Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverDimensions &&
-    parallelizationIsReasonable && parDims.isEmpty
+    parallelizationIsReasonable
 
   def createOMPThreadsWrapper(body : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
     if (explParLoop) {
