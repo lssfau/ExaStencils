@@ -636,8 +636,10 @@ private class Subexpression(val func : String, val witness : IR_Expression with 
       val allChildren = old.productIterator.find { x => x.isInstanceOf[Buffer[_]] }.get.asInstanceOf[Buffer[Any]]
       val commSubsChildren = witness.productIterator.find { x => x.isInstanceOf[Buffer[_]] }.get.asInstanceOf[Buffer[Any]]
       // according to the generation of witnesses children above, both buffers have the same ordering
-      allChildren --= commSubsChildren
-      allChildren += IR_VariableAccess(tmpVarName, tmpVarDatatype)
+      do {
+        allChildren --= commSubsChildren
+        allChildren += IR_VariableAccess(tmpVarName, tmpVarDatatype)
+      } while(commSubsChildren.forall(allChildren.contains))
       null // no need to replace node, since its children were already modified
     }
   }
