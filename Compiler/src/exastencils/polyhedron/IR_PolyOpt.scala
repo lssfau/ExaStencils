@@ -185,11 +185,8 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       var njuDomain : isl.UnionSet = null
       scop.domain.foreachSet({
         set : isl.Set =>
-          var found : Boolean = false
-          for ((lab, (stmt, _)) <- stmts)
-            if (set.getTupleName == lab)
-              found = true
-          if (found)
+          val tupName = set.getTupleName()
+          if (stmts.exists{ case (label, _) => tupName == label })
             remDoms += set
           else
             njuDomain = if (njuDomain == null) set else njuDomain.addSet(set)
@@ -201,7 +198,7 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
           Breaks.break() // continue... different domains, cannot merge statements
       val mergedStmts = new ListBuffer[IR_Statement]()
       var mergedLoopIts : ArrayBuffer[String] = null
-      for ((lab, (stmt, loopIts)) <- stmts) {
+      for ((_, (stmt, loopIts)) <- stmts) {
         mergedStmts ++= stmt
         if (mergedLoopIts == null)
           mergedLoopIts = loopIts
