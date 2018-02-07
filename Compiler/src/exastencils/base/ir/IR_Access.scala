@@ -34,7 +34,7 @@ case class IR_ArrayAccess(var base : IR_Expression, var index : IR_Expression, v
   }
 }
 
-case class IR_HighDimAccess(var base : IR_Expression, var index : IR_Index) extends IR_Access {
+case class IR_HighDimAccess(var base : IR_Expression, var index : IR_Index) extends IR_Access with IR_PolyArrayAccessLike {
   // TODO: modify this to use IR_HighDimIndex
 
   // Access to matrices, needs to be linearized before prettyprinting
@@ -45,6 +45,14 @@ case class IR_HighDimAccess(var base : IR_Expression, var index : IR_Index) exte
     out << '(' << base
     expIdx.prettyprint(out)
     out << ')'
+  }
+
+  override def uniqueID : String = {
+    base match {
+      case IR_StringLiteral(name)     => name
+      case IR_VariableAccess(name, _) => name
+      case _                          => null
+    }
   }
 }
 

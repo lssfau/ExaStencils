@@ -12,6 +12,7 @@ import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.logger._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
+import exastencils.prettyprinting.PrettyPrintable
 import exastencils.util.ir.IR_MathFunctions
 
 /** Object for all "static" attributes */
@@ -28,6 +29,15 @@ object IR_PolyExtractor {
 
   /** annotation id used to indicate that this subtree should be skipped */
   private final val SKIP_ANNOT : String = "PolySkip"
+
+  /** annotation id used to specify if the current condition must be negated (to distinguish between then and else branch) */
+  private final val NEGATE_COND_ANNOT : String = "NegCond"
+
+  /** annotation id used to hold hidden assignment statements (as in case of a declaration with initialization: the hidden assignment is the initialization) */
+  private final val HIDDEN_ASSIGN_ANNOT : String = "HidAssgn"
+
+  /** annotation id used to store the information that this variable will not be used after the current scop */
+  private final val DEAD_AFTER_SCOP_ANNOT : String = "DeadASc"
 
   /** set of all functions that are allowed in a scop (these must not have side effects) */
   private final val allowedFunctions = Set[String]("abs", "fabs") ++= IR_MathFunctions.signatures.keys
@@ -92,41 +102,6 @@ object IR_PolyExtractor {
           lParConstr.append('(').append(min).append("<=").append(islStr).append("<=").append(max).append(')')
           lParConstr.append(" and ")
         }
-
-      // case OffsetIndex(min, max, ind, off) =>
-      //   off match {
-      //     case ArrayAccess(_ : iv.IterationOffsetBegin, _, _) =>
-      //       off.annotate(SimplifyExpression.EXTREMA_ANNOT, (min.toLong, max.toLong)) // preserve extrema information since OffsetIndex will be lost
-      //     case ArrayAccess(_ : iv.IterationOffsetEnd, _, _) =>
-      //       off.annotate(SimplifyExpression.EXTREMA_ANNOT, (min.toLong, max.toLong)) // preserve extrema information since OffsetIndex will be lost
-      //     case _ => // nothing to do
-      //   }
-      //   constraints.append('(')
-      //   bool |= extractConstraints(ind, constraints, formatString, lParConstr, gParConstr, vars)
-      //   constraints.append('+')
-      //   bool |= extractConstraints(off, constraints, formatString, lParConstr, gParConstr, vars)
-      //   constraints.append(')')
-      //   if (lParConstr != null) off match {
-      //     case _ : VariableAccess | _ : ArrayAccess =>
-      //       lParConstr.append('(').append(min).append("<=")
-      //       lParConstr.append(ScopNameMapping.expr2id(off))
-      //       lParConstr.append("<=").append(max).append(')')
-      //       lParConstr.append(" and ")
-      //
-      //     case Multiplication(ListBuffer(IntegerConstant(c), arr : ArrayAccess)) =>
-      //       lParConstr.append('(').append(min).append("<=").append(c).append('*')
-      //       lParConstr.append(ScopNameMapping.expr2id(arr))
-      //       lParConstr.append("<=").append(max).append(')')
-      //       lParConstr.append(" and ")
-      //
-      //     case Multiplication(ListBuffer(arr : ArrayAccess, IntegerConstant(c))) =>
-      //       lParConstr.append('(').append(min).append("<=").append(c).append('*')
-      //       lParConstr.append(ScopNameMapping.expr2id(arr))
-      //       lParConstr.append("<=").append(max).append(')')
-      //       lParConstr.append(" and ")
-      //
-      //     case _ =>
-      //   }
 
       case iff : IR_IV_IndexFromField =>
         val islStr : String = ScopNameMapping.expr2id(iff)
@@ -263,6 +238,13 @@ object IR_PolyExtractor {
         constraints.append(')')
         bool = true
 
+      case IR_BooleanConstant(b) =>
+        if (b)
+          constraints.append("1=1")
+        else
+          constraints.append("1!=1")
+        bool = true
+
       case _ => throw ExtractionException("unknown expression: " + expr.getClass + " - " + expr.prettyprint())
     }
 
@@ -322,8 +304,8 @@ class IR_PolyExtractor extends Collector {
   /** indicates if a new scop starting at the next node can be merged with the last one */
   private var mergeScops : Boolean = false
 
-  /** stack of additional conditions for the next statements found */
-  private final val conditions = new ArrayStack[String]()
+  /** stack of additional conditions for the next statements found; the boolean specifies if the condition must be negated */
+  private final val conditions = new ArrayStack[(String, Boolean)]()
 
   /** function to execute after a loop has been processed */
   private final val executeAfterExtraction = new ListBuffer[() => Unit]()
@@ -357,13 +339,16 @@ class IR_PolyExtractor extends Collector {
     private var origLoopVars_ : ArrayBuffer[String] = null
     private var setTemplate_ : String = null
     private var mapTemplate_ : String = null
+    private var mergeStmts_ : Boolean = false
+    private val depIgnoreSet = Set[String]()
 
     private final val formatterResult : java.lang.StringBuilder = new java.lang.StringBuilder()
     private final val formatter = new java.util.Formatter(formatterResult)
 
     def create(root : IR_LoopOverDimensions, localContext : isl.Set,
         globalContext : isl.Set, optLevel : Int, origLoopVars : ArrayBuffer[String],
-        modelLoopVars : String, setTempl : String, mapTempl : String, mergeWithPrev : Boolean) : Unit = {
+        modelLoopVars : String, setTempl : String, mapTempl : String, mergeWithPrev : Boolean,
+        mergeStmts : Boolean) : Unit = {
 
       this.scop_ = new Scop(root, localContext, globalContext, optLevel,
         Knowledge.omp_parallelizeLoopOverDimensions && root.parallelizationIsReasonable, root.maxIterationCount())
@@ -373,6 +358,9 @@ class IR_PolyExtractor extends Collector {
       this.origLoopVars_ = origLoopVars
       this.setTemplate_ = setTempl
       this.mapTemplate_ = mapTempl
+      if (mergeStmts)
+        enterStmt(IR_Scope(root.body)) // call enterStmt before this.mergeStmts_ is set
+      this.mergeStmts_ = mergeStmts
     }
 
     def exists() : Boolean = {
@@ -389,6 +377,18 @@ class IR_PolyExtractor extends Collector {
 
     def origLoopVars() : ArrayBuffer[String] = {
       origLoopVars_
+    }
+
+    def mergeStmts() : Boolean = {
+      mergeStmts_
+    }
+
+    def addDepIgnore(name : String) : Unit = {
+      depIgnoreSet.add(name)
+    }
+
+    def checkDepIgnore(name : String) : Boolean = {
+      depIgnoreSet.contains(name)
     }
 
     // [..] -> { %s[..] : .. %s }
@@ -432,6 +432,8 @@ class IR_PolyExtractor extends Collector {
       origLoopVars_ = null
       setTemplate_ = null
       mapTemplate_ = null
+      mergeStmts_ = false
+      depIgnoreSet.clear()
       curStmt.leave()
     }
   }
@@ -443,22 +445,19 @@ class IR_PolyExtractor extends Collector {
     val merge : Boolean = mergeScops
     mergeScops = false
 
-    node.getAnnotation(Access.ANNOT) match {
-      case Some(acc) =>
-        acc match {
-          case Access.READ   => isRead = true
-          case Access.WRITE  => isWrite = true
-          case Access.UPDATE =>
-            isRead = true
-            isWrite = true
-        }
-      case None      =>
-    }
-
     if (node.hasAnnotation(SKIP_ANNOT))
       skip = true
     if (skip)
       return
+
+    node.removeAnnotation(NEGATE_COND_ANNOT) match {
+      case Some(b : Boolean) =>
+        if (curScop.exists()) {
+          val cond = conditions.pop()._1
+          conditions.push((cond, b))
+        }
+      case None              =>
+    }
 
     try {
       if (!curScop.exists())
@@ -477,7 +476,29 @@ class IR_PolyExtractor extends Collector {
           case _ =>
         }
 
-      else
+      else {
+        // must be placed before Access.ANNOT test, since this annotation will be added in enterAssign
+        node.getAnnotation(HIDDEN_ASSIGN_ANNOT) match {
+          case Some(assign : IR_Assignment) =>
+            enterAssign(assign)
+            // assign.dest is not part of the AST => call enter and leave manually
+            enter(assign.dest)
+            leave(assign.dest)
+          case _                            =>
+        }
+
+        node.getAnnotation(Access.ANNOT) match {
+          case Some(acc) =>
+            acc match {
+              case Access.READ   => isRead = true
+              case Access.WRITE  => isWrite = true
+              case Access.UPDATE =>
+                isRead = true
+                isWrite = true
+            }
+          case None      =>
+        }
+
         node match {
 
           // process
@@ -497,7 +518,7 @@ class IR_PolyExtractor extends Collector {
                 case n : Annotatable => n.annotate(SKIP_ANNOT)
                 case _               =>
               }
-            enterScalarAccess(id)
+            enterScalarAccess(id, acc.removeAnnotation(DEAD_AFTER_SCOP_ANNOT).isDefined)
 
           case acc : IR_PolyArrayAccessLike =>
             val id = acc.uniqueID
@@ -508,7 +529,7 @@ class IR_PolyExtractor extends Collector {
                 case n : Annotatable => n.annotate(SKIP_ANNOT)
                 case _               =>
               }
-            enterArrayAccess(id, acc.index)
+            enterArrayAccess(id, acc.index, acc.removeAnnotation(DEAD_AFTER_SCOP_ANNOT).isDefined)
 
           case d : IR_VariableDeclaration =>
             d.datatype.annotate(SKIP_ANNOT)
@@ -533,6 +554,8 @@ class IR_PolyExtractor extends Collector {
                | _ : IR_Power
                | _ : IR_Minimum
                | _ : IR_Maximum
+               | _ : IR_MatrixExpression
+               | _ : IR_Datatype
                | _ : IR_ParallelizationInfo
                | _ : IR_Comment
                | IR_NullStatement => // nothing to do for all of them...
@@ -540,8 +563,10 @@ class IR_PolyExtractor extends Collector {
           // deny
           case e : IR_ExpressionStatement => throw ExtractionException("cannot deal with ExprStmt: " + e.prettyprint())
           case f : IR_FunctionCall        => throw ExtractionException("function call not in set of allowed ones: " + f.prettyprint())
+          case x : PrettyPrintable        => throw ExtractionException("cannot deal with " + x.getClass + ": " + x.prettyprint())
           case x : Any                    => throw ExtractionException("cannot deal with " + x.getClass)
         }
+      }
     } catch {
       case ExtractionException(msg) =>
         for (exec <- executeAfterExtraction)
@@ -553,6 +578,9 @@ class IR_PolyExtractor extends Collector {
   }
 
   override def leave(node : Node) : Unit = {
+
+    if (node.removeAnnotation(HIDDEN_ASSIGN_ANNOT).isDefined)
+      leaveAssign()
 
     if (node.removeAnnotation(Access.ANNOT).isDefined) {
       isRead = false
@@ -691,7 +719,9 @@ class IR_PolyExtractor extends Collector {
     templateBuilder.append("->%s[%s]}")
     val mapTemplate : String = templateBuilder.toString()
 
-    curScop.create(loop, localContext, globalContext, loop.polyOptLevel, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate, mergeWithPrev)
+    val mergeStmts = loop.body.count(stmt => stmt.isInstanceOf[IR_IfCondition]) > (1 << dims)
+
+    curScop.create(loop, localContext, globalContext, loop.polyOptLevel, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate, mergeWithPrev, mergeStmts)
 
     // deal with at1stIt
     val conds = loop.create1stItConds()
@@ -715,33 +745,51 @@ class IR_PolyExtractor extends Collector {
   }
 
   private def enterCondition(cond : IR_IfCondition) : Unit = {
-    if (cond.falseBody.isEmpty) {
-      val sb = new StringBuilder(" and ")
-      extractConstraints(cond.condition, sb, false, paramExprs)
-      conditions.push(sb.toString())
-    } else
-      throw ExtractionException("cannot deal with a non-empty falseBody in a ConditionStatement: " + cond.prettyprint())
+    if (curScop.mergeStmts())
+      return
+    val sb = new StringBuilder()
+    extractConstraints(cond.condition, sb, false, paramExprs)
+    conditions.push((sb.toString(), false))
+    if (!cond.falseBody.isEmpty) {
+      cond.falseBody.head.annotate(NEGATE_COND_ANNOT, true)
+      if (!cond.trueBody.isEmpty)
+        cond.trueBody.head.annotate(NEGATE_COND_ANNOT, false)
+    }
   }
 
   private def leaveCondition(cond : IR_IfCondition) : Unit = {
-    if (cond.falseBody.isEmpty)
-      conditions.pop()
+    if (curScop.mergeStmts())
+      return
+    conditions.pop()
   }
 
   private def enterStmt(stmt : IR_Statement) : Unit = {
 
+    if (curScop.mergeStmts())
+      return
     val scop : Scop = curScop.get()
 
     val label : String = curScop.curStmt.next().label()
     scop.stmts.put(label, (ListBuffer(stmt), curScop.origLoopVars()))
 
-    val domain = curScop.buildIslSet(label, conditions.mkString)
+    val sb = new StringBuilder()
+    for ((cond, negate) <- conditions) {
+      sb.append(" and ")
+      if (negate)
+        sb.append(" not ")
+      sb.append('(')
+      sb.append(cond)
+      sb.append(')')
+    }
+    val domain = curScop.buildIslSet(label, sb.toString())
     scop.domain = if (scop.domain == null) domain else scop.domain.addSet(domain)
     val schedule = curScop.buildIslMap(label, "", curScop.modelLoopVars() + ',' + curScop.curStmt.id())
     scop.schedule = if (scop.schedule == null) schedule else scop.schedule.addMap(schedule)
   }
 
   private def leaveStmt() : Unit = {
+    if (curScop.mergeStmts())
+      return
     curScop.curStmt.leave()
   }
 
@@ -772,6 +820,9 @@ class IR_PolyExtractor extends Collector {
   }
 
   private def enterScalarAccess(varName : String, deadAfterScop : Boolean = false) : Unit = {
+
+    if (curScop.mergeStmts() && curScop.checkDepIgnore(varName))
+      return // do not record accesses for memory locations declared in merged body
 
     // hack: filter out code
     checkCode(varName)
@@ -810,6 +861,9 @@ class IR_PolyExtractor extends Collector {
     if (!curScop.curStmt.exists() || (!isRead && !isWrite))
       throw ExtractionException("misplaced access expression?")
 
+    if (curScop.mergeStmts() && curScop.checkDepIgnore(name))
+      return // do not record accesses for memory locations declared in merged body
+
     // hack: check for code in name
     checkCode(name)
 
@@ -823,6 +877,11 @@ class IR_PolyExtractor extends Collector {
           ineq |= extractConstraints(i, indB, false, paramExprs)
           indB.append(',')
         }
+        if (mInd.nonEmpty)
+          indB.deleteCharAt(indB.length - 1)
+      case mInd : IR_ConstIndex      =>
+        for (i <- mInd)
+          indB.append(i).append(',')
         if (mInd.nonEmpty)
           indB.deleteCharAt(indB.length - 1)
       case ind                       =>
@@ -852,25 +911,44 @@ class IR_PolyExtractor extends Collector {
     if (isRead || isWrite)
       throw ExtractionException("nested assignments are not supported (yet...?); skipping scop")
 
-    if (decl.initialValue.isDefined) {
-      val stmt = IR_Assignment(
-        IR_VariableAccess(decl.name, decl.datatype), decl.initialValue.get, "=")
-      enterStmt(stmt) // as a declaration is also a statement
-      decl.initialValue.get.annotate(Access.ANNOT, Access.READ)
-      isWrite = true
-      if (decl.datatype.dimensionality > 0)
-        throw new ExtractionException("initialization of a local non-scalar variable not supported (yet)")
-      else
-        enterScalarAccess(decl.name, true)
-      isWrite = false
+    decl.initialValue match {
+      case Some(init) =>
+        (decl.datatype, init) match {
+          case (dt, _) if (dt.dimensionality == 0) =>
+            val varAcc = IR_VariableAccess(decl.name, decl.datatype)
+            varAcc.annotate(DEAD_AFTER_SCOP_ANNOT)
+            init.annotate(HIDDEN_ASSIGN_ANNOT, IR_Assignment(varAcc, init, "="))
+
+          case (mdt @ IR_MatrixDatatype(dt, m, n), mExpr @ IR_MatrixExpression(baseDt, m2, n2)) if (dt.dimensionality == 0) =>
+            assume(m == m2 && n == n2)
+            if (baseDt.isDefined)
+              baseDt.get.annotate(SKIP_ANNOT)
+            for (i <- 0 until m; j <- 0 until n) {
+              val ex = mExpr.get(i, j)
+              val lhs = IR_HighDimAccess(IR_VariableAccess(decl.name, Duplicate(mdt)), IR_ConstIndex(i, j))
+              val assign = IR_Assignment(lhs, IR_NullExpression, "=")
+              Logger.pushLevel(Logger.WARNING)
+              IR_LinearizeMatrices.applyStandalone(assign) // matrices are already linearized...
+              Logger.popLevel()
+              assign.dest.annotate(DEAD_AFTER_SCOP_ANNOT)
+              assign.src = ex
+              ex.annotate(HIDDEN_ASSIGN_ANNOT, assign)
+            }
+
+          case _ =>
+            throw new ExtractionException("initialization not supported (yet): " + decl.prettyprint())
+        }
+
+      case None =>
     }
 
-    curScop.get().decls += decl
+    if (curScop.mergeStmts())
+      curScop.addDepIgnore(decl.name) // do not add dependences for local declarations, since these declarations are still local after transformation
+    else
+      curScop.get().decls += decl
   }
 
   private def leaveDecl() : Unit = {
-
-    leaveScalarAccess()
-    leaveStmt()
+    // nothing to do here...
   }
 }
