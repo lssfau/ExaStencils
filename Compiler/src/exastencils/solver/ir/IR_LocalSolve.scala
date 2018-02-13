@@ -142,7 +142,7 @@ case class IR_LocalSolve(
 
     def mapToExp(add : IR_Addition) : IR_Expression = {
       add match {
-        case IR_Addition(ListBuffer()) => IR_RealConstant(0) // empty entries means zero
+        case IR_Addition(ListBuffer()) => IR_RealConstant(0) // empty entries correspond to zero
         case ex : IR_Expression        => IR_GeneralSimplifyWrapper.process(ex)
       }
     }

@@ -14,25 +14,17 @@ import exastencils.logger.Logger
 /// IR_LocalSchurCompl
 
 object IR_LocalSchurCompl {
-  // TODO: remove after successful integration of experimental_internalHighDimTypes
-  def vecComponentAccess(vec : IR_VariableAccess, i0 : Int) = {
-    if (Knowledge.experimental_internalHighDimTypes)
-      IR_HighDimAccess(vec, IR_ConstIndex(i0))
-    else
-      IR_HackVecComponentAccess(vec, i0)
-  }
-
-  // TODO: remove after successful integration of experimental_internalHighDimTypes
-  def matComponentAccess(mat : IR_VariableAccess, i0 : Int, i1 : Int) = {
-    if (Knowledge.experimental_internalHighDimTypes)
-      IR_HighDimAccess(mat, IR_ConstIndex(i0, i1))
-    else
-      IR_HackMatComponentAccess(mat, i0, i1)
-  }
+  def vecComponentAccess(vec : IR_VariableAccess, i0 : Int) = IR_HighDimAccess(vec, IR_ConstIndex(i0))
+  def matComponentAccess(mat : IR_VariableAccess, i0 : Int, i1 : Int) = IR_HighDimAccess(mat, IR_ConstIndex(i0, i1))
 
   def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
       jacobiType : Boolean, relax : Option[IR_Expression]) = {
+
+    if (!Knowledge.experimental_internalHighDimTypes)
+      Logger.error("Solving locally is not supported for experimental_internalHighDimTypes == false")
+
     // TODO: currently assumes special case of 2D/3D velocity-pressure coupling
+
     Knowledge.dimensionality match {
       case 2 => invert2D(AVals, fVals, unknowns, jacobiType, relax)
       case 3 => invert3D(AVals, fVals, unknowns, jacobiType, relax)
@@ -171,14 +163,9 @@ object IR_LocalSchurCompl {
 
     def A22Inv = IR_VariableAccess("_local_A22Inv", IR_MatrixDatatype(IR_RealDatatype, 2, 2))
 
-    if (Knowledge.experimental_internalHighDimTypes) {
-      // TODO: add return types
-      stmts += IR_VariableDeclaration(A11Inv, IR_FunctionCall("inverse", A11))
-      stmts += IR_VariableDeclaration(A22Inv, IR_FunctionCall("inverse", A22))
-    } else {
-      stmts += IR_VariableDeclaration(A11Inv, IR_MemberFunctionCall(A11, "inverse"))
-      stmts += IR_VariableDeclaration(A22Inv, IR_MemberFunctionCall(A22, "inverse"))
-    }
+    // TODO: add return types
+    stmts += IR_VariableDeclaration(A11Inv, IR_FunctionCall("inverse", A11))
+    stmts += IR_VariableDeclaration(A22Inv, IR_FunctionCall("inverse", A22))
 
     def S = IR_VariableAccess("_local_S", IR_MatrixDatatype(IR_RealDatatype, 1, 1))
 
@@ -187,10 +174,7 @@ object IR_LocalSchurCompl {
     stmts += IR_VariableDeclaration(S, D - (C1 * A11Inv * B1 + C2 * A22Inv * B2))
     stmts += IR_VariableDeclaration(GTilde, G - C1 * A11Inv * F1 - C2 * A22Inv * F2)
 
-    if (Knowledge.experimental_internalHighDimTypes)
-      stmts += IR_Assignment(V, IR_FunctionCall("inverse", S) * GTilde)
-    else
-      stmts += IR_Assignment(V, IR_MemberFunctionCall(S, "inverse") * GTilde)
+    stmts += IR_Assignment(V, IR_FunctionCall("inverse", S) * GTilde)
     stmts += IR_Assignment(U1, A11Inv * (F1 - B1 * V))
     stmts += IR_Assignment(U2, A22Inv * (F2 - B2 * V))
 
@@ -333,16 +317,10 @@ object IR_LocalSchurCompl {
 
     def A33Inv = IR_VariableAccess("_local_A33Inv", IR_MatrixDatatype(IR_RealDatatype, 2, 2))
 
-    if (Knowledge.experimental_internalHighDimTypes) {
-      // TODO: add return types
-      stmts += IR_VariableDeclaration(A11Inv, IR_FunctionCall("inverse", A11))
-      stmts += IR_VariableDeclaration(A22Inv, IR_FunctionCall("inverse", A22))
-      stmts += IR_VariableDeclaration(A33Inv, IR_FunctionCall("inverse", A33))
-    } else {
-      stmts += IR_VariableDeclaration(A11Inv, IR_MemberFunctionCall(A11, "inverse"))
-      stmts += IR_VariableDeclaration(A22Inv, IR_MemberFunctionCall(A22, "inverse"))
-      stmts += IR_VariableDeclaration(A33Inv, IR_MemberFunctionCall(A33, "inverse"))
-    }
+    // TODO: add return types
+    stmts += IR_VariableDeclaration(A11Inv, IR_FunctionCall("inverse", A11))
+    stmts += IR_VariableDeclaration(A22Inv, IR_FunctionCall("inverse", A22))
+    stmts += IR_VariableDeclaration(A33Inv, IR_FunctionCall("inverse", A33))
 
     def S = IR_VariableAccess("_local_S", IR_MatrixDatatype(IR_RealDatatype, 1, 1))
 
@@ -351,10 +329,7 @@ object IR_LocalSchurCompl {
     stmts += IR_VariableDeclaration(S, D - (C1 * A11Inv * B1 + C2 * A22Inv * B2 + C3 * A33Inv * B3))
     stmts += IR_VariableDeclaration(GTilde, G - C1 * A11Inv * F1 - C2 * A22Inv * F2 - C3 * A33Inv * F3)
 
-    if (Knowledge.experimental_internalHighDimTypes)
-      stmts += IR_Assignment(V, IR_FunctionCall("inverse", S) * GTilde)
-    else
-      stmts += IR_Assignment(V, IR_MemberFunctionCall(S, "inverse") * GTilde)
+    stmts += IR_Assignment(V, IR_FunctionCall("inverse", S) * GTilde)
     stmts += IR_Assignment(U1, A11Inv * (F1 - B1 * V))
     stmts += IR_Assignment(U2, A22Inv * (F2 - B2 * V))
     stmts += IR_Assignment(U3, A33Inv * (F3 - B3 * V))
