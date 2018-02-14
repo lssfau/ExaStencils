@@ -70,6 +70,9 @@ class L4_Lexer extends ExaLexer {
   // base => L4_Declaration
   reserved += ("Var", "Variable", "Val", "Value")
 
+  // baseExt => L4_ExpressionDeclaration
+  reserved += ("Expr", "Expression")
+
   // baseExt => L4_FieldIteratorAccess
   reserved += ("i0", "i1", "i2", "x", "y", "z")
 

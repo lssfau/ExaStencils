@@ -70,6 +70,8 @@ object Main {
 
     if (Settings.produceHtmlLog)
       Logger_HTML.finish()
+
+    ObjectWithStateCollection.clearAll()
   }
 
   def print() = {

@@ -8,9 +8,9 @@ import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.layoutTransformation.l4._
 
-class L4_VariableDeclarationCollector extends Collector {
-  var plainDeclarations = ListBuffer[HashMap[String, L4_VariableDeclaration]]()
-  var leveledDeclarations = ListBuffer[HashMap[(String, Int), L4_VariableDeclaration]]()
+class L4_ExpressionDeclarationCollector extends Collector {
+  var plainDeclarations = ListBuffer[HashMap[String, L4_ExpressionDeclaration]]()
+  var leveledDeclarations = ListBuffer[HashMap[(String, Int), L4_ExpressionDeclaration]]()
 
   // reset collects also declarations from global sections
   override def reset() : Unit = {
@@ -19,13 +19,14 @@ class L4_VariableDeclarationCollector extends Collector {
 
     plainDeclarations += HashMap()
     leveledDeclarations += HashMap()
+
     exastencils.core.StateManager.findAll[L4_GlobalSection]().foreach(_.declarations.foreach {
-      case decl : L4_VariableDeclaration => addDecl(decl)
-      case _                             =>
+      case decl : L4_ExpressionDeclaration => addDecl(decl)
+      case _                               =>
     })
   }
 
-  def addDecl(decl : L4_VariableDeclaration) {
+  def addDecl(decl : L4_ExpressionDeclaration) {
     if (decl.levels.isEmpty)
       plainDeclarations.last += ((decl.name, decl))
     else
@@ -55,9 +56,7 @@ class L4_VariableDeclarationCollector extends Collector {
       case _ : L4_UntilLoop         => openNewScope()
       case _ : L4_IfCondition       => openNewScope()
 
-      case decl : L4_VariableDeclaration => addDecl(decl)
-      case decl : L4_Function.Argument   => addDecl(L4_VariableDeclaration(decl.name, None, decl.datatype, None, false))
-      case decl : L4_GenericTransform    => for (it <- decl.its) addDecl(L4_VariableDeclaration(it.name, None, it.datatype, None, false))
+      case decl : L4_ExpressionDeclaration => addDecl(decl)
 
       case _ =>
     }

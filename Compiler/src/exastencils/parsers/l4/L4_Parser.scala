@@ -188,6 +188,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val statement : Parser[L4_Statement] = (
     variableDeclaration
       ||| valueDeclaration
+      ||| expressionDeclaration
       ||| repeatNTimes
       ||| contractionLoop
       ||| repeatUntil
@@ -280,7 +281,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val globals = locationize(("Globals" ~> "{" ~> globalEntry.* <~ "}") ^^ { L4_GlobalSection(_) })
-  lazy val globalEntry : PackratParser[L4_VariableDeclaration] = locationize(valueDeclaration ||| variableDeclaration)
+  lazy val globalEntry = locationize(valueDeclaration ||| variableDeclaration ||| expressionDeclaration)
 
   // ######################################
   // ##### Layout Transformations
@@ -448,6 +449,13 @@ object L4_Parser extends ExaParser with PackratParsers {
   // #############################################################################
   // ################################## BASE_EXT #################################
   // #############################################################################
+
+  // ######################################
+  // ##### L4_ExpressionDeclaration
+  // ######################################
+
+  lazy val expressionDeclaration = locationize((("Expr" ||| "Expression") ~> ident) ~ levelDecl.? ~ ("=" ~> (binaryexpression ||| booleanexpression))
+    ^^ { case id ~ levels ~ exp => L4_ExpressionDeclaration(id, levels, exp) })
 
   // ######################################
   // ##### L4_FieldIteratorAccess
