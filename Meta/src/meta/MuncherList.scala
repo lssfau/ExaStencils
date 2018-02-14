@@ -107,6 +107,8 @@ object MuncherList {
     entries += Entry(curPackage, "LoopOverPoints", IR)
     entries += Entry(curPackage, "LoopOverLevels", IR)
     entries += Entry(curPackage, "ContractingLoop", L4AndUp)
+    entries += Entry(curPackage, "ExpressionDeclaration", L2_L3_L4)
+    entries += Entry(curPackage, "InlineDeclaredExpressions", L2_L3_L4)
   }
 
   // exastencils.boundary
@@ -439,6 +441,7 @@ object MuncherList {
     entries += Entry(curPackage, "GenerateSmootherHint", L3)
     entries += Entry(curPackage, "BiCGStabForEquation", L3)
     entries += Entry(curPackage, "LocalDirectInvert", IR)
+    entries += Entry(curPackage, "ResolveLocalSolve", IR)
   }
 
   // exastencils.stencil
@@ -488,5 +491,7 @@ object MuncherList {
     entries += Entry(curPackage, "MathFunctions", all)
     entries += Entry(curPackage, "GeneralParameter", all)
     entries += Entry(curPackage, "VariableDeclarationCollector", allButIR)
+    entries += Entry(curPackage, "ExpressionDeclarationCollector", L2_L3_L4)
+    entries += Entry(curPackage, "OffsetAlias", L2_L3_L4)
   }
 }
