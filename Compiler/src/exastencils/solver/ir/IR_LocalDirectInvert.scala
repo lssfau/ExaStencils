@@ -23,8 +23,6 @@ object IR_LocalDirectInvert {
     if (!Knowledge.experimental_internalHighDimTypes)
       Logger.error("Solving locally is not supported for experimental_internalHighDimTypes == false")
 
-    Logger.warn(unknowns.map(_.getOffsetFromIndex).mkString("\n"))
-
     invert(AVals, fVals, unknowns, jacobiType, relax, omitConditions)
   }
 
