@@ -1,7 +1,7 @@
 package exastencils.simd
 
 import exastencils.base.ir.IR_Expression
-import exastencils.baseExt.ir.IR_VectorDatatype
+import exastencils.base.ir.IR_RealDatatype
 import exastencils.config._
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -9,7 +9,7 @@ import exastencils.prettyprinting.PpStream
 /// SIMD_ExtractScalar
 
 case class SIMD_ExtractScalar(var expr : IR_Expression, var index : Int) extends SIMD_Expression {
-  override def datatype = expr.datatype
+  override def datatype = IR_RealDatatype
   override def prettyprint(out : PpStream) : Unit = {
     out << expr
     if (Platform.targetCompiler == "MSVC")
@@ -27,7 +27,7 @@ case class SIMD_ExtractScalar(var expr : IR_Expression, var index : Int) extends
 /// SIMD_Scalar2Vector
 
 case class SIMD_Scalar2Vector(var scalar : IR_Expression) extends SIMD_Expression {
-  override def datatype = IR_VectorDatatype(scalar.datatype, 1)
+  override def datatype = SIMD_RealDatatype
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {

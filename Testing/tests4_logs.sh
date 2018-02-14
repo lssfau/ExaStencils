@@ -6,8 +6,8 @@
 #SBATCH -n 1
 #SBATCH -c 1
 #SBATCH --nice=100
-#SBATCH --time=5
-#SBATCH --signal=INT@5
+#SBATCH --time=15
+#SBATCH --signal=INT@120
 #SBATCH --open-mode=append
 
 
@@ -68,7 +68,7 @@ if [[ -z "${TO_ZIP}" ]]; then
   echo ""
   echo ""
   echo "Create generator for webinterface:"
-  srun nc bartok 5555
+  srun nc -d bartok 5555 # -d: "do not attempt to read from stdin"; there is no stdin.
 else
   echo '<span style="color: #E00000"><b>Oh no... something went wrong... :(</b></span>'
   echo ""

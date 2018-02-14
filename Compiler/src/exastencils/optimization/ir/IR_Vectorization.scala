@@ -291,7 +291,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
               case (mod : IR_Modulo, _) =>
                 if (containsVarAcc(mod, ctx.itName))
                   throw new VectorizationException("no linear memory access: " + mod.prettyprint())
-              case _ =>
+              case _                    =>
                 if (containsVarAcc(iE._1, ctx.itName))
                   throw new VectorizationException("cannot deal with summand \"" + iE + '"')
             }
@@ -301,38 +301,38 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           case _                                                         =>
         }
 
-      if (Knowledge.simd_avoidUnaligned) {
-        val indexExprs = new ListBuffer[HashMap[IR_Expression, Long]]()
-        val collectIndexExprs = new QuietDefaultStrategy("Collect all array index expressions...")
-        collectIndexExprs += new Transformation("seaching...", {
-          case acc @ IR_ArrayAccess(_, index, true) =>
-            if (containsVarAcc(index, ctx.itName)) {
-              val annot = acc.removeAnnotation(IR_AddressPrecalculation.ORIG_IND_ANNOT)
-              indexExprs += IR_SimplifyExpression.extractIntegralSum(if (annot.isDefined) annot.get.asInstanceOf[IR_Expression] else index)
-            }
-            acc
-        })
-        collectIndexExprs.applyStandalone(body)
-
-        // no store available, so align as many loads as possible
-        if (alignmentExpr == null) {
-          alignmentExpr = IR_SimplifyExpression.recreateExprFromIntSum(indexExprs.head)
-          val counts = new Array[Long](vs)
-          for (ind <- indexExprs) {
-            val const : Long = ind.remove(IR_SimplifyExpression.constName).getOrElse(0L)
-            val residue : Long = (const % vs + vs) % vs
-            counts(residue.toInt) += 1
+      val indexExprs = new ListBuffer[HashMap[IR_Expression, Long]]()
+      val collectIndexExprs = new QuietDefaultStrategy("Collect all array index expressions...")
+      collectIndexExprs += new Transformation("seaching...", {
+        case acc @ IR_ArrayAccess(_, index, true) =>
+          if (containsVarAcc(index, ctx.itName)) {
+            val annot = acc.removeAnnotation(IR_AddressPrecalculation.ORIG_IND_ANNOT)
+            indexExprs += IR_SimplifyExpression.extractIntegralSum(if (annot.isDefined) annot.get.asInstanceOf[IR_Expression] else index)
           }
-          var max = (0, counts(0))
-          for (i <- 1 until vs)
-            if (counts(i) > max._2)
-              max = (i, counts(i))
-          ctx.setAlignedResidue(max._1)
+          acc
+      })
+      collectIndexExprs.applyStandalone(body)
 
-        } else
-          for (ind <- indexExprs)
-            ind.remove(IR_SimplifyExpression.constName)
+      // no store available, so align as many loads as possible
+      if (alignmentExpr == null) {
+        alignmentExpr = IR_SimplifyExpression.recreateExprFromIntSum(indexExprs.head)
+        val counts = new Array[Long](vs)
+        for (ind <- indexExprs) {
+          val const : Long = ind.remove(IR_SimplifyExpression.constName).getOrElse(0L)
+          val residue : Long = (const % vs + vs) % vs
+          counts(residue.toInt) += 1
+        }
+        var max = (0, counts(0))
+        for (i <- 1 until vs)
+          if (counts(i) > max._2)
+            max = (i, counts(i))
+        ctx.setAlignedResidue(max._1)
 
+      } else
+        for (ind <- indexExprs)
+          ind.remove(IR_SimplifyExpression.constName)
+
+      if (Knowledge.simd_avoidUnaligned) {
         // check if index expressions are "good", i.e., all (except the constant summand) have the same residue
         while (indexExprs.head.nonEmpty) {
           val key : IR_Expression = indexExprs.head.head._1
@@ -357,6 +357,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       vectorizeStmt(stmt, ctx)
 
     def itVarAcc = IR_VariableAccess(itVar, IR_IntegerDatatype)
+
     val newIncr : Long = incr * vs
 
     oldLoop.begin = IR_VariableDeclaration(IR_IntegerDatatype, itVar, IR_Unrolling.startVarAcc)
@@ -381,6 +382,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     if (Knowledge.data_alignFieldPointers) {
       // no need to ensure alignment of iteration variable if data is not aligned
       val preEndVar : String = "_preEnd"
+
       def preEndVarAcc = IR_VariableAccess(preEndVar, IR_IntegerDatatype)
 
       val wrappedAlignExpr = IR_ExpressionStatement(Duplicate(alignmentExpr))
