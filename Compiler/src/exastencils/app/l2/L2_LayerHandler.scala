@@ -3,7 +3,7 @@ package exastencils.app.l2
 import exastencils.app.LayerHandler
 import exastencils.base.ExaRootNode
 import exastencils.base.l2._
-import exastencils.baseExt.l2.L2_UnifyGlobalSections
+import exastencils.baseExt.l2._
 import exastencils.config._
 import exastencils.datastructures.StrategyTimer
 import exastencils.domain.l2._
@@ -21,7 +21,7 @@ import exastencils.util.l2.L2_ResolveMathFunctions
 
 trait L2_LayerHandler extends LayerHandler
 
-/// L2_DummyLayerHandler 
+/// L2_DummyLayerHandler
 
 object L2_DummyLayerHandler extends L2_LayerHandler {
   def initialize() : Unit = {}
@@ -72,6 +72,7 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
       L2_ResolveLevelSpecifications.apply()
 
       L2_UnfoldKnowledgeDeclarations.apply()
+      L2_UnfoldLeveledExpressionDeclarations.apply()
       L2_UnfoldLeveledVariableDeclarations.apply()
 
       // resolve current, etc.
@@ -80,6 +81,7 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
       L2_PrepareDeclarations.apply()
 
       L2_PrepareAccesses.apply()
+      L2_InlineDeclaredExpressions.apply()
       L2_ResolveVariableAccesses.apply()
 
       L2_ResolveFrozenFields.apply()

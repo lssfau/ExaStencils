@@ -251,6 +251,13 @@ object L2_Parser extends ExaParser with PackratParsers {
     ^^ (L2_ApplicationHints(_)))
 
   // ######################################
+  // ##### L2_ExpressionDeclaration
+  // ######################################
+
+  lazy val expressionDeclaration = locationize((("Expr" ||| "Expression") ~> ident) ~ levelDecl.? ~ ("=" ~> (binaryexpression ||| booleanexpression))
+    ^^ { case id ~ levels ~ exp => L2_ExpressionDeclaration(id, levels, exp) })
+
+  // ######################################
   // ##### L2_FieldIteratorAccess
   // ######################################
 
@@ -264,7 +271,7 @@ object L2_Parser extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val globals = locationize(("Globals" ~> "{" ~> globalEntry.* <~ "}") ^^ { L2_GlobalSection(_) })
-  lazy val globalEntry : PackratParser[L2_VariableDeclaration] = locationize(valueDeclaration ||| variableDeclaration)
+  lazy val globalEntry = locationize(valueDeclaration ||| variableDeclaration ||| expressionDeclaration)
 
   // ######################################
   // ##### L2_HigherOrderDatatype

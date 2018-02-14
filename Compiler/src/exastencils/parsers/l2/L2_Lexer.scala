@@ -33,6 +33,9 @@ object L2_Lexer extends ExaLexer {
   // baseExt => L2_ApplicationHints
   reserved += ("ApplicationHint", "ApplicationHints", "L4Hint", "L4Hints")
 
+  // baseExt => L2_ExpressionDeclaration
+  reserved += ("Expr", "Expression")
+
   // baseExt => L2_FieldIteratorAccess
   reserved += ("i0", "i1", "i2", "x", "y", "z")
 

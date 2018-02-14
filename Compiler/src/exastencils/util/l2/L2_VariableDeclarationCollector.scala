@@ -18,7 +18,10 @@ class L2_VariableDeclarationCollector extends Collector {
 
     plainDeclarations += HashMap()
     leveledDeclarations += HashMap()
-    exastencils.core.StateManager.findAll[L2_GlobalSection]().foreach(_.declarations.foreach(addDecl))
+    exastencils.core.StateManager.findAll[L2_GlobalSection]().foreach(_.declarations.foreach {
+      case decl : L2_VariableDeclaration => addDecl(decl)
+      case _                             =>
+    })
   }
 
   def addDecl(decl : L2_VariableDeclaration) {

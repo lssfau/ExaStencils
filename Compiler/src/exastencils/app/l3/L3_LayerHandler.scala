@@ -78,6 +78,7 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
       L3_ProcessFunctionDeclarations.apply()
 
       L3_UnfoldKnowledgeDeclarations.apply()
+      L3_UnfoldLeveledExpressionDeclarations.apply()
       L3_UnfoldLeveledVariableDeclarations.apply()
       L3_UnfoldSolverModifications.apply()
 
@@ -88,6 +89,7 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
       L3_PrepareDeclarations.apply()
 
       L3_PrepareAccesses.apply()
+      L3_InlineDeclaredExpressions.apply()
       L3_ResolveVariableAccesses.apply()
 
       L3_ResolveLevelScopes.apply()

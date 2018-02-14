@@ -13,10 +13,10 @@ import exastencils.prettyprinting._
 
 object L2_GlobalSection {
   def apply() = new L2_GlobalSection(ListBuffer())
-  def apply(declarations : List[L2_VariableDeclaration]) : L2_GlobalSection = apply(declarations.to[ListBuffer])
+  def apply(declarations : List[L2_Statement]) : L2_GlobalSection = apply(declarations.to[ListBuffer])
 }
 
-case class L2_GlobalSection(var declarations : ListBuffer[L2_VariableDeclaration]) extends L2_Node with PrettyPrintable with L2_Progressable {
+case class L2_GlobalSection(var declarations : ListBuffer[L2_Statement]) extends L2_Node with PrettyPrintable with L2_Progressable {
   override def prettyprint(out : PpStream) = {
     if (declarations.nonEmpty) out << "Globals {\n" <<< (declarations, "\n") << "\n}"
   }

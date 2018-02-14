@@ -13,15 +13,15 @@ import exastencils.prettyprinting._
 
 object L3_GlobalSection {
   def apply() = new L3_GlobalSection(ListBuffer())
-  def apply(declarations : List[L3_VariableDeclaration]) : L3_GlobalSection = apply(declarations.to[ListBuffer])
+  def apply(declarations : List[L3_Statement]) : L3_GlobalSection = apply(declarations.to[ListBuffer])
 }
 
-case class L3_GlobalSection(var declarations : ListBuffer[L3_VariableDeclaration]) extends L3_Node with PrettyPrintable with L3_Progressable {
+case class L3_GlobalSection(var declarations : ListBuffer[L3_Statement]) extends L3_Node with PrettyPrintable with L3_Progressable {
   override def prettyprint(out : PpStream) = {
     if (declarations.nonEmpty) out << "Globals {\n" <<< (declarations, "\n") << "\n}"
   }
 
-  override def progress = ProgressLocation(L4_GlobalSection(declarations.map(_.progress : L4_Statement)))
+  override def progress = ProgressLocation(L4_GlobalSection(declarations.map(_.progress)))
 }
 
 /// L3_UnifyGlobalSections

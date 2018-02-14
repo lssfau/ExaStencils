@@ -284,6 +284,7 @@ object L3_Parser extends ExaParser with PackratParsers {
 
   lazy val statement : Parser[L3_Statement] = (
     localDeclaration
+      ||| expressionDeclaration
       ||| generalAssignment
       ||| conditional
       ||| countLoop
@@ -305,6 +306,13 @@ object L3_Parser extends ExaParser with PackratParsers {
   lazy val applicationParameter = locationize((ident <~ "=") ~ literal ^^ { case param ~ value => L3_ApplicationParameter(param, value) })
   lazy val applicationHints = locationize((("ApplicationHint" ||| "ApplicationHints" ||| "L4Hint" ||| "L4Hints") ~ "{") ~> applicationHint.* <~ "}"
     ^^ (L3_ApplicationHints(_)))
+
+  // ######################################
+  // ##### L3_ExpressionDeclaration
+  // ######################################
+
+  lazy val expressionDeclaration = locationize((("Expr" ||| "Expression") ~> ident) ~ levelDecl.? ~ ("=" ~> (binaryexpression ||| booleanexpression))
+    ^^ { case id ~ levels ~ exp => L3_ExpressionDeclaration(id, levels, exp) })
 
   // ######################################
   // ##### L3_FieldIteratorAccess
@@ -337,7 +345,7 @@ object L3_Parser extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val globals = locationize(("Globals" ~> "{" ~> globalEntry.* <~ "}") ^^ { L3_GlobalSection(_) })
-  lazy val globalEntry : PackratParser[L3_VariableDeclaration] = locationize(valueDeclaration ||| variableDeclaration)
+  lazy val globalEntry = locationize(valueDeclaration ||| variableDeclaration ||| expressionDeclaration)
 
   // ######################################
   // ##### L3_HigherOrderDatatype
