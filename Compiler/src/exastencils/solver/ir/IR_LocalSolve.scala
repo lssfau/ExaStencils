@@ -4,19 +4,12 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
-
-/// IR_ResolveLocalSolve
-
-object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes") {
-  this += new Transformation("Perform expandSpecial for applicable nodes", {
-    case solve : IR_LocalSolve => solve.expandSpecial
-  })
-}
 
 /// IR_LocalSolve
 
@@ -25,6 +18,8 @@ case class IR_LocalSolve(
     var equations : ListBuffer[IR_Equation],
     var jacobiType : Boolean,
     var relax : Option[IR_Expression]) extends IR_Statement with IR_SpecialExpandable {
+  var omitConditions = false
+
   var fVals = ListBuffer[IR_Addition]()
   var AVals = ListBuffer[ListBuffer[IR_Addition]]()
 
@@ -152,8 +147,8 @@ case class IR_LocalSolve(
 
     // choose strategy used for inverting local matrix
     if (Knowledge.experimental_applySchurCompl && IR_LocalSchurCompl.suitable(AVals))
-      IR_Scope(IR_LocalSchurCompl(AExp, fExp, unknowns, jacobiType, relax))
+      IR_Scope(IR_LocalSchurCompl(AExp, fExp, unknowns, jacobiType, relax, omitConditions))
     else
-      IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax))
+      IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax, omitConditions))
   }
 }

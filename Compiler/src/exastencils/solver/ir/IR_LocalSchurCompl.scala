@@ -18,16 +18,18 @@ object IR_LocalSchurCompl {
   def matComponentAccess(mat : IR_VariableAccess, i0 : Int, i1 : Int) = IR_HighDimAccess(mat, IR_ConstIndex(i0, i1))
 
   def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
-      jacobiType : Boolean, relax : Option[IR_Expression]) = {
+      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean) = {
 
     if (!Knowledge.experimental_internalHighDimTypes)
       Logger.error("Solving locally is not supported for experimental_internalHighDimTypes == false")
 
     // TODO: currently assumes special case of 2D/3D velocity-pressure coupling
 
+    Logger.warn(unknowns.map(_.getOffsetFromIndex).mkString("\n"))
+
     Knowledge.dimensionality match {
-      case 2 => invert2D(AVals, fVals, unknowns, jacobiType, relax)
-      case 3 => invert3D(AVals, fVals, unknowns, jacobiType, relax)
+      case 2 => invert2D(AVals, fVals, unknowns, jacobiType, relax, omitConditions)
+      case 3 => invert3D(AVals, fVals, unknowns, jacobiType, relax, omitConditions)
     }
   }
 
@@ -64,7 +66,7 @@ object IR_LocalSchurCompl {
   }
 
   def invert2D(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
-      jacobiType : Boolean, relax : Option[IR_Expression]) : ListBuffer[IR_Statement] = {
+      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean) : ListBuffer[IR_Statement] = {
 
     val stmts = ListBuffer[IR_Statement]()
 
@@ -149,11 +151,15 @@ object IR_LocalSchurCompl {
           boundaryStmts += IR_Assignment(matComponentAccess(D, i - 4, 0), 1.0)
       }
 
-      // implement check if current unknown is on/ beyond boundary
-      stmts += IR_IfCondition(
-        IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
-        innerStmts,
-        boundaryStmts)
+      // implement check if current unknown is on/ beyond boundary - if required
+      if (omitConditions) {
+        stmts ++= innerStmts
+      } else {
+        stmts += IR_IfCondition(
+          IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
+          innerStmts,
+          boundaryStmts)
+      }
     }
 
     /// solve local system
@@ -183,20 +189,27 @@ object IR_LocalSchurCompl {
       val dest = Duplicate(unknowns(i))
       if (jacobiType) dest.fieldSelection.slot.asInstanceOf[IR_SlotAccess].offset += 1
 
-      stmts += IR_IfCondition( // don't write back result on boundaries
-        IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
+      if (omitConditions) {
         if (relax.isEmpty)
-          IR_Assignment(dest, vecComponentAccess(u(i), i % 2))
+          stmts += IR_Assignment(dest, vecComponentAccess(u(i), i % 2))
         else
-          IR_Assignment(dest, Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u(i), i % 2))
-      )
+          stmts += IR_Assignment(dest, Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u(i), i % 2))
+      } else {
+        stmts += IR_IfCondition( // don't write back result on boundaries
+          IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
+          if (relax.isEmpty)
+            IR_Assignment(dest, vecComponentAccess(u(i), i % 2))
+          else
+            IR_Assignment(dest, Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u(i), i % 2))
+        )
+      }
     }
 
     stmts
   }
 
   def invert3D(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
-      jacobiType : Boolean, relax : Option[IR_Expression]) : ListBuffer[IR_Statement] = {
+      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean) : ListBuffer[IR_Statement] = {
 
     val stmts = ListBuffer[IR_Statement]()
 
@@ -301,11 +314,15 @@ object IR_LocalSchurCompl {
           boundaryStmts += IR_Assignment(matComponentAccess(D, i - 6, 0), 1.0)
       }
 
-      // implement check if current unknown is on/ beyond boundary
-      stmts += IR_IfCondition(
-        IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
-        innerStmts,
-        boundaryStmts)
+      // implement check if current unknown is on/ beyond boundary - if required
+      if (omitConditions) {
+        stmts ++= innerStmts
+      } else {
+        stmts += IR_IfCondition(
+          IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
+          innerStmts,
+          boundaryStmts)
+      }
     }
 
     /// solve local system
@@ -339,13 +356,20 @@ object IR_LocalSchurCompl {
       val dest = Duplicate(unknowns(i))
       if (jacobiType) dest.fieldSelection.slot.asInstanceOf[IR_SlotAccess].offset += 1
 
-      stmts += IR_IfCondition( // don't write back result on boundaries
-        IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
+      if (omitConditions) {
         if (relax.isEmpty)
-          IR_Assignment(dest, vecComponentAccess(u(i), i % 2))
+          stmts += IR_Assignment(dest, vecComponentAccess(u(i), i % 2))
         else
-          IR_Assignment(dest, Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u(i), i % 2))
-      )
+          stmts += IR_Assignment(dest, Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u(i), i % 2))
+      } else {
+        stmts += IR_IfCondition( // don't write back result on boundaries
+          IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
+          if (relax.isEmpty)
+            IR_Assignment(dest, vecComponentAccess(u(i), i % 2))
+          else
+            IR_Assignment(dest, Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u(i), i % 2))
+        )
+      }
     }
 
     stmts

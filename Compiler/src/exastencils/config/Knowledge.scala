@@ -193,6 +193,9 @@ object Knowledge {
   // target reduction of the residual norm for the coarse grid solver
   var solver_cgs_targetResReduction : Double = 0.001
 
+  // if true, loops containing a single local solve node will be split into halo and inner; inner will be generated without conditionals
+  var solver_splitLocalSolveLoops : Boolean = false
+
   /// === Layer 4 ===
 
   // specifies if shared fieldlayouts should be duplicated when progressing from l4 to ir

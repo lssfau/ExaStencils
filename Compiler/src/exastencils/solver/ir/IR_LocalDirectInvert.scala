@@ -18,16 +18,18 @@ object IR_LocalDirectInvert {
   def matComponentAccess(mat : IR_VariableAccess, i0 : Int, i1 : Int) = IR_HighDimAccess(mat, IR_ConstIndex(i0, i1))
 
   def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
-      jacobiType : Boolean, relax : Option[IR_Expression]) = {
+      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean) = {
 
     if (!Knowledge.experimental_internalHighDimTypes)
       Logger.error("Solving locally is not supported for experimental_internalHighDimTypes == false")
 
-    invert(AVals, fVals, unknowns, jacobiType, relax)
+    Logger.warn(unknowns.map(_.getOffsetFromIndex).mkString("\n"))
+
+    invert(AVals, fVals, unknowns, jacobiType, relax, omitConditions)
   }
 
   def invert(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
-      jacobiType : Boolean, relax : Option[IR_Expression]) : ListBuffer[IR_Statement] = {
+      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean) : ListBuffer[IR_Statement] = {
 
     def isNonZeroEntry(ex : IR_Expression) = {
       ex match {
@@ -71,11 +73,15 @@ object IR_LocalDirectInvert {
         if (i == j || isNonZeroEntry(AVals(i)(j)))
           boundaryStmts += IR_Assignment(A(i, j), if (i == j) 1 else 0)
 
-      // check if current unknown is on/ beyond boundary
-      stmts += IR_IfCondition(
-        IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
-        innerStmts,
-        boundaryStmts)
+      // check if current unknown is on/ beyond boundary - if required
+      if (omitConditions) {
+        stmts ++= innerStmts
+      } else {
+        stmts += IR_IfCondition(
+          IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
+          innerStmts,
+          boundaryStmts)
+      }
     }
 
     // compile matrix from single entries
@@ -97,13 +103,20 @@ object IR_LocalDirectInvert {
       val dest = Duplicate(unknowns(i))
       if (jacobiType) dest.fieldSelection.slot.asInstanceOf[IR_SlotAccess].offset += 1
 
-      stmts += IR_IfCondition( // don't write back result on boundaries
-        IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
+      if (omitConditions) {
         if (relax.isEmpty)
-          IR_Assignment(dest, vecComponentAccess(u, i))
+          stmts += IR_Assignment(dest, vecComponentAccess(u, i))
         else
-          IR_Assignment(dest, Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u, i))
-      )
+          stmts += IR_Assignment(dest, Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u, i))
+      } else {
+        stmts += IR_IfCondition( // don't write back result on boundaries
+          IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
+          if (relax.isEmpty)
+            IR_Assignment(dest, vecComponentAccess(u, i))
+          else
+            IR_Assignment(dest, Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u, i))
+        )
+      }
     }
 
     stmts
