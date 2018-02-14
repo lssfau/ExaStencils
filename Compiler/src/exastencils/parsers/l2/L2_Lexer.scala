@@ -67,6 +67,9 @@ object L2_Lexer extends ExaLexer {
   reserved += ("Solve", "SolverHint", "SolverHints", "L3Hint", "L3Hints")
   reserved += ("generate", "solver", "for", "in")
 
+  // util => L2_OffsetAlias
+  reserved += ("east", "west", "north", "south", "top", "bottom")
+
   /// TO BE INTEGRATED
   reserved += ("operators", "equation", "store", "is")
 }

@@ -18,6 +18,7 @@ import exastencils.layoutTransformation.l4._
 import exastencils.operator.l4._
 import exastencils.parsers._
 import exastencils.solver.l4._
+import exastencils.util.l4.L4_OffsetAlias
 
 /// L4_Parser
 
@@ -443,8 +444,10 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val index = expressionIndex ||| constIndex
 
-  lazy val expressionIndex = locationize("[" ~> repsep(binaryexpression, ",") <~ "]" ^^ { case l => L4_ExpressionIndex(l.toArray) })
-  lazy val constIndex = locationize("[" ~> repsep(integerLit, ",") <~ "]" ^^ { case l => L4_ConstIndex(l.toArray) })
+  lazy val expressionIndex = locationize("[" ~> repsep(binaryexpression, ",") <~ "]" ^^ (l => L4_ExpressionIndex(l.toArray)))
+  lazy val constIndex = (
+    locationize("[" ~> repsep(integerLit, ",") <~ "]" ^^ (l => L4_ConstIndex(l.toArray)))
+      ||| ("east" ||| "west" ||| "north" ||| "south" ||| "top" ||| "bottom") ^^ (s => L4_OffsetAlias.toConstIndex(s)))
 
   // #############################################################################
   // ################################## BASE_EXT #################################

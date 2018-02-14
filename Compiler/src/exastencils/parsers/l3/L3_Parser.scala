@@ -14,6 +14,7 @@ import exastencils.knowledge.l3._
 import exastencils.operator.l3._
 import exastencils.parsers._
 import exastencils.solver.l3._
+import exastencils.util.l3.L3_OffsetAlias
 
 object L3_Parser extends ExaParser with PackratParsers {
   override val lexical : ExaLexer = L3_Lexer
@@ -205,8 +206,10 @@ object L3_Parser extends ExaParser with PackratParsers {
 
   lazy val index = expressionIndex ||| constIndex
 
-  lazy val expressionIndex = locationize("[" ~> binaryexpression ~ ("," ~> binaryexpression).* <~ "]" ^^ { case b ~ l => L3_ExpressionIndex((List(b) ++ l).toArray) })
-  lazy val constIndex = locationize("[" ~> integerLit ~ ("," ~> integerLit).* <~ "]" ^^ { case b ~ l => L3_ConstIndex((List(b) ++ l).toArray) })
+  lazy val expressionIndex = locationize("[" ~> repsep(binaryexpression, ",") <~ "]" ^^ (l => L3_ExpressionIndex(l.toArray)))
+  lazy val constIndex = (
+    locationize("[" ~> repsep(integerLit, ",") <~ "]" ^^ (l => L3_ConstIndex(l.toArray)))
+      ||| ("east" ||| "west" ||| "north" ||| "south" ||| "top" ||| "bottom") ^^ (s => L3_OffsetAlias.toConstIndex(s)))
 
   // ######################################
   // ##### L3_LevelSpecification
