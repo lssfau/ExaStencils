@@ -34,13 +34,6 @@ case class L4_StencilFieldAccess(
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
   }
 
-  override def offsetWith(newOffset : L4_ConstIndex) = {
-    if (offset.isEmpty)
-      offset = Some(newOffset)
-    else
-      offset = Some(offset.get + newOffset)
-  }
-
   def progressOffset(numDims : Int) = {
     if (offset.isDefined) {
       val progressedOffset = offset.get.progress

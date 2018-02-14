@@ -14,10 +14,4 @@ case class IR_EquationAccess(
 
   def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
-  override def offsetWith(newOffset : IR_ConstIndex) = {
-    if (offset.isEmpty)
-      offset = Some(newOffset)
-    else
-      offset = Some(offset.get + newOffset)
-  }
 }

@@ -14,7 +14,7 @@ import exastencils.util.l2.L2_LevelCollector
 
 case class L2_FutureEquationAccess(
     var name : String, var level : Int,
-    var offset : Option[L2_ConstIndex] = None) extends L2_FutureKnowledgeAccess {
+    var offset : Option[L2_ConstIndex] = None) extends L2_FutureKnowledgeAccess with L2_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
     out << name << '@' << level

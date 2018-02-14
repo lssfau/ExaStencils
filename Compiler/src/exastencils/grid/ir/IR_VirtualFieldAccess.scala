@@ -15,7 +15,9 @@ case class IR_VirtualFieldAccess(
     var fragIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_LeveledKnowledgeAccess with IR_SpecialExpandable with IR_CanBeOffset {
 
   override def datatype = target.datatype
-  override def offsetWith(offset : IR_ConstIndex) = { index += offset }
+
+  var offset : Option[IR_ConstIndex] = None
+  override def offsetWith(newOffset : IR_ConstIndex) = index += newOffset
 
   def tryResolve : IR_Expression = {
     if (!target.resolutionPossible)

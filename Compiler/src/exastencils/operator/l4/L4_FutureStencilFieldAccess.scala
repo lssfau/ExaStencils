@@ -17,7 +17,7 @@ case class L4_FutureStencilFieldAccess(
     var slot : L4_SlotSpecification,
     var offset : Option[L4_ConstIndex],
     var dirAccess : Option[L4_ConstIndex],
-    var arrayIndex : Option[Int] = None) extends L4_FutureKnowledgeAccess {
+    var arrayIndex : Option[Int] = None) extends L4_FutureKnowledgeAccess with L4_CanBeOffset {
 
   override def prettyprint(out : PpStream) = out << name << '@' << level
   override def progress = Logger.error(s"Trying to progress future stencil field access to $name on level $level")

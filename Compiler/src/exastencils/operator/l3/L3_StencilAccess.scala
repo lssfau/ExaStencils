@@ -24,13 +24,6 @@ case class L3_StencilAccess(
     if (dirAccess.isDefined) out << ':' << dirAccess.get
   }
 
-  override def offsetWith(newOffset : L3_ConstIndex) = {
-    if (offset.isEmpty)
-      offset = Some(newOffset)
-    else
-      offset = Some(offset.get + newOffset)
-  }
-
   override def progress = ProgressLocation {
     L4_StencilAccess(target.getProgressedObj(),
       L3_ProgressOption(offset)(_.progress),

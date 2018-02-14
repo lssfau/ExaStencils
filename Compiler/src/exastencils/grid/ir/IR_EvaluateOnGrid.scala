@@ -67,13 +67,6 @@ case class IR_EvaluateOnGrid(
     out << " ) "
   }
 
-  override def offsetWith(newOffset : IR_ConstIndex) = {
-    if (offset.isEmpty)
-      offset = Some(newOffset)
-    else
-      offset = Some(offset.get + newOffset)
-  }
-
   def getEffectiveOffset = {
     val effectiveOffset = offset.getOrElse(IR_ConstIndex(Array.fill(numDims)(0)))
 

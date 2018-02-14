@@ -35,7 +35,8 @@ case class L2_VirtualFieldAccess(
     out << target.name << '@' << target.level << '@' << extractOffset
   }
 
-  override def offsetWith(offset : L2_ConstIndex) = index += offset
+  var offset : Option[L2_ConstIndex] = None
+  override def offsetWith(newOffset : L2_ConstIndex) = index += newOffset
 
   def extractOffset = {
     var offset = Duplicate(index) - L2_FieldIteratorAccess.fullIndex(target.numDims)

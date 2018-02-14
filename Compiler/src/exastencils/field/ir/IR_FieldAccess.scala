@@ -96,7 +96,7 @@ case class IR_FieldAccess(
     IR_DirectFieldAccess(fieldSelection, index + fieldSelection.referenceOffset)
   }
 
-  override def offsetWith(offset : IR_ConstIndex) = { index += offset }
+  override def offsetWith(newOffset : IR_ConstIndex) = index += newOffset
 }
 
 /// IR_ResolveFieldAccess

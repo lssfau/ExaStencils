@@ -20,7 +20,7 @@ case class L4_UnresolvedAccess(
     var slot : Option[L4_SlotSpecification],
     var offset : Option[L4_ConstIndex],
     var dirAccess : Option[L4_ConstIndex],
-    var arrayIndex : Option[Int]) extends L4_Access {
+    var arrayIndex : Option[Int]) extends L4_Access with L4_CanBeOffset {
 
   def prettyprint(out : PpStream) = {
     out << name

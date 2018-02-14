@@ -69,13 +69,6 @@ case class L2_EvaluateOnGrid(
     out << " ) "
   }
 
-  override def offsetWith(newOffset : L2_ConstIndex) = {
-    if (offset.isEmpty)
-      offset = Some(newOffset)
-    else
-      offset = Some(offset.get + newOffset)
-  }
-
   def getEffectiveOffset = {
     val effectiveOffset = offset.getOrElse(L2_ConstIndex(Array.fill(numDims)(0)))
 

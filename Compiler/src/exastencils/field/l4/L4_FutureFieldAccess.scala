@@ -15,7 +15,7 @@ case class L4_FutureFieldAccess(
     var level : Int,
     var slot : L4_SlotSpecification,
     var offset : Option[L4_ConstIndex] = None,
-    var arrayIndex : Option[Int] = None) extends L4_FutureKnowledgeAccess {
+    var arrayIndex : Option[Int] = None) extends L4_FutureKnowledgeAccess with L4_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
     out << name << slot << '@' << level

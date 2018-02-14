@@ -23,13 +23,6 @@ case class L3_EquationAccess(
     if (offset.isDefined) out << '@' << offset.get
   }
 
-  override def offsetWith(newOffset : L3_ConstIndex) = {
-    if (offset.isEmpty)
-      offset = Some(newOffset)
-    else
-      offset = Some(offset.get + newOffset)
-  }
-
   override def progress = ProgressLocation(L4_EquationAccess(target.getProgressedObj(), L3_ProgressOption(offset)(_.progress)))
 }
 

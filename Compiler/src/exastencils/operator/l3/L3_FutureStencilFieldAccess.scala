@@ -16,7 +16,7 @@ import exastencils.util.l3.L3_LevelCollector
 case class L3_FutureStencilFieldAccess(
     var name : String, var level : Int,
     var offset : Option[L3_ConstIndex],
-    var dirAccess : Option[L3_ConstIndex]) extends L3_FutureKnowledgeAccess {
+    var dirAccess : Option[L3_ConstIndex]) extends L3_FutureKnowledgeAccess with L3_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
     out << name << '@' << level

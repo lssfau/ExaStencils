@@ -47,13 +47,6 @@ case class L3_IntegrateOnGrid(
     out << " ( " << expression << " ) "
   }
 
-  override def offsetWith(newOffset : L3_ConstIndex) = {
-    if (offset.isEmpty)
-      offset = Some(newOffset)
-    else
-      offset = Some(offset.get + newOffset)
-  }
-
   def getEffectiveOffset = {
     val effectiveOffset = offset.getOrElse(L3_ConstIndex(Array.fill(numDims)(0)))
 

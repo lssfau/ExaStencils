@@ -20,7 +20,7 @@ case class L3_UnresolvedAccess(
     var slot : Option[L3_SlotSpecification],
     var offset : Option[L3_ConstIndex],
     var dirAccess : Option[L3_ConstIndex],
-    var arrayIndex : Option[Int]) extends L3_Access {
+    var arrayIndex : Option[Int]) extends L3_Access with L3_CanBeOffset {
 
   def prettyprint(out : PpStream) = {
     out << name

@@ -28,13 +28,6 @@ case class L4_StencilAccess(
     if (dirAccess.isDefined) out << ":" << dirAccess.get
   }
 
-  override def offsetWith(newOffset : L4_ConstIndex) = {
-    if (offset.isEmpty)
-      offset = Some(newOffset)
-    else
-      offset = Some(offset.get + newOffset)
-  }
-
   override def progress : IR_StencilAccess = ProgressLocation {
     if (arrayIndex.isDefined) Logger.warn("Unresolved arrayIndex")
     if (dirAccess.isDefined) Logger.warn("Unresolved dirAccess")

@@ -6,7 +6,14 @@ import exastencils.datastructures._
 /// L4_CanBeOffset
 
 trait L4_CanBeOffset {
-  def offsetWith(offset : L4_ConstIndex)
+  var offset : Option[L4_ConstIndex]
+
+  def offsetWith(newOffset : L4_ConstIndex) = {
+    if (offset.isEmpty)
+      offset = Some(newOffset)
+    else
+      offset = Some(offset.get + newOffset)
+  }
 }
 
 /// L4_OffsetAllApplicable

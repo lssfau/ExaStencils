@@ -6,7 +6,14 @@ import exastencils.datastructures._
 /// IR_CanBeOffset
 
 trait IR_CanBeOffset {
-  def offsetWith(offset : IR_ConstIndex)
+  var offset : Option[IR_ConstIndex]
+
+  def offsetWith(newOffset : IR_ConstIndex) = {
+    if (offset.isEmpty)
+      offset = Some(newOffset)
+    else
+      offset = Some(offset.get + newOffset)
+  }
 }
 
 /// IR_OffsetAllApplicable

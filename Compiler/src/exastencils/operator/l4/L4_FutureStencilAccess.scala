@@ -15,7 +15,7 @@ case class L4_FutureStencilAccess(
     var level : Int,
     var offset : Option[L4_ConstIndex],
     var dirAccess : Option[L4_ConstIndex],
-    var arrayIndex : Option[Int] = None) extends L4_FutureKnowledgeAccess {
+    var arrayIndex : Option[Int] = None) extends L4_FutureKnowledgeAccess with L4_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
     out << name << '@' << level

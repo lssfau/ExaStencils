@@ -46,13 +46,6 @@ case class L4_FieldAccess(
 
   def getOffset = offset.getOrElse(L4_ConstIndex(Array.fill(target.numDimsGrid)(0)))
 
-  override def offsetWith(newOffset : L4_ConstIndex) = {
-    if (offset.isEmpty)
-      offset = Some(newOffset)
-    else
-      offset = Some(offset.get + newOffset)
-  }
-
   override def progress : IR_FieldAccess = ProgressLocation {
     val field = target.getProgressedObj()
 

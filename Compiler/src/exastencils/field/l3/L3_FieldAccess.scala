@@ -27,13 +27,6 @@ case class L3_FieldAccess(
 
   def getOffset = offset.getOrElse(L3_ConstIndex(Array.fill(target.numDimsGrid)(0)))
 
-  override def offsetWith(newOffset : L3_ConstIndex) = {
-    if (offset.isEmpty)
-      offset = Some(newOffset)
-    else
-      offset = Some(offset.get + newOffset)
-  }
-
   override def progress = ProgressLocation {
     L4_FieldAccess(target.getProgressedObj(),
       slot.progress,
