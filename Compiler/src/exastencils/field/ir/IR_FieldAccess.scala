@@ -4,8 +4,9 @@ import scala.collection.mutable.StringBuilder
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_MatrixDatatype
+import exastencils.baseExt.ir._
 import exastencils.config._
+import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.logger.Logger
@@ -82,6 +83,12 @@ case class IR_FieldAccess(
     // FIXME: find a reasonable way to deal with this case and remove this HACK
       layout.datatype.resolveBaseDatatype
     else Logger.error(s"Trying to resolve data type with invalid index ${ index.prettyprint() }; field ${ fieldSelection.field.name } has data type ${ layout.datatype }")
+  }
+
+  def getOffsetFromIndex = {
+    val dupIndex = Duplicate(index)
+    dupIndex.indices = dupIndex.indices.zipWithIndex.map { case (e, i) => e - IR_FieldIteratorAccess(i) }
+    dupIndex.toConstIndex
   }
 
   def expandSpecial = {
