@@ -8,6 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_DimToString
+import exastencils.prettyprinting.PpStream
 
 /// CUDA_ReductionDeviceDataAccess
 
@@ -28,16 +29,19 @@ object CUDA_LinearizeReductionDeviceDataAccess extends DefaultStrategy("Lineariz
 /// CUDA_ReductionDeviceData
 
 case class CUDA_ReductionDeviceData(var size : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, false) {
+  override def prettyprint(out : PpStream) = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
+
   override def resolveDatatype() = IR_PointerDatatype(IR_RealDatatype)
   // TODO: extend for other types
   override def resolveName() : String = "reductionDeviceData" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
 
   override def getDtor() : Option[IR_Statement] = {
     val access = resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
-    Some(IR_IfCondition(access,
-      ListBuffer[IR_Statement](
-        CUDA_Free(access),
-        IR_Assignment(access, 0))))
+    Some(IR_LoopOverFragments(
+      IR_IfCondition(access,
+        ListBuffer[IR_Statement](
+          CUDA_Free(access),
+          IR_Assignment(access, 0)))))
   }
 }
 

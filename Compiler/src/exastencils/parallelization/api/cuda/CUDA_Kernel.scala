@@ -509,7 +509,7 @@ case class CUDA_Kernel(var identifier : String,
 
     for (fieldAccess <- linearizedFieldAccesses) {
       val fieldSelection = fieldAccess._2.fieldSelection
-      callArgs += CUDA_FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
+      callArgs += CUDA_FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx)
     }
 
     if (Knowledge.cuda_useSharedMemory && fieldForSharedMemory.nonEmpty) {
