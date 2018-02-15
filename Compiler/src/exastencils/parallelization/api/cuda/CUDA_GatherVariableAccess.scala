@@ -24,5 +24,5 @@ object CUDA_GatherVariableAccess extends QuietDefaultStrategy("Gather local Vari
     case access : IR_VariableAccess if !ignoredAccesses.contains(access.name) =>
       accesses.put(access.name, access)
       access
-  }, false)
+  })
 }
