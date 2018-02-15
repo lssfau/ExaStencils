@@ -195,7 +195,7 @@ object Platform {
   var sw_cuda_version : Int = 7
   var sw_cuda_versionMinor : Int = 5
   // in s
-  var sw_cuda_kernelCallOverhead : Double = 3.5 * 0.001
+  var sw_cuda_kernelCallOverhead : Double = 0.01 * 0.001
 
   /// resolve functions
 
