@@ -19,7 +19,7 @@ object JobScriptGenerator {
     Platform.targetName.toLowerCase() match {
       case "piz_daint" | "pizdaint" =>
         val filename = "run"
-        val debug = true
+        val debug = false
 
         Logger.dbg(s"Generating job script for PizDaint with filename $filename")
         val printer = PrettyprintingManager.getPrinter(filename)
@@ -29,22 +29,33 @@ object JobScriptGenerator {
         def tasksPerNode = Knowledge.mpi_numThreads / Platform.hw_numNodes
 
         printer <<< s"#!/bin/bash -l"
+
+        printer <<< s"#SBATCH --job-name=${ Settings.configName }"
+
+        printer <<< s"#SBATCH --mail-type=ALL"
+        printer <<< s"#SBATCH --mail-user=${ resolveUserMail() }"
+
         printer <<< s"#SBATCH --nodes=${ Platform.hw_numNodes }"
+        printer <<< s"#SBATCH --ntasks-per-core=2" // activate hyperthreading by default
         printer <<< s"#SBATCH --ntasks-per-node=$tasksPerNode"
+        printer <<< s"#SBATCH --cpus-per-task=${ Platform.hw_cpu_numHWThreads / tasksPerNode }"
+
         printer <<< s"#SBATCH --constraint=gpu"
-        printer <<< s"#SBATCH --time=00:15:00"
+
+        printer <<< s"#SBATCH --time=00:10:00"
 
         printer <<< ""
 
         printer <<< s"module load daint-gpu"
-        printer <<< s"module load cudatoolkit/8.0.54_2.2.8_ga620558-2.1"
+        printer <<< s"module load cudatoolkit"
 
         printer <<< ""
 
-        printer <<< s"export MPICH_RDMA_ENABLED_CUDA=1  # allow GPU-GPU data transfer"
+        if (numMPI > 1)
+          printer <<< s"export MPICH_RDMA_ENABLED_CUDA=1  # allow GPU-GPU data transfer"
 
-        if (tasksPerNode > 1)
-          printer <<< s"export CRAY_CUDA_MPS=1            # allow GPU sharing"
+        // if (tasksPerNode > 1) // for some reason this flag is also required if only one thread per node is used
+        printer <<< s"export CRAY_CUDA_MPS=1            # allow GPU sharing"
 
         // HACK for execution of CPU-GPU parallel programs on PizDaint
         if ("Condition" == Knowledge.cuda_preferredExecution)
@@ -59,7 +70,7 @@ object JobScriptGenerator {
 
         printer <<< ""
 
-        printer <<< s"cd ~/${ Settings.configName }"
+        printer <<< s"cd ${ Settings.executionPath }"
 
         printer <<< ""
 
@@ -118,7 +129,7 @@ object JobScriptGenerator {
         }
 
         printer <<< ""
-        printer <<< s"cd ~/${ Settings.configName }"
+        printer <<< s"cd ${ Settings.executionPath }"
 
         printer <<< ""
         printer <<< s"make -j 56"
