@@ -5,6 +5,7 @@ import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer }
 import java.util.IdentityHashMap
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.field.ir._
@@ -18,10 +19,13 @@ case class IR_ExternalFieldAlias(newName : String, oldName : String, oldLevels :
 
 case class IR_GenericTransform(fields : Seq[(String, Int)], its : Array[IR_VariableAccess], trafo : IR_ExpressionIndex) extends IR_LayoutTransformStatement {
 
+  def inDim : Int = its.length
+  def outDim : Int = trafo.length
+
   def getIslTrafo() : isl.MultiAff = {
-    var maff = isl.MultiAff.zero(isl.Space.alloc(Isl.ctx, 0, its.length, trafo.length))
+    var maff = isl.MultiAff.zero(isl.Space.alloc(Isl.ctx, 0, inDim, outDim))
     val lSpace = isl.LocalSpace.fromSpace(maff.getDomainSpace())
-    for (i <- 0 until trafo.length)
+    for (i <- 0 until outDim)
       try {
         maff = maff.setAff(i, exprToIslAff(trafo(i), lSpace))
       } catch {
@@ -101,6 +105,7 @@ case class IR_FieldConcatenation(mergedFieldName : String, fieldsToMerge : Seq[S
           newField.fieldLayout.name = "merged_" + mergedFieldName
           newField.fieldLayout.layoutsPerDim = Array.fill(dim)(IR_FieldLayoutPerDim(0, 0, 0, 0, 0, 0, 0))
           newField.fieldLayout.layoutsPerDim(dim - 1).numInnerLayers = fieldsToMerge.length
+          newField.fieldLayout.datatype = IR_ArrayDatatype(newField.fieldLayout.datatype, fieldsToMerge.length)
           newFields(field.level) = newField
         }
 

@@ -33,14 +33,63 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
   private def tmpName(i : Int) : String = tmpNamePrefix + i
   private def tmpNameIdx(s : String) : Int = s.substring(tmpNamePrefix.length()).toInt
 
-  private def createIslTrafo(trafos : Seq[IR_GenericTransform]) : isl.MultiAff = {
+  private def addIdentityDims(mAff : isl.MultiAff, nr : Int) : isl.MultiAff = {
+    var ma : isl.MultiAff = mAff
+    val oldIn : Int = ma.dim(T_IN)
+    val oldOut : Int = ma.dim(T_OUT)
+    ma = ma.addDims(T_IN, nr) // .addDims(T_OUT, nr) not supported by isl -.-
+    var id = isl.MultiAff.identity(isl.Space.alloc(Isl.ctx, 0, oldOut + nr, oldOut + nr))
+    id = id.dropDims(T_IN, oldOut, nr)
+    ma = id.pullbackMultiAff(ma)
+    val lSpace = isl.LocalSpace.fromSpace(ma.getDomainSpace())
+    for (i <- 0 until nr)
+      ma = ma.setAff(oldOut + i, isl.Aff.varOnDomain(lSpace, T_SET, oldIn + i))
+    ma
+  }
+
+  private def createIslTrafo(trafos : Seq[IR_GenericTransform], layout : IR_FieldLayout, fieldID : (String, Int)) : isl.MultiAff = {
+    var matDims : Int = layout.numDimsData - layout.numDimsGrid
+    var nrNonSvDims : Int = 0
+    val svDims = ArrayBuffer[Int]()
+    for (i <- layout.numDimsGrid until layout.numDimsData)
+      if (layout.layoutsPerDim(i).isSingleValued())
+        svDims += i
+      else
+        nrNonSvDims += 1
+    var outDim : Int = 0
     var trafoMaff : isl.MultiAff = null
     for (trafo <- trafos) {
       val maff = trafo.getIslTrafo()
       if (trafoMaff == null)
         trafoMaff = maff
-      else
+      else {
+        // test if dimensionalities match, if not, try to adapt
+        val dimDiff = trafo.inDim - outDim
+        if (dimDiff != 0) {
+          if (dimDiff == matDims || dimDiff == nrNonSvDims) {
+            trafoMaff = addIdentityDims(trafoMaff, dimDiff)
+            matDims = 0
+            nrNonSvDims = 0
+          } else
+            Logger.error(s"Layout transformation (${ trafo.trafo.prettyprint() }) for field $fieldID is invalid: " +
+              s"number of input field dimensions must be in ${ Set(outDim, outDim + matDims, outDim + nrNonSvDims) }, but is ${ trafo.inDim }.")
+        }
         trafoMaff = maff.pullbackMultiAff(trafoMaff)
+      }
+      outDim = trafo.outDim
+    }
+    // add missing dimensions
+    val inDims : Int = trafoMaff.dim(T_IN)
+    if (inDims != layout.numDimsData) {
+      if (inDims == layout.numDimsGrid)
+        trafoMaff = addIdentityDims(trafoMaff, matDims)
+      else if (inDims + svDims.length == layout.numDimsData)
+        for (sv <- svDims)
+          trafoMaff = trafoMaff.insertDims(T_IN, sv, 1)
+      else
+        Logger.error(s"Layout transformation for field $fieldID is invalid: " +
+          s"number of input field dimensions for first transformation must be in " +
+          s"${ Set(layout.numDimsGrid, layout.numDimsData - svDims.length, layout.numDimsData) }, but is $inDims.")
     }
     trafoMaff
   }
@@ -97,6 +146,8 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
           newLayoutsPerDim(i) = flpd
       })
     }
+    layout.numDimsGrid = layout.numDimsData
+    layout.datatype = layout.datatype.resolveBaseDatatype
     layout.layoutsPerDim = newLayoutsPerDim
     layout.referenceOffset = null // field is not valid anymore
   }
@@ -246,7 +297,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     if (newIndex != null) {
       newIndex = Duplicate(newIndex)
     } else for (trafos <- transformations.get(fieldID)) { // Option
-      val trafoMaff : isl.MultiAff = createIslTrafo(trafos)
+      val trafoMaff : isl.MultiAff = createIslTrafo(trafos, layout, fieldID)
       adaptLayout(layout, trafoMaff, fieldID)
       val exprs : IR_ExpressionIndex = createASTforMultiAff(trafoMaff)
       processedLayouts.put(layout, exprs)

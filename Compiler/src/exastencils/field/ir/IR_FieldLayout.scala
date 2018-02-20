@@ -109,4 +109,14 @@ case class IR_FieldLayoutPerDim(
   def updateTotal() = {
     total = numPadLayersLeft + numGhostLayersLeft + numDupLayersLeft + numInnerLayers + numDupLayersRight + numGhostLayersRight + numPadLayersRight
   }
+
+  def isSingleValued() : Boolean = {
+    numPadLayersLeft == 0 &&
+      numGhostLayersLeft == 0 &&
+      numDupLayersLeft == 0 &&
+      numInnerLayers == 1 &&
+      numDupLayersRight == 0 &&
+      numGhostLayersRight == 0 &&
+      numPadLayersRight == 0
+  }
 }
