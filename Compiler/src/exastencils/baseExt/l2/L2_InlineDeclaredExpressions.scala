@@ -53,7 +53,7 @@ object L2_InlineDeclaredExpressions extends DefaultStrategy("Inline accesses to 
   })
 
   this += new Transformation("Remove applicable declarations", {
-    case _ : L2_ExpressionDeclaration =>
-      None // consume declaration
-  })
+    case g : L2_GlobalSection         => g // skip globals since expression might be needed on lower layers
+    case _ : L2_ExpressionDeclaration => None // consume declaration
+  }, false)
 }

@@ -1,6 +1,7 @@
 package exastencils.baseExt.l3
 
 import exastencils.base.l3._
+import exastencils.baseExt.l4.L4_ExpressionDeclaration
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.logger.Logger
@@ -30,7 +31,7 @@ case class L3_ExpressionDeclaration(
     })
   }
 
-  override def progress = Logger.error("Trying to progress L3_ExpressionDeclaration; unsupported")
+  override def progress = L4_ExpressionDeclaration(name, L3_ProgressOption(levels)(_.progress), expr.progress)
 }
 
 /// L3_UnfoldLeveledExpressionDeclarations
