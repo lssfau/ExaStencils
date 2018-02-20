@@ -102,6 +102,10 @@ object Settings {
 
   var configName : String = ""
 
+  /// execution path for cluster jobs
+
+  var executionPath : String = "~/"
+
   /// output for fragment data file
 
   var fragmentFile_config_output = 2
