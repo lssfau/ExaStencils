@@ -78,6 +78,9 @@ object ConfigRunner {
     // resolve aliases in knowledge, settings and platform
     ResolveAlias.apply()
 
+    // begin writing log to file after potential alias resolution in filename
+    if (Settings.produceHtmlLog) Logger_HTML.beginFileWrite()
+
     if (Settings.cancelIfOutFolderExists) {
       if (new java.io.File(Settings.getOutputPath).exists()) {
         Logger.error(s"Output path ${ Settings.getOutputPath } already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
@@ -146,6 +149,24 @@ object ConfigRunner {
 
   def printCompileScript(configNames : ListBuffer[String]) : Unit = {
     Platform.targetName.toLowerCase() match {
+      case "i10staff40" =>
+        val filename = "../compileGenerated"
+
+        Logger.debug(s"Generating compile script for ${ Platform.targetName } with filename $filename")
+        val printer = PrettyprintingManager.getPrinter(filename)
+
+        printer <<< "#!/bin/bash"
+        printer <<< ""
+        printer <<< "configurations=\"" + configNames.mkString(" ") + "\""
+        printer <<< "for config in $configurations"
+        printer <<< "do"
+        printer <<< "\tcd ${config}"
+        printer <<< "\ttime make -j 8"
+        printer <<< "\tcd .."
+        printer <<< "done"
+
+        printer.finish()
+
       case "piz_daint" | "pizdaint" =>
         val filename = "../compileGenerated"
 
@@ -215,11 +236,31 @@ object ConfigRunner {
         printer <<< "done"
 
         printer.finish()
+
+      case other => Logger.warn(s"Found unknown target platform $other; could not set up compile script")
     }
   }
 
   def printSubmitScript(configNames : ListBuffer[String]) : Unit = {
     Platform.targetName.toLowerCase() match {
+      case "i10staff40" =>
+        val filename = "../runGenerated"
+
+        Logger.debug(s"Generating compile script for ${ Platform.targetName } with filename $filename")
+        val printer = PrettyprintingManager.getPrinter(filename)
+
+        printer <<< "#!/bin/bash"
+        printer <<< ""
+        printer <<< "configurations=\"" + configNames.mkString(" ") + "\""
+        printer <<< "for config in $configurations"
+        printer <<< "do"
+        printer <<< "\tcd ${config}"
+        printer <<< "\ttime ./exastencils > ${config}"
+        printer <<< "\tcd .."
+        printer <<< "done"
+
+        printer.finish()
+
       case "piz_daint" | "pizdaint" =>
         val filename = "../submitGenerated"
 
@@ -267,6 +308,8 @@ object ConfigRunner {
         }
 
         printer.finish()
+
+      case other => Logger.warn(s"Found unknown target platform $other; could not set up submit script")
     }
   }
 }
