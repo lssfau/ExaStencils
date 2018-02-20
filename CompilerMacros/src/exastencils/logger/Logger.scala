@@ -126,7 +126,7 @@ object Logger {
       val fileName = Literal(Constant(c.enclosingPosition.source.file.file.getAbsolutePath))
       val line = Literal(Constant(c.enclosingPosition.line))
 
-      def message = if (isInNodeScope(c)) q"$s + location.toAppendString" else q"$s"
+      def message = if (isInNodeScope(c)) q"$s.toString + location.toAppendString" else q"$s.toString"
 
       //q"""if (exastencils.logger.Logger.getLevel >= 0) {
       q"""{
@@ -149,7 +149,7 @@ object Logger {
       val fileName = Literal(Constant(c.enclosingPosition.source.file.file.getAbsolutePath))
       val line = Literal(Constant(c.enclosingPosition.line))
 
-      def message = if (isInNodeScope(c)) q"$s + location.toAppendString" else q"$s"
+      def message = if (isInNodeScope(c)) q"$s.toString + location.toAppendString" else q"$s.toString"
 
       q"""if (exastencils.logger.Logger.getLevel >= 1) {
         println("WARN:  " + $message)
@@ -167,7 +167,7 @@ object Logger {
       val fileName = Literal(Constant(c.enclosingPosition.source.file.file.getAbsolutePath))
       val line = Literal(Constant(c.enclosingPosition.line))
 
-      def message = if (isInNodeScope(c)) q"$s + location.toAppendString" else q"$s"
+      def message = if (isInNodeScope(c)) q"$s.toString + location.toAppendString" else q"$s.toString"
 
       q"""if (exastencils.logger.Logger.getLevel >= 2) {
         println("DBG:   " + $message)
@@ -185,7 +185,7 @@ object Logger {
       val fileName = Literal(Constant(c.enclosingPosition.source.file.file.getAbsolutePath))
       val line = Literal(Constant(c.enclosingPosition.line))
 
-      def message = if (isInNodeScope(c)) q"$s + location.toAppendString" else q"$s"
+      def message = if (isInNodeScope(c)) q"$s.toString + location.toAppendString" else q"$s.toString"
 
       q"""if (exastencils.logger.Logger.getLevel >= 4) {
         println("INFO:  " + $message)
