@@ -100,6 +100,8 @@ object Main {
       ExaLayerHandler.shutdownAllLayers()
       localShutdown()
     } catch {
+      case e : LoggerError =>
+        throw e
       case e : Throwable =>
         Logger.warn(s"Critical error: ${ e.getMessage }")
         Logger.warn(s"Stack trace:\n${ e.getStackTrace.mkString("\n\tat ") }")

@@ -135,8 +135,7 @@ object Logger {
           exastencils.core.logger.Logger_HTML.finish
         }
 
-        sys.error("ERROR: " + $message)
-        sys.exit(-1) // just to be extra sure
+        throw new exastencils.logger.LoggerError("ERROR: " + $message)
        }
     """
     }
@@ -197,3 +196,5 @@ object Logger {
     c.Expr[Unit](result)
   }
 }
+
+class LoggerError(msg : String) extends RuntimeException(msg)
