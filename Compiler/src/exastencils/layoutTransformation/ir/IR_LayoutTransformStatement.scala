@@ -114,8 +114,8 @@ case class IR_FieldConcatenation(mergedFieldName : String, fieldsToMerge : Seq[S
         // some validity checks
         if (newField.numSlots != field.numSlots)
           Logger.error(s"slots of fields to merge for '$mergedFieldName' do not match!")
-        if (newField.gridDatatype != field.gridDatatype)
-          Logger.error(s"datatypes of fields to merge for '$mergedFieldName' do not match!")
+        if (newField.gridDatatype.resolveBaseDatatype != field.gridDatatype.resolveBaseDatatype)
+          Logger.error(s"base datatypes of fields to merge for '$mergedFieldName' do not match!")
         if (newField.fieldLayout.numDimsData != dim)
           Logger.error(s"dimensionalities of fields to merge for '$mergedFieldName' do not match!")
 
