@@ -28,6 +28,7 @@ import exastencils.solver.ir._
 import exastencils.stencil.ir._
 import exastencils.timing.ir._
 import exastencils.util._
+import exastencils.visualization.IR_SetupVisit
 
 /// IR_LayerHandler
 
@@ -146,6 +147,9 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     } while (convChanged)
 
     IR_ResolveStencilFunction.apply()
+
+    if (Knowledge.experimental_visit_enable)
+      IR_SetupVisit.apply()
 
     // resolve new virtual field accesses
     IR_ResolveIntegrateOnGrid.apply()

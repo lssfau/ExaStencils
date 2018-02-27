@@ -652,6 +652,11 @@ object Knowledge {
   // only required for l3tmp_kelvin; number of samples to be evaluated
   var l3tmp_kelvin_numHaloFrags : Int = 2 // only required for l3tmp_kelvin; number of halo fragments used to implement the open boundary approximation
 
+  /// student project - Richard / visit
+
+  // TODO
+  var experimental_visit_enable : Boolean = false
+
   /// END HACK
 
   /// === constraints and resolutions ===
