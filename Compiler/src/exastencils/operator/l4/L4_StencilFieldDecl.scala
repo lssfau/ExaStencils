@@ -11,13 +11,13 @@ import exastencils.prettyprinting._
 /// L4_StencilFieldDecl
 
 object L4_StencilFieldDecl {
-  def apply(name : String, levels : Option[L4_LevelSpecification], stencil : String, field : String) =
+  def apply(name : String, levels : Option[L4_DeclarationLevelSpecification], stencil : String, field : String) =
     new L4_StencilFieldDecl(name, levels, L4_UnresolvedAccess(stencil), L4_UnresolvedAccess(field))
 }
 
 case class L4_StencilFieldDecl(
     var name : String,
-    var levels : Option[L4_LevelSpecification],
+    var levels : Option[L4_DeclarationLevelSpecification],
     var stencil : L4_Access,
     var field : L4_Access) extends L4_LeveledKnowledgeDecl {
 

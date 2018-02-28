@@ -25,7 +25,7 @@ object L4_LeveledKnowledgeDecl {
 }
 
 trait L4_LeveledKnowledgeDecl extends L4_KnowledgeDecl {
-  var levels : Option[L4_LevelSpecification]
+  var levels : Option[L4_DeclarationLevelSpecification]
 }
 
 /// L4_UnfoldKnowledgeDeclarations

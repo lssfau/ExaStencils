@@ -8,7 +8,7 @@ import exastencils.prettyprinting.PpStream
 
 /// L4_EquationDecl
 
-case class L4_EquationDecl(var name : String, var levels : Option[L4_LevelSpecification], var equation : L4_Equation) extends L4_LeveledKnowledgeDecl {
+case class L4_EquationDecl(var name : String, var levels : Option[L4_DeclarationLevelSpecification], var equation : L4_Equation) extends L4_LeveledKnowledgeDecl {
 
   override def prettyprint(out : PpStream) = {
     out << "Equation " << name
