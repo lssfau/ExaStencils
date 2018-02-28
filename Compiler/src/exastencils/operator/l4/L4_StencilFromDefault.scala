@@ -16,13 +16,13 @@ abstract class L4_StencilFromDefault extends L4_StencilDecl {
 /// L4_DefaultRestrictionStencil
 
 object L4_DefaultRestrictionStencil {
-  def apply(name : String, levels : Option[L4_LevelSpecification], localization : String, interpolation : String) =
+  def apply(name : String, levels : Option[L4_DeclarationLevelSpecification], localization : String, interpolation : String) =
     new L4_DefaultRestrictionStencil(name, levels, Knowledge.dimensionality, L4_Localization.resolve(localization), interpolation)
 }
 
 case class L4_DefaultRestrictionStencil(
     var name : String,
-    var levels : Option[L4_LevelSpecification],
+    var levels : Option[L4_DeclarationLevelSpecification],
     var numDims : Int,
     var localization : L4_Localization,
     var interpolation : String) extends L4_StencilFromDefault {
@@ -40,13 +40,13 @@ case class L4_DefaultRestrictionStencil(
 /// L4_DefaultProlongationStencil
 
 object L4_DefaultProlongationStencil {
-  def apply(name : String, levels : Option[L4_LevelSpecification], localization : String, interpolation : String) =
+  def apply(name : String, levels : Option[L4_DeclarationLevelSpecification], localization : String, interpolation : String) =
     new L4_DefaultProlongationStencil(name, levels, Knowledge.dimensionality, L4_Localization.resolve(localization), interpolation)
 }
 
 case class L4_DefaultProlongationStencil(
     var name : String,
-    var levels : Option[L4_LevelSpecification],
+    var levels : Option[L4_DeclarationLevelSpecification],
     var numDims : Int,
     var localization : L4_Localization,
     var interpolation : String) extends L4_StencilFromDefault {

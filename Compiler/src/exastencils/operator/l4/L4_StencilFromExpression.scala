@@ -12,7 +12,7 @@ import exastencils.prettyprinting._
 
 case class L4_StencilFromExpression(
     var name : String,
-    var levels : Option[L4_LevelSpecification],
+    var levels : Option[L4_DeclarationLevelSpecification],
     var expression : L4_Expression) extends L4_StencilDecl {
 
   override def prettyprint(out : PpStream) = {

@@ -9,18 +9,17 @@ import exastencils.prettyprinting._
 /// L4_BaseFieldDecl
 
 object L4_BaseFieldDecl {
-  def apply(name : String, levels : Option[L4_LevelSpecification], domainName : String, fieldLayoutName : String, boundary : L4_BoundaryCondition, numSlots : Integer) =
+  def apply(name : String, levels : Option[L4_DeclarationLevelSpecification], domainName : String, fieldLayoutName : String, boundary : L4_BoundaryCondition, numSlots : Integer) =
     new L4_BaseFieldDecl(name, levels, L4_UnresolvedAccess(domainName), L4_UnresolvedAccess(fieldLayoutName), boundary, numSlots)
 }
 
 case class L4_BaseFieldDecl(
     var name : String,
-    var levels : Option[L4_LevelSpecification],
+    var levels : Option[L4_DeclarationLevelSpecification],
     var domain : L4_Access,
     var fieldLayout : L4_Access,
     var boundary : L4_BoundaryCondition,
-    var numSlots : Integer,
-    var index : Int = 0) extends L4_FieldDecl {
+    var numSlots : Integer) extends L4_FieldDecl {
 
   override def prettyprint(out : PpStream) = {
     out << "Field " << name << "< " << domain.name << ", " << fieldLayout.name << ", " << boundary << " >"

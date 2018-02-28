@@ -27,13 +27,13 @@ case class L4_FieldLayoutOption(
 /// L4_FieldLayoutDecl
 
 object L4_FieldLayoutDecl {
-  def apply(name : String, levels : Option[L4_LevelSpecification], datatype : L4_Datatype, localization : String, options : List[L4_FieldLayoutOption]) =
+  def apply(name : String, levels : Option[L4_DeclarationLevelSpecification], datatype : L4_Datatype, localization : String, options : List[L4_FieldLayoutOption]) =
     new L4_FieldLayoutDecl(name, levels, datatype, L4_Localization.resolve(localization), options.to[ListBuffer])
 }
 
 case class L4_FieldLayoutDecl(
     var name : String,
-    var levels : Option[L4_LevelSpecification],
+    var levels : Option[L4_DeclarationLevelSpecification],
     var datatype : L4_Datatype,
     var localization : L4_Localization,
     var options : ListBuffer[L4_FieldLayoutOption]) extends L4_LeveledKnowledgeDecl {

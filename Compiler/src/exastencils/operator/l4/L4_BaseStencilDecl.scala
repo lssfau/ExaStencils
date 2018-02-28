@@ -8,13 +8,13 @@ import exastencils.prettyprinting._
 /// L4_BaseStencilDecl
 
 object L4_BaseStencilDecl {
-  def apply(name : String, levels : Option[L4_LevelSpecification], entries : List[L4_StencilEntry]) =
+  def apply(name : String, levels : Option[L4_DeclarationLevelSpecification], entries : List[L4_StencilEntry]) =
     new L4_BaseStencilDecl(name, levels, entries.to[ListBuffer])
 }
 
 case class L4_BaseStencilDecl(
     var name : String,
-    var levels : Option[L4_LevelSpecification],
+    var levels : Option[L4_DeclarationLevelSpecification],
     var entries : ListBuffer[L4_StencilEntry]) extends L4_StencilDecl {
 
   override def prettyprint(out : PpStream) = {
