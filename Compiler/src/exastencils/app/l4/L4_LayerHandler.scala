@@ -18,6 +18,7 @@ import exastencils.hack.l4.HACK_L4_ResolveNativeFunctions
 import exastencils.interfacing.l4.L4_ExternalFieldCollection
 import exastencils.knowledge.l4.L4_KnowledgeContainer._
 import exastencils.knowledge.l4._
+import exastencils.layoutTransformation.l4.L4_AddSoAtoAoSTransformation
 import exastencils.layoutTransformation.l4.L4_UnifyLayoutSections
 import exastencils.logger.Logger
 import exastencils.operator.l4._
@@ -100,6 +101,8 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
       L4_CombineLeveledFunctionDecls.apply()
       // L4_GenerateLeveledKnowledgeDecls.apply()
     }
+    if (Knowledge.l4_genSoA2AoSTransformation)
+      L4_AddSoAtoAoSTransformation.apply()
 
     print()
     val oldL4Code = ExaRootNode.l4_root.prettyprint()
