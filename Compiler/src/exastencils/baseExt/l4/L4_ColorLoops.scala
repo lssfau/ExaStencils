@@ -12,7 +12,7 @@ import exastencils.prettyprinting.PpStream
 /// L4_ColorLoops
 
 case class L4_ColorLoops(var colorExps : ListBuffer[L4_Modulo], var stmts : ListBuffer[L4_Statement]) extends L4_Statement {
-  override def prettyprint(out : PpStream) = out << "repeat with {\n" <<< (colorExps, ",\n") << ",\n" <<< (stmts, "\n") << "\n}"
+  override def prettyprint(out : PpStream) = out << "color with {\n" <<< (colorExps, ",\n") << ",\n" <<< (stmts, "\n") << "\n}"
   override def progress = Logger.error("Trying to progress " + this.getClass.getName + " which is unsupported")
 
   def toRepeatLoops() : L4_RepeatLoops = {
@@ -29,8 +29,10 @@ case class L4_ColorLoops(var colorExps : ListBuffer[L4_Modulo], var stmts : List
     var disjNF = ListBuffer[L4_Expression]() // only boolean expressions
     val disjTerms = conjNF.iterator
     disjNF = disjTerms.next()
-    while (disjTerms.hasNext)
-      disjNF = for (left <- disjNF; right <- disjTerms.next()) yield L4_AndAnd(left, right) // cross product using L4_AndAnd as combinator
+    while (disjTerms.hasNext) {
+      val disjTerm = disjTerms.next()
+      disjNF = for (left <- disjNF; right <- disjTerm) yield L4_AndAnd(left, right) // cross product using L4_AndAnd as combinator
+    }
 
     L4_RepeatLoops(disjNF, stmts)
   }

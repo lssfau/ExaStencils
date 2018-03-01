@@ -280,7 +280,9 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val colorWithStatement = locationize(("color" ~ "with" ~ "{") ~> (colorDefExpression <~ ",").+ ~ statement.* <~ "}"
     ^^ { case colors ~ stmts => L4_ColorLoops(colors.to, stmts.to) })
-  lazy val colorDefExpression : PackratParser[L4_Modulo] = locationize((term2 ~ "%" ~ integerLit) ^^ { case divd ~ _ ~ divs => L4_Modulo(divd, L4_IntegerConstant(divs.toInt)) })
+  lazy val colorDefExpression : PackratParser[L4_Modulo] = locationize("(" ~> colorDefExpression2 <~ ")") ||| locationize(colorDefExpression2)
+  lazy val colorDefExpression2 : PackratParser[L4_Modulo] = locationize(((term2 <~ "%") ~ integerLit)
+    ^^ { case divd ~ divs => L4_Modulo(divd, L4_IntegerConstant(divs.toInt)) })
 
   // ######################################
   // ##### Globals
