@@ -186,16 +186,17 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
 
     // TODO: search for them here? or extract transformation statements earlier
     this.execute(new Transformation("collect transformation statements", {
-      case trafo : IR_GenericTransform       =>
-        for (field <- trafo.fields)
-          transformations.getOrElseUpdate(field, ArrayBuffer[IR_GenericTransform]()) += trafo
-        None
-      case fieldConc : IR_FieldConcatenation =>
-        fieldConcs += fieldConc
-        None
-      case alias : IR_ExternalFieldAlias     =>
-        fieldAliass += alias
-        None
+      case layColl : IR_LayoutTransformationCollection =>
+        for (stmt <- layColl.trafoStmts) stmt match {
+          case trafo : IR_GenericTransform       =>
+            for (field <- trafo.fields)
+              transformations.getOrElseUpdate(field, ArrayBuffer[IR_GenericTransform]()) += trafo
+          case fieldConc : IR_FieldConcatenation =>
+            fieldConcs += fieldConc
+          case alias : IR_ExternalFieldAlias     =>
+            fieldAliass += alias
+        }
+        None // consume whole collection
     }))
 
     val processedLayouts = new IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex]()
