@@ -279,9 +279,9 @@ Function Smoother@all ( ) : Unit {
 
 	if ( 1 == stride_x && 1 == stride_y && 1 == stride_z ) {
 		color with {
-			i0 % 3,
-			i1 % 3,
 			i2 % 3,
+			i1 % 3,
+			i0 % 3,
 
 			loop over p@current {
 				solve locally {
