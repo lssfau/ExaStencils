@@ -29,6 +29,7 @@ class L4_Lexer extends ExaLexer {
   reserved += "sequentially" // FIXME: seq HACK
   reserved += ("precomm", "postcomm") // temporary loop annotation
   reserved += ("color", "with")
+  reserved += ("repeat", "with")
 
   // condition keywords
   reserved += ("if", "else", "and", "or")

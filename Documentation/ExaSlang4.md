@@ -69,6 +69,7 @@ The following statements are supported:
 * [return statement](#return-statement)
 * [level scope](#level-scope)
 * [local solve](#local-solve)
+* [repeat statement](#repeat-statement)
 * [color statement](#color-statement)
 
 
@@ -1497,8 +1498,36 @@ Specifies one component of a [local solve block](#local-solve).
 
 
 
+### Repeat Statement
+Repeats a set of statements in a *body* for given *conditions*.
+
+#### Syntax
+<pre>
+repeat with { <i>conditions</i> , <i>body</i> }
+</pre>
+
+#### Details
+*conditions* must be a comma-separated list of arbitrary expressions, each evaluating to Boolean.
+
+*body* must be a list of suitable [statements](#inner-statements). May be empty. Currently only [field loops](#field-loop) are restricted. Other statements remain untouched. In future versions, [apply bc](#apply-bc) and [communicate](#communicate) will be handled as well.
+
+During unfolding, the *body* is duplicated once for each condition. It is then adapted by adding the condition expression to, e.g., [field loops](#field-loop).
+
+#### Example
+<pre>
+repeat with {
+  ( 0 == ( i0 + i1 ) % 2 ),
+  ( 1 == ( i0 + i1 ) % 2 ),
+  
+  loop over p { /* ... */ }
+  communicate p
+}
+</pre>
+
+
+
 ### Color Statement
-Colors a set of statements in a *body* with given *colors*.
+Colors a set of statements in a *body* with given *colors* computations.
 
 #### Syntax
 <pre>
@@ -1506,7 +1535,7 @@ color with { <i>colors</i> , <i>body</i> }
 </pre>
 
 #### Details
-*colors* must be a comma-separated list of arbitrary expressions, each evaluating to Boolean.
+*colors* must be a comma-separated list of modulo expressions whose divisors are natural numbers. Each expression specifies how one element of the color vector is computed.
 
 *body* must be a list of suitable [statements](#inner-statements). May be empty. Currently only [field loops](#field-loop) are colored. Other statements remain untouched. In future versions, [apply bc](#apply-bc) and [communicate](#communicate) will be handled as well.
 
@@ -1515,8 +1544,8 @@ During unfolding, the *body* is duplicated once for each color. It is then adapt
 #### Example
 <pre>
 color with {
-  ( 0 == ( i0 + i1 ) % 2 ),
-  ( 1 == ( i0 + i1 ) % 2 ),
+  i0 % 2,
+  i1 % 2,
   
   loop over p { /* ... */ }
   communicate p

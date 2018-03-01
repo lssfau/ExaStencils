@@ -274,8 +274,12 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val solveLocallyStatement = locationize((("solve" ~ "locally") ~> ("with" ~> "jacobi").? ~ ("relax" ~> binaryexpression).? <~ "{") ~ solveLocallyComponent.+ <~ "}"
     ^^ { case jac ~ relax ~ stmts => L4_LocalSolve(stmts.map(_._1), stmts.map(_._2), jac.isDefined, relax) })
 
-  lazy val colorWithStatement = locationize(("color" ~ "with" ~ "{") ~> (booleanexpression <~ ",").+ ~ statement.* <~ "}"
-    ^^ { case colors ~ stmts => L4_ColorLoops(colors, stmts) })
+  lazy val repeatWithStatement = locationize(("repeat" ~ "with" ~ "{") ~> (booleanexpression <~ ",").+ ~ statement.* <~ "}"
+    ^^ { case conds ~ stmts => L4_RepeatLoops(conds.to, stmts.to) })
+
+  lazy val colorWithStatement = locationize(("color" ~ "with" ~ "{") ~> (colorDefExpression <~ ",").+ ~ statement.* <~ "}"
+    ^^ { case colors ~ stmts => L4_ColorLoops(colors.to, stmts.to) }) // TODO
+  lazy val colorDefExpression : PackratParser[L4_Modulo] = locationize(((binaryexpression <~ "%") ~ integerLit) ^^ { case divd ~ divs => L4_Modulo(divd, L4_IntegerConstant(divs.toInt)) })
 
   // ######################################
   // ##### Globals

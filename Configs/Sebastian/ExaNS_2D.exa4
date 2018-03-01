@@ -363,7 +363,7 @@ Function Smoother@all ( ) : Unit {
 }
 
 Function Distributive@all ( ) : Unit {
-	color with {
+	repeat with {
 		0 == ( i0 + i1 ) % 2,
 		1 == ( i0 + i1 ) % 2,
 
@@ -375,7 +375,7 @@ Function Distributive@all ( ) : Unit {
 		apply bc to u
 	}
 
-	color with {
+	repeat with {
 		0 == ( i0 + i1 ) % 2,
 		1 == ( i0 + i1 ) % 2,
 
@@ -387,7 +387,7 @@ Function Distributive@all ( ) : Unit {
 		apply bc to v
 	}
 
-	color with {
+	repeat with {
 		0 == ( i0 + i1 ) % 2,
 		1 == ( i0 + i1 ) % 2,
 
@@ -481,7 +481,7 @@ Function Vanka@all ( ) : Unit {
 		apply bc to p
 	} else {
 		if ( 1 == stride_x && 1 == stride_y ) {
-			color with {
+			repeat with {
 				0 == ( i0 + i1 ) % 2,
 				1 == ( i0 + i1 ) % 2,
 

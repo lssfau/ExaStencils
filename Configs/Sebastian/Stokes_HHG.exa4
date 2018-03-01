@@ -507,7 +507,7 @@ Function Smoother@all ( ) : Unit {
 }
 
 Function Distributive@all ( ) : Unit {
-	color with {
+	repeat with {
 		0 == ( x + y + z ) % 2,
 		1 == ( x + y + z ) % 2,
 
@@ -519,7 +519,7 @@ Function Distributive@all ( ) : Unit {
 		apply bc to u@current
 	}
 
-	color with {
+	repeat with {
 		0 == ( x + y + z ) % 2,
 		1 == ( x + y + z ) % 2,
 
@@ -531,7 +531,7 @@ Function Distributive@all ( ) : Unit {
 		apply bc to v@current
 	}
 
-	color with {
+	repeat with {
 		0 == ( x + y + z ) % 2,
 		1 == ( x + y + z ) % 2,
 
@@ -543,7 +543,7 @@ Function Distributive@all ( ) : Unit {
 		apply bc to w@current
 	}
 
-	color with {
+	repeat with {
 		0 == ( x + y + z ) % 2,
 		1 == ( x + y + z ) % 2,
 
@@ -622,7 +622,7 @@ Function Vanka@all ( ) : Unit {
 	Val stride_z : Int = 1
 
 	if ( 1 == stride_x && 1 == stride_y && 1 == stride_z ) {
-		color with {
+		repeat with {
 			0 == ( x + y + z ) % 2,
 			1 == ( x + y + z ) % 2,
 

@@ -129,6 +129,8 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
 
       // go to IR
 
+      L4_ResolveColorLoops.apply()
+
       // pre-process level specifications in declarations
       L4_ResolveLevelSpecifications.apply()
 

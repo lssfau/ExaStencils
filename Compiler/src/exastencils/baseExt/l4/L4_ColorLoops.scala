@@ -1,44 +1,45 @@
 package exastencils.baseExt.l4
 
+import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ProgressLocation
-import exastencils.base.ir._
 import exastencils.base.l4._
-import exastencils.core.Duplicate
+import exastencils.datastructures.DefaultStrategy
+import exastencils.datastructures.Transformation
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
 /// L4_ColorLoops
 
-object L4_ColorLoops {
-  def apply(colors : List[L4_Expression], stmts : List[L4_Statement]) =
-    new L4_ColorLoops(colors.to[ListBuffer], stmts.to[ListBuffer])
+case class L4_ColorLoops(var colorExps : ListBuffer[L4_Modulo], var stmts : ListBuffer[L4_Statement]) extends L4_Statement {
+  override def prettyprint(out : PpStream) = out << "repeat with {\n" <<< (colorExps, ",\n") << ",\n" <<< (stmts, "\n") << "\n}"
+  override def progress = Logger.error("Trying to progress " + this.getClass.getName + " which is unsupported")
+
+  def toRepeatLoops() : L4_RepeatLoops = {
+    val conjNF = ArrayBuffer[ListBuffer[L4_Expression]]()
+    for (colorExp @ L4_Modulo(_, L4_IntegerConstant(nrCols)) <- colorExps) {
+      val disjTerm = ListBuffer[L4_Expression]()
+      for (c <- 0L until nrCols)
+        disjTerm += L4_EqEq(colorExp, L4_IntegerConstant(c))
+      conjNF += disjTerm
+    }
+
+    // can be seen as a transformation from conjunctive normal form to disjunctive normal form:
+    //   perform cross product from all intermediate results with next list of possibilities
+    var disjNF = ListBuffer[L4_Expression]() // only boolean expressions
+    val disjTerms = conjNF.iterator
+    disjNF = disjTerms.next()
+    while (disjTerms.hasNext)
+      disjNF = for (left <- disjNF; right <- disjTerms.next()) yield L4_AndAnd(left, right) // cross product using L4_AndAnd as combinator
+
+    L4_RepeatLoops(disjNF, stmts)
+  }
 }
 
-case class L4_ColorLoops(var colors : ListBuffer[L4_Expression], var stmts : ListBuffer[L4_Statement]) extends L4_Statement {
-  override def prettyprint(out : PpStream) = out << "color with {\n" <<< (colors, ",\n") << ",\n" <<< (stmts, "\n") << "\n}"
+/// L4_ResolveColorLoops
 
-  def generateStmtsForColor(color : L4_Expression) = {
-    val newStmts = Duplicate(stmts)
-    newStmts.transform {
-      case loop : L4_LoopOverField =>
-        if (loop.condition.isDefined)
-          loop.condition = Some(L4_AndAnd(loop.condition.get, color))
-        else
-          loop.condition = Some(color)
-        loop
-
-      case other =>
-        Logger.warn("Ignoring statement while coloring: " + other)
-        other
-    }
-    newStmts
-  }
-
-  override def progress : IR_Scope = ProgressLocation {
-    // TODO: extract loop duplication to separate transformation
-    val newStmts = colors.flatMap(generateStmtsForColor)
-    IR_Scope(newStmts.map(_.progress : IR_Statement))
-  }
+object L4_ResolveColorLoops extends DefaultStrategy("Resolve color with loops") {
+  this += new Transformation("Resolve", {
+    case cl : L4_ColorLoops => cl.toRepeatLoops()
+  })
 }
