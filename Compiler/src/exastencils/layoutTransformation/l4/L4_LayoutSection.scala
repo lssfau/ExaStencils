@@ -30,25 +30,25 @@ case class L4_LayoutSection(var statements : ListBuffer[L4_LayoutTransformStatem
 
 /// L4_UnifyLayoutSections
 
-object L4_UnifyLayoutSections extends DefaultStrategy("Unify all layout sections and ensure at least one section exists") {
-  var unifiedLayoutSection = L4_LayoutSection()
+object L4_UnifyLayoutSections extends DefaultStrategy("Unify all layout sections") {
+  var unifiedLayoutSection : L4_LayoutSection = null
 
   override def apply(applyAtNode : Option[Node]) : Unit = {
-    // collect information
     super.apply(applyAtNode)
 
-    // add collected info to root
-    ExaRootNode.l4_root.nodes = unifiedLayoutSection +: ExaRootNode.l4_root.nodes
-
     // reset unifiedLayoutSection for potential subsequent runs
-    unifiedLayoutSection = L4_LayoutSection()
+    unifiedLayoutSection = null
   }
 
   this += new Transformation("Collect and consume layout sections", {
     case layouts : L4_LayoutSection =>
-      unifiedLayoutSection.statements ++= layouts.statements
-
-      None
+      if (unifiedLayoutSection == null) {
+        unifiedLayoutSection = layouts
+        layouts
+      } else {
+        unifiedLayoutSection.statements ++= layouts.statements
+        None
+      }
   })
 }
 
