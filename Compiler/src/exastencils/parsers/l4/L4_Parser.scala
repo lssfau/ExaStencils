@@ -206,7 +206,8 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| advanceStatement
       ||| levelScope
       ||| solveLocallyStatement
-      ||| colorWithStatement)
+      ||| colorWithStatement
+      ||| repeatWithStatement)
 
   lazy val statementInsideRepeat = statement ||| breakStatement
 
@@ -278,8 +279,8 @@ object L4_Parser extends ExaParser with PackratParsers {
     ^^ { case conds ~ stmts => L4_RepeatLoops(conds.to, stmts.to) })
 
   lazy val colorWithStatement = locationize(("color" ~ "with" ~ "{") ~> (colorDefExpression <~ ",").+ ~ statement.* <~ "}"
-    ^^ { case colors ~ stmts => L4_ColorLoops(colors.to, stmts.to) }) // TODO
-  lazy val colorDefExpression : PackratParser[L4_Modulo] = locationize(((binaryexpression <~ "%") ~ integerLit) ^^ { case divd ~ divs => L4_Modulo(divd, L4_IntegerConstant(divs.toInt)) })
+    ^^ { case colors ~ stmts => L4_ColorLoops(colors.to, stmts.to) })
+  lazy val colorDefExpression : PackratParser[L4_Modulo] = locationize((term2 ~ "%" ~ integerLit) ^^ { case divd ~ _ ~ divs => L4_Modulo(divd, L4_IntegerConstant(divs.toInt)) })
 
   // ######################################
   // ##### Globals
