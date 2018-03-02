@@ -204,6 +204,8 @@ object Knowledge {
   // generates a default application assuming a generated solver _if_ no application function is provided
   var l4_genDefaultApplication : Boolean = true
 
+  var l4_defAppl_FieldToPrint : String = ""
+
   // generates a default SoA to AoS transformation _if_ no LayoutTransformation block exists
   //   (such a transformation is only created for fields whose level specification exactly matches the one of the associated layout,
   //     or the layout is flaged with '@all')
