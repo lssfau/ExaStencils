@@ -15,6 +15,7 @@ import exastencils.field.l4._
 import exastencils.interfacing.l4.L4_ExternalFieldDecl
 import exastencils.knowledge.l4._
 import exastencils.layoutTransformation.l4._
+import exastencils.logger.Logger
 import exastencils.operator.l4._
 import exastencils.parsers._
 import exastencils.solver.l4._
@@ -281,10 +282,12 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val colorWithStatement = locationize(("color" ~ "with" ~ "{") ~> (colorDefExpression <~ ",").+ ~ statement.* <~ "}"
     ^^ { case colors ~ stmts => L4_ColorLoops(colors.to, stmts.to) })
-  lazy val colorDefExpressionTest : Parser[L4_Modulo] = locationize(binaryexpression ^^ { case modExp @ L4_Modulo(_, L4_IntegerConstant(_)) => modExp })
-  lazy val colorDefExpression : Parser[L4_Modulo] = locationize("(" ~> colorDefExpression2 <~ ")") ||| locationize(colorDefExpression2)
-  lazy val colorDefExpression2 : Parser[L4_Modulo] = locationize(((term2 <~ "%") ~ integerLit)
-    ^^ { case divd ~ divs => L4_Modulo(divd, L4_IntegerConstant(divs.toInt)) })
+  lazy val colorDefExpression : Parser[L4_Modulo] = locationize(binaryexpression ^^ {
+    case modExp @ L4_Modulo(_, L4_IntegerConstant(_)) =>
+      modExp
+    case exp                                          =>
+      Logger.error("color expression in 'color with' statement must be a modulo expression with a constant integral divisor" + exp.location.toAppendString)
+  })
 
   // ######################################
   // ##### Globals
