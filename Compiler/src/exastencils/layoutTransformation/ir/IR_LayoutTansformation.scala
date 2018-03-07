@@ -185,6 +185,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     val fieldAliass = new ArrayBuffer[IR_ExternalFieldAlias]()
 
     // TODO: search for them here? or extract transformation statements earlier
+    // collect layout trafo stmts
     this.execute(new Transformation("collect transformation statements", {
       case layColl : IR_LayoutTransformationCollection =>
         for (stmt <- layColl.trafoStmts) stmt match {
@@ -199,6 +200,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
         None // consume whole collection
     }))
 
+    // apply transform stmts (GenericTransform) (for the first time)
     val processedLayouts = new IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex]()
     val colCondColl = new ColorCondCollector()
     if (!transformations.isEmpty) {
@@ -210,10 +212,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
       }))
     }
 
-    val fieldReplace = new IdentityHashMap[IR_Field, (IR_Field, Int)]()
-    for (fConc <- fieldConcs)
-      fConc.addFieldReplacements(fieldReplace)
-
+    // perform renameing (ExternalFieldAlias)
     for (alias <- fieldAliass)
       for (level <- alias.oldLevels)
         IR_FieldCollection.getByIdentifier(alias.oldName, level) match {
@@ -221,7 +220,14 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
           case None        => Logger.error(s"field ${ alias.oldName }@$level should be renamed, but does not exist")
         }
 
+    // create new (concatenated) fields (FieldConcatenation)
+    val fieldReplace = new IdentityHashMap[IR_Field, (IR_Field, Int)]()
+    for (fConc <- fieldConcs)
+      fConc.addFieldReplacements(fieldReplace)
+
+    // if there is something to replace...
     if (!fieldReplace.isEmpty()) {
+      // ... perform replacement and apply transform stmts (Generic Transform) (again, since some may target the new, concatenated fields)
       colCondColl.reset()
       this.execute(new Transformation("concatenate and transform result", {
         case dfa : IR_DirectFieldAccess        =>
