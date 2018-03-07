@@ -290,7 +290,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     this.commit()
   }
 
-  def processDFA(dfa : IR_DirectFieldAccess, transformations : HashMap[(String, Int), ArrayBuffer[IR_GenericTransform]],
+  private def processDFA(dfa : IR_DirectFieldAccess, transformations : HashMap[(String, Int), ArrayBuffer[IR_GenericTransform]],
       processedLayouts : IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex], colColl : ColorCondCollector) : Unit = {
     val fieldID : (String, Int) = (dfa.fieldSelection.field.name, dfa.fieldSelection.field.level)
     val layout : IR_FieldLayout = dfa.fieldSelection.fieldLayout
