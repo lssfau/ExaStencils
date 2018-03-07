@@ -12,6 +12,14 @@ import exastencils.prettyprinting.PpStream
 /// L4_ColorLoops
 
 case class L4_ColorLoops(var colorExps : ListBuffer[L4_Modulo], var stmts : ListBuffer[L4_Statement]) extends L4_Statement {
+
+  for (cExp <- colorExps)
+    cExp.right match {
+      case L4_IntegerConstant(i) if (i > 0) => // everything is fine
+      case _                                =>
+        Logger.error("the divisor of all color expressions for a color with statement must be a positive integer constant")
+    }
+
   override def prettyprint(out : PpStream) = out << "color with {\n" <<< (colorExps, ",\n") << ",\n" <<< (stmts, "\n") << "\n}"
   override def progress = Logger.error("Trying to progress " + this.getClass.getName + " which is unsupported")
 
