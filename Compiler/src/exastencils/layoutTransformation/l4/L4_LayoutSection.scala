@@ -28,30 +28,6 @@ case class L4_LayoutSection(var statements : ListBuffer[L4_LayoutTransformStatem
   override def progress = ProgressLocation(IR_LayoutTransformationCollection(statements.map(_.progress)))
 }
 
-/// L4_UnifyLayoutSections
-
-object L4_UnifyLayoutSections extends DefaultStrategy("Unify all layout sections") {
-  var unifiedLayoutSection : L4_LayoutSection = null
-
-  override def apply(applyAtNode : Option[Node]) : Unit = {
-    super.apply(applyAtNode)
-
-    // reset unifiedLayoutSection for potential subsequent runs
-    unifiedLayoutSection = null
-  }
-
-  this += new Transformation("Collect and consume layout sections", {
-    case layouts : L4_LayoutSection =>
-      if (unifiedLayoutSection == null) {
-        unifiedLayoutSection = layouts
-        layouts
-      } else {
-        unifiedLayoutSection.statements ++= layouts.statements
-        None
-      }
-  })
-}
-
 /// L4_AaddSOAtoAOSTransformation
 
 object L4_AddSoAtoAoSTransformation extends DefaultStrategy("Add SoA to AoS transformation for all fields with matrix or vector element type") {
