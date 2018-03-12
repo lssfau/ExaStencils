@@ -300,16 +300,15 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
       processedLayouts : IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex], colColl : ColorCondCollector) : Unit = {
     val fieldID : (String, Int) = (dfa.fieldSelection.field.name, dfa.fieldSelection.field.level)
     val layout : IR_FieldLayout = dfa.fieldSelection.fieldLayout
-    var newIndex : IR_ExpressionIndex = processedLayouts.get(layout)
-    if (newIndex != null) {
-      newIndex = Duplicate(newIndex)
-    } else for (trafos <- transformations.get(fieldID)) { // Option
-      val trafoMaff : isl.MultiAff = createIslTrafo(trafos, layout, fieldID)
-      adaptLayout(layout, trafoMaff, fieldID)
-      val exprs : IR_ExpressionIndex = createASTforMultiAff(trafoMaff)
-      processedLayouts.put(layout, exprs)
-      newIndex = Duplicate(exprs)
-    }
+    var newIndex : IR_ExpressionIndex = Duplicate(processedLayouts.get(layout))
+    if (newIndex == null)
+      for (trafos <- transformations.get(fieldID)) { // Option
+        val trafoMaff : isl.MultiAff = createIslTrafo(trafos, layout, fieldID)
+        adaptLayout(layout, trafoMaff, fieldID)
+        val exprs : IR_ExpressionIndex = createASTforMultiAff(trafoMaff)
+        processedLayouts.put(layout, exprs)
+        newIndex = Duplicate(exprs)
+      }
     if (newIndex != null) {
       val qStrat = QuietDefaultStrategy("quiet")
       qStrat += new Transformation("replace", {
@@ -322,14 +321,15 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
           case mod @ IR_Modulo(sum, IR_IntegerConstant(nrCol)) =>
             val sumMap : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(sum)
             val sumCst : Long = sumMap.remove(IR_SimplifyExpression.constName).getOrElse(0L)
+            var trafoResult : IR_Expression = mod
             colorInfo.get(sumMap) match {
               case Some((color, nrColor)) if (nrCol == nrColor) =>
-                IR_IntegerConstant(((sumCst + color) % nrCol + nrCol) % nrCol)
+                trafoResult = IR_IntegerConstant(((sumCst + color) % nrCol + nrCol) % nrCol)
               case o                                            =>
                 if (o.isDefined)
                   Logger.warning(s"[layout trafo]  divisor of modulo operation in index ($nrCol) does not match the one in a surrounding condition (${ o.get._2 }) for expression  " + mod.prettyprint())
-                mod
             }
+            trafoResult
         })
       }
       qStrat.applyStandalone(newIndex)
