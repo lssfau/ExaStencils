@@ -29,10 +29,6 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
 
   implicit def long2val(l : Long) : isl.Val = isl.Val.intFromSi(Isl.ctx, l)
 
-  private val tmpNamePrefix : String = "__LRep"
-  private def tmpName(i : Int) : String = tmpNamePrefix + i
-  private def tmpNameIdx(s : String) : Int = s.substring(tmpNamePrefix.length()).toInt
-
   private def addIdentityDims(mAff : isl.MultiAff, nr : Int) : isl.MultiAff = {
     var ma : isl.MultiAff = mAff
     val oldIn : Int = ma.dim(T_IN)
@@ -152,7 +148,13 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     layout.referenceOffset = null // field is not valid anymore
   }
 
-  private def createASTforMultiAff(trafo : isl.MultiAff) : IR_ExpressionIndex = {
+  private def createASTTemplateforMultiAff(trafo : isl.MultiAff) : (IR_ExpressionIndex => IR_ExpressionIndex) = {
+    val tmpNamePrefix : String = "__LRep"
+
+    def tmpName(i : Int) : String = tmpNamePrefix + i
+
+    def tmpNameIdx(s : String) : Int = s.substring(tmpNamePrefix.length()).toInt
+
     var maff : isl.MultiAff = trafo
 
     val dim = maff.dim(T_IN)
@@ -173,7 +175,22 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     val build = isl.AstBuild.alloc(pwmaff.getCtx())
     val expr : isl.AstExpr = build.accessFromPwMultiAff(pwmaff)
     val args : Array[IR_Expression] = IR_ASTExpressionBuilder.processArgs(expr)
-    return IR_ExpressionIndex(args.iterator.drop(1).toArray)
+
+    val expArr = args.iterator.drop(1).toArray
+    val quietReplace = QuietDefaultStrategy("quiet")
+    var oldInd : IR_ExpressionIndex = null
+    quietReplace += new Transformation("replace", {
+      case IR_StringLiteral(id) if id.startsWith(tmpNamePrefix)     => Duplicate.apply[IR_Expression](oldInd(tmpNameIdx(id))) // IntelliJ workaround: specify IR_Expression explicitly
+      case IR_VariableAccess(id, _) if id.startsWith(tmpNamePrefix) => Duplicate.apply[IR_Expression](oldInd(tmpNameIdx(id))) // HACK to deal with the HACK in IR_ExpressionIndex
+    })
+    val template = {
+      old : IR_ExpressionIndex =>
+        oldInd = old
+        val newAcc = IR_ExpressionIndex(Duplicate(expArr))
+        quietReplace.applyStandalone(newAcc)
+        newAcc
+    }
+    template
   }
 
   override def apply() : Unit = {
@@ -201,7 +218,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     }))
 
     // apply transform stmts (GenericTransform) (for the first time)
-    val processedLayouts = new IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex]()
+    val processedLayouts = new IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex => IR_ExpressionIndex]()
     val colCondColl = new ColorCondCollector()
     if (!transformations.isEmpty) {
       this.register(colCondColl)
@@ -297,47 +314,48 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
   }
 
   private def processDFA(dfa : IR_DirectFieldAccess, transformations : HashMap[(String, Int), ArrayBuffer[IR_GenericTransform]],
-      processedLayouts : IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex], colColl : ColorCondCollector) : Unit = {
+      processedLayouts : IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex => IR_ExpressionIndex], colColl : ColorCondCollector) : Unit = {
+
     val fieldID : (String, Int) = (dfa.fieldSelection.field.name, dfa.fieldSelection.field.level)
+    val trafosOpt = transformations.get(fieldID)
+    if (trafosOpt.isEmpty)
+      return
+
     val layout : IR_FieldLayout = dfa.fieldSelection.fieldLayout
-    var newIndex : IR_ExpressionIndex = Duplicate(processedLayouts.get(layout))
-    if (newIndex == null)
-      for (trafos <- transformations.get(fieldID)) { // Option
-        val trafoMaff : isl.MultiAff = createIslTrafo(trafos, layout, fieldID)
-        adaptLayout(layout, trafoMaff, fieldID)
-        val exprs : IR_ExpressionIndex = createASTforMultiAff(trafoMaff)
-        processedLayouts.put(layout, exprs)
-        newIndex = Duplicate(exprs)
-      }
-    if (newIndex != null) {
-      val qStrat = QuietDefaultStrategy("quiet")
-      qStrat += new Transformation("replace", {
-        case IR_StringLiteral(id) if id.startsWith(tmpNamePrefix)     => Duplicate.apply[IR_Expression](dfa.index(tmpNameIdx(id))) // IntelliJ workaround: specify IR_Expression explicitly
-        case IR_VariableAccess(id, _) if id.startsWith(tmpNamePrefix) => Duplicate.apply[IR_Expression](dfa.index(tmpNameIdx(id))) // HACK to deal with the HACK in IR_ExpressionIndex
-      })
-      val colorInfo : StackedMap[HashMap[IR_Expression, Long], (Long, Long)] = colColl.colorInfo
-      if (!colorInfo.isEmpty) {
-        qStrat += new Transformation("simplify color", {
-          case mod @ IR_Modulo(sum, IR_IntegerConstant(nrCol)) =>
-            val sumMap : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(sum)
-            val sumCst : Long = sumMap.remove(IR_SimplifyExpression.constName).getOrElse(0L)
-            var trafoResult : IR_Expression = mod
-            colorInfo.get(sumMap) match {
-              case Some((color, nrColor)) if (nrCol == nrColor) =>
-                trafoResult = IR_IntegerConstant(((sumCst + color) % nrCol + nrCol) % nrCol)
-              case o                                            =>
-                if (o.isDefined)
-                  Logger.warning(s"[layout trafo]  divisor of modulo operation in index ($nrCol) does not match the one in a surrounding condition (${ o.get._2 }) for expression  " + mod.prettyprint())
-            }
-            trafoResult
-        })
-      }
-      qStrat.applyStandalone(newIndex)
-      // simplifying here is very time intense, but may not be required... test
-      // for (i <- 0 until newIndex.length)
-      //   newIndex(i) = IR_SimplifyExpression.simplifyIntegralExpr(newIndex(i))
-      dfa.index = newIndex
+    var exprTemplate : IR_ExpressionIndex => IR_ExpressionIndex = processedLayouts.get(layout)
+    if (exprTemplate == null) {
+      val trafoMaff : isl.MultiAff = createIslTrafo(trafosOpt.get, layout, fieldID)
+      adaptLayout(layout, trafoMaff, fieldID)
+      exprTemplate = createASTTemplateforMultiAff(trafoMaff)
+      processedLayouts.put(layout, exprTemplate)
     }
+
+    val newIndex = exprTemplate(dfa.index)
+
+    val colorInfo : StackedMap[HashMap[IR_Expression, Long], (Long, Long)] = colColl.colorInfo
+    if (!colorInfo.isEmpty) {
+      val qStrat = QuietDefaultStrategy("quiet")
+      qStrat += new Transformation("simplify color", {
+        case mod @ IR_Modulo(sum, IR_IntegerConstant(nrCol)) =>
+          val sumMap : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(sum)
+          val sumCst : Long = sumMap.remove(IR_SimplifyExpression.constName).getOrElse(0L)
+          var trafoResult : IR_Expression = mod
+          colorInfo.get(sumMap) match {
+            case Some((color, nrColor)) if (nrCol == nrColor) =>
+              trafoResult = IR_IntegerConstant(((sumCst + color) % nrCol + nrCol) % nrCol)
+            case o                                            =>
+              if (o.isDefined)
+                Logger.warning(s"[layout trafo]  divisor of modulo operation in index ($nrCol) does not match the one in a surrounding condition (${ o.get._2 }) for expression  " + mod.prettyprint())
+          }
+          trafoResult
+      })
+      qStrat.applyStandalone(newIndex)
+    }
+
+    // simplifying here is very time intense, but may not be required... test
+    // for (i <- 0 until newIndex.length)
+    //   newIndex(i) = IR_SimplifyExpression.simplifyIntegralExpr(newIndex(i))
+    dfa.index = newIndex
   }
 }
 
