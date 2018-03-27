@@ -35,7 +35,9 @@ case class L4_ColorLoops(var colorExps : ListBuffer[L4_Modulo], var stmts : List
     // can be seen as a transformation from conjunctive normal form to disjunctive normal form:
     //   perform cross product from all intermediate results with next list of possibilities
     var disjNF = ListBuffer[L4_Expression]() // only boolean expressions
-    val disjTerms = conjNF.iterator
+    // reverse here to get a better ordering
+    //   normally, the first coloring expression given is the innermost - in terms of the memory layout - so ensure this is the fastest varying: the last
+    val disjTerms = conjNF.reverseIterator
     disjNF = disjTerms.next()
     while (disjTerms.hasNext) {
       val disjTerm = disjTerms.next()
