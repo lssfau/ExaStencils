@@ -16,7 +16,7 @@ object IR_IfCondition {
   def apply(condition : IR_Expression, trueBranch : IR_Statement, falseBody : ListBuffer[IR_Statement]) = new IR_IfCondition(condition, ListBuffer(trueBranch), falseBody)
 }
 
-case class IR_IfCondition(var condition : IR_Expression, var trueBody : ListBuffer[IR_Statement], var falseBody : ListBuffer[IR_Statement]) extends IR_Statement {
+case class IR_IfCondition(var condition : IR_Expression, var trueBody : ListBuffer[IR_Statement], var falseBody : ListBuffer[IR_Statement]) extends IR_ScopedStatement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "if (" << condition << ") {\n"
     out <<< (trueBody, "\n") << '\n'
@@ -55,7 +55,7 @@ object IR_Switch {
   def apply(what : IR_Expression, body : IR_Case*) = new IR_Switch(what, body.to[ListBuffer])
 }
 
-case class IR_Switch(var what : IR_Expression, var body : ListBuffer[IR_Case]) extends IR_Statement {
+case class IR_Switch(var what : IR_Expression, var body : ListBuffer[IR_Case]) extends IR_ScopedStatement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "switch (" << what << ") {\n"
     out <<< (body, "\n") << '\n'

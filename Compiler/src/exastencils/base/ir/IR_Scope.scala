@@ -9,7 +9,7 @@ object IR_Scope {
   def apply(body : List[IR_Statement]) = new IR_Scope(body.to[ListBuffer])
 }
 
-case class IR_Scope(var body : ListBuffer[IR_Statement]) extends IR_Statement {
+case class IR_Scope(var body : ListBuffer[IR_Statement]) extends IR_ScopedStatement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "{\n"
     out <<< (body, "\n") << '\n'
