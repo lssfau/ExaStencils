@@ -145,12 +145,16 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
   if (Knowledge.experimental_resolveInverseFunctionCall == "Runtime") {
     this += new Transformation("preparation", {
       case call @ IR_FunctionCall(_, args) if (call.name == "inverse") =>
-        val m = args(0).datatype.asInstanceOf[IR_MatrixDatatype]
-        if (m.sizeM > 3) {
-          call.function = IR_PlainInternalFunctionReference("_runtimeInverseMatrix", m)
-        }
-        call
+        args(0).datatype match {
+          case _ : IR_ScalarDatatype => IR_DoubleConstant(1.0) / args(0)
 
+          case m : IR_MatrixDatatype =>
+            args(0).datatype.asInstanceOf[IR_MatrixDatatype]
+            if (m.sizeM > 3) {
+              call.function = IR_PlainInternalFunctionReference("_runtimeInverseMatrix", m)
+            }
+            call
+        }
     })
   }
 
