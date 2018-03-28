@@ -13,8 +13,8 @@ object L3_VankaAsSolverForEquation extends L3_IterativeSolverForEquation {
 
   import L3_IterativeSolverForEquation._
 
-  override def generateFor(entries : ListBuffer[L3_SolverForEqEntry], level : Int) = generateFor(entries, level, None)
-  def generateFor(entries : ListBuffer[L3_SolverForEqEntry], level : Int, smootherHint : Option[L3_GenerateSmootherHint]) = {
+  override def generateFor(entries : ListBuffer[L3_SolverForEqEntry], level : Int) = generateFor(entries, level, ListBuffer())
+  def generateFor(entries : ListBuffer[L3_SolverForEqEntry], level : Int, smootherHints : ListBuffer[L3_GenerateSmootherHint]) = {
     // set up function for norm of residual
     generateResNormFunction(entries, level)
 
@@ -43,7 +43,7 @@ object L3_VankaAsSolverForEquation extends L3_IterativeSolverForEquation {
     val loopStmts = ListBuffer[L3_Statement]()
 
     val numInnerSteps = /* TODO: model as parameter */ 10
-    loopStmts ++= L3_VankaForEquation.generateFor(entries, level, numInnerSteps, smootherHint)
+    loopStmts ++= L3_VankaForEquation.generateFor(entries, level, numInnerSteps, smootherHints)
 
     loopStmts += L3_VariableDeclaration(nextRes, callResNorm)
 

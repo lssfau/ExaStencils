@@ -20,20 +20,20 @@ import exastencils.prettyprinting.PpStream
 /// L3_SolverForEquation
 
 object L3_SolverForEquation {
-  def apply(entries : List[L3_SolverForEqEntry], options : List[(String, Any)], modifications : List[L3_SolverModification], smootherHint : Option[L3_GenerateSmootherHint]) = {
+  def apply(entries : List[L3_SolverForEqEntry], options : List[(String, Any)], modifications : List[L3_SolverModification], smootherHints : List[L3_GenerateSmootherHint]) = {
     val newOptions = HashMap[String, Any]()
     options.foreach(newOptions += _)
-    new L3_SolverForEquation(entries.to[ListBuffer], newOptions, modifications.to[ListBuffer], smootherHint)
+    new L3_SolverForEquation(entries.to[ListBuffer], newOptions, modifications.to[ListBuffer], smootherHints.to[ListBuffer])
   }
 
-  def apply(entries : ListBuffer[L3_SolverForEqEntry]) = new L3_SolverForEquation(entries, HashMap(), ListBuffer(), None)
+  def apply(entries : ListBuffer[L3_SolverForEqEntry]) = new L3_SolverForEquation(entries, HashMap(), ListBuffer(), ListBuffer())
 }
 
 case class L3_SolverForEquation(
     var entries : ListBuffer[L3_SolverForEqEntry],
     var options : HashMap[String, Any],
     var modifications : ListBuffer[L3_SolverModification],
-    var smootherHint : Option[L3_GenerateSmootherHint]) extends L3_Statement {
+    var smootherHints : ListBuffer[L3_GenerateSmootherHint]) extends L3_Statement {
 
   var processed = false
   var replaceDone = false
@@ -56,6 +56,7 @@ case class L3_SolverForEquation(
     if (modifications.nonEmpty) {
       out << " modifiers {\n" <<< (modifications, "\n") << "}"
     }
+    //FIXME: out <<< (smootherHints, "\n")
   }
 
   override def progress : L4_Statement = ???
@@ -109,9 +110,10 @@ case class L3_SolverForEquation(
   }
 
   def generateOperators() = {
-    def defInterpolation = {
+    def defInterpolationForRestriction = {
       Knowledge.discr_type.toLowerCase() match {
         case "fd" | "finitedifference" | "finitedifferences" => "linear"
+        case "fe" | "finiteelement" | "finiteelements"       => "integral_linear"
         case "fv" | "finitevolume" | "finitevolumes"         => "integral_linear"
         case _                                               => Logger.error(s"Unsupported discretization type ${ Knowledge.discr_type }")
       }
@@ -122,7 +124,7 @@ case class L3_SolverForEquation(
         val field = entry.getSolField(level)
 
         // restriction for residual -> can be the value of an integral if FV are used
-        val restrictionForRes = L3_DefaultRestriction.generate(s"gen_restrictionForRes_${ field.name }", level, field.numDimsGrid, field.localization, defInterpolation)
+        val restrictionForRes = L3_DefaultRestriction.generate(s"gen_restrictionForRes_${ field.name }", level, field.numDimsGrid, field.localization, defInterpolationForRestriction)
         L3_StencilCollection.add(restrictionForRes)
         entry.restrictForResPerLevel += (level -> restrictionForRes)
 
@@ -296,7 +298,7 @@ case class L3_SolverForEquation(
         // regular cycle
 
         // smoother
-        handleStage("smoother", L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPre, smootherHint))
+        handleStage("smoother", L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPre, smootherHints))
 
         // update residual
         handleStage("updateResidual", entries.map(_.generateUpdateRes(level)))
@@ -315,10 +317,10 @@ case class L3_SolverForEquation(
         handleStage("correction", generateCorrection(level))
 
         // smoother
-        handleStage("smoother", L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPost, smootherHint))
+        handleStage("smoother", L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPost, smootherHints))
       } else {
         // cgs
-        handleStage("cgs", L3_IterativeSolverForEquation.generateIterativeSolver(Knowledge.solver_cgs, entries, level, smootherHint))
+        handleStage("cgs", L3_IterativeSolverForEquation.generateIterativeSolver(Knowledge.solver_cgs, entries, level, smootherHints))
       }
 
       // handle whole cycle as stage

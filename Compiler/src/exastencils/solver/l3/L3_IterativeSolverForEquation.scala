@@ -14,13 +14,13 @@ import exastencils.util.l3.L3_MathFunctionReference
 object L3_IterativeSolverForEquation {
   var generateDebugPrints : Boolean = false
 
-  def generateIterativeSolver(solver : String, entries : ListBuffer[L3_SolverForEqEntry], level : Int, smootherHint : Option[L3_GenerateSmootherHint]) = {
+  def generateIterativeSolver(solver : String, entries : ListBuffer[L3_SolverForEqEntry], level : Int, smootherHints : ListBuffer[L3_GenerateSmootherHint]) = {
     solver.toLowerCase() match {
       case "cg" | "conjugategradient" | "conjugategradients" => L3_ConjugateGradientForEquation.generateFor(entries, level)
       case "bicgstab"                                        => L3_BiCGStabForEquation.generateFor(entries, level)
       case "minres"                                          => L3_MinResForEquation.generateFor(entries, level)
       case "conjugateresidual" | "conjugateresiduals"        => L3_ConjugateResidualForEquation.generateFor(entries, level)
-      case "smoother"                                        => L3_VankaAsSolverForEquation.generateFor(entries, level, smootherHint)
+      case "smoother"                                        => L3_VankaAsSolverForEquation.generateFor(entries, level, smootherHints)
       case _                                                 => Logger.error(s"Unsupported iterative solver: ${ solver }")
     }
   }
