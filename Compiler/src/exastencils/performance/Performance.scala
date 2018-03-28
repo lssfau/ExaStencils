@@ -83,11 +83,15 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
 
     if (true) {
       // TODO: add flag to control behavior
-      val file = new java.io.File(Settings.performanceEstimateOutputFile)
-      if (!file.getParentFile.exists()) {
-        file.getParentFile.mkdirs()
+
+      val targetFile = Settings.performanceEstimateOutputFile
+      if (!new java.io.File(targetFile).exists) {
+        val file = new java.io.File(targetFile)
+        if (!file.getParentFile.exists()) file.getParentFile.mkdirs()
       }
-      outputStream = new PrintWriter(Settings.performanceEstimateOutputFile)
+
+      outputStream = new PrintWriter(targetFile)
+
       val sep = Settings.csvSeparator
       for (fct <- completeFunctions.toList.sortBy(_._1)) {
         val fctName = fct._1
