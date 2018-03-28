@@ -47,7 +47,7 @@ object JobScriptGenerator {
         printer <<< ""
 
         printer <<< s"module load daint-gpu"
-        printer <<< s"module load cudatoolkit"
+        printer <<< s"module load craype-accel-nvidia60"
 
         printer <<< ""
 
@@ -56,10 +56,6 @@ object JobScriptGenerator {
 
         // if (tasksPerNode > 1) // for some reason this flag is also required if only one thread per node is used
         printer <<< s"export CRAY_CUDA_MPS=1            # allow GPU sharing"
-
-        // HACK for execution of CPU-GPU parallel programs on PizDaint
-        if ("Condition" == Knowledge.cuda_preferredExecution)
-          printer <<< s"export MPICH_GNI_LMT_PATH=disabled"
 
         if (Knowledge.omp_enabled) {
           printer <<< s"export OMP_NUM_THREADS=$numOMP          # set number of OMP threads"
@@ -74,10 +70,16 @@ object JobScriptGenerator {
 
         printer <<< ""
 
-        if ("Condition" == Knowledge.cuda_preferredExecution)
-          printer <<< s"srun ${ if (debug) "-v" else "" } -n $numMPI --ntasks-per-node=$tasksPerNode --cpu_bind=mask_cpu:0x1FF,0x200,0x400,0x800 ./exastencils"
-        else
-          printer <<< s"srun ${ if (debug) "-v" else "" } -n $numMPI --ntasks-per-node=$tasksPerNode ./exastencils"
+        // large job adaptation according to https://user.cscs.ch/getting_started/running_jobs/#large-jobs
+        printer <<< "export PMI_MMAP_SYNC_WAIT_TIME=300"
+
+        printer << s"srun "
+        if (debug) printer << "-v "
+        printer << s"--wait 180 --bcast=/tmp/${ Settings.configName } "
+        printer << s"-n $numMPI --ntasks-per-node=$tasksPerNode "
+        if ("Condition" == Knowledge.cuda_preferredExecution && Platform.omp_pinning.nonEmpty)
+          printer << s"--cpu_bind=${ Platform.omp_pinning } "
+        printer <<< s"./${ Settings.binary }"
 
         printer.finish()
 

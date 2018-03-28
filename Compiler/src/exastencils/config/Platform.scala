@@ -140,6 +140,9 @@ object Platform {
     }
   }
 
+  // pinning scheme for (omp) threads
+  var omp_pinning : String = ""
+
   /// MPI
 
   // the target mpi implementation; may currently be "OpenMPI", "IntelMPI" or "MSMPI"
