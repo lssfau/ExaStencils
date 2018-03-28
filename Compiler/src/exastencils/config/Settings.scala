@@ -145,6 +145,9 @@ object Settings {
     }
   }
 
+  /// files emitted by the generated code
+  var characteristicsFile : String = "characteristics.csv"
+
   /// external dependencies
 
   var pathsInc : ListBuffer[String] = ListBuffer()

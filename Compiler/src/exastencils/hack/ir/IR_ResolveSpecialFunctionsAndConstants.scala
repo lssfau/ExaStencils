@@ -7,14 +7,14 @@ import exastencils.base.ir.{ IR_FunctionCall, _ }
 import exastencils.baseExt.ir._
 import exastencils.boundary.ir._
 import exastencils.communication.DefaultNeighbors
-import exastencils.config.Knowledge
+import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
-import exastencils.util.ir.IR_StackCollector
+import exastencils.util.ir._
 
 /// HACK_IR_ResolveSpecialFunctionsAndConstants
 
@@ -421,5 +421,17 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
 
         IR_Scope(stmts)
       }
+
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("logCharacteristics", _), args)) =>
+      var stmts = ListBuffer[IR_Statement]()
+
+      stmts += IR_VariableDeclaration(IR_SpecialDatatype("std::ofstream"), "outFile")
+      stmts += IR_MemberFunctionCall(IR_VariableAccess("outFile", IR_UnknownDatatype), "open", "\"" + Settings.characteristicsFile + "\"")
+
+      args.foreach(a => stmts += IR_Print(IR_VariableAccess("outFile", IR_UnknownDatatype), ListBuffer(a, IR_StringConstant(Settings.csvSeparator))))
+
+      stmts += IR_MemberFunctionCall(IR_VariableAccess("outFile", IR_UnknownDatatype), "close")
+
+      IR_Scope(stmts)
   })
 }
