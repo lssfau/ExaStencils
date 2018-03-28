@@ -56,7 +56,7 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
           statements))
     }
 
-    statements.prepend(IR_MemberFunctionCall(IR_VariableAccess("outFile", IR_UnknownDatatype), "open", "\"" + Knowledge.l3tmp_timerOuputFile + "\""))
+    statements.prepend(IR_MemberFunctionCall(IR_VariableAccess("outFile", IR_UnknownDatatype), "open", "\"" + Settings.timerOutputFile + "\""))
     statements.prepend(IR_VariableDeclaration(IR_SpecialDatatype("std::ofstream"), "outFile"))
     statements.append(IR_MemberFunctionCall(IR_VariableAccess("outFile", IR_UnknownDatatype), "close"))
 

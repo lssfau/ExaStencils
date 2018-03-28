@@ -598,12 +598,11 @@ object Knowledge {
   var l3tmp_genCommTimersPerLevel : Boolean = false // generates different communication timers for each level
 
   var l3tmp_printTimersToFile : Boolean = false
-  // prints results for all used timers at the end of the application; uses l3tmp_timerOuputFile as target file
+  // prints results for all used timers at the end of the application; uses Settings.timerOuputFile as target file
   var l3tmp_printTimersToFileForEachRank : Boolean = false
   // prints separate timer values for each rank -> requires some additional memory for the gather op
   var l3tmp_printAllTimers : Boolean = false
   // prints results for all used timers at the end of the application
-  var l3tmp_timerOuputFile : String = "timings.csv" // the file timer data is to be written to if l3tmp_printTimersToFile is activated
 
   var l3tmp_timeoutLimit : Int = 20 * 60 * 1000 // threshold in ms for the total cycle time after which solving is canceled; 0 deactivates the feature
 

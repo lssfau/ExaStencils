@@ -146,6 +146,8 @@ object Settings {
   }
 
   /// files emitted by the generated code
+
+  var timerOutputFile : String = "timings.csv"
   var characteristicsFile : String = "characteristics.csv"
 
   /// external dependencies
