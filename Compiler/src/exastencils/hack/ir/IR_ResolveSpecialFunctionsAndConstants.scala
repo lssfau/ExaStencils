@@ -432,6 +432,6 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
 
       stmts += IR_MemberFunctionCall(IR_VariableAccess("outFile", IR_UnknownDatatype), "close")
 
-      IR_Scope(stmts)
+      IR_IfCondition(MPI_IsRootProc(), stmts)
   })
 }
