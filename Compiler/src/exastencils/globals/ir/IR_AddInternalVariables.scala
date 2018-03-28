@@ -227,11 +227,19 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
 
   this += new Transformation("Extend SetupBuffers function", {
     case func : IR_Function if IR_AllocateDataFunction.fctName == func.name =>
-      for (genericAlloc <- bufferAllocs.toSeq.sortBy(_._1) ++ fieldAllocs.toSeq.sortBy(_._1) ++ deviceFieldAllocs.toSeq.sortBy(_._1) ++ deviceBufferAllocs.toSeq.sortBy(_._1))
+      for (genericAlloc <- bufferAllocs.toSeq.sortBy(_._1) ++ fieldAllocs.toSeq.sortBy(_._1))
         if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
           func.body += IR_Scope(genericAlloc._2)
         else
           func.body += genericAlloc._2
+
+      for (deviceAlloc <- deviceFieldAllocs.toSeq.sortBy(_._1) ++ deviceBufferAllocs.toSeq.sortBy(_._1))
+        if ("Condition" == Knowledge.cuda_preferredExecution)
+          func.body += IR_IfCondition(IR_Negation(Knowledge.cuda_executionCondition), deviceAlloc._2)
+        else if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
+          func.body += IR_Scope(deviceAlloc._2)
+        else
+          func.body += deviceAlloc._2
 
       func
   })
