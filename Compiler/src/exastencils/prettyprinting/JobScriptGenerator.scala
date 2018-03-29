@@ -51,8 +51,8 @@ object JobScriptGenerator {
 
         printer <<< ""
 
-        if (numMPI > 1)
-          printer <<< s"export MPICH_RDMA_ENABLED_CUDA=1  # allow GPU-GPU data transfer"
+        // if (numMPI > 1) // for some reason this flag is also required if only one mpi rank is used
+        printer <<< s"export MPICH_RDMA_ENABLED_CUDA=1  # allow GPU-GPU data transfer"
 
         // if (tasksPerNode > 1) // for some reason this flag is also required if only one thread per node is used
         printer <<< s"export CRAY_CUDA_MPS=1            # allow GPU sharing"
