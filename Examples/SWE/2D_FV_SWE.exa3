@@ -81,12 +81,4 @@ Function PrintFields@finest ( index : Int ) {
   }
 }
 
-Function AdvanceTimestep@all {
-  h  = hNew
-  hu = huNew
-  hv = hvNew
-}
-
-
-
 

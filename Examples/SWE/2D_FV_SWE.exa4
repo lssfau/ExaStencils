@@ -23,10 +23,10 @@ Function InitTestcase@finest {
     loop over h {
       b = -10
 
-      hNew = -b
+      h[next] = -b
 
-      huNew = 0.0
-      hvNew = 0.0
+      hu[next] = 0.0
+      hv[next] = 0.0
     }
   } else if ( 1 == testcase ) {
     /// test case 1 - flat floor, circular dam break in the middle of the domain
@@ -39,13 +39,13 @@ Function InitTestcase@finest {
       b = -10
 
       if ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) < damRadius ) {
-        hNew = -b + damHight
+        h[next] = -b + damHight
       } else {
-        hNew = -b
+        h[next] = -b
       }
 
-      huNew = 0.0
-      hvNew = 0.0
+      hu[next] = 0.0
+      hv[next] = 0.0
     }
   } else if ( 2 == testcase ) {
     /// test case 2 - circular elevation on the floor, flat water surface
@@ -62,10 +62,10 @@ Function InitTestcase@finest {
         b += elevationHight * sin ( PI * ( 0.5 + 0.5 * ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) / elevationRadius ) ) )
       }
 
-      hNew = -b
+      h[next] = -b
 
-      huNew = 0.0
-      hvNew = 0.0
+      hu[next] = 0.0
+      hv[next] = 0.0
     }
   } else if ( 3 == testcase ) {
     /// test case 3 - circular elevation on the floor, water surface elevated accordingly
@@ -77,14 +77,14 @@ Function InitTestcase@finest {
     loop over h {
       b = -10
 
-      hNew = -b
+      h[next] = -b
 
       if ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) <= elevationRadius ) {
         b += elevationHight * sin ( PI * ( 0.5 + 0.5 * ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) / elevationRadius ) ) )
       }
 
-      huNew = 0.0
-      hvNew = 0.0
+      hu[next] = 0.0
+      hv[next] = 0.0
     }
   }
 
@@ -162,9 +162,9 @@ Function Update@all {
       Expr hvc = Centering * hv
 
       solve locally {
-        hNew  => dx * dy * ( hNew  - hc  ) + dt * dy * 0.5 * ( F0@west - F0@east ) + dt * dx * 0.5 * ( G0@north - G0@south ) == S0
-        huNew => dx * dy * ( huNew - huc ) + dt * dy * 0.5 * ( F1@west - F1@east ) + dt * dx * 0.5 * ( G1@north - G1@south ) == dt * dy * 0.5 * ( S1@west  - S1@east  )
-        hvNew => dx * dy * ( hvNew - hvc ) + dt * dy * 0.5 * ( F2@west - F2@east ) + dt * dx * 0.5 * ( G2@north - G2@south ) == dt * dx * 0.5 * ( S2@north - S2@south )
+        h[next]  => dx * dy * ( h[next]  - hc  ) + dt * dy * 0.5 * ( F0@west - F0@east ) + dt * dx * 0.5 * ( G0@north - G0@south ) == S0
+        hu[next] => dx * dy * ( hu[next] - huc ) + dt * dy * 0.5 * ( F1@west - F1@east ) + dt * dx * 0.5 * ( G1@north - G1@south ) == dt * dy * 0.5 * ( S1@west  - S1@east  )
+        hv[next] => dx * dy * ( hv[next] - hvc ) + dt * dy * 0.5 * ( F2@west - F2@east ) + dt * dx * 0.5 * ( G2@north - G2@south ) == dt * dx * 0.5 * ( S2@north - S2@south )
       }
     }
   } else if ( 2 == version ) {
@@ -186,20 +186,17 @@ Function Update@all {
     Expr huc = Centering * hu
     Expr hvc = Centering * hv
 
-    loop over hNew {
-      hNew = hc - ( dt / dx ) * 0.5 * ( F0@west - F0@east ) - ( dt / dy ) * 0.5 * ( G0@north - G0@south )
+    loop over h {
+      h[next] = hc - ( dt / dx ) * 0.5 * ( F0@west - F0@east ) - ( dt / dy ) * 0.5 * ( G0@north - G0@south )
     }
-    apply bc to hNew
 
-    loop over huNew {
-      huNew = huc + ( dt / dx ) * 0.5 * ( S1@west  - S1@east  ) - ( dt / dx ) * 0.5 * ( F1@west - F1@east ) - ( dt / dy ) * 0.5 * ( G1@north - G1@south )
+    loop over hu {
+      hu[next] = huc + ( dt / dx ) * 0.5 * ( S1@west  - S1@east  ) - ( dt / dx ) * 0.5 * ( F1@west - F1@east ) - ( dt / dy ) * 0.5 * ( G1@north - G1@south )
     }
-    apply bc to huNew
 
-    loop over huNew {
-      hvNew = hvc + ( dt / dy ) * 0.5 * ( S2@north - S2@south ) - ( dt / dx ) * 0.5 * ( F2@west - F2@east ) - ( dt / dy ) * 0.5 * ( G2@north - G2@south )
+    loop over hu {
+      hv[next] = hvc + ( dt / dy ) * 0.5 * ( S2@north - S2@south ) - ( dt / dx ) * 0.5 * ( F2@west - F2@east ) - ( dt / dy ) * 0.5 * ( G2@north - G2@south )
     }
-    apply bc to huNew
   } else if ( 3 == version ) {
     /// version 3 - use vector data types
 
@@ -217,26 +214,32 @@ Function Update@all {
           ( S1@west - S1@east ) / dx + ( S2@north - S2@south ) / dy
         - ( F@west  - F@east  ) / dx - ( G@north  - G@south  ) / dy )
 
-      hNew  = dot ( qNew, { 1, 0, 0 }T )
-      huNew = dot ( qNew, { 0, 1, 0 }T )
-      hvNew = dot ( qNew, { 0, 0, 1 }T )
+      h[next]  = dot ( qNew, { 1, 0, 0 }T )
+      hu[next] = dot ( qNew, { 0, 1, 0 }T )
+      hv[next] = dot ( qNew, { 0, 0, 1 }T )
     }
   }
 
   if ( checkForNegativeH ) {
-    loop over hNew {
-      if ( hNew < 0.0 ) {
-        //print ( 'negative h at', i0, i1, hNew )
-        hNew  = 0
-        huNew = 0
-        hvNew = 0
+    loop over h {
+      if ( h[next] < 0.0 ) {
+        //print ( 'negative h at', i0, i1, h[next] )
+        h[next]  = 0
+        hu[next] = 0
+        hv[next] = 0
       }
     }
   }
-  
-  apply bc to hNew
-  apply bc to huNew
-  apply bc to hvNew
+}
+
+Function AdvanceTimestep@all {
+  advance h
+  advance hu
+  advance hv
+
+  apply bc to h
+  apply bc to hu
+  apply bc to hv
 }
 
 Function Application ( ) : Unit {

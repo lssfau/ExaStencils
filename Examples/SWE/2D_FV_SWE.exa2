@@ -4,14 +4,14 @@ Globals {
   Expr g = 9.81
 }
 
-Field h with Real on Cell of global = 0.0
+Field h with Real on Cell of global 2 times = 0.0
 Field h on boundary = Neumann
 
 Field b with Real on Cell of global = 0.0
 Field b on boundary = Neumann
 
-Field hu with Real on Cell of global = 0.0
-Field hv with Real on Cell of global = 0.0
+Field hu with Real on Cell of global 2 times = 0.0
+Field hv with Real on Cell of global 2 times = 0.0
 
 // Neumann -> outflow
 //Field hu on boundary = Neumann
@@ -20,16 +20,5 @@ Field hv with Real on Cell of global = 0.0
 // mixed bc for walls -> Dirichlet in the direction of the flow, Neumann otherwise
 Field hu on boundary = applyBC_hu_wall@current ( )
 Field hv on boundary = applyBC_hv_wall@current ( )
-
-// TODO: use clone instead
-
-Field hNew with Real on Cell of global = 0.0
-Field hNew on boundary = None
-
-Field huNew with Real on Cell of global = 0.0
-Field huNew on boundary = None
-
-Field hvNew with Real on Cell of global = 0.0
-Field hvNew on boundary = None
 
 
