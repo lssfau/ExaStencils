@@ -40,7 +40,7 @@ object L2_Lexer extends ExaLexer {
   reserved += ("i0", "i1", "i2", "x", "y", "z")
 
   // baseExt => L2_FieldDeclarations
-  reserved += ("Field", "with", "on", "of", "boundary")
+  reserved += ("Field", "with", "on", "times", "of", "boundary")
   reserved += ("Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")
 
   // baseExt => L2_GlobalSection

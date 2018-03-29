@@ -40,7 +40,7 @@ object L3_Lexer extends ExaLexer {
   reserved += ("repeat", "until", "while", "times", "count")
 
   // baseExt => L3_FieldDeclarations
-  reserved += ("Field", "from", "L2", "override", "bc", "for", "with", "on", "of", "boundary")
+  reserved += ("Field", "from", "L2", "override", "bc", "for", "with", "on", "times", "of", "boundary")
   reserved += ("Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")
 
   // baseExt => L3_ApplicationHints

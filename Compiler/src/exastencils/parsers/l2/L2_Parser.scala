@@ -335,8 +335,8 @@ object L2_Parser extends ExaParser with PackratParsers {
     ||| "Edge_Node" ||| "edge_node" ||| "Edge_Cell" ||| "edge_cell"
     ^^ (l => l))
 
-  lazy val baseFieldDeclaration = locationize(("Field" ~> ident) ~ levelDecl.? ~ ("with" ~> datatype).? ~ ("on" ~> localization) ~ ("of" ~> ident) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
-    ^^ { case id ~ levels ~ datatype ~ localization ~ domain ~ initial => L2_BaseFieldDecl(id, levels, datatype, localization, domain, initial) })
+  lazy val baseFieldDeclaration = locationize(("Field" ~> ident) ~ levelDecl.? ~ ("with" ~> datatype).? ~ ("on" ~> localization) ~ ("of" ~> ident) ~ (integerLit <~ "times").? ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
+    ^^ { case id ~ levels ~ datatype ~ localization ~ domain ~ numSlots ~ initial => L2_BaseFieldDecl(id, levels, datatype, localization, domain, numSlots, initial) })
   lazy val boundaryFieldDeclaration = locationize(("Field" ~> ident) ~ levelDecl.? ~ ("on" ~> "boundary") ~ ("=" ~> fieldBoundary)
     ^^ { case id ~ levels ~ _ ~ bc => L2_BoundaryFieldDecl(id, levels, bc) })
 

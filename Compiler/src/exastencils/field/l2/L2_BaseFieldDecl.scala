@@ -9,8 +9,8 @@ import exastencils.prettyprinting._
 /// L2_BaseFieldDecl
 
 object L2_BaseFieldDecl {
-  def apply(identifier : String, levels : Option[L2_LevelSpecification], datatype : Option[L2_Datatype], localization : String, domain : String, initial : Option[L2_Expression]) : L2_BaseFieldDecl =
-    L2_BaseFieldDecl(identifier, levels, datatype.getOrElse(L2_RealDatatype), L2_Localization.resolve(localization), L2_FutureDomainAccess(domain), initial)
+  def apply(identifier : String, levels : Option[L2_LevelSpecification], datatype : Option[L2_Datatype], localization : String, domain : String, numSlots : Option[Int], initial : Option[L2_Expression]) : L2_BaseFieldDecl =
+    L2_BaseFieldDecl(identifier, levels, datatype.getOrElse(L2_RealDatatype), L2_Localization.resolve(localization), L2_FutureDomainAccess(domain), numSlots, initial)
 }
 
 case class L2_BaseFieldDecl(
@@ -19,12 +19,14 @@ case class L2_BaseFieldDecl(
     var datatype : L2_Datatype,
     var localization : L2_Localization,
     var domain : L2_Access,
+    var numSlots : Option[Int],
     var initial : Option[L2_Expression]) extends L2_FieldDecl {
 
   override def prettyprint(out : PpStream) = {
     out << "Field " << name
     if (levels.isDefined) out << '@' << levels.get
     out << " with " << datatype << " on " << localization << " of " << domain
+    if (numSlots.isDefined) out << " " << numSlots.get << " times"
     if (initial.isDefined) out << " = " << initial.get
   }
 
@@ -36,6 +38,7 @@ case class L2_BaseFieldDecl(
         domain.asInstanceOf[L2_DomainAccess].target,
         datatype,
         localization,
+        numSlots.getOrElse(1),
         initial,
         L2_NoBC))
   }
