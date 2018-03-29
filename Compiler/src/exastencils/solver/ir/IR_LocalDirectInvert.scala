@@ -44,17 +44,13 @@ object IR_LocalDirectInvert {
     def A(i : Int, j : Int) = IR_VariableAccess(s"_local_matrix_${ i }_${ j }", IR_RealDatatype)
 
     // declare local variables -> to be merged later
-    stmts += IR_VariableDeclaration(u)
-    stmts += IR_VariableDeclaration(f)
+    stmts += IR_VariableDeclaration(u, 0.0)
+    stmts += IR_VariableDeclaration(f, 0.0)
 
     for (i <- unknowns.indices)
       for (j <- unknowns.indices)
         if (i == j || isNonZeroEntry(AVals(i)(j)))
           stmts += IR_VariableDeclaration(A(i, j)) // no init value necessary
-
-    // TODO: replace 0 with correct value/type
-    stmts += IR_Assignment(u, 0)
-    stmts += IR_Assignment(f, 0)
 
     // construct rhs and matrix
     for (i <- unknowns.indices) {

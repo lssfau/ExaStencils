@@ -701,6 +701,8 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
 
   if (Knowledge.experimental_resolveInverseFunctionCall == "Runtime") {
     def runtimeInverse(in : IR_VariableAccess, out : IR_VariableAccess) = {
+      val debug = false
+
       def printMatrix(matrix : IR_VariableAccess) = {
         val stmts = ListBuffer[IR_Statement]()
         matrix.datatype match {
@@ -754,10 +756,10 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
             IR_Assignment(myMaxCol, myJ)
           ))
         )),
-        IR_IfCondition(IR_Lower(myColmax, mkConstant(myType, 1e-15)),
+        if (debug) IR_IfCondition(IR_Lower(myColmax, mkConstant(myType, 1e-15)),
           IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference.printf, IR_StringConstant("[WARNING] Inverting potentially singular matrix\\n"))) +:
             printMatrix(myU)
-        ),
+        ) else IR_NullStatement,
         IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::swap"), IR_ArrayAccess(myQ, myK), IR_ArrayAccess(myQ, myMaxCol)))
       ))
       for (i <- 0 until N) {
@@ -809,7 +811,16 @@ object IR_ResolveMatrixAssignments extends DefaultStrategy("Resolve assignments 
   val annotationMatrixCol = "IR_ResolveMatrices.matrixCol"
 
   this += new Transformation("scalarize 1/2", {
-    case stmt : IR_VariableDeclaration                                                       => stmt
+    case stmt : IR_VariableDeclaration => stmt
+
+    case IR_Assignment(dest, num : IR_Number, "=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] && !dest.isInstanceOf[IR_MatrixExpression] =>
+      val dt = dest.datatype.asInstanceOf[IR_MatrixDatatype]
+      IR_FunctionCall("std::fill", ListBuffer[IR_Expression](Duplicate(dest), Duplicate(dest) + dt.resolveFlattendSize, num)) : IR_Statement
+
+    case IR_Assignment(dest, src : IR_VariableAccess, "=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] && !dest.isInstanceOf[IR_MatrixExpression] && src.datatype.isInstanceOf[IR_MatrixDatatype] =>
+      val dt = dest.datatype.asInstanceOf[IR_MatrixDatatype]
+      IR_FunctionCall("std::copy", ListBuffer[IR_Expression](Duplicate(src), Duplicate(src) + dt.resolveFlattendSize, dest)) : IR_Statement
+
     case stmt @ IR_Assignment(dest, _, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype]) =>
       val matrix = dest.datatype.asInstanceOf[IR_MatrixDatatype]
       var newStmts = ListBuffer[IR_Statement]()
