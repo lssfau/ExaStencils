@@ -13,7 +13,7 @@ object IR_LoopOverNeighbors {
   def defIt = "neighborIdx"
 }
 
-case class IR_LoopOverNeighbors(var body : ListBuffer[IR_Statement]) extends IR_Statement with IR_Expandable {
+case class IR_LoopOverNeighbors(var body : ListBuffer[IR_Statement]) extends IR_ScopedStatement with IR_Expandable {
 
   import IR_LoopOverNeighbors._
 

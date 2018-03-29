@@ -13,7 +13,7 @@ object IR_LoopOverDomains {
   def defIt = "domainIdx"
 }
 
-case class IR_LoopOverDomains(var body : ListBuffer[IR_Statement]) extends IR_Statement with IR_Expandable {
+case class IR_LoopOverDomains(var body : ListBuffer[IR_Statement]) extends IR_ScopedStatement with IR_Expandable {
 
   import IR_LoopOverDomains._
 

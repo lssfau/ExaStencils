@@ -5,8 +5,11 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ExaRootNode
 import exastencils.base.l4.L4_ImplicitConversion._
 import exastencils.base.l4._
+import exastencils.config.Knowledge
 import exastencils.core.StateManager
 import exastencils.datastructures._
+import exastencils.field.l4.L4_ActiveSlot
+import exastencils.field.l4.L4_FutureFieldAccess
 
 /// L4_AddDefaultApplication
 
@@ -24,7 +27,9 @@ object L4_AddDefaultApplication extends DefaultStrategy("") {
     val stmts = ListBuffer[L4_Statement]()
 
     def fctCall(fctName : String, args : ListBuffer[L4_Expression]) = L4_FunctionCall(L4_UnresolvedFunctionReference(fctName, None, None), args)
+
     def startTimer(name : String) = fctCall("startTimer", ListBuffer[L4_Expression](L4_StringConstant(name)))
+
     def stopTimer(name : String) = fctCall("stopTimer", ListBuffer[L4_Expression](L4_StringConstant(name)))
 
     // init
@@ -40,6 +45,11 @@ object L4_AddDefaultApplication extends DefaultStrategy("") {
     stmts += startTimer("solve")
     stmts += L4_FunctionCall(L4_UnresolvedFunctionReference("gen_solve", Some(L4_FinestLevel), None), ListBuffer[L4_Expression]())
     stmts += stopTimer("solve")
+
+    if (Knowledge.l4_defAppl_FieldToPrint.nonEmpty) {
+      stmts += fctCall("printField", ListBuffer(
+        L4_FutureFieldAccess(Knowledge.l4_defAppl_FieldToPrint, Knowledge.maxLevel, L4_ActiveSlot)))
+    }
 
     // de-init
     stmts += fctCall("printAllTimers", ListBuffer())

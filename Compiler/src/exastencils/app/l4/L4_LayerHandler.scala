@@ -19,7 +19,6 @@ import exastencils.interfacing.l4.L4_ExternalFieldCollection
 import exastencils.knowledge.l4.L4_KnowledgeContainer._
 import exastencils.knowledge.l4._
 import exastencils.layoutTransformation.l4.L4_AddSoAtoAoSTransformation
-import exastencils.layoutTransformation.l4.L4_UnifyLayoutSections
 import exastencils.logger.Logger
 import exastencils.operator.l4._
 import exastencils.optimization.l4.L4_GeneralSimplify
@@ -125,9 +124,10 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
       if (Settings.timeStrategies) StrategyTimer.stopTiming("Handling Layer 4")
 
       L4_UnifyGlobalSections.apply()
-      L4_UnifyLayoutSections.apply()
 
       // go to IR
+
+      L4_ResolveColorLoops.apply()
 
       // pre-process level specifications in declarations
       L4_ResolveLevelSpecifications.apply()

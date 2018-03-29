@@ -13,7 +13,7 @@ object IR_LoopOverFields {
   def defIt = "fieldIdx"
 }
 
-case class IR_LoopOverFields(var body : ListBuffer[IR_Statement]) extends IR_Statement with IR_Expandable {
+case class IR_LoopOverFields(var body : ListBuffer[IR_Statement]) extends IR_ScopedStatement with IR_Expandable {
 
   import IR_LoopOverFields._
 

@@ -175,7 +175,7 @@ Function doSolve@finest {
 Function mgCycle@(all but coarsest) {
   // smoother
   repeat 3 times {
-    color with {
+    repeat with {
       ( 0 == ( ( i0 + i1 + i2 ) % 2 ) ),
       ( 1 == ( ( i0 + i1 + i2 ) % 2 ) ),
       communicate flow
@@ -217,7 +217,7 @@ Function mgCycle@(all but coarsest) {
 
   // smoother
   repeat 3 times {
-    color with {
+    repeat with {
       ( 0 == ( ( i0 + i1 + i2 ) % 2 ) ),
       ( 1 == ( ( i0 + i1 + i2 ) % 2 ) ),
       communicate flow

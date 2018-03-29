@@ -651,7 +651,7 @@ Function CompileLSEsNoRelax@all ( ) : Unit {
 }
 
 Function Smooth_uvwp@(coarsest + 2 to finest) ( ) : Unit {
-	color with {
+	repeat with {
 		0 == ( x + y + z ) % 2,
 		1 == ( x + y + z ) % 2,
 		
@@ -689,7 +689,7 @@ Function Smooth_uvwp@(coarsest + 2 to finest) ( ) : Unit {
 }
 
 Function Smooth_uvwp@(coarsest and coarsest + 1) ( ) : Unit {
-	color with {
+	repeat with {
 		0 == ( x + y + z ) % 2,
 		1 == ( x + y + z ) % 2,
 		
@@ -727,7 +727,7 @@ Function Smooth_uvwp@(coarsest and coarsest + 1) ( ) : Unit {
 }
 
 Function Smooth_t@all ( ) : Unit {
-	color with {
+	repeat with {
 		0 == ( x + y + z ) % 2,
 		1 == ( x + y + z ) % 2,
 		

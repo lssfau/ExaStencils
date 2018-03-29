@@ -29,7 +29,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
     var preComms : ListBuffer[IR_Communicate] = ListBuffer(),
     var postComms : ListBuffer[IR_Communicate] = ListBuffer(),
     var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo(),
-    var condition : Option[IR_Expression] = None) extends IR_Statement with IR_SpecialExpandable with IR_HasParallelizationInfo {
+    var condition : Option[IR_Expression] = None) extends IR_ScopedStatement with IR_SpecialExpandable with IR_HasParallelizationInfo {
 
   def numDims = field.fieldLayout.numDimsGrid
 

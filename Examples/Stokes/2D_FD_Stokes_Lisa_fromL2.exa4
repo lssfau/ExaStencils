@@ -2,7 +2,7 @@ Function VankaSmoother@all ( ) {
   repeat 4 times {
 		// TODO: set fragLen to 3
 		
-    color with {
+    repeat with {
       ( 0 == x % 3 && 0 == y % 3 ) ,
       ( 1 == x % 3 && 0 == y % 3 ) ,
       ( 2 == x % 3 && 0 == y % 3 ) ,
@@ -38,7 +38,7 @@ Function TriadSmoother@all ( ) {
   Var it : Int = 0
   repeat 20 times count it {
     if ( 0 == it % 4 ) {
-      color with {
+      repeat with {
         ( 0 == (x + y) % 2 ) ,
 				( 1 == (x + y) % 2 ) ,
 
@@ -57,7 +57,7 @@ Function TriadSmoother@all ( ) {
     }
 
     if ( 1 == it % 4 ) {
-      color with {
+      repeat with {
         ( 0 == (x + y) % 2 ) ,
 				( 1 == (x + y) % 2 ) ,
 
@@ -76,7 +76,7 @@ Function TriadSmoother@all ( ) {
     }
 
     if ( 2 == it % 4 ) {
-      color with {
+      repeat with {
         ( 0 == (x + y) % 2 ) ,
 				( 1 == (x + y) % 2 ) ,
 
@@ -95,7 +95,7 @@ Function TriadSmoother@all ( ) {
     }
 
     if ( 3 == it % 4 ) {
-      color with {
+      repeat with {
         ( 0 == (x + y) % 2 ) ,
 				( 1 == (x + y) % 2 ) ,
 
@@ -126,7 +126,7 @@ Function TriadSmoother@all ( ) {
 Function Distributive@all ( ) {
   repeat 5 times {
 		// solve u
-		color with {
+		repeat with {
 			0 == ( x + y ) % 2,
 			1 == ( x + y ) % 2,
 
@@ -141,7 +141,7 @@ Function Distributive@all ( ) {
 		}
 
 		// solve v
-		color with {
+		repeat with {
 			0 == ( x + y ) % 2,
 			1 == ( x + y ) % 2,
 
@@ -156,7 +156,7 @@ Function Distributive@all ( ) {
 		}
 
 		// 'solve' p
-		color with {
+		repeat with {
       ( 0 == x % 3 && 0 == y % 3 ) ,
       ( 1 == x % 3 && 0 == y % 3 ) ,
       ( 2 == x % 3 && 0 == y % 3 ) ,

@@ -76,7 +76,7 @@ case class IR_LoopOverDimensions(
     var stepSize : IR_ExpressionIndex = null, // actual default set in constructor
     var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo(),
     var condition : Option[IR_Expression] = None,
-    var genOMPThreadLoop : Boolean = false) extends IR_Statement with IR_SpecialExpandable with IR_HasParallelizationInfo {
+    var genOMPThreadLoop : Boolean = false) extends IR_ScopedStatement with IR_SpecialExpandable with IR_HasParallelizationInfo {
 
   import IR_LoopOverDimensions._
 

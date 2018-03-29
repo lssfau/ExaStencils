@@ -6,6 +6,11 @@ import exastencils.prettyprinting._
 
 trait IR_Statement extends IR_Node with PrettyPrintable
 
+/// IR_ScopedStatement
+
+// used as a marker to simplify unnecessary nesting of scopes
+trait IR_ScopedStatement extends IR_Statement
+
 /// IR_StatementWrapper
 
 // exists to provide convenient way to wrap for applying transformations

@@ -17,7 +17,7 @@ case class IR_ForLoop(
     var end : IR_Expression,
     var inc : IR_Statement,
     var body : ListBuffer[IR_Statement],
-    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_Statement with IR_HasParallelizationInfo {
+    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_ScopedStatement with IR_HasParallelizationInfo {
 
   def maxIterationCount() = {
     if (hasAnnotation("numLoopIterations"))
@@ -52,7 +52,7 @@ object IR_WhileLoop {
   def apply(comparison : IR_Expression, body : IR_Statement*) = new IR_WhileLoop(comparison, body.to[ListBuffer])
 }
 
-case class IR_WhileLoop(var comparison : IR_Expression, var body : ListBuffer[IR_Statement]) extends IR_Statement {
+case class IR_WhileLoop(var comparison : IR_Expression, var body : ListBuffer[IR_Statement]) extends IR_ScopedStatement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "while (" << comparison << ") {\n"
     out <<< (body, "\n") << '\n'

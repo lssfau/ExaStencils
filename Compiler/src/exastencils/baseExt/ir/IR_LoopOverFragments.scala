@@ -19,7 +19,7 @@ object IR_LoopOverFragments {
 
 case class IR_LoopOverFragments(
     var body : ListBuffer[IR_Statement],
-    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_Statement with IR_SpecialExpandable with IR_HasParallelizationInfo {
+    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_ScopedStatement with IR_SpecialExpandable with IR_HasParallelizationInfo {
 
   import IR_LoopOverFragments.defIt
 

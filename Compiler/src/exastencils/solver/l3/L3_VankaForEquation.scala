@@ -124,34 +124,24 @@ object L3_VankaForEquation {
 
     /// add coloring
 
-    def numDims = /* FIXME */ Knowledge.dimensionality
+    val numDims = /* FIXME */ Knowledge.dimensionality
 
     def generateColors(numColorsPerDim : Int) = {
-      var colorCases = (0 until numColorsPerDim).map(ListBuffer(_)).to[ListBuffer]
-      for (_ <- 1 until numDims)
-        colorCases = (0 until numColorsPerDim).to[ListBuffer].flatMap(c => colorCases.map(_ :+ c))
-
-      val colors = ListBuffer[L3_Expression]()
-      colorCases.foreach(c => {
-        colors += c.zipWithIndex.map({
-          case (i, dim) => L3_EqEq(i, L3_Modulo(L3_FieldIteratorAccess(dim), numColorsPerDim)) : L3_Expression
-        }).reduceLeft(L3_AndAnd)
-      })
-
-      colors
+      val colorExps = ListBuffer[L3_Modulo]()
+      for (dim <- 0 until numDims)
+        colorExps += L3_Modulo(L3_FieldIteratorAccess(dim), numColorsPerDim)
+      colorExps
     }
 
     Knowledge.solver_smoother_coloring.toLowerCase() match {
       case "none" => // nothing to do
 
       case "red-black" | "rb" | "2-way" =>
-        val colors = ListBuffer[L3_Expression]()
-
-        def numColors = 2
-
-        for (c <- 0 until numColors)
-          colors += L3_EqEq(c, L3_Modulo(L3_Addition((0 until numDims).map(L3_FieldIteratorAccess(_) : L3_Expression).to[ListBuffer]), numColors))
-        localSolves.transform(localSolve => L3_ColorLoops(colors, ListBuffer(localSolve)))
+        val summands = ListBuffer[L3_Expression]()
+        for (dim <- 0 until numDims)
+          summands += L3_FieldIteratorAccess(dim)
+        val numColors = L3_IntegerConstant(2)
+        localSolves.transform(localSolve => L3_ColorLoops(ListBuffer(L3_Modulo(L3_Addition(summands), numColors)), ListBuffer(localSolve)))
 
       //case "2-way" if 1 == numDims =>
       //  localSolve = L3_ColorLoops(generateColors(2), ListBuffer(localSolve))

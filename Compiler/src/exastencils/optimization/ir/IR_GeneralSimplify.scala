@@ -111,7 +111,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     case m @ IR_MatrixExpression(_, 1, 1) => m.get(0, 0)
     case m @ IR_MatrixDatatype(dt, 1, 1)  => dt
 
-    case IR_Scope(ListBuffer(IR_Scope(body))) => IR_Scope(body)
+    case IR_Scope(body) if body.forall(_.isInstanceOf[IR_ScopedStatement]) => body
 
     case IR_IfCondition(cond, ListBuffer(IR_Scope(trueBody)), falseBody)         => IR_IfCondition(cond, trueBody, falseBody)
     case IR_IfCondition(cond, trueBody, ListBuffer(IR_Scope(falseBody)))         => IR_IfCondition(cond, trueBody, falseBody)

@@ -685,7 +685,7 @@ Function Smooth_uvwp_Vanka@all ( ) : Unit {
 }
 
 Function Smooth_uvwp_Distributive@all ( ) : Unit {
-	color with {
+	repeat with {
 		0 == ( x + y + z ) % 2,
 		1 == ( x + y + z ) % 2,
 
@@ -696,7 +696,7 @@ Function Smooth_uvwp_Distributive@all ( ) : Unit {
 		apply bc to u@current
 	}
 
-	color with {
+	repeat with {
 		0 == ( x + y + z ) % 2,
 		1 == ( x + y + z ) % 2,
 
@@ -707,7 +707,7 @@ Function Smooth_uvwp_Distributive@all ( ) : Unit {
 		apply bc to v@current
 	}
 
-	color with {
+	repeat with {
 		0 == ( x + y + z ) % 2,
 		1 == ( x + y + z ) % 2,
 
@@ -718,7 +718,7 @@ Function Smooth_uvwp_Distributive@all ( ) : Unit {
 		apply bc to w@current
 	}
 
-	color with {
+	repeat with {
 		0 == ( x + y + z ) % 2,
 		1 == ( x + y + z ) % 2,
 
