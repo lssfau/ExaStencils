@@ -118,7 +118,6 @@ Function myRestr_FD@(all but coarsest) {
   }
 }
 
-
 Function myCorr_FD@(all but coarsest) {
   loop over uNode@coarser {
     uNode @[ 0, 0] +=        uNode@coarser
@@ -230,9 +229,9 @@ Function myCorr_FD@(all but coarsest) {
 }
 
 Function myRestr_FE@(all but coarsest) {
-  Var uFactor : Real = 1./5.
+  Var uFactor : Real = 1.0
   Var vFactor : Real = uFactor
-  Var pFactor : Real = 1./4.
+  Var pFactor : Real = 1.0
 
   loop over gen_rhs_uNode@coarser {
     gen_rhs_uNode@coarser  = uFactor * (
@@ -417,152 +416,155 @@ Function myRestr_FE@(all but coarsest) {
   }
 }
 
-
 Function myCorr_FE@(all but coarsest) {
+  Var uFactor : Real = 0.8
+  Var vFactor : Real = uFactor
+  Var pFactor : Real = 0.8
+
   loop over uNode@coarser {
-    uNode @[ 0,  0] +=  1.0   * uNode@coarser
+    uNode @[ 0,  0] +=  1.0   * uNode@coarser * uFactor
 
-    uEdgeX@[ 0, -2] += -0.125 * uNode@coarser
-    uEdgeX@[ 0, -1] +=  0.375 * uNode@coarser
-    uEdgeX@[ 0,  0] +=  0.375 * uNode@coarser
-    uEdgeX@[ 0,  1] += -0.125 * uNode@coarser
+    uEdgeX@[ 0, -2] += -0.125 * uNode@coarser * uFactor
+    uEdgeX@[ 0, -1] +=  0.375 * uNode@coarser * uFactor
+    uEdgeX@[ 0,  0] +=  0.375 * uNode@coarser * uFactor
+    uEdgeX@[ 0,  1] += -0.125 * uNode@coarser * uFactor
 
-    uEdgeY@[-2,  0] += -0.125 * uNode@coarser
-    uEdgeY@[-1,  0] +=  0.375 * uNode@coarser
-    uEdgeY@[ 0,  0] +=  0.375 * uNode@coarser
-    uEdgeY@[ 1,  0] += -0.125 * uNode@coarser
+    uEdgeY@[-2,  0] += -0.125 * uNode@coarser * uFactor
+    uEdgeY@[-1,  0] +=  0.375 * uNode@coarser * uFactor
+    uEdgeY@[ 0,  0] +=  0.375 * uNode@coarser * uFactor
+    uEdgeY@[ 1,  0] += -0.125 * uNode@coarser * uFactor
 
-    uEdgeD@[-2, -2] += -0.125 * uNode@coarser
-    uEdgeD@[-1, -1] +=  0.375 * uNode@coarser
-    uEdgeD@[ 0,  0] +=  0.375 * uNode@coarser
-    uEdgeD@[ 1,  1] += -0.125 * uNode@coarser
+    uEdgeD@[-2, -2] += -0.125 * uNode@coarser * uFactor
+    uEdgeD@[-1, -1] +=  0.375 * uNode@coarser * uFactor
+    uEdgeD@[ 0,  0] +=  0.375 * uNode@coarser * uFactor
+    uEdgeD@[ 1,  1] += -0.125 * uNode@coarser * uFactor
 
-    uEdgeD@[ 0,  1] += -0.125 * uNode@coarser
-    uEdgeX@[ 1,  1] += -0.125 * uNode@coarser
-    uEdgeY@[ 1,  1] += -0.125 * uNode@coarser
-    uEdgeD@[ 1,  0] += -0.125 * uNode@coarser
-    uEdgeX@[ 1, -1] += -0.125 * uNode@coarser
-    uEdgeY@[ 0, -1] += -0.125 * uNode@coarser
-    uEdgeD@[-1, -2] += -0.125 * uNode@coarser
-    uEdgeX@[-1, -2] += -0.125 * uNode@coarser
-    uEdgeY@[-2, -1] += -0.125 * uNode@coarser
-    uEdgeD@[-2, -1] += -0.125 * uNode@coarser
-    uEdgeX@[-1,  0] += -0.125 * uNode@coarser
-    uEdgeY@[-1,  1] += -0.125 * uNode@coarser
+    uEdgeD@[ 0,  1] += -0.125 * uNode@coarser * uFactor
+    uEdgeX@[ 1,  1] += -0.125 * uNode@coarser * uFactor
+    uEdgeY@[ 1,  1] += -0.125 * uNode@coarser * uFactor
+    uEdgeD@[ 1,  0] += -0.125 * uNode@coarser * uFactor
+    uEdgeX@[ 1, -1] += -0.125 * uNode@coarser * uFactor
+    uEdgeY@[ 0, -1] += -0.125 * uNode@coarser * uFactor
+    uEdgeD@[-1, -2] += -0.125 * uNode@coarser * uFactor
+    uEdgeX@[-1, -2] += -0.125 * uNode@coarser * uFactor
+    uEdgeY@[-2, -1] += -0.125 * uNode@coarser * uFactor
+    uEdgeD@[-2, -1] += -0.125 * uNode@coarser * uFactor
+    uEdgeX@[-1,  0] += -0.125 * uNode@coarser * uFactor
+    uEdgeY@[-1,  1] += -0.125 * uNode@coarser * uFactor
   }
 
   loop over uEdgeX@coarser {
-    uNode @[ 0,  1] += 1.0  * uEdgeX@coarser
-    uEdgeX@[ 0,  0] += 0.75 * uEdgeX@coarser
-    uEdgeX@[ 0,  1] += 0.75 * uEdgeX@coarser
-    uEdgeY@[ 0,  1] += 0.5  * uEdgeX@coarser
-    uEdgeY@[-1,  1] += 0.5  * uEdgeX@coarser
-    uEdgeD@[ 0,  1] += 0.5  * uEdgeX@coarser
-    uEdgeD@[-1,  0] += 0.5  * uEdgeX@coarser
-    uEdgeX@[ 1,  1] += 0.25 * uEdgeX@coarser
-    uEdgeX@[-1,  0] += 0.25 * uEdgeX@coarser
+    uNode @[ 0,  1] += 1.0  * uEdgeX@coarser  * uFactor
+    uEdgeX@[ 0,  0] += 0.75 * uEdgeX@coarser  * uFactor
+    uEdgeX@[ 0,  1] += 0.75 * uEdgeX@coarser  * uFactor
+    uEdgeY@[ 0,  1] += 0.5  * uEdgeX@coarser  * uFactor
+    uEdgeY@[-1,  1] += 0.5  * uEdgeX@coarser  * uFactor
+    uEdgeD@[ 0,  1] += 0.5  * uEdgeX@coarser  * uFactor
+    uEdgeD@[-1,  0] += 0.5  * uEdgeX@coarser  * uFactor
+    uEdgeX@[ 1,  1] += 0.25 * uEdgeX@coarser  * uFactor
+    uEdgeX@[-1,  0] += 0.25 * uEdgeX@coarser  * uFactor
   }
 
   loop over uEdgeY@coarser {
-    uNode @[ 1,  0] += 1.0  * uEdgeY@coarser
-    uEdgeY@[ 0,  0] += 0.75 * uEdgeY@coarser
-    uEdgeY@[ 1,  0] += 0.75 * uEdgeY@coarser
-    uEdgeX@[ 1,  0] += 0.5  * uEdgeY@coarser
-    uEdgeX@[ 1, -1] += 0.5  * uEdgeY@coarser
-    uEdgeD@[ 1,  0] += 0.5  * uEdgeY@coarser
-    uEdgeD@[ 0, -1] += 0.5  * uEdgeY@coarser
-    uEdgeY@[ 1,  1] += 0.25 * uEdgeY@coarser
-    uEdgeY@[ 0, -1] += 0.25 * uEdgeY@coarser
+    uNode @[ 1,  0] += 1.0  * uEdgeY@coarser  * uFactor
+    uEdgeY@[ 0,  0] += 0.75 * uEdgeY@coarser  * uFactor
+    uEdgeY@[ 1,  0] += 0.75 * uEdgeY@coarser  * uFactor
+    uEdgeX@[ 1,  0] += 0.5  * uEdgeY@coarser  * uFactor
+    uEdgeX@[ 1, -1] += 0.5  * uEdgeY@coarser  * uFactor
+    uEdgeD@[ 1,  0] += 0.5  * uEdgeY@coarser  * uFactor
+    uEdgeD@[ 0, -1] += 0.5  * uEdgeY@coarser  * uFactor
+    uEdgeY@[ 1,  1] += 0.25 * uEdgeY@coarser  * uFactor
+    uEdgeY@[ 0, -1] += 0.25 * uEdgeY@coarser  * uFactor
   }
 
   loop over uEdgeD@coarser {
-    uNode @[ 1,  1] += 1.0  * uEdgeD@coarser
-    uEdgeD@[ 0,  0] += 0.75 * uEdgeD@coarser
-    uEdgeD@[ 1,  1] += 0.75 * uEdgeD@coarser
-    uEdgeX@[ 1,  0] += 0.5  * uEdgeD@coarser
-    uEdgeX@[ 1,  1] += 0.5  * uEdgeD@coarser
-    uEdgeY@[ 0,  1] += 0.5  * uEdgeD@coarser
-    uEdgeY@[ 1,  1] += 0.5  * uEdgeD@coarser
-    uEdgeD@[ 1,  0] += 0.25 * uEdgeD@coarser
-    uEdgeD@[ 0,  1] += 0.25 * uEdgeD@coarser
+    uNode @[ 1,  1] += 1.0  * uEdgeD@coarser  * uFactor
+    uEdgeD@[ 0,  0] += 0.75 * uEdgeD@coarser  * uFactor
+    uEdgeD@[ 1,  1] += 0.75 * uEdgeD@coarser  * uFactor
+    uEdgeX@[ 1,  0] += 0.5  * uEdgeD@coarser  * uFactor
+    uEdgeX@[ 1,  1] += 0.5  * uEdgeD@coarser  * uFactor
+    uEdgeY@[ 0,  1] += 0.5  * uEdgeD@coarser  * uFactor
+    uEdgeY@[ 1,  1] += 0.5  * uEdgeD@coarser  * uFactor
+    uEdgeD@[ 1,  0] += 0.25 * uEdgeD@coarser  * uFactor
+    uEdgeD@[ 0,  1] += 0.25 * uEdgeD@coarser  * uFactor
   }
 
   loop over vNode@coarser {
-    vNode @[ 0,  0] +=  1.0   * vNode@coarser
+    vNode @[ 0,  0] +=  1.0   * vNode@coarser * vFactor
 
-    vEdgeX@[ 0, -2] += -0.125 * vNode@coarser
-    vEdgeX@[ 0, -1] +=  0.375 * vNode@coarser
-    vEdgeX@[ 0,  0] +=  0.375 * vNode@coarser
-    vEdgeX@[ 0,  1] += -0.125 * vNode@coarser
+    vEdgeX@[ 0, -2] += -0.125 * vNode@coarser * vFactor
+    vEdgeX@[ 0, -1] +=  0.375 * vNode@coarser * vFactor
+    vEdgeX@[ 0,  0] +=  0.375 * vNode@coarser * vFactor
+    vEdgeX@[ 0,  1] += -0.125 * vNode@coarser * vFactor
 
-    vEdgeY@[-2,  0] += -0.125 * vNode@coarser
-    vEdgeY@[-1,  0] +=  0.375 * vNode@coarser
-    vEdgeY@[ 0,  0] +=  0.375 * vNode@coarser
-    vEdgeY@[ 1,  0] += -0.125 * vNode@coarser
+    vEdgeY@[-2,  0] += -0.125 * vNode@coarser * vFactor
+    vEdgeY@[-1,  0] +=  0.375 * vNode@coarser * vFactor
+    vEdgeY@[ 0,  0] +=  0.375 * vNode@coarser * vFactor
+    vEdgeY@[ 1,  0] += -0.125 * vNode@coarser * vFactor
 
-    vEdgeD@[-2, -2] += -0.125 * vNode@coarser
-    vEdgeD@[-1, -1] +=  0.375 * vNode@coarser
-    vEdgeD@[ 0,  0] +=  0.375 * vNode@coarser
-    vEdgeD@[ 1,  1] += -0.125 * vNode@coarser
+    vEdgeD@[-2, -2] += -0.125 * vNode@coarser * vFactor
+    vEdgeD@[-1, -1] +=  0.375 * vNode@coarser * vFactor
+    vEdgeD@[ 0,  0] +=  0.375 * vNode@coarser * vFactor
+    vEdgeD@[ 1,  1] += -0.125 * vNode@coarser * vFactor
 
-    vEdgeD@[ 0,  1] += -0.125 * vNode@coarser
-    vEdgeX@[ 1,  1] += -0.125 * vNode@coarser
-    vEdgeY@[ 1,  1] += -0.125 * vNode@coarser
-    vEdgeD@[ 1,  0] += -0.125 * vNode@coarser
-    vEdgeX@[ 1, -1] += -0.125 * vNode@coarser
-    vEdgeY@[ 0, -1] += -0.125 * vNode@coarser
-    vEdgeD@[-1, -2] += -0.125 * vNode@coarser
-    vEdgeX@[-1, -2] += -0.125 * vNode@coarser
-    vEdgeY@[-2, -1] += -0.125 * vNode@coarser
-    vEdgeD@[-2, -1] += -0.125 * vNode@coarser
-    vEdgeX@[-1,  0] += -0.125 * vNode@coarser
-    vEdgeY@[-1,  1] += -0.125 * vNode@coarser
+    vEdgeD@[ 0,  1] += -0.125 * vNode@coarser * vFactor
+    vEdgeX@[ 1,  1] += -0.125 * vNode@coarser * vFactor
+    vEdgeY@[ 1,  1] += -0.125 * vNode@coarser * vFactor
+    vEdgeD@[ 1,  0] += -0.125 * vNode@coarser * vFactor
+    vEdgeX@[ 1, -1] += -0.125 * vNode@coarser * vFactor
+    vEdgeY@[ 0, -1] += -0.125 * vNode@coarser * vFactor
+    vEdgeD@[-1, -2] += -0.125 * vNode@coarser * vFactor
+    vEdgeX@[-1, -2] += -0.125 * vNode@coarser * vFactor
+    vEdgeY@[-2, -1] += -0.125 * vNode@coarser * vFactor
+    vEdgeD@[-2, -1] += -0.125 * vNode@coarser * vFactor
+    vEdgeX@[-1,  0] += -0.125 * vNode@coarser * vFactor
+    vEdgeY@[-1,  1] += -0.125 * vNode@coarser * vFactor
   }
 
   loop over vEdgeX@coarser {
-    vNode @[ 0,  1] += 1.0  * vEdgeX@coarser
-    vEdgeX@[ 0,  0] += 0.75 * vEdgeX@coarser
-    vEdgeX@[ 0,  1] += 0.75 * vEdgeX@coarser
-    vEdgeY@[ 0,  1] += 0.5  * vEdgeX@coarser
-    vEdgeY@[-1,  1] += 0.5  * vEdgeX@coarser
-    vEdgeD@[ 0,  1] += 0.5  * vEdgeX@coarser
-    vEdgeD@[-1,  0] += 0.5  * vEdgeX@coarser
-    vEdgeX@[ 1,  1] += 0.25 * vEdgeX@coarser
-    vEdgeX@[-1,  0] += 0.25 * vEdgeX@coarser
+    vNode @[ 0,  1] += 1.0  * vEdgeX@coarser  * vFactor
+    vEdgeX@[ 0,  0] += 0.75 * vEdgeX@coarser  * vFactor
+    vEdgeX@[ 0,  1] += 0.75 * vEdgeX@coarser  * vFactor
+    vEdgeY@[ 0,  1] += 0.5  * vEdgeX@coarser  * vFactor
+    vEdgeY@[-1,  1] += 0.5  * vEdgeX@coarser  * vFactor
+    vEdgeD@[ 0,  1] += 0.5  * vEdgeX@coarser  * vFactor
+    vEdgeD@[-1,  0] += 0.5  * vEdgeX@coarser  * vFactor
+    vEdgeX@[ 1,  1] += 0.25 * vEdgeX@coarser  * vFactor
+    vEdgeX@[-1,  0] += 0.25 * vEdgeX@coarser  * vFactor
   }
 
   loop over vEdgeY@coarser {
-    vNode @[ 1,  0] += 1.0  * vEdgeY@coarser
-    vEdgeY@[ 0,  0] += 0.75 * vEdgeY@coarser
-    vEdgeY@[ 1,  0] += 0.75 * vEdgeY@coarser
-    vEdgeX@[ 1,  0] += 0.5  * vEdgeY@coarser
-    vEdgeX@[ 1, -1] += 0.5  * vEdgeY@coarser
-    vEdgeD@[ 1,  0] += 0.5  * vEdgeY@coarser
-    vEdgeD@[ 0, -1] += 0.5  * vEdgeY@coarser
-    vEdgeY@[ 1,  1] += 0.25 * vEdgeY@coarser
-    vEdgeY@[ 0, -1] += 0.25 * vEdgeY@coarser
+    vNode @[ 1,  0] += 1.0  * vEdgeY@coarser  * vFactor
+    vEdgeY@[ 0,  0] += 0.75 * vEdgeY@coarser  * vFactor
+    vEdgeY@[ 1,  0] += 0.75 * vEdgeY@coarser  * vFactor
+    vEdgeX@[ 1,  0] += 0.5  * vEdgeY@coarser  * vFactor
+    vEdgeX@[ 1, -1] += 0.5  * vEdgeY@coarser  * vFactor
+    vEdgeD@[ 1,  0] += 0.5  * vEdgeY@coarser  * vFactor
+    vEdgeD@[ 0, -1] += 0.5  * vEdgeY@coarser  * vFactor
+    vEdgeY@[ 1,  1] += 0.25 * vEdgeY@coarser  * vFactor
+    vEdgeY@[ 0, -1] += 0.25 * vEdgeY@coarser  * vFactor
   }
 
   loop over vEdgeD@coarser {
-    vNode @[ 1,  1] += 1.0  * vEdgeD@coarser
-    vEdgeD@[ 0,  0] += 0.75 * vEdgeD@coarser
-    vEdgeD@[ 1,  1] += 0.75 * vEdgeD@coarser
-    vEdgeX@[ 1,  0] += 0.5  * vEdgeD@coarser
-    vEdgeX@[ 1,  1] += 0.5  * vEdgeD@coarser
-    vEdgeY@[ 0,  1] += 0.5  * vEdgeD@coarser
-    vEdgeY@[ 1,  1] += 0.5  * vEdgeD@coarser
-    vEdgeD@[ 1,  0] += 0.25 * vEdgeD@coarser
-    vEdgeD@[ 0,  1] += 0.25 * vEdgeD@coarser
+    vNode @[ 1,  1] += 1.0  * vEdgeD@coarser  * vFactor
+    vEdgeD@[ 0,  0] += 0.75 * vEdgeD@coarser  * vFactor
+    vEdgeD@[ 1,  1] += 0.75 * vEdgeD@coarser  * vFactor
+    vEdgeX@[ 1,  0] += 0.5  * vEdgeD@coarser  * vFactor
+    vEdgeX@[ 1,  1] += 0.5  * vEdgeD@coarser  * vFactor
+    vEdgeY@[ 0,  1] += 0.5  * vEdgeD@coarser  * vFactor
+    vEdgeY@[ 1,  1] += 0.5  * vEdgeD@coarser  * vFactor
+    vEdgeD@[ 1,  0] += 0.25 * vEdgeD@coarser  * vFactor
+    vEdgeD@[ 0,  1] += 0.25 * vEdgeD@coarser  * vFactor
   }
 
   loop over p@coarser {
-    p@[ 0,  0] += 1.0 * p@coarser
-    p@[ 1,  0] += 0.5 * p@coarser
-    p@[-1,  0] += 0.5 * p@coarser
-    p@[ 0,  1] += 0.5 * p@coarser
-    p@[ 0, -1] += 0.5 * p@coarser
-    p@[-1, -1] += 0.5 * p@coarser
-    p@[ 1,  1] += 0.5 * p@coarser
+    p@[ 0,  0] += 1.0 * p@coarser * pFactor
+    p@[ 1,  0] += 0.5 * p@coarser * pFactor
+    p@[-1,  0] += 0.5 * p@coarser * pFactor
+    p@[ 0,  1] += 0.5 * p@coarser * pFactor
+    p@[ 0, -1] += 0.5 * p@coarser * pFactor
+    p@[-1, -1] += 0.5 * p@coarser * pFactor
+    p@[ 1,  1] += 0.5 * p@coarser * pFactor
   }
 
   apply bc to uNode
@@ -629,10 +631,12 @@ Function NormError_Max@finest ( ) : Real {
 
   Var totalErr : Real = max ( err_u, err_v, err_p )
 
-  print ( 'Error:', totalErr, err_u, err_v, err_p )
+  print ( 'Error (u,v,p):', err_u, err_v, err_p )
 
   return totalErr
 }
+
+//// END OF TEST PROBLEM 1 ////
 
 //// TEST PROBLEM 2 ////
 // u = -4.0 * cos ( 4.0 * y )
@@ -690,3 +694,4 @@ Function NormError_Max@finest ( ) : Real {
   return totalErr
 }
 */
+//// END OF TEST PROBLEM 2 ////

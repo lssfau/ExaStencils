@@ -15,7 +15,7 @@ generate solver for
   solver_smoother_numPre        = 10
   solver_smoother_numPost       = 10
   solver_smoother_damping       = 0.6667
-  //solver_smoother_coloring      = "9-way" // "red-black"
+  //solver_smoother_coloring      = "4-way" // "9-way" // "red-black"
   solver_cgs                    = "BiCGStab"
   solver_cgs_maxNumIts          = 10000
   solver_cgs_targetResReduction = 1e-3
@@ -41,9 +41,23 @@ generate solver for
     printField ( "vDiag.txt", vEdgeD@finest )
     printField ( "p.txt", p@finest )
   }*/
-} smootherHint {
-  loopBase p
-  /*solveFor {
+}
+/*smootherStage {
+  loopBase p solveFor {
+    p@[0,0] p@[-1,0] p@[0,-1] p@[1,0] p@[0,1] p@[-1,-1] p@[1,1]
+    uNode@[0,0] uNode@[-1,0] uNode@[0,-1] uNode@[1,0] uNode@[0,1] uNode@[-1,-1] uNode@[1,1]
+    uEdgeX@[0,0] uEdgeX@[1,0] uEdgeX@[0,-1] uEdgeX@[-1,-1]
+    uEdgeY@[0,0] uEdgeY@[0,1] uEdgeY@[-1,0] uEdgeY@[-1,-1]
+    uEdgeD@[0,0] uEdgeD@[-1,0] uEdgeD@[0,-1] uEdgeD@[-1,-1]
+    vNode@[0,0] vNode@[-1,0] vNode@[0,-1] vNode@[1,0] vNode@[0,1] vNode@[-1,-1] vNode@[1,1]
+    vEdgeX@[0,0] vEdgeX@[1,0] vEdgeX@[0,-1] vEdgeX@[-1,-1]
+    vEdgeY@[0,0] vEdgeY@[0,1] vEdgeY@[-1,0] vEdgeY@[-1,-1]
+    vEdgeD@[0,0] vEdgeD@[-1,0] vEdgeD@[0,-1] vEdgeD@[-1,-1]
+  }
+}*/
+
+/*smootherStage {
+  loopBase p solveFor {
     p
     uNode@[0,0] uNode@[-1,0] uNode@[0,-1] uNode@[1,0] uNode@[0,1] uNode@[-1,-1] uNode@[1,1]
     uEdgeX@[0,0] uEdgeX@[1,0] uEdgeX@[0,-1] uEdgeX@[-1,-1]
@@ -53,8 +67,11 @@ generate solver for
     vEdgeX@[0,0] vEdgeX@[1,0] vEdgeX@[0,-1] vEdgeX@[-1,-1]
     vEdgeY@[0,0] vEdgeY@[0,1] vEdgeY@[-1,0] vEdgeY@[-1,-1]
     vEdgeD@[0,0] vEdgeD@[-1,0] vEdgeD@[0,-1] vEdgeD@[-1,-1]
-  }*/
-  solveFor {
+  }
+}*/
+
+smootherStage {
+  loopBase p solveFor {
     p
     uNode
     uEdgeX@[0,0] uEdgeX@[0,-1]
@@ -66,3 +83,50 @@ generate solver for
     vEdgeD@[0,0] vEdgeD@[-1,0] vEdgeD@[0,-1] vEdgeD@[-1,-1]
   }
 }
+
+/*smootherStage {
+  loopBase uEdgeD solveFor {
+    p@[0,0] p@[1,0] p@[1,1]
+
+    uNode@[0,0] uNode@[1,0] uNode@[1,1]
+    uEdgeX@[1,0]
+    uEdgeY@[0,0]
+    uEdgeD@[0,0]
+
+    vNode@[0,0] vNode@[1,0] vNode@[1,1]
+    vEdgeX@[1,0]
+    vEdgeY@[0,0]
+    vEdgeD@[0,0]
+  }
+}
+smootherStage {
+  loopBase uEdgeD solveFor {
+    p@[0,0] p@[0,1] p@[1,1]
+
+    uNode@[0,0] uNode@[0,1] uNode@[1,1]
+    uEdgeX@[0,0]
+    uEdgeY@[0,1]
+    uEdgeD@[0,0]
+
+    vNode@[0,0] vNode@[0,1] vNode@[1,1]
+    vEdgeX@[0,0]
+    vEdgeY@[0,1]
+    vEdgeD@[0,0]
+  }
+}*/
+
+/*smootherStage {
+  loopBase uEdgeD solveFor {
+    p@[0,0]
+
+    uNode@[0,0]
+    uEdgeX@[1,0]
+    uEdgeY@[0,0]
+    uEdgeD@[0,0]
+
+    vNode@[0,0]
+    vEdgeX@[1,0]
+    vEdgeY@[0,0]
+    vEdgeD@[0,0]
+  }
+}*/
