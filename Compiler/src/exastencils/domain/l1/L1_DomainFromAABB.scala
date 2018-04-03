@@ -7,7 +7,7 @@ import exastencils.util.l1.L1_AABB
 /// L1_DomainFromAABB
 
 case class L1_DomainFromAABB(override var name : String, aabb : L1_AABB) extends L1_Domain {
-  override def prettyprintDecl(out : PpStream) = out << "Domain " << name << "< " << aabb << " >"
+  override def prettyprintDecl(out : PpStream) = out << "Domain " << name << " = " << aabb
   override def progressImpl() = L2_DomainFromAABB(name, aabb.progress)
 
   override def numDims = aabb.numDims

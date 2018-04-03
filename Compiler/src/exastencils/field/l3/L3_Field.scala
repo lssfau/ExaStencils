@@ -38,7 +38,14 @@ case class L3_Field(
 
   def fieldLayoutName = s"defLayoutFor_${ printDatatype(datatype) }_on_${ localization.prettyprint() }"
 
-  override def prettyprintDecl(out : PpStream) : Unit = ???
+  override def prettyprintDecl(out : PpStream) : Unit = {
+    out << "Field " << name << "@" << level << " with " << datatype << " on " << localization << " of " << domain.name
+    if (numSlots > 1) out << " " << numSlots << " times "
+    if (initial.isDefined) out << " = " << initial.get
+    out << "\n\n"
+
+    out << "Field " << name << "@" << level << " on boundary = " << boundary
+  }
 
   def codeName = name + "_" + level
   def numDimsGrid = domain.numDims

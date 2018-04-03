@@ -5,6 +5,7 @@ import exastencils.field.l4._
 import exastencils.interfacing.l4.L4_ExternalFieldCollection
 import exastencils.operator.l4._
 import exastencils.prettyprinting.PpStream
+import exastencils.solver.l4.L4_EquationCollection
 
 object L4_PrintKnowledgeDecl {
   def apply(out : PpStream) = {
@@ -40,6 +41,12 @@ object L4_PrintKnowledgeDecl {
 
     out << "// stencil field declarations\n\n"
     L4_StencilFieldCollection.objects.foreach { obj =>
+      obj.prettyprintDecl(out)
+      out << "\n\n"
+    }
+
+    out << "// equations declarations\n\n"
+    L4_EquationCollection.objects.foreach { obj =>
       obj.prettyprintDecl(out)
       out << "\n\n"
     }
