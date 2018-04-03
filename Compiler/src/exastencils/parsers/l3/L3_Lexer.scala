@@ -30,6 +30,9 @@ object L3_Lexer extends ExaLexer {
   // base => L3_LevelSpecifications
   reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "but", "all", "and")
 
+  // baseExt => color statements
+  reserved += ("color", "repeat", "with")
+
   // baseExt => L3_Conditional
   reserved += ("if", "else", "and", "or")
 
@@ -78,6 +81,8 @@ object L3_Lexer extends ExaLexer {
   reserved += ("generate", "solver", "for", "in", "and")
   reserved += ("modifiers", "replace", "append", "to", "prepend", "with")
   reserved += ("smootherHint", "smootherStage", "loopBase", "solveFor")
+
+  reserved += ("solve", "locally", "jacobi", "relax")
 
   // util => L3_OffsetAlias
   reserved += ("east", "west", "north", "south", "top", "bottom")

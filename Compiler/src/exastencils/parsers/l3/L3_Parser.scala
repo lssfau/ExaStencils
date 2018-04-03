@@ -11,6 +11,7 @@ import exastencils.boundary.l3._
 import exastencils.domain.l3.L3_DomainFromAABBDecl
 import exastencils.field.l3._
 import exastencils.knowledge.l3._
+import exastencils.logger.Logger
 import exastencils.operator.l3._
 import exastencils.parsers._
 import exastencils.solver.l3._
@@ -295,7 +296,10 @@ object L3_Parser extends ExaParser with PackratParsers {
       ||| whileLoop
       ||| functionCall ^^ { L3_ExpressionStatement(_) }
       ||| returnStatement
-      ||| levelScope)
+      ||| levelScope
+      ||| solveLocallyStatement
+      ||| colorWithStatement
+      ||| repeatWithStatement)
 
   // #############################################################################
   // ################################## BASE_EXT #################################
@@ -309,6 +313,17 @@ object L3_Parser extends ExaParser with PackratParsers {
   lazy val applicationParameter = locationize((ident <~ "=") ~ literal ^^ { case param ~ value => L3_ApplicationParameter(param, value) })
   lazy val applicationHints = locationize((("ApplicationHint" ||| "ApplicationHints" ||| "L4Hint" ||| "L4Hints") ~ "{") ~> applicationHint.* <~ "}"
     ^^ (L3_ApplicationHints(_)))
+
+  // ######################################
+  // ##### L3_ColorLoops
+  // ######################################
+
+  lazy val colorWithStatement = locationize(("color" ~ "with" ~ "{") ~> (colorDefExpression <~ ",").+ ~ statement.* <~ "}"
+    ^^ { case colors ~ stmts => L3_ColorLoops(colors.to, stmts.to) })
+  lazy val colorDefExpression : Parser[L3_Modulo] = locationize(binaryexpression ^^ {
+    case modExp @ L3_Modulo(_, L3_IntegerConstant(_)) => modExp
+    case exp                                          => Logger.error("color expression in 'color with' statement must be a modulo expression with a constant integral divisor" + exp.location.toAppendString)
+  })
 
   // ######################################
   // ##### L3_ExpressionDeclaration
@@ -370,6 +385,13 @@ object L3_Parser extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val levelScope = locationize(((levelDecl ||| levelAccess) <~ "{") ~ (statement.+ <~ "}") ^^ { case l ~ s => L3_LevelScope(l, s) })
+
+  // ######################################
+  // ##### L3_RepeatLoops
+  // ######################################
+
+  lazy val repeatWithStatement = locationize(("repeat" ~ "with" ~ "{") ~> (booleanexpression <~ ",").+ ~ statement.* <~ "}"
+    ^^ { case conds ~ stmts => L3_RepeatLoops(conds, stmts) })
 
   // ######################################
   // ##### L3_UnresolvedAccess
@@ -484,6 +506,13 @@ object L3_Parser extends ExaParser with PackratParsers {
   // #############################################################################
   // ################################### SOLVER ##################################
   // #############################################################################
+
+  /// L3_LocalSolve
+
+  lazy val equationExpression = locationize((binaryexpression <~ "==") ~ binaryexpression ^^ { case lhs ~ rhs => L3_Equation(lhs, rhs) })
+  lazy val solveLocallyComponent = /*locationize*/ (genericAccess <~ "=>") ~ equationExpression ^^ { case f ~ eq => (f, eq) }
+  lazy val solveLocallyStatement = locationize((("solve" ~ "locally") ~> ("with" ~> "jacobi").? ~ ("relax" ~> binaryexpression).? <~ "{") ~ solveLocallyComponent.+ <~ "}"
+    ^^ { case jac ~ relax ~ stmts => L3_LocalSolve(stmts.map(_._1), stmts.map(_._2), jac.isDefined, relax) })
 
   /// L3_SolverForEquation
 
