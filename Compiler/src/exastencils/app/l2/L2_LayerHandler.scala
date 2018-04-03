@@ -108,6 +108,9 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
       L2_ProcessBoundaryDeclarations.apply()
     }
 
+    // print before processing
+    print()
+
     // process solver
     L2_ProcessSolverHints.apply()
 

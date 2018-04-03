@@ -135,6 +135,9 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
     // process application Hints
     L3_ProcessApplicationHints.apply()
 
+    // print before processing
+    print()
+
     // progress knowledge to L4
     L3_KnowledgeContainer.progress()
 

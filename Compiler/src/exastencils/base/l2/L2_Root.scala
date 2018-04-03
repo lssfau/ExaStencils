@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ProgressLocation
 import exastencils.base.l3.L3_Root
+import exastencils.knowledge.l2.L2_PrintKnowledgeDecl
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
@@ -17,7 +18,7 @@ object L2_Root {
 
 case class L2_Root(var nodes : ListBuffer[L2_Node]) extends L2_Node with L2_Progressable with PrettyPrintable {
   override def prettyprint(out : PpStream) = {
-    // TODO: print knowledge collections
+    L2_PrintKnowledgeDecl.apply(out)
 
     nodes.foreach {
       case p : PrettyPrintable => out << p << "\n\n"

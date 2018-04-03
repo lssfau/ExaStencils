@@ -104,6 +104,9 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
       L1_ProcessBoundaryDeclarations.apply()
     }
 
+    // print before processing
+    print()
+
     // resolve domain aliases
     L1_DomainCollection.handleAliases()
 
