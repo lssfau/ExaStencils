@@ -63,6 +63,7 @@ object L3_Parser extends ExaParser with PackratParsers {
       ||| stencilDeclaration
       ||| stencilTemplateDeclaration
       ||| stencilFromDefault
+      ||| equationDeclaration
       ||| globals
       ||| function
       ||| functionTemplate
@@ -507,9 +508,14 @@ object L3_Parser extends ExaParser with PackratParsers {
   // ################################### SOLVER ##################################
   // #############################################################################
 
-  /// L3_LocalSolve
+  /// L3_EquationDecl
 
   lazy val equationExpression = locationize((binaryexpression <~ "==") ~ binaryexpression ^^ { case lhs ~ rhs => L3_Equation(lhs, rhs) })
+  lazy val equationDeclaration = locationize(("Equation" ~> ident) ~ levelDecl.? ~ ("{" ~> equationExpression <~ "}")
+    ^^ { case id ~ levels ~ eq => L3_EquationDecl(id, levels, eq) })
+
+  /// L3_LocalSolve
+
   lazy val solveLocallyComponent = /*locationize*/ (genericAccess <~ "=>") ~ equationExpression ^^ { case f ~ eq => (f, eq) }
   lazy val solveLocallyStatement = locationize((("solve" ~ "locally") ~> ("with" ~> "jacobi").? ~ ("relax" ~> binaryexpression).? <~ "{") ~ solveLocallyComponent.+ <~ "}"
     ^^ { case jac ~ relax ~ stmts => L3_LocalSolve(stmts.map(_._1), stmts.map(_._2), jac.isDefined, relax) })

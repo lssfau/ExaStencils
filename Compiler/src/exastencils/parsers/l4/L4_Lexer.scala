@@ -89,6 +89,9 @@ class L4_Lexer extends ExaLexer {
   // knowledge
   reserved += ("Knowledge")
 
+  // solver
+  reserved += ("Equation")
+
   // util => L4_OffsetAlias
   reserved += ("east", "west", "north", "south", "top", "bottom")
 }

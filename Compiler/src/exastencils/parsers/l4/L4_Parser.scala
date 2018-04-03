@@ -71,6 +71,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| externalField
       ||| stencilDeclaration
       ||| stencilFromDefault
+      ||| equationDeclaration
       ||| globals
       ||| layoutTrafos
       ||| function
@@ -272,7 +273,6 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val levelScope = locationize(((levelDecl ||| levelAccess) <~ "{") ~ (statement.* <~ "}") ^^ { case l ~ s => L4_LevelScope(l, s) })
 
-  lazy val equationExpression = locationize((binaryexpression <~ "==") ~ binaryexpression ^^ { case lhs ~ rhs => L4_Equation(lhs, rhs) })
   lazy val solveLocallyComponent = /*locationize*/ (genericAccess <~ "=>") ~ equationExpression ^^ { case f ~ eq => (f, eq) }
   lazy val solveLocallyStatement = locationize((("solve" ~ "locally") ~> ("with" ~> "jacobi").? ~ ("relax" ~> binaryexpression).? <~ "{") ~ solveLocallyComponent.+ <~ "}"
     ^^ { case jac ~ relax ~ stmts => L4_LocalSolve(stmts.map(_._1), stmts.map(_._2), jac.isDefined, relax) })
@@ -532,4 +532,14 @@ object L4_Parser extends ExaParser with PackratParsers {
       ^^ { case id ~ level ~ local ~ interpolation => L4_DefaultRestrictionStencil(id, level, local, interpolation) })
       ||| locationize(("Stencil" ~> ident) ~ levelDecl.? ~ (("from" ~ "default" ~ "prolongation" ~ "on") ~> localization) ~ ("with" ~> stringLit)
       ^^ { case id ~ level ~ local ~ interpolation => L4_DefaultProlongationStencil(id, level, local, interpolation) }))
+
+  // #############################################################################
+  // ################################### SOLVER ##################################
+  // #############################################################################
+
+  /// L4_EquationDecl
+
+  lazy val equationExpression = locationize((binaryexpression <~ "==") ~ binaryexpression ^^ { case lhs ~ rhs => L4_Equation(lhs, rhs) })
+  lazy val equationDeclaration = locationize(("Equation" ~> ident) ~ levelDecl.? ~ ("{" ~> equationExpression <~ "}")
+    ^^ { case id ~ levels ~ eq => L4_EquationDecl(id, levels, eq) })
 }

@@ -78,6 +78,7 @@ object L3_Lexer extends ExaLexer {
   reserved += ("Knowledge")
 
   // solver
+  reserved += ("Equation")
   reserved += ("generate", "solver", "for", "in", "and")
   reserved += ("modifiers", "replace", "append", "to", "prepend", "with")
   reserved += ("smootherHint", "smootherStage", "loopBase", "solveFor")
