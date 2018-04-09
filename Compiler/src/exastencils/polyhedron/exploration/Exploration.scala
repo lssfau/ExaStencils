@@ -6,6 +6,7 @@ import scala.collection.mutable.{ ArrayBuffer, ArrayStack }
 import java.io.PrintStream
 
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.polyhedron.Isl
 import exastencils.polyhedron.Isl.TypeAliases._
 import org.exastencils.schedopt.chernikova._
@@ -133,7 +134,7 @@ object Exploration {
         }
         val remove : Boolean = (filterAlignVec && !cstVect) || // remove those which cannot be vectorized without aligned memory accesses
           (filterInnerPar && nrCarried.view.slice(1, bands(0)).exists(_ != 0)) // remove those whose inner loops in the outer band are not parallel
-      val wrap = new SchedVecWrapper(schedVect)
+        val wrap = new SchedVecWrapper(schedVect)
         if (!previous.contains(wrap) && !remove) {
           previous += wrap
           if (filterTextDeps) {
@@ -142,7 +143,7 @@ object Exploration {
               if (hasTextDep)
                 noTextDepsSchedules = null
               else
-                noTextDepsSchedules += ((sched, schedVect, bands, nrCarried, cstVect))
+                noTextDepsSchedules += Duplicate((sched, schedVect, bands, nrCarried, cstVect))
             }
             if (noTextDepsSchedules == null && hasTextDep)
               resultsCallback(sched, schedVect, bands, nrCarried, cstVect)

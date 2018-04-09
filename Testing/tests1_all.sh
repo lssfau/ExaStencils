@@ -58,6 +58,7 @@ function update_progress {
 }
 
 function error {
+  update_progress 0
   echo "Automatic tests failed!  See log for details: ${OUT_FILE_URL}" | mail -s "TestBot Error" ${FAILURE_MAIL}
   exit 1
 }
