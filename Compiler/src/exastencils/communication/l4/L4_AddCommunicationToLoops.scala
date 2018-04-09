@@ -23,6 +23,11 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
       for (fieldData <- collector.readExtentMax)
         if (fieldData._2.exists(_ > 0))
           fieldsToConsider += fieldData._1
+      for (fieldData <- collector.readExtentMin)
+        if (fieldData._2.exists(_ < 0))
+          fieldsToConsider += fieldData._1
+
+      fieldsToConsider = fieldsToConsider.distinct
 
       var commStatements = ListBuffer[L4_Communicate]()
 
