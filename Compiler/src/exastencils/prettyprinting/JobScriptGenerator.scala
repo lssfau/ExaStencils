@@ -44,6 +44,8 @@ object JobScriptGenerator {
 
         printer <<< s"#SBATCH --time=00:10:00"
 
+        printer <<< s"#SBATCH --switches=1"
+
         printer <<< ""
 
         printer <<< s"module load daint-gpu"
