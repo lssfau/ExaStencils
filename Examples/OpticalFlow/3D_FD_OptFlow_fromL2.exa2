@@ -1,6 +1,6 @@
 Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >
 
-Field img0@finest with Real on Cell of global = sin ( vf_cellCenter_x ) + cos ( vf_cellCenter_y ) + sin ( vf_cellCenter_z )
+Field img0@finest with Real on Cell of global = sin ( vf_cellCenter_x        ) + cos ( vf_cellCenter_y        ) + sin ( vf_cellCenter_z         )
 Field img1@finest with Real on Cell of global = sin ( vf_cellCenter_x - 0.01 ) + cos ( vf_cellCenter_y + 0.01 ) + sin ( vf_cellCenter_z - 0.005 )
 
 Field img0@(all but finest) with Real on Cell of global = RestrictionCell@finer * img0@finer
@@ -9,18 +9,31 @@ Field img1@(all but finest) with Real on Cell of global = RestrictionCell@finer 
 Field img0 on boundary = Neumann
 Field img1 on boundary = Neumann
 
-Field u with Real on Node of global = 0.0
-Field v with Real on Node of global = 0.0
-Field w with Real on Node of global = 0.0
+Field u with Real on Cell of global = 0.0
+Field v with Real on Cell of global = 0.0
+Field w with Real on Cell of global = 0.0
 
 Field u on boundary = Neumann
 Field v on boundary = Neumann
 Field w on boundary = Neumann
 
-Field Ix with Real on Node of global = GradX * img0 //+ GradX * img1 // TODO: check addition
-Field Iy with Real on Node of global = GradY * img0 //+ GradY * img1
-Field Iz with Real on Node of global = GradZ * img0 //+ GradY * img1
-Field It with Real on Node of global = img1 - img0 // TODO: dt != 1
+Field Ix with Real on Cell of global = GradX * img0
+Field Iy with Real on Cell of global = GradY * img0
+Field Iz with Real on Cell of global = GradZ * img0
+Field It with Real on Cell of global = img1  - img0 // this assumes dt == 1.0
+
+Field IxIx@finest with Real on Cell of global = Ix * Ix
+Field IxIy@finest with Real on Cell of global = Ix * Iy
+Field IxIz@finest with Real on Cell of global = Ix * Iz
+Field IyIy@finest with Real on Cell of global = Iy * Iy
+Field IyIz@finest with Real on Cell of global = Iy * Iz
+Field IzIz@finest with Real on Cell of global = Iz * Iz
+Field IxIx@(all but finest) with Real on Cell of global = RestrictionCell@finer * IxIx@finer
+Field IxIy@(all but finest) with Real on Cell of global = RestrictionCell@finer * IxIy@finer
+Field IxIz@(all but finest) with Real on Cell of global = RestrictionCell@finer * IxIz@finer
+Field IyIy@(all but finest) with Real on Cell of global = RestrictionCell@finer * IyIy@finer
+Field IyIz@(all but finest) with Real on Cell of global = RestrictionCell@finer * IyIz@finer
+Field IzIz@(all but finest) with Real on Cell of global = RestrictionCell@finer * IzIz@finer
 
 Stencil RestrictionCell from default restriction on Cell with 'linear'
 
@@ -28,7 +41,22 @@ Globals {
   Val alpha : Real = 1
 }
 
+// forward difference
 Operator GradX from Stencil {
+  [ 1,  0,  0] =>  1.0 / vf_gridWidth_x
+  [ 0,  0,  0] => -1.0 / vf_gridWidth_x
+}
+Operator GradY from Stencil {
+  [ 0,  1,  0] =>  1.0 / vf_gridWidth_y
+  [ 0,  0,  0] => -1.0 / vf_gridWidth_y
+}
+Operator GradZ from Stencil {
+  [ 0,  0,  1] =>  1.0 / vf_gridWidth_z
+  [ 0,  0,  0] => -1.0 / vf_gridWidth_z
+}
+
+// forward difference with averaging
+/*Operator GradX from Stencil {
   [ 0,  0,  0] =>  0.25 / vf_gridWidth_x
   [ 0, -1,  0] =>  0.25 / vf_gridWidth_x
   [ 0,  0, -1] =>  0.25 / vf_gridWidth_x
@@ -57,7 +85,30 @@ Operator GradZ from Stencil {
   [-1,  0, -1] => -0.25 / vf_gridWidth_z
   [ 0, -1, -1] => -0.25 / vf_gridWidth_z
   [-1, -1, -1] => -0.25 / vf_gridWidth_z
+}*/
+
+// higher order
+/*Operator GradX from Stencil {
+  [-2,  0,  0] =>  1.0 / ( 12.0 * vf_gridWidth_x )
+  [-1,  0,  0] => -8.0 / ( 12.0 * vf_gridWidth_x )
+  [ 0,  0,  0] =>  0.0 / ( 12.0 * vf_gridWidth_x )
+  [ 1,  0,  0] =>  8.0 / ( 12.0 * vf_gridWidth_x )
+  [ 2,  0,  0] => -1.0 / ( 12.0 * vf_gridWidth_x )
 }
+Operator GradY from Stencil {
+  [ 0, -2,  0] =>  1.0 / ( 12.0 * vf_gridWidth_y )
+  [ 0, -1,  0] => -8.0 / ( 12.0 * vf_gridWidth_y )
+  [ 0,  0,  0] =>  0.0 / ( 12.0 * vf_gridWidth_y )
+  [ 0,  1,  0] =>  8.0 / ( 12.0 * vf_gridWidth_y )
+  [ 0,  2,  0] => -1.0 / ( 12.0 * vf_gridWidth_y )
+}
+Operator GradZ from Stencil {
+  [ 0,  0, -2] =>  1.0 / ( 12.0 * vf_gridWidth_z )
+  [ 0,  0, -1] => -8.0 / ( 12.0 * vf_gridWidth_z )
+  [ 0,  0,  0] =>  0.0 / ( 12.0 * vf_gridWidth_z )
+  [ 0,  0,  1] =>  8.0 / ( 12.0 * vf_gridWidth_z )
+  [ 0,  0,  2] => -1.0 / ( 12.0 * vf_gridWidth_z )
+}*/
 
 Operator Laplace from Stencil {
   [ 0,  0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) + 2.0 / ( vf_gridWidth_z ** 2 )
@@ -70,24 +121,24 @@ Operator Laplace from Stencil {
 }
 
 Equation uEquation@finest {
-  Ix * ( Ix * u + Iy * v + Iz * w ) + alpha**2 * ( Laplace * u ) == - Ix * It
+  IxIx * u + IxIy * v + IxIz * w + alpha**2 * ( Laplace * u ) == - Ix * It
 }
 Equation uEquation@(all but finest) {
-  Ix * ( Ix * u + Iy * v + Iz * w ) + alpha**2 * ( Laplace * u ) == 0.0
+  IxIx * u + IxIy * v + IxIz * w + alpha**2 * ( Laplace * u ) == 0.0
 }
 
 Equation vEquation@finest {
-  Iy * ( Ix * u + Iy * v + Iz * w ) + alpha**2 * ( Laplace * v ) == - Iy * It
+  IxIy * u + IyIy * v + IyIz * w + alpha**2 * ( Laplace * v ) == - Iy * It
 }
 Equation vEquation@(all but finest) {
-  Iy * ( Ix * u + Iy * v + Iz * w ) + alpha**2 * ( Laplace * v ) == 0.0
+  IxIy * u + IyIy * v + IyIz * w + alpha**2 * ( Laplace * v ) == 0.0
 }
 
 Equation wEquation@finest {
-  Iz * ( Ix * u + Iy * v + Iz * w ) + alpha**2 * ( Laplace * w ) == - Iz * It
+  IxIz * u + IyIz * v + IzIz * w + alpha**2 * ( Laplace * w ) == - Iz * It
 }
 Equation wEquation@(all but finest) {
-  Iz * ( Ix * u + Iy * v + Iz * w ) + alpha**2 * ( Laplace * w ) == 0.0
+  IxIz * u + IyIz * v + IzIz * w + alpha**2 * ( Laplace * w ) == 0.0
 }
 
 generate operators @all {

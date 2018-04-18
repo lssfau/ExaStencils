@@ -9,3 +9,11 @@ generate solver for u in uEquation and v in vEquation with {
   solver_cgs_maxNumIts          = 128
   solver_cgs_targetResReduction = 1e-3
 }
+smootherStage {
+  loopBase u solveFor { u v }
+}
+/*smootherStage {
+  loopBase u solveFor { u }
+} smootherStage {
+  loopBase v solveFor { v }
+}*/

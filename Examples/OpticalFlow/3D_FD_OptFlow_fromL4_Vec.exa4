@@ -14,49 +14,63 @@ Layout cellWComm< Real, Cell >@all {
   ghostLayers     = [1, 1, 1] with communication
 }
 
-Layout defLayoutForNode< Real, Node >@all {
-  duplicateLayers = [1, 1, 1]
+Layout vec3Cell< Vec3, Cell >@all {
+  duplicateLayers = [0, 0, 0]
   ghostLayers     = [0, 0, 0]
 }
 
-Layout vec3Node< Vec3, Node >@all {
-  duplicateLayers = [1, 1, 1]
-  ghostLayers     = [0, 0, 0]
-}
-
-Layout vec3NodeWComm< Vec3, Node >@all {
-  duplicateLayers = [1, 1, 1] with communication
+Layout vec3CellWComm< Vec3, Cell >@all {
+  duplicateLayers = [0, 0, 0]
   ghostLayers     = [1, 1, 1] with communication
 }
 
 // field declarations
 
-Field img0< global, cellWComm, Neumann >@all
-Field img1< global, cellWComm, Neumann >@all
+Field img0< global, cellWComm, Neumann >@finest
+Field img1< global, cellWComm, Neumann >@finest
 
-Field Ix< global, defLayoutForNode, None >@all
-Field Iy< global, defLayoutForNode, None >@all
-Field Iz< global, defLayoutForNode, None >@all
-Field It< global, defLayoutForNode, None >@all
+Field Ix< global, defLayoutForCell, None >@finest
+Field Iy< global, defLayoutForCell, None >@finest
+Field Iz< global, defLayoutForCell, None >@finest
+Field It< global, defLayoutForCell, None >@finest
 
-Field flow< global, vec3NodeWComm, Neumann >@all
+Field IxIx< global, defLayoutForCell, None >@all
+Field IxIy< global, defLayoutForCell, None >@all
+Field IxIz< global, defLayoutForCell, None >@all
+Field IyIy< global, defLayoutForCell, None >@all
+Field IyIz< global, defLayoutForCell, None >@all
+Field IzIz< global, defLayoutForCell, None >@all
 
-Field rhs< global, vec3Node, None >@all
+Field flow< global, vec3CellWComm, Neumann >@all
 
-Field residual< global, vec3NodeWComm, Neumann >@all
+Field rhs< global, vec3Cell, None >@all
 
-Field cgTmp0< global, vec3NodeWComm, Neumann >@coarsest
-Field cgTmp1< global, vec3Node, None >@coarsest
+Field residual< global, vec3CellWComm, Neumann >@all
+
+Field cgTmp0< global, vec3CellWComm, Neumann >@coarsest
+Field cgTmp1< global, vec3Cell, None >@coarsest
 
 // stencil declarations
 
 Stencil RestrictionCell  from default restriction  on Cell with 'linear'
 Stencil ProlongationCell from default prolongation on Cell with 'linear'
 
-Stencil RestrictionNode  from default restriction  on Node with 'linear'
-Stencil ProlongationNode from default prolongation on Node with 'linear'
-
+// forward difference
 Stencil GradX@all {
+  [ 1,  0,  0] =>  1.0 / vf_gridWidth_x
+  [ 0,  0,  0] => -1.0 / vf_gridWidth_x
+}
+Stencil GradY@all {
+  [ 0,  1,  0] =>  1.0 / vf_gridWidth_y
+  [ 0,  0,  0] => -1.0 / vf_gridWidth_y
+}
+Stencil GradZ@all {
+  [ 0,  0,  1] =>  1.0 / vf_gridWidth_z
+  [ 0,  0,  0] => -1.0 / vf_gridWidth_z
+}
+
+// forward difference with averaging
+/*Stencil GradX@all {
   [ 0,  0,  0] =>  0.25 / vf_gridWidth_x
   [ 0, -1,  0] =>  0.25 / vf_gridWidth_x
   [ 0,  0, -1] =>  0.25 / vf_gridWidth_x
@@ -85,7 +99,7 @@ Stencil GradZ@all {
   [-1,  0, -1] => -0.25 / vf_gridWidth_z
   [ 0, -1, -1] => -0.25 / vf_gridWidth_z
   [-1, -1, -1] => -0.25 / vf_gridWidth_z
-}
+}*/
 
 Stencil Laplace@all {
   [ 0,  0,  0] => {
@@ -125,7 +139,7 @@ Stencil Laplace@all {
 }
 
 Stencil gradContribution@all {
-  [ 0,  0,  0] => { { Ix * Ix, Ix * Iy, Ix * Iz }, { Iy * Ix, Iy * Iy, Iy * Iz }, { Iz * Ix, Iz * Iy, Iz * Iz } }
+  [ 0,  0,  0] => { { IxIx, IxIy, IxIz }, { IxIy, IyIy, IyIz }, { IxIz, IyIz, IzIz } }
 }
 
 Stencil combinedOp@all from ( ( alpha**2 ) * Laplace + gradContribution )
@@ -196,7 +210,7 @@ Function mgCycle@(all but coarsest) {
   // update coarser rhs
   communicate residual
   loop over rhs@coarser {
-    rhs@coarser = RestrictionNode * residual
+    rhs@coarser = RestrictionCell * residual
   }
 
   // update coarser solution
@@ -211,7 +225,7 @@ Function mgCycle@(all but coarsest) {
   // correction
   communicate flow@coarser
   loop over flow {
-    flow += ProlongationNode@coarser * flow@coarser
+    flow += ProlongationCell@coarser * flow@coarser
   }
   apply bc to flow
 
@@ -295,41 +309,62 @@ Function initImgs@finest {
   }
   apply bc to img1
   communicate img1
-
-  @(all but coarsest) {
-    initImgs@coarser ( )
-  }
-}
-Function initImgs@(all but finest) {
-  loop over img0 {
-    img0 = RestrictionCell@finer * img0@finer
-  }
-  apply bc to img0
-  communicate img0
-
-  loop over img1 {
-    img1 = RestrictionCell@finer * img1@finer
-  }
-  apply bc to img1
-  communicate img1
-
-  @(all but coarsest) {
-    initImgs@coarser ( )
-  }
 }
 
 Function initGradients@all {
-  loop over Ix {
-    Ix = GradX * img0
+  @finest {
+    loop over Ix {
+      Ix = GradX * img0
+    }
+    loop over Iy {
+      Iy = GradY * img0
+    }
+    loop over Iz {
+      Iz = GradZ * img0
+    }
+    loop over It {
+      It = img1 - img0
+    }
+
+    loop over IxIx {
+      IxIx = Ix * Ix
+    }
+    loop over IxIy {
+      IxIy = Ix * Iy
+    }
+    loop over IxIy {
+      IxIz = Ix * Iz
+    }
+    loop over IyIy {
+      IyIy = Iy * Iy
+    }
+    loop over IyIz {
+      IyIz = Iy * Iz
+    }
+    loop over IzIz {
+      IzIz = Iz * Iz
+    }
   }
-  loop over Iy {
-    Iy = GradY * img0
-  }
-  loop over Iz {
-    Iz = GradZ * img0
-  }
-  loop over It {
-    It = img1 - img0
+  
+  @(all but finest) {
+    loop over IxIx {
+      IxIx = RestrictionCell@finer * IxIx@finer
+    }
+    loop over IxIy {
+      IxIy = RestrictionCell@finer * IxIy@finer
+    }
+    loop over IxIz {
+      IxIz = RestrictionCell@finer * IxIz@finer
+    }
+    loop over IyIy {
+      IyIy = RestrictionCell@finer * IyIy@finer
+    }
+    loop over IyIz {
+      IyIz = RestrictionCell@finer * IyIz@finer
+    }
+    loop over IzIz {
+      IzIz = RestrictionCell@finer * IzIz@finer
+    }
   }
 
   @(all but coarsest) {
