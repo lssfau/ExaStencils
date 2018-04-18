@@ -1,27 +1,27 @@
 // domain declarations
 
-Domain global< [0.0, 0.0, 0.0] to [1.0, 1.0, 1.0] >
+Domain global< [0.0, 0.0] to [1.0, 1.0] >
 
 // field layout declarations
 
 Layout defLayoutForCell< Real, Cell >@all {
-  duplicateLayers = [0, 0, 0]
-  ghostLayers     = [1, 1, 1]
+  duplicateLayers = [0, 0]
+  ghostLayers     = [1, 1]
 }
 
 Layout cellWComm< Real, Cell >@all {
-  duplicateLayers = [0, 0, 0]
-  ghostLayers     = [1, 1, 1] with communication
+  duplicateLayers = [0, 0]
+  ghostLayers     = [1, 1] with communication
 }
 
-Layout vec3Cell< Vec3, Cell >@all {
-  duplicateLayers = [0, 0, 0]
-  ghostLayers     = [0, 0, 0]
+Layout vec2Cell< Vec2, Cell >@all {
+  duplicateLayers = [0, 0]
+  ghostLayers     = [0, 0]
 }
 
-Layout vec3CellWComm< Vec3, Cell >@all {
-  duplicateLayers = [0, 0, 0]
-  ghostLayers     = [1, 1, 1] with communication
+Layout vec2CellWComm< Vec2, Cell >@all {
+  duplicateLayers = [0, 0]
+  ghostLayers     = [1, 1] with communication
 }
 
 // field declarations
@@ -31,24 +31,21 @@ Field img1< global, cellWComm, Neumann >@finest
 
 Field Ix< global, defLayoutForCell, None >@finest
 Field Iy< global, defLayoutForCell, None >@finest
-Field Iz< global, defLayoutForCell, None >@finest
 Field It< global, defLayoutForCell, None >@finest
 
 Field IxIx< global, defLayoutForCell, None >@all
 Field IxIy< global, defLayoutForCell, None >@all
-Field IxIz< global, defLayoutForCell, None >@all
 Field IyIy< global, defLayoutForCell, None >@all
-Field IyIz< global, defLayoutForCell, None >@all
-Field IzIz< global, defLayoutForCell, None >@all
+Field It< global, defLayoutForCell, None >@finest
 
-Field flow< global, vec3CellWComm, Neumann >@all
+Field flow< global, vec2CellWComm, Neumann >@all
 
-Field rhs< global, vec3Cell, None >@all
+Field rhs< global, vec2Cell, None >@all
 
-Field residual< global, vec3CellWComm, Neumann >@all
+Field residual< global, vec2CellWComm, Neumann >@all
 
-Field cgTmp0< global, vec3CellWComm, Neumann >@coarsest
-Field cgTmp1< global, vec3Cell, None >@coarsest
+Field cgTmp0< global, vec2CellWComm, Neumann >@coarsest
+Field cgTmp1< global, vec2Cell, None >@coarsest
 
 // stencil declarations
 
@@ -56,90 +53,39 @@ Stencil RestrictionCell  from default restriction  on Cell with 'linear'
 Stencil ProlongationCell from default prolongation on Cell with 'linear'
 
 // forward difference
-Stencil GradX@all {
-  [ 1,  0,  0] =>  1.0 / vf_gridWidth_x
-  [ 0,  0,  0] => -1.0 / vf_gridWidth_x
+Stencil GradX@finest {
+  [ 1,  0] =>  1.0 / vf_gridWidth_x
+  [ 0,  0] => -1.0 / vf_gridWidth_x
 }
-Stencil GradY@all {
-  [ 0,  1,  0] =>  1.0 / vf_gridWidth_y
-  [ 0,  0,  0] => -1.0 / vf_gridWidth_y
-}
-Stencil GradZ@all {
-  [ 0,  0,  1] =>  1.0 / vf_gridWidth_z
-  [ 0,  0,  0] => -1.0 / vf_gridWidth_z
+Stencil GradY@finest {
+  [ 0,  1] =>  1.0 / vf_gridWidth_y
+  [ 0,  0] => -1.0 / vf_gridWidth_y
 }
 
 // forward difference with averaging
-/*Stencil GradX@all {
-  [ 0,  0,  0] =>  0.25 / vf_gridWidth_x
-  [ 0, -1,  0] =>  0.25 / vf_gridWidth_x
-  [ 0,  0, -1] =>  0.25 / vf_gridWidth_x
-  [ 0, -1, -1] =>  0.25 / vf_gridWidth_x
-  [-1,  0,  0] => -0.25 / vf_gridWidth_x
-  [-1, -1,  0] => -0.25 / vf_gridWidth_x
-  [-1,  0, -1] => -0.25 / vf_gridWidth_x
-  [-1, -1, -1] => -0.25 / vf_gridWidth_x
+/*Operator GradX from Stencil {
+  [ 1,  1] =>  0.5 / vf_gridWidth_x
+  [ 1,  0] =>  0.5 / vf_gridWidth_x
+  [ 0,  1] => -0.5 / vf_gridWidth_x
+  [ 0,  0] => -0.5 / vf_gridWidth_x
 }
-Stencil GradY@all {
-  [ 0,  0,  0] =>  0.25 / vf_gridWidth_y
-  [-1,  0,  0] =>  0.25 / vf_gridWidth_y
-  [ 0,  0, -1] =>  0.25 / vf_gridWidth_y
-  [-1,  0, -1] =>  0.25 / vf_gridWidth_y
-  [ 0, -1,  0] => -0.25 / vf_gridWidth_y
-  [-1, -1,  0] => -0.25 / vf_gridWidth_y
-  [ 0, -1, -1] => -0.25 / vf_gridWidth_y
-  [-1, -1, -1] => -0.25 / vf_gridWidth_y
-}
-Stencil GradZ@all {
-  [ 0,  0,  0] =>  0.25 / vf_gridWidth_z
-  [-1,  0,  0] =>  0.25 / vf_gridWidth_z
-  [ 0, -1,  0] =>  0.25 / vf_gridWidth_z
-  [-1, -1,  0] =>  0.25 / vf_gridWidth_z
-  [ 0,  0, -1] => -0.25 / vf_gridWidth_z
-  [-1,  0, -1] => -0.25 / vf_gridWidth_z
-  [ 0, -1, -1] => -0.25 / vf_gridWidth_z
-  [-1, -1, -1] => -0.25 / vf_gridWidth_z
+Operator GradY from Stencil {
+  [ 1,  1] =>  0.5 / vf_gridWidth_y
+  [ 0,  1] =>  0.5 / vf_gridWidth_y
+  [ 1,  0] => -0.5 / vf_gridWidth_y
+  [ 0,  0] => -0.5 / vf_gridWidth_y
 }*/
 
 Stencil Laplace@all {
-  [ 0,  0,  0] => {
-    { 2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) + 2.0 / ( vf_gridWidth_z ** 2 ), 0, 0 },
-    { 0, 2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) + 2.0 / ( vf_gridWidth_z ** 2 ), 0 },
-    { 0, 0, 2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) + 2.0 / ( vf_gridWidth_z ** 2 ) } }
-
-  [-1,  0,  0] => {
-    { -1.0 / ( vf_gridWidth_x ** 2 ), 0, 0 },
-    { 0, -1.0 / ( vf_gridWidth_x ** 2 ), 0 },
-    { 0, 0, -1.0 / ( vf_gridWidth_x ** 2 ) } }
-
-  [ 1,  0,  0] => {
-    { -1.0 / ( vf_gridWidth_x ** 2 ), 0, 0 },
-    { 0, -1.0 / ( vf_gridWidth_x ** 2 ), 0 },
-    { 0, 0, -1.0 / ( vf_gridWidth_x ** 2 ) } }
-
-  [ 0, -1,  0] => {
-    { -1.0 / ( vf_gridWidth_y ** 2 ), 0, 0 },
-    { 0, -1.0 / ( vf_gridWidth_y ** 2 ), 0 },
-    { 0, 0, -1.0 / ( vf_gridWidth_y ** 2 ) } }
-
-  [ 0,  1,  0] => {
-    { -1.0 / ( vf_gridWidth_y ** 2 ), 0, 0 },
-    { 0, -1.0 / ( vf_gridWidth_y ** 2 ), 0 },
-    { 0, 0, -1.0 / ( vf_gridWidth_y ** 2 ) } }
-
-  [ 0,  0, -1] => {
-    { -1.0 / ( vf_gridWidth_z ** 2 ), 0, 0 },
-    { 0, -1.0 / ( vf_gridWidth_z ** 2 ), 0 },
-    { 0, 0, -1.0 / ( vf_gridWidth_z ** 2 ) } }
-
-  [ 0,  0,  1] => {
-    { -1.0 / ( vf_gridWidth_z ** 2 ), 0, 0 },
-    { 0, -1.0 / ( vf_gridWidth_z ** 2 ), 0 },
-    { 0, 0, -1.0 / ( vf_gridWidth_z ** 2 ) } }
+  [ 0,  0] => { { 2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ), 0 }, { 0, 2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) } }
+  [-1,  0] => { { -1.0 / ( vf_gridWidth_x ** 2 ), 0 }, { 0, -1.0 / ( vf_gridWidth_x ** 2 ) } }
+  [ 1,  0] => { { -1.0 / ( vf_gridWidth_x ** 2 ), 0 }, { 0, -1.0 / ( vf_gridWidth_x ** 2 ) } }
+  [ 0, -1] => { { -1.0 / ( vf_gridWidth_y ** 2 ), 0 }, { 0, -1.0 / ( vf_gridWidth_y ** 2 ) } }
+  [ 0,  1] => { { -1.0 / ( vf_gridWidth_y ** 2 ), 0 }, { 0, -1.0 / ( vf_gridWidth_y ** 2 ) } }
 }
 
 Stencil gradContribution@all {
-  [ 0,  0,  0] => { { IxIx, IxIy, IxIz }, { IxIy, IyIy, IyIz }, { IxIz, IyIz, IzIz } }
+  [ 0,  0] => { { IxIx, IxIy }, { IxIy, IyIy } }
 }
 
 Stencil combinedOp@all from ( ( alpha**2 ) * Laplace + gradContribution )
@@ -216,8 +162,8 @@ Function mgCycle@(all but coarsest) {
   // smoother
   repeat 3 times {
     repeat with {
-      ( 0 == ( ( i0 + i1 + i2 ) % 2 ) ),
-      ( 1 == ( ( i0 + i1 + i2 ) % 2 ) ),
+      ( 0 == ( ( i0 + i1 ) % 2 ) ),
+      ( 1 == ( ( i0 + i1 ) % 2 ) ),
       communicate flow
       loop over flow {
         flow = flow + inverse( diag ( combinedOp ) ) * ( rhs - combinedOp * flow )
@@ -258,8 +204,8 @@ Function mgCycle@(all but coarsest) {
   // smoother
   repeat 3 times {
     repeat with {
-      ( 0 == ( ( i0 + i1 + i2 ) % 2 ) ),
-      ( 1 == ( ( i0 + i1 + i2 ) % 2 ) ),
+      ( 0 == ( ( i0 + i1 ) % 2 ) ),
+      ( 1 == ( ( i0 + i1 ) % 2 ) ),
       communicate flow
       loop over flow {
         flow = flow + inverse( diag ( combinedOp ) ) * ( rhs - combinedOp * flow )
@@ -325,13 +271,13 @@ Function mgCycle@coarsest {
 
 Function initImgs@finest {
   loop over img0 {
-    img0 = sin ( vf_cellCenter_x ) + cos ( vf_cellCenter_y ) + sin ( vf_cellCenter_z )
+    img0 = sin ( vf_cellCenter_x ) + cos ( vf_cellCenter_y )
   }
   apply bc to img0
   communicate img0
 
   loop over img1 {
-    img1 = sin ( vf_cellCenter_x - 0.01 ) + cos ( vf_cellCenter_y + 0.01 ) + sin ( vf_cellCenter_z - 0.005 )
+    img1 = sin ( vf_cellCenter_x - 0.01 ) + cos ( vf_cellCenter_y + 0.01 )
   }
   apply bc to img1
   communicate img1
@@ -345,9 +291,6 @@ Function initGradients@all {
     loop over Iy {
       Iy = GradY * img0
     }
-    loop over Iz {
-      Iz = GradZ * img0
-    }
     loop over It {
       It = img1 - img0
     }
@@ -358,17 +301,8 @@ Function initGradients@all {
     loop over IxIy {
       IxIy = Ix * Iy
     }
-    loop over IxIy {
-      IxIz = Ix * Iz
-    }
     loop over IyIy {
       IyIy = Iy * Iy
-    }
-    loop over IyIz {
-      IyIz = Iy * Iz
-    }
-    loop over IzIz {
-      IzIz = Iz * Iz
     }
   }
   
@@ -379,17 +313,8 @@ Function initGradients@all {
     loop over IxIy {
       IxIy = RestrictionCell@finer * IxIy@finer
     }
-    loop over IxIz {
-      IxIz = RestrictionCell@finer * IxIz@finer
-    }
     loop over IyIy {
       IyIy = RestrictionCell@finer * IyIy@finer
-    }
-    loop over IyIz {
-      IyIz = RestrictionCell@finer * IyIz@finer
-    }
-    loop over IzIz {
-      IzIz = RestrictionCell@finer * IzIz@finer
     }
   }
 
@@ -403,7 +328,7 @@ Function InitFields {
   initGradients@finest ( )
 
   loop over rhs@finest {
-    rhs@finest = { -Ix@finest * It@finest, -Iy@finest * It@finest, -Iz@finest * It@finest }T
+    rhs@finest = { -Ix@finest * It@finest, -Iy@finest * It@finest }T
   }
 }
 
