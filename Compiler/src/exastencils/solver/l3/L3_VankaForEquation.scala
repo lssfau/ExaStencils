@@ -77,7 +77,7 @@ object L3_VankaForEquation {
   }
 
   def generateLocalSolverFromHints(entries : ListBuffer[L3_SolverForEqEntry], smootherHint : L3_GenerateSmootherHint, level : Int) = {
-    val loopField = entries.find(_.getSolField(level).name == smootherHint.loopBase.get.name)
+    val loopField = entries.find(_.solName == smootherHint.loopBase.get.name)
 
     val unknowns = ListBuffer[L3_Expression]()
     val equations = ListBuffer[L3_Equation]()
