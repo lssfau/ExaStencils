@@ -278,14 +278,17 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
             val indExprs = IR_SimplifyExpression.extractIntegralSum(ind)
             val const : Long = indExprs.remove(IR_SimplifyExpression.constName).getOrElse(0L)
             for (iE <- indExprs) iE match {
-              case (IR_Division(IR_VariableAccess(name, IR_IntegerDatatype), IR_IntegerConstant(_)), 1L) if name == ctx.itName                 =>
-                ctx.divResidue = 0
-              case (IR_Division(IR_Addition(ListBuffer(
-              IR_VariableAccess(name, IR_IntegerDatatype), IR_IntegerConstant(summand))), IR_IntegerConstant(divs)), 1L) if name == ctx.itName =>
-                ctx.divResidue = (summand % divs + divs) % divs
-              case (IR_Division(IR_Addition(ListBuffer(
-              IR_IntegerConstant(summand), IR_VariableAccess(name, IR_IntegerDatatype))), IR_IntegerConstant(divs)), 1L) if name == ctx.itName =>
-                ctx.divResidue = (summand % divs + divs) % divs
+              case (IR_Division(divd, IR_IntegerConstant(divs)), 1L) =>
+                val sum = IR_SimplifyExpression.extractIntegralSum(divd)
+                ctx.divResidue = (sum.remove(IR_SimplifyExpression.constName).getOrElse(0L) % divs + divs) % divs
+                for (s <- sum) s match {
+                  case (IR_VariableAccess(name, IR_IntegerDatatype), 1L) if name == ctx.itName =>
+                    // is ok
+                  case (exp, _) if containsVarAcc(exp, ctx.itName) =>
+                    throw new VectorizationException("cannot deal with summand \"" + iE._2 + " * " + iE._1.prettyprint() + '"')
+                  case _ =>
+                    // is ok
+                }
               case (IR_VariableAccess(name, IR_IntegerDatatype), 1L) if name == ctx.itName                                                     =>
               // nothing to do here
               case (mod : IR_Modulo, _) =>
