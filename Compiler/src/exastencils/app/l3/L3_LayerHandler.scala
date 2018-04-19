@@ -122,14 +122,14 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
       L3_ProcessBoundaryDeclarations.apply()
       L3_ProcessFieldOverrides.apply()
 
+      L3_FieldCollection.addInitFieldsFunction()
+
       L3_ResolveSolverForEquations.apply()
 
       L3_ResolveFieldFieldConvolutions.apply()
       L3_ResolveOperatorTimesField.apply()
 
       L3_IntroduceSlots.apply()
-
-      L3_FieldCollection.addInitFieldsFunction()
     }
 
     // process application Hints
