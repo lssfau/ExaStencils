@@ -32,3 +32,6 @@ omp_parallelizeLoopOverDimensions = true
 // adapt fragments for 9-way coloring (length should be divisible by 3)
 //domain_fragmentLength_x         = 3
 //domain_fragmentLength_y         = 3
+
+solver_eliminateRHS               = false
+solver_overwriteSolutionFields    = false

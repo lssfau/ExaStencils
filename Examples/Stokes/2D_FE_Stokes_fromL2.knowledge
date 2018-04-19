@@ -30,3 +30,8 @@ domain_fragmentLength_y         = 1
 
 
 experimental_resolveInverseFunctionCall = "Runtime"
+
+//solver_splitLocalSolveLoops     = true
+
+solver_eliminateRHS               = false
+solver_overwriteSolutionFields    = false
