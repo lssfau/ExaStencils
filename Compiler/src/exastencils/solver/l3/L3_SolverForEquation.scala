@@ -202,7 +202,7 @@ case class L3_SolverForEquation(
 
   def generateFunctions() = {
     for (level <- Knowledge.levels if level != Knowledge.maxLevel) {
-      entries.foreach(_.prepEqForMG(level))
+      entries.foreach(_.prepEqForMG(level, entries.map(_.getSolField(level))))
       entries.transform(L3_GeneralSimplifyWrapper.process)
     }
 

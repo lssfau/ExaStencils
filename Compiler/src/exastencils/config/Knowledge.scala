@@ -196,6 +196,9 @@ object Knowledge {
   // if true, loops containing a single local solve node will be split into halo and inner; inner will be generated without conditionals
   var solver_splitLocalSolveLoops : Boolean = false
 
+  // if true, all equations to be solved that are not on the finest level are shuffled and get their rhs eliminated
+  var solver_eliminateRHS : Boolean = true
+
   /// === Layer 4 ===
 
   // specifies if shared fieldlayouts should be duplicated when progressing from l4 to ir

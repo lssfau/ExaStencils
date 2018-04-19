@@ -1,9 +1,10 @@
 package exastencils.solver.l3
 
-import scala.collection.mutable.HashMap
+import scala.collection.mutable._
 
 import exastencils.base.l3.L3_ImplicitConversion._
 import exastencils.base.l3._
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.field.l3._
 import exastencils.operator.l3.L3_Stencil
@@ -31,7 +32,16 @@ case class L3_SolverForEqEntry(solName : String, eqName : String) extends L3_Nod
     localEqPerLevel(level)
   }
 
-  def prepEqForMG(level : Int) = {
+  def prepEqForMG(level : Int, unknowns : ListBuffer[L3_Field]) = {
+    if (Knowledge.solver_eliminateRHS) {
+      // shuffle equation
+      val eq = getEq(level)
+      eq.splitLhsRhs(unknowns)
+
+      // eliminate equation's rhs
+      eq.rhs = 0.0
+    }
+
     getEq(level).rhs += L3_FieldAccess(rhsPerLevel(level))
   }
 
