@@ -100,8 +100,9 @@ case class IR_FieldConcatenation(mergedFieldName : String, fieldsToMerge : Seq[S
 
         // create new field, if it does not exist yet
         if (newFields(field.level) == null) {
-          val newField = Duplicate.forceClone(field)
+          val newField = field.createDuplicate()
           newField.name = mergedFieldName
+          newField.fieldLayout = field.fieldLayout.createDuplicate()
           newField.fieldLayout.name = "merged_" + mergedFieldName
           newField.fieldLayout.layoutsPerDim = Array.fill(dim)(IR_FieldLayoutPerDim(0, 0, 0, 0, 0, 0, 0))
           newField.fieldLayout.layoutsPerDim(dim - 1).numInnerLayers = fieldsToMerge.length

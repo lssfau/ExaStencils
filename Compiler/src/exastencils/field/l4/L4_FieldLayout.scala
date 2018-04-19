@@ -3,6 +3,7 @@ package exastencils.field.l4
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.l4._
 import exastencils.config._
+import exastencils.core.Duplicate
 import exastencils.field.ir._
 import exastencils.grid.l4._
 import exastencils.knowledge.l4.L4_LeveledKnowledgeObject
@@ -58,6 +59,11 @@ case class L4_FieldLayout(
     var duplicateLayers : L4_ConstIndex,
     var communicatesDuplicated : Boolean,
     var innerPoints : L4_ConstIndex) extends L4_LeveledKnowledgeObject[IR_FieldLayout] {
+
+  override def createDuplicate() : L4_FieldLayout = {
+    L4_FieldLayout(name, level, numDimsGrid, Duplicate(datatype), Duplicate(localization), Duplicate(ghostLayers),
+      communicatesGhosts, Duplicate(duplicateLayers), communicatesDuplicated, Duplicate(innerPoints))
+  }
 
   override def prettyprintDecl(out : PpStream) = {
     out << "Layout " << name << "< "

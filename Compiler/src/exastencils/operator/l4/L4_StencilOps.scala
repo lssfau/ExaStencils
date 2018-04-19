@@ -19,7 +19,7 @@ object L4_StencilOps {
     if (left.numDims != right.numDims) Logger.warn("Non-matching dimensionalities")
     if ((0 until left.numDims).map(i => left.colStride(i) != right.colStride(i)).reduce(_ || _)) Logger.warn("Non-matching colStrides")
 
-    val newStencil = Duplicate.forceClone(left)
+    val newStencil = left.createDuplicate()
     newStencil.name += "_add_" + right.name
     newStencil.entries ++= Duplicate(right.entries)
     newStencil.squash()
@@ -57,14 +57,14 @@ object L4_StencilOps {
   }
 
   def scale(stencil : L4_Stencil, factor : L4_Expression) : L4_Stencil = {
-    val newStencil = Duplicate.forceClone(stencil)
+    val newStencil = stencil.createDuplicate()
     newStencil.name += "_scaled"
     newStencil.entries.foreach(_.coefficient *= factor)
     newStencil
   }
 
   def kron(left : L4_Stencil, right : L4_Stencil) : L4_Stencil = {
-    val otherCloned = Duplicate.forceClone(right)
+    val otherCloned = right.createDuplicate()
     if (left.level != right.level) Logger.warn(s"Level mismatch: ${ left.level } vs ${ right.level }")
     val numDims = left.numDims
 
@@ -97,7 +97,7 @@ object L4_StencilOps {
   }
 
   def transpose(stencil : L4_Stencil) : L4_Stencil = {
-    val newStencil = Duplicate.forceClone(stencil)
+    val newStencil = stencil.createDuplicate()
     newStencil.name += "_transposed"
     newStencil.colStride.transform(1.0 / _)
 
@@ -149,7 +149,7 @@ object L4_StencilOps {
   }
 
   def filterForSpecCase(stencil : L4_Stencil, c : ListBuffer[Int]) : L4_Stencil = {
-    val newStencil = Duplicate.forceClone(stencil)
+    val newStencil = stencil.createDuplicate()
     newStencil.name += "_filtered_" + c.mkString("_")
 
     newStencil.entries = newStencil.entries.filter(entry => {

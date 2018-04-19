@@ -6,6 +6,7 @@ import exastencils.base.l4.L4_ImplicitConversion._
 import exastencils.base.l4._
 import exastencils.baseExt.l4.L4_FieldIteratorAccess
 import exastencils.core._
+import exastencils.knowledge.l4.L4_KnowledgeObject
 import exastencils.knowledge.l4.L4_LeveledKnowledgeObject
 import exastencils.logger.Logger
 import exastencils.operator.ir._
@@ -21,6 +22,10 @@ case class L4_Stencil(
     var numDims : Int, // number of dimensions in the coefficients
     var colStride : Array[Double], // strides of the entries per dimension; 1 means stencil represents a square matrix, >1 means stride*n x n, <1 means n x n/stride
     var entries : ListBuffer[L4_StencilMappingEntry]) extends L4_LeveledKnowledgeObject[IR_Stencil] {
+
+  override def createDuplicate() : L4_Stencil = {
+    L4_Stencil.tupled(Duplicate(L4_Stencil.unapply(this).get))
+  }
 
   override def prettyprintDecl(out : PpStream) : Unit = {
     out << "Stencil " << name << "@" << level << "{\n"

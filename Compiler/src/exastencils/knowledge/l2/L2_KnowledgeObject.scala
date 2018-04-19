@@ -16,6 +16,7 @@ trait L2_KnowledgeObject[L3_Equivalent <: L3_KnowledgeObject[_]] {
   def name : String
   def progressImpl() : L3_Equivalent
   def prettyprintDecl(out : PpStream) : Unit
+  def createDuplicate() : L2_KnowledgeObject[L3_Equivalent] = ???
 
   private var progressed : Option[L3_Equivalent] = None
 

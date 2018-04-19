@@ -10,10 +10,10 @@ import exastencils.logger.Logger
 object Isl {
 
   // register some immutables (warning: this is incomplete!)
-  exastencils.core.Duplicate.dontCloneHierarchy(classOf[isl.Ctx], true)
-  exastencils.core.Duplicate.dontCloneHierarchy(classOf[isl.UnionSet], true)
-  exastencils.core.Duplicate.dontCloneHierarchy(classOf[isl.UnionMap], true)
-  exastencils.core.Duplicate.dontCloneHierarchy(classOf[isl.Val], true)
+  exastencils.core.Duplicate.dontCloneHierarchy(classOf[isl.Ctx])
+  exastencils.core.Duplicate.dontCloneHierarchy(classOf[isl.UnionSet])
+  exastencils.core.Duplicate.dontCloneHierarchy(classOf[isl.UnionMap])
+  exastencils.core.Duplicate.dontCloneHierarchy(classOf[isl.Val])
 
   private var loaded : Boolean = false
   def load() : Unit = {

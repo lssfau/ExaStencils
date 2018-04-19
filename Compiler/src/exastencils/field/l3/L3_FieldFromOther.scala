@@ -13,7 +13,7 @@ case class L3_FieldFromOther(var name : String, var levels : Option[L3_LevelSpec
     out << " from" << ' ' << src
   }
   override def addToKnowledge() : Unit = {
-    val destField = Duplicate.forceClone(src.asInstanceOf[L3_FieldAccess].target)
+    val destField = src.asInstanceOf[L3_FieldAccess].target.createDuplicate()
     destField.name = name
     L3_FieldCollection.add(destField)
   }

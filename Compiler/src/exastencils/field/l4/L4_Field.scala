@@ -1,6 +1,7 @@
 package exastencils.field.l4
 
 import exastencils.boundary.l4.L4_BoundaryCondition
+import exastencils.core.Duplicate
 import exastencils.domain.l4.L4_Domain
 import exastencils.field.ir.IR_Field
 import exastencils.knowledge.l4.L4_LeveledKnowledgeObject
@@ -16,6 +17,10 @@ case class L4_Field(
     var fieldLayout : L4_FieldLayout,
     var numSlots : Int,
     var boundary : L4_BoundaryCondition) extends L4_LeveledKnowledgeObject[IR_Field] {
+
+  override def createDuplicate() : L4_Field = {
+    L4_Field.tupled(Duplicate(L4_Field.unapply(this).get))
+  }
 
   def datatype = fieldLayout.datatype
   def localization = fieldLayout.localization
