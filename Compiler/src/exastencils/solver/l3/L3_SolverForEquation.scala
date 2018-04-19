@@ -151,6 +151,9 @@ case class L3_SolverForEquation(
         // add residual fields
         L3_FieldCollection.addDeclared(s"gen_residual_${ entry.solName }", level)
 
+        // add error fields
+        L3_FieldCollection.addDeclared(s"gen_error_${ entry.solName }", level)
+
         // add approximations (if required) for all levels but the finest
         if (Knowledge.solver_useFAS)
           L3_FieldCollection.addDeclared(s"gen_approx_${ entry.solName }", level)
@@ -188,6 +191,20 @@ case class L3_SolverForEquation(
         L3_FieldCollection.add(resField)
         entry.resPerLevel += (level -> resField)
 
+        // add field to represent the error (solution) on the coarser grids
+        if (Knowledge.solver_overwriteSolutionFields) {
+          val errorField = Duplicate.forceClone(solField)
+          errorField.name = s"gen_error_${ solField.name }"
+          errorField.initial = Some(0.0)
+          errorField.boundary = solField.boundary match {
+            case L3_DirichletBC(_)                   => L3_DirichletBC(0.0)
+            case other @ (L3_NoBC | L3_NeumannBC(_)) => other
+          }
+
+          L3_FieldCollection.add(errorField)
+          entry.errorPerLevel += (level -> errorField)
+        }
+
         // add approximations (if required) for all levels but the finest
         if (Knowledge.solver_useFAS) {
           val approxField = Duplicate.forceClone(solField)
@@ -202,7 +219,14 @@ case class L3_SolverForEquation(
 
   def generateFunctions() = {
     for (level <- Knowledge.levels if level != Knowledge.maxLevel) {
-      entries.foreach(_.prepEqForMG(level, entries.map(_.getSolField(level))))
+      val unknownErrorMap = HashMap[L3_Field, L3_Field]()
+      var unknowns = entries.map(_.getSolField(level))
+      if (Knowledge.solver_overwriteSolutionFields) {
+        // create map from original solution field to error field
+        entries.foreach(e => unknownErrorMap += e.getSolField(level) -> e.errorPerLevel(level))
+        unknowns ++= entries.map(_.errorPerLevel(level))
+      }
+      entries.foreach(_.prepEqForMG(level, unknowns, unknownErrorMap))
       entries.transform(L3_GeneralSimplifyWrapper.process)
     }
 

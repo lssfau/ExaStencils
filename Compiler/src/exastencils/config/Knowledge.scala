@@ -199,6 +199,9 @@ object Knowledge {
   // if true, all equations to be solved that are not on the finest level are shuffled and get their rhs eliminated
   var solver_eliminateRHS : Boolean = true
 
+  // if true, error fields are generated to replace solutions on coarser grids; adapts boundary conditions
+  var solver_overwriteSolutionFields : Boolean = true
+
   /// === Layer 4 ===
 
   // specifies if shared fieldlayouts should be duplicated when progressing from l4 to ir

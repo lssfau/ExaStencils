@@ -6,6 +6,7 @@ import exastencils.base.l3.L3_ImplicitConversion._
 import exastencils.base.l3._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
+import exastencils.datastructures._
 import exastencils.field.l3._
 import exastencils.operator.l3.L3_Stencil
 import exastencils.prettyprinting._
@@ -15,6 +16,7 @@ import exastencils.prettyprinting._
 case class L3_SolverForEqEntry(solName : String, eqName : String) extends L3_Node with PrettyPrintable {
   var rhsPerLevel = HashMap[Int, L3_Field]()
   var resPerLevel = HashMap[Int, L3_Field]()
+  var errorPerLevel = HashMap[Int, L3_Field]()
   var approxPerLevel = HashMap[Int, L3_Field]()
 
   var restrictForResPerLevel = HashMap[Int, L3_Stencil]()
@@ -25,24 +27,43 @@ case class L3_SolverForEqEntry(solName : String, eqName : String) extends L3_Nod
 
   override def prettyprint(out : PpStream) = out << solName << " in " << eqName
 
-  def getSolField(level : Int) = L3_FieldCollection.getByIdentifier(solName, level).get
+  var solPerLevel = HashMap[Int, L3_Field]()
+  def getSolField(level : Int) = {
+    if (!solPerLevel.contains(level))
+      solPerLevel += (level -> L3_FieldCollection.getByIdentifier(solName, level).get)
+    solPerLevel(level)
+  }
+
   def getEq(level : Int) = {
     if (!localEqPerLevel.contains(level))
       localEqPerLevel += (level -> Duplicate(L3_EquationCollection.getByIdentifier(eqName, level).get.equation))
     localEqPerLevel(level)
   }
 
-  def prepEqForMG(level : Int, unknowns : ListBuffer[L3_Field]) = {
+  def prepEqForMG(level : Int, unknowns : ListBuffer[L3_Field], unknownErrorMap : HashMap[L3_Field, L3_Field]) = {
+    val eq = getEq(level)
+
     if (Knowledge.solver_eliminateRHS) {
       // shuffle equation
-      val eq = getEq(level)
       eq.splitLhsRhs(unknowns)
 
       // eliminate equation's rhs
       eq.rhs = 0.0
     }
 
-    getEq(level).rhs += L3_FieldAccess(rhsPerLevel(level))
+    if (Knowledge.solver_overwriteSolutionFields) {
+      object L3_ReplaceAccesses extends QuietDefaultStrategy("Local replace of field accesses") {
+        this += new Transformation("Search and replace", {
+          case access : L3_FieldAccess if unknownErrorMap.contains(access.target) =>
+            access.target = unknownErrorMap(access.target)
+            access
+        })
+      }
+      L3_ReplaceAccesses.applyStandalone(eq)
+      solPerLevel(level) = errorPerLevel(level)
+    }
+
+    eq.rhs += L3_FieldAccess(rhsPerLevel(level))
   }
 
   def generateUpdateRes(level : Int) : L3_Statement = {

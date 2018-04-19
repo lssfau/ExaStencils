@@ -61,8 +61,5 @@ case class L3_Equation(var lhs : L3_Expression, var rhs : L3_Expression) extends
 
     lhs = newLhs
     rhs = newRhs
-
-    Logger.warn("New lhs: " + lhs)
-    Logger.warn("New rhs: " + rhs)
   }
 }
