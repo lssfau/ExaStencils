@@ -45,7 +45,7 @@ case class L4_FieldConcatenation(mergedFieldName : String, fieldsToMerge : Seq[S
   override def prettyprint(out : PpStream) : Unit = {
     out << "concat "
     if (levels.isDefined)
-      out << "@" << levels.get
+      out << "@" << levels.get << ' '
     out << fieldsToMerge.mkString(", ") << " into " << mergedFieldName
   }
 
