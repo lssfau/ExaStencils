@@ -85,14 +85,14 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
       // resolve current, etc.
       L3_ResolveRelativeLevels.apply()
 
+      L3_ResolveLevelScopes.apply()
+
       L3_PrepareSolverForEquations.apply()
       L3_PrepareDeclarations.apply()
 
       L3_PrepareAccesses.apply()
       L3_InlineDeclaredExpressions.apply()
       L3_ResolveVariableAccesses.apply()
-
-      L3_ResolveLevelScopes.apply()
 
       L3_ResolveDslFunctionReferences.apply()
       L3_ResolveMathFunctions.apply()
