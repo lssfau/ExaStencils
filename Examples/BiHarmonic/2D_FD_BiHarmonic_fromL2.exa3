@@ -1,0 +1,18 @@
+
+generate solver for u in uEq and v in vEq with {
+  solver_targetResReduction     = 1e-6
+  solver_maxNumIts              = 10
+
+  solver_smoother_numPre        = 3
+  solver_smoother_numPost       = 3
+  solver_smoother_coloring      = "red-black"
+
+  solver_cgs                    = "CG"
+  solver_cgs_maxNumIts          = 10000
+  solver_cgs_targetResReduction = 1e-6
+}
+/*smootherStage {
+  loopBase Solution solveFor {
+    Solution@[0,0] Solution@[1,0] Solution@[0,1] Solution@[1,1]
+  }
+}*/

@@ -1,0 +1,30 @@
+
+Domain global< [ 0, 0 ] to [ 1, 1 ] >
+
+Field u with Real on Node of global = 0.0
+Field v with Real on Node of global = 0.0
+
+/// bc u (exact)       sin ( 2 * vf_nodePos_x ) -      cos ( 4 * vf_nodePos_y )
+/// bc v         - 4 * sin ( 2 * vf_nodePos_x ) + 16 * cos ( 4 * vf_nodePos_y )
+/// rhs           16 * sin ( 2 * vf_nodePos_x ) - 64 * cos ( 4 * vf_nodePos_y )
+
+Field u on boundary = sin ( 2 * vf_nodePos_x ) - cos ( 4 * vf_nodePos_y )
+Field v on boundary = - 4 * sin ( 2 * vf_nodePos_x ) + 16 * cos ( 4 * vf_nodePos_y )
+
+Field RHS with Real on Node of global = 16 * sin ( 2 * vf_nodePos_x ) - 64 * cos ( 4 * vf_nodePos_y )
+
+Operator Laplace from Stencil {
+  [ 0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 )
+  [-1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
+  [ 1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
+  [ 0, -1] => -1.0 / ( vf_gridWidth_y ** 2 )
+  [ 0,  1] => -1.0 / ( vf_gridWidth_y ** 2 )
+}
+
+Equation uEq {
+  Laplace * u == v
+}
+
+Equation vEq {
+  Laplace * v == RHS
+}
