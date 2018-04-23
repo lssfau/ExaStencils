@@ -29,6 +29,8 @@ case class L4_VF_StagCellVolume(
   override def localization = L4_AtFaceCenter(stagDim)
   override def resolutionPossible = true
 
+  override def createDuplicate() = L4_VF_StagCellVolume(level, domain, stagDim)
+
   override def resolve(index : L4_ExpressionIndex) = {
     if (!Knowledge.grid_isStaggered) Logger.error("Trying to resolve a staggered quantity on a non-staggered grid; unsupported")
 

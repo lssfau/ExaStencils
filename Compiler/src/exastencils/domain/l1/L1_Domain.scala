@@ -11,6 +11,8 @@ import exastencils.prettyprinting.PpStream
 abstract class L1_Domain extends L1_KnowledgeObject[L2_Domain] {
   var name : String
   def numDims : Int
+
+  override def createDuplicate() : L1_KnowledgeObject[L2_Domain] = Logger.error("Trying to duplicate an l1 domain. This is currently unsupported.")
 }
 
 /// L1_DummyDomain

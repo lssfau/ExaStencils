@@ -24,6 +24,8 @@ case class L3_VF_NodePositionAsVec(
   override def localization = L3_AtNode
   override def resolutionPossible = true
 
+  override def createDuplicate() = L3_VF_NodePositionAsVec(level, domain)
+
   override def listPerDim = (0 until numDims).map(L3_VF_NodePositionPerDim.find(level, _) : L3_VirtualField).to[ListBuffer]
 
   override def progressImpl() = L4_VF_NodePositionAsVec(level, domain.getProgressedObj())
@@ -46,6 +48,8 @@ case class L3_VF_NodePositionPerDim(
   override def knownAliases = ListBuffer(s"vf_nodePosition_${ L3_Localization.dimToString(dim) }", s"vf_nodePos_$dim", s"vf_nodePos_${ L3_Localization.dimToString(dim) }")
   override def localization = L3_AtNode
   override def resolutionPossible = false
+
+  override def createDuplicate() = L3_VF_NodePositionPerDim(level, domain, dim)
 
   override def resolve(index : L3_ExpressionIndex) = Logger.error("Trying to resolve node position; unsupported")
 

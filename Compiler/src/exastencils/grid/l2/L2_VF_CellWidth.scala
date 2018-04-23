@@ -26,6 +26,8 @@ case class L2_VF_CellWidthAsVec(
   override def localization = L2_AtCellCenter
   override def resolutionPossible = true
 
+  override def createDuplicate() = L2_VF_CellWidthAsVec(level, domain)
+
   override def listPerDim = (0 until numDims).map(L2_VF_CellWidthPerDim.find(level, _) : L2_VirtualField).to[ListBuffer]
 
   override def progressImpl() = L3_VF_CellWidthAsVec(level, domain.getProgressedObj())
@@ -48,6 +50,8 @@ case class L2_VF_CellWidthPerDim(
   override def knownAliases = ListBuffer(s"vf_cellWidth_${ L2_Localization.dimToString(dim) }", s"vf_gridWidth_$dim", s"vf_gridWidth_${ L2_Localization.dimToString(dim) }")
   override def localization = L2_AtCellCenter
   override def resolutionPossible = true
+
+  override def createDuplicate() = L2_VF_CellWidthPerDim(level, domain, dim)
 
   override def resolve(index : L2_ExpressionIndex) = {
     if (Knowledge.grid_isUniform) {

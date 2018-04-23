@@ -23,6 +23,8 @@ case class IR_VF_BoundaryPositionAsVec(
   override def localization = IR_AtBoundary
   override def resolutionPossible = true
 
+  override def createDuplicate() = IR_VF_BoundaryPositionAsVec(level, domain)
+
   override def listPerDim = (0 until numDims).map(IR_VF_BoundaryPositionPerDim.find(level, _) : IR_VirtualField).to[ListBuffer]
 }
 
@@ -48,6 +50,8 @@ case class IR_VF_BoundaryPositionPerDim(
   }
   override def localization = IR_AtBoundary
   override def resolutionPossible = false
+
+  override def createDuplicate() = IR_VF_BoundaryPositionPerDim(level, domain, dim)
 
   override def resolve(index : IR_ExpressionIndex) = Logger.error("Trying to resolve boundary position; unsupported")
 }

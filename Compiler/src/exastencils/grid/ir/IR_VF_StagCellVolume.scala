@@ -28,6 +28,8 @@ case class IR_VF_StagCellVolume(
   override def localization = IR_AtFaceCenter(stagDim)
   override def resolutionPossible = true
 
+  override def createDuplicate() = IR_VF_StagCellVolume(level, domain, stagDim)
+
   override def resolve(index : IR_ExpressionIndex) = {
     if (!Knowledge.grid_isStaggered) Logger.error("Trying to resolve a staggered quantity on a non-staggered grid; unsupported")
 

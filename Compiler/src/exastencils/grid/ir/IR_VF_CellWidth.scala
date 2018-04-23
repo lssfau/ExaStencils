@@ -25,6 +25,8 @@ case class IR_VF_CellWidthAsVec(
   override def localization = IR_AtCellCenter
   override def resolutionPossible = true
 
+  override def createDuplicate() = IR_VF_CellWidthAsVec(level, domain)
+
   override def listPerDim = (0 until numDims).map(IR_VF_CellWidthPerDim.find(level, _) : IR_VirtualField).to[ListBuffer]
 }
 
@@ -45,6 +47,8 @@ case class IR_VF_CellWidthPerDim(
   override def knownAliases = ListBuffer(s"vf_cellWidth_${ IR_Localization.dimToString(dim) }", s"vf_gridWidth_$dim", s"vf_gridWidth_${ IR_Localization.dimToString(dim) }")
   override def localization = IR_AtCellCenter
   override def resolutionPossible = true
+
+  override def createDuplicate() = IR_VF_CellWidthPerDim(level, domain, dim)
 
   override def resolve(index : IR_ExpressionIndex) = {
     if (Knowledge.grid_isUniform) {

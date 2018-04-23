@@ -28,6 +28,8 @@ case class IR_VF_StagCellWidthAsVec(
   override def localization = IR_AtFaceCenter(stagDim)
   override def resolutionPossible = true
 
+  override def createDuplicate() = IR_VF_StagCellWidthAsVec(level, domain, stagDim)
+
   override def listPerDim = (0 until numDims).map(IR_VF_StagCellWidthPerDim.find(level, stagDim, _) : IR_VirtualField).to[ListBuffer]
 }
 
@@ -56,6 +58,8 @@ case class IR_VF_StagCellWidthPerDim(
   }
   override def localization = IR_AtFaceCenter(stagDim)
   override def resolutionPossible = true
+
+  override def createDuplicate() = IR_VF_StagCellWidthPerDim(level, domain, stagDim, dim)
 
   def associatedField = {
     if (Knowledge.grid_isAxisAligned && !Knowledge.grid_isUniform && (dim == stagDim) && stagDim == dim)

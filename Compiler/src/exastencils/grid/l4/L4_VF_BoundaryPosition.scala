@@ -24,6 +24,8 @@ case class L4_VF_BoundaryPositionAsVec(
   override def localization = L4_AtBoundary
   override def resolutionPossible = true
 
+  override def createDuplicate() = L4_VF_BoundaryPositionAsVec(level, domain)
+
   override def listPerDim = (0 until numDims).map(L4_VF_BoundaryPositionPerDim.find(level, _) : L4_VirtualField).to[ListBuffer]
   override def progressImpl() = IR_VF_BoundaryPositionAsVec(level, domain.getProgressedObj())
 }
@@ -50,6 +52,8 @@ case class L4_VF_BoundaryPositionPerDim(
   }
   override def localization = L4_AtBoundary
   override def resolutionPossible = false
+
+  override def createDuplicate() = L4_VF_BoundaryPositionPerDim(level, domain, dim)
 
   override def resolve(index : L4_ExpressionIndex) = Logger.error("Trying to resolve boundary position; unsupported")
   override def progressImpl() = IR_VF_BoundaryPositionPerDim(level, domain.getProgressedObj(), dim)

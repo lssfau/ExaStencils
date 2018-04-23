@@ -27,6 +27,8 @@ case class L2_VF_StagCellWidthAsVec(
   override def localization = L2_AtFaceCenter(stagDim)
   override def resolutionPossible = true
 
+  override def createDuplicate() = L2_VF_StagCellWidthAsVec(level, domain, stagDim)
+
   override def listPerDim = (0 until numDims).map(L2_VF_StagCellWidthPerDim.find(level, stagDim, _) : L2_VirtualField).to[ListBuffer]
 
   override def progressImpl() = L3_VF_StagCellWidthAsVec(level, domain.getProgressedObj(), stagDim)
@@ -57,6 +59,8 @@ case class L2_VF_StagCellWidthPerDim(
   }
   override def localization = L2_AtFaceCenter(stagDim)
   override def resolutionPossible = true
+
+  override def createDuplicate() = L2_VF_StagCellWidthPerDim(level, domain, stagDim, dim)
 
   override def resolve(index : L2_ExpressionIndex) = {
     if (!Knowledge.grid_isStaggered) Logger.error("Trying to resolve a staggered quantity on a non-staggered grid; unsupported")

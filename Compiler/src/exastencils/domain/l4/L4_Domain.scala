@@ -13,6 +13,8 @@ abstract class L4_Domain extends L4_KnowledgeObject[IR_Domain] {
 
 //  override def prettyprintDecl(out : PpStream) : Unit = ???
 //  override def progressImpl() = IR_Domain(name)
+
+  override def createDuplicate() : L4_KnowledgeObject[IR_Domain] = Logger.error("Trying to duplicate an l4 domain. This is currently unsupported.")
 }
 
 /// L4_DummyDomain

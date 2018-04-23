@@ -12,6 +12,8 @@ case class IR_ExternalField(
     var level : Int // the (geometric) level the field lives on
 ) extends IR_KnowledgeObject {
 
+  override def createDuplicate() = IR_ExternalField(name, targetField, fieldLayout, level)
+
   // shortcuts to layout options
   def gridDatatype = fieldLayout.datatype
   def resolveBaseDatatype = fieldLayout.datatype.resolveBaseDatatype

@@ -193,7 +193,7 @@ case class L3_SolverForEquation(
 
         // add field to represent the error (solution) on the coarser grids
         if (Knowledge.solver_overwriteSolutionFields) {
-          val errorField = Duplicate.forceClone(solField)
+          val errorField = solField.createDuplicate()
           errorField.name = s"gen_error_${ solField.name }"
           errorField.initial = Some(0.0)
           errorField.boundary = solField.boundary match {

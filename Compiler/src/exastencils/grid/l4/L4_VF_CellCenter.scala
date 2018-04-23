@@ -29,6 +29,8 @@ case class L4_VF_CellCenterAsVec(
   override def localization = L4_AtCellCenter
   override def resolutionPossible = true
 
+  override def createDuplicate() = L4_VF_CellCenterAsVec(level, domain)
+
   override def listPerDim = (0 until numDims).map(L4_VF_CellCenterPerDim.find(level, _) : L4_VirtualField).to[ListBuffer]
 
   override def addAdditionalFieldsToKnowledge() = {
@@ -70,6 +72,8 @@ case class L4_VF_CellCenterPerDim(
   override def knownAliases = ListBuffer(s"vf_cellCenter_${ L4_Localization.dimToString(dim) }", s"vf_cellCen_$dim", s"vf_cellCen_${ L4_Localization.dimToString(dim) }")
   override def localization = L4_AtCellCenter
   override def resolutionPossible = true
+
+  override def createDuplicate() = L4_VF_CellCenterPerDim(level, domain, dim)
 
   override def resolve(index : L4_ExpressionIndex) = {
     if (Knowledge.grid_isUniform) {

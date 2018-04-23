@@ -28,6 +28,8 @@ case class L4_VF_NodePositionAsVec(
   override def localization = L4_AtNode
   override def resolutionPossible = true
 
+  override def createDuplicate() = L4_VF_NodePositionAsVec(level, domain)
+
   override def listPerDim = (0 until numDims).map(L4_VF_NodePositionPerDim.find(level, _) : L4_VirtualField).to[ListBuffer]
 
   override def addAdditionalFieldsToKnowledge() = {
@@ -91,6 +93,8 @@ case class L4_VF_NodePositionPerDim(
       L4_FieldCollection.add(field)
     }
   }
+
+  override def createDuplicate() = L4_VF_NodePositionPerDim(level, domain, dim)
 
   override def resolve(index : L4_ExpressionIndex) = Logger.error("Trying to resolve node position; unsupported")
 

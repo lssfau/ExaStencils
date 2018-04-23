@@ -14,6 +14,8 @@ case class IR_NamedEquation(
   def lhs = equation.lhs
   def rhs = equation.rhs
 
+  override def createDuplicate() = IR_NamedEquation(name, level, Duplicate(equation))
+
   def asZeroEquation() : IR_Expression = {
     val zeroEq : IR_Expression = Duplicate(lhs - rhs)
     IR_GeneralSimplifyWrapper.process(zeroEq)

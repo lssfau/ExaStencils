@@ -16,6 +16,8 @@ case class L3_NamedEquation(
   def lhs = equation.lhs
   def rhs = equation.rhs
 
+  override def createDuplicate() = L3_NamedEquation(name, level, Duplicate(equation))
+
   override def prettyprintDecl(out : PpStream) = {
     out << "Equation " << name << '@' << level << " {\n"
     out << lhs << " == " << rhs

@@ -14,6 +14,9 @@ case class L2_StencilField(
     var field : L2_Field // linked coefficient field
 ) extends L2_LeveledKnowledgeObject[L3_StencilField] {
 
+  override def createDuplicate() = L2_StencilField(name, level, stencil, field)
+
   override def prettyprintDecl(out : PpStream) : Unit = ???
+
   override def progressImpl() = L3_StencilField(name, level, stencil.getProgressedObj(), field.getProgressedObj())
 }

@@ -13,5 +13,7 @@ case class IR_StencilField(
     var field : IR_Field // linked coefficient field
 ) extends IR_LeveledKnowledgeObject {
 
+  override def createDuplicate() = IR_StencilField(name, level, stencil, field)
+
   def findStencilEntryIndex(offset : IR_ConstIndex) : Option[Int] = stencil.findStencilEntryIndex(offset)
 }

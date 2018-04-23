@@ -26,6 +26,8 @@ case class L3_VF_CellVolume(
   override def localization = L3_AtCellCenter
   override def resolutionPossible = true
 
+  override def createDuplicate() = L3_VF_CellVolume(level, domain)
+
   override def resolve(index : L3_ExpressionIndex) = {
     if (Knowledge.grid_isAxisAligned) // includes uniform grids
       (0 until domain.numDims).map(dim => L3_VF_CellWidthPerDim.access(level, dim, Duplicate(index)) : L3_Expression).reduce(_ * _)

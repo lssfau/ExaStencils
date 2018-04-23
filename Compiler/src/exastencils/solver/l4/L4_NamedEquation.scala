@@ -2,7 +2,7 @@ package exastencils.solver.l4
 
 import exastencils.base.l4._
 import exastencils.core.Duplicate
-import exastencils.knowledge.l4.L4_LeveledKnowledgeObject
+import exastencils.knowledge.l4._
 import exastencils.optimization.l4.L4_GeneralSimplifyWrapper
 import exastencils.prettyprinting._
 import exastencils.solver.ir.IR_NamedEquation
@@ -15,6 +15,8 @@ case class L4_NamedEquation(
 
   def lhs = equation.lhs
   def rhs = equation.rhs
+
+  override def createDuplicate() = L4_NamedEquation(name, level, Duplicate(equation))
 
   override def prettyprintDecl(out : PpStream) = {
     out << "Equation " << name << '@' << level << " {\n"

@@ -29,6 +29,8 @@ case class L4_VF_StagCellWidthAsVec(
   override def localization = L4_AtFaceCenter(stagDim)
   override def resolutionPossible = true
 
+  override def createDuplicate() = L4_VF_StagCellWidthAsVec(level, domain, stagDim)
+
   override def listPerDim = (0 until numDims).map(L4_VF_StagCellWidthPerDim.find(level, stagDim, _) : L4_VirtualField).to[ListBuffer]
 
   override def progressImpl() = IR_VF_StagCellWidthAsVec(level, domain.getProgressedObj(), stagDim)
@@ -59,6 +61,8 @@ case class L4_VF_StagCellWidthPerDim(
   }
   override def localization = L4_AtFaceCenter(stagDim)
   override def resolutionPossible = Knowledge.grid_isUniform || (Knowledge.grid_isAxisAligned && !Knowledge.grid_halveStagBoundaryVolumes)
+
+  override def createDuplicate() = L4_VF_StagCellWidthPerDim(level, domain, stagDim, dim)
 
   override def addAdditionalFieldsToKnowledge() = {
     if (Knowledge.grid_isAxisAligned && !Knowledge.grid_isUniform && Knowledge.grid_isStaggered && stagDim == dim && Knowledge.grid_halveStagBoundaryVolumes) {

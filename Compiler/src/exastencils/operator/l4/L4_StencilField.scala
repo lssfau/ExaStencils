@@ -14,6 +14,8 @@ case class L4_StencilField(
     var field : L4_Field // linked coefficient field
 ) extends L4_LeveledKnowledgeObject[IR_StencilField] {
 
+  override def createDuplicate() = L4_StencilField(name, level, stencil, field)
+
   override def prettyprintDecl(out : PpStream) = {
     out << "StencilField " << name << "< " << field.name << " => " << stencil.name << " >" << '@' << level
   }

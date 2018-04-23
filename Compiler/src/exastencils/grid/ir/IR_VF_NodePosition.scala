@@ -28,6 +28,8 @@ case class IR_VF_NodePositionAsVec(
   override def localization = IR_AtNode
   override def resolutionPossible = true
 
+  override def createDuplicate() = IR_VF_NodePositionAsVec(level, domain)
+
   def associatedField = {
     if (!Knowledge.grid_isAxisAligned)
       IR_FieldCollection.getByIdentifier(name, level).get
@@ -75,6 +77,9 @@ case class IR_VF_NodePositionPerDim(
   override def knownAliases = ListBuffer(s"vf_nodePosition_${ IR_Localization.dimToString(dim) }", s"vf_nodePos_$dim", s"vf_nodePos_${ IR_Localization.dimToString(dim) }")
   override def localization = IR_AtNode
   override def resolutionPossible = true
+
+  override def createDuplicate() = IR_VF_NodePositionPerDim(level, domain, dim)
+
 
   def associatedField = {
     if (!Knowledge.grid_isUniform)
