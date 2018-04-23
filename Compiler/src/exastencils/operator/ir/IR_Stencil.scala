@@ -20,6 +20,10 @@ case class IR_Stencil(
     var colStride : Array[Double], // strides of the entries per dimension; 1 means stencil represents a square matrix, >1 means stride*n x n, <1 means n x n/stride
     var entries : ListBuffer[IR_StencilMappingEntry]) extends IR_LeveledKnowledgeObject {
 
+  override def createDuplicate() : IR_Stencil = {
+    IR_Stencil.tupled(Duplicate(IR_Stencil.unapply(this).get))
+  }
+
   def datatype = entries.foldLeft(entries.head.datatype)((dt, entry) => IR_ResultingDatatype(dt, entry.datatype))
 
   def numCases(d : Int) : Int = if (colStride(d) >= 1) 1 /*colStride(d).toInt*/ else (1.0 / colStride(d)).toInt

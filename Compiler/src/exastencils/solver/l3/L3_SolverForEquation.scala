@@ -170,7 +170,7 @@ case class L3_SolverForEquation(
 
         // add a rhs for all levels but the finest (which was already declared on L2 by the user)
         if (level != Knowledge.maxLevel) {
-          val rhsField = Duplicate.forceClone(solField)
+          val rhsField = solField.createDuplicate()
           rhsField.name = s"gen_rhs_${ solField.name }"
           rhsField.initial = Some(0.0)
           rhsField.boundary = L3_NoBC
@@ -180,7 +180,7 @@ case class L3_SolverForEquation(
         }
 
         // add residual fields
-        val resField = Duplicate.forceClone(solField)
+        val resField = solField.createDuplicate()
         resField.name = s"gen_residual_${ solField.name }"
         resField.initial = Some(0.0)
         resField.boundary = solField.boundary match {
@@ -207,7 +207,7 @@ case class L3_SolverForEquation(
 
         // add approximations (if required) for all levels but the finest
         if (Knowledge.solver_useFAS) {
-          val approxField = Duplicate.forceClone(solField)
+          val approxField = solField.createDuplicate()
           approxField.name = s"gen_approx_${ solField.name }"
 
           L3_FieldCollection.add(approxField)

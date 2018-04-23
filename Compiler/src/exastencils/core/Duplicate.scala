@@ -15,8 +15,6 @@ import exastencils.logger.Logger
 object Duplicate {
   private val cloner = new com.rits.cloning.Cloner
   cloner.setDumpClonedClasses(Settings.printClonedObjects)
-  private val forceCloner = new com.rits.cloning.Cloner
-  forceCloner.setDumpClonedClasses(Settings.printClonedObjects)
   private val multiplicationCloner = new com.rits.cloning.Cloner
   multiplicationCloner.setDumpClonedClasses(Settings.printClonedObjects)
 
@@ -65,10 +63,6 @@ object Duplicate {
     cloned
   }
 
-  def forceClone[T](t : T) : T = {
-    forceCloner.deepClone(t)
-  }
-
   /**
     * Enable or disable debug output.
     *
@@ -76,32 +70,23 @@ object Duplicate {
     */
   def debugOutput(output : Boolean) = cloner.setDumpClonedClasses(output)
 
-  def dontClone(t : Class[_], forceToo : Boolean = false) = {
+  def dontClone(t : Class[_]) = {
     cloner.dontClone(t)
-    if (forceToo)
-      forceCloner.dontClone(t)
   }
-  def dontCloneHierarchy(t : Class[_], forceToo : Boolean = false) = {
+  def dontCloneHierarchy(t : Class[_]) = {
     cloner.dontCloneInstanceOf(t)
-    if (forceToo)
-      forceCloner.dontCloneInstanceOf(t)
   }
-  def nullInsteadOfClone(t : Class[_], forceToo : Boolean = false) = {
+  def nullInsteadOfClone(t : Class[_]) = {
     cloner.nullInsteadOfClone(t)
-    if (forceToo)
-      forceCloner.nullInsteadOfClone(t)
   }
 
   /**
     * Register a class as immutable, which does not need to be cloned.
     *
     * @param t        The class to be registered as immutable.
-    * @param forceToo If set, it is not cloned via forceClone(..), too.
     */
-  def registerImmutable(t : Class[_], forceToo : Boolean = false) = {
+  def registerImmutable(t : Class[_]) = {
     cloner.registerImmutable(t)
-    if (forceToo)
-      forceCloner.registerImmutable(t)
   }
   /**
     * Register a constant, which must not be cloned. (Even forceClone(..) is not allowed to clone these.)
@@ -110,7 +95,6 @@ object Duplicate {
     */
   def registerConstant(field : Any) = {
     cloner.registerConstant(field)
-    forceCloner.registerConstant(field)
   }
   // the following is hard/impossible to deal with in willBeCloned, but since it is not used/required yet...
   // def registerConstant(t : Class[_], field : String) : Unit = cloner.registerConstant(t, field)
@@ -122,7 +106,7 @@ object Duplicate {
   // prevent cloning of some immutable objects/classes of the scala library (otherwise something goes boom)
   // Note: do ONLY register classes as immutable, whose children/attributes are immutable, too (recursively)
   //       e.g., immutable.List must therefore be copied
-  List(cloner, forceCloner, multiplicationCloner).foreach(
+  List(cloner, multiplicationCloner).foreach(
     c => {
       c.registerConstant(None)
       c.registerConstant(Nil)
@@ -153,7 +137,7 @@ object Duplicate {
   }
 
   // Do not add fast cloners to multiplicationCloner
-  List(cloner, forceCloner).foreach(c => {
+  List(cloner).foreach(c => {
     c.registerFastCloner(classOf[scala.collection.mutable.ListBuffer[_]], new FastClonerListBuffer())
     c.registerFastCloner(classOf[scala.collection.mutable.ArrayBuffer[_]], new FastClonerArrayBuffer())
     c.registerFastCloner(classOf[scala.Array[_]], new FastClonerArray())

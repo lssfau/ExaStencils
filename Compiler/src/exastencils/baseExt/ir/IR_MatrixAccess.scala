@@ -841,7 +841,7 @@ object IR_ResolveMatrixAssignments extends DefaultStrategy("Resolve assignments 
       newStmts
   })
 
-  this += new Transformation("expressions 2/3", {
+  this += new Transformation("expressions 2/2", {
     case exp : IR_MatrixExpression if (exp.hasAnnotation(annotationMatrixRow)) =>
       exp.get(exp.popAnnotation(annotationMatrixRow).get.asInstanceOf[Int], exp.popAnnotation(annotationMatrixCol).get.asInstanceOf[Int])
 

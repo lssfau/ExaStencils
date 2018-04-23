@@ -3,6 +3,7 @@ package exastencils.field.l3
 import exastencils.base.l3._
 import exastencils.baseExt.l3._
 import exastencils.boundary.l3.L3_BoundaryCondition
+import exastencils.core.Duplicate
 import exastencils.domain.l3.L3_Domain
 import exastencils.field.l4._
 import exastencils.grid.l3.L3_Localization
@@ -26,6 +27,10 @@ case class L3_Field(
     var numSlots : Int,
     var initial : Option[L3_Expression],
     var boundary : L3_BoundaryCondition) extends L3_LeveledKnowledgeObject[L4_Field] {
+
+  override def createDuplicate() : L3_Field = {
+    L3_Field(name, level, Duplicate(domain), Duplicate(datatype), Duplicate(localization), numSlots, Duplicate(initial), Duplicate(boundary))
+  }
 
   def printDatatype(dt : L3_Datatype) : String = {
     dt match {

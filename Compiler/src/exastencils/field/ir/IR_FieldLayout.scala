@@ -4,6 +4,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_Linearization
 import exastencils.config._
+import exastencils.core.Duplicate
 import exastencils.grid.ir.IR_Localization
 import exastencils.knowledge.ir._
 import exastencils.logger.Logger
@@ -21,6 +22,10 @@ case class IR_FieldLayout(
     var communicatesDuplicated : Boolean, // specifies if duplicated values need to be exchanged between processes
     var communicatesGhosts : Boolean // specifies if ghost layer values need to be exchanged between processes
 ) extends IR_LeveledKnowledgeObject {
+
+  override def createDuplicate() : IR_FieldLayout = {
+    IR_FieldLayout.tupled(Duplicate(IR_FieldLayout.unapply(this).get))
+  }
 
   // dimensionality of the stored data; numDimsGrid for scalar fields, numDimsGrid + 1 for vector fields, numDimsGrid + 2 for matrix fields, etc.
   def numDimsData : Int = layoutsPerDim.length

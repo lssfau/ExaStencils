@@ -22,6 +22,10 @@ case class L3_Stencil(
     var colStride : Array[Double], // strides of the entries per dimension; 1 means stencil represents a square matrix, >1 means stride*n x n, <1 means n x n/stride
     var entries : ListBuffer[L3_StencilMappingEntry]) extends L3_LeveledKnowledgeObject[L4_Stencil] {
 
+  override def createDuplicate() : L3_Stencil = {
+    L3_Stencil.tupled(Duplicate(L3_Stencil.unapply(this).get))
+  }
+
   override def prettyprintDecl(out : PpStream) : Unit = {
     out << "Operator " << name << "@" << level << " from Stencil {\n"
     out <<< (entries, "\n")

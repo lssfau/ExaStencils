@@ -11,6 +11,7 @@ trait IR_KnowledgeObject {
   IR_KnowledgeObject
 
   def name : String
+  def createDuplicate() : IR_KnowledgeObject = ???
 }
 
 /// IR_LeveledKnowledgeObject

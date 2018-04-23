@@ -135,7 +135,7 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
         field.fieldLayout = L4_FieldLayoutCollection.getByIdentifier(newLayoutName, field.level).get
       } else {
         // layout doesn't exist yet -> create it
-        val newLayout = Duplicate.forceClone(defLayout)
+        val newLayout = defLayout.createDuplicate()
         newLayout.name = newLayoutName
         val numGhostLayers = (numGhostLayersLeft, numGhostLayersRight).zipped.map(math.max)
         newLayout.ghostLayers = L4_ConstIndex(numGhostLayers)

@@ -2,6 +2,7 @@ package exastencils.field.l2
 
 import exastencils.base.l2._
 import exastencils.boundary.l2._
+import exastencils.core.Duplicate
 import exastencils.domain.l2.L2_Domain
 import exastencils.field.l3.L3_Field
 import exastencils.grid.l2.L2_Localization
@@ -25,6 +26,10 @@ case class L2_Field(
     var numSlots : Int,
     var initial : Option[L2_Expression],
     var boundary : L2_BoundaryCondition) extends L2_LeveledKnowledgeObject[L3_Field] {
+
+  override def createDuplicate() : L2_Field = {
+    L2_Field(name, level, Duplicate(domain), Duplicate(datatype), Duplicate(localization), numSlots, Duplicate(initial), Duplicate(boundary))
+  }
 
   override def prettyprintDecl(out : PpStream) : Unit = {
     out << "Field " << name << "@" << level << " with " << datatype << " on " << localization << " of " << domain.name

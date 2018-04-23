@@ -312,7 +312,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       }.toArray, trafo)
   })
   lazy val idWithLevelDecl = ident ~ levelDecl.? ^^ { case id ~ lvls => L4_LeveledIdentifier(id, lvls) }
-  lazy val concatFieldsStmt = locationize(("concat" ~> levelDecl.? ~ repsep(ident, "and" ||| ",")) ~ ("into" ~> ident)
+  lazy val concatFieldsStmt = locationize("concat" ~> levelDecl.? ~ repsep(ident, "and" ||| ",") ~ ("into" ~> ident)
     ^^ { case lvls ~ fields ~ nju => L4_FieldConcatenation(nju, fields, lvls) })
 
   // ######################################

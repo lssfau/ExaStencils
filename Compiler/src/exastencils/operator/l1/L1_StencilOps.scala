@@ -15,7 +15,7 @@ object L1_StencilOps {
     if (left.numDims != right.numDims) Logger.warn("Non-matching dimensionalities")
     if (left.level != right.level) Logger.warn("Non-matching levels")
 
-    val newStencil = Duplicate.forceClone(left)
+    val newStencil = left.createDuplicate()
     newStencil.name += "_add_" + right.name
     newStencil.entries ++= Duplicate(right.entries)
     newStencil.squash()
@@ -46,14 +46,14 @@ object L1_StencilOps {
   }
 
   def scale(stencil : L1_Stencil, factor : L1_Expression) : L1_Stencil = {
-    val newStencil = Duplicate.forceClone(stencil)
+    val newStencil = stencil.createDuplicate()
     newStencil.name += "_scaled"
     newStencil.entries.foreach(_.coefficient *= factor)
     newStencil
   }
 
   def inverse(stencil : L1_Stencil) : L1_Stencil = {
-    val newStencil = Duplicate.forceClone(stencil)
+    val newStencil = stencil.createDuplicate()
     newStencil.name += "_inverted"
     newStencil.squash()
 

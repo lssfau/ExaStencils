@@ -218,7 +218,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     }))
 
     // apply transform stmts (GenericTransform) (for the first time)
-    val processedLayouts = new IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex => IR_ExpressionIndex]()
+    val processedLayouts = new HashMap[(String, Int), IR_ExpressionIndex => IR_ExpressionIndex]()
     val colCondColl = new ColorCondCollector()
     if (!transformations.isEmpty) {
       this.register(colCondColl)
@@ -314,20 +314,20 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
   }
 
   private def processDFA(dfa : IR_DirectFieldAccess, transformations : HashMap[(String, Int), ArrayBuffer[IR_GenericTransform]],
-      processedLayouts : IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex => IR_ExpressionIndex], colColl : ColorCondCollector) : Unit = {
+      processedLayouts : HashMap[(String, Int), IR_ExpressionIndex => IR_ExpressionIndex], colColl : ColorCondCollector) : Unit = {
 
     val fieldID : (String, Int) = (dfa.fieldSelection.field.name, dfa.fieldSelection.field.level)
     val trafosOpt = transformations.get(fieldID)
     if (trafosOpt.isEmpty)
       return
 
-    val layout : IR_FieldLayout = dfa.fieldSelection.fieldLayout
-    var exprTemplate : IR_ExpressionIndex => IR_ExpressionIndex = processedLayouts.get(layout)
+    var exprTemplate : IR_ExpressionIndex => IR_ExpressionIndex = processedLayouts.getOrElse(fieldID, null)
     if (exprTemplate == null) {
+      val layout : IR_FieldLayout = dfa.fieldSelection.field.fieldLayout
       val trafoMaff : isl.MultiAff = createIslTrafo(trafosOpt.get, layout, fieldID)
       adaptLayout(layout, trafoMaff, fieldID)
       exprTemplate = createASTTemplateforMultiAff(trafoMaff)
-      processedLayouts.put(layout, exprTemplate)
+      processedLayouts.put(fieldID, exprTemplate)
     }
 
     val newIndex = exprTemplate(dfa.index)

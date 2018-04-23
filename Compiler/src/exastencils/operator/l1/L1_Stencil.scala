@@ -19,6 +19,10 @@ case class L1_Stencil(
     var numDims : Int, // number of dimensions in the coefficients
     var entries : ListBuffer[L1_StencilEntry]) extends L1_LeveledKnowledgeObject[L2_Stencil] {
 
+  override def createDuplicate() : L1_Stencil = {
+    L1_Stencil.tupled(Duplicate(L1_Stencil.unapply(this).get))
+  }
+
   override def prettyprintDecl(out : PpStream) : Unit = {
     out << "Operator " << name << "@" << level << " from Stencil {\n"
     out <<< (entries, "\n")

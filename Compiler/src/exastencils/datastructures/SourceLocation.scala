@@ -7,7 +7,7 @@ import exastencils.core.Duplicate
 /// SourceLocation
 
 object SourceLocation {
-  Duplicate.registerImmutable(classOf[SourceLocation], true)
+  Duplicate.registerImmutable(classOf[SourceLocation])
 }
 
 case class SourceLocation(var position : Option[Position] = None, var fileName : Option[String] = None) {
