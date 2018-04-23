@@ -1,5 +1,6 @@
 package exastencils.baseExt.l3
 
+import exastencils.base.ProgressLocation
 import exastencils.base.l3._
 import exastencils.baseExt.l4.L4_ExpressionDeclaration
 import exastencils.core.Duplicate
@@ -31,7 +32,7 @@ case class L3_ExpressionDeclaration(
     })
   }
 
-  override def progress = L4_ExpressionDeclaration(name, L3_ProgressOption(levels)(_.progress), expr.progress)
+  override def progress = ProgressLocation(L4_ExpressionDeclaration(name, L3_ProgressOption(levels)(_.progress), expr.progress))
 }
 
 /// L3_UnfoldLeveledExpressionDeclarations
