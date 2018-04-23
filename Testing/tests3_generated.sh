@@ -1,4 +1,6 @@
 #!/bin/bash
+#SBATCH -p anywhere
+#SBATCH -A anywhere
 #SBATCH --qos=norm
 #SBATCH --hint=nomultithread
 #SBATCH --nice=100
