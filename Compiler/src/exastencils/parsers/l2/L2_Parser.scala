@@ -317,7 +317,7 @@ object L2_Parser extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val realIndex = /*locationize*/ "[" ~> realLit ~ ("," ~> realLit).* <~ "]" ^^ { case b ~ l => (List(b) ++ l).toArray }
-  lazy val domainDeclaration = locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">")
+  lazy val domainDeclaration = locationize(("Domain".? ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">")
     ^^ { case id ~ l ~ u => L2_DomainFromAABBDecl(id, l, u) })
 
   // #############################################################################
@@ -335,9 +335,9 @@ object L2_Parser extends ExaParser with PackratParsers {
     ||| "Edge_Node" ||| "edge_node" ||| "Edge_Cell" ||| "edge_cell"
     ^^ (l => l))
 
-  lazy val baseFieldDeclaration = locationize(("Field" ~> ident) ~ levelDecl.? ~ ("with" ~> datatype).? ~ ("on" ~> localization) ~ ("of" ~> ident) ~ (integerLit <~ "times").? ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
+  lazy val baseFieldDeclaration = locationize(("Field".? ~> ident) ~ levelDecl.? ~ ("with" ~> datatype).? ~ ("on" ~> localization) ~ ("of" ~> ident) ~ (integerLit <~ "times").? ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
     ^^ { case id ~ levels ~ datatype ~ localization ~ domain ~ numSlots ~ initial => L2_BaseFieldDecl(id, levels, datatype, localization, domain, numSlots, initial) })
-  lazy val boundaryFieldDeclaration = locationize(("Field" ~> ident) ~ levelDecl.? ~ ("on" ~> "boundary") ~ ("=" ~> fieldBoundary)
+  lazy val boundaryFieldDeclaration = locationize(("Field".? ~> ident) ~ levelDecl.? ~ ("on" ~> "boundary") ~ ("=" ~> fieldBoundary)
     ^^ { case id ~ levels ~ _ ~ bc => L2_BoundaryFieldDecl(id, levels, bc) })
 
   // #############################################################################
@@ -368,9 +368,9 @@ object L2_Parser extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val stencilDeclaration = (
-    locationize(("Operator" ~> ident) ~ levelDecl.? ~ (("from" ~ "Stencil" ~ "{") ~> stencilEntries <~ "}")
+    locationize(("Operator".? ~> ident) ~ levelDecl.? ~ (("from" ~ "Stencil" ~ "{") ~> stencilEntries <~ "}")
       ^^ { case id ~ levels ~ entries => L2_BaseStencilDecl(id, levels, entries) })
-      ||| locationize(("Operator" ~> ident) ~ levelDecl.? ~ ("from" ~> binaryexpression)
+      ||| locationize(("Operator".? ~> ident) ~ levelDecl.? ~ ("from" ~> binaryexpression)
       ^^ { case id ~ levels ~ expr => L2_StencilFromExpression(id, levels, expr) })
       ||| stencilFromDefault)
 
@@ -383,16 +383,16 @@ object L2_Parser extends ExaParser with PackratParsers {
       ||| locationize(((expressionIndex <~ "from") ~ expressionIndex ~ ("with" ~> binaryexpression)) ^^ { case row ~ col ~ coeff => L2_StencilMappingEntry(row, col, coeff) }))
 
   lazy val stencilFromDefault = (
-    locationize(("Stencil" ~> ident) ~ levelDecl.? ~ (("from" ~ "default" ~ "restriction" ~ "on") ~> localization) ~ ("with" ~> stringLit)
+    locationize((("Stencil" ||| "Operator").? ~> ident) ~ levelDecl.? ~ (("from" ~ "default" ~ "restriction" ~ "on") ~> localization) ~ ("with" ~> stringLit)
       ^^ { case id ~ level ~ local ~ interpolation => L2_DefaultRestrictionStencil(id, level, local, interpolation) })
-      ||| locationize(("Stencil" ~> ident) ~ levelDecl.? ~ (("from" ~ "default" ~ "prolongation" ~ "on") ~> localization) ~ ("with" ~> stringLit)
+      ||| locationize((("Stencil" ||| "Operator").? ~> ident) ~ levelDecl.? ~ (("from" ~ "default" ~ "prolongation" ~ "on") ~> localization) ~ ("with" ~> stringLit)
       ^^ { case id ~ level ~ local ~ interpolation => L2_DefaultProlongationStencil(id, level, local, interpolation) }))
 
   // ######################################
   // ##### L2_StencilTemplateDecl
   // ######################################
 
-  lazy val stencilTemplateDeclaration = locationize(("Operator" ~> ident) ~ levelDecl.? ~ (("from" ~ "StencilTemplate" ~ "on") ~> localization)
+  lazy val stencilTemplateDeclaration = locationize(("Operator".? ~> ident) ~ levelDecl.? ~ (("from" ~ "StencilTemplate" ~ "on") ~> localization)
     ~ ("of" ~> ident) ~ ("{" ~> stencilTemplateEntries <~ "}")
     ^^ { case id ~ levels ~ local ~ domain ~ entries => L2_StencilFieldDecl(id, levels, local, domain, entries) })
   lazy val stencilTemplateEntries = (
@@ -405,7 +405,7 @@ object L2_Parser extends ExaParser with PackratParsers {
   // ################################### SOLVER ##################################
   // #############################################################################
 
-  lazy val equationDeclaration = locationize(("Equation" ~> ident) ~ levelDecl.? ~ ("{" ~> equation <~ "}")
+  lazy val equationDeclaration = locationize(("Equation".? ~> ident) ~ levelDecl.? ~ ("{" ~> equation <~ "}")
     ^^ { case id ~ levels ~ eq => L2_EquationDecl(id, levels, eq) })
 
   // ######################################
