@@ -10,3 +10,13 @@ lazy val Compiler = (project in file("Compiler")).dependsOn(CompilerMacros).
   settings(
     assemblyOutputPath in assembly := file("Compiler/compiler.jar"),
   )
+
+lazy val ConfigRunner = (project in file("ConfigRunner")).dependsOn(Compiler,CompilerMacros).
+  settings(
+    assemblyOutputPath in assembly := file("ConfigRunner/ConfigRunner.jar"),
+  )
+
+lazy val Meta = (project in file("Meta")).dependsOn(Compiler,CompilerMacros).
+  settings(
+    assemblyOutputPath in assembly := file("Meta/Meta.jar"),
+  )
