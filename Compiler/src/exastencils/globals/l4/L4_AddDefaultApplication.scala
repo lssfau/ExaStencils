@@ -8,8 +8,7 @@ import exastencils.base.l4._
 import exastencils.config.Knowledge
 import exastencils.core.StateManager
 import exastencils.datastructures._
-import exastencils.field.l4.L4_ActiveSlot
-import exastencils.field.l4.L4_FutureFieldAccess
+import exastencils.field.l4._
 
 /// L4_AddDefaultApplication
 
@@ -52,7 +51,8 @@ object L4_AddDefaultApplication extends DefaultStrategy("") {
     }
 
     // de-init
-    stmts += fctCall("printAllTimers", ListBuffer())
+    if (!Knowledge.testing_enabled)
+      stmts += fctCall("printAllTimers", ListBuffer())
     stmts += fctCall("destroyGlobals", ListBuffer())
 
     L4_FunctionDecl("Application", None, L4_UnitDatatype, ListBuffer[L4_Function.Argument](), stmts, false)
