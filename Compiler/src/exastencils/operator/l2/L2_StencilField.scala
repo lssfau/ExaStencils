@@ -16,7 +16,11 @@ case class L2_StencilField(
 
   override def createDuplicate() = L2_StencilField(name, level, stencil, field)
 
-  override def prettyprintDecl(out : PpStream) : Unit = ???
+  override def prettyprintDecl(out : PpStream) : Unit = {
+    out << "Operator " << name << "@" << level << " from StencilTemplate on " << field.localization << " of " << field.domain << " {\n"
+    stencil.entries.foreach(out << _.asStencilOffsetEntry.offset << " => \n")
+    out << "}"
+  }
 
   override def progressImpl() = L3_StencilField(name, level, stencil.getProgressedObj(), field.getProgressedObj())
 }
