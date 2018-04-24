@@ -22,7 +22,7 @@ Layout NodeNoGhost< Real, Node >@all {
 // field declarations
 
 Field Solution< global, NodeWithComm, 0.0 >@(all but finest)
-Field Solution< global, NodeWithComm, vf_boundaryPosition_x ** 2 - vf_boundaryPosition_y ** 2 >@finest
+Field Solution< global, NodeWithComm, cos ( PI * vf_boundaryPosition_x ) - sin ( 2.0 * PI * vf_boundaryPosition_y ) >@finest
 
 Field RHS< global, NodeNoGhost, None >@all
 
@@ -80,6 +80,19 @@ Function ResNorm@(coarsest and finest) : Real {
   return sqrt ( norm )
 }
 
+Function PrintError@finest {
+  Var norm : Real = 0.0
+  loop over Solution with reduction ( max : norm ) {
+    norm = max ( norm, fabs ( Solution - ( cos ( PI * vf_nodePos_x ) - sin ( 2.0 * PI * vf_nodePos_y ) ) ) )
+  }
+
+  if ( getKnowledge ( 'testing_enabled' ) ) {
+    if ( getKnowledge ( 'testing_printErr' ) ) { printWithReducedPrec ( norm ) }
+  } else {
+    print ( "The maximum error is", norm )
+  }
+}
+
 Function Solve@finest {
   communicate Solution
   loop over Residual {
@@ -91,12 +104,18 @@ Function Solve@finest {
   Var curRes : Real = initRes
   Var prevRes : Real = curRes
 
-  print ( "Starting residual: ", initRes )
+  if ( getKnowledge ( 'testing_enabled' ) ) {
+    if ( getKnowledge ( 'testing_printRes' ) ) { printWithReducedPrec ( initRes ) }
+  } else {
+    print ( "Starting residual: ", initRes )
+  }
 
   Var curIt : Int = 0
-  repeat until curIt >= 100 || curRes <= 1.0E-6 * initRes {
+  repeat until curIt >= 100 || curRes <= 1.0E-10 * initRes {
     curIt += 1
     mgCycle ( )
+
+    PrintError@finest ( )
 
     communicate Solution
     loop over Residual {
@@ -107,7 +126,11 @@ Function Solve@finest {
     prevRes = curRes
     curRes = ResNorm ( )
 
-    print ( "Residual after", curIt, "iterations is", curRes, "--- convergence factor is", curRes / prevRes )
+    if ( getKnowledge ( 'testing_enabled' ) ) {
+      if ( getKnowledge ( 'testing_printRes' ) ) { printWithReducedPrec ( curRes ) }
+    } else {
+      print ( "Residual after", curIt, "iterations is", curRes, "--- convergence factor is", curRes / prevRes )
+    }
   }
 }
 
@@ -210,6 +233,12 @@ Function mgCycle@(all but coarsest) {
   }
 }
 
+Function InitRHS@finest {
+  loop over RHS {
+    RHS = PI**2 * cos ( PI * vf_nodePos_x ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePos_y )
+  }
+}
+
 Function Application {
   // init
   startTimer ( "setup" )
@@ -217,6 +246,7 @@ Function Application {
   initDomain ( )
   initFieldsWithZero ( )
   initGeometry ( )
+  InitRHS@finest ( )
   apply bc to Solution@finest
   stopTimer ( "setup" )
 
@@ -226,6 +256,8 @@ Function Application {
   stopTimer ( "solve" )
 
   // de-init
-  printAllTimers ( )
+  if ( !getKnowledge ( 'testing_enabled' ) ) {
+    printAllTimers ( )
+  }
   destroyGlobals ( )
 }

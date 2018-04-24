@@ -1,14 +1,13 @@
 
-Domain global< [ 0, 0 ] to [ 1, 1 ] >
+global< [ 0, 0 ] to [ 1, 1 ] >
 
-Field Solution with Real on Node of global = 0.0
+Solution with Real on Node of global = 0.0
 
-Field Solution@finest on boundary = vf_boundaryCoord_x ** 2 - vf_boundaryCoord_y ** 2
-Field Solution@(all but finest) on boundary = 0.0
+Solution on boundary = cos ( PI * vf_boundaryPos_x ) - sin ( 2.0 * PI * vf_boundaryPos_y )
 
-Field RHS with Real on Node of global = 0.0
+RHS with Real on Node of global = PI**2 * cos ( PI * vf_nodePos_x ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePos_y )
 
-Operator Laplace from Stencil {
+Laplace from Stencil {
   [ 0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 )
   [-1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
   [ 1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
@@ -16,10 +15,6 @@ Operator Laplace from Stencil {
   [ 0,  1] => -1.0 / ( vf_gridWidth_y ** 2 )
 }
 
-Equation solEq@finest {
+solEq {
   Laplace * Solution == RHS
 }
-Equation solEq@(all but finest) {
-  Laplace * Solution == 0.0
-}
-

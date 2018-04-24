@@ -3,24 +3,21 @@
 Knowledge {
   dimensionality = 2
 
-  minLevel       = 2
+  minLevel       = 0
   maxLevel       = 8
 }
 
 /// problem specification
 
-Domain \Omega = ( 0, 1 ) \times ( 0, 1 )
+\Omega = ( 0, 1 ) \times ( 0, 1 )
 
-Field f@finest \in \Omega = 0.0
-Field u \in \Omega = 0.0
+f \in \Omega = PI**2 * cos ( PI * vf_nodePos_x@current ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePos_y@current ) // PI**2 * cos ( PI * x ) - 4.0 * PI**2 * sin ( 2.0 * PI * y )
+u \in \Omega = 0.0
+u \in \partial \Omega = cos ( PI * vf_boundaryPos_x ) - sin ( 2.0 * PI * vf_boundaryPos_y ) // cos ( PI * x ) - sin ( 2.0 * PI * y )
 
-Field u@finest \in \partial \Omega = vf_boundaryCoord_x ** 2 - vf_boundaryCoord_y ** 2 // x ** 2 - y ** 2
-Field u@(all but finest) \in \partial \Omega = 0.0
+op = - \Delta // alt: - ( \partial_{xx} + \partial_{yy} )
 
-Operator op = - \Delta // alt: - ( \partial_{xx} + \partial_{yy} )
-
-Equation uEq@finest           op * u == f
-Equation uEq@(all but finest) op * u == 0.0
+uEq: f = op * u
 
 /// configuration of inter-layer transformations
 
@@ -32,7 +29,7 @@ DiscretizationHints { // alt: Discretize, L2Hint(s)
 
   uEq
 
-  // paramters
+  // parameters
   discr_type = "FiniteDifferences"
 }
 
@@ -40,7 +37,7 @@ SolverHints { // alt: Solve, L3Hint(s)
   generate solver for u in uEq
 
   // parameters
-  solver_targetResReduction = 1e-6
+  solver_targetResReduction = 1e-10
 }
 
 ApplicationHints { // alt L4Hint(s)

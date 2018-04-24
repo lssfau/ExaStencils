@@ -1,0 +1,13 @@
+
+Function PrintError@finest {
+  Var norm : Real = 0.0
+  loop over Solution with reduction ( max : norm ) {
+    norm = max ( norm, fabs ( Solution - ( cos ( PI * vf_nodePos_x ) - sin ( 2.0 * PI * vf_nodePos_y ) ) ) )
+  }
+
+  if ( getKnowledge ( 'testing_enabled' ) ) {
+    if ( getKnowledge ( 'testing_printErr' ) ) { printWithReducedPrec ( norm ) }
+  } else {
+    print ( "The maximum error is", norm )
+  }
+}
