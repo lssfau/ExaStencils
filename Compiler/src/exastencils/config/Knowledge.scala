@@ -228,6 +228,23 @@ object Knowledge {
   // TODO: are there any use cases where this is not reasonable?
   var useFasterExpand : Boolean = true
 
+  /// --- testing ---
+
+  // flag that can be used to trigger testing specific code (in ExaSlang or in the generator)
+  var testing_enabled : Boolean = false
+
+  // flag that can be used in ExaSlang to trigger printing the residual (has to be implemented manually)
+  var testing_printRes : Boolean = true
+
+  // flag that can be used in ExaSlang to trigger printing the error (has to be implemented manually)
+  var testing_printErr : Boolean = true
+
+  // maximum precision for printing values in testing environments (for printWithReducedPrec calls)
+  var testing_maxPrecision : Int = 4
+
+  // threshold for assuming values as zero when printing in testing environments (for printWithReducedPrec calls)
+  var testing_zeroThreshold : Double = 1e-12
+
   /// --- timing ---
 
   // type of the timers to be generated
