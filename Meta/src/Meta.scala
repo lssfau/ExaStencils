@@ -1,6 +1,6 @@
 import meta._
 
-object Main {
+object Meta {
   def main(args : Array[String]) : Unit = {
     println(s"Performing operation '${ args(0) }'")
 
