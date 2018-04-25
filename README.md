@@ -3,6 +3,7 @@
 
 
 A nicely formatted online version of this README should be available here: https://hackmd.io/s/SJof5RTnG
+The source is available here: https://hackmd.io/_HIHDpfEQ5-JQKSCucw2Sg?both
 
 
 
