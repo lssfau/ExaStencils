@@ -9,14 +9,14 @@ fi
 source examples.sh
 
 echo generating code for $configList
-echo 
+echo
 
 mkdir Debug 2>/dev/null
 
 for config in $configList; do
-  echo generating $config ... 
+  echo generating $config ...
   printf "\033]2;generating $config\007"
-  TIME=$( time java -cp ../Compiler/compiler.jar Main $config.settings $config.knowledge $platform > ./Debug/${config##*/}_generateResult.txt; exit ${PIPESTATUS[0]} 
+  TIME=$( time java -cp ../Compiler/Compiler.jar Main $config.settings $config.knowledge $platform > ./Debug/${config##*/}_generateResult.txt; exit ${PIPESTATUS[0]}
 )
   RET=$?
   echo $TIME
@@ -25,6 +25,6 @@ for config in $configList; do
   else
     printf "\033[31m\033[1mFailure\033[0m"
   fi
-  echo 
+  echo
 done
 printf "\033]0;\a"

@@ -10,7 +10,7 @@ lazy val CompilerMacros = (project in file("CompilerMacros")).disablePlugins(sbt
 
 lazy val Compiler = (project in file("Compiler")).dependsOn(CompilerMacros).
   settings(
-    assemblyOutputPath in assembly := file("Compiler/compiler.jar"),
+    assemblyOutputPath in assembly := file("Compiler/Compiler.jar"),
   )
 
 lazy val ConfigRunner = (project in file("ConfigRunner")).dependsOn(Compiler, CompilerMacros).

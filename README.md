@@ -94,7 +94,7 @@ To assemble a jar the following command is available
 ### Examples
 
 We recommend having a look at the examples located in /Examples.
-To generate the examples, a valid compiler.jar has to be located in /Compiler/compiler.jar. You can create one using any of the guides above.
+To generate the examples, a valid Compiler.jar has to be located in /Compiler/Compiler.jar. You can create one using any of the guides above.
 
 (optional) It might be necessary to adapt the platform file used in /Examples/generateExamples.sh
 (optional) By default, all examples are generated. Unrequired configurations can be deactivated in /Examples/examples.sh
@@ -107,7 +107,7 @@ If Linux is used (or the Ubuntu Shell for Windows), generating, compiling and ex
 
 ### Generating User Applications
 
-Generating single configurations is possible by executing the generator (compiler project). The following command line arguments have to be provided in this exact order:
+Generating single configurations is possible by executing the generator (Compiler project). The following command line arguments have to be provided in this exact order:
 * Settings
 * Knowledge
 * Platform
