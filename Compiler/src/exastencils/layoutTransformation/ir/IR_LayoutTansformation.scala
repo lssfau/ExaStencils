@@ -122,7 +122,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
         (_, aff) =>
           val c = aff.getConstantVal()
           ensure(c.getDenSi() == 1, "Lower bound of transformed memory layout is not an integral number?! " + c)
-          ensure(c.getNumSi() == 0, "Lower bound of transformed memory layout is not 0... " + c)
+          ensure(c.getNumSi() >= 0, "Lower bound of transformed memory layout is negative... " + c)
       })
       val max : isl.PwAff = d.dimMax(0)
       ensure(max.nPiece() == 1 && max.isCst(), "Max of transformed domain is not a constant: " + max)
