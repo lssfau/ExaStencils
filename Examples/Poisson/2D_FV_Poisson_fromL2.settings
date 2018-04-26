@@ -6,6 +6,7 @@ basePathPrefix      = "./Poisson/"
 
 l2file              = "$configName$.exa2"
 l3file              = "$configName$.exa3"
+l4file              = "$configName$.exa4"
 
 debugL1File         = "../Debug/$configName$_debug.exa1"
 debugL2File         = "../Debug/$configName$_debug.exa2"

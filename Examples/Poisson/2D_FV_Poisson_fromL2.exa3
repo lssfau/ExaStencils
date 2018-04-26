@@ -1,3 +1,19 @@
 
-// using the default solver setup routine is sufficient
-import '../lib/solver_singleScalarEquation.exa3'
+generate solver for Solution in SolEq with {
+  solver_targetResReduction     = 1e-10
+  solver_maxNumIts              = 100
+  
+  solver_smoother_jacobiType    = false
+  solver_smoother_numPre        = 3
+  solver_smoother_numPost       = 3
+  solver_smoother_damping       = 0.8
+  solver_smoother_coloring      = "red-black"
+
+  solver_cgs                    = "CG"
+  solver_cgs_maxNumIts          = 128
+  solver_cgs_targetResReduction = 1e-3
+} modifiers {
+  append to 'cycle' @finest {
+    PrintError@finest ( )
+  }
+}

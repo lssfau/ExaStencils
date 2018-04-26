@@ -1,15 +1,12 @@
 
 Domain global< [ 0, 0 ] to [ 1, 1 ] >
 
-Field Solution with Real on Node of global = 0.0
+Solution with Real on Node of global = 0.0
+Solution on boundary = cos ( PI * vf_boundaryPos_x ) - sin ( 2.0 * PI * vf_boundaryPos_y )
 
-Field Solution@finest on boundary = vf_boundaryCoord_x ** 2 - vf_boundaryCoord_y ** 2
-Field Solution@(all but finest) on boundary = 0.0
+RHS with Real on Node of global = vf_cellVolume * ( PI**2 * cos ( PI * vf_nodePos_x ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePos_y ) )
 
-Field RHS with Real on Node of global = 0.0
-
-
-Equation solEq@finest {
+Equation SolEq {
   -1.0 * (
       integrateOverEastFace  ( 1.0 ) * ( Solution@[ 1,  0] - Solution@[ 0,  0] ) / ( 0.5 * ( vf_cellWidth_x@[ 1,  0] + vf_cellWidth_x@[ 0,  0] ) )
     - integrateOverWestFace  ( 1.0 ) * ( Solution@[ 0,  0] - Solution@[-1,  0] ) / ( 0.5 * ( vf_cellWidth_x@[ 0,  0] + vf_cellWidth_x@[-1,  0] ) )
@@ -17,17 +14,9 @@ Equation solEq@finest {
     - integrateOverSouthFace ( 1.0 ) * ( Solution@[ 0,  0] - Solution@[ 0, -1] ) / ( 0.5 * ( vf_cellWidth_y@[ 0,  0] + vf_cellWidth_y@[ 0, -1] ) )
   ) == RHS
 }
-Equation solEq@(all but finest) {
-  -1.0 * (
-      integrateOverEastFace  ( 1.0 ) * ( Solution@[ 1,  0] - Solution@[ 0,  0] ) / ( 0.5 * ( vf_cellWidth_x@[ 1,  0] + vf_cellWidth_x@[ 0,  0] ) )
-    - integrateOverWestFace  ( 1.0 ) * ( Solution@[ 0,  0] - Solution@[-1,  0] ) / ( 0.5 * ( vf_cellWidth_x@[ 0,  0] + vf_cellWidth_x@[-1,  0] ) )
-    + integrateOverNorthFace ( 1.0 ) * ( Solution@[ 0,  1] - Solution@[ 0,  0] ) / ( 0.5 * ( vf_cellWidth_y@[ 0,  1] + vf_cellWidth_y@[ 0,  0] ) )
-    - integrateOverSouthFace ( 1.0 ) * ( Solution@[ 0,  0] - Solution@[ 0, -1] ) / ( 0.5 * ( vf_cellWidth_y@[ 0,  0] + vf_cellWidth_y@[ 0, -1] ) )
-  ) == 0.0
-}
 
 generate operators @all {
-  equation for Solution is solEq store in {
+  equation for Solution is SolEq store in {
     Solution => Laplace
   }
 }

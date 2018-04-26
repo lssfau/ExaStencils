@@ -1,6 +1,6 @@
 dimensionality                 = 2
 
-minLevel                       = 2
+minLevel                       = 0
 maxLevel                       = 8
 
 discr_type                     = "FiniteVolumes"
