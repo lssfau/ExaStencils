@@ -11,61 +11,51 @@ Field uEdgeX with Real on Face_x of global = 0.0
 Field uEdgeY with Real on Face_y of global = 0.0
 Field uEdgeD with Real on Cell   of global = 0.0
 
-Field uNode@(all but finest)  on boundary = 0.0
-Field uEdgeX@(all but finest) on boundary = 0.0
-Field uEdgeY@(all but finest) on boundary = 0.0
-Field uEdgeD@(all but finest) on boundary = 0.0
-
 
 //// TEST PROBLEM 1 ////
 // u = 10
 // rhs_u = 0
 /*
-Field uNode@finest  on boundary = 10
-Field uEdgeX@finest on boundary = 10
-Field uEdgeY@finest on boundary = 10
-Field uEdgeD@finest on boundary = 10
+Field uNode  on boundary = 10
+Field uEdgeX on boundary = 10
+Field uEdgeY on boundary = 10
+Field uEdgeD on boundary = 10
 
-Field rhs_uNode@finest  with Real on Node   of global = 0.0
-Field rhs_uEdgeX@finest with Real on Face_x of global = 0.0
-Field rhs_uEdgeY@finest with Real on Face_y of global = 0.0
-Field rhs_uEdgeD@finest with Real on Cell   of global = 0.0
+Field rhs_uNode  with Real on Node   of global = 0.0
+Field rhs_uEdgeX with Real on Face_x of global = 0.0
+Field rhs_uEdgeY with Real on Face_y of global = 0.0
+Field rhs_uEdgeD with Real on Cell   of global = 0.0
 
-Field rhs_uNode@finest  on boundary = 0.0
-Field rhs_uEdgeX@finest on boundary = 0.0
-Field rhs_uEdgeY@finest on boundary = 0.0
-Field rhs_uEdgeD@finest on boundary = 0.0
+Field rhs_uNode  on boundary = 0.0
+Field rhs_uEdgeX on boundary = 0.0
+Field rhs_uEdgeY on boundary = 0.0
+Field rhs_uEdgeD on boundary = 0.0
 */
 //// END OF TEST PROBLEM 1 ////
 
 //// TEST PROBLEM 2 ////
-// u = sin ( PI * x ) * sin ( PI * y )
-// rhs_u = 2 * PI**2 * sin ( PI * x ) * sin ( PI * y )
+// u = cos ( PI * x ) - sin ( 2 * PI * y )
+// rhs_u = PI**2 * cos ( PI * x ) - 4 * PI**2 * sin ( 2 * PI * y )
 
-Field uNode@finest  on boundary = sin ( PI * vf_boundaryCoord_x ) * sin ( PI * vf_boundaryCoord_y )
-Field uEdgeX@finest on boundary = sin ( PI * vf_boundaryCoord_x ) * sin ( PI * vf_boundaryCoord_y )
-Field uEdgeY@finest on boundary = sin ( PI * vf_boundaryCoord_x ) * sin ( PI * vf_boundaryCoord_y )
-Field uEdgeD@finest on boundary = sin ( PI * vf_boundaryCoord_x ) * sin ( PI * vf_boundaryCoord_y )
+Field uNode  on boundary = cos ( PI * vf_boundaryPos_x ) - sin ( 2.0 * PI * vf_boundaryPos_y )
+Field uEdgeX on boundary = cos ( PI * vf_boundaryPos_x ) - sin ( 2.0 * PI * vf_boundaryPos_y )
+Field uEdgeY on boundary = cos ( PI * vf_boundaryPos_x ) - sin ( 2.0 * PI * vf_boundaryPos_y )
+Field uEdgeD on boundary = cos ( PI * vf_boundaryPos_x ) - sin ( 2.0 * PI * vf_boundaryPos_y )
 
-Field rhs_uNode@all  with Real on Node   of global = 2.0 * ( PI**2 ) * sin ( PI * vf_nodePos_x    ) * sin ( PI * vf_nodePos_y    )
-Field rhs_uEdgeX@all with Real on Face_x of global = 2.0 * ( PI**2 ) * sin ( PI * vf_nodePos_x    ) * sin ( PI * vf_cellCenter_y )
-Field rhs_uEdgeY@all with Real on Face_y of global = 2.0 * ( PI**2 ) * sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_nodePos_y    )
-Field rhs_uEdgeD@all with Real on Cell   of global = 2.0 * ( PI**2 ) * sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_cellCenter_y )
+Field rhs_uNode  with Real on Node   of global = PI**2 * cos ( PI * vf_nodePos_x    ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePos_y    )
+Field rhs_uEdgeX with Real on Face_x of global = PI**2 * cos ( PI * vf_nodePos_x    ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_cellCenter_y )
+Field rhs_uEdgeY with Real on Face_y of global = PI**2 * cos ( PI * vf_cellCenter_x ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePos_y    )
+Field rhs_uEdgeD with Real on Cell   of global = PI**2 * cos ( PI * vf_cellCenter_x ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_cellCenter_y )
 
-Field rhs_uNode@finest  on boundary = 2.0 * ( PI**2 ) * sin ( PI * vf_boundaryCoord_x ) * sin ( PI * vf_boundaryCoord_y )
-Field rhs_uEdgeX@finest on boundary = 2.0 * ( PI**2 ) * sin ( PI * vf_boundaryCoord_x ) * sin ( PI * vf_boundaryCoord_y )
-Field rhs_uEdgeY@finest on boundary = 2.0 * ( PI**2 ) * sin ( PI * vf_boundaryCoord_x ) * sin ( PI * vf_boundaryCoord_y )
-Field rhs_uEdgeD@finest on boundary = 2.0 * ( PI**2 ) * sin ( PI * vf_boundaryCoord_x ) * sin ( PI * vf_boundaryCoord_y )
-
-Field rhs_uNode@ (all but finest) on boundary = 0.0
-Field rhs_uEdgeX@(all but finest) on boundary = 0.0
-Field rhs_uEdgeY@(all but finest) on boundary = 0.0
-Field rhs_uEdgeD@(all but finest) on boundary = 0.0
+Field rhs_uNode  on boundary = PI**2 * cos ( PI * vf_boundaryCoord_x ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_boundaryCoord_y )
+Field rhs_uEdgeX on boundary = PI**2 * cos ( PI * vf_boundaryCoord_x ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_boundaryCoord_y )
+Field rhs_uEdgeY on boundary = PI**2 * cos ( PI * vf_boundaryCoord_x ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_boundaryCoord_y )
+Field rhs_uEdgeD on boundary = PI**2 * cos ( PI * vf_boundaryCoord_x ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_boundaryCoord_y )
 
 //// END OF TEST PROBLEM 2 ////
 
 
-Equation uNodeEquation@finest {
+Equation uNodeEquation {
   ( 1.0 ) * (
     4.0 * uNode@[0,0] - 4.0/3.0 * ( uEdgeY@[0,0] + uEdgeY@[-1,0] + uEdgeX@[0,0] + uEdgeX@[0,-1] ) + 1.0/3.0 * ( uNode@[1,0] + uNode@[-1,0] + uNode@[0,1] + uNode@[0,-1] )
   ) == ( vf_gridWidth_x ** 2 ) * (
@@ -74,7 +64,7 @@ Equation uNodeEquation@finest {
     - 1.0/90.0  * ( rhs_uEdgeX@[1,0] + rhs_uEdgeX@[-1,-1] + rhs_uEdgeY@[0,1] + rhs_uEdgeY@[-1,-1] + rhs_uEdgeD@[-1,0] + rhs_uEdgeD@[0,-1] )
   )
 }
-Equation uEdgeXEquation@finest {
+Equation uEdgeXEquation {
   ( 1.0 ) * (
     16.0/3.0 * uEdgeX@[0,0] - 4.0/3.0 * ( uNode@[0,0] + uNode@[0,1] + uEdgeD@[0,0] + uEdgeD@[-1,0] )
   ) == ( vf_gridWidth_x ** 2 ) * (
@@ -83,7 +73,7 @@ Equation uEdgeXEquation@finest {
     - 1.0/90.0 * ( rhs_uNode@[-1,0] + rhs_uNode@[1,1] )
   )
 }
-Equation uEdgeYEquation@finest {
+Equation uEdgeYEquation {
   ( 1.0 ) * (
     16.0/3.0 * uEdgeY@[0,0] - 4.0/3.0 * ( uNode@[0,0] + uNode@[1,0] + uEdgeD@[0,0] + uEdgeD@[0,-1] )
   ) == ( vf_gridWidth_x ** 2 ) * (
@@ -92,7 +82,7 @@ Equation uEdgeYEquation@finest {
     - 1.0/90.0 * ( rhs_uNode@[0,-1] + rhs_uNode@[1,1] )
   )
 }
-Equation uEdgeDEquation@finest {
+Equation uEdgeDEquation {
   ( 1.0 ) * (
     16.0/3.0 * uEdgeD@[0,0] - 4.0/3.0 * ( uEdgeY@[0,0] + uEdgeY@[0,1] + uEdgeX@[0,0] + uEdgeX@[1,0] )
   ) == ( vf_gridWidth_x ** 2 ) * (
@@ -100,26 +90,4 @@ Equation uEdgeDEquation@finest {
     + 2.0/45.0 * ( rhs_uEdgeX@[0,0] + rhs_uEdgeX@[1,0] + rhs_uEdgeY@[0,0] + rhs_uEdgeY@[0,1] )
     - 1.0/90.0 * ( rhs_uNode@[0,1] + rhs_uNode@[1,0] )
   )
-}
-
-
-Equation uNodeEquation@(all but finest) {
-  ( 1.0 ) * (
-    4.0 * uNode@[0,0] - 4.0/3.0 * ( uEdgeY@[0,0] + uEdgeY@[-1,0] + uEdgeX@[0,0] + uEdgeX@[0,-1] ) + 1.0/3.0 * ( uNode@[1,0] + uNode@[-1,0] + uNode@[0,1] + uNode@[0,-1] )
-  ) == 0.0
-}
-Equation uEdgeXEquation@(all but finest) {
-  ( 1.0 ) * (
-    16.0/3.0 * uEdgeX@[0,0] - 4.0/3.0 * ( uNode@[0,0] + uNode@[0,1] + uEdgeD@[0,0] + uEdgeD@[-1,0] )
-  ) == 0.0
-}
-Equation uEdgeYEquation@(all but finest) {
-  ( 1.0 ) * (
-    16.0/3.0 * uEdgeY@[0,0] - 4.0/3.0 * ( uNode@[0,0] + uNode@[1,0] + uEdgeD@[0,0] + uEdgeD@[0,-1] )
-  ) == 0.0
-}
-Equation uEdgeDEquation@(all but finest) {
-  ( 1.0 ) * (
-    16.0/3.0 * uEdgeD@[0,0] - 4.0/3.0 * ( uEdgeY@[0,0] + uEdgeY@[0,1] + uEdgeX@[0,0] + uEdgeX@[1,0] )
-  ) == 0.0
 }

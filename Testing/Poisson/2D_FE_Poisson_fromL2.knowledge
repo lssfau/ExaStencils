@@ -1,0 +1,9 @@
+
+import '../../Examples/Poisson/2D_FE_Poisson_fromL2.knowledge'
+
+testing_enabled       = true
+
+//poly_optLevel_fine    = 3
+
+opt_useAddressPrecalc = true
+opt_vectorize         = true

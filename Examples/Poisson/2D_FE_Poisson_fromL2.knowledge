@@ -1,6 +1,6 @@
 dimensionality                 = 2
 
-minLevel                       = 2
+minLevel                       = 1
 maxLevel                       = 8
 
 discr_type                     = "FiniteElements"
@@ -11,12 +11,8 @@ grid_isStaggered               = true
 
 experimental_applySchurCompl   = true
 
-// omp parallelization on exactly one fragment in one block
+// no parallelization on exactly one fragment in one block
 import '../lib/domain_onePatch.knowledge'
-import '../lib/parallelization_pureOmp.knowledge'
-
-// adapt fragments for 9-way coloring (length should be divisible by 3)
-domain_fragmentLength_x         = 1
-domain_fragmentLength_y         = 1
+import '../lib/parallelization_serial.knowledge'
 
 experimental_resolveInverseFunctionCall = "Runtime"

@@ -194,74 +194,86 @@ Function myRestr_FE@(all but coarsest) {
   }
 }
 
-
 Function myCorr_FE@(all but coarsest) {
+  @finest {
+    Expr targetNode  = uNode
+    Expr targetEdgeX = uEdgeX
+    Expr targetEdgeY = uEdgeY
+    Expr targetEdgeD = uEdgeD
+  }
+  @(all but finest) {
+    Expr targetNode  = gen_error_uNode
+    Expr targetEdgeX = gen_error_uEdgeX
+    Expr targetEdgeY = gen_error_uEdgeY
+    Expr targetEdgeD = gen_error_uEdgeD
+  }
+  
   loop over uNode@coarser {
-    uNode @[ 0,  0] +=  1.0   * uNode@coarser
+    targetNode @[ 0,  0] +=  1.0   * gen_error_uNode@coarser
 
-    uEdgeX@[ 0, -2] += -0.125 * uNode@coarser
-    uEdgeX@[ 0, -1] +=  0.375 * uNode@coarser
-    uEdgeX@[ 0,  0] +=  0.375 * uNode@coarser
-    uEdgeX@[ 0,  1] += -0.125 * uNode@coarser
+    targetEdgeX@[ 0, -2] += -0.125 * gen_error_uNode@coarser
+    targetEdgeX@[ 0, -1] +=  0.375 * gen_error_uNode@coarser
+    targetEdgeX@[ 0,  0] +=  0.375 * gen_error_uNode@coarser
+    targetEdgeX@[ 0,  1] += -0.125 * gen_error_uNode@coarser
 
-    uEdgeY@[-2,  0] += -0.125 * uNode@coarser
-    uEdgeY@[-1,  0] +=  0.375 * uNode@coarser
-    uEdgeY@[ 0,  0] +=  0.375 * uNode@coarser
-    uEdgeY@[ 1,  0] += -0.125 * uNode@coarser
+    targetEdgeY@[-2,  0] += -0.125 * gen_error_uNode@coarser
+    targetEdgeY@[-1,  0] +=  0.375 * gen_error_uNode@coarser
+    targetEdgeY@[ 0,  0] +=  0.375 * gen_error_uNode@coarser
+    targetEdgeY@[ 1,  0] += -0.125 * gen_error_uNode@coarser
 
-    uEdgeD@[-2, -2] += -0.125 * uNode@coarser
-    uEdgeD@[-1, -1] +=  0.375 * uNode@coarser
-    uEdgeD@[ 0,  0] +=  0.375 * uNode@coarser
-    uEdgeD@[ 1,  1] += -0.125 * uNode@coarser
+    targetEdgeD@[-2, -2] += -0.125 * gen_error_uNode@coarser
+    targetEdgeD@[-1, -1] +=  0.375 * gen_error_uNode@coarser
+    targetEdgeD@[ 0,  0] +=  0.375 * gen_error_uNode@coarser
+    targetEdgeD@[ 1,  1] += -0.125 * gen_error_uNode@coarser
 
-    uEdgeD@[ 0,  1] += -0.125 * uNode@coarser
-    uEdgeX@[ 1,  1] += -0.125 * uNode@coarser
-    uEdgeY@[ 1,  1] += -0.125 * uNode@coarser
-    uEdgeD@[ 1,  0] += -0.125 * uNode@coarser
-    uEdgeX@[ 1, -1] += -0.125 * uNode@coarser
-    uEdgeY@[ 0, -1] += -0.125 * uNode@coarser
-    uEdgeD@[-1, -2] += -0.125 * uNode@coarser
-    uEdgeX@[-1, -2] += -0.125 * uNode@coarser
-    uEdgeY@[-2, -1] += -0.125 * uNode@coarser
-    uEdgeD@[-2, -1] += -0.125 * uNode@coarser
-    uEdgeX@[-1,  0] += -0.125 * uNode@coarser
-    uEdgeY@[-1,  1] += -0.125 * uNode@coarser
+    targetEdgeD@[ 0,  1] += -0.125 * gen_error_uNode@coarser
+    targetEdgeX@[ 1,  1] += -0.125 * gen_error_uNode@coarser
+    targetEdgeY@[ 1,  1] += -0.125 * gen_error_uNode@coarser
+    targetEdgeD@[ 1,  0] += -0.125 * gen_error_uNode@coarser
+    targetEdgeX@[ 1, -1] += -0.125 * gen_error_uNode@coarser
+    targetEdgeY@[ 0, -1] += -0.125 * gen_error_uNode@coarser
+    targetEdgeD@[-1, -2] += -0.125 * gen_error_uNode@coarser
+    targetEdgeX@[-1, -2] += -0.125 * gen_error_uNode@coarser
+    targetEdgeY@[-2, -1] += -0.125 * gen_error_uNode@coarser
+    targetEdgeD@[-2, -1] += -0.125 * gen_error_uNode@coarser
+    targetEdgeX@[-1,  0] += -0.125 * gen_error_uNode@coarser
+    targetEdgeY@[-1,  1] += -0.125 * gen_error_uNode@coarser
   }
 
   loop over uEdgeX@coarser {
-    uNode @[ 0,  1] += 1.0  * uEdgeX@coarser
-    uEdgeX@[ 0,  0] += 0.75 * uEdgeX@coarser
-    uEdgeX@[ 0,  1] += 0.75 * uEdgeX@coarser
-    uEdgeY@[ 0,  1] += 0.5  * uEdgeX@coarser
-    uEdgeY@[-1,  1] += 0.5  * uEdgeX@coarser
-    uEdgeD@[ 0,  1] += 0.5  * uEdgeX@coarser
-    uEdgeD@[-1,  0] += 0.5  * uEdgeX@coarser
-    uEdgeX@[ 1,  1] += 0.25 * uEdgeX@coarser
-    uEdgeX@[-1,  0] += 0.25 * uEdgeX@coarser
+    targetNode @[ 0,  1] += 1.0  * gen_error_uEdgeX@coarser
+    targetEdgeX@[ 0,  0] += 0.75 * gen_error_uEdgeX@coarser
+    targetEdgeX@[ 0,  1] += 0.75 * gen_error_uEdgeX@coarser
+    targetEdgeY@[ 0,  1] += 0.5  * gen_error_uEdgeX@coarser
+    targetEdgeY@[-1,  1] += 0.5  * gen_error_uEdgeX@coarser
+    targetEdgeD@[ 0,  1] += 0.5  * gen_error_uEdgeX@coarser
+    targetEdgeD@[-1,  0] += 0.5  * gen_error_uEdgeX@coarser
+    targetEdgeX@[ 1,  1] += 0.25 * gen_error_uEdgeX@coarser
+    targetEdgeX@[-1,  0] += 0.25 * gen_error_uEdgeX@coarser
   }
 
   loop over uEdgeY@coarser {
-    uNode @[ 1,  0] += 1.0  * uEdgeY@coarser
-    uEdgeY@[ 0,  0] += 0.75 * uEdgeY@coarser
-    uEdgeY@[ 1,  0] += 0.75 * uEdgeY@coarser
-    uEdgeX@[ 1,  0] += 0.5  * uEdgeY@coarser
-    uEdgeX@[ 1, -1] += 0.5  * uEdgeY@coarser
-    uEdgeD@[ 1,  0] += 0.5  * uEdgeY@coarser
-    uEdgeD@[ 0, -1] += 0.5  * uEdgeY@coarser
-    uEdgeY@[ 1,  1] += 0.25 * uEdgeY@coarser
-    uEdgeY@[ 0, -1] += 0.25 * uEdgeY@coarser
+    targetNode @[ 1,  0] += 1.0  * gen_error_uEdgeY@coarser
+    targetEdgeY@[ 0,  0] += 0.75 * gen_error_uEdgeY@coarser
+    targetEdgeY@[ 1,  0] += 0.75 * gen_error_uEdgeY@coarser
+    targetEdgeX@[ 1,  0] += 0.5  * gen_error_uEdgeY@coarser
+    targetEdgeX@[ 1, -1] += 0.5  * gen_error_uEdgeY@coarser
+    targetEdgeD@[ 1,  0] += 0.5  * gen_error_uEdgeY@coarser
+    targetEdgeD@[ 0, -1] += 0.5  * gen_error_uEdgeY@coarser
+    targetEdgeY@[ 1,  1] += 0.25 * gen_error_uEdgeY@coarser
+    targetEdgeY@[ 0, -1] += 0.25 * gen_error_uEdgeY@coarser
   }
 
   loop over uEdgeD@coarser {
-    uNode @[ 1,  1] += 1.0  * uEdgeD@coarser
-    uEdgeD@[ 0,  0] += 0.75 * uEdgeD@coarser
-    uEdgeD@[ 1,  1] += 0.75 * uEdgeD@coarser
-    uEdgeX@[ 1,  0] += 0.5  * uEdgeD@coarser
-    uEdgeX@[ 1,  1] += 0.5  * uEdgeD@coarser
-    uEdgeY@[ 0,  1] += 0.5  * uEdgeD@coarser
-    uEdgeY@[ 1,  1] += 0.5  * uEdgeD@coarser
-    uEdgeD@[ 1,  0] += 0.25 * uEdgeD@coarser
-    uEdgeD@[ 0,  1] += 0.25 * uEdgeD@coarser
+    targetNode @[ 1,  1] += 1.0  * gen_error_uEdgeD@coarser
+    targetEdgeD@[ 0,  0] += 0.75 * gen_error_uEdgeD@coarser
+    targetEdgeD@[ 1,  1] += 0.75 * gen_error_uEdgeD@coarser
+    targetEdgeX@[ 1,  0] += 0.5  * gen_error_uEdgeD@coarser
+    targetEdgeX@[ 1,  1] += 0.5  * gen_error_uEdgeD@coarser
+    targetEdgeY@[ 0,  1] += 0.5  * gen_error_uEdgeD@coarser
+    targetEdgeY@[ 1,  1] += 0.5  * gen_error_uEdgeD@coarser
+    targetEdgeD@[ 1,  0] += 0.25 * gen_error_uEdgeD@coarser
+    targetEdgeD@[ 0,  1] += 0.25 * gen_error_uEdgeD@coarser
   }
 
   apply bc to uNode
@@ -293,7 +305,13 @@ Function NormError_Max@finest ( ) : Real {
     err_u = max ( fabs ( curErr ), err_u )
   }
 
-  print ( 'Error:', err_u )
+	if ( getKnowledge ( "testing_enabled" ) ) {
+		if ( getKnowledge ( "testing_printErr" ) ) {
+      printWithReducedPrec ( err_u )
+    }
+  } else {
+    print ( 'Error:', err_u )
+  }
 
   return err_u
 }
@@ -301,29 +319,35 @@ Function NormError_Max@finest ( ) : Real {
 //// END OF TEST PROBLEM 1 ////
 
 //// TEST PROBLEM 2 ////
-// u = sin ( PI * x ) * sin ( PI * y )
+// u = cos ( PI * x ) - sin ( 2 * PI * y )
 
 Function NormError_Max@finest ( ) : Real {
   Var err_u : Real = 0
 
   loop over uNode with reduction( max : err_u ){
-    Var curErr : Real = uNode - ( sin ( PI * vf_nodePos_x ) * sin ( PI * vf_nodePos_y ) )
+    Var curErr : Real = uNode - ( cos ( PI * vf_nodePos_x     ) - sin ( 2.0 * PI * vf_nodePos_y    ) )
     err_u = max ( fabs ( curErr ), err_u )
   }
   loop over uEdgeX with reduction( max : err_u ){
-    Var curErr : Real = uEdgeX - ( sin ( PI * vf_nodePos_x ) * sin ( PI * vf_cellCenter_y ) )
+    Var curErr : Real = uEdgeX - ( cos ( PI * vf_nodePos_x    ) - sin ( 2.0 * PI * vf_cellCenter_y ) )
     err_u = max ( fabs ( curErr ), err_u )
   }
   loop over uEdgeY with reduction( max : err_u ){
-    Var curErr : Real = uEdgeY - ( sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_nodePos_y ) )
+    Var curErr : Real = uEdgeY - ( cos ( PI * vf_cellCenter_x ) - sin ( 2.0 * PI * vf_nodePos_y    ) )
     err_u = max ( fabs ( curErr ), err_u )
   }
   loop over uEdgeD with reduction( max : err_u ){
-    Var curErr : Real = uEdgeD - ( sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_cellCenter_y ) )
+    Var curErr : Real = uEdgeD - ( cos ( PI * vf_cellCenter_x ) - sin ( 2.0 * PI * vf_cellCenter_y ) )
     err_u = max ( fabs ( curErr ), err_u )
   }
 
-  print ( 'Error:', err_u )
+	if ( getKnowledge ( "testing_enabled" ) ) {
+		if ( getKnowledge ( "testing_printErr" ) ) {
+      printWithReducedPrec ( err_u )
+    }
+  } else {
+    print ( 'Error:', err_u )
+  }
 
   return err_u
 }

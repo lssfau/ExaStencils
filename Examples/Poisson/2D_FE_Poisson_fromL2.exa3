@@ -4,7 +4,7 @@ generate solver for
   uEdgeX in uEdgeXEquation and
   uEdgeY in uEdgeYEquation and
   uEdgeD in uEdgeDEquation with {
-  solver_targetResReduction     = 1e-8
+  solver_targetResReduction     = 1e-10
   solver_maxNumIts              = 100
   solver_smoother_jacobiType    = false
   solver_smoother_numPre        = 3
