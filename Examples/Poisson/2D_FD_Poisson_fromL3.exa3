@@ -1,0 +1,123 @@
+
+/// domain
+
+Domain global< [ 0, 0 ] to [ 1, 1 ] >
+
+/// fields
+
+Field Solution with Real on Node of global = 0.0
+
+Field Solution@finest on boundary = cos ( PI * vf_boundaryPos_x ) - sin ( 2.0 * PI * vf_boundaryPos_y )
+Field Solution@(all but finest) on boundary = 0.0
+
+Field RHS@finest with Real on Node of global = PI**2 * cos ( PI * vf_nodePos_x ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePos_y )
+Field RHS@(all but finest) with Real on Node of global
+
+Field Residual          from Solution
+override bc for Residual@finest with 0.0
+
+Field VecP@coarsest     from Solution
+Field VecGradP@coarsest from Solution
+
+/// operators
+
+Operator Laplace from Stencil {
+  [ 0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 )
+  [-1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
+  [ 1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
+  [ 0, -1] => -1.0 / ( vf_gridWidth_y ** 2 )
+  [ 0,  1] => -1.0 / ( vf_gridWidth_y ** 2 )
+}
+
+Operator Restriction  from default restriction  on Node with 'linear'
+Operator Prolongation from default prolongation on Node with 'linear'
+
+/// globals
+
+Globals {
+  Expr omega = 0.8
+}
+
+/// functions
+
+Function Smoother@all {
+  repeat 3 times {
+    Solution += omega * diag_inv ( Laplace ) * ( RHS - Laplace * Solution ) where (i0 + i1) % 2 == 0
+    Solution += omega * diag_inv ( Laplace ) * ( RHS - Laplace * Solution ) where (i0 + i1) % 2 == 1
+  }
+}
+
+Function VCycle@(coarsest + 1 to finest) {
+  Smoother ( )
+
+  Residual = RHS - Laplace * Solution
+  RHS@coarser = Restriction * Residual
+
+  Solution@coarser = 0.0
+  VCycle@coarser ( )
+
+  Solution += Prolongation@coarser * Solution@coarser
+
+  Smoother ( )
+}
+
+Function VCycle@coarsest {
+  Residual = RHS - ( Laplace * Solution )
+  VecP = Residual
+
+  Var res     : Real = NormResidual ( )
+  Var initRes : Real = res
+
+  Var cgSteps : Int  = 0
+  repeat 128 times count cgSteps {
+    VecGradP = Laplace * VecP
+    Var alphaDenom : Real = dot ( VecP, VecGradP )
+    Var alpha : Real = res * res / alphaDenom
+    Solution += alpha * VecP
+    Residual -= alpha * VecGradP
+    Var nextRes : Real = NormResidual ( )
+
+    if ( nextRes <= 1e-3 * initRes ) {
+      return
+    }
+
+    Var beta : Real = (nextRes * nextRes) / (res * res)
+    VecP = Residual + beta * VecP
+    res = nextRes
+  }
+  print ( 'Maximum number of cgs iterations (', 128, ') was exceeded' )
+}
+
+Function NormResidual@(coarsest and finest) : Real {
+  return sqrt ( dot ( Residual, Residual ) )
+}
+
+Function Solve@finest {
+  Residual@finest = RHS@finest - ( Laplace@finest * Solution@finest )
+  Var initRes : Real = NormResidual@finest (  )
+  Var curRes  : Real = initRes
+  Var prevRes : Real = 0.0
+
+  if ( getKnowledge ( 'testing_enabled' ) ) {
+    if ( getKnowledge ( 'testing_printRes' ) ) { printWithReducedPrec ( initRes ) }
+  } else {
+    print ( "Starting residual:", initRes )
+  }
+
+  Var curIt : Int = 0
+  repeat until ( ( curIt >= 100 ) || ( curRes <= ( 1.0E-10 * initRes ) ) ) {
+    curIt += 1
+    VCycle@finest (  )
+    PrintError@finest ( )
+
+    Residual@finest = RHS@finest - ( Laplace@finest * Solution@finest )
+    prevRes = curRes
+    curRes = NormResidual@finest (  )
+
+    if ( getKnowledge ( 'testing_enabled' ) ) {
+      if ( getKnowledge ( 'testing_printRes' ) ) { printWithReducedPrec ( curRes ) }
+    } else {
+      print ( "Residual after", curIt, "iterations is", curRes, "--- convergence factor is", ( curRes / prevRes ) )
+    }
+  }
+}

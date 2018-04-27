@@ -268,6 +268,7 @@ FAS_2D_Basic  Main  NonLinear/FAS_2D_Basic.knowledge  NonLinear/FAS_2D_Basic.exa
 # 4 MPI and 4 OMP
 2D_FD_Poisson_fromL1  Main  Poisson/2D_FD_Poisson_fromL1.knowledge  ../Examples/Poisson/2D_FD_Poisson_fromL1.exa1  Poisson/2D_FD_Poisson_fromL1.results  4   4
 2D_FD_Poisson_fromL2  Main  Poisson/2D_FD_Poisson_fromL2.knowledge  ../Examples/Poisson/2D_FD_Poisson_fromL2.exa2;../Examples/Poisson/2D_FD_Poisson_fromL2.exa3;../Examples/Poisson/2D_FD_Poisson_fromL2.exa4  Poisson/2D_FD_Poisson_fromL2.results  4   4
+2D_FD_Poisson_fromL3  Main  Poisson/2D_FD_Poisson_fromL3.knowledge  ../Examples/Poisson/2D_FD_Poisson_fromL3.exa3;../Examples/Poisson/2D_FD_Poisson_fromL3.exa4  Poisson/2D_FD_Poisson_fromL3.results  4   4
 2D_FD_Poisson_fromL4  Main  Poisson/2D_FD_Poisson_fromL4.knowledge  ../Examples/Poisson/2D_FD_Poisson_fromL4.exa4  Poisson/2D_FD_Poisson_fromL4.results  4   4
 
 2D_FV_Poisson_fromL2  Main  Poisson/2D_FV_Poisson_fromL2.knowledge  ../Examples/Poisson/2D_FV_Poisson_fromL2.exa2;../Examples/Poisson/2D_FV_Poisson_fromL2.exa3;../Examples/Poisson/2D_FV_Poisson_fromL2.exa4  Poisson/2D_FV_Poisson_fromL2.results  4   4
