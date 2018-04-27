@@ -260,7 +260,7 @@ case class L3_SolverForEquation(
           solveStmts += L3_FunctionCall(L3_PlainInternalFunctionReference("printWithReducedPrec", L3_UnitDatatype), initRes)
       } else {
         solveStmts += L3_FunctionCall(L3_PlainInternalFunctionReference("print", L3_UnitDatatype), ListBuffer[L3_Expression](
-          L3_StringConstant("Starting residual: "), initRes))
+          L3_StringConstant("Starting residual:"), initRes))
       }
 
       val loopStmts = ListBuffer[L3_Statement]()
