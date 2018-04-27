@@ -487,9 +487,9 @@ object L3_Parser extends ExaParser with PackratParsers {
       ||| locationize(((expressionIndex <~ "from") ~ expressionIndex ~ ("with" ~> binaryexpression)) ^^ { case row ~ col ~ coeff => L3_StencilMappingEntry(row, col, coeff) }))
 
   lazy val stencilFromDefault = (
-    locationize(("Stencil" ~> ident) ~ levelDecl.? ~ (("from" ~ "default" ~ "restriction" ~ "on") ~> localization) ~ ("with" ~> stringLit)
+    locationize((("Stencil" ||| "Operator") ~> ident) ~ levelDecl.? ~ (("from" ~ "default" ~ "restriction" ~ "on") ~> localization) ~ ("with" ~> stringLit)
       ^^ { case id ~ level ~ local ~ interpolation => L3_DefaultRestrictionStencil(id, level, local, interpolation) })
-      ||| locationize(("Stencil" ~> ident) ~ levelDecl.? ~ (("from" ~ "default" ~ "prolongation" ~ "on") ~> localization) ~ ("with" ~> stringLit)
+      ||| locationize((("Stencil" ||| "Operator") ~> ident) ~ levelDecl.? ~ (("from" ~ "default" ~ "prolongation" ~ "on") ~> localization) ~ ("with" ~> stringLit)
       ^^ { case id ~ level ~ local ~ interpolation => L3_DefaultProlongationStencil(id, level, local, interpolation) }))
 
   // ######################################
