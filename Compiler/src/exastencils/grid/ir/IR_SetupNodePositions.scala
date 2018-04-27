@@ -410,7 +410,7 @@ object IR_SetupNodePositions {
       val domainBounds = domain.asInstanceOf[IR_DomainFromAABB].aabb
       val defGridWidth = IR_SimplifyExpression.evalFloating((domainBounds.upper(dim) - domainBounds.lower(dim)) / numCellsTotal)
 
-      Settings.additionalIncludes = (Settings.additionalIncludes :+ "functional").distinct
+      Settings.additionalIncludes = (Settings.additionalIncludes :+ "functional" :+ "random").distinct
 
       stmts += HACK_IR_Native(s"std::default_random_engine generator(${ if (Knowledge.mpi_enabled) MPI_IV_MpiRank.prettyprint() else 0 })")
       stmts += HACK_IR_Native(s"static std::uniform_real_distribution <double> distribution(${ -0.1 * defGridWidth }, ${ 0.1 * defGridWidth })")
