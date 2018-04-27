@@ -1,12 +1,10 @@
 dimensionality                 = 2
 
-minLevel                       = 2//0
-maxLevel                       = 10//8
+minLevel                       = 0
+maxLevel                       = 8
 
 discr_type                     = "FiniteDifferences"
 
 // omp parallelization on exactly one fragment in one block
 import '../lib/domain_onePatch.knowledge'
 import '../lib/parallelization_pureOmp.knowledge'
-
-testing_enabled = true
