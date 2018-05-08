@@ -16,9 +16,6 @@ Field RHS@(all but finest) with Real on Node of global
 Field Residual        from Solution
 override bc for Residual@finest with 0.0
 
-Field cgTmp0@coarsest from Residual
-Field cgTmp1@coarsest from Residual
-
 /// operators
 
 Operator Laplace from Stencil {
@@ -35,15 +32,15 @@ Operator Prolongation from default prolongation on Node with 'linear'
 /// globals
 
 Globals {
-  Expr omega = 0.8
+  Expr omegaRelax = 0.8
 }
 
 /// functions
 
 Function Smoother@all {
   repeat 3 times {
-    Solution += omega * diag_inv ( Laplace ) * ( RHS - Laplace * Solution ) where (i0 + i1) % 2 == 0
-    Solution += omega * diag_inv ( Laplace ) * ( RHS - Laplace * Solution ) where (i0 + i1) % 2 == 1
+    Solution += omegaRelax * diag_inv ( Laplace ) * ( RHS - Laplace * Solution ) where (i0 + i1) % 2 == 0
+    Solution += omegaRelax * diag_inv ( Laplace ) * ( RHS - Laplace * Solution ) where (i0 + i1) % 2 == 1
   }
 }
 
@@ -59,35 +56,6 @@ Function VCycle@(coarsest + 1 to finest) {
   Solution += Prolongation@coarser * Solution@coarser
 
   Smoother ( )
-}
-
-Function VCycle@coarsest {
-  Residual = RHS - Laplace * Solution
-  Var curRes  : Real = NormResidual ( )
-  Var initRes : Real = curRes
-  Var nextRes : Real = 0.0
-
-  cgTmp0 = Residual
-  Var alpha   : Real = 0.0
-  Var beta    : Real = 0.0
-  Var curStep : Int  = 0
-
-  repeat 128 times count curStep {
-    cgTmp1    = Laplace * cgTmp0
-
-    alpha     = dot ( Residual, Residual ) / dot ( cgTmp0, cgTmp1 )
-    Solution += alpha * cgTmp0
-    Residual -= alpha * cgTmp1
-
-    nextRes   = NormResidual ( )
-    if ( nextRes <= 1e-3 * initRes ) { return }
-
-    beta      = nextRes**2 / curRes**2
-    cgTmp0    = Residual + beta * cgTmp0
-    curRes    = nextRes
-  }
-
-  print ( "Maximum number of cgs iterations (", 128, ") was exceeded" )
 }
 
 Function NormResidual@(coarsest and finest) : Real {
@@ -123,3 +91,204 @@ Function Solve@finest {
     }
   }
 }
+
+/// coarse grid solver variant conjugate gradient (CG)
+
+Field cgTmp0@coarsest from Residual
+Field cgTmp1@coarsest from Residual
+
+Function VCycle@coarsest {
+  Residual    = RHS - Laplace * Solution
+  Var curRes  : Real = NormResidual ( )
+  Var initRes : Real = curRes
+  Var nextRes : Real = 0.0
+
+  if ( curRes == 0.0 ) { return }
+
+  cgTmp0 = Residual
+  Var alpha   : Real = 0.0
+  Var beta    : Real = 0.0
+  Var curStep : Int  = 0
+
+  repeat 128 times count curStep {
+    cgTmp1    = Laplace * cgTmp0
+
+    alpha     = dot ( Residual, Residual ) / dot ( cgTmp0, cgTmp1 )
+    Solution += alpha * cgTmp0
+    Residual -= alpha * cgTmp1
+
+    nextRes   = NormResidual ( )
+    if ( nextRes <= 1e-3 * initRes ) { return }
+
+    beta      = nextRes**2 / curRes**2
+    cgTmp0    = Residual + beta * cgTmp0
+    curRes    = nextRes
+  }
+
+  print ( "Maximum number of cgs iterations (", 128, ") was exceeded" )
+}
+
+/// coarse grid solver variant BiCGStab
+/*
+Field nu    @coarsest from Residual
+Field p     @coarsest from Residual
+Field h     @coarsest from Residual
+Field s     @coarsest from Residual
+Field t     @coarsest from Residual
+Field resHat@coarsest from Residual
+
+Function VCycle@coarsest {
+  Residual    = RHS - Laplace * Solution
+  Var curRes  : Real = NormResidual ( )
+  Var initRes : Real = curRes
+
+  if ( curRes == 0.0 ) { return }
+
+  resHat = Residual
+
+  Var alpha   : Real = 1.0
+  Var beta    : Real = 1.0
+  Var rho     : Real = 1.0
+  Var rhoOld  : Real = 1.0
+  Var omega   : Real = 1.0
+  Var curStep : Int  = 0
+
+   nu = 0.0
+  p = 0.0
+
+  repeat 128 times count curStep {
+    rhoOld    = rho
+    rho       = dot ( resHat, Residual )
+    beta      = ( rho / rhoOld ) * ( alpha / omega )
+    p         = Residual + beta * ( p - omega * nu )
+    nu        = Laplace * p
+    alpha     = rho / dot ( resHat, nu )
+    h         = Solution + alpha * p
+    s         = Residual - alpha * nu
+    t         = Laplace * s
+    omega     = dot ( t, s ) / dot ( t, t )
+    Solution  = h + omega * s
+    Residual  = s - omega * t
+    curRes    = NormResidual ( )
+
+    if ( curRes <= 1e-3 * initRes ) { return }
+  }
+
+  print ( "Maximum number of cgs iterations (", 128, ") was exceeded" )
+}
+*/
+/// coarse grid solver variant MinRes
+/*
+Field pOld@coarsest from Residual
+Field p   @coarsest from Residual
+Field pNew@coarsest from Residual
+Field vOld@coarsest from Residual
+Field v   @coarsest from Residual
+Field vNew@coarsest from Residual
+
+Function VCycle@coarsest {
+  Residual    = RHS - Laplace * Solution
+  Var curRes  : Real = NormResidual ( )
+  Var initRes : Real = curRes
+
+  if ( curRes == 0.0 ) { return }
+
+  v           = 0.0
+  vNew        = Residual / initRes
+  p           = 0.0
+  pNew        = 0.0
+
+  Var alpha   : Real
+  Var beta    : Real
+  Var betaNew : Real = 0.0
+  Var cOld    : Real
+  Var c       : Real = 1.0
+  Var cNew    : Real = 1.0
+  Var sOld    : Real
+  Var s       : Real = 0.0
+  Var sNew    : Real = 0.0
+
+  Var rho1    : Real
+  Var rho2    : Real
+  Var rho3Tld : Real
+  Var tau     : Real
+  Var nu      : Real
+  Var rho3    : Real
+
+  Var curStep : Int  = 0
+
+  repeat 128 times count curStep {
+    beta      = betaNew
+    vOld      = v
+    v         = vNew
+    vNew      = Laplace * v - beta * vOld
+    alpha     = dot ( vNew, v )
+    vNew     -= alpha * v
+    betaNew   = sqrt ( dot ( vNew, vNew ) )
+    vNew     /= betaNew
+    cOld      = c
+    c         = cNew
+    sOld      = s
+    s         = sNew
+    rho1      = sOld * beta
+    rho2      = c * cOld * beta + s * alpha
+    rho3Tld   = c * alpha - s * cOld * beta
+    tau       = fabs ( rho3Tld ) + fabs ( betaNew )
+    nu        = tau * sqrt ( ( rho3Tld / tau )**2 + ( betaNew / tau )**2 )
+    cNew      = rho3Tld / nu
+    sNew      = betaNew / nu
+    rho3      = nu
+    pOld      = p
+    p         = pNew
+    pNew      = ( v - rho1 * pOld - rho2 * p ) / rho3
+    Solution += cNew * curRes * pNew
+    curRes   *= -sNew
+
+    if ( fabs ( curRes ) <= 1e-3 * initRes ) { return }
+  }
+
+  print ( "Maximum number of cgs iterations (", 128, ") was exceeded" )
+}
+*/
+/// coarse grid solver variant conjugate residual (CR)
+/*
+Field p @coarsest from Residual
+Field ap@coarsest from Residual
+Field ar@coarsest from Residual
+
+Function VCycle@coarsest {
+  Residual    = ( RHS - ( Laplace * Solution ) )
+  Var curRes  : Real = NormResidual (  )
+  Var initRes : Real = curRes
+  Var nextRes : Real = 0.0
+
+  if ( curRes == 0.0 ) { return }
+
+  Var alpha   : Real
+  Var beta    : Real
+
+  p           = Residual
+  ap          = ( Laplace * p )
+  ar          = ( Laplace * Residual )
+
+  Var curStep : Integer = 0
+
+  repeat 128 times count curStep {
+    Var alphaNom : Real = dot ( Residual, ar )
+    alpha     = alphaNom / dot ( ap, ap )
+    Solution += alpha * p
+    Residual -= alpha * ap
+    nextRes   = NormResidual (  )
+
+    if ( nextRes <= 1e-3 * initRes ) { return }
+
+    ar        = Laplace * Residual
+    beta      = dot ( Residual, ar ) / alphaNom
+    p         = Residual + beta * p
+    ap        = ar + beta * ap
+    curRes    = nextRes
+  }
+
+  print ( "Maximum number of cgs iterations (", 128, ") was exceeded" )
+}
+*/
