@@ -13,11 +13,11 @@ Field Solution@(all but finest) on boundary = 0.0
 Field RHS@finest with Real on Node of global = PI**2 * cos ( PI * vf_nodePos_x ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePos_y )
 Field RHS@(all but finest) with Real on Node of global
 
-Field Residual          from Solution
+Field Residual        from Solution
 override bc for Residual@finest with 0.0
 
-Field VecP@coarsest     from Solution
-Field VecGradP@coarsest from Solution
+Field cgTmp0@coarsest from Residual
+Field cgTmp1@coarsest from Residual
 
 /// operators
 
@@ -62,30 +62,32 @@ Function VCycle@(coarsest + 1 to finest) {
 }
 
 Function VCycle@coarsest {
-  Residual = RHS - ( Laplace * Solution )
-  VecP = Residual
+  Residual = RHS - Laplace * Solution
+  Var curRes  : Real = NormResidual ( )
+  Var initRes : Real = curRes
+  Var nextRes : Real = 0.0
 
-  Var res     : Real = NormResidual ( )
-  Var initRes : Real = res
+  cgTmp0 = Residual
+  Var alpha   : Real = 0.0
+  Var beta    : Real = 0.0
+  Var curStep : Int  = 0
 
-  Var cgSteps : Int  = 0
-  repeat 128 times count cgSteps {
-    VecGradP = Laplace * VecP
-    Var alphaDenom : Real = dot ( VecP, VecGradP )
-    Var alpha : Real = res * res / alphaDenom
-    Solution += alpha * VecP
-    Residual -= alpha * VecGradP
-    Var nextRes : Real = NormResidual ( )
+  repeat 128 times count curStep {
+    cgTmp1    = Laplace * cgTmp0
 
-    if ( nextRes <= 1e-3 * initRes ) {
-      return
-    }
+    alpha     = dot ( Residual, Residual ) / dot ( cgTmp0, cgTmp1 )
+    Solution += alpha * cgTmp0
+    Residual -= alpha * cgTmp1
 
-    Var beta : Real = (nextRes * nextRes) / (res * res)
-    VecP = Residual + beta * VecP
-    res = nextRes
+    nextRes   = NormResidual ( )
+    if ( nextRes <= 1e-3 * initRes ) { return }
+
+    beta      = nextRes**2 / curRes**2
+    cgTmp0    = Residual + beta * cgTmp0
+    curRes    = nextRes
   }
-  print ( 'Maximum number of cgs iterations (', 128, ') was exceeded' )
+
+  print ( "Maximum number of cgs iterations (", 128, ") was exceeded" )
 }
 
 Function NormResidual@(coarsest and finest) : Real {
