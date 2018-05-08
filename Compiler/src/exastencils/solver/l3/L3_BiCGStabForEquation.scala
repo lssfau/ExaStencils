@@ -72,6 +72,8 @@ object L3_BiCGStabForEquation extends L3_IterativeSolverForEquation {
     stmts += L3_VariableDeclaration(curRes, callResNorm)
     stmts += L3_VariableDeclaration(initRes, curRes)
 
+    stmts += L3_IfCondition(curRes EqEq 0.0, L3_Return(None))
+
     entries.foreach(entry => stmts += L3_Assignment(L3_FieldAccess(resHat(entry)), L3_FieldAccess(entry.resPerLevel(level))))
 
     def rho = L3_PlainVariableAccess("gen_rho", L3_RealDatatype, false)

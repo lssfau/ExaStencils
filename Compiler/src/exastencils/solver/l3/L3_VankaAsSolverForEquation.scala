@@ -35,6 +35,8 @@ object L3_VankaAsSolverForEquation extends L3_IterativeSolverForEquation {
     stmts += L3_VariableDeclaration(curRes, callResNorm)
     stmts += L3_VariableDeclaration(initRes, curRes)
 
+    stmts += L3_IfCondition(curRes EqEq 0.0, L3_Return(None))
+
     // main loop
     def curStep = L3_PlainVariableAccess("gen_curStep", L3_IntegerDatatype, false)
 
@@ -45,6 +47,8 @@ object L3_VankaAsSolverForEquation extends L3_IterativeSolverForEquation {
     val numInnerSteps = /* TODO: model as parameter */ 10
     loopStmts ++= L3_VankaForEquation.generateFor(entries, level, numInnerSteps, smootherHints)
 
+    // update residual
+    loopStmts ++= entries.map(_.generateUpdateRes(level))
     loopStmts += L3_VariableDeclaration(nextRes, callResNorm)
 
     // exit criterion

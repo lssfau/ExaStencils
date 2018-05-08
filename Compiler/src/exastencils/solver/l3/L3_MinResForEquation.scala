@@ -32,6 +32,7 @@ object L3_MinResForEquation extends L3_IterativeSolverForEquation {
     val v = HashMap[L3_SolverForEqEntry, L3_Field]()
     val vNew = HashMap[L3_SolverForEqEntry, L3_Field]()
 
+    // FIXME: eliminate av
     val av = HashMap[L3_SolverForEqEntry, L3_Field]()
 
     for (entry <- entries) {
@@ -87,6 +88,8 @@ object L3_MinResForEquation extends L3_IterativeSolverForEquation {
 
     stmts += L3_VariableDeclaration(curRes, callResNorm)
     stmts += L3_VariableDeclaration(initRes, curRes)
+
+    stmts += L3_IfCondition(curRes EqEq 0.0, L3_Return(None))
 
     // init fields
     entries.foreach(entry => stmts += L3_Assignment(L3_FieldAccess(p(entry)), 0.0))

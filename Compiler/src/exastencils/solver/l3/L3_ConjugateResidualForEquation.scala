@@ -57,6 +57,8 @@ object L3_ConjugateResidualForEquation extends L3_IterativeSolverForEquation {
     stmts += L3_VariableDeclaration(curRes, callResNorm)
     stmts += L3_VariableDeclaration(initRes, curRes)
 
+    stmts += L3_IfCondition(curRes EqEq 0.0, L3_Return(None))
+
     entries.foreach(entry =>
       stmts += L3_Assignment(L3_FieldAccess(p(entry)), L3_FieldAccess(entry.resPerLevel(level))))
 

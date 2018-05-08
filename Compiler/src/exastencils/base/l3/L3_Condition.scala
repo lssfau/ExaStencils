@@ -8,6 +8,10 @@ import exastencils.prettyprinting._
 
 /// L3_IfCondition
 
+object L3_IfCondition {
+  def apply(condition : L3_Expression, trueBody : L3_Statement) = new L3_IfCondition(condition, ListBuffer(trueBody), ListBuffer())
+}
+
 case class L3_IfCondition(var condition : L3_Expression, var trueBody : ListBuffer[L3_Statement], var falseBody : ListBuffer[L3_Statement]) extends L3_Statement {
   override def prettyprint(out : PpStream) = {
     out << "if ( " << condition << " ) {\n"
