@@ -11,7 +11,7 @@ import exastencils.prettyprinting.PpStream
 /// L3_FieldFieldConvolution
 
 case class L3_FieldFieldConvolution(var lhs : L3_FieldAccess, var rhs : L3_FieldAccess) extends L3_Expression {
-  override def prettyprint(out : PpStream) = out << lhs << " * " << rhs
+  override def prettyprint(out : PpStream) = out << "dot ( " << lhs << ", " << rhs << " )"
   override def progress = ProgressLocation(L4_FieldFieldConvolution(lhs.progress, rhs.progress))
 }
 
