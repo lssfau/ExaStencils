@@ -152,11 +152,13 @@ case class L3_SolverForEquation(
         L3_FieldCollection.addDeclared(s"gen_residual_${ entry.solName }", level)
 
         // add error fields
-        L3_FieldCollection.addDeclared(s"gen_error_${ entry.solName }", level)
+        if (level != Knowledge.maxLevel)
+          L3_FieldCollection.addDeclared(s"gen_error_${ entry.solName }", level)
 
         // add approximations (if required) for all levels but the finest
         if (Knowledge.solver_useFAS)
-          L3_FieldCollection.addDeclared(s"gen_approx_${ entry.solName }", level)
+          if (level != Knowledge.maxLevel)
+            L3_FieldCollection.addDeclared(s"gen_approx_${ entry.solName }", level)
       }
     })
   }
