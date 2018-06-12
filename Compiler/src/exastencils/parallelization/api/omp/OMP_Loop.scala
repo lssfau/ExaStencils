@@ -13,6 +13,15 @@ import exastencils.optimization.ir.IR_Vectorization
 import exastencils.parallelization.api.cuda.CUDA_Util
 import exastencils.prettyprinting.PpStream
 
+case class OMP_Parallel(var body : ListBuffer[IR_Statement]) extends IR_Statement {
+  override def prettyprint(out : PpStream) : Unit = {
+    out << "#pragma omp parallel\n"
+    out << "{\n"
+    out <<< body
+    out << "\n}\n"
+  }
+}
+
 /// OMP_ParallelFor
 
 case class OMP_ParallelFor(
@@ -60,7 +69,7 @@ object OMP_AddParallelSections extends DefaultStrategy("Handle potentially paral
     case target : IR_ForLoop if target.parallelization.potentiallyParallel && !target.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) &&
       target.parallelization.reduction.isDefined && target.hasAnnotation(IR_Vectorization.VECT_ANNOT)                               =>
       // FIXME: workaround for feature interaction
-      Logger.warn("Parallelizing and Vectorizing a loop with a redution is currently not supported! If required, contact Stefan.")
+      Logger.warn("Parallelizing and Vectorizing a loop with a reduction is currently not supported! If required, contact Stefan.")
       target
     case target : IR_ForLoop if target.parallelization.potentiallyParallel && !target.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) =>
       val additionalOMPClauses = ListBuffer[OMP_Clause]()

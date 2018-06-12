@@ -245,11 +245,15 @@ object Knowledge {
   // threshold for assuming values as zero when printing in testing environments (for printWithReducedPrec calls)
   var testing_zeroThreshold : Double = 1e-12
 
-  /// --- timing ---
+  /// --- timing / benchmarking ---
 
   // type of the timers to be generated
   // may be one of the following: 'Chrono', 'QPC', 'WIN_TIME', 'UNIX_TIME', 'MPI_TIME', 'RDSC', 'WINDOWS_RDSC'
   var timer_type : String = "Chrono"
+
+  // library/tool to use for benchmarking
+  // may be one of the following: 'None', 'likwid'
+  var benchmark_backend = "None"
 
   /// --- interfacing ---
 
@@ -918,6 +922,9 @@ object Knowledge {
     Constraints.condEnsureValue(timer_type, "WIN_TIME", "UNIX_TIME" == timer_type && "MSVC" == Platform.targetCompiler, "UNIX_TIME is not supported for windows systems")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == Platform.targetCompiler, "IBM XL does currently not support std::chrono")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == Platform.targetCompiler, "IBM BG does currently not support std::chrono")
+
+    Constraints.condWarn(!List("None", "likwid").contains(benchmark_backend), "Unknown value for benchmark_backend")
+    Constraints.condError(benchmark_backend == "likwid" && Platform.targetOS != "Linux", "likwid is currently only available for Linux")
 
     // experimental
     Constraints.condEnsureValue(experimental_trimBoundsForReductionLoops, false, data_genVariableFieldSizes, "experimental_trimBoundsForReductionLoops is currently not compatible with data_genVariableFieldSizes")

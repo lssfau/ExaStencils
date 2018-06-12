@@ -211,6 +211,12 @@ object Settings {
           if (!additionalLibs.contains("cudart")) additionalLibs += "cudart"
       }
     }
+    Knowledge.benchmark_backend match {
+      case "likwid" =>
+        if (!additionalIncludes.contains("likwid.h")) additionalIncludes += "likwid.h"
+        if (!additionalLibs.contains("likwid")) additionalLibs += "likwid"
+      case _ =>
+    }
     if (Platform.simd_mathLibrary == "mass_simd")
       additionalLibs += "mass_simd"
   }
