@@ -262,9 +262,6 @@ object Platform {
     targetCudaCompiler match {
       case "NVCC" =>
         flags += s" -std=c++11 -O3 -DNDEBUG -lineinfo -arch=sm_${ Platform.hw_cuda_capability }${ Platform.hw_cuda_capabilityMinor }"
-
-        // this is required since latest Ubuntu update
-        flags += " -D_MWAITXINTRIN_H_INCLUDED -D_FORCE_INLINES"
     }
 
     flags
