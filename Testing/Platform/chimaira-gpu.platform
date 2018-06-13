@@ -1,5 +1,6 @@
 targetOS                   = "Linux"
 targetCompiler             = "GCC"
+targetCompilerBinary       = "g++-4.9"
 targetCompilerVersion      = 4
 targetCompilerVersionMinor = 9
 targetHardware             = "CPU"
