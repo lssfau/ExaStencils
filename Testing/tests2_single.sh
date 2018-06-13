@@ -89,7 +89,10 @@ rm -f "${SETTINGS}"
 touch "${SETTINGS}"
 echo "outputPath = \"${TEST_DIR}\"" >> "${SETTINGS}"
 echo "binary = \"${BIN}\"" >> "${SETTINGS}"
-echo "makefile_additionalCudaFlags = \"-ccbin clang-3.8 -D_MWAITXINTRIN_H_INCLUDED -D_FORCE_INLINES\"" >> "${SETTINGS}"
+if [[ "${PLATFORM}" =~ gpu ]]; then # nvcc requires older g++ version
+  echo "targetCompilerBinary = \"g++-4.9\"" >> "${SETTINGS}"
+  echo "makefile_additionalCudaFlags = \"-D_MWAITXINTRIN_H_INCLUDED -D_FORCE_INLINES\"" >> "${SETTINGS}"
+fi
 echo "poly_explorationConfig = \"${EXPL_CFG}\"" >> "${SETTINGS}"
 echo "poly_exploration_appendID2path = false" >> "${SETTINGS}"
 IFS=';' read -a files <<< $EXAFILES
