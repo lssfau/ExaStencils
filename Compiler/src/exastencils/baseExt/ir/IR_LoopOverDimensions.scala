@@ -89,8 +89,18 @@ case class IR_LoopOverDimensions(
   var polyOptLevel : Int = 0
   var tileSize : Array[Int] = Array(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w).take(numDimensions)
 
-  if (stepSize == null)
+  if (stepSize == null) {
     stepSize = IR_ExpressionIndex(Array.fill(numDimensions)(1))
+  } else { // update loop bounds to a tighter fit if possible
+    indices.end.indices = (0 until numDimensions).map(d =>
+      stepSize(d) match {
+        case n : IR_Number if 1 == n.value =>
+          indices.end(d)
+        case _                             =>
+          indices.begin(d) + ((indices.end(d) - 1 - indices.begin(d)) / stepSize(d)) * stepSize(d) + 1
+      }).to
+    indices.end = IR_GeneralSimplifyWrapper.process(indices.end)
+  }
 
   def maxIterationCount() : Array[Long] = {
     var start : Array[Long] = null
