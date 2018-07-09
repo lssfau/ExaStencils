@@ -21,19 +21,11 @@ case class IR_DomainFunctions() extends IR_FunctionCollection(
 
   if (Knowledge.domain_rect_generate) {
     functions += IR_InitGeneratedDomain()
-
-    // assemble init statements for applicable virtual fields
-    val initStmts = ListBuffer[IR_Statement]()
-
-    var dependencies = IR_VirtualFieldCollection.objects.map(vf => (vf, vf.generateInitCodeDependsOn()))
-    while (dependencies.nonEmpty) {
-      val (canBeDone, waiting) = dependencies.partition(_._2.isEmpty)
-      initStmts ++= canBeDone.flatMap(_._1.generateInitCode())
-      dependencies = waiting.map(e => (e._1, e._2.filterNot(canBeDone.map(_._1).contains)))
-    }
-
-    functions += IR_PlainFunction("initGeometry", IR_UnitDatatype, initStmts)
+  } else if (true) { // TODO: add knowledge flag
+    externalDependencies += ("iostream", "fstream")
+    functions += IR_InitDomainFromFile()
   } else {
+    // deprecated code; TODO: remove
     externalDependencies += ("iostream", "fstream")
     val rvTemplateFunc = IR_PlainFunction(
       s"readValue",
@@ -52,4 +44,16 @@ case class IR_DomainFunctions() extends IR_FunctionCollection(
     functions += IR_SetValues()
     functions += IR_InitDomainFromFragmentFile()
   }
+
+  // assemble init statements for applicable virtual fields
+  val initStmts = ListBuffer[IR_Statement]()
+
+  var dependencies = IR_VirtualFieldCollection.objects.map(vf => (vf, vf.generateInitCodeDependsOn()))
+  while (dependencies.nonEmpty) {
+    val (canBeDone, waiting) = dependencies.partition(_._2.isEmpty)
+    initStmts ++= canBeDone.flatMap(_._1.generateInitCode())
+    dependencies = waiting.map(e => (e._1, e._2.filterNot(canBeDone.map(_._1).contains)))
+  }
+
+  functions += IR_PlainFunction("initGeometry", IR_UnitDatatype, initStmts)
 }
