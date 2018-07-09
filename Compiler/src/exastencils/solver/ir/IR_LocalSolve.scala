@@ -3,6 +3,7 @@ package exastencils.solver.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
@@ -22,6 +23,8 @@ case class IR_LocalSolve(
 
   var fVals = ListBuffer[IR_Addition]()
   var AVals = ListBuffer[ListBuffer[IR_Addition]]()
+
+  var AInv : IR_Expression = _
 
   def matchUnknowns(other : IR_FieldAccess) : Int = {
     for (i <- unknowns.indices)
@@ -129,24 +132,54 @@ case class IR_LocalSolve(
       processExpression(eqNumber, zeroEqs(eqNumber), false)
   }
 
+  def mapToExp(add : IR_Addition) : IR_Expression = {
+    add match {
+      case IR_Addition(ListBuffer()) => IR_RealConstant(0) // empty entries correspond to zero
+      case ex : IR_Expression        => IR_GeneralSimplifyWrapper.process(ex)
+    }
+  }
+
+  def matrixIsConst = {
+    fVals = ListBuffer.fill(unknowns.length)(IR_Addition())
+    AVals = ListBuffer.fill(unknowns.length)(ListBuffer.fill(unknowns.length)(IR_Addition()))
+
+    sortEquations()
+
+    val AExp = AVals.map(_.map(mapToExp))
+
+    AExp.flatMap(_.map(_.isInstanceOf[IR_Number])).reduce(_ && _)
+  }
+
+  def matrixIsPosIndependent = {
+    // TODO: check if the matrix can be constructed independently of the grid position
+    false
+  }
+
+  def getMatrix = {
+    // assumes previous call to matrixIsConst or expandSpecial
+    IR_MatrixExpression(Some(IR_MatrixDatatype(IR_RealDatatype, AVals.length, AVals.length)),
+      Duplicate(AVals.map(_.map(mapToExp))))
+  }
+
   def expandSpecial : Output[IR_Scope] = {
     fVals = ListBuffer.fill(unknowns.length)(IR_Addition())
     AVals = ListBuffer.fill(unknowns.length)(ListBuffer.fill(unknowns.length)(IR_Addition()))
 
     sortEquations()
 
-    def mapToExp(add : IR_Addition) : IR_Expression = {
-      add match {
-        case IR_Addition(ListBuffer()) => IR_RealConstant(0) // empty entries correspond to zero
-        case ex : IR_Expression        => IR_GeneralSimplifyWrapper.process(ex)
-      }
-    }
-
     val fExp = fVals.map(mapToExp)
     val AExp = AVals.map(_.map(mapToExp))
 
     // choose strategy used for inverting local matrix
-    if (Knowledge.experimental_applySchurCompl && IR_LocalSchurCompl.suitable(AVals))
+    if (AInv != null) {
+      AInv match {
+        case va : IR_VariableAccess   => IR_Scope(IR_LocalPreCompInvert(va, fExp, unknowns, jacobiType, relax))
+        case me : IR_MatrixExpression => IR_Scope(IR_LocalConstInvert(me, fExp, unknowns, jacobiType, relax))
+        case _                        => Logger.error(s"Unsupported AInv: $AInv")
+      }
+    }
+
+    else if (Knowledge.experimental_applySchurCompl && IR_LocalSchurCompl.suitable(AVals))
       IR_Scope(IR_LocalSchurCompl(AExp, fExp, unknowns, jacobiType, relax, omitConditions))
     else
       IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax, omitConditions))

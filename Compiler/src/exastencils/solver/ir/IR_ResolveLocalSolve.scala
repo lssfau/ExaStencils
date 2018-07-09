@@ -51,6 +51,24 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
     (minIndex, maxIndex)
   }
 
+  def tryPrecomputingInverse(loop : IR_LoopOverDimensions, solve : IR_LocalSolve) : IR_Statement = {
+    // check if constant matrix can be extracted
+    if (solve.matrixIsConst) {
+      solve.AInv = solve.getMatrix.inverse
+      loop
+    } else if (solve.matrixIsPosIndependent) {
+      val matrix = solve.getMatrix
+      val invMat = IR_VariableAccess("_AInv", Duplicate(matrix.datatype))
+      val invMatDecl = IR_VariableDeclaration(invMat, IR_FunctionCall("inverse", Duplicate(matrix)))
+
+      solve.AInv = invMat
+
+      IR_Scope(invMatDecl, loop)
+    } else {
+      loop
+    }
+  }
+
   def handleLoop(loop : IR_LoopOverDimensions) : Transformation.OutputType = {
     if (loop.body.length > 1) {
       Logger.warn("Found IR_LocalSolve in loop but there are other statements in the body. Currently unsupported.")
@@ -66,7 +84,7 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
     // return base loop if halo Loop is not required
     if (minIndex.toExpressionIndex == loop.indices.begin && maxIndex.toExpressionIndex == loop.indices.end) {
       solve.omitConditions = true
-      return loop
+      return tryPrecomputingInverse(loop, solve)
     }
 
     // abort if splitting is not allowed
@@ -91,13 +109,13 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
 
     innerLoop.body.head.asInstanceOf[IR_LocalSolve].omitConditions = true
 
-    List(haloLoop, innerLoop)
+    List(haloLoop, tryPrecomputingInverse(innerLoop, innerLoop.body.head.asInstanceOf[IR_LocalSolve]))
   }
 
   this += new Transformation("Split loops containing local solve nodes", {
     // check loop even if Knowledge.solver_splitLocalSolveLoops is false - conditions might still be unnecessary
     case loop : IR_LoopOverDimensions if loop.body.exists(_.isInstanceOf[IR_LocalSolve]) => handleLoop(loop)
-  })
+  }, false)
 
   this += new Transformation("Perform expandSpecial for applicable nodes", {
     case solve : IR_LocalSolve => solve.expandSpecial
