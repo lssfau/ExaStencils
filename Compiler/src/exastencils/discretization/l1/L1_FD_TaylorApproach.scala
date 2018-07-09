@@ -60,7 +60,7 @@ class L1_FD_TaylorApproach(N : Int, M : Int, h : Double, val e : Int, val direct
     if (direction == -1)
       eqSys.swapRows(0, -1 * i_min) // last column only has zero entries, except for the first row -> swap first and last row
     if (direction == 0)
-      eqSys.swapRows(0, i_max) // middle collumn only has zero entries, except for the first row -> swap first and middle row
+      eqSys.swapRows(0, i_max) // middle column only has zero entries, except for the first row -> swap first and middle row
 
     eqSys
   }

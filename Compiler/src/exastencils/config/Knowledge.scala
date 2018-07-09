@@ -214,7 +214,7 @@ object Knowledge {
 
   // generates a default SoA to AoS transformation _if_ no LayoutTransformation block exists
   //   (such a transformation is only created for fields whose level specification exactly matches the one of the associated layout,
-  //     or the layout is flaged with '@all')
+  //     or the layout is flagged with '@all')
   var l4_genSoA2AoSTransformation : Boolean = false
 
   /// === Post Layer 4 ===

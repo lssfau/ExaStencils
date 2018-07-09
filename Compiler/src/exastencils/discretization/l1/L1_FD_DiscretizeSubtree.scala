@@ -30,8 +30,6 @@ object L1_FD_DiscretizeSubtree extends QuietDefaultStrategy("Discretize expressi
       val domainExtends = domain.asInstanceOf[L1_DomainFromAABB].aabb
       val gridWidth = domainExtends.width(dim) / (Knowledge.domain_rect_numFragsTotalAsVec(dim) * Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level))
 
-      Logger.warn(dim + " : " + gridWidth)
-
       var n = derOrder + errOrder
       if (0 == direction && (derOrder + errOrder) % 2 != 1) n -= 1
 
