@@ -89,6 +89,9 @@ rm -f "${SETTINGS}"
 touch "${SETTINGS}"
 echo "outputPath = \"${TEST_DIR}\"" >> "${SETTINGS}"
 echo "binary = \"${BIN}\"" >> "${SETTINGS}"
+if [[ "${PLATFORM}" =~ gpu ]]; then # nvcc requires older g++ version
+  echo "makefile_additionalCudaFlags = \"-D_MWAITXINTRIN_H_INCLUDED -D_FORCE_INLINES\"" >> "${SETTINGS}"
+fi
 echo "poly_explorationConfig = \"${EXPL_CFG}\"" >> "${SETTINGS}"
 echo "poly_exploration_appendID2path = false" >> "${SETTINGS}"
 IFS=';' read -a files <<< $EXAFILES

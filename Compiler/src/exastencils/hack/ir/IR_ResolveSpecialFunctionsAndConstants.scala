@@ -14,6 +14,7 @@ import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
+import exastencils.parallelization.api.omp.OMP_Parallel
 import exastencils.util.ir._
 
 /// HACK_IR_ResolveSpecialFunctionsAndConstants
@@ -196,6 +197,13 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       func.parameters = ListBuffer(IR_FunctionArgument("argc", IR_IntegerDatatype), IR_FunctionArgument("argv", IR_SpecialDatatype("char**")))
       func.allowFortranInterface = false
       func.allowInlining = false
+      Knowledge.benchmark_backend match {
+        case "likwid" =>
+          func.body.prepend(OMP_Parallel(ListBuffer(HACK_IR_Native("LIKWID_MARKER_THREADINIT"))))
+          func.body.prepend(HACK_IR_Native("LIKWID_MARKER_INIT"))
+          func.body.append(HACK_IR_Native("LIKWID_MARKER_CLOSE"))
+        case _ =>
+      }
       if (Knowledge.cuda_enabled) {
         func.body.prepend(CUDA_Init)
         func.body.append(CUDA_Finalize)
@@ -477,5 +485,23 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
 
       fctCall.function = IR_PlainInternalFunctionReference("gen_printVal", IR_UnitDatatype)
       stmt
-  })
+
+    case IR_ExpressionStatement(f @ IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("benchmarkStart", _), args)) =>
+      var stmt = Knowledge.benchmark_backend match {
+        case "likwid" => if(1 != args.length || args(0).datatype != IR_StringDatatype) Logger.error("benchmarkStart takes a single argument of type String for benchmark_backend 'likwid'")
+          f.function.name = "LIKWID_MARKER_START"
+          IR_ExpressionStatement(f)
+        case _ => IR_NullStatement
+      }
+      stmt
+
+    case IR_ExpressionStatement(f @ IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("benchmarkStop", _), args)) =>
+      var stmt = Knowledge.benchmark_backend match {
+        case "likwid" => if(1 != args.length || args(0).datatype != IR_StringDatatype) Logger.error("benchmarkStop takes a single argument of type String for benchmark_backend 'likwid'")
+          f.function.name = "LIKWID_MARKER_STOP"
+          IR_ExpressionStatement(f)
+        case _ => IR_NullStatement
+      }
+      stmt
+})
 }

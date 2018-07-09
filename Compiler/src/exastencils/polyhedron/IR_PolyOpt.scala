@@ -476,18 +476,29 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     scop.noParDims.clear()
     if (scop.optLevel >= 3) {
       var tilableDims : Int = 0
+      var prefix : Int = 10000 // nr of dimensions outside the band
+      // search for first band (smallest prefix) with a width larger than one and a "constant prefix" (no loop in prefix/no surrounding loop)
       schedule.foreachBand({
         band : isl.Band =>
-          var prefix : Int = 0
-          band.getPrefixSchedule.foreachMap({ map : isl.Map =>
-            if (!map.range().isSingleton)
-              prefix = math.max(prefix, map.dim(T_OUT))
+          var pref : Int = 0
+          band.getPrefixSchedule().foreachMap({ map : isl.Map =>
+            if (map.range().isSingleton())
+              pref = math.max(pref, map.dim(T_OUT))
+            else
+              pref = prefix + 1 // will ne ignored later
           })
-          if (prefix == 0)
-            tilableDims = band.nMember()
+          val bMem = band.nMember()
+          if (bMem > 1) {
+            if (pref == prefix)
+              tilableDims = math.min(tilableDims, bMem)
+            else if (pref < prefix) {
+              tilableDims = bMem
+              prefix = pref
+            }
+          }
       })
       if (tilableDims > 1 && tilableDims <= 4)
-        scheduleMap = tileSchedule(scheduleMap, scop, tilableDims, scop.tileSizes)
+        scheduleMap = tileSchedule(scheduleMap, scop, tilableDims, scop.tileSizes, prefix)
     }
 
     scop.schedule = Isl.simplify(scheduleMap)
@@ -597,7 +608,7 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     scop.updateLoopVars()
   }
 
-  private def tileSchedule(schedule : isl.UnionMap, scop : Scop, tilableDims : Int, tileSizes : Array[Int]) : isl.UnionMap = {
+  private def tileSchedule(schedule : isl.UnionMap, scop : Scop, tilableDims : Int, tileSizes : Array[Int], prefix : Int = 0) : isl.UnionMap = {
     val sample : isl.BasicMap = schedule.sample()
     val domSp : isl.Space = sample.getSpace.range()
     val ranSp : isl.Space = domSp.insertDims(T_SET, 0, tilableDims)
@@ -605,25 +616,29 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     for (i <- 0 until tilableDims) {
       val tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(tilableDims - 1 - i) else 0
       // if we don't want to tile a dimension, leave the outer tile loop constant 0
+      // scop.origIterationCount does not know anything about constant dims (prefix dims), so ignore prefix here
       if (tileSize > 0 && (scop.origIterationCount == null || tileSize < 100 + scop.origIterationCount(tilableDims - 1 - i))) {
-        var aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
+        var aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i + prefix)
         aff = aff.scaleDownUi(tileSize)
         aff = aff.floor()
-        mAff = mAff.setAff(i, aff)
+        mAff = mAff.setAff(i + prefix, aff)
       }
     }
     for (i <- 0 until domSp.dim(T_SET)) {
       val aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
-      mAff = mAff.setAff(tilableDims + i, aff)
+      if (i < prefix)
+        mAff = mAff.setAff(i, aff)
+      else
+        mAff = mAff.setAff(tilableDims + i, aff)
     }
     val trafo = isl.BasicMap.fromMultiAff(mAff)
-    setSeqTileDims(scop, tilableDims)
+    setSeqTileDims(scop, tilableDims, prefix)
     schedule.applyRange(trafo)
   }
 
   var spamcount : Int = 0 // HACK to reduce the number of warnings generated
 
-  private def setSeqTileDims(scop : Scop, nrTiledDims : Int) : Unit = {
+  private def setSeqTileDims(scop : Scop, nrTiledDims : Int, prefix : Int) : Unit = {
     val threads = Knowledge.omp_numThreads
     for (i <- 0 until nrTiledDims) {
       val tileSize = scop.tileSizes(i)
@@ -631,6 +646,7 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         if (tileSize <= 0)
           1
         else if (scop.origIterationCount != null)
+          // scop.origIterationCount doesn not know anything about constant dims (prefix dims), so ignore prefix here
           (scop.origIterationCount(i) + tileSize - 1) / tileSize // ceil division
         else {
           spamcount += 1
@@ -645,10 +661,10 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
             1000
         }
       if (tiles != threads && tiles < 2 * threads)
-        scop.noParDims += nrTiledDims - i - 1
+        scop.noParDims += nrTiledDims - i - 1 + prefix
     }
     if (nrTiledDims > 0 && !Knowledge.poly_tileOuterLoop)
-      scop.noParDims += 0
+      scop.noParDims += prefix
   }
 
   private def recreateAndInsertAST() : Unit = {

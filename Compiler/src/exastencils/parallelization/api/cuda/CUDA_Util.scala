@@ -65,8 +65,9 @@ object CUDA_Util {
         case o                 => o
       })
       stepSize += (loop.inc match {
-        case IR_Assignment(_, src : IR_Expression, "=") => src
-        case _                                          => IR_IntegerConstant(1)
+        case IR_Assignment(_, src : IR_IntegerConstant, "+=")                                               => src
+        case IR_Assignment(it1, IR_Addition(ListBuffer(it2, step : IR_IntegerConstant)), "=") if it1 == it2 => step
+        case IR_Assignment(it1, IR_Addition(ListBuffer(step : IR_IntegerConstant, it2)), "=") if it1 == it2 => step
       })
     }
 
