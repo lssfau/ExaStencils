@@ -11,6 +11,7 @@ import exastencils.datastructures._
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.logger._
+import exastencils.parallelization.api.cuda.CUDA_Util
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PrettyPrintable
 import exastencils.util.ir.IR_MathFunctions
@@ -719,7 +720,8 @@ class IR_PolyExtractor extends Collector {
     templateBuilder.append("->%s[%s]}")
     val mapTemplate : String = templateBuilder.toString()
 
-    val mergeStmts = loop.body.count(stmt => stmt.isInstanceOf[IR_IfCondition]) > (1 << dims)
+    val mergeStmts = loop.body.count(stmt => stmt.isInstanceOf[IR_IfCondition]) > (1 << dims) ||
+      loop.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION)
 
     curScop.create(loop, localContext, globalContext, loop.polyOptLevel, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate, mergeWithPrev, mergeStmts)
 
