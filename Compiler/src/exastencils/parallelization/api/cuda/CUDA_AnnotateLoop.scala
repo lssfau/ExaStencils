@@ -45,25 +45,27 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
         CUDA_Util.verifyCudaLoopSuitability(innerLoop) && CUDA_Util.verifyCudaLoopParallel(innerLoop) =>
         try {
           val (loopVariables, lowerBounds, upperBounds, _) = CUDA_Util.extractRelevantLoopInformation(ListBuffer(innerLoop))
-          var loopDependsOnSurroundingIterators = false
-          CUDA_GatherLoopIteratorUsage.loopIterators = extremaMap.keySet
-          CUDA_GatherLoopIteratorUsage.usedLoopIterators.clear()
-          CUDA_GatherLoopIteratorUsage.applyStandalone(IR_Scope(IR_ExpressionStatement(lowerBounds.head)))
-          loopDependsOnSurroundingIterators |= CUDA_GatherLoopIteratorUsage.usedLoopIterators.nonEmpty
-          CUDA_GatherLoopIteratorUsage.usedLoopIterators.clear()
-          CUDA_GatherLoopIteratorUsage.applyStandalone(IR_Scope(IR_ExpressionStatement(upperBounds.head)))
-          loopDependsOnSurroundingIterators |= CUDA_GatherLoopIteratorUsage.usedLoopIterators.nonEmpty
+          // a dependence on previous loop iterator should not be a problem anymore,
+          // since the begin of every dimension is now computed on the GPU
+          //var loopDependsOnSurroundingIterators = false
+          //CUDA_GatherLoopIteratorUsage.loopIterators = extremaMap.keySet
+          //CUDA_GatherLoopIteratorUsage.usedLoopIterators.clear()
+          //CUDA_GatherLoopIteratorUsage.applyStandalone(IR_Scope(IR_ExpressionStatement(lowerBounds.head)))
+          //loopDependsOnSurroundingIterators |= CUDA_GatherLoopIteratorUsage.usedLoopIterators.nonEmpty
+          //CUDA_GatherLoopIteratorUsage.usedLoopIterators.clear()
+          //CUDA_GatherLoopIteratorUsage.applyStandalone(IR_Scope(IR_ExpressionStatement(upperBounds.head)))
+          //loopDependsOnSurroundingIterators |= CUDA_GatherLoopIteratorUsage.usedLoopIterators.nonEmpty
 
           extremaMap.put(loopVariables.head, (IR_SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)._1, IR_SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)._2))
           innerLoop.annotate(IR_SimplifyExpression.EXTREMA_MAP, extremaMap)
 
-          if (loopDependsOnSurroundingIterators) {
-            innerLoop.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, CUDA_Util.CUDA_INNER)
-            annotateInnerCudaLoops(innerLoop)
-          } else {
-            innerLoop.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, CUDA_Util.CUDA_BAND_PART)
-            calculateLoopsInBand(extremaMap, innerLoop)
-          }
+          //if (loopDependsOnSurroundingIterators) {
+          //  innerLoop.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, CUDA_Util.CUDA_INNER)
+          //  annotateInnerCudaLoops(innerLoop)
+          //} else {
+          innerLoop.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, CUDA_Util.CUDA_BAND_PART)
+          calculateLoopsInBand(extremaMap, innerLoop)
+          //}
         } catch {
           case e : EvaluationException =>
             Logger.warning(s"""Error annotating the inner loops! Failed to calculate bounds extrema: '${ e.msg }'""")
