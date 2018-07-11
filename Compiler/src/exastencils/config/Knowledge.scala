@@ -434,11 +434,11 @@ object Knowledge {
   var cuda_syncDeviceForWrites : Boolean = true
 
   // default block size in x dimension
-  var cuda_blockSize_x : Long = 8
+  var cuda_blockSize_x : Long = if (dimensionality == 3) 32 else 128
   // default block size in y dimension
-  var cuda_blockSize_y : Long = 8
+  var cuda_blockSize_y : Long = 4
   // default block size in z dimension
-  var cuda_blockSize_z : Long = 8
+  var cuda_blockSize_z : Long = 4
 
   // the product of the block sizes per dimension, i.e. the total block size
   def cuda_blockSizeTotal : Long = cuda_blockSize_x * cuda_blockSize_y * cuda_blockSize_z
