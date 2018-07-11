@@ -235,6 +235,7 @@ case class CUDA_Kernel(var identifier : String,
 
       CUDA_GatherIVs.ivAccesses.clear
       CUDA_GatherIVs.applyStandalone(IR_Scope(body))
+      CUDA_GatherIVs.applyStandalone(IR_Addition(lowerBounds))
       ivAccesses = CUDA_GatherIVs.ivAccesses
 
       // postprocess iv's -> generate parameter names
@@ -291,7 +292,12 @@ case class CUDA_Kernel(var identifier : String,
       numThreadsPerBlock = Knowledge.cuda_blockSizeAsVec.take(executionDim)
 
       numBlocksPerDim = (0 until executionDim).map(dim => {
-        (requiredThreadsPerDim(dim) + numThreadsPerBlock(dim) - 1) / numThreadsPerBlock(dim)
+        val inc = stepSize(dim) match {
+          case IR_IntegerConstant(i) => i
+          case _                     => 1
+        }
+        val nrThreads = (requiredThreadsPerDim(dim) + inc - 1) / inc
+        (nrThreads + numThreadsPerBlock(dim) - 1) / numThreadsPerBlock(dim)
       }).toArray
 
       evaluatedExecutionConfiguration = true
@@ -306,30 +312,32 @@ case class CUDA_Kernel(var identifier : String,
     var statements = ListBuffer[IR_Statement]()
 
     // add CUDA global Thread ID (x,y,z) calculation for a dim3 execution configuration
-    // global thread id x = blockIdx.x *blockDim.x + threadIdx.x + offset1;
-    // global thread id y = blockIdx.y *blockDim.y + threadIdx.y + offset2;
-    // global thread id z = blockIdx.z *blockDim.z + threadIdx.z + offset3;
-    val parStepSize = stepSize.view.drop(nrInnerSeqDims).toArray
+    // global thread id x = lowerBoundX + stepSizeX * (blockIdx.x * blockDim.x + threadIdx.x);
+    // global thread id y = lowerBoundY + stepSizeY * (blockIdx.y * blockDim.y + threadIdx.y);
+    // global thread id z = lowerBoundZ + stepSizeZ * (blockIdx.z * blockDim.z + threadIdx.z);
+    val parStepSize = Duplicate(stepSize.view.drop(nrInnerSeqDims).toArray)
+    val parLowerBounds = Duplicate(lowerBounds.view.drop(nrInnerSeqDims).toArray)
     statements ++= (0 until executionDim).map(dim => {
       val it = IR_DimToString(dim)
       val variableName = KernelVariablePrefix + KernelGlobalIndexPrefix + it
       IR_VariableDeclaration(IR_IntegerDatatype, variableName,
-        Some(parStepSize(dim) * (IR_MemberAccess(IR_VariableAccess("blockIdx", IR_SpecialDatatype("dim3")), it) *
+        Some(parLowerBounds(dim) + (parStepSize(dim) *
+          (IR_MemberAccess(IR_VariableAccess("blockIdx", IR_SpecialDatatype("dim3")), it) *
           IR_MemberAccess(IR_VariableAccess("blockDim", IR_SpecialDatatype("dim3")), it) +
-          IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it) +
-          minIndices(dim))))
-    })
+          IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it)))))
+    }).reverse // reverse, since the inner (lower dim) could depend on the outer (higher dim)
 
     // add dimension index start and end point
     // add index bounds conditions
     val conditionParts = (0 until executionDim).map(dim => {
       val variableAccess = IR_VariableAccess(KernelVariablePrefix + KernelGlobalIndexPrefix + IR_DimToString(dim), IR_IntegerDatatype)
-      IR_AndAnd(
-        IR_GreaterEqual(variableAccess, s"${ KernelVariablePrefix }begin_$dim"), IR_Lower(variableAccess, s"${ KernelVariablePrefix }end_$dim"))
+      // lower bound is already enforced above
+      //IR_AndAnd(IR_GreaterEqual(variableAccess, s"${ KernelVariablePrefix }begin_$dim"), IR_Lower(variableAccess, s"${ KernelVariablePrefix }end_$dim"))
+      IR_Lower(variableAccess, s"${ KernelVariablePrefix }end_$dim")
     })
 
     val condition = IR_VariableDeclaration(IR_BooleanDatatype, KernelVariablePrefix + "condition",
-      Some(conditionParts.reduceLeft[IR_AndAnd] { (acc, n) =>
+      Some(conditionParts.reduceLeft[IR_Expression] { (acc, n) =>
         IR_AndAnd(acc, n)
       }))
     val conditionAccess = IR_VariableAccess(KernelVariablePrefix + "condition", IR_BooleanDatatype)
@@ -492,9 +500,10 @@ case class CUDA_Kernel(var identifier : String,
     // substitute loop variable in bounds with appropriate fix values to get valid code in wrapper function
     CUDA_ReplaceLoopVariablesInWrapper.loopVariables.clear
     CUDA_ReplaceLoopVariablesInWrapper.loopVariables = loopVariables.drop(nrInnerSeqDims)
-    CUDA_ReplaceLoopVariablesInWrapper.bounds = Duplicate(lowerBounds.drop(nrInnerSeqDims))
-    val lowerArgs = Duplicate(lowerBounds.drop(nrInnerSeqDims))
-    CUDA_ReplaceLoopVariablesInWrapper.applyStandalone(lowerArgs)
+    // lowerArgs is not needed anymore since the initial values are directly computed in the CUDA code
+    //CUDA_ReplaceLoopVariablesInWrapper.bounds = Duplicate(lowerBounds.drop(nrInnerSeqDims))
+    //val lowerArgs = Duplicate(lowerBounds.drop(nrInnerSeqDims))
+    //CUDA_ReplaceLoopVariablesInWrapper.applyStandalone(lowerArgs)
 
     val upperArgs = Duplicate(upperBounds.drop(nrInnerSeqDims))
     CUDA_ReplaceLoopVariablesInWrapper.bounds = Duplicate(upperBounds.drop(nrInnerSeqDims))
@@ -504,7 +513,7 @@ case class CUDA_Kernel(var identifier : String,
     var callArgs = ListBuffer[IR_Expression]()
 
     for (dim <- 0 until parallelDims) {
-      callArgs += lowerArgs(dim)
+      //callArgs += lowerArgs(dim)
       callArgs += upperArgs(dim)
     }
 
@@ -568,7 +577,8 @@ case class CUDA_Kernel(var identifier : String,
     var fctParams = ListBuffer[IR_FunctionArgument]()
 
     for (dim <- 0 until parallelDims) {
-      fctParams += IR_FunctionArgument(s"${ KernelVariablePrefix }begin_$dim", IR_IntegerDatatype)
+      // begin is not needed anymore since the initial values are directly computed in the CUDA code
+      //fctParams += IR_FunctionArgument(s"${ KernelVariablePrefix }begin_$dim", IR_IntegerDatatype)
       fctParams += IR_FunctionArgument(s"${ KernelVariablePrefix }end_$dim", IR_IntegerDatatype)
     }
 
