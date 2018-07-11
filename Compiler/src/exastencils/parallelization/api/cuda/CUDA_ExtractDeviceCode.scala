@@ -75,9 +75,8 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       val (loopVariables, lowerBounds, upperBounds, stepSize) = CUDA_Util.extractRelevantLoopInformation(allInnerLoops)
       val kernelBody = pruneKernelBody(ListBuffer[IR_Statement](loop), parallelInnerLoops.reverse)
 
-      if (loop.hasAnnotation(CUDA_Util.CUDA_BODY_DECL)) {
+      if (loop.hasAnnotation(CUDA_Util.CUDA_BODY_DECL))
         loop.getAnnotation(CUDA_Util.CUDA_BODY_DECL).getOrElse(ListBuffer[IR_VariableDeclaration]()).asInstanceOf[ListBuffer[IR_VariableDeclaration]].foreach(x => kernelBody.prepend(x))
-      }
 
       val deviceStatements = ListBuffer[IR_Statement]()
 
@@ -97,7 +96,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
 
       val kernel = CUDA_Kernel(
         kernelFunctions.getIdentifier(collector.getCurrentName),
-        Duplicate(parallelInnerLoops.length),
+        parallelInnerLoops.length,
         variableAccesses.map(s => IR_FunctionArgument(s.name, s.datatype)),
         Duplicate(loopVariables),
         Duplicate(lowerBounds),
