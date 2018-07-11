@@ -39,8 +39,8 @@ case class CUDA_Kernel(var identifier : String,
 
   import CUDA_Kernel._
 
-  var firstNSeqDims = loopVariables.size - parallelDims
-  var smemCanBeUsed = Knowledge.cuda_useSharedMemory && firstNSeqDims == 0 && stepSize.forall(x => IR_IntegerConstant(1).equals(x))
+  var nrInnerSeqDims = loopVariables.size - parallelDims
+  var smemCanBeUsed = Knowledge.cuda_useSharedMemory && nrInnerSeqDims == 0 && stepSize.forall(x => IR_IntegerConstant(1).equals(x))
   var spatialBlockingCanBeApplied = smemCanBeUsed && Knowledge.cuda_spatialBlockingWithSmem && parallelDims == Platform.hw_cuda_maxNumDimsBlock
   var executionDim = if (spatialBlockingCanBeApplied) parallelDims - 1 else math.min(Platform.hw_cuda_maxNumDimsBlock, parallelDims)
 
@@ -256,21 +256,21 @@ case class CUDA_Kernel(var identifier : String,
     */
   def evalIndexBounds() = {
     if (!evaluatedIndexBounds) {
-      minIndices = (loopVariables.size - 1 to 0 by -1).map(dim =>
+      minIndices = (0 until loopVariables.size).map(dim =>
         loopVariableExtrema.get(loopVariables(dim)) match {
           case Some((min : Long, max : Long)) => min
           case _                              =>
             Logger.warn(s"Start index for dimension $dim (${ lowerBounds(dim) }) could not be evaluated")
             0
-        }).toArray.reverse.drop(firstNSeqDims)
+        }).toArray.drop(nrInnerSeqDims)
 
-      maxIndices = (loopVariables.size - 1 to 0 by -1).map(dim =>
+      maxIndices = (0 until loopVariables.size).map(dim =>
         loopVariableExtrema.get(loopVariables(dim)) match {
           case Some((min : Long, max : Long)) => max
           case _                              =>
             Logger.warn(s"Start index for dimension $dim (${ upperBounds(dim) }) could not be evaluated")
             0
-        }).toArray.reverse.drop(firstNSeqDims)
+        }).toArray.drop(nrInnerSeqDims)
 
       evaluatedIndexBounds = true
     }
@@ -309,11 +309,12 @@ case class CUDA_Kernel(var identifier : String,
     // global thread id x = blockIdx.x *blockDim.x + threadIdx.x + offset1;
     // global thread id y = blockIdx.y *blockDim.y + threadIdx.y + offset2;
     // global thread id z = blockIdx.z *blockDim.z + threadIdx.z + offset3;
+    val parStepSize = stepSize.view.drop(nrInnerSeqDims).toArray
     statements ++= (0 until executionDim).map(dim => {
       val it = IR_DimToString(dim)
       val variableName = KernelVariablePrefix + KernelGlobalIndexPrefix + it
       IR_VariableDeclaration(IR_IntegerDatatype, variableName,
-        Some(stepSize(dim) * (IR_MemberAccess(IR_VariableAccess("blockIdx", IR_SpecialDatatype("dim3")), it) *
+        Some(parStepSize(dim) * (IR_MemberAccess(IR_VariableAccess("blockIdx", IR_SpecialDatatype("dim3")), it) *
           IR_MemberAccess(IR_VariableAccess("blockDim", IR_SpecialDatatype("dim3")), it) +
           IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it) +
           minIndices(dim))))
@@ -477,7 +478,7 @@ case class CUDA_Kernel(var identifier : String,
 
     CUDA_ReplaceIVs.ivAccesses = ivAccesses
     CUDA_ReplaceIVs.applyStandalone(IR_Scope(body))
-    CUDA_ReplaceLoopVariables.loopVariables = loopVariables.drop(firstNSeqDims)
+    CUDA_ReplaceLoopVariables.loopVariables = loopVariables.drop(nrInnerSeqDims)
     CUDA_ReplaceLoopVariables.applyStandalone(IR_Scope(body))
 
     body
@@ -490,13 +491,13 @@ case class CUDA_Kernel(var identifier : String,
 
     // substitute loop variable in bounds with appropriate fix values to get valid code in wrapper function
     CUDA_ReplaceLoopVariablesInWrapper.loopVariables.clear
-    CUDA_ReplaceLoopVariablesInWrapper.loopVariables = loopVariables.drop(firstNSeqDims)
-    CUDA_ReplaceLoopVariablesInWrapper.bounds = Duplicate(lowerBounds.drop(firstNSeqDims))
-    val lowerArgs = Duplicate(lowerBounds.drop(firstNSeqDims))
+    CUDA_ReplaceLoopVariablesInWrapper.loopVariables = loopVariables.drop(nrInnerSeqDims)
+    CUDA_ReplaceLoopVariablesInWrapper.bounds = Duplicate(lowerBounds.drop(nrInnerSeqDims))
+    val lowerArgs = Duplicate(lowerBounds.drop(nrInnerSeqDims))
     CUDA_ReplaceLoopVariablesInWrapper.applyStandalone(lowerArgs)
 
-    val upperArgs = Duplicate(upperBounds.drop(firstNSeqDims))
-    CUDA_ReplaceLoopVariablesInWrapper.bounds = Duplicate(upperBounds.drop(firstNSeqDims))
+    val upperArgs = Duplicate(upperBounds.drop(nrInnerSeqDims))
+    CUDA_ReplaceLoopVariablesInWrapper.bounds = Duplicate(upperBounds.drop(nrInnerSeqDims))
     CUDA_ReplaceLoopVariablesInWrapper.applyStandalone(upperArgs)
 
     // compile arguments for device function call
@@ -527,9 +528,8 @@ case class CUDA_Kernel(var identifier : String,
     for (ivAccess <- ivAccesses)
       callArgs += Duplicate(ivAccess._2)
 
-    for (variableAccess <- passThroughArgs) {
+    for (variableAccess <- passThroughArgs)
       callArgs += variableAccess.access
-    }
 
     var body = ListBuffer[IR_Statement]()
 
@@ -592,16 +592,11 @@ case class CUDA_Kernel(var identifier : String,
     for (bufferAccess <- bufferAccesses)
       fctParams += IR_FunctionArgument(bufferAccess._1, IR_PointerDatatype(bufferAccess._2.field.resolveDeclType))
 
-    for (ivAccess <- ivAccesses) {
-      val access = IR_VariableAccess(ivAccess._1, ivAccess._2.resolveDatatype())
-      val datatype = ivAccess._2.resolveDatatype()
+    for (ivAccess <- ivAccesses)
+      fctParams += IR_FunctionArgument(ivAccess._1, ivAccess._2.resolveDatatype())
 
-      fctParams += IR_FunctionArgument(ivAccess._1, datatype)
-    }
-
-    for (variableAccess <- passThroughArgs) {
+    for (variableAccess <- passThroughArgs)
       fctParams += IR_FunctionArgument(variableAccess.name, variableAccess.datatype)
-    }
 
     val fct = IR_PlainFunction( /* FIXME: IR_LeveledFunction? */ getKernelFctName, IR_UnitDatatype, fctParams, compileKernelBody)
 
