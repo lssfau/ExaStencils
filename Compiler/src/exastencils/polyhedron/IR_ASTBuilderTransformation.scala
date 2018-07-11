@@ -8,6 +8,7 @@ import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.logger._
+import exastencils.parallelization.api.cuda.CUDA_Util
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.ir.IR_ReplaceVariableAccess
 
@@ -117,8 +118,11 @@ private final class IR_ASTBuilderFunction()
     val scheduleDomain : String = options.toString()
     options.clear()
     options.append('{')
-    // prevent guard inside loops
-    options.append(scheduleDomain).append(" -> separate[xxx]")
+    // prevent guard inside loops for all except CUDA
+    if (scop.root.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION))
+      options.append(scheduleDomain).append(" -> atomic[xxx]")
+    else
+      options.append(scheduleDomain).append(" -> separate[xxx]")
     options.append('}')
 
     // build iterators list
