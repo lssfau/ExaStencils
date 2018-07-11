@@ -441,7 +441,7 @@ object Knowledge {
   var cuda_blockSize_z : Long = 8
 
   // the product of the block sizes per dimension, i.e. the total block size
-  def cuda_blockSizeTotal = cuda_blockSize_x * cuda_blockSize_y * cuda_blockSize_z
+  def cuda_blockSizeTotal : Long = cuda_blockSize_x * cuda_blockSize_y * cuda_blockSize_z
   // shortcut to an array containing the values of cuda_blockSize_*
   def cuda_blockSizeAsVec = Array(cuda_blockSize_x, cuda_blockSize_y, cuda_blockSize_z)
 
