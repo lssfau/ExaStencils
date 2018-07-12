@@ -624,10 +624,6 @@ class IR_PolyExtractor extends Collector {
 
   private def enterLoop(loop : IR_LoopOverDimensions, mergeWithPrev : Boolean) : Unit = {
 
-    for (step <- loop.stepSize)
-      if (step != IR_IntegerConstant(1))
-        throw ExtractionException("only stride 1 supported yet")
-
     val dims : Int = loop.numDimensions
 
     val hasOmpLoop : Boolean = loop.explParLoop
@@ -640,6 +636,11 @@ class IR_PolyExtractor extends Collector {
       paramExprs += begin.last += end.last
     val loopVarExps : IR_ExpressionIndex = IR_LoopOverDimensions.defIt(loop.numDimensions)
 
+    val stepSizes = loop.stepSize.indices.map {
+      case IR_IntegerConstant(ss) => ss
+      case ss                     => throw ExtractionException("unsupported step size: " + ss)
+    }
+
     val params = new HashSet[String]()
     val modelLoopVars = new ArrayStack[String]()
     val constrs = new StringBuilder()
@@ -651,11 +652,16 @@ class IR_PolyExtractor extends Collector {
     var bool : Boolean = false
     var i : Int = 0
     do {
+      val it : String = ScopNameMapping.expr2id(loopVarExps(i))
+      // loop bounds
       bool |= extractConstraints(begin(i), constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
-      constrs.append("<=")
-      constrs.append(ScopNameMapping.expr2id(IR_FieldIteratorAccess(i)))
-      constrs.append('<')
+      constrs.append("<=").append(it).append('<')
       bool |= extractConstraints(end(i), constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
+      constrs.append(" and ")
+      // and step size
+      constrs.append('(').append(it).append("-(")
+      bool |= extractConstraints(begin(i), constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
+      constrs.append("))%%").append(stepSizes(i)).append("=0") // % must be excaped, since it will be passed to a java.util.Formatter
       constrs.append(" and ")
       val lVar : IR_Expression = loopVarExps(i)
       modelLoopVars.push(ScopNameMapping.expr2id(lVar))
