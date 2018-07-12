@@ -20,3 +20,4 @@ hw_gpu_frequency           = 889000000000.0 // = 889 MHz
 hw_gpu_numCores            = 2880
 hw_cuda_capability         = 3
 hw_cuda_capabilityMinor    = 5
+hw_gpu_gpuDirectAvailable  = false
