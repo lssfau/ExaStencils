@@ -196,6 +196,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
         L4_DuplicateFieldLayoutsForFields.apply()
 
       // after L4_ResolveFieldAccesses
+      L4_ResolveReadFieldFunctions.apply()
       L4_ResolvePrintFieldFunctions.apply()
 
       L4_ResolveBoundaryHandlingFunctions.apply()
