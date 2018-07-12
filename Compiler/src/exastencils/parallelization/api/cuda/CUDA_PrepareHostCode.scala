@@ -77,7 +77,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
       // update flags for written fields
       if (syncAfterHost(access._1, gatherFields.fieldAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostDataUpdated(fieldSelection.field, fieldSelection.slot), IR_BooleanConstant(true))
+        afterHost += IR_Assignment(CUDA_HostDataUpdated(fieldSelection.field, Duplicate(fieldSelection.slot)), IR_BooleanConstant(true))
     }
 
     for (access <- gatherBuffers.bufferAccesses.toSeq.sortBy(_._1)) {
@@ -89,7 +89,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
       // update flags for written buffers
       if (syncAfterHost(access._1, gatherBuffers.bufferAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostBufferDataUpdated(buffer.field, buffer.direction, buffer.neighIdx), IR_BooleanConstant(true))
+        afterHost += IR_Assignment(CUDA_HostBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(true))
     }
 
     // device sync stmts
@@ -107,7 +107,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
         // update flags for written fields
         if (syncAfterDevice(access._1, gatherFields.fieldAccesses.keys))
-          afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(fieldSelection.field, fieldSelection.slot), IR_BooleanConstant(true))
+          afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(fieldSelection.field, Duplicate(fieldSelection.slot)), IR_BooleanConstant(true))
       }
 
       for (access <- gatherBuffers.bufferAccesses.toSeq.sortBy(_._1)) {
@@ -119,7 +119,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
         // update flags for written fields
         if (syncAfterDevice(access._1, gatherBuffers.bufferAccesses.keys))
-          afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(buffer.field, buffer.direction, buffer.neighIdx), IR_BooleanConstant(true))
+          afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(true))
       }
     }
 

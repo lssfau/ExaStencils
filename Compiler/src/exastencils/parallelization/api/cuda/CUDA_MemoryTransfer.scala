@@ -24,15 +24,15 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData) extends CUDA_Hos
   override def expand() : Output[IR_IfCondition] = {
     val field = fieldData.field
     IR_IfCondition(
-      CUDA_DeviceDataUpdated(field, fieldData.slot),
+      CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot)),
       ListBuffer[IR_Statement](
         CUDA_Memcpy(
-          IR_IV_FieldData(field, fieldData.level, fieldData.slot),
-          CUDA_FieldDeviceData(field, fieldData.level, fieldData.slot),
+          IR_IV_FieldData(field, Duplicate(fieldData.level), Duplicate(fieldData.slot)),
+          CUDA_FieldDeviceData(field, Duplicate(fieldData.level), Duplicate(fieldData.slot)),
           (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
             * IR_SizeOf(field.resolveBaseDatatype),
           "cudaMemcpyDeviceToHost"),
-        IR_Assignment(CUDA_DeviceDataUpdated(field, fieldData.slot), IR_BooleanConstant(false))))
+        IR_Assignment(CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot)), IR_BooleanConstant(false))))
   }
 }
 
@@ -49,15 +49,15 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData) extends CUDA_H
   override def expand() : Output[IR_IfCondition] = {
     val field = fieldData.field
     IR_IfCondition(
-      CUDA_HostDataUpdated(field, fieldData.slot),
+      CUDA_HostDataUpdated(field, Duplicate(fieldData.slot)),
       ListBuffer[IR_Statement](
         CUDA_Memcpy(
-          CUDA_FieldDeviceData(field, fieldData.level, fieldData.slot),
-          IR_IV_FieldData(field, fieldData.level, fieldData.slot),
+          CUDA_FieldDeviceData(field, Duplicate(fieldData.level), Duplicate(fieldData.slot)),
+          IR_IV_FieldData(field, Duplicate(fieldData.level), Duplicate(fieldData.slot)),
           (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
             * IR_SizeOf(field.resolveBaseDatatype),
           "cudaMemcpyHostToDevice"),
-        IR_Assignment(CUDA_HostDataUpdated(field, fieldData.slot), IR_BooleanConstant(false))))
+        IR_Assignment(CUDA_HostDataUpdated(field, Duplicate(fieldData.slot)), IR_BooleanConstant(false))))
   }
 }
 
@@ -67,14 +67,14 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer) extends CUDA
   override def expand() : Output[IR_IfCondition] = {
     val field = buffer.field
     IR_IfCondition(
-      CUDA_DeviceBufferDataUpdated(field, buffer.direction, buffer.neighIdx),
+      CUDA_DeviceBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx)),
       ListBuffer[IR_Statement](
         CUDA_Memcpy(
           Duplicate(buffer),
-          CUDA_BufferDeviceData(field, buffer.direction, buffer.size, buffer.neighIdx),
+          CUDA_BufferDeviceData(field, buffer.direction, buffer.size, Duplicate(buffer.neighIdx)),
           buffer.size * IR_SizeOf(field.resolveBaseDatatype),
           "cudaMemcpyDeviceToHost"),
-        IR_Assignment(CUDA_DeviceBufferDataUpdated(field, buffer.direction, buffer.neighIdx), IR_BooleanConstant(false))))
+        IR_Assignment(CUDA_DeviceBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(false))))
   }
 }
 
@@ -84,13 +84,13 @@ case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer) extends CU
   override def expand() : Output[IR_IfCondition] = {
     val field = buffer.field
     IR_IfCondition(
-      CUDA_HostBufferDataUpdated(field, buffer.direction, buffer.neighIdx),
+      CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx)),
       ListBuffer[IR_Statement](
         CUDA_Memcpy(
-          CUDA_BufferDeviceData(field, buffer.direction, buffer.size, buffer.neighIdx),
+          CUDA_BufferDeviceData(field, buffer.direction, buffer.size, Duplicate(buffer.neighIdx)),
           Duplicate(buffer),
           buffer.size * IR_SizeOf(field.resolveBaseDatatype),
           "cudaMemcpyHostToDevice"),
-        IR_Assignment(CUDA_HostBufferDataUpdated(field, buffer.direction, buffer.neighIdx), IR_BooleanConstant(false))))
+        IR_Assignment(CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(false))))
   }
 }
