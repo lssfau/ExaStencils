@@ -14,7 +14,7 @@ object IR_FieldIteratorAccess {
   def fullIndex(numDims : Int) = IR_ExpressionIndex((0 until numDims).map(this (_) : IR_Expression).toArray)
 }
 
-class IR_FieldIteratorAccess() extends IR_VariableAccess("i", IR_IntegerDatatype) {
+class IR_FieldIteratorAccess extends IR_VariableAccess("i0", IR_IntegerDatatype) {
   private var dim_ : Int = 0
   def dim_=(d : Int) = {
     dim_ = d
