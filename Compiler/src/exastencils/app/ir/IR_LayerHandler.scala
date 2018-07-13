@@ -251,6 +251,8 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     CUDA_LinearizeReductionDeviceDataAccess.apply()
     IR_LinearizeLoopCarriedCSBufferAccess.apply()
 
+    IR_SimplifyModulo.apply()
+
     if (Knowledge.cuda_enabled)
       CUDA_KernelFunctions.get.convertToFunctions()
 
