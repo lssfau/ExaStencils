@@ -298,6 +298,11 @@ case class CUDA_Kernel(var identifier : String,
 
       numThreadsPerBlock = Knowledge.cuda_blockSizeAsVec.take(executionDim)
 
+      // adapt thread count for reduced dimensions
+      if (Knowledge.cuda_foldBlockSizeForRedDimensionality)
+        for (d <- executionDim until Knowledge.dimensionality)
+          numThreadsPerBlock(0) *= Knowledge.cuda_blockSizeAsVec(d)
+
       numBlocksPerDim = (0 until executionDim).map(dim => {
         val inc = stepSize(dim) match {
           case IR_IntegerConstant(i) => i

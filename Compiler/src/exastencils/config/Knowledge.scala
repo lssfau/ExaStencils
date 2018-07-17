@@ -458,6 +458,9 @@ object Knowledge {
   // apply spatial blocking with read-only cache
   var cuda_spatialBlockingWithROC : Boolean = false
 
+  // if true, the first dimension of the block size is enlarged if the kernel dimensionality is lower than the global dimensionality
+  var cuda_foldBlockSizeForRedDimensionality : Boolean = true
+
   /// --- general parallelization ---
 
   // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
