@@ -17,7 +17,8 @@ object CUDA_ReplaceLoopVariables extends QuietDefaultStrategy("Replace loop vari
       var newName = CUDA_Kernel.KernelVariablePrefix + CUDA_Kernel.KernelGlobalIndexPrefix + IR_DimToString(loopVariables.indexOf(name))
 
       if (v.hasAnnotation(CUDA_Kernel.CUDASharedMemoryAccess)) {
-        newName = CUDA_Kernel.KernelVariablePrefix + "local_" + IR_DimToString(loopVariables.indexOf(name))
+        val field = v.getAnnotation(CUDA_Kernel.CUDASharedMemoryAccess).get.asInstanceOf[String]
+        newName = CUDA_Kernel.localThreadId(field, loopVariables.indexOf(name)).name
       }
 
       IR_VariableAccess(newName, IR_IntegerDatatype)
@@ -25,7 +26,8 @@ object CUDA_ReplaceLoopVariables extends QuietDefaultStrategy("Replace loop vari
       var newName = CUDA_Kernel.KernelVariablePrefix + CUDA_Kernel.KernelGlobalIndexPrefix + IR_DimToString(loopVariables.indexOf(v))
 
       if (s.hasAnnotation(CUDA_Kernel.CUDASharedMemoryAccess)) {
-        newName = CUDA_Kernel.KernelVariablePrefix + "local_" + IR_DimToString(loopVariables.indexOf(v))
+        val field = s.getAnnotation(CUDA_Kernel.CUDASharedMemoryAccess).get.asInstanceOf[String]
+        newName = CUDA_Kernel.localThreadId(field, loopVariables.indexOf(v)).name
       }
 
       IR_VariableAccess(newName, IR_IntegerDatatype)
