@@ -22,7 +22,7 @@ case class CUDA_FunctionCall(
     var name : String,
     var arguments : ListBuffer[IR_Expression],
     var numThreadsPerDim : Array[IR_Expression],
-    var numBlocksPerDim : Array[IR_Expression] = Knowledge.cuda_blockSizeAsVec.map(n => n : IR_Expression)) extends IR_Expression {
+    var numThreadsPerBlock : Array[IR_Expression] = Knowledge.cuda_blockSizeAsVec.map(n => n : IR_Expression)) extends IR_Expression {
 
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = {
@@ -30,16 +30,16 @@ case class CUDA_FunctionCall(
     if (numDims > 3) Logger.warn(s"${ numDims }D kernel found; this is currently unsupported by CUDA") // TODO: check relation to compute capability
 
     val numBlocks = (0 until numDims).map(dim => {
-      (numThreadsPerDim(dim) + numBlocksPerDim(dim) - 1) / numBlocksPerDim(dim)
+      (numThreadsPerDim(dim) + numThreadsPerBlock(dim) - 1) / numThreadsPerBlock(dim)
     }).toArray
 
     // TODO: simplify? check if integer ops are handled correctly
 
     out << name << "<<<"
     if (1 == numDims)
-      out << numBlocks(0) << ", " << numBlocksPerDim(0) // only one dimensions -> wrapping not necessary
+      out << numBlocks(0) << ", " << numThreadsPerBlock(0) // only one dimensions -> wrapping not necessary
     else
-      out << s"dim3(" <<< (numBlocks, ", ") << "), " << s"dim3(" <<< (numBlocksPerDim.take(numDims), ", ") << ")"
+      out << s"dim3(" <<< (numBlocks, ", ") << "), " << s"dim3(" <<< (numThreadsPerBlock.take(numDims), ", ") << ")"
 
     out << ">>>" << '(' <<< (arguments, ", ") << ')'
   }
