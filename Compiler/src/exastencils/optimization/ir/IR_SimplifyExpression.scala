@@ -91,14 +91,18 @@ object IR_SimplifyExpression {
       val d = x._2 / y._2
       (a min b min c min d, a max b max c max d)
 
-    case IR_Modulo(l : IR_Expression, r : IR_Expression) =>
-      val x = evalIntegralExtrema(l, extremaLookup)
-      val y = evalIntegralExtrema(r, extremaLookup)
-      val a = x._1 % y._1
-      val b = x._1 % y._2
-      val c = x._2 % y._1
-      val d = x._2 % y._2
-      (a min b min c min d, a max b max c max d)
+    case IR_Modulo(_ : IR_Expression, IR_IntegerConstant(den)) =>
+      (0, den - 1)
+
+    // may lead to incorrect results (e.g. for x % 2 and x has extrema 0 and 2)
+    //    case IR_Modulo(l : IR_Expression, r : IR_Expression) =>
+    //      val x = evalIntegralExtrema(l, extremaLookup)
+    //      val y = evalIntegralExtrema(r, extremaLookup)
+    //      val a = x._1 % y._1
+    //      val b = x._1 % y._2
+    //      val c = x._2 % y._1
+    //      val d = x._2 % y._2
+    //      (a min b min c min d, a max b max c max d)
 
     case IR_Minimum(l : ListBuffer[IR_Expression]) =>
       l.view.map(e => evalIntegralExtrema(e, extremaLookup)).reduce { (x, y) =>
