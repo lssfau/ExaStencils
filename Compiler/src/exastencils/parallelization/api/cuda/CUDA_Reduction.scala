@@ -54,10 +54,17 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
       val index = IR_ExpressionIndex((0 until kernel.parallelDims).map(dim =>
         IR_VariableAccess(CUDA_Kernel.KernelVariablePrefix + CUDA_Kernel.KernelGlobalIndexPrefix + IR_DimToString(dim), IR_IntegerDatatype) : IR_Expression).toArray)
 
-      val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => IR_Subtraction(x, y) : IR_Expression)
+      val size = IR_IntegerConstant(1)
+      val l : Int = kernel.maxIndices.length
+      val stride = IR_ExpressionIndex(new Array[IR_Expression](l))
+      for (i <- 0 until l) {
+        val s = kernel.maxIndices(i) - kernel.minIndices(i)
+        size.v *= s
+        stride(i) = IR_IntegerConstant(s)
+      }
 
       CUDA_ReplaceReductionAssignments.redTarget = kernel.reduction.get.target.name
-      CUDA_ReplaceReductionAssignments.replacement = CUDA_ReductionDeviceDataAccess(CUDA_ReductionDeviceData(IR_Multiplication(ListBuffer[IR_Expression](stride : _*))), index, IR_ExpressionIndex(stride))
+      CUDA_ReplaceReductionAssignments.replacement = CUDA_ReductionDeviceDataAccess(CUDA_ReductionDeviceData(size), index, stride)
       CUDA_ReplaceReductionAssignments.applyStandalone(IR_Scope(kernel.body))
       kernel
   })
@@ -69,13 +76,9 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
     var replacement : IR_Expression = IR_NullExpression
 
     this += new Transformation("Replace", {
-      case assignment : IR_Assignment =>
-        assignment.dest match {
-          case va : IR_VariableAccess if redTarget.equals(va.name) =>
-            assignment.dest = Duplicate(replacement)
-          // assignment.op = "=" // don't modify assignments - there could be inlined loops
-          case _ =>
-        }
+      case assignment @ IR_Assignment(IR_VariableAccess(vaName, _), _, _) if redTarget.equals(vaName) =>
+        assignment.dest = Duplicate(replacement)
+        // assignment.op = "=" // don't modify assignments - there could be inlined loops
         assignment
     })
   }
