@@ -90,9 +90,8 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
 
       var extremaMap = mutable.HashMap[String, (Long, Long)]()
 
-      if (loop.hasAnnotation(IR_SimplifyExpression.EXTREMA_MAP)) {
-        extremaMap = loop.getAnnotation(IR_SimplifyExpression.EXTREMA_MAP).get.asInstanceOf[mutable.HashMap[String, (Long, Long)]]
-      }
+      for (m <- loop.getAnnotation(IR_SimplifyExpression.EXTREMA_MAP))
+        extremaMap = m.asInstanceOf[mutable.HashMap[String, (Long, Long)]]
 
       val kernel = CUDA_Kernel(
         kernelFunctions.getIdentifier(collector.getCurrentName),
