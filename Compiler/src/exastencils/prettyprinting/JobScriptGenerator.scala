@@ -59,6 +59,10 @@ object JobScriptGenerator {
         // if (tasksPerNode > 1) // for some reason this flag is also required if only one thread per node is used
         printer <<< s"export CRAY_CUDA_MPS=1            # allow GPU sharing"
 
+        // some optimization flags
+        printer <<< s"export MPICH_G2G_PIPELINE=256     # adapt maximum number of concurrent in-flight messages"
+        printer <<< ""
+
         if (Knowledge.omp_enabled) {
           printer <<< s"export OMP_NUM_THREADS=$numOMP          # set number of OMP threads"
           printer <<< s"export OMP_WAIT_POLICY=PASSIVE"
