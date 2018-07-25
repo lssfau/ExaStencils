@@ -278,7 +278,7 @@ object ConfigRunner {
         printer <<< "done"
         Settings.user.toLowerCase() match {
           case "sebastian" | "kuckuk" | "sebastiankuckuk" =>
-            printer <<< "watch squeue -u kuckuk"
+            printer <<< "squeue -u kuckuk"
           case _                                          =>
           // nothing to do
         }
