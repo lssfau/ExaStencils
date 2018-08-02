@@ -256,6 +256,8 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     if (Knowledge.cuda_enabled)
       CUDA_KernelFunctions.get.convertToFunctions()
 
+    IR_SimplifyIndexExpressions.apply()
+
     IR_ResolveBoundedScalar.apply() // after converting kernel functions -> relies on (unresolved) index offsets to determine loop iteration counts
     IR_ResolveSlotOperations.apply() // after converting kernel functions -> relies on (unresolved) slot accesses
 
