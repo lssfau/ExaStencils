@@ -180,8 +180,12 @@ object IR_SimplifyExpression {
     // optimization below is allowed if division is floord, or if l is either >= 0 or <= 0
     var changeSign : Boolean = true
     if (extremaMap != null) {
-      val (lo : Long, up : Long) = evalIntegralExtrema(l, extremaMap)
-      changeSign = math.signum(lo) * math.signum(up) < 0
+      try {
+        val (lo : Long, up : Long) = evalIntegralExtrema(l, extremaMap)
+        changeSign = math.signum(lo) * math.signum(up) < 0
+      } catch {
+        case _ : EvaluationException =>
+      }
     }
     val res = new HashMap[IR_Expression, Long]()
     val mapL = extractIntegralSumRec(l)
