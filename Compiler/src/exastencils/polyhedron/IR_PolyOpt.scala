@@ -483,7 +483,7 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
             if (map.range().isSingleton())
               pref = math.max(pref, map.dim(T_OUT))
             else
-              pref = prefix + 1 // will ne ignored later
+              pref = prefix + 1 // will be ignored later
           })
           val bMem = band.nMember()
           if (bMem > 1) {
