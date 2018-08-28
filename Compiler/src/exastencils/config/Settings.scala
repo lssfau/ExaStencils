@@ -186,6 +186,8 @@ object Settings {
   // print number of nodes after each strategy
   var printTransformationTime : Boolean = false
   var logStrategyResults : Boolean = true // Debug log strategy results
+  // time the steps performed by the IR_PolyOpt strategy
+  var timePolyOptSteps : Boolean = false
 
   def update() : Unit = {
     // Settings parser does not parse escapes in string literals.

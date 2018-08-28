@@ -22,8 +22,6 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   final val SCOP_ANNOT : String = "PolyScop"
   final val IMPL_CONDITION_ANNOT : String = "ImplCondition"
 
-  var timeSingleSteps : Boolean = false
-
   import scala.language.implicitConversions
 
   implicit def convertIntToVal(i : Int) : isl.Val = isl.Val.intFromSi(Isl.ctx, i)
@@ -72,7 +70,7 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     Isl.ctx.optionsSetScheduleMaxCoefficient(Knowledge.poly_maxCoefficient)
 
     def time[T](op : => T, name : String) : T = {
-      if (timeSingleSteps) {
+      if (Settings.timePolyOptSteps) {
         StrategyTimer.startTiming(name)
         val res = op
         StrategyTimer.stopTiming(name)
@@ -559,6 +557,9 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       eConfOut.println(Knowledge.poly_exploration_extended)
       eConfOut.println()
       var i : Int = 0
+      val timingName = "po:exploration"
+      if (Settings.timePolyOptSteps)
+        StrategyTimer.startTiming(timingName)
       Exploration.guidedExploration(domain, validity, Knowledge.poly_exploration_extended, Console.out, {
         (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int], nrCarried : Seq[Int], cstVectable : Boolean) =>
           i += 1
@@ -575,6 +576,8 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
           eConfOut.print(cstVectable)
           eConfOut.println()
       })
+      if (Settings.timePolyOptSteps)
+        StrategyTimer.stopTiming(timingName)
       eConfOut.flush()
       eConfOut.close()
       Logger.debug(s"[PolyOpt] Exploration finished: found $i configurations")

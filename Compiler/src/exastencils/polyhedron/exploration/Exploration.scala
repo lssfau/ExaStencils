@@ -6,7 +6,9 @@ import scala.collection.mutable.{ ArrayBuffer, ArrayStack }
 import java.io.PrintStream
 
 import exastencils.config.Knowledge
+import exastencils.config.Settings
 import exastencils.core.Duplicate
+import exastencils.datastructures.StrategyTimer
 import exastencils.polyhedron.Isl
 import exastencils.polyhedron.Isl.TypeAliases._
 import org.exastencils.schedopt.chernikova._
@@ -173,7 +175,12 @@ object Exploration {
     prefix.allowedVectors = coeffSpace
 
     val coeffSpacePoints = new ArrayBuffer[Array[Int]]()
+    val timingName = "po:chernikova"
+    if (Settings.timePolyOptSteps)
+      StrategyTimer.startTiming(timingName)
     val gens : Set[Generators] = Chernikova.constraintsToGenerators(coeffSpace)
+    if (Settings.timePolyOptSteps)
+      StrategyTimer.stopTiming(timingName)
     val nrIt : Int = prefix.domInfo.nrIt
     for (g <- gens) {
 
