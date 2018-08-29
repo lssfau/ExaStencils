@@ -1,14 +1,13 @@
 import scala.collection.mutable.ListBuffer
 
 import exastencils.app._
-import exastencils.app.ir.IR_DefaultLayerHandler
 import exastencils.base.ExaRootNode
 import exastencils.config._
 import exastencils.core._
 import exastencils.core.logger.Logger_HTML
 import exastencils.datastructures._
 import exastencils.logger._
-import exastencils.parsers.config._
+import exastencils.parsers.config.Settings_Parser
 import exastencils.prettyprinting._
 import exastencils.util._
 
@@ -20,9 +19,9 @@ object Main {
     StateManager.setRoot(ExaRootNode)
 
     // check from where to read input
-    val settingsParser = new Settings_Parser()
-    val knowledgeParser = new Knowledge_Parser()
-    val platformParser = new Platform_Parser()
+    val settingsParser = new Settings_Parser(Settings)
+    val knowledgeParser = new Settings_Parser(Knowledge)
+    val platformParser = new Settings_Parser(Platform)
     if (args.length >= 1)
       settingsParser.parseFile(args(0))
     if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
