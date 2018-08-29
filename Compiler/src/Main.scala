@@ -8,6 +8,7 @@ import exastencils.core.logger.Logger_HTML
 import exastencils.datastructures._
 import exastencils.logger._
 import exastencils.parsers.config.Settings_Parser
+import exastencils.polyhedron.IR_PolyOpt
 import exastencils.prettyprinting._
 import exastencils.util._
 
@@ -30,7 +31,7 @@ object Main {
     if (args.length >= 3)
       platformParser.parseFile(args(2))
     if (args.length >= 4)
-      IR_DefaultLayerHandler.polyOptExplID = args(3).toInt
+      IR_PolyOpt.polyOptExplIDs = args(3)
 
     // validate knowledge, etc.
     Knowledge.update()

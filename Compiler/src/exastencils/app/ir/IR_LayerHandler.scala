@@ -46,8 +46,6 @@ object IR_DummyLayerHandler extends IR_LayerHandler {
 /// IR_DefaultLayerHandler
 
 object IR_DefaultLayerHandler extends IR_LayerHandler {
-  /* FIXME: move somewhere more reasonable */ var polyOptExplID : Int = 0
-
   override def initialize() : Unit = {
     // TODO: use KnowledgeContainer structure
   }
@@ -229,7 +227,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
-      IR_PolyOpt.apply(polyOptExplID)
+      IR_PolyOpt.apply()
     IR_ResolveLoopOverDimensions.apply()
 
     IR_TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary

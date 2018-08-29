@@ -162,7 +162,7 @@ private final class IR_ASTBuilderFunction()
     }
 
     // add comment (for debugging) and (eventually) declarations outside loop nest
-    val comment = IR_Comment("Statements in this Scop: " + scop.stmts.keySet.toArray.sorted.mkString(", "))
+    val comment = IR_Comment("Scop ID: " + scop.ID + ";  Statements: " + scop.stmts.keySet.toArray.sorted.mkString(", "))
     comment +=: nju // prepend
     if (scop.decls.nonEmpty) {
       val scopeList = new ListBuffer[IR_Statement]
