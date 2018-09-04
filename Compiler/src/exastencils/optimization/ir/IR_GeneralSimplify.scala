@@ -125,10 +125,10 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     case ass @ IR_Assignment(dst, src, op) if List("+=", "-=", "*=", "/=").contains(op)
       && StateManager.findFirst({ n : IR_Expression => n == dst }, src).isDefined =>
       op match {
-        case "+=" => ass.src = IR_Addition(dst, src)
-        case "-=" => ass.src = IR_Subtraction(dst, src)
-        case "*=" => ass.src = IR_Multiplication(dst, src)
-        case "/=" => ass.src = IR_Division(dst, src)
+        case "+=" => ass.src = IR_Addition(Duplicate(dst), src)
+        case "-=" => ass.src = IR_Subtraction(Duplicate(dst), src)
+        case "*=" => ass.src = IR_Multiplication(Duplicate(dst), src)
+        case "/=" => ass.src = IR_Division(Duplicate(dst), src)
       }
       ass.op = "="
       ass
