@@ -160,7 +160,7 @@ object IR_SimplifyExpression {
     * (Otherwise an EvaluationException is thrown.)
     *
     * Returns a map from all present summands to their corresponding coefficients.
-    * The additive constant is stored beside the string specified by the field SimplifyExpression.constName.
+    * The additive constant is stored beside the key SimplifyExpression.constName.
     * The given expression is equivalent to: map(constName) + \sum_{n \in names} map(n) * n
     *
     * Only VariableAccess nodes are used as keys. (NO StringConstant)
@@ -525,12 +525,12 @@ object IR_SimplifyExpression {
   }
 
   /**
-    * Evaluates and (implicitly) simplifies an floating-point expression.
+    * Evaluates and (implicitly) simplifies a floating-point expression.
     * No boolean constants are allowed.
     * (Otherwise an EvaluationException is thrown.)
     *
     * Returns a map from all present summands to their corresponding coefficients.
-    * The additive constant is stored beside the string specified by the field SimplifyExpression.constName.
+    * The additive constant is stored beside the key SimplifyExpression.constName.
     * The given expression is equivalent to: map(constName) + \sum_{n \in names} map(n) * n
     *
     * Only VariableAccess and ArrayAccess nodes are used as keys. (NO StringConstant)
