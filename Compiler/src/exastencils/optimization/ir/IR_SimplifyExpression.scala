@@ -7,7 +7,6 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.communication.ir.IR_TempBufferAccess
 import exastencils.core._
-import exastencils.core.collectors.Collector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.domain.ir._
