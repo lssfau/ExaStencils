@@ -9,9 +9,6 @@ import exastencils.prettyprinting._
 /// L3_FunctionCall
 
 object L3_FunctionCall {
-  def apply(function : L3_FunctionReference, arguments : Option[List[L3_Expression]]) =
-    new L3_FunctionCall(function, arguments.getOrElse(List()).to[ListBuffer])
-
   def apply(function : L3_FunctionReference, args : L3_Expression*) =
     new L3_FunctionCall(function, args.to[ListBuffer])
 }

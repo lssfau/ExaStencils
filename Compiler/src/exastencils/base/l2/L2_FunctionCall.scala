@@ -9,9 +9,6 @@ import exastencils.prettyprinting._
 /// L2_FunctionCall
 
 object L2_FunctionCall {
-  def apply(function : L2_FunctionReference, arguments : Option[List[L2_Expression]]) =
-    new L2_FunctionCall(function, arguments.getOrElse(List()).to[ListBuffer])
-
   def apply(function : L2_FunctionReference, args : L2_Expression*) =
     new L2_FunctionCall(function, args.to[ListBuffer])
 }

@@ -137,8 +137,8 @@ object L1_Parser extends ExaParser with PackratParsers {
   lazy val functionReference = locationize(ident ~ levelAccess.?
     ^^ { case id ~ level => L1_UnresolvedFunctionReference(id, level) })
 
-  lazy val functionCallArgumentList = /*locationize*/ ((binaryexpression ||| booleanexpression) <~ ("," | newline)).* ~ (binaryexpression ||| booleanexpression) ^^ { case exps ~ ex => exps :+ ex }
-  lazy val functionCall = locationize(functionReference ~ ("(" ~> functionCallArgumentList.? <~ ")") ^^ { case id ~ args => L1_FunctionCall(id, args) })
+  lazy val functionCallArgumentList = /*locationize*/ repsep(binaryexpression ||| booleanexpression, listdelimiter)
+  lazy val functionCall = locationize(functionReference ~ ("(" ~> functionCallArgumentList <~ ")") ^^ { case id ~ args => L1_FunctionCall(id, args : _*) })
 
   // ######################################
   // ##### L1_Interval

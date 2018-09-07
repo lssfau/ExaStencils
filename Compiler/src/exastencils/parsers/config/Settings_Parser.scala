@@ -61,11 +61,9 @@ class Settings_Parser(private val setIn : AnyRef) extends ExaParser {
 
   lazy val settingsfile = setting.*
 
-  lazy val literalList = /*locationize*/ (literal <~ ("," | newline)).* ~ literal ^^ { case args ~ arg => args :+ arg }
-
   lazy val setting = ("import" ~> stringLit ^^ (path => parseFile(path))
     ||| (ident <~ "=") ~ literal ^^ { case id ~ ex => setParameter(id, ex) }
     ||| (ident <~ "+=") ~ literal ^^ { case id ~ ex => addParameter(id, ex) }
-    ||| (ident <~ "+=") ~ ("{" ~> literalList <~ "}") ^^ { case id ~ exs => for (ex <- exs) addParameter(id, ex) }
-    ||| (ident <~ "=") ~ ("{" ~> literalList <~ "}") ^^ { case id ~ exs => setParameter(id, exs.to[ListBuffer]) })
+    ||| (ident <~ "+=") ~ ("{" ~> repsep(literal, listdelimiter) <~ "}") ^^ { case id ~ exs => for (ex <- exs) addParameter(id, ex) }
+    ||| (ident <~ "=") ~ ("{" ~> repsep(literal, listdelimiter) <~ "}") ^^ { case id ~ exs => setParameter(id, exs.to[ListBuffer]) })
 }

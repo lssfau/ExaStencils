@@ -35,8 +35,7 @@ class ExaParser extends StandardTokenParsers with PackratParsers {
     }
   }
 
-  lazy val listdelimiter = newline | ","
-  lazy val newline = "\n" | "\r\n"
+  lazy val listdelimiter = ","
 
   lazy val literal = (
     stringLit
