@@ -76,7 +76,8 @@ object JobScriptGenerator {
 
         printer <<< ""
 
-        if (numMPI > 1) {
+        // rank reordering for multiple mpi ranks; don't apply when condition is enabled since it usually uses the mpi rank to branch
+        if (numMPI > 1 && Knowledge.cuda_preferredExecution.toLowerCase != "condition") {
           val grid = Knowledge.domain_rect_numBlocksAsVec.take(Knowledge.dimensionality)
           val cores = Array.fill(Knowledge.dimensionality)(1)
           var numCores = tasksPerNode
