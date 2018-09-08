@@ -39,9 +39,9 @@ case class L4_FieldLayoutDecl(
     var options : ListBuffer[L4_FieldLayoutOption]) extends L4_LeveledKnowledgeDecl {
 
   override def prettyprint(out : PpStream) : Unit = {
-    out << "Layout " << name << "< " << datatype << ", " << localization << " >" << '@' << levels.get << " {\n"
-    out <<< (options, "\n")
-    out << "\n}"
+    out << "Layout " << name << "< " << datatype << ", " << localization << " >"
+    if (levels.isDefined) out << '@' << levels.get
+    out << " {\n" <<< (options, "\n") << "\n}"
   }
 
   def evalFieldLayoutValue(optionName : String) : L4_ConstIndex = {
