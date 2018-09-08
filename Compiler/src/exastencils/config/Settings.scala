@@ -123,10 +123,11 @@ object Settings {
   var binary : String = "exastencils"
 
   var makefile_makeLibs : Boolean = false
-  var makefile_additionalCFlags : String = ""
-  var makefile_additionalLDFlags : String = ""
+  var makefile_additionalCFlags : ListBuffer[String] = ListBuffer()
+  var makefile_additionalLDFlags : ListBuffer[String] = ListBuffer()
   // Additional flags for CUDA compiler
-  var makefile_additionalCudaFlags : String = ""
+  var makefile_additionalCudaFlags : ListBuffer[String] = ListBuffer()
+  var makefile_additionalObjFiles : ListBuffer[String] = ListBuffer()
 
   /// performance estimates (experimental)
 
@@ -215,7 +216,7 @@ object Settings {
       case "likwid" =>
         if (!additionalIncludes.contains("likwid.h")) additionalIncludes += "likwid.h"
         if (!additionalLibs.contains("likwid")) additionalLibs += "likwid"
-      case _ =>
+      case _        =>
     }
     if (Platform.simd_mathLibrary == "mass_simd")
       additionalLibs += "mass_simd"
