@@ -20,16 +20,16 @@ object ConfigRunner {
     StateManager.setRoot(ExaRootNode)
 
     if (args.length >= 1) {
-      val settingsParser = new Settings_Parser()
+      val settingsParser = new Settings_Parser(Settings)
       settingsParser.parseFile(args(0))
     }
     if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
     if (args.length >= 2) {
-      val knowledgeParser = new Knowledge_Parser()
+      val knowledgeParser = new Settings_Parser(Knowledge)
       knowledgeParser.parseFile(args(1))
     }
     if (args.length >= 3) {
-      val platformParser = new Platform_Parser()
+      val platformParser = new Settings_Parser(Platform)
       platformParser.parseFile(args(2))
     }
     if (args.length >= 4) {

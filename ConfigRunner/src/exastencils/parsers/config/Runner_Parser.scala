@@ -54,7 +54,7 @@ class Runner_Parser extends ExaParser {
       ||| (ident <~ "+=") ~ expr ^^ { case name ~ value => DerivedParameterWithAppend(name, value) }
     )
 
-  lazy val expressionList = /*locationize*/ (expr <~ ("," | newline)).* ~ expr ^^ { case args ~ arg => args :+ arg }
+  lazy val expressionList = /*locationize*/ repsep(expr, ",") ^^ (args => args)
 
   lazy val expr = (
     stringLit ^^ { _.toString }
