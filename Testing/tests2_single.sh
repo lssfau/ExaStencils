@@ -52,7 +52,7 @@ RESULT=$(mktemp --tmpdir=/dev/shm || mktemp --tmpdir=/tmp) || {
     echo "${LINK}" >> "${LOG_ALL}"
     exit 0
   }
-EXPL_CFG=$(mktemp --tmpdir=/dev/shm || mktemp --tmpdir=/tmp) || {
+EXPL_CFG_DIR=$(mktemp -d --tmpdir=/dev/shm || mktemp -d --tmpdir=/tmp) || {
     echo "ERROR: Failed to create temporary file."
     touch ${ERROR_MARKER}
     echo "${LINK}" >> "${LOG_ALL}"
@@ -73,8 +73,8 @@ trap killed SIGTERM
 STARTTIME=$(date +%s)
 
 function cleanup {
-  rm "${RESULT}" "${EXPL_CFG}"
-  echo "  Removed  ${RESULT} and ${EXPL_CFG}"
+  rm -rf "${RESULT}" "${EXPL_CFG_DIR}"
+  echo "  Removed  ${RESULT} and ${EXPL_CFG_DIR}"
   ENDTIME=$(date +%s)
   echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds  (target code generation and compilation)"
   echo ""
@@ -92,7 +92,7 @@ echo "binary = \"${BIN}\"" >> "${SETTINGS}"
 if [[ "${PLATFORM}" =~ gpu ]]; then # nvcc requires older g++ version
   echo "makefile_additionalCudaFlags = \"-D_MWAITXINTRIN_H_INCLUDED -D_FORCE_INLINES\"" >> "${SETTINGS}"
 fi
-echo "poly_explorationConfig = \"${EXPL_CFG}\"" >> "${SETTINGS}"
+echo "poly_explorationConfig = \"${EXPL_CFG_DIR}/expl_cfg\"" >> "${SETTINGS}"
 echo "poly_exploration_appendID2path = false" >> "${SETTINGS}"
 IFS=';' read -a files <<< $EXAFILES
 for f in "${files[@]}"; do
@@ -133,7 +133,7 @@ RETCODE=$?
       exit 1
     fi
 echo ""
-head -n 14 "${EXPL_CFG}"
+head -n 14 "${EXPL_CFG_DIR}/*"
 echo ""
 echo ""
 echo "-----------------------------------------------------------------------------------------------"

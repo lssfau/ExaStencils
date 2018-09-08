@@ -22,11 +22,17 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   final val SCOP_ANNOT : String = "PolyScop"
   final val IMPL_CONDITION_ANNOT : String = "ImplCondition"
 
-  var timeSingleSteps : Boolean = false
-
   import scala.language.implicitConversions
 
   implicit def convertIntToVal(i : Int) : isl.Val = isl.Val.intFromSi(Isl.ctx, i)
+
+  /**
+    * The command line argument for the scop ID to the exploration ID matching.
+    * Possible structures:
+    * - a single Int, used for every scop
+    * - a list of scop ID to exploration ID mappings, key and values are spearated by a colon, list entries are separated by a pipe, e.g.: "3:42|5:1159"
+    */
+  var polyOptExplIDs : String = ""
 
   /** Register the name of a side-effect free function, that is safe to be used inside a scop. */
   def registerSideeffectFree(functionName : String) : Unit = {
@@ -38,13 +44,7 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     IR_PolyExtractor.registerSymbolicConstant(constName)
   }
 
-  override def apply() : Unit = {
-    if (Knowledge.poly_scheduleAlgorithm == "exploration")
-      Logger.error("[PolyOpt] Exploration: Configuration ID required!")
-    this.apply(0)
-  }
-
-  def apply(confID : Int) : Unit = {
+  def apply() : Unit = {
     this.transaction()
 
     Logger.info("Applying strategy " + name)
@@ -58,11 +58,9 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     Isl.ctx.optionsSetTileShiftPointLoops(0)
 
     Knowledge.poly_scheduleAlgorithm match {
-      case "isl"        => Isl.ctx.optionsSetScheduleAlgorithm(0)
-      case "feautrier"  => Isl.ctx.optionsSetScheduleAlgorithm(1)
-      case "exploration"
-           | "external" => // isl scheduler is not called
-      case unknown      => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
+      case "isl"       => Isl.ctx.optionsSetScheduleAlgorithm(0)
+      case "feautrier" => Isl.ctx.optionsSetScheduleAlgorithm(1)
+      case unknown     => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
     }
 
     Isl.ctx.optionsSetScheduleSeparateComponents(if (Knowledge.poly_separateComponents) 1 else 0)
@@ -71,8 +69,26 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     Isl.ctx.optionsSetScheduleMaxConstantTerm(Knowledge.poly_maxConstantTerm)
     Isl.ctx.optionsSetScheduleMaxCoefficient(Knowledge.poly_maxCoefficient)
 
+    // preprocess external schedules
+    val extSchedules = mutable.Map[Int, isl.Map]()
+    for (str <- Knowledge.poly_externalSchedules) {
+      val Array(id, sched) = str.split('|')
+      extSchedules += ((id.toInt, isl.Map.readFromStr(Isl.ctx, sched)))
+    }
+
+    val explIDMap = mutable.Map[Int, Int]()
+    val explIDDef : Int = if (polyOptExplIDs.matches("[0-9]+")) polyOptExplIDs.toInt else 0
+    for (id <- Knowledge.poly_explorationIDs)
+      explIDMap += ((id, explIDDef))
+    if (polyOptExplIDs.contains(':'))
+      for (map <- polyOptExplIDs.split('|')) {
+        val Array(scopID, explID) = map.split(':').map(_.toInt)
+        if (explIDMap.contains(-1) || explIDMap.contains(scopID))
+          explIDMap += ((scopID, explID))
+      }
+
     def time[T](op : => T, name : String) : T = {
-      if (timeSingleSteps) {
+      if (Settings.timePolyOptSteps) {
         StrategyTimer.startTiming(name)
         val res = op
         StrategyTimer.stopTiming(name)
@@ -94,8 +110,12 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       time(handleReduction(scop), "po:handleReduction")
       time(simplifyModel(scop), "po:simplifyModel")
 
-      if (scop.optLevel >= 2)
-        time(optimize(scop, confID), "po:optimize")
+      if (extSchedules.contains(scop.ID))
+        useExternalSchedule(scop, extSchedules(scop.ID))
+      else if (explIDMap.contains(scop.ID) || (explIDMap.contains(-1) && scop.optLevel >= 2))
+        optimizeExpl(scop, explIDMap.getOrElse(scop.ID, explIDDef))
+      else if (scop.optLevel >= 2)
+        time(optimize(scop), "po:optimize")
 
       if (Knowledge.poly_printDebug) {
         Logger.debug("SCoP " + i)
@@ -186,7 +206,7 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       scop.domain.foreachSet({
         set : isl.Set =>
           val tupName = set.getTupleName()
-          if (stmts.exists{ case (label, _) => tupName == label })
+          if (stmts.exists { case (label, _) => tupName == label })
             remDoms += set
           else
             njuDomain = if (njuDomain == null) set else njuDomain.addSet(set)
@@ -431,15 +451,7 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     scop.deps.mapInputLazy { input => input.subtract(toRemove) }
   }
 
-  private def optimize(scop : Scop, confID : Int) : Unit = {
-    Knowledge.poly_scheduleAlgorithm match {
-      case "exploration" => optimizeExpl(scop, confID)
-      case "external"    => useExternalSchedule(scop)
-      case _             => optimizeIsl(scop)
-    }
-  }
-
-  private def optimizeIsl(scop : Scop) : Unit = {
+  private def optimize(scop : Scop) : Unit = {
 
     val domain = scop.domain.intersectParams(scop.getContext())
     var schedConstr : isl.ScheduleConstraints = isl.ScheduleConstraints.onDomain(domain)
@@ -485,7 +497,7 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
             if (map.range().isSingleton())
               pref = math.max(pref, map.dim(T_OUT))
             else
-              pref = prefix + 1 // will ne ignored later
+              pref = prefix + 1 // will be ignored later
           })
           val bMem = band.nMember()
           if (bMem > 1) {
@@ -505,9 +517,8 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     scop.updateLoopVars()
   }
 
-  private def useExternalSchedule(scop : Scop) : Unit = {
+  private def useExternalSchedule(scop : Scop, map : isl.Map) : Unit = {
     if (Knowledge.poly_extSched_unrollTime) {
-      val map : isl.Map = isl.Map.readFromStr(scop.domain.getCtx(), Knowledge.poly_externalSchedule)
       scop.noParDims.clear()
       var schedule = isl.UnionMap.empty(isl.Space.mapFromSet(scop.domain.getSpace()))
       for ((stmt, i) <- scop.stmts.keySet.toArray.sorted.zipWithIndex) {
@@ -515,10 +526,8 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         schedule = schedule.addMap(m)
       }
       scop.schedule = Isl.simplify(schedule)
-    } else {
-      val schedule : isl.UnionMap = isl.UnionMap.readFromStr(scop.domain.getCtx(), Knowledge.poly_externalSchedule)
-      scop.schedule = Isl.simplify(schedule)
-    }
+    } else
+      scop.schedule = Isl.simplify(map)
     scop.noParDims.clear()
 
     val tilableDims : Int = Knowledge.poly_extSched_outerBandSize
@@ -542,7 +551,13 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     df.setMinimumIntegerDigits(5)
     df.setGroupingUsed(false)
 
-    val explConfig = new java.io.File(Settings.poly_explorationConfig)
+    val path = new StringBuilder(Settings.poly_explorationConfig)
+    val ind = path.lastIndexOf('.')
+    if (ind < 0)
+      path.append('.').append(scop.ID)
+    else
+      path.insert(ind, "." + scop.ID)
+    val explConfig = new java.io.File(path.toString())
     if (!explConfig.exists() || explConfig.length() == 0) {
       Logger.debug("[PolyOpt] Exploration: no configuration file found or file empty, perform exploration and create it")
       val domain = scop.domain.intersectParams(scop.getContext())
@@ -559,6 +574,9 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       eConfOut.println(Knowledge.poly_exploration_extended)
       eConfOut.println()
       var i : Int = 0
+      val timingName = "po:exploration"
+      if (Settings.timePolyOptSteps)
+        StrategyTimer.startTiming(timingName)
       Exploration.guidedExploration(domain, validity, Knowledge.poly_exploration_extended, Console.out, {
         (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int], nrCarried : Seq[Int], cstVectable : Boolean) =>
           i += 1
@@ -575,6 +593,8 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
           eConfOut.print(cstVectable)
           eConfOut.println()
       })
+      if (Settings.timePolyOptSteps)
+        StrategyTimer.stopTiming(timingName)
       eConfOut.flush()
       eConfOut.close()
       Logger.debug(s"[PolyOpt] Exploration finished: found $i configurations")

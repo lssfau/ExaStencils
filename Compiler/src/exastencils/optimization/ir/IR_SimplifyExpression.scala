@@ -40,6 +40,8 @@ object IR_SimplifyExpression {
 
   final val EXTREMA_MAP : String = "extremaMap" // associated value must be HashMap[String, (Long,Long)]
 
+  var extremaMap : mutable.HashMap[String, (Long, Long)] = null
+
   def evalIntegralExtrema(expr : IR_Expression) : (Long, Long) = {
     evalIntegralExtrema(expr, mutable.Map[String, (Long, Long)]())
   }
@@ -157,7 +159,7 @@ object IR_SimplifyExpression {
     * (Otherwise an EvaluationException is thrown.)
     *
     * Returns a map from all present summands to their corresponding coefficients.
-    * The additive constant is stored beside the string specified by the field SimplifyExpression.constName.
+    * The additive constant is stored beside the key SimplifyExpression.constName.
     * The given expression is equivalent to: map(constName) + \sum_{n \in names} map(n) * n
     *
     * Only VariableAccess nodes are used as keys. (NO StringConstant)
@@ -174,9 +176,19 @@ object IR_SimplifyExpression {
       throw EvaluationException("only constant divisor allowed yet")
     val divs : Long = tmp(constName)
     tmp.clear()
+    // optimization below is allowed if division is floord, or if l is either >= 0 or <= 0
+    var changeSign : Boolean = true
+    if (extremaMap != null) {
+      try {
+        val (lo : Long, up : Long) = evalIntegralExtrema(l, extremaMap)
+        changeSign = math.signum(lo) * math.signum(up) < 0
+      } catch {
+        case _ : EvaluationException =>
+      }
+    }
     val res = new HashMap[IR_Expression, Long]()
     val mapL = extractIntegralSumRec(l)
-    if (floor) { // do only remove parts of the dividend when the rounding direction is "uniform" (truncate rounds towards 0)
+    if (floor || !changeSign) { // do only remove parts of the dividend when the rounding direction is "uniform" (truncate rounds towards 0)
       for ((name : IR_Expression, value : Long) <- mapL)
         if (value % divs == 0L) res(name) = value / divs
         else tmp(name) = value
@@ -470,13 +482,16 @@ object IR_SimplifyExpression {
       IR_Subtraction(toExpr(posSums), toExpr(negSums))
   }
 
-  def simplifyIntegralExpr(expr : IR_Expression) : IR_Expression = {
+  def simplifyIntegralExpr(expr : IR_Expression, extrMap : mutable.HashMap[String, (Long, Long)] = null) : IR_Expression = {
+    extremaMap = extrMap
     try {
       val res = IR_ExpressionStatement(recreateExprFromIntSum(extractIntegralSum(expr)))
+      extremaMap = null
       IR_GeneralSimplify.doUntilDoneStandalone(res)
       res.expression
     } catch {
       case ex : EvaluationException =>
+        extremaMap = null
         throw EvaluationException(ex.msg + ";  in " + expr.prettyprint(), ex)
     }
   }
@@ -509,12 +524,12 @@ object IR_SimplifyExpression {
   }
 
   /**
-    * Evaluates and (implicitly) simplifies an floating-point expression.
+    * Evaluates and (implicitly) simplifies a floating-point expression.
     * No boolean constants are allowed.
     * (Otherwise an EvaluationException is thrown.)
     *
     * Returns a map from all present summands to their corresponding coefficients.
-    * The additive constant is stored beside the string specified by the field SimplifyExpression.constName.
+    * The additive constant is stored beside the key SimplifyExpression.constName.
     * The given expression is equivalent to: map(constName) + \sum_{n \in names} map(n) * n
     *
     * Only VariableAccess and ArrayAccess nodes are used as keys. (NO StringConstant)

@@ -64,8 +64,9 @@ trap cleanup EXIT
 
 
 # run generated code
+srun /bin/true # to capture job step creation errors/warnings before executing the test binary
 echo "  Created  ${RESULT}: run code and redirect its stdout and stderr."
-srun --cpu_bind=socket "${BIN}" 2>&1 | grep -v -e "No protocol specified" -e "fglrx" -e "srun: setscheduler: init" -e "NVIDIA: no NVIDIA devices found" -e "error stating /local/exatest in is_ssd" | tee "${RESULT}" # HACK: filter several strange error messages and warnings...
+srun --cpu_bind=socket "${BIN}" 2>&1 | grep -v "srun: Job step creat" | tee "${RESULT}" # HACK: filter several strange error messages and warnings...
 echo ""
 
 if grep -q "Communication connection failure" ${RESULT}; then

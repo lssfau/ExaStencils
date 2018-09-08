@@ -104,8 +104,8 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
       innerLoop.indices.end(i) = IR_Minimum(innerLoop.indices.end(i), maxIndex.indices(i))
 
     // simplify loop boundaries
-    innerLoop.indices.begin.indices.transform(IR_SimplifyExpression.simplifyIntegralExpr)
-    innerLoop.indices.end.indices.transform(IR_SimplifyExpression.simplifyIntegralExpr)
+    innerLoop.indices.begin.indices.transform(IR_SimplifyExpression.simplifyIntegralExpr(_))
+    innerLoop.indices.end.indices.transform(IR_SimplifyExpression.simplifyIntegralExpr(_))
 
     innerLoop.body.head.asInstanceOf[IR_LocalSolve].omitConditions = true
 

@@ -1,5 +1,7 @@
 package exastencils.config
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.constraints._
 
 object Knowledge {
@@ -328,7 +330,7 @@ object Knowledge {
 
   // [true|false] // specify separately if the outermost loop should be tiled
   var poly_tileOuterLoop : Boolean = false
-  // [isl|feautrier|exploration|external] // choose which schedule algorithm should be used in PolyOpt
+  // [isl|feautrier] // choose which schedule algorithm should be used in PolyOpt
   var poly_scheduleAlgorithm : String = "isl"
   // [all|raw|rar] // specifies which dependences should be optimized; "all" means all validity dependences (raw, war, waw)
   var poly_optimizeDeps : String = "raw"
@@ -348,10 +350,15 @@ object Knowledge {
   var poly_maxCoefficient : Int = -1
   var poly_printDebug : Boolean = false
 
-  // an external schedule that should be used when poly_scheduleAlgorithm is set to "external"
-  var poly_externalSchedule : String = ""
+  // a list of external schedules that should be used for the specified ID:
+  //  each String must have the form "ID|Schedule"
+  var poly_externalSchedules : ListBuffer[String] = ListBuffer()
   var poly_extSched_unrollTime : Boolean = false
   var poly_extSched_outerBandSize : Int = 1
+
+  // a list of IDs for which an exploration should be performed
+  //  a "-1" specifies that an exploration should be performed for every scop
+  var poly_explorationIDs : ListBuffer[Int] = ListBuffer()
 
   // --- general optimization ---
 

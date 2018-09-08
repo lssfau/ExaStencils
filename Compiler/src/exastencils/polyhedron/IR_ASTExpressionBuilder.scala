@@ -43,8 +43,8 @@ object IR_ASTExpressionBuilder {
       case isl.AstOpType.OpSub if n == 2     => IR_Subtraction(args(0), args(1))
       case isl.AstOpType.OpMul if n == 2     => IR_Multiplication(args(0), args(1))
       case isl.AstOpType.OpDiv if n == 2     => IR_Division(args(0), args(1))
-      case isl.AstOpType.OpFdivQ if n == 2   => IR_FunctionCall("floord", args(0), args(1)) // TODO: ensure integer division
-      case isl.AstOpType.OpPdivQ if n == 2   => IR_Division(args(0), args(1)) // TODO: ensure integer division
+      case isl.AstOpType.OpFdivQ if n == 2   => IR_FunctionCall(IR_InternalFunctionReference.floord, args(0), args(1))
+      case isl.AstOpType.OpPdivQ if n == 2   => IR_Division(args(0), args(1))
       case isl.AstOpType.OpPdivR if n == 2   => IR_Modulo(args(0), args(1))
       case isl.AstOpType.OpZdivR if n == 2   => IR_Modulo(args(0), args(1)) // isl doc: Equal to zero iff the remainder on integer division is zero.
       case isl.AstOpType.OpCond if n == 3    => IR_TernaryCondition(args(0), args(1), args(2))

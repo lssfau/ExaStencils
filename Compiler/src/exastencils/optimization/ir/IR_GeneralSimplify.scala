@@ -8,6 +8,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
+import exastencils.core.StateManager
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.util.ir.IR_ResultingDatatype
@@ -120,6 +121,19 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     case l @ IR_LoopOverDimensions(_, _, ListBuffer(IR_Scope(body)), _, _, _, _) =>
       l.body = body; l // preserve original node instance to ensure all traits and annotations are still present
 
+    // resolve compound assignments if lhs also occurs in rhs (to merge both)
+    case ass @ IR_Assignment(dst, src, op) if List("+=", "-=", "*=", "/=").contains(op)
+      && StateManager.findFirst({ n : IR_Expression => n == dst }, src).isDefined =>
+      op match {
+        case "+=" => ass.src = IR_Addition(Duplicate(dst), src)
+        case "-=" => ass.src = IR_Subtraction(Duplicate(dst), src)
+        case "*=" => ass.src = IR_Multiplication(Duplicate(dst), src)
+        case "/=" => ass.src = IR_Division(Duplicate(dst), src)
+      }
+      ass.op = "="
+      ass
+
+    // Simplify boolean expressions
     case IR_EqEq(IR_IntegerConstant(left), IR_IntegerConstant(right))         => IR_BooleanConstant(left == right)
     case IR_Neq(IR_IntegerConstant(left), IR_IntegerConstant(right))          => IR_BooleanConstant(left != right)
     case IR_Lower(IR_IntegerConstant(left), IR_IntegerConstant(right))        => IR_BooleanConstant(left < right)

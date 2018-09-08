@@ -40,7 +40,7 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData) extends CUDA_Hos
 
 object CUDA_UpdateDeviceData {
   def apply(access : IR_MultiDimFieldAccess) = {
-    val fieldSelection = access.fieldSelection
+    val fieldSelection = Duplicate(access.fieldSelection)
     new CUDA_UpdateDeviceData(IR_IV_FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx))
   }
 }
@@ -71,8 +71,8 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer) extends CUDA
       ListBuffer[IR_Statement](
         CUDA_Memcpy(
           Duplicate(buffer),
-          CUDA_BufferDeviceData(field, buffer.direction, buffer.size, Duplicate(buffer.neighIdx)),
-          buffer.size * IR_SizeOf(field.resolveBaseDatatype),
+          CUDA_BufferDeviceData(field, buffer.direction, Duplicate(buffer.size), Duplicate(buffer.neighIdx)),
+          Duplicate(buffer.size) * IR_SizeOf(field.resolveBaseDatatype),
           "cudaMemcpyDeviceToHost"),
         IR_Assignment(CUDA_DeviceBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(false))))
   }
@@ -87,9 +87,9 @@ case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer) extends CU
       CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx)),
       ListBuffer[IR_Statement](
         CUDA_Memcpy(
-          CUDA_BufferDeviceData(field, buffer.direction, buffer.size, Duplicate(buffer.neighIdx)),
+          CUDA_BufferDeviceData(field, buffer.direction, Duplicate(buffer.size), Duplicate(buffer.neighIdx)),
           Duplicate(buffer),
-          buffer.size * IR_SizeOf(field.resolveBaseDatatype),
+          Duplicate(buffer.size) * IR_SizeOf(field.resolveBaseDatatype),
           "cudaMemcpyHostToDevice"),
         IR_Assignment(CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(false))))
   }

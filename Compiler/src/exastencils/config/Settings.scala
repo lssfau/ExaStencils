@@ -187,6 +187,8 @@ object Settings {
   // print number of nodes after each strategy
   var printTransformationTime : Boolean = false
   var logStrategyResults : Boolean = true // Debug log strategy results
+  // time the steps performed by the IR_PolyOpt strategy
+  var timePolyOptSteps : Boolean = false
 
   def update() : Unit = {
     // Settings parser does not parse escapes in string literals.
@@ -216,7 +218,8 @@ object Settings {
       case "likwid" =>
         if (!additionalIncludes.contains("likwid.h")) additionalIncludes += "likwid.h"
         if (!additionalLibs.contains("likwid")) additionalLibs += "likwid"
-      case _        =>
+        if (!additionalDefines.contains("LIKWID_PERFMON")) additionalDefines += "LIKWID_PERFMON"
+      case _ =>
     }
     if (Platform.simd_mathLibrary == "mass_simd")
       additionalLibs += "mass_simd"

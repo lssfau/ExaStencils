@@ -5,10 +5,20 @@ import scala.collection.mutable._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 
+private object Scop {
+  private var i : Int = 0
+  def nextID() : Int = {
+    i += 1
+    i
+  }
+}
+
 // since Scop can be cloned by Duplicate make sure NONE of the isl wrapper objects it uses is cloned by it
 //   (register all required classes as not cloneable in IslUtil.scala)
 class Scop(val root : IR_LoopOverDimensions, var localContext : isl.Set, var globalContext : isl.Set, var optLevel : Int,
     var parallelize : Boolean, var origIterationCount : Array[Long]) {
+
+  final val ID : Int = Scop.nextID()
 
   var nextMerge : Scop = null
   var remove : Boolean = false

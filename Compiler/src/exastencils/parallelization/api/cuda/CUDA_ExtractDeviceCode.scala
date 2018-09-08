@@ -34,7 +34,8 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
     innerLoopCandidate match {
       case innerLoop : IR_ForLoop if condition.apply(innerLoop) =>
         collectLoopsInKernel(innerLoop, condition) ++ loops
-      case _                                                    => loops
+      case _                                                    =>
+        loops
     }
   }
 

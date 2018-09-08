@@ -11,7 +11,10 @@ object DuplicateNodes extends DefaultStrategy("Eliminate multiple usage of node 
 
   var collector = new IR_StackCollector()
   this.register(collector)
-  this.onBefore = () => this.resetCollectors()
+  this.onBefore = () => {
+    instances.clear()
+    this.resetCollectors()
+  }
 
   var printWarnings = true
   var printStack = false
