@@ -403,7 +403,7 @@ object IR_SimplifyExpression {
         else {
           if (max != null)
             exprs += IR_IntegerConstant(max)
-          res(IR_Minimum(exprs)) = 1L
+          res(IR_Maximum(exprs)) = 1L
         }
 
       case scalarIV : IR_InternalVariable if scalarIV.resolveDatatype().isInstanceOf[IR_ScalarDatatype] =>
