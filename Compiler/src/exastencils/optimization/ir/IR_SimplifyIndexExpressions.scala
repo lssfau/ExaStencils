@@ -1,9 +1,6 @@
 package exastencils.optimization.ir
 
-import scala.collection.mutable
-
 import exastencils.base.ir._
-import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.field.ir.IR_LinearizedFieldAccess
 
