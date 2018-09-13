@@ -183,7 +183,7 @@ object IR_SimplifyExpression {
       try {
         val (lo : Long, up : Long) = evalIntegralExtrema(l, extremaMap)
         changeSign = lo < 0 && up > 0
-        sign = (lo + up) / 2
+        sign = if (lo != 0) lo else up // only the sign is relevant, ignore 0
       } catch {
         case _ : EvaluationException =>
       }
@@ -206,7 +206,7 @@ object IR_SimplifyExpression {
       if (!floor)
         try {
           val (lo : Long, up : Long) = evalIntegralExtrema(recreateExprFromIntSum(tmp), extremaMap)
-          val newSign : Long = (lo + up) / 2
+          val newSign : Long = if (lo != 0) lo else up // only the sign is relevant, ignore 0
           if (lo < 0 && up > 0) { // optimization was NOT allowed, revert
             tmp = mapL
             res.clear()
