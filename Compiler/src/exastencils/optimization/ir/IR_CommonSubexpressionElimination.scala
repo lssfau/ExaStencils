@@ -42,7 +42,7 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
       case l : IR_LoopOverDimensions =>
         val incr = (0 until l.stepSize.length - Knowledge.opt_loopCarriedCSE_skipOuter).view.map { d =>
           l.stepSize(d) match {
-            case IR_IntegerConstant(i) if i > 0 => (IR_FieldIteratorAccess(d).name/*TODO Stefan: y not VA?*/ , l.indices.begin(d), l.indices.end(d), i)
+            case IR_IntegerConstant(i) if i > 0 => (IR_FieldIteratorAccess(d).name, l.indices.begin(d), l.indices.end(d), i)
             case _                              => null
           }
         }.toArray
