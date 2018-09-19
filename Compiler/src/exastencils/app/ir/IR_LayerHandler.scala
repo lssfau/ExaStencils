@@ -215,6 +215,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     // resolve constant IVs before applying poly opt
     IR_ResolveConstIVs.apply()
+    IR_SimplifyFloatExpressions.apply()
     IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.opt_conventionalCSE || Knowledge.opt_loopCarriedCSE) {
