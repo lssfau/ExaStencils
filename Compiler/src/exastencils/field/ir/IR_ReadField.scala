@@ -24,7 +24,7 @@ object IR_ReadField {
   }
 }
 
-case class IR_ReadField(var filename : IR_Expression, var field : IR_FieldSelection, var condition : IR_Expression = true) extends IR_Statement with IR_Expandable {
+case class IR_ReadField(var filename : IR_Expression, var field : IR_FieldSelection, var condition : IR_Expression = true, var includeGhostLayers : Boolean = false) extends IR_Statement with IR_Expandable {
   def numDimsGrid = field.fieldLayout.numDimsGrid
   def numDimsData = field.fieldLayout.numDimsData
 
@@ -61,12 +61,15 @@ case class IR_ReadField(var filename : IR_Expression, var field : IR_FieldSelect
 
     statements += IR_ObjectInstantiation(stream, Duplicate(filename))
 
+    def beginId = if (includeGhostLayers) "GLB" else "DLB"
+    def endId = if (includeGhostLayers) "GRE" else "DRE"
+
     statements +=
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
           IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById("DLB", dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById("DRE", dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
+            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById(beginId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
+            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById(endId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
             IR_IfCondition(condition, read))))
 
     statements += IR_MemberFunctionCall(stream, "close")
