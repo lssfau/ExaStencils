@@ -82,7 +82,7 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< ""
 
     printer <<< mkStringTrimFlat("${BINARY}:", "${ALL_OBJ}" + " " + Settings.makefile_additionalObjFiles.mkString(" "))
-    printer <<< "\t" + mkStringTrimFlat("${CXX} -o ${BINARY}", "${LDFLAGS}", "${ALL_OBJ}", "${LDLIBS}")
+    printer <<< "\t" + mkStringTrimFlat("${CXX} -o ${BINARY}", "${LDFLAGS}", "${ALL_OBJ}", Settings.makefile_additionalObjFiles.mkString(" "), "${LDLIBS}")
     printer <<< ""
 
     if (Settings.makefile_makeLibs) {
