@@ -235,8 +235,8 @@ CUDA_ExaFluids_Bingham  Main CUDA/3D_ExaFluids_NN_CUDA.knowledge CUDA/3D_ExaFlui
 Conv_CSE_SISC_2D_VarCoeff  Main  CSE/2D_VarCoeff_conv.knowledge  *  SISC/2D_VarCoeff.results     4  4
 Conv_CSE_SISC_3D_VarCoeff  Main  CSE/3D_VarCoeff_conv.knowledge  *  SISC/3D_VarCoeff.results     8  4
 
-# only loop carried CSE
-LC_CSE_SISC_2D_VarCoeff    Main  CSE/2D_VarCoeff_lc.knowledge    *  SISC/2D_VarCoeff.results     4  4
+# only loop carried CSE (LC_CSE_SISC_2D_VarCoeff has slightly different results than the original code)
+LC_CSE_SISC_2D_VarCoeff    Main  CSE/2D_VarCoeff_lc.knowledge    *  CSE/2D_VarCoeff.results      4  4
 LC_CSE_SISC_3D_VarCoeff    Main  CSE/3D_VarCoeff_lc.knowledge    *  SISC/3D_VarCoeff.results     8  4
 
 # both conventional and loop carried CSE

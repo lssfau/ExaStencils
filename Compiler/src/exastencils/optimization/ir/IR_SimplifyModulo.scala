@@ -12,44 +12,73 @@ import exastencils.datastructures.Transformation
 import exastencils.logger.Logger
 
 object IR_SimplifyModulo extends DefaultStrategy("simplify modulo expressions") {
-  val collector = new IR_ModuloContextCollector
-  this.register(collector)
+  val modCtxCollector = new IR_ModuloContextCollector
+  val loopExtremaCollector = new IR_LoopExtremaCollector()
+  this.register(modCtxCollector)
+  this.register(loopExtremaCollector)
   this.onBefore = () => this.resetCollectors()
-
-  private val REPLACE_ANNOT = "SimplModRepl"
 
   this += new Transformation("now", {
     case m @ IR_Modulo(num, IR_IntegerConstant(den)) =>
       try {
+        val (omin, omax) =  IR_SimplifyExpression.evalIntegralExtrema(num, loopExtremaCollector.extremaMap)
         val sum : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(num)
+        val update = ListBuffer[() => Unit]() // prevent modifications of sum during its traversal
         for ((exp, coeff) <- sum) {
           exp match {
-            case va @ IR_VariableAccess(n, IR_IntegerDatatype)   =>
-              for ((_, _, incr, init) <- collector.loopStrides.find(_._2 == n))
-                if ((coeff * incr) % den == 0)
-                  va.annotate(REPLACE_ANNOT, init)
+            case IR_VariableAccess(n, IR_IntegerDatatype)   =>
+              for ((_, _, incr, init) <- modCtxCollector.loopStrides.find(_._2 == n))
+                if ((coeff * incr) % den == 0) {
+                  val dupInit = Duplicate(init)
+                  update += { () =>
+                    sum(exp) = 0
+                    sum(dupInit) = sum.getOrElse(dupInit, 0L) + 1
+                  }
+                }
             case IR_Division(divNum, IR_IntegerConstant(divDen)) =>
               val divSum : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(divNum)
+              val updateInner = ListBuffer[() => Unit]() // prevent modifications of divSum during its traversal
               for ((divExp, divCoeff) <- divSum) {
                 divExp match {
-                  case va @ IR_VariableAccess(n, IR_IntegerDatatype) =>
-                    for ((_, _, incr, init) <- collector.loopStrides.find(_._2 == n))
-                      if ((divCoeff * coeff * incr) % (den * divDen) == 0)
-                        va.annotate(REPLACE_ANNOT, init)
+                  case IR_VariableAccess(n, IR_IntegerDatatype) =>
+                    for ((_, _, incr, init) <- modCtxCollector.loopStrides.find(_._2 == n))
+                      if ((divCoeff * coeff * incr) % (den * divDen) == 0) {
+                        val dupInit = Duplicate(init)
+                        updateInner += { () =>
+                          divSum(divExp) = 0
+                          divSum(dupInit) = divSum.getOrElse(dupInit, 0L) + 1
+                        }
+                      }
                   case _                                             =>
+                }
+              }
+              if (!updateInner.isEmpty) { // incorporate changes stored in updateInner
+                for (u <- updateInner)
+                  u()
+                val newExp = IR_SimplifyExpression.recreateExprFromIntSum(divSum)
+                update += { () =>
+                  sum(exp) = 0
+                  sum(newExp) = sum.getOrElse(newExp, 0L) + 1
                 }
               }
             case _                                               =>
           }
         }
-        IR_Modulo(IR_SimplifyExpression.recreateExprFromIntSum(sum), IR_IntegerConstant(den))
+        if (!update.isEmpty) { // incorporate changes stored in update
+          for (u <- update)
+            u()
+          val newNum = IR_SimplifyExpression.recreateExprFromIntSum(sum)
+          val (nmin, nmax) =  IR_SimplifyExpression.evalIntegralExtrema(newNum, loopExtremaCollector.extremaMap)
+          if (math.min(omin, nmin) >= 0 || math.max(omax, nmax) <= 0)
+            IR_Modulo(newNum, IR_IntegerConstant(den)) // we made some modifications and the sign will not change: modifications preserve semantics
+          else
+            m // whoops, sign changed -> semantics changed, use old
+        } else
+          m // no change at all, use old
       } catch {
         case _ : EvaluationException =>
           m
       }
-
-    case n if (n.hasAnnotation(REPLACE_ANNOT)) =>
-      Duplicate(n.removeAnnotation(REPLACE_ANNOT).get).asInstanceOf[IR_Expression]
   })
 }
 

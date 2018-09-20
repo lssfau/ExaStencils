@@ -63,7 +63,7 @@ object Settings {
 
   var poly_explorationConfig : String = ""
 
-  // specifies if the  poly exploration config id should be appended to the output path (only used if Knowledge.poly_scheduleAlgorithm == "exploration")
+  // specifies if the poly exploration config ids should be appended to the output path (one after the other)
   var poly_exploration_appendID2path : Boolean = true
 
   /// output

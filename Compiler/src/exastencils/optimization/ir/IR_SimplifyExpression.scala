@@ -176,12 +176,14 @@ object IR_SimplifyExpression {
       throw EvaluationException("only constant divisor allowed yet")
     val divs : Long = tmp(constName)
     tmp.clear()
-    // optimization below is allowed if division is floord, or if l is either >= 0 or <= 0
+    // optimization below is allowed if division is floord, or if the sign of l does not change, both before and after the optimization
     var changeSign : Boolean = true
+    var sign : Long = 0
     if (extremaMap != null) {
       try {
         val (lo : Long, up : Long) = evalIntegralExtrema(l, extremaMap)
-        changeSign = math.signum(lo) * math.signum(up) < 0
+        changeSign = lo < 0 && up > 0
+        sign = if (lo != 0) lo else up // only the sign is relevant, ignore 0
       } catch {
         case _ : EvaluationException =>
       }
@@ -200,6 +202,22 @@ object IR_SimplifyExpression {
         tmp(constName) = cstMod
         res(constName) = cstRes
       }
+      // check if optimization was allowed (sign of new min and max is identical, ignoring 0)
+      if (!floor)
+        try {
+          val (lo : Long, up : Long) = evalIntegralExtrema(recreateExprFromIntSum(tmp), extremaMap)
+          val newSign : Long = if (lo != 0) lo else up // only the sign is relevant, ignore 0
+          if (lo < 0 && up > 0) { // optimization was NOT allowed, revert
+            tmp = mapL
+            res.clear()
+            // check if optimization moved range from positive to negative, or vice versa: if so, adapt rounding direction
+          } else if (sign < 0 && newSign > 0) // previous rounding direction: towards +inf
+            tmp(constName) = tmp.getOrElse(constName, 0L) + (divs - 1)
+          else if (newSign < 0 && sign > 0) // previous rounding direction: towards -inf
+            tmp(constName) = tmp.getOrElse(constName, 0L) - (divs - 1)
+        } catch {
+          case _ : EvaluationException =>
+        }
     } else
       tmp = mapL
     val dividend = recreateExprFromIntSum(tmp)
@@ -385,7 +403,7 @@ object IR_SimplifyExpression {
         else {
           if (max != null)
             exprs += IR_IntegerConstant(max)
-          res(IR_Minimum(exprs)) = 1L
+          res(IR_Maximum(exprs)) = 1L
         }
 
       case scalarIV : IR_InternalVariable if scalarIV.resolveDatatype().isInstanceOf[IR_ScalarDatatype] =>
@@ -445,7 +463,9 @@ object IR_SimplifyExpression {
 
     // use distributive property
     val reverse = new HashMap[Long, (ListBuffer[IR_Expression], ListBuffer[IR_Expression])]()
+
     def empty = (new ListBuffer[IR_Expression](), new ListBuffer[IR_Expression]())
+
     for ((njuExpr : IR_Expression, value : Long) <- sumSeq)
       if (value > 0L)
         reverse.getOrElseUpdate(value, empty)._1 += njuExpr
@@ -456,6 +476,7 @@ object IR_SimplifyExpression {
     val negSums = new ListBuffer[IR_Expression]()
 
     def toExpr(sum : ListBuffer[IR_Expression]) = if (sum.length == 1) sum.head else new IR_Addition(sum)
+
     for ((value : Long, (pSums : ListBuffer[IR_Expression], nSums : ListBuffer[IR_Expression])) <- reverse.toSeq.sortBy(t => t._1).reverse)
       if (value == 1L) {
         posSums ++= pSums
@@ -593,6 +614,7 @@ object IR_SimplifyExpression {
       case call : IR_FunctionCall =>
         if (call.name.contains("std::rand")) // HACK
           throw EvaluationException("don't optimize code containing a call to std::rand")
+
         def simplifyFloatingArgs(pars : Seq[IR_Datatype]) : Unit = {
           call.arguments =
             pars.view.zip(call.arguments).map {
@@ -602,6 +624,7 @@ object IR_SimplifyExpression {
                 arg
             }.to[ListBuffer]
         }
+
         if (IR_MathFunctions.signatures.contains(call.name))
           simplifyFloatingArgs(IR_MathFunctions.signatures(call.name)._1)
         else for (func <- StateManager.findFirst({ f : IR_Function => f.name == call.name }))
@@ -790,7 +813,9 @@ object IR_SimplifyExpression {
 
     // use distributive property
     val reverse = new HashMap[Double, (ListBuffer[IR_Expression], ListBuffer[IR_Expression])]()
+
     def empty = (new ListBuffer[IR_Expression](), new ListBuffer[IR_Expression]())
+
     for ((njuExpr : IR_Expression, value : Double) <- sumSeq)
       if (value > 0d)
         reverse.getOrElseUpdate(value, empty)._1 += njuExpr
@@ -801,6 +826,7 @@ object IR_SimplifyExpression {
     val negSums = new ListBuffer[IR_Expression]()
 
     def toExpr(sum : ListBuffer[IR_Expression]) = if (sum.length == 1) sum.head else new IR_Addition(sum)
+
     for ((value : Double, (pSums : ListBuffer[IR_Expression], nSums : ListBuffer[IR_Expression])) <- reverse.toSeq.sortBy(t => t._1).reverse)
       if (value == 1d) {
         posSums ++= pSums

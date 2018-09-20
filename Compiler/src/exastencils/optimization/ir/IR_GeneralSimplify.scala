@@ -52,14 +52,14 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
         negMatches.incrementAndGet()
       nju
 
-    case mult : IR_Multiplication =>
-      val nju = simplifyMult(mult.factors)
+    case mult @ IR_Multiplication(facs) =>
+      val nju = simplifyMult(facs, false)
       if (nju == mult)
         negMatches.incrementAndGet()
       nju
 
     case old @ IR_Negative(IR_Multiplication(facs)) =>
-      val nju = simplifyMult(facs.clone() += IR_IntegerConstant(-1L))
+      val nju = simplifyMult(facs, true)
       if (nju == old)
         negMatches.incrementAndGet()
       nju
@@ -295,8 +295,19 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     }
   }
 
-  private def simplifyMult(facs : Seq[IR_Expression]) : IR_Expression = {
-    var intCst : Long = 1L
+  private def simplifyMult(facs : ListBuffer[IR_Expression], negate : Boolean) : IR_Expression = {
+    // specialized simplification: (c/X) * (... + X*e + ...)  ->  c*e + (c/x) * (... + ...)
+    // used for smoothers with variable coefficients
+    var res : IR_Expression = null
+    facs match {
+      case ListBuffer(IR_Division(n, d), e) => res = cancelDownSummands(n, d, e)
+      case ListBuffer(e, IR_Division(n, d)) => res = cancelDownSummands(n, d, e)
+      case _                                =>
+    }
+    if (res != null)
+      return if (negate) IR_Negative(res) else res
+
+    var intCst : Long = if (negate) -1L else 1L
     var floatCst : Double = 1d
     val workQ = new Queue[IR_Expression]()
     val remA = new ArrayBuffer[IR_Expression]() // use ArrayBuffer here for a more efficient access to the last element
@@ -388,6 +399,50 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     if (negative)
       result = IR_Negative(result)
     result
+  }
+
+  // specialized simplification: (c/X) * (... + X*e + ...)  ->  c*e + (c/x) * (... + ...)
+  private def cancelDownSummands(num : IR_Expression, div : IR_Expression, expr : IR_Expression) : IR_Addition = {
+    if (div.isInstanceOf[IR_IntegerConstant] || div.isInstanceOf[IR_FloatConstant])
+      return null // constant divisiors will be simplified elsewhere
+    val (orig, canc) = cancelDown(expr, div)
+    if (!canc.isEmpty)
+      IR_Addition(ListBuffer[IR_Expression](
+        IR_Multiplication(num, IR_Addition(canc)),
+        IR_Multiplication(IR_Division(num, div), IR_Addition(orig))))
+    else
+      null
+  }
+
+  private def cancelDown(expr : IR_Expression, div : IR_Expression) : (ListBuffer[IR_Expression], ListBuffer[IR_Expression]) = {
+    val original = ListBuffer[IR_Expression]()
+    val canceled = ListBuffer[IR_Expression]()
+    expr match {
+      case _ if expr == div                          =>
+        canceled += IR_IntegerConstant(1L)
+      case IR_Multiplication(fs) if fs.contains(div) =>
+        canceled += IR_Multiplication(fs.filter(_ != div))
+      case IR_Addition(sum)                          =>
+        for (s <- sum) {
+          val r = cancelDown(s, div)
+          original ++= r._1
+          canceled ++= r._2
+        }
+      case IR_Negative(e)                            =>
+        val r = cancelDown(e, div)
+        original ++= r._1.view.map(IR_Negative)
+        canceled ++= r._2.view.map(IR_Negative)
+      case IR_Subtraction(pos, neg)                  =>
+        val rp = cancelDown(pos, div)
+        original ++= rp._1
+        canceled ++= rp._2
+        val rn = cancelDown(neg, div)
+        original ++= rn._1.view.map(IR_Negative)
+        canceled ++= rn._2.view.map(IR_Negative)
+      case _                                         =>
+        original += expr
+    }
+    (original, canceled)
   }
 
   private def simplifyBinMult(le : IR_Expression, ri : IR_Expression) : Seq[IR_Expression] = {

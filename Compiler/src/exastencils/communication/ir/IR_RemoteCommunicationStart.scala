@@ -23,12 +23,13 @@ case class IR_RemoteCommunicationStart(
     var neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)],
     var start : Boolean, var end : Boolean,
     var concurrencyId : Int,
-    var insideFragLoop : Boolean, var condition : Option[IR_Expression]) extends IR_RemoteCommunication {
+    var insideFragLoop : Boolean,
+    var condition : Option[IR_Expression]) extends IR_RemoteCommunication {
 
   override def genCopy(neighbor : NeighborInfo, indices : IR_ExpressionIndexRange, addCondition : Boolean) : IR_Statement = {
     if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(field, indices, condition) && IR_SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)) {
-      val body = IR_CopyToSendBuffer(Duplicate(field), neighbor, indices, concurrencyId, condition)
-      if (addCondition) wrapCond(neighbor, ListBuffer[IR_Statement](body)) else body
+      val body = IR_CopyToSendBuffer(Duplicate(field), Duplicate(neighbor), Duplicate(indices), concurrencyId, Duplicate(condition))
+      if (addCondition) wrapCond(Duplicate(neighbor), ListBuffer[IR_Statement](body)) else body
     } else {
       IR_NullStatement
     }
@@ -36,7 +37,7 @@ case class IR_RemoteCommunicationStart(
 
   override def genTransfer(neighbor : NeighborInfo, indices : IR_ExpressionIndexRange, addCondition : Boolean) : IR_Statement = {
     val body = {
-      val maxCnt = indices.getTotalSize
+      val maxCnt = Duplicate(indices).getTotalSize
       val cnt = if (condition.isDefined)
         IR_IV_CommBufferIterator(field.field, s"Send_${ concurrencyId }", neighbor.index)
       else
@@ -44,22 +45,22 @@ case class IR_RemoteCommunicationStart(
       if (!Knowledge.data_genVariableFieldSizes && IR_SimplifyExpression.evalIntegral(maxCnt) <= 0) {
         IR_NullStatement // nothing to do for empty data ranges
       } else if (!Knowledge.data_genVariableFieldSizes && (condition.isEmpty && 1 == IR_SimplifyExpression.evalIntegral(maxCnt))) {
-        val arrayAccess = IR_DirectFieldAccess(field, indices.begin).linearize.expand().inner
+        val arrayAccess = IR_DirectFieldAccess(Duplicate(field), Duplicate(indices.begin)).linearize.expand().inner
         val offsetAccess = IR_PointerOffset(arrayAccess.base, arrayAccess.index)
-        IR_RemoteSend(Duplicate(field), neighbor, offsetAccess, 1, IR_RealDatatype, concurrencyId)
+        IR_RemoteSend(Duplicate(field), Duplicate(neighbor), offsetAccess, 1, IR_RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(field, indices, condition)) {
-        val arrayAccess = IR_DirectFieldAccess(field, indices.begin).linearize.expand().inner
+        val arrayAccess = IR_DirectFieldAccess(Duplicate(field), Duplicate(indices.begin)).linearize.expand().inner
         val offsetAccess = IR_PointerOffset(arrayAccess.base, arrayAccess.index)
-        IR_RemoteSend(Duplicate(field), neighbor, offsetAccess, 1, MPI_DataType(field, indices, condition), concurrencyId)
+        IR_RemoteSend(Duplicate(field), Duplicate(neighbor), offsetAccess, 1, MPI_DataType(Duplicate(field), Duplicate(indices), Duplicate(condition)), concurrencyId)
       } else {
-        IR_RemoteSend(Duplicate(field), neighbor, IR_IV_CommBuffer(field.field, s"Send_${ concurrencyId }", Duplicate(maxCnt), neighbor.index), cnt, IR_RealDatatype, concurrencyId)
+        IR_RemoteSend(Duplicate(field), Duplicate(neighbor), IR_IV_CommBuffer(field.field, s"Send_${ concurrencyId }", Duplicate(maxCnt), neighbor.index), cnt, IR_RealDatatype, concurrencyId)
       }
     }
-    if (addCondition) wrapCond(neighbor, ListBuffer[IR_Statement](body)) else body
+    if (addCondition) wrapCond(Duplicate(neighbor), ListBuffer[IR_Statement](body)) else body
   }
 
   def genWait(neighbor : NeighborInfo) : IR_Statement = {
-    IR_WaitForRemoteTransfer(Duplicate(field), neighbor, s"Send_${ concurrencyId }")
+    IR_WaitForRemoteTransfer(Duplicate(field), Duplicate(neighbor), s"Send_${ concurrencyId }")
   }
 
   override def expand() : Output[StatementList] = {

@@ -33,7 +33,7 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
   def genPrint(timers : HashMap[String, IR_IV_Timer]) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    val stride : IR_Expression = if (Knowledge.mpi_enabled && Knowledge.l3tmp_printTimersToFileForEachRank) "mpiIt" else 0
+    def stride : IR_Expression = if (Knowledge.mpi_enabled && Knowledge.l3tmp_printTimersToFileForEachRank) "mpiIt" else 0
 
     var it = 0
     val sep = "\"" + Settings.csvSeparatorEscaped() + "\""

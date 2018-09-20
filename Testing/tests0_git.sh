@@ -66,7 +66,7 @@ function error {
   echo "${1}" >> "${PROGRESS}"
   echo "" >> "${PROGRESS}"
   echo "" >> "${PROGRESS}"
-  cat "${TMP_OUT_FILE}"  >> "${PROGRESS}"
+  sed "s|href=../|href=|" "${TMP_OUT_FILE}"  >> "${PROGRESS}"
   echo "" >> "${PROGRESS}"
   echo "</div></body></html>" >> "${PROGRESS}"
   exit 1

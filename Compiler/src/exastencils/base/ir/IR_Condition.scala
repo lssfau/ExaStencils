@@ -20,11 +20,17 @@ case class IR_IfCondition(var condition : IR_Expression, var trueBody : ListBuff
   override def prettyprint(out : PpStream) : Unit = {
     out << "if (" << condition << ") {\n"
     out <<< (trueBody, "\n") << '\n'
-    if (falseBody.nonEmpty) {
-      out << "} else {\n"
-      out <<< (falseBody, "\n") << '\n'
-    }
     out << '}'
+    falseBody match {
+      case ListBuffer() =>
+        // nothing
+      case ListBuffer(c : IR_IfCondition) =>
+        out << " else " << c // print "else if"
+      case _ =>
+        out << " else {\n"
+        out <<< (falseBody, "\n") << '\n'
+        out << '}'
+    }
   }
 }
 
