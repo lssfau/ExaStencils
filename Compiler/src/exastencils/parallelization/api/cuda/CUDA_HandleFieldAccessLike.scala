@@ -74,7 +74,8 @@ object CUDA_GatherFieldAccessLike extends QuietDefaultStrategy("Gather local Fie
 /// CUDA_ReplaceFieldAccessLike
 
 object CUDA_ReplaceFieldAccessLike extends QuietDefaultStrategy("Replace local FieldAccessLike nodes for shared memory") {
-  var fieldToOffset = IR_ExpressionIndex()
+  var fieldToOffset = ""
+  var fieldOffset = IR_ExpressionIndex()
   var offsetForSharedMemoryAccess = 0L
   var sharedArrayStrides = Array[Long]()
   var executionDim = 0
@@ -98,9 +99,9 @@ object CUDA_ReplaceFieldAccessLike extends QuietDefaultStrategy("Replace local F
   }
 
   this += new Transformation("Searching", {
-    case access : IR_MultiDimFieldAccess =>
+    case access : IR_MultiDimFieldAccess if fieldToOffset == extractIdentifier(access) =>
       val identifier = extractIdentifier(access)
-      val deviation = (IR_ExpressionIndex(access.getAnnotation(CUDA_Kernel.ConstantIndexPart).get.asInstanceOf[Array[Long]]) - fieldToOffset).indices
+      val deviation = (IR_ExpressionIndex(access.getAnnotation(CUDA_Kernel.ConstantIndexPart).get.asInstanceOf[Array[Long]]) - fieldOffset).indices
 
       if (applySpatialBlocking && deviation.take(executionDim).forall(x => IR_SimplifyExpression.evalIntegral(x) == 0)) {
         IR_SimplifyExpression.evalIntegral(deviation(executionDim)) match {
@@ -110,7 +111,7 @@ object CUDA_ReplaceFieldAccessLike extends QuietDefaultStrategy("Replace local F
           case y if 0L to -offsetForSharedMemoryAccess by -1 contains y => IR_VariableAccess("behind" + math.abs(y), access.datatype)
         }
       } else {
-        new CUDA_SharedArrayAccess(IR_VariableAccess(CUDA_Kernel.KernelVariablePrefix + identifier, IR_PointerDatatype(access.fieldSelection.field.resolveDeclType)), (access.index - fieldToOffset).indices.take(executionDim).reverse, IR_ExpressionIndex(sharedArrayStrides))
+        new CUDA_SharedArrayAccess(IR_VariableAccess(CUDA_Kernel.KernelVariablePrefix + identifier, IR_PointerDatatype(access.fieldSelection.field.resolveDeclType)), (access.index - fieldOffset).indices.take(executionDim).reverse, IR_ExpressionIndex(sharedArrayStrides))
       }
   })
 }

@@ -416,7 +416,8 @@ case class CUDA_Kernel(var identifier : String,
           val it = IR_DimToString(dim)
 
           // 7.1 Check if current thread resides on the left border in any dimension
-          val condition = IR_OrOr(IR_Lower(IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it), leftDeviations(field)(dim)), IR_EqEq(globalThreadId(dim), s"${ KernelVariablePrefix }begin_$dim"))
+          //val condition = IR_OrOr(IR_Lower(IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it), leftDeviations(field)(dim)), IR_EqEq(globalThreadId(dim), s"${ KernelVariablePrefix }begin_$dim"))
+          val condition = 0 EqEq IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it)
           val conditionBody = ListBuffer[IR_Statement]()
 
           // 7.2 Calculate the offset from the left to the right border of the actual field
@@ -485,7 +486,8 @@ case class CUDA_Kernel(var identifier : String,
     // replace FieldAccess nodes in body with shared memory accesses
     if (smemCanBeUsed) {
       fieldNames.foreach(field => {
-        CUDA_ReplaceFieldAccessLike.fieldToOffset = fieldOffset(field)
+        CUDA_ReplaceFieldAccessLike.fieldToOffset = field
+        CUDA_ReplaceFieldAccessLike.fieldOffset = fieldOffset(field)
         CUDA_ReplaceFieldAccessLike.offsetForSharedMemoryAccess = leftDeviation(field)
         CUDA_ReplaceFieldAccessLike.sharedArrayStrides = sharedArraySize(field)
         CUDA_ReplaceFieldAccessLike.executionDim = executionDim
