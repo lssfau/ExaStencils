@@ -236,7 +236,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       val hostStmts = ListBuffer[IR_Statement]()
       val deviceStmts = ListBuffer[IR_Statement]()
 
-      // every LoopOverDimensions statement is potentially worse to transform in CUDA code
+      // every LoopOverDimensions statement is potentially worth to transform in CUDA code
       // Exceptions:
       // 1. this loop is a special one and cannot be optimized in polyhedral model
       // 2. this loop has no parallel potential
