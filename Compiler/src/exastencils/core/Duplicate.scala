@@ -18,7 +18,7 @@ object Duplicate {
   private val multiplicationCloner = new com.rits.cloning.Cloner
   multiplicationCloner.setDumpClonedClasses(Settings.printClonedObjects)
 
-  val debug = true
+  val debug = false
 
   def apply[T <: AnyRef](t : T) : T = {
     val cloned = cloner.deepClone(t)
