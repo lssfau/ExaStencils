@@ -6,16 +6,21 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
+import exastencils.core.ObjectWithState
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_MathFunctions
 
 /// SIMD_MathFunctions
 
-object SIMD_MathFunctions {
+object SIMD_MathFunctions extends ObjectWithState {
 
   private val functionNameMapping = new HashMap[String, String]()
-  private lazy val functions = IR_UserFunctions.get // there must be a IR_UserFunctions object
+  private def functions = IR_UserFunctions.get // there must be a IR_UserFunctions object
+
+  override def clear = {
+    functionNameMapping.clear()
+  }
 
   def isAllowed(func : String) : Boolean = {
     IR_MathFunctions.signatures.contains(func)
