@@ -18,21 +18,14 @@ object Duplicate {
   private val multiplicationCloner = new com.rits.cloning.Cloner
   multiplicationCloner.setDumpClonedClasses(Settings.printClonedObjects)
 
-  val debug = true
+  val debug = false
 
-  def apply[T](t : T) : T = {
+  def apply[T <: AnyRef](t : T) : T = {
     val cloned = cloner.deepClone(t)
 
     // check for objects that are not cloned
-    if (debug)
-      t match {
-        // TODO: more generic way
-        case _ : L2_KnowledgeObject[_] => Logger.warn("Fruitless call to Duplicate.apply for instance of type " + t.getClass)
-        case _ : L3_KnowledgeObject[_] => Logger.warn("Fruitless call to Duplicate.apply for instance of type " + t.getClass)
-        case _ : L4_KnowledgeObject[_] => Logger.warn("Fruitless call to Duplicate.apply for instance of type " + t.getClass)
-        case _ : IR_KnowledgeObject    => Logger.warn("Fruitless call to Duplicate.apply for instance of type " + t.getClass)
-        case _                         =>
-      }
+    if (debug && (t eq cloned))
+      Logger.warn("Fruitless call to Duplicate.apply for instance of type " + t.getClass)
 
     cloned
   }
@@ -44,21 +37,14 @@ object Duplicate {
     * @param n The number of clones to be created.
     * @return A [[scala.collection.immutable.List]] holding the cloned instances.
     */
-  def apply[T](t : T, n : Int) : List[T] = List.fill(n)(this (t))
+  def apply[T <: AnyRef](t : T, n : Int) : List[T] = List.fill(n)(this (t))
 
-  def withMultiplication[T](t : T) : T = {
+  def withMultiplication[T <: AnyRef](t : T) : T = {
     val cloned = multiplicationCloner.deepCloneWithMultiplication(t)
 
     // check for objects that are not cloned
-    if (debug)
-      t match {
-        // TODO: more generic way
-        case _ : L2_KnowledgeObject[_] => Logger.warn("Fruitless call to Duplicate.apply for instance of type " + t.getClass)
-        case _ : L3_KnowledgeObject[_] => Logger.warn("Fruitless call to Duplicate.apply for instance of type " + t.getClass)
-        case _ : L4_KnowledgeObject[_] => Logger.warn("Fruitless call to Duplicate.apply for instance of type " + t.getClass)
-        case _ : IR_KnowledgeObject    => Logger.warn("Fruitless call to Duplicate.apply for instance of type " + t.getClass)
-        case _                         =>
-      }
+    if (debug && (t eq cloned))
+      Logger.warn("Fruitless call to Duplicate.apply for instance of type " + t.getClass)
 
     cloned
   }
