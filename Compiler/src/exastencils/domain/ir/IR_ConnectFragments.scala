@@ -128,6 +128,6 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
       }
     }
 
-    IR_LoopOverFragments(body, IR_ParallelizationInfo.PotentiallyParallel())
+    IR_LoopOverFragments(body, IR_ParallelizationInfo(potentiallyParallel = true))
   }
 }

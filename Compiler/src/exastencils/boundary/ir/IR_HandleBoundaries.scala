@@ -152,7 +152,7 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
           loopOverDims.parallelization.potentiallyParallel = true
           loopOverDims.polyOptLevel = 1
           IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : IR_Statement
-        }))), IR_ParallelizationInfo.PotentiallyParallel())
+        }))), IR_ParallelizationInfo(potentiallyParallel = true))
   }
 
   override def expand() : Output[IR_Statement] = {

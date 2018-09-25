@@ -688,7 +688,7 @@ abstract class IR_IV_AbstractLoopCarriedCSBuffer(var namePostfix : String, var f
       val begin = IR_VariableDeclaration(IR_IntegerDatatype, IR_LoopOverDimensions.threadIdxName, IR_IntegerConstant(0))
       val end = IR_Lower(IR_VariableAccess(IR_LoopOverDimensions.threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
       val inc = IR_PreIncrement(IR_VariableAccess(IR_LoopOverDimensions.threadIdxName, IR_IntegerDatatype))
-      wrappedBody = IR_ForLoop(begin, end, inc, ListBuffer(wrappedBody), IR_ParallelizationInfo.PotentiallyParallel())
+      wrappedBody = IR_ForLoop(begin, end, inc, ListBuffer(wrappedBody), IR_ParallelizationInfo(potentiallyParallel = true))
     }
     wrappedBody
   }

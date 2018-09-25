@@ -37,7 +37,7 @@ case class IR_InitFieldsWithZero() extends IR_FuturePlainFunction {
 
       val wrapped = IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index), loopOverDims),
-        IR_ParallelizationInfo.PotentiallyParallel())
+        IR_ParallelizationInfo(potentiallyParallel = true))
 
       if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
         statements += IR_Scope(wrapped)
