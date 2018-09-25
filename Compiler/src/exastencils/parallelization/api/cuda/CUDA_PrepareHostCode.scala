@@ -11,6 +11,7 @@ import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
+import exastencils.util.NoDuplicateWrapper
 import exastencils.util.ir.IR_FctNameCollector
 
 /// CUDA_PrepareHostCode
@@ -126,26 +127,23 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     (beforeHost, afterHost, beforeDevice, afterDevice)
   }
 
-  def addHostDeviceBranching(hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement], loop : IR_LoopOverDimensions, earlyExit : Boolean) : ListBuffer[IR_Statement] = {
-    if (earlyExit) {
-      hostStmts
-    } else {
-      /// compile final switch
-      val defaultChoice : IR_Expression = Knowledge.cuda_preferredExecution match {
-        case "Host"        => 1 // CPU by default
-        case "Device"      => 0 // GPU by default
-        case "Performance" => if (loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] > loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) 0 else 1 // decide according to performance estimates
-        case "Condition"   => Knowledge.cuda_executionCondition
-      }
-
-      ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))
+  def getBranch(condWrapper : NoDuplicateWrapper[IR_Expression], loop : IR_LoopOverDimensions, hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
+    condWrapper.value = Knowledge.cuda_preferredExecution match {
+      case "Host"        => IR_BooleanConstant(true) // CPU by default
+      case "Device"      => IR_BooleanConstant(false) // GPU by default
+      case "Performance" => IR_BooleanConstant(loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] <= loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) // decide according to performance estimates
+      case "Condition"   => Knowledge.cuda_executionCondition
     }
+    // set dummy first to prevent IR_GeneralSimplify from removing the branch statement until the condition is final
+    val branch = IR_IfCondition(IR_VariableAccess("replaceIn_CUDA_AnnotateLoops", IR_BooleanDatatype), hostStmts, deviceStmts)
+    branch.annotate(CUDA_Util.CUDA_BRANCH_CONDITION, condWrapper)
+    ListBuffer[IR_Statement](branch)
   }
 
   this += new Transformation("Process ContractingLoop and LoopOverDimensions nodes", {
     case cl : IR_ContractingLoop =>
-      var hostStmts = new ListBuffer[IR_Statement]()
-      var deviceStmts = new ListBuffer[IR_Statement]()
+      val hostStmts = new ListBuffer[IR_Statement]()
+      val deviceStmts = new ListBuffer[IR_Statement]()
       val fieldOffset = new mutable.HashMap[(String, Int), Int]()
       val fields = new mutable.HashMap[(String, Int), IR_Field]()
       var hostCondStmt : IR_IfCondition = null
@@ -177,6 +175,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       hostStmts ++= beforeHost
       deviceStmts ++= beforeDevice
 
+      val condWrapper = NoDuplicateWrapper[IR_Expression](null)
       // resolve contracting loop
       for (i <- 1 to cl.number)
         for (stmt <- cl.body)
@@ -203,7 +202,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
                   if (isParallel) {
                     val njuCuda = Duplicate(nju)
-                    njuCuda.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, collector.getCurrentName)
+                    njuCuda.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, condWrapper)
                     deviceCondStmt.trueBody += njuCuda
                   }
                 case _                                     =>
@@ -215,15 +214,16 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
               if (isParallel) {
                 val loopCuda = Duplicate(loop)
-                loopCuda.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, collector.getCurrentName)
+                loopCuda.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, condWrapper)
                 deviceStmts += loopCuda
               }
           }
 
       hostStmts ++= afterHost
       deviceStmts ++= afterDevice
+      // lists are already added to branch
 
-      val res = addHostDeviceBranching(hostStmts, deviceStmts, containedLoop, !isParallel)
+      val res = if (isParallel) getBranch(condWrapper, containedLoop, hostStmts, deviceStmts) else hostStmts
 
       for ((fKey, offset) <- fieldOffset) {
         val field = fields(fKey)
@@ -250,9 +250,10 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       deviceStmts ++= beforeDevice
 
       hostStmts += loop
+      val condWrapper = NoDuplicateWrapper[IR_Expression](null)
       if (isParallel) {
         val loopCuda = Duplicate(loop)
-        loopCuda.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, collector.getCurrentName)
+        loopCuda.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, condWrapper)
         loopCuda.polyOptLevel = math.min(2, loopCuda.polyOptLevel) // do not perform a tiling!
         //loopCuda.polyOptLevel = 0 // is there a way to create only perfectly nested loops using the isl? (check with correction code) - should be fixed now
         deviceStmts += loopCuda
@@ -260,7 +261,8 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
       hostStmts ++= afterHost
       deviceStmts ++= afterDevice
+      // lists are already added to branch
 
-      addHostDeviceBranching(hostStmts, deviceStmts, loop, !isParallel)
+      if (isParallel) getBranch(condWrapper, loop, hostStmts, deviceStmts) else hostStmts
   }, false)
 }

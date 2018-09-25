@@ -16,6 +16,7 @@ object CUDA_Util {
   val CUDA_BAND_PART = "CUDABandPart"
   val CUDA_INNER = "CUDAInner"
   val CUDA_BODY_DECL = "CUDABodyDeclarations"
+  val CUDA_BRANCH_CONDITION = "CUDABranchCond"
 
   /**
     * Check if the loop meets some basic conditions for transforming a ForLoopStatement into CUDA code.

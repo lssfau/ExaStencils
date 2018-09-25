@@ -4,9 +4,11 @@ import scala.collection._
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
+import exastencils.util.NoDuplicateWrapper
 import exastencils.util.ir.IR_FctNameCollector
 
 /// CUDA_AnnotateLoop
@@ -86,8 +88,10 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
     *
     * @param extremaMap the map containing the extrema values for the loop iterators
     * @param loop       the loop to traverse
+    * @return if the given loop or any nested one can be executed on the device
     */
-  def updateLoopAnnotations(extremaMap : mutable.HashMap[String, (Long, Long)], loop : IR_ForLoop, bodyDecl : ListBuffer[IR_Statement] = ListBuffer[IR_Statement]()) : Unit = {
+  def updateLoopAnnotations(extremaMap : mutable.HashMap[String, (Long, Long)], loop : IR_ForLoop, bodyDecl : ListBuffer[IR_Statement] = ListBuffer[IR_Statement]()) : Boolean = {
+    var anyDeviceCode : Boolean = false
     if (CUDA_Util.verifyCudaLoopSuitability(loop)) {
       try {
         val (loopVariables, lowerBounds, upperBounds, _) = CUDA_Util.extractRelevantLoopInformation(ListBuffer(loop))
@@ -103,25 +107,35 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
           val innerLoops : ListBuffer[IR_ForLoop] = loop.body.filter(x => x.isInstanceOf[IR_ForLoop]).asInstanceOf[ListBuffer[IR_ForLoop]]
 
           // if there is no more inner loop and a band start is not found, add the body declarations to this loop
-          if (innerLoops.nonEmpty) {
-            innerLoops.foreach(updateLoopAnnotations(extremaMap, _))
-          } else {
+          if (innerLoops.nonEmpty)
+            for (il <- innerLoops)
+              anyDeviceCode = updateLoopAnnotations(extremaMap, il) || anyDeviceCode
+          else
             loop.annotate(CUDA_Util.CUDA_BODY_DECL, bodyDecl)
-          }
-
         }
       } catch {
         case e : EvaluationException =>
           Logger.warning(s"""Error while searching for band start! Failed to calculate bounds extrema: '${ e.msg }'""")
       }
     }
+    anyDeviceCode
   }
 
   this += new Transformation("Processing ForLoopStatement nodes", {
     case loop : IR_ForLoop if loop.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) =>
-      loop.removeAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION)
-      updateLoopAnnotations(mutable.HashMap[String, (Long, Long)](), loop)
-      loop
+      val condWrapper = loop.removeAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION).get.asInstanceOf[NoDuplicateWrapper[IR_Expression]]
+      val device = updateLoopAnnotations(mutable.HashMap[String, (Long, Long)](), loop)
+      if (device)
+        loop
+      else {
+        condWrapper.value = IR_BooleanConstant(true) // no CUDA version -> enforce host
+        IR_Assert(IR_BooleanConstant(false),
+          ListBuffer(IR_StringConstant("missing CUDA code: loop is sequential")),
+          IR_ExpressionStatement(if (Knowledge.mpi_enabled)
+            IR_FunctionCall("MPI_Abort", IR_VariableAccess("MPI_COMM_WORLD", IR_IntegerDatatype), IR_IntegerConstant(1))
+          else
+            IR_FunctionCall("exit", IR_IntegerConstant(1))))
+      }
     case scope : IR_Scope if scope.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) =>
       scope.removeAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION)
 
@@ -135,6 +149,12 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
         case _                                             =>
           scope
       }
+  }, false)
+
+  this += new Transformation("Set final condition for host/device selection", {
+    case c : IR_IfCondition if c.hasAnnotation(CUDA_Util.CUDA_BRANCH_CONDITION) =>
+      c.condition = c.removeAnnotation(CUDA_Util.CUDA_BRANCH_CONDITION).get.asInstanceOf[NoDuplicateWrapper[IR_Expression]].value
+      c
   }, false)
 
   /// CUDA_GatherLoopIteratorUsage
