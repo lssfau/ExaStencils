@@ -567,6 +567,9 @@ object Knowledge {
   // eliminate occurrences of cudaContext - required for PizDaint
   var experimental_eliminateCudaContext : Boolean = false
 
+  // generate cuda kernels independently of them being parallel or not
+  var experimental_cuda_generateKernelForNonParallel : Boolean = false
+
   // control inlining of value declarations on applicable layers
   var experimental_l1_inlineValueDeclarations : Boolean = false
   var experimental_l2_inlineValueDeclarations : Boolean = false
