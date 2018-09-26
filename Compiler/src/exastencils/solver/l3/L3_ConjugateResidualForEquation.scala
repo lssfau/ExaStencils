@@ -57,7 +57,7 @@ object L3_ConjugateResidualForEquation extends L3_IterativeSolverForEquation {
     stmts += L3_VariableDeclaration(curRes, callResNorm)
     stmts += L3_VariableDeclaration(initRes, curRes)
 
-    stmts += L3_IfCondition(curRes EqEq 0.0, L3_Return(None))
+    stmts += L3_IfCondition(curRes <= Knowledge.solver_cgs_absResThreshold, L3_Return(None))
 
     entries.foreach(entry =>
       stmts += L3_Assignment(L3_FieldAccess(p(entry)), L3_FieldAccess(entry.resPerLevel(level))))
@@ -77,6 +77,15 @@ object L3_ConjugateResidualForEquation extends L3_IterativeSolverForEquation {
     stmts += L3_VariableDeclaration(curStep, 0)
 
     val loopStmts = ListBuffer[L3_Statement]()
+
+    if (Knowledge.solver_cgs_restart) {
+      loopStmts += L3_IfCondition((curStep > 0) AndAnd (0 EqEq (curStep Mod Knowledge.solver_cgs_restartAfter)),
+        entries.map(_.generateUpdateRes(level)) ++
+          entries.map(entry => L3_Assignment(L3_FieldAccess(p(entry)), L3_FieldAccess(entry.resPerLevel(level)))) ++
+          entries.map(entry => generateOperatorApplication(ap(entry), entry.getEq(level).lhs, p, entries, entry, level)) ++
+          entries.map(entry => generateOperatorApplication(ar(entry), entry.getEq(level).lhs, resFieldMap, entries, entry, level))
+      )
+    }
 
     // alpha calculation
     def alphaNom(entry : L3_SolverForEqEntry) =
@@ -108,7 +117,8 @@ object L3_ConjugateResidualForEquation extends L3_IterativeSolverForEquation {
     }
     returnStmts += L3_Return(None)
 
-    loopStmts += L3_IfCondition(L3_LowerEqual(nextRes, Knowledge.solver_cgs_targetResReduction * initRes), returnStmts, ListBuffer())
+    loopStmts += L3_IfCondition((nextRes <= Knowledge.solver_cgs_targetResReduction * initRes)
+      OrOr (nextRes <= Knowledge.solver_cgs_absResThreshold), returnStmts, ListBuffer())
 
     entries.foreach(entry =>
       loopStmts += generateOperatorApplication(ar(entry), entry.getEq(level).lhs, resFieldMap, entries, entry, level))

@@ -160,8 +160,14 @@ object Knowledge {
 
   /// solver setup information
 
+  // generate debug output (run-time) for generated L3 solvers if true
+  var solver_generateDbgOutputs : Boolean = false
+
   // target reduction of the residual norm for the whole solver
   var solver_targetResReduction : Double = 1e-5
+
+  // residual threshold for aborting the whole solver
+  var solver_absResThreshold : Double = 0.0
 
   // maximum number of iterations for the whole solver
   var solver_maxNumIts : Int = 128
@@ -194,6 +200,15 @@ object Knowledge {
 
   // target reduction of the residual norm for the coarse grid solver
   var solver_cgs_targetResReduction : Double = 0.001
+
+  // residual threshold for aborting the cgs
+  var solver_cgs_absResThreshold : Double = 0.0
+
+  // restart cgs after solver_cgs_restartAfter iterations if true
+  var solver_cgs_restart : Boolean = false
+
+  // restart interval for the cgs
+  var solver_cgs_restartAfter : Int = 1000
 
   // if true, loops containing a single local solve node will be split into halo and inner; inner will be generated without conditionals
   var solver_splitLocalSolveLoops : Boolean = false

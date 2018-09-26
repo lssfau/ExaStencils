@@ -5,6 +5,7 @@ import scala.collection.mutable._
 import exastencils.base.ExaRootNode
 import exastencils.base.l3.L3_ImplicitConversion._
 import exastencils.base.l3._
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.field.l3._
@@ -12,7 +13,7 @@ import exastencils.logger.Logger
 import exastencils.util.l3.L3_MathFunctionReference
 
 object L3_IterativeSolverForEquation {
-  var generateDebugPrints : Boolean = false
+  def generateDebugPrints : Boolean = Knowledge.solver_generateDbgOutputs
 
   def generateIterativeSolver(solver : String, entries : ListBuffer[L3_SolverForEqEntry], level : Int, smootherHints : ListBuffer[L3_GenerateSmootherHint]) = {
     solver.toLowerCase() match {
