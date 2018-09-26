@@ -61,6 +61,6 @@ object IR_ResolveSlotOperations extends DefaultStrategy("Resolve slot operations
       }.fold(false)((a, b) => a || b))
         advanceSlot.expandSpecial()
       else
-        IR_LoopOverFragments(advanceSlot.expandSpecial(), IR_ParallelizationInfo.PotentiallyParallel())
+        IR_LoopOverFragments(advanceSlot.expandSpecial(), IR_ParallelizationInfo(potentiallyParallel = true))
   })
 }
