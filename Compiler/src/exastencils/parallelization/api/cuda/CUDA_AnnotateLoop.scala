@@ -103,6 +103,8 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
           loop.annotate(CUDA_Util.CUDA_BODY_DECL, bodyDecl)
 
           calculateLoopsInBand(extremaMap, loop)
+
+          anyDeviceCode = true
         } else {
           val innerLoops : ListBuffer[IR_ForLoop] = loop.body.filter(x => x.isInstanceOf[IR_ForLoop]).asInstanceOf[ListBuffer[IR_ForLoop]]
 
@@ -125,9 +127,9 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
     case loop : IR_ForLoop if loop.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) =>
       val condWrapper = loop.removeAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION).get.asInstanceOf[NoDuplicateWrapper[IR_Expression]]
       val device = updateLoopAnnotations(mutable.HashMap[String, (Long, Long)](), loop)
-      if (device)
+      if (device) {
         loop
-      else {
+      } else {
         condWrapper.value = IR_BooleanConstant(true) // no CUDA version -> enforce host
         IR_Assert(IR_BooleanConstant(false),
           ListBuffer(IR_StringConstant("missing CUDA code: loop is sequential")),
