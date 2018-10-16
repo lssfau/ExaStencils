@@ -137,8 +137,15 @@ object IR_Inlining extends CustomStrategy("Function inlining") {
         s
     }), Some(callScope))
 
+    // prepend declarations for method parameters (after renaming, as initialization must not be modified)
+    var body : ListBuffer[IR_Statement] = Duplicate(funcStmt.body)
+    body.++=:(funcStmt.parameters.zip(callExpr.arguments).map {
+      case (vAcc, init) =>
+        IR_VariableDeclaration(Duplicate(vAcc.datatype), vAcc.name, init)
+    })
+
     // rename conflicts
-    val bodyWrapper = IR_Scope(Duplicate(funcStmt.body)) // wrap in Scope to allow removing statements
+    val bodyWrapper = IR_Scope(body) // wrap in Scope to allow removing statements
     val rename = new Renamer(reserved, potConflicts)
     var exit = false
     var retStmt : IR_Return = null
@@ -159,16 +166,7 @@ object IR_Inlining extends CustomStrategy("Function inlining") {
       case r : IR_Return if r eq retStmt =>
         List()
     }), Some(bodyWrapper))
-    val body : ListBuffer[IR_Statement] = bodyWrapper.body
-
-    // prepend declarations for method parameters (after renaming, as initialization must not be modified)
-    body.++=:(funcStmt.parameters.zip(callExpr.arguments).map {
-      case (vAcc, init) =>
-        var vname : String = vAcc.name
-        if (potConflicts.contains(vname))
-          vname = rename(vname)
-        IR_VariableDeclaration(Duplicate(vAcc.datatype), vname, init)
-    })
+    body = bodyWrapper.body // update body variable; list may have changed
 
     if (potConflToUpdate != null) {
       // update potConflicts of function to inline in for later call to this method
