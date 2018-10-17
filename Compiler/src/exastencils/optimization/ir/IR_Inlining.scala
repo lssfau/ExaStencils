@@ -60,10 +60,16 @@ object IR_Inlining extends CustomStrategy("Function inlining") {
       val stmts : Buffer[IR_Statement] = analyzer.flatFunctionBody(func)
       var inline : Boolean = stmts.length <= Knowledge.opt_maxInliningSize
       if (heuristics_prepareCSE) {
-        for (stmt <- stmts) stmt match {
-          case _ : IR_VariableDeclaration =>
-          case _ : IR_Return              => // there is only one return (already checked in Analyzer)
-          case _                          => inline = false // any other statement found...
+        if (stmts.size == 0 || !stmts.last.isInstanceOf[IR_Return])
+          inline = false
+        else {
+          var nrRet : Int = 0
+          for (stmt <- stmts) stmt match {
+            case _ : IR_VariableDeclaration =>
+            case _ : IR_Return              => nrRet += 1
+            case _                          => inline = false // any other statement found...
+          }
+          inline &= nrRet == 1
         }
       }
       inline &= funcStmt.allowInlining
