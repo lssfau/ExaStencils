@@ -66,7 +66,7 @@ trap cleanup EXIT
 # run generated code
 srun /bin/true # to capture job step creation errors/warnings before executing the test binary
 echo "  Created  ${RESULT}: run code and redirect its stdout and stderr."
-srun --cpu_bind=socket "${BIN}" 2>&1 | grep -v -e "srun: Job step creat" -e "No protocol specified" | tee "${RESULT}" # HACK: filter several strange error messages and warnings...
+srun --cpu_bind=socket "${BIN}" 2>&1 | grep -v -e "srun: Job step creat" -e "No protocol specified" -e "step creation temporarily disabled" -e "Step created for job" | tee "${RESULT}" # HACK: filter several strange error messages and warnings...
 echo ""
 
 if grep -q "Communication connection failure" ${RESULT}; then
