@@ -325,8 +325,7 @@ object IR_SimplifyExpression {
 
       case IR_Multiplication(facs) =>
         var coeff : Long = 1L
-        val nonCst = new ListBuffer[IR_Expression]()
-        var nonCstMap : HashMap[IR_Expression, Long] = null
+        val nonCst = new ListBuffer[HashMap[IR_Expression, Long]]()
         for (f <- facs) {
           val map = extractIntegralSumRec(f)
           if (map.size == 1 && map.contains(constName) || map.isEmpty) {
@@ -338,18 +337,17 @@ object IR_SimplifyExpression {
             for ((e, c) <- map)
               map(e) = c / gcdL
             coeff *= gcdL
-            nonCstMap = map
-            nonCst += recreateExprFromIntSum(map)
+            nonCst += map
           }
         }
         res = new HashMap[IR_Expression, Long]()
         if (nonCst.isEmpty)
           res(constName) = coeff
         else if (nonCst.length == 1)
-          for ((name : IR_Expression, value : Long) <- nonCstMap)
+          for ((name : IR_Expression, value : Long) <- nonCst.head)
             res(name) = value * coeff
         else
-          res(IR_Multiplication(nonCst.sortBy(_.prettyprint()))) = coeff
+          res(IR_Multiplication(nonCst.map(recreateExprFromIntSum).sortBy(_.prettyprint()))) = coeff
 
       case IR_Division(l, r) =>
         res = extractIntegralSumDivision(l, r, false)
@@ -673,10 +671,10 @@ object IR_SimplifyExpression {
               allId = math.abs(it.next()) == v
             if (allId) {
               coeff *= v
-              nC.transform((expr, d) => d / v)
+              nC.transform((_, d) => d / v)
             }
           }
-          res(IR_Multiplication(nonCst.map { sum => recreateExprFromFloatSum(sum) })) = coeff
+          res(IR_Multiplication(nonCst.map(recreateExprFromFloatSum).sortBy(_.prettyprint()))) = coeff
         }
 
       case IR_Division(l, r) =>
