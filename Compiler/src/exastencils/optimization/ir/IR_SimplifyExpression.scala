@@ -165,100 +165,6 @@ object IR_SimplifyExpression {
     * Only VariableAccess nodes are used as keys. (NO StringConstant)
     */
   def extractIntegralSum(expr : IR_Expression) : HashMap[IR_Expression, Long] = {
-    extractIntegralSumRec(expr)
-  }
-
-  private def extractIntegralSumDivision(l : IR_Expression, r : IR_Expression, floor : Boolean) : HashMap[IR_Expression, Long] = {
-    var tmp = extractIntegralSumRec(r)
-    if (tmp.isEmpty)
-      throw EvaluationException("BOOM! (divide by zero)")
-    if (!(tmp.size == 1 && tmp.contains(constName)))
-      throw EvaluationException("only constant divisor allowed yet")
-    val divs : Long = tmp(constName)
-    tmp.clear()
-    // optimization below is allowed if division is floord, or if the sign of l does not change, both before and after the optimization
-    var changeSign : Boolean = true
-    var sign : Long = 0
-    if (extremaMap != null) {
-      try {
-        val (lo : Long, up : Long) = evalIntegralExtrema(l, extremaMap)
-        changeSign = lo < 0 && up > 0
-        sign = if (lo != 0) lo else up // only the sign is relevant, ignore 0
-      } catch {
-        case _ : EvaluationException =>
-      }
-    }
-    val res = new HashMap[IR_Expression, Long]()
-    val mapL = extractIntegralSumRec(l)
-    if (floor || !changeSign) { // do only remove parts of the dividend when the rounding direction is "uniform" (truncate rounds towards 0)
-      for ((name : IR_Expression, value : Long) <- mapL)
-        if (value % divs == 0L) res(name) = value / divs
-        else tmp(name) = value
-      val cstOpt = tmp.remove(constName) // const part in remaining dividend must not be larger then divisor
-      if (cstOpt.isDefined) {
-        val cst = cstOpt.get
-        val cstMod = (cst % divs + divs) % divs // mathematical modulo
-        val cstRes = (cst - cstMod) / divs
-        tmp(constName) = cstMod
-        res(constName) = cstRes
-      }
-      // check if optimization was allowed (sign of new min and max is identical, ignoring 0)
-      if (!floor)
-        try {
-          val (lo : Long, up : Long) = evalIntegralExtrema(recreateExprFromIntSum(tmp), extremaMap)
-          val newSign : Long = if (lo != 0) lo else up // only the sign is relevant, ignore 0
-          if (lo < 0 && up > 0) { // optimization was NOT allowed, revert
-            tmp = mapL
-            res.clear()
-            // check if optimization moved range from positive to negative, or vice versa: if so, adapt rounding direction
-          } else if (sign < 0 && newSign > 0) // previous rounding direction: towards +inf
-            tmp(constName) = tmp.getOrElse(constName, 0L) + (divs - 1)
-          else if (newSign < 0 && sign > 0) // previous rounding direction: towards -inf
-            tmp(constName) = tmp.getOrElse(constName, 0L) - (divs - 1)
-        } catch {
-          case _ : EvaluationException =>
-        }
-    } else
-      tmp = mapL
-    val dividend = recreateExprFromIntSum(tmp)
-    val (name, update) : (IR_Expression, Long) = dividend match {
-      case IR_IntegerConstant(x) =>
-        val res =
-          if (floor) {
-            if (x < 0 && divs > 0)
-              (x - divs + 1) / divs
-            else if (x > 0 && divs < 0)
-              (x - divs - 1) / divs
-            else
-              x / divs
-          } else
-            x / divs
-        (constName, res)
-
-      case IR_Division(x, IR_IntegerConstant(divs2)) if !floor                                                     =>
-        (IR_Division(x, IR_IntegerConstant(divs * divs2)), 1L)
-      case IR_Addition(ListBuffer(IR_Division(x, IR_IntegerConstant(divs2)), IR_IntegerConstant(const))) if !floor =>
-        (simplifyIntegralExpr(IR_Division(x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
-      case IR_Addition(ListBuffer(IR_IntegerConstant(const), IR_Division(x, IR_IntegerConstant(divs2)))) if !floor =>
-        (simplifyIntegralExpr(IR_Division(x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
-
-      case IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))) if floor && "floord" == function.name                                                     =>
-        (IR_FunctionCall(IR_InternalFunctionReference.floord, ListBuffer(x, IR_IntegerConstant(divs * divs2))), 1L)
-      case IR_Addition(ListBuffer(IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))), IR_IntegerConstant(const))) if floor && "floord" == function.name =>
-        (simplifyIntegralExpr(IR_FunctionCall(IR_InternalFunctionReference.floord, x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
-      case IR_Addition(ListBuffer(IR_IntegerConstant(const), IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))))) if floor && "floord" == function.name =>
-        (simplifyIntegralExpr(IR_FunctionCall(IR_InternalFunctionReference.floord, x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
-      case divd                                                                                                                                                          =>
-        if (floor)
-          (IR_FunctionCall(IR_InternalFunctionReference.floord, divd, IR_IntegerConstant(divs)), 1L)
-        else
-          (IR_Division(divd, IR_IntegerConstant(divs)), 1L)
-    }
-    res(name) = res.getOrElse(name, 0L) + update
-    res
-  }
-
-  private def extractIntegralSumRec(expr : IR_Expression) : HashMap[IR_Expression, Long] = {
 
     var res : HashMap[IR_Expression, Long] = null
 
@@ -285,14 +191,14 @@ object IR_SimplifyExpression {
         res(acc) = 1L
 
       case IR_Negative(neg) =>
-        res = extractIntegralSumRec(neg)
+        res = extractIntegralSum(neg)
         for ((name : IR_Expression, value : Long) <- res)
           res(name) = -value
 
       case IR_Addition(summands) =>
         res = new HashMap[IR_Expression, Long]()
         for (s <- summands)
-          for ((name : IR_Expression, value : Long) <- extractIntegralSumRec(s))
+          for ((name : IR_Expression, value : Long) <- extractIntegralSum(s))
             res(name) = res.getOrElse(name, 0L) + value
         // opt:  (x/2) + (x%2)  ==>  (x+1)/2
         val toOpt = new HashMap[IR_Expression, (IR_Division, IR_Modulo, Long)]()
@@ -313,21 +219,21 @@ object IR_SimplifyExpression {
         }
         for ((x, (div, mod, coeff)) <- toOpt) if (div != null && mod != null) {
           // ensure resulting map only contains normalized version created by recreateExprFromIntSum
-          val nju = recreateExprFromIntSum(extractIntegralSumRec((x + IR_IntegerConstant(1L)) / IR_IntegerConstant(2L)))
+          val nju = recreateExprFromIntSum(extractIntegralSum((x + IR_IntegerConstant(1L)) / IR_IntegerConstant(2L)))
           res -= div -= mod
           res(nju) = coeff + res.getOrElse(nju, 0L)
         }
 
       case IR_Subtraction(l, r) =>
-        res = extractIntegralSumRec(l)
-        for ((name : IR_Expression, value : Long) <- extractIntegralSumRec(r))
+        res = extractIntegralSum(l)
+        for ((name : IR_Expression, value : Long) <- extractIntegralSum(r))
           res(name) = res.getOrElse(name, 0L) - value
 
       case IR_Multiplication(facs) =>
         var coeff : Long = 1L
         val nonCst = new ListBuffer[HashMap[IR_Expression, Long]]()
         for (f <- facs) {
-          val map = extractIntegralSumRec(f)
+          val map = extractIntegralSum(f)
           if (map.size == 1 && map.contains(constName) || map.isEmpty) {
             coeff *= map.getOrElse(constName, 0L)
           } else {
@@ -356,14 +262,14 @@ object IR_SimplifyExpression {
         res = extractIntegralSumDivision(l, r, true)
 
       case IR_Modulo(l, r) =>
-        val tmp = extractIntegralSumRec(r)
+        val tmp = extractIntegralSum(r)
         if (tmp.isEmpty)
           throw EvaluationException("BOOM! (divide by zero)")
         if (!(tmp.size == 1 && tmp.contains(constName)))
           throw EvaluationException("only constant divisor allowed")
         val mod : Long = tmp(constName)
         res = new HashMap[IR_Expression, Long]()
-        val dividendMap : HashMap[IR_Expression, Long] = extractIntegralSumRec(l)
+        val dividendMap : HashMap[IR_Expression, Long] = extractIntegralSum(l)
         val dividend : IR_Expression = recreateExprFromIntSum(dividendMap)
         dividend match {
           case IR_IntegerConstant(x) => res(constName) = x % mod
@@ -433,6 +339,96 @@ object IR_SimplifyExpression {
       b = h
     }
     math.abs(a)
+  }
+
+  private def extractIntegralSumDivision(l : IR_Expression, r : IR_Expression, floor : Boolean) : HashMap[IR_Expression, Long] = {
+    var tmp = extractIntegralSum(r)
+    if (tmp.isEmpty)
+      throw EvaluationException("BOOM! (divide by zero)")
+    if (!(tmp.size == 1 && tmp.contains(constName)))
+      throw EvaluationException("only constant divisor allowed yet")
+    val divs : Long = tmp(constName)
+    tmp.clear()
+    // optimization below is allowed if division is floord, or if the sign of l does not change, both before and after the optimization
+    var changeSign : Boolean = true
+    var sign : Long = 0
+    if (extremaMap != null) {
+      try {
+        val (lo : Long, up : Long) = evalIntegralExtrema(l, extremaMap)
+        changeSign = lo < 0 && up > 0
+        sign = if (lo != 0) lo else up // only the sign is relevant, ignore 0
+      } catch {
+        case _ : EvaluationException =>
+      }
+    }
+    val res = new HashMap[IR_Expression, Long]()
+    val mapL = extractIntegralSum(l)
+    if (floor || !changeSign) { // do only remove parts of the dividend when the rounding direction is "uniform" (truncate rounds towards 0)
+      for ((name : IR_Expression, value : Long) <- mapL)
+        if (value % divs == 0L) res(name) = value / divs
+        else tmp(name) = value
+      val cstOpt = tmp.remove(constName) // const part in remaining dividend must not be larger then divisor
+      if (cstOpt.isDefined) {
+        val cst = cstOpt.get
+        val cstMod = (cst % divs + divs) % divs // mathematical modulo
+        val cstRes = (cst - cstMod) / divs
+        tmp(constName) = cstMod
+        res(constName) = cstRes
+      }
+      // check if optimization was allowed (sign of new min and max is identical, ignoring 0)
+      if (!floor)
+        try {
+          val (lo : Long, up : Long) = evalIntegralExtrema(recreateExprFromIntSum(tmp), extremaMap)
+          val newSign : Long = if (lo != 0) lo else up // only the sign is relevant, ignore 0
+          if (lo < 0 && up > 0) { // optimization was NOT allowed, revert
+            tmp = mapL
+            res.clear()
+            // check if optimization moved range from positive to negative, or vice versa: if so, adapt rounding direction
+          } else if (sign < 0 && newSign > 0) // previous rounding direction: towards +inf
+            tmp(constName) = tmp.getOrElse(constName, 0L) + (divs - 1)
+          else if (newSign < 0 && sign > 0) // previous rounding direction: towards -inf
+            tmp(constName) = tmp.getOrElse(constName, 0L) - (divs - 1)
+        } catch {
+          case _ : EvaluationException =>
+        }
+    } else
+      tmp = mapL
+    val dividend = recreateExprFromIntSum(tmp)
+    val (name, update) : (IR_Expression, Long) = dividend match {
+      case IR_IntegerConstant(x) =>
+        val res =
+          if (floor) {
+            if (x < 0 && divs > 0)
+              (x - divs + 1) / divs
+            else if (x > 0 && divs < 0)
+              (x - divs - 1) / divs
+            else
+              x / divs
+          } else
+            x / divs
+        (constName, res)
+
+      case IR_Division(x, IR_IntegerConstant(divs2)) if !floor                                                     =>
+        (IR_Division(x, IR_IntegerConstant(divs * divs2)), 1L)
+      case IR_Addition(ListBuffer(IR_Division(x, IR_IntegerConstant(divs2)), IR_IntegerConstant(const))) if !floor =>
+        (simplifyIntegralExpr(IR_Division(x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
+      case IR_Addition(ListBuffer(IR_IntegerConstant(const), IR_Division(x, IR_IntegerConstant(divs2)))) if !floor =>
+        (simplifyIntegralExpr(IR_Division(x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
+
+      case IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))) if floor && "floord" == function.name                                                     =>
+        (IR_FunctionCall(IR_InternalFunctionReference.floord, ListBuffer(x, IR_IntegerConstant(divs * divs2))), 1L)
+      case IR_Addition(ListBuffer(IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))), IR_IntegerConstant(const))) if floor && "floord" == function.name =>
+        (simplifyIntegralExpr(IR_FunctionCall(IR_InternalFunctionReference.floord, x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
+      case IR_Addition(ListBuffer(IR_IntegerConstant(const), IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))))) if floor && "floord" == function.name =>
+        (simplifyIntegralExpr(IR_FunctionCall(IR_InternalFunctionReference.floord, x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
+      case divd                                                                                                                                                          =>
+        if (floor)
+          (IR_FunctionCall(IR_InternalFunctionReference.floord, divd, IR_IntegerConstant(divs)), 1L)
+        else
+          (IR_Division(divd, IR_IntegerConstant(divs)), 1L)
+    }
+    res(name) = res.getOrElse(name, 0L) + update
+    res
   }
 
   /**
@@ -554,10 +550,6 @@ object IR_SimplifyExpression {
     * Only VariableAccess and ArrayAccess nodes are used as keys. (NO StringConstant)
     */
   def extractFloatingSum(expr : IR_Expression) : HashMap[IR_Expression, Double] = {
-    extractFloatingSumRec(expr)
-  }
-
-  private def extractFloatingSumRec(expr : IR_Expression) : HashMap[IR_Expression, Double] = {
 
     var res : HashMap[IR_Expression, Double] = null
 
@@ -631,26 +623,26 @@ object IR_SimplifyExpression {
         res(call) = 1d
 
       case IR_Negative(neg) =>
-        res = extractFloatingSumRec(neg)
+        res = extractFloatingSum(neg)
         for ((name : IR_Expression, value : Double) <- res)
           res(name) = -value
 
       case IR_Addition(summands) =>
         res = new HashMap[IR_Expression, Double]()
         for (s <- summands)
-          for ((name : IR_Expression, value : Double) <- extractFloatingSumRec(s))
+          for ((name : IR_Expression, value : Double) <- extractFloatingSum(s))
             res(name) = res.getOrElse(name, 0d) + value
 
       case IR_Subtraction(l, r) =>
-        res = extractFloatingSumRec(l)
-        for ((name : IR_Expression, value : Double) <- extractFloatingSumRec(r))
+        res = extractFloatingSum(l)
+        for ((name : IR_Expression, value : Double) <- extractFloatingSum(r))
           res(name) = res.getOrElse(name, 0d) - value
 
       case IR_Multiplication(facs) =>
         var coeff : Double = 1d
         val nonCst = new ListBuffer[HashMap[IR_Expression, Double]]()
         for (f <- facs) {
-          val map = extractFloatingSumRec(f)
+          val map = extractFloatingSum(f)
           if (map.size == 1 && map.contains(constName) || map.isEmpty)
             coeff *= map.getOrElse(constName, 0d)
           else
@@ -678,8 +670,8 @@ object IR_SimplifyExpression {
         }
 
       case IR_Division(l, r) =>
-        val mapL = extractFloatingSumRec(l)
-        val mapR = extractFloatingSumRec(r)
+        val mapL = extractFloatingSum(l)
+        val mapR = extractFloatingSum(r)
         if (mapR.size == 1 && mapR.contains(constName)) {
           val div : Double = mapR(constName)
           res = mapL
@@ -714,11 +706,11 @@ object IR_SimplifyExpression {
         }
 
       case IR_Modulo(l, r) =>
-        val mapR = extractFloatingSumRec(r)
+        val mapR = extractFloatingSum(r)
         if (!(mapR.size == 1 && mapR.contains(constName)))
           throw EvaluationException("only constant divisor allowed yet:  " + l.prettyprint() + "  %  " + r.prettyprint())
         val mod : Double = mapR(constName)
-        res = extractFloatingSumRec(l)
+        res = extractFloatingSum(l)
         for ((name : IR_Expression, value : Double) <- res)
           res(name) = value % mod
 
@@ -757,8 +749,8 @@ object IR_SimplifyExpression {
         }
 
       case IR_Power(l, r) =>
-        val mapL = extractFloatingSumRec(l)
-        val mapR = extractFloatingSumRec(r)
+        val mapL = extractFloatingSum(l)
+        val mapR = extractFloatingSum(r)
         val isLCst = mapL.size == 1 && mapL.contains(constName)
         val isRCst = mapR.size == 1 && mapR.contains(constName)
         if (isLCst && isRCst) {
@@ -770,7 +762,7 @@ object IR_SimplifyExpression {
             case 0                           => res = HashMap(constName -> 1d)
             case 1                           => res = mapL
             case _ if expI >= 2 && expI <= 6 =>
-              res = extractFloatingSumRec(IR_Multiplication(ListBuffer.fill(expI)(Duplicate(l))))
+              res = extractFloatingSum(IR_Multiplication(ListBuffer.fill(expI)(Duplicate(l))))
             case _                           =>
           }
         }
