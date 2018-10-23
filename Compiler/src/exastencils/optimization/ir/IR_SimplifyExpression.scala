@@ -759,24 +759,23 @@ object IR_SimplifyExpression {
       case IR_Power(l, r) =>
         val mapL = extractFloatingSumRec(l)
         val mapR = extractFloatingSumRec(r)
-        // trivial solution, if no better one is found later on
-        res = new HashMap[IR_Expression, Double]()
-        res(IR_Power(recreateExprFromFloatSum(mapL), recreateExprFromFloatSum(mapR))) = 1d
         val isLCst = mapL.size == 1 && mapL.contains(constName)
         val isRCst = mapR.size == 1 && mapR.contains(constName)
-        if (isLCst && isRCst)
-          mapL(constName) = math.pow(mapL(constName), mapR(constName))
-        else if (isRCst) {
+        if (isLCst && isRCst) {
+          res = HashMap(constName -> math.pow(mapL(constName), mapR(constName)))
+        } else if (isRCst) {
           val exp : Double = mapR(constName)
-          val expL : Long = exp.toLong
-          if (expL.toDouble == exp) expL match {
+          val expI : Int = exp.toInt
+          if (expI.toDouble == exp) expI match {
             case 0                           => res = HashMap(constName -> 1d)
             case 1                           => res = mapL
-            case _ if expL >= 2 && expL <= 6 =>
-              res = extractFloatingSumRec(IR_Multiplication(ListBuffer.fill(expL.toInt)(Duplicate(l))))
+            case _ if expI >= 2 && expI <= 6 =>
+              res = extractFloatingSumRec(IR_Multiplication(ListBuffer.fill(expI)(Duplicate(l))))
             case _                           =>
           }
         }
+        if (res == null) // no better solution found, use trivial one
+          res = HashMap(IR_Power(recreateExprFromFloatSum(mapL), recreateExprFromFloatSum(mapR)) -> 1d)
 
       case _ =>
         throw EvaluationException("unknown expression type for evaluation: " + expr.getClass + " in " + expr.prettyprint())
