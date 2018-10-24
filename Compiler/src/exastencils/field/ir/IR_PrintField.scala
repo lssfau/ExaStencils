@@ -49,7 +49,9 @@ case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelec
     def separator = IR_StringConstant(if (Knowledge.experimental_generateParaviewFiles) "," else " ")
 
     val streamName = IR_PrintField.getNewName()
+
     def streamType = IR_SpecialDatatype("std::ofstream")
+
     def stream = IR_VariableAccess(streamName, streamType)
 
     val fileHeader = {
@@ -62,25 +64,30 @@ case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelec
       ret
     }
 
+    val printComponents = ListBuffer[IR_Expression]()
+    printComponents += "std::defaultfloat"
+    printComponents ++= (0 until numDimsGrid).view.flatMap { dim => List(getPos(field, dim), separator) }
+    printComponents += "std::scientific"
+    printComponents ++= arrayIndexRange.view.flatMap { index =>
+      val access = IR_FieldAccess(field, IR_LoopOverDimensions.defIt(numDimsData))
+      if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
+        access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
+      List(access, separator)
+    }
+    printComponents += IR_Print.endl
+
     // TODO: less monolithic code
     var innerLoop = ListBuffer[IR_Statement](
       IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc", IR_UnknownDatatype)),
       fileHeader,
+      IR_Print(stream, "std::scientific"), //std::defaultfloat
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
           IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById("DLB", dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById("DRE", dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
             IR_IfCondition(condition,
-              IR_Print(stream,
-                ((0 until numDimsGrid).view.flatMap { dim =>
-                  List(getPos(field, dim), separator)
-                } ++ arrayIndexRange.view.flatMap { index =>
-                  val access = IR_FieldAccess(field, IR_LoopOverDimensions.defIt(numDimsData))
-                  if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
-                    access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
-                  List(access, separator)
-                }).to[ListBuffer] += IR_Print.endl))))),
+              IR_Print(stream, printComponents))))),
       IR_MemberFunctionCall(stream, "close"))
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()
