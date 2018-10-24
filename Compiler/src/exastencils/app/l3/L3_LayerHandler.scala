@@ -15,7 +15,7 @@ import exastencils.operator.l3._
 import exastencils.parsers.l3.L3_Parser
 import exastencils.prettyprinting.Indenter
 import exastencils.solver.l3._
-import exastencils.util.l3.L3_ResolveMathFunctions
+import exastencils.util.l3._
 
 /// L3_LayerHandler
 
@@ -94,6 +94,7 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
       L3_InlineDeclaredExpressions.apply()
       L3_ResolveVariableAccesses.apply()
 
+      L3_ResolveSpecialConstants.apply()
       L3_ResolveDslFunctionReferences.apply()
       L3_ResolveMathFunctions.apply()
       L3_ResolveEvaluateFunctions.apply()

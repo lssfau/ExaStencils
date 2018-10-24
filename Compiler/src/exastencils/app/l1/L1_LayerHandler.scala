@@ -15,7 +15,7 @@ import exastencils.operator.l1.L1_OperatorCollection
 import exastencils.parsers.l1.L1_Parser
 import exastencils.prettyprinting.Indenter
 import exastencils.solver.l1._
-import exastencils.util.l1.L1_ResolveMathFunctions
+import exastencils.util.l1._
 
 /// L1_LayerHandler
 
@@ -81,9 +81,10 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
       L1_PrepareAccesses.apply()
       L1_ResolveVariableAccesses.apply()
 
+      L1_ResolveSpecialConstants.apply()
       L1_ResolveMathFunctions.apply()
-//      L1_ResolveEvaluateFunctions.apply()
-//      L1_ResolveIntegrateFunctions.apply()
+      //      L1_ResolveEvaluateFunctions.apply()
+      //      L1_ResolveIntegrateFunctions.apply()
 
       var matches = 0
       do {
@@ -91,14 +92,14 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
         matches += L1_ProcessDeclarations.applyAndCountMatches()
         matches += L1_ResolveAccesses.applyAndCountMatches()
 
-//        if (Knowledge.experimental_l1_resolveVirtualFields) {
-//          // integrate before evaluate -> might be nested
-//          L1_ResolveIntegrateOnGrid.apply()
-//          matches += (if (L1_ResolveIntegrateOnGrid.results.isEmpty) 0 else L1_ResolveIntegrateOnGrid.results.last._2.matches)
-//
-//          L1_ResolveEvaluateOnGrid.apply()
-//          matches += (if (L1_ResolveEvaluateOnGrid.results.isEmpty) 0 else L1_ResolveEvaluateOnGrid.results.last._2.matches)
-//        }
+        //        if (Knowledge.experimental_l1_resolveVirtualFields) {
+        //          // integrate before evaluate -> might be nested
+        //          L1_ResolveIntegrateOnGrid.apply()
+        //          matches += (if (L1_ResolveIntegrateOnGrid.results.isEmpty) 0 else L1_ResolveIntegrateOnGrid.results.last._2.matches)
+        //
+        //          L1_ResolveEvaluateOnGrid.apply()
+        //          matches += (if (L1_ResolveEvaluateOnGrid.results.isEmpty) 0 else L1_ResolveEvaluateOnGrid.results.last._2.matches)
+        //        }
       } while (matches > 0)
 
       L1_ProcessBoundaryDeclarations.apply()

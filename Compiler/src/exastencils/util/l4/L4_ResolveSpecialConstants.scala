@@ -14,6 +14,9 @@ object L4_ResolveSpecialConstants extends DefaultStrategy("Resolve special const
     case access : L4_UnresolvedAccess if "PI" == access.name || "M_PI" == access.name || "Pi" == access.name =>
       L4_RealConstant(math.Pi)
 
+    case access : L4_UnresolvedAccess if "SQRT2" == access.name || "M_SQRT2" == access.name =>
+      L4_RealConstant(math.sqrt(2.0))
+
     // access to level information
     case L4_FunctionCall(L4_UnresolvedFunctionReference("levels", Some(L4_SingleLevel(level)), offset), ListBuffer()) =>
       if (offset.isDefined) Logger.warn(s"Found levels function with offset; offset is ignored")

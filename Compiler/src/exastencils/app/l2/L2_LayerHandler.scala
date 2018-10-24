@@ -15,7 +15,7 @@ import exastencils.operator.l2._
 import exastencils.parsers.l2.L2_Parser
 import exastencils.prettyprinting.Indenter
 import exastencils.solver.l2._
-import exastencils.util.l2.L2_ResolveMathFunctions
+import exastencils.util.l2._
 
 /// L2_LayerHandler
 
@@ -84,6 +84,7 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
       L2_InlineDeclaredExpressions.apply()
       L2_ResolveVariableAccesses.apply()
 
+      L2_ResolveSpecialConstants.apply()
       L2_ResolveFrozenFields.apply()
       L2_ResolveMathFunctions.apply()
       L2_ResolveEvaluateFunctions.apply()
