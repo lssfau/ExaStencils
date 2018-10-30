@@ -1,14 +1,14 @@
 import scala.collection.mutable.ListBuffer
 
 import exastencils.app._
-import exastencils.app.ir.IR_DefaultLayerHandler
 import exastencils.base.ExaRootNode
 import exastencils.config._
 import exastencils.core._
 import exastencils.core.logger.Logger_HTML
 import exastencils.datastructures._
 import exastencils.logger._
-import exastencils.parsers.config._
+import exastencils.parsers.config.Settings_Parser
+import exastencils.polyhedron.IR_PolyOpt
 import exastencils.prettyprinting._
 import exastencils.util._
 
@@ -20,9 +20,9 @@ object Main {
     StateManager.setRoot(ExaRootNode)
 
     // check from where to read input
-    val settingsParser = new Settings_Parser()
-    val knowledgeParser = new Knowledge_Parser()
-    val platformParser = new Platform_Parser()
+    val settingsParser = new Settings_Parser(Settings)
+    val knowledgeParser = new Settings_Parser(Knowledge)
+    val platformParser = new Settings_Parser(Platform)
     if (args.length >= 1)
       settingsParser.parseFile(args(0))
     if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
@@ -31,7 +31,7 @@ object Main {
     if (args.length >= 3)
       platformParser.parseFile(args(2))
     if (args.length >= 4)
-      IR_DefaultLayerHandler.polyOptExplID = args(3).toInt
+      IR_PolyOpt.polyOptExplIDs = args(3)
 
     // validate knowledge, etc.
     Knowledge.update()

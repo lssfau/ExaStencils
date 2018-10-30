@@ -56,7 +56,7 @@ object MPI_DataType {
 
 case class MPI_DataType(var field : IR_FieldSelection, var indexRange : IR_ExpressionIndexRange, var condition : Option[IR_Expression]) extends IR_Datatype {
   override def prettyprint(out : PpStream) : Unit = out << generateName
-  override def prettyprint_mpi = generateName
+  override def prettyprint_mpi : String = generateName
 
   override def dimensionality : Int = ???
   override def getSizeArray : Array[Int] = ???
@@ -64,29 +64,33 @@ case class MPI_DataType(var field : IR_FieldSelection, var indexRange : IR_Expre
   override def resolveDeclType : IR_Datatype = this
   override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = ???
-  override def typicalByteSize = ???
+  override def typicalByteSize : Int = ???
 
   if (!MPI_DataType.shouldBeUsed(field, indexRange, condition))
     Logger.warn(s"Trying to setup an MPI data type for unsupported index range ${ indexRange.print }")
 
-  // determine data type parameters
-  var blockLengthExp : IR_Expression = indexRange.end(0) - indexRange.begin(0)
-  var blockCountExp : IR_Expression = 1
-  var strideExp : IR_Expression = field.fieldLayout(0).total
+  // compute inside an separate scope to prevent the additional variables (done and *Exp) to be visible to transformations later on
+  private val (blockLength, blockCount, stride) : (Long, Long, Long) = {
 
-  var done = false
-  for (dim <- 1 until indexRange.length; if !done) {
-    if (1 == IR_SimplifyExpression.evalIntegral(indexRange.end(dim) - indexRange.begin(dim))) {
-      strideExp *= field.fieldLayout.defIdxById("TOT", dim)
-    } else {
-      blockCountExp = indexRange.end(dim) - indexRange.begin(dim)
-      done = true // break
+    // determine data type parameters
+    val blockLengthExp : IR_Expression = indexRange.end(0) - indexRange.begin(0)
+    var blockCountExp : IR_Expression = 1
+    var strideExp : IR_Expression = field.fieldLayout(0).total
+
+    var done = false
+    for (dim <- 1 until indexRange.length; if !done) {
+      if (1 == IR_SimplifyExpression.evalIntegral(indexRange.end(dim) - indexRange.begin(dim))) {
+        strideExp *= field.fieldLayout.defIdxById("TOT", dim)
+      } else {
+        blockCountExp = indexRange.end(dim) - indexRange.begin(dim)
+        done = true // break
+      }
     }
-  }
 
-  val blockLength = IR_SimplifyExpression.evalIntegral(blockLengthExp)
-  val blockCount = IR_SimplifyExpression.evalIntegral(blockCountExp)
-  val stride = IR_SimplifyExpression.evalIntegral(strideExp)
+    (IR_SimplifyExpression.evalIntegral(blockLengthExp),
+      IR_SimplifyExpression.evalIntegral(blockCountExp),
+      IR_SimplifyExpression.evalIntegral(strideExp))
+  }
 
   def generateName : String = s"mpiDatatype_${ blockCount }_${ blockLength }_${ stride }"
   def mpiTypeNameArg : IR_Expression = IR_AddressOf(generateName)

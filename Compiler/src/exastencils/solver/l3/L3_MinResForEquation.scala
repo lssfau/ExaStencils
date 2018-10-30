@@ -89,7 +89,7 @@ object L3_MinResForEquation extends L3_IterativeSolverForEquation {
     stmts += L3_VariableDeclaration(curRes, callResNorm)
     stmts += L3_VariableDeclaration(initRes, curRes)
 
-    stmts += L3_IfCondition(curRes EqEq 0.0, L3_Return(None))
+    stmts += L3_IfCondition(curRes <= Knowledge.solver_cgs_absResThreshold, L3_Return(None))
 
     // init fields
     entries.foreach(entry => stmts += L3_Assignment(L3_FieldAccess(p(entry)), 0.0))
@@ -124,6 +124,26 @@ object L3_MinResForEquation extends L3_IterativeSolverForEquation {
     stmts += L3_VariableDeclaration(curStep, 0)
 
     val loopStmts = ListBuffer[L3_Statement]()
+
+    if (Knowledge.solver_cgs_restart) {
+      loopStmts += L3_IfCondition((curStep > 0) AndAnd (0 EqEq (curStep Mod Knowledge.solver_cgs_restartAfter)),
+        entries.map(_.generateUpdateRes(level)) ++
+          ListBuffer(L3_Assignment(curRes, callResNorm)) ++
+          entries.map(entry => L3_Assignment(L3_FieldAccess(p(entry)), 0.0)) ++
+          entries.map(entry => L3_Assignment(L3_FieldAccess(pNew(entry)), 0.0)) ++
+          entries.map(entry => L3_Assignment(L3_FieldAccess(v(entry)), 0.0)) ++
+          entries.map(entry => L3_Assignment(L3_FieldAccess(vNew(entry)), L3_FieldAccess(entry.resPerLevel(level)) / curRes)) ++
+          ListBuffer[L3_Statement](
+            L3_Assignment(beta, 0.0),
+            L3_Assignment(betaNew, 0.0),
+            L3_Assignment(cOld, 1.0),
+            L3_Assignment(c, 1.0),
+            L3_Assignment(cNew, 1.0),
+            L3_Assignment(sOld, 0.0),
+            L3_Assignment(s, 0.0),
+            L3_Assignment(sNew, 0.0))
+      )
+    }
 
     // shift v and beta
     loopStmts += L3_Assignment(beta, betaNew)
@@ -205,8 +225,8 @@ object L3_MinResForEquation extends L3_IterativeSolverForEquation {
     }
     returnStmts += L3_Return(None)
 
-    loopStmts += L3_IfCondition(L3_LowerEqual(L3_FunctionCall(L3_MathFunctionReference.fabs, curRes), Knowledge.solver_cgs_targetResReduction * initRes),
-      returnStmts, ListBuffer())
+    loopStmts += L3_IfCondition((curRes <= Knowledge.solver_cgs_targetResReduction * initRes)
+      OrOr (curRes <= Knowledge.solver_cgs_absResThreshold), returnStmts, ListBuffer())
 
     // compile loop
     stmts += L3_ForLoop(Knowledge.solver_cgs_maxNumIts, Some(curStep), loopStmts)

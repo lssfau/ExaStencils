@@ -193,14 +193,14 @@ object L3_Parser extends ExaParser with PackratParsers {
 
   lazy val function = locationize((("Func" ||| "Function") ~> ident) ~ levelDecl.? ~ ("(" ~> functionArgumentList.? <~ ")").? ~ (":" ~> returnDatatype).? ~ ("{" ~> (statement.* <~ "}"))
     ^^ { case name ~ levels ~ args ~ returnType ~ stmts => L3_FunctionDecl(name, levels, returnType, args, stmts) })
-  lazy val functionArgumentList = /*locationize*/ (functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => args :+ arg }
+  lazy val functionArgumentList = /*locationize*/ repsep(functionArgument, listdelimiter)
   lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => L3_Function.Argument(id, t) })
 
   lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ { L3_Return })
 
   lazy val functionReference = locationize(ident ~ levelAccess.? ~ ("@" ~> constIndex).? ^^ { case id ~ level ~ offset => L3_UnresolvedFunctionReference(id, level, offset) })
-  lazy val functionCallArgumentList = /*locationize*/ ((binaryexpression ||| booleanexpression) <~ ("," | newline)).* ~ (binaryexpression ||| booleanexpression) ^^ { case exps ~ ex => exps :+ ex }
-  lazy val functionCall = locationize(functionReference ~ ("(" ~> functionCallArgumentList.? <~ ")") ^^ { case id ~ args => L3_FunctionCall(id, args) })
+  lazy val functionCallArgumentList = /*locationize*/ repsep(binaryexpression ||| booleanexpression, listdelimiter)
+  lazy val functionCall = locationize(functionReference ~ ("(" ~> functionCallArgumentList <~ ")") ^^ { case id ~ args => L3_FunctionCall(id, args : _*) })
 
   // ######################################
   // ##### L3_Index
@@ -346,15 +346,15 @@ object L3_Parser extends ExaParser with PackratParsers {
   // ##### l3_FunctionTemplate
   // ######################################
 
-  lazy val functionTemplateArgList = /*locationize*/ (ident <~ ("," | newline)).* ~ ident ^^ { case args ~ arg => args :+ arg }
-  lazy val functionTemplate = locationize((("FuncTemplate" ||| "FunctionTemplate") ~> ident) ~ ("<" ~> functionTemplateArgList.? <~ ">") ~ ("(" ~> functionArgumentList.? <~ ")").? ~ (":" ~> returnDatatype).? ~ ("{" ~> (statement.* <~ "}"))
+  lazy val functionTemplateArgList = /*locationize*/ repsep(ident, listdelimiter)
+  lazy val functionTemplate = locationize((("FuncTemplate" ||| "FunctionTemplate") ~> ident) ~ ("<" ~> functionTemplateArgList <~ ">") ~ ("(" ~> functionArgumentList <~ ")").? ~ (":" ~> returnDatatype).? ~ ("{" ~> (statement.* <~ "}"))
     ^^ { case id ~ templateArgs ~ functionArgs ~ retType ~ stmts => L3_FunctionTemplate(id, retType, templateArgs, functionArgs, stmts) })
 
   // ######################################
   // ##### l3_FunctionInstantiation
   // ######################################
 
-  lazy val functionInstArgList = /*locationize*/ (functionInstArgument <~ ("," | newline)).* ~ functionInstArgument ^^ { case args ~ arg => args :+ arg }
+  lazy val functionInstArgList = /*locationize*/ repsep(functionInstArgument, listdelimiter)
   lazy val functionInstArgument = binaryexpression ||| booleanexpression
   lazy val functionInstantiation = locationize(((("Inst" ||| "Instantiate") ~> ident) ~ ("<" ~> functionInstArgList.? <~ ">") ~ ("as" ~> ident) ~ levelDecl.?)
     ^^ { case template ~ args ~ target ~ targetLevel => L3_FunctionInstantiation(template, args.getOrElse(List()), target, targetLevel) })

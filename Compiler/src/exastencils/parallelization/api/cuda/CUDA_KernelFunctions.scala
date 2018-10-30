@@ -88,7 +88,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions
     {
       def data = IR_FunctionArgument("data", IR_PointerDatatype(IR_RealDatatype))
       def numElements = IR_FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/)
-      def stride = IR_FunctionArgument("stride", IR_IntegerDatatype /*FIXME: size_t*/)
+      def halfStride = IR_FunctionArgument("halfStride", IR_IntegerDatatype /*FIXME: size_t*/)
       def it = Duplicate(IR_LoopOverDimensions.defItForDim(0))
 
       var fctBody = ListBuffer[IR_Statement]()
@@ -99,7 +99,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions
         IR_MemberAccess(IR_VariableAccess("blockIdx", IR_IntegerDatatype), "x") *
           IR_MemberAccess(IR_VariableAccess("blockDim", IR_IntegerDatatype), "x") +
           IR_MemberAccess(IR_VariableAccess("threadIdx", IR_IntegerDatatype), "x"))
-      fctBody += IR_Assignment(it, 2 * stride.access, "*=")
+      fctBody += IR_Assignment(it, 2 * halfStride.access, "*=")
 
       // add index bounds conditions
       fctBody += IR_IfCondition(
@@ -108,11 +108,11 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions
 
       // add values with stride
       fctBody += IR_IfCondition(
-        IR_Lower(it + stride.access, numElements.access),
-        IR_Assignment(IR_ArrayAccess(data.access, it), IR_BinaryOperators.createExpression(op, IR_ArrayAccess(data.access, it), IR_ArrayAccess(data.access, it + stride.access))))
+        IR_Lower(it + halfStride.access, numElements.access),
+        IR_Assignment(IR_ArrayAccess(data.access, it), IR_BinaryOperators.createExpression(op, IR_ArrayAccess(data.access, it), IR_ArrayAccess(data.access, it + halfStride.access))))
 
       // compile final kernel function
-      val fct = IR_PlainFunction(/* FIXME: IR_LeveledFunction? */ kernelName, IR_UnitDatatype, ListBuffer(data, numElements, stride), fctBody)
+      val fct = IR_PlainFunction(/* FIXME: IR_LeveledFunction? */ kernelName, IR_UnitDatatype, ListBuffer(data, numElements, halfStride), fctBody)
 
       fct.allowInlining = false
       fct.allowFortranInterface = false
@@ -126,7 +126,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions
     // wrapper function
     {
       def numElements = IR_FunctionArgument("numElements", IR_SpecialDatatype("size_t") /*FIXME*/)
-      def stride = IR_VariableAccess("stride", IR_SpecialDatatype("size_t") /*FIXME*/)
+      def halfStride = IR_VariableAccess("halfStride", IR_SpecialDatatype("size_t") /*FIXME*/)
       def data = IR_FunctionArgument("data", IR_PointerDatatype(IR_RealDatatype))
       def ret = IR_VariableAccess("ret", IR_RealDatatype)
 
@@ -137,15 +137,15 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions
       // compile loop body
       def blocks = IR_VariableAccess("blocks", IR_SpecialDatatype("size_t"))
       var loopBody = ListBuffer[IR_Statement]()
-      loopBody += IR_VariableDeclaration(blocks, (numElements.access + (blockSize * stride - 1)) / (blockSize * stride))
-      loopBody += IR_IfCondition(IR_EqEq(0, blocks), IR_Assignment(blocks, 1))
-      loopBody += CUDA_FunctionCall(kernelName, ListBuffer[IR_Expression](data.access, numElements.access, stride),
-        Array[IR_Expression](blocks * blockSize /*FIXME: avoid x*BS/BS */), Array[IR_Expression](blockSize))
+      loopBody += IR_VariableDeclaration(blocks, (numElements.access + (blockSize * 2 * halfStride - 1)) / (blockSize * 2 * halfStride))
+      //loopBody += IR_IfCondition(IR_EqEq(0, blocks), IR_Assignment(blocks, 1)) // blocks cannot become 0 if numElements is positive
+      loopBody += CUDA_FunctionCall(kernelName, ListBuffer[IR_Expression](data.access, numElements.access, halfStride),
+        Array[IR_Expression](blocks), Array[IR_Expression](blockSize))
 
       fctBody += IR_ForLoop(
-        IR_VariableDeclaration(stride, 1),
-        IR_Lower(stride, numElements.access),
-        IR_Assignment(stride, 2, "*="),
+        IR_VariableDeclaration(halfStride, 1),
+        IR_Lower(halfStride, numElements.access),
+        IR_Assignment(halfStride, 2, "*="),
         loopBody)
 
       fctBody += IR_VariableDeclaration(ret)

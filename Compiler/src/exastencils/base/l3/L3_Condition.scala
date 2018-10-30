@@ -10,6 +10,7 @@ import exastencils.prettyprinting._
 
 object L3_IfCondition {
   def apply(condition : L3_Expression, trueBody : L3_Statement) = new L3_IfCondition(condition, ListBuffer(trueBody), ListBuffer())
+  def apply(condition : L3_Expression, trueBody : ListBuffer[L3_Statement]) = new L3_IfCondition(condition, trueBody, ListBuffer())
 }
 
 case class L3_IfCondition(var condition : L3_Expression, var trueBody : ListBuffer[L3_Statement], var falseBody : ListBuffer[L3_Statement]) extends L3_Statement {

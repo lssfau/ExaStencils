@@ -3,6 +3,7 @@ package exastencils.parallelization.api.cuda
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.config.Knowledge
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 
 /// CUDA_Util
@@ -16,6 +17,7 @@ object CUDA_Util {
   val CUDA_BAND_PART = "CUDABandPart"
   val CUDA_INNER = "CUDAInner"
   val CUDA_BODY_DECL = "CUDABodyDeclarations"
+  val CUDA_BRANCH_CONDITION = "CUDABranchCond"
 
   /**
     * Check if the loop meets some basic conditions for transforming a ForLoopStatement into CUDA code.
@@ -36,9 +38,9 @@ object CUDA_Util {
     * @return <code>true</code> if it is a parallel loop; <code>false</code> otherwise
     */
   def verifyCudaLoopParallel(loop : IR_ForLoop) : Boolean = {
-    loop.inc.isInstanceOf[IR_Assignment] &&
-      loop.inc.asInstanceOf[IR_Assignment].src.isInstanceOf[IR_IntegerConstant] &&
-      loop.isInstanceOf[IR_HasParallelizationInfo] && loop.asInstanceOf[IR_HasParallelizationInfo].parallelization.potentiallyParallel
+    loop.inc.isInstanceOf[IR_Assignment] && loop.inc.asInstanceOf[IR_Assignment].src.isInstanceOf[IR_IntegerConstant] && (
+      if (Knowledge.experimental_cuda_generateKernelForNonParallel) true
+      else loop.isInstanceOf[IR_HasParallelizationInfo] && loop.asInstanceOf[IR_HasParallelizationInfo].parallelization.potentiallyParallel)
   }
 
   /**

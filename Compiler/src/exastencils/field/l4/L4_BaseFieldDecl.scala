@@ -24,7 +24,7 @@ case class L4_BaseFieldDecl(
   override def prettyprint(out : PpStream) = {
     out << "Field " << name << "< " << domain.name << ", " << fieldLayout.name << ", " << boundary << " >"
     if (numSlots > 1) out << '[' << numSlots << ']'
-    out << '@' << levels.get
+    if (levels.isDefined) out << '@' << levels.get
   }
 
   override def addToKnowledge() : Unit = {

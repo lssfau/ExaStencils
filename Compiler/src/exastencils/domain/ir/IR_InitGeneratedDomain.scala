@@ -74,7 +74,7 @@ case class IR_InitGeneratedDomain() extends IR_FuturePlainFunction {
     fragStatements += setupCommId()
     fragStatements ++= setupFragmentPosBeginAndEnd()
 
-    body += IR_LoopOverFragments(fragStatements, IR_ParallelizationInfo.PotentiallyParallel())
+    body += IR_LoopOverFragments(fragStatements, IR_ParallelizationInfo(potentiallyParallel = true))
 
     body += IR_ConnectFragments()
 

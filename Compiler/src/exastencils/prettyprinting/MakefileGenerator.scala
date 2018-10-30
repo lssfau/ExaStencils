@@ -26,7 +26,7 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< mkStringTrimFlat(
       "CXXFLAGS =",
       Platform.resolveCFlags,
-      Settings.makefile_additionalCFlags,
+      Settings.makefile_additionalCFlags.mkString(" "),
       Settings.pathsInc.map(path => s"-I$path"),
       Settings.additionalDefines.map(path => s"-D$path"),
       "-I."
@@ -35,14 +35,14 @@ object MakefileGenerator extends BuildfileGenerator {
       printer <<< mkStringTrimFlat(  // TODO: TPDL
         "CUDAFLAGS =",
         Platform.resolveCudaFlags,
-        Settings.makefile_additionalCudaFlags,
+        Settings.makefile_additionalCudaFlags.mkString(" "),
         Settings.pathsInc.map(path => s"-I$path"),
         "-I."
       )
     printer <<< mkStringTrimFlat(
       "LDFLAGS =",
       Platform.resolveLdFlags,
-      Settings.makefile_additionalLDFlags,
+      Settings.makefile_additionalLDFlags.mkString(" "),
       Settings.pathsLib.map(path => s"-L$path"),
       Settings.additionalDefines.map(path => s"-D$path")
     )
@@ -81,8 +81,8 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< "\t" + mkStringTrimFlat(cleanTargetCmd)
     printer <<< ""
 
-    printer <<< mkStringTrimFlat("${BINARY}:", "${ALL_OBJ}")
-    printer <<< "\t" + mkStringTrimFlat("${CXX} -o ${BINARY}", "${LDFLAGS}", "${ALL_OBJ}", "${LDLIBS}")
+    printer <<< mkStringTrimFlat("${BINARY}:", "${ALL_OBJ}" + " " + Settings.makefile_additionalObjFiles.mkString(" "))
+    printer <<< "\t" + mkStringTrimFlat("${CXX} -o ${BINARY}", "${LDFLAGS}", "${ALL_OBJ}", Settings.makefile_additionalObjFiles.mkString(" "), "${LDLIBS}")
     printer <<< ""
 
     if (Settings.makefile_makeLibs) {

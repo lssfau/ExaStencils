@@ -60,13 +60,17 @@ object IR_Inlining extends CustomStrategy("Function inlining") {
       val stmts : Buffer[IR_Statement] = analyzer.flatFunctionBody(func)
       var inline : Boolean = stmts.length <= Knowledge.opt_maxInliningSize
       if (heuristics_prepareCSE) {
-        var singleRet : Boolean = false
-        for (stmt <- stmts) stmt match {
-          case _ : IR_VariableDeclaration  =>
-          case _ : IR_Return if !singleRet => singleRet = true
-          case _                           => inline = false // any other statement (or a second ReturnStatement) found...
+        if (stmts.size == 0 || !stmts.last.isInstanceOf[IR_Return])
+          inline = false
+        else {
+          var nrRet : Int = 0
+          for (stmt <- stmts) stmt match {
+            case _ : IR_VariableDeclaration =>
+            case _ : IR_Return              => nrRet += 1
+            case _                          => inline = false // any other statement found...
+          }
+          inline &= nrRet == 1
         }
-        inline &= singleRet
       }
       inline &= funcStmt.allowInlining
       if (inline)
@@ -245,6 +249,7 @@ object IR_Inlining extends CustomStrategy("Function inlining") {
           flatFunctionBody(curFunc) += decl
           potConflicts(stack.head.asInstanceOf[IR_Function].name) += decl.name
 
+        // heuristics_prepareCSE requires this functionality, too (if if should be removed here, move it to the condition above)
         case ret : IR_Return if ret ne allowedReturn =>
           flatFunctionBody(curFunc) += ret
           inlinable = false

@@ -288,7 +288,9 @@ case class L3_SolverForEquation(
       }
 
       solveStmts += L3_UntilLoop(
-        (curIt >= Knowledge.solver_maxNumIts) OrOr (curRes <= Knowledge.solver_targetResReduction * initRes),
+        (curIt >= Knowledge.solver_maxNumIts)
+          OrOr (curRes <= Knowledge.solver_targetResReduction * initRes)
+          OrOr (curRes <= Knowledge.solver_absResThreshold),
         loopStmts)
 
       // handle modifications

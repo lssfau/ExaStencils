@@ -20,9 +20,12 @@ object CUDA_Kernel {
   def wrapperPostfix = "_wrapper"
   val KernelVariablePrefix = "_cu_"
   val KernelGlobalIndexPrefix = "global_"
-  val KernelLocalIndexPrefix = "local_"
   val CUDASharedMemoryAccess = "CUDASharedMemoryAccess"
   val ConstantIndexPart = "ConstantIndexPart"
+
+  def localThreadId(fieldName : String, dim : Int) = {
+    IR_VariableAccess(KernelVariablePrefix + "local_" + fieldName + "_" + IR_DimToString(dim), IR_IntegerDatatype)
+  }
 }
 
 // TODO: refactor -> less (convoluted) code
@@ -73,7 +76,7 @@ case class CUDA_Kernel(var identifier : String,
   var numBlocksPerDim = Array[Long]()
 
   // thread ids
-  var localThreadId = Array[IR_Expression]()
+  //var localThreadId = Array[IR_Expression]()
   var globalThreadId = Array[IR_Expression]()
 
   def getKernelFctName : String = identifier
@@ -171,7 +174,7 @@ case class CUDA_Kernel(var identifier : String,
       // 2.4 consider this field for shared memory if all conditions are met
       if (!writtenFields.contains(name) && fieldAccesses.size > 1 && requiredMemoryInByte < availableSharedMemory && (leftDeviationFromBaseIndex.head > 0 || rightDeviationFromBaseIndex.head > 0)) {
         val access = IR_DirectFieldAccess(fieldAccesses.head.fieldSelection, IR_ExpressionIndex(baseIndex))
-        access.allowLinearization = true
+        access.allowLinearization = false
         fieldNames += name
         fieldBaseIndex(name) = IR_ExpressionIndex(baseIndex)
         fieldForSharedMemory(name) = access
@@ -190,8 +193,8 @@ case class CUDA_Kernel(var identifier : String,
     }
 
     // 3. remove annotation from all fields that will not be stored in shared memory
-    fieldToFieldAccesses.retain((key, value) => !fieldNames.contains(key))
-    fieldToFieldAccesses.foreach(fa => fa._2.foreach(a => a.allowLinearization = false))
+    //fieldToFieldAccesses.retain((key, value) => !fieldNames.contains(key))
+    fieldToFieldAccesses.foreach(fa => fa._2.foreach(_.allowLinearization = !fieldNames.contains(fa._1)))
 
     // 4. ensure correct executionDim if no appropriate field was found
     if (!foundSomeAppropriateField) {
@@ -202,13 +205,17 @@ case class CUDA_Kernel(var identifier : String,
     }
   }
 
+  def localThreadId(fieldName : String) = {
+    (0 until executionDim).map(dim => CUDA_Kernel.localThreadId(fieldName, dim)).toArray[IR_Expression]
+  }
+
   /**
     * Create global and local thread ids used in the kernel.
     */
   def evalThreadIds() = {
-    localThreadId = (0 until executionDim).map(dim => {
-      IR_VariableAccess(KernelVariablePrefix + KernelLocalIndexPrefix + IR_DimToString(dim), IR_IntegerDatatype)
-    }).toArray[IR_Expression]
+//    localThreadId = (0 until executionDim).map(dim => {
+//      IR_VariableAccess(KernelVariablePrefix + KernelLocalIndexPrefix + IR_DimToString(dim), IR_IntegerDatatype)
+//    }).toArray[IR_Expression]
     globalThreadId = (0 until executionDim).map(dim => {
       IR_VariableAccess(KernelVariablePrefix + KernelGlobalIndexPrefix + IR_DimToString(dim), IR_IntegerDatatype)
     }).toArray[IR_Expression]
@@ -291,6 +298,11 @@ case class CUDA_Kernel(var identifier : String,
 
       numThreadsPerBlock = Knowledge.cuda_blockSizeAsVec.take(executionDim)
 
+      // adapt thread count for reduced dimensions
+      if (Knowledge.cuda_foldBlockSizeForRedDimensionality)
+        for (d <- executionDim until Knowledge.dimensionality)
+          numThreadsPerBlock(0) *= Knowledge.cuda_blockSizeAsVec(d)
+
       numBlocksPerDim = (0 until executionDim).map(dim => {
         val inc = stepSize(dim) match {
           case IR_IntegerConstant(i) => i
@@ -323,8 +335,8 @@ case class CUDA_Kernel(var identifier : String,
       IR_VariableDeclaration(IR_IntegerDatatype, variableName,
         Some(parLowerBounds(dim) + (parStepSize(dim) *
           (IR_MemberAccess(IR_VariableAccess("blockIdx", IR_SpecialDatatype("dim3")), it) *
-          IR_MemberAccess(IR_VariableAccess("blockDim", IR_SpecialDatatype("dim3")), it) +
-          IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it)))))
+            IR_MemberAccess(IR_VariableAccess("blockDim", IR_SpecialDatatype("dim3")), it) +
+            IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it)))))
     }).reverse // reverse, since the inner (lower dim) could depend on the outer (higher dim)
 
     // add dimension index start and end point
@@ -344,11 +356,10 @@ case class CUDA_Kernel(var identifier : String,
     statements += condition
 
     if (smemCanBeUsed && fieldForSharedMemory.nonEmpty) {
+      var zDimLoopBody = ListBuffer[IR_Statement]()
       fieldNames.foreach(field => {
-        val localPrefix = KernelVariablePrefix + "local_"
         val sharedMemoryStatements = ListBuffer[IR_Statement]()
         val sharedArrayStrides = IR_ExpressionIndex(sharedArraySize(field))
-        var zDimLoopBody = ListBuffer[IR_Statement]()
         val current = IR_VariableAccess("current", IR_IntegerDatatype)
 
         // 1. Annotate the loop variables appearing in the shared memory accesses to guarantee the right substitution later
@@ -359,7 +370,7 @@ case class CUDA_Kernel(var identifier : String,
         // 2. Add local Thread ID calculation for indexing shared memory
         statements ++= (0 until executionDim).map(dim => {
           val it = IR_DimToString(dim)
-          val variableName = localPrefix + it
+          val variableName = CUDA_Kernel.localThreadId(field, dim).name
           IR_VariableDeclaration(IR_IntegerDatatype, variableName,
             Some(IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it) +
               leftDeviations(field)(dim)))
@@ -393,10 +404,10 @@ case class CUDA_Kernel(var identifier : String,
           sharedMemoryStatements += IR_Assignment(IR_VariableAccess("infront" + rightDeviation(field), fieldDatatype(field)), IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, fieldBaseIndex(field) + IR_ExpressionIndex(Array[Long](0, 0, 1))).linearize)
 
           // 5.2 load from global memory into shared memory
-          sharedMemoryStatements += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localThreadId.take(executionDim).reverse, sharedArrayStrides), current)
+          sharedMemoryStatements += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localThreadId(field).take(executionDim).reverse, sharedArrayStrides), current)
         } else {
           // 6. Load from global memory into shared memory
-          sharedMemoryStatements += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localThreadId.reverse, sharedArrayStrides), IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, fieldForSharedMemory(field).index).linearize)
+          sharedMemoryStatements += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localThreadId(field).reverse, sharedArrayStrides), IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, fieldForSharedMemory(field).index).linearize)
         }
 
         // 7. Add load operations as ConditionStatement to avoid index out of bounds exceptions in global memory
@@ -405,7 +416,8 @@ case class CUDA_Kernel(var identifier : String,
           val it = IR_DimToString(dim)
 
           // 7.1 Check if current thread resides on the left border in any dimension
-          val condition = IR_OrOr(IR_Lower(IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it), leftDeviations(field)(dim)), IR_EqEq(globalThreadId(dim), s"${ KernelVariablePrefix }begin_$dim"))
+          //val condition = IR_OrOr(IR_Lower(IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it), leftDeviations(field)(dim)), IR_EqEq(globalThreadId(dim), s"${ KernelVariablePrefix }begin_$dim"))
+          val condition = 0 EqEq IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it)
           val conditionBody = ListBuffer[IR_Statement]()
 
           // 7.2 Calculate the offset from the left to the right border of the actual field
@@ -421,7 +433,7 @@ case class CUDA_Kernel(var identifier : String,
           // 7.4 Thread residing on left border should load left neighbor and the right neighbor of the point residing
           // on the right border of the actual field
           (1L to leftDeviations(field)(dim)).foreach(x => {
-            val localLeftIndex = Duplicate(localThreadId)
+            val localLeftIndex = Duplicate(localThreadId(field))
             localLeftIndex(dim) = IR_Subtraction(localLeftIndex(dim), x)
             val globalLeftIndex = IR_ExpressionIndex(Duplicate(globalThreadId)) + fieldOffset(field)
             globalLeftIndex(dim) = IR_Subtraction(globalLeftIndex(dim), x)
@@ -429,7 +441,7 @@ case class CUDA_Kernel(var identifier : String,
             conditionBody += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localLeftIndex.reverse, sharedArrayStrides), IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, globalLeftIndex).linearize)
           })
           (0L until rightDeviations(field)(dim)).foreach(x => {
-            val localRightIndex = Duplicate(localThreadId)
+            val localRightIndex = Duplicate(localThreadId(field))
             localRightIndex(dim) = IR_Addition(IR_Addition(localRightIndex(dim), localFieldOffset), x)
             val globalRightIndex = IR_ExpressionIndex(Duplicate(globalThreadId)) + fieldOffset(field)
             globalRightIndex(dim) = IR_Addition(IR_Addition(globalRightIndex(dim), localFieldOffset), x)
@@ -444,22 +456,26 @@ case class CUDA_Kernel(var identifier : String,
           // 8. Complete loop body for spatial blocking
           zDimLoopBody += IR_IfCondition(conditionAccess, sharedMemoryStatements)
           zDimLoopBody += CUDA_SyncThreads()
-          zDimLoopBody += IR_IfCondition(conditionAccess, body)
-          zDimLoopBody += CUDA_SyncThreads()
-
-          statements += IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, loopVariables(executionDim), s"${ KernelVariablePrefix }begin_$executionDim"), IR_Lower(IR_VariableAccess(loopVariables(executionDim), IR_IntegerDatatype), s"${ KernelVariablePrefix }end_$executionDim"), IR_Assignment(loopVariables(executionDim), IR_IntegerConstant(1), "+="), zDimLoopBody)
-
-          // 9. Remove the used loop variable to avoid later complications in loop variable substitution
-          loopVariables.remove(executionDim)
         } else {
           // 10. Add whole shared memory initialization wrapped in a ConditionStatement to the body
           statements += IR_IfCondition(conditionAccess, sharedMemoryStatements)
-
-          // This may not be part of the ConditionStatement to avoid dead locks if some thread do not fulfill the condition
-          statements += CUDA_SyncThreads()
-          statements += IR_IfCondition(conditionAccess, body)
         }
       })
+
+      if (spatialBlockingCanBeApplied) {
+        // 8. Complete loop body for spatial blocking
+        zDimLoopBody += IR_IfCondition(conditionAccess, body)
+        zDimLoopBody += CUDA_SyncThreads()
+
+        statements += IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, loopVariables(executionDim), s"${ KernelVariablePrefix }begin_$executionDim"), IR_Lower(IR_VariableAccess(loopVariables(executionDim), IR_IntegerDatatype), s"${ KernelVariablePrefix }end_$executionDim"), IR_Assignment(loopVariables(executionDim), IR_IntegerConstant(1), "+="), zDimLoopBody)
+
+        // 9. Remove the used loop variable to avoid later complications in loop variable substitution
+        loopVariables.remove(executionDim)
+      } else {
+        // This may not be part of the ConditionStatement to avoid dead locks if some thread do not fulfill the condition
+        statements += CUDA_SyncThreads()
+        statements += IR_IfCondition(conditionAccess, body)
+      }
     } else {
       statements += IR_IfCondition(conditionAccess, body)
     }
@@ -470,7 +486,8 @@ case class CUDA_Kernel(var identifier : String,
     // replace FieldAccess nodes in body with shared memory accesses
     if (smemCanBeUsed) {
       fieldNames.foreach(field => {
-        CUDA_ReplaceFieldAccessLike.fieldToOffset = fieldOffset(field)
+        CUDA_ReplaceFieldAccessLike.fieldToOffset = field
+        CUDA_ReplaceFieldAccessLike.fieldOffset = fieldOffset(field)
         CUDA_ReplaceFieldAccessLike.offsetForSharedMemoryAccess = leftDeviation(field)
         CUDA_ReplaceFieldAccessLike.sharedArrayStrides = sharedArraySize(field)
         CUDA_ReplaceFieldAccessLike.executionDim = executionDim
@@ -501,9 +518,9 @@ case class CUDA_Kernel(var identifier : String,
     CUDA_ReplaceLoopVariablesInWrapper.loopVariables.clear
     CUDA_ReplaceLoopVariablesInWrapper.loopVariables = loopVariables.drop(nrInnerSeqDims)
     // lowerArgs is not needed anymore since the initial values are directly computed in the CUDA code
-    //CUDA_ReplaceLoopVariablesInWrapper.bounds = Duplicate(lowerBounds.drop(nrInnerSeqDims))
-    //val lowerArgs = Duplicate(lowerBounds.drop(nrInnerSeqDims))
-    //CUDA_ReplaceLoopVariablesInWrapper.applyStandalone(lowerArgs)
+    CUDA_ReplaceLoopVariablesInWrapper.bounds = Duplicate(lowerBounds.drop(nrInnerSeqDims))
+    val lowerArgs = Duplicate(lowerBounds.drop(nrInnerSeqDims))
+    CUDA_ReplaceLoopVariablesInWrapper.applyStandalone(lowerArgs)
 
     val upperArgs = Duplicate(upperBounds.drop(nrInnerSeqDims))
     CUDA_ReplaceLoopVariablesInWrapper.bounds = Duplicate(upperBounds.drop(nrInnerSeqDims))
@@ -513,7 +530,7 @@ case class CUDA_Kernel(var identifier : String,
     var callArgs = ListBuffer[IR_Expression]()
 
     for (dim <- 0 until parallelDims) {
-      //callArgs += lowerArgs(dim)
+      callArgs += lowerArgs(dim)
       callArgs += upperArgs(dim)
     }
 
@@ -546,13 +563,13 @@ case class CUDA_Kernel(var identifier : String,
       def bufSize = requiredThreadsPerDim.product
       def bufAccess = CUDA_ReductionDeviceData(bufSize)
       body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.datatype)
-      body += CUDA_FunctionCallExperimental(getKernelFctName, callArgs, numThreadsPerBlock, numBlocksPerDim)
+      body += CUDA_FunctionCall(getKernelFctName, callArgs, numBlocksPerDim, numThreadsPerBlock)
       body += IR_Return(Some(IR_FunctionCall(s"DefaultReductionKernel${ IR_BinaryOperators.opAsIdent(reduction.get.op) }_wrapper",
         ListBuffer[IR_Expression](bufAccess, bufSize))))
 
       CUDA_KernelFunctions.get.requiredRedKernels += reduction.get.op // request reduction kernel and wrapper
     } else {
-      body += CUDA_FunctionCallExperimental(getKernelFctName, callArgs, numThreadsPerBlock, numBlocksPerDim)
+      body += CUDA_FunctionCall(getKernelFctName, callArgs, numBlocksPerDim, numThreadsPerBlock)
     }
 
     val fct = IR_PlainFunction( /* FIXME: IR_LeveledFunction? */
@@ -578,7 +595,7 @@ case class CUDA_Kernel(var identifier : String,
 
     for (dim <- 0 until parallelDims) {
       // begin is not needed anymore since the initial values are directly computed in the CUDA code
-      //fctParams += IR_FunctionArgument(s"${ KernelVariablePrefix }begin_$dim", IR_IntegerDatatype)
+      fctParams += IR_FunctionArgument(s"${ KernelVariablePrefix }begin_$dim", IR_IntegerDatatype)
       fctParams += IR_FunctionArgument(s"${ KernelVariablePrefix }end_$dim", IR_IntegerDatatype)
     }
 
@@ -595,7 +612,7 @@ case class CUDA_Kernel(var identifier : String,
 
     if (fieldForSharedMemory.nonEmpty) {
       fieldNames.foreach(field => {
-        fctParams += IR_FunctionArgument(field, IR_PointerDatatype(fieldForSharedMemory(field).fieldSelection.field.resolveDeclType))
+        fctParams += IR_FunctionArgument(field, IR_PointerDatatype(fieldDatatype(field).resolveDeclType))
       })
     }
 

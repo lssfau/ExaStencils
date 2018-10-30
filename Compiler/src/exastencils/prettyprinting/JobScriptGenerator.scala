@@ -59,6 +59,10 @@ object JobScriptGenerator {
         // if (tasksPerNode > 1) // for some reason this flag is also required if only one thread per node is used
         printer <<< s"export CRAY_CUDA_MPS=1            # allow GPU sharing"
 
+        // some optimization flags
+        printer <<< s"export MPICH_G2G_PIPELINE=256     # adapt maximum number of concurrent in-flight messages"
+        printer <<< ""
+
         if (Knowledge.omp_enabled) {
           printer <<< s"export OMP_NUM_THREADS=$numOMP          # set number of OMP threads"
           printer <<< s"export OMP_WAIT_POLICY=PASSIVE"
@@ -71,6 +75,33 @@ object JobScriptGenerator {
         printer <<< s"cd ${ Settings.executionPath }"
 
         printer <<< ""
+
+        // rank reordering for multiple mpi ranks; don't apply when condition is enabled since it usually uses the mpi rank to branch
+        if (numMPI > 1 && Knowledge.cuda_preferredExecution.toLowerCase != "condition") {
+          val grid = Knowledge.domain_rect_numBlocksAsVec.take(Knowledge.dimensionality)
+          val cores = Array.fill(Knowledge.dimensionality)(1)
+          var numCores = tasksPerNode
+
+          def multCoresWith(factor : Int) = {
+            val sizes = (0 until Knowledge.dimensionality).map(d => Knowledge.domain_fragmentLengthAsVec(d) * Knowledge.domain_rect_numFragsPerBlockAsVec(d) * cores(d))
+            val smallestIndex = sizes.zipWithIndex.minBy(_._1)._2
+            cores(smallestIndex) *= factor
+            numCores /= factor
+          }
+
+          while (numCores > 1 && 0 == numCores % 2)
+            multCoresWith(2)
+
+          if (numCores > 1) {
+            Logger.warn(s"Number of blocks per node not power of two; adding remainder of $numCores to a suitable dimension")
+            multCoresWith(numCores)
+          }
+
+          printer <<< s"# set up rank ordering on regular grid"
+          // reverse arrays to match dimension ordering of grid_order
+          printer <<< s"grid_order -R -H -g ${ grid.reverse.mkString("x") } -c ${ cores.reverse.mkString("x") } > MPICH_RANK_ORDER"
+          printer <<< s"export MPICH_RANK_REORDER_METHOD=3"
+        }
 
         // large job adaptation according to https://user.cscs.ch/getting_started/running_jobs/#large-jobs
         printer <<< "export PMI_MMAP_SYNC_WAIT_TIME=300"

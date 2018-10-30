@@ -58,34 +58,40 @@ object ResolveAlias {
         changed = false
 
         // target all member variables with type String (return type of getter is string and setter function exists)
-        for (m <- config.getClass.getMethods if m.getReturnType == "".getClass && config.getClass.getMethods.exists(_.getName == m.getName + "_$eq")) {
-          // get name and value of current parameter
-          val paramName = m.getName
-          val toProcess = m.invoke(config).asInstanceOf[String]
+        for (m <- config.getClass.getMethods)
+          if (m.getReturnType == "".getClass && config.getClass.getMethods.exists(_.getName == m.getName + "_$eq")) {
+            // get name and value of current parameter
+            val paramName = m.getName
+            val toProcess = m.invoke(config).asInstanceOf[String]
 
-          val processed = processString(toProcess)
+            val processed = processString(toProcess)
 
-          if (toProcess != processed) {
-            // write back updated parameter value
-            Logger.debug(s"Setting $paramName to $processed")
-            UniversalSetter(config, paramName, processed)
+            if (toProcess != processed) {
+              // write back updated parameter value
+              Logger.debug(s"Setting $paramName to $processed")
+              UniversalSetter(config, paramName, processed)
+            }
           }
-        }
 
         // target all member variables with type ListBuffer[String] (return type of getter is string and setter function exists)
-        for (m <- config.getClass.getMethods if m.getReturnType == ListBuffer("").getClass && config.getClass.getMethods.exists(_.getName == m.getName + "_$eq")) {
-          // get name and value of current parameter
-          val paramName = m.getName
-          val toProcess = m.invoke(config).asInstanceOf[ListBuffer[String]]
+        // note that the element type of a ListBuffer must be checked inside
+        for (m <- config.getClass.getMethods)
+          if (m.getReturnType == ListBuffer().getClass && config.getClass.getMethods.exists(_.getName == m.getName + "_$eq")) {
+            // get name and value of current parameter
+            val paramName = m.getName
+            val toProcess = m.invoke(config).asInstanceOf[ListBuffer[_]]
 
-          val processed = toProcess.map(processString)
+            // check for element type
+            if (!toProcess.isEmpty && toProcess.head.isInstanceOf[String]) {
+              val processed = toProcess.asInstanceOf[ListBuffer[String]].map(processString)
 
-          if (toProcess != processed) {
-            // write back updated parameter value
-            Logger.debug(s"Setting $paramName to $processed")
-            UniversalSetter(config, paramName, processed)
+              if (toProcess != processed) {
+                // write back updated parameter value
+                Logger.debug(s"Setting $paramName to $processed")
+                UniversalSetter(config, paramName, processed)
+              }
+            }
           }
-        }
       }
     }
   }

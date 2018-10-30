@@ -7,8 +7,8 @@ import exastencils.parsers.l4._
 object ValidateL4 {
   def main(args : Array[String]) : Unit = {
     // check from where to read input
-    val settingsParser = new Settings_Parser()
-    val knowledgeParser = new Knowledge_Parser()
+    val settingsParser = new Settings_Parser(Settings)
+    val knowledgeParser = new Settings_Parser(Knowledge)
     if (args.length >= 1) {
       settingsParser.parseFile(args(0))
     }

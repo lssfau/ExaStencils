@@ -1,5 +1,7 @@
 package exastencils.config
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.constraints._
 
 object Knowledge {
@@ -158,8 +160,14 @@ object Knowledge {
 
   /// solver setup information
 
+  // generate debug output (run-time) for generated L3 solvers if true
+  var solver_generateDbgOutputs : Boolean = false
+
   // target reduction of the residual norm for the whole solver
   var solver_targetResReduction : Double = 1e-5
+
+  // residual threshold for aborting the whole solver
+  var solver_absResThreshold : Double = 0.0
 
   // maximum number of iterations for the whole solver
   var solver_maxNumIts : Int = 128
@@ -192,6 +200,15 @@ object Knowledge {
 
   // target reduction of the residual norm for the coarse grid solver
   var solver_cgs_targetResReduction : Double = 0.001
+
+  // residual threshold for aborting the cgs
+  var solver_cgs_absResThreshold : Double = 0.0
+
+  // restart cgs after solver_cgs_restartAfter iterations if true
+  var solver_cgs_restart : Boolean = false
+
+  // restart interval for the cgs
+  var solver_cgs_restartAfter : Int = 1000
 
   // if true, loops containing a single local solve node will be split into halo and inner; inner will be generated without conditionals
   var solver_splitLocalSolveLoops : Boolean = false
@@ -328,7 +345,7 @@ object Knowledge {
 
   // [true|false] // specify separately if the outermost loop should be tiled
   var poly_tileOuterLoop : Boolean = false
-  // [isl|feautrier|exploration|external] // choose which schedule algorithm should be used in PolyOpt
+  // [isl|feautrier] // choose which schedule algorithm should be used in PolyOpt
   var poly_scheduleAlgorithm : String = "isl"
   // [all|raw|rar] // specifies which dependences should be optimized; "all" means all validity dependences (raw, war, waw)
   var poly_optimizeDeps : String = "raw"
@@ -348,10 +365,15 @@ object Knowledge {
   var poly_maxCoefficient : Int = -1
   var poly_printDebug : Boolean = false
 
-  // an external schedule that should be used when poly_scheduleAlgorithm is set to "external"
-  var poly_externalSchedule : String = ""
+  // a list of external schedules that should be used for the specified ID:
+  //  each String must have the form "ID|Schedule"
+  var poly_externalSchedules : ListBuffer[String] = ListBuffer()
   var poly_extSched_unrollTime : Boolean = false
   var poly_extSched_outerBandSize : Int = 1
+
+  // a list of IDs for which an exploration should be performed
+  //  a "-1" specifies that an exploration should be performed for every scop
+  var poly_explorationIDs : ListBuffer[Int] = ListBuffer()
 
   // --- general optimization ---
 
@@ -458,6 +480,9 @@ object Knowledge {
   // apply spatial blocking with read-only cache
   var cuda_spatialBlockingWithROC : Boolean = false
 
+  // if true, the first dimension of the block size is enlarged if the kernel dimensionality is lower than the global dimensionality
+  var cuda_foldBlockSizeForRedDimensionality : Boolean = true
+
   /// --- general parallelization ---
 
   // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
@@ -541,6 +566,9 @@ object Knowledge {
 
   // eliminate occurrences of cudaContext - required for PizDaint
   var experimental_eliminateCudaContext : Boolean = false
+
+  // generate cuda kernels independently of them being parallel or not
+  var experimental_cuda_generateKernelForNonParallel : Boolean = false
 
   // control inlining of value declarations on applicable layers
   var experimental_l1_inlineValueDeclarations : Boolean = false

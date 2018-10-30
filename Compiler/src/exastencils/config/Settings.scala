@@ -63,7 +63,7 @@ object Settings {
 
   var poly_explorationConfig : String = ""
 
-  // specifies if the  poly exploration config id should be appended to the output path (only used if Knowledge.poly_scheduleAlgorithm == "exploration")
+  // specifies if the poly exploration config ids should be appended to the output path (one after the other)
   var poly_exploration_appendID2path : Boolean = true
 
   /// output
@@ -123,10 +123,11 @@ object Settings {
   var binary : String = "exastencils"
 
   var makefile_makeLibs : Boolean = false
-  var makefile_additionalCFlags : String = ""
-  var makefile_additionalLDFlags : String = ""
+  var makefile_additionalCFlags : ListBuffer[String] = ListBuffer()
+  var makefile_additionalLDFlags : ListBuffer[String] = ListBuffer()
   // Additional flags for CUDA compiler
-  var makefile_additionalCudaFlags : String = ""
+  var makefile_additionalCudaFlags : ListBuffer[String] = ListBuffer()
+  var makefile_additionalObjFiles : ListBuffer[String] = ListBuffer()
 
   /// performance estimates (experimental)
 
@@ -186,6 +187,8 @@ object Settings {
   // print number of nodes after each strategy
   var printTransformationTime : Boolean = false
   var logStrategyResults : Boolean = true // Debug log strategy results
+  // time the steps performed by the IR_PolyOpt strategy
+  var timePolyOptSteps : Boolean = false
 
   def update() : Unit = {
     // Settings parser does not parse escapes in string literals.
@@ -215,6 +218,7 @@ object Settings {
       case "likwid" =>
         if (!additionalIncludes.contains("likwid.h")) additionalIncludes += "likwid.h"
         if (!additionalLibs.contains("likwid")) additionalLibs += "likwid"
+        if (!additionalDefines.contains("LIKWID_PERFMON")) additionalDefines += "LIKWID_PERFMON"
       case _ =>
     }
     if (Platform.simd_mathLibrary == "mass_simd")

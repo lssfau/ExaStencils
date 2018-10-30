@@ -10,6 +10,7 @@ import exastencils.communication.DefaultNeighbors
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
+import exastencils.domain.ir.IR_IV_FragmentIndex
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda._
@@ -202,7 +203,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
           func.body.prepend(OMP_Parallel(ListBuffer(HACK_IR_Native("LIKWID_MARKER_THREADINIT"))))
           func.body.prepend(HACK_IR_Native("LIKWID_MARKER_INIT"))
           func.body.append(HACK_IR_Native("LIKWID_MARKER_CLOSE"))
-        case _ =>
+        case _        =>
       }
       if (Knowledge.cuda_enabled) {
         func.body.prepend(CUDA_Init)
@@ -488,20 +489,34 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
 
     case IR_ExpressionStatement(f @ IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("benchmarkStart", _), args)) =>
       var stmt = Knowledge.benchmark_backend match {
-        case "likwid" => if(1 != args.length || args(0).datatype != IR_StringDatatype) Logger.error("benchmarkStart takes a single argument of type String for benchmark_backend 'likwid'")
+        case "likwid" => if (1 != args.length || args(0).datatype != IR_StringDatatype) Logger.error("benchmarkStart takes a single argument of type String for benchmark_backend 'likwid'")
           f.function.name = "LIKWID_MARKER_START"
           IR_ExpressionStatement(f)
-        case _ => IR_NullStatement
+        case _        => IR_NullStatement
       }
       stmt
 
     case IR_ExpressionStatement(f @ IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("benchmarkStop", _), args)) =>
       var stmt = Knowledge.benchmark_backend match {
-        case "likwid" => if(1 != args.length || args(0).datatype != IR_StringDatatype) Logger.error("benchmarkStop takes a single argument of type String for benchmark_backend 'likwid'")
+        case "likwid" => if (1 != args.length || args(0).datatype != IR_StringDatatype) Logger.error("benchmarkStop takes a single argument of type String for benchmark_backend 'likwid'")
           f.function.name = "LIKWID_MARKER_STOP"
           IR_ExpressionStatement(f)
-        case _ => IR_NullStatement
+        case _        => IR_NullStatement
       }
       stmt
-})
+
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("getGismoPatchIdx", _), args) =>
+      if (args.nonEmpty) Logger.warn("Ignoring arguments for call to getGismoPatchIdx")
+
+      val lexOrdering = false
+      if (lexOrdering) {
+        IR_IV_FragmentIndex(0) +
+          (1 until Knowledge.dimensionality).map(d =>
+            IR_IV_FragmentIndex(d) * (0 until d).map(Knowledge.domain_rect_numFragsTotalAsVec).product : IR_Expression).reduce(_ + _)
+      } else {
+        IR_IV_FragmentIndex(Knowledge.dimensionality - 1) +
+          (0 until Knowledge.dimensionality - 1).map(d =>
+            IR_IV_FragmentIndex(d) * (d + 1 until Knowledge.dimensionality).map(Knowledge.domain_rect_numFragsTotalAsVec).product : IR_Expression).reduce(_ + _)
+      }
+  })
 }

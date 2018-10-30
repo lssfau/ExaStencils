@@ -148,7 +148,7 @@ case class IR_LoopOverDimensions(
       val begin = IR_VariableDeclaration(IR_IntegerDatatype, threadIdxName, IR_IntegerConstant(0))
       val end = IR_Lower(IR_VariableAccess(threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
       val inc = IR_ExpressionStatement(IR_PreIncrement(IR_VariableAccess(threadIdxName, IR_IntegerDatatype)))
-      val loop = new IR_ForLoop(begin, end, inc, body, IR_ParallelizationInfo.PotentiallyParallel())
+      val loop = new IR_ForLoop(begin, end, inc, body, IR_ParallelizationInfo(potentiallyParallel = true))
       ListBuffer(loop)
     } else {
       body

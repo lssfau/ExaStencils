@@ -35,6 +35,7 @@ object Isl {
         case "amd64"     => "x86_64"
         case "x86_64"    => "x86_64"
         case "i386"      => "x86"
+        case "x86"       => "x86"
         case "powerpc64" => "ppc64"
         case x           =>
           throw new Exception("unknown system architecture (" + x + "), cannot load native library isl")

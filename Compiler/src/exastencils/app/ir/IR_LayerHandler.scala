@@ -46,8 +46,6 @@ object IR_DummyLayerHandler extends IR_LayerHandler {
 /// IR_DefaultLayerHandler
 
 object IR_DefaultLayerHandler extends IR_LayerHandler {
-  /* FIXME: move somewhere more reasonable */ var polyOptExplID : Int = 0
-
   override def initialize() : Unit = {
     // TODO: use KnowledgeContainer structure
   }
@@ -217,6 +215,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     // resolve constant IVs before applying poly opt
     IR_ResolveConstIVs.apply()
+    IR_SimplifyFloatExpressions.apply()
     IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.opt_conventionalCSE || Knowledge.opt_loopCarriedCSE) {
@@ -229,7 +228,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
-      IR_PolyOpt.apply(polyOptExplID)
+      IR_PolyOpt.apply()
     IR_ResolveLoopOverDimensions.apply()
 
     IR_TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary
@@ -255,6 +254,8 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     if (Knowledge.cuda_enabled)
       CUDA_KernelFunctions.get.convertToFunctions()
+
+    IR_SimplifyIndexExpressions.apply()
 
     IR_ResolveBoundedScalar.apply() // after converting kernel functions -> relies on (unresolved) index offsets to determine loop iteration counts
     IR_ResolveSlotOperations.apply() // after converting kernel functions -> relies on (unresolved) slot accesses

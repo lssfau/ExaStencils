@@ -10,10 +10,10 @@ import exastencils.prettyprinting._
 /// L3_FunctionTemplate
 
 object L3_FunctionTemplate {
-  def apply(name : String, datatype : Option[L3_Datatype], templateArgs : Option[List[String]],
-      functionArgs : Option[Option[List[L3_Function.Argument]]], statements : List[L3_Statement]) : L3_FunctionTemplate =
-    L3_FunctionTemplate(name, datatype.getOrElse(L3_UnitDatatype), templateArgs.getOrElse(List()).to[ListBuffer],
-      functionArgs.getOrElse(None).getOrElse(List()).to[ListBuffer], statements.to[ListBuffer])
+  def apply(name : String, datatype : Option[L3_Datatype], templateArgs : List[String],
+      functionArgs : Option[List[L3_Function.Argument]], statements : List[L3_Statement]) : L3_FunctionTemplate =
+    L3_FunctionTemplate(name, datatype.getOrElse(L3_UnitDatatype), templateArgs.to[ListBuffer],
+      functionArgs.getOrElse(List()).to[ListBuffer], statements.to[ListBuffer])
 }
 
 case class L3_FunctionTemplate(

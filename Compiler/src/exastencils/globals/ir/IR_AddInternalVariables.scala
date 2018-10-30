@@ -96,7 +96,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
 
       fieldAllocs += (cleanedField.prettyprint() -> IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.field.domain.index), statements),
-        IR_ParallelizationInfo.PotentiallyParallel()))
+        IR_ParallelizationInfo(potentiallyParallel = true)))
 
       field
 
@@ -133,7 +133,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
 
       deviceFieldAllocs += (cleanedField.prettyprint() -> IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.field.domain.index), statements),
-        IR_ParallelizationInfo.PotentiallyParallel()))
+        IR_ParallelizationInfo(potentiallyParallel = true)))
 
       field
 
@@ -179,9 +179,9 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
           IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
             Some(((s"vs_$counter" - (IR_Cast(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
           IR_Assignment(buf, buf.basePtr + s"offset_$counter")),
-          IR_ParallelizationInfo.PotentiallyParallel()))
+          IR_ParallelizationInfo(potentiallyParallel = true)))
       } else {
-        bufferAllocs += (id -> IR_LoopOverFragments(IR_ArrayAllocation(buf, IR_RealDatatype, size), IR_ParallelizationInfo.PotentiallyParallel()))
+        bufferAllocs += (id -> IR_LoopOverFragments(IR_ArrayAllocation(buf, IR_RealDatatype, size), IR_ParallelizationInfo(potentiallyParallel = true)))
       }
 
       buf
@@ -190,7 +190,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       val size = deviceBufferSizes(id)
 
-      deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_Allocate(buf, size, IR_RealDatatype /*FIXME*/), IR_ParallelizationInfo.PotentiallyParallel()))
+      deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_Allocate(buf, size, IR_RealDatatype /*FIXME*/), IR_ParallelizationInfo(potentiallyParallel = true)))
 
       buf
 
@@ -198,7 +198,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
       val size = deviceBufferSizes(id)
 
-      deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_Allocate(buf, size, IR_RealDatatype /*FIXME*/), IR_ParallelizationInfo.PotentiallyParallel()))
+      deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_Allocate(buf, size, IR_RealDatatype /*FIXME*/), IR_ParallelizationInfo(potentiallyParallel = true)))
 
       buf
 

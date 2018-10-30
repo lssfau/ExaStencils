@@ -3,7 +3,7 @@ package exastencils.base.ir
 /// IR_InternalFunctionReference
 
 object IR_InternalFunctionReference {
-  def floord = IR_PlainInternalFunctionReference("floord", IR_RealDatatype/* TODO: check data type */)
+  def floord = IR_PlainInternalFunctionReference("floord", IR_IntegerDatatype)
 }
 
 trait IR_InternalFunctionReference extends IR_FunctionReference

@@ -42,7 +42,7 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
       case l : IR_LoopOverDimensions =>
         val incr = (0 until l.stepSize.length - Knowledge.opt_loopCarriedCSE_skipOuter).view.map { d =>
           l.stepSize(d) match {
-            case IR_IntegerConstant(i) if i > 0 => (IR_FieldIteratorAccess(d).name/*TODO Stefan: y not VA?*/ , l.indices.begin(d), l.indices.end(d), i)
+            case IR_IntegerConstant(i) if i > 0 => (IR_FieldIteratorAccess(d).name, l.indices.begin(d), l.indices.end(d), i)
             case _                              => null
           }
         }.toArray
@@ -688,7 +688,7 @@ abstract class IR_IV_AbstractLoopCarriedCSBuffer(var namePostfix : String, var f
       val begin = IR_VariableDeclaration(IR_IntegerDatatype, IR_LoopOverDimensions.threadIdxName, IR_IntegerConstant(0))
       val end = IR_Lower(IR_VariableAccess(IR_LoopOverDimensions.threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
       val inc = IR_PreIncrement(IR_VariableAccess(IR_LoopOverDimensions.threadIdxName, IR_IntegerDatatype))
-      wrappedBody = IR_ForLoop(begin, end, inc, ListBuffer(wrappedBody), IR_ParallelizationInfo.PotentiallyParallel())
+      wrappedBody = IR_ForLoop(begin, end, inc, ListBuffer(wrappedBody), IR_ParallelizationInfo(potentiallyParallel = true))
     }
     wrappedBody
   }
