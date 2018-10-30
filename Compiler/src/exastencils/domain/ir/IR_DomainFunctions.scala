@@ -23,6 +23,7 @@ case class IR_DomainFunctions() extends IR_FunctionCollection(
     functions += IR_InitGeneratedDomain()
   } else if (true) { // TODO: add knowledge flag
     externalDependencies += ("iostream", "fstream")
+    functions += IR_ReadLineFromFile(IR_VariableAccess("ifs", IR_SpecialDatatype("std::ifstream&")), IR_VariableAccess("iss", IR_SpecialDatatype("std::isstream&")))
     functions += IR_InitDomainFromFile()
   } else {
     // deprecated code; TODO: remove
