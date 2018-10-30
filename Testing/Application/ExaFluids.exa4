@@ -425,7 +425,7 @@ Function Solve@finest ( ) : Unit {
 		curIt += 1
 	}
 
-	if ( curTime >= nextPrintTime ) {
+	/*if ( curTime >= nextPrintTime ) {
 		nextPrintTime += printInterval
 
 		Var index : Integer = curTime / printInterval
@@ -446,7 +446,7 @@ Function Solve@finest ( ) : Unit {
 		printField ( filename_v, v[active]@current, 2**( levels@current ( ) - 1 ) == i2 )
 		printField ( filename_w, w[active]@current, 2**( levels@current ( ) - 1 ) == i2 )
 		printField ( filename_temp, phi7[active]@current, 2**( levels@current ( ) - 1 ) == i2 )
-	}
+	}*/
 
 	// print some information about achieved residuals and required steps
 	Val res_u : Real = NormResidual_u@current ( )
