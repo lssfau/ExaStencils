@@ -4,7 +4,6 @@ import exastencils.base.ProgressLocation
 import exastencils.base.ir._
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.config.Knowledge
-import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
@@ -27,7 +26,7 @@ case class L4_PlainVariableAccess(var name : String, var datatype : L4_Datatype,
 
 case class L4_LeveledVariableAccess(var name : String, var level : Int, var datatype : L4_Datatype, var isConst : Boolean) extends L4_VariableAccess {
   override def prettyprint(out : PpStream) : Unit = out << name << '@' << level
-  override def progress = ProgressLocation(IR_VariableAccess(name, datatype.progress))
+  override def progress = ProgressLocation(IR_VariableAccess(name + "_" + level, datatype.progress))
 }
 
 /// L4_ResolveVariableAccesses
