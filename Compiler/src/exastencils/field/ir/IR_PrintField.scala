@@ -25,7 +25,12 @@ object IR_PrintField {
   }
 }
 
-case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelection, var condition : IR_Expression = true) extends IR_Statement with IR_Expandable {
+case class IR_PrintField(
+    var filename : IR_Expression,
+    var field : IR_FieldSelection,
+    var condition : IR_Expression = true,
+    var includeGhostLayers : Boolean = false) extends IR_Statement with IR_Expandable {
+
   def numDimsGrid = field.fieldLayout.numDimsGrid
   def numDimsData = field.fieldLayout.numDimsData
 
@@ -76,6 +81,9 @@ case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelec
     }
     printComponents += IR_Print.endl
 
+    val fieldBegin = if (includeGhostLayers) "GLB" else "DLB"
+    val fieldEnd = if (includeGhostLayers) "GRE" else "DRE"
+
     // TODO: less monolithic code
     var innerLoop = ListBuffer[IR_Statement](
       IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc", IR_UnknownDatatype)),
@@ -84,8 +92,8 @@ case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelec
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
           IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById("DLB", dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById("DRE", dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
+            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById(fieldBegin, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
+            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById(fieldEnd, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
             IR_IfCondition(condition,
               IR_Print(stream, printComponents))))),
       IR_MemberFunctionCall(stream, "close"))
