@@ -4,6 +4,7 @@ import exastencils.base.ProgressLocation
 import exastencils.base.ir._
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
