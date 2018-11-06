@@ -225,8 +225,8 @@ object L3_MinResForEquation extends L3_IterativeSolverForEquation {
     }
     returnStmts += L3_Return(None)
 
-    loopStmts += L3_IfCondition((curRes <= Knowledge.solver_cgs_targetResReduction * initRes)
-      OrOr (curRes <= Knowledge.solver_cgs_absResThreshold), returnStmts, ListBuffer())
+    loopStmts += L3_IfCondition((L3_FunctionCall(L3_MathFunctionReference.fabs, curRes) <= Knowledge.solver_cgs_targetResReduction * initRes)
+      OrOr (L3_FunctionCall(L3_MathFunctionReference.fabs, curRes) <= Knowledge.solver_cgs_absResThreshold), returnStmts, ListBuffer())
 
     // compile loop
     stmts += L3_ForLoop(Knowledge.solver_cgs_maxNumIts, Some(curStep), loopStmts)
