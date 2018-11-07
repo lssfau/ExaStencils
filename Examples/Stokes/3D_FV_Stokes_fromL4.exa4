@@ -1,6 +1,6 @@
 // domain declarations
 
-Domain global< [0.0, 0.0, 0.0] to [3.0, 3.0, 3.0] >
+Domain global< [0.0, 0.0, 0.0] to [1.0, 1.0, 1.0] >
 
 // field layout declarations
 
@@ -76,13 +76,13 @@ Layout FaceZ__1_1_0__1_1_0< Real, Face_z >@all {
 
 // field declarations
 Field u< global, FaceXWithComm, 0.0 >@(all but finest)
-Field u< global, FaceXWithComm, -4.0 * cos ( 4.0 * vf_boundaryPosition_z ) >@finest
+Field u< global, FaceXWithComm, sin ( 2.0 * PI * vf_boundaryCoord_x ) - cos (       PI * vf_boundaryCoord_z ) >@finest
 
 Field v< global, FaceYWithComm, 0.0 >@(all but finest)
-Field v< global, FaceYWithComm,  8.0 * cos ( 8.0 * vf_boundaryPosition_x ) >@finest
+Field v< global, FaceYWithComm, cos (       PI * vf_boundaryCoord_x ) - sin ( 2.0 * PI * vf_boundaryCoord_y ) >@finest
 
 Field w< global, FaceZWithComm, 0.0 >@(all but finest)
-Field w< global, FaceZWithComm, -2.0 * cos ( 2.0 * vf_boundaryPosition_y ) >@5
+Field w< global, FaceZWithComm, sin ( 2.0 * PI * vf_boundaryCoord_z ) - cos (       PI * vf_boundaryCoord_y ) >@finest
 
 Field p< global, CellWithComm, Neumann >@all
 
@@ -421,6 +421,66 @@ Function ResNorm@(coarsest and finest) : Real {
   return sqrt ( norm )
 }
 
+// u = sin ( 2.0 * PI * x ) - cos (       PI * z )
+// v = cos (       PI * x ) - sin ( 2.0 * PI * y )
+// w = sin ( 2.0 * PI * z ) - cos (       PI * y )
+// p = sin ( 4.0 * PI * x ) + sin ( 4.0 * PI * y ) + sin ( 4.0 * PI * z )
+// rhs_u = 4.0 * PI**2 * sin ( 2.0 * PI * x ) -       PI**2 * cos (       PI * z ) + 4.0 * PI * cos ( 4.0 * PI * x )
+// rhs_v =       PI**2 * cos (       PI * x ) - 4.0 * PI**2 * sin ( 2.0 * PI * y ) + 4.0 * PI * cos ( 4.0 * PI * y )
+// rhs_w = 2.0 * PI**2 * sin ( 2.0 * PI * z ) -       PI**2 * cos (       PI * y ) + 4.0 * PI * cos ( 4.0 * PI * z )
+// rhs_p = 2.0 * PI    * cos ( 2.0 * PI * x ) - 2.0 * PI    * cos ( 2.0 * PI * y ) + 2.0 * PI * cos ( 2.0 * PI * z )
+
+Function PrintError@finest {
+  NormalizePressure@finest ( )
+  
+  Var norm_u : Real = 0.0
+  loop over u with reduction ( max : norm_u ) {
+    norm_u = max ( norm_u, fabs ( u - ( sin ( 2.0 * PI * vf_nodePosition_x ) - cos (       PI * vf_cellCenter_z   ) ) ) )
+  }
+  Var norm_v : Real = 0.0
+  loop over v with reduction ( max : norm_v ) {
+    norm_v = max ( norm_v, fabs ( v - ( cos (       PI * vf_cellCenter_x   ) - sin ( 2.0 * PI * vf_nodePosition_y ) ) ) )
+  }
+  Var norm_w : Real = 0.0
+  loop over v with reduction ( max : norm_w ) {
+    norm_w = max ( norm_w, fabs ( v - ( sin ( 2.0 * PI * vf_nodePosition_z ) - cos (       PI * vf_cellCenter_y   ) ) ) )
+  }
+  Var norm_p : Real = 0.0
+  loop over p with reduction ( max : norm_p ) {
+    norm_p = max ( norm_p, fabs ( p - ( sin ( 4.0 * PI * vf_cellCenter_x   ) + sin ( 4.0 * PI * vf_cellCenter_y   )  + sin ( 4.0 * PI * vf_cellCenter_z   ) ) ) )
+  }
+
+  if ( getKnowledge ( 'testing_enabled' ) ) {
+    if ( getKnowledge ( 'testing_printErr' ) ) { 
+      printWithReducedPrec ( norm_u )
+      printWithReducedPrec ( norm_v )
+      printWithReducedPrec ( norm_w )
+      printWithReducedPrec ( norm_p )
+    }
+  } else {
+    print ( "The maximum error (u,v,w,p) is", norm_u, norm_v, norm_w, norm_p )
+  }
+}
+
+Function NormalizePressure@finest {
+  // normalize pressure around the exact solution
+
+	Expr numCells_x = ( 2 ** levels@current ( ) ) * getKnowledge ( 'domain_fragmentLength_x' ) * getKnowledge ( 'domain_rect_numBlocks_x' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_x' )
+	Expr numCells_y = ( 2 ** levels@current ( ) ) * getKnowledge ( 'domain_fragmentLength_y' ) * getKnowledge ( 'domain_rect_numBlocks_y' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_y' )
+	Expr numCells_z = ( 2 ** levels@current ( ) ) * getKnowledge ( 'domain_fragmentLength_z' ) * getKnowledge ( 'domain_rect_numBlocks_z' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_z' )
+	Expr numCells = numCells_x * numCells_y * numCells_z
+
+  Var meanP : Real = 0.0
+  loop over p with reduction ( + : meanP ) {
+    meanP += p
+  }
+  meanP /= numCells
+  loop over p {
+    p -= meanP
+  }
+  apply bc to p
+}
+
 Function UpdateRes@all {
   communicate all of u
   communicate all of v
@@ -458,7 +518,7 @@ Function Solve@finest {
   print ( "Starting residual: ", initRes )
 
   Var curIt : Integer = 0
-  repeat until curIt >= 128 || curRes <= 1.0E-5 * initRes {
+  repeat until curIt >= 30 or curRes <= 1.0E-12 * initRes or curRes <= 1.0E-12 {
     curIt += 1
     mgCycle (  )
 
@@ -468,6 +528,7 @@ Function Solve@finest {
     curRes = ResNorm (  )
 
     print ( "Residual after", curIt, "iterations is", curRes, "--- convergence factor is", curRes / prevRes )
+    PrintError@finest ( )
   }
 }
 
@@ -885,16 +946,16 @@ Function mgCycle@(all but coarsest) {
 
 Function InitFields@finest {
   loop over rhs_p {
-    rhs_p = vf_cellVolume * ( 0.0 )
+    rhs_p = vf_cellVolume      * ( 2.0 * PI    * cos ( 2.0 * PI * vf_cellCenter_x   ) - 2.0 * PI    * cos ( 2.0 * PI * vf_cellCenter_y   ) + 2.0 * PI * cos ( 2.0 * PI * vf_cellCenter_z   ) )
   }
   loop over rhs_u {
-    rhs_u = vf_xStagCellVolume * ( 4.0 * sin ( 8.0 * vf_cellCenter_y ) * sin ( 2.0 * vf_cellCenter_z ) * cos ( 4.0 * vf_nodePosition_x ) - 64.0  * cos ( 4.0 * vf_cellCenter_z ) )
+    rhs_u = vf_xStagCellVolume * ( 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePosition_x ) -       PI**2 * cos (       PI * vf_cellCenter_z   ) + 4.0 * PI * cos ( 4.0 * PI * vf_nodePosition_x ) )
   }
   loop over rhs_v {
-    rhs_v = vf_yStagCellVolume * ( 8.0 * sin ( 4.0 * vf_cellCenter_x ) * sin ( 2.0 * vf_cellCenter_z ) * cos ( 8.0 * vf_nodePosition_y ) + 512.0 * cos ( 8.0 * vf_cellCenter_x ) )
+    rhs_v = vf_yStagCellVolume * (       PI**2 * cos (       PI * vf_cellCenter_x   ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePosition_y ) + 4.0 * PI * cos ( 4.0 * PI * vf_nodePosition_y ) )
   }
   loop over rhs_w {
-    rhs_w = vf_zStagCellVolume * ( 2.0 * sin ( 4.0 * vf_cellCenter_x ) * sin ( 8.0 * vf_cellCenter_y ) * cos ( 2.0 * vf_nodePosition_z ) - 8.0   * cos ( 2.0 * vf_cellCenter_y ) )
+    rhs_w = vf_zStagCellVolume * ( 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePosition_z ) -       PI**2 * cos (       PI * vf_cellCenter_y   ) + 4.0 * PI * cos ( 4.0 * PI * vf_nodePosition_z ) )
   }
 }
 

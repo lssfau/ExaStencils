@@ -20,7 +20,7 @@ object L3_IterativeSolverForEquation {
       case "cg" | "conjugategradient" | "conjugategradients" => L3_ConjugateGradientForEquation.generateFor(entries, level)
       case "bicgstab"                                        => L3_BiCGStabForEquation.generateFor(entries, level)
       case "minres"                                          => L3_MinResForEquation.generateFor(entries, level)
-      case "conjugateresidual" | "conjugateresiduals"        => L3_ConjugateResidualForEquation.generateFor(entries, level)
+      case "cr" | "conjugateresidual" | "conjugateresiduals" => L3_ConjugateResidualForEquation.generateFor(entries, level)
       case "smoother"                                        => L3_VankaAsSolverForEquation.generateFor(entries, level, smootherHints)
       case _                                                 => Logger.error(s"Unsupported iterative solver: ${ solver }")
     }

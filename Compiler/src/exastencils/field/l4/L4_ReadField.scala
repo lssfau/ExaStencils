@@ -30,6 +30,7 @@ object L4_ResolveReadFieldFunctions extends DefaultStrategy("Resolve read field 
   this += new Transformation("Resolve", {
     case L4_ExpressionStatement(L4_FunctionCall(L4_UnresolvedFunctionReference(fctName, level, offset), args))
       if "readFieldWithGhost" == fctName || "readField" == fctName =>
+
       if (level.isDefined) Logger.warn(s"Found leveled read field function with level ${ level.get }; level is ignored")
       if (offset.isDefined) Logger.warn(s"Found read field function with offset; offset is ignored")
       args match {

@@ -15,9 +15,13 @@ import exastencils.interfacing.ir._
 import exastencils.logger._
 import exastencils.util.ir.IR_MathFunctions
 
+/// EvaluationException
+
+/** Exception used in IR_SimplifyExpression to signal that the given expression cannot be processed/evaluated. */
+case class EvaluationException(msg : String, cause : Throwable = null) extends Exception(msg, cause) {}
+
 /// IR_SimplifyExpression
 
-// TODO: refactor -> less (convoluted) code
 object IR_SimplifyExpression {
 
   /**
@@ -62,7 +66,7 @@ object IR_SimplifyExpression {
     case IR_StringLiteral(value) if extremaLookup.contains(value) =>
       extremaLookup(value)
 
-    case IR_VariableAccess(name, dType) if extremaLookup.contains(name) =>
+    case IR_VariableAccess(name, _) if extremaLookup.contains(name) =>
       extremaLookup(name)
 
     case IR_Addition(sums : ListBuffer[IR_Expression]) =>
@@ -162,7 +166,7 @@ object IR_SimplifyExpression {
     * The additive constant is stored beside the key SimplifyExpression.constName.
     * The given expression is equivalent to: map(constName) + \sum_{n \in names} map(n) * n
     *
-    * Only VariableAccess nodes are used as keys. (NO StringConstant)
+    * Only VariableAccess nodes are used as keys. (NO StringLiteral)
     */
   def extractIntegralSum(expr : IR_Expression) : HashMap[IR_Expression, Long] = {
 
@@ -280,9 +284,8 @@ object IR_SimplifyExpression {
         val exprs = new ListBuffer[IR_Expression]
         var min : java.lang.Long = null
         for (arg <- args) simplifyIntegralExpr(arg) match {
-          case IR_IntegerConstant(c)   => min = if (min == null || min > c) c else min
-          case e if !exprs.contains(e) => exprs += e
-          case _                       => // we already found a (syntactically) indentical expression, so skip this one
+          case IR_IntegerConstant(c) => min = if (min == null || min > c) c else min
+          case e                     => if (!exprs.contains(e)) exprs += e
         }
         res = new HashMap[IR_Expression, Long]()
         if (exprs.isEmpty)
@@ -297,9 +300,8 @@ object IR_SimplifyExpression {
         val exprs = new ListBuffer[IR_Expression]
         var max : java.lang.Long = null
         for (arg <- args) simplifyIntegralExpr(arg) match {
-          case IR_IntegerConstant(c)   => max = if (max == null || max < c) c else max
-          case e if !exprs.contains(e) => exprs += e
-          case _                       => // we already found a (syntactically) indentical expression, so skip this one
+          case IR_IntegerConstant(c) => max = if (max == null || max < c) c else max
+          case e                     => if (!exprs.contains(e)) exprs += e
         }
         res = new HashMap[IR_Expression, Long]()
         if (exprs.isEmpty)
@@ -440,8 +442,8 @@ object IR_SimplifyExpression {
 
     val sumSeq = sumMap.view.filter(s => s._1 != constName && s._2 != 0L).toSeq.sortWith({
       case ((IR_VariableAccess(v1, _), _), (IR_VariableAccess(v2, _), _)) => v1 < v2
-      case ((v1 : IR_VariableAccess, _), _)                               => true
-      case (_, (v2 : IR_VariableAccess, _))                               => false
+      case ((_ : IR_VariableAccess, _), _)                                => true
+      case (_, (_ : IR_VariableAccess, _))                                => false
       case ((e1, _), (e2, _))                                             =>
         val (e1PP, e2PP) = (e1.prettyprint(), e2.prettyprint())
         if (e1PP == e2PP) {
@@ -547,7 +549,7 @@ object IR_SimplifyExpression {
     * The additive constant is stored beside the key SimplifyExpression.constName.
     * The given expression is equivalent to: map(constName) + \sum_{n \in names} map(n) * n
     *
-    * Only VariableAccess and ArrayAccess nodes are used as keys. (NO StringConstant)
+    * Only VariableAccess and ArrayAccess nodes are used as keys. (NO StringLiteral)
     */
   def extractFloatingSum(expr : IR_Expression) : HashMap[IR_Expression, Double] = {
 
@@ -674,9 +676,7 @@ object IR_SimplifyExpression {
         val mapR = extractFloatingSum(r)
         if (mapR.size == 1 && mapR.contains(constName)) {
           val div : Double = mapR(constName)
-          res = mapL
-          for ((name : IR_Expression, value : Double) <- res)
-            res(name) = value / div
+          res = mapL.transform { (_ : IR_Expression, value : Double) => value / div }
         } else {
           var coefL : Double = 1d
           var exprL = recreateExprFromFloatSum(mapL)
@@ -695,10 +695,8 @@ object IR_SimplifyExpression {
             case IR_Multiplication(ListBuffer(IR_RealConstant(coef), inner)) =>
               coefR = coef
               exprR = inner
-            case IR_RealConstant(coef)                                       =>
-              coefR = coef
-              exprR = IR_RealConstant(1d)
-            case _                                                           =>
+            // case IR_RealConstant(coef) => // cannot happen, see other branch of surrounding if
+            case _ =>
           }
           res = new HashMap[IR_Expression, Double]()
           val div = IR_Division(exprL, exprR)
@@ -718,9 +716,8 @@ object IR_SimplifyExpression {
         val exprs = new ListBuffer[IR_Expression]
         var min : java.lang.Double = null
         for (arg <- args) simplifyFloatingExpr(arg) match {
-          case IR_RealConstant(c)      => min = if (min == null || min > c) c else min
-          case e if !exprs.contains(e) => exprs += e
-          case _                       => // we already found a (syntactically) indentical expression, so skip this one
+          case IR_RealConstant(c) => min = if (min == null || min > c) c else min
+          case e                  => if (!exprs.contains(e)) exprs += e
         }
         res = new HashMap[IR_Expression, Double]()
         if (exprs.isEmpty)
@@ -735,9 +732,8 @@ object IR_SimplifyExpression {
         val exprs = new ListBuffer[IR_Expression]
         var max : java.lang.Double = null
         for (arg <- args) simplifyFloatingExpr(arg) match {
-          case IR_RealConstant(c)      => max = if (max == null || max < c) c else max
-          case e if !exprs.contains(e) => exprs += e
-          case _                       => // we already found a (syntactically) indentical expression, so skip this one
+          case IR_RealConstant(c) => max = if (max == null || max < c) c else max
+          case e                  => if (!exprs.contains(e)) exprs += e
         }
         res = new HashMap[IR_Expression, Double]()
         if (exprs.isEmpty)
@@ -785,8 +781,8 @@ object IR_SimplifyExpression {
 
     val sumSeq = sumMap.view.filter(s => s._1 != constName && s._2 != 0d).toSeq.sortWith({
       case ((IR_VariableAccess(v1, _), _), (IR_VariableAccess(v2, _), _)) => v1 < v2
-      case ((v1 : IR_VariableAccess, _), _)                               => true
-      case (_, (v2 : IR_VariableAccess, _))                               => false
+      case ((_ : IR_VariableAccess, _), _)                                => true
+      case (_, (_ : IR_VariableAccess, _))                                => false
       case ((e1, _), (e2, _))                                             =>
         val (e1PP, e2PP) = (e1.prettyprint(), e2.prettyprint())
         if (e1PP == e2PP) {
@@ -853,8 +849,3 @@ object IR_SimplifyExpression {
     }
   }
 }
-
-/// EvaluationException
-
-// TODO: move somewhere more reasonable
-case class EvaluationException(msg : String, cause : Throwable = null) extends Exception(msg, cause) {}
