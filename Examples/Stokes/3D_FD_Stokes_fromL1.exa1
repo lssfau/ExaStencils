@@ -1,26 +1,32 @@
 
 /// problem specification
 
-Domain \Omega = ( 0, 3 ) \times ( 0, 3 ) \times ( 0, 3 )
+Domain \Omega = ( 0, 1 ) \times ( 0, 1 ) \times ( 0, 1 )
+
+// u = sin ( 2.0 * PI * x ) - cos (       PI * z )
+// v = cos (       PI * x ) - sin ( 2.0 * PI * y )
+// w = sin ( 2.0 * PI * z ) - cos (       PI * y )
+// p = sin ( 4.0 * PI * x ) + sin ( 4.0 * PI * y ) + sin ( 4.0 * PI * z )
+// rhs_u = 4.0 * PI**2 * sin ( 2.0 * PI * x ) -       PI**2 * cos (       PI * z ) + 4.0 * PI * cos ( 4.0 * PI * x )
+// rhs_v =       PI**2 * cos (       PI * x ) - 4.0 * PI**2 * sin ( 2.0 * PI * y ) + 4.0 * PI * cos ( 4.0 * PI * y )
+// rhs_w = 2.0 * PI**2 * sin ( 2.0 * PI * z ) -       PI**2 * cos (       PI * y ) + 4.0 * PI * cos ( 4.0 * PI * z )
+// rhs_p = 2.0 * PI    * cos ( 2.0 * PI * x ) - 2.0 * PI    * cos ( 2.0 * PI * y ) + 2.0 * PI * cos ( 2.0 * PI * z )
 
 Field u \in \Omega = 0.0
 Field v \in \Omega = 0.0
 Field w \in \Omega = 0.0
 Field p \in \Omega = 0.0
 
-Field u@finest \in \partial \Omega = -4.0 * cos ( 4.0 * vf_boundaryCoord_z )
-Field u@(all but finest) \in \partial \Omega = 0.0
-Field v@finest \in \partial \Omega =  8.0 * cos ( 8.0 * vf_boundaryCoord_x )
-Field v@(all but finest) \in \partial \Omega = 0.0
-Field w@finest \in \partial \Omega = -2.0 * cos ( 2.0 * vf_boundaryCoord_y )
-Field w@(all but finest) \in \partial \Omega = 0.0
+Field u \in \partial \Omega = sin ( 2.0 * PI * vf_boundaryCoord_x ) - cos (       PI * vf_boundaryCoord_z )
+Field v \in \partial \Omega = cos (       PI * vf_boundaryCoord_x ) - sin ( 2.0 * PI * vf_boundaryCoord_y )
+Field w \in \partial \Omega = sin ( 2.0 * PI * vf_boundaryCoord_z ) - cos (       PI * vf_boundaryCoord_y )
 Field p \in \partial \Omega = Neumann
 
 // TODO: handle virtual fields properly and make @current implicit again
-Field f_u@finest \in \Omega = 4.0 * sin ( 8.0 * vf_cellCenter_y@current ) * sin ( 2.0 * vf_cellCenter_z@current ) * cos ( 4.0 * vf_nodePosition_x@current ) - 64.0  * cos ( 4.0 * vf_cellCenter_z@current )
-Field f_v@finest \in \Omega = 8.0 * sin ( 4.0 * vf_cellCenter_x@current ) * sin ( 2.0 * vf_cellCenter_z@current ) * cos ( 8.0 * vf_nodePosition_y@current ) + 512.0 * cos ( 8.0 * vf_cellCenter_x@current )
-Field f_w@finest \in \Omega = 2.0 * sin ( 4.0 * vf_cellCenter_x@current ) * sin ( 8.0 * vf_cellCenter_y@current ) * cos ( 2.0 * vf_nodePosition_z@current ) - 8.0   * cos ( 2.0 * vf_cellCenter_y@current )
-Field f_p@finest \in \Omega = 0.0
+Field f_u \in \Omega = 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePosition_x@current ) -       PI**2 * cos (       PI * vf_cellCenter_z@current   ) + 4.0 * PI * cos ( 4.0 * PI * vf_nodePosition_x@current )
+Field f_v \in \Omega =       PI**2 * cos (       PI * vf_cellCenter_x@current   ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePosition_y@current ) + 4.0 * PI * cos ( 4.0 * PI * vf_nodePosition_y@current )
+Field f_w \in \Omega = 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePosition_z@current ) -       PI**2 * cos (       PI * vf_cellCenter_y@current   ) + 4.0 * PI * cos ( 4.0 * PI * vf_nodePosition_z@current )
+Field f_p \in \Omega = 2.0 * PI    * cos ( 2.0 * PI * vf_cellCenter_x@current   ) - 2.0 * PI    * cos ( 2.0 * PI * vf_cellCenter_y@current   ) + 2.0 * PI * cos ( 2.0 * PI * vf_cellCenter_z@current   )
 
 Operator Laplace = - \Delta // alt: - ( \partial_{xx} + \partial_{yy} )
 
@@ -31,17 +37,10 @@ Operator dxFwd = \partial_{x}
 Operator dyFwd = \partial_{y}
 Operator dzFwd = \partial_{z}
 
-Equation uEq@finest           Laplace * u + dxBwd * p == f_u
-Equation uEq@(all but finest) Laplace * u + dxBwd * p == 0.0
-
-Equation vEq@finest           Laplace * v + dyBwd * p == f_v
-Equation vEq@(all but finest) Laplace * v + dyBwd * p == 0.0
-
-Equation wEq@finest           Laplace * w + dzBwd * p == f_w
-Equation wEq@(all but finest) Laplace * w + dzBwd * p == 0.0
-
-Equation pEq@finest           dxFwd * u + dyFwd * v + dzFwd * w == f_p
-Equation pEq@(all but finest) dxFwd * u + dyFwd * v + dzFwd * w == 0.0
+Equation uEq Laplace * u + dxBwd * p == f_u
+Equation vEq Laplace * v + dyBwd * p == f_v
+Equation wEq Laplace * w + dzBwd * p == f_w
+Equation pEq dxFwd * u + dyFwd * v + dzFwd * w == f_p
 
 /// configuration of inter-layer transformations
 
@@ -77,14 +76,24 @@ SolverHints {
   generate solver for u in uEq and v in vEq and w in wEq and p in pEq
 
   // parameters
+  solver_generateDbgOutputs     = true
+
+  solver_targetResReduction     = 1e-12
+  solver_absResThreshold        = 1e-8
+  solver_maxNumIts              = 30
+  
   solver_smoother_jacobiType    = false
   solver_smoother_numPre        = 4
   solver_smoother_numPost       = 4
   solver_smoother_damping       = 0.8
-  solver_smoother_coloring      = "red-black" // "27-way"
+  solver_smoother_coloring      = "red-black" // "9-way" // "red-black"
+
   solver_cgs                    = "BiCGStab"
-  solver_cgs_maxNumIts          = 128
-  solver_cgs_targetResReduction = 1e-3
+  solver_cgs_maxNumIts          = 10000
+  solver_cgs_targetResReduction = 1e-12 // 3
+  solver_cgs_restart            = true
+  solver_cgs_restartAfter       = 256
+  solver_cgs_absResThreshold    = 1e-12
 }
 
 ApplicationHints {

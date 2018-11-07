@@ -1,105 +1,114 @@
 
-Domain global< [ 0, 0, 0 ] to [ 3, 3, 3 ] >
+Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >
 
+// u = sin ( 2.0 * PI * x ) - cos (       PI * z )
+// v = cos (       PI * x ) - sin ( 2.0 * PI * y )
+// w = sin ( 2.0 * PI * z ) - cos (       PI * y )
+// p = sin ( 4.0 * PI * x ) + sin ( 4.0 * PI * y ) + sin ( 4.0 * PI * z )
+// rhs_u = 4.0 * PI**2 * sin ( 2.0 * PI * x ) -       PI**2 * cos (       PI * z ) + 4.0 * PI * cos ( 4.0 * PI * x )
+// rhs_v =       PI**2 * cos (       PI * x ) - 4.0 * PI**2 * sin ( 2.0 * PI * y ) + 4.0 * PI * cos ( 4.0 * PI * y )
+// rhs_w = 2.0 * PI**2 * sin ( 2.0 * PI * z ) -       PI**2 * cos (       PI * y ) + 4.0 * PI * cos ( 4.0 * PI * z )
+// rhs_p = 2.0 * PI    * cos ( 2.0 * PI * x ) - 2.0 * PI    * cos ( 2.0 * PI * y ) + 2.0 * PI * cos ( 2.0 * PI * z )
 
 Field u with Real on Face_x of global = 0.0
-Field u@finest on boundary = -4.0 * cos ( 4.0 * vf_boundaryCoord_z )
-Field u@(all but finest) on boundary = 0.0
+Field u on boundary = sin ( 2.0 * PI * vf_boundaryCoord_x ) - cos (       PI * vf_boundaryCoord_z )
 
 Field v with Real on Face_y of global = 0.0
-Field v@finest on boundary =  8.0 * cos ( 8.0 * vf_boundaryCoord_x )
-Field v@(all but finest) on boundary = 0.0
+Field v on boundary = cos (       PI * vf_boundaryCoord_x ) - sin ( 2.0 * PI * vf_boundaryCoord_y )
 
 Field w with Real on Face_z of global = 0.0
-Field w@finest on boundary = -2.0 * cos ( 2.0 * vf_boundaryCoord_y )
-Field w@(all but finest) on boundary = 0.0
+Field w on boundary = sin ( 2.0 * PI * vf_boundaryCoord_z ) - cos (       PI * vf_boundaryCoord_y )
 
 Field p with Real on Cell of global = 0.0
 Field p on boundary = Neumann // TODO: currently not evaluated outside inner scope
 
 
-Field rhs_u@finest with Real on Face_x of global = vf_xStagCellVolume * ( 4.0 * sin ( 8.0 * vf_cellCenter_y ) * sin ( 2.0 * vf_cellCenter_z ) * cos ( 4.0 * vf_nodePosition_x ) - 64.0  * cos ( 4.0 * vf_cellCenter_z ) )
-Field rhs_v@finest with Real on Face_y of global = vf_yStagCellVolume * ( 8.0 * sin ( 4.0 * vf_cellCenter_x ) * sin ( 2.0 * vf_cellCenter_z ) * cos ( 8.0 * vf_nodePosition_y ) + 512.0 * cos ( 8.0 * vf_cellCenter_x ) )
-Field rhs_w@finest with Real on Face_z of global = vf_zStagCellVolume * ( 2.0 * sin ( 4.0 * vf_cellCenter_x ) * sin ( 8.0 * vf_cellCenter_y ) * cos ( 2.0 * vf_nodePosition_z ) - 8.0   * cos ( 2.0 * vf_cellCenter_y ) )
-Field rhs_p@finest with Real on Cell of global = vf_cellVolume * ( 0.0 )
+// version 1: assume that the rhs is constant within one (staggered) cell
+/*
+Field rhs_u with Real on Face_x of global = vf_xStagCellVolume * ( 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePosition_x ) -       PI**2 * cos (       PI * vf_cellCenter_z   ) + 4.0 * PI * cos ( 4.0 * PI * vf_nodePosition_x ) )
+Field rhs_v with Real on Face_y of global = vf_yStagCellVolume * (       PI**2 * cos (       PI * vf_cellCenter_x   ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePosition_y ) + 4.0 * PI * cos ( 4.0 * PI * vf_nodePosition_y ) )
+Field rhs_w with Real on Face_z of global = vf_zStagCellVolume * ( 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePosition_z ) -       PI**2 * cos (       PI * vf_cellCenter_y   ) + 4.0 * PI * cos ( 4.0 * PI * vf_nodePosition_z ) )
+Field rhs_p with Real on Cell   of global = vf_cellVolume      * ( 2.0 * PI    * cos ( 2.0 * PI * vf_cellCenter_x   ) - 2.0 * PI    * cos ( 2.0 * PI * vf_cellCenter_y   ) + 2.0 * PI * cos ( 2.0 * PI * vf_cellCenter_z   ) )
+*/
+
+// version 2: use analytical integral formulations for the rhs
+
+Field rhs_u with Real on Face_x of global = (
+    integrateOverXStaggeredEastFace   ( 1.0 ) * ( 2.0 * PI * -cos ( 2.0 * PI * vf_cellCenter_x  @[ 0,  0,  0] ) )
+  - integrateOverXStaggeredWestFace   ( 1.0 ) * ( 2.0 * PI * -cos ( 2.0 * PI * vf_cellCenter_x  @[-1,  0,  0] ) )
+  - integrateOverXStaggeredTopFace    ( 1.0 ) * (       PI *  sin (       PI * vf_nodePosition_z@[ 0,  0,  1] ) )
+  + integrateOverXStaggeredBottomFace ( 1.0 ) * (       PI *  sin (       PI * vf_nodePosition_z@[ 0,  0,  0] ) )
+  + integrateOverXStaggeredEastFace   ( 1.0 ) * (             sin ( 4.0 * PI * vf_cellCenter_x  @[ 0,  0,  0] ) )
+  - integrateOverXStaggeredWestFace   ( 1.0 ) * (             sin ( 4.0 * PI * vf_cellCenter_x  @[-1,  0,  0] ) )
+  )
+
+Field rhs_v with Real on Face_y of global = (
+    integrateOverYStaggeredEastFace   ( 1.0 ) * (       PI *  sin (       PI * vf_nodePosition_x@[ 1,  0,  0] ) )
+  - integrateOverYStaggeredWestFace   ( 1.0 ) * (       PI *  sin (       PI * vf_nodePosition_x@[ 0,  0,  0] ) )
+  + integrateOverYStaggeredNorthFace  ( 1.0 ) * ( 2.0 * PI *  cos ( 2.0 * PI * vf_cellCenter_y  @[ 0,  0,  0] ) )
+  - integrateOverYStaggeredSouthFace  ( 1.0 ) * ( 2.0 * PI *  cos ( 2.0 * PI * vf_cellCenter_y  @[ 0, -1,  0] ) )
+  + integrateOverYStaggeredNorthFace  ( 1.0 ) * (             sin ( 4.0 * PI * vf_cellCenter_y  @[ 0,  0,  0] ) )
+  - integrateOverYStaggeredSouthFace  ( 1.0 ) * (             sin ( 4.0 * PI * vf_cellCenter_y  @[ 0, -1,  0] ) )
+  )
+
+Field rhs_w with Real on Face_z of global = (
+    integrateOverZStaggeredTopFace    ( 1.0 ) * ( 2.0 * PI * -cos ( 2.0 * PI * vf_cellCenter_z  @[ 0,  0,  0] ) )
+  - integrateOverZStaggeredBottomFace ( 1.0 ) * ( 2.0 * PI * -cos ( 2.0 * PI * vf_cellCenter_z  @[ 0,  0, -1] ) )
+  - integrateOverZStaggeredNorthFace  ( 1.0 ) * (       PI *  sin (       PI * vf_nodePosition_y@[ 0,  1,  0] ) )
+  + integrateOverZStaggeredSouthFace  ( 1.0 ) * (       PI *  sin (       PI * vf_nodePosition_y@[ 0,  0,  0] ) )
+  + integrateOverZStaggeredTopFace    ( 1.0 ) * (             sin ( 4.0 * PI * vf_cellCenter_z  @[ 0,  0,  0] ) )
+  - integrateOverZStaggeredBottomFace ( 1.0 ) * (             sin ( 4.0 * PI * vf_cellCenter_z  @[ 0,  0, -1] ) )
+  )
+
+Field rhs_p with Real on Cell   of global = (
+      integrateOverEastFace  ( 1.0 ) *  sin ( 2.0 * PI * vf_nodePosition_x@[ 1,  0,  0] ) - integrateOverWestFace   ( 1.0 ) *  sin ( 2.0 * PI * vf_nodePosition_x@[ 0,  0,  0] )
+    + integrateOverNorthFace ( 1.0 ) * -sin ( 2.0 * PI * vf_nodePosition_y@[ 0,  1,  0] ) - integrateOverSouthFace  ( 1.0 ) * -sin ( 2.0 * PI * vf_nodePosition_y@[ 0,  0,  0] )
+    + integrateOverTopFace   ( 1.0 ) *  sin ( 2.0 * PI * vf_nodePosition_z@[ 0,  0,  1] ) - integrateOverBottomFace ( 1.0 ) *  sin ( 2.0 * PI * vf_nodePosition_z@[ 0,  0,  0] )
+    )
 
 
-Equation uEquation@finest {
-  ( integrateOverXStaggeredEastFace ( 1.0 ) * p@[0, 0, 0] - integrateOverXStaggeredWestFace ( 1.0 ) * p@[-1, 0, 0] +
-    -1.0 * (
-        integrateOverXStaggeredEastFace   ( 1.0 ) * ( u@[ 1,  0,  0] - u@[ 0,  0,  0] ) / vf_cellWidth_x  @[1, 0, 0]
-      - integrateOverXStaggeredWestFace   ( 1.0 ) * ( u@[ 0,  0,  0] - u@[-1,  0,  0] ) / vf_cellWidth_x  @[0, 0, 0]
-      + integrateOverXStaggeredNorthFace  ( 1.0 ) * ( u@[ 0,  1,  0] - u@[ 0,  0,  0] ) / vf_stagCVWidth_y@[0, 1, 0]
-      - integrateOverXStaggeredSouthFace  ( 1.0 ) * ( u@[ 0,  0,  0] - u@[ 0, -1,  0] ) / vf_stagCVWidth_y@[0, 0, 0]
-      + integrateOverXStaggeredTopFace    ( 1.0 ) * ( u@[ 0,  0,  1] - u@[ 0,  0,  0] ) / vf_stagCVWidth_z@[0, 0, 1]
-      - integrateOverXStaggeredBottomFace ( 1.0 ) * ( u@[ 0,  0,  0] - u@[ 0,  0, -1] ) / vf_stagCVWidth_z@[0, 0, 0] )
+
+Equation uEquation {
+  ( integrateOverXStaggeredEastFace  ( 1.0 ) * p@[ 0,  0,  0] - integrateOverXStaggeredWestFace   ( 1.0 ) * p@[-1,  0,  0]
+    - (
+        integrateOverXStaggeredEastFace   ( 1.0 ) * ( u@[ 1,  0,  0] - u@[ 0,  0,  0] ) / vf_cellWidth_x  @[ 1,  0,  0]
+      - integrateOverXStaggeredWestFace   ( 1.0 ) * ( u@[ 0,  0,  0] - u@[-1,  0,  0] ) / vf_cellWidth_x  @[ 0,  0,  0]
+      + integrateOverXStaggeredNorthFace  ( 1.0 ) * ( u@[ 0,  1,  0] - u@[ 0,  0,  0] ) / vf_stagCVWidth_y@[ 0,  1,  0]
+      - integrateOverXStaggeredSouthFace  ( 1.0 ) * ( u@[ 0,  0,  0] - u@[ 0, -1,  0] ) / vf_stagCVWidth_y@[ 0,  0,  0]
+      + integrateOverXStaggeredTopFace    ( 1.0 ) * ( u@[ 0,  0,  1] - u@[ 0,  0,  0] ) / vf_stagCVWidth_z@[ 0,  0,  1]
+      - integrateOverXStaggeredBottomFace ( 1.0 ) * ( u@[ 0,  0,  0] - u@[ 0,  0, -1] ) / vf_stagCVWidth_z@[ 0,  0,  0] )
   ) == rhs_u
 }
-Equation uEquation@(all but finest) {
-  ( integrateOverXStaggeredEastFace ( 1.0 ) * p@[0, 0, 0] - integrateOverXStaggeredWestFace ( 1.0 ) * p@[-1, 0, 0] +
-    -1.0 * (
-        integrateOverXStaggeredEastFace   ( 1.0 ) * ( u@[ 1,  0,  0] - u@[ 0,  0,  0] ) / vf_cellWidth_x  @[1, 0, 0]
-      - integrateOverXStaggeredWestFace   ( 1.0 ) * ( u@[ 0,  0,  0] - u@[-1,  0,  0] ) / vf_cellWidth_x  @[0, 0, 0]
-      + integrateOverXStaggeredNorthFace  ( 1.0 ) * ( u@[ 0,  1,  0] - u@[ 0,  0,  0] ) / vf_stagCVWidth_y@[0, 1, 0]
-      - integrateOverXStaggeredSouthFace  ( 1.0 ) * ( u@[ 0,  0,  0] - u@[ 0, -1,  0] ) / vf_stagCVWidth_y@[0, 0, 0]
-      + integrateOverXStaggeredTopFace    ( 1.0 ) * ( u@[ 0,  0,  1] - u@[ 0,  0,  0] ) / vf_stagCVWidth_z@[0, 0, 1]
-      - integrateOverXStaggeredBottomFace ( 1.0 ) * ( u@[ 0,  0,  0] - u@[ 0,  0, -1] ) / vf_stagCVWidth_z@[0, 0, 0] )
-  ) == 0.0
+
+Equation vEquation {
+  ( integrateOverYStaggeredNorthFace ( 1.0 ) * p@[ 0,  0,  0] - integrateOverYStaggeredSouthFace  ( 1.0 ) * p@[ 0, -1,  0]
+    - (
+        integrateOverYStaggeredEastFace   ( 1.0 ) * ( v@[ 1,  0,  0] - v@[ 0,  0,  0] ) / vf_stagCVWidth_x@[ 1,  0,  0]
+      - integrateOverYStaggeredWestFace   ( 1.0 ) * ( v@[ 0,  0,  0] - v@[-1,  0,  0] ) / vf_stagCVWidth_x@[ 0,  0,  0]
+      + integrateOverYStaggeredNorthFace  ( 1.0 ) * ( v@[ 0,  1,  0] - v@[ 0,  0,  0] ) / vf_cellWidth_y  @[ 0,  1,  0]
+      - integrateOverYStaggeredSouthFace  ( 1.0 ) * ( v@[ 0,  0,  0] - v@[ 0, -1,  0] ) / vf_cellWidth_y  @[ 0,  0,  0]
+      + integrateOverYStaggeredTopFace    ( 1.0 ) * ( v@[ 0,  0,  1] - v@[ 0,  0,  0] ) / vf_stagCVWidth_z@[ 0,  0,  1]
+      - integrateOverYStaggeredBottomFace ( 1.0 ) * ( v@[ 0,  0,  0] - v@[ 0,  0, -1] ) / vf_stagCVWidth_z@[ 0,  0,  0] )
+  ) == rhs_v
 }
 
-Equation vEquation@finest {
-  -1.0 * (
-      integrateOverYStaggeredEastFace   ( 1.0 ) * ( v@[ 1,  0,  0] - v@[0,  0,  0] ) / vf_stagCVWidth_x@[1, 0, 0]
-    + integrateOverYStaggeredWestFace   ( 1.0 ) * ( v@[-1,  0,  0] - v@[0,  0,  0] ) / vf_stagCVWidth_x@[0, 0, 0]
-    + integrateOverYStaggeredNorthFace  ( 1.0 ) * ( v@[ 0,  1,  0] - v@[0,  0,  0] ) / vf_cellWidth_y  @[0, 1, 0]
-    + integrateOverYStaggeredSouthFace  ( 1.0 ) * ( v@[ 0, -1,  0] - v@[0,  0,  0] ) / vf_cellWidth_y  @[0, 0, 0]
-    + integrateOverYStaggeredTopFace    ( 1.0 ) * ( v@[ 0,  0,  1] - v@[0,  0,  0] ) / vf_stagCVWidth_z@[0, 0, 1]
-    + integrateOverYStaggeredBottomFace ( 1.0 ) * ( v@[ 0,  0, -1] - v@[0,  0,  0] ) / vf_stagCVWidth_z@[0, 0, 0]
-  ) + integrateOverYStaggeredNorthFace ( 1.0 ) * p@[0, 0, 0] - integrateOverYStaggeredSouthFace ( 1.0 ) * p@[0, -1, 0] == rhs_v
-}
-Equation vEquation@(all but finest) {
-  -1.0 * (
-      integrateOverYStaggeredEastFace   ( 1.0 ) * ( v@[ 1,  0,  0] - v@[0,  0,  0] ) / vf_stagCVWidth_x@[1, 0, 0]
-    + integrateOverYStaggeredWestFace   ( 1.0 ) * ( v@[-1,  0,  0] - v@[0,  0,  0] ) / vf_stagCVWidth_x@[0, 0, 0]
-    + integrateOverYStaggeredNorthFace  ( 1.0 ) * ( v@[ 0,  1,  0] - v@[0,  0,  0] ) / vf_cellWidth_y  @[0, 1, 0]
-    + integrateOverYStaggeredSouthFace  ( 1.0 ) * ( v@[ 0, -1,  0] - v@[0,  0,  0] ) / vf_cellWidth_y  @[0, 0, 0]
-    + integrateOverYStaggeredTopFace    ( 1.0 ) * ( v@[ 0,  0,  1] - v@[0,  0,  0] ) / vf_stagCVWidth_z@[0, 0, 1]
-    + integrateOverYStaggeredBottomFace ( 1.0 ) * ( v@[ 0,  0, -1] - v@[0,  0,  0] ) / vf_stagCVWidth_z@[0, 0, 0]
-  ) + integrateOverYStaggeredNorthFace ( 1.0 ) * p@[0, 0, 0] - integrateOverYStaggeredSouthFace ( 1.0 ) * p@[0, -1, 0] == 0.0
+Equation wEquation {
+  ( integrateOverZStaggeredTopFace   ( 1.0 ) * p@[ 0,  0,  0] - integrateOverZStaggeredBottomFace ( 1.0 ) * p@[ 0,  0, -1]
+    - (
+        integrateOverZStaggeredEastFace   ( 1.0 ) * ( w@[ 1,  0,  0] - w@[ 0,  0,  0] ) / vf_stagCVWidth_x@[ 1,  0,  0]
+      - integrateOverZStaggeredWestFace   ( 1.0 ) * ( w@[ 0,  0,  0] - w@[-1,  0,  0] ) / vf_stagCVWidth_x@[ 0,  0,  0]
+      + integrateOverZStaggeredNorthFace  ( 1.0 ) * ( w@[ 0,  1,  0] - w@[ 0,  0,  0] ) / vf_stagCVWidth_y@[ 0,  1,  0]
+      - integrateOverZStaggeredSouthFace  ( 1.0 ) * ( w@[ 0,  0,  0] - w@[ 0, -1,  0] ) / vf_stagCVWidth_y@[ 0,  0,  0]
+      + integrateOverZStaggeredTopFace    ( 1.0 ) * ( w@[ 0,  0,  1] - w@[ 0,  0,  0] ) / vf_cellWidth_z  @[ 0,  0,  1]
+      - integrateOverZStaggeredBottomFace ( 1.0 ) * ( w@[ 0,  0,  0] - w@[ 0,  0, -1] ) / vf_cellWidth_z  @[ 0,  0,  0] )
+  ) == rhs_w
 }
 
-Equation wEquation@finest {
-  -1.0 * (
-      integrateOverZStaggeredEastFace   ( 1.0 ) * ( w@[ 1,  0,  0] - w@[0,  0,  0] ) / vf_stagCVWidth_x@[1, 0, 0]
-    + integrateOverZStaggeredWestFace   ( 1.0 ) * ( w@[-1,  0,  0] - w@[0,  0,  0] ) / vf_stagCVWidth_x@[0, 0, 0]
-    + integrateOverZStaggeredNorthFace  ( 1.0 ) * ( w@[ 0,  1,  0] - w@[0,  0,  0] ) / vf_stagCVWidth_y@[0, 1, 0]
-    + integrateOverZStaggeredSouthFace  ( 1.0 ) * ( w@[ 0, -1,  0] - w@[0,  0,  0] ) / vf_stagCVWidth_y@[0, 0, 0]
-    + integrateOverZStaggeredTopFace    ( 1.0 ) * ( w@[ 0,  0,  1] - w@[0,  0,  0] ) / vf_cellWidth_z  @[0, 0, 1]
-    + integrateOverZStaggeredBottomFace ( 1.0 ) * ( w@[ 0,  0, -1] - w@[0,  0,  0] ) / vf_cellWidth_z  @[0, 0, 0]
-  ) + integrateOverZStaggeredTopFace ( 1.0 ) * p@[0, 0, 0] - integrateOverZStaggeredBottomFace ( 1.0 ) * p@[0, 0, -1] == rhs_w
-}
-Equation wEquation@(all but finest) {
-  -1.0 * (
-      integrateOverZStaggeredEastFace   ( 1.0 ) * ( w@[ 1,  0,  0] - w@[0,  0,  0] ) / vf_stagCVWidth_x@[1, 0, 0]
-    + integrateOverZStaggeredWestFace   ( 1.0 ) * ( w@[-1,  0,  0] - w@[0,  0,  0] ) / vf_stagCVWidth_x@[0, 0, 0]
-    + integrateOverZStaggeredNorthFace  ( 1.0 ) * ( w@[ 0,  1,  0] - w@[0,  0,  0] ) / vf_stagCVWidth_y@[0, 1, 0]
-    + integrateOverZStaggeredSouthFace  ( 1.0 ) * ( w@[ 0, -1,  0] - w@[0,  0,  0] ) / vf_stagCVWidth_y@[0, 0, 0]
-    + integrateOverZStaggeredTopFace    ( 1.0 ) * ( w@[ 0,  0,  1] - w@[0,  0,  0] ) / vf_cellWidth_z  @[0, 0, 1]
-    + integrateOverZStaggeredBottomFace ( 1.0 ) * ( w@[ 0,  0, -1] - w@[0,  0,  0] ) / vf_cellWidth_z  @[0, 0, 0]
-  ) + integrateOverZStaggeredTopFace ( 1.0 ) * p@[0, 0, 0] - integrateOverZStaggeredBottomFace ( 1.0 ) * p@[0, 0, -1] == 0.0
-}
-
-Equation pEquation@finest {
-  (   integrateOverEastFace  ( 1.0 ) * u@[1, 0, 0] - integrateOverWestFace   ( 1.0 ) * u@[0, 0, 0]
-    + integrateOverNorthFace ( 1.0 ) * v@[0, 1, 0] - integrateOverSouthFace  ( 1.0 ) * v@[0, 0, 0]
-    + integrateOverTopFace   ( 1.0 ) * w@[0, 0, 1] - integrateOverBottomFace ( 1.0 ) * w@[0, 0, 0]
+Equation pEquation {
+  (   integrateOverEastFace  ( 1.0 ) * u@[ 1,  0,  0] - integrateOverWestFace   ( 1.0 ) * u@[ 0,  0,  0]
+    + integrateOverNorthFace ( 1.0 ) * v@[ 0,  1,  0] - integrateOverSouthFace  ( 1.0 ) * v@[ 0,  0,  0]
+    + integrateOverTopFace   ( 1.0 ) * w@[ 0,  0,  1] - integrateOverBottomFace ( 1.0 ) * w@[ 0,  0,  0]
   ) == rhs_p
-}
-Equation pEquation@(all but finest) {
-  (   integrateOverEastFace  ( 1.0 ) * u@[1, 0, 0] - integrateOverWestFace   ( 1.0 ) * u@[0, 0, 0]
-    + integrateOverNorthFace ( 1.0 ) * v@[0, 1, 0] - integrateOverSouthFace  ( 1.0 ) * v@[0, 0, 0]
-    + integrateOverTopFace   ( 1.0 ) * w@[0, 0, 1] - integrateOverBottomFace ( 1.0 ) * w@[0, 0, 0]
-  ) == 0.0
 }
 
 

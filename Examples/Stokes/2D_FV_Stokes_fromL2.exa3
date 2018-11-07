@@ -1,11 +1,28 @@
 
 generate solver for u in uEquation and v in vEquation and p in pEquation with {
+  solver_generateDbgOutputs     = true
+
+  solver_targetResReduction     = 1e-16
+  solver_absResThreshold        = 1e-12
+  solver_maxNumIts              = 30
+
   solver_smoother_jacobiType    = false
   solver_smoother_numPre        = 4
   solver_smoother_numPost       = 4
   solver_smoother_damping       = 0.8
-  solver_smoother_coloring      = "9-way" // "red-black"
-  solver_cgs                    = "BiCGStab"
-  solver_cgs_maxNumIts          = 128
-  solver_cgs_targetResReduction = 1e-3
+  solver_smoother_coloring      = "red-black" // "9-way" // "red-black"
+
+  solver_cgs                    = "BiCGSTAB"
+  solver_cgs_maxNumIts          = 10000
+  solver_cgs_targetResReduction = 1e-12
+  solver_cgs_restart            = true
+  solver_cgs_restartAfter       = 256
+  solver_cgs_absResThreshold    = 1e-12
+} modifiers {
+  append to 'cycle' @finest {
+    PrintError@finest ( )
+  }
+  append to 'solver' @finest {
+    PrintError@finest ( )
+  }
 }

@@ -1,7 +1,7 @@
 dimensionality                 = 3
 
-minLevel                       = 1
-maxLevel                       = 5
+minLevel                       = 0
+maxLevel                       = 4
 
 discr_type                     = "FiniteVolumes"
 discr_defaultNeumannOrder      = 1

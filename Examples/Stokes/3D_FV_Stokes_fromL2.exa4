@@ -1,0 +1,86 @@
+
+// u = sin ( 2.0 * PI * x ) - cos (       PI * z )
+// v = cos (       PI * z ) - sin ( 2.0 * PI * y )
+// w = sin ( 4.0 * PI * z ) - cos (       PI * y )
+// p = sin ( 4.0 * PI * x ) + sin ( 4.0 * PI * y ) + sin ( 4.0 * PI * z )
+// rhs_u = 4.0  * PI**2 * sin ( 2.0 * PI * x ) -       PI**2 * cos (       PI * z ) + 4.0 * PI * cos ( 4.0 * PI * x )
+// rhs_v =        PI**2 * cos (       PI * z ) - 4.0 * PI**2 * sin ( 2.0 * PI * y ) + 4.0 * PI * cos ( 4.0 * PI * y )
+// rhs_w = 16.0 * PI**2 * sin ( 4.0 * PI * z ) -       PI**2 * cos (       PI * y ) + 4.0 * PI * cos ( 4.0 * PI * z )
+// rhs_p = 2.0  * PI    * cos ( 2.0 * PI * x ) - 2.0 * PI    * cos ( 2.0 * PI * y ) + 4.0 * PI * cos ( 4.0 * PI * z )
+
+Function PrintError@finest {
+  NormalizePressure@finest ( )
+
+  Var norm_u : Real = 0.0
+  loop over u with reduction ( max : norm_u ) {
+    norm_u = max ( norm_u, fabs ( u - ( sin ( 2.0 * PI * vf_nodePosition_x ) - cos (       PI * vf_cellCenter_z   ) ) ) )
+  }
+  Var norm_v : Real = 0.0
+  loop over v with reduction ( max : norm_v ) {
+    norm_v = max ( norm_v, fabs ( v - ( cos (       PI * vf_cellCenter_x   ) - sin ( 2.0 * PI * vf_nodePosition_y ) ) ) )
+  }
+  Var norm_w : Real = 0.0
+  loop over w with reduction ( max : norm_w ) {
+    norm_w = max ( norm_w, fabs ( w - ( sin ( 2.0 * PI * vf_nodePosition_z ) - cos (       PI * vf_cellCenter_y   ) ) ) )
+  }
+  Var norm_p : Real = 0.0
+  loop over p with reduction ( max : norm_p ) {
+    norm_p = max ( norm_p, fabs ( p - ( sin ( 4.0 * PI * vf_cellCenter_x   ) + sin ( 4.0 * PI * vf_cellCenter_y ) + sin ( 4.0 * PI * vf_cellCenter_z ) ) ) )
+  }
+
+  if ( getKnowledge ( 'testing_enabled' ) ) {
+    if ( getKnowledge ( 'testing_printErr' ) ) {
+      printWithReducedPrec ( norm_u )
+      printWithReducedPrec ( norm_v )
+      printWithReducedPrec ( norm_w )
+      printWithReducedPrec ( norm_p )
+    }
+  } else {
+    print ( "The maximum error (u,v,w,p) is", norm_u, norm_v, norm_w, norm_p )
+  }
+}
+
+Function NormalizePressure@finest {
+  // normalize pressure around the exact solution
+
+  Expr numCells_x = ( 2 ** levels@current ( ) ) * getKnowledge ( 'domain_fragmentLength_x' ) * getKnowledge ( 'domain_rect_numBlocks_x' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_x' )
+  Expr numCells_y = ( 2 ** levels@current ( ) ) * getKnowledge ( 'domain_fragmentLength_y' ) * getKnowledge ( 'domain_rect_numBlocks_y' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_y' )
+  Expr numCells_z = ( 2 ** levels@current ( ) ) * getKnowledge ( 'domain_fragmentLength_z' ) * getKnowledge ( 'domain_rect_numBlocks_z' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_z' )
+  Expr numCells = numCells_x * numCells_y * numCells_z
+
+  Var meanP : Real = 0.0
+  loop over p with reduction ( + : meanP ) {
+    meanP += p
+  }
+  meanP /= numCells
+  loop over p {
+    p -= meanP
+  }
+  apply bc to p
+}
+
+Function Application {
+  // init
+  startTimer ( "setup" )
+  initGlobals ( )
+  initDomain ( )
+  initFieldsWithZero ( )
+  initGeometry ( )
+
+  InitFields ( )
+
+  apply bc to u@finest
+  apply bc to v@finest
+  apply bc to p@finest
+  stopTimer ( "setup" )
+
+  // solve
+  startTimer ( "solve" )
+  gen_solve@finest ( )
+  stopTimer ( "solve" )
+
+  // de-init
+  printAllTimers ( )
+  printAllTimersToFile ( )
+  destroyGlobals ( )
+}
