@@ -19,6 +19,9 @@ object Settings {
       basePathPrefix + "/"
   }
 
+  // experimental domain file parameter
+  var experimental_domain_file : String = "."
+
   /// layer 1
 
   var l1file : ListBuffer[String] = ListBuffer()

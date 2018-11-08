@@ -8,10 +8,10 @@ import exastencils.baseExt.ir._
 import exastencils.communication.DefaultNeighbors
 import exastencils.communication.ir.IR_IV_CommunicationId
 import exastencils.config.Knowledge
+import exastencils.config.Settings
 import exastencils.core.Duplicate
 import exastencils.deprecated.domain.ir.IR_ReadValueFrom
 import exastencils.globals.ir.IR_AllocateDataFunction
-import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
@@ -101,8 +101,6 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
   override def generateFct() = {
     var body = ListBuffer[IR_Statement]()
 
-    //Logger.warn("Test: I was executed in InitDomainFromFile!")
-
     // TODO: move to main application
     if (Knowledge.mpi_enabled)
       body += IR_Assert(IR_EqEq(s"mpiSize", Knowledge.domain_numBlocks),
@@ -112,7 +110,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     // open file
     def file = IR_VariableAccess("file", IR_SpecialDatatype("std::ifstream"))   // I think I could also use val here
     body += IR_VariableDeclaration(file)
-    body += IR_MemberFunctionCall(file, "open", IR_StringConstant(Knowledge.experimental_domain_file + "/b") + IR_FunctionCall("std::to_string", MPI_IV_MpiRank) + IR_StringConstant(".block"))
+    body += IR_MemberFunctionCall(file, "open", IR_StringConstant(Settings.experimental_domain_file + "/b") + IR_FunctionCall("std::to_string", MPI_IV_MpiRank) + IR_StringConstant(".block"))
 
     // FIXME bad assert, should cover all mpi-ranks and also give information about file (like its name)
     body += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file\""), IR_FunctionCall("exit", 1))
