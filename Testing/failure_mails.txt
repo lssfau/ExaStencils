@@ -1,1 +1,1 @@
-exastencils-dev@www.uni-passau.de
+exastencils-dev@www.uni-passau.de daniel.zint@fau.de
