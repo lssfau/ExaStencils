@@ -6,12 +6,19 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.DefaultNeighbors
+import exastencils.communication.ir.IR_Communicate
+import exastencils.communication.ir.IR_CommunicateTarget
 import exastencils.communication.ir.IR_IV_CommunicationId
 import exastencils.config.Knowledge
 import exastencils.config.Settings
 import exastencils.core.Duplicate
 import exastencils.deprecated.domain.ir.IR_ReadValueFrom
+import exastencils.deprecated.ir.IR_FieldSelection
+import exastencils.field.ir.IR_Field
+import exastencils.field.ir.IR_FieldAccess
 import exastencils.globals.ir.IR_AllocateDataFunction
+import exastencils.grid.ir.IR_VF_NodePositionAsVec
+import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
@@ -82,11 +89,6 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
             )
           )
 
-          //statements += IR_IfCondition(IR_EqEq(neigh_blockID, IR_LoopOverFragments.defIt),
-          //  localConnect(d),
-          //  remoteConnect(d)
-          //)
-
         }
 
         // wrap in scope due to local variable declarations
@@ -97,6 +99,138 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     body
   }
 
+  def fillBoundaryGhostLayers(field : IR_Field, numDims: Int) = {
+    var body = new ListBuffer[IR_Statement]
+
+    val baseIndex = IR_LoopOverDimensions.defIt(numDims)
+    baseIndex.indices ++= Array[IR_Expression](0, 0)
+    val neighbors = DefaultNeighbors.neighbors
+
+    // W
+    val w_start = IR_ExpressionIndex(Array.fill(numDims)(0))
+    val w_stop = IR_ExpressionIndex(Array.fill(numDims)(0))
+    w_start(0) = field.fieldLayout.idxById("GLB", 0)
+    w_stop(0) = field.fieldLayout.idxById("GLE", 0)
+    w_start(1) = field.fieldLayout.idxById("DLB", 1)
+    w_stop(1) = field.fieldLayout.idxById("DRE", 1)
+
+    val w_indexRange = IR_ExpressionIndexRange(IR_ExpressionIndex(Array.fill(numDims)(0)), w_stop - w_start)
+    IR_GeneralSimplify.doUntilDoneStandalone(w_indexRange)
+
+    val w_boundaryIndex = IR_LoopOverDimensions.defIt(numDims)
+    w_boundaryIndex(0) = field.fieldLayout.idxById("GLB", 0)
+    val w_boundary = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), w_boundaryIndex)
+
+    val w_interiorIndex = Duplicate(w_boundaryIndex)
+    w_interiorIndex(0) += 1 + baseIndex(0)
+    val w_interior = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), w_interiorIndex)
+
+    val w_ghostIndex = Duplicate(w_boundaryIndex)
+    w_ghostIndex(0) -= 1 + baseIndex(0)
+    val w_ghost = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), w_ghostIndex)
+
+    body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neighbors(0).index, IR_LoopOverFragments.defIt)), ListBuffer[IR_Statement](
+      IR_Comment("Loop for west ghost layers"),
+      IR_LoopOverDimensions(numDims, w_indexRange,
+        ListBuffer[IR_Statement](
+          IR_Assignment(Duplicate(w_ghost), 2 * Duplicate(w_boundary) - Duplicate(w_interior))
+        ), null, IR_ParallelizationInfo())
+    ))
+
+    // E
+    val e_start = IR_ExpressionIndex(Array.fill(numDims)(0))
+    val e_stop = IR_ExpressionIndex(Array.fill(numDims)(0))
+    e_start(0) = field.fieldLayout.idxById("GRB", 0)
+    e_stop(0) = field.fieldLayout.idxById("GRE", 0)
+    e_start(1) = field.fieldLayout.idxById("DLB", 1)
+    e_stop(1) = field.fieldLayout.idxById("DRE", 1)
+
+    val e_indexRange = IR_ExpressionIndexRange(IR_ExpressionIndex(Array.fill(numDims)(0)), e_stop - e_start)
+    IR_GeneralSimplify.doUntilDoneStandalone(e_indexRange)
+
+    val e_boundaryIndex = IR_LoopOverDimensions.defIt(numDims)
+    e_boundaryIndex(0) = field.fieldLayout.idxById("DRE", 0) - (w_stop(0) - w_start(0)) - 1
+    val e_boundary = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), e_boundaryIndex)
+
+    val e_interiorIndex = Duplicate(e_boundaryIndex)
+    e_interiorIndex(0) -= 1 + baseIndex(0)
+    val e_interior = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), e_interiorIndex)
+
+    val e_ghostIndex = Duplicate(e_boundaryIndex)
+    e_ghostIndex(0) += 1 + baseIndex(0)
+    val e_ghost = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), e_ghostIndex)
+
+    body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neighbors(1).index, IR_LoopOverFragments.defIt)), ListBuffer[IR_Statement](
+      IR_Comment("Loop for east ghost layers"),
+      IR_LoopOverDimensions(numDims, e_indexRange,
+        ListBuffer[IR_Statement](
+          IR_Assignment(Duplicate(e_ghost), 2 * Duplicate(e_boundary) - Duplicate(e_interior))
+        ), null, IR_ParallelizationInfo())
+    ))
+
+    // S
+    val s_start = IR_ExpressionIndex(Array.fill(numDims)(0))
+    val s_stop = IR_ExpressionIndex(Array.fill(numDims)(0))
+    s_start(0) = field.fieldLayout.idxById("DLB", 0)
+    s_stop(0) = field.fieldLayout.idxById("DRE", 0)
+    s_start(1) = field.fieldLayout.idxById("GLB", 1)
+    s_stop(1) = field.fieldLayout.idxById("GLE", 1)
+
+    val s_indexRange = IR_ExpressionIndexRange(IR_ExpressionIndex(Array.fill(numDims)(0)), s_stop - s_start)
+    IR_GeneralSimplify.doUntilDoneStandalone(s_indexRange)
+
+    val s_boundaryIndex = IR_LoopOverDimensions.defIt(numDims)
+    s_boundaryIndex(1) = field.fieldLayout.idxById("GLB", 1)
+    val s_boundary = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), s_boundaryIndex)
+
+    val s_interiorIndex = Duplicate(s_boundaryIndex)
+    s_interiorIndex(1) += 1 + baseIndex(1)
+    val s_interior = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), s_interiorIndex)
+
+    val s_ghostIndex = Duplicate(s_boundaryIndex)
+    s_ghostIndex(1) -= 1 + baseIndex(1)
+    val s_ghost = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), s_ghostIndex)
+
+    body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neighbors(2).index, IR_LoopOverFragments.defIt)), ListBuffer[IR_Statement](
+      IR_Comment("Loop for south ghost layers"),
+      IR_LoopOverDimensions(numDims, s_indexRange,
+        ListBuffer[IR_Statement](
+          IR_Assignment(Duplicate(s_ghost), 2 * Duplicate(s_boundary) - Duplicate(s_interior))
+        ), null, IR_ParallelizationInfo())
+    ))
+
+    // N
+    val n_start = IR_ExpressionIndex(Array.fill(numDims)(0))
+    val n_stop = IR_ExpressionIndex(Array.fill(numDims)(0))
+    n_start(0) = field.fieldLayout.idxById("DLB", 0)
+    n_stop(0) = field.fieldLayout.idxById("DRE", 0)
+    n_start(1) = field.fieldLayout.idxById("GRB", 1)
+    n_stop(1) = field.fieldLayout.idxById("GRE", 1)
+
+    val n_indexRange = IR_ExpressionIndexRange(IR_ExpressionIndex(Array.fill(numDims)(0)), n_stop - n_start)
+    IR_GeneralSimplify.doUntilDoneStandalone(n_indexRange)
+
+    val n_boundaryIndex = IR_LoopOverDimensions.defIt(numDims)
+    n_boundaryIndex(1) = field.fieldLayout.idxById("DRE", 1) - (s_stop(1) - s_start(1)) - 1
+    val n_boundary = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), n_boundaryIndex)
+
+    val n_interiorIndex = Duplicate(n_boundaryIndex)
+    n_interiorIndex(1) -= 1 + baseIndex(1)
+    val n_interior = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), n_interiorIndex)
+
+    val n_ghostIndex = Duplicate(n_boundaryIndex)
+    n_ghostIndex(1) += 1 + baseIndex(1)
+    val n_ghost = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), n_ghostIndex)
+
+    body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neighbors(3).index, IR_LoopOverFragments.defIt)), ListBuffer[IR_Statement](
+      IR_Comment("Loop for north ghost layers"),
+      IR_LoopOverDimensions(numDims, n_indexRange,
+        ListBuffer[IR_Statement](
+          IR_Assignment(Duplicate(n_ghost), 2 * Duplicate(n_boundary) - Duplicate(n_interior))
+        ), null, IR_ParallelizationInfo())
+    ))
+
+  }
 
   override def generateFct() = {
     var body = ListBuffer[IR_Statement]()
@@ -124,10 +258,10 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     //get_line(file)
     val read_line = IR_FunctionCall(IR_ReadLineFromFile.name, file, iss)
 
-    def n_fragments = IR_VariableAccess("n_fragments", IR_IntegerDatatype)      // TODO find this
+    def n_fragments = IR_VariableAccess("n_fragments", IR_IntegerDatatype)
     body += IR_VariableDeclaration(n_fragments)
-    def n_grid_nodes = IR_VariableAccess("n_grid_nodes", IR_IntegerDatatype)    // TODO find this
-    body += IR_VariableDeclaration(n_grid_nodes)
+    def n_grid_nodes_from_file = IR_VariableAccess("n_grid_nodes", IR_IntegerDatatype)
+    body += IR_VariableDeclaration(n_grid_nodes_from_file)
 
     // jump over block_id information
     body += read_line
@@ -136,7 +270,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     body += IR_ReadStream(iss, ListBuffer(strBuf, n_fragments))
 
     body += read_line
-    body += IR_ReadStream(iss, ListBuffer(strBuf, n_grid_nodes))
+    body += IR_ReadStream(iss, ListBuffer(strBuf, n_grid_nodes_from_file))
 
     ////////////////////
     // read fragments //
@@ -148,13 +282,6 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     fragment_statements += IR_VariableDeclaration(fragment_id)
     fragment_statements += IR_VariableDeclaration(neighbor_blockID)
     fragment_statements += IR_VariableDeclaration(neighbor_commID)
-
-    def x_nodes = IR_VariableAccess("x_nodes", IR_PointerDatatype(IR_FloatDatatype))    // TODO find this
-    def y_nodes = IR_VariableAccess("y_nodes", IR_PointerDatatype(IR_FloatDatatype))    // TODO find this
-    fragment_statements += IR_VariableDeclaration(x_nodes)
-    fragment_statements += IR_VariableDeclaration(y_nodes)
-    fragment_statements += IR_ArrayAllocation(x_nodes, IR_FloatDatatype, n_grid_nodes * n_grid_nodes)
-    fragment_statements += IR_ArrayAllocation(y_nodes, IR_FloatDatatype, n_grid_nodes * n_grid_nodes)
 
     fragment_statements += read_line
     fragment_statements += IR_ReadStream(iss, ListBuffer(strBuf, fragment_id))
@@ -175,10 +302,45 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       )
     )
 
-    // get all grid-points
-    fragment_statements += IR_ForLoop(
+    fragment_statements ++= connectFragmentFromFile(neighbor_blockID, neighbor_commID)
+
+
+    body += IR_LoopOverFragments(fragment_statements, IR_ParallelizationInfo())
+
+    // FIXME: move to app
+    body += IR_FunctionCall(IR_AllocateDataFunction.fctName)
+    body += IR_FunctionCall("initFieldsWithZero")
+
+
+    val field = IR_VF_NodePositionAsVec.find(Knowledge.maxLevel).associatedField
+    def numDims = field.fieldLayout.numDimsGrid
+    val start = IR_ExpressionIndex(Array.fill(numDims)(0))
+    val stop = IR_ExpressionIndex(Array.fill(numDims)(0))
+    val startOffset = IR_ExpressionIndex(Array.fill(numDims)(0))
+    val endOffset = IR_ExpressionIndex(Array.fill(numDims)(0))
+    val n_grid_nodes = IR_ConstIndex(Array.fill(numDims)(0))
+    for (dim <- 0 until numDims){
+      start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
+      stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
+      n_grid_nodes(dim) = field.fieldLayout.defIdxById("DRE", dim) -  field.fieldLayout.defIdxById("DLB", dim)
+
+      body += IR_Assert(IR_EqEq(n_grid_nodes(dim), n_grid_nodes_from_file),
+        ListBuffer("\"Number of grid nodes (\"", "n_grid_nodes", "\") in dimension \"", dim, "\" does not fit maxLevel (\"", Knowledge.maxLevel, "\").\""),
+        IR_FunctionCall("exit", 1))
+    }
+
+
+    var node_statements = ListBuffer[IR_Statement]()
+
+    // TODO make x/y-nodes a multi-array
+    def x_nodes = IR_VariableAccess("x_nodes", IR_ArrayDatatype(IR_FloatDatatype, n_grid_nodes(0) * n_grid_nodes(0)))
+    def y_nodes = IR_VariableAccess("y_nodes", IR_ArrayDatatype(IR_FloatDatatype, n_grid_nodes(1) * n_grid_nodes(1)))
+    node_statements += IR_VariableDeclaration(x_nodes)
+    node_statements += IR_VariableDeclaration(y_nodes)
+
+    node_statements += IR_ForLoop(
       IR_VariableDeclaration(i, 0),
-      IR_Lower(i, n_grid_nodes * n_grid_nodes),
+      IR_Lower(i, n_grid_nodes_from_file * n_grid_nodes_from_file),
       IR_PreIncrement(i),
       ListBuffer[IR_Statement](
         read_line,
@@ -186,29 +348,45 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       )
     )
 
+
     // get fragmentPosBegin_x, fragmentPosBegin_y, fragmentPosEnd_x, fragmentPosEnd_y
     // FIXME HACK for uniform grid test. It is not wrong but actually not required. Might be removed later on.
-    fragment_statements += IR_Assignment(IR_IV_FragmentPositionBegin(0), IR_ArrayAccess(x_nodes, 0))
-    fragment_statements += IR_Assignment(IR_IV_FragmentPositionBegin(1), IR_ArrayAccess(y_nodes, 0))
-    fragment_statements += IR_Assignment(IR_IV_FragmentPositionEnd(0), IR_ArrayAccess(x_nodes, n_grid_nodes * n_grid_nodes - 1))
-    fragment_statements += IR_Assignment(IR_IV_FragmentPositionEnd(1), IR_ArrayAccess(y_nodes, n_grid_nodes * n_grid_nodes - 1))
+    node_statements += IR_Assignment(IR_IV_FragmentPositionBegin(0), IR_ArrayAccess(x_nodes, 0))
+    node_statements += IR_Assignment(IR_IV_FragmentPositionBegin(1), IR_ArrayAccess(y_nodes, 0))
+    node_statements += IR_Assignment(IR_IV_FragmentPositionEnd(0), IR_ArrayAccess(x_nodes, n_grid_nodes_from_file * n_grid_nodes_from_file - 1))
+    node_statements += IR_Assignment(IR_IV_FragmentPositionEnd(1), IR_ArrayAccess(y_nodes, n_grid_nodes_from_file * n_grid_nodes_from_file - 1))
 
 
+    for (dim <- 0 until numDims) {
+      val indexRange = IR_ExpressionIndexRange(start, stop)
+      IR_GeneralSimplify.doUntilDoneStandalone(indexRange)
 
-    // free memory
-    fragment_statements += IR_ArrayFree(x_nodes)
-    fragment_statements += IR_ArrayFree(y_nodes)
+      val baseIndex = IR_LoopOverDimensions.defIt(numDims)
+      baseIndex.indices ++= Array[IR_Expression](dim, 0)
+      val baseAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), baseIndex)
 
-    fragment_statements ++= connectFragmentFromFile(neighbor_blockID, neighbor_commID)
+      node_statements += IR_LoopOverDimensions(numDims, indexRange,
+        ListBuffer[IR_Statement](
+          IR_Assignment(Duplicate(baseAccess),
+            IR_ArrayAccess(if(dim == 0) x_nodes else y_nodes, baseIndex(0) + baseIndex(1) * n_grid_nodes_from_file))
+        ), null, IR_ParallelizationInfo())
+    }
 
 
-    body += IR_LoopOverFragments(fragment_statements, IR_ParallelizationInfo())
-
+    body += IR_LoopOverFragments(node_statements, IR_ParallelizationInfo())
     body += IR_MemberFunctionCall(file, "close")
 
 
-    // FIXME: move to app
-    body += IR_FunctionCall(IR_AllocateDataFunction.fctName)
+    // communicate (updated interior ghost layers)
+    body += IR_Communicate(IR_FieldSelection(field, field.level, 0), "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None)
+
+    body ++= fillBoundaryGhostLayers(field, numDims)
+
+
+
+    // Restriction from Random Points
+
+
 
     IR_PlainFunction(name, IR_UnitDatatype, body)
   }

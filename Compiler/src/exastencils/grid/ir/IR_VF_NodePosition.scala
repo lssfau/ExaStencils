@@ -46,6 +46,7 @@ case class IR_VF_NodePositionAsVec(
       Knowledge.grid_spacingModel match {
         case "uniform" => stmts ++= IR_SetupNodePositions.for_nonAA_Uniform(level)
         case "random"  => stmts ++= IR_SetupNodePositions.for_nonAA_Random(level)
+        case "blockstructured" => // grid is set up in IR_InitDomainFromFile
       }
     }
 
@@ -112,6 +113,7 @@ case class IR_VF_NodePositionPerDim(
         case "diego" if level == Knowledge.maxLevel     => stmts ++= IR_SetupNodePositions.for_AA_Diego(level, dim)
         case "diego2" if level == Knowledge.maxLevel    => stmts ++= IR_SetupNodePositions.for_AA_Diego2(level, dim)
         case "diego" | "diego2" | "linearFct"           => stmts ++= IR_SetupNodePositions.for_AA_restrictFromFiner(level, dim)
+        case "blockstructured" => // grid is set up in IR_InitDomainFromFile
       }
     }
 
