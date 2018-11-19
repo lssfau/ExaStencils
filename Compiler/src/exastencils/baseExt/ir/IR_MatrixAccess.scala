@@ -328,10 +328,10 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
 
   this += new Transformation("extract function calls 2/2", {
     case exp : IR_FunctionCall if (exp.hasAnnotation(annotationFctCallCounter)) =>
-      IR_VariableAccess("_fct" + exp.popAnnotation(annotationFctCallCounter).get + "_" + exp.function.name.replace('<', '_').replace('>', '_'), exp.function.returnType)
+      IR_VariableAccess("_fct" + exp.popAnnotationAs[Int](annotationFctCallCounter) + "_" + exp.function.name.replace('<', '_').replace('>', '_'), exp.function.returnType)
 
     case exp : IR_MatrixExpression if (exp.hasAnnotation(annotationMatExpCounter)) =>
-      IR_VariableAccess("_matrixExp" + exp.popAnnotation(annotationMatExpCounter).get, exp.datatype)
+      IR_VariableAccess("_matrixExp" + exp.popAnnotationAs[Int](annotationMatExpCounter), exp.datatype)
   })
 
   this += new Transformation("parameters and return types", {
@@ -846,10 +846,10 @@ object IR_ResolveMatrixAssignments extends DefaultStrategy("Resolve assignments 
 
   this += new Transformation("expressions 2/2", {
     case exp : IR_MatrixExpression if (exp.hasAnnotation(annotationMatrixRow)) =>
-      exp.get(exp.popAnnotation(annotationMatrixRow).get.asInstanceOf[Int], exp.popAnnotation(annotationMatrixCol).get.asInstanceOf[Int])
+      exp.get(exp.popAnnotationAs[Int](annotationMatrixRow), exp.popAnnotationAs[Int](annotationMatrixCol))
 
     case exp : IR_Expression if (exp.hasAnnotation(annotationMatrixRow)) =>
-      IR_HighDimAccess(Duplicate(exp), IR_ConstIndex(Array(exp.popAnnotation(annotationMatrixRow).get.asInstanceOf[Int], exp.popAnnotation(annotationMatrixCol).get.asInstanceOf[Int])))
+      IR_HighDimAccess(Duplicate(exp), IR_ConstIndex(Array(exp.popAnnotationAs[Int](annotationMatrixRow), exp.popAnnotationAs[Int](annotationMatrixCol))))
   }, false)
 }
 
