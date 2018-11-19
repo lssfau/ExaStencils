@@ -55,12 +55,12 @@ case class L3_MathFunctionReference(var name : String, var returnType : L3_Datat
 
 object L3_ResolveMathFunctions extends DefaultStrategy("Resolve math function references") {
   this += new Transformation("Resolve", {
-    case L3_FunctionCall(L3_UnresolvedFunctionReference("min", level, offset), args) =>
+    case L3_FunctionCall(L3_UnresolvedFunctionReference(fname, level, offset), args) if "min" == fname || "fmin" == fname =>
       if (level.isDefined) Logger.warn(s"Found leveled min function with level ${ level.get }; level is ignored")
       if (offset.isDefined) Logger.warn(s"Found offset access on min function; offset is ignored")
       L3_Minimum(args)
 
-    case L3_FunctionCall(L3_UnresolvedFunctionReference("max", level, offset), args) =>
+    case L3_FunctionCall(L3_UnresolvedFunctionReference(fname, level, offset), args) if "max" == fname || "fmax" == fname =>
       if (level.isDefined) Logger.warn(s"Found leveled max function with level ${ level.get }; level is ignored")
       if (offset.isDefined) Logger.warn(s"Found offset access on max function; offset is ignored")
       L3_Maximum(args)

@@ -47,11 +47,11 @@ case class L1_MathFunctionReference(var name : String, var returnType : L1_Datat
 
 object L1_ResolveMathFunctions extends DefaultStrategy("Resolve math function references") {
   this += new Transformation("Resolve", {
-    case L1_FunctionCall(L1_UnresolvedFunctionReference("min", level), args) =>
+    case L1_FunctionCall(L1_UnresolvedFunctionReference(fname, level), args) if "min" == fname || "fmin" == fname =>
       if (level.isDefined) Logger.warn(s"Found leveled min function with level ${ level.get }; level is ignored")
       L1_Minimum(args)
 
-    case L1_FunctionCall(L1_UnresolvedFunctionReference("max", level), args) =>
+    case L1_FunctionCall(L1_UnresolvedFunctionReference(fname, level), args) if "max" == fname || "fmax" == fname =>
       if (level.isDefined) Logger.warn(s"Found leveled max function with level ${ level.get }; level is ignored")
       L1_Maximum(args)
 

@@ -47,12 +47,12 @@ case class L2_MathFunctionReference(var name : String, var returnType : L2_Datat
 
 object L2_ResolveMathFunctions extends DefaultStrategy("Resolve math function references") {
   this += new Transformation("Resolve", {
-    case L2_FunctionCall(L2_UnresolvedFunctionReference("min", level, offset), args) =>
+    case L2_FunctionCall(L2_UnresolvedFunctionReference(fname, level, offset), args) if "min" == fname || "fmin" == fname =>
       if (level.isDefined) Logger.warn(s"Found leveled min function with level ${ level.get }; level is ignored")
       if (offset.isDefined) Logger.warn(s"Found offset access on min function; offset is ignored")
       L2_Minimum(args)
 
-    case L2_FunctionCall(L2_UnresolvedFunctionReference("max", level, offset), args) =>
+    case L2_FunctionCall(L2_UnresolvedFunctionReference(fname, level, offset), args) if "max" == fname || "fmax" == fname =>
       if (level.isDefined) Logger.warn(s"Found leveled max function with level ${ level.get }; level is ignored")
       if (offset.isDefined) Logger.warn(s"Found offset access on max function; offset is ignored")
       L2_Maximum(args)
