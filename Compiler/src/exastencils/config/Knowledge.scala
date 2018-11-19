@@ -128,7 +128,7 @@ object Knowledge {
   var grid_isAxisAligned : Boolean = true
 
   // in case of non-uniform grids a grid spacing model must be specified
-  // must be uniform if grid_isUniform; may be "diego", "diego2" or "linearFct" otherwise
+  // must be uniform if grid_isUniform; may be "diego", "diego2", "linearFct", or "blockstructured" otherwise
   var grid_spacingModel : String = "uniform"
 
   // specifies if staggered control volumes are to be halved at applicable boundaries (ie in the stagger dimension)
@@ -786,6 +786,7 @@ object Knowledge {
     Constraints.condWarn("uniform" == grid_spacingModel && !grid_isUniform, "grid_isUniform should be true for uniform spacing models")
     Constraints.condWarn("diego" == grid_spacingModel, "diego spacing model currently ignores domain bounds set in the DSL")
     Constraints.condWarn("diego2" == grid_spacingModel, "diego2 spacing model currently ignores domain bounds set in the DSL")
+    Constraints.condWarn("blockstructured" == grid_spacingModel && grid_isUniform, "grid_isUniform should be false for block-structured grids")
     Constraints.condWarn(grid_halveStagBoundaryVolumes && "uniform" == grid_spacingModel, "halving staggered volumes at the boundary is not supported for uniform grids")
 
     if (l3tmp_generateL4) {

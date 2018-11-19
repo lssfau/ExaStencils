@@ -7,20 +7,25 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.globals.ir.IR_AllocateDataFunction
-import exastencils.logger.Logger
+
+object IR_ReadLineFromFile{
+  var name = "readLine"
+}
 
 case class IR_ReadLineFromFile(ifs: IR_VariableAccess, iss: IR_VariableAccess) extends IR_FuturePlainFunction {
-  override var name = "readLine"
+  override var name = IR_ReadLineFromFile.name
   override def prettyprint_decl() = prettyprint
 
 
 
   def delete_comments(str : IR_VariableAccess) = {
     var body = ListBuffer[IR_Statement]()
-    val commentSign = "#"
+    val commentSign : IR_StringConstant = IR_StringConstant("#")
 
+    body += IR_Comment("Delete comments and spaces at beginning and end of string")
     // delete comment
-    body += IR_MemberFunctionCall(str, "erase", IR_MemberFunctionCall(str, "find", commentSign))
+    body += IR_IfCondition(IR_Neq(IR_MemberFunctionCall(str, "find", commentSign), "std::string::npos"),
+      IR_MemberFunctionCall(str, "erase", IR_MemberFunctionCall(str, "find", commentSign)))
 
     // delete spaces at the beginning and end of string
     body += IR_MemberFunctionCall(str, "erase",
@@ -55,11 +60,9 @@ case class IR_ReadLineFromFile(ifs: IR_VariableAccess, iss: IR_VariableAccess) e
   override def generateFct() = {
     var fctArgs : ListBuffer[IR_FunctionArgument] = ListBuffer()
     fctArgs += IR_FunctionArgument("ifs", IR_SpecialDatatype("std::ifstream&"))
-    fctArgs += IR_FunctionArgument("iss", IR_SpecialDatatype("std::isstream&"))
+    fctArgs += IR_FunctionArgument("iss", IR_SpecialDatatype("std::istringstream&"))
 
     var body = ListBuffer[IR_Statement]()
-
-    Logger.warn("Test: ReadLineFromFile accessed!")
 
     // return an array with all information separated
     //val file = IR_VariableAccess("file", IR_SpecialDatatype("std::ifstream"))   // I think I could also use val here
@@ -75,6 +78,6 @@ case class IR_ReadLineFromFile(ifs: IR_VariableAccess, iss: IR_VariableAccess) e
     // FIXME: move to app
     //body += IR_FunctionCall(IR_AllocateDataFunction.fctName)
 
-    IR_PlainFunction(name, IR_UnitDatatype, fctArgs, body)
+    IR_PlainFunction(name, IR_BooleanDatatype, fctArgs, body)
   }
 }
