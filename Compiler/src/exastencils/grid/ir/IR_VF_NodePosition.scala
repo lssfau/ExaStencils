@@ -80,7 +80,6 @@ case class IR_VF_NodePositionPerDim(
 
   override def createDuplicate() = IR_VF_NodePositionPerDim(level, domain, dim)
 
-
   def associatedField = {
     if (!Knowledge.grid_isUniform)
       IR_FieldCollection.getByIdentifier(name, level).get
@@ -96,6 +95,7 @@ case class IR_VF_NodePositionPerDim(
     else {
       val hdIndex = index
       index.indices :+= (dim : IR_Expression)
+      index.indices :+= (0 : IR_Expression) // matrix dt...
       IR_FieldAccess(IR_FieldSelection(IR_VF_NodePositionAsVec.find(level).associatedField, level, 0), hdIndex)
     }
   }
