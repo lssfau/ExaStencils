@@ -120,14 +120,14 @@ trait Annotatable {
     * Returns a annotations from this instance.
     *
     * @param id A key-like identifier denoting the annotation to return.
-    * @return The annotation matching the given identifier, or `None`.
+    * @return The annotation matching the given identifier.
     */
-  def getAnnotationAs[T](id : String) : T = { annotations_.get(id).asInstanceOf[T] }
+  def getAnnotationAs[T](id : String) : T = { annotations_(id).asInstanceOf[T] }
 
   /**
     * Removes and returns a annotations from this instance.
     *
-    * @param id A key-like identifier denoting the annotation to remoev and return.
+    * @param id A key-like identifier denoting the annotation to remove and return.
     * @return The annotation matching the given identifier, or `None`.
     */
   def popAnnotation(id : String) : Option[Any] = { val ret = annotations_.get(id); annotations_.remove(id); ret }
@@ -135,10 +135,10 @@ trait Annotatable {
   /**
     * Removes and returns a annotations from this instance.
     *
-    * @param id A key-like identifier denoting the annotation to remoev and return.
-    * @return The annotation matching the given identifier, or `None`.
+    * @param id A key-like identifier denoting the annotation to remove and return.
+    * @return The annotation matching the given identifier.
     */
-  def popAnnotationAs[T](id : String) : T = { val ret = annotations_.get(id).asInstanceOf[T]; annotations_.remove(id); ret }
+  def popAnnotationAs[T](id : String) : T = { val ret = annotations_(id).asInstanceOf[T]; annotations_.remove(id); ret }
 
   /**
     * Checks if this instance contains a certain annotation.
