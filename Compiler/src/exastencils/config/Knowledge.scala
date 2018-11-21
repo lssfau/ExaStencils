@@ -528,6 +528,8 @@ object Knowledge {
   var experimental_bc_checkOnlyMainAxis : Boolean = true
   var experimental_bc_avoidOrOperations : Boolean = true
 
+  var experimental_forceOmitCondInLocalSolve : Boolean = false
+
   // use this flag to resolve iteration offsets -> use only for single fragments!
   var experimental_useStefanOffsets : Boolean = false
 
