@@ -17,7 +17,13 @@ object ExplCfg {
 object ExplPaperEval {
 
   private def readExplCfgs(path : String, cfgs : mutable.Map[String, (ExplCfg, Int)], level : Int) : Unit = {
-    val lines : Iterator[String] = Source.fromFile(path).getLines()
+    var file : java.io.File = null
+    for (i <- 0 until 10) {
+      val f = new java.io.File(path.replace('?', ('0' + i).toChar))
+      if (f.exists())
+        file = f
+    }
+    val lines : Iterator[String] = Source.fromFile(file).getLines()
     // first three lines are domain, dependencies and a flag for extended exploration...
     val domain = isl.UnionSet.readFromStr(Isl.ctx, lines.next())
     val deps = isl.UnionMap.readFromStr(Isl.ctx, lines.next())
@@ -60,15 +66,29 @@ object ExplPaperEval {
     println("perf for not available cfgs: " + j)
   }
 
-  private def readPerfDirect(perfPath : String, cfgPath : String, cfgs : mutable.Map[String, (ExplCfg, Int)]) : Unit = {
+  private def readPerfDirect(perfPath : String, cfgPath : String, cfgs : mutable.Map[String, (ExplCfg, Int)], perfRefPath : String) : Unit = {
     val perfLines : Iterator[String] = Source.fromFile(perfPath).getLines()
-    val cfgLines : Iterator[String] = Source.fromFile(cfgPath).getLines()
+    var file : java.io.File = null
+    for (i <- 0 until 10) {
+      val f = new java.io.File(cfgPath.replace('?', ('0' + i).toChar))
+      if (f.exists())
+        file = f
+    }
+    val cfgLines : Iterator[String] = Source.fromFile(file).getLines()
 
     // some unneded lines at the beginning of the file
     val sep = perfLines.next()
     val header = perfLines.next()
     val reference = perfLines.next()
     val base = perfLines.next()
+
+    if (perfRefPath != null) {
+      val out = new java.io.BufferedWriter(new java.io.FileWriter(new java.io.File(perfRefPath)))
+      out.write(reference.split(";")(0))
+      out.write("\n")
+      out.flush()
+      out.close()
+    }
 
     // first three lines are domain, dependencies and a flag for extended exploration...
     val domain = isl.UnionSet.readFromStr(Isl.ctx, cfgLines.next())
@@ -86,12 +106,12 @@ object ExplPaperEval {
       val perfEntries = perfLine.split(";")
       val cfgEntries = cfgLine.split("\t")
 
-      val perfID = perfEntries.head.toInt
+      val perfID = perfEntries(1).toInt
       val cfgID = cfgEntries.head.toInt
       if (perfID != cfgID)
         throw new Error(s"whoot?! file lines out of sync:  $perfID vs $cfgID")
 
-      val perf = perfEntries.view.slice(1, 6).map(_.replace(',', '.').toDouble).sorted.apply(2)
+      val perf = perfEntries(0).toDouble
       val sched = cfgEntries.apply(2)
 
       if (cfgs.contains(sched))
@@ -151,7 +171,7 @@ object ExplPaperEval {
       if (perf1 > 0 && perf2 > 0) {
         val diff = math.abs(perf1 - perf2)
         out.write(cfg1.idStr + "\t" + diff + "\t" + perf1 + "\t" + perf2 + "\n")
-        if (diff > maxDiff) {
+        if (diff >= maxDiff) {
           maxDiff = diff
           max1 = cfg1
           max2 = cfg2
@@ -214,27 +234,29 @@ object ExplPaperEval {
   }
 
   def main(args : Array[String]) : Unit = {
-    val base_cfgs = "T:\\work\\poly_expl_1803"
-    val base_res = "C:\\Users\\Stefan\\OneDrive\\Uni\\PolyExpl-Results-1803"
+    val base_cfgs = "S:\\work\\diss-eval\\poly_expl"
+    val base_res = "C:\\temp\\test"
 
-    val ids2D = List("jacobi_2D_cc1", "jacobi_2D_cc2", "jacobi_2D_ccd", "jacobi_2D_vc1", "rbgs_2D_cc1", "rbgs_2D_vc1")
+    val ids2D = List("jacobi_2D_cc1_f0", "jacobi_2D_cc2_f0", "jacobi_2D_ccd_f0", "jacobi_2D_vc1_f0", "rbgs_2D_cc1_f0_cs", "rbgs_2D_vc1_f0_cs")
     val ids3D = ids2D.map(_.replace("2D", "3D"))
     val ids = ids2D ++ ids3D
-//    val ids = List("jacobi_3D_ccd")
+    //val ids = list[string]()
     for (id <- ids) {
-      val idShort = id.replace("jacobi_", "j").replace("rbgs_", "r").replace("_dense", "d").replace("_unal", "u")
+      val id2 = if (id.contains("2D")) id else id.replace("f0", "f2")
+      val idShort = id.replace("jacobi_", "j").replace("rbgs_", "r").replace("_f0", "").replace("_cs", "")
       val cfgs_f0 = new mutable.HashMap[String, (ExplCfg, Int)]()
       val cfgs_f2 = new mutable.HashMap[String, (ExplCfg, Int)]()
-      val path_f0 = base_cfgs + s"\\${ id }\\o2_configs.txt"
-      val path_f2 = base_cfgs + s"_f2\\${ id }\\o2_configs.txt"
-      val path_all = base_cfgs + s"_fAll\\${ id }\\o2_configs_f%d.txt"
+      val path_f0 = base_cfgs + s"\\${ id }\\o2_configs.?.txt"
+      val path_f2 = base_cfgs + s"\\${ id2 }\\o2_configs.?.txt"
+      val path_all = base_cfgs + s"\\${ id2 }\\o2_configs_f%d.?.txt"
       val perf_f0 = base_cfgs + s"\\${ id }\\o6_results.csv"
-      val perf_f2 = base_cfgs + s"_f2\\${ id }\\o6_results.csv"
+      val perf_f2 = base_cfgs + s"\\${ id2 }\\o6_results.csv"
       val o_cmp_path = base_res + s"\\perf_cmp_${ idShort }.csv"
       val o_eval_path = base_res + s"\\eval_${ idShort }.csv"
       val o_plot_dat_f0 = base_res + s"\\plot1_${ idShort }_f%d.csv"
       val o_plot_dat_f2 = base_res + s"\\plot2_${ idShort }_f%d.csv"
       val o_plot_dat_me = base_res + s"\\plotM_${ idShort }_f%d.csv"
+      val o_perf_ref = base_res + s"\\perf_ref_${ idShort }.txt"
 
       println(id)
       println()
@@ -245,22 +267,20 @@ object ExplPaperEval {
         readExplCfgs(path_all.format(i), cfgs_f0, i)
         println(cfgs_f0.size)
       }
-      readPerfDirect(perf_f0, path_f0, cfgs_f0)
+      readPerfDirect(perf_f0, path_f0, cfgs_f0, o_perf_ref)
       println()
 
       println("filtered expl")
-      readExplCfgs(path_all.format(0), cfgs_f2, 0)
-      println(cfgs_f2.size)
-      for (i <- 1 to 7) {
+      for (i <- 0 to 7) {
         readExplCfgs(path_all.format(i), cfgs_f2, i)
         println(cfgs_f2.size)
       }
-      readPerfDirect(perf_f2, path_f2, cfgs_f2)
+      readPerfDirect(perf_f2, path_f2, cfgs_f2, null)
 
-//      compare(o_cmp_path, cfgs_f0, cfgs_f2)
+      compare(o_cmp_path, cfgs_f0, cfgs_f2)
       fixPerf(cfgs_f0, cfgs_f2)
 
-//      writeEval(o_eval_path, cfgs_f0, cfgs_f2)
+      writeEval(o_eval_path, cfgs_f0, cfgs_f2)
       findMax(mergeCfgs(cfgs_f0, cfgs_f2))
       println()
 
@@ -271,12 +291,14 @@ object ExplPaperEval {
       findMaxPerLevel(cfgs_f2)
       println()
 
-//      writeCfgs(o_plot_dat_f0, cfgs_f0, 0)
-//      writeCfgs(o_plot_dat_f2, cfgs_f2, 2)
-      //      writeCfgs(o_plot_dat_me, mergeCfgs(cfgs_f0, cfgs_f2), 0)
+      writeCfgs(o_plot_dat_f0, cfgs_f0, 0)
+      writeCfgs(o_plot_dat_f2, cfgs_f2, 2)
+      writeCfgs(o_plot_dat_me, mergeCfgs(cfgs_f0, cfgs_f2), 0)
       println()
       println()
       println()
     }
+    import sys.process._
+    "wsl.exe /mnt/c/Temp/test/0_plotMake.sh".!
   }
 }
