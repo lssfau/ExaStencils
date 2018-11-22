@@ -450,8 +450,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         }))
         IR_GeneralSimplify.doUntilDoneStandalone(srcWrap)
         IR_GeneralSimplify.doUntilDoneStandalone(lhsSca) // simplify lhsSca too, to ensure identical array accesses have the same AST structure
-      // create rhs before lhs to ensure all loads are created
-      val rhsVec = vectorizeExpr(srcWrap.expression, ctx.setLoad())
+        // create rhs before lhs to ensure all loads are created
+        val rhsVec = vectorizeExpr(srcWrap.expression, ctx.setLoad())
         val lhsVec = vectorizeExpr(lhsSca, ctx.setStore())
         // ---- special handling of loop-carried cse variables ----
         lhsSca match {
