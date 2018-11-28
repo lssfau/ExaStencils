@@ -47,14 +47,16 @@ case class IR_DomainFunctions() extends IR_FunctionCollection(
   }
 
   // assemble init statements for applicable virtual fields
-  val initStmts = ListBuffer[IR_Statement]()
+  { // scope to avoid initStmts being a member which is later targeted by transformations
+    val initStmts = ListBuffer[IR_Statement]()
 
-  var dependencies = IR_VirtualFieldCollection.objects.map(vf => (vf, vf.generateInitCodeDependsOn()))
-  while (dependencies.nonEmpty) {
-    val (canBeDone, waiting) = dependencies.partition(_._2.isEmpty)
-    initStmts ++= canBeDone.flatMap(_._1.generateInitCode())
-    dependencies = waiting.map(e => (e._1, e._2.filterNot(canBeDone.map(_._1).contains)))
+    var dependencies = IR_VirtualFieldCollection.objects.map(vf => (vf, vf.generateInitCodeDependsOn()))
+    while (dependencies.nonEmpty) {
+      val (canBeDone, waiting) = dependencies.partition(_._2.isEmpty)
+      initStmts ++= canBeDone.flatMap(_._1.generateInitCode())
+      dependencies = waiting.map(e => (e._1, e._2.filterNot(canBeDone.map(_._1).contains)))
+    }
+
+    functions += IR_PlainFunction("initGeometry", IR_UnitDatatype, initStmts)
   }
-
-  functions += IR_PlainFunction("initGeometry", IR_UnitDatatype, initStmts)
 }
