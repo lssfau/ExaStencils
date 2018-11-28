@@ -277,16 +277,12 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     IR_LoopOverFragments(connStmts, IR_ParallelizationInfo())
   }
 
-  // jumpOverConnectivity
-  //TODO ............
+  // ignoreConnectivity (for lower levels)
   def ignoreConnectivity(read_line : IR_FunctionCall) = {
-    //TODO ...........................  code was just copy&pasted from setupConnectivityFromFile
     var connStmts = new ListBuffer[IR_Statement]
 
     def strBuf = IR_VariableAccess("strBuf", IR_SpecialDatatype("std::string"))
     connStmts += IR_VariableDeclaration(strBuf)
-    //def iss = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream"))
-    //connStmts += IR_VariableDeclaration(iss)
 
     def fragment_id = IR_VariableAccess("fragment_id", IR_IntegerDatatype)
     def neighbor_blockID = IR_VariableAccess("neighbor_blockID", IR_ArrayDatatype(IR_IntegerDatatype, 4))
@@ -296,7 +292,6 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     connStmts += IR_VariableDeclaration(neighbor_commID)
 
     connStmts += read_line
-    //connStmts += IR_ReadStream(iss, ListBuffer(strBuf, fragment_id))
 
     // Assign values to the "real" variables
     connStmts += IR_Assignment(IR_IV_FragmentId(IR_LoopOverFragments.defIt), fragment_id)
@@ -308,13 +303,8 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       IR_VariableDeclaration(i, 0),
       IR_Lower(i, 4),
       IR_PreIncrement(i),
-      ListBuffer[IR_Statement](
-        read_line
-        //IR_ReadStream(iss, ListBuffer(strBuf, IR_ArrayAccess(neighbor_blockID, i), IR_ArrayAccess(neighbor_commID, i)))
-      )
+      ListBuffer[IR_Statement](read_line)
     )
-
-    //connStmts ++= connectFragmentFromFile(neighbor_blockID, neighbor_commID)
 
     IR_LoopOverFragments(connStmts, IR_ParallelizationInfo())
   }
@@ -333,12 +323,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
       stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
       n_grid_nodes(dim) = field.fieldLayout.defIdxById("DRE", dim) -  field.fieldLayout.defIdxById("DLB", dim)
-
-      //body += IR_Assert(IR_EqEq(n_grid_nodes(dim), n_grid_nodes_from_file),
-      //  ListBuffer("\"Number of grid nodes (\"", "n_grid_nodes", "\") in dimension \"", dim, "\" does not fit maxLevel (\"", Knowledge.maxLevel, "\").\""),
-      //  IR_FunctionCall("exit", 1))
     }
-
 
     var node_statements = ListBuffer[IR_Statement]()
 
@@ -361,15 +346,6 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
         IR_ReadStream(iss, ListBuffer(IR_ArrayAccess(x_nodes, i), IR_ArrayAccess(y_nodes, i)))
       )
     )
-
-
-    // get fragmentPosBegin_x, fragmentPosBegin_y, fragmentPosEnd_x, fragmentPosEnd_y
-    // FIXME HACK for uniform grid test. It is not wrong but actually not required. Might be removed later on.
-    node_statements += IR_Assignment(IR_IV_FragmentPositionBegin(0), IR_ArrayAccess(x_nodes, 0))
-    node_statements += IR_Assignment(IR_IV_FragmentPositionBegin(1), IR_ArrayAccess(y_nodes, 0))
-    node_statements += IR_Assignment(IR_IV_FragmentPositionEnd(0), IR_ArrayAccess(x_nodes, n_grid_nodes(0) * n_grid_nodes(1) - 1))
-    node_statements += IR_Assignment(IR_IV_FragmentPositionEnd(1), IR_ArrayAccess(y_nodes, n_grid_nodes(0) * n_grid_nodes(1) - 1))
-
 
     for (dim <- 0 until numDims) {
       val indexRange = IR_ExpressionIndexRange(start, stop)
@@ -431,8 +407,8 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     body += IR_ReadStream(iss, ListBuffer(strBuf, n_fragments))
     body += read_line   // jump over n_grid_nodes
 
-    ///////////////////////
-    // read connectivity //
+
+    // read connectivity
     if (setupConnectivityAndFields) {
       body += setupConnectivityFromFile(read_line)
       body += IR_FunctionCall(IR_AllocateDataFunction.fctName)
@@ -444,6 +420,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
     val field = IR_VF_NodePositionAsVec.find(level).associatedField
 
+    // read grid nodes
     body ++= readNodes(field, read_line)
 
 
@@ -479,10 +456,14 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     else{
       // TODO Restriction from Random Points
       // TODO ........
+      ////////////////////////////////
+      // Remove this stuff.... ///////
       body += IR_Comment("Restriction is not implemented yet!!!")
       body += IR_Assert(IR_EqEq(Knowledge.maxLevel, Knowledge.minLevel),
         ListBuffer("\"Cannot handle different levels internally yet.\""),
         IR_FunctionCall("exit", 1))
+      ///////////////////////////////
+
     }
 
     IR_PlainFunction(name, IR_UnitDatatype, body)
