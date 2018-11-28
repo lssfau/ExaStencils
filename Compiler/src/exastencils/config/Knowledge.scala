@@ -580,6 +580,9 @@ object Knowledge {
   var experimental_l3_resolveVirtualFields : Boolean = true
   var experimental_l4_resolveVirtualFields : Boolean = true
 
+  // specifies if all levels should be read from file or just the max-level
+  var experimental_domain_readAllLevelsFromFile : Boolean = false
+
   /// paper project - SISC
 
   // [16~64§sisc2015_numNodes*2]
