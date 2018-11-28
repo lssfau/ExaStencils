@@ -82,7 +82,8 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
     val (minIndex, maxIndex) = computeMinMaxIndex(solve, loop.numDimensions)
 
     // return base loop if halo Loop is not required
-    if (minIndex.toExpressionIndex == loop.indices.begin && maxIndex.toExpressionIndex == loop.indices.end) {
+    if (Knowledge.experimental_forceOmitCondInLocalSolve
+      || (minIndex.toExpressionIndex == loop.indices.begin && maxIndex.toExpressionIndex == loop.indices.end)) {
       solve.omitConditions = true
       return tryPrecomputingInverse(loop, solve)
     }
