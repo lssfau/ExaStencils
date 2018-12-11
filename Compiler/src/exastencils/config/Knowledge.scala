@@ -585,6 +585,8 @@ object Knowledge {
   // specifies if all levels should be read from file or just the max-level
   var experimental_domain_readAllLevelsFromFile : Boolean = false
 
+  var experimental_grid_randomMaxOffset : Double = 0.1
+
   /// paper project - SISC
 
   // [16~64§sisc2015_numNodes*2]
