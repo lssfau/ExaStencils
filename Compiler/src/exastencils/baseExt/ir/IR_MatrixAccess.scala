@@ -260,7 +260,7 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
 
           case m : IR_MatrixDatatype =>
             args(0).datatype.asInstanceOf[IR_MatrixDatatype]
-            if (m.sizeM > 3) {
+            if (m.sizeM > 1) {
               call.function = IR_PlainInternalFunctionReference("_runtimeInverseMatrix", m)
             }
             call
