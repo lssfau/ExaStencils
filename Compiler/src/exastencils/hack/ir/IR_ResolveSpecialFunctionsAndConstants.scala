@@ -11,7 +11,7 @@ import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.domain.ir.IR_IV_FragmentIndex
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
@@ -431,17 +431,33 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_Scope(stmts)
       }
 
-    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("logCharacteristics", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("clearCharacteristics", _), args)) =>
       var stmts = ListBuffer[IR_Statement]()
 
       stmts += IR_VariableDeclaration(IR_SpecialDatatype("std::ofstream"), "outFile")
       stmts += IR_MemberFunctionCall(IR_VariableAccess("outFile", IR_UnknownDatatype), "open", "\"" + Settings.characteristicsFile + "\"")
+      stmts += IR_MemberFunctionCall(IR_VariableAccess("outFile", IR_UnknownDatatype), "close")
+
+      if (Knowledge.mpi_enabled)
+        IR_IfCondition(MPI_IsRootProc(), stmts)
+      else
+        IR_Scope(stmts)
+
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("logCharacteristics", _), args)) =>
+      var stmts = ListBuffer[IR_Statement]()
+
+      stmts += IR_VariableDeclaration(IR_SpecialDatatype("std::ofstream"), "outFile")
+      stmts += IR_MemberFunctionCall(IR_VariableAccess("outFile", IR_UnknownDatatype), "open", "\"" + Settings.characteristicsFile + "\"", "std::ofstream::app")
 
       args.foreach(a => stmts += IR_Print(IR_VariableAccess("outFile", IR_UnknownDatatype), ListBuffer(a, IR_StringConstant(Settings.csvSeparator))))
+      stmts += IR_Print(IR_VariableAccess("outFile", IR_UnknownDatatype), IR_StringConstant("\\n"))
 
       stmts += IR_MemberFunctionCall(IR_VariableAccess("outFile", IR_UnknownDatatype), "close")
 
-      IR_IfCondition(MPI_IsRootProc(), stmts)
+      if (Knowledge.mpi_enabled)
+        IR_IfCondition(MPI_IsRootProc(), stmts)
+      else
+        IR_Scope(stmts)
 
     case stmt @ IR_ExpressionStatement(fctCall @ IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("printWithReducedPrec", _), args)) =>
       if (1 != args.length) Logger.error("Malformed call to printWithReducedPrec")
@@ -517,6 +533,12 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_IV_FragmentIndex(Knowledge.dimensionality - 1) +
           (0 until Knowledge.dimensionality - 1).map(d =>
             IR_IV_FragmentIndex(d) * (d + 1 until Knowledge.dimensionality).map(Knowledge.domain_rect_numFragsTotalAsVec).product : IR_Expression).reduce(_ + _)
+      }
+
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("printVtkSWE", _), args)) =>
+      args match {
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintVtkSWE(s, i.toInt)
+        case _                                                    => Logger.error("Malformed call to printVtkSWE; usage: printVtkSWE ( \"filename\", level )")
       }
   })
 }

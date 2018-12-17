@@ -114,3 +114,130 @@ case class IR_PrintField(
     statements
   }
 }
+
+case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_Statement with IR_Expandable {
+
+  def numDimsGrid = 2
+
+  def getPos(field : IR_FieldSelection, dim : Int) : IR_Expression = {
+    // TODO: add function to field (layout) to decide node/cell for given dim
+    field.field.localization match {
+      case IR_AtNode              => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
+      case IR_AtCellCenter        => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
+      case IR_AtFaceCenter(`dim`) => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
+      case IR_AtFaceCenter(_)     => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
+    }
+  }
+
+  override def expand() : Output[StatementList] = {
+    if (!Settings.additionalIncludes.contains("fstream"))
+      Settings.additionalIncludes += "fstream"
+
+    val bathField = IR_FieldCollection.getByIdentifier("bath", level).get
+
+    val numPointsPerFrag = 25
+    val numFrags = 1
+
+    //val streamName = IR_PrintField.getNewName()
+    //def streamType = IR_SpecialDatatype("std::ofstream")
+    def newStream = IR_VariableAccess(IR_PrintField.getNewName(), IR_SpecialDatatype("std::ofstream"))
+
+    var statements : ListBuffer[IR_Statement] = ListBuffer()
+
+    def addStmtBlock(newStmts : ListBuffer[IR_Statement]) =
+      if (Knowledge.mpi_enabled)
+        statements += MPI_Sequential(newStmts)
+      else
+        statements ++= newStmts
+
+    // reset file
+    {
+      val stream = newStream
+      statements += IR_IfCondition(MPI_IsRootProc(),
+        ListBuffer[IR_Statement](
+          IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::trunc", IR_UnknownDatatype)),
+          IR_MemberFunctionCall(stream, "close")))
+    }
+
+    // add file header
+    {
+      val stream = newStream
+      statements += IR_IfCondition(MPI_IsRootProc(), ListBuffer[IR_Statement](
+        IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
+        IR_Print(stream, IR_StringConstant("# vtk DataFile Version 3.0"), IR_Print.endl),
+        IR_Print(stream, IR_StringConstant("vtk output"), IR_Print.endl),
+        IR_Print(stream, IR_StringConstant("ASCII"), IR_Print.endl),
+        IR_Print(stream, IR_StringConstant("DATASET UNSTRUCTURED_GRID"), IR_Print.endl),
+        IR_Print(stream, IR_StringConstant(s"POINTS ${ numPointsPerFrag * numFrags } float"), IR_Print.endl),
+        IR_MemberFunctionCall(stream, "close")))
+    }
+
+    // add mesh vertices
+    {
+      val stream = newStream
+
+      val pointPrints = {
+        val stmts = ListBuffer[IR_Statement]()
+
+        var nodePrint = ListBuffer[IR_Expression]()
+        for (d <- 0 until numDimsGrid) {
+          nodePrint += IR_VF_NodePositionPerDim.access(level, d, IR_LoopOverDimensions.defIt(numDimsGrid))
+          nodePrint += IR_StringConstant(" ")
+        }
+        for (_ <- numDimsGrid until 3) {
+          nodePrint += 0
+          nodePrint += IR_StringConstant(" ")
+        }
+        nodePrint = nodePrint.dropRight(1)
+        nodePrint += IR_Print.endl
+        stmts += IR_Print(stream, nodePrint)
+
+        stmts
+      }
+
+      val initPoints = ListBuffer[IR_Statement](
+        IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
+        IR_Print(stream, "std::scientific"), //std::defaultfloat
+        IR_LoopOverFragments(
+          IR_IfCondition(IR_IV_IsValidForDomain(bathField.domain.index),
+            IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
+              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => bathField.fieldLayout.idxById("DLB", dim) - Duplicate(bathField.referenceOffset(dim)) : IR_Expression)),
+              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => bathField.fieldLayout.idxById("DRE", dim) - Duplicate(bathField.referenceOffset(dim)) : IR_Expression))),
+              pointPrints))),
+        IR_MemberFunctionCall(stream, "close"))
+
+      addStmtBlock(initPoints)
+    }
+
+    /*val printComponents = ListBuffer[IR_Expression]()
+    printComponents += "std::defaultfloat"
+    printComponents ++= (0 until numDimsGrid).view.flatMap { dim => List(getPos(field, dim), separator) }
+    printComponents += "std::scientific"
+    printComponents ++= arrayIndexRange.view.flatMap { index =>
+      val access = IR_FieldAccess(field, IR_LoopOverDimensions.defIt(numDimsData))
+      if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
+        access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
+      List(access, separator)
+    }
+    printComponents += IR_Print.endl*/
+
+    //CELLS 3 12
+    //3 0 1 5
+    //3 1 5 6
+    //3 1 2 6
+    //CELL_TYPES 3
+    //5
+    //5
+    //5
+    //CELL_DATA 3
+    //FIELD FieldData 1
+    //cell 1 3 float
+    //8 7 6
+    //POINT_DATA 25
+    //FIELD FieldData 1
+    //nodal 1 25 float
+    //0 1 2 3 4 0 1 2 3 4 0 1 2 3 4 0 1 2 3 4 0 1 2 3 4
+
+    statements
+  }
+}
