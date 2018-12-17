@@ -28,18 +28,18 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
   private val DEBUG : Boolean = false
 
-  private val skipSubTree = new DynamicVariable[Boolean](false)
+  private val skipFunction = new DynamicVariable[Boolean](false)
 
   override def isDefinedAt(node : Node) : Boolean = {
     // do not vectorize device code!
     val cuAnn = CUDA_Util.CUDA_LOOP_ANNOTATION
     node match {
-      case n if n.hasAnnotation(cuAnn) => skipSubTree.value = true
-      case _ : CUDA_Kernel             => skipSubTree.value = true
-      case _ : IR_FunctionLike         => skipSubTree.value = false
-      case _                           => // no change in skipSubTree
+      case n if n.hasAnnotation(cuAnn) => skipFunction.value = true
+      case _ : CUDA_Kernel             => skipFunction.value = true
+      case _ : IR_FunctionLike         => skipFunction.value = false
+      case _                           => // no change in skipFunction
     }
-    if (skipSubTree.value)
+    if (skipFunction.value)
       return false
 
     node.removeAnnotation(IR_AddressPrecalculation.ORIG_IND_ANNOT) // remove old annotations
@@ -278,7 +278,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
             val indExprs = IR_SimplifyExpression.extractIntegralSum(ind)
             val const : Long = indExprs.remove(IR_SimplifyExpression.constName).getOrElse(0L)
             for (iE <- indExprs) iE match {
-              case (IR_Division(divd, IR_IntegerConstant(divs)), 1L) =>
+              case (IR_Division(divd, IR_IntegerConstant(divs)), 1L)                       =>
                 val sum = IR_SimplifyExpression.extractIntegralSum(divd)
                 ctx.divResidue = (sum.remove(IR_SimplifyExpression.constName).getOrElse(0L) % divs + divs) % divs
                 for (s <- sum) s match {
@@ -286,11 +286,11 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
                     // is ok
                   case (exp, _) if containsVarAcc(exp, ctx.itName) =>
                     throw new VectorizationException("cannot deal with summand \"" + iE._2 + " * " + iE._1.prettyprint() + '"')
-                  case _ =>
+                  case _                                           =>
                     // is ok
                 }
-              case (IR_VariableAccess(name, IR_IntegerDatatype), 1L) if name == ctx.itName                                                     =>
-              // nothing to do here
+              case (IR_VariableAccess(name, IR_IntegerDatatype), 1L) if name == ctx.itName =>
+                // nothing to do here
               case (mod : IR_Modulo, _) =>
                 if (containsVarAcc(mod, ctx.itName))
                   throw new VectorizationException("no linear memory access: " + mod.prettyprint())
@@ -450,8 +450,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         }))
         IR_GeneralSimplify.doUntilDoneStandalone(srcWrap)
         IR_GeneralSimplify.doUntilDoneStandalone(lhsSca) // simplify lhsSca too, to ensure identical array accesses have the same AST structure
-      // create rhs before lhs to ensure all loads are created
-      val rhsVec = vectorizeExpr(srcWrap.expression, ctx.setLoad())
+        // create rhs before lhs to ensure all loads are created
+        val rhsVec = vectorizeExpr(srcWrap.expression, ctx.setLoad())
         val lhsVec = vectorizeExpr(lhsSca, ctx.setStore())
         // ---- special handling of loop-carried cse variables ----
         lhsSca match {

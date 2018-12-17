@@ -239,7 +239,7 @@ do
     if [[ ${constraints} =~ GPU ]]; then
       CONSTR_PARAM="-C chimaira --mem=62G --gres=gpu:1"
     fi
-    OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etr_${id}" -o ${TEST_LOG} -e ${TEST_LOG} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${SCR_DIR}/tests3_generated.sh" "${TEST_DIR}/${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEMP_DIR}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}" "${BRANCH}")
+    OUT=$(unset SLURM_JOB_NAME SLURM_MEM_PER_CPU; sbatch --job-name="etr_${id}" -o ${TEST_LOG} -e ${TEST_LOG} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${SCR_DIR}/tests3_generated.sh" "${TEST_DIR}/${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEMP_DIR}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}" "${BRANCH}")
     if [[ $? -eq 0 ]]; then
       SID=${OUT#Submitted batch job }
       DEP_SIDS="${DEP_SIDS}:${SID}"

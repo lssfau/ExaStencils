@@ -291,7 +291,7 @@ private[optimization] final class Analyze extends IR_StackCollector {
 
 }
 
-private final object Adapt extends PartialFunction[Node, Transformation.OutputType] {
+private object Adapt extends PartialFunction[Node, Transformation.OutputType] {
 
   import IR_RemoveDupSIMDLoads._
 

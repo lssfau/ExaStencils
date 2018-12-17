@@ -132,7 +132,7 @@ if [[ -e "${REPO_DIR}/Testing/tests_version.txt" ]] && [[ $(cat "${SCR_DIR}/test
   cp "${REPO_DIR}"/Testing/tests_version.txt "${SCR_DIR}"
   cp "${REPO_DIR}"/Testing/tests*.sh "${SCR_DIR}"
 fi
-(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" "--dependency=afterok:${SLURM_JOB_ID}" "${SCR_DIR}/tests1_all.sh" "${SCR_DIR}" "${REPO_DIR}" "${BASE_DIR}/scala/" "${TEMP_DIR}" "${OUT_FILE}" "${OUT_FILE_URL}" "${PROGRESS}" "${BRANCH}" "${FAILURE_MAIL}")
+(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" --dependency="afterok:${SLURM_JOB_ID}" "${SCR_DIR}/tests1_all.sh" "${SCR_DIR}" "${REPO_DIR}" "${BASE_DIR}/scala/" "${TEMP_DIR}" "${OUT_FILE}" "${OUT_FILE_URL}" "${PROGRESS}" "${BRANCH}" "${FAILURE_MAIL}")
       if [[ $? -ne 0 ]]; then
         error "ERROR: Unable to enqueue testing job."
       fi
