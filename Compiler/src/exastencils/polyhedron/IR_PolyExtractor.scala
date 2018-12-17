@@ -443,7 +443,7 @@ class IR_PolyExtractor extends Collector {
 
   override def enter(node : Node) : Unit = {
 
-    val merge : Boolean = mergeScops
+    var merge : Boolean = mergeScops
     mergeScops = false
 
     if (node.hasAnnotation(SKIP_ANNOT))
@@ -453,6 +453,7 @@ class IR_PolyExtractor extends Collector {
 
     node.removeAnnotation(NEGATE_COND_ANNOT) match {
       case Some(b : Boolean) =>
+        merge = false // we just entered a scope: merging the previous SCoP with a potentially new one is not allowed
         if (curScop.exists()) {
           val cond = conditions.pop()._1
           conditions.push((cond, b))
@@ -579,6 +580,9 @@ class IR_PolyExtractor extends Collector {
   }
 
   override def leave(node : Node) : Unit = {
+
+    // do not merge SCoPs in different scopes (thus, leaving any node before a new loop is entered prevents a merge)
+    mergeScops = false
 
     if (node.removeAnnotation(HIDDEN_ASSIGN_ANNOT).isDefined)
       leaveAssign()
