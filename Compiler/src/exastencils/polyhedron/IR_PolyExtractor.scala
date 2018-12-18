@@ -41,7 +41,7 @@ object IR_PolyExtractor {
   private final val DEAD_AFTER_SCOP_ANNOT : String = "DeadASc"
 
   /** set of all functions that are allowed in a scop (these must not have side effects) */
-  private final val allowedFunctions = Set[String]("abs", "fabs") ++= IR_MathFunctions.signatures.keys
+  private final val allowedFunctions = Set[String]("abs") ++= IR_MathFunctions.signatures.keys
 
   /** set of symbolic constants that must not be modeled as read accesses (these must be constant inside a scop) */
   private final val symbolicConstants = HashSet[String]()
