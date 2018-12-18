@@ -119,16 +119,6 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
 
   def numDimsGrid = 2
 
-  def getPos(field : IR_FieldSelection, dim : Int) : IR_Expression = {
-    // TODO: add function to field (layout) to decide node/cell for given dim
-    field.field.localization match {
-      case IR_AtNode              => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
-      case IR_AtCellCenter        => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
-      case IR_AtFaceCenter(`dim`) => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
-      case IR_AtFaceCenter(_)     => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
-    }
-  }
-
   override def expand() : Output[StatementList] = {
     if (!Settings.additionalIncludes.contains("fstream"))
       Settings.additionalIncludes += "fstream"
@@ -144,7 +134,7 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
     val numCells_x = etaLower.fieldLayout.layoutsPerDim(0).numInnerLayers
     val numCells_y = etaLower.fieldLayout.layoutsPerDim(1).numInnerLayers
     val numPointsPerFrag = (numCells_x + 1) * (numCells_y + 1)
-    val numFrags = Knowledge.domain_numFragmentsTotal // TODO: use global frag index to offset local indices
+    val numFrags = Knowledge.domain_numFragmentsTotal
     val numCells = 2 * numCells_x * numCells_y * numFrags
     val numNodes = numPointsPerFrag * numFrags
 
@@ -222,7 +212,7 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
       val stream = newStream
 
       val cellPrint = {
-        val offset = IR_IV_FragmentId() * 2 * numCells_x * numCells_y
+        val offset = (MPI_IV_MpiRank * Knowledge.domain_numFragmentsPerBlock + IR_LoopOverFragments.defIt) * numPointsPerFrag
 
         var cellPrint = ListBuffer[IR_Expression]()
         cellPrint += 3
@@ -268,13 +258,13 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
       def it = IR_VariableAccess("i", IR_IntegerDatatype)
 
       val cellTypes = ListBuffer[IR_Statement](
-        IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
         IR_IfCondition(MPI_IsRootProc(), ListBuffer[IR_Statement](
+          IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
           IR_Print(stream, IR_StringConstant("CELL_TYPES"), separator, numCells, IR_Print.endl),
           IR_ForLoop(IR_VariableDeclaration(it, 0), IR_Lower(it, numCells), IR_PreIncrement(it),
-            IR_Print(stream, ListBuffer[IR_Expression](5, separator))))),
-        IR_Print(stream, IR_Print.endl),
-        IR_MemberFunctionCall(stream, "close"))
+            IR_Print(stream, ListBuffer[IR_Expression](5, separator))),
+          IR_Print(stream, IR_Print.endl),
+          IR_MemberFunctionCall(stream, "close"))))
 
       addStmtBlock(cellTypes)
     }
