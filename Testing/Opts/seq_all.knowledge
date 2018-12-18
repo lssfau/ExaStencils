@@ -41,7 +41,6 @@ opt_unroll                 = 5
 opt_unroll_interleave      = false
 
 l3tmp_smoother             = "Jac"
-opt_useColorSplitting      = false
 l3tmp_numPre               = 3
 l3tmp_numPost              = 3
 l3tmp_genTemporalBlocking  = true
