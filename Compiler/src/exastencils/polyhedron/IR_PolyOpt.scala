@@ -186,9 +186,8 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       var fstStmt : Int = -1
       var lstStmt : Int = -1
       var stmts : mutable.Buffer[(String, (ListBuffer[IR_Statement], ArrayBuffer[String]))] = scop.stmts.toBuffer.sortBy(_._1)
-      var i : Int = 0
       Logger.pushLevel(Logger.WARNING)
-      for ((_, (stmt, _)) <- stmts) {
+      for (((_, (stmt, _)), i) <- stmts.zipWithIndex) {
         found = false
         this.execute(search, Some(IR_Scope(stmt)))
         if (found) {
@@ -196,7 +195,6 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
             fstStmt = i
           lstStmt = i
         }
-        i += 1
       }
       Logger.popLevel()
       stmts = stmts.slice(fstStmt, lstStmt + 1)
@@ -228,7 +226,7 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       scop.domain =
         if (njuDomain == null) mergedDom
         else njuDomain.addSet(mergedDom) // re-add one of the domains
-      val njuLabel : String = mergedDom.getTupleName
+      val njuLabel : String = mergedDom.getTupleName()
       for ((lab, _) <- stmts)
         if (lab == njuLabel)
           scop.stmts(lab) = (mergedStmts, mergedLoopIts)
