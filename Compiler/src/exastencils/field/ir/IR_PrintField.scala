@@ -130,6 +130,9 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
     val uUpper = IR_FieldCollection.getByIdentifier("uUpper", level).get
     val vLower = IR_FieldCollection.getByIdentifier("vLower", level).get
     val vUpper = IR_FieldCollection.getByIdentifier("vUpper", level).get
+    val etaNode = IR_FieldCollection.getByIdentifier("etaNode", level).get
+    val uNode = IR_FieldCollection.getByIdentifier("uNode", level).get
+    val vNode = IR_FieldCollection.getByIdentifier("vNode", level).get
 
     val numCells_x = etaLower.fieldLayout.layoutsPerDim(0).numInnerLayers
     val numCells_y = etaLower.fieldLayout.layoutsPerDim(1).numInnerLayers
@@ -334,24 +337,66 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
 
     // add node data
     {
-      val stream = newStream
+      // add header
+      {
+        val stream = newStream
 
-      val initCells = ListBuffer[IR_Statement](
-        IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
-        IR_IfCondition(MPI_IsRootProc(), ListBuffer[IR_Statement](
-          IR_Print(stream, IR_StringConstant("POINT_DATA"), separator, numNodes, IR_Print.endl),
-          IR_Print(stream, IR_StringConstant("FIELD"), separator, IR_StringConstant("eta"), separator, 1, IR_Print.endl),
-          IR_Print(stream, IR_StringConstant("bath"), separator, 1, separator, numNodes, separator, IR_StringConstant("float"), IR_Print.endl))),
-        IR_Print(stream, "std::scientific"),
-        IR_LoopOverFragments(
-          IR_IfCondition(IR_IV_IsValidForDomain(bath.domain.index),
-            IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
-              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => bath.fieldLayout.idxById("DLB", dim) - Duplicate(bath.referenceOffset(dim)) : IR_Expression)),
-              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => bath.fieldLayout.idxById("DRE", dim) - Duplicate(bath.referenceOffset(dim)) : IR_Expression))),
-              IR_Print(stream, IR_FieldAccess(IR_FieldSelection(bath, level, IR_IV_ActiveSlot(bath)), IR_LoopOverDimensions.defIt(numDimsGrid)), IR_Print.endl)))),
-        IR_MemberFunctionCall(stream, "close"))
+        addStmtBlock(ListBuffer[IR_Statement](
+          IR_IfCondition(MPI_IsRootProc(), ListBuffer[IR_Statement](
+            IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
+            IR_Print(stream, IR_StringConstant("POINT_DATA"), separator, numNodes, IR_Print.endl),
+            IR_Print(stream, IR_StringConstant("FIELD"), separator, IR_StringConstant("FieldData"), separator, 4, IR_Print.endl),
+            IR_MemberFunctionCall(stream, "close")))))
+      }
 
-      addStmtBlock(initCells)
+      def addNodePrint(name : String, cellPrint : ListBuffer[IR_Expression]) = {
+        val stream = newStream
+
+        val print = IR_Print(stream, cellPrint)
+
+        val initCells = ListBuffer[IR_Statement](
+          IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
+          IR_IfCondition(MPI_IsRootProc(),
+            IR_Print(stream, IR_StringConstant(name), separator, 1, separator, numNodes, separator, IR_StringConstant("float"), IR_Print.endl)),
+          IR_Print(stream, "std::scientific"),
+          IR_LoopOverFragments(
+            IR_IfCondition(IR_IV_IsValidForDomain(bath.domain.index),
+              IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
+                IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => bath.fieldLayout.idxById("DLB", dim) - Duplicate(bath.referenceOffset(dim)) : IR_Expression)),
+                IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => bath.fieldLayout.idxById("DRE", dim) - Duplicate(bath.referenceOffset(dim)) : IR_Expression))),
+                print))),
+          IR_MemberFunctionCall(stream, "close"))
+
+        addStmtBlock(initCells)
+      }
+
+      // add bath
+      addNodePrint("bath", {
+        var nodePrint = ListBuffer[IR_Expression]()
+        nodePrint += IR_FieldAccess(IR_FieldSelection(bath, level, IR_IV_ActiveSlot(bath)), IR_LoopOverDimensions.defIt(numDimsGrid))
+        nodePrint += IR_Print.endl
+      })
+
+      // add eta
+      addNodePrint("etaNode", {
+        var nodePrint = ListBuffer[IR_Expression]()
+        nodePrint += IR_FieldAccess(IR_FieldSelection(etaNode, level, IR_IV_ActiveSlot(etaNode)), IR_LoopOverDimensions.defIt(numDimsGrid))
+        nodePrint += IR_Print.endl
+      })
+
+      // add u
+      addNodePrint("uNode", {
+        var nodePrint = ListBuffer[IR_Expression]()
+        nodePrint += IR_FieldAccess(IR_FieldSelection(uNode, level, IR_IV_ActiveSlot(uNode)), IR_LoopOverDimensions.defIt(numDimsGrid))
+        nodePrint += IR_Print.endl
+      })
+
+      // add v
+      addNodePrint("vNode", {
+        var nodePrint = ListBuffer[IR_Expression]()
+        nodePrint += IR_FieldAccess(IR_FieldSelection(vNode, level, IR_IV_ActiveSlot(vNode)), IR_LoopOverDimensions.defIt(numDimsGrid))
+        nodePrint += IR_Print.endl
+      })
     }
 
     statements
