@@ -177,6 +177,10 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       } else {
         if (fBranch.isEmpty) IR_NullStatement else fBranch
       }
+
+    // simplify redundant operations
+    case IR_FunctionCall(a : IR_FunctionReference, ListBuffer(IR_FunctionCall(b : IR_FunctionReference, l))) if (a.name == "inverse" && b.name == "inverse" && l.length == 1) => l
+
   }, isParallel = true)
 
   private def simplifyAdd(sum : Seq[IR_Expression]) : IR_Expression = {
