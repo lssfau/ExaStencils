@@ -13,6 +13,7 @@ import exastencils.field.ir._
 import exastencils.globals.ir._
 import exastencils.grid.ir._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
+import exastencils.hack.ir.HACK_IR_SetSpecialFunctionTypes
 import exastencils.interfacing.ir._
 import exastencils.knowledge.ir._
 import exastencils.layoutTransformation.ir.IR_LayoutTansformation
@@ -93,6 +94,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_SetupCommunication.firstCall = true
     IR_SetupCommunication.apply()
 
+    HACK_IR_SetSpecialFunctionTypes.doUntilDone()
     HACK_IR_ResolveSpecialFunctionsAndConstants.apply()
     IR_AdaptTimerFunctions.apply()
 

@@ -20,6 +20,26 @@ import exastencils.util.ir._
 
 /// HACK_IR_ResolveSpecialFunctionsAndConstants
 
+object HACK_IR_SetSpecialFunctionTypes extends DefaultStrategy("SetSpecialFunctionTypes") {
+  var _changed = 0
+
+  var fcts = List("diag", "inverse")
+
+  def doUntilDone(node : Option[Node] = None) = {
+    do {
+      _changed = 0
+      apply(node)
+    } while (_changed > 0)
+  }
+
+  this += Transformation("do", {
+    case call @ IR_FunctionCall(ref : HACK_IR_UndeterminedFunctionReference, params) if (fcts.contains(ref.name) && call.datatype == IR_UnknownDatatype) =>
+      _changed += 1
+      call.function = IR_PlainInternalFunctionReference(ref.name, params(0).datatype)
+      call
+  })
+}
+
 // TODO: split according to functionality and move to appropriate packages
 object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpecialFunctionsAndConstants") {
   var collector = new IR_StackCollector
