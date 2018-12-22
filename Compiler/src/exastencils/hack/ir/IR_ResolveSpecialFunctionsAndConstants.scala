@@ -33,9 +33,11 @@ object HACK_IR_SetSpecialFunctionTypes extends DefaultStrategy("SetSpecialFuncti
   }
 
   this += Transformation("do", {
-    case call @ IR_FunctionCall(ref : HACK_IR_UndeterminedFunctionReference, params) if (fcts.contains(ref.name) && call.datatype == IR_UnknownDatatype) =>
+    case call @ IR_FunctionCall(ref : HACK_IR_UndeterminedFunctionReference, params)
+      if fcts.contains(ref.name) && call.datatype == IR_UnknownDatatype && params.head.datatype != IR_UnknownDatatype =>
+
       _changed += 1
-      call.function = IR_PlainInternalFunctionReference(ref.name, params(0).datatype)
+      call.function = IR_PlainInternalFunctionReference(ref.name, params.head.datatype)
       call
   })
 }
@@ -296,7 +298,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         val fieldLayout = field.fieldSelection.field.fieldLayout
         val numPoints = (0 until fieldLayout.numDimsGrid).map(dim =>
           fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight)
-        val filename = args(1)//.asInstanceOf[IR_StringConstant].value
+        val filename = args(1) //.asInstanceOf[IR_StringConstant].value
 
         val stmts = ListBuffer[IR_Statement]()
 
@@ -321,7 +323,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         val fieldLayout = field.fieldSelection.field.fieldLayout
         var numPoints = (0 until fieldLayout.numDimsGrid).map(dim =>
           fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight).toList
-        val filename = args(1)//.asInstanceOf[IR_StringConstant].value
+        val filename = args(1) //.asInstanceOf[IR_StringConstant].value
 
         val stmts = ListBuffer[IR_Statement]()
 
