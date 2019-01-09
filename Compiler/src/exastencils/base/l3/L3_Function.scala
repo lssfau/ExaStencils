@@ -27,6 +27,10 @@ object L3_Function {
 trait L3_Function extends L3_Statement {
   def name : String
   def datatype : L3_Datatype
+  def parameters : ListBuffer[L3_Function.Argument]
+  var body : ListBuffer[L3_Statement]
+
+  override def progress : L4_Function
 }
 
 /// L3_PlainFunction
