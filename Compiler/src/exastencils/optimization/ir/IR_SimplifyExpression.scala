@@ -13,6 +13,7 @@ import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.interfacing.ir._
 import exastencils.logger._
+import exastencils.util.MathHelper
 import exastencils.util.ir.IR_MathFunctions
 
 /// EvaluationException
@@ -188,7 +189,7 @@ object IR_SimplifyExpression {
 
       case IR_StringLiteral(varName) =>
         res = new HashMap[IR_Expression, Long]()
-        res(IR_VariableAccess(varName, IR_IntegerDatatype)) = 1L // ONLY VariableAccess in res keys, NO StringConstant
+        res(IR_VariableAccess(varName, IR_IntegerDatatype)) = 1L // ONLY VariableAccess in res keys, NO StringLiteral
 
       case acc : IR_ArrayAccess =>
         res = new HashMap[IR_Expression, Long]()
@@ -243,7 +244,7 @@ object IR_SimplifyExpression {
           } else {
             var gcdL : Long = math.abs(map.head._2)
             for ((_, c) <- map)
-              gcdL = gcd(c, gcdL)
+              gcdL = MathHelper.gcd(c, gcdL)
             for ((e, c) <- map)
               map(e) = c / gcdL
             coeff *= gcdL
@@ -330,17 +331,6 @@ object IR_SimplifyExpression {
     }
 
     res.filter(e => e._2 != 0L)
-  }
-
-  def gcd(x : Long, y : Long) : Long = {
-    var a : Long = x
-    var b : Long = y
-    while (b != 0) {
-      val h = a % b
-      a = b
-      b = h
-    }
-    math.abs(a)
   }
 
   private def extractIntegralSumDivision(l : IR_Expression, r : IR_Expression, floor : Boolean) : HashMap[IR_Expression, Long] = {
@@ -565,9 +555,9 @@ object IR_SimplifyExpression {
         res = new HashMap[IR_Expression, Double]()
         res(constName) = d
 
-      case IR_VariableAccess(varName, dt) =>
+      case va : IR_VariableAccess =>
         res = new HashMap[IR_Expression, Double]()
-        res(IR_VariableAccess(varName, dt)) = 1d // preserve datatype if some
+        res(va) = 1d
 
       case IR_StringLiteral(varName) =>
         if (varName.contains("std::rand")) // HACK
