@@ -32,22 +32,25 @@ case class IR_CommunicateFunction(
   def resolveIndex(indexId : String, dim : Int) = fieldSelection.field.fieldLayout.idxById(indexId, dim)
 
   def genIndicesDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)] = {
+    // TODO: this only works for comm_onlyAxisNeighbors == false if coarse grid topology is regular, otherwise iteration spaces must be adapted
     val indices = curNeighbors.map(neigh => (neigh, IR_ExpressionIndexRange(
       IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map {
-          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-            case 6  => resolveIndex("DLB", i)
-            case 26 => resolveIndex("IB", i)
-          }
+          case i if neigh.dir(i) == 0 =>
+            if (Knowledge.comm_onlyAxisNeighbors)
+              resolveIndex("DLB", i)
+            else
+              resolveIndex("IB", i)
           case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
           case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
         }),
       IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map {
-          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-            case 6  => resolveIndex("DRE", i)
-            case 26 => resolveIndex("DRE", i)
-          }
+          case i if neigh.dir(i) == 0 =>
+            if (Knowledge.comm_onlyAxisNeighbors)
+              resolveIndex("DRE", i)
+            else
+              resolveIndex("DRE", i)
           case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
           case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
         }))))
@@ -64,38 +67,42 @@ case class IR_CommunicateFunction(
       IR_ExpressionIndexRange(
         IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map {
-            case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-              case 6  => resolveIndex("DLB", i)
-              case 26 => resolveIndex("IB", i)
-            }
+            case i if neigh.dir(i) == 0 =>
+              if (Knowledge.comm_onlyAxisNeighbors)
+                resolveIndex("DLB", i)
+              else
+                resolveIndex("IB", i)
             case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
             case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
           }),
         IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map {
-            case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-              case 6  => resolveIndex("DRE", i)
-              case 26 => resolveIndex("DRE", i)
-            }
+            case i if neigh.dir(i) == 0 =>
+              if (Knowledge.comm_onlyAxisNeighbors)
+                resolveIndex("DRE", i)
+              else
+                resolveIndex("DRE", i)
             case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
             case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
           })),
       IR_ExpressionIndexRange(
         IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map {
-            case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-              case 6  => resolveIndex("DLB", i)
-              case 26 => resolveIndex("IB", i)
-            }
+            case i if -neigh.dir(i) == 0 =>
+              if (Knowledge.comm_onlyAxisNeighbors)
+                resolveIndex("DLB", i)
+              else
+                resolveIndex("IB", i)
             case i if -neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
             case i if -neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
           }),
         IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map {
-            case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-              case 6  => resolveIndex("DRE", i)
-              case 26 => resolveIndex("DRE", i)
-            }
+            case i if -neigh.dir(i) == 0 =>
+              if (Knowledge.comm_onlyAxisNeighbors)
+                resolveIndex("DRE", i)
+              else
+                resolveIndex("DRE", i)
             case i if -neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
             case i if -neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
           }))))
@@ -112,38 +119,41 @@ case class IR_CommunicateFunction(
       IR_ExpressionIndexRange(
         IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map {
-            case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-              case 6  => resolveIndex("DLB", i)
-              case 26 => resolveIndex("IB", i)
-            }
+            case i if neigh.dir(i) == 0 =>
+              if (Knowledge.comm_onlyAxisNeighbors)
+                resolveIndex("DLB", i)
+              else
+                resolveIndex("IB", i)
             case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
             case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
           }),
         IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map {
-            case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-              case 6  => resolveIndex("DRE", i)
-              case 26 => resolveIndex("DRE", i)
-            }
+            case i if neigh.dir(i) == 0 =>
+              if (Knowledge.comm_onlyAxisNeighbors)
+                resolveIndex("DRE", i)
+              else
+                resolveIndex("DRE", i)
             case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
             case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
           })),
       IR_ExpressionIndexRange(
         IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map {
-            case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-              case 6  => resolveIndex("DLB", i)
-              case 26 => resolveIndex("IB", i)
-            }
+            case i if -neigh.dir(i) == 0 =>
+              if (Knowledge.comm_onlyAxisNeighbors)
+                resolveIndex("DLB", i)
+              else resolveIndex("IB", i)
             case i if -neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
             case i if -neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
           }),
         IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map {
-            case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-              case 6  => resolveIndex("DRE", i)
-              case 26 => resolveIndex("DRE", i)
-            }
+            case i if -neigh.dir(i) == 0 =>
+              if (Knowledge.comm_onlyAxisNeighbors)
+                resolveIndex("DRE", i)
+              else
+                resolveIndex("DRE", i)
             case i if -neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
             case i if -neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
           }))))
@@ -159,19 +169,21 @@ case class IR_CommunicateFunction(
     val indices = curNeighbors.map(neigh => (neigh, IR_ExpressionIndexRange(
       IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map {
-          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-            case 6  => resolveIndex("DLB", i)
-            case 26 => resolveIndex("IB", i)
-          }
+          case i if neigh.dir(i) == 0 =>
+            if (Knowledge.comm_onlyAxisNeighbors)
+              resolveIndex("DLB", i)
+            else
+              resolveIndex("IB", i)
           case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
           case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
         }),
       IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map {
-          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-            case 6  => resolveIndex("DRE", i)
-            case 26 => resolveIndex("DRE", i)
-          }
+          case i if neigh.dir(i) == 0 =>
+            if (Knowledge.comm_onlyAxisNeighbors)
+              resolveIndex("DRE", i)
+            else
+              resolveIndex("DRE", i)
           case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
           case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
         }))))
@@ -187,19 +199,21 @@ case class IR_CommunicateFunction(
     val indices = curNeighbors.map(neigh => (neigh, IR_ExpressionIndexRange(
       IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map {
-          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-            case 6  => resolveIndex("GLB", i)
-            case 26 => resolveIndex("DLB", i)
-          }
+          case i if neigh.dir(i) == 0 =>
+            if (Knowledge.comm_syncGhostData)
+              resolveIndex("GLB", i)
+            else
+              resolveIndex("DLB", i)
           case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerBegin(i)
           case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerEnd(i)
         }),
       IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map {
-          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-            case 6  => resolveIndex("GRE", i)
-            case 26 => resolveIndex("DRE", i)
-          }
+          case i if neigh.dir(i) == 0 =>
+            if (Knowledge.comm_syncGhostData)
+              resolveIndex("GRE", i)
+            else
+              resolveIndex("DRE", i)
           case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerEnd(i)
           case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerBegin(i)
         }))))
@@ -216,38 +230,42 @@ case class IR_CommunicateFunction(
       IR_ExpressionIndexRange(
         IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map {
-            case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-              case 6  => resolveIndex("GLB", i)
-              case 26 => resolveIndex("DLB", i)
-            }
+            case i if neigh.dir(i) == 0 =>
+              if (Knowledge.comm_syncGhostData)
+                resolveIndex("GLB", i)
+              else
+                resolveIndex("DLB", i)
             case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerBegin(i)
             case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerEnd(i)
           }),
         IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map {
-            case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-              case 6  => resolveIndex("GRE", i)
-              case 26 => resolveIndex("DRE", i)
-            }
+            case i if neigh.dir(i) == 0 =>
+              if (Knowledge.comm_syncGhostData)
+                resolveIndex("GRE", i)
+              else
+                resolveIndex("DRE", i)
             case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerEnd(i)
             case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerBegin(i)
           })),
       IR_ExpressionIndexRange(
         IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map {
-            case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-              case 6  => resolveIndex("GLB", i)
-              case 26 => resolveIndex("DLB", i)
-            }
+            case i if -neigh.dir(i) == 0 =>
+              if (Knowledge.comm_syncGhostData)
+                resolveIndex("GLB", i)
+              else
+                resolveIndex("DLB", i)
             case i if -neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerEnd(i)
             case i if -neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerBegin(i)
           }),
         IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map {
-            case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-              case 6  => resolveIndex("GRE", i)
-              case 26 => resolveIndex("DRE", i)
-            }
+            case i if -neigh.dir(i) == 0 =>
+              if (Knowledge.comm_syncGhostData)
+                resolveIndex("GRE", i)
+              else
+                resolveIndex("DRE", i)
             case i if -neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerBegin(i)
             case i if -neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerEnd(i)
           }))))
@@ -264,38 +282,42 @@ case class IR_CommunicateFunction(
       IR_ExpressionIndexRange(
         IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map {
-            case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-              case 6  => resolveIndex("GLB", i)
-              case 26 => resolveIndex("DLB", i)
-            }
+            case i if neigh.dir(i) == 0 =>
+              if (Knowledge.comm_syncGhostData)
+                resolveIndex("GLB", i)
+              else
+                resolveIndex("DLB", i)
             case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerEnd(i)
             case i if neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerBegin(i)
           }),
         IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map {
-            case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-              case 6  => resolveIndex("GRE", i)
-              case 26 => resolveIndex("DRE", i)
-            }
+            case i if neigh.dir(i) == 0 =>
+              if (Knowledge.comm_syncGhostData)
+                resolveIndex("GRE", i)
+              else
+                resolveIndex("DRE", i)
             case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerBegin(i)
             case i if neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerEnd(i)
           })),
       IR_ExpressionIndexRange(
         IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map {
-            case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-              case 6  => resolveIndex("GLB", i)
-              case 26 => resolveIndex("DLB", i)
-            }
+            case i if -neigh.dir(i) == 0 =>
+              if (Knowledge.comm_syncGhostData)
+                resolveIndex("GLB", i)
+              else
+                resolveIndex("DLB", i)
             case i if -neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerBegin(i)
             case i if -neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerEnd(i)
           }),
         IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map {
-            case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-              case 6  => resolveIndex("GRE", i)
-              case 26 => resolveIndex("DRE", i)
-            }
+            case i if -neigh.dir(i) == 0 =>
+              if (Knowledge.comm_syncGhostData)
+                resolveIndex("GRE", i)
+              else
+                resolveIndex("DRE", i)
             case i if -neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerEnd(i)
             case i if -neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerBegin(i)
           }))))
@@ -311,19 +333,21 @@ case class IR_CommunicateFunction(
     val indices = curNeighbors.map(neigh => (neigh, IR_ExpressionIndexRange(
       IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map {
-          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-            case 6  => resolveIndex("GLB", i)
-            case 26 => resolveIndex("DLB", i)
-          }
+          case i if neigh.dir(i) == 0 =>
+            if (Knowledge.comm_syncGhostData)
+              resolveIndex("GLB", i)
+            else
+              resolveIndex("DLB", i)
           case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerEnd(i)
           case i if neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerBegin(i)
         }),
       IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map {
-          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-            case 6  => resolveIndex("GRE", i)
-            case 26 => resolveIndex("DRE", i)
-          }
+          case i if neigh.dir(i) == 0 =>
+            if (Knowledge.comm_syncGhostData)
+              resolveIndex("GRE", i)
+            else
+              resolveIndex("DRE", i)
           case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerBegin(i)
           case i if neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerEnd(i)
         }))))
@@ -344,26 +368,11 @@ case class IR_CommunicateFunction(
     if (dupLayerExch && field.communicatesDuplicated) {
       val concurrencyId = if (begin && finish) 0 else 0
       if (field.fieldLayout.layoutsPerDim.foldLeft(0)((old : Int, l) => old max l.numDupLayersLeft max l.numDupLayersRight) > 0) {
-        Knowledge.comm_strategyFragment match {
-          case 6  =>
-            for (dim <- 0 until field.fieldLayout.numDimsGrid) {
-              val recvNeighbors = ListBuffer(neighbors(2 * dim + 0))
-              val sendNeighbors = ListBuffer(neighbors(2 * dim + 1))
+        if (Knowledge.comm_batchCommunication) {
+          for (dim <- 0 until field.fieldLayout.numDimsGrid) {
+            val recvNeighbors = ListBuffer(neighbors(2 * dim + 0))
+            val sendNeighbors = ListBuffer(neighbors(2 * dim + 1))
 
-              if (begin) {
-                body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop, condition)
-                body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesDuplicateRemoteRecv(recvNeighbors), true, false, concurrencyId, insideFragLoop, condition)
-                body += IR_LocalCommunicationStart(updatedFieldSelectionDup, genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop, condition)
-              }
-              if (finish) {
-                body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesDuplicateRemoteRecv(recvNeighbors), false, true, concurrencyId, insideFragLoop, condition)
-                body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId, insideFragLoop, condition)
-                body += IR_LocalCommunicationFinish(updatedFieldSelectionDup, genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop, condition)
-              }
-            }
-          case 26 =>
-            val sendNeighbors = neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0)
-            val recvNeighbors = neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0)
             if (begin) {
               body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop, condition)
               body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesDuplicateRemoteRecv(recvNeighbors), true, false, concurrencyId, insideFragLoop, condition)
@@ -374,6 +383,20 @@ case class IR_CommunicateFunction(
               body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId, insideFragLoop, condition)
               body += IR_LocalCommunicationFinish(updatedFieldSelectionDup, genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop, condition)
             }
+          }
+        } else {
+          val sendNeighbors = neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0)
+          val recvNeighbors = neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0)
+          if (begin) {
+            body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop, condition)
+            body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesDuplicateRemoteRecv(recvNeighbors), true, false, concurrencyId, insideFragLoop, condition)
+            body += IR_LocalCommunicationStart(updatedFieldSelectionDup, genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop, condition)
+          }
+          if (finish) {
+            body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesDuplicateRemoteRecv(recvNeighbors), false, true, concurrencyId, insideFragLoop, condition)
+            body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId, insideFragLoop, condition)
+            body += IR_LocalCommunicationFinish(updatedFieldSelectionDup, genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop, condition)
+          }
         }
       }
     }
@@ -382,33 +405,32 @@ case class IR_CommunicateFunction(
     if (ghostLayerExch && field.communicatesGhosts) {
       val concurrencyId = if (begin && finish) 0 else 1
       if (field.fieldLayout.layoutsPerDim.foldLeft(0)((old : Int, l) => old max l.numGhostLayersLeft max l.numGhostLayersRight) > 0) {
-        Knowledge.comm_strategyFragment match {
-          case 6  =>
-            for (dim <- 0 until field.fieldLayout.numDimsGrid) {
-              val curNeighbors = ListBuffer(neighbors(2 * dim + 0), neighbors(2 * dim + 1))
+        if (Knowledge.comm_batchCommunication) {
+          for (dim <- 0 until field.fieldLayout.numDimsGrid) {
+            val curNeighbors = ListBuffer(neighbors(2 * dim + 0), neighbors(2 * dim + 1))
 
-              if (begin) {
-                body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesGhostRemoteSend(curNeighbors), true, false, concurrencyId, insideFragLoop, condition)
-                body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesGhostRemoteRecv(curNeighbors), true, false, concurrencyId, insideFragLoop, condition)
-                body += IR_LocalCommunicationStart(updatedFieldSelectionDup, genIndicesGhostLocalSend(curNeighbors), genIndicesGhostLocalRecv(curNeighbors), insideFragLoop, condition)
-              }
-              if (finish) {
-                body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesGhostRemoteRecv(curNeighbors), false, true, concurrencyId, insideFragLoop, condition)
-                body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesGhostRemoteSend(curNeighbors), false, true, concurrencyId, insideFragLoop, condition)
-                body += IR_LocalCommunicationFinish(updatedFieldSelectionDup, genIndicesGhostLocalSend(curNeighbors), genIndicesGhostLocalRecv(curNeighbors), insideFragLoop, condition)
-              }
-            }
-          case 26 =>
             if (begin) {
-              body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesGhostRemoteSend(neighbors), true, false, concurrencyId, insideFragLoop, condition)
-              body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesGhostRemoteRecv(neighbors), true, false, concurrencyId, insideFragLoop, condition)
-              body += IR_LocalCommunicationStart(updatedFieldSelectionDup, genIndicesGhostLocalSend(neighbors), genIndicesGhostLocalRecv(neighbors), insideFragLoop, condition)
+              body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesGhostRemoteSend(curNeighbors), true, false, concurrencyId, insideFragLoop, condition)
+              body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesGhostRemoteRecv(curNeighbors), true, false, concurrencyId, insideFragLoop, condition)
+              body += IR_LocalCommunicationStart(updatedFieldSelectionDup, genIndicesGhostLocalSend(curNeighbors), genIndicesGhostLocalRecv(curNeighbors), insideFragLoop, condition)
             }
             if (finish) {
-              body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesGhostRemoteRecv(neighbors), false, true, concurrencyId, insideFragLoop, condition)
-              body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesGhostRemoteSend(neighbors), false, true, concurrencyId, insideFragLoop, condition)
-              body += IR_LocalCommunicationFinish(updatedFieldSelectionDup, genIndicesGhostLocalSend(neighbors), genIndicesGhostLocalRecv(neighbors), insideFragLoop, condition)
+              body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesGhostRemoteRecv(curNeighbors), false, true, concurrencyId, insideFragLoop, condition)
+              body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesGhostRemoteSend(curNeighbors), false, true, concurrencyId, insideFragLoop, condition)
+              body += IR_LocalCommunicationFinish(updatedFieldSelectionDup, genIndicesGhostLocalSend(curNeighbors), genIndicesGhostLocalRecv(curNeighbors), insideFragLoop, condition)
             }
+          }
+        } else {
+          if (begin) {
+            body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesGhostRemoteSend(neighbors), true, false, concurrencyId, insideFragLoop, condition)
+            body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesGhostRemoteRecv(neighbors), true, false, concurrencyId, insideFragLoop, condition)
+            body += IR_LocalCommunicationStart(updatedFieldSelectionDup, genIndicesGhostLocalSend(neighbors), genIndicesGhostLocalRecv(neighbors), insideFragLoop, condition)
+          }
+          if (finish) {
+            body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesGhostRemoteRecv(neighbors), false, true, concurrencyId, insideFragLoop, condition)
+            body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesGhostRemoteSend(neighbors), false, true, concurrencyId, insideFragLoop, condition)
+            body += IR_LocalCommunicationFinish(updatedFieldSelectionDup, genIndicesGhostLocalSend(neighbors), genIndicesGhostLocalRecv(neighbors), insideFragLoop, condition)
+          }
         }
       }
     }

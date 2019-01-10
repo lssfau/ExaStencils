@@ -29,27 +29,25 @@ object DefaultNeighbors {
   def setup() : Unit = {
     neighbors.clear
 
-    Knowledge.comm_strategyFragment match {
-      case 6 =>
-        var neighIndex = 0
-        for (dim <- 0 until Knowledge.dimensionality) {
-          neighbors += NeighborInfo(Array.fill(dim)(0) ++ Array(-1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0), neighIndex)
-          neighIndex += 1
-          neighbors += NeighborInfo(Array.fill(dim)(0) ++ Array(+1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0), neighIndex)
-          neighIndex += 1
-        }
+    if (Knowledge.comm_onlyAxisNeighbors) {
+      var neighIndex = 0
+      for (dim <- 0 until Knowledge.dimensionality) {
+        neighbors += NeighborInfo(Array.fill(dim)(0) ++ Array(-1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0), neighIndex)
+        neighIndex += 1
+        neighbors += NeighborInfo(Array.fill(dim)(0) ++ Array(+1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0), neighIndex)
+        neighIndex += 1
+      }
+    } else {
+      val unitDirections = Array(-1, 0, 1)
+      var directions = ListBuffer(ListBuffer(-1), ListBuffer(0), ListBuffer(1))
+      for (dim <- 1 until Knowledge.dimensionality)
+        directions = for (dir <- directions; newComponent <- unitDirections) yield dir :+ newComponent
 
-      case 26 =>
-        val unitDirections = Array(-1, 0, 1)
-        var directions = ListBuffer(ListBuffer(-1), ListBuffer(0), ListBuffer(1))
-        for (dim <- 1 until Knowledge.dimensionality)
-          directions = for (dir <- directions; newComponent <- unitDirections) yield dir :+ newComponent
-
-        var neighIndex = 0
-        for (dir <- directions; if dir.map(i => if (0 == i) 0 else 1).sum > 0) {
-          neighbors += NeighborInfo(dir.toArray, neighIndex)
-          neighIndex += 1
-        }
+      var neighIndex = 0
+      for (dir <- directions; if dir.map(i => if (0 == i) 0 else 1).sum > 0) {
+        neighbors += NeighborInfo(dir.toArray, neighIndex)
+        neighIndex += 1
+      }
     }
 
     // FIXME: remove HACK after fragment positions, etc are stored with correct data types

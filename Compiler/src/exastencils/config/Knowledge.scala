@@ -485,8 +485,16 @@ object Knowledge {
 
   /// --- general parallelization ---
 
-  // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
-  var comm_strategyFragment : Int = 6
+  // specifies if DefaultNeighbors is set up with only axis neighbors (4 in 2D and 6 in 3D) or diagonal neighbors as well
+  var comm_onlyAxisNeighbors : Boolean = true
+  // specifies if data from ghost layers are to be communicated as well when sending data from an edge or a face
+  var comm_syncGhostData : Boolean = true
+  // specifies if communication should be batched; current default is pairs of two
+  var comm_batchCommunication : Boolean = true
+
+  // [0|6|26] // keep for backwards compatibility; originally used to specify if communication is only performed along coordinate axis or to all neighbors
+  var comm_strategyFragment : Int = 0
+
   // [true|false] // specifies if comm ops (buffer copy, send/ recv, wait) should each be aggregated and handled in distinct fragment loops
   var comm_useFragmentLoopsForEachOp : Boolean = true
   // [true|false] // specifies if local data exchanges are implemented using push (true) or pull (false) schemes
@@ -885,6 +893,15 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_genCommTimersPerLevel, false, !l3tmp_genTimersForComm, "l3tmp_genCommTimersPerLevel requires l3tmp_genTimersForComm to be activated")
     }
 
+    // backwards compatibility for comm_strategyFragment
+    Constraints.condWarn(comm_strategyFragment != 0, "comm_strategyFragment is deprecated and will be removed in the future")
+    Constraints.condEnsureValue(comm_onlyAxisNeighbors, true, 6 == comm_strategyFragment, "comm_onlyAxisNeighbors must match comm_strategyFragment")
+    Constraints.condEnsureValue(comm_onlyAxisNeighbors, false, 26 == comm_strategyFragment, "comm_onlyAxisNeighbors must match comm_strategyFragment")
+    Constraints.condEnsureValue(comm_syncGhostData, true, 6 == comm_strategyFragment, "comm_syncGhostData must match comm_strategyFragment")
+    Constraints.condEnsureValue(comm_syncGhostData, false, 26 == comm_strategyFragment, "comm_syncGhostData must match comm_strategyFragment")
+    Constraints.condEnsureValue(comm_batchCommunication, true, 6 == comm_strategyFragment, "comm_batchCommunication must match comm_strategyFragment")
+    Constraints.condEnsureValue(comm_batchCommunication, false, 26 == comm_strategyFragment, "comm_batchCommunication must match comm_strategyFragment")
+
     // parallelization
     Constraints.condEnsureValue(mpi_numThreads, 1, !mpi_enabled, "Setting mpi_numThreads to 1 since mpi is deactivated")
     Constraints.condError(domain_numBlocks > 1 && !mpi_enabled, "For the moment, configurations with more then one block must use MPI")
@@ -929,7 +946,7 @@ object Knowledge {
     Constraints.condWarn(cuda_enabled && opt_conventionalCSE && !useDblPrecision, "Double precision should be used if CUDA is enabled and CSE should be applied!")
     Constraints.condEnsureValue(useDblPrecision, true, cuda_enabled && opt_conventionalCSE)
 
-    Constraints.condWarn(experimental_splitLoopsForAsyncComm && 26 != comm_strategyFragment, s"Using asynchronous communication with comm_strategyFragment != 26 leads to problems with stencils containing diagonal entries")
+    Constraints.condWarn(experimental_splitLoopsForAsyncComm && !comm_onlyAxisNeighbors, s"Using asynchronous communication with comm_onlyAxisNeighbors leads to problems with stencils containing diagonal entries")
 
     // data
     Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == Platform.simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")
