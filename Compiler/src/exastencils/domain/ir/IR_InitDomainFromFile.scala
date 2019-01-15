@@ -388,7 +388,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
 
     // FIXME bad assert, should cover all mpi-ranks and also give information about file (like its name)
-    body += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file\""), IR_FunctionCall("exit", 1))
+    body += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileName), IR_FunctionCall("exit", 1))
 
 
     def iss = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream"))
