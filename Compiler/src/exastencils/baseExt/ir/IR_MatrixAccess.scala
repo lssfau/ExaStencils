@@ -701,12 +701,75 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
         call
       }
 
-    case call : IR_FunctionCall if call.name == "getElement" =>
-      if (call.arguments(0).datatype.isInstanceOf[IR_MatrixExpression]) {
-        Logger.error("getElement() may only be used for vectors and matrices")
+    case call : IR_FunctionCall if call.name == "getRow" =>
+      if (!call.arguments(0).datatype.isInstanceOf[IR_MatrixDatatype]) {
+        Logger.error("getRow() may only be used for matrix datatypes")
       }
-      var m = call.arguments(0).datatype.asInstanceOf[IR_MatrixDatatype]
-      var itm = Array(IR_IntegerConstant(0), IR_IntegerConstant(0))
+      val m = call.arguments(0).datatype.asInstanceOf[IR_MatrixDatatype]
+      if (m.sizeM == 1 || m.sizeN == 1) {
+        Logger.error("getRow() may not be used for vectors")
+      }
+
+      var expressions = ListBuffer[IR_Expression]()
+      for (r <- 0 until m.sizeN) {
+        expressions += getElem(call.arguments(0), call.arguments(1).asInstanceOf[IR_IntegerConstant].v.intValue(), r)
+      }
+
+      var ret = IR_MatrixExpression(Some(m.resolveBaseDatatype), 1, m.sizeN, expressions.toArray)
+      ret
+
+    case call : IR_FunctionCall if call.name == "getColumn" =>
+      if (!call.arguments(0).datatype.isInstanceOf[IR_MatrixDatatype]) {
+        Logger.error("getColumn() may only be used for matrix datatypes")
+      }
+      val m = call.arguments(0).datatype.asInstanceOf[IR_MatrixDatatype]
+      if (m.sizeM == 1 || m.sizeN == 1) {
+        Logger.error("getColumn() may not be used for vectors")
+      }
+
+      var expressions = ListBuffer[IR_Expression]()
+      for (r <- 0 until m.sizeM) {
+        expressions += getElem(call.arguments(0), r, call.arguments(1).asInstanceOf[IR_IntegerConstant].v.intValue())
+      }
+
+      var ret = IR_MatrixExpression(Some(m.resolveBaseDatatype), m.sizeM, 1, expressions.toArray)
+      ret
+
+    case IR_ExpressionStatement(call : IR_FunctionCall) if call.name == "setElement" =>
+      if (!call.arguments(0).datatype.isInstanceOf[IR_MatrixDatatype]) {
+        Logger.error("setElement() may only be used for matrix datatypes")
+      }
+      val m = call.arguments(0).datatype.asInstanceOf[IR_MatrixDatatype]
+      val itm = Array(IR_IntegerConstant(0), IR_IntegerConstant(0))
+      var obj : IR_Expression = null
+      if (m.sizeM > 1 && m.sizeN > 1) {
+        if (call.arguments.length != 4) {
+          Logger.error(s"setElement() must have 4 arguments for matrices; has ${ call.arguments.length }")
+        }
+        itm(0) = call.arguments(1).asInstanceOf[IR_IntegerConstant]
+        itm(1) = call.arguments(2).asInstanceOf[IR_IntegerConstant]
+        obj = call.arguments(3)
+      } else if (m.sizeM == 1 && m.sizeN > 1) {
+        if (call.arguments.length != 3) {
+          Logger.error(s"setElement() must have 3 arguments for vectors; has ${ call.arguments.length }")
+        }
+        itm(0) = call.arguments(1).asInstanceOf[IR_IntegerConstant]
+        obj = call.arguments(2)
+      } else if (m.sizeM > 1 && m.sizeN == 1) {
+        if (call.arguments.length != 3) {
+          Logger.error(s"setElement() must have 3 arguments for vectors; has ${ call.arguments.length }")
+        }
+        itm(1) = call.arguments(1).asInstanceOf[IR_IntegerConstant]
+        obj = call.arguments(2)
+      }
+      IR_Assignment(IR_HighDimAccess(call.arguments(0), IR_ExpressionIndex(itm(0), itm(1))), obj)
+
+    case call : IR_FunctionCall if call.name == "getElement" =>
+      if (!call.arguments(0).datatype.isInstanceOf[IR_MatrixDatatype]) {
+        Logger.error("getElement() may only be used for matrix datatypes")
+      }
+      val m = call.arguments(0).datatype.asInstanceOf[IR_MatrixDatatype]
+      val itm = Array(IR_IntegerConstant(0), IR_IntegerConstant(0))
 
       if (m.sizeM > 1 && m.sizeN > 1) {
         if (call.arguments.length != 3) {
