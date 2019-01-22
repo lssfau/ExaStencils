@@ -701,6 +701,39 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
         call
       }
 
+    case call : IR_FunctionCall if call.name == "getElement" =>
+      if (call.arguments(0).datatype.isInstanceOf[IR_MatrixExpression]) {
+        Logger.error("getElement() may only be used for vectors and matrices")
+      }
+      var m = call.arguments(0).datatype.asInstanceOf[IR_MatrixDatatype]
+      var itm = Array(IR_IntegerConstant(0), IR_IntegerConstant(0))
+
+      if (m.sizeM > 1 && m.sizeN > 1) {
+        if (call.arguments.length != 3) {
+          Logger.error(s"getElement() must have 3 arguments for matrices; has ${ call.arguments.length }")
+        }
+        itm(0) = call.arguments(1).asInstanceOf[IR_IntegerConstant]
+        itm(1) = call.arguments(2).asInstanceOf[IR_IntegerConstant]
+      } else if (m.sizeM == 1 && m.sizeN > 1) {
+        if (call.arguments.length != 2) {
+          Logger.error(s"getElement() must have 2 arguments for vectors; has ${ call.arguments.length }")
+        }
+        itm(0) = call.arguments(1).asInstanceOf[IR_IntegerConstant]
+      } else if (m.sizeM > 1 && m.sizeN == 1) {
+        if (call.arguments.length != 2) {
+          Logger.error(s"getElement() must have 2 arguments for vectors; has ${ call.arguments.length }")
+        }
+        itm(1) = call.arguments(1).asInstanceOf[IR_IntegerConstant]
+      }
+
+      var ret : IR_Expression = call
+
+      call.arguments(0) match {
+        case x : IR_MatrixExpression                                                                        => ret = getElem(x, itm(0).asInstanceOf[IR_IntegerConstant].v.intValue(), itm(1).asInstanceOf[IR_IntegerConstant].v.intValue())
+        case x @ (_ : IR_FieldAccess | _ : IR_VariableAccess) if x.datatype.isInstanceOf[IR_MatrixDatatype] => ret = IR_HighDimAccess(call.arguments(0), IR_ExpressionIndex(itm(0), itm(1)))
+        case _                                                                                              => Logger.error(s"Unhandled argument ${ call.arguments(0) } for getElement()")
+      }
+      ret
   })
 
   if (Knowledge.experimental_resolveInverseFunctionCall == "Runtime") {
