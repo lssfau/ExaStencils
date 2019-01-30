@@ -40,7 +40,22 @@ Zeus (Cluster)
       3,4 GHz Single-Core Turbo
       20 MB L3-Cache
       AVX
-    128 GB RAM (64 GB pro Sockel)
+    128 GB RAM (64 GB & quadchannel pro Sockel)
+
+
+Pontipine (Cluster)
+  Constraints: pontipine, E5, AVX, AVX2
+  12 Nodes mit je:
+    2 Xeon E5-2620 v4 (https://ark.intel.com/de/products/92986/Intel-Xeon-Processor-E5-2620-v4-20M-Cache-2_10-GHz)
+      Broadwell
+      8 Kerne
+      16 Threads
+      2,1 GHz Basis
+      2,3 GHz All-Cores Turbo
+      3,0 GHz Single-Core Turbo
+      20 MB L3-Cache
+      AVX2 (& FMA)
+    256 GB RAM (128 GB & quadchannel pro Sockel)
 
 
 Zmiy (Pseudo-Cluster)
