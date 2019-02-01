@@ -70,6 +70,10 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_GlobalCollection.get += IR_AllocateDataFunction(IR_FieldCollection.objects, DefaultNeighbors.neighbors)
     IR_ExternalFieldCollection.generateCopyFunction().foreach(IR_UserFunctions.get += _)
 
+    // setup transformations for communication
+    if(Knowledge.comm_enableCommTransformations)
+      IR_CommTransformationCollection.setup()
+
     // add remaining nodes
     ExaRootNode.ir_root.nodes ++= List(
       // FunctionCollections

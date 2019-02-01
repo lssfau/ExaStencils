@@ -491,6 +491,8 @@ object Knowledge {
   var comm_syncGhostData : Boolean = true
   // specifies if communication should be batched; current default is pairs of two
   var comm_batchCommunication : Boolean = true
+  // specifies if index transformations in communication are used (required for block-structured grids)
+  var comm_enableCommTransformations : Boolean = false
 
   // [0|6|26] // keep for backwards compatibility; originally used to specify if communication is only performed along coordinate axis or to all neighbors
   var comm_strategyFragment : Int = 0
@@ -901,6 +903,10 @@ object Knowledge {
     Constraints.condEnsureValue(comm_syncGhostData, false, 26 == comm_strategyFragment, "comm_syncGhostData must match comm_strategyFragment")
     Constraints.condEnsureValue(comm_batchCommunication, true, 6 == comm_strategyFragment, "comm_batchCommunication must match comm_strategyFragment")
     Constraints.condEnsureValue(comm_batchCommunication, false, 26 == comm_strategyFragment, "comm_batchCommunication must match comm_strategyFragment")
+
+    // comm_enableCommTransformations must be true when domain_readFromFile is true
+    Constraints.condEnsureValue(comm_enableCommTransformations, true, domain_readFromFile, "comm_enableCommTransformations only works on block-structured grids, domain_readFromFile is set to true.")
+    Constraints.condEnsureValue(comm_enableCommTransformations, false, !domain_readFromFile, "comm_enableCommTransformations only works on block-structured grids.")
 
     // parallelization
     Constraints.condEnsureValue(mpi_numThreads, 1, !mpi_enabled, "Setting mpi_numThreads to 1 since mpi is deactivated")

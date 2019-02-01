@@ -9,6 +9,7 @@ import exastencils.communication.DefaultNeighbors
 import exastencils.communication.ir.IR_Communicate
 import exastencils.communication.ir.IR_CommunicateTarget
 import exastencils.communication.ir.IR_IV_CommunicationId
+import exastencils.communication.ir.IR_IV_commTrafoId
 import exastencils.config.Knowledge
 import exastencils.config.Settings
 import exastencils.core.Duplicate
@@ -98,6 +99,57 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     }
 
     body
+  }
+
+  def setupCommTransformation(neighbor_edge : IR_VariableAccess, domain : Int) = {
+    var commStmts = new ListBuffer[IR_Statement]
+    // neighbor edge to IR_IV_commTrafoId
+
+    def i = IR_VariableAccess("i", IR_IntegerDatatype)
+    def ne = IR_ArrayAccess(neighbor_edge, i)
+
+    def neighBoundaryId = IR_VariableAccess("neighBoundaryId", IR_IntegerDatatype)
+    commStmts += IR_VariableDeclaration(neighBoundaryId)
+    commStmts += IR_Assignment(neighBoundaryId, IR_IntegerConstant(-1))
+
+    commStmts += IR_IfCondition(IR_EqEq(ne, IR_StringConstant("W")), IR_Assignment(neighBoundaryId, 0))
+    commStmts += IR_IfCondition(IR_EqEq(ne, IR_StringConstant("E")), IR_Assignment(neighBoundaryId, 1))
+    commStmts += IR_IfCondition(IR_EqEq(ne, IR_StringConstant("S")), IR_Assignment(neighBoundaryId, 2))
+    commStmts += IR_IfCondition(IR_EqEq(ne, IR_StringConstant("N")), IR_Assignment(neighBoundaryId, 3))
+    commStmts += IR_IfCondition(IR_EqEq(ne, IR_StringConstant("X")), IR_Assignment(IR_IV_commTrafoId(domain, i), -1))
+
+    def commCase(caseList : ListBuffer[(Int, Int)], id : Int) = {
+
+      def andAndWrap(thisEdge : Int, neighEdge : Int) :IR_Expression = {
+        IR_AndAnd(IR_EqEq(i, thisEdge), IR_EqEq(neighBoundaryId, neighEdge))
+      }
+
+      var and = new ListBuffer[IR_Expression]
+      for(c <- caseList){
+        and = and :+ andAndWrap(c._1, c._2)
+      }
+
+      IR_IfCondition(
+        and.reduce(IR_OrOr),
+        IR_Assignment(IR_IV_commTrafoId(0, i), id)
+        )
+    }
+
+    commStmts += commCase(ListBuffer((0,1),(2,3),(1,0),(3,2)), 0)
+    commStmts += commCase(ListBuffer((0,2),(2,1),(1,3),(3,0)), 1)
+    commStmts += commCase(ListBuffer((0,0),(2,2),(1,1),(3,3)), 2)
+    commStmts += commCase(ListBuffer((0,3),(2,0),(1,2),(3,1)), 3)
+
+
+    // get comm_ids of neighbors
+    ListBuffer[IR_Statement](IR_ForLoop(
+      IR_VariableDeclaration(i, 0),
+      IR_Lower(i, 4),
+      IR_PreIncrement(i),
+      commStmts
+    ))
+
+
   }
 
   def fillBoundaryGhostLayers(field : IR_Field) = {
@@ -249,9 +301,11 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     def fragment_id = IR_VariableAccess("fragment_id", IR_IntegerDatatype)
     def neighbor_blockID = IR_VariableAccess("neighbor_blockID", IR_ArrayDatatype(IR_IntegerDatatype, 4))
     def neighbor_commID = IR_VariableAccess("neighbor_commID", IR_ArrayDatatype(IR_IntegerDatatype, 4))
+    def neighbor_edge = IR_VariableAccess("neighbor_edge", IR_ArrayDatatype(IR_StringDatatype, 4))
     connStmts += IR_VariableDeclaration(fragment_id)
     connStmts += IR_VariableDeclaration(neighbor_blockID)
     connStmts += IR_VariableDeclaration(neighbor_commID)
+    connStmts += IR_VariableDeclaration(neighbor_edge)
 
     connStmts += read_line
     connStmts += IR_ReadStream(iss, ListBuffer(strBuf, fragment_id))
@@ -268,11 +322,16 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       IR_PreIncrement(i),
       ListBuffer[IR_Statement](
         read_line,
-        IR_ReadStream(iss, ListBuffer(strBuf, IR_ArrayAccess(neighbor_blockID, i), IR_ArrayAccess(neighbor_commID, i)))
+        IR_ReadStream(iss, ListBuffer(strBuf, IR_ArrayAccess(neighbor_blockID, i), IR_ArrayAccess(neighbor_commID, i), IR_ArrayAccess(neighbor_edge, i)))
+        // TODO create indexTransformation here (or set reference to indexTransofrmation. Not sure)
       )
     )
 
     connStmts ++= connectFragmentFromFile(neighbor_blockID, neighbor_commID)
+
+    val domains = IR_DomainCollection.objects
+    for(d <- domains.indices)
+      connStmts ++= setupCommTransformation(neighbor_edge, d)
 
     IR_LoopOverFragments(connStmts, IR_ParallelizationInfo())
   }
@@ -375,7 +434,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       body += IR_Comment("Setup connectivity and fields")
 
     // open file
-    def file = IR_VariableAccess("file", IR_SpecialDatatype("std::ifstream"))   // I think I could also use val here
+    def file = IR_VariableAccess("file", IR_SpecialDatatype("std::ifstream"))
     body += IR_VariableDeclaration(file)
     def fileName = IR_VariableAccess("fileName", IR_StringDatatype)
     body += IR_VariableDeclaration(fileName)
