@@ -338,7 +338,7 @@ object L3_Parser extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val fieldIteratorAccess = (
-    locationize(("i0" | "i1" | "i3") ^^ { id => L3_FieldIteratorAccess(id) })
+    locationize(("i0" | "i1" | "i2") ^^ { id => L3_FieldIteratorAccess(id) })
       ||| locationize(("x" | "y" | "z") ^^ { id => L3_FieldIteratorAccess(id) })
     )
 
