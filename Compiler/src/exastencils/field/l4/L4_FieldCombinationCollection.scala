@@ -1,0 +1,18 @@
+package exastencils.field.l4
+
+import exastencils.field.ir._
+import exastencils.knowledge.l4.L4_KnowledgeContainer.L4_ProcessDeclarations
+import exastencils.knowledge.l4._
+
+/// L4_FieldCombinationCollection
+
+object L4_FieldCombinationCollection extends L4_LeveledKnowledgeCollection[L4_FieldCombination, IR_FieldCombination] {
+  exastencils.core.Duplicate.registerConstant(this)
+
+  L4_KnowledgeContainer.register(this)
+
+  L4_ProcessDeclarations.strategies += L4_ProcessFieldCombinationDeclarations
+
+  override def name = "IR_FieldCombinationCollection"
+  override def progress() = objects.foreach(obj => IR_FieldCombinationCollection.add(obj.progress()))
+}
