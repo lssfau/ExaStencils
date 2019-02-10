@@ -7,10 +7,13 @@ import java.io.PrintWriter
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
-import exastencils.core.ObjectWithState
+import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir._
+import exastencils.logger.Logger
+import exastencils.optimization.ir._
+import exastencils.util.ir.IR_ReplaceVariableAccess
 
 /// util classes
 
@@ -163,6 +166,14 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
     addTimeToStack(loop)
   }
 
+  def dataPerIteration(fieldAccesses : HashMap[String, IR_Datatype], offsets : HashMap[String, ListBuffer[Long]]) : Int = {
+    // TODO Meike: incorporate offsets in this function
+    fieldAccesses.keys.map {
+      ident =>
+        fieldAccesses(ident).typicalByteSize * 1 // * offsets
+    }.sum
+  }
+
   override def applyStandalone(node : Node) : Unit = {
     unknownFunctionCalls = false
     estimatedTimeSubAST.push(PerformanceEstimate(0.0, 0.0))
@@ -194,7 +205,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
 
         val coresPerRank = (Platform.hw_numNodes * Platform.hw_numHWThreadsPerNode).toDouble / Knowledge.mpi_numThreads // could be fractions of cores; regard SMT
 
-        val optimisticDataPerIt = EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.map(_._2.typicalByteSize).sum
+        val optimisticDataPerIt = dataPerIteration(EvaluatePerformanceEstimates_FieldAccess.fieldAccesses, EvaluatePerformanceEstimates_FieldAccess.offsets)
         val effectiveHostBW = Platform.hw_cpu_bandwidth / (coresPerRank * Knowledge.omp_numThreads) // assumes full parallelization - TODO: adapt values according to (OMP) parallel loops
         val optimisticTimeMem_host = (optimisticDataPerIt * maxIterations) / Platform.hw_cpu_bandwidth
         val optimisticTimeMem_device = (optimisticDataPerIt * maxIterations) / Platform.hw_gpu_bandwidth
@@ -254,6 +265,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
 
 object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Evaluating performance for FieldAccess nodes") {
   var fieldAccesses = HashMap[String, IR_Datatype]()
+  var offsets = HashMap[String, ListBuffer[Long]]()
   var inWriteOp = false
 
   def mapFieldAccess(access : IR_MultiDimFieldAccess) = {
@@ -271,6 +283,22 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
     }
 
     fieldAccesses.put(identifier, field.gridDatatype) // TODO: optimize for array fields / HODT
+
+    // evaluate and store offset
+    val offsetIndex = Duplicate(access.index)
+    IR_ReplaceVariableAccess.replace = (0 until access.index.length).map(d => (IR_LoopOverDimensions.defItForDim(d).name, IR_IntegerConstant(0))).toMap
+    IR_ReplaceVariableAccess.applyStandalone(offsetIndex)
+
+    val offset = 0L
+    try {
+      val offset = IR_SimplifyExpression.evalIntegral(
+        IR_Linearization.linearizeIndex(offsetIndex,
+          IR_ExpressionIndex((0 until access.index.length).map(field.fieldLayout(_).total).toArray)))
+    } catch {
+      case _ : EvaluationException => Logger.warn("Could not evaluate offset for " + offsetIndex.prettyprint())
+    }
+
+    offsets.put(identifier, offsets.getOrElse(identifier, ListBuffer()) :+ offset)
   }
 
   this += new Transformation("Searching", {
