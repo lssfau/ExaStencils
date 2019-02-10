@@ -6,7 +6,6 @@ import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
-import exastencils.communication.DefaultNeighbors
 import exastencils.communication.NeighborInfo
 import exastencils.config.Knowledge
 import exastencils.field.ir.IR_DirectFieldAccess
@@ -21,24 +20,23 @@ case class IR_CommTransformation(var dim: Int, var trafoId: Int){
   // 3 --> N
 
   def transformIndex(index: Array[IR_Expression], indexSize : Array[Long], indexBegin : Array[Long]) : Array[IR_Expression] = {
-    trafoId match{
-      case 0 => index
-      case 1 =>
-        Array[IR_Expression](
-          index(0),
-          indexSize(1) - index(1) + 2 * indexBegin(1)
-        )
-      case 2 =>
-        Array[IR_Expression](
-          indexSize(0) - index(0) + 2 * indexBegin(0),
-          indexSize(1) - index(1) + 2 * indexBegin(1)
-        )
-      case 3 =>
-        Array[IR_Expression](
-          indexSize(0) - index(0) + 2 * indexBegin(0),
-          index(1)
-        )
+
+    def mirrorIndex(dim : Int): IR_Expression = {
+      indexSize(dim) - index(dim) + 2 * indexBegin(dim)
     }
+
+    var newIndex = new Array[IR_Expression](2)
+
+    newIndex(0) = trafoId match{
+      case 0 | 1 => index(0)
+      case 2 | 3 => mirrorIndex(0)
+    }
+    newIndex(1) = trafoId match{
+      case 0 | 3 => index(1)
+      case 1 | 2 => mirrorIndex(1)
+    }
+
+    newIndex
   }
 
   def switchUL(fieldName : String) = {
