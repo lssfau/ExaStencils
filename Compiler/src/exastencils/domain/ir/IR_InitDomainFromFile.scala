@@ -6,10 +6,11 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.DefaultNeighbors
+import exastencils.communication.ir.IR_CommTrafoCollection
 import exastencils.communication.ir.IR_Communicate
 import exastencils.communication.ir.IR_CommunicateTarget
 import exastencils.communication.ir.IR_IV_CommunicationId
-import exastencils.communication.ir.IR_IV_commTrafoId
+import exastencils.communication.ir.IR_IV_CommTrafoId
 import exastencils.config.Knowledge
 import exastencils.config.Settings
 import exastencils.core.Duplicate
@@ -116,9 +117,9 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     commStmts += IR_IfCondition(IR_EqEq(ne, IR_StringConstant("E")), IR_Assignment(neighBoundaryId, 1))
     commStmts += IR_IfCondition(IR_EqEq(ne, IR_StringConstant("S")), IR_Assignment(neighBoundaryId, 2))
     commStmts += IR_IfCondition(IR_EqEq(ne, IR_StringConstant("N")), IR_Assignment(neighBoundaryId, 3))
-    commStmts += IR_IfCondition(IR_EqEq(ne, IR_StringConstant("X")), IR_Assignment(IR_IV_commTrafoId(domain, i), -1))
+    commStmts += IR_IfCondition(IR_EqEq(ne, IR_StringConstant("X")), IR_Assignment(IR_IV_CommTrafoId(domain, i), -1))
 
-    def commCase(caseList : ListBuffer[(Int, Int)], id : Int) = {
+    def commCase(caseList : List[(Int, Int)], id : Int) = {
 
       def andAndWrap(thisEdge : Int, neighEdge : Int) :IR_Expression = {
         IR_AndAnd(IR_EqEq(i, thisEdge), IR_EqEq(neighBoundaryId, neighEdge))
@@ -131,15 +132,19 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
       IR_IfCondition(
         and.reduce(IR_OrOr),
-        IR_Assignment(IR_IV_commTrafoId(0, i), id)
+        IR_Assignment(IR_IV_CommTrafoId(domain, i), id)
         )
     }
 
-    commStmts += commCase(ListBuffer((0,1),(2,3),(1,0),(3,2)), 0)
-    commStmts += commCase(ListBuffer((0,2),(2,1),(1,3),(3,0)), 1)
-    commStmts += commCase(ListBuffer((0,0),(2,2),(1,1),(3,3)), 2)
-    commStmts += commCase(ListBuffer((0,3),(2,0),(1,2),(3,1)), 3)
-
+    IR_CommTrafoCollection.trafoArray.zipWithIndex.foreach{
+      case(x,i) => commStmts += commCase(x, i)
+    }
+    //IR_CommTrafoCollectionNew.trafoArray.zipWithIndex.foreach{
+    //  case(commScheme,id) => commStmts += IR_IfCondition(
+    //    IR_AndAnd(IR_EqEq(i, commScheme._1), IR_EqEq(neighBoundaryId, commScheme._2)),
+    //    IR_Assignment(IR_IV_CommTrafoId(domain, i), id)
+    //  )
+    //}
 
     // get comm_ids of neighbors
     ListBuffer[IR_Statement](IR_ForLoop(

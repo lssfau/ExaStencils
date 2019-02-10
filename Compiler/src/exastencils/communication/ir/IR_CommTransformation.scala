@@ -2,62 +2,77 @@ package exastencils.communication.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_Expression
+import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.baseExt.ir.IR_ExpressionIndexRange
+import exastencils.communication.DefaultNeighbors
+import exastencils.communication.NeighborInfo
 import exastencils.config.Knowledge
 import exastencils.field.ir.IR_DirectFieldAccess
+import exastencils.field.ir.IR_FieldCollection
 import exastencils.logger.Logger
+import exastencils.optimization.ir.IR_SimplifyExpression
 
-case class IR_CommTransformation(var dim : Int, var id : Int) {
-  //TODO extend to 3D-case
+case class IR_CommTransformation(var dim: Int, var trafoId: Int){
+  // 0 --> W
+  // 1 --> E
+  // 2 --> S
+  // 3 --> N
 
-  // 90 degrees rotation
-  private val rot90Mat = Vector(Vector(0,-1),Vector(1,0))
-  // matMult only works for square matrices
-  private def matMult (mat1 : Vector[Vector[Int]], mat2 : Vector[Vector[Int]]) = {
-    val n = mat1.size
-
-    var mat3 = Vector[Vector[Int]]()
-    for(i <- 0 until n){
-      var row = Vector[Int]()
-      for(j <- 0 until n){
-        var v : Int = 0
-        for(k <- 0 until n){
-          v += mat1(i)(k) * mat2(k)(j)
-        }
-        row = row :+ v
-      }
-      mat3 = mat3 :+ row
+  def transformIndex(index: Array[IR_Expression], indexSize : Array[Long], indexBegin : Array[Long]) : Array[IR_Expression] = {
+    trafoId match{
+      case 0 => index
+      case 1 =>
+        Array[IR_Expression](
+          index(0),
+          indexSize(1) - index(1) + 2 * indexBegin(1)
+        )
+      case 2 =>
+        Array[IR_Expression](
+          indexSize(0) - index(0) + 2 * indexBegin(0),
+          indexSize(1) - index(1) + 2 * indexBegin(1)
+        )
+      case 3 =>
+        Array[IR_Expression](
+          indexSize(0) - index(0) + 2 * indexBegin(0),
+          index(1)
+        )
     }
-
-    mat3
   }
 
-  // create rotation matrix by applying 90 degree rotation several times
-  private var rotMat = Vector(Vector(1,0),Vector(0,1))
-  for(_ <- 0 until id)
-    rotMat = matMult(rotMat, rot90Mat)
-
-  private def transVec(fieldLevel: Int)= {
-    def nGridPoints = (2 << fieldLevel) + 1
-    var t = Vector[Int]()
-    id match {
-      case 0 => t = Vector(0,0)
-      case 1 => t = Vector(nGridPoints,0)
-      case 2 => t = Vector(nGridPoints,nGridPoints)
-      case 3 => t = Vector(0,nGridPoints)
-    }
-
-    t
+  def switchUL(fieldName : String) = {
+    fieldName.dropRight(1) + (fieldName.last match {
+      case 'U' => 'L'
+      case 'L' => 'U'
+      case _ =>
+        fieldName.last
+    })
   }
 
-  def applyTrafo(fieldAccess : IR_DirectFieldAccess) = {
-    // Computation of new index:   newIndex = rotationMatrix * index + translationVector
+
+  def applyTrafo(fieldAccess: IR_DirectFieldAccess, thisIndexRange : IR_ExpressionIndexRange, neigh : NeighborInfo) = {
+    var indexSize = (thisIndexRange.end - thisIndexRange.begin).indices.map(IR_SimplifyExpression.evalIntegral).map(_ - 1)
+    var indexBegin = thisIndexRange.begin.indices.map(IR_SimplifyExpression.evalIntegral)
+
     val index = fieldAccess.index
-    val t = transVec(fieldAccess.fieldSelection.field.level)
-    fieldAccess.index(0) = rotMat(0)(0) * index(0) + rotMat(0)(1) * index(1) + t(0)
-    fieldAccess.index(1) = rotMat(1)(0) * index(0) + rotMat(1)(1) * index(1) + t(1)
 
-    fieldAccess
+    val trafoIndex = IR_ExpressionIndex(transformIndex(index.indices, indexSize, indexBegin)
+      ++ index.drop(fieldAccess.fieldSelection.field.numDimsGrid)
+    )
+
+    val transformedFieldAccess = IR_DirectFieldAccess(fieldAccess.fieldSelection, trafoIndex)
+
+    trafoId match {
+        // TODO check that U/L-switch must be done in these cases
+      case 2 | 3 => {
+        val newName = switchUL(transformedFieldAccess.fieldSelection.field.name)
+        transformedFieldAccess.fieldSelection.field = IR_FieldCollection.getByIdentifier(newName, transformedFieldAccess.fieldSelection.field.level).get
+      }
+      case _ =>
+    }
+
+    transformedFieldAccess
   }
 }
 
@@ -69,7 +84,7 @@ object IR_CommTransformationCollection{
 
     if(Knowledge.dimensionality == 2){
       // setup all trafos for 2D
-      for(i <- 0 until 4)
+      for((_, i) <- IR_CommTrafoCollection.trafoArray.zipWithIndex)
         trafos = trafos :+ IR_CommTransformation(Knowledge.dimensionality, i)
     }
     else{
