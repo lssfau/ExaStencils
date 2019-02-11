@@ -57,14 +57,23 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
 
     val transformedFieldAccess = IR_DirectFieldAccess(fieldAccess.fieldSelection, trafoIndex)
 
-    trafoId match {
-      // TODO check that U/L-switch must be done in these cases
-      case 2 | 3 =>
-        val newName = switchUL(transformedFieldAccess.fieldSelection.field.name)
-        transformedFieldAccess.fieldSelection.field = IR_FieldCollection.getByIdentifier(newName, transformedFieldAccess.fieldSelection.field.level).get
+    def origField = fieldAccess.fieldSelection.field
+    if (IR_FieldCombinationCollection.existsInCombination(origField, "Triangles"))
+      trafoId match {
+        // TODO check that U/L-switch must be done in these cases
+        case 2 | 3 =>
 
-      case _ =>
-    }
+          val combinations = IR_FieldCombinationCollection.getByFieldInCombination(origField, "Triangles")
+          if (combinations.length > 1)
+            Logger.error(s"Found triangle field ${ origField.name } in more than one combination; unsupported")
+          if (combinations.head.fields.length != 2)
+            Logger.error(s"Found triangle combination with more than one field; unsupported")
+
+          val newField = combinations.head.fields.filterNot(_ == origField).head
+          transformedFieldAccess.fieldSelection.field = newField
+
+        case _ =>
+      }
 
     transformedFieldAccess
   }
