@@ -20,6 +20,12 @@ object L2_PrintKnowledgeDecl {
       out << "\n\n"
     }
 
+    out << "// field combinations\n\n"
+    L2_FieldCombinationCollection.objects.foreach { obj =>
+      obj.prettyprintDecl(out)
+      out << "\n\n"
+    }
+
     out << "// stencil declarations\n\n"
     L2_StencilCollection.objects.foreach { obj =>
       obj.prettyprintDecl(out)

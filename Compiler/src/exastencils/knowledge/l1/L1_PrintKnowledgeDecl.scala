@@ -20,6 +20,12 @@ object L1_PrintKnowledgeDecl {
       out << "\n\n"
     }
 
+    out << "// field combinations\n\n"
+    L1_FieldCombinationCollection.objects.foreach { obj =>
+      obj.prettyprintDecl(out)
+      out << "\n\n"
+    }
+
     out << "// operator declarations\n\n"
     L1_OperatorCollection.objects.foreach { obj =>
       obj.prettyprintDecl(out)
