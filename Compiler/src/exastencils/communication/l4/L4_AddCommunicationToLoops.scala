@@ -5,6 +5,8 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.l4._
 import exastencils.baseExt.l4.L4_LoopOverField
 import exastencils.boundary.l4._
+import exastencils.communication.l4.L4_FieldAccessRangeCollector.L4_FieldWithSlot
+import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.field.l4._
 
@@ -28,6 +30,14 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
           fieldsToConsider += fieldData._1
 
       fieldsToConsider = fieldsToConsider.distinct
+
+      // add combination fields
+      fieldsToConsider = fieldsToConsider.flatMap {
+        case L4_FieldWithSlot(field, slot) if L4_FieldCombinationCollection.existsInCombination(field) =>
+          L4_FieldCombinationCollection.getByFieldInCombination(field).flatMap(_.fields).map(f => L4_FieldWithSlot(f, Duplicate(slot)))
+
+        case o => ListBuffer(o)
+      }.distinct
 
       var commStatements = ListBuffer[L4_Communicate]()
 
