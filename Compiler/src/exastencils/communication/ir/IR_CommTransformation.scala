@@ -58,7 +58,7 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
     val transformedFieldAccess = IR_DirectFieldAccess(fieldAccess.fieldSelection, trafoIndex)
 
     def origField = fieldAccess.fieldSelection.field
-    if (IR_FieldCombinationCollection.existsInCombination(origField, "Triangles"))
+    if (IR_FieldCombinationCollection.existsInCombination(origField, "Triangles")) {
       trafoId match {
         // TODO check that U/L-switch must be done in these cases
         case 2 | 3 =>
@@ -74,6 +74,7 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
 
         case _ =>
       }
+    }
 
     transformedFieldAccess
   }

@@ -25,7 +25,7 @@ case class L3_FieldCombinationDecl(
   override def prettyprint(out : PpStream) = {
     out << "FieldCombination " << name
     if (levels.isDefined) out << '@' << levels.get
-    out << " : " << combinationType << " = " << fields.map(_.name).mkString(", ")
+    out << " : \"" << combinationType << "\" = " << fields.map(_.name).mkString(", ")
   }
 
   override def addToKnowledge() : Unit = {

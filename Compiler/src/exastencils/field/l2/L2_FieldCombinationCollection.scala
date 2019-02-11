@@ -13,7 +13,7 @@ object L2_FieldCombinationCollection extends L2_LeveledKnowledgeCollection[L2_Fi
 
   L2_ProcessDeclarations.strategies += L2_ProcessFieldCombinationDeclarations
 
-  override def name = "L3_FieldCombinationCollection"
+  override def name = "L2_FieldCombinationCollection"
   override def progress() = objects.foreach(obj => L3_FieldCombinationCollection.add(obj.progress()))
 
   def existsInCombination(field : L2_Field) = { objects.exists(_.fields.contains(field)) }
