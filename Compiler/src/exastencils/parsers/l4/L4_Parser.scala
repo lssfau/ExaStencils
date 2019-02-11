@@ -67,6 +67,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| domain
       ||| layout
       ||| field
+      ||| fieldCombinationDeclaration
       ||| stencilField
       ||| externalField
       ||| stencilDeclaration
@@ -336,6 +337,9 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| "None" ^^ { _ => L4_NoBC }
       ||| binaryexpression ^^ (L4_DirichletBC(_))
     )
+
+  lazy val fieldCombinationDeclaration = locationize(("FieldCombination".? ~> ident) ~ levelDecl.? ~ (":" ~> stringLit) ~ ("=" ~> repsep(genericAccess, ","))
+    ^^ { case id ~ levels ~ combType ~ fields => L4_FieldCombinationDecl(id, levels, combType, fields) })
 
   lazy val rangeIndex1d = locationize(("[" ~> binaryexpression.? <~ ":") ~ (binaryexpression.? <~ "]") ^^ { case x ~ y => L4_RangeIndex(L4_Range(x, y)) })
   lazy val rangeIndex2d = locationize("[" ~> binaryexpression.? ~ ":" ~ binaryexpression.? ~ "," ~ binaryexpression.? ~ ":" ~ binaryexpression.? <~ "]" ^^ {

@@ -63,6 +63,7 @@ object L1_Parser extends ExaParser with PackratParsers {
       ||| inlineKnowledge
       ||| domainDeclaration
       ||| fieldDeclaration
+      ||| fieldCombinationDeclaration
       ||| operatorDeclaration
       ||| equationDeclaration
       ||| discretizationHints
@@ -287,6 +288,9 @@ object L1_Parser extends ExaParser with PackratParsers {
     ^^ { case id ~ levels ~ domain ~ initial => L1_BaseFieldDecl(id, levels, domain, initial) })
   lazy val boundaryFieldDeclaration = locationize(("Field".? ~> ident) ~ levelDecl.? ~ ((L1_ReservedSigns.elemOf ~ L1_ReservedSigns.partial) ~> domainIdent) ~ ("=" ~> fieldBoundary)
     ^^ { case id ~ levels ~ domain ~ bc => L1_BoundaryFieldDecl(id, levels, domain, bc) })
+
+  lazy val fieldCombinationDeclaration = locationize(("FieldCombination".? ~> ident) ~ levelDecl.? ~ (":" ~> stringLit) ~ ("=" ~> repsep(genericAccess, ","))
+    ^^ { case id ~ levels ~ combType ~ fields => L1_FieldCombinationDecl(id, levels, combType, fields) })
 
   // #############################################################################
   // #################################### GRID ###################################

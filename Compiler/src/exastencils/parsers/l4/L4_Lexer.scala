@@ -49,6 +49,8 @@ class L4_Lexer extends ExaLexer {
     "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z",
     "Edge_Cell", "edge_cell", "Edge_Node", "edge_node")
 
+  reserved += "FieldCombination"
+
   // boundary condition keywords
   reserved += ("apply", "bc", "to", "Neumann")
 
