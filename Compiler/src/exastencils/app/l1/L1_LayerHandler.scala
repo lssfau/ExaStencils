@@ -40,6 +40,7 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
     L1_FieldCollection
     L1_OperatorCollection
     L1_EquationCollection
+    L1_FieldCombinationCollection
   }
 
   override def shutdown() : Unit = {

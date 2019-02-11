@@ -42,6 +42,7 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
     L3_StencilFieldCollection
     L3_VirtualFieldCollection
     L3_EquationCollection
+    L3_FieldCombinationCollection
   }
 
   override def shutdown() : Unit = {
