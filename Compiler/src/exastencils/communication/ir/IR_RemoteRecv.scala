@@ -79,7 +79,7 @@ case class IR_CopyFromRecvBuffer(
       val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field.field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
         IR_ExpressionIndex(indices.end, indices.begin, _ - _))
-      val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, Duplicate(field.slot)), IR_LoopOverDimensions.defIt(numDims))
+      def fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, Duplicate(field.slot)), IR_LoopOverDimensions.defIt(numDims))
 
       if (Knowledge.comm_enableCommTransformations) {
         val trafoId = IR_IV_CommTrafoId(field.domainIndex, neighbor.index)
