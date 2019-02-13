@@ -60,8 +60,8 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
     def origField = fieldAccess.fieldSelection.field
 
     if (IR_FieldCombinationCollection.existsInCombination(origField, "Triangles")) {
-      trafoId match {
-        case 1 | 2 =>
+      (trafoId, neigh.index) match {
+        case (1, 2) | (1, 3) | (2, _) | (3, 0) | (3, 1) =>
 
           val combinations = IR_FieldCombinationCollection.getByFieldInCombination(origField, "Triangles")
           if (combinations.length > 1)
