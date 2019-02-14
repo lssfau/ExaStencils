@@ -79,17 +79,19 @@ case class IR_CopyFromRecvBuffer(
       val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field.field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
         IR_ExpressionIndex(indices.end, indices.begin, _ - _))
+
       def fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, Duplicate(field.slot)), IR_LoopOverDimensions.defIt(numDims))
 
       if (Knowledge.comm_enableCommTransformations) {
         val trafoId = IR_IV_CommTrafoId(field.domainIndex, neighbor.index)
 
         def loop(trafo : IR_CommTransformation) = {
-          val ret = new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(trafo.applyTrafo(fieldAccess, indices, neighbor), tmpBufAccess)))
+          val ret = new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(trafo.applyTrafo(fieldAccess, indices, neighbor), trafo.applyBufferTrafo(tmpBufAccess))))
           ret.polyOptLevel = 1
           ret.parallelization.potentiallyParallel = true
           ret
         }
+
         ret += IR_Switch(trafoId, IR_CommTransformationCollection.trafos.zipWithIndex.map {
           case (trafo, i) => IR_Case(i, ListBuffer[IR_Statement](loop(trafo)))
         })

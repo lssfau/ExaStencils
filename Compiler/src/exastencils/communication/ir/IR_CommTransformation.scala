@@ -78,6 +78,25 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
 
     transformedFieldAccess
   }
+
+  def applyBufferTrafo(bufferAccess : IR_TempBufferAccess) = {
+    trafoId match {
+      case 1 | 3 =>
+        val strides = bufferAccess.strides
+        val trafoStrides = IR_ExpressionIndex(Array[IR_Expression](
+          strides(1),
+          strides(0)
+        ) ++ strides.drop(2))
+        val index = bufferAccess.index
+        val trafoIndex = IR_ExpressionIndex(Array[IR_Expression](
+          index(1),
+          index(0)
+        ) ++ index.drop(2))
+        IR_TempBufferAccess(bufferAccess.buffer, trafoIndex, trafoStrides)
+
+      case _ => bufferAccess
+    }
+  }
 }
 
 object IR_CommTransformationCollection {
