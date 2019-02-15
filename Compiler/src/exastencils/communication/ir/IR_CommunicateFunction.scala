@@ -361,7 +361,9 @@ case class IR_CommunicateFunction(
 
   def compileBody(updatedFieldSelection : IR_FieldSelection) : ListBuffer[IR_Statement] = {
     var body = new ListBuffer[IR_Statement]
+
     def updatedFieldSelectionDup = Duplicate(updatedFieldSelection)
+
     val field = updatedFieldSelectionDup.field
 
     // sync duplicate values
@@ -387,6 +389,7 @@ case class IR_CommunicateFunction(
         } else {
           val sendNeighbors = neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0)
           val recvNeighbors = neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0)
+
           if (begin) {
             body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop, condition)
             body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesDuplicateRemoteRecv(recvNeighbors), true, false, concurrencyId, insideFragLoop, condition)

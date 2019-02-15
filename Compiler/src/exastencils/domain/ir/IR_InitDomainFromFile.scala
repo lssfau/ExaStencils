@@ -6,16 +6,19 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.DefaultNeighbors
+import exastencils.communication.NeighborInfo
 import exastencils.communication.ir.IR_CommTrafoCollection
 import exastencils.communication.ir.IR_Communicate
 import exastencils.communication.ir.IR_CommunicateTarget
 import exastencils.communication.ir.IR_IV_CommunicationId
 import exastencils.communication.ir.IR_IV_CommTrafoId
+import exastencils.communication.ir.IR_IV_NeighFragId
 import exastencils.config.Knowledge
 import exastencils.config.Settings
 import exastencils.core.Duplicate
 import exastencils.deprecated.domain.ir.IR_ReadValueFrom
 import exastencils.deprecated.ir.IR_FieldSelection
+import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.globals.ir.IR_AllocateDataFunction
@@ -26,6 +29,7 @@ import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_BuildString
 
+//TODO move this to another place
 case class IR_ReadStream(var stream : IR_Access, var toPrint : ListBuffer[IR_Access]) extends IR_Statement {
   override def prettyprint(out : PpStream) = out << stream << " >> " <<< (toPrint, " >> ") << ';'
 }
@@ -49,7 +53,6 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       setIterationOffset())
   }
 
-  // remoteRank = blockID
   def connectRemoteElement(localFragmentIdx : IR_Expression, localNeighIdx : IR_Expression, remoteRank : IR_Expression, neighIdx : Int, domain : Int) = {
     ListBuffer[IR_Statement](
       IR_Assignment(IR_IV_NeighborIsValid(domain, neighIdx, Duplicate(localFragmentIdx)), true),
@@ -59,7 +62,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       setIterationOffset())
   }
 
-  def connectFragmentFromFile(neighbor_blockID : IR_VariableAccess, neighbor_commID : IR_VariableAccess) = {
+  def connectFragmentFromFile(neighborBlockID : IR_VariableAccess, neighborCommID : IR_VariableAccess) = {
     var body = new ListBuffer[IR_Statement]
 
     val neighbors = DefaultNeighbors.neighbors
@@ -74,11 +77,12 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
         var statements = ListBuffer[IR_Statement]()
 
         // compile connect calls
-        val neigh_commID = IR_ArrayAccess(neighbor_commID, neigh.index)
-        val neigh_blockID = IR_ArrayAccess(neighbor_blockID, neigh.index)
+        val neigh_commID = IR_ArrayAccess(neighborCommID, neigh.index)
+        val neigh_blockID = IR_ArrayAccess(neighborBlockID, neigh.index)
 
         def localConnect(domainIdx : Int) = connectLocalElement(IR_LoopOverFragments.defIt,
           neigh_commID, neigh.index, domainIdx)
+
         def remoteConnect(domainIdx : Int) = connectRemoteElement(IR_LoopOverFragments.defIt,
           neigh_commID, neigh_blockID, neigh.index, domainIdx)
 
@@ -88,7 +92,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
             IR_IfCondition(IR_EqEq(neigh_blockID, MPI_IV_MpiRank),
               localConnect(d),
               IR_IfCondition(IR_Neq(neigh_blockID, MPI_IV_MpiRank),
-              remoteConnect(d))
+                remoteConnect(d))
             )
           )
 
@@ -104,12 +108,13 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
   def setupCommTransformation(neighbor_edge : IR_VariableAccess, domain : Int) = {
     var commStmts = new ListBuffer[IR_Statement]
-    // neighbor edge to IR_IV_commTrafoId
 
     def i = IR_VariableAccess("i", IR_IntegerDatatype)
+
     def ne = IR_ArrayAccess(neighbor_edge, i)
 
     def neighBoundaryId = IR_VariableAccess("neighBoundaryId", IR_IntegerDatatype)
+
     commStmts += IR_VariableDeclaration(neighBoundaryId)
     commStmts += IR_Assignment(neighBoundaryId, IR_IntegerConstant(-1))
 
@@ -121,31 +126,24 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
     def commCase(caseList : List[(Int, Int)], id : Int) = {
 
-      def andAndWrap(thisEdge : Int, neighEdge : Int) :IR_Expression = {
+      def andAndWrap(thisEdge : Int, neighEdge : Int) : IR_Expression = {
         IR_AndAnd(IR_EqEq(i, thisEdge), IR_EqEq(neighBoundaryId, neighEdge))
       }
 
       var and = new ListBuffer[IR_Expression]
-      for(c <- caseList){
+      for (c <- caseList) {
         and = and :+ andAndWrap(c._1, c._2)
       }
 
       IR_IfCondition(
         and.reduce(IR_OrOr),
         IR_Assignment(IR_IV_CommTrafoId(domain, i), id)
-        )
+      )
     }
 
-    IR_CommTrafoCollection.trafoArray.zipWithIndex.foreach{
-      case(x,i) => commStmts += commCase(x, i)
+    IR_CommTrafoCollection.trafoArray.zipWithIndex.foreach {
+      case (x, i) => commStmts += commCase(x, i)
     }
-    //IR_CommTrafoCollectionNew.trafoArray.zipWithIndex.foreach{
-    //  case(commScheme,id) => commStmts += IR_IfCondition(
-    //    IR_AndAnd(IR_EqEq(i, commScheme._1), IR_EqEq(neighBoundaryId, commScheme._2)),
-    //    IR_Assignment(IR_IV_CommTrafoId(domain, i), id)
-    //  )
-    //}
-
     // get comm_ids of neighbors
     ListBuffer[IR_Statement](IR_ForLoop(
       IR_VariableDeclaration(i, 0),
@@ -292,51 +290,66 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
   }
 
-
-
-  // setupConnectivityFromFile
   def setupConnectivityFromFile(read_line : IR_FunctionCall) = {
     var connStmts = new ListBuffer[IR_Statement]
 
     def strBuf = IR_VariableAccess("strBuf", IR_SpecialDatatype("std::string"))
+
     connStmts += IR_VariableDeclaration(strBuf)
+
     def iss = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream"))
+
     connStmts += IR_VariableDeclaration(iss)
 
-    def fragment_id = IR_VariableAccess("fragment_id", IR_IntegerDatatype)
-    def neighbor_blockID = IR_VariableAccess("neighbor_blockID", IR_ArrayDatatype(IR_IntegerDatatype, 4))
-    def neighbor_commID = IR_VariableAccess("neighbor_commID", IR_ArrayDatatype(IR_IntegerDatatype, 4))
-    def neighbor_edge = IR_VariableAccess("neighbor_edge", IR_ArrayDatatype(IR_StringDatatype, 4))
-    connStmts += IR_VariableDeclaration(fragment_id)
-    connStmts += IR_VariableDeclaration(neighbor_blockID)
-    connStmts += IR_VariableDeclaration(neighbor_commID)
-    connStmts += IR_VariableDeclaration(neighbor_edge)
+    def fragmentId = IR_VariableAccess("fragmentId", IR_IntegerDatatype)
+
+    def neighborBlockID = IR_VariableAccess("neighborBlockID", IR_ArrayDatatype(IR_IntegerDatatype, 4))
+
+    def neighborCommID = IR_VariableAccess("neighborCommID", IR_ArrayDatatype(IR_IntegerDatatype, 4))
+
+    def neighborEdge = IR_VariableAccess("neighborEdge", IR_ArrayDatatype(IR_StringDatatype, 4))
+
+    def neighborFragID = IR_VariableAccess("neighborFragID", IR_ArrayDatatype(IR_IntegerDatatype, 4))
+
+    connStmts += IR_VariableDeclaration(fragmentId)
+    connStmts += IR_VariableDeclaration(neighborBlockID)
+    connStmts += IR_VariableDeclaration(neighborCommID)
+    connStmts += IR_VariableDeclaration(neighborEdge)
+    connStmts += IR_VariableDeclaration(neighborFragID)
 
     connStmts += read_line
-    connStmts += IR_ReadStream(iss, ListBuffer(strBuf, fragment_id))
+    connStmts += IR_ReadStream(iss, ListBuffer(strBuf, fragmentId))
 
     // Assign values to the "real" variables
-    connStmts += IR_Assignment(IR_IV_FragmentId(IR_LoopOverFragments.defIt), fragment_id)
+    connStmts += IR_Assignment(IR_IV_FragmentId(IR_LoopOverFragments.defIt), fragmentId)
     connStmts += IR_Assignment(IR_IV_CommunicationId(IR_LoopOverFragments.defIt), IR_LoopOverFragments.defIt)
 
     def i = IR_VariableAccess("i", IR_IntegerDatatype)
     // get comm_ids of neighbors
     connStmts += IR_ForLoop(
       IR_VariableDeclaration(i, 0),
-      IR_Lower(i, 4),
+      IR_Lower(i, DefaultNeighbors.neighbors.length),
       IR_PreIncrement(i),
       ListBuffer[IR_Statement](
         read_line,
-        IR_ReadStream(iss, ListBuffer(strBuf, IR_ArrayAccess(neighbor_blockID, i), IR_ArrayAccess(neighbor_commID, i), IR_ArrayAccess(neighbor_edge, i)))
-        // TODO create indexTransformation here (or set reference to indexTransofrmation. Not sure)
+        IR_ReadStream(iss, ListBuffer(
+          strBuf,
+          IR_ArrayAccess(neighborBlockID, i),
+          IR_ArrayAccess(neighborCommID, i),
+          IR_ArrayAccess(neighborEdge, i),
+          IR_ArrayAccess(neighborFragID, i)))
       )
     )
 
-    connStmts ++= connectFragmentFromFile(neighbor_blockID, neighbor_commID)
+    connStmts ++= connectFragmentFromFile(neighborBlockID, neighborCommID)
 
     val domains = IR_DomainCollection.objects
-    for(d <- domains.indices)
-      connStmts ++= setupCommTransformation(neighbor_edge, d)
+    for (d <- domains.indices) {
+      connStmts ++= setupCommTransformation(neighborEdge, d)
+      for (neigh <- DefaultNeighbors.neighbors) {
+        connStmts += IR_Assignment(IR_IV_NeighFragId(d, neigh.index), IR_ArrayAccess(neighborFragID, neigh.index))
+      }
+    }
 
     IR_LoopOverFragments(connStmts, IR_ParallelizationInfo())
   }
@@ -346,11 +359,15 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     var connStmts = new ListBuffer[IR_Statement]
 
     def strBuf = IR_VariableAccess("strBuf", IR_SpecialDatatype("std::string"))
+
     connStmts += IR_VariableDeclaration(strBuf)
 
     def fragment_id = IR_VariableAccess("fragment_id", IR_IntegerDatatype)
+
     def neighbor_blockID = IR_VariableAccess("neighbor_blockID", IR_ArrayDatatype(IR_IntegerDatatype, 4))
+
     def neighbor_commID = IR_VariableAccess("neighbor_commID", IR_ArrayDatatype(IR_IntegerDatatype, 4))
+
     connStmts += IR_VariableDeclaration(fragment_id)
     connStmts += IR_VariableDeclaration(neighbor_blockID)
     connStmts += IR_VariableDeclaration(neighbor_commID)
@@ -373,34 +390,38 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     IR_LoopOverFragments(connStmts, IR_ParallelizationInfo())
   }
 
-  // readNodes
-  def readNodes(field : IR_Field,read_line : IR_FunctionCall) = {
+  def readNodes(field : IR_Field, read_line : IR_FunctionCall) = {
     var body = new ListBuffer[IR_Statement]
 
     def numDims = field.fieldLayout.numDimsGrid
+
     val start = IR_ExpressionIndex(Array.fill(numDims)(0))
     val stop = IR_ExpressionIndex(Array.fill(numDims)(0))
     val startOffset = IR_ExpressionIndex(Array.fill(numDims)(0))
     val endOffset = IR_ExpressionIndex(Array.fill(numDims)(0))
     val n_grid_nodes = IR_ConstIndex(Array.fill(numDims)(0))
-    for (dim <- 0 until numDims){
+    for (dim <- 0 until numDims) {
       start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
       stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
-      n_grid_nodes(dim) = field.fieldLayout.defIdxById("DRE", dim) -  field.fieldLayout.defIdxById("DLB", dim)
+      n_grid_nodes(dim) = field.fieldLayout.defIdxById("DRE", dim) - field.fieldLayout.defIdxById("DLB", dim)
     }
 
     var node_statements = ListBuffer[IR_Statement]()
 
     // TODO make x/y-nodes a multi-array
     def x_nodes = IR_VariableAccess("x_nodes", IR_ArrayDatatype(IR_FloatDatatype, n_grid_nodes(0) * n_grid_nodes(0)))
+
     def y_nodes = IR_VariableAccess("y_nodes", IR_ArrayDatatype(IR_FloatDatatype, n_grid_nodes(1) * n_grid_nodes(1)))
+
     node_statements += IR_VariableDeclaration(x_nodes)
     node_statements += IR_VariableDeclaration(y_nodes)
 
     def iss = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream"))
+
     node_statements += IR_VariableDeclaration(iss)
 
     def i = IR_VariableAccess("i", IR_IntegerDatatype)
+
     node_statements += IR_ForLoop(
       IR_VariableDeclaration(i, 0),
       IR_Lower(i, n_grid_nodes(0) * n_grid_nodes(1)),
@@ -422,7 +443,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       node_statements += IR_LoopOverDimensions(numDims, indexRange,
         ListBuffer[IR_Statement](
           IR_Assignment(Duplicate(baseAccess),
-            IR_ArrayAccess(if(dim == 0) x_nodes else y_nodes, baseIndex(0) + baseIndex(1) * n_grid_nodes(dim)))
+            IR_ArrayAccess(if (dim == 0) x_nodes else y_nodes, baseIndex(0) + baseIndex(1) * n_grid_nodes(dim)))
         ), null, IR_ParallelizationInfo())
     }
 
@@ -430,20 +451,22 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
   }
 
-  // readGrid(level)
   def readGrid(level : Int, setupConnectivityAndFields : Boolean) = {
     var body = ListBuffer[IR_Statement]()
 
     body += IR_Comment("Read file for level " + level)
-    if(setupConnectivityAndFields)
+    if (setupConnectivityAndFields)
       body += IR_Comment("Setup connectivity and fields")
 
     // open file
     def file = IR_VariableAccess("file", IR_SpecialDatatype("std::ifstream"))
+
     body += IR_VariableDeclaration(file)
+
     def fileName = IR_VariableAccess("fileName", IR_StringDatatype)
+
     body += IR_VariableDeclaration(fileName)
-    body += IR_BuildString(fileName , ListBuffer[IR_Expression](IR_StringConstant(Settings.experimental_domain_file + "/b"),
+    body += IR_BuildString(fileName, ListBuffer[IR_Expression](IR_StringConstant(Settings.experimental_domain_file + "/b"),
       MPI_IV_MpiRank,
       IR_StringConstant("_"),
       (1 << level) + 1,
@@ -451,26 +474,25 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     body += IR_MemberFunctionCall(file, "open", fileName)
 
 
-    // FIXME bad assert, should cover all mpi-ranks and also give information about file (like its name)
+    // FIXME assert should cover all mpi-ranks
     body += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileName), IR_FunctionCall("exit", 1))
 
-
     def iss = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream"))
-    body += IR_VariableDeclaration(iss)
-    def strBuf = IR_VariableAccess("strBuf", IR_SpecialDatatype("std::string"))
-    body += IR_VariableDeclaration(strBuf)
 
-    //get_line(file)
-    val read_line = IR_FunctionCall(IR_ReadLineFromFile.name, file, iss)
+    def strBuf = IR_VariableAccess("strBuf", IR_SpecialDatatype("std::string"))
 
     def n_fragments = IR_VariableAccess("n_fragments", IR_IntegerDatatype)
+
+    body += IR_VariableDeclaration(iss)
+    body += IR_VariableDeclaration(strBuf)
     body += IR_VariableDeclaration(n_fragments)
 
-    body += read_line   // jump over block_id
+    val read_line = IR_FunctionCall(IR_ReadLineFromFile.name, file, iss)
+
+    body += read_line // jump over block_id
     body += read_line
     body += IR_ReadStream(iss, ListBuffer(strBuf, n_fragments))
-    body += read_line   // jump over n_grid_nodes
-
+    body += read_line // jump over n_grid_nodes
 
     // read connectivity
     if (setupConnectivityAndFields) {
@@ -511,13 +533,13 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
     body += readGrid(Knowledge.maxLevel, true)
 
-    if(Knowledge.experimental_domain_readAllLevelsFromFile){
+    if (Knowledge.experimental_domain_readAllLevelsFromFile) {
       var level = 0
-      for(level <- Knowledge.maxLevel - 1 to Knowledge.minLevel by -1){
+      for (level <- Knowledge.maxLevel - 1 to Knowledge.minLevel by -1) {
         body += readGrid(level, false)
       }
     }
-    else{
+    else {
       // TODO Restriction from Random Points
       // TODO ........
       ////////////////////////////////
