@@ -5,7 +5,6 @@ import scala.collection.mutable.ListBuffer
 import exastencils.core.Duplicate
 import exastencils.field.ir.IR_FieldCombination
 import exastencils.knowledge.l4.L4_LeveledKnowledgeObject
-import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
 /// L4_FieldCombination
@@ -25,8 +24,6 @@ case class L4_FieldCombination(
   }
 
   override def progressImpl() = {
-    Logger.warn(name + "@" + level)
-    Logger.warn(fields.map(_.getProgressedObj().codeName).mkString(", "))
     IR_FieldCombination(name, level, combinationType, fields.map(_.getProgressedObj()))
   }
 }
