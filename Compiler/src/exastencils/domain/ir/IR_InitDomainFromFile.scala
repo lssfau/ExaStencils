@@ -301,7 +301,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
     connStmts += IR_VariableDeclaration(iss)
 
-    def fragmentId = IR_VariableAccess("fragmentId", IR_IntegerDatatype)
+    def fragmentId = IR_VariableAccess("fragment_id", IR_IntegerDatatype)
 
     def neighborBlockID = IR_VariableAccess("neighborBlockID", IR_ArrayDatatype(IR_IntegerDatatype, 4))
 
@@ -509,27 +509,26 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     // read grid nodes
     body ++= readNodes(field, read_line)
 
-
     body += IR_MemberFunctionCall(file, "close")
 
     // communicate (updated interior ghost layers)
     body += IR_Communicate(IR_FieldSelection(field, field.level, 0), "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None)
-    // deal with ghost layers
-    body ++= fillBoundaryGhostLayers(field)
+    // deal with ghost layers on boundary
+    body += IR_LoopOverFragments(fillBoundaryGhostLayers(field))
+    // adapt ghost layers to match upper and lower triangles of neighbors
+    //TODO finish implementation of adaptGhostLayers
+    //body ++= adaptGhostLayers(field)
 
     IR_Scope(body)
   }
 
-
-
-
-
   override def generateFct() = {
     var body = ListBuffer[IR_Statement]()
 
-    body += IR_Assert(IR_EqEq(s"mpiSize", Knowledge.domain_numBlocks),
-      ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.mpi_numThreads),
-      IR_FunctionCall("exit", 1))
+    if (Knowledge.mpi_enabled)
+      body += IR_Assert(IR_EqEq(s"mpiSize", Knowledge.domain_numBlocks),
+        ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.mpi_numThreads),
+        IR_FunctionCall("exit", 1))
 
     body += readGrid(Knowledge.maxLevel, true)
 

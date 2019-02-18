@@ -37,14 +37,6 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
     newIndex
   }
 
-  def switchUL(fieldName : String) = {
-    fieldName.dropRight(1) + (fieldName.last match {
-      case 'U' => 'L'
-      case 'L' => 'U'
-      case o   => o
-    })
-  }
-
   def applyTrafo(fieldAccess : IR_DirectFieldAccess, thisIndexRange : IR_ExpressionIndexRange, neigh : NeighborInfo) = {
     var indexSize = (thisIndexRange.end - thisIndexRange.begin).indices.map(IR_SimplifyExpression.evalIntegral).map(_ - 1)
     var indexBegin = thisIndexRange.begin.indices.map(IR_SimplifyExpression.evalIntegral)
