@@ -43,9 +43,6 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
   }
 
   def connectLocalElement(localFragmentIdx : IR_Expression, neighFragmentIdx : IR_Expression, neighIdx : Int, domain : Int) = {
-    // localFragmentIdx = my index
-    // neighIdx = neigh.index
-    // neighFragmentIdx <-- from file
     ListBuffer[IR_Statement](
       IR_Assignment(IR_IV_NeighborIsValid(domain, neighIdx, Duplicate(localFragmentIdx)), true),
       IR_Assignment(IR_IV_NeighborIsRemote(domain, neighIdx, Duplicate(localFragmentIdx)), false),
@@ -152,142 +149,207 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       commStmts
     ))
 
-
   }
 
+  def adaptGhostLayers(field : IR_Field) = {
+    var stmts = ListBuffer[IR_Statement]()
+
+    val neighbors = DefaultNeighbors.neighbors
+    val domainIdx : IR_Expression = field.domain.index
+    val numDims = field.fieldLayout.numDimsGrid
+
+    def resolveIndex(indexId : String, dim : Int) = field.fieldLayout.idxById(indexId, dim)
+
+    def changePositionForward(neigh : NeighborInfo) = {
+      val dirId = if (neigh.dir(0) == 0) 1 else 0
+      val nonDirId = if (dirId == 0) 1 else 0
+
+      val begin = IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => resolveIndex("GLB", i)
+          case i if neigh.dir(i) < 0  => resolveIndex("GLB", i)
+          case i if neigh.dir(i) > 0  => resolveIndex("GRB", i)
+        })
+
+      val end = IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => resolveIndex("GRE", i)
+          case i if neigh.dir(i) < 0  => resolveIndex("GLE", i)
+          case i if neigh.dir(i) > 0  => resolveIndex("GRE", i)
+        })
+
+      val iDir = IR_VariableAccess("iDir", IR_IntegerDatatype)
+
+      val accessIndex = IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => iDir
+          case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - 1
+          case i if neigh.dir(i) > 0  => resolveIndex("GRB", i)
+        })
+
+      val accessIndexIncr = IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => iDir + 1
+          case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - 1
+          case i if neigh.dir(i) > 0  => resolveIndex("GRB", i)
+        })
+
+      val decl = IR_VariableDeclaration(iDir, begin(nonDirId))
+      val cond = IR_Lower(iDir, end(nonDirId))
+      val incr = IR_PreIncrement(iDir)
+
+      val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field, field.level, 0), accessIndex)
+      val fieldAccessIncr = IR_DirectFieldAccess(IR_FieldSelection(field, field.level, 0), accessIndexIncr)
+
+      val body = IR_Assignment(fieldAccess, fieldAccessIncr)
+
+      IR_ForLoop(decl, cond, incr, body)
+    }
+
+    def changePositionBackward(neigh : NeighborInfo) = {
+      val dirId = if (neigh.dir(0) == 0) 1 else 0
+      val nonDirId = if (dirId == 0) 1 else 0
+
+      val begin = IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => resolveIndex("GLB", i)
+          case i if neigh.dir(i) < 0  => resolveIndex("GLB", i)
+          case i if neigh.dir(i) > 0  => resolveIndex("GRB", i)
+        })
+
+      val end = IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => resolveIndex("GRE", i) - 1
+          case i if neigh.dir(i) < 0  => resolveIndex("GLE", i)
+          case i if neigh.dir(i) > 0  => resolveIndex("GRE", i)
+        })
+
+      val iDir = IR_VariableAccess("iDir", IR_IntegerDatatype)
+
+      val accessIndex = IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => iDir
+          case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - 1
+          case i if neigh.dir(i) > 0  => resolveIndex("GRB", i)
+        })
+
+      val accessIndexDecr = IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => iDir - 1
+          case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - 1
+          case i if neigh.dir(i) > 0  => resolveIndex("GRB", i)
+        })
+
+      val decl = IR_VariableDeclaration(iDir, end(nonDirId))
+      val cond = IR_Greater(iDir, begin(nonDirId))
+      val decr = IR_PreDecrement(iDir)
+
+      val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field, field.level, 0), accessIndex)
+      val fieldAccessDecr = IR_DirectFieldAccess(IR_FieldSelection(field, field.level, 0), accessIndexDecr)
+
+      val body = IR_Assignment(fieldAccess, fieldAccessDecr)
+
+      IR_ForLoop(decl, cond, decr, body)
+    }
+
+    // adapt boundary points for case 1 | 3
+    def adapt(neigh : NeighborInfo) = {
+      IR_IfCondition(IR_OrOr(
+        IR_EqEq(IR_IV_CommTrafoId(domainIdx, neigh.index), 1),
+        IR_EqEq(IR_IV_CommTrafoId(domainIdx, neigh.index), 3)
+      ),
+        if (neigh.dir.sum > 0)
+          changePositionForward(neigh)
+        else
+          changePositionBackward(neigh)
+      )
+    }
+
+    neighbors map adapt
+  }
+
+  // TODO optimize code by including edges in standard boundary computation
   def fillBoundaryGhostLayers(field : IR_Field) = {
     var body = new ListBuffer[IR_Statement]
 
     def numDims = field.fieldLayout.numDimsGrid
 
     val baseIndex = IR_LoopOverDimensions.defIt(numDims)
-    baseIndex.indices ++= Array[IR_Expression](0, 0)
-    val neighbors = DefaultNeighbors.neighbors
 
-    // W
-    val w_start = IR_ExpressionIndex(Array.fill(numDims)(0))
-    val w_stop = IR_ExpressionIndex(Array.fill(numDims)(0))
-    w_start(0) = field.fieldLayout.idxById("GLB", 0)
-    w_stop(0) = field.fieldLayout.idxById("GLE", 0)
-    w_start(1) = field.fieldLayout.idxById("DLB", 1)
-    w_stop(1) = field.fieldLayout.idxById("DRE", 1)
+    def resolveIndex(indexId : String, dim : Int) = field.fieldLayout.idxById(indexId, dim)
 
-    val w_indexRange = IR_ExpressionIndexRange(IR_ExpressionIndex(Array.fill(numDims)(0)), w_stop - w_start)
-    IR_GeneralSimplify.doUntilDoneStandalone(w_indexRange)
+    def genIndexRangeBoundary(neigh : NeighborInfo) : IR_ExpressionIndexRange = {
+      IR_ExpressionIndexRange(
+        IR_ExpressionIndex(
+          (0 until numDims).toArray.map {
+            case i if neigh.dir(i) == 0 => resolveIndex("DLB", i)
+            case i if neigh.dir(i) < 0  => resolveIndex("GLB", i)
+            case i if neigh.dir(i) > 0  => resolveIndex("GRB", i)
+          }),
+        IR_ExpressionIndex(
+          (0 until numDims).toArray.map {
+            case i if neigh.dir(i) == 0 => resolveIndex("DRE", i)
+            case i if neigh.dir(i) < 0  => resolveIndex("GLE", i)
+            case i if neigh.dir(i) > 0  => resolveIndex("GRE", i)
+          }))
+    }
 
-    val w_boundaryIndex = IR_LoopOverDimensions.defIt(numDims)
-    w_boundaryIndex(0) = field.fieldLayout.idxById("GLB", 0)
-    val w_boundary = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), w_boundaryIndex)
+    def genIndexRangeFullBoundary(neigh : NeighborInfo) : IR_ExpressionIndexRange = {
+      IR_ExpressionIndexRange(
+        IR_ExpressionIndex(
+          (0 until numDims).toArray.map {
+            case i if neigh.dir(i) == 0 => resolveIndex("GLB", i)
+            case i if neigh.dir(i) < 0  => resolveIndex("GLB", i)
+            case i if neigh.dir(i) > 0  => resolveIndex("GRB", i)
+          }),
+        IR_ExpressionIndex(
+          (0 until numDims).toArray.map {
+            case i if neigh.dir(i) == 0 => resolveIndex("GRE", i)
+            case i if neigh.dir(i) < 0  => resolveIndex("GLE", i)
+            case i if neigh.dir(i) > 0  => resolveIndex("GRE", i)
+          }))
+    }
 
-    val w_interiorIndex = Duplicate(w_boundaryIndex)
-    w_interiorIndex(0) += 1 + baseIndex(0)
-    val w_interior = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), w_interiorIndex)
+    def genIndexBoundary(neigh : NeighborInfo) : IR_ExpressionIndex = {
+      IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => IR_LoopOverDimensions.defIt(numDims)(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("DLB", i)
+          case i if neigh.dir(i) > 0  => resolveIndex("DRE", i) - 1
+        })
+    }
 
-    val w_ghostIndex = Duplicate(w_boundaryIndex)
-    w_ghostIndex(0) -= 1 + baseIndex(0)
-    val w_ghost = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), w_ghostIndex)
+    def genIndexInterior(neigh : NeighborInfo) : IR_ExpressionIndex = {
+      IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => IR_LoopOverDimensions.defIt(numDims)(i)
+          case i if neigh.dir(i) < 0  => 2 * resolveIndex("DLB", i) - baseIndex(i)
+          case i if neigh.dir(i) > 0  => 2 * (resolveIndex("DRE", i) - 1) - baseIndex(i)
+        })
 
-    body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neighbors(0).index, IR_LoopOverFragments.defIt)), ListBuffer[IR_Statement](
-      IR_Comment("Loop for west ghost layers"),
-      IR_LoopOverDimensions(numDims, w_indexRange,
-        ListBuffer[IR_Statement](
-          IR_Assignment(Duplicate(w_ghost), 2 * Duplicate(w_boundary) - Duplicate(w_interior))
-        ), null, IR_ParallelizationInfo())
-    ))
+    }
 
-    // E
-    val e_start = IR_ExpressionIndex(Array.fill(numDims)(0))
-    val e_stop = IR_ExpressionIndex(Array.fill(numDims)(0))
-    e_start(0) = field.fieldLayout.idxById("GRB", 0)
-    e_stop(0) = field.fieldLayout.idxById("GRE", 0)
-    e_start(1) = field.fieldLayout.idxById("DLB", 1)
-    e_stop(1) = field.fieldLayout.idxById("DRE", 1)
+    def fieldSelection = IR_FieldSelection(field, field.level, 0)
 
-    val e_indexRange = IR_ExpressionIndexRange(IR_ExpressionIndex(Array.fill(numDims)(0)), e_stop - e_start)
-    IR_GeneralSimplify.doUntilDoneStandalone(e_indexRange)
+    for (neigh <- DefaultNeighbors.neighbors) {
+      val ghost = IR_DirectFieldAccess(fieldSelection, baseIndex)
+      val boundary = IR_DirectFieldAccess(fieldSelection, genIndexBoundary(neigh))
+      val interior = IR_DirectFieldAccess(fieldSelection, genIndexInterior(neigh))
 
-    val e_boundaryIndex = IR_LoopOverDimensions.defIt(numDims)
-    e_boundaryIndex(0) = field.fieldLayout.idxById("DRE", 0) - (w_stop(0) - w_start(0)) - 1
-    val e_boundary = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), e_boundaryIndex)
+      body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh.index)), ListBuffer[IR_Statement](
+        IR_LoopOverDimensions(numDims,
+          // TODO generalize this if-condition (only works for 2D so far)
+          if (neigh.index < 2)
+            genIndexRangeBoundary(neigh)
+          else
+            genIndexRangeFullBoundary(neigh),
+          ListBuffer[IR_Statement](
+            IR_Assignment(ghost, 2 * boundary - interior)
+          ), null, IR_ParallelizationInfo())
+      ))
+    }
 
-    val e_interiorIndex = Duplicate(e_boundaryIndex)
-    e_interiorIndex(0) -= 1 + baseIndex(0)
-    val e_interior = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), e_interiorIndex)
-
-    val e_ghostIndex = Duplicate(e_boundaryIndex)
-    e_ghostIndex(0) += 1 + baseIndex(0)
-    val e_ghost = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), e_ghostIndex)
-
-    body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neighbors(1).index, IR_LoopOverFragments.defIt)), ListBuffer[IR_Statement](
-      IR_Comment("Loop for east ghost layers"),
-      IR_LoopOverDimensions(numDims, e_indexRange,
-        ListBuffer[IR_Statement](
-          IR_Assignment(Duplicate(e_ghost), 2 * Duplicate(e_boundary) - Duplicate(e_interior))
-        ), null, IR_ParallelizationInfo())
-    ))
-
-    // S
-    val s_start = IR_ExpressionIndex(Array.fill(numDims)(0))
-    val s_stop = IR_ExpressionIndex(Array.fill(numDims)(0))
-    s_start(0) = field.fieldLayout.idxById("DLB", 0)
-    s_stop(0) = field.fieldLayout.idxById("DRE", 0)
-    s_start(1) = field.fieldLayout.idxById("GLB", 1)
-    s_stop(1) = field.fieldLayout.idxById("GLE", 1)
-
-    val s_indexRange = IR_ExpressionIndexRange(IR_ExpressionIndex(Array.fill(numDims)(0)), s_stop - s_start)
-    IR_GeneralSimplify.doUntilDoneStandalone(s_indexRange)
-
-    val s_boundaryIndex = IR_LoopOverDimensions.defIt(numDims)
-    s_boundaryIndex(1) = field.fieldLayout.idxById("GLB", 1)
-    val s_boundary = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), s_boundaryIndex)
-
-    val s_interiorIndex = Duplicate(s_boundaryIndex)
-    s_interiorIndex(1) += 1 + baseIndex(1)
-    val s_interior = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), s_interiorIndex)
-
-    val s_ghostIndex = Duplicate(s_boundaryIndex)
-    s_ghostIndex(1) -= 1 + baseIndex(1)
-    val s_ghost = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), s_ghostIndex)
-
-    body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neighbors(2).index, IR_LoopOverFragments.defIt)), ListBuffer[IR_Statement](
-      IR_Comment("Loop for south ghost layers"),
-      IR_LoopOverDimensions(numDims, s_indexRange,
-        ListBuffer[IR_Statement](
-          IR_Assignment(Duplicate(s_ghost), 2 * Duplicate(s_boundary) - Duplicate(s_interior))
-        ), null, IR_ParallelizationInfo())
-    ))
-
-    // N
-    val n_start = IR_ExpressionIndex(Array.fill(numDims)(0))
-    val n_stop = IR_ExpressionIndex(Array.fill(numDims)(0))
-    n_start(0) = field.fieldLayout.idxById("DLB", 0)
-    n_stop(0) = field.fieldLayout.idxById("DRE", 0)
-    n_start(1) = field.fieldLayout.idxById("GRB", 1)
-    n_stop(1) = field.fieldLayout.idxById("GRE", 1)
-
-    val n_indexRange = IR_ExpressionIndexRange(IR_ExpressionIndex(Array.fill(numDims)(0)), n_stop - n_start)
-    IR_GeneralSimplify.doUntilDoneStandalone(n_indexRange)
-
-    val n_boundaryIndex = IR_LoopOverDimensions.defIt(numDims)
-    n_boundaryIndex(1) = field.fieldLayout.idxById("DRE", 1) - (s_stop(1) - s_start(1)) - 1
-    val n_boundary = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), n_boundaryIndex)
-
-    val n_interiorIndex = Duplicate(n_boundaryIndex)
-    n_interiorIndex(1) -= 1 + baseIndex(1)
-    val n_interior = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), n_interiorIndex)
-
-    val n_ghostIndex = Duplicate(n_boundaryIndex)
-    n_ghostIndex(1) += 1 + baseIndex(1)
-    val n_ghost = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), n_ghostIndex)
-
-    body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neighbors(3).index, IR_LoopOverFragments.defIt)), ListBuffer[IR_Statement](
-      IR_Comment("Loop for north ghost layers"),
-      IR_LoopOverDimensions(numDims, n_indexRange,
-        ListBuffer[IR_Statement](
-          IR_Assignment(Duplicate(n_ghost), 2 * Duplicate(n_boundary) - Duplicate(n_interior))
-        ), null, IR_ParallelizationInfo())
-    ))
-
+    body
   }
 
   def setupConnectivityFromFile(read_line : IR_FunctionCall) = {
@@ -516,8 +578,8 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     // deal with ghost layers on boundary
     body += IR_LoopOverFragments(fillBoundaryGhostLayers(field))
     // adapt ghost layers to match upper and lower triangles of neighbors
-    //TODO finish implementation of adaptGhostLayers
-    //body ++= adaptGhostLayers(field)
+    body += IR_Comment("Adapt ghost layers by repositioning knots")
+    body ++= adaptGhostLayers(field)
 
     IR_Scope(body)
   }

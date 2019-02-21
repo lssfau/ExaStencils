@@ -31,7 +31,7 @@ case class IR_RemoteRecv(
       ListBuffer[IR_Statement](
         IR_PotentiallyCritical(MPI_Receive(dest, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domainIndex, neighbor.index),
           MPI_GeneratedTag(IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index), IR_IV_CommunicationId(),
-            DefaultNeighbors.getOpposingNeigh(neighbor.index).index,    // TODO change to correct communication neighbor
+            DefaultNeighbors.getOpposingNeigh(neighbor.index).index, // TODO change to correct communication neighbor
             concurrencyId),
           MPI_Request(field.field, s"Recv_${ concurrencyId }", neighbor.index))),
         IR_Assignment(IR_IV_RemoteReqOutstanding(field.field, s"Recv_${ concurrencyId }", neighbor.index), true))
