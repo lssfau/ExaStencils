@@ -27,23 +27,16 @@ case class IR_RemoteRecv(
     var concurrencyId : Int) extends IR_Statement with IR_Expandable {
 
   override def expand() : Output[StatementList] = {
-    if (Knowledge.comm_enableCommTransformations) {
-      ListBuffer[IR_Statement](
-        IR_PotentiallyCritical(MPI_Receive(dest, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domainIndex, neighbor.index),
-          MPI_GeneratedTag(IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index), IR_IV_CommunicationId(),
-            DefaultNeighbors.getOpposingNeigh(neighbor.index).index, // TODO change to correct communication neighbor
-            concurrencyId),
-          MPI_Request(field.field, s"Recv_${ concurrencyId }", neighbor.index))),
-        IR_Assignment(IR_IV_RemoteReqOutstanding(field.field, s"Recv_${ concurrencyId }", neighbor.index), true))
-    }
-    else {
-      ListBuffer[IR_Statement](
-        IR_PotentiallyCritical(MPI_Receive(dest, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domainIndex, neighbor.index),
-          MPI_GeneratedTag(IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index), IR_IV_CommunicationId(),
+
+    ListBuffer[IR_Statement](
+      IR_PotentiallyCritical(MPI_Receive(dest, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domainIndex, neighbor.index),
+        MPI_GeneratedTag(IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index), IR_IV_CommunicationId(),
+          if (Knowledge.comm_enableCommTransformations)
+            IR_IV_CommNeighIdx(field.domainIndex, neighbor.index)
+          else
             DefaultNeighbors.getOpposingNeigh(neighbor.index).index, concurrencyId),
-          MPI_Request(field.field, s"Recv_${ concurrencyId }", neighbor.index))),
-        IR_Assignment(IR_IV_RemoteReqOutstanding(field.field, s"Recv_${ concurrencyId }", neighbor.index), true))
-    }
+        MPI_Request(field.field, s"Recv_${ concurrencyId }", neighbor.index))),
+      IR_Assignment(IR_IV_RemoteReqOutstanding(field.field, s"Recv_${ concurrencyId }", neighbor.index), true))
 
   }
 }

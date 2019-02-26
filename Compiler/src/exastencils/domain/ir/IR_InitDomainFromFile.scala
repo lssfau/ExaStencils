@@ -10,6 +10,7 @@ import exastencils.communication.NeighborInfo
 import exastencils.communication.ir.IR_CommTrafoCollection
 import exastencils.communication.ir.IR_Communicate
 import exastencils.communication.ir.IR_CommunicateTarget
+import exastencils.communication.ir.IR_IV_CommNeighIdx
 import exastencils.communication.ir.IR_IV_CommunicationId
 import exastencils.communication.ir.IR_IV_CommTrafoId
 import exastencils.communication.ir.IR_IV_NeighFragId
@@ -110,9 +111,8 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
     def ne = IR_ArrayAccess(neighbor_edge, i)
 
-    def neighBoundaryId = IR_VariableAccess("neighBoundaryId", IR_IntegerDatatype)
+    def neighBoundaryId = IR_IV_CommNeighIdx(domain, i)
 
-    commStmts += IR_VariableDeclaration(neighBoundaryId)
     commStmts += IR_Assignment(neighBoundaryId, IR_IntegerConstant(-1))
 
     commStmts += IR_IfCondition(IR_EqEq(ne, IR_StringConstant("W")), IR_Assignment(neighBoundaryId, 0))
@@ -154,7 +154,6 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
   def adaptGhostLayers(field : IR_Field) = {
     var stmts = ListBuffer[IR_Statement]()
 
-    val neighbors = DefaultNeighbors.neighbors
     val domainIdx : IR_Expression = field.domain.index
     val numDims = field.fieldLayout.numDimsGrid
 
@@ -201,9 +200,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field, field.level, 0), accessIndex)
       val fieldAccessIncr = IR_DirectFieldAccess(IR_FieldSelection(field, field.level, 0), accessIndexIncr)
 
-      val body = IR_Assignment(fieldAccess, fieldAccessIncr)
-
-      IR_ForLoop(decl, cond, incr, body)
+      IR_ForLoop(decl, cond, incr, IR_Assignment(fieldAccess, fieldAccessIncr))
     }
 
     def changePositionBackward(neigh : NeighborInfo) = {
@@ -247,16 +244,14 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field, field.level, 0), accessIndex)
       val fieldAccessDecr = IR_DirectFieldAccess(IR_FieldSelection(field, field.level, 0), accessIndexDecr)
 
-      val body = IR_Assignment(fieldAccess, fieldAccessDecr)
-
-      IR_ForLoop(decl, cond, decr, body)
+      IR_ForLoop(decl, cond, decr, IR_Assignment(fieldAccess, fieldAccessDecr))
     }
 
     // adapt boundary points for case 1 | 3
     def adapt(neigh : NeighborInfo) = {
       IR_IfCondition(IR_OrOr(
-        IR_EqEq(IR_IV_CommTrafoId(domainIdx, neigh.index), 1),
-        IR_EqEq(IR_IV_CommTrafoId(domainIdx, neigh.index), 3)
+        IR_EqEq(IR_IV_CommTrafoId(field.domain.index, neigh.index), 1),
+        IR_EqEq(IR_IV_CommTrafoId(field.domain.index, neigh.index), 3)
       ),
         if (neigh.dir.sum > 0)
           changePositionForward(neigh)
@@ -265,7 +260,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       )
     }
 
-    neighbors map adapt
+    DefaultNeighbors.neighbors map adapt
   }
 
   // TODO optimize code by including edges in standard boundary computation
