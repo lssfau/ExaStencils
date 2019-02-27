@@ -37,18 +37,7 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
     newIndex
   }
 
-  def applyTrafo(fieldAccess : IR_DirectFieldAccess, thisIndexRange : IR_ExpressionIndexRange, neigh : NeighborInfo) = {
-    var indexSize = (thisIndexRange.end - thisIndexRange.begin).indices.map(IR_SimplifyExpression.evalIntegral).map(_ - 1)
-    var indexBegin = thisIndexRange.begin.indices.map(IR_SimplifyExpression.evalIntegral)
-
-    val index = fieldAccess.index
-
-    val trafoIndex = IR_ExpressionIndex(transformIndex(index.indices, indexSize, indexBegin)
-      ++ index.drop(fieldAccess.fieldSelection.field.numDimsGrid)
-    )
-
-    val transformedFieldAccess = IR_DirectFieldAccess(fieldAccess.fieldSelection, trafoIndex)
-
+  def switchUL(fieldAccess : IR_DirectFieldAccess, neigh : NeighborInfo) = {
     def origField = fieldAccess.fieldSelection.field
 
     if (IR_FieldCombinationCollection.existsInCombination(origField, "Triangles")) {
@@ -62,13 +51,28 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
             Logger.error(s"Found triangle combination with more than one field; unsupported")
 
           val newField = combinations.head.fields.filterNot(_ == origField).head
-          transformedFieldAccess.fieldSelection.field = newField
+          fieldAccess.fieldSelection.field = newField
 
         case _ =>
       }
     }
 
-    transformedFieldAccess
+    fieldAccess
+  }
+
+  def applyTrafo(fieldAccess : IR_DirectFieldAccess, thisIndexRange : IR_ExpressionIndexRange, neigh : NeighborInfo) = {
+    var indexSize = (thisIndexRange.end - thisIndexRange.begin).indices.map(IR_SimplifyExpression.evalIntegral).map(_ - 1)
+    var indexBegin = thisIndexRange.begin.indices.map(IR_SimplifyExpression.evalIntegral)
+
+    val index = fieldAccess.index
+
+    val trafoIndex = IR_ExpressionIndex(transformIndex(index.indices, indexSize, indexBegin)
+      ++ index.drop(fieldAccess.fieldSelection.field.numDimsGrid)
+    )
+
+    val transformedFieldAccess = IR_DirectFieldAccess(fieldAccess.fieldSelection, trafoIndex)
+
+    switchUL(transformedFieldAccess, neigh)
   }
 
   def applyBufferTrafo(bufferAccess : IR_TempBufferAccess) = {
@@ -88,6 +92,48 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
 
       case _ => bufferAccess
     }
+  }
+
+  def applyLocalTrafo(fieldAccess : IR_DirectFieldAccess, thisIndexRange : IR_ExpressionIndexRange, neigh : NeighborInfo) = {
+    def fieldSize(i : Int) = fieldAccess.fieldSelection.fieldLayout.defTotal(i) - 1
+
+    // Compute rotation
+    val rot90mat = Array(Array(0, -1), Array(1, 0))
+
+    def mult(a : Array[Array[Int]], b : Array[Array[Int]]) = {
+      for (row <- a)
+        yield for (col <- b.transpose)
+          yield row zip col map Function.tupled(_ * _) reduceLeft (_ + _)
+    }
+
+    var rotMat = Array(Array(1, 0), Array(0, 1))
+    for (_ <- 1 to trafoId)
+      rotMat = mult(rotMat, rot90mat)
+
+    // Compute translation (move origin)
+    val t = Array(0, 0)
+    trafoId match {
+      case 0 =>
+      case 1 =>
+        t(0) = fieldSize(0)
+      case 2 =>
+        t(0) = fieldSize(0)
+        t(1) = fieldSize(1)
+      case 3 =>
+        t(1) = fieldSize(1)
+    }
+
+    // Compute new index: R * i + t
+    val trafoIndices = Array(
+      rotMat(0)(0) * fieldAccess.index(0) + rotMat(0)(1) * fieldAccess.index(1) + t(0),
+      rotMat(1)(0) * fieldAccess.index(0) + rotMat(1)(1) * fieldAccess.index(1) + t(1)
+    ) ++ fieldAccess.index.drop(2)
+
+    val trafoIndex = IR_ExpressionIndex(trafoIndices)
+
+    val transformedFieldAccess = IR_DirectFieldAccess(fieldAccess.fieldSelection, trafoIndex)
+
+    switchUL(transformedFieldAccess, neigh)
   }
 }
 

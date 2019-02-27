@@ -151,7 +151,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
   }
 
-  def adaptGhostLayers(field : IR_Field) = {
+  def adaptGhostLayers(field : IR_Field) : ListBuffer[IR_Statement] = {
     var stmts = ListBuffer[IR_Statement]()
 
     val domainIdx : IR_Expression = field.domain.index
@@ -574,7 +574,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     body += IR_LoopOverFragments(fillBoundaryGhostLayers(field))
     // adapt ghost layers to match upper and lower triangles of neighbors
     body += IR_Comment("Adapt ghost layers by repositioning knots")
-    body ++= adaptGhostLayers(field)
+    body += IR_LoopOverFragments(adaptGhostLayers(field))
 
     IR_Scope(body)
   }

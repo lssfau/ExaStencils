@@ -4,7 +4,6 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication.DefaultNeighbors
 import exastencils.communication.NeighborInfo
 import exastencils.config._
 import exastencils.core.Duplicate
