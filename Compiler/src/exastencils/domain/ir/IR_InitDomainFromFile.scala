@@ -172,7 +172,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
       val end = IR_ExpressionIndex(
         (0 until numDims).toArray.map {
-          case i if neigh.dir(i) == 0 => resolveIndex("GRE", i)
+          case i if neigh.dir(i) == 0 => resolveIndex("GRE", i) - 1
           case i if neigh.dir(i) < 0  => resolveIndex("GLE", i)
           case i if neigh.dir(i) > 0  => resolveIndex("GRE", i)
         })
