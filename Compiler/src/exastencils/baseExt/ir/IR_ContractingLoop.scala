@@ -110,12 +110,17 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
       })
       override def applyStandalone(node : Node) : Unit = if (iterator.isDefined) super.applyStandalone(node)
     }
-    // iterate in reverse order to allow a proper counting
-    //  (which is required for colored smoothers: bounds must be adapted per LoopOverDims, not per iteration of the ContractingLoop)
-    var expand : Int = 0
-    for (iteration <- (number - 1) to 0 by -1) {
+    // determine the inital expand value (it must be decreased for every IR_LoopOverDimensions node and it must reach 0 eventually)
+    var expand : Int = -1 + number * body.view.flatMap({
+        case IR_IfCondition(_, trueBody : ListBuffer[IR_Statement], ListBuffer()) => trueBody
+        case x                                                                    => List(x)
+      }).count({
+        case _ : IR_LoopOverDimensions => true
+        case _                         => false
+      })
+    for (iteration <- 0 until number) {
       replIt.itVal = iteration
-      for (stmt <- body.reverseIterator)
+      for (stmt <- body)
         stmt match {
           case IR_AdvanceSlot(IR_IV_ActiveSlot(field, fragment), step) =>
             val fKey = FieldKey(field)
@@ -131,11 +136,11 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
                   condStmt = Duplicate(cStmt)
                   condStmt.trueBody.clear()
                   replIt.applyStandalone(condStmt)
-                  res.prepend(condStmt)
+                  res += condStmt
                 }
                 replIt.applyStandalone(nju)
-                condStmt.trueBody.prepend(nju)
-                expand += 1
+                condStmt.trueBody += nju
+                expand -= 1
               case _                                     =>
                 Logger.error("IR_ContractingLoop cannot be expanded: body contains an IR_IfCondition with unexpected statements")
             }
@@ -143,8 +148,8 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
           case l : IR_LoopOverDimensions =>
             val nju = processLoopOverDimensions(l, expand, fieldOffset)
             replIt.applyStandalone(nju)
-            res.prepend(nju)
-            expand += 1
+            res += nju
+            expand -= 1
         }
     }
 
