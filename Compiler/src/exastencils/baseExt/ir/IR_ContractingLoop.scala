@@ -117,9 +117,9 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
       replIt.itVal = iteration
       for (stmt <- body.reverseIterator)
         stmt match {
-          case IR_AdvanceSlot(IR_IV_ActiveSlot(field, fragment)) =>
+          case IR_AdvanceSlot(IR_IV_ActiveSlot(field, fragment), step) =>
             val fKey = FieldKey(field)
-            fieldOffset(fKey) = fieldOffset.getOrElse(fKey, 0) + 1
+            fieldOffset(fKey) = fieldOffset.getOrElse(fKey, 0) + step
             fields(fKey) = field
 
           case cStmt @ IR_IfCondition(cond, trueBody : ListBuffer[IR_Statement], ListBuffer()) =>
@@ -150,7 +150,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
 
     for ((fKey, offset) <- fieldOffset) {
       val field = fields(fKey)
-      res += IR_Assignment(IR_IV_ActiveSlot(field), (IR_IV_ActiveSlot(field) + offset) Mod field.numSlots)
+      res += IR_AdvanceSlot(IR_IV_ActiveSlot(field), offset)
     }
 
     res
