@@ -55,7 +55,7 @@ Pontipine (Cluster)
       3,0 GHz Single-Core Turbo
       20 MB L3-Cache
       AVX2 (& FMA)
-    256 GB RAM (128 GB & quadchannel pro Sockel)
+    256 GB RAM (DDR4 2133 - 128 GB & quadchannel pro Sockel)
 
 
 Zmiy (Pseudo-Cluster)
@@ -107,7 +107,7 @@ Workstations (neu)
     3,9 GHz Turbo
     8 MB L3-Cache
     AVX2 (& FMA)
-  32 GB RAM (dualchannel)
+  32 GB RAM (DDR4 2133 - dualchannel)
 
 
 Workstations (alt)

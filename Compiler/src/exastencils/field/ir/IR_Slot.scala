@@ -5,6 +5,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
+import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_StackCollector
@@ -37,9 +38,11 @@ case class IR_SlotAccess(var slot : IR_IV_ActiveSlot, var offset : Int) extends 
 
 /// IR_AdvanceSlot
 
-case class IR_AdvanceSlot(var slot : IR_IV_ActiveSlot) extends IR_Statement with IR_SpecialExpandable {
+case class IR_AdvanceSlot(var slot : IR_IV_ActiveSlot, var step : Int = 1) extends IR_Statement with IR_SpecialExpandable {
+  if (step < 1)
+    Logger.error("advance slot with a negative step size is not supported")
   // slot never contains negative values (currently)
-  def expandSpecial() = IR_Assignment(slot, (slot + 1) Mod slot.field.numSlots)
+  def expandSpecial() = IR_Assignment(slot, (slot + step) Mod slot.field.numSlots)
 }
 
 /// IR_ResolveSlotOperations
