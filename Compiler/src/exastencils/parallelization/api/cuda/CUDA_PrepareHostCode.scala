@@ -174,29 +174,34 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
       hostStmts ++= beforeHost
       deviceStmts ++= beforeDevice
+      val tmpHostStmts = new ListBuffer[IR_Statement]()
+      val tmpDeviceStmts = new ListBuffer[IR_Statement]()
 
       val condWrapper = NoDuplicateWrapper[IR_Expression](null)
       // resolve contracting loop
-      for (i <- 1 to cl.number)
-        for (stmt <- cl.body)
+      // iterate in reverse order to allow a proper counting
+      //  (which is required for colored smoothers: bounds must be adapted per LoopOverDims, not per iteration of the ContractingLoop)
+      var expand : Int = 0
+      for (i <- (cl.number - 1) to 0 by -1)
+        for (stmt <- cl.body.reverseIterator)
           stmt match {
-            case IR_AdvanceSlot(IR_IV_ActiveSlot(field, fragment)) =>
+            case IR_AdvanceSlot(IR_IV_ActiveSlot(field, fragment), step) =>
               val fKey = (field.name, field.level)
-              fieldOffset(fKey) = fieldOffset.getOrElse(fKey, 0) + 1
+              fieldOffset(fKey) = fieldOffset.getOrElse(fKey, 0) + step
               fields(fKey) = field
 
             case cStmt @ IR_IfCondition(cond, trueBody : ListBuffer[IR_Statement], ListBuffer()) =>
               val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[IR_Comment])
               bodyWithoutComments match {
                 case ListBuffer(l : IR_LoopOverDimensions) =>
-                  val nju = cl.processLoopOverDimensions(l, cl.number - i, fieldOffset)
+                  val nju = cl.processLoopOverDimensions(l, expand, fieldOffset)
 
                   if (hostCondStmt == null || cond != hostCondStmt.condition) {
                     hostCondStmt = Duplicate(cStmt)
                     hostCondStmt.trueBody.clear()
                     deviceCondStmt = Duplicate(hostCondStmt)
-                    hostStmts += hostCondStmt
-                    deviceStmts += deviceCondStmt
+                    tmpHostStmts.prepend(hostCondStmt)
+                    tmpDeviceStmts.prepend(deviceCondStmt)
                   }
                   hostCondStmt.trueBody += nju
 
@@ -205,19 +210,24 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
                     njuCuda.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, condWrapper)
                     deviceCondStmt.trueBody += njuCuda
                   }
+                  expand += 1
                 case _                                     =>
               }
 
             case l : IR_LoopOverDimensions =>
-              val loop = cl.processLoopOverDimensions(l, cl.number - i, fieldOffset)
-              hostStmts += loop
+              val loop = cl.processLoopOverDimensions(l, expand, fieldOffset)
+              tmpHostStmts.prepend(loop)
 
               if (isParallel) {
                 val loopCuda = Duplicate(loop)
                 loopCuda.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, condWrapper)
-                deviceStmts += loopCuda
+                tmpDeviceStmts.prepend(loopCuda)
               }
+              expand += 1
           }
+
+      hostStmts ++= tmpHostStmts
+      deviceStmts ++= tmpDeviceStmts
 
       hostStmts ++= afterHost
       deviceStmts ++= afterDevice
@@ -227,7 +237,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
       for ((fKey, offset) <- fieldOffset) {
         val field = fields(fKey)
-        res += IR_Assignment(IR_IV_ActiveSlot(field), (IR_IV_ActiveSlot(field) + offset) Mod field.numSlots)
+        res += IR_AdvanceSlot(IR_IV_ActiveSlot(field), offset)
       }
 
       res
