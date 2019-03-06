@@ -97,6 +97,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
   }
 
   def expandSpecial : Output[NodeList] = {
+    // unroll this loop and update the loop boundaries (saving communication requires a local copmutation of some ghost layers)
     val res = new ListBuffer[IR_Statement]()
     val fieldOffset = new HashMap[FieldKey, Int]()
     val fields = new HashMap[FieldKey, IR_Field]()
@@ -109,9 +110,12 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
       })
       override def applyStandalone(node : Node) : Unit = if (iterator.isDefined) super.applyStandalone(node)
     }
-    for (i <- 1 to number) {
-      replIt.itVal = i - 1
-      for (stmt <- body)
+    // iterate in reverse order to allow a proper counting
+    //  (which is required for colored smoothers: bounds must be adapted per LoopOverDims, not per iteration of the ContractingLoop)
+    var expand : Int = 0
+    for (iteration <- (number - 1) to 0 by -1) {
+      replIt.itVal = iteration
+      for (stmt <- body.reverseIterator)
         stmt match {
           case IR_AdvanceSlot(IR_IV_ActiveSlot(field, fragment)) =>
             val fKey = FieldKey(field)
@@ -122,23 +126,25 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
             val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[IR_Comment])
             bodyWithoutComments match {
               case ListBuffer(l : IR_LoopOverDimensions) =>
-                val nju = processLoopOverDimensions(l, number - i, fieldOffset)
+                val nju = processLoopOverDimensions(l, expand, fieldOffset)
                 if (condStmt == null || cond != condStmt.condition) {
                   condStmt = Duplicate(cStmt)
                   condStmt.trueBody.clear()
                   replIt.applyStandalone(condStmt)
-                  res += condStmt
+                  res.prepend(condStmt)
                 }
                 replIt.applyStandalone(nju)
-                condStmt.trueBody += nju
+                condStmt.trueBody.prepend(nju)
+                expand += 1
               case _                                     =>
                 Logger.error("IR_ContractingLoop cannot be expanded: body contains an IR_IfCondition with unexpected statements")
             }
 
           case l : IR_LoopOverDimensions =>
-            val nju = processLoopOverDimensions(l, number - i, fieldOffset)
+            val nju = processLoopOverDimensions(l, expand, fieldOffset)
             replIt.applyStandalone(nju)
-            res += nju
+            res.prepend(nju)
+            expand += 1
         }
     }
 
