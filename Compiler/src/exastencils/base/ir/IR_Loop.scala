@@ -65,3 +65,9 @@ case class IR_WhileLoop(var comparison : IR_Expression, var body : ListBuffer[IR
 case class IR_Break() extends IR_Statement {
   override def prettyprint(out : PpStream) = out << "break;"
 }
+
+/// IR_ContinueStatement
+
+case class IR_Continue() extends IR_Statement {
+  override def prettyprint(out : PpStream) = out << "continue;"
+}
