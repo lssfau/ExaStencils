@@ -32,7 +32,7 @@ case class IR_RemoteRecv(
       IR_PotentiallyCritical(MPI_Receive(dest, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domainIndex, neighbor.index),
         MPI_GeneratedTag(IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index), IR_IV_CommunicationId(),
           if (Knowledge.comm_enableCommTransformations)
-            IR_IV_CommNeighIdx(field.domainIndex, neighbor.index)
+            IR_IV_CommNeighNeighIdx(field.domainIndex, neighbor.index)
           else
             DefaultNeighbors.getOpposingNeigh(neighbor.index).index, concurrencyId),
         MPI_Request(field.field, s"Recv_${ concurrencyId }", neighbor.index))),
@@ -79,7 +79,7 @@ case class IR_CopyFromRecvBuffer(
         val trafoId = IR_IV_CommTrafoId(field.domainIndex, neighbor.index)
 
         def loop(trafo : IR_CommTransformation) = {
-          val ret = new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(trafo.applyTrafo(fieldAccess, indices, neighbor), trafo.applyBufferTrafo(tmpBufAccess))))
+          val ret = new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(trafo.applyRemoteTrafo(fieldAccess, indices, neighbor), trafo.applyBufferTrafo(tmpBufAccess))))
           ret.polyOptLevel = 1
           ret.parallelization.potentiallyParallel = true
           ret

@@ -17,26 +17,6 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
   // 2 --> S
   // 3 --> N
 
-  def transformIndex(index : Array[IR_Expression], indexSize : Array[Long], indexBegin : Array[Long]) : Array[IR_Expression] = {
-
-    def mirrorIndex(dim : Int) : IR_Expression = {
-      indexSize(dim) - index(dim) + 2 * indexBegin(dim)
-    }
-
-    var newIndex = new Array[IR_Expression](2)
-
-    newIndex(0) = trafoId match {
-      case 0 | 1 => index(0)
-      case 2 | 3 => mirrorIndex(0)
-    }
-    newIndex(1) = trafoId match {
-      case 0 | 3 => index(1)
-      case 1 | 2 => mirrorIndex(1)
-    }
-
-    newIndex
-  }
-
   def switchUL(fieldAccess : IR_DirectFieldAccess, neigh : NeighborInfo) = {
     def origField = fieldAccess.fieldSelection.field
 
@@ -60,9 +40,28 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
     fieldAccess
   }
 
-  def applyTrafo(fieldAccess : IR_DirectFieldAccess, thisIndexRange : IR_ExpressionIndexRange, neigh : NeighborInfo) = {
-    var indexSize = (thisIndexRange.end - thisIndexRange.begin).indices.map(IR_SimplifyExpression.evalIntegral).map(_ - 1)
-    var indexBegin = thisIndexRange.begin.indices.map(IR_SimplifyExpression.evalIntegral)
+  def applyRemoteTrafo(fieldAccess : IR_DirectFieldAccess, indexRange : IR_ExpressionIndexRange, neigh : NeighborInfo) = {
+
+    def transformIndex(index : Array[IR_Expression], indexSize : Array[Long], indexBegin : Array[Long]) : Array[IR_Expression] = {
+
+      def mirrorIndex(dim : Int) : IR_Expression = indexSize(dim) - index(dim) + 2 * indexBegin(dim)
+
+      val newIndex = new Array[IR_Expression](2)
+
+      newIndex(0) = trafoId match {
+        case 0 | 1 => index(0)
+        case 2 | 3 => mirrorIndex(0)
+      }
+      newIndex(1) = trafoId match {
+        case 0 | 3 => index(1)
+        case 1 | 2 => mirrorIndex(1)
+      }
+
+      newIndex
+    }
+
+    val indexSize = (indexRange.end - indexRange.begin).indices.map(IR_SimplifyExpression.evalIntegral).map(_ - 1)
+    val indexBegin = indexRange.begin.indices.map(IR_SimplifyExpression.evalIntegral)
 
     val index = fieldAccess.index
 
@@ -94,10 +93,9 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
     }
   }
 
-  def applyLocalTrafo(fieldAccess : IR_DirectFieldAccess, thisIndexRange : IR_ExpressionIndexRange, neigh : NeighborInfo) = {
+  def applyLocalTrafo(fieldAccess : IR_DirectFieldAccess, neigh : NeighborInfo) = {
     def fieldSize(i : Int) = fieldAccess.fieldSelection.fieldLayout.defTotal(i) - 1
 
-    // Compute rotation
     val rot90mat = Array(Array(0, -1), Array(1, 0))
 
     def mult(a : Array[Array[Int]], b : Array[Array[Int]]) = {
@@ -110,7 +108,7 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
     for (_ <- 1 to trafoId)
       rotMat = mult(rotMat, rot90mat)
 
-    // Compute translation (move origin)
+    // Compute translation of origin
     val t = Array(0, 0)
     trafoId match {
       case 0 =>
@@ -129,9 +127,7 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
       rotMat(1)(0) * fieldAccess.index(0) + rotMat(1)(1) * fieldAccess.index(1) + t(1)
     ) ++ fieldAccess.index.drop(2)
 
-    val trafoIndex = IR_ExpressionIndex(trafoIndices)
-
-    val transformedFieldAccess = IR_DirectFieldAccess(fieldAccess.fieldSelection, trafoIndex)
+    val transformedFieldAccess = IR_DirectFieldAccess(fieldAccess.fieldSelection, IR_ExpressionIndex(trafoIndices))
 
     switchUL(transformedFieldAccess, neigh)
   }
@@ -145,7 +141,7 @@ object IR_CommTransformationCollection {
 
     if (Knowledge.dimensionality == 2) {
       // setup all trafos for 2D
-      for ((_, i) <- IR_CommTrafoCollection.trafoArray.zipWithIndex)
+      for ((_, i) <- IR_CommTrafoIdCollection.trafoArray.zipWithIndex)
         trafos = trafos :+ IR_CommTransformation(Knowledge.dimensionality, i)
     }
     else {
@@ -153,4 +149,14 @@ object IR_CommTransformationCollection {
     }
   }
 
+}
+
+object IR_CommTrafoIdCollection {
+  // stores relation between own neighborIdx and neighborIdx of the neighbor
+  val trafoArray : Array[List[(Int, Int)]] = Array(
+    List((0, 1), (2, 3), (1, 0), (3, 2)), // 0
+    List((0, 3), (2, 0), (1, 2), (3, 1)), // 1
+    List((0, 0), (2, 2), (1, 1), (3, 3)), // 2
+    List((0, 2), (2, 1), (1, 3), (3, 0)) // 3
+  )
 }

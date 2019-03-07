@@ -43,7 +43,7 @@ case class IR_LocalRecv(
       val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, Duplicate(field.slot)), IR_LoopOverDimensions.defIt(numDims))
       val neighFieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, Duplicate(field.slot), IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)),
         IR_ExpressionIndex(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _))
-      val ret = new IR_LoopOverDimensions(numDims, dest, ListBuffer[IR_Statement](IR_Assignment(fieldAccess, trafo.applyLocalTrafo(neighFieldAccess, dest, neighbor))))
+      val ret = new IR_LoopOverDimensions(numDims, dest, ListBuffer[IR_Statement](IR_Assignment(fieldAccess, trafo.applyLocalTrafo(neighFieldAccess, neighbor))))
       ret.polyOptLevel = 1
       ret.parallelization.potentiallyParallel = true
       ret
@@ -53,7 +53,7 @@ case class IR_LocalRecv(
     // wait until the fragment to be read from is ready for communication
     if (Knowledge.comm_enableCommTransformations) {
       ifCondStmts += IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(), IR_AddressOf(IR_IV_LocalCommReady(
-        field.field, IR_IV_CommNeighIdx(field.domainIndex, neighbor.index), IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)))) // TODO replace getOpposingNeigh
+        field.field, IR_IV_CommNeighNeighIdx(field.domainIndex, neighbor.index), IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)))) // TODO replace getOpposingNeigh
       val trafoId = IR_IV_CommTrafoId(field.domainIndex, neighbor.index)
       ifCondStmts += IR_Switch(trafoId, IR_CommTransformationCollection.trafos.zipWithIndex.map {
         case (trafo, i) => IR_Case(i, ListBuffer[IR_Statement](loopWithCommTrafos(trafo)))
