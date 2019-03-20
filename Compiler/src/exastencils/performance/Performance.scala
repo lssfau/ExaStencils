@@ -167,11 +167,40 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
   }
 
   def dataPerIteration(fieldAccesses : HashMap[String, IR_Datatype], offsets : HashMap[String, ListBuffer[Long]]) : Int = {
-    // TODO Meike: incorporate offsets in this function
-    fieldAccesses.keys.map {
-      ident =>
-        fieldAccesses(ident).typicalByteSize * 1 // * offsets
-    }.sum
+    if (fieldAccesses.values.map(_.typicalByteSize).toList.distinct.length > 1)
+      Logger.error("Unsupported: Not the same Datatype")
+
+    val dataTypeSize = fieldAccesses.values.head.typicalByteSize
+    val cacheSize = Platform.hw_cacheSize
+    val maxWindowCount : Int = offsets.map(_._2.length).sum
+
+    for (windowCount <- 1 to maxWindowCount) {
+      val windowSize = cacheSize / windowCount / dataTypeSize
+      var empty : ListBuffer[Boolean] = ListBuffer.empty[Boolean]
+      var windowsUsed = 0
+
+      fieldAccesses.keys.foreach(ident => {
+        var sortedOffsets = offsets(ident).sorted.reverse
+        val length = sortedOffsets.length
+        var i = 1
+
+        do {
+          val maxOffset = sortedOffsets.head
+          sortedOffsets = sortedOffsets.drop(1).filter(offset => math.abs(maxOffset - offset) > windowSize)
+          windowsUsed += 1
+          i = i + 1
+
+        } while (i < length && i <= windowCount && !sortedOffsets.isEmpty)
+
+        empty += sortedOffsets.isEmpty
+
+      })
+      if (windowsUsed <= windowCount && empty.filter(x => x == false).isEmpty)
+        return windowsUsed * dataTypeSize
+
+    }
+
+    return maxWindowCount * dataTypeSize
   }
 
   override def applyStandalone(node : Node) : Unit = {
@@ -200,6 +229,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         val maxIterations = loop.maxIterationCount().product
 
         EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.clear // has to be done manually
+        EvaluatePerformanceEstimates_FieldAccess.offsets.clear
         EvaluatePerformanceEstimates_FieldAccess.applyStandalone(loop)
         EvaluatePerformanceEstimates_Ops.applyStandalone(loop)
 
@@ -289,9 +319,9 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
     IR_ReplaceVariableAccess.replace = (0 until access.index.length).map(d => (IR_LoopOverDimensions.defItForDim(d).name, IR_IntegerConstant(0))).toMap
     IR_ReplaceVariableAccess.applyStandalone(offsetIndex)
 
-    val offset = 0L
+    var offset = 0L
     try {
-      val offset = IR_SimplifyExpression.evalIntegral(
+      offset = IR_SimplifyExpression.evalIntegral(
         IR_Linearization.linearizeIndex(offsetIndex,
           IR_ExpressionIndex((0 until access.index.length).map(field.fieldLayout(_).total).toArray)))
     } catch {

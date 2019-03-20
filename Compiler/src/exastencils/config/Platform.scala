@@ -175,6 +175,7 @@ object Platform {
   var hw_64bit : Boolean = true
   // in B
   var hw_cacheLineSize : Int = 512
+  var hw_cacheSize : Int = 32 * 1000 * 1000
   var hw_gpu_name : String = "NVidia Quadro 4000"
   var hw_gpu_numDevices : Int = 2
   // in B/s
