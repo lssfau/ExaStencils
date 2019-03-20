@@ -79,7 +79,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
               upperBoundExcl
             case IR_LowerEqual(IR_VariableAccess(bName, IR_IntegerDatatype), upperBoundIncl) if itName == bName =>
               IR_Addition(upperBoundIncl, IR_IntegerConstant(1))
-            case _                                                                                              => throw new VectorizationException("no upper bound")
+            case _                                                                                              =>
+              throw new VectorizationException("no upper bound")
           }
 
         val incr : Long =

@@ -20,6 +20,12 @@ object L3_PrintKnowledgeDecl {
       out << "\n\n"
     }
 
+    out << "// field combinations\n"
+    L3_FieldCombinationCollection.objects.foreach { obj =>
+      obj.prettyprintDecl(out)
+      out << "\n\n"
+    }
+
     out << "// stencil declarations\n\n"
     L3_StencilCollection.objects.foreach { obj =>
       obj.prettyprintDecl(out)

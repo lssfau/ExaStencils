@@ -40,6 +40,8 @@ object L1_Lexer extends ExaLexer {
   // field => L1_FieldDecl
   reserved += ("Field")
 
+  reserved += "FieldCombination"
+
   // grid
   reserved += ("Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")
 

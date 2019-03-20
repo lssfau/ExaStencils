@@ -60,6 +60,7 @@ object L3_Parser extends ExaParser with PackratParsers {
       ||| domainDeclaration
       ||| fieldDeclaration
       ||| overrideFieldInformation
+      ||| fieldCombinationDeclaration
       ||| stencilDeclaration
       ||| stencilTemplateDeclaration
       ||| stencilFromDefault
@@ -445,6 +446,9 @@ object L3_Parser extends ExaParser with PackratParsers {
 
   lazy val fieldFromOther = locationize(("Field" ~> ident) ~ levelDecl.? ~ ("from" ~> genericAccess)
     ^^ { case id ~ levels ~ src => L3_FieldFromOther(id, levels, src) })
+
+  lazy val fieldCombinationDeclaration = locationize(("FieldCombination".? ~> ident) ~ levelDecl.? ~ (":" ~> stringLit) ~ ("=" ~> repsep(genericAccess, ","))
+    ^^ { case id ~ levels ~ combType ~ fields => L3_FieldCombinationDecl(id, levels, combType, fields) })
 
   // ######################################
   // ##### L3_FieldOverride

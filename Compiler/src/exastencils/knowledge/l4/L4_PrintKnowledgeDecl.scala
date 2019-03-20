@@ -27,6 +27,12 @@ object L4_PrintKnowledgeDecl {
       out << "\n\n"
     }
 
+    out << "// field combinations\n\n"
+    L4_FieldCombinationCollection.objects.foreach { obj =>
+      obj.prettyprintDecl(out)
+      out << "\n\n"
+    }
+
     out << "// external field declarations\n\n"
     L4_ExternalFieldCollection.objects.foreach { obj =>
       obj.prettyprintDecl(out)

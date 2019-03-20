@@ -42,6 +42,7 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
     L2_StencilFieldCollection
     L2_VirtualFieldCollection
     L2_EquationCollection
+    L2_FieldCombinationCollection
   }
 
   override def shutdown() : Unit = {

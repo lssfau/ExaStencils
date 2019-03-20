@@ -70,10 +70,10 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     Isl.ctx.optionsSetScheduleMaxCoefficient(Knowledge.poly_maxCoefficient)
 
     // preprocess external schedules
-    val extSchedules = mutable.Map[Int, isl.Map]()
+    val extSchedules = mutable.Map[Int, isl.UnionMap]()
     for (str <- Knowledge.poly_externalSchedules) {
       val Array(id, sched) = str.split('|')
-      extSchedules += ((id.toInt, isl.Map.readFromStr(Isl.ctx, sched)))
+      extSchedules += ((id.toInt, isl.UnionMap.readFromStr(Isl.ctx, sched)))
     }
 
     val explIDMap = mutable.Map[Int, Int]()
@@ -515,8 +515,12 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     scop.updateLoopVars()
   }
 
-  private def useExternalSchedule(scop : Scop, map : isl.Map) : Unit = {
+  private def useExternalSchedule(scop : Scop, umap : isl.UnionMap) : Unit = {
     if (Knowledge.poly_extSched_unrollTime) {
+      if (umap.nMap() > 1)
+        Logger.error("given schedule must be an isl.Map if Knowledge.poly_extSched_unrollTime is set")
+      var map : isl.Map = null
+      umap.foreachMap( m => map = m)
       scop.noParDims.clear()
       var schedule = isl.UnionMap.empty(isl.Space.mapFromSet(scop.domain.getSpace()))
       for ((stmt, i) <- scop.stmts.keySet.toArray.sorted.zipWithIndex) {
@@ -525,7 +529,7 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       }
       scop.schedule = Isl.simplify(schedule)
     } else
-      scop.schedule = Isl.simplify(map)
+      scop.schedule = Isl.simplify(umap)
     scop.noParDims.clear()
 
     val tilableDims : Int = Knowledge.poly_extSched_outerBandSize

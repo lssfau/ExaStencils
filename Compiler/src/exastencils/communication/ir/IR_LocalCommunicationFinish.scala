@@ -30,7 +30,10 @@ case class IR_LocalCommunicationFinish(
           ListBuffer[IR_Statement](
             IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(), IR_AddressOf(IR_IV_LocalCommDone(
               field.field,
-              DefaultNeighbors.getOpposingNeigh(neighbor._1).index,
+              if (Knowledge.comm_enableCommTransformations)
+                IR_IV_CommNeighNeighIdx(field.domainIndex, neighbor._1.index)
+              else
+                DefaultNeighbors.getOpposingNeigh(neighbor._1).index,
               IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor._1.index))))))),
       true)
   }

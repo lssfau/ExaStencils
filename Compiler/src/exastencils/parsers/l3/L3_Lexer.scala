@@ -46,6 +46,8 @@ object L3_Lexer extends ExaLexer {
   reserved += ("Field", "from", "L2", "override", "bc", "for", "with", "on", "times", "of", "boundary")
   reserved += ("Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")
 
+  reserved += "FieldCombination"
+
   // baseExt => L3_ApplicationHints
   reserved += ("ApplicationHint", "ApplicationHints", "L4Hint", "L4Hints")
 

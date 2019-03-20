@@ -20,7 +20,7 @@ case class L4_FieldCombination(
   }
 
   override def prettyprintDecl(out : PpStream) = {
-    out << "FieldCombination " << name << '@' << level << " : " << combinationType << " = " << fields.map(_.name).mkString(", ")
+    out << "FieldCombination " << name << '@' << level << " : \"" << combinationType << "\" = " << fields.map(_.name).mkString(", ")
   }
 
   override def progressImpl() = {

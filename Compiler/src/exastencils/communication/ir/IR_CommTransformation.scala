@@ -2,56 +2,66 @@ package exastencils.communication.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.communication.NeighborInfo
 import exastencils.config.Knowledge
-import exastencils.field.ir.IR_DirectFieldAccess
-import exastencils.field.ir.IR_FieldCollection
+import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 
-case class IR_CommTransformation(var dim: Int, var trafoId: Int){
+case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
   // 0 --> W
   // 1 --> E
   // 2 --> S
   // 3 --> N
 
-  def transformIndex(index: Array[IR_Expression], indexSize : Array[Long], indexBegin : Array[Long]) : Array[IR_Expression] = {
+  def switchUL(fieldAccess : IR_DirectFieldAccess, neigh : NeighborInfo) = {
+    def origField = fieldAccess.fieldSelection.field
 
-    def mirrorIndex(dim : Int): IR_Expression = {
-      indexSize(dim) - index(dim) + 2 * indexBegin(dim)
+    if (IR_FieldCombinationCollection.existsInCombination(origField, "Triangles")) {
+      (trafoId, neigh.index) match {
+        case (1, 2) | (1, 3) | (2, _) | (3, 0) | (3, 1) =>
+
+          val combinations = IR_FieldCombinationCollection.getByFieldInCombination(origField, "Triangles")
+          if (combinations.length > 1)
+            Logger.error(s"Found triangle field ${ origField.name } in more than one combination; unsupported")
+          if (combinations.head.fields.length != 2)
+            Logger.error(s"Found triangle combination with more than one field; unsupported")
+
+          val newField = combinations.head.fields.filterNot(_ == origField).head
+          fieldAccess.fieldSelection.field = newField
+
+        case _ =>
+      }
     }
 
-    var newIndex = new Array[IR_Expression](2)
-
-    newIndex(0) = trafoId match{
-      case 0 | 1 => index(0)
-      case 2 | 3 => mirrorIndex(0)
-    }
-    newIndex(1) = trafoId match{
-      case 0 | 3 => index(1)
-      case 1 | 2 => mirrorIndex(1)
-    }
-
-    newIndex
+    fieldAccess
   }
 
-  def switchUL(fieldName : String) = {
-    fieldName.dropRight(1) + (fieldName.last match {
-      case 'U' => 'L'
-      case 'L' => 'U'
-      case _ =>
-        fieldName.last
-    })
-  }
+  def applyRemoteTrafo(fieldAccess : IR_DirectFieldAccess, indexRange : IR_ExpressionIndexRange, neigh : NeighborInfo) = {
 
+    def transformIndex(index : Array[IR_Expression], indexSize : Array[Long], indexBegin : Array[Long]) : Array[IR_Expression] = {
 
-  def applyTrafo(fieldAccess: IR_DirectFieldAccess, thisIndexRange : IR_ExpressionIndexRange, neigh : NeighborInfo) = {
-    var indexSize = (thisIndexRange.end - thisIndexRange.begin).indices.map(IR_SimplifyExpression.evalIntegral).map(_ - 1)
-    var indexBegin = thisIndexRange.begin.indices.map(IR_SimplifyExpression.evalIntegral)
+      def mirrorIndex(dim : Int) : IR_Expression = indexSize(dim) - index(dim) + 2 * indexBegin(dim)
+
+      val newIndex = new Array[IR_Expression](2)
+
+      newIndex(0) = trafoId match {
+        case 0 | 1 => index(0)
+        case 2 | 3 => mirrorIndex(0)
+      }
+      newIndex(1) = trafoId match {
+        case 0 | 3 => index(1)
+        case 1 | 2 => mirrorIndex(1)
+      }
+
+      newIndex
+    }
+
+    val indexSize = (indexRange.end - indexRange.begin).indices.map(IR_SimplifyExpression.evalIntegral).map(_ - 1)
+    val indexBegin = indexRange.begin.indices.map(IR_SimplifyExpression.evalIntegral)
 
     val index = fieldAccess.index
 
@@ -61,33 +71,92 @@ case class IR_CommTransformation(var dim: Int, var trafoId: Int){
 
     val transformedFieldAccess = IR_DirectFieldAccess(fieldAccess.fieldSelection, trafoIndex)
 
+    switchUL(transformedFieldAccess, neigh)
+  }
+
+  def applyBufferTrafo(bufferAccess : IR_TempBufferAccess) = {
     trafoId match {
-        // TODO check that U/L-switch must be done in these cases
-      case 2 | 3 => {
-        val newName = switchUL(transformedFieldAccess.fieldSelection.field.name)
-        transformedFieldAccess.fieldSelection.field = IR_FieldCollection.getByIdentifier(newName, transformedFieldAccess.fieldSelection.field.level).get
-      }
-      case _ =>
+      case 1 | 3 =>
+        val strides = bufferAccess.strides
+        val trafoStrides = IR_ExpressionIndex(Array[IR_Expression](
+          strides(1),
+          strides(0)
+        ) ++ strides.drop(2))
+        val index = bufferAccess.index
+        val trafoIndex = IR_ExpressionIndex(Array[IR_Expression](
+          index(1),
+          index(0)
+        ) ++ index.drop(2))
+        IR_TempBufferAccess(bufferAccess.buffer, trafoIndex, trafoStrides)
+
+      case _ => bufferAccess
+    }
+  }
+
+  def applyLocalTrafo(fieldAccess : IR_DirectFieldAccess, neigh : NeighborInfo) = {
+    def fieldSize(i : Int) = fieldAccess.fieldSelection.fieldLayout.defTotal(i) - 1
+
+    val rot90mat = Array(Array(0, -1), Array(1, 0))
+
+    def mult(a : Array[Array[Int]], b : Array[Array[Int]]) = {
+      for (row <- a)
+        yield for (col <- b.transpose)
+          yield row zip col map Function.tupled(_ * _) reduceLeft (_ + _)
     }
 
-    transformedFieldAccess
+    var rotMat = Array(Array(1, 0), Array(0, 1))
+    for (_ <- 1 to trafoId)
+      rotMat = mult(rotMat, rot90mat)
+
+    // Compute translation of origin
+    val t = Array(0, 0)
+    trafoId match {
+      case 0 =>
+      case 1 =>
+        t(0) = fieldSize(0)
+      case 2 =>
+        t(0) = fieldSize(0)
+        t(1) = fieldSize(1)
+      case 3 =>
+        t(1) = fieldSize(1)
+    }
+
+    // Compute new index: R * i + t
+    val trafoIndices = Array(
+      rotMat(0)(0) * fieldAccess.index(0) + rotMat(0)(1) * fieldAccess.index(1) + t(0),
+      rotMat(1)(0) * fieldAccess.index(0) + rotMat(1)(1) * fieldAccess.index(1) + t(1)
+    ) ++ fieldAccess.index.drop(2)
+
+    val transformedFieldAccess = IR_DirectFieldAccess(fieldAccess.fieldSelection, IR_ExpressionIndex(trafoIndices))
+
+    switchUL(transformedFieldAccess, neigh)
   }
 }
 
-object IR_CommTransformationCollection{
+object IR_CommTransformationCollection {
   var trafos : ListBuffer[IR_CommTransformation] = ListBuffer[IR_CommTransformation]()
 
   def setup() = {
     trafos.clear()
 
-    if(Knowledge.dimensionality == 2){
+    if (Knowledge.dimensionality == 2) {
       // setup all trafos for 2D
-      for((_, i) <- IR_CommTrafoCollection.trafoArray.zipWithIndex)
+      for ((_, i) <- IR_CommTrafoIdCollection.trafoArray.zipWithIndex)
         trafos = trafos :+ IR_CommTransformation(Knowledge.dimensionality, i)
     }
-    else{
+    else {
       Logger.error("IR_CommTransformationCollection cannot deal with dimensionality " + Knowledge.dimensionality)
     }
   }
 
+}
+
+object IR_CommTrafoIdCollection {
+  // stores relation between own neighborIdx and neighborIdx of the neighbor
+  val trafoArray : Array[List[(Int, Int)]] = Array(
+    List((0, 1), (2, 3), (1, 0), (3, 2)), // 0
+    List((0, 3), (2, 0), (1, 2), (3, 1)), // 1
+    List((0, 0), (2, 2), (1, 1), (3, 3)), // 2
+    List((0, 2), (2, 1), (1, 3), (3, 0)) // 3
+  )
 }

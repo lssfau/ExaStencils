@@ -58,6 +58,7 @@ object L2_Parser extends ExaParser with PackratParsers {
       ||| inlineKnowledge
       ||| domainDeclaration
       ||| fieldDeclaration
+      ||| fieldCombinationDeclaration
       ||| stencilDeclaration
       ||| stencilTemplateDeclaration
       ||| globals
@@ -339,6 +340,9 @@ object L2_Parser extends ExaParser with PackratParsers {
     ^^ { case id ~ levels ~ datatype ~ localization ~ domain ~ numSlots ~ initial => L2_BaseFieldDecl(id, levels, datatype, localization, domain, numSlots, initial) })
   lazy val boundaryFieldDeclaration = locationize(("Field".? ~> ident) ~ levelDecl.? ~ ("on" ~> "boundary") ~ ("=" ~> fieldBoundary)
     ^^ { case id ~ levels ~ _ ~ bc => L2_BoundaryFieldDecl(id, levels, bc) })
+
+  lazy val fieldCombinationDeclaration = locationize(("FieldCombination".? ~> ident) ~ levelDecl.? ~ (":" ~> stringLit) ~ ("=" ~> repsep(genericAccess, ","))
+    ^^ { case id ~ levels ~ combType ~ fields => L2_FieldCombinationDecl(id, levels, combType, fields) })
 
   // #############################################################################
   // ################################# KNOWLEDGE #################################

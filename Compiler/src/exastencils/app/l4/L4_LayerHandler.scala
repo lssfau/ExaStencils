@@ -55,6 +55,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     L4_VirtualFieldCollection
     L4_ExternalFieldCollection
     L4_EquationCollection
+    L4_FieldCombinationCollection
   }
 
   override def shutdown() : Unit = {

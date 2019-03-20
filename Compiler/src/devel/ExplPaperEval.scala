@@ -6,12 +6,12 @@ import scala.io.Source
 import exastencils.polyhedron.Isl
 
 case class ExplCfg(idStr : String, bandsStr : String, scheduleStr : String, vectorStr : String,
-    carriedDepStr : String, vectableStr : String, var perf : Double) {
+    carriedDepStr : String, vectableStr : String, var perf : Double, var perfID : Int) {
   def key() : String = scheduleStr
 }
 
 object ExplCfg {
-  def apply(a : Array[String]) = new ExplCfg(a(0), a(1), a(2), a(3), a(4), a(5), 0.0)
+  def apply(a : Array[String]) = new ExplCfg(a(0), a(1), a(2), a(3), a(4), a(5), 0.0, -1)
 }
 
 object ExplPaperEval {
@@ -38,7 +38,7 @@ object ExplPaperEval {
       val old = cfgs.get(cfg.key)
       if (insertAll || old.isDefined) {
         val njuCfg = old.getOrElse((cfg, 42))._1
-        cfgs += ((cfg.key, (njuCfg, level)))
+        cfgs += ((njuCfg.key, (njuCfg, level)))
       } else
         i += 1
     }
@@ -114,9 +114,11 @@ object ExplPaperEval {
       val perf = perfEntries(0).toDouble
       val sched = cfgEntries.apply(2)
 
-      if (cfgs.contains(sched))
-        cfgs(sched)._1.perf = perf
-      else
+      if (cfgs.contains(sched)) {
+        val tup = cfgs(sched)._1
+        tup.perf = perf
+        tup.perfID = perfID
+      } else
         j += 1
     } catch {
       case _ : NumberFormatException =>
@@ -126,7 +128,7 @@ object ExplPaperEval {
       println("ERROR:  there are more performance values than configs?!")
     if (cfgLines.hasNext)
       println("ERROR:  there are more configs than performance values?!")
-    println("nr cfgs without runtime: " + i)
+    println("nr perf entries without runtime: " + i)
     println("perf for not available cfgs: " + j)
   }
 
@@ -140,20 +142,29 @@ object ExplPaperEval {
     return res
   }
 
-  private def writeEval(path : String, cfgs1 : mutable.Map[String, (ExplCfg, Int)], cfgs2 : mutable.Map[String, (ExplCfg, Int)]) : Unit = {
+  private def writeEval(path : String, cfgs1 : mutable.Map[String, (ExplCfg, Int)], cfgs2 : mutable.Map[String, (ExplCfg, Int)] = null) : Unit = {
     val out = new java.io.BufferedWriter(new java.io.FileWriter(new java.io.File(path)))
     var maxPerf : Double = -1.0
-    for ((((size1, maxPerf1, minPerf1), (size2, maxPerf2, minPerf2)), level) <- evaluate(cfgs1).zip(evaluate(cfgs2)).zipWithIndex) {
-      if (maxPerf < 0)
-        maxPerf = math.max(maxPerf1, maxPerf2)
-      val maxPerf1_r = math.round(maxPerf1 / maxPerf * 1000) / 10.0
-      val maxPerf2_r = math.round(maxPerf2 / maxPerf * 1000) / 10.0
-      val minPerf1_r = math.round(minPerf1 / maxPerf * 1000) / 10.0
-      val minPerf2_r = math.round(minPerf2 / maxPerf * 1000) / 10.0
-      if (level < 2)
-        out.write(level + ";" + size1 + ";" + minPerf1_r + ";" + maxPerf1_r + ";" + size2 + ";-;-\n")
-      else
-        out.write(level + ";" + size1 + ";" + minPerf1_r + ";" + maxPerf1_r + ";" + size2 + ";" + minPerf2_r + ";" + maxPerf2_r + "\n")
+    if (cfgs2 == null)
+      for (((size1, maxPerf1, minPerf1), level) <- evaluate(cfgs1).zipWithIndex) {
+        if (maxPerf < 0)
+          maxPerf = maxPerf1
+        val maxPerf1_r = math.round(maxPerf1 / maxPerf * 1000) / 10.0
+        val minPerf1_r = math.round(minPerf1 / maxPerf * 1000) / 10.0
+        out.write(level + ";" + size1 + ";" + minPerf1_r + ";" + maxPerf1_r + ";" + size1 + ";-;-\n")
+      }
+    else
+      for ((((size1, maxPerf1, minPerf1), (size2, maxPerf2, minPerf2)), level) <- evaluate(cfgs1).zip(evaluate(cfgs2)).zipWithIndex) {
+        if (maxPerf < 0)
+          maxPerf = math.max(maxPerf1, maxPerf2)
+        val maxPerf1_r = math.round(maxPerf1 / maxPerf * 1000) / 10.0
+        val maxPerf2_r = math.round(maxPerf2 / maxPerf * 1000) / 10.0
+        val minPerf1_r = math.round(minPerf1 / maxPerf * 1000) / 10.0
+        val minPerf2_r = math.round(minPerf2 / maxPerf * 1000) / 10.0
+        if (level < 2)
+          out.write(level + ";" + size1 + ";" + minPerf1_r + ";" + maxPerf1_r + ";" + size2 + ";-;-\n")
+        else
+          out.write(level + ";" + size1 + ";" + minPerf1_r + ";" + maxPerf1_r + ";" + size2 + ";" + minPerf2_r + ";" + maxPerf2_r + "\n")
     }
     out.flush()
     out.close()
@@ -178,7 +189,7 @@ object ExplPaperEval {
         }
       }
     }
-    println(s"max diff:  $maxDiff  for id ${max1.idStr}: ${max1.perf} - ${max2.perf};  fraction: ${math.round(maxDiff/max1.perf*100)} - ${math.round(maxDiff/max2.perf*100)}")
+    println(s"max diff:  $maxDiff  for id (${max1.perfID}, ${max2.perfID}): ${max1.perf} - ${max2.perf};  fraction: ${math.round(maxDiff/max1.perf*100)} - ${math.round(maxDiff/max2.perf*100)}")
     out.flush()
     out.close()
   }
@@ -219,7 +230,7 @@ object ExplPaperEval {
         max = cfg
         maxLevel = level
       }
-    println(s"best: ${max.perf} for ${max.idStr.toInt} up to level ${maxLevel}  (${max.scheduleStr})")
+    println(s"best: ${max.perf} for ${max.perfID} up to level ${maxLevel}  (${max.scheduleStr})")
   }
 
   private def findMaxPerLevel(cfgs : mutable.Map[String, (ExplCfg, Int)]) : Unit = {
@@ -230,75 +241,143 @@ object ExplPaperEval {
     println("best per level (note that these level tags are disjoint):")
     for (i <- 7 to 0 by -1)
       if (max(i) != null)
-        println(s"  Level $i:  ${max(i).perf} for ${max(i).idStr.toInt}")
+        println(s"  Level $i:  ${max(i).perf} for ${max(i).perfID}")
   }
 
-  def main(args : Array[String]) : Unit = {
-    val base_cfgs = "S:\\work\\diss-eval\\poly_expl"
-    val base_res = "C:\\temp\\test"
+  private def process_single(id : String, start : Int = 0) : Unit = {
+    val idShort = id.replace("jacobi_", "j").replace("rbgs_", "r").replace("_f0", "").replace("_f2", "")
+    val cfgs = new mutable.HashMap[String, (ExplCfg, Int)]()
+    val path = base_cfgs + s"\\${ id }\\o2_configs.?.txt"
+    val path_all = base_cfgs + s"\\${ id }\\o2_configs_f%d.?.txt"
+    val perf = base_cfgs + s"\\${ id }\\o6_results.csv"
+    val o_eval_path = base_res + s"\\eval_${ idShort }.csv"
+    val o_plot_dat = base_res + s"\\plot1_${ idShort }_f%d.csv"
+    val o_perf_ref = base_res + s"\\perf_ref_${ idShort }.txt"
 
-    val ids2D = List("jacobi_2D_cc1_f0", "jacobi_2D_cc2_f0", "jacobi_2D_ccd_f0", "jacobi_2D_vc1_f0", "rbgs_2D_cc1_f0_cs", "rbgs_2D_vc1_f0_cs")
-    val ids3D = ids2D.map(_.replace("2D", "3D"))
-    val ids = ids2D ++ ids3D
-    //val ids = list[string]()
-    for (id <- ids) {
-      val id2 = if (id.contains("2D")) id else id.replace("f0", "f2")
-      val idShort = id.replace("jacobi_", "j").replace("rbgs_", "r").replace("_f0", "").replace("_cs", "")
-      val cfgs_f0 = new mutable.HashMap[String, (ExplCfg, Int)]()
-      val cfgs_f2 = new mutable.HashMap[String, (ExplCfg, Int)]()
-      val path_f0 = base_cfgs + s"\\${ id }\\o2_configs.?.txt"
-      val path_f2 = base_cfgs + s"\\${ id2 }\\o2_configs.?.txt"
-      val path_all = base_cfgs + s"\\${ id2 }\\o2_configs_f%d.?.txt"
-      val perf_f0 = base_cfgs + s"\\${ id }\\o6_results.csv"
-      val perf_f2 = base_cfgs + s"\\${ id2 }\\o6_results.csv"
-      val o_cmp_path = base_res + s"\\perf_cmp_${ idShort }.csv"
-      val o_eval_path = base_res + s"\\eval_${ idShort }.csv"
-      val o_plot_dat_f0 = base_res + s"\\plot1_${ idShort }_f%d.csv"
-      val o_plot_dat_f2 = base_res + s"\\plot2_${ idShort }_f%d.csv"
-      val o_plot_dat_me = base_res + s"\\plotM_${ idShort }_f%d.csv"
-      val o_perf_ref = base_res + s"\\perf_ref_${ idShort }.txt"
-
-      println(id)
-      println()
-      println("full expl")
-      readExplCfgs(path_f0, cfgs_f0, 0)
-      println(cfgs_f0.size)
-      for (i <- 1 to 7) {
-        readExplCfgs(path_all.format(i), cfgs_f0, i)
-        println(cfgs_f0.size)
-      }
-      readPerfDirect(perf_f0, path_f0, cfgs_f0, o_perf_ref)
-      println()
-
-      println("filtered expl")
-      for (i <- 0 to 7) {
-        readExplCfgs(path_all.format(i), cfgs_f2, i)
-        println(cfgs_f2.size)
-      }
-      readPerfDirect(perf_f2, path_f2, cfgs_f2, null)
-
-      compare(o_cmp_path, cfgs_f0, cfgs_f2)
-      fixPerf(cfgs_f0, cfgs_f2)
-
-      writeEval(o_eval_path, cfgs_f0, cfgs_f2)
-      findMax(mergeCfgs(cfgs_f0, cfgs_f2))
-      println()
-
-      println("max per level for f0:")
-      findMaxPerLevel(cfgs_f0)
-      println()
-      println("max per level for f2 (and extended):")
-      findMaxPerLevel(cfgs_f2)
-      println()
-
-      writeCfgs(o_plot_dat_f0, cfgs_f0, 0)
-      writeCfgs(o_plot_dat_f2, cfgs_f2, 2)
-      writeCfgs(o_plot_dat_me, mergeCfgs(cfgs_f0, cfgs_f2), 0)
-      println()
-      println()
-      println()
+    println(id)
+    println()
+    println("full expl")
+//    readExplCfgs(path, cfgs, 0)
+//    println(cfgs.size)
+    for (i <- 0 to 7) {
+      readExplCfgs(path_all.format(i), cfgs, i)
+      println(cfgs.size)
     }
+    readPerfDirect(perf, path, cfgs, o_perf_ref)
+    println()
+
+    writeEval(o_eval_path, cfgs, null)
+    findMax(cfgs)
+    println()
+
+    println("max per level for f0:")
+    findMaxPerLevel(cfgs)
+    println()
+
+    writeCfgs(o_plot_dat, cfgs, start)
+    println()
+    println()
+    println()
+  }
+
+  private def process_f0_f2(id : String) : Unit = {
+    val id2 = id.replace("f0", "f2")
+    val idShort = id.replace("jacobi_", "j").replace("rbgs_", "r").replace("_f0", "")
+    val cfgs_f0 = new mutable.HashMap[String, (ExplCfg, Int)]()
+    val cfgs_f2 = new mutable.HashMap[String, (ExplCfg, Int)]()
+    val path_f0 = base_cfgs + s"\\${ id }\\o2_configs.?.txt"
+    val path_f2 = base_cfgs + s"\\${ id2 }\\o2_configs.?.txt"
+    val path_all = base_cfgs + s"\\${ id2 }\\o2_configs_f%d.?.txt"
+    val perf_f0 = base_cfgs + s"\\${ id }\\o6_results.csv"
+    val perf_f2 = base_cfgs + s"\\${ id2 }\\o6_results.csv"
+    val o_cmp_path = base_res + s"\\perf_cmp_${ idShort }.csv"
+    val o_eval_path = base_res + s"\\eval_${ idShort }.csv"
+    val o_plot_dat_f0 = base_res + s"\\plot1_${ idShort }_f%d.csv"
+    val o_plot_dat_f2 = base_res + s"\\plot2_${ idShort }_f%d.csv"
+    val o_plot_dat_me = base_res + s"\\plotM_${ idShort }_f%d.csv"
+    val o_perf_ref = base_res + s"\\perf_ref_${ idShort }.txt"
+
+    println(id)
+    println()
+    println("full expl")
+    readExplCfgs(path_f0, cfgs_f0, 0)
+    println(cfgs_f0.size)
+    for (i <- 1 to 7) {
+      readExplCfgs(path_all.format(i), cfgs_f0, i)
+      println(cfgs_f0.size)
+    }
+    readPerfDirect(perf_f0, path_f0, cfgs_f0, o_perf_ref)
+    println()
+
+    println("filtered expl")
+    for (i <- 0 to 7) {
+      readExplCfgs(path_all.format(i), cfgs_f2, i)
+      println(cfgs_f2.size)
+    }
+    readPerfDirect(perf_f2, path_f2, cfgs_f2, null)
+
+    compare(o_cmp_path, cfgs_f0, cfgs_f2)
+    fixPerf(cfgs_f0, cfgs_f2)
+
+    writeEval(o_eval_path, cfgs_f0, cfgs_f2)
+    findMax(mergeCfgs(cfgs_f0, cfgs_f2))
+    println()
+
+    println("max per level for f0:")
+    findMaxPerLevel(cfgs_f0)
+    println()
+    println("max per level for f2 (and extended):")
+    findMaxPerLevel(cfgs_f2)
+    println()
+
+    writeCfgs(o_plot_dat_f0, cfgs_f0, 0)
+    writeCfgs(o_plot_dat_f2, cfgs_f2, 2)
+    writeCfgs(o_plot_dat_me, mergeCfgs(cfgs_f0, cfgs_f2), 0)
+    println()
+    println()
+    println()
+  }
+
+  val base_cfgs = "S:\\work\\diss-eval\\poly_expl"
+  val base_res = "C:\\Users\\Stefan\\OneDrive\\Uni\\PolyExpl-Results-Diss"
+
+  def main(args : Array[String]) : Unit = {
+
+    val jBase = List("cc1", "cc2", "ccd", "vc1")
+    val rBase = List("cc1", "vc1")
+    ////// Chimaira
+    //// novec
+    // 2D
+//    for (b <- jBase)
+//      process_single("jacobi_2D_" + b + "_f0")
+//    for (b <- rBase) {
+//      process_single("rbgs_2D_" + b + "_f0")
+//      process_single("rbgs_2D_" + b + "_f0_cs")
+//    }
+//    // 3D
+//    for (b <- jBase)
+//      process_f0_f2("jacobi_3D_" + b + "_f0")
+//    for (b <- rBase) {
+//      process_f0_f2("rbgs_3D_" + b + "_f0")
+//      process_f0_f2("rbgs_3D_" + b + "_f0_cs")
+//    }
+//    //// vec
+//    for ((d, f) <- List(("2D", 0), ("3D", 2))) {
+//      for (b <- jBase)
+//        process_single("jacobi_" + d + "_" + b + "_f" + f + "_vec", f)
+//      for (b <- rBase)
+//        process_single("rbgs_" + d + "_" + b + "_f" + f + "_cs_vec", f)
+//    }
+//    ////// Pontipine
+//    for ((d, f) <- List(("2D", 0), ("3D", 2))) {
+//      for (b <- jBase)
+//        process_single("jacobi_" + d + "_" + b + "_f" + f + "_pp", f)
+//      for (b <- rBase)
+//        process_single("rbgs_" + d + "_" + b + "_f" + f + "_cs_pp", f)
+//    }
+
     import sys.process._
-    "wsl.exe /mnt/c/Temp/test/0_plotMake.sh".!
+    val shPath = base_res.replaceAll("\\\\", "/").replace("C:", "/mnt/c")
+    s"wsl.exe $shPath/0_plotMake.sh $shPath".!
   }
 }

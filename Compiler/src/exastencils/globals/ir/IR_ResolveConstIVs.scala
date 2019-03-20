@@ -15,7 +15,7 @@ object IR_ResolveConstIVs extends DefaultStrategy("Resolve constant internal var
   override def apply(applyAtNode : Option[Node]) = {
     this.transaction()
 
-    if (IR_DomainCollection.objects.size <= 1)
+    if (IR_DomainCollection.objects.size <= 1 && !Knowledge.domain_readFromFile)
       this.execute(new Transformation("Resolve IsValidForSubdomain", {
         case IR_Assignment(_ : IR_IV_IsValidForDomain, _, _) => IR_NullStatement
         case _ : IR_IV_IsValidForDomain                      => IR_BooleanConstant(true)

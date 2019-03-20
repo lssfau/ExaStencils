@@ -6,146 +6,129 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.DefaultNeighbors
-import exastencils.communication.ir.IR_CommTrafoCollection
+import exastencils.communication.NeighborInfo
+import exastencils.communication.ir.IR_CommTrafoIdCollection
 import exastencils.communication.ir.IR_Communicate
 import exastencils.communication.ir.IR_CommunicateTarget
+import exastencils.communication.ir.IR_IV_CommNeighNeighIdx
 import exastencils.communication.ir.IR_IV_CommunicationId
 import exastencils.communication.ir.IR_IV_CommTrafoId
+import exastencils.communication.ir.IR_IV_NeighFragId
 import exastencils.config.Knowledge
 import exastencils.config.Settings
-import exastencils.core.Duplicate
-import exastencils.deprecated.domain.ir.IR_ReadValueFrom
 import exastencils.deprecated.ir.IR_FieldSelection
+import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.field.ir.IR_Field
-import exastencils.field.ir.IR_FieldAccess
 import exastencils.globals.ir.IR_AllocateDataFunction
 import exastencils.grid.ir.IR_VF_NodePositionAsVec
-import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_BuildString
-
-case class IR_ReadStream(var stream : IR_Access, var toPrint : ListBuffer[IR_Access]) extends IR_Statement {
-  override def prettyprint(out : PpStream) = out << stream << " >> " <<< (toPrint, " >> ") << ';'
-}
+import exastencils.util.ir.IR_ReadStream
 
 case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
   override var name = "initDomain"
   override def prettyprint_decl() = prettyprint
 
+  def defIt = IR_LoopOverFragments.defIt
+
+  def loopOverNumFragments(body : ListBuffer[IR_Statement], n_fragments : IR_VariableAccess) = {
+    def fragmentIdx = IR_VariableAccess("fragmentIdx", IR_IntegerDatatype)
+
+    val domains = IR_DomainCollection.objects
+
+    // own loop to set isValidForDomain
+    IR_ForLoop(
+      IR_VariableDeclaration(fragmentIdx, 0),
+      IR_Lower(fragmentIdx, n_fragments),
+      IR_PreIncrement(fragmentIdx),
+      body
+    )
+  }
+
   def setIterationOffset() = {
     IR_Comment("Iteration offset not implemented")
   }
 
-  def connectLocalElement(localFragmentIdx : IR_Expression, neighFragmentIdx : IR_Expression, neighIdx : Int, domain : Int) = {
-    // localFragmentIdx = my index
-    // neighIdx = neigh.index
-    // neighFragmentIdx <-- from file
-    ListBuffer[IR_Statement](
-      IR_Assignment(IR_IV_NeighborIsValid(domain, neighIdx, Duplicate(localFragmentIdx)), true),
-      IR_Assignment(IR_IV_NeighborIsRemote(domain, neighIdx, Duplicate(localFragmentIdx)), false),
-      IR_Assignment(IR_IV_NeighborFragmentIdx(domain, neighIdx, Duplicate(localFragmentIdx)), neighFragmentIdx),
-      setIterationOffset())
-  }
-
-  // remoteRank = blockID
-  def connectRemoteElement(localFragmentIdx : IR_Expression, localNeighIdx : IR_Expression, remoteRank : IR_Expression, neighIdx : Int, domain : Int) = {
-    ListBuffer[IR_Statement](
-      IR_Assignment(IR_IV_NeighborIsValid(domain, neighIdx, Duplicate(localFragmentIdx)), true),
-      IR_Assignment(IR_IV_NeighborIsRemote(domain, neighIdx, Duplicate(localFragmentIdx)), true),
-      IR_Assignment(IR_IV_NeighborFragmentIdx(domain, neighIdx, Duplicate(localFragmentIdx)), localNeighIdx),
-      IR_Assignment(IR_IV_NeighborRemoteRank(domain, neighIdx, Duplicate(localFragmentIdx)), remoteRank),
-      setIterationOffset())
-  }
-
-  def connectFragmentFromFile(neighbor_blockID : IR_VariableAccess, neighbor_commID : IR_VariableAccess) = {
-    var body = new ListBuffer[IR_Statement]
-
-    val neighbors = DefaultNeighbors.neighbors
-    val domains = IR_DomainCollection.objects
-
-    for (d <- domains.indices) {
-      body += IR_Assignment(IR_IV_IsValidForDomain(d), IR_ReadValueFrom(IR_BooleanDatatype, "data"))
-    }
+  def connectFragmentFromFile(neighborBlockID : IR_VariableAccess, neighborCommID : IR_VariableAccess, neighIdx : IR_VariableAccess) = {
+    var stmts = new ListBuffer[IR_Statement]
 
     if (Knowledge.domain_canHaveLocalNeighs || Knowledge.domain_canHaveRemoteNeighs || Knowledge.domain_rect_hasPeriodicity) {
-      for (neigh <- neighbors) {
-        var statements = ListBuffer[IR_Statement]()
+      // compile connect calls
+      val neigh_commID = IR_ArrayAccess(neighborCommID, neighIdx)
+      val neigh_blockID = IR_ArrayAccess(neighborBlockID, neighIdx)
 
-        // compile connect calls
-        val neigh_commID = IR_ArrayAccess(neighbor_commID, neigh.index)
-        val neigh_blockID = IR_ArrayAccess(neighbor_blockID, neigh.index)
+      def localConnect(domainIdx : Int) = ListBuffer[IR_Statement](
+        IR_Assignment(IR_IV_NeighborIsValid(domainIdx, neighIdx, defIt), true),
+        IR_Assignment(IR_IV_NeighborIsRemote(domainIdx, neighIdx, defIt), false),
+        IR_Assignment(IR_IV_NeighborFragmentIdx(domainIdx, neighIdx, defIt), neigh_commID),
+        setIterationOffset())
 
-        def localConnect(domainIdx : Int) = connectLocalElement(IR_LoopOverFragments.defIt,
-          neigh_commID, neigh.index, domainIdx)
-        def remoteConnect(domainIdx : Int) = connectRemoteElement(IR_LoopOverFragments.defIt,
-          neigh_commID, neigh_blockID, neigh.index, domainIdx)
+      def remoteConnect(domainIdx : Int) = ListBuffer[IR_Statement](
+        IR_Assignment(IR_IV_NeighborIsValid(domainIdx, neighIdx, defIt), true),
+        IR_Assignment(IR_IV_NeighborIsRemote(domainIdx, neighIdx, defIt), true),
+        IR_Assignment(IR_IV_NeighborFragmentIdx(domainIdx, neighIdx, defIt), neigh_commID),
+        IR_Assignment(IR_IV_NeighborRemoteRank(domainIdx, neighIdx, defIt), neigh_blockID),
+        setIterationOffset())
 
-        for (d <- domains.indices) {
-          statements += IR_IfCondition(IR_EqEq(neigh_blockID, -1),
-            IR_Assignment(IR_IV_NeighborIsValid(d, neigh.index, Duplicate(IR_LoopOverFragments.defIt)), false),
-            IR_IfCondition(IR_EqEq(neigh_blockID, MPI_IV_MpiRank),
-              localConnect(d),
-              IR_IfCondition(IR_Neq(neigh_blockID, MPI_IV_MpiRank),
-              remoteConnect(d))
-            )
-          )
-
-        }
-
-        // wrap in scope due to local variable declarations
-        body += IR_Scope(statements)
-      }
+      IR_DomainCollection.objects.indices.foreach(d => stmts += IR_IfCondition(IR_EqEq(neigh_blockID, -1),
+        IR_Assignment(IR_IV_NeighborIsValid(d, neighIdx, defIt), false),
+        IR_IfCondition(IR_EqEq(neigh_blockID, MPI_IV_MpiRank),
+          localConnect(d),
+          IR_IfCondition(IR_Neq(neigh_blockID, MPI_IV_MpiRank),
+            remoteConnect(d))
+        )
+      ))
     }
 
-    body
+    stmts
   }
 
   def setupCommTransformation(neighbor_edge : IR_VariableAccess, domain : Int) = {
     var commStmts = new ListBuffer[IR_Statement]
-    // neighbor edge to IR_IV_commTrafoId
 
     def i = IR_VariableAccess("i", IR_IntegerDatatype)
-    def ne = IR_ArrayAccess(neighbor_edge, i)
 
-    def neighBoundaryId = IR_VariableAccess("neighBoundaryId", IR_IntegerDatatype)
-    commStmts += IR_VariableDeclaration(neighBoundaryId)
+    def neighborEdge = IR_ArrayAccess(neighbor_edge, i)
+
+    def neighBoundaryId = IR_IV_CommNeighNeighIdx(domain, i)
+
     commStmts += IR_Assignment(neighBoundaryId, IR_IntegerConstant(-1))
 
-    commStmts += IR_IfCondition(IR_EqEq(ne, IR_StringConstant("W")), IR_Assignment(neighBoundaryId, 0))
-    commStmts += IR_IfCondition(IR_EqEq(ne, IR_StringConstant("E")), IR_Assignment(neighBoundaryId, 1))
-    commStmts += IR_IfCondition(IR_EqEq(ne, IR_StringConstant("S")), IR_Assignment(neighBoundaryId, 2))
-    commStmts += IR_IfCondition(IR_EqEq(ne, IR_StringConstant("N")), IR_Assignment(neighBoundaryId, 3))
-    commStmts += IR_IfCondition(IR_EqEq(ne, IR_StringConstant("X")), IR_Assignment(IR_IV_CommTrafoId(domain, i), -1))
+    commStmts += IR_IfCondition(IR_EqEq(neighborEdge, IR_StringConstant("W")), IR_Assignment(neighBoundaryId, 0))
+    commStmts += IR_IfCondition(IR_EqEq(neighborEdge, IR_StringConstant("E")), IR_Assignment(neighBoundaryId, 1))
+    commStmts += IR_IfCondition(IR_EqEq(neighborEdge, IR_StringConstant("S")), IR_Assignment(neighBoundaryId, 2))
+    commStmts += IR_IfCondition(IR_EqEq(neighborEdge, IR_StringConstant("N")), IR_Assignment(neighBoundaryId, 3))
+    // neighbor does not exist
+    commStmts += IR_IfCondition(IR_EqEq(neighborEdge, IR_StringConstant("X")),
+      ListBuffer[IR_Statement](
+        IR_Assignment(IR_IV_CommTrafoId(domain, i), -1),
+        IR_Continue()
+      )
+    )
 
     def commCase(caseList : List[(Int, Int)], id : Int) = {
 
-      def andAndWrap(thisEdge : Int, neighEdge : Int) :IR_Expression = {
+      def andAndWrap(thisEdge : Int, neighEdge : Int) : IR_Expression = {
         IR_AndAnd(IR_EqEq(i, thisEdge), IR_EqEq(neighBoundaryId, neighEdge))
       }
 
       var and = new ListBuffer[IR_Expression]
-      for(c <- caseList){
+      for (c <- caseList) {
         and = and :+ andAndWrap(c._1, c._2)
       }
 
       IR_IfCondition(
         and.reduce(IR_OrOr),
         IR_Assignment(IR_IV_CommTrafoId(domain, i), id)
-        )
+      )
     }
 
-    IR_CommTrafoCollection.trafoArray.zipWithIndex.foreach{
-      case(x,i) => commStmts += commCase(x, i)
+    IR_CommTrafoIdCollection.trafoArray.zipWithIndex.foreach {
+      case (x, i) => commStmts += commCase(x, i)
     }
-    //IR_CommTrafoCollectionNew.trafoArray.zipWithIndex.foreach{
-    //  case(commScheme,id) => commStmts += IR_IfCondition(
-    //    IR_AndAnd(IR_EqEq(i, commScheme._1), IR_EqEq(neighBoundaryId, commScheme._2)),
-    //    IR_Assignment(IR_IV_CommTrafoId(domain, i), id)
-    //  )
-    //}
-
     // get comm_ids of neighbors
     ListBuffer[IR_Statement](IR_ForLoop(
       IR_VariableDeclaration(i, 0),
@@ -154,7 +137,118 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       commStmts
     ))
 
+  }
 
+  def adaptGhostLayers(field : IR_Field) : ListBuffer[IR_Statement] = {
+    var stmts = ListBuffer[IR_Statement]()
+
+    val domainIdx : IR_Expression = field.domain.index
+    val numDims = field.fieldLayout.numDimsGrid
+
+    def resolveIndex(indexId : String, dim : Int) = field.fieldLayout.idxById(indexId, dim)
+
+    def changePositionForward(neigh : NeighborInfo) = {
+      val dirId = if (neigh.dir(0) == 0) 1 else 0
+      val nonDirId = if (dirId == 0) 1 else 0
+
+      val begin = IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => resolveIndex("GLB", i)
+          case i if neigh.dir(i) < 0  => resolveIndex("GLB", i)
+          case i if neigh.dir(i) > 0  => resolveIndex("GRB", i)
+        })
+
+      val end = IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => resolveIndex("GRE", i) - 1
+          case i if neigh.dir(i) < 0  => resolveIndex("GLE", i)
+          case i if neigh.dir(i) > 0  => resolveIndex("GRE", i)
+        })
+
+      val iDir = IR_VariableAccess("iDir", IR_IntegerDatatype)
+
+      val accessIndex = IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => iDir
+          case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - 1
+          case i if neigh.dir(i) > 0  => resolveIndex("GRB", i)
+        })
+
+      val accessIndexIncr = IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => iDir + 1
+          case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - 1
+          case i if neigh.dir(i) > 0  => resolveIndex("GRB", i)
+        })
+
+      val decl = IR_VariableDeclaration(iDir, begin(nonDirId))
+      val cond = IR_Lower(iDir, end(nonDirId))
+      val incr = IR_PreIncrement(iDir)
+
+      val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field, field.level, 0), accessIndex)
+      val fieldAccessIncr = IR_DirectFieldAccess(IR_FieldSelection(field, field.level, 0), accessIndexIncr)
+
+      IR_ForLoop(decl, cond, incr, IR_Assignment(fieldAccess, fieldAccessIncr))
+    }
+
+    def changePositionBackward(neigh : NeighborInfo) = {
+      val dirId = if (neigh.dir(0) == 0) 1 else 0
+      val nonDirId = if (dirId == 0) 1 else 0
+
+      val begin = IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => resolveIndex("GLB", i)
+          case i if neigh.dir(i) < 0  => resolveIndex("GLB", i)
+          case i if neigh.dir(i) > 0  => resolveIndex("GRB", i)
+        })
+
+      val end = IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => resolveIndex("GRE", i) - 1
+          case i if neigh.dir(i) < 0  => resolveIndex("GLE", i)
+          case i if neigh.dir(i) > 0  => resolveIndex("GRE", i)
+        })
+
+      val iDir = IR_VariableAccess("iDir", IR_IntegerDatatype)
+
+      val accessIndex = IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => iDir
+          case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - 1
+          case i if neigh.dir(i) > 0  => resolveIndex("GRB", i)
+        })
+
+      val accessIndexDecr = IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => iDir - 1
+          case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - 1
+          case i if neigh.dir(i) > 0  => resolveIndex("GRB", i)
+        })
+
+      val decl = IR_VariableDeclaration(iDir, end(nonDirId))
+      val cond = IR_Greater(iDir, begin(nonDirId))
+      val decr = IR_PreDecrement(iDir)
+
+      val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field, field.level, 0), accessIndex)
+      val fieldAccessDecr = IR_DirectFieldAccess(IR_FieldSelection(field, field.level, 0), accessIndexDecr)
+
+      IR_ForLoop(decl, cond, decr, IR_Assignment(fieldAccess, fieldAccessDecr))
+    }
+
+    // adapt boundary points for case 1 | 3
+    def adapt(neigh : NeighborInfo) = {
+      IR_IfCondition(IR_OrOr(
+        IR_EqEq(IR_IV_CommTrafoId(field.domain.index, neigh.index), 1),
+        IR_EqEq(IR_IV_CommTrafoId(field.domain.index, neigh.index), 3)
+      ),
+        if (neigh.dir.sum > 0)
+          changePositionForward(neigh)
+        else
+          changePositionBackward(neigh)
+      )
+    }
+
+    DefaultNeighbors.neighbors map adapt
   }
 
   def fillBoundaryGhostLayers(field : IR_Field) = {
@@ -163,194 +257,158 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     def numDims = field.fieldLayout.numDimsGrid
 
     val baseIndex = IR_LoopOverDimensions.defIt(numDims)
-    baseIndex.indices ++= Array[IR_Expression](0, 0)
-    val neighbors = DefaultNeighbors.neighbors
 
-    // W
-    val w_start = IR_ExpressionIndex(Array.fill(numDims)(0))
-    val w_stop = IR_ExpressionIndex(Array.fill(numDims)(0))
-    w_start(0) = field.fieldLayout.idxById("GLB", 0)
-    w_stop(0) = field.fieldLayout.idxById("GLE", 0)
-    w_start(1) = field.fieldLayout.idxById("DLB", 1)
-    w_stop(1) = field.fieldLayout.idxById("DRE", 1)
+    def resolveIndex(indexId : String, dim : Int) = field.fieldLayout.idxById(indexId, dim)
 
-    val w_indexRange = IR_ExpressionIndexRange(IR_ExpressionIndex(Array.fill(numDims)(0)), w_stop - w_start)
-    IR_GeneralSimplify.doUntilDoneStandalone(w_indexRange)
+    def genIndexRangeBoundary(neigh : NeighborInfo) : IR_ExpressionIndexRange = {
+      IR_ExpressionIndexRange(
+        IR_ExpressionIndex(
+          (0 until numDims).toArray.map {
+            case i if neigh.dir(i) == 0 => resolveIndex("DLB", i)
+            case i if neigh.dir(i) < 0  => resolveIndex("GLB", i)
+            case i if neigh.dir(i) > 0  => resolveIndex("GRB", i)
+          }),
+        IR_ExpressionIndex(
+          (0 until numDims).toArray.map {
+            case i if neigh.dir(i) == 0 => resolveIndex("DRE", i)
+            case i if neigh.dir(i) < 0  => resolveIndex("GLE", i)
+            case i if neigh.dir(i) > 0  => resolveIndex("GRE", i)
+          }))
+    }
 
-    val w_boundaryIndex = IR_LoopOverDimensions.defIt(numDims)
-    w_boundaryIndex(0) = field.fieldLayout.idxById("GLB", 0)
-    val w_boundary = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), w_boundaryIndex)
+    def genIndexRangeFullBoundary(neigh : NeighborInfo) : IR_ExpressionIndexRange = {
+      IR_ExpressionIndexRange(
+        IR_ExpressionIndex(
+          (0 until numDims).toArray.map {
+            case i if neigh.dir(i) == 0 => resolveIndex("GLB", i)
+            case i if neigh.dir(i) < 0  => resolveIndex("GLB", i)
+            case i if neigh.dir(i) > 0  => resolveIndex("GRB", i)
+          }),
+        IR_ExpressionIndex(
+          (0 until numDims).toArray.map {
+            case i if neigh.dir(i) == 0 => resolveIndex("GRE", i)
+            case i if neigh.dir(i) < 0  => resolveIndex("GLE", i)
+            case i if neigh.dir(i) > 0  => resolveIndex("GRE", i)
+          }))
+    }
 
-    val w_interiorIndex = Duplicate(w_boundaryIndex)
-    w_interiorIndex(0) += 1 + baseIndex(0)
-    val w_interior = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), w_interiorIndex)
+    def genIndexBoundary(neigh : NeighborInfo) : IR_ExpressionIndex = {
+      IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => IR_LoopOverDimensions.defIt(numDims)(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("DLB", i)
+          case i if neigh.dir(i) > 0  => resolveIndex("DRE", i) - 1
+        })
+    }
 
-    val w_ghostIndex = Duplicate(w_boundaryIndex)
-    w_ghostIndex(0) -= 1 + baseIndex(0)
-    val w_ghost = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), w_ghostIndex)
+    def genIndexInterior(neigh : NeighborInfo) : IR_ExpressionIndex = {
+      IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => IR_LoopOverDimensions.defIt(numDims)(i)
+          case i if neigh.dir(i) < 0  => 2 * resolveIndex("DLB", i) - baseIndex(i)
+          case i if neigh.dir(i) > 0  => 2 * (resolveIndex("DRE", i) - 1) - baseIndex(i)
+        })
 
-    body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neighbors(0).index, IR_LoopOverFragments.defIt)), ListBuffer[IR_Statement](
-      IR_Comment("Loop for west ghost layers"),
-      IR_LoopOverDimensions(numDims, w_indexRange,
-        ListBuffer[IR_Statement](
-          IR_Assignment(Duplicate(w_ghost), 2 * Duplicate(w_boundary) - Duplicate(w_interior))
-        ), null, IR_ParallelizationInfo())
-    ))
+    }
 
-    // E
-    val e_start = IR_ExpressionIndex(Array.fill(numDims)(0))
-    val e_stop = IR_ExpressionIndex(Array.fill(numDims)(0))
-    e_start(0) = field.fieldLayout.idxById("GRB", 0)
-    e_stop(0) = field.fieldLayout.idxById("GRE", 0)
-    e_start(1) = field.fieldLayout.idxById("DLB", 1)
-    e_stop(1) = field.fieldLayout.idxById("DRE", 1)
+    def fieldSelection = IR_FieldSelection(field, field.level, 0)
 
-    val e_indexRange = IR_ExpressionIndexRange(IR_ExpressionIndex(Array.fill(numDims)(0)), e_stop - e_start)
-    IR_GeneralSimplify.doUntilDoneStandalone(e_indexRange)
+    for (neigh <- DefaultNeighbors.neighbors) {
+      val ghost = IR_DirectFieldAccess(fieldSelection, baseIndex)
+      val boundary = IR_DirectFieldAccess(fieldSelection, genIndexBoundary(neigh))
+      val interior = IR_DirectFieldAccess(fieldSelection, genIndexInterior(neigh))
 
-    val e_boundaryIndex = IR_LoopOverDimensions.defIt(numDims)
-    e_boundaryIndex(0) = field.fieldLayout.idxById("DRE", 0) - (w_stop(0) - w_start(0)) - 1
-    val e_boundary = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), e_boundaryIndex)
+      body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh.index)), ListBuffer[IR_Statement](
+        IR_LoopOverDimensions(numDims,
+          // TODO generalize this if-condition (only works for 2D so far)
+          if (neigh.index < 2)
+            genIndexRangeBoundary(neigh)
+          else
+            genIndexRangeFullBoundary(neigh),
+          ListBuffer[IR_Statement](
+            IR_Assignment(ghost, 2 * boundary - interior)
+          ), null, IR_ParallelizationInfo())
+      ))
+    }
 
-    val e_interiorIndex = Duplicate(e_boundaryIndex)
-    e_interiorIndex(0) -= 1 + baseIndex(0)
-    val e_interior = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), e_interiorIndex)
-
-    val e_ghostIndex = Duplicate(e_boundaryIndex)
-    e_ghostIndex(0) += 1 + baseIndex(0)
-    val e_ghost = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), e_ghostIndex)
-
-    body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neighbors(1).index, IR_LoopOverFragments.defIt)), ListBuffer[IR_Statement](
-      IR_Comment("Loop for east ghost layers"),
-      IR_LoopOverDimensions(numDims, e_indexRange,
-        ListBuffer[IR_Statement](
-          IR_Assignment(Duplicate(e_ghost), 2 * Duplicate(e_boundary) - Duplicate(e_interior))
-        ), null, IR_ParallelizationInfo())
-    ))
-
-    // S
-    val s_start = IR_ExpressionIndex(Array.fill(numDims)(0))
-    val s_stop = IR_ExpressionIndex(Array.fill(numDims)(0))
-    s_start(0) = field.fieldLayout.idxById("DLB", 0)
-    s_stop(0) = field.fieldLayout.idxById("DRE", 0)
-    s_start(1) = field.fieldLayout.idxById("GLB", 1)
-    s_stop(1) = field.fieldLayout.idxById("GLE", 1)
-
-    val s_indexRange = IR_ExpressionIndexRange(IR_ExpressionIndex(Array.fill(numDims)(0)), s_stop - s_start)
-    IR_GeneralSimplify.doUntilDoneStandalone(s_indexRange)
-
-    val s_boundaryIndex = IR_LoopOverDimensions.defIt(numDims)
-    s_boundaryIndex(1) = field.fieldLayout.idxById("GLB", 1)
-    val s_boundary = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), s_boundaryIndex)
-
-    val s_interiorIndex = Duplicate(s_boundaryIndex)
-    s_interiorIndex(1) += 1 + baseIndex(1)
-    val s_interior = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), s_interiorIndex)
-
-    val s_ghostIndex = Duplicate(s_boundaryIndex)
-    s_ghostIndex(1) -= 1 + baseIndex(1)
-    val s_ghost = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), s_ghostIndex)
-
-    body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neighbors(2).index, IR_LoopOverFragments.defIt)), ListBuffer[IR_Statement](
-      IR_Comment("Loop for south ghost layers"),
-      IR_LoopOverDimensions(numDims, s_indexRange,
-        ListBuffer[IR_Statement](
-          IR_Assignment(Duplicate(s_ghost), 2 * Duplicate(s_boundary) - Duplicate(s_interior))
-        ), null, IR_ParallelizationInfo())
-    ))
-
-    // N
-    val n_start = IR_ExpressionIndex(Array.fill(numDims)(0))
-    val n_stop = IR_ExpressionIndex(Array.fill(numDims)(0))
-    n_start(0) = field.fieldLayout.idxById("DLB", 0)
-    n_stop(0) = field.fieldLayout.idxById("DRE", 0)
-    n_start(1) = field.fieldLayout.idxById("GRB", 1)
-    n_stop(1) = field.fieldLayout.idxById("GRE", 1)
-
-    val n_indexRange = IR_ExpressionIndexRange(IR_ExpressionIndex(Array.fill(numDims)(0)), n_stop - n_start)
-    IR_GeneralSimplify.doUntilDoneStandalone(n_indexRange)
-
-    val n_boundaryIndex = IR_LoopOverDimensions.defIt(numDims)
-    n_boundaryIndex(1) = field.fieldLayout.idxById("DRE", 1) - (s_stop(1) - s_start(1)) - 1
-    val n_boundary = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), n_boundaryIndex)
-
-    val n_interiorIndex = Duplicate(n_boundaryIndex)
-    n_interiorIndex(1) -= 1 + baseIndex(1)
-    val n_interior = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), n_interiorIndex)
-
-    val n_ghostIndex = Duplicate(n_boundaryIndex)
-    n_ghostIndex(1) += 1 + baseIndex(1)
-    val n_ghost = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), n_ghostIndex)
-
-    body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neighbors(3).index, IR_LoopOverFragments.defIt)), ListBuffer[IR_Statement](
-      IR_Comment("Loop for north ghost layers"),
-      IR_LoopOverDimensions(numDims, n_indexRange,
-        ListBuffer[IR_Statement](
-          IR_Assignment(Duplicate(n_ghost), 2 * Duplicate(n_boundary) - Duplicate(n_interior))
-        ), null, IR_ParallelizationInfo())
-    ))
-
+    body
   }
 
-
-
-  // setupConnectivityFromFile
-  def setupConnectivityFromFile(read_line : IR_FunctionCall) = {
+  def setupConnectivityFromFile(read_line : IR_FunctionCall, n_fragments : IR_VariableAccess) = {
     var connStmts = new ListBuffer[IR_Statement]
 
-    def strBuf = IR_VariableAccess("strBuf", IR_SpecialDatatype("std::string"))
-    connStmts += IR_VariableDeclaration(strBuf)
-    def iss = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream"))
-    connStmts += IR_VariableDeclaration(iss)
+    val domains = IR_DomainCollection.objects
 
-    def fragment_id = IR_VariableAccess("fragment_id", IR_IntegerDatatype)
-    def neighbor_blockID = IR_VariableAccess("neighbor_blockID", IR_ArrayDatatype(IR_IntegerDatatype, 4))
-    def neighbor_commID = IR_VariableAccess("neighbor_commID", IR_ArrayDatatype(IR_IntegerDatatype, 4))
-    def neighbor_edge = IR_VariableAccess("neighbor_edge", IR_ArrayDatatype(IR_StringDatatype, 4))
-    connStmts += IR_VariableDeclaration(fragment_id)
-    connStmts += IR_VariableDeclaration(neighbor_blockID)
-    connStmts += IR_VariableDeclaration(neighbor_commID)
-    connStmts += IR_VariableDeclaration(neighbor_edge)
+    // isValidForDomain = true
+    connStmts ++= domains.indices.map(
+      d => IR_Assignment(IR_IV_IsValidForDomain(d), IR_BooleanConstant(true)
+      )).to[ListBuffer]
+
+    val strBuf = IR_VariableAccess("strBuf", IR_SpecialDatatype("std::string"))
+    val iss = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream"))
+
+    val neighborBlockID = IR_VariableAccess("neighborBlockID", IR_ArrayDatatype(IR_IntegerDatatype, 4))
+    val neighborCommID = IR_VariableAccess("neighborCommID", IR_ArrayDatatype(IR_IntegerDatatype, 4))
+    val neighborEdge = IR_VariableAccess("neighborEdge", IR_ArrayDatatype(IR_StringDatatype, 4))
+    val neighborFragID = IR_VariableAccess("neighborFragID", IR_ArrayDatatype(IR_IntegerDatatype, 4))
+
+    connStmts += IR_VariableDeclaration(neighborBlockID)
+    connStmts += IR_VariableDeclaration(neighborCommID)
+    connStmts += IR_VariableDeclaration(neighborEdge)
+    connStmts += IR_VariableDeclaration(neighborFragID)
 
     connStmts += read_line
-    connStmts += IR_ReadStream(iss, ListBuffer(strBuf, fragment_id))
+    connStmts += IR_ReadStream(iss, ListBuffer(strBuf, IR_IV_FragmentId(IR_LoopOverFragments.defIt)))
 
-    // Assign values to the "real" variables
-    connStmts += IR_Assignment(IR_IV_FragmentId(IR_LoopOverFragments.defIt), fragment_id)
     connStmts += IR_Assignment(IR_IV_CommunicationId(IR_LoopOverFragments.defIt), IR_LoopOverFragments.defIt)
 
     def i = IR_VariableAccess("i", IR_IntegerDatatype)
     // get comm_ids of neighbors
     connStmts += IR_ForLoop(
       IR_VariableDeclaration(i, 0),
-      IR_Lower(i, 4),
+      IR_Lower(i, DefaultNeighbors.neighbors.length),
       IR_PreIncrement(i),
       ListBuffer[IR_Statement](
         read_line,
-        IR_ReadStream(iss, ListBuffer(strBuf, IR_ArrayAccess(neighbor_blockID, i), IR_ArrayAccess(neighbor_commID, i), IR_ArrayAccess(neighbor_edge, i)))
-        // TODO create indexTransformation here (or set reference to indexTransofrmation. Not sure)
-      )
+        IR_ReadStream(iss, ListBuffer(
+          strBuf,
+          IR_ArrayAccess(neighborBlockID, i),
+          IR_ArrayAccess(neighborCommID, i),
+          IR_ArrayAccess(neighborEdge, i),
+          IR_ArrayAccess(neighborFragID, i)))
+      ) ++ connectFragmentFromFile(neighborBlockID, neighborCommID, i)
     )
 
-    connStmts ++= connectFragmentFromFile(neighbor_blockID, neighbor_commID)
+    for (d <- domains.indices) {
+      connStmts ++= setupCommTransformation(neighborEdge, d)
+      for (neigh <- DefaultNeighbors.neighbors) {
+        connStmts += IR_Assignment(IR_IV_NeighFragId(d, neigh.index), IR_ArrayAccess(neighborFragID, neigh.index))
+      }
+    }
 
-    val domains = IR_DomainCollection.objects
-    for(d <- domains.indices)
-      connStmts ++= setupCommTransformation(neighbor_edge, d)
-
-    IR_LoopOverFragments(connStmts, IR_ParallelizationInfo())
+    loopOverNumFragments(connStmts, n_fragments)
   }
 
   // ignoreConnectivity (for lower levels)
-  def ignoreConnectivity(read_line : IR_FunctionCall) = {
+  def ignoreConnectivity(read_line : IR_FunctionCall, nFragments : IR_VariableAccess) = {
     var connStmts = new ListBuffer[IR_Statement]
 
+    val domains = IR_DomainCollection.objects
+
+    connStmts ++= domains.indices.map(
+      d => IR_Assignment(IR_IV_IsValidForDomain(d), IR_BooleanConstant(true)
+      )).to[ListBuffer]
+
     def strBuf = IR_VariableAccess("strBuf", IR_SpecialDatatype("std::string"))
+
     connStmts += IR_VariableDeclaration(strBuf)
 
     def fragment_id = IR_VariableAccess("fragment_id", IR_IntegerDatatype)
+
     def neighbor_blockID = IR_VariableAccess("neighbor_blockID", IR_ArrayDatatype(IR_IntegerDatatype, 4))
+
     def neighbor_commID = IR_VariableAccess("neighbor_commID", IR_ArrayDatatype(IR_IntegerDatatype, 4))
+
     connStmts += IR_VariableDeclaration(fragment_id)
     connStmts += IR_VariableDeclaration(neighbor_blockID)
     connStmts += IR_VariableDeclaration(neighbor_commID)
@@ -370,154 +428,113 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       ListBuffer[IR_Statement](read_line)
     )
 
-    IR_LoopOverFragments(connStmts, IR_ParallelizationInfo())
+    loopOverNumFragments(connStmts, nFragments)
   }
 
-  // readNodes
-  def readNodes(field : IR_Field,read_line : IR_FunctionCall) = {
-    var body = new ListBuffer[IR_Statement]
+  def readNodes(field : IR_Field, read_line : IR_FunctionCall, iss : IR_VariableAccess, nFragments : IR_VariableAccess) = {
+    var nodeStmts = ListBuffer[IR_Statement]()
 
-    def numDims = field.fieldLayout.numDimsGrid
-    val start = IR_ExpressionIndex(Array.fill(numDims)(0))
-    val stop = IR_ExpressionIndex(Array.fill(numDims)(0))
-    val startOffset = IR_ExpressionIndex(Array.fill(numDims)(0))
-    val endOffset = IR_ExpressionIndex(Array.fill(numDims)(0))
-    val n_grid_nodes = IR_ConstIndex(Array.fill(numDims)(0))
-    for (dim <- 0 until numDims){
-      start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
-      stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
-      n_grid_nodes(dim) = field.fieldLayout.defIdxById("DRE", dim) -  field.fieldLayout.defIdxById("DLB", dim)
-    }
+    val numDims = field.fieldLayout.numDimsGrid
+    val dims = (0 until numDims).toArray
+    val start = IR_ExpressionIndex(dims.map(dim => { field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) } : IR_Expression))
+    val stop = IR_ExpressionIndex(dims.map(dim => { field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) } : IR_Expression))
 
-    var node_statements = ListBuffer[IR_Statement]()
+    val indexRange = IR_ExpressionIndexRange(start, stop)
 
-    // TODO make x/y-nodes a multi-array
-    def x_nodes = IR_VariableAccess("x_nodes", IR_ArrayDatatype(IR_FloatDatatype, n_grid_nodes(0) * n_grid_nodes(0)))
-    def y_nodes = IR_VariableAccess("y_nodes", IR_ArrayDatatype(IR_FloatDatatype, n_grid_nodes(1) * n_grid_nodes(1)))
-    node_statements += IR_VariableDeclaration(x_nodes)
-    node_statements += IR_VariableDeclaration(y_nodes)
+    def nodePositions(dim : Int) = IR_VF_NodePositionPerDim(field.level, field.domain, dim).resolve(IR_LoopOverDimensions.defIt(numDims))
 
-    def iss = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream"))
-    node_statements += IR_VariableDeclaration(iss)
-
-    def i = IR_VariableAccess("i", IR_IntegerDatatype)
-    node_statements += IR_ForLoop(
-      IR_VariableDeclaration(i, 0),
-      IR_Lower(i, n_grid_nodes(0) * n_grid_nodes(1)),
-      IR_PreIncrement(i),
+    nodeStmts += IR_LoopOverDimensions(numDims, indexRange,
       ListBuffer[IR_Statement](
         read_line,
-        IR_ReadStream(iss, ListBuffer(IR_ArrayAccess(x_nodes, i), IR_ArrayAccess(y_nodes, i)))
-      )
-    )
+        IR_ReadStream(iss, ListBuffer(nodePositions(0), nodePositions(1)))
+      ))
 
-    for (dim <- 0 until numDims) {
-      val indexRange = IR_ExpressionIndexRange(start, stop)
-      IR_GeneralSimplify.doUntilDoneStandalone(indexRange)
-
-      val baseIndex = IR_LoopOverDimensions.defIt(numDims)
-      baseIndex.indices ++= Array[IR_Expression](dim, 0)
-      val baseAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), baseIndex)
-
-      node_statements += IR_LoopOverDimensions(numDims, indexRange,
-        ListBuffer[IR_Statement](
-          IR_Assignment(Duplicate(baseAccess),
-            IR_ArrayAccess(if(dim == 0) x_nodes else y_nodes, baseIndex(0) + baseIndex(1) * n_grid_nodes(dim)))
-        ), null, IR_ParallelizationInfo())
-    }
-
-    body += IR_LoopOverFragments(node_statements, IR_ParallelizationInfo())
+    loopOverNumFragments(nodeStmts, nFragments)
 
   }
 
-  // readGrid(level)
   def readGrid(level : Int, setupConnectivityAndFields : Boolean) = {
     var body = ListBuffer[IR_Statement]()
 
     body += IR_Comment("Read file for level " + level)
-    if(setupConnectivityAndFields)
+    if (setupConnectivityAndFields)
       body += IR_Comment("Setup connectivity and fields")
 
     // open file
-    def file = IR_VariableAccess("file", IR_SpecialDatatype("std::ifstream"))
+    val file = IR_VariableAccess("file", IR_SpecialDatatype("std::ifstream"))
+    val fileName = IR_VariableAccess("fileName", IR_StringDatatype)
+
     body += IR_VariableDeclaration(file)
-    def fileName = IR_VariableAccess("fileName", IR_StringDatatype)
     body += IR_VariableDeclaration(fileName)
-    body += IR_BuildString(fileName , ListBuffer[IR_Expression](IR_StringConstant(Settings.experimental_domain_file + "/b"),
+    body += IR_BuildString(fileName, ListBuffer[IR_Expression](IR_StringConstant(Settings.experimental_domain_file + "/b"),
       MPI_IV_MpiRank,
       IR_StringConstant("_"),
       (1 << level) + 1,
       IR_StringConstant(".block")))
     body += IR_MemberFunctionCall(file, "open", fileName)
 
-
-    // FIXME bad assert, should cover all mpi-ranks and also give information about file (like its name)
     body += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileName), IR_FunctionCall("exit", 1))
 
+    val iss = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream"))
+    val strBuf = IR_VariableAccess("strBuf", IR_SpecialDatatype("std::string"))
+    val nFragments = IR_VariableAccess("nFragments", IR_IntegerDatatype)
 
-    def iss = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream"))
     body += IR_VariableDeclaration(iss)
-    def strBuf = IR_VariableAccess("strBuf", IR_SpecialDatatype("std::string"))
     body += IR_VariableDeclaration(strBuf)
+    body += IR_VariableDeclaration(nFragments)
 
-    //get_line(file)
     val read_line = IR_FunctionCall(IR_ReadLineFromFile.name, file, iss)
 
-    def n_fragments = IR_VariableAccess("n_fragments", IR_IntegerDatatype)
-    body += IR_VariableDeclaration(n_fragments)
-
-    body += read_line   // jump over block_id
+    body += read_line // jump over block_id
     body += read_line
-    body += IR_ReadStream(iss, ListBuffer(strBuf, n_fragments))
-    body += read_line   // jump over n_grid_nodes
-
+    body += IR_ReadStream(iss, ListBuffer(strBuf, nFragments))
+    body += read_line // jump over n_grid_nodes
 
     // read connectivity
     if (setupConnectivityAndFields) {
-      body += setupConnectivityFromFile(read_line)
+      body += setupConnectivityFromFile(read_line, nFragments)
       body += IR_FunctionCall(IR_AllocateDataFunction.fctName)
       body += IR_FunctionCall("initFieldsWithZero")
     }
     else {
-      body += ignoreConnectivity(read_line)
+      body += ignoreConnectivity(read_line, nFragments)
     }
 
     val field = IR_VF_NodePositionAsVec.find(level).associatedField
 
     // read grid nodes
-    body ++= readNodes(field, read_line)
-
+    body += readNodes(field, read_line, iss, nFragments)
 
     body += IR_MemberFunctionCall(file, "close")
 
     // communicate (updated interior ghost layers)
     body += IR_Communicate(IR_FieldSelection(field, field.level, 0), "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None)
-    // deal with ghost layers
-    body ++= fillBoundaryGhostLayers(field)
+    // deal with ghost layers on boundary
+    body += loopOverNumFragments(fillBoundaryGhostLayers(field), nFragments)
+    // adapt ghost layers to match upper and lower triangles of neighbors
+    body += IR_Comment("Adapt ghost layers by repositioning knots")
+    body += loopOverNumFragments(adaptGhostLayers(field), nFragments)
 
     IR_Scope(body)
   }
 
-
-
-
-
   override def generateFct() = {
     var body = ListBuffer[IR_Statement]()
 
-    body += IR_Assert(IR_EqEq(s"mpiSize", Knowledge.domain_numBlocks),
-      ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.mpi_numThreads),
-      IR_FunctionCall("exit", 1))
+    if (Knowledge.mpi_enabled)
+      body += IR_Assert(IR_EqEq(s"mpiSize", Knowledge.domain_numBlocks),
+        ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.mpi_numThreads),
+        IR_FunctionCall("exit", 1))
 
     body += readGrid(Knowledge.maxLevel, true)
 
-    if(Knowledge.experimental_domain_readAllLevelsFromFile){
+    if (Knowledge.experimental_domain_readAllLevelsFromFile) {
       var level = 0
-      for(level <- Knowledge.maxLevel - 1 to Knowledge.minLevel by -1){
+      for (level <- Knowledge.maxLevel - 1 to Knowledge.minLevel by -1) {
         body += readGrid(level, false)
       }
     }
-    else{
+    else {
       // TODO Restriction from Random Points
       // TODO ........
       ////////////////////////////////

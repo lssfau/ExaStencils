@@ -97,6 +97,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
   }
 
   def expandSpecial : Output[NodeList] = {
+    // unroll this loop and update the loop boundaries (saving communication requires a local copmutation of some ghost layers)
     val res = new ListBuffer[IR_Statement]()
     val fieldOffset = new HashMap[FieldKey, Int]()
     val fields = new HashMap[FieldKey, IR_Field]()
@@ -109,20 +110,28 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
       })
       override def applyStandalone(node : Node) : Unit = if (iterator.isDefined) super.applyStandalone(node)
     }
-    for (i <- 1 to number) {
-      replIt.itVal = i - 1
+    // determine the inital expand value (it must be decreased for every IR_LoopOverDimensions node and it must reach 0 eventually)
+    var expand : Int = -1 + number * body.view.flatMap({
+        case IR_IfCondition(_, trueBody : ListBuffer[IR_Statement], ListBuffer()) => trueBody
+        case x                                                                    => List(x)
+      }).count({
+        case _ : IR_LoopOverDimensions => true
+        case _                         => false
+      })
+    for (iteration <- 0 until number) {
+      replIt.itVal = iteration
       for (stmt <- body)
         stmt match {
-          case IR_AdvanceSlot(IR_IV_ActiveSlot(field, fragment)) =>
+          case IR_AdvanceSlot(IR_IV_ActiveSlot(field, fragment), step) =>
             val fKey = FieldKey(field)
-            fieldOffset(fKey) = fieldOffset.getOrElse(fKey, 0) + 1
+            fieldOffset(fKey) = fieldOffset.getOrElse(fKey, 0) + step
             fields(fKey) = field
 
           case cStmt @ IR_IfCondition(cond, trueBody : ListBuffer[IR_Statement], ListBuffer()) =>
             val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[IR_Comment])
             bodyWithoutComments match {
               case ListBuffer(l : IR_LoopOverDimensions) =>
-                val nju = processLoopOverDimensions(l, number - i, fieldOffset)
+                val nju = processLoopOverDimensions(l, expand, fieldOffset)
                 if (condStmt == null || cond != condStmt.condition) {
                   condStmt = Duplicate(cStmt)
                   condStmt.trueBody.clear()
@@ -131,20 +140,22 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
                 }
                 replIt.applyStandalone(nju)
                 condStmt.trueBody += nju
+                expand -= 1
               case _                                     =>
                 Logger.error("IR_ContractingLoop cannot be expanded: body contains an IR_IfCondition with unexpected statements")
             }
 
           case l : IR_LoopOverDimensions =>
-            val nju = processLoopOverDimensions(l, number - i, fieldOffset)
+            val nju = processLoopOverDimensions(l, expand, fieldOffset)
             replIt.applyStandalone(nju)
             res += nju
+            expand -= 1
         }
     }
 
     for ((fKey, offset) <- fieldOffset) {
       val field = fields(fKey)
-      res += IR_Assignment(IR_IV_ActiveSlot(field), (IR_IV_ActiveSlot(field) + offset) Mod field.numSlots)
+      res += IR_AdvanceSlot(IR_IV_ActiveSlot(field), offset)
     }
 
     res
