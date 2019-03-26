@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.boundary.ir.IR_IV_BoundaryConditionId
 import exastencils.communication.DefaultNeighbors
 import exastencils.communication.NeighborInfo
 import exastencils.communication.ir.IR_CommTrafoIdCollection
@@ -382,7 +383,17 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     for (d <- domains.indices) {
       connStmts ++= setupCommTransformation(neighborEdge, d)
       for (neigh <- DefaultNeighbors.neighbors) {
-        connStmts += IR_Assignment(IR_IV_NeighFragId(d, neigh.index), IR_ArrayAccess(neighborFragID, neigh.index))
+        connStmts += IR_IfCondition(IR_EqEq(IR_ArrayAccess(neighborBlockID, neigh.index), IR_IntegerConstant(-1)),
+          // if
+          ListBuffer[IR_Statement](
+            IR_Assignment(IR_IV_BoundaryConditionId(d, neigh.index), IR_ArrayAccess(neighborFragID, neigh.index)),
+            IR_Assignment(IR_IV_NeighFragId(d, neigh.index), IR_IntegerConstant(-1))),
+          // else
+          ListBuffer[IR_Statement](
+            IR_Assignment(IR_IV_NeighFragId(d, neigh.index), IR_ArrayAccess(neighborFragID, neigh.index)),
+            IR_Assignment(IR_IV_BoundaryConditionId(d, neigh.index), IR_IntegerConstant(-1)))
+        )
+        //connStmts += IR_Assignment(IR_IV_NeighFragId(d, neigh.index), IR_ArrayAccess(neighborFragID, neigh.index))
       }
     }
 
