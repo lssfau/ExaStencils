@@ -6,7 +6,7 @@ Chimaira (Cluster)
       10 Kerne
       20 Threads
       3,0 GHz Basis
-      3,3 GHz All-Cores Turbo
+      3,3 GHz All-Cores Turbo   (https://www.intel.com/content/dam/www/public/us/en/documents/specification-updates/xeon-e5-v2-spec-update.pdf)
       3,6 GHz Single-Core Turbo
       25 MB L3-Cache
       AVX
