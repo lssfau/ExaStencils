@@ -474,6 +474,7 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       proximity = proximity.gistDomain(domain)
     }
 
+    // simple heuristics that leads to a better schedule for non-dense Jacobi smoothers
     if (Knowledge.poly_filterDeps)
       proximity = Isl.simplify(proximity.lexmin())
 
