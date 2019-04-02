@@ -12,8 +12,7 @@ import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.globals.ir._
 import exastencils.grid.ir._
-import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
-import exastencils.hack.ir.HACK_IR_SetSpecialFunctionTypes
+import exastencils.hack.ir._
 import exastencils.interfacing.ir._
 import exastencils.knowledge.ir._
 import exastencils.layoutTransformation.ir.IR_LayoutTansformation
@@ -71,7 +70,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_ExternalFieldCollection.generateCopyFunction().foreach(IR_UserFunctions.get += _)
 
     // setup transformations for communication
-    if(Knowledge.comm_enableCommTransformations)
+    if (Knowledge.comm_enableCommTransformations)
       IR_CommTransformationCollection.setup()
 
     // add remaining nodes
@@ -159,6 +158,8 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_ResolveIntegrateOnGrid.apply()
     IR_ResolveEvaluateOnGrid.apply()
     IR_ResolveVirtualFieldAccesses.apply()
+    IR_ApplyOffsetToFieldAccess.apply()
+    IR_ApplyOffsetToStencilFieldAccess.apply()
 
     IR_ResolveLoopOverPointsInOneFragment.apply()
 

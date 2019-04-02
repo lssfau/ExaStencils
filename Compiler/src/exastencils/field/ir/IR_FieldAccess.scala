@@ -93,7 +93,13 @@ case class IR_FieldAccess(
   }
 
   def expandSpecial = {
-    if (offset.isDefined) Logger.warn(s"IR_FieldAccess with unresolved offset ${ offset.get.prettyprint() } found")
+    if (offset.isDefined) {
+      Logger.warn(s"IR_FieldAccess with unresolved offset ${ offset.get.prettyprint() } found")
+      for (i <- 0 until offset.get.size)
+        index(i) += offset.get(i)
+      offset = None
+    }
+
     IR_DirectFieldAccess(fieldSelection, index + fieldSelection.referenceOffset)
   }
 
