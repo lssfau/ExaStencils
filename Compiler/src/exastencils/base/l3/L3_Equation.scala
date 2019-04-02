@@ -45,7 +45,7 @@ case class L3_Equation(var lhs : L3_Expression, var rhs : L3_Expression) extends
           process(sub.left, origFromLhs)
           process(sub.right, !origFromLhs)
 
-        case _ : L3_Multiplication | _ : L3_Access => insertExpr(e, origFromLhs)
+        case _ : L3_Multiplication | _ : L3_Access | _ : L3_ConstantExpression => insertExpr(e, origFromLhs)
 
         case o =>
           Logger.warn(s"Found node with unsupported type when processing equation. The node is $o")
