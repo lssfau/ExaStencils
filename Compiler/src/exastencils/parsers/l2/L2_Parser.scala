@@ -329,7 +329,7 @@ object L2_Parser extends ExaParser with PackratParsers {
   // ##### l2_FieldDeclarations
   // ######################################
 
-  lazy val fieldDeclaration = baseFieldDeclaration ||| boundaryFieldDeclaration
+  lazy val fieldDeclaration = baseFieldDeclaration ||| boundaryFieldDeclaration ||| fieldFromOther
 
   lazy val localization = ("Node" ||| "node" ||| "Cell" ||| "cell"
     ||| "Face_x" ||| "face_x" ||| "Face_y" ||| "face_y" ||| "Face_z" ||| "face_z"
@@ -340,6 +340,9 @@ object L2_Parser extends ExaParser with PackratParsers {
     ^^ { case id ~ levels ~ datatype ~ localization ~ domain ~ numSlots ~ initial => L2_BaseFieldDecl(id, levels, datatype, localization, domain, numSlots, initial) })
   lazy val boundaryFieldDeclaration = locationize(("Field".? ~> ident) ~ levelDecl.? ~ ("on" ~> "boundary") ~ ("=" ~> fieldBoundary)
     ^^ { case id ~ levels ~ _ ~ bc => L2_BoundaryFieldDecl(id, levels, bc) })
+
+  lazy val fieldFromOther = locationize(("Field" ~> ident) ~ levelDecl.? ~ ("from" ~> genericAccess)
+    ^^ { case id ~ levels ~ src => L2_FieldFromOther(id, levels, src) })
 
   lazy val fieldCombinationDeclaration = locationize(("FieldCombination".? ~> ident) ~ levelDecl.? ~ (":" ~> stringLit) ~ ("=" ~> repsep(genericAccess, ","))
     ^^ { case id ~ levels ~ combType ~ fields => L2_FieldCombinationDecl(id, levels, combType, fields) })
