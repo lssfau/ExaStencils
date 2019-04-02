@@ -9,6 +9,7 @@ object L2_OffsetAlias {
     val offset = L2_ConstIndex(Array.fill(numDims)(0))
 
     dir match {
+      case "center" =>
       case "east"   => offset(0) = 1
       case "west"   => offset(0) = -1
       case "north"  => offset(1) = 1

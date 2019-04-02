@@ -95,5 +95,5 @@ class L4_Lexer extends ExaLexer {
   reserved += ("Equation")
 
   // util => L4_OffsetAlias
-  reserved += ("east", "west", "north", "south", "top", "bottom")
+  reserved += ("center", "east", "west", "north", "south", "top", "bottom")
 }

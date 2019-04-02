@@ -182,7 +182,7 @@ object L2_Parser extends ExaParser with PackratParsers {
   lazy val expressionIndex = locationize("[" ~> repsep(binaryexpression, ",") <~ "]" ^^ (l => L2_ExpressionIndex(l.toArray)))
   lazy val constIndex = (
     locationize("[" ~> repsep(integerLit, ",") <~ "]" ^^ (l => L2_ConstIndex(l.toArray)))
-      ||| ("east" ||| "west" ||| "north" ||| "south" ||| "top" ||| "bottom") ^^ (s => L2_OffsetAlias.toConstIndex(s)))
+      ||| ("center" ||| "east" ||| "west" ||| "north" ||| "south" ||| "top" ||| "bottom") ^^ (s => L2_OffsetAlias.toConstIndex(s)))
 
   // ######################################
   // ##### L2_LevelSpecification

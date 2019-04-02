@@ -70,7 +70,7 @@ object L2_Lexer extends ExaLexer {
   reserved += ("generate", "solver", "for", "in")
 
   // util => L2_OffsetAlias
-  reserved += ("east", "west", "north", "south", "top", "bottom")
+  reserved += ("center", "east", "west", "north", "south", "top", "bottom")
 
   /// TO BE INTEGRATED
   reserved += ("operators", "equation", "store", "is")

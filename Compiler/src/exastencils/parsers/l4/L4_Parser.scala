@@ -463,7 +463,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val expressionIndex = locationize("[" ~> repsep(binaryexpression, ",") <~ "]" ^^ (l => L4_ExpressionIndex(l.toArray)))
   lazy val constIndex = (
     locationize("[" ~> repsep(integerLit, ",") <~ "]" ^^ (l => L4_ConstIndex(l.toArray)))
-      ||| ("east" ||| "west" ||| "north" ||| "south" ||| "top" ||| "bottom") ^^ (s => L4_OffsetAlias.toConstIndex(s)))
+      ||| ("center" ||| "east" ||| "west" ||| "north" ||| "south" ||| "top" ||| "bottom") ^^ (s => L4_OffsetAlias.toConstIndex(s)))
 
   // #############################################################################
   // ################################## BASE_EXT #################################
