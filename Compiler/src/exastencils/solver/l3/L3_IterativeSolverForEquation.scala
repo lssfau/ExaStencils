@@ -71,5 +71,6 @@ object L3_IterativeSolverForEquation {
 }
 
 trait L3_IterativeSolverForEquation {
+  val logCharacteristics = false
   def generateFor(entries : ListBuffer[L3_SolverForEqEntry], level : Int) : ListBuffer[L3_Statement]
 }

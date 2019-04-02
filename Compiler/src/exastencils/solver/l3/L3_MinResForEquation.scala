@@ -223,6 +223,8 @@ object L3_MinResForEquation extends L3_IterativeSolverForEquation {
       returnStmts += L3_FunctionCall(L3_PlainInternalFunctionReference("print", L3_UnitDatatype), ListBuffer[L3_Expression](
         L3_StringConstant("MinRes took"), curStep, L3_StringConstant("steps to reduce residual from"), initRes, L3_StringConstant("to"), curRes))
     }
+    if (logCharacteristics)
+      returnStmts += L3_FunctionCall(L3_PlainInternalFunctionReference("logCharacteristics", L3_UnitDatatype), L3_StringConstant("cgs_num_it"), curStep)
     returnStmts += L3_Return(None)
 
     loopStmts += L3_IfCondition((L3_FunctionCall(L3_MathFunctionReference.fabs, curRes) <= Knowledge.solver_cgs_targetResReduction * initRes)
@@ -233,6 +235,8 @@ object L3_MinResForEquation extends L3_IterativeSolverForEquation {
 
     stmts += L3_FunctionCall(L3_PlainInternalFunctionReference("print", L3_UnitDatatype), ListBuffer[L3_Expression](
       L3_StringConstant("Maximum number of cgs iterations ("), Knowledge.solver_cgs_maxNumIts, L3_StringConstant(") was exceeded")))
+    if (logCharacteristics)
+      stmts += L3_FunctionCall(L3_PlainInternalFunctionReference("logCharacteristics", L3_UnitDatatype), L3_StringConstant("cgs_num_it"), curStep)
 
     stmts
   }
