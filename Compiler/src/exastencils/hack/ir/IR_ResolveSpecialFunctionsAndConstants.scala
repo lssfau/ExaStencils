@@ -283,6 +283,9 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
 
         //stmts += IR_FunctionCall(IR_UserFunctionReference("cimg_library::CImg< double > imageIn")
         stmts += HACK_IR_Native("cimg_library::CImg< double > imageIn ( \"" + filename + "\" )")
+// flip image for correct representation
+        stmts += IR_MemberFunctionCall("imageIn", "mirror", HACK_IR_Native("'y'"))
+
         stmts += IR_LoopOverPoints(field.fieldSelection.field,
           IR_Assignment(field, HACK_IR_Native("*imageIn.data(i0,i1)")))
 
@@ -305,6 +308,10 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         stmts += HACK_IR_Native("cimg_library::CImg< double > imageOut ( " + numPoints.mkString(", ") + " )")
         stmts += IR_LoopOverPoints(field.fieldSelection.field,
           IR_Assignment(HACK_IR_Native("*imageOut.data(i0,i1)"), field))
+
+// flip image for correct representation
+        stmts += IR_MemberFunctionCall("imageOut", "mirror", HACK_IR_Native("'y'"))
+
         filename match {
           case va : IR_VariableAccess => stmts += IR_MemberFunctionCall("imageOut", "save", IR_MemberFunctionCall(va, "c_str"))
           case other                  => stmts += IR_MemberFunctionCall("imageOut", "save", other)
@@ -336,6 +343,9 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
           IR_Assignment(HACK_IR_Native("*imageOut.data(i0,i1,0,0)"), 360.0 * field))
 
         stmts += IR_MemberFunctionCall("imageOut", "HSVtoRGB")
+// flip image for correct representation
+        stmts += IR_MemberFunctionCall("imageOut", "mirror", HACK_IR_Native("'y'"))
+
         filename match {
           case va : IR_VariableAccess => stmts += IR_MemberFunctionCall("imageOut", "save", IR_MemberFunctionCall(va, "c_str"))
           case other                  => stmts += IR_MemberFunctionCall("imageOut", "save", other)
@@ -365,7 +375,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
           stmts += IR_LoopOverPoints(fields(i).fieldSelection.field,
             IR_Assignment(HACK_IR_Native("*" + tmpImgs(i) + ".data(i0,i1)"), fields(i)))
 
-          // hack: flip image for correct representation
+          // flip image for correct representation
           stmts += IR_MemberFunctionCall(tmpImgs(i), "mirror", HACK_IR_Native("'y'"))
 
           val dispName = fields(i).fieldSelection.field.name + "@" + fields(i).fieldSelection.field.level
@@ -402,7 +412,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
             IR_Assignment(HACK_IR_Native("*" + tmpImgs(i) + ".data(i0,i1,0,0)"), 360.0 * fields(i)))
 
           stmts += IR_MemberFunctionCall(tmpImgs(i), "HSVtoRGB")
-          // hack: flip image for correct representation
+          // flip image for correct representation
           stmts += IR_MemberFunctionCall(tmpImgs(i), "mirror", HACK_IR_Native("'y'"))
 
           val dispName = fields(i).fieldSelection.field.name + "@" + fields(i).fieldSelection.field.level
@@ -440,8 +450,11 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
             IR_Assignment(HACK_IR_Native("*" + tmpImgs(i) + ".data(i0,i1,0,0)"), 360.0 * fields(i)))
 
           stmts += IR_MemberFunctionCall(tmpImgs(i), "HSVtoRGB")
-          // hack: flip image for correct representation
+          // flip image for correct representation
           stmts += IR_MemberFunctionCall(tmpImgs(i), "mirror", HACK_IR_Native("'y'"))
+
+          val scaledPoints = numPoints(i).take(2).map(i => { var ii = i; while (ii < 1000) { ii *= 2 }; ii : IR_Expression }).to[ListBuffer]
+          stmts += IR_MemberFunctionCall(tmpImgs(i), "resize", scaledPoints)
 
           val dispName = fields(i).fieldSelection.field.name + "@" + fields(i).fieldSelection.field.level
           stmts += HACK_IR_Native("static cimg_library::CImgDisplay " + displays(i) + "(" + tmpImgs(i) + ", \"" + dispName + "\")")
