@@ -479,6 +479,8 @@ object L3_Parser extends ExaParser with PackratParsers {
   lazy val stencilDeclaration = (
     locationize(("Operator" ~> ident) ~ levelDecl.? ~ (("from" ~ "Stencil" ~ "{") ~> stencilEntries <~ "}")
       ^^ { case id ~ levels ~ entries => L3_BaseStencilDecl(id, levels, entries) })
+      ||| locationize(("Stencil" ~> ident) ~ levelDecl.? ~ ("{" ~> stencilEntries <~ "}")
+      ^^ { case id ~ levels ~ entries => L3_BaseStencilDecl(id, levels, entries) })
       ||| locationize(("Operator" ~> ident) ~ levelDecl.? ~ ("from" ~> binaryexpression)
       ^^ { case id ~ levels ~ expr => L3_StencilFromExpression(id, levels, expr) }))
 
