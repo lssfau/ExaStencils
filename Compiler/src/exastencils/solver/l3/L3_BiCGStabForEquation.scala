@@ -20,9 +20,8 @@ object L3_BiCGStabForEquation extends L3_IterativeSolverForEquation {
     // set up function for norm of residual
     generateResNormFunction(entries, level)
     // set up temporary fields
-    val nu = HashMap[L3_SolverForEqEntry, L3_Field]()
+    val v = HashMap[L3_SolverForEqEntry, L3_Field]()
     val p = HashMap[L3_SolverForEqEntry, L3_Field]()
-    val h = HashMap[L3_SolverForEqEntry, L3_Field]()
     val s = HashMap[L3_SolverForEqEntry, L3_Field]()
     val t = HashMap[L3_SolverForEqEntry, L3_Field]()
     val resHat = HashMap[L3_SolverForEqEntry, L3_Field]()
@@ -31,12 +30,10 @@ object L3_BiCGStabForEquation extends L3_IterativeSolverForEquation {
       val sol = entry.getSolField(level)
       val res = entry.resPerLevel(level)
 
-      val nuField = L3_Field(s"gen_nu_${ sol.name }", level, res.domain,
+      val vField = L3_Field(s"gen_v_${ sol.name }", level, res.domain,
         res.datatype, res.localization, Some(0.0), L3_NoBC)
       val pField = L3_Field(s"gen_p_${ sol.name }", level, res.domain,
         res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
-      val hField = L3_Field(s"gen_h_${ sol.name }", level, res.domain,
-        res.datatype, res.localization, Some(0.0), L3_NoBC)
       val sField = L3_Field(s"gen_s_${ sol.name }", level, res.domain,
         res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
       val tField = L3_Field(s"gen_t_${ sol.name }", level, res.domain,
@@ -44,16 +41,14 @@ object L3_BiCGStabForEquation extends L3_IterativeSolverForEquation {
       val resHatField = L3_Field(s"gen_resHat_${ sol.name }", level, res.domain,
         res.datatype, res.localization, Some(0.0), L3_NoBC)
 
-      L3_FieldCollection.add(nuField)
+      L3_FieldCollection.add(vField)
       L3_FieldCollection.add(pField)
-      L3_FieldCollection.add(hField)
       L3_FieldCollection.add(sField)
       L3_FieldCollection.add(tField)
       L3_FieldCollection.add(resHatField)
 
-      nu += (entry -> nuField)
+      v += (entry -> vField)
       p += (entry -> pField)
-      h += (entry -> hField)
       s += (entry -> sField)
       t += (entry -> tField)
       resHat += (entry -> resHatField)
@@ -88,7 +83,7 @@ object L3_BiCGStabForEquation extends L3_IterativeSolverForEquation {
     stmts += L3_VariableDeclaration(beta, 1.0)
     stmts += L3_VariableDeclaration(omega, 1.0)
 
-    entries.foreach(entry => stmts += L3_Assignment(L3_FieldAccess(nu(entry)), 0.0))
+    entries.foreach(entry => stmts += L3_Assignment(L3_FieldAccess(v(entry)), 0.0))
     entries.foreach(entry => stmts += L3_Assignment(L3_FieldAccess(p(entry)), 0.0))
 
     // main loop
@@ -108,7 +103,7 @@ object L3_BiCGStabForEquation extends L3_IterativeSolverForEquation {
             L3_Assignment(alpha, 1.0),
             L3_Assignment(beta, 1.0),
             L3_Assignment(omega, 1.0)) ++
-          entries.map(entry => L3_Assignment(L3_FieldAccess(nu(entry)), 0.0) : L3_Statement) ++
+          entries.map(entry => L3_Assignment(L3_FieldAccess(v(entry)), 0.0) : L3_Statement) ++
           entries.map(entry => L3_Assignment(L3_FieldAccess(p(entry)), 0.0) : L3_Statement)
       )
     }
@@ -121,24 +116,19 @@ object L3_BiCGStabForEquation extends L3_IterativeSolverForEquation {
     loopStmts += L3_Assignment(beta, (rho / rhoOld) * (alpha / omega))
     entries.foreach(entry =>
       loopStmts += L3_Assignment(L3_FieldAccess(p(entry)),
-        L3_FieldAccess(entry.resPerLevel(level)) + beta * (L3_FieldAccess(p(entry)) - omega * L3_FieldAccess(nu(entry)))))
+        L3_FieldAccess(entry.resPerLevel(level)) + beta * (L3_FieldAccess(p(entry)) - omega * L3_FieldAccess(v(entry)))))
 
     entries.foreach(entry =>
-      loopStmts += generateOperatorApplication(nu(entry), entry.getEq(level).lhs, p, entries, entry, level))
+      loopStmts += generateOperatorApplication(v(entry), entry.getEq(level).lhs, p, entries, entry, level))
 
     def alphaDenom = L3_PlainVariableAccess("gen_alphaDenom", L3_RealDatatype, false)
     loopStmts += L3_VariableDeclaration(alphaDenom, 0.0)
     entries.foreach(entry => loopStmts += L3_Assignment(alphaDenom,
-      L3_FieldFieldConvolution(L3_FieldAccess(resHat(entry)), L3_FieldAccess(nu(entry))), "+=", None))
+      L3_FieldFieldConvolution(L3_FieldAccess(resHat(entry)), L3_FieldAccess(v(entry))), "+=", None))
     loopStmts += L3_Assignment(alpha, rho / alphaDenom)
 
     entries.foreach(entry =>
-      loopStmts += L3_Assignment(L3_FieldAccess(h(entry)), L3_FieldAccess(entry.getSolField(level)) + alpha * L3_FieldAccess(p(entry))))
-
-    // TODO: if h is accurate enough, then set Solution = h and quit
-
-    entries.foreach(entry =>
-      loopStmts += L3_Assignment(L3_FieldAccess(s(entry)), L3_FieldAccess(entry.resPerLevel(level)) - alpha * L3_FieldAccess(nu(entry))))
+      loopStmts += L3_Assignment(L3_FieldAccess(s(entry)), L3_FieldAccess(entry.resPerLevel(level)) - alpha * L3_FieldAccess(v(entry))))
 
     entries.foreach(entry =>
       loopStmts += generateOperatorApplication(t(entry), entry.getEq(level).lhs, s, entries, entry, level))
@@ -158,7 +148,7 @@ object L3_BiCGStabForEquation extends L3_IterativeSolverForEquation {
     loopStmts += L3_Assignment(omega, omegaNom / omegaDenom)
 
     entries.foreach(entry =>
-      loopStmts += L3_Assignment(L3_FieldAccess(entry.getSolField(level)), L3_FieldAccess(h(entry)) + omega * L3_FieldAccess(s(entry))))
+      loopStmts += L3_Assignment(L3_FieldAccess(entry.getSolField(level)), L3_FieldAccess(entry.getSolField(level)) + alpha * L3_FieldAccess(p(entry)) + omega * L3_FieldAccess(s(entry))))
 
     entries.foreach(entry =>
       loopStmts += L3_Assignment(L3_FieldAccess(entry.resPerLevel(level)), L3_FieldAccess(s(entry)) - omega * L3_FieldAccess(t(entry))))
@@ -183,5 +173,4 @@ object L3_BiCGStabForEquation extends L3_IterativeSolverForEquation {
 
     stmts
   }
-
 }
