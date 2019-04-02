@@ -93,20 +93,28 @@ object L2_GenerateStencilFromEquation {
               // generic expression not relying on field accesses to unknown values => handle as const
               localFactors += const
 
-            case access : L2_FieldAccess =>
+            case access : L2_FieldAccess                         =>
               if (matchUnknowns(access).isEmpty)
                 localFactors += access
               else localUnknowns += access
-            case e : L2_Multiplication   =>
+            case e @ L2_Division(access : L2_FieldAccess, right) =>
+              if (!L2_ContainsUnknownAccesses.hasSome(L2_ExpressionStatement(right))) {
+                localUnknowns += access
+                localFactors += L2_Division(1, right)
+              } else {
+                Logger.warn(s"Nested division expressions are currently unsupported: $e")
+                localFactors += e
+              }
+            case e : L2_Multiplication                           =>
               Logger.warn(s"Nested multiplication expressions are currently unsupported: $e")
               localFactors += e
-            case e : L2_Addition         =>
+            case e : L2_Addition                                 =>
               Logger.warn(s"Nested addition expressions are currently unsupported: $e")
               localFactors += e
-            case e : L2_Subtraction      =>
+            case e : L2_Subtraction                              =>
               Logger.warn(s"Nested subtraction expressions are currently unsupported: $e")
               localFactors += e
-            case e : L2_Expression       =>
+            case e : L2_Expression                               =>
               Logger.warn(s"Unknown, currently unsupported nested expression found: $e")
               localFactors += e
           }
