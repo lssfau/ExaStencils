@@ -15,12 +15,15 @@ case class L4_FutureFieldAccess(
     var level : Int,
     var slot : L4_SlotSpecification,
     var offset : Option[L4_ConstIndex] = None,
-    var arrayIndex : Option[Int] = None) extends L4_FutureKnowledgeAccess with L4_CanBeOffset {
+    var arrayIndex : Option[Int] = None,
+    var frozen : Boolean = false) extends L4_FutureKnowledgeAccess with L4_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
+    if (frozen) out << "frozen ( "
     out << name << slot << '@' << level
     if (offset.isDefined) out << '@' << offset
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
+    if (frozen) out << " )"
   }
 
   override def progress = Logger.error(s"Trying to progress future field access to $name on level $level")
@@ -47,6 +50,19 @@ object L4_PrepareFieldAccesses extends DefaultStrategy("Prepare accesses to fiel
       if (!L4_FieldCollection.existsDecl(access.name, lvl))
         Logger.warn(s"Trying to access ${ access.name } on invalid level $lvl")
 
-      L4_FutureFieldAccess(access.name, lvl, access.slot.getOrElse(L4_ActiveSlot), access.offset, access.arrayIndex)
+      L4_FutureFieldAccess(access.name, lvl, access.slot.getOrElse(L4_ActiveSlot), access.offset, access.arrayIndex, false)
+  })
+}
+
+/// L4_ResolveFrozenFields
+
+object L4_ResolveFrozenFields extends DefaultStrategy("Resolve frozen field accesses") {
+  this += new Transformation("Resolve", {
+    case fct : L4_FunctionCall if "frozen" == fct.name =>
+      if (fct.arguments.length != 1) Logger.error("Calls to frozen need exactly one argument")
+      if (!fct.arguments.head.isInstanceOf[L4_FutureFieldAccess]) Logger.error("Calls to frozen must done with exactly one field access")
+      val fieldAccess = fct.arguments.head.asInstanceOf[L4_FutureFieldAccess]
+      fieldAccess.frozen = true
+      fieldAccess
   })
 }

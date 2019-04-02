@@ -11,27 +11,26 @@ import exastencils.prettyprinting.PpStream
 
 object L3_FieldAccess {
   def apply(access : L3_FutureFieldAccess) =
-    new L3_FieldAccess(L3_FieldCollection.getByIdentifier(access.name, access.level).get, access.slot, access.offset)
+    new L3_FieldAccess(L3_FieldCollection.getByIdentifier(access.name, access.level).get, access.slot, access.offset, access.frozen)
   def apply(target : L3_Field) = new L3_FieldAccess(target, L3_ActiveSlot, None)
 }
 
 case class L3_FieldAccess(
     var target : L3_Field,
     var slot : L3_SlotSpecification,
-    var offset : Option[L3_ConstIndex] = None) extends L3_LeveledKnowledgeAccess with L3_CanBeOffset {
+    var offset : Option[L3_ConstIndex] = None,
+    var frozen : Boolean = false) extends L3_LeveledKnowledgeAccess with L3_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
+    if (frozen) out << "frozen ( "
     out << target.name << '@' << target.level
     if (offset.isDefined) out << '@' << offset.get
+    if (frozen) out << " )"
   }
 
   def getOffset = offset.getOrElse(L3_ConstIndex(Array.fill(target.numDimsGrid)(0)))
 
-  override def progress = ProgressLocation {
-    L4_FieldAccess(target.getProgressedObj(),
-      slot.progress,
-      L3_ProgressOption(offset)(_.progress))
-  }
+  override def progress = ProgressLocation(L4_FieldAccess(target.getProgressedObj(), slot.progress, L3_ProgressOption(offset)(_.progress), None, frozen))
 }
 
 /// L3_ResolveFieldAccesses

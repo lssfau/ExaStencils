@@ -2,6 +2,7 @@ package exastencils.solver.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
@@ -27,6 +28,9 @@ case class IR_LocalSolve(
   var AInv : IR_Expression = _
 
   def matchUnknowns(other : IR_FieldAccess) : Int = {
+    if (other.frozen)
+      return -1 // skip frozen fields
+
     for (i <- unknowns.indices)
       if (other.fieldSelection.field.codeName == unknowns(i).fieldSelection.field.codeName && other.index == unknowns(i).index)
         return i // match
@@ -86,20 +90,28 @@ case class IR_LocalSolve(
               // generic expression not relying on field accesses to unknown values => handle as const
               localFactors += const
 
-            case access : IR_FieldAccess =>
+            case access : IR_FieldAccess                         =>
               if (matchUnknowns(access) < 0)
                 localFactors += access
               else localUnknowns += access
-            case e : IR_Multiplication   =>
+            case e @ IR_Division(access : IR_FieldAccess, right) =>
+              if (!IR_ContainsUnknownAccesses.hasSome(IR_ExpressionStatement(right))) {
+                localUnknowns += access
+                localFactors += IR_Division(1, right)
+              } else {
+                Logger.warn(s"Nested division expressions are currently unsupported: $e")
+                localFactors += e
+              }
+            case e : IR_Multiplication                           =>
               Logger.warn(s"Nested multiplication expressions are currently unsupported: $e")
               localFactors += e
-            case e : IR_Addition         =>
+            case e : IR_Addition                                 =>
               Logger.warn(s"Nested addition expressions are currently unsupported: $e")
               localFactors += e
-            case e : IR_Subtraction      =>
+            case e : IR_Subtraction                              =>
               Logger.warn(s"Nested subtraction expressions are currently unsupported: $e")
               localFactors += e
-            case e : IR_Expression       =>
+            case e : IR_Expression                               =>
               Logger.warn(s"Unknown, currently unsupported nested expression found: $e")
               localFactors += e
           }

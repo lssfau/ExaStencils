@@ -58,7 +58,7 @@ object L3_IterativeSolverForEquation {
 
     object L3_ReplaceAccesses extends QuietDefaultStrategy("Local replace of field accesses with temporary fields") {
       this += new Transformation("Search and replace", {
-        case access @ L3_FieldAccess(field, _, _) if entries.exists(field == _.getSolField(level)) =>
+        case access @ L3_FieldAccess(field, _, _, _) if entries.exists(field == _.getSolField(level)) =>
           access.target = srcMap(entries.find(field == _.getSolField(level)).get)
           access
       })

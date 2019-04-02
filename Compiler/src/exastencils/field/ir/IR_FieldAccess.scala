@@ -68,7 +68,8 @@ object IR_LinearizeDirectFieldAccess extends DefaultStrategy("Linearize DirectFi
 case class IR_FieldAccess(
     var fieldSelection : IR_FieldSelection,
     var index : IR_ExpressionIndex,
-    var offset : Option[IR_ConstIndex] = None) extends IR_MultiDimFieldAccess with IR_CanBeOffset {
+    var offset : Option[IR_ConstIndex] = None,
+    var frozen : Boolean = false) extends IR_MultiDimFieldAccess with IR_CanBeOffset {
 
   override def datatype = {
     val layout = fieldSelection.field.fieldLayout

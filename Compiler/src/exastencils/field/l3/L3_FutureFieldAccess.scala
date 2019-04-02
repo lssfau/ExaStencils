@@ -15,18 +15,23 @@ import exastencils.util.l3.L3_LevelCollector
 case class L3_FutureFieldAccess(
     var name : String, var level : Int,
     var slot : L3_SlotSpecification,
-    var offset : Option[L3_ConstIndex] = None) extends L3_FutureKnowledgeAccess with L3_CanBeOffset {
+    var offset : Option[L3_ConstIndex] = None,
+    var frozen : Boolean = false) extends L3_FutureKnowledgeAccess with L3_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
+    if (frozen) out << "frozen ( "
     out << name << '@' << level
     if (offset.isDefined) out << '@' << offset.get
+    if (frozen) out << " )"
   }
 
   override def progress = ProgressLocation {
     Logger.warn(s"Trying to progress future field access to $name on level $level")
     L4_FutureFieldAccess(name, level,
       slot.progress,
-      L3_ProgressOption(offset)(_.progress))
+      L3_ProgressOption(offset)(_.progress),
+      None,
+      frozen)
   }
 
   def toFieldAccess = L3_FieldAccess(this)
@@ -54,5 +59,18 @@ object L3_PrepareFieldAccesses extends DefaultStrategy("Prepare accesses to fiel
       if (access.arrayIndex.isDefined) Logger.warn(s"Discarding meaningless array access on ${ access.name }")
 
       L3_FutureFieldAccess(access.name, lvl, access.slot.getOrElse(L3_ActiveSlot), access.offset)
+  })
+}
+
+/// L3_ResolveFrozenFields
+
+object L3_ResolveFrozenFields extends DefaultStrategy("Resolve frozen field accesses") {
+  this += new Transformation("Resolve", {
+    case fct : L3_FunctionCall if "frozen" == fct.name =>
+      if (fct.arguments.length != 1) Logger.error("Calls to frozen need exactly one argument")
+      if (!fct.arguments.head.isInstanceOf[L3_FutureFieldAccess]) Logger.error("Calls to frozen must done with exactly one field access")
+      val fieldAccess = fct.arguments.head.asInstanceOf[L3_FutureFieldAccess]
+      fieldAccess.frozen = true
+      fieldAccess
   })
 }

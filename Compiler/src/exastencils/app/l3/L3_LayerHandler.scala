@@ -96,6 +96,7 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
       L3_ResolveVariableAccesses.apply()
 
       L3_ResolveSpecialConstants.apply()
+      L3_ResolveFrozenFields.apply()
       L3_ResolveDslFunctionReferences.apply()
       L3_ResolveMathFunctions.apply()
       L3_ResolveEvaluateFunctions.apply()

@@ -18,15 +18,18 @@ case class L2_FutureFieldAccess(
     var frozen : Boolean = false) extends L2_FutureKnowledgeAccess with L2_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
+    if (frozen) out << "frozen ( "
     out << name << '@' << level
     if (offset.isDefined) out << '@' << offset.get
+    if (frozen) out << " )"
   }
 
   override def progress = ProgressLocation {
     Logger.warn(s"Trying to progress future field access to $name on level $level")
     L3_FutureFieldAccess(name, level,
       L3_ActiveSlot,
-      L2_ProgressOption(offset)(_.progress))
+      L2_ProgressOption(offset)(_.progress),
+      frozen)
   }
 
   def toFieldAccess = L2_FieldAccess(this)

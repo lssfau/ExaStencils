@@ -153,6 +153,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
       L4_ResolveVariableAccesses.apply()
 
       L4_ResolveSpecialConstants.apply()
+      L4_ResolveFrozenFields.apply()
       L4_ResolveDslFunctionReferences.apply()
       L4_ResolveEvaluateFunctions.apply()
       L4_ResolveIntegrateFunctions.apply()

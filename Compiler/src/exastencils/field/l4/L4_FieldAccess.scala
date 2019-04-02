@@ -16,7 +16,7 @@ import exastencils.prettyprinting.PpStream
 
 object L4_FieldAccess {
   def apply(access : L4_FutureFieldAccess) =
-    new L4_FieldAccess(L4_FieldCollection.getByIdentifier(access.name, access.level).get, access.slot, access.offset, access.arrayIndex)
+    new L4_FieldAccess(L4_FieldCollection.getByIdentifier(access.name, access.level).get, access.slot, access.offset, access.arrayIndex, access.frozen)
 
   def resolveSlot(field : IR_Field, slot : L4_SlotSpecification) = {
     if (1 == field.numSlots) IR_IntegerConstant(0)
@@ -34,14 +34,17 @@ case class L4_FieldAccess(
     var target : L4_Field,
     var slot : L4_SlotSpecification,
     var offset : Option[L4_ConstIndex] = None,
-    var arrayIndex : Option[Int] = None) extends L4_LeveledKnowledgeAccess with L4_CanBeOffset {
+    var arrayIndex : Option[Int] = None,
+    var frozen : Boolean = false) extends L4_LeveledKnowledgeAccess with L4_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
+    if (frozen) out << "frozen ( "
     out << target.name
     if (target.numSlots > 1) out << '[' << slot << ']'
     out << '@' << target.level
     if (offset.isDefined) out << "@" << offset.get
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
+    if (frozen) out << " )"
   }
 
   def getOffset = offset.getOrElse(L4_ConstIndex(Array.fill(target.numDimsGrid)(0)))
@@ -71,7 +74,7 @@ case class L4_FieldAccess(
       None
     }
 
-    IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot)), index, progOffset)
+    IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot)), index, progOffset, frozen)
   }
 }
 
@@ -89,8 +92,12 @@ object L4_ResolveFieldAccesses extends DefaultStrategy("Resolve accesses to fiel
 
 object L4_UnresolveFieldAccesses extends DefaultStrategy("Revert field accesses to unresolved accesses") {
   this += new Transformation("Replace", {
-    case L4_FieldAccess(target, slot, offset, arrayIndex) =>
+    case L4_FieldAccess(target, slot, offset, arrayIndex, frozen) =>
       val newSlot = if (L4_ActiveSlot == slot) None else Some(slot)
-      L4_UnresolvedAccess(target.name, Some(L4_SingleLevel(target.level)), newSlot, offset, None, arrayIndex)
+      def ret = L4_UnresolvedAccess(target.name, Some(L4_SingleLevel(target.level)), newSlot, offset, None, arrayIndex)
+      if (frozen)
+        L4_FunctionCall(L4_UnresolvedFunctionReference("frozen", None, None), ret)
+      else
+        ret
   })
 }
