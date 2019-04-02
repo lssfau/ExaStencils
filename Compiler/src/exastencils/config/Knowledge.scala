@@ -268,6 +268,9 @@ object Knowledge {
   // may be one of the following: 'Chrono', 'QPC', 'WIN_TIME', 'UNIX_TIME', 'MPI_TIME', 'RDSC', 'WINDOWS_RDSC'
   var timer_type : String = "Chrono"
 
+  var timer_printTimersToFileForEachRank : Boolean = false
+  // prints separate timer values for each rank -> requires some additional memory for the gather op
+
   // library/tool to use for benchmarking
   // may be one of the following: 'None', 'likwid'
   var benchmark_backend = "None"
@@ -673,8 +676,6 @@ object Knowledge {
 
   var l3tmp_printTimersToFile : Boolean = false
   // prints results for all used timers at the end of the application; uses Settings.timerOuputFile as target file
-  var l3tmp_printTimersToFileForEachRank : Boolean = false
-  // prints separate timer values for each rank -> requires some additional memory for the gather op
   var l3tmp_printAllTimers : Boolean = false
   // prints results for all used timers at the end of the application
 
