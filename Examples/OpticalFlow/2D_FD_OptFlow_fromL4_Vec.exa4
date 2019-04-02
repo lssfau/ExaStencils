@@ -36,7 +36,6 @@ Field It< global, defLayoutForCell, None >@finest
 Field IxIx< global, defLayoutForCell, None >@all
 Field IxIy< global, defLayoutForCell, None >@all
 Field IyIy< global, defLayoutForCell, None >@all
-Field It< global, defLayoutForCell, None >@finest
 
 Field flow< global, vec2CellWComm, Neumann >@all
 

@@ -1,7 +1,6 @@
 package exastencils.optimization.ir
 
-import scala.collection.convert.Wrappers.JSetWrapper
-import scala.collection.mutable.{ ArrayBuffer, BitSet, Buffer, HashMap, ListBuffer, Map, Set }
+import scala.collection.mutable.{ ArrayBuffer, BitSet, Buffer, HashMap, ListBuffer, Map }
 import scala.reflect.ClassTag
 import scala.util.Sorting
 
@@ -339,12 +338,11 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
     var nju : ArrayBuffer[List[IR_Node]] = commonSubs.view.flatMap { x => x._2.getPositions() }.to[ArrayBuffer]
     val njuCommSubs = new HashMap[IR_Node, Subexpression]()
     def registerCS(node : IR_Expression with Product, prio : Int, prioBonus : Int, pos : List[IR_Node], recurse : Boolean, children : Seq[Any]) : Unit = {
-      if (njuCommSubs.getOrElseUpdate(node, new Subexpression(curFunc, node, prio, prioBonus)).addPosition(pos)) {
-        for (child <- children)
-          processedChildren.put(child, null)
-        if (recurse)
-          nju += pos
-      }
+      njuCommSubs.getOrElseUpdate(node, new Subexpression(curFunc, node, prio, prioBonus)).addPosition(pos)
+      for (child <- children)
+        processedChildren.put(child, null)
+      if (recurse)
+        nju += pos
     }
 
     var todo : ArrayBuffer[List[IR_Node]] = new ArrayBuffer[List[IR_Node]]()
@@ -381,7 +379,7 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
                 // this is the only one, that may create new instances for subexpression witnesses,
                 //   this must be in sync with Subexpression.getRepls below
               } else if (nrProds == 0 && nrBuffs == 1) {
-                val dupParents : Array[(IR_Expression with Product, Buffer[PrettyPrintable])] =
+                val dupParents : Seq[(IR_Expression with Product, Buffer[PrettyPrintable])] =
                   duplicateAndFill(parent, { case n : IR_Node => commonSubs.contains(n); case _ => false }, orderMap)
                 for ((dupPar, dupParChildren) <- dupParents)
                   registerCS(dupPar, dupParChildren.view.map { case x : IR_Node => commonSubs(x).prio }.sum + 1, 1, pos, dupPar eq parent, dupParChildren)
@@ -452,7 +450,7 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
     * @param orig The original element to be duplicated and filled.
     *             `orig.productIterator` must contain a single `Buffer[PrettyPrintable]`, whose elements will be sorted.
     */
-  private def duplicateAndFill[T <: Product : ClassTag](orig : T, relevant : Any => Boolean, orderMap : Map[Any, Int]) : Array[(T, Buffer[PrettyPrintable])] = {
+  private def duplicateAndFill[T <: Product : ClassTag](orig : T, relevant : Any => Boolean, orderMap : Map[Any, Int]) : Seq[(T, Buffer[PrettyPrintable])] = {
 
     // every child here should be PrettyPrintable
     val children : Buffer[PrettyPrintable] = orig.productIterator.find { x => x.isInstanceOf[Buffer[_]] }.get.asInstanceOf[Buffer[PrettyPrintable]]
@@ -510,7 +508,25 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
         startInds += ls
       }
     }
-    dups
+    // filter semantically equivalent expressions that overlap, since these cannot be replaced both,
+    //  eg, the subexpression "x*x" must occur twice in "x*x*x*x"
+    val seen = HashMap[T, Buffer[Buffer[PrettyPrintable]]]()
+    val result = new ArrayBuffer[(T, Buffer[PrettyPrintable])]()
+    for ((dup, dupChildren) <- dups) {
+      var add : Boolean = true
+      val inRes = seen.getOrElseUpdate(dup, new ArrayBuffer())
+      // check if any of the elements in dupChildren is already somewhere in result (ie, it is in inRes)
+      for (c <- dupChildren)
+        for (prev <- inRes)
+          for (prevC <- prev)
+            if (c eq prevC)
+              add = false
+      if (add) {
+        inRes += dupChildren
+        result += ((dup, dupChildren))
+      }
+    }
+    result
   }
 
   private def removeAnnotations(body : ListBuffer[IR_Statement]) : Unit = {
@@ -610,7 +626,7 @@ object Subexpression {
 }
 
 private class Subexpression(val func : String, val witness : IR_Expression with Product, val prio : Int = 1, val prioBonus : Int = 0) {
-  private val positions = new java.util.IdentityHashMap[List[IR_Node], Any]()
+  private val positions = new ArrayBuffer[List[IR_Node]]()
 
   private lazy val tmpVarDatatype : IR_Datatype = IR_RealDatatype
   // FIXME: make generic!
@@ -619,12 +635,12 @@ private class Subexpression(val func : String, val witness : IR_Expression with 
   lazy val declaration = IR_VariableDeclaration(tmpVarDatatype, tmpVarName, Some(witness))
   lazy val ppString : String = witness.prettyprint()
 
-  def addPosition(nju : List[IR_Node]) : Boolean = {
-    positions.put(nju, this) == null
+  def addPosition(nju : List[IR_Node]) : Unit = {
+    positions += nju
   }
 
-  def getPositions() : Set[List[IR_Node]] = {
-    JSetWrapper(positions.keySet())
+  def getPositions() : Seq[List[IR_Node]] = {
+    positions
   }
 
   def getReplOrModify(old : IR_Expression with Product) : IR_Expression = {
@@ -636,10 +652,8 @@ private class Subexpression(val func : String, val witness : IR_Expression with 
       val allChildren = old.productIterator.find { x => x.isInstanceOf[Buffer[_]] }.get.asInstanceOf[Buffer[Any]]
       val commSubsChildren = witness.productIterator.find { x => x.isInstanceOf[Buffer[_]] }.get.asInstanceOf[Buffer[Any]]
       // according to the generation of witnesses children above, both buffers have the same ordering
-      do {
-        allChildren --= commSubsChildren
-        allChildren += IR_VariableAccess(tmpVarName, tmpVarDatatype)
-      } while(commSubsChildren.forall(allChildren.contains))
+      allChildren --= commSubsChildren
+      allChildren += IR_VariableAccess(tmpVarName, tmpVarDatatype)
       null // no need to replace node, since its children were already modified
     }
   }

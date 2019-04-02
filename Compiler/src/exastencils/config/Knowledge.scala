@@ -352,7 +352,7 @@ object Knowledge {
   var poly_scheduleAlgorithm : String = "isl"
   // [all|raw|rar] // specifies which dependences should be optimized; "all" means all validity dependences (raw, war, waw)
   var poly_optimizeDeps : String = "raw"
-  // [true|false] // specifies if the dependences to optimize should be filtered first
+  // [true|false] // specifies if the dependences to optimize should be filtered first (this is a simple heuristics that leads to a better schedule for non-dense Jacobi smoothers)
   var poly_filterDeps : Boolean = false
   // [true|false] // simplify dependences before computing a new schedule; this reduces PolyOpt run-time, but it could also lead to slower generated code
   var poly_simplifyDeps : Boolean = true
