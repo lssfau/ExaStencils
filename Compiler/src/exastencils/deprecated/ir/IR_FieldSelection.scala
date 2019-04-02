@@ -22,4 +22,3 @@ case class IR_FieldSelection(
   // other shortcuts
   def domainIndex = field.domain.index
 }
-

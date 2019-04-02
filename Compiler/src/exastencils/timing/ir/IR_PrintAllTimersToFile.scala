@@ -33,7 +33,7 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
   def genPrint(timers : HashMap[String, IR_IV_Timer]) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    def stride : IR_Expression = if (Knowledge.mpi_enabled && Knowledge.l3tmp_printTimersToFileForEachRank) "mpiIt" else 0
+    def stride : IR_Expression = if (Knowledge.mpi_enabled && Knowledge.timer_printTimersToFileForEachRank) "mpiIt" else 0
 
     var it = 0
     val sep = "\"" + Settings.csvSeparatorEscaped() + "\""
@@ -47,7 +47,7 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
     }
 
     // wrap in loop over each rank if required
-    if (Knowledge.mpi_enabled && Knowledge.l3tmp_printTimersToFileForEachRank) {
+    if (Knowledge.mpi_enabled && Knowledge.timer_printTimersToFileForEachRank) {
       statements = ListBuffer[IR_Statement](
         IR_ForLoop(
           IR_VariableDeclaration(IR_IntegerDatatype, stride.prettyprint, 0),
@@ -70,7 +70,7 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
     var body : ListBuffer[IR_Statement] = ListBuffer()
 
     if (timers.nonEmpty) {
-      if (Knowledge.l3tmp_printTimersToFileForEachRank) {
+      if (Knowledge.timer_printTimersToFileForEachRank) {
         body += IR_IfCondition(MPI_IsRootProc(),
           ListBuffer[IR_Statement](
             IR_VariableDeclaration(IR_ArrayDatatype(IR_DoubleDatatype, Knowledge.mpi_numThreads * 2 * timers.size), "timesToPrint"))

@@ -46,4 +46,3 @@ object L4_ResolveReadFieldFunctions extends DefaultStrategy("Resolve read field 
       }
   })
 }
-

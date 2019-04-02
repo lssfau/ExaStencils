@@ -17,7 +17,7 @@ case class L3_StencilField(
   override def createDuplicate() = L3_StencilField(name, level, stencil, field)
 
   override def prettyprintDecl(out : PpStream) : Unit = {
-    out << "Operator " << name << "@" << level << " from StencilTemplate on " << field.localization << " of " << field.domain << " {\n"
+    out << "Operator " << name << "@" << level << " from StencilTemplate on " << field.localization << " of " << field.domain.name << " {\n"
     stencil.entries.foreach(out << _.asStencilOffsetEntry.offset << " => \n")
     out << "}"
   }

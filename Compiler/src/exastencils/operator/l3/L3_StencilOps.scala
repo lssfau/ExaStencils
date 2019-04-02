@@ -79,7 +79,10 @@ object L3_StencilOps {
     }
 
     ShiftIteratorAccess.baseDim = numDims
-    ShiftIteratorAccess.applyStandalone(otherCloned.entries)
+    otherCloned.entries.foreach(e => {
+      ShiftIteratorAccess.applyStandalone(e.row)
+      ShiftIteratorAccess.applyStandalone(e.col)
+    })
 
     val newStencil = L3_Stencil(left.name + "_kron_" + otherCloned.name,
       left.level,
