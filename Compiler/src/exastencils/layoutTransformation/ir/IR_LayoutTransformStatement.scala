@@ -96,6 +96,9 @@ case class IR_FieldConcatenation(mergedFieldName : String, fieldsToMerge : Seq[S
     for (field <- IR_FieldCollection.objects)
       for (id <- idMap.remove((field.name, field.level))) {
 
+        if (field.numSlots != 1)
+          Logger.error("concat slotted fields is not yet supported! (reason: all of their advance statements will affect the merged field, too, which results in too many advances)")
+
         val dim : Int = field.fieldLayout.numDimsData + 1
 
         // create new field, if it does not exist yet

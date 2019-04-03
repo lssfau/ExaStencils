@@ -4,8 +4,7 @@ LayoutTransformations {
   rename VecP@coarsest to Toll
   concat @(0 to 3) Residual, RHS into Merged
   transform Merged@(coarsest + 1)  with [x, y, z, i] => [y, z, x, i]
-  concat @(1 to finest) Solution, SolutionB into SolMerged
-  transform SolMerged@((coarsest + 1) to (finest - 1))  with [x, y, z, i] => [i, y, z, x]
+  transform Solution@((coarsest + 1) to (finest - 1))  with [x, y, z] => [y, z, x]
 }
 
 Domain global< [0.0, 0.0, 0.0] to [1.0, 1.0, 1.0] >
