@@ -341,12 +341,11 @@ case class L3_SolverForEquation(
         // update residual
         handleStage("updateResidual", entries.map(_.generateUpdateRes(level)))
 
+        // update solution@coarser
+        handleStage("setCoarseSolution", generateSetCoarseSolution(level))
+
         // restriction
         handleStage("restriction", generateRestriction(level))
-
-        // update solution@coarser
-        if (!Knowledge.solver_useFAS)
-          handleStage("setCoarseSolution", entries.map(_.generateSetSolZero(level - 1)))
 
         // recursion
         solverStmts += L3_FunctionCall(L3_LeveledDslFunctionReference("gen_mgCycle", level - 1, L3_UnitDatatype))
@@ -371,7 +370,7 @@ case class L3_SolverForEquation(
     }
   }
 
-  def generateRestriction(level : Int) : ListBuffer[L3_Statement] = {
+  def generateSetCoarseSolution(level : Int) : ListBuffer[L3_Statement] = {
     val stmts = ListBuffer[L3_Statement]()
 
     if (Knowledge.solver_useFAS) {
@@ -383,7 +382,17 @@ case class L3_SolverForEquation(
       // Solution@coarser = SolutionApprox@coarser
       stmts ++= entries.map(entry => L3_Assignment(L3_FieldAccess(entry.getSolField(level - 1)),
         L3_FieldAccess(entry.approxPerLevel(level - 1))))
+    } else {
+      stmts ++= entries.map(_.generateSetSolZero(level - 1))
+    }
 
+    stmts
+  }
+
+  def generateRestriction(level : Int) : ListBuffer[L3_Statement] = {
+    val stmts = ListBuffer[L3_Statement]()
+
+    if (Knowledge.solver_useFAS) {
       // RHS@coarser = Restriction * Residual + A@coarser * Approx@coarser
       stmts ++= entries.map(entry => {
         // generate operator application first
