@@ -36,6 +36,7 @@ object IR_MathFunctions {
 object IR_MathFunctionReference {
   def fabs = new IR_MathFunctionReference("fabs", IR_MathFunctions.getDatatype("fabs")._2)
   def pow = new IR_MathFunctionReference("pow", IR_MathFunctions.getDatatype("pow")._2)
+  def sqrt = new IR_MathFunctionReference("sqrt", IR_MathFunctions.getDatatype("sqrt")._2)
 }
 
 case class IR_MathFunctionReference(var name : String, var returnType : IR_Datatype) extends IR_FunctionReference
