@@ -523,8 +523,8 @@ object L3_Parser extends ExaParser with PackratParsers {
   /// L3_LocalSolve
 
   lazy val solveLocallyComponent = /*locationize*/ (genericAccess <~ "=>") ~ equationExpression ^^ { case f ~ eq => (f, eq) }
-  lazy val solveLocallyStatement = locationize((("solve" ~ "locally") ~> ("with" ~> "jacobi").? ~ ("relax" ~> binaryexpression).? <~ "{") ~ solveLocallyComponent.+ <~ "}"
-    ^^ { case jac ~ relax ~ stmts => L3_LocalSolve(stmts.map(_._1), stmts.map(_._2), jac.isDefined, relax) })
+  lazy val solveLocallyStatement = locationize((("solve" ~ "locally") ~> ("at" ~> genericAccess) ~ ("with" ~> "jacobi").? ~ ("relax" ~> binaryexpression).? <~ "{") ~ solveLocallyComponent.+ <~ "}"
+    ^^ { case fieldForLoop ~ jac ~ relax ~ stmts => L3_LocalSolve(stmts.map(_._1), stmts.map(_._2), jac.isDefined, relax, fieldForLoop) })
 
   /// L3_SolverForEquation
 

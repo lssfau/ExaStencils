@@ -85,7 +85,7 @@ object L3_Lexer extends ExaLexer {
   reserved += ("modifiers", "replace", "append", "to", "prepend", "with")
   reserved += ("smootherHint", "smootherStage", "loopBase", "solveFor")
 
-  reserved += ("solve", "locally", "jacobi", "relax")
+  reserved += ("solve", "locally", "at", "jacobi", "relax")
 
   // util => L3_OffsetAlias
   reserved += ("center", "east", "west", "north", "south", "top", "bottom")
