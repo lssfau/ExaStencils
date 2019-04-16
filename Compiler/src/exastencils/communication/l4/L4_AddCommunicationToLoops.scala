@@ -2,6 +2,7 @@ package exastencils.communication.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_Statement
 import exastencils.base.l4._
 import exastencils.baseExt.l4.L4_LoopOverField
 import exastencils.boundary.l4._
@@ -9,6 +10,7 @@ import exastencils.communication.l4.L4_FieldAccessRangeCollector.L4_FieldWithSlo
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.field.l4._
+import exastencils.prettyprinting.PpStream
 
 /// L4_AddCommunicationToLoops
 
@@ -20,6 +22,12 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
       L4_CollectCommInformation.applyStandalone(loop)
       val collector = L4_CollectCommInformation.collector
 
+      case class L4_Comment(var comment : String) extends L4_Statement {
+        override def prettyprint(out : PpStream) : Unit = out << "/* " << comment << " */"
+        override def progress : IR_Statement = ???
+      }
+      var finalStmts = ListBuffer[L4_Statement]()
+
       // find all fields read outside the iteration space
       var fieldsToConsider = ListBuffer[L4_FieldAccessRangeCollector.L4_FieldWithSlot]()
       for (fieldData <- collector.readExtentMax)
@@ -30,6 +38,10 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
           fieldsToConsider += fieldData._1
 
       fieldsToConsider = fieldsToConsider.distinct
+
+      collector.readExtentMax.keys.foreach { f =>
+        finalStmts += L4_Comment(f.field.name + " => " + collector.readExtentMin(f).mkString(", ") + " <-> " + collector.readExtentMax(f).mkString(", "))
+      }
 
       // add combination fields
       fieldsToConsider = fieldsToConsider.flatMap {
@@ -51,8 +63,6 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
           None)
         // TODO: append potential assignment condition to communicate statement
       }
-
-      var finalStmts = ListBuffer[L4_Statement]()
 
       if (false) { // append as preComms
         loop.preComms ++= commStatements
