@@ -116,6 +116,59 @@ object JobScriptGenerator {
 
         printer.finish()
 
+      case "juwels" =>
+        val filename = "run"
+        val debug = false
+
+        Logger.dbg(s"Generating job script for JUWELS with filename $filename")
+        val printer = PrettyprintingManager.getPrinter(filename)
+
+        def numMPI = Knowledge.mpi_numThreads
+        def numOMP = Knowledge.omp_numThreads
+        def tasksPerNode = Knowledge.mpi_numThreads / Platform.hw_numNodes
+
+        printer <<< s"#!/bin/bash -l"
+        printer <<< s"#SBATCH --account=her16"
+
+        printer <<< s"#SBATCH --job-name=${ Settings.configName }"
+
+        printer <<< s"#SBATCH --mail-type=ALL"
+        printer <<< s"#SBATCH --mail-user=${ resolveUserMail() }"
+
+        printer <<< s"#SBATCH --nodes=${ Platform.hw_numNodes }"
+        printer <<< s"#SBATCH --ntasks-per-core=2" // activate hyperthreading by default
+        printer <<< s"#SBATCH --ntasks-per-node=$tasksPerNode"
+        printer <<< s"#SBATCH --cpus-per-task=${ Platform.hw_cpu_numHWThreads / tasksPerNode }"
+
+        printer <<< s"#SBATCH --time=00:10:00"
+
+        printer <<< s"#SBATCH --partition=batch"
+
+        printer <<< ""
+
+        printer <<< s"module load Intel"
+        printer <<< s"module load ParaStationMPI"
+
+        printer <<< ""
+
+        if (Knowledge.omp_enabled)
+          printer <<< s"export OMP_NUM_THREADS=$numOMP          # set number of OMP threads"
+
+        printer <<< ""
+
+        printer <<< s"cd ${ Settings.executionPath }"
+
+        printer <<< ""
+
+        printer << s"srun "
+        if (debug) printer << "-v "
+        printer << s"-n $numMPI --ntasks-per-node=$tasksPerNode "
+        if (Platform.omp_pinning.nonEmpty)
+          printer << s"--cpu_bind=${ Platform.omp_pinning } "
+        printer <<< s"./${ Settings.binary }"
+
+        printer.finish()
+
       case "tsubame" | "tsubame3" =>
         val filename = "run"
 

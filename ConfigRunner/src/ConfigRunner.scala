@@ -185,6 +185,24 @@ object ConfigRunner {
 
         printer.finish()
 
+      case "juwels" =>
+        val filename = "../compileGenerated"
+
+        Logger.debug(s"Generating compile script for ${ Platform.targetName } with filename $filename")
+        val printer = PrettyprintingManager.getPrinter(filename)
+
+        printer <<< "#!/bin/bash"
+        printer <<< ""
+        printer <<< "configurations=\"" + configNames.mkString(" ") + "\""
+        printer <<< "for config in $configurations"
+        printer <<< "do"
+        printer <<< "\tcd ${config}"
+        printer <<< "\ttime make -j"
+        printer <<< "\tcd .."
+        printer <<< "done"
+
+        printer.finish()
+
       case "tsubame" | "tsubame3" =>
         val filename = "../compileGenerated"
 
@@ -262,6 +280,30 @@ object ConfigRunner {
         printer.finish()
 
       case "piz_daint" | "pizdaint" =>
+        val filename = "../submitGenerated"
+
+        Logger.debug(s"Generating compile script for ${ Platform.targetName } with filename $filename")
+        val printer = PrettyprintingManager.getPrinter(filename)
+
+        printer <<< "#!/bin/bash"
+        printer <<< ""
+        printer <<< "configurations=\"" + configNames.mkString(" ") + "\""
+        printer <<< "for config in $configurations"
+        printer <<< "do"
+        printer <<< "\tcd ${config}"
+        printer <<< "\tsbatch run"
+        printer <<< "\tcd .."
+        printer <<< "done"
+        Settings.user.toLowerCase() match {
+          case "sebastian" | "kuckuk" | "sebastiankuckuk" =>
+            printer <<< "squeue -u kuckuk"
+          case _                                          =>
+          // nothing to do
+        }
+
+        printer.finish()
+
+      case "juwels" =>
         val filename = "../submitGenerated"
 
         Logger.debug(s"Generating compile script for ${ Platform.targetName } with filename $filename")
