@@ -3,6 +3,7 @@ package exastencils.operator.l4
 import scala.collection.mutable._
 
 import exastencils.base.l4._
+import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
 /// L4_BaseStencilDecl
@@ -24,6 +25,11 @@ case class L4_BaseStencilDecl(
   }
 
   override def addToKnowledge() : Unit = {
+    if (entries.isEmpty) {
+      Logger.warn("Trying to add empty stencil to Knowledge - not supported")
+      return
+    }
+
     // TODO: check stencil - numDims for entries, stride, etc.
     val numDims = entries.map(_.numDims).max
     val colStride = entries.map(_.colStride).head
