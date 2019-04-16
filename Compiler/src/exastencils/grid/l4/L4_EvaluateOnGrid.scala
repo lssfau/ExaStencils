@@ -81,6 +81,7 @@ case class L4_EvaluateOnGrid(
     expression match {
       case fieldAccess : L4_FieldAccess  => resolveForFieldAccess(fieldAccess, interpolation)
       case const : L4_ConstantExpression => const // no interpolation needed
+      case variable : L4_VariableAccess  => variable // no interpolation needed
       case other                         => Logger.error(s"Evaluation is not supported yet for $other")
     }
   }

@@ -79,6 +79,7 @@ case class IR_EvaluateOnGrid(
     expression match {
       case fieldAccess : IR_FieldAccess  => resolveForFieldAccess(fieldAccess, interpolation)
       case const : IR_ConstantExpression => const // no interpolation needed
+      case variable : IR_VariableAccess  => variable // no interpolation needed
       case other                         => Logger.error(s"Evaluation is not supported yet for $other")
     }
   }
