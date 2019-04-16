@@ -4,7 +4,6 @@ import exastencils.base.ProgressLocation
 import exastencils.base.l3._
 import exastencils.datastructures._
 import exastencils.field.l4.L4_ActiveSlot
-import exastencils.knowledge.l3._
 import exastencils.operator.l4.L4_StencilFieldAccess
 import exastencils.prettyprinting.PpStream
 
@@ -18,7 +17,7 @@ object L3_StencilFieldAccess {
 case class L3_StencilFieldAccess(
     var target : L3_StencilField,
     var offset : Option[L3_ConstIndex] = None,
-    var dirAccess : Option[L3_ConstIndex] = None) extends L3_LeveledKnowledgeAccess with L3_CanBeOffset {
+    var dirAccess : Option[L3_ConstIndex] = None) extends L3_OperatorAccess with L3_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
     out << name << '@' << level
@@ -32,6 +31,8 @@ case class L3_StencilFieldAccess(
       L3_ProgressOption(offset)(_.progress),
       L3_ProgressOption(dirAccess)(_.progress))
   }
+
+  override def assembleOffsetMap() = target.stencil.assembleOffsetMap()
 }
 
 /// L3_ResolveStencilFieldAccesses
