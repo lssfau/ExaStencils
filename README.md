@@ -45,6 +45,7 @@ If you are used to Eclipse, setting the keymap to Eclipse style may be helpful:
   * Finish
 * if 'Add Files to Git' dialogue opens -> don't add anything (press cancel)
 * check that everything works: Build -> Build Project
+* **note** in some configurations it might be necessary to add the Scala SDK under Project Structure -> Global Libraries. Otherwise no files will be compiled (build still succeeds).
 
 *Alternatively*, provided project files can be used directly (not recommended):
 * copy Documentation/IntelliJ/Compiler.iml to /Compiler
