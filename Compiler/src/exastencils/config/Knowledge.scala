@@ -163,6 +163,9 @@ object Knowledge {
   // generate debug output (run-time) for generated L3 solvers if true
   var solver_generateDbgOutputs : Boolean = false
 
+  // don't print any info messages in the generated solver (does not affect warnings)
+  var solver_silent : Boolean = false
+
   // target reduction of the residual norm for the whole solver
   var solver_targetResReduction : Double = 1e-5
 

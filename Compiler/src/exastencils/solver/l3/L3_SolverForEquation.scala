@@ -257,12 +257,14 @@ case class L3_SolverForEquation(
       solveStmts += L3_VariableDeclaration(curRes, initRes)
       solveStmts += L3_VariableDeclaration(prevRes, curRes)
 
-      if (Knowledge.testing_enabled) {
-        if (Knowledge.testing_printRes)
-          solveStmts += L3_FunctionCall(L3_PlainInternalFunctionReference("printWithReducedPrec", L3_UnitDatatype), initRes)
-      } else {
-        solveStmts += L3_FunctionCall(L3_PlainInternalFunctionReference("print", L3_UnitDatatype), ListBuffer[L3_Expression](
-          L3_StringConstant("Starting residual:"), initRes))
+      if (!Knowledge.solver_silent) {
+        if (Knowledge.testing_enabled) {
+          if (Knowledge.testing_printRes)
+            solveStmts += L3_FunctionCall(L3_PlainInternalFunctionReference("printWithReducedPrec", L3_UnitDatatype), initRes)
+        } else {
+          solveStmts += L3_FunctionCall(L3_PlainInternalFunctionReference("print", L3_UnitDatatype), ListBuffer[L3_Expression](
+            L3_StringConstant("Starting residual:"), initRes))
+        }
       }
 
       val loopStmts = ListBuffer[L3_Statement]()
@@ -278,13 +280,15 @@ case class L3_SolverForEquation(
       loopStmts += L3_Assignment(prevRes, curRes)
       loopStmts += L3_Assignment(curRes, callResNorm)
 
-      if (Knowledge.testing_enabled) {
-        if (Knowledge.testing_printRes)
-          loopStmts += L3_FunctionCall(L3_PlainInternalFunctionReference("printWithReducedPrec", L3_UnitDatatype), curRes)
-      } else {
-        loopStmts += L3_FunctionCall(L3_PlainInternalFunctionReference("print", L3_UnitDatatype), ListBuffer[L3_Expression](
-          L3_StringConstant("Residual after"), curIt, L3_StringConstant("iterations is"), curRes,
-          L3_StringConstant("--- convergence factor is"), curRes / prevRes))
+      if (!Knowledge.solver_silent) {
+        if (Knowledge.testing_enabled) {
+          if (Knowledge.testing_printRes)
+            loopStmts += L3_FunctionCall(L3_PlainInternalFunctionReference("printWithReducedPrec", L3_UnitDatatype), curRes)
+        } else {
+          loopStmts += L3_FunctionCall(L3_PlainInternalFunctionReference("print", L3_UnitDatatype), ListBuffer[L3_Expression](
+            L3_StringConstant("Residual after"), curIt, L3_StringConstant("iterations is"), curRes,
+            L3_StringConstant("--- convergence factor is"), curRes / prevRes))
+        }
       }
 
       solveStmts += L3_UntilLoop(
