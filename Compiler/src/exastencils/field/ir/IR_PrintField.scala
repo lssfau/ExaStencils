@@ -898,27 +898,28 @@ case class IR_PrintVtkNS(var filename : IR_Expression, level : Int) extends IR_S
 }
 
 case class IR_PrintVtkNNF(var filename : IR_Expression, level : Int) extends IR_Statement with IR_Expandable {
+  def u = IR_FieldCollection.getByIdentifier("u", level).get
+  def v = IR_FieldCollection.getByIdentifier("v", level).get
+  def w = IR_FieldCollection.getByIdentifier("w", level).get
+  def p = IR_FieldCollection.getByIdentifier("p", level).get
+  def rho = IR_FieldCollection.getByIdentifier("rho", level).get
+  def mue = IR_FieldCollection.getByIdentifier("mue", level).get
+  def gamma = IR_FieldCollection.getByIdentifier("gamma", level).get
+  def phi = IR_FieldCollection.getByIdentifier("phi", level).get
 
-  def numDimsGrid = 2
+  def numDimsGrid = p.numDimsGrid
+
+  def numCells_x = p.fieldLayout.layoutsPerDim(0).numInnerLayers
+  def numCells_y = p.fieldLayout.layoutsPerDim(1).numInnerLayers
+  def numCells_z = if (numDimsGrid > 2) p.fieldLayout.layoutsPerDim(2).numInnerLayers else 1
+  def numPointsPerFrag = (numCells_x + 1) * (numCells_y + 1) * (if (numDimsGrid > 2) numCells_z + 1 else 1)
+  def numFrags = Knowledge.domain_numFragmentsTotal
+  def numCells = numCells_x * numCells_y * numCells_z * numFrags
+  def numNodes = numPointsPerFrag * numFrags
 
   override def expand() : Output[StatementList] = {
     if (!Settings.additionalIncludes.contains("fstream"))
       Settings.additionalIncludes += "fstream"
-
-    val u = IR_FieldCollection.getByIdentifier("u", level).get
-    val v = IR_FieldCollection.getByIdentifier("v", level).get
-    val p = IR_FieldCollection.getByIdentifier("p", level).get
-    val rho = IR_FieldCollection.getByIdentifier("rho", level).get
-    val mue = IR_FieldCollection.getByIdentifier("mue", level).get
-    val gamma = IR_FieldCollection.getByIdentifier("gamma", level).get
-    val phi = IR_FieldCollection.getByIdentifier("phi", level).get
-
-    val numCells_x = p.fieldLayout.layoutsPerDim(0).numInnerLayers
-    val numCells_y = p.fieldLayout.layoutsPerDim(1).numInnerLayers
-    val numPointsPerFrag = (numCells_x + 1) * (numCells_y + 1)
-    val numFrags = Knowledge.domain_numFragmentsTotal
-    val numCells = numCells_x * numCells_y * numFrags
-    val numNodes = numPointsPerFrag * numFrags
 
     def separator = IR_StringConstant(" ")
 
@@ -995,23 +996,48 @@ case class IR_PrintVtkNNF(var filename : IR_Expression, level : Int) extends IR_
         val offset = (MPI_IV_MpiRank * Knowledge.domain_numFragmentsPerBlock + IR_LoopOverFragments.defIt) * numPointsPerFrag
 
         var cellPrint = ListBuffer[IR_Expression]()
-        cellPrint += 4
-        cellPrint += separator
-        cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1)
-        cellPrint += separator
-        cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1)
-        cellPrint += separator
-        cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1)
-        cellPrint += separator
-        cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1)
-        cellPrint += IR_Print.endl
+        numDimsGrid match {
+          case 2 =>
+            cellPrint += 4
+            cellPrint += separator
+            cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1)
+            cellPrint += separator
+            cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1)
+            cellPrint += separator
+            cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1)
+            cellPrint += separator
+            cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1)
+            cellPrint += IR_Print.endl
+          case 3 =>
+            cellPrint += 8
+            cellPrint += separator
+            cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 0) * (numCells_x + 1) * (numCells_y + 1)
+            cellPrint += separator
+            cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 0) * (numCells_x + 1) * (numCells_y + 1)
+            cellPrint += separator
+            cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 0) * (numCells_x + 1) * (numCells_y + 1)
+            cellPrint += separator
+            cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 0) * (numCells_x + 1) * (numCells_y + 1)
+            cellPrint += separator
+            cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 1) * (numCells_x + 1) * (numCells_y + 1)
+            cellPrint += separator
+            cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 1) * (numCells_x + 1) * (numCells_y + 1)
+            cellPrint += separator
+            cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 1) * (numCells_x + 1) * (numCells_y + 1)
+            cellPrint += separator
+            cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 1) * (numCells_x + 1) * (numCells_y + 1)
+            cellPrint += IR_Print.endl
+        }
 
         IR_Print(stream, cellPrint)
       }
 
       val initCells = ListBuffer[IR_Statement](
         IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
-        IR_IfCondition(MPI_IsRootProc(), IR_Print(stream, IR_StringConstant("CELLS"), separator, numCells, separator, 5 * numCells, IR_Print.endl)),
+        numDimsGrid match {
+          case 2 => IR_IfCondition(MPI_IsRootProc(), IR_Print(stream, IR_StringConstant("CELLS"), separator, numCells, separator, 5 * numCells, IR_Print.endl))
+          case 3 => IR_IfCondition(MPI_IsRootProc(), IR_Print(stream, IR_StringConstant("CELLS"), separator, numCells, separator, 9 * numCells, IR_Print.endl))
+        },
         //IR_Print(stream, "std::scientific"), //std::defaultfloat
         IR_LoopOverFragments(
           IR_IfCondition(IR_IV_IsValidForDomain(p.domain.index),
@@ -1035,7 +1061,11 @@ case class IR_PrintVtkNNF(var filename : IR_Expression, level : Int) extends IR_
           IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
           IR_Print(stream, IR_StringConstant("CELL_TYPES"), separator, numCells, IR_Print.endl),
           IR_ForLoop(IR_VariableDeclaration(it, 0), IR_Lower(it, numCells), IR_PreIncrement(it),
-            IR_Print(stream, ListBuffer[IR_Expression](9, separator))),
+            numDimsGrid match {
+              case 2 => IR_Print(stream, ListBuffer[IR_Expression](9, separator))
+              case 3 => IR_Print(stream, ListBuffer[IR_Expression](12, separator))
+            }
+          ),
           IR_Print(stream, IR_Print.endl),
           IR_MemberFunctionCall(stream, "close"))))
 
@@ -1078,18 +1108,24 @@ case class IR_PrintVtkNNF(var filename : IR_Expression, level : Int) extends IR_
       }
 
       def meanU = 0.5 * (IR_FieldAccess(IR_FieldSelection(u, level, IR_IV_ActiveSlot(u)), IR_LoopOverDimensions.defIt(numDimsGrid))
-        + IR_FieldAccess(IR_FieldSelection(u, level, IR_IV_ActiveSlot(u)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(1, 0)))
+        + IR_FieldAccess(IR_FieldSelection(u, level, IR_IV_ActiveSlot(u)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(1, 0, 0)))
       def meanV = 0.5 * (IR_FieldAccess(IR_FieldSelection(v, level, IR_IV_ActiveSlot(v)), IR_LoopOverDimensions.defIt(numDimsGrid))
-        + IR_FieldAccess(IR_FieldSelection(v, level, IR_IV_ActiveSlot(v)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 1)))
+        + IR_FieldAccess(IR_FieldSelection(v, level, IR_IV_ActiveSlot(v)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 1, 0)))
+      def meanW = 0.5 * (IR_FieldAccess(IR_FieldSelection(w, level, IR_IV_ActiveSlot(w)), IR_LoopOverDimensions.defIt(numDimsGrid))
+        + IR_FieldAccess(IR_FieldSelection(w, level, IR_IV_ActiveSlot(w)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 0, 1)))
 
-      // add u
+      // add vel
       addCellPrint("vel", {
         var cellPrint = ListBuffer[IR_Expression]()
         cellPrint += meanU
         cellPrint += separator
         cellPrint += meanV
+        if (numDimsGrid > 2) {
+          cellPrint += separator
+          cellPrint += meanW
+        }
         cellPrint += IR_Print.endl
-      }, 2)
+      }, numDimsGrid)
 
       // add p
       addCellPrint("p", {
