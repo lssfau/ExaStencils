@@ -336,6 +336,8 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
       inWriteOp = true
       EvaluatePerformanceEstimates_FieldAccess.applyStandalone(IR_ExpressionStatement(assign.dest))
       inWriteOp = false
+      // honor read-allocate
+      EvaluatePerformanceEstimates_FieldAccess.applyStandalone(IR_ExpressionStatement(assign.dest))
       EvaluatePerformanceEstimates_FieldAccess.applyStandalone(IR_ExpressionStatement(assign.src))
       assign
     case access : IR_MultiDimFieldAccess =>
