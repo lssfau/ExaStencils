@@ -25,8 +25,6 @@ object IR_LocalSchurCompl {
 
     // TODO: currently assumes special case of 2D/3D velocity-pressure coupling
 
-    Logger.warn(unknowns.map(_.getOffsetFromIndex).mkString("\n"))
-
     Knowledge.dimensionality match {
       case 2 => invert2D(AVals, fVals, unknowns, jacobiType, relax, omitConditions)
       case 3 => invert3D(AVals, fVals, unknowns, jacobiType, relax, omitConditions)
