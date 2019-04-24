@@ -225,6 +225,7 @@ case class IR_LoopOverDimensions(
       loop.parallelization.isInnermost = d == 0
       loop.parallelization.potentiallyParallel = parallelizable(d)
       loop.parallelization.isVectorizable = isVectorizable
+      loop.parallelization.parallelizationReasonable = parallelize(d)
 
       wrappedBody = ListBuffer[IR_Statement](loop)
     }

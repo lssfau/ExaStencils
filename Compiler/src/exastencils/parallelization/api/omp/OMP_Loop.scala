@@ -67,11 +67,11 @@ case class OMP_ParallelFor(
 object OMP_AddParallelSections extends DefaultStrategy("Handle potentially parallel omp sections") {
   this += new Transformation("Adding OMP parallel for pragmas", {
     case target : IR_ForLoop if target.parallelization.potentiallyParallel && !target.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) &&
-      target.parallelization.reduction.isDefined && target.hasAnnotation(IR_Vectorization.VECT_ANNOT)                               =>
+      target.parallelization.reduction.isDefined && target.hasAnnotation(IR_Vectorization.VECT_ANNOT)                                                                                   =>
       // FIXME: workaround for feature interaction
       Logger.warn("Parallelizing and Vectorizing a loop with a reduction is currently not supported! If required, contact Stefan.")
       target
-    case target : IR_ForLoop if target.parallelization.potentiallyParallel && !target.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) =>
+    case target : IR_ForLoop if target.parallelization.potentiallyParallel && target.parallelization.parallelizationReasonable && !target.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) =>
       val additionalOMPClauses = ListBuffer[OMP_Clause]()
 
       if (target.parallelization.reduction.isDefined)
