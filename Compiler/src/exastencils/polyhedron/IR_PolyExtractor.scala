@@ -31,6 +31,9 @@ object IR_PolyExtractor {
   /** annotation id used to indicate that this subtree should be skipped */
   private final val SKIP_ANNOT : String = "PolySkip"
 
+  /** annotation id used to indicate that a skiped subtree is processed completely (and, thus, a skip state must end) */
+  private final val REMOVE_SKIP_ANNOT : String = "PolyRSkip"
+
   /** annotation id used to specify if the current condition must be negated (to distinguish between then and else branch) */
   private final val NEGATE_COND_ANNOT : String = "NegCond"
 
@@ -446,10 +449,16 @@ class IR_PolyExtractor extends Collector {
     var merge : Boolean = mergeScops
     mergeScops = false
 
-    if (node.hasAnnotation(SKIP_ANNOT))
-      skip = true
+    // do not process any SKIP_ANNOT when already skipping something
+    //  some singleton objects, such as IR_RealDatatype, may be processed multiple times, which may "quit" a skip too early
+    //  Solution: distinguish between "set skip" and "reset skip" annotation to ensure an "active skip" is only deactivated by the correct node
     if (skip)
       return
+    if (node.removeAnnotation(SKIP_ANNOT).isDefined) {
+      skip = true
+      node.annotate(REMOVE_SKIP_ANNOT)
+      return
+    }
 
     node.removeAnnotation(NEGATE_COND_ANNOT) match {
       case Some(b : Boolean) =>
@@ -592,7 +601,7 @@ class IR_PolyExtractor extends Collector {
       isWrite = false
     }
 
-    if (node.removeAnnotation(SKIP_ANNOT).isDefined) {
+    if (node.removeAnnotation(REMOVE_SKIP_ANNOT).isDefined) {
       skip = false
       return
     }

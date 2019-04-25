@@ -29,7 +29,7 @@ object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   /**
     * The command line argument for the scop ID to the exploration ID matching.
     * Possible structures:
-    * - a single Int, used for every scop
+    * - a single ID (Int), used for every scop
     * - a list of scop ID to exploration ID mappings, key and values are spearated by a colon, list entries are separated by a pipe, e.g.: "3:42|5:1159"
     */
   var polyOptExplIDs : String = ""
