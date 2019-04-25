@@ -1,6 +1,6 @@
 targetOS                   = "Linux"
 targetCompiler             = "GCC"
-targetCompilerVersion      = 6
+targetCompilerVersion      = 8
 targetCompilerVersionMinor = 3
 targetHardware             = "CPU"
 simd_instructionSet        = "SSE3"
