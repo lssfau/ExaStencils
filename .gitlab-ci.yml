@@ -1,0 +1,11 @@
+docker-minimal-ubuntu:
+   script:
+     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+     - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/minimal_ubuntu || true
+     - docker build --pull . -f dockerfiles/minimal_ubuntu.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/minimal_ubuntu
+     - docker push i10git.cs.fau.de:5005/exastencils/exastencils/minimal_ubuntu
+   image: docker:latest
+   when: manual
+   tags:
+      - docker-docker
+
