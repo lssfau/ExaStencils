@@ -9,3 +9,10 @@ docker-minimal-ubuntu:
    tags:
       - docker-docker
 
+test_linux:
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/minimal_ubuntu 
+    script:
+        - sbt compile
+        - sbt assembly
+    tags:
+        - docker
