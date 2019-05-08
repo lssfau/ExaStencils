@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-ARG SBT_VERSION=1.1.6
+ARG SBT_VERSION=2.1.8
 
 # Install sbt
 RUN \
