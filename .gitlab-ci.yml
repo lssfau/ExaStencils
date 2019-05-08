@@ -14,9 +14,7 @@ test-ubuntu:
     script:
         - sbt compile
         - sbt assembly
-        - cd Examples
-        - ./generateExamples.sh
-        - ./compileExamples.sh
-        - ./runExamples.sh
+        - cd Testing
+        - python run_tests.py ExaStokes_2D tmp ../Compiler/Compiler.jar Application/ExaStokes_2D.knowledge Platform/random.platform Application/ExaStokes_2D.exa4 Application/ExaStokes_2D.results
     tags:
         - docker
