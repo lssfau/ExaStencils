@@ -14,5 +14,9 @@ test_linux:
     script:
         - sbt compile
         - sbt assembly
+        - cd Examples
+        - ./generateExamples.sh
+        - ./compileExamples.sh
+        - ./runExamples.sh
     tags:
         - docker
