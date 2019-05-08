@@ -1,16 +1,16 @@
-docker-minimal-ubuntu:
+docker-ubuntu:
    script:
      - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-     - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/minimal_ubuntu || true
-     - docker build --pull . -f dockerfiles/minimal_ubuntu.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/minimal_ubuntu
-     - docker push i10git.cs.fau.de:5005/exastencils/exastencils/minimal_ubuntu
+     - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-8 || true
+     - docker build --pull . -f dockerfiles/ubuntu-18.04-openjdk-8.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-8
+     - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-8
    image: docker:latest
    when: manual
    tags:
       - docker-docker
 
-test_linux:
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/minimal_ubuntu 
+test-ubuntu:
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-8 
     script:
         - sbt compile
         - sbt assembly
