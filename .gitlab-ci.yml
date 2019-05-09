@@ -9,20 +9,6 @@ docker-ubuntu:
    tags:
       - docker-docker
 
-test-ubuntu:
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-8 
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - sbt compile
-        - sbt assembly
-        - cd Testing
-        - python3 run_test.py 2D_FD_Poisson_fromL1 Main Poisson/2D_FD_Poisson_fromL1.knowledge ../Examples/Poisson/2D_FD_Poisson_fromL1.exa1 Poisson/2D_FD_Poisson_fromL1.results 4 4 Platform/random.platform
-    tags:
-        - docker
-
-
 test-examples:
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-8 
     variables:
