@@ -30,6 +30,7 @@ test-examples:
     tags:
         - docker
     artifacts:
+        when: always
         paths:
             - Testing/output/Debug/*
         expire_in: 1 weeks
