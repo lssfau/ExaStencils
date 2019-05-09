@@ -15,6 +15,6 @@ test-ubuntu:
         - sbt compile
         - sbt assembly
         - cd Testing
-        - python3 run_tests.py ExaStokes_2D tmp ../Compiler/Compiler.jar Application/ExaStokes_2D.knowledge Platform/random.platform Application/ExaStokes_2D.exa4 Application/ExaStokes_2D.results
+        - python3 run_test.py ExaStokes_2D tmp ../Compiler/Compiler.jar Application/ExaStokes_2D.knowledge Platform/random.platform Application/ExaStokes_2D.exa4 Application/ExaStokes_2D.results
     tags:
         - docker
