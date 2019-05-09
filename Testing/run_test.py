@@ -1,4 +1,6 @@
-import sys, os, subprocess
+import sys
+import os
+import subprocess
 
 
 def generate_settings_file(problem_name: str, output_path: str, exa_file_names: [str]):
@@ -15,15 +17,42 @@ def generate_settings_file(problem_name: str, output_path: str, exa_file_names: 
     tmp += f'debugL4File\t= "Debug/{problem_name}_debug.exa4"\n\n'
     tmp += f'htmlLogFile\t= "Debug/{problem_name}_log.html"\n\n'
     tmp += f'outputPath\t= "generated/{problem_name}"\n\n'
-    tmp += f'produceHtmlLog\t= false\n'
+    tmp += f'produceHtmlLog\t= true\n'
     tmp += f'timeStrategies\t= true\n\n'
     tmp += f'buildfileGenerators\t= {{"MakefileGenerator"}}\n'
     with open(f'{output_path}/{problem_name}.settings', "w") as file:
         print(tmp, file=file)
 
 
-def run_test(problem_name: str, output_path: str, generator_path: str, knowledge_path: str, platform_path: str,
-             exa_file_names: [str], expected_results_path: str):
+def check_results(result_str: str, expected_results_path: str):
+    EPS = 1e-10
+
+    def print_results(generated, expected):
+        print('Expected:')
+        for s in expected:
+            print(s)
+        print('Generated:')
+        for s in generated:
+            print(s)
+
+    with open(expected_results_path, 'r') as file:
+        expected_results = file.readlines()
+        expected_results = [x.strip() for x in expected_results]
+        results = result_str.splitlines()
+        if len(results) != len(expected_results):
+            print(f'Incorrect number of results.')
+            print_results(results, expected_results)
+            return False
+        for x, y in zip(results, expected_results):
+            if abs(float(x) - float(y)) > EPS:
+                print(f'Results do not match.')
+                print_results(results, expected_results)
+                return False
+    return True
+
+
+def run_test(generator_path: str, problem_name: str, knowledge_path: str, exa_file_names: [str],
+             expected_results_path: str, nprocs: int, nthreads: int, platform_path: str, output_path: str):
     if not os.path.exists(output_path):
         os.makedirs(output_path)
     generate_settings_file(problem_name, output_path, exa_file_names)
@@ -31,26 +60,46 @@ def run_test(problem_name: str, output_path: str, generator_path: str, knowledge
         for i in range(1, 5):
             if f'.exa{i}' in name:
                 subprocess.run(['cp', name, f'{output_path}/{problem_name}.exa{i}'])
-    result = subprocess.run(['java', '-Djava.library.path=scala-isl-utils/libs', '-classpath scala-isl-utils/libs/isl-scala.jar', '-cp', generator_path, 'Main', f'{output_path}/{problem_name}.settings',
+    result = subprocess.run(['java', '-cp', generator_path, 'Main', f'{output_path}/{problem_name}.settings',
                              knowledge_path, platform_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    # print(result.stdout.decode('utf-8'))
-    print(result.stderr.decode('utf-8'))
-    return result.returncode
+    if not result.returncode == 0:
+        print(result.stderr.decode('utf-8'))
+        return result.returncode
+    result = subprocess.run(['make', '-j', '-s', '-C', f'{output_path}/generated/{problem_name}'],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if not result.returncode == 0:
+        print(result.stderr.decode('utf-8'))
+        return result.returncode
+    result = subprocess.run([f'mpirun', f'-np', f'{nprocs}',
+                             f'{output_path}/generated/{problem_name}/exastencils'],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if not result.returncode == 0:
+        print(result.stderr.decode('utf-8'))
+        return result.returncode
+    else:
+        result_str = result.stdout.decode('utf-8')
+        if check_results(result_str, expected_results_path) is True:
+            return result.returncode
+        else:
+            return -1
 
 
 def main():
+    generator_path = "../Compiler/Compiler.jar"
     problem_name = sys.argv[1]
-    output_path = sys.argv[2]
-    generator_path = sys.argv[3]
-    knowledge_path = sys.argv[4]
-    platform_path = sys.argv[5]
-    exa_files_str = sys.argv[6]
-    expected_results_path = sys.argv[7]
+    knowledge_path = sys.argv[3]
+    exa_files_str = sys.argv[4]
+    expected_results_path = sys.argv[5]
+    nprocs = int(sys.argv[6])
+    nthreads = int(sys.argv[7])
+    platform_path = sys.argv[8]
+    output_path = 'output'
     if exa_files_str == '*':
         exa_files = []
     else:
         exa_files = exa_files_str.split(';')
-    return run_test(problem_name, output_path, generator_path, knowledge_path, platform_path, exa_files, expected_results_path)
+    return run_test(generator_path, problem_name, knowledge_path, exa_files, expected_results_path,
+                    nprocs, nthreads, platform_path, output_path)
 
 
 if __name__ == "__main__":
