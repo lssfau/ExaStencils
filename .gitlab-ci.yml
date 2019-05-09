@@ -13,7 +13,7 @@ test-ubuntu:
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-8 
     script:
         - java -version
-        - gcc --version
+        - $CXX --version
         - python3 --version
         - mpirun --version
         - sbt compile
@@ -30,7 +30,7 @@ test-examples:
         PLATFORM: Testing/Platform/random.platform
     script:
         - java -version
-        - gcc --version
+        - $CXX --version
         - python3 --version
         - mpirun --version
         - sbt compile
