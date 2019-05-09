@@ -32,7 +32,9 @@ def run_test(problem_name: str, output_path: str, generator_path: str, knowledge
             if f'.exa{i}' in name:
                 subprocess.run(['cp', name, f'{output_path}/{problem_name}.exa{i}'])
     result = subprocess.run(['java', '-cp', generator_path, 'Main', f'{output_path}/{problem_name}.settings',
-                             knowledge_path, platform_path], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+                             knowledge_path, platform_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    print(result.stdout.decode('utf-8'))
+    # print(result.stderr.decode('utf-8'))
     return result.returncode
 
 
