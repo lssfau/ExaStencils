@@ -19,14 +19,13 @@ test-ubuntu:
         - ./autogen.sh
         - ./configure --prefix=${ISL_INSTALL} --with-jni-include=/usr/lib/jvm/default-java/include/ --with-clang=system
         - cd interface
-        - cd ${BASE_DIR}/isl/interface
         - make isl-scala.jar
         - cp -r java/gen src
         - cp scala/src/isl/Conversions.scala src/isl
         - zip -r isl-scala.jar src
-        - cd ..
         - mkdir libs
-        - cp isl/src/* libs
+        - cp -r src/* libs
+        - cd ..
         - sbt compile
         - sbt assembly
         - cd Testing
