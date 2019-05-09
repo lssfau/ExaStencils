@@ -12,6 +12,21 @@ docker-ubuntu:
 test-ubuntu:
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-8 
     script:
+        - git clone https://github.com/stganser/isl.git
+        - cd isl
+        - mkdir install
+        - export ISL_INSTALL="${PWD}/install"
+        - ./autogen.sh
+        - ./configure --prefix=${ISL_INSTALL} --with-jni-include=/usr/lib/jvm/default-java/include/ --with-clang=system
+        - cd interface
+        - cd ${BASE_DIR}/isl/interface
+        - make isl-scala.jar
+        - cp -r java/gen src
+        - cp scala/src/isl/Conversions.scala src/isl
+        - zip -r isl-scala.jar src
+        - cd ..
+        - mkdir libs
+        - cp isl/src/* libs
         - sbt compile
         - sbt assembly
         - cd Testing
