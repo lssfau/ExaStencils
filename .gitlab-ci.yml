@@ -27,7 +27,7 @@ test-ubuntu:
 test-examples:
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-8 
     variables:
-        PLATFORM: Testing/Platform/random.platform
+        PLATFORM: Platform/random.platform
     script:
         - java -version
         - $CXX --version
