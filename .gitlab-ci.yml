@@ -30,7 +30,7 @@ test-examples:
         PLATFORM: Platform/random.platform
     script:
         - java -version
-        - $CXX --version
+        - eval $CXX --version
         - python3 --version
         - mpirun --version
         - sbt compile
