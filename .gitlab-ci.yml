@@ -17,12 +17,13 @@ test-examples:
         - java -version
         - python3 --version
         - mpirun --version
+        - locate jni.h
         - git clone https://github.com/stganser/isl.git
         - cd isl
         - mkdir install
         - export ISL_INSTALL="${PWD}/install"
         - ./autogen.sh
-        - ./configure --prefix=${ISL_INSTALL} --with-jni-include=/usr/lib/jvm/default-java/include/ --with-clang=system
+        - ./configure --prefix=${ISL_INSTALL} --with-jni-include=/usr/lib/jvm/openjdk-8-/include/ --with-clang=system
         - sbt compile
         - sbt assembly
         - cd Testing
