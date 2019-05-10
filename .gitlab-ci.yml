@@ -17,7 +17,6 @@ test-examples:
         - java -version
         - python3 --version
         - mpirun --version
-        - locate jni.h
         - git clone https://github.com/stganser/isl.git
         - cd isl
         - mkdir install
