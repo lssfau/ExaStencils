@@ -23,6 +23,7 @@ test-examples:
         - export ISL_INSTALL="${PWD}/install"
         - ./autogen.sh
         - ./configure --prefix=${ISL_INSTALL} --with-jni-include=/usr/lib/jvm/java-8-openjdk-amd64/include --with-clang=system
+        - cd ..
         - sbt compile
         - sbt assembly
         - cd Testing
