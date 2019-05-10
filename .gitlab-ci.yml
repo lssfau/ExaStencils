@@ -36,6 +36,8 @@ test-examples:
         - python3 run_test.py 2D_FE_Poisson_fromL2  Main  Poisson/2D_FE_Poisson_fromL2.knowledge  "../Examples/Poisson/2D_FE_Poisson_fromL2.exa2;../Examples/Poisson/2D_FE_Poisson_fromL2.exa3;../Examples/Poisson/2D_FE_Poisson_fromL2.exa4"  Poisson/2D_FE_Poisson_fromL2.results  1   1    $PLATFORM
     tags:
         - docker
+        - cuda
+        - avx
     artifacts:
         when: on_failure
         paths:
