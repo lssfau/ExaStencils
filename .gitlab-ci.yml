@@ -17,19 +17,15 @@ test-examples:
         - java -version
         - python3 --version
         - mpirun --version
-        - sbt compile
-        - sbt assembly
         - git clone https://github.com/stganser/isl.git
         - cd isl
         - mkdir install
         - export ISL_INSTALL="${PWD}/install"
         - ./autogen.sh
         - ./configure --prefix=${ISL_INSTALL} --with-jni-include=/usr/lib/jvm/java-8-openjdk-amd64/include --with-clang=system
-        - cd interface
-        - make isl-scala.jar
-        - cp scala/src/isl/Conversions.scala src/isl
-        - zip -r isl-scala.jar src
         - cd ..
+        - sbt compile
+        - sbt assembly
         - cd Testing
         - python3 run_test.py 2D_FD_Poisson_fromL1  Main  Poisson/2D_FD_Poisson_fromL1.knowledge  "../Examples/Poisson/2D_FD_Poisson_fromL1.exa1"  Poisson/2D_FD_Poisson_fromL1.results  4   4    $PLATFORM
         - python3 run_test.py 2D_FD_Poisson_fromL2  Main  Poisson/2D_FD_Poisson_fromL2.knowledge  "../Examples/Poisson/2D_FD_Poisson_fromL2.exa2;../Examples/Poisson/2D_FD_Poisson_fromL2.exa3;../Examples/Poisson/2D_FD_Poisson_fromL2.exa4"  Poisson/2D_FD_Poisson_fromL2.results  4   4    $PLATFORM
