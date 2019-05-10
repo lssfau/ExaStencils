@@ -85,15 +85,15 @@ def run_test(generator_path: str, problem_name: str, knowledge_path: str, exa_fi
 
 
 def main():
-    generator_path = "../Compiler/Compiler.jar"
-    problem_name = sys.argv[1]
+    generator_path = sys.argv[1]
+    problem_name = sys.argv[2]
     knowledge_path = sys.argv[3]
     exa_files_str = sys.argv[4]
     expected_results_path = sys.argv[5]
     nprocs = int(sys.argv[6])
     nthreads = int(sys.argv[7])
     platform_path = sys.argv[8]
-    output_path = 'output'
+    output_path = sys.argv[9]
     if exa_files_str == '*':
         exa_files = []
     else:
