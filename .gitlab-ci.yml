@@ -15,7 +15,7 @@ full-test:
         - java -version
         - python3 --version
         - mpirun --version
-        - scalac --version
+        - scalac -version
         # - git clone https://github.com/stganser/isl.git
         # - cd isl
         # - mkdir install
