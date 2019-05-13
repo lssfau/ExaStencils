@@ -26,7 +26,7 @@ full-test:
         # - sbt compile
         # - sbt assembly
         - cd Compiler
-        - ant -f build.xml
+        - ant
         - cd ..
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar Appl_ExaStokes_2D Application/ExaStokes_2D.knowledge "Application/ExaStokes_2D.exa4" Application/ExaStokes_2D.results 1 10 Platform/random.platform output
