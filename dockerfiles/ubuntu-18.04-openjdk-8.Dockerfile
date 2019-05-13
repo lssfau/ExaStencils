@@ -1,4 +1,4 @@
-FROM FROM nvidia/cuda:10.1-devel-ubuntu18.04
+FROM nvidia/cuda:10.1-devel-ubuntu18.04
 
 ARG SBT_VERSION=1.2.8
 
