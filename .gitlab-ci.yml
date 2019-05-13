@@ -15,15 +15,15 @@ full-test:
         - java -version
         - python3 --version
         - mpirun --version
-        - git clone https://github.com/stganser/isl.git
-        - cd isl
-        - mkdir install
-        - export ISL_INSTALL="${PWD}/install"
-        - ./autogen.sh
-        - ./configure --prefix=${ISL_INSTALL} --with-jni-include=/usr/lib/jvm/java-8-openjdk-amd64/include --with-clang=system
-        - cd ..
-        - sbt compile
-        - sbt assembly
+        # - git clone https://github.com/stganser/isl.git
+        # - cd isl
+        # - mkdir install
+        # - export ISL_INSTALL="${PWD}/install"
+        # - ./autogen.sh
+        # - ./configure --prefix=${ISL_INSTALL} --with-jni-include=/usr/lib/jvm/java-8-openjdk-amd64/include --with-clang=system
+        # - cd ..
+        # - sbt compile
+        # - sbt assembly
         - cd Compiler
         - ant -f build.xml
         - cd ..
