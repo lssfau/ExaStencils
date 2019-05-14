@@ -1,4 +1,4 @@
-FROM nvidia/cuda
+FROM ubuntu:18.04
 
 ARG SBT_VERSION=1.2.8
 
