@@ -13,22 +13,12 @@ full-test:
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-8
     script:
         - java -version
+        - scala -version
         - python3 --version
         - mpirun --version
-        - scalac -version
-        # - git clone https://github.com/stganser/isl.git
-        # - cd isl
-        # - mkdir install
-        # - export ISL_INSTALL="${PWD}/install"
-        # - ./autogen.sh
-        # - ./configure --prefix=${ISL_INSTALL} --with-jni-include=/usr/lib/jvm/java-8-openjdk-amd64/include --with-clang=system
-        # - cd ..
-        # - sbt compile
-        # - sbt assembly
         - cd Compiler
-        - ant
-        - cd ..
-        - cd Testing
+        - ant -Dscala.dir=/usr/share/scala-2.11 -Djava.dir=/usr/lib/jvm/java-8-openjdk-amd64
+        - cd ../Testing
         - python3 run_test.py ../Compiler/Compiler.jar Appl_ExaStokes_2D Application/ExaStokes_2D.knowledge "Application/ExaStokes_2D.exa4" Application/ExaStokes_2D.results 1 10 Platform/random.platform output
         - python3 run_test.py ../Compiler/Compiler.jar Appl_ExaStokes_3D Application/ExaStokes_3D.knowledge "Application/ExaStokes_3D.exa4" Application/ExaStokes_3D.results 1 10 Platform/random.platform output
         - python3 run_test.py ../Compiler/Compiler.jar Appl_ExaFluids Application/ExaFluids.knowledge "Application/ExaFluids.exa4" Application/ExaFluids.results 1 10 Platform/random.platform output
