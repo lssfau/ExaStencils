@@ -143,9 +143,9 @@ full-test:
         - docker
         - cuda
         - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+    #artifacts:
+    #    when: on_failure
+    #    paths:
+    #        - Testing/output/Debug/*
+    #    expire_in: 1 weeks
 
