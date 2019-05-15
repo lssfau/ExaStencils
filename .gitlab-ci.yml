@@ -15,7 +15,7 @@ full-test:
         - java -version
         - python3 --version
         - mpirun --version
-        - git clone https://i10git.cs.fau.de/exastencils/buildenvs
+        - git clone git@i10git.cs.fau.de:exastencils/buildenvs.git
         - cd buildenvs
         - 7za x scala.7z
         - cd ../Compiler
