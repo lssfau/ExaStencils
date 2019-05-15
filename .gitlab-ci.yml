@@ -13,7 +13,6 @@ full-test:
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-8
     script:
         - java -version
-        - scala -version
         - python3 --version
         - mpirun --version
         - git clone https://i10git.cs.fau.de/exastencils/buildenvs
