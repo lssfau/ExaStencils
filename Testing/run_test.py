@@ -29,10 +29,9 @@ def check_results(result_str: str, expected_results_path: str):
 
     def print_results(generated, expected):
         
-        print('Expected:\tGenerated:')
+        print('Expected:\t\tGenerated:')
         for s1, s2 in zip(expected, generated):
-            print(f'{s1}\t{s2}')
-
+            print(f'{s1.strip()}\t{s2.strip()}')
     with open(expected_results_path, 'r') as file:
         expected_results = file.readlines()
         expected_results = [x.strip() for x in expected_results]
@@ -42,16 +41,10 @@ def check_results(result_str: str, expected_results_path: str):
             print_results(results, expected_results)
             return False
         for s1, s2 in zip(results, expected_results):
-            if 'EFFECTIVELY ZERO' in s1.upper():
-                x = 0.0
-            else:
-                x = float(s1)
-            if 'EFFECTIVELY ZERO' in s2.upper():
-                y = 0.0
-            else:
-                y = float(s2)
-            if abs(x - y) > EPS:
+            if s1.strip() != s2.strip():
                 print(f'Results do not match.')
+                print(f'Expected "{s2.strip()}" but got "{s1.strip()}"')
+                print('\nFull comparison:')
                 print_results(results, expected_results)
                 return False
     return True
