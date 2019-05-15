@@ -28,12 +28,10 @@ def check_results(result_str: str, expected_results_path: str):
     EPS = 1e-10
 
     def print_results(generated, expected):
-        print('Expected:')
-        for s in expected:
-            print(s)
-        print('Generated:')
-        for s in generated:
-            print(s)
+        
+        print('Expected:\tGenerated:')
+        for s1, s2 in zip(expected, generated):
+            print(f'{s1}\t{s2}')
 
     with open(expected_results_path, 'r') as file:
         expected_results = file.readlines()
@@ -44,11 +42,11 @@ def check_results(result_str: str, expected_results_path: str):
             print_results(results, expected_results)
             return False
         for s1, s2 in zip(results, expected_results):
-            if s1.lower() == 'EFFECTIVELY ZERO':
+            if 'EFFECTIVELY ZERO' in s1.upper():
                 x = 0.0
             else:
                 x = float(s1)
-            if s2.lower() == 'EFFECTIVELY ZERO':
+            if 'EFFECTIVELY ZERO' in s2.upper():
                 y = 0.0
             else:
                 y = float(s2)
