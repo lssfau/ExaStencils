@@ -64,6 +64,9 @@ def run_test(generator_path: str, problem_name: str, knowledge_path: str, exa_fi
     if not result.returncode == 0:
         print(result.stderr.decode('utf-8'))
         return result.returncode
+    # Fix for strange behavior of PolyExpl tests
+    if "PolyExpl" in problem_name:
+        problem_name += "00000"
     result = subprocess.run(['make', '-j', '-s', '-C', f'{output_path}/generated/{problem_name}'],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if not result.returncode == 0:
