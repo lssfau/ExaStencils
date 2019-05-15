@@ -35,7 +35,6 @@ full-test:
         - python3 run_test.py ../Compiler/compiler.jar CommBasic_2D CommBasic/2D.knowledge "*" CommBasic/2D.results 9 2 Platform/random.platform output
         - python3 run_test.py ../Compiler/compiler.jar CommBasic_HybridCell CommBasic/HybridCell.knowledge "*" CommBasic/HybridCell.results 27 2 Platform/random.platform output
         - python3 run_test.py ../Compiler/compiler.jar CommBasic_Strategy26Cell CommBasic/Strategy26Cell.knowledge "*" CommBasic/Strategy26Cell.results 27 2 Platform/random.platform output
-        - python3 run_test.py ../Compiler/compiler.jar Large_Hybrid Large/Hybrid.knowledge "*" Large/Hybrid.results 4 10 Platform/random.platform output
         - python3 run_test.py ../Compiler/compiler.jar Seq_TestF_naive Opts/seq__float_naive.knowledge "*" Opts/seq__float.results 1 1 Platform/random.platform output
         - python3 run_test.py ../Compiler/compiler.jar Seq_TestF_vectS Opts/seq__float_vect.knowledge "*" Opts/seq__float.results 1 1 Platform/random.platform output
         - python3 run_test.py ../Compiler/compiler.jar Seq_TestF_vectSAl Opts/seq__float_vectAl.knowledge "*" Opts/seq__float.results 1 1 Platform/random.platform output
