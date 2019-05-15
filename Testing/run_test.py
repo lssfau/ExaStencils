@@ -44,7 +44,7 @@ def check_results(result_str: str, expected_results_path: str):
             print_results(results, expected_results)
             return False
         for x, y in zip(results, expected_results):
-            if abs(float(x) - float(y)) > EPS:
+            if x != y:
                 print(f'Results do not match.')
                 print_results(results, expected_results)
                 return False
