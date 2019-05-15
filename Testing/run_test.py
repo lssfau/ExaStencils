@@ -43,8 +43,16 @@ def check_results(result_str: str, expected_results_path: str):
             print(f'Incorrect number of results.')
             print_results(results, expected_results)
             return False
-        for x, y in zip(results, expected_results):
-            if x != y:
+        for s1, s2 in zip(results, expected_results):
+            if s1.lower() == 'EFFECTIVELY ZERO':
+                x = 0.0
+            else:
+                x = float(s1)
+            if s2.lower() == 'EFFECTIVELY ZERO':
+                y = 0.0
+            else:
+                y = float(s2)
+            if abs(x - y) < EPS:
                 print(f'Results do not match.')
                 print_results(results, expected_results)
                 return False
