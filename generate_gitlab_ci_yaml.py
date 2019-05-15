@@ -34,11 +34,11 @@ def generate_tests(generator_path, path_to_test_config, docker_image_name, outpu
         content += generate_line(1, f'image: i10git.cs.fau.de:5005/exastencils/exastencils/{docker_image_name}')
         content += generate_line(1, f'script:')
         content += generate_script_line('java -version')
-        content += generate_script_line('scala -version')
         content += generate_script_line('python3 --version')
         content += generate_script_line('mpirun --version')
+        content += generate_script_line('git clone https://i10git.cs.fau.de/software/scala.git')
         content += generate_script_line('cd Compiler')
-        content += generate_script_line('ant -Dscala.dir=/usr/share/scala-2.11 -Djava.dir=/usr/lib/jvm/java-8-openjdk-amd64')
+        content += generate_script_line('ant -Dscala.dir=../scala -Djava.dir=/usr/lib/jvm/java-8-openjdk-amd64')
         content += generate_script_line('cd ../Testing')
 
         for line in config_file:
@@ -75,7 +75,7 @@ def generate_tests(generator_path, path_to_test_config, docker_image_name, outpu
 
 
 def main():
-    generator_path = '../Compiler/Compiler.jar'
+    generator_path = '../Compiler/compiler.jar'
     path_to_test_config = 'Testing/test_confs.txt'
     docker_image_name = 'ubuntu-18.04-openjdk-8'
     with open('.gitlab-ci.yml', 'w') as file:
