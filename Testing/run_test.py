@@ -42,11 +42,12 @@ def check_results(result_str: str, expected_results_path: str):
             return False
         for s1, s2 in zip(results, expected_results):
             if s1.strip() != s2.strip():
-                print(f'Results do not match.')
-                print(f'Expected "{s2.strip()}" but got "{s1.strip()}"')
-                print('\nFull comparison:')
-                print_results(results, expected_results)
-                return False
+                if abs(float(s1) - float(s2)) > EPS:
+                    print(f'Results do not match.')
+                    print(f'Expected "{s2.strip()}" but got "{s1.strip()}"')
+                    print('\nFull comparison:')
+                    print_results(results, expected_results)
+                    return False
     return True
 
 
