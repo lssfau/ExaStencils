@@ -25,7 +25,7 @@ def generate_settings_file(problem_name: str, output_path: str, exa_file_names: 
 
 
 def check_results(result_str: str, expected_results_path: str):
-    EPS = 1e-10
+    EPS = 1e-6
 
     def print_results(generated, expected):
         
@@ -41,7 +41,9 @@ def check_results(result_str: str, expected_results_path: str):
             print_results(results, expected_results)
             return False
         for s1, s2 in zip(results, expected_results):
-            if s1.strip() != s2.strip():
+            s1 = s1.strip()
+            s2 = s2.strip()
+            if s1 != s2:
                 if abs(float(s1) - float(s2)) > EPS:
                     print(f'Results do not match.')
                     print(f'Expected "{s2.strip()}" but got "{s1.strip()}"')
