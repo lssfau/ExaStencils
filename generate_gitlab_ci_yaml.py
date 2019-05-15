@@ -38,6 +38,8 @@ def generate_tests(generator_path, path_to_test_config, docker_image_name, outpu
         content += generate_script_line('mpirun --version')
         content += generate_script_line('git clone https://i10git.cs.fau.de/software/scala.git')
         content += generate_script_line('cd Compiler')
+        content += generate_script_line('sbt compile')
+        content += generate_script_line('sbt assembly')
         content += generate_script_line('ant -Dscala.dir=../scala -Djava.dir=/usr/lib/jvm/java-8-openjdk-amd64')
         content += generate_script_line('cd ../Testing')
 
