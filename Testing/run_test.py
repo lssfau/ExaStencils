@@ -52,7 +52,7 @@ def check_results(result_str: str, expected_results_path: str):
                 y = 0.0
             else:
                 y = float(s2)
-            if abs(x - y) < EPS:
+            if abs(x - y) > EPS:
                 print(f'Results do not match.')
                 print_results(results, expected_results)
                 return False
