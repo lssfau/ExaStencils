@@ -15,6 +15,8 @@ full-test:
         - java -version
         - python3 --version
         - mpirun --version
+        - nvcc --version
+        - locate cuda.h
         - git clone https://i10git.cs.fau.de/software/scala.git
         - cd Compiler
         - ant -Dscala.dir=../scala -Djava.dir=/usr/lib/jvm/java-8-openjdk-amd64
@@ -116,9 +118,6 @@ full-test:
 #        - python3 run_test.py ../Compiler/compiler.jar FMG_2D_ConstCoeff FMG/2D_ConstCoeff.knowledge "*" FMG/2D_ConstCoeff.results 4 4 Platform/random.platform output
 #        - python3 run_test.py ../Compiler/compiler.jar FMG_3D_Trigonometric FMG/3D_Trigonometric.knowledge "*" FMG/3D_Trigonometric.results 8 2 Platform/random.platform output
 #        - python3 run_test.py ../Compiler/compiler.jar FMG_3D_VarCoeff FMG/3D_VarCoeff.knowledge "*" FMG/3D_VarCoeff.results 8 4 Platform/random.platform output
-        - export C_INCLUDE_PATH=${CUDA_HOME}/include:${C_INCLUDE_PATH}
-        - export LIBRARY_PATH=${CUDA_HOME}/lib64:$LIBRARY_PATH
-        - nvcc --version
         - python3 run_test.py ../Compiler/compiler.jar CUDA_SISC_2D_ConstCoeff CUDA/2D_ConstCoeff.knowledge "*" SISC/2D_ConstCoeff.results 1 10 Platform/chimaira-gpu.platform output
         - python3 run_test.py ../Compiler/compiler.jar CUDA_SISC_2D_VarCoeff CUDA/2D_VarCoeff.knowledge "*" CUDA/2D_VarCoeff.results 1 10 Platform/chimaira-gpu.platform output
         - python3 run_test.py ../Compiler/compiler.jar CUDA_SISC_3D_ConstCoeff CUDA/3D_ConstCoeff.knowledge "*" SISC/3D_ConstCoeff.results 1 10 Platform/chimaira-gpu.platform output
