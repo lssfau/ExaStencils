@@ -37,6 +37,7 @@ def generate_tests(generator_path, path_to_test_config, docker_image_name, outpu
         content += generate_script_line('python3 --version')
         content += generate_script_line('mpirun --version')
         content += generate_script_line('nvcc --version')
+        content += generate_script_line('updatedb')
         content += generate_script_line('locate cuda.h')
         content += generate_script_line('locate libcudart')
         content += generate_script_line('export CPATH=$CPATH:/usr/local/cuda-10.1/targets/x86_64-linux/include')
