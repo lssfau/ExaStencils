@@ -16,6 +16,7 @@ full-test:
         - python3 --version
         - mpirun --version
         - nvcc --version
+        - updatedb
         - locate cuda.h
         - git clone https://i10git.cs.fau.de/software/scala.git
         - cd Compiler
