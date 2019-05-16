@@ -6,7 +6,7 @@ import subprocess
 def generate_settings_file(problem_name: str, output_path: str, exa_file_names: [str]):
     tmp = f'user\t= "Guest"\n\n'
 
-    tmp += f'makefile_additionalCudaFlags\t= -D_MWAITXINTRIN_H_INCLUDED -D_FORCE_INLINES\n'
+    tmp += f'makefile_additionalCudaFlags\t= "-D_MWAITXINTRIN_H_INCLUDED -D_FORCE_INLINES"\n'
     tmp += f'basePathPrefix\t= "{output_path}"\n\n'
     for name in exa_file_names:
         for i in range(1, 5):
