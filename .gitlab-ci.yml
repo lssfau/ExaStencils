@@ -108,14 +108,14 @@ full-test:
 #        - python3 run_test.py ../Compiler/compiler.jar Cell_3D_Basic CellBased/3D_Basic.knowledge "*" CellBased/3D_Basic.results 8 2 Platform/random.platform output
 #        - python3 run_test.py ../Compiler/compiler.jar Cell_3D_Neumann CellBased/3D_Neumann.knowledge "*" CellBased/3D_Neumann.results 8 2 Platform/random.platform output
 #        - python3 run_test.py ../Compiler/compiler.jar SISC_2D_ConstCoeff SISC/2D_ConstCoeff.knowledge "*" SISC/2D_ConstCoeff.results 4 4 Platform/random.platform output
-        - python3 run_test.py ../Compiler/compiler.jar SISC_2D_VarCoeff SISC/2D_VarCoeff.knowledge "*" SISC/2D_VarCoeff.results 4 4 Platform/random.platform output
-        - python3 run_test.py ../Compiler/compiler.jar SISC_3D_ConstCoeff SISC/3D_ConstCoeff.knowledge "*" SISC/3D_ConstCoeff.results 8 4 Platform/random.platform output
-        - python3 run_test.py ../Compiler/compiler.jar SISC_3D_VarCoeff SISC/3D_VarCoeff.knowledge "*" SISC/3D_VarCoeff.results 8 4 Platform/random.platform output
-        - python3 run_test.py ../Compiler/compiler.jar Inlining Misc/inlining.knowledge "*" Misc/inlining.results 8 4 Platform/random.platform output
-        - python3 run_test.py ../Compiler/compiler.jar FMG_2D_Polynomial FMG/2D_Polynomial.knowledge "*" FMG/2D_Polynomial.results 4 2 Platform/random.platform output
-        - python3 run_test.py ../Compiler/compiler.jar FMG_2D_ConstCoeff FMG/2D_ConstCoeff.knowledge "*" FMG/2D_ConstCoeff.results 4 4 Platform/random.platform output
-        - python3 run_test.py ../Compiler/compiler.jar FMG_3D_Trigonometric FMG/3D_Trigonometric.knowledge "*" FMG/3D_Trigonometric.results 8 2 Platform/random.platform output
-        - python3 run_test.py ../Compiler/compiler.jar FMG_3D_VarCoeff FMG/3D_VarCoeff.knowledge "*" FMG/3D_VarCoeff.results 8 4 Platform/random.platform output
+#        - python3 run_test.py ../Compiler/compiler.jar SISC_2D_VarCoeff SISC/2D_VarCoeff.knowledge "*" SISC/2D_VarCoeff.results 4 4 Platform/random.platform output
+#        - python3 run_test.py ../Compiler/compiler.jar SISC_3D_ConstCoeff SISC/3D_ConstCoeff.knowledge "*" SISC/3D_ConstCoeff.results 8 4 Platform/random.platform output
+#        - python3 run_test.py ../Compiler/compiler.jar SISC_3D_VarCoeff SISC/3D_VarCoeff.knowledge "*" SISC/3D_VarCoeff.results 8 4 Platform/random.platform output
+#        - python3 run_test.py ../Compiler/compiler.jar Inlining Misc/inlining.knowledge "*" Misc/inlining.results 8 4 Platform/random.platform output
+#        - python3 run_test.py ../Compiler/compiler.jar FMG_2D_Polynomial FMG/2D_Polynomial.knowledge "*" FMG/2D_Polynomial.results 4 2 Platform/random.platform output
+#        - python3 run_test.py ../Compiler/compiler.jar FMG_2D_ConstCoeff FMG/2D_ConstCoeff.knowledge "*" FMG/2D_ConstCoeff.results 4 4 Platform/random.platform output
+#        - python3 run_test.py ../Compiler/compiler.jar FMG_3D_Trigonometric FMG/3D_Trigonometric.knowledge "*" FMG/3D_Trigonometric.results 8 2 Platform/random.platform output
+#        - python3 run_test.py ../Compiler/compiler.jar FMG_3D_VarCoeff FMG/3D_VarCoeff.knowledge "*" FMG/3D_VarCoeff.results 8 4 Platform/random.platform output
         - python3 run_test.py ../Compiler/compiler.jar CUDA_SISC_2D_ConstCoeff CUDA/2D_ConstCoeff.knowledge "*" SISC/2D_ConstCoeff.results 1 10 Platform/chimaira-gpu.platform output
         - python3 run_test.py ../Compiler/compiler.jar CUDA_SISC_2D_VarCoeff CUDA/2D_VarCoeff.knowledge "*" CUDA/2D_VarCoeff.results 1 10 Platform/chimaira-gpu.platform output
         - python3 run_test.py ../Compiler/compiler.jar CUDA_SISC_3D_ConstCoeff CUDA/3D_ConstCoeff.knowledge "*" SISC/3D_ConstCoeff.results 1 10 Platform/chimaira-gpu.platform output
