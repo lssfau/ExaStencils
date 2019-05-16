@@ -16,6 +16,7 @@ full-test:
         - python3 --version
         - mpirun --version
         - nvcc --version
+        - updatedb
         - locate cuda.h
         - locate libcudart
         - export CPATH=$CPATH:/usr/local/cuda-10.1/targets/x86_64-linux/include
