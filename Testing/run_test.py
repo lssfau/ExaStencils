@@ -41,12 +41,20 @@ def check_results(result_str: str, expected_results_path: str):
             s1 = s1.strip()
             s2 = s2.strip()
             if s1 != s2:
-                if abs(float(s1) - float(s2)) > EPS:
+                try:
+                    if abs(float(s1) - float(s2)) > EPS:
+                        print(f'Results do not match.')
+                        print(f'Expected "{s2.strip()}" but got "{s1.strip()}"')
+                        print('\nFull comparison:')
+                        print_results(results, expected_results)
+                        return False
+                except ValueError as ve:
                     print(f'Results do not match.')
                     print(f'Expected "{s2.strip()}" but got "{s1.strip()}"')
                     print('\nFull comparison:')
                     print_results(results, expected_results)
                     return False
+
     return True
 
 
