@@ -6,7 +6,6 @@ import subprocess
 def generate_settings_file(problem_name: str, output_path: str, exa_file_names: [str]):
     tmp = f'user\t= "Guest"\n\n'
 
-    tmp += f'makefile_additionalCudaFlags\t= "-D_MWAITXINTRIN_H_INCLUDED -D_FORCE_INLINES"\n'
     tmp += f'basePathPrefix\t= "{output_path}"\n\n'
     for name in exa_file_names:
         for i in range(1, 5):
@@ -38,10 +37,6 @@ def check_results(result_str: str, expected_results_path: str):
         expected_results = file.readlines()
         expected_results = [x.strip() for x in expected_results]
         results = result_str.splitlines()
-        if len(results) != len(expected_results):
-            print(f'Incorrect number of results.')
-            print_results(results, expected_results)
-            return False
         for s1, s2 in zip(results, expected_results):
             s1 = s1.strip()
             s2 = s2.strip()
