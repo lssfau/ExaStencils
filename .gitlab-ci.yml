@@ -138,12 +138,6 @@ full-test:
         - python3 run_test.py ../Compiler/compiler.jar 2D_FV_Poisson_fromL2 Poisson/2D_FV_Poisson_fromL2.knowledge "../Examples/Poisson/2D_FV_Poisson_fromL2.exa2;../Examples/Poisson/2D_FV_Poisson_fromL2.exa3;../Examples/Poisson/2D_FV_Poisson_fromL2.exa4" Poisson/2D_FV_Poisson_fromL2.results 4 4 Platform/random.platform output
         - python3 run_test.py ../Compiler/compiler.jar 2D_FV_Poisson_fromL4 Poisson/2D_FV_Poisson_fromL4.knowledge "../Examples/Poisson/2D_FV_Poisson_fromL4.exa4" Poisson/2D_FV_Poisson_fromL4.results 4 4 Platform/random.platform output
         - python3 run_test.py ../Compiler/compiler.jar 2D_FE_Poisson_fromL2 Poisson/2D_FE_Poisson_fromL2.knowledge "../Examples/Poisson/2D_FE_Poisson_fromL2.exa2;../Examples/Poisson/2D_FE_Poisson_fromL2.exa3;../Examples/Poisson/2D_FE_Poisson_fromL2.exa4" Poisson/2D_FE_Poisson_fromL2.results 1 1 Platform/random.platform output
-        - python3 run_test.py ../Compiler/compiler.jar CUDA_SISC_2D_ConstCoeff CUDA/2D_ConstCoeff.knowledge "*" SISC/2D_ConstCoeff.results 1 10 Platform/chimaira-gpu.platform output
-        - python3 run_test.py ../Compiler/compiler.jar CUDA_SISC_2D_VarCoeff CUDA/2D_VarCoeff.knowledge "*" CUDA/2D_VarCoeff.results 1 10 Platform/chimaira-gpu.platform output
-        - python3 run_test.py ../Compiler/compiler.jar CUDA_SISC_3D_ConstCoeff CUDA/3D_ConstCoeff.knowledge "*" SISC/3D_ConstCoeff.results 1 10 Platform/chimaira-gpu.platform output
-        - python3 run_test.py ../Compiler/compiler.jar CUDA_SISC_3D_VarCoeff CUDA/3D_VarCoeff.knowledge "*" SISC/3D_VarCoeff.results 1 10 Platform/chimaira-gpu.platform output
-        - python3 run_test.py ../Compiler/compiler.jar CUDA_ExaFluids_Bingham CUDA/3D_ExaFluids_NN_CUDA.knowledge "CUDA/3D_ExaFluids_NN_CUDA.exa4" CUDA/3D_ExaFluids_NN_CUDA.results 1 10 Platform/chimaira-gpu.platform output
-        - python3 run_test.py ../Compiler/compiler.jar Large_Hybrid Large/Hybrid.knowledge "*" Large/Hybrid.results 4 10 Platform/random.platform output
     tags:
         - docker
         - cuda
