@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.boundary.ir._
 import exastencils.communication.DefaultNeighbors
+import exastencils.communication.ir.IR_IV_CommNeighNeighIdx
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
@@ -268,6 +269,9 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, -1)), getIndex(fieldAccess))
 
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("getNeighFragEdge", _), args) =>
+      IR_IV_CommNeighNeighIdx(0, args(1), args(0))
+
     // FIXME: IR_UserFunctionReference
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("dot", _), args) => IR_FunctionCall("dotProduct", args)
 
@@ -283,7 +287,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
 
         //stmts += IR_FunctionCall(IR_UserFunctionReference("cimg_library::CImg< double > imageIn")
         stmts += HACK_IR_Native("cimg_library::CImg< double > imageIn ( \"" + filename + "\" )")
-// flip image for correct representation
+        // flip image for correct representation
         stmts += IR_MemberFunctionCall("imageIn", "mirror", HACK_IR_Native("'y'"))
 
         stmts += IR_LoopOverPoints(field.fieldSelection.field,
@@ -309,7 +313,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         stmts += IR_LoopOverPoints(field.fieldSelection.field,
           IR_Assignment(HACK_IR_Native("*imageOut.data(i0,i1)"), field))
 
-// flip image for correct representation
+        // flip image for correct representation
         stmts += IR_MemberFunctionCall("imageOut", "mirror", HACK_IR_Native("'y'"))
 
         filename match {
@@ -343,7 +347,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
           IR_Assignment(HACK_IR_Native("*imageOut.data(i0,i1,0,0)"), 360.0 * field))
 
         stmts += IR_MemberFunctionCall("imageOut", "HSVtoRGB")
-// flip image for correct representation
+        // flip image for correct representation
         stmts += IR_MemberFunctionCall("imageOut", "mirror", HACK_IR_Native("'y'"))
 
         filename match {

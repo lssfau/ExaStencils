@@ -12,6 +12,8 @@ import exastencils.datastructures.ir._
 import exastencils.deprecated.ir._
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.ir._
+import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
+import exastencils.util.ir.IR_BuildString
 import exastencils.util.ir.IR_Read
 
 /// IR_ReadField
@@ -46,7 +48,9 @@ case class IR_ReadField(var filename : IR_Expression, var field : IR_FieldSelect
     val arrayIndexRange = 0 until field.field.gridDatatype.resolveFlattendSize
 
     val streamName = IR_ReadField.getNewName()
+
     def streamType = IR_SpecialDatatype("std::ifstream")
+
     def stream = IR_VariableAccess(streamName, streamType)
 
     val read = IR_Read(stream)
@@ -59,9 +63,23 @@ case class IR_ReadField(var filename : IR_Expression, var field : IR_FieldSelect
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    statements += IR_ObjectInstantiation(stream, Duplicate(filename))
+    filename match {
+      case filenameStrConst : IR_StringConstant =>
+        val str : String = filenameStrConst.value
+        val strSplit = ListBuffer(str.split("\\$blockId") : _ *)
+
+        val strListMpi = strSplit.flatMap(e => MPI_IV_MpiRank :: IR_StringConstant(e) :: Nil).tail
+
+        val mpiFileName = IR_VariableAccess("fileName", IR_StringDatatype)
+        statements += IR_VariableDeclaration(mpiFileName)
+        statements += IR_BuildString(mpiFileName, strListMpi)
+        statements += IR_ObjectInstantiation(stream, Duplicate(mpiFileName))
+      case _                                    =>
+        statements += IR_ObjectInstantiation(stream, Duplicate(filename))
+    }
 
     def beginId = if (includeGhostLayers) "GLB" else "DLB"
+
     def endId = if (includeGhostLayers) "GRE" else "DRE"
 
     statements +=
