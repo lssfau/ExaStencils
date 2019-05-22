@@ -7,7 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.boundary.ir._
 import exastencils.communication.DefaultNeighbors
-import exastencils.communication.ir.IR_IV_CommNeighNeighIdx
+import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
@@ -271,6 +271,9 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
 
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("getNeighFragEdge", _), args) =>
       IR_IV_CommNeighNeighIdx(0, args(1), args(0))
+
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("getNeighFragId", _), args) =>
+      IR_IV_NeighFragId(0, args(1), args(0))
 
     // FIXME: IR_UserFunctionReference
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("dot", _), args) => IR_FunctionCall("dotProduct", args)
