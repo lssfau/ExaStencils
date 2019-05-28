@@ -12,7 +12,7 @@ case class IR_IV_CommTrafoId(var domain : IR_Expression, var neighIdx : IR_Expre
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, domain, IR_NullExpression, IR_NullExpression, neighIdx)
   override def resolveName() = s"commTrafoId" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", neighIdx.prettyprint)
   override def resolveDatatype() = IR_IntegerDatatype
-  override def resolveDefValue() = Some(false)
+  override def resolveDefValue() = Some(-1)
 }
 
 /// IR_IV_NeighFragId
@@ -21,7 +21,7 @@ case class IR_IV_NeighFragId(var domain : IR_Expression, var neighIdx : IR_Expre
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, domain, IR_NullExpression, IR_NullExpression, neighIdx)
   override def resolveName() = s"neighFragId" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", neighIdx.prettyprint)
   override def resolveDatatype() = IR_IntegerDatatype
-  override def resolveDefValue() = Some(false)
+  override def resolveDefValue() = Some(-1)
 }
 
 /// IR_IV_CommNeighIdx
@@ -30,6 +30,6 @@ case class IR_IV_CommNeighNeighIdx(var domain : IR_Expression, var neighIdx : IR
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, domain, IR_NullExpression, IR_NullExpression, neighIdx)
   override def resolveName() = s"commNeighIdx" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", neighIdx.prettyprint)
   override def resolveDatatype() = IR_IntegerDatatype
-  override def resolveDefValue() = Some(false)
+  override def resolveDefValue() = Some(-1)
 }
 
