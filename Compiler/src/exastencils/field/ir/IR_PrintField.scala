@@ -440,9 +440,11 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
     val numCells_x = etaDiscLower0.fieldLayout.layoutsPerDim(0).numInnerLayers
     val numCells_y = etaDiscLower0.fieldLayout.layoutsPerDim(1).numInnerLayers
     val numPointsPerFrag = 6 * numCells_x * numCells_y
-    val numFrags = Knowledge.domain_numFragmentsTotal
-    val numCells = 2 * numCells_x * numCells_y * numFrags
-    val numNodes = numPointsPerFrag * numFrags
+    def numValidFrags = IR_VariableAccess("numValidFrags", IR_IntegerDatatype)
+    def totalNumFrags = IR_VariableAccess("totalNumFrags", IR_IntegerDatatype) // Knowledge.domain_numFragmentsTotal
+    def fragmentOffset = IR_VariableAccess("fragmentOffset", IR_IntegerDatatype)
+    val numCells = 2 * numCells_x * numCells_y * totalNumFrags
+    val numNodes = numPointsPerFrag * totalNumFrags
 
     def nodeOffsets = ListBuffer(IR_ConstIndex(0, 0), IR_ConstIndex(1, 0), IR_ConstIndex(0, 1), IR_ConstIndex(1, 1), IR_ConstIndex(0, 1), IR_ConstIndex(1, 0))
 
@@ -459,6 +461,15 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
         statements += MPI_Sequential(newStmts)
       else
         statements ++= newStmts
+
+    // determine number of valid fragments per block and total number of valid fragments
+    statements ++= ListBuffer(
+      IR_VariableDeclaration(fragmentOffset, 0),
+      IR_VariableDeclaration(numValidFrags, 0),
+      IR_LoopOverFragments(IR_IfCondition(IR_IV_IsValidForDomain(0), IR_Assignment(numValidFrags, numValidFrags + 1))),
+      IR_VariableDeclaration(totalNumFrags, numValidFrags))
+    if (Knowledge.mpi_enabled)
+      statements += MPI_Reduce(0, IR_AddressOf(totalNumFrags), IR_IntegerDatatype, 1, "+")
 
     // reset file
     {
@@ -478,7 +489,7 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
         IR_Print(stream, IR_StringConstant("vtk output"), IR_Print.endl),
         IR_Print(stream, IR_StringConstant("ASCII"), IR_Print.endl),
         IR_Print(stream, IR_StringConstant("DATASET UNSTRUCTURED_GRID"), IR_Print.endl),
-        IR_Print(stream, IR_StringConstant(s"POINTS ${ numPointsPerFrag * numFrags } float"), IR_Print.endl),
+        IR_Print(stream, IR_StringConstant("POINTS "), numPointsPerFrag * totalNumFrags, IR_StringConstant(" float"), IR_Print.endl),
         IR_MemberFunctionCall(stream, "close")))
     }
 
@@ -522,7 +533,8 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
       val stream = newStream
 
       val cellPrint = {
-        val offset = (MPI_IV_MpiRank * Knowledge.domain_numFragmentsPerBlock + IR_LoopOverFragments.defIt) * numPointsPerFrag
+        val offset = //(MPI_IV_MpiRank * Knowledge.domain_numFragmentsPerBlock + IR_LoopOverFragments.defIt) * numPointsPerFrag
+          (fragmentOffset + IR_LoopOverFragments.defIt) * numPointsPerFrag
 
         var cellPrint = ListBuffer[IR_Expression]()
         cellPrint += 3
@@ -546,6 +558,9 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
         IR_Print(stream, cellPrint)
       }
 
+      def sendRequest = IR_VariableAccess("sendRequest", "MPI_Request")
+      def recvRequest = IR_VariableAccess("recvRequest", "MPI_Request")
+
       val initCells = ListBuffer[IR_Statement](
         IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
         IR_IfCondition(MPI_IsRootProc(), IR_Print(stream, IR_StringConstant("CELLS"), separator, numCells, separator, 4 * numCells, IR_Print.endl)),
@@ -556,7 +571,21 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
               IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.fieldLayout.idxById("DLB", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression)),
               IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.fieldLayout.idxById("DRE", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression))),
               cellPrint))),
-        IR_MemberFunctionCall(stream, "close"))
+        IR_MemberFunctionCall(stream, "close"),
+        IR_Assignment(fragmentOffset, fragmentOffset + numValidFrags))
+
+      if (Knowledge.mpi_enabled) {
+        initCells.prepend(
+          IR_IfCondition(MPI_IV_MpiRank > 0, ListBuffer[IR_Statement](
+            IR_VariableDeclaration(recvRequest),
+            MPI_Receive(IR_AddressOf(fragmentOffset), 1, IR_IntegerDatatype, MPI_IV_MpiRank - 1, 0, recvRequest),
+            IR_FunctionCall(MPI_WaitForRequest.generateFctAccess(), IR_AddressOf(recvRequest)))))
+        initCells.append(
+          IR_IfCondition(MPI_IV_MpiRank < Knowledge.mpi_numThreads - 1, ListBuffer[IR_Statement](
+            IR_VariableDeclaration(sendRequest),
+            MPI_Send(IR_AddressOf(fragmentOffset), 1, IR_IntegerDatatype, MPI_IV_MpiRank + 1, 0, sendRequest),
+            IR_FunctionCall(MPI_WaitForRequest.generateFctAccess(), IR_AddressOf(sendRequest)))))
+      }
 
       addStmtBlock(initCells)
     }
