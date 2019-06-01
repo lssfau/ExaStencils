@@ -275,6 +275,9 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("getNeighFragId", _), args) =>
       IR_IV_NeighFragId(0, args(1), args(0))
 
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("getBoundaryConditionId", _), args) =>
+      IR_IV_BoundaryConditionId(0, args(1), args(0))
+
     // FIXME: IR_UserFunctionReference
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("dot", _), args) => IR_FunctionCall("dotProduct", args)
 
