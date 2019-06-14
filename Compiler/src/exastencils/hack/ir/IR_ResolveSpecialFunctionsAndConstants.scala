@@ -13,6 +13,8 @@ import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.domain.ir.IR_IV_FragmentIndex
 import exastencils.field.ir._
+import exastencils.globals.ir.IR_GlobalCollection
+import exastencils.globals.ir.IR_ReadParameterFile
 import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
@@ -277,6 +279,23 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
 
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("getBoundaryConditionId", _), args) =>
       IR_IV_BoundaryConditionId(0, args(1), args(0))
+
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("readParameterFile", _), args)) =>
+      if (args.size != 1
+        || !(args(0).isInstanceOf[IR_StringConstant]
+        || (args(0).isInstanceOf[IR_VariableAccess] && args(0).asInstanceOf[IR_VariableAccess].datatype == IR_StringDatatype))) {
+        Logger.error("Malformed call to readParameterFile; usage: readParameterFile ( \"filename\" )")
+      }
+      if (!IR_GlobalCollection.get.functions.exists(_.name == "readParameterFile")) {
+        IR_GlobalCollection.get.internalDependencies += "Domains/DomainGenerated.h"
+        IR_GlobalCollection.get.internalDependencies = IR_GlobalCollection.get.internalDependencies.distinct
+        IR_UserFunctions.get.internalDependencies += "Globals/Globals.h"
+        IR_UserFunctions.get.internalDependencies = IR_UserFunctions.get.internalDependencies.distinct
+        IR_GlobalCollection.get.functions += IR_ReadParameterFile()
+      }
+      IR_ExpressionStatement(IR_FunctionCall(IR_PlainInternalFunctionReference("readParameterFile", IR_UnitDatatype), args))
+
+
 
     // FIXME: IR_UserFunctionReference
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("dot", _), args) => IR_FunctionCall("dotProduct", args)
