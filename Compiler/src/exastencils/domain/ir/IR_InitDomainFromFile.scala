@@ -21,12 +21,14 @@ import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.field.ir.IR_Field
 import exastencils.globals.ir.IR_AllocateDataFunction
+import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.grid.ir.IR_VF_NodePositionAsVec
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.ir.IR_BuildString
 import exastencils.util.ir.IR_ReadStream
+import exastencils.util.ir.IR_UtilFunctions
 
 case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
   override var name = "initDomain"
@@ -556,6 +558,9 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       ///////////////////////////////
 
     }
+
+    // add function readLine if it does not exist yet
+    IR_ReadLineFromFile.addToUtil
 
     IR_PlainFunction(name, IR_UnitDatatype, body)
   }

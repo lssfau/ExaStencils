@@ -27,35 +27,9 @@ object IR_UtilFunctions extends ObjectWithState {
 }
 
 case class IR_UtilFunctions() extends IR_FunctionCollection("Util/Util",
-  ListBuffer("algorithm"), // provides commonly used functions like min/max
+  ListBuffer(), // provides commonly used functions like min/max
   ListBuffer(),
   ListBuffer()) {
-
-  // add conditional dependencies - TODO: move to respective packages
-  if (Knowledge.mpi_enabled)
-    externalDependencies += "mpi.h"
-  if (Knowledge.omp_enabled)
-    externalDependencies += "omp.h"
-  if (Knowledge.cuda_enabled) {
-    externalDependencies += "iostream" // required for error messages
-    externalDependencies += "cuda.h"
-    externalDependencies += "cuda_runtime.h"
-  }
-  if (Knowledge.data_alignFieldPointers || Knowledge.data_alignTmpBufferPointers)
-    externalDependencies += "cstddef" // type ptrdiff_t (used when aligning pointer) is defined in stddef.h/cstddef
-  internalDependencies += "Stopwatch.h"
-  if (Knowledge.library_CImg)
-    internalDependencies += "CImg.h"
-  if (!Knowledge.experimental_internalHighDimTypes)
-    internalDependencies += "Matrix.h"
-
-  // read line from file
-  var fctArgs : ListBuffer[IR_FunctionArgument] = ListBuffer()
-  fctArgs += IR_FunctionArgument("ifs", IR_SpecialDatatype("std::ifstream&"))
-  fctArgs += IR_FunctionArgument("iss", IR_SpecialDatatype("std::istringstream&"))
-
-  if (Knowledge.domain_readFromFile)
-    functions += IR_ReadLineFromFile(IR_ReadLineFromFile.arg1, IR_ReadLineFromFile.arg2)
 
   override def printHeader() = {
     super.printHeader()

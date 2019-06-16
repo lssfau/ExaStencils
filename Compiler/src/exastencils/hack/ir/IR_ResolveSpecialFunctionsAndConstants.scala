@@ -288,13 +288,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         Logger.error("Malformed call to readParameterFile; usage: readParameterFile ( \"filename\" )")
       }
       if (!IR_GlobalCollection.get.functions.exists(_.name == "readParameterFile")) {
-        IR_GlobalCollection.get.internalDependencies += "Util/Util.h"
-        IR_GlobalCollection.get.internalDependencies = IR_GlobalCollection.get.internalDependencies.distinct
-
-        if (!IR_UtilFunctions.get.functions.exists(_.name == IR_ReadLineFromFile.name)) {
-          IR_UtilFunctions.get.functions += IR_ReadLineFromFile(IR_ReadLineFromFile.arg1, IR_ReadLineFromFile.arg2)
-        }
-
+        IR_ReadLineFromFile.addToUtil
         IR_UserFunctions.get.internalDependencies += "Globals/Globals.h"
         IR_UserFunctions.get.internalDependencies = IR_UserFunctions.get.internalDependencies.distinct
         IR_GlobalCollection.get.functions += IR_ReadParameterFile()

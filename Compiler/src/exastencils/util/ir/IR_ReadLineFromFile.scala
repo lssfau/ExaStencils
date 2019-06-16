@@ -4,15 +4,24 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir._
-import exastencils.config.Knowledge
-import exastencils.globals.ir.IR_AllocateDataFunction
+import exastencils.globals.ir.IR_GlobalCollection
+import exastencils.util.ir.IR_UtilFunctions
 
 object IR_ReadLineFromFile {
   var name = "readLine"
 
   def arg1 = IR_VariableAccess("ifs", IR_SpecialDatatype("std::ifstream&"))
   def arg2 = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream&"))
+
+  def addToUtil = {
+    IR_GlobalCollection.get.internalDependencies += "Util/Util.h"
+    IR_GlobalCollection.get.internalDependencies = IR_GlobalCollection.get.internalDependencies.distinct
+    IR_UtilFunctions.get.externalDependencies ++= ListBuffer("fstream", "sstream", "algorithm")
+    IR_UtilFunctions.get.externalDependencies = IR_UtilFunctions.get.externalDependencies.distinct
+    if (!IR_UtilFunctions.get.functions.exists(_.name == name)) {
+      IR_UtilFunctions.get.functions += IR_ReadLineFromFile(arg1, arg2)
+    }
+  }
 }
 
 case class IR_ReadLineFromFile(ifs : IR_VariableAccess, iss : IR_VariableAccess) extends IR_FuturePlainFunction {
