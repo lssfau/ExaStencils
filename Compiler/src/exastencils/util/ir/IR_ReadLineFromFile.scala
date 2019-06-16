@@ -8,15 +8,16 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.globals.ir.IR_AllocateDataFunction
 
-object IR_ReadLineFromFile{
+object IR_ReadLineFromFile {
   var name = "readLine"
+
+  def arg1 = IR_VariableAccess("ifs", IR_SpecialDatatype("std::ifstream&"))
+  def arg2 = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream&"))
 }
 
-case class IR_ReadLineFromFile(ifs: IR_VariableAccess, iss: IR_VariableAccess) extends IR_FuturePlainFunction {
+case class IR_ReadLineFromFile(ifs : IR_VariableAccess, iss : IR_VariableAccess) extends IR_FuturePlainFunction {
   override var name = IR_ReadLineFromFile.name
   override def prettyprint_decl() = prettyprint
-
-
 
   def delete_comments(str : IR_VariableAccess) = {
     var body = ListBuffer[IR_Statement]()
@@ -31,10 +32,10 @@ case class IR_ReadLineFromFile(ifs: IR_VariableAccess, iss: IR_VariableAccess) e
     body += IR_MemberFunctionCall(str, "erase",
       IR_MemberFunctionCall(str, "begin"),
       IR_FunctionCall("std::find_if", IR_MemberFunctionCall(str, "begin"), IR_MemberFunctionCall(str, "end"),
-      IR_FunctionCall("std::not1", IR_FunctionCall("std::ptr_fun<int,int>", "std::isspace"))))
+        IR_FunctionCall("std::not1", IR_FunctionCall("std::ptr_fun<int,int>", "std::isspace"))))
 
     body += IR_MemberFunctionCall(str, "erase",
-      IR_MemberFunctionCall( IR_FunctionCall("std::find_if", IR_MemberFunctionCall(str, "rbegin"), IR_MemberFunctionCall(str, "rend"),
+      IR_MemberFunctionCall(IR_FunctionCall("std::find_if", IR_MemberFunctionCall(str, "rbegin"), IR_MemberFunctionCall(str, "rend"),
         IR_FunctionCall("std::not1", IR_FunctionCall("std::ptr_fun<int,int>", "std::isspace"))), "base"),
       IR_MemberFunctionCall(str, "end"))
 

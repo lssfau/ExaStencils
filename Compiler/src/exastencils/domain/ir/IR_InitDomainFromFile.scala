@@ -25,7 +25,6 @@ import exastencils.grid.ir.IR_VF_NodePositionAsVec
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
-import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_BuildString
 import exastencils.util.ir.IR_ReadStream
 

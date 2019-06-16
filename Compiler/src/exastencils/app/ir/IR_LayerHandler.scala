@@ -28,6 +28,7 @@ import exastencils.solver.ir._
 import exastencils.stencil.ir._
 import exastencils.timing.ir._
 import exastencils.util._
+import exastencils.util.ir.IR_UtilFunctions
 import exastencils.visualization.IR_SetupVisit
 
 /// IR_LayerHandler
@@ -76,6 +77,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     // add remaining nodes
     ExaRootNode.ir_root.nodes ++= List(
       // FunctionCollections
+      IR_UtilFunctions(),
       IR_DomainFunctions(),
       IR_CommunicationFunctions(),
 
