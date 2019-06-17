@@ -96,8 +96,6 @@ case class IR_ReadParameterFile() extends IR_FuturePlainFunction {
 
     // mpi broadcast
     if (Knowledge.mpi_enabled) {
-      //todo broadcast
-
       body ++= bcastParams(globalParams)
     }
 

@@ -292,6 +292,8 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_UserFunctions.get.internalDependencies += "Globals/Globals.h"
         IR_UserFunctions.get.internalDependencies = IR_UserFunctions.get.internalDependencies.distinct
         IR_GlobalCollection.get.functions += IR_ReadParameterFile()
+        IR_GlobalCollection.get.externalDependencies += "iostream"
+        IR_GlobalCollection.get.externalDependencies = IR_GlobalCollection.get.externalDependencies.distinct
       }
       IR_ExpressionStatement(IR_FunctionCall(IR_PlainInternalFunctionReference("readParameterFile", IR_UnitDatatype), args))
 
