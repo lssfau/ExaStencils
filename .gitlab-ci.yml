@@ -1,16 +1,16 @@
 generate-docker-image:
     script:
         - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-        - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-8 || true
-        - docker build --pull . -f  dockerfiles/ubuntu-18.04-openjdk-8.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-8
-        - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-8
+        - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11 || true
+        - docker build --pull . -f  dockerfiles/ubuntu-18.04-openjdk-11.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+        - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
     image: docker:latest
     when: manual
     tags:
         - docker-docker
 
 full-test:
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-8
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
     script:
         - java -version
         - python3 --version

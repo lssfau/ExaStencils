@@ -83,7 +83,7 @@ def generate_tests(generator_path, path_to_test_config, docker_image_name, outpu
 def main():
     generator_path = '../Compiler/compiler.jar'
     path_to_test_config = 'Testing/test_confs.txt'
-    docker_image_name = 'ubuntu-18.04-openjdk-8'
+    docker_image_name = 'ubuntu-18.04-openjdk-11'
     with open('.gitlab-ci.yml', 'w') as file:
         generate_docker_image(docker_image_name, file)
         generate_tests(generator_path, path_to_test_config, docker_image_name, file)
