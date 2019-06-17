@@ -44,7 +44,7 @@ def generate_tests(generator_path, path_to_test_config, docker_image_name, outpu
         content += generate_script_line('ln -s /usr/local/cuda-10.1/targets/x86_64-linux/lib/libcudart.so /usr/lib')
         content += generate_script_line('git clone https://i10git.cs.fau.de/software/scala.git')
         content += generate_script_line('cd Compiler')
-        content += generate_script_line('ant -Dscala.dir=../scala -Djava.dir=/usr/lib/jvm/java-8-openjdk-amd64')
+        content += generate_script_line('ant -Dscala.dir=../scala')
         content += generate_script_line('cd ../Testing')
 
         for line in config_file:
