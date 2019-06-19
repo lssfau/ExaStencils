@@ -47,6 +47,8 @@ case class IR_PrintField(
   override def expand() : Output[StatementList] = {
     if (!Settings.additionalIncludes.contains("fstream"))
       Settings.additionalIncludes += "fstream"
+    if (!Settings.additionalIncludes.contains("iomanip"))
+      Settings.additionalIncludes += "iomanip"
 
     // TODO: incorporate component accesses
     val arrayIndexRange = 0 until field.field.gridDatatype.resolveFlattendSize
@@ -88,7 +90,7 @@ case class IR_PrintField(
     var innerLoop = ListBuffer[IR_Statement](
       IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc", IR_UnknownDatatype)),
       fileHeader,
-      IR_Print(stream, "std::scientific"), //std::defaultfloat
+      IR_Print(stream, "std::scientific << std::setprecision(10)"), //std::defaultfloat
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
           IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
