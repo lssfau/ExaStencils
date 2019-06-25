@@ -1,5 +1,6 @@
 package exastencils.performance
 
+import scala.collection.mutable
 import scala.collection.mutable._
 
 import java.io.PrintWriter
@@ -171,7 +172,20 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
       Logger.error("Unsupported: Not the same Datatype")
 
     val dataTypeSize = fieldAccesses.values.head.typicalByteSize
-    val cacheSize = Platform.hw_cacheSize
+    //like old estimation model, for perfect blocking (after find blocking factor)
+    if ( Knowledge.opt_loopBlocked == true){
+      return  dataTypeSize * fieldAccesses.keys.size
+    }
+    var cacheSize = Platform.hw_cacheSize
+    val numberOfThreadsUsed = Knowledge.omp_numThreads
+    // multi thread
+    val numberOfCaches = Platform.hw_numCacheSharingThreads/Platform.hw_cpu_numCoresPerCPU
+
+    if (numberOfThreadsUsed > numberOfCaches){
+      cacheSize = (cacheSize/numberOfThreadsUsed)* numberOfCaches
+    }
+
+
     val maxWindowCount : Int = offsets.map(_._2.length).sum
 
     for (windowCount <- 1 to maxWindowCount) {
@@ -183,26 +197,120 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         var sortedOffsets = offsets(ident).sorted.reverse
         val length = sortedOffsets.length
         var i = 1
-
         do {
           val maxOffset = sortedOffsets.head
           sortedOffsets = sortedOffsets.drop(1).filter(offset => math.abs(maxOffset - offset) > windowSize)
           windowsUsed += 1
           i = i + 1
-
         } while (i < length && i <= windowCount && !sortedOffsets.isEmpty)
-
         empty += sortedOffsets.isEmpty
 
       })
       if (windowsUsed <= windowCount && empty.filter(x => x == false).isEmpty)
         return windowsUsed * dataTypeSize
-
     }
-
     return maxWindowCount * dataTypeSize
   }
 
+  def computeRelativeStencilOffsets(stencil:ListBuffer[Long]):ListBuffer[Long] = {
+    val rel_by: ListBuffer[Long] = ListBuffer()
+    if (stencil.length < 2){
+      return rel_by
+    }
+    for (i <- 0 to stencil.length-2) {
+      val tmp = Math.abs(stencil(i) - stencil(i + 1))
+      rel_by += tmp
+    }
+    return rel_by.sorted.reverse
+  }
+
+  def findBlockingFactor(fieldAcesses: HashMap[String, IR_Datatype],fieldSize: Array[Long], stencilOffsets: HashMap[String, ListBuffer[Long]]): Array[Long] = {
+    //Multi thread:
+    var cacheSize : Double = (Platform.hw_cacheSize * Platform.hw_usableCache)/stencilOffsets.size //Bereich fuer jedes Feld
+    val numberOfThreadsUsed = Knowledge.omp_numThreads
+    val numberOfCaches = Platform.hw_numCacheSharingThreads/Platform.hw_cpu_numCoresPerCPU
+    if (numberOfThreadsUsed > numberOfCaches){
+      cacheSize = (cacheSize/numberOfThreadsUsed)* numberOfCaches
+    }
+    var factors  = mutable.HashMap.empty[String, Array[Long]]
+    //each field:
+    stencilOffsets.keys.foreach(ident => {
+      var numberOfSlices = 1
+      var stencil = stencilOffsets(ident).sorted.reverse
+      if ( !stencil.isEmpty) {
+        var factorsA : ListBuffer[Long] = ListBuffer(0, 0)
+        val relO : Array[Long] = Array(0, 0)
+        var biggest3DOffset : Long = 0
+        var biggest2DOffset : Long = 0
+
+        //3D:
+        if (fieldSize.length == 3) {
+          factorsA += 1 * fieldSize(2)
+          // 3D slice in +y direction
+          var stencil_biggery = stencil.filter(_ > fieldSize(1))
+          if (!stencil_biggery.isEmpty) {
+            stencil = stencil.filter(_ < fieldSize(1))
+            stencil_biggery = computeRelativeStencilOffsets(stencil_biggery)
+            relO(1) = stencil_biggery.sum
+            if (stencil_biggery.length > 1) {
+              biggest3DOffset = stencil_biggery.reduceLeft(_ max _)
+            }else{
+             biggest3DOffset = stencil_biggery.head
+            }
+            numberOfSlices += 1
+          }
+          //3D slice in -y direction
+          var stencil_smallery = stencil.filter(_ < -fieldSize(1))
+          if (!stencil_smallery.isEmpty) {
+            stencil = stencil.filter(_ > -fieldSize(1))
+            stencil_smallery = computeRelativeStencilOffsets(stencil_smallery)
+            relO(0) = stencil_smallery.sum
+            if (stencil_smallery.length > 1) {
+              val tmp = stencil_smallery.reduceLeft(_ max _)
+              if (tmp > biggest3DOffset) {
+                biggest3DOffset = tmp
+              }
+            }
+            numberOfSlices += 1
+          }
+        }
+
+        //2D
+        var rel_stencil = computeRelativeStencilOffsets(stencil)
+        if (!rel_stencil.isEmpty) {
+          biggest2DOffset = rel_stencil.head
+          if (rel_stencil.length > 1) {
+            biggest2DOffset = rel_stencil.reduceLeft(_ max _)
+          }else {
+            biggest2DOffset = rel_stencil.head
+          }
+        }
+        else {
+          if (!stencil.isEmpty) {
+            biggest2DOffset = stencil.head
+          }
+          rel_stencil = stencil
+        }
+        //                = ( summe der relativen Offsets  +        maxOffset                            * nSlices        ) * s
+        val cacheRequired = (relO.sum + rel_stencil.sum + Math.max(biggest2DOffset, biggest3DOffset) * numberOfSlices) * fieldAcesses(ident).typicalByteSize
+        var ny = (cacheSize / cacheRequired)
+        val nx : Double = 1
+        if (ny > 1) {
+          ny = 1
+        }
+        factorsA(0) = (nx * fieldSize(0)).toLong
+        factorsA(1) = (ny * fieldSize(1)).toLong
+        factors(ident) = factorsA.toArray
+      }
+      else{
+        factors(ident) = Array(fieldSize(0), fieldSize(1), fieldSize(2))
+      }
+
+    })
+    //minimum finden
+    return factors(factors.minBy(value => value._2(1))._1)
+
+  }
   override def applyStandalone(node : Node) : Unit = {
     unknownFunctionCalls = false
     estimatedTimeSubAST.push(PerformanceEstimate(0.0, 0.0))
@@ -226,7 +334,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         addTimeToStack(loop)
         loop
       } else {
-        val maxIterations = loop.maxIterationCount().product
+        var maxIterations = loop.maxIterationCount().product
 
         EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.clear // has to be done manually
         EvaluatePerformanceEstimates_FieldAccess.offsets.clear
@@ -251,6 +359,12 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         val totalEstimate = PerformanceEstimate(Math.max(estimatedTimeOps_host, optimisticTimeMem_host), Math.max(estimatedTimeOps_device, optimisticTimeMem_device))
         totalEstimate.device += Platform.sw_cuda_kernelCallOverhead
 
+        if (Knowledge.opt_loopBlocked) {
+          val dim : Array[Long] = findBlockingFactor(EvaluatePerformanceEstimates_FieldAccess.fieldAccesses, loop.maxIterationCount(), EvaluatePerformanceEstimates_FieldAccess.offsets)
+          loop.tileSize = dim.map(_.toInt)
+          maxIterations = dim.product
+          //IR_Comment(s"min loop dimentsion: ${dim(0)} ,${ dim(1)}, elements"),
+        }
         loop.annotate("perf_timeEstimate_host", totalEstimate.host)
         loop.annotate("perf_timeEstimate_device", totalEstimate.device)
         addTimeToStack(totalEstimate)
@@ -296,7 +410,8 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
 object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Evaluating performance for FieldAccess nodes") {
   var fieldAccesses = HashMap[String, IR_Datatype]()
   var offsets = HashMap[String, ListBuffer[Long]]()
-  var inWriteOp = false
+  var multiDimOffsets = HashMap[String, ListBuffer[IR_ConstIndex]]()
+  var inWriteOp = true
 
   def mapFieldAccess(access : IR_MultiDimFieldAccess) = {
     val field = access.fieldSelection.field
@@ -320,15 +435,18 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
     IR_ReplaceVariableAccess.applyStandalone(offsetIndex)
 
     var offset = 0L
+    var mdOffset = IR_ConstIndex()
     try {
       offset = IR_SimplifyExpression.evalIntegral(
         IR_Linearization.linearizeIndex(offsetIndex,
           IR_ExpressionIndex((0 until access.index.length).map(field.fieldLayout(_).total).toArray)))
+      mdOffset = offsetIndex.toConstIndex
     } catch {
       case _ : EvaluationException => Logger.warn("Could not evaluate offset for " + offsetIndex.prettyprint())
     }
 
     offsets.put(identifier, offsets.getOrElse(identifier, ListBuffer()) :+ offset)
+    multiDimOffsets.put(identifier, multiDimOffsets.getOrElse(identifier, ListBuffer()) :+ mdOffset)
   }
 
   this += new Transformation("Searching", {

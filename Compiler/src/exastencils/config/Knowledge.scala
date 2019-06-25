@@ -402,6 +402,8 @@ object Knowledge {
   var opt_loopCarriedCSE : Boolean = false
   // [0~dimensionality] // do not take this number of outer dimensions into account when performing a loop carried CSE
   var opt_loopCarriedCSE_skipOuter : Int = 0
+  //for layer conditioning
+  var opt_loopBlocked : Boolean = false
 
   // vectorization
 
