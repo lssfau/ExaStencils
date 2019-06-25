@@ -90,15 +90,20 @@ case class IR_PrintField(
     var innerLoop = ListBuffer[IR_Statement](
       IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc", IR_UnknownDatatype)),
       fileHeader,
-      IR_Print(stream, "std::scientific << std::setprecision(10)"), //std::defaultfloat
+      if (Knowledge.field_printFieldPrecision == -1)
+        IR_Print(stream, "std::scientific")
+      else
+        IR_Print(stream, "std::scientific << std::setprecision(" + Knowledge.field_printFieldPrecision + ")"), //std::defaultfloat
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
           IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById(fieldBegin, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById(fieldEnd, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
             IR_IfCondition(condition,
-              IR_Print(stream, printComponents))))),
-      IR_MemberFunctionCall(stream, "close"))
+              IR_Print(stream, printComponents)))))
+      ,
+      IR_MemberFunctionCall(stream, "close")
+    )
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 

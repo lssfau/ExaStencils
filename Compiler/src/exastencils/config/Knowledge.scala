@@ -118,6 +118,11 @@ object Knowledge {
   var domain_generateDomainFile : Boolean = false
   var domain_fragmentTransformation : Boolean = false
 
+  //// specifications for field
+
+  // specifies precision of printField. If set to -1, default precision is used
+  var field_printFieldPrecision : Int = -1
+
   /// specification of the computational (discretization) grid
 
   // specifies if the grid is uniform, i.e. if the grid width is constant per dimension and level
