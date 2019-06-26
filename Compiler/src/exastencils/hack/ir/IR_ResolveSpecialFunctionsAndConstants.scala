@@ -20,6 +20,7 @@ import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp.OMP_Parallel
+import exastencils.swe.ir.IR_ReadStations
 import exastencils.util.ir._
 
 /// HACK_IR_ResolveSpecialFunctionsAndConstants
@@ -296,6 +297,21 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_GlobalCollection.get.externalDependencies = IR_GlobalCollection.get.externalDependencies.distinct
       }
       IR_ExpressionStatement(IR_FunctionCall(IR_PlainInternalFunctionReference("readParameterFile", IR_UnitDatatype), args))
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("readStations", _), args))      =>
+      if (args.size != 1
+        || !(args(0).isInstanceOf[IR_StringConstant]
+        || (args(0).isInstanceOf[IR_VariableAccess] && args(0).asInstanceOf[IR_VariableAccess].datatype == IR_StringDatatype))) {
+        Logger.error("Malformed call to readStations; usage: readStations ( \"filename\" )")
+      }
+      if (!IR_GlobalCollection.get.functions.exists(_.name == "readStations")) {
+        IR_ReadLineFromFile.addToUtil
+        IR_UserFunctions.get.internalDependencies += "Globals/Globals.h"
+        IR_UserFunctions.get.internalDependencies = IR_UserFunctions.get.internalDependencies.distinct
+        IR_GlobalCollection.get.functions += IR_ReadStations()
+        IR_GlobalCollection.get.externalDependencies += "iostream"
+        IR_GlobalCollection.get.externalDependencies = IR_GlobalCollection.get.externalDependencies.distinct
+      }
+      IR_ExpressionStatement(IR_FunctionCall(IR_PlainInternalFunctionReference("readStations", IR_UnitDatatype), args))
 
 
 

@@ -161,6 +161,9 @@ object Knowledge {
   var discr_hy : Array[Double] = Array()
   var discr_hz : Array[Double] = Array()
 
+  /// swe special flags
+  var swe_stationsMax = 10
+
   /// === Layer 3 ===
 
   /// solver setup information
