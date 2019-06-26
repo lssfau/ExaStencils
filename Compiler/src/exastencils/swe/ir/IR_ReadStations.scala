@@ -2,34 +2,8 @@ package exastencils.swe.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_AddressOf
-import exastencils.base.ir.IR_Assert
-import exastencils.base.ir.IR_Assignment
-import exastencils.base.ir.IR_Assignment
+import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_EqEq
-import exastencils.base.ir.IR_FloatDatatype
-import exastencils.base.ir.IR_FunctionArgument
-import exastencils.base.ir.IR_FunctionCall
-import exastencils.base.ir.IR_FuturePlainFunction
-import exastencils.base.ir.IR_IfCondition
-import exastencils.base.ir.IR_IntegerConstant
-import exastencils.base.ir.IR_IntegerDatatype
-import exastencils.base.ir.IR_MemberFunctionCall
-import exastencils.base.ir.IR_Neq
-import exastencils.base.ir.IR_ObjectInstantiation
-import exastencils.base.ir.IR_PlainFunction
-import exastencils.base.ir.IR_PreIncrement
-import exastencils.base.ir.IR_Return
-import exastencils.base.ir.IR_ScalarDatatype
-import exastencils.base.ir.IR_SpecialDatatype
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_StringConstant
-import exastencils.base.ir.IR_StringDatatype
-import exastencils.base.ir.IR_UnitDatatype
-import exastencils.base.ir.IR_VariableAccess
-import exastencils.base.ir.IR_VariableDeclaration
-import exastencils.base.ir.IR_WhileLoop
 import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_ReadLineFromFile
 import exastencils.parallelization.api.mpi.MPI_Bcast
@@ -43,9 +17,9 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
   def bcastStations() = {
     var bcastStmts = ListBuffer[IR_Statement]()
 
-    //variables.foreach(v => {
-    //  bcastStmts += MPI_Bcast(IR_AddressOf(IR_VariableAccess(v)), 1, v.datatype, 0)
-    //})
+    bcastStmts += MPI_Bcast(IR_AddressOf(IR_IV_Stations(0, 0)), Knowledge.swe_stationsMax, IR_IV_Stations(0, 0).datatype.resolveBaseDatatype, 0)
+    for (i <- 0 until Knowledge.swe_stationsMax)
+      bcastStmts += MPI_Bcast(IR_AddressOf(IR_IV_StationNames(i)), IR_MemberFunctionCall(IR_IV_StationNames(i), "length"), IR_IV_StationNames(i).datatype.resolveBaseDatatype, 0)
 
     bcastStmts
   }
