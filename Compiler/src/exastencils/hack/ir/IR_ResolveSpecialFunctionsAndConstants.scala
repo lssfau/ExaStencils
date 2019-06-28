@@ -21,6 +21,7 @@ import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp.OMP_Parallel
 import exastencils.swe.ir.IR_ReadStations
+import exastencils.swe.ir.IR_WriteStations
 import exastencils.util.ir._
 
 /// HACK_IR_ResolveSpecialFunctionsAndConstants
@@ -312,6 +313,15 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_GlobalCollection.get.externalDependencies = IR_GlobalCollection.get.externalDependencies.distinct
       }
       IR_ExpressionStatement(IR_FunctionCall(IR_PlainInternalFunctionReference("readStations", IR_UnitDatatype), args))
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("writeStations", _), args))     =>
+      if (!IR_GlobalCollection.get.functions.exists(_.name == "writeStations")) {
+        IR_UserFunctions.get.internalDependencies += "Globals/Globals.h"
+        IR_UserFunctions.get.internalDependencies = IR_UserFunctions.get.internalDependencies.distinct
+        IR_GlobalCollection.get.functions += IR_WriteStations(args)
+        IR_GlobalCollection.get.externalDependencies += "iostream"
+        IR_GlobalCollection.get.externalDependencies = IR_GlobalCollection.get.externalDependencies.distinct
+      }
+      IR_ExpressionStatement(IR_FunctionCall(IR_PlainInternalFunctionReference("writeStations", IR_UnitDatatype), args(0)))
 
 
 
