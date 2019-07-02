@@ -12,11 +12,11 @@ import exastencils.config.Knowledge
 import exastencils.config.Settings
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir.IR_ReadLineFromFile
-import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid.ir.IR_VF_NodePositionAsVec
 import exastencils.parallelization.api.mpi.MPI_Bcast
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
+import exastencils.util.ir.IR_BuildString
 import exastencils.util.ir.IR_ReadStream
 
 case class IR_ReadStations() extends IR_FuturePlainFunction {
@@ -80,6 +80,21 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
         IR_PreIncrement(stationNumber)
       )
     )
+  }
+
+  def initStationFile(stationId : IR_VariableAccess) = {
+    var stmts = ListBuffer[IR_Statement]()
+
+    def fileName = IR_VariableAccess("fileName", IR_StringDatatype)
+
+    val file = IR_VariableAccess("stationFile", IR_SpecialDatatype("std::ofstream"))
+
+    stmts += IR_VariableDeclaration(fileName)
+    stmts += IR_BuildString(fileName, ListBuffer[IR_Expression](IR_IV_StationNames(stationId), IR_StringConstant(".txt")))
+    stmts += IR_VariableDeclaration(file)
+    stmts += IR_MemberFunctionCall(file, "open", ListBuffer[IR_Expression](fileName))
+    stmts += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileName), IR_FunctionCall("exit", 1))
+    stmts += IR_MemberFunctionCall(file, "close")
   }
 
   override def generateFct() = {
@@ -155,7 +170,7 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
       IR_Assignment(IR_IV_StationsId(stationId, 0), IR_LoopOverDimensions.defIt(numDims)(0)),
       IR_Assignment(IR_IV_StationsId(stationId, 1), IR_LoopOverDimensions.defIt(numDims)(1)),
       IR_Assignment(IR_IV_StationsIsLower(stationId), true)
-    ))
+    ) ++ initStationFile(stationId))
 
     // upper (2,3,1)
     stationStmts += IR_Comment("upper triangle (2,3,1)")
@@ -168,7 +183,7 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
       IR_Assignment(IR_IV_StationsId(stationId, 0), IR_LoopOverDimensions.defIt(numDims)(0)),
       IR_Assignment(IR_IV_StationsId(stationId, 1), IR_LoopOverDimensions.defIt(numDims)(1)),
       IR_Assignment(IR_IV_StationsIsLower(stationId), false)
-    ))
+    ) ++ initStationFile(stationId))
 
     fragStmts += IR_ForLoop(IR_VariableDeclaration(stationId, 0), IR_Lower(stationId, Knowledge.swe_stationsMax), IR_PreIncrement(stationId), stationStmts)
 

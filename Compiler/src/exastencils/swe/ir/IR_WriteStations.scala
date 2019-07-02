@@ -19,9 +19,12 @@ import exastencils.field.ir.IR_FieldCollection
 import exastencils.field.ir.IR_LinearizedFieldAccess
 import exastencils.grid.ir.IR_VF_NodePositionAsVec
 import exastencils.logger.Logger
+import exastencils.util.ir.IR_BuildString
 import exastencils.util.ir.IR_Print
 
 case class IR_WriteStations(var arguments : ListBuffer[IR_Expression]) extends IR_FuturePlainFunction {
+  //TODO change arguments, cut out filename. Use station name as file name. Add ".txt" or something similar.
+  //TODO add in ReadStations an optional output folder
   override var name = "writeStations"
   override def prettyprint_decl() = prettyprint
 
@@ -230,16 +233,18 @@ case class IR_WriteStations(var arguments : ListBuffer[IR_Expression]) extends I
     // write quantity to file
     def fileName = IR_VariableAccess("fileName", IR_StringDatatype)
 
+    stationStmts += IR_VariableDeclaration(fileName)
+    stationStmts += IR_BuildString(fileName, ListBuffer[IR_Expression](IR_IV_StationNames(stationId), IR_StringConstant(".txt")))
+
     stationStmts += IR_VariableDeclaration(file)
     stationStmts += IR_MemberFunctionCall(file, "open", ListBuffer[IR_Expression](fileName, "std::ios::app"))
     stationStmts += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileName), IR_FunctionCall("exit", 1))
     stationStmts += IR_Print(file, "std::scientific << std::setprecision(10)")
-    stationStmts += IR_Print(file, IR_IV_StationNames(stationId), IR_StringConstant("\\t"), quantity, IR_Print.endl) // TODO add this line again
+    stationStmts += IR_Print(file, quantity, IR_Print.endl)
     stationStmts += IR_MemberFunctionCall(file, "close")
 
     body += IR_ForLoop(IR_VariableDeclaration(stationId, 0), IR_Lower(stationId, Knowledge.swe_stationsMax), IR_PreIncrement(stationId), stationStmts)
 
-    IR_PlainFunction(name, IR_UnitDatatype, IR_FunctionArgument(fileName), body)
-    //IR_PlainFunction(name, IR_UnitDatatype, , body)
+    IR_PlainFunction(name, IR_UnitDatatype, body)
   }
 }
