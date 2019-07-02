@@ -29,7 +29,9 @@ case class IR_PrintField(
     var filename : IR_Expression,
     var field : IR_FieldSelection,
     var condition : IR_Expression = true,
-    var includeGhostLayers : Boolean = false) extends IR_Statement with IR_Expandable {
+    var includeGhostLayers : Boolean = false,
+    var onlyValues : Boolean = false,
+    var binary : Boolean = false) extends IR_Statement with IR_Expandable {
 
   def numDimsGrid = field.fieldLayout.numDimsGrid
   def numDimsData = field.fieldLayout.numDimsData
@@ -53,7 +55,7 @@ case class IR_PrintField(
     // TODO: incorporate component accesses
     val arrayIndexRange = 0 until field.field.gridDatatype.resolveFlattendSize
 
-    def separator = IR_StringConstant(if (Knowledge.experimental_generateParaviewFiles) "," else " ")
+    def separator = IR_StringConstant(if (binary) "" else if (Knowledge.experimental_generateParaviewFiles) "," else " ")
 
     val streamName = IR_PrintField.getNewName()
 
@@ -72,8 +74,10 @@ case class IR_PrintField(
     }
 
     val printComponents = ListBuffer[IR_Expression]()
-    printComponents += "std::defaultfloat"
-    printComponents ++= (0 until numDimsGrid).view.flatMap { dim => List(getPos(field, dim), separator) }
+    if (!onlyValues) {
+      printComponents += "std::defaultfloat"
+      printComponents ++= (0 until numDimsGrid).view.flatMap { dim => List(getPos(field, dim), separator) }
+    }
     printComponents += "std::scientific"
     printComponents ++= arrayIndexRange.view.flatMap { index =>
       val access = IR_FieldAccess(field, IR_LoopOverDimensions.defIt(numDimsData))
@@ -86,9 +90,13 @@ case class IR_PrintField(
     val fieldBegin = if (includeGhostLayers) "GLB" else "DLB"
     val fieldEnd = if (includeGhostLayers) "GRE" else "DRE"
 
+    var openMode = if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc"
+    if (binary)
+      openMode += " | std::ios::binary"
+
     // TODO: less monolithic code
     var innerLoop = ListBuffer[IR_Statement](
-      IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc", IR_UnknownDatatype)),
+      IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess(openMode, IR_UnknownDatatype)),
       fileHeader,
       if (Knowledge.field_printFieldPrecision == -1)
         IR_Print(stream, "std::scientific")
