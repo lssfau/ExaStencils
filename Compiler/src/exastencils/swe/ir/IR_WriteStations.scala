@@ -150,9 +150,7 @@ case class IR_WriteStations(var arguments : ListBuffer[IR_Expression]) extends I
     stationStmts += IR_IfCondition(IR_EqEq(IR_MemberFunctionCall(fileNames, "find", fileNameWithId), IR_MemberFunctionCall(fileNames, "end")), ListBuffer[IR_Statement](
       IR_Comment("reset file"),
       IR_MemberFunctionCall(file, "open", ListBuffer[IR_Expression](fileNameWithId, "std::ios::trunc")),
-      //IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileNameWithId), IR_FunctionCall("exit", 1)),
-      //IR_MemberFunctionCall(file, "close"),
-      IR_Print(file, "x = ", IR_IV_Stations(stationId, 0), IR_StringConstant("\\t y = "), IR_IV_Stations(stationId, 1), IR_Print.endl),
+      IR_Print(file, IR_StringConstant("x = "), IR_IV_Stations(stationId, 0), IR_StringConstant("\\t y = "), IR_IV_Stations(stationId, 1), IR_Print.endl),
       IR_MemberFunctionCall(fileNames, "insert", fileNameWithId)
     ),
       IR_MemberFunctionCall(file, "open", ListBuffer[IR_Expression](fileNameWithId, "std::ios::app"))
