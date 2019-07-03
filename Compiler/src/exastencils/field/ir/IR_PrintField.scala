@@ -29,7 +29,9 @@ case class IR_PrintField(
     var filename : IR_Expression,
     var field : IR_FieldSelection,
     var condition : IR_Expression = true,
-    var includeGhostLayers : Boolean = false) extends IR_Statement with IR_Expandable {
+    var includeGhostLayers : Boolean = false,
+    var onlyValues : Boolean = false,
+    var binary : Boolean = false) extends IR_Statement with IR_Expandable {
 
   def numDimsGrid = field.fieldLayout.numDimsGrid
   def numDimsData = field.fieldLayout.numDimsData
@@ -47,11 +49,13 @@ case class IR_PrintField(
   override def expand() : Output[StatementList] = {
     if (!Settings.additionalIncludes.contains("fstream"))
       Settings.additionalIncludes += "fstream"
+    if (!Settings.additionalIncludes.contains("iomanip"))
+      Settings.additionalIncludes += "iomanip"
 
     // TODO: incorporate component accesses
     val arrayIndexRange = 0 until field.field.gridDatatype.resolveFlattendSize
 
-    def separator = IR_StringConstant(if (Knowledge.experimental_generateParaviewFiles) "," else " ")
+    def separator = IR_StringConstant(if (binary) "" else if (Knowledge.experimental_generateParaviewFiles) "," else " ")
 
     val streamName = IR_PrintField.getNewName()
 
@@ -70,8 +74,10 @@ case class IR_PrintField(
     }
 
     val printComponents = ListBuffer[IR_Expression]()
-    printComponents += "std::defaultfloat"
-    printComponents ++= (0 until numDimsGrid).view.flatMap { dim => List(getPos(field, dim), separator) }
+    if (!onlyValues) {
+      printComponents += "std::defaultfloat"
+      printComponents ++= (0 until numDimsGrid).view.flatMap { dim => List(getPos(field, dim), separator) }
+    }
     printComponents += "std::scientific"
     printComponents ++= arrayIndexRange.view.flatMap { index =>
       val access = IR_FieldAccess(field, IR_LoopOverDimensions.defIt(numDimsData))
@@ -84,19 +90,28 @@ case class IR_PrintField(
     val fieldBegin = if (includeGhostLayers) "GLB" else "DLB"
     val fieldEnd = if (includeGhostLayers) "GRE" else "DRE"
 
+    var openMode = if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc"
+    if (binary)
+      openMode += " | std::ios::binary"
+
     // TODO: less monolithic code
     var innerLoop = ListBuffer[IR_Statement](
-      IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc", IR_UnknownDatatype)),
+      IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess(openMode, IR_UnknownDatatype)),
       fileHeader,
-      IR_Print(stream, "std::scientific"), //std::defaultfloat
+      if (Knowledge.field_printFieldPrecision == -1)
+        IR_Print(stream, "std::scientific")
+      else
+        IR_Print(stream, "std::scientific << std::setprecision(" + Knowledge.field_printFieldPrecision + ")"), //std::defaultfloat
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
           IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById(fieldBegin, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById(fieldEnd, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
             IR_IfCondition(condition,
-              IR_Print(stream, printComponents))))),
-      IR_MemberFunctionCall(stream, "close"))
+              IR_Print(stream, printComponents)))))
+      ,
+      IR_MemberFunctionCall(stream, "close")
+    )
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
@@ -440,9 +455,14 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
     val numCells_x = etaDiscLower0.fieldLayout.layoutsPerDim(0).numInnerLayers
     val numCells_y = etaDiscLower0.fieldLayout.layoutsPerDim(1).numInnerLayers
     val numPointsPerFrag = 6 * numCells_x * numCells_y
-    val numFrags = Knowledge.domain_numFragmentsTotal
-    val numCells = 2 * numCells_x * numCells_y * numFrags
-    val numNodes = numPointsPerFrag * numFrags
+
+    def numValidFrags = IR_VariableAccess("numValidFrags", IR_IntegerDatatype)
+
+    def totalNumFrags = IR_VariableAccess("totalNumFrags", IR_IntegerDatatype) // Knowledge.domain_numFragmentsTotal
+    def fragmentOffset = IR_VariableAccess("fragmentOffset", IR_IntegerDatatype)
+
+    val numCells = 2 * numCells_x * numCells_y * totalNumFrags
+    val numNodes = numPointsPerFrag * totalNumFrags
 
     def nodeOffsets = ListBuffer(IR_ConstIndex(0, 0), IR_ConstIndex(1, 0), IR_ConstIndex(0, 1), IR_ConstIndex(1, 1), IR_ConstIndex(0, 1), IR_ConstIndex(1, 0))
 
@@ -459,6 +479,15 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
         statements += MPI_Sequential(newStmts)
       else
         statements ++= newStmts
+
+    // determine number of valid fragments per block and total number of valid fragments
+    statements ++= ListBuffer(
+      IR_VariableDeclaration(fragmentOffset, 0),
+      IR_VariableDeclaration(numValidFrags, 0),
+      IR_LoopOverFragments(IR_IfCondition(IR_IV_IsValidForDomain(0), IR_Assignment(numValidFrags, numValidFrags + 1))),
+      IR_VariableDeclaration(totalNumFrags, numValidFrags))
+    if (Knowledge.mpi_enabled)
+      statements += MPI_Reduce(0, IR_AddressOf(totalNumFrags), IR_IntegerDatatype, 1, "+")
 
     // reset file
     {
@@ -478,7 +507,7 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
         IR_Print(stream, IR_StringConstant("vtk output"), IR_Print.endl),
         IR_Print(stream, IR_StringConstant("ASCII"), IR_Print.endl),
         IR_Print(stream, IR_StringConstant("DATASET UNSTRUCTURED_GRID"), IR_Print.endl),
-        IR_Print(stream, IR_StringConstant(s"POINTS ${ numPointsPerFrag * numFrags } float"), IR_Print.endl),
+        IR_Print(stream, IR_StringConstant("POINTS "), numPointsPerFrag * totalNumFrags, IR_StringConstant(" double"), IR_Print.endl),
         IR_MemberFunctionCall(stream, "close")))
     }
 
@@ -522,7 +551,8 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
       val stream = newStream
 
       val cellPrint = {
-        val offset = (MPI_IV_MpiRank * Knowledge.domain_numFragmentsPerBlock + IR_LoopOverFragments.defIt) * numPointsPerFrag
+        val offset = //(MPI_IV_MpiRank * Knowledge.domain_numFragmentsPerBlock + IR_LoopOverFragments.defIt) * numPointsPerFrag
+          (fragmentOffset + IR_LoopOverFragments.defIt) * numPointsPerFrag
 
         var cellPrint = ListBuffer[IR_Expression]()
         cellPrint += 3
@@ -546,6 +576,10 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
         IR_Print(stream, cellPrint)
       }
 
+      def sendRequest = IR_VariableAccess("sendRequest", "MPI_Request")
+
+      def recvRequest = IR_VariableAccess("recvRequest", "MPI_Request")
+
       val initCells = ListBuffer[IR_Statement](
         IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
         IR_IfCondition(MPI_IsRootProc(), IR_Print(stream, IR_StringConstant("CELLS"), separator, numCells, separator, 4 * numCells, IR_Print.endl)),
@@ -556,7 +590,21 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
               IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.fieldLayout.idxById("DLB", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression)),
               IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.fieldLayout.idxById("DRE", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression))),
               cellPrint))),
-        IR_MemberFunctionCall(stream, "close"))
+        IR_MemberFunctionCall(stream, "close"),
+        IR_Assignment(fragmentOffset, fragmentOffset + numValidFrags))
+
+      if (Knowledge.mpi_enabled) {
+        initCells.prepend(
+          IR_IfCondition(MPI_IV_MpiRank > 0, ListBuffer[IR_Statement](
+            IR_VariableDeclaration(recvRequest),
+            MPI_Receive(IR_AddressOf(fragmentOffset), 1, IR_IntegerDatatype, MPI_IV_MpiRank - 1, 0, recvRequest),
+            IR_FunctionCall(MPI_WaitForRequest.generateFctAccess(), IR_AddressOf(recvRequest)))))
+        initCells.append(
+          IR_IfCondition(MPI_IV_MpiRank < Knowledge.mpi_numThreads - 1, ListBuffer[IR_Statement](
+            IR_VariableDeclaration(sendRequest),
+            MPI_Send(IR_AddressOf(fragmentOffset), 1, IR_IntegerDatatype, MPI_IV_MpiRank + 1, 0, sendRequest),
+            IR_FunctionCall(MPI_WaitForRequest.generateFctAccess(), IR_AddressOf(sendRequest)))))
+      }
 
       addStmtBlock(initCells)
     }
@@ -601,7 +649,7 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
         val initCells = ListBuffer[IR_Statement](
           IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
           IR_IfCondition(MPI_IsRootProc(),
-            IR_Print(stream, IR_StringConstant(name), separator, 1, separator, numNodes, separator, IR_StringConstant("float"), IR_Print.endl)),
+            IR_Print(stream, IR_StringConstant(name), separator, 1, separator, numNodes, separator, IR_StringConstant("double"), IR_Print.endl)),
           IR_Print(stream, "std::scientific"),
           IR_LoopOverFragments(
             IR_IfCondition(IR_IV_IsValidForDomain(etaDiscLower0.domain.index),
@@ -709,7 +757,7 @@ case class IR_PrintVtkNS(var filename : IR_Expression, level : Int) extends IR_S
         IR_Print(stream, IR_StringConstant("vtk output"), IR_Print.endl),
         IR_Print(stream, IR_StringConstant("ASCII"), IR_Print.endl),
         IR_Print(stream, IR_StringConstant("DATASET UNSTRUCTURED_GRID"), IR_Print.endl),
-        IR_Print(stream, IR_StringConstant(s"POINTS ${ numPointsPerFrag * numFrags } float"), IR_Print.endl),
+        IR_Print(stream, IR_StringConstant(s"POINTS ${ numPointsPerFrag * numFrags } double"), IR_Print.endl),
         IR_MemberFunctionCall(stream, "close")))
     }
 
@@ -852,7 +900,7 @@ case class IR_PrintVtkNS(var filename : IR_Expression, level : Int) extends IR_S
         val initCells = ListBuffer[IR_Statement](
           IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
           IR_IfCondition(MPI_IsRootProc(),
-            IR_Print(stream, IR_StringConstant(name), separator, numComponents, separator, numCells, separator, IR_StringConstant("float"), IR_Print.endl)),
+            IR_Print(stream, IR_StringConstant(name), separator, numComponents, separator, numCells, separator, IR_StringConstant("double"), IR_Print.endl)),
           IR_Print(stream, "std::scientific"),
           IR_LoopOverFragments(
             IR_IfCondition(IR_IV_IsValidForDomain(p.domain.index),
@@ -867,8 +915,10 @@ case class IR_PrintVtkNS(var filename : IR_Expression, level : Int) extends IR_S
 
       def meanU = 0.5 * (IR_FieldAccess(IR_FieldSelection(u, level, IR_IV_ActiveSlot(u)), IR_LoopOverDimensions.defIt(numDimsGrid))
         + IR_FieldAccess(IR_FieldSelection(u, level, IR_IV_ActiveSlot(u)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(1, 0, 0)))
+
       def meanV = 0.5 * (IR_FieldAccess(IR_FieldSelection(v, level, IR_IV_ActiveSlot(v)), IR_LoopOverDimensions.defIt(numDimsGrid))
         + IR_FieldAccess(IR_FieldSelection(v, level, IR_IV_ActiveSlot(v)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 1, 0)))
+
       def meanW = 0.5 * (IR_FieldAccess(IR_FieldSelection(w, level, IR_IV_ActiveSlot(w)), IR_LoopOverDimensions.defIt(numDimsGrid))
         + IR_FieldAccess(IR_FieldSelection(w, level, IR_IV_ActiveSlot(w)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 0, 1)))
 
@@ -951,7 +1001,7 @@ case class IR_PrintVtkNNF(var filename : IR_Expression, level : Int) extends IR_
         IR_Print(stream, IR_StringConstant("vtk output"), IR_Print.endl),
         IR_Print(stream, IR_StringConstant("ASCII"), IR_Print.endl),
         IR_Print(stream, IR_StringConstant("DATASET UNSTRUCTURED_GRID"), IR_Print.endl),
-        IR_Print(stream, IR_StringConstant(s"POINTS ${ numPointsPerFrag * numFrags } float"), IR_Print.endl),
+        IR_Print(stream, IR_StringConstant(s"POINTS ${ numPointsPerFrag * numFrags } double"), IR_Print.endl),
         IR_MemberFunctionCall(stream, "close")))
     }
 
@@ -1094,7 +1144,7 @@ case class IR_PrintVtkNNF(var filename : IR_Expression, level : Int) extends IR_
         val initCells = ListBuffer[IR_Statement](
           IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
           IR_IfCondition(MPI_IsRootProc(),
-            IR_Print(stream, IR_StringConstant(name), separator, numComponents, separator, numCells, separator, IR_StringConstant("float"), IR_Print.endl)),
+            IR_Print(stream, IR_StringConstant(name), separator, numComponents, separator, numCells, separator, IR_StringConstant("double"), IR_Print.endl)),
           IR_Print(stream, "std::scientific"),
           IR_LoopOverFragments(
             IR_IfCondition(IR_IV_IsValidForDomain(p.domain.index),
@@ -1109,8 +1159,10 @@ case class IR_PrintVtkNNF(var filename : IR_Expression, level : Int) extends IR_
 
       def meanU = 0.5 * (IR_FieldAccess(IR_FieldSelection(u, level, IR_IV_ActiveSlot(u)), IR_LoopOverDimensions.defIt(numDimsGrid))
         + IR_FieldAccess(IR_FieldSelection(u, level, IR_IV_ActiveSlot(u)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(1, 0, 0)))
+
       def meanV = 0.5 * (IR_FieldAccess(IR_FieldSelection(v, level, IR_IV_ActiveSlot(v)), IR_LoopOverDimensions.defIt(numDimsGrid))
         + IR_FieldAccess(IR_FieldSelection(v, level, IR_IV_ActiveSlot(v)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 1, 0)))
+
       def meanW = 0.5 * (IR_FieldAccess(IR_FieldSelection(w, level, IR_IV_ActiveSlot(w)), IR_LoopOverDimensions.defIt(numDimsGrid))
         + IR_FieldAccess(IR_FieldSelection(w, level, IR_IV_ActiveSlot(w)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 0, 1)))
 

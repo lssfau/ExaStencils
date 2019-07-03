@@ -318,8 +318,9 @@ object L2_Parser extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val realIndex = /*locationize*/ "[" ~> realLit ~ ("," ~> realLit).* <~ "]" ^^ { case b ~ l => (List(b) ++ l).toArray }
-  lazy val domainDeclaration = locationize(("Domain".? ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">")
-    ^^ { case id ~ l ~ u => L2_DomainFromAABBDecl(id, l, u) })
+  lazy val domainDeclaration = (
+    locationize(("Domain".? ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l ~ u => L2_DomainFromAABBDecl(id, l, u) })
+      ||| locationize(("Domain".? ~> ident) ~ (" from " ~> realIndex <~ "to") ~ realIndex ^^ { case id ~ l ~ u => L2_DomainFromAABBDecl(id, l, u) }))
 
   // #############################################################################
   // #################################### FIELD ##################################

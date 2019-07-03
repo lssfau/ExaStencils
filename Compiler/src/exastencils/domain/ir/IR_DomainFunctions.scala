@@ -8,6 +8,7 @@ import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.config.Knowledge
 import exastencils.deprecated.domain.ir._
 import exastencils.grid.ir._
+import exastencils.util.ir._
 
 case class IR_DomainFunctions() extends IR_FunctionCollection(
   "Domains/DomainGenerated",
@@ -22,8 +23,6 @@ case class IR_DomainFunctions() extends IR_FunctionCollection(
   if (Knowledge.domain_rect_generate) {
     functions += IR_InitGeneratedDomain()
   } else if (Knowledge.domain_readFromFile) {
-    externalDependencies += ("iostream", "fstream", "sstream", "string", "algorithm", "functional", "cctype")   // TODO check which are really required
-    functions += IR_ReadLineFromFile(IR_VariableAccess("ifs", IR_SpecialDatatype("std::ifstream&")), IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream&")))
     functions += IR_InitDomainFromFile()
   } else {
     // deprecated code; TODO: remove
