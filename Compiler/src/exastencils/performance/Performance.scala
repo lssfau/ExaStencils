@@ -173,18 +173,17 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
 
     val dataTypeSize = fieldAccesses.values.head.typicalByteSize
     //like old estimation model, for perfect blocking (after find blocking factor)
-    if ( Knowledge.opt_loopBlocked == true){
-      return  dataTypeSize * fieldAccesses.keys.size
+    if (Knowledge.opt_loopBlocked) {
+      return dataTypeSize * fieldAccesses.keys.size
     }
     var cacheSize = Platform.hw_cacheSize
     val numberOfThreadsUsed = Knowledge.omp_numThreads
     // multi thread
-    val numberOfCaches = Platform.hw_numCacheSharingThreads/Platform.hw_cpu_numCoresPerCPU
+    val numberOfCaches = Platform.hw_numCacheSharingThreads / Platform.hw_cpu_numCoresPerCPU
 
-    if (numberOfThreadsUsed > numberOfCaches){
-      cacheSize = (cacheSize/numberOfThreadsUsed)* numberOfCaches
+    if (numberOfThreadsUsed > numberOfCaches) {
+      cacheSize = (cacheSize / numberOfThreadsUsed) * numberOfCaches
     }
-
 
     val maxWindowCount : Int = offsets.map(_._2.length).sum
 
@@ -202,42 +201,42 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
           sortedOffsets = sortedOffsets.drop(1).filter(offset => math.abs(maxOffset - offset) > windowSize)
           windowsUsed += 1
           i = i + 1
-        } while (i < length && i <= windowCount && !sortedOffsets.isEmpty)
+        } while (i < length && i <= windowCount && sortedOffsets.nonEmpty)
         empty += sortedOffsets.isEmpty
 
       })
-      if (windowsUsed <= windowCount && empty.filter(x => x == false).isEmpty)
+      if (windowsUsed <= windowCount && !empty.contains(false))
         return windowsUsed * dataTypeSize
     }
-    return maxWindowCount * dataTypeSize
+    maxWindowCount * dataTypeSize
   }
 
-  def computeRelativeStencilOffsets(stencil:ListBuffer[Long]):ListBuffer[Long] = {
-    val rel_by: ListBuffer[Long] = ListBuffer()
-    if (stencil.length < 2){
+  def computeRelativeStencilOffsets(stencil : ListBuffer[Long]) : ListBuffer[Long] = {
+    val rel_by : ListBuffer[Long] = ListBuffer()
+    if (stencil.length < 2) {
       return rel_by
     }
-    for (i <- 0 to stencil.length-2) {
+    for (i <- 0 to stencil.length - 2) {
       val tmp = Math.abs(stencil(i) - stencil(i + 1))
       rel_by += tmp
     }
-    return rel_by.sorted.reverse
+    rel_by.sorted.reverse
   }
 
-  def findBlockingFactor(fieldAcesses: HashMap[String, IR_Datatype],fieldSize: Array[Long], stencilOffsets: HashMap[String, ListBuffer[Long]]): Array[Long] = {
+  def findBlockingFactor(fieldAcesses : HashMap[String, IR_Datatype], fieldSize : Array[Long], stencilOffsets : HashMap[String, ListBuffer[Long]]) : Array[Long] = {
     //Multi thread:
-    var cacheSize : Double = (Platform.hw_cacheSize * Platform.hw_usableCache)/stencilOffsets.size //Bereich fuer jedes Feld
+    var cacheSize : Double = (Platform.hw_cacheSize * Platform.hw_usableCache) / stencilOffsets.size //Bereich fuer jedes Feld
     val numberOfThreadsUsed = Knowledge.omp_numThreads
-    val numberOfCaches = Platform.hw_numCacheSharingThreads/Platform.hw_cpu_numCoresPerCPU
-    if (numberOfThreadsUsed > numberOfCaches){
-      cacheSize = (cacheSize/numberOfThreadsUsed)* numberOfCaches
+    val numberOfCaches = Platform.hw_numCacheSharingThreads / Platform.hw_cpu_numCoresPerCPU
+    if (numberOfThreadsUsed > numberOfCaches) {
+      cacheSize = (cacheSize / numberOfThreadsUsed) * numberOfCaches
     }
-    var factors  = mutable.HashMap.empty[String, Array[Long]]
+    var factors = mutable.HashMap.empty[String, Array[Long]]
     //each field:
     stencilOffsets.keys.foreach(ident => {
       var numberOfSlices = 1
       var stencil = stencilOffsets(ident).sorted.reverse
-      if ( !stencil.isEmpty) {
+      if (stencil.nonEmpty) {
         var factorsA : ListBuffer[Long] = ListBuffer(0, 0)
         val relO : Array[Long] = Array(0, 0)
         var biggest3DOffset : Long = 0
@@ -248,25 +247,25 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
           factorsA += 1 * fieldSize(2)
           // 3D slice in +y direction
           var stencil_biggery = stencil.filter(_ > fieldSize(1))
-          if (!stencil_biggery.isEmpty) {
+          if (stencil_biggery.nonEmpty) {
             stencil = stencil.filter(_ < fieldSize(1))
             stencil_biggery = computeRelativeStencilOffsets(stencil_biggery)
             relO(1) = stencil_biggery.sum
             if (stencil_biggery.length > 1) {
-              biggest3DOffset = stencil_biggery.reduceLeft(_ max _)
-            }else{
-             biggest3DOffset = stencil_biggery.head
+              biggest3DOffset = stencil_biggery.max
+            } else {
+              biggest3DOffset = stencil_biggery.head
             }
             numberOfSlices += 1
           }
           //3D slice in -y direction
           var stencil_smallery = stencil.filter(_ < -fieldSize(1))
-          if (!stencil_smallery.isEmpty) {
+          if (stencil_smallery.nonEmpty) {
             stencil = stencil.filter(_ > -fieldSize(1))
             stencil_smallery = computeRelativeStencilOffsets(stencil_smallery)
             relO(0) = stencil_smallery.sum
             if (stencil_smallery.length > 1) {
-              val tmp = stencil_smallery.reduceLeft(_ max _)
+              val tmp = stencil_smallery.max
               if (tmp > biggest3DOffset) {
                 biggest3DOffset = tmp
               }
@@ -277,23 +276,23 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
 
         //2D
         var rel_stencil = computeRelativeStencilOffsets(stencil)
-        if (!rel_stencil.isEmpty) {
+        if (rel_stencil.nonEmpty) {
           biggest2DOffset = rel_stencil.head
           if (rel_stencil.length > 1) {
-            biggest2DOffset = rel_stencil.reduceLeft(_ max _)
-          }else {
+            biggest2DOffset = rel_stencil.max
+          } else {
             biggest2DOffset = rel_stencil.head
           }
         }
         else {
-          if (!stencil.isEmpty) {
+          if (stencil.nonEmpty) {
             biggest2DOffset = stencil.head
           }
           rel_stencil = stencil
         }
         //                = ( summe der relativen Offsets  +        maxOffset                            * nSlices        ) * s
         val cacheRequired = (relO.sum + rel_stencil.sum + Math.max(biggest2DOffset, biggest3DOffset) * numberOfSlices) * fieldAcesses(ident).typicalByteSize
-        var ny = (cacheSize / cacheRequired)
+        var ny = cacheSize / cacheRequired
         val nx : Double = 1
         if (ny > 1) {
           ny = 1
@@ -302,13 +301,13 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         factorsA(1) = (ny * fieldSize(1)).toLong
         factors(ident) = factorsA.toArray
       }
-      else{
+      else {
         factors(ident) = Array(fieldSize(0), fieldSize(1), fieldSize(2))
       }
 
     })
     //minimum finden
-    return factors(factors.minBy(value => value._2(1))._1)
+    factors(factors.minBy(value => value._2(1))._1)
 
   }
   override def applyStandalone(node : Node) : Unit = {
