@@ -16,7 +16,6 @@ import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid.ir.IR_VF_NodePositionAsVec
 import exastencils.parallelization.api.mpi.MPI_Bcast
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
-import exastencils.util.ir.IR_BuildString
 import exastencils.util.ir.IR_ReadStream
 
 case class IR_ReadStations() extends IR_FuturePlainFunction {
@@ -29,10 +28,6 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
     var bcastStmts = ListBuffer[IR_Statement]()
 
     bcastStmts += MPI_Bcast(IR_AddressOf(IR_IV_Stations(0, 0)), Knowledge.swe_stationsMax, IR_IV_Stations(0, 0).datatype.resolveBaseDatatype, 0)
-    for (i <- 0 until Knowledge.swe_stationsMax)
-      bcastStmts += MPI_Bcast(IR_AddressOf(IR_IV_StationNames(i)), IR_MemberFunctionCall(IR_IV_StationNames(i), "length"), IR_IV_StationNames(i).datatype.resolveBaseDatatype, 0)
-
-    bcastStmts
   }
 
   def isInTriangle(xEval : IR_Expression, yEval : IR_Expression,
@@ -62,19 +57,16 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
     val iss = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream"))
     body += IR_VariableDeclaration(iss)
     val stationNumber = IR_VariableAccess("stationNumber", IR_IntegerDatatype)
-    val stationName = IR_VariableAccess("name", IR_StringDatatype)
     val stationX = IR_VariableAccess("x", IR_FloatDatatype)
     val stationY = IR_VariableAccess("y", IR_FloatDatatype)
     body += IR_VariableDeclaration(stationNumber, 0)
-    body += IR_VariableDeclaration(stationName)
     body += IR_VariableDeclaration(stationX)
     body += IR_VariableDeclaration(stationY)
 
     body += IR_WhileLoop(
       IR_FunctionCall(IR_ReadLineFromFile.name, file, iss),
       ListBuffer[IR_Statement](
-        IR_ReadStream(iss, ListBuffer(stationName, stationX, stationY)),
-        IR_Assignment(IR_IV_StationNames(stationNumber), stationName),
+        IR_ReadStream(iss, ListBuffer(stationX, stationY)),
         IR_Assignment(IR_IV_Stations(stationNumber, 0), stationX),
         IR_Assignment(IR_IV_Stations(stationNumber, 1), stationY),
         IR_PreIncrement(stationNumber)
@@ -82,45 +74,8 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
     )
   }
 
-  def initStationFile(stationId : IR_VariableAccess) = {
-    var stmts = ListBuffer[IR_Statement]()
-
-    def fileName = IR_VariableAccess("fileName", IR_StringDatatype)
-
-    val file = IR_VariableAccess("stationFile", IR_SpecialDatatype("std::ofstream"))
-
-    stmts += IR_VariableDeclaration(fileName)
-    stmts += IR_BuildString(fileName, ListBuffer[IR_Expression](IR_IV_StationNames(stationId), IR_StringConstant(".txt")))
-    stmts += IR_VariableDeclaration(file)
-    stmts += IR_MemberFunctionCall(file, "open", ListBuffer[IR_Expression](fileName))
-    stmts += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileName), IR_FunctionCall("exit", 1))
-    stmts += IR_MemberFunctionCall(file, "close")
-  }
-
-  override def generateFct() = {
+  def findStationsInDomain() = {
     var body = ListBuffer[IR_Statement]()
-
-    if (!Settings.additionalIncludes.contains("iomanip"))
-      Settings.additionalIncludes += "iomanip"
-
-    // broadcast stations for every mpi thread besides rank 0
-    if (Knowledge.mpi_enabled) {
-      body += IR_IfCondition(IR_Neq(MPI_IV_MpiRank, IR_IntegerConstant(0)),
-        bcastStations() ++ ListBuffer[IR_Statement](IR_Return())
-      )
-    }
-
-    body ++= readStationsFromFile()
-
-    // mpi broadcast
-    if (Knowledge.mpi_enabled) {
-      // broadcast rank 0
-      body ++= bcastStations()
-    }
-
-
-    // find station triangles
-    body += IR_Comment("Find triangles of stations")
 
     val field = IR_VF_NodePositionAsVec.find(Knowledge.maxLevel).associatedField
 
@@ -170,7 +125,7 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
       IR_Assignment(IR_IV_StationsId(stationId, 0), IR_LoopOverDimensions.defIt(numDims)(0)),
       IR_Assignment(IR_IV_StationsId(stationId, 1), IR_LoopOverDimensions.defIt(numDims)(1)),
       IR_Assignment(IR_IV_StationsIsLower(stationId), true)
-    ) ++ initStationFile(stationId))
+    ))
 
     // upper (2,3,1)
     stationStmts += IR_Comment("upper triangle (2,3,1)")
@@ -183,7 +138,7 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
       IR_Assignment(IR_IV_StationsId(stationId, 0), IR_LoopOverDimensions.defIt(numDims)(0)),
       IR_Assignment(IR_IV_StationsId(stationId, 1), IR_LoopOverDimensions.defIt(numDims)(1)),
       IR_Assignment(IR_IV_StationsIsLower(stationId), false)
-    ) ++ initStationFile(stationId))
+    ))
 
     fragStmts += IR_ForLoop(IR_VariableDeclaration(stationId, 0), IR_Lower(stationId, Knowledge.swe_stationsMax), IR_PreIncrement(stationId), stationStmts)
 
@@ -191,10 +146,36 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
     val end = IR_ExpressionIndex((0 until numDims).toArray.map { i => resolveIndex("DRE", i) - 1 - resolveIndex("DLB", i) : IR_Expression })
 
     body += IR_LoopOverFragments(IR_LoopOverDimensions(numDims, IR_ExpressionIndexRange(start, end), fragStmts))
+  }
 
-    body += IR_Comment("Refresh station files missing!!!!")
+  override def generateFct() = {
+    var body = ListBuffer[IR_Statement]()
 
-    body += IR_Comment("Check if station is part of several triangles missing!!!!")
+    if (!Settings.additionalIncludes.contains("iomanip"))
+      Settings.additionalIncludes += "iomanip"
+
+    // broadcast stations for every mpi thread besides rank 0
+    if (Knowledge.mpi_enabled) {
+      body += IR_IfCondition(IR_Neq(MPI_IV_MpiRank, IR_IntegerConstant(0)),
+        bcastStations() ++ ListBuffer[IR_Statement](IR_Return())
+      )
+    }
+
+    body ++= readStationsFromFile()
+
+    // mpi broadcast
+    if (Knowledge.mpi_enabled) {
+      // broadcast rank 0
+      body ++= bcastStations()
+    }
+
+
+    // find station triangles
+    body += IR_Comment("Find triangles of stations")
+
+    body ++= findStationsInDomain()
+
+    body += IR_Comment("A check if station is part of several triangles is missing!")
 
     IR_PlainFunction(name, IR_UnitDatatype, IR_FunctionArgument(fileName), body)
   }

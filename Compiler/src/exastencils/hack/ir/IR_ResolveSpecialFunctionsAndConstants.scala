@@ -321,7 +321,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_GlobalCollection.get.externalDependencies += "iostream"
         IR_GlobalCollection.get.externalDependencies = IR_GlobalCollection.get.externalDependencies.distinct
       }
-      IR_ExpressionStatement(IR_FunctionCall(IR_PlainInternalFunctionReference("writeStations", IR_UnitDatatype)))
+      IR_ExpressionStatement(IR_FunctionCall(IR_PlainInternalFunctionReference("writeStations", IR_UnitDatatype), args(0)))
 
 
 
