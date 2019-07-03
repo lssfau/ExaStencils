@@ -3,6 +3,7 @@ package exastencils.swe.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir
+import exastencils.base.ir
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_ArrayDatatype
@@ -13,6 +14,7 @@ import exastencils.config.Settings
 import exastencils.core.Duplicate
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir.IR_FieldAccess
+import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.grid.ir.IR_VF_NodePositionAsVec
 import exastencils.logger.Logger
 import exastencils.util.ir.IR_BuildString
@@ -42,6 +44,9 @@ case class IR_WriteStations(var arguments : ListBuffer[IR_Expression]) extends I
 
     if (!Settings.additionalIncludes.contains("iomanip"))
       Settings.additionalIncludes += "iomanip"
+
+    if (!Settings.additionalIncludes.contains("set"))
+      Settings.additionalIncludes += "set"
 
     var body = ListBuffer[IR_Statement]()
 
@@ -74,6 +79,10 @@ case class IR_WriteStations(var arguments : ListBuffer[IR_Expression]) extends I
     def coeffsLower(index : IR_ExpressionIndex = IR_LoopOverDimensions.defIt(numDims), fragIdx : IR_Expression = IR_LoopOverFragments.defIt) = coeffsFieldAccess(index, fragIdx).zipWithIndex.collect { case (e, i) if i % 2 == 0 => e }
 
     def coeffsUpper(index : IR_ExpressionIndex = IR_LoopOverDimensions.defIt(numDims), fragIdx : IR_Expression = IR_LoopOverFragments.defIt) = coeffsFieldAccess(index, fragIdx).zipWithIndex.collect { case (e, i) if i % 2 == 1 => e }
+
+    def fileNames = IR_VariableAccess("fileNames", IR_SpecialDatatype("static std::set<std::string>"))
+
+    body += IR_VariableDeclaration(fileNames)
 
     val stationId = IR_VariableAccess("stationId", IR_IntegerDatatype)
     val stationStmts = ListBuffer[IR_Statement]()
@@ -123,19 +132,6 @@ case class IR_WriteStations(var arguments : ListBuffer[IR_Expression]) extends I
     // write quantity to file
     def fileName = IR_VariableAccess("fileName", IR_StringDatatype)
 
-    // exchange regex $stationId by stationId
-    //arguments.head match {
-    //  case filenameStrConst : IR_StringConstant =>
-    //    val str : String = filenameStrConst.value
-    //    val strSplit = ListBuffer(str.split("\\$stationId") : _ *)
-    //
-    //    val strListMpi = strSplit.flatMap(e => stationId :: IR_StringConstant(e) :: Nil).tail
-    //
-    //    stationStmts += IR_BuildString(fileName, strListMpi)
-    //  case _                                    =>
-    //    Logger.error("The argument " + arguments.head.toString + " is not a StringConstant. First argument of writeStations() has to be a string.")
-    //}
-
     def fileNameWithId = IR_VariableAccess("fileNameWithId", IR_StringDatatype)
 
     def strToFind = IR_VariableAccess("strToFind", IR_StringDatatype)
@@ -150,10 +146,29 @@ case class IR_WriteStations(var arguments : ListBuffer[IR_Expression]) extends I
       ))
 
     stationStmts += IR_VariableDeclaration(file)
-    stationStmts += IR_MemberFunctionCall(file, "open", ListBuffer[IR_Expression](fileNameWithId, "std::ios::app"))
+
+    stationStmts += IR_IfCondition(IR_EqEq(IR_MemberFunctionCall(fileNames, "find", fileNameWithId), IR_MemberFunctionCall(fileNames, "end")), ListBuffer[IR_Statement](
+      IR_Comment("reset file"),
+      IR_MemberFunctionCall(file, "open", ListBuffer[IR_Expression](fileNameWithId, "std::ios::trunc")),
+      //IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileNameWithId), IR_FunctionCall("exit", 1)),
+      //IR_MemberFunctionCall(file, "close"),
+      IR_Print(file, "x = ", IR_IV_Stations(stationId, 0), IR_StringConstant("\\t y = "), IR_IV_Stations(stationId, 1), IR_Print.endl),
+      IR_MemberFunctionCall(fileNames, "insert", fileNameWithId)
+    ),
+      IR_MemberFunctionCall(file, "open", ListBuffer[IR_Expression](fileNameWithId, "std::ios::app"))
+    )
+
+    val t = IR_GlobalCollection.get.variables.find(_.name == "t") match {
+      case None    => Logger.error("Time variable 't' was not found in writeStations().")
+      case Some(v) => IR_VariableAccess(v)
+    }
+
+
+
+    //stationStmts += IR_MemberFunctionCall(file, "open", ListBuffer[IR_Expression](fileNameWithId, "std::ios::app"))
     stationStmts += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileNameWithId), IR_FunctionCall("exit", 1))
     stationStmts += IR_Print(file, "std::scientific << std::setprecision(10)")
-    stationStmts += IR_Print(file, quantity, IR_Print.endl)
+    stationStmts += IR_Print(file, t, IR_StringConstant("\\t"), quantity, IR_Print.endl)
     stationStmts += IR_MemberFunctionCall(file, "close")
 
     body += IR_ForLoop(IR_VariableDeclaration(stationId, 0), IR_Lower(stationId, Knowledge.swe_stationsMax), IR_PreIncrement(stationId), stationStmts)

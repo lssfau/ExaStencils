@@ -4,7 +4,6 @@ import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
-import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.prettyprinting.PpStream
 
@@ -120,29 +119,3 @@ case class IR_IV_StationsIsLower(var i : IR_Expression) extends IR_InternalVaria
   }
 
 }
-
-//case class IR_IV_StationNames(var i : IR_Expression) extends IR_InternalVariable(false, false, false, false, false) {
-//  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(i)
-//  override def resolveName() = s"sweStationNames" + resolvePostfix("", "", "", "", "")
-//  override def resolveDatatype() = IR_ArrayDatatype(IR_StringDatatype, nStationsMax)
-//  override def resolveDefValue() = Some(IR_StringConstant("UnnamedStation"))
-//
-//  val nStationsMax = Knowledge.swe_stationsMax
-//
-//  override def getCtor() : Option[IR_Statement] = {
-//
-//    val i = IR_VariableAccess("i", IR_IntegerDatatype)
-//
-//    if (resolveDefValue().isDefined)
-//      Some(IR_ForLoop(IR_VariableDeclaration(i, 0), IR_Lower(i, nStationsMax), IR_PreIncrement(i),
-//        IR_Assignment(resolveAccess(i), resolveDefValue().get)
-//      ))
-//    else
-//      None
-//  }
-//
-//  def resolveAccess(i : IR_Expression) = {
-//    IR_ArrayAccess(resolveName(), i)
-//  }
-//
-//}

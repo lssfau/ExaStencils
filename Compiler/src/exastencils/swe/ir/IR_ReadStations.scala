@@ -28,6 +28,9 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
     var bcastStmts = ListBuffer[IR_Statement]()
 
     bcastStmts += MPI_Bcast(IR_AddressOf(IR_IV_Stations(0, 0)), Knowledge.swe_stationsMax, IR_IV_Stations(0, 0).datatype.resolveBaseDatatype, 0)
+    bcastStmts += MPI_Bcast(IR_AddressOf(IR_IV_StationsId(0, 0)), Knowledge.swe_stationsMax, IR_IV_StationsId(0, 0).datatype.resolveBaseDatatype, 0)
+    bcastStmts += MPI_Bcast(IR_AddressOf(IR_IV_StationsFragment(0)), Knowledge.swe_stationsMax, IR_IV_StationsFragment(0).datatype.resolveBaseDatatype, 0)
+    bcastStmts += MPI_Bcast(IR_AddressOf(IR_IV_StationsIsLower(0)), Knowledge.swe_stationsMax, IR_IV_StationsIsLower(0).datatype.resolveBaseDatatype, 0)
   }
 
   def isInTriangle(xEval : IR_Expression, yEval : IR_Expression,
