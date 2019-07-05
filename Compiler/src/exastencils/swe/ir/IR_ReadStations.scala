@@ -10,10 +10,10 @@ import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.config.Settings
-import exastencils.deprecated.ir.IR_FieldSelection
+import exastencils.domain.ir.IR_DomainCollection
 import exastencils.domain.ir.IR_ReadLineFromFile
-import exastencils.field.ir.IR_FieldAccess
-import exastencils.grid.ir.IR_VF_NodePositionAsVec
+import exastencils.field.ir.IR_FieldCollection
+import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.parallelization.api.mpi.MPI_Bcast
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_ReadStream
@@ -80,20 +80,7 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
   def findStationsInDomain() = {
     var body = ListBuffer[IR_Statement]()
 
-    val field = IR_VF_NodePositionAsVec.find(Knowledge.maxLevel).associatedField
-
-    def fieldSelection = IR_FieldSelection(field, field.level, 0)
-
-    def numDims = field.fieldLayout.numDimsGrid
-
-    def resolveIndex(indexId : String, dim : Int) = field.fieldLayout.idxById(indexId, dim)
-
-    def nodePositions(dim : Int, offset : IR_ExpressionIndex = IR_ExpressionIndex(0, 0)) = {
-      val hdIndex = IR_LoopOverDimensions.defIt(numDims) + offset
-      hdIndex.indices :+= (dim : IR_Expression)
-      hdIndex.indices :+= (0 : IR_Expression) // matrix dt...
-      IR_FieldAccess(IR_FieldSelection(IR_VF_NodePositionAsVec.find(field.level).associatedField, field.level, 0), hdIndex)
-    }
+    def numDims = Knowledge.dimensionality
 
     //  v3 -- v2
     //  |     |
@@ -103,11 +90,13 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
 
     def linVertArray(vid : Int, dim : Int) = IR_ArrayAccess(vPos, 2 * vid + dim)
 
+    def nodePosition(dim : Int, offset : IR_ExpressionIndex = IR_ExpressionIndex(0, 0)) = IR_VF_NodePositionPerDim(Knowledge.maxLevel, IR_DomainCollection.objects.head, dim).resolve(IR_LoopOverDimensions.defIt(numDims) + offset)
+
     var fragStmts = ListBuffer[IR_Statement]()
-    fragStmts ++= (0 until numDims).toArray.map { i => IR_Assignment(linVertArray(0, i), nodePositions(i, IR_ExpressionIndex(0, 0))) }
-    fragStmts ++= (0 until numDims).toArray.map { i => IR_Assignment(linVertArray(1, i), nodePositions(i, IR_ExpressionIndex(1, 0))) }
-    fragStmts ++= (0 until numDims).toArray.map { i => IR_Assignment(linVertArray(2, i), nodePositions(i, IR_ExpressionIndex(1, 1))) }
-    fragStmts ++= (0 until numDims).toArray.map { i => IR_Assignment(linVertArray(3, i), nodePositions(i, IR_ExpressionIndex(0, 1))) }
+    fragStmts ++= (0 until numDims).toArray.map { i => IR_Assignment(linVertArray(0, i), nodePosition(i, IR_ExpressionIndex(0, 0))) }
+    fragStmts ++= (0 until numDims).toArray.map { i => IR_Assignment(linVertArray(1, i), nodePosition(i, IR_ExpressionIndex(1, 0))) }
+    fragStmts ++= (0 until numDims).toArray.map { i => IR_Assignment(linVertArray(2, i), nodePosition(i, IR_ExpressionIndex(1, 1))) }
+    fragStmts ++= (0 until numDims).toArray.map { i => IR_Assignment(linVertArray(3, i), nodePosition(i, IR_ExpressionIndex(0, 1))) }
 
     val stationStmts = ListBuffer[IR_Statement]()
     val stationId = IR_VariableAccess("stationId", IR_IntegerDatatype)
@@ -144,6 +133,10 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
     ))
 
     fragStmts += IR_ForLoop(IR_VariableDeclaration(stationId, 0), IR_Lower(stationId, Knowledge.swe_stationsMax), IR_PreIncrement(stationId), stationStmts)
+
+    val bath = IR_FieldCollection.getByIdentifier("bath", Knowledge.maxLevel).get
+
+    def resolveIndex(indexId : String, dim : Int) = bath.fieldLayout.idxById(indexId, dim)
 
     val start = IR_ExpressionIndex((0 until numDims).toArray.map { i => 0 })
     val end = IR_ExpressionIndex((0 until numDims).toArray.map { i => resolveIndex("DRE", i) - 1 - resolveIndex("DLB", i) : IR_Expression })

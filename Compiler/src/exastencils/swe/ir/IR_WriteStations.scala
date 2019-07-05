@@ -2,8 +2,6 @@ package exastencils.swe.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir
-import exastencils.base.ir
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_ArrayDatatype
@@ -11,13 +9,13 @@ import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.config.Settings
-import exastencils.core.Duplicate
 import exastencils.deprecated.ir.IR_FieldSelection
+import exastencils.domain.ir.IR_DomainCollection
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.grid.ir.IR_VF_NodePositionAsVec
+import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.logger.Logger
-import exastencils.util.ir.IR_BuildString
 import exastencils.util.ir.IR_Print
 
 case class IR_WriteStations(var arguments : ListBuffer[IR_Expression]) extends IR_FuturePlainFunction {
@@ -56,25 +54,14 @@ case class IR_WriteStations(var arguments : ListBuffer[IR_Expression]) extends I
       if (!c.isInstanceOf[IR_FieldAccess]) Logger.error("The coefficient " + c.toString + " is not a FieldAccess.")
     }
 
-    val field = IR_VF_NodePositionAsVec.find(Knowledge.maxLevel).associatedField
-
-    def fieldSelection = IR_FieldSelection(field, field.level, 0)
-
-    def numDims = field.fieldLayout.numDimsGrid
+    def numDims = Knowledge.dimensionality
 
     def coeffsFieldAccess(index : IR_ExpressionIndex = IR_LoopOverDimensions.defIt(numDims), fragIdx : IR_Expression = IR_LoopOverFragments.defIt) = coeffs.map { c =>
       val field = c.asInstanceOf[IR_FieldAccess].fieldSelection.field
       IR_FieldAccess(IR_FieldSelection(field, field.level, 0, fragIdx), index)
     }
 
-    def resolveIndex(indexId : String, dim : Int) = field.fieldLayout.idxById(indexId, dim)
-
-    def nodePositions(dim : Int, index : IR_ExpressionIndex, offset : IR_ExpressionIndex = IR_ExpressionIndex(0, 0), fragIdx : IR_Expression = IR_LoopOverFragments.defIt) = {
-      val hdIndex = index + offset
-      hdIndex.indices :+= (dim : IR_Expression)
-      hdIndex.indices :+= (0 : IR_Expression) // matrix dt...
-      IR_FieldAccess(IR_FieldSelection(IR_VF_NodePositionAsVec.find(field.level).associatedField, field.level, 0, fragIdx), hdIndex)
-    }
+    def nodePositions(dim : Int, offset : IR_ExpressionIndex = IR_ExpressionIndex(0, 0)) = IR_VF_NodePositionPerDim(Knowledge.maxLevel, IR_DomainCollection.objects.head, dim).resolve(IR_LoopOverDimensions.defIt(numDims) + offset)
 
     def coeffsLower(index : IR_ExpressionIndex = IR_LoopOverDimensions.defIt(numDims), fragIdx : IR_Expression = IR_LoopOverFragments.defIt) = coeffsFieldAccess(index, fragIdx).zipWithIndex.collect { case (e, i) if i % 2 == 0 => e }
 
@@ -93,7 +80,7 @@ case class IR_WriteStations(var arguments : ListBuffer[IR_Expression]) extends I
 
     def linVertArray(vid : Int, dim : Int) = IR_ArrayAccess(vPos, 2 * vid + dim)
 
-    val fragId = IR_VariableAccess("fragId", IR_IntegerDatatype)
+    val fragId = IR_LoopOverFragments.defIt
     val i0 = IR_VariableAccess("i0", IR_IntegerDatatype)
     val i1 = IR_VariableAccess("i1", IR_IntegerDatatype)
     val lowerLeftIdx = IR_ExpressionIndex(i0, i1)
@@ -107,10 +94,10 @@ case class IR_WriteStations(var arguments : ListBuffer[IR_Expression]) extends I
     stationStmts += IR_VariableDeclaration(fragId, IR_IV_StationsFragment(stationId))
     stationStmts += IR_VariableDeclaration(i0, IR_IV_StationsId(stationId, 0))
     stationStmts += IR_VariableDeclaration(i1, IR_IV_StationsId(stationId, 1))
-    stationStmts ++= (0 until 2).toArray.map(i => IR_Assignment(linVertArray(0, i), nodePositions(i, lowerLeftIdx, IR_ExpressionIndex(0, 0), fragId)))
-    stationStmts ++= (0 until 2).toArray.map(i => IR_Assignment(linVertArray(1, i), nodePositions(i, lowerLeftIdx, IR_ExpressionIndex(1, 0), fragId)))
-    stationStmts ++= (0 until 2).toArray.map(i => IR_Assignment(linVertArray(2, i), nodePositions(i, lowerLeftIdx, IR_ExpressionIndex(1, 1), fragId)))
-    stationStmts ++= (0 until 2).toArray.map(i => IR_Assignment(linVertArray(3, i), nodePositions(i, lowerLeftIdx, IR_ExpressionIndex(0, 1), fragId)))
+    stationStmts ++= (0 until 2).toArray.map(i => IR_Assignment(linVertArray(0, i), nodePositions(i, lowerLeftIdx + IR_ExpressionIndex(0, 0))))
+    stationStmts ++= (0 until 2).toArray.map(i => IR_Assignment(linVertArray(1, i), nodePositions(i, lowerLeftIdx + IR_ExpressionIndex(1, 0))))
+    stationStmts ++= (0 until 2).toArray.map(i => IR_Assignment(linVertArray(2, i), nodePositions(i, lowerLeftIdx + IR_ExpressionIndex(1, 1))))
+    stationStmts ++= (0 until 2).toArray.map(i => IR_Assignment(linVertArray(3, i), nodePositions(i, lowerLeftIdx + IR_ExpressionIndex(0, 1))))
     stationStmts += IR_IfCondition(IR_IV_StationsIsLower(stationId),
       IR_Assignment(quantity, IR_FunctionCall(IR_PlainInternalFunctionReference("evalQuantity", IR_UnitDatatype),
         ListBuffer[IR_Expression](
