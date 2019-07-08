@@ -2,6 +2,7 @@ package exastencils.swe.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_ArrayDatatype
@@ -11,11 +12,14 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.config.Settings
 import exastencils.domain.ir.IR_DomainCollection
+import exastencils.domain.ir.IR_IV_Nfragments
 import exastencils.domain.ir.IR_ReadLineFromFile
 import exastencils.field.ir.IR_FieldCollection
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.parallelization.api.mpi.MPI_Bcast
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
+import exastencils.parallelization.api.mpi.MPI_Reduce
+import exastencils.util.ir.IR_RawPrint
 import exastencils.util.ir.IR_ReadStream
 
 case class IR_ReadStations() extends IR_FuturePlainFunction {
@@ -24,13 +28,23 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
 
   def fileName = IR_VariableAccess("fileName", IR_StringDatatype)
 
+  val nStations = IR_VariableAccess("nStations", IR_IntegerDatatype)
+
+  def loopOverNumFragments(body : ListBuffer[IR_Statement]) = {
+    def fragmentIdx = IR_LoopOverFragments.defIt
+
+    IR_ForLoop(
+      IR_VariableDeclaration(fragmentIdx, 0),
+      IR_Lower(fragmentIdx, IR_IV_Nfragments()),
+      IR_PreIncrement(fragmentIdx),
+      body
+    )
+  }
+
   def bcastStations() = {
     var bcastStmts = ListBuffer[IR_Statement]()
 
     bcastStmts += MPI_Bcast(IR_AddressOf(IR_IV_Stations(0, 0)), Knowledge.swe_stationsMax, IR_IV_Stations(0, 0).datatype.resolveBaseDatatype, 0)
-    bcastStmts += MPI_Bcast(IR_AddressOf(IR_IV_StationsId(0, 0)), Knowledge.swe_stationsMax, IR_IV_StationsId(0, 0).datatype.resolveBaseDatatype, 0)
-    bcastStmts += MPI_Bcast(IR_AddressOf(IR_IV_StationsFragment(0)), Knowledge.swe_stationsMax, IR_IV_StationsFragment(0).datatype.resolveBaseDatatype, 0)
-    bcastStmts += MPI_Bcast(IR_AddressOf(IR_IV_StationsIsLower(0)), Knowledge.swe_stationsMax, IR_IV_StationsIsLower(0).datatype.resolveBaseDatatype, 0)
   }
 
   def isInTriangle(xEval : IR_Expression, yEval : IR_Expression,
@@ -59,10 +73,9 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
 
     val iss = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream"))
     body += IR_VariableDeclaration(iss)
-    val stationNumber = IR_VariableAccess("stationNumber", IR_IntegerDatatype)
     val stationX = IR_VariableAccess("x", IR_FloatDatatype)
     val stationY = IR_VariableAccess("y", IR_FloatDatatype)
-    body += IR_VariableDeclaration(stationNumber, 0)
+    body += IR_VariableDeclaration(nStations, 0)
     body += IR_VariableDeclaration(stationX)
     body += IR_VariableDeclaration(stationY)
 
@@ -70,9 +83,9 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
       IR_FunctionCall(IR_ReadLineFromFile.name, file, iss),
       ListBuffer[IR_Statement](
         IR_ReadStream(iss, ListBuffer(stationX, stationY)),
-        IR_Assignment(IR_IV_Stations(stationNumber, 0), stationX),
-        IR_Assignment(IR_IV_Stations(stationNumber, 1), stationY),
-        IR_PreIncrement(stationNumber)
+        IR_Assignment(IR_IV_Stations(nStations, 0), stationX),
+        IR_Assignment(IR_IV_Stations(nStations, 1), stationY),
+        IR_PreIncrement(nStations)
       )
     )
   }
@@ -141,7 +154,9 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
     val start = IR_ExpressionIndex((0 until numDims).toArray.map { i => 0 })
     val end = IR_ExpressionIndex((0 until numDims).toArray.map { i => resolveIndex("DRE", i) - 1 - resolveIndex("DLB", i) : IR_Expression })
 
-    body += IR_LoopOverFragments(IR_LoopOverDimensions(numDims, IR_ExpressionIndexRange(start, end), fragStmts))
+    body += loopOverNumFragments(ListBuffer[IR_Statement](
+      IR_LoopOverDimensions(numDims, IR_ExpressionIndexRange(start, end), fragStmts)
+    ))
   }
 
   override def generateFct() = {
@@ -153,23 +168,34 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
     // broadcast stations for every mpi thread besides rank 0
     if (Knowledge.mpi_enabled) {
       body += IR_IfCondition(IR_Neq(MPI_IV_MpiRank, IR_IntegerConstant(0)),
-        bcastStations() ++ ListBuffer[IR_Statement](IR_Return())
+        bcastStations(),
+        readStationsFromFile() ++ bcastStations()
       )
+    } else {
+      body ++= readStationsFromFile()
     }
-
-    body ++= readStationsFromFile()
-
-    // mpi broadcast
-    if (Knowledge.mpi_enabled) {
-      // broadcast rank 0
-      body ++= bcastStations()
-    }
-
 
     // find station triangles
     body += IR_Comment("Find triangles of stations")
 
     body ++= findStationsInDomain()
+
+    //TODO give error message if a station is not set
+    val stationCheck = IR_VariableAccess("stationCheck", IR_ArrayDatatype(IR_IntegerDatatype, Knowledge.swe_stationsMax))
+    body += IR_VariableDeclaration(stationCheck)
+    body += MPI_Reduce(0, IR_AddressOf(IR_IV_StationsFragment(0)), IR_AddressOf(IR_ArrayAccess(stationCheck, 0)), IR_IV_StationsFragment(0).datatype.resolveBaseDatatype, Knowledge.swe_stationsMax, "+")
+
+    val iter = IR_VariableAccess("i", IR_IntegerDatatype)
+    body += IR_IfCondition(IR_EqEq(MPI_IV_MpiRank, 0), IR_ForLoop(IR_VariableDeclaration(iter, 0), IR_Lower(iter, Knowledge.swe_stationsMax), IR_PreIncrement(iter), ListBuffer[IR_Statement](
+      IR_IfCondition(IR_EqEq(IR_IV_Stations(iter, 0), IR_IV_Stations(0, 0).resolveDefValue().get), IR_Break()),
+      IR_IfCondition(IR_EqEq(IR_ArrayAccess(stationCheck, iter), -Knowledge.mpi_numThreads), ListBuffer[IR_Statement](
+        IR_RawPrint(ListBuffer[IR_Expression](
+          IR_StringConstant("Station with id"), iter,
+          IR_StringConstant("at position x ="), IR_IV_Stations(iter, 0), IR_StringConstant(", y ="), IR_IV_Stations(iter, 1),
+          IR_StringConstant("not found in domain. Station will be ignored.")
+        ))
+      ))
+    )))
 
     body += IR_Comment("A check if station is part of several triangles is missing!")
 
