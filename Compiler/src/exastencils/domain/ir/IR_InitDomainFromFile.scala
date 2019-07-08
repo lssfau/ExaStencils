@@ -36,15 +36,12 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
   def defIt = IR_LoopOverFragments.defIt
 
-  def loopOverNumFragments(body : ListBuffer[IR_Statement], n_fragments : IR_VariableAccess) = {
-    def fragmentIdx = IR_VariableAccess("fragmentIdx", IR_IntegerDatatype)
+  def loopOverNumFragments(body : ListBuffer[IR_Statement]) = {
+    def fragmentIdx = IR_LoopOverFragments.defIt
 
-    val domains = IR_DomainCollection.objects
-
-    // own loop to set isValidForDomain
     IR_ForLoop(
       IR_VariableDeclaration(fragmentIdx, 0),
-      IR_Lower(fragmentIdx, n_fragments),
+      IR_Lower(fragmentIdx, IR_IV_Nfragments()),
       IR_PreIncrement(fragmentIdx),
       body
     )
@@ -336,7 +333,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     body
   }
 
-  def setupConnectivityFromFile(read_line : IR_FunctionCall, n_fragments : IR_VariableAccess) = {
+  def setupConnectivityFromFile(read_line : IR_FunctionCall) = {
     var connStmts = new ListBuffer[IR_Statement]
 
     val domains = IR_DomainCollection.objects
@@ -398,11 +395,11 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       }
     }
 
-    loopOverNumFragments(connStmts, n_fragments)
+    loopOverNumFragments(connStmts)
   }
 
   // ignoreConnectivity (for lower levels)
-  def ignoreConnectivity(read_line : IR_FunctionCall, nFragments : IR_VariableAccess) = {
+  def ignoreConnectivity(read_line : IR_FunctionCall) = {
     var connStmts = new ListBuffer[IR_Statement]
 
     val domains = IR_DomainCollection.objects
@@ -440,10 +437,10 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       ListBuffer[IR_Statement](read_line)
     )
 
-    loopOverNumFragments(connStmts, nFragments)
+    loopOverNumFragments(connStmts)
   }
 
-  def readNodes(field : IR_Field, read_line : IR_FunctionCall, iss : IR_VariableAccess, nFragments : IR_VariableAccess) = {
+  def readNodes(field : IR_Field, read_line : IR_FunctionCall, iss : IR_VariableAccess) = {
     var nodeStmts = ListBuffer[IR_Statement]()
 
     val numDims = field.fieldLayout.numDimsGrid
@@ -461,7 +458,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
         IR_ReadStream(iss, ListBuffer(nodePositions(0), nodePositions(1)))
       ))
 
-    loopOverNumFragments(nodeStmts, nFragments)
+    loopOverNumFragments(nodeStmts)
 
   }
 
@@ -489,43 +486,41 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
     val iss = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream"))
     val strBuf = IR_VariableAccess("strBuf", IR_SpecialDatatype("std::string"))
-    val nFragments = IR_VariableAccess("nFragments", IR_IntegerDatatype)
 
     body += IR_VariableDeclaration(iss)
     body += IR_VariableDeclaration(strBuf)
-    body += IR_VariableDeclaration(nFragments)
 
     val read_line = IR_FunctionCall(IR_ReadLineFromFile.name, file, iss)
 
     body += read_line // jump over block_id
     body += read_line
-    body += IR_ReadStream(iss, ListBuffer(strBuf, nFragments))
+    body += IR_ReadStream(iss, ListBuffer(strBuf, IR_IV_Nfragments()))
     body += read_line // jump over n_grid_nodes
 
     // read connectivity
     if (setupConnectivityAndFields) {
-      body += setupConnectivityFromFile(read_line, nFragments)
+      body += setupConnectivityFromFile(read_line)
       body += IR_FunctionCall(IR_AllocateDataFunction.fctName)
       body += IR_FunctionCall("initFieldsWithZero")
     }
     else {
-      body += ignoreConnectivity(read_line, nFragments)
+      body += ignoreConnectivity(read_line)
     }
 
     val field = IR_VF_NodePositionAsVec.find(level).associatedField
 
     // read grid nodes
-    body += readNodes(field, read_line, iss, nFragments)
+    body += readNodes(field, read_line, iss)
 
     body += IR_MemberFunctionCall(file, "close")
 
     // communicate (updated interior ghost layers)
     body += IR_Communicate(IR_FieldSelection(field, field.level, 0), "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None)
     // deal with ghost layers on boundary
-    body += loopOverNumFragments(fillBoundaryGhostLayers(field), nFragments)
+    body += loopOverNumFragments(fillBoundaryGhostLayers(field))
     // adapt ghost layers to match upper and lower triangles of neighbors
     body += IR_Comment("Adapt ghost layers by repositioning knots")
-    body += loopOverNumFragments(adaptGhostLayers(field), nFragments)
+    body += loopOverNumFragments(adaptGhostLayers(field))
 
     IR_Scope(body)
   }
