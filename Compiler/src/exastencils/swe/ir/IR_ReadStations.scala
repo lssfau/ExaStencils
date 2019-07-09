@@ -190,7 +190,12 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
         IR_Assignment(IR_ArrayAccess(localStationCheck, iter), 0))
     ))
     body += IR_VariableDeclaration(globalStationCheck)
-    body += MPI_Reduce(0, IR_AddressOf(IR_ArrayAccess(localStationCheck, 0)), IR_AddressOf(IR_ArrayAccess(globalStationCheck, 0)), IR_IV_StationsFragment(0).datatype.resolveBaseDatatype, Knowledge.swe_stationsMax, "+")
+    if (Knowledge.mpi_enabled && Knowledge.mpi_numThreads > 1)
+      body += MPI_Reduce(0, IR_AddressOf(IR_ArrayAccess(localStationCheck, 0)), IR_AddressOf(IR_ArrayAccess(globalStationCheck, 0)), IR_IV_StationsFragment(0).datatype.resolveBaseDatatype, Knowledge.swe_stationsMax, "+")
+    else
+      body += IR_ForLoop(IR_VariableDeclaration(iter, 0), IR_Lower(iter, Knowledge.swe_stationsMax), IR_PreIncrement(iter), ListBuffer[IR_Statement](
+        IR_Assignment(IR_ArrayAccess(globalStationCheck, iter), IR_ArrayAccess(localStationCheck, iter))
+      ))
 
     body += IR_IfCondition(IR_EqEq(MPI_IV_MpiRank, 0), IR_ForLoop(IR_VariableDeclaration(iter, 0), IR_Lower(iter, Knowledge.swe_stationsMax), IR_PreIncrement(iter), ListBuffer[IR_Statement](
       IR_IfCondition(IR_EqEq(IR_IV_Stations(iter, 0), IR_IV_Stations(0, 0).resolveDefValue().get), IR_Break()),
