@@ -11,7 +11,7 @@ case class IR_IV_Stations(var i : IR_Expression, var j : IR_Expression) extends 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(i, j)
   override def resolveName() = s"sweStations" + resolvePostfix("", "", "", "", "")
   override def resolveDatatype() = IR_ArrayDatatype(IR_DoubleDatatype, nStationsMax * dims)
-  override def resolveDefValue() = Some(-9999) //TODO reasonable default value
+  override def resolveDefValue() = Some(-99999) //TODO reasonable default value
 
   val nStationsMax = Knowledge.swe_stationsMax
   val dims = 2

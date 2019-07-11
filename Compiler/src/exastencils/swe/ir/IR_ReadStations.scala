@@ -2,6 +2,7 @@ package exastencils.swe.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_ArrayDatatype
@@ -10,12 +11,15 @@ import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.config.Settings
-import exastencils.deprecated.ir.IR_FieldSelection
+import exastencils.domain.ir.IR_DomainCollection
+import exastencils.domain.ir.IR_IV_Nfragments
 import exastencils.domain.ir.IR_ReadLineFromFile
-import exastencils.field.ir.IR_FieldAccess
-import exastencils.grid.ir.IR_VF_NodePositionAsVec
+import exastencils.field.ir.IR_FieldCollection
+import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.parallelization.api.mpi.MPI_Bcast
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
+import exastencils.parallelization.api.mpi.MPI_Reduce
+import exastencils.util.ir.IR_RawPrint
 import exastencils.util.ir.IR_ReadStream
 
 case class IR_ReadStations() extends IR_FuturePlainFunction {
@@ -24,13 +28,23 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
 
   def fileName = IR_VariableAccess("fileName", IR_StringDatatype)
 
+  val nStations = IR_VariableAccess("nStations", IR_IntegerDatatype)
+
+  def loopOverNumFragments(body : ListBuffer[IR_Statement]) = {
+    def fragmentIdx = IR_LoopOverFragments.defIt
+
+    IR_ForLoop(
+      IR_VariableDeclaration(fragmentIdx, 0),
+      IR_Lower(fragmentIdx, IR_IV_Nfragments()),
+      IR_PreIncrement(fragmentIdx),
+      body
+    )
+  }
+
   def bcastStations() = {
     var bcastStmts = ListBuffer[IR_Statement]()
 
     bcastStmts += MPI_Bcast(IR_AddressOf(IR_IV_Stations(0, 0)), Knowledge.swe_stationsMax, IR_IV_Stations(0, 0).datatype.resolveBaseDatatype, 0)
-    bcastStmts += MPI_Bcast(IR_AddressOf(IR_IV_StationsId(0, 0)), Knowledge.swe_stationsMax, IR_IV_StationsId(0, 0).datatype.resolveBaseDatatype, 0)
-    bcastStmts += MPI_Bcast(IR_AddressOf(IR_IV_StationsFragment(0)), Knowledge.swe_stationsMax, IR_IV_StationsFragment(0).datatype.resolveBaseDatatype, 0)
-    bcastStmts += MPI_Bcast(IR_AddressOf(IR_IV_StationsIsLower(0)), Knowledge.swe_stationsMax, IR_IV_StationsIsLower(0).datatype.resolveBaseDatatype, 0)
   }
 
   def isInTriangle(xEval : IR_Expression, yEval : IR_Expression,
@@ -59,10 +73,9 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
 
     val iss = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream"))
     body += IR_VariableDeclaration(iss)
-    val stationNumber = IR_VariableAccess("stationNumber", IR_IntegerDatatype)
     val stationX = IR_VariableAccess("x", IR_FloatDatatype)
     val stationY = IR_VariableAccess("y", IR_FloatDatatype)
-    body += IR_VariableDeclaration(stationNumber, 0)
+    body += IR_VariableDeclaration(nStations, 0)
     body += IR_VariableDeclaration(stationX)
     body += IR_VariableDeclaration(stationY)
 
@@ -70,9 +83,9 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
       IR_FunctionCall(IR_ReadLineFromFile.name, file, iss),
       ListBuffer[IR_Statement](
         IR_ReadStream(iss, ListBuffer(stationX, stationY)),
-        IR_Assignment(IR_IV_Stations(stationNumber, 0), stationX),
-        IR_Assignment(IR_IV_Stations(stationNumber, 1), stationY),
-        IR_PreIncrement(stationNumber)
+        IR_Assignment(IR_IV_Stations(nStations, 0), stationX),
+        IR_Assignment(IR_IV_Stations(nStations, 1), stationY),
+        IR_PreIncrement(nStations)
       )
     )
   }
@@ -80,20 +93,7 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
   def findStationsInDomain() = {
     var body = ListBuffer[IR_Statement]()
 
-    val field = IR_VF_NodePositionAsVec.find(Knowledge.maxLevel).associatedField
-
-    def fieldSelection = IR_FieldSelection(field, field.level, 0)
-
-    def numDims = field.fieldLayout.numDimsGrid
-
-    def resolveIndex(indexId : String, dim : Int) = field.fieldLayout.idxById(indexId, dim)
-
-    def nodePositions(dim : Int, offset : IR_ExpressionIndex = IR_ExpressionIndex(0, 0)) = {
-      val hdIndex = IR_LoopOverDimensions.defIt(numDims) + offset
-      hdIndex.indices :+= (dim : IR_Expression)
-      hdIndex.indices :+= (0 : IR_Expression) // matrix dt...
-      IR_FieldAccess(IR_FieldSelection(IR_VF_NodePositionAsVec.find(field.level).associatedField, field.level, 0), hdIndex)
-    }
+    def numDims = Knowledge.dimensionality
 
     //  v3 -- v2
     //  |     |
@@ -103,11 +103,13 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
 
     def linVertArray(vid : Int, dim : Int) = IR_ArrayAccess(vPos, 2 * vid + dim)
 
+    def nodePosition(dim : Int, offset : IR_ExpressionIndex = IR_ExpressionIndex(0, 0)) = IR_VF_NodePositionPerDim(Knowledge.maxLevel, IR_DomainCollection.objects.head, dim).resolve(IR_LoopOverDimensions.defIt(numDims) + offset)
+
     var fragStmts = ListBuffer[IR_Statement]()
-    fragStmts ++= (0 until numDims).toArray.map { i => IR_Assignment(linVertArray(0, i), nodePositions(i, IR_ExpressionIndex(0, 0))) }
-    fragStmts ++= (0 until numDims).toArray.map { i => IR_Assignment(linVertArray(1, i), nodePositions(i, IR_ExpressionIndex(1, 0))) }
-    fragStmts ++= (0 until numDims).toArray.map { i => IR_Assignment(linVertArray(2, i), nodePositions(i, IR_ExpressionIndex(1, 1))) }
-    fragStmts ++= (0 until numDims).toArray.map { i => IR_Assignment(linVertArray(3, i), nodePositions(i, IR_ExpressionIndex(0, 1))) }
+    fragStmts ++= (0 until numDims).toArray.map { i => IR_Assignment(linVertArray(0, i), nodePosition(i, IR_ExpressionIndex(0, 0))) }
+    fragStmts ++= (0 until numDims).toArray.map { i => IR_Assignment(linVertArray(1, i), nodePosition(i, IR_ExpressionIndex(1, 0))) }
+    fragStmts ++= (0 until numDims).toArray.map { i => IR_Assignment(linVertArray(2, i), nodePosition(i, IR_ExpressionIndex(1, 1))) }
+    fragStmts ++= (0 until numDims).toArray.map { i => IR_Assignment(linVertArray(3, i), nodePosition(i, IR_ExpressionIndex(0, 1))) }
 
     val stationStmts = ListBuffer[IR_Statement]()
     val stationId = IR_VariableAccess("stationId", IR_IntegerDatatype)
@@ -145,10 +147,16 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
 
     fragStmts += IR_ForLoop(IR_VariableDeclaration(stationId, 0), IR_Lower(stationId, Knowledge.swe_stationsMax), IR_PreIncrement(stationId), stationStmts)
 
+    val bath = IR_FieldCollection.getByIdentifier("bath", Knowledge.maxLevel).get
+
+    def resolveIndex(indexId : String, dim : Int) = bath.fieldLayout.idxById(indexId, dim)
+
     val start = IR_ExpressionIndex((0 until numDims).toArray.map { i => 0 })
     val end = IR_ExpressionIndex((0 until numDims).toArray.map { i => resolveIndex("DRE", i) - 1 - resolveIndex("DLB", i) : IR_Expression })
 
-    body += IR_LoopOverFragments(IR_LoopOverDimensions(numDims, IR_ExpressionIndexRange(start, end), fragStmts))
+    body += loopOverNumFragments(ListBuffer[IR_Statement](
+      IR_LoopOverDimensions(numDims, IR_ExpressionIndexRange(start, end), fragStmts)
+    ))
   }
 
   override def generateFct() = {
@@ -160,25 +168,52 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
     // broadcast stations for every mpi thread besides rank 0
     if (Knowledge.mpi_enabled) {
       body += IR_IfCondition(IR_Neq(MPI_IV_MpiRank, IR_IntegerConstant(0)),
-        bcastStations() ++ ListBuffer[IR_Statement](IR_Return())
+        bcastStations(),
+        readStationsFromFile() ++ bcastStations()
       )
+    } else {
+      body ++= readStationsFromFile()
     }
-
-    body ++= readStationsFromFile()
-
-    // mpi broadcast
-    if (Knowledge.mpi_enabled) {
-      // broadcast rank 0
-      body ++= bcastStations()
-    }
-
 
     // find station triangles
     body += IR_Comment("Find triangles of stations")
 
     body ++= findStationsInDomain()
 
-    body += IR_Comment("A check if station is part of several triangles is missing!")
+    val iter = IR_VariableAccess("i", IR_IntegerDatatype)
+    val localStationCheck = IR_VariableAccess("localStationCheck", IR_ArrayDatatype(IR_IntegerDatatype, Knowledge.swe_stationsMax))
+    val globalStationCheck = IR_VariableAccess("globalStationCheck", IR_ArrayDatatype(IR_IntegerDatatype, Knowledge.swe_stationsMax))
+    body += IR_VariableDeclaration(localStationCheck)
+    body += IR_ForLoop(IR_VariableDeclaration(iter, 0), IR_Lower(iter, Knowledge.swe_stationsMax), IR_PreIncrement(iter), ListBuffer[IR_Statement](
+      IR_IfCondition(IR_Neq(IR_IV_StationsFragment(iter), IR_IV_StationsFragment(0).resolveDefValue().get),
+        IR_Assignment(IR_ArrayAccess(localStationCheck, iter), 1),
+        IR_Assignment(IR_ArrayAccess(localStationCheck, iter), 0))
+    ))
+    body += IR_VariableDeclaration(globalStationCheck)
+    if (Knowledge.mpi_enabled && Knowledge.mpi_numThreads > 1)
+      body += MPI_Reduce(0, IR_AddressOf(IR_ArrayAccess(localStationCheck, 0)), IR_AddressOf(IR_ArrayAccess(globalStationCheck, 0)), IR_IV_StationsFragment(0).datatype.resolveBaseDatatype, Knowledge.swe_stationsMax, "+")
+    else
+      body += IR_ForLoop(IR_VariableDeclaration(iter, 0), IR_Lower(iter, Knowledge.swe_stationsMax), IR_PreIncrement(iter), ListBuffer[IR_Statement](
+        IR_Assignment(IR_ArrayAccess(globalStationCheck, iter), IR_ArrayAccess(localStationCheck, iter))
+      ))
+
+    body += IR_IfCondition(IR_EqEq(MPI_IV_MpiRank, 0), IR_ForLoop(IR_VariableDeclaration(iter, 0), IR_Lower(iter, Knowledge.swe_stationsMax), IR_PreIncrement(iter), ListBuffer[IR_Statement](
+      IR_IfCondition(IR_EqEq(IR_IV_Stations(iter, 0), IR_IV_Stations(0, 0).resolveDefValue().get), IR_Break()),
+      IR_IfCondition(IR_EqEq(IR_ArrayAccess(globalStationCheck, iter), 0), ListBuffer[IR_Statement](
+        IR_RawPrint(ListBuffer[IR_Expression](
+          IR_StringConstant("Station with id"), iter,
+          IR_StringConstant("at position x ="), IR_IV_Stations(iter, 0), IR_StringConstant(", y ="), IR_IV_Stations(iter, 1),
+          IR_StringConstant("not found in domain. Station will be ignored.")
+        ))
+      )),
+      IR_IfCondition(IR_Greater(IR_ArrayAccess(globalStationCheck, iter), 1), ListBuffer[IR_Statement](
+        IR_RawPrint(ListBuffer[IR_Expression](
+          IR_StringConstant("Station with id"), iter,
+          IR_StringConstant("at position x ="), IR_IV_Stations(iter, 0), IR_StringConstant(", y ="), IR_IV_Stations(iter, 1),
+          IR_StringConstant("was found several times! Output might be unusable!")
+        ))
+      ))
+    )))
 
     IR_PlainFunction(name, IR_UnitDatatype, IR_FunctionArgument(fileName), body)
   }
