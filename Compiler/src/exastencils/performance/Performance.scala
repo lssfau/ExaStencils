@@ -214,7 +214,8 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
   def computeRelativeStencilOffsets(stencil : ListBuffer[Long]) : ListBuffer[Long] = {
     val rel_by : ListBuffer[Long] = ListBuffer()
     if (stencil.length < 2) {
-      return rel_by
+      rel_by += stencil.head
+      return  rel_by
     }
     for (i <- 0 to stencil.length - 2) {
       val tmp = Math.abs(stencil(i) - stencil(i + 1))
@@ -223,9 +224,11 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
     rel_by.sorted.reverse
   }
 
+
   def findBlockingFactor(fieldAcesses : HashMap[String, IR_Datatype], fieldSize : Array[Long], stencilOffsets : HashMap[String, ListBuffer[Long]]) : Array[Long] = {
+
     //Multi thread:
-    var cacheSize : Double = (Platform.hw_cacheSize * Platform.hw_usableCache) / stencilOffsets.size //Bereich fuer jedes Feld
+    var cacheSize : Double =  (Platform.hw_cacheSize * Platform.hw_usableCache) / stencilOffsets.size //Bereich fuer jedes Feld
     val numberOfThreadsUsed = Knowledge.omp_numThreads
     val numberOfCaches = Platform.hw_numCacheSharingThreads / Platform.hw_cpu_numCoresPerCPU
     if (numberOfThreadsUsed > numberOfCaches) {
@@ -237,69 +240,112 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
       var numberOfSlices = 1
       var stencil = stencilOffsets(ident).sorted.reverse
       if (stencil.nonEmpty) {
-        var factorsA : ListBuffer[Long] = ListBuffer(0, 0)
-        val relO : Array[Long] = Array(0, 0)
-        var biggest3DOffset : Long = 0
-        var biggest2DOffset : Long = 0
+        val relO : ListBuffer[Long] = ListBuffer()
+        var maxSlice : Long = 0
 
-        //3D:
-        if (fieldSize.length == 3) {
-          factorsA += 1 * fieldSize(2)
-          // 3D slice in +y direction
-          var stencil_biggery = stencil.filter(_ > fieldSize(1))
-          if (stencil_biggery.nonEmpty) {
-            stencil = stencil.filter(_ < fieldSize(1))
-            stencil_biggery = computeRelativeStencilOffsets(stencil_biggery)
-            relO(1) = stencil_biggery.sum
-            if (stencil_biggery.length > 1) {
-              biggest3DOffset = stencil_biggery.max
-            } else {
-              biggest3DOffset = stencil_biggery.head
-            }
-            numberOfSlices += 1
-          }
-          //3D slice in -y direction
-          var stencil_smallery = stencil.filter(_ < -fieldSize(1))
-          if (stencil_smallery.nonEmpty) {
-            stencil = stencil.filter(_ > -fieldSize(1))
-            stencil_smallery = computeRelativeStencilOffsets(stencil_smallery)
-            relO(0) = stencil_smallery.sum
-            if (stencil_smallery.length > 1) {
-              val tmp = stencil_smallery.max
-              if (tmp > biggest3DOffset) {
-                biggest3DOffset = tmp
-              }
-            }
-            numberOfSlices += 1
-          }
-        }
-
-        //2D
-        var rel_stencil = computeRelativeStencilOffsets(stencil)
-        if (rel_stencil.nonEmpty) {
-          biggest2DOffset = rel_stencil.head
-          if (rel_stencil.length > 1) {
-            biggest2DOffset = rel_stencil.max
-          } else {
-            biggest2DOffset = rel_stencil.head
-          }
-        }
-        else {
-          if (stencil.nonEmpty) {
-            biggest2DOffset = stencil.head
-          }
-          rel_stencil = stencil
-        }
-        //                = ( summe der relativen Offsets  +        maxOffset                            * nSlices        ) * s
-        val cacheRequired = (relO.sum + rel_stencil.sum + Math.max(biggest2DOffset, biggest3DOffset) * numberOfSlices) * fieldAcesses(ident).typicalByteSize
+        //1.Version, auf komplette groesse blocken
+        var cacheRequired : Double = math.abs(stencil.head)
+        if (stencil(stencil.length-1) <= 0)
+          cacheRequired += math.abs(stencil(stencil.length-1))
+        cacheRequired = cacheRequired * fieldAcesses(ident).typicalByteSize
+        //if (cacheRequired == 0){
+        //  cacheRequired = cacheSize
+        //}
         var ny = cacheSize / cacheRequired
-        val nx : Double = 1
-        if (ny > 1) {
-          ny = 1
+        if (ny >= 1) {
+         ny = 1
         }
-        factorsA(0) = (nx * fieldSize(0)).toLong
-        factorsA(1) = (ny * fieldSize(1)).toLong
-        factors(ident) = factorsA.toArray
+        //wenn das zu kleine Bloecke werden:
+        if (ny > 0.1){
+          var numberOfBlocks: Long = (1 / ny).toLong
+          if ( 1%ny != 0){
+            numberOfBlocks += 1
+          }
+          if( fieldSize.length == 3)
+            factors(ident) = Array( fieldSize(0), fieldSize(1)/ numberOfBlocks , fieldSize(2))
+          else
+            factors(ident) = Array(fieldSize(0) / numberOfBlocks, fieldSize(1))
+          Logger.warn(s"Stencil: ${stencil.head}, ${stencil(stencil.length-1)}")
+          Logger.warn(s"Meike: cache_required1 ${ cacheRequired }, numberOfBlocks = ${numberOfBlocks}, cacheSize = ${cacheSize}, ny = ${ny}")
+        }
+        //ansonsten 2.Version
+        else {
+          //3D:
+          if (fieldSize.length == 3) {
+            // 3D slice in +y direction
+            val yOffset = fieldSize(0)*fieldSize(1)
+            var stencil_biggery = stencil.filter(_ > yOffset)
+            if (stencil_biggery.nonEmpty) {
+              stencil = stencil.filter(_ < yOffset)
+              var i = 1
+              do {
+                var part = stencil_biggery.filter(_ < i *yOffset)
+                if( part.nonEmpty) {
+                  stencil_biggery = stencil_biggery.filter(_ > i * yOffset)
+                  part = computeRelativeStencilOffsets(part)
+                  relO += part.sum
+                  numberOfSlices += 1
+
+                }
+                i +=1
+              } while (stencil_biggery.nonEmpty)
+
+            }
+            else{
+              relO += 0
+            }
+            //3D slice in -y direction
+            var stencil_smallery = stencil.filter(_ < -yOffset)
+            if (stencil_smallery.nonEmpty) {
+              stencil = stencil.filter(_ > -yOffset)
+              var i = 1
+              do{
+                var part = stencil_smallery.filter(_ < i *yOffset)
+                if(part.nonEmpty) {
+                  stencil_smallery = stencil_smallery.filter(_ > i * yOffset)
+                  part = computeRelativeStencilOffsets(part)
+                  relO += part.sum
+                  numberOfSlices += 1
+
+                }
+                i += 1
+              }while(stencil_smallery.nonEmpty)
+            }
+            else{
+              relO += 0
+            }
+            maxSlice = relO.max
+          }
+          //2D
+          if (stencil.nonEmpty) {
+            val rel_stencil = computeRelativeStencilOffsets(stencil)
+            if (rel_stencil.sum > maxSlice) {
+              maxSlice = rel_stencil.sum
+            }
+          }
+
+          cacheRequired = maxSlice * numberOfSlices * fieldAcesses(ident).typicalByteSize
+          if (cacheRequired == 0) {
+            cacheRequired = cacheSize
+          }
+          var ny = cacheSize / cacheRequired
+          if (ny > 1) {
+            ny = 1
+          }
+          var numberOfBlocks = (1 / ny).round
+          if ( 1%ny != 0){
+            numberOfBlocks += 1
+          }
+          Logger.warn(s"Meike: cache_required2 ${ cacheRequired }, numberOfBlocks = ${numberOfBlocks}, cacheSize = ${cacheSize}")
+          //numberOfBlocks = 1 / numberOfBlocks
+          if (fieldSize.length == 3){
+            factors(ident) = Array (fieldSize(0), fieldSize(1) / numberOfBlocks, fieldSize(2) )
+
+          }
+          else {
+            factors(ident) = Array(fieldSize(0) / numberOfBlocks, fieldSize(1))
+          }
+        }
       }
       else {
         factors(ident) = Array(fieldSize(0), fieldSize(1), fieldSize(2))
@@ -320,6 +366,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
   this += new Transformation("Progressing key statements", {
     // function calls
     case fct : IR_FunctionCall =>
+
       if (!CollectFunctionStatements.internalFunctions.contains(fct.name))
         () // external functions -> no estimate
       else if (EvaluatePerformanceEstimates.completeFunctions.contains(fct.name))
@@ -329,6 +376,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
       fct
 
     case loop : IR_LoopOverDimensions =>
+
       if (loop.hasAnnotation("perf_timeEstimate_host") || loop.hasAnnotation("perf_timeEstimate_device")) {
         addTimeToStack(loop)
         loop
@@ -358,8 +406,10 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         val totalEstimate = PerformanceEstimate(Math.max(estimatedTimeOps_host, optimisticTimeMem_host), Math.max(estimatedTimeOps_device, optimisticTimeMem_device))
         totalEstimate.device += Platform.sw_cuda_kernelCallOverhead
 
+        var dim : Array[Long] = Array(0,0,0)
         if (Knowledge.opt_loopBlocked) {
-          val dim : Array[Long] = findBlockingFactor(EvaluatePerformanceEstimates_FieldAccess.fieldAccesses, loop.maxIterationCount(), EvaluatePerformanceEstimates_FieldAccess.offsets)
+          dim  = findBlockingFactor(EvaluatePerformanceEstimates_FieldAccess.fieldAccesses, loop.maxIterationCount(), EvaluatePerformanceEstimates_FieldAccess.offsets)
+          Logger.warn(s"Meike2: dims = ${dim(0)}, ${dim(1)}")
           loop.tileSize = dim.map(_.toInt)
           maxIterations = dim.product
           //IR_Comment(s"min loop dimentsion: ${dim(0)} ,${ dim(1)}, elements"),
@@ -377,10 +427,12 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
           IR_Comment(s"Optimistic device time for computational ops: ${ estimatedTimeOps_device * 1000.0 } ms"),
           IR_Comment(s"Assumed kernel call overhead: ${ Platform.sw_cuda_kernelCallOverhead * 1000.0 } ms"),
           IR_Comment(s"Found accesses: ${ EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.keys.mkString(", ") }"),
+          IR_Comment(s"min loop dimentsion: ${dim(0)} ,${ dim(1)}, elements"),
           loop)
       }
 
     case loop : IR_ForLoop =>
+
       if (loop.hasAnnotation("perf_timeEstimate_host") || loop.hasAnnotation("perf_timeEstimate_device")) {
         addLoopTimeToStack(loop)
       } else {
