@@ -122,10 +122,12 @@ case class IR_LoopOverDimensions(
     if (null == start && null != end) {
       Logger.warn("Could determine loop index range end but not begin; assume begin is 0")
       end
-    } else if (null != start && null != end)
+    } else if (null != start && null != end) {
       (0 until numDimensions).view.map(dim => end(dim) - start(dim)).toArray
-    else
+    } else {
+      Logger.warn("Could determine loop index range")
       null
+    }
   }
 
   def parallelizationIsReasonable : Boolean = {
