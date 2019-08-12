@@ -13,15 +13,12 @@ import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.globals.ir.IR_GlobalCollection
-import exastencils.grid.ir.IR_VF_NodePositionAsVec
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.logger.Logger
 import exastencils.util.ir.IR_Print
 
-case class IR_WriteStations(var arguments : ListBuffer[IR_Expression]) extends IR_FuturePlainFunction {
-  //TODO change arguments, include filename.
-  //TODO add in ReadStations an optional output folder
-  override var name = "writeStations"
+case class IR_WriteStations(var fctName : String, var arguments : ListBuffer[IR_Expression]) extends IR_FuturePlainFunction {
+  override var name = fctName
   override def prettyprint_decl() = prettyprint
 
   def isInTriangle(xEval : IR_Expression, yEval : IR_Expression,
@@ -148,9 +145,6 @@ case class IR_WriteStations(var arguments : ListBuffer[IR_Expression]) extends I
       case Some(v) => IR_VariableAccess(v)
     }
 
-
-
-    //stationStmts += IR_MemberFunctionCall(file, "open", ListBuffer[IR_Expression](fileNameWithId, "std::ios::app"))
     stationStmts += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileNameWithId), IR_FunctionCall("exit", 1))
     stationStmts += IR_Print(file, "std::scientific << std::setprecision(10)")
     stationStmts += IR_Print(file, t, IR_StringConstant("\\t"), quantity, IR_Print.endl)

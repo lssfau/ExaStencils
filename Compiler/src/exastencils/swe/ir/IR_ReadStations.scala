@@ -180,24 +180,40 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
 
     body ++= findStationsInDomain()
 
-    //TODO give error message if a station is not set
-    val stationCheck = IR_VariableAccess("stationCheck", IR_ArrayDatatype(IR_IntegerDatatype, Knowledge.swe_stationsMax))
-    body += IR_VariableDeclaration(stationCheck)
-    body += MPI_Reduce(0, IR_AddressOf(IR_IV_StationsFragment(0)), IR_AddressOf(IR_ArrayAccess(stationCheck, 0)), IR_IV_StationsFragment(0).datatype.resolveBaseDatatype, Knowledge.swe_stationsMax, "+")
-
     val iter = IR_VariableAccess("i", IR_IntegerDatatype)
+    val localStationCheck = IR_VariableAccess("localStationCheck", IR_ArrayDatatype(IR_IntegerDatatype, Knowledge.swe_stationsMax))
+    val globalStationCheck = IR_VariableAccess("globalStationCheck", IR_ArrayDatatype(IR_IntegerDatatype, Knowledge.swe_stationsMax))
+    body += IR_VariableDeclaration(localStationCheck)
+    body += IR_ForLoop(IR_VariableDeclaration(iter, 0), IR_Lower(iter, Knowledge.swe_stationsMax), IR_PreIncrement(iter), ListBuffer[IR_Statement](
+      IR_IfCondition(IR_Neq(IR_IV_StationsFragment(iter), IR_IV_StationsFragment(0).resolveDefValue().get),
+        IR_Assignment(IR_ArrayAccess(localStationCheck, iter), 1),
+        IR_Assignment(IR_ArrayAccess(localStationCheck, iter), 0))
+    ))
+    body += IR_VariableDeclaration(globalStationCheck)
+    if (Knowledge.mpi_enabled && Knowledge.mpi_numThreads > 1)
+      body += MPI_Reduce(0, IR_AddressOf(IR_ArrayAccess(localStationCheck, 0)), IR_AddressOf(IR_ArrayAccess(globalStationCheck, 0)), IR_IV_StationsFragment(0).datatype.resolveBaseDatatype, Knowledge.swe_stationsMax, "+")
+    else
+      body += IR_ForLoop(IR_VariableDeclaration(iter, 0), IR_Lower(iter, Knowledge.swe_stationsMax), IR_PreIncrement(iter), ListBuffer[IR_Statement](
+        IR_Assignment(IR_ArrayAccess(globalStationCheck, iter), IR_ArrayAccess(localStationCheck, iter))
+      ))
+
     body += IR_IfCondition(IR_EqEq(MPI_IV_MpiRank, 0), IR_ForLoop(IR_VariableDeclaration(iter, 0), IR_Lower(iter, Knowledge.swe_stationsMax), IR_PreIncrement(iter), ListBuffer[IR_Statement](
       IR_IfCondition(IR_EqEq(IR_IV_Stations(iter, 0), IR_IV_Stations(0, 0).resolveDefValue().get), IR_Break()),
-      IR_IfCondition(IR_EqEq(IR_ArrayAccess(stationCheck, iter), -Knowledge.mpi_numThreads), ListBuffer[IR_Statement](
+      IR_IfCondition(IR_EqEq(IR_ArrayAccess(globalStationCheck, iter), 0), ListBuffer[IR_Statement](
         IR_RawPrint(ListBuffer[IR_Expression](
           IR_StringConstant("Station with id"), iter,
           IR_StringConstant("at position x ="), IR_IV_Stations(iter, 0), IR_StringConstant(", y ="), IR_IV_Stations(iter, 1),
           IR_StringConstant("not found in domain. Station will be ignored.")
         ))
+      )),
+      IR_IfCondition(IR_Greater(IR_ArrayAccess(globalStationCheck, iter), 1), ListBuffer[IR_Statement](
+        IR_RawPrint(ListBuffer[IR_Expression](
+          IR_StringConstant("Station with id"), iter,
+          IR_StringConstant("at position x ="), IR_IV_Stations(iter, 0), IR_StringConstant(", y ="), IR_IV_Stations(iter, 1),
+          IR_StringConstant("was found several times! Output might be unusable!")
+        ))
       ))
     )))
-
-    body += IR_Comment("A check if station is part of several triangles is missing!")
 
     IR_PlainFunction(name, IR_UnitDatatype, IR_FunctionArgument(fileName), body)
   }

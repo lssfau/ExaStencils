@@ -314,14 +314,19 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       }
       IR_ExpressionStatement(IR_FunctionCall(IR_PlainInternalFunctionReference("readStations", IR_UnitDatatype), args))
     case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("writeStations", _), args))     =>
-      if (!IR_GlobalCollection.get.functions.exists(_.name == "writeStations")) {
-        IR_UserFunctions.get.internalDependencies += "Globals/Globals.h"
-        IR_UserFunctions.get.internalDependencies = IR_UserFunctions.get.internalDependencies.distinct
-        IR_GlobalCollection.get.functions += IR_WriteStations(args)
-        IR_GlobalCollection.get.externalDependencies += "iostream"
-        IR_GlobalCollection.get.externalDependencies = IR_GlobalCollection.get.externalDependencies.distinct
+
+      val writeStationFctName = (0 until 1000).toArray.map(i => "writeStations" + i).find(name => !IR_GlobalCollection.get.functions.exists(_.name == name)) match {
+        case Some(v) => v
+        case None    => Logger.error("Too many writeStation calls. Cannot build more writeStation-functions.")
       }
-      IR_ExpressionStatement(IR_FunctionCall(IR_PlainInternalFunctionReference("writeStations", IR_UnitDatatype), args(0)))
+
+      IR_UserFunctions.get.internalDependencies += "Globals/Globals.h"
+      IR_UserFunctions.get.internalDependencies = IR_UserFunctions.get.internalDependencies.distinct
+      IR_GlobalCollection.get.functions += IR_WriteStations(writeStationFctName, args)
+      IR_GlobalCollection.get.externalDependencies += "iostream"
+      IR_GlobalCollection.get.externalDependencies = IR_GlobalCollection.get.externalDependencies.distinct
+
+      IR_ExpressionStatement(IR_FunctionCall(IR_PlainInternalFunctionReference(writeStationFctName, IR_UnitDatatype), args.head))
 
 
 
