@@ -1,0 +1,123 @@
+Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
+
+Globals {
+  // problem specification
+  Var topVel : Real = 1e-2
+  Var gravity : Real = 0 // -9.81
+
+  // assume water @25 Celsius
+  Var mue : Real = 8.9e-4
+  Var rho : Real = 997.0479
+
+  // assume honey
+  // Var mue : Real = 8.0
+  // Var rho : Real = 1.42e3
+  // Var rho_0 : Real = 1.42e3
+
+  // base test
+  // Var mue : Real = 1.0
+  // Var rho : Real = 1.0
+  // Var rho_0 : Real = 1.0
+
+  Val nue : Real = mue / rho
+  Val Re : Real = topVel * 0.1 / nue
+
+  Var vankaRelax : Real = 1.0
+
+  Var dt : Real = 1.0
+  Var curTime : Real = 0.0
+  Var maxTime : Real = 10
+
+  Var printInterval : Real = 1
+  Var nextPrint : Real = 1e30
+
+  Var totalNumCycles : Int = 0
+  Var totalNumTimeSteps : Int = 0
+}
+
+
+Field u with Real on Face_x of global = 0.0
+Field u on boundary = ( 10 * vf_boundaryPos_x * ( 1.0 - 10 * vf_boundaryPos_x ) * 10 * vf_boundaryPos_y ) * 4 * topVel
+
+Field v with Real on Face_y of global = 0.0
+Field v on boundary = 0.0
+
+Field p with Real on Cell of global = 0.0
+Field p on boundary = Neumann // TODO: currently not evaluated outside inner scope
+
+
+Field velMag with Real on Cell of global = 0.0
+Field uVis with Real on Cell of global = 0.0
+Field vVis with Real on Cell of global = 0.0
+Field pVis with Real on Cell of global = 0.0
+
+
+Field rhs_u with Real on Face_x of global = 0.0
+Field rhs_v with Real on Face_y of global = 0.0
+Field rhs_p with Real on Cell of global = 0.0
+
+Field rhsNewton_u with Real on Face_x of global = 0.0
+Field rhsNewton_v with Real on Face_y of global = 0.0
+
+
+Equation uEquation {
+  A11 * u + A12 * v + integrateOverXStaggeredEastFace  ( p ) - integrateOverXStaggeredWestFace  ( p ) == rhs_u + rhsNewton_u
+}
+
+Equation vEquation {
+  A21 * u + A22 * v + integrateOverYStaggeredNorthFace ( p ) - integrateOverYStaggeredSouthFace ( p ) == rhs_v + rhsNewton_v
+}
+
+Equation pEquation {
+    integrateOverEastFace  ( u ) - integrateOverWestFace  ( u )
+  + integrateOverNorthFace ( v ) - integrateOverSouthFace ( v )
+  == rhs_p
+}
+
+
+generate operators @all {
+  equation for u is uEquation store in {
+    //u => A11
+    p => B1
+  }
+
+  equation for v is vEquation store in {
+    //v => A22
+    p => B2
+  }
+
+  equation for p is pEquation store in {
+    u => C1
+    v => C2
+  }
+}
+
+Operator A11 from StencilTemplate on Face_x of global {
+  [ 0,  0] =>
+  [-1,  0] =>
+  [ 1,  0] =>
+  [ 0, -1] =>
+  [ 0,  1] =>
+}
+
+Operator A22 from StencilTemplate on Face_y of global {
+  [ 0,  0] =>
+  [-1,  0] =>
+  [ 1,  0] =>
+  [ 0, -1] =>
+  [ 0,  1] =>
+}
+
+Operator A12 from StencilTemplate on Face_x of global {
+  [-1,  0] =>
+  [ 0,  0] =>
+  [-1,  1] =>
+  [ 0,  1] =>
+}
+
+Operator A21 from StencilTemplate on Face_y of global {
+  [ 0, -1] =>
+  [ 0,  0] =>
+  [ 1, -1] =>
+  [ 1,  0] =>
+}

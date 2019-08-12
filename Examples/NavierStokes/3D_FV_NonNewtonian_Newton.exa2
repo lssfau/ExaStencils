@@ -1,0 +1,239 @@
+Domain global< [ 0, 0, 0 ] to [ 0.1, 0.1, 0.1 ] >
+
+Globals {
+  // problem specification
+  Var topVel : Real = 1e-2
+  Var phiDiff : Real = 5
+  Var gravity_x : Real = 0
+  Var gravity_y : Real = 0
+  Var gravity_z : Real = 0 // -9.81
+
+  // assume water @25 Celsius
+  Var mue_0 : Real = 8.9e-4
+  Var rho_0 : Real = 997.0479
+  Var phi_0 : Real = 298.15 - 20
+  Var gamma_0 : Real = 1.4436e-4
+
+  // assume honey
+  // Var mue : Real = 8.0
+  // Var rho : Real = 1.42e3
+  // Var rho_0 : Real = 1.42e3
+
+  // base test
+  // Var mue : Real = 1.0
+  // Var rho : Real = 1.0
+  // Var rho_0 : Real = 1.0
+
+  Val nue : Real = mue_0 / rho_0
+  Val Re : Real = topVel * 0.1 / nue
+
+  Var vankaRelax : Real = 1.0
+
+  Var dt : Real = 1.0
+  Var curTime : Real = 0.0
+  Var maxTime : Real = 10
+
+  Var printInterval : Real = 1
+  Var nextPrint : Real = 1e30
+
+  Var totalNumCycles : Int = 0
+  Var totalNumTimeSteps : Int = 0
+
+  // density contants Gangi et al. (Kohlrausch)
+  Val a_den : Real            = 999.840281
+  Val b_den : Real            = 0.0673268
+  Val c_den : Real            = -0.00894484
+  Val d_den : Real            = 8.7846287e-5
+  Val e_den : Real            = -6.6213979e-7
+
+  // non-Newtonian parameters
+  Var useNonNewtonian : Bool  = false
+  Var tau_y : Real            = 0.1 // required for Bingham
+  Var t_ph : Real             = 273.15
+}
+
+Field u with Real on Face_x of global = 0.0
+Field u on boundary = topVel * (
+    4 * ( 10 * vf_boundaryPos_x * ( 1.0 - 10 * vf_boundaryPos_x ) )
+  * 4 * ( 10 * vf_boundaryPos_y * ( 1.0 - 10 * vf_boundaryPos_y ) )
+  * 1 * ( 10 * vf_boundaryPos_z ) )
+
+Field v with Real on Face_y of global = 0.0
+Field v on boundary = 0.0
+
+Field w with Real on Face_z of global = 0.0
+Field w on boundary = 0.0
+
+Field p with Real on Cell of global = 0.0
+Field p on boundary = Neumann // TODO: currently not evaluated outside inner scope
+
+Field rho with Real on Cell of global = rho_0
+Field rho on boundary = Neumann
+
+Field mue with Real on Cell of global = mue_0
+Field mue on boundary = Neumann
+
+Field phi with Real on Cell of global = phi_0
+Field phi on boundary = phi_0 + phiDiff * (
+    4 * ( 10 * vf_boundaryPos_y * ( 1.0 - 10 * vf_boundaryPos_y ) )
+  * 4 * ( 10 * vf_boundaryPos_z * ( 1.0 - 10 * vf_boundaryPos_z ) )
+  * 1 * ( 2 * 10 * vf_boundaryPos_x - 1.0 ) )
+
+Field gamma with Real on Cell of global = gamma_0
+Field gamma on boundary = Neumann
+
+
+Field rhs_u with Real on Face_x of global = 0.0
+Field rhs_v with Real on Face_y of global = 0.0
+Field rhs_w with Real on Face_z of global = 0.0
+Field rhs_p with Real on Cell of global = 0.0
+Field rhs_phi with Real on Cell of global = 0.0
+
+
+Field rhsNewton_u with Real on Face_x of global = 0.0
+Field rhsNewton_v with Real on Face_y of global = 0.0
+Field rhsNewton_w with Real on Face_z of global = 0.0
+
+
+Equation uEquation {
+  A11 * u + A12 * v + A13 * w
+
+  // pressure coupling
+  + integrateOverXStaggeredEastFace   ( p )
+  - integrateOverXStaggeredWestFace   ( p )
+
+  == rhs_u + rhsNewton_u
+}
+
+Equation vEquation {
+  A21 * u + A22 * v + A23 * w
+
+  // pressure coupling
+  + integrateOverYStaggeredNorthFace  ( p )
+  - integrateOverYStaggeredSouthFace  ( p )
+
+  == rhs_v + rhsNewton_v
+}
+
+Equation wEquation {
+  A31 * u + A32 * v + A33 * w
+
+  // pressure coupling
+  + integrateOverZStaggeredTopFace    ( p )
+  - integrateOverZStaggeredBottomFace ( p )
+
+  == rhs_w + rhsNewton_w
+}
+
+Equation pEquation {
+    integrateOverEastFace   ( u )
+  - integrateOverWestFace   ( u )
+  + integrateOverNorthFace  ( v )
+  - integrateOverSouthFace  ( v )
+  + integrateOverTopFace    ( w )
+  - integrateOverBottomFace ( w )
+  == 0.0
+}
+
+generate operators @all {
+  equation for u is uEquation store in {
+    p => B1
+  }
+
+  equation for v is vEquation store in {
+    p => B2
+  }
+
+  equation for w is wEquation store in {
+    p => B3
+  }
+
+  equation for p is pEquation store in {
+    u => C1
+    v => C2
+    w => C3
+  }
+}
+
+
+Operator A11 from StencilTemplate on Face_x of global {
+  [ 0,  0,  0] =>
+  [-1,  0,  0] =>
+  [ 1,  0,  0] =>
+  [ 0, -1,  0] =>
+  [ 0,  1,  0] =>
+  [ 0,  0, -1] =>
+  [ 0,  0,  1] =>
+}
+
+Operator A22 from StencilTemplate on Face_y of global {
+  [ 0,  0,  0] =>
+  [-1,  0,  0] =>
+  [ 1,  0,  0] =>
+  [ 0, -1,  0] =>
+  [ 0,  1,  0] =>
+  [ 0,  0, -1] =>
+  [ 0,  0,  1] =>
+}
+
+Operator A33 from StencilTemplate on Face_z of global {
+  [ 0,  0,  0] =>
+  [-1,  0,  0] =>
+  [ 1,  0,  0] =>
+  [ 0, -1,  0] =>
+  [ 0,  1,  0] =>
+  [ 0,  0, -1] =>
+  [ 0,  0,  1] =>
+}
+
+Operator A12 from StencilTemplate on Face_x of global {
+  [-1,  0,  0] =>
+  [ 0,  0,  0] =>
+  [-1,  1,  0] =>
+  [ 0,  1,  0] =>
+}
+
+Operator A13 from StencilTemplate on Face_x of global {
+  [-1,  0,  0] =>
+  [ 0,  0,  0] =>
+  [-1,  0,  1] =>
+  [ 0,  0,  1] =>
+}
+
+Operator A21 from StencilTemplate on Face_y of global {
+  [ 0, -1,  0] =>
+  [ 0,  0,  0] =>
+  [ 1, -1,  0] =>
+  [ 1,  0,  0] =>
+}
+
+Operator A23 from StencilTemplate on Face_y of global {
+  [ 0, -1,  0] =>
+  [ 0,  0,  0] =>
+  [ 0, -1,  1] =>
+  [ 0,  0,  1] =>
+}
+
+Operator A31 from StencilTemplate on Face_z of global {
+  [ 0,  0, -1] =>
+  [ 0,  0,  0] =>
+  [ 1,  0, -1] =>
+  [ 1,  0,  0] =>
+}
+
+Operator A32 from StencilTemplate on Face_z of global {
+  [ 0,  0, -1] =>
+  [ 0,  0,  0] =>
+  [ 0,  1, -1] =>
+  [ 0,  1,  0] =>
+}
+
+Operator E from StencilTemplate on Cell of global {
+  [ 0,  0,  0] =>
+  [-1,  0,  0] =>
+  [ 1,  0,  0] =>
+  [ 0, -1,  0] =>
+  [ 0,  1,  0] =>
+  [ 0,  0, -1] =>
+  [ 0,  0,  1] =>
+}

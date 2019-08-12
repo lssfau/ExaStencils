@@ -1,0 +1,152 @@
+Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
+
+Globals {
+  // problem specification
+  Var topVel : Real = 1e-2
+  Var gravity_x : Real = 0
+  Var gravity_y : Real = 0 // -9.81
+
+  // assume water @25 Celsius
+  Var mue : Real = 8.9e-4
+  Var rho : Real = 997.0479
+
+  // assume honey
+  // Var mue : Real = 8.0
+  // Var rho : Real = 1.42e3
+
+  // base test
+  // Var mue : Real = 1.0
+  // Var rho : Real = 1.0
+
+  Val nue : Real = mue / rho
+  Val Re : Real = topVel * 0.1 / nue
+
+  // time stepping
+  Var dt : Real = 1.0
+  Var curTime : Real = 0.0
+  Var maxTime : Real = 10
+
+  // printing
+  Var printInterval : Real = 1
+  Var nextPrint : Real = 1e30
+
+  Var totalNumCycles : Int = 0
+  Var totalNumTimeSteps : Int = 0
+}
+
+
+Field u with Real on Face_x of global = 0.0
+Field u on boundary = ( 10 * vf_boundaryPos_x * ( 1.0 - 10 * vf_boundaryPos_x ) * 10 * vf_boundaryPos_y ) * 4 * topVel
+
+Field v with Real on Face_y of global = 0.0
+Field v on boundary = 0.0
+
+Field p with Real on Cell of global = 0.0
+Field p on boundary = Neumann // TODO: currently not evaluated outside inner scope
+
+
+Field uOld from u
+Field vOld from v
+Field pOld from p
+
+
+Field velMag with Real on Cell of global = 0.0
+Field uVis with Real on Cell of global = 0.0
+Field vVis with Real on Cell of global = 0.0
+Field pVis with Real on Cell of global = 0.0
+
+
+Equation uEquation {
+  // time derivative
+    (u@[ 0,  0] - uOld) * vf_xStagCellVolume / dt
+
+  // diffusion
+  + (u@[ 0,  0] - u@[-1,  0]) * integrateOverXStaggeredWestFace   ( nue ) / vf_cellWidth_x  @[-1,  0]
+  + (u@[ 0,  0] - u@[ 1,  0]) * integrateOverXStaggeredEastFace   ( nue ) / vf_cellWidth_x  @[ 0,  0]
+  + (u@[ 0,  0] - u@[ 0, -1]) * integrateOverXStaggeredSouthFace  ( nue ) / vf_stagCVWidth_y@[ 0,  0]
+  + (u@[ 0,  0] - u@[ 0,  1]) * integrateOverXStaggeredNorthFace  ( nue ) / vf_stagCVWidth_y@[ 0,  1]
+
+  // convection
+  - integrateOverXStaggeredWestFace   ( u * frozen ( u ) )
+  + integrateOverXStaggeredEastFace   ( u * frozen ( u ) )
+  - integrateOverXStaggeredSouthFace  ( u * frozen ( v ) )
+  + integrateOverXStaggeredNorthFace  ( u * frozen ( v ) )
+
+  // Newton
+  - integrateOverXStaggeredWestFace   ( frozen ( u ) * u )
+  + integrateOverXStaggeredEastFace   ( frozen ( u ) * u )
+  - integrateOverXStaggeredSouthFace  ( frozen ( u ) * v )
+  + integrateOverXStaggeredNorthFace  ( frozen ( u ) * v )
+
+  + integrateOverXStaggeredWestFace   ( frozen ( u ) * frozen ( u ) )
+  - integrateOverXStaggeredEastFace   ( frozen ( u ) * frozen ( u ) )
+  + integrateOverXStaggeredSouthFace  ( frozen ( u ) * frozen ( v ) )
+  - integrateOverXStaggeredNorthFace  ( frozen ( u ) * frozen ( v ) )
+
+  // pressure coupling
+  + integrateOverXStaggeredEastFace ( p / rho )
+  - integrateOverXStaggeredWestFace ( p / rho )
+
+  == gravity_x * vf_xStagCellVolume
+}
+
+Equation vEquation {
+  // time derivative
+    (v@[ 0,  0] - vOld) * vf_yStagCellVolume / dt
+
+  // diffusion
+  + (v@[ 0,  0] - v@[-1,  0]) * integrateOverYStaggeredWestFace   ( nue ) / vf_stagCVWidth_x@[ 0,  0]
+  + (v@[ 0,  0] - v@[ 1,  0]) * integrateOverYStaggeredEastFace   ( nue ) / vf_stagCVWidth_x@[ 1,  0]
+  + (v@[ 0,  0] - v@[ 0, -1]) * integrateOverYStaggeredSouthFace  ( nue ) / vf_cellWidth_y  @[ 0, -1]
+  + (v@[ 0,  0] - v@[ 0,  1]) * integrateOverYStaggeredNorthFace  ( nue ) / vf_cellWidth_y  @[ 0,  0]
+
+  // convection
+  - integrateOverYStaggeredWestFace   ( v * frozen ( u ) )
+  + integrateOverYStaggeredEastFace   ( v * frozen ( u ) )
+  - integrateOverYStaggeredSouthFace  ( v * frozen ( v ) )
+  + integrateOverYStaggeredNorthFace  ( v * frozen ( v ) )
+
+  // Newton
+  - integrateOverYStaggeredWestFace   ( frozen ( v ) * u )
+  + integrateOverYStaggeredEastFace   ( frozen ( v ) * u )
+  - integrateOverYStaggeredSouthFace  ( frozen ( v ) * v )
+  + integrateOverYStaggeredNorthFace  ( frozen ( v ) * v )
+
+  + integrateOverYStaggeredWestFace   ( frozen ( v ) * frozen ( u ) )
+  - integrateOverYStaggeredEastFace   ( frozen ( v ) * frozen ( u ) )
+  + integrateOverYStaggeredSouthFace  ( frozen ( v ) * frozen ( v ) )
+  - integrateOverYStaggeredNorthFace  ( frozen ( v ) * frozen ( v ) )
+
+  // pressure coupling
+  + integrateOverYStaggeredNorthFace ( p / rho )
+  - integrateOverYStaggeredSouthFace ( p / rho )
+
+  == gravity_y * vf_yStagCellVolume
+}
+
+Equation pEquation {
+    integrateOverEastFace   ( u )
+  - integrateOverWestFace   ( u )
+  + integrateOverNorthFace  ( v )
+  - integrateOverSouthFace  ( v )
+  == 0.0
+}
+
+/*generate operators @all {
+  equation for u is uEquation store in {
+    u => A11
+    v => A12
+    p => B1
+  }
+
+  equation for v is vEquation store in {
+    u => A21
+    v => A22
+    p => B2
+  }
+
+  equation for p is pEquation store in {
+    u => C1
+    v => C2
+  }
+}*/

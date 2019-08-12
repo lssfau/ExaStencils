@@ -1,0 +1,320 @@
+
+/// main functions
+
+Function Application ( ) : Unit {
+  startTimer ( 'setup' )
+
+  initGlobals ( )
+  initDomain ( )
+  initFieldsWithZero ( )
+  initGeometry ( )
+  InitFields ( )
+  AssembleStencil@finest ( )
+
+  stopTimer ( 'setup' )
+
+  print ( 'Reynolds number:', Re )
+
+  Var curIt : Int = 0
+  Var curPrintIt : Int = 0
+  repeat until ( curTime >= maxTime ) {
+    if ( curTime >= nextPrint ) {
+      nextPrint += printInterval
+      Var filename_vel : String
+      //buildString ( filename_vel, "img/vel_", curPrintIt, ".png" )
+      //writeMappedImage ( velMag@finest, filename_vel )
+      buildString ( filename_vel, "data/output_", curPrintIt, ".vtk" )
+      //printVtkNS ( filename_vel, levels@finest ( ) )
+      printVtkNNF ( filename_vel, levels@finest ( ) )
+      curPrintIt += 1
+    }
+
+    if ( 0 == curIt % 100 ) {
+      print ( "Starting iteration", curIt, "at time", curTime, "with dt", dt )
+    }
+    if ( 0 == curIt % 16 and curIt > 0 ) {
+      dt *= 2
+      print ( "Trying to increase dt to", dt )
+    }
+
+    curTime += dt
+    curIt += 1
+
+    Advance@finest ( )
+    startTimer ( 'solve' )
+    Solve@finest ( )
+    stopTimer ( 'solve' )
+    totalNumTimeSteps += 1
+  }
+  print ( 'Total time to solve:   ', getTotalFromTimer ( 'solve' ) )
+  print ( 'Total time in cycle:   ', getTotalFromTimer ( 'cycle' ) )
+  print ( 'Total time in assemble:', getTotalFromTimer ( 'assemble' ) )
+  print ( 'Total time in properties:', getTotalFromTimer ( 'properties' ) )
+
+  print ( 'Mean time per cycle:   ', getMeanFromTimer ( 'cycle' ) )
+  print ( 'Number of cycles:      ', totalNumCycles )
+  print ( 'Number of time steps:  ', totalNumTimeSteps )
+
+  //printAllTimers ( )
+  destroyGlobals ( )
+}
+
+Function UpdateRhs@finest {
+  loop over rhs_u {
+    rhs_u  = evalAtWestFace   ( rho ) * uOld * vf_xStagCellVolume / dt
+    rhs_u += evalAtWestFace   ( rho ) * gravity_x * vf_xStagCellVolume
+  }
+
+  loop over rhs_v {
+    rhs_v  = evalAtSouthFace  ( rho ) * vOld * vf_yStagCellVolume / dt
+    rhs_v += evalAtSouthFace  ( rho ) * gravity_y * vf_yStagCellVolume
+  }
+
+  loop over rhs_w {
+    rhs_w  = evalAtBottomFace ( rho ) * wOld * vf_zStagCellVolume / dt
+    rhs_w += evalAtBottomFace ( rho ) * gravity_z * vf_zStagCellVolume
+  }
+
+  loop over rhs_phi {
+    rhs_phi = rhoOld * phiOld * vf_cellVolume / dt
+  }
+}
+
+Function AssembleStencil@all {
+  startTimer ( 'assemble' )
+
+  communicate u
+  communicate v
+  communicate w
+  communicate p
+  communicate phi
+
+  startTimer ( 'properties' )
+  if ( useNonNewtonian ) {
+    UpdatePropertiesNN ( )
+  } else {
+    UpdateProperties ( )
+  }
+  stopTimer ( 'properties' )
+
+  loop over A11 {
+    A11:[-1,  0,  0] = - integrateOverXStaggeredWestFace   ( mue ) / vf_cellWidth_x@[-1, 0, 0]
+    A11:[ 1,  0,  0] = - integrateOverXStaggeredEastFace   ( mue ) / vf_cellWidth_x@[ 0, 0, 0]
+    A11:[ 0, -1,  0] = - integrateOverXStaggeredSouthFace  ( mue ) / vf_stagCVWidth_y@[0, 0, 0]
+    A11:[ 0,  1,  0] = - integrateOverXStaggeredNorthFace  ( mue ) / vf_stagCVWidth_y@[0, 1, 0]
+    A11:[ 0,  0, -1] = - integrateOverXStaggeredBottomFace ( mue ) / vf_stagCVWidth_z@[0, 0, 0]
+    A11:[ 0,  0,  1] = - integrateOverXStaggeredTopFace    ( mue ) / vf_stagCVWidth_z@[0, 0, 1]
+    A11:[ 0,  0,  0] = - ( A11:[-1, 0, 0] + A11:[1, 0, 0] + A11:[0, -1, 0] + A11:[0, 1, 0] + A11:[0, 0, -1] + A11:[0, 0, 1] )
+
+    // convection
+    A11:[-1,  0,  0] -= 0.5 * integrateOverXStaggeredWestFace   ( rho * u )
+    A11:[ 0,  0,  0] -= 0.5 * integrateOverXStaggeredWestFace   ( rho * u )
+    A11:[ 1,  0,  0] += 0.5 * integrateOverXStaggeredEastFace   ( rho * u )
+    A11:[ 0,  0,  0] += 0.5 * integrateOverXStaggeredEastFace   ( rho * u )
+
+    A11:[ 0, -1,  0] -= 0.5 * integrateOverXStaggeredSouthFace  ( rho * v )
+    A11:[ 0,  0,  0] -= 0.5 * integrateOverXStaggeredSouthFace  ( rho * v )
+    A11:[ 0,  1,  0] += 0.5 * integrateOverXStaggeredNorthFace  ( rho * v )
+    A11:[ 0,  0,  0] += 0.5 * integrateOverXStaggeredNorthFace  ( rho * v )
+
+    A11:[ 0,  0, -1] -= 0.5 * integrateOverXStaggeredBottomFace ( rho * w )
+    A11:[ 0,  0,  0] -= 0.5 * integrateOverXStaggeredBottomFace ( rho * w )
+    A11:[ 0,  0,  1] += 0.5 * integrateOverXStaggeredTopFace    ( rho * w )
+    A11:[ 0,  0,  0] += 0.5 * integrateOverXStaggeredTopFace    ( rho * w )
+
+    // time derivative
+    A11:[ 0,  0,  0] += evalAtWestFace ( rho ) * vf_xStagCellVolume / dt
+  }
+
+  loop over A22 {
+    A22:[-1,  0,  0] = - integrateOverYStaggeredWestFace   ( mue ) / vf_stagCVWidth_x@[0, 0, 0]
+    A22:[ 1,  0,  0] = - integrateOverYStaggeredEastFace   ( mue ) / vf_stagCVWidth_x@[1, 0, 0]
+    A22:[ 0, -1,  0] = - integrateOverYStaggeredSouthFace  ( mue ) / vf_cellWidth_y@[0, -1, 0]
+    A22:[ 0,  1,  0] = - integrateOverYStaggeredNorthFace  ( mue ) / vf_cellWidth_y@[0,  0, 0]
+    A22:[ 0,  0, -1] = - integrateOverYStaggeredBottomFace ( mue ) / vf_stagCVWidth_z@[0, 0, 0]
+    A22:[ 0,  0,  1] = - integrateOverYStaggeredTopFace    ( mue ) / vf_stagCVWidth_z@[0, 0, 1]
+    A22:[ 0,  0,  0] = - ( A22:[-1, 0, 0] + A22:[1, 0, 0] + A22:[0, -1, 0] + A22:[0, 1, 0] + A22:[0, 0, -1] + A22:[0, 0, 1] )
+
+    // convection
+    A22:[-1,  0,  0] -= 0.5 * integrateOverYStaggeredWestFace   ( rho * u )
+    A22:[ 0,  0,  0] -= 0.5 * integrateOverYStaggeredWestFace   ( rho * u )
+    A22:[ 1,  0,  0] += 0.5 * integrateOverYStaggeredEastFace   ( rho * u )
+    A22:[ 0,  0,  0] += 0.5 * integrateOverYStaggeredEastFace   ( rho * u )
+
+    A22:[ 0, -1,  0] -= 0.5 * integrateOverYStaggeredSouthFace  ( rho * v )
+    A22:[ 0,  0,  0] -= 0.5 * integrateOverYStaggeredSouthFace  ( rho * v )
+    A22:[ 0,  1,  0] += 0.5 * integrateOverYStaggeredNorthFace  ( rho * v )
+    A22:[ 0,  0,  0] += 0.5 * integrateOverYStaggeredNorthFace  ( rho * v )
+
+    A22:[ 0,  0, -1] -= 0.5 * integrateOverYStaggeredBottomFace ( rho * w )
+    A22:[ 0,  0,  0] -= 0.5 * integrateOverYStaggeredBottomFace ( rho * w )
+    A22:[ 0,  0,  1] += 0.5 * integrateOverYStaggeredTopFace    ( rho * w )
+    A22:[ 0,  0,  0] += 0.5 * integrateOverYStaggeredTopFace    ( rho * w )
+
+    // time derivative
+    A22:[ 0,  0,  0] += evalAtSouthFace ( rho ) * vf_yStagCellVolume / dt
+  }
+
+  loop over A33 {
+    A33:[-1,  0,  0] = - integrateOverZStaggeredWestFace   ( mue ) / vf_stagCVWidth_x@[0, 0, 0]
+    A33:[ 1,  0,  0] = - integrateOverZStaggeredEastFace   ( mue ) / vf_stagCVWidth_x@[1, 0, 0]
+    A33:[ 0, -1,  0] = - integrateOverZStaggeredSouthFace  ( mue ) / vf_stagCVWidth_y@[0, 0, 0]
+    A33:[ 0,  1,  0] = - integrateOverZStaggeredNorthFace  ( mue ) / vf_stagCVWidth_y@[0, 1, 0]
+    A33:[ 0,  0, -1] = - integrateOverZStaggeredBottomFace ( mue ) / vf_cellWidth_z@[0, 0, -1]
+    A33:[ 0,  0,  1] = - integrateOverZStaggeredTopFace    ( mue ) / vf_cellWidth_z@[0, 0, 0]
+    A33:[ 0,  0,  0] = - ( A33:[-1, 0, 0] + A33:[1, 0, 0] + A33:[0, -1, 0] + A33:[0, 1, 0] + A33:[0, 0, -1] + A33:[0, 0, 1] )
+
+    // convection
+    A33:[-1,  0,  0] -= 0.5 * integrateOverZStaggeredWestFace   ( rho * u )
+    A33:[ 0,  0,  0] -= 0.5 * integrateOverZStaggeredWestFace   ( rho * u )
+    A33:[ 1,  0,  0] += 0.5 * integrateOverZStaggeredEastFace   ( rho * u )
+    A33:[ 0,  0,  0] += 0.5 * integrateOverZStaggeredEastFace   ( rho * u )
+
+    A33:[ 0, -1,  0] -= 0.5 * integrateOverZStaggeredSouthFace  ( rho * v )
+    A33:[ 0,  0,  0] -= 0.5 * integrateOverZStaggeredSouthFace  ( rho * v )
+    A33:[ 0,  1,  0] += 0.5 * integrateOverZStaggeredNorthFace  ( rho * v )
+    A33:[ 0,  0,  0] += 0.5 * integrateOverZStaggeredNorthFace  ( rho * v )
+
+    A33:[ 0,  0, -1] -= 0.5 * integrateOverZStaggeredBottomFace ( rho * w )
+    A33:[ 0,  0,  0] -= 0.5 * integrateOverZStaggeredBottomFace ( rho * w )
+    A33:[ 0,  0,  1] += 0.5 * integrateOverZStaggeredTopFace    ( rho * w )
+    A33:[ 0,  0,  0] += 0.5 * integrateOverZStaggeredTopFace    ( rho * w )
+
+    // time derivative
+    A33:[ 0,  0,  0] += evalAtBottomFace ( rho ) * vf_zStagCellVolume / dt
+  }
+
+  loop over E {
+    // diffusion
+    E:[-1,  0,  0] = - integrateOverWestFace   ( gamma ) / vf_stagCVWidth_x@[0, 0, 0]
+    E:[ 1,  0,  0] = - integrateOverEastFace   ( gamma ) / vf_stagCVWidth_x@[1, 0, 0]
+    E:[ 0, -1,  0] = - integrateOverSouthFace  ( gamma ) / vf_stagCVWidth_y@[0, 0, 0]
+    E:[ 0,  1,  0] = - integrateOverNorthFace  ( gamma ) / vf_stagCVWidth_y@[0, 1, 0]
+    E:[ 0,  0, -1] = - integrateOverBottomFace ( gamma ) / vf_stagCVWidth_z@[0, 0, 0]
+    E:[ 0,  0,  1] = - integrateOverTopFace    ( gamma ) / vf_stagCVWidth_z@[0, 0, 1]
+    E:[ 0,  0,  0] = - ( E:[-1, 0, 0] + E:[1, 0, 0] + E:[0, -1, 0] + E:[0, 1, 0] + E:[0, 0, -1] + E:[0, 0, 1] )
+
+    // convection
+    E:[-1,  0,  0] -= 0.5 * integrateOverWestFace   ( rho * u )
+    E:[ 0,  0,  0] -= 0.5 * integrateOverWestFace   ( rho * u )
+    E:[ 1,  0,  0] += 0.5 * integrateOverEastFace   ( rho * u )
+    E:[ 0,  0,  0] += 0.5 * integrateOverEastFace   ( rho * u )
+
+    E:[ 0, -1,  0] -= 0.5 * integrateOverSouthFace  ( rho * v )
+    E:[ 0,  0,  0] -= 0.5 * integrateOverSouthFace  ( rho * v )
+    E:[ 0,  1,  0] += 0.5 * integrateOverNorthFace  ( rho * v )
+    E:[ 0,  0,  0] += 0.5 * integrateOverNorthFace  ( rho * v )
+
+    E:[ 0,  0, -1] -= 0.5 * integrateOverBottomFace ( rho * w )
+    E:[ 0,  0,  0] -= 0.5 * integrateOverBottomFace ( rho * w )
+    E:[ 0,  0,  1] += 0.5 * integrateOverTopFace    ( rho * w )
+    E:[ 0,  0,  0] += 0.5 * integrateOverTopFace    ( rho * w )
+
+    // time derivative
+    E:[ 0,  0,  0] += rho * vf_cellVolume / dt
+  }
+
+  @finest {
+    UpdateRhs ( )
+  }
+
+  stopTimer ( 'assemble' )
+}
+
+
+Function UpdateProperties@all ( ) : Unit {
+  loop over mue {
+    // Gangi et al. (Kohlrausch) Density
+    rho = ( a_den + b_den * ( phi - t_ph )
+      + c_den * ( phi - t_ph )**2
+      + d_den * ( phi - t_ph )**3
+      + e_den * ( phi - t_ph )**4 )
+
+    // Zografos et al. Specific heat, thermal conductivity and viscosity
+    Var cp : Real = ( -3755.9 + 67.953 * phi
+      - 0.19149 * phi**2
+      + 1.7850e-4 * phi**3 )
+    Var cond : Real = ( -0.63262 + 7.1959e-3 * phi
+      - 1.144e-5 * phi**2
+      + 4.2365e-9 * phi**3 )
+    mue = 3.8208e-2 / ( phi - 252.33 )
+
+    gamma = cond / cp
+  }
+
+  communicate mue
+  apply bc to mue
+
+  communicate rho
+  apply bc to rho
+
+  communicate gamma
+  apply bc to gamma
+}
+
+Function UpdatePropertiesNN@all ( ) : Unit {
+  loop over mue {
+    // Gangi et al. (Kohlrausch) Density
+    rho = ( a_den + b_den * ( phi - t_ph )
+      + c_den * ( phi - t_ph )**2
+      + d_den * ( phi - t_ph )**3
+      + e_den * ( phi - t_ph )**4 )
+
+    // Zografos et al. Specific heat, thermal conductivity and viscosity
+    Var cond : Real = ( -0.63262 + 7.1959e-3 * phi
+      - 1.144e-5 * phi**2
+      + 4.2365e-9 * phi**3 )
+    Var cp : Real = ( -3755.9 + 67.953 * phi
+      - 0.19149 * phi**2
+      + 1.7850e-4 * phi**3 )
+
+    gamma = cond / cp
+
+    Var mue_tmp : Real = 3.8208e-2 / ( phi - 252.33 )
+
+    // TODO: add evalAtCellCenter, evalAtXFaceCenter, evalAtXYCorner, etc
+		// du/dx and dv/dx and dw/dx
+		Val dudx : Real = ( u@[1, 0, 0] - u@[0, 0, 0] ) / vf_cellWidth_x
+		Val dvdx : Real = 0.5 * ( v@[1, 0, 0] - v@[0, 0, 0] + v@[1, 1, 0] - v@[0, 1, 0] ) / vf_cellWidth_x
+		Val dwdx : Real = 0.5 * ( w@[1, 0, 0] - w@[0, 0, 0] + w@[1, 0, 1] - w@[0, 0, 1] ) / vf_cellWidth_x
+
+		// du/dy and dv/dy and dw/dy
+		Val dudy : Real = 0.5 * ( u@[0, 1, 0] - u@[0, 0, 0] + u@[1, 1, 0] - u@[1, 0, 0] ) / vf_cellWidth_y
+		Val dvdy : Real = ( v@[0, 1, 0] - v@[0, 0, 0] ) / vf_cellWidth_y
+		Val dwdy : Real = 0.5 * ( w@[0, 1, 0] - w@[0, 0, 0] + w@[0, 1, 1] - w@[0, 0, 1] ) / vf_cellWidth_y
+
+		// du/dz and dv/dz and dw/dz
+		Val dudz : Real = 0.5 * ( u@[0, 0, 1] - u@[0, 0, 0] + u@[1, 0, 1] - u@[1, 0, 0] ) / vf_cellWidth_z
+		Val dvdz : Real = 0.5 * ( v@[0, 0, 1] - v@[0, 0, 0] + v@[0, 1, 1] - v@[0, 1, 0] ) / vf_cellWidth_z
+		Val dwdz : Real = ( w@[0, 0, 1] - w@[0, 0, 0] ) / vf_cellWidth_z
+
+		// compile values
+		Val gamap : Real = 2.0 * ( dvdy**2 + dudx**2 + dwdz**2 ) + ( dvdx + dudy )**2 + ( dwdx + dudz )**2 + ( dvdz + dwdy )**2
+		Var gama : Real = sqrt ( gamap )
+
+    // j.non.newt.fluid mech. 15(1984)75-83
+    //gama = max ( gama, 0.01 )
+    //mue = rel + ( 1.0 - rel ) / ( 1.0 + sqrt ( lambda * gama ) )
+
+    // Int. J. Heat & Mass Transfer 34(1991) 1083-1096 CMC/Power law
+    //gama = max ( gama, 0.01 )
+    //mue = mue_tmp * gama**( n_index - 1.0 )
+
+    // Bingham: Bi-viscosity model O'Donovan & Tanner
+    Val mue_yield : Real = 1.0e3 * mue_tmp
+    if ( gama <= tau_y / mue_yield ) {
+      mue = mue_yield
+    } else {
+      mue = ( tau_y + mue_tmp * ( gama - tau_y / mue_yield ) ) / gama
+    }
+  }
+
+  communicate rho
+  apply bc to rho
+
+  communicate gamma
+  apply bc to gamma
+
+  communicate mue
+  apply bc to mue
+}

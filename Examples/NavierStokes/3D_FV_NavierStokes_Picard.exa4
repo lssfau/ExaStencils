@@ -1,0 +1,178 @@
+
+/// main functions
+
+Function Application ( ) : Unit {
+  startTimer ( 'setup' )
+
+  initGlobals ( )
+  initDomain ( )
+  initFieldsWithZero ( )
+  initGeometry ( )
+  InitFields ( )
+  AssembleStencil@finest ( )
+
+  stopTimer ( 'setup' )
+
+  print ( 'Reynolds number:', Re )
+
+  Var curIt : Int = 0
+  Var curPrintIt : Int = 0
+  repeat until ( curTime >= maxTime ) {
+    if ( curTime >= nextPrint ) {
+      nextPrint += printInterval
+      Var filename_vel : String
+      //buildString ( filename_vel, "img/vel_", curPrintIt, ".png" )
+      //writeMappedImage ( velMag@finest, filename_vel )
+      buildString ( filename_vel, "data/output_", curPrintIt, ".vtk" )
+      printVtkNS ( filename_vel, levels@finest ( ) )
+      //printVtkNNF ( filename_vel, levels@finest ( ) )
+      curPrintIt += 1
+    }
+
+    if ( 0 == curIt % 100 ) {
+      print ( "Starting iteration", curIt, "at time", curTime, "with dt", dt )
+    }
+    if ( 0 == curIt % 16 and curIt > 0 ) {
+      dt *= 2
+      print ( "Trying to increase dt to", dt )
+    }
+
+    curTime += dt
+    curIt += 1
+
+    Advance@finest ( )
+    startTimer ( 'solve' )
+    Solve@finest ( )
+    stopTimer ( 'solve' )
+    totalNumTimeSteps += 1
+  }
+  print ( 'Total time to solve:   ', getTotalFromTimer ( 'solve' ) )
+  print ( 'Total time in cycle:   ', getTotalFromTimer ( 'cycle' ) )
+  print ( 'Total time in assemble:', getTotalFromTimer ( 'assemble' ) )
+
+  print ( 'Mean time per cycle:   ', getMeanFromTimer ( 'cycle' ) )
+  print ( 'Number of cycles:      ', totalNumCycles )
+  print ( 'Number of time steps:  ', totalNumTimeSteps )
+
+  //printAllTimers ( )
+  destroyGlobals ( )
+}
+
+Function UpdateRhs@finest {
+  loop over rhs_u {
+    rhs_u  = evalAtWestFace   ( rho ) * uOld * vf_xStagCellVolume / dt
+    rhs_u += evalAtWestFace   ( rho ) * gravity_x * vf_xStagCellVolume
+  }
+
+  loop over rhs_v {
+    rhs_v  = evalAtSouthFace  ( rho ) * vOld * vf_yStagCellVolume / dt
+    rhs_v += evalAtSouthFace  ( rho ) * gravity_y * vf_yStagCellVolume
+  }
+
+  loop over rhs_w {
+    rhs_w  = evalAtBottomFace ( rho ) * wOld * vf_zStagCellVolume / dt
+    rhs_w += evalAtBottomFace ( rho ) * gravity_z * vf_zStagCellVolume
+  }
+}
+
+Function AssembleStencil@all {
+  startTimer ( 'assemble' )
+
+  communicate u
+  communicate v
+  communicate w
+  communicate p
+
+  loop over A11 {
+    A11:[-1,  0,  0] = - integrateOverXStaggeredWestFace   ( mue ) / vf_cellWidth_x@[-1, 0, 0]
+    A11:[ 1,  0,  0] = - integrateOverXStaggeredEastFace   ( mue ) / vf_cellWidth_x@[ 0, 0, 0]
+    A11:[ 0, -1,  0] = - integrateOverXStaggeredSouthFace  ( mue ) / vf_stagCVWidth_y@[0, 0, 0]
+    A11:[ 0,  1,  0] = - integrateOverXStaggeredNorthFace  ( mue ) / vf_stagCVWidth_y@[0, 1, 0]
+    A11:[ 0,  0, -1] = - integrateOverXStaggeredBottomFace ( mue ) / vf_stagCVWidth_z@[0, 0, 0]
+    A11:[ 0,  0,  1] = - integrateOverXStaggeredTopFace    ( mue ) / vf_stagCVWidth_z@[0, 0, 1]
+    A11:[ 0,  0,  0] = - ( A11:[-1, 0, 0] + A11:[1, 0, 0] + A11:[0, -1, 0] + A11:[0, 1, 0] + A11:[0, 0, -1] + A11:[0, 0, 1] )
+
+    // convection
+    A11:[-1,  0,  0] -= 0.5 * integrateOverXStaggeredWestFace   ( rho * u )
+    A11:[ 0,  0,  0] -= 0.5 * integrateOverXStaggeredWestFace   ( rho * u )
+    A11:[ 1,  0,  0] += 0.5 * integrateOverXStaggeredEastFace   ( rho * u )
+    A11:[ 0,  0,  0] += 0.5 * integrateOverXStaggeredEastFace   ( rho * u )
+
+    A11:[ 0, -1,  0] -= 0.5 * integrateOverXStaggeredSouthFace  ( rho * v )
+    A11:[ 0,  0,  0] -= 0.5 * integrateOverXStaggeredSouthFace  ( rho * v )
+    A11:[ 0,  1,  0] += 0.5 * integrateOverXStaggeredNorthFace  ( rho * v )
+    A11:[ 0,  0,  0] += 0.5 * integrateOverXStaggeredNorthFace  ( rho * v )
+
+    A11:[ 0,  0, -1] -= 0.5 * integrateOverXStaggeredBottomFace ( rho * w )
+    A11:[ 0,  0,  0] -= 0.5 * integrateOverXStaggeredBottomFace ( rho * w )
+    A11:[ 0,  0,  1] += 0.5 * integrateOverXStaggeredTopFace    ( rho * w )
+    A11:[ 0,  0,  0] += 0.5 * integrateOverXStaggeredTopFace    ( rho * w )
+
+    // time derivative
+    A11:[ 0,  0,  0] += evalAtWestFace ( rho ) * vf_xStagCellVolume / dt
+  }
+
+  loop over A22 {
+    A22:[-1,  0,  0] = - integrateOverYStaggeredWestFace   ( mue ) / vf_stagCVWidth_x@[0, 0, 0]
+    A22:[ 1,  0,  0] = - integrateOverYStaggeredEastFace   ( mue ) / vf_stagCVWidth_x@[1, 0, 0]
+    A22:[ 0, -1,  0] = - integrateOverYStaggeredSouthFace  ( mue ) / vf_cellWidth_y@[0, -1, 0]
+    A22:[ 0,  1,  0] = - integrateOverYStaggeredNorthFace  ( mue ) / vf_cellWidth_y@[0,  0, 0]
+    A22:[ 0,  0, -1] = - integrateOverYStaggeredBottomFace ( mue ) / vf_stagCVWidth_z@[0, 0, 0]
+    A22:[ 0,  0,  1] = - integrateOverYStaggeredTopFace    ( mue ) / vf_stagCVWidth_z@[0, 0, 1]
+    A22:[ 0,  0,  0] = - ( A22:[-1, 0, 0] + A22:[1, 0, 0] + A22:[0, -1, 0] + A22:[0, 1, 0] + A22:[0, 0, -1] + A22:[0, 0, 1] )
+
+    // convection
+    A22:[-1,  0,  0] -= 0.5 * integrateOverYStaggeredWestFace   ( rho * u )
+    A22:[ 0,  0,  0] -= 0.5 * integrateOverYStaggeredWestFace   ( rho * u )
+    A22:[ 1,  0,  0] += 0.5 * integrateOverYStaggeredEastFace   ( rho * u )
+    A22:[ 0,  0,  0] += 0.5 * integrateOverYStaggeredEastFace   ( rho * u )
+
+    A22:[ 0, -1,  0] -= 0.5 * integrateOverYStaggeredSouthFace  ( rho * v )
+    A22:[ 0,  0,  0] -= 0.5 * integrateOverYStaggeredSouthFace  ( rho * v )
+    A22:[ 0,  1,  0] += 0.5 * integrateOverYStaggeredNorthFace  ( rho * v )
+    A22:[ 0,  0,  0] += 0.5 * integrateOverYStaggeredNorthFace  ( rho * v )
+
+    A22:[ 0,  0, -1] -= 0.5 * integrateOverYStaggeredBottomFace ( rho * w )
+    A22:[ 0,  0,  0] -= 0.5 * integrateOverYStaggeredBottomFace ( rho * w )
+    A22:[ 0,  0,  1] += 0.5 * integrateOverYStaggeredTopFace    ( rho * w )
+    A22:[ 0,  0,  0] += 0.5 * integrateOverYStaggeredTopFace    ( rho * w )
+
+    // time derivative
+    A22:[ 0,  0,  0] += evalAtSouthFace ( rho ) * vf_yStagCellVolume / dt
+  }
+
+  loop over A33 {
+    A33:[-1,  0,  0] = - integrateOverZStaggeredWestFace   ( mue ) / vf_stagCVWidth_x@[0, 0, 0]
+    A33:[ 1,  0,  0] = - integrateOverZStaggeredEastFace   ( mue ) / vf_stagCVWidth_x@[1, 0, 0]
+    A33:[ 0, -1,  0] = - integrateOverZStaggeredSouthFace  ( mue ) / vf_stagCVWidth_y@[0, 0, 0]
+    A33:[ 0,  1,  0] = - integrateOverZStaggeredNorthFace  ( mue ) / vf_stagCVWidth_y@[0, 1, 0]
+    A33:[ 0,  0, -1] = - integrateOverZStaggeredBottomFace ( mue ) / vf_cellWidth_z@[0, 0, -1]
+    A33:[ 0,  0,  1] = - integrateOverZStaggeredTopFace    ( mue ) / vf_cellWidth_z@[0, 0, 0]
+    A33:[ 0,  0,  0] = - ( A33:[-1, 0, 0] + A33:[1, 0, 0] + A33:[0, -1, 0] + A33:[0, 1, 0] + A33:[0, 0, -1] + A33:[0, 0, 1] )
+
+    // convection
+    A33:[-1,  0,  0] -= 0.5 * integrateOverZStaggeredWestFace   ( rho * u )
+    A33:[ 0,  0,  0] -= 0.5 * integrateOverZStaggeredWestFace   ( rho * u )
+    A33:[ 1,  0,  0] += 0.5 * integrateOverZStaggeredEastFace   ( rho * u )
+    A33:[ 0,  0,  0] += 0.5 * integrateOverZStaggeredEastFace   ( rho * u )
+
+    A33:[ 0, -1,  0] -= 0.5 * integrateOverZStaggeredSouthFace  ( rho * v )
+    A33:[ 0,  0,  0] -= 0.5 * integrateOverZStaggeredSouthFace  ( rho * v )
+    A33:[ 0,  1,  0] += 0.5 * integrateOverZStaggeredNorthFace  ( rho * v )
+    A33:[ 0,  0,  0] += 0.5 * integrateOverZStaggeredNorthFace  ( rho * v )
+
+    A33:[ 0,  0, -1] -= 0.5 * integrateOverZStaggeredBottomFace ( rho * w )
+    A33:[ 0,  0,  0] -= 0.5 * integrateOverZStaggeredBottomFace ( rho * w )
+    A33:[ 0,  0,  1] += 0.5 * integrateOverZStaggeredTopFace    ( rho * w )
+    A33:[ 0,  0,  0] += 0.5 * integrateOverZStaggeredTopFace    ( rho * w )
+
+    // time derivative
+    A33:[ 0,  0,  0] += evalAtBottomFace ( rho ) * vf_zStagCellVolume / dt
+  }
+
+  @finest {
+    UpdateRhs ( )
+  }
+
+  stopTimer ( 'assemble' )
+}

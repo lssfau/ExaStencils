@@ -1,0 +1,197 @@
+
+/// main functions
+
+Function Application ( ) : Unit {
+  startTimer ( 'setup' )
+
+  initGlobals ( )
+  initDomain ( )
+  initFieldsWithZero ( )
+  initGeometry ( )
+  InitFields ( )
+  AssembleStencil@finest ( )
+
+  stopTimer ( 'setup' )
+
+  print ( 'Reynolds number:', Re )
+
+  Var curIt : Int = 0
+  Var curPrintIt : Int = 0
+  repeat until ( curTime >= maxTime ) {
+    vis@finest ( )
+    if ( curTime >= nextPrint ) {
+      nextPrint += printInterval
+      Var filename_vel : String
+      //buildString ( filename_vel, "img/vel_", curPrintIt, ".png" )
+      //writeMappedImage ( velMag@finest, filename_vel )
+      buildString ( filename_vel, "data/output_", curPrintIt, ".vtk" )
+      printVtkNS ( filename_vel, levels@finest ( ) )
+      //printVtkNNF ( filename_vel, levels@finest ( ) )
+      curPrintIt += 1
+    }
+
+    if ( 0 == curIt % 100 ) {
+      print ( "Starting iteration", curIt, "at time", curTime, "with dt", dt )
+    }
+    if ( 0 == curIt % 16 and curIt > 0 ) {
+      dt *= 2
+      print ( "Trying to increase dt to", dt )
+    }
+
+    curTime += dt
+    curIt += 1
+
+    Advance@finest ( )
+    startTimer ( 'solve' )
+    Solve@finest ( )
+    stopTimer ( 'solve' )
+    totalNumTimeSteps += 1
+  }
+  print ( 'Total time to solve:   ', getTotalFromTimer ( 'solve' ) )
+  print ( 'Total time in cycle:   ', getTotalFromTimer ( 'cycle' ) )
+  print ( 'Total time in assemble:', getTotalFromTimer ( 'assemble' ) )
+
+  print ( 'Mean time per cycle:   ', getMeanFromTimer ( 'cycle' ) )
+  print ( 'Number of cycles:      ', totalNumCycles )
+  print ( 'Number of time steps:  ', totalNumTimeSteps )
+
+  vis@finest ( )
+
+  //printAllTimers ( )
+  destroyGlobals ( )
+}
+
+Function UpdateRhs@finest {
+  loop over rhs_u {
+    rhs_u = evalAtWestFace ( rho ) * uOld * vf_xStagCellVolume / dt
+  }
+
+  loop over rhs_v {
+    rhs_v = evalAtSouthFace ( rho ) * vOld * vf_yStagCellVolume / dt
+    rhs_v += evalAtSouthFace ( rho ) * gravity * vf_yStagCellVolume
+  }
+}
+
+Function UpdateRhsNewton@all {
+  loop over rhsNewton_u {
+    rhsNewton_u  = integrateOverXStaggeredEastFace  ( rho * u * u ) - integrateOverXStaggeredWestFace  ( rho * u * u )
+    rhsNewton_u += integrateOverXStaggeredNorthFace ( rho * v * u ) - integrateOverXStaggeredSouthFace ( rho * v * u )
+  }
+
+  loop over rhsNewton_v {
+    rhsNewton_v  = integrateOverYStaggeredEastFace  ( rho * u * v ) - integrateOverYStaggeredWestFace  ( rho * u * v )
+    rhsNewton_v += integrateOverYStaggeredNorthFace ( rho * v * v ) - integrateOverYStaggeredSouthFace ( rho * v * v )
+  }
+}
+
+Function AssembleStencil@all {
+  startTimer ( 'assemble' )
+
+  communicate u
+  communicate v
+  communicate p
+
+  loop over A11 {
+    A11:[-1,  0] = - integrateOverXStaggeredWestFace  ( mue ) / vf_cellWidth_x@[-1, 0]
+    A11:[ 1,  0] = - integrateOverXStaggeredEastFace  ( mue ) / vf_cellWidth_x@[ 0, 0]
+    A11:[ 0, -1] = - integrateOverXStaggeredSouthFace ( mue ) / vf_stagCVWidth_y@[0, 0]
+    A11:[ 0,  1] = - integrateOverXStaggeredNorthFace ( mue ) / vf_stagCVWidth_y@[0, 1]
+    A11:[ 0,  0] = - ( A11:[-1, 0] + A11:[1, 0] + A11:[0, -1] + A11:[0, 1] )
+
+    // convection
+    A11:[-1,  0] -= 0.5 * integrateOverXStaggeredWestFace  ( rho * u )
+    A11:[ 0,  0] -= 0.5 * integrateOverXStaggeredWestFace  ( rho * u )
+    A11:[ 1,  0] += 0.5 * integrateOverXStaggeredEastFace  ( rho * u )
+    A11:[ 0,  0] += 0.5 * integrateOverXStaggeredEastFace  ( rho * u )
+
+    A11:[ 0, -1] -= 0.5 * integrateOverXStaggeredSouthFace ( rho * v )
+    A11:[ 0,  0] -= 0.5 * integrateOverXStaggeredSouthFace ( rho * v )
+    A11:[ 0,  1] += 0.5 * integrateOverXStaggeredNorthFace ( rho * v )
+    A11:[ 0,  0] += 0.5 * integrateOverXStaggeredNorthFace ( rho * v )
+
+    // Newton
+    A11:[-1,  0] -= 0.5 * integrateOverXStaggeredWestFace  ( rho * u )
+    A11:[ 0,  0] -= 0.5 * integrateOverXStaggeredWestFace  ( rho * u )
+    A11:[ 1,  0] += 0.5 * integrateOverXStaggeredEastFace  ( rho * u )
+    A11:[ 0,  0] += 0.5 * integrateOverXStaggeredEastFace  ( rho * u )
+
+    A12:[-1,  0] = -0.5 * integrateOverXStaggeredSouthFace ( rho * u )
+    A12:[ 0,  0] = -0.5 * integrateOverXStaggeredSouthFace ( rho * u )
+    A12:[-1,  1] =  0.5 * integrateOverXStaggeredNorthFace ( rho * u )
+    A12:[ 0,  1] =  0.5 * integrateOverXStaggeredNorthFace ( rho * u )
+
+    // time derivative
+    A11:[ 0,  0] += evalAtWestFace ( rho ) * vf_xStagCellVolume / dt
+  }
+
+  loop over A22 {
+    A22:[-1,  0] = - integrateOverYStaggeredWestFace  ( mue ) / vf_stagCVWidth_x@[0, 0]
+    A22:[ 1,  0] = - integrateOverYStaggeredEastFace  ( mue ) / vf_stagCVWidth_x@[1, 0]
+    A22:[ 0, -1] = - integrateOverYStaggeredSouthFace ( mue ) / vf_cellWidth_y@[0, -1]
+    A22:[ 0,  1] = - integrateOverYStaggeredNorthFace ( mue ) / vf_cellWidth_y@[0, 0]
+    A22:[ 0,  0] = - ( A22:[-1, 0] + A22:[1, 0] + A22:[0, -1] + A22:[0, 1] )
+
+    // convection
+    A22:[-1,  0] -= 0.5 * integrateOverYStaggeredWestFace  ( rho * u )
+    A22:[ 0,  0] -= 0.5 * integrateOverYStaggeredWestFace  ( rho * u )
+    A22:[ 1,  0] += 0.5 * integrateOverYStaggeredEastFace  ( rho * u )
+    A22:[ 0,  0] += 0.5 * integrateOverYStaggeredEastFace  ( rho * u )
+
+    A22:[ 0, -1] -= 0.5 * integrateOverYStaggeredSouthFace ( rho * v )
+    A22:[ 0,  0] -= 0.5 * integrateOverYStaggeredSouthFace ( rho * v )
+    A22:[ 0,  1] += 0.5 * integrateOverYStaggeredNorthFace ( rho * v )
+    A22:[ 0,  0] += 0.5 * integrateOverYStaggeredNorthFace ( rho * v )
+
+    // Newton
+    A21:[ 0, -1] = -0.5 * integrateOverYStaggeredWestFace ( rho * v )
+    A21:[ 0,  0] = -0.5 * integrateOverYStaggeredWestFace ( rho * v )
+    A21:[ 1, -1] =  0.5 * integrateOverYStaggeredEastFace ( rho * v )
+    A21:[ 1,  0] =  0.5 * integrateOverYStaggeredEastFace ( rho * v )
+
+    A22:[ 0, -1] -= 0.5 * integrateOverYStaggeredSouthFace ( rho * v )
+    A22:[ 0,  0] -= 0.5 * integrateOverYStaggeredSouthFace ( rho * v )
+    A22:[ 0,  1] += 0.5 * integrateOverYStaggeredNorthFace ( rho * v )
+    A22:[ 0,  0] += 0.5 * integrateOverYStaggeredNorthFace ( rho * v )
+
+    // time derivative
+    A22:[ 0,  0] += evalAtSouthFace ( rho ) * vf_yStagCellVolume / dt
+  }
+
+  @finest {
+    UpdateRhs ( )
+  }
+  UpdateRhsNewton ( )
+
+  stopTimer ( 'assemble' )
+}
+
+Function updateVis@finest {
+  Var uMax : Real = 0.0
+  loop over u with reduction( max : uMax ) {
+    uMax = max ( uMax, fabs ( u ) )
+  }
+  Var vMax : Real = 0.0
+  loop over v with reduction( max : vMax ) {
+    vMax = max ( vMax, fabs ( v ) )
+  }
+
+  Var pMax : Real = 0.0
+  loop over p with reduction( max : pMax ) {
+    pMax = max ( pMax, fabs ( p ) )
+  }
+
+  Val scaleP : Real = 1.0 / pMax
+  Val scale : Real = 1.0 / max ( uMax, vMax )
+  loop over velMag {
+    velMag = sqrt ( ( 0.5 * ( u + u@[1,0] ) ) ** 2 + ( 0.5 * ( v + v@[0,1] ) ) ** 2 )
+    velMag = scale * velMag
+    uVis = 0.5 + 0.5 * scale * u
+    vVis = 0.5 + 0.5 * scale * v
+    pVis = 0.5 + 0.5 * scaleP * p
+  }
+}
+
+Function vis@finest {
+  updateVis ( )
+  showMappedImageAndWaitWhen ( curTime < maxTime, velMag )
+}

@@ -1,0 +1,327 @@
+
+Field uOld from u
+Field vOld from v
+Field pOld from p
+Field phiOld from phi
+Field rhoOld from rho
+
+
+Field residual_u from u
+Field residual_v from v
+Field residual_p from p
+Field residual_phi from phi
+override bc for residual_u with 0.0
+override bc for residual_v with 0.0
+override bc for residual_p with 0.0
+override bc for residual_phi with 0.0
+
+
+Field approx_u from u
+Field approx_v from v
+Field approx_p from p
+Field approx_phi from phi
+
+
+Stencil RestrictionCell@all from default restriction on Cell with 'linear'
+Stencil CorrectionCell@all from default prolongation on Cell with 'linear'
+
+Stencil RestrictionFaceX@all from default restriction on Face_x with 'linear'
+Stencil CorrectionFaceX@all from default prolongation on Face_x with 'linear'
+
+Stencil RestrictionFaceY@all from default restriction on Face_y with 'linear'
+Stencil CorrectionFaceY@all from default prolongation on Face_y with 'linear'
+
+Stencil RestrictionCellIntegral@all from default restriction on Cell with 'integral_linear'
+Stencil CorrectionCellIntegral@all from default prolongation on Cell with 'integral_linear'
+
+Stencil RestrictionFaceXIntegral@all from default restriction on Face_x with 'integral_linear'
+Stencil CorrectionFaceXIntegral@all from default prolongation on Face_x with 'integral_linear'
+
+Stencil RestrictionFaceYIntegral@all from default restriction on Face_y with 'integral_linear'
+Stencil CorrectionFaceYIntegral@all from default prolongation on Face_y with 'integral_linear'
+
+
+Function Advance@all {
+  uOld = u
+  vOld = v
+  pOld = p
+  phiOld = phi
+  rhoOld = rho
+}
+
+
+Function Solve@finest {
+  AssembleStencil ( )
+  residual_u = rhs_u - ( A11 * u + B1 * p )
+  residual_v = rhs_v - ( A22 * v + B2 * p )
+  residual_p = rhs_p - ( C1 * u + C2 * v )
+  residual_phi = rhs_phi - ( E * phi )
+  Var initRes : Real = ResNorm (  )
+  Var curRes : Real = initRes
+  Var prevRes : Real = curRes
+  Var curIt : Integer = 0
+  repeat until ( ( ( curIt >= 20 && curTime > dt ) || ( curIt >= 256 && curTime <= dt ) || curRes != curRes || curRes <= 1.0E-10 ) && curIt > 0 ) {
+    curIt += 1
+    startTimer ( 'cycle' )
+    Cycle ( )
+    stopTimer ( 'cycle' )
+    totalNumCycles += 1
+    residual_u = rhs_u - ( A11 * u + B1 * p )
+    residual_v = rhs_v - ( A22 * v + B2 * p )
+    residual_p = rhs_p - ( C1 * u + C2 * v )
+    residual_phi = rhs_phi - ( E * phi )
+    prevRes = curRes
+    curRes = ResNorm (  )
+  }
+
+  if ( curRes != curRes || curRes > 1.0E-10 ) {
+    curTime -= dt
+    dt /= 2
+    curTime += dt
+    print ( "Error detected after", curIt, "steps, residual is", curRes, "- reducing time step size to", dt, "and trying again with adapted time", curTime )
+
+    u = uOld
+    v = vOld
+    p = pOld
+    phi = phiOld
+    rho = rhoOld
+
+    Solve ( )
+  } else {
+    print ( "  Residual at", curTime, "after", curIt, "iterations is", curRes, ", was initially" , initRes )
+  }
+}
+
+
+Function ResNorm@(coarsest and finest) : Real {
+  Var resNorm : Real = 0.0
+  resNorm += dot ( residual_u, residual_u )
+  resNorm += dot ( residual_v, residual_v )
+  resNorm += dot ( residual_p, residual_p )
+  resNorm += dot ( residual_phi, residual_phi )
+  return sqrt ( resNorm )
+}
+
+
+Function Smoother@(all but coarsest) {
+  repeat 3 times {
+    color with {
+      ( ( i0 + i1 ) % 2 ),
+      solve locally at p relax vankaRelax {
+        u@[0, 0] => A11@[0, 0] * u@[0, 0] + B1@[0, 0] * p@[0, 0] == rhs_u@[0, 0]
+        u@[1, 0] => A11@[1, 0] * u@[1, 0] + B1@[1, 0] * p@[1, 0] == rhs_u@[1, 0]
+        v@[0, 0] => A22@[0, 0] * v@[0, 0] + B2@[0, 0] * p@[0, 0] == rhs_v@[0, 0]
+        v@[0, 1] => A22@[0, 1] * v@[0, 1] + B2@[0, 1] * p@[0, 1] == rhs_v@[0, 1]
+        p@[0, 0] =>  C1@[0, 0] * u@[0, 0] + C2@[0, 0] * v@[0, 0] == rhs_p@[0, 0]
+      }
+    }
+    repeat 2 times {
+      color with {
+        ( ( i0 + i1 ) % 2 ),
+        solve locally at phi relax vankaRelax {
+          phi@[0, 0] => E@[0, 0] * phi@[0, 0] == rhs_phi@[0, 0]
+        }
+      }
+    }
+    AssembleStencil ( )
+  }
+}
+
+
+Function Cycle@(all but coarsest) {
+  @finest {
+    AssembleStencil (  )
+  }
+
+  Smoother ( )
+
+  residual_u = rhs_u - ( A11 * u + B1 * p )
+  residual_v = rhs_v - ( A22 * v + B2 * p )
+  residual_p = rhs_p - ( C1 * u + C2 * v )
+  residual_phi = rhs_phi - ( E * phi )
+
+  approx_u@coarser = RestrictionFaceX * u
+  approx_v@coarser = RestrictionFaceY * v
+  approx_p@coarser = RestrictionCell  * p
+  approx_phi@coarser = RestrictionCell  * phi
+
+  u@coarser = approx_u@coarser
+  v@coarser = approx_v@coarser
+  p@coarser = approx_p@coarser
+  phi@coarser = approx_phi@coarser
+
+  AssembleStencil@coarser ( )
+  UpdateRhs@coarser ( )
+
+  Cycle@coarser (  )
+
+  u@coarser -= approx_u@coarser
+  v@coarser -= approx_v@coarser
+  p@coarser -= approx_p@coarser
+  phi@coarser -= approx_phi@coarser
+
+  u += CorrectionFaceX * u@coarser
+  v += CorrectionFaceY * v@coarser
+  p += CorrectionCell  * p@coarser
+  phi += CorrectionCell  * phi@coarser
+
+  Smoother ( )
+}
+
+
+Function UpdateRhs@(all but finest) {
+  rhs_u = RestrictionFaceXIntegral@finer * residual_u@finer + B1 * approx_p + A11 * approx_u
+  rhs_v = RestrictionFaceYIntegral@finer * residual_v@finer + B2 * approx_p + A22 * approx_v
+  rhs_p = RestrictionCellIntegral@finer  * residual_p@finer + C2 * approx_v + C1 * approx_u
+  rhs_phi = RestrictionCellIntegral@finer  * residual_phi@finer + E * approx_phi
+}
+
+
+Field v_u@coarsest with Real on Face_x of global = 0.0
+Field v_u@coarsest on boundary = None
+Field p_u@coarsest with Real on Face_x of global = 0.0
+Field p_u@coarsest on boundary = 0.0
+Field s_u@coarsest with Real on Face_x of global = 0.0
+Field s_u@coarsest on boundary = 0.0
+Field t_u@coarsest with Real on Face_x of global = 0.0
+Field t_u@coarsest on boundary = None
+Field resHat_u@coarsest with Real on Face_x of global = 0.0
+Field resHat_u@coarsest on boundary = None
+Field v_v@coarsest with Real on Face_y of global = 0.0
+Field v_v@coarsest on boundary = None
+Field p_v@coarsest with Real on Face_y of global = 0.0
+Field p_v@coarsest on boundary = 0.0
+Field s_v@coarsest with Real on Face_y of global = 0.0
+Field s_v@coarsest on boundary = 0.0
+Field t_v@coarsest with Real on Face_y of global = 0.0
+Field t_v@coarsest on boundary = None
+Field resHat_v@coarsest with Real on Face_y of global = 0.0
+Field resHat_v@coarsest on boundary = None
+Field v_p@coarsest with Real on Cell of global = 0.0
+Field v_p@coarsest on boundary = None
+Field p_p@coarsest with Real on Cell of global = 0.0
+Field p_p@coarsest on boundary = Neumann(1)
+Field s_p@coarsest with Real on Cell of global = 0.0
+Field s_p@coarsest on boundary = Neumann(1)
+Field t_p@coarsest with Real on Cell of global = 0.0
+Field t_p@coarsest on boundary = None
+Field resHat_p@coarsest with Real on Cell of global = 0.0
+Field resHat_p@coarsest on boundary = None
+Field v_phi@coarsest with Real on Cell of global = 0.0
+Field v_phi@coarsest on boundary = None
+Field p_phi@coarsest with Real on Cell of global = 0.0
+Field p_phi@coarsest on boundary = 0.0
+Field s_phi@coarsest with Real on Cell of global = 0.0
+Field s_phi@coarsest on boundary = 0.0
+Field t_phi@coarsest with Real on Cell of global = 0.0
+Field t_phi@coarsest on boundary = None
+Field resHat_phi@coarsest with Real on Cell of global = 0.0
+Field resHat_phi@coarsest on boundary = None
+
+Function Cycle@coarsest {
+  residual_u = rhs_u - ( A11 * u + B1 * p )
+  residual_v = rhs_v - ( A22 * v + B2 * p )
+  residual_p = rhs_p - (  C1 * u + C2 * v )
+  residual_phi = rhs_phi - ( E * phi )
+  Var curRes : Real = ResNorm (  )
+  Var initRes : Real = curRes
+  if ( curRes <= 1.0E-12 ) {
+    return
+  }
+  resHat_u = residual_u
+  resHat_v = residual_v
+  resHat_p = residual_p
+  resHat_phi = residual_phi
+  Var rho_ : Real = 1.0
+  Var rho_Old : Real = 1.0
+  Var alpha : Real = 1.0
+  Var beta : Real = 1.0
+  Var omega : Real = 1.0
+  v_u = 0.0
+  v_v = 0.0
+  v_p = 0.0
+  v_phi = 0.0
+  p_u = 0.0
+  p_v = 0.0
+  p_p = 0.0
+  p_phi = 0.0
+  Var curStep : Integer = 0
+  repeat 12800 times count curStep {
+    if ( curStep > 0 && 0 == curStep % 128 ) {
+      residual_u = rhs_u - ( A11 * u + B1 * p )
+      residual_v = rhs_v - ( A22 * v + B2 * p )
+      residual_p = rhs_p - (  C1 * u + C2 * v )
+      residual_phi = rhs_phi - ( E * phi )
+      resHat_u = residual_u
+      resHat_v = residual_v
+      resHat_p = residual_p
+      resHat_phi = residual_phi
+      rho_ = 1.0
+      rho_Old = 1.0
+      alpha = 1.0
+      beta = 1.0
+      omega = 1.0
+      v_u = 0.0
+      v_v = 0.0
+      v_p = 0.0
+      v_phi = 0.0
+      p_u = 0.0
+      p_v = 0.0
+      p_p = 0.0
+      p_phi = 0.0
+    }
+    rho_Old = rho_
+    rho_ = 0.0
+    rho_ += dot ( resHat_u, residual_u )
+    rho_ += dot ( resHat_v, residual_v )
+    rho_ += dot ( resHat_p, residual_p )
+    rho_ += dot ( resHat_phi, residual_phi )
+    beta = ( rho_ / rho_Old ) * ( alpha / omega )
+    p_u = residual_u + beta * ( p_u - omega * v_u )
+    p_v = residual_v + beta * ( p_v - omega * v_v )
+    p_p = residual_p + beta * ( p_p - omega * v_p )
+    p_phi = residual_phi + beta * ( p_phi - omega * v_phi )
+    v_u = A11 * p_u + B1 * p_p
+    v_v = A22 * p_v + B2 * p_p
+    v_p =  C1 * p_u + C2 * p_v
+    v_phi = E * p_phi
+    Var alphaDenom : Real = 0.0
+    alphaDenom += dot ( resHat_u, v_u )
+    alphaDenom += dot ( resHat_v, v_v )
+    alphaDenom += dot ( resHat_p, v_p )
+    alphaDenom += dot ( resHat_phi, v_phi )
+    alpha = rho_ / alphaDenom
+    s_u = residual_u - alpha * v_u
+    s_v = residual_v - alpha * v_v
+    s_p = residual_p - alpha * v_p
+    s_phi = residual_phi - alpha * v_phi
+    t_u = A11 * s_u + B1 * s_p
+    t_v = A22 * s_v + B2 * s_p
+    t_p =  C1 * s_u + C2 * s_v
+    t_phi = E * s_phi
+    Var omegaNom : Real = 0.0
+    Var omegaDenom : Real = 0.0
+    omegaNom += dot ( t_u, s_u )
+    omegaDenom += dot ( t_u, t_u )
+    omegaNom += dot ( t_v, s_v )
+    omegaDenom += dot ( t_v, t_v )
+    omegaNom += dot ( t_p, s_p )
+    omegaDenom += dot ( t_p, t_p )
+    omegaNom += dot ( t_phi, s_phi )
+    omegaDenom += dot ( t_phi, t_phi )
+    omega = omegaNom / omegaDenom
+    u = u + alpha * p_u + omega * s_u
+    v = v + alpha * p_v + omega * s_v
+    p = p + alpha * p_p + omega * s_p
+    phi = phi + alpha * p_phi + omega * s_phi
+    residual_u = s_u - omega * t_u
+    residual_v = s_v - omega * t_v
+    residual_p = s_p - omega * t_p
+    residual_phi = s_phi - omega * t_phi
+    curRes = ResNorm (  )
+    if ( curRes <= 0.001 * initRes || curRes <= 1.0E-12 ) {
+      return
+    }
+  }
+  print ( "Maximum number of cgs iterations (", 12800, ") was exceeded" )
+}
