@@ -162,9 +162,9 @@ Function Update@all {
       Expr hvc = Centering * hv
 
       solve locally {
-        h[next]  => dx * dy * ( h[next]  - hc  ) + dt * dy * 0.5 * ( F0@west - F0@east ) + dt * dx * 0.5 * ( G0@north - G0@south ) == S0
-        hu[next] => dx * dy * ( hu[next] - huc ) + dt * dy * 0.5 * ( F1@west - F1@east ) + dt * dx * 0.5 * ( G1@north - G1@south ) == dt * dy * 0.5 * ( S1@west  - S1@east  )
-        hv[next] => dx * dy * ( hv[next] - hvc ) + dt * dy * 0.5 * ( F2@west - F2@east ) + dt * dx * 0.5 * ( G2@north - G2@south ) == dt * dx * 0.5 * ( S2@north - S2@south )
+        h[next]  => dx * dy * ( h[next]  - hc  ) + dt * dy * 0.5 * ( F0@east - F0@west ) + dt * dx * 0.5 * ( G0@north - G0@south ) == S0
+        hu[next] => dx * dy * ( hu[next] - huc ) + dt * dy * 0.5 * ( F1@east - F1@west ) + dt * dx * 0.5 * ( G1@north - G1@south ) == dt * dy * 0.5 * ( S1@west  - S1@east  )
+        hv[next] => dx * dy * ( hv[next] - hvc ) + dt * dy * 0.5 * ( F2@east - F2@west ) + dt * dx * 0.5 * ( G2@north - G2@south ) == dt * dx * 0.5 * ( S2@north - S2@south )
       }
     }
   } else if ( 2 == version ) {
@@ -187,15 +187,15 @@ Function Update@all {
     Expr hvc = Centering * hv
 
     loop over h {
-      h[next] = hc - ( dt / dx ) * 0.5 * ( F0@west - F0@east ) - ( dt / dy ) * 0.5 * ( G0@north - G0@south )
+      h[next]  = hc  - ( dt / dx ) * 0.5 * ( F0@east  - F0@west  ) - ( dt / dy ) * 0.5 * ( G0@north - G0@south )
     }
 
     loop over hu {
-      hu[next] = huc + ( dt / dx ) * 0.5 * ( S1@west  - S1@east  ) - ( dt / dx ) * 0.5 * ( F1@west - F1@east ) - ( dt / dy ) * 0.5 * ( G1@north - G1@south )
+      hu[next] = huc + ( dt / dx ) * 0.5 * ( S1@east  - S1@west  ) - ( dt / dx ) * 0.5 * ( F1@east - F1@west ) - ( dt / dy ) * 0.5 * ( G1@north - G1@south )
     }
 
     loop over hu {
-      hv[next] = hvc + ( dt / dy ) * 0.5 * ( S2@north - S2@south ) - ( dt / dx ) * 0.5 * ( F2@west - F2@east ) - ( dt / dy ) * 0.5 * ( G2@north - G2@south )
+      hv[next] = hvc + ( dt / dy ) * 0.5 * ( S2@north - S2@south ) - ( dt / dx ) * 0.5 * ( F2@east - F2@west ) - ( dt / dy ) * 0.5 * ( G2@north - G2@south )
     }
   } else if ( 3 == version ) {
     /// version 3 - use vector data types
@@ -211,8 +211,8 @@ Function Update@all {
       Expr q  = [ h; hu; hv ]
 
       Expr qNew = Centering * q + 0.5 * dt * (
-          ( S1@west - S1@east ) / dx + ( S2@north - S2@south ) / dy
-        - ( F@west  - F@east  ) / dx - ( G@north  - G@south  ) / dy )
+          ( S1@east - S1@west ) / dx + ( S2@north - S2@south ) / dy
+        - ( F@east  - F@west  ) / dx - ( G@north  - G@south  ) / dy )
 
       h[next]  = dot ( qNew, { 1, 0, 0 }T )
       hu[next] = dot ( qNew, { 0, 1, 0 }T )
