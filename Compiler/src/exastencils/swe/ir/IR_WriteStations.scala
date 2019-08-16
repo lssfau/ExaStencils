@@ -88,10 +88,10 @@ case class IR_WriteStations(var fctName : String, var arguments : ListBuffer[IR_
     stationStmts += IR_VariableDeclaration(fragId, IR_IV_StationsFragment(stationId))
     stationStmts += IR_VariableDeclaration(i0, IR_IV_StationsId(stationId, 0))
     stationStmts += IR_VariableDeclaration(i1, IR_IV_StationsId(stationId, 1))
-    stationStmts ++= (0 until 2).toArray.map(i => IR_Assignment(linVertArray(0, i), nodePositions(i, lowerLeftIdx + IR_ExpressionIndex(0, 0))))
-    stationStmts ++= (0 until 2).toArray.map(i => IR_Assignment(linVertArray(1, i), nodePositions(i, lowerLeftIdx + IR_ExpressionIndex(1, 0))))
-    stationStmts ++= (0 until 2).toArray.map(i => IR_Assignment(linVertArray(2, i), nodePositions(i, lowerLeftIdx + IR_ExpressionIndex(1, 1))))
-    stationStmts ++= (0 until 2).toArray.map(i => IR_Assignment(linVertArray(3, i), nodePositions(i, lowerLeftIdx + IR_ExpressionIndex(0, 1))))
+    stationStmts ++= (0 until 2).toArray.map(i => IR_Assignment(linVertArray(0, i), nodePositions(i, IR_ExpressionIndex(0, 0))))
+    stationStmts ++= (0 until 2).toArray.map(i => IR_Assignment(linVertArray(1, i), nodePositions(i, IR_ExpressionIndex(1, 0))))
+    stationStmts ++= (0 until 2).toArray.map(i => IR_Assignment(linVertArray(2, i), nodePositions(i, IR_ExpressionIndex(1, 1))))
+    stationStmts ++= (0 until 2).toArray.map(i => IR_Assignment(linVertArray(3, i), nodePositions(i, IR_ExpressionIndex(0, 1))))
     stationStmts += IR_IfCondition(IR_IV_StationsIsLower(stationId),
       IR_Assignment(quantity, IR_FunctionCall(IR_PlainInternalFunctionReference("evalQuantity", IR_UnitDatatype),
         ListBuffer[IR_Expression](
