@@ -13,8 +13,7 @@ import exastencils.deprecated.ir._
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.ir._
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
-import exastencils.util.ir.IR_BuildString
-import exastencils.util.ir.IR_Read
+import exastencils.util.ir._
 
 /// IR_ReadField
 
@@ -23,6 +22,12 @@ object IR_ReadField {
   def getNewName() : String = {
     counter += 1
     "fieldReadStream_%02d".format(counter)
+  }
+
+  private var fileNameCounter : Int = 0
+  def getNewFileName() : String = {
+    fileNameCounter += 1
+    "fieldName_%02d".format(fileNameCounter)
   }
 }
 
@@ -70,7 +75,7 @@ case class IR_ReadField(var filename : IR_Expression, var field : IR_FieldSelect
 
         val strListMpi = strSplit.flatMap(e => MPI_IV_MpiRank :: IR_StringConstant(e) :: Nil).tail
 
-        val mpiFileName = IR_VariableAccess("fileName", IR_StringDatatype)
+        val mpiFileName = IR_VariableAccess(IR_ReadField.getNewFileName(), IR_StringDatatype)
         statements += IR_VariableDeclaration(mpiFileName)
         statements += IR_BuildString(mpiFileName, strListMpi)
         statements += IR_ObjectInstantiation(stream, Duplicate(mpiFileName))
