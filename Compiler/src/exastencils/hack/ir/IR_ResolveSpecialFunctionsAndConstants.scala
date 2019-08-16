@@ -11,17 +11,14 @@ import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.domain.ir.IR_IV_FragmentIndex
-import exastencils.domain.ir.IR_ReadLineFromFile
+import exastencils.domain.ir._
 import exastencils.field.ir._
-import exastencils.globals.ir.IR_GlobalCollection
-import exastencils.globals.ir.IR_ReadParameterFile
+import exastencils.globals.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp.OMP_Parallel
-import exastencils.swe.ir.IR_ReadStations
-import exastencils.swe.ir.IR_WriteStations
+import exastencils.swe.ir._
 import exastencils.util.ir._
 
 /// HACK_IR_ResolveSpecialFunctionsAndConstants
@@ -324,11 +321,10 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       IR_UserFunctions.get.internalDependencies = IR_UserFunctions.get.internalDependencies.distinct
       IR_GlobalCollection.get.functions += IR_WriteStations(writeStationFctName, args)
       IR_GlobalCollection.get.externalDependencies += "iostream"
+      IR_GlobalCollection.get.externalDependencies += "cmath"
       IR_GlobalCollection.get.externalDependencies = IR_GlobalCollection.get.externalDependencies.distinct
 
       IR_ExpressionStatement(IR_FunctionCall(IR_PlainInternalFunctionReference(writeStationFctName, IR_UnitDatatype), args.head))
-
-
 
     // FIXME: IR_UserFunctionReference
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("dot", _), args) => IR_FunctionCall("dotProduct", args)
