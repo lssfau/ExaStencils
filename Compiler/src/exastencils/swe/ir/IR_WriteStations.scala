@@ -2,13 +2,10 @@ package exastencils.swe.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.baseExt.ir.IR_ArrayDatatype
-import exastencils.baseExt.ir.IR_LoopOverDimensions
-import exastencils.baseExt.ir.IR_LoopOverFragments
-import exastencils.config.Knowledge
-import exastencils.config.Settings
+import exastencils.base.ir._
+import exastencils.baseExt.ir._
+import exastencils.config._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.field.ir.IR_FieldAccess
@@ -106,9 +103,9 @@ case class IR_WriteStations(var fctName : String, var arguments : ListBuffer[IR_
       IR_Assignment(quantity, IR_FunctionCall(IR_PlainInternalFunctionReference("evalQuantity", IR_UnitDatatype),
         ListBuffer[IR_Expression](
           IR_IV_Stations(stationId, 0), IR_IV_Stations(stationId, 1),
-          linVertArray(0, 0), linVertArray(0, 1),
-          linVertArray(1, 0), linVertArray(1, 1),
-          linVertArray(3, 0), linVertArray(3, 1)
+          linVertArray(2, 0), linVertArray(2, 1),
+          linVertArray(3, 0), linVertArray(3, 1),
+          linVertArray(1, 0), linVertArray(1, 1)
         ) ++ coeffsUpper(lowerLeftIdx, fragId))))
 
     val file = IR_VariableAccess("file", IR_SpecialDatatype("std::ofstream"))
