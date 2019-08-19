@@ -692,7 +692,7 @@ object Knowledge {
   var l3tmp_printAllTimers : Boolean = false
   // prints results for all used timers at the end of the application
 
-  var l3tmp_timeoutLimit : Int = 20 * 60 * 1000 // threshold in ms for the total cycle time after which solving is canceled; 0 deactivates the feature
+  var l3tmp_timeoutLimit : Int = 0 // 20 * 60 * 1000 // threshold in ms for the total cycle time after which solving is canceled; 0 deactivates the feature
 
   /// functionality test
   var l3tmp_exactSolution : String = "Zero"
