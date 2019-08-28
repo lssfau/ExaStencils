@@ -1,6 +1,7 @@
 package exastencils.util.ir
 
 import exastencils.base.ir._
+import exastencils.prettyprinting.PpStream
 
 object IR_MathFunctions {
   val signatures = Map(
@@ -39,4 +40,11 @@ object IR_MathFunctionReference {
   def sqrt = new IR_MathFunctionReference("sqrt", IR_MathFunctions.getDatatype("sqrt")._2)
 }
 
-case class IR_MathFunctionReference(var name : String, var returnType : IR_Datatype) extends IR_FunctionReference
+case class IR_MathFunctionReference(var name : String, var returnType : IR_Datatype) extends IR_FunctionReference {
+  override def prettyprint(out : PpStream) = {
+    name match {
+      case "sqrt" => out << "std::sqrt"
+      case _      => super.prettyprint(out)
+    }
+  }
+}
