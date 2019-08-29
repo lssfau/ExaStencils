@@ -68,9 +68,9 @@ case class IR_WriteStations(var fctName : String, var arguments : ListBuffer[IR_
     val stationId = IR_VariableAccess("stationId", IR_IntegerDatatype)
     val stationStmts = ListBuffer[IR_Statement]()
 
-    val vPos = IR_VariableAccess("vPos", IR_ArrayDatatype(IR_DoubleDatatype, 8))
+    val vPos = IR_VariableAccess("vPos", IR_ArrayDatatype(IR_RealDatatype, 8))
 
-    val quantity = IR_VariableAccess("quantity", IR_DoubleDatatype)
+    val quantity = IR_VariableAccess("quantity", IR_RealDatatype)
 
     def linVertArray(vid : Int, dim : Int) = IR_ArrayAccess(vPos, 2 * vid + dim)
 
@@ -78,7 +78,7 @@ case class IR_WriteStations(var fctName : String, var arguments : ListBuffer[IR_
     val i0 = IR_VariableAccess("i0", IR_IntegerDatatype)
     val i1 = IR_VariableAccess("i1", IR_IntegerDatatype)
     val lowerLeftIdx = IR_ExpressionIndex(i0, i1)
-    val linIndex = IR_VariableAccess("linInxed", IR_DoubleDatatype)
+    val linIndex = IR_VariableAccess("linInxed", IR_RealDatatype)
 
     stationStmts += IR_VariableDeclaration(vPos)
     stationStmts += IR_VariableDeclaration(quantity)

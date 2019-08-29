@@ -73,8 +73,8 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
 
     val iss = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream"))
     body += IR_VariableDeclaration(iss)
-    val stationX = IR_VariableAccess("x", IR_FloatDatatype)
-    val stationY = IR_VariableAccess("y", IR_FloatDatatype)
+    val stationX = IR_VariableAccess("x", IR_RealDatatype)
+    val stationY = IR_VariableAccess("y", IR_RealDatatype)
     body += IR_VariableDeclaration(nStations, 0)
     body += IR_VariableDeclaration(stationX)
     body += IR_VariableDeclaration(stationY)
@@ -98,7 +98,7 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
     //  v3 -- v2
     //  |     |
     //  v0 -- v1
-    val vPos = IR_VariableAccess("vPos", IR_ArrayDatatype(IR_DoubleDatatype, 8))
+    val vPos = IR_VariableAccess("vPos", IR_ArrayDatatype(IR_RealDatatype, 8))
     body += IR_VariableDeclaration(vPos)
 
     def linVertArray(vid : Int, dim : Int) = IR_ArrayAccess(vPos, 2 * vid + dim)
