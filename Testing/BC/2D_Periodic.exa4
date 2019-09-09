@@ -16,31 +16,31 @@
 
 Domain global< [0.0, 0.0] to [1.0, 1.0] >
 
-Layout NoComm< Real, Cell >@all {
+Layout NoComm< Real, Node >@all {
 	ghostLayers = [0, 0]
-	duplicateLayers = [0, 0]
+	duplicateLayers = [1, 1]
 }
 
-Layout CommPartTempBlockable< Real, Cell >@all {
+Layout CommPartTempBlockable< Real, Node >@all {
 	ghostLayers = [0, 0]
-	duplicateLayers = [0, 0]
+	duplicateLayers = [1, 1]
 }
 
-Layout BasicComm< Real, Cell >@all {
+Layout BasicComm< Real, Node >@all {
 	ghostLayers = [1, 1] with communication
-	duplicateLayers = [0, 0] with communication
+	duplicateLayers = [1, 1] with communication
 }
 
-Layout CommFullTempBlockable< Real, Cell >@all {
+Layout CommFullTempBlockable< Real, Node >@all {
 	ghostLayers = [1, 1] with communication
-	duplicateLayers = [0, 0] with communication
+	duplicateLayers = [1, 1] with communication
 }
 
 Field Solution< global, BasicComm, 0.0 >[2]@(coarsest to 0)
 
 Field Solution< global, CommFullTempBlockable, 0.0 >[2]@(1 to (finest - 1))
 
-Field Solution< global, CommFullTempBlockable, ( sin ( ( PI * vf_boundaryCoord_x@current ) ) * sinh ( ( PI * vf_boundaryCoord_y@current ) ) ) >[2]@finest
+Field Solution< global, CommFullTempBlockable, ( vf_boundaryCoord_x@current * vf_boundaryCoord_x@current ) >[2]@finest
 
 Field Residual< global, BasicComm, 0.0 >@all
 
@@ -53,16 +53,16 @@ Field VecP< global, BasicComm, 0.0 >@coarsest
 Field VecGradP< global, NoComm, None >@coarsest
 
 Stencil Laplace@all{
-	[0, 0] => ( ( 2.0 / ( vf_cellWidth_x@current * vf_cellWidth_x@current ) ) + ( 2.0 / ( vf_cellWidth_y@current * vf_cellWidth_y@current ) ) )
-	[1, 0] => ( -1.0 / ( vf_cellWidth_x@current * vf_cellWidth_x@current ) )
-	[-1, 0] => ( -1.0 / ( vf_cellWidth_x@current * vf_cellWidth_x@current ) )
-	[0, 1] => ( -1.0 / ( vf_cellWidth_y@current * vf_cellWidth_y@current ) )
-	[0, -1] => ( -1.0 / ( vf_cellWidth_y@current * vf_cellWidth_y@current ) )
+	[0, 0] => ( ( 2.0 / ( vf_gridWidth_x@current * vf_gridWidth_x@current ) ) + ( 2.0 / ( vf_gridWidth_y@current * vf_gridWidth_y@current ) ) )
+	[1, 0] => ( -1.0 / ( vf_gridWidth_x@current * vf_gridWidth_x@current ) )
+	[-1, 0] => ( -1.0 / ( vf_gridWidth_x@current * vf_gridWidth_x@current ) )
+	[0, 1] => ( -1.0 / ( vf_gridWidth_y@current * vf_gridWidth_y@current ) )
+	[0, -1] => ( -1.0 / ( vf_gridWidth_y@current * vf_gridWidth_y@current ) )
 }
 
-Stencil CorrectionStencil from default prolongation on Cell with "linear"
+Stencil CorrectionStencil from default prolongation on Node with "linear"
 
-Stencil RestrictionStencil from default restriction on Cell with "linear"
+Stencil RestrictionStencil from default restriction on Node with "linear"
 
 
 
@@ -72,7 +72,6 @@ Function VCycle@coarsest {
 
 Function VCycle_0@coarsest {
 	UpResidual@current (  )
-	apply bc to Residual@current
 	communicate Residual@current
 	Var res : Real = NormResidual_0@current (  )
 	Var initialRes : Real = res
@@ -81,13 +80,12 @@ Function VCycle_0@coarsest {
 	}
 	Var cgSteps : Integer
 	repeat 512 times count cgSteps {
-		apply bc to VecP@current
 		communicate VecP@current
 		loop over VecP@current {
 			VecGradP@current = ( Laplace@current * VecP@current )
 		}
 		Var alphaDenom : Real = 0
-		loop over VecP@current with reduction ( + : alphaDenom ) {
+		loop over VecP@current where ( ( i0 > 0 ) && ( i1 > 0 ) ) with reduction ( + : alphaDenom ) {
 			alphaDenom += ( VecP@current * VecGradP@current )
 		}
 		Var alpha : Real = ( ( res * res ) / alphaDenom )
@@ -123,7 +121,6 @@ Function VCycle@((coarsest + 1) to finest) {
 }
 
 Function Smoother@((coarsest + 1) to finest) {
-	apply bc to Solution[active]@current
 	communicate ghost of Solution[active]@current
 	loop over Solution@current {
 		Solution[next]@current = ( Solution[active]@current + ( ( ( 1.0 / diag ( Laplace@current ) ) * 0.8 ) * ( RHS@current - ( Laplace@current * Solution[active]@current ) ) ) )
@@ -132,7 +129,6 @@ Function Smoother@((coarsest + 1) to finest) {
 }
 
 Function UpResidual@all {
-	apply bc to Solution[active]@current
 	communicate Solution[active]@current
 	loop over Residual@current {
 		Residual@current = ( RHS@current - ( Laplace@current * Solution[active]@current ) )
@@ -141,7 +137,7 @@ Function UpResidual@all {
 
 Function NormResidual_0@(finest, coarsest) : Real {
 	Var res : Real = 0
-	loop over Residual@current with reduction ( + : res ) {
+	loop over Residual@current where ( ( i0 > 0 ) && ( i1 > 0 ) ) with reduction ( + : res ) {
 		res += ( Residual@current * Residual@current )
 	}
 	return sqrt ( res )
@@ -149,15 +145,14 @@ Function NormResidual_0@(finest, coarsest) : Real {
 
 Function NormError_0@(finest) : Real {
 	Var err : Real = 0
-	loop over Solution@current with reduction ( max : err ) {
-		Var curErr : Real = fabs ( ( Solution[active]@current - ( sin ( ( PI * vf_cellCenter_x@current ) ) * sinh ( ( PI * vf_cellCenter_y@current ) ) ) ) )
+	loop over Solution@current where ( ( i0 > 0 ) && ( i1 > 0 ) ) with reduction ( max : err ) {
+		Var curErr : Real = fabs ( ( Solution[active]@current - ( vf_nodePosition_x@current * vf_nodePosition_x@current ) ) )
 		err = max ( err, curErr )
 	}
 	return err
 }
 
 Function Restriction@((coarsest + 1) to finest) {
-	apply bc to Residual@current
 	communicate ghost of Residual@current
 	loop over RHS@coarser {
 		RHS@coarser = ( RestrictionStencil@current * Residual@current )
@@ -165,7 +160,6 @@ Function Restriction@((coarsest + 1) to finest) {
 }
 
 Function Correction@((coarsest + 1) to finest) {
-	apply bc to Solution[active]@coarser
 	communicate ghost of Solution[active]@coarser
 	loop over Solution@current {
 		Solution[active]@current += ( CorrectionStencil@current * Solution[active]@coarser )
@@ -186,7 +180,7 @@ Function InitSolution {
 
 Function InitRHS@finest {
 	loop over RHS@current {
-		RHS@current = 0.0
+		RHS@current = -2.0
 	}
 }
 
@@ -271,6 +265,21 @@ Function Application {
 	initFieldsWithZero (  )
 	InitRHS@finest (  )
 	InitSolution (  )
+	apply bc to Solution[0]@0
+	apply bc to Solution[1]@0
+	apply bc to Solution[0]@1
+	apply bc to Solution[1]@1
+	apply bc to Solution[0]@2
+	apply bc to Solution[1]@2
+	apply bc to Solution[0]@3
+	apply bc to Solution[1]@3
+	apply bc to Solution[0]@4
+	apply bc to Solution[1]@4
+	apply bc to Solution[0]@5
+	apply bc to Solution[1]@5
+	apply bc to Solution[0]@6
+	apply bc to Solution[1]@6
+	apply bc to VecP@coarsest
 	Solve (  )
 	destroyGlobals (  )
 }
