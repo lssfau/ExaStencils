@@ -15,11 +15,6 @@ grid_spacingModel					= "diego"
 
 grid_halveStagBoundaryVolumes		= true
 
-// code generation
-
-l3tmp_generateL4					= false
-l3tmp_genForAutoTests				= true
-
 // domain partioning
 
 domain_numBlocks					= 1

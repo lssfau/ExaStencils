@@ -23,5 +23,3 @@ mpi_numThreads						= 9
 
 omp_parallelizeLoopOverFragments	= true
 omp_parallelizeLoopOverDimensions	= false
-
-l3tmp_generateL4					= false

@@ -1,3 +1,1 @@
 import "../Smoothers/RBGS.knowledge"
-
-l3tmp_generateL4 = false

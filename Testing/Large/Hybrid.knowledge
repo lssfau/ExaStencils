@@ -23,8 +23,3 @@ mpi_numThreads				= 4
 
 omp_parallelizeLoopOverFragments	= true
 omp_parallelizeLoopOverDimensions	= false
-
-l3tmp_generateL4			= true
-l3tmp_genForAutoTests		= true
-
-l3tmp_exactSolution			= "Polynomial"

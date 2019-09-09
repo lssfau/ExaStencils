@@ -26,9 +26,6 @@ mpi_numThreads = 1
 omp_parallelizeLoopOverFragments  = false
 omp_parallelizeLoopOverDimensions = true
 
-l3tmp_generateL4 = false
-
-
 poly_explorationIDs       = -1
 poly_exploration_extended = false
 poly_optLevel_fine     = 3

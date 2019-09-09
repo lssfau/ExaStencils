@@ -5,7 +5,6 @@ maxLevel                       = 6
 
 discr_type                     = "FiniteDifferences"
 
-l3tmp_generateL4               = false
 opt_maxInliningSize            = 4
 
 mpi_enabled                    = false

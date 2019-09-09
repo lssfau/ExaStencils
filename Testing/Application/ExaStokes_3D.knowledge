@@ -45,8 +45,6 @@ omp_numThreads						= 10
 omp_parallelizeLoopOverFragments	= false
 omp_parallelizeLoopOverDimensions	= true
 
-l3tmp_generateL4					= false
-
 mpi_useCustomDatatypes				= true
 poly_optLevel_fine					= 3
 opt_useAddressPrecalc				= true

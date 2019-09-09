@@ -28,22 +28,6 @@ mpi_numThreads				= 1
 omp_parallelizeLoopOverFragments	= false
 omp_parallelizeLoopOverDimensions	= true
 
-l3tmp_generateL4			= true
-l3tmp_genForAutoTests		= true
-
-l3tmp_sisc					= true
-l3tmp_genStencilFields		= true
-l3tmp_genHDepStencils		= true
-l3tmp_genNonZeroRhs			= true
-
-l3tmp_exactSolution			= "Kappa_VC"
-
-l3tmp_smoother				= "Jac"
-l3tmp_numPre				= 3
-l3tmp_numPost				= 3
-l3tmp_useSlotsForJac		= true
-l3tmp_useSlotVariables		= true
-
 poly_tileSize_x				= 0
 poly_tileSize_y				= 0
 poly_optLevel_fine			= 3
@@ -51,9 +35,6 @@ opt_useAddressPrecalc		= true
 opt_vectorize				= true
 opt_unroll					= 2
 opt_unroll_interleave		= false
-
-l3tmp_printError			= true
-l3tmp_useMaxNormForError	= true
 
 cuda_enabled	= true
 cuda_preferredExecution = "Device"

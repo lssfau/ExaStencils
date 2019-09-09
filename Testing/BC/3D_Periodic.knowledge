@@ -24,28 +24,11 @@ mpi_numThreads					= 8
 omp_parallelizeLoopOverFragments	= true
 omp_parallelizeLoopOverDimensions	= false
 
-l3tmp_generateL4				= true
-l3tmp_genForAutoTests			= true
-
-l3tmp_exactSolution				= "Polynomial"
 domain_rect_periodic_y			= true
 domain_rect_periodic_z			= true
-
-l3tmp_genPeriodicBounds			= true
-l3tmp_genHDepStencils			= true
-l3tmp_genNonZeroRhs				= true
-l3tmp_initSolWithRand			= false
-
-l3tmp_smoother					= "Jac"
-l3tmp_omega						= 0.8
-l3tmp_useSlotsForJac			= true
-l3tmp_useSlotVariables			= true
 
 mpi_useCustomDatatypes			= true
 poly_optLevel_fine				= 3
 opt_useAddressPrecalc			= true
 opt_vectorize					= false
 opt_unroll						= 2
-
-l3tmp_printError				= true
-l3tmp_useMaxNormForError		= true
