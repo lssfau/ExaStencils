@@ -105,7 +105,7 @@ full-test:
         - python3 run_test.py ../Compiler/compiler.jar Smoothers_BS Smoothers/BS.knowledge "*" Smoothers/BS.results 27 2 Platform/random.platform output
         - python3 run_test.py ../Compiler/compiler.jar BC_2D_Polynomial BC/2D_Polynomial.knowledge "*" BC/2D_Polynomial.results 4 2 Platform/random.platform output
         - python3 run_test.py ../Compiler/compiler.jar BC_2D_Trigonometric BC/2D_Trigonometric.knowledge "*" BC/2D_Trigonometric.results 4 2 Platform/random.platform output
-        - python3 run_test.py ../Compiler/compiler.jar BC_2D_Periodic BC/2D_Periodic.knowledge "*" BC/2D_Periodic.results 4 2 Platform/random.platform output
+        - python3 run_test.py ../Compiler/compiler.jar BC_2D_Periodic BC/2D_Periodic.knowledge "BC/2D_Periodic.exa4" BC/2D_Periodic.results 4 2 Platform/random.platform output
         - python3 run_test.py ../Compiler/compiler.jar BC_3D_Polynomial BC/3D_Polynomial.knowledge "*" BC/3D_Polynomial.results 8 2 Platform/random.platform output
         - python3 run_test.py ../Compiler/compiler.jar BC_3D_Trigonometric BC/3D_Trigonometric.knowledge "*" BC/3D_Trigonometric.results 8 2 Platform/random.platform output
         - python3 run_test.py ../Compiler/compiler.jar BC_3D_Periodic BC/3D_Periodic.knowledge "*" BC/3D_Periodic.results 8 2 Platform/random.platform output
