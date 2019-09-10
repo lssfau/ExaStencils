@@ -1,4 +1,5 @@
 generate-docker-image:
+    stage: build
     when: manual
     image: docker:latest
     tags:
@@ -25,7 +26,7 @@ build:generator:
         - git clone https://i10git.cs.fau.de/software/scala.git
         - cd Compiler
         - ant -Dscala.dir=../scala
-        - cd ../Testing
+        - cd ..
 
 test:Appl_ExaStokes_2D:
     stage: test

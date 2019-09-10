@@ -17,6 +17,8 @@ def generate_docker_image(docker_image_name, output_file):
     content = ''
     content += generate_line(0, 'generate-docker-image:')
 
+    content += generate_line(1, 'stage: build')
+
     content += generate_line(1, 'when: manual')
 
     content += generate_line(1, 'image: docker:latest')
@@ -57,7 +59,7 @@ def generate_build(docker_image_name, output_file):
     content += generate_script_line('git clone https://i10git.cs.fau.de/software/scala.git')
     content += generate_script_line('cd Compiler')
     content += generate_script_line('ant -Dscala.dir=../scala')
-    content += generate_script_line('cd ../Testing')
+    content += generate_script_line('cd ..')
 
     content += '\n'
     output_file.write(content)
