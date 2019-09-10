@@ -584,9 +584,6 @@ object Knowledge {
   // Export loop kernels to pseudo-C and kerncraft YAML kernel descriptions.
   var experimental_kerncraftExport : Boolean = false
 
-  // enables internal handling of high-dimensional data type
-  var experimental_internalHighDimTypes : Boolean = true
-
   var experimental_resolveInverseFunctionCall : String = "Cofactors" // [Cofactors|GaussJordan|Runtime] // how to resolve inverse() function calls for matrices:
 
   // tries to apply an inversion based on the Schur complement in local solve blocks

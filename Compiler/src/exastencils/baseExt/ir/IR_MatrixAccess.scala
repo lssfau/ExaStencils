@@ -71,28 +71,13 @@ case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var rows
   }
 
   def prettyprintInner(out : PpStream) : Unit = {
-    if (Knowledge.experimental_internalHighDimTypes) {
-      //out << "INVALID: IR_MatrixExpression"
-      out << '{' << expressions.map(_.prettyprint).mkString(", ") << '}'
-    } else {
-      out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
-      innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
-      out << "[]){" << (expressions.map(_.prettyprint).mkString(",")) << "})"
-    }
+    out << '{' << expressions.map(_.prettyprint).mkString(", ") << '}'
   }
   override def prettyprint(out : PpStream) : Unit = {
-    if (Knowledge.experimental_internalHighDimTypes) {
-      //out << "INVALID: IR_MatrixExpression"
-      out << "__matrix_"
-      innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
-      out << '_' << rows << "_" << columns << "_t "
-      prettyprintInner(out)
-    } else {
-      val prec = if (Knowledge.useDblPrecision) "double" else "float"
-      out << "Matrix<" << (if (isInteger) "int" else prec) << ", " << rows << ", " << columns << "> ("
-      prettyprintInner(out)
-      out << ")"
-    }
+    out << "__matrix_"
+    innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
+    out << '_' << rows << "_" << columns << "_t "
+    prettyprintInner(out)
   }
 
   def isConstant = expressions.forall(e => e.isInstanceOf[IR_Number])
@@ -719,7 +704,6 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
       }
       IR_MatrixExpression(Some(m.resolveBaseDatatype), 1, m.sizeN, expressions.toArray)
 
-
     case call : IR_FunctionCall if call.name == "getColumn" =>
       if (call.arguments.length != 2) {
         Logger.error(s"getColumn() must have 2 arguments for matrices; has ${ call.arguments.length }")
@@ -844,7 +828,6 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
         obj = call.arguments(2)
       }
       IR_Assignment(IR_HighDimAccess(call.arguments(0), IR_ExpressionIndex(itm(0), itm(1))), obj)
-
 
   })
 

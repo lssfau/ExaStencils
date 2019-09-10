@@ -3,7 +3,6 @@ package exastencils.baseExt.l4
 import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
-import exastencils.config.Knowledge
 import exastencils.prettyprinting.PpStream
 
 /// L4_HigherDimensionalDatatype
@@ -28,11 +27,7 @@ case class L4_VectorDatatype(var datatype : L4_Datatype, var numElements : Int, 
   }
 
   override def progress = ProgressLocation {
-    if (Knowledge.experimental_internalHighDimTypes) {
-      IR_MatrixDatatype(datatype.progress, if (isRow) 1 else numElements, if (isRow) numElements else 1)
-    } else {
-      IR_VectorDatatype(datatype.progress, numElements, Some(isRow))
-    }
+    IR_MatrixDatatype(datatype.progress, if (isRow) 1 else numElements, if (isRow) numElements else 1)
   }
 
   override def dimensionality : Int = 1 + datatype.dimensionality

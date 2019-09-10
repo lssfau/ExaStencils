@@ -20,9 +20,6 @@ object IR_LocalSchurCompl {
   def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
       jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean) = {
 
-    if (!Knowledge.experimental_internalHighDimTypes)
-      Logger.error("Solving locally is not supported for experimental_internalHighDimTypes == false")
-
     // TODO: currently assumes special case of 2D/3D velocity-pressure coupling
 
     Knowledge.dimensionality match {

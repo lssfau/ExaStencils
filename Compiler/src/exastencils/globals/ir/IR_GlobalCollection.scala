@@ -51,8 +51,6 @@ case class IR_GlobalCollection(var variables : ListBuffer[IR_VariableDeclaration
   internalDependencies += IR_Stopwatch.defHeader
   if (Knowledge.library_CImg)
     internalDependencies += "Util/CImg.h"
-  if (!Knowledge.experimental_internalHighDimTypes)
-    internalDependencies += "Util/Matrix.h"
 
   def initGlobals = functions.find(_.name == "initGlobals").get
   def destroyGlobals = functions.find(_.name == "destroyGlobals").get

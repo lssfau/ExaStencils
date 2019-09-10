@@ -19,7 +19,6 @@ object TestbedChristian {
   }
 
   def main(args : Array[String]) : Unit = {
-    exastencils.config.Knowledge.experimental_internalHighDimTypes = true
     exastencils.config.Knowledge.experimental_resolveInverseFunctionCall = "Runtime"
 
     //var tpdl = scala.xml.XML.loadFile("")

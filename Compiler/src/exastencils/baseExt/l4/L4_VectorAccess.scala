@@ -1,11 +1,8 @@
 package exastencils.baseExt.l4
 
-import scala.collection.mutable.ListBuffer
-
 import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
-import exastencils.config.Knowledge
 import exastencils.datastructures.Node
 import exastencils.prettyprinting.PpStream
 
@@ -42,13 +39,9 @@ case class L4_VectorExpression(
   }
 
   override def progress = ProgressLocation {
-    if (Knowledge.experimental_internalHighDimTypes) {
-      val rows = if (!rowVector) expressions.length else 1
-      val cols = if (rowVector) expressions.length else 1
-      IR_MatrixExpression(L4_ProgressOption(datatype)(_.progress), rows, cols, expressions.map(_.progress).toArray)
-    } else {
-      IR_VectorExpression(L4_ProgressOption(datatype)(_.progress), expressions.map(_.progress).to[ListBuffer], Some(rowVector))
-    }
+    val rows = if (!rowVector) expressions.length else 1
+    val cols = if (rowVector) expressions.length else 1
+    IR_MatrixExpression(L4_ProgressOption(datatype)(_.progress), rows, cols, expressions.map(_.progress).toArray)
   }
 
   def length = expressions.length

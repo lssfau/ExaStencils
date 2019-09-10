@@ -40,9 +40,6 @@ case class IR_CommunicationFunctions() extends IR_FunctionCollection(IR_Communic
   if (Knowledge.cuda_enabled)
     internalDependencies += CUDA_KernelFunctions.defHeader
 
-  if (!Knowledge.experimental_internalHighDimTypes)
-    internalDependencies += "Util/Matrix.h"
-
   if (Knowledge.opt_vectorize)
     if (Platform.simd_header != null) externalDependencies += Platform.simd_header
 }

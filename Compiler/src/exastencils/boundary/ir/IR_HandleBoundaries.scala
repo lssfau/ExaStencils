@@ -21,8 +21,7 @@ import exastencils.parallelization.ir.IR_ParallelizationInfo
 
 // TODO: refactor
 case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)]) extends IR_Statement with IR_Expandable {
-  // TODO: inline after fully integrating experimental_internalHighDimTypes functionality
-  def numDims = if (!Knowledge.experimental_internalHighDimTypes) field.fieldLayout.numDimsData else field.fieldLayout.numDimsGrid
+  def numDims = field.fieldLayout.numDimsGrid
 
   def setupFieldUpdate(neigh : NeighborInfo) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()

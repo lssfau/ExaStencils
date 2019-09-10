@@ -58,16 +58,12 @@ case class IR_VectorDatatype(var datatype : IR_Datatype, var size : Int, var isR
 }
 
 case class IR_MatrixDatatype(var datatype : IR_Datatype, var sizeM : Int, var sizeN : Int) extends IR_HigherDimensionalDatatype with IR_HasTypeAlias {
-  override def prettyprint(out : PpStream) : Unit = if (exastencils.config.Knowledge.experimental_internalHighDimTypes) {
-    out << "__matrix_" << datatype << '_' << sizeM << "_" << sizeN << "_t"
-  } else {
-    out << "Matrix<" << datatype << ',' << sizeM << ',' << sizeN << '>'
-  }
+  override def prettyprint(out : PpStream) : Unit = out << "__matrix_" << datatype << '_' << sizeM << "_" << sizeN << "_t"
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
   override def dimensionality : Int = 2 + datatype.dimensionality
   override def getSizeArray : Array[Int] = Array(sizeM, sizeN) ++ datatype.getSizeArray
-  override def resolveDeclType : IR_Datatype = if (exastencils.config.Knowledge.experimental_internalHighDimTypes) this.datatype.resolveDeclType else this
+  override def resolveDeclType : IR_Datatype = this.datatype.resolveDeclType
   override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = sizeM * sizeN * datatype.resolveFlattendSize
   override def typicalByteSize = sizeM * sizeN * datatype.typicalByteSize

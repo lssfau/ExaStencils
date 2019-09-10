@@ -125,30 +125,13 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
 
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("concat", _), args) => Logger.error("Concat expression is deprecated => will be deleted soon")
 
-    // Vector functions
-    case f : IR_FunctionCall if !Knowledge.experimental_internalHighDimTypes && (f.name == "cross" || f.name == "crossproduct") =>
-      f.arguments.foreach(a => if ((f.arguments(0).isInstanceOf[IR_VectorExpression] || f.arguments(0).isInstanceOf[IR_VectorExpression])
-        && a.getClass != f.arguments(0).getClass) Logger.error("Must have matching types!"))
-      f.arguments.foreach(a => if (a.asInstanceOf[IR_VectorExpression].length != f.arguments(0).asInstanceOf[IR_VectorExpression].length) Logger.error("Vectors must have matching lengths"))
-      if (f.arguments.length + 1 != f.arguments(0).asInstanceOf[IR_VectorExpression].length) Logger.error("Must have matching number of vector arguments!")
-      // For now: Restrict to 3 dimensions
-      if (f.arguments.length != 2) Logger.error("Cross product only defined for 2D vectors!")
-
-      val x = f.arguments(0).asInstanceOf[IR_VectorExpression]
-      val y = f.arguments(1).asInstanceOf[IR_VectorExpression]
-      if (!x.isConstant || !y.isConstant) {
-        f // do nothing for vectors containing variable expressions
-      } else {
-        val r = ListBuffer[IR_Expression](x(1) * y(2) - x(2) * y(1), x(2) * y(0) - x(0) * y(2), x(0) * y(1) - x(1) * y(0))
-        IR_VectorExpression(x.innerDatatype, r, x.rowVector)
-      }
     // Matrix functions
-    case x : IR_FunctionCall if x.name == "det" && x.arguments.size == 1 && exastencils.config.Knowledge.experimental_internalHighDimTypes =>
+    case x : IR_FunctionCall if x.name == "det" && x.arguments.size == 1 =>
       x.arguments(0) match {
         case m : IR_MatrixExpression => calculateDeterminant(m)
         case _                       => x
       }
-    case x : IR_FunctionCall if x.name == "inverse" && exastencils.config.Knowledge.experimental_internalHighDimTypes                      =>
+    case x : IR_FunctionCall if x.name == "inverse"                      =>
       if (x.arguments.size == 1) {
         x.arguments(0) match {
           case m : IR_MatrixExpression                                             => {

@@ -60,8 +60,5 @@ case class IR_UserFunctions() extends IR_FunctionCollection(IR_UserFunctions.def
   if (Knowledge.data_initAllFieldsWithZero)
     functions += IR_InitFieldsWithZero()
 
-  if (!Knowledge.experimental_internalHighDimTypes)
-    internalDependencies += "Util/Matrix.h"
-
   override def toString : String = "IR_UserFunctions(" + baseName + ", " + externalDependencies + ", " + internalDependencies + ", " + functions + ")"
 }

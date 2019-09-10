@@ -5,11 +5,8 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.boundary.ir.IR_IsValidComputationPoint
-import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.field.ir._
-import exastencils.logger.Logger
 
 /// IR_LocalPreCompInvert
 
@@ -19,9 +16,6 @@ object IR_LocalPreCompInvert {
 
   def apply(AInv : IR_VariableAccess, fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
       jacobiType : Boolean, relax : Option[IR_Expression]) = {
-
-    if (!Knowledge.experimental_internalHighDimTypes)
-      Logger.error("Solving locally is not supported for experimental_internalHighDimTypes == false")
 
     invert(AInv, fVals, unknowns, jacobiType, relax)
   }

@@ -6,10 +6,8 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.boundary.ir.IR_IsValidComputationPoint
-import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.field.ir._
-import exastencils.logger.Logger
 
 /// IR_LocalDirectInvert
 
@@ -19,9 +17,6 @@ object IR_LocalDirectInvert {
 
   def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
       jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean) = {
-
-    if (!Knowledge.experimental_internalHighDimTypes)
-      Logger.error("Solving locally is not supported for experimental_internalHighDimTypes == false")
 
     invert(AVals, fVals, unknowns, jacobiType, relax, omitConditions)
   }
