@@ -1,3 +1,5 @@
+testing_enabled       = true
+
 generateFortranInterface			= false
 
 // problem description

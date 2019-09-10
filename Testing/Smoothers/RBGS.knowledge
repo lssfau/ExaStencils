@@ -1,3 +1,5 @@
+testing_enabled       = true
+
 minLevel					= 0
 maxLevel					= 6
 

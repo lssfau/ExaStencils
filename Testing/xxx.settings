@@ -1,0 +1,21 @@
+user                = "Guest"
+
+configName          = "seq_naive"
+
+basePathPrefix      = "./Opts/"
+
+l4file              = "base.exa4"
+//debugL4File           = "$configName$.exa4"
+
+//debugL1File         = "../Debug/$configName$_debug.exa1"
+//debugL2File         = "../Debug/$configName$_debug.exa2"
+//debugL3File         = "../Debug/$configName$_debug.exa3"
+//debugL4File         = "../Debug/$configName$_debug.exa4"
+
+htmlLogFile         = "../Debug/$configName$_log.html"
+outputPath          = "../generated/$configName$/"
+
+produceHtmlLog      = true
+timeStrategies      = true
+
+buildfileGenerators = { "MakefileGenerator" }

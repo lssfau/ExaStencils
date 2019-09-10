@@ -1,3 +1,5 @@
+testing_enabled       = true
+
 dimensionality						= 2
 
 minLevel							= 2 // must not be smaller than 1 or the coarse grid system cannot be solved any more

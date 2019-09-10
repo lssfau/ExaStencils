@@ -1,0 +1,105 @@
+rename function collection folders & files
+
+Analyze -> Run Inspection By Name -> unused declaration
+
+check parallel transformations
+
+check usefulness of StandaloneStrategy
+
+StatementList
+
+deprecated: domain, call tracker, geometric coordinates and primitive transformation, matrix, 
+
+remove L4_IntroduceSlots
+
+evaluate L4_HACK_DomainDecl
+
+refactor HACK_IR_ResolveSpecialFunctionsAndConstants
+
+integrate HACK_IR_UndeterminedFunctionReference
+
+check IR_GenerateIndexManipFcts and IR_IV_IndexFromField for variable sized fields
+
+refactor aabb
+
+remove field selection and stencil field selection
+
+check if it is possible to apply transformations to knowledge objects as well
+
+extract l3Generate; update test cases
+
+refactor printField and printVtkXXX and L4_ResolvePrintFieldFunctions and L4_ResolveReadFieldFunctions
+
+slots on the upper layers?
+
+add comm for parsed l4 representations
+
+x,y,z -> nodePos, boundaryPos, etc
+
+integrate L4/IR_Native
+
+fix restriction/prolongation; extend supported orders
+
+CUDA reductions
+
+check IR_ParallelizationInfo and IR_PotentiallyCritical
+
+use or remove L1/L2/L3_Validation, check L4_Validation
+
+tpdl?
+
+figure out IR_SlotAccessAsConst
+
+check Georg's code in performance
+
+update performance estimation
+
+fix loop blocking
+
+update JobScriptGenerator
+
+solve locally with equation references
+
+add missing cases in IR_FindStencilConvolutions
+
+fix IR_MapStencilAssignments
+
+refactor stencil X convolution handling
+
+relocate swe package, split files
+
+typo in IR_FctNameCollector.inFuction
+
+relocate L1-IR_GeneralParameter
+
+high prec. real constant
+
+relocate L1-L4_VariableDeclarationCollector
+
+extend L1-L4_OffsetAlias and parser/lexer
+
+check cimg license, check if ressource can be handled better
+
+check NoDuplicateWrapper
+
+check StackedMap
+
+check StrategyContainer
+
+refactor IR_SetupVisit
+
+check test package
+
+check ValidateL4
+
+
+
+
+
+code from students:
+
+Ewald Flad
+
+Christoph Wollner
+
+Richard Angerbacher

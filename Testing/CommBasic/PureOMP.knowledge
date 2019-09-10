@@ -1,3 +1,5 @@
+testing_enabled       = true
+
 dimensionality				= 3
 
 minLevel					= 0

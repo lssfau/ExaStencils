@@ -1,3 +1,5 @@
+testing_enabled       = true
+
 simd_avoidUnaligned         = true
 data_alignFieldPointers     = true
 useDblPrecision             = true
