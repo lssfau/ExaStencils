@@ -8,7 +8,6 @@ import exastencils.boundary.ir.L4_ResolveBoundaryHandlingFunctions
 import exastencils.communication.l4._
 import exastencils.config._
 import exastencils.datastructures.StrategyTimer
-import exastencils.deprecated.l3Generate
 import exastencils.domain.l4.L4_DomainCollection
 import exastencils.field.ir.IR_AddPaddingToFieldLayouts
 import exastencils.field.l4._
@@ -79,12 +78,6 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
       L4_AddLoopsToLocalSolve.apply()
       L4_AddCommunicationToLoops.apply()
       L4_AdaptFieldLayoutsForComm.apply()
-    }
-
-    if (Knowledge.l3tmp_generateL4) {
-      val l3gen_root = l3Generate.Root()
-      val l4_code = l3gen_root.print()
-      ExaRootNode.mergeL4(L4_Parser.parse(l4_code, "l3gen_root"))
     }
 
     ExaRootNode.mergeL4(L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node)))

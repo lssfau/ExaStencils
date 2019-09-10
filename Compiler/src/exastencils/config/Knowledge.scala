@@ -631,119 +631,6 @@ object Knowledge {
   // [1~64§sisc2015_numOMP_z*2]
   var sisc2015_numOMP_z : Int = 2
 
-  /// BEGIN HACK config options for generating L4 DSL file
-  var l3tmp_generateL4 : Boolean = false // generates a new Layer 4 file using the corresponding filename from Settings; the generated DSL file can is based on the following parameters
-
-  // activate Neumann bc in generated test cases
-  var l3tmp_Neumann : Boolean = false
-  // normalize solution after each v-cycle
-  var l3tmp_NeumannNormalize : Boolean = false
-
-  /// SPL connected
-  var l3tmp_smoother : String = "Jac"
-  // [Jac|RBGS] // [Jac|GS|RBGS|BS] // the l3tmp_smoother to be generated
-  var l3tmp_cgs : String = "CG"
-  // [CG] // the coarse grid solver to be generated
-  var l3tmp_maxNumCGSSteps : Int = 512
-  // maximum number of coarse grid solver iterations
-  var l3tmp_numRecCycleCalls : Int = 1
-  // [1~2] // 1 corresponds to v-cycles while 2 corresponds to w-cycles
-  var l3tmp_numPre : Int = 3
-  // [0~4§l3tmp_numPre+1] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
-  var l3tmp_numPost : Int = 3
-  // [0~4§l3tmp_numPost+1] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
-  var l3tmp_omega : Double = 1.0
-  // [0.1~2.0$0.1§l3tmp_omega+0.1] // [0.1-10.0] // the relaxation parameter to be used for the l3tmp_smoother
-  var l3tmp_genStencilStencilConv : Boolean = false
-  // [true|false] // tests stencil-stencil convolutions by using RAP instead of A
-  var l3tmp_genStencilFields : Boolean = false
-  // [true|false] // generates stencil fields that are used to store stencils of A (or RAP if l3tmp_genStencilStencilConv is true)
-  var l3tmp_genInvDiagStencil : Boolean = false
-  // [true|false] // generates a separate stencil (field) for inverse ( diag ( laplace ) ) and uses it in the smoother
-  var l3tmp_genAsyncCommunication : Boolean = false
-  // [true|false] // replaces some sync communication statements in the L4 DSL file with their async counterparts
-  var l3tmp_genTemporalBlocking : Boolean = false
-  // [true|false] // adds the necessary statements to the L4 DSL file to implement temporal blocking; adapts field layouts as well
-  var l3tmp_tempBlockingMinLevel : Int = 1
-  // [1+minLevel|maxLevel] // specifies a threshold for adding temporal blocking to generated l4 files; only levels larger or equal to this threshold are blocked
-  var l3tmp_useConditionsForRBGS : Boolean = true
-  // [true|false] // uses conditions to realize red-black patterns (as opposed to adapted offsets and strides)
-  var l3tmp_useSlotsForJac : Boolean = true
-  // [true|false] // uses sloted solution fields for Jacobi (as opposed to multiple distinct fields)
-  var l3tmp_useSlotVariables : Boolean = true
-  // [true|false] // uses slot variables (currentSlot, nextSlot, previousSlot) for access to slotted solution fields; allows for odd number of smoothing steps
-  var l3tmp_genHDepStencils : Boolean = false
-  // [true|false] // generates stencils dependent on the grid width h
-  var l3tmp_genFMG : Boolean = false // [true|false] // generates a full multigrid solver
-
-  /// timer generation
-  var l3tmp_genTimersPerFunction : Boolean = false
-  // generates different timers for each function in the mg cycle
-  var l3tmp_genTimersPerLevel : Boolean = false
-  // generates different timers for each (mg) level
-  var l3tmp_genTimersForComm : Boolean = false
-  // generates additional timers for the communication
-  var l3tmp_genCommTimersPerField : Boolean = false
-  // generates different communication timers for each field
-  var l3tmp_genCommTimersPerLevel : Boolean = false // generates different communication timers for each level
-
-  var l3tmp_printTimersToFile : Boolean = false
-  // prints results for all used timers at the end of the application; uses Settings.timerOuputFile as target file
-  var l3tmp_printAllTimers : Boolean = false
-  // prints results for all used timers at the end of the application
-
-  var l3tmp_timeoutLimit : Int = 0 // 20 * 60 * 1000 // threshold in ms for the total cycle time after which solving is canceled; 0 deactivates the feature
-
-  /// functionality test
-  var l3tmp_exactSolution : String = "Zero"
-  // specifies which function (type) is used for the solution/ rhs is used; allowed options are 'Zero', 'Polynomial', 'Trigonometric' and 'Kappa', 'Kappa_VC'
-  var l3tmp_genNonZeroRhs : Boolean = false
-  // generates more complex variants of the chosen solution function resulting in non-trival right hand sides
-  var l3tmp_genExtFields : Boolean = false
-  // adds one or more external fields to the L4 DSL file to test generation of subsequent functions
-  var l3tmp_genGlobalOmega : Boolean = false
-  // treats l3tmp_omega as a global (modifiable) parameter
-  var l3tmp_genSetableStencil : Boolean = false
-  // generates stencil weights as global variables instead of constant values
-  var l3tmp_genVectorFields : Boolean = false
-  // attempts to solve Poisson's equation for (l3tmp_numVecDims)D vectors; all components are solved independently
-  var l3tmp_numVecDims : Int = if (l3tmp_genVectorFields) 2 else 1
-  // number of components the PDE is to be solved for
-  var l3tmp_genFragLoops : Boolean = false
-  // adds fragment loops to the L4 DSL file
-  var l3tmp_genEmbeddedDomain : Boolean = false
-  // adds a second domain to perform all computations on; the new domain is one fragment smaller on each boundary
-  var l3tmp_useMaxNorm : Boolean = false
-  // uses the maximum norm instead of the L2 norm when reducing the residual on the finest level
-  var l3tmp_genCellBasedDiscr : Boolean = false
-  // sets up a cell based discretization
-  var l3tmp_targetResReduction : Double = 0.0
-  // exit criterion for the solver loop as target reduction of the residual in the chosen norm
-  var l3tmp_genPeriodicBounds : Boolean = false // generates a solver for a problem with periodic boundaries
-
-  /// optional features
-  var l3tmp_printFieldAtEnd : Boolean = false
-  // prints the solution field at the end of the application (or the mean solution in l3tmp_kelvin's case)
-  var l3tmp_initSolWithRand : Boolean = true
-  // initializes the solution on the finest level with random values
-  var l3tmp_genForAutoTests : Boolean = false
-  // generates code for automatic testing purposes - if l3tmp_printError is activated NO residual is printed
-  var l3tmp_autoTestMaxPrecision : Int = 4
-  // maximum precision for printing values of, e.g., error norms
-  var l3tmp_printError : Boolean = false
-  // generates code that calculates and prints the error in each iteration
-  var l3tmp_useMaxNormForError : Boolean = true // uses the maximum norm instead of the L2 norm when reducing the error
-
-  /// paper project - SISC
-  var l3tmp_sisc : Boolean = false // generates test problems for the upcoming SISC paper in conjunction with dimensionality and l3tmp_genStencilFields
-
-  /// student project - Kelvin
-  var l3tmp_kelvin : Boolean = false
-  // currently only works for 2D
-  var l3tmp_kelvin_numSamples : Int = 10
-  // only required for l3tmp_kelvin; number of samples to be evaluated
-  var l3tmp_kelvin_numHaloFrags : Int = 2 // only required for l3tmp_kelvin; number of halo fragments used to implement the open boundary approximation
-
   /// student project - Richard / visit
 
   // TODO
@@ -764,31 +651,6 @@ object Knowledge {
     Constraints.condEnsureValue(opt_vectorize, false, "GCC" == Platform.targetCompiler && "IMCI" == Platform.simd_instructionSet, "GCC does not support intel IMCI")
     Constraints.condEnsureValue(Platform.simd_instructionSet, "QPX", "IBMBG" == Platform.targetCompiler && opt_vectorize, "IBM BlueGene/Q compiler can only generate code for BlueGene/Q (with vector extension QPX)")
     Constraints.condEnsureValue(opt_vectorize, false, "IBMBG" != Platform.targetCompiler && "QPX" == Platform.simd_instructionSet, "only IBM BlueGene/Q compiler supports QPX")
-
-    if (l3tmp_generateL4) {
-      // specific project configurations - SISC
-      Constraints.condEnsureValue(l3tmp_exactSolution, "Kappa_VC", l3tmp_sisc && l3tmp_genStencilFields, "Kappa_VC is required as l3tmp_exactSolution for variable stencils and l3tmp_sisc")
-      Constraints.condEnsureValue(l3tmp_exactSolution, "Kappa", l3tmp_sisc && !l3tmp_genStencilFields, "Kappa is required as l3tmp_exactSolution for constant stencils and l3tmp_sisc")
-      Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_sisc && l3tmp_genStencilFields, "l3tmp_genHDepStencils must be true for variable stencils and l3tmp_sisc")
-      Constraints.condEnsureValue(l3tmp_Neumann, false, l3tmp_sisc, "Neumann boundary conditions are not compatible with l3tmp_sisc")
-
-      if (l3tmp_sisc)
-        Constraints.updateValue(l3tmp_maxNumCGSSteps, 1024)
-
-      Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, "Kappa" == l3tmp_exactSolution, "Kappa requires l3tmp_genNonZeroRhs")
-      Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, "Kappa_VC" == l3tmp_exactSolution, "Kappa_VC requires l3tmp_genNonZeroRhs")
-
-      // specific project configurations - Kelvin
-      Constraints.condEnsureValue(dimensionality, 2, l3tmp_kelvin, "only 2D is supported for l3tmp_kelvin")
-      Constraints.condEnsureValue(l3tmp_genStencilStencilConv, true, l3tmp_kelvin, "required by l3tmp_kelvin")
-      Constraints.condEnsureValue(l3tmp_genStencilFields, true, l3tmp_kelvin, "required by l3tmp_kelvin")
-      Constraints.condEnsureValue(l3tmp_printFieldAtEnd, true, l3tmp_kelvin, "required by l3tmp_kelvin")
-      Constraints.condEnsureValue(l3tmp_exactSolution, "Zero", l3tmp_kelvin, "l3tmp_kelvin requires the options of a zero solution")
-      Constraints.condEnsureValue(l3tmp_genSetableStencil, false, l3tmp_kelvin, "not compatible with l3tmp_kelvin")
-      Constraints.condEnsureValue(l3tmp_genVectorFields, false, l3tmp_kelvin, "not compatible with l3tmp_kelvin")
-      Constraints.condEnsureValue(l3tmp_genEmbeddedDomain, false, l3tmp_kelvin, "not compatible with l3tmp_kelvin")
-      Constraints.condEnsureValue(l3tmp_initSolWithRand, false, l3tmp_kelvin, "not compatible with l3tmp_kelvin")
-    }
 
     // domain
     Constraints.condEnsureValue(domain_rect_generate, false, !domain_onlyRectangular, "only rectangular domains can be generated")
@@ -819,95 +681,6 @@ object Knowledge {
     Constraints.condWarn("diego2" == grid_spacingModel, "diego2 spacing model currently ignores domain bounds set in the DSL")
     Constraints.condWarn("blockstructured" == grid_spacingModel && grid_isUniform, "grid_isUniform should be false for block-structured grids")
     Constraints.condWarn(grid_halveStagBoundaryVolumes && "uniform" == grid_spacingModel, "halving staggered volumes at the boundary is not supported for uniform grids")
-
-    if (l3tmp_generateL4) {
-      // l3tmp - problem to solve
-      if (0.0 == l3tmp_targetResReduction) {
-        if (useDblPrecision)
-          Constraints.updateValue(l3tmp_targetResReduction, 1.0e-5)
-        else
-          Constraints.updateValue(l3tmp_targetResReduction, 1.0e-2)
-      }
-      Constraints.condEnsureValue(l3tmp_targetResReduction, 1.0 / l3tmp_targetResReduction, l3tmp_targetResReduction > 1.0, "l3tmp_targetResReduction must be smaller than 1")
-
-      Constraints.condEnsureValue(l3tmp_genPeriodicBounds, false, "Polynomial" != l3tmp_exactSolution, "l3tmp_genPeriodicBounds currently only works for polynomial problems")
-      Constraints.condEnsureValue(domain_rect_periodic_x, false, l3tmp_genPeriodicBounds, "For l3tmp_genPeriodicBounds, the domain must not be periodic in x direction")
-      Constraints.condEnsureValue(domain_rect_periodic_y, true, l3tmp_genPeriodicBounds, "For l3tmp_genPeriodicBounds, the domain has to be periodic in y direction")
-      Constraints.condEnsureValue(domain_rect_periodic_z, true, l3tmp_genPeriodicBounds && 3 == dimensionality, "For l3tmp_genPeriodicBounds in 3D, the domain has to be periodic in y and z direction")
-      Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, l3tmp_genPeriodicBounds, "l3tmp_genPeriodicBounds requires non-zero right hand sides")
-      Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genPeriodicBounds, "l3tmp_genPeriodicBounds requires grid width dependent stencils")
-
-      Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, l3tmp_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
-      Constraints.condEnsureValue(l3tmp_exactSolution, "Trigonometric", l3tmp_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
-      Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, "Polynomial" != l3tmp_exactSolution && "Kappa" != l3tmp_exactSolution && "Kappa_VC" != l3tmp_exactSolution && !l3tmp_Neumann, "non-trivial rhs are currently only supported for Polynomial and Kappa cases")
-
-      Constraints.condEnsureValue(discr_defaultNeumannOrder, 1, l3tmp_Neumann && l3tmp_genCellBasedDiscr, "experimental_OrderNeumann must be 1 for cell based discretizations")
-      Constraints.condEnsureValue(discr_defaultNeumannOrder, 2, l3tmp_Neumann && discr_defaultNeumannOrder < 1 || discr_defaultNeumannOrder > 2, "experimental_OrderNeumann must be between 1 and 2")
-
-      Constraints.condEnsureValue(l3tmp_initSolWithRand, true, "Zero" == l3tmp_exactSolution && !l3tmp_kelvin, "initial solution of zero corresponds to the exact solution if l3tmp_genFunctionBC is false")
-      Constraints.condEnsureValue(l3tmp_initSolWithRand, false, "Zero" != l3tmp_exactSolution, "l3tmp_exactSolution not equal to zero requires initial solution of zero")
-
-      Constraints.condEnsureValue(l3tmp_numVecDims, 1, !l3tmp_genVectorFields, "vector dimensions larger than 1 are only allowed in conjunction with vector fields")
-      Constraints.condEnsureValue(l3tmp_numVecDims, 2, l3tmp_genVectorFields && l3tmp_numVecDims <= 1, "vector dimensions must be larger than 1 when using vector fields")
-
-      Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_genCellBasedDiscr, "FMG is currently not compatible with cell based discretizations")
-      Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_Neumann, "FMG is currently not compatible with Neumann BC")
-      Constraints.condEnsureValue(l3tmp_genFMG, false, 1 != l3tmp_numVecDims, "FMG is currently not compatible with vector fields")
-      Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_kelvin, "FMG is currently not compatible with Kelvin mode")
-      Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_genPeriodicBounds, "FMG is currently not compatible with l3tmp_genPeriodicBounds")
-
-      // l3tmp - stencils
-      Constraints.condEnsureValue(l3tmp_genStencilFields, false, l3tmp_Neumann, "l3tmp_genStencilFields is currently not compatible with Neumann boundary conditions")
-      Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, l3tmp_Neumann, "l3tmp_genStencilStencilConv is currently not compatible with Neumann boundary conditions")
-      Constraints.condEnsureValue(l3tmp_genStencilFields, false, l3tmp_genCellBasedDiscr, "l3tmp_genStencilFields is currently not compatible with cell based discretizations")
-      Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, l3tmp_genCellBasedDiscr, "l3tmp_genStencilStencilConv is currently not compatible with cell based discretizations")
-      Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_Neumann, "l3tmp_genHDepStencils is required for Neumann boundary conditions")
-      Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genNonZeroRhs, "non-trivial rhs requires the usage of grid width dependent stencils")
-      Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genFMG, "FMG requires the usage of grid width dependent stencils")
-
-      // l3tmp - multigrid config
-      if (l3tmp_sisc) {
-        dimensionality match {
-          case 2 => if ("Jac" == l3tmp_smoother) Constraints.updateValue(l3tmp_omega, 0.79) else /* RBGS */ Constraints.updateValue(l3tmp_omega, 1.16)
-          case 3 => if ("Jac" == l3tmp_smoother) Constraints.updateValue(l3tmp_omega, 0.85) else /* RBGS */ Constraints.updateValue(l3tmp_omega, 1.19)
-        }
-      } else {
-        if ("Jac" == l3tmp_smoother) Constraints.updateValue(l3tmp_omega, 0.8) else Constraints.updateValue(l3tmp_omega, 1.0) // FIXME: required?
-      }
-
-      Constraints.condEnsureValue(l3tmp_numPre, l3tmp_numPre - (l3tmp_numPre % 2), "Jac" == l3tmp_smoother && !l3tmp_useSlotsForJac,
-        "Number of pre-smoothing steps has to be divisible by 2 if Jacobi is used but slotting is disabled")
-      Constraints.condEnsureValue(l3tmp_numPost, l3tmp_numPost - (l3tmp_numPost % 2), "Jac" == l3tmp_smoother && !l3tmp_useSlotsForJac,
-        "Number of post-smoothing steps has to be divisible by 2 if Jacobi is used but slotting is disabled")
-      Constraints.condEnsureValue(l3tmp_numPre, 2, 0 == l3tmp_numPre && 0 == l3tmp_numPost, "(l3tmp_numPre + l3tmp_numPost) must be larger than zero")
-
-      Constraints.condWarn("RBGS" == l3tmp_smoother && !l3tmp_useConditionsForRBGS, s"currently, NOT using l3tmp_useConditionsForRBGS leads to a color mismatch at primitive boundaries and thus to a reduced convergence rate")
-
-      Constraints.condEnsureValue(l3tmp_useSlotVariables, false, !l3tmp_useSlotsForJac, "invalid if not using l3tmp_useSlotsForJac")
-
-      // l3tmp - temporal blocking
-      Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_Neumann, "l3tmp_genTemporalBlocking is currently not compatible with Neumann boundary conditions")
-      //      Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_genCellBasedDiscr, "l3tmp_genTemporalBlocking is currently not compatible with cell based discretizations")
-      Constraints.condWarn(l3tmp_genTemporalBlocking && "RBGS" == l3tmp_smoother, "l3tmp_genTemporalBlocking is currently not compatible with RBGS smoothers")
-      Constraints.condWarn(l3tmp_genTemporalBlocking && "BS" == l3tmp_smoother, "l3tmp_genTemporalBlocking is currently not compatible with block smoothers")
-      Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_numPre != l3tmp_numPost, "l3tmp_numPre and l3tmp_numPost have to be equal")
-      Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, math.ceil(math.log(l3tmp_numPre) / math.log(2)).toInt,
-        l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel < math.ceil(math.log(l3tmp_numPre) / math.log(2)).toInt,
-        "temporal blocking requires a sufficient count of inner layers")
-      Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, 1 + minLevel, l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel <= minLevel, "l3tmp_tempBlockingMinLevel must be larger than minLevel (no blocking on the coarsest level possible)")
-      Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, maxLevel, l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel > maxLevel, "l3tmp_tempBlockingMinLevel must be smaller or equal to maxLevel to enable temporal blocking")
-      Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, 1 + minLevel, !l3tmp_genTemporalBlocking, "l3tmp_tempBlockingMinLevel reset to default for deactivated l3tmp_genTemporalBlocking")
-
-      Constraints.condEnsureValue(l3tmp_numPost, l3tmp_numPre, l3tmp_genTemporalBlocking, "l3tmp_numPre and l3tmp_numPost have to be equal")
-      Constraints.condEnsureValue(l3tmp_genFragLoops, true, l3tmp_genTemporalBlocking, "l3tmp_genTemporalBlocking requires l3tmp_genFragLoops")
-
-      // l3tmp - parallelization
-      Constraints.condEnsureValue(l3tmp_genAsyncCommunication, false, 26 != comm_strategyFragment, "invalid comm_strategyFragment")
-
-      // l3tmp - timer generation
-      Constraints.condEnsureValue(l3tmp_genTimersForComm, false, l3tmp_genAsyncCommunication, "timers for overlapping communication are not yet supported")
-      Constraints.condEnsureValue(l3tmp_genCommTimersPerLevel, false, !l3tmp_genTimersForComm, "l3tmp_genCommTimersPerLevel requires l3tmp_genTimersForComm to be activated")
-    }
 
     // backwards compatibility for comm_strategyFragment
     Constraints.condWarn(comm_strategyFragment != 0, "comm_strategyFragment is deprecated and will be removed in the future")
@@ -981,7 +754,6 @@ object Knowledge {
     Constraints.condEnsureValue(poly_numFinestLevels, numLevels, poly_numFinestLevels > numLevels, "number of fine levels (for optimization) cannot exceed the number of all levels")
     Constraints.condEnsureValue(poly_maximizeBandDepth, true, poly_serializeSCCs, "poly_maximizeBandDepth has no effect if poly_serializeSCCs is set")
 
-    Constraints.condWarn(l3tmp_genTemporalBlocking && opt_loopCarriedCSE, "temporal blocking may interfere with loop carried CSE and therefore generated code may be broken")
     Constraints.condEnsureValue(opt_loopCarriedCSE_skipOuter, 0, !opt_loopCarriedCSE, "loop-carried cse disbaled, set its configuration parameter to default")
     // TODO: is it worth the effort to fix the following?
     Constraints.condWarn(omp_enabled && omp_numThreads > 1 && opt_loopCarriedCSE_skipOuter > 0 && poly_optLevel_fine > 0, "skipping outer loops fpr loop-carried cse in combination with PolyOpt may currently prevent OpenMP parallelism and vectorization")
