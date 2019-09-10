@@ -498,7 +498,7 @@ test:Seq_TestF_vect2:
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
     tags:
         - docker
-        - AVX
+        - AVX2
     artifacts:
         when: on_failure
         paths:
@@ -519,7 +519,7 @@ test:Seq_TestF_vect2Al:
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
     tags:
         - docker
-        - AVX
+        - AVX2
     artifacts:
         when: on_failure
         paths:
@@ -540,7 +540,7 @@ test:Seq_TestF_vect2AlAl:
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
     tags:
         - docker
-        - AVX
+        - AVX2
     artifacts:
         when: on_failure
         paths:
@@ -830,7 +830,7 @@ test:Seq_Test_vect2:
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
     tags:
         - docker
-        - AVX
+        - AVX2
     artifacts:
         when: on_failure
         paths:
@@ -851,7 +851,7 @@ test:Seq_Test_vect2Al:
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
     tags:
         - docker
-        - AVX
+        - AVX2
     artifacts:
         when: on_failure
         paths:
@@ -872,7 +872,7 @@ test:Seq_Test_vect2AlAl:
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
     tags:
         - docker
-        - AVX
+        - AVX2
     artifacts:
         when: on_failure
         paths:
@@ -893,7 +893,7 @@ test:Seq_Test_all2:
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
     tags:
         - docker
-        - AVX
+        - AVX2
     artifacts:
         when: on_failure
         paths:

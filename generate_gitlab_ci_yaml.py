@@ -65,7 +65,7 @@ def generate_build(docker_image_name, output_file):
     output_file.write(content)
 
 
-def generate_single_test(test_name, test_execution, avx, cuda, docker_image_name, output_file):
+def generate_single_test(test_name, test_execution, avx, avx2, cuda, docker_image_name, output_file):
     content = ''
     content += generate_line(0, f'test:{test_name}:')
 
@@ -82,6 +82,8 @@ def generate_single_test(test_name, test_execution, avx, cuda, docker_image_name
         content += generate_script_line('cuda')
     if avx:
         content += generate_script_line('AVX')
+    if avx2:
+        content += generate_script_line('AVX2')
 
     content += generate_line(1, f'artifacts:')
     content += generate_line(2, f'when: on_failure')
@@ -121,6 +123,7 @@ def generate_tests(generator_path, path_to_test_config, docker_image_name, outpu
             test_name = str_list[0]
 
             avx = False
+            avx2 = False
             cuda = False
             if len(str_list) > 7:
                 if str_list[7].lower() == 'avx':
@@ -128,7 +131,7 @@ def generate_tests(generator_path, path_to_test_config, docker_image_name, outpu
                     avx = True
                 elif str_list[7].lower() == 'avx2':
                     test_execution += ' Platform/anyavx2.platform'
-                    avx = True
+                    avx2 = True
                 elif str_list[7].lower() == 'gpu':
                     test_execution += ' Platform/chimaira-gpu.platform'
                     cuda = True
@@ -138,7 +141,7 @@ def generate_tests(generator_path, path_to_test_config, docker_image_name, outpu
                 test_execution += ' Platform/random.platform'
             test_execution += f' output'
 
-            generate_single_test(test_name, test_execution, avx, cuda, docker_image_name, output_file)
+            generate_single_test(test_name, test_execution, avx, avx2, cuda, docker_image_name, output_file)
 
 
 def main():
