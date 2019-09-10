@@ -264,10 +264,10 @@ FAS_2D_Basic  Main  NonLinear/FAS_2D_Basic.knowledge  NonLinear/FAS_2D_Basic.exa
 #################################################################################################
 
 # 2D_VarCoeff has its own expected results due to rounding differences compared to original SISC version
-CUDA_SISC_2D_ConstCoeff  Main CUDA/2D_ConstCoeff.knowledge       SISC/2D_ConstCoeff.exa4        SISC/2D_ConstCoeff.results        1  10  GPU
-CUDA_SISC_2D_VarCoeff    Main CUDA/2D_VarCoeff.knowledge         SISC/2D_VarCoeff.exa4          CUDA/2D_VarCoeff.results          1  10  GPU
-CUDA_SISC_3D_ConstCoeff  Main CUDA/3D_ConstCoeff.knowledge       SISC/3D_ConstCoeff.exa4        SISC/3D_ConstCoeff.results        1  10  GPU
-CUDA_SISC_3D_VarCoeff    Main CUDA/3D_VarCoeff.knowledge         SISC/3D_VarCoeff.exa4          SISC/3D_VarCoeff.results          1  10  GPU
+CUDA_SISC_2D_ConstCoeff  Main CUDA/2D_ConstCoeff.knowledge       CUDA/2D_ConstCoeff.exa4        SISC/2D_ConstCoeff.results        1  10  GPU
+CUDA_SISC_2D_VarCoeff    Main CUDA/2D_VarCoeff.knowledge         CUDA/2D_VarCoeff.exa4          CUDA/2D_VarCoeff.results          1  10  GPU
+CUDA_SISC_3D_ConstCoeff  Main CUDA/3D_ConstCoeff.knowledge       CUDA/3D_ConstCoeff.exa4        SISC/3D_ConstCoeff.results        1  10  GPU
+CUDA_SISC_3D_VarCoeff    Main CUDA/3D_VarCoeff.knowledge         CUDA/3D_VarCoeff.exa4          SISC/3D_VarCoeff.results          1  10  GPU
 
 CUDA_ExaFluids_Bingham  Main CUDA/3D_ExaFluids_NN_CUDA.knowledge CUDA/3D_ExaFluids_NN_CUDA.exa4 CUDA/3D_ExaFluids_NN_CUDA.results 1  10  GPU
 

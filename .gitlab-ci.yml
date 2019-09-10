@@ -2377,7 +2377,7 @@ test:CUDA_SISC_2D_ConstCoeff:
         - export CPATH=$CPATH:/usr/local/cuda-10.1/targets/x86_64-linux/include
         - ln -s /usr/local/cuda-10.1/targets/x86_64-linux/lib/libcudart.so /usr/lib
         - cd Testing
-        - python3 run_test.py ../Compiler/compiler.jar CUDA_SISC_2D_ConstCoeff CUDA/2D_ConstCoeff.knowledge "SISC/2D_ConstCoeff.exa4" SISC/2D_ConstCoeff.results 1 10 Platform/chimaira-gpu.platform output
+        - python3 run_test.py ../Compiler/compiler.jar CUDA_SISC_2D_ConstCoeff CUDA/2D_ConstCoeff.knowledge "CUDA/2D_ConstCoeff.exa4" SISC/2D_ConstCoeff.results 1 10 Platform/chimaira-gpu.platform output
 
 test:CUDA_SISC_2D_VarCoeff:
     stage: test
@@ -2404,7 +2404,7 @@ test:CUDA_SISC_2D_VarCoeff:
         - export CPATH=$CPATH:/usr/local/cuda-10.1/targets/x86_64-linux/include
         - ln -s /usr/local/cuda-10.1/targets/x86_64-linux/lib/libcudart.so /usr/lib
         - cd Testing
-        - python3 run_test.py ../Compiler/compiler.jar CUDA_SISC_2D_VarCoeff CUDA/2D_VarCoeff.knowledge "SISC/2D_VarCoeff.exa4" CUDA/2D_VarCoeff.results 1 10 Platform/chimaira-gpu.platform output
+        - python3 run_test.py ../Compiler/compiler.jar CUDA_SISC_2D_VarCoeff CUDA/2D_VarCoeff.knowledge "CUDA/2D_VarCoeff.exa4" CUDA/2D_VarCoeff.results 1 10 Platform/chimaira-gpu.platform output
 
 test:CUDA_SISC_3D_ConstCoeff:
     stage: test
@@ -2431,7 +2431,7 @@ test:CUDA_SISC_3D_ConstCoeff:
         - export CPATH=$CPATH:/usr/local/cuda-10.1/targets/x86_64-linux/include
         - ln -s /usr/local/cuda-10.1/targets/x86_64-linux/lib/libcudart.so /usr/lib
         - cd Testing
-        - python3 run_test.py ../Compiler/compiler.jar CUDA_SISC_3D_ConstCoeff CUDA/3D_ConstCoeff.knowledge "SISC/3D_ConstCoeff.exa4" SISC/3D_ConstCoeff.results 1 10 Platform/chimaira-gpu.platform output
+        - python3 run_test.py ../Compiler/compiler.jar CUDA_SISC_3D_ConstCoeff CUDA/3D_ConstCoeff.knowledge "CUDA/3D_ConstCoeff.exa4" SISC/3D_ConstCoeff.results 1 10 Platform/chimaira-gpu.platform output
 
 test:CUDA_SISC_3D_VarCoeff:
     stage: test
@@ -2458,7 +2458,7 @@ test:CUDA_SISC_3D_VarCoeff:
         - export CPATH=$CPATH:/usr/local/cuda-10.1/targets/x86_64-linux/include
         - ln -s /usr/local/cuda-10.1/targets/x86_64-linux/lib/libcudart.so /usr/lib
         - cd Testing
-        - python3 run_test.py ../Compiler/compiler.jar CUDA_SISC_3D_VarCoeff CUDA/3D_VarCoeff.knowledge "SISC/3D_VarCoeff.exa4" SISC/3D_VarCoeff.results 1 10 Platform/chimaira-gpu.platform output
+        - python3 run_test.py ../Compiler/compiler.jar CUDA_SISC_3D_VarCoeff CUDA/3D_VarCoeff.knowledge "CUDA/3D_VarCoeff.exa4" SISC/3D_VarCoeff.results 1 10 Platform/chimaira-gpu.platform output
 
 test:CUDA_ExaFluids_Bingham:
     stage: test
