@@ -2,13 +2,11 @@ package exastencils.domain.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.config.Knowledge
-import exastencils.deprecated.domain.ir._
 import exastencils.grid.ir._
-import exastencils.util.ir._
+import exastencils.logger.Logger
 
 case class IR_DomainFunctions() extends IR_FunctionCollection(
   "Domains/DomainGenerated",
@@ -20,30 +18,12 @@ case class IR_DomainFunctions() extends IR_FunctionCollection(
   if (Knowledge.omp_enabled)
     externalDependencies += "omp.h"
 
-  if (Knowledge.domain_rect_generate) {
+  if (Knowledge.domain_rect_generate)
     functions += IR_InitGeneratedDomain()
-  } else if (Knowledge.domain_readFromFile) {
+  else if (Knowledge.domain_readFromFile)
     functions += IR_InitDomainFromFile()
-  } else {
-    // deprecated code; TODO: remove
-    externalDependencies += ("iostream", "fstream")
-    val rvTemplateFunc = IR_PlainFunction(
-      s"readValue",
-      IR_SpecialDatatype("template <class T> T"),
-      ListBuffer[IR_FunctionArgument](
-        IR_FunctionArgument("memblock", IR_SpecialDatatype("char*&")),
-        IR_FunctionArgument("title = \"\"", IR_SpecialDatatype("std::string"))),
-      ListBuffer[IR_Statement](
-        IR_VariableDeclaration(IR_IntegerDatatype, "size", "sizeof(T)"),
-        IR_VariableDeclaration(IR_CharDatatype, "bytes[size]"),
-        IR_ForLoop("int j = 0", " j < size ", "++j", "bytes[size-1-j] = memblock[j]"),
-        "memblock+=size",
-        IR_Return("*(T *)&bytes")))
-    rvTemplateFunc.isHeaderOnly = true // annotate("isTemplate")
-    functions += rvTemplateFunc
-    functions += IR_SetValues()
-    functions += IR_InitDomainFromFragmentFile()
-  }
+  else
+    Logger.error("Unsupported domain configuration")
 
   // assemble init statements for applicable virtual fields
   { // scope to avoid initStmts being a member which is later targeted by transformations

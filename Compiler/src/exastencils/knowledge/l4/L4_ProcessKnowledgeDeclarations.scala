@@ -1,15 +1,11 @@
 package exastencils.knowledge.l4
 
-import exastencils.domain.l4.L4_HACK_ProcessDomainDeclarations
 import exastencils.field.l4._
 import exastencils.interfacing.l4.L4_ProcessExternalFieldDeclarations
 import exastencils.operator.l4._
 
 object L4_ProcessKnowledgeDeclarations {
   def apply() = {
-    // may require:
-    L4_HACK_ProcessDomainDeclarations.apply()
-
     // may require:
     L4_ProcessStencilDeclarations.apply()
 

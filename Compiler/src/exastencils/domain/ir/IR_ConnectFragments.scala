@@ -9,7 +9,6 @@ import exastencils.communication.DefaultNeighbors
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
-import exastencils.deprecated.domain.ir.IR_ReadValueFrom
 import exastencils.deprecated.ir._
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
@@ -77,12 +76,8 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
 
     val neighbors = DefaultNeighbors.neighbors
     val domains = IR_DomainCollection.objects
-    for (d <- domains.indices) {
-      if (Knowledge.domain_rect_generate)
-        body += IR_Assignment(IR_IV_IsValidForDomain(d), isPointInsideDomain(IR_IV_FragmentPosition(_), domains(d)))
-      else
-        body += IR_Assignment(IR_IV_IsValidForDomain(d), IR_ReadValueFrom(IR_BooleanDatatype, "data"))
-    }
+    for (d <- domains.indices)
+      body += IR_Assignment(IR_IV_IsValidForDomain(d), isPointInsideDomain(IR_IV_FragmentPosition(_), domains(d)))
 
     if (Knowledge.domain_canHaveLocalNeighs || Knowledge.domain_canHaveRemoteNeighs || Knowledge.domain_rect_hasPeriodicity) {
       for (neigh <- neighbors) {
