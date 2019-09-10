@@ -80,6 +80,7 @@ def generate_single_test(test_name, test_execution, avx, avx2, cuda, docker_imag
     content += generate_script_line('docker')
     if cuda:
         content += generate_script_line('cuda')
+        content += generate_script_line('i10swarm5')
     if avx:
         content += generate_script_line('AVX')
     if avx2:
