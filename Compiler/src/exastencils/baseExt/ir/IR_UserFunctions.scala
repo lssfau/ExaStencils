@@ -2,14 +2,22 @@ package exastencils.baseExt.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.communication.ir.IR_CommunicationFunctions
 import exastencils.config._
 import exastencils.core._
+import exastencils.domain.ir.IR_DomainFunctions
 import exastencils.field.ir.IR_InitFieldsWithZero
+import exastencils.globals.ir.IR_GlobalCollection
+import exastencils.parallelization.api.cuda.CUDA_KernelFunctions
 import exastencils.simd.SIMD_NeonDivision
+import exastencils.timing.ir.IR_TimerFunctions
 
 /// IR_UserFunctions
 
 object IR_UserFunctions extends ObjectWithState {
+  def defBaseName = "User/User"
+  def defHeader = defBaseName + ".h"
+
   // buffer looked up reference to reduce execution time
   var selfRef : Option[IR_UserFunctions] = None
 
@@ -23,9 +31,9 @@ object IR_UserFunctions extends ObjectWithState {
   }
 }
 
-case class IR_UserFunctions() extends IR_FunctionCollection("MultiGrid/MultiGrid",
+case class IR_UserFunctions() extends IR_FunctionCollection(IR_UserFunctions.defBaseName,
   ListBuffer("cmath", "algorithm", "iostream"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
-  ListBuffer("Globals/Globals.h", "Util/TimerFunctions.h", "CommFunctions/CommFunctions.h", "Domains/DomainGenerated.h")) {
+  ListBuffer(IR_GlobalCollection.defHeader, IR_TimerFunctions.defHeader, IR_CommunicationFunctions.defHeader, IR_DomainFunctions.defHeader)) {
 
   // add conditional dependencies - TODO: move to respective packages
   if (Knowledge.mpi_enabled)
@@ -36,7 +44,7 @@ case class IR_UserFunctions() extends IR_FunctionCollection("MultiGrid/MultiGrid
     externalDependencies += "cuda.h"
     externalDependencies += "cuda_runtime.h"
 
-    internalDependencies += "KernelFunctions/KernelFunctions.h"
+    internalDependencies += CUDA_KernelFunctions.defHeader
   }
   if (Knowledge.opt_vectorize) {
     val header = Platform.simd_header

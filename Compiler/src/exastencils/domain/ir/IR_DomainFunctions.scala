@@ -4,14 +4,35 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FunctionCollection
+import exastencils.communication.ir.IR_CommunicationFunctions
 import exastencils.config.Knowledge
+import exastencils.core._
+import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.grid.ir._
 import exastencils.logger.Logger
 
-case class IR_DomainFunctions() extends IR_FunctionCollection(
-  "Domains/DomainGenerated",
+/// IR_DomainFunctions
+
+object IR_DomainFunctions extends ObjectWithState {
+  def defBaseName = "Domain/Domain"
+  def defHeader = defBaseName + ".h"
+
+  // buffer looked up reference to reduce execution time
+  var selfRef : Option[IR_CommunicationFunctions] = None
+
+  override def clear() = { selfRef = None }
+
+  // looks itself up starting from the current root
+  def get = {
+    if (selfRef.isEmpty)
+      selfRef = StateManager.findFirst[IR_CommunicationFunctions]()
+    selfRef.get
+  }
+}
+
+case class IR_DomainFunctions() extends IR_FunctionCollection(IR_DomainFunctions.defBaseName,
   ListBuffer(),
-  ListBuffer("Globals/Globals.h", "CommFunctions/CommFunctions.h")) {
+  ListBuffer(IR_GlobalCollection.defHeader, IR_CommunicationFunctions.defHeader)) {
 
   if (Knowledge.mpi_enabled)
     externalDependencies += "mpi.h"

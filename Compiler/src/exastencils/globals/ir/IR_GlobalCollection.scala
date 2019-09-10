@@ -8,10 +8,14 @@ import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.config._
 import exastencils.core._
 import exastencils.prettyprinting._
+import exastencils.timing.ir.IR_Stopwatch
 
 /// IR_GlobalCollection
 
 object IR_GlobalCollection extends ObjectWithState {
+  def defBaseName = "Global/Global"
+  def defHeader = defBaseName + ".h"
+
   // buffer looked up reference to reduce execution time
   var selfRef : Option[IR_GlobalCollection] = None
 
@@ -25,7 +29,7 @@ object IR_GlobalCollection extends ObjectWithState {
   }
 }
 
-case class IR_GlobalCollection(var variables : ListBuffer[IR_VariableDeclaration] = ListBuffer()) extends IR_FunctionCollection("Globals/Globals",
+case class IR_GlobalCollection(var variables : ListBuffer[IR_VariableDeclaration] = ListBuffer()) extends IR_FunctionCollection(IR_GlobalCollection.defBaseName,
   ListBuffer("algorithm"), // provides commonly used functions like min/max
   ListBuffer(),
   ListBuffer(
@@ -44,7 +48,7 @@ case class IR_GlobalCollection(var variables : ListBuffer[IR_VariableDeclaration
   }
   if (Knowledge.data_alignFieldPointers || Knowledge.data_alignTmpBufferPointers)
     externalDependencies += "cstddef" // type ptrdiff_t (used when aligning pointer) is defined in stddef.h/cstddef
-  internalDependencies += "Util/Stopwatch.h"
+  internalDependencies += IR_Stopwatch.defHeader
   if (Knowledge.library_CImg)
     internalDependencies += "Util/CImg.h"
   if (!Knowledge.experimental_internalHighDimTypes)

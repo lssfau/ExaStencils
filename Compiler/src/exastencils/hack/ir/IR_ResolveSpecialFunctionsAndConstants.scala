@@ -288,7 +288,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       }
       if (!IR_GlobalCollection.get.functions.exists(_.name == "readParameterFile")) {
         IR_ReadLineFromFile.addToUtil
-        IR_UserFunctions.get.internalDependencies += "Globals/Globals.h"
+        IR_UserFunctions.get.internalDependencies += IR_GlobalCollection.defHeader
         IR_UserFunctions.get.internalDependencies = IR_UserFunctions.get.internalDependencies.distinct
         IR_GlobalCollection.get.functions += IR_ReadParameterFile()
         IR_GlobalCollection.get.externalDependencies += "iostream"
@@ -303,7 +303,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       }
       if (!IR_GlobalCollection.get.functions.exists(_.name == "readStations")) {
         IR_ReadLineFromFile.addToUtil
-        IR_UserFunctions.get.internalDependencies += "Globals/Globals.h"
+        IR_UserFunctions.get.internalDependencies += IR_GlobalCollection.defHeader
         IR_UserFunctions.get.internalDependencies = IR_UserFunctions.get.internalDependencies.distinct
         IR_GlobalCollection.get.functions += IR_ReadStations()
         IR_GlobalCollection.get.externalDependencies += "iostream"
@@ -317,7 +317,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         case None    => Logger.error("Too many writeStation calls. Cannot build more writeStation-functions.")
       }
 
-      IR_UserFunctions.get.internalDependencies += "Globals/Globals.h"
+      IR_UserFunctions.get.internalDependencies += IR_GlobalCollection.defHeader
       IR_UserFunctions.get.internalDependencies = IR_UserFunctions.get.internalDependencies.distinct
       IR_GlobalCollection.get.functions += IR_WriteStations(writeStationFctName, args)
       IR_GlobalCollection.get.externalDependencies += "iostream"

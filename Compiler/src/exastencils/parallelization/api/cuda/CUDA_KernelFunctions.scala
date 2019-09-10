@@ -8,11 +8,15 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core._
+import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.prettyprinting._
 
 /// CUDA_KernelFunctions
 
 object CUDA_KernelFunctions extends ObjectWithState {
+  def defBaseName = "Kernel/Kernel"
+  def defHeader = defBaseName + ".h"
+
   // buffer looked up reference to reduce execution time
   var selfRef : Option[CUDA_KernelFunctions] = None
 
@@ -26,9 +30,9 @@ object CUDA_KernelFunctions extends ObjectWithState {
   }
 }
 
-case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions/KernelFunctions",
+case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunctions.defBaseName,
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
-  ListBuffer("Globals/Globals.h")) {
+  ListBuffer(IR_GlobalCollection.defHeader)) {
 
   externalDependencies += "iostream" // required for error messages
 

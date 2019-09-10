@@ -7,6 +7,10 @@ import exastencils.prettyprinting._
 
 /// IR_Stopwatch
 
+object IR_Stopwatch {
+  def defHeader = "Util/Stopwatch.h"
+}
+
 case class IR_Stopwatch() extends IR_Node with FilePrettyPrintable {
   override def printToFile() : Unit = {
     if (Knowledge.experimental_timerEnableCallStacks) {
@@ -14,7 +18,7 @@ case class IR_Stopwatch() extends IR_Node with FilePrettyPrintable {
       IR_CallTracker().printToFile()
     }
 
-    val writerHeader = PrettyprintingManager.getPrinter(s"Util/Stopwatch.h")
+    val writerHeader = PrettyprintingManager.getPrinter(IR_Stopwatch.defHeader)
     writerHeader.addExternalDependency("string")
 
     Knowledge.timer_type match {

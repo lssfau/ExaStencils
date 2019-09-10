@@ -14,7 +14,7 @@ object IR_ReadLineFromFile {
   def arg2 = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream&"))
 
   def addToUtil = {
-    IR_GlobalCollection.get.internalDependencies += "Util/Util.h"
+    IR_GlobalCollection.get.internalDependencies += IR_UtilFunctions.defHeader
     IR_GlobalCollection.get.internalDependencies = IR_GlobalCollection.get.internalDependencies.distinct
     IR_UtilFunctions.get.externalDependencies ++= ListBuffer("fstream", "sstream", "algorithm")
     IR_UtilFunctions.get.externalDependencies = IR_UtilFunctions.get.externalDependencies.distinct
@@ -83,7 +83,6 @@ case class IR_ReadLineFromFile(ifs : IR_VariableAccess, iss : IR_VariableAccess)
     body += IR_MemberFunctionCall(iss, "clear")
     body += IR_MemberFunctionCall(iss, "str", line)
     body += IR_Return(true)
-
 
     // FIXME: move to app
     //body += IR_FunctionCall(IR_AllocateDataFunction.fctName)

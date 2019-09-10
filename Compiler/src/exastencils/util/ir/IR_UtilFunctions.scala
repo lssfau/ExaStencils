@@ -7,12 +7,14 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.config._
 import exastencils.core._
-import exastencils.domain.ir.IR_ReadLineFromFile
 import exastencils.prettyprinting._
 
 /// IR_UtilFunctions
 
 object IR_UtilFunctions extends ObjectWithState {
+  def defBaseName = "Util/Util"
+  def defHeader = defBaseName + ".h"
+
   // buffer looked up reference to reduce execution time
   var selfRef : Option[IR_UtilFunctions] = None
 
@@ -26,7 +28,7 @@ object IR_UtilFunctions extends ObjectWithState {
   }
 }
 
-case class IR_UtilFunctions() extends IR_FunctionCollection("Util/Util",
+case class IR_UtilFunctions() extends IR_FunctionCollection(IR_UtilFunctions.defBaseName,
   ListBuffer(), // provides commonly used functions like min/max
   ListBuffer(),
   ListBuffer()) {

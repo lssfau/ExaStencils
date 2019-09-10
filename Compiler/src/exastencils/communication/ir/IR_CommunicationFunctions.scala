@@ -2,13 +2,18 @@ package exastencils.communication.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.baseExt.ir.IR_FunctionCollection
+import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.core._
+import exastencils.globals.ir.IR_GlobalCollection
+import exastencils.parallelization.api.cuda.CUDA_KernelFunctions
 
 /// IR_CommunicationFunctions
 
 object IR_CommunicationFunctions extends ObjectWithState {
+  def defBaseName = "Communication/Communication"
+  def defHeader = defBaseName + ".h"
+
   // buffer looked up reference to reduce execution time
   var selfRef : Option[IR_CommunicationFunctions] = None
 
@@ -22,9 +27,9 @@ object IR_CommunicationFunctions extends ObjectWithState {
   }
 }
 
-case class IR_CommunicationFunctions() extends IR_FunctionCollection("CommFunctions/CommFunctions",
+case class IR_CommunicationFunctions() extends IR_FunctionCollection(IR_CommunicationFunctions.defBaseName,
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
-  ListBuffer("Globals/Globals.h", "MultiGrid/MultiGrid.h")) {
+  ListBuffer(IR_GlobalCollection.defHeader, IR_UserFunctions.defHeader)) {
 
   if (Knowledge.mpi_enabled)
     externalDependencies += "mpi.h"
@@ -33,7 +38,7 @@ case class IR_CommunicationFunctions() extends IR_FunctionCollection("CommFuncti
     externalDependencies += "omp.h"
 
   if (Knowledge.cuda_enabled)
-    internalDependencies += "KernelFunctions/KernelFunctions.h"
+    internalDependencies += CUDA_KernelFunctions.defHeader
 
   if (!Knowledge.experimental_internalHighDimTypes)
     internalDependencies += "Util/Matrix.h"
