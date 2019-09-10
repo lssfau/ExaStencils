@@ -66,19 +66,19 @@ CommBasic_Strategy26Cell  Main  CommBasic/Strategy26Cell.knowledge  CommBasic/St
 
 ### sequential version
 ## single precision
-Seq_TestF_naive      Main  Opts/seq__float_naive.knowledge     Opts/base.exa4       Opts/seq__float.results      1  1
+Seq_TestF_naive      Main  Opts/seq__float_naive.knowledge     Opts/base_flt.exa4   Opts/seq__float.results      1  1
 # SSE3
-Seq_TestF_vectS      Main  Opts/seq__float_vect.knowledge      Opts/base.exa4       Opts/seq__float.results      1  1
-Seq_TestF_vectSAl    Main  Opts/seq__float_vectAl.knowledge    Opts/base.exa4       Opts/seq__float.results      1  1
-Seq_TestF_vectSAlAl  Main  Opts/seq__float_vectAlAl.knowledge  Opts/base.exa4       Opts/seq__float.results      1  1
+Seq_TestF_vectS      Main  Opts/seq__float_vect.knowledge      Opts/base_flt.exa4   Opts/seq__float.results      1  1
+Seq_TestF_vectSAl    Main  Opts/seq__float_vectAl.knowledge    Opts/base_flt.exa4   Opts/seq__float.results      1  1
+Seq_TestF_vectSAlAl  Main  Opts/seq__float_vectAlAl.knowledge  Opts/base_flt.exa4   Opts/seq__float.results      1  1
 # AVX
-Seq_TestF_vect       Main  Opts/seq__float_vect.knowledge      Opts/base.exa4       Opts/seq__float.results      1  1  AVX
-Seq_TestF_vectAl     Main  Opts/seq__float_vectAl.knowledge    Opts/base.exa4       Opts/seq__float.results      1  1  AVX
-Seq_TestF_vectAlAl   Main  Opts/seq__float_vectAlAl.knowledge  Opts/base.exa4       Opts/seq__float.results      1  1  AVX
+Seq_TestF_vect       Main  Opts/seq__float_vect.knowledge      Opts/base_flt.exa4   Opts/seq__float.results      1  1  AVX
+Seq_TestF_vectAl     Main  Opts/seq__float_vectAl.knowledge    Opts/base_flt.exa4   Opts/seq__float.results      1  1  AVX
+Seq_TestF_vectAlAl   Main  Opts/seq__float_vectAlAl.knowledge  Opts/base_flt.exa4   Opts/seq__float.results      1  1  AVX
 # AVX2
-Seq_TestF_vect2      Main  Opts/seq__float_vect.knowledge      Opts/base.exa4       Opts/seq__float.results      1  1  AVX2
-Seq_TestF_vect2Al    Main  Opts/seq__float_vectAl.knowledge    Opts/base.exa4       Opts/seq__float.results      1  1  AVX2
-Seq_TestF_vect2AlAl  Main  Opts/seq__float_vectAlAl.knowledge  Opts/base.exa4       Opts/seq__float.results      1  1  AVX2
+Seq_TestF_vect2      Main  Opts/seq__float_vect.knowledge      Opts/base_flt.exa4   Opts/seq__float.results      1  1  AVX2
+Seq_TestF_vect2Al    Main  Opts/seq__float_vectAl.knowledge    Opts/base_flt.exa4   Opts/seq__float.results      1  1  AVX2
+Seq_TestF_vect2AlAl  Main  Opts/seq__float_vectAlAl.knowledge  Opts/base_flt.exa4   Opts/seq__float.results      1  1  AVX2
 ## double precision
 Seq_Test_naive       Main  Opts/seq_naive.knowledge            Opts/base.exa4       Opts/seq.results             1  1  AVX
 Seq_Test_addrPre     Main  Opts/seq_addrPre.knowledge          Opts/base.exa4       Opts/seq.results             1  1  AVX
@@ -103,11 +103,11 @@ Seq_Test_all2        Main  Opts/seq_all.knowledge              Opts/tempBlock.ex
 
 ### parallel version (2*2*2 MPI ranks each with 8 OMP threads)
 ## single precision
-Par_TestF_naive      Main  Opts/par__float_naive.knowledge     Opts/base_par.exa4       Opts/par__float.results  8  4
+Par_TestF_naive      Main  Opts/par__float_naive.knowledge     Opts/base_par_flt.exa4   Opts/par__float.results  8  4
 # SSE3
-Par_TestF_vectS      Main  Opts/par__float_vect.knowledge      Opts/base_par.exa4       Opts/par__float.results  8  4
-Par_TestF_vectSAl    Main  Opts/par__float_vectAl.knowledge    Opts/base_par.exa4       Opts/par__float.results  8  4
-Par_TestF_vectSAlAl  Main  Opts/par__float_vectAlAl.knowledge  Opts/base_par.exa4       Opts/par__float.results  8  4
+Par_TestF_vectS      Main  Opts/par__float_vect.knowledge      Opts/base_par_flt.exa4   Opts/par__float.results  8  4
+Par_TestF_vectSAl    Main  Opts/par__float_vectAl.knowledge    Opts/base_par_flt.exa4   Opts/par__float.results  8  4
+Par_TestF_vectSAlAl  Main  Opts/par__float_vectAlAl.knowledge  Opts/base_par_flt.exa4   Opts/par__float.results  8  4
 ## double precision
 Par_Test_naive       Main  Opts/par_naive.knowledge            Opts/base_par.exa4       Opts/par.results         8  4  AVX
 Par_Test_addrPre     Main  Opts/par_addrPre.knowledge          Opts/base_par.exa4       Opts/par.results         8  4  AVX

@@ -165,7 +165,7 @@ Function SetSolution@all ( value : Real ) {
 
 Function InitSolution {
 	loop over Solution@finest sequentially {
-		Solution[active]@finest = native ( "((double)std::rand()/RAND_MAX)" )
+		Solution[active]@finest = native ( "((float)std::rand()/RAND_MAX)" )
 	}
 }
 
@@ -180,22 +180,22 @@ Function Solve {
 	Var resStart_0 : Real = NormResidual_0@finest (  )
 	Var res_0 : Real = resStart_0
 	Var resOld_0 : Real = 0
-	if ( ( resStart_0 <= 1.0E-12 ) ) {
+	if ( ( resStart_0 <= 1.0E-5 ) ) {
 		print ( "EFFECTIVELY ZERO" )
 	} else {
-		if ( ( resStart_0 <= 1.0E-11 ) ) {
+		if ( ( resStart_0 <= 1.0E-4 ) ) {
 			native ( "std::streamsize oldPrec = std::cout.precision()" )
 			native ( "std::cout.precision(1)" )
 			print ( resStart_0 )
 			native ( "std::cout.precision(oldPrec)" )
 		} else {
-			if ( ( resStart_0 <= 9.999999999999999E-11 ) ) {
+			if ( ( resStart_0 <= 0.001 ) ) {
 				native ( "std::streamsize oldPrec = std::cout.precision()" )
 				native ( "std::cout.precision(2)" )
 				print ( resStart_0 )
 				native ( "std::cout.precision(oldPrec)" )
 			} else {
-				if ( ( resStart_0 <= 9.999999999999999E-10 ) ) {
+				if ( ( resStart_0 <= 0.01 ) ) {
 					native ( "std::streamsize oldPrec = std::cout.precision()" )
 					native ( "std::cout.precision(3)" )
 					print ( resStart_0 )
@@ -210,34 +210,28 @@ Function Solve {
 		}
 	}
 	Var numIt : Integer = 0
-	repeat until ( ( res_0 < ( 1.0E-5 * resStart_0 ) ) || ( numIt >= 100 ) ) {
+	repeat until ( ( res_0 < ( 0.01 * resStart_0 ) ) || ( numIt >= 100 ) ) {
 		numIt += 1
-		startTimer ( "cycle" )
 		VCycle@finest (  )
-		stopTimer ( "cycle" )
-		if ( ( getTotalFromTimer ( "cycle" ) > 1200000 ) ) {
-			print ( "Aborting solve after", getTotalFromTimer ( "cycle" ), "ms which exceeds the limit of", 1200000, "ms" )
-			return
-		}
 		UpResidual@finest (  )
 		resOld_0 = res_0
 		res_0 = NormResidual_0@finest (  )
-		if ( ( res_0 <= 1.0E-12 ) ) {
+		if ( ( res_0 <= 1.0E-5 ) ) {
 			print ( "EFFECTIVELY ZERO" )
 		} else {
-			if ( ( res_0 <= 1.0E-11 ) ) {
+			if ( ( res_0 <= 1.0E-4 ) ) {
 				native ( "std::streamsize oldPrec = std::cout.precision()" )
 				native ( "std::cout.precision(1)" )
 				print ( res_0 )
 				native ( "std::cout.precision(oldPrec)" )
 			} else {
-				if ( ( res_0 <= 9.999999999999999E-11 ) ) {
+				if ( ( res_0 <= 0.001 ) ) {
 					native ( "std::streamsize oldPrec = std::cout.precision()" )
 					native ( "std::cout.precision(2)" )
 					print ( res_0 )
 					native ( "std::cout.precision(oldPrec)" )
 				} else {
-					if ( ( res_0 <= 9.999999999999999E-10 ) ) {
+					if ( ( res_0 <= 0.01 ) ) {
 						native ( "std::streamsize oldPrec = std::cout.precision()" )
 						native ( "std::cout.precision(3)" )
 						print ( res_0 )
