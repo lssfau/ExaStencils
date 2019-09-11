@@ -41,7 +41,9 @@ case class CUDA_Memset(var data : IR_Expression, var value : IR_Expression, var 
 
 /// CUDA_FieldDeviceData
 
-case class CUDA_FieldDeviceData(override var field : IR_Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractFieldData {
+case class CUDA_FieldDeviceData(override var field : IR_Field, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractFieldData {
+  override var level : IR_Expression = field.level
+
   override def resolveName() = (if (1 == field.numSlots) s"fieldDeviceData" else "slottedFieldDeviceData") +
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, level.prettyprint, "")
 

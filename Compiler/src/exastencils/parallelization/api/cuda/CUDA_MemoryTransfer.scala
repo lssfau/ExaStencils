@@ -2,7 +2,6 @@ package exastencils.parallelization.api.cuda
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.communication.ir._
 import exastencils.core.Duplicate
@@ -13,7 +12,7 @@ import exastencils.field.ir._
 
 object CUDA_UpdateHostData {
   def apply(access : IR_MultiDimFieldAccess) =
-    new CUDA_UpdateHostData(IR_IV_FieldData(access.field, access.level, Duplicate(access.slot), Duplicate(access.fragIdx)))
+    new CUDA_UpdateHostData(IR_IV_FieldData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx)))
 }
 
 case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData) extends CUDA_HostStatement with IR_Expandable {
@@ -38,7 +37,7 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData) extends CUDA_Hos
 
 object CUDA_UpdateDeviceData {
   def apply(access : IR_MultiDimFieldAccess) =
-    new CUDA_UpdateDeviceData(IR_IV_FieldData(access.field, access.level, Duplicate(access.slot), Duplicate(access.fragIdx)))
+    new CUDA_UpdateDeviceData(IR_IV_FieldData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx)))
 }
 
 case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData) extends CUDA_HostStatement with IR_Expandable {

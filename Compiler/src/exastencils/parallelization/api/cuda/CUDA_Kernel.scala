@@ -535,7 +535,7 @@ case class CUDA_Kernel(var identifier : String,
     }
 
     for (fieldAccess <- linearizedFieldAccesses)
-      callArgs += CUDA_FieldDeviceData(fieldAccess._2.field, fieldAccess._2.field.level, Duplicate(fieldAccess._2.slot), Duplicate(fieldAccess._2.fragIdx))
+      callArgs += CUDA_FieldDeviceData(fieldAccess._2.field, Duplicate(fieldAccess._2.slot), Duplicate(fieldAccess._2.fragIdx))
 
     if (Knowledge.cuda_useSharedMemory && fieldForSharedMemory.nonEmpty) {
       fieldNames.foreach(field => callArgs += CUDA_FieldDeviceData(fieldForSharedMemory(field).field, fieldForSharedMemory(field).level, Duplicate(fieldForSharedMemory(field).slot))

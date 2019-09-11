@@ -67,7 +67,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
       }
     }
 
-    val fieldData = IR_IV_FieldData(access.field, access.level, Duplicate(access.slot), Duplicate(access.fragIdx))
+    val fieldData = IR_IV_FieldData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx))
     fieldAccesses.put(identifier, fieldData)
   }
 
@@ -250,11 +250,11 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
           this += new Transformation("Search", {
             case access : IR_DirectFieldAccess =>
               val linearized = access.linearize
-              val devField = CUDA_FieldDeviceData(linearized.field, linearized.level, Duplicate(linearized.slot), Duplicate(linearized.fragIdx))
+              val devField = CUDA_FieldDeviceData(linearized.field, Duplicate(linearized.slot), Duplicate(linearized.fragIdx))
               IR_ArrayAccess(devField, linearized.index)
 
             case fieldData : IR_IV_FieldData =>
-              CUDA_FieldDeviceData(fieldData.field, fieldData.level, fieldData.slot, fieldData.fragmentIdx)
+              CUDA_FieldDeviceData(fieldData.field, fieldData.slot, fieldData.fragmentIdx)
 
             case buffer : IR_IV_CommBuffer =>
               CUDA_BufferDeviceData(buffer.field, buffer.direction, buffer.size, buffer.neighIdx, buffer.fragmentIdx)

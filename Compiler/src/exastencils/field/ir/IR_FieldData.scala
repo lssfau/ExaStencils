@@ -72,7 +72,9 @@ abstract class IR_IV_AbstractFieldData extends IR_InternalVariable(true, false, 
 
 /// IR_IV_FieldDataBasePtr
 
-case class IR_IV_FieldDataBasePtr(override var field : IR_Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractFieldData {
+case class IR_IV_FieldDataBasePtr(override var field : IR_Field, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractFieldData {
+  override var level : IR_Expression = field.level
+
   override def resolveName() = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, level.prettyprint, "") +
     "_base"
@@ -80,8 +82,10 @@ case class IR_IV_FieldDataBasePtr(override var field : IR_Field, override var le
 
 /// IR_IV_FieldData
 
-case class IR_IV_FieldData(override var field : IR_Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractFieldData {
-  def basePtr = IR_IV_FieldDataBasePtr(field, level, slot, fragmentIdx)
+case class IR_IV_FieldData(override var field : IR_Field, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractFieldData {
+  def basePtr = IR_IV_FieldDataBasePtr(field, slot, fragmentIdx)
+
+  override var level : IR_Expression = field.level
 
   override def resolveName() = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, level.prettyprint, "")

@@ -12,7 +12,8 @@ import exastencils.knowledge.ir.IR_LeveledKnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.polyhedron.IR_PolyArrayAccessLike
 
-///
+/// IR_FieldAccessLike
+
 trait IR_FieldAccessLike extends IR_LeveledKnowledgeAccess {
   def field : IR_Field
   def target = field
@@ -163,7 +164,7 @@ case class IR_LinearizedFieldAccess(
 
   override def expand() = {
     IR_ArrayAccess(
-      IR_IV_FieldData(field, field.level, slot, fragIdx),
+      IR_IV_FieldData(field, slot, fragIdx),
       index,
       Knowledge.data_alignFieldPointers)
   }
