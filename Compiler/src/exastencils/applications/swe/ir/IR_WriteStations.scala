@@ -1,4 +1,4 @@
-package exastencils.swe.ir
+package exastencils.applications.swe.ir
 
 import scala.collection.mutable.ListBuffer
 
@@ -32,7 +32,6 @@ case class IR_WriteStations(var fctName : String, var arguments : ListBuffer[IR_
   }
 
   override def generateFct() = {
-
     if (!Settings.additionalIncludes.contains("iomanip"))
       Settings.additionalIncludes += "iomanip"
 

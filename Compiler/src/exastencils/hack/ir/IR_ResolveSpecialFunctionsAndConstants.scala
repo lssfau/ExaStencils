@@ -2,6 +2,7 @@ package exastencils.hack.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.applications.swe.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
@@ -18,7 +19,6 @@ import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp.OMP_Parallel
-import exastencils.swe.ir._
 import exastencils.util.ir._
 
 /// HACK_IR_ResolveSpecialFunctionsAndConstants

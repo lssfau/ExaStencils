@@ -1,9 +1,8 @@
-package exastencils.swe.ir
+package exastencils.applications.swe.ir
 
-import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_ArrayDatatype
+import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.prettyprinting.PpStream
 
@@ -34,7 +33,6 @@ case class IR_IV_Stations(var i : IR_Expression, var j : IR_Expression) extends 
   def resolveAccess(i : IR_Expression, j : IR_Expression) = {
     IR_ArrayAccess(resolveName(), dims * i + j)
   }
-
 }
 
 case class IR_IV_StationsFragment(var i : IR_Expression) extends IR_InternalVariable(false, false, false, false, false) {
@@ -60,7 +58,6 @@ case class IR_IV_StationsFragment(var i : IR_Expression) extends IR_InternalVari
   def resolveAccess(i : IR_Expression) = {
     IR_ArrayAccess(resolveName(), i)
   }
-
 }
 
 // store station id according to IR_LoopOverDimensions.defIt
@@ -91,7 +88,6 @@ case class IR_IV_StationsId(var i : IR_Expression, var j : IR_Expression) extend
   def resolveAccess(i : IR_Expression, j : IR_Expression) = {
     IR_ArrayAccess(resolveName(), dims * i + j)
   }
-
 }
 
 case class IR_IV_StationsIsLower(var i : IR_Expression) extends IR_InternalVariable(false, false, false, false, false) {
@@ -117,5 +113,4 @@ case class IR_IV_StationsIsLower(var i : IR_Expression) extends IR_InternalVaria
   def resolveAccess(i : IR_Expression) = {
     IR_ArrayAccess(resolveName(), i)
   }
-
 }
