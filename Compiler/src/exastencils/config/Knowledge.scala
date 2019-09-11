@@ -562,17 +562,12 @@ object Knowledge {
 
   var experimental_addPerformanceEstimate : Boolean = false
 
-  var experimental_memoryDistanceAnalysis : Boolean = false
-
   // tries to merge communication statements and loop over points in function bodies -> allows automatic overlap of communication and computation
   var experimental_mergeCommIntoLoops : Boolean = false
   // attempts to overlap communication and computation of loops with added communication statements
   var experimental_splitLoopsForAsyncComm : Boolean = false
   // minimum width of inner dimension when splitting according to experimental_splitLoopsForAsyncComm; 0 to disable
   var experimental_splitLoops_minInnerWidth : Int = 4
-
-  // Export loop kernels to pseudo-C and kerncraft YAML kernel descriptions.
-  var experimental_kerncraftExport : Boolean = false
 
   var experimental_resolveInverseFunctionCall : String = "Cofactors" // [Cofactors|GaussJordan|Runtime] // how to resolve inverse() function calls for matrices:
 

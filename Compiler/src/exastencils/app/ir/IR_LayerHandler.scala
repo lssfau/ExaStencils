@@ -183,18 +183,9 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_TypeInference.warnMissingDeclarations = false
     IR_TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
 
-    if (Knowledge.experimental_memoryDistanceAnalysis) {
-      //AnalyzeIterationDistance.apply()
-      KernelSubscriptAnalysis.apply()
-    }
-
-    if (Knowledge.experimental_kerncraftExport) {
-      KerncraftExport.apply()
-      KerncraftExportYaml.export()
-    }
-
     if (Knowledge.experimental_addPerformanceEstimate)
       AddPerformanceEstimates.apply()
+
     // Prepare all suitable LoopOverDimensions and ContractingLoops. This transformation is applied before resolving
     // ContractingLoops to guarantee that memory transfer statements appear only before and after a resolved
     // ContractingLoop (required for temporal blocking). Leads to better device memory occupancy.
