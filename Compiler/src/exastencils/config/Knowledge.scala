@@ -548,8 +548,6 @@ object Knowledge {
   /// experimental features
 
   // generates call stacks for all employed timers
-  var experimental_timerEnableCallStacks : Boolean = false
-
   var experimental_disableIterationOffsets : Boolean = false
   var experimental_bc_checkOnlyMainAxis : Boolean = true
   var experimental_bc_avoidOrOperations : Boolean = true

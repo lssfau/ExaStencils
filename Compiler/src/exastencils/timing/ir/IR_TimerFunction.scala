@@ -4,7 +4,6 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FunctionCollection
-import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.globals.ir.IR_GlobalCollection
 
@@ -47,9 +46,4 @@ case class IR_TimerFunctions() extends IR_FunctionCollection(IR_TimerFunctions.d
   functions += IR_GetLastTime()
   functions += IR_PrintAllTimers()
   functions += IR_PrintAllTimersToFile()
-
-  if (Knowledge.experimental_timerEnableCallStacks) {
-    internalDependencies += s"Util/CallEntity.h"
-    internalDependencies += s"Util/CallTracker.h"
-  }
 }

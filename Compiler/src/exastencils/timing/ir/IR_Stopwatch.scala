@@ -2,7 +2,6 @@ package exastencils.timing.ir
 
 import exastencils.base.ir.IR_Node
 import exastencils.config._
-import exastencils.deprecated.ir._
 import exastencils.prettyprinting._
 
 /// IR_Stopwatch
@@ -13,11 +12,6 @@ object IR_Stopwatch {
 
 case class IR_Stopwatch() extends IR_Node with FilePrettyPrintable {
   override def printToFile() : Unit = {
-    if (Knowledge.experimental_timerEnableCallStacks) {
-      IR_CallEntity().printToFile()
-      IR_CallTracker().printToFile()
-    }
-
     val writerHeader = PrettyprintingManager.getPrinter(IR_Stopwatch.defHeader)
     writerHeader.addExternalDependency("string")
 

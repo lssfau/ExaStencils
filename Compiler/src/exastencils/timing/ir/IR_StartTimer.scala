@@ -4,7 +4,6 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.config.Knowledge
 
 /// IR_StartTimer
 
@@ -20,7 +19,6 @@ case class IR_StartTimer() extends IR_TimerFunction {
       IR_IfCondition(IR_EqEq(0, accessMember("numEntries")), ListBuffer(
         IR_AssignNowToTimer(accessMember("timerStarted")),
         IR_Assignment(accessMember("lastTimeMeasured"), IR_ZeroTimerValue()))),
-      if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StartTimer(&stopWatch)" else "",
       IR_PreIncrement(accessMember("numEntries")))
 
     val fct = IR_PlainFunction(name, IR_UnitDatatype, ListBuffer(IR_FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), statements)

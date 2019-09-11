@@ -26,7 +26,6 @@ case class IR_StopTimer() extends IR_TimerFunction {
           else
             accessMember("timerEnded") - accessMember("timerStarted")),
         IR_Assignment(accessMember("totalTimeMeasured"), accessMember("lastTimeMeasured"), "+="),
-        if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StopTimer(&stopWatch)" else "",
         IR_PreIncrement(accessMember("numMeasurements")))))
 
     val fct = IR_PlainFunction(name, IR_UnitDatatype, ListBuffer(IR_FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), statements)
