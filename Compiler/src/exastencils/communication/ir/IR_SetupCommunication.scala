@@ -54,7 +54,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
       loop
 
     case communicateStatement : IR_Communicate =>
-      val numDims = communicateStatement.field.fieldLayout.numDimsData
+      val numDims = communicateStatement.field.layout.numDimsData
 
       val level = communicateStatement.field.level
 
@@ -78,22 +78,22 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
         val target = communicateStatement.targets.find(t => "all" == t.target).get
         commDup = true
         dupBegin = target.begin.getOrElse(IR_ExpressionIndex(Array.fill(numDims)(0)))
-        dupEnd = target.end.getOrElse(IR_ExpressionIndex((0 until numDims).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numDupLayersLeft)))
+        dupEnd = target.end.getOrElse(IR_ExpressionIndex((0 until numDims).toArray.map(dim => communicateStatement.field.layout(dim).numDupLayersLeft)))
         commGhost = true
         ghostBegin = target.begin.getOrElse(IR_ExpressionIndex(Array.fill(numDims)(0)))
-        ghostEnd = target.end.getOrElse(IR_ExpressionIndex((0 until numDims).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numGhostLayersLeft)))
+        ghostEnd = target.end.getOrElse(IR_ExpressionIndex((0 until numDims).toArray.map(dim => communicateStatement.field.layout(dim).numGhostLayersLeft)))
       }
       if (communicateStatement.targets.exists(t => "dup" == t.target)) {
         val target = communicateStatement.targets.find(t => "dup" == t.target).get
         commDup = true
         dupBegin = target.begin.getOrElse(IR_ExpressionIndex(Array.fill(numDims)(0)))
-        dupEnd = target.end.getOrElse(IR_ExpressionIndex((0 until numDims).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numDupLayersLeft)))
+        dupEnd = target.end.getOrElse(IR_ExpressionIndex((0 until numDims).toArray.map(dim => communicateStatement.field.layout(dim).numDupLayersLeft)))
       }
       if (communicateStatement.targets.exists(t => "ghost" == t.target)) {
         val target = communicateStatement.targets.find(t => "ghost" == t.target).get
         commGhost = true
         ghostBegin = target.begin.getOrElse(IR_ExpressionIndex(Array.fill(numDims)(0)))
-        ghostEnd = target.end.getOrElse(IR_ExpressionIndex((0 until numDims).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numGhostLayersLeft)))
+        ghostEnd = target.end.getOrElse(IR_ExpressionIndex((0 until numDims).toArray.map(dim => communicateStatement.field.layout(dim).numGhostLayersLeft)))
       }
 
       var functionName = communicateStatement.op match {

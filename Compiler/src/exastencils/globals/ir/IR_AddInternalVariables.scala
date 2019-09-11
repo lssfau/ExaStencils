@@ -65,7 +65,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       cleanedField.slot = "slot"
       cleanedField.fragmentIdx = IR_LoopOverFragments.defIt
 
-      val numDataPoints : IR_Expression = (0 until field.field.fieldLayout.numDimsData).map(dim => field.field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
+      val numDataPoints : IR_Expression = (0 until field.field.layout.numDimsData).map(dim => field.field.layout.idxById("TOT", dim)).reduceLeft(_ * _)
       var statements : ListBuffer[IR_Statement] = ListBuffer()
 
       val newFieldData = Duplicate(cleanedField)
@@ -113,7 +113,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       cleanedField.slot = "slot"
       cleanedField.fragmentIdx = IR_LoopOverFragments.defIt
 
-      val numDataPoints : IR_Expression = (0 until field.field.fieldLayout.numDimsData).map(dim => field.field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
+      val numDataPoints : IR_Expression = (0 until field.field.layout.numDimsData).map(dim => field.field.layout.idxById("TOT", dim)).reduceLeft(_ * _)
       var statements : ListBuffer[IR_Statement] = ListBuffer()
 
       val newFieldData = Duplicate(cleanedField)

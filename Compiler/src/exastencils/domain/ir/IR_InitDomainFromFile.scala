@@ -128,9 +128,9 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     var stmts = ListBuffer[IR_Statement]()
 
     val domainIdx : IR_Expression = field.domain.index
-    val numDims = field.fieldLayout.numDimsGrid
+    val numDims = field.layout.numDimsGrid
 
-    def resolveIndex(indexId : String, dim : Int) = field.fieldLayout.idxById(indexId, dim)
+    def resolveIndex(indexId : String, dim : Int) = field.layout.idxById(indexId, dim)
 
     def changePositionForward(neigh : NeighborInfo) = {
       val dirId = if (neigh.dir(0) == 0) 1 else 0
@@ -239,11 +239,11 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
   def fillBoundaryGhostLayers(field : IR_Field) = {
     var body = new ListBuffer[IR_Statement]
 
-    def numDims = field.fieldLayout.numDimsGrid
+    def numDims = field.layout.numDimsGrid
 
     val baseIndex = IR_LoopOverDimensions.defIt(numDims)
 
-    def resolveIndex(indexId : String, dim : Int) = field.fieldLayout.idxById(indexId, dim)
+    def resolveIndex(indexId : String, dim : Int) = field.layout.idxById(indexId, dim)
 
     def genIndexRangeBoundary(neigh : NeighborInfo) : IR_ExpressionIndexRange = {
       IR_ExpressionIndexRange(
@@ -427,10 +427,10 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
   def readNodes(field : IR_Field, read_line : IR_FunctionCall, iss : IR_VariableAccess) = {
     var nodeStmts = ListBuffer[IR_Statement]()
 
-    val numDims = field.fieldLayout.numDimsGrid
+    val numDims = field.layout.numDimsGrid
     val dims = (0 until numDims).toArray
-    val start = IR_ExpressionIndex(dims.map(dim => { field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) } : IR_Expression))
-    val stop = IR_ExpressionIndex(dims.map(dim => { field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) } : IR_Expression))
+    val start = IR_ExpressionIndex(dims.map(dim => { field.layout.idxById("DLB", dim) - field.referenceOffset(dim) } : IR_Expression))
+    val stop = IR_ExpressionIndex(dims.map(dim => { field.layout.idxById("DRE", dim) - field.referenceOffset(dim) } : IR_Expression))
 
     val indexRange = IR_ExpressionIndexRange(start, stop)
 

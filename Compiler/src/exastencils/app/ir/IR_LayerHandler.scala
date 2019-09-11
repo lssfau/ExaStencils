@@ -112,7 +112,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     if (Knowledge.domain_rect_generate && Knowledge.maxLevel <= 0) {
       def globalSize = IR_DomainCollection.getByIdentifier("global").get.asInstanceOf[IR_DomainFromAABB].aabb
 
-      val fLayout : Array[IR_FieldLayoutPerDim] = IR_FieldCollection.objects.head.fieldLayout.layoutsPerDim
+      val fLayout : Array[IR_FieldLayoutPerDim] = IR_FieldCollection.objects.head.layout.layoutsPerDim
       Knowledge.discr_hx = Array[Double](globalSize.width(0) /
         (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * fLayout(0).numInnerLayers))
       if (Knowledge.dimensionality > 1)

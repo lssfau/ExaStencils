@@ -26,7 +26,7 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData) extends CUDA_Hos
         CUDA_Memcpy(
           IR_IV_FieldData(field, Duplicate(fieldData.level), Duplicate(fieldData.slot)),
           CUDA_FieldDeviceData(field, Duplicate(fieldData.level), Duplicate(fieldData.slot)),
-          (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
+          (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _)
             * IR_SizeOf(field.resolveBaseDatatype),
           "cudaMemcpyDeviceToHost"),
         IR_Assignment(CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot)), IR_BooleanConstant(false))))
@@ -49,7 +49,7 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData) extends CUDA_H
         CUDA_Memcpy(
           CUDA_FieldDeviceData(field, Duplicate(fieldData.level), Duplicate(fieldData.slot)),
           IR_IV_FieldData(field, Duplicate(fieldData.level), Duplicate(fieldData.slot)),
-          (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
+          (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _)
             * IR_SizeOf(field.resolveBaseDatatype),
           "cudaMemcpyHostToDevice"),
         IR_Assignment(CUDA_HostDataUpdated(field, Duplicate(fieldData.slot)), IR_BooleanConstant(false))))

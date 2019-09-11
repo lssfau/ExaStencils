@@ -313,7 +313,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
 
     var exprTemplate : IR_ExpressionIndex => IR_ExpressionIndex = processedLayouts.getOrElse(fieldID, null)
     if (exprTemplate == null) {
-      val layout : IR_FieldLayout = dfa.field.fieldLayout
+      val layout : IR_FieldLayout = dfa.field.layout
       val trafoMaff : isl.MultiAff = createIslTrafo(trafosOpt.get, layout, fieldID)
       adaptLayout(layout, trafoMaff, fieldID)
       exprTemplate = createASTTemplateforMultiAff(trafoMaff)

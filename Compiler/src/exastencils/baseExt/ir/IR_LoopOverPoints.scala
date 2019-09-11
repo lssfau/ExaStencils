@@ -22,9 +22,9 @@ case class IR_RegionSpecification(var region : String, var dir : IR_ConstIndex, 
 
 object IR_LoopOverPoints {
   def apply(field : IR_Field, body : ListBuffer[IR_Statement]) =
-    new IR_LoopOverPoints(field, None, IR_ExpressionIndex(Array.fill(field.fieldLayout.numDimsGrid)(0)),
-      IR_ExpressionIndex(Array.fill(field.fieldLayout.numDimsGrid)(0)),
-      IR_ExpressionIndex(Array.fill(field.fieldLayout.numDimsGrid)(1)),
+    new IR_LoopOverPoints(field, None, IR_ExpressionIndex(Array.fill(field.layout.numDimsGrid)(0)),
+      IR_ExpressionIndex(Array.fill(field.layout.numDimsGrid)(0)),
+      IR_ExpressionIndex(Array.fill(field.layout.numDimsGrid)(1)),
       body)
 
   def apply(field : IR_Field, body : IR_Statement*) : IR_LoopOverPoints = apply(field, body.to[ListBuffer])

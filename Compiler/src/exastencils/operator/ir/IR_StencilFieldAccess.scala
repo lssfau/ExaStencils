@@ -21,7 +21,7 @@ case class IR_StencilFieldAccess(
 
   override def target = stencilField
   // FIXME: currently returns array dt
-  override def datatype = stencilField.field.fieldLayout.datatype
+  override def datatype = stencilField.field.layout.datatype
   override def assembleOffsetMap() = stencilField.stencil.assembleOffsetMap()
   override def stencil = stencilField.stencil
 

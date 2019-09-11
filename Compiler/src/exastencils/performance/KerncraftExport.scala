@@ -151,8 +151,8 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
         val idname = fieldWithSlotId.identifierName
         //      val size = (0 until dim).map(dim => field.field.fieldLayout.idxById("TOT", dim))
 
-        val ndims = fieldWithSlotId.field.fieldLayout.numDimsData
-        val dimsz = { d : Int => fieldWithSlotId.field.fieldLayout.defTotal(d) }
+        val ndims = fieldWithSlotId.field.layout.numDimsData
+        val dimsz = { d : Int => fieldWithSlotId.field.layout.defTotal(d) }
 
         val declBuf = new ListBuffer[String]
         declBuf += (scalarDataType.prettyprint(), " ", idname)

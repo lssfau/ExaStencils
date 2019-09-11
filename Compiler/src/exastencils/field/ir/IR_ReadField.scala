@@ -37,8 +37,8 @@ case class IR_ReadField(
     var condition : IR_Expression = true,
     var includeGhostLayers : Boolean = false) extends IR_Statement with IR_Expandable {
 
-  def numDimsGrid = field.fieldLayout.numDimsGrid
-  def numDimsData = field.fieldLayout.numDimsData
+  def numDimsGrid = field.layout.numDimsGrid
+  def numDimsData = field.layout.numDimsData
 
   def getPos(field : IR_Field, dim : Int) : IR_Expression = {
     // TODO: add function to field (layout) to decide node/cell for given dim
@@ -96,8 +96,8 @@ case class IR_ReadField(
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
           IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById(beginId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById(endId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
+            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(beginId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
+            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(endId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
             IR_IfCondition(condition, read))))
 
     statements += IR_MemberFunctionCall(stream, "close")

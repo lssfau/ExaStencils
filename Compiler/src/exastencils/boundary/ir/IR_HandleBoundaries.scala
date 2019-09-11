@@ -25,7 +25,7 @@ case class IR_HandleBoundaries(
     var fragIdx : IR_Expression,
     var neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)]) extends IR_Statement with IR_Expandable {
 
-  def numDims = field.fieldLayout.numDimsGrid
+  def numDims = field.layout.numDimsGrid
 
   def setupFieldUpdate(neigh : NeighborInfo) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
@@ -36,7 +36,7 @@ case class IR_HandleBoundaries(
       case virtualField @ IR_VirtualFieldAccess(target : IR_VF_BoundaryPositionPerDim, index, fragIdx) =>
         val evalDim = target.dim
 
-        field.fieldLayout.localization match {
+        field.layout.localization match {
           // TODO: adapt for grids that are not axis-parallel
           case IR_AtNode | IR_AtFaceCenter(`evalDim`) =>
             virtualField.target = IR_VF_NodePositionPerDim.find(target.level, evalDim)
@@ -62,8 +62,8 @@ case class IR_HandleBoundaries(
     // FIXME: (update) adapt for numDimsGrid once new vector and matrix data types are fully integrated
     val index = IR_LoopOverDimensions.defIt(numDims)
 
-    def offsetIndex = IR_ExpressionIndex(neigh.dir ++ Array.fill(numDims - field.fieldLayout.numDimsGrid)(0))
-    def offsetIndexWithTrafo(f : (Int => Int)) = IR_ExpressionIndex(neigh.dir.map(f) ++ Array.fill(numDims - field.fieldLayout.numDimsGrid)(0))
+    def offsetIndex = IR_ExpressionIndex(neigh.dir ++ Array.fill(numDims - field.layout.numDimsGrid)(0))
+    def offsetIndexWithTrafo(f : (Int => Int)) = IR_ExpressionIndex(neigh.dir.map(f) ++ Array.fill(numDims - field.layout.numDimsGrid)(0))
 
     bc match {
       case IR_NeumannBC(order) =>
@@ -92,7 +92,7 @@ case class IR_HandleBoundaries(
               IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index))
         }
 
-        field.fieldLayout.localization match {
+        field.layout.localization match {
           case IR_AtNode                                           => forNode()
           case IR_AtFaceCenter(faceDim) if 0 != neigh.dir(faceDim) => forNode()
           case IR_AtCellCenter                                     => forCell()
@@ -133,7 +133,7 @@ case class IR_HandleBoundaries(
               w_0_5 * boundaryExpr + w_1 * IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index) + w_2 * IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -i)))
         }
 
-        field.fieldLayout.localization match {
+        field.layout.localization match {
           case IR_AtNode                                           => forNode()
           case IR_AtFaceCenter(faceDim) if 0 != neigh.dir(faceDim) => forNode()
           case IR_AtCellCenter                                     => forCell()
@@ -145,7 +145,7 @@ case class IR_HandleBoundaries(
   }
 
   def constructLoops = {
-    val layout = field.fieldLayout
+    val layout = field.layout
 
     IR_LoopOverFragments(
       ListBuffer[IR_Statement](IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),

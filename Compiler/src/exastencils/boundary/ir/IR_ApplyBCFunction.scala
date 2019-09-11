@@ -24,16 +24,16 @@ case class IR_ApplyBCFunction(
 
   override def prettyprint_decl() = prettyprint
 
-  def numDimsGrid = field.fieldLayout.numDimsGrid
+  def numDimsGrid = field.layout.numDimsGrid
 
-  def resolveIndex(indexId : String, dim : Int) = field.fieldLayout.idxById(indexId, dim)
+  def resolveIndex(indexId : String, dim : Int) = field.layout.idxById(indexId, dim)
 
   def genIndicesBoundaryHandling(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)] = {
 
     curNeighbors.map(neigh => (neigh, IR_ExpressionIndexRange(
       IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map(dim =>
-          field.fieldLayout.localization match {
+          field.layout.localization match {
             case IR_AtNode | IR_AtFaceCenter(`dim`)   => dim match {
               case i if neigh.dir(i) == 0 => resolveIndex("GLB", i) // DLB, GLB
               case i if neigh.dir(i) < 0  => resolveIndex("DLB", i) // DLB, GLB
@@ -47,7 +47,7 @@ case class IR_ApplyBCFunction(
           })),
       IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map(dim =>
-          field.fieldLayout.localization match {
+          field.layout.localization match {
             case IR_AtNode | IR_AtFaceCenter(`dim`)   => dim match {
               case i if neigh.dir(i) == 0 => resolveIndex("GRE", i) // DRE, GRE
               case i if neigh.dir(i) < 0  => resolveIndex("DLE", i)

@@ -392,8 +392,8 @@ private class KernelInfoToYaml(val kernelInfo : KernelInfo) {
         val scalarDataType = fieldWithSlotId.field.resolveBaseDatatype
         val idname = fieldWithSlotId.identifierName
 
-        val ndims = fieldWithSlotId.field.fieldLayout.numDimsData
-        val dimsz = { d : Int => fieldWithSlotId.field.fieldLayout.defTotal(d) }
+        val ndims = fieldWithSlotId.field.layout.numDimsData
+        val dimsz = { d : Int => fieldWithSlotId.field.layout.defTotal(d) }
 
         buf ++= yindent(1)
         buf ++= fieldWithSlotId.identifierName + ":\n"

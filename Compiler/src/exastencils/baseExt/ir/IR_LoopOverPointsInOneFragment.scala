@@ -31,7 +31,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
     var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo(),
     var condition : Option[IR_Expression] = None) extends IR_ScopedStatement with IR_SpecialExpandable with IR_HasParallelizationInfo {
 
-  def numDims = field.fieldLayout.numDimsGrid
+  def numDims = field.layout.numDimsGrid
 
   def expandSpecial : Output[StatementList] = {
     var start = IR_ExpressionIndex(Array.fill(numDims)(0))
@@ -41,52 +41,52 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
       val regionCode = region.get.region.toUpperCase().charAt(0)
 
       start = IR_ExpressionIndex((0 until numDims).view.map({
-        case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim) + startOffset(dim)
-        case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim) + startOffset(dim)
-        case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RB", dim) - field.referenceOffset(dim) + startOffset(dim)
+        case dim if region.get.dir(dim) == 0 => field.layout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim) + startOffset(dim)
+        case dim if region.get.dir(dim) < 0  => field.layout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim) + startOffset(dim)
+        case dim if region.get.dir(dim) > 0  => field.layout.idxById(regionCode + "RB", dim) - field.referenceOffset(dim) + startOffset(dim)
       }).toArray[IR_Expression])
 
       stop = IR_ExpressionIndex((0 until numDims).view.map({
-        case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim) - endOffset(dim)
-        case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LE", dim) - field.referenceOffset(dim) - endOffset(dim)
-        case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim) - endOffset(dim)
+        case dim if region.get.dir(dim) == 0 => field.layout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim) - endOffset(dim)
+        case dim if region.get.dir(dim) < 0  => field.layout.idxById(regionCode + "LE", dim) - field.referenceOffset(dim) - endOffset(dim)
+        case dim if region.get.dir(dim) > 0  => field.layout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim) - endOffset(dim)
       }).toArray[IR_Expression])
     } else {
       // basic case -> just eliminate 'real' boundaries
       for (dim <- 0 until numDims) {
-        field.fieldLayout.localization match {
+        field.layout.localization match {
           case IR_AtNode | IR_AtFaceCenter(`dim`) =>
             if (Knowledge.experimental_useStefanOffsets) {
-              start(dim) = field.fieldLayout.idxById("IB", dim) - field.referenceOffset(dim) + startOffset(dim)
-              stop(dim) = field.fieldLayout.idxById("IE", dim) - field.referenceOffset(dim) - endOffset(dim)
+              start(dim) = field.layout.idxById("IB", dim) - field.referenceOffset(dim) + startOffset(dim)
+              stop(dim) = field.layout.idxById("IE", dim) - field.referenceOffset(dim) - endOffset(dim)
             } else if (Knowledge.experimental_disableIterationOffsets) {
-              start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
-              stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
+              start(dim) = field.layout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
+              stop(dim) = field.layout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
             } else {
               // FIXME
               //              if (Knowledge.experimental_genVariableFieldSizes) {
               //                start(dim) = OffsetIndex(0, 1, ArrayAccess(iv.IndexFromField(field.identifier, field.level, "DLB"), dim) - field.referenceOffset(dim) + startOffset(dim), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
               //                stop(dim) = OffsetIndex(-1, 0, ArrayAccess(iv.IndexFromField(field.identifier, field.level, "DRE"), dim) - field.referenceOffset(dim) - endOffset(dim), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
               //              } else {
-              val numDupLeft = field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft
-              val numDupRight = field.fieldLayout.layoutsPerDim(dim).numDupLayersRight
+              val numDupLeft = field.layout.layoutsPerDim(dim).numDupLayersLeft
+              val numDupRight = field.layout.layoutsPerDim(dim).numDupLayersRight
 
               if (numDupLeft > 0)
-                start(dim) = IR_Addition(field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim), numDupLeft * IR_BoundedScalar(0, 1, IR_IV_IterationOffsetBegin(dim, field.domain.index)))
+                start(dim) = IR_Addition(field.layout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim), numDupLeft * IR_BoundedScalar(0, 1, IR_IV_IterationOffsetBegin(dim, field.domain.index)))
               // start(dim) = OffsetIndex(0, numDupLeft, field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim), numDupLeft * ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
               else
-                start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
+                start(dim) = field.layout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
               if (numDupRight > 0)
-                stop(dim) = IR_Addition(field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim), numDupRight * IR_BoundedScalar(-1, 0, IR_IV_IterationOffsetEnd(dim, field.domain.index)))
+                stop(dim) = IR_Addition(field.layout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim), numDupRight * IR_BoundedScalar(-1, 0, IR_IV_IterationOffsetEnd(dim, field.domain.index)))
               // stop(dim) = OffsetIndex(-numDupRight, 0, field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim), numDupRight * ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
               else
-                stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
+                stop(dim) = field.layout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
               //              }
             }
 
           case IR_AtCellCenter | IR_AtFaceCenter(_) =>
-            start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
-            stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
+            start(dim) = field.layout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
+            stop(dim) = field.layout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
         }
       }
     }
@@ -98,12 +98,12 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
     if (Knowledge.experimental_trimBoundsForReductionLoops && parallelization.reduction.isDefined && !region.isDefined) {
       if (!condition.isDefined) condition = Some(IR_BooleanConstant(true))
       for (dim <- 0 until numDims)
-        if (field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft > 0)
+        if (field.layout.layoutsPerDim(dim).numDupLayersLeft > 0)
         /*if ("node" == field.fieldLayout.discretization
         || ("face_x" == field.fieldLayout.discretization && 0 == dim)
         || ("face_y" == field.fieldLayout.discretization && 1 == dim)
         || ("face_z" == field.fieldLayout.discretization && 2 == dim))*/
-          condition = Some(IR_AndAnd(condition.get, IR_GreaterEqual(IR_FieldIteratorAccess(dim), field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft)))
+          condition = Some(IR_AndAnd(condition.get, IR_GreaterEqual(IR_FieldIteratorAccess(dim), field.layout.layoutsPerDim(dim).numDupLayersLeft)))
     }
 
     var loop : IR_LoopOverDimensions = {
@@ -135,9 +135,9 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
       IR_GatherFieldAccessOffsets.applyStandalone(IR_Scope(body))
 
       // check dimensionality of involved fields
-      val numDims = field.fieldLayout.numDimsGrid
+      val numDims = field.layout.numDimsGrid
       for (cs <- preComms)
-        if (numDims != cs.field.fieldLayout.numDimsGrid)
+        if (numDims != cs.field.layout.numDimsGrid)
           Logger.warn(s"Found communicate statement on field ${ cs.field.codeName } which is incompatible with dimensionality $numDims")
 
       // loop iterator
@@ -187,7 +187,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
       // innerRegion
       var coreLoop = Duplicate(loop)
       coreLoop.condition = Some(IR_AndAnd(coreLoop.condition.getOrElse(IR_BooleanConstant(true)),
-        (0 until field.fieldLayout.numDimsGrid).map(dim =>
+        (0 until field.layout.numDimsGrid).map(dim =>
           IR_AndAnd(IR_GreaterEqual(loopIt(dim), lowerBounds(dim)), IR_Lower(loopIt(dim), upperBounds(dim))) : IR_Expression).reduce(IR_AndAnd)))
 
       stmts += coreLoop
@@ -199,16 +199,16 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
       // outerRegion
       var boundaryLoop = Duplicate(loop)
       boundaryLoop.condition = Some(IR_OrOr(boundaryLoop.condition.getOrElse(IR_BooleanConstant(false)),
-        (0 until field.fieldLayout.numDimsGrid).map(dim =>
+        (0 until field.layout.numDimsGrid).map(dim =>
           IR_OrOr(IR_Lower(loopIt(dim), lowerBounds(dim)), IR_GreaterEqual(loopIt(dim), upperBounds(dim))) : IR_Expression).reduce(IR_OrOr)))
       stmts += boundaryLoop
     } else if (Knowledge.experimental_splitLoopsForAsyncComm && postComms.nonEmpty) {
       if (region.isDefined) Logger.warn("Found region loop with communication step")
 
       // check dimensionality of involved fields
-      val numDims = field.fieldLayout.numDimsGrid
+      val numDims = field.layout.numDimsGrid
       for (cs <- postComms)
-        if (numDims != cs.field.fieldLayout.numDimsGrid)
+        if (numDims != cs.field.layout.numDimsGrid)
           Logger.warn(s"Found communicate statement on field ${ cs.field.codeName } which is incompatible with dimensionality $numDims")
 
       // loop iterator
@@ -230,8 +230,8 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
       //  optionally enforce a certain number of elements for vectorization/ optimized cache line usage
       for (cs <- postComms) {
         val newLowerBounds = (0 until numDims).map(dim => {
-          val ret : IR_Expression = cs.field.fieldLayout.layoutsPerDim(dim).numGhostLayersRight + cs.field.fieldLayout.layoutsPerDim(dim).numDupLayersRight
-          cs.field.fieldLayout.idxById("DLB", dim) - cs.field.referenceOffset(dim) + ret
+          val ret : IR_Expression = cs.field.layout.layoutsPerDim(dim).numGhostLayersRight + cs.field.layout.layoutsPerDim(dim).numDupLayersRight
+          cs.field.layout.idxById("DLB", dim) - cs.field.referenceOffset(dim) + ret
         })
 
         lowerBounds = (lowerBounds, newLowerBounds).zipped.map(IR_Maximum(_, _))
@@ -239,8 +239,8 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
 
       for (cs <- postComms) {
         val newUpperBounds = (0 until numDims).map(dim => {
-          val ret : IR_Expression = cs.field.fieldLayout.layoutsPerDim(dim).numGhostLayersLeft + cs.field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft
-          cs.field.fieldLayout.idxById("DRE", dim) - cs.field.referenceOffset(dim) - ret
+          val ret : IR_Expression = cs.field.layout.layoutsPerDim(dim).numGhostLayersLeft + cs.field.layout.layoutsPerDim(dim).numDupLayersLeft
+          cs.field.layout.idxById("DRE", dim) - cs.field.referenceOffset(dim) - ret
         })
 
         upperBounds = (upperBounds, newUpperBounds).zipped.map(IR_Minimum(_, _))
@@ -249,7 +249,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
       // outerRegion
       var boundaryLoop = Duplicate(loop)
       boundaryLoop.condition = Some(IR_OrOr(boundaryLoop.condition.getOrElse(IR_BooleanConstant(false)),
-        (0 until field.fieldLayout.numDimsGrid).map(dim =>
+        (0 until field.layout.numDimsGrid).map(dim =>
           IR_OrOr(IR_Lower(loopIt(dim), lowerBounds(dim)), IR_GreaterEqual(loopIt(dim), upperBounds(dim))) : IR_Expression).reduce(IR_OrOr)))
       stmts += boundaryLoop
 
@@ -260,7 +260,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
       // innerRegion
       var coreLoop = Duplicate(loop)
       coreLoop.condition = Some(IR_AndAnd(coreLoop.condition.getOrElse(IR_BooleanConstant(true)),
-        (0 until field.fieldLayout.numDimsGrid).map(dim =>
+        (0 until field.layout.numDimsGrid).map(dim =>
           IR_AndAnd(IR_GreaterEqual(loopIt(dim), lowerBounds(dim)), IR_Lower(loopIt(dim), upperBounds(dim))) : IR_Expression).reduce(IR_AndAnd)))
 
       stmts += coreLoop

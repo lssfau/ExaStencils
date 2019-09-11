@@ -37,10 +37,10 @@ case class IR_IsOnSpecBoundary(var field : IR_Field, var neigh : NeighborInfo, v
     // should work for node, cell and face localizations
 
     var conditions = ListBuffer[IR_Expression](IR_Negation(IR_IV_NeighborIsValid(field.domain.index, neigh.index)))
-    for (dim <- 0 until field.fieldLayout.numDimsGrid) {
+    for (dim <- 0 until field.layout.numDimsGrid) {
       neigh.dir(dim) match {
-        case -1 => conditions += IR_Lower(Duplicate(index(dim)), field.fieldLayout.idxById("DLE", dim) - field.referenceOffset(dim))
-        case 1  => conditions += IR_GreaterEqual(Duplicate(index(dim)), field.fieldLayout.idxById("DRB", dim) - field.referenceOffset(dim))
+        case -1 => conditions += IR_Lower(Duplicate(index(dim)), field.layout.idxById("DLE", dim) - field.referenceOffset(dim))
+        case 1  => conditions += IR_GreaterEqual(Duplicate(index(dim)), field.layout.idxById("DRB", dim) - field.referenceOffset(dim))
         case 0  => // true
       }
     }
@@ -67,10 +67,10 @@ case class IR_IsValidComputationPoint(var field : IR_Field, var index : IR_Expre
         IR_Negation(applicableNeighbors.map(n => IR_IsOnSpecBoundary(field, n, index).expand().inner).reduce((a, b) => IR_OrOr(a, b)))
 
     val isInnerOrDup =
-      (0 until field.fieldLayout.numDimsGrid).map(dim =>
+      (0 until field.layout.numDimsGrid).map(dim =>
         IR_AndAnd(
-          IR_Lower(Duplicate(index(dim)), field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)),
-          IR_GreaterEqual(Duplicate(index(dim)), field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)))).reduce((a, b) => IR_AndAnd(a, b))
+          IR_Lower(Duplicate(index(dim)), field.layout.idxById("DRE", dim) - field.referenceOffset(dim)),
+          IR_GreaterEqual(Duplicate(index(dim)), field.layout.idxById("DLB", dim) - field.referenceOffset(dim)))).reduce((a, b) => IR_AndAnd(a, b))
 
     IR_AndAnd(isNotOnBoundary, isInnerOrDup)
   }

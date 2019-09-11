@@ -43,7 +43,7 @@ case class IR_DirectFieldAccess(
     var index : IR_ExpressionIndex) extends IR_MultiDimFieldAccess with IR_PolyArrayAccessLike {
 
   override def datatype = {
-    val layout = field.fieldLayout
+    val layout = field.layout
     if (index.length == layout.numDimsGrid)
       layout.datatype
     else if (index.length == layout.numDimsData)
@@ -67,7 +67,7 @@ case class IR_DirectFieldAccess(
     replaceSpecial(name).toString()
   }
 
-  def linearize = IR_LinearizedFieldAccess(field, slot, fragIdx, field.fieldLayout.linearizeIndex(index))
+  def linearize = IR_LinearizedFieldAccess(field, slot, fragIdx, field.layout.linearizeIndex(index))
 }
 
 /// IR_LinearizeDirectFieldAccess
@@ -99,7 +99,7 @@ case class IR_FieldAccess(
     var frozen : Boolean = false) extends IR_MultiDimFieldAccess with IR_CanBeOffset {
 
   override def datatype = {
-    val layout = field.fieldLayout
+    val layout = field.layout
     if (index.length == layout.numDimsGrid)
       layout.datatype
     else if (index.length == layout.numDimsData)
@@ -160,7 +160,7 @@ case class IR_LinearizedFieldAccess(
     var slot : IR_Expression,
     var fragIdx : IR_Expression,
     var index : IR_Expression) extends IR_FieldAccessLike with IR_Expandable {
-  override def datatype = field.fieldLayout.datatype
+  override def datatype = field.layout.datatype
 
   override def expand() = {
     IR_ArrayAccess(

@@ -29,7 +29,7 @@ object MPI_DataType {
       return false
 
     // skip vector and matrix fields for now
-    if (field.fieldLayout.numDimsData > field.fieldLayout.numDimsGrid)
+    if (field.layout.numDimsData > field.layout.numDimsGrid)
       return false
 
     // skip fields targeted by layout transformations
@@ -75,12 +75,12 @@ case class MPI_DataType(var field : IR_Field, var indexRange : IR_ExpressionInde
     // determine data type parameters
     val blockLengthExp : IR_Expression = indexRange.end(0) - indexRange.begin(0)
     var blockCountExp : IR_Expression = 1
-    var strideExp : IR_Expression = field.fieldLayout(0).total
+    var strideExp : IR_Expression = field.layout(0).total
 
     var done = false
     for (dim <- 1 until indexRange.length; if !done) {
       if (1 == IR_SimplifyExpression.evalIntegral(indexRange.end(dim) - indexRange.begin(dim))) {
-        strideExp *= field.fieldLayout.defIdxById("TOT", dim)
+        strideExp *= field.layout.defIdxById("TOT", dim)
       } else {
         blockCountExp = indexRange.end(dim) - indexRange.begin(dim)
         done = true // break

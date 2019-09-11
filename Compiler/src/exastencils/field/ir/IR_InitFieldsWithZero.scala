@@ -21,12 +21,12 @@ case class IR_InitFieldsWithZero() extends IR_FuturePlainFunction {
     var statements : ListBuffer[IR_Statement] = new ListBuffer
 
     for (field <- fields) {
-      val numDims = field.fieldLayout.numDimsData
+      val numDims = field.layout.numDimsData
       val index = IR_LoopOverDimensions.defIt(numDims)
 
       val loopOverDims = new IR_LoopOverDimensions(numDims, IR_ExpressionIndexRange(
-        IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GLB", dim))),
-        IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GRE", dim)))),
+        IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.layout.idxById("GLB", dim))),
+        IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.layout.idxById("GRE", dim)))),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           IR_Assignment(
             IR_DirectFieldAccess(field, slot, Duplicate(index)),

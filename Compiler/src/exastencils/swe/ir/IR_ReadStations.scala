@@ -2,25 +2,15 @@ package exastencils.swe.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.baseExt.ir.IR_ArrayDatatype
-import exastencils.baseExt.ir.IR_ExpressionIndexRange
-import exastencils.baseExt.ir.IR_LoopOverDimensions
-import exastencils.baseExt.ir.IR_LoopOverFragments
-import exastencils.config.Knowledge
-import exastencils.config.Settings
-import exastencils.domain.ir.IR_DomainCollection
-import exastencils.domain.ir.IR_IV_Nfragments
-import exastencils.domain.ir.IR_ReadLineFromFile
+import exastencils.base.ir._
+import exastencils.baseExt.ir._
+import exastencils.config._
+import exastencils.domain.ir._
 import exastencils.field.ir.IR_FieldCollection
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
-import exastencils.parallelization.api.mpi.MPI_Bcast
-import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
-import exastencils.parallelization.api.mpi.MPI_Reduce
-import exastencils.util.ir.IR_RawPrint
-import exastencils.util.ir.IR_ReadStream
+import exastencils.parallelization.api.mpi._
+import exastencils.util.ir._
 
 case class IR_ReadStations() extends IR_FuturePlainFunction {
   override var name = "readStations"
@@ -149,7 +139,7 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
 
     val bath = IR_FieldCollection.getByIdentifier("bath", Knowledge.maxLevel).get
 
-    def resolveIndex(indexId : String, dim : Int) = bath.fieldLayout.idxById(indexId, dim)
+    def resolveIndex(indexId : String, dim : Int) = bath.layout.idxById(indexId, dim)
 
     val start = IR_ExpressionIndex((0 until numDims).toArray.map { i => 0 })
     val end = IR_ExpressionIndex((0 until numDims).toArray.map { i => resolveIndex("DRE", i) - 1 - resolveIndex("DLB", i) : IR_Expression })

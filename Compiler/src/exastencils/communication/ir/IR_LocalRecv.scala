@@ -24,7 +24,7 @@ case class IR_LocalRecv(
     var insideFragLoop : Boolean,
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
-  def numDims = field.fieldLayout.numDimsData
+  def numDims = field.layout.numDimsData
 
   override def expand() : Output[IR_Statement] = {
     var innerStmt : IR_Statement = IR_Assignment(

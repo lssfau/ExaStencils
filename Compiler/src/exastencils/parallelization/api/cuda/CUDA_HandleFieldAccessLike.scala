@@ -35,15 +35,15 @@ object CUDA_GatherFieldAccessLike extends QuietDefaultStrategy("Gather local Fie
   }
 
   this += new Transformation("Searching", {
-    case stmt @ IR_Assignment(access : IR_MultiDimFieldAccess, _, _)                                =>
+    case stmt @ IR_Assignment(access : IR_MultiDimFieldAccess, _, _)                           =>
       writtenFields += extractFieldIdentifier(access)
       stmt
-    case access : IR_MultiDimFieldAccess if access.field.fieldLayout.numDimsData <= maximalFieldDim =>
+    case access : IR_MultiDimFieldAccess if access.field.layout.numDimsData <= maximalFieldDim =>
       val field = access.field
       val identifier = extractFieldIdentifier(access)
 
       // Evaluate indices. Should be of the form "variable + offset". Ignore all other fields.
-      var suitableForSharedMemory = field.fieldLayout.numDimsData <= Platform.hw_cuda_maxNumDimsBlock
+      var suitableForSharedMemory = field.layout.numDimsData <= Platform.hw_cuda_maxNumDimsBlock
       val accessIndices = access.index.indices
       val indexConstantPart = Array.fill[Long](accessIndices.length)(0)
 

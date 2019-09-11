@@ -29,10 +29,10 @@ case class IR_CommunicateFunction(
 
   override def prettyprint_decl() = prettyprint
 
-  def numDimsGrid = field.fieldLayout.numDimsGrid
-  def numDimsData = field.fieldLayout.numDimsData
+  def numDimsGrid = field.layout.numDimsGrid
+  def numDimsData = field.layout.numDimsData
 
-  def resolveIndex(indexId : String, dim : Int) = field.fieldLayout.idxById(indexId, dim)
+  def resolveIndex(indexId : String, dim : Int) = field.layout.idxById(indexId, dim)
 
   def genIndicesDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)] = {
     // TODO: this only works for comm_onlyAxisNeighbors == false if coarse grid topology is regular, otherwise iteration spaces must be adapted
@@ -368,9 +368,9 @@ case class IR_CommunicateFunction(
     // sync duplicate values
     if (dupLayerExch && field.communicatesDuplicated) {
       val concurrencyId = if (begin && finish) 0 else 0
-      if (field.fieldLayout.layoutsPerDim.foldLeft(0)((old : Int, l) => old max l.numDupLayersLeft max l.numDupLayersRight) > 0) {
+      if (field.layout.layoutsPerDim.foldLeft(0)((old : Int, l) => old max l.numDupLayersLeft max l.numDupLayersRight) > 0) {
         if (Knowledge.comm_batchCommunication) {
-          for (dim <- 0 until field.fieldLayout.numDimsGrid) {
+          for (dim <- 0 until field.layout.numDimsGrid) {
             val recvNeighbors = ListBuffer(neighbors(2 * dim + 0))
             val sendNeighbors = ListBuffer(neighbors(2 * dim + 1))
 
@@ -540,9 +540,9 @@ case class IR_CommunicateFunction(
     // update ghost layers
     if (ghostLayerExch && field.communicatesGhosts) {
       val concurrencyId = if (begin && finish) 0 else 1
-      if (field.fieldLayout.layoutsPerDim.foldLeft(0)((old : Int, l) => old max l.numGhostLayersLeft max l.numGhostLayersRight) > 0) {
+      if (field.layout.layoutsPerDim.foldLeft(0)((old : Int, l) => old max l.numGhostLayersLeft max l.numGhostLayersRight) > 0) {
         if (Knowledge.comm_batchCommunication) {
-          for (dim <- 0 until field.fieldLayout.numDimsGrid) {
+          for (dim <- 0 until field.layout.numDimsGrid) {
             val curNeighbors = ListBuffer(neighbors(2 * dim + 0), neighbors(2 * dim + 1))
 
             if (begin) {

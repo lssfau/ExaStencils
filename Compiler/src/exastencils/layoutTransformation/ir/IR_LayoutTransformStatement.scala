@@ -99,17 +99,17 @@ case class IR_FieldConcatenation(mergedFieldName : String, fieldsToMerge : Seq[S
         if (field.numSlots != 1)
           Logger.error("concat slotted fields is not yet supported! (reason: all of their advance statements will affect the merged field, too, which results in too many advances)")
 
-        val dim : Int = field.fieldLayout.numDimsData + 1
+        val dim : Int = field.layout.numDimsData + 1
 
         // create new field, if it does not exist yet
         if (newFields(field.level) == null) {
           val newField = field.createDuplicate()
           newField.name = mergedFieldName
-          newField.fieldLayout = field.fieldLayout.createDuplicate()
-          newField.fieldLayout.name = "merged_" + mergedFieldName
-          newField.fieldLayout.layoutsPerDim = Array.fill(dim)(IR_FieldLayoutPerDim(0, 0, 0, 0, 0, 0, 0))
-          newField.fieldLayout.layoutsPerDim(dim - 1).numInnerLayers = fieldsToMerge.length
-          newField.fieldLayout.datatype = IR_ArrayDatatype(newField.fieldLayout.datatype, fieldsToMerge.length)
+          newField.layout = field.layout.createDuplicate()
+          newField.layout.name = "merged_" + mergedFieldName
+          newField.layout.layoutsPerDim = Array.fill(dim)(IR_FieldLayoutPerDim(0, 0, 0, 0, 0, 0, 0))
+          newField.layout.layoutsPerDim(dim - 1).numInnerLayers = fieldsToMerge.length
+          newField.layout.datatype = IR_ArrayDatatype(newField.layout.datatype, fieldsToMerge.length)
           newFields(field.level) = newField
         }
 
@@ -120,12 +120,12 @@ case class IR_FieldConcatenation(mergedFieldName : String, fieldsToMerge : Seq[S
           Logger.error(s"slots of fields to merge for '$mergedFieldName' do not match!")
         if (newField.gridDatatype.resolveBaseDatatype != field.gridDatatype.resolveBaseDatatype)
           Logger.error(s"base datatypes of fields to merge for '$mergedFieldName' do not match!")
-        if (newField.fieldLayout.numDimsData != dim)
+        if (newField.layout.numDimsData != dim)
           Logger.error(s"dimensionalities of fields to merge for '$mergedFieldName' do not match!")
 
         // update layout
-        val oLpD = field.fieldLayout.layoutsPerDim
-        val nLpD = newField.fieldLayout.layoutsPerDim
+        val oLpD = field.layout.layoutsPerDim
+        val nLpD = newField.layout.layoutsPerDim
         for (i <- 0 until dim - 1) {
           oLpD(i).total match {
             case IR_IntegerConstant(c) =>
@@ -145,7 +145,7 @@ case class IR_FieldConcatenation(mergedFieldName : String, fieldsToMerge : Seq[S
     // update all total values and register new fields to IR_FieldCollection
     for (field <- newFields)
       if (field != null) {
-        for (lpd <- field.fieldLayout.layoutsPerDim)
+        for (lpd <- field.layout.layoutsPerDim)
           lpd.updateTotal()
         IR_FieldCollection.add(field)
       }

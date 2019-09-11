@@ -33,8 +33,8 @@ case class IR_PrintField(
     var onlyValues : Boolean = false,
     var binary : Boolean = false) extends IR_Statement with IR_Expandable {
 
-  def numDimsGrid = field.fieldLayout.numDimsGrid
-  def numDimsData = field.fieldLayout.numDimsData
+  def numDimsGrid = field.layout.numDimsGrid
+  def numDimsData = field.layout.numDimsData
 
   def getPos(field : IR_Field, dim : Int) : IR_Expression = {
     // TODO: add function to field (layout) to decide node/cell for given dim
@@ -105,8 +105,8 @@ case class IR_PrintField(
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
           IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById(fieldBegin, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById(fieldEnd, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
+            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(fieldBegin, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
+            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(fieldEnd, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
             IR_IfCondition(condition,
               IR_Print(stream, printComponents)))))
       ,
@@ -452,8 +452,8 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
 
     def vDisc = ListBuffer(vDiscLower0, vDiscLower1, vDiscLower2, vDiscUpper0, vDiscUpper1, vDiscUpper2)
 
-    val numCells_x = etaDiscLower0.fieldLayout.layoutsPerDim(0).numInnerLayers
-    val numCells_y = etaDiscLower0.fieldLayout.layoutsPerDim(1).numInnerLayers
+    val numCells_x = etaDiscLower0.layout.layoutsPerDim(0).numInnerLayers
+    val numCells_y = etaDiscLower0.layout.layoutsPerDim(1).numInnerLayers
     val numPointsPerFrag = 6 * numCells_x * numCells_y
 
     def numValidFrags = IR_VariableAccess("numValidFrags", IR_IntegerDatatype)
@@ -538,8 +538,8 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
         IR_LoopOverFragments(
           IR_IfCondition(IR_IV_IsValidForDomain(etaDiscLower0.domain.index),
             IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
-              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.fieldLayout.idxById("IB", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression)),
-              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.fieldLayout.idxById("IE", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression))),
+              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.layout.idxById("IB", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression)),
+              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.layout.idxById("IE", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression))),
               triPrint))),
         IR_MemberFunctionCall(stream, "close"))
 
@@ -587,8 +587,8 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
         IR_LoopOverFragments(
           IR_IfCondition(IR_IV_IsValidForDomain(etaDiscLower0.domain.index),
             IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
-              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.fieldLayout.idxById("DLB", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression)),
-              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.fieldLayout.idxById("DRE", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression))),
+              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.layout.idxById("DLB", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression)),
+              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.layout.idxById("DRE", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression))),
               cellPrint))),
         IR_MemberFunctionCall(stream, "close"),
         IR_Assignment(fragmentOffset, fragmentOffset + numValidFrags))
@@ -654,8 +654,8 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
           IR_LoopOverFragments(
             IR_IfCondition(IR_IV_IsValidForDomain(etaDiscLower0.domain.index),
               IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
-                IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.fieldLayout.idxById("IB", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression)),
-                IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.fieldLayout.idxById("IE", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression))),
+                IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.layout.idxById("IB", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression)),
+                IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.layout.idxById("IE", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression))),
                 print))),
           IR_MemberFunctionCall(stream, "close"))
 
@@ -715,9 +715,9 @@ case class IR_PrintVtkNS(var filename : IR_Expression, level : Int) extends IR_S
 
   def numDimsGrid = p.numDimsGrid
 
-  def numCells_x = p.fieldLayout.layoutsPerDim(0).numInnerLayers
-  def numCells_y = p.fieldLayout.layoutsPerDim(1).numInnerLayers
-  def numCells_z = if (numDimsGrid > 2) p.fieldLayout.layoutsPerDim(2).numInnerLayers else 1
+  def numCells_x = p.layout.layoutsPerDim(0).numInnerLayers
+  def numCells_y = p.layout.layoutsPerDim(1).numInnerLayers
+  def numCells_z = if (numDimsGrid > 2) p.layout.layoutsPerDim(2).numInnerLayers else 1
   def numPointsPerFrag = (numCells_x + 1) * (numCells_y + 1) * (if (numDimsGrid > 2) numCells_z + 1 else 1)
   def numFrags = Knowledge.domain_numFragmentsTotal
   def numCells = numCells_x * numCells_y * numCells_z * numFrags
@@ -786,8 +786,8 @@ case class IR_PrintVtkNS(var filename : IR_Expression, level : Int) extends IR_S
         IR_LoopOverFragments(
           IR_IfCondition(IR_IV_IsValidForDomain(p.domain.index),
             IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
-              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.fieldLayout.idxById("DLB", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)),
-              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.fieldLayout.idxById("DRE", dim) + 1 - Duplicate(p.referenceOffset(dim)) : IR_Expression))),
+              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DLB", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)),
+              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DRE", dim) + 1 - Duplicate(p.referenceOffset(dim)) : IR_Expression))),
               pointPrint))),
         IR_MemberFunctionCall(stream, "close"))
 
@@ -848,8 +848,8 @@ case class IR_PrintVtkNS(var filename : IR_Expression, level : Int) extends IR_S
         IR_LoopOverFragments(
           IR_IfCondition(IR_IV_IsValidForDomain(p.domain.index),
             IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
-              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.fieldLayout.idxById("DLB", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)),
-              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.fieldLayout.idxById("DRE", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression))),
+              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DLB", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)),
+              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DRE", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression))),
               cellPrint))),
         IR_MemberFunctionCall(stream, "close"))
 
@@ -905,8 +905,8 @@ case class IR_PrintVtkNS(var filename : IR_Expression, level : Int) extends IR_S
           IR_LoopOverFragments(
             IR_IfCondition(IR_IV_IsValidForDomain(p.domain.index),
               IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
-                IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.fieldLayout.idxById("DLB", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)),
-                IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.fieldLayout.idxById("DRE", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression))),
+                IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DLB", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)),
+                IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DRE", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression))),
                 print))),
           IR_MemberFunctionCall(stream, "close"))
 
@@ -959,9 +959,9 @@ case class IR_PrintVtkNNF(var filename : IR_Expression, level : Int) extends IR_
 
   def numDimsGrid = p.numDimsGrid
 
-  def numCells_x = p.fieldLayout.layoutsPerDim(0).numInnerLayers
-  def numCells_y = p.fieldLayout.layoutsPerDim(1).numInnerLayers
-  def numCells_z = if (numDimsGrid > 2) p.fieldLayout.layoutsPerDim(2).numInnerLayers else 1
+  def numCells_x = p.layout.layoutsPerDim(0).numInnerLayers
+  def numCells_y = p.layout.layoutsPerDim(1).numInnerLayers
+  def numCells_z = if (numDimsGrid > 2) p.layout.layoutsPerDim(2).numInnerLayers else 1
   def numPointsPerFrag = (numCells_x + 1) * (numCells_y + 1) * (if (numDimsGrid > 2) numCells_z + 1 else 1)
   def numFrags = Knowledge.domain_numFragmentsTotal
   def numCells = numCells_x * numCells_y * numCells_z * numFrags
@@ -1030,8 +1030,8 @@ case class IR_PrintVtkNNF(var filename : IR_Expression, level : Int) extends IR_
         IR_LoopOverFragments(
           IR_IfCondition(IR_IV_IsValidForDomain(p.domain.index),
             IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
-              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.fieldLayout.idxById("DLB", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)),
-              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.fieldLayout.idxById("DRE", dim) + 1 - Duplicate(p.referenceOffset(dim)) : IR_Expression))),
+              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DLB", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)),
+              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DRE", dim) + 1 - Duplicate(p.referenceOffset(dim)) : IR_Expression))),
               pointPrint))),
         IR_MemberFunctionCall(stream, "close"))
 
@@ -1092,8 +1092,8 @@ case class IR_PrintVtkNNF(var filename : IR_Expression, level : Int) extends IR_
         IR_LoopOverFragments(
           IR_IfCondition(IR_IV_IsValidForDomain(p.domain.index),
             IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
-              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.fieldLayout.idxById("DLB", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)),
-              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.fieldLayout.idxById("DRE", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression))),
+              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DLB", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)),
+              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DRE", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression))),
               cellPrint))),
         IR_MemberFunctionCall(stream, "close"))
 
@@ -1149,8 +1149,8 @@ case class IR_PrintVtkNNF(var filename : IR_Expression, level : Int) extends IR_
           IR_LoopOverFragments(
             IR_IfCondition(IR_IV_IsValidForDomain(p.domain.index),
               IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
-                IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.fieldLayout.idxById("DLB", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)),
-                IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.fieldLayout.idxById("DRE", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression))),
+                IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DLB", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)),
+                IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DRE", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression))),
                 print))),
           IR_MemberFunctionCall(stream, "close"))
 

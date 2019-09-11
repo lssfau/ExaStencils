@@ -95,7 +95,7 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
   }
 
   def applyLocalTrafo(fieldAccess : IR_DirectFieldAccess, neigh : NeighborInfo) = {
-    def fieldSize(i : Int) = fieldAccess.field.fieldLayout.defTotal(i) - 1
+    def fieldSize(i : Int) = fieldAccess.field.layout.defTotal(i) - 1
 
     val rot90mat = Array(Array(0, -1), Array(1, 0))
 

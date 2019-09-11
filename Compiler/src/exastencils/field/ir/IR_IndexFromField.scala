@@ -30,7 +30,7 @@ case class IR_IV_IndexFromField(var layoutIdentifier : String, var level : IR_Ex
       val field = IR_FieldCollection.getByLayoutIdentifier(layoutIdentifier, l, true)
       if (field.isDefined) {
         statements += IR_Assignment(resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, layoutIdentifier, level, IR_NullExpression),
-          field.get.fieldLayout.defIdxById(indexId, dim))
+          field.get.layout.defIdxById(indexId, dim))
       } else {
         // no field found -> try external fields
         val extField = IR_ExternalFieldCollection.getByLayoutIdentifier(layoutIdentifier, l, true)

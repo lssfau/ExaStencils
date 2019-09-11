@@ -18,7 +18,7 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
     val maxIndex = IR_ConstIndex(Array.fill(numDimensions)(Int.MaxValue))
 
     solve.unknowns.foreach(fa => {
-      val layout = fa.field.fieldLayout
+      val layout = fa.field.layout
       val offset = fa.getOffsetFromIndex
       val refOffset = layout.referenceOffset.toConstIndex
 

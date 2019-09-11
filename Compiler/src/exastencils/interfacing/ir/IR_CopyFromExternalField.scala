@@ -31,7 +31,7 @@ case class IR_CopyFromExternalField(var dest : IR_Field, var src : IR_ExternalFi
     def multiIndex = IR_LoopOverDimensions.defIt(loopDim)
 
     // access field layouts
-    val internal = dest.fieldLayout
+    val internal = dest.layout
     val external = src.fieldLayout
 
     // match ghost layer info from internal and external fields

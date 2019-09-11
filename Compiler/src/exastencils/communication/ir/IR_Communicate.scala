@@ -27,7 +27,7 @@ case class IR_Communicate(
     this += new Transformation("SearchAndReplace", {
       case access : IR_VariableAccess =>
         var ret : IR_Expression = access
-        val numDims = field.fieldLayout.numDimsData
+        val numDims = field.layout.numDimsData
         for (dim <- 0 until numDims)
           if (IR_FieldIteratorAccess(dim) == access)
             ret = IR_FieldIteratorAccess(dim) - field.referenceOffset(dim)

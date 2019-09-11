@@ -42,7 +42,7 @@ case class IR_CopyToSendBuffer(
     var concurrencyId : Int,
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
-  def numDims = field.fieldLayout.numDimsData
+  def numDims = field.layout.numDimsData
 
   override def expand() : Output[StatementList] = {
     var ret = ListBuffer[IR_Statement]()

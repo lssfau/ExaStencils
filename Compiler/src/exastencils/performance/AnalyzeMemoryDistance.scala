@@ -135,7 +135,7 @@ object AnalyzeIterationDistance extends QuietDefaultStrategy(
         val field = fa.field
         // Array of number of iterations per dimension
         val iterSpace = curLoop.maxIterationCount()
-        val numDims = fa.field.fieldLayout.numDimsGrid
+        val numDims = fa.field.layout.numDimsGrid
         val fieldAccess = Duplicate(fa)
         IR_GeneralSimplify.doUntilDoneStandalone(fieldAccess)
         println(fa.field.codeName + fieldAccess.index.prettyprint())

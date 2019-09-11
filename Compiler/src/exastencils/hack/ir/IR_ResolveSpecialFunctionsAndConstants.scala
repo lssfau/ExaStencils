@@ -339,7 +339,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_NullStatement
       } else {
         val field = args(0).asInstanceOf[IR_FieldAccess]
-        val fieldLayout = field.field.fieldLayout
+        val fieldLayout = field.field.layout
         val numPoints = (0 until fieldLayout.numDimsGrid).map(dim =>
           fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight)
         val filename = args(1) //.asInstanceOf[IR_StringConstant].value
@@ -368,7 +368,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_NullStatement
       } else {
         val field = args(0).asInstanceOf[IR_FieldAccess]
-        val fieldLayout = field.field.fieldLayout
+        val fieldLayout = field.field.layout
         var numPoints = (0 until fieldLayout.numDimsGrid).map(dim =>
           fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight).toList
         val filename = args(1) //.asInstanceOf[IR_StringConstant].value
@@ -402,7 +402,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_NullStatement
       } else {
         val fields = args.map(_.asInstanceOf[IR_FieldAccess])
-        val fieldLayouts = fields.map(_.field.fieldLayout)
+        val fieldLayouts = fields.map(_.field.layout)
         val numPoints = fieldLayouts.map(fieldLayout => (0 until fieldLayout.numDimsGrid).map(dim =>
           fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight))
 
@@ -434,7 +434,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_NullStatement
       } else {
         val fields = args.map(_.asInstanceOf[IR_FieldAccess])
-        val fieldLayouts = fields.map(_.field.fieldLayout)
+        val fieldLayouts = fields.map(_.field.layout)
         val numPoints = fieldLayouts.map(fieldLayout => (0 until fieldLayout.numDimsGrid).map(dim =>
           fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight).toList)
 
@@ -472,7 +472,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       } else {
         val condition = args(0)
         val fields = args.drop(1).map(_.asInstanceOf[IR_FieldAccess])
-        val fieldLayouts = fields.map(_.field.fieldLayout)
+        val fieldLayouts = fields.map(_.field.layout)
         val numPoints = fieldLayouts.map(fieldLayout => (0 until fieldLayout.numDimsGrid).map(dim =>
           fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight).toList)
 

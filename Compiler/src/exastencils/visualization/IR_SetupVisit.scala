@@ -23,8 +23,8 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     // IR_FieldAccess
 
     for (field <- IR_FieldCollection.objects) {
-      val numDims = field.fieldLayout.numDimsGrid
-      val numPointsTmp = (0 until numDims).map(d => field.fieldLayout.defIdxDupRightEnd(d) - field.fieldLayout.defIdxDupLeftBegin(d)).sum
+      val numDims = field.layout.numDimsGrid
+      val numPointsTmp = (0 until numDims).map(d => field.layout.defIdxDupRightEnd(d) - field.layout.defIdxDupLeftBegin(d)).sum
 
       fctBody += IR_IfCondition(
         HACK_IR_Native("(strcmp(name, \"" + field.name + "\") == 0 && " + field.level + " == s->curLevel)"),

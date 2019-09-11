@@ -51,7 +51,7 @@ case class L4_FieldAccess(
   override def progress : IR_FieldAccess = ProgressLocation {
     val field = target.getProgressedObj()
 
-    val numDims = field.fieldLayout.numDimsGrid
+    val numDims = field.layout.numDimsGrid
     val index = IR_LoopOverDimensions.defIt(numDims)
 
     if (arrayIndex.isDefined)

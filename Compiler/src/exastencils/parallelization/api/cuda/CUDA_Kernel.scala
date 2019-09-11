@@ -129,7 +129,7 @@ case class CUDA_Kernel(var identifier : String,
 
       // 2.1 collect some basic information required for further calculations
       var requiredMemoryInByte = 0L
-      val offset = fieldAccesses.head.field.fieldLayout.referenceOffset
+      val offset = fieldAccesses.head.field.layout.referenceOffset
       val baseIndex = (loopVariables.take(offset.length), offset).zipped.map((x, y) => IR_Addition(IR_VariableAccess(x, IR_IntegerDatatype), y)).toArray[IR_Expression]
 
       // 2.2 calculate negative and positive deviation from the basic field index
@@ -158,13 +158,13 @@ case class CUDA_Kernel(var identifier : String,
       }
 
       // 2.3 calculate the required amount of shared memory
-      val numDupLayersLeft = fieldAccesses.head.field.fieldLayout.layoutsPerDim.map(x => x.numDupLayersLeft)
-      val numDupLayersRight = fieldAccesses.head.field.fieldLayout.layoutsPerDim.map(x => x.numDupLayersRight)
-      val numInnerLayers = fieldAccesses.head.field.fieldLayout.layoutsPerDim.map(x => x.numInnerLayers)
+      val numDupLayersLeft = fieldAccesses.head.field.layout.layoutsPerDim.map(x => x.numDupLayersLeft)
+      val numDupLayersRight = fieldAccesses.head.field.layout.layoutsPerDim.map(x => x.numDupLayersRight)
+      val numInnerLayers = fieldAccesses.head.field.layout.layoutsPerDim.map(x => x.numInnerLayers)
       val numPointsInStencil = (numDupLayersLeft, numInnerLayers, numDupLayersRight).zipped.map((x, y, z) => x + y + z)
       val numPointsInStencilPerThreadBlock = (numPointsInStencil, numThreadsPerBlock).zipped.map((x, y) => math.min(x, y))
       val arraySize = ((numPointsInStencilPerThreadBlock, leftDeviationFromBaseIndex).zipped.map(_ + _), rightDeviationFromBaseIndex).zipped.map(_ + _)
-      requiredMemoryInByte = arraySize.product * (fieldAccesses.head.field.fieldLayout.datatype match {
+      requiredMemoryInByte = arraySize.product * (fieldAccesses.head.field.layout.datatype match {
         case IR_RealDatatype   => if (Knowledge.useDblPrecision) 8 else 4
         case IR_DoubleDatatype => 8
         case IR_FloatDatatype  => 4
@@ -186,7 +186,7 @@ case class CUDA_Kernel(var identifier : String,
         rightDeviations(name) = rightDeviationFromBaseIndex
         rightDeviation(name) = rightDeviationFromBaseIndex.head
         sharedArraySize(name) = arraySize
-        fieldDatatype(name) = access.field.fieldLayout.datatype
+        fieldDatatype(name) = access.field.layout.datatype
         foundSomeAppropriateField = true
         availableSharedMemory -= requiredMemoryInByte
       }

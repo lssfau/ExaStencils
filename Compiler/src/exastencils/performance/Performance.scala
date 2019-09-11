@@ -489,7 +489,7 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
     try {
       offset = IR_SimplifyExpression.evalIntegral(
         IR_Linearization.linearizeIndex(offsetIndex,
-          IR_ExpressionIndex((0 until access.index.length).map(field.fieldLayout(_).total).toArray)))
+          IR_ExpressionIndex((0 until access.index.length).map(field.layout(_).total).toArray)))
       mdOffset = offsetIndex.toConstIndex
     } catch {
       case _ : EvaluationException => Logger.warn("Could not evaluate offset for " + offsetIndex.prettyprint())

@@ -71,7 +71,7 @@ case class L4_LoopOverField(
       case _                              => Logger.error(s"Trying to loop over $field - has to be of type FieldAccess or StencilFieldAccess")
     }
 
-    val numDims = resolvedField.fieldLayout.numDimsGrid
+    val numDims = resolvedField.layout.numDimsGrid
     val procStartOffset = IR_ExpressionIndex(Array.fill(numDims)(0))
     val procEndOffset = IR_ExpressionIndex(Array.fill(numDims)(0))
     val procIncrement = IR_ExpressionIndex(Array.fill(numDims)(1))
