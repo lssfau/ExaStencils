@@ -7,7 +7,6 @@ import exastencils.baseExt.ir._
 import exastencils.communication.DefaultNeighbors
 import exastencils.communication.ir._
 import exastencils.config._
-import exastencils.deprecated.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.globals.ir._
@@ -63,8 +62,11 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
   override def handle() : Unit = {
     IR_ProcessInlineKnowledge.apply()
 
-    // add some more nodes
-    IR_AddDefaultGlobals.apply()
+    // add globals - init mpi before cuda since cuda might need mpiRank to choose device
+    if (Knowledge.mpi_enabled)
+      MPI_AddGlobals.apply()
+    if (Knowledge.cuda_enabled)
+      CUDA_AddGlobals.apply()
 
     DefaultNeighbors.setup()
     IR_GlobalCollection.get += IR_AllocateDataFunction(IR_FieldCollection.objects, DefaultNeighbors.neighbors)
