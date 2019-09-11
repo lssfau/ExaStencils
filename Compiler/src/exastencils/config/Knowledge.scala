@@ -110,14 +110,6 @@ object Knowledge {
   // shortcut to an array containing the values of domain_rect_numFragsTotal_*
   def domain_rect_numFragsTotalAsVec : Array[Int] = Array(domain_rect_numFragsTotal_x, domain_rect_numFragsTotal_y, domain_rect_numFragsTotal_z)
 
-  /// Student project - Jeremias -> support for reading domain partitions from file at runtime
-  // TODO: refactor and integrate
-
-  // atm only "L-Shape", "X-Shape" in 2D possible; needs to be specified in case of onlyRectangular,rect_generate = false
-  var domain_useCase : String = ""
-  var domain_generateDomainFile : Boolean = false
-  var domain_fragmentTransformation : Boolean = false
-
   //// specifications for field
 
   // specifies precision of printField. If set to -1, default precision is used
@@ -649,7 +641,7 @@ object Knowledge {
 
     // domain
     Constraints.condEnsureValue(domain_rect_generate, false, !domain_onlyRectangular, "only rectangular domains can be generated")
-    Constraints.condEnsureValue(domain_readFromFile, true, !domain_rect_generate && domain_useCase == "" && !domain_onlyRectangular, "non-generated domains must be read from file")
+    Constraints.condEnsureValue(domain_readFromFile, true, !domain_rect_generate && !domain_onlyRectangular, "non-generated domains must be read from file")
     Constraints.condEnsureValue(domain_rect_generate, false, domain_readFromFile, "domain_rect_generate is not allowed if domain_readFromFile is enabled")
 
     Constraints.condEnsureValue(domain_rect_numBlocks_y, 1, domain_rect_generate && dimensionality < 2, "domain_rect_numBlocks_y must be set to 1 for problems with a dimensionality smaller 2")

@@ -7,8 +7,7 @@ import java.util.IdentityHashMap
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.communication.ir._
-import exastencils.config.Knowledge
-import exastencils.config.Platform
+import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
@@ -281,10 +280,6 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
             node.field = newField
           node
         case node : IR_IV_LocalCommDone        =>
-          for ((newField, _) <- Option(fieldReplace.get(node.field)))
-            node.field = newField
-          node
-        case node : InitGeomCoords             =>
           for ((newField, _) <- Option(fieldReplace.get(node.field)))
             node.field = newField
           node

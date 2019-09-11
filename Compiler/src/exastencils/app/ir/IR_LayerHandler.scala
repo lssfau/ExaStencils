@@ -125,8 +125,6 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_ResolveEvaluateOnGrid.apply()
     IR_ResolveVirtualFieldAccesses.apply()
 
-    if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
-
     IR_ResolveLoopOverPoints.apply()
     IR_ResolveIntergridIndices.apply()
     IR_ApplyOffsetToFieldAccess.apply()
