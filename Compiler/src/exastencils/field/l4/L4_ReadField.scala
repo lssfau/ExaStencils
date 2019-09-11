@@ -11,7 +11,12 @@ import exastencils.prettyprinting.PpStream
 
 /// L4_ReadField
 
-case class L4_ReadField(var filename : L4_Expression, var field : L4_FieldAccess, var condition : Option[L4_Expression] = None, var includeGhostLayers : Boolean = false) extends L4_Statement {
+case class L4_ReadField(
+    var filename : L4_Expression,
+    var field : L4_FieldAccess,
+    var condition : Option[L4_Expression] = None,
+    var includeGhostLayers : Boolean = false) extends L4_Statement {
+
   override def prettyprint(out : PpStream) = {
     if (includeGhostLayers)
       out << "readFieldWithGhost ( "
@@ -21,7 +26,15 @@ case class L4_ReadField(var filename : L4_Expression, var field : L4_FieldAccess
     if (condition.isDefined) out << ", " << condition.get
     out << " )"
   }
-  override def progress = ProgressLocation(IR_ReadField(filename.progress, field.progress.fieldSelection, condition.getOrElse(L4_BooleanConstant(true)).progress, includeGhostLayers))
+  override def progress = {
+    val progField = field.progress
+    ProgressLocation(IR_ReadField(
+      filename.progress,
+      progField.field,
+      progField.slot,
+      condition.getOrElse(L4_BooleanConstant(true)).progress,
+      includeGhostLayers))
+  }
 }
 
 /// L4_ResolveReadFieldFunctions

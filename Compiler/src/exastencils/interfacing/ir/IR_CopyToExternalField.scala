@@ -6,7 +6,6 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
-import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
 
 /// IR_CopyToExternalField
@@ -48,7 +47,7 @@ case class IR_CopyToExternalField(var src : IR_Field, var dest : IR_ExternalFiel
 
     // compile loop body
     def destAccess = IR_ExternalFieldAccess("dest", dest, multiIndex + offsetForExtField)
-    def srcAccess = IR_DirectFieldAccess(IR_FieldSelection(src, src.level, "slot"), multiIndex)
+    def srcAccess = IR_DirectFieldAccess(src, "slot", multiIndex)
     def loopBody = IR_Assignment(destAccess, srcAccess)
 
     // compile loop

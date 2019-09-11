@@ -7,30 +7,33 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.core.Duplicate
-import exastencils.deprecated.ir.IR_FieldSelection
+import exastencils.field.ir.IR_Field
 import exastencils.grid.ir._
 
 /// IR_ApplyBCFunction
 
 case class IR_ApplyBCFunction(
     var name : String,
-    var level : Int,
-    var fieldSelection : IR_FieldSelection,
+    var field : IR_Field,
+    var slot : IR_Expression,
+    var fragIdx : IR_Expression,
     var neighbors : ListBuffer[NeighborInfo],
     var insideFragLoop : Boolean) extends IR_FutureLeveledFunction {
 
+  override def level = field.level
+
   override def prettyprint_decl() = prettyprint
 
-  def numDimsGrid = fieldSelection.field.fieldLayout.numDimsGrid
+  def numDimsGrid = field.fieldLayout.numDimsGrid
 
-  def resolveIndex(indexId : String, dim : Int) = fieldSelection.field.fieldLayout.idxById(indexId, dim)
+  def resolveIndex(indexId : String, dim : Int) = field.fieldLayout.idxById(indexId, dim)
 
   def genIndicesBoundaryHandling(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)] = {
 
     curNeighbors.map(neigh => (neigh, IR_ExpressionIndexRange(
       IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map(dim =>
-          fieldSelection.fieldLayout.localization match {
+          field.fieldLayout.localization match {
             case IR_AtNode | IR_AtFaceCenter(`dim`)   => dim match {
               case i if neigh.dir(i) == 0 => resolveIndex("GLB", i) // DLB, GLB
               case i if neigh.dir(i) < 0  => resolveIndex("DLB", i) // DLB, GLB
@@ -44,7 +47,7 @@ case class IR_ApplyBCFunction(
           })),
       IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map(dim =>
-          fieldSelection.fieldLayout.localization match {
+          field.fieldLayout.localization match {
             case IR_AtNode | IR_AtFaceCenter(`dim`)   => dim match {
               case i if neigh.dir(i) == 0 => resolveIndex("GRE", i) // DRE, GRE
               case i if neigh.dir(i) < 0  => resolveIndex("DLE", i)
@@ -58,11 +61,11 @@ case class IR_ApplyBCFunction(
           })))))
   }
 
-  def compileBody(fieldSelection : IR_FieldSelection) : ListBuffer[IR_Statement] = {
+  def compileBody : ListBuffer[IR_Statement] = {
     var body = ListBuffer[IR_Statement]()
 
     val boundaryNeighs = neighbors.filter(neigh => 1 == neigh.dir.count(_ != 0)) // exactly one non-zero entry
-    body += IR_HandleBoundaries(Duplicate(fieldSelection), genIndicesBoundaryHandling(boundaryNeighs))
+    body += IR_HandleBoundaries(field, Duplicate(slot), Duplicate(fragIdx), genIndicesBoundaryHandling(boundaryNeighs))
 
     body
   }
@@ -75,6 +78,6 @@ case class IR_ApplyBCFunction(
       fctArgs += IR_FunctionArgument(IR_LoopOverFragments.defIt)
 
     // emit compiled function
-    IR_LeveledFunction(name, level, IR_UnitDatatype, fctArgs, compileBody(fieldSelection))
+    IR_LeveledFunction(name, level, IR_UnitDatatype, fctArgs, compileBody)
   }
 }

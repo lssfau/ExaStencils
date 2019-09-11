@@ -6,13 +6,14 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FieldIteratorAccess
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.deprecated.ir._
+import exastencils.field.ir.IR_Field
 
 /// IR_Communicate
 
 case class IR_Communicate(
     // FIXME: incorporate component accesses
-    var field : IR_FieldSelection,
+    var field : IR_Field,
+    var slot : IR_Expression,
     var op : String,
     var targets : ListBuffer[IR_CommunicateTarget],
     var condition : Option[IR_Expression]) extends IR_Statement with IR_SpecialExpandable {
@@ -26,10 +27,10 @@ case class IR_Communicate(
     this += new Transformation("SearchAndReplace", {
       case access : IR_VariableAccess =>
         var ret : IR_Expression = access
-        val numDims = field.field.fieldLayout.numDimsData
+        val numDims = field.fieldLayout.numDimsData
         for (dim <- 0 until numDims)
           if (IR_FieldIteratorAccess(dim) == access)
-            ret = IR_FieldIteratorAccess(dim) - field.field.referenceOffset(dim)
+            ret = IR_FieldIteratorAccess(dim) - field.referenceOffset(dim)
         ret
     }, false)
   }

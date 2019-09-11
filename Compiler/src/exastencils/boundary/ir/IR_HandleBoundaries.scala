@@ -10,9 +10,8 @@ import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.deprecated.ir._
 import exastencils.domain.ir._
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.field.ir._
 import exastencils.grid.ir._
 import exastencils.logger._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
@@ -20,7 +19,12 @@ import exastencils.parallelization.ir.IR_ParallelizationInfo
 /// IR_HandleBoundaries
 
 // TODO: refactor
-case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)]) extends IR_Statement with IR_Expandable {
+case class IR_HandleBoundaries(
+    var field : IR_Field,
+    var slot : IR_Expression,
+    var fragIdx : IR_Expression,
+    var neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)]) extends IR_Statement with IR_Expandable {
+
   def numDims = field.fieldLayout.numDimsGrid
 
   def setupFieldUpdate(neigh : NeighborInfo) : ListBuffer[IR_Statement] = {
@@ -51,13 +55,12 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
       //Grid.getGridObject.invokeAccessResolve(virtualField)
     })
 
-    val bc = Duplicate(field.field.boundary)
+    val bc = Duplicate(field.boundary)
     strat.applyStandalone(IR_Root(bc))
 
     // FIXME: this works for now, but users may want to specify bc's per vector element
     // FIXME: (update) adapt for numDimsGrid once new vector and matrix data types are fully integrated
     val index = IR_LoopOverDimensions.defIt(numDims)
-    def fieldSel = Duplicate(IR_FieldSelection(field.field, field.level, field.slot, field.fragIdx)) // TODO: check
 
     def offsetIndex = IR_ExpressionIndex(neigh.dir ++ Array.fill(numDims - field.fieldLayout.numDimsGrid)(0))
     def offsetIndexWithTrafo(f : (Int => Int)) = IR_ExpressionIndex(neigh.dir.map(f) ++ Array.fill(numDims - field.fieldLayout.numDimsGrid)(0))
@@ -67,19 +70,26 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
         // TODO: move this logic to the appropriate bc classes
 
         def forNode() = order match {
-          case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index), IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
-          case 2 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index),
-            ((4.0 / 3.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
-              + ((-1.0 / 3.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -2 * i))))
+          case 1 =>
+            statements += IR_Assignment(IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index),
+              IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -i)))
+
+          case 2 =>
+            statements += IR_Assignment(IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index),
+              ((4.0 / 3.0) * IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -i)))
+                + ((-1.0 / 3.0) * IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -2 * i))))
+
           case 3 => // TODO: do we want this? what do we do on the coarser levels?
-            statements += IR_Assignment(IR_FieldAccess(fieldSel, index),
-              ((3.0 * 6.0 / 11.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -1 * i)))
-                + ((-3.0 / 2.0 * 6.0 / 11.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -2 * i)))
-                + ((1.0 / 3.0 * 6.0 / 11.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -3 * i))))
+            statements += IR_Assignment(IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index),
+              ((3.0 * 6.0 / 11.0) * IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -1 * i)))
+                + ((-3.0 / 2.0 * 6.0 / 11.0) * IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -2 * i)))
+                + ((1.0 / 3.0 * 6.0 / 11.0) * IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -3 * i))))
         }
 
         def forCell() = order match {
-          case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex), IR_FieldAccess(fieldSel, index))
+          case 1 =>
+            statements += IR_Assignment(IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndex),
+              IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index))
         }
 
         field.fieldLayout.localization match {
@@ -90,11 +100,11 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
         }
 
       case IR_DirichletBC(boundaryExpr, order) =>
-        def forNode() = statements += IR_Assignment(IR_FieldAccess(fieldSel, index), boundaryExpr)
+        def forNode() = statements += IR_Assignment(IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index), boundaryExpr)
 
         def forCell() = order match {
-          case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
-            (2.0 * boundaryExpr) - IR_FieldAccess(fieldSel, index))
+          case 1 => statements += IR_Assignment(IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndex),
+            (2.0 * boundaryExpr) - IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index))
           case 2 =>
             // determine weights for interpolation
             var w_0_5, w_1, w_2 : IR_Expression = 0
@@ -119,8 +129,8 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
               w_1 = ((x - x_0_5) * (x - x_2)) / ((x_1 - x_0_5) * (x_1 - x_2))
               w_2 = ((x - x_0_5) * (x - x_1)) / ((x_2 - x_0_5) * (x_2 - x_1))
             }
-            statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
-              w_0_5 * boundaryExpr + w_1 * IR_FieldAccess(fieldSel, index) + w_2 * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
+            statements += IR_Assignment(IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndex),
+              w_0_5 * boundaryExpr + w_1 * IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index) + w_2 * IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -i)))
         }
 
         field.fieldLayout.localization match {
@@ -135,10 +145,10 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
   }
 
   def constructLoops = {
-    val layout = field.field.fieldLayout
+    val layout = field.fieldLayout
 
     IR_LoopOverFragments(
-      ListBuffer[IR_Statement](IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
+      ListBuffer[IR_Statement](IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
         neighbors.map({ neigh =>
           val adaptedIndexRange = IR_ExpressionIndexRange(neigh._2.begin - field.referenceOffset, neigh._2.end - field.referenceOffset)
           // TODO: assumes equal bc's for all components
@@ -150,12 +160,12 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
             setupFieldUpdate(neigh._1))
           loopOverDims.parallelization.potentiallyParallel = true
           loopOverDims.polyOptLevel = 1
-          IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : IR_Statement
+          IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(field.domain.index, neigh._1.index)), loopOverDims) : IR_Statement
         }))), IR_ParallelizationInfo(potentiallyParallel = true))
   }
 
   override def expand() : Output[IR_Statement] = {
-    field.field.boundary match {
+    field.boundary match {
       case _ : IR_NeumannBC                => constructLoops
       case _ : IR_DirichletBC              => constructLoops
       case IR_FunctionBC(boundaryFunction) => boundaryFunction : IR_Statement

@@ -5,7 +5,6 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
 import exastencils.operator.ir._
@@ -37,10 +36,10 @@ object IR_ResolveStencilFunction extends DefaultStrategy("Resolve stencil functi
               // stencil field access => find entry with 0 offset in linked stencil and compile field access
               val index = Duplicate(access.index)
               val centralOffset = IR_ConstIndex(Array.fill(Knowledge.dimensionality)(0))
-              index.indices :+= (access.selection.stencilField.findStencilEntryIndex(centralOffset).get : IR_Expression)
+              index.indices :+= (access.stencilField.findStencilEntryIndex(centralOffset).get : IR_Expression)
               index.indices :+= (0 : IR_Expression) // honor matrix data type
 
-              IR_FieldAccess(IR_FieldSelection(access.selection.field, access.selection.level, access.selection.slot, access.selection.fragIdx), index)
+              IR_FieldAccess(access.field, Duplicate(access.slot), Duplicate(access.fragIdx), index)
 
             case _ =>
               Logger.warn("diag with unknown arg " + args(0))

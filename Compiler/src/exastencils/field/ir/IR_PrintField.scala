@@ -9,7 +9,6 @@ import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
-import exastencils.deprecated.ir._
 import exastencils.domain.ir._
 import exastencils.grid.ir._
 import exastencils.parallelization.api.mpi._
@@ -27,7 +26,8 @@ object IR_PrintField {
 
 case class IR_PrintField(
     var filename : IR_Expression,
-    var field : IR_FieldSelection,
+    var field : IR_Field,
+    var slot : IR_Expression,
     var condition : IR_Expression = true,
     var includeGhostLayers : Boolean = false,
     var onlyValues : Boolean = false,
@@ -36,9 +36,9 @@ case class IR_PrintField(
   def numDimsGrid = field.fieldLayout.numDimsGrid
   def numDimsData = field.fieldLayout.numDimsData
 
-  def getPos(field : IR_FieldSelection, dim : Int) : IR_Expression = {
+  def getPos(field : IR_Field, dim : Int) : IR_Expression = {
     // TODO: add function to field (layout) to decide node/cell for given dim
-    field.field.localization match {
+    field.localization match {
       case IR_AtNode              => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
       case IR_AtCellCenter        => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
       case IR_AtFaceCenter(`dim`) => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
@@ -53,7 +53,7 @@ case class IR_PrintField(
       Settings.additionalIncludes += "iomanip"
 
     // TODO: incorporate component accesses
-    val arrayIndexRange = 0 until field.field.gridDatatype.resolveFlattendSize
+    val arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
 
     def separator = IR_StringConstant(if (binary) "" else if (Knowledge.experimental_generateParaviewFiles) "," else " ")
 
@@ -80,7 +80,7 @@ case class IR_PrintField(
     }
     printComponents += "std::scientific"
     printComponents ++= arrayIndexRange.view.flatMap { index =>
-      val access = IR_FieldAccess(field, IR_LoopOverDimensions.defIt(numDimsData))
+      val access = IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData))
       if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
         access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
       List(access, separator)
@@ -103,7 +103,7 @@ case class IR_PrintField(
       else
         IR_Print(stream, "std::scientific << std::setprecision(" + Knowledge.field_printFieldPrecision + ")"), //std::defaultfloat
       IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
+        IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
           IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById(fieldBegin, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById(fieldEnd, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
@@ -666,7 +666,7 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
       addNodePrint("bath", {
         var nodePrint = ListBuffer[IR_Expression]()
         nodeOffsets.foreach { offset =>
-          nodePrint += IR_FieldAccess(IR_FieldSelection(bath, level, IR_IV_ActiveSlot(bath)), IR_LoopOverDimensions.defIt(numDimsGrid) + offset)
+          nodePrint += IR_FieldAccess(bath, IR_IV_ActiveSlot(bath), IR_LoopOverDimensions.defIt(numDimsGrid) + offset)
           nodePrint += IR_Print.endl
         }
         nodePrint
@@ -676,7 +676,7 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
       addNodePrint("eta", {
         var nodePrint = ListBuffer[IR_Expression]()
         etaDisc.foreach { eta =>
-          nodePrint += IR_FieldAccess(IR_FieldSelection(eta, level, IR_IV_ActiveSlot(eta)), IR_LoopOverDimensions.defIt(numDimsGrid))
+          nodePrint += IR_FieldAccess(eta, IR_IV_ActiveSlot(eta), IR_LoopOverDimensions.defIt(numDimsGrid))
           nodePrint += IR_Print.endl
         }
         nodePrint
@@ -686,7 +686,7 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
       addNodePrint("u", {
         var nodePrint = ListBuffer[IR_Expression]()
         uDisc.foreach { u =>
-          nodePrint += IR_FieldAccess(IR_FieldSelection(u, level, IR_IV_ActiveSlot(u)), IR_LoopOverDimensions.defIt(numDimsGrid))
+          nodePrint += IR_FieldAccess(u, IR_IV_ActiveSlot(u), IR_LoopOverDimensions.defIt(numDimsGrid))
           nodePrint += IR_Print.endl
         }
         nodePrint
@@ -696,7 +696,7 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
       addNodePrint("v", {
         var nodePrint = ListBuffer[IR_Expression]()
         vDisc.foreach { v =>
-          nodePrint += IR_FieldAccess(IR_FieldSelection(v, level, IR_IV_ActiveSlot(v)), IR_LoopOverDimensions.defIt(numDimsGrid))
+          nodePrint += IR_FieldAccess(v, IR_IV_ActiveSlot(v), IR_LoopOverDimensions.defIt(numDimsGrid))
           nodePrint += IR_Print.endl
         }
         nodePrint
@@ -913,14 +913,14 @@ case class IR_PrintVtkNS(var filename : IR_Expression, level : Int) extends IR_S
         addStmtBlock(initCells)
       }
 
-      def meanU = 0.5 * (IR_FieldAccess(IR_FieldSelection(u, level, IR_IV_ActiveSlot(u)), IR_LoopOverDimensions.defIt(numDimsGrid))
-        + IR_FieldAccess(IR_FieldSelection(u, level, IR_IV_ActiveSlot(u)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(1, 0, 0)))
+      def meanU = 0.5 * (IR_FieldAccess(u, IR_IV_ActiveSlot(u), IR_LoopOverDimensions.defIt(numDimsGrid))
+        + IR_FieldAccess(u, IR_IV_ActiveSlot(u), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(1, 0, 0)))
 
-      def meanV = 0.5 * (IR_FieldAccess(IR_FieldSelection(v, level, IR_IV_ActiveSlot(v)), IR_LoopOverDimensions.defIt(numDimsGrid))
-        + IR_FieldAccess(IR_FieldSelection(v, level, IR_IV_ActiveSlot(v)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 1, 0)))
+      def meanV = 0.5 * (IR_FieldAccess(v, IR_IV_ActiveSlot(v), IR_LoopOverDimensions.defIt(numDimsGrid))
+        + IR_FieldAccess(v, IR_IV_ActiveSlot(v), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 1, 0)))
 
-      def meanW = 0.5 * (IR_FieldAccess(IR_FieldSelection(w, level, IR_IV_ActiveSlot(w)), IR_LoopOverDimensions.defIt(numDimsGrid))
-        + IR_FieldAccess(IR_FieldSelection(w, level, IR_IV_ActiveSlot(w)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 0, 1)))
+      def meanW = 0.5 * (IR_FieldAccess(w, IR_IV_ActiveSlot(w), IR_LoopOverDimensions.defIt(numDimsGrid))
+        + IR_FieldAccess(w, IR_IV_ActiveSlot(w), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 0, 1)))
 
       // add vel
       addCellPrint("vel", {
@@ -938,7 +938,7 @@ case class IR_PrintVtkNS(var filename : IR_Expression, level : Int) extends IR_S
       // add p
       addCellPrint("p", {
         var cellPrint = ListBuffer[IR_Expression]()
-        cellPrint += IR_FieldAccess(IR_FieldSelection(p, level, IR_IV_ActiveSlot(p)), IR_LoopOverDimensions.defIt(numDimsGrid))
+        cellPrint += IR_FieldAccess(p, IR_IV_ActiveSlot(p), IR_LoopOverDimensions.defIt(numDimsGrid))
         cellPrint += IR_Print.endl
       })
     }
@@ -1157,14 +1157,14 @@ case class IR_PrintVtkNNF(var filename : IR_Expression, level : Int) extends IR_
         addStmtBlock(initCells)
       }
 
-      def meanU = 0.5 * (IR_FieldAccess(IR_FieldSelection(u, level, IR_IV_ActiveSlot(u)), IR_LoopOverDimensions.defIt(numDimsGrid))
-        + IR_FieldAccess(IR_FieldSelection(u, level, IR_IV_ActiveSlot(u)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(1, 0, 0)))
+      def meanU = 0.5 * (IR_FieldAccess(u, IR_IV_ActiveSlot(u), IR_LoopOverDimensions.defIt(numDimsGrid))
+        + IR_FieldAccess(u, IR_IV_ActiveSlot(u), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(1, 0, 0)))
 
-      def meanV = 0.5 * (IR_FieldAccess(IR_FieldSelection(v, level, IR_IV_ActiveSlot(v)), IR_LoopOverDimensions.defIt(numDimsGrid))
-        + IR_FieldAccess(IR_FieldSelection(v, level, IR_IV_ActiveSlot(v)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 1, 0)))
+      def meanV = 0.5 * (IR_FieldAccess(v, IR_IV_ActiveSlot(v), IR_LoopOverDimensions.defIt(numDimsGrid))
+        + IR_FieldAccess(v, IR_IV_ActiveSlot(v), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 1, 0)))
 
-      def meanW = 0.5 * (IR_FieldAccess(IR_FieldSelection(w, level, IR_IV_ActiveSlot(w)), IR_LoopOverDimensions.defIt(numDimsGrid))
-        + IR_FieldAccess(IR_FieldSelection(w, level, IR_IV_ActiveSlot(w)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 0, 1)))
+      def meanW = 0.5 * (IR_FieldAccess(w, IR_IV_ActiveSlot(w), IR_LoopOverDimensions.defIt(numDimsGrid))
+        + IR_FieldAccess(w, IR_IV_ActiveSlot(w), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 0, 1)))
 
       // add vel
       addCellPrint("vel", {
@@ -1182,35 +1182,35 @@ case class IR_PrintVtkNNF(var filename : IR_Expression, level : Int) extends IR_
       // add p
       addCellPrint("p", {
         var cellPrint = ListBuffer[IR_Expression]()
-        cellPrint += IR_FieldAccess(IR_FieldSelection(p, level, IR_IV_ActiveSlot(p)), IR_LoopOverDimensions.defIt(numDimsGrid))
+        cellPrint += IR_FieldAccess(p, IR_IV_ActiveSlot(p), IR_LoopOverDimensions.defIt(numDimsGrid))
         cellPrint += IR_Print.endl
       })
 
       // add rho
       addCellPrint("rho", {
         var cellPrint = ListBuffer[IR_Expression]()
-        cellPrint += IR_FieldAccess(IR_FieldSelection(rho, level, IR_IV_ActiveSlot(rho)), IR_LoopOverDimensions.defIt(numDimsGrid))
+        cellPrint += IR_FieldAccess(rho, IR_IV_ActiveSlot(rho), IR_LoopOverDimensions.defIt(numDimsGrid))
         cellPrint += IR_Print.endl
       })
 
       // add rho
       addCellPrint("mue", {
         var cellPrint = ListBuffer[IR_Expression]()
-        cellPrint += IR_FieldAccess(IR_FieldSelection(mue, level, IR_IV_ActiveSlot(mue)), IR_LoopOverDimensions.defIt(numDimsGrid))
+        cellPrint += IR_FieldAccess(mue, IR_IV_ActiveSlot(mue), IR_LoopOverDimensions.defIt(numDimsGrid))
         cellPrint += IR_Print.endl
       })
 
       // add rho
       addCellPrint("gamma", {
         var cellPrint = ListBuffer[IR_Expression]()
-        cellPrint += IR_FieldAccess(IR_FieldSelection(gamma, level, IR_IV_ActiveSlot(gamma)), IR_LoopOverDimensions.defIt(numDimsGrid))
+        cellPrint += IR_FieldAccess(gamma, IR_IV_ActiveSlot(gamma), IR_LoopOverDimensions.defIt(numDimsGrid))
         cellPrint += IR_Print.endl
       })
 
       // add phi
       addCellPrint("phi", {
         var cellPrint = ListBuffer[IR_Expression]()
-        cellPrint += IR_FieldAccess(IR_FieldSelection(phi, level, IR_IV_ActiveSlot(phi)), IR_LoopOverDimensions.defIt(numDimsGrid))
+        cellPrint += IR_FieldAccess(phi, IR_IV_ActiveSlot(phi), IR_LoopOverDimensions.defIt(numDimsGrid))
         cellPrint += IR_Print.endl
       })
     }

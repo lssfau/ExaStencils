@@ -6,7 +6,6 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.deprecated.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.logger.Logger
@@ -44,8 +43,8 @@ case class IR_VF_NodePositionAsVec(
 
     if (!Knowledge.grid_isAxisAligned) {
       Knowledge.grid_spacingModel match {
-        case "uniform" => stmts ++= IR_SetupNodePositions.for_nonAA_Uniform(level)
-        case "random"  => stmts ++= IR_SetupNodePositions.for_nonAA_Random(level)
+        case "uniform"         => stmts ++= IR_SetupNodePositions.for_nonAA_Uniform(level)
+        case "random"          => stmts ++= IR_SetupNodePositions.for_nonAA_Random(level)
         case "blockstructured" => // grid is set up in IR_InitDomainFromFile
       }
     }
@@ -92,12 +91,12 @@ case class IR_VF_NodePositionPerDim(
     if (Knowledge.grid_isUniform)
       index(dim) * IR_VF_CellWidthPerDim.access(level, dim, Duplicate(index)) + IR_IV_FragmentPositionBegin(dim)
     else if (Knowledge.grid_isAxisAligned)
-      IR_FieldAccess(IR_FieldSelection(associatedField, level, 0), IR_GridUtil.projectIdx(index, dim))
+      IR_FieldAccess(associatedField, 0, IR_GridUtil.projectIdx(index, dim))
     else {
       val hdIndex = index
       index.indices :+= (dim : IR_Expression)
       index.indices :+= (0 : IR_Expression) // matrix dt...
-      IR_FieldAccess(IR_FieldSelection(IR_VF_NodePositionAsVec.find(level).associatedField, level, 0), hdIndex)
+      IR_FieldAccess(IR_VF_NodePositionAsVec.find(level).associatedField, 0, hdIndex)
     }
   }
 
@@ -113,7 +112,7 @@ case class IR_VF_NodePositionPerDim(
         case "diego" if level == Knowledge.maxLevel     => stmts ++= IR_SetupNodePositions.for_AA_Diego(level, dim)
         case "diego2" if level == Knowledge.maxLevel    => stmts ++= IR_SetupNodePositions.for_AA_Diego2(level, dim)
         case "diego" | "diego2" | "linearFct"           => stmts ++= IR_SetupNodePositions.for_AA_restrictFromFiner(level, dim)
-        case "blockstructured" => // grid is set up in IR_InitDomainFromFile
+        case "blockstructured"                          => // grid is set up in IR_InitDomainFromFile
       }
     }
 

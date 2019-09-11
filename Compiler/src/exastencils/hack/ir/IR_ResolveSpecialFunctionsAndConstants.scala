@@ -228,31 +228,31 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
 
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
-      IR_IsOnBoundary(fieldAccess.fieldSelection, getIndex(fieldAccess))
+      IR_IsOnBoundary(fieldAccess.field, getIndex(fieldAccess))
 
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnEastBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
-      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(1, 0, 0)), getIndex(fieldAccess))
+      IR_IsOnSpecBoundary(fieldAccess.field, DefaultNeighbors.getNeigh(Array(1, 0, 0)), getIndex(fieldAccess))
 
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnWestBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
-      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(-1, 0, 0)), getIndex(fieldAccess))
+      IR_IsOnSpecBoundary(fieldAccess.field, DefaultNeighbors.getNeigh(Array(-1, 0, 0)), getIndex(fieldAccess))
 
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnNorthBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
-      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 1, 0)), getIndex(fieldAccess))
+      IR_IsOnSpecBoundary(fieldAccess.field, DefaultNeighbors.getNeigh(Array(0, 1, 0)), getIndex(fieldAccess))
 
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnSouthBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
-      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, -1, 0)), getIndex(fieldAccess))
+      IR_IsOnSpecBoundary(fieldAccess.field, DefaultNeighbors.getNeigh(Array(0, -1, 0)), getIndex(fieldAccess))
 
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnTopBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
-      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, 1)), getIndex(fieldAccess))
+      IR_IsOnSpecBoundary(fieldAccess.field, DefaultNeighbors.getNeigh(Array(0, 0, 1)), getIndex(fieldAccess))
 
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnBottomBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
-      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, -1)), getIndex(fieldAccess))
+      IR_IsOnSpecBoundary(fieldAccess.field, DefaultNeighbors.getNeigh(Array(0, 0, -1)), getIndex(fieldAccess))
 
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("getNeighFragEdge", _), args) =>
       IR_IV_CommNeighNeighIdx(0, args(1), args(0))
@@ -327,7 +327,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         // flip image for correct representation
         stmts += IR_MemberFunctionCall("imageIn", "mirror", HACK_IR_Native("'y'"))
 
-        stmts += IR_LoopOverPoints(field.fieldSelection.field,
+        stmts += IR_LoopOverPoints(field.field,
           IR_Assignment(field, HACK_IR_Native("*imageIn.data(i0,i1)")))
 
         IR_Scope(stmts)
@@ -339,7 +339,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_NullStatement
       } else {
         val field = args(0).asInstanceOf[IR_FieldAccess]
-        val fieldLayout = field.fieldSelection.field.fieldLayout
+        val fieldLayout = field.field.fieldLayout
         val numPoints = (0 until fieldLayout.numDimsGrid).map(dim =>
           fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight)
         val filename = args(1) //.asInstanceOf[IR_StringConstant].value
@@ -347,7 +347,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         val stmts = ListBuffer[IR_Statement]()
 
         stmts += HACK_IR_Native("cimg_library::CImg< double > imageOut ( " + numPoints.mkString(", ") + " )")
-        stmts += IR_LoopOverPoints(field.fieldSelection.field,
+        stmts += IR_LoopOverPoints(field.field,
           IR_Assignment(HACK_IR_Native("*imageOut.data(i0,i1)"), field))
 
         // flip image for correct representation
@@ -368,7 +368,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_NullStatement
       } else {
         val field = args(0).asInstanceOf[IR_FieldAccess]
-        val fieldLayout = field.fieldSelection.field.fieldLayout
+        val fieldLayout = field.field.fieldLayout
         var numPoints = (0 until fieldLayout.numDimsGrid).map(dim =>
           fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight).toList
         val filename = args(1) //.asInstanceOf[IR_StringConstant].value
@@ -380,7 +380,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         numPoints :+= 3
 
         stmts += HACK_IR_Native("cimg_library::CImg< double > imageOut ( " + numPoints.mkString(", ") + ", 1. )")
-        stmts += IR_LoopOverPoints(field.fieldSelection.field,
+        stmts += IR_LoopOverPoints(field.field,
           IR_Assignment(HACK_IR_Native("*imageOut.data(i0,i1,0,0)"), 360.0 * field))
 
         stmts += IR_MemberFunctionCall("imageOut", "HSVtoRGB")
@@ -402,7 +402,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_NullStatement
       } else {
         val fields = args.map(_.asInstanceOf[IR_FieldAccess])
-        val fieldLayouts = fields.map(_.fieldSelection.field.fieldLayout)
+        val fieldLayouts = fields.map(_.field.fieldLayout)
         val numPoints = fieldLayouts.map(fieldLayout => (0 until fieldLayout.numDimsGrid).map(dim =>
           fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight))
 
@@ -413,13 +413,13 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
 
         for (i <- fields.indices) {
           stmts += HACK_IR_Native("cimg_library::CImg< double > " + tmpImgs(i) + " ( " + numPoints(i).mkString(", ") + " )")
-          stmts += IR_LoopOverPoints(fields(i).fieldSelection.field,
+          stmts += IR_LoopOverPoints(fields(i).field,
             IR_Assignment(HACK_IR_Native("*" + tmpImgs(i) + ".data(i0,i1)"), fields(i)))
 
           // flip image for correct representation
           stmts += IR_MemberFunctionCall(tmpImgs(i), "mirror", HACK_IR_Native("'y'"))
 
-          val dispName = fields(i).fieldSelection.field.name + "@" + fields(i).fieldSelection.field.level
+          val dispName = fields(i).field.name + "@" + fields(i).field.level
           stmts += HACK_IR_Native("cimg_library::CImgDisplay " + displays(i) + "(" + tmpImgs(i) + ", \"" + dispName + "\")")
         }
         stmts += IR_WhileLoop(fields.indices.map(i => IR_Negation(IR_MemberFunctionCall(displays(i), "is_closed")) : IR_Expression).reduceLeft(IR_OrOr),
@@ -434,7 +434,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_NullStatement
       } else {
         val fields = args.map(_.asInstanceOf[IR_FieldAccess])
-        val fieldLayouts = fields.map(_.fieldSelection.field.fieldLayout)
+        val fieldLayouts = fields.map(_.field.fieldLayout)
         val numPoints = fieldLayouts.map(fieldLayout => (0 until fieldLayout.numDimsGrid).map(dim =>
           fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight).toList)
 
@@ -449,14 +449,14 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
           numPoints(i) :+= 3
 
           stmts += HACK_IR_Native("cimg_library::CImg< double > " + tmpImgs(i) + " ( " + numPoints(i).mkString(", ") + ", 1. )")
-          stmts += IR_LoopOverPoints(fields(i).fieldSelection.field,
+          stmts += IR_LoopOverPoints(fields(i).field,
             IR_Assignment(HACK_IR_Native("*" + tmpImgs(i) + ".data(i0,i1,0,0)"), 360.0 * fields(i)))
 
           stmts += IR_MemberFunctionCall(tmpImgs(i), "HSVtoRGB")
           // flip image for correct representation
           stmts += IR_MemberFunctionCall(tmpImgs(i), "mirror", HACK_IR_Native("'y'"))
 
-          val dispName = fields(i).fieldSelection.field.name + "@" + fields(i).fieldSelection.field.level
+          val dispName = fields(i).field.name + "@" + fields(i).field.level
           stmts += HACK_IR_Native("cimg_library::CImgDisplay " + displays(i) + "(" + tmpImgs(i) + ", \"" + dispName + "\")")
         }
         stmts += IR_WhileLoop(fields.indices.map(i => IR_Negation(IR_MemberFunctionCall(displays(i), "is_closed")) : IR_Expression).reduceLeft(IR_OrOr),
@@ -472,7 +472,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       } else {
         val condition = args(0)
         val fields = args.drop(1).map(_.asInstanceOf[IR_FieldAccess])
-        val fieldLayouts = fields.map(_.fieldSelection.field.fieldLayout)
+        val fieldLayouts = fields.map(_.field.fieldLayout)
         val numPoints = fieldLayouts.map(fieldLayout => (0 until fieldLayout.numDimsGrid).map(dim =>
           fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight).toList)
 
@@ -487,7 +487,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
           numPoints(i) :+= 3
 
           stmts += HACK_IR_Native("cimg_library::CImg< double > " + tmpImgs(i) + " ( " + numPoints(i).mkString(", ") + ", 1. )")
-          stmts += IR_LoopOverPoints(fields(i).fieldSelection.field,
+          stmts += IR_LoopOverPoints(fields(i).field,
             IR_Assignment(HACK_IR_Native("*" + tmpImgs(i) + ".data(i0,i1,0,0)"), 360.0 * fields(i)))
 
           stmts += IR_MemberFunctionCall(tmpImgs(i), "HSVtoRGB")
@@ -497,7 +497,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
           val scaledPoints = numPoints(i).take(2).map(i => { var ii = i; while (ii < 1000) { ii *= 2 }; ii : IR_Expression }).to[ListBuffer]
           stmts += IR_MemberFunctionCall(tmpImgs(i), "resize", scaledPoints)
 
-          val dispName = fields(i).fieldSelection.field.name + "@" + fields(i).fieldSelection.field.level
+          val dispName = fields(i).field.name + "@" + fields(i).field.level
           stmts += HACK_IR_Native("static cimg_library::CImgDisplay " + displays(i) + "(" + tmpImgs(i) + ", \"" + dispName + "\")")
           stmts += IR_Assignment(displays(i), tmpImgs(i))
         }

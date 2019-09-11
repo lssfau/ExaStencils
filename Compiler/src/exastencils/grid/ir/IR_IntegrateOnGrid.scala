@@ -87,7 +87,7 @@ case class IR_IntegrateOnGrid(
     IR_CollectFieldAccesses.applyStandalone(wrapped)
 
     // check if all occurring level specifications are identical
-    if (IR_CollectFieldAccesses.fieldAccesses.map(_.fieldSelection.level).exists(_ != level)
+    if (IR_CollectFieldAccesses.fieldAccesses.map(_.field.level).exists(_ != level)
       || IR_CollectFieldAccesses.vFieldAccesses.map(_.level).exists(_ != level))
       Logger.error(s"Mixed level integration is currently not supported (${ expression.prettyprint })")
 
@@ -104,7 +104,7 @@ case class IR_IntegrateOnGrid(
       this += new Transformation("Wrap", {
         case fieldAccess : IR_FieldAccess =>
           if (stagDim.isEmpty) { // non-staggered cells
-            fieldAccess.fieldSelection.field.localization match {
+            fieldAccess.field.localization match {
               case IR_AtCellCenter => // interpolation
                 IR_EvaluateOnGrid(stagDim, faceDim, level, fieldAccess)
 
@@ -119,7 +119,7 @@ case class IR_IntegrateOnGrid(
           } else {
             // staggered cells
             val curStagDim = stagDim.get
-            fieldAccess.fieldSelection.field.localization match {
+            fieldAccess.field.localization match {
               case IR_AtCellCenter if curStagDim == faceDim => // direct sampling with offset
                 IR_GridUtil.offsetAccess(fieldAccess, -1, curStagDim)
 
@@ -157,7 +157,7 @@ case class IR_IntegrateOnGrid(
           if (evalOffset != 0) eval.offsetWith(IR_GridUtil.offsetIndex(IR_ConstIndex(Array.fill(eval.numDims)(0)), -evalOffset, eval.faceDim))
 
           if (stagDim.isEmpty) {
-            eval.fieldAccess().fieldSelection.field.localization match {
+            eval.fieldAccess().field.localization match {
               case IR_AtCellCenter => // interpolation (already sufficient)
                 eval
 
@@ -171,7 +171,7 @@ case class IR_IntegrateOnGrid(
             }
           } else {
             val curStagDim = stagDim.get
-            eval.fieldAccess().fieldSelection.field.localization match {
+            eval.fieldAccess().field.localization match {
               case IR_AtCellCenter if curStagDim == faceDim => // direct sampling with offset
                 IR_GridUtil.offsetAccess(eval.fieldAccess(), -1, curStagDim)
 

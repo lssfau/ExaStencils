@@ -9,7 +9,6 @@ import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
-import exastencils.deprecated.ir._
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.ir._
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
@@ -31,13 +30,19 @@ object IR_ReadField {
   }
 }
 
-case class IR_ReadField(var filename : IR_Expression, var field : IR_FieldSelection, var condition : IR_Expression = true, var includeGhostLayers : Boolean = false) extends IR_Statement with IR_Expandable {
+case class IR_ReadField(
+    var filename : IR_Expression,
+    var field : IR_Field,
+    var slot : IR_Expression,
+    var condition : IR_Expression = true,
+    var includeGhostLayers : Boolean = false) extends IR_Statement with IR_Expandable {
+
   def numDimsGrid = field.fieldLayout.numDimsGrid
   def numDimsData = field.fieldLayout.numDimsData
 
-  def getPos(field : IR_FieldSelection, dim : Int) : IR_Expression = {
+  def getPos(field : IR_Field, dim : Int) : IR_Expression = {
     // TODO: add function to field (layout) to decide node/cell for given dim
-    field.field.localization match {
+    field.localization match {
       case IR_AtNode              => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
       case IR_AtCellCenter        => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
       case IR_AtFaceCenter(`dim`) => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
@@ -50,7 +55,7 @@ case class IR_ReadField(var filename : IR_Expression, var field : IR_FieldSelect
       Settings.additionalIncludes += "fstream"
 
     // TODO: incorporate component accesses
-    val arrayIndexRange = 0 until field.field.gridDatatype.resolveFlattendSize
+    val arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
 
     val streamName = IR_ReadField.getNewName()
 
@@ -60,7 +65,7 @@ case class IR_ReadField(var filename : IR_Expression, var field : IR_FieldSelect
 
     val read = IR_Read(stream)
     arrayIndexRange.foreach { index =>
-      val access = IR_FieldAccess(field, IR_LoopOverDimensions.defIt(numDimsData))
+      val access = IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData))
       if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
         access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
       read.toRead += access
@@ -89,7 +94,7 @@ case class IR_ReadField(var filename : IR_Expression, var field : IR_FieldSelect
 
     statements +=
       IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
+        IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
           IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById(beginId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById(endId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),

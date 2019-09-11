@@ -129,7 +129,7 @@ case class CUDA_Kernel(var identifier : String,
 
       // 2.1 collect some basic information required for further calculations
       var requiredMemoryInByte = 0L
-      val offset = fieldAccesses.head.fieldSelection.fieldLayout.referenceOffset
+      val offset = fieldAccesses.head.field.fieldLayout.referenceOffset
       val baseIndex = (loopVariables.take(offset.length), offset).zipped.map((x, y) => IR_Addition(IR_VariableAccess(x, IR_IntegerDatatype), y)).toArray[IR_Expression]
 
       // 2.2 calculate negative and positive deviation from the basic field index
@@ -158,13 +158,13 @@ case class CUDA_Kernel(var identifier : String,
       }
 
       // 2.3 calculate the required amount of shared memory
-      val numDupLayersLeft = fieldAccesses.head.fieldSelection.fieldLayout.layoutsPerDim.map(x => x.numDupLayersLeft)
-      val numDupLayersRight = fieldAccesses.head.fieldSelection.fieldLayout.layoutsPerDim.map(x => x.numDupLayersRight)
-      val numInnerLayers = fieldAccesses.head.fieldSelection.fieldLayout.layoutsPerDim.map(x => x.numInnerLayers)
+      val numDupLayersLeft = fieldAccesses.head.field.fieldLayout.layoutsPerDim.map(x => x.numDupLayersLeft)
+      val numDupLayersRight = fieldAccesses.head.field.fieldLayout.layoutsPerDim.map(x => x.numDupLayersRight)
+      val numInnerLayers = fieldAccesses.head.field.fieldLayout.layoutsPerDim.map(x => x.numInnerLayers)
       val numPointsInStencil = (numDupLayersLeft, numInnerLayers, numDupLayersRight).zipped.map((x, y, z) => x + y + z)
       val numPointsInStencilPerThreadBlock = (numPointsInStencil, numThreadsPerBlock).zipped.map((x, y) => math.min(x, y))
       val arraySize = ((numPointsInStencilPerThreadBlock, leftDeviationFromBaseIndex).zipped.map(_ + _), rightDeviationFromBaseIndex).zipped.map(_ + _)
-      requiredMemoryInByte = arraySize.product * (fieldAccesses.head.fieldSelection.fieldLayout.datatype match {
+      requiredMemoryInByte = arraySize.product * (fieldAccesses.head.field.fieldLayout.datatype match {
         case IR_RealDatatype   => if (Knowledge.useDblPrecision) 8 else 4
         case IR_DoubleDatatype => 8
         case IR_FloatDatatype  => 4
@@ -173,7 +173,7 @@ case class CUDA_Kernel(var identifier : String,
 
       // 2.4 consider this field for shared memory if all conditions are met
       if (!writtenFields.contains(name) && fieldAccesses.size > 1 && requiredMemoryInByte < availableSharedMemory && (leftDeviationFromBaseIndex.head > 0 || rightDeviationFromBaseIndex.head > 0)) {
-        val access = IR_DirectFieldAccess(fieldAccesses.head.fieldSelection, IR_ExpressionIndex(baseIndex))
+        val access = IR_DirectFieldAccess(fieldAccesses.head.field, Duplicate(fieldAccesses.head.slot), IR_ExpressionIndex(baseIndex))
         access.allowLinearization = false
         fieldNames += name
         fieldBaseIndex(name) = IR_ExpressionIndex(baseIndex)
@@ -186,7 +186,7 @@ case class CUDA_Kernel(var identifier : String,
         rightDeviations(name) = rightDeviationFromBaseIndex
         rightDeviation(name) = rightDeviationFromBaseIndex.head
         sharedArraySize(name) = arraySize
-        fieldDatatype(name) = access.fieldSelection.fieldLayout.datatype
+        fieldDatatype(name) = access.field.fieldLayout.datatype
         foundSomeAppropriateField = true
         availableSharedMemory -= requiredMemoryInByte
       }
@@ -386,9 +386,9 @@ case class CUDA_Kernel(var identifier : String,
             statements += IR_VariableDeclaration(fieldDatatype(field), "behind" + x, 0)
           })
           (1L to rightDeviation(field)).foreach(x => {
-            statements += IR_VariableDeclaration(fieldDatatype(field), "infront" + x, IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, spatialBaseIndex + IR_ExpressionIndex(Array[Long](0, 0, x))).linearize)
+            statements += IR_VariableDeclaration(fieldDatatype(field), "infront" + x, IR_DirectFieldAccess(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot), spatialBaseIndex + IR_ExpressionIndex(Array[Long](0, 0, x))).linearize)
           })
-          statements += IR_VariableDeclaration(fieldDatatype(field), "current", IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, spatialBaseIndex).linearize)
+          statements += IR_VariableDeclaration(fieldDatatype(field), "current", IR_DirectFieldAccess(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot), spatialBaseIndex).linearize)
 
           // 5. Add statements for loop body in kernel (z-Dim)
           // 5.1 advance the slice (move the thread front)
@@ -401,13 +401,13 @@ case class CUDA_Kernel(var identifier : String,
             sharedMemoryStatements += IR_Assignment(IR_VariableAccess("infront" + x, fieldDatatype(field)), IR_VariableAccess("infront" + (x + 1), fieldDatatype(field)))
           })
 
-          sharedMemoryStatements += IR_Assignment(IR_VariableAccess("infront" + rightDeviation(field), fieldDatatype(field)), IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, fieldBaseIndex(field) + IR_ExpressionIndex(Array[Long](0, 0, 1))).linearize)
+          sharedMemoryStatements += IR_Assignment(IR_VariableAccess("infront" + rightDeviation(field), fieldDatatype(field)), IR_DirectFieldAccess(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot), fieldBaseIndex(field) + IR_ExpressionIndex(Array[Long](0, 0, 1))).linearize)
 
           // 5.2 load from global memory into shared memory
           sharedMemoryStatements += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localThreadId(field).take(executionDim).reverse, sharedArrayStrides), current)
         } else {
           // 6. Load from global memory into shared memory
-          sharedMemoryStatements += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localThreadId(field).reverse, sharedArrayStrides), IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, fieldForSharedMemory(field).index).linearize)
+          sharedMemoryStatements += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localThreadId(field).reverse, sharedArrayStrides), IR_DirectFieldAccess(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot), fieldForSharedMemory(field).index).linearize)
         }
 
         // 7. Add load operations as ConditionStatement to avoid index out of bounds exceptions in global memory
@@ -438,7 +438,7 @@ case class CUDA_Kernel(var identifier : String,
             val globalLeftIndex = IR_ExpressionIndex(Duplicate(globalThreadId)) + fieldOffset(field)
             globalLeftIndex(dim) = IR_Subtraction(globalLeftIndex(dim), x)
 
-            conditionBody += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localLeftIndex.reverse, sharedArrayStrides), IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, globalLeftIndex).linearize)
+            conditionBody += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localLeftIndex.reverse, sharedArrayStrides), IR_DirectFieldAccess(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot), globalLeftIndex).linearize)
           })
           (0L until rightDeviations(field)(dim)).foreach(x => {
             val localRightIndex = Duplicate(localThreadId(field))
@@ -446,7 +446,7 @@ case class CUDA_Kernel(var identifier : String,
             val globalRightIndex = IR_ExpressionIndex(Duplicate(globalThreadId)) + fieldOffset(field)
             globalRightIndex(dim) = IR_Addition(IR_Addition(globalRightIndex(dim), localFieldOffset), x)
 
-            conditionBody += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localRightIndex.reverse, sharedArrayStrides), IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, globalRightIndex).linearize)
+            conditionBody += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localRightIndex.reverse, sharedArrayStrides), IR_DirectFieldAccess(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot), globalRightIndex).linearize)
           })
 
           IR_IfCondition(condition, conditionBody)
@@ -534,16 +534,12 @@ case class CUDA_Kernel(var identifier : String,
       callArgs += upperArgs(dim)
     }
 
-    for (fieldAccess <- linearizedFieldAccesses) {
-      val fieldSelection = fieldAccess._2.fieldSelection
-      callArgs += CUDA_FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx)
-    }
+    for (fieldAccess <- linearizedFieldAccesses)
+      callArgs += CUDA_FieldDeviceData(fieldAccess._2.field, fieldAccess._2.field.level, Duplicate(fieldAccess._2.slot), Duplicate(fieldAccess._2.fragIdx))
 
     if (Knowledge.cuda_useSharedMemory && fieldForSharedMemory.nonEmpty) {
-      fieldNames.foreach(field => {
-        val fieldSelection = fieldForSharedMemory(field).fieldSelection
-        callArgs += CUDA_FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
-      })
+      fieldNames.foreach(field => callArgs += CUDA_FieldDeviceData(fieldForSharedMemory(field).field, fieldForSharedMemory(field).level, Duplicate(fieldForSharedMemory(field).slot))
+      )
     }
 
     for (bufferAccess <- bufferAccesses) {
@@ -600,13 +596,11 @@ case class CUDA_Kernel(var identifier : String,
     }
 
     for (fieldAccess <- linearizedFieldAccesses) {
-      val fieldSelection = fieldAccess._2.fieldSelection
-
       // add required parameter specifiers to take advantage of the read-only cache
       if (Knowledge.cuda_spatialBlockingWithROC && !writtenFieldAccesses.contains(fieldAccess._1)) {
-        fctParams += IR_FunctionArgument(fieldAccess._1, IR_CUDAConstPointerDatatype(fieldSelection.field.resolveDeclType))
+        fctParams += IR_FunctionArgument(fieldAccess._1, IR_CUDAConstPointerDatatype(fieldAccess._2.field.resolveDeclType))
       } else {
-        fctParams += IR_FunctionArgument(fieldAccess._1, IR_PointerDatatype(fieldSelection.field.resolveDeclType))
+        fctParams += IR_FunctionArgument(fieldAccess._1, IR_PointerDatatype(fieldAccess._2.field.resolveDeclType))
       }
     }
 

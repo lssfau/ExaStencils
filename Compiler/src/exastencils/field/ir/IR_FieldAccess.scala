@@ -8,14 +8,22 @@ import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.deprecated.ir.IR_FieldSelection
+import exastencils.knowledge.ir.IR_LeveledKnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.polyhedron.IR_PolyArrayAccessLike
 
+///
+trait IR_FieldAccessLike extends IR_LeveledKnowledgeAccess {
+  def field : IR_Field
+  def target = field
+}
+
 /// IR_MultiDimFieldAccess
 
-trait IR_MultiDimFieldAccess extends IR_Expression with IR_SpecialExpandable {
-  def fieldSelection : IR_FieldSelection
+trait IR_MultiDimFieldAccess extends IR_FieldAccessLike with IR_SpecialExpandable {
+  def slot : IR_Expression
+  def fragIdx : IR_Expression
+
   def index : IR_ExpressionIndex // TODO: IR_Index, also in subclasses
 
   var allowLinearization : Boolean = true
@@ -23,12 +31,18 @@ trait IR_MultiDimFieldAccess extends IR_Expression with IR_SpecialExpandable {
 
 /// IR_DirectFieldAccess
 
+object IR_DirectFieldAccess {
+  def apply(field : IR_Field, slot : IR_Expression, index : IR_ExpressionIndex) = new IR_DirectFieldAccess(field, slot, IR_LoopOverFragments.defIt, index)
+}
+
 case class IR_DirectFieldAccess(
-    var fieldSelection : IR_FieldSelection,
+    var field : IR_Field,
+    var slot : IR_Expression,
+    var fragIdx : IR_Expression,
     var index : IR_ExpressionIndex) extends IR_MultiDimFieldAccess with IR_PolyArrayAccessLike {
 
   override def datatype = {
-    val layout = fieldSelection.field.fieldLayout
+    val layout = field.fieldLayout
     if (index.length == layout.numDimsGrid)
       layout.datatype
     else if (index.length == layout.numDimsData)
@@ -42,17 +56,17 @@ case class IR_DirectFieldAccess(
   // TODO: refactor
   override def uniqueID : String = {
     val name = new StringBuilder("field")
-    name.append('_').append(fieldSelection.field.name).append(fieldSelection.field.index).append('_').append(fieldSelection.field.level)
-    name.append("_l").append(fieldSelection.level).append('a')
-    name.append('_').append(fieldSelection.fragIdx.prettyprint()).append('_')
-    fieldSelection.slot match {
+    name.append('_').append(field.name).append(field.index).append('_').append(field.level)
+    name.append("_l").append(level).append('a')
+    name.append('_').append(fragIdx.prettyprint()).append('_')
+    slot match {
       case IR_SlotAccess(_, offset) => name.append('s').append(offset)
       case s                        => name.append(s.prettyprint())
     }
     replaceSpecial(name).toString()
   }
 
-  def linearize = IR_LinearizedFieldAccess(fieldSelection, fieldSelection.fieldLayout.linearizeIndex(index))
+  def linearize = IR_LinearizedFieldAccess(field, slot, fragIdx, field.fieldLayout.linearizeIndex(index))
 }
 
 /// IR_LinearizeDirectFieldAccess
@@ -65,14 +79,26 @@ object IR_LinearizeDirectFieldAccess extends DefaultStrategy("Linearize DirectFi
 
 /// IR_FieldAccess
 
+object IR_FieldAccess {
+  def apply(field : IR_Field, slot : IR_Expression, index : IR_ExpressionIndex) = new IR_FieldAccess(field, slot, IR_LoopOverFragments.defIt, index)
+
+  def apply(field : IR_Field, slot : IR_Expression, index : IR_ExpressionIndex, offset : Option[IR_ConstIndex])
+  = new IR_FieldAccess(field, slot, IR_LoopOverFragments.defIt, index, offset)
+
+  def apply(field : IR_Field, slot : IR_Expression, index : IR_ExpressionIndex, offset : Option[IR_ConstIndex], frozen : Boolean)
+  = new IR_FieldAccess(field, slot, IR_LoopOverFragments.defIt, index, offset, frozen)
+}
+
 case class IR_FieldAccess(
-    var fieldSelection : IR_FieldSelection,
+    var field : IR_Field,
+    var slot : IR_Expression,
+    var fragIdx : IR_Expression,
     var index : IR_ExpressionIndex,
     var offset : Option[IR_ConstIndex] = None,
     var frozen : Boolean = false) extends IR_MultiDimFieldAccess with IR_CanBeOffset {
 
   override def datatype = {
-    val layout = fieldSelection.field.fieldLayout
+    val layout = field.fieldLayout
     if (index.length == layout.numDimsGrid)
       layout.datatype
     else if (index.length == layout.numDimsData)
@@ -83,7 +109,7 @@ case class IR_FieldAccess(
     else if (index.length == layout.numDimsData - 1 && layout.datatype.isInstanceOf[IR_MatrixDatatype] && 1 == layout.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
     // FIXME: find a reasonable way to deal with this case and remove this HACK
       layout.datatype.resolveBaseDatatype
-    else Logger.error(s"Trying to resolve data type with invalid index ${ index.prettyprint() }; field ${ fieldSelection.field.name } has data type ${ layout.datatype }")
+    else Logger.error(s"Trying to resolve data type with invalid index ${ index.prettyprint() }; field ${ field.name } has data type ${ layout.datatype }")
   }
 
   def getOffsetFromIndex = {
@@ -100,7 +126,7 @@ case class IR_FieldAccess(
       offset = None
     }
 
-    IR_DirectFieldAccess(fieldSelection, index + fieldSelection.referenceOffset)
+    IR_DirectFieldAccess(field, slot, fragIdx, index + field.referenceOffset)
   }
 
   override def offsetWith(newOffset : IR_ConstIndex) = index += newOffset
@@ -128,12 +154,16 @@ object IR_ApplyOffsetToFieldAccess extends DefaultStrategy("Apply offsets to Fie
 
 /// IR_LinearizedFieldAccess
 
-case class IR_LinearizedFieldAccess(var fieldSelection : IR_FieldSelection, var index : IR_Expression) extends IR_Expression with IR_Expandable {
-  override def datatype = fieldSelection.fieldLayout.datatype
+case class IR_LinearizedFieldAccess(
+    var field : IR_Field,
+    var slot : IR_Expression,
+    var fragIdx : IR_Expression,
+    var index : IR_Expression) extends IR_FieldAccessLike with IR_Expandable {
+  override def datatype = field.fieldLayout.datatype
 
   override def expand() = {
     IR_ArrayAccess(
-      IR_IV_FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx),
+      IR_IV_FieldData(field, field.level, slot, fragIdx),
       index,
       Knowledge.data_alignFieldPointers)
   }

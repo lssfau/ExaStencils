@@ -5,7 +5,6 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config.Knowledge
-import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir.IR_Domain
 import exastencils.field.ir._
 import exastencils.logger.Logger
@@ -85,7 +84,7 @@ case class IR_VF_StagCellWidthPerDim(
       // -> read widths from field in stagger dimensions
 
       if (dim == stagDim) // read from field
-        IR_FieldAccess(IR_FieldSelection(associatedField, level, 0), IR_GridUtil.projectIdx(index, dim))
+        IR_FieldAccess(associatedField, 0, IR_GridUtil.projectIdx(index, dim))
       else // just the un-staggered cell width
         IR_VF_CellWidthPerDim.access(level, dim, index)
 

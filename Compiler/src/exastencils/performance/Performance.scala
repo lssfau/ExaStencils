@@ -215,7 +215,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
     val rel_by : ListBuffer[Long] = ListBuffer()
     if (stencil.length < 2) {
       rel_by += stencil.head
-      return  rel_by
+      return rel_by
     }
     for (i <- 0 to stencil.length - 2) {
       val tmp = Math.abs(stencil(i) - stencil(i + 1))
@@ -224,11 +224,10 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
     rel_by.sorted.reverse
   }
 
-
   def findBlockingFactor(fieldAcesses : HashMap[String, IR_Datatype], fieldSize : Array[Long], stencilOffsets : HashMap[String, ListBuffer[Long]]) : Array[Long] = {
 
     //Multi thread:
-    var cacheSize : Double =  (Platform.hw_cacheSize * Platform.hw_usableCache) / stencilOffsets.size //Bereich fuer jedes Feld
+    var cacheSize : Double = (Platform.hw_cacheSize * Platform.hw_usableCache) / stencilOffsets.size //Bereich fuer jedes Feld
     val numberOfThreadsUsed = Knowledge.omp_numThreads
     val numberOfCaches = Platform.hw_numCacheSharingThreads / Platform.hw_cpu_numCoresPerCPU
     if (numberOfThreadsUsed > numberOfCaches) {
@@ -245,53 +244,53 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
 
         //1.Version, auf komplette groesse blocken
         var cacheRequired : Double = math.abs(stencil.head)
-        if (stencil(stencil.length-1) <= 0)
-          cacheRequired += math.abs(stencil(stencil.length-1))
+        if (stencil(stencil.length - 1) <= 0)
+          cacheRequired += math.abs(stencil(stencil.length - 1))
         cacheRequired = cacheRequired * fieldAcesses(ident).typicalByteSize
         //if (cacheRequired == 0){
         //  cacheRequired = cacheSize
         //}
         var ny = cacheSize / cacheRequired
         if (ny >= 1) {
-         ny = 1
+          ny = 1
         }
         //wenn das zu kleine Bloecke werden:
-        if (ny > 0.1){
-          var numberOfBlocks: Long = (1 / ny).toLong
-          if ( 1%ny != 0){
+        if (ny > 0.1) {
+          var numberOfBlocks : Long = (1 / ny).toLong
+          if (1 % ny != 0) {
             numberOfBlocks += 1
           }
-          if( fieldSize.length == 3)
-            factors(ident) = Array( fieldSize(0), fieldSize(1)/ numberOfBlocks , fieldSize(2))
+          if (fieldSize.length == 3)
+            factors(ident) = Array(fieldSize(0), fieldSize(1) / numberOfBlocks, fieldSize(2))
           else
             factors(ident) = Array(fieldSize(0) / numberOfBlocks, fieldSize(1))
-          Logger.warn(s"Stencil: ${stencil.head}, ${stencil(stencil.length-1)}")
-          Logger.warn(s"Meike: cache_required1 ${ cacheRequired }, numberOfBlocks = ${numberOfBlocks}, cacheSize = ${cacheSize}, ny = ${ny}")
+          Logger.warn(s"Stencil: ${ stencil.head }, ${ stencil(stencil.length - 1) }")
+          Logger.warn(s"Meike: cache_required1 ${ cacheRequired }, numberOfBlocks = ${ numberOfBlocks }, cacheSize = ${ cacheSize }, ny = ${ ny }")
         }
         //ansonsten 2.Version
         else {
           //3D:
           if (fieldSize.length == 3) {
             // 3D slice in +y direction
-            val yOffset = fieldSize(0)*fieldSize(1)
+            val yOffset = fieldSize(0) * fieldSize(1)
             var stencil_biggery = stencil.filter(_ > yOffset)
             if (stencil_biggery.nonEmpty) {
               stencil = stencil.filter(_ < yOffset)
               var i = 1
               do {
-                var part = stencil_biggery.filter(_ < i *yOffset)
-                if( part.nonEmpty) {
+                var part = stencil_biggery.filter(_ < i * yOffset)
+                if (part.nonEmpty) {
                   stencil_biggery = stencil_biggery.filter(_ > i * yOffset)
                   part = computeRelativeStencilOffsets(part)
                   relO += part.sum
                   numberOfSlices += 1
 
                 }
-                i +=1
+                i += 1
               } while (stencil_biggery.nonEmpty)
 
             }
-            else{
+            else {
               relO += 0
             }
             //3D slice in -y direction
@@ -299,9 +298,9 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
             if (stencil_smallery.nonEmpty) {
               stencil = stencil.filter(_ > -yOffset)
               var i = 1
-              do{
-                var part = stencil_smallery.filter(_ < i *yOffset)
-                if(part.nonEmpty) {
+              do {
+                var part = stencil_smallery.filter(_ < i * yOffset)
+                if (part.nonEmpty) {
                   stencil_smallery = stencil_smallery.filter(_ > i * yOffset)
                   part = computeRelativeStencilOffsets(part)
                   relO += part.sum
@@ -309,9 +308,9 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
 
                 }
                 i += 1
-              }while(stencil_smallery.nonEmpty)
+              } while (stencil_smallery.nonEmpty)
             }
-            else{
+            else {
               relO += 0
             }
             maxSlice = relO.max
@@ -333,13 +332,13 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
             ny = 1
           }
           var numberOfBlocks = (1 / ny).round
-          if ( 1%ny != 0){
+          if (1 % ny != 0) {
             numberOfBlocks += 1
           }
-          Logger.warn(s"Meike: cache_required2 ${ cacheRequired }, numberOfBlocks = ${numberOfBlocks}, cacheSize = ${cacheSize}")
+          Logger.warn(s"Meike: cache_required2 ${ cacheRequired }, numberOfBlocks = ${ numberOfBlocks }, cacheSize = ${ cacheSize }")
           //numberOfBlocks = 1 / numberOfBlocks
-          if (fieldSize.length == 3){
-            factors(ident) = Array (fieldSize(0), fieldSize(1) / numberOfBlocks, fieldSize(2) )
+          if (fieldSize.length == 3) {
+            factors(ident) = Array(fieldSize(0), fieldSize(1) / numberOfBlocks, fieldSize(2))
 
           }
           else {
@@ -406,10 +405,10 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         val totalEstimate = PerformanceEstimate(Math.max(estimatedTimeOps_host, optimisticTimeMem_host), Math.max(estimatedTimeOps_device, optimisticTimeMem_device))
         totalEstimate.device += Platform.sw_cuda_kernelCallOverhead
 
-        var dim : Array[Long] = Array(0,0,0)
+        var dim : Array[Long] = Array(0, 0, 0)
         if (Knowledge.opt_loopBlocked) {
-          dim  = findBlockingFactor(EvaluatePerformanceEstimates_FieldAccess.fieldAccesses, loop.maxIterationCount(), EvaluatePerformanceEstimates_FieldAccess.offsets)
-          Logger.warn(s"Meike2: dims = ${dim(0)}, ${dim(1)}")
+          dim = findBlockingFactor(EvaluatePerformanceEstimates_FieldAccess.fieldAccesses, loop.maxIterationCount(), EvaluatePerformanceEstimates_FieldAccess.offsets)
+          Logger.warn(s"Meike2: dims = ${ dim(0) }, ${ dim(1) }")
           loop.tileSize = dim.map(_.toInt)
           maxIterations = dim.product
           //IR_Comment(s"min loop dimentsion: ${dim(0)} ,${ dim(1)}, elements"),
@@ -427,7 +426,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
           IR_Comment(s"Optimistic device time for computational ops: ${ estimatedTimeOps_device * 1000.0 } ms"),
           IR_Comment(s"Assumed kernel call overhead: ${ Platform.sw_cuda_kernelCallOverhead * 1000.0 } ms"),
           IR_Comment(s"Found accesses: ${ EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.keys.mkString(", ") }"),
-          IR_Comment(s"min loop dimentsion: ${dim(0)} ,${ dim(1)}, elements"),
+          IR_Comment(s"min loop dimentsion: ${ dim(0) } ,${ dim(1) }, elements"),
           loop)
       }
 
@@ -465,16 +464,16 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
   var inWriteOp = true
 
   def mapFieldAccess(access : IR_MultiDimFieldAccess) = {
-    val field = access.fieldSelection.field
+    val field = access.field
     var identifier = field.codeName
 
     identifier = (if (inWriteOp) "write_" else "read_") + identifier
 
     if (field.numSlots > 1) {
-      access.fieldSelection.slot match {
+      access.slot match {
         case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
+        case _                        => identifier += s"_s${ access.slot.prettyprint }"
       }
     }
 

@@ -151,7 +151,7 @@ object IR_LocalSchurCompl {
         stmts ++= innerStmts
       } else {
         stmts += IR_IfCondition(
-          IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
+          IR_IsValidComputationPoint(unknowns(i).field, Duplicate(unknowns(i).index)),
           innerStmts,
           boundaryStmts)
       }
@@ -182,7 +182,7 @@ object IR_LocalSchurCompl {
     // write back results
     for (i <- unknowns.indices) {
       val dest = Duplicate(unknowns(i))
-      if (jacobiType) dest.fieldSelection.slot.asInstanceOf[IR_SlotAccess].offset += 1
+      if (jacobiType) dest.slot.asInstanceOf[IR_SlotAccess].offset += 1
 
       if (omitConditions) {
         if (relax.isEmpty)
@@ -191,7 +191,7 @@ object IR_LocalSchurCompl {
           stmts += IR_Assignment(dest, Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u(i), i % 2))
       } else {
         stmts += IR_IfCondition( // don't write back result on boundaries
-          IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
+          IR_IsValidComputationPoint(unknowns(i).field, Duplicate(unknowns(i).index)),
           if (relax.isEmpty)
             IR_Assignment(dest, vecComponentAccess(u(i), i % 2))
           else
@@ -314,7 +314,7 @@ object IR_LocalSchurCompl {
         stmts ++= innerStmts
       } else {
         stmts += IR_IfCondition(
-          IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
+          IR_IsValidComputationPoint(unknowns(i).field, Duplicate(unknowns(i).index)),
           innerStmts,
           boundaryStmts)
       }
@@ -349,7 +349,7 @@ object IR_LocalSchurCompl {
     // write back results
     for (i <- unknowns.indices) {
       val dest = Duplicate(unknowns(i))
-      if (jacobiType) dest.fieldSelection.slot.asInstanceOf[IR_SlotAccess].offset += 1
+      if (jacobiType) dest.slot.asInstanceOf[IR_SlotAccess].offset += 1
 
       if (omitConditions) {
         if (relax.isEmpty)
@@ -358,7 +358,7 @@ object IR_LocalSchurCompl {
           stmts += IR_Assignment(dest, Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u(i), i % 2))
       } else {
         stmts += IR_IfCondition( // don't write back result on boundaries
-          IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
+          IR_IsValidComputationPoint(unknowns(i).field, Duplicate(unknowns(i).index)),
           if (relax.isEmpty)
             IR_Assignment(dest, vecComponentAccess(u(i), i % 2))
           else

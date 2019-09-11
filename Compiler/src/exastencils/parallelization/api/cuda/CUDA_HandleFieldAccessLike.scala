@@ -20,14 +20,14 @@ object CUDA_GatherFieldAccessLike extends QuietDefaultStrategy("Gather local Fie
   var writtenFields = ListBuffer[String]()
 
   def extractFieldIdentifier(access : IR_MultiDimFieldAccess) = {
-    val field = access.fieldSelection.field
+    val field = access.field
     var identifier = field.codeName
 
     if (field.numSlots > 1) {
-      access.fieldSelection.slot match {
+      access.slot match {
         case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
+        case _                        => identifier += s"_s${ access.slot.prettyprint }"
       }
     }
 
@@ -35,11 +35,11 @@ object CUDA_GatherFieldAccessLike extends QuietDefaultStrategy("Gather local Fie
   }
 
   this += new Transformation("Searching", {
-    case stmt @ IR_Assignment(access : IR_MultiDimFieldAccess, _, _)                                         =>
+    case stmt @ IR_Assignment(access : IR_MultiDimFieldAccess, _, _)                                =>
       writtenFields += extractFieldIdentifier(access)
       stmt
-    case access : IR_MultiDimFieldAccess if access.fieldSelection.fieldLayout.numDimsData <= maximalFieldDim =>
-      val field = access.fieldSelection.field
+    case access : IR_MultiDimFieldAccess if access.field.fieldLayout.numDimsData <= maximalFieldDim =>
+      val field = access.field
       val identifier = extractFieldIdentifier(access)
 
       // Evaluate indices. Should be of the form "variable + offset". Ignore all other fields.
@@ -83,15 +83,15 @@ object CUDA_ReplaceFieldAccessLike extends QuietDefaultStrategy("Replace local F
   var applySpatialBlocking = false
 
   def extractIdentifier(access : IR_MultiDimFieldAccess) = {
-    val field = access.fieldSelection.field
+    val field = access.field
     var identifier = field.codeName
 
     // TODO: array fields
     if (field.numSlots > 1) {
-      access.fieldSelection.slot match {
+      access.slot match {
         case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
+        case _                        => identifier += s"_s${ access.slot.prettyprint }"
       }
     }
 
@@ -111,7 +111,7 @@ object CUDA_ReplaceFieldAccessLike extends QuietDefaultStrategy("Replace local F
           case y if 0L to -offsetForSharedMemoryAccess by -1 contains y => IR_VariableAccess("behind" + math.abs(y), access.datatype)
         }
       } else {
-        new CUDA_SharedArrayAccess(IR_VariableAccess(CUDA_Kernel.KernelVariablePrefix + identifier, IR_PointerDatatype(access.fieldSelection.field.resolveDeclType)), (access.index - fieldOffset).indices.take(executionDim).reverse, IR_ExpressionIndex(sharedArrayStrides))
+        new CUDA_SharedArrayAccess(IR_VariableAccess(CUDA_Kernel.KernelVariablePrefix + identifier, IR_PointerDatatype(access.field.resolveDeclType)), (access.index - fieldOffset).indices.take(executionDim).reverse, IR_ExpressionIndex(sharedArrayStrides))
       }
   })
 }

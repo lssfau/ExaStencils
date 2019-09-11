@@ -7,7 +7,6 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
-import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 
@@ -30,7 +29,7 @@ case class IR_InitFieldsWithZero() extends IR_FuturePlainFunction {
         IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GRE", dim)))),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           IR_Assignment(
-            IR_DirectFieldAccess(IR_FieldSelection(field, field.level, slot), Duplicate(index)),
+            IR_DirectFieldAccess(field, slot, Duplicate(index)),
             0.0) : IR_Statement))
       loopOverDims.parallelization.potentiallyParallel = true
       loopOverDims.polyOptLevel = 1

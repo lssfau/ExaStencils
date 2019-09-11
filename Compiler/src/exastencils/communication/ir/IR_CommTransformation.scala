@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.communication.NeighborInfo
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
@@ -18,7 +19,7 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
   // 3 --> N
 
   def switchUL(fieldAccess : IR_DirectFieldAccess, neigh : NeighborInfo) = {
-    def origField = fieldAccess.fieldSelection.field
+    def origField = fieldAccess.field
 
     if (IR_FieldCombinationCollection.existsInCombination(origField, "Triangles")) {
       (trafoId, neigh.index) match {
@@ -31,7 +32,7 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
             Logger.error(s"Found triangle combination with more than one field; unsupported")
 
           val newField = combinations.head.fields.filterNot(_ == origField).head
-          fieldAccess.fieldSelection.field = newField
+          fieldAccess.field = newField
 
         case _ =>
       }
@@ -66,10 +67,10 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
     val index = fieldAccess.index
 
     val trafoIndex = IR_ExpressionIndex(transformIndex(index.indices, indexSize, indexBegin)
-      ++ index.drop(fieldAccess.fieldSelection.field.numDimsGrid)
+      ++ index.drop(fieldAccess.field.numDimsGrid)
     )
 
-    val transformedFieldAccess = IR_DirectFieldAccess(fieldAccess.fieldSelection, trafoIndex)
+    val transformedFieldAccess = IR_DirectFieldAccess(fieldAccess.field, Duplicate(fieldAccess.slot), Duplicate(fieldAccess.fragIdx), trafoIndex)
 
     switchUL(transformedFieldAccess, neigh)
   }
@@ -94,7 +95,7 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
   }
 
   def applyLocalTrafo(fieldAccess : IR_DirectFieldAccess, neigh : NeighborInfo) = {
-    def fieldSize(i : Int) = fieldAccess.fieldSelection.fieldLayout.defTotal(i) - 1
+    def fieldSize(i : Int) = fieldAccess.field.fieldLayout.defTotal(i) - 1
 
     val rot90mat = Array(Array(0, -1), Array(1, 0))
 
@@ -127,7 +128,7 @@ case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
       rotMat(1)(0) * fieldAccess.index(0) + rotMat(1)(1) * fieldAccess.index(1) + t(1)
     ) ++ fieldAccess.index.drop(2)
 
-    val transformedFieldAccess = IR_DirectFieldAccess(fieldAccess.fieldSelection, IR_ExpressionIndex(trafoIndices))
+    val transformedFieldAccess = IR_DirectFieldAccess(fieldAccess.field, Duplicate(fieldAccess.slot), Duplicate(fieldAccess.fragIdx), IR_ExpressionIndex(trafoIndices))
 
     switchUL(transformedFieldAccess, neigh)
   }

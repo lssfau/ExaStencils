@@ -6,29 +6,15 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.boundary.ir.IR_IV_BoundaryConditionId
-import exastencils.communication.DefaultNeighbors
-import exastencils.communication.NeighborInfo
-import exastencils.communication.ir.IR_CommTrafoIdCollection
-import exastencils.communication.ir.IR_Communicate
-import exastencils.communication.ir.IR_CommunicateTarget
-import exastencils.communication.ir.IR_IV_CommNeighNeighIdx
-import exastencils.communication.ir.IR_IV_CommunicationId
-import exastencils.communication.ir.IR_IV_CommTrafoId
-import exastencils.communication.ir.IR_IV_NeighFragId
-import exastencils.config.Knowledge
-import exastencils.config.Settings
-import exastencils.deprecated.ir.IR_FieldSelection
-import exastencils.field.ir.IR_DirectFieldAccess
-import exastencils.field.ir.IR_Field
+import exastencils.communication._
+import exastencils.communication.ir._
+import exastencils.config._
+import exastencils.field.ir._
 import exastencils.globals.ir.IR_AllocateDataFunction
-import exastencils.globals.ir.IR_GlobalCollection
-import exastencils.grid.ir.IR_VF_NodePositionAsVec
-import exastencils.grid.ir.IR_VF_NodePositionPerDim
+import exastencils.grid.ir._
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
-import exastencils.util.ir.IR_BuildString
-import exastencils.util.ir.IR_ReadStream
-import exastencils.util.ir.IR_UtilFunctions
+import exastencils.util.ir._
 
 case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
   override var name = "initDomain"
@@ -184,8 +170,8 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       val cond = IR_Lower(iDir, end(nonDirId))
       val incr = IR_PreIncrement(iDir)
 
-      val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field, field.level, 0), accessIndex)
-      val fieldAccessIncr = IR_DirectFieldAccess(IR_FieldSelection(field, field.level, 0), accessIndexIncr)
+      val fieldAccess = IR_DirectFieldAccess(field, 0, accessIndex)
+      val fieldAccessIncr = IR_DirectFieldAccess(field, 0, accessIndexIncr)
 
       IR_ForLoop(decl, cond, incr, IR_Assignment(fieldAccess, fieldAccessIncr))
     }
@@ -228,8 +214,8 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       val cond = IR_Greater(iDir, begin(nonDirId))
       val decr = IR_PreDecrement(iDir)
 
-      val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field, field.level, 0), accessIndex)
-      val fieldAccessDecr = IR_DirectFieldAccess(IR_FieldSelection(field, field.level, 0), accessIndexDecr)
+      val fieldAccess = IR_DirectFieldAccess(field, 0, accessIndex)
+      val fieldAccessDecr = IR_DirectFieldAccess(field, 0, accessIndexDecr)
 
       IR_ForLoop(decl, cond, decr, IR_Assignment(fieldAccess, fieldAccessDecr))
     }
@@ -310,12 +296,10 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
     }
 
-    def fieldSelection = IR_FieldSelection(field, field.level, 0)
-
     for (neigh <- DefaultNeighbors.neighbors) {
-      val ghost = IR_DirectFieldAccess(fieldSelection, baseIndex)
-      val boundary = IR_DirectFieldAccess(fieldSelection, genIndexBoundary(neigh))
-      val interior = IR_DirectFieldAccess(fieldSelection, genIndexInterior(neigh))
+      val ghost = IR_DirectFieldAccess(field, 0, baseIndex)
+      val boundary = IR_DirectFieldAccess(field, 0, genIndexBoundary(neigh))
+      val interior = IR_DirectFieldAccess(field, 0, genIndexInterior(neigh))
 
       body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh.index)), ListBuffer[IR_Statement](
         IR_LoopOverDimensions(numDims,
@@ -515,7 +499,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     body += IR_MemberFunctionCall(file, "close")
 
     // communicate (updated interior ghost layers)
-    body += IR_Communicate(IR_FieldSelection(field, field.level, 0), "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None)
+    body += IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None)
     // deal with ghost layers on boundary
     body += loopOverNumFragments(fillBoundaryGhostLayers(field))
     // adapt ghost layers to match upper and lower triangles of neighbors

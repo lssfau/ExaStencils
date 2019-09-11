@@ -2,17 +2,31 @@ package exastencils.operator.ir
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.datastructures._
-import exastencils.deprecated.ir.IR_StencilFieldSelection
 
 /// IR_StencilFieldAccess
 
-case class IR_StencilFieldAccess(var selection /* FIXME: target : IR_StencilField */ : IR_StencilFieldSelection, var index : IR_ExpressionIndex, var offset : Option[IR_ConstIndex]) extends IR_OperatorAccess with IR_SpecialExpandable {
+object IR_StencilFieldAccess {
+  def apply(stencilField : IR_StencilField, slot : IR_Expression, index : IR_ExpressionIndex, offset : Option[IR_ConstIndex])
+  = new IR_StencilFieldAccess(stencilField, slot, IR_LoopOverFragments.defIt, index, offset)
+}
+
+case class IR_StencilFieldAccess(
+    var stencilField : IR_StencilField,
+    var slot : IR_Expression,
+    var fragIdx : IR_Expression,
+    var index : IR_ExpressionIndex,
+    var offset : Option[IR_ConstIndex]) extends IR_OperatorAccess with IR_SpecialExpandable {
+
+  override def target = stencilField
   // FIXME: currently returns array dt
-  override def datatype = selection.stencilField.field.fieldLayout.datatype
-  override def target = selection.stencilField
-  override def assembleOffsetMap() = selection.stencilField.stencil.assembleOffsetMap()
-  override def stencil = target.stencil
+  override def datatype = stencilField.field.fieldLayout.datatype
+  override def assembleOffsetMap() = stencilField.stencil.assembleOffsetMap()
+  override def stencil = stencilField.stencil
+
+  // shortcuts
+  def field = stencilField.field
 }
 
 /// IR_ApplyOffsetToStencilFieldAccess

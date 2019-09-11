@@ -11,7 +11,6 @@ import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
-import exastencils.deprecated.ir._
 import exastencils.field.ir._
 import exastencils.interfacing.ir._
 import exastencils.logger.Logger
@@ -247,18 +246,14 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
       colCondColl.reset()
       this.execute(new Transformation("concatenate and transform result", {
         case dfa : IR_DirectFieldAccess        =>
-          for ((newField, index) <- Option(fieldReplace.get(dfa.fieldSelection.field))) {
-            dfa.fieldSelection.field = newField
+          for ((newField, index) <- Option(fieldReplace.get(dfa.field))) {
+            dfa.field = newField
             val dim = dfa.index.indices.length + 1
             dfa.index.indices = java.util.Arrays.copyOf(dfa.index.indices, dim)
             dfa.index.indices(dim - 1) = IR_IntegerConstant(index)
             processDFA(dfa, transformations, processedLayouts, colCondColl)
           }
           dfa
-        case node : IR_FieldSelection          =>
-          for ((newField, _) <- Option(fieldReplace.get(node.field)))
-            node.field = newField
-          node
         case node : IR_IV_AbstractCommBuffer   =>
           for ((newField, _) <- Option(fieldReplace.get(node.field)))
             node.field = newField
@@ -311,14 +306,14 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
   private def processDFA(dfa : IR_DirectFieldAccess, transformations : HashMap[(String, Int), ArrayBuffer[IR_GenericTransform]],
       processedLayouts : HashMap[(String, Int), IR_ExpressionIndex => IR_ExpressionIndex], colColl : ColorCondCollector) : Unit = {
 
-    val fieldID : (String, Int) = (dfa.fieldSelection.field.name, dfa.fieldSelection.field.level)
+    val fieldID : (String, Int) = (dfa.field.name, dfa.field.level)
     val trafosOpt = transformations.get(fieldID)
     if (trafosOpt.isEmpty)
       return
 
     var exprTemplate : IR_ExpressionIndex => IR_ExpressionIndex = processedLayouts.getOrElse(fieldID, null)
     if (exprTemplate == null) {
-      val layout : IR_FieldLayout = dfa.fieldSelection.field.fieldLayout
+      val layout : IR_FieldLayout = dfa.field.fieldLayout
       val trafoMaff : isl.MultiAff = createIslTrafo(trafosOpt.get, layout, fieldID)
       adaptLayout(layout, trafoMaff, fieldID)
       exprTemplate = createASTTemplateforMultiAff(trafoMaff)

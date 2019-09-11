@@ -17,9 +17,9 @@ object IR_MergeCommunicateAndLoop extends DefaultStrategy("Merge communicate sta
 
     for (i <- 1 until body.length) { // check for pre communications steps
       (body(i - 1), body(i)) match {
-        case (cs : IR_Communicate, loop : IR_LoopOverPoints) if cs.field.field.level == loop.field.level => // skip intergrid ops for now
+        case (cs : IR_Communicate, loop : IR_LoopOverPoints) if cs.field.level == loop.field.level => // skip intergrid ops for now
           loop.preComms += cs // already merged: newBody += cs
-        case (first, second)                                                                             => newBody += first
+        case (first, second)                                                                       => newBody += first
       }
     }
     newBody += body.last
@@ -28,9 +28,9 @@ object IR_MergeCommunicateAndLoop extends DefaultStrategy("Merge communicate sta
       newBody.clear
       for (i <- body.length - 1 until 0 by -1) {
         (body(i - 1), body(i)) match {
-          case (loop : IR_LoopOverPoints, cs : IR_Communicate) if cs.field.field.level == loop.field.level => // skip intergrid ops for now
+          case (loop : IR_LoopOverPoints, cs : IR_Communicate) if cs.field.level == loop.field.level => // skip intergrid ops for now
             loop.postComms += cs // already merged: newBody += cs
-          case (first, second)                                                                             => newBody.prepend(second)
+          case (first, second)                                                                       => newBody.prepend(second)
         }
       }
       newBody.prepend(body.head)

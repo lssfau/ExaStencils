@@ -8,7 +8,6 @@ import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
-import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.logger.Logger
@@ -78,9 +77,13 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
   private def updateSlots(stmts : ListBuffer[IR_Statement], fieldOffset : HashMap[FieldKey, Int]) : Unit = {
     object AdaptFieldSlots extends QuietDefaultStrategy("Adapt field slots") {
       this += new Transformation("now", {
-        case fs @ IR_FieldSelection(field, level, IR_SlotAccess(slot, offset), _) =>
-          fs.slot = IR_SlotAccess(slot, offset + fieldOffset.getOrElse(FieldKey(field), 0))
-          fs
+        case fa @ IR_FieldAccess(field, IR_SlotAccess(slot, offset), _, _, _, _) =>
+          fa.slot = IR_SlotAccess(slot, offset + fieldOffset.getOrElse(FieldKey(field), 0))
+          fa
+
+        case fa @ IR_DirectFieldAccess(field, IR_SlotAccess(slot, offset), _, _) =>
+          fa.slot = IR_SlotAccess(slot, offset + fieldOffset.getOrElse(FieldKey(field), 0))
+          fa
       })
     }
     AdaptFieldSlots.applyStandalone(stmts)
@@ -112,12 +115,12 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
     }
     // determine the inital expand value (it must be decreased for every IR_LoopOverDimensions node and it must reach 0 eventually)
     var expand : Int = -1 + number * body.view.flatMap({
-        case IR_IfCondition(_, trueBody : ListBuffer[IR_Statement], ListBuffer()) => trueBody
-        case x                                                                    => List(x)
-      }).count({
-        case _ : IR_LoopOverDimensions => true
-        case _                         => false
-      })
+      case IR_IfCondition(_, trueBody : ListBuffer[IR_Statement], ListBuffer()) => trueBody
+      case x                                                                    => List(x)
+    }).count({
+      case _ : IR_LoopOverDimensions => true
+      case _                         => false
+    })
     for (iteration <- 0 until number) {
       replIt.itVal = iteration
       for (stmt <- body)

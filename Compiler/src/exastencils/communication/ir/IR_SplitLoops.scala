@@ -21,10 +21,10 @@ object IR_GatherFieldAccessOffsets extends QuietDefaultStrategy("Gather field ac
 
   this += new Transformation("Gather", {
     case fa : IR_FieldAccess        =>
-      addAccess(fa.fieldSelection.field.codeName, fa.index - IR_LoopOverDimensions.defIt(fa.index.length))
+      addAccess(fa.field.codeName, fa.index - IR_LoopOverDimensions.defIt(fa.index.length))
       fa
     case dfa : IR_DirectFieldAccess =>
-      addAccess(dfa.fieldSelection.field.codeName, dfa.index - dfa.fieldSelection.field.referenceOffset - IR_LoopOverDimensions.defIt(dfa.index.length))
+      addAccess(dfa.field.codeName, dfa.index - dfa.field.referenceOffset - IR_LoopOverDimensions.defIt(dfa.index.length))
       dfa
   })
 }

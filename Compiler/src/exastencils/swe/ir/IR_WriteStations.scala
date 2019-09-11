@@ -6,7 +6,6 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
-import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.globals.ir.IR_GlobalCollection
@@ -51,8 +50,8 @@ case class IR_WriteStations(var fctName : String, var arguments : ListBuffer[IR_
     def numDims = Knowledge.dimensionality
 
     def coeffsFieldAccess(index : IR_ExpressionIndex = IR_LoopOverDimensions.defIt(numDims), fragIdx : IR_Expression = IR_LoopOverFragments.defIt) = coeffs.map { c =>
-      val field = c.asInstanceOf[IR_FieldAccess].fieldSelection.field
-      IR_FieldAccess(IR_FieldSelection(field, field.level, 0, fragIdx), index)
+      val field = c.asInstanceOf[IR_FieldAccess].field
+      IR_FieldAccess(field, 0, fragIdx, index)
     }
 
     def nodePositions(dim : Int, offset : IR_ExpressionIndex = IR_ExpressionIndex(0, 0)) = IR_VF_NodePositionPerDim(Knowledge.maxLevel, IR_DomainCollection.objects.head, dim).resolve(IR_LoopOverDimensions.defIt(numDims) + offset)

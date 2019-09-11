@@ -8,7 +8,7 @@ import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.config.Knowledge
 import exastencils.core.StateManager
 import exastencils.datastructures._
-import exastencils.deprecated.ir.IR_FieldSelection
+import exastencils.field.ir.IR_Field
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.layoutTransformation.ir._
 import exastencils.logger.Logger
@@ -18,7 +18,7 @@ import exastencils.prettyprinting.PpStream
 /// MPI_DataType
 
 object MPI_DataType {
-  def shouldBeUsed(field : IR_FieldSelection, indexRange : IR_ExpressionIndexRange, condition : Option[IR_Expression]) : Boolean = {
+  def shouldBeUsed(field : IR_Field, indexRange : IR_ExpressionIndexRange, condition : Option[IR_Expression]) : Boolean = {
     // TODO: extend range of supported cases
     // honor user-give knowledge parameters
     if (!Knowledge.mpi_useCustomDatatypes || Knowledge.data_genVariableFieldSizes)
@@ -37,11 +37,11 @@ object MPI_DataType {
       case _ : IR_ExternalFieldAlias => // nothing to do
 
       case trafo : IR_GenericTransform =>
-        if (trafo.fields.exists(f => f._1 == field.field.name && f._2 == field.level))
+        if (trafo.fields.exists(f => f._1 == field.name && f._2 == field.level))
           return false
 
       case trafo : IR_FieldConcatenation =>
-        if (trafo.fieldsToMerge.contains(field.field.name) && trafo.levels.contains(field.level))
+        if (trafo.fieldsToMerge.contains(field.name) && trafo.levels.contains(field.level))
           return false
     }
 
@@ -54,13 +54,13 @@ object MPI_DataType {
   }
 }
 
-case class MPI_DataType(var field : IR_FieldSelection, var indexRange : IR_ExpressionIndexRange, var condition : Option[IR_Expression]) extends IR_Datatype {
+case class MPI_DataType(var field : IR_Field, var indexRange : IR_ExpressionIndexRange, var condition : Option[IR_Expression]) extends IR_Datatype {
   override def prettyprint(out : PpStream) : Unit = out << generateName
   override def prettyprint_mpi : String = generateName
 
   override def dimensionality : Int = ???
   override def getSizeArray : Array[Int] = ???
-  override def resolveBaseDatatype : IR_Datatype = field.field.resolveBaseDatatype
+  override def resolveBaseDatatype : IR_Datatype = field.resolveBaseDatatype
   override def resolveDeclType : IR_Datatype = this
   override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = ???
@@ -100,7 +100,7 @@ case class MPI_DataType(var field : IR_FieldSelection, var indexRange : IR_Expre
   }
 
   def generateCtor : ListBuffer[IR_Statement] = {
-    val scalarDatatype = field.field.resolveBaseDatatype.prettyprint_mpi
+    val scalarDatatype = field.resolveBaseDatatype.prettyprint_mpi
 
     // compile statement(s)
     ListBuffer[IR_Statement](

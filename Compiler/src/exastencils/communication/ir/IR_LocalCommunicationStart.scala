@@ -10,13 +10,14 @@ import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
-import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
+import exastencils.field.ir.IR_Field
 
 /// IR_LocalCommunicationStart
 
 case class IR_LocalCommunicationStart(
-    var field : IR_FieldSelection,
+    var field : IR_Field,
+    var slot : IR_Expression,
     var sendNeighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)],
     var recvNeighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)],
     var insideFragLoop : Boolean,
@@ -25,9 +26,9 @@ case class IR_LocalCommunicationStart(
   def setLocalCommReady(neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)]) : ListBuffer[IR_Statement] = {
     wrapFragLoop(
       neighbors.map(neighbor =>
-        IR_IfCondition(IR_IV_NeighborIsValid(field.domainIndex, neighbor._1.index)
-          AndAnd IR_Negation(IR_IV_NeighborIsRemote(field.domainIndex, neighbor._1.index)),
-          IR_Assignment(IR_IV_LocalCommReady(field.field, neighbor._1.index), IR_BooleanConstant(true)))),
+        IR_IfCondition(IR_IV_NeighborIsValid(field.domain.index, neighbor._1.index)
+          AndAnd IR_Negation(IR_IV_NeighborIsRemote(field.domain.index, neighbor._1.index)),
+          IR_Assignment(IR_IV_LocalCommReady(field, neighbor._1.index), IR_BooleanConstant(true)))),
       true)
   }
 
@@ -45,16 +46,16 @@ case class IR_LocalCommunicationStart(
     if (Knowledge.comm_pushLocalData) {
       // distribute this fragment's data - if enabled
       output += wrapFragLoop(
-        IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
+        IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
           sendNeighbors.map(neigh =>
-            IR_LocalSend(Duplicate(field), Duplicate(neigh._1), Duplicate(neigh._2), Duplicate(neigh._3), insideFragLoop, Duplicate(cond)) : IR_Statement)),
+            IR_LocalSend(field, Duplicate(slot), Duplicate(neigh._1), Duplicate(neigh._2), Duplicate(neigh._3), insideFragLoop, Duplicate(cond)) : IR_Statement)),
         true)
     } else {
       // pull data for this fragment - otherwise
       output += wrapFragLoop(
-        IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
+        IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
           recvNeighbors.map(neigh =>
-            IR_LocalRecv(Duplicate(field), Duplicate(neigh._1), Duplicate(neigh._2), Duplicate(neigh._3), insideFragLoop, Duplicate(cond)) : IR_Statement)),
+            IR_LocalRecv(field, Duplicate(slot), Duplicate(neigh._1), Duplicate(neigh._2), Duplicate(neigh._3), insideFragLoop, Duplicate(cond)) : IR_Statement)),
         true)
     }
 

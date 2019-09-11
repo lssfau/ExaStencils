@@ -12,10 +12,8 @@ import exastencils.field.ir._
 /// CUDA_UpdateHostData
 
 object CUDA_UpdateHostData {
-  def apply(access : IR_MultiDimFieldAccess) = {
-    val fieldSelection = access.fieldSelection
-    new CUDA_UpdateHostData(IR_IV_FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx))
-  }
+  def apply(access : IR_MultiDimFieldAccess) =
+    new CUDA_UpdateHostData(IR_IV_FieldData(access.field, access.level, Duplicate(access.slot), Duplicate(access.fragIdx)))
 }
 
 case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData) extends CUDA_HostStatement with IR_Expandable {
@@ -39,10 +37,8 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData) extends CUDA_Hos
 /// CUDA_UpdateDeviceData
 
 object CUDA_UpdateDeviceData {
-  def apply(access : IR_MultiDimFieldAccess) = {
-    val fieldSelection = Duplicate(access.fieldSelection)
-    new CUDA_UpdateDeviceData(IR_IV_FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx))
-  }
+  def apply(access : IR_MultiDimFieldAccess) =
+    new CUDA_UpdateDeviceData(IR_IV_FieldData(access.field, access.level, Duplicate(access.slot), Duplicate(access.fragIdx)))
 }
 
 case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData) extends CUDA_HostStatement with IR_Expandable {

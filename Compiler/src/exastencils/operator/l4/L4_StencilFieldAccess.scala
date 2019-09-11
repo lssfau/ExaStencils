@@ -5,7 +5,6 @@ import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.l4._
 import exastencils.datastructures._
-import exastencils.deprecated.ir._
 import exastencils.field.l4._
 import exastencils.logger.Logger
 import exastencils.operator.ir.IR_StencilFieldAccess
@@ -51,8 +50,7 @@ case class L4_StencilFieldAccess(
     val numDims = target.field.fieldLayout.numDimsGrid
     val index = IR_LoopOverDimensions.defIt(numDims)
 
-    IR_StencilFieldAccess(IR_StencilFieldSelection(target.getProgressedObj(), target.field.level, L4_FieldAccess.resolveSlot(target.field.getProgressedObj(), slot)),
-      index, progressOffset(index.length))
+    IR_StencilFieldAccess(target.getProgressedObj(), L4_FieldAccess.resolveSlot(target.field.getProgressedObj(), slot), index, progressOffset(index.length))
   }
 
   override def assembleOffsetMap() = target.stencil.assembleOffsetMap()

@@ -42,7 +42,7 @@ object IR_LocalConstInvert {
     // write back results
     for (i <- unknowns.indices) {
       val dest = Duplicate(unknowns(i))
-      if (jacobiType) dest.fieldSelection.slot.asInstanceOf[IR_SlotAccess].offset += 1
+      if (jacobiType) dest.slot.asInstanceOf[IR_SlotAccess].offset += 1
 
       def newU = IR_Addition(unknowns.indices.map(j =>
         AInv.get(i, j) * (if (onTheFlyRhs) fVals(j) else vecComponentAccess(f, j)) : IR_Expression).to[ListBuffer])

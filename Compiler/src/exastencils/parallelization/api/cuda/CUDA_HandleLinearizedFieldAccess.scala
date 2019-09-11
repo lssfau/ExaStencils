@@ -6,24 +6,23 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.deprecated.ir._
 import exastencils.field.ir._
 
 object CUDA_IdentifierFromFieldAccess {
   def apply(access : IR_LinearizedFieldAccess) = {
-    val field = access.fieldSelection.field
+    val field = access.field
     var identifier = field.codeName
 
     // TODO: array fields
     if (field.numSlots > 1) {
-      access.fieldSelection.slot match {
+      access.slot match {
         case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
+        case _                        => identifier += s"_s${ access.slot.prettyprint }"
       }
     }
 
-    access.fieldSelection.fragIdx match {
+    access.fragIdx match {
       case frag : IR_VariableAccess if frag.name == IR_LoopOverFragments.defIt.name => // ignore default case
 
       case other =>
@@ -58,7 +57,7 @@ object CUDA_ReplaceLinearizedFieldAccess extends QuietDefaultStrategy("Replace l
   var fieldAccesses = HashMap[String, IR_LinearizedFieldAccess]()
 
   def extractIdentifier(access : IR_LinearizedFieldAccess) = {
-    IR_VariableAccess(CUDA_IdentifierFromFieldAccess(access), IR_PointerDatatype(access.fieldSelection.field.resolveDeclType))
+    IR_VariableAccess(CUDA_IdentifierFromFieldAccess(access), IR_PointerDatatype(access.field.resolveDeclType))
   }
 
   this += new Transformation("Searching", {
@@ -78,7 +77,7 @@ object CUDA_GatherLinearizedFieldAccessWrites extends QuietDefaultStrategy("Gath
   }
 
   this += new Transformation("Searching", {
-    case stmt @ IR_Assignment(access @ IR_LinearizedFieldAccess(fieldSelection : IR_FieldSelection, index : IR_Expression), _, _) =>
+    case stmt @ IR_Assignment(access : IR_LinearizedFieldAccess, _, _) =>
       mapFieldAccess(access)
       stmt
   })

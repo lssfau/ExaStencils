@@ -18,20 +18,26 @@ case class L4_PrintField(
     var includeGhostLayers : Boolean = false,
     var onlyValues : Boolean = false,
     var binary : Boolean = false) extends L4_Statement {
+
   override def prettyprint(out : PpStream) = {
     out << "print ( "
     out << filename << ", " << field
     if (condition.isDefined) out << ", " << condition.get
     out << " )"
   }
-  override def progress = ProgressLocation(
-    IR_PrintField(
-      filename.progress,
-      field.progress.fieldSelection,
-      condition.getOrElse(L4_BooleanConstant(true)).progress,
-      includeGhostLayers,
-      onlyValues,
-      binary))
+
+  override def progress = {
+    val progField = field.progress
+    ProgressLocation(
+      IR_PrintField(
+        filename.progress,
+        progField.field,
+        progField.slot,
+        condition.getOrElse(L4_BooleanConstant(true)).progress,
+        includeGhostLayers,
+        onlyValues,
+        binary))
+  }
 }
 
 /// L4_ResolvePrintFieldFunctions

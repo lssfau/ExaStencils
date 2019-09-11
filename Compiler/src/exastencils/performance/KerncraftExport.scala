@@ -149,7 +149,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
         seen += fieldWithSlotId.identifierName
         val scalarDataType = fieldWithSlotId.field.resolveBaseDatatype
         val idname = fieldWithSlotId.identifierName
-        //      val size = (0 until dim).map(dim => field.fieldSelection.field.fieldLayout.idxById("TOT", dim))
+        //      val size = (0 until dim).map(dim => field.field.fieldLayout.idxById("TOT", dim))
 
         val ndims = fieldWithSlotId.field.fieldLayout.numDimsData
         val dimsz = { d : Int => fieldWithSlotId.field.fieldLayout.defTotal(d) }
@@ -264,22 +264,22 @@ private object TransformKernel
     case fa : IR_MultiDimFieldAccess =>
 
       val slotId : Int = {
-        slotExprId.get((fa.fieldSelection.field, fa.fieldSelection.slot)) match {
+        slotExprId.get((fa.field, fa.slot)) match {
           case Some(id) => id
           case None     =>
-            val id = nextSlotId.getOrElse(fa.fieldSelection.field, 0)
-            nextSlotId(fa.fieldSelection.field) = id + 1
-            slotExprId((fa.fieldSelection.field, fa.fieldSelection.slot)) = id
+            val id = nextSlotId.getOrElse(fa.field, 0)
+            nextSlotId(fa.field) = id + 1
+            slotExprId((fa.field, fa.slot)) = id
             id
         }
       }
 
-      val fieldWithSlotId = FieldWithSlotId(fa.fieldSelection.field, slotId)
+      val fieldWithSlotId = FieldWithSlotId(fa.field, slotId)
 
       fields += fieldWithSlotId
 
-      val idname = fa.fieldSelection.field.name + slotId.toString
-      val ident = new IR_VariableAccess(idname, fa.fieldSelection.field.resolveBaseDatatype)
+      val idname = fa.field.name + slotId.toString
+      val ident = new IR_VariableAccess(idname, fa.field.resolveBaseDatatype)
 
       fieldWithSlotId.multiDimArrayAccess(fa.index)
 

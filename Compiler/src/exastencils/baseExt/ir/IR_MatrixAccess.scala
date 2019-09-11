@@ -1017,7 +1017,7 @@ object IR_LinearizeMatrices extends DefaultStrategy("Linearize matrices") {
 
     case IR_HighDimAccess(base : IR_MultiDimFieldAccess, idx : IR_Index) =>
       val hoIdx = idx.toExpressionIndex
-      val fieldLayout = base.fieldSelection.field.fieldLayout
+      val fieldLayout = base.field.fieldLayout
       for (dim <- fieldLayout.numDimsGrid until fieldLayout.numDimsData) {
         if (base.index.indices.length <= dim)
           base.index.indices :+= hoIdx(dim - fieldLayout.numDimsGrid)

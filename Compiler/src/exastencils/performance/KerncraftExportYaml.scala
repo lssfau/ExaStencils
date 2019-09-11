@@ -248,7 +248,7 @@ private class KernelAnalysis(loop : IR_LoopOverDimensions, function : IR_Functio
         case fa : IR_MultiDimFieldAccess =>
           recordAccess(fa)
           if (false) println("XXX %s  inDest=%d  inSrc=%d   dest=%b src=%b ".format(
-            fa.fieldSelection.field.codeName,
+            fa.field.codeName,
             inDestInt,
             inSrcInt,
             assignmentDest.isDefined,
@@ -344,7 +344,7 @@ private class KernelInfoToYaml(val kernelInfo : KernelInfo) {
     kernelInfo.accesses.foreach({ acc =>
       acc.irAccess match {
         case mdfa : IR_MultiDimFieldAccess => mdfas += mdfa
-        //println("yaml field: %s".format(mdfa.fieldSelection.field.codeName))
+        //println("yaml field: %s".format(mdfa.field.codeName))
         case x =>
         //println("yaml fields: ignoring %s".format(x.getClass.getCanonicalName()))
       }
@@ -527,17 +527,17 @@ private object EnumerateFieldsWithSlots {
 
     accesses.foreach({ fa =>
       val slotId : Int = {
-        slotExprId.get((fa.fieldSelection.field, fa.fieldSelection.slot)) match {
+        slotExprId.get((fa.field, fa.slot)) match {
           case Some(id) => id
           case None     =>
-            val id = nextSlotId.getOrElse(fa.fieldSelection.field, 0)
-            nextSlotId(fa.fieldSelection.field) = id + 1
-            slotExprId((fa.fieldSelection.field, fa.fieldSelection.slot)) = id
+            val id = nextSlotId.getOrElse(fa.field, 0)
+            nextSlotId(fa.field) = id + 1
+            slotExprId((fa.field, fa.slot)) = id
             id
         }
       }
 
-      val fieldWithSlotId = FieldWithSlotId(fa.fieldSelection.field, slotId)
+      val fieldWithSlotId = FieldWithSlotId(fa.field, slotId)
       fieldsWithSlotId.update(fa, fieldWithSlotId)
     })
     fieldsWithSlotId

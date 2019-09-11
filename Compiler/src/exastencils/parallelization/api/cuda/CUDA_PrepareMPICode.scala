@@ -53,22 +53,21 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
   }
 
   def mapFieldAccess(access : IR_MultiDimFieldAccess, inWriteOp : Boolean) = {
-    val field = access.fieldSelection.field
+    val field = access.field
     var identifier = field.codeName
 
     identifier = (if (inWriteOp) "write_" else "read_") + identifier
 
     // TODO: array fields
     if (field.numSlots > 1) {
-      access.fieldSelection.slot match {
+      access.slot match {
         case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
         case other                    => identifier += s"_s${ other.prettyprint }"
       }
     }
 
-    val fieldSelection = access.fieldSelection
-    val fieldData = IR_IV_FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx)
+    val fieldData = IR_IV_FieldData(access.field, access.level, Duplicate(access.slot), Duplicate(access.fragIdx))
     fieldAccesses.put(identifier, fieldData)
   }
 
@@ -154,7 +153,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
     // host sync stmts
 
     for (access <- fieldAccesses.toSeq.sortBy(_._1)
-    ) {
+         ) {
       val field = access._2
 
       // add data sync statements
@@ -184,7 +183,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
       afterDevice += CUDA_DeviceSynchronize()
 
     for (access <- fieldAccesses.toSeq.sortBy(_._1)
-    ) {
+         ) {
       val field = access._2
 
       // add data sync statements
@@ -251,8 +250,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
           this += new Transformation("Search", {
             case access : IR_DirectFieldAccess =>
               val linearized = access.linearize
-              val fieldSel = linearized.fieldSelection
-              val devField = CUDA_FieldDeviceData(fieldSel.field, fieldSel.level, fieldSel.slot, fieldSel.fragIdx)
+              val devField = CUDA_FieldDeviceData(linearized.field, linearized.level, Duplicate(linearized.slot), Duplicate(linearized.fragIdx))
               IR_ArrayAccess(devField, linearized.index)
 
             case fieldData : IR_IV_FieldData =>

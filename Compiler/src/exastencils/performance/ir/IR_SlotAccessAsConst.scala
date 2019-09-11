@@ -34,7 +34,7 @@ class IR_SlotAccessAsConst extends StandaloneStrategy {
 
     if (hasSlotAccess) {
       IR_GeneralSimplify.doUntilDoneStandalone(clone)
-      clone.fieldSelection.slot match {
+      clone.slot match {
         case slot : IR_IntegerConstant =>
           slotId = Some(slot)
         case _                         => Logger.warn("SlotAccessAsConst: IR_SlotAccess was not reduced to IR_IntegerConstant.")

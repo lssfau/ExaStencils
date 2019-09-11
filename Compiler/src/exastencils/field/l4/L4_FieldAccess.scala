@@ -6,7 +6,6 @@ import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.l4._
 import exastencils.datastructures._
-import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
 import exastencils.knowledge.l4._
 import exastencils.logger.Logger
@@ -74,7 +73,7 @@ case class L4_FieldAccess(
       None
     }
 
-    IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot)), index, progOffset, frozen)
+    IR_FieldAccess(field, L4_FieldAccess.resolveSlot(field, slot), index, progOffset, frozen)
   }
 }
 

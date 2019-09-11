@@ -9,27 +9,27 @@ import exastencils.communication._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
-import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
-import exastencils.field.ir.IR_DirectFieldAccess
+import exastencils.field.ir._
 import exastencils.parallelization.api.omp.OMP_WaitForFlag
 
 /// IR_LocalRecv
 
 case class IR_LocalRecv(
-    var field : IR_FieldSelection,
+    var field : IR_Field,
+    var slot : IR_Expression,
     var neighbor : NeighborInfo,
     var dest : IR_ExpressionIndexRange,
     var src : IR_ExpressionIndexRange,
     var insideFragLoop : Boolean,
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
-  def numDims = field.field.fieldLayout.numDimsData
+  def numDims = field.fieldLayout.numDimsData
 
   override def expand() : Output[IR_Statement] = {
     var innerStmt : IR_Statement = IR_Assignment(
-      IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, Duplicate(field.slot)), IR_LoopOverDimensions.defIt(numDims)),
-      IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, Duplicate(field.slot), IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)),
+      IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims)),
+      IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index),
         IR_ExpressionIndex(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)))
 
     if (condition.isDefined)
@@ -40,8 +40,8 @@ case class IR_LocalRecv(
     loop.parallelization.potentiallyParallel = true
 
     def loopWithCommTrafos(trafo : IR_CommTransformation) = {
-      val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, Duplicate(field.slot)), IR_LoopOverDimensions.defIt(numDims))
-      val neighFieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, Duplicate(field.slot), IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)),
+      val fieldAccess = IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
+      val neighFieldAccess = IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index),
         IR_ExpressionIndex(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _))
       val ret = new IR_LoopOverDimensions(numDims, dest, ListBuffer[IR_Statement](IR_Assignment(fieldAccess, trafo.applyLocalTrafo(neighFieldAccess, neighbor))))
       ret.polyOptLevel = 1
@@ -53,21 +53,21 @@ case class IR_LocalRecv(
     // wait until the fragment to be read from is ready for communication
     if (Knowledge.comm_enableCommTransformations) {
       ifCondStmts += IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(), IR_AddressOf(IR_IV_LocalCommReady(
-        field.field, IR_IV_CommNeighNeighIdx(field.domainIndex, neighbor.index), IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)))) // TODO replace getOpposingNeigh
-      val trafoId = IR_IV_CommTrafoId(field.domainIndex, neighbor.index)
+        field, IR_IV_CommNeighNeighIdx(field.domain.index, neighbor.index), IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index)))) // TODO replace getOpposingNeigh
+      val trafoId = IR_IV_CommTrafoId(field.domain.index, neighbor.index)
       ifCondStmts += IR_Switch(trafoId, IR_CommTransformationCollection.trafos.zipWithIndex.map {
         case (trafo, i) => IR_Case(i, ListBuffer[IR_Statement](loopWithCommTrafos(trafo)))
       })
     }
     else {
       ifCondStmts += IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(), IR_AddressOf(IR_IV_LocalCommReady(
-        field.field, DefaultNeighbors.getOpposingNeigh(neighbor.index).index, IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index))))
+        field, DefaultNeighbors.getOpposingNeigh(neighbor.index).index, IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index))))
       ifCondStmts += loop
     }
     // signal other threads that the data reading step is completed
-    ifCondStmts += IR_Assignment(IR_IV_LocalCommDone(field.field, neighbor.index), IR_BooleanConstant(true)) // TODO here too
+    ifCondStmts += IR_Assignment(IR_IV_LocalCommDone(field, neighbor.index), IR_BooleanConstant(true)) // TODO here too
 
-    IR_IfCondition(IR_IV_NeighborIsValid(field.domainIndex, neighbor.index) AndAnd IR_Negation(IR_IV_NeighborIsRemote(field.domainIndex, neighbor.index)),
+    IR_IfCondition(IR_IV_NeighborIsValid(field.domain.index, neighbor.index) AndAnd IR_Negation(IR_IV_NeighborIsRemote(field.domain.index, neighbor.index)),
       ifCondStmts)
 
   }

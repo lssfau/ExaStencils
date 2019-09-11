@@ -52,12 +52,12 @@ class CUDA_GatherFieldAccess extends Collector {
         assign.src.annotate(Access.ANNOT, Access.READ)
 
       case access : IR_MultiDimFieldAccess =>
-        val field = access.fieldSelection.field
+        val field = access.field
         var identifier = field.codeName
 
         // TODO: array fields
         if (field.numSlots > 1) {
-          access.fieldSelection.slot match {
+          access.slot match {
             case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
             case IR_IntegerConstant(slot) => identifier += s"_s$slot"
             case other                    => identifier += s"_s${ other.prettyprint }"

@@ -1,7 +1,7 @@
 package exastencils.parallelization.api.cuda
 
-import scala.collection.{ Iterable, mutable }
 import scala.collection.mutable.ListBuffer
+import scala.collection.{ Iterable, mutable }
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
@@ -70,15 +70,13 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     // host sync stmts
 
     for (access <- gatherFields.fieldAccesses.toSeq.sortBy(_._1)) {
-      val fieldSelection = access._2.fieldSelection
-
       // add data sync statements
       if (syncBeforeHost(access._1, gatherFields.fieldAccesses.keys))
         beforeHost += CUDA_UpdateHostData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written fields
       if (syncAfterHost(access._1, gatherFields.fieldAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostDataUpdated(fieldSelection.field, Duplicate(fieldSelection.slot)), IR_BooleanConstant(true))
+        afterHost += IR_Assignment(CUDA_HostDataUpdated(access._2.field, Duplicate(access._2.slot)), IR_BooleanConstant(true))
     }
 
     for (access <- gatherBuffers.bufferAccesses.toSeq.sortBy(_._1)) {
@@ -100,15 +98,13 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
         afterDevice += CUDA_DeviceSynchronize()
 
       for (access <- gatherFields.fieldAccesses.toSeq.sortBy(_._1)) {
-        val fieldSelection = access._2.fieldSelection
-
         // add data sync statements
         if (syncBeforeDevice(access._1, gatherFields.fieldAccesses.keys))
           beforeDevice += CUDA_UpdateDeviceData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
 
         // update flags for written fields
         if (syncAfterDevice(access._1, gatherFields.fieldAccesses.keys))
-          afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(fieldSelection.field, Duplicate(fieldSelection.slot)), IR_BooleanConstant(true))
+          afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(access._2.field, Duplicate(access._2.slot)), IR_BooleanConstant(true))
       }
 
       for (access <- gatherBuffers.bufferAccesses.toSeq.sortBy(_._1)) {

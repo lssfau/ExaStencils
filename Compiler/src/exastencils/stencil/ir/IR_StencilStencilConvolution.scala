@@ -68,7 +68,7 @@ case class IR_StencilStencilConvolution(var left : IR_StencilAccess, var right :
 case class IR_StencilFieldStencilConvolution(var left : IR_StencilFieldAccess, var right : IR_StencilAccess) extends IR_Expression with IR_Expandable {
   override def datatype = IR_ResultingDatatype(left.datatype, right.datatype)
 
-  def stencilLeft = left.selection
+  def stencilLeft = left.target
   def stencilRight = right.target
 
   override def expand() : Output[IR_StencilAccess] = {

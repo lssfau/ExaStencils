@@ -32,7 +32,7 @@ case class IR_LocalSolve(
       return -1 // skip frozen fields
 
     for (i <- unknowns.indices)
-      if (other.fieldSelection.field.codeName == unknowns(i).fieldSelection.field.codeName && other.index == unknowns(i).index)
+      if (other.field.codeName == unknowns(i).field.codeName && other.index == unknowns(i).index)
         return i // match
 
     -1 // no match => constant value

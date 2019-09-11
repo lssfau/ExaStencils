@@ -85,7 +85,7 @@ case class IR_EvaluateOnGrid(
   }
 
   def resolveForFieldAccess(fieldAccess : IR_FieldAccess, interpolation : String) : IR_Expression = {
-    val field = fieldAccess.fieldSelection.field
+    val field = fieldAccess.field
     val (stagDim, faceDim) = IR_GridUtil.faceToDims(name.replace("evalAt", ""))
 
     // construct index

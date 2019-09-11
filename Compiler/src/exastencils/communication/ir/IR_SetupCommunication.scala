@@ -8,7 +8,6 @@ import exastencils.baseExt.ir._
 import exastencils.boundary.ir._
 import exastencils.communication.DefaultNeighbors
 import exastencils.config._
-import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir.IR_SlotAccess
@@ -55,7 +54,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
       loop
 
     case communicateStatement : IR_Communicate =>
-      val numDims = communicateStatement.field.field.fieldLayout.numDimsData
+      val numDims = communicateStatement.field.fieldLayout.numDimsData
 
       val level = communicateStatement.field.level
 
@@ -98,9 +97,9 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
       }
 
       var functionName = communicateStatement.op match {
-        case "begin"  => s"beginExch${ communicateStatement.field.field.name }_"
-        case "finish" => s"finishExch${ communicateStatement.field.field.name }_"
-        case "both"   => s"exch${ communicateStatement.field.field.name }_"
+        case "begin"  => s"beginExch${ communicateStatement.field.name }_"
+        case "finish" => s"finishExch${ communicateStatement.field.name }_"
+        case "both"   => s"exch${ communicateStatement.field.name }_"
       }
       functionName += /*s"_${ communicateStatement.field.arrayIndex.getOrElse("a") }_" +*/
         communicateStatement.targets.map(t => s"${ t.target }_${
@@ -120,10 +119,8 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
 
       if (!addedFunctions.contains(NameAndLevel(functionName, level))) {
         addedFunctions += NameAndLevel(functionName, level)
-        val fieldSelection = Duplicate(communicateStatement.field)
-        fieldSelection.slot = IR_VariableAccess("slot", IR_IntegerDatatype)
-        commFunctions += IR_CommunicateFunction(functionName, level,
-          fieldSelection, DefaultNeighbors.neighbors,
+        commFunctions += IR_CommunicateFunction(functionName, level, communicateStatement.field,
+          IR_VariableAccess("slot", IR_IntegerDatatype), DefaultNeighbors.neighbors,
           "begin" == communicateStatement.op || "both" == communicateStatement.op,
           "finish" == communicateStatement.op || "both" == communicateStatement.op,
           commDup, dupBegin, dupEnd,
@@ -132,13 +129,13 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
           cond)
       }
 
-      communicateStatement.field.slot match {
+      communicateStatement.slot match {
         case IR_SlotAccess(slot, _) if IR_LoopOverFragments.defIt == slot.fragmentIdx => slot.fragmentIdx = 0
         case _                                                                        =>
       }
 
       var fctArgs : ListBuffer[IR_Expression] = ListBuffer()
-      fctArgs += communicateStatement.field.slot
+      fctArgs += communicateStatement.slot
       if (insideFragLoop)
         fctArgs += IR_LoopOverFragments.defIt
 
@@ -153,23 +150,21 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
 
       val level = applyBCsStatement.field.level
 
-      var functionName = s"applyBCs${ applyBCsStatement.field.field.name }"
+      var functionName = s"applyBCs${ applyBCsStatement.field.name }"
       if (insideFragLoop) functionName += "_ifl"
 
       if (!addedFunctions.contains(NameAndLevel(functionName, level))) {
         addedFunctions += NameAndLevel(functionName, level)
-        val fieldSelection = Duplicate(applyBCsStatement.field)
-        fieldSelection.slot = "slot"
-        commFunctions += IR_ApplyBCFunction(functionName, level, fieldSelection, DefaultNeighbors.neighbors, insideFragLoop)
+        commFunctions += IR_ApplyBCFunction(functionName, applyBCsStatement.field, "slot", IR_LoopOverFragments.defIt, DefaultNeighbors.neighbors, insideFragLoop)
       }
 
-      applyBCsStatement.field.slot match {
+      applyBCsStatement.slot match {
         case IR_SlotAccess(slot, _) if IR_LoopOverFragments.defIt == slot.fragmentIdx => slot.fragmentIdx = 0
         case _                                                                        =>
       }
 
       var fctArgs : ListBuffer[IR_Expression] = ListBuffer()
-      fctArgs += applyBCsStatement.field.slot
+      fctArgs += applyBCsStatement.slot
       if (insideFragLoop)
         fctArgs += IR_LoopOverFragments.defIt
 

@@ -146,7 +146,7 @@ object IR_WrapStencilConvolutions extends DefaultStrategy("Wrap stencil-field co
       processStatement(assignment, stencilConvolution.get.left.target)
 
     case conv : IR_StencilConvolution if conv.left.target.colStride.exists(_ < 1.0) =>
-      Logger.warn(s"Found stencil convolution outside of an assignment: ${ conv.left.target.name } times ${ conv.right.fieldSelection.field.name }")
+      Logger.warn(s"Found stencil convolution outside of an assignment: ${ conv.left.target.name } times ${ conv.right.field.name }")
       conv
   }, false)
 }

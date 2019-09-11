@@ -31,7 +31,7 @@ case class IR_StencilConvolution(var left : IR_StencilAccess, var right : IR_Fie
       IR_OffsetAllApplicable.applyStandalone(coeff)
     }
 
-    coeff.expression * Duplicate(IR_FieldAccess(right.fieldSelection, right.index + offset))
+    coeff.expression * Duplicate(IR_FieldAccess(right.field, Duplicate(right.slot), right.index + offset))
   }
 
   override def expand() : Output[IR_Expression] = {
@@ -52,16 +52,16 @@ case class IR_StencilFieldConvolution(var left : IR_StencilFieldAccess, var righ
     stencilFieldIdx.indices :+= (0 : IR_Expression)
 
     // fill offset with zeros to match dimensionality of the field access
-    val offset = Duplicate(left.selection.stencilField.stencil.entries(idx)).asStencilOffsetEntry.offset
+    val offset = Duplicate(left.stencilField.stencil.entries(idx)).asStencilOffsetEntry.offset
     while (offset.length < right.index.length)
       offset.indices :+= 0
 
-    IR_FieldAccess(left.selection.toFieldSelection, stencilFieldIdx) *
-      IR_FieldAccess(right.fieldSelection, right.index + offset)
+    IR_FieldAccess(left.field, Duplicate(left.slot), Duplicate(left.fragIdx), stencilFieldIdx) *
+      IR_FieldAccess(right.field, Duplicate(right.slot), Duplicate(right.fragIdx), right.index + offset)
   }
 
   override def expand() : Output[IR_Expression] = {
-    val ret = left.selection.stencilField.stencil.entries.indices.view.map(idx => Duplicate(resolveEntry(idx))).reduceLeft(_ + _)
+    val ret = left.stencilField.stencil.entries.indices.view.map(idx => Duplicate(resolveEntry(idx))).reduceLeft(_ + _)
     IR_GeneralSimplifyWrapper.process[IR_Expression](ret)
   }
 }

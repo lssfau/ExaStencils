@@ -132,13 +132,13 @@ object AnalyzeIterationDistance extends QuietDefaultStrategy(
     case fa : IR_MultiDimFieldAccess =>
 
       if (null != curLoop) {
-        val field = fa.fieldSelection.field
+        val field = fa.field
         // Array of number of iterations per dimension
         val iterSpace = curLoop.maxIterationCount()
-        val numDims = fa.fieldSelection.fieldLayout.numDimsGrid
+        val numDims = fa.field.fieldLayout.numDimsGrid
         val fieldAccess = Duplicate(fa)
         IR_GeneralSimplify.doUntilDoneStandalone(fieldAccess)
-        println(fa.fieldSelection.field.codeName + fieldAccess.index.prettyprint())
+        println(fa.field.codeName + fieldAccess.index.prettyprint())
         val offsets = (0 until numDims).map({ dim => // loop over dimensions
           val indexExpr = fieldAccess.index.indices(dim)
           AnalyzeSubscriptExpression(indexExpr, dim, iterSpace)
@@ -151,7 +151,7 @@ object AnalyzeIterationDistance extends QuietDefaultStrategy(
         val accessDistBytes =
           accessDist match {
             case co : ConstantIndexOffset  =>
-              co * ConstantIndexOffset(fa.fieldSelection.field.gridDatatype.typicalByteSize)
+              co * ConstantIndexOffset(fa.field.gridDatatype.typicalByteSize)
             case inf : InfiniteIndexOffset => inf
           }
         println(s"access distance bytes: $accessDistBytes")
