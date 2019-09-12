@@ -2,6 +2,7 @@ package exastencils.visualization.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.datastructures._
