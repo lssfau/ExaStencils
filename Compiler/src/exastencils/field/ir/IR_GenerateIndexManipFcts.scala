@@ -8,7 +8,6 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
-import exastencils.deprecated.ir.IR_DimToString
 
 /// IR_GenerateIndexManipFcts
 
@@ -41,8 +40,8 @@ object IR_GenerateIndexManipFcts extends DefaultStrategy("Generate index manipul
     case functions : IR_UserFunctions =>
       for (layout <- layoutMap) {
         var body = ListBuffer[IR_Statement]()
-        def newInnerSize(dim : Integer) = IR_VariableAccess(s"newInnerSize_${ IR_DimToString(dim) }", IR_IntegerDatatype)
-        def idxShift(dim : Integer) = IR_VariableAccess(s"idxShift_${ IR_DimToString(dim) }", IR_IntegerDatatype)
+        def newInnerSize(dim : Integer) = IR_VariableAccess(s"newInnerSize_dim", IR_IntegerDatatype)
+        def idxShift(dim : Integer) = IR_VariableAccess(s"idxShift_dim", IR_IntegerDatatype)
 
         // compile body for all dimensions - TODO: adapt to field layout dimensionality if required
         for (dim <- 0 until Knowledge.dimensionality) {
@@ -73,7 +72,7 @@ object IR_GenerateIndexManipFcts extends DefaultStrategy("Generate index manipul
       // generate a special resize functions for all fields on a given level
       for (level <- Knowledge.maxLevel to Knowledge.minLevel by -1) {
         var body = ListBuffer[IR_Statement]()
-        def newInnerSize(dim : Integer) = IR_VariableAccess(s"newInnerSize_${ IR_DimToString(dim) }", IR_IntegerDatatype)
+        def newInnerSize(dim : Integer) = IR_VariableAccess(s"newInnerSize_dim", IR_IntegerDatatype)
 
         // generate function calls with adapted sizes
         for (layout <- layoutMap.filter(level == _._2._2.prettyprint.toInt).toSeq.sortBy(_._1)) {

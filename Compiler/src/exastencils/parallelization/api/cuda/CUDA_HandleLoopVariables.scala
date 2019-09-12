@@ -5,7 +5,6 @@ import scala.collection.mutable._
 import exastencils.base.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.deprecated.ir._
 
 /// CUDA_ReplaceLoopVariables
 
@@ -14,7 +13,7 @@ object CUDA_ReplaceLoopVariables extends QuietDefaultStrategy("Replace loop vari
 
   this += new Transformation("Searching", {
     case v @ IR_VariableAccess(name @ n, maybeDatatype @ d) if loopVariables.contains(name) =>
-      var newName = CUDA_Kernel.KernelVariablePrefix + CUDA_Kernel.KernelGlobalIndexPrefix + IR_DimToString(loopVariables.indexOf(name))
+      var newName = CUDA_Kernel.KernelVariablePrefix + CUDA_Kernel.KernelGlobalIndexPrefix + loopVariables.indexOf(name)
 
       if (v.hasAnnotation(CUDA_Kernel.CUDASharedMemoryAccess)) {
         val field = v.getAnnotation(CUDA_Kernel.CUDASharedMemoryAccess).get.asInstanceOf[String]
@@ -23,7 +22,7 @@ object CUDA_ReplaceLoopVariables extends QuietDefaultStrategy("Replace loop vari
 
       IR_VariableAccess(newName, IR_IntegerDatatype)
     case s @ IR_StringLiteral(v @ value) if loopVariables.contains(v)                       =>
-      var newName = CUDA_Kernel.KernelVariablePrefix + CUDA_Kernel.KernelGlobalIndexPrefix + IR_DimToString(loopVariables.indexOf(v))
+      var newName = CUDA_Kernel.KernelVariablePrefix + CUDA_Kernel.KernelGlobalIndexPrefix + loopVariables.indexOf(v)
 
       if (s.hasAnnotation(CUDA_Kernel.CUDASharedMemoryAccess)) {
         val field = s.getAnnotation(CUDA_Kernel.CUDASharedMemoryAccess).get.asInstanceOf[String]

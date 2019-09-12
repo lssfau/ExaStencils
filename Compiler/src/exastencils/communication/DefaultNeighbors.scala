@@ -3,7 +3,6 @@ package exastencils.communication
 import scala.collection.mutable.ListBuffer
 
 import exastencils.config.Knowledge
-import exastencils.deprecated.ir.IR_DimToString
 import exastencils.logger.Logger
 
 /// DefaultNeighbors
@@ -69,5 +68,5 @@ case class NeighborInfo(var dir : Array[Int], var index : Int) {
       "0"
   }
 
-  def label = (Knowledge.dimensionality - 1 to 0 by -1).toList.map(i => IR_DimToString(i).toUpperCase + dirToString(dir(i))).mkString("_")
+  def label = (Knowledge.dimensionality - 1 to 0 by -1).toList.map(i => s"i$i" + dirToString(dir(i))).mkString("_")
 }

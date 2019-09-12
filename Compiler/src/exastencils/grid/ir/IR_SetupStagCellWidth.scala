@@ -9,7 +9,6 @@ import exastencils.communication.DefaultNeighbors
 import exastencils.communication.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.deprecated.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.logger.Logger
@@ -45,7 +44,7 @@ object IR_SetupStagCellWidth {
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_LoopOverDimensions.defItForDim(dim)
       else
-        IR_VariableAccess(s"global_${ IR_DimToString(dim) }", IR_IntegerDatatype)
+        IR_VariableAccess(s"global_i$dim", IR_IntegerDatatype)
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement

@@ -9,7 +9,6 @@ import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.core._
 import exastencils.datastructures.Node
-import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
@@ -24,7 +23,7 @@ object CUDA_Kernel {
   val ConstantIndexPart = "ConstantIndexPart"
 
   def localThreadId(fieldName : String, dim : Int) = {
-    IR_VariableAccess(KernelVariablePrefix + "local_" + fieldName + "_" + IR_DimToString(dim), IR_IntegerDatatype)
+    IR_VariableAccess(KernelVariablePrefix + "local_" + fieldName + "_" + dim, IR_IntegerDatatype)
   }
 }
 
@@ -217,7 +216,7 @@ case class CUDA_Kernel(var identifier : String,
 //      IR_VariableAccess(KernelVariablePrefix + KernelLocalIndexPrefix + IR_DimToString(dim), IR_IntegerDatatype)
 //    }).toArray[IR_Expression]
     globalThreadId = (0 until executionDim).map(dim => {
-      IR_VariableAccess(KernelVariablePrefix + KernelGlobalIndexPrefix + IR_DimToString(dim), IR_IntegerDatatype)
+      IR_VariableAccess(KernelVariablePrefix + KernelGlobalIndexPrefix + dim, IR_IntegerDatatype)
     }).toArray[IR_Expression]
   }
 
@@ -330,19 +329,18 @@ case class CUDA_Kernel(var identifier : String,
     val parStepSize = Duplicate(stepSize.view.drop(nrInnerSeqDims).toArray)
     val parLowerBounds = Duplicate(lowerBounds.view.drop(nrInnerSeqDims).toArray)
     statements ++= (0 until executionDim).map(dim => {
-      val it = IR_DimToString(dim)
-      val variableName = KernelVariablePrefix + KernelGlobalIndexPrefix + it
+      val variableName = KernelVariablePrefix + KernelGlobalIndexPrefix + dim
       IR_VariableDeclaration(IR_IntegerDatatype, variableName,
         Some(parLowerBounds(dim) + (parStepSize(dim) *
-          (IR_MemberAccess(IR_VariableAccess("blockIdx", IR_SpecialDatatype("dim3")), it) *
-            IR_MemberAccess(IR_VariableAccess("blockDim", IR_SpecialDatatype("dim3")), it) +
-            IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it)))))
+          (IR_MemberAccess(IR_VariableAccess("blockIdx", IR_SpecialDatatype("dim3")), CUDA_Util.dimToMember(dim)) *
+            IR_MemberAccess(IR_VariableAccess("blockDim", IR_SpecialDatatype("dim3")), CUDA_Util.dimToMember(dim)) +
+            IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), CUDA_Util.dimToMember(dim))))))
     }).reverse // reverse, since the inner (lower dim) could depend on the outer (higher dim)
 
     // add dimension index start and end point
     // add index bounds conditions
     val conditionParts = (0 until executionDim).map(dim => {
-      val variableAccess = IR_VariableAccess(KernelVariablePrefix + KernelGlobalIndexPrefix + IR_DimToString(dim), IR_IntegerDatatype)
+      val variableAccess = IR_VariableAccess(KernelVariablePrefix + KernelGlobalIndexPrefix + dim, IR_IntegerDatatype)
       // lower bound is already enforced above
       //IR_AndAnd(IR_GreaterEqual(variableAccess, s"${ KernelVariablePrefix }begin_$dim"), IR_Lower(variableAccess, s"${ KernelVariablePrefix }end_$dim"))
       IR_Lower(variableAccess, s"${ KernelVariablePrefix }end_$dim")
@@ -369,10 +367,9 @@ case class CUDA_Kernel(var identifier : String,
 
         // 2. Add local Thread ID calculation for indexing shared memory
         statements ++= (0 until executionDim).map(dim => {
-          val it = IR_DimToString(dim)
           val variableName = CUDA_Kernel.localThreadId(field, dim).name
           IR_VariableDeclaration(IR_IntegerDatatype, variableName,
-            Some(IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it) +
+            Some(IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), CUDA_Util.dimToMember(dim)) +
               leftDeviations(field)(dim)))
         })
 
@@ -413,19 +410,17 @@ case class CUDA_Kernel(var identifier : String,
         // 7. Add load operations as ConditionStatement to avoid index out of bounds exceptions in global memory
         // and sync threads afterwards to guarantee that every thread has the same memory state
         sharedMemoryStatements ++= (0 until executionDim).map(dim => {
-          val it = IR_DimToString(dim)
-
           // 7.1 Check if current thread resides on the left border in any dimension
           //val condition = IR_OrOr(IR_Lower(IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it), leftDeviations(field)(dim)), IR_EqEq(globalThreadId(dim), s"${ KernelVariablePrefix }begin_$dim"))
-          val condition = 0 EqEq IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it)
+          val condition = 0 EqEq IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), CUDA_Util.dimToMember(dim))
           val conditionBody = ListBuffer[IR_Statement]()
 
           // 7.2 Calculate the offset from the left to the right border of the actual field
           val localFieldOffsetName : String = "localFieldOffset"
           conditionBody += IR_VariableDeclaration(IR_IntegerDatatype, localFieldOffsetName, Some(
             CUDA_Minimum(
-              IR_Subtraction(IR_MemberAccess(IR_VariableAccess("blockDim", IR_SpecialDatatype("dim3")), it),
-                IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it)),
+              IR_Subtraction(IR_MemberAccess(IR_VariableAccess("blockDim", IR_SpecialDatatype("dim3")), CUDA_Util.dimToMember(dim)),
+                IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), CUDA_Util.dimToMember(dim))),
               IR_Subtraction(s"${ KernelVariablePrefix }end_$dim", globalThreadId(dim)))))
           val localFieldOffset = IR_VariableAccess(localFieldOffsetName, IR_IntegerDatatype)
 

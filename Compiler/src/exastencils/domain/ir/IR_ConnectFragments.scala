@@ -9,7 +9,6 @@ import exastencils.communication.DefaultNeighbors
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
-import exastencils.deprecated.ir._
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 
@@ -84,7 +83,7 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
         var statements = ListBuffer[IR_Statement]()
 
         // store offset position to allow for implementation of periodic domains
-        def offsetPos(dim : Int) = IR_VariableAccess(s"offsetPos_${ IR_DimToString(dim) }", IR_RealDatatype)
+        def offsetPos(dim : Int) = IR_VariableAccess(s"offsetPos_$dim", IR_RealDatatype)
         for (dim <- Knowledge.dimensions) {
           statements += IR_VariableDeclaration(offsetPos(dim), IR_IV_FragmentPosition(dim) + neigh.dir(dim) * fragWidth(dim))
           if (Knowledge.domain_rect_periodicAsVec(dim)) {

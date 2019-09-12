@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.config.Knowledge
+import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 
 /// CUDA_Util
@@ -74,5 +75,14 @@ object CUDA_Util {
     }
 
     (loopVariables, lowerBounds, upperBounds, stepSize)
+  }
+
+  def dimToMember(i : Int) : String = {
+    i match {
+      case 0 => "x"
+      case 1 => "y"
+      case 2 => "z"
+      case _ => Logger.error(s"Invalid index for dimToMember: $i")
+    }
   }
 }

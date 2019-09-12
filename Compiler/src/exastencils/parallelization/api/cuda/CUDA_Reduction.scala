@@ -7,7 +7,6 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.deprecated.ir.IR_DimToString
 import exastencils.prettyprinting.PpStream
 
 /// CUDA_ReductionDeviceDataAccess
@@ -52,7 +51,7 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
     case kernel : CUDA_Kernel if kernel.reduction.isDefined =>
       // update assignments according to reduction clauses
       val index = IR_ExpressionIndex((0 until kernel.parallelDims).map(dim =>
-        IR_VariableAccess(CUDA_Kernel.KernelVariablePrefix + CUDA_Kernel.KernelGlobalIndexPrefix + IR_DimToString(dim), IR_IntegerDatatype)
+        IR_VariableAccess(CUDA_Kernel.KernelVariablePrefix + CUDA_Kernel.KernelGlobalIndexPrefix + dim, IR_IntegerDatatype)
           - IR_IntegerConstant(kernel.minIndices(dim)) : IR_Expression).toArray)
 
       val size = IR_IntegerConstant(1)
