@@ -2,6 +2,7 @@ package exastencils.hack.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.applications.ns.ir._
 import exastencils.applications.swe.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
