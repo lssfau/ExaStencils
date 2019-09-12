@@ -1,15 +1,12 @@
-package exastencils.visualization
+package exastencils.visualization.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir._
+import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldCollection
 import exastencils.hack.ir.HACK_IR_Native
-
-/// IR_SetupVisit
 
 object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
   def setupFct_SimGetVariable() : IR_Function = {

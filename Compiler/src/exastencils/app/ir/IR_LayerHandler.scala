@@ -28,7 +28,7 @@ import exastencils.stencil.ir._
 import exastencils.timing.ir._
 import exastencils.util._
 import exastencils.util.ir.IR_UtilFunctions
-import exastencils.visualization.IR_SetupVisit
+import exastencils.visualization.ir.IR_SetupVisit
 
 /// IR_LayerHandler
 
