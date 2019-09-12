@@ -17,7 +17,7 @@ case class IR_IV_IndexFromField(var layoutIdentifier : String, var level : IR_Ex
   override def usesFieldArrays : Boolean = false
   override def usesLevelArrays : Boolean = true
 
-  override def resolveName() = s"idx$indexId" + resolvePostfix(fragmentIdx.prettyprint, "", layoutIdentifier, level.prettyprint, "") + s"_dim"
+  override def resolveName() = s"idx$indexId" + resolvePostfix(fragmentIdx.prettyprint, "", layoutIdentifier, level.prettyprint, "") + s"_$dim"
   override def resolveDatatype() = IR_IntegerDatatype
 
   override def getCtor() : Option[IR_Statement] = {
