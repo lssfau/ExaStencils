@@ -2,13 +2,18 @@ package exastencils.visualization.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.applications.ns.ir._
+import exastencils.applications.swe.ir.IR_PrintVtkSWE
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
+import exastencils.datastructures._
 import exastencils.datastructures.ir.StatementList
 import exastencils.field.ir._
+import exastencils.hack.ir.HACK_IR_UndeterminedFunctionReference
+import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_Print
 
@@ -96,3 +101,26 @@ abstract class IR_PrintVtk extends IR_Statement with IR_Expandable {
   }
 }
 
+/// IR_ResolveVtkPrinters
+
+object IR_ResolveVtkPrinters extends DefaultStrategy("ResolveVtkPrinters") {
+  this += new Transformation("ResolveFunctionCalls", {
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("printVtkSWE", _), args)) =>
+      args match {
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintVtkSWE(s, i.toInt)
+        case _                                                    => Logger.error("Malformed call to printVtkSWE; usage: printVtkSWE ( \"filename\", level )")
+      }
+
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("printVtkNS", _), args)) =>
+      args match {
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintVtkNS(s, i.toInt)
+        case _                                                    => Logger.error("Malformed call to printVtkNS; usage: printVtkNS ( \"filename\", level )")
+      }
+
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("printVtkNNF", _), args)) =>
+      args match {
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintVtkNNF(s, i.toInt)
+        case _                                                    => Logger.error("Malformed call to printVtkNNF; usage: printVtkNNF ( \"filename\", level )")
+      }
+  })
+}

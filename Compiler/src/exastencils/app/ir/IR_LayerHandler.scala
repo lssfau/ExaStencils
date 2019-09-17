@@ -1,13 +1,17 @@
 package exastencils.app.ir
 
 import exastencils.app.LayerHandler
+import exastencils.applications.ir.IR_HandleMainApplication
+import exastencils.applications.swe.ir.IR_ResolveStationFunctions
 import exastencils.base.ExaRootNode
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.boundary.ir.IR_ResolveBoundaryFunctions
 import exastencils.communication.DefaultNeighbors
 import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.domain.ir._
+import exastencils.experimental.ir.IR_ResolveGismoFunctions
 import exastencils.field.ir._
 import exastencils.globals.ir._
 import exastencils.grid.ir._
@@ -27,8 +31,8 @@ import exastencils.solver.ir._
 import exastencils.stencil.ir._
 import exastencils.timing.ir._
 import exastencils.util._
-import exastencils.util.ir.IR_UtilFunctions
-import exastencils.visualization.ir.IR_SetupVisit
+import exastencils.util.ir._
+import exastencils.visualization.ir._
 
 /// IR_LayerHandler
 
@@ -99,7 +103,16 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_SetupCommunication.apply()
 
     HACK_IR_SetSpecialFunctionTypes.doUntilDone()
-    HACK_IR_ResolveSpecialFunctionsAndConstants.apply()
+    IR_HandleMainApplication.apply()
+    IR_ResolveBoundaryFunctions.apply()
+    IR_ResolveReadParameters.apply()
+    IR_ResolveStationFunctions.apply()
+    IR_ResolveCImgFunctions.apply()
+    IR_ResolveCharacteristicsFunctions.apply()
+    IR_ResolveBenchmarkFunctions.apply()
+    IR_ResolveGismoFunctions.apply()
+    IR_ResolveVtkPrinters.apply()
+    IR_ResolvePrintWithReducedPrec.apply()
     IR_AdaptTimerFunctions.apply()
 
     if (Knowledge.useFasterExpand)

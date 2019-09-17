@@ -1,4 +1,4 @@
-package exastencils.globals.l4
+package exastencils.applications.l4
 
 import scala.collection.mutable.ListBuffer
 
@@ -12,14 +12,12 @@ import exastencils.field.l4._
 
 /// L4_AddDefaultApplication
 
-object L4_AddDefaultApplication extends DefaultStrategy("") {
-  override def apply(node : Option[Node] = None) : Unit = {
+object L4_AddDefaultApplication extends NoTraversalStrategy("AddDefaultApplication") {
+  override def doWork() : Unit = {
     if (StateManager.findFirst[L4_FunctionDecl]({ f : L4_FunctionDecl => f.name == "Application" }).isDefined)
       return // Application is already defined
 
     ExaRootNode.l4_root.nodes += generateFunction()
-
-    super.apply(node)
   }
 
   def generateFunction() = {
@@ -28,7 +26,6 @@ object L4_AddDefaultApplication extends DefaultStrategy("") {
     def fctCall(fctName : String, args : ListBuffer[L4_Expression]) = L4_FunctionCall(L4_UnresolvedFunctionReference(fctName, None, None), args)
 
     def startTimer(name : String) = fctCall("startTimer", ListBuffer[L4_Expression](L4_StringConstant(name)))
-
     def stopTimer(name : String) = fctCall("stopTimer", ListBuffer[L4_Expression](L4_StringConstant(name)))
 
     // init

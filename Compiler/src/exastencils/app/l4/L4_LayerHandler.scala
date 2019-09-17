@@ -1,6 +1,7 @@
 package exastencils.app.l4
 
 import exastencils.app.LayerHandler
+import exastencils.applications.l4.L4_AddDefaultApplication
 import exastencils.base.ExaRootNode
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
@@ -11,7 +12,6 @@ import exastencils.datastructures.StrategyTimer
 import exastencils.domain.l4.L4_DomainCollection
 import exastencils.field.ir.IR_AddPaddingToFieldLayouts
 import exastencils.field.l4._
-import exastencils.globals.l4.L4_AddDefaultApplication
 import exastencils.grid.l4._
 import exastencils.hack.l4.HACK_L4_ResolveNativeFunctions
 import exastencils.interfacing.l4.L4_ExternalFieldCollection

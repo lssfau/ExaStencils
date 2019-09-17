@@ -2,37 +2,18 @@ package exastencils.globals.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir
-import exastencils.base.ir
-import exastencils.base.ir.IR_AddressOf
-import exastencils.base.ir.IR_Assert
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_Continue
-import exastencils.base.ir.IR_EqEq
-import exastencils.base.ir.IR_FunctionArgument
-import exastencils.base.ir.IR_FunctionCall
-import exastencils.base.ir.IR_FuturePlainFunction
-import exastencils.base.ir.IR_IfCondition
-import exastencils.base.ir.IR_IntegerConstant
-import exastencils.base.ir.IR_MemberFunctionCall
-import exastencils.base.ir.IR_Neq
-import exastencils.base.ir.IR_ObjectInstantiation
-import exastencils.base.ir.IR_PlainFunction
-import exastencils.base.ir.IR_Return
-import exastencils.base.ir.IR_ScalarDatatype
-import exastencils.base.ir.IR_SpecialDatatype
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_StringConstant
-import exastencils.base.ir.IR_StringDatatype
-import exastencils.base.ir.IR_UnitDatatype
-import exastencils.base.ir.IR_VariableAccess
-import exastencils.base.ir.IR_VariableDeclaration
-import exastencils.base.ir.IR_WhileLoop
+import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.config.Knowledge
+import exastencils.datastructures._
 import exastencils.domain.ir.IR_ReadLineFromFile
-import exastencils.parallelization.api.mpi.MPI_Bcast
-import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
+import exastencils.hack.ir.HACK_IR_UndeterminedFunctionReference
+import exastencils.logger.Logger
+import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_ReadStream
+
+/// IR_ReadParameterFile
 
 case class IR_ReadParameterFile() extends IR_FuturePlainFunction {
   override var name = "readParameterFile"
@@ -103,18 +84,26 @@ case class IR_ReadParameterFile() extends IR_FuturePlainFunction {
   }
 }
 
+/// IR_ResolveReadParameters
 
+object IR_ResolveReadParameters extends DefaultStrategy("ResolveReadParameters") {
+  this += new Transformation("ResolveFunctionCalls", {
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("readParameterFile", _), args)) =>
+      if (args.size != 1
+        || !(args.head.isInstanceOf[IR_StringConstant]
+        || (args.head.isInstanceOf[IR_VariableAccess] && args.head.asInstanceOf[IR_VariableAccess].datatype == IR_StringDatatype))) {
+        Logger.error("Malformed call to readParameterFile; usage: readParameterFile ( \"filename\" )")
+      }
 
+      if (!IR_GlobalCollection.get.functions.exists(_.name == "readParameterFile")) {
+        IR_ReadLineFromFile.addToUtil
+        IR_UserFunctions.get.internalDependencies += IR_GlobalCollection.defHeader
+        IR_UserFunctions.get.internalDependencies = IR_UserFunctions.get.internalDependencies.distinct
+        IR_GlobalCollection.get.functions += IR_ReadParameterFile()
+        IR_GlobalCollection.get.externalDependencies += "iostream"
+        IR_GlobalCollection.get.externalDependencies = IR_GlobalCollection.get.externalDependencies.distinct
+      }
 
-
-
-
-
-
-
-
-
-
-
-
-
+      IR_ExpressionStatement(IR_FunctionCall(IR_PlainInternalFunctionReference("readParameterFile", IR_UnitDatatype), args))
+  })
+}
