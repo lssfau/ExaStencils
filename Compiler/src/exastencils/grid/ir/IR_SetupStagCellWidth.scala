@@ -101,7 +101,7 @@ object IR_SetupStagCellWidth {
     val innerLoop = IR_LoopOverPoints(field, None,
       IR_GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(numDims)(0)), -1, dim),
       IR_GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(numDims)(0)), -1, dim),
-      IR_ExpressionIndex(1, 1, 1),
+      IR_ExpressionIndex(Array.fill(numDims)(1)),
       ListBuffer(innerItDecl, innerStatement))
     innerLoop.parallelization.potentiallyParallel = false
 

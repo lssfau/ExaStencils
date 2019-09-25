@@ -90,7 +90,7 @@ object IR_SetupNodePositions {
     val innerLoop = IR_LoopOverPoints(field, None,
       IR_GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(numDims)(0)), -2, dim),
       IR_GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(numDims)(0)), -2, dim),
-      IR_ExpressionIndex(1, 1, 1),
+      IR_ExpressionIndex(Array.fill(numDims)(1)),
       ListBuffer[IR_Statement](
         innerItDecl,
         IR_Assignment(Duplicate(baseAccess),
@@ -196,7 +196,7 @@ object IR_SetupNodePositions {
     val innerLoop = IR_LoopOverPoints(field, None,
       IR_GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(numDims)(0)), -2, dim),
       IR_GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(numDims)(0)), -2, dim),
-      IR_ExpressionIndex(1, 1, 1),
+      IR_ExpressionIndex(Array.fill(numDims)(1)),
       ListBuffer[IR_Statement](
         innerItDecl,
         IR_IfCondition(IR_LowerEqual(innerIt, xf + 1),
@@ -249,7 +249,7 @@ object IR_SetupNodePositions {
     val innerLoop = IR_LoopOverPoints(field, None,
       IR_GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(numDims)(0)), -1, dim),
       IR_GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(numDims)(0)), -1, dim),
-      IR_ExpressionIndex(1, 1, 1),
+      IR_ExpressionIndex(Array.fill(numDims)(1)),
       ListBuffer[IR_Statement](
         IR_IfCondition(IR_LowerEqual(innerIt, 0),
           IR_Assignment(Duplicate(baseAccess), 0.0),
@@ -314,7 +314,7 @@ object IR_SetupNodePositions {
     val innerLoop = IR_LoopOverPoints(field, None,
       IR_GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(numDims)(0)), -1, dim),
       IR_GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(numDims)(0)), -1, dim),
-      IR_ExpressionIndex(1, 1, 1),
+      IR_ExpressionIndex(Array.fill(numDims)(1)),
       ListBuffer[IR_Statement](
         IR_IfCondition(IR_LowerEqual(innerIt, 0),
           IR_Assignment(Duplicate(baseAccess), 0.0),
@@ -377,7 +377,7 @@ object IR_SetupNodePositions {
       val innerLoop = IR_LoopOverPoints(field, None,
         IR_ExpressionIndex(Array.fill(numDims)(-2)),
         IR_ExpressionIndex(Array.fill(numDims)(-2)),
-        IR_ExpressionIndex(1, 1, 1),
+        IR_ExpressionIndex(Array.fill(numDims)(1)),
         ListBuffer[IR_Statement](
           innerItDecl,
           IR_Assignment(Duplicate(baseAccess),
@@ -504,7 +504,7 @@ object IR_SetupNodePositions {
     val innerLoop = IR_LoopOverPoints(coarseField, None,
       IR_GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(numDims)(0)), offset, dim),
       IR_GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(numDims)(0)), offset, dim),
-      IR_ExpressionIndex(1, 1, 1),
+      IR_ExpressionIndex(Array.fill(numDims)(1)),
       ListBuffer[IR_Statement](
         // simple injection strategy
         IR_Assignment(Duplicate(coarseAccess), Duplicate(fineAccess))))

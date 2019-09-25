@@ -37,7 +37,7 @@ object IR_SetupCellCenter {
       IR_LoopOverPoints(field, None,
         IR_ExpressionIndex(Array.fill(numDims)(-1)),
         IR_ExpressionIndex(Array.fill(numDims)(-1)),
-        IR_ExpressionIndex(1, 1, 1),
+        IR_ExpressionIndex(Array.fill(numDims)(1)),
         ListBuffer[IR_Statement](IR_Assignment(Duplicate(baseAccess), factor * IR_Addition(interpolateExps.map(e => e : IR_Expression))))))
   }
 }
