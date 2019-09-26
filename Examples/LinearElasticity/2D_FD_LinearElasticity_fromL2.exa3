@@ -1,0 +1,23 @@
+
+generate solver for u in uEq and v in vEq with {
+  solver_targetResReduction     = 1e-10
+  solver_maxNumIts              = 10
+  
+  solver_smoother_jacobiType    = false
+  solver_smoother_numPre        = 3
+  solver_smoother_numPost       = 3
+  solver_smoother_damping       = 0.8
+  solver_smoother_coloring      = "red-black"
+
+  solver_cgs                    = "Smoother"
+  solver_cgs_maxNumIts          = 128
+  solver_cgs_targetResReduction = 1e-3
+  //solver_cgs_restart            = true
+  //solver_cgs_restartAfter       = 128
+} modifiers {
+  append to 'solver' {
+    AdaptPositions@finest ( )
+    printField ( "u.txt", u@finest )
+    printField ( "v.txt", v@finest )
+  }
+}

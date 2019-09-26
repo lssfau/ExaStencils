@@ -1,0 +1,18 @@
+dimensionality                 = 2
+
+minLevel                       = 0
+maxLevel                       = 8
+
+discr_type                     = "FiniteDifferences"
+
+// omp parallelization on exactly one fragment in one block
+import '../lib/domain_onePatch.knowledge'
+import '../lib/parallelization_pureOmp.knowledge'
+
+experimental_generateParaviewFiles = true
+
+//library_CImg                   = true
+
+grid_isUniform                 = false
+grid_isAxisAligned             = false
+grid_spacingModel              = "uniform"
