@@ -3,18 +3,17 @@ package exastencils.visualization.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir._
+import exastencils.base.ir.{ IR_Native, _ }
 import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldCollection
-import exastencils.hack.ir.HACK_IR_Native
 
 object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
   def setupFct_SimGetVariable() : IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
 
-    fctBody += HACK_IR_Native("sim_data* s = (sim_data*) cbdata;")
-    fctBody += HACK_IR_Native("visit_handle h = VISIT_INVALID_HANDLE;")
+    fctBody += IR_Native("sim_data* s = (sim_data*) cbdata;")
+    fctBody += IR_Native("visit_handle h = VISIT_INVALID_HANDLE;")
 
     // n-way loop IR_LoopOverDimensions
     // IR_Assignment
@@ -25,8 +24,8 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       val numPointsTmp = (0 until numDims).map(d => field.layout.defIdxDupRightEnd(d) - field.layout.defIdxDupLeftBegin(d)).sum
 
       fctBody += IR_IfCondition(
-        HACK_IR_Native("(strcmp(name, \"" + field.name + "\") == 0 && " + field.level + " == s->curLevel)"),
-        HACK_IR_Native(
+        IR_Native("(strcmp(name, \"" + field.name + "\") == 0 && " + field.level + " == s->curLevel)"),
+        IR_Native(
           s"""		double tmp[$numPointsTmp];
              |		for(int i2 = 0; i2 < 128; i2++) {
              |			for(int i1 = 0; i1 < 128; i1++) {

@@ -7,7 +7,6 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverPoints
 import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldAccess
-import exastencils.hack.ir._
 import exastencils.logger.Logger
 
 /// IR_ResolveCImgFunctions
@@ -25,12 +24,12 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
         val stmts = ListBuffer[IR_Statement]()
 
         //stmts += IR_FunctionCall(IR_UserFunctionReference("cimg_library::CImg< double > imageIn")
-        stmts += HACK_IR_Native("cimg_library::CImg< double > imageIn ( \"" + filename + "\" )")
+        stmts += IR_Native("cimg_library::CImg< double > imageIn ( \"" + filename + "\" )")
         // flip image for correct representation
-        stmts += IR_MemberFunctionCall("imageIn", "mirror", HACK_IR_Native("'y'"))
+        stmts += IR_MemberFunctionCall("imageIn", "mirror", IR_Native("'y'"))
 
         stmts += IR_LoopOverPoints(field.field,
-          IR_Assignment(field, HACK_IR_Native("*imageIn.data(i0,i1)")))
+          IR_Assignment(field, IR_Native("*imageIn.data(i0,i1)")))
 
         IR_Scope(stmts)
       }
@@ -48,12 +47,12 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
 
         val stmts = ListBuffer[IR_Statement]()
 
-        stmts += HACK_IR_Native("cimg_library::CImg< double > imageOut ( " + numPoints.mkString(", ") + " )")
+        stmts += IR_Native("cimg_library::CImg< double > imageOut ( " + numPoints.mkString(", ") + " )")
         stmts += IR_LoopOverPoints(field.field,
-          IR_Assignment(HACK_IR_Native("*imageOut.data(i0,i1)"), field))
+          IR_Assignment(IR_Native("*imageOut.data(i0,i1)"), field))
 
         // flip image for correct representation
-        stmts += IR_MemberFunctionCall("imageOut", "mirror", HACK_IR_Native("'y'"))
+        stmts += IR_MemberFunctionCall("imageOut", "mirror", IR_Native("'y'"))
 
         filename match {
           case va : IR_VariableAccess => stmts += IR_MemberFunctionCall("imageOut", "save", IR_MemberFunctionCall(va, "c_str"))
@@ -81,13 +80,13 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
         // add color channels
         numPoints :+= 3
 
-        stmts += HACK_IR_Native("cimg_library::CImg< double > imageOut ( " + numPoints.mkString(", ") + ", 1. )")
+        stmts += IR_Native("cimg_library::CImg< double > imageOut ( " + numPoints.mkString(", ") + ", 1. )")
         stmts += IR_LoopOverPoints(field.field,
-          IR_Assignment(HACK_IR_Native("*imageOut.data(i0,i1,0,0)"), 360.0 * field))
+          IR_Assignment(IR_Native("*imageOut.data(i0,i1,0,0)"), 360.0 * field))
 
         stmts += IR_MemberFunctionCall("imageOut", "HSVtoRGB")
         // flip image for correct representation
-        stmts += IR_MemberFunctionCall("imageOut", "mirror", HACK_IR_Native("'y'"))
+        stmts += IR_MemberFunctionCall("imageOut", "mirror", IR_Native("'y'"))
 
         filename match {
           case va : IR_VariableAccess => stmts += IR_MemberFunctionCall("imageOut", "save", IR_MemberFunctionCall(va, "c_str"))
@@ -114,15 +113,15 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
         val stmts = ListBuffer[IR_Statement]()
 
         for (i <- fields.indices) {
-          stmts += HACK_IR_Native("cimg_library::CImg< double > " + tmpImgs(i) + " ( " + numPoints(i).mkString(", ") + " )")
+          stmts += IR_Native("cimg_library::CImg< double > " + tmpImgs(i) + " ( " + numPoints(i).mkString(", ") + " )")
           stmts += IR_LoopOverPoints(fields(i).field,
-            IR_Assignment(HACK_IR_Native("*" + tmpImgs(i) + ".data(i0,i1)"), fields(i)))
+            IR_Assignment(IR_Native("*" + tmpImgs(i) + ".data(i0,i1)"), fields(i)))
 
           // flip image for correct representation
-          stmts += IR_MemberFunctionCall(tmpImgs(i), "mirror", HACK_IR_Native("'y'"))
+          stmts += IR_MemberFunctionCall(tmpImgs(i), "mirror", IR_Native("'y'"))
 
           val dispName = fields(i).field.name + "@" + fields(i).field.level
-          stmts += HACK_IR_Native("cimg_library::CImgDisplay " + displays(i) + "(" + tmpImgs(i) + ", \"" + dispName + "\")")
+          stmts += IR_Native("cimg_library::CImgDisplay " + displays(i) + "(" + tmpImgs(i) + ", \"" + dispName + "\")")
         }
         stmts += IR_WhileLoop(fields.indices.map(i => IR_Negation(IR_MemberFunctionCall(displays(i), "is_closed")) : IR_Expression).reduceLeft(IR_OrOr),
           fields.indices.map(i => IR_MemberFunctionCall(displays(i), "wait") : IR_Statement).to[ListBuffer])
@@ -150,16 +149,16 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
           // add color channels
           numPoints(i) :+= 3
 
-          stmts += HACK_IR_Native("cimg_library::CImg< double > " + tmpImgs(i) + " ( " + numPoints(i).mkString(", ") + ", 1. )")
+          stmts += IR_Native("cimg_library::CImg< double > " + tmpImgs(i) + " ( " + numPoints(i).mkString(", ") + ", 1. )")
           stmts += IR_LoopOverPoints(fields(i).field,
-            IR_Assignment(HACK_IR_Native("*" + tmpImgs(i) + ".data(i0,i1,0,0)"), 360.0 * fields(i)))
+            IR_Assignment(IR_Native("*" + tmpImgs(i) + ".data(i0,i1,0,0)"), 360.0 * fields(i)))
 
           stmts += IR_MemberFunctionCall(tmpImgs(i), "HSVtoRGB")
           // flip image for correct representation
-          stmts += IR_MemberFunctionCall(tmpImgs(i), "mirror", HACK_IR_Native("'y'"))
+          stmts += IR_MemberFunctionCall(tmpImgs(i), "mirror", IR_Native("'y'"))
 
           val dispName = fields(i).field.name + "@" + fields(i).field.level
-          stmts += HACK_IR_Native("cimg_library::CImgDisplay " + displays(i) + "(" + tmpImgs(i) + ", \"" + dispName + "\")")
+          stmts += IR_Native("cimg_library::CImgDisplay " + displays(i) + "(" + tmpImgs(i) + ", \"" + dispName + "\")")
         }
         stmts += IR_WhileLoop(fields.indices.map(i => IR_Negation(IR_MemberFunctionCall(displays(i), "is_closed")) : IR_Expression).reduceLeft(IR_OrOr),
           fields.indices.map(i => IR_MemberFunctionCall(displays(i), "wait") : IR_Statement).to[ListBuffer])
@@ -188,19 +187,19 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
           // add color channels
           numPoints(i) :+= 3
 
-          stmts += HACK_IR_Native("cimg_library::CImg< double > " + tmpImgs(i) + " ( " + numPoints(i).mkString(", ") + ", 1. )")
+          stmts += IR_Native("cimg_library::CImg< double > " + tmpImgs(i) + " ( " + numPoints(i).mkString(", ") + ", 1. )")
           stmts += IR_LoopOverPoints(fields(i).field,
-            IR_Assignment(HACK_IR_Native("*" + tmpImgs(i) + ".data(i0,i1,0,0)"), 360.0 * fields(i)))
+            IR_Assignment(IR_Native("*" + tmpImgs(i) + ".data(i0,i1,0,0)"), 360.0 * fields(i)))
 
           stmts += IR_MemberFunctionCall(tmpImgs(i), "HSVtoRGB")
           // flip image for correct representation
-          stmts += IR_MemberFunctionCall(tmpImgs(i), "mirror", HACK_IR_Native("'y'"))
+          stmts += IR_MemberFunctionCall(tmpImgs(i), "mirror", IR_Native("'y'"))
 
           val scaledPoints = numPoints(i).take(2).map(i => { var ii = i; while (ii < 1000) { ii *= 2 }; ii : IR_Expression }).to[ListBuffer]
           stmts += IR_MemberFunctionCall(tmpImgs(i), "resize", scaledPoints)
 
           val dispName = fields(i).field.name + "@" + fields(i).field.level
-          stmts += HACK_IR_Native("static cimg_library::CImgDisplay " + displays(i) + "(" + tmpImgs(i) + ", \"" + dispName + "\")")
+          stmts += IR_Native("static cimg_library::CImgDisplay " + displays(i) + "(" + tmpImgs(i) + ", \"" + dispName + "\")")
           stmts += IR_Assignment(displays(i), tmpImgs(i))
         }
         stmts += IR_WhileLoop(IR_AndAnd(IR_Negation(condition), fields.indices.map(i => IR_Negation(IR_MemberFunctionCall(displays(i), "is_closed")) : IR_Expression).reduceLeft(IR_OrOr)),

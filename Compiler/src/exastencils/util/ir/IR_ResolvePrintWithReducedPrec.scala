@@ -7,7 +7,6 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.config.Knowledge
 import exastencils.datastructures._
-import exastencils.hack.ir._
 import exastencils.logger.Logger
 
 /// IR_ResolvePrintWithReducedPrec
@@ -24,10 +23,10 @@ object IR_ResolvePrintWithReducedPrec extends DefaultStrategy("ResolvePrintWithR
 
         def printWithPrec(prec : Int) = {
           ListBuffer[IR_Statement](
-            HACK_IR_Native(s"std::streamsize oldPrec = std::cout.precision()"),
-            HACK_IR_Native(s"std::cout.precision($prec)"),
+            IR_Native(s"std::streamsize oldPrec = std::cout.precision()"),
+            IR_Native(s"std::cout.precision($prec)"),
             IR_RawPrint(toPrint),
-            HACK_IR_Native(s"std::cout.precision(oldPrec)"))
+            IR_Native(s"std::cout.precision(oldPrec)"))
         }
 
         var precision = Knowledge.testing_maxPrecision

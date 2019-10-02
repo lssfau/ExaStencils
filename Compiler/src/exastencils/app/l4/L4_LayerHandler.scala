@@ -13,7 +13,6 @@ import exastencils.domain.l4.L4_DomainCollection
 import exastencils.field.ir.IR_AddPaddingToFieldLayouts
 import exastencils.field.l4._
 import exastencils.grid.l4._
-import exastencils.hack.l4.HACK_L4_ResolveNativeFunctions
 import exastencils.interfacing.l4.L4_ExternalFieldCollection
 import exastencils.knowledge.l4.L4_KnowledgeContainer._
 import exastencils.knowledge.l4._
@@ -178,7 +177,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
       L4_ResolveVariableAccesses.apply()
       L4_ResolveStencilFunctions.apply()
       L4_ResolveLoopItAccesses.apply()
-      HACK_L4_ResolveNativeFunctions.apply()
+      L4_ResolveNativeFunctions.apply()
       L4_ResolvePrintFunctions.apply()
       L4_ResolveBuildStringFunctions.apply()
       L4_ResolveKnowledgeParameterAccess.apply()

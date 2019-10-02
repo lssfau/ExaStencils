@@ -3,7 +3,7 @@ package exastencils.grid.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir._
+import exastencils.base.ir.{ IR_Native, _ }
 import exastencils.baseExt.ir._
 import exastencils.communication.DefaultNeighbors
 import exastencils.communication.ir._
@@ -11,7 +11,6 @@ import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.domain.ir._
 import exastencils.field.ir._
-import exastencils.hack.ir.HACK_IR_Native
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
@@ -411,9 +410,9 @@ object IR_SetupNodePositions {
 
       Settings.additionalIncludes = (Settings.additionalIncludes :+ "functional" :+ "random").distinct
 
-      stmts += HACK_IR_Native(s"std::default_random_engine generator(${ if (Knowledge.mpi_enabled) MPI_IV_MpiRank.prettyprint() else 0 })")
-      stmts += HACK_IR_Native(s"static std::uniform_real_distribution <double> distribution(${ -Knowledge.experimental_grid_randomMaxOffset * defGridWidth }, ${ Knowledge.experimental_grid_randomMaxOffset * defGridWidth })")
-      stmts += HACK_IR_Native(s"static auto randn = std::bind (distribution, generator)")
+      stmts += IR_Native(s"std::default_random_engine generator(${ if (Knowledge.mpi_enabled) MPI_IV_MpiRank.prettyprint() else 0 })")
+      stmts += IR_Native(s"static std::uniform_real_distribution <double> distribution(${ -Knowledge.experimental_grid_randomMaxOffset * defGridWidth }, ${ Knowledge.experimental_grid_randomMaxOffset * defGridWidth })")
+      stmts += IR_Native(s"static auto randn = std::bind (distribution, generator)")
     }
 
     // apply modification of positions

@@ -3,10 +3,9 @@ package exastencils.applications.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir._
+import exastencils.base.ir.{ IR_Native, _ }
 import exastencils.config.Knowledge
 import exastencils.datastructures._
-import exastencils.hack.ir.HACK_IR_Native
 import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
@@ -28,9 +27,9 @@ object IR_HandleMainApplication extends DefaultStrategy("HandleMainApplication")
       func.allowInlining = false
 
       if ("likwid" == Knowledge.benchmark_backend) {
-        func.body.prepend(OMP_Parallel(ListBuffer(HACK_IR_Native("LIKWID_MARKER_THREADINIT"))))
-        func.body.prepend(HACK_IR_Native("LIKWID_MARKER_INIT"))
-        func.body.append(HACK_IR_Native("LIKWID_MARKER_CLOSE"))
+        func.body.prepend(OMP_Parallel(ListBuffer(IR_Native("LIKWID_MARKER_THREADINIT"))))
+        func.body.prepend(IR_Native("LIKWID_MARKER_INIT"))
+        func.body.append(IR_Native("LIKWID_MARKER_CLOSE"))
       }
 
       if (Knowledge.cuda_enabled) {
