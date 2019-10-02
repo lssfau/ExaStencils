@@ -40,19 +40,37 @@ case class L4_ReadField(
 /// L4_ResolveReadFieldFunctions
 
 object L4_ResolveReadFieldFunctions extends DefaultStrategy("Resolve read field function references") {
+  val knownFunctionNames = {
+    var ret = ListBuffer("readField")
+    ret = ret ++ ret.map(_ + "WithGhost")
+
+    ret
+  }
+
   this += new Transformation("Resolve", {
-    case L4_ExpressionStatement(L4_FunctionCall(L4_UnresolvedFunctionReference(fctName, level, offset), args))
-      if "readFieldWithGhost" == fctName || "readField" == fctName =>
+    case L4_ExpressionStatement(L4_FunctionCall(L4_UnresolvedFunctionReference(fctName, level, offset), args)) if knownFunctionNames.contains(fctName) =>
+      var procFctNam = fctName
+
+      def checkOptionAndRemove(option : String) : Boolean = {
+        if (procFctNam.endsWith(option)) {
+          procFctNam = procFctNam.dropRight(option.length)
+          return true
+        }
+        false
+      }
+
+      val includeGhosts = checkOptionAndRemove("WithGhost")
 
       if (level.isDefined) Logger.warn(s"Found leveled read field function with level ${ level.get }; level is ignored")
       if (offset.isDefined) Logger.warn(s"Found read field function with offset; offset is ignored")
+
       args match {
         case ListBuffer(field : L4_FieldAccess)                      => // option 1: only field -> deduce name
-          L4_ReadField(L4_StringConstant(field.target.name + ".dat"), field, includeGhostLayers = "readFieldWithGhost" == fctName)
+          L4_ReadField(L4_StringConstant(field.target.name + ".txt"), field, includeGhostLayers = includeGhosts)
         case ListBuffer(fileName, field : L4_FieldAccess)            => // option 2: filename and field
-          L4_ReadField(fileName, field, includeGhostLayers = "readFieldWithGhost" == fctName)
+          L4_ReadField(fileName, field, includeGhostLayers = includeGhosts)
         case ListBuffer(fileName, field : L4_FieldAccess, condition) => // option 3: filename, file and condition
-          L4_ReadField(fileName, field, Some(condition), "readFieldWithGhost" == fctName)
+          L4_ReadField(fileName, field, Some(condition), includeGhostLayers = includeGhosts)
         case _                                                       =>
           Logger.warn("Ignoring call to readField with unsupported arguments: " + args.mkString(", "))
           L4_NullStatement
