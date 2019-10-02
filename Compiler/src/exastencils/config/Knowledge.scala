@@ -535,6 +535,14 @@ object Knowledge {
   // specifies if neighbor specific variables are summarized in array form
   var comm_useNeighborArrays : Boolean = true
 
+  /// performance estimation
+
+  // adds an optimistic performance estimation according to a roofline model
+  var performance_addEstimation : Boolean = false
+
+  // prints estimated performance to file (cf Settings.performanceEstimateOutputFile)
+  var performance_printEstimation : Boolean = false
+
   /// --- temporary flags ---
 
   /// experimental features
@@ -559,8 +567,6 @@ object Knowledge {
   var experimental_generateParaviewFiles : Boolean = false
 
   var experimental_trimBoundsForReductionLoops : Boolean = true
-
-  var experimental_addPerformanceEstimate : Boolean = false
 
   // tries to merge communication statements and loop over points in function bodies -> allows automatic overlap of communication and computation
   var experimental_mergeCommIntoLoops : Boolean = false
@@ -698,7 +704,7 @@ object Knowledge {
     Constraints.condEnsureValue(mpi_useBusyWait, true, experimental_allowCommInFragLoops && domain_numFragmentsPerBlock > 1, s"mpi_useBusyWait must be true when experimental_allowCommInFragLoops is used in conjunction with multiple fragments per block")
     Constraints.condWarn(comm_disableLocalCommSync && experimental_allowCommInFragLoops, s"comm_disableLocalCommSynchronization in conjunction with experimental_allowCommInFragLoops is strongly discouraged")
 
-    Constraints.condEnsureValue(experimental_addPerformanceEstimate, true, cuda_enabled && "Performance" == cuda_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
+    Constraints.condEnsureValue(performance_addEstimation, true, cuda_enabled && "Performance" == cuda_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
     Constraints.condEnsureValue(cuda_deviceId, "0", cuda_enabled && cuda_deviceId.forall(_.isDigit) && cuda_deviceId.toInt >= Platform.hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
 
     Constraints.condEnsureValue(cuda_blockSize_y, 1, cuda_enabled && domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
@@ -750,8 +756,13 @@ object Knowledge {
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == Platform.targetCompiler, "IBM XL does currently not support std::chrono")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == Platform.targetCompiler, "IBM BG does currently not support std::chrono")
 
+    // benchmarking and performance estimation
+
     Constraints.condWarn(!List("None", "likwid").contains(benchmark_backend), "Unknown value for benchmark_backend")
     Constraints.condError(benchmark_backend == "likwid" && Platform.targetOS != "Linux", "likwid is currently only available for Linux")
+
+    Constraints.condEnsureValue(performance_addEstimation, true, performance_printEstimation, "printing performance estimations requires actually estimating them")
+    Constraints.condEnsureValue(performance_addEstimation, true, opt_loopBlocked, "loop blocking requires setting up a performance model")
 
     // experimental
     Constraints.condEnsureValue(experimental_trimBoundsForReductionLoops, false, data_genVariableFieldSizes, "experimental_trimBoundsForReductionLoops is currently not compatible with data_genVariableFieldSizes")

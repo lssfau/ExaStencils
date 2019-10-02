@@ -12,6 +12,7 @@ import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
+import exastencils.performance.PlatformUtils
 import exastencils.util.ir._
 
 /// IR_EvaluatePerformanceEstimates
@@ -19,64 +20,48 @@ import exastencils.util.ir._
 object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performance estimates") with ObjectWithState {
   var completeFunctions = HashMap[String, IR_PerformanceEstimate]()
   var unknownFunctionCalls = true
-  var outputStream : PrintWriter = null
 
   override def clear() = {
     completeFunctions.clear()
     unknownFunctionCalls = true
-    outputStream = null
   }
 
-  override def apply(node : Option[Node] = None) : Unit = {
-    realApplyAndDo(false, node)
-  }
+  override def apply(node : Option[Node] = None) : Unit = Logger.error("Unsupported")
 
   def doUntilDone(node : Option[Node] = None) : Unit = {
-    realApplyAndDo(true, node)
-  }
-
-  private def realApplyAndDo(doUntilDone : Boolean, node : Option[Node] = None) : Unit = {
-    if (doUntilDone) {
-      // doUntilDone
-      var cnt = 0
-      unknownFunctionCalls = true
-      while (unknownFunctionCalls && cnt < 128) {
-        unknownFunctionCalls = false
-        super.apply(node)
-        cnt += 1
-      }
-    } else { // apply() once
+    var cnt = 0
+    unknownFunctionCalls = true
+    while (unknownFunctionCalls && cnt < 128) {
       unknownFunctionCalls = false
       super.apply(node)
+      cnt += 1
     }
 
-    if (true) {
-      // TODO: add flag to control behavior
+    if (Knowledge.performance_printEstimation)
+      printEstimationToFile()
+  }
 
-      val targetFile = Settings.performanceEstimateOutputFile
-      if (!new java.io.File(targetFile).exists) {
-        val file = new java.io.File(targetFile)
-        if (!file.getParentFile.exists()) file.getParentFile.mkdirs()
-      }
-
-      outputStream = new PrintWriter(targetFile)
-
-      val sep = Settings.csvSeparator
-      for (fct <- completeFunctions.toList.sortBy(_._1)) {
-        val fctName = fct._1
-        val estimate = fct._2
-        outputStream.println("%s%s%s%s%e".formatLocal(java.util.Locale.US,
-          "function", sep, fctName, sep, estimate.host * 1000.0)) //ms
-      }
-
-      outputStream.close()
-      outputStream = null
+  def printEstimationToFile() = {
+    val targetFile = Settings.performanceEstimateOutputFile
+    if (!new java.io.File(targetFile).exists) {
+      val file = new java.io.File(targetFile)
+      if (!file.getParentFile.exists()) file.getParentFile.mkdirs()
     }
+
+    val outputStream = new PrintWriter(targetFile)
+
+    for (fct <- completeFunctions.toList.sortBy(_._1)) {
+      val fctName = fct._1
+      val estimate = fct._2
+      outputStream.println("%s%s%s%s%e".formatLocal(java.util.Locale.US,
+        "function", Settings.csvSeparator, fctName, Settings.csvSeparator, estimate.host * 1000.0)) // ms
+    }
+
+    outputStream.close()
   }
 
   this += new Transformation("Processing function statements", {
-    case fct : IR_Function if !completeFunctions.contains(fct.name) &&
-      IR_CollectFunctionStatements.internalFunctions.contains(fct.name) =>
+    case fct : IR_Function if !completeFunctions.contains(fct.name) && IR_CollectFunctionStatements.internalFunctions.contains(fct.name) =>
       // process function body
       EvaluateSubAST.applyStandalone(fct.body)
 
@@ -107,6 +92,13 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
     var estimatedTimeSubAST = Stack[IR_PerformanceEstimate]()
     var lastEstimate = IR_PerformanceEstimate(0.0, 0.0)
 
+    override def applyStandalone(node : Node) : Unit = {
+      unknownFunctionCalls = false
+      estimatedTimeSubAST.push(IR_PerformanceEstimate(0.0, 0.0))
+      super.applyStandalone(node)
+      lastEstimate = estimatedTimeSubAST.pop
+    }
+
     def addTimeToStack(estimate : IR_PerformanceEstimate) : Unit = {
       estimatedTimeSubAST.push(estimatedTimeSubAST.pop + estimate)
     }
@@ -117,14 +109,6 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
     }
 
     def addLoopTimeToStack(loop : IR_ForLoop) : Unit = {
-      //    Knowledge.experimental_cuda_preferredExecution match {
-      //      case "Host"   => addTimeToStack(loop.getAnnotation("perf_timeEstimate_host").get.value.asInstanceOf[Double])
-      //      case "Device" => addTimeToStack(loop.getAnnotation("perf_timeEstimate_device").get.value.asInstanceOf[Double])
-      //      case "Performance" => addTimeToStack(
-      //        math.min(
-      //          loop.getAnnotation("perf_timeEstimate_host").get.value.asInstanceOf[Double],
-      //          loop.getAnnotation("perf_timeEstimate_device").get.value.asInstanceOf[Double]))
-      //    }
       addTimeToStack(loop)
     }
 
@@ -133,23 +117,17 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
         Logger.error("Unsupported: Not the same Datatype")
 
       val dataTypeSize = fieldAccesses.values.head.typicalByteSize
-      //like old estimation model, for perfect blocking (after find blocking factor)
-      if (Knowledge.opt_loopBlocked) {
+
+      // assume perfect blocking if opt_loopBlocked is activated ...
+      if (Knowledge.opt_loopBlocked)
         return dataTypeSize * fieldAccesses.keys.size
-      }
-      var cacheSize = Platform.hw_cacheSize
-      val numberOfThreadsUsed = Knowledge.omp_numThreads
-      // multi thread
-      val numberOfCaches = Platform.hw_numCacheSharingThreads / Platform.hw_cpu_numCoresPerCPU
 
-      if (numberOfThreadsUsed > numberOfCaches) {
-        cacheSize = (cacheSize / numberOfThreadsUsed) * numberOfCaches
-      }
-
+      // ... otherwise determine the number of data that needs to be loaded/ stored taking cache sizes into account
+      val effCacheSize = Platform.hw_usableCache * PlatformUtils.cacheSizePerThread
       val maxWindowCount : Int = offsets.map(_._2.length).sum
 
       for (windowCount <- 1 to maxWindowCount) {
-        val windowSize = cacheSize / windowCount / dataTypeSize
+        val windowSize = effCacheSize / windowCount / dataTypeSize
         var empty : ListBuffer[Boolean] = ListBuffer.empty[Boolean]
         var windowsUsed = 0
 
@@ -185,15 +163,7 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
       rel_by.sorted.reverse
     }
 
-    override def applyStandalone(node : Node) : Unit = {
-      unknownFunctionCalls = false
-      estimatedTimeSubAST.push(IR_PerformanceEstimate(0.0, 0.0))
-      super.applyStandalone(node)
-      lastEstimate = estimatedTimeSubAST.pop
-    }
-
     this += new Transformation("Progressing key statements", {
-      // function calls
       case fct : IR_FunctionCall =>
 
         if (!IR_CollectFunctionStatements.internalFunctions.contains(fct.name))
@@ -219,13 +189,14 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
 
           val coresPerRank = (Platform.hw_numNodes * Platform.hw_numHWThreadsPerNode).toDouble / Knowledge.mpi_numThreads // could be fractions of cores; regard SMT
 
+          // memory transfer
           val optimisticDataPerIt = dataPerIteration(EvaluateFieldAccess.fieldAccesses, EvaluateFieldAccess.offsets)
-          val effectiveHostBW = Platform.hw_cpu_bandwidth / (coresPerRank * Knowledge.omp_numThreads) // assumes full parallelization - TODO: adapt values according to (OMP) parallel loops
-          val optimisticTimeMem_host = (optimisticDataPerIt * maxIterations) / Platform.hw_cpu_bandwidth
-          val optimisticTimeMem_device = (optimisticDataPerIt * maxIterations) / Platform.hw_gpu_bandwidth
+          val optimisticTimeMem_host = (optimisticDataPerIt * maxIterations) / Platform.hw_cpu_bandwidth // TODO: thread sharing
+          val optimisticTimeMem_device = (optimisticDataPerIt * maxIterations) / Platform.hw_gpu_bandwidth // TODO: thread sharing
 
-          val cyclesPerIt = (Math.max(EvaluateForOps.numAdd, EvaluateForOps.numMul)
-            + EvaluateForOps.numDiv * Platform.hw_cpu_numCyclesPerDiv)
+          // computational operations
+          val cyclesPerIt = Math.max(EvaluateForOps.numAdd, EvaluateForOps.numMul) + EvaluateForOps.numDiv * Platform.hw_cpu_numCyclesPerDiv
+
           var estimatedTimeOps_host = (cyclesPerIt * maxIterations) / Platform.hw_cpu_frequency
           var estimatedTimeOps_device = (cyclesPerIt * maxIterations) / Platform.hw_gpu_frequency
           estimatedTimeOps_host /= Math.min(coresPerRank, Knowledge.omp_numThreads) // adapt for omp threading and hardware utilization
@@ -238,7 +209,7 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           var dim : Array[Long] = Array(0, 0, 0)
           if (Knowledge.opt_loopBlocked) {
             dim = IR_DetermineBlockingFactors(EvaluateFieldAccess.fieldAccesses, loop.maxIterationCount(), EvaluateFieldAccess.offsets)
-            Logger.warn(s"Meike2: dims = ${ dim(0) }, ${ dim(1) }")
+            //Logger.warn(s"Meike2: dims = ${ dim(0) }, ${ dim(1) }")
             loop.tileSize = dim.map(_.toInt)
             maxIterations = dim.product
             //IR_Comment(s"min loop dimentsion: ${dim(0)} ,${ dim(1)}, elements"),
@@ -256,7 +227,7 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
             IR_Comment(s"Optimistic device time for computational ops: ${ estimatedTimeOps_device * 1000.0 } ms"),
             IR_Comment(s"Assumed kernel call overhead: ${ Platform.sw_cuda_kernelCallOverhead * 1000.0 } ms"),
             IR_Comment(s"Found accesses: ${ EvaluateFieldAccess.fieldAccesses.keys.mkString(", ") }"),
-            IR_Comment(s"min loop dimentsion: ${ dim(0) } ,${ dim(1) }, elements"),
+            //IR_Comment(s"min loop dimentsion: ${ dim(0) } ,${ dim(1) }, elements"),
             loop)
         }
 

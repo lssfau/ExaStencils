@@ -195,7 +195,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_TypeInference.warnMissingDeclarations = false
     IR_TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
 
-    if (Knowledge.experimental_addPerformanceEstimate)
+    if (Knowledge.performance_addEstimation)
       IR_AddPerformanceEstimates.apply()
 
     // Prepare all suitable LoopOverDimensions and ContractingLoops. This transformation is applied before resolving
