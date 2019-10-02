@@ -1,12 +1,12 @@
-package exastencils.hack.ir
+package exastencils.baseExt.ir
 
 import exastencils.base.ir._
-import exastencils.core.Duplicate
 import exastencils.datastructures._
+import exastencils.hack.ir.HACK_IR_UndeterminedFunctionReference
 
-/// HACK_IR_ResolveSpecialFunctionsAndConstants
+/// IR_InferDiagAndInverseCallDataTypes
 
-object HACK_IR_SetSpecialFunctionTypes extends DefaultStrategy("SetSpecialFunctionTypes") {
+object IR_InferDiagAndInverseCallDataTypes extends DefaultStrategy("InferDiagAndInverseCallDataTypes") {
   var _changed = 0
 
   var fcts = List("diag", "inverse")
