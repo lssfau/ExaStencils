@@ -1,11 +1,9 @@
 package exastencils.parsers.l3
 
-import exastencils.datastructures._
+import exastencils.datastructures.DefaultStrategy
 
-object L3_Validation {
-  val s = DefaultStrategy("Validate L3 Input")
+/// L3_Validation
 
-  // FIXME
-
-  def apply() = s.apply()
+object L3_Validation extends DefaultStrategy("Validate L3 input") {
+  // l3 specific checks can be implemented here
 }

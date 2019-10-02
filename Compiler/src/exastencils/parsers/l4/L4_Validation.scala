@@ -12,8 +12,7 @@ import exastencils.logger._
 
 /// L4_Validation
 
-object L4_Validation extends DefaultStrategy("Validate L4 Input") {
-
+object L4_Validation extends DefaultStrategy("Validate L4 input") {
   // rename identifiers that happen to have the same name as C/C++ keywords or start with "_"
   // identifiers starting with "_" are protected for internal use
   val protectedkeywords = HashSet("alignas", "alignof", "and", "and_eq",
@@ -25,7 +24,7 @@ object L4_Validation extends DefaultStrategy("Validate L4 Input") {
     "static_cast", "struct", "switch", "template", "this", "thread_local", "throw", "true", "try", "typedef",
     "typeid", "typename", "union", "unsigned", "using", "virtual", "void", "volatile", "wchar_t", "while", "xor", "xor_eq")
 
-  // No need to transform Domain- and LayoutDeclarationStatements because their names are not outputted.
+  // No need to transform Domain- and LayoutDeclarationStatements because their names are not printed.
   this += Transformation("EscapeCppKeywordsAndInternalIdentifiers", {
     case x : L4_UnresolvedAccess if protectedkeywords.contains(x.name) && !x.hasAnnotation("NO_PROTECT_THIS") =>
       x.name = "user_" + x.name; x

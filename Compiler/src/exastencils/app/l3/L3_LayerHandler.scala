@@ -12,7 +12,7 @@ import exastencils.grid.l3._
 import exastencils.knowledge.l3.L3_KnowledgeContainer._
 import exastencils.knowledge.l3._
 import exastencils.operator.l3._
-import exastencils.parsers.l3.L3_Parser
+import exastencils.parsers.l3._
 import exastencils.prettyprinting.Indenter
 import exastencils.solver.l3._
 import exastencils.util.l3._
@@ -65,6 +65,8 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
     print()
 
     if (ExaRootNode.l3_root.nodes.nonEmpty) {
+      L3_Validation.apply()
+
       L3_ProcessInlineKnowledge.apply()
 
       L3_UnifyGlobalSections.apply()

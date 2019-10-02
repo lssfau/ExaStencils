@@ -1,11 +1,9 @@
 package exastencils.parsers.l2
 
-import exastencils.datastructures._
+import exastencils.datastructures.DefaultStrategy
 
-object L2_Validation {
-  val s = DefaultStrategy("Validate L2 Input")
+/// L2_Validation
 
-  // FIXME
-
-  def apply() = s.apply()
+object L2_Validation extends DefaultStrategy("Validate L2 input") {
+  // l2 specific checks can be implemented here
 }

@@ -12,7 +12,7 @@ import exastencils.field.l1._
 import exastencils.knowledge.l1.L1_KnowledgeContainer._
 import exastencils.knowledge.l1._
 import exastencils.operator.l1.L1_OperatorCollection
-import exastencils.parsers.l1.L1_Parser
+import exastencils.parsers.l1._
 import exastencils.prettyprinting.Indenter
 import exastencils.solver.l1._
 import exastencils.util.l1._
@@ -64,6 +64,8 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
     print()
 
     if (ExaRootNode.l1_root.nodes.nonEmpty) {
+      L1_Validation.apply()
+
       L1_ProcessInlineKnowledge.apply()
 
       L1_UnifyGlobalSections.apply()
