@@ -23,7 +23,7 @@ import exastencils.optimization.ir._
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp._
-import exastencils.performance._
+import exastencils.performance.ir.IR_AddPerformanceEstimates
 import exastencils.polyhedron._
 import exastencils.prettyprinting.PrintToFile
 import exastencils.solver.ir._
@@ -196,7 +196,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
 
     if (Knowledge.experimental_addPerformanceEstimate)
-      AddPerformanceEstimates.apply()
+      IR_AddPerformanceEstimates.apply()
 
     // Prepare all suitable LoopOverDimensions and ContractingLoops. This transformation is applied before resolving
     // ContractingLoops to guarantee that memory transfer statements appear only before and after a resolved
