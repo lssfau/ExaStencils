@@ -117,36 +117,3 @@ case class IR_ConstIndex(override var indices : Array[Int]) extends IR_Index wit
     }
   }
 }
-
-/// IR_HighDimIndex
-
-/*
-Idea for later: High Dimensional Index: [start, stride, stop], e.g., to select subsets of matrices
-TODO: think about how to implement other selection, e.g. "take main diagonal" or "right upper matrix"
-
-object IR_HighDimIndex {
-  def apply(indices : (IR_Expression, IR_Expression, IR_Expression)*) = new IR_HighDimIndex(indices.toArray)
-  def apply(left : IR_HighDimIndex, right : IR_HighDimIndex, f : ((IR_Expression, IR_Expression, IR_Expression), (IR_Expression, IR_Expression, IR_Expression)) => (IR_Expression, IR_Expression, IR_Expression)) =
-    new IR_HighDimIndex((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
-}
-
-case class IR_HighDimIndex(var indices : Array[(IR_Expression, IR_Expression, IR_Expression)]) extends IR_Index with IR_ArrayBasedIndex[(IR_Expression, IR_Expression, IR_Expression)] {
-  override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) = {
-    out << "INVALID: IR_HighDimIndex("
-    indices.foreach(x => {x._1.prettyprint(out)
-      out << " : "
-      x._2.prettyprint(out)
-      out << " : "
-      x._3.prettyprint(out)})
-    out << ")"
-  }
-  override def +(that : IR_Index) = {
-
-  }
-
-  override def -(that : IR_Index) = {
-
-  }
-}
-*/

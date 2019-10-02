@@ -6,6 +6,8 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.prettyprinting.PpStream
 
+/// IR_IV_Stations
+
 case class IR_IV_Stations(var i : IR_Expression, var j : IR_Expression) extends IR_InternalVariable(false, false, false, false, false) {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(i, j)
   override def resolveName() = s"sweStations" + resolvePostfix("", "", "", "", "")
@@ -35,6 +37,8 @@ case class IR_IV_Stations(var i : IR_Expression, var j : IR_Expression) extends 
   }
 }
 
+/// IR_IV_StationsFragment
+
 case class IR_IV_StationsFragment(var i : IR_Expression) extends IR_InternalVariable(false, false, false, false, false) {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(i)
   override def resolveName() = s"sweStationsFragment" + resolvePostfix("", "", "", "", "")
@@ -59,6 +63,8 @@ case class IR_IV_StationsFragment(var i : IR_Expression) extends IR_InternalVari
     IR_ArrayAccess(resolveName(), i)
   }
 }
+
+/// IR_IV_StationsId
 
 // store station id according to IR_LoopOverDimensions.defIt
 case class IR_IV_StationsId(var i : IR_Expression, var j : IR_Expression) extends IR_InternalVariable(false, false, false, false, false) {
@@ -89,6 +95,8 @@ case class IR_IV_StationsId(var i : IR_Expression, var j : IR_Expression) extend
     IR_ArrayAccess(resolveName(), dims * i + j)
   }
 }
+
+/// IR_IV_StationsIsLower
 
 case class IR_IV_StationsIsLower(var i : IR_Expression) extends IR_InternalVariable(false, false, false, false, false) {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(i)
