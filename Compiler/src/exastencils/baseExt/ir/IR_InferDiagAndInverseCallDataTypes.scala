@@ -2,7 +2,6 @@ package exastencils.baseExt.ir
 
 import exastencils.base.ir._
 import exastencils.datastructures._
-import exastencils.hack.ir.HACK_IR_UndeterminedFunctionReference
 
 /// IR_InferDiagAndInverseCallDataTypes
 
@@ -19,7 +18,7 @@ object IR_InferDiagAndInverseCallDataTypes extends DefaultStrategy("InferDiagAnd
   }
 
   this += Transformation("do", {
-    case call @ IR_FunctionCall(ref : HACK_IR_UndeterminedFunctionReference, params)
+    case call @ IR_FunctionCall(ref : IR_UnresolvedFunctionReference, params)
       if fcts.contains(ref.name) && call.datatype == IR_UnknownDatatype && params.head.datatype != IR_UnknownDatatype =>
 
       _changed += 1

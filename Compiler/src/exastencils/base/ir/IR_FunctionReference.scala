@@ -24,3 +24,7 @@ trait IR_LeveledFunctionReference extends IR_FunctionReference {
   def level : Int
   override def prettyprint(out : PpStream) = out << name
 }
+
+/// IR_UnresolvedFunctionReference
+
+case class IR_UnresolvedFunctionReference(var name : String, var returnType : IR_Datatype) extends IR_FunctionReference

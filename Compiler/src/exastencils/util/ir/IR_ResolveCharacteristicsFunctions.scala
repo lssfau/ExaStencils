@@ -6,7 +6,6 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config._
 import exastencils.datastructures._
-import exastencils.hack.ir.HACK_IR_UndeterminedFunctionReference
 import exastencils.parallelization.api.mpi.MPI_IsRootProc
 
 /// IR_ResolveCharacteristicsFunctions
@@ -14,7 +13,7 @@ import exastencils.parallelization.api.mpi.MPI_IsRootProc
 object IR_ResolveCharacteristicsFunctions extends DefaultStrategy("ResolveCharacteristicsFunctions") {
   this += new Transformation("ResolveFunctionCalls", {
 
-    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("clearCharacteristics", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("clearCharacteristics", _), args)) =>
       var stmts = ListBuffer[IR_Statement]()
 
       stmts += IR_VariableDeclaration(IR_SpecialDatatype("std::ofstream"), "outFile")
@@ -26,7 +25,7 @@ object IR_ResolveCharacteristicsFunctions extends DefaultStrategy("ResolveCharac
       else
         IR_Scope(stmts)
 
-    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("logCharacteristics", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("logCharacteristics", _), args)) =>
       var stmts = ListBuffer[IR_Statement]()
 
       stmts += IR_VariableDeclaration(IR_SpecialDatatype("std::ofstream"), "outFile")

@@ -8,7 +8,6 @@ import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.domain.ir.IR_ReadLineFromFile
-import exastencils.hack.ir.HACK_IR_UndeterminedFunctionReference
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_ReadStream
@@ -88,7 +87,7 @@ case class IR_ReadParameterFile() extends IR_FuturePlainFunction {
 
 object IR_ResolveReadParameters extends DefaultStrategy("ResolveReadParameters") {
   this += new Transformation("ResolveFunctionCalls", {
-    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("readParameterFile", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("readParameterFile", _), args)) =>
       if (args.size != 1
         || !(args.head.isInstanceOf[IR_StringConstant]
         || (args.head.isInstanceOf[IR_VariableAccess] && args.head.asInstanceOf[IR_VariableAccess].datatype == IR_StringDatatype))) {

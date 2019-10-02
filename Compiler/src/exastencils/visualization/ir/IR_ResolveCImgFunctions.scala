@@ -14,7 +14,7 @@ import exastencils.logger.Logger
 
 object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
   this += new Transformation("ResolveFunctionCalls", {
-    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("readImage", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("readImage", _), args)) =>
       if (args.size != 2 || !args.head.isInstanceOf[IR_FieldAccess]) {
         Logger.warn("Malformed call to readImage; usage: readImage ( field, \"filename\" )")
         IR_NullStatement
@@ -35,7 +35,7 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
         IR_Scope(stmts)
       }
 
-    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("writeImage", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("writeImage", _), args)) =>
       if (args.size != 2 || !args.head.isInstanceOf[IR_FieldAccess]) {
         Logger.warn("Malformed call to writeImage; usage: writeImage ( field, \"filename\" )")
         IR_NullStatement
@@ -64,7 +64,7 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
         IR_Scope(stmts)
       }
 
-    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("writeMappedImage", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("writeMappedImage", _), args)) =>
       if (args.size != 2 || !args.head.isInstanceOf[IR_FieldAccess]) {
         Logger.warn("Malformed call to writeMappedImage; usage: writeMappedImage ( field, \"filename\" )")
         IR_NullStatement
@@ -98,7 +98,7 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
         IR_Scope(stmts)
       }
 
-    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("showImage", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("showImage", _), args)) =>
       if (0 == args.size || !args.map(_.isInstanceOf[IR_FieldAccess]).reduce(_ && _)) {
         Logger.warn("Malformed call to showImage; usage: showImage ( field.* )")
         IR_NullStatement
@@ -130,7 +130,7 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
         IR_Scope(stmts)
       }
 
-    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("showMappedImage", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("showMappedImage", _), args)) =>
       if (0 == args.size || !args.map(_.isInstanceOf[IR_FieldAccess]).reduce(_ && _)) {
         Logger.warn("Malformed call to showImage; usage: showMappedImage ( field.* )")
         IR_NullStatement
@@ -167,7 +167,7 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
         IR_Scope(stmts)
       }
 
-    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("showMappedImageAndWaitWhen", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("showMappedImageAndWaitWhen", _), args)) =>
       if (args.size < 2 || !args.drop(1).map(_.isInstanceOf[IR_FieldAccess]).reduce(_ && _)) {
         Logger.warn("Malformed call to showMappedImageAndWaitWhen; usage: showMappedImageAndWaitWhen ( condition, field.* )")
         IR_NullStatement

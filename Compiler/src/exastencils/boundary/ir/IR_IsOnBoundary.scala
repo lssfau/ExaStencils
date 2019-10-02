@@ -12,7 +12,6 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.domain.ir.IR_IV_NeighborIsValid
 import exastencils.field.ir._
-import exastencils.hack.ir.HACK_IR_UndeterminedFunctionReference
 
 /// IR_IsOnBoundary
 
@@ -91,41 +90,41 @@ object IR_ResolveBoundaryFunctions extends DefaultStrategy("ResolveBoundaryFunct
   }
 
   this += new Transformation("ResolveFunctionCalls", {
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnBoundaryOf", _), args) =>
+    case IR_FunctionCall(IR_UnresolvedFunctionReference("isOnBoundaryOf", _), args) =>
       val fieldAccess = args.head.asInstanceOf[IR_FieldAccess]
       IR_IsOnBoundary(fieldAccess.field, getIndex(fieldAccess))
 
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnEastBoundaryOf", _), args) =>
+    case IR_FunctionCall(IR_UnresolvedFunctionReference("isOnEastBoundaryOf", _), args) =>
       val fieldAccess = args.head.asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.field, DefaultNeighbors.getNeigh(Array(1, 0, 0)), getIndex(fieldAccess))
 
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnWestBoundaryOf", _), args) =>
+    case IR_FunctionCall(IR_UnresolvedFunctionReference("isOnWestBoundaryOf", _), args) =>
       val fieldAccess = args.head.asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.field, DefaultNeighbors.getNeigh(Array(-1, 0, 0)), getIndex(fieldAccess))
 
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnNorthBoundaryOf", _), args) =>
+    case IR_FunctionCall(IR_UnresolvedFunctionReference("isOnNorthBoundaryOf", _), args) =>
       val fieldAccess = args.head.asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.field, DefaultNeighbors.getNeigh(Array(0, 1, 0)), getIndex(fieldAccess))
 
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnSouthBoundaryOf", _), args) =>
+    case IR_FunctionCall(IR_UnresolvedFunctionReference("isOnSouthBoundaryOf", _), args) =>
       val fieldAccess = args.head.asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.field, DefaultNeighbors.getNeigh(Array(0, -1, 0)), getIndex(fieldAccess))
 
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnTopBoundaryOf", _), args) =>
+    case IR_FunctionCall(IR_UnresolvedFunctionReference("isOnTopBoundaryOf", _), args) =>
       val fieldAccess = args.head.asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.field, DefaultNeighbors.getNeigh(Array(0, 0, 1)), getIndex(fieldAccess))
 
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnBottomBoundaryOf", _), args) =>
+    case IR_FunctionCall(IR_UnresolvedFunctionReference("isOnBottomBoundaryOf", _), args) =>
       val fieldAccess = args.head.asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.field, DefaultNeighbors.getNeigh(Array(0, 0, -1)), getIndex(fieldAccess))
 
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("getNeighFragEdge", _), args) =>
+    case IR_FunctionCall(IR_UnresolvedFunctionReference("getNeighFragEdge", _), args) =>
       IR_IV_CommNeighNeighIdx(0, args(1), args(0))
 
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("getNeighFragId", _), args) =>
+    case IR_FunctionCall(IR_UnresolvedFunctionReference("getNeighFragId", _), args) =>
       IR_IV_NeighFragId(0, args(1), args(0))
 
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("getBoundaryConditionId", _), args) =>
+    case IR_FunctionCall(IR_UnresolvedFunctionReference("getBoundaryConditionId", _), args) =>
       IR_IV_BoundaryConditionId(0, args(1), args(0))
 
   })

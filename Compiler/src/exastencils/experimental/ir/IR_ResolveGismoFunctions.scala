@@ -5,14 +5,13 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.domain.ir.IR_IV_FragmentIndex
-import exastencils.hack.ir.HACK_IR_UndeterminedFunctionReference
 import exastencils.logger.Logger
 
 /// IR_ResolveGismoFunctions
 
 object IR_ResolveGismoFunctions extends DefaultStrategy("ResolveGismoFunctions") {
   this += new Transformation("ResolveFunctionCalls", {
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("getGismoPatchIdx", _), args) =>
+    case IR_FunctionCall(IR_UnresolvedFunctionReference("getGismoPatchIdx", _), args) =>
       if (args.nonEmpty) Logger.warn("Ignoring arguments for call to getGismoPatchIdx")
 
       val lexOrdering = false

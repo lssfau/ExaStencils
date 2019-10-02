@@ -3,14 +3,13 @@ package exastencils.util.ir
 import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
-import exastencils.hack.ir.HACK_IR_UndeterminedFunctionReference
 import exastencils.logger.Logger
 
 /// IR_ResolveBenchmarkFunctions
 
 object IR_ResolveBenchmarkFunctions extends DefaultStrategy("ResolveBenchmarkFunctions") {
   this += new Transformation("ResolveFunctionCalls", {
-    case IR_ExpressionStatement(f @ IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("benchmarkStart", _), args)) =>
+    case IR_ExpressionStatement(f @ IR_FunctionCall(IR_UnresolvedFunctionReference("benchmarkStart", _), args)) =>
       Knowledge.benchmark_backend match {
         case "likwid" =>
           if (1 != args.length || args.head.datatype != IR_StringDatatype)
@@ -22,7 +21,7 @@ object IR_ResolveBenchmarkFunctions extends DefaultStrategy("ResolveBenchmarkFun
         case _ => IR_NullStatement
       }
 
-    case IR_ExpressionStatement(f @ IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("benchmarkStop", _), args)) =>
+    case IR_ExpressionStatement(f @ IR_FunctionCall(IR_UnresolvedFunctionReference("benchmarkStop", _), args)) =>
       Knowledge.benchmark_backend match {
         case "likwid" =>
           if (1 != args.length || args.head.datatype != IR_StringDatatype)

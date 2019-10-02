@@ -12,7 +12,6 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.datastructures.ir.StatementList
 import exastencils.field.ir._
-import exastencils.hack.ir.HACK_IR_UndeterminedFunctionReference
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_Print
@@ -105,19 +104,19 @@ abstract class IR_PrintVtk extends IR_Statement with IR_Expandable {
 
 object IR_ResolveVtkPrinters extends DefaultStrategy("ResolveVtkPrinters") {
   this += new Transformation("ResolveFunctionCalls", {
-    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("printVtkSWE", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printVtkSWE", _), args)) =>
       args match {
         case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintVtkSWE(s, i.toInt)
         case _                                                    => Logger.error("Malformed call to printVtkSWE; usage: printVtkSWE ( \"filename\", level )")
       }
 
-    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("printVtkNS", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printVtkNS", _), args)) =>
       args match {
         case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintVtkNS(s, i.toInt)
         case _                                                    => Logger.error("Malformed call to printVtkNS; usage: printVtkNS ( \"filename\", level )")
       }
 
-    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("printVtkNNF", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printVtkNNF", _), args)) =>
       args match {
         case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintVtkNNF(s, i.toInt)
         case _                                                    => Logger.error("Malformed call to printVtkNNF; usage: printVtkNNF ( \"filename\", level )")

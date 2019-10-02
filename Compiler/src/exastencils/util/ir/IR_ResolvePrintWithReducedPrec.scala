@@ -14,7 +14,7 @@ import exastencils.logger.Logger
 
 object IR_ResolvePrintWithReducedPrec extends DefaultStrategy("ResolvePrintWithReducedPrec") {
   this += new Transformation("ResolveFunctionCalls", {
-    case stmt @ IR_ExpressionStatement(fctCall @ IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("printWithReducedPrec", _), args)) =>
+    case stmt @ IR_ExpressionStatement(fctCall @ IR_FunctionCall(IR_UnresolvedFunctionReference("printWithReducedPrec", _), args)) =>
       if (1 != args.length)
         Logger.error("Malformed call to printWithReducedPrec")
 
