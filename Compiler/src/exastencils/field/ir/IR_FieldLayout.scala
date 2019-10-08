@@ -65,21 +65,21 @@ case class IR_FieldLayout(
 
   def defIdxById(id : String, dim : Int) : Int = {
     id match {
-      case "PLB" => defIdxPadLeftBegin(dim)
-      case "PLE" => defIdxPadLeftEnd(dim)
-      case "GLB" => defIdxGhostLeftBegin(dim)
-      case "GLE" => defIdxGhostLeftEnd(dim)
-      case "DLB" => defIdxDupLeftBegin(dim)
-      case "DLE" => defIdxDupLeftEnd(dim)
-      case "IB"  => defIdxInnerBegin(dim)
-      case "IE"  => defIdxInnerEnd(dim)
-      case "DRB" => defIdxDupRightBegin(dim)
-      case "DRE" => defIdxDupRightEnd(dim)
-      case "GRB" => defIdxGhostRightBegin(dim)
-      case "GRE" => defIdxGhostRightEnd(dim)
-      case "PRB" => defIdxPadRightBegin(dim)
-      case "PRE" => defIdxPadRightEnd(dim)
-      case "TOT" => defTotal(dim)
+      case "PLB"                => defIdxPadLeftBegin(dim)
+      case "PLE"                => defIdxPadLeftEnd(dim)
+      case "GLB"                => defIdxGhostLeftBegin(dim)
+      case "GLE"                => defIdxGhostLeftEnd(dim)
+      case "DLB"                => defIdxDupLeftBegin(dim)
+      case "DLE"                => defIdxDupLeftEnd(dim)
+      case "IB" | "ILB" | "IRB" => defIdxInnerBegin(dim)
+      case "IE" | "ILE" | "IRE" => defIdxInnerEnd(dim)
+      case "DRB"                => defIdxDupRightBegin(dim)
+      case "DRE"                => defIdxDupRightEnd(dim)
+      case "GRB"                => defIdxGhostRightBegin(dim)
+      case "GRE"                => defIdxGhostRightEnd(dim)
+      case "PRB"                => defIdxPadRightBegin(dim)
+      case "PRE"                => defIdxPadRightEnd(dim)
+      case "TOT"                => defTotal(dim)
     }
   }
 
