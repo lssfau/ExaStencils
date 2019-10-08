@@ -311,7 +311,7 @@ object Knowledge {
   //   1: extract a model and recreate an AST after a polyhedral dead code elimination is performed;
   //        this also allows optimizations of the polyhedral code generator to be applied, as, e.g., avoiding conditional branches inside the loop nest
   //        additionally, a dependence analysis is performed to annotate parallel loops
-  //   2: optimize the loop nest by trying to minimze the dependences specified by poly_optimizeDeps
+  //   2: optimize the loop nest by trying to minimize the dependencies specified by poly_optimizeDeps
   //   3: tile the optimized loop nest using poly_tileSize_{x|y|z|w}  (slowest)
   // TODO: Alex: range of the following options
   // [0~3§poly_optLevel_fine+1] // poly opt-level for poly_numFinestLevels finest fields
@@ -325,7 +325,6 @@ object Knowledge {
 
   // for tileSizes: these all default values if they are not set by the performance estimates; '0' means no tiling at all in this dimension
   // TODO: extend for an arbitrary number of dimensions
-  // TODO: to be set automatically for each kernel
   // [112~1000000000 $32§poly_tileSize_x+32]
   var poly_tileSize_x : Int = 0
   // [16~1000000000 $32§poly_tileSize_y+32]
@@ -763,6 +762,7 @@ object Knowledge {
 
     Constraints.condEnsureValue(performance_addEstimation, true, performance_printEstimation, "printing performance estimations requires actually estimating them")
     Constraints.condEnsureValue(performance_addEstimation, true, opt_loopBlocked, "loop blocking requires setting up a performance model")
+    Constraints.condEnsureValue(poly_optLevel_fine, 3, opt_loopBlocked, "loop blocking requires poly_optLevel_fine 3")
 
     // experimental
     Constraints.condEnsureValue(experimental_trimBoundsForReductionLoops, false, data_genVariableFieldSizes, "experimental_trimBoundsForReductionLoops is currently not compatible with data_genVariableFieldSizes")

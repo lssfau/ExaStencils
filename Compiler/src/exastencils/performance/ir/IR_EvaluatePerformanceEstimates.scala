@@ -139,7 +139,7 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
             val maxOffset = sortedOffsets.head
             sortedOffsets = sortedOffsets.drop(1).filter(offset => math.abs(maxOffset - offset) > windowSize)
             windowsUsed += 1
-            i = i + 1
+            i += 1
           } while (i < length && i <= windowCount && sortedOffsets.nonEmpty)
           empty += sortedOffsets.isEmpty
 
@@ -180,55 +180,61 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           addTimeToStack(loop)
           loop
         } else {
-          var maxIterations = loop.maxIterationCount().product
+          val stmts = ListBuffer[IR_Statement]()
 
-          EvaluateFieldAccess.fieldAccesses.clear // has to be done manually
-          EvaluateFieldAccess.offsets.clear
+          var maxIterations = loop.maxIterationCount().product
+          var iterationsPerThread = maxIterations
+          if (Knowledge.omp_parallelizeLoopOverDimensions)
+            iterationsPerThread /= Knowledge.omp_numThreads
+          val iterationsPerMpi = maxIterations * Knowledge.domain_numFragmentsPerBlock
+
+          stmts += IR_Comment(s"Max iterations: $maxIterations")
+          stmts += IR_Comment(s"Iterations per thread: $iterationsPerThread")
+
+          EvaluateFieldAccess.reset()
           EvaluateFieldAccess.applyStandalone(loop)
           EvaluateForOps.applyStandalone(loop)
 
-          val coresPerRank = (Platform.hw_numNodes * Platform.hw_numHWThreadsPerNode).toDouble / Knowledge.mpi_numThreads // could be fractions of cores; regard SMT
+          stmts += IR_Comment(s"Accesses: ${ EvaluateFieldAccess.fieldAccesses.keys.mkString(", ") }")
 
           // memory transfer
-          val optimisticDataPerIt = dataPerIteration(EvaluateFieldAccess.fieldAccesses, EvaluateFieldAccess.offsets)
-          val optimisticTimeMem_host = (optimisticDataPerIt * maxIterations) / Platform.hw_cpu_bandwidth // TODO: thread sharing
-          val optimisticTimeMem_device = (optimisticDataPerIt * maxIterations) / Platform.hw_gpu_bandwidth // TODO: thread sharing
+          val dataPerIt = dataPerIteration(EvaluateFieldAccess.fieldAccesses, EvaluateFieldAccess.offsets)
+
+          val optimisticTimeMem_host = dataPerIt * iterationsPerThread / PlatformUtils.cpu_bandwidthPerThread
+          val optimisticTimeMem_device = dataPerIt * iterationsPerMpi / PlatformUtils.gpu_bandwidthPerMpi
+
+          stmts += IR_Comment(s"Memory transfer per iteration: $dataPerIt byte")
+          stmts += IR_Comment(s"Host time for memory ops: ${ optimisticTimeMem_host * 1000.0 } ms")
+          stmts += IR_Comment(s"Device time for memory ops: ${ optimisticTimeMem_device * 1000.0 } ms")
 
           // computational operations
           val cyclesPerIt = Math.max(EvaluateForOps.numAdd, EvaluateForOps.numMul) + EvaluateForOps.numDiv * Platform.hw_cpu_numCyclesPerDiv
 
-          var estimatedTimeOps_host = (cyclesPerIt * maxIterations) / Platform.hw_cpu_frequency
-          var estimatedTimeOps_device = (cyclesPerIt * maxIterations) / Platform.hw_gpu_frequency
-          estimatedTimeOps_host /= Math.min(coresPerRank, Knowledge.omp_numThreads) // adapt for omp threading and hardware utilization
-          estimatedTimeOps_host /= Platform.simd_vectorSize // adapt for vectorization - assume perfect vectorizability
-          estimatedTimeOps_device /= Math.min(maxIterations, Platform.hw_gpu_numCores) // assumes perfect utilization as far as possible
+          val estimatedTimeOps_host = cyclesPerIt * iterationsPerThread / PlatformUtils.cpu_opsPerThread
+          val estimatedTimeOps_device = cyclesPerIt * iterationsPerMpi / PlatformUtils.gpu_opsPerMpi(maxIterations)
 
+          stmts += IR_Comment(s"Host time for computational ops: ${ estimatedTimeOps_host * 1000.0 } ms")
+          stmts += IR_Comment(s"Device time for computational ops: ${ estimatedTimeOps_device * 1000.0 } ms")
+
+          // roofline
           val totalEstimate = IR_PerformanceEstimate(Math.max(estimatedTimeOps_host, optimisticTimeMem_host), Math.max(estimatedTimeOps_device, optimisticTimeMem_device))
           totalEstimate.device += Platform.sw_cuda_kernelCallOverhead
 
-          var dim : Array[Long] = Array(0, 0, 0)
-          if (Knowledge.opt_loopBlocked) {
-            dim = IR_DetermineBlockingFactors(EvaluateFieldAccess.fieldAccesses, loop.maxIterationCount(), EvaluateFieldAccess.offsets)
-            //Logger.warn(s"Meike2: dims = ${ dim(0) }, ${ dim(1) }")
-            loop.tileSize = dim.map(_.toInt)
-            maxIterations = dim.product
-            //IR_Comment(s"min loop dimentsion: ${dim(0)} ,${ dim(1)}, elements"),
-          }
+          stmts += IR_Comment(s"Assumed kernel call overhead: ${ Platform.sw_cuda_kernelCallOverhead * 1000.0 } ms")
+
           loop.annotate("perf_timeEstimate_host", totalEstimate.host)
           loop.annotate("perf_timeEstimate_device", totalEstimate.device)
           addTimeToStack(totalEstimate)
 
-          ListBuffer(
-            IR_Comment(s"Max iterations: $maxIterations"),
-            IR_Comment(s"Optimistic memory transfer per iteration: $optimisticDataPerIt byte"),
-            IR_Comment(s"Optimistic host time for memory ops: ${ optimisticTimeMem_host * 1000.0 } ms"),
-            IR_Comment(s"Optimistic device time for memory ops: ${ optimisticTimeMem_device * 1000.0 } ms"),
-            IR_Comment(s"Optimistic host time for computational ops: ${ estimatedTimeOps_host * 1000.0 } ms"),
-            IR_Comment(s"Optimistic device time for computational ops: ${ estimatedTimeOps_device * 1000.0 } ms"),
-            IR_Comment(s"Assumed kernel call overhead: ${ Platform.sw_cuda_kernelCallOverhead * 1000.0 } ms"),
-            IR_Comment(s"Found accesses: ${ EvaluateFieldAccess.fieldAccesses.keys.mkString(", ") }"),
-            //IR_Comment(s"min loop dimentsion: ${ dim(0) } ,${ dim(1) }, elements"),
-            loop)
+          // use information gathered so far to add blocking if enabled
+          if (Knowledge.opt_loopBlocked) {
+            val blockingFactors = IR_DetermineBlockingFactors(EvaluateFieldAccess.fieldAccesses, EvaluateFieldAccess.offsets, loop.maxIterationCount())
+            loop.tileSize = blockingFactors.map(_.toInt)
+
+            stmts += IR_Comment(s"Loop blocking factors: ${ blockingFactors.mkString(", ") }")
+          }
+
+          stmts :+ loop
         }
 
       case loop : IR_ForLoop =>
@@ -241,8 +247,12 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           if (unknownFunctionCalls) {
             unknownFunctionCalls = true
           } else {
-            val estimatedTime_host = lastEstimate.host * loop.maxIterationCount
-            val estimatedTime_device = lastEstimate.device * loop.maxIterationCount
+            var parallelFactor = loop.maxIterationCount()
+            if (loop.parallelization.potentiallyParallel && Knowledge.omp_parallelizeLoopOverFragments)
+              parallelFactor /= Knowledge.omp_numThreads
+
+            val estimatedTime_host = lastEstimate.host * parallelFactor
+            val estimatedTime_device = lastEstimate.device * parallelFactor
 
             loop.annotate("perf_timeEstimate_host", estimatedTime_host)
             loop.annotate("perf_timeEstimate_device", estimatedTime_device)
@@ -251,9 +261,11 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
 
             loop.body = ListBuffer[IR_Statement](
               IR_Comment(s"Estimated host time for loop: ${ estimatedTime_host * 1000.0 } ms"),
-              IR_Comment(s"Estimated device time for loop: ${ estimatedTime_device * 1000.0 } ms")) ++ loop.body
+              IR_Comment(s"Estimated device time for loop: ${ estimatedTime_device * 1000.0 } ms")
+            ) ++ loop.body
           }
         }
+
         loop
     }, false)
   }
@@ -263,6 +275,14 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
     var offsets = HashMap[String, ListBuffer[Long]]()
     var multiDimOffsets = HashMap[String, ListBuffer[IR_ConstIndex]]()
     var inWriteOp = true
+
+    override def reset() = {
+      fieldAccesses.clear
+      offsets.clear
+      multiDimOffsets.clear
+
+      super.reset()
+    }
 
     def mapFieldAccess(access : IR_MultiDimFieldAccess) = {
       val field = access.field
