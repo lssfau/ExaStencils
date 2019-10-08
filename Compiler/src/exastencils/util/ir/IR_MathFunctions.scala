@@ -44,6 +44,8 @@ case class IR_MathFunctionReference(var name : String, var returnType : IR_Datat
   override def prettyprint(out : PpStream) = {
     name match {
       case "sqrt" => out << "std::sqrt"
+      case "abs"  => out << "std::abs"
+      case "fabs" => out << "std::fabs"
       case _      => super.prettyprint(out)
     }
   }
