@@ -1,4 +1,0 @@
-targetOS					= "Windows"
-targetCompiler				= "MSVC"
-targetCompilerVersion		= 14
-targetCompilerVersionMinor	= 0

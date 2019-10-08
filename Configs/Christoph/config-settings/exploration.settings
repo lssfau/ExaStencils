@@ -1,4 +1,0 @@
-user                   = "Christoph"
-outputPath             = "../generator-result/poly_expl/jacobi_3D_cc/ExaExpl/var"
-l4file                 = "../Configs/Christoph/config-knowledges/exploration-l4_perf.exa"
-poly_explorationConfig = "../generator-result/poly_expl/jacobi_3D_cc/ExaExpl/expl_config.txt"

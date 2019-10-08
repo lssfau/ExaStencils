@@ -1,3 +1,0 @@
-user                   = "Christoph"
-outputPath             = "../generator-result/exp/jacobi_3D_cc/no-opt"
-l4file                 = "../Configs/Christoph/config-knowledges/exploration-l4_perf.exa"

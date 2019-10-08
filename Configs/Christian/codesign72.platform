@@ -1,5 +1,0 @@
-targetOS = "Linux"
-targetCompiler				= "GCC"
-targetCompilerVersion		= 4
-targetCompilerVersionMinor	= 8
-simd_instructionSet			= "SSE3"

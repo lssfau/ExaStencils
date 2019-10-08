@@ -1,9 +1,0 @@
-user                        = "Christoph"
-basePathPrefix              = "../generator-result/smoother-3D-limits"
-l3file                      = ""
-l4file                      = "../../Configs/Christoph/config-knowledges/limit-exp/smoother-3D-limits.exa4"
-outputPath                  = "/generated/"
-htmlLogFile                 = "/log/log.html"
-produceHtmlLog              = true
-timeStrategies              = true
-timeStratPercentThreshold   = 0

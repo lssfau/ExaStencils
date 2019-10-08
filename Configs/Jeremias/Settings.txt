@@ -1,2 +1,0 @@
-outputPath = "D:\tmp\"
-basePathPrefix = "D:\Dokumente\Uni\MA\git"

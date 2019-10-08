@@ -1,1 +1,0 @@
-java.exe -Xmx2G -Xms2G -cp "C:\Eclipse\plugins\*;.\Compiler\bin;.\CompilerMacros\bin;.\ConfigRunner\bin;.\Compiler\lib\*" ConfigRunner .\Configs\Sebastian\PizDaint.settings .\Configs\Sebastian\PizDaint.knowledge .\Configs\Sebastian\PizDaint.platform .\Configs\Sebastian\PizDaint.configs

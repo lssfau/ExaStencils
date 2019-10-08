@@ -1,5 +1,0 @@
-user = "Christian"
-l4file = "Compiler/dsl/Layer4.exa"
-outputPath = "./exaout"
-basePathPrefix = "./"
-
