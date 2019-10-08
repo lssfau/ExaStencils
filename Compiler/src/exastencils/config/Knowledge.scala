@@ -600,30 +600,10 @@ object Knowledge {
 
   var experimental_grid_randomMaxOffset : Double = 0.1
 
-  /// paper project - SISC
-
-  // [16~64§sisc2015_numNodes*2]
-  var sisc2015_numNodes : Int = 64
-  // [16~64§sisc2015_ranksPerNode*2]
-  var sisc2015_ranksPerNode : Int = 64
-  // [0~1]
-  var sisc2015_firstDim : Int = 1
-  // [0~1]
-  var sisc2015_secondDim : Int = 1
-
-  // [1~64§sisc2015_numOMP_x*2]
-  var sisc2015_numOMP_x : Int = 2
-  // [1~64§sisc2015_numOMP_y*2]
-  var sisc2015_numOMP_y : Int = 2
-  // [1~64§sisc2015_numOMP_z*2]
-  var sisc2015_numOMP_z : Int = 2
-
   /// student project - Richard / visit
 
   // TODO
   var experimental_visit_enable : Boolean = false
-
-  /// END HACK
 
   /// === constraints and resolutions ===
   def update() : Unit = {
