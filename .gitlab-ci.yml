@@ -23,10 +23,8 @@ build:generator:
         expire_in: 1 weeks
     script:
         - java -version
-        - git clone https://i10git.cs.fau.de/software/scala.git
-        - cd Compiler
-        - ant -Dscala.dir=../scala
-        - cd ..
+        - sbt compile
+        - sbt assembly
 
 test:Appl_ExaStokes_2D:
     stage: test
