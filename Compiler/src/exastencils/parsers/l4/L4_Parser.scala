@@ -1,9 +1,8 @@
 package exastencils.parsers.l4
 
-import scala.collection.immutable.PagedSeq
 import scala.collection.mutable._
 import scala.util.parsing.combinator.PackratParsers
-import scala.util.parsing.input.PagedSeqReader
+import scala.util.parsing.input._
 
 import exastencils.base.l4._
 import exastencils.baseExt.l4._

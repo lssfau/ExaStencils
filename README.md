@@ -13,6 +13,9 @@ The source is available here: https://hackmd.io/_HIHDpfEQ5-JQKSCucw2Sg?both
 
 # The ExaStencils Code Generator
 
+For building the generator, a JDK is required.
+We recommend using version 11.
+
 ## IDE Support
 
 We recommend using IntelliJ IDEA (the community edition is fine).
@@ -46,11 +49,6 @@ If you are used to Eclipse, setting the keymap to Eclipse style may be helpful:
 * if 'Add Files to Git' dialogue opens -> don't add anything (press cancel)
 * check that everything works: Build -> Build Project
 * **note** in some configurations it might be necessary to add the Scala SDK under Project Structure -> Global Libraries. Otherwise no files will be compiled (build still succeeds).
-
-*Alternatively*, provided project files can be used directly (not recommended):
-* copy Documentation/IntelliJ/Compiler.iml to /Compiler
-* copy Documentation/IntelliJ/CompilerMacros.iml to /CompilerMacros
-* Import both in IntelliJ starting with CompilerMacros
 
 ### Creating a JAR
 

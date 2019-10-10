@@ -1,11 +1,9 @@
 package exastencils.parsers.config
 
-import scala.collection.immutable.PagedSeq
 import scala.collection.mutable._
 import scala.util.parsing.combinator.lexical.StdLexical
-import scala.util.parsing.input.PagedSeqReader
+import scala.util.parsing.input._
 
-import exastencils.config.Settings
 import exastencils.core._
 import exastencils.logger._
 import exastencils.parsers._

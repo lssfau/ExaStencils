@@ -1,5 +1,9 @@
 package meta
 
+import scala.collection.JavaConverters._
+
+import java.util.stream.Collectors
+
 object WrapWithProgressLocation {
   def apply(input : String) : String = {
     // check if early exit is possible
@@ -9,7 +13,7 @@ object WrapWithProgressLocation {
     var processed = ""
 
     var closeNextLine = false
-    input.lines.foreach {
+    input.lines.collect(Collectors.toList()).asScala.foreach {
       case s if closeNextLine =>
         closeNextLine = false
         processed += s + '\n'
@@ -97,7 +101,7 @@ object WrapWithProgressLocation {
 
     var importAdded = false
 
-    input.lines.foreach {
+    input.lines.collect(Collectors.toList()).asScala.foreach {
       case s if importAdded             => output += s + '\n'
       case ""                           => output += '\n'
       case s if s.startsWith("package") => output += s + '\n'

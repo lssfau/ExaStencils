@@ -1,6 +1,5 @@
 package exastencils.parsers.l1
 
-import scala.collection.immutable.PagedSeq
 import scala.collection.mutable._
 import scala.util.parsing.combinator._
 import scala.util.parsing.input._
