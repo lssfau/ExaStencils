@@ -49,17 +49,16 @@ def generate_build(docker_image_name, output_file):
 
     content += generate_line(1, 'artifacts:')
     content += generate_line(2, 'paths:')
-    content += generate_line(3, '- Compiler/compiler.jar')
+    content += generate_line(3, '- Compiler/Compiler.jar')
+    content += generate_line(3, '- Compiler/lib')
     content += generate_line(3, '- Examples')
     content += generate_line(3, '- Testing')
     content += generate_line(2, 'expire_in: 1 weeks')
 
     content += generate_line(1, 'script:')
     content += generate_script_line('java -version')
-    content += generate_script_line('git clone https://i10git.cs.fau.de/software/scala.git')
-    content += generate_script_line('cd Compiler')
-    content += generate_script_line('ant -Dscala.dir=../scala')
-    content += generate_script_line('cd ..')
+    content += generate_script_line('sbt compile')
+    content += generate_script_line('sbt assembly')
 
     content += '\n'
     output_file.write(content)
@@ -146,7 +145,7 @@ def generate_tests(generator_path, path_to_test_config, docker_image_name, outpu
 
 
 def main():
-    generator_path = '../Compiler/compiler.jar'
+    generator_path = '../Compiler/Compiler.jar'
     path_to_test_config = 'Testing/test_confs.txt'
     docker_image_name = 'ubuntu-18.04-openjdk-11'
     with open('.gitlab-ci.yml', 'w') as file:
