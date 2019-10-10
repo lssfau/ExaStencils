@@ -14,3 +14,5 @@ unmanagedBase in Compile := baseDirectory.value / "lib"
 
 libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
 libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2"
+libraryDependencies += "io.github.kostaskougios" % "cloning" % "1.10.0"
+libraryDependencies += "org.objenesis" % "objenesis" % "3.1"

@@ -15,39 +15,11 @@ import exastencils.logger.Logger
 object Duplicate {
   private val cloner = new com.rits.cloning.Cloner
   cloner.setDumpClonedClasses(Settings.printClonedObjects)
-  private val multiplicationCloner = new com.rits.cloning.Cloner
-  multiplicationCloner.setDumpClonedClasses(Settings.printClonedObjects)
 
   val debug = true
 
   def apply[T](t : T) : T = {
     val cloned = cloner.deepClone(t)
-
-    // check for objects that are not cloned
-    if (debug)
-      t match {
-        // TODO: more generic way
-        case _ : L2_KnowledgeObject[_] => Logger.warn("Fruitless call to Duplicate.apply for instance of type " + t.getClass)
-        case _ : L3_KnowledgeObject[_] => Logger.warn("Fruitless call to Duplicate.apply for instance of type " + t.getClass)
-        case _ : L4_KnowledgeObject[_] => Logger.warn("Fruitless call to Duplicate.apply for instance of type " + t.getClass)
-        case _ : IR_KnowledgeObject    => Logger.warn("Fruitless call to Duplicate.apply for instance of type " + t.getClass)
-        case _                         =>
-      }
-
-    cloned
-  }
-
-  /**
-    * Deep clones the given object instance multiple times.
-    *
-    * @param t The object instance to be cloned.
-    * @param n The number of clones to be created.
-    * @return A [[scala.collection.immutable.List]] holding the cloned instances.
-    */
-  def apply[T](t : T, n : Int) : List[T] = List.fill(n)(this (t))
-
-  def withMultiplication[T](t : T) : T = {
-    val cloned = multiplicationCloner.deepCloneWithMultiplication(t)
 
     // check for objects that are not cloned
     if (debug)
@@ -83,7 +55,7 @@ object Duplicate {
   /**
     * Register a class as immutable, which does not need to be cloned.
     *
-    * @param t        The class to be registered as immutable.
+    * @param t The class to be registered as immutable.
     */
   def registerImmutable(t : Class[_]) = {
     cloner.registerImmutable(t)
@@ -106,17 +78,13 @@ object Duplicate {
   // prevent cloning of some immutable objects/classes of the scala library (otherwise something goes boom)
   // Note: do ONLY register classes as immutable, whose children/attributes are immutable, too (recursively)
   //       e.g., immutable.List must therefore be copied
-  List(cloner, multiplicationCloner).foreach(
-    c => {
-      c.registerConstant(None)
-      c.registerConstant(Nil)
-      c.registerConstant(scala.Array)
-      c.registerImmutable(classOf[scala.Int])
-      c.registerImmutable(classOf[scala.Long])
-      c.registerImmutable(classOf[scala.Double])
-      c.registerImmutable(classOf[scala.Float])
-    }
-  )
+  cloner.registerConstant(None)
+  cloner.registerConstant(Nil)
+  cloner.registerConstant(scala.Array)
+  cloner.registerImmutable(classOf[scala.Int])
+  cloner.registerImmutable(classOf[scala.Long])
+  cloner.registerImmutable(classOf[scala.Double])
+  cloner.registerImmutable(classOf[scala.Float])
 
   class FastClonerListBuffer extends com.rits.cloning.IFastCloner {
     override def clone(o : scala.Any, iDeepCloner : IDeepCloner, map : util.Map[AnyRef, AnyRef]) : AnyRef = {
