@@ -145,7 +145,7 @@ def generate_tests(generator_path, path_to_test_config, docker_image_name, outpu
 
 
 def main():
-    generator_path = '../Compiler/Compiler.jar'
+    generator_path = '../Compiler/Compiler.jar:../Compiler/lib'
     path_to_test_config = 'Testing/test_confs.txt'
     docker_image_name = 'ubuntu-18.04-openjdk-11'
     with open('.gitlab-ci.yml', 'w') as file:
