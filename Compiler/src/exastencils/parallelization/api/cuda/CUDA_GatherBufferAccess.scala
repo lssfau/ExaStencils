@@ -6,6 +6,7 @@ import exastencils.base.ir._
 import exastencils.communication.ir._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
+import exastencils.logger.Logger
 
 class CUDA_GatherBufferAccess extends Collector {
 
@@ -41,6 +42,7 @@ class CUDA_GatherBufferAccess extends Collector {
         isRead = true
         isWrite = true
       case None                =>
+      case _                   => Logger.error("Invalid annotation")
     }
 
     node match {

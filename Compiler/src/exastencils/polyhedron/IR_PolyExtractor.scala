@@ -468,6 +468,7 @@ class IR_PolyExtractor extends Collector {
           conditions.push((cond, b))
         }
       case None              =>
+      case _                 => Logger.error("Invalid annotation")
     }
 
     try {
