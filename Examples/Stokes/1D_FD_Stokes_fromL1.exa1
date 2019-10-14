@@ -3,8 +3,7 @@
 
 Domain \Omega = ( 0, 3 )
 
-// TODO: handle virtual fields properly and make @current implicit again
-Field u@finest \in \Omega = sin ( 3 * PI * vf_nodePosition_x@current ) // fake initial value -> solve for 0 solution
+Field u@finest \in \Omega = sin ( 3 * PI * x ) // fake initial value -> solve for 0 solution
 Field u@(all but finest) \in \Omega = 0.0
 Field p \in \Omega = 0.0
 

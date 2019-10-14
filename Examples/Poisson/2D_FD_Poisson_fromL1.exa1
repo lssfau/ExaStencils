@@ -11,9 +11,9 @@ Knowledge {
 
 \Omega = ( 0, 1 ) \times ( 0, 1 )
 
-f \in \Omega = PI**2 * cos ( PI * vf_nodePos_x@current ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePos_y@current ) // PI**2 * cos ( PI * x ) - 4.0 * PI**2 * sin ( 2.0 * PI * y )
+f \in \Omega = PI**2 * cos ( PI * x ) - 4.0 * PI**2 * sin ( 2.0 * PI * y )
 u \in \Omega = 0.0
-u \in \partial \Omega = cos ( PI * vf_boundaryPos_x ) - sin ( 2.0 * PI * vf_boundaryPos_y ) // cos ( PI * x ) - sin ( 2.0 * PI * y )
+u \in \partial \Omega = cos ( PI * x ) - sin ( 2.0 * PI * y )
 
 op = - \Delta // alt: - ( \partial_{xx} + \partial_{yy} )
 

@@ -17,16 +17,15 @@ Field v \in \Omega = 0.0
 Field w \in \Omega = 0.0
 Field p \in \Omega = 0.0
 
-Field u \in \partial \Omega = sin ( 2.0 * PI * vf_boundaryCoord_x ) - cos (       PI * vf_boundaryCoord_z )
-Field v \in \partial \Omega = cos (       PI * vf_boundaryCoord_x ) - sin ( 2.0 * PI * vf_boundaryCoord_y )
-Field w \in \partial \Omega = sin ( 2.0 * PI * vf_boundaryCoord_z ) - cos (       PI * vf_boundaryCoord_y )
+Field u \in \partial \Omega = sin ( 2.0 * PI * x ) - cos (       PI * z )
+Field v \in \partial \Omega = cos (       PI * x ) - sin ( 2.0 * PI * y )
+Field w \in \partial \Omega = sin ( 2.0 * PI * z ) - cos (       PI * y )
 Field p \in \partial \Omega = Neumann
 
-// TODO: handle virtual fields properly and make @current implicit again
-Field f_u \in \Omega = 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePosition_x@current ) -       PI**2 * cos (       PI * vf_cellCenter_z@current   ) + 4.0 * PI * cos ( 4.0 * PI * vf_nodePosition_x@current )
-Field f_v \in \Omega =       PI**2 * cos (       PI * vf_cellCenter_x@current   ) - 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePosition_y@current ) + 4.0 * PI * cos ( 4.0 * PI * vf_nodePosition_y@current )
-Field f_w \in \Omega = 4.0 * PI**2 * sin ( 2.0 * PI * vf_nodePosition_z@current ) -       PI**2 * cos (       PI * vf_cellCenter_y@current   ) + 4.0 * PI * cos ( 4.0 * PI * vf_nodePosition_z@current )
-Field f_p \in \Omega = 2.0 * PI    * cos ( 2.0 * PI * vf_cellCenter_x@current   ) - 2.0 * PI    * cos ( 2.0 * PI * vf_cellCenter_y@current   ) + 2.0 * PI * cos ( 2.0 * PI * vf_cellCenter_z@current   )
+Field f_u \in \Omega = 4.0 * PI**2 * sin ( 2.0 * PI * x ) -       PI**2 * cos (       PI * z ) + 4.0 * PI * cos ( 4.0 * PI * x )
+Field f_v \in \Omega =       PI**2 * cos (       PI * x ) - 4.0 * PI**2 * sin ( 2.0 * PI * y ) + 4.0 * PI * cos ( 4.0 * PI * y )
+Field f_w \in \Omega = 4.0 * PI**2 * sin ( 2.0 * PI * z ) -       PI**2 * cos (       PI * y ) + 4.0 * PI * cos ( 4.0 * PI * z )
+Field f_p \in \Omega = 2.0 * PI    * cos ( 2.0 * PI * x ) - 2.0 * PI    * cos ( 2.0 * PI * y ) + 2.0 * PI * cos ( 2.0 * PI * z )
 
 Operator Laplace = - \Delta // alt: - ( \partial_{xx} + \partial_{yy} )
 
