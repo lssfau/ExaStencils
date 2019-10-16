@@ -289,7 +289,7 @@ object Platform {
             case "SSE3"   => flags += " -msse3"
             case "AVX"    => flags += " -mavx"
             case "AVX2"   => flags += " -mavx2 -mfma"
-            case "AVX512" => flags += " -march=knl"
+            case "AVX512" => flags += " -march=skylake-avx512"
             case "IMCI"   => Logger.error("GCC does not support IMCI")
             case "NEON"   => flags += " -mfpu=neon"
           }
