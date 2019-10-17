@@ -13,13 +13,11 @@ The source is available here: https://hackmd.io/_HIHDpfEQ5-JQKSCucw2Sg?both
 
 # The ExaStencils Code Generator
 
-For building the generator, a JDK is required.
-We recommend using version 11.
+For building the generator, a JDK is required. We recommend using version 11.
 
 ## IDE Support
 
-We recommend using IntelliJ IDEA (the community edition is fine).
-Downloads can be found [here](https://www.jetbrains.com/idea/download/).
+We recommend using IntelliJ IDEA (the community edition is fine). Downloads can be found [here](https://www.jetbrains.com/idea/download/).
 
 *Using an IDE is not required.* Instructions on how to do things without it can be found [here](#sbt).
 
@@ -30,9 +28,7 @@ If you plan to commit code please use our code style. It is located in /Document
 *  locate /Documentation/IntelliJ/ExaStencils.xml
 *  ok
 
-You should also have a look at the coding guidelines found in /Documentation/CodingGuidelines.scala
-
-If you are used to Eclipse, setting the keymap to Eclipse style may be helpful:
+If you are used to another IDE, e.g. Eclipse, setting the keymap to an according style may be helpful:
 *  File -> Settings -> Keymap -> Eclipse
 
 ### Compiling the Generator
@@ -62,7 +58,7 @@ Inside the IDE do the following to create a task to assemble the jar:
 The first step has to be done only once. Afterwards running the task is sufficient to assemble the jar(s).
 * Run -> Run 'assembly' (if this is not available use Run -> Run... and select assembly manually)
 
-**alternatively**, adding artifacts in IntelliJ is possible as well:
+**alternatively**, adding artifacts in IntelliJ is possible as well and often faster:
 * File -> Project Structure -> Project Settings -> Artifacts -> Click green plus sign -> Jar -> From modules with dependencies
     * Module: Compiler
     * Main Class: Main
@@ -88,6 +84,16 @@ Compilation is done via typing
 
 To assemble a jar the following command is available
 * sbt assembly
+
+## CImg support
+
+For CImg support, the corresponding CImg.h header file needs to be downloaded such that it can be used as ressource by our generator. This can be done in three different ways:
+* for users using sbt on the command line: ```sbt downloadCImg```
+* for IntelliJ users:
+    * Run -> Run -> 0: Edit Configurations -> + -> sbtTask
+    * Name: downloadCImg; Tasks: downloadCImg; Run
+* for all users: directly download the required file from [here](https://framagit.org/dtschump/CImg) and place it in Compiler/res/
+Updating the file works the same way.
 
 ## First Steps
 
