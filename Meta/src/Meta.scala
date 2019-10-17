@@ -9,6 +9,7 @@ object Meta {
       case "collect"   => collect()
       case "generate"  => generate()
       case "duplicate" => duplicate()
+      case "license"   => AddLicenseInfo()
       case other       => println(s"Unknown operation $other")
     }
   }
