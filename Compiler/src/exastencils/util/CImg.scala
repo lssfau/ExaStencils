@@ -28,9 +28,8 @@ case class CImg() extends IR_Node with FilePrettyPrintable {
 
     val writer = PrettyprintingManager.getPrinter(s"Util/CImg.h")
 
-    val url = getClass.getResource("/res/CImg.h")
+    val url = getClass.getResource("/CImg.h")
     for (line <- Source.fromURL(url, "utf8").getLines())
       writer << (line + '\n')
-
   }
 }
