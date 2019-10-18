@@ -27,7 +27,8 @@ object AddLicenseInfo {
   }
 
   def collectApplicableFiles() : Array[String] = {
-    recursivelyListFiles(new java.io.File("./Compiler/src/")).map(_.getPath.replace('\\', '/'))
+    val folders = Array("./Compiler/src/", "./CompilerMacros/src/", "./ConfigEvaluator/src/", "./ConfigRunner/src/", "./Meta/src/")
+    folders.flatMap(path => recursivelyListFiles(new java.io.File(path)).map(_.getPath.replace('\\', '/')))
   }
 
   def apply() : Unit = {
