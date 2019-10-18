@@ -57,9 +57,9 @@ configList+="OpticalFlow/3D_FD_OptFlow_fromL4_Vec "
 
 # SWE
 
-configList+="SWE/2D_FV_SWE "
+#configList+="SWE/2D_FV_SWE "
 
-# Navier-Stokes
+# NavierStokes
 
 #configList+="NavierStokes/2D_FV_NavierStokes_Picard "
 #configList+="NavierStokes/2D_FV_NavierStokes_Newton "
@@ -76,3 +76,7 @@ configList+="SWE/2D_FV_SWE "
 #
 #configList+="NavierStokes/3D_FV_NonNewtonian_Picard "
 #configList+="NavierStokes/3D_FV_NonNewtonian_Newton "
+
+# LinearElasticity
+
+configList+="LinearElasticity/2D_FD_LinearElasticity_fromL2 "
