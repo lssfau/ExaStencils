@@ -187,8 +187,8 @@ object L3_Parser extends ExaParser with PackratParsers {
   lazy val numericDatatype : Parser[L3_Datatype] = (
     ("Integer" ||| "integer" ||| "Int" ||| "int") ^^ { _ => L3_IntegerDatatype }
       ||| ("Real" ||| "real") ^^ { _ => L3_RealDatatype }
-      ||| ("Float" ||| "float") ^^ { _ => L3_FloatDatatype }
-      ||| ("Double" ||| "double") ^^ { _ => L3_DoubleDatatype })
+      ||| ("Float" ||| "float" ||| "Flt") ^^ { _ => L3_FloatDatatype }
+      ||| ("Double" ||| "double" ||| "Dbl") ^^ { _ => L3_DoubleDatatype })
 
   lazy val returnDatatype = (("Unit" ||| "unit") ^^ { _ => L3_UnitDatatype }
     ||| datatype)

@@ -34,7 +34,7 @@ object L2_Lexer extends ExaLexer {
   reserved += ("Unit", "unit",
     "String", "string",
     "Integer", "integer", "Int", "int",
-    "Real", "real", "Float", "float", "Double", "double",
+    "Real", "real", "Float", "float", "Double", "double", "Dbl", "Flt",
     "Complex", "complex",
     "Array", "array",
     "Boolean", "boolean", "Bool", "bool")

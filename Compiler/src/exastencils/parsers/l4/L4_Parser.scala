@@ -181,8 +181,10 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| numericDatatype)
 
   lazy val numericDatatype : Parser[L4_Datatype] = (
-    ("Integer" ||| "Int") ^^ { _ => L4_IntegerDatatype }
-      ||| "Real" ^^ { _ => L4_RealDatatype })
+    ("Integer" ||| "integer" ||| "Int" ||| "int") ^^ { _ => L4_IntegerDatatype }
+      ||| ("Real" ||| "real") ^^ { _ => L4_RealDatatype }
+      ||| ("Float" ||| "float" ||| "Flt") ^^ { _ => L4_FloatDatatype }
+      ||| ("Double" ||| "double" ||| "Dbl") ^^ { _ => L4_DoubleDatatype })
 
   lazy val returnDatatype = ("Unit" ^^ { _ => L4_UnitDatatype }
     ||| datatype)

@@ -53,7 +53,13 @@ class L4_Lexer extends ExaLexer {
   reserved += ("if", "else", "and", "or")
 
   // language data types
-  reserved += ("Unit", "String", "Integer", "Int", "Real", "Complex", "Array", "Vector", "RowVector", "ColumnVector", "RVector", "CVector", "Matrix", "Boolean", "Bool", "T")
+  reserved += ("Unit", "unit",
+    "String", "string",
+    "Integer", "integer", "Int", "int",
+    "Real", "real", "Float", "float", "Double", "double", "Dbl", "Flt",
+    "Complex", "complex",
+    "Boolean", "boolean", "Bool", "bool")
+  reserved += ("Array", "Vector", "RowVector", "ColumnVector", "RVector", "CVector", "Matrix", "T")
   reserved += ("Vec2", "Vec3", "Vec4")
 
   // level specification keywords

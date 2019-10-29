@@ -165,8 +165,8 @@ object L2_Parser extends ExaParser with PackratParsers {
   lazy val numericDatatype : Parser[L2_Datatype] = (
     ("Integer" ||| "integer" ||| "Int" ||| "int") ^^ { _ => L2_IntegerDatatype }
       ||| ("Real" ||| "real") ^^ { _ => L2_RealDatatype }
-      ||| ("Float" ||| "float") ^^ { _ => L2_FloatDatatype }
-      ||| ("Double" ||| "double") ^^ { _ => L2_DoubleDatatype })
+      ||| ("Float" ||| "float" ||| "Flt") ^^ { _ => L2_FloatDatatype }
+      ||| ("Double" ||| "double" ||| "Dbl") ^^ { _ => L2_DoubleDatatype })
 
   // ######################################
   // ##### L2_VariableDeclaration
