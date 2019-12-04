@@ -264,6 +264,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       CUDA_ExtractHostAndDeviceCode.apply()
       CUDA_AdaptKernelDimensionality.apply()
       CUDA_HandleReductions.apply()
+      CUDA_ReplaceStdFunctionCalls.apply(Some(CUDA_KernelFunctions.get))
     }
 
     IR_LayoutTansformation.apply()
