@@ -29,6 +29,9 @@ object CUDA_GatherVariableAccess extends QuietDefaultStrategy("Gather local Vari
 
   def clear() = {
     accesses = mutable.HashMap[String, IR_VariableAccess]()
+    ignoredAccesses += "std::cout"
+    ignoredAccesses += "std::cerr"
+    ignoredAccesses += "std::endl"
   }
 
   this += new Transformation("Searching", {
