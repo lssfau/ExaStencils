@@ -90,7 +90,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
   }
 
   override def printSources() = {
-    for (f <- functions) {
+    for (f <- functions if !f.isHeaderOnly) {
       var fileName = f.asInstanceOf[IR_Function].name
       if (fileName.endsWith(CUDA_Kernel.wrapperPostfix)) fileName = fileName.dropRight(CUDA_Kernel.wrapperPostfix.length)
       val writer = PrettyprintingManager.getPrinter(s"${ baseName }_$fileName.cu")
