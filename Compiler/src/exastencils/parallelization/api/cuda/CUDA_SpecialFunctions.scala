@@ -55,7 +55,7 @@ object CUDA_StdFunctionReplacements {
   def addFct(fct : IR_Function) {
     fct.allowInlining = false
     fct.allowFortranInterface = false
-    fct.functionQualifiers = "__device__"
+    fct.functionQualifiers = "inline __device__"
     fct.isHeaderOnly = true
 
     fct.annotate("deviceOnly")
@@ -107,4 +107,3 @@ object CUDA_StdFunctionReplacements {
     }
   }
 }
-
