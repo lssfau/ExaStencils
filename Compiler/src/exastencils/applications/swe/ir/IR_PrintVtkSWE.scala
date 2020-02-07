@@ -67,6 +67,9 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
   def uDisc = ListBuffer(uDiscLower0, uDiscLower1, uDiscLower2, uDiscUpper0, uDiscUpper1, uDiscUpper2)
   def vDisc = ListBuffer(vDiscLower0, vDiscLower1, vDiscLower2, vDiscUpper0, vDiscUpper1, vDiscUpper2)
 
+  def optLocalOrderLower = IR_FieldCollection.getByIdentifier("local_orderLower0", level, suppressError = true)
+  def optLocalOrderUpper = IR_FieldCollection.getByIdentifier("local_orderUpper0", level, suppressError = true)
+
   def someCellField = etaDiscLower0
 
   override def stmtsForNodeData : ListBuffer[IR_Statement] = {
@@ -75,11 +78,13 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
     // add header
     val stream = newStream
 
+    val numFields = 4 + (if (optLocalOrderLower.isDefined && optLocalOrderUpper.isDefined) 1 else 0)
+
     stmts ++= genStmtBlock(ListBuffer[IR_Statement](
       IR_IfCondition(MPI_IsRootProc(), ListBuffer[IR_Statement](
         IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
         IR_Print(stream, IR_StringConstant("POINT_DATA"), separator, numNodes, IR_Print.endl),
-        IR_Print(stream, IR_StringConstant("FIELD"), separator, IR_StringConstant("FieldData"), separator, 4, IR_Print.endl),
+        IR_Print(stream, IR_StringConstant("FIELD"), separator, IR_StringConstant("FieldData"), separator, numFields, IR_Print.endl),
         IR_MemberFunctionCall(stream, "close")))))
 
     def addNodePrint(name : String, cellPrint : ListBuffer[IR_Expression]) = {
@@ -142,6 +147,20 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
       }
       nodePrint
     })
+
+    // add local order
+    if (optLocalOrderLower.isDefined && optLocalOrderUpper.isDefined) {
+      addNodePrint("order", {
+        var nodePrint = ListBuffer[IR_Expression]()
+        List(optLocalOrderLower.get, optLocalOrderUpper.get).foreach { f =>
+          for (_ <- 0 until 3) { // TODO: cell data instead of
+            nodePrint += IR_FieldAccess(f, IR_IV_ActiveSlot(f), IR_LoopOverDimensions.defIt(numDimsGrid))
+            nodePrint += IR_Print.endl
+          }
+        }
+        nodePrint
+      })
+    }
 
     stmts
   }
