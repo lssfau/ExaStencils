@@ -48,6 +48,27 @@ object L4_LoopOverField {
   def apply(field : L4_Access, body : L4_Statement*) =
     new L4_LoopOverField(field, None, false, None, None, None, None, body.to[ListBuffer], None, ListBuffer(), ListBuffer())
 
+  def apply(field : L4_Access, modifiers : List[(String, Any)], body : List[L4_Statement]) = {
+    val loop = new L4_LoopOverField(field, None, false, None, None, None, None, body.to[ListBuffer], None, ListBuffer(), ListBuffer())
+
+    // apply loop modifiers
+    modifiers.foreach { case (modName, modVal) =>
+      modName match {
+        case "only"         => loop.region = Some(modVal.asInstanceOf[L4_RegionSpecification])
+        case "sequentially" => loop.seq = true
+        case "where"        => loop.condition = Some(modVal.asInstanceOf[L4_Expression])
+        case "starting"     => loop.startOffset = Some(modVal.asInstanceOf[L4_ExpressionIndex])
+        case "ending"       => loop.endOffset = Some(modVal.asInstanceOf[L4_ExpressionIndex])
+        case "stepping"     => loop.increment = Some(modVal.asInstanceOf[L4_ExpressionIndex])
+        case "with"         => loop.reduction = Some(modVal.asInstanceOf[L4_Reduction])
+        case "precomm"      => loop.preComms :+= modVal.asInstanceOf[L4_Communicate]
+        case "postcomm"     => loop.postComms :+= modVal.asInstanceOf[L4_Communicate]
+      }
+    }
+
+    loop
+  }
+
   def apply(field : L4_Access, region : Option[L4_RegionSpecification], seq : Boolean, condition : Option[L4_Expression], startOffset : Option[L4_ExpressionIndex], endOffset : Option[L4_ExpressionIndex],
       increment : Option[L4_ExpressionIndex], statements : List[L4_Statement], reduction : Option[L4_Reduction], preComms : List[L4_Communicate], postComms : List[L4_Communicate]) =
     new L4_LoopOverField(field, region, seq, condition, startOffset, endOffset,
