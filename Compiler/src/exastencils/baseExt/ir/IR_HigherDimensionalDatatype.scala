@@ -90,6 +90,21 @@ case class IR_MatrixDatatype(var datatype : IR_Datatype, var sizeM : Int, var si
   def transposed = IR_MatrixDatatype(datatype, sizeN, sizeM)
 }
 
+case class IR_TensorDatatype(var datatype : IR_Datatype, var dim : Int) extends IR_HigherDimensionalDatatype with IR_HasTypeAlias {
+  override def prettyprint(out : PpStream) : Unit = out << "__matrix_" << datatype << '_' << dim << "_t"
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+
+  override def dimensionality : Int = 2 + datatype.dimensionality
+  override def getSizeArray : Array[Int] = Array(3^dim) ++ datatype.getSizeArray
+  override def resolveDeclType : IR_Datatype = this.datatype.resolveDeclType
+  override def resolveDeclPostscript : String = ""
+  override def resolveFlattendSize : Int = 3^dim * datatype.resolveFlattendSize
+  override def typicalByteSize = 3^dim * datatype.typicalByteSize
+
+  override def aliasFor = datatype.prettyprint + '[' + this.resolveFlattendSize + ']'
+  def transposed = IR_TensorDatatype(datatype, dim)
+}
+
 object IR_HACK_TypeAliases extends DefaultStrategy("Register type aliases") {
   // FIXME remove this hack for a better data layout
   var global : IR_GlobalCollection = null

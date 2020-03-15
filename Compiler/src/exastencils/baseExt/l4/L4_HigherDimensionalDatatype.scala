@@ -67,3 +67,16 @@ case class L4_MatrixDatatype(var datatype : L4_Datatype, var numRows : Int, var 
   override def resolveFlattendSize : Int = numRows * numColumns * datatype.resolveFlattendSize
   override def typicalByteSize = numRows * numColumns * datatype.typicalByteSize
 }
+
+/// L4_TensorDatatype
+
+case class L4_TensorDatatype(var datatype : L4_Datatype, var dim : Int) extends L4_HigherDimensionalDatatype {
+  override def prettyprint(out : PpStream) : Unit = out << "Matrix<" << datatype << ',' << dim << ',' << '>'
+  override def progress = ProgressLocation(IR_TensorDatatype(datatype.progress, dim))
+
+  override def dimensionality : Int = dim + datatype.dimensionality
+  override def getSizeArray : Array[Int] = Array(3^dim) ++ datatype.getSizeArray
+  override def resolveDeclType : L4_Datatype = this
+  override def resolveFlattendSize : Int = 3^dim * datatype.resolveFlattendSize
+  override def typicalByteSize = 3^dim * datatype.typicalByteSize
+}
