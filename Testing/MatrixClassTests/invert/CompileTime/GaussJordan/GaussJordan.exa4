@@ -1,0 +1,15 @@
+
+Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
+
+Globals {
+}
+
+/// main function
+
+Function Application ( ) : Unit {
+     	Var mat : Matrix<Real, 4, 4> = {{1, 2, 1, 3}, {4, 2, 1, 2}, {4, 1, 3, 2}, {1, 1, 2, 3}}
+	Var mat_inverse : Matrix<Real, 4 ,4> = inverse(mat)	
+	//Var mat_inverse2 : Matrix<Real, 4, 4> 
+	//mat_inverse2 = inverse(mat)
+}
+

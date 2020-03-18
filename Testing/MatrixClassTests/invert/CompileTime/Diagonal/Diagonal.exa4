@@ -1,0 +1,27 @@
+
+Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
+
+Globals {
+	
+}
+
+/// main function
+
+Function Application ( ) : Unit {
+	Var mat : Matrix<Real, 4, 4> = {{1, 0, 0, 0}, {0, 2, 0, 0}, {0, 0, 3, 0}, {0, 0, 0, 4}}
+	Var index_i : Int = 0
+	Var index_j : Int = 0
+	
+/*
+	repeat 4 times count index_i {
+	  	repeat 4 times count index_j {
+			print(' ', mat[index_i][index_j])
+		}
+	}
+*/
+
+     	Var mat_inverse : Matrix<Real,4,4> = inverse(mat)
+	print(mat)
+
+}
+
