@@ -1,0 +1,6 @@
+﻿  Domain_initDomain.cpp
+  Global_declarations.cpp
+  Global_initGlobals.cpp
+  User_main.cpp
+  Util_declarations.cpp
+  exastencils.vcxproj -> C:\Users\MonPreacthyl\Desktop\ExaStencils\release\Tests\invert\RunTime\LU\output\exastencils.exe

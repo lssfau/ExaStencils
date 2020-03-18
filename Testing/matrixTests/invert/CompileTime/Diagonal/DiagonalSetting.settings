@@ -1,0 +1,16 @@
+user                = "Guest"
+
+configName          = "Diagonal"
+
+basePathPrefix      = "C:\Users\MonPreacthyl\Desktop\ExaStencils\release\Tests\invert\CompileTime\$configName$\"
+l4file              = "$configName$.exa4"
+
+debugL4File         = "$configName$_debug.exa4"
+
+outputPath          = "/output/"
+
+htmlLogFile         = "./Debug/$configName$_log.html"
+
+produceHtmlLog      = true
+
+buildfileGenerators = { "MakefileGenerator" }

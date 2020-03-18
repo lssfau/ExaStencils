@@ -1,0 +1,30 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0] to [0.1, 0.1] >
+
+Globals {
+	Var loc : Real = 0.0
+	Var mat : Matrix<Real,2,2> = { { 1.0, 2.0 }, { 3.0, 4.0 } }
+}
+
+Function Application {
+	Var m1 : Matrix<Real,2,2> = { { 1.0, 2.0 }, { 3.0, 4.0 } }
+	Var m2 : Matrix<Real,2,2> = { { 1.0, 2.0 }, { 3.0, 4.0 } }
+	Var res : Matrix<Real,2,2> = dot ( m1, m2 )
+	return
+}
+

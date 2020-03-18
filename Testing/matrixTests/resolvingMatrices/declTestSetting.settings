@@ -1,0 +1,13 @@
+user                = "Guest"
+
+configName          = "declTest"
+
+basePathPrefix      = "C:\Users\MonPreacthyl\Desktop\ExaStencils\release\Tests\resolvingMatrices\"
+l4file              = "$configName$.exa4"
+
+debugL4File         = "$configName$_debug.exa4"
+
+outputPath          = "/output/"
+
+
+buildfileGenerators = { "MakefileGenerator" }
