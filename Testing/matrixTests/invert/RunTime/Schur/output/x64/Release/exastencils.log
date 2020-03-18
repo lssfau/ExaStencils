@@ -1,6 +1,0 @@
-﻿  Domain_initDomain.cpp
-  Global_declarations.cpp
-  Global_initGlobals.cpp
-  User_main.cpp
-C:\Users\MonPreacthyl\Desktop\ExaStencils\release\Tests\invert\RunTime\Schur\output\User\User_main.cpp(15,7): warning C4101:  "i": Unreferenzierte lokale Variable
-  exastencils.vcxproj -> C:\Users\MonPreacthyl\Desktop\ExaStencils\release\Tests\invert\RunTime\Schur\output\exastencils.exe
