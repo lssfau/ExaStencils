@@ -592,7 +592,14 @@ object Knowledge {
   // minimum width of inner dimension when splitting according to experimental_splitLoopsForAsyncComm; 0 to disable
   var experimental_splitLoops_minInnerWidth : Int = 4
 
-  var experimental_resolveInverseFunctionCall : String = "Cofactors" // [Cofactors|GaussJordan|Runtime] // how to resolve inverse() function calls for matrices:
+  // Fabi: flag for run or compiletime [runtime|compiletime]
+  var experimental_resolveInverseFunctionCall : String = "Runtime" // [Diagonal|BlockDiagonal|Cofactors|GaussJordan|Runtime] // how to resolve inverse() function calls for matrices:
+
+  // structure of matrix to invert [filled|diagonal|blockdiagonal|schur]
+  var experimental_matrixStructure : String = "filled"
+
+  // user can add a blocksize in case of block matrices
+  var experimental_blocksize : Int = 0
 
   // tries to apply an inversion based on the Schur complement in local solve blocks
   var experimental_applySchurCompl : Boolean = false
