@@ -114,182 +114,15 @@ case class IR_MatrixExpression(var innerDatatype: Option[IR_Datatype], var rows:
 
   def set(row: Integer, column: Integer, exp: IR_Expression) = expressions(row * columns + column) = exp
 
+  def inverse: IR_MatrixExpression = {
+    var tmp = Knowledge.experimental_blocksize
+    IR_ResolveMatrixFunctions.CompiletimeInversion.inverse(this, Knowledge.experimental_resolveInverseFunctionCall, Knowledge.experimental_blocksize)
+  }
 
   override def toString: String = {
     "IR_MatrixExpression(" + innerDatatype + ", " + rows + ", " + columns + "; Items: " + expressions.mkString(", ") + ")"
   }
 
-  def inverse: IR_MatrixExpression = {
-    rows match {
-      case 1 =>
-        IR_MatrixExpression(innerDatatype, 1, 1, Array(IR_Division(IR_RealConstant(1.0), get(0, 0))))
-
-      case 2 =>
-        val a = get(0, 0)
-        val b = get(0, 1)
-        val c = get(1, 0)
-        val d = get(1, 1)
-        val det: IR_Expression = IR_Division(IR_RealConstant(1.0), (a * d) - (b * c))
-        IR_MatrixExpression(innerDatatype, 2, 2, Array(Duplicate(det) * Duplicate(d), Duplicate(det) * Duplicate(b) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(c) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(a)))
-
-      case 3 =>
-        val a = get(0, 0)
-        val b = get(0, 1)
-        val c = get(0, 2)
-        val d = get(1, 0)
-        val e = get(1, 1)
-        val f = get(1, 2)
-        val g = get(2, 0)
-        val h = get(2, 1)
-        val i = get(2, 2)
-        val A = Duplicate(e) * Duplicate(i) - Duplicate(f) * Duplicate(h)
-        val B = IR_IntegerConstant(-1) * (Duplicate(d) * Duplicate(i) - Duplicate(f) * Duplicate(g))
-        val C = Duplicate(d) * Duplicate(h) - Duplicate(e) * Duplicate(g)
-        val D = IR_IntegerConstant(-1) * (Duplicate(b) * Duplicate(i) - Duplicate(c) * Duplicate(h))
-        val E = Duplicate(a) * Duplicate(i) - Duplicate(c) * Duplicate(g)
-        val F = IR_IntegerConstant(-1) * (Duplicate(a) * Duplicate(h) - Duplicate(b) * Duplicate(g))
-        val G = Duplicate(b) * Duplicate(f) - Duplicate(c) * Duplicate(e)
-        val H = IR_IntegerConstant(-1) * (Duplicate(a) * Duplicate(f) - Duplicate(c) * Duplicate(d))
-        val I = Duplicate(a) * Duplicate(e) - Duplicate(b) * Duplicate(d)
-        val det = Duplicate(a) * A + Duplicate(b) * B + Duplicate(c) * C
-        IR_MatrixExpression(innerDatatype, 3, 3, Array(Duplicate(A) / Duplicate(det), Duplicate(D) / Duplicate(det), Duplicate(G) / Duplicate(det), Duplicate(B) / Duplicate(det), Duplicate(E) / Duplicate(det), Duplicate(H) / Duplicate(det), Duplicate(C) / Duplicate(det), Duplicate(F) / Duplicate(det), Duplicate(I) / Duplicate(det)))
-
-      case _ =>
-        // TODO gather and exploit knowledge about matrix structure
-        Knowledge.experimental_resolveInverseFunctionCall match {
-          case "Diagonal"
-          => {
-            val tmp = Duplicate(this)
-            for (row <- 0 until rows) {
-              //Logger.error("IR_MatrixAccess::inverse: Diagonal element is 0!")
-              tmp.set(row, row, IR_Division(IR_RealConstant(1.0), get(row, row)))
-            }
-            tmp
-          }
-          case "Blockdiagonal"
-          => {
-            val blocksize = Knowledge.experimental_blocksize
-            // if its done like that->arrayStoreException -> why?
-            //var out = IR_MatrixExpression(Some(innerDatatype.getOrElse(IR_RealDatatype)), rows, columns)
-            var out = Duplicate(this)
-            if (blocksize < 1) {
-              Logger.error("Blocksize must be at least 1")
-            }
-            else {
-              val n_blocks = rows / blocksize
-              if (rows % blocksize != 0) {
-                Logger.error("Rows are not a multiple of blocksize")
-              }
-              else {
-                for (block <- 0 until n_blocks) {
-                  val offset = block * blocksize
-
-                  // extract block matrix
-                  //TODO inplace optimization
-                  var subMatrix = IR_ResolveMatrixFunctions.copySubMatrix(this, offset, offset, blocksize, blocksize)
-
-                  // invert with GaussJordan method
-                  //TODO put invert method (Cofactor|GaussJordan|LUP) into reusable method that is appliable to regions of a matrix and optionally inplace
-                  var subMatrix_inv = IR_ResolveMatrixFunctions.gaussJordan(subMatrix)
-
-                  // copy to out-matrix
-                  IR_ResolveMatrixFunctions.pasteSubMatrix(subMatrix_inv, out, offset, offset)
-                }
-              }
-            }
-            out
-          }
-          case "Schur"
-          => {
-            var out = IR_MatrixExpression(this.datatype.datatype, this.rows, this.columns)
-            //var out = Duplicate(this)
-            /*
-              M =
-              A11     B1
-                  A22 B2
-              C1  C2  D
-              Assuming B and C are vectors, D a scalar and A11 and A22 quadratic matrices with width 'experimental_blocksize'
-              calculate M_inv with :
-                 ( I -A_inv * B ) * ( A_inv   0    )  *  (   I       0   )
-                 ( 0      I     )   (   0   S_inv  )     (-C*A_inv   I   )
-                 with S = D - C * A_inv * B
-             */
-            val blocksize = Knowledge.experimental_blocksize
-            if (blocksize < 1) {
-              Logger.error("IR_MatrixAccess::inverse blocksize < 1!")
-            }
-            else {
-              // invert A by inverting A11 and A22
-              if ((rows - 1) % blocksize != 0) {
-                Logger.error("IR_MatrixAccess::inverse Rows of A are not a multiple of blocksize! rows = " + rows + ", blocksize = " + blocksize)
-              }
-              else {
-
-                //var A_inv = IR_MatrixExpression(this.datatype.datatype, rows - 1, columns - 1)
-                var A_inv = IR_ResolveMatrixFunctions.copySubMatrix(this, 0, 0, rows - 1, columns - 1)
-
-                // invert A by inverting A11 and A22
-                for (i <- 0 until 2) {
-                  val offset = i * blocksize
-                  //var Aii = IR_MatrixExpression(Some(innerDatatype.getOrElse(IR_RealDatatype)), blocksize, blocksize)
-
-                  // extract block matrix Aii
-                  //TODO inplace optimization
-                  var Aii = IR_ResolveMatrixFunctions.copySubMatrix(this, offset, offset, blocksize, blocksize)
-
-                  // invert with GaussJordan method
-                  //TODO put invert method (Cofactor|GaussJordan|LUP) into reusable method that is appliable to regions of a matrix and optionally inplace
-                  var Aii_inv = IR_ResolveMatrixFunctions.gaussJordan(Aii)
-
-                  // copy to A_inv-matrix
-                  IR_ResolveMatrixFunctions.pasteSubMatrix(Aii_inv, A_inv, offset, offset)
-                }
-
-                // calculate S
-                val B = IR_ResolveMatrixFunctions.copySubMatrix(this, columns - 1, 0, 1, rows - 1)
-                val C = IR_ResolveMatrixFunctions.copySubMatrix(this, 0, rows - 1, columns - 1, 1)
-                val D = IR_ResolveMatrixFunctions.copySubMatrix(this, columns - 1, rows - 1, 1, 1)
-                val CA_inv = IR_ResolveMatrixFunctions.mult(C, A_inv)
-                val CA_invB = IR_ResolveMatrixFunctions.mult(CA_inv, B)
-                val S = IR_ResolveMatrixFunctions.sub(D, CA_invB)
-                val S_inv = IR_MatrixExpression(innerDatatype, 1, 1)
-                S_inv.set(0, 0, IR_Division(IR_RealConstant(1.0), Duplicate(S.get(0, 0))))
-                val lowerLeft = IR_ResolveMatrixFunctions.negative(IR_ResolveMatrixFunctions.mult(S_inv, CA_inv))
-                val lowerRight = S_inv
-                val A_invB = IR_ResolveMatrixFunctions.mult(A_inv, B)
-                val upperRight = IR_ResolveMatrixFunctions.negative(IR_ResolveMatrixFunctions.mult(A_invB, S_inv))
-                val upperLeft = IR_ResolveMatrixFunctions.add(A_inv, IR_ResolveMatrixFunctions.mult(upperRight, CA_inv))
-                IR_ResolveMatrixFunctions.pasteSubMatrix(upperLeft, out, 0, 0)
-                IR_ResolveMatrixFunctions.pasteSubMatrix(upperRight, out, 0, upperLeft.columns - 1)
-                IR_ResolveMatrixFunctions.pasteSubMatrix(lowerLeft, out, upperLeft.rows - 1, 0)
-                IR_ResolveMatrixFunctions.pasteSubMatrix(lowerRight, out, upperLeft.rows - 1, upperLeft.columns - 1)
-              }
-            }
-            out
-          }
-          case "Cofactors"
-          => {
-            val inv_det = IR_IntegerConstant(1) / IR_ResolveMatrixFunctions.calculateDeterminant(this)
-            val tmp = IR_MatrixExpression(Some(innerDatatype.getOrElse(IR_RealDatatype)), rows, columns)
-            for (row <- 0 until rows) {
-              for (col <- 0 until columns) {
-                tmp.set(col, row, IR_ResolveMatrixFunctions.calculateMatrixOfMinorsElement(this, row, col) * IR_DoubleConstant(math.pow(-1, row + col)) * inv_det)
-              }
-            }
-            tmp
-          }
-          case "GaussJordan"
-          => {
-            var tmp = IR_ResolveMatrixFunctions.gaussJordan(this)
-            tmp
-          }
-          case "Runtime"
-          => Logger.error("'Runtime' matrix inversion chosen but in code path for compile time")
-          case _ => Logger.error(s"""Unknown matrix inversion resolution strategy "${Knowledge.experimental_resolveInverseFunctionCall}"""")
-        }
-
-    }
-  }
 }
 
 
@@ -576,151 +409,315 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
     }
   }
 
-  def gaussJordan(that: IR_MatrixExpression): IR_MatrixExpression = {
-    val matrix = Duplicate(that)
-    val other = IR_MatrixExpression(matrix.datatype, matrix.rows, matrix.columns)
-    for (i <- 0 until other.rows) {
-      for (j <- 0 until other.columns) {
-        if (i == j) other.set(i, j, 1.0); else other.set(i, j, 0.0)
+  object BasicMatrixOperations {
+    def copySubMatrix(from: IR_MatrixExpression, offset_rows: Int, offset_cols: Int, n_rows: Int, n_cols: Int): IR_MatrixExpression = {
+      if (offset_cols < 0 || offset_rows < 0) {
+        Logger.error("IR_ResolveMatrixFunctions::copySubMatrix negative offset")
       }
+      var submatrix = IR_MatrixExpression(Some(from.datatype.datatype), n_rows, n_cols)
+      val bound_cols = offset_cols + n_cols
+      val bound_rows = offset_rows + n_rows
+      for (i <- offset_rows until bound_rows) {
+        for (j <- offset_cols until bound_cols) {
+          var n = Duplicate(from.get(i, j))
+          submatrix.set(i - offset_rows, j - offset_cols, n)
+        }
+      }
+      submatrix
     }
 
-    for (i <- matrix.rows - 1 to 0) {
-      var swap = false
-      val topValue = matrix.get(i - 1, i)
-      val currentValue = matrix.get(i, i)
-      (topValue, currentValue) match {
-        case (top: IR_Number, current: IR_Number) => swap = Math.abs(top.value.asInstanceOf[Number].doubleValue) > Math.abs(current.value.asInstanceOf[Number].doubleValue)
-        case _ =>
+    def pasteSubMatrix(source: IR_MatrixExpression, target: IR_MatrixExpression, offset_rows: Int, offset_cols: Int): Unit = {
+      if (offset_rows + source.rows > target.rows || offset_cols + source.columns > target.columns) {
+        //Logger.error("IR_ResolveMatrixFunctions::pasteSubMatrix content does not fit into target")
       }
-
-      if (swap) {
-        for (j <- 0 until matrix.columns) {
-          var d = matrix.get(i, j)
-          matrix.set(i, j, matrix.get(i - 1, j))
-          matrix.set(i - 1, j, d)
-          d = other.get(i, j)
-          other.set(i, j, other.get(i - 1, j))
-          other.set(i - 1, j, d)
+      if (offset_rows < 0 || offset_cols < 0) {
+        Logger.error("IR_ResolveMatrixFunctions::paseSubMatrix negative offset")
+      }
+      val bound_cols = offset_cols + source.columns
+      val bound_rows = offset_rows + source.rows
+      for (i <- offset_rows until bound_rows) {
+        for (j <- offset_cols until bound_cols) {
+          //TODO move node objects instead of copying?
+          var n = Duplicate(source.get(i - offset_rows, j - offset_cols))
+          target.set(i, j, n)
         }
       }
     }
 
-    for (i <- 0 until matrix.rows) {
-      for (j <- 0 until matrix.rows) {
-        if (j != i) {
-          val d = matrix.get(j, i) / matrix.get(i, i)
-          for (k <- 0 until matrix.rows) {
-            var newExp = matrix.get(j, k) - Duplicate(matrix.get(i, k)) * Duplicate(d)
-            matrix.set(j, k, newExp)
-
-            newExp = other.get(j, k) - Duplicate(other.get(i, k)) * Duplicate(d)
-            other.set(j, k, newExp)
+    def mult(left: IR_MatrixExpression, right: IR_MatrixExpression): IR_MatrixExpression = {
+      if (left.columns != right.rows) {
+        Logger.error("IR_ResolveMatrixFunctions::mult: Dimensions do not match!")
+      }
+      var out = IR_MatrixExpression(Some(left.datatype.datatype), left.rows, right.columns)
+      for (i <- 0 until left.rows) {
+        for (j <- 0 until right.columns) {
+          out.set(i, j, IR_RealConstant(0))
+          for (k <- 0 until left.columns) {
+            var factor_l = Duplicate(left.get(i, k))
+            var factor_r = Duplicate(right.get(k, j))
+            //out.set(i, j, IR_Addition(Duplicate(out.get(i, j)), IR_Multiplication(factor_l, factor_r)))
+            out.set(i, j, IR_Addition(out.get(i, j), IR_Multiplication(factor_l, factor_r)))
           }
         }
       }
+      out
     }
 
-    IR_GeneralSimplify.doUntilDoneStandalone(matrix)
-
-    for (i <- 0 until matrix.rows) {
-      val d = matrix.get(i, i)
-      for (j <- 0 until matrix.rows) {
-        val newExp = other.get(i, j) / Duplicate(d)
-        other.set(i, j, newExp)
+    def sub(left: IR_MatrixExpression, right: IR_MatrixExpression): IR_MatrixExpression = {
+      if (left.rows != right.rows || left.columns != right.columns) {
+        Logger.error("IR_ResolveMatrixFunctions::sub: Dimensions do not match!")
       }
-    }
-    other
-  }
-
-  def copySubMatrix(from: IR_MatrixExpression, offset_cols: Int, offset_rows: Int, n_cols: Int, n_rows: Int): IR_MatrixExpression = {
-    if (offset_cols < 0 || offset_rows < 0) {
-      Logger.error("IR_ResolveMatrixFunctions::copySubMatrix negative offset")
-    }
-    var submatrix = IR_MatrixExpression(Some(from.datatype.datatype), n_rows, n_cols)
-    val bound_cols = offset_cols + n_cols
-    val bound_rows = offset_rows + n_rows
-    for (i <- offset_rows until bound_rows) {
-      for (j <- offset_cols until bound_cols) {
-        var n = Duplicate(from.get(i, j))
-        submatrix.set(i - offset_rows, j - offset_cols, n)
-      }
-    }
-    submatrix
-  }
-
-  def pasteSubMatrix(source: IR_MatrixExpression, target: IR_MatrixExpression, offset_rows: Int, offset_cols: Int): Unit = {
-    if (offset_rows + source.rows > target.rows || offset_cols + source.columns > target.columns) {
-      //Logger.error("IR_ResolveMatrixFunctions::pasteSubMatrix content does not fit into target")
-    }
-    if (offset_rows < 0 || offset_cols < 0) {
-      Logger.error("IR_ResolveMatrixFunctions::paseSubMatrix negative offset")
-    }
-    val bound_cols = offset_cols + source.columns
-    val bound_rows = offset_rows + source.rows
-    for (i <- offset_rows until bound_rows) {
-      for (j <- offset_cols until bound_cols) {
-        //TODO move node objects instead of copying?
-        var n = Duplicate(source.get(i - offset_rows, j - offset_cols))
-        target.set(i, j, n)
-      }
-    }
-  }
-
-  def mult(left: IR_MatrixExpression, right: IR_MatrixExpression): IR_MatrixExpression = {
-    if (left.columns != right.rows) {
-      Logger.error("IR_ResolveMatrixFunctions::mult: Dimensions do not match!")
-    }
-    var out = IR_MatrixExpression(Some(left.datatype.datatype), left.rows, right.columns)
-    for (i <- 0 until left.rows) {
-      for (j <- 0 until right.columns) {
-        out.set(i, j, IR_RealConstant(0))
-        for (k <- 0 until left.columns) {
-          var factor_l = Duplicate(left.get(i, k))
-          var factor_r = Duplicate(right.get(k, j))
-          //out.set(i, j, IR_Addition(Duplicate(out.get(i, j)), IR_Multiplication(factor_l, factor_r)))
-          out.set(i, j, IR_Addition(out.get(i, j), IR_Multiplication(factor_l, factor_r)))
+      var out = IR_MatrixExpression(left.innerDatatype, left.rows, left.columns)
+      for (i <- 0 until left.rows) {
+        for (j <- 0 until left.columns) {
+          out.set(i, j, IR_Subtraction(Duplicate(left.get(i, j)), Duplicate(right.get(i, j))))
         }
       }
+      out
     }
-    out
+
+    def add(left: IR_MatrixExpression, right: IR_MatrixExpression): IR_MatrixExpression = {
+      if (left.rows != right.rows || left.columns != right.columns) {
+        Logger.error("IR_ResolveMatrixFunctions::add: Dimensions do not match!")
+      }
+      var out = IR_MatrixExpression(left.innerDatatype, left.rows, left.columns)
+      for (i <- 0 until left.rows) {
+        for (j <- 0 until left.columns) {
+          out.set(i, j, IR_Addition(Duplicate(left.get(i, j)), Duplicate(right.get(i, j))))
+        }
+      }
+      out
+    }
+
+    def negative(that: IR_MatrixExpression): IR_MatrixExpression = {
+      var out = IR_MatrixExpression(that.innerDatatype, that.rows, that.columns)
+      for (i <- 0 until that.rows) {
+        for (j <- 0 until that.columns) {
+          //        out.set(i,j,IR_Subtraction(IR_RealConstant(0),Duplicate(that.get(i,j))))
+          out.set(i, j, IR_Negative(Duplicate(that.get(i, j))))
+        }
+      }
+      out
+    }
   }
 
-  def sub(left: IR_MatrixExpression, right: IR_MatrixExpression): IR_MatrixExpression = {
-    if (left.rows != right.rows || left.columns != right.columns) {
-      Logger.error("IR_ResolveMatrixFunctions::sub: Dimensions do not match!")
-    }
-    var out = IR_MatrixExpression(left.innerDatatype, left.rows, left.columns)
-    for (i <- 0 until left.rows) {
-      for (j <- 0 until left.columns) {
-        out.set(i, j, IR_Subtraction(Duplicate(left.get(i, j)), Duplicate(right.get(i, j))))
-      }
-    }
-    out
-  }
+  object CompiletimeInversion {
+    def inverse(that: IR_MatrixExpression, resolveInverseFunctionCall: String, blocksize: Int): IR_MatrixExpression = {
+      that.rows match {
+        case 1 =>
+          IR_MatrixExpression(that.innerDatatype, 1, 1, Array(IR_Division(IR_RealConstant(1.0), that.get(0, 0))))
 
-  def add(left: IR_MatrixExpression, right: IR_MatrixExpression): IR_MatrixExpression = {
-    if (left.rows != right.rows || left.columns != right.columns) {
-      Logger.error("IR_ResolveMatrixFunctions::add: Dimensions do not match!")
-    }
-    var out = IR_MatrixExpression(left.innerDatatype, left.rows, left.columns)
-    for (i <- 0 until left.rows) {
-      for (j <- 0 until left.columns) {
-        out.set(i, j, IR_Addition(Duplicate(left.get(i, j)), Duplicate(right.get(i, j))))
-      }
-    }
-    out
-  }
+        case 2 =>
+          val a = that.get(0, 0)
+          val b = that.get(0, 1)
+          val c = that.get(1, 0)
+          val d = that.get(1, 1)
+          val det: IR_Expression = IR_Division(IR_RealConstant(1.0), (a * d) - (b * c))
+          IR_MatrixExpression(that.innerDatatype, 2, 2, Array(Duplicate(det) * Duplicate(d), Duplicate(det) * Duplicate(b) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(c) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(a)))
 
-  def negative(that: IR_MatrixExpression): IR_MatrixExpression = {
-    var out = IR_MatrixExpression(that.innerDatatype, that.rows, that.columns)
-    for (i <- 0 until that.rows) {
-      for (j <- 0 until that.columns) {
-        //        out.set(i,j,IR_Subtraction(IR_RealConstant(0),Duplicate(that.get(i,j))))
-        out.set(i, j, IR_Negative(Duplicate(that.get(i, j))))
+        case 3 =>
+          val a = that.get(0, 0)
+          val b = that.get(0, 1)
+          val c = that.get(0, 2)
+          val d = that.get(1, 0)
+          val e = that.get(1, 1)
+          val f = that.get(1, 2)
+          val g = that.get(2, 0)
+          val h = that.get(2, 1)
+          val i = that.get(2, 2)
+          val A = Duplicate(e) * Duplicate(i) - Duplicate(f) * Duplicate(h)
+          val B = IR_IntegerConstant(-1) * (Duplicate(d) * Duplicate(i) - Duplicate(f) * Duplicate(g))
+          val C = Duplicate(d) * Duplicate(h) - Duplicate(e) * Duplicate(g)
+          val D = IR_IntegerConstant(-1) * (Duplicate(b) * Duplicate(i) - Duplicate(c) * Duplicate(h))
+          val E = Duplicate(a) * Duplicate(i) - Duplicate(c) * Duplicate(g)
+          val F = IR_IntegerConstant(-1) * (Duplicate(a) * Duplicate(h) - Duplicate(b) * Duplicate(g))
+          val G = Duplicate(b) * Duplicate(f) - Duplicate(c) * Duplicate(e)
+          val H = IR_IntegerConstant(-1) * (Duplicate(a) * Duplicate(f) - Duplicate(c) * Duplicate(d))
+          val I = Duplicate(a) * Duplicate(e) - Duplicate(b) * Duplicate(d)
+          val det = Duplicate(a) * A + Duplicate(b) * B + Duplicate(c) * C
+          IR_MatrixExpression(that.innerDatatype, 3, 3, Array(Duplicate(A) / Duplicate(det), Duplicate(D) / Duplicate(det), Duplicate(G) / Duplicate(det), Duplicate(B) / Duplicate(det), Duplicate(E) / Duplicate(det), Duplicate(H) / Duplicate(det), Duplicate(C) / Duplicate(det), Duplicate(F) / Duplicate(det), Duplicate(I) / Duplicate(det)))
+
+        case _ =>
+          // TODO gather and exploit knowledge about matrix structure
+          resolveInverseFunctionCall match {
+            case "Diagonal"
+            => {
+              val tmp = Duplicate(that)
+              for (row <- 0 until that.rows) {
+                //Logger.error("IR_MatrixAccess::inverse: Diagonal element is 0!")
+                tmp.set(row, row, IR_Division(IR_RealConstant(1.0), that.get(row, row)))
+              }
+              tmp
+            }
+            case "Blockdiagonal"
+            => {
+              var out = Duplicate(that)
+              if (blocksize < 1) {
+                Logger.error("Blocksize must be at least 1")
+              }
+              else {
+                val n_blocks = that.rows / blocksize
+                if (that.rows % blocksize != 0) {
+                  Logger.error("Rows are not a multiple of blocksize")
+                }
+                else {
+                  for (block <- 0 until n_blocks) {
+                    val offset = block * blocksize
+
+                    // extract matrix block
+                    var subMatrix = BasicMatrixOperations.copySubMatrix(that, offset, offset, blocksize, blocksize)
+
+                    // invert with GaussJordan method
+                    var subMatrix_inv = gaussJordanInverse(subMatrix)
+
+                    // copy to out matrix
+                    BasicMatrixOperations.pasteSubMatrix(subMatrix_inv, out, offset, offset)
+                  }
+                }
+              }
+              out
+            }
+            case "Schur"
+            => {
+              //var out = IR_MatrixExpression(that.datatype.datatype, that.rows, that.columns)
+              var out = Duplicate(that)
+              /* use an invert algorithm using the schur complement
+
+                -1             -1
+               M  =  (  A  B  )      =    ( A_inv + A_inv*B*S_inv*C*A_inv -A_inv*B*S_inv  )
+                     (  C  D  )           (           -S_inv*C*A_inv           S_inv      )
+
+                with M of size (n + m) x (n + m) and S = D - C * A_inv * B
+              */
+              val n = blocksize
+              val m = that.rows - n
+
+              if (n < 1) {
+                Logger.error("IR_MatrixAccess::inverse n < 1!")
+              }
+              else {
+                if ((that.rows - 1) % n != 0) {
+                  Logger.error("IR_MatrixAccess::inverse Rows of A are not a multiple of n! rows = " + that.rows + ", n = " + n)
+                }
+                else {
+                  var blocksize_A = Knowledge.experimental_blocksize_A
+
+                  // extract and invert A: Blockdiagonalmatrix assumed
+                  var A = BasicMatrixOperations.copySubMatrix(that, 0, 0, n, n)
+                  var A_inv = inverse(A,"Blockdiagonal", blocksize_A)
+
+                  // calculate S
+                  val B = BasicMatrixOperations.copySubMatrix(that, 0, n, n, m)
+                  val C = BasicMatrixOperations.copySubMatrix(that, n, 0, m, n)
+                  val D = BasicMatrixOperations.copySubMatrix(that, n, n, m, m)
+                  val CA_inv = BasicMatrixOperations.mult(C, A_inv)
+                  val CA_invB = BasicMatrixOperations.mult(CA_inv, B)
+                  val S = BasicMatrixOperations.sub(D, CA_invB)
+
+                  // invert S
+                  //TODO invert S depending on its structure: small S -> direct inversion, large S -> choose inversion based on information from classifyer
+                  // -> for schur complement inversion multiple structure information is necessary(n and m, blocksize of A, S is probably always filled) in case  m is large (default should be "Filled")
+                  val S_inv = inverse(S, "Filled", blocksize_A)
+
+                  // copy result blocks to out matrix
+                  val lowerLeft = BasicMatrixOperations.negative(BasicMatrixOperations.mult(S_inv, CA_inv))
+                  val lowerRight = S_inv
+                  val A_invB = BasicMatrixOperations.mult(A_inv, B)
+                  val upperRight = BasicMatrixOperations.negative(BasicMatrixOperations.mult(A_invB, S_inv))
+                  val upperLeft = BasicMatrixOperations.add(A_inv, BasicMatrixOperations.mult(upperRight, CA_inv))
+                  BasicMatrixOperations.pasteSubMatrix(upperLeft, out, 0, 0)
+                  BasicMatrixOperations.pasteSubMatrix(upperRight, out, 0, n)
+                  BasicMatrixOperations.pasteSubMatrix(lowerLeft, out, n, 0)
+                  BasicMatrixOperations.pasteSubMatrix(lowerRight, out, n, n)
+                }
+              }
+              out
+            }
+            case "Cofactors"
+            => {
+              val inv_det = IR_IntegerConstant(1) / IR_ResolveMatrixFunctions.calculateDeterminant(that)
+              val tmp = IR_MatrixExpression(Some(that.innerDatatype.getOrElse(IR_RealDatatype)), that.rows, that.columns)
+              for (row <- 0 until that.rows) {
+                for (col <- 0 until that.columns) {
+                  tmp.set(col, row, IR_ResolveMatrixFunctions.calculateMatrixOfMinorsElement(that, row, col) * IR_DoubleConstant(math.pow(-1, row + col)) * inv_det)
+                }
+              }
+              tmp
+            }
+            case "GaussJordan"
+            => {
+              var tmp = gaussJordanInverse(that)
+              tmp
+            }
+            case "Filled"
+            => {
+              var tmp = gaussJordanInverse(that)
+              tmp
+            }
+            case "Runtime"
+            => Logger.error("'Runtime' matrix inversion chosen but in code path for compile time")
+            case _ => Logger.error(s"""Unknown matrix inversion resolution strategy "${resolveInverseFunctionCall}"""")
+          }
+
       }
     }
-    out
+
+    def gaussJordanInverse(that: IR_MatrixExpression): IR_MatrixExpression = {
+      val matrix = Duplicate(that)
+      val other = IR_MatrixExpression(matrix.datatype, matrix.rows, matrix.columns)
+      for (i <- 0 until other.rows) {
+        for (j <- 0 until other.columns) {
+          if (i == j) other.set(i, j, 1.0); else other.set(i, j, 0.0)
+        }
+      }
+
+      for (i <- matrix.rows - 1 to 0) {
+        var swap = false
+        val topValue = matrix.get(i - 1, i)
+        val currentValue = matrix.get(i, i)
+        (topValue, currentValue) match {
+          case (top: IR_Number, current: IR_Number) => swap = Math.abs(top.value.asInstanceOf[Number].doubleValue) > Math.abs(current.value.asInstanceOf[Number].doubleValue)
+          case _ =>
+        }
+
+        if (swap) {
+          for (j <- 0 until matrix.columns) {
+            var d = matrix.get(i, j)
+            matrix.set(i, j, matrix.get(i - 1, j))
+            matrix.set(i - 1, j, d)
+            d = other.get(i, j)
+            other.set(i, j, other.get(i - 1, j))
+            other.set(i - 1, j, d)
+          }
+        }
+      }
+
+      for (i <- 0 until matrix.rows) {
+        for (j <- 0 until matrix.rows) {
+          if (j != i) {
+            val d = matrix.get(j, i) / matrix.get(i, i)
+            for (k <- 0 until matrix.rows) {
+              var newExp = matrix.get(j, k) - Duplicate(matrix.get(i, k)) * Duplicate(d)
+              matrix.set(j, k, newExp)
+
+              newExp = other.get(j, k) - Duplicate(other.get(i, k)) * Duplicate(d)
+              other.set(j, k, newExp)
+            }
+          }
+        }
+      }
+
+      IR_GeneralSimplify.doUntilDoneStandalone(matrix)
+
+      for (i <- 0 until matrix.rows) {
+        val d = matrix.get(i, i)
+        for (j <- 0 until matrix.rows) {
+          val newExp = other.get(i, j) / Duplicate(d)
+          other.set(i, j, newExp)
+        }
+      }
+      other
+    }
   }
 
   this += new Transformation("resolution of built-in functions 2/2", {
@@ -1074,20 +1071,6 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
 
   })
 
-  def printMatrix(matrix: IR_VariableAccess) = {
-    val stmts = ListBuffer[IR_Statement]()
-    matrix.datatype match {
-      case dt: IR_MatrixDatatype =>
-        for (i <- 0 until dt.sizeM) {
-          for (j <- 0 until dt.sizeN) {
-            stmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference.printf, ListBuffer[IR_Expression](IR_StringConstant("%f "), IR_HighDimAccess(matrix, IR_ConstIndex(i, j)))))
-          }
-          stmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference.printf, IR_StringConstant("\\n")))
-        }
-    }
-    stmts
-  }
-
   if (Knowledge.experimental_resolveInverseFunctionCall == "Runtime") {
 
     def mkConstant(dt: IR_Datatype, v: Double) = dt match {
@@ -1095,7 +1078,6 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
       case IR_IntegerDatatype => IR_IntegerConstant(v.toInt)
       case _ => exastencils.logger.Logger.error("mkConstant not implemented for " + dt.toString)
     }
-
 
     object GenerateRuntimeInversion {
       def runtimeInverseLU(in: IR_VariableAccess, out: IR_VariableAccess) = {
@@ -1138,7 +1120,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
           )),
           if (debug) IR_IfCondition(IR_Lower(myColmax, mkConstant(myType, 1e-15)),
             IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference.printf, IR_StringConstant("[WARNING] Inverting potentially singular matrix\\n"))) +:
-              printMatrix(myU)
+              GenerateBasicMatrixOperations.printMatrix(myU)
           ) else IR_NullStatement,
           IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::swap"), IR_ArrayAccess(myQ, myK), IR_ArrayAccess(myQ, myMaxCol)))
         ))
@@ -1176,7 +1158,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
             IR_Assignment(IR_HighDimAccess(out, IR_ExpressionIndex(myI, myJ)), (IR_HighDimAccess(myY, IR_ExpressionIndex(myI, myJ)) - mySum) / IR_HighDimAccess(myU, IR_ExpressionIndex(myI, myI)))
           ))
         ))
-        func.body ++= printMatrix(out)
+        func.body ++= GenerateBasicMatrixOperations.printMatrix(out)
         func
       }
 
@@ -1191,7 +1173,6 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
         var i = IR_VariableAccess("i", IR_IntegerDatatype)
         var tmp = IR_VariableAccess("tmp", inner)
 
-        func.body ++= printMatrix(in)
         func.body += IR_VariableDeclaration(out)
         func.body += IR_VariableDeclaration(tmp)
         func.body += IR_VariableDeclaration(i)
@@ -1203,8 +1184,8 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
           IR_Assignment(i, IR_Addition(i, IR_IntegerConstant(1)))
         ))
 
-        if(debug)
-          func.body ++= printMatrix(out)
+        if (debug)
+          func.body ++= GenerateBasicMatrixOperations.printMatrix(out)
 
         func
       }
@@ -1304,33 +1285,34 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
       }
 
       // give an invert algorithm for blockdiagonal matrices
-      def blockdiagonal(in: IR_VariableAccess, out: IR_VariableAccess): IR_Scope = {
+      def blockdiagonal(in: IR_VariableAccess, blocksize: Int, out: IR_VariableAccess): IR_Scope = {
         var debug = false
         var func = IR_Scope(Nil)
         var block = IR_VariableAccess("block", IR_IntegerDatatype)
         val inDt = in.datatype.asInstanceOf[IR_MatrixDatatype]
         val N = inDt.sizeM
-        if (N % Knowledge.experimental_blocksize != 0) Logger.error("IR_ResolveMatrixFunctions::runtimeInverseBlockdiagonal: Matrices with size not mutliple of blocksize not implemented yet")
-        func.body ++= printMatrix(in)
-        func.body += IR_VariableDeclaration(block)
-        func.body += IR_ForLoop(IR_Assignment(block, 0), IR_Lower(block, N), IR_Assignment(block, IR_Addition(block, Knowledge.experimental_blocksize)), ListBuffer[IR_Statement](
-        ) += localLUInversion(in, Knowledge.experimental_blocksize, block, block, out))
-        if(debug)
-          func.body ++= printMatrix(out)
+        if (N % blocksize != 0) Logger.error("IR_ResolveMatrixFunctions::runtimeInverseBlockdiagonal: Matrices with size not mutliple of blocksize not implemented yet")
+          func.body += IR_VariableDeclaration(block)
+        func.body += IR_ForLoop(IR_Assignment(block, 0), IR_Lower(block, N), IR_Assignment(block, IR_Addition(block, blocksize)), ListBuffer[IR_Statement](
+        ) += localLUInversion(in, blocksize, block, block, out))
+
+        if (debug)
+          func.body ++= GenerateBasicMatrixOperations.printMatrix(out)
 
         func
       }
 
       /* give an invert algorithm using the schur complement
-        calculate schur complement inversion by matrix multiplication:
+
         -1             -1
        M  =  (  A  B  )      =    ( A_inv + A_inv*B*S_inv*C*A_inv -A_inv*B*S_inv  )
              (  C  D  )           (           -S_inv*C*A_inv           S_inv      )
 
                  with M of size (n + m) x (n + m) and S = D - C * A_inv * B
      */
-      def schur(in: IR_VariableAccess, out: IR_VariableAccess): IR_Scope = {
-        var debug = false
+      def schur(in: IR_VariableAccess, blocksize: Int, out: IR_VariableAccess): IR_Scope = {
+        var debug = true
+
 
         var func = IR_Scope(Nil)
         var inDt = in.datatype.asInstanceOf[IR_MatrixDatatype]
@@ -1342,8 +1324,8 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
         var n_cols = IR_VariableAccess("n_cols", IR_IntegerDatatype)
         var n = IR_VariableAccess("n", IR_IntegerDatatype)
         var m = IR_VariableAccess("m", IR_IntegerDatatype)
-        var n_asInt = Knowledge.experimental_blocksize
-        var m_asInt = inDt.sizeM - Knowledge.experimental_blocksize
+        var n_asInt = blocksize
+        var m_asInt = inDt.sizeM - blocksize
         var A = IR_VariableAccess("A", IR_MatrixDatatype(baseType, n_asInt, n_asInt))
         var A_inv = IR_VariableAccess("A_inv", IR_MatrixDatatype(baseType, n_asInt, n_asInt))
         var B = IR_VariableAccess("B", IR_MatrixDatatype(baseType, n_asInt, m_asInt))
@@ -1357,21 +1339,24 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
         var A_invBS_inv = IR_VariableAccess("A_invBS_inv", IR_MatrixDatatype(baseType, n_asInt, m_asInt))
         var S_invCA_inv = IR_VariableAccess("S_invCA_inv", IR_MatrixDatatype(baseType, m_asInt, n_asInt))
         var A_invBS_invCA_inv = IR_VariableAccess("A_invBS_invCA_inv", IR_MatrixDatatype(baseType, n_asInt, n_asInt))
+
         func.body += IR_VariableDeclaration(offset_r)
         func.body += IR_VariableDeclaration(offset_c)
         func.body += IR_Assignment(offset_r, 0)
         func.body += IR_Assignment(offset_c, 0)
         func.body += IR_VariableDeclaration(n)
-        func.body += IR_Assignment(n, Knowledge.experimental_blocksize)
+        func.body += IR_Assignment(n, blocksize)
         func.body += IR_VariableDeclaration(m)
-        func.body += IR_Assignment(m, inDt.sizeM - Knowledge.experimental_blocksize)
+        func.body += IR_Assignment(m, inDt.sizeM - blocksize)
 
         // copy A and invert
-        //TODO use algorithm that exploits structure -> receive matrix structure information from classifier
+        //TODO use algorithm that exploits structure -> receive matrix structure information from classifier -> e.g. blockdiagonal
+        // blocksize of the diagonal blocks of A if A is a blockdiagonal matrix -> later this information comes from the classifyer?
+        val blocksize_A = Knowledge.experimental_blocksize_A
         func.body += IR_VariableDeclaration(A)
         func.body += GenerateBasicMatrixOperations.copySubmatrix(in, A, offset_r, offset_c, n, n)
         func.body += IR_VariableDeclaration(A_inv)
-        func.body += GenerateRuntimeInversion.localLUInversion(A, n_asInt, offset_r, offset_c, A_inv)
+        func.body += GenerateRuntimeInversion.blockdiagonal(A, blocksize_A, A_inv)
 
         // copy B
         func.body += IR_VariableDeclaration(B)
@@ -1395,7 +1380,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
 
         // calculate S_inv
         func.body += IR_VariableDeclaration(S_inv)
-        func.body += GenerateRuntimeInversion.localLUInversion(S, m_asInt,offset_r, offset_c, S_inv)
+        func.body += GenerateRuntimeInversion.localLUInversion(S, m_asInt, offset_r, offset_c, S_inv)
 
         // calculate upper right result block
         func.body += IR_VariableDeclaration(A_invB)
@@ -1409,7 +1394,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
 
         // calculate lower left result block
         func.body += IR_VariableDeclaration(S_invCA_inv)
-        func.body += GenerateBasicMatrixOperations.multAtSubmatrix(S_inv, CA_inv, S_invCA_inv, 0 ,0)
+        func.body += GenerateBasicMatrixOperations.multAtSubmatrix(S_inv, CA_inv, S_invCA_inv, 0, 0)
         func.body += GenerateBasicMatrixOperations.negAtSubmatrix(S_invCA_inv, out, n_asInt, 0)
 
         // calculate upper left result block
@@ -1417,14 +1402,29 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
         func.body += GenerateBasicMatrixOperations.multAtSubmatrix(A_invB, S_invCA_inv, A_invBS_invCA_inv, 0, 0)
         func.body += GenerateBasicMatrixOperations.addAtSubmatrix(A_inv, A_invBS_invCA_inv, out, 0, 0)
 
-        if(debug)
-          func.body ++= printMatrix(out)
+        if (debug)
+          func.body ++= GenerateBasicMatrixOperations.printMatrix(out)
 
         func
       }
     }
 
     object GenerateBasicMatrixOperations {
+
+      def printMatrix(matrix: IR_VariableAccess) = {
+        val stmts = ListBuffer[IR_Statement]()
+        matrix.datatype match {
+          case dt: IR_MatrixDatatype =>
+            for (i <- 0 until dt.sizeM) {
+              for (j <- 0 until dt.sizeN) {
+                stmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference.printf, ListBuffer[IR_Expression](IR_StringConstant("%f "), IR_HighDimAccess(matrix, IR_ConstIndex(i, j)))))
+              }
+              stmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference.printf, IR_StringConstant("\\n")))
+            }
+        }
+        stmts
+      }
+
       // multiply 'left' and 'right' and write result to specified place at 'offset_r', 'offset_c' in 'out'
       def multAtSubmatrix(left: IR_VariableAccess, right: IR_VariableAccess, out: IR_VariableAccess, offset_r: Int, offset_c: Int): IR_Scope = {
         var func = IR_Scope(Nil)
@@ -1662,9 +1662,9 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
         } else if (Knowledge.experimental_matrixStructure == "Diagonal") {
           GenerateRuntimeInversion.diagonal(in, out)
         } else if (Knowledge.experimental_matrixStructure == "Blockdiagonal") {
-          GenerateRuntimeInversion.blockdiagonal(in, out)
+          GenerateRuntimeInversion.blockdiagonal(in, Knowledge.experimental_blocksize, out)
         } else if (Knowledge.experimental_matrixStructure == "Schur") {
-          GenerateRuntimeInversion.schur(in, out)
+          GenerateRuntimeInversion.schur(in, Knowledge.experimental_blocksize, out)
         } else if (Knowledge.experimental_matrixStructure == "Test") {
           GenerateBasicMatrixOperations.testAll(in, out)
         } else

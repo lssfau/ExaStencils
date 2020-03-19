@@ -598,8 +598,10 @@ object Knowledge {
   // structure of matrix to invert [filled|diagonal|blockdiagonal|schur]
   var experimental_matrixStructure : String = "filled"
 
-  // user can add a blocksize in case of block matrices
+  // user can add a blocksize in case of block matrices(Schur,Blockdiagonal)
+  // and blocksize_A in case of Schur form and submatrix A is a blockdiagonal matrix with blocksize experimental_blocksize_A
   var experimental_blocksize : Int = 0
+  var experimental_blocksize_A : Int = 0
 
   // tries to apply an inversion based on the Schur complement in local solve blocks
   var experimental_applySchurCompl : Boolean = false

@@ -11,17 +11,16 @@ Function Application ( ) : Unit {
 	Var mat : Matrix<Real, 4, 4> = {{1, 0, 0, 0}, {0, 2, 0, 0}, {0, 0, 3, 0}, {0, 0, 0, 4}}
 	Var index_i : Int = 0
 	Var index_j : Int = 0
-	
-/*
+	Var mat_inverse : Matrix<Real,4,4> = inverse(mat)
 	repeat 4 times count index_i {
 	  	repeat 4 times count index_j {
-			print(' ', mat[index_i][index_j])
+   			print(getElement(mat_inverse,0 + index_i, 0 + index_j))
 		}
 	}
-*/
 
-     	Var mat_inverse : Matrix<Real,4,4> = inverse(mat)
-	print(mat)
+
+     	
+
 
 }
 

@@ -2,4 +2,4 @@ dimensionality                = 2
 mpi_enabled 		      = false
 
 experimental_resolveInverseFunctionCall = "Schur"
-experimental_blocksize = 3
+experimental_blocksize = 6

@@ -23,6 +23,10 @@ Function Application {
 	Var index_i : Integer = 0
 	Var index_j : Integer = 0
 	Var mat_inverse : Matrix<Real,4,4> = inverse ( mat )
-	print ( mat )
+	repeat 4 times count index_i {
+		repeat 4 times count index_j {
+			print ( getElement ( mat_inverse, ( 0 + index_i ), ( 0 + index_j ) ) )
+		}
+	}
 }
 
