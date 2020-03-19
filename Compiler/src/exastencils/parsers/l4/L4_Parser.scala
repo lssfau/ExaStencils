@@ -176,7 +176,9 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| "Vec2" ^^ { _ => L4_VectorDatatype(L4_RealDatatype, 2) }
       ||| "Vec3" ^^ { _ => L4_VectorDatatype(L4_RealDatatype, 3) }
       ||| "Vec4" ^^ { _ => L4_VectorDatatype(L4_RealDatatype, 4) }
-      ||| "Tensor" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ m => L4_TensorDatatype(x, m) }
+      ||| "Tensor" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ m => L4_TensorDatatypeN(x, m) }
+      ||| "Tensor1" ~ ("<" ~> numericDatatype <~ ">") ^^ { case _ ~ x => L4_TensorDatatype1(x) }
+      ||| "Tensor2" ~ ("<" ~> numericDatatype <~ ">") ^^ { case _ ~ x => L4_TensorDatatype2(x) }
       ||| "Matrix" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ m ~ n => L4_MatrixDatatype(x, m, n) }
       ||| numericDatatype ~ ("<" ~> integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case x ~ m ~ n => L4_MatrixDatatype(x, m, n) }
       ||| numericDatatype)

@@ -70,9 +70,48 @@ case class L4_MatrixDatatype(var datatype : L4_Datatype, var numRows : Int, var 
 
 /// L4_TensorDatatype
 
-case class L4_TensorDatatype(var datatype : L4_Datatype, var dim : Int) extends L4_HigherDimensionalDatatype {
-  override def prettyprint(out : PpStream) : Unit = out << "Matrix<" << datatype << ',' << dim << ',' << '>'
-  override def progress = ProgressLocation(IR_TensorDatatype(datatype.progress, dim))
+abstract class L4_TensorDatatype(datatype : L4_Datatype) extends L4_HigherDimensionalDatatype {
+  override def prettyprint(out : PpStream)
+  override def progress: IR_HigherDimensionalDatatype
+
+  override def dimensionality: Int
+  override def getSizeArray: Array[Int]
+  override def resolveDeclType: L4_Datatype
+  override def resolveFlattendSize: Int
+  override def typicalByteSize: Int
+}
+
+/// L4_TensorDatatype1
+
+case class L4_TensorDatatype1(datatype : L4_Datatype) extends L4_TensorDatatype(datatype) {
+  override def prettyprint(out : PpStream) : Unit = out << "Tensor<" << datatype << '>'
+  override def progress = ProgressLocation(IR_TensorDatatype1(datatype.progress))
+
+  override def dimensionality : Int = 1 + datatype.dimensionality
+  override def getSizeArray : Array[Int] = Array(3) ++ datatype.getSizeArray
+  override def resolveDeclType : L4_Datatype = this
+  override def resolveFlattendSize : Int = 3 * datatype.resolveFlattendSize
+  override def typicalByteSize = 3 * datatype.typicalByteSize
+}
+
+/// L4_TensorDatatype2
+
+case class L4_TensorDatatype2(datatype : L4_Datatype) extends L4_TensorDatatype(datatype) {
+  override def prettyprint(out : PpStream) : Unit = out << "Tensor<" << datatype << '>'
+  override def progress = ProgressLocation(IR_TensorDatatype2(datatype.progress))
+
+  override def dimensionality : Int = 1 + datatype.dimensionality
+  override def getSizeArray : Array[Int] = Array(9) ++ datatype.getSizeArray
+  override def resolveDeclType : L4_Datatype = this
+  override def resolveFlattendSize : Int = 9 * datatype.resolveFlattendSize
+  override def typicalByteSize = 9 * datatype.typicalByteSize
+}
+
+/// L4_TensorDatatypeN
+
+case class L4_TensorDatatypeN(datatype : L4_Datatype, var dim: Int) extends L4_TensorDatatype(datatype) {
+  override def prettyprint(out : PpStream) : Unit = out << "Tensor<" << datatype << '>'
+  override def progress = ProgressLocation(IR_TensorDatatypeN(datatype.progress, dim))
 
   override def dimensionality : Int = dim + datatype.dimensionality
   override def getSizeArray : Array[Int] = Array(3^dim) ++ datatype.getSizeArray
