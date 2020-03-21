@@ -23,8 +23,7 @@ Globals {
 
 Function Application {
 	Var m1 : Matrix<Real,2,2> = { { 1.0, 2.0 }, { 3.0, 4.0 } }
-	Var m2 : Matrix<Real,2,2> = { { 1.0, 2.0 }, { 3.0, 4.0 } }
-	Var res : Matrix<Real,2,2> = dot ( m1, m2 )
-	return
+	Var m2 : Matrix<Real,2,2>
+	m2 = { { 1.21, 2 }, { 3, 4 } }
 }
 

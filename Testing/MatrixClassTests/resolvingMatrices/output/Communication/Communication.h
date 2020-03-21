@@ -3,8 +3,6 @@
 
 #include "cmath"
 #include "algorithm"
-#pragma warning(disable : 4800)
-#include "mpi.h"
 
 #include "Global/Global.h"
 #include "User/User.h"

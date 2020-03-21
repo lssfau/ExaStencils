@@ -2,8 +2,6 @@
 #define EXASTENCILS_GLOBAL_GLOBAL_H
 
 #include "algorithm"
-#pragma warning(disable : 4800)
-#include "mpi.h"
 
 #include "Util/Stopwatch.h"
 
@@ -21,8 +19,5 @@ extern double fragmentPos_0;
 extern double fragmentPos_1;
 extern double loc;
 extern __matrix_double_2_2_t mat;
-extern MPI_Comm mpiCommunicator;
-extern int mpiRank;
-extern int mpiSize;
 
 #endif

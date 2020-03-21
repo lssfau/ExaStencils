@@ -1,0 +1,3 @@
+﻿  Global_initGlobals.cpp
+  User_main.cpp
+C:\Users\MonPreacthyl\Desktop\BA\exastencils\Testing\MatrixClassTests\resolvingMatrices\output\Global\Global_initGlobals.cpp(6,50): error C3863:  Der Arraytyp "__matrix_double_2_2_t" kann nicht zugewiesen werden.

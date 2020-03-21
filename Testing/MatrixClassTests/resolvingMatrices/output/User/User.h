@@ -4,8 +4,6 @@
 #include "cmath"
 #include "algorithm"
 #include "iostream"
-#pragma warning(disable : 4800)
-#include "mpi.h"
 
 #include "Communication/Communication.h"
 #include "Domain/Domain.h"

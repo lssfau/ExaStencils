@@ -3,14 +3,6 @@
 #include "Global/Global.h"
 
 void initGlobals () {
-	mpiCommunicator = MPI_COMM_WORLD;
-	MPI_Comm_rank(mpiCommunicator, &mpiRank);
-	MPI_Comm_size(mpiCommunicator, &mpiSize);
-	std::srand(mpiRank);
-	mat[0] = 1.0;
-	mat[1] = 2.0;
-	mat[2] = 3.0;
-	mat[3] = 4.0;
 	{
 		commId = -1;
 	}
