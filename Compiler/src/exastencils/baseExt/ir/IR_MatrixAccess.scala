@@ -1164,19 +1164,16 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
 
       // give a invert algorithm for diagonal matrices
       def diagonal(in: IR_VariableAccess, out: IR_VariableAccess): IR_Scope = {
-        var debug = false
+        var debug = true
         val inDt = in.datatype.asInstanceOf[IR_MatrixDatatype]
         val N = inDt.sizeM
         val inner = inDt.resolveBaseDatatype
         var func = IR_Scope(Nil)
-        var out = IR_VariableAccess("out", IR_MatrixDatatype(inner, N, N))
         var i = IR_VariableAccess("i", IR_IntegerDatatype)
         var tmp = IR_VariableAccess("tmp", inner)
 
-        func.body += IR_VariableDeclaration(out)
         func.body += IR_VariableDeclaration(tmp)
         func.body += IR_VariableDeclaration(i)
-        func.body += IR_Assignment(out, mkConstant(inner, 0))
         func.body += IR_Assignment(i, IR_IntegerConstant(0))
         func.body += IR_WhileLoop(IR_Lower(i, IR_IntegerConstant(N)), ListBuffer[IR_Statement](
           IR_Assignment(tmp, IR_HighDimAccess(in, IR_ExpressionIndex(i, i))),
@@ -1286,7 +1283,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
 
       // give an invert algorithm for blockdiagonal matrices
       def blockdiagonal(in: IR_VariableAccess, blocksize: Int, out: IR_VariableAccess): IR_Scope = {
-        var debug = false
+        var debug = true
         var func = IR_Scope(Nil)
         var block = IR_VariableAccess("block", IR_IntegerDatatype)
         val inDt = in.datatype.asInstanceOf[IR_MatrixDatatype]
@@ -1356,7 +1353,9 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
         func.body += IR_VariableDeclaration(A)
         func.body += GenerateBasicMatrixOperations.copySubmatrix(in, A, offset_r, offset_c, n, n)
         func.body += IR_VariableDeclaration(A_inv)
-        func.body += GenerateRuntimeInversion.blockdiagonal(A, blocksize_A, A_inv)
+        //func.body += GenerateRuntimeInversion.blockdiagonal(A, blocksize_A, A_inv)
+        //func.body += GenerateRuntimeInversion.runtimeInverseLU(A,A_inv)
+        func.body += GenerateRuntimeInversion.localLUInversion(A, n_asInt, offset_r, offset_c, A_inv)
 
         // copy B
         func.body += IR_VariableDeclaration(B)
@@ -1658,7 +1657,20 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
     this += new Transformation("resolve runtime inversion", {
       case IR_ExpressionStatement(call@IR_FunctionCall(_, ListBuffer(in: IR_VariableAccess, out: IR_VariableAccess))) if (call.name == "_runtimeInverseMatrix") =>
         if (Knowledge.experimental_matrixStructure == "Filled") {
-          GenerateRuntimeInversion.runtimeInverseLU(in, out)
+          var debug = true
+          //TODO maybe overload GenerateRuntimeInversion methods or 0-access-constant
+          var inDt = in.datatype.asInstanceOf[IR_MatrixDatatype]
+          var stmts = ListBuffer[IR_Statement]()
+          var offsetIsZero = IR_VariableAccess("zero",IR_IntegerDatatype)
+          stmts += IR_VariableDeclaration(offsetIsZero, 0)
+
+          // use localLUInversion for the full matrix
+          stmts += GenerateRuntimeInversion.localLUInversion(in, inDt.sizeN, offsetIsZero, offsetIsZero, out)
+
+          if(debug)
+            stmts ++= GenerateBasicMatrixOperations.printMatrix(out)
+
+          stmts
         } else if (Knowledge.experimental_matrixStructure == "Diagonal") {
           GenerateRuntimeInversion.diagonal(in, out)
         } else if (Knowledge.experimental_matrixStructure == "Blockdiagonal") {
