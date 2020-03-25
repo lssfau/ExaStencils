@@ -101,16 +101,16 @@ case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends
       case Some(dt : IR_MatrixDatatype) => innerDatatype = Some(dt.resolveBaseDatatype)
       case _                            =>
     }
-    IR_TensorDatatype2(innerDatatype.getOrElse(IR_RealDatatype), this.dim)
+    IR_TensorDatatype2(innerDatatype.getOrElse(IR_RealDatatype))
   }
 
   def prettyprintInner(out : PpStream) : Unit = {
     out << '{' << expressions.map(_.prettyprint).mkString(", ") << '}'
   }
   override def prettyprint(out : PpStream) : Unit = {
-    out << "__tensor_"
+    out << "__tensor2_"
     innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
-    out << '_' << dim << "_t "
+    out << '_' << 2 << "_t "
     prettyprintInner(out)
   }
 
@@ -119,7 +119,7 @@ case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends
   def isReal = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
   def get(x : Integer, y : Integer) = expressions(y * 3 + x)
   def set(x : Integer, y: Integer, exp : IR_Expression) = expressions(y * 3 + x) = exp
-  override def toString : String = { "IR_TensorExpression(" + innerDatatype + ", " + rows + ", " + columns + "; Items: " + expressions.mkString(", ") + ")" }
+  override def toString : String = { "IR_TensorExpression2(" + innerDatatype + "," + 2 + "; Items: " + expressions.mkString(", ") + ")" }
 }
 
 // TODO: Hier geht der Spaß los
@@ -127,17 +127,14 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
   val annotationMatrixRow = "IR_ResolveTensor.matrixRow"
   val annotationMatrixCol = "IR_ResolveTensor.matrixCol"
 
-  def calculateDeterminant(m : IR_TensorExpression2) : IR_Expression = {
-    if (m.dim != 2) {
-      Logger.error("determinant only for 2 dimensional tensors defined")
-    } else {
-      var det : IR_Expression = IR_IntegerConstant(0)
-      // laplace expansion
 
-        val tmpDet = m.get(1,1) * calculateDeterminant(tmp) * IR_DoubleConstant(math.pow(-1, i))
-        det += IR_GeneralSimplifyWrapper.process[IR_Expression](tmpDet)
-      IR_GeneralSimplifyWrapper.process(det)
-    }
+  def calculateDeterminant(m : IR_TensorExpression2) : IR_Expression = {
+    var det : IR_Expression = IR_IntegerConstant(0)
+    // laplace expansion
+
+    val tmpDet = m.get(1,1)*m.get(2,2)*m.get(3,3) + m.get(1,2)*m.get(2,3)*m.get(3,1) + m.get(1,3)*m.get(2,1)*m.get(3,2) - m.get(3,1)*m.get(2,2)*m.get(1,3) - m.get(2,1)*m.get(1,2)*m.get(3,3) - m.get(1,1)*m.get(3,2)*m.get(2,3)
+    det += IR_GeneralSimplifyWrapper.process[IR_Expression](tmpDet)
+    IR_GeneralSimplifyWrapper.process(det)
   }
 
   def getElem(exp : IR_Expression, row : Integer, col : Integer) = {
