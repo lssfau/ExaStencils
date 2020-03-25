@@ -28,8 +28,8 @@ import exastencils.prettyprinting.PpStream
 /// L4_UnresolvedAccess
 
 object L4_UnresolvedAccess {
-  def apply(name : String) = new L4_UnresolvedAccess(name, None, None, None, None, None)
-  def apply(name : String, level : Option[L4_AccessLevelSpecification]) = new L4_UnresolvedAccess(name, level, None, None, None, None)
+  def apply(name : String) = new L4_UnresolvedAccess(name, None, None, None, None, None, None)
+  def apply(name : String, level : Option[L4_AccessLevelSpecification]) = new L4_UnresolvedAccess(name, level, None, None, None, None, None)
 }
 
 case class L4_UnresolvedAccess(
@@ -38,7 +38,8 @@ case class L4_UnresolvedAccess(
     var slot : Option[L4_SlotSpecification],
     var offset : Option[L4_ConstIndex],
     var dirAccess : Option[L4_ConstIndex],
-    var arrayIndex : Option[Int]) extends L4_Access with L4_CanBeOffset {
+    var arrayIndex : Option[Int],
+    var mulDimIndex : Option[List[Int]]) extends L4_Access with L4_CanBeOffset {
 
   def prettyprint(out : PpStream) = {
     out << name
@@ -46,6 +47,7 @@ case class L4_UnresolvedAccess(
     if (level.isDefined) out << '@' << level.get
     if (offset.isDefined) out << '@' << offset.get
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
+    if (mulDimIndex.isDefined) out << {for(i <- 0 to mulDimIndex.get.length) {'[' << (mulDimIndex.get)(i) << ']' }}
     if (dirAccess.isDefined) out << ':' << dirAccess.get
   }
 
@@ -55,6 +57,7 @@ case class L4_UnresolvedAccess(
     if (slot.isDefined) Logger.warn("Discarding meaningless slot access on basic or leveled access")
     if (offset.isDefined) Logger.warn("Discarding meaningless offset access on basic or leveled access")
     if (arrayIndex.isDefined) Logger.warn("Discarding meaningless array index access on basic or leveled access")
+    if (mulDimIndex.isDefined) Logger.warn("Discarding meaningless array index access on basic or leveled access")
     if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on basic or leveled access " + name)
 
     if (level.isEmpty)
