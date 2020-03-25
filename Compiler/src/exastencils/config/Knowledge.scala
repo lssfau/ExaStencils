@@ -597,7 +597,7 @@ object Knowledge {
   // structure of matrix to invert
   // user can add a blocksize in case of block matrices
   var experimental_matrixStructure : String = "Filled" //[Filled|Diagonal|Blockdiagonal|Schur]
-  var experimental_blocksize : Int = 0
+  var experimental_blocksize : Int = 1
   // and in case of a blockdiagonal A matrix its blocksize
   var experimental_blocksize_A : Int = experimental_blocksize
 

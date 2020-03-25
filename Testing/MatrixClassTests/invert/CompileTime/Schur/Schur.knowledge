@@ -3,3 +3,4 @@ mpi_enabled 		      = false
 
 experimental_resolveInverseFunctionCall = "Schur"
 experimental_blocksize = 6
+experimental_blocksize_A = 3

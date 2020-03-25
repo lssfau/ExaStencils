@@ -17,7 +17,5 @@ extern double fragmentPosEnd_0;
 extern double fragmentPosEnd_1;
 extern double fragmentPos_0;
 extern double fragmentPos_1;
-extern double loc;
-extern __matrix_double_2_2_t mat;
 
 #endif
