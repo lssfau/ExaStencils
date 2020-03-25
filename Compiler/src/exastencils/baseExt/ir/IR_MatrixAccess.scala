@@ -837,6 +837,8 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
       }
       IR_Assignment(IR_HighDimAccess(call.arguments(0), IR_ExpressionIndex(itm(0), itm(1))), obj)
 
+    case IR_ExpressionStatement(call@IR_FunctionCall(_, ListBuffer(left: IR_VariableAccess, right: IR_VariableAccess, precision: IR_VariableAccess))) if(call.name == "compare") =>
+      IR_GenerateBasicMatrixOperations.compare(left,right,precision)
   })
 
   if (Knowledge.experimental_resolveInverseFunctionCall == "Runtime") {
@@ -953,6 +955,7 @@ object IR_LinearizeMatrices extends DefaultStrategy("Linearize matrices") {
 }
 
 
+// objects containing matrix methods
 object IR_BasicMatrixOperations {
   def copySubMatrix(from: IR_MatrixExpression, offset_rows: Int, offset_cols: Int, n_rows: Int, n_cols: Int): IR_MatrixExpression = {
     if (offset_cols < 0 || offset_rows < 0) {
@@ -1302,6 +1305,27 @@ object IR_GenerateBasicMatrixOperations {
         }
     }
     stmts
+  }
+
+  // generate a compare function for 2 matrices
+  def compare(left: IR_VariableAccess, right: IR_VariableAccess, precision: IR_VariableAccess) : IR_Scope = {
+    var func = IR_Scope(Nil)
+    val leftDt = left.datatype.asInstanceOf[IR_MatrixDatatype]
+    val rightDt = right.datatype.asInstanceOf[IR_MatrixDatatype]
+    val M = leftDt.sizeM
+    val N = leftDt.sizeN
+    var _i = IR_VariableAccess("_i", IR_IntegerDatatype)
+    var _j = IR_VariableAccess("_j", IR_IntegerDatatype)
+    func.body += IR_VariableDeclaration(_i)
+    func.body += IR_VariableDeclaration(_j)
+    func.body += IR_ForLoop(IR_Assignment(_i, 0), IR_Lower(_i, M), IR_PreIncrement(_i), ListBuffer[IR_Statement](
+      IR_ForLoop(IR_Assignment(_j, 0), IR_Lower(_j, N), IR_PreIncrement(_j), ListBuffer[IR_Statement](
+        IR_IfCondition(IR_Greater(IR_FunctionCall( IR_ExternalFunctionReference.fabs,IR_Subtraction( IR_HighDimAccess(left,IR_ExpressionIndex(_i,_j)),IR_HighDimAccess(right,IR_ExpressionIndex(_i,_j)))),precision),ListBuffer[IR_Statement](
+          IR_FunctionCall(IR_ExternalFunctionReference.printf, IR_StringConstant("[Test] comparison failed at (%d,%d)\\n"),_i,_j)
+        ),ListBuffer[IR_Statement]())
+      ))
+    ))
+    func
   }
 
   def mkConstant(dt: IR_Datatype, v: Double) = dt match {
