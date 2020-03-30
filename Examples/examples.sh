@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 configList=""
@@ -57,25 +56,25 @@ configList+="OpticalFlow/3D_FD_OptFlow_fromL4_Vec "
 
 # SWE
 
-#configList+="SWE/2D_FV_SWE "
+configList+="SWE/2D_FV_SWE "
 
 # NavierStokes
 
-#configList+="NavierStokes/2D_FV_NavierStokes_Picard "
-#configList+="NavierStokes/2D_FV_NavierStokes_Newton "
-#configList+="NavierStokes/2D_FV_NavierStokes_localPicard "
-#configList+="NavierStokes/2D_FV_NavierStokes_localNewton "
-#
-#configList+="NavierStokes/3D_FV_NavierStokes_Picard "
-#configList+="NavierStokes/3D_FV_NavierStokes_Newton "
-#configList+="NavierStokes/3D_FV_NavierStokes_localPicard "
-#configList+="NavierStokes/3D_FV_NavierStokes_localNewton "
-#
-#configList+="NavierStokes/2D_FV_NonNewtonian_Picard "
-#configList+="NavierStokes/2D_FV_NonNewtonian_Newton "
-#
-#configList+="NavierStokes/3D_FV_NonNewtonian_Picard "
-#configList+="NavierStokes/3D_FV_NonNewtonian_Newton "
+configList+="NavierStokes/2D_FV_NavierStokes_Picard "
+configList+="NavierStokes/2D_FV_NavierStokes_Newton "
+configList+="NavierStokes/2D_FV_NavierStokes_localPicard "
+configList+="NavierStokes/2D_FV_NavierStokes_localNewton "
+
+configList+="NavierStokes/3D_FV_NavierStokes_Picard "
+configList+="NavierStokes/3D_FV_NavierStokes_Newton "
+configList+="NavierStokes/3D_FV_NavierStokes_localPicard "
+configList+="NavierStokes/3D_FV_NavierStokes_localNewton "
+
+configList+="NavierStokes/2D_FV_NonNewtonian_Picard "
+configList+="NavierStokes/2D_FV_NonNewtonian_Newton "
+
+configList+="NavierStokes/3D_FV_NonNewtonian_Picard "
+configList+="NavierStokes/3D_FV_NonNewtonian_Newton "
 
 # LinearElasticity
 

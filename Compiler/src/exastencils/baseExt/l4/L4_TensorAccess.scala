@@ -39,7 +39,7 @@ case class L4_TensorExpression2(
 
   override def progress = ProgressLocation(IR_TensorExpression2(L4_ProgressOption(datatype)(_.progress)))
 
-  def dim = expressions.length
+  def dim = 2
   def isConstant = expressions.count(_.isInstanceOf[L4_Number]) == expressions.length
   def convertConstants(dt : L4_Datatype) : Unit = {
     expressions = expressions.map(exp => (exp, dt) match {

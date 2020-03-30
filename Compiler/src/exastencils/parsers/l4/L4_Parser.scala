@@ -464,6 +464,9 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val matrixExpression = locationize(("{" ~> repsep(rowVectorExpression, ",") <~ "}") ~ "T".? ^^ { case x ~ t => val e = L4_MatrixExpression(None, x.map(_.expressions.toList)); if (t.isDefined) L4_FunctionCall(L4_UnresolvedFunctionReference("transpose", None, None), e); else e } |||
     ("[" ~> repsep(binaryexpression.+, ";")) <~ "]" ^^ { x => L4_MatrixExpression(None, x) })
 
+  lazy val tensorExpression = locationize("{" ~> repsep(binaryexpression, ",") <~ "}" ^^ { x => L4_TensorExpression2(None, x) }
+    ||| "[" ~> binaryexpression.+ <~ "]" ^^ { x => L4_TensorExpression2(None, x) }) // TODO: Funktioniert nur fuer einen Linearen Tensor, muss L4_TensorExpression.. in 2D umbauen!
+
   lazy val booleanexpression : PackratParser[L4_Expression] = (
     locationize((booleanexpression ~ ("||" ||| "or") ~ booleanexpression1) ^^ { case ex1 ~ op ~ ex2 => L4_BinaryOperators.createExpression(op, ex1, ex2) })
       ||| booleanexpression1)

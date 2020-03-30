@@ -84,7 +84,7 @@ abstract class L4_TensorDatatype(datatype : L4_Datatype) extends L4_HigherDimens
 /// L4_TensorDatatype1
 
 case class L4_TensorDatatype1(datatype : L4_Datatype) extends L4_TensorDatatype(datatype) {
-  override def prettyprint(out : PpStream) : Unit = out << "Tensor<" << datatype << '>'
+  override def prettyprint(out : PpStream) : Unit = out << "Tensor1<" << datatype << '>'
   override def progress = ProgressLocation(IR_TensorDatatype1(datatype.progress))
 
   override def dimensionality : Int = 1 + datatype.dimensionality
@@ -97,7 +97,7 @@ case class L4_TensorDatatype1(datatype : L4_Datatype) extends L4_TensorDatatype(
 /// L4_TensorDatatype2
 
 case class L4_TensorDatatype2(datatype : L4_Datatype) extends L4_TensorDatatype(datatype) {
-  override def prettyprint(out : PpStream) : Unit = out << "Tensor<" << datatype << '>'
+  override def prettyprint(out : PpStream) : Unit = out << "Tensor2<" << datatype << '>'
   override def progress = ProgressLocation(IR_TensorDatatype2(datatype.progress))
 
   override def dimensionality : Int = 1 + datatype.dimensionality

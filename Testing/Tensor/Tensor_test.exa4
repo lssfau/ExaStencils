@@ -1,0 +1,21 @@
+Function InitTestCase@finest {
+
+    val ones@finest : Tensor2< Real > = {
+        [ 0] => 1.0
+        [ 1] => 1.0
+        [ 2] => 1.0
+        [ 3] => 1.0
+        [ 4] => 1.0
+        [ 5] => 1.0
+        [ 6] => 1.0
+        [ 7] => 1.0
+        [ 8] => 1.0
+    }
+
+  val det : Int = calculateDeterminant(ones)
+
+}
+
+Function Main {
+    InitTestCase ( )
+}

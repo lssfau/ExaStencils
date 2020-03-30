@@ -29,6 +29,8 @@ import exastencils.prettyprinting.PpStream
 
 object L4_UnresolvedAccess {
   def apply(name : String) = new L4_UnresolvedAccess(name, None, None, None, None, None, None)
+  def apply(name : String, level : Option[L4_AccessLevelSpecification], slot : Option[L4_SlotSpecification], offset : Option[L4_ConstIndex], dirAccess : Option[L4_ConstIndex], arrayIndex : Option[Int]) =
+    new L4_UnresolvedAccess(name, level, slot, offset, dirAccess, arrayIndex, None)
   def apply(name : String, level : Option[L4_AccessLevelSpecification]) = new L4_UnresolvedAccess(name, level, None, None, None, None, None)
 }
 
@@ -39,7 +41,7 @@ case class L4_UnresolvedAccess(
     var offset : Option[L4_ConstIndex],
     var dirAccess : Option[L4_ConstIndex],
     var arrayIndex : Option[Int],
-    var mulDimIndex : Option[List[Int]]) extends L4_Access with L4_CanBeOffset {
+    var mulDimIndex : Option[List[Int]]) extends L4_Access with L4_CanBeOffset { //TODO: Hier soll Option raus, nicht notwendig da * Operator
 
   def prettyprint(out : PpStream) = {
     out << name
