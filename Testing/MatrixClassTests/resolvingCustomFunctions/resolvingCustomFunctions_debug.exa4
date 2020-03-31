@@ -1,0 +1,36 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0] to [0.1, 0.1] >
+
+
+
+Function Application {
+	Var m : Matrix<Double,2,2> = { { 1.0, 2.0 }, { 3.0, 1.0 } }
+	f ( m )
+	Var G : Matrix<Double,2,2>
+	g ( G )
+}
+
+Function f ( m : Matrix<Double,2,2> ) : Matrix<Double,2,2> {
+	return m
+}
+
+Function g : Matrix<Double,2,2> {
+	Var m : Matrix<Double,2,2> = { { 1.0, 2.0 }, { 3.0, 1.0 } }
+	return m
+}
+

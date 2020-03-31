@@ -195,10 +195,11 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_ResolveLocalSolve.apply()
     IR_GeneralSimplify.doUntilDone()
 
-    var testNewMatrixStrats = false
-    if(testNewMatrixStrats) {
+
+    if(Knowledge.experimental_useNewMatrixStrategies) {
       IR_ExtractMatricesNew.apply()
       IR_ResolveMatrixFunctionsNew.apply()
+      IR_LinearizeMatrices.apply()
     }
     else {
       IR_ExtractMatrices.apply()

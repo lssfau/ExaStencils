@@ -2,4 +2,4 @@ dimensionality                = 2
 mpi_enabled 		      = false
 
 experimental_resolveInverseFunctionCall = "Blockdiagonal"
-experimental_blocksize = 2
+experimental_blocksize = 3

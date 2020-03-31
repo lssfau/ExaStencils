@@ -3,4 +3,4 @@ mpi_enabled 		      = false
 
 experimental_resolveInverseFunctionCall = "Runtime"
 experimental_matrixStructure = "Blockdiagonal"
-experimental_blocksize = 2
+experimental_blocksize = 3

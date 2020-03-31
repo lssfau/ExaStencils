@@ -1,0 +1,23 @@
+
+Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
+
+Globals {
+	
+}
+
+/// main function
+
+Function Application ( ) : Unit {
+	Var m : Matrix<Double, 2, 2> = {{1,2},{3,1}}
+	f(m)
+	Var G : Matrix<Double, 2, 2> 
+	g(G)
+}
+
+Function f ( m : Matrix<Double, 2, 2>) : Matrix<Double, 2, 2> {
+	return m
+}
+Function g ()  : Matrix<Double, 2, 2> {
+	Var m : Matrix<Double, 2, 2> = {{1,2},{3,1}}
+	return m
+}
