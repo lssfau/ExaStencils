@@ -19,6 +19,7 @@
 package exastencils.core
 
 import scala.collection.immutable.Nil
+import scala.collection.mutable
 
 import java.util
 
@@ -33,6 +34,8 @@ import exastencils.logger.Logger
 object Duplicate {
   private val cloner = new com.rits.cloning.Cloner
   cloner.setDumpClonedClasses(Settings.printClonedObjects)
+
+  val constants : mutable.HashSet[Any] = mutable.HashSet()
 
   val debug = true
 
@@ -84,14 +87,11 @@ object Duplicate {
     * @param field The object to be registered as constant.
     */
   def registerConstant(field : Any) = {
+    constants += field
     cloner.registerConstant(field)
   }
   // the following is hard/impossible to deal with in willBeCloned, but since it is not used/required yet...
   // def registerConstant(t : Class[_], field : String) : Unit = cloner.registerConstant(t, field)
-
-  def clonable(o : AnyRef) : Boolean = {
-    o ne cloner.shallowClone(o)
-  }
 
   // prevent cloning of some immutable objects/classes of the scala library (otherwise something goes boom)
   // Note: do ONLY register classes as immutable, whose children/attributes are immutable, too (recursively)
