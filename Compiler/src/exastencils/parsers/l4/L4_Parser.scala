@@ -471,7 +471,7 @@ object L4_Parser extends ExaParser with PackratParsers {
     (tensorEntry <~ ",").* ~ tensorEntry ^^ { case entries ~ entry => entries.::(entry) }
       ||| tensorEntry.*)
 
-  lazy val tensorEntry = locationize(constIndex ~ ("=>" ||| "=" ||| ":=") ~ numLit ^^ { case index ~ ass ~ coeff => L4_TensorEntry(index, coeff) })
+  lazy val tensorEntry = locationize(constIndex ~ (("=>" ||| "=" ||| ":=") ~> numLit) ^^ { case index ~ coeff => L4_TensorEntry(index, coeff) })
 
   lazy val booleanexpression : PackratParser[L4_Expression] = (
     locationize((booleanexpression ~ ("||" ||| "or") ~ booleanexpression1) ^^ { case ex1 ~ op ~ ex2 => L4_BinaryOperators.createExpression(op, ex1, ex2) })
@@ -568,7 +568,7 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val stencilEntries = (
     (stencilEntry <~ ",").* ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
-      ||| stencilEntry.*) //TODO: Eventuell kann ich das fuer die Tensoreintraege wiederverwenden.
+      ||| stencilEntry.*)
 
   lazy val stencilEntry = (
     locationize((constIndex ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L4_StencilOffsetEntry(offset, coeff) })
