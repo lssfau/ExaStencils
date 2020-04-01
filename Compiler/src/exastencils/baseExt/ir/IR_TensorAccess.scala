@@ -20,6 +20,7 @@ package exastencils.baseExt.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ProgressLocation
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config._
@@ -39,7 +40,9 @@ case class IR_HackTenComponentAccess(var mat : IR_VariableAccess, var i : IR_Exp
   override def prettyprint(out : PpStream) : Unit = out << mat << "(" << i << ", " << j << ")"
 }
 
-
+case class IR_TensorEntry(var index : IR_ConstIndex, var num : IR_Number) extends IR_Node with  PrettyPrintable {
+  override def prettyprint(out : PpStream) : Unit = out << index.prettyprint(out) << "=" << num.toString
+}
 
 /// IR_TensorExpression2
 object IR_TensorExpression2 {
@@ -47,7 +50,7 @@ object IR_TensorExpression2 {
   def apply(innerDatatype : IR_Datatype) : IR_TensorExpression2 = new IR_TensorExpression2(Some(innerDatatype))
 
   // new fill with given array
-  def apply(innerDatatype : Option[IR_Datatype], expressions : Array[IR_Expression]) : IR_TensorExpression2 = {
+  def apply(innerDatatype : Option[IR_Datatype], expressions : Array[IR_TensorEntry]) : IR_TensorExpression2 = {
     if (expressions.length != 9) {
       Logger.error("expressions has the wrong length")
     }
@@ -57,7 +60,7 @@ object IR_TensorExpression2 {
   }
 
   // new fill with matrix
-  def apply(innerDatatype : Option[IR_Datatype], expressions : ListBuffer[ListBuffer[IR_Expression]]) : IR_TensorExpression2 = {
+  def apply(innerDatatype : Option[IR_Datatype], expressions : ListBuffer[ListBuffer[IR_Number]]) : IR_TensorExpression2 = {
     if ((expressions.toArray.length != 3) || (expressions.head.toArray.length !=3)) {
       Logger.error("matrix has the wrong dimension")
     }
@@ -71,7 +74,7 @@ object IR_TensorExpression2 {
   }
 
   // new and fill with other expression list array ...
-  def apply(datatype : IR_MatrixDatatype, expressions : ListBuffer[IR_Expression]) : IR_TensorExpression2 = {
+  def apply(datatype : IR_MatrixDatatype, expressions : ListBuffer[IR_TensorEntry]) : IR_TensorExpression2 = {
     if (expressions.toArray.length != 9) {
       Logger.error("expressions has a wrong count of entries")
     }
@@ -81,22 +84,22 @@ object IR_TensorExpression2 {
   }
 
   // new and fill all elements with expression
-  def fromSingleExpression(innerDatatype : IR_Datatype, expression : IR_Expression) : IR_TensorExpression2= {
+  def fromSingleExpression(innerDatatype : IR_Datatype, num : IR_Number) : IR_TensorExpression2= {
     val tmp = new IR_TensorExpression2(Some(innerDatatype))
     for (i <- 0 until 9)
-      tmp.expressions(i) = Duplicate(expression)
+      tmp.expressions(i) = IR_TensorEntry(new IR_ConstIndex(Array(i)), Duplicate(num))
     tmp
   }
 }
 
 case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends IR_Expression {
-  var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](9)
+  var expressions : Array[IR_TensorEntry] = Array.ofDim[IR_TensorEntry](9)
 
   override def datatype = {
     innerDatatype match {
       case None                         =>
-        var ret = expressions(0).datatype
-        expressions.foreach(s => ret = IR_ResultingDatatype(ret, s.datatype))
+        var ret = expressions(0).num.datatype
+        expressions.foreach(s => ret = IR_ResultingDatatype(ret, s.num.datatype))
         innerDatatype = Some(ret)
       case Some(dt : IR_MatrixDatatype) => innerDatatype = Some(dt.resolveBaseDatatype)
       case _                            =>
@@ -105,7 +108,7 @@ case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends
   }
 
   def prettyprintInner(out : PpStream) : Unit = {
-    out << '{' << expressions.map(_.prettyprint).mkString(", ") << '}'
+    out << '{' << expressions.foreach(_.prettyprint(out) + ", ") << '}'
   }
   override def prettyprint(out : PpStream) : Unit = {
     out << "__tensor2_"
@@ -118,7 +121,8 @@ case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends
   def isInteger = expressions.forall(e => e.isInstanceOf[IR_IntegerConstant])
   def isReal = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
   def get(x : Integer, y : Integer) = expressions(y * 3 + x)
-  def set(x : Integer, y: Integer, exp : IR_Expression) = expressions(y * 3 + x) = exp
+  def getVal(x : Integer, y : Integer) = expressions(y * 3 + x).num
+  def set(x : Integer, y: Integer, num : IR_Number) = IR_TensorEntry(new IR_ConstIndex(Array(y * 3 + x)), Duplicate(num))
   override def toString : String = { "IR_TensorExpression2(" + innerDatatype + "," + 2 + "; Items: " + expressions.mkString(", ") + ")" }
 }
 
@@ -132,7 +136,7 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
     var det : IR_Expression = IR_IntegerConstant(0)
     // laplace expansion
 
-    val tmpDet = m.get(1,1)*m.get(2,2)*m.get(3,3) + m.get(1,2)*m.get(2,3)*m.get(3,1) + m.get(1,3)*m.get(2,1)*m.get(3,2) - m.get(3,1)*m.get(2,2)*m.get(1,3) - m.get(2,1)*m.get(1,2)*m.get(3,3) - m.get(1,1)*m.get(3,2)*m.get(2,3)
+    val tmpDet = m.getVal(1,1)*m.getVal(2,2)*m.getVal(3,3) + m.getVal(1,2)*m.getVal(2,3)*m.getVal(3,1) + m.getVal(1,3)*m.getVal(2,1)*m.getVal(3,2) - m.getVal(3,1)*m.getVal(2,2)*m.getVal(1,3) - m.getVal(2,1)*m.getVal(1,2)*m.getVal(3,3) - m.getVal(1,1)*m.getVal(3,2)*m.getVal(2,3)
     det += IR_GeneralSimplifyWrapper.process[IR_Expression](tmpDet)
     IR_GeneralSimplifyWrapper.process(det)
   }

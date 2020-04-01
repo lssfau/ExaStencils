@@ -35,6 +35,7 @@ import exastencils.layoutTransformation.l4._
 import exastencils.logger.Logger
 import exastencils.operator.l4._
 import exastencils.parsers._
+import exastencils.parsers.l4.L4_Parser.locationize
 import exastencils.solver.l4._
 import exastencils.util.l4.L4_OffsetAlias
 
@@ -464,8 +465,13 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val matrixExpression = locationize(("{" ~> repsep(rowVectorExpression, ",") <~ "}") ~ "T".? ^^ { case x ~ t => val e = L4_MatrixExpression(None, x.map(_.expressions.toList)); if (t.isDefined) L4_FunctionCall(L4_UnresolvedFunctionReference("transpose", None, None), e); else e } |||
     ("[" ~> repsep(binaryexpression.+, ";")) <~ "]" ^^ { x => L4_MatrixExpression(None, x) })
 
-  lazy val tensorExpression = locationize("{" ~> repsep(binaryexpression, ",") <~ "}" ^^ { x => L4_TensorExpression2(None, x) }
-    ||| "[" ~> binaryexpression.+ <~ "]" ^^ { x => L4_TensorExpression2(None, x) }) // TODO: Funktioniert nur fuer einen Linearen Tensor, muss L4_TensorExpression.. in 2D umbauen!
+  lazy val tensorExpression = locationize("{" ~> repsep(tensorEntries, ",") <~ "}" ^^ { x => L4_TensorExpression2(None, x) }) // TODO: Funktioniert nur fuer einen Linearen Tensor, muss L4_TensorExpression.. in 2D umbauen!
+
+  lazy val tensorEntries = (
+    (tensorEntry <~ ",").* ~ tensorEntry ^^ { case entries ~ entry => entries.::(entry) }
+      ||| tensorEntry.*)
+
+  lazy val tensorEntry = locationize(constIndex ~ ("=>" ||| "=" ||| ":=") ~ numLit ^^ { case index ~ ass ~ coeff => L4_TensorEntry(index, coeff) })
 
   lazy val booleanexpression : PackratParser[L4_Expression] = (
     locationize((booleanexpression ~ ("||" ||| "or") ~ booleanexpression1) ^^ { case ex1 ~ op ~ ex2 => L4_BinaryOperators.createExpression(op, ex1, ex2) })
@@ -562,7 +568,7 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val stencilEntries = (
     (stencilEntry <~ ",").* ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
-      ||| stencilEntry.*)
+      ||| stencilEntry.*) //TODO: Eventuell kann ich das fuer die Tensoreintraege wiederverwenden.
 
   lazy val stencilEntry = (
     locationize((constIndex ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L4_StencilOffsetEntry(offset, coeff) })

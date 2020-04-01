@@ -2491,3 +2491,23 @@ test:CUDA_ExaFluids_Bingham:
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_ExaFluids_Bingham CUDA/3D_ExaFluids_NN_CUDA.knowledge "CUDA/3D_ExaFluids_NN_CUDA.exa4" CUDA/3D_ExaFluids_NN_CUDA.results 1 10 Platform/chimaira-gpu.platform output
 
+test:TensorAccess:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib TensorAccess Tensor/Tensor_test.knowledge "Tensor/Tensor_test.exa4" Tensor/Tensor_test.results 1 1 Platform/random.platform output
+
