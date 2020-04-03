@@ -21,8 +21,9 @@ Domain global< [0.0, 0.0] to [0.1, 0.1] >
 Function Application {
 	Var m1 : Matrix<Real,2,2> = { { 1.0, 2.0 }, { 3.0, 4.0 } }
 	Var m2 : Matrix<Real,2,2> = { { 1.0, 2.0 }, { 3.0, 4.0 } }
-	Var res_init : Matrix<Real,2,2> = dotProduct ( m1, m2 )
-	Var res_split : Matrix<Real,2,2>
-	res_split = dotProduct ( m1, m2 )
+	Var prec : Double = 1.0E-4
+	Var addMatrices_res : Matrix<Double,2,2> = ( ( ( ( m1 + 1 ) + m2 ) + m1 ) + 2 )
+	Var addMatrices_sol : Matrix<Double,2,2> = { { 6.0, 9.0 }, { 12.0, 15.0 } }
+	compare ( addMatrices_res, addMatrices_sol, prec )
 }
 

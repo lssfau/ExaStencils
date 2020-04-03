@@ -1,0 +1,32 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0] to [0.1, 0.1] >
+
+
+
+Function Application {
+	Var m1 : Matrix<Real,2,2> = { { 1.0, 2.0 }, { 3.0, 4.0 } }
+	Var m2 : Matrix<Real,2,2> = { { 1.0, 2.0 }, { 3.0, 4.0 } }
+	Var prec : Double = 1.0E-4
+	Var res_init : Matrix<Real,2,2> = dotProduct ( m1, m2 )
+	Var res_split : Matrix<Real,2,2>
+	res_split = dotProduct ( m1, m2 )
+	Var mult_sol : Matrix<Double,2,2> = { { 7.0, 10.0 }, { 15.0, 22.0 } }
+	compare ( res_split, mult_sol, prec )
+	compare ( res_init, mult_sol, prec )
+}
+

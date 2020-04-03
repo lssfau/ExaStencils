@@ -10,10 +10,14 @@ Globals {
 Function Application ( ) : Unit {
 
 	Var m1 : Matrix<Double, 2, 2> = {{1, 2}, {3, 4}}
-	Var m2 : Matrix<Double, 2, 2>
+	Var m2 : Matrix<Double, 2, 2> = 2
+	Var m3 : Matrix<Double, 2, 2> 
+	Var m4 : Matrix<Double, 2, 2> = {{1, 2}, {3, 4}}
+	Var m5 : Matrix<Double, 2, 2> = {{1, 2}, {3, 4}}
+	/*
 	m2 = {{1, 2}, {3, 4}}
 	m2 = m1
 	m2 = 2
-
+*/
 }
 
