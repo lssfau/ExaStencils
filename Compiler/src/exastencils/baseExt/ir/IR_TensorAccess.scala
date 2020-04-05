@@ -22,6 +22,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ProgressLocation
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir.IR_RealDatatype
 import exastencils.base.ir._
 import exastencils.config._
 import exastencils.core._
@@ -77,14 +78,29 @@ object IR_TensorExpression2 {
   def apply(datatype : IR_MatrixDatatype, expressions : ListBuffer[IR_TensorEntry]) : IR_TensorExpression2 = {
     if (expressions.toArray.length != 9) {
       Logger.error("expressions has a wrong count of entries")
+    } else {
+      val tmp = IR_TensorExpression2(datatype.datatype)
+      tmp.expressions = expressions.toArray
+      tmp
     }
-    val tmp = IR_TensorExpression2(datatype.datatype)
-    tmp.expressions = expressions.toArray
-    tmp
+  }
+
+  // new from dyadic product
+  def apply(innerDatatype : Option[IR_Datatype], arr1 : Array[IR_TensorEntry], arr2 : Array[IR_TensorEntry]) : IR_TensorExpression2 = {
+    if ((arr1.length != 3) || (arr2.length != 3)) {
+      Logger.error("both input arrays must have size 3")
+    } else {
+      val tmp = IR_TensorExpression2(innerDatatype)
+      for (y <- 0 until 3) {
+        for (x <- 0 until 3) {
+          tmp.set(x, y, arr1(x) * arr2(y))
+        }
+      }
+    }
   }
 
   // new and fill all elements with expression
-  def fromSingleExpression(innerDatatype : IR_Datatype, num : IR_Number) : IR_TensorExpression2= {
+  def fromSingleExpression(innerDatatype : IR_Datatype, num : IR_Number) : IR_TensorExpression2 = {
     val tmp = new IR_TensorExpression2(Some(innerDatatype))
     for (i <- 0 until 9)
       tmp.expressions(i) = IR_TensorEntry(new IR_ConstIndex(Array(i)), Duplicate(num))
@@ -128,18 +144,6 @@ case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends
 
 // TODO: Hier geht der Spaß los
 object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tensor functions") {
-  val annotationMatrixRow = "IR_ResolveTensor.matrixRow"
-  val annotationMatrixCol = "IR_ResolveTensor.matrixCol"
-
-
-  def calculateDeterminant(m : IR_TensorExpression2) : IR_Expression = {
-    var det : IR_Expression = IR_IntegerConstant(0)
-    // laplace expansion
-
-    val tmpDet = m.getVal(1,1)*m.getVal(2,2)*m.getVal(3,3) + m.getVal(1,2)*m.getVal(2,3)*m.getVal(3,1) + m.getVal(1,3)*m.getVal(2,1)*m.getVal(3,2) - m.getVal(3,1)*m.getVal(2,2)*m.getVal(1,3) - m.getVal(2,1)*m.getVal(1,2)*m.getVal(3,3) - m.getVal(1,1)*m.getVal(3,2)*m.getVal(2,3)
-    det += IR_GeneralSimplifyWrapper.process[IR_Expression](tmpDet)
-    IR_GeneralSimplifyWrapper.process(det)
-  }
 
   def getElem(exp : IR_Expression, row : Integer, col : Integer) = {
     exp match {
@@ -154,6 +158,164 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
       case x : IR_Expression if (x.datatype.isInstanceOf[IR_MatrixDatatype]) => x
       case _                                                                 => Logger.error(s"Argument is of unexpected type ${ exp.getClass.getTypeName }: $exp")
     }
+  }
+
+  def determinant(m : IR_TensorExpression2) : IR_Expression = {
+    var det : IR_Expression = IR_RealConstant(0)
+    val tmpDet = m.getVal(1,1)*m.getVal(2,2)*m.getVal(3,3) + m.getVal(1,2)*m.getVal(2,3)*m.getVal(3,1) + m.getVal(1,3)*m.getVal(2,1)*m.getVal(3,2) - m.getVal(3,1)*m.getVal(2,2)*m.getVal(1,3) - m.getVal(2,1)*m.getVal(1,2)*m.getVal(3,3) - m.getVal(1,1)*m.getVal(3,2)*m.getVal(2,3)
+    det += IR_GeneralSimplifyWrapper.process[IR_Expression](tmpDet)
+    IR_GeneralSimplifyWrapper.process(det)
+  }
+
+  def trace(m : IR_TensorExpression2) : IR_Expression = {
+    var trace : IR_Expression = IR_RealConstant(0)
+    val tmpDet = m.getVal(1,1) + m.getVal(2,2) + m.getVal(3,3)
+    trace += IR_GeneralSimplifyWrapper.process[IR_Expression](tmpDet)
+    IR_GeneralSimplifyWrapper.process(trace)
+  }
+
+  def addTwoTensors(m: IR_TensorExpression2, n : IR_TensorExpression2) : IR_TensorExpression2 = {
+    var tmp : IR_TensorExpression2 = _
+    if (m.innerDatatype != n.innerDatatype) { //TODO: warum gehen hier nur Constant und keine Datatype
+      if (m.innerDatatype.isInstanceOf[Option[IR_DoubleConstant]]) {
+        tmp = IR_TensorExpression2(m.innerDatatype)
+      } else if (n.innerDatatype.isInstanceOf[Option[IR_DoubleConstant]]) {
+        tmp = IR_TensorExpression2(n.innerDatatype)
+      } else if (m.innerDatatype.isInstanceOf[Option[IR_RealConstant]]) {
+        tmp = IR_TensorExpression2(m.innerDatatype)
+      } else if (n.innerDatatype.isInstanceOf[Option[IR_RealConstant]]) {
+        tmp = IR_TensorExpression2(n.innerDatatype)
+      }  else if (m.innerDatatype.isInstanceOf[Option[IR_FloatConstant]]) {
+        tmp = IR_TensorExpression2(m.innerDatatype)
+      } else {
+        tmp = IR_TensorExpression2(n.innerDatatype)
+      }
+    } else {
+      tmp = IR_TensorExpression2(m.innerDatatype)
+    }
+    for (y <- 0 until 3) {
+      for (x <- 0 until 3) {
+        tmp.set(x, y, m.getVal(x, y) + n.getVal(x, y))
+      }
+    }
+    tmp
+  }
+
+  def addTensorsMatrix(m: IR_TensorExpression2, n : IR_MatrixExpression) : IR_TensorExpression2 = {
+    if (n.rows != 3 || n.columns != 3) {
+      Logger.error("matrix has the wrong dimension")
+    } else {
+      var tmp : IR_TensorExpression2 = _
+      if (m.innerDatatype != n.innerDatatype) {
+        if (m.innerDatatype.isInstanceOf[Option[IR_DoubleConstant]]) {
+          tmp = IR_TensorExpression2(m.innerDatatype)
+        } else if (n.innerDatatype.isInstanceOf[Option[IR_DoubleConstant]]) {
+          tmp = IR_TensorExpression2(n.datatype)
+        } else if (m.innerDatatype.isInstanceOf[Option[IR_RealConstant]]) {
+          tmp = IR_TensorExpression2(m.innerDatatype)
+        } else if (n.innerDatatype.isInstanceOf[Option[IR_RealConstant]]) {
+          tmp = IR_TensorExpression2(n.datatype)
+        } else if (m.innerDatatype.isInstanceOf[Option[IR_FloatConstant]]) {
+          tmp = IR_TensorExpression2(m.innerDatatype)
+        } else {
+          tmp = IR_TensorExpression2(n.datatype)
+        }
+      } else {
+        tmp = IR_TensorExpression2(m.innerDatatype)
+      }
+      for (y <- 0 until 3) {
+        for (x <- 0 until 3) {
+          tmp.set(x, y, m.getVal(x, y) + n.get(x, y))
+        }
+      }
+      tmp
+    }
+  }
+
+  /*
+  def addTensorsMatrix(m: IR_TensorExpression2, n : ListBuffer[ListBuffer[IR_Number]]) : IR_TensorExpression2 = {
+    if ((n.toArray.length != 3) || (n.head.toArray.length !=3)) {
+      Logger.error("matrix has the wrong dimension")
+    } else {
+      var tmp : IR_TensorExpression2 = _
+      if (n.toArray.head.toArray.head.isInstanceOf[m.innerDatatype] ) {
+        if (m.innerDatatype.isInstanceOf[Option[IR_DoubleConstant]]) {
+          tmp = IR_TensorExpression2(m.innerDatatype)
+        } else if (n.toArray.head.toArray.head.isInstanceOf[Option[IR_DoubleConstant]]) {
+          tmp = IR_TensorExpression2(n.datatype)
+        } else if (m.innerDatatype.isInstanceOf[Option[IR_RealConstant]]) {
+          tmp = IR_TensorExpression2(m.innerDatatype)
+        } else if (n.toArray.head.toArray.head.isInstanceOf[Option[IR_RealConstant]]) {
+          tmp = IR_TensorExpression2(n.datatype)
+        } else if (m.innerDatatype.isInstanceOf[Option[IR_FloatConstant]]) {
+          tmp = IR_TensorExpression2(m.innerDatatype)
+        } else {
+          tmp = IR_TensorExpression2(n.datatype)
+        }
+      } else {
+        tmp = IR_TensorExpression2(m.innerDatatype)
+      }
+      for (y <- 0 until 3) {
+        for (x <- 0 until 3) {
+          tmp.set(x, y, m.getVal(x, y) + n.get(x, y))
+        }
+      }
+      tmp
+    }
+  } TODO: Hier muss das mit dem Typcheck erldigt werden */
+
+  def dotProductTwoTensors(m: IR_TensorExpression2, n : IR_TensorExpression2) : IR_TensorExpression2 = {
+    var tmp : IR_TensorExpression2 = _
+    if (m.innerDatatype != n.innerDatatype) {
+      if (m.innerDatatype.isInstanceOf[Option[IR_DoubleConstant]]) {
+        tmp = IR_TensorExpression2(m.innerDatatype)
+      } else if (n.innerDatatype.isInstanceOf[Option[IR_DoubleConstant]]) {
+        tmp = IR_TensorExpression2(n.innerDatatype)
+      } else if (m.innerDatatype.isInstanceOf[Option[IR_RealConstant]]) {
+        tmp = IR_TensorExpression2(m.innerDatatype)
+      } else if (n.innerDatatype.isInstanceOf[Option[IR_RealConstant]]) {
+        tmp = IR_TensorExpression2(n.innerDatatype)
+      }  else if (m.innerDatatype.isInstanceOf[Option[IR_FloatConstant]]) {
+        tmp = IR_TensorExpression2(m.innerDatatype)
+      } else {
+        tmp = IR_TensorExpression2(n.innerDatatype)
+      }
+    } else {
+      tmp = IR_TensorExpression2(m.innerDatatype)
+    }
+    for (y <- 0 until 3) {
+      for (x <- 0 until 3) {
+        tmp.set(x, y, m.getVal(x, y) * n.getVal(x, y))
+      }
+    }
+    tmp
+  }
+
+  def scalarProduct(m: IR_TensorExpression2, n : IR_Number) : IR_TensorExpression2 = {
+    var tmp : IR_TensorExpression2 = _
+    if (m.innerDatatype != n.datatype) {
+      if (m.innerDatatype.isInstanceOf[Option[IR_DoubleConstant]]) {
+        tmp = IR_TensorExpression2(m.innerDatatype)
+      } else if (n.datatype.isInstanceOf[Option[IR_DoubleConstant]]) {
+        tmp = IR_TensorExpression2(n.datatype)
+      } else if (m.innerDatatype.isInstanceOf[Option[IR_RealConstant]]) {
+        tmp = IR_TensorExpression2(m.innerDatatype)
+      } else if (n.datatype.isInstanceOf[Option[IR_RealConstant]]) {
+        tmp = IR_TensorExpression2(n.datatype)
+      }  else if (m.innerDatatype.isInstanceOf[Option[IR_FloatConstant]]) {
+        tmp = IR_TensorExpression2(m.innerDatatype)
+      } else {
+        tmp = IR_TensorExpression2(n.datatype)
+      }
+    } else {
+      tmp = IR_TensorExpression2(m.innerDatatype)
+    }
+    for (y <- 0 until 3) {
+      for (x <- 0 until 3) {
+        tmp.set(x, y, m.getVal(x, y) * n)
+      }
+    }
+    tmp
   }
 }
 
