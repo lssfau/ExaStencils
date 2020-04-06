@@ -27,5 +27,8 @@ Function Application {
 	Var v1 : Double = 1
 	Var v2 : Double = 2
 	Var prec : Double = 1.0E-4
+	Var multMatrices_res4 : Matrix<Double,1,4> = ( ( ( m4 * m2 ) * m3 ) * m5 )
+	Var multMatrices_sol4 : Matrix<Double,1,4> = { { 27.0, 54.0, 135.0, 27.0 } }
+	compare ( multMatrices_res4, multMatrices_sol4, prec )
 }
 

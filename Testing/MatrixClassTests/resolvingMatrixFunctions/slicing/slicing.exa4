@@ -10,24 +10,31 @@ Globals {
 Function Application ( ) : Unit {
 
 	Var m1 : Matrix<Double, 2, 2> = {{1, 2}, {3, 4}}
-
+	Var m2 : Matrix<Double, 2, 2> = {{1, 2}, {3, 4}}
+	Var prec : Double = 0.0001
+/*
 	// setSlice
 	// setSlice(matrix, offsetRows, offsetCols, nRows, nCols, newValue) : Unit
 	Var offset : Int = 0
 	Var value : Int = 5
 	setSlice(m1,offset,0,2,2,5)
 	Var setSlice_sol1 : Matrix<Double, 2, 2> = {{5, 5}, {5, 5}}
-	Var prec : Double = 0.0001
 	compare(m1,setSlice_sol1,prec)
+	
 	setSlice(m1,0,1,2,1,3)
 	Var setSlice_sol2 : Matrix<Double, 2, 2> = {{5, 3}, {5, 3}}
 	compare(m1,setSlice_sol2,prec)
-	
+*/	
 	// getSlice
 	// getSlice(matrix, offsetRows, offsetCols, nRows, nCols) : Matrix
-	Var slice1 : Matrix<Double, 2, 2> = getSlice(m1,0,0,2,2)
-	Var getSlice_sol1 : Matrix<Double, 2, 2> = {{5, 3}, {5, 3}}
+	Var slice1 : Matrix<Double, 2, 2> = getSlice(m2,0,0,2,2)
+	Var getSlice_sol1 : Matrix<Double, 2, 2> = {{1, 2}, {3, 4}}
 	compare(slice1,getSlice_sol1,prec)
+	
+	Var slice2 : Matrix<Double, 1, 2> 
+	slice2 = getSlice(m2,1,0,1,2)
+	Var slice2_sol : Matrix<Double, 1, 2> = {{3,4}}
+	compare(slice2,slice2_sol,prec)
 		
 }
 

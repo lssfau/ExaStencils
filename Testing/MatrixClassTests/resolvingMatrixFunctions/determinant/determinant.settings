@@ -1,8 +1,8 @@
 user                = "Guest"
 
-configName          = "resolvingMatrixFunctions"
+configName          = "determinant"
 
-basePathPrefix      = "C:\Users\MonPreacthyl\Desktop\BA\exastencils\Testing\MatrixClassTests\resolvingMatrixFunctions\"
+basePathPrefix      = "./resolvingMatrixFunctions/determinant/"
 l4file              = "$configName$.exa4"
 
 debugL4File         = "$configName$_debug.exa4"

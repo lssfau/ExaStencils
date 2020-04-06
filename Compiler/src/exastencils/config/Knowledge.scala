@@ -602,7 +602,10 @@ object Knowledge {
   var experimental_blocksize : Int = 1
   // and in case of a blockdiagonal A matrix its blocksize
   var experimental_blocksize_A : Int = experimental_blocksize
-
+  // runtime inversion executes inplace on input matrix
+  var experimental_inplaceInversion : Boolean = true
+  // runtime determinant executes inplace on input matrix
+  var experimental_inplaceDeterminant : Boolean = true
 
   // tries to apply an inversion based on the Schur complement in local solve blocks
   var experimental_applySchurCompl : Boolean = false
