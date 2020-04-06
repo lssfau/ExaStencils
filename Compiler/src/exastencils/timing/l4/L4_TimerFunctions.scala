@@ -40,7 +40,8 @@ object L4_TimerFunctions {
     "getLastFromTimer" -> L4_DoubleDatatype,
     "getLastTime" -> L4_DoubleDatatype,
     "printAllTimers" -> L4_UnitDatatype,
-    "printAllTimersToFile" -> L4_UnitDatatype
+    "printAllTimersToFile" -> L4_UnitDatatype,
+    "reduceTimers" -> L4_UnitDatatype
   )
 
   def getDatatype(fctName : String) = functions(fctName)

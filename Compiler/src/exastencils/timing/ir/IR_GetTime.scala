@@ -34,7 +34,11 @@ case class IR_GetTotalTime() extends IR_TimerFunction {
   override def prettyprint_decl() : String = prettyprint
 
   override def generateFct() = {
-    val body = IR_ReturnConvertToMS(accessMember("totalTimeMeasured"))
+    val body =
+      IR_IfCondition(0 Neq accessMember("totalTimeAveraged"),
+        IR_Return(Some(accessMember("totalTimeAveraged"))),
+        IR_ReturnConvertToMS(accessMember("totalTimeMeasured")))
+
     val fct = IR_PlainFunction(name, IR_DoubleDatatype, ListBuffer(IR_FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), body)
     fct.allowFortranInterface = false
     fct
@@ -52,10 +56,11 @@ case class IR_GetMeanTime() extends IR_TimerFunction {
   override def prettyprint_decl() : String = prettyprint
 
   override def generateFct() = {
-    val body = IR_Return(IR_TernaryCondition(
-      IR_Greater(accessMember("numMeasurements"), 0),
-      IR_FunctionCall("getTotalTime", "stopWatch") / accessMember("numMeasurements"),
-      0.0))
+    val body =
+      IR_Return(IR_TernaryCondition(
+        0 EqEq accessMember("numMeasurements"),
+        0.0,
+        IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype), "stopWatch") / accessMember("numMeasurements")))
 
     val fct = IR_PlainFunction(name, IR_DoubleDatatype, ListBuffer(IR_FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), body)
     fct.allowFortranInterface = false

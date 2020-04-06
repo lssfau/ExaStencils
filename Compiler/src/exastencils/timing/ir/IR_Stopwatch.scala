@@ -78,6 +78,7 @@ case class IR_Stopwatch() extends IR_Node with FilePrettyPrintable {
     writerHeader <<< s"\t$timerTimepointType timerEnded;"
     writerHeader <<< s"\t$timerDurationType lastTimeMeasured;"
     writerHeader <<< s"\t$timerDurationType totalTimeMeasured;"
+    writerHeader <<< s"\tdouble totalTimeAveraged;"
     writerHeader <<< s"};\n"
   }
 }
