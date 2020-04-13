@@ -3,3 +3,4 @@ build
 target
 .cache
 .settings
+.jar

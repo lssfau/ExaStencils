@@ -41,17 +41,13 @@ case class IR_HackTenComponentAccess(var mat : IR_VariableAccess, var i : IR_Exp
   override def prettyprint(out : PpStream) : Unit = out << mat << "(" << i << ", " << j << ")"
 }
 
-case class IR_TensorEntry(var index : IR_ConstIndex, var num : IR_Number) extends IR_Node with  PrettyPrintable {
-  override def prettyprint(out : PpStream) : Unit = out << index.prettyprint(out) << "=" << num.toString
-}
-
 /// IR_TensorExpression2
 object IR_TensorExpression2 {
   // new with empty tensor
   def apply(innerDatatype : IR_Datatype) : IR_TensorExpression2 = new IR_TensorExpression2(Some(innerDatatype))
 
   // new fill with given array
-  def apply(innerDatatype : Option[IR_Datatype], expressions : Array[IR_TensorEntry]) : IR_TensorExpression2 = {
+  def apply(innerDatatype : Option[IR_Datatype], expressions : Array[IR_Expression]) : IR_TensorExpression2 = {
     if (expressions.length != 9) {
       Logger.error("expressions has the wrong length")
     }
@@ -75,7 +71,7 @@ object IR_TensorExpression2 {
   }
 
   // new and fill with other expression list array ...
-  def apply(datatype : IR_MatrixDatatype, expressions : ListBuffer[IR_TensorEntry]) : IR_TensorExpression2 = {
+  def apply(datatype : IR_MatrixDatatype, expressions : ListBuffer[IR_Expression]) : IR_TensorExpression2 = {
     if (expressions.toArray.length != 9) {
       Logger.error("expressions has a wrong count of entries")
     } else {
@@ -86,16 +82,17 @@ object IR_TensorExpression2 {
   }
 
   // new from dyadic product
-  def apply(innerDatatype : Option[IR_Datatype], arr1 : Array[IR_TensorEntry], arr2 : Array[IR_TensorEntry]) : IR_TensorExpression2 = {
+  def apply(innerDatatype : Option[IR_Datatype], arr1 : Array[IR_Expression], arr2 : Array[IR_Expression]) : IR_TensorExpression2 = {
     if ((arr1.length != 3) || (arr2.length != 3)) {
       Logger.error("both input arrays must have size 3")
     } else {
       val tmp = IR_TensorExpression2(innerDatatype)
       for (y <- 0 until 3) {
         for (x <- 0 until 3) {
-          tmp.set(x, y, arr1(x) * arr2(y))
+          tmp.set(x, y, IR_Multiplication(arr1(x),arr2(y)))
         }
       }
+      tmp
     }
   }
 
@@ -103,19 +100,19 @@ object IR_TensorExpression2 {
   def fromSingleExpression(innerDatatype : IR_Datatype, num : IR_Number) : IR_TensorExpression2 = {
     val tmp = new IR_TensorExpression2(Some(innerDatatype))
     for (i <- 0 until 9)
-      tmp.expressions(i) = IR_TensorEntry(new IR_ConstIndex(Array(i)), Duplicate(num))
+      tmp.expressions(i) = Duplicate(num)
     tmp
   }
 }
 
 case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends IR_Expression {
-  var expressions : Array[IR_TensorEntry] = Array.ofDim[IR_TensorEntry](9)
+  var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](9)
 
   override def datatype = {
     innerDatatype match {
       case None                         =>
-        var ret = expressions(0).num.datatype
-        expressions.foreach(s => ret = IR_ResultingDatatype(ret, s.num.datatype))
+        var ret = expressions(0).datatype
+        expressions.foreach(s => ret = IR_ResultingDatatype(ret, s.datatype))
         innerDatatype = Some(ret)
       case Some(dt : IR_MatrixDatatype) => innerDatatype = Some(dt.resolveBaseDatatype)
       case _                            =>
@@ -137,8 +134,7 @@ case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends
   def isInteger = expressions.forall(e => e.isInstanceOf[IR_IntegerConstant])
   def isReal = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
   def get(x : Integer, y : Integer) = expressions(y * 3 + x)
-  def getVal(x : Integer, y : Integer) = expressions(y * 3 + x).num
-  def set(x : Integer, y: Integer, num : IR_Number) = IR_TensorEntry(new IR_ConstIndex(Array(y * 3 + x)), Duplicate(num))
+  def set(x : Integer, y: Integer, num : IR_Expression) = expressions(y * 3 + x) = num
   override def toString : String = { "IR_TensorExpression2(" + innerDatatype + "," + 2 + "; Items: " + expressions.mkString(", ") + ")" }
 }
 
@@ -162,20 +158,25 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
 
   def determinant(m : IR_TensorExpression2) : IR_Expression = {
     var det : IR_Expression = IR_RealConstant(0)
-    val tmpDet = m.getVal(1,1)*m.getVal(2,2)*m.getVal(3,3) + m.getVal(1,2)*m.getVal(2,3)*m.getVal(3,1) + m.getVal(1,3)*m.getVal(2,1)*m.getVal(3,2) - m.getVal(3,1)*m.getVal(2,2)*m.getVal(1,3) - m.getVal(2,1)*m.getVal(1,2)*m.getVal(3,3) - m.getVal(1,1)*m.getVal(3,2)*m.getVal(2,3)
+    var tmpDet : IR_Expression = IR_Multiplication(m.get(1,1), m.get(2,2), m.get(3,3))
+    tmpDet = IR_Addition(tmpDet, IR_Multiplication(m.get(1,2), m.get(2,3), m.get(3,1)))
+    tmpDet += IR_Addition(tmpDet, IR_Multiplication(m.get(1,3), m.get(2,1), m.get(3,2)))
+    tmpDet += IR_Addition(tmpDet, IR_Multiplication(IR_Negation(m.get(3,1)), m.get(2,2), m.get(1,3)))
+    tmpDet += IR_Addition(tmpDet, IR_Multiplication(IR_Negation(m.get(2,1)), m.get(1,2), m.get(3,3)))
+    tmpDet += IR_Addition(tmpDet, IR_Multiplication(IR_Negation(m.get(1,1)), m.get(3,2), m.get(2,3)))
     det += IR_GeneralSimplifyWrapper.process[IR_Expression](tmpDet)
     IR_GeneralSimplifyWrapper.process(det)
   }
 
   def trace(m : IR_TensorExpression2) : IR_Expression = {
     var trace : IR_Expression = IR_RealConstant(0)
-    val tmpDet = m.getVal(1,1) + m.getVal(2,2) + m.getVal(3,3)
+    val tmpDet = IR_Addition(m.get(1,1), m.get(2,2), m.get(3,3))
     trace += IR_GeneralSimplifyWrapper.process[IR_Expression](tmpDet)
     IR_GeneralSimplifyWrapper.process(trace)
   }
 
   def addTwoTensors(m: IR_TensorExpression2, n : IR_TensorExpression2) : IR_TensorExpression2 = {
-    var tmp : IR_TensorExpression2 = _
+    var tmp : IR_TensorExpression2 = null
     if (m.innerDatatype != n.innerDatatype) { //TODO: warum gehen hier nur Constant und keine Datatype
       if (m.innerDatatype.isInstanceOf[Option[IR_DoubleConstant]]) {
         tmp = IR_TensorExpression2(m.innerDatatype)
@@ -195,7 +196,7 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
     }
     for (y <- 0 until 3) {
       for (x <- 0 until 3) {
-        tmp.set(x, y, m.getVal(x, y) + n.getVal(x, y))
+        tmp.set(x, y, IR_Addition(m.get(x, y), n.get(x, y)))
       }
     }
     tmp
@@ -205,7 +206,7 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
     if (n.rows != 3 || n.columns != 3) {
       Logger.error("matrix has the wrong dimension")
     } else {
-      var tmp : IR_TensorExpression2 = _
+      var tmp : IR_TensorExpression2 = null
       if (m.innerDatatype != n.innerDatatype) {
         if (m.innerDatatype.isInstanceOf[Option[IR_DoubleConstant]]) {
           tmp = IR_TensorExpression2(m.innerDatatype)
@@ -225,7 +226,7 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
       }
       for (y <- 0 until 3) {
         for (x <- 0 until 3) {
-          tmp.set(x, y, m.getVal(x, y) + n.get(x, y))
+          tmp.set(x, y, IR_Addition(m.get(x, y), n.get(x, y)))
         }
       }
       tmp
@@ -257,7 +258,7 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
       }
       for (y <- 0 until 3) {
         for (x <- 0 until 3) {
-          tmp.set(x, y, m.getVal(x, y) + n.get(x, y))
+          tmp.set(x, y, m.get(x, y) + n.get(x, y))
         }
       }
       tmp
@@ -265,7 +266,7 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
   } TODO: Hier muss das mit dem Typcheck erldigt werden */
 
   def dotProductTwoTensors(m: IR_TensorExpression2, n : IR_TensorExpression2) : IR_TensorExpression2 = {
-    var tmp : IR_TensorExpression2 = _
+    var tmp : IR_TensorExpression2 = null
     if (m.innerDatatype != n.innerDatatype) {
       if (m.innerDatatype.isInstanceOf[Option[IR_DoubleConstant]]) {
         tmp = IR_TensorExpression2(m.innerDatatype)
@@ -285,14 +286,14 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
     }
     for (y <- 0 until 3) {
       for (x <- 0 until 3) {
-        tmp.set(x, y, m.getVal(x, y) * n.getVal(x, y))
+        tmp.set(x, y, IR_Multiplication(m.get(x, y), n.get(x, y)))
       }
     }
     tmp
   }
 
   def scalarProduct(m: IR_TensorExpression2, n : IR_Number) : IR_TensorExpression2 = {
-    var tmp : IR_TensorExpression2 = _
+    var tmp : IR_TensorExpression2 = null
     if (m.innerDatatype != n.datatype) {
       if (m.innerDatatype.isInstanceOf[Option[IR_DoubleConstant]]) {
         tmp = IR_TensorExpression2(m.innerDatatype)
@@ -312,7 +313,7 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
     }
     for (y <- 0 until 3) {
       for (x <- 0 until 3) {
-        tmp.set(x, y, m.getVal(x, y) * n)
+        tmp.set(x, y, IR_Multiplication(m.get(x, y), n))
       }
     }
     tmp
