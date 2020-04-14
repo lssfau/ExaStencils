@@ -47,6 +47,10 @@ case class L4_VariableDeclaration(
         initialValue.get.asInstanceOf[L4_MatrixExpression].datatype = Some(dt.datatype)
         initialValue.get.asInstanceOf[L4_MatrixExpression].convertConstants(dt.datatype)
 
+      case (dt : L4_TensorDatatype2, _ : L4_TensorExpression2) =>
+        initialValue.get.asInstanceOf[L4_TensorExpression2].datatype = Some(dt.datatype)
+        initialValue.get.asInstanceOf[L4_TensorExpression2].convertConstants(dt.datatype)
+
       case _ =>
     }
   }

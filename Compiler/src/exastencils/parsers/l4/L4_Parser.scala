@@ -160,7 +160,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   // ##### Datatypes
   // ######################################
 
-  lazy val datatype : Parser[L4_Datatype] = simpleDatatype ||| algorithmicDatatype
+  lazy val datatype : Parser[L4_Datatype] =  algorithmicDatatype ||| simpleDatatype
 
   lazy val simpleDatatype : Parser[L4_Datatype] = (
     "String" ^^ { _ => L4_StringDatatype }
@@ -270,7 +270,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => L4_Reduction(op, s) })
   lazy val regionSpecification = locationize((("ghost" ||| "dup" ||| "inner") ~ constIndex ~ ("on" <~ "boundary").?) ^^ { case region ~ dir ~ bc => L4_RegionSpecification(region, dir, bc.isDefined) })
 
-  lazy val assignment = locationize(genericAccess ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) }) //TODO: Zeus: Tensorexpression soll hier wahrscheinlich gar nicht rein
+  lazy val assignment = locationize(genericAccess ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })
   lazy val operatorassignment = locationize(genericAccess ~ ("+=" ||| "-=" ||| "*=" ||| "/=") ~ binaryexpression
     ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })
 
@@ -464,9 +464,10 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val matrixExpression = locationize(("{" ~> repsep(rowVectorExpression, ",") <~ "}") ~ "T".? ^^ { case x ~ t => val e = L4_MatrixExpression(None, x.map(_.expressions.toList)); if (t.isDefined) L4_FunctionCall(L4_UnresolvedFunctionReference("transpose", None, None), e); else e } |||
     ("[" ~> repsep(binaryexpression.+, ";")) <~ "]" ^^ { x => L4_MatrixExpression(None, x) })
 
-  lazy val tensorExpression = locationize(("tens" ~ "{") ~> tensorEntry <~ "}" ^^ { x => L4_TensorExpression2(None, List(x)) })
+  lazy val tensorExpression = locationize(("tens" ~ "{") ~> repsep(tensorEntry, ",") <~ "}" ^^ { x => L4_TensorExpression2(None, x) })
+  //lazy val tensorExpression = locationize("{" ~> tensorEntry <~ "}" ^^ { x => L4_TensorExpression2(None, List(x)) })
 
-  //lazy val tensorEntries = ( // TODO: Zeus: im Testfall ausgeklammert
+  // lazy val tensorEntries = ( // TODO: Zeus: im Testfall ausgeklammert
   //  (tensorEntry <~ ",").* ~ tensorEntry ^^ { case entries ~ entry => entries.::(entry) }
   //    ||| tensorEntry.*
   //  )

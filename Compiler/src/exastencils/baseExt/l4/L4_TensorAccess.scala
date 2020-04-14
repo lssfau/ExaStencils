@@ -57,25 +57,21 @@ case class L4_TensorExpression2(
     if (flattenIn.length > 9) {
       Logger.error("To much tensor entries!")
     }
-    var test_entry_dim = true
     for (i <- 0 until 9) {
-      if (flattenIn(0).index.length != 2) test_entry_dim = false
-    }
-    if (!test_entry_dim) {
-      Logger.error("Tensor entry has wrong dimension")
+      if (flattenIn(i).index.length != 2) Logger.error("Tensor index [" + flattenIn(i).index(0).toString + "," + flattenIn(i).index(1).toString + "] has wrong dimension")
     }
     val eval : Array[Boolean] = Array.fill(flattenIn.length) { false }
     val exp = new Array[IR_Expression](9)
     for (i <- 0 until 9) {
-      if ((flattenIn(i).index(0) + flattenIn(i).index(1) * 3) > exp.length) {
+      if ((flattenIn(i).index(0) + flattenIn(i).index(1) * 3) <= exp.length) {
         if (eval(flattenIn(i).index(0) + flattenIn(i).index(1) * 3) == false) {
           eval(flattenIn(i).index(0) + flattenIn(i).index(1) * 3) = true
-          exp(flattenIn(i).index(0) + flattenIn(i).index(1) * input.length) = flattenIn(i).coefficient.progress
+          exp(flattenIn(i).index(0) + flattenIn(i).index(1) * 3) = flattenIn(i).coefficient.progress
         } else {
-          Logger.error("Tensor index was double set")
+          Logger.error("Tensor index [" + flattenIn(i).index(0).toString +"," + flattenIn(i).index(1).toString + "] was double set")
         }
       } else {
-        Logger.error("Tensor index is not available")
+        Logger.error("Tensor index [" + flattenIn(i).index(0).toString +"," + flattenIn(i).index(1).toString + "] is not available "+ (flattenIn(i).index(0) + flattenIn(i).index(1) * 3).toString + " > " +  exp.length.toString)
       }
     }
     for (i <- 0 until 9) {

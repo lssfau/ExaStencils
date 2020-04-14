@@ -26,6 +26,7 @@ import exastencils.base.ExaRootNode
 import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.baseExt.l4.L4_MatrixDatatype
+import exastencils.baseExt.l4.L4_TensorDatatype2
 import exastencils.baseExt.l4.L4_VectorDatatype
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
@@ -63,9 +64,9 @@ object L4_AddSoAtoAoSTransformation extends DefaultStrategy("Add SoA to AoS tran
         fDecl
       case lDecl : L4_FieldLayoutDecl =>
         lDecl.datatype match {
-          case _ : L4_VectorDatatype | _ : L4_MatrixDatatype =>
+          case _ : L4_VectorDatatype | _ : L4_MatrixDatatype | _ : L4_TensorDatatype2 =>
             layoutDecls += lDecl
-          case _                                             =>
+          case _                                                                      =>
         }
         lDecl
       case lSec : L4_LayoutSection    =>

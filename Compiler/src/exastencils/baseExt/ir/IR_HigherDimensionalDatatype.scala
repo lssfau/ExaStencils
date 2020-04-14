@@ -108,7 +108,7 @@ case class IR_TensorDatatype1(datatype : IR_Datatype) extends IR_TensorDatatype(
   override def prettyprint(out : PpStream) : Unit = out << "__tensor1_" << datatype << "_t"
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
-  override def dimensionality : Int = 3 + datatype.dimensionality
+  override def dimensionality : Int = 1 + datatype.dimensionality
   override def getSizeArray : Array[Int] = Array(3) ++ datatype.getSizeArray
   override def resolveDeclType : IR_Datatype = this.datatype.resolveDeclType
   override def resolveDeclPostscript : String = ""
@@ -122,7 +122,7 @@ case class IR_TensorDatatype2(datatype : IR_Datatype) extends IR_TensorDatatype(
   override def prettyprint(out : PpStream) : Unit = out << "__tensor2_" << datatype << "_t"
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
-  override def dimensionality : Int = 3 + datatype.dimensionality
+  override def dimensionality : Int = 2 + datatype.dimensionality
   override def getSizeArray : Array[Int] = Array(9) ++ datatype.getSizeArray
   override def resolveDeclType : IR_Datatype = this.datatype.resolveDeclType
   override def resolveDeclPostscript : String = ""
@@ -134,7 +134,7 @@ case class IR_TensorDatatype2(datatype : IR_Datatype) extends IR_TensorDatatype(
 }
 
 case class IR_TensorDatatypeN(datatype : IR_Datatype, var dim : Int) extends IR_TensorDatatype(datatype) {
-  override def prettyprint(out : PpStream) : Unit = out << "__matrix_" << datatype << '_' << dim << "_t"
+  override def prettyprint(out : PpStream) : Unit = out << "__tensor" + dim.toString +" _" << datatype << '_' << dim << "_t"
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
   override def dimensionality : Int = dim + datatype.dimensionality

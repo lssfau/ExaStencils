@@ -58,6 +58,16 @@ case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String,
           case _                                                       =>
         }
 
+      case dt : IR_TensorDatatype2 =>
+        dt.prettyprint(out)
+        out << ' ' << name
+        initialValue match {
+          case Some(e : IR_TensorExpression2)                           => out << ' '; e.prettyprintInner(out)
+          case Some(e) if (e.datatype.isInstanceOf[IR_ScalarDatatype]) => out << ' ' << '{'; for (i <- 0 until 9) { e.prettyprint(out); out << ',' }; out.removeLast(); out << '}'
+          case Some(e)                                                 => out << " = " << e
+          case _                                                       =>
+        }
+
       case _ =>
         if (alignment > 1 && "MSVC" == Platform.targetCompiler)
           out << "__declspec(align(" << alignment * 8 << ")) "

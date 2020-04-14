@@ -121,12 +121,12 @@ case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends
   }
 
   def prettyprintInner(out : PpStream) : Unit = {
-    out << '{' << expressions.foreach(_.prettyprint(out) + ", ") << '}'
+    out << '{' << expressions.map(_.prettyprint).mkString(", ") << '}'
   }
   override def prettyprint(out : PpStream) : Unit = {
     out << "__tensor2_"
     innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
-    out << '_' << 2 << "_t "
+    out  << "_t "
     prettyprintInner(out)
   }
 
