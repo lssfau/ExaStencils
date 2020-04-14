@@ -3,4 +3,4 @@ dimensionality                = 2
 mpi_enabled = false
 
 experimental_useNewMatrixStrategies = true
-experimental_inplaceDeterminant = false
+experimental_inplaceDeterminant = true

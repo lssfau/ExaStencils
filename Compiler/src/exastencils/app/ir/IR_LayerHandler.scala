@@ -197,10 +197,12 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
 
     if(Knowledge.experimental_useNewMatrixStrategies) {
+      IR_ResolveUserDefinedFunctions.apply()
       IR_ResolveMatrixDeclarations.apply()
       IR_ResolveMatrixAssignmentsNew.apply()
-      IR_ResolveStandaloneMatrixFunctions.apply()
+      IR_ResolveNoMatrixReturnOperations.apply()
       IR_LinearizeMatrices.apply()
+      IR_SimplifyMatrices.apply()
     }
     else {
       IR_ExtractMatrices.apply()

@@ -127,85 +127,127 @@ case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var rows
 }
 
 // trying out new strategies to resolve matrices
-// resolve Var matrix : Matrix<Datatype, rows, columns> = initialization or split to declaration and assignment if convenient
+// resolve "Var matrix : Matrix<Datatype, rows, columns> = initialization" or split to declaration and assignment if convenient
 object IR_ResolveMatrixDeclarations extends DefaultStrategy("Resolve matrix decl + initialization") {
+  var matrixDeclCounter = 0
 
   this += new Transformation("with constants", {
     // split to use std::fill later
     case decl @ IR_VariableDeclaration(IR_MatrixDatatype(_, _, _), _, Some(IR_FloatConstant(_) | IR_DoubleConstant(_) | IR_RealConstant(_) | IR_IntegerConstant(_)), _)           =>
       IR_MatrixNodeUtilities.splitDeclaration(decl)
+
     case decl @ IR_VariableDeclaration(IR_MatrixDatatype(_, _, _), _, Some(IR_VariableAccess(_, IR_RealDatatype | IR_DoubleDatatype | IR_FloatDatatype | IR_IntegerDatatype)), _) =>
       IR_MatrixNodeUtilities.splitDeclaration(decl)
   })
 
   this += new Transformation("with matrices", {
     // do nothing
-    case decl @ IR_VariableDeclaration(IR_MatrixDatatype(_, _, _), _, Some(IR_MatrixExpression(_, _, _)), _) =>
+    case decl @ IR_VariableDeclaration(declDt @ IR_MatrixDatatype(_, _, _), _, Some(srcDt @ IR_MatrixExpression(_, _, _)), _) =>
+      if(declDt.sizeM != srcDt.rows || declDt.sizeN != srcDt.columns)
+        Logger.error("Declaration of variable of type: " + declDt + " with expression of type: " + srcDt + ", sizes must match!")
       decl
+
     // split to use std::memcpy or std::copy later
-    case decl @ IR_VariableDeclaration(IR_MatrixDatatype(_, _, _), _, Some(IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))), _) =>
+    case decl @ IR_VariableDeclaration(declDt @ IR_MatrixDatatype(_, _, _), _, Some(IR_VariableAccess(_, srcDt @ IR_MatrixDatatype(_, _, _))), _) =>
+        if(declDt.sizeM != srcDt.sizeM || declDt.sizeN != srcDt.sizeN)
+          Logger.error("Declaration of variable of type: " + declDt + " with expression of type: " + srcDt + ", sizes must match!")
       IR_MatrixNodeUtilities.splitDeclaration(decl)
   })
 
+  // resolve declarations with operators directly
   this += new Transformation("with operators", {
     // initialize variable with product of matrices
     case IR_VariableDeclaration(datatype @ IR_MatrixDatatype(_, _, _), name : String, Some(init : IR_Multiplication), _) =>
       init.factors.foreach(s => if (!s.datatype.isInstanceOf[IR_MatrixDatatype]) Logger.error("factor " + s + " is not a matrix"))
+      if (init.factors.length < 2)
+        Logger.error("multiplication of at least 2 matrices expected")
       IR_VariableDeclaration(datatype, name, Some(IR_BasicMatrixOperations.mult(init)))
+
     // elementwise operators
     // initialize variable with sum of multiple matrices
     case IR_VariableDeclaration(datatype @ IR_MatrixDatatype(_, _, _), name : String, Some(init @ (IR_Addition(_) | IR_ElementwiseAddition(_, _))), _) =>
       IR_VariableDeclaration(datatype, name, Some(IR_BasicMatrixOperations.add(init)))
+
     // initialize variable with subtraction of two matrices
     case IR_VariableDeclaration(datatype @ IR_MatrixDatatype(_, _, _), name : String, Some(init @ (IR_Subtraction(_, _) | IR_ElementwiseSubtraction(_, _))), _) =>
       IR_VariableDeclaration(datatype, name, Some(IR_BasicMatrixOperations.sub(init)))
+
     // initialize variable with elementwise multiplication of two matrices
-    case IR_VariableDeclaration(datatype @ IR_MatrixDatatype(_, _, _), name : String, Some(init @ IR_ElementwiseMultiplication(_, _)), _) if (init.left.datatype.isInstanceOf[IR_MatrixDatatype] | init.right.datatype.isInstanceOf[IR_MatrixDatatype] | init.left.isInstanceOf[IR_MatrixExpression] | init.right.isInstanceOf[IR_MatrixExpression])
-    =>
+    case IR_VariableDeclaration(datatype @ IR_MatrixDatatype(_, _, _), name : String, Some(init @ IR_ElementwiseMultiplication(_, _)), _) if (init.left.datatype.isInstanceOf[IR_MatrixDatatype] | init.right.datatype.isInstanceOf[IR_MatrixDatatype] | init.left.isInstanceOf[IR_MatrixExpression] | init.right.isInstanceOf[IR_MatrixExpression]) =>
       IR_VariableDeclaration(datatype, name, Some(IR_BasicMatrixOperations.elementwiseMultiplication(init.left, init.right)))
+
     // initialize variable with elementwise division of two matrices
-    case IR_VariableDeclaration(datatype @ IR_MatrixDatatype(_, _, _), name : String, Some(init @ IR_ElementwiseDivision(_, _)), _) if (init.left.datatype.isInstanceOf[IR_MatrixDatatype] | init.right.datatype.isInstanceOf[IR_MatrixDatatype] | init.left.isInstanceOf[IR_MatrixExpression] | init.right.isInstanceOf[IR_MatrixExpression])
-    =>
+    case IR_VariableDeclaration(datatype @ IR_MatrixDatatype(_, _, _), name : String, Some(init @ IR_ElementwiseDivision(_, _)), _) if (init.left.datatype.isInstanceOf[IR_MatrixDatatype] | init.right.datatype.isInstanceOf[IR_MatrixDatatype] | init.left.isInstanceOf[IR_MatrixExpression] | init.right.isInstanceOf[IR_MatrixExpression]) =>
       IR_VariableDeclaration(datatype, name, Some(IR_BasicMatrixOperations.elementwiseDivision(init.left, init.right)))
   })
 
-  this += new Transformation("with functions", {
-    // resolve transpose call
+  this += new Transformation("with built-in functions", {
+    // resolve transpose call directly
     case decl @ IR_VariableDeclaration(datatype @ IR_MatrixDatatype(_, _, _), name : String, Some(init : IR_FunctionCall), _) if (init.name == "transpose") =>
       if (init.arguments.length != 1)
-        Logger.error("wrong number of arguments: " + init.arguments.length)
+        Logger.error("wrong number of arguments: " + init.arguments.length + ", expected 1 arument for transpose")
       init.arguments(0) match {
         case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) =>
           IR_VariableDeclaration(datatype, name, Some(IR_BasicMatrixOperations.transpose(va)))
         case _                                                     =>
-          Logger.error("wrong type of argument: " + init.arguments(0).datatype)
+          Logger.error("wrong type of argument: " + init.arguments(0).datatype + ", expected variable access to matrix variable")
       }
+
     // split inverse call to handle as assignment
     case decl @ IR_VariableDeclaration(IR_MatrixDatatype(_, _, _), _, Some(init : IR_FunctionCall), _) if (init.name == "inverse") =>
       if (init.arguments.length != 1)
-        Logger.error("wrong number of arguments: " + init.arguments.length)
+        Logger.error("wrong number of arguments: " + init.arguments.length + ", expected 1 argument of type matrix")
       if (!init.arguments(0).datatype.isInstanceOf[IR_MatrixDatatype])
         Logger.error("wrong type of argument: " + init.arguments(0).datatype)
       IR_MatrixNodeUtilities.splitDeclaration(decl)
-    // split getSlice call
-    case decl @ IR_VariableDeclaration(IR_MatrixDatatype(_, _, _), _, Some(init @ IR_FunctionCall(_, _)), _) if (init.name == "getSlice") =>
-      if (init.arguments.length != 5)
-        Logger.error("wrong number of arguments: " + init.arguments.length)
+
+    // split (symbolic) getSlice call so it can be resolved at compiletime and runtime
+    case decl @ IR_VariableDeclaration(datatype @ IR_MatrixDatatype(_, _, _), name, Some(init @ IR_FunctionCall(_, _)), _) if (init.name == "getSlice") =>
       IR_MatrixNodeUtilities.splitDeclaration(decl)
+
     // resolve dot product
     case IR_VariableDeclaration(datatype @ (IR_MatrixDatatype(_, _, _) | IR_RealDatatype | IR_DoubleDatatype | IR_IntegerDatatype | IR_FloatDatatype), name : String, Some(init @ IR_FunctionCall(_, _)), _) if (init.name == "dot" || init.name == "dotProduct") =>
       if (init.arguments.length != 2)
-        Logger.error("wrong number of arguments: " + init.arguments.length)
+        Logger.error("wrong number of arguments: " + init.arguments.length + ", expected 2 arguments of type matrix for dotProduct")
       IR_VariableDeclaration(datatype, name, IR_BasicMatrixOperations.dotProduct(init.arguments(0), init.arguments(1)))
+
     // split determinant call
     case decl @ IR_VariableDeclaration(IR_RealDatatype | IR_DoubleDatatype | IR_FloatDatatype | IR_IntegerDatatype, _, Some(call @ IR_FunctionCall(_, _)), _) if (call.name == "determinant") =>
+      IR_MatrixNodeUtilities.splitDeclaration(decl)
+
+    // split getElement call
+    case decl @ IR_VariableDeclaration(IR_RealDatatype | IR_DoubleDatatype | IR_FloatDatatype | IR_IntegerDatatype, _, Some(call @ IR_FunctionCall(_, _)), _) if (call.name == "getElement")                               =>
+      IR_MatrixNodeUtilities.splitDeclaration(decl)
+
+    // resolve cross product
+    case IR_VariableDeclaration(datatype @ IR_MatrixDatatype(_, _, _), name, Some(call @ IR_FunctionCall(_, _)), _) if (call.name == "crossProduct" || call.name == "cross")                                               =>
+      if (call.arguments.length != 2)
+        Logger.error("wrong number of arguments: " + call.arguments.length)
+      IR_VariableDeclaration(datatype, name, IR_BasicMatrixOperations.crossProduct(call.arguments(0), call.arguments(1)))
+
+      // resolve trace call
+    case IR_VariableDeclaration(datatype @ (IR_RealDatatype | IR_DoubleDatatype | IR_FloatDatatype | IR_IntegerDatatype), name, Some(call @ IR_FunctionCall(_, _)), _) if (call.name == "trace")                           =>
+      if (call.arguments.length != 1)
+        Logger.error("wrong number of arguments: " + call.arguments.length + ", expected 1 argument for function call 'trace'")
+      IR_VariableDeclaration(datatype, name, IR_BasicMatrixOperations.trace(call.arguments(0)))
+
+      // resolve matrix multiplication
+    case IR_VariableDeclaration(datatype @ IR_MatrixDatatype(_,_,_), name, Some(call @ IR_FunctionCall(_, _)), _) if (call.name == "matmult")                           =>
+      if(call.arguments.length < 2)
+        Logger.error("expected at least two matrices to multiply, got: " + call.arguments.length)
+      IR_VariableDeclaration(datatype, name, IR_BasicMatrixOperations.mult(IR_Multiplication(call.arguments)))
+
+      //TODO experimental: eigenvalues
+    case decl @ IR_VariableDeclaration(IR_MatrixDatatype(_, _, _) | IR_RealDatatype | IR_DoubleDatatype | IR_FloatDatatype | IR_IntegerDatatype, _, Some(call @ IR_FunctionCall(_, _)), _) if (call.name == "eigenvalues") =>
       IR_MatrixNodeUtilities.splitDeclaration(decl)
   })
 }
 
+// resolve "matrix = expression"
 object IR_ResolveMatrixAssignmentsNew extends DefaultStrategy("Resolve matrix assignments") {
   var debug = false
 
+  // use std::fill for assignments of matrices with constants
   this += new Transformation("with constants", {
     case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src @ (IR_RealConstant(_) | IR_DoubleConstant(_) | IR_IntegerConstant(_) | IR_FloatConstant(_)), "=")         =>
       IR_FunctionCall(IR_ExternalFunctionReference("std::fill", IR_UnitDatatype), ListBuffer[IR_Expression](Duplicate(dest), Duplicate(dest) + dest.datatype.asInstanceOf[IR_MatrixDatatype].resolveFlattendSize, src)) : IR_Statement
@@ -213,6 +255,7 @@ object IR_ResolveMatrixAssignmentsNew extends DefaultStrategy("Resolve matrix as
       IR_FunctionCall(IR_ExternalFunctionReference("std::fill", IR_UnitDatatype), ListBuffer[IR_Expression](Duplicate(dest), Duplicate(dest) + dest.datatype.asInstanceOf[IR_MatrixDatatype].resolveFlattendSize, src)) : IR_Statement
   })
 
+  // assignment of a matrix with another matrix : copy other matrix
   this += new Transformation("with matrices", {
     case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src @ IR_MatrixExpression(_, _, _), "=")                     =>
       val destSize = IR_BasicMatrixOperations.getSize(dest)
@@ -236,45 +279,96 @@ object IR_ResolveMatrixAssignmentsNew extends DefaultStrategy("Resolve matrix as
       IR_FunctionCall(IR_ExternalFunctionReference("std::memcpy", IR_UnitDatatype), ListBuffer[IR_Expression](IR_AddressOf(dest), IR_AddressOf(src), IR_SizeOf(dest.datatype.resolveBaseDatatype) * destSize._1 * destSize._2)) : IR_Statement
   })
 
-  //TODO cross-product
-  this += new Transformation("with functions", {
-    // transpose a matrix
-    case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), call @ IR_FunctionCall(_, ListBuffer(matrix @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)))), _) if (call.name == "transpose") =>
-      if (call.arguments.length != 1)
-        Logger.error("wrong number of arguments")
-      IR_MatrixNodeUtilities.expressionToAssignments(dest, IR_BasicMatrixOperations.transpose(matrix))
-    // slice a matrix
-    case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), call @ IR_FunctionCall(_, ListBuffer(matrix @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), offsetRows : IR_Expression, offsetCols : IR_Expression, nRows : IR_Expression, nCols : IR_Expression)), _) if (call.name == "getSlice") =>
-      if (call.arguments.length != 5)
-        Logger.error("wrong number of arguments")
-      IR_GenerateBasicMatrixOperations.copySubmatrix(matrix, dest, offsetRows, offsetCols, nRows, nCols)
-    // dot product of two matrices
-    case IR_Assignment(dest @ IR_VariableAccess(_, _), call @ IR_FunctionCall(_, _), _) if (call.name == "dotProduct" || call.name == "dot") =>
-      if (call.arguments.length != 2)
-        Logger.error("wrong number of arguments")
-      IR_MatrixNodeUtilities.expressionToAssignments(dest, IR_BasicMatrixOperations.dotProduct(call.arguments(0), call.arguments(1)))
-  })
-
-  //TODO elementwise power and modulo
+  // resolve assignments of matrices with operators
+  //TODO elementwise power and modulo: does not parse
   this += new Transformation("with operators", {
     // (pointwise) addition of matrices
     case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), addition @ (IR_Addition(_) | IR_ElementwiseAddition(_, _)), _) =>
       IR_MatrixNodeUtilities.expressionToAssignments(dest, IR_BasicMatrixOperations.add(addition))
+
     // (pointwise) subtraction of two matrices
     case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), subtraction @ (IR_Subtraction(_, _) | IR_ElementwiseSubtraction(_, _)), _) =>
       IR_MatrixNodeUtilities.expressionToAssignments(dest, IR_BasicMatrixOperations.sub(subtraction))
+
     // multiplication of matrices
     //TODO multiplication of multiple matrices with different sizes -> error (out of bounds)
     case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), mult : IR_Multiplication, _) =>
       IR_MatrixNodeUtilities.expressionToAssignments(dest, IR_BasicMatrixOperations.mult(mult))
+
     // pointwise multiplication of two matrices
     case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), mult : IR_ElementwiseMultiplication, _) if (mult.left.datatype.isInstanceOf[IR_MatrixExpression] | mult.right.datatype.isInstanceOf[IR_MatrixDatatype]) =>
       IR_MatrixNodeUtilities.expressionToAssignments(dest, IR_BasicMatrixOperations.elementwiseMultiplication(mult.left, mult.right))
+
     // pointwise division of two matrices
     case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), div : IR_ElementwiseDivision, _) if (div.left.datatype.isInstanceOf[IR_MatrixExpression] | div.right.datatype.isInstanceOf[IR_MatrixDatatype]) =>
       IR_MatrixNodeUtilities.expressionToAssignments(dest, IR_BasicMatrixOperations.elementwiseMultiplication(div.left, div.right))
   })
 
+  this += new Transformation("with build-in functions", {
+    // transpose a matrix
+    case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), call @ IR_FunctionCall(_, ListBuffer(matrix @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)))), _) if (call.name == "transpose") =>
+      if (call.arguments.length != 1)
+        Logger.error("wrong number of arguments")
+      IR_MatrixNodeUtilities.expressionToAssignments(dest, IR_BasicMatrixOperations.transpose(matrix))
+
+    // slice a matrix: test for compiletime constants and call slicing at compile/runtime
+    case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), call @ IR_FunctionCall(_, ListBuffer(matrix @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), offsetRows : IR_Expression, offsetCols : IR_Expression, nRows : IR_Expression, nCols : IR_Expression)), _) if (call.name == "getSlice") =>
+      if (call.arguments.length != 5)
+        Logger.error("wrong number of arguments")
+      var offsetRows_asInt : Int = 0
+      var offsetCols_asInt : Int = 0
+      var nRows_asInt : Int = 0
+      var nCols_asInt : Int = 0
+      var allCompiletimeConstant = true
+      try {
+        offsetRows_asInt = IR_SimplifyExpression.evalIntegral(offsetRows).toInt
+        offsetCols_asInt = IR_SimplifyExpression.evalIntegral(offsetCols).toInt
+        nRows_asInt = IR_SimplifyExpression.evalIntegral(nRows).toInt
+        nCols_asInt = IR_SimplifyExpression.evalIntegral(nCols).toInt
+      } catch {
+        case e : EvaluationException => allCompiletimeConstant = false
+        case _ : Throwable           => Logger.error("unexpected exception")
+      }
+      var out = allCompiletimeConstant match {
+        case true  =>
+          IR_MatrixNodeUtilities.expressionToAssignments(dest, IR_BasicMatrixOperations.copySubMatrix(matrix, offsetRows_asInt, offsetCols_asInt, nRows_asInt, nCols_asInt))
+        case false =>
+          IR_GenerateBasicMatrixOperations.copySubmatrix(matrix, dest, offsetRows, offsetCols, nRows, nCols)
+      }
+      out
+
+    // dot product of two matrices
+    case IR_Assignment(dest @ IR_VariableAccess(_, _), call @ IR_FunctionCall(_, _), _) if (call.name == "dotProduct" || call.name == "dot")     =>
+      if (call.arguments.length != 2)
+        Logger.error("wrong number of arguments")
+      IR_MatrixNodeUtilities.expressionToAssignments(dest, IR_BasicMatrixOperations.dotProduct(call.arguments(0), call.arguments(1)))
+
+      // cross product
+    case IR_Assignment(dest @ IR_VariableAccess(_, _), call @ IR_FunctionCall(_, _), _) if (call.name == "crossProduct" || call.name == "cross") =>
+      if (call.arguments.length != 2)
+        Logger.error("wrong number of arguments: " + call.arguments.length)
+      IR_MatrixNodeUtilities.expressionToAssignments(dest, IR_BasicMatrixOperations.crossProduct(call.arguments(0), call.arguments(1)))
+
+      // trace
+    case IR_Assignment(dest @ IR_VariableAccess(_, _), call @ IR_FunctionCall(_, _), _) if (call.name == "trace")                                =>
+      if (call.arguments.length != 1)
+        Logger.error("wrong number of arguments: " + call.arguments.length + ", expected 1 argument for trace call")
+      IR_Assignment(dest, IR_BasicMatrixOperations.trace(call.arguments(0)))
+
+      // matrix multiplication
+    case IR_Assignment(dest @ IR_VariableAccess(_, _), call @ IR_FunctionCall(_, _), _) if (call.name == "matmult")                                =>
+      if (call.arguments.length < 2)
+        Logger.error("expected at least 2 arguments for matrix multiplication, got: " + call.arguments.length)
+      IR_MatrixNodeUtilities.expressionToAssignments(dest,IR_BasicMatrixOperations.mult(IR_Multiplication(call.arguments)))
+
+    //TODO TEST
+    /*
+    case IR_Assignment(dest @ IR_VariableAccess(_, _), call @ IR_FunctionCall(_, _), _) if (call.name == "eigenvalues") =>
+      IR_GenerateQRDecomposition.householderQRDecomposition(call.arguments(0).asInstanceOf[IR_VariableAccess], dest)
+    */
+  })
+
+  // resolve inversion call depending on Knowledge.experimentalResolveInverseFunctionCall and Knowledge.experimental_matrixStructure
   this += new Transformation("with inversion call", {
     case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), call : IR_FunctionCall, _) if (call.name == "inverse") =>
       if (call.arguments.length != 1)
@@ -305,21 +399,37 @@ object IR_ResolveMatrixAssignmentsNew extends DefaultStrategy("Resolve matrix as
 }
 
 // Resolve standalone(no assign or decl to a matrix variable) matrix functions
-object IR_ResolveStandaloneMatrixFunctions extends DefaultStrategy("Resolve standalone matrix functions") {
+// e.g. "function(matrix, ...)" or "Var v : Double = Function(matrix, ...)"
+//TODO error checks
+object IR_ResolveNoMatrixReturnOperations extends DefaultStrategy("Resolve standalone matrix functions") {
   this += new Transformation("no return value", {
     // compare two matrices or scalars
-    case IR_ExpressionStatement(call @ IR_FunctionCall(_, ListBuffer(left : IR_VariableAccess, right : IR_VariableAccess, precision : IR_VariableAccess))) if (call.name == "compare") =>
+    case IR_ExpressionStatement(call @ IR_FunctionCall(_, ListBuffer(left : IR_Expression, right : IR_Expression, precision : IR_Expression))) if (call.name == "compare") =>
       IR_GenerateBasicMatrixOperations.compare(left, right, precision)
+
     // set a slice to 'newValue'
-    case IR_ExpressionStatement(call @ IR_FunctionCall(_, ListBuffer(matrix @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), offsetRows : IR_Expression, offsetCols : IR_Expression, nRows : IR_Expression, nCols : IR_Expression, newValue : IR_Expression))) if (call.name == "setSlice") =>
+    case IR_ExpressionStatement(call @ IR_FunctionCall(_, _)) if (call.name == "setSlice") =>
+    call.arguments match {
+      case ListBuffer(matrix @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), offsetRows @ (IR_VariableAccess(_,IR_IntegerDatatype) | IR_IntegerConstant(_)), offsetCols @ (IR_VariableAccess(_,IR_IntegerDatatype) | IR_IntegerConstant(_)), nRows @ (IR_VariableAccess(_,IR_IntegerDatatype) | IR_IntegerConstant(_)), nCols @ (IR_VariableAccess(_,IR_IntegerDatatype) | IR_IntegerConstant(_)), newValue @ (IR_VariableAccess(_,IR_FloatDatatype | IR_RealDatatype | IR_DoubleDatatype | IR_IntegerDatatype) | IR_FloatConstant(_) | IR_IntegerConstant(_) | IR_DoubleConstant(_) | IR_RealConstant(_))) =>
       if (call.arguments.length != 6)
-        Logger.error("wrong number of arguments: " + call.arguments.length)
+        Logger.error("wrong number of arguments: " + call.arguments.length + "expected setSlice(matrix,offsetRows,offsetColumns,numberOfRows,numberOfColumns,newValue)")
+
       IR_GenerateBasicMatrixOperations.setSubmatrix(matrix, offsetRows, offsetCols, nRows, nCols, newValue)
+      case _ => Logger.error("unexpected arguments: " + call.arguments + ", expected setSlice(matrix,offsetRows,offsetColumns,numberOfRows,numberOfColumns,newValue)")
+    }
+
+    // set an element to 'newValue'
+    case IR_ExpressionStatement(call @ IR_FunctionCall(_, _)) if (call.name == "setElement")                                             =>
+    call.arguments match {
+      case ListBuffer(matrix @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), offsetRows @ (IR_VariableAccess(_,IR_IntegerDatatype) | IR_IntegerConstant(_)), offsetCols @ (IR_VariableAccess(_,IR_IntegerDatatype) | IR_IntegerConstant(_)), newValue @ (IR_VariableAccess(_,IR_FloatDatatype | IR_RealDatatype | IR_DoubleDatatype | IR_IntegerDatatype) | IR_FloatConstant(_) | IR_IntegerConstant(_) | IR_DoubleConstant(_) | IR_RealConstant(_))) =>
+        IR_Assignment(IR_HighDimAccess(matrix, IR_ExpressionIndex(offsetRows, offsetCols)), newValue)
+        case _ => Logger.error("unexpected arguments: " + call.arguments + ", expected setElement(matrix,offsetRows,offsetColumns,newValue)")
+    }
   })
 
   this += new Transformation("scalar return value", {
     // determinant: calculate in runtime (LU) if input matrix is larger than 5, in compiletime(directly,laplace expansion) if 5 or smaller
-    case IR_Assignment(dest @ IR_VariableAccess(_, IR_DoubleDatatype | IR_FloatDatatype | IR_IntegerDatatype), call @ IR_FunctionCall(_, _), _) if (call.name == "determinant") =>
+    case IR_Assignment(dest @ IR_VariableAccess(_, IR_DoubleDatatype | IR_FloatDatatype | IR_IntegerDatatype), call @ IR_FunctionCall(_, _), _) if (call.name == "determinant")                                                                                                              =>
       if (call.arguments.length != 1)
         Logger.error("wrong number of arguments")
       var inMatrix = call.arguments(0)
@@ -329,16 +439,93 @@ object IR_ResolveStandaloneMatrixFunctions extends DefaultStrategy("Resolve stan
         IR_GenerateBasicMatrixOperations.determinant(inMatrix.asInstanceOf[IR_VariableAccess], dest)
       else
         IR_Assignment(dest, IR_ResolveMatrixFunctions.calculateDeterminant(IR_MatrixNodeUtilities.accessToExpression(inMatrix.asInstanceOf[IR_VariableAccess])))
+    case IR_Assignment(dest @ IR_VariableAccess(_, IR_DoubleDatatype | IR_FloatDatatype | IR_IntegerDatatype), call @ IR_FunctionCall(_, ListBuffer(matrix @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), row : IR_Expression, col : IR_Expression)), _) if (call.name == "getElement") =>
+      if (call.arguments.length != 3)
+        Logger.error("wrong number of arguments: " + call.arguments.length)
+      //TODO runtime evaluated values as input?
+      /*
+      var row_asInt : Int = 0
+      var col_asInt : Int = 0
+      var allCompiletimeConstant = true
+      try {
+        row_asInt = IR_SimplifyExpression.evalIntegral(row).toInt
+        col_asInt = IR_SimplifyExpression.evalIntegral(col).toInt
+      } catch {
+        case e : EvaluationException => allCompiletimeConstant = false
+        case _ : Throwable => Logger.error("unexpected exception")
+      }
+      matrix match {
+        case va @ IR_VariableAccess(_, IR_MatrixDatatype(_,_,_)) =>
+        case _ => Logger.error("unexpected argument: " + matrix)
+      }
+
+       */
+      IR_Assignment(dest, IR_HighDimAccess(matrix, IR_ExpressionIndex(row, col)))
   })
 
   /*
-  //TODO eigenvalues
+  //TODO eigenvalues: householder transformations  + QR decomposition
   this += new Transformation("tuple return value", {
   })
 
    */
 }
 
+// Resolve user defined functions
+object IR_ResolveUserDefinedFunctions extends DefaultStrategy("Resolve user defined functions") {
+  var resolveFunctions = ListBuffer[String]()
+  this.onBefore = () => {
+    resolveFunctions.clear()
+    resolveFunctions ++= ListBuffer("dotProduct", "dot", "crossProduct", "cross", "det", "determinant", "getSlice", "setSlice", "getElement", "setElement", "transpose", "inverse")
+  }
+
+  this += new Transformation("add assignments/decl to function returns to arguments", {
+    case IR_Assignment(dest, src : IR_FunctionCall, "=") if (!resolveFunctions.contains(src.name) && dest.datatype.isInstanceOf[IR_MatrixDatatype] && src.datatype.isInstanceOf[IR_MatrixDatatype])                   =>
+      src.arguments += dest
+      IR_ExpressionStatement(src)
+    case IR_VariableDeclaration(datatype, name, Some(src : IR_FunctionCall), _) if (!resolveFunctions.contains(src.name) && datatype.isInstanceOf[IR_MatrixDatatype] && src.datatype.isInstanceOf[IR_MatrixDatatype]) =>
+      var decl = IR_VariableDeclaration(datatype, name, None)
+      src.arguments += IR_VariableAccess(decl)
+      ListBuffer[IR_Statement](
+        decl,
+        IR_ExpressionStatement(src)
+      )
+    case IR_Assignment(dest, src : IR_FunctionCall, "+=") if (!resolveFunctions.contains(src.name) && dest.datatype.isInstanceOf[IR_MatrixDatatype] && src.datatype.isInstanceOf[IR_MatrixDatatype])                  =>
+      Logger.error("+= matrix operator resolution not yet implemented")
+  })
+
+  this += new Transformation("parameters and return types", {
+    case arg : IR_FunctionArgument if (arg.datatype.isInstanceOf[IR_MatrixDatatype])                                    =>
+      arg.datatype = IR_ReferenceDatatype(arg.datatype)
+      arg
+    case func : IR_Function if (!resolveFunctions.contains(func.name) && func.datatype.isInstanceOf[IR_MatrixDatatype]) =>
+      val matrix = func.datatype.asInstanceOf[IR_MatrixDatatype]
+      func.parameters += IR_FunctionArgument("_matrix_return", IR_ReferenceDatatype(matrix))
+      func.datatype = IR_UnitDatatype
+
+      func.body = func.body.flatMap(stmt => stmt match {
+        case IR_Return(Some(exp)) if (exp.datatype.isInstanceOf[IR_MatrixDatatype]) => {
+          List(
+            IR_Assignment(IR_VariableAccess("_matrix_return", matrix), exp),
+            IR_Return())
+        }
+        case _                                                                      => List(stmt)
+      })
+      func
+  })
+
+}
+
+// Simplifications from IR_GeneralSimplify
+object IR_SimplifyMatrices extends DefaultStrategy("Simplify matrices") {
+  this += new Transformation("simplify", {
+    case IR_Negative(m : IR_MatrixExpression) => m.expressions = m.expressions.map { y => IR_Negative(y) : IR_Expression }; m
+    case m @ IR_MatrixExpression(_, 1, 1)     => m.get(0, 0)
+    case m @ IR_MatrixDatatype(dt, 1, 1)      => dt
+  })
+}
+
+// old strategies
 object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expressions where necessary") {
   val annotationFctCallCounter = "IR_ResolveMatrices.fctCallCounter"
   var fctCallCounter = 0
@@ -1131,7 +1318,7 @@ object IR_BasicMatrixOperations {
     in match {
       case me : IR_MatrixExpression                                                => (me.rows, me.columns)
       case va : IR_VariableAccess if (va.datatype.isInstanceOf[IR_MatrixDatatype]) => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
-      case other                                                                   => Logger.error("argument is of unexpected type")
+      case other                                                                   => Logger.error("argument is of unexpected type: " + in.datatype)
     }
   }
 
@@ -1152,9 +1339,6 @@ object IR_BasicMatrixOperations {
     submatrix
   }
 
-  // similar to copySubMatrix but works with IR_Expressions as input
-  //TODO symbolic slice?
-
   // insert a matrix 'source' of size 'n_rows' x 'n_cols' at position 'offset_rows', 'offset_cols' in 'target'
   def pasteSubMatrix(source : IR_MatrixExpression, target : IR_MatrixExpression, offset_rows : Int, offset_cols : Int) : Unit = {
     if (offset_rows + source.rows > target.rows || offset_cols + source.columns > target.columns) {
@@ -1174,17 +1358,6 @@ object IR_BasicMatrixOperations {
     }
   }
 
-  /*
-  // copy a matrix
-  def copy(matrix : IR_Expression) : IR_MatrixExpression = {
-    matrix match {
-      case x @ IR_MatrixExpression(_,_,_) =>
-        Duplicate(x)
-      case va @ IR_VariableAccess(_,IR_MatrixDatatype(datatpype,rows,cols)) =>
-        var out = IR_MatrixExpression
-    }
-  }
-  */
   // transpose a matrix passed by a variable
   def transpose(source : IR_VariableAccess) : IR_MatrixExpression = {
     var ssize = IR_BasicMatrixOperations.getSize(source)
@@ -1220,178 +1393,165 @@ object IR_BasicMatrixOperations {
               }
             }
             out
-          case _                                                                      => Logger.error("unexpected argument form")
+          case _                                                                      => Logger.error("unsupported argument form: " + lsize + ", " + rsize + ", expected arguments of the same size")
         }
-      case _                                                                                                                                                                              => Logger.error("unexpected argument types")
+      case _                                                                                                                                                                              => Logger.error("unexpected argument types: " + left + ", " + right + ", expected matrix variables or expressions as input")
     }
 
+  }
+
+  // multiply two columnvectors of size 3 per crossProduct
+  def crossProduct(left : IR_Expression, right : IR_Expression) : IR_MatrixExpression = {
+    (left, right) match {
+      case (l @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) | IR_MatrixExpression(_, _, _)), r @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) | IR_MatrixExpression(_, _, _))) =>
+        var lsize = getSize(left)
+        var rsize = getSize(right)
+        if (lsize._1 != 3 || lsize._2 != 1 || rsize._1 != 3 || rsize._2 != 1)
+          Logger.error("cross product only supported for two column vectors of size 3, arguments are of form: " + lsize + "," + rsize)
+        var out = IR_MatrixExpression(IR_ResultingDatatype(l.datatype, r.datatype), 3, 1)
+        out.set(0, 0, IR_Subtraction(IR_Multiplication(getElem(left, 1, 0), getElem(right, 2, 0)), IR_Multiplication(getElem(left, 2, 0), getElem(right, 1, 0))))
+        out.set(1, 0, IR_Subtraction(IR_Multiplication(getElem(left, 2, 0), getElem(right, 0, 0)), IR_Multiplication(getElem(left, 0, 0), getElem(right, 2, 0))))
+        out.set(2, 0, IR_Subtraction(IR_Multiplication(getElem(left, 0, 0), getElem(right, 1, 0)), IR_Multiplication(getElem(left, 1, 0), getElem(right, 0, 0))))
+        out
+      case _                                                                                                                                                                              => Logger.error("unexpected arguments: " + left + ", " + right + ", expected accesses to matrix variables or matrix expressions")
+    }
   }
 
   // multiplicate either two IR_MatrixExpressions like in compiletime inversions or multiple factors as a IR_Multiplication
-  def mult(exprs : IR_Expression*) : IR_MatrixExpression = {
-    if (exprs.length < 1 || exprs.length > 2)
-      Logger.error("unexpected number of arguments")
-    exprs(0) match {
-      case first : IR_MatrixExpression if (exprs.length == 2) =>
-        var fsize = getSize(first)
-        exprs(1) match {
-          case second : IR_MatrixExpression =>
-            var ssize = getSize(second)
-            if (fsize._2 != ssize._1)
-              Logger.error("sizes do not match")
-            var out = IR_MatrixExpression(IR_ResultingDatatype(first.datatype, second.datatype), fsize._1, ssize._2)
-            for (i <- 0 until fsize._1) {
-              for (j <- 0 until ssize._2) {
-                var tmp = IR_Addition(IR_IntegerConstant(0))
-                for (k <- 0 until fsize._2) {
-                  tmp = IR_Addition(tmp, IR_Multiplication(Duplicate(first.get(i, k)), Duplicate(second.get(k, j))))
-                }
-                out.set(i, j, Duplicate(tmp))
-              }
+  def mult(left : IR_MatrixExpression, right : IR_MatrixExpression) = {
+   var lsize = getSize(left)
+   var rsize = getSize(right)
+   if(lsize._2 != rsize._1)
+    Logger.error("sizes do not match: " + lsize + " vs " + rsize)
+        var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), lsize._1, rsize._2)
+        for (i <- 0 until lsize._1) {
+          for (j <- 0 until rsize._2) {
+            var tmp = IR_Addition(IR_IntegerConstant(0))
+            for (k <- 0 until rsize._1) {
+              tmp = IR_Addition(tmp, IR_Multiplication(Duplicate(left.get(i, k)), Duplicate(right.get(k, j))))
             }
-            out
-          case _                            => Logger.error("unexpected argument type")
-        }
-      case mult : IR_Multiplication                           =>
-        var tmpOperand = mult.factors(0) match {
-          case x : IR_MatrixExpression                                                 => Duplicate(x)
-          case va : IR_VariableAccess if (va.datatype.isInstanceOf[IR_MatrixDatatype]) =>
-            var tmpSize = getSize(va)
-            var ttmp = IR_MatrixExpression(va.datatype, tmpSize._1, tmpSize._2)
-            for (i <- 0 until tmpSize._1) {
-              for (j <- 0 until tmpSize._2) {
-                ttmp.set(i, j, IR_HighDimAccess(va, IR_ExpressionIndex(i, j)))
-              }
-            }
-            ttmp
-        }
-        for (l <- 1 until mult.factors.length) {
-          var lsize = getSize(tmpOperand)
-          var rsize = getSize(mult.factors(l))
-          if (lsize._2 != rsize._1)
-            Logger.error("sizes do not match: " + lsize._2 + " vs " + rsize._1 + " at argument " + mult.factors(l) + " of IR_Multiplication")
-          var tmpResult = IR_MatrixExpression(IR_UnknownDatatype, lsize._1, rsize._2)
-          for (i <- 0 until lsize._1) {
-            for (j <- 0 until rsize._2) {
-              var tmp = IR_Addition(IR_IntegerConstant(0))
-              for (k <- 0 until rsize._1) {
-                tmp = IR_Addition(Duplicate(tmp), IR_Multiplication(Duplicate(tmpOperand.get(i, k)), getElem(mult.factors(l), k, j)))
-              }
-              tmpResult.set(i, j, Duplicate(tmp))
-            }
+           out.set(i,j,Duplicate(tmp))
           }
-          var tmpRef = tmpResult
-          tmpResult = tmpOperand
-          tmpOperand = tmpRef
         }
-        tmpOperand
-      case _                                                  => Logger.error("unexpected operand type")
+        out
     }
+
+  def mult(mult : IR_Multiplication) : IR_MatrixExpression = {
+    var result = IR_MatrixExpression(IR_IntegerDatatype,1,1)
+    var tmp = mult.factors(0) match {
+      case va @ IR_VariableAccess(_,IR_MatrixDatatype(_,_,_)) =>
+        IR_MatrixNodeUtilities.accessToExpression(va)
+      case x : IR_MatrixExpression =>
+        Duplicate(x)
+      case _ =>
+        Logger.error("unexpected type: " + mult.factors(0))
+    }
+    for(f <- 1 until mult.factors.length) {
+      result = mult.factors(f) match {
+        case va @ IR_VariableAccess(_,IR_MatrixDatatype(_,_,_)) =>
+          IR_BasicMatrixOperations.mult(tmp,IR_MatrixNodeUtilities.accessToExpression(va))
+        case x : IR_MatrixExpression =>
+          IR_BasicMatrixOperations.mult(tmp, x)
+        case _ =>
+          Logger.error("unexpected type: " + mult.factors(f))
+      }
+      tmp = Duplicate(result)
+    }
+    result
   }
 
-  // add multiple matrices (summands of an IR_Addition), add two IR_MatrixExpressions or add two matrices of a IR_ElementwiseAddition
-  def add(operands : IR_Expression*) : IR_MatrixExpression = {
-    if (operands.length < 1)
-      Logger.error("wrong number of arguments")
-    operands(0) match {
-      case addition @ IR_Addition(_)                            =>
-        var size = (0, 0)
-        addition.summands.foreach(x => if (x.datatype.isInstanceOf[IR_MatrixDatatype]) size = getSize(x))
+
+  // add two IR_MatrixExpressions, internal add function to use in e.g. compiletime inversions
+  def add(left : IR_MatrixExpression, right : IR_MatrixExpression) = {
+    var lsize = getSize(left)
+    var rsize = getSize(right)
+    if(lsize != rsize)
+      Logger.error("sizes do not match: " + lsize + " vs " + rsize)
+    var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), lsize._1, lsize._2)
+    for (i <- 0 until lsize._1) {
+      for (j <- 0 until rsize._2) {
+        out.set(i,j,Duplicate(IR_Addition(left.get(i,j), right.get(i,j))))
+      }
+    }
+    out
+  }
+
+  // add multiple matrices(summands of a IR_Addition) add two matrices of a IR_ElementwiseAddition
+  def add(addition : IR_Expression) : IR_MatrixExpression = {
+    addition match {
+      case a : IR_Addition =>
+    var size = (0, 0)
+        a.summands.foreach(x => if (x.datatype.isInstanceOf[IR_MatrixDatatype]) size = getSize(x))
         if (size == (0, 0))
           Logger.error("no matrix in summands")
-        var datatype = addition.summands(0).datatype
-        addition.summands.foreach(x => datatype = IR_ResultingDatatype.apply(datatype, x.datatype))
+        var datatype = a.summands(0).datatype
+        a.summands.foreach(x => datatype = IR_ResultingDatatype.apply(datatype, x.datatype))
         var out = IR_MatrixExpression(datatype, size._1, size._2)
         for (i <- 0 until size._1) {
           for (j <- 0 until size._2) {
             out.set(i, j, IR_IntegerConstant(0))
           }
         }
-        for (k <- 0 until addition.summands.length) {
+        for (k <- 0 until a.summands.length) {
           for (i <- 0 until size._1) {
             for (j <- 0 until size._2) {
-              out.set(i, j, IR_Addition(Duplicate(out.get(i, j)), getElem(addition.summands(k), i, j)))
+              out.set(i, j, IR_Addition(Duplicate(out.get(i, j)), getElem(a.summands(k), i, j)))
             }
           }
         }
         out
-      case left : IR_MatrixExpression if (operands.length == 2) =>
-        var out = Duplicate(left)
-        var size = getSize(left)
-        operands(1) match {
-          case right : IR_MatrixExpression =>
-            for (i <- 0 until size._1) {
-              for (j <- 0 until size._2) {
-                out.set(i, j, IR_Addition(Duplicate(out.get(i, j)), getElem(operands(1), i, j)))
-              }
-            }
-            out
-          case _                           => Logger.error("unexpected second operand")
-        }
-      case addition @ IR_ElementwiseAddition(_, _)              =>
-        (addition.left, addition.right) match {
-          case (scalar @ (IR_FloatConstant(_) | IR_DoubleConstant(_) | IR_IntegerConstant(_)), matrix @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) | IR_MatrixExpression(_, _, _)))                       =>
-            var size = getSize(matrix)
-            var out = IR_MatrixExpression(IR_ResultingDatatype(scalar.datatype, matrix.datatype), size._1, size._2)
-            for (i <- 0 until size._1) {
-              for (j <- 0 until size._2) {
-                out.set(i, j, IR_Addition(Duplicate(scalar), getElem(matrix, i, j)))
-              }
-            }
-            out
-          case (matrix @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) | IR_MatrixExpression(_, _, _)), scalar @ (IR_FloatConstant(_) | IR_DoubleConstant(_) | IR_IntegerConstant(_)))                       =>
-            var size = getSize(matrix)
-            var out = IR_MatrixExpression(IR_ResultingDatatype(scalar.datatype, matrix.datatype), size._1, size._2)
-            for (i <- 0 until size._1) {
-              for (j <- 0 until size._2) {
-                out.set(i, j, IR_Addition(Duplicate(scalar), getElem(matrix, i, j)))
-              }
-            }
-            out
-          case (matrixLeft @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) | IR_MatrixExpression(_, _, _)), matrixRight @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) | IR_MatrixExpression(_, _, _))) =>
-            var size = getSize(matrixRight)
-            if (size != getSize(matrixLeft))
-              Logger.error("sizes do not match")
-            var out = IR_MatrixExpression(IR_ResultingDatatype(matrixLeft.datatype, matrixRight.datatype), size._1, size._2)
-            for (i <- 0 until size._1) {
-              for (j <- 0 until size._2) {
-                out.set(i, j, IR_Addition(getElem(matrixLeft, i, j), getElem(matrixRight, i, j)))
-              }
-            }
-            out
-        }
-      case _                                                    => Logger.error("unexpected first operand")
+      case eaddition @ IR_ElementwiseAddition(_, _) =>
+        Logger.error("elementwise addition not yet supported")
+      case _                                        => Logger.error("unexpected type: " + addition + ", expected IR_Addition or IR_ElementwiseAddition")
     }
+
   }
 
-  // subtract two matrices or a matrix and a scalar from an IR_Subtraction or as two arguments
-  def sub(operands : IR_Expression*) : IR_MatrixExpression = {
-    if (operands.length < 1 || operands.length > 2)
-      Logger.error("wrong number of arguments")
-    operands(0) match {
-      case first @ (IR_MatrixExpression(_, _, _) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))) if (operands.length == 2) =>
-        var lsize = IR_BasicMatrixOperations.getSize(first)
-        var out = IR_MatrixExpression(first.datatype, lsize._1, lsize._2)
-        operands(1) match {
-          case second @ (IR_MatrixExpression(_, _, _) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))) =>
-            for (i <- 0 until lsize._1) {
-              for (j <- 0 until lsize._2) {
-                out.set(i, j, IR_Subtraction(getElem(first, i, j), getElem(second, i, j)))
+  //Internal subtraction: sub two IR_MatrixExpressions, internal sub function to use in e.g compiletime inversion
+  def sub(left : IR_MatrixExpression, right : IR_MatrixExpression): IR_MatrixExpression = {
+  var lsize = getSize(left)
+  var rsize = getSize(right)
+  if(lsize != rsize)
+    Logger.error("sizes do not match: " + lsize + " vs " + rsize)
+  var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), lsize._1, lsize._2)
+  for (i <- 0 until lsize._1) {
+    for (j <- 0 until rsize._2) {
+      out.set(i,j,Duplicate(IR_Subtraction(left.get(i,j), right.get(i,j))))
+    }
+  }
+  out
+}
+
+  //User subtraction: subtract two operands in a IR_Subtraction or IR_ElementwiseSubtraction if one of them is a matrix
+  def sub(subtraction : IR_Expression) : IR_MatrixExpression = {
+    subtraction match {
+      case sub : IR_Subtraction             =>
+        sub.left match {
+          case matrix @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) | IR_MatrixExpression(_, _, _))                   =>
+            var size = getSize(matrix)
+            var out = IR_MatrixExpression(matrix.datatype.resolveBaseDatatype, size._1, size._2)
+            for (i <- 0 until size._1) {
+              for (j <- 0 until size._2) {
+                out.set(i, j, IR_Subtraction(getElem(sub.left, i, j), getElem(sub.right, i, j)))
               }
             }
-          case n : IR_Number                                                                              =>
-            for (i <- 0 until lsize._1) {
-              for (j <- 0 until lsize._2) {
-                out.set(i, j, IR_Subtraction(getElem(first, i, j), n))
-              }
-            }
-          case _                                                                                          => Logger.error("unexpected second operand")
+            out
+          case scalar @ (IR_VariableAccess(_, IR_RealDatatype | IR_DoubleDatatype | IR_IntegerDatatype | IR_FloatDatatype)) =>
+            if(sub.right.datatype.isInstanceOf[IR_MatrixDatatype])
+             IR_BasicMatrixOperations.sub(IR_Subtraction(sub.right, sub.left))
+            else
+              Logger.error("no matrices as operands: " + sub.left + ", " + sub.right)
+          case scalar : IR_Number                                                                                           =>
+            if(sub.right.datatype.isInstanceOf[IR_MatrixDatatype])
+              IR_BasicMatrixOperations.sub(IR_Subtraction(sub.right, sub.left))
+            else
+              Logger.error("no matrices as operands: " + sub.left + ", " + sub.right)
+          case _ => Logger.error("unexpected argument: " + sub.left + ", expected matrix or scalar")
         }
-        out
-      case first : IR_Subtraction                                                                                              => {
-        sub(first.left, first.right)
-      }
-      case _                                                                                                                   => Logger.error("unexpected first operand")
+      case esub : IR_ElementwiseSubtraction =>
+      Logger.error("IR_ElementwiseSubtraction not yet supported")
+      case _ =>
+        Logger.error("unexpected argument: " + subtraction + ", expected IR_Subtraction or IR_ElementwiseSubtraction")
     }
   }
 
@@ -1503,6 +1663,26 @@ object IR_BasicMatrixOperations {
     out
   }
 
+  // return the sum of the diagonal elements of a matrix as 1x1 matrix
+  def trace(matrix : IR_Expression) : IR_Addition = {
+    var sum = IR_Addition(IR_IntegerConstant(0))
+    matrix match {
+      case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) =>
+        var s = getSize(va)
+        if (s._1 != s._2)
+          Logger.error("trace only for quadratic matrices supported, matrix is of form: " + s)
+        for (i <- 0 until s._1) {
+          sum = IR_Addition(sum, getElem(va, i, i))
+        }
+      case x @ IR_MatrixExpression(_, _, _)                      =>
+        if (x.rows != x.columns)
+          Logger.error("trace only for quadratic matrices supported, matrix is of form: " + (x.rows, x.columns))
+        for (i <- 0 until x.rows) {
+          sum = IR_Addition(sum, getElem(x, i, i))
+        }
+    }
+    sum
+  }
 }
 
 object IR_CompiletimeInversion {
@@ -1786,11 +1966,11 @@ object IR_GenerateBasicMatrixOperations {
   }
 
   // generate a compare function for two matrices
-  def compare(left : IR_VariableAccess, right : IR_VariableAccess, precision : IR_VariableAccess) : IR_Scope = {
+  def compare(left : IR_Expression, right : IR_Expression, precision : IR_Expression) : IR_Scope = {
     var func = IR_Scope(Nil)
     var outstream = IR_VariableAccess("std::cout", IR_StringDatatype)
     (left.datatype, right.datatype) match {
-      case matrices @ (IR_MatrixDatatype(leftDt, sizeMLeft, sizeNLeft), IR_MatrixDatatype(rightDt, sizeMRight, sizeNRight))                 =>
+      case matrices @ (IR_MatrixDatatype(leftDt, sizeMLeft, sizeNLeft), IR_MatrixDatatype(rightDt, sizeMRight, sizeNRight))                                                     =>
         if ((sizeMLeft, sizeNLeft) != (sizeMRight, sizeNRight))
           Logger.error("sizes do not match: " + (sizeMLeft, sizeNLeft) + " vs " + (sizeMRight, sizeNRight))
         var _i = IR_VariableAccess("_i", IR_IntegerDatatype)
@@ -1805,8 +1985,8 @@ object IR_GenerateBasicMatrixOperations {
             ), ListBuffer[IR_Statement]())
           ))
         ))
-      case scalars @ (IR_DoubleDatatype | IR_IntegerDatatype | IR_FloatDatatype, IR_DoubleDatatype | IR_IntegerDatatype | IR_FloatDatatype) =>
-        func.body += IR_IfCondition(IR_Neq(left, right), ListBuffer[IR_Statement](
+      case scalars @ (IR_RealDatatype | IR_DoubleDatatype | IR_IntegerDatatype | IR_FloatDatatype, IR_RealDatatype | IR_DoubleDatatype | IR_IntegerDatatype | IR_FloatDatatype) =>
+        func.body += IR_IfCondition(IR_Greater(IR_FunctionCall(IR_ExternalFunctionReference.fabs, IR_Subtraction(left, right)), precision), ListBuffer[IR_Statement](
           IR_Print(outstream, ListBuffer[IR_Expression](IR_StringConstant("[Test] comparison failed: "), left, IR_StringConstant(" vs "), right, IR_StringConstant("\\n")))
         ))
     }
@@ -1817,6 +1997,78 @@ object IR_GenerateBasicMatrixOperations {
     case IR_RealDatatype    => IR_RealConstant(v)
     case IR_IntegerDatatype => IR_IntegerConstant(v.toInt)
     case _                  => exastencils.logger.Logger.error("mkConstant not implemented for " + dt.toString)
+  }
+
+  // generate code to calculate the euclidian norm of a "vector"
+  def norm(in : IR_VariableAccess, out : IR_VariableAccess, length : IR_Expression = IR_NullExpression) : IR_Scope = {
+    var func = IR_Scope(Nil)
+    var i = IR_VariableAccess("i", IR_IntegerDatatype)
+    var sum = IR_VariableAccess("sum", IR_DoubleDatatype)
+    func.body += IR_VariableDeclaration(i)
+    func.body += IR_VariableDeclaration(sum, IR_DoubleConstant(0))
+    in.datatype match {
+      case IR_MatrixDatatype(_, _, _) =>
+        var size = IR_BasicMatrixOperations.getSize(in)
+        var N : Int = 0
+        var columnvector = size match {
+          case (1, cols)    => false; N = cols
+          case (rows, 1)    => true; N = rows
+          case (rows, cols) => Logger.error("norming matrices without one dimension being of size 1 not supported")
+        }
+        func.body += IR_ForLoop(IR_Assignment(i, 0), IR_Lower(i, N), IR_PreIncrement(i), ListBuffer[IR_Statement](
+          IR_Assignment(sum, IR_Addition(sum, IR_Multiplication(IR_ArrayAccess(in, i), IR_ArrayAccess(in, i))))
+        ))
+      case IR_PointerDatatype(_)      =>
+        if (length == IR_NullExpression)
+          Logger.error("no length specified")
+        func.body += IR_ForLoop(IR_Assignment(i, 0), IR_Lower(i, length), IR_PreIncrement(i), ListBuffer[IR_Statement](
+          IR_Assignment(sum, IR_Addition(sum, IR_Multiplication(IR_ArrayAccess(in, i), IR_ArrayAccess(in, i))))
+        ))
+    }
+    func.body += IR_Assignment(out, IR_FunctionCall(IR_ExternalFunctionReference("std::sqrt", IR_DoubleDatatype), ListBuffer[IR_Expression](sum)))
+    func
+  }
+
+  // generate code to transpose a matrix
+  def transpose(in : IR_VariableAccess, out : IR_VariableAccess) : IR_Scope = {
+    var insize = IR_BasicMatrixOperations.getSize(in)
+    var outsize = IR_BasicMatrixOperations.getSize(out)
+    if (insize._1 != outsize._2 || insize._2 != outsize._1)
+      Logger.error("sizes do not match")
+    var N = insize._1
+    var M = insize._2
+    var func = IR_Scope(Nil)
+    var i = IR_VariableAccess("i", IR_IntegerDatatype)
+    var j = IR_VariableAccess("j", IR_IntegerDatatype)
+    func.body += IR_VariableDeclaration(i)
+    func.body += IR_VariableDeclaration(j)
+    func.body += IR_ForLoop(IR_Assignment(i, 0), IR_Lower(i, N), IR_PreIncrement(i), ListBuffer[IR_Statement](
+      IR_ForLoop(IR_Assignment(j, 0), IR_Lower(j, M), IR_PreIncrement(j), ListBuffer[IR_Statement](
+        IR_Assignment(IR_HighDimAccess(out, IR_ExpressionIndex(j, i)), IR_HighDimAccess(in, IR_ExpressionIndex(i, j)))
+      ))
+    ))
+    func
+  }
+
+  // generate code to elementwise multiply a scalar with a matrix
+  def elementwiseMultiplication(scalar : IR_Expression, in : IR_VariableAccess, out : IR_VariableAccess) : IR_Scope = {
+    var insize = IR_BasicMatrixOperations.getSize(in)
+    var outsize = IR_BasicMatrixOperations.getSize(out)
+    if (insize._1 != outsize._1 || insize._2 != outsize._2)
+      Logger.error("sizes do not match: " + insize + " vs " + outsize)
+    var N = insize._1
+    var M = insize._2
+    var func = IR_Scope(Nil)
+    var i = IR_VariableAccess("i", IR_IntegerDatatype)
+    var j = IR_VariableAccess("j", IR_IntegerDatatype)
+    func.body += IR_VariableDeclaration(i)
+    func.body += IR_VariableDeclaration(j)
+    func.body += IR_ForLoop(IR_Assignment(i, 0), IR_Lower(i, N), IR_PreIncrement(i), ListBuffer[IR_Statement](
+      IR_ForLoop(IR_Assignment(j, 0), IR_Lower(j, M), IR_PreIncrement(j), ListBuffer[IR_Statement](
+        IR_Assignment(IR_HighDimAccess(out, IR_ExpressionIndex(i, j)), IR_Multiplication(scalar, IR_HighDimAccess(in, IR_ExpressionIndex(i, j))))
+      ))
+    ))
+    func
   }
 
   // multiply 'left' and 'right' and write result to specified place at 'offset_r', 'offset_c' in 'out'
@@ -1911,17 +2163,16 @@ object IR_GenerateBasicMatrixOperations {
   }
 
   // copy a submatrix of n_rows x n_cols to 'copy' from position 'offset_r', 'offset_c' in 'source'
-  def copySubmatrix(source : IR_VariableAccess, copy : IR_Expression, offset_r : IR_Expression, offset_c : IR_Expression, n_rows : IR_Expression, n_cols : IR_Expression) : IR_Scope = {
+  def copySubmatrix(source : IR_VariableAccess, dest : IR_VariableAccess, offset_r : IR_Expression, offset_c : IR_Expression, n_rows : IR_Expression, n_cols : IR_Expression) : IR_Scope = {
     var stmts = IR_Scope(Nil)
     val sourceDt = source.datatype.asInstanceOf[IR_MatrixDatatype]
-    val copyDt = copy.datatype.asInstanceOf[IR_MatrixDatatype]
     var i = IR_VariableAccess("i", IR_IntegerDatatype)
     var j = IR_VariableAccess("j", IR_IntegerDatatype)
     stmts.body += IR_VariableDeclaration(i)
     stmts.body += IR_VariableDeclaration(j)
     stmts.body += IR_ForLoop(IR_Assignment(i, offset_r), IR_Lower(i, n_rows + offset_r), IR_PreIncrement(i), ListBuffer[IR_Statement](
       IR_ForLoop(IR_Assignment(j, offset_c), IR_Lower(j, offset_c + n_cols), IR_PreIncrement(j), ListBuffer[IR_Statement](
-        IR_Assignment(IR_HighDimAccess(copy, IR_ExpressionIndex(i - offset_r, j - offset_c)), IR_HighDimAccess(source, IR_ExpressionIndex(i, j)))
+        IR_Assignment(IR_HighDimAccess(dest, IR_ExpressionIndex(i - offset_r, j - offset_c)), IR_HighDimAccess(source, IR_ExpressionIndex(i, j)))
       ))
     ))
     stmts
@@ -1948,6 +2199,7 @@ object IR_GenerateBasicMatrixOperations {
 
   // write 'newVal' to all positions in 'n_rows' x 'n_cols' at position 'offset_r', 'offset_c' in 'matrix'
   def setSubmatrix(matrix : IR_VariableAccess, offsetRows : IR_Expression, offsetCols : IR_Expression, nRows : IR_Expression, nCols : IR_Expression, newValue : IR_Expression) : IR_Scope = {
+
     var stmts = IR_Scope(Nil)
     val sourceDt = matrix.datatype.asInstanceOf[IR_MatrixDatatype]
     var i = IR_VariableAccess("i", IR_IntegerDatatype)
@@ -1961,6 +2213,30 @@ object IR_GenerateBasicMatrixOperations {
       ))
     ))
     stmts
+  }
+
+  // code to generate a n-unitmatrix
+  def unitmatrix(size : IR_Expression, out : IR_VariableAccess) : IR_Scope = {
+    var outsize = IR_BasicMatrixOperations.getSize(out)
+    if (outsize._1 != outsize._2)
+      Logger.error("outmatrix not quadratic")
+    var func = IR_Scope(Nil)
+    var _i = IR_VariableAccess("_i", IR_IntegerDatatype)
+    var _j = IR_VariableAccess("_j", IR_IntegerDatatype)
+    func.body += IR_VariableDeclaration(_i)
+    func.body += IR_VariableDeclaration(_j)
+    func.body += IR_ForLoop(IR_Assignment(_i, 0), IR_Lower(_i, outsize._1), IR_PreIncrement(_i), ListBuffer[IR_Statement](
+      IR_ForLoop(IR_Assignment(_j, 0), IR_Lower(_j, outsize._2), IR_PreIncrement(_j), ListBuffer[IR_Statement](
+        IR_IfCondition(IR_EqEq(_i, _j), ListBuffer[IR_Statement](
+          IR_Assignment(IR_HighDimAccess(out, IR_ExpressionIndex(_i, _j)), IR_DoubleConstant(1))
+        ),
+          ListBuffer[IR_Statement](
+            IR_Assignment(IR_HighDimAccess(out, IR_ExpressionIndex(_i, _j)), IR_DoubleConstant(0))
+          )
+        )
+      ))
+    ))
+    func
   }
 
   // generate determinant calculation if 'in' is lu decomposed
@@ -2011,6 +2287,86 @@ object IR_GenerateBasicMatrixOperations {
 
 }
 
+/*
+object IR_GenerateQRDecomposition {
+
+    // generate code to calculate a householder matrix from a column vector
+    def householderMatrix(a : IR_VariableAccess,  hhmatrix : IR_VariableAccess) : IR_Scope = {
+      var debug = true
+
+      var asize = IR_BasicMatrixOperations.getSize(a)
+      var hhsize = IR_BasicMatrixOperations.getSize(hhmatrix)
+      if(hhsize._1 != hhsize._2)
+        Logger.error("householder for nonquadratic matrices not supported: " + hhsize)
+      if(asize._1 != hhsize._1)
+        Logger.error("sizes do not match: " + asize + " vs " + hhsize)
+      var func = IR_Scope(Nil)
+      var N = asize._1
+
+      // auxilliary variables
+      var i = IR_VariableAccess("i", IR_IntegerDatatype)
+      var j = IR_VariableAccess("j", IR_IntegerDatatype)
+      var alpha = IR_VariableAccess("alpha",IR_DoubleDatatype)
+      var u = IR_VariableAccess("u", IR_MatrixDatatype(IR_DoubleDatatype,N,1))
+      var e1 = IR_VariableAccess("e1", IR_MatrixDatatype(IR_DoubleDatatype,N,1))
+      var tmp = IR_VariableAccess("tmp", IR_MatrixDatatype(IR_DoubleDatatype,N,1))
+      var tmpMatrix = IR_VariableAccess("tmpMatrix", IR_MatrixDatatype(IR_DoubleDatatype,N,N))
+      var I = IR_VariableAccess("I", IR_MatrixDatatype(IR_DoubleDatatype,N,N))
+      var v = IR_VariableAccess("v", IR_MatrixDatatype(IR_DoubleDatatype,N,1))
+      var v_transposed = IR_VariableAccess("v_transposed", IR_MatrixDatatype(IR_DoubleDatatype,1,N))
+      var norm_u = IR_VariableAccess("norm_u", IR_DoubleDatatype)
+      var printstream = IR_VariableAccess("std::cout",IR_StringDatatype)
+
+      // declarations
+      func.body += IR_VariableDeclaration(i)
+      func.body += IR_VariableDeclaration(j)
+      func.body += IR_VariableDeclaration(alpha)
+      func.body += IR_VariableDeclaration(u)
+      func.body += IR_VariableDeclaration(e1)
+      func.body += IR_VariableDeclaration(norm_u)
+      func.body += IR_VariableDeclaration(v)
+      func.body += IR_VariableDeclaration(v_transposed)
+      func.body += IR_VariableDeclaration(tmpMatrix)
+      func.body += IR_VariableDeclaration(I)
+      func.body += IR_VariableDeclaration(tmp)
+
+      // fill unit vector
+      func.body += IR_Assignment(IR_ArrayAccess(e1,0),IR_DoubleConstant(1))
+
+      // calculate norm of column vector
+      func.body += IR_GenerateBasicMatrixOperations.norm(a,alpha)
+      if(debug)
+        func.body += IR_Print(printstream,alpha,IR_StringConstant("\\n"))
+
+      // calculate u
+      func.body += IR_GenerateBasicMatrixOperations.elementwiseMultiplication(alpha,e1,tmp)
+      func.body += IR_GenerateBasicMatrixOperations.subAtSubmatrix(a,tmp,u,0,0)
+      if(debug)
+        func.body ++= IR_GenerateBasicMatrixOperations.printMatrix(u)
+
+      // norm u
+      func.body += IR_GenerateBasicMatrixOperations.norm(u,norm_u)
+
+      // calculate v and transpose
+      func.body += IR_GenerateBasicMatrixOperations.elementwiseMultiplication(IR_Division(1,norm_u),u,v)
+      func.body += IR_GenerateBasicMatrixOperations.transpose(v,v_transposed)
+      if(debug) {
+        func.body ++= IR_GenerateBasicMatrixOperations.printMatrix(v)
+        func.body ++= IR_GenerateBasicMatrixOperations.printMatrix(v_transposed)
+      }
+
+
+      // calculate householder matrix and write to hhmatrix(out)
+      func.body += IR_GenerateBasicMatrixOperations.unitmatrix(N,I)
+      func.body += IR_GenerateBasicMatrixOperations.multAtSubmatrix(v,v_transposed,tmpMatrix,0,0)
+      func.body += IR_GenerateBasicMatrixOperations.elementwiseMultiplication(2,tmpMatrix,tmpMatrix)
+      if(debug)
+        func.body ++= IR_GenerateBasicMatrixOperations.printMatrix(tmpMatrix)
+      func.body += IR_GenerateBasicMatrixOperations.subAtSubmatrix(I,tmpMatrix, hhmatrix,0,0)
+
+      func
+    }
+  */
 object IR_GenerateRuntimeInversion {
 
   // direct inversion for small matrices
@@ -2226,7 +2582,7 @@ object IR_GenerateRuntimeInversion {
 
              with M of size (n + m) x (n + m) and S = D - C * A_inv * B
  */
-  def schur(in : IR_VariableAccess, blockSize : Int, blockSizeA: Int, out : IR_VariableAccess) : IR_Scope = {
+  def schur(in : IR_VariableAccess, blockSize : Int, blockSizeA : Int, out : IR_VariableAccess) : IR_Scope = {
     var debug = true
     var func = IR_Scope(Nil)
     var inDt = in.datatype.asInstanceOf[IR_MatrixDatatype]
@@ -2350,10 +2706,9 @@ object IR_GenerateRuntimeInversion {
 
         IR_Scope(stmts)
       case "Diagonal"      => diagonal(in, out)
-      case "Blockdiagonal" => blockdiagonal(in, blockSize  , out)
-      case "Schur"         => schur(in, blockSize,Knowledge.experimental_blocksize_A, out)
+      case "Blockdiagonal" => blockdiagonal(in, blockSize, out)
+      case "Schur"         => schur(in, blockSize, Knowledge.experimental_blocksize_A, out)
       case _               => Logger.error("runtime inversion: unknown runtimeInverse resolve: " + matrixStructure)
     }
   }
 }
-
