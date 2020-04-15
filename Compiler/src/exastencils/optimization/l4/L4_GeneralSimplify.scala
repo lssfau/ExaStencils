@@ -18,6 +18,7 @@
 
 package exastencils.optimization.l4
 
+import scala.collection.mutable
 import scala.collection.mutable.{ ArrayBuffer, ListBuffer, Queue }
 
 import exastencils.base.l4._
@@ -213,10 +214,10 @@ object L4_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     // if compactAST is set, no Subtraction is created, so prevent creating a Neg(Const),
     //   which would lead to a non-terminating recursion
     // if posSums is empty we do not want to add the constant to the negSums, which would also result in a Neg(Const) -> non-terminating
-      if (intCst > 0 || compactAST || posSums.isEmpty)
-        posSums += L4_IntegerConstant(intCst)
-      else
-        negSums += L4_IntegerConstant(-intCst)
+    if (intCst > 0 || compactAST || posSums.isEmpty)
+      posSums += L4_IntegerConstant(intCst)
+    else
+      negSums += L4_IntegerConstant(-intCst)
 
     if (vecExpr != null) {
       if (posSums.isEmpty && negSums.isEmpty)
@@ -247,7 +248,7 @@ object L4_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
   private def simplifyMult(facs : Seq[L4_Expression]) : L4_Expression = {
     var intCst : Long = 1L
     var floatCst : Double = 1d
-    val workQ = new Queue[L4_Expression]()
+    var workQ = mutable.Queue[L4_Expression]()
     val remA = new ArrayBuffer[L4_Expression]() // use ArrayBuffer here for a more efficient access to the last element
     var div : L4_Division = null
     for (f <- facs) {
@@ -258,10 +259,11 @@ object L4_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
           case L4_IntegerConstant(iv)                            => intCst *= iv
           case L4_RealConstant(fv)                               => floatCst *= fv
           case L4_Negative(e)                                    =>
+            workQ = (mutable.Queue() :+ e) ++ workQ
             workQ.enqueue(e)
             intCst = -intCst
           case L4_Multiplication(iFacs)                          =>
-            workQ.enqueue(iFacs : _*)
+            workQ = mutable.Queue() ++ iFacs ++ workQ
           case d @ L4_Division(L4_RealConstant(fv), _)           =>
             floatCst *= fv
             d.left = L4_RealConstant(1.0)
