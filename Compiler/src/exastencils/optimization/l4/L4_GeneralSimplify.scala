@@ -260,7 +260,6 @@ object L4_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
           case L4_RealConstant(fv)                               => floatCst *= fv
           case L4_Negative(e)                                    =>
             workQ = (mutable.Queue() :+ e) ++ workQ
-            workQ.enqueue(e)
             intCst = -intCst
           case L4_Multiplication(iFacs)                          =>
             workQ = mutable.Queue() ++ iFacs ++ workQ
