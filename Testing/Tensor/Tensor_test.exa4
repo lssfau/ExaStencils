@@ -16,4 +16,6 @@ Function Application() : Unit {
         [1,2] := 1,
         [2,2] := 1
         }
+    Var mydet : double = deter(m1)
+    print( mydet )
 }

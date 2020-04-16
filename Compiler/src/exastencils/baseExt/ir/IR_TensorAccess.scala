@@ -139,6 +139,132 @@ case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends
 }
 
 // TODO: Hier geht der Spaß los
+
+
+/*
+object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments to tensors") {
+  val annotationMatrixRow = "IR_ResolveMatrices.matrixRow"
+  val annotationMatrixCol = "IR_ResolveMatrices.matrixCol"
+
+  this += new Transformation("scalarize 1/2", {
+    case stmt : IR_VariableDeclaration => stmt
+
+    case IR_Assignment(dest, num : IR_Number, "=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] && !dest.isInstanceOf[IR_TensorExpression] =>
+      val dt = dest.datatype.asInstanceOf[IR_MatrixDatatype]
+      IR_FunctionCall("std::fill", ListBuffer[IR_Expression](Duplicate(dest), Duplicate(dest) + dt.resolveFlattendSize, num)) : IR_Statement
+
+    case IR_Assignment(dest, src : IR_VariableAccess, "=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] && !dest.isInstanceOf[IR_TensorExpression] && src.datatype.isInstanceOf[IR_MatrixDatatype] =>
+      val dt = dest.datatype.asInstanceOf[IR_MatrixDatatype]
+      IR_FunctionCall("std::copy", ListBuffer[IR_Expression](Duplicate(src), Duplicate(src) + dt.resolveFlattendSize, dest)) : IR_Statement
+
+    case stmt @ IR_Assignment(dest, _, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype]) =>
+      val matrix = dest.datatype.asInstanceOf[IR_MatrixDatatype]
+      var newStmts = ListBuffer[IR_Statement]()
+      for (row <- 0 until matrix.sizeM) {
+        for (col <- 0 until matrix.sizeN) {
+          var cloned = Duplicate(stmt)
+          StateManager.findAll[IR_Expression](cloned).foreach {
+            case _ : IR_FunctionArgument                                                                                                            => // do not mark function arguments to be resolved into individual accesses
+            case x @ (_ : IR_VariableAccess | _ : IR_TensorExpression | _ : IR_MultiDimFieldAccess) if (x.datatype.isInstanceOf[IR_MatrixDatatype]) => {
+              x.annotate(annotationMatrixRow, row)
+              x.annotate(annotationMatrixCol, col)
+            }
+            case exp                                                                                                                                =>
+          }
+          newStmts += cloned
+        }
+      }
+      newStmts
+  })
+
+  this += new Transformation("expressions 2/2", {
+    case exp : IR_TensorExpression if (exp.hasAnnotation(annotationMatrixRow)) =>
+      exp.get(exp.popAnnotationAs[Int](annotationMatrixRow), exp.popAnnotationAs[Int](annotationMatrixCol))
+
+    case exp : IR_Expression if (exp.hasAnnotation(annotationMatrixRow)) =>
+      IR_HighDimAccess(Duplicate(exp), IR_ConstIndex(Array(exp.popAnnotationAs[Int](annotationMatrixRow), exp.popAnnotationAs[Int](annotationMatrixCol))))
+  }, false)
+}
+*/
+
+/*
+object IR_SetupTensorExpressions extends DefaultStrategy("Convert accesses to tensors to Tensorexpressions") {
+  def duplicateExpressions(access : IR_Expression, dt : IR_MatrixDatatype) = {
+    var expressions = ListBuffer[IR_Expression]()
+    for (row <- 0 until dt.sizeM)
+      for (col <- 0 until dt.sizeN)
+        expressions += IR_HighDimAccess(Duplicate(access), IR_ConstIndex(row, col))
+    expressions.toArray
+  }
+
+  this += Transformation("Wrap", {
+    case m @ IR_TensorExpression(_, 1, 1)             => m.get(0, 0)
+    case IR_MatrixDatatype(dt, 1, 1)                  => dt
+    case m : IR_TensorExpression                      => m // no need to process further
+    case hda : IR_HighDimAccess                       => hda // no need to process further
+    case x : IR_FunctionCall if (x.name != "inverse") => x
+
+    case access @ IR_VariableAccess(_, m : IR_MatrixDatatype) if (m.sizeM > 1 || m.sizeN > 1) => IR_TensorExpression(Some(m.datatype), m.sizeM, m.sizeN, duplicateExpressions(access, m))
+
+    case access : IR_MultiDimFieldAccess if access.datatype.isInstanceOf[IR_MatrixDatatype] =>
+      val m = access.datatype.asInstanceOf[IR_MatrixDatatype]
+      if (m.sizeM > 1 || m.sizeN > 1)
+        IR_TensorExpression(Some(m.datatype), m.sizeM, m.sizeN, duplicateExpressions(access, m))
+      else
+        access
+
+    // FIXME: add support for stencil fields
+  }, false)
+}
+
+*/
+
+
+// Resolve user defined functions
+object IR_ResolveUserDefinedTensor2Functions extends DefaultStrategy("Resolve user defined functions") {
+  var resolveFunctions = ListBuffer[String]()
+  this.onBefore = () => {
+    resolveFunctions.clear()
+    resolveFunctions ++= ListBuffer("dotProduct", "dot", "crossProduct", "cross", "deter", "determinant", "getElement", "setElement", "inverse", "dyadic")
+  }
+
+  this += new Transformation("add assignments/decl to function returns to arguments", {
+    case IR_Assignment(dest, src : IR_FunctionCall, "=") if (!resolveFunctions.contains(src.name) && dest.datatype.isInstanceOf[IR_TensorDatatype2] && src.datatype.isInstanceOf[IR_TensorDatatype2])                   =>
+      src.arguments += dest
+      IR_ExpressionStatement(src)
+    case IR_VariableDeclaration(datatype, name, Some(src : IR_FunctionCall), _) if (!resolveFunctions.contains(src.name) && datatype.isInstanceOf[IR_TensorDatatype2] && src.datatype.isInstanceOf[IR_TensorDatatype2]) =>
+      val decl = IR_VariableDeclaration(datatype, name, None)
+      src.arguments += IR_VariableAccess(decl)
+      ListBuffer[IR_Statement](
+        decl,
+        IR_ExpressionStatement(src)
+      )
+    case IR_Assignment(dest, src : IR_FunctionCall, "+=") if (!resolveFunctions.contains(src.name) && dest.datatype.isInstanceOf[IR_TensorDatatype2] && src.datatype.isInstanceOf[IR_TensorDatatype2])                  =>
+      Logger.error("+= tensor operator resolution not yet implemented")
+  })
+
+  this += new Transformation("parameters and return types", {
+    case arg : IR_FunctionArgument if (arg.datatype.isInstanceOf[IR_TensorDatatype2])                                    =>
+      arg.datatype = IR_ReferenceDatatype(arg.datatype)
+      arg
+    case func : IR_Function if (!resolveFunctions.contains(func.name) && func.datatype.isInstanceOf[IR_TensorDatatype2]) =>
+      val tensor = func.datatype.asInstanceOf[IR_TensorDatatype2]
+      func.parameters += IR_FunctionArgument("_tensor2_return", IR_ReferenceDatatype(tensor))
+      func.datatype = IR_UnitDatatype
+
+      func.body = func.body.flatMap(stmt => stmt match {
+        case IR_Return(Some(exp)) if (exp.datatype.isInstanceOf[IR_TensorDatatype2]) => {
+          List(
+            IR_Assignment(IR_VariableAccess("_tensor2_return", tensor), exp),
+            IR_Return())
+        }
+        case _                                                                      => List(stmt)
+      })
+      func
+  })
+
+}
+
 object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tensor functions") {
 
   def getElem(exp : IR_Expression, row : Integer, col : Integer) = {
@@ -157,15 +283,23 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
   }
 
   def determinant(m : IR_TensorExpression2) : IR_Expression = {
-    var det : IR_Expression = IR_RealConstant(0)
+    /*var det : IR_Expression = IR_RealConstant(0)
     var tmpDet : IR_Expression = IR_Multiplication(m.get(1,1), m.get(2,2), m.get(3,3))
     tmpDet = IR_Addition(tmpDet, IR_Multiplication(m.get(1,2), m.get(2,3), m.get(3,1)))
     tmpDet += IR_Addition(tmpDet, IR_Multiplication(m.get(1,3), m.get(2,1), m.get(3,2)))
     tmpDet += IR_Addition(tmpDet, IR_Multiplication(IR_Negation(m.get(3,1)), m.get(2,2), m.get(1,3)))
     tmpDet += IR_Addition(tmpDet, IR_Multiplication(IR_Negation(m.get(2,1)), m.get(1,2), m.get(3,3)))
     tmpDet += IR_Addition(tmpDet, IR_Multiplication(IR_Negation(m.get(1,1)), m.get(3,2), m.get(2,3)))
-    det += IR_GeneralSimplifyWrapper.process[IR_Expression](tmpDet)
-    IR_GeneralSimplifyWrapper.process(det)
+    Duplicate(tmpDet)*/
+    Logger.error("hit")
+    Duplicate(m.get(0, 0) * m.get(1, 1) * m.get(2, 2) +
+      m.get(0, 1) * m.get(1, 2) * m.get(2, 0) +
+      m.get(0, 2) * m.get(1, 0) * m.get(2, 1) -
+      m.get(2, 0) * m.get(1, 1) * m.get(0, 2) -
+      m.get(2, 1) * m.get(1, 2) * m.get(0, 0) -
+      m.get(2, 2) * m.get(1, 0) * m.get(0, 1))
+    //det += IR_GeneralSimplifyWrapper.process[IR_Expression](tmpDet)
+    //IR_GeneralSimplifyWrapper.process(det)
   }
 
   def trace(m : IR_TensorExpression2) : IR_Expression = {
@@ -318,21 +452,83 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
     }
     tmp
   }
-}
 
+  this += new Transformation("resolution of built-in functions 2/2", {
+
+    case call : IR_FunctionCall if (call.name == "deter")    => // TODO : instanz prüfen
+      if (call.arguments.length != 1) {
+        Logger.error("det() must have one argument")
+      }
+      //Logger.error(call.toString)
+      val m = call.arguments(0).asInstanceOf[IR_TensorExpression2]
+      determinant(m)  // TODO: Zeus, zu testen
+      
+    case IR_ElementwiseMultiplication(left, right) =>
+      if (!left.isInstanceOf[IR_TensorExpression2]){
+        Logger.error("Left input has the wrong type!")
+      } else if (!right.isInstanceOf[IR_TensorExpression2]){
+        Logger.error("Right input has the wrong type!")
+      }
+      val me = IR_TensorExpression2(IR_ResultingDatatype(left.datatype, right.datatype))
+      for (row <- 0 until 9) {
+        for (col <- 0 until 3) {
+          me.set(row, col, IR_Multiplication(getElem(left, row, col), getElem(right, row, col)))
+        }
+      }
+      me
+
+    case call : IR_FunctionCall if (call.name == "mul")                                                                       =>
+      if (call.arguments.length != 2) {
+        Logger.error("mul() must have two arguments")
+      }
+      val m = call.arguments(0).asInstanceOf[IR_TensorExpression2]
+      val n = call.arguments(1).asInstanceOf[IR_TensorExpression2]
+      IR_ElementwiseMultiplication(m, n)  // TODO: Zeus, zu testen
+
+    case call : IR_FunctionCall if (call.name == "add")                                                                       =>
+      if (call.arguments.length != 2) {
+        Logger.error("add() must have two arguments")
+      }
+      if (call.arguments(0).isInstanceOf[IR_TensorExpression2] && call.arguments(1).isInstanceOf[IR_TensorExpression2]){
+        val left = call.arguments(0).asInstanceOf[IR_TensorExpression2]
+        val right = call.arguments(1).asInstanceOf[IR_TensorExpression2]
+        addTwoTensors(left, right)
+      } else if (call.arguments(0).isInstanceOf[IR_TensorExpression2] && call.arguments(1).isInstanceOf[IR_MatrixExpression]){
+        val left = call.arguments(0).asInstanceOf[IR_TensorExpression2]
+        val right = call.arguments(1).asInstanceOf[IR_MatrixExpression]
+        if (right.rows == 3 && right.columns == 3) {
+          addTensorsMatrix(left, right)
+        } else {
+          Logger.error("Right matrix has the wrong size!")
+        }
+      } else if (call.arguments(0).isInstanceOf[IR_MatrixExpression] && call.arguments(1).isInstanceOf[IR_TensorExpression2]) {
+        val left = call.arguments(1).asInstanceOf[IR_TensorExpression2]
+        val right = call.arguments(0).asInstanceOf[IR_MatrixExpression]
+        if (right.rows == 3 && right.columns == 3) {
+          addTensorsMatrix(left, right)
+        } else {
+          Logger.error("Right matrix has the wrong size!")
+        }
+      } else {
+        Logger.error("Wrong type/s for add")
+      }
+  // TODO: Zeus, zu testen
+  })
+}
 /*
-object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments to tensors") {
+// TODO: Hier gehts weiter
+object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments to matrices") {
   val annotationMatrixRow = "IR_ResolveMatrices.matrixRow"
   val annotationMatrixCol = "IR_ResolveMatrices.matrixCol"
 
   this += new Transformation("scalarize 1/2", {
     case stmt : IR_VariableDeclaration => stmt
 
-    case IR_Assignment(dest, num : IR_Number, "=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] && !dest.isInstanceOf[IR_TensorExpression] =>
+    case IR_Assignment(dest, num : IR_Number, "=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] && !dest.isInstanceOf[IR_MatrixExpression] =>
       val dt = dest.datatype.asInstanceOf[IR_MatrixDatatype]
       IR_FunctionCall("std::fill", ListBuffer[IR_Expression](Duplicate(dest), Duplicate(dest) + dt.resolveFlattendSize, num)) : IR_Statement
 
-    case IR_Assignment(dest, src : IR_VariableAccess, "=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] && !dest.isInstanceOf[IR_TensorExpression] && src.datatype.isInstanceOf[IR_MatrixDatatype] =>
+    case IR_Assignment(dest, src : IR_VariableAccess, "=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] && !dest.isInstanceOf[IR_MatrixExpression] && src.datatype.isInstanceOf[IR_MatrixDatatype] =>
       val dt = dest.datatype.asInstanceOf[IR_MatrixDatatype]
       IR_FunctionCall("std::copy", ListBuffer[IR_Expression](Duplicate(src), Duplicate(src) + dt.resolveFlattendSize, dest)) : IR_Statement
 
@@ -344,7 +540,7 @@ object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments 
           var cloned = Duplicate(stmt)
           StateManager.findAll[IR_Expression](cloned).foreach {
             case _ : IR_FunctionArgument                                                                                                            => // do not mark function arguments to be resolved into individual accesses
-            case x @ (_ : IR_VariableAccess | _ : IR_TensorExpression | _ : IR_MultiDimFieldAccess) if (x.datatype.isInstanceOf[IR_MatrixDatatype]) => {
+            case x @ (_ : IR_VariableAccess | _ : IR_MatrixExpression | _ : IR_MultiDimFieldAccess) if (x.datatype.isInstanceOf[IR_MatrixDatatype]) => {
               x.annotate(annotationMatrixRow, row)
               x.annotate(annotationMatrixCol, col)
             }
@@ -357,43 +553,37 @@ object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments 
   })
 
   this += new Transformation("expressions 2/2", {
-    case exp : IR_TensorExpression if (exp.hasAnnotation(annotationMatrixRow)) =>
+    case exp : IR_MatrixExpression if (exp.hasAnnotation(annotationMatrixRow)) =>
       exp.get(exp.popAnnotationAs[Int](annotationMatrixRow), exp.popAnnotationAs[Int](annotationMatrixCol))
 
     case exp : IR_Expression if (exp.hasAnnotation(annotationMatrixRow)) =>
       IR_HighDimAccess(Duplicate(exp), IR_ConstIndex(Array(exp.popAnnotationAs[Int](annotationMatrixRow), exp.popAnnotationAs[Int](annotationMatrixCol))))
   }, false)
 }
-*/
+ */
 
-/*
-object IR_SetupTensorExpressions extends DefaultStrategy("Convert accesses to tensors to Tensorexpressions") {
-  def duplicateExpressions(access : IR_Expression, dt : IR_MatrixDatatype) = {
+object IR_SetupTensor2Expressions extends DefaultStrategy("Convert accesses to matrices and vectors to MatrixExpressions") {
+  def duplicateExpressions(access : IR_Expression, dt : IR_TensorDatatype2) = {
     var expressions = ListBuffer[IR_Expression]()
-    for (row <- 0 until dt.sizeM)
-      for (col <- 0 until dt.sizeN)
+    for (row <- 0 until 3)
+      for (col <- 0 until 3)
         expressions += IR_HighDimAccess(Duplicate(access), IR_ConstIndex(row, col))
     expressions.toArray
   }
 
   this += Transformation("Wrap", {
-    case m @ IR_TensorExpression(_, 1, 1)             => m.get(0, 0)
-    case IR_MatrixDatatype(dt, 1, 1)                  => dt
-    case m : IR_TensorExpression                      => m // no need to process further
+    case m @ IR_TensorExpression2(_)             => m.get(0, 0)
+    case IR_TensorDatatype2(dt)                  => dt
+    case m : IR_TensorExpression2                      => m // no need to process further
     case hda : IR_HighDimAccess                       => hda // no need to process further
     case x : IR_FunctionCall if (x.name != "inverse") => x
 
-    case access @ IR_VariableAccess(_, m : IR_MatrixDatatype) if (m.sizeM > 1 || m.sizeN > 1) => IR_TensorExpression(Some(m.datatype), m.sizeM, m.sizeN, duplicateExpressions(access, m))
+    case access @ IR_VariableAccess(_, m : IR_TensorDatatype2) => IR_TensorExpression2(Some(m.datatype), duplicateExpressions(access, m))
 
-    case access : IR_MultiDimFieldAccess if access.datatype.isInstanceOf[IR_MatrixDatatype] =>
-      val m = access.datatype.asInstanceOf[IR_MatrixDatatype]
-      if (m.sizeM > 1 || m.sizeN > 1)
-        IR_TensorExpression(Some(m.datatype), m.sizeM, m.sizeN, duplicateExpressions(access, m))
-      else
-        access
+    case access : IR_MultiDimFieldAccess if access.datatype.isInstanceOf[IR_TensorDatatype2] =>
+      val m = access.datatype.asInstanceOf[IR_TensorDatatype2]
+      IR_TensorExpression2(Some(m.datatype), duplicateExpressions(access, m))
 
     // FIXME: add support for stencil fields
   }, false)
 }
-
-*/
