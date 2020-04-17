@@ -21,7 +21,7 @@ package exastencils.optimization.ir
 import scala.collection.mutable.Map
 
 import exastencils.base.ir._
-import exastencils.config.Settings
+import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -101,13 +101,21 @@ private final class AnnotateStringConstants extends IR_ScopeCollector(Map[String
         else if (warnMissingDeclarations)
           Logger.warn("[Type inference]  declaration to " + name + " missing?")
 
-      case IR_VariableAccess(name, ty) =>
+      case va @ IR_VariableAccess(name, ty) =>
         val inferred = findType(name)
         if (inferred == null) {
           if (warnMissingDeclarations)
             Logger.warn("[Type inference]  declaration to " + name + " missing?")
-        } else if (ty != inferred)
-          Logger.warn("[Type inference]  inferred type (" + inferred + ") different from actual type stored in node (" + ty + "); ignoring")
+        } else if (ty != inferred) {
+          (ty, inferred) match {
+            case (IR_RealDatatype, IR_DoubleDatatype) | (IR_DoubleDatatype, IR_RealDatatype) if Knowledge.useDblPrecision =>
+              va.datatype = IR_DoubleDatatype
+            case (IR_RealDatatype, IR_FloatDatatype) | (IR_FloatDatatype, IR_RealDatatype) if !Knowledge.useDblPrecision  =>
+              va.datatype = IR_FloatDatatype
+            case _                                                                                                        =>
+              Logger.warn("[Type inference]  inferred type (" + inferred + ") different from actual type stored in node (" + ty + "); ignoring")
+          }
+        }
 
       case fct : IR_Function =>
         for (param <- fct.parameters)
