@@ -214,6 +214,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_SetupTensor2Expressions.apply()
     IR_ResolveUserDefinedTensor2Functions.apply()
     IR_ResolveTensor2Functions.apply()
+    IR_ResolveTensorAssignments.apply()
 
 
     // TODO ############################################################################################
