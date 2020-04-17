@@ -18,6 +18,7 @@
 
 package exastencils.optimization.ir
 
+import scala.collection.mutable
 import scala.collection.mutable.{ ArrayBuffer, ListBuffer, Queue }
 
 import java.util.concurrent.atomic.AtomicInteger
@@ -25,8 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
-import exastencils.core.Duplicate
-import exastencils.core.StateManager
+import exastencils.core._
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.util.ir.IR_ResultingDatatype
@@ -331,7 +331,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
 
     var intCst : Long = if (negate) -1L else 1L
     var floatCst : Double = 1d
-    val workQ = new Queue[IR_Expression]()
+    var workQ = new mutable.Queue[IR_Expression]()
     val remA = new ArrayBuffer[IR_Expression]() // use ArrayBuffer here for a more efficient access to the last element
     var div : IR_Division = null
     for (f <- facs) {
@@ -342,10 +342,10 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
           case IR_IntegerConstant(iv)                  => intCst *= iv
           case IR_RealConstant(fv)                     => floatCst *= fv
           case IR_Negative(e)                          =>
-            workQ.enqueue(e)
+            workQ = (mutable.Queue() :+ e) ++ workQ
             intCst = -intCst
           case IR_Multiplication(iFacs)                =>
-            workQ.enqueue(iFacs : _*)
+            workQ = mutable.Queue() ++ iFacs ++ workQ
           case d @ IR_Division(IR_RealConstant(fv), _) =>
             floatCst *= fv
             d.left = IR_RealConstant(1.0)

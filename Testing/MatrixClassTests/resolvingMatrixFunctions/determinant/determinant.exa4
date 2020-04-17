@@ -13,7 +13,7 @@ Function Application ( ) : Unit {
 	//Var m2 : Matrix<Double, 1, 1> = {{4}}
 	Var m3 : Matrix<Double, 3, 3> = {{1,2,3},{3,4,5},{1,2,7}}
 	Var m4 : Matrix<Double, 4, 4> = {{3,4,5,6},{1,5,7,2},{4,6,8,1},{4,5,1,6}}
-	Var m5 : Matrix<Int, 6, 6> = {{3,4,5,6,1,2},{5,6,1,5,7,2},{5,6,4,6,8,1},{4,3,4,5,1,6},{5,7,8,4,2,5},{1,2,3,4,7,8}}
+	Var m5 : Matrix<Double, 6, 6> = {{3.0,4,5,6,1,2},{5,6,1,5,7,2},{5,6,4,6,8,1},{4,3,4,5,1,6},{5,7,8,4,2,5},{1,2,3,4,7,8}}
 	Var prec : Double = 0.001
 
 	// direct calculation of determinant up to size 3

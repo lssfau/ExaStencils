@@ -19,11 +19,13 @@ Domain global< [0.0, 0.0] to [0.1, 0.1] >
 
 
 Function Application {
-	Var m1 : Matrix<Double,3,1> = { { 1.0, 2.0, 3.0 } }
-	Var m2 : Matrix<Double,3,1> = { { 3.0, 2.0, 3.0 } }
+	Var m1 : Matrix<Double,3,1> = { { 1.0 }, { 2.0 }, { 3.0 } }
+	Var m2 : Matrix<Double,3,1> = { { 3.0 }, { 2.0 }, { 3.0 } }
 	Var prec : Double = 1.0E-4
 	Var crossRes : Matrix<Double,3,1> = cross ( m1, m2 )
-	Var sol1 : Matrix<Double,3,1> = { { 0.0, 6.0, -4.0 } }
+	Var crossRes2 : Matrix<Double,3,1>
+	crossRes2 = cross ( m1, m2 )
+	Var sol1 : Matrix<Double,3,1> = { { 0.0 }, { 6.0 }, { -4.0 } }
 	compare ( crossRes, sol1, prec )
 }
 

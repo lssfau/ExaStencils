@@ -1,0 +1,34 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0] to [0.1, 0.1] >
+
+
+
+Function Application {
+	Var diagM : Matrix<Double,3,3> = { { 1.0, 0.0, 0.0 }, { 0.0, -1.0, 0.0 }, { 0.0, 0.0, 3.0 } }
+	Var blockdiagM : Matrix<Double,4,4> = { { 1.0, 2.0, 0.0, 0.0 }, { 1.0, -1.0, 1.0, 0.0 }, { 0.0, 1.0, 3.0, 2.0 }, { 0.0, 0.0, 3.0, 2.0 } }
+	Var schurM : Matrix<Double,5,5> = { { 1.0, 2.0, 0.0, 0.0, 1.0 }, { 1.0, -1.0, 0.0, 0.0, 1.0 }, { 0.0, 0.0, 3.0, 2.0, 1.0 }, { 0.0, 0.0, 3.0, 2.0, 1.0 }, { 1.0, 2.0, 3.0, 2.0, 1.0 } }
+	recognizeDiagonal ( { { 1, 2, 0, 0, 1 }, { 1, -1, 0, 0, 1 }, { 0, 0, 3, 2, 1 }, { 0, 0, 3, 2, 1 }, { 1, 2, 3, 2, 1 } } )
+	recognizeDiagonal ( { { 1, 0, 0 }, { 0, -1, 0 }, { 0, 0, 3 } } )
+	recognizeBlockdiagonal ( { { 1, 2, 0, 0, 1 }, { 1, -1, 0, 0, 1 }, { 0, 0, 3, 2, 1 }, { 0, 0, 3, 2, 1 }, { 1, 2, 3, 2, 1 } } )
+	recognizeBlockdiagonal ( { { 1, 2, 0, 0 }, { 1, -1, 1, 0 }, { 0, 1, 3, 2 }, { 0, 0, 3, 2 } } )
+	recognizeBlockdiagonal ( { { 1, 2, 0, 0 }, { 1, -1, 0, 0 }, { 0, 0, 3, 2 }, { 0, 0, 3, 2 } } )
+	recognizeSchur ( { { 1, 2, 0, 0, 1 }, { 1, -1, 0, 0, 1 }, { 0, 0, 3, 2, 1 }, { 0, 0, 3, 2, 1 }, { 1, 2, 3, 2, 1 } } )
+	recognizeSchur ( { { 1, 2, 0, 0 }, { 1, -1, 1, 0 }, { 0, 1, 3, 2 }, { 0, 0, 3, 2 } } )
+	recognizeSchur ( { { 1, 2, 0, 0 }, { 1, -1, 0, 0 }, { 0, 0, 3, 2 }, { 0, 0, 3, 2 } } )
+}
+

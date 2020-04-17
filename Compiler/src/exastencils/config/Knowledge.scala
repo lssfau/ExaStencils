@@ -592,15 +592,13 @@ object Knowledge {
   // minimum width of inner dimension when splitting according to experimental_splitLoopsForAsyncComm; 0 to disable
   var experimental_splitLoops_minInnerWidth : Int = 4
 
-  // use new matrix strategies
-  var experimental_useNewMatrixStrategies : Boolean = false
   // when to resolve inverse call
   var experimental_resolveInverseFunctionCall : String = "Runtime" // [Compiletime|Runtime] (with new strategies)
   // structure of matrix to invert
   var experimental_matrixStructure : String = "Filled" //[Filled|Diagonal|Blockdiagonal|Schur]
   // user can add a blocksize in case of block matrices
   var experimental_blocksize : Int = 1
-  // and in case of a blockdiagonal A matrix within a Schur form matrix: As blocksize
+  // and in case of a blockdiagonal A matrix within a Schur form matrix: blocksize of A
   var experimental_blocksize_A : Int = experimental_blocksize
   // runtime inversion executes inplace on input matrix
   var experimental_inplaceInversion : Boolean = true
