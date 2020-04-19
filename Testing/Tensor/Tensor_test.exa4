@@ -6,7 +6,7 @@ Globals {
 
 Function Application() : Unit {
     Var m1 : Tensor2< Real > = tens{
-        [0,0] := 1,
+        [0,0] := 1.0,
         [1,0] := 1,
         [2,0] := 1,
         [0,1] := 1,
@@ -16,6 +16,24 @@ Function Application() : Unit {
         [1,2] := 1,
         [2,2] := 1
         }
-    Var mydet : double = deter(m1)
+    Var mydet : Real = deter( m1 )
     print( mydet )
+
+    Var mytrace : Real = trace ( m1 )
+    print( mytrace )
+
+    Var m2 : Tensor2< Real > = tens{
+        [0,0] := 1.0,
+        [1,0] := 2,
+        [2,0] := 3,
+        [0,1] := 4,
+        [1,1] := 5,
+        [2,1] := 6,
+        [0,2] := 7,
+        [1,2] := 8,
+        [2,2] := 9
+        }
+
+    Var m3 : Tensor2<Real >
+    m3 = add( m1, m2)
 }
