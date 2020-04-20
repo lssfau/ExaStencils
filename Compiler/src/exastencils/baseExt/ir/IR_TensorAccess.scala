@@ -41,12 +41,144 @@ case class IR_HackTenComponentAccess(var mat : IR_VariableAccess, var i : IR_Exp
   override def prettyprint(out : PpStream) : Unit = out << mat << "(" << i << ", " << j << ")"
 }
 
-/// IR_TensorExpression2
+/* ######################################################################################################################################
+#########################                      abstract IR_TensorExpresion                            ###################################
+###################################################################################################################################### */
+
+abstract class IR_TensorExpression(innerDatatype : Option[IR_Datatype]) extends IR_Expression {
+  var expressions : Array[IR_Expression]
+  val dim : Integer
+
+  override def datatype: IR_Datatype
+
+  def prettyprintInner(out : PpStream) : Unit
+  override def prettyprint(out : PpStream) : Unit
+
+  def isConstant = expressions.forall(e => e.isInstanceOf[IR_Number])
+  def isInteger = expressions.forall(e => e.isInstanceOf[IR_IntegerConstant])
+  def isReal = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
+  //def get : IR_Expression
+  //def set : Unit
+  def toString : String
+}
+
+/* ######################################################################################################################################
+#########################                        IR_TensorExpression1                                 ###################################
+###################################################################################################################################### */
+
+/** Factory for IR_TensorExpression1 objects */
+object IR_TensorExpression1 {
+  /** creates a empty 1D tensor
+   *
+   * @param innerDatatype : IR_Datatype, should be IR numeric datatype
+   * @return IR_TensorExpression1 instance
+   */
+  def apply(innerDatatype : IR_Datatype) : IR_TensorExpression1 = new IR_TensorExpression1(Some(innerDatatype))
+
+  /** creates a 1D tensor and fill with given array
+   *
+   * @param innerDatatype : IR_Datatype, should be IR numeric datatype
+   * @param expressions : Array[IR_Expression], input array with length 3
+   * @return IR_TensorExpression1 instance
+   */
+  def apply(innerDatatype : Option[IR_Datatype], expressions : Array[IR_Expression]) : IR_TensorExpression1 = {
+    if (expressions.length != 3) {
+      Logger.error("expressions has the wrong length")
+    }
+    val tmp = new IR_TensorExpression1(innerDatatype)
+    tmp.expressions = expressions
+    tmp
+  }
+
+  /** creates a 1D tensor and fill with list buffer entries
+   *
+   * @param datatype : IR_Datatype, should be IR numeric datatype
+   * @param expressions : ListBuffer[IR_Expression], input list buffer with length 3
+   * @return IR_TensorExpression1 instance
+   */
+  def apply(datatype : IR_MatrixDatatype, expressions : ListBuffer[IR_Expression]) : IR_TensorExpression1 = {
+    if (expressions.toArray.length != 3) {
+      Logger.error("expressions has a wrong count of entries")
+    } else {
+      val tmp = IR_TensorExpression1(datatype.datatype)
+      tmp.expressions = expressions.toArray
+      tmp
+    }
+  }
+
+  /** creates a 1D tensor and fill with single number
+   *
+   * @param innerDatatype : IR_Datatype, should be IR numeric datatype
+   * @param num : IR_Number, number to fill in tensor
+   * @return IR_TensorExpression1 instance
+   */
+  def fromSingleExpression(innerDatatype : IR_Datatype, num : IR_Number) : IR_TensorExpression1 = {
+    val tmp = new IR_TensorExpression1(Some(innerDatatype))
+    for (i <- 0 until 3)
+      tmp.expressions(i) = Duplicate(num)
+    tmp
+  }
+}
+
+/** Expression of 1D Tensor
+ *
+ * @param innerDatatype : Option[IR_Datatype], Datatype of the saved expression
+ */
+case class IR_TensorExpression1(var innerDatatype : Option[IR_Datatype]) extends IR_TensorExpression(innerDatatype) {
+  var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](3)
+  val dim : Integer = 1
+
+  override def datatype = {
+    innerDatatype match {
+      case None                         =>
+        var ret = expressions(0).datatype
+        expressions.foreach(s => ret = IR_ResultingDatatype(ret, s.datatype))
+        innerDatatype = Some(ret)
+      case Some(dt : IR_MatrixDatatype) => innerDatatype = Some(dt.resolveBaseDatatype)
+      case _                            =>
+    }
+    IR_TensorDatatype1(innerDatatype.getOrElse(IR_RealDatatype))
+  }
+
+  def prettyprintInner(out : PpStream) : Unit = {
+    out << '{' << expressions.map(_.prettyprint).mkString(", ") << '}'
+  }
+  override def prettyprint(out : PpStream) : Unit = {
+    out << "__tensor1_"
+    innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
+    out  << "_t "
+    prettyprintInner(out)
+  }
+
+  override def isConstant = expressions.forall(e => e.isInstanceOf[IR_Number])
+  override def isInteger = expressions.forall(e => e.isInstanceOf[IR_IntegerConstant])
+  override def isReal = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
+  def set(x : Integer, num : IR_Expression) : Unit = {expressions(x) = num}
+  def get(x :Integer) : IR_Expression = {expressions(x)}
+  override def toString : String = { "IR_TensorExpression1(" + innerDatatype + "," + 1 + "; Items: " + expressions.mkString(", ") + ")" }
+
+}
+
+/* ######################################################################################################################################
+#########################                        IR_TensorExpression2                                 ###################################
+###################################################################################################################################### */
+
+
+/** Factory for IR_TensorExpression2 objects */
 object IR_TensorExpression2 {
-  // new with empty tensor
+  /** creates a empty 2D tensor
+   *
+   * @param innerDatatype : IR_Datatype, should be IR numeric datatype
+   * @return IR_TensorExpression2 instance
+   */
   def apply(innerDatatype : IR_Datatype) : IR_TensorExpression2 = new IR_TensorExpression2(Some(innerDatatype))
 
-  // new fill with given array
+  /** creates a 2D tensor and fill with given array
+   *
+   * @param innerDatatype : IR_Datatype, should be IR numeric datatype
+   * @param expressions : Array[IR_Expression], input array with length 9
+   * @return IR_TensorExpression2 instance
+   */
   def apply(innerDatatype : Option[IR_Datatype], expressions : Array[IR_Expression]) : IR_TensorExpression2 = {
     if (expressions.length != 9) {
       Logger.error("expressions has the wrong length")
@@ -57,6 +189,12 @@ object IR_TensorExpression2 {
   }
 
   // new fill with matrix
+  /** creates a 2D tensor and fill with given matrix
+   *
+   * @param innerDatatype : IR_Datatype, should be IR numeric datatype
+   * @param expressions : ListBuffer[ListBuffer[IR_Number]], input 3x3 matrix filled with numbers
+   * @return IR_TensorExpression2 instance
+   */
   def apply(innerDatatype : Option[IR_Datatype], expressions : ListBuffer[ListBuffer[IR_Number]]) : IR_TensorExpression2 = {
     if ((expressions.toArray.length != 3) || (expressions.head.toArray.length !=3)) {
       Logger.error("matrix has the wrong dimension")
@@ -70,7 +208,12 @@ object IR_TensorExpression2 {
     tmp
   }
 
-  // new and fill with other expression list array ...
+  /** creates a 2D tensor and fill with given linearized matrix
+   *
+   * @param datatype : IR_MatrixDatatype, should be IR numeric datatype
+   * @param expressions : Array[IR_Expression], input array with length 9
+   * @return IR_TensorExpression2 instance
+   */
   def apply(datatype : IR_MatrixDatatype, expressions : ListBuffer[IR_Expression]) : IR_TensorExpression2 = {
     if (expressions.toArray.length != 9) {
       Logger.error("expressions has a wrong count of entries")
@@ -81,12 +224,17 @@ object IR_TensorExpression2 {
     }
   }
 
-  // new from dyadic product
-  def apply(innerDatatype : Option[IR_Datatype], arr1 : Array[IR_Expression], arr2 : Array[IR_Expression]) : IR_TensorExpression2 = {
+  /** creates a 2D tensor from dyadic product of arrays
+   *
+   * @param arr1 : Array[IR_Expression], input array with lenght 3, shoud contain IR numeric datatype
+   * @param arr2 : Array[IR_Expression], input array with lenght 3, shoud contain IR numeric datatype
+   * @return IR_TensorExpression2 instance
+   */
+  def dyadic(arr1 : Array[IR_Expression], arr2 : Array[IR_Expression]) : IR_TensorExpression2 = {
     if ((arr1.length != 3) || (arr2.length != 3)) {
       Logger.error("both input arrays must have size 3")
     } else {
-      val tmp = IR_TensorExpression2(innerDatatype)
+      val tmp = IR_TensorExpression2(IR_ResultingDatatype(arr1.head.datatype, arr2.head.datatype))
       for (y <- 0 until 3) {
         for (x <- 0 until 3) {
           tmp.set(x, y, IR_Multiplication(arr1(x),arr2(y)))
@@ -96,7 +244,28 @@ object IR_TensorExpression2 {
     }
   }
 
-  // new and fill all elements with expression
+  /** creates a 2D tensor from dyadic product of arrays
+   *
+   * @param tens1 : IR_TensorExpression1, input array with lenght 3, shoud contain IR numeric datatype
+   * @param tens2 : IR_TensorExpression1, input array with lenght 3, shoud contain IR numeric datatype
+   * @return IR_TensorExpression2 instance
+   */
+  def dyadic(tens1 : IR_TensorExpression1, tens2 : IR_TensorExpression1) : IR_TensorExpression2 = {
+      val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens1.expressions.head.datatype, tens2.expressions.head.datatype))
+      for (y <- 0 until 3) {
+        for (x <- 0 until 3) {
+          tmp.set(x, y, IR_Multiplication(tens1.get(x),tens2.get(y)))
+        }
+      }
+      tmp
+    }
+
+  /** creates a 2D tensor and fill with single number
+   *
+   * @param innerDatatype : IR_Datatype, should be IR numeric datatype
+   * @param num : IR_Number, number to fill in tensor
+   * @return IR_TensorExpression2 instance
+   */
   def fromSingleExpression(innerDatatype : IR_Datatype, num : IR_Number) : IR_TensorExpression2 = {
     val tmp = new IR_TensorExpression2(Some(innerDatatype))
     for (i <- 0 until 9)
@@ -105,8 +274,9 @@ object IR_TensorExpression2 {
   }
 }
 
-case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends IR_Expression {
+case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends IR_TensorExpression(innerDatatype) {
   var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](9)
+  val dim : Integer = 2
 
   override def datatype = {
     innerDatatype match {
@@ -130,17 +300,26 @@ case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends
     prettyprintInner(out)
   }
 
-  def isConstant = expressions.forall(e => e.isInstanceOf[IR_Number])
-  def isInteger = expressions.forall(e => e.isInstanceOf[IR_IntegerConstant])
-  def isReal = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
+  override def isConstant = expressions.forall(e => e.isInstanceOf[IR_Number])
+  override def isInteger = expressions.forall(e => e.isInstanceOf[IR_IntegerConstant])
+  override def isReal = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
   def get(x : Integer, y : Integer) = expressions(y * 3 + x)
   def set(x : Integer, y: Integer, num : IR_Expression) = expressions(y * 3 + x) = num
   override def toString : String = { "IR_TensorExpression2(" + innerDatatype + "," + 2 + "; Items: " + expressions.mkString(", ") + ")" }
 }
 
-// TODO: Hier geht der Spaß los
+/* ######################################################################################################################################
+#########################                        IR_TensorExpressionN                                 ###################################
+###################################################################################################################################### */
 
-// Resolve user defined functions
+
+
+
+/* ######################################################################################################################################
+#########################                  Implementation of tensor functions                         ###################################
+###################################################################################################################################### */
+
+/** Declaration of tensor functions and transformation nodes */
 object IR_ResolveUserDefinedTensor2Functions extends DefaultStrategy("Resolve user defined functions") {
   var resolveFunctions = ListBuffer[String]()
   this.onBefore = () => {
@@ -185,6 +364,7 @@ object IR_ResolveUserDefinedTensor2Functions extends DefaultStrategy("Resolve us
 
 }
 
+/** Implementation of tensor functions. Separate function for each kind. */
 object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tensor functions") {
 
   def getElem(exp : IR_Expression, row : Integer, col : Integer) = {
@@ -349,7 +529,7 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
       }
       me
 
-    case call : IR_FunctionCall if (call.name == "mul") || (call.name == "dot")                                                                     =>
+    case call : IR_FunctionCall if (call.name == "mul") || (call.name == "dot")                                               =>
       if (call.arguments.length != 2) {
         Logger.error("mul() must have two arguments")
       }
@@ -361,7 +541,7 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
       }
       add(call.arguments(0), call.arguments(1)) // TODO: Zeus, zu testen
 
-    case call : IR_FunctionCall if (call.name == "scalar")                                                                      =>
+    case call : IR_FunctionCall if (call.name == "scalar")                                                                   =>
       if (call.arguments.length != 2) {
         Logger.error("scalar() must have two arguments")
       }
@@ -376,7 +556,11 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
 }
 
 
-// TODO: Hier gehts weiter
+/* ######################################################################################################################################
+#########################                  Implementation of tensor assignments                       ###################################
+###################################################################################################################################### */
+
+/** Objects transforms tensor assignments */
 object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments to second dim tensors") {
   //val annotationMatrixRow = "IR_ResolveMatrices.matrixRow"
   //val annotationMatrixCol = "IR_ResolveMatrices.matrixCol"
