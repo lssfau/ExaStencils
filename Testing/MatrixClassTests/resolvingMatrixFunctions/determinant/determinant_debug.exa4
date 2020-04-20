@@ -30,13 +30,19 @@ Function Application {
 	compare ( sol1, res1, prec )
 	Var sol3 : Integer = -8
 	Var res3 : Integer = determinant ( m3 )
+	Var res4 : Integer = determinant ( { { 1, 2, 3 }, { 3, 4, 5 }, { 1, 2, 7 } } )
 	compare ( sol3, res3, prec )
-	Var sol4 : Integer = -407
-	Var res4 : Integer
-	res4 = determinant ( m4 )
-	compare ( sol4, res4, prec )
-	Var res5 : Integer = determinant ( m5 )
-	Var sol5 : Integer = 12762
+	compare ( sol3, res4, prec )
+	Var sol5 : Integer = -407
+	Var res5 : Integer
+	res5 = determinant ( m4 )
+	Var res6 : Integer = determinant ( { { 3, 4, 5, 6 }, { 1, 5, 7, 2 }, { 4, 6, 8, 1 }, { 4, 5, 1, 6 } } )
 	compare ( sol5, res5, prec )
+	compare ( sol5, res6, prec )
+	Var res7 : Integer = determinant ( m5 )
+	Var sol7 : Integer = 12762
+	Var res8 : Integer = determinant ( { { 3.0, 4, 5, 6, 1, 2 }, { 5, 6, 1, 5, 7, 2 }, { 5, 6, 4, 6, 8, 1 }, { 4, 3, 4, 5, 1, 6 }, { 5, 7, 8, 4, 2, 5 }, { 1, 2, 3, 4, 7, 8 } } )
+	compare ( sol7, res7, prec )
+	compare ( sol7, res8, prec )
 }
 
