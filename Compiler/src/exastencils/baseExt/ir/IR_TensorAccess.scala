@@ -19,6 +19,7 @@
 package exastencils.baseExt.ir
 
 import scala.collection.mutable.ListBuffer
+import scala.math.pow
 
 import exastencils.base.ProgressLocation
 import exastencils.base.ir.IR_ImplicitConversion._
@@ -45,6 +46,10 @@ case class IR_HackTenComponentAccess(var mat : IR_VariableAccess, var i : IR_Exp
 #########################                      abstract IR_TensorExpresion                            ###################################
 ###################################################################################################################################### */
 
+/** abstract tensor expression type
+ *
+ * @param innerDatatype : IR_Datatype, should be IR numeric datatype
+ */
 abstract class IR_TensorExpression(innerDatatype : Option[IR_Datatype]) extends IR_Expression {
   var expressions : Array[IR_Expression]
   val order : Integer
@@ -353,7 +358,7 @@ object IR_TensorExpressionN {
    * @return IR_TensorExpression2 instance
    */
   def apply(innerDatatype : Option[IR_Datatype], order : Integer, expressions : Array[IR_Expression]) : IR_TensorExpressionN = {
-    if (expressions.length != (3^order)) {
+    if (expressions.length != pow(3, order.toDouble).toInt) {
       Logger.error("expressions has the wrong length")
     }
     val tmp = new IR_TensorExpressionN(innerDatatype, order)
@@ -369,7 +374,7 @@ object IR_TensorExpressionN {
    * @return IR_TensorExpression2 instance
    */
   def apply(datatype : IR_MatrixDatatype, order : Integer,  expressions : ListBuffer[IR_Expression]) : IR_TensorExpressionN = {
-    if (expressions.toArray.length != (3^order)) {
+    if (expressions.toArray.length != pow(3, order.toDouble).toInt) {
       Logger.error("expressions has a wrong count of entries")
     } else {
       val tmp = IR_TensorExpressionN(datatype.datatype, order)
@@ -429,9 +434,9 @@ object IR_TensorExpressionN {
    * @param num : IR_Number, number to fill in tensor
    * @return IR_TensorExpression2 instance
    */
-  def fromSingleExpression(innerDatatype : IR_Datatype, num : IR_Number) : IR_TensorExpression2 = {
-    val tmp = new IR_TensorExpression2(Some(innerDatatype))
-    for (i <- 0 until 9)
+  def fromSingleExpression(innerDatatype : IR_Datatype, order: Integer, num : IR_Number) : IR_TensorExpressionN = {
+    val tmp = new IR_TensorExpressionN(Some(innerDatatype), order)
+    for (i <- tmp.expressions.indices)
       tmp.expressions(i) = Duplicate(num)
     tmp
   }
@@ -443,7 +448,7 @@ object IR_TensorExpressionN {
  * @param ord : Integer, represent the order of the tensor
  */
 case class IR_TensorExpressionN(var innerDatatype : Option[IR_Datatype], var ord : Integer) extends IR_TensorExpression(innerDatatype) {
-  var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](3^ord)
+  var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](pow(3, ord.toDouble).toInt)
   val order : Integer = ord
 
   override def datatype = {
@@ -462,7 +467,7 @@ case class IR_TensorExpressionN(var innerDatatype : Option[IR_Datatype], var ord
     out << '{' << expressions.map(_.prettyprint).mkString(", ") << '}'
   }
   override def prettyprint(out : PpStream) : Unit = {
-    out << "__tensorN_" + order+ "_"
+    out << "__tensorN" + order.toString + "_"
     innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
     out  << "_t "
     prettyprintInner(out)
@@ -475,24 +480,36 @@ case class IR_TensorExpressionN(var innerDatatype : Option[IR_Datatype], var ord
     if (k.length != order) {
       Logger.error("get needs a list of integer with length of order")
     }
-    var index = 0
+    var index : Double = 0
     for (i <- 0 until order) {
       if (k(i) < 0 || k(i) > 2) {
         Logger.error("get, got index out of range (0, 2) ")
       }
-      index += k(i) * 3^i
+      index += k(i) * pow(3,i.toDouble)
     }
-    expressions(index)
+    expressions(index.toInt)
+  }
+  def getDirect(k : Integer) = {
+    if (k >= pow(3,order.toDouble).toInt) {
+      Logger.error("getDirect, got index out of range <" + pow(3,order.toDouble).toInt.toString)
+    }
+    expressions(k)
   }
   def set(k : List[Integer], num : IR_Expression) = {
     if (k.length != order) {
       Logger.error("set needs a list of integer with length of order")
     }
-    var index = 0
+    var index : Double = 0
     for (i <- 0 until order) {
-      index += k(i) * 3^i
+      index += k(i) * pow(3, i.toDouble)
     }
-    expressions(index) = num
+    expressions(index.toInt) = num
+  }
+  def setDirect(k : Integer, num : IR_Expression) = {
+    if (k >= pow(3,order.toDouble).toInt) {
+      Logger.error("setDirect, got index out of range <" + pow(3, order.toDouble).toInt.toString)
+    }
+    expressions(k) = num
   }
   override def toString : String = { "IR_TensorExpressionN(" + innerDatatype + "," + order + "; Items: " + expressions.mkString(", ") + ")" }
 }
@@ -539,6 +556,20 @@ object IR_ResolveUserDefinedTensor2Functions extends DefaultStrategy("Resolve us
       )
     case IR_Assignment(dest, src : IR_FunctionCall, "+=") if (!resolveFunctions.contains(src.name) && dest.datatype.isInstanceOf[IR_TensorDatatype2] && src.datatype.isInstanceOf[IR_TensorDatatype2])                  =>
       Logger.error("+= tensor2 operator resolution not yet implemented")
+
+    // Tensor N Assignments
+    case IR_Assignment(dest, src : IR_FunctionCall, "=") if (!resolveFunctions.contains(src.name) && dest.datatype.isInstanceOf[IR_TensorDatatypeN] && src.datatype.isInstanceOf[IR_TensorDatatypeN])                   =>
+      src.arguments += dest
+      IR_ExpressionStatement(src)
+    case IR_VariableDeclaration(datatype, name, Some(src : IR_FunctionCall), _) if (!resolveFunctions.contains(src.name) && datatype.isInstanceOf[IR_TensorDatatypeN] && src.datatype.isInstanceOf[IR_TensorDatatypeN]) =>
+      val decl = IR_VariableDeclaration(datatype, name, None)
+      src.arguments += IR_VariableAccess(decl)
+      ListBuffer[IR_Statement](
+        decl,
+        IR_ExpressionStatement(src)
+      )
+    case IR_Assignment(dest, src : IR_FunctionCall, "+=") if (!resolveFunctions.contains(src.name) && dest.datatype.isInstanceOf[IR_TensorDatatypeN] && src.datatype.isInstanceOf[IR_TensorDatatypeN])                  =>
+      Logger.error("+= tensorN operator resolution not yet implemented")
   })
 
   this += new Transformation("parameters and return types", {
@@ -575,6 +606,25 @@ object IR_ResolveUserDefinedTensor2Functions extends DefaultStrategy("Resolve us
         case IR_Return(Some(exp)) if (exp.datatype.isInstanceOf[IR_TensorDatatype2]) => {
           List(
             IR_Assignment(IR_VariableAccess("_tensor2_return", tensor), exp),
+            IR_Return())
+        }
+        case _                                                                      => List(stmt)
+      })
+      func
+
+    // Tensor N return types
+    case arg : IR_FunctionArgument if (arg.datatype.isInstanceOf[IR_TensorDatatypeN])                                    =>
+      arg.datatype = IR_ReferenceDatatype(arg.datatype)
+      arg
+    case func : IR_Function if (!resolveFunctions.contains(func.name) && func.datatype.isInstanceOf[IR_TensorDatatypeN]) =>
+      val tensor = func.datatype.asInstanceOf[IR_TensorDatatypeN]
+      func.parameters += IR_FunctionArgument("_tensorN_return", IR_ReferenceDatatype(tensor))
+      func.datatype = IR_UnitDatatype
+
+      func.body = func.body.flatMap(stmt => stmt match {
+        case IR_Return(Some(exp)) if (exp.datatype.isInstanceOf[IR_TensorDatatypeN]) => {
+          List(
+            IR_Assignment(IR_VariableAccess("_tensorN_return", tensor), exp),
             IR_Return())
         }
         case _                                                                      => List(stmt)
@@ -792,7 +842,7 @@ object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments 
       val dt = dest.datatype.asInstanceOf[IR_TensorDatatype2]
       IR_FunctionCall("std::fill", ListBuffer[IR_Expression](Duplicate(dest), Duplicate(dest) + dt.resolveFlattendSize, num)) : IR_Statement
 */
-
+    // Tensor 1 Assignment
     case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatype1] && src.isInstanceOf[IR_TensorExpression1] =>
       val tmp = src.asInstanceOf[IR_TensorExpression1]
       var newStmts = ListBuffer[IR_Statement]()
@@ -809,6 +859,7 @@ object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments 
       }
       newStmts
 
+    // Tensor 2 Assignment
     case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatype2] && src.isInstanceOf[IR_TensorExpression2] =>
       val tmp = src.asInstanceOf[IR_TensorExpression2]
       var newStmts = ListBuffer[IR_Statement]()
@@ -824,6 +875,24 @@ object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments 
       var newStmts = ListBuffer[IR_Statement]()
       for (i <- 0 until 9) {
           newStmts += IR_Assignment(IR_HighDimAccess(dest, IR_ExpressionIndex(i)), IR_HighDimAccess(src, IR_ExpressionIndex(i)))
+      }
+      newStmts
+
+    // Tensor N Assignment
+    case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatypeN] && src.isInstanceOf[IR_TensorExpressionN] =>
+      val tmp = src.asInstanceOf[IR_TensorExpressionN]
+      var newStmts = ListBuffer[IR_Statement]()
+      for (x <- tmp.expressions.indices) {
+        newStmts += IR_Assignment(IR_HighDimAccess(dest, IR_ExpressionIndex(x)), tmp.getDirect(x))
+      }
+      newStmts
+
+    case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatypeN] && !src.isInstanceOf[IR_TensorExpressionN] && src.datatype.isInstanceOf[IR_TensorDatatypeN] =>
+      Logger.error(src)
+      val tmp = src.asInstanceOf[IR_TensorExpressionN]
+      var newStmts = ListBuffer[IR_Statement]()
+      for (i <- tmp.expressions.indices) {
+        newStmts += IR_Assignment(IR_HighDimAccess(dest, IR_ExpressionIndex(i)), IR_HighDimAccess(src, IR_ExpressionIndex(i)))
       }
       newStmts
 

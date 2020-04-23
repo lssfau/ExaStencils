@@ -97,11 +97,11 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
       L4_AdaptFieldLayoutsForComm.apply()
     }
 
-    try {
+    //try {
       ExaRootNode.mergeL4(L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node)))
-    } catch {
-      case foo : Exception => Logger.error("first parse")
-    }
+    //} catch {
+    //  case foo : Exception => Logger.error("first parse")
+    //}
     ExaRootNode.l4_root.flatten()
 
     if (true) {

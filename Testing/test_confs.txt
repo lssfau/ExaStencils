@@ -285,5 +285,6 @@
 # Simple Test for Tensor member functions
 Tensor1_Constructors            Main TensorClass/Constructors/Tensor1_constructors.knowledge       TensorClass/Constructors/Tensor1_constructors.exa4         TensorClass/Constructors/Tensor1_constructors.results      1   1
 Tensor2_Constructors            Main TensorClass/Constructors/Tensor2_constructors.knowledge       TensorClass/Constructors/Tensor2_constructors.exa4         TensorClass/Constructors/Tensor2_constructors.results      1   1
+TensorN_Constructors            Main TensorClass/Constructors/TensorN_constructors.knowledge       TensorClass/Constructors/TensorN_constructors.exa4         TensorClass/Constructors/TensorN_constructors.results      1   1
 
 Tensor2_Arithmetic              Main TensorClass/Arithmetic/Tensor2_arithmetic.knowledge           TensorClass/Arithmetic/Tensor2_arithmetic.exa4             TensorClass/Arithmetic/Tensor2_arithmetic.results          1   1

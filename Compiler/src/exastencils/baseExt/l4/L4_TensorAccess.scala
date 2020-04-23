@@ -18,6 +18,7 @@
 
 package exastencils.baseExt.l4
 
+import scala.math.pow
 import exastencils.base.ProgressLocation
 import exastencils.base.ir.IR_Expression
 import exastencils.base.l4._
@@ -144,14 +145,14 @@ case class L4_TensorExpressionN(
     var expressions : List[L4_TensorEntry]) extends L4_Expression {
 
   def prettyprint(out : PpStream) = {
-    out << "tensN" << "{" <<< (expressions, ", ") << "}"
+    out << "tensN" << "{" << order.toString << ";" <<< (expressions, ", ") << "}"
   }
 
   override def progress = ProgressLocation(IR_TensorExpressionN(L4_ProgressOption(datatype)(_.progress), order ,progressEntrys(expressions)))
 
   def progressEntrys(input : List[L4_TensorEntry]) : Array[IR_Expression] = {
     val flattenIn = input.toArray
-    if (flattenIn.length > (3^order)) {
+    if (flattenIn.length > pow(3,order.toDouble).toInt) {
       Logger.error("To much tensor entries!")
     }
     for (i <- flattenIn.indices) {
@@ -162,17 +163,17 @@ case class L4_TensorExpressionN(
         error += "] has the wrong dimension"
         Logger.error(error)}
     }
-    val eval : Array[Boolean] = Array.fill(3^order) { false }
-    val exp = new Array[IR_Expression](3^order)
+    val eval : Array[Boolean] = Array.fill(pow(3,order.toDouble).toInt) { false }
+    val exp = new Array[IR_Expression](pow(3,order.toDouble).toInt)
     for (i <- flattenIn.indices) {
-      var index = 0
+      var index : Double = 0
       for (j <- 0 until order) {
-        index += flattenIn(i).index(j) * 3^j
+        index += flattenIn(i).index(j) * pow(3,j.toDouble)
       }
       if (index <= exp.length) {
-        if (!eval(index)) {
-          eval(index) = true
-          exp(index) = flattenIn(i).coefficient.progress
+        if (!eval(index.toInt)) {
+          eval(index.toInt) = true
+          exp(index.toInt) = flattenIn(i).coefficient.progress
         } else {
           var error : String = "Tensor index ["
           error += flattenIn(i).index.foreach(_.toString + ",")
@@ -184,11 +185,11 @@ case class L4_TensorExpressionN(
         var error : String = "Tensor index ["
         error += flattenIn(i).index.foreach(_.toString + ",")
         error = error.substring(0, error.length - 1)
-        error += "] is not available "+ index.toString + " > " +  exp.length.toString
+        error += "] is not available "+ index.toInt.toString + " > " +  exp.length.toString
         Logger.error(error)
       }
     }
-    for (i <- 0 until (3^order)) {
+    for (i <- exp.indices) {
       if (!eval(i)) {
         exp(i) = L4_RealConstant(0.0).progress
       }

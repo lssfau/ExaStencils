@@ -67,6 +67,26 @@ test:Tensor2_Constructors:
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Tensor2_Constructors TensorClass/Constructors/Tensor2_constructors.knowledge "TensorClass/Constructors/Tensor2_constructors.exa4" TensorClass/Constructors/Tensor2_constructors.results 1 1 Platform/random.platform output
 
+test:TensorN_Constructors:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib TensorN_Constructors TensorClass/Constructors/TensorN_constructors.knowledge "TensorClass/Constructors/TensorN_constructors.exa4" TensorClass/Constructors/TensorN_constructors.results 1 1 Platform/random.platform output
+
 test:Tensor2_Arithmetic:
     stage: test
     dependencies:

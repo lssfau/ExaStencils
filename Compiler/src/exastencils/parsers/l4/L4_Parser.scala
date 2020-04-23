@@ -176,7 +176,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| "Vec2" ^^ { _ => L4_VectorDatatype(L4_RealDatatype, 2) }
       ||| "Vec3" ^^ { _ => L4_VectorDatatype(L4_RealDatatype, 3) }
       ||| "Vec4" ^^ { _ => L4_VectorDatatype(L4_RealDatatype, 4) }
-      ||| "Tensor" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ m => L4_TensorDatatypeN(x, m) }
+      ||| "TensorN" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ m => L4_TensorDatatypeN(x, m) }
       ||| "Tensor1" ~ ("<" ~> numericDatatype <~ ">") ^^ { case _ ~ x => L4_TensorDatatype1(x) }
       ||| "Tensor2" ~ ("<" ~> numericDatatype <~ ">") ^^ { case _ ~ x => L4_TensorDatatype2(x) }
       ||| "Matrix" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ m ~ n => L4_MatrixDatatype(x, m, n) }
@@ -443,7 +443,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| matrixExpression
       ||| tensorExpression1
       ||| tensorExpression2
-      //||| tensorExpressionN
+      ||| tensorExpressionN
       ||| locationize("-" ~> matrixExpression ^^ { L4_Negative })
       ||| locationize(stringLit ^^ (s => L4_StringConstant(s)))
       ||| fieldIteratorAccess
@@ -470,7 +470,7 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val tensorExpression2 = locationize(("tens2" ~ "{") ~> repsep(tensorEntry, ",") <~ "}" ^^ { x => L4_TensorExpression2(None, x) })
 
-  //lazy val tensorExpressionN = locationize(("tens" ~> integerLit <~ "{") ~ (repsep(tensorEntry, ",") <~ "}") ^^ {case order ~ x => L4_TensorExpressionN(None, order, x) })
+  lazy val tensorExpressionN = locationize(("tensN" ~ "{") ~> (integerLit <~ ";") ~ (repsep(tensorEntry, ",") <~ "}") ^^ {case order ~ x => L4_TensorExpressionN(None, order, x) })
 
   lazy val tensorEntry = locationize(("[" ~> repsep(integerLit, ",") <~ "]") ~ ((":=") ~> numLit) ^^ { case index ~ coeff => L4_TensorEntry(index, coeff) })
 
