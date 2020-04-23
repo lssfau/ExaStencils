@@ -5,7 +5,7 @@ Globals {
 }
 
 Function Application() : Unit {
-    Var m1 : Tensor2< Real > = tens{
+    Var m1 : Tensor2< Real > = tens2{
         [0,0] := 1.0,
         [1,0] := 1,
         [2,0] := 1,
@@ -22,7 +22,7 @@ Function Application() : Unit {
     Var mytrace : Real = trace ( m1 )
     print( mytrace )
 
-    Var m2 : Tensor2< Real > = tens{
+    Var m2 : Tensor2< Real > = tens2{
         [0,0] := 1.0,
         [1,0] := 2,
         [2,0] := 3,
@@ -36,4 +36,10 @@ Function Application() : Unit {
 
     Var m3 : Tensor2<Real >
     m3 = add( m1, m2)
+
+    Var m4 : Tensor1< Real > = tens1{
+        [0] := 1.0,
+        [1] := 2.0,
+        [2] := 3.0
+    }
 }

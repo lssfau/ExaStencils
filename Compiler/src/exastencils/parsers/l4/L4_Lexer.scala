@@ -39,7 +39,7 @@ class L4_Lexer extends ExaLexer {
   reserved += ("FuncTemplate", "FunctionTemplate", "Inst", "Instantiate", "as")
 
   // declaration keywords - complex
-  reserved += ("Domain", "Layout", "Field", "Stencil", "StencilTemplate", "StencilField", "Set", "external", "from", "with", "tens")
+  reserved += ("Domain", "Layout", "Field", "Stencil", "StencilTemplate", "StencilField", "Set", "external", "from", "with", "tens", "tens1", "tens2")
 
   // loop keywords
   reserved += ("repeat", "times", "count", "with", "contraction", "break")

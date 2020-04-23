@@ -55,25 +55,25 @@ case class L4_TensorExpression1(
     if (flattenIn.length > 3) {
       Logger.error("To much tensor entries!")
     }
-    for (i <- 0 until flattenIn.length) {
+    for (i <- flattenIn.indices) {
       if (flattenIn(i).index.length != 1) Logger.error("Tensor index [" + flattenIn(i).index.toString + "] has wrong dimension")
     }
     val eval : Array[Boolean] = Array.fill(flattenIn.length) { false }
     val exp = new Array[IR_Expression](3)
-    for (i <- 0 until flattenIn.length) {
-      if ((flattenIn(i).index(0) + flattenIn(i).index(1) * 3) <= exp.length) {
-        if (eval(flattenIn(i).index.head) == false) {
+    for (i <- flattenIn.indices) {
+      if (flattenIn(i).index.head <= exp.length) {
+        if (!eval(flattenIn(i).index.head)) {
           eval(flattenIn(i).index.head)  = true
           exp(flattenIn(i).index.head) = flattenIn(i).coefficient.progress
         } else {
-          Logger.error("Tensor index [" + flattenIn(i).index(0).toString + "] was double set")
+          Logger.error("Tensor index [" + flattenIn(i).index.head.toString + "] was double set")
         }
       } else {
-        Logger.error("Tensor index [" + flattenIn(i).index(0).toString + "] is not available "+ (flattenIn(i).index.head.toString + " > " +  exp.length.toString))
+        Logger.error("Tensor index [" + flattenIn(i).index.head.toString + "] is not available "+ (flattenIn(i).index.head.toString + " > " +  exp.length.toString))
       }
     }
     for (i <- 0 until 3) {
-      if (eval(i) == false) {
+      if (!eval(i)) {
         exp(i) = L4_RealConstant(0.0).progress
       }
     }
@@ -109,9 +109,9 @@ case class L4_TensorExpression2(
     }
     val eval : Array[Boolean] = Array.fill(flattenIn.length) { false }
     val exp = new Array[IR_Expression](9)
-    for (i <- 0 until flattenIn.length) {
+    for (i <- flattenIn.indices) {
       if ((flattenIn(i).index(0) + flattenIn(i).index(1) * 3) <= exp.length) {
-        if (eval(flattenIn(i).index(0) + flattenIn(i).index(1) * 3) == false) {
+        if (!eval(flattenIn(i).index(0) + flattenIn(i).index(1) * 3)) {
           eval(flattenIn(i).index(0) + flattenIn(i).index(1) * 3) = true
           exp(flattenIn(i).index(0) + flattenIn(i).index(1) * 3) = flattenIn(i).coefficient.progress
         } else {
@@ -122,7 +122,7 @@ case class L4_TensorExpression2(
       }
     }
     for (i <- 0 until 9) {
-      if (eval(i) == false) {
+      if (!eval(i)) {
         exp(i) = L4_RealConstant(0.0).progress
       }
     }
@@ -154,7 +154,7 @@ case class L4_TensorExpressionN(
     if (flattenIn.length > (3^order)) {
       Logger.error("To much tensor entries!")
     }
-    for (i <- 0 until flattenIn.length) {
+    for (i <- flattenIn.indices) {
       if (flattenIn(i).index.length != order) {
         var error : String = "Tensor index ["
         error += flattenIn(i).index.foreach(_.toString + ",")
@@ -170,7 +170,7 @@ case class L4_TensorExpressionN(
         index += flattenIn(i).index(j) * 3^j
       }
       if (index <= exp.length) {
-        if (eval(index) == false) {
+        if (!eval(index)) {
           eval(index) = true
           exp(index) = flattenIn(i).coefficient.progress
         } else {
@@ -189,7 +189,7 @@ case class L4_TensorExpressionN(
       }
     }
     for (i <- 0 until (3^order)) {
-      if (eval(i) == false) {
+      if (!eval(i)) {
         exp(i) = L4_RealConstant(0.0).progress
       }
     }

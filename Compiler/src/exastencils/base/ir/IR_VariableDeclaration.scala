@@ -62,7 +62,7 @@ case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String,
         dt.prettyprint(out)
         out << ' ' << name
         initialValue match {
-          case Some(e : IR_TensorExpression2)                           => out << ' '; e.prettyprintInner(out)
+          case Some(e : IR_TensorExpression1)                           => out << ' '; e.prettyprintInner(out)
           case Some(e) if (e.datatype.isInstanceOf[IR_ScalarDatatype]) => out << ' ' << '{'; for (i <- 0 until 3) { e.prettyprint(out); out << ',' }; out.removeLast(); out << '}'
           case Some(e)                                                 => out << " = " << e
           case _                                                       =>
