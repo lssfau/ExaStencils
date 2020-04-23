@@ -16,30 +16,21 @@ Function Application() : Unit {
         [1,2] := 1,
         [2,2] := 1
         }
-    Var mydet : Real = deter( m1 )
-    print( mydet )
 
-    Var mytrace : Real = trace ( m1 )
-    print( mytrace )
+    print( m1 )
 
     Var m2 : Tensor2< Real > = tens2{
         [0,0] := 1.0,
         [1,0] := 2,
         [2,0] := 3,
         [0,1] := 4,
-        [1,1] := 5,
-        [2,1] := 6,
-        [0,2] := 7,
-        [1,2] := 8,
-        [2,2] := 9
+        [1,1] := 5
         }
 
-    Var m3 : Tensor2<Real >
-    m3 = add( m1, m2)
+    print( m2 )
 
-    Var m4 : Tensor1< Real > = tens1{
-        [0] := 1.0,
-        [1] := 2.0,
-        [2] := 3.0
-    }
+    Var m3 : Tensor2< Real > = add( m1, m2 )
+
+    print( m3 )
+
 }

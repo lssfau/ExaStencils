@@ -1,0 +1,3 @@
+mpi_enabled                       = false
+
+dimensionality                    = 2

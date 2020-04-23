@@ -1,0 +1,21 @@
+Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
+
+Globals {
+
+}
+
+Function Application() : Unit {
+    Var m1 : Tensor1< Real > = tens1{
+        [0] := 1.0,
+        [1] := 2.0,
+        [2] := 3.0
+    }
+
+    print ( m1 )
+
+    Var m2 : Tensor1< Real > = tens1{
+        [0] := 2.0
+    }
+
+    print ( m2 )
+}

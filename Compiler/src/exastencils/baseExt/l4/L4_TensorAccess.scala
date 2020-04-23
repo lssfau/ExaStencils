@@ -58,7 +58,7 @@ case class L4_TensorExpression1(
     for (i <- flattenIn.indices) {
       if (flattenIn(i).index.length != 1) Logger.error("Tensor index [" + flattenIn(i).index.toString + "] has wrong dimension")
     }
-    val eval : Array[Boolean] = Array.fill(flattenIn.length) { false }
+    val eval : Array[Boolean] = Array.fill(3) { false }
     val exp = new Array[IR_Expression](3)
     for (i <- flattenIn.indices) {
       if (flattenIn(i).index.head <= exp.length) {
@@ -104,10 +104,10 @@ case class L4_TensorExpression2(
     if (flattenIn.length > 9) {
       Logger.error("To much tensor entries!")
     }
-    for (i <- 0 until 9) {
+    for (i <- flattenIn.indices) {
       if (flattenIn(i).index.length != 2) Logger.error("Tensor index [" + flattenIn(i).index(0).toString + "," + flattenIn(i).index(1).toString + "] has wrong dimension")
     }
-    val eval : Array[Boolean] = Array.fill(flattenIn.length) { false }
+    val eval : Array[Boolean] = Array.fill(9) { false }
     val exp = new Array[IR_Expression](9)
     for (i <- flattenIn.indices) {
       if ((flattenIn(i).index(0) + flattenIn(i).index(1) * 3) <= exp.length) {
@@ -162,9 +162,9 @@ case class L4_TensorExpressionN(
         error += "] has the wrong dimension"
         Logger.error(error)}
     }
-    val eval : Array[Boolean] = Array.fill(flattenIn.length) { false }
+    val eval : Array[Boolean] = Array.fill(3^order) { false }
     val exp = new Array[IR_Expression](3^order)
-    for (i <- 0 until (3^order)) {
+    for (i <- flattenIn.indices) {
       var index = 0
       for (j <- 0 until order) {
         index += flattenIn(i).index(j) * 3^j
