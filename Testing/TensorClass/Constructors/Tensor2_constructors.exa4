@@ -27,7 +27,8 @@ Function Application() : Unit {
         [1,1] := 5
         }
 
-    print( m2 )
+    Var m3 : Tensor2< Real > = m1
 
-    return( 0 )
+    Var m4 : Tensor2< Real >
+    m4 = m1
 }

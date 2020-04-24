@@ -17,5 +17,9 @@ Function Application() : Unit {
         [0] := 2.0
     }
 
+    m2 = m1
+
+    Var m3 : Tensor1< Real > = m2
+
     print ( m2 )
 }

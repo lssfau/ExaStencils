@@ -31,6 +31,7 @@ Function Application() : Unit {
 
     Var m3 : Tensor2< Real > = add( m1, m2 )
 
-    print( m3 )
+    Var m4 : Tensor2< Real >
+    m4 = dotp( m1, m2 )
 
 }
