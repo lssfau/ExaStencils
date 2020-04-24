@@ -21,17 +21,12 @@ package exastencils.baseExt.ir
 import scala.collection.mutable.ListBuffer
 import scala.math.pow
 
-import exastencils.base.ProgressLocation
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_RealDatatype
 import exastencils.base.ir._
-import exastencils.config._
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.field.ir._
-import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.logger.Logger
-import exastencils.optimization.ir._
 import exastencils.prettyprinting._
 import exastencils.util.ir._
 
@@ -59,11 +54,9 @@ abstract class IR_TensorExpression(innerDatatype : Option[IR_Datatype]) extends 
   def prettyprintInner(out : PpStream) : Unit
   override def prettyprint(out : PpStream) : Unit
 
-  def isConstant = expressions.forall(e => e.isInstanceOf[IR_Number])
-  def isInteger = expressions.forall(e => e.isInstanceOf[IR_IntegerConstant])
-  def isReal = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
-  //def get : IR_Expression
-  //def set : Unit
+  def isConstant : Boolean = expressions.forall(e => e.isInstanceOf[IR_Number])
+  def isInteger : Boolean = expressions.forall(e => e.isInstanceOf[IR_IntegerConstant])
+  def isReal : Boolean = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
   def toString : String
 }
 
@@ -133,7 +126,7 @@ case class IR_TensorExpression1(var innerDatatype : Option[IR_Datatype]) extends
   var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](3)
   val order : Integer = 1
 
-  override def datatype = {
+  override def datatype : IR_TensorDatatype1 = {
     innerDatatype match {
       case None                         =>
         var ret = expressions(0).datatype
@@ -155,9 +148,9 @@ case class IR_TensorExpression1(var innerDatatype : Option[IR_Datatype]) extends
     prettyprintInner(out)
   }
 
-  override def isConstant = expressions.forall(e => e.isInstanceOf[IR_Number])
-  override def isInteger = expressions.forall(e => e.isInstanceOf[IR_IntegerConstant])
-  override def isReal = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
+  override def isConstant : Boolean = expressions.forall(e => e.isInstanceOf[IR_Number])
+  override def isInteger : Boolean = expressions.forall(e => e.isInstanceOf[IR_IntegerConstant])
+  override def isReal : Boolean = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
   def set(x : Integer, num : IR_Expression) : Unit = {
     if (x < 0 || x > 2) {
       Logger.error("get got an index out of the allowed range (0, 2)")
@@ -296,7 +289,7 @@ case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends
   var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](9)
   val order : Integer = 2
 
-  override def datatype = {
+  override def datatype : IR_TensorDatatype2 = {
     innerDatatype match {
       case None                         =>
         var ret = expressions(0).datatype
@@ -318,16 +311,16 @@ case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends
     prettyprintInner(out)
   }
 
-  override def isConstant = expressions.forall(e => e.isInstanceOf[IR_Number])
-  override def isInteger = expressions.forall(e => e.isInstanceOf[IR_IntegerConstant])
-  override def isReal = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
-  def get(x : Integer, y : Integer) = {
+  override def isConstant : Boolean = expressions.forall(e => e.isInstanceOf[IR_Number])
+  override def isInteger : Boolean = expressions.forall(e => e.isInstanceOf[IR_IntegerConstant])
+  override def isReal : Boolean = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
+  def get(x : Integer, y : Integer) : IR_Expression = {
     if (x < 0 || x > 2 || y < 0 || y > 2) {
       Logger.error("get got an index out of the allowed range (0, 2)")
     }
     expressions(y * 3 + x)
   }
-  def set(x : Integer, y: Integer, num : IR_Expression) = {
+  def set(x : Integer, y: Integer, num : IR_Expression) : Unit = {
     if (x < 0 || x > 2 || y < 0 || y > 2) {
       Logger.error("set got an index out of the allowed range (0, 2)")
     }
@@ -389,7 +382,7 @@ object IR_TensorExpressionN {
    * @return IR_TensorExpression2 instance
    */
   def dyadic(arr : Array[Array[IR_Expression]]) : IR_TensorExpressionN = {
-    for (i <- 0 until arr.length) {
+    for (i <- arr.indices) {
       if (arr(i).length != 3) Logger.error("a array for dyadic product has the wrong dimension")
     }
     var tmp : IR_TensorExpressionN = null
@@ -451,7 +444,7 @@ case class IR_TensorExpressionN(var innerDatatype : Option[IR_Datatype], var ord
   var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](pow(3, ord.toDouble).toInt)
   val order : Integer = ord
 
-  override def datatype = {
+  override def datatype : IR_TensorDatatypeN = {
     innerDatatype match {
       case None                         =>
         var ret = expressions(0).datatype
@@ -473,10 +466,10 @@ case class IR_TensorExpressionN(var innerDatatype : Option[IR_Datatype], var ord
     prettyprintInner(out)
   }
 
-  override def isConstant = expressions.forall(e => e.isInstanceOf[IR_Number])
-  override def isInteger = expressions.forall(e => e.isInstanceOf[IR_IntegerConstant])
-  override def isReal = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
-  def get(k : List[Integer]) = {
+  override def isConstant : Boolean = expressions.forall(e => e.isInstanceOf[IR_Number])
+  override def isInteger : Boolean = expressions.forall(e => e.isInstanceOf[IR_IntegerConstant])
+  override def isReal : Boolean = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
+  def get(k : List[Integer]) : IR_Expression = {
     if (k.length != order) {
       Logger.error("get needs a list of integer with length of order")
     }
@@ -489,13 +482,13 @@ case class IR_TensorExpressionN(var innerDatatype : Option[IR_Datatype], var ord
     }
     expressions(index.toInt)
   }
-  def getDirect(k : Integer) = {
+  def getDirect(k : Integer) : IR_Expression = {
     if (k >= pow(3,order.toDouble).toInt) {
       Logger.error("getDirect, got index out of range <" + pow(3,order.toDouble).toInt.toString)
     }
     expressions(k)
   }
-  def set(k : List[Integer], num : IR_Expression) = {
+  def set(k : List[Integer], num : IR_Expression) : Unit = {
     if (k.length != order) {
       Logger.error("set needs a list of integer with length of order")
     }
@@ -505,7 +498,7 @@ case class IR_TensorExpressionN(var innerDatatype : Option[IR_Datatype], var ord
     }
     expressions(index.toInt) = num
   }
-  def setDirect(k : Integer, num : IR_Expression) = {
+  def setDirect(k : Integer, num : IR_Expression) : Unit = {
     if (k >= pow(3,order.toDouble).toInt) {
       Logger.error("setDirect, got index out of range <" + pow(3, order.toDouble).toInt.toString)
     }
@@ -637,7 +630,7 @@ object IR_ResolveUserDefinedTensor2Functions extends DefaultStrategy("Resolve us
 /** Implementation of tensor functions. Separate function for each kind. */
 object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor functions") {
 
-  def getElem(exp : IR_Expression, row : Integer, col : Integer, higherInd: List[Integer]) = {
+  def getElem(exp : IR_Expression, row : Integer, col : Integer, higherInd: List[Integer]) : IR_Expression = {
     exp match {
       case x : IR_TensorExpression1                                               => x.get(row)
       case x : IR_Expression if (x.datatype.isInstanceOf[IR_TensorExpression1])   => IR_HighDimAccess(Duplicate(x), new IR_ConstIndex(Array(row)))
@@ -663,7 +656,7 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
       case _                                                                      => Logger.error(s"Argument is of unexpected type ${ exp.getClass.getTypeName }: $exp")
     }
   }
-  def getSingleElem(exp : IR_Expression) = {
+  def getSingleElem(exp : IR_Expression) : IR_Expression = {
     exp match {
       case x : IR_TensorExpression2                                           => x.get(0, 0)
       case x : IR_Expression if (x.datatype.isInstanceOf[IR_TensorExpression2]) => x
@@ -707,7 +700,6 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
     val tmp = IR_TensorExpression1(IR_ResultingDatatype(m.datatype, n.datatype))
     for (x <- 0 until 3) {
       tmp.set(x, IR_Addition(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
-      //IR_Assignment(IR_HighDimAccess(tmp, IR_ExpressionIndex(x)), IR_Addition(IR_HighDimAccess(m, IR_ExpressionIndex(x)), IR_HighDimAccess(n, IR_ExpressionIndex(x))))
     }
     tmp
   }
@@ -717,7 +709,6 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
     for (y <- 0 until 3) {
       for (x <- 0 until 3) {
         tmp.set(x, y, IR_Addition(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
-        //IR_Assignment(IR_HighDimAccess(tmp, IR_ExpressionIndex(x)), IR_Addition(IR_HighDimAccess(m, IR_ExpressionIndex(x)), IR_HighDimAccess(n, IR_ExpressionIndex(x))))
       }
     }
     tmp
@@ -732,7 +723,6 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
       for (y <- 0 until 3) {
         for (x <- 0 until 3) {
           tmp.set(x, y, IR_Addition(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
-          //IR_Assignment(IR_HighDimAccess(tmp, IR_ExpressionIndex(x + y * 3)), IR_Addition(IR_HighDimAccess(m, IR_ExpressionIndex(x + y * 3)), IR_HighDimAccess(n, IR_ExpressionIndex(x + y * 3))))
         }
       }
       tmp
@@ -837,8 +827,8 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
       }
       me
 
-    case call : IR_FunctionCall if (call.name == "dotp")                                               =>
-      if (call.arguments.length != 2) {
+    case call : IR_FunctionCall if (call.name == "dotp")                                          =>
+      if (call.arguments.length != 2) { // TODO: Zeus, warum kollidiert das mit IR_MatrixAccess? "dot"
         Logger.error("mul() must have two arguments")
       }
       dot(call.arguments(0), call.arguments(1))  // TODO: Zeus, zu testen
@@ -854,12 +844,6 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
         Logger.error("scalar() must have two arguments")
       }
       scalar(call.arguments(0), call.arguments(1)) // TODO: Zeus, zu testen
-
-    /*case call : IR_FunctionCall if (call.name == "get")                                                                      =>
-      if (call.arguments.length != 3) {
-        Logger.error("get() must have two arguments")
-      }
-      getElem(call.arguments(0), call.arguments(1), call.arguments(2)) */
   })
 }
 
@@ -870,19 +854,12 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
 
 /** Objects transforms tensor assignments */
 object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments tensors") {
-  //val annotationMatrixRow = "IR_ResolveMatrices.matrixRow"
-  //val annotationMatrixCol = "IR_ResolveMatrices.matrixCol"
 
   this += new Transformation("scalarize 1/2", {
     case stmt : IR_VariableDeclaration => stmt
-/*
-    case IR_Assignment(dest, num : IR_Number, "=") if dest.datatype.isInstanceOf[IR_TensorDatatype2] && !dest.isInstanceOf[IR_TensorExpression2] =>
-      val dt = dest.datatype.asInstanceOf[IR_TensorDatatype2]
-      IR_FunctionCall("std::fill", ListBuffer[IR_Expression](Duplicate(dest), Duplicate(dest) + dt.resolveFlattendSize, num)) : IR_Statement
-*/
+
     // Tensor 1 Assignment
     case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatype1] && src.isInstanceOf[IR_TensorExpression1] =>
-      Logger.error("test")
       val tmp = src.asInstanceOf[IR_TensorExpression1]
       var newStmts = ListBuffer[IR_Statement]()
       for (x <- 0 until 3) {
@@ -890,7 +867,7 @@ object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments 
       }
       newStmts
 
-    case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatype1] && !src.isInstanceOf[IR_TensorExpression1] && src.datatype.isInstanceOf[IR_TensorDatatype1] => //TODO: Zeus, hier braucht es assignment mit Datatyp
+    case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatype1] && !src.isInstanceOf[IR_TensorExpression1] && src.datatype.isInstanceOf[IR_TensorDatatype1] =>
       var newStmts = ListBuffer[IR_Statement]()
       for (i <- 0 until 3) {
         newStmts += IR_Assignment(IR_HighDimAccess(dest, IR_ExpressionIndex(i)), IR_HighDimAccess(src, IR_ExpressionIndex(i)))
@@ -908,7 +885,7 @@ object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments 
       }
       newStmts
 
-    case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatype2] && !src.isInstanceOf[IR_TensorExpression2] && src.datatype.isInstanceOf[IR_TensorDatatype2] => //TODO: Zeus, hier braucht es assignment mit Datatyp
+    case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatype2] && !src.isInstanceOf[IR_TensorExpression2] && src.datatype.isInstanceOf[IR_TensorDatatype2] =>
       var newStmts = ListBuffer[IR_Statement]()
       for (i <- 0 until 9) {
           newStmts += IR_Assignment(IR_HighDimAccess(dest, IR_ExpressionIndex(i)), IR_HighDimAccess(src, IR_ExpressionIndex(i)))
@@ -924,7 +901,7 @@ object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments 
       }
       newStmts
 
-    case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatypeN] && !src.isInstanceOf[IR_TensorExpressionN] && src.datatype.isInstanceOf[IR_TensorDatatypeN] => //TODO: Zeus, hier braucht es assignment mit Datatyp
+    case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatypeN] && !src.isInstanceOf[IR_TensorExpressionN] && src.datatype.isInstanceOf[IR_TensorDatatypeN] =>
       val tmp = src.asInstanceOf[IR_TensorExpressionN]
       var newStmts = ListBuffer[IR_Statement]()
       for (i <- tmp.expressions.indices) {
