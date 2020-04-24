@@ -83,7 +83,7 @@ case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String,
         out << ' ' << name
         initialValue match {
           case Some(e : IR_TensorExpressionN)                           => out << ' '; e.prettyprintInner(out)
-          case Some(e) if (e.datatype.isInstanceOf[IR_ScalarDatatype]) => out << ' ' << '{'; for (i <- 0 until (3^dt.order)) { e.prettyprint(out); out << ',' }; out.removeLast(); out << '}'
+          case Some(e) if (e.datatype.isInstanceOf[IR_ScalarDatatype]) => out << ' ' << '{'; for (i <- 0 until scala.math.pow(3,dt.order.toDouble).toInt) { e.prettyprint(out); out << ',' }; out.removeLast(); out << '}'
           case Some(e)                                                 => out << " = " << e
           case _                                                       =>
         }

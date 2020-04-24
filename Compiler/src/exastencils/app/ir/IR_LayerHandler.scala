@@ -213,7 +213,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     // TODO: Zeus, mal schaun was passiert wenn ich hier
    // IR_SetupTensor2Expressions.apply()
     IR_ResolveUserDefinedTensor2Functions.apply()
-    IR_ResolveTensor2Functions.apply()
+    IR_ResolveTensorFunctions.apply()
     IR_ResolveTensorAssignments.apply()
 
 

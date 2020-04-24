@@ -529,7 +529,7 @@ object IR_ResolveUserDefinedTensor2Functions extends DefaultStrategy("Resolve us
 
   this += new Transformation("add assignments/decl to function returns to arguments", {
 
-    // Tensor 1 Assignments
+    // Tensor 1 Assignment of function return
     case IR_Assignment(dest, src : IR_FunctionCall, "=") if (!resolveFunctions.contains(src.name) && dest.datatype.isInstanceOf[IR_TensorDatatype1] && src.datatype.isInstanceOf[IR_TensorDatatype1])                   =>
       src.arguments += dest
       IR_ExpressionStatement(src)
@@ -543,7 +543,7 @@ object IR_ResolveUserDefinedTensor2Functions extends DefaultStrategy("Resolve us
     case IR_Assignment(dest, src : IR_FunctionCall, "+=") if (!resolveFunctions.contains(src.name) && dest.datatype.isInstanceOf[IR_TensorDatatype1] && src.datatype.isInstanceOf[IR_TensorDatatype1])                  =>
       Logger.error("+= tensor1 operator resolution not yet implemented")
 
-    // Tensor 2 Assignments
+    // Tensor 2 Assignment of function return
     case IR_Assignment(dest, src : IR_FunctionCall, "=") if (!resolveFunctions.contains(src.name) && dest.datatype.isInstanceOf[IR_TensorDatatype2] && src.datatype.isInstanceOf[IR_TensorDatatype2])                   =>
       src.arguments += dest
       IR_ExpressionStatement(src)
@@ -557,7 +557,7 @@ object IR_ResolveUserDefinedTensor2Functions extends DefaultStrategy("Resolve us
     case IR_Assignment(dest, src : IR_FunctionCall, "+=") if (!resolveFunctions.contains(src.name) && dest.datatype.isInstanceOf[IR_TensorDatatype2] && src.datatype.isInstanceOf[IR_TensorDatatype2])                  =>
       Logger.error("+= tensor2 operator resolution not yet implemented")
 
-    // Tensor N Assignments
+    // Tensor N Assignment of function return
     case IR_Assignment(dest, src : IR_FunctionCall, "=") if (!resolveFunctions.contains(src.name) && dest.datatype.isInstanceOf[IR_TensorDatatypeN] && src.datatype.isInstanceOf[IR_TensorDatatypeN])                   =>
       src.arguments += dest
       IR_ExpressionStatement(src)
@@ -635,14 +635,32 @@ object IR_ResolveUserDefinedTensor2Functions extends DefaultStrategy("Resolve us
 }
 
 /** Implementation of tensor functions. Separate function for each kind. */
-object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tensor functions") {
+object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor functions") {
 
-  def getElem(exp : IR_Expression, row : Integer, col : Integer) = {
+  def getElem(exp : IR_Expression, row : Integer, col : Integer, higherInd: List[Integer]) = {
     exp match {
-      case x : IR_TensorExpression2                                           => x.get(row, col)
-      case x : IR_Expression if (x.datatype.isInstanceOf[IR_TensorExpression2]) => IR_HighDimAccess(Duplicate(x), new IR_ConstIndex(Array(row + col*3)))
-      case x : IR_Expression if (x.datatype.isInstanceOf[IR_TensorDatatype2]) => IR_HighDimAccess(Duplicate(x), new IR_ConstIndex(Array(row + col*3)))
-      case _                                                                 => Logger.error(s"Argument is of unexpected type ${ exp.getClass.getTypeName }: $exp")
+      case x : IR_TensorExpression1                                               => x.get(row)
+      case x : IR_Expression if (x.datatype.isInstanceOf[IR_TensorExpression1])   => IR_HighDimAccess(Duplicate(x), new IR_ConstIndex(Array(row)))
+      case x : IR_Expression if (x.datatype.isInstanceOf[IR_TensorDatatype1])     => IR_HighDimAccess(Duplicate(x), new IR_ConstIndex(Array(row)))
+      case x : IR_TensorExpression2                                               => x.get(row, col)
+      case x : IR_Expression if (x.datatype.isInstanceOf[IR_TensorExpression2])   => IR_HighDimAccess(Duplicate(x), new IR_ConstIndex(Array(row + col*3)))
+      case x : IR_Expression if (x.datatype.isInstanceOf[IR_TensorDatatype2])     => IR_HighDimAccess(Duplicate(x), new IR_ConstIndex(Array(row + col*3)))
+      case x : IR_TensorExpressionN                                               => x.get(higherInd)
+      case x : IR_Expression if (x.datatype.isInstanceOf[IR_TensorExpressionN])   => {
+        var index : Double = 0
+        for (i <- higherInd.indices) {
+          index += higherInd(i) + pow(3,i.toDouble)
+        }
+        IR_HighDimAccess(Duplicate(x), new IR_ConstIndex(Array(index.toInt)))
+      }
+      case x : IR_Expression if (x.datatype.isInstanceOf[IR_TensorDatatypeN])     => {
+        var index : Double = 0
+        for (i <- higherInd.indices) {
+          index += higherInd(i) + pow(3,i.toDouble)
+        }
+        IR_HighDimAccess(Duplicate(x), new IR_ConstIndex(Array(index.toInt)))
+      }
+      case _                                                                      => Logger.error(s"Argument is of unexpected type ${ exp.getClass.getTypeName }: $exp")
     }
   }
   def getSingleElem(exp : IR_Expression) = {
@@ -685,11 +703,33 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
     }
   }
 
+  private def addTwoTensors1(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
+    val tmp = IR_TensorExpression2(IR_ResultingDatatype(m.datatype, n.datatype))
+    for (y <- 0 until 3) {
+      for (x <- 0 until 3) {
+        tmp.set(x, y, IR_Addition(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
+        //IR_Assignment(IR_HighDimAccess(tmp, IR_ExpressionIndex(x)), IR_Addition(IR_HighDimAccess(m, IR_ExpressionIndex(x)), IR_HighDimAccess(n, IR_ExpressionIndex(x))))
+      }
+    }
+    tmp
+  }
+
   private def addTwoTensors2(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
     val tmp = IR_TensorExpression2(IR_ResultingDatatype(m.datatype, n.datatype))
     for (y <- 0 until 3) {
       for (x <- 0 until 3) {
-        tmp.set(x, y, IR_Addition(getElem(m, x, y), getElem(n, x, y)))
+        tmp.set(x, y, IR_Addition(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
+        //IR_Assignment(IR_HighDimAccess(tmp, IR_ExpressionIndex(x)), IR_Addition(IR_HighDimAccess(m, IR_ExpressionIndex(x)), IR_HighDimAccess(n, IR_ExpressionIndex(x))))
+      }
+    }
+    tmp
+  }
+
+  private def addTwoTensorsN(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
+    val tmp = IR_TensorExpression2(IR_ResultingDatatype(m.datatype, n.datatype))
+    for (y <- 0 until 3) {
+      for (x <- 0 until 3) {
+        tmp.set(x, y, IR_Addition(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
         //IR_Assignment(IR_HighDimAccess(tmp, IR_ExpressionIndex(x)), IR_Addition(IR_HighDimAccess(m, IR_ExpressionIndex(x)), IR_HighDimAccess(n, IR_ExpressionIndex(x))))
       }
     }
@@ -703,7 +743,7 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
       val tmp = IR_TensorExpression2(IR_ResultingDatatype(m.datatype, n.datatype))
       for (y <- 0 until 3) {
         for (x <- 0 until 3) {
-          tmp.set(x, y, IR_Addition(getElem(m, x, y), getElem(n, x, y)))
+          tmp.set(x, y, IR_Addition(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
           //IR_Assignment(IR_HighDimAccess(tmp, IR_ExpressionIndex(x + y * 3)), IR_Addition(IR_HighDimAccess(m, IR_ExpressionIndex(x + y * 3)), IR_HighDimAccess(n, IR_ExpressionIndex(x + y * 3))))
         }
       }
@@ -794,7 +834,7 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
       val me = IR_TensorExpression2(IR_ResultingDatatype(left.datatype, right.datatype))
       for (row <- 0 until 9) {
         for (col <- 0 until 3) {
-          me.set(row, col, IR_Multiplication(getElem(left, row, col), getElem(right, row, col)))
+          me.set(row, col, IR_Multiplication(getElem(left, row, col, Nil), getElem(right, row, col, Nil)))
         }
       }
       me
@@ -831,7 +871,7 @@ object IR_ResolveTensor2Functions extends DefaultStrategy("Resolve special tenso
 ###################################################################################################################################### */
 
 /** Objects transforms tensor assignments */
-object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments to second dim tensors") {
+object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments tensors") {
   //val annotationMatrixRow = "IR_ResolveMatrices.matrixRow"
   //val annotationMatrixCol = "IR_ResolveMatrices.matrixCol"
 
@@ -844,6 +884,7 @@ object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments 
 */
     // Tensor 1 Assignment
     case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatype1] && src.isInstanceOf[IR_TensorExpression1] =>
+      Logger.error("test")
       val tmp = src.asInstanceOf[IR_TensorExpression1]
       var newStmts = ListBuffer[IR_Statement]()
       for (x <- 0 until 3) {
@@ -851,8 +892,7 @@ object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments 
       }
       newStmts
 
-    case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatype1] && !src.isInstanceOf[IR_TensorExpression1] && src.datatype.isInstanceOf[IR_TensorDatatype1] =>
-      Logger.error(src)
+    case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatype1] && !src.isInstanceOf[IR_TensorExpression1] && src.datatype.isInstanceOf[IR_TensorDatatype1] => //TODO: Zeus, hier braucht es assignment mit Datatyp
       var newStmts = ListBuffer[IR_Statement]()
       for (i <- 0 until 3) {
         newStmts += IR_Assignment(IR_HighDimAccess(dest, IR_ExpressionIndex(i)), IR_HighDimAccess(src, IR_ExpressionIndex(i)))
@@ -870,8 +910,7 @@ object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments 
       }
       newStmts
 
-    case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatype2] && !src.isInstanceOf[IR_TensorExpression2] && src.datatype.isInstanceOf[IR_TensorDatatype2] =>
-      Logger.error(src)
+    case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatype2] && !src.isInstanceOf[IR_TensorExpression2] && src.datatype.isInstanceOf[IR_TensorDatatype2] => //TODO: Zeus, hier braucht es assignment mit Datatyp
       var newStmts = ListBuffer[IR_Statement]()
       for (i <- 0 until 9) {
           newStmts += IR_Assignment(IR_HighDimAccess(dest, IR_ExpressionIndex(i)), IR_HighDimAccess(src, IR_ExpressionIndex(i)))
@@ -887,8 +926,7 @@ object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments 
       }
       newStmts
 
-    case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatypeN] && !src.isInstanceOf[IR_TensorExpressionN] && src.datatype.isInstanceOf[IR_TensorDatatypeN] =>
-      Logger.error(src)
+    case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatypeN] && !src.isInstanceOf[IR_TensorExpressionN] && src.datatype.isInstanceOf[IR_TensorDatatypeN] => //TODO: Zeus, hier braucht es assignment mit Datatyp
       val tmp = src.asInstanceOf[IR_TensorExpressionN]
       var newStmts = ListBuffer[IR_Statement]()
       for (i <- tmp.expressions.indices) {
