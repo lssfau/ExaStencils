@@ -37,9 +37,9 @@ case class IR_HackTenComponentAccess(var mat : IR_VariableAccess, var i : IR_Exp
   override def prettyprint(out : PpStream) : Unit = out << mat << "(" << i << ", " << j << ")"
 }
 
-/* ######################################################################################################################################
-#########################                      abstract IR_TensorExpresion                            ###################################
-###################################################################################################################################### */
+/* ###################################################################################################################
+################                     abstract IR_TensorExpresion                            ##########################
+################################################################################################################### */
 
 /** abstract tensor expression type
  *
@@ -60,9 +60,9 @@ abstract class IR_TensorExpression(innerDatatype : Option[IR_Datatype]) extends 
   def toString : String
 }
 
-/* ######################################################################################################################################
-#########################                        IR_TensorExpression1                                 ###################################
-###################################################################################################################################### */
+/* ###################################################################################################################
+################                        IR_TensorExpression1                                ##########################
+################################################################################################################### */
 
 /** Factory for IR_TensorExpression1 objects */
 object IR_TensorExpression1 {
@@ -168,9 +168,9 @@ case class IR_TensorExpression1(var innerDatatype : Option[IR_Datatype]) extends
 
 }
 
-/* ######################################################################################################################################
-#########################                        IR_TensorExpression2                                 ###################################
-###################################################################################################################################### */
+/* ###################################################################################################################
+################                        IR_TensorExpression2                                ##########################
+################################################################################################################### */
 
 
 /** Factory for IR_TensorExpression2 objects */
@@ -231,43 +231,6 @@ object IR_TensorExpression2 {
       tmp
     }
   }
-
-  /** creates a second order tensor expression from dyadic product of arrays
-   *
-   * @param arr1 : Array[IR_Expression], input array with lenght 3, shoud contain IR numeric datatype
-   * @param arr2 : Array[IR_Expression], input array with lenght 3, shoud contain IR numeric datatype
-   * @return IR_TensorExpression2 instance
-   */
-  def dyadic(arr1 : Array[IR_Expression], arr2 : Array[IR_Expression]) : IR_TensorExpression2 = {
-    if ((arr1.length != 3) || (arr2.length != 3)) {
-      Logger.error("both input arrays must have size 3")
-    } else {
-      val tmp = IR_TensorExpression2(IR_ResultingDatatype(arr1.head.datatype, arr2.head.datatype))
-      for (y <- 0 until 3) {
-        for (x <- 0 until 3) {
-          tmp.set(x, y, IR_Multiplication(arr1(x),arr2(y)))
-        }
-      }
-      tmp
-    }
-  }
-
-  /** creates a second tensor expression from dyadic product of arrays
-   *
-   * @param tens1 : IR_TensorExpression1, input array with lenght 3, shoud contain IR numeric datatype
-   * @param tens2 : IR_TensorExpression1, input array with lenght 3, shoud contain IR numeric datatype
-   * @return IR_TensorExpression2 instance
-   */
-  def dyadic(tens1 : IR_TensorExpression1, tens2 : IR_TensorExpression1) : IR_TensorExpression2 = {
-      val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens1.expressions.head.datatype,
-        tens2.expressions.head.datatype))
-      for (y <- 0 until 3) {
-        for (x <- 0 until 3) {
-          tmp.set(x, y, IR_Multiplication(tens1.get(x),tens2.get(y)))
-        }
-      }
-      tmp
-    }
 
   /** creates a 2D tensor expression and fill with single number
    *
@@ -332,9 +295,9 @@ case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends
     expressions.mkString(", ") + ")" }
 }
 
-/* ######################################################################################################################################
-#########################                        IR_TensorExpressionN                                 ###################################
-###################################################################################################################################### */
+/* ###################################################################################################################
+################                        IR_TensorExpressionN                                ##########################
+################################################################################################################### */
 
 /** Factory for IR_TensorExpressionN objects */
 object IR_TensorExpressionN {
@@ -377,52 +340,6 @@ object IR_TensorExpressionN {
       tmp.expressions = expressions.toArray
       tmp
     }
-  }
-
-  /** creates a n-th order tensor from dyadic product of arrays
-   *
-   * @param arr : Array[IR_Expression], input array with lenght 3, shoud contain IR numeric datatype
-   * @return IR_TensorExpression2 instance
-   */
-  def dyadic(arr : Array[Array[IR_Expression]]) : IR_TensorExpressionN = {
-    for (i <- arr.indices) {
-      if (arr(i).length != 3) Logger.error("a array for dyadic product has the wrong dimension")
-    }
-    var tmp : IR_TensorExpressionN = null
-    if (arr.length == 1) {
-      tmp = IR_TensorExpressionN(arr(0).head.datatype, order = 1)
-      tmp.expressions = arr(0)
-    } else if (arr.length == 2) {
-      tmp = IR_TensorExpressionN(IR_ResultingDatatype(arr(0).head.datatype, arr(1).head.datatype), order = 2)
-      for (y <- 0 until 3) {
-        for (x <- 0 until 3) {
-          tmp.set(List(x,y), IR_Multiplication(arr(0)(x),arr(1)(y)))
-        }
-      }
-    } else {
-      tmp = IR_TensorExpressionN(IR_ResultingDatatype(arr(0).head.datatype, arr(1).head.datatype), order = arr.length) // TODO: Datentyp nicht ganz korrekt
-      // TODO: Hier muss noch das ausrechnen der expresions rein
-    }
-
-
-    tmp
-  }
-
-  /** creates a n-th order tensor from dyadic product of arrays
-   *
-   * @param tens1 : IR_TensorExpression1, input array with lenght 3, shoud contain IR numeric datatype
-   * @param tens2 : IR_TensorExpression1, input array with lenght 3, shoud contain IR numeric datatype
-   * @return IR_TensorExpression2 instance
-   */
-  def dyadic(tens1 : IR_TensorExpression1, tens2 : IR_TensorExpression1) : IR_TensorExpression2 = {
-    val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens1.expressions.head.datatype,
-      tens2.expressions.head.datatype))
-    for (y <- 0 until 3) {
-      for (x <- 0 until 3) {
-        tmp.set(x, y, IR_Multiplication(tens1.get(x),tens2.get(y)))
-      }
-    }
-    tmp
   }
 
   /** creates a n-th order tensor and fill with single number
@@ -512,10 +429,9 @@ case class IR_TensorExpressionN(var innerDatatype : Option[IR_Datatype], var ord
     expressions.mkString(", ") + ")" }
 }
 
-
-/* ######################################################################################################################################
-#########################                  Implementation of tensor functions                         ###################################
-###################################################################################################################################### */
+/* ###################################################################################################################
+################                 Implementation of tensor functions                        ##########################
+################################################################################################################### */
 
 /** Declaration of tensor functions and transformation nodes */
 object IR_ResolveUserDefinedTensor2Functions extends DefaultStrategy("Resolve user defined functions") {
@@ -658,12 +574,25 @@ object IR_ResolveUserDefinedTensor2Functions extends DefaultStrategy("Resolve us
 /** Implementation of tensor functions. Separate function for each kind. */
 object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor functions") {
 
+  //################################################################################################################
+  // Element access
+
+  /** Element access for tensor 1,2,N
+   *
+   * @param exp : IR_Expression, input expression for access
+   * @param row : Integer, Tensor1 only index, Tensor2 row index, TensorN direct index
+   * @param col : Integer, Tensor2 col index
+   * @param higherInd : List[Integer], TensorN multidim index
+   * @return : IR_Expression, expression found on given index
+   */
   def getElem(exp : IR_Expression, row : Integer, col : Integer, higherInd: List[Integer]) : IR_Expression = {
     exp match {
       case x : IR_TensorExpression1                                               => x.get(row)
       case x : IR_Expression if (x.datatype.isInstanceOf[IR_TensorExpression1])   => IR_HighDimAccess(Duplicate(x),
         new IR_ConstIndex(Array(row)))
       case x : IR_Expression if (x.datatype.isInstanceOf[IR_TensorDatatype1])     => IR_HighDimAccess(Duplicate(x),
+        new IR_ConstIndex(Array(row)))
+      case x : IR_Expression if (x.datatype.isInstanceOf[IR_VectorDatatype])     => IR_HighDimAccess(Duplicate(x),
         new IR_ConstIndex(Array(row)))
       case x : IR_TensorExpression2                                               => x.get(row, col)
       case x : IR_Expression if (x.datatype.isInstanceOf[IR_TensorExpression2])   => IR_HighDimAccess(Duplicate(x),
@@ -677,12 +606,16 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
           index += higherInd(i) + pow(3,i.toDouble)
         }
         IR_HighDimAccess(Duplicate(x), new IR_ConstIndex(Array(index.toInt)))
-      case x : IR_Expression if (x.datatype.isInstanceOf[IR_TensorDatatypeN])     =>
+      case x : IR_Expression if (x.datatype.isInstanceOf[IR_TensorDatatypeN]) &&
+        higherInd != Nil                                                          =>
         var index : Double = 0
         for (i <- higherInd.indices) {
           index += higherInd(i) + pow(3,i.toDouble)
         }
         IR_HighDimAccess(Duplicate(x), new IR_ConstIndex(Array(index.toInt)))
+      case x : IR_Expression if (x.datatype.isInstanceOf[IR_TensorDatatypeN]) &&
+        higherInd == Nil && row != 0                                              =>
+        IR_HighDimAccess(Duplicate(x), new IR_ConstIndex(Array(row)))
       case _   => Logger.error(s"Argument is of unexpected type ${ exp.getClass.getTypeName }: $exp")
     }
   }
@@ -695,6 +628,14 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
     }
   }
 
+  //################################################################################################################
+  // Hight order functions
+
+  /** Calculates the determine of a second order tensor
+   *
+   * @param m : IR_Expression, represent tensor
+   * @return : IR_Expression, expression of determinant
+   */
   def determinant(m : IR_Expression) : IR_Expression = {
     m match {
       case m : IR_TensorExpression2                                               =>
@@ -719,6 +660,11 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
     }
   }
 
+  /** Calculates the trace of a tensor
+   *
+   * @param m : IR_Expression, represent tensor
+   * @return : IR_Expression, expression of trace
+   */
   def trace(m : IR_Expression) : IR_Expression = {
     m match {
       case m : IR_TensorExpression2 => IR_Addition(m.get(0, 0), m.get(1, 1), m.get(2, 2))
@@ -729,8 +675,74 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
     }
   }
 
+  //################################################################################################################
+  // Dyadic product
+
+  private def dyadicProductTwoArray(m : IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
+    val arr1 = m.datatype.asInstanceOf[Array[IR_Expression]]
+    val arr2 = n.datatype.asInstanceOf[Array[IR_Expression]]
+    if ((arr1.length != 3) || (arr2.length != 3)) {
+      Logger.error("Dyadic productl: both input arrays must have size 3")
+    } else {
+      val tmp = IR_TensorExpression2(IR_ResultingDatatype(arr1.head.datatype, arr2.head.datatype))
+      for (y <- 0 until 3) {
+        for (x <- 0 until 3) {
+          tmp.set(x, y, IR_Multiplication(getElem(m, x, 0, Nil), getElem(n, y, 0, Nil)))
+        }
+      }
+      tmp
+    }
+  }
+
+  private def dyadicProductTwoTensor1(m : IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
+    val tens1 = m.datatype.asInstanceOf[IR_TensorDatatype1]
+    val tens2 = n.datatype.asInstanceOf[IR_TensorDatatype1]
+    val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens1.datatype, tens2.datatype))
+    for (y <- 0 until 3) {
+      for (x <- 0 until 3) {
+        tmp.set(x, y, IR_Multiplication(getElem(m, x, 0, Nil), getElem(n, y, 0, Nil)))
+      }
+    }
+    tmp
+  }
+
+  /** Calculates the dyadic product and returns a expression of a second order tensor
+   *
+   * @param m : IR_Expression, represents vector1/tensor1
+   * @param n : IR_Expression, represents vector2/tensor2
+   * @return : IR_Expression, expression of calculated tensor
+   */
+  def dyadic(m : IR_Expression, n : IR_Expression) : IR_TensorExpression = {
+    (m, n) match {
+      case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_TensorDatatype1] &&
+        n.datatype.isInstanceOf[IR_TensorDatatype1] => dyadicProductTwoArray(m, n)
+      case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_TensorDatatype1] &&
+        n.datatype.isInstanceOf[IR_TensorDatatype1] => dyadicProductTwoTensor1(m, n)
+      case (_, _)                                   => Logger.error("Add tensor got the a wrong type")
+    }
+  }
+
+  //################################################################################################################
+  // Addition
+
+  private def addTensors1Vector(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression1 = {
+    val tens = m.datatype.asInstanceOf[IR_TensorDatatypeN]
+    val vec = n.datatype.asInstanceOf[IR_VectorDatatype]
+    if (vec.size != 3) {
+      Logger.error("Add Tensor1 with Vector: vector has wrong size: " + vec.size.toString + " != 3")
+    } else {
+      val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens.datatype, vec.datatype))
+      for (x <- 0 until 3) {
+        tmp.set(x, IR_Addition(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
+      }
+      tmp
+    }
+  }
+
   private def addTwoTensors1(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression1 = {
-    val tmp = IR_TensorExpression1(IR_ResultingDatatype(m.datatype, n.datatype))
+    val tens1 = m.datatype.asInstanceOf[IR_TensorDatatype1]
+    val tens2 = n.datatype.asInstanceOf[IR_TensorDatatype1]
+    val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens1.datatype, tens2.datatype))
     for (x <- 0 until 3) {
       tmp.set(x, IR_Addition(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
     }
@@ -738,7 +750,9 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   }
 
   private def addTwoTensors2(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
-    val tmp = IR_TensorExpression2(IR_ResultingDatatype(m.datatype, n.datatype))
+    val tens1 = m.datatype.asInstanceOf[IR_TensorDatatype2]
+    val tens2 = n.datatype.asInstanceOf[IR_TensorDatatype2]
+    val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens1.datatype, tens2.datatype))
     for (y <- 0 until 3) {
       for (x <- 0 until 3) {
         tmp.set(x, y, IR_Addition(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
@@ -747,12 +761,27 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
     tmp
   }
 
+  private def addTwoTensorsN(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpressionN = {
+    val tens1 = m.datatype.asInstanceOf[IR_TensorDatatypeN]
+    val tens2 = n.datatype.asInstanceOf[IR_TensorDatatypeN]
+    if (tens1.order != tens2.order) {
+      Logger.error("Add of to tensor N: has different orders, " + tens1.order.toString + " != " + tens2.order.toString)
+    } else {
+      val tmp = IR_TensorExpressionN(IR_ResultingDatatype(tens1.datatype, tens2.datatype), tens1.order)
+      for (x <- 0 until pow(3,tens1.order.toDouble).toInt) {
+        tmp.setDirect(x, IR_Addition(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
+      }
+      tmp
+    }
+  }
 
   private def addTensor2Matrix(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
-    /*if (n.rows != 3 || n.columns != 3) { // TODO: Zeus, hier muss irgendwie das assert rein
+    val tens = m.datatype.asInstanceOf[IR_TensorDatatype2]
+    val mat = n.datatype.asInstanceOf[IR_MatrixDatatype]
+    if (mat.sizeM != 3 || mat.sizeN != 3) {
       Logger.error("matrix has the wrong dimension")
-    } else*/ {
-      val tmp = IR_TensorExpression2(IR_ResultingDatatype(m.datatype, n.datatype))
+    } else {
+      val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens.datatype, mat.datatype))
       for (y <- 0 until 3) {
         for (x <- 0 until 3) {
           tmp.set(x, y, IR_Addition(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
@@ -762,30 +791,62 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
     }
   }
 
+  /** Calculates the addiction of two tensors or tensor with matrix/vector
+   *
+   * @param m : IR_Expression, represents vector1/matrix1/tensor1
+   * @param n : IR_Expression, represents vector2/matrix1/tensor2
+   * @return : IR_Expression, expression of calculated tensor
+   */
   def add(m : IR_Expression, n : IR_Expression) : IR_TensorExpression = {
     (m, n) match {
-      case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_TensorDatatype2] &&
-        n.datatype.isInstanceOf[IR_TensorDatatype2] => addTwoTensors2(m, n)
       case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_TensorDatatype1] &&
         n.datatype.isInstanceOf[IR_TensorDatatype1] => addTwoTensors1(m, n)
+      case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_TensorDatatype1] &&
+        n.datatype.isInstanceOf[IR_VectorDatatype]  => addTensors1Vector(m, n)
+      case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_VectorDatatype] &&
+        n.datatype.isInstanceOf[IR_TensorDatatype1] => addTensors1Vector(n, m)
+      case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_TensorDatatype2] &&
+        n.datatype.isInstanceOf[IR_TensorDatatype2] => addTwoTensors2(m, n)
       case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_TensorDatatype2] &&
         n.datatype.isInstanceOf[IR_MatrixDatatype]  => addTensor2Matrix(m, n)
       case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_MatrixDatatype] &&
         n.datatype.isInstanceOf[IR_TensorDatatype2] => addTensor2Matrix(n, m)
+      case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_TensorDatatypeN] &&
+        n.datatype.isInstanceOf[IR_TensorDatatypeN] => addTwoTensorsN(m, n)
       case (_, _)                                   => Logger.error("Add tensor got the a wrong type")
     }
   }
 
+  //################################################################################################################
+  // Dotproduct
+
   private def dotProductTwoTensors1(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression1 = {
-    val tmp = IR_TensorExpression1(IR_ResultingDatatype(m.datatype, n.datatype))
+    val tens1 = m.datatype.asInstanceOf[IR_TensorDatatypeN]
+    val tens2 = n.datatype.asInstanceOf[IR_TensorDatatypeN]
+    val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens1.datatype, tens2.datatype))
     for (x <- 0 until 3) {
       tmp.set(x, IR_Multiplication(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
     }
     tmp
   }
+  private def dotProductTensors1Vector(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression1 = {
+    val tens = m.datatype.asInstanceOf[IR_TensorDatatype1]
+    val vec = n.datatype.asInstanceOf[IR_VectorDatatype]
+    if (vec.size != 3) {
+      Logger.error("Add Tensor1 with Vector: vector has wrong size: " + vec.size.toString + " != 3")
+    } else {
+      val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens.datatype, vec.datatype))
+      for (x <- 0 until 3) {
+        tmp.set(x, IR_Multiplication(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
+      }
+      tmp
+    }
+  }
 
   private def dotProductTwoTensors2(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
-    val tmp = IR_TensorExpression2(IR_ResultingDatatype(m.datatype, n.datatype))
+    val tens1 = m.datatype.asInstanceOf[IR_TensorDatatype2]
+    val tens2 = n.datatype.asInstanceOf[IR_TensorDatatype2]
+    val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens1.datatype, tens2.datatype))
     for (y <- 0 until 3) {
       for (x <- 0 until 3) {
         tmp.set(x, y, IR_Multiplication(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
@@ -794,26 +855,55 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
     tmp
   }
 
+  private def dotProductTwoTensorsN(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpressionN = {
+    val tens1 = m.datatype.asInstanceOf[IR_TensorDatatypeN]
+    val tens2 = n.datatype.asInstanceOf[IR_TensorDatatypeN]
+    if (tens1.order != tens2.order) {
+      Logger.error("Dotproduct of to tensor N: has different orders " + tens1.order.toString +
+        " != " + tens2.order.toString)
+    } else {
+      val tmp = IR_TensorExpressionN(IR_ResultingDatatype(tens1.datatype, tens2.datatype), tens1.order)
+      for (x <- 0 until pow(3,tens1.order.toDouble).toInt) {
+        tmp.setDirect(x, IR_Multiplication(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
+      }
+      tmp
+    }
+  }
+
   private def dotProductTensor2Matrix(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
-    //if (n.rows != 3 || n.columns != 3) {
-    //  Logger.error("matrix has the wrong dimension")
-    //} else {
-      val tmp = IR_TensorExpression2(IR_ResultingDatatype(m.datatype, n.datatype))
+    val tens = m.datatype.asInstanceOf[IR_TensorDatatype2]
+    val mat = n.datatype.asInstanceOf[IR_MatrixDatatype]
+    if (mat.sizeM != 3 || mat.sizeN != 3) {
+      Logger.error("matrix has the wrong dimension")
+    } else {
+      val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens.datatype, mat.datatype))
       for (y <- 0 until 3) {
         for (x <- 0 until 3) {
           tmp.set(x, y, IR_Multiplication(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
         }
       }
       tmp
-    //}
+    }
   }
 
+  /** Calculates the dot product of two tensors or tensor with matrix/vectors
+   *
+   * @param m : IR_Expression, represents vector1/matrix1/tensor1
+   * @param n : IR_Expression, represents vector2/matrix1/tensor2
+   * @return : IR_Expression, expression of calculated tensor
+   */
   def dot(m : IR_Expression, n : IR_Expression) : IR_TensorExpression = {
     (m, n) match {
       case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_TensorDatatype2]
         && n.datatype.isInstanceOf[IR_TensorDatatype2]   => dotProductTwoTensors2(m, n)
+      case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_TensorDatatype1] &&
+        n.datatype.isInstanceOf[IR_VectorDatatype]       => dotProductTensors1Vector(m, n)
+      case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_VectorDatatype] &&
+        n.datatype.isInstanceOf[IR_TensorDatatype1]      => dotProductTensors1Vector(n, m)
       case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_TensorDatatype1]
         && n.datatype.isInstanceOf[IR_TensorDatatype1]   => dotProductTwoTensors1(m, n)
+      case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_TensorDatatypeN]
+        && n.datatype.isInstanceOf[IR_TensorDatatypeN]   => dotProductTwoTensorsN(m, n)
       case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_TensorExpression2]
         && n.datatype.isInstanceOf[IR_MatrixExpression]  => dotProductTensor2Matrix(m, n)
       case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_MatrixExpression]
@@ -822,23 +912,67 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
     }
   }
 
-  def scalarProduct(m: IR_TensorExpression2, n : IR_Number) : IR_TensorExpression2 = {
-    val tmp = IR_TensorExpression2(IR_ResultingDatatype(m.datatype, n.datatype))
+  //################################################################################################################
+  // Scalaproduct
+
+  private def scalarProductTensor1(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression1 = {
+    val tens = m.datatype.asInstanceOf[IR_TensorDatatype1]
+    val num = n.datatype.asInstanceOf[IR_Number]
+    val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens.datatype, num.datatype))
+    for (x <- 0 until 3) {
+        tmp.set(x, IR_Multiplication(getElem(m, x, 0, Nil), IR_VariableAccess(n.name, n.datatype)))
+    }
+    tmp
+  }
+
+  private def scalarProductTensor2(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
+    val tens = m.datatype.asInstanceOf[IR_TensorDatatype2]
+    val num = n.datatype.asInstanceOf[IR_Number]
+    val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens.datatype, num.datatype))
     for (y <- 0 until 3) {
       for (x <- 0 until 3) {
-        tmp.set(x, y, IR_Multiplication(m.get(x, y), n))
+        tmp.set(x, y, IR_Multiplication(getElem(m, x, y, Nil), IR_VariableAccess(n.name, n.datatype)))
       }
     }
     tmp
   }
 
-  def scalar(m: IR_Expression, n : IR_Expression) : IR_TensorExpression2 = {
+  private def scalarProductTensorN(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpressionN = {
+    val tens = m.datatype.asInstanceOf[IR_TensorDatatypeN]
+    val num = n.datatype.asInstanceOf[IR_Number]
+    val tmp = IR_TensorExpressionN(IR_ResultingDatatype(tens.datatype, num.datatype), tens.order)
+    for (x <- 0 until pow(3, tens.order.toDouble).toInt) {
+      tmp.setDirect(x, IR_Multiplication(getElem(m, x, 0, Nil), IR_VariableAccess(n.name, n.datatype)))
+    }
+    tmp
+  }
+
+  /** Calculates the scalar product of a tensor with a scalar
+   *
+   * @param m : IR_Expression, represents tensor or scalar
+   * @param n : IR_Expression, represents tensor or scalar
+   * @return : IR_Expression, expression of calculated tensor
+   */
+  def scalar(m: IR_Expression, n : IR_Expression) : IR_TensorExpression = {
     (m, n) match {
-      case (m : IR_TensorExpression2, n : IR_Number)  => scalarProduct(m, n)
-      case (m : IR_Number, n : IR_TensorExpression2)  => scalarProduct(n, m)
+      case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_TensorDatatype1] &&
+        n.datatype.isInstanceOf[IR_Number]                => scalarProductTensor1(m, n)
+      case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_Number] &&
+        n.datatype.isInstanceOf[IR_TensorDatatype1]       => scalarProductTensor1(n, m)
+      case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_TensorDatatype2] &&
+        n.datatype.isInstanceOf[IR_Number]                => scalarProductTensor2(m, n)
+      case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_Number] &&
+        n.datatype.isInstanceOf[IR_TensorDatatype2]       => scalarProductTensor2(n, m)
+      case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_TensorDatatypeN] &&
+        n.datatype.isInstanceOf[IR_Number]                => scalarProductTensorN(m, n)
+      case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_Number] &&
+        n.datatype.isInstanceOf[IR_TensorDatatypeN]       => scalarProductTensorN(n, m)
       case (_,  _)                                    => Logger.error("Scalar product tensor got the a wrong type")
     }
   }
+
+  //################################################################################################################
+  // Functioncalls
 
   this += new Transformation("resolution of built-in functions 2/2", {
 
@@ -889,9 +1023,9 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
 }
 
 
-/* ######################################################################################################################################
-#########################                  Implementation of tensor assignments                       ###################################
-###################################################################################################################################### */
+/* ###################################################################################################################
+################                 Implementation of tensor assignments                       ##########################
+################################################################################################################### */
 
 /** Objects transforms tensor assignments */
 object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments tensors") {
