@@ -64,4 +64,5 @@ case class IR_TimerFunctions() extends IR_FunctionCollection(IR_TimerFunctions.d
   functions += IR_GetLastTime()
   functions += IR_PrintAllTimers()
   functions += IR_PrintAllTimersToFile()
+  functions += IR_ReduceTimers()
 }

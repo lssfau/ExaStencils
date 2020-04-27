@@ -42,13 +42,13 @@ object DuplicateNodes extends DefaultStrategy("Eliminate multiple usage of node 
     override def isDefinedAt(node : Node) : Boolean = {
       if (instances.containsKey(node))
         return true
-      if (Duplicate.clonable(node))
-        instances.put(node, collector.stack)
-      return false
+      instances.put(node, collector.stack)
+      false
     }
 
     override def apply(node : Node) : Transformation.OutputType = {
-      if (printWarnings) {
+      val dup = Duplicate(node)
+      if ((node ne dup) && printWarnings) {
         Logger.warn("Eliminated double reference by cloning: " + node)
         if (printStack) {
           val location1 = collector.stack
@@ -57,8 +57,7 @@ object DuplicateNodes extends DefaultStrategy("Eliminate multiple usage of node 
           Logger.warn("  location 2 parents are: " + location2.view.map(n => n.getClass.getName).mkString(" => "))
         }
       }
-      // instances.put(dup, this) // we just created a new instance, so it is impossible we can find it anywhere else in the AST
-      Duplicate(node)
+      dup
     }
   }
   )

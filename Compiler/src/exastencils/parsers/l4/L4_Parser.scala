@@ -253,20 +253,37 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val breakStatement = locationize("break" ^^ (_ => L4_Break()))
 
   lazy val loopOverFragments = locationize(("loop" ~ "over" ~ "fragments") ~ ("with" ~> reductionClause).? ~ ("{" ~> statement.* <~ "}") ^^ { case _ ~ red ~ stmts => L4_LoopOverFragments(stmts, red) })
+  //  lazy val loopOver = locationize(("loop" ~ "over" ~> genericAccess) ~ //fieldAccess
+  //    ("only" ~> regionSpecification).? ~
+  //    "sequentially".? ~ // FIXME: seq HACK
+  //    ("where" ~> booleanexpression).? ~
+  //    ("starting" ~> expressionIndex).? ~
+  //    ("ending" ~> expressionIndex).? ~
+  //    ("stepping" ~> expressionIndex).? ~
+  //    ("with" ~> reductionClause).? ~
+  //    precomm.* ~
+  //    postcomm.* ~
+  //    ("{" ~> statement.* <~ "}") ^^ {
+  //    case field ~ region ~ seq ~ cond ~ startOff ~ endOff ~ inc ~ red ~ prec ~ postc ~ stmts =>
+  //      L4_LoopOverField(field, region, seq.isDefined, cond, startOff, endOff, inc, stmts, red, prec, postc)
+  //  })
   lazy val loopOver = locationize(("loop" ~ "over" ~> genericAccess) ~ //fieldAccess
-    ("only" ~> regionSpecification).? ~
-    "sequentially".? ~ // FIXME: seq HACK
-    ("where" ~> booleanexpression).? ~
-    ("starting" ~> expressionIndex).? ~
-    ("ending" ~> expressionIndex).? ~
-    ("stepping" ~> expressionIndex).? ~
-    ("with" ~> reductionClause).? ~
-    precomm.* ~
-    postcomm.* ~
+    loopModifier.* ~
     ("{" ~> statement.* <~ "}") ^^ {
-    case field ~ region ~ seq ~ cond ~ startOff ~ endOff ~ inc ~ red ~ prec ~ postc ~ stmts =>
-      L4_LoopOverField(field, region, seq.isDefined, cond, startOff, endOff, inc, stmts, red, prec, postc)
+    case field ~ modifiers ~ stmts =>
+      L4_LoopOverField(field, modifiers, stmts)
   })
+  lazy val loopModifier : Parser[(String, Any)] = (
+    "only" ~> regionSpecification ^^ (p => ("only", p))
+      ||| "sequentially" ^^ (_ => ("sequentially", true)) // FIXME: seq HACK
+      ||| "where" ~> booleanexpression ^^ (p => ("where", p))
+      ||| "starting" ~> expressionIndex ^^ (p => ("starting", p))
+      ||| "ending" ~> expressionIndex ^^ (p => ("ending", p))
+      ||| "stepping" ~> expressionIndex ^^ (p => ("stepping", p))
+      ||| "with" ~> reductionClause ^^ (p => ("with", p))
+      ||| precomm ^^ (p => ("precomm", p))
+      ||| postcomm ^^ (p => ("postcomm", p))
+    )
   lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => L4_Reduction(op, s) })
   lazy val regionSpecification = locationize((("ghost" ||| "dup" ||| "inner") ~ constIndex ~ ("on" <~ "boundary").?) ^^ { case region ~ dir ~ bc => L4_RegionSpecification(region, dir, bc.isDefined) })
 

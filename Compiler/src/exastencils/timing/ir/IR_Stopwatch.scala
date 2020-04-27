@@ -67,7 +67,7 @@ case class IR_Stopwatch() extends IR_Node with FilePrettyPrintable {
     writerHeader <<< s"class StopWatch {"
     writerHeader <<< s"public:"
     writerHeader <<< s"\tStopWatch()"
-    writerHeader << s"\t\t: numEntries(0), numMeasurements(0), lastTimeMeasured(${ IR_ZeroTimerValue().prettyprint() }), totalTimeMeasured(${ IR_ZeroTimerValue().prettyprint() })\n"
+    writerHeader << s"\t\t: numEntries(0), numMeasurements(0), lastTimeMeasured(${ IR_ZeroTimerValue().prettyprint() }), totalTimeMeasured(${ IR_ZeroTimerValue().prettyprint() }), totalTimeAveraged(0.0)\n"
     writerHeader <<< s"\t{}\n"
 
     writerHeader <<< s"\tstd::string timerName;\n"
@@ -78,6 +78,7 @@ case class IR_Stopwatch() extends IR_Node with FilePrettyPrintable {
     writerHeader <<< s"\t$timerTimepointType timerEnded;"
     writerHeader <<< s"\t$timerDurationType lastTimeMeasured;"
     writerHeader <<< s"\t$timerDurationType totalTimeMeasured;"
+    writerHeader <<< s"\tdouble totalTimeAveraged;"
     writerHeader <<< s"};\n"
   }
 }

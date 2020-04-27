@@ -23,26 +23,36 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config.Knowledge
-import exastencils.parallelization.api.mpi.MPI_Barrier
+import exastencils.core.StateManager
+import exastencils.parallelization.api.mpi.MPI_AllReduce
 
-/// IR_StartTimer
+/// IR_ReduceTimers
 
-case class IR_StartTimer() extends IR_TimerFunction {
-
-  import IR_TimerFunction._
-
-  override var name = "startTimer"
+case class IR_ReduceTimers() extends IR_TimerFunction {
+  override var name = "reduceTimers"
   override def prettyprint_decl() : String = prettyprint
 
-  override def generateFct() = {
-    val statements = ListBuffer[IR_Statement](
-      IR_IfCondition(IR_EqEq(0, accessMember("numEntries")), ListBuffer(
-        if (Knowledge.timer_syncMpi && Knowledge.mpi_enabled) MPI_Barrier else IR_NullStatement,
-        IR_AssignNowToTimer(accessMember("timerStarted")),
-        IR_Assignment(accessMember("lastTimeMeasured"), IR_ZeroTimerValue()))),
-      IR_PreIncrement(accessMember("numEntries")))
+  def genReduceTimerCode(timer : IR_IV_Timer) : IR_Statement = {
+    var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    val fct = IR_PlainFunction(name, IR_UnitDatatype, ListBuffer(IR_FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), statements)
+    statements += IR_Assignment(IR_MemberAccess(timer, "totalTimeAveraged"), IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype), timer))
+
+    if (Knowledge.mpi_enabled) {
+      val timerValue = IR_MemberAccess(timer, "totalTimeAveraged")
+      statements += MPI_AllReduce(IR_AddressOf(timerValue), IR_DoubleDatatype, 1, "+")
+      statements += IR_Assignment(timerValue, timerValue / Knowledge.mpi_numThreads)
+    }
+
+    IR_Scope(statements)
+  }
+
+  override def generateFct() = {
+    IR_CollectTimers.applyStandalone(StateManager.root)
+    val timers = IR_CollectTimers.timers
+
+    val body = timers.toList.sortBy(_._1).map(t => genReduceTimerCode(t._2)).to[ListBuffer]
+
+    val fct = IR_PlainFunction(name, IR_UnitDatatype, body)
     fct.allowFortranInterface = false
     fct
   }
