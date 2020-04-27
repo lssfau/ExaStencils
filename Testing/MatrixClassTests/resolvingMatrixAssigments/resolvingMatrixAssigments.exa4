@@ -9,14 +9,17 @@ Globals {
 
 Function Application ( ) : Unit {
 	Var prec : Double = 0.001
-	Var m1 : Matrix<Double, 2, 2> = {{1, 2}, {3, 4}}
-	
-	Var m2 : Matrix<Double, 2, 2> = 2
-	Var sol1 : Matrix<Double, 2, 2> = {{2,2},{2,2}}
+	Var m1 : Matrix<Real, 2, 2> = {{1, 2}, {3, 4}}
+/*	
+	Var m2 : Matrix<Real, 2, 2> = 2
+	Var sol1 : Matrix<Real, 2, 2> = {{2,2},{2,2}}
 	compare(m2,sol1,prec)
-	Var m3 : Matrix<Double, 2, 2> = m1
+	Var m3 : Matrix<Real, 2, 2> = m1
+	m3 = m1
+	m3 = {{2.0,2.0},{2,2}}
 	compare(m3,m1,prec)
-	Var m4 : Matrix<Double, 2, 2> 
+
+        Var m4 : Matrix<Double, 2, 2> 
 	m4 = m1
 	compare(m4,m1,prec)
 	m2 = {{1, 2}, {3, 4}}
@@ -26,6 +29,13 @@ Function Application ( ) : Unit {
 	Var v : Double = 2
 	m2 = v
 	compare(m2,sol1,prec)
+*/
+	Var m5 : Matrix<Real, 2, 2> = {{1, 2}, {3, 4}}
+	m5 += m1
+	m5 -= m1
+	m5 *= m1
+ 	m5 /= m1
+
 
 }
 

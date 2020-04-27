@@ -13,7 +13,7 @@ Function Application ( ) : Unit {
 	//Var m2 : Matrix<Double, 1, 1> = {{4}}
 	Var m3 : Matrix<Double, 3, 3> = {{1,2,3},{3,4,5},{1,2,7}}
 	Var m4 : Matrix<Double, 4, 4> = {{3,4,5,6},{1,5,7,2},{4,6,8,1},{4,5,1,6}}
-	Var m5 : Matrix<Int, 6, 6> = {{3,4,5,6,1,2},{5,6,1,5,7,2},{5,6,4,6,8,1},{4,3,4,5,1,6},{5,7,8,4,2,5},{1,2,3,4,7,8}}
+	Var m5 : Matrix<Double, 6, 6> = {{3.0,4,5,6,1,2},{5,6,1,5,7,2},{5,6,4,6,8,1},{4,3,4,5,1,6},{5,7,8,4,2,5},{1,2,3,4,7,8}}
 	Var prec : Double = 0.001
 
 	// direct calculation of determinant up to size 3
@@ -23,18 +23,23 @@ Function Application ( ) : Unit {
 	compare(sol1,res1,prec)		
 	Var sol3 : Int = -8	
 	Var res3 : Int = determinant(m3)
+	Var res4 : Int = determinant({{1,2,3},{3,4,5},{1,2,7}})
 	compare(sol3,res3,prec)
+	compare(sol3,res4,prec)
 	
 	// 4,5 : calculate with laplace expansion in compiletime
-	Var sol4 : Int = -407	
-	Var res4 : Int 
-	res4 = determinant(m4)	
-	compare(sol4,res4,prec)
+	Var sol5 : Int = -407	
+	Var res5 : Int 
+	res5 = determinant(m4)
+	Var res6 : Int = determinant({{3,4,5,6},{1,5,7,2},{4,6,8,1},{4,5,1,6}})
+	compare(sol5,res5,prec)
+	compare(sol5,res6,prec)
 	
 	// from 6 on: calculate with LU decomposition in runtime
-	Var res5 : Int = determinant(m5)
-	Var sol5 : Int = 12762
-	compare(sol5,res5,prec)
-
+	Var res7 : Int = determinant(m5)
+	Var sol7 : Int = 12762
+	Var res8 : Int = determinant({{3.0,4,5,6,1,2},{5,6,1,5,7,2},{5,6,4,6,8,1},{4,3,4,5,1,6},{5,7,8,4,2,5},{1,2,3,4,7,8}})
+	compare(sol7,res7,prec)
+	compare(sol7,res8,prec)
 }
 

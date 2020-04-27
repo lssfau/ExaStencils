@@ -21,15 +21,13 @@ Domain global< [0.0, 0.0] to [0.1, 0.1] >
 Function Application {
 	Var m1 : Matrix<Real,2,2> = { { 1.0, 2.0 }, { 3.0, 4.0 } }
 	Var m2 : Matrix<Real,2,2> = { { 1.0, 2.0 }, { 3.0, 4.0 } }
-	Var v1 : Double = 1
-	Var v2 : Double = 2
+	Var v1 : Real = 1
+	Var v2 : Real = 2
 	Var prec : Double = 1.0E-4
 	Var m3 : Matrix<Real,2,1> = { { 1.0 }, { 2.0 } }
 	Var m4 : Matrix<Real,1,2> = { { 1.0, 2.0 } }
 	Var m5 : Matrix<Real,1,4> = { { 1.0, 2.0, 5.0, 1.0 } }
-	Var multMatrices_res3 : Matrix<Double,2,1>
-	multMatrices_res3 = matmult ( m1, m3 )
-	Var multMatrices_sol3 : Matrix<Double,2,1> = { { 5.0 }, { 11.0 } }
-	compare ( multMatrices_res3, multMatrices_sol3, prec )
+	Var multMatrices_res5 : Matrix<Double,2,2> = m2
+	multMatrices_res5 = ( multMatrices_res5 * m1 )
 }
 

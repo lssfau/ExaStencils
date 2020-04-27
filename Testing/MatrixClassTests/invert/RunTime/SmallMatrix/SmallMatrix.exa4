@@ -7,13 +7,13 @@ Globals {
 /// main function
 
 Function Application ( ) : Unit {
-   	Var small : Matrix<Real, 3, 3> = {{1, 2, 1}, {2, 5, 1}, {1, 3, 2}}
-	Var smaller : Matrix<Real, 2, 2> = {{1, 2},{ 5, 1}}
+   	Var small : Matrix<Real, 3, 3> = {{1.0, 2, 1}, {2, 5, 1}, {1, 3, 2}}
+	Var smaller : Matrix<Real, 2, 2> = {{1.0, 2},{ 5, 1}}
 	
 	Var small_i : Matrix<Real, 3, 3>
-	small_i = inverse(small)	
+	small_i = inverse(small, "Filled")	
 	Var smaller_i : Matrix<Real, 2, 2> 
-	smaller_i = inverse(smaller)
+	smaller_i = inverse(smaller, "Filled")
 
 	Var smaller_sol : Matrix<Real,2,2> = {{-0.1111111111111111111,	0.22222222222222222222},{0.55555555555555555555,-0.11111111111111111111}}
 	Var prec : Double = 0.0001

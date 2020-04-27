@@ -10,24 +10,25 @@ Globals {
 Function Application ( ) : Unit {
 
 	// input matrices
-	Var m1 : Matrix<Double, 1, 3> = {{1, 2, 3}}
-	Var m2 : Matrix<Double, 3, 1> = {{1}, {3}, {4}}
+	Var m1 : Matrix<Double, 1, 3> = {{1.0, 2, 3}}
+	Var m2 : Matrix<Double, 3, 1> = {{1.0}, {3}, {4}}
 	Var prec : Double = 0.0001
 
 	// dotProduct of vectors
 	Var res_init : Matrix<Double, 1, 1> = dotProduct(m1,m2)
 	Var res_split : Matrix<Double, 1, 1>
 	res_split = dotProduct(m1,m2)
-	Var mult_sol : Matrix<Double, 1, 1> = {{19}}	
+	Var mult_sol : Matrix<Double, 1, 1> = {{19.0}}	
 	compare(res_split,mult_sol,prec)
 	compare(res_init,mult_sol,prec)
 
 	// dot product of matrices
-	Var m3 : Matrix<Real, 3, 3> = {{1, 2, 3},{4,5,6},{7,8,9}}
-	Var m4 : Matrix<Real, 3, 3> = {{1, 2, 3},{4,5,6},{7,8,9}}
+	Var m3 : Matrix<Real, 3, 3> = {{1.0, 2, 3},{4,5,6},{7,8,9}}
+	Var m4 : Matrix<Real, 3, 3>  
+	m4 = {{1.0, 2, 3},{4,5,6},{7,8,9}}
 	Var res2 : Matrix<Double, 1, 1> 
 	res2 = dot(m3,m4)
-	Var mult_sol2 : Matrix<Double, 1, 1> = {{1 + 4 + 9 + 16 + 25 + 36 + 49 + 64 + 81}}
+	Var mult_sol2 : Matrix<Double, 1, 1> = {{1.0 + 4 + 9 + 16 + 25 + 36 + 49 + 64 + 81}}
 	compare(mult_sol2,mult_sol2,prec)
 
 }

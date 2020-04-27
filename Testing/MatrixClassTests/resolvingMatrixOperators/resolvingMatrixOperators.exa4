@@ -9,18 +9,18 @@ Globals {
 
 Function Application ( ) : Unit {
 	// input matrices
-	Var m1 : Matrix<Real, 2, 2> = {{1, 2}, {3, 4}}
-	Var m2 : Matrix<Real, 2, 2> = {{1, 2}, {3, 4}}
-	Var v1 : Double = 1	
-	Var v2 : Double = 2
+	Var m1 : Matrix<Real, 2, 2> = {{1.0, 2}, {3, 4}}
+	Var m2 : Matrix<Real, 2, 2> = {{1.0, 2}, {3, 4}}
+	Var v1 : Real = 1	
+	Var v2 : Real = 2
 	Var prec : Double = 0.0001
 
 /*
 	// elementwise power
-	Var powelemMatrices_res1 : Matrix<Double, 2, 2> = m2 .^ v1 
-	Var powelemMatrices_res2 : Matrix<Double, 2, 2> = m2 .% v2
-	Var powelemMatrices_sol1 : Matrix<Double, 2, 2> = {{1, 2},{3, 4}}
-	Var powelemMatrices_sol2 : Matrix<Double, 2, 2> = {{1, 4},{9, 16}}
+	Var powelemMatrices_res1 : Matrix<Real, 2, 2> = m2 .^ v1 
+	Var powelemMatrices_res2 : Matrix<Real, 2, 2> = m2 .% v2
+	Var powelemMatrices_sol1 : Matrix<Real, 2, 2> = {{1, 2},{3, 4}}
+	Var powelemMatrices_sol2 : Matrix<Real, 2, 2> = {{1, 4},{9, 16}}
 	compare(powelemMatrices_res1, powelemMatrices_sol1,prec)
 	compare(powelemMatrices_res2, powelemMatrices_sol2,prec)
 */
@@ -29,21 +29,22 @@ Function Application ( ) : Unit {
 	Var m4 : Matrix<Real, 1, 2> = {{1, 2}}
 	Var m5 : Matrix<Real, 1, 4> = {{1, 2, 5, 1}}
 /*
-		
+	
 	// add matrices
-	Var addMatrices_res1 : Matrix<Double, 2, 2> = m2 + m1 
-	Var addMatrices_sol1 : Matrix<Double, 2, 2> = {{2, 4},{6, 8}}
+	Var addMatrices_res1 : Matrix<Real, 2, 2> = m2 + m1 
+	Var addMatrices_sol1 : Matrix<Real, 2, 2> = {{2, 4},{6, 8}}
 	compare(addMatrices_res1, addMatrices_sol1,prec)
 
-	Var addMatrices_res2 : Matrix<Double, 2, 2> = m2 + m1 + m1 + m1
-	Var addMatrices_sol2 : Matrix<Double, 2, 2> = {{4, 8},{12, 16}}
+	Var addMatrices_res2 : Matrix<Real, 2, 2> = m2 + m1 + m1 + m1
+	Var addMatrices_sol2 : Matrix<Real, 2, 2> = {{4, 8},{12, 16}}
 	compare(addMatrices_res2, addMatrices_sol2,prec)
 	Var addMatrices_res3 : Matrix<Double, 2, 2> 
 	addMatrices_res3 = m2 + m1 + m1 + m1
 	compare(addMatrices_res3, addMatrices_sol2,prec)
 
 	Var addMatrices_res4 : Matrix<Double, 2, 2> = m2 + m1 + 1
-	Var addMatrices_res5 : Matrix<Double, 2, 2> = 1 + m1 + m1
+	Var addMatrices_res5 : Matrix<Double, 2, 2> 
+	addMatrices_res5 = 1 + m1 + m1
 
 	Var addMatrices_res6 : Matrix<Double, 2, 2> = 1 + m1
 
@@ -54,23 +55,28 @@ Function Application ( ) : Unit {
 	compare(addMatrices_res5, addMatrices_sol3,prec)
 
 	// mult matrices
-	Var multMatrices_res1 : Matrix<Double, 2, 2> = m2 * m1 
+	Var multMatrices_res1 : Matrix<Double, 2, 2>
+	multMatrices_res1 = m2 * m1 
 	Var multMatrices_sol1 : Matrix<Double, 2, 2> = {{7, 10},{15, 22}}
 	compare(multMatrices_res1, multMatrices_sol1,prec)
 
 	Var multMatrices_res2 : Matrix<Double, 2, 2> = m2 * m1 * m1
 	Var multMatrices_sol2 : Matrix<Double, 2, 2> = {{37, 54},{81, 118}}
 	compare(multMatrices_res2, multMatrices_sol2,prec)
-*/
+
 	Var multMatrices_res3 : Matrix<Double, 2, 1> 
 	multMatrices_res3 = matmult(m1,m3) 
 	Var multMatrices_sol3 : Matrix<Double, 2, 1> = {{5},{11}}
 	compare(multMatrices_res3, multMatrices_sol3,prec)
-/*
+
 	Var multMatrices_res4 : Matrix<Double, 1, 4> = m4 * m2 * m3 * m5
 	Var multMatrices_sol4 : Matrix<Double, 1, 4> = {{27, 54, 135, 27}}
 	compare(multMatrices_res4, multMatrices_sol4,prec)
+*/
+	Var multMatrices_res5 : Matrix<Double, 2, 2> = m2 
+	multMatrices_res5 = multMatrices_res5 * m1 
 
+/*
 
 	// subtract matrices	
 	Var subMatrices_res1 : Matrix<Double, 2, 2> = m2 - m1 
@@ -86,7 +92,8 @@ Function Application ( ) : Unit {
 	// elementwise multiplication
 	Var multelemMatrices_res1 : Matrix<Double, 2, 2> = m2 .* m1 
 	Var multelemMatrices_res2 : Matrix<Double, 2, 2> = v2 .* m1
-	Var multelemMatrices_res3 : Matrix<Double, 2, 2> = m1 .* v2
+	Var multelemMatrices_res3 : Matrix<Double, 2, 2> 
+	multelemMatrices_res3 = m1 .* v2
 	Var multelemMatrices_sol1 : Matrix<Double, 2, 2> = {{1, 4},{9, 16}}
 	Var multelemMatrices_sol2 : Matrix<Double, 2, 2> = {{2, 4},{6, 8}}
 	compare(multelemMatrices_res1, multelemMatrices_sol1,prec)
@@ -95,7 +102,8 @@ Function Application ( ) : Unit {
 
 	// elementwise division
 	Var divelemMatrices_res1 : Matrix<Double, 2, 2> = m2 ./ m1 
-	Var divelemMatrices_res2 : Matrix<Double, 2, 2> = v1 ./ m1
+	Var divelemMatrices_res2 : Matrix<Double, 2, 2> 
+	divelemMatrices_res2 = v1 ./ m1
 	Var divelemMatrices_res3 : Matrix<Double, 2, 2> = m1 ./ v2
 	Var divelemMatrices_sol1 : Matrix<Double, 2, 2> = {{1, 1},{1, 1}}
 	Var divelemMatrices_sol2 : Matrix<Double, 2, 2> = {{1, 0.5},{0.33333333333, 0.25}}

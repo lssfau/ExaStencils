@@ -2,6 +2,3 @@ dimensionality                = 2
 mpi_enabled 		      = false
 
 experimental_resolveInverseFunctionCall = "Compiletime"
-experimental_matrixStructure = "GaussJordan"
-
-experimental_useNewMatrixStrategies = true
