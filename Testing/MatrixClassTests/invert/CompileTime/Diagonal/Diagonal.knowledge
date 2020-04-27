@@ -1,0 +1,9 @@
+dimensionality                = 2
+mpi_enabled                   = false
+
+
+experimental_resolveInverseFunctionCall = "Compiletime" // [Diagonal|Cofactors|GaussJordan|Runtime] // how to resolve inverse() function calls for matrices:
+experimental_matrixStructure = "Diagonal"
+
+experimental_useNewMatrixStrategies = true
+

@@ -1,0 +1,40 @@
+
+Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
+
+Globals {
+	
+}
+
+/// main function
+
+Function Application ( ) : Unit {
+
+	Var m1 : Matrix<Double, 2, 2> = {{1, 2}, {3, 4}}
+	//Var m2 : Matrix<Double, 1, 1> = {{4}}
+	Var m3 : Matrix<Double, 3, 3> = {{1,2,3},{3,4,5},{1,2,7}}
+	Var m4 : Matrix<Double, 4, 4> = {{3,4,5,6},{1,5,7,2},{4,6,8,1},{4,5,1,6}}
+	Var m5 : Matrix<Int, 6, 6> = {{3,4,5,6,1,2},{5,6,1,5,7,2},{5,6,4,6,8,1},{4,3,4,5,1,6},{5,7,8,4,2,5},{1,2,3,4,7,8}}
+	Var prec : Double = 0.001
+
+	// direct calculation of determinant up to size 3
+	Var sol1 : Int = -2
+	Var res1 : Int = determinant(m1)
+	res1 = determinant(m1)
+	compare(sol1,res1,prec)		
+	Var sol3 : Int = -8	
+	Var res3 : Int = determinant(m3)
+	compare(sol3,res3,prec)
+	
+	// 4,5 : calculate with laplace expansion in compiletime
+	Var sol4 : Int = -407	
+	Var res4 : Int 
+	res4 = determinant(m4)	
+	compare(sol4,res4,prec)
+	
+	// from 6 on: calculate with LU decomposition in runtime
+	Var res5 : Int = determinant(m5)
+	Var sol5 : Int = 12762
+	compare(sol5,res5,prec)
+
+}
+

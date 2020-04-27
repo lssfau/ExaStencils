@@ -1,0 +1,42 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0] to [0.1, 0.1] >
+
+
+
+Function Application {
+	Var m1 : Matrix<Double,2,2> = { { 1.0, 2.0 }, { 3.0, 4.0 } }
+	Var m3 : Matrix<Double,3,3> = { { 1.0, 2.0, 3.0 }, { 3.0, 4.0, 5.0 }, { 1.0, 2.0, 7.0 } }
+	Var m4 : Matrix<Double,4,4> = { { 3.0, 4.0, 5.0, 6.0 }, { 1.0, 5.0, 7.0, 2.0 }, { 4.0, 6.0, 8.0, 1.0 }, { 4.0, 5.0, 1.0, 6.0 } }
+	Var m5 : Matrix<Integer,6,6> = { { 3, 4, 5, 6, 1, 2 }, { 5, 6, 1, 5, 7, 2 }, { 5, 6, 4, 6, 8, 1 }, { 4, 3, 4, 5, 1, 6 }, { 5, 7, 8, 4, 2, 5 }, { 1, 2, 3, 4, 7, 8 } }
+	Var prec : Double = 0.001
+	Var sol1 : Integer = -2
+	Var res1 : Integer = determinant ( m1 )
+	res1 = determinant ( m1 )
+	compare ( sol1, res1, prec )
+	Var sol3 : Integer = -8
+	Var res3 : Integer = determinant ( m3 )
+	compare ( sol3, res3, prec )
+	Var sol4 : Integer = -407
+	Var res4 : Integer
+	res4 = determinant ( m4 )
+	compare ( sol4, res4, prec )
+	Var res5 : Integer = determinant ( m5 )
+	Var sol5 : Integer = 12762
+	compare ( sol5, res5, prec )
+}
+

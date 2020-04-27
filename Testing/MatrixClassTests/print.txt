@@ -1,0 +1,11 @@
+void print(double*m,int s)
+{
+for(int i = 0; i < s; ++i)
+{
+for(int j = 0; j < s; ++j)
+{
+std::cout << m[i*s + j] << ' ';
+}
+std::cout << std::endl;
+}
+}

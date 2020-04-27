@@ -1,0 +1,32 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0] to [0.1, 0.1] >
+
+
+
+Function Application {
+	Var m1 : Matrix<Double,2,2> = { { 1.0, 2.0 }, { 3.0, 4.0 } }
+	Var m2 : Matrix<Double,2,2> = { { 1.0, 2.0 }, { 3.0, 4.0 } }
+	Var prec : Double = 1.0E-4
+	Var index : Integer = 1
+	Var elem1 : Double = getElement ( m1, index, 0 )
+	compare ( elem1, 3, 0.001 )
+	setElement ( m1, 1, 1, 5 )
+	Var elem2 : Double = getElement ( m1, 1, 1 )
+	compare ( 5, elem2, prec )
+}
+

@@ -197,18 +197,12 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     // TODO ############################################################################################
     // TODO: Zeus hier beginnt das Matrix zeugs
-    IR_ExtractMatrices.apply()
-    IR_SetupMatrixExpressions.apply()
-    var sthChanged = true
-    while (sthChanged) {
-      // TODO: move matrix and vector specific parts of IR_GeneralSimplify to specialized strategy
-      IR_GeneralSimplify.doUntilDone()
-      IR_ResolveMatrixFunctions.apply()
-      sthChanged = IR_ResolveMatrixFunctions.results.last._2.matches > 0
-    }
-    IR_GeneralSimplify.doUntilDone()
+
+    IR_ResolveMatrixDeclarations.apply()
     IR_ResolveMatrixAssignments.apply()
+    IR_ResolveNoMatrixReturnOperations.apply()
     IR_LinearizeMatrices.apply()
+    IR_SimplifyMatrices.apply()
 
     // TODO: Zeus, mal schaun was passiert wenn ich hier
    // IR_SetupTensor2Expressions.apply()

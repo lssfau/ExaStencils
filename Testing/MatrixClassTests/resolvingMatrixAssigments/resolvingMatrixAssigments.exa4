@@ -1,0 +1,31 @@
+
+Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
+
+Globals {
+	
+}
+
+/// main function
+
+Function Application ( ) : Unit {
+	Var prec : Double = 0.001
+	Var m1 : Matrix<Double, 2, 2> = {{1, 2}, {3, 4}}
+	
+	Var m2 : Matrix<Double, 2, 2> = 2
+	Var sol1 : Matrix<Double, 2, 2> = {{2,2},{2,2}}
+	compare(m2,sol1,prec)
+	Var m3 : Matrix<Double, 2, 2> = m1
+	compare(m3,m1,prec)
+	Var m4 : Matrix<Double, 2, 2> 
+	m4 = m1
+	compare(m4,m1,prec)
+	m2 = {{1, 2}, {3, 4}}
+	compare(m2,m1,prec)
+	m2 = 2
+	compare(m2,sol1,prec)
+	Var v : Double = 2
+	m2 = v
+	compare(m2,sol1,prec)
+
+}
+

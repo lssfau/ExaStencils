@@ -1,0 +1,4 @@
+targetOS                   = "Linux"
+targetCompiler             = "GCC"
+targetCompilerVersion      = 5
+targetCompilerVersionMinor = 4
