@@ -1,0 +1,20 @@
+
+Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
+
+Globals {
+	
+}
+
+/// main function
+
+Function Application ( ) : Unit {
+	// input matrices
+	Var mat : Matrix<Int, 2, 2> = {{1,2},{3,4}}
+	
+	Var inverse : Matrix<Int, 2, 2> = inverse(mat, "Determine")
+	//Var res : Int 
+	//res = evaluate((4 - (3 + 2) + getElement(mat,0,0)))
+	//compare(res,-1,0.1)
+
+}
+

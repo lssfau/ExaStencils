@@ -24,10 +24,9 @@ Function Application {
 	Var v1 : Real = 1
 	Var v2 : Real = 2
 	Var prec : Double = 1.0E-4
-	Var m3 : Matrix<Real,2,1> = { { 1.0 }, { 2.0 } }
-	Var m4 : Matrix<Real,1,2> = { { 1.0, 2.0 } }
-	Var m5 : Matrix<Real,1,4> = { { 1.0, 2.0, 5.0, 1.0 } }
-	Var multMatrices_res5 : Matrix<Double,2,2> = m2
-	multMatrices_res5 = ( multMatrices_res5 * m1 )
+	Var m6 : Matrix<Real,2,2> = { { 1.0, 1.0 }, { 1.0, 1.0 } }
+	Var addMatrices_res9 : Matrix<Real,2,2> = ( ( ( m2 - m1 ) + m1 ) + ( 1 * m1 ) )
+	Var addMatrices_sol9 : Matrix<Real,2,2> = { { 2.0, 4.0 }, { 6.0, 8.0 } }
+	compare ( addMatrices_res9, addMatrices_sol9, prec )
 }
 

@@ -72,6 +72,7 @@ object IR_BasicMatrixOperations {
     if (offset_cols < 0 || offset_rows < 0) {
       Logger.error("negative offset")
     }
+    //Logger.error(from.datatype.resolveBaseDatatype)
     var submatrix = IR_MatrixExpression(Some(from.datatype.resolveBaseDatatype), n_rows, n_cols)
     val bound_cols = offset_cols + n_cols
     val bound_rows = offset_rows + n_rows
@@ -192,6 +193,13 @@ object IR_BasicMatrixOperations {
               }
             }
             out
+          case ((1, lcols), (rrows, 1)) if (lcols ==  rrows) =>
+            var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), 1, 1)
+            out.set(0, 0, IR_IntegerConstant(0))
+            for (i <- 0 until rrows) {
+                out.set(0, 0, IR_Addition(Duplicate(out.get(0, 0)), IR_Multiplication(getElem(l, 0, i), getElem(r, i, 0))))
+            }
+            out
           case _                                                                      => Logger.error("unsupported argument form: " + lsize + ", " + rsize + ", expected arguments of the same size")
         }
       case _                                                                                                                                                                              => Logger.error("unexpected argument types: " + left + ", " + right + ", expected matrix variables or expressions as input")
@@ -285,7 +293,7 @@ object IR_BasicMatrixOperations {
           Logger.error("no matrix in summands")
         var datatype = a.summands(0).datatype
         a.summands.foreach(x => datatype = IR_ResultingDatatype.apply(datatype, x.datatype))
-        var out = IR_MatrixExpression(datatype, size._1, size._2)
+        var out = IR_MatrixExpression(datatype.resolveBaseDatatype, size._1, size._2)
         for (i <- 0 until size._1) {
           for (j <- 0 until size._2) {
             out.set(i, j, IR_IntegerConstant(0))
@@ -559,11 +567,6 @@ object IR_CompiletimeInversion {
           Logger.error("IR_MatrixAccess::inverse n < 1!")
         }
         else {
-          if ((that.rows - 1) % n != 0) {
-            Logger.error("IR_MatrixAccess::inverse Rows of A are not a multiple of n! rows = " + that.rows + ", n = " + n)
-          }
-          else {
-
             // extract and invert A: Blockdiagonalmatrix assumed
             var A = IR_BasicMatrixOperations.copySubMatrix(that, 0, 0, n, n)
             var A_inv = inverse(A, Knowledge.experimental_structure_A, Knowledge.experimental_blocksize_A)
@@ -592,7 +595,6 @@ object IR_CompiletimeInversion {
             IR_BasicMatrixOperations.pasteSubMatrix(upperRight, out, 0, n)
             IR_BasicMatrixOperations.pasteSubMatrix(lowerLeft, out, n, 0)
             IR_BasicMatrixOperations.pasteSubMatrix(lowerRight, out, n, n)
-          }
         }
         out
       }

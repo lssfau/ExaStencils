@@ -1,0 +1,13 @@
+user                = "Guest"
+
+configName          = "evaluate"
+
+basePathPrefix      = "C:\Users\MonPreacthyl\Desktop\BA\exastencils\Testing\MatrixClassTests\evaluate\"
+l4file              = "$configName$.exa4"
+
+debugL4File         = "$configName$_debug.exa4"
+
+outputPath          = "/output/"
+
+
+buildfileGenerators = { "MakefileGenerator" }

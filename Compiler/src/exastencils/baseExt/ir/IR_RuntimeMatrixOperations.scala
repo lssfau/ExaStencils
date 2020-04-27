@@ -49,7 +49,7 @@ object IR_GenerateBasicMatrixOperations {
       case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) =>
         stmts += IR_FunctionCall(IR_ExternalFunctionReference("std::memcpy", IR_UnitDatatype), ListBuffer[IR_Expression](IR_AddressOf(dest), IR_AddressOf(src), IR_SizeOf(dest.datatype.resolveBaseDatatype) * destSize._1 * destSize._2))
       case x @ IR_MatrixExpression(_, _, _)                      =>
-        var tmpAccess = IR_VariableAccess("rtTmp_" + tmpCounter, src.datatype)
+        var tmpAccess = IR_VariableAccess("runtimeTmp_" + tmpCounter, src.datatype)
         tmpCounter += 1
         stmts += IR_VariableDeclaration(tmpAccess, src)
         stmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::memcpy", IR_UnitDatatype), ListBuffer[IR_Expression](IR_AddressOf(dest), IR_AddressOf(tmpAccess), IR_SizeOf(dest.datatype.resolveBaseDatatype) * destSize._1 * destSize._2)))
@@ -523,6 +523,7 @@ object IR_GenerateRuntimeInversion {
     val maxA = IR_VariableAccess("maxA", baseType)
     val absA = IR_VariableAccess("absA", baseType)
     val tmp_row = IR_VariableAccess("tmp_row", IR_ArrayDatatype(baseType, blocksize_asInt))
+    val tmp_idx = IR_VariableAccess("tmp_idx",IR_IntegerDatatype)
     var outstream = IR_VariableAccess("std::cout", IR_StringDatatype)
 
 
@@ -542,9 +543,9 @@ object IR_GenerateRuntimeInversion {
       )),
       IR_IfCondition(IR_Lower(maxA, Tol), ListBuffer[IR_Statement](IR_Print(outstream, ListBuffer[IR_Expression](IR_StringConstant("[Warning] inverting potentially singular matrix\\n"))), IR_Return(IR_IntegerConstant(-1))), ListBuffer[IR_Statement]()),
       IR_IfCondition(IR_Neq(imax, i), ListBuffer[IR_Statement](
-        IR_Assignment(j, IR_ArrayAccess(P, i)),
+        IR_VariableDeclaration(tmp_idx, IR_ArrayAccess(P, i)),
         IR_Assignment(IR_ArrayAccess(P, i), IR_ArrayAccess(P, imax)),
-        IR_Assignment(IR_ArrayAccess(P, imax), j),
+        IR_Assignment(IR_ArrayAccess(P, imax), tmp_idx),
         IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::memcpy"), ListBuffer[IR_Expression](IR_AddressOf(IR_ArrayAccess(tmp_row, 0)), IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(i + offset_r, 0 + offset_c))), blocksize_asInt * IR_SizeOf(baseType)))),
         IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::memcpy"), ListBuffer[IR_Expression](IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(i + offset_r, 0 + offset_c))), IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(imax + offset_r, 0 + offset_c))), blocksize_asInt * IR_SizeOf(baseType)))),
         IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::memcpy"), ListBuffer[IR_Expression](IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(imax + offset_r, 0 + offset_c))), IR_AddressOf(IR_ArrayAccess(tmp_row, 0)), blocksize_asInt * IR_SizeOf(baseType)))),
