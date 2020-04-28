@@ -45,15 +45,27 @@ Function Application() : Unit {
 
         }
 
-    Var m2 : TensorN< Real, 3 > = tensN{ 3;
-        [0,0,0] := 1.0,
-        [1,0,0] := 1,
-        [2,0,0] := 1,
+    Var m2 : TensorN< Real, 2 > = tensN{ 2;
+        [0,0] := 1.0,
+        [1,0] := 1,
+        [2,0] := 1,
 
-        [0,1,0] := 2,
-        [1,1,0] := 2
+        [0,1] := 2,
+        [1,1] := 2
 
         }
+
+    Var m2t : Tensor2< Real > = tens2{
+        [0,0] := 1.0,
+        [1,0] := 1,
+        [2,0] := 1,
+
+        [0,1] := 2,
+        [1,1] := 2
+
+        }
+
+    if ( compare( m2, m2t ) ) { print( "sucess m2 == m2t" ) }
 
     Var m3 : TensorN< Real, 4 > = tensN{ 4;
         [0,0,0,0] := 1.0,
@@ -86,5 +98,5 @@ Function Application() : Unit {
         [2] := 3.0
         }
 
-    return( 0 )
+
 }

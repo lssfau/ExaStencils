@@ -32,7 +32,6 @@ import exastencils.datastructures._
 object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments tensors") {
 
   this += new Transformation("scalarize 1/2", {
-    case stmt : IR_VariableDeclaration => stmt
 
     // Tensor 1 Assignment
     case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatype1] &&

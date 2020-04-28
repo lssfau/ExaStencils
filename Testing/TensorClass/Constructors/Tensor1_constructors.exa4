@@ -21,5 +21,6 @@ Function Application() : Unit {
 
     Var m3 : Tensor1< Real > = m2
 
-    print ( m2 )
+    if (compare( m1, m2 )) { print( "sucess m2 == m1" ) }
+    if (compare( m2, m3 )) { print( "sucess m2 == m3" ) }
 }

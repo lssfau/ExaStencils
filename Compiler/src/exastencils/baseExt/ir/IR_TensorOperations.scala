@@ -47,7 +47,9 @@ object IR_ResolveUserDefinedTensor2Functions extends DefaultStrategy("Resolve us
       "inverse",
       "dyadic",
       "trace",
-      "add"
+      "add",
+      "str",
+      "compare"
     )
   }
 
@@ -273,6 +275,127 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
       case _  => Logger.error("Trace got the wrong type")
     }
   }
+
+
+  /*
+  //################################################################################################################
+  // Print tensor
+
+  /** print an overgiven Tensor
+   *
+   * @param m : IR_Expression, represents the tensor
+   * @return
+   */
+  def printTensor(m : IR_Expression) : ListBuffer[IR_Statement] = {
+    m match {
+        /*
+      case m : IR_VariableAccess if (m.datatype.isInstanceOf[IR_TensorDatatype1])    =>
+        var newStmts = ListBuffer[IR_Statement]()
+        newStmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference.printf,
+          IR_StringConstant("Tensor 1" + m.name + "(\n")))
+        for (x <- 0 until 3) {
+          newStmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference.printf,
+            ListBuffer[IR_Expression](IR_StringConstant("\t[" + x + "]\t => "),
+              IR_HighDimAccess(m, IR_ConstIndex(x)), IR_StringConstant(",\n"))))
+        }
+        newStmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference.printf,
+          IR_StringConstant(")\n")))
+        newStmts*/
+      case m : IR_VariableAccess if (m.datatype.isInstanceOf[IR_TensorDatatype2])    =>
+        var newStmts = ListBuffer[IR_Statement]()
+        val acc = IR_VariableAccess("std::cout", IR_UnknownDatatype)
+        //newStmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference.printf,
+        //  IR_StringConstant("Tensor 2" + m.name + "(\n")))
+        for (x <- 0 until 3) {
+          for (y <- 0 until 3) {
+            newStmts += IR_Print(acc, IR_FunctionCall(IR_ExternalFunctionReference.printf,
+              ListBuffer[IR_Expression](IR_StringConstant("\t[" + x.toString + ", " + y.toString + "]\t => "),
+                IR_HighDimAccess(m, IR_ConstIndex(x, y)), IR_StringConstant(",\n"))))
+          }
+        }
+        //newStmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference.printf,
+        //  IR_StringConstant(")\n")))
+        newStmts
+      case _                        => Logger.error("Tensor print: printing for this datatype is not yet implemented")
+    }
+  }*/
+
+  //################################################################################################################
+  // Compare tensors
+
+  private def innerCompare(i : Int, m : IR_VariableAccess, n : IR_VariableAccess) : IR_Expression = {
+    i match {
+      case i : Int if (i > 0)  => {
+        IR_OrOr(IR_Greater(IR_HighDimAccess(m, IR_ConstIndex(i - 1)), IR_HighDimAccess(n, IR_ConstIndex(i - 1))),
+          IR_OrOr(IR_Greater(IR_HighDimAccess(n, IR_ConstIndex(i - 1)), IR_HighDimAccess(m, IR_ConstIndex(i - 1))),
+            innerCompare(i - 1, m, n)))
+      }
+      case i : Int if (i == 0) => IR_BooleanConstant(false)
+    }
+  }
+
+  private def compareTwoTensor1(m : IR_VariableAccess, n : IR_VariableAccess) : IR_Expression = {
+    IR_Negation(innerCompare(3, m, n))
+  }
+
+  private def compareTwoTensor2(m : IR_VariableAccess, n : IR_VariableAccess) : IR_Expression = {
+    IR_Negation(innerCompare(9, m, n))
+  }
+
+  private def compareTwoTensorN(m : IR_VariableAccess, n : IR_VariableAccess) : IR_Expression = {
+    val tens1 = m.datatype.asInstanceOf[IR_TensorDatatypeN]
+    val tens2 = n.datatype.asInstanceOf[IR_TensorDatatypeN]
+    if (tens1.order != tens2.order) {
+      IR_BooleanConstant(false)
+    } else {
+      IR_Negation(innerCompare(pow(3, tens1.order.toDouble).toInt, m, n))
+    }
+  }
+
+  private def compareTensor1TensorN(m : IR_VariableAccess, n : IR_VariableAccess) : IR_Expression = {
+    val tens1 = m.datatype.asInstanceOf[IR_TensorDatatypeN]
+    if (tens1.order != 1) {
+      IR_BooleanConstant(false)
+    } else {
+      IR_Negation(innerCompare(3, m, n))
+    }
+  }
+
+  private def compareTensor2TensorN(m : IR_VariableAccess, n : IR_VariableAccess) : IR_Expression = {
+    val tens1 = m.datatype.asInstanceOf[IR_TensorDatatypeN]
+    if (tens1.order != 2) {
+      IR_BooleanConstant(false)
+    } else {
+      IR_Negation(innerCompare(9, m, n))
+    }
+  }
+
+  /** Compares two tensors
+   *
+   * @param m : IR_Expression, respresents the first tensor
+   * @param n : IR_Expression, respresents the second tensor
+   * @return : ListBuffer[IR_Statement], Generated coparason
+   */
+  def compare(m: IR_Expression, n : IR_Expression) : IR_Expression = {
+    (m, n) match {
+      case (m: IR_VariableAccess, n : IR_VariableAccess) if (m.datatype.isInstanceOf[IR_TensorDatatype1]) &&
+        (n.datatype.isInstanceOf[IR_TensorDatatype1])     => compareTwoTensor1(m, n)
+      case (m: IR_VariableAccess, n : IR_VariableAccess) if (m.datatype.isInstanceOf[IR_TensorDatatype2]) &&
+        (n.datatype.isInstanceOf[IR_TensorDatatype2])     =>compareTwoTensor2(m, n)
+      case (m: IR_VariableAccess, n : IR_VariableAccess) if (m.datatype.isInstanceOf[IR_TensorDatatypeN]) &&
+        (n.datatype.isInstanceOf[IR_TensorDatatypeN])     => compareTwoTensorN(m, n)
+      case (m: IR_VariableAccess, n : IR_VariableAccess) if (m.datatype.isInstanceOf[IR_TensorDatatypeN]) &&
+        (n.datatype.isInstanceOf[IR_TensorDatatype1])     => compareTensor1TensorN(m, n)
+      case (m: IR_VariableAccess, n : IR_VariableAccess) if (m.datatype.isInstanceOf[IR_TensorDatatype1]) &&
+        (n.datatype.isInstanceOf[IR_TensorDatatypeN])     => compareTensor1TensorN(n, m)
+      case (m: IR_VariableAccess, n : IR_VariableAccess) if (m.datatype.isInstanceOf[IR_TensorDatatypeN]) &&
+        (n.datatype.isInstanceOf[IR_TensorDatatype2])     => compareTensor2TensorN(m, n)
+      case (m: IR_VariableAccess, n : IR_VariableAccess) if (m.datatype.isInstanceOf[IR_TensorDatatype2]) &&
+        (n.datatype.isInstanceOf[IR_TensorDatatypeN])     => compareTensor2TensorN(n, m)
+      case (_, _)   => Logger.error("Compare tensors: got wrong type")
+    }
+  }
+
 
   //################################################################################################################
   // Dyadic product
@@ -649,5 +772,18 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
         Logger.error("scalar() must have two arguments")
       }
       scalar(call.arguments(0), call.arguments(1)) // TODO: Zeus, zu testen
+
+    case call : IR_FunctionCall if (call.name == "compare")                                        =>
+      if (call.arguments.length != 2) {
+        Logger.error("compare() must have two arguments")
+      }
+      compare(call.arguments(0), call.arguments(1)) // TODO: Zeus, zu testen
+
+      /*
+    case call : IR_FunctionCall if (call.name == "str")                                        =>
+      if (call.arguments.length != 1) {
+        Logger.error("print() must have two arguments")
+      }
+      printTensor(call.arguments.head) // TODO: Zeus, zu testen*/
   })
 }
