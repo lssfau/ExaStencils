@@ -164,7 +164,7 @@ case object L3_StringDatatype extends L3_Datatype {
 }
 
 case class L3_ComplexDatatype(datatype : L3_Datatype) extends L3_Datatype {
-  override def prettyprint(out : PpStream) = { out << "Complex[" << datatype << ']' }
+  override def prettyprint(out : PpStream) = { out << "Complex<" << datatype << '>' }
   override def progress = ProgressLocation(L4_ComplexDatatype(datatype.progress))
 
   // TODO: treat like a vec2 or like a struct?
