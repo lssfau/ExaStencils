@@ -43,8 +43,7 @@ object IR_BasicMatrixOperations {
         if (pos.length != 2)
           Logger.error("position arguments of wrong form: " + pos)
         IR_HighDimAccess(va, IR_ExpressionIndex(pos(0), pos(1)))
-      case va : IR_VariableAccess if (va.datatype.isInstanceOf[IR_ScalarDatatype]) => va
-      case n : IR_Number                                                           => n
+      case sc if(IR_ResolveMatrixOperations.isScalar(sc)) => sc
       case _                                                                       => Logger.error(s"Argument is of unexpected type ${ exp.getClass.getTypeName }: $exp")
     }
   }
@@ -105,7 +104,7 @@ object IR_BasicMatrixOperations {
   }
 
   // compiletime determinant per laplace expansion
-  def determinantSmallMatrix(m : IR_MatrixExpression) : IR_Expression = {
+  def smallMatrixDeterminant(m : IR_MatrixExpression) : IR_Expression = {
     if (m.rows != m.columns) {
       Logger.error("determinant for non-quadratic matrices not implemented")
       // FIXME Nullzeilen/-spalten ergaenzen
@@ -137,7 +136,7 @@ object IR_BasicMatrixOperations {
             tmpRow += 1
           }
         }
-        val tmpDet = m.get(i, 0) * determinantSmallMatrix(tmp) * IR_DoubleConstant(math.pow(-1, i))
+        val tmpDet = m.get(i, 0) * smallMatrixDeterminant(tmp) * IR_DoubleConstant(math.pow(-1, i))
         det += IR_GeneralSimplifyWrapper.process[IR_Expression](tmpDet)
       }
       IR_GeneralSimplifyWrapper.process(det)
@@ -162,7 +161,7 @@ object IR_BasicMatrixOperations {
         tmpRow += 1
       }
     }
-    return determinantSmallMatrix(tmp)
+    return smallMatrixDeterminant(tmp)
   }
 
   // transpose a matrix passed by a variable
@@ -366,7 +365,7 @@ object IR_BasicMatrixOperations {
   def elementwiseMultiplication(left : IR_Expression, right : IR_Expression) : IR_MatrixExpression = {
     (left, right) match {
       // scalar x matrix, matrix x scalar, matrix x matrix
-      case (scalar @ (IR_VariableAccess(_, IR_RealDatatype | IR_DoubleDatatype | IR_FloatDatatype | IR_IntegerDatatype)), matrix @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)))) =>
+      case (scalar , matrix) if(IR_ResolveMatrixOperations.isScalar((scalar)) && IR_ResolveMatrixOperations.isMatrix(matrix)) =>
         var size = getSize(matrix)
         var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), size._1, size._2)
         for (i <- 0 until size._1) {
@@ -375,7 +374,7 @@ object IR_BasicMatrixOperations {
           }
         }
         out
-      case (matrix @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))), scalar @ (IR_VariableAccess(_, IR_RealDatatype | IR_DoubleDatatype | IR_FloatDatatype | IR_IntegerDatatype))) =>
+      case (matrix, scalar) if(IR_ResolveMatrixOperations.isScalar((scalar)) && IR_ResolveMatrixOperations.isMatrix(matrix))=>
         var size = getSize(matrix)
         var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), size._1, size._2)
         for (i <- 0 until size._1) {
@@ -384,7 +383,7 @@ object IR_BasicMatrixOperations {
           }
         }
         out
-      case (matrixLeft @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))), matrixRight @ ((IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)))))                                       =>
+      case (matrixLeft , matrixRight)  if(IR_ResolveMatrixOperations.isMatrix((matrixLeft)) && IR_ResolveMatrixOperations.isMatrix(matrixRight))                                =>
         var size = getSize(matrixLeft)
         var sizeR = getSize(matrixRight)
         if (size != sizeR)
@@ -600,7 +599,7 @@ object IR_CompiletimeInversion {
       }
       case "Cofactors"
       => {
-        val inv_det = IR_IntegerConstant(1) / IR_BasicMatrixOperations.determinantSmallMatrix(that)
+        val inv_det = IR_IntegerConstant(1) / IR_BasicMatrixOperations.smallMatrixDeterminant(that)
         val tmp = IR_MatrixExpression(Some(that.innerDatatype.getOrElse(IR_RealDatatype)), that.rows, that.columns)
         for (row <- 0 until that.rows) {
           for (col <- 0 until that.columns) {

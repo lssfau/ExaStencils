@@ -25,7 +25,7 @@ Function Application {
 	Var v2 : Real = 2
 	Var prec : Double = 1.0E-4
 	Var m6 : Matrix<Real,2,2> = { { 1.0, 1.0 }, { 1.0, 1.0 } }
-	Var addMatrices_res9 : Matrix<Real,2,2> = ( ( ( m2 - m1 ) + m1 ) + ( 1 * m1 ) )
+	Var addMatrices_res9 : Matrix<Real,2,2> = ( ( ( m2 - m1 ) + m1 ) + ( m2 * m1 ) )
 	Var addMatrices_sol9 : Matrix<Real,2,2> = { { 2.0, 4.0 }, { 6.0, 8.0 } }
 	compare ( addMatrices_res9, addMatrices_sol9, prec )
 }

@@ -20,8 +20,8 @@ Domain global< [0.0, 0.0] to [0.1, 0.1] >
 
 Function Application {
 	Var m1 : Matrix<Real,2,2> = { { 1.0, 2.0 }, { 3.0, 4.0 } }
-	Var res2 : Double
-	res2 = ( 42 + dotProduct ( m1, inverse ( m1 ) ) )
-	Var res3 : Double = ( 42 + dotProduct ( m1, inverse ( getSlice ( m1, 0, 0, 2, 2 ) ) ) )
+	Var res1 : Matrix<Real,2,2> = inverse ( m1 )
+	Var res4 : Double = ( 42 + dot ( m1, ( m1 .* det ( m1 ) ) ) )
+	Var res6 : Matrix<Real,2,2> = inverse ( ( m1 * inverse ( m1 ) ) )
 }
 
