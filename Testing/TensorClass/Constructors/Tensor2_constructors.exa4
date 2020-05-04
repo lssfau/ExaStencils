@@ -33,4 +33,6 @@ Function Application() : Unit {
     m4 = m1
 
     if ( compare( m1, m4 ) ) { print( "sucess m1 == m4" ) }
+
+    Var res1 : Real = m2[0,0]
 }

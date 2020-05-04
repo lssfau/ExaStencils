@@ -48,8 +48,10 @@ object IR_ResolveUserDefinedTensor2Functions extends DefaultStrategy("Resolve us
       "dyadic",
       "trace",
       "add",
-      "str",
-      "compare"
+      "printTensor",
+      "compare",
+      "asTensor1",
+      "asTensor2"
     )
   }
 
@@ -277,45 +279,38 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   }
 
 
-  /*
+/*
   //################################################################################################################
   // Print tensor
+
+  private def innerPrint2(i : Int, m : IR_VariableAccess, buf : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = {
+    i match {
+      case i : Int if (i < 9)  => {
+        buf += IR_StringConstant("\t[" + (i / 3 % 1).toString + ", " + (i % 3).toString + "] => ")
+        buf += IR_HighDimAccess(m, IR_ConstIndex(i))
+        buf += IR_StringConstant("\n")
+        innerPrint2(i+1, m, buf)
+    }
+      case i : Int if (i == 9) => ListBuffer[IR_Expression](IR_StringConstant(""))
+    }
+  }
+
+  private def printTensor2(m : IR_VariableAccess) : IR_ExpressionStatement = {
+    var buf = ListBuffer[IR_Expression]()
+    buf += IR_StringConstant("Tensor 2 " + m.name + "( \n")
+    innerPrint2(0, m, buf)
+    buf += IR_StringConstant(")\n")
+    IR_ExpressionStatement(IR_FunctionCall("printTensor", buf))
+  }
 
   /** print an overgiven Tensor
    *
    * @param m : IR_Expression, represents the tensor
    * @return
    */
-  def printTensor(m : IR_Expression) : ListBuffer[IR_Statement] = {
+  def printTensor(m : IR_Expression) : IR_ExpressionStatement = {
     m match {
-        /*
-      case m : IR_VariableAccess if (m.datatype.isInstanceOf[IR_TensorDatatype1])    =>
-        var newStmts = ListBuffer[IR_Statement]()
-        newStmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference.printf,
-          IR_StringConstant("Tensor 1" + m.name + "(\n")))
-        for (x <- 0 until 3) {
-          newStmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference.printf,
-            ListBuffer[IR_Expression](IR_StringConstant("\t[" + x + "]\t => "),
-              IR_HighDimAccess(m, IR_ConstIndex(x)), IR_StringConstant(",\n"))))
-        }
-        newStmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference.printf,
-          IR_StringConstant(")\n")))
-        newStmts*/
-      case m : IR_VariableAccess if (m.datatype.isInstanceOf[IR_TensorDatatype2])    =>
-        var newStmts = ListBuffer[IR_Statement]()
-        val acc = IR_VariableAccess("std::cout", IR_UnknownDatatype)
-        //newStmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference.printf,
-        //  IR_StringConstant("Tensor 2" + m.name + "(\n")))
-        for (x <- 0 until 3) {
-          for (y <- 0 until 3) {
-            newStmts += IR_Print(acc, IR_FunctionCall(IR_ExternalFunctionReference.printf,
-              ListBuffer[IR_Expression](IR_StringConstant("\t[" + x.toString + ", " + y.toString + "]\t => "),
-                IR_HighDimAccess(m, IR_ConstIndex(x, y)), IR_StringConstant(",\n"))))
-          }
-        }
-        //newStmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference.printf,
-        //  IR_StringConstant(")\n")))
-        newStmts
+      case m : IR_VariableAccess if (m.datatype.isInstanceOf[IR_TensorDatatype2])    => printTensor2(m)
       case _                        => Logger.error("Tensor print: printing for this datatype is not yet implemented")
     }
   }*/
@@ -396,6 +391,52 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
     }
   }
 
+  //################################################################################################################
+  // Convert N to 2 or 1
+
+  /** Converts a TensorN to a Tensor1
+   *
+   * @param m : IR_Expression, represents the input tensor
+   * @return IR_TensorExpression1
+   */
+  def covertToTensor1(m: IR_Expression) : IR_TensorExpression1 = {
+    m match {
+      case m : IR_VariableAccess if m.datatype.isInstanceOf[IR_TensorDatatypeN]             =>
+        val tensN = m.datatype.asInstanceOf[IR_TensorExpressionN]
+        if (tensN.order != 1) {
+          Logger.error("Convert to Tensor2: input tensor has the wrong order")
+        }
+        val tens1 = IR_TensorExpression1(tensN.innerDatatype)
+        for (x <- 0 until 3) {
+          tens1.set(x, getElem(m, 0, 0, List(x)))
+        }
+        tens1
+      case _      => Logger.error("Convert to Tensor2: got wrong input type")
+    }
+  }
+
+  /** Converts a TensorN to a Tensor2
+   *
+   * @param m : IR_Expression, represents the input tensor
+   * @return IR_TensorExpression2
+   */
+  def covertToTensor2(m: IR_Expression) : IR_TensorExpression2 = {
+    m match {
+      case m : IR_VariableAccess if m.datatype.isInstanceOf[IR_TensorDatatypeN]             =>
+        val tensN = m.datatype.asInstanceOf[IR_TensorExpressionN]
+        if (tensN.order != 2) {
+          Logger.error("Convert to Tensor2: input tensor has the wrong order")
+        }
+        val tens2 = IR_TensorExpression2(tensN.innerDatatype)
+        for (y <- 0 until 3) {
+          for (x <- 0 until 3) {
+            tens2.set(x, y, getElem(m, 0, 0, List(x,y)))
+          }
+        }
+        tens2
+      case _      => Logger.error("Convert to Tensor2: got wrong input type")
+    }
+  }
 
   //################################################################################################################
   // Dyadic product
@@ -728,7 +769,7 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
         n.datatype.isInstanceOf[IR_Number]                => scalarMulTensorN(m, n)
       case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_Number] &&
         n.datatype.isInstanceOf[IR_TensorDatatypeN]       => scalarMulTensorN(n, m)
-      case (_,  _)                                    => Logger.error("Multiplication of tensor with scalar got the a wrong type")
+      case (_,  _)                      => Logger.error("Multiplication of tensor with scalar got the a wrong type")
     }
   }
 
@@ -773,16 +814,28 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
       }
       scalar(call.arguments(0), call.arguments(1)) // TODO: Zeus, zu testen
 
-    case call : IR_FunctionCall if (call.name == "compare")                                        =>
+    case call : IR_FunctionCall if (call.name == "asTensor1")                                     =>
+      if (call.arguments.length != 1) {
+        Logger.error("asTensor1() must have two arguments")
+      }
+      covertToTensor1(call.arguments.head) // TODO: Zeus, zu testen
+
+    case call : IR_FunctionCall if (call.name == "asTensor2")                                     =>
+      if (call.arguments.length != 1) {
+        Logger.error("asTensor2() must have two arguments")
+      }
+      covertToTensor1(call.arguments.head) // TODO: Zeus, zu testen
+
+    case call : IR_FunctionCall if (call.name == "compare")                                       =>
       if (call.arguments.length != 2) {
         Logger.error("compare() must have two arguments")
       }
       compare(call.arguments(0), call.arguments(1)) // TODO: Zeus, zu testen
 
-      /*
-    case call : IR_FunctionCall if (call.name == "str")                                        =>
+/*
+    case call : IR_FunctionCall if (call.name == "printTensor")                                   =>
       if (call.arguments.length != 1) {
-        Logger.error("print() must have two arguments")
+        Logger.error("printTensor() must have two arguments")
       }
       printTensor(call.arguments.head) // TODO: Zeus, zu testen*/
   })
