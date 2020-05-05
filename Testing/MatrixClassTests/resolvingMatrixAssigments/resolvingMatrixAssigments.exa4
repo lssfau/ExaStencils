@@ -8,19 +8,12 @@ Globals {
 /// main function
 
 Function Application ( ) : Unit {
-	
-	Var m1 : Matrix<Real, 2, 2> = {{1, 2}, {3, 4}}
-	Var res1 : Matrix<Real, 2, 2> = inverse(m1)
-	
-/*
-	Var res2 : Double = 42 + dotProduct(m1,inverse(m1))
-	//res2 = 42 + dotProduct(m1,inverse(m1))
+	Var v : Double = 1
+	Var m1 : Matrix<Double, 2, 2> = v
+	Var m2 : Matrix<Double, 2, 2> = 1
+	Var m3 : Matrix<Double, 2, 2> = m1
+	Var m4 : Matrix<Double, 2, 2> = {{1,1},{2,3}}
 
-	Var res3 : Double = 42 + dotProduct(m1,inverse(getSlice(m1,0,0,2,2)))
-*/
-	Var res4 : Double = 42 + dot(m1, m1 .* det(m1))	
 
-	//Var res5 : Matrix<Real, 2, 2> = matmult(m1,inverse(m1 * inverse(m1))) 
-	Var res6 : Matrix<Real, 2, 2> = inverse(m1 * inverse(m1)) 
 }
 

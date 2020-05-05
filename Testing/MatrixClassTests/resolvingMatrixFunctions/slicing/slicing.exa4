@@ -12,7 +12,7 @@ Function Application ( ) : Unit {
 	Var m1 : Matrix<Double, 2, 2> = {{1, 2}, {3, 4}}
 	Var m2 : Matrix<Double, 2, 2> = {{1, 2}, {3, 4}}
 	Var prec : Double = 0.0001
-/*
+
 	// setSlice
 	// setSlice(matrix, offsetRows, offsetCols, nRows, nCols, newValue) : Unit
 	Var offset : Int = 0
@@ -39,11 +39,11 @@ Function Application ( ) : Unit {
 	slice2 = getSlice(m2,1,0,1,2)
 	Var slice2_sol : Matrix<Double, 1, 2> = {{3,4}}
 	compare(slice2,slice2_sol,prec)
-*/
 	
 	Var index : Int = 1
 	Var slice3 : Matrix<Double, 1, 2> = getSlice(m2,index,0,1,2)
-/*
+	compare(slice3,slice2_sol,prec)
+	
 	// get and setElement
 	Var elem1 : Double = getElement(m2,index,0)
 	compare(elem1,3,0.001)	
@@ -52,7 +52,5 @@ Function Application ( ) : Unit {
 	Var elem2 : Double = getElement(m1,1,1)
 	compare(5,elem2,prec)
 	
-	//setElement(m1, 1, 1, determinant(m1))
-*/
 }
 

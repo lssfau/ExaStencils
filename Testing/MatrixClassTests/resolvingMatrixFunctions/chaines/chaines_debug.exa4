@@ -1,0 +1,36 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0] to [0.1, 0.1] >
+
+
+
+Function Application {
+	Var m1 : Matrix<Double,2,2> = { { 1.0, 2.0 }, { 3.0, 4.0 } }
+	Var m2 : Matrix<Double,3,2> = { { 3.0, 2.0 }, { 1.0, 4.0 }, { 5.0, 1.0 } }
+	Var prec : Double = 1.0E-4
+	Var res1 : Matrix<Double,2,2>
+	res1 = ( m1 * inverse ( ( inverse ( m1 ) + m1 ) ) )
+	Var sol1 : Matrix<Double,2,2> = { { 0.32352941176470595, 0.29411764705882354 }, { 0.44117647058823545, 0.7647058823529412 } }
+	compare ( res1, sol1, 0.001 )
+	Var res2 : Matrix<Double,2,2> = ( m1 .* det ( m1 ) )
+	Var sol2 : Matrix<Double,2,2> = { { -2.0, -4.0 }, { -6.0, -8.0 } }
+	compare ( res2, sol2, 0.1 )
+	Var res3 : Double = ( 42 + dotProduct ( m1, inverse ( ( m1 * m1 ) ) ) )
+	Var sol3 : Double = 38.25
+	compare ( res3, sol3, 0.01 )
+}
+

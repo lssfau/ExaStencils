@@ -197,14 +197,13 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     var sthChanged = true
     while (sthChanged) {
-      //TODO sort out which transformations need to be applied iteratively and which dont
       IR_HandleRuntimeMatrices.apply()
       IR_ResolveMatrixOperations.apply()
       sthChanged = (IR_ResolveMatrixOperations.results.last._2.matches > 0 | IR_HandleRuntimeMatrices.results.last._2.matches > 0)
       IR_GeneralSimplify.doUntilDone()
       IR_SimplifyMatrices.apply()
     }
-    //TODO inverse resolve at last to register modified matrices and check for compiletime constance?
+    IR_ResolveUserDefinedFunctions.apply()
     IR_ResolveMatrixDeclarations.apply()
     IR_ResolveMatrixAssignments.apply()
     IR_LinearizeMatrices.apply()

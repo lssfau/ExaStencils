@@ -20,12 +20,15 @@ package exastencils.baseExt.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_DoubleDatatype
 import exastencils.base.ir.IR_FloatDatatype
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerDatatype
+import exastencils.base.ir.IR_PlainFunction
 import exastencils.base.ir._
 import exastencils.logger.Logger
-import exastencils.optimization.ir._
+import exastencils.optimization.ir.IR_SimplifyExpression
 
 // methods to determine whether a matrix is a diagonal-, blockdiagonal-, schurmatrix at compiletime
 //TODO matrices have to be filled with constants
@@ -42,9 +45,8 @@ object IR_DetermineMatrixStructure {
     case IR_Maximum(l : ListBuffer[IR_Expression])            => l.view.map(e => evalIntegralWithAccesses(e)).max
     //case IR_VariableAccess(_,IR_IntegerDatatype)              =>
     //case IR_HighDimAccess(base @ IR_VariableAccess(_, IR_MatrixDatatype(_,_,_)), idx @ IR_ExpressionIndex(_)) => evalIntegralWithAccesses(base.get(evalIntegralWithAccesses(idx.indices(0)).toInt,evalIntegralWithAccesses(idx.indices(1)).toInt))
-    case _                                                    => Logger.error("unexpected type argument: " + expr)
+    case _ => Logger.error("unexpected type argument: " + expr)
   }
-
 
   def evaluateEntry(mat : IR_Expression, i : Int, j : Int) : Double = {
     var en : Double = 0
@@ -55,7 +57,7 @@ object IR_DetermineMatrixStructure {
           en = IR_SimplifyExpression.evalIntegral(IR_BasicMatrixOperations.getElem(x, i, j))
         else
           en = IR_SimplifyExpression.evalFloating(IR_BasicMatrixOperations.getElem(x, i, j))
-      case _                                                                                   => Logger.error("unexpected argument type: " + mat + ", expected matrix expression or variable")
+      case _                                                                                     => Logger.error("unexpected argument type: " + mat + ", expected matrix expression or variable")
     }
     return en
   }
@@ -82,28 +84,29 @@ object IR_DetermineMatrixStructure {
 
               // only if all lanes are zero break
               if (en0 == 0.0 && en1 == 0 && en2 == 0 && en3 == 0) {
-                    cont = false
+                cont = false
               }
               else
                 blocksize_D += 1
             }
             // if we reached other end of matrix: its a Filled matrix
-            if(blocksize_D == size._1 - 1) return ("Filled", -1, "", -1)
+            if (blocksize_D == size._1) return ("Filled", -1, "", -1)
 
             // count blocksize of blockmatrix A if present (Schur form with size(mat) - blocksize_D as size of A block (upper left block in schur form)
             cont = true
-            while (blocksize_A <= (size._1 - blocksize_D)/2 + 1 && cont == true) {
-             var en0 : Double = evaluateEntry(mat, 0, blocksize_A)
+            while (blocksize_A <= (size._1 - blocksize_D) / 2 + 1 && cont == true) {
+              var en0 : Double = evaluateEntry(mat, 0, blocksize_A)
               var en1 : Double = evaluateEntry(mat, blocksize_A, 0)
 
               if (en0 == 0.0 && en1 == 0) {
-               cont = false
+                cont = false
               } else {
                 blocksize_A += 1
               }
             }
+
             // if more than half of A block is reached, blockdiagonal is not possible anymore -> Schur form with filled A block is filled matrix
-            if(blocksize_A == (size._1 - blocksize_D)/2 + 1) {
+            if (blocksize_A == (size._1 - blocksize_D) / 2 + 1) {
               return ("Filled", -1, "", -1)
             }
 
@@ -139,8 +142,8 @@ object IR_DetermineMatrixStructure {
                 if (!mask(i)(j) && en != 0.0)
                   return ("Filled", -1, "", -1)
               }
-
             }
+
             // no schur form
             if (blocksize_D == 0) {
               // size of A block: A block is the whole matrix with blocksize_D == 0 (no schur form)
@@ -153,7 +156,7 @@ object IR_DetermineMatrixStructure {
                 return ("Blockdiagonal", blocksize_A, "", -1)
               }
             }
-              // schur form
+            // schur form
             else {
               // form of A block in schur form
               if (blocksize_A == 1) {
@@ -174,9 +177,129 @@ object IR_DetermineMatrixStructure {
   }
 
   // do the same at runtime, entries do not have to be compiletime evaluatable
-  def isOfStructureRuntime(matrix : IR_VariableAccess) : IR_Scope = {
-    var func = IR_Scope(Nil)
-    func
+  def isOfStructureRuntime() : IR_PlainFunction = {
+    var stmts = ListBuffer[IR_Statement]()
+    var i = IR_VariableAccess("i", IR_IntegerDatatype)
+    var j = IR_VariableAccess("j", IR_IntegerDatatype)
+    var cont = IR_VariableAccess("cont", IR_BooleanDatatype)
+    var blocksize_A_local = IR_VariableAccess("blocksize_A_local", IR_IntegerDatatype)
+    var blocksize_D = IR_VariableAccess("blocksize_D_local", IR_IntegerDatatype)
+    var en0 = IR_VariableAccess("en_0", IR_DoubleDatatype)
+    var en1 = IR_VariableAccess("en_1", IR_DoubleDatatype)
+    var en2 = IR_VariableAccess("en_2", IR_DoubleDatatype)
+    var en3 = IR_VariableAccess("en_3", IR_DoubleDatatype)
+    var earlyOut = IR_VariableAccess("earlyOut", IR_BooleanDatatype)
+    var matrix = IR_VariableAccess("matrix",IR_PointerDatatype(IR_DoubleDatatype))
+    var insize = IR_VariableAccess("insize",IR_IntegerDatatype)
+    var structure = IR_VariableAccess("structure",IR_StringDatatype)
+    var structure_A = IR_VariableAccess("structure_A",IR_StringDatatype)
+    var blocksize = IR_VariableAccess("blocksize", IR_IntegerDatatype)
+    var blocksize_A = IR_VariableAccess("blocksize_A", IR_IntegerDatatype)
+
+
+    stmts += IR_VariableDeclaration(cont, IR_BooleanConstant(true))
+    stmts += IR_VariableDeclaration(earlyOut,IR_BooleanConstant(false))
+    stmts += IR_VariableDeclaration(blocksize_A_local, IR_IntegerConstant(0))
+    stmts += IR_VariableDeclaration(blocksize_D, IR_IntegerConstant(0))
+    stmts += IR_WhileLoop(IR_AndAnd(IR_Lower(blocksize_D, insize), IR_EqEq(cont, IR_BooleanConstant(true))), ListBuffer[IR_Statement](
+      IR_VariableDeclaration(en0, IR_ArrayAccess(matrix, IR_IntegerConstant(0) + insize - blocksize_D - IR_IntegerConstant(1))),
+      IR_VariableDeclaration(en1, IR_ArrayAccess(matrix, (insize - blocksize_D - IR_IntegerConstant(1))*insize + IR_IntegerConstant(0))),
+      IR_VariableDeclaration(en2, IR_ArrayAccess(matrix, IR_IntegerConstant(1)*insize + insize - blocksize_D - IR_IntegerConstant(1))),
+      IR_VariableDeclaration(en3, IR_ArrayAccess(matrix, (insize - blocksize_D - IR_IntegerConstant(1))*insize + IR_IntegerConstant(1))),
+      IR_IfCondition(IR_AndAnd(IR_AndAnd(IR_EqEq(en0, IR_IntegerConstant(0)), IR_EqEq(en1, IR_IntegerConstant(0))), IR_AndAnd(IR_EqEq(en2, IR_IntegerConstant(0)), IR_EqEq(en3, IR_IntegerConstant(0)))),
+        ListBuffer[IR_Statement](
+          IR_Assignment(cont, IR_BooleanConstant(false)
+          ))
+        ,
+        ListBuffer[IR_Statement](
+          IR_Assignment(blocksize_D, IR_Addition(blocksize_D, IR_IntegerConstant(1)))
+        ))
+    ))
+    stmts += IR_IfCondition(IR_EqEq(blocksize_D, insize), ListBuffer[IR_Statement](
+      IR_Assignment(earlyOut,IR_BooleanConstant(true))
+    ))
+    stmts += IR_Assignment(cont, IR_BooleanConstant(true))
+    stmts += IR_WhileLoop(IR_AndAnd(IR_LowerEqual(blocksize_A_local, IR_Addition(IR_Division(IR_Subtraction(insize, blocksize_D), IR_IntegerConstant(2)), IR_IntegerConstant(1))), IR_EqEq(cont, IR_BooleanConstant(true))), ListBuffer[IR_Statement](
+      IR_VariableDeclaration(en0, IR_ArrayAccess(matrix, (IR_IntegerConstant(0) * insize + blocksize_A_local))),
+      IR_VariableDeclaration(en1, IR_ArrayAccess(matrix, blocksize_A_local* insize + IR_IntegerConstant(0))),
+      IR_IfCondition(IR_AndAnd(IR_EqEq(en0, IR_DoubleConstant(0.0)), IR_EqEq(en1, IR_DoubleConstant(0.0))), ListBuffer[IR_Statement](
+        IR_Assignment(cont, IR_BooleanConstant(true))
+      ),
+        ListBuffer[IR_Statement](
+          IR_Assignment(blocksize_A_local, IR_Addition(blocksize_A_local, IR_IntegerConstant(1)))
+        ))
+    ))
+
+    var mask = IR_VariableAccess("mask", IR_PointerDatatype(IR_BooleanDatatype))
+    stmts += IR_VariableDeclaration(mask)
+    stmts += IR_ArrayAllocation(mask,IR_BooleanDatatype,insize*insize)
+    var l = IR_VariableAccess("l", IR_IntegerDatatype)
+    stmts += IR_VariableDeclaration(l, IR_IntegerConstant(0))
+    stmts += IR_WhileLoop(IR_Lower(l, insize), ListBuffer[IR_Statement](
+      IR_ForLoop(IR_VariableDeclaration(i, IR_IntegerConstant(0)), IR_Lower(i, IR_Minimum(IR_Addition(l, blocksize_A_local), insize)), IR_PreIncrement(i), ListBuffer[IR_Statement](
+        IR_ForLoop(IR_VariableDeclaration(j, IR_IntegerConstant(0)), IR_Lower(j, IR_Minimum(IR_Addition(j, blocksize_A_local), insize)), IR_PreIncrement(j), ListBuffer[IR_Statement](
+          IR_Assignment(IR_ArrayAccess(mask, i * insize + j), IR_BooleanConstant(true))
+        ))
+      )),
+      IR_Assignment(l, IR_Addition(l, IR_IntegerConstant(1)))
+    ))
+    stmts += IR_ForLoop(IR_VariableDeclaration(i, IR_IntegerConstant(0)), IR_Lower(i, blocksize_D), IR_PreIncrement(i), ListBuffer[IR_Statement](
+      IR_ForLoop(IR_VariableDeclaration(j, IR_IntegerConstant(0)), IR_Lower(j, insize), IR_PreIncrement(j), ListBuffer[IR_Statement](
+        IR_Assignment(IR_ArrayAccess(mask, (insize - blocksize_D + i) * insize + j), IR_BooleanConstant(true)),
+        IR_Assignment(IR_ArrayAccess(mask, j * insize + (insize - blocksize_D + i)), IR_BooleanConstant(true))
+      ))
+    ))
+    var foundMiss = IR_VariableAccess("foundMiss", IR_BooleanDatatype)
+    stmts += IR_VariableDeclaration(foundMiss, IR_BooleanConstant(false))
+    stmts += IR_ForLoop(IR_VariableDeclaration(i, IR_IntegerConstant(0)), IR_Lower(i, insize), IR_PreIncrement(i), ListBuffer[IR_Statement](
+      IR_ForLoop(IR_VariableDeclaration(j, IR_IntegerConstant(0)), IR_Lower(j, insize), IR_PreIncrement(j), ListBuffer[IR_Statement](
+        IR_IfCondition(IR_AndAnd(IR_Neq(IR_ArrayAccess(mask, i * insize + j), IR_BooleanConstant(true)), IR_Neq(IR_DoubleConstant(0.0), IR_ArrayAccess(matrix, (i*insize + j)))), ListBuffer[IR_Statement](
+          IR_Assignment(structure, IR_StringConstant("Filled")),
+          IR_Assignment(foundMiss, IR_BooleanConstant(true))
+        ))
+      ))
+    ))
+
+
+    stmts += IR_IfCondition(IR_EqEq(IR_OrOr(foundMiss,earlyOut), IR_BooleanConstant(true)), ListBuffer[IR_Statement](
+      IR_Assignment(structure, IR_StringConstant("Filled"))
+    ), ListBuffer[IR_Statement](
+      IR_IfCondition(IR_EqEq(blocksize_D, IR_IntegerConstant(0)), ListBuffer[IR_Statement](
+        IR_IfCondition(IR_EqEq(blocksize_A_local, IR_IntegerConstant(1)), ListBuffer[IR_Statement](
+          IR_Assignment(structure, IR_StringConstant("Diagonal"))
+        )),
+        IR_IfCondition(IR_EqEq(blocksize_A_local, insize), ListBuffer[IR_Statement](
+          IR_Assignment(structure, IR_StringConstant("Filled"))
+        )),
+        IR_IfCondition(IR_Neq(IR_OrOr(IR_EqEq(blocksize_A_local, IR_IntegerConstant(1)), IR_EqEq(blocksize_A_local, insize)), IR_BooleanConstant(true)), ListBuffer[IR_Statement](
+          IR_Assignment(structure, IR_StringConstant("Blockdiagonal")),
+          IR_Assignment(blocksize, blocksize_A_local)
+        )),
+      ),ListBuffer[IR_Statement](
+        IR_Assignment(structure,IR_StringConstant("Schur")),
+        IR_Assignment(blocksize,IR_Subtraction(insize,blocksize_D)),
+        IR_IfCondition(IR_EqEq(blocksize_A_local,IR_IntegerConstant(1)),ListBuffer[IR_Statement](
+          IR_Assignment(structure_A,IR_StringConstant("Diagonal"))
+        )),
+        IR_IfCondition(IR_EqEq(blocksize_A_local,insize),ListBuffer[IR_Statement](
+          IR_Assignment(structure_A,IR_StringConstant("Filled"))
+        )),
+        IR_IfCondition(IR_Neq(IR_OrOr(IR_EqEq(blocksize_A_local,insize),IR_EqEq(blocksize_A_local,IR_IntegerConstant(1))),IR_BooleanConstant(true)),ListBuffer[IR_Statement](
+          IR_Assignment(structure_A,IR_StringConstant("Blockdiagonal")),
+          IR_Assignment(blocksize_A,blocksize_A_local)
+        ))
+      ))
+    ))
+    stmts += IR_ArrayFree(mask)
+    IR_PlainFunction("isOfStructure",IR_UnitDatatype,ListBuffer[IR_FunctionArgument](
+      IR_FunctionArgument("matrix",IR_PointerDatatype(IR_DoubleDatatype)),
+      IR_FunctionArgument("insize",IR_IntegerDatatype),
+      IR_FunctionArgument("structure",IR_ReferenceDatatype(IR_StringDatatype)),
+      IR_FunctionArgument("blocksize",IR_ReferenceDatatype(IR_IntegerDatatype)),
+      IR_FunctionArgument("structure_A",IR_ReferenceDatatype(IR_StringDatatype)),
+      IR_FunctionArgument("blocksize_A",IR_ReferenceDatatype(IR_IntegerDatatype))
+    ),
+      stmts)
   }
 
   // aestimate the blocksize by taking the whole first block of a matrix into account
@@ -194,7 +317,7 @@ object IR_DetermineMatrixStructure {
         else {
           aestimators(0) = 1
         }
-        for (i <- 1 until size._1/2) {
+        for (i <- 1 until size._1 / 2) {
           for (j <- 0 until i) {
             if (evaluateEntry(matrix, i, j) != 0)
               accumulator += 1

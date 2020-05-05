@@ -14,7 +14,7 @@ for config in $configList; do
   base="$(basename $config)"
   path="$(dirname $config)"
   echo generating Test $base ...
-  java -cp ../../Compiler/lib:../../Compiler/Compiler.jar Main $config/$base.settings $config/$base.knowledge $platform 
+  java -cp ../../out/artifacts/Compiler_jar/Compiler.jar Main $config/$base.settings $config/$base.knowledge $platform > ./Debug/$base.txt
   echo
   echo
 done

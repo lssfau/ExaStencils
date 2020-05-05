@@ -20,8 +20,7 @@ Domain global< [0.0, 0.0] to [0.1, 0.1] >
 
 Function Application {
 	Var mat : Matrix<Integer,2,2> = { { 1, 2 }, { 3, 4 } }
-	Var res : Integer
-	res = evaluate ( ( ( 4 - ( 3 + 2 ) ) + getElement ( mat, 0, 0 ) ) )
-	compare ( res, -1, 0.1 )
+	Var inverse : Matrix<Integer,2,2> = inverse ( mat, "Determine" )
+	mat = 1
 }
 

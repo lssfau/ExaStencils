@@ -23,7 +23,7 @@ Function Application ( ) : Unit {
 	Var powelemMatrices_sol2 : Matrix<Real, 2, 2> = {{1, 4},{9, 16}}
 	compare(powelemMatrices_res1, powelemMatrices_sol1,prec)
 	compare(powelemMatrices_res2, powelemMatrices_sol2,prec)
-
+*/
 
 	Var m3 : Matrix<Real, 2, 1> = {{1}, {2}}
 	Var m4 : Matrix<Real, 1, 2> = {{1, 2}}
@@ -35,7 +35,7 @@ Function Application ( ) : Unit {
 	Var addMatrices_sol1 : Matrix<Real, 2, 2> = {{2, 4},{6, 8}}
 	compare(addMatrices_res1, addMatrices_sol1,prec)
 
-	Var addMatrices_res2 : Matrix<Real, 2, 2> = (m2 + m1) + m1 + m1
+	Var addMatrices_res2 : Matrix<Real, 2, 2> = (m2 + 1) + m1 + -2
 	Var addMatrices_sol2 : Matrix<Real, 2, 2> = {{4, 8},{12, 16}}
 	compare(addMatrices_res2, addMatrices_sol2,prec)
 	Var addMatrices_res3 : Matrix<Double, 2, 2> 
@@ -45,12 +45,12 @@ Function Application ( ) : Unit {
 	Var addMatrices_res8 : Matrix<Real, 2, 2> = (m2 - m1) + m1 + m1
 	Var addMatrices_sol8 : Matrix<Real, 2, 2> = {{2, 4},{6, 8}}
 	compare(addMatrices_res8, addMatrices_sol8,prec)
-*/
+
 	Var m6 : Matrix<Real, 2, 2> = {{1.0, 1}, {1, 1}}
 	Var addMatrices_res9 : Matrix<Real, 2, 2> = (m2 - m1) + m1 + (m2 * m1)
 	Var addMatrices_sol9 : Matrix<Real, 2, 2> = {{2, 4},{6, 8}}
 	compare(addMatrices_res9, addMatrices_sol9,prec)
-/*
+
 
 	Var addMatrices_res4 : Matrix<Double, 2, 2> = m2 + m1 + 1
 	Var addMatrices_res5 : Matrix<Double, 2, 2> 
@@ -85,8 +85,9 @@ Function Application ( ) : Unit {
 
 	Var multMatrices_res5 : Matrix<Double, 2, 2> = m2 
 	multMatrices_res5 = multMatrices_res5 * m1 
-
-
+	Var multMatrices_res6 : Matrix<Double, 2, 2> = m2 * 3 * m1 * 25 * m1
+	Var multMatrices_sol6 : Matrix<Double, 2, 2> = {{2775,4050},{6075,8850}}
+	compare(multMatrices_res6,multMatrices_sol6,0.1)
 
 	// subtract matrices	
 	Var subMatrices_res1 : Matrix<Double, 2, 2> = m2 - m1 
@@ -98,6 +99,9 @@ Function Application ( ) : Unit {
 	subMatrices_res2 = m2 - v1
 	compare(subMatrices_res2, subMatrices_sol2 ,prec)
 
+	Var subMatrices_res3 : Matrix<Double, 2, 2> = 1 - m1
+	Var subMatrices_sol3 : Matrix<Double, 2, 2> = {{0,-1},{-2,-3}}
+	compare(subMatrices_res3, subMatrices_sol3, 0.1)
 
 	// elementwise multiplication
 	Var multelemMatrices_res1 : Matrix<Double, 2, 2> = m2 .* m1 
@@ -121,8 +125,6 @@ Function Application ( ) : Unit {
 	compare(divelemMatrices_res1, divelemMatrices_sol1,prec)
 	compare(divelemMatrices_res2, divelemMatrices_sol2,prec)
 	compare(divelemMatrices_res3, divelemMatrices_sol3,prec)
-
-  */
 	
 }
 

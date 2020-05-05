@@ -25,6 +25,7 @@ Function Application {
 	Var E : Matrix<Double,2,2> = f ( G )
 	E = f ( G )
 	Var d : Double = determinant ( m )
+	Var F : Integer = g ( f ( m ) )
 }
 
 Function g ( in : Matrix<Double,2,2> ) : Integer {

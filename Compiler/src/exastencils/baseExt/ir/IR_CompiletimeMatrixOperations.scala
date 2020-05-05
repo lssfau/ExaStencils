@@ -43,7 +43,7 @@ object IR_BasicMatrixOperations {
         if (pos.length != 2)
           Logger.error("position arguments of wrong form: " + pos)
         IR_HighDimAccess(va, IR_ExpressionIndex(pos(0), pos(1)))
-      case sc if(IR_ResolveMatrixOperations.isScalar(sc)) => sc
+      case sc if (IR_ResolveMatrixOperations.isScalar(sc))                         => sc
       case _                                                                       => Logger.error(s"Argument is of unexpected type ${ exp.getClass.getTypeName }: $exp")
     }
   }
@@ -192,11 +192,11 @@ object IR_BasicMatrixOperations {
               }
             }
             out
-          case ((1, lcols), (rrows, 1)) if (lcols ==  rrows) =>
+          case ((1, lcols), (rrows, 1)) if (lcols == rrows)                           =>
             var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), 1, 1)
             out.set(0, 0, IR_IntegerConstant(0))
             for (i <- 0 until rrows) {
-                out.set(0, 0, IR_Addition(Duplicate(out.get(0, 0)), IR_Multiplication(getElem(l, 0, i), getElem(r, i, 0))))
+              out.set(0, 0, IR_Addition(Duplicate(out.get(0, 0)), IR_Multiplication(getElem(l, 0, i), getElem(r, i, 0))))
             }
             out
           case _                                                                      => Logger.error("unsupported argument form: " + lsize + ", " + rsize + ", expected arguments of the same size")
@@ -245,6 +245,10 @@ object IR_BasicMatrixOperations {
   // multiply multiple matrices of an IR_Multiplication
   def mult(mult : IR_Multiplication) : IR_MatrixExpression = {
     var result = IR_MatrixExpression(IR_IntegerDatatype, 1, 1)
+    var firstMatrix = mult.factors.find(fac => IR_ResolveMatrixOperations.isMatrix(fac)).getOrElse(Logger.error("no matrix in factors!"))
+    var firstMatrixIdx = mult.factors.indexOf(firstMatrix)
+    mult.factors.remove(firstMatrixIdx)
+    mult.factors.prepend(firstMatrix)
     var tmp = mult.factors(0) match {
       case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) =>
         IR_MatrixNodeUtilities.accessToExpression(va)
@@ -259,6 +263,8 @@ object IR_BasicMatrixOperations {
           IR_BasicMatrixOperations.mult(tmp, IR_MatrixNodeUtilities.accessToExpression(va))
         case x : IR_MatrixExpression                               =>
           IR_BasicMatrixOperations.mult(tmp, x)
+        case s if (IR_ResolveMatrixOperations.isScalar(s))         =>
+          IR_BasicMatrixOperations.elementwiseMultiplication(tmp, s)
         case _                                                     =>
           Logger.error("unexpected type: " + mult.factors(f))
       }
@@ -333,7 +339,7 @@ object IR_BasicMatrixOperations {
     subtraction match {
       case sub : IR_Subtraction             =>
         sub.left match {
-          case matrix @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) | IR_MatrixExpression(_, _, _))                   =>
+          case matrix if (IR_ResolveMatrixOperations.isMatrix(matrix)) =>
             var size = getSize(matrix)
             var out = IR_MatrixExpression(matrix.datatype.resolveBaseDatatype, size._1, size._2)
             for (i <- 0 until size._1) {
@@ -342,17 +348,15 @@ object IR_BasicMatrixOperations {
               }
             }
             out
-          case scalar @ (IR_VariableAccess(_, IR_RealDatatype | IR_DoubleDatatype | IR_IntegerDatatype | IR_FloatDatatype)) =>
-            if (sub.right.datatype.isInstanceOf[IR_MatrixDatatype])
-              IR_BasicMatrixOperations.sub(IR_Subtraction(sub.right, sub.left))
-            else
-              Logger.error("no matrices as operands: " + sub.left + ", " + sub.right)
-          case scalar : IR_Number                                                                                           =>
-            if (sub.right.datatype.isInstanceOf[IR_MatrixDatatype])
-              IR_BasicMatrixOperations.sub(IR_Subtraction(sub.right, sub.left))
-            else
-              Logger.error("no matrices as operands: " + sub.left + ", " + sub.right)
-          case _                                                                                                            => Logger.error("unexpected argument: " + sub.left + ", expected matrix or scalar")
+          case scalar if (IR_ResolveMatrixOperations.isScalar(scalar)) =>
+            sub.right match {
+              case x : IR_MatrixExpression                               =>
+                IR_BasicMatrixOperations.sub(IR_Subtraction(negative(x), IR_Negative(sub.left)))
+              case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) =>
+                IR_BasicMatrixOperations.sub(IR_Subtraction(negative(IR_MatrixNodeUtilities.accessToExpression(va)), IR_Negative(sub.left)))
+              case _                                                     => Logger.error(s"unexpected argument type ${ sub.right }")
+            }
+          case _                                                       => Logger.error("unexpected argument: " + sub.left + ", expected matrix or scalar")
         }
       case esub : IR_ElementwiseSubtraction =>
         Logger.error("IR_ElementwiseSubtraction not yet supported")
@@ -365,7 +369,7 @@ object IR_BasicMatrixOperations {
   def elementwiseMultiplication(left : IR_Expression, right : IR_Expression) : IR_MatrixExpression = {
     (left, right) match {
       // scalar x matrix, matrix x scalar, matrix x matrix
-      case (scalar , matrix) if(IR_ResolveMatrixOperations.isScalar((scalar)) && IR_ResolveMatrixOperations.isMatrix(matrix)) =>
+      case (scalar, matrix) if (IR_ResolveMatrixOperations.isScalar((scalar)) && IR_ResolveMatrixOperations.isMatrix(matrix))                   =>
         var size = getSize(matrix)
         var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), size._1, size._2)
         for (i <- 0 until size._1) {
@@ -374,7 +378,7 @@ object IR_BasicMatrixOperations {
           }
         }
         out
-      case (matrix, scalar) if(IR_ResolveMatrixOperations.isScalar((scalar)) && IR_ResolveMatrixOperations.isMatrix(matrix))=>
+      case (matrix, scalar) if (IR_ResolveMatrixOperations.isScalar((scalar)) && IR_ResolveMatrixOperations.isMatrix(matrix))                   =>
         var size = getSize(matrix)
         var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), size._1, size._2)
         for (i <- 0 until size._1) {
@@ -383,7 +387,7 @@ object IR_BasicMatrixOperations {
           }
         }
         out
-      case (matrixLeft , matrixRight)  if(IR_ResolveMatrixOperations.isMatrix((matrixLeft)) && IR_ResolveMatrixOperations.isMatrix(matrixRight))                                =>
+      case (matrixLeft, matrixRight) if (IR_ResolveMatrixOperations.isMatrix((matrixLeft)) && IR_ResolveMatrixOperations.isMatrix(matrixRight)) =>
         var size = getSize(matrixLeft)
         var sizeR = getSize(matrixRight)
         if (size != sizeR)
@@ -395,7 +399,7 @@ object IR_BasicMatrixOperations {
           }
         }
         out
-      case _                                                                                                                                                                           => Logger.error("unexpected argument combination: " + (left, right))
+      case _                                                                                                                                    => Logger.error("unexpected argument combination: " + (left, right))
     }
   }
 
@@ -536,7 +540,7 @@ object IR_CompiletimeInversion {
 
               // invert with GaussJordan method
               //var subMatrix_inv = gaussJordanInverse(subMatrix)
-              var subMatrix_inv = inverse(subMatrix,"Filled",-1)
+              var subMatrix_inv = inverse(subMatrix, "Filled", -1)
 
               // copy to out matrix
               IR_BasicMatrixOperations.pasteSubMatrix(subMatrix_inv, out, offset, offset)
@@ -566,34 +570,34 @@ object IR_CompiletimeInversion {
           Logger.error("IR_MatrixAccess::inverse n < 1!")
         }
         else {
-            // extract and invert A: Blockdiagonalmatrix assumed
-            var A = IR_BasicMatrixOperations.copySubMatrix(that, 0, 0, n, n)
-            var A_inv = inverse(A, Knowledge.experimental_structure_A, Knowledge.experimental_blocksize_A)
-            IR_GeneralSimplify.doUntilDoneStandalone(A_inv)
+          // extract and invert A: Blockdiagonalmatrix assumed
+          var A = IR_BasicMatrixOperations.copySubMatrix(that, 0, 0, n, n)
+          var A_inv = inverse(A, Knowledge.experimental_structure_A, Knowledge.experimental_blocksize_A)
+          IR_GeneralSimplify.doUntilDoneStandalone(A_inv)
 
-            // calculate S
-            val B = IR_BasicMatrixOperations.copySubMatrix(that, 0, n, n, m)
-            val C = IR_BasicMatrixOperations.copySubMatrix(that, n, 0, m, n)
-            val D = IR_BasicMatrixOperations.copySubMatrix(that, n, n, m, m)
-            val CA_inv = IR_BasicMatrixOperations.mult(C, A_inv)
-            val CA_invB = IR_BasicMatrixOperations.mult(CA_inv, B)
-            val S = IR_BasicMatrixOperations.sub(D, CA_invB)
+          // calculate S
+          val B = IR_BasicMatrixOperations.copySubMatrix(that, 0, n, n, m)
+          val C = IR_BasicMatrixOperations.copySubMatrix(that, n, 0, m, n)
+          val D = IR_BasicMatrixOperations.copySubMatrix(that, n, n, m, m)
+          val CA_inv = IR_BasicMatrixOperations.mult(C, A_inv)
+          val CA_invB = IR_BasicMatrixOperations.mult(CA_inv, B)
+          val S = IR_BasicMatrixOperations.sub(D, CA_invB)
 
-            // invert S
-            // for schur complement inversion multiple structure information is necessary(n and m, blocksize of A, S is probably always filled) in case  m is larger than 1 (default should be "Filled")
-            val S_inv = inverse(S, "Filled", Knowledge.experimental_blocksize_A)
+          // invert S
+          // for schur complement inversion multiple structure information is necessary(n and m, blocksize of A, S is probably always filled) in case  m is larger than 1 (default should be "Filled")
+          val S_inv = inverse(S, "Filled", Knowledge.experimental_blocksize_A)
 
-            // copy result blocks to 'out' matrix
-            val lowerLeft = IR_BasicMatrixOperations.negative(IR_BasicMatrixOperations.mult(S_inv, CA_inv))
-            val lowerRight = S_inv
-            val A_invB = IR_BasicMatrixOperations.mult(A_inv, B)
-            val A_invBS_inv = IR_BasicMatrixOperations.mult(A_invB, S_inv)
-            val upperRight = IR_BasicMatrixOperations.negative(A_invBS_inv)
-            val upperLeft = IR_BasicMatrixOperations.add(A_inv, IR_BasicMatrixOperations.mult(A_invBS_inv, CA_inv))
-            IR_BasicMatrixOperations.pasteSubMatrix(upperLeft, out, 0, 0)
-            IR_BasicMatrixOperations.pasteSubMatrix(upperRight, out, 0, n)
-            IR_BasicMatrixOperations.pasteSubMatrix(lowerLeft, out, n, 0)
-            IR_BasicMatrixOperations.pasteSubMatrix(lowerRight, out, n, n)
+          // copy result blocks to 'out' matrix
+          val lowerLeft = IR_BasicMatrixOperations.negative(IR_BasicMatrixOperations.mult(S_inv, CA_inv))
+          val lowerRight = S_inv
+          val A_invB = IR_BasicMatrixOperations.mult(A_inv, B)
+          val A_invBS_inv = IR_BasicMatrixOperations.mult(A_invB, S_inv)
+          val upperRight = IR_BasicMatrixOperations.negative(A_invBS_inv)
+          val upperLeft = IR_BasicMatrixOperations.add(A_inv, IR_BasicMatrixOperations.mult(A_invBS_inv, CA_inv))
+          IR_BasicMatrixOperations.pasteSubMatrix(upperLeft, out, 0, 0)
+          IR_BasicMatrixOperations.pasteSubMatrix(upperRight, out, 0, n)
+          IR_BasicMatrixOperations.pasteSubMatrix(lowerLeft, out, n, 0)
+          IR_BasicMatrixOperations.pasteSubMatrix(lowerRight, out, n, n)
         }
         out
       }
