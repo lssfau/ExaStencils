@@ -1,0 +1,11 @@
+WARN:  Critical error: ./resolvingMatrixAssignments/resolvingMatrixAssignments.settings (No such file or directory)
+WARN:  Stack trace:
+java.base/java.io.FileInputStream.open0(Native Method)
+	at java.base/java.io.FileInputStream.open(FileInputStream.java:219)
+	at java.base/java.io.FileInputStream.<init>(FileInputStream.java:157)
+	at scala.io.Source$.fromFile(Source.scala:94)
+	at scala.io.Source$.fromFile(Source.scala:79)
+	at exastencils.parsers.config.Settings_Parser.parseFile(Settings_Parser.scala:43)
+	at Main$.localInitialize(Main.scala:45)
+	at Main$.main(Main.scala:106)
+	at Main.main(Main.scala)
