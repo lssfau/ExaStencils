@@ -30,9 +30,6 @@ Function Application {
 	compare ( sol1, res1, prec )
 	Var sol3 : Integer = -8
 	Var res3 : Integer = determinant ( m3 )
-	Var res4 : Integer = determinant ( { { 1, 2, 3 }, { 3, 4, 5 }, { 1, 2, 7 } } )
-	compare ( sol3, res3, prec )
-	compare ( sol3, res4, prec )
 	Var sol5 : Integer = -407
 	Var res5 : Integer
 	res5 = determinant ( m4 )

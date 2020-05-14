@@ -31,16 +31,17 @@ Function Application {
 	Var addMatrices_sol1 : Matrix<Real,2,2> = { { 2.0, 4.0 }, { 6.0, 8.0 } }
 	compare ( addMatrices_res1, addMatrices_sol1, prec )
 	Var addMatrices_res2 : Matrix<Real,2,2> = ( ( ( m2 + 1 ) + m1 ) + -2 )
-	Var addMatrices_sol2 : Matrix<Real,2,2> = { { 4.0, 8.0 }, { 12.0, 16.0 } }
+	Var addMatrices_sol2 : Matrix<Real,2,2> = { { 1.0, 3.0 }, { 5.0, 7.0 } }
 	compare ( addMatrices_res2, addMatrices_sol2, prec )
 	Var addMatrices_res3 : Matrix<Double,2,2>
 	addMatrices_res3 = ( ( ( m2 + m1 ) + m1 ) + m1 )
-	compare ( addMatrices_res3, addMatrices_sol2, prec )
+	Var addMatrices_sol3 : Matrix<Real,2,2> = { { 4.0, 8.0 }, { 12.0, 16.0 } }
+	compare ( addMatrices_res3, addMatrices_sol3, prec )
 	Var addMatrices_res8 : Matrix<Real,2,2> = ( ( ( m2 - m1 ) + m1 ) + m1 )
 	Var addMatrices_sol8 : Matrix<Real,2,2> = { { 2.0, 4.0 }, { 6.0, 8.0 } }
 	compare ( addMatrices_res8, addMatrices_sol8, prec )
 	Var m6 : Matrix<Real,2,2> = { { 1.0, 1.0 }, { 1.0, 1.0 } }
-	Var addMatrices_res9 : Matrix<Real,2,2> = ( ( ( m2 - m1 ) + m1 ) + ( m2 * m1 ) )
+	Var addMatrices_res9 : Matrix<Real,2,2> = ( ( ( m2 - m1 ) + m1 ) + ( m2 * 1 ) )
 	Var addMatrices_sol9 : Matrix<Real,2,2> = { { 2.0, 4.0 }, { 6.0, 8.0 } }
 	compare ( addMatrices_res9, addMatrices_sol9, prec )
 	Var addMatrices_res4 : Matrix<Double,2,2> = ( ( m2 + m1 ) + 1 )
@@ -48,9 +49,9 @@ Function Application {
 	addMatrices_res5 = ( ( 1 + m1 ) + m1 )
 	Var addMatrices_res6 : Matrix<Double,2,2> = ( 1 + m1 )
 	Var addMatrices_res7 : Matrix<Double,2,2> = ( m1 + { { 1, 2 }, { 3, 2 } } )
-	Var addMatrices_sol3 : Matrix<Double,2,2> = { { 3.0, 5.0 }, { 7.0, 9.0 } }
-	compare ( addMatrices_res4, addMatrices_sol3, prec )
-	compare ( addMatrices_res5, addMatrices_sol3, prec )
+	Var addMatrices_sol4 : Matrix<Double,2,2> = { { 3.0, 5.0 }, { 7.0, 9.0 } }
+	compare ( addMatrices_res4, addMatrices_sol4, prec )
+	compare ( addMatrices_res5, addMatrices_sol4, prec )
 	Var multMatrices_res1 : Matrix<Double,2,2>
 	multMatrices_res1 = ( m2 * m1 )
 	Var multMatrices_sol1 : Matrix<Double,2,2> = { { 7.0, 10.0 }, { 15.0, 22.0 } }

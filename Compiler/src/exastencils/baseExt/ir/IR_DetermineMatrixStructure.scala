@@ -20,6 +20,7 @@ package exastencils.baseExt.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir
 import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_DoubleDatatype
 import exastencils.base.ir.IR_FloatDatatype
@@ -113,33 +114,14 @@ object IR_DetermineMatrixStructure {
             // average blocksize over block
             //blocksize_A = aestimateBlocksize(mat)
 
-            // setup mask to check all entries of mat
-            var mask = new Array[Array[Boolean]](size._1)
-            for (i <- 0 until size._1) {
-              mask(i) = new Array[Boolean](size._2)
-            }
-            var l = 0
-            while (l < size._1) {
-              for (i <- l until scala.math.min(l + blocksize_A, size._1)) {
-                for (j <- l until scala.math.min(l + blocksize_A, size._2)) {
-                  mask(i)(j) = true
-                }
-              }
-              l += blocksize_A
-            }
-            for (i <- 0 until blocksize_D) {
-              for (j <- 0 until size._1) {
-                mask(size._1 - blocksize_D + i)(j) = true
-                mask(j)(size._1 - blocksize_D + i) = true
-              }
-            }
 
-            for (i <- 0 until size._1) {
-              for (j <- 0 until size._2) {
-                var en : Double = evaluateEntry(mat, i, j)
-
-                // entry should be zero but is not -> can not invert with specific algorithm
-                if (!mask(i)(j) && en != 0.0)
+            var border = size._1 - blocksize_D
+            for (i <- 0 until border) {
+              var start = (i/blocksize_A) * blocksize_A + blocksize_A
+              for (j <- start until border) {
+                var en0 : Double = evaluateEntry(mat, i, j)
+                var en1 : Double = evaluateEntry(mat, j, i)
+                if(en0 != 0 || en1 != 0)
                   return ("Filled", -1, "", -1)
               }
             }
@@ -178,6 +160,7 @@ object IR_DetermineMatrixStructure {
 
   // do the same at runtime, entries do not have to be compiletime evaluatable
   def isOfStructureRuntime() : IR_PlainFunction = {
+    var debug = true
     var stmts = ListBuffer[IR_Statement]()
     var i = IR_VariableAccess("i", IR_IntegerDatatype)
     var j = IR_VariableAccess("j", IR_IntegerDatatype)
@@ -204,7 +187,7 @@ object IR_DetermineMatrixStructure {
     stmts += IR_WhileLoop(IR_AndAnd(IR_Lower(blocksize_D, insize), IR_EqEq(cont, IR_BooleanConstant(true))), ListBuffer[IR_Statement](
       IR_VariableDeclaration(en0, IR_ArrayAccess(matrix, IR_IntegerConstant(0) + insize - blocksize_D - IR_IntegerConstant(1))),
       IR_VariableDeclaration(en1, IR_ArrayAccess(matrix, (insize - blocksize_D - IR_IntegerConstant(1))*insize + IR_IntegerConstant(0))),
-      IR_VariableDeclaration(en2, IR_ArrayAccess(matrix, IR_IntegerConstant(1)*insize + insize - blocksize_D - IR_IntegerConstant(1))),
+      IR_VariableDeclaration(en2, IR_ArrayAccess(matrix, insize + insize - blocksize_D - IR_IntegerConstant(1))),
       IR_VariableDeclaration(en3, IR_ArrayAccess(matrix, (insize - blocksize_D - IR_IntegerConstant(1))*insize + IR_IntegerConstant(1))),
       IR_IfCondition(IR_AndAnd(IR_AndAnd(IR_EqEq(en0, IR_IntegerConstant(0)), IR_EqEq(en1, IR_IntegerConstant(0))), IR_AndAnd(IR_EqEq(en2, IR_IntegerConstant(0)), IR_EqEq(en3, IR_IntegerConstant(0)))),
         ListBuffer[IR_Statement](
@@ -223,45 +206,29 @@ object IR_DetermineMatrixStructure {
       IR_VariableDeclaration(en0, IR_ArrayAccess(matrix, (IR_IntegerConstant(0) * insize + blocksize_A_local))),
       IR_VariableDeclaration(en1, IR_ArrayAccess(matrix, blocksize_A_local* insize + IR_IntegerConstant(0))),
       IR_IfCondition(IR_AndAnd(IR_EqEq(en0, IR_DoubleConstant(0.0)), IR_EqEq(en1, IR_DoubleConstant(0.0))), ListBuffer[IR_Statement](
-        IR_Assignment(cont, IR_BooleanConstant(true))
+        IR_Assignment(cont, IR_BooleanConstant(false))
       ),
         ListBuffer[IR_Statement](
           IR_Assignment(blocksize_A_local, IR_Addition(blocksize_A_local, IR_IntegerConstant(1)))
         ))
     ))
 
-    var mask = IR_VariableAccess("mask", IR_PointerDatatype(IR_BooleanDatatype))
-    stmts += IR_VariableDeclaration(mask)
-    stmts += IR_ArrayAllocation(mask,IR_BooleanDatatype,insize*insize)
-    var l = IR_VariableAccess("l", IR_IntegerDatatype)
-    stmts += IR_VariableDeclaration(l, IR_IntegerConstant(0))
-    stmts += IR_WhileLoop(IR_Lower(l, insize), ListBuffer[IR_Statement](
-      IR_ForLoop(IR_VariableDeclaration(i, IR_IntegerConstant(0)), IR_Lower(i, IR_Minimum(IR_Addition(l, blocksize_A_local), insize)), IR_PreIncrement(i), ListBuffer[IR_Statement](
-        IR_ForLoop(IR_VariableDeclaration(j, IR_IntegerConstant(0)), IR_Lower(j, IR_Minimum(IR_Addition(j, blocksize_A_local), insize)), IR_PreIncrement(j), ListBuffer[IR_Statement](
-          IR_Assignment(IR_ArrayAccess(mask, i * insize + j), IR_BooleanConstant(true))
+    var border = IR_VariableAccess("border", IR_IntegerDatatype)
+    var start = IR_VariableAccess("start", IR_IntegerDatatype)
+    var integerDivision = IR_VariableAccess("integerDivision", IR_IntegerDatatype)
+    stmts += IR_VariableDeclaration(border, insize - blocksize_D)
+    stmts += IR_ForLoop(IR_VariableDeclaration(i, IR_IntegerConstant(0)), IR_Lower(i, border), IR_PreIncrement(i),ListBuffer[IR_Statement](
+      IR_VariableDeclaration(integerDivision, i/blocksize_A_local),
+      IR_VariableDeclaration(start, (integerDivision*blocksize_A_local + blocksize_A_local)),
+        IR_ForLoop(IR_VariableDeclaration(j,start), IR_Lower(j, border), IR_PreIncrement(j),ListBuffer[IR_Statement](
+          IR_IfCondition(IR_OrOr(IR_Neq(IR_ArrayAccess(matrix, i*insize + j),IR_DoubleConstant(0.0)),IR_Neq(IR_ArrayAccess(matrix, j*insize + i), IR_DoubleConstant(0.0))),ListBuffer[IR_Statement](
+            IR_Assignment(earlyOut,true),
+            ir.IR_Break()
+          ))
         ))
-      )),
-      IR_Assignment(l, IR_Addition(l, IR_IntegerConstant(1)))
-    ))
-    stmts += IR_ForLoop(IR_VariableDeclaration(i, IR_IntegerConstant(0)), IR_Lower(i, blocksize_D), IR_PreIncrement(i), ListBuffer[IR_Statement](
-      IR_ForLoop(IR_VariableDeclaration(j, IR_IntegerConstant(0)), IR_Lower(j, insize), IR_PreIncrement(j), ListBuffer[IR_Statement](
-        IR_Assignment(IR_ArrayAccess(mask, (insize - blocksize_D + i) * insize + j), IR_BooleanConstant(true)),
-        IR_Assignment(IR_ArrayAccess(mask, j * insize + (insize - blocksize_D + i)), IR_BooleanConstant(true))
-      ))
-    ))
-    var foundMiss = IR_VariableAccess("foundMiss", IR_BooleanDatatype)
-    stmts += IR_VariableDeclaration(foundMiss, IR_BooleanConstant(false))
-    stmts += IR_ForLoop(IR_VariableDeclaration(i, IR_IntegerConstant(0)), IR_Lower(i, insize), IR_PreIncrement(i), ListBuffer[IR_Statement](
-      IR_ForLoop(IR_VariableDeclaration(j, IR_IntegerConstant(0)), IR_Lower(j, insize), IR_PreIncrement(j), ListBuffer[IR_Statement](
-        IR_IfCondition(IR_AndAnd(IR_Neq(IR_ArrayAccess(mask, i * insize + j), IR_BooleanConstant(true)), IR_Neq(IR_DoubleConstant(0.0), IR_ArrayAccess(matrix, (i*insize + j)))), ListBuffer[IR_Statement](
-          IR_Assignment(structure, IR_StringConstant("Filled")),
-          IR_Assignment(foundMiss, IR_BooleanConstant(true))
-        ))
-      ))
     ))
 
-
-    stmts += IR_IfCondition(IR_EqEq(IR_OrOr(foundMiss,earlyOut), IR_BooleanConstant(true)), ListBuffer[IR_Statement](
+    stmts += IR_IfCondition(IR_EqEq(earlyOut,true), ListBuffer[IR_Statement](
       IR_Assignment(structure, IR_StringConstant("Filled"))
     ), ListBuffer[IR_Statement](
       IR_IfCondition(IR_EqEq(blocksize_D, IR_IntegerConstant(0)), ListBuffer[IR_Statement](
@@ -290,7 +257,6 @@ object IR_DetermineMatrixStructure {
         ))
       ))
     ))
-    stmts += IR_ArrayFree(mask)
     IR_PlainFunction("isOfStructure",IR_UnitDatatype,ListBuffer[IR_FunctionArgument](
       IR_FunctionArgument("matrix",IR_PointerDatatype(IR_DoubleDatatype)),
       IR_FunctionArgument("insize",IR_IntegerDatatype),

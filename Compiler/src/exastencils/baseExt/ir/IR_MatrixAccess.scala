@@ -21,7 +21,6 @@ package exastencils.baseExt.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.config._
 import exastencils.core._
 import exastencils.prettyprinting._
 import exastencils.util.ir._
@@ -110,7 +109,7 @@ case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var rows
   def set(row : Integer, column : Integer, exp : IR_Expression) = expressions(row * columns + column) = exp
 
   def inverse : IR_MatrixExpression = {
-    IR_CompiletimeInversion.inverse(this, Knowledge.experimental_resolveInverseFunctionCall, Knowledge.experimental_blocksize)
+    IR_CompiletimeInversion.inverse(this,  ("Filled",-1,"-1",-1))
   }
 
   override def toString : String = {

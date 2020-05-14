@@ -195,13 +195,16 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_ResolveLocalSolve.apply()
     IR_GeneralSimplify.doUntilDone()
 
-    var sthChanged = true
-    while (sthChanged) {
-      IR_HandleRuntimeMatrices.apply()
+    var matrixChanged = true
+    while (matrixChanged) {
       IR_ResolveMatrixOperations.apply()
-      sthChanged = (IR_ResolveMatrixOperations.results.last._2.matches > 0 | IR_HandleRuntimeMatrices.results.last._2.matches > 0)
-      IR_GeneralSimplify.doUntilDone()
-      IR_SimplifyMatrices.apply()
+      IR_HandleRuntimeMatrices.apply()
+      if(IR_ResolveMatrixOperations.results.forall(t => t._2.matches == 0)) {
+        matrixChanged = false
+      }
+      IR_ResolveMatrixOperations.reset()
+      //IR_GeneralSimplify.doUntilDone()
+      //IR_SimplifyMatrices.apply()
     }
     IR_ResolveUserDefinedFunctions.apply()
     IR_ResolveMatrixDeclarations.apply()

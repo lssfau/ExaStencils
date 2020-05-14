@@ -25,7 +25,6 @@ import exastencils.base.ir.IR_FloatDatatype
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir._
-import exastencils.config._
 import exastencils.core._
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
@@ -354,7 +353,8 @@ object IR_BasicMatrixOperations {
                 IR_BasicMatrixOperations.sub(IR_Subtraction(negative(x), IR_Negative(sub.left)))
               case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) =>
                 IR_BasicMatrixOperations.sub(IR_Subtraction(negative(IR_MatrixNodeUtilities.accessToExpression(va)), IR_Negative(sub.left)))
-              case _                                                     => Logger.error(s"unexpected argument type ${ sub.right }")
+              case _                                                     =>
+                Logger.error(s"unexpected argument of type: ${sub.right.datatype} and basetype: ${sub.right.datatype.resolveBaseDatatype}, left side is of type: ${sub.left.datatype} and basetype: ${sub.left.datatype.resolveBaseDatatype}")
             }
           case _                                                       => Logger.error("unexpected argument: " + sub.left + ", expected matrix or scalar")
         }
@@ -505,7 +505,11 @@ object IR_BasicMatrixOperations {
 // methods to determine a inverse at compiletime
 object IR_CompiletimeInversion {
   // head function that branches to specific inversions
-  def inverse(that : IR_MatrixExpression, matrixStructure : String, blocksize : Int) : IR_MatrixExpression = {
+  def inverse(that : IR_MatrixExpression, structureInformation : (String, Int, String, Int)) : IR_MatrixExpression = {
+    var matrixStructure = structureInformation._1
+    var blocksize = structureInformation._2
+    var matrixStructure_A = structureInformation._3
+    var blocksize_A = structureInformation._4
     if (that.rows != that.columns)
       Logger.error("inversion of non quadratic matrices not supported.")
     matrixStructure match {
@@ -540,7 +544,7 @@ object IR_CompiletimeInversion {
 
               // invert with GaussJordan method
               //var subMatrix_inv = gaussJordanInverse(subMatrix)
-              var subMatrix_inv = inverse(subMatrix, "Filled", -1)
+              var subMatrix_inv = inverse(subMatrix, ("Filled",-1,"no schur", -1))
 
               // copy to out matrix
               IR_BasicMatrixOperations.pasteSubMatrix(subMatrix_inv, out, offset, offset)
@@ -572,7 +576,7 @@ object IR_CompiletimeInversion {
         else {
           // extract and invert A: Blockdiagonalmatrix assumed
           var A = IR_BasicMatrixOperations.copySubMatrix(that, 0, 0, n, n)
-          var A_inv = inverse(A, Knowledge.experimental_structure_A, Knowledge.experimental_blocksize_A)
+          var A_inv = inverse(A, (matrixStructure_A, blocksize_A, "no schur", -1))
           IR_GeneralSimplify.doUntilDoneStandalone(A_inv)
 
           // calculate S
@@ -585,7 +589,7 @@ object IR_CompiletimeInversion {
 
           // invert S
           // for schur complement inversion multiple structure information is necessary(n and m, blocksize of A, S is probably always filled) in case  m is larger than 1 (default should be "Filled")
-          val S_inv = inverse(S, "Filled", Knowledge.experimental_blocksize_A)
+          val S_inv = inverse(S, ("Filled", blocksize_A, "no schur", -1))
 
           // copy result blocks to 'out' matrix
           val lowerLeft = IR_BasicMatrixOperations.negative(IR_BasicMatrixOperations.mult(S_inv, CA_inv))

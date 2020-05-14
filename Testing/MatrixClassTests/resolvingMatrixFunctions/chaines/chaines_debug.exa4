@@ -32,5 +32,7 @@ Function Application {
 	Var res3 : Double = ( 42 + dotProduct ( m1, inverse ( ( m1 * m1 ) ) ) )
 	Var sol3 : Double = 38.25
 	compare ( res3, sol3, 0.01 )
+	Var res4 : Matrix<Double,2,2>
+	res4 = inverse ( m1 )
 }
 

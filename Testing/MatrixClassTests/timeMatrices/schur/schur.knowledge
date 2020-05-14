@@ -1,4 +1,5 @@
 dimensionality                = 2
-mpi_enabled 		      = false
+
+mpi_enabled = false
 
 experimental_resolveInverseFunctionCall = "Runtime"
