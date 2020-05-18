@@ -1,0 +1,23 @@
+Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
+
+Globals {
+
+}
+
+Function Application() : Unit {
+    Var t1 : Tensor2< Real > = tens2{
+        [0,0] := 1.0,
+        [1,0] := 1,
+        [2,0] := 1,
+        [0,1] := 1,
+        [1,1] := 1,
+        [2,1] := 1,
+        [0,2] := 1,
+        [1,2] := 1,
+        [2,2] := 1
+        }
+
+    Var v : Matrix<Real, 3, 1 > = {{0}, {0}, {0}}
+
+    eigen(t1, v)
+}

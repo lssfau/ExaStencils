@@ -5,7 +5,7 @@ Globals {
 }
 
 Function Application() : Unit {
-    Var m1 : Tensor2< Real > = tens2{
+    /*Var t1 : Tensor2< Real > = tens2{
         [0,0] := 1.0,
         [1,0] := 1,
         [2,0] := 1,
@@ -17,9 +17,7 @@ Function Application() : Unit {
         [2,2] := 1
         }
 
-    native( "std::cout << m1 << std::endl" )
-
-    Var m2 : Tensor2< Real > = tens2{
+    Var t2 : Tensor2< Real > = tens2{
         [0,0] := 1.0,
         [1,0] := 2,
         [2,0] := 3,
@@ -27,12 +25,53 @@ Function Application() : Unit {
         [1,1] := 5
         }
 
-    Var m3 : Tensor2< Real > = m1
+    Var t3 : Tensor2< Real > = m1
 
-    Var m4 : Tensor2< Real >
-    m4 = m1
+    Var t4 : Tensor2< Real >
+    t4 = t1
 
-    if ( compare( m1, m4 ) ) { print( "sucess m1 == m4" ) }
+    if ( compare( t1, t4 ) ) { print( "sucess t1 == t4" ) }
 
-    Var res1 : Real = m2[0,0]
+    Var t5 : TensorN< Real, 2 > = tensN{ 2 ;
+        [0,0] := 1.0,
+        [1,0] := 2,
+        [2,0] := 3,
+        [0,1] := 4,
+        [1,1] := 5
+        }
+
+    Var t6 : Tensor2< Real > = asTensor2( m5 )
+
+    if ( compare( t2, t6 ) ) { print( "success: converted TensorN to Tensor2" ) }
+
+    Var t7_1 : Tensor1< Real > = tens1{
+        [0] := 1.0,
+        [1] := 1.0,
+        [2] := 1.0
+    }
+
+    Var t7_2 : Tensor1< Real > = tens1{
+        [0] := 1.0,
+        [1] := 2.0,
+        [2] := 3.0
+    }
+
+    Var t7_3 : Tensor2< Real > = dyadic( t7_1, t7_2 )
+
+    Var t7_4 : Tensor2< Real > = tens2{
+         [0,0] := 1.0,
+         [1,0] := 2.0,
+         [2,0] := 3.0,
+         [0,1] := 1.0,
+         [1,1] := 2.0,
+         [2,1] := 3.0,
+         [0,2] := 1.0,
+         [1,2] := 2.0,
+         [2,2] := 3.0
+     }
+
+     if ( compare( t7_3, t7_2 ) ) { print( "success: build correct Tensor2 with dyadic 2x Tensor1" }*/
+
+     Var res : Real
+     res = m3[1,1]
 }

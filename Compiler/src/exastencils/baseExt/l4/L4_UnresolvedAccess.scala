@@ -89,9 +89,10 @@ case class L4_UnresolvedAccess(
           if (level.isDefined) {
             IR_HighDimAccess(IR_StringLiteral(name+ "_" + level.get.resolveLevel), IR_ConstIndex(index.toInt))
           } else {
-            //Logger.error(IR_StringConstant(name) + IR_ConstIndex(index.toInt))
-            IR_StringLiteral(Array(name, '[', index.toInt.toString, ']').mkString(""))
+            //IR_HighDimAccess(IR_StringLiteral(name), IR_ExpressionIndex(i.toArray))
+            L4_HigherDimSelection(L4_StringLiteral(name) , L4_ExpressionIndex(i.toArray).toConstIndex).progress
           }
+        //IR_StringLiteral(Array(name, '[', index.toInt.toString, ']').mkString(""))
         case None    => Logger.error("That didn't work.")
       }
     } else if (arrayIndex.isDefined) {

@@ -55,6 +55,7 @@ object L4_ExpressionIndex {
   def apply(indices : L4_Expression*) = new L4_ExpressionIndex(indices.toArray)
   def apply(left : L4_ExpressionIndex, right : L4_ExpressionIndex, f : (L4_Expression, L4_Expression) => L4_Expression) =
     new L4_ExpressionIndex((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
+  def apply(indices : Array[Int]) = new L4_ExpressionIndex(indices.map(L4_IntegerConstant(_) : L4_Expression))
 }
 
 case class L4_ExpressionIndex(override var indices : Array[L4_Expression]) extends L4_Index with L4_ArrayBasedIndex[L4_Expression] {

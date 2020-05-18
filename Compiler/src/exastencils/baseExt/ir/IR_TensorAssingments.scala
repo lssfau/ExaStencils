@@ -57,8 +57,8 @@ object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments 
         src.isInstanceOf[IR_TensorExpression2]                                                        =>
       val tmp = src.asInstanceOf[IR_TensorExpression2]
       var newStmts = ListBuffer[IR_Statement]()
-      for (x <- 0 until 3) {
-        for (y <- 0 until 3) {
+      for (y <- 0 until 3) {
+        for (x <- 0 until 3) {
           newStmts += IR_Assignment(IR_HighDimAccess(dest, IR_ExpressionIndex(x + y *3)), tmp.get(x, y))
         }
       }
