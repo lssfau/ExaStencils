@@ -29,6 +29,7 @@ import exastencils.core._
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
 import exastencils.util.ir._
+import exastencils.baseExt.ir.IR_MatrixNodeUtilities._
 
 // simple operations with matrices like addition or multiplication
 object IR_BasicMatrixOperations {
@@ -42,7 +43,7 @@ object IR_BasicMatrixOperations {
         if (pos.length != 2)
           Logger.error("position arguments of wrong form: " + pos)
         IR_HighDimAccess(va, IR_ExpressionIndex(pos(0), pos(1)))
-      case sc if (IR_ResolveMatrixOperations.isScalar(sc))                         => sc
+      case sc if (isScalar(sc))                            => sc
       case _                                                                       => Logger.error(s"Argument is of unexpected type ${ exp.getClass.getTypeName }: $exp")
     }
   }
@@ -244,7 +245,7 @@ object IR_BasicMatrixOperations {
   // multiply multiple matrices of an IR_Multiplication
   def mult(mult : IR_Multiplication) : IR_MatrixExpression = {
     var result = IR_MatrixExpression(IR_IntegerDatatype, 1, 1)
-    var firstMatrix = mult.factors.find(fac => IR_ResolveMatrixOperations.isMatrix(fac)).getOrElse(Logger.error("no matrix in factors!"))
+    var firstMatrix = mult.factors.find(fac => isMatrix(fac)).getOrElse(Logger.error("no matrix in factors!"))
     var firstMatrixIdx = mult.factors.indexOf(firstMatrix)
     mult.factors.remove(firstMatrixIdx)
     mult.factors.prepend(firstMatrix)
@@ -260,11 +261,11 @@ object IR_BasicMatrixOperations {
       result = mult.factors(f) match {
         case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) =>
           IR_BasicMatrixOperations.mult(tmp, IR_MatrixNodeUtilities.accessToExpression(va))
-        case x : IR_MatrixExpression                               =>
+        case x : IR_MatrixExpression                    =>
           IR_BasicMatrixOperations.mult(tmp, x)
-        case s if (IR_ResolveMatrixOperations.isScalar(s))         =>
+        case s if (isScalar(s)) =>
           IR_BasicMatrixOperations.elementwiseMultiplication(tmp, s)
-        case _                                                     =>
+        case _                                          =>
           Logger.error("unexpected type: " + mult.factors(f))
       }
       tmp = Duplicate(result)
@@ -338,7 +339,7 @@ object IR_BasicMatrixOperations {
     subtraction match {
       case sub : IR_Subtraction             =>
         sub.left match {
-          case matrix if (IR_ResolveMatrixOperations.isMatrix(matrix)) =>
+          case matrix if (isMatrix(matrix)) =>
             var size = getSize(matrix)
             var out = IR_MatrixExpression(matrix.datatype.resolveBaseDatatype, size._1, size._2)
             for (i <- 0 until size._1) {
@@ -347,7 +348,7 @@ object IR_BasicMatrixOperations {
               }
             }
             out
-          case scalar if (IR_ResolveMatrixOperations.isScalar(scalar)) =>
+          case scalar if (isScalar(scalar)) =>
             sub.right match {
               case x : IR_MatrixExpression                               =>
                 IR_BasicMatrixOperations.sub(IR_Subtraction(negative(x), IR_Negative(sub.left)))
@@ -356,7 +357,7 @@ object IR_BasicMatrixOperations {
               case _                                                     =>
                 Logger.error(s"unexpected argument of type: ${sub.right.datatype} and basetype: ${sub.right.datatype.resolveBaseDatatype}, left side is of type: ${sub.left.datatype} and basetype: ${sub.left.datatype.resolveBaseDatatype}")
             }
-          case _                                                       => Logger.error("unexpected argument: " + sub.left + ", expected matrix or scalar")
+          case _                                                    => Logger.error("unexpected argument: " + sub.left + ", expected matrix or scalar")
         }
       case esub : IR_ElementwiseSubtraction =>
         Logger.error("IR_ElementwiseSubtraction not yet supported")
@@ -369,7 +370,7 @@ object IR_BasicMatrixOperations {
   def elementwiseMultiplication(left : IR_Expression, right : IR_Expression) : IR_MatrixExpression = {
     (left, right) match {
       // scalar x matrix, matrix x scalar, matrix x matrix
-      case (scalar, matrix) if (IR_ResolveMatrixOperations.isScalar((scalar)) && IR_ResolveMatrixOperations.isMatrix(matrix))                   =>
+      case (scalar, matrix) if (isScalar((scalar)) && isMatrix(matrix))                   =>
         var size = getSize(matrix)
         var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), size._1, size._2)
         for (i <- 0 until size._1) {
@@ -378,7 +379,7 @@ object IR_BasicMatrixOperations {
           }
         }
         out
-      case (matrix, scalar) if (IR_ResolveMatrixOperations.isScalar((scalar)) && IR_ResolveMatrixOperations.isMatrix(matrix))                   =>
+      case (matrix, scalar) if (isScalar((scalar)) && isMatrix(matrix))                   =>
         var size = getSize(matrix)
         var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), size._1, size._2)
         for (i <- 0 until size._1) {
@@ -387,7 +388,7 @@ object IR_BasicMatrixOperations {
           }
         }
         out
-      case (matrixLeft, matrixRight) if (IR_ResolveMatrixOperations.isMatrix((matrixLeft)) && IR_ResolveMatrixOperations.isMatrix(matrixRight)) =>
+      case (matrixLeft, matrixRight) if (isMatrix((matrixLeft)) && isMatrix(matrixRight)) =>
         var size = getSize(matrixLeft)
         var sizeR = getSize(matrixRight)
         if (size != sizeR)

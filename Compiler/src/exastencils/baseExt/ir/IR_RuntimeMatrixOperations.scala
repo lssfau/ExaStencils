@@ -33,6 +33,7 @@ import exastencils.config._
 import exastencils.core._
 import exastencils.logger.Logger
 import exastencils.util.ir._
+import exastencils.baseExt.ir.IR_MatrixNodeUtilities._
 
 // generate simple operations with matrices for execution at runtime for e.g. an inversion at runtime
 object IR_GenerateBasicMatrixOperations {
@@ -327,7 +328,7 @@ object IR_GenerateBasicMatrixOperations {
 
   // write a submatrix 'source' of n_rows x n_cols to 'destination' at position 'offset_r', 'offset_c'
   def loopSetSubmatrixMat(source : IR_VariableAccess, destination : IR_VariableAccess, rows_source : IR_Expression, cols_source : IR_Expression, offset_r : IR_Expression, offset_c : IR_Expression) : IR_Scope = {
-    if (!IR_ResolveMatrixOperations.isScalar(offset_r) || !IR_ResolveMatrixOperations.isScalar(offset_c))
+    if (!isScalar(offset_r) || !isScalar(offset_c))
       Logger.error("offsets of wrong type: " + offset_c + offset_r + ", expected scalar variable or constant!")
     var stmts = IR_Scope(Nil)
     var i = IR_VariableAccess("i", IR_IntegerDatatype)
@@ -342,7 +343,7 @@ object IR_GenerateBasicMatrixOperations {
 
   // write a submatrix 'source' of n_rows x n_cols to 'destination' at position 'offset_r', 'offset_c'
   def loopSetSubmatrixMatPointer(source : IR_VariableAccess, destination : IR_VariableAccess, destsize : IR_Expression, rows_source : IR_Expression, cols_source : IR_Expression, offset_r : IR_Expression, offset_c : IR_Expression) : IR_Scope = {
-    if (!IR_ResolveMatrixOperations.isScalar(offset_r) || !IR_ResolveMatrixOperations.isScalar(offset_c))
+    if (!isScalar(offset_r) || !isScalar(offset_c))
       Logger.error("offsets of wrong type: " + offset_c + offset_r + ", expected scalar variable or constant!")
     var stmts = IR_Scope(Nil)
     var i = IR_VariableAccess("i", IR_IntegerDatatype)
@@ -584,9 +585,7 @@ object IR_GenerateRuntimeInversion {
     val inner = inDt.resolveBaseDatatype
     var func = IR_Scope(Nil)
     var i = IR_VariableAccess("i", IR_IntegerDatatype)
-    var tmp = IR_VariableAccess("tmp", inner)
 
-    func.body += IR_VariableDeclaration(tmp)
     func.body += IR_VariableDeclaration(i)
     func.body += IR_Assignment(i, IR_IntegerConstant(0))
     func.body += IR_WhileLoop(IR_Lower(i, IR_IntegerConstant(N)), ListBuffer[IR_Statement](
