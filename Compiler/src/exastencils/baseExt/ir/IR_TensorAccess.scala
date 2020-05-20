@@ -43,7 +43,7 @@ case class IR_HackTenComponentAccess(var mat : IR_VariableAccess, var i : IR_Exp
  *
  * @param innerDatatype : IR_Datatype, should be IR numeric datatype
  */
-abstract class IR_TensorExpression(innerDatatype : Option[IR_Datatype]) extends IR_Expression {
+abstract class IR_TensorExpression(innerDatatype : Option[IR_Datatype], dims : Integer) extends IR_Expression {
   var expressions : Array[IR_Expression]
   val order : Integer
 
@@ -69,7 +69,7 @@ object IR_TensorExpression1 {
    * @param innerDatatype : IR_Datatype, should be IR numeric datatype
    * @return IR_TensorExpression1 instance
    */
-  def apply(innerDatatype : IR_Datatype) : IR_TensorExpression1 = new IR_TensorExpression1(Some(innerDatatype))
+  def apply(innerDatatype : IR_Datatype, dims: Integer) : IR_TensorExpression1 = new IR_TensorExpression1(Some(innerDatatype), dims)
 
   /** creates a first order tensor expression and fill with given array
    *
@@ -77,11 +77,11 @@ object IR_TensorExpression1 {
    * @param expressions : Array[IR_Expression], input array with length 3
    * @return IR_TensorExpression1 instance
    */
-  def apply(innerDatatype : Option[IR_Datatype], expressions : Array[IR_Expression]) : IR_TensorExpression1 = {
-    if (expressions.length != 3) {
+  def apply(innerDatatype : Option[IR_Datatype], dims: Integer, expressions : Array[IR_Expression]) : IR_TensorExpression1 = {
+    if (expressions.length != dims) {
       Logger.error("expressions has the wrong length")
     }
-    val tmp = new IR_TensorExpression1(innerDatatype)
+    val tmp = new IR_TensorExpression1(innerDatatype, dims)
     tmp.expressions = expressions
     tmp
   }
@@ -92,11 +92,11 @@ object IR_TensorExpression1 {
    * @param expressions : ListBuffer[IR_Expression], input list buffer with length 3
    * @return IR_TensorExpression1 instance
    */
-  def apply(datatype : IR_MatrixDatatype, expressions : ListBuffer[IR_Expression]) : IR_TensorExpression1 = {
-    if (expressions.toArray.length != 3) {
+  def apply(datatype : IR_MatrixDatatype, dims : Integer, expressions : ListBuffer[IR_Expression]) : IR_TensorExpression1 = {
+    if (expressions.toArray.length != dims) {
       Logger.error("expressions has a wrong count of entries")
     } else {
-      val tmp = IR_TensorExpression1(datatype.datatype)
+      val tmp = IR_TensorExpression1(datatype.datatype, dims)
       tmp.expressions = expressions.toArray
       tmp
     }
@@ -108,9 +108,9 @@ object IR_TensorExpression1 {
    * @param num : IR_Number, number to fill in tensor
    * @return IR_TensorExpression1 instance
    */
-  def fromSingleExpression(innerDatatype : IR_Datatype, num : IR_Number) : IR_TensorExpression1 = {
-    val tmp = new IR_TensorExpression1(Some(innerDatatype))
-    for (i <- 0 until 3)
+  def fromSingleExpression(innerDatatype : IR_Datatype, dims : Integer, num : IR_Number) : IR_TensorExpression1 = {
+    val tmp = new IR_TensorExpression1(Some(innerDatatype), dims)
+    for (i <- 0 until dims)
       tmp.expressions(i) = Duplicate(num)
     tmp
   }
@@ -120,8 +120,8 @@ object IR_TensorExpression1 {
  *
  * @param innerDatatype : Option[IR_Datatype], Datatype of the saved expression
  */
-case class IR_TensorExpression1(var innerDatatype : Option[IR_Datatype]) extends IR_TensorExpression(innerDatatype) {
-  var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](3)
+case class IR_TensorExpression1(var innerDatatype : Option[IR_Datatype], var dims : Integer) extends IR_TensorExpression(innerDatatype, dims) {
+  var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](dims)
   val order : Integer = 1
 
   override def datatype : IR_TensorDatatype1 = {
@@ -133,14 +133,14 @@ case class IR_TensorExpression1(var innerDatatype : Option[IR_Datatype]) extends
       case Some(dt : IR_MatrixDatatype) => innerDatatype = Some(dt.resolveBaseDatatype)
       case _                            =>
     }
-    IR_TensorDatatype1(innerDatatype.getOrElse(IR_RealDatatype))
+    IR_TensorDatatype1(innerDatatype.getOrElse(IR_RealDatatype), dims)
   }
 
   def prettyprintInner(out : PpStream) : Unit = {
     out << '{' << expressions.map(_.prettyprint).mkString(", ") << '}'
   }
   override def prettyprint(out : PpStream) : Unit = {
-    out << "__tensor1_"
+    out << "__tensor1_" << dims.toString << "_"
     innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
     out  << "_t "
     prettyprintInner(out)
@@ -156,13 +156,13 @@ case class IR_TensorExpression1(var innerDatatype : Option[IR_Datatype]) extends
     expressions(x) = num
   }
   def get(x :Integer) : IR_Expression = {
-    if (x < 0 || x > 2) {
+    if (x < 0 || x >= dims) {
       Logger.error("set got an index out of the allowed range (0, 2)")
     }
     expressions(x)
   }
-  override def toString : String = { "IR_TensorExpression1(" + innerDatatype + "," + 1 + "; Items: "+
-    expressions.mkString(", ") + ")" }
+  override def toString : String = { "IR_TensorExpression1(" + innerDatatype + "," + dims.toString + "," +
+    1 + "; Items: "+ expressions.mkString(", ") + ")" }
 
 }
 
@@ -178,7 +178,7 @@ object IR_TensorExpression2 {
    * @param innerDatatype : IR_Datatype, should be IR numeric datatype
    * @return IR_TensorExpression2 instance
    */
-  def apply(innerDatatype : IR_Datatype) : IR_TensorExpression2 = new IR_TensorExpression2(Some(innerDatatype))
+  def apply(innerDatatype : IR_Datatype, dims : Integer) : IR_TensorExpression2 = new IR_TensorExpression2(Some(innerDatatype), dims)
 
   /** creates a second order tensor expression and fill with given array
    *
@@ -186,11 +186,11 @@ object IR_TensorExpression2 {
    * @param expressions : Array[IR_Expression], input array with length 9
    * @return IR_TensorExpression2 instance
    */
-  def apply(innerDatatype : Option[IR_Datatype], expressions : Array[IR_Expression]) : IR_TensorExpression2 = {
-    if (expressions.length != 9) {
+  def apply(innerDatatype : Option[IR_Datatype], dims : Integer, expressions : Array[IR_Expression]) : IR_TensorExpression2 = {
+    if (expressions.length != dims * dims) {
       Logger.error("expressions has the wrong length")
     }
-    val tmp = new IR_TensorExpression2(innerDatatype)
+    val tmp = new IR_TensorExpression2(innerDatatype, dims)
     tmp.expressions = expressions
     tmp
   }
@@ -201,13 +201,13 @@ object IR_TensorExpression2 {
    * @param expressions : ListBuffer[ListBuffer[IR_Number]], input 3x3 matrix filled with numbers
    * @return IR_TensorExpression2 instance
    */
-  def apply(innerDatatype : Option[IR_Datatype], expressions : ListBuffer[ListBuffer[IR_Number]]) : IR_TensorExpression2 = {
-    if ((expressions.toArray.length != 3) || (expressions.head.toArray.length !=3)) {
+  def apply(innerDatatype : Option[IR_Datatype], dims : Integer, expressions : ListBuffer[ListBuffer[IR_Number]]) : IR_TensorExpression2 = {
+    if ((expressions.toArray.length != dims) || (expressions.head.toArray.length != dims)) {
       Logger.error("matrix has the wrong dimension")
     }
-    val tmp = new IR_TensorExpression2(innerDatatype)
-    for (y <- 0 until 3) {
-      for (x <- 0 until 3) {
+    val tmp = new IR_TensorExpression2(innerDatatype, dims)
+    for (y <- 0 until dims) {
+      for (x <- 0 until dims) {
         tmp.set(x, y, expressions(x)(y))
       }
     }
@@ -220,11 +220,11 @@ object IR_TensorExpression2 {
    * @param expressions : Array[IR_Expression], input array with length 9
    * @return IR_TensorExpression2 instance
    */
-  def apply(datatype : IR_MatrixDatatype, expressions : ListBuffer[IR_Expression]) : IR_TensorExpression2 = {
-    if (expressions.toArray.length != 9) {
+  def apply(datatype : IR_MatrixDatatype, dims : Integer, expressions : ListBuffer[IR_Expression]) : IR_TensorExpression2 = {
+    if (expressions.toArray.length != dims * dims) {
       Logger.error("expressions has a wrong count of entries")
     } else {
-      val tmp = IR_TensorExpression2(datatype.datatype)
+      val tmp = IR_TensorExpression2(datatype.datatype, dims)
       tmp.expressions = expressions.toArray
       tmp
     }
@@ -236,9 +236,9 @@ object IR_TensorExpression2 {
    * @param num : IR_Number, number to fill in tensor
    * @return IR_TensorExpression2 instance
    */
-  def fromSingleExpression(innerDatatype : IR_Datatype, num : IR_Number) : IR_TensorExpression2 = {
-    val tmp = new IR_TensorExpression2(Some(innerDatatype))
-    for (i <- 0 until 9)
+  def fromSingleExpression(innerDatatype : IR_Datatype, dims : Integer, num : IR_Number) : IR_TensorExpression2 = {
+    val tmp = new IR_TensorExpression2(Some(innerDatatype), dims)
+    for (i <- 0 until dims * dims)
       tmp.expressions(i) = Duplicate(num)
     tmp
   }
@@ -248,8 +248,8 @@ object IR_TensorExpression2 {
  *
  * @param innerDatatype : Option[IR_Datatype], Datatype of the saved expression
  */
-case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends IR_TensorExpression(innerDatatype) {
-  var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](9)
+case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype], var dims : Integer) extends IR_TensorExpression(innerDatatype, dims) {
+  var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](dims * dims)
   val order : Integer = 2
 
   override def datatype : IR_TensorDatatype2 = {
@@ -261,14 +261,14 @@ case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends
       case Some(dt : IR_MatrixDatatype) => innerDatatype = Some(dt.resolveBaseDatatype)
       case _                            =>
     }
-    IR_TensorDatatype2(innerDatatype.getOrElse(IR_RealDatatype))
+    IR_TensorDatatype2(innerDatatype.getOrElse(IR_RealDatatype), dims)
   }
 
   def prettyprintInner(out : PpStream) : Unit = {
     out << '{' << expressions.map(_.prettyprint).mkString(", ") << '}'
   }
   override def prettyprint(out : PpStream) : Unit = {
-    out << "__tensor2_"
+    out << "__tensor2_" << dims.toString << "_"
     innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
     out  << "_t "
     prettyprintInner(out)
@@ -278,19 +278,19 @@ case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype]) extends
   override def isInteger : Boolean = expressions.forall(e => e.isInstanceOf[IR_IntegerConstant])
   override def isReal : Boolean = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
   def get(x : Integer, y : Integer) : IR_Expression = {
-    if (x < 0 || x > 2 || y < 0 || y > 2) {
+    if (x < 0 || x >= dims || y < 0 || y >= dims) {
       Logger.error("get got an index out of the allowed range (0, 2)")
     }
-    expressions(y * 3 + x)
+    expressions(y * dims + x)
   }
   def set(x : Integer, y: Integer, num : IR_Expression) : Unit = {
-    if (x < 0 || x > 2 || y < 0 || y > 2) {
+    if (x < 0 || x >= dims || y < 0 || y >= dims) {
       Logger.error("set got an index out of the allowed range (0, 2)")
     }
-    expressions(y * 3 + x) = num
+    expressions(y * dims + x) = num
   }
-  override def toString : String = { "IR_TensorExpression2(" + innerDatatype + "," + 2 + "; Items: " +
-    expressions.mkString(", ") + ")" }
+  override def toString : String = { "IR_TensorExpression2(" + innerDatatype + "," +  dims.toString + "," + 2 +
+    "; Items: " + expressions.mkString(", ") + ")" }
 }
 
 /* ###################################################################################################################
@@ -305,7 +305,7 @@ object IR_TensorExpressionN {
    * @param order : Integer, defines the order of the tensor
    * @return IR_TensorExpression2 instance
    */
-  def apply(innerDatatype : IR_Datatype, order : Integer) : IR_TensorExpressionN = new IR_TensorExpressionN(Some(innerDatatype), order)
+  def apply(innerDatatype : IR_Datatype, dims : Integer, order : Integer) : IR_TensorExpressionN = new IR_TensorExpressionN(Some(innerDatatype), dims, order)
 
   /** creates a n-th order tensor and fill with given array
    *
@@ -314,11 +314,11 @@ object IR_TensorExpressionN {
    * @param expressions : Array[IR_Expression], input array with length 3^order
    * @return IR_TensorExpression2 instance
    */
-  def apply(innerDatatype : Option[IR_Datatype], order : Integer, expressions : Array[IR_Expression]) : IR_TensorExpressionN = {
-    if (expressions.length != pow(3, order.toDouble).toInt) {
+  def apply(innerDatatype : Option[IR_Datatype], dims : Integer, order : Integer, expressions : Array[IR_Expression]) : IR_TensorExpressionN = {
+    if (expressions.length != pow(dims.toDouble, order.toDouble).toInt) {
       Logger.error("expressions has the wrong length")
     }
-    val tmp = new IR_TensorExpressionN(innerDatatype, order)
+    val tmp = new IR_TensorExpressionN(innerDatatype, dims, order)
     tmp.expressions = expressions
     tmp
   }
@@ -330,11 +330,11 @@ object IR_TensorExpressionN {
    * @param expressions : Array[IR_Expression], input array with length 3^order
    * @return IR_TensorExpression2 instance
    */
-  def apply(datatype : IR_MatrixDatatype, order : Integer,  expressions : ListBuffer[IR_Expression]) : IR_TensorExpressionN = {
-    if (expressions.toArray.length != pow(3, order.toDouble).toInt) {
+  def apply(datatype : IR_MatrixDatatype, dims : Integer, order : Integer,  expressions : ListBuffer[IR_Expression]) : IR_TensorExpressionN = {
+    if (expressions.toArray.length != pow(dims.toDouble, order.toDouble).toInt) {
       Logger.error("expressions has a wrong count of entries")
     } else {
-      val tmp = IR_TensorExpressionN(datatype.datatype, order)
+      val tmp = IR_TensorExpressionN(datatype.datatype, dims, order)
       tmp.expressions = expressions.toArray
       tmp
     }
@@ -346,8 +346,8 @@ object IR_TensorExpressionN {
    * @param num : IR_Number, number to fill in tensor
    * @return IR_TensorExpression2 instance
    */
-  def fromSingleExpression(innerDatatype : IR_Datatype, order: Integer, num : IR_Number) : IR_TensorExpressionN = {
-    val tmp = new IR_TensorExpressionN(Some(innerDatatype), order)
+  def fromSingleExpression(innerDatatype : IR_Datatype, dims : Integer, order: Integer, num : IR_Number) : IR_TensorExpressionN = {
+    val tmp = new IR_TensorExpressionN(Some(innerDatatype), dims, order)
     for (i <- tmp.expressions.indices)
       tmp.expressions(i) = Duplicate(num)
     tmp
@@ -359,8 +359,8 @@ object IR_TensorExpressionN {
  * @param innerDatatype : Option[IR_Datatype], Datatype of the saved expression
  * @param ord : Integer, represent the order of the tensor
  */
-case class IR_TensorExpressionN(var innerDatatype : Option[IR_Datatype], var ord : Integer) extends IR_TensorExpression(innerDatatype) {
-  var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](pow(3, ord.toDouble).toInt)
+case class IR_TensorExpressionN(var innerDatatype : Option[IR_Datatype], var dims : Integer, var ord : Integer) extends IR_TensorExpression(innerDatatype, dims) {
+  var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](pow(dims.toDouble, ord.toDouble).toInt)
   val order : Integer = ord
 
   override def datatype : IR_TensorDatatypeN = {
@@ -372,14 +372,14 @@ case class IR_TensorExpressionN(var innerDatatype : Option[IR_Datatype], var ord
       case Some(dt : IR_MatrixDatatype) => innerDatatype = Some(dt.resolveBaseDatatype)
       case _                            =>
     }
-    IR_TensorDatatypeN(innerDatatype.getOrElse(IR_RealDatatype), ord)
+    IR_TensorDatatypeN(innerDatatype.getOrElse(IR_RealDatatype), dims, ord)
   }
 
   def prettyprintInner(out : PpStream) : Unit = {
     out << '{' << expressions.map(_.prettyprint).mkString(", ") << '}'
   }
   override def prettyprint(out : PpStream) : Unit = {
-    out << "__tensorN" + order.toString + "_"
+    out << "__tensorN_" +  dims.toString+ "_" + order.toString + "_"
     innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
     out  << "_t "
     prettyprintInner(out)
@@ -394,16 +394,16 @@ case class IR_TensorExpressionN(var innerDatatype : Option[IR_Datatype], var ord
     }
     var index : Double = 0
     for (i <- 0 until order) {
-      if (k(i) < 0 || k(i) > 2) {
+      if (k(i) < 0 || k(i) >= dims) {
         Logger.error("get, got index out of range (0, 2) ")
       }
-      index += k(i) * pow(3,i.toDouble)
+      index += k(i) * pow(dims.toDouble,i.toDouble)
     }
     expressions(index.toInt)
   }
   def getDirect(k : Integer) : IR_Expression = {
-    if (k >= pow(3,order.toDouble).toInt) {
-      Logger.error("getDirect, got index out of range <" + pow(3,order.toDouble).toInt.toString)
+    if (k >= pow(dims.toDouble,order.toDouble).toInt) {
+      Logger.error("getDirect, got index out of range <" + pow(dims.toDouble,order.toDouble).toInt.toString)
     }
     expressions(k)
   }
@@ -413,18 +413,18 @@ case class IR_TensorExpressionN(var innerDatatype : Option[IR_Datatype], var ord
     }
     var index : Double = 0
     for (i <- 0 until order) {
-      index += k(i) * pow(3, i.toDouble)
+      index += k(i) * pow(dims.toDouble, i.toDouble)
     }
     expressions(index.toInt) = num
   }
   def setDirect(k : Integer, num : IR_Expression) : Unit = {
-    if (k >= pow(3,order.toDouble).toInt) {
-      Logger.error("setDirect, got index out of range <" + pow(3, order.toDouble).toInt.toString)
+    if (k >= pow(dims.toDouble,order.toDouble).toInt) {
+      Logger.error("setDirect, got index out of range <" + pow(dims.toDouble, order.toDouble).toInt.toString)
     }
     expressions(k) = num
   }
-  override def toString : String = { "IR_TensorExpressionN(" + innerDatatype + "," + order + "; Items: " +
-    expressions.mkString(", ") + ")" }
+  override def toString : String = { "IR_TensorExpressionN(" + innerDatatype + "," + dims.toString + "," +
+    order.toString + "; Items: " + expressions.mkString(", ") + ")" }
 }
 
 /*

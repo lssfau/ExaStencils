@@ -19,6 +19,7 @@
 package exastencils.baseExt.l4
 
 import scala.math.pow
+
 import exastencils.base.ProgressLocation
 import exastencils.base.ir.IR_Expression
 import exastencils.base.l4._
@@ -43,24 +44,30 @@ case class L4_TensorEntry(var index : List[Int], var coefficient : L4_Expression
 
 case class L4_TensorExpression1(
     var datatype : Option[L4_Datatype],
+    var dims : Integer,
     var expressions : List[L4_TensorEntry]) extends L4_Expression {
 
   def prettyprint(out : PpStream) = {
-    out << "tens1" << "{" <<< (expressions, ", ") << "}"
+    out << "tens1" << "{" << dims.toString << ";" <<< (expressions, ", ") << "}"
   }
 
-  override def progress = ProgressLocation(IR_TensorExpression1(L4_ProgressOption(datatype)(_.progress), progressEntrys(expressions)))
+  override def progress = ProgressLocation(IR_TensorExpression1(
+    L4_ProgressOption(datatype)(_.progress),
+    dims,
+    progressEntrys(dims, expressions)
+  ))
 
-  def progressEntrys(input : List[L4_TensorEntry]) : Array[IR_Expression] = {
+  def progressEntrys(dims: Int, input : List[L4_TensorEntry]) : Array[IR_Expression] = {
     val flattenIn = input.toArray
-    if (flattenIn.length > 3) {
+    if (flattenIn.length > dims) {
       Logger.error("To much tensor entries!")
     }
     for (i <- flattenIn.indices) {
-      if (flattenIn(i).index.length != 1) Logger.error("Tensor index [" + flattenIn(i).index.toString + "] has wrong dimension")
+      if (flattenIn(i).index.length != 1) Logger.error("Tensor index [" +
+        flattenIn(i).index.toString + "] has wrong dimension")
     }
-    val eval : Array[Boolean] = Array.fill(3) { false }
-    val exp = new Array[IR_Expression](3)
+    val eval : Array[Boolean] = Array.fill(order) { false }
+    val exp = new Array[IR_Expression](dims)
     for (i <- flattenIn.indices) {
       if (flattenIn(i).index.head <= exp.length) {
         if (!eval(flattenIn(i).index.head)) {
@@ -70,10 +77,11 @@ case class L4_TensorExpression1(
           Logger.error("Tensor index [" + flattenIn(i).index.head.toString + "] was double set")
         }
       } else {
-        Logger.error("Tensor index [" + flattenIn(i).index.head.toString + "] is not available "+ (flattenIn(i).index.head.toString + " > " +  exp.length.toString))
+        Logger.error("Tensor index [" + flattenIn(i).index.head.toString + "] is not available "+
+          (flattenIn(i).index.head.toString + " > " +  exp.length.toString))
       }
     }
-    for (i <- 0 until 3) {
+    for (i <- 0 until dims) {
       if (!eval(i)) {
         exp(i) = L4_RealConstant(0.0).progress
       }
@@ -81,7 +89,7 @@ case class L4_TensorExpression1(
     exp
   }
 
-  def dim = 1
+  def order = 1
   def isConstant = expressions.count(_.isInstanceOf[L4_Number]) == expressions.length
   def convertConstants(dt : L4_Datatype) : Unit = {
     expressions.foreach(_.convertConstants(dt))
@@ -92,37 +100,46 @@ case class L4_TensorExpression1(
 
 case class L4_TensorExpression2(
     var datatype : Option[L4_Datatype],
+    var dims : Integer,
     var expressions : List[L4_TensorEntry]) extends L4_Expression {
 
   def prettyprint(out : PpStream) = {
-    out << "tens2" << "{" <<< (expressions, ", ") << "}"
+    out << "tens2" << "{" << dims.toString << ";" <<< (expressions, ", ") << "}"
   }
 
-  override def progress = ProgressLocation(IR_TensorExpression2(L4_ProgressOption(datatype)(_.progress), progressEntrys(expressions)))
+  override def progress = ProgressLocation(
+    IR_TensorExpression2(L4_ProgressOption(datatype)(_.progress),
+      dims,
+      progressEntrys(dims, expressions)
+    ))
 
-  def progressEntrys(input : List[L4_TensorEntry]) : Array[IR_Expression] = {
+  def progressEntrys(dims : Int, input : List[L4_TensorEntry]) : Array[IR_Expression] = {
     val flattenIn = input.toArray
-    if (flattenIn.length > 9) {
+    if (flattenIn.length > pow(dims, order).toInt) {// TODO: N-Dimensional
       Logger.error("To much tensor entries!")
     }
     for (i <- flattenIn.indices) {
-      if (flattenIn(i).index.length != 2) Logger.error("Tensor index [" + flattenIn(i).index(0).toString + "," + flattenIn(i).index(1).toString + "] has wrong dimension")
+      if (flattenIn(i).index.length != order) Logger.error("Tensor index [" + flattenIn(i).index(0).toString + "," +
+        flattenIn(i).index(1).toString + "] has wrong dimension")
     }
-    val eval : Array[Boolean] = Array.fill(9) { false }
-    val exp = new Array[IR_Expression](9)
+    val eval : Array[Boolean] = Array.fill(pow(dims, order).toInt) { false }
+    val exp = new Array[IR_Expression](pow(dims, order).toInt)
     for (i <- flattenIn.indices) {
-      if ((flattenIn(i).index(0) + flattenIn(i).index(1) * 3) <= exp.length) {
-        if (!eval(flattenIn(i).index(0) + flattenIn(i).index(1) * 3)) {
-          eval(flattenIn(i).index(0) + flattenIn(i).index(1) * 3) = true
-          exp(flattenIn(i).index(0) + flattenIn(i).index(1) * 3) = flattenIn(i).coefficient.progress
+      if ((flattenIn(i).index(0) + flattenIn(i).index(1) * dims) <= exp.length) {
+        if (!eval(flattenIn(i).index(0) + flattenIn(i).index(1) * dims)) {
+          eval(flattenIn(i).index(0) + flattenIn(i).index(1) * dims) = true
+          exp(flattenIn(i).index(0) + flattenIn(i).index(1) * dims) = flattenIn(i).coefficient.progress
         } else {
-          Logger.error("Tensor index [" + flattenIn(i).index(0).toString +"," + flattenIn(i).index(1).toString + "] was double set")
+          Logger.error("Tensor index [" + flattenIn(i).index(0).toString +"," + flattenIn(i).index(1).toString +
+            "] was double set")
         }
       } else {
-        Logger.error("Tensor index [" + flattenIn(i).index(0).toString +"," + flattenIn(i).index(1).toString + "] is not available "+ (flattenIn(i).index(0) + flattenIn(i).index(1) * 3).toString + " > " +  exp.length.toString)
+        Logger.error("Tensor index [" + flattenIn(i).index(0).toString +"," + flattenIn(i).index(1).toString +
+          "] is not available "+ (flattenIn(i).index(0) + flattenIn(i).index(1) * 3).toString + " > " +
+          exp.length.toString)
       }
     }
-    for (i <- 0 until 9) {
+    for (i <- 0 until pow(dims, order).toInt) {
       if (!eval(i)) {
         exp(i) = L4_RealConstant(0.0).progress
       }
@@ -130,7 +147,7 @@ case class L4_TensorExpression2(
     exp
   }
 
-  def dim = 2
+  def order = 2
   def isConstant = expressions.count(_.isInstanceOf[L4_Number]) == expressions.length
   def convertConstants(dt : L4_Datatype) : Unit = {
     expressions.foreach(_.convertConstants(dt))
@@ -141,18 +158,24 @@ case class L4_TensorExpression2(
 
 case class L4_TensorExpressionN(
     var datatype : Option[L4_Datatype],
+    var dims : Integer,
     var order : Integer,
     var expressions : List[L4_TensorEntry]) extends L4_Expression {
 
   def prettyprint(out : PpStream) = {
-    out << "tensN" << "{" << order.toString << ";" <<< (expressions, ", ") << "}"
+    out << "tensN" << "{" << dims.toString << ";" << order.toString << ";" <<< (expressions, ", ") << "}"
   }
 
-  override def progress = ProgressLocation(IR_TensorExpressionN(L4_ProgressOption(datatype)(_.progress), order ,progressEntrys(expressions)))
+  override def progress = ProgressLocation(
+    IR_TensorExpressionN(L4_ProgressOption(datatype)(_.progress),
+      dims,
+      order,
+      progressEntrys(dims, order, expressions)
+    ))
 
-  def progressEntrys(input : List[L4_TensorEntry]) : Array[IR_Expression] = {
+  def progressEntrys(dims: Int, order: Int, input : List[L4_TensorEntry]) : Array[IR_Expression] = {
     val flattenIn = input.toArray
-    if (flattenIn.length > pow(3,order.toDouble).toInt) {
+    if (flattenIn.length > pow(dims,order.toDouble).toInt) {
       Logger.error("To much tensor entries!")
     }
     for (i <- flattenIn.indices) {
@@ -163,12 +186,12 @@ case class L4_TensorExpressionN(
         error += "] has the wrong dimension"
         Logger.error(error)}
     }
-    val eval : Array[Boolean] = Array.fill(pow(3,order.toDouble).toInt) { false }
-    val exp = new Array[IR_Expression](pow(3,order.toDouble).toInt)
+    val eval : Array[Boolean] = Array.fill(pow(dims,order.toDouble).toInt) { false }
+    val exp = new Array[IR_Expression](pow(dims,order.toDouble).toInt)
     for (i <- flattenIn.indices) {
       var index : Double = 0
       for (j <- 0 until order) {
-        index += flattenIn(i).index(j) * pow(3,j.toDouble)
+        index += flattenIn(i).index(j) * pow(dims,j.toDouble)
       }
       if (index <= exp.length) {
         if (!eval(index.toInt)) {
@@ -197,7 +220,6 @@ case class L4_TensorExpressionN(
     exp
   }
 
-  def dim = order
   def isConstant = expressions.count(_.isInstanceOf[L4_Number]) == expressions.length
   def convertConstants(dt : L4_Datatype) : Unit = {
     expressions.foreach(_.convertConstants(dt))

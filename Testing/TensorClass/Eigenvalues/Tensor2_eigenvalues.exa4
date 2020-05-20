@@ -17,7 +17,7 @@ Function Application() : Unit {
         [2,2] := 1
         }
 
-    Var v : Matrix<Real, 3, 1 > = {{0}, {0}, {0}}
+    Var res : Matrix<Real, 3, 1 > = {{0}, {0}, {0}}
 
-    eigen(t1, v)
+    eigen(t1, res)
 }

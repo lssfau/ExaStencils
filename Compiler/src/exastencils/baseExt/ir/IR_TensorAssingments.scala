@@ -23,6 +23,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.datastructures._
+import exastencils.config.Knowledge
 
 /* ###################################################################################################################
 ################                 Implementation of tensor assignments                       ##########################
@@ -38,7 +39,7 @@ object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments 
         src.isInstanceOf[IR_TensorExpression1]                                                        =>
       val tmp = src.asInstanceOf[IR_TensorExpression1]
       var newStmts = ListBuffer[IR_Statement]()
-      for (x <- 0 until 3) {
+      for (x <- 0 until 3) {// TODO: N-Dimensional
         newStmts += IR_Assignment(IR_HighDimAccess(dest, IR_ExpressionIndex(x)), tmp.get(x))
       }
       newStmts
@@ -46,7 +47,7 @@ object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments 
     case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatype1] &&
         !src.isInstanceOf[IR_TensorExpression1] && src.datatype.isInstanceOf[IR_TensorDatatype1]      =>
       var newStmts = ListBuffer[IR_Statement]()
-      for (i <- 0 until 3) {
+      for (i <- 0 until 3) {// TODO: N-Dimensional
         newStmts += IR_Assignment(IR_HighDimAccess(dest, IR_ExpressionIndex(i)),
           IR_HighDimAccess(src, IR_ExpressionIndex(i)))
       }
@@ -58,7 +59,7 @@ object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments 
       val tmp = src.asInstanceOf[IR_TensorExpression2]
       var newStmts = ListBuffer[IR_Statement]()
       for (y <- 0 until 3) {
-        for (x <- 0 until 3) {
+        for (x <- 0 until 3) {// TODO: N-Dimensional
           newStmts += IR_Assignment(IR_HighDimAccess(dest, IR_ExpressionIndex(x + y *3)), tmp.get(x, y))
         }
       }
@@ -67,7 +68,7 @@ object IR_ResolveTensorAssignments extends DefaultStrategy("Resolve assignments 
     case IR_Assignment(dest, src, "=") if dest.datatype.isInstanceOf[IR_TensorDatatype2] &&
         !src.isInstanceOf[IR_TensorExpression2] && src.datatype.isInstanceOf[IR_TensorDatatype2]      =>
       var newStmts = ListBuffer[IR_Statement]()
-      for (i <- 0 until 9) {
+      for (i <- 0 until 9) {// TODO: N-Dimensional
           newStmts += IR_Assignment(IR_HighDimAccess(dest, IR_ExpressionIndex(i)),
             IR_HighDimAccess(src, IR_ExpressionIndex(i)))
       }

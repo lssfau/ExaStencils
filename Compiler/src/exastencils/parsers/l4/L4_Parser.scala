@@ -176,9 +176,9 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| "Vec2" ^^ { _ => L4_VectorDatatype(L4_RealDatatype, 2) }
       ||| "Vec3" ^^ { _ => L4_VectorDatatype(L4_RealDatatype, 3) }
       ||| "Vec4" ^^ { _ => L4_VectorDatatype(L4_RealDatatype, 4) }
-      ||| "TensorN" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ m => L4_TensorDatatypeN(x, m) }
-      ||| "Tensor1" ~ ("<" ~> numericDatatype <~ ">") ^^ { case _ ~ x => L4_TensorDatatype1(x) }
-      ||| "Tensor2" ~ ("<" ~> numericDatatype <~ ">") ^^ { case _ ~ x => L4_TensorDatatype2(x) }
+      ||| "TensorN" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ dims ~ order => L4_TensorDatatypeN(x, dims, order) }
+      ||| "Tensor1" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ dims => L4_TensorDatatype1(x, dims) }
+      ||| "Tensor2" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ dims => L4_TensorDatatype2(x, dims) }
       ||| "Matrix" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ m ~ n => L4_MatrixDatatype(x, m, n) }
       ||| numericDatatype ~ ("<" ~> integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case x ~ m ~ n => L4_MatrixDatatype(x, m, n) }
       ||| numericDatatype)
@@ -484,11 +484,11 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val matrixExpression = locationize(("{" ~> repsep(rowVectorExpression, ",") <~ "}") ~ "T".? ^^ { case x ~ t => val e = L4_MatrixExpression(None, x.map(_.expressions.toList)); if (t.isDefined) L4_FunctionCall(L4_UnresolvedFunctionReference("transpose", None, None), e); else e } |||
     ("[" ~> repsep(binaryexpression.+, ";")) <~ "]" ^^ { x => L4_MatrixExpression(None, x) })
 
-  lazy val tensorExpression1 = locationize(("tens1" ~ "{") ~> repsep(tensorEntry, ",") <~ "}" ^^ { x => L4_TensorExpression1(None, x) })
+  lazy val tensorExpression1 = locationize(("tens1" ~ "{") ~> (integerLit <~ ";") ~ (repsep(tensorEntry, ",") <~ "}") ^^ {case dims ~ x => L4_TensorExpression1(None, dims, x) })
 
-  lazy val tensorExpression2 = locationize(("tens2" ~ "{") ~> repsep(tensorEntry, ",") <~ "}" ^^ { x => L4_TensorExpression2(None, x) })
+  lazy val tensorExpression2 = locationize(("tens2" ~ "{") ~> (integerLit <~ ";") ~ (repsep(tensorEntry, ",") <~ "}") ^^ {case dims ~ x => L4_TensorExpression2(None, dims, x) })
 
-  lazy val tensorExpressionN = locationize(("tensN" ~ "{") ~> (integerLit <~ ";") ~ (repsep(tensorEntry, ",") <~ "}") ^^ {case order ~ x => L4_TensorExpressionN(None, order, x) })
+  lazy val tensorExpressionN = locationize(("tensN" ~ "{") ~> (integerLit <~ ";") ~ (integerLit <~ ";") ~ (repsep(tensorEntry, ",") <~ "}") ^^ {case dims ~ order ~ x => L4_TensorExpressionN(None, dims, order, x) })
 
   lazy val tensorEntry = locationize(("[" ~> repsep(integerLit, ",") <~ "]") ~ ((":=") ~> numLit) ^^ { case index ~ coeff => L4_TensorEntry(index, coeff) })
 
