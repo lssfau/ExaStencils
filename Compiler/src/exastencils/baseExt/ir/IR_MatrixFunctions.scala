@@ -159,7 +159,7 @@ object IR_Inverse {
                   // -> need to find all accesses to that matrix variable to make sure its compiletime constant -> there must not be any modifications to that matrix variable
                   //TODO collector check
                   //if (IR_MatrixNodeUtilities.notWrittenTo(name)) {
-                  if(!IR_ResolveMOps.writeCollector.writeInScope(name)) {
+                  if(!IR_PreItMOps.writeCollector.writeInScope(name)) {
                     IR_DetermineMatrixStructure.isOfStructure(x)
                   }
                   else

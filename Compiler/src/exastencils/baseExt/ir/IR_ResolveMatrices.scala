@@ -35,6 +35,11 @@ import exastencils.logger.Logger
 
 // handle runtime methods seperately: they must be processed with their destination/return variable
 object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
+  // collector to check for writes to variables
+  var writeCollector = new IR_MatrixWriteCollector()
+  this.register(writeCollector)
+
+  //this.onBefore = () => this.resetCollectors()
 
   // replace function calls to matrix methods with dedicated nodes so they dont appear in function call tree and are easier to recognize and process
   this += new Transformation("replace function calls with matrix method nodes", {
@@ -92,11 +97,12 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
 }
 
 object IR_ResolveMOps extends DefaultStrategy("Resolve operations with matrices") {
-  // collector to check for writes to variables
-  val writeCollector = new IR_MatrixWriteCollector()
-  this.register(writeCollector)
 
-  this.onBefore = () => this.resetCollectors()
+  // collector to check for writes to variables
+  //var writeCollector = new IR_MatrixWriteCollector()
+  //this.register(writeCollector)
+
+  //this.onBefore = () => this.resetCollectors()
 
   // lists to hold variables temporarily and hand them over between strategies
   var inlineDeclHolder = ListBuffer[IR_InlineableDeclaration]()
@@ -110,7 +116,7 @@ object IR_ResolveMOps extends DefaultStrategy("Resolve operations with matrices"
   val potentialInline = "potentially inlineable"
 
   // collect variable declarations for extractables found
-  object IR_ExtractMatrices extends DefaultStrategy("extract recursive") {
+  object IR_ExtractMatrices extends QuietDefaultStrategy("extract recursive") {
     this += new Transformation("extract", {
       case e : IR_ExtractableMNode  if (e.isExtractable() && !e.hasAnnotation(notInlinable)) =>
           val tmpname = "extractTmp_" + extractMethodsCounter

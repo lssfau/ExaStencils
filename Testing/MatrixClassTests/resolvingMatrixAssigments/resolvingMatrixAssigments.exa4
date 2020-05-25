@@ -13,9 +13,10 @@ Function Application ( ) : Unit {
 	Var m2 : Matrix<Double, 2, 2> = 1
 	Var m3 : Matrix<Double, 2, 2> = m1
 	Var m4 : Matrix<Double, 2, 2> = {{1,1},{2,3}}
-	
-	m1 = m2
+	Var det : Double = determinant(m1)
+	//m1 = m2
 	Var inverse : Matrix<Double, 2, 2> = inverse(m1,"DetermineCompiletime")
-
+	m1 = m2
+	
 }
 
