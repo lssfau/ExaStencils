@@ -25,7 +25,6 @@ import exastencils.prettyprinting._
 /// IR_Access
 
 trait IR_Access extends IR_Expression {
-  // FIXME: def name : String
 }
 
 /// IR_ArrayAccess

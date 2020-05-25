@@ -62,7 +62,7 @@ object IR_BasicMatrixOperations {
       case va : IR_VariableAccess if (va.datatype.isInstanceOf[IR_MatrixDatatype])   => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
       case s : IR_ScalarDatatype                                                     => (1, 1)
       case sva : IR_VariableAccess if (sva.datatype.isInstanceOf[IR_ScalarDatatype]) => (1, 1)
-      case other                                                                     => Logger.error("argument is of unexpected type: " + in.datatype)
+      case other                                                                                                                       => Logger.error("argument is of unexpected type: " + in.datatype)
     }
   }
 
@@ -229,7 +229,7 @@ object IR_BasicMatrixOperations {
     var rsize = getSize(right)
     if (lsize._2 != rsize._1)
       Logger.error("sizes do not match: " + lsize + " vs " + rsize)
-    var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), lsize._1, rsize._2)
+    var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype.resolveBaseDatatype, right.datatype.resolveBaseDatatype), lsize._1, rsize._2)
     for (i <- 0 until lsize._1) {
       for (j <- 0 until rsize._2) {
         var tmp = IR_Addition(IR_IntegerConstant(0))
@@ -556,8 +556,8 @@ object IR_CompiletimeInversion {
       }
       case "Schur"
       => {
-        if (that.rows < 4)
-          Logger.error("Schur inversion not applicable for matrices < 4")
+        if (that.rows < 3)
+          Logger.error("Schur inversion not applicable for matrices < 3")
         //var out = IR_MatrixExpression(that.datatype.datatype, that.rows, that.columns)
         var out = Duplicate(that)
         /* use an invert algorithm using the schur complement
@@ -575,7 +575,6 @@ object IR_CompiletimeInversion {
           Logger.error("IR_MatrixAccess::inverse n < 1!")
         }
         else {
-          // extract and invert A: Blockdiagonalmatrix assumed
           var A = IR_BasicMatrixOperations.copySubMatrix(that, 0, 0, n, n)
           var A_inv = inverse(A, (matrixStructure_A, blocksize_A, "no schur", -1))
           IR_GeneralSimplify.doUntilDoneStandalone(A_inv)
