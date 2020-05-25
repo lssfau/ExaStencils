@@ -1,0 +1,27 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0] to [0.1, 0.1] >
+
+
+
+Function Application {
+	Var mat : Matrix<Double,3,3> = { { 1.0, 0.0, 1.0 }, { 0.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0 } }
+	Var inverse : Matrix<Double,3,3> = inverse ( mat, "Schur", 2, "Diagonal", -1 )
+	Var sol : Matrix<Double,3,3> = { { 0.0, -1.0, 1.0 }, { -1.0, 0.0, 1.0 }, { 1.0, 1.0, -1.0 } }
+	compare ( inverse, sol, 0.001 )
+}
+

@@ -24,82 +24,10 @@ Function Application {
 	Var v1 : Real = 1
 	Var v2 : Real = 2
 	Var prec : Double = 1.0E-4
-	Var m3 : Matrix<Real,2,1> = { { 1.0 }, { 2.0 } }
-	Var m4 : Matrix<Real,1,2> = { { 1.0, 2.0 } }
-	Var m5 : Matrix<Real,1,4> = { { 1.0, 2.0, 5.0, 1.0 } }
-	Var addMatrices_res1 : Matrix<Real,2,2> = ( m2 + m1 )
-	Var addMatrices_sol1 : Matrix<Real,2,2> = { { 2.0, 4.0 }, { 6.0, 8.0 } }
-	compare ( addMatrices_res1, addMatrices_sol1, prec )
-	Var addMatrices_res2 : Matrix<Real,2,2> = ( ( ( m2 + 1 ) + m1 ) + -2 )
-	Var addMatrices_sol2 : Matrix<Real,2,2> = { { 1.0, 3.0 }, { 5.0, 7.0 } }
-	compare ( addMatrices_res2, addMatrices_sol2, prec )
-	Var addMatrices_res3 : Matrix<Double,2,2>
-	addMatrices_res3 = ( ( ( m2 + m1 ) + m1 ) + m1 )
-	Var addMatrices_sol3 : Matrix<Real,2,2> = { { 4.0, 8.0 }, { 12.0, 16.0 } }
-	compare ( addMatrices_res3, addMatrices_sol3, prec )
-	Var addMatrices_res8 : Matrix<Real,2,2> = ( ( ( m2 - m1 ) + m1 ) + m1 )
-	Var addMatrices_sol8 : Matrix<Real,2,2> = { { 2.0, 4.0 }, { 6.0, 8.0 } }
-	compare ( addMatrices_res8, addMatrices_sol8, prec )
-	Var m6 : Matrix<Real,2,2> = { { 1.0, 1.0 }, { 1.0, 1.0 } }
-	Var addMatrices_res9 : Matrix<Real,2,2> = ( ( ( m2 - m1 ) + m1 ) + ( m2 * 1 ) )
-	Var addMatrices_sol9 : Matrix<Real,2,2> = { { 2.0, 4.0 }, { 6.0, 8.0 } }
-	compare ( addMatrices_res9, addMatrices_sol9, prec )
-	Var addMatrices_res4 : Matrix<Double,2,2> = ( ( m2 + m1 ) + 1 )
-	Var addMatrices_res5 : Matrix<Double,2,2>
-	addMatrices_res5 = ( ( 1 + m1 ) + m1 )
-	Var addMatrices_res6 : Matrix<Double,2,2> = ( 1 + m1 )
-	Var addMatrices_res7 : Matrix<Double,2,2> = ( m1 + { { 1, 2 }, { 3, 2 } } )
-	Var addMatrices_sol4 : Matrix<Double,2,2> = { { 3.0, 5.0 }, { 7.0, 9.0 } }
-	compare ( addMatrices_res4, addMatrices_sol4, prec )
-	compare ( addMatrices_res5, addMatrices_sol4, prec )
+	m1 = ( m1 * m1 )
 	Var multMatrices_res1 : Matrix<Double,2,2>
 	multMatrices_res1 = ( m2 * m1 )
 	Var multMatrices_sol1 : Matrix<Double,2,2> = { { 7.0, 10.0 }, { 15.0, 22.0 } }
 	compare ( multMatrices_res1, multMatrices_sol1, prec )
-	Var multMatrices_res2 : Matrix<Double,2,2> = ( ( m2 * m1 ) * m1 )
-	Var multMatrices_sol2 : Matrix<Double,2,2> = { { 37.0, 54.0 }, { 81.0, 118.0 } }
-	compare ( multMatrices_res2, multMatrices_sol2, prec )
-	Var multMatrices_res3 : Matrix<Double,2,1>
-	multMatrices_res3 = matmult ( m1, m3 )
-	Var multMatrices_sol3 : Matrix<Double,2,1> = { { 5.0 }, { 11.0 } }
-	compare ( multMatrices_res3, multMatrices_sol3, prec )
-	Var multMatrices_res4 : Matrix<Double,1,4> = ( ( ( m4 * m2 ) * m3 ) * m5 )
-	Var multMatrices_sol4 : Matrix<Double,1,4> = { { 27.0, 54.0, 135.0, 27.0 } }
-	compare ( multMatrices_res4, multMatrices_sol4, prec )
-	Var multMatrices_res5 : Matrix<Double,2,2> = m2
-	multMatrices_res5 = ( multMatrices_res5 * m1 )
-	Var multMatrices_res6 : Matrix<Double,2,2> = ( ( ( ( m2 * 3 ) * m1 ) * 25 ) * m1 )
-	Var multMatrices_sol6 : Matrix<Double,2,2> = { { 2775.0, 4050.0 }, { 6075.0, 8850.0 } }
-	compare ( multMatrices_res6, multMatrices_sol6, 0.1 )
-	Var subMatrices_res1 : Matrix<Double,2,2> = ( m2 - m1 )
-	Var subMatrices_sol1 : Matrix<Double,2,2> = { { 0.0, 0.0 }, { 0.0, 0.0 } }
-	compare ( subMatrices_res1, subMatrices_sol1, prec )
-	Var subMatrices_res2 : Matrix<Double,2,2>
-	subMatrices_res2 = ( m2 - 1 )
-	Var subMatrices_sol2 : Matrix<Double,2,2> = { { 0.0, 1.0 }, { 2.0, 3.0 } }
-	subMatrices_res2 = ( m2 - v1 )
-	compare ( subMatrices_res2, subMatrices_sol2, prec )
-	Var subMatrices_res3 : Matrix<Double,2,2> = ( 1 - m1 )
-	Var subMatrices_sol3 : Matrix<Double,2,2> = { { 0.0, -1.0 }, { -2.0, -3.0 } }
-	compare ( subMatrices_res3, subMatrices_sol3, 0.1 )
-	Var multelemMatrices_res1 : Matrix<Double,2,2> = ( m2 .* m1 )
-	Var multelemMatrices_res2 : Matrix<Double,2,2> = ( v2 .* m1 )
-	Var multelemMatrices_res3 : Matrix<Double,2,2>
-	multelemMatrices_res3 = ( m1 .* v2 )
-	Var multelemMatrices_sol1 : Matrix<Double,2,2> = { { 1.0, 4.0 }, { 9.0, 16.0 } }
-	Var multelemMatrices_sol2 : Matrix<Double,2,2> = { { 2.0, 4.0 }, { 6.0, 8.0 } }
-	compare ( multelemMatrices_res1, multelemMatrices_sol1, prec )
-	compare ( multelemMatrices_res2, multelemMatrices_sol2, prec )
-	compare ( multelemMatrices_res3, multelemMatrices_sol2, prec )
-	Var divelemMatrices_res1 : Matrix<Double,2,2> = ( m2 ./ m1 )
-	Var divelemMatrices_res2 : Matrix<Double,2,2>
-	divelemMatrices_res2 = ( v1 ./ m1 )
-	Var divelemMatrices_res3 : Matrix<Double,2,2> = ( m1 ./ v2 )
-	Var divelemMatrices_sol1 : Matrix<Double,2,2> = { { 1.0, 1.0 }, { 1.0, 1.0 } }
-	Var divelemMatrices_sol2 : Matrix<Double,2,2> = { { 1.0, 0.5 }, { 0.33333333333, 0.25 } }
-	Var divelemMatrices_sol3 : Matrix<Double,2,2> = { { 0.5, 1.0 }, { 1.5, 2.0 } }
-	compare ( divelemMatrices_res1, divelemMatrices_sol1, prec )
-	compare ( divelemMatrices_res2, divelemMatrices_sol2, prec )
-	compare ( divelemMatrices_res3, divelemMatrices_sol3, prec )
 }
 

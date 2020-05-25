@@ -14,7 +14,7 @@ Function Application ( ) : Unit {
 	Var v1 : Real = 1	
 	Var v2 : Real = 2
 	Var prec : Double = 0.0001
-
+	m1 = m1 * m1
 /*
 	// elementwise power
 	Var powelemMatrices_res1 : Matrix<Real, 2, 2> = m2 .^ v1 
@@ -23,7 +23,7 @@ Function Application ( ) : Unit {
 	Var powelemMatrices_sol2 : Matrix<Real, 2, 2> = {{1, 4},{9, 16}}
 	compare(powelemMatrices_res1, powelemMatrices_sol1,prec)
 	compare(powelemMatrices_res2, powelemMatrices_sol2,prec)
-*/
+
 
 	Var m3 : Matrix<Real, 2, 1> = {{1}, {2}}
 	Var m4 : Matrix<Real, 1, 2> = {{1, 2}}
@@ -65,13 +65,13 @@ Function Application ( ) : Unit {
 	Var addMatrices_sol4 : Matrix<Double, 2, 2> = {{3, 5},{7, 9}}
 	compare(addMatrices_res4, addMatrices_sol4,prec)
 	compare(addMatrices_res5, addMatrices_sol4,prec)
-
+*/
 	// mult matrices
-	Var multMatrices_res1 : Matrix<Double, 2, 2>
+	Var multMatrices_res1 : Matrix<Double, 2, 2> 
 	multMatrices_res1 = m2 * m1 
 	Var multMatrices_sol1 : Matrix<Double, 2, 2> = {{7, 10},{15, 22}}
 	compare(multMatrices_res1, multMatrices_sol1,prec)
-
+/*
 	Var multMatrices_res2 : Matrix<Double, 2, 2> = m2 * m1 * m1
 	Var multMatrices_sol2 : Matrix<Double, 2, 2> = {{37, 54},{81, 118}}
 	compare(multMatrices_res2, multMatrices_sol2,prec)
@@ -127,6 +127,6 @@ Function Application ( ) : Unit {
 	compare(divelemMatrices_res1, divelemMatrices_sol1,prec)
 	compare(divelemMatrices_res2, divelemMatrices_sol2,prec)
 	compare(divelemMatrices_res3, divelemMatrices_sol3,prec)
-	
+	*/
 }
 
