@@ -66,7 +66,7 @@ case class L4_TensorExpression1(
       if (flattenIn(i).index.length != 1) Logger.error("Tensor index [" +
         flattenIn(i).index.toString + "] has wrong dimension")
     }
-    val eval : Array[Boolean] = Array.fill(order) { false }
+    val eval : Array[Boolean] = Array.fill(dims) { false }
     val exp = new Array[IR_Expression](dims)
     for (i <- flattenIn.indices) {
       if (flattenIn(i).index.head <= exp.length) {

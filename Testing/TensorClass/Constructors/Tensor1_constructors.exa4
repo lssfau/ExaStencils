@@ -5,13 +5,13 @@ Globals {
 }
 
 Function Application() : Unit {
-    Var m1 : Tensor1< Real > = tens1{
+    Var m1 : Tensor1< Real , 3 > = tens1{ 3 ;
         [0] := 1.0,
         [1] := 2.0,
         [2] := 3.0
     }
 
-    Var m2 : Tensor1< Real > = tens1{
+    Var m2 : Tensor1< Real, 3 > = tens1{ 3 ;
         [0] := 2.0
     }
 
@@ -19,9 +19,21 @@ Function Application() : Unit {
 
     if (compare( m1, m2 )) { print( "sucess m2 == m1" ) }
 
-    Var m3 : Tensor1< Real > = m2
+    Var m3 : Tensor1< Real, 3 > = m2
 
     if (compare( m2, m3 )) { print( "sucess m2 == m3" ) }
+
+    Var m4 : Tensor1< Real , 4 > = tens1{ 4 ;
+        [0] := 1.0,
+        [1] := 2.0,
+        [2] := 3.0,
+        [3] := 4.0
+    }
+
+    Var m5 : Tensor1< Real , 2 > = tens1{ 2 ;
+        [0] := 1.0,
+        [1] := 2.0
+    }
 
 
 }

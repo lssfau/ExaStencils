@@ -67,9 +67,11 @@ case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String,
         dt.prettyprint(out)
         out << ' ' << name
         initialValue match {
-          case Some(e : IR_TensorExpression1)                                             => out << ' ' << '{'; e.expressions(0).prettyprint(out); out << ","; e.expressions(1).prettyprint(out); out<< ","; e.expressions(2).prettyprint(out); out << '}'
-          case Some(e : IR_VariableAccess) if e.datatype.isInstanceOf[IR_TensorDatatype1] => out << ' ' << '{'; acc(e, index(0)).prettyprint(out); out << ","; acc(e, index(1)).prettyprint(out); out  << ","; acc(e, index(2)).prettyprint(out); out << '}'
-          case Some(e) if (e.datatype.isInstanceOf[IR_ScalarDatatype])                    => out << ' ' << '{'; for (i <- 0 until 3) { e.prettyprint(out); out << ',' }; out.removeLast(); out << '}'
+          case Some(e : IR_TensorExpression1)                                             => out << ' ' << '{' << e.expressions.map(_.prettyprint).mkString(","); out << '}'
+          case Some(e : IR_VariableAccess) if e.datatype.isInstanceOf[IR_TensorDatatype1] => out << ' ' << '{'; for (i <- 0 until
+            e.datatype.asInstanceOf[IR_TensorDatatype1].dims) {  acc(e, index(i)).prettyprint(out); out << "," }; out.removeLast(); out << "}"
+          case Some(e) if (e.datatype.isInstanceOf[IR_ScalarDatatype])                    => out << ' ' << '{'; for (i <- 0 until
+            e.datatype.asInstanceOf[IR_TensorDatatype1].dims) { e.prettyprint(out); out << ',' }; out.removeLast(); out << '}'
           case Some(e)                                                                    => Logger.error(e.toString)
           case _                                                                          =>
         }
@@ -79,8 +81,10 @@ case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String,
         out << ' ' << name
         initialValue match {
           case Some(e : IR_TensorExpression2)                                             => out << ' ' << '{' << e.expressions.map(_.prettyprint).mkString(","); out << '}'
-          case Some(e : IR_VariableAccess) if e.datatype.isInstanceOf[IR_TensorDatatype2] => out << ' ' << '{'; for (i <- 0 until 9) {  acc(e, index(i)).prettyprint(out); out << "," }; out.removeLast(); out << "}"
-          case Some(e) if (e.datatype.isInstanceOf[IR_ScalarDatatype])                    => out << ' ' << '{'; for (i <- 0 until 9) { e.prettyprint(out); out << ',' }; out.removeLast(); out << '}'
+          case Some(e : IR_VariableAccess) if e.datatype.isInstanceOf[IR_TensorDatatype2] => out << ' ' << '{'; for (i <- 0 until e.datatype.asInstanceOf[IR_TensorDatatype1].dims *
+            e.datatype.asInstanceOf[IR_TensorDatatype1].dims) {  acc(e, index(i)).prettyprint(out); out << "," }; out.removeLast(); out << "}"
+          case Some(e) if (e.datatype.isInstanceOf[IR_ScalarDatatype])                    => out << ' ' << '{'; for (i <- 0 until e.datatype.asInstanceOf[IR_TensorDatatype1].dims *
+            e.datatype.asInstanceOf[IR_TensorDatatype1].dims) { e.prettyprint(out); out << ',' }; out.removeLast(); out << '}'
           case Some(e)                                                                    => out << " = " << e
           case _                                                                          =>
         }
@@ -89,8 +93,13 @@ case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String,
         dt.prettyprint(out)
         out << ' ' << name
         initialValue match {
-          case Some(e : IR_TensorExpressionN)                          => out << ' ' << '{' << e.expressions.map(_.prettyprint).mkString(","); out << '}' //TODO: Zeus, hier fehlt noch die Zuweisung mit IR_VariableAccess
-          case Some(e) if (e.datatype.isInstanceOf[IR_ScalarDatatype]) => out << ' ' << '{'; for (i <- 0 until scala.math.pow(3, dt.order.toDouble).toInt) { e.prettyprint(out); out << ',' }; out.removeLast(); out << '}'
+          case Some(e : IR_TensorExpressionN)                          => out << ' ' << '{' << e.expressions.map(_.prettyprint).mkString(","); out << '}'
+          case Some(e : IR_VariableAccess) if e.datatype.isInstanceOf[IR_TensorDatatype1] => out << ' ' << '{'; for (i <- 0 until
+            scala.math.pow(e.datatype.asInstanceOf[IR_TensorDatatypeN].dims, e.datatype.asInstanceOf[IR_TensorDatatypeN].order).toInt) {
+            acc(e, index(i)).prettyprint(out); out << "," }; out.removeLast(); out << "}"
+          case Some(e) if (e.datatype.isInstanceOf[IR_ScalarDatatype]) => out << ' ' << '{'; for (i <- 0 until
+            scala.math.pow(e.datatype.asInstanceOf[IR_TensorDatatypeN].dims, dt.order.toDouble).toInt) {
+            e.prettyprint(out); out << ',' }; out.removeLast(); out << '}'
           case Some(e)                                                 => out << " = " << e
           case _                                                       =>
         }
