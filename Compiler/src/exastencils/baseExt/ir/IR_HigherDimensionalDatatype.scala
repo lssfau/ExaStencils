@@ -90,7 +90,7 @@ case class IR_MatrixDatatype(var datatype : IR_Datatype, var sizeM : Int, var si
   def transposed = IR_MatrixDatatype(datatype, sizeN, sizeM)
 }
 
-abstract class IR_TensorDatatype(datatype : IR_Datatype) extends IR_HigherDimensionalDatatype with IR_HasTypeAlias {
+abstract class IR_TensorDatatype(datatype : IR_Datatype, dims : Int) extends IR_HigherDimensionalDatatype with IR_HasTypeAlias {
   override def prettyprint(out : PpStream)
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
@@ -104,7 +104,7 @@ abstract class IR_TensorDatatype(datatype : IR_Datatype) extends IR_HigherDimens
   override def aliasFor = datatype.prettyprint + '[' + this.resolveFlattendSize + ']'
 }
 
-case class IR_TensorDatatype1(datatype : IR_Datatype, var dims : Int) extends IR_TensorDatatype(datatype) {
+case class IR_TensorDatatype1(datatype : IR_Datatype, dims : Int) extends IR_TensorDatatype(datatype, dims) {
   override def prettyprint(out : PpStream) : Unit = out << "__tensor1_" << this.dims.toString << "_" << datatype << "_t"
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
@@ -118,7 +118,7 @@ case class IR_TensorDatatype1(datatype : IR_Datatype, var dims : Int) extends IR
   override def aliasFor = datatype.prettyprint + '[' + this.resolveFlattendSize + ']'
 }
 
-case class IR_TensorDatatype2(datatype : IR_Datatype, var dims : Int) extends IR_TensorDatatype(datatype) {
+case class IR_TensorDatatype2(datatype : IR_Datatype, dims : Int) extends IR_TensorDatatype(datatype, dims) {
   override def prettyprint(out : PpStream) : Unit = out << "__tensor2_" << this.dims.toString << "_" << datatype << "_t"
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
@@ -133,7 +133,7 @@ case class IR_TensorDatatype2(datatype : IR_Datatype, var dims : Int) extends IR
   def transposed = IR_TensorDatatype2(datatype, dims)
 }
 
-case class IR_TensorDatatypeN(datatype : IR_Datatype, var dims : Int, var order : Int) extends IR_TensorDatatype(datatype) {
+case class IR_TensorDatatypeN(datatype : IR_Datatype, dims : Int, var order : Int) extends IR_TensorDatatype(datatype, dims) {
   override def prettyprint(out : PpStream) : Unit = out << "__tensorN_" << this.order.toString << "_" << this.datatype << "_t"
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 

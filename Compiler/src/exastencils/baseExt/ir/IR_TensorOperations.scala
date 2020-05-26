@@ -434,38 +434,50 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   }
 
   private def compareTwoTensor1(m : IR_VariableAccess, n : IR_VariableAccess) : IR_Expression = {
-    IR_Negation(innerCompare(3, m, n)) // TODO: N-Dimensional
+    val tens1 = m.datatype.asInstanceOf[IR_TensorDatatype1]
+    val tens2 = m.datatype.asInstanceOf[IR_TensorDatatype1]
+    if (tens1.dims != tens2.dims) {
+      IR_BooleanConstant(false)
+    }
+    IR_Negation(innerCompare(tens1.dims, m, n))
   }
 
   private def compareTwoTensor2(m : IR_VariableAccess, n : IR_VariableAccess) : IR_Expression = {
-    IR_Negation(innerCompare(9, m, n)) // TODO: N-Dimensional
+    val tens1 = m.datatype.asInstanceOf[IR_TensorDatatype2]
+    val tens2 = m.datatype.asInstanceOf[IR_TensorDatatype2]
+    if (tens1.dims != tens2.dims) {
+      IR_BooleanConstant(false)
+    }
+    IR_Negation(innerCompare(tens1.dims*tens1.dims, m, n))
   }
 
   private def compareTwoTensorN(m : IR_VariableAccess, n : IR_VariableAccess) : IR_Expression = {
     val tens1 = m.datatype.asInstanceOf[IR_TensorDatatypeN]
     val tens2 = n.datatype.asInstanceOf[IR_TensorDatatypeN]
-    if (tens1.order != tens2.order) {
+    if ((tens1.order != tens2.order) || (tens1.dims != tens2.dims)) {
       IR_BooleanConstant(false)
     } else {
-      IR_Negation(innerCompare(pow(3, tens1.order.toDouble).toInt, m, n)) // TODO: N-Dimensional
+      IR_Negation(innerCompare(pow(tens1.dims, tens1.order.toDouble).toInt, m, n))
     }
   }
 
   private def compareTensor1TensorN(m : IR_VariableAccess, n : IR_VariableAccess) : IR_Expression = {
     val tens1 = m.datatype.asInstanceOf[IR_TensorDatatypeN]
-    if (tens1.order != 1) {
+    val tens2 = m.datatype.asInstanceOf[IR_TensorDatatype1]
+    if ((tens1.order != 1) || (tens1.dims != tens2.dims)) {
       IR_BooleanConstant(false)
     } else {
-      IR_Negation(innerCompare(3, m, n)) // TODO: N-Dimensional
+      IR_Negation(innerCompare(tens1.dims, m, n))
     }
   }
 
   private def compareTensor2TensorN(m : IR_VariableAccess, n : IR_VariableAccess) : IR_Expression = {
     val tens1 = m.datatype.asInstanceOf[IR_TensorDatatypeN]
-    if (tens1.order != 2) {
+    val tens2 = m.datatype.asInstanceOf[IR_TensorDatatype2]
+    if ((tens1.order != 2) || (tens1.dims != tens2.dims)) {
       IR_BooleanConstant(false)
     } else {
-      IR_Negation(innerCompare(9, m, n)) // TODO: N-Dimensional
+      IR_Negation(innerCompare(tens1.dims *  tens1.dims, m, n))
     }
   }
 
@@ -510,8 +522,8 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
         if (tensN.order != 1) {
           Logger.error("Convert to Tensor2: input tensor has the wrong order")
         }
-        val tens1 = IR_TensorExpression1(tensN.innerDatatype)
-        for (x <- 0 until 3) { // TODO: N-Dimensional
+        val tens1 = IR_TensorExpression1(tensN.innerDatatype, tensN.dims)
+        for (x <- 0 until tensN.dims) {
           tens1.set(x, getElem(m, 0, 0, List(x)))
         }
         tens1
@@ -531,9 +543,9 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
         if (tensN.order != 2) {
           Logger.error("Convert to Tensor2: input tensor has the wrong order")
         }
-        val tens2 = IR_TensorExpression2(tensN.innerDatatype)
-        for (y <- 0 until 3) { // TODO: N-Dimensional
-          for (x <- 0 until 3) {
+        val tens2 = IR_TensorExpression2(tensN.innerDatatype, tensN.dims)
+        for (y <- 0 until tensN.dims) {
+          for (x <- 0 until tensN.dims) {
             tens2.set(x, y, getElem(m, 0, 0, List(x,y)))
           }
         }
@@ -548,12 +560,14 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   private def dyadicProductTwoArray(m : IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
     val arr1 = m.datatype.asInstanceOf[IR_MatrixDatatype]
     val arr2 = n.datatype.asInstanceOf[IR_MatrixDatatype]
-    if ((arr1.sizeN != 3) || (arr2.sizeM != 3)) {// TODO: N-Dimensional
+    if (arr1.sizeM != arr2.sizeM) {
       Logger.error("Dyadic productl: both input arrays must have size 3")
+    } else if ((arr1.sizeN != 1) && (arr2.sizeN != 1)) {
+      Logger.error("Dyadic product: Both input arrys must be flat array")
     } else {
-      val tmp = IR_TensorExpression2(IR_ResultingDatatype(arr1.resolveDeclType, arr2.resolveDeclType))
-      for (y <- 0 until 3) {
-        for (x <- 0 until 3) {// TODO: N-Dimensional
+      val tmp = IR_TensorExpression2(IR_ResultingDatatype(arr1.resolveDeclType, arr2.resolveDeclType), arr1.sizeM)
+      for (y <- 0 until arr1.sizeM) {
+        for (x <- 0 until arr1.sizeM) {
           tmp.set(x, y, IR_Multiplication(getElem(m, x, 0, Nil), getElem(n, y, 0, Nil)))
         }
       }
@@ -564,9 +578,13 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   private def dyadicProductTwoTensor1(m : IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
     val tens1 = m.datatype.asInstanceOf[IR_TensorDatatype1]
     val tens2 = n.datatype.asInstanceOf[IR_TensorDatatype1]
-    val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens1.datatype, tens2.datatype))
-    for (y <- 0 until 3) {// TODO: N-Dimensional
-      for (x <- 0 until 3) {
+    if (tens1.dims != tens2.dims) {
+      Logger.error("Dyadic product: has different dimensionality, " + tens1.dims.toString + " != " +
+        tens2.dims.toString)
+    }
+    val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens1.datatype, tens2.datatype), tens1.dims)
+    for (y <- 0 until tens1.dims) {
+      for (x <- 0 until tens1.dims) {
         tmp.set(x, y, IR_Multiplication(getElem(m, x, 0, Nil), getElem(n, y, 0, Nil)))
       }
     }
@@ -576,11 +594,15 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   private def dyadicProductTensor2Tensor1(m : IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpressionN = {
     val tens1 = m.datatype.asInstanceOf[IR_TensorDatatype2]
     val tens2 = n.datatype.asInstanceOf[IR_TensorDatatype1]
-    val tmp = IR_TensorExpressionN(IR_ResultingDatatype(tens1.datatype, tens2.datatype), 3)
+    if (tens1.dims != tens2.dims) {
+      Logger.error("Dyadic product: has different dimensionality, " + tens1.dims.toString + " != " +
+        tens2.dims.toString)
+    }
+    val tmp = IR_TensorExpressionN(IR_ResultingDatatype(tens1.datatype, tens2.datatype), tens1.dims, 3)
     var index = 0
-    for (z <- 0 until 3) {
-      for (y <- 0 until 3) {// TODO: N-Dimensional
-        for (x <- 0 until 3) {
+    for (z <- 0 until tens1.dims) {
+      for (y <- 0 until tens1.dims) {
+        for (x <- 0 until tens1.dims) {
           tmp.setDirect(index, IR_Multiplication(getElem(m, z, y, Nil), getElem(n, x, 0, Nil)))
           index = index + 1
         }
@@ -592,12 +614,16 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   private def dyadicProductTwoTensor2(m : IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpressionN = {
     val tens1 = m.datatype.asInstanceOf[IR_TensorDatatype2]
     val tens2 = n.datatype.asInstanceOf[IR_TensorDatatype1]
-    val tmp = IR_TensorExpressionN(IR_ResultingDatatype(tens1.datatype, tens2.datatype), 4)
+    if (tens1.dims != tens2.dims) {
+      Logger.error("Dyadic product: has different dimensionality, " + tens1.dims.toString + " != " +
+        tens2.dims.toString)
+    }
+    val tmp = IR_TensorExpressionN(IR_ResultingDatatype(tens1.datatype, tens2.datatype), tens1.dims, 4)
     var index = 0
-    for (q <- 0 until 3) {
-      for (z <- 0 until 3) {// TODO: N-Dimensional
-        for (y <- 0 until 3) {
-          for (x <- 0 until 3) {
+    for (q <- 0 until tens1.dims) {
+      for (z <- 0 until tens1.dims) {// TODO: N-Dimensional
+        for (y <- 0 until tens1.dims) {
+          for (x <- 0 until tens1.dims) {
             tmp.setDirect(index, IR_Multiplication(getElem(m, z, y, Nil), getElem(n, q, x, Nil)))
             index = index + 1
           }
@@ -632,24 +658,27 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   // Addition
 
   private def addTensors1Vector(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression1 = {
-    val tens = m.datatype.asInstanceOf[IR_TensorDatatypeN]
+    val tens = m.datatype.asInstanceOf[IR_TensorDatatype1]
     val vec = n.datatype.asInstanceOf[IR_VectorDatatype]
-    if (vec.size != 3) {
-      Logger.error("Add Tensor1 with Vector: vector has wrong size: " + vec.size.toString + " != 3")
-    } else {
-      val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens.datatype, vec.datatype))
-      for (x <- 0 until 3) {// TODO: N-Dimensional
-        tmp.set(x, IR_Addition(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
-      }
-      tmp
+    if (vec.size != tens.dims) {
+      Logger.error("Add Tensor1 with Vector: vector and tensor has different dimensionality")
     }
+    val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens.datatype, vec.datatype), tens.dims)
+    for (x <- 0 until tens.dims) {
+      tmp.set(x, IR_Addition(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
+    }
+    tmp
   }
 
   private def addTwoTensors1(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression1 = {
     val tens1 = m.datatype.asInstanceOf[IR_TensorDatatype1]
     val tens2 = n.datatype.asInstanceOf[IR_TensorDatatype1]
-    val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens1.datatype, tens2.datatype))
-    for (x <- 0 until 3) {// TODO: N-Dimensional
+    if (tens1.dims != tens2.dims) {
+      Logger.error("Add two Tensor1: has different dimensionality, " + tens1.dims.toString + " != " +
+        tens2.dims.toString)
+    }
+    val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens1.datatype, tens2.datatype), tens1.dims)
+    for (x <- 0 until tens1.dims) {
       tmp.set(x, IR_Addition(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
     }
     tmp
@@ -658,9 +687,13 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   private def addTwoTensors2(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
     val tens1 = m.datatype.asInstanceOf[IR_TensorDatatype2]
     val tens2 = n.datatype.asInstanceOf[IR_TensorDatatype2]
-    val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens1.datatype, tens2.datatype))
-    for (y <- 0 until 3) {// TODO: N-Dimensional
-      for (x <- 0 until 3) {
+    if (tens1.dims != tens2.dims) {
+      Logger.error("Add two Tensor2: has different dimensionality, " + tens1.dims.toString + " != " +
+        tens2.dims.toString)
+    }
+    val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens1.datatype, tens2.datatype), tens1.dims)
+    for (y <- 0 until tens1.dims) {
+      for (x <- 0 until tens1.dims) {
         tmp.set(x, y, IR_Addition(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
       }
     }
@@ -671,30 +704,33 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
     val tens1 = m.datatype.asInstanceOf[IR_TensorDatatypeN]
     val tens2 = n.datatype.asInstanceOf[IR_TensorDatatypeN]
     if (tens1.order != tens2.order) {
-      Logger.error("Add of to tensor N: has different orders, " + tens1.order.toString + " != " + tens2.order.toString)
-    } else {
-      val tmp = IR_TensorExpressionN(IR_ResultingDatatype(tens1.datatype, tens2.datatype), tens1.order)
-      for (x <- 0 until pow(3,tens1.order.toDouble).toInt) {// TODO: N-Dimensional
-        tmp.setDirect(x, IR_Addition(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
-      }
-      tmp
+      Logger.error("Add two TensorN: has different orders, " + tens1.order.toString + " != " + tens2.order.toString)
     }
+    if (tens1.dims != tens2.dims) {
+      Logger.error("Add two TensorN: has different dimensionality, " + tens1.dims.toString + " != " +
+        tens2.dims.toString)
+    }
+    val tmp = IR_TensorExpressionN(IR_ResultingDatatype(tens1.datatype, tens2.datatype), tens1.dims, tens1.order)
+    for (x <- 0 until pow(tens1.dims,tens1.order.toDouble).toInt) {
+      tmp.setDirect(x, IR_Addition(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
+    }
+    tmp
+
   }
 
   private def addTensor2Matrix(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
     val tens = m.datatype.asInstanceOf[IR_TensorDatatype2]
     val mat = n.datatype.asInstanceOf[IR_MatrixDatatype]
-    if (mat.sizeM != 3 || mat.sizeN != 3) {// TODO: N-Dimensional
+    if ((mat.sizeM != tens.dims) || (mat.sizeN != tens.dims)) {
       Logger.error("matrix has the wrong dimension")
-    } else {
-      val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens.datatype, mat.datatype))
-      for (y <- 0 until 3) {
-        for (x <- 0 until 3) {
-          tmp.set(x, y, IR_Addition(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
-        }
-      }
-      tmp
     }
+    val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens.datatype, mat.datatype), tens.dims)
+    for (y <- 0 until tens.dims) {
+      for (x <- 0 until tens.dims) {
+        tmp.set(x, y, IR_Addition(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
+      }
+    }
+    tmp
   }
 
   /** Calculates the addiction of two tensors or tensor with matrix/vector
@@ -729,22 +765,25 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   private def subTensors1Vector(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression1 = {
     val tens = m.datatype.asInstanceOf[IR_TensorDatatypeN]
     val vec = n.datatype.asInstanceOf[IR_VectorDatatype]
-    if (vec.size != 3) {// TODO: N-Dimensional
-      Logger.error("Add Tensor1 with Vector: vector has wrong size: " + vec.size.toString + " != 3")
-    } else {
-      val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens.datatype, vec.datatype))
-      for (x <- 0 until 3) {// TODO: N-Dimensional
-        tmp.set(x, IR_Subtraction(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
-      }
-      tmp
+    if (vec.size != tens.dims) {
+      Logger.error("Sub Tensor1 with Vector: vector and tensor has different dimensionality")
     }
+    val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens.datatype, vec.datatype), tens.dims)
+    for (x <- 0 until tens.dims) {
+      tmp.set(x, IR_Subtraction(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
+    }
+    tmp
   }
 
   private def subTwoTensors1(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression1 = {
     val tens1 = m.datatype.asInstanceOf[IR_TensorDatatype1]
     val tens2 = n.datatype.asInstanceOf[IR_TensorDatatype1]
-    val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens1.datatype, tens2.datatype))
-    for (x <- 0 until 3) {
+    if (tens1.dims != tens2.dims) {
+      Logger.error("Sub two Tensor1: has different dimensionality, " + tens1.dims.toString + " != " +
+        tens2.dims.toString)
+    }
+    val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens1.datatype, tens2.datatype), tens1.dims)
+    for (x <- 0 until tens1.dims) {
       tmp.set(x, IR_Subtraction(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
     }
     tmp
@@ -753,9 +792,13 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   private def subTwoTensors2(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
     val tens1 = m.datatype.asInstanceOf[IR_TensorDatatype2]
     val tens2 = n.datatype.asInstanceOf[IR_TensorDatatype2]
-    val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens1.datatype, tens2.datatype))
-    for (y <- 0 until 3) {
-      for (x <- 0 until 3) {// TODO: N-Dimensional
+    if (tens1.dims != tens2.dims) {
+      Logger.error("Sub two Tensor2: has different dimensionality, " + tens1.dims.toString + " != " +
+        tens2.dims.toString)
+    }
+    val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens1.datatype, tens2.datatype), tens1.dims)
+    for (y <- 0 until tens1.dims) {
+      for (x <- 0 until tens1.dims) {// TODO: N-Dimensional
         tmp.set(x, y, IR_Subtraction(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
       }
     }
@@ -766,30 +809,32 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
     val tens1 = m.datatype.asInstanceOf[IR_TensorDatatypeN]
     val tens2 = n.datatype.asInstanceOf[IR_TensorDatatypeN]
     if (tens1.order != tens2.order) {
-      Logger.error("Add of to tensor N: has different orders, " + tens1.order.toString + " != " + tens2.order.toString)
-    } else {
-      val tmp = IR_TensorExpressionN(IR_ResultingDatatype(tens1.datatype, tens2.datatype), tens1.order)
-      for (x <- 0 until pow(3,tens1.order.toDouble).toInt) {
-        tmp.setDirect(x, IR_Subtraction(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
-      }
-      tmp
+      Logger.error("Sub two TensorN: has different orders, " + tens1.order.toString + " != " + tens2.order.toString)
     }
+    if (tens1.dims != tens2.dims) {
+      Logger.error("Sub two TensorN: has different dimensionality, " + tens1.dims.toString + " != " +
+        tens2.dims.toString)
+    }
+    val tmp = IR_TensorExpressionN(IR_ResultingDatatype(tens1.datatype, tens2.datatype), tens1.dims, tens1.order)
+    for (x <- 0 until pow(tens1.dims,tens1.order.toDouble).toInt) {
+      tmp.setDirect(x, IR_Subtraction(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
+    }
+    tmp
   }
 
   private def subTensor2Matrix(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
     val tens = m.datatype.asInstanceOf[IR_TensorDatatype2]
     val mat = n.datatype.asInstanceOf[IR_MatrixDatatype]
-    if (mat.sizeM != 3 || mat.sizeN != 3) {// TODO: N-Dimensional
+    if ((mat.sizeM != tens.dims) || (mat.sizeN != tens.dims)) {
       Logger.error("matrix has the wrong dimension")
-    } else {
-      val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens.datatype, mat.datatype))
-      for (y <- 0 until 3) {
-        for (x <- 0 until 3) {
-          tmp.set(x, y, IR_Subtraction(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
-        }
-      }
-      tmp
     }
+    val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens.datatype, mat.datatype), tens.dims)
+    for (y <- 0 until tens.dims) {
+      for (x <- 0 until tens.dims) {
+        tmp.set(x, y, IR_Subtraction(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
+      }
+    }
+    tmp
   }
 
   /** Calculates the addiction of two tensors or tensor with matrix/vector
@@ -823,22 +868,27 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   // Dotproduct
 
   private def dotProductTwoTensors1(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression1 = {
-    val tens1 = m.datatype.asInstanceOf[IR_TensorDatatypeN]
-    val tens2 = n.datatype.asInstanceOf[IR_TensorDatatypeN]
-    val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens1.datatype, tens2.datatype))
-    for (x <- 0 until 3) {// TODO: N-Dimensional
+    val tens1 = m.datatype.asInstanceOf[IR_TensorDatatype1]
+    val tens2 = n.datatype.asInstanceOf[IR_TensorDatatype1]
+    if (tens1.dims != tens2.dims) {
+      Logger.error("Dotproduct two Tensor1: has different dimensionality, " + tens1.dims.toString + " != " +
+        tens2.dims.toString)
+    }
+    val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens1.datatype, tens2.datatype), tens1.dims)
+    for (x <- 0 until tens1.dims) {
       tmp.set(x, IR_Multiplication(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
     }
     tmp
   }
+
   private def dotProductTensors1Vector(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression1 = {
     val tens = m.datatype.asInstanceOf[IR_TensorDatatype1]
     val vec = n.datatype.asInstanceOf[IR_VectorDatatype]
-    if (vec.size != 3) {// TODO: N-Dimensional
-      Logger.error("Add Tensor1 with Vector: vector has wrong size: " + vec.size.toString + " != 3")
+    if (vec.size != tens.dims) {
+      Logger.error("Dotproduct Tensor1 with Vector: vector and tensor has different dimensionality")
     } else {
-      val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens.datatype, vec.datatype))
-      for (x <- 0 until 3) {// TODO: N-Dimensional
+      val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens.datatype, vec.datatype), tens.dims)
+      for (x <- 0 until tens.dims) {
         tmp.set(x, IR_Multiplication(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
       }
       tmp
@@ -848,9 +898,13 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   private def dotProductTwoTensors2(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
     val tens1 = m.datatype.asInstanceOf[IR_TensorDatatype2]
     val tens2 = n.datatype.asInstanceOf[IR_TensorDatatype2]
-    val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens1.datatype, tens2.datatype))
-    for (y <- 0 until 3) {
-      for (x <- 0 until 3) {// TODO: N-Dimensional
+    if (tens1.dims != tens2.dims) {
+      Logger.error("Dotproduct two Tensor2: has different dimensionality, " + tens1.dims.toString + " != " +
+        tens2.dims.toString)
+    }
+    val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens1.datatype, tens2.datatype), tens1.dims)
+    for (y <- 0 until tens1.dims) {
+      for (x <- 0 until tens1.dims) {
         tmp.set(x, y, IR_Multiplication(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
       }
     }
@@ -863,29 +917,31 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
     if (tens1.order != tens2.order) {
       Logger.error("Dotproduct of to tensor N: has different orders " + tens1.order.toString +
         " != " + tens2.order.toString)
-    } else {
-      val tmp = IR_TensorExpressionN(IR_ResultingDatatype(tens1.datatype, tens2.datatype), tens1.order)
-      for (x <- 0 until pow(3,tens1.order.toDouble).toInt) {// TODO: N-Dimensional
-        tmp.setDirect(x, IR_Multiplication(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
-      }
-      tmp
     }
+    if (tens1.dims != tens2.dims) {
+      Logger.error("Dotproduct two TensorN: has different dimensionality, " + tens1.dims.toString + " != " +
+        tens2.dims.toString)
+    }
+    val tmp = IR_TensorExpressionN(IR_ResultingDatatype(tens1.datatype, tens2.datatype), tens1.dims, tens1.order)
+    for (x <- 0 until pow(tens1.dims ,tens1.order.toDouble).toInt) {
+      tmp.setDirect(x, IR_Multiplication(getElem(m, x, 0, Nil), getElem(n, x, 0, Nil)))
+    }
+    tmp
   }
 
   private def dotProductTensor2Matrix(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
     val tens = m.datatype.asInstanceOf[IR_TensorDatatype2]
     val mat = n.datatype.asInstanceOf[IR_MatrixDatatype]
-    if (mat.sizeM != 3 || mat.sizeN != 3) {// TODO: N-Dimensional
+    if ((mat.sizeM != tens.dims) || (mat.sizeN != tens.dims)) {
       Logger.error("matrix has the wrong dimension")
-    } else {
-      val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens.datatype, mat.datatype))
-      for (y <- 0 until 3) {// TODO: N-Dimensional
-        for (x <- 0 until 3) {
-          tmp.set(x, y, IR_Multiplication(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
-        }
-      }
-      tmp
     }
+    val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens.datatype, mat.datatype), tens.dims)
+    for (y <- 0 until tens.dims) {
+      for (x <- 0 until tens.dims) {
+        tmp.set(x, y, IR_Multiplication(getElem(m, x, y, Nil), getElem(n, x, y, Nil)))
+      }
+    }
+    tmp
   }
 
   /** Calculates the dot product of two tensors or tensor with matrix/vectors
@@ -920,8 +976,8 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   private def scalarMulTensor1(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression1 = {
     val tens = m.datatype.asInstanceOf[IR_TensorDatatype1]
     val num = n.datatype.asInstanceOf[IR_ScalarDatatype]
-    val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens.datatype, num.resolveDeclType))
-    for (x <- 0 until 3) {// TODO: N-Dimensional
+    val tmp = IR_TensorExpression1(IR_ResultingDatatype(tens.datatype, num.resolveDeclType), tens.dims)
+    for (x <- 0 until tens.dims) {
         tmp.set(x, IR_Multiplication(getElem(m, x, 0, Nil), IR_VariableAccess(n.name, n.datatype)))
     }
     tmp
@@ -930,9 +986,9 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   private def scalarMulTensor2(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpression2 = {
     val tens = m.datatype.asInstanceOf[IR_TensorDatatype2]
     val num = n.datatype.asInstanceOf[IR_ScalarDatatype]
-    val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens.datatype, num.resolveDeclType))
-    for (y <- 0 until 3) {
-      for (x <- 0 until 3) {// TODO: N-Dimensional
+    val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens.datatype, num.resolveDeclType), tens.dims)
+    for (y <- 0 until tens.dims) {
+      for (x <- 0 until tens.dims) {
         tmp.set(x, y, IR_Multiplication(getElem(m, x, y, Nil), IR_VariableAccess(n.name, n.datatype)))
       }
     }
@@ -942,8 +998,8 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   private def scalarMulTensorN(m: IR_VariableAccess, n : IR_VariableAccess) : IR_TensorExpressionN = {
     val tens = m.datatype.asInstanceOf[IR_TensorDatatypeN]
     val num = n.datatype.asInstanceOf[IR_ScalarDatatype]
-    val tmp = IR_TensorExpressionN(IR_ResultingDatatype(tens.datatype, num.resolveDeclType), tens.order)
-    for (x <- 0 until pow(3, tens.order.toDouble).toInt) {// TODO: N-Dimensional
+    val tmp = IR_TensorExpressionN(IR_ResultingDatatype(tens.datatype, num.resolveDeclType), tens.dims, tens.order)
+    for (x <- 0 until pow(tens.dims, tens.order.toDouble).toInt) {
       tmp.setDirect(x, IR_Multiplication(getElem(m, x, 0, Nil), IR_VariableAccess(n.name, n.datatype)))
     }
     tmp

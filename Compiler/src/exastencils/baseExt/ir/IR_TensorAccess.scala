@@ -42,6 +42,7 @@ case class IR_HackTenComponentAccess(var mat : IR_VariableAccess, var i : IR_Exp
 /** abstract tensor expression type
  *
  * @param innerDatatype : IR_Datatype, should be IR numeric datatype
+ * @param dims : Integer:, dimensionality
  */
 abstract class IR_TensorExpression(innerDatatype : Option[IR_Datatype], dims : Integer) extends IR_Expression {
   var expressions : Array[IR_Expression]
@@ -67,6 +68,7 @@ object IR_TensorExpression1 {
   /** creates a empty first order tensor expression
    *
    * @param innerDatatype : IR_Datatype, should be IR numeric datatype
+   * @param dims : Integer:, dimensionality
    * @return IR_TensorExpression1 instance
    */
   def apply(innerDatatype : IR_Datatype, dims: Integer) : IR_TensorExpression1 = new IR_TensorExpression1(Some(innerDatatype), dims)
@@ -74,7 +76,8 @@ object IR_TensorExpression1 {
   /** creates a first order tensor expression and fill with given array
    *
    * @param innerDatatype : IR_Datatype, should be IR numeric datatype
-   * @param expressions : Array[IR_Expression], input array with length 3
+   * @param dims : Integer:, dimensionality
+   * @param expressions : Array[IR_Expression], input array with length dims
    * @return IR_TensorExpression1 instance
    */
   def apply(innerDatatype : Option[IR_Datatype], dims: Integer, expressions : Array[IR_Expression]) : IR_TensorExpression1 = {
@@ -89,7 +92,8 @@ object IR_TensorExpression1 {
   /** creates a first order tensor expression and fill with list buffer entries
    *
    * @param datatype : IR_Datatype, should be IR numeric datatype
-   * @param expressions : ListBuffer[IR_Expression], input list buffer with length 3
+   * @param dims : Integer:, dimensionality
+   * @param expressions : ListBuffer[IR_Expression], input list buffer with length dims
    * @return IR_TensorExpression1 instance
    */
   def apply(datatype : IR_MatrixDatatype, dims : Integer, expressions : ListBuffer[IR_Expression]) : IR_TensorExpression1 = {
@@ -105,6 +109,7 @@ object IR_TensorExpression1 {
   /** creates a first order tensor expression and fill with single number
    *
    * @param innerDatatype : IR_Datatype, should be IR numeric datatype
+   * @param dims : Integer:, dimensionality
    * @param num : IR_Number, number to fill in tensor
    * @return IR_TensorExpression1 instance
    */
@@ -119,6 +124,7 @@ object IR_TensorExpression1 {
 /** Expression of a first order tensor
  *
  * @param innerDatatype : Option[IR_Datatype], Datatype of the saved expression
+ * @param dims : Integer:, dimensionality
  */
 case class IR_TensorExpression1(var innerDatatype : Option[IR_Datatype], var dims : Integer) extends IR_TensorExpression(innerDatatype, dims) {
   var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](dims)
@@ -176,6 +182,7 @@ object IR_TensorExpression2 {
   /** creates a empty second order tensor expression
    *
    * @param innerDatatype : IR_Datatype, should be IR numeric datatype
+   * @param dims : Integer:, dimensionality
    * @return IR_TensorExpression2 instance
    */
   def apply(innerDatatype : IR_Datatype, dims : Integer) : IR_TensorExpression2 = new IR_TensorExpression2(Some(innerDatatype), dims)
@@ -183,7 +190,8 @@ object IR_TensorExpression2 {
   /** creates a second order tensor expression and fill with given array
    *
    * @param innerDatatype : IR_Datatype, should be IR numeric datatype
-   * @param expressions : Array[IR_Expression], input array with length 9
+   * @param dims : Integer:, dimensionality
+   * @param expressions : Array[IR_Expression], input array with length dims^2
    * @return IR_TensorExpression2 instance
    */
   def apply(innerDatatype : Option[IR_Datatype], dims : Integer, expressions : Array[IR_Expression]) : IR_TensorExpression2 = {
@@ -198,7 +206,8 @@ object IR_TensorExpression2 {
   /** creates a second order tensor expression and fill with given matrix
    *
    * @param innerDatatype : IR_Datatype, should be IR numeric datatype
-   * @param expressions : ListBuffer[ListBuffer[IR_Number]], input 3x3 matrix filled with numbers
+   * @param dims : Integer:, dimensionality
+   * @param expressions : ListBuffer[ListBuffer[IR_Number]], input dims x dims matrix filled with numbers
    * @return IR_TensorExpression2 instance
    */
   def apply(innerDatatype : Option[IR_Datatype], dims : Integer, expressions : ListBuffer[ListBuffer[IR_Number]]) : IR_TensorExpression2 = {
@@ -217,7 +226,8 @@ object IR_TensorExpression2 {
   /** creates a second order tensor expression and fill with given linearized matrix
    *
    * @param datatype : IR_MatrixDatatype, should be IR numeric datatype
-   * @param expressions : Array[IR_Expression], input array with length 9
+   * @param dims : Integer:, dimensionality
+   * @param expressions : Array[IR_Expression], input array with length dims^2
    * @return IR_TensorExpression2 instance
    */
   def apply(datatype : IR_MatrixDatatype, dims : Integer, expressions : ListBuffer[IR_Expression]) : IR_TensorExpression2 = {
@@ -233,6 +243,7 @@ object IR_TensorExpression2 {
   /** creates a 2D tensor expression and fill with single number
    *
    * @param innerDatatype : IR_Datatype, should be IR numeric datatype
+   * @param dims : Integer:, dimensionality
    * @param num : IR_Number, number to fill in tensor
    * @return IR_TensorExpression2 instance
    */
@@ -247,6 +258,7 @@ object IR_TensorExpression2 {
 /** Expression of a second order tensor
  *
  * @param innerDatatype : Option[IR_Datatype], Datatype of the saved expression
+ * @param dims : Integer:, dimensionality
  */
 case class IR_TensorExpression2(var innerDatatype : Option[IR_Datatype], var dims : Integer) extends IR_TensorExpression(innerDatatype, dims) {
   var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](dims * dims)
@@ -302,17 +314,19 @@ object IR_TensorExpressionN {
   /** creates a empty tensor with n-th order
    *
    * @param innerDatatype : IR_Datatype, should be IR numeric datatype
+   * @param dims : Integer:, dimensionality
    * @param order : Integer, defines the order of the tensor
-   * @return IR_TensorExpression2 instance
+   * @return IR_TensorExpressionN instance
    */
   def apply(innerDatatype : IR_Datatype, dims : Integer, order : Integer) : IR_TensorExpressionN = new IR_TensorExpressionN(Some(innerDatatype), dims, order)
 
   /** creates a n-th order tensor and fill with given array
    *
    * @param innerDatatype : IR_Datatype, should be IR numeric datatype
+   * @param dims : Integer:, dimensionality
    * @param order : Integer, defines the order of the tensor
-   * @param expressions : Array[IR_Expression], input array with length 3^order
-   * @return IR_TensorExpression2 instance
+   * @param expressions : Array[IR_Expression], input array with length dims^order
+   * @return IR_TensorExpressionN instance
    */
   def apply(innerDatatype : Option[IR_Datatype], dims : Integer, order : Integer, expressions : Array[IR_Expression]) : IR_TensorExpressionN = {
     if (expressions.length != pow(dims.toDouble, order.toDouble).toInt) {
@@ -326,9 +340,10 @@ object IR_TensorExpressionN {
   /** creates a n-th order tensor and fill with given linearized matrix
    *
    * @param datatype : IR_MatrixDatatype, should be IR numeric datatype
+   * @param dims : Integer:, dimensionality
    * @param order : Integer, defines the order of the tensor
    * @param expressions : Array[IR_Expression], input array with length 3^order
-   * @return IR_TensorExpression2 instance
+   * @return IR_TensorExpressionN instance
    */
   def apply(datatype : IR_MatrixDatatype, dims : Integer, order : Integer,  expressions : ListBuffer[IR_Expression]) : IR_TensorExpressionN = {
     if (expressions.toArray.length != pow(dims.toDouble, order.toDouble).toInt) {
@@ -343,8 +358,9 @@ object IR_TensorExpressionN {
   /** creates a n-th order tensor and fill with single number
    *
    * @param innerDatatype : IR_Datatype, should be IR numeric datatype
+   * @param dims : Integer:, dimensionality
    * @param num : IR_Number, number to fill in tensor
-   * @return IR_TensorExpression2 instance
+   * @return IR_TensorExpressionN instance
    */
   def fromSingleExpression(innerDatatype : IR_Datatype, dims : Integer, order: Integer, num : IR_Number) : IR_TensorExpressionN = {
     val tmp = new IR_TensorExpressionN(Some(innerDatatype), dims, order)
@@ -354,9 +370,10 @@ object IR_TensorExpressionN {
   }
 }
 
-/** Expression of a first order tensor
+/** Expression of a n-th order tensor
  *
  * @param innerDatatype : Option[IR_Datatype], Datatype of the saved expression
+ * @param dims : Integer:, dimensionality
  * @param ord : Integer, represent the order of the tensor
  */
 case class IR_TensorExpressionN(var innerDatatype : Option[IR_Datatype], var dims : Integer, var ord : Integer) extends IR_TensorExpression(innerDatatype, dims) {
