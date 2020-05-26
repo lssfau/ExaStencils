@@ -518,11 +518,11 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   def covertToTensor1(m: IR_Expression) : IR_TensorExpression1 = {
     m match {
       case m : IR_VariableAccess if m.datatype.isInstanceOf[IR_TensorDatatypeN]             =>
-        val tensN = m.datatype.asInstanceOf[IR_TensorExpressionN]
+        val tensN = m.datatype.asInstanceOf[IR_TensorDatatypeN]
         if (tensN.order != 1) {
-          Logger.error("Convert to Tensor2: input tensor has the wrong order")
+          Logger.error("Convert to Tensor1: input tensor has the wrong order")
         }
-        val tens1 = IR_TensorExpression1(tensN.innerDatatype, tensN.dims)
+        val tens1 = IR_TensorExpression1(tensN.resolveDeclType, tensN.dims)
         for (x <- 0 until tensN.dims) {
           tens1.set(x, getElem(m, 0, 0, List(x)))
         }
@@ -539,11 +539,11 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   def covertToTensor2(m: IR_Expression) : IR_TensorExpression2 = {
     m match {
       case m : IR_VariableAccess if m.datatype.isInstanceOf[IR_TensorDatatypeN]             =>
-        val tensN = m.datatype.asInstanceOf[IR_TensorExpressionN]
+        val tensN = m.datatype.asInstanceOf[IR_TensorDatatypeN]
         if (tensN.order != 2) {
           Logger.error("Convert to Tensor2: input tensor has the wrong order")
         }
-        val tens2 = IR_TensorExpression2(tensN.innerDatatype, tensN.dims)
+        val tens2 = IR_TensorExpression2(tensN.resolveDeclType, tensN.dims)
         for (y <- 0 until tensN.dims) {
           for (x <- 0 until tensN.dims) {
             tens2.set(x, y, getElem(m, 0, 0, List(x,y)))
@@ -1081,7 +1081,7 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
       if (call.arguments.length != 1) {
         Logger.error("asTensor2() must have two arguments")
       }
-      covertToTensor1(call.arguments.head) // TODO: Zeus, zu testen
+      covertToTensor2(call.arguments.head) // TODO: Zeus, zu testen
 
     case call : IR_FunctionCall if (call.name == "compare")                                       =>
       if (call.arguments.length != 2) {
