@@ -473,7 +473,7 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
 
   private def compareTensor2TensorN(m : IR_VariableAccess, n : IR_VariableAccess) : IR_Expression = {
     val tens1 = m.datatype.asInstanceOf[IR_TensorDatatypeN]
-    val tens2 = m.datatype.asInstanceOf[IR_TensorDatatype2]
+    val tens2 = n.datatype.asInstanceOf[IR_TensorDatatype2]
     if ((tens1.order != 2) || (tens1.dims != tens2.dims)) {
       IR_BooleanConstant(false)
     } else {

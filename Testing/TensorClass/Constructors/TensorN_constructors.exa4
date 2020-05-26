@@ -6,7 +6,7 @@ Globals {
 
 Function Application() : Unit {
 
-    Var m1 : TensorN< Real, 3 > = tensN{ 3;
+    Var m1 : TensorN< Real, 3, 3 > = tensN{ 3; 3;
         [0,0,0] := 1.0,
         [1,0,0] := 1,
         [2,0,0] := 1,
@@ -45,7 +45,7 @@ Function Application() : Unit {
 
         }
 
-    Var m2 : TensorN< Real, 2 > = tensN{ 2;
+    Var m2 : TensorN< Real, 3, 2 > = tensN{ 3; 2;
         [0,0] := 1.0,
         [1,0] := 1,
         [2,0] := 1,
@@ -55,7 +55,7 @@ Function Application() : Unit {
 
         }
 
-    Var m2t : Tensor2< Real > = tens2{
+    Var m2t : Tensor2< Real, 3 > = tens2{ 3;
         [0,0] := 1.0,
         [1,0] := 1,
         [2,0] := 1,
@@ -67,7 +67,7 @@ Function Application() : Unit {
 
     if ( compare( m2, m2t ) ) { print( "sucess m2 == m2t" ) }
 
-    Var m3 : TensorN< Real, 4 > = tensN{ 4;
+    Var m3 : TensorN< Real, 3, 4 > = tensN{ 3; 4;
         [0,0,0,0] := 1.0,
         [1,0,0,0] := 1,
         [2,0,0,0] := 1,
@@ -77,7 +77,7 @@ Function Application() : Unit {
 
         }
 
-    Var m4 : TensorN< Real, 2 > = tensN{ 2;
+    Var m4 : TensorN< Real, 3, 2 > = tensN{ 3; 2;
         [0,0] := 1.0,
         [1,0] := 1,
         [2,0] := 1,
@@ -92,11 +92,28 @@ Function Application() : Unit {
 
     }
 
-    Var m5 : TensorN< Real, 1 > = tensN{ 1;
+    Var m5 : TensorN< Real, 3, 1 > = tensN{ 3; 1;
         [0] := 1.0,
         [1] := 2.0,
         [2] := 3.0
         }
 
+    Var m6 : TensorN< Real, 2, 1 > = tensN{ 2; 1;
+        [0] := 1.0,
+        [1] := 2.0
+        }
+
+    Var m7 : TensorN< Real, 4, 1 > = tensN{ 4; 1;
+        [0] := 1.0,
+        [1] := 2.0,
+        [2] := 3.0,
+        [3] := 4.0
+        }
+
+    Var m8 : TensorN< Real, 4, 2 > = tensN{ 4; 2;
+        [0,0] := 1.0,
+        [1,0] := 2.0,
+        [2,0] := 3.0
+        }
 
 }
