@@ -18,19 +18,10 @@
 
 package exastencils.applications.swe.ir
 
-import exastencils.base.ir.IR_Assignment
-//import exastencils.base.ir._
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExpressionStatement
-import exastencils.base.ir.IR_FunctionCall
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_IntegerDatatype
-import exastencils.base.ir.IR_NullExpression
-import exastencils.base.ir.IR_UnresolvedFunctionReference
-import exastencils.baseExt.ir.IR_InternalVariable
-import exastencils.baseExt.ir.IR_LoopOverFragments
-import exastencils.datastructures.DefaultStrategy
-import exastencils.datastructures.Transformation
+import exastencils.base.ir._
+import exastencils.baseExt.ir._
+import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.prettyprinting.PpStream
 
