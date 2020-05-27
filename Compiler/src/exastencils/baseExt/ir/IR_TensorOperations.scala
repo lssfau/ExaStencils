@@ -234,38 +234,78 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   }
 
   //################################################################################################################
-  // Hight order functions
+  // determinant
 
-  /** Calculates the determine of a second order tensor
+  /** Calculates the determine of a second order tensor to compiletime
    *
    * @param m : IR_Expression, represent tensor
    * @return : IR_Expression, expression of determinant
    */
-  def determinant(m : IR_Expression) : IR_Expression = {
+  def determinant_compiletime(m : IR_Expression) : IR_Expression = {
     m match {
-      case m : IR_TensorExpression2                                               =>
-      Duplicate(m.get(0, 0) * m.get(1, 1) * m.get(2, 2) +
-        m.get(0, 1) * m.get(1, 2) * m.get(2, 0) +
-        m.get(0, 2) * m.get(1, 0) * m.get(2, 1) -
-        m.get(2, 0) * m.get(1, 1) * m.get(0, 2) -
-        m.get(2, 1) * m.get(1, 2) * m.get(0, 0) -
-        m.get(2, 2) * m.get(1, 0) * m.get(0, 1))
-      case m : IR_VariableAccess if (m.datatype.isInstanceOf[IR_TensorExpression2]) =>  // TODO: N-Dimensional
+      case m : IR_VariableAccess if (m.datatype.isInstanceOf[IR_TensorDatatype2]) =>  // TODO: N-Dimensional
+        val tmp = m.datatype.asInstanceOf[IR_TensorDatatype2]
         val acc = IR_HighDimAccess
         val ind = IR_ExpressionIndex
-        IR_Addition(
-          IR_Multiplication(acc(m, ind(0 + 0* 3)), acc(m, ind(1 + 1*3)), acc(m, ind(2 + 2*3))),
-          IR_Multiplication(acc(m, ind(0 + 1*3)), acc(m, ind(1 + 2*3)), acc(m, ind(2 + 0*3))),
-          IR_Multiplication(acc(m, ind(0 + 2*3)), acc(m, ind(1 + 0*3)), acc(m, ind(2 + 1*3))),
-          IR_Subtraction(0, IR_Multiplication(acc(m, ind(2 + 0*3)), acc(m, ind(1 + 1*3)), acc(m, ind(0 + 2*3)))),
-          IR_Subtraction(0, IR_Multiplication(acc(m, ind(2 + 1*3)), acc(m, ind(1 + 2*3)), acc(m, ind(0 + 0*3)))),
-          IR_Subtraction(0, IR_Multiplication(acc(m, ind(2 + 2*3)), acc(m, ind(1 + 0*3)), acc(m, ind(0 + 1*3))))
-        )
+        if (tmp.dims == 3) {
+          IR_Addition(
+            IR_Multiplication(acc(m, ind(0 + 0 * 3)), acc(m, ind(1 + 1 * 3)), acc(m, ind(2 + 2 * 3))),
+            IR_Multiplication(acc(m, ind(0 + 1 * 3)), acc(m, ind(1 + 2 * 3)), acc(m, ind(2 + 0 * 3))),
+            IR_Multiplication(acc(m, ind(0 + 2 * 3)), acc(m, ind(1 + 0 * 3)), acc(m, ind(2 + 1 * 3))),
+            IR_Subtraction(0, IR_Multiplication(acc(m, ind(2 + 0 * 3)), acc(m, ind(1 + 1 * 3)), acc(m, ind(0 + 2 * 3)))),
+            IR_Subtraction(0, IR_Multiplication(acc(m, ind(2 + 1 * 3)), acc(m, ind(1 + 2 * 3)), acc(m, ind(0 + 0 * 3)))),
+            IR_Subtraction(0, IR_Multiplication(acc(m, ind(2 + 2 * 3)), acc(m, ind(1 + 0 * 3)), acc(m, ind(0 + 1 * 3))))
+          )
+        } else {
+          IR_Addition(
+            IR_Multiplication(acc(m, ind(0)), acc(m, ind(3))),
+            IR_Subtraction(0, IR_Multiplication(acc(m, ind(1)), acc(m, ind(2))))
+          )
+        }
       case _   => Logger.error("Determine got the wrong type")
     }
   }
 
-  /** Calculates the trace of a tensor
+  /** Calculates the determine of a second order tensor to compiletime
+   *
+   * @param m : IR_Expression, represent tensor
+   * @return : IR_Expression, expression of determinant
+   */
+  def determinant_runtime(m: IR_Expression) : IR_Scope = {
+    m match {
+      case m : IR_VariableAccess if (m.datatype.isInstanceOf[IR_TensorDatatype2])  =>
+        val tmp = m.datatype.asInstanceOf[IR_TensorDatatype2]
+        val det = IR_Scope(Nil)
+
+        det
+      case _  => Logger.error("Determine got the wrong type")
+    }
+
+  }
+
+  //################################################################################################################
+  // Trace
+
+  def inner_trace2(m : IR_VariableAccess, i : Int, dims : Int) : IR_Expression = {
+      i match {
+        case i if (i > 0) => IR_Addition(IR_HighDimAccess(m, IR_ExpressionIndex(i-1 + (i-1)*dims)), inner_trace2(m, i-1, dims))
+        case _ => IR_RealConstant(0.0)
+      }
+  }
+
+  def inner_traceN(m : IR_VariableAccess, i : Int, dims : Int, order : Int) : IR_Expression = {
+    i match {
+      case i if (i > 0) =>
+        var index = 0
+        for (k <- 0 until order){
+          index = index + (i -1) * pow(dims.toDouble, k.toDouble).toInt
+        }
+        IR_Addition(IR_HighDimAccess(m, IR_ExpressionIndex(index)), inner_traceN(m, i - 1, dims, order))
+      case _ => IR_RealConstant(0.0)
+    }
+  }
+
+  /** Calculates the trace of a tensor to compiletime
    *
    * @param m : IR_Expression, represent tensor
    * @return : IR_Expression, expression of trace
@@ -273,9 +313,24 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   def trace(m : IR_Expression) : IR_Expression = {
     m match {
       case m : IR_TensorExpression2 => IR_Addition(m.get(0, 0), m.get(1, 1), m.get(2, 2))
-      case m : IR_VariableAccess if (m.datatype.isInstanceOf[IR_TensorDatatype2])   => //TODO: N-Dimensional
-        IR_Addition(IR_HighDimAccess(m, IR_ExpressionIndex(0)), IR_HighDimAccess(m, IR_ExpressionIndex(1 + 1 * 3)),
-          IR_HighDimAccess(m, IR_ExpressionIndex(2 + 2 * 3)))
+      case m : IR_VariableAccess if (m.datatype.isInstanceOf[IR_TensorDatatype2]) &&
+        (m.datatype.asInstanceOf[IR_TensorDatatype2].dims == 2)       =>
+        IR_Addition(IR_HighDimAccess(m, IR_ExpressionIndex(0)), IR_HighDimAccess(m, IR_ExpressionIndex(2)))
+      case m : IR_VariableAccess if (m.datatype.isInstanceOf[IR_TensorDatatype2]) &&
+        (m.datatype.asInstanceOf[IR_TensorDatatype2].dims == 3)       =>
+        IR_Addition(IR_HighDimAccess(m, IR_ExpressionIndex(0)), IR_HighDimAccess(m, IR_ExpressionIndex(5)),
+          IR_HighDimAccess(m, IR_ExpressionIndex(8)))
+      case m : IR_VariableAccess if (m.datatype.isInstanceOf[IR_TensorDatatype2]) &&
+        (m.datatype.asInstanceOf[IR_TensorDatatype2].dims > 3)       =>
+        val dims = m.datatype.asInstanceOf[IR_TensorDatatype2].dims
+        val i = dims
+        inner_trace2(m, i, dims)
+      case m : IR_VariableAccess if (m.datatype.isInstanceOf[IR_TensorDatatypeN]) &&
+        (m.datatype.asInstanceOf[IR_TensorDatatypeN].dims > 3)       =>
+        val dims = m.datatype.asInstanceOf[IR_TensorDatatypeN].dims
+        val order = m.datatype.asInstanceOf[IR_TensorDatatypeN].order
+        val i = dims
+        inner_traceN(m, i, dims, order)
       case _  => Logger.error("Trace got the wrong type")
     }
   }
@@ -1035,18 +1090,6 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
 
   this += new Transformation("resolution of built-in functions 2/2", {
 
-    case call : IR_FunctionCall if (call.name == "deter")    => // TODO : instanz prüfen
-      if (call.arguments.length != 1) {
-        Logger.error("det() must have one argument")
-      }
-      determinant(call.arguments.head)  // TODO: Zeus, zu testen
-
-    case call : IR_FunctionCall if (call.name == "trace")    => // TODO : instanz prüfen
-      if (call.arguments.length != 1) {
-        Logger.error("trace() must have one argument")
-      }
-      trace(call.arguments.head)  // TODO: Zeus, zu testen
-
     case call : IR_FunctionCall if (call.name == "dyadic")    => // TODO : instanz prüfen
       if (call.arguments.length != 2) {
         Logger.error("trace() must have one argument")
@@ -1088,6 +1131,28 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
         Logger.error("compare() must have two arguments")
       }
       compare(call.arguments(0), call.arguments(1)) // TODO: Zeus, zu testen
+
+    case IR_ExpressionStatement(call) if (call.isInstanceOf[IR_FunctionCall]) &&
+      (call.asInstanceOf[IR_FunctionCall].name == "deter") &&
+      (call.asInstanceOf[IR_FunctionCall].arguments.head.isInstanceOf[IR_TensorDatatype2]) &&
+      (List(2,3).contains(call.asInstanceOf[IR_FunctionCall].arguments.head.asInstanceOf[IR_TensorDatatype2].dims)) => // TODO : instanz prüfen
+      val call_res = call.asInstanceOf[IR_FunctionCall]
+      if (call_res.arguments.length != 1) {
+        Logger.error("det() must have one argument")
+      }
+      determinant_runtime(call_res.arguments.head)  // TODO: Zeus, zu testen
+
+    case call : IR_FunctionCall if (call.name == "deter")    => // TODO : instanz prüfen
+      if (call.arguments.length != 1) {
+        Logger.error("trace() must have one argument")
+      }
+      determinant_compiletime(call.arguments.head)  // TODO: Zeus, zu testen
+
+    case call : IR_FunctionCall if (call.name == "trace")    => // TODO : instanz prüfen
+      if (call.arguments.length != 1) {
+        Logger.error("trace() must have one argument")
+      }
+      trace(call.arguments.head)  // TODO: Zeus, zu testen
 /*
     case IR_ExpressionStatement(call) if (call.isInstanceOf[IR_FunctionCall]) && (call.asInstanceOf[IR_FunctionCall].name == "eigen")            =>
       val call_res = call.asInstanceOf[IR_FunctionCall]
