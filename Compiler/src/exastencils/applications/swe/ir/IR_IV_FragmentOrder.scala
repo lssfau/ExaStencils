@@ -25,8 +25,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.DefaultNeighbors
 import exastencils.datastructures._
-import exastencils.domain.ir.IR_IV_NeighborIsRemote
-import exastencils.domain.ir.IR_IV_NeighborIsValid
+import exastencils.domain.ir._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.prettyprinting.PpStream
 
@@ -73,16 +72,21 @@ object IR_ResolveFragmentOrder extends DefaultStrategy("ResolveFragmentOrder") {
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("setFragmentOrder", _), args)) =>
       // usage: setFragmentOrder ( fragmentIdx, order )
       IR_Assignment(IR_IV_FragmentOrder(args(0)), args(1))
+
+    case IR_ExpressionStatement(call : IR_FunctionCall) if "communicateFragOrder" == call.name =>
+      def fragmentIdx = IR_LoopOverFragments.defIt
+
+      var statements = ListBuffer[IR_Statement]()
+      for (neigh <- DefaultNeighbors.neighbors) {
+        statements += IR_IfCondition(
+          IR_IV_NeighborIsValid(0, neigh.index),
+          IR_IfCondition(
+            IR_IV_NeighborIsRemote(0, neigh.index),
+            IR_Assignment( // this is the branch for local neighbors, ie when IR_IV_NeighborIsRemote is false
+              IR_IV_NeighFragOrder(fragmentIdx, neigh.index), // the order looks wrong; this needs to use the fragment index of the neighbor; this needs to use the neighbor index as seen from the neighbor
+              IR_IV_FragmentOrder(fragmentIdx)))) // fragmentIdx is optional and could be omitted
+      }
+
+      IR_LoopOverFragments(statements)
   })
 }
-
-abstract class IR_IV_CommunicateFragmentOrder() {
-  var statements : ListBuffer[IR_Statement]
-  var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
-  for (neigh <- DefaultNeighbors.neighbors) {
-    statements += IR_IfCondition(IR_IV_NeighborIsValid(0, neigh.index), IR_IfCondition(IR_IV_NeighborIsRemote(0, neigh.index), IR_Assignment(IR_IV_NeighFragOrder(fragmentIdx, neigh.index), IR_IV_FragmentOrder(fragmentIdx))))
-  }
-
-  IR_LoopOverFragments(statements)
-}
-
