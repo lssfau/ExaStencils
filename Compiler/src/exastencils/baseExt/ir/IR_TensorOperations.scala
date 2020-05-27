@@ -582,11 +582,28 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
           tens1.set(x, getElem(m, 0, 0, List(x)))
         }
         tens1
+      case m : IR_VariableAccess if m.datatype.isInstanceOf[IR_MatrixDatatype]              =>
+        val matrix = m.datatype.asInstanceOf[IR_MatrixDatatype]
+        if (matrix.sizeM != 1 && matrix.sizeN == 1) {
+          val tens1 = IR_TensorExpression1(matrix.resolveDeclType, matrix.sizeM)
+          for (x <- 0 until matrix.sizeM) {
+            tens1.set(x, IR_HighDimAccess(m, IR_ExpressionIndex(x, 0)))
+          }
+          tens1
+        } else if (matrix.sizeM != 1 && matrix.sizeN == 1) {
+          val tens1 = IR_TensorExpression1(matrix.resolveDeclType, matrix.sizeM)
+          for (y <- 0 until matrix.sizeM) {
+            tens1.set(y, IR_HighDimAccess(m, IR_ExpressionIndex(0, y)))
+          }
+          tens1
+        } else {
+          Logger.error("Convert to Tensor1: input matrix is not one dimensional")
+        }
       case _      => Logger.error("Convert to Tensor2: got wrong input type")
     }
   }
 
-  /** Converts a TensorN to a Tensor2
+  /** Converts a TensorN or Matrix to a Tensor2
    *
    * @param m : IR_Expression, represents the input tensor
    * @return IR_TensorExpression2
@@ -602,6 +619,18 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
         for (y <- 0 until tensN.dims) {
           for (x <- 0 until tensN.dims) {
             tens2.set(x, y, getElem(m, 0, 0, List(x,y)))
+          }
+        }
+        tens2
+      case m : IR_VariableAccess if m.datatype.isInstanceOf[IR_MatrixDatatype]              =>
+        val matrix = m.datatype.asInstanceOf[IR_MatrixDatatype]
+        if (matrix.sizeM != matrix.sizeN) {
+          Logger.error("Convert to Tensor2: input matrix is not squared")
+        }
+        val tens2 = IR_TensorExpression2(matrix.resolveDeclType, matrix.sizeN)
+        for (y <- 0 until matrix.sizeN) {
+          for (x <- 0 until matrix.sizeN) {
+            tens2.set(x, y, IR_HighDimAccess(m, IR_ExpressionIndex(x, y)))
           }
         }
         tens2
