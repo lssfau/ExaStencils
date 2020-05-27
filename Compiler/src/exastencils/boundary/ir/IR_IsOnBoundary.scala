@@ -30,8 +30,6 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.domain.ir.IR_IV_NeighborIsValid
 import exastencils.field.ir._
-import exastencils.domain.ir.IR_IV_NeighborIsValid
-import exastencils.field.ir._
 
 /// IR_IsOnBoundary
 

@@ -18,10 +18,15 @@
 
 package exastencils.applications.swe.ir
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.communication.DefaultNeighbors
 import exastencils.datastructures._
+import exastencils.domain.ir.IR_IV_NeighborIsRemote
+import exastencils.domain.ir.IR_IV_NeighborIsValid
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.prettyprinting.PpStream
 
@@ -70,3 +75,14 @@ object IR_ResolveFragmentOrder extends DefaultStrategy("ResolveFragmentOrder") {
       IR_Assignment(IR_IV_FragmentOrder(args(0)), args(1))
   })
 }
+
+abstract class IR_IV_CommunicateFragmentOrder() {
+  var statements : ListBuffer[IR_Statement]
+  var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
+  for (neigh <- DefaultNeighbors.neighbors) {
+    statements += IR_IfCondition(IR_IV_NeighborIsValid(0, neigh.index), IR_IfCondition(IR_IV_NeighborIsRemote(0, neigh.index), IR_Assignment(IR_IV_NeighFragOrder(fragmentIdx, neigh.index), IR_IV_FragmentOrder(fragmentIdx))))
+  }
+
+  IR_LoopOverFragments(statements)
+}
+
