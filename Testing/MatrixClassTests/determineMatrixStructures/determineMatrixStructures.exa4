@@ -92,7 +92,7 @@ Function Application ( ) : Unit {
 
 	Var mat_inverse10 : Matrix<Double, 5, 5> = inverse(bait5, "Determine")
 
-*/
+
 	// runtime determine structure tests
 	// blockdiagonal
 	Var t1 : Matrix<Double, 6, 6> = {{12.13, 2, 1.13, 0, 0, 0}, {4.13, 3, 4.113, 0, 0, 0}, {3.13, 3.141, 1, 0, 0, 0}, {0, 0, 0, 1.214, 4.52, 6.35},{0, 0, 0, 3.345, -1.345, 6.534}, {0, 0, 0, 4.435, 1.34, 3.13}}
@@ -107,16 +107,16 @@ Function Application ( ) : Unit {
 	Var t2_inverse : Matrix<Double,6,6> 
 	t2_inverse = inverse(t2, "DetermineRuntime")
 	Var t2_sol : Matrix<Double, 6, 6> = {{0.89047195013357079252,0,0,0,0,0},{0,0.46382189239332096474,0,0,0,0},{0,0,0.31897926634768740031,0,0,0},{0,0,0,0.22065313327449249779	,0,0},{0,0,0,0,0.46926325668700140778,0},{0,0,0,0,0,0.1918281220026855937}}
-	compare(t2_inverse,t2_sol,prec)
+	compare(t2_inverse,t2_sol,0.001)
 
 	// filled 
 	Var t3 : Matrix<Double, 4, 4> = {{1.0, 2, 1, 3}, {4, 2, 1, 2}, {4, 1, 3, 2}, {1, 1, 2, 3}}
 	Var t3_inverse : Matrix<Double, 4 ,4>
 	t3_inverse = inverse(t3, "DetermineRuntime")	
 	Var t3_sol : Matrix<Real, 4, 4> = {{-0.7,0.6,-0.3,0.5},{2,-1,1,-2},{1,-1,1,-1},{-1.1,0.8,-0.9,1.5}}
-	compare(t3_inverse,t3_sol,prec)
+	compare(t3_inverse,t3_sol,0.001)
 
-
+*/
 	// schur
 	Var t4 : Matrix<Double, 7, 7> = {{1.0, 2, 1, 0, 0, 0, 3}, {4, 2, 1, 0, 0, 0, 1}, {1,5,1,0,0,0,5},{0, 0, 0, 4, 1, 3, 2}, {0, 0, 0, 1, 1, 2, 3}, {0,0,0,4,6,7,3},{3,5,7,4,4,5,1}}
 	Var t4_inverse : Matrix<Double, 7, 7> 
