@@ -11,6 +11,7 @@ import exastencils.base.ir.IR_HighDimAccess
 import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_VariableAccess
+import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.base.ir.IR_WhileLoop
 import exastencils.config.Knowledge
 import exastencils.core.collectors.Collector
@@ -18,24 +19,29 @@ import exastencils.datastructures.Node
 import exastencils.logger.Logger
 
 class IR_MatrixWriteCollector extends Collector {
-  var writes = ListBuffer[ListBuffer[String]]()
+  var writes = ListBuffer[String]()
+  var decls = ListBuffer[ListBuffer[IR_VariableDeclaration]]()
   this.reset()
 
   def openNewScope() = {
-    writes += writes.last.clone()
+    decls += decls.last.clone()
   }
 
   def closeScope() = {
-    writes.trimEnd(1)
+    decls.trimEnd(1)
   }
 
   def addWrite(dest : IR_Expression) {
     dest match {
-      case va : IR_VariableAccess => writes.last += va.name
+      case va : IR_VariableAccess => writes += va.name
         // access to matrix variable transformed to a matrix expression
-      case x : IR_MatrixExpression if(x.get(0,0).isInstanceOf[IR_HighDimAccess]) => writes.last += x.get(0,0).asInstanceOf[IR_HighDimAccess].uniqueID
+      case x : IR_MatrixExpression if(x.get(0,0).isInstanceOf[IR_HighDimAccess]) => writes += x.get(0,0).asInstanceOf[IR_HighDimAccess].uniqueID
       case _ => Logger.error("unexpected type")
     }
+  }
+
+  def addDecl(d : IR_VariableDeclaration) {
+    decls.last += d
   }
 
   override def enter(node : Node) : Unit = {
@@ -57,6 +63,7 @@ class IR_MatrixWriteCollector extends Collector {
       case inv @ IR_Inverse(arg, _, _, _) if (Knowledge.experimental_inplaceInversion)       => addWrite(arg)
       case s @ IR_SetElement(arg)                                                            => addWrite(arg(0))
       case s @ IR_SetSlice(arg)                                                              => addWrite(arg(0))
+      case d : IR_VariableDeclaration => addDecl(d)
       case _                                                                                 =>
     }
   }
@@ -75,12 +82,23 @@ class IR_MatrixWriteCollector extends Collector {
 
   override def reset() : Unit = {
     writes.clear()
-    writes += new ListBuffer[String]()
+    decls.clear()
+    decls += new ListBuffer[IR_VariableDeclaration]()
+  }
+
+  def lastDecl(key : String) : Option[IR_VariableDeclaration] = {
+    var d = decls.last.find(p => p.name == key)
+    var idx : Int = decls.length - 1
+    while(d.isEmpty && idx >= 0) {
+      d = decls(idx).find(p => p.name == key)
+      idx -= 1
+    }
+    d
   }
 
   def writeInScope(key : String) : Boolean = {
     //TODO check not this write?
-    writes.last.find(p => p == key) != None
+    writes.find(p => p == key) != None
   }
 
 }
