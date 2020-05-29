@@ -197,12 +197,20 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_PreItMOps.apply()
     var c = true
-    while(c) {
+    while (c) {
+      IR_GeneralSimplify.doUntilDone()
+      IR_ExtInlMOps.apply()
       IR_ResolveMOps.apply()
-      if(IR_ResolveMOps.results.forall(t => t._2.matches == 0)) {
+      IR_ResolveMfuncs.apply()
+      if(IR_ExtInlMOps.results.forall(t => t._2.matches == 0) &&
+        IR_ResolveMfuncs.results.forall(t => t._2.matches == 0) &&
+        IR_ResolveMfuncs.results.forall(t => t._2.matches == 0)
+      ) {
         c = false
       }
+      IR_ExtInlMOps.reset()
       IR_ResolveMOps.reset()
+      IR_ResolveMfuncs.reset()
     }
     IR_PostItMOps.apply()
     IR_LinearizeMatrices.apply()
@@ -357,4 +365,5 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_HACK_TypeAliases.apply()
   }
+
 }

@@ -618,8 +618,7 @@ object IR_CompiletimeInversion {
       }
       case "GaussJordan"
       => {
-        var tmp = gaussJordanInverse(that)
-        tmp
+        gaussJordanInverse(that)
       }
       case "Filled"
       => {
@@ -667,13 +666,12 @@ object IR_CompiletimeInversion {
     }
   }
 
-  def gaussJordanInverse(that : IR_MatrixExpression) : IR_MatrixExpression = {
-    val matrix = Duplicate(that)
+  def gaussJordanInverse(matrix : IR_MatrixExpression) : IR_MatrixExpression = {
+    //var matrix = Duplicate(that)
     val other = IR_MatrixExpression(matrix.datatype, matrix.rows, matrix.columns)
     for (i <- 0 until other.rows) {
       for (j <- 0 until other.columns) {
-        if (i == j) other.set(i, j, 1.0);
-        else other.set(i, j, 0.0)
+        if (i == j) other.set(i, j, 1.0); else other.set(i, j, 0.0)
       }
     }
 

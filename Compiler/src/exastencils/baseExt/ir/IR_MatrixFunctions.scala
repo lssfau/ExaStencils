@@ -17,6 +17,7 @@ import exastencils.base.ir.IR_UnknownDatatype
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.config.Knowledge
+import exastencils.config.Settings
 import exastencils.core.Duplicate
 import exastencils.core.StateManager
 import exastencils.logger.Logger
@@ -24,18 +25,22 @@ import exastencils.optimization.ir.EvaluationException
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.prettyprinting.PpStream
 
+// nodes that have to be checked for inlining and argument availability
 trait IR_ResolvableMNode extends IR_Expression {
   def isResolvable() : Boolean
 }
 
+// nodes resolved to one result matrix/scalar - compiletime operations
 trait IR_MExpressionFunction extends IR_ResolvableMNode {
   def resolve() : IR_Expression
 }
 
+// nodes resolved to statements that execute a calculation at runtime
 trait IR_MStatementFunction extends IR_ResolvableMNode {
   def resolve() : IR_Scope
 }
 
+// nodes that have to be considered for inlining
 trait IR_ExtractableMNode extends IR_Expression {
   def isExtractable() : Boolean
 }
@@ -45,18 +50,17 @@ trait IR_InlinableMNode extends IR_Expression {
   def isInlineable() : Boolean
 }
 
+// node to mark/ wrap declarations to temporary variables of extraction strategy
 object IR_InlineableDeclaration {
   def apply(datatype : IR_Datatype, name : String, initialValue : IR_Expression) = {
     new IR_InlineableDeclaration(datatype, name, initialValue)
   }
 }
-
 case class IR_InlineableDeclaration(
     datatype : IR_Datatype,
     name : String,
     initialValue : IR_Expression
 ) extends IR_Statement {
-
   def isInlineable() : Boolean = {
       (initialValue match {
         case inv : IR_Inverse     => IR_BasicMatrixOperations.getSize(inv.arg)._1 < 4 && !inv.resolveAtRuntime
@@ -65,11 +69,39 @@ case class IR_InlineableDeclaration(
         case _                    => false
       })
   }
-
   override def prettyprint(out : PpStream) : Unit = Logger.error("internal node not resolved")
 }
 
+/*
+object IR_ExtractableStatement {
+  def apply(inner : IR_Statement, nExtractables : Int) = {
+    new IR_ExtractableStatement(inner, nExtractables)
+  }
+}
+case class IR_ExtractableStatement(inner : IR_Statement, var nExtractables : Int) extends IR_Statement {
+  override def prettyprint(out : PpStream) : Unit = ???
+}
 
+case class IR_ExtractableDeclaration(
+    var datatype : IR_Datatype,
+    var name : String,
+    var initialValue : IR_Expression,
+    var nExtractables : Int,
+    var isConst : Boolean = false
+)  extends IR_Statement {
+  override def prettyprint(out : PpStream) : Unit = Logger.error("inner node not resolved")
+}
+case class IR_ExtractableAssignment(
+    var dest : IR_Expression,
+    var src : IR_Expression,
+    var nExtractables : Int,
+    var op : String = "="
+) extends IR_Statement {
+  override def prettyprint(out : PpStream) : Unit =  Logger.error("inner node not resolved")
+}
+ */
+
+// pre calculation inverse node: parse arguments(structure information and time of execution) and extract, will be transformed to IR_InverseCT or IR_InverseRT
 object IR_Inverse {
   def apply(
       arg : IR_Expression,
@@ -83,7 +115,6 @@ object IR_Inverse {
     }
     new IR_Inverse(argexpr, structureInformation, determineStructure, Knowledge.experimental_resolveInverseFunctionCall == "Runtime")
   }
-
   def apply(args : ListBuffer[IR_Expression]) = {
     var determineStructure = "no"
     var matrixStructure = "Filled"
@@ -147,28 +178,18 @@ object IR_Inverse {
       var structureInformation = args(0) match {
         case va @ IR_VariableAccess(name, IR_MatrixDatatype(_, _, _)) =>
           var foundDecls = StateManager.findAll[IR_VariableDeclaration]().filter(d => d.name == name)
-          foundDecls.length match {
-            case 0 => Logger.error(s"could not localize declaration of: $va")
-            case 1 =>
-              var decl = foundDecls(0)
-
+              var decl = IR_PreItMOps.variableCollector.lastDecl(name).getOrElse(Logger.error("declaration not found"))
               decl.initialValue match {
                 case None                                   => Logger.error("trying to classify not initialized matrix variable at compiletime!")
                 case Some(x @ IR_MatrixExpression(_, _, _)) =>
-                  //TODO what if there are assignments between declaration and inverse call -> not compiletime constant, inverse call executes nevertheless
-                  // -> need to find all accesses to that matrix variable to make sure its compiletime constant -> there must not be any modifications to that matrix variable
-                  //TODO collector check
                   //if (IR_MatrixNodeUtilities.notWrittenTo(name)) {
-                  if(!IR_PreItMOps.writeCollector.writeInScope(name)) {
+                  if(!IR_PreItMOps.variableCollector.writeInScope(name)) {
                     IR_DetermineMatrixStructure.isOfStructure(x)
                   }
                   else
                     Logger.error("found assignment to matrix input that was to classify, cannot classify non compiletime constant matrices!")
                 case _                                      => Logger.error(s"unexpected initialization value: ${ decl.initialValue }, expected matrix expression!")
               }
-            case _ => Logger.error(s"thought declarations should be unique, found multiple declarations with name: $name")
-          }
-
         case x : IR_MatrixExpression =>
           IR_DetermineMatrixStructure.isOfStructure(x)
       }
@@ -181,7 +202,6 @@ object IR_Inverse {
     new IR_Inverse(args(0), (matrixStructure, blocksize, matrixStructure_A, blocksize_A), determineStructure, Knowledge.experimental_resolveInverseFunctionCall == "Runtime")
   }
 }
-
 case class IR_Inverse(
     arg : IR_Expression,
     structureInformation : (String, Int, String, Int),
@@ -194,6 +214,7 @@ case class IR_Inverse(
   override def isExtractable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arg)
 }
 
+// pre calculation slice node: parse arguments(determine argument availability for compiletime execution) and extract, will be transformed to IR_GetSliceCT or IR_GetSliceRT
 object IR_GetSlice {
   def apply(args : ListBuffer[IR_Expression]) = {
     var evaluatable = true
@@ -212,7 +233,6 @@ object IR_GetSlice {
     }
   }
 }
-
 case class IR_GetSlice(
     var arguments : ListBuffer[IR_Expression],
     resolveAtRuntime : Boolean,
@@ -223,6 +243,8 @@ case class IR_GetSlice(
   override def isExtractable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arguments(0)) && !datatype.equals(IR_UnknownDatatype)
 }
 
+ // pre calculation det node: parse arguments(determine matrix size and depending on size execution in run/compiletime)
+ // and extract, will be transformed to IR_DeterminantCT or IR_DeterminantRT
 object IR_Determinant {
   def apply(args : IR_Expression) = {
     var inMatrix = args match {
@@ -236,7 +258,6 @@ object IR_Determinant {
       new IR_Determinant(inMatrix, false)
   }
 }
-
 case class IR_Determinant(
     var arg : IR_Expression,
     resolveAtRuntime : Boolean = false
@@ -246,6 +267,7 @@ case class IR_Determinant(
   override def isExtractable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arg)
 }
 
+// inverse node for compiletime execution
 object IR_InverseCT {
   def apply(inv : IR_Inverse) = {
     new IR_InverseCT(inv.arg, inv.structureInformation)
@@ -254,7 +276,6 @@ object IR_InverseCT {
     new IR_InverseCT(arg, structureInformation)
   }
 }
-
 case class IR_InverseCT(
     arg : IR_Expression,
     structureInformation : (String, Int, String, Int) = ("Filled", -1, "-1", -1)
@@ -268,17 +289,19 @@ case class IR_InverseCT(
       case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) => IR_MatrixNodeUtilities.accessToExpression(va)
       case _                                                     => Logger.error(s"argument of unexpected type: ${ arg }")
     }
-    IR_CompiletimeInversion.inverse(argexpr, structureInformation)
+    var tmp = IR_CompiletimeInversion.inverse(argexpr, structureInformation)
+    //IR_GeneralSimplify.doUntilDoneStandalone(tmp)
+    tmp
   }
   override def isResolvable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arg)
 }
 
+  // inverse node for runtime execution
 object IR_InverseRT {
   def apply(dest : IR_VariableAccess, inv : IR_Inverse) = {
-    new IR_InverseRT(dest, inv.arg, inv.structureInformation, inv.determineStructure == "DetermineRT")
+    new IR_InverseRT(dest, inv.arg, inv.structureInformation, inv.determineStructure == "DetermineRuntime")
   }
 }
-
 case class IR_InverseRT(
     dest : IR_VariableAccess,
     arg : IR_Expression,
@@ -289,6 +312,14 @@ case class IR_InverseRT(
   //  override def prettyprint(out : PpStream) = Logger.error("internal node no resolved!")
   override def prettyprint(out : PpStream) = out << "inverseRT(" << arg << ")"
   override def resolve() : IR_Scope = {
+    // add header to find different inverse functions and std::string
+    if (!Settings.additionalIncludes.contains("Util/Util.h"))
+      Settings.additionalIncludes += "Util/Util.h"
+    if (!Settings.additionalIncludes.contains("string"))
+      Settings.additionalIncludes += "string"
+    if (!Settings.additionalIncludes.contains("iostream"))
+      Settings.additionalIncludes += "iostream"
+
     var newstmts = ListBuffer[IR_Statement]()
     var inMatrix = arg match {
       case x @ IR_MatrixExpression(_, _, _) =>
@@ -298,10 +329,13 @@ case class IR_InverseRT(
       case va : IR_VariableAccess           => va
       case _                                => Logger.error(s"unexpected argument type: ${ arg }")
     }
+
     if (determineStructureAtRuntime) {
+    // runtime inversion with structure classification
       newstmts += IR_GenerateRuntimeInversion.inverseBranchAtRuntime(inMatrix, dest.name, dest)
     }
     else {
+    // plain runtime inversion
       newstmts += IR_GenerateRuntimeInversion.inverse(inMatrix, dest, structureInformation)
     }
     IR_Scope(newstmts)
@@ -309,6 +343,7 @@ case class IR_InverseRT(
   override def isResolvable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arg)
 }
 
+  // slice node for compiletime execution
 object IR_GetSliceCT {
   def apply(inMatrix : IR_Expression, args : ListBuffer[Int]) = {
     new IR_GetSliceCT(inMatrix, args)
@@ -319,7 +354,6 @@ object IR_GetSliceCT {
     new IR_GetSliceCT(gs.arguments(0), params)
   }
 }
-
 case class IR_GetSliceCT(
     inMatrix : IR_Expression,
     params : ListBuffer[Int]
@@ -332,10 +366,10 @@ case class IR_GetSliceCT(
   override def isResolvable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(inMatrix)
 }
 
+  // slice node for runtime execution
 object IR_GetSliceRT {
   def apply(dest : IR_VariableAccess, args : IR_Expression*) = new IR_GetSliceRT(dest, args.to[ListBuffer])
 }
-
 case class IR_GetSliceRT(dest : IR_VariableAccess, var args : ListBuffer[IR_Expression]) extends IR_Expression with IR_MStatementFunction {
   // cant define datatype if length of slice is runtime dependent
   override def datatype = IR_UnknownDatatype
@@ -346,10 +380,10 @@ case class IR_GetSliceRT(dest : IR_VariableAccess, var args : ListBuffer[IR_Expr
   override def isResolvable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(args(0))
 }
 
+  // determinant node for compiletime execution
 object IR_DeterminantCT {
   def apply(det : IR_Determinant) = new IR_DeterminantCT(det.arg)
 }
-
 case class IR_DeterminantCT(arg : IR_Expression) extends IR_Expression with IR_MExpressionFunction {
   override def datatype = arg.datatype.resolveBaseDatatype
   override def prettyprint(out : PpStream) = Logger.error("internal node no resolved!")
@@ -359,10 +393,10 @@ case class IR_DeterminantCT(arg : IR_Expression) extends IR_Expression with IR_M
   override def isResolvable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arg)
 }
 
+  // determinant node for runtime execution
 object IR_DeterminantRT {
   def apply(dest : IR_VariableAccess, arg : IR_Expression) = new IR_DeterminantRT(dest, arg)
 }
-
 case class IR_DeterminantRT(dest : IR_VariableAccess, var arg : IR_Expression) extends IR_Expression with IR_MStatementFunction {
   override def datatype = arg.datatype.resolveBaseDatatype
   override def prettyprint(out : PpStream) = Logger.error("internal node no resolved!")
@@ -382,10 +416,10 @@ case class IR_DeterminantRT(dest : IR_VariableAccess, var arg : IR_Expression) e
   override def isResolvable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arg)
 }
 
+  // transpose node for compiletime execution
 object IR_Transpose {
   def apply(args : IR_Expression) = new IR_Transpose(args)
 }
-
 case class IR_Transpose(var arg : IR_Expression)
   extends IR_ExtractableMNode with IR_MExpressionFunction {
   def name = "transpose"
@@ -398,10 +432,10 @@ case class IR_Transpose(var arg : IR_Expression)
   override def isExtractable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arg)
 }
 
+ // dot product node for compiletime execution
 object IR_DotProduct {
   def apply(args : IR_Expression*) = new IR_DotProduct(args.to[ListBuffer])
 }
-
 case class IR_DotProduct(
     var arguments : ListBuffer[IR_Expression]
 ) extends IR_ExtractableMNode with IR_MExpressionFunction {
@@ -411,14 +445,15 @@ case class IR_DotProduct(
   override def resolve() : IR_Expression = {
     IR_BasicMatrixOperations.dotProduct(arguments(0), arguments(1))
   }
-  override def isResolvable() : Boolean = !this.hasAnnotation(IR_ResolveMOps.potentialInline) && arguments.forall(arg => IR_MatrixNodeUtilities.isEvaluatable(arg))
+//  override def isResolvable() : Boolean = !this.hasAnnotation(IR_ResolveMOps.potentialInline) && arguments.forall(arg => IR_MatrixNodeUtilities.isEvaluatable(arg))
+  override def isResolvable() : Boolean = !this.hasAnnotation(IR_ExtInlMOps.potentialInline) && arguments.forall(arg => IR_MatrixNodeUtilities.isEvaluatable(arg))
   override def isExtractable() : Boolean = arguments.forall(arg => IR_MatrixNodeUtilities.isEvaluatable(arg))
 }
 
+  // cross product node for compiletime execution
 object IR_CrossProduct {
   def apply(args : IR_Expression*) = new IR_CrossProduct(args.to[ListBuffer])
 }
-
 case class IR_CrossProduct(
     var arguments : ListBuffer[IR_Expression]
 ) extends IR_ExtractableMNode with IR_MExpressionFunction {
@@ -432,10 +467,10 @@ case class IR_CrossProduct(
   override def isExtractable() : Boolean = arguments.forall(arg => IR_MatrixNodeUtilities.isEvaluatable(arg))
 }
 
+// trace node for compiletime execution
 object IR_Trace {
   def apply(args : IR_Expression) = new IR_Trace(args)
 }
-
 case class IR_Trace(
     var arg : IR_Expression
 ) extends IR_ExtractableMNode with IR_MExpressionFunction {
@@ -449,10 +484,10 @@ case class IR_Trace(
   override def isExtractable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arg)
 }
 
+  // set element node for compiletime execution
 object IR_SetElement {
   def apply(args : IR_Expression*) = new IR_SetElement(args.to[ListBuffer])
 }
-
 case class IR_SetElement(
     var arguments : ListBuffer[IR_Expression]
 ) extends IR_ExtractableMNode with IR_MStatementFunction {
@@ -466,10 +501,10 @@ case class IR_SetElement(
   override def isExtractable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arguments(0))
 }
 
+  // get element node for compiletime execution
 object IR_GetElement {
   def apply(args : IR_Expression*) = new IR_GetElement(args.to[ListBuffer])
 }
-
 case class IR_GetElement(
     var arguments : ListBuffer[IR_Expression]
 ) extends IR_ExtractableMNode with IR_MExpressionFunction {
@@ -483,10 +518,10 @@ case class IR_GetElement(
   override def isExtractable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arguments(0))
 }
 
+  // set slice node for compiletime execution
 object IR_SetSlice {
   def apply(args : IR_Expression*) = new IR_SetSlice(args.to[ListBuffer])
 }
-
 case class IR_SetSlice(
     var arguments : ListBuffer[IR_Expression]
 ) extends IR_ExtractableMNode with IR_MStatementFunction {

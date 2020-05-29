@@ -50,17 +50,18 @@ object IR_DetermineMatrixStructure {
   }
 
   def evaluateEntry(mat : IR_Expression, i : Int, j : Int) : Double = {
-    var en : Double = 0
     mat match {
       case x @ (IR_MatrixExpression(_, _, _) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))) =>
-        var dt = x.datatype.resolveBaseDatatype
-        if (dt == IR_IntegerDatatype)
-          en = IR_SimplifyExpression.evalIntegral(IR_BasicMatrixOperations.getElem(x, i, j))
-        else
-          en = IR_SimplifyExpression.evalFloating(IR_BasicMatrixOperations.getElem(x, i, j))
+        val entry = IR_BasicMatrixOperations.getElem(x, i, j)
+        entry match {
+          case va : IR_VariableAccess => 1
+          case hda : IR_HighDimAccess => 1
+          case n if(n.datatype == IR_IntegerDatatype) => IR_SimplifyExpression.evalIntegral(n)
+          case n if(n.datatype == IR_RealDatatype || n.datatype == IR_FloatDatatype || n.datatype == IR_DoubleDatatype) => IR_SimplifyExpression.evalFloating(n)
+          case _ => Logger.error(s"unexpected entry ${entry}")
+        }
       case _                                                                                     => Logger.error("unexpected argument type: " + mat + ", expected matrix expression or variable")
     }
-    return en
   }
 
   // determine structure of 'matrix' (which must have compiletime evaluatable entries) and return it as a String + more specific structure information like blocksizes in case of Schur or Blockdiagonal matrices
@@ -267,7 +268,7 @@ object IR_DetermineMatrixStructure {
     ),
       stmts)
   }
-
+/*
   // aestimate the blocksize by taking the whole first block of a matrix into account
   //TODO blocksize 1 always has confirmation 1
   def aestimateBlocksize(matrix : IR_Expression) : Int = {
@@ -310,5 +311,5 @@ object IR_DetermineMatrixStructure {
       case _                                                                                       => Logger.error("unexpected argument type: " + matrix)
     }
   }
-
+*/
 }

@@ -445,7 +445,6 @@ object IR_GenerateRuntimeInversion {
   def smallMatrixInversionAtSubMatrix(in : IR_VariableAccess, blocksize : Int, offsetRows : IR_Expression, offsetCols : IR_Expression, out : IR_VariableAccess) : IR_Scope = {
     var debug = false
 
-    val inDt = in.datatype.asInstanceOf[IR_MatrixDatatype]
     var stmts = ListBuffer[IR_Statement]()
     blocksize match {
       case 1 =>
@@ -656,7 +655,7 @@ object IR_GenerateRuntimeInversion {
         IR_Assignment(absA, IR_FunctionCall(IR_ExternalFunctionReference.fabs, ListBuffer[IR_Expression](IR_HighDimAccess(in, IR_ExpressionIndex(k + offset_r, i + offset_c))))),
         IR_IfCondition(IR_Greater(absA, maxA), ListBuffer[IR_Statement](IR_Assignment(maxA, absA), IR_Assignment(imax, k)), ListBuffer[IR_Statement]())
       )),
-      IR_IfCondition(IR_Lower(maxA, Tol), ListBuffer[IR_Statement](IR_Print(outstream, ListBuffer[IR_Expression](IR_StringConstant("[Warning] inverting potentially singular matrix\\n"))), IR_Return(IR_IntegerConstant(-1))), ListBuffer[IR_Statement]()),
+      IR_IfCondition(IR_Lower(maxA, Tol), ListBuffer[IR_Statement](IR_Print(outstream, ListBuffer[IR_Expression](IR_StringConstant("[Warning] inverting potentially singular matrix\\n")))), ListBuffer[IR_Statement]()),
       IR_IfCondition(IR_Neq(imax, i), ListBuffer[IR_Statement](
         IR_VariableDeclaration(tmp_idx, IR_ArrayAccess(P, i)),
         IR_Assignment(IR_ArrayAccess(P, i), IR_ArrayAccess(P, imax)),
@@ -1261,7 +1260,7 @@ object IR_GenerateRuntimeInversion {
   }
 
   def inverseBranchAtRuntime(inMatrix : IR_VariableAccess, destname : String, dest : IR_VariableAccess) : IR_Scope = {
-    var timing = true
+    var timing = false
     var newstmts = ListBuffer[IR_Statement]()
     var insize = IR_BasicMatrixOperations.getSize(inMatrix)
     var structure = IR_VariableAccess(s"${ destname }_structure", IR_StringDatatype)
@@ -1271,6 +1270,7 @@ object IR_GenerateRuntimeInversion {
     var offsetIsZero = IR_VariableAccess("zero", IR_IntegerDatatype)
     var rows = IR_VariableAccess("rows", IR_IntegerDatatype)
     var pstream = IR_VariableAccess("std::cout", IR_StringDatatype)
+    Logger.warn("determining structure at runtimes")
     newstmts += IR_VariableDeclaration(structure, IR_StringConstant("Filled"))
     newstmts += IR_VariableDeclaration(structure_A, IR_StringConstant("_"))
     newstmts += IR_VariableDeclaration(blocksize, IR_IntegerConstant(0))
