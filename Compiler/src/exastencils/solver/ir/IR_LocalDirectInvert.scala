@@ -100,10 +100,13 @@ object IR_LocalDirectInvert {
             case _                                       => A(i, j)
           }).to[ListBuffer]).to[ListBuffer]
     )
+    // need to declare compiled A as variable so its found for classification
+    val AMat_acc = IR_VariableAccess(s"_local_matrix_${unknowns.length}_${unknowns.length}", IR_MatrixDatatype(IR_RealDatatype, unknowns.length, unknowns.length))
+      stmts += IR_VariableDeclaration(AMat_acc, AMat)
 
     // solve local system - TODO: replace inverse function call with internal function
     // TODO: set return value of the fct call
-    stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", AMat), f))
+    stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", AMat_acc,IR_StringConstant("DetermineCompiletime")), f))
 
     // write back results
     for (i <- unknowns.indices) {

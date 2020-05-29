@@ -200,6 +200,8 @@ case class IR_LocalSolve(
     val fExp = fVals.map(mapToExp)
     val AExp = AVals.map(_.map(mapToExp))
 
+    val schur_suitable = IR_LocalSchurCompl.suitable(AVals)
+    Logger.warn(s"schur suitable: ${schur_suitable}")
     // choose strategy used for inverting local matrix
     if (AInv != null) {
       AInv match {
@@ -209,7 +211,7 @@ case class IR_LocalSolve(
       }
     }
 
-    else if (Knowledge.experimental_applySchurCompl && IR_LocalSchurCompl.suitable(AVals))
+    else if (Knowledge.experimental_applySchurCompl && schur_suitable)
       IR_Scope(IR_LocalSchurCompl(AExp, fExp, unknowns, jacobiType, relax, omitConditions))
     else
       IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax, omitConditions))
