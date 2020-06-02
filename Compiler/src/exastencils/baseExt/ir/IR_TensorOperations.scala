@@ -1120,7 +1120,7 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
     val tmp = IR_TensorExpression2(IR_ResultingDatatype(tens1.datatype, tens2.datatype), tens1.dims)
     for (x <- 0 until tens1.dims) {
       for (y <- 0 until tens1.dims) {
-        val mul : ListBuffer[IR_Expression] = ListBuffer(Nil)
+        val mul : ListBuffer[IR_Expression] = ListBuffer()
         for (k <- 0 until tens1.dims) {
           mul += IR_Multiplication(getElem(m, k, y, Nil), getElem(n, x, k, Nil))
         }
