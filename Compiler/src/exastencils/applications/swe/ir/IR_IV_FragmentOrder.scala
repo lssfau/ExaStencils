@@ -24,6 +24,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.DefaultNeighbors
+import exastencils.communication.ir.IR_IV_CommNeighNeighIdx
 import exastencils.datastructures._
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_FieldAccess
@@ -81,10 +82,12 @@ object IR_ResolveFragmentOrder extends DefaultStrategy("ResolveFragmentOrder") {
         statements += IR_IfCondition(
           IR_IV_NeighborIsValid(0, neigh.index),
           IR_IfCondition(
-            IR_IV_NeighborIsRemote(0, neigh.index),
-            IR_Assignment( // this is the branch for local neighbors, ie when IR_IV_NeighborIsRemote is false
-              IR_IV_NeighFragOrder(fragmentIdx, neigh.index), // the order looks wrong; this needs to use the fragment index of the neighbor; this needs to use the neighbor index as seen from the neighbor
-              IR_IV_FragmentOrder(fragmentIdx)))) // fragmentIdx is optional and could be omitted
+            IR_IV_NeighborIsRemote(0, neigh.index), IR_Assignment(
+              IR_IV_NeighFragOrder(IR_IV_CommNeighNeighIdx(0, neigh.index), IR_IV_NeighborFragmentIdx(0, neigh.index)),
+              IR_IV_FragmentOrder()), //TODO MPI part
+            IR_Assignment(
+              IR_IV_NeighFragOrder(IR_IV_CommNeighNeighIdx(0, neigh.index), IR_IV_NeighborFragmentIdx(0, neigh.index)),
+              IR_IV_FragmentOrder())))
       }
 
       IR_LoopOverFragments(statements)
