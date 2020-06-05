@@ -38,7 +38,7 @@ case class IR_IV_FragmentOrder(var fragmentIdx : IR_Expression = IR_LoopOverFrag
 
   override def resolveName() = s"fragmentOrder" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
   override def resolveDatatype() = IR_IntegerDatatype
-  override def resolveDefValue() = Some(0)
+  override def resolveDefValue() = Some(-1)
 }
 
 /// IR_IV_NeighFragOrder
