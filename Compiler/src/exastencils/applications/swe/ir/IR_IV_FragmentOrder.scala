@@ -25,6 +25,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.DefaultNeighbors
 import exastencils.communication.ir.IR_IV_CommNeighNeighIdx
+import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_FieldAccess
@@ -42,11 +43,11 @@ case class IR_IV_FragmentOrder(var fragmentIdx : IR_Expression = IR_LoopOverFrag
 
 /// IR_IV_NeighFragOrder
 
-case class IR_IV_NeighFragOrder(var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, false) {
+case class IR_IV_NeighFragOrder(var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, true) {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, neighIdx)
   override def resolveName() = s"neighFragOrder" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", neighIdx.prettyprint)
   override def resolveDatatype() = IR_IntegerDatatype
-  override def resolveDefValue() = Some(0)
+  override def resolveDefValue() = Some(-1)
 }
 
 /// IR_ResolveFragmentOrder
@@ -74,6 +75,10 @@ object IR_ResolveFragmentOrder extends DefaultStrategy("ResolveFragmentOrder") {
       // usage: setFragmentOrder ( fragmentIdx, order )
       IR_Assignment(IR_IV_FragmentOrder(args(0)), args(1))
 
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("setNeighFragmentOrder", _), args)) =>
+      // usage: setNeighFragmentOrder ( fragmentIdx, neighIdx, order )
+      IR_Assignment(IR_IV_NeighFragOrder(args(1), args(0)), args(2))
+
     case IR_ExpressionStatement(call : IR_FunctionCall) if "communicateFragOrder" == call.name =>
       def fragmentIdx = IR_LoopOverFragments.defIt
 
@@ -83,10 +88,16 @@ object IR_ResolveFragmentOrder extends DefaultStrategy("ResolveFragmentOrder") {
           IR_IV_NeighborIsValid(0, neigh.index),
           IR_IfCondition(
             IR_IV_NeighborIsRemote(0, neigh.index), IR_Assignment(
-              IR_IV_NeighFragOrder(IR_IV_CommNeighNeighIdx(0, neigh.index), IR_IV_NeighborFragmentIdx(0, neigh.index)),
+              IR_IV_NeighFragOrder(if (Knowledge.comm_enableCommTransformations)
+                IR_IV_CommNeighNeighIdx(0, neigh.index)
+              else
+                DefaultNeighbors.getOpposingNeigh(neigh.index).index, IR_IV_NeighborFragmentIdx(0, neigh.index)),
               IR_IV_FragmentOrder()), //TODO MPI part
             IR_Assignment(
-              IR_IV_NeighFragOrder(IR_IV_CommNeighNeighIdx(0, neigh.index), IR_IV_NeighborFragmentIdx(0, neigh.index)),
+              IR_IV_NeighFragOrder(if (Knowledge.comm_enableCommTransformations)
+                IR_IV_CommNeighNeighIdx(0, neigh.index)
+              else
+                DefaultNeighbors.getOpposingNeigh(neigh.index).index, IR_IV_NeighborFragmentIdx(0, neigh.index)),
               IR_IV_FragmentOrder())))
       }
 
