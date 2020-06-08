@@ -79,6 +79,10 @@ object IR_ResolveFragmentOrder extends DefaultStrategy("ResolveFragmentOrder") {
       // usage: setNeighFragmentOrder ( fragmentIdx, neighIdx, order )
       IR_Assignment(IR_IV_NeighFragOrder(args(1), args(0)), args(2))
 
+    case IR_FunctionCall(IR_UnresolvedFunctionReference("getNeighIsValid", _), args) =>
+      // usage: getNeighIsValid (  neighIdx )
+      IR_IV_NeighborIsValid(0, args(0))
+
     case IR_ExpressionStatement(call : IR_FunctionCall) if "communicateFragOrder" == call.name =>
       def fragmentIdx = IR_LoopOverFragments.defIt
 
