@@ -391,7 +391,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
           // else
           ListBuffer[IR_Statement](
             IR_Assignment(IR_IV_NeighFragId(d, neigh.index), IR_ArrayAccess(neighborFragID, neigh.index)),
-            IR_Assignment(IR_IV_BoundaryConditionId(d, neigh.index), IR_IntegerConstant(-1)))
+            IR_Assignment(IR_IV_BoundaryConditionId(d, neigh.index), IR_IntegerConstant(0)))
         )
         //connStmts += IR_Assignment(IR_IV_NeighFragId(d, neigh.index), IR_ArrayAccess(neighborFragID, neigh.index))
       }
