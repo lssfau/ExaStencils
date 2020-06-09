@@ -20,6 +20,7 @@ Domain global< [0.0, 0.0] to [0.1, 0.1] >
 
 Function Application {
 	Var m1 : Matrix<Double,2,2> = { { 1.0, 2.0 }, { 3.0, 4.0 } }
-	Var res1 : Matrix<Double,2,2> = inverse ( m1 )
+	Var sol2 : Matrix<Double,2,2> = { { -2.0, -4.0 }, { -6.0, -8.0 } }
+	Var res3 : Double = ( 42 + dotProduct ( m1, inverse ( ( m1 * m1 ) ) ) )
 }
 

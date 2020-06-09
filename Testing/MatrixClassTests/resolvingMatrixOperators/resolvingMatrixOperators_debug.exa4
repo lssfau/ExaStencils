@@ -24,10 +24,11 @@ Function Application {
 	Var v1 : Real = 1
 	Var v2 : Real = 2
 	Var prec : Double = 1.0E-4
-	m1 = ( m1 * m1 )
-	Var multMatrices_res1 : Matrix<Double,2,2>
-	multMatrices_res1 = ( m2 * m1 )
-	Var multMatrices_sol1 : Matrix<Double,2,2> = { { 7.0, 10.0 }, { 15.0, 22.0 } }
-	compare ( multMatrices_res1, multMatrices_sol1, prec )
+	Var m3 : Matrix<Real,2,1> = { { 1.0 }, { 2.0 } }
+	Var m4 : Matrix<Real,1,2> = { { 1.0, 2.0 } }
+	Var m5 : Matrix<Real,1,4> = { { 1.0, 2.0, 5.0, 1.0 } }
+	Var multMatrices_res4 : Matrix<Double,1,4> = ( ( ( m4 * m2 ) * m3 ) * m5 )
+	Var multMatrices_sol4 : Matrix<Double,1,4> = { { 27.0, 54.0, 135.0, 27.0 } }
+	compare ( multMatrices_res4, multMatrices_sol4, prec )
 }
 
