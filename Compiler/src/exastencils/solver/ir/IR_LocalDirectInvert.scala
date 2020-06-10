@@ -34,13 +34,13 @@ object IR_LocalDirectInvert {
   def matComponentAccess(mat : IR_VariableAccess, i0 : Int, i1 : Int) = IR_HighDimAccess(mat, IR_ConstIndex(i0, i1))
 
   def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
-      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean) = {
+      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : matStructInfo) = {
 
-    invert(AVals, fVals, unknowns, jacobiType, relax, omitConditions)
+    invert(AVals, fVals, unknowns, jacobiType, relax, omitConditions, msi)
   }
 
   def invert(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
-      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean) : ListBuffer[IR_Statement] = {
+      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi: matStructInfo) : ListBuffer[IR_Statement] = {
 
     def isNonZeroEntry(ex : IR_Expression) = {
       ex match {
@@ -100,13 +100,12 @@ object IR_LocalDirectInvert {
             case _                                       => A(i, j)
           }).to[ListBuffer]).to[ListBuffer]
     )
-    // need to declare compiled A as variable so its found for classification
-    val AMat_acc = IR_VariableAccess(s"_local_matrix_${unknowns.length}_${unknowns.length}", IR_MatrixDatatype(IR_RealDatatype, unknowns.length, unknowns.length))
-      stmts += IR_VariableDeclaration(AMat_acc, AMat)
 
     // solve local system - TODO: replace inverse function call with internal function
     // TODO: set return value of the fct call
-    stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", AMat_acc,IR_StringConstant("DetermineCompiletime")), f))
+    //stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", AMat,IR_StringConstant("DetermineCompiletime")), f))
+    //stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", AMat), f))
+    stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", AMat, IR_StringConstant(msi.structure), msi.blocksize,IR_StringConstant(msi.structureA), msi.blocksizeA), f))
 
     // write back results
     for (i <- unknowns.indices) {

@@ -200,8 +200,11 @@ case class IR_LocalSolve(
     val fExp = fVals.map(mapToExp)
     val AExp = AVals.map(_.map(mapToExp))
 
-    val schur_suitable = IR_LocalSchurCompl.suitable(AVals)
-    Logger.warn(s"schur suitable: ${schur_suitable}")
+    //TODO sizecheck
+    //TODO structure determination
+    val matStructInfo = IR_DetermineMatrixStructure.isOfStructure(AVals)
+    //Logger.error(matStructInfo)
+
     // choose strategy used for inverting local matrix
     if (AInv != null) {
       AInv match {
@@ -210,10 +213,11 @@ case class IR_LocalSolve(
         case _                        => Logger.error(s"Unsupported AInv: $AInv")
       }
     }
-
-    else if (Knowledge.experimental_applySchurCompl && schur_suitable)
+    //TODO if small enough and structure is suitable (schur, diagonal)
+      // solve les without inverse: IR_SolveLinearSystem(A,f,u,jacobiType,relax,omitConditions,structureInfo)
+    else if (Knowledge.experimental_applySchurCompl)
       IR_Scope(IR_LocalSchurCompl(AExp, fExp, unknowns, jacobiType, relax, omitConditions))
     else
-      IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax, omitConditions))
+      IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax, omitConditions, matStructInfo))
   }
 }
