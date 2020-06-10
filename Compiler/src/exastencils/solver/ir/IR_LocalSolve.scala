@@ -216,7 +216,8 @@ case class IR_LocalSolve(
     //TODO if small enough and structure is suitable (schur, diagonal)
       // solve les without inverse: IR_SolveLinearSystem(A,f,u,jacobiType,relax,omitConditions,structureInfo)
     else if (Knowledge.experimental_applySchurCompl)
-      IR_Scope(IR_LocalSchurCompl(AExp, fExp, unknowns, jacobiType, relax, omitConditions))
+    //IR_Scope(IR_LocalSchurCompl(AExp, fExp, unknowns, jacobiType, relax, omitConditions))
+        IR_Scope(IR_SolveLinearSystem(AExp, fExp, unknowns, jacobiType, relax, omitConditions, matStructInfo))
     else
       IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax, omitConditions, matStructInfo))
   }

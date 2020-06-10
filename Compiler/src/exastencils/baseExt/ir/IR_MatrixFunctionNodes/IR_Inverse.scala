@@ -159,7 +159,7 @@ case class IR_InverseCT(
   override def resolve() : Output[IR_Expression] = {
     var argexpr = arg match {
       case x : IR_MatrixExpression                               => x
-      case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) => IR_MatrixNodeUtilities.accessToExpression(va)
+      case va @ IR_VariableAccess(_, _) => IR_MatrixNodeUtilities.accessToExpression(va)
       case _                                                     => Logger.error(s"argument of unexpected type: ${ arg }")
     }
     var tmp = IR_CompiletimeInversion.inverse(argexpr, msi)
