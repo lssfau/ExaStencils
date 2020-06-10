@@ -13,12 +13,16 @@ import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.base.ir.IR_WhileLoop
+import exastencils.baseExt.ir.IR_MatrixFunctionNodes.IR_Determinant
+import exastencils.baseExt.ir.IR_MatrixFunctionNodes.IR_IntermediateInv
+import exastencils.baseExt.ir.IR_MatrixFunctionNodes.IR_SetElement
+import exastencils.baseExt.ir.IR_MatrixFunctionNodes.IR_SetSlice
 import exastencils.config.Knowledge
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
 import exastencils.logger.Logger
 
-class IR_MatrixWriteCollector extends Collector {
+class IR_MatrixVarCollector extends Collector {
   var writes = ListBuffer[String]()
   var decls = ListBuffer[ListBuffer[IR_VariableDeclaration]]()
   this.reset()
@@ -34,9 +38,9 @@ class IR_MatrixWriteCollector extends Collector {
   def addWrite(dest : IR_Expression) {
     dest match {
       case va : IR_VariableAccess => writes += va.name
-        // access to matrix variable transformed to a matrix expression
-      case x : IR_MatrixExpression if(x.get(0,0).isInstanceOf[IR_HighDimAccess]) => writes += x.get(0,0).asInstanceOf[IR_HighDimAccess].uniqueID
-      case _ => Logger.error("unexpected type")
+      // access to matrix variable transformed to a matrix expression
+      case x : IR_MatrixExpression if (x.get(0, 0).isInstanceOf[IR_HighDimAccess]) => writes += x.get(0, 0).asInstanceOf[IR_HighDimAccess].uniqueID
+      case _                                                                       => Logger.error("unexpected type")
     }
   }
 
@@ -59,11 +63,11 @@ class IR_MatrixWriteCollector extends Collector {
           case va @ IR_VariableAccess(_, _) => addWrite(va)
           case _                            =>
         })
-      case det @ IR_Determinant(arg, _) if (Knowledge.experimental_inplaceDeterminant)       => addWrite(arg)
-      case inv @ IR_Inverse(arg, _, _, _) if (Knowledge.experimental_inplaceInversion)       => addWrite(arg)
-      case s @ IR_SetElement(arg)                                                            => addWrite(arg(0))
+      case det @ IR_Determinant(arg, _) if (Knowledge.experimental_inplaceDeterminant)         => addWrite(arg)
+      case inv @ IR_IntermediateInv(arg, _, _, _) if (Knowledge.experimental_inplaceInversion) => addWrite(arg)
+      case s @ IR_SetElement(arg)                                                              => addWrite(arg(0))
       case s @ IR_SetSlice(arg)                                                              => addWrite(arg(0))
-      case d : IR_VariableDeclaration => addDecl(d)
+      case d : IR_VariableDeclaration                                                        => addDecl(d)
       case _                                                                                 =>
     }
   }
@@ -89,7 +93,7 @@ class IR_MatrixWriteCollector extends Collector {
   def lastDecl(key : String) : Option[IR_VariableDeclaration] = {
     var d = decls.last.find(p => p.name == key)
     var idx : Int = decls.length - 1
-    while(d.isEmpty && idx >= 0) {
+    while (d.isEmpty && idx >= 0) {
       d = decls(idx).find(p => p.name == key)
       idx -= 1
     }

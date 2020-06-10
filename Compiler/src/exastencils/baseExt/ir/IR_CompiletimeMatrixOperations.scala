@@ -85,19 +85,17 @@ object IR_BasicMatrixOperations {
   }
 
   // insert a matrix 'source' of size 'n_rows' x 'n_cols' at position 'offset_rows', 'offset_cols' in 'target'
-  def pasteSubMatrix(source : IR_MatrixExpression, target : IR_MatrixExpression, offset_rows : Int, offset_cols : Int) : Unit = {
-    if (offset_rows + source.rows > target.rows || offset_cols + source.columns > target.columns) {
-      //Logger.error("IR_ResolveMatrixFunctions::pasteSubMatrix content does not fit into target")
-    }
+  def pasteSubMatrix(source : IR_Expression, target : IR_MatrixExpression, offset_rows : Int, offset_cols : Int) : Unit = {
     if (offset_rows < 0 || offset_cols < 0) {
       Logger.error("negative offset")
     }
-    val bound_cols = offset_cols + source.columns
-    val bound_rows = offset_rows + source.rows
+    val ssize = getSize(source)
+    val bound_cols = offset_cols + ssize._2
+    val bound_rows = offset_rows + ssize._1
     for (i <- offset_rows until bound_rows) {
       for (j <- offset_cols until bound_cols) {
         //TODO move node objects instead of copying?
-        var n = Duplicate(source.get(i - offset_rows, j - offset_cols))
+        var n = Duplicate(getElem(source, i - offset_rows, j - offset_cols))
         target.set(i, j, n)
       }
     }
@@ -506,11 +504,11 @@ object IR_BasicMatrixOperations {
 // methods to determine a inverse at compiletime
 object IR_CompiletimeInversion {
   // head function that branches to specific inversions
-  def inverse(that : IR_MatrixExpression, structureInformation : (String, Int, String, Int)) : IR_MatrixExpression = {
-    var matrixStructure = structureInformation._1
-    var blocksize = structureInformation._2
-    var matrixStructure_A = structureInformation._3
-    var blocksize_A = structureInformation._4
+  def inverse(that : IR_MatrixExpression, msi : matStructInfo) : IR_MatrixExpression = {
+    var matrixStructure = msi.structure
+    var blocksize = msi.blocksize
+    var matrixStructure_A = msi.structureA
+    var blocksize_A = msi.blocksizeA
     if (that.rows != that.columns)
       Logger.error("inversion of non quadratic matrices not supported.")
     matrixStructure match {
@@ -545,7 +543,7 @@ object IR_CompiletimeInversion {
 
               // invert with GaussJordan method
               //var subMatrix_inv = gaussJordanInverse(subMatrix)
-              var subMatrix_inv = inverse(subMatrix, ("Filled",-1,"no schur", -1))
+              var subMatrix_inv = inverse(subMatrix, matStructInfo("Filled",-1,"no schur", -1))
 
               // copy to out matrix
               IR_BasicMatrixOperations.pasteSubMatrix(subMatrix_inv, out, offset, offset)
@@ -572,11 +570,11 @@ object IR_CompiletimeInversion {
         val m = that.rows - n
 
         if (n < 1) {
-          Logger.error("IR_MatrixAccess::inverse n < 1!")
+          Logger.error("inverse n < 1!")
         }
         else {
           var A = IR_BasicMatrixOperations.copySubMatrix(that, 0, 0, n, n)
-          var A_inv = inverse(A, (matrixStructure_A, blocksize_A, "no schur", -1))
+          var A_inv = inverse(A, matStructInfo(matrixStructure_A, blocksize_A, "no schur", -1))
           IR_GeneralSimplify.doUntilDoneStandalone(A_inv)
 
           // calculate S
@@ -589,12 +587,13 @@ object IR_CompiletimeInversion {
 
           // invert S
           // for schur complement inversion multiple structure information is necessary(n and m, blocksize of A, S is probably always filled) in case  m is larger than 1 (default should be "Filled")
-          val S_inv = inverse(S, ("Filled", blocksize_A, "no schur", -1))
+          val S_inv = inverse(S, matStructInfo("Filled", -1, "no schur", -1))
 
           // copy result blocks to 'out' matrix
           val lowerLeft = IR_BasicMatrixOperations.negative(IR_BasicMatrixOperations.mult(S_inv, CA_inv))
           val lowerRight = S_inv
           val A_invB = IR_BasicMatrixOperations.mult(A_inv, B)
+          //val A_invB = IR_BasicMatrixOperations.mult(A_inv, B)
           val A_invBS_inv = IR_BasicMatrixOperations.mult(A_invB, S_inv)
           val upperRight = IR_BasicMatrixOperations.negative(A_invBS_inv)
           val upperLeft = IR_BasicMatrixOperations.add(A_inv, IR_BasicMatrixOperations.mult(A_invBS_inv, CA_inv))

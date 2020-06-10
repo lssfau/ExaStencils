@@ -77,6 +77,7 @@ object IR_GenerateBasicMatrixOperations {
     stmts
   }
 
+  // print a matrix from a pointer and the size
   def printMatrixPointer(matrix : IR_Expression, mat_rows : IR_Expression, mat_cols : IR_Expression) : IR_Scope = {
     var i = IR_VariableAccess("i", IR_IntegerDatatype)
     var j = IR_VariableAccess("j", IR_IntegerDatatype)
@@ -979,7 +980,7 @@ object IR_GenerateRuntimeInversion {
 
     // calculate S_inv
     func.body += IR_VariableDeclaration(S_inv)
-    func.body += IR_GenerateRuntimeInversion.inverse(S, S_inv, ("Filled",-1, "-1",-1))
+    func.body += IR_GenerateRuntimeInversion.inverse(S, S_inv, matStructInfo("Filled",-1, "-1",-1))
 
     // calculate upper right result block
     func.body += IR_VariableDeclaration(A_invB)
@@ -1221,11 +1222,11 @@ object IR_GenerateRuntimeInversion {
   }
 
   // head function that branches to specific inversions
-  def inverse(in : IR_VariableAccess, out : IR_VariableAccess, structureInformation : (String, Int, String, Int)) : IR_Scope = {
-    var matrixStructure = structureInformation._1
-    var blocksize = structureInformation._2
-    var matrixStructure_A = structureInformation._3
-    var blocksize_A = structureInformation._4
+  def inverse(in : IR_VariableAccess, out : IR_VariableAccess, msi : matStructInfo) : IR_Scope = {
+    var matrixStructure = msi.structure
+    var blocksize = msi.blocksize
+    var matrixStructure_A = msi.structureA
+    var blocksize_A = msi.blocksizeA
     var insize = IR_BasicMatrixOperations.getSize(in)
     var outsize = IR_BasicMatrixOperations.getSize(out)
     if (insize._1 != insize._2)

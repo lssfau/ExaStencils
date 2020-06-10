@@ -199,18 +199,18 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     var c = true
     while (c) {
       IR_GeneralSimplify.doUntilDone()
-      IR_ExtInlMOps.apply()
-      IR_ResolveMOps.apply()
-      IR_ResolveMfuncs.apply()
-      if(IR_ExtInlMOps.results.forall(t => t._2.matches == 0) &&
-        IR_ResolveMfuncs.results.forall(t => t._2.matches == 0) &&
-        IR_ResolveMfuncs.results.forall(t => t._2.matches == 0)
+      IR_MatOpsInline.apply()
+      IR_ResolveMatOperators.apply()
+      IR_ResolveMatFuncs.apply()
+      if(IR_MatOpsInline.results.forall(t => t._2.matches == 0) &&
+        IR_ResolveMatOperators.results.forall(t => t._2.matches == 0) &&
+        IR_ResolveMatFuncs.results.forall(t => t._2.matches == 0)
       ) {
         c = false
       }
-      IR_ExtInlMOps.reset()
-      IR_ResolveMOps.reset()
-      IR_ResolveMfuncs.reset()
+      IR_MatOpsInline.reset()
+      IR_ResolveMatOperators.reset()
+      IR_ResolveMatFuncs.reset()
     }
     IR_PostItMOps.apply()
     IR_LinearizeMatrices.apply()
