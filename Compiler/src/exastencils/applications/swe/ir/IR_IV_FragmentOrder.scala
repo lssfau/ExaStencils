@@ -36,6 +36,7 @@ import exastencils.field.ir.IR_FieldAccess
 import exastencils.parallelization.api.mpi.MPI_GeneratedTag
 import exastencils.parallelization.api.mpi.MPI_Receive
 import exastencils.parallelization.api.mpi.MPI_Send
+import exastencils.parallelization.api.mpi.MPI_WaitForRequest
 import exastencils.parallelization.ir.IR_PotentiallyCritical
 import exastencils.prettyprinting.PpStream
 
@@ -65,18 +66,21 @@ case class RemoteFragmentCommunication(
 
   override def expand() : Output[StatementList] = {
     ListBuffer[IR_Statement](
-      IR_PotentiallyCritical(MPI_Send(IR_IV_FragmentOrder(frag_index), 1, IR_RealDatatype, IR_IV_NeighborRemoteRank(0, neigh_idx),
+      IR_PotentiallyCritical(IR_LoopOverFragments(MPI_Send(IR_AddressOf(IR_IV_FragmentOrder(frag_index)), 1, IR_RealDatatype, IR_IV_NeighborRemoteRank(0, neigh_idx),
         MPI_GeneratedTag(IR_IV_CommunicationId(), IR_IV_NeighborFragmentIdx(0, neigh_idx), neigh_idx, concurrencyId),
         MPI_Request_New(s"Send_${ concurrencyId }", neigh_idx)),
         IR_Assignment(IR_IV_RemoteReqOutstanding_New(s"Send_${ concurrencyId }", neigh_idx), true),
-        MPI_Receive(IR_IV_FragmentOrder(frag_index), 1, IR_RealDatatype, IR_IV_NeighborRemoteRank(0, neigh_idx),
+        MPI_Receive(IR_AddressOf(IR_IV_NeighFragOrder(neigh_idx, frag_index)), 1, IR_RealDatatype, IR_IV_NeighborRemoteRank(0, neigh_idx),
           MPI_GeneratedTag(IR_IV_NeighborFragmentIdx(0, neigh_idx), IR_IV_CommunicationId(),
             if (Knowledge.comm_enableCommTransformations)
               IR_IV_CommNeighNeighIdx(0, neigh_idx)
             else
               DefaultNeighbors.getOpposingNeigh(neigh_idx).index, concurrencyId),
           MPI_Request_New(s"Recv_${ concurrencyId }", neigh_idx))),
-      IR_Assignment(IR_IV_RemoteReqOutstanding_New(s"Recv_${ concurrencyId }", neigh_idx), true))
+        IR_Assignment(IR_IV_RemoteReqOutstanding_New(s"Recv_${ concurrencyId }", neigh_idx), true)),
+      IR_LoopOverFragments(IR_FunctionCall(MPI_WaitForRequest.generateFctAccess(), IR_AddressOf(MPI_Request_New(s"Send_${ concurrencyId }", neigh_idx))),
+        IR_FunctionCall(MPI_WaitForRequest.generateFctAccess(), IR_AddressOf(MPI_Request_New(s"Recv_${ concurrencyId }", neigh_idx))))
+    )
   }
 }
 
