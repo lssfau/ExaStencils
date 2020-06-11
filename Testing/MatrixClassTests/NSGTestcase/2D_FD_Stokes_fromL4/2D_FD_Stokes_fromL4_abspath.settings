@@ -10,7 +10,7 @@ l4file              = "$configName$.exa4"
 debugL4File         = "./$configName$_debug.exa4"
 
 htmlLogFile         = "./Debug/$configName$_log.html"
-outputPath          = "./output"
+outputPath          = "./outputRef"
 
 produceHtmlLog      = true
 timeStrategies      = true
