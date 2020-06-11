@@ -35,7 +35,8 @@ object IR_SolveLinearSystem {
       jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : matStructInfo) : ListBuffer[IR_Statement] = {
     def vecAcc(vec : ListBuffer[IR_VariableAccess], i0 : Int) = IR_HighDimAccess(vec(i0 / msi.blocksizeA), IR_ConstIndex(i0 % msi.blocksizeA))
 
-    def matAcc(mat : ListBuffer[IR_VariableAccess], i0 : Int, i1 : Int) = IR_HighDimAccess(mat(i0 / msi.blocksizeA), IR_ConstIndex(i0 % msi.blocksizeA, i1 % msi.blocksizeA))
+    def rowBlockMatAcc(mat : ListBuffer[IR_VariableAccess], i0 : Int, i1 : Int) = IR_HighDimAccess(mat(i0 / msi.blocksizeA), IR_ConstIndex(i0 % msi.blocksizeA, i1 % msi.blocksizeA))
+    def colBlockMatAcc(mat : ListBuffer[IR_VariableAccess], i0 : Int, i1 : Int) = IR_HighDimAccess(mat(i1 / msi.blocksizeA), IR_ConstIndex(i0 % msi.blocksizeA, i1 % msi.blocksizeA))
 
     val stmts = ListBuffer[IR_Statement]()
 
@@ -100,28 +101,28 @@ object IR_SolveLinearSystem {
         // retrieve As diagonal blocks
         val baseI = i / bsizeA * bsizeA
         for (j <- baseI until baseI + bsizeA) {
-          innerStmts += IR_Assignment(matAcc(A, i, j), AVals(i)(j))
-          boundaryStmts += IR_Assignment(matAcc(A, i, j), IR_IntegerConstant(if(i == j) 1 else 0))
+          innerStmts += IR_Assignment(rowBlockMatAcc(A, i, j), AVals(i)(j))
+          boundaryStmts += IR_Assignment(rowBlockMatAcc(A, i, j), IR_IntegerConstant(if(i == j) 1 else 0))
         }
 
 
         // retrieve Bs
         for (j <- bsize until bsize + bsizeD) {
-          innerStmts += IR_Assignment(matAcc(B, i, j), AVals(i)(j))
-          boundaryStmts += IR_Assignment(matAcc(B, i, j), IR_IntegerConstant(0))
+          innerStmts += IR_Assignment(rowBlockMatAcc(B, i, j), AVals(i)(j))
+          boundaryStmts += IR_Assignment(rowBlockMatAcc(B, i, j), IR_IntegerConstant(0))
         }
       }
       else {
         // retrieve C
         for (j <- 0 until bsize) {
-          innerStmts += IR_Assignment(matAcc(C, i / bsizeA, j), AVals(i)(j))
-          boundaryStmts += IR_Assignment(matAcc(C, i/bsizeA, j), IR_IntegerConstant(0))
+          innerStmts += IR_Assignment(colBlockMatAcc(C, i, j), AVals(i)(j))
+          boundaryStmts += IR_Assignment(colBlockMatAcc(C, i, j), IR_IntegerConstant(0))
         }
 
         // retrieve D
         for (j <- bsize until size) {
           innerStmts += IR_Assignment(IR_HighDimAccess(D, IR_ConstIndex(i, j)), AVals(i)(j))
-          boundaryStmts += IR_Assignment(IR_HighDimAccess(D, IR_ConstIndex(i,j)), IR_IntegerConstant(0))
+          boundaryStmts += IR_Assignment(IR_HighDimAccess(D, IR_ConstIndex(i,j)), IR_IntegerConstant(1))
         }
 
         // retrieve G
@@ -149,6 +150,7 @@ object IR_SolveLinearSystem {
       stmts += IR_VariableDeclaration(A_inv(i), IR_FunctionCall(IR_PlainInternalFunctionReference("inverse", IR_MatrixDatatype(IR_RealDatatype, bsizeA, bsizeA)), A(i)))
     }
 
+    // calculate schur matrix
     var S = IR_VariableAccess("local_S", IR_MatrixDatatype(IR_RealDatatype, bsizeD, bsizeD))
     stmts += IR_VariableDeclaration(S, D)
     for (i <- 0 until nComponents) {
