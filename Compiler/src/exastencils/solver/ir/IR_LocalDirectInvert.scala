@@ -103,9 +103,9 @@ object IR_LocalDirectInvert {
 
     // solve local system - TODO: replace inverse function call with internal function
     // TODO: set return value of the fct call
-    //stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", AMat,IR_StringConstant("DetermineCompiletime")), f))
-    //stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", AMat), f))
-    stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", AMat, IR_StringConstant(msi.structure), msi.blocksize,IR_StringConstant(msi.structureA), msi.blocksizeA), f))
+    //stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", AMat, IR_StringConstant(msi.structure), msi.blocksize,IR_StringConstant(msi.structureA), msi.blocksizeA), f))
+    stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", AMat), f))
+
 
     // write back results
     for (i <- unknowns.indices) {

@@ -23,7 +23,6 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
@@ -191,6 +190,14 @@ case class IR_LocalSolve(
       Duplicate(AVals.map(_.map(mapToExp))))
   }
 
+  def isSolvableWithoutInverse(structure : String): Boolean = {
+      structure match {
+        case "Schur" => true
+        case "Diagonal" => true
+        case _ => false
+      }
+  }
+
   def expandSpecial : Output[IR_Scope] = {
     fVals = ListBuffer.fill(unknowns.length)(IR_Addition())
     AVals = ListBuffer.fill(unknowns.length)(ListBuffer.fill(unknowns.length)(IR_Addition()))
@@ -203,7 +210,6 @@ case class IR_LocalSolve(
     //TODO sizecheck
     //TODO structure determination
     val matStructInfo = IR_DetermineMatrixStructure.isOfStructure(AVals)
-    //Logger.error(matStructInfo)
 
     // choose strategy used for inverting local matrix
     if (AInv != null) {
@@ -213,10 +219,7 @@ case class IR_LocalSolve(
         case _                        => Logger.error(s"Unsupported AInv: $AInv")
       }
     }
-    //TODO if small enough and structure is suitable (schur, diagonal)
-      // solve les without inverse: IR_SolveLinearSystem(A,f,u,jacobiType,relax,omitConditions,structureInfo)
-    else if (Knowledge.experimental_applySchurCompl)
-    //IR_Scope(IR_LocalSchurCompl(AExp, fExp, unknowns, jacobiType, relax, omitConditions))
+    else if (isSolvableWithoutInverse(matStructInfo.structure))
         IR_Scope(IR_SolveLinearSystem(AExp, fExp, unknowns, jacobiType, relax, omitConditions, matStructInfo))
     else
       IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax, omitConditions, matStructInfo))

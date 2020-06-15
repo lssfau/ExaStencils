@@ -21,6 +21,7 @@ import exastencils.boundary.ir.IR_IsValidComputationPoint
 import exastencils.core.Duplicate
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_SlotAccess
+import exastencils.logger.Logger
 
 object IR_SolveLinearSystem {
 
@@ -28,6 +29,7 @@ object IR_SolveLinearSystem {
       jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : matStructInfo) = {
     msi.structure match {
       case "Schur" => schur(AVals, fVals, unknowns, jacobiType, relax, omitConditions, msi)
+      case _ => Logger.error(s"matrix structure ${msi.structure} not supported (yet)")
     }
   }
 
