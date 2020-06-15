@@ -13,9 +13,8 @@ grid_isAxisAligned            = true
 
 grid_spacingModel             = "linearFct" // forced to "uniform" if grid_isUniform
 
-experimental_applySchurCompl  = true
-
-//experimental_resolveInverseFunctionCall = "Compiletime"
+experimental_resolveInverseFunctionCall = "Runtime"
+experimental_inplaceInversion = true
 mpi_enabled = false
 // omp parallelization on exactly one fragment in one block
 //import '../lib/domain_onePatch.knowledge'

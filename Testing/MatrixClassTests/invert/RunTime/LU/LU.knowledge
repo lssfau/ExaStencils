@@ -3,4 +3,4 @@ mpi_enabled 		      = false
 
 experimental_resolveInverseFunctionCall = "Runtime"
 
-experimental_inplaceInversion = false
+experimental_inplaceInversion = true

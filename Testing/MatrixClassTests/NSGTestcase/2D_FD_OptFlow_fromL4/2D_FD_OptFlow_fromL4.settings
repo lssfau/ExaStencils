@@ -2,9 +2,9 @@ user                = "Guest"
 
 configName          = "2D_FD_OptFlow_fromL4"
 
-basePathPrefix      = "./OpticalFlow/"
+basePathPrefix      = "./NSGTestcase/2D_FD_OptFlow_fromL4/"
 
-l4file              = "$configName$.exa4"
+l4file              = "2D_FD_OptFlow_fromL4.exa4"
 
 debugL4File         = "../Debug/$configName$_debug.exa4"
 

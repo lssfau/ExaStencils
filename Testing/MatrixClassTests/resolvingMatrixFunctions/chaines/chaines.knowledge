@@ -2,5 +2,5 @@ dimensionality                = 2
 
 mpi_enabled = false
 
-experimental_resolveInverseFunctionCall = "Compiletime"
-//experimental_resolveInverseFunctionCall = "Runtime"
+//experimental_resolveInverseFunctionCall = "Compiletime"
+experimental_resolveInverseFunctionCall = "Runtime"

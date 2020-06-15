@@ -4,7 +4,6 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
 elif [[ "$OSTYPE" == "darwin"* ]]; then
   platform=mac.platform
 fi
-#platform=lib/windows.platform
 
 source matrixClassTests.sh
 

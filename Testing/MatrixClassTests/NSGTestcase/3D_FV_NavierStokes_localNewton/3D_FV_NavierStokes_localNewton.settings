@@ -1,9 +1,11 @@
 user                = "Guest"
 
-configName          = "2D_FD_Stokes_fromL4"
+configName          = "3D_FV_NavierStokes_localNewton"
 
-basePathPrefix      = "./NSGTestcase/2D_FD_Stokes_fromL4/"
+basePathPrefix      = "./NSGTestcase/3D_FV_NavierStokes_localNewton/"
 
+l2file              = "$configName$.exa2"
+l3file              = "$configName$.exa3"
 l4file              = "$configName$.exa4"
 
 debugL1File         = "../Debug/$configName$_debug.exa1"

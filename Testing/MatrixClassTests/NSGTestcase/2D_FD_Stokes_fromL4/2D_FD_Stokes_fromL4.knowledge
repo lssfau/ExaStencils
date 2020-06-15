@@ -9,8 +9,9 @@ discr_defaultDirichletOrder    = 2
 
 grid_isStaggered               = true
 
-experimental_applySchurCompl   = true
+//experimental_applySchurCompl   = true
 //experimental_resolveInverseFunctionCall = "Compiletime"
+//experimental_resolveInverseFunctionCall = "Runtime"
 mpi_enabled = false
 // omp parallelization on exactly one fragment in one block
 //import '../lib/domain_onePatch.knowledge'

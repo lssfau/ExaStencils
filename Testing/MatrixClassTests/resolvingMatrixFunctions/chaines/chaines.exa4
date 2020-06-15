@@ -15,7 +15,7 @@ Function Application ( ) : Unit {
 
 	//Var prec : Double = 0.0001
 
-/*
+
 	Var res1 : Matrix<Double, 2, 2> = inverse(m1) 
 
 	//Var res5 : Matrix<Double, 2, 2> = inverse(m1)
@@ -25,14 +25,14 @@ Function Application ( ) : Unit {
 
 	Var sol1 : Matrix<Double, 2, 2> = {{0.32352941176470594,0.29411764705882354},{0.44117647058823542,0.76470588235294121}}
 	//compare(res1,sol1,0.001)
-*/
+
 	
 //	Var res2 : Matrix<Double, 2, 2> = m1 .* det(m1)
 	Var sol2 : Matrix<Double, 2, 2> = {{-2,-4},{-6,-8}}
 	//compare(res2,sol2,0.1)
 
 	Var res3 : Double = 42 + dotProduct(m1, inverse(m1 * m1))
-/*
+
 	//Var res3 : Double = 42 + dotProduct(m1, inverse(m1))
 	//Var sol3 : Double = 38.25
 	//compare(res3,sol3,0.01)
@@ -44,7 +44,7 @@ Function Application ( ) : Unit {
 
 	Var sol5 : Matrix<Double, 2, 2> = inverse(m1)
 	//compare(res5, sol5, 0.001)
-*/
+
 	
 }
 

@@ -2,7 +2,7 @@ user                = "Guest"
 
 configName          = "3D_FV_NavierStokes_localPicard"
 
-basePathPrefix      = "./NavierStokes/"
+basePathPrefix      = "./NSGTestcase/3D_FV_NavierStokes_localPicard/"
 
 l2file              = "$configName$.exa2"
 l3file              = "$configName$.exa3"

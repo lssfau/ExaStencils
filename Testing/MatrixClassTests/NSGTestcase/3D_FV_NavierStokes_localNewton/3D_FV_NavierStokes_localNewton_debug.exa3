@@ -1,0 +1,58 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Function Application {
+	startTimer ( "setup" )
+	initGlobals (  )
+	initDomain (  )
+	initFieldsWithZero (  )
+	initGeometry (  )
+	InitFields (  )
+	stopTimer ( "setup" )
+	print ( "Reynolds number:", Re )
+	Var curIt : Integer = 0
+	Var curPrintIt : Integer = 0
+	repeat until ( curTime >= maxTime ) {
+		if ( ( curTime >= nextPrint ) ) {
+			nextPrint += printInterval
+			Var filename_vel : String
+			buildString ( filename_vel, "data/output_", curPrintIt, ".vtk" )
+			printVtkNS ( filename_vel, levels@finest (  ) )
+			curPrintIt += 1
+		}
+		if ( ( 0 == ( curIt % 100 ) ) ) {
+			print ( "Starting iteration", curIt, "at time", curTime, "with dt", dt )
+		}
+		if ( ( ( 0 == ( curIt % 16 ) ) && ( curIt > 0 ) ) ) {
+			dt *= 2
+			print ( "Trying to increase dt to", dt )
+		}
+		curTime += dt
+		curIt += 1
+		Advance@finest (  )
+		startTimer ( "solve" )
+		gen_solve@finest (  )
+		stopTimer ( "solve" )
+		totalNumTimeSteps += 1
+	}
+	print ( "Total time to solve:   ", getTotalFromTimer ( "solve" ) )
+	print ( "Total time in cycle:   ", getTotalFromTimer ( "cycle" ) )
+	print ( "Mean time per cycle:   ", getMeanFromTimer ( "cycle" ) )
+	print ( "Number of cycles:      ", totalNumCycles )
+	print ( "Number of time steps:  ", totalNumTimeSteps )
+	destroyGlobals (  )
+}
+
