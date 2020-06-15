@@ -593,7 +593,7 @@ object Knowledge {
   var experimental_splitLoops_minInnerWidth : Int = 4
 
   // when to resolve inverse call
-  var experimental_resolveInverseFunctionCall : String = "Runtime" // [Compiletime|Runtime] (with new strategies)
+  var experimental_resolveInverseFunctionCall : String = "Compiletime" // [Compiletime|Runtime] (with new strategies)
  /*
   // structure of matrix to invert
   var experimental_matrixStructure : String = "Filled" //[Filled|Diagonal|Blockdiagonal|Schur]
@@ -606,7 +606,7 @@ object Knowledge {
 
   */
   // runtime inversion executes inplace on input matrix
-  var experimental_inplaceInversion : Boolean = false
+  var experimental_inplaceInversion : Boolean = true
   // runtime determinant executes inplace on input matrix
   var experimental_inplaceDeterminant : Boolean = false
 

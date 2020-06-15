@@ -13,11 +13,8 @@ import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.base.ir.IR_WhileLoop
-import exastencils.baseExt.ir.IR_MatrixFunctionNodes.IR_Determinant
-import exastencils.baseExt.ir.IR_MatrixFunctionNodes.IR_IntermediateInv
 import exastencils.baseExt.ir.IR_MatrixFunctionNodes.IR_SetElement
 import exastencils.baseExt.ir.IR_MatrixFunctionNodes.IR_SetSlice
-import exastencils.config.Knowledge
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
 import exastencils.logger.Logger
@@ -40,7 +37,7 @@ class IR_MatrixVarCollector extends Collector {
       case va : IR_VariableAccess => writes += va.name
       // access to matrix variable transformed to a matrix expression
       case x : IR_MatrixExpression if (x.get(0, 0).isInstanceOf[IR_HighDimAccess]) => writes += x.get(0, 0).asInstanceOf[IR_HighDimAccess].uniqueID
-      case _                                                                       => Logger.error("unexpected type")
+      case _                                                                       => Logger.error(s"unexpected type ${dest}")
     }
   }
 
@@ -63,8 +60,9 @@ class IR_MatrixVarCollector extends Collector {
           case va @ IR_VariableAccess(_, _) => addWrite(va)
           case _                            =>
         })
-      case det @ IR_Determinant(arg, _) if (Knowledge.experimental_inplaceDeterminant)         => addWrite(arg)
-      case inv @ IR_IntermediateInv(arg, _, _, _) if (Knowledge.experimental_inplaceInversion) => addWrite(arg)
+    //TODO can only add write if arg is resolvable
+      //  case det @ IR_Determinant(arg, _) if (Knowledge.experimental_inplaceDeterminant)         => addWrite(arg)
+    //  case inv @ IR_IntermediateInv(arg, _, _, _) if (Knowledge.experimental_inplaceInversion) => addWrite(arg)
       case s @ IR_SetElement(arg)                                                              => addWrite(arg(0))
       case s @ IR_SetSlice(arg)                                                              => addWrite(arg(0))
       case d : IR_VariableDeclaration                                                        => addDecl(d)

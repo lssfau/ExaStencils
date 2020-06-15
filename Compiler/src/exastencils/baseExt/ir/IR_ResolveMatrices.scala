@@ -105,7 +105,7 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
   })
 
   val potentialInline = "potentially inlineable"
-
+/*
   this += new Transformation("prepare extraction", {
     case stmt @ (IR_VariableDeclaration(_, _, _, _) | IR_Assignment(_, _, _)) if (extractables ++= StateManager.findAll[IR_ExtractableMNode](stmt)).nonEmpty =>
       extractables.foreach(e => e.annotate(potentialInline))
@@ -113,6 +113,8 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
       extractables.clear()
       out
   }, false)
+
+ */
 /*
   def duplicateExpressions(access : IR_Expression, dt : IR_MatrixDatatype) = {
     var expressions = ListBuffer[IR_Expression]()
@@ -145,6 +147,20 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
   }, false)
 
  */
+  this += new Transformation("prepare extraction", {
+    case stmt @ (IR_Assignment(_, src, _)) if (extractables ++= StateManager.findAll[IR_ExtractableMNode](src)).nonEmpty =>
+      extractables.foreach(e => e.annotate(potentialInline))
+      var out = new IR_ExtractableStatement(stmt, extractables.length)
+      extractables.clear()
+      out
+    case stmt @ (IR_VariableDeclaration(_, _, Some(src), _)) if (extractables ++= StateManager.findAll[IR_ExtractableMNode](src)).nonEmpty =>
+      extractables.foreach(e => e.annotate(potentialInline))
+      var out = new IR_ExtractableStatement(stmt, extractables.length)
+      extractables.clear()
+      out
+  }, false)
+
+
 }
 
 object IR_MatOpsInline extends DefaultStrategy("extract and inline matrix operations") {
@@ -266,7 +282,7 @@ object IR_ResolveMatOperators extends DefaultStrategy("resolve operators") {
   import exastencils.baseExt.ir.IR_MatrixNodeUtilities.isEvaluatable
   import exastencils.baseExt.ir.IR_MatrixNodeUtilities.isMatrix
 
-  this += new Transformation("mark operators to resolve", {
+  this += new Transformation("resolve operators", {
     //TODO match on supertype? -> introduce supertype
     case mult @ IR_Multiplication(facs) if (facs.exists(f => isMatrix(f)) && facs.forall(f => isEvaluatable(f)))                                                   =>
       IR_BasicMatrixOperations.mult(mult)
@@ -325,7 +341,7 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decl + initializati
   // assignment of a matrix with another matrix : copy other matrix
   this += new Transformation("assign with matrices", {
     case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src @ (IR_MatrixExpression(_, _, _) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))), "=") =>
-      IR_GenerateBasicMatrixOperations.memcpyMatrix(dest, src)
+      IR_GenerateBasicMatrixOperations.copyMatrix(dest, src)
   })
 
   // simplify matrices e.g. neg(mat) to negated entries and resolve user defined functions

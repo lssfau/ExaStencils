@@ -21,7 +21,6 @@ import exastencils.baseExt.ir.IR_PreItMOps
 import exastencils.baseExt.ir.matStructInfo
 import exastencils.config.Knowledge
 import exastencils.config.Settings
-import exastencils.core.Duplicate
 import exastencils.core.StateManager
 import exastencils.datastructures.Transformation.Output
 import exastencils.logger.Logger
@@ -198,7 +197,7 @@ case class IR_InverseRT(
       case x @ IR_MatrixExpression(_, _, _) =>
         var decl = IR_MatrixNodeUtilities.expressionToDeclaration(x)
         newstmts += decl
-        IR_VariableAccess(Duplicate(decl))
+        IR_VariableAccess(decl)
       case va : IR_VariableAccess           => va
       case _                                => Logger.error(s"unexpected argument type: ${ arg }")
     }
