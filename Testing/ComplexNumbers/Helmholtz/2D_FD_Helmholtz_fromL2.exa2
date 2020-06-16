@@ -1,0 +1,27 @@
+
+global< [ 0, 0 ] to [ 1, 1 ] >
+
+u with Complex<Real> on Node of global = 1.0
+u on boundary = 0 
+
+RHS with Complex<Real> on Node of global = 0 
+
+Laplace from Stencil {
+  [ 0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) - shift * k**2
+  [-1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
+  [ 1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
+  [ 0, -1] => -1.0 / ( vf_gridWidth_y ** 2 )
+  [ 0,  1] => -1.0 / ( vf_gridWidth_y ** 2 )
+}
+
+/// globals
+Globals {
+  Expr k = 100
+  Expr shift = -1
+  // Complex expression
+  // Expr shift = 1 - 0.5i 
+}
+
+SolEq {
+  Laplace * u  == RHS
+}

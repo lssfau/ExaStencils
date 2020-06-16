@@ -1,0 +1,18 @@
+user                = "Guest"
+
+configName          = "OperationTest"
+
+basePathPrefix      = "C:\Users\MonPreacthyl\Desktop\i10 HiWi\exastencils\Testing\ComplexNumbers\OperationTest\"
+
+l3file              = "$configName$.exa3"
+
+debugL3File         = "./debug/$configName$_debug.exa3"
+debugL4File         = "./debug/$configName$_debug.exa4"
+
+htmlLogFile         = "./debug/$configName$_log.html"
+outputPath          = "./output/"
+
+produceHtmlLog      = true
+timeStrategies      = true
+
+buildfileGenerators = { "MakefileGenerator" }
