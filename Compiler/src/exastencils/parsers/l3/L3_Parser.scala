@@ -114,14 +114,18 @@ object L3_Parser extends ExaParser with PackratParsers {
       ||| term)
 
   //TODO parse complex expression: 1 + 2i
+  /*
   lazy val complexexpression : PackratParser[L3_Expression] = (
-//    locationize((realLit ~ ("+" ||| "-") ~ realLit <~ "i") ^^ {
-      locationize((binaryexpression ~ ("+" ||| "-") ~ term <~ "i") ^^ {
-      case real ~ op ~ imag =>
-        if(op == "+") L3_ComplexExpression(real, imag)
-        else L3_ComplexExpression(real, L3_Negative(imag))
+    binaryexpression ~ ("+" ||| "-") ~ binaryexpression <~ "i" ^^ {
+      //case L3_NullExpression ~ None ~ imag => L3_ComplexExpression(L3_IntegerConstant(0), if(op == "+") imag else L3_Negative(imag))
+      case real ~ op ~ imag => L3_ComplexExpression(real, if(op == "+") imag else L3_Negative(imag))
     })
-    ||| term)
+  */
+  lazy val complexexpression : PackratParser[L3_Expression] = (
+    locationize((realLit ~ ("+" ||| "-") ~ realLit <~ "i") ^^ {
+      //case L3_NullExpression ~ None ~ imag => L3_ComplexExpression(L3_IntegerConstant(0), if(op == "+") imag else L3_Negative(imag))
+      case real ~ op ~ imag => L3_ComplexExpression(L3_RealConstant(real), if(op == "+") L3_RealConstant(imag) else L3_Negative(L3_RealConstant(imag)))
+    }))
 
 
   lazy val term : PackratParser[L3_Expression] = (
