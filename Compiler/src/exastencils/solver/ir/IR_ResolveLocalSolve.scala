@@ -139,4 +139,9 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
   this += new Transformation("Perform expandSpecial for applicable nodes", {
     case solve : IR_LocalSolve => solve.expandSpecial
   })
+
+  //TODO resolve SolveLinearSystem
+  this += new Transformation("Resolve linearSystems", {
+    case sls : IR_SolveLinearSystem => sls.expand()
+  })
 }

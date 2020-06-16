@@ -237,7 +237,7 @@ object IR_MatOpsInline extends DefaultStrategy("extract and inline matrix operat
   })
 }
 
-object IR_ResolveMatFuncs extends DefaultStrategy("resolve Mfuncs") {
+object IR_ResolveMatFuncs extends DefaultStrategy("resolve matFuncs") {
 
   import exastencils.baseExt.ir.IR_MatOpsInline.potentialInline
 

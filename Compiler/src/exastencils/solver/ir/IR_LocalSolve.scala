@@ -32,7 +32,7 @@ import exastencils.optimization.ir._
 
 /// IR_LocalSolve
 
-case class IR_LocalSolveEquations(
+case class IR_LocalSolve(
     var unknowns : ListBuffer[IR_FieldAccess],
     var equations : ListBuffer[IR_Equation],
     var jacobiType : Boolean,
@@ -229,6 +229,3 @@ case class IR_LocalSolveEquations(
   }
 }
 
-case class IR_LocalSolveMatrices(
-
-)

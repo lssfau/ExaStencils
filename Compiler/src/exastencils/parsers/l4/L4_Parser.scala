@@ -581,4 +581,12 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val equationExpression = locationize((binaryexpression <~ "==") ~ binaryexpression ^^ { case lhs ~ rhs => L4_Equation(lhs, rhs) })
   lazy val equationDeclaration = locationize(("Equation" ~> ident) ~ levelDecl.? ~ ("{" ~> equationExpression <~ "}")
     ^^ { case id ~ levels ~ eq => L4_EquationDecl(id, levels, eq) })
+
+  //TODO parse L4 local solve for matrices
+  // -> L4 SolveLinearSystem
+  //TODO l4 plain variable access
+  lazy val solveLinearSystem = locationize("solve" ~ ("(" ~>  )
+  ^^ { case A ~ u ~ f => L4_SolveLinearSystem(A.asInstanceOf[L4_PlainVariableAccess],u.asInstanceOf[L4_PlainVariableAccess],f.asInstanceOf[L4_PlainVariableAccess])})
+  lazy val functionCall = locationize(functionReference ~ ("(" ~> repsep(binaryexpression ||| booleanexpression, ",").? <~ ")")
+    ^^ { case id ~ args => L4_FunctionCall(id, args.getOrElse(List()).to[ListBuffer]) })
 }
