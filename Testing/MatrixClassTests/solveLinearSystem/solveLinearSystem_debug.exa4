@@ -1,0 +1,26 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0] to [0.1, 0.1] >
+
+
+
+Function Application {
+	Var mat : Matrix<Integer,2,2> = { { 1, 2 }, { 3, 4 } }
+	Var inverse : Matrix<Integer,2,2> = inverse ( mat, "Determine" )
+	mat = 1
+}
+

@@ -1,0 +1,17 @@
+
+Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
+
+Globals {
+	
+}
+
+/// main function
+
+Function Application ( ) : Unit {
+	// input matrices
+	Var A : Matrix<Double, 3, 3> = {{3,2,-1},{2,-2,4},{-1,0.5,-1}}
+	Var f : Matrix<Double, 3, 1> = {{1},{-2},{0}}
+	Var u : Matrix<Double, 3, 1> 
+	solve(A,u,f)
+}
+

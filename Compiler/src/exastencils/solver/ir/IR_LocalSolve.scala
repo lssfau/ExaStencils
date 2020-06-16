@@ -32,7 +32,7 @@ import exastencils.optimization.ir._
 
 /// IR_LocalSolve
 
-case class IR_LocalSolve(
+case class IR_LocalSolveEquations(
     var unknowns : ListBuffer[IR_FieldAccess],
     var equations : ListBuffer[IR_Equation],
     var jacobiType : Boolean,
@@ -43,6 +43,10 @@ case class IR_LocalSolve(
   var AVals = ListBuffer[ListBuffer[IR_Addition]]()
 
   var AInv : IR_Expression = _
+
+  //TODO just take A and f with us as matrices and branch out if they are assigned?
+  var A : IR_Expression = _
+  var f : IR_Expression = _
 
   def matchUnknowns(other : IR_FieldAccess) : Int = {
     if (other.frozen)
@@ -208,7 +212,6 @@ case class IR_LocalSolve(
     val AExp = AVals.map(_.map(mapToExp))
 
     //TODO sizecheck
-    //TODO structure determination
     val matStructInfo = IR_DetermineMatrixStructure.isOfStructure(AVals)
 
     // choose strategy used for inverting local matrix
@@ -220,8 +223,12 @@ case class IR_LocalSolve(
       }
     }
     else if (isSolvableWithoutInverse(matStructInfo.structure))
-        IR_Scope(IR_SolveLinearSystem(AExp, fExp, unknowns, jacobiType, relax, omitConditions, matStructInfo))
+        IR_Scope(IR_LocalSchurCompl(AExp, fExp, unknowns, jacobiType, relax, omitConditions, matStructInfo))
     else
       IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax, omitConditions, matStructInfo))
   }
 }
+
+case class IR_LocalSolveMatrices(
+
+)
