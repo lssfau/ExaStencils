@@ -68,7 +68,10 @@ case class RemoteFragmentCommunicationBegin(
         MPI_GeneratedTag_New(IR_IV_CommunicationId(), IR_IV_NeighborFragmentIdx(0, neigh_idx), neigh_idx),
         MPI_Request_New(s"Send", neigh_idx)),
         IR_Assignment(IR_IV_RemoteReqOutstanding_New(s"Send", neigh_idx), true),
-        MPI_Receive(IR_AddressOf(IR_IV_NeighFragOrder(neigh_idx, frag_index)), 1, IR_RealDatatype, IR_IV_NeighborRemoteRank(0, neigh_idx),
+        MPI_Receive(IR_AddressOf(IR_IV_NeighFragOrder(if (Knowledge.comm_enableCommTransformations)
+          IR_IV_CommNeighNeighIdx(0, neigh_idx)
+        else
+          DefaultNeighbors.getOpposingNeigh(neigh_idx).index, IR_IV_NeighborFragmentIdx(0, neigh_idx))), 1, IR_RealDatatype, IR_IV_NeighborRemoteRank(0, neigh_idx),
           MPI_GeneratedTag_New(IR_IV_NeighborFragmentIdx(0, neigh_idx), IR_IV_CommunicationId(),
             if (Knowledge.comm_enableCommTransformations)
               IR_IV_CommNeighNeighIdx(0, neigh_idx)
@@ -164,9 +167,9 @@ object IR_ResolveFragmentOrder extends DefaultStrategy("ResolveFragmentOrder") {
 }
 
 case class MPI_Request_New(var direction : String, var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, 0, 0, neighIdx)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, neighIdx)
 
-  override def resolveName() = s"mpiRequest_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", "0", "0", neighIdx.prettyprint)
+  override def resolveName() = s"mpiRequest_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", neighIdx.prettyprint)
   override def resolveDatatype() = "MPI_Request"
 }
 
@@ -175,9 +178,9 @@ case class IR_IV_RemoteReqOutstanding_New(
     var neighIdx : IR_Expression,
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable {
 
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, 0, 0, neighIdx)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, neighIdx)
 
-  override def resolveName() = s"remoteReqOutstanding_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", "0", "0", neighIdx.prettyprint)
+  override def resolveName() = s"remoteReqOutstanding_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", neighIdx.prettyprint)
   override def resolveDatatype() = IR_BooleanDatatype
   override def resolveDefValue() = Some(false)
 }
