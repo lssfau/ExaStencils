@@ -113,6 +113,17 @@ object L3_Parser extends ExaParser with PackratParsers {
     locationize((binaryexpression ~ ("+" ||| "-" ||| ".+" ||| ".-") ~ term) ^^ { case lhs ~ op ~ rhs => L3_BinaryOperators.createExpression(op, lhs, rhs) })
       ||| term)
 
+  //TODO parse complex expression: 1 + 2i
+  lazy val complexexpression : PackratParser[L3_Expression] = (
+//    locationize((realLit ~ ("+" ||| "-") ~ realLit <~ "i") ^^ {
+      locationize((binaryexpression ~ ("+" ||| "-") ~ term <~ "i") ^^ {
+      case real ~ op ~ imag =>
+        if(op == "+") L3_ComplexExpression(real, imag)
+        else L3_ComplexExpression(real, L3_Negative(imag))
+    })
+    ||| term)
+
+
   lazy val term : PackratParser[L3_Expression] = (
     locationize((term ~ ("*" ||| "/" ||| "%" ||| ".*" ||| "./" ||| ".%") ~ term2) ^^ { case lhs ~ op ~ rhs => L3_BinaryOperators.createExpression(op, lhs, rhs) })
       ||| term2)
@@ -348,7 +359,8 @@ object L3_Parser extends ExaParser with PackratParsers {
   // ##### L3_ExpressionDeclaration
   // ######################################
 
-  lazy val expressionDeclaration = locationize((("Expr" ||| "Expression") ~> ident) ~ levelDecl.? ~ ("=" ~> (binaryexpression ||| booleanexpression))
+  //TODO parse complex expression
+  lazy val expressionDeclaration = locationize((("Expr" ||| "Expression") ~> ident) ~ levelDecl.? ~ ("=" ~> (binaryexpression ||| booleanexpression ||| complexexpression))
     ^^ { case id ~ levels ~ exp => L3_ExpressionDeclaration(id, levels, exp) })
 
   // ######################################
