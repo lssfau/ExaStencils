@@ -38,7 +38,7 @@ object L3_Lexer extends ExaLexer {
     "String", "string",
     "Integer", "integer", "Int", "int",
     "Real", "real", "Float", "float", "Double", "double", "Dbl", "Flt",
-    "Complex", "complex",
+    "Complex", "complex", "i",
     "Array", "array",
     "Boolean", "boolean", "Bool", "bool")
 

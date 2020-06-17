@@ -7,5 +7,5 @@ import exastencils.prettyprinting.PpStream
 
 case class L4_ComplexExpression(real : L4_Expression, imag : L4_Expression) extends L4_Expression {
   override def progress : IR_ComplexExpression = ProgressLocation(IR_ComplexExpression(real.progress, imag.progress))
-  override def prettyprint(out : PpStream) : Unit = out << "(" << real << " + " << imag << "i)"
+  override def prettyprint(out : PpStream) : Unit = out << real << " + " << imag << "i"
 }

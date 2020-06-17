@@ -57,7 +57,7 @@ class L4_Lexer extends ExaLexer {
     "String", "string",
     "Integer", "integer", "Int", "int",
     "Real", "real", "Float", "float", "Double", "double", "Dbl", "Flt",
-    "Complex", "complex",
+    "Complex", "complex", "i",
     "Boolean", "boolean", "Bool", "bool")
   reserved += ("Array", "Vector", "RowVector", "ColumnVector", "RVector", "CVector", "Matrix", "T")
   reserved += ("Vec2", "Vec3", "Vec4")

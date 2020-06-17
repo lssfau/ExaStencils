@@ -8,5 +8,6 @@ import exastencils.util.ir.IR_ResultingDatatype
 
 case class IR_ComplexExpression(real : IR_Expression, imag : IR_Expression) extends IR_Expression {
   override def datatype : IR_Datatype = IR_ComplexDatatype(IR_ResultingDatatype(real.datatype, imag.datatype))
-  override def prettyprint(out : PpStream) : Unit = out << "std::complex<" + datatype + ">(" + real + ", " + imag + ")"
+  override def prettyprint(out : PpStream) : Unit =
+    out << real << " + " << imag << "i"
 }
