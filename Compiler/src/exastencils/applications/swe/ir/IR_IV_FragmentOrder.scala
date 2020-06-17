@@ -164,9 +164,9 @@ object IR_ResolveFragmentOrder extends DefaultStrategy("ResolveFragmentOrder") {
 }
 
 case class MPI_Request_New(var direction : String, var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, 0, 0, neighIdx)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, neighIdx)
 
-  override def resolveName() = s"mpiRequest_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", "0", "0", neighIdx.prettyprint)
+  override def resolveName() = s"mpiRequest_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", neighIdx.prettyprint)
   override def resolveDatatype() = "MPI_Request"
 }
 
@@ -175,9 +175,9 @@ case class IR_IV_RemoteReqOutstanding_New(
     var neighIdx : IR_Expression,
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable {
 
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, 0, 0, neighIdx)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, neighIdx)
 
-  override def resolveName() = s"remoteReqOutstanding_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", "0", "0", neighIdx.prettyprint)
+  override def resolveName() = s"remoteReqOutstanding_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", neighIdx.prettyprint)
   override def resolveDatatype() = IR_BooleanDatatype
   override def resolveDefValue() = Some(false)
 }
