@@ -20,6 +20,7 @@ package exastencils.app.ir
 
 import exastencils.app.LayerHandler
 import exastencils.applications.ir.IR_HandleMainApplication
+import exastencils.applications.swe.ir.IR_ResolveFragmentNlock
 import exastencils.applications.swe.ir.IR_ResolveFragmentOrder
 import exastencils.applications.swe.ir.IR_ResolveStationFunctions
 import exastencils.base.ExaRootNode
@@ -124,6 +125,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_HandleMainApplication.apply()
     IR_ResolveBoundaryFunctions.apply()
     IR_ResolveFragmentOrder.apply()
+    IR_ResolveFragmentNlock.apply()
     IR_ResolveReadParameters.apply()
     IR_ResolveStationFunctions.apply()
     IR_ResolveCImgFunctions.apply()
