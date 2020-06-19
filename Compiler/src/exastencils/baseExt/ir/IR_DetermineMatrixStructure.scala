@@ -36,27 +36,13 @@ object matStructInfo {
     new matStructInfo(s, b, sA, bA)
   }
 }
-case class matStructInfo(var structure : String,var blocksize : Int,var structureA : String,var blocksizeA : Int) {
+
+case class matStructInfo(var structure : String, var blocksize : Int, var structureA : String, var blocksizeA : Int) {
 }
 
 // methods to determine whether a matrix is a diagonal-, blockdiagonal-, schurmatrix at compiletime
 //TODO matrices have to be filled with constants
 object IR_DetermineMatrixStructure {
-  /*
-    def evalIntegralWithAccesses(expr : IR_Expression) : Long = expr match {
-      case IR_IntegerConstant(v)                                => v
-      case IR_Addition(sums : ListBuffer[IR_Expression])        => sums.view.map(s => evalIntegralWithAccesses(s)).sum
-      case IR_Subtraction(l : IR_Expression, r : IR_Expression) => evalIntegralWithAccesses(l) - evalIntegralWithAccesses(r)
-      case IR_Multiplication(facs : ListBuffer[IR_Expression])  => facs.view.map(s => evalIntegralWithAccesses(s)).product
-      case IR_Division(l : IR_Expression, r : IR_Expression)    => evalIntegralWithAccesses(l) / evalIntegralWithAccesses(r)
-      case IR_Modulo(l : IR_Expression, r : IR_Expression)      => evalIntegralWithAccesses(l) % evalIntegralWithAccesses(r)
-      case IR_Minimum(l : ListBuffer[IR_Expression])            => l.view.map(e => evalIntegralWithAccesses(e)).min
-      case IR_Maximum(l : ListBuffer[IR_Expression])            => l.view.map(e => evalIntegralWithAccesses(e)).max
-      //case IR_VariableAccess(_,IR_IntegerDatatype)              =>
-      //case IR_HighDimAccess(base @ IR_VariableAccess(_, IR_MatrixDatatype(_,_,_)), idx @ IR_ExpressionIndex(_)) => evalIntegralWithAccesses(base.get(evalIntegralWithAccesses(idx.indices(0)).toInt,evalIntegralWithAccesses(idx.indices(1)).toInt))
-      case _ => Logger.error("unexpected type argument: " + expr)
-    }
-  */
 
   def evaluateEntry(mat : IR_Expression, i : Int, j : Int) : Double = {
     mat match {
@@ -78,7 +64,7 @@ object IR_DetermineMatrixStructure {
     var blocksize_A = 0
     var blocksize_D = 0
     matrix match {
-      case mat @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) | IR_MatrixExpression(_, _, _)) =>
+      case mat @ IR_MatrixExpression(_, _, _) =>
         var size = IR_BasicMatrixOperations.getSize(mat)
 
         mat.datatype.resolveBaseDatatype match {
@@ -162,7 +148,7 @@ object IR_DetermineMatrixStructure {
             }
           case _                                                                                  => Logger.error("unexpected datatype: " + mat.datatype.resolveBaseDatatype)
         }
-      case _                                                                                       => Logger.error("unexpected argument type: " + matrix + ", expected matrix variable or expression")
+      case _                                  => Logger.error("unexpected argument type: " + matrix + ", expected matrix variable or expression")
     }
 
   }
@@ -184,7 +170,7 @@ object IR_DetermineMatrixStructure {
       val add3 = mat(size - blocksize_D - 1)(1)
       cont = false
       List[IR_Addition](add0, add1, add2, add3).foreach(add =>
-        add.summands.foreach{
+        add.summands.foreach {
           case IR_RealConstant(0.0)   =>
           case IR_DoubleConstant(0.0) =>
           case IR_FloatConstant(0.0)  =>
@@ -205,7 +191,7 @@ object IR_DetermineMatrixStructure {
       val add1 = mat(blocksize_A)(0)
       cont = false
       List[IR_Addition](add0, add1).foreach(add =>
-        add.summands.foreach{
+        add.summands.foreach {
           case IR_RealConstant(0.0)   =>
           case IR_DoubleConstant(0.0) =>
           case IR_FloatConstant(0.0)  =>
@@ -234,7 +220,7 @@ object IR_DetermineMatrixStructure {
         val add1 = mat(j)(i)
         var nonzeroEntry = false
         List[IR_Addition](add0, add1).foreach(add =>
-          add.summands.foreach{
+          add.summands.foreach {
             case IR_RealConstant(0.0)   =>
             case IR_DoubleConstant(0.0) =>
             case IR_FloatConstant(0.0)  =>

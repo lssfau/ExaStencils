@@ -603,12 +603,13 @@ object Knowledge {
   var experimental_structure_A : String = ""    //[Filled|Diagonal|Blockdiagonal]
   // blocksize of A matrix in Schur structure in
   var experimental_blocksize_A : Int = -1
-
   */
   // runtime inversion executes inplace on input matrix
   var experimental_inplaceInversion : Boolean = true
   // runtime determinant executes inplace on input matrix
   var experimental_inplaceDeterminant : Boolean = false
+  // classify structure of system matrix for solveLinearSystem statements
+  var experimental_classifyLES : Boolean = false
 
   // tries to apply an inversion based on the Schur complement in local solve blocks
   var experimental_applySchurCompl : Boolean = false

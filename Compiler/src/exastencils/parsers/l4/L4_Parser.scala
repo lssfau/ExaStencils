@@ -231,7 +231,9 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| levelScope
       ||| solveLocallyStatement
       ||| colorWithStatement
-      ||| repeatWithStatement)
+      ||| repeatWithStatement
+      ||| solveLinearSystemStatement
+    )
 
   lazy val statementInsideRepeat = statement ||| breakStatement
 
@@ -326,6 +328,11 @@ object L4_Parser extends ExaParser with PackratParsers {
     case exp                                          =>
       Logger.error("color expression in 'color with' statement must be a modulo expression with a constant integral divisor" + exp.location.toAppendString)
   })
+
+  //TODO parse L4 local solve for matrices
+  // -> L4 SolveLinearSystem
+  lazy val solveLinearSystemStatement = locationize(("solveLES") ~> (binaryexpression <~ ",") ~ (binaryexpression <~ ",") ~ binaryexpression ^^ {
+    case a ~ u ~ f => L4_SolveLinearSystem(a, u, f)})
 
   // ######################################
   // ##### Globals
@@ -582,11 +589,5 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val equationDeclaration = locationize(("Equation" ~> ident) ~ levelDecl.? ~ ("{" ~> equationExpression <~ "}")
     ^^ { case id ~ levels ~ eq => L4_EquationDecl(id, levels, eq) })
 
-  //TODO parse L4 local solve for matrices
-  // -> L4 SolveLinearSystem
-  //TODO l4 plain variable access
-  lazy val solveLinearSystem = locationize("solve" ~ ("(" ~>  )
-  ^^ { case A ~ u ~ f => L4_SolveLinearSystem(A.asInstanceOf[L4_PlainVariableAccess],u.asInstanceOf[L4_PlainVariableAccess],f.asInstanceOf[L4_PlainVariableAccess])})
-  lazy val functionCall = locationize(functionReference ~ ("(" ~> repsep(binaryexpression ||| booleanexpression, ",").? <~ ")")
-    ^^ { case id ~ args => L4_FunctionCall(id, args.getOrElse(List()).to[ListBuffer]) })
+
 }

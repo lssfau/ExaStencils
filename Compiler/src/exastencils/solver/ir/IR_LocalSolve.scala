@@ -223,7 +223,7 @@ case class IR_LocalSolve(
       }
     }
     else if (isSolvableWithoutInverse(matStructInfo.structure))
-        IR_Scope(IR_LocalSchurCompl(AExp, fExp, unknowns, jacobiType, relax, omitConditions, matStructInfo))
+        IR_Scope(IR_LocalSchurComplGeneralized(AExp, fExp, unknowns, jacobiType, relax, omitConditions, matStructInfo))
     else
       IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax, omitConditions, matStructInfo))
   }

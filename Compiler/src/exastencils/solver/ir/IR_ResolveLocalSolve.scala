@@ -31,6 +31,11 @@ import exastencils.optimization.ir._
 /// IR_ResolveLocalSolve
 
 object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes") {
+  //TODO register collector
+  // collector to check for writes to variables
+  var variableCollector = new IR_MatrixVarCollector()
+  this.register(variableCollector)
+
   def computeMinMaxIndex(solve : IR_LocalSolve, numDimensions : Int) : (IR_ConstIndex, IR_ConstIndex) = {
     val minIndex = IR_ConstIndex(Array.fill(numDimensions)(Int.MinValue))
     val maxIndex = IR_ConstIndex(Array.fill(numDimensions)(Int.MaxValue))
@@ -141,7 +146,21 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
   })
 
   //TODO resolve SolveLinearSystem
-  this += new Transformation("Resolve linearSystems", {
-    case sls : IR_SolveLinearSystem => sls.expand()
+  this += new Transformation("Resolve solveLinearSystem statements", {
+    //TODO get matrix structure from collector
+    case sls @ IR_SolveLinearSystem(a, _, _) =>
+      if (Knowledge.experimental_classifyLES) {
+        val structureInfo = a match {
+          case x : IR_MatrixExpression => IR_DetermineMatrixStructure.isOfStructure(x)
+          case va : IR_VariableAccess  =>
+            val decl = variableCollector.lastDecl(va.name).getOrElse(Logger.error("declaration not found"))
+            val init = decl.initialValue.getOrElse(Logger.error("matrix to classify at compiletime not initialized"))
+            if (variableCollector.writeInScope(va.name))
+              Logger.error("write to A found, can not classify structure from declaration")
+            IR_DetermineMatrixStructure.isOfStructure(init)
+        }
+        sls.expand(Some(structureInfo))
+      }
+      else sls.expand(None)
   })
 }
