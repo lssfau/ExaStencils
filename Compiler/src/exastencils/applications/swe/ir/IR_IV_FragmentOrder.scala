@@ -64,11 +64,11 @@ case class RemoteFragmentCommunicationBegin(
 
   override def expand() : Output[StatementList] = {
     ListBuffer[IR_Statement](
-      IR_PotentiallyCritical(MPI_Send(IR_AddressOf(IR_IV_FragmentOrder(frag_index)), 1, IR_RealDatatype, IR_IV_NeighborRemoteRank(0, neigh_idx),
+      IR_PotentiallyCritical(MPI_Send(IR_AddressOf(IR_IV_FragmentOrder(frag_index)), 1, IR_IntegerDatatype, IR_IV_NeighborRemoteRank(0, neigh_idx),
         MPI_GeneratedTag_New(IR_IV_CommunicationId(), IR_IV_NeighborFragmentIdx(0, neigh_idx), neigh_idx),
         MPI_Request_New(s"Send", neigh_idx)),
         IR_Assignment(IR_IV_RemoteReqOutstanding_New(s"Send", neigh_idx), true),
-        MPI_Receive(IR_AddressOf(IR_IV_NeighFragOrder(neigh_idx, frag_index)), 1, IR_RealDatatype, IR_IV_NeighborRemoteRank(0, neigh_idx),
+        MPI_Receive(IR_AddressOf(IR_IV_NeighFragOrder(neigh_idx, frag_index)), 1, IR_IntegerDatatype, IR_IV_NeighborRemoteRank(0, neigh_idx),
           MPI_GeneratedTag_New(IR_IV_NeighborFragmentIdx(0, neigh_idx), IR_IV_CommunicationId(),
             if (Knowledge.comm_enableCommTransformations)
               IR_IV_CommNeighNeighIdx(0, neigh_idx)
