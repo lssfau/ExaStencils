@@ -24,18 +24,13 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.DefaultNeighbors
-import exastencils.communication.ir.IR_IV_CommNeighNeighIdx
-import exastencils.communication.ir.IR_IV_CommVariable
-import exastencils.communication.ir.IR_IV_CommunicationId
+import exastencils.communication.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
-import exastencils.datastructures.ir.StatementList
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_FieldAccess
-import exastencils.parallelization.api.mpi.MPI_Receive
-import exastencils.parallelization.api.mpi.MPI_Send
-import exastencils.parallelization.api.mpi.MPI_WaitForRequest
+import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.ir.IR_PotentiallyCritical
 import exastencils.prettyprinting.PpStream
 
@@ -58,39 +53,78 @@ case class IR_IV_NeighFragOrder(var neighIdx : IR_Expression, var fragmentIdx : 
   override def resolveDefValue() = Some(-1)
 }
 
-case class RemoteFragmentCommunicationBegin(
-    var frag_index : IR_Expression,
-    var neigh_idx : Int) extends IR_Statement with IR_Expandable {
+case object IR_CommunicateFragmentOrder extends IR_FuturePlainFunction {
+  override var name = "commFragOrderInternal"
+  def returnType : IR_Datatype = IR_UnitDatatype
 
-  override def expand() : Output[StatementList] = {
-    ListBuffer[IR_Statement](
-      IR_PotentiallyCritical(MPI_Send(IR_AddressOf(IR_IV_FragmentOrder(frag_index)), 1, IR_IntegerDatatype, IR_IV_NeighborRemoteRank(0, neigh_idx),
-        MPI_GeneratedTag_noField(IR_IV_CommunicationId(), IR_IV_NeighborFragmentIdx(0, neigh_idx), neigh_idx),
-        MPI_Request_noField(s"Send", neigh_idx)),
-        IR_Assignment(IR_IV_RemoteReqOutstanding_noField(s"Send", neigh_idx), true),
-        MPI_Receive(IR_AddressOf(IR_IV_NeighFragOrder(neigh_idx, frag_index)), 1, IR_IntegerDatatype, IR_IV_NeighborRemoteRank(0, neigh_idx),
-          MPI_GeneratedTag_noField(IR_IV_NeighborFragmentIdx(0, neigh_idx), IR_IV_CommunicationId(),
-            if (Knowledge.comm_enableCommTransformations)
-              IR_IV_CommNeighNeighIdx(0, neigh_idx)
-            else
-              DefaultNeighbors.getOpposingNeigh(neigh_idx).index),
-          MPI_Request_noField(s"Recv", neigh_idx)),
-        IR_Assignment(IR_IV_RemoteReqOutstanding_noField(s"Recv", neigh_idx), true))
-    )
+  override def prettyprint_decl() : String = {
+    returnType.prettyprint + ' ' + name + "( );\n"
   }
-}
 
-case class RemoteFragmentCommunicationFinish(
-    var direction : String,
-    var frag_index : IR_Expression,
-    var neigh_idx : Int,
-) extends IR_Statement with IR_Expandable {
-  override def expand() : Output[IR_Statement] = {
-    IR_IfCondition(
-      IR_IV_RemoteReqOutstanding_noField(s"${ direction }", neigh_idx),
+  def generateFctAccess() = IR_PlainInternalFunctionReference(name, returnType)
+
+  private def neighNeighIdx(neighIdx : Int) : IR_Expression = if (Knowledge.comm_enableCommTransformations) IR_IV_CommNeighNeighIdx(0, neighIdx) else DefaultNeighbors.getOpposingNeigh(neighIdx).index
+
+  private def localComm() = {
+    def compose(neighIdx : Int) = {
+      IR_Assignment(
+        IR_IV_NeighFragOrder(neighNeighIdx(neighIdx), IR_IV_NeighborFragmentIdx(0, neighIdx)),
+        IR_IV_FragmentOrder())
+    }
+
+    IR_LoopOverFragments(
+      DefaultNeighbors.neighbors.map(_.index).map(neighIdx =>
+        IR_IfCondition(IR_IV_NeighborIsValid(0, neighIdx) AndAnd IR_Negation(IR_IV_NeighborIsRemote(0, neighIdx)),
+          compose(neighIdx)) : IR_Statement))
+  }
+
+  private def beginRemoteComm() = {
+    def compose(neighIdx : Int) = {
+      val sendTag = MPI_GeneratedTag_noField(IR_IV_CommunicationId(), IR_IV_NeighborFragmentIdx(0, neighIdx), neighIdx)
+      val sendReq = MPI_Request_noField(s"Send", neighIdx)
+
+      val recvTag = MPI_GeneratedTag_noField(IR_IV_NeighborFragmentIdx(0, neighIdx), IR_IV_CommunicationId(), neighNeighIdx(neighIdx))
+      val recvReq = MPI_Request_noField(s"Recv", neighIdx)
+
+      val send = MPI_Send(IR_AddressOf(IR_IV_FragmentOrder()), 1, IR_IntegerDatatype, IR_IV_NeighborRemoteRank(0, neighIdx), sendTag, sendReq)
+      val recv = MPI_Receive(IR_AddressOf(IR_IV_NeighFragOrder(neighIdx)), 1, IR_IntegerDatatype, IR_IV_NeighborRemoteRank(0, neighIdx), recvTag, recvReq)
+
       ListBuffer[IR_Statement](
-        IR_FunctionCall(MPI_WaitForRequest.generateFctAccess(), IR_AddressOf(MPI_Request_noField(s"${ direction }", neigh_idx))),
-        IR_Assignment(IR_IV_RemoteReqOutstanding_noField(s"${ direction }", neigh_idx), false)))
+        IR_PotentiallyCritical(send),
+        IR_Assignment(IR_IV_RemoteReqOutstanding_noField(s"Send", neighIdx), true),
+        IR_PotentiallyCritical(recv),
+        IR_Assignment(IR_IV_RemoteReqOutstanding_noField(s"Recv", neighIdx), true))
+    }
+
+    IR_LoopOverFragments(
+      DefaultNeighbors.neighbors.map(_.index).map(neighIdx =>
+        IR_IfCondition(IR_IV_NeighborIsValid(0, neighIdx) AndAnd IR_IV_NeighborIsRemote(0, neighIdx),
+          compose(neighIdx)) : IR_Statement))
+  }
+
+  private def finishRemoteComm() = {
+    def compose(neighIdx : Int) = {
+      ListBuffer("Recv", "Send").map(dir =>
+        IR_IfCondition(IR_IV_RemoteReqOutstanding_noField(dir, neighIdx),
+          ListBuffer[IR_Statement](
+            IR_FunctionCall(MPI_WaitForRequest.generateFctAccess(), IR_AddressOf(MPI_Request_noField(dir, neighIdx))),
+            IR_Assignment(IR_IV_RemoteReqOutstanding_noField(dir, neighIdx), false))) : IR_Statement)
+    }
+
+    IR_LoopOverFragments(
+      DefaultNeighbors.neighbors.map(_.index).map(neighIdx =>
+        IR_IfCondition(IR_IV_NeighborIsValid(0, neighIdx) AndAnd IR_IV_NeighborIsRemote(0, neighIdx),
+          compose(neighIdx)) : IR_Statement))
+  }
+
+  override def generateFct() = {
+    var body = ListBuffer[IR_Statement]()
+
+    body += beginRemoteComm()
+    body += localComm()
+    body += finishRemoteComm()
+
+    IR_PlainFunction(name, returnType, body)
   }
 }
 
@@ -128,38 +162,10 @@ object IR_ResolveFragmentOrder extends DefaultStrategy("ResolveFragmentOrder") {
       IR_IV_NeighborIsValid(0, args(0))
 
     case IR_ExpressionStatement(call : IR_FunctionCall) if "communicateFragOrder" == call.name =>
-      def fragmentIdx = IR_LoopOverFragments.defIt
+      if (!IR_CommunicationFunctions.get.functions.exists(_.name == IR_CommunicateFragmentOrder.name))
+        IR_CommunicationFunctions.get.functions += IR_CommunicateFragmentOrder
 
-      var statements = ListBuffer[IR_Statement]()
-      var statements_begin = ListBuffer[IR_Statement]()
-      var statements_finish = ListBuffer[IR_Statement]()
-      for (neigh <- DefaultNeighbors.neighbors) {
-        statements_begin += IR_IfCondition(
-          IR_IV_NeighborIsValid(0, neigh.index),
-          IR_IfCondition(
-            IR_IV_NeighborIsRemote(0, neigh.index), RemoteFragmentCommunicationBegin(fragmentIdx, neigh.index), //TODO MPI part
-            IR_Assignment(
-              IR_IV_NeighFragOrder(if (Knowledge.comm_enableCommTransformations)
-                IR_IV_CommNeighNeighIdx(0, neigh.index)
-              else
-                DefaultNeighbors.getOpposingNeigh(neigh.index).index, IR_IV_NeighborFragmentIdx(0, neigh.index)),
-              IR_IV_FragmentOrder())))
-        statements_finish += IR_IfCondition(
-          IR_IV_NeighborIsValid(0, neigh.index),
-          IR_IfCondition(
-            IR_IV_NeighborIsRemote(0, neigh.index), RemoteFragmentCommunicationFinish(s"Send", fragmentIdx, neigh.index), //TODO MPI part
-          ))
-        statements_finish += IR_IfCondition(
-          IR_IV_NeighborIsValid(0, neigh.index),
-          IR_IfCondition(
-            IR_IV_NeighborIsRemote(0, neigh.index), RemoteFragmentCommunicationFinish(s"Recv", fragmentIdx, neigh.index), //TODO MPI part
-          ))
-
-      }
-
-      statements += IR_LoopOverFragments(statements_begin)
-      statements += IR_LoopOverFragments(statements_finish)
-      statements
+      IR_ExpressionStatement(IR_FunctionCall(IR_CommunicateFragmentOrder.generateFctAccess()))
   })
 }
 
