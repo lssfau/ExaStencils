@@ -22,7 +22,6 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.datastructures._
-import exastencils.field.ir.IR_FieldAccess
 import exastencils.prettyprinting.PpStream
 
 /// IR_IV_FragmentNlock
@@ -38,16 +37,7 @@ case class IR_IV_FragmentNlock(var fragmentIdx : IR_Expression = IR_LoopOverFrag
 /// IR_ResolveFragmentNlock
 
 object IR_ResolveFragmentNlock extends DefaultStrategy("ResolveFragmentNlock") {
-  def getIndex(fieldAccess : IR_FieldAccess) = {
-    val index = fieldAccess.index
-    if (fieldAccess.offset.isDefined)
-      for (i <- 0 until Math.min(fieldAccess.index.length, fieldAccess.offset.get.length))
-        index(i) += fieldAccess.offset.get(i)
-    index
-  }
-
   this += new Transformation("ResolveFunctionCalls", {
-
     case IR_FunctionCall(IR_UnresolvedFunctionReference("getFragmentNlock", _), args) =>
       // usage: getFragmentNlock ( fragmentIdx )
       IR_IV_FragmentNlock(args(0))
@@ -55,6 +45,5 @@ object IR_ResolveFragmentNlock extends DefaultStrategy("ResolveFragmentNlock") {
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("setFragmentNlock", _), args)) =>
       // usage: setFragmentNlock ( fragmentIdx, nlock )
       IR_Assignment(IR_IV_FragmentNlock(args(0)), args(1))
-
   })
 }
