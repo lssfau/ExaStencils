@@ -34,13 +34,13 @@ object IR_LocalDirectInvert {
   def matComponentAccess(mat : IR_VariableAccess, i0 : Int, i1 : Int) = IR_HighDimAccess(mat, IR_ConstIndex(i0, i1))
 
   def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
-      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : matStructInfo) = {
+      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : IR_MatStructure) = {
 
     invert(AVals, fVals, unknowns, jacobiType, relax, omitConditions, msi)
   }
 
   def invert(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
-      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi: matStructInfo) : ListBuffer[IR_Statement] = {
+      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi: IR_MatStructure) : ListBuffer[IR_Statement] = {
 
     def isNonZeroEntry(ex : IR_Expression) = {
       ex match {
@@ -103,8 +103,8 @@ object IR_LocalDirectInvert {
 
     // solve local system - TODO: replace inverse function call with internal function
     // TODO: set return value of the fct call
-    //stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", AMat, IR_StringConstant(msi.structure), msi.blocksize,IR_StringConstant(msi.structureA), msi.blocksizeA), f))
-    stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", AMat), f))
+    stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", AMat, IR_StringConstant(msi.structure), msi.blocksize,IR_StringConstant(msi.structureA), msi.blocksizeA), f))
+    //stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", AMat), f))
 
 
     // write back results

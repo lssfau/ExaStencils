@@ -18,7 +18,7 @@ import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
 import exastencils.baseExt.ir.IR_MatrixNodeUtilities
 import exastencils.baseExt.ir.IR_PreItMOps
-import exastencils.baseExt.ir.matStructInfo
+import exastencils.baseExt.ir.IR_MatStructure
 import exastencils.config.Knowledge
 import exastencils.config.Settings
 import exastencils.core.StateManager
@@ -29,7 +29,7 @@ import exastencils.prettyprinting.PpStream
 
 abstract class IR_Inverse(
     arg : IR_Expression,
-    msi : matStructInfo
+    msi : IR_MatStructure
 ) {
 }
 
@@ -37,7 +37,7 @@ abstract class IR_Inverse(
 object IR_IntermediateInv {
   def apply(
       arg : IR_Expression,
-      structInfo : matStructInfo,
+      structInfo : IR_MatStructure,
       determineStructure : String
   ) = {
     var argexpr = arg match {
@@ -49,7 +49,7 @@ object IR_IntermediateInv {
   }
   def apply(args : ListBuffer[IR_Expression]) = {
     var determineStructure = "no"
-    var msi = matStructInfo("Filled", -1, "-1", -1)
+    var msi = IR_MatStructure("Filled", -1, "-1", -1)
     // check arguments 2 to 5
     args.length match {
       case 0 =>
@@ -113,14 +113,14 @@ object IR_IntermediateInv {
             case Some(x @ IR_MatrixExpression(_, _, _)) =>
               //if (IR_MatrixNodeUtilities.notWrittenTo(name)) {
               if(!IR_PreItMOps.variableCollector.writeInScope(name)) {
-                IR_DetermineMatrixStructure.isOfStructure(x)
+                IR_DetermineMatrixStructure(x)
               }
               else
                 Logger.error("found assignment to matrix input that was to classify, cannot classify non compiletime constant matrices!")
             case _                                      => Logger.error(s"unexpected initialization value: ${ decl.initialValue }, expected matrix expression!")
           }
         case x : IR_MatrixExpression =>
-          IR_DetermineMatrixStructure.isOfStructure(x)
+          IR_DetermineMatrixStructure(x)
       }
     }
     Logger.warn(s"Inverting with the following configuration: ${ Knowledge.experimental_resolveInverseFunctionCall }, ${ (msi.structure,msi.blocksize,msi.structureA,msi.blocksizeA) }")
@@ -129,28 +129,36 @@ object IR_IntermediateInv {
 }
 case class IR_IntermediateInv(
     arg : IR_Expression,
-    msi : matStructInfo,
-    determineStructure : String,
+    msi : IR_MatStructure,
+    detStructure : String,
     resolveAtRuntime : Boolean
-) extends IR_Inverse(arg, msi) with IR_ExtractableMNode {
+) extends IR_RuntimeMNode {
   override def datatype : IR_Datatype = arg.datatype
   //override def prettyprint(out : PpStream) : Unit = Logger.error("internal node no resolved!")
   override def prettyprint(out : PpStream) : Unit = out << "inverseMM(" << arg << ")"
   override def isExtractable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arg)
+  override def name : String = "IR_IntermediateInv"
 }
 
 // inverse node for compiletime execution
 object IR_InverseCT {
-  def apply(inv : IR_IntermediateInv) = {
-    new IR_InverseCT(inv.arg, inv.msi)
+  def apply(inv : IR_RuntimeMNode) = {
+    val tmp = inv match {
+      case i : IR_IntermediateInv => i
+      case _ => Logger.error(s"unexpected type ${inv}, expected IR_IntermediateInv")
+    }
+    new IR_InverseCT(tmp.arg, tmp.msi)
   }
-  def apply(arg : IR_Expression, structureInformation : matStructInfo) = {
+  //TODO commented out
+  /*
+  def apply(arg : IR_Expression, structureInformation : IR_MatStructInfo) = {
     new IR_InverseCT(arg, structureInformation)
   }
+   */
 }
 case class IR_InverseCT(
     arg : IR_Expression,
-    msi : matStructInfo = matStructInfo("Filled", -1, "-1", -1)
+    msi : IR_MatStructure = IR_MatStructure("Filled", -1, "-1", -1)
 ) extends IR_Inverse(arg, msi) with IR_ResolvableMNode {
   override def datatype = arg.datatype
   //  override def prettyprint(out : PpStream) = Logger.error("internal node no resolved!")
@@ -170,14 +178,18 @@ case class IR_InverseCT(
 
 // inverse node for runtime execution
 object IR_InverseRT {
-  def apply(dest : IR_VariableAccess, inv : IR_IntermediateInv) = {
-    new IR_InverseRT(dest, inv.arg, inv.msi, inv.determineStructure == "DetermineRuntime")
+  def apply(dest : IR_VariableAccess, inv : IR_RuntimeMNode) = {
+    val tmp = inv match {
+      case i : IR_IntermediateInv => i
+      case _ => Logger.error(s"unexpected type ${inv}, expected IR_IntermediateInv")
+    }
+    new IR_InverseRT(dest, tmp.arg, tmp.msi, tmp.detStructure == "DetermineRuntime")
   }
 }
 case class IR_InverseRT(
     dest : IR_VariableAccess,
     arg : IR_Expression,
-    msi : matStructInfo,
+    msi : IR_MatStructure,
     determineStructureAtRuntime : Boolean
 ) extends IR_Inverse(arg,msi) with IR_ResolvableMNode {
   override def datatype = arg.datatype

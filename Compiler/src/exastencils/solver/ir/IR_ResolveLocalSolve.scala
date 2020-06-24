@@ -32,9 +32,19 @@ import exastencils.optimization.ir._
 
 object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes") {
   //TODO register collector
-  // collector to check for writes to variables
+  // collector to find initialization expressions of matrices to classify
   var variableCollector = new IR_MatrixVarCollector()
   this.register(variableCollector)
+  this.onBefore = () =>
+  {
+    if (Knowledge.solver_splitLocalSolveLoops) {
+      this += new Transformation("Split loops containing local solve nodes", {
+        // check loop even if Knowledge.solver_splitLocalSolveLoops is false - conditions might still be unnecessary
+        case loop : IR_LoopOverDimensions if loop.body.exists(_.isInstanceOf[IR_LocalSolve]) => handleLoop(loop)
+      }, false)
+    }
+  }
+
 
   def computeMinMaxIndex(solve : IR_LocalSolve, numDimensions : Int) : (IR_ConstIndex, IR_ConstIndex) = {
     val minIndex = IR_ConstIndex(Array.fill(numDimensions)(Int.MinValue))
@@ -111,9 +121,10 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
       return tryPrecomputingInverse(loop, solve)
     }
 
+    //TODO to this.onBefore() so trafo is not employed if !Knowledge.solver_splitLocalSolveLoops
     // abort if splitting is not allowed
-    if (!Knowledge.solver_splitLocalSolveLoops)
-      return loop
+    //if (!Knowledge.solver_splitLocalSolveLoops)
+    //  return loop
 
     // set up halo and inner loop
     val haloLoop = Duplicate(loop)
@@ -136,28 +147,25 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
     List(haloLoop, tryPrecomputingInverse(innerLoop, innerLoop.body.head.asInstanceOf[IR_LocalSolve]))
   }
 
-  this += new Transformation("Split loops containing local solve nodes", {
-    // check loop even if Knowledge.solver_splitLocalSolveLoops is false - conditions might still be unnecessary
-    case loop : IR_LoopOverDimensions if loop.body.exists(_.isInstanceOf[IR_LocalSolve]) => handleLoop(loop)
-  }, false)
-
   this += new Transformation("Perform expandSpecial for applicable nodes", {
     case solve : IR_LocalSolve => solve.expandSpecial
   })
 
   //TODO resolve SolveLinearSystem
   this += new Transformation("Resolve solveLinearSystem statements", {
-    //TODO get matrix structure from collector
     case sls @ IR_SolveLinearSystem(a, _, _) =>
+      // classify structure of system matrix A of the linear equation system
       if (Knowledge.experimental_classifyLES) {
         val structureInfo = a match {
-          case x : IR_MatrixExpression => IR_DetermineMatrixStructure.isOfStructure(x)
+          // if A is const: classify
+          case x : IR_MatrixExpression => IR_DetermineMatrixStructure(x)
+          // else: find initialization expression in declaration and classify
           case va : IR_VariableAccess  =>
             val decl = variableCollector.lastDecl(va.name).getOrElse(Logger.error("declaration not found"))
             val init = decl.initialValue.getOrElse(Logger.error("matrix to classify at compiletime not initialized"))
             if (variableCollector.writeInScope(va.name))
-              Logger.error("write to A found, can not classify structure from declaration")
-            IR_DetermineMatrixStructure.isOfStructure(init)
+              Logger.error("write to system matrix found, can not classify structure from declaration")
+            IR_DetermineMatrixStructure(init)
         }
         sls.expand(Some(structureInfo))
       }

@@ -62,7 +62,8 @@ object IR_BasicMatrixOperations {
       case va : IR_VariableAccess if (va.datatype.isInstanceOf[IR_MatrixDatatype])   => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
       case s : IR_ScalarDatatype                                                     => (1, 1)
       case sva : IR_VariableAccess if (sva.datatype.isInstanceOf[IR_ScalarDatatype]) => (1, 1)
-      case other                                                                                                                       => Logger.error("argument is of unexpected type: " + in.datatype)
+      case mdt : IR_MatrixDatatype => (mdt.sizeM, mdt.sizeN)
+      case other                                                                                                                       => Logger.error("argument is of unexpected type: " + in)
     }
   }
 
@@ -504,7 +505,7 @@ object IR_BasicMatrixOperations {
 // methods to determine a inverse at compiletime
 object IR_CompiletimeInversion {
   // head function that branches to specific inversions
-  def inverse(that : IR_MatrixExpression, msi : matStructInfo) : IR_MatrixExpression = {
+  def inverse(that : IR_MatrixExpression, msi : IR_MatStructure) : IR_MatrixExpression = {
     var matrixStructure = msi.structure
     var blocksize = msi.blocksize
     var matrixStructure_A = msi.structureA
@@ -543,7 +544,7 @@ object IR_CompiletimeInversion {
 
               // invert with GaussJordan method
               //var subMatrix_inv = gaussJordanInverse(subMatrix)
-              var subMatrix_inv = inverse(subMatrix, matStructInfo("Filled",-1,"no schur", -1))
+              var subMatrix_inv = inverse(subMatrix, IR_MatStructure("Filled",-1,"no schur", -1))
 
               // copy to out matrix
               IR_BasicMatrixOperations.pasteSubMatrix(subMatrix_inv, out, offset, offset)
@@ -574,7 +575,7 @@ object IR_CompiletimeInversion {
         }
         else {
           var A = IR_BasicMatrixOperations.copySubMatrix(that, 0, 0, n, n)
-          var A_inv = inverse(A, matStructInfo(matrixStructure_A, blocksize_A, "no schur", -1))
+          var A_inv = inverse(A, IR_MatStructure(matrixStructure_A, blocksize_A, "no schur", -1))
           IR_GeneralSimplify.doUntilDoneStandalone(A_inv)
 
           // calculate S
@@ -587,7 +588,7 @@ object IR_CompiletimeInversion {
 
           // invert S
           // for schur complement inversion multiple structure information is necessary(n and m, blocksize of A, S is probably always filled) in case  m is larger than 1 (default should be "Filled")
-          val S_inv = inverse(S, matStructInfo("Filled", -1, "no schur", -1))
+          val S_inv = inverse(S, IR_MatStructure("Filled", -1, "no schur", -1))
 
           // copy result blocks to 'out' matrix
           val lowerLeft = IR_BasicMatrixOperations.negative(IR_BasicMatrixOperations.mult(S_inv, CA_inv))

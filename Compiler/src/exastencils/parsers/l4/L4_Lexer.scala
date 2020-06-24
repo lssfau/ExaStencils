@@ -72,7 +72,9 @@ class L4_Lexer extends ExaLexer {
   reserved += ("with", "communication", "None",
     "Node", "Cell", "node", "cell",
     "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z",
-    "Edge_Cell", "edge_cell", "Edge_Node", "edge_node")
+    "Edge_Cell", "edge_cell", "Edge_Node", "edge_node",
+    "MatrixShape","Diagonal","Blockdiagonal","Schur"
+  )
 
   reserved += "FieldCombination"
 

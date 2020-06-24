@@ -16,17 +16,19 @@ import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_MatrixDatatype
-import exastencils.baseExt.ir.matStructInfo
+import exastencils.baseExt.ir.IR_MatStructure
+import exastencils.baseExt.ir.IR_MatStructure
 import exastencils.boundary.ir.IR_IsValidComputationPoint
 import exastencils.core.Duplicate
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_SlotAccess
 import exastencils.logger.Logger
+//import exastencils.baseExt.ir.m
 
 object IR_LocalSchurComplGeneralized {
 
   def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
-      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : matStructInfo) = {
+      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : IR_MatStructure) = {
     msi.structure match {
       case "Schur" => schur(AVals, fVals, unknowns, jacobiType, relax, omitConditions, msi)
       case _ => Logger.error(s"matrix structure ${msi.structure} not supported (yet)")
@@ -37,7 +39,7 @@ object IR_LocalSchurComplGeneralized {
   //def apply()
 
   def schur(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
-      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : matStructInfo) : ListBuffer[IR_Statement] = {
+      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : IR_MatStructure) : ListBuffer[IR_Statement] = {
     def vecAcc(vec : ListBuffer[IR_VariableAccess], i0 : Int) = IR_HighDimAccess(vec(i0 / msi.blocksizeA), IR_ConstIndex(i0 % msi.blocksizeA))
 
     def rowBlockMatAcc(mat : ListBuffer[IR_VariableAccess], i0 : Int, i1 : Int) = IR_HighDimAccess(mat(i0 / msi.blocksizeA), IR_ConstIndex(i0 % msi.blocksizeA, i1 % msi.blocksizeA))

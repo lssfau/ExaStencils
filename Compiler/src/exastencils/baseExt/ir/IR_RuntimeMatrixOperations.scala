@@ -721,7 +721,7 @@ object IR_GenerateRuntimeInversion {
 
     // calculate S_inv
     func.body += IR_VariableDeclaration(S_inv)
-    func.body += IR_GenerateRuntimeInversion.inverse(S, S_inv, matStructInfo("Filled",-1, "-1",-1))
+    func.body += IR_GenerateRuntimeInversion.inverse(S, S_inv, IR_MatStructure("Filled",-1, "-1",-1))
 
     // calculate upper right result block
     func.body += IR_VariableDeclaration(A_invB)
@@ -865,7 +865,7 @@ object IR_GenerateRuntimeInversion {
   }
 
   // head function that branches to specific inversions
-  def inverse(in : IR_VariableAccess, out : IR_VariableAccess, msi : matStructInfo) : IR_Scope = {
+  def inverse(in : IR_VariableAccess, out : IR_VariableAccess, msi : IR_MatStructure) : IR_Scope = {
     val matrixStructure = msi.structure
     val blocksize = msi.blocksize
     val matrixStructure_A = msi.structureA

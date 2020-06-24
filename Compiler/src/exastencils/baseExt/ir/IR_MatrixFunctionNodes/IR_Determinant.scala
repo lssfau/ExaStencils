@@ -1,5 +1,7 @@
 package exastencils.baseExt.ir.IR_MatrixFunctionNodes
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_VariableAccess
@@ -18,8 +20,8 @@ import exastencils.prettyprinting.PpStream
 // pre calculation det node: parse arguments(determine matrix size and depending on size execution in run/compiletime)
 // and extract, will be transformed to IR_DeterminantCT or IR_DeterminantRT
 object IR_Determinant {
-  def apply(args : IR_Expression) = {
-    var inMatrix = args match {
+  def apply(args : ListBuffer[IR_Expression]) = {
+    var inMatrix = args(0) match {
       case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) => IR_MatrixNodeUtilities.accessToExpression(va)
       case x @ IR_MatrixExpression(_, _, _)                      => x
       case _                                                     => Logger.error(s"unexpected argument ${ args }, expected matrix expression or variable")
@@ -33,10 +35,11 @@ object IR_Determinant {
 case class IR_Determinant(
     var arg : IR_Expression,
     resolveAtRuntime : Boolean = false
-) extends IR_ExtractableMNode {
+) extends IR_RuntimeMNode {
   override def datatype = arg.datatype.resolveBaseDatatype
   override def prettyprint(out : PpStream) = Logger.error("internal node no resolved!")
   override def isExtractable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arg)
+  override def name : String = "IR_Determinant"
 }
 
 

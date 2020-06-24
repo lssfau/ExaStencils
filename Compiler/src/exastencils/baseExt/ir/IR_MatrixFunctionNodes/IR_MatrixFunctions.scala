@@ -23,7 +23,7 @@ import exastencils.prettyprinting.PpStream
 
 // transpose node for compiletime execution
 object IR_Transpose {
-  def apply(args : IR_Expression) = new IR_Transpose(args)
+  def apply(args : ListBuffer[IR_Expression]) = new IR_Transpose(args(0))
 }
 case class IR_Transpose(var arg : IR_Expression)
   extends IR_ExtractableMNode with IR_ResolvableMNode {
@@ -74,7 +74,7 @@ case class IR_CrossProduct(
 
 // trace node for compiletime execution
 object IR_Trace {
-  def apply(args : IR_Expression) = new IR_Trace(args)
+  def apply(args : ListBuffer[IR_Expression]) = new IR_Trace(args(0))
 }
 case class IR_Trace(
     var arg : IR_Expression

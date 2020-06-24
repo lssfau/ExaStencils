@@ -21,7 +21,7 @@ import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_BasicMatrixOperations
 import exastencils.baseExt.ir.IR_MatrixDatatype
-import exastencils.baseExt.ir.matStructInfo
+import exastencils.baseExt.ir.IR_MatStructure
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation
 import exastencils.logger.Logger
@@ -35,8 +35,8 @@ object IR_SolveLinearSystem {
 
 case class IR_SolveLinearSystem(A : IR_Expression, u : IR_Expression, f : IR_Expression) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "solveLES" << A.prettyprint(out) << ", " << f.prettyprint(out)
-  def expand(msi_ : Option[matStructInfo]) : Transformation.OutputType = {
-    val msi = msi_.getOrElse(matStructInfo("Filled", -1, "-1", -1))
+  def expand(msi_ : Option[IR_MatStructure]) : Transformation.OutputType = {
+    val msi = msi_.getOrElse(IR_MatStructure("Filled", -1, "-1", -1))
     Logger.warn(s"Solving linear system with the following configuration: ${ Knowledge.experimental_resolveInverseFunctionCall }, ${ (msi.structure, msi.blocksize, msi.structureA, msi.blocksizeA) }")
     val (m, n) = A.datatype match {
       case mat : IR_MatrixDatatype => (mat.sizeM, mat.sizeN)

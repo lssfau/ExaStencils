@@ -44,10 +44,6 @@ case class IR_LocalSolve(
 
   var AInv : IR_Expression = _
 
-  //TODO just take A and f with us as matrices and branch out if they are assigned?
-  var A : IR_Expression = _
-  var f : IR_Expression = _
-
   def matchUnknowns(other : IR_FieldAccess) : Int = {
     if (other.frozen)
       return -1 // skip frozen fields
@@ -197,7 +193,7 @@ case class IR_LocalSolve(
   def isSolvableWithoutInverse(structure : String): Boolean = {
       structure match {
         case "Schur" => true
-        case "Diagonal" => true
+        //case "Diagonal" =>
         case _ => false
       }
   }
@@ -211,8 +207,9 @@ case class IR_LocalSolve(
     val fExp = fVals.map(mapToExp)
     val AExp = AVals.map(_.map(mapToExp))
 
-    //TODO sizecheck
-    val matStructInfo = IR_DetermineMatrixStructure.isOfStructure(AVals)
+    //TODO sizecheck? go rt if mat too large
+    //TODO check field for matrix structure
+    val matStructInfo = IR_DetermineMatrixStructure(AVals)
 
     // choose strategy used for inverting local matrix
     if (AInv != null) {

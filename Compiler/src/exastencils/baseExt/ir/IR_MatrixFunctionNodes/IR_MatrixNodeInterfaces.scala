@@ -3,7 +3,7 @@ package exastencils.baseExt.ir.IR_MatrixFunctionNodes
 import exastencils.base.ir.IR_Expression
 import exastencils.datastructures.Transformation
 
-// nodes that have to be checked for inlining and argument availability
+// nodes that can be resolved to results
 trait IR_ResolvableMNode extends IR_Expression {
   def isResolvable() : Boolean
   def resolve() : Transformation.OutputType
@@ -14,7 +14,9 @@ trait IR_ExtractableMNode extends IR_Expression {
   def isExtractable() : Boolean
 }
 
-//TODO necessary?
-trait IR_InlinableMNode extends IR_Expression {
-  def isInlineable() : Boolean
+// nodes that have to be considered for inlining and can later be resolved at runtime
+trait IR_RuntimeMNode extends IR_ExtractableMNode {
+  def name : String
+  def resolveAtRuntime : Boolean
 }
+

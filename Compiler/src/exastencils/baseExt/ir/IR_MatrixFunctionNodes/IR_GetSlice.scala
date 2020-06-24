@@ -40,23 +40,32 @@ case class IR_GetSlice(
     var arguments : ListBuffer[IR_Expression],
     resolveAtRuntime : Boolean,
     datatype : IR_Datatype = IR_UnknownDatatype
-) extends IR_ExtractableMNode {
+) extends IR_RuntimeMNode {
   // cant define datatype if length of slice is runtime dependent
   override def prettyprint(out : PpStream) = Logger.error("internal node no resolved!")
   override def isExtractable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arguments(0)) && !datatype.equals(IR_UnknownDatatype)
+  override def name : String = "IR_GetSlice"
 }
 
 
 // slice node for compiletime execution
 object IR_GetSliceCT {
+  /*
   def apply(inMatrix : IR_Expression, args : ListBuffer[Int]) = {
     new IR_GetSliceCT(inMatrix, args)
   }
-  def apply(gs : IR_GetSlice) = {
+   */
+  def apply(gs : IR_RuntimeMNode) = {
+    val tmp = (gs match {
+      case i : IR_GetSlice => i
+      case _                      => Logger.error(s"unexpected type ${ gs }, expected IR_IntermediateInv")
+    })
+
     var params = ListBuffer[Int]()
-    for (i <- 1 until 5) params += IR_SimplifyExpression.evalIntegral(gs.arguments(i)).toInt
-    new IR_GetSliceCT(gs.arguments(0), params)
+    for (i <- 1 until 5) params += IR_SimplifyExpression.evalIntegral(tmp.arguments(i)).toInt
+    new IR_GetSliceCT(tmp.arguments(0), params)
   }
+
 }
 case class IR_GetSliceCT(
     inMatrix : IR_Expression,
@@ -72,9 +81,15 @@ case class IR_GetSliceCT(
 
 // slice node for runtime execution
 object IR_GetSliceRT {
-  def apply(dest : IR_VariableAccess, args : IR_Expression*) = new IR_GetSliceRT(dest, args.to[ListBuffer])
+  def apply(dest : IR_VariableAccess, gs : IR_RuntimeMNode) = {
+    val tmp = gs match {
+      case i : IR_GetSlice => i
+      case _                      => Logger.error(s"unexpected type ${ gs }, expected IR_IntermediateInv")
+    }
+    new IR_GetSliceRT(dest, tmp.asInstanceOf[IR_GetSlice].arguments)
+  }
 }
-case class IR_GetSliceRT(dest : IR_VariableAccess, var args : ListBuffer[IR_Expression]) extends IR_Expression with IR_ResolvableMNode {
+case class IR_GetSliceRT(dest : IR_VariableAccess, var args : ListBuffer[IR_Expression]) extends IR_ResolvableMNode {
   // cant define datatype if length of slice is runtime dependent
   override def datatype = IR_UnknownDatatype
   override def prettyprint(out : PpStream) = Logger.error("internal node no resolved!")

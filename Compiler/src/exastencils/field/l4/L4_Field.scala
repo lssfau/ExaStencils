@@ -18,6 +18,7 @@
 
 package exastencils.field.l4
 
+import exastencils.baseExt.l4.L4_MatStructure
 import exastencils.boundary.l4.L4_BoundaryCondition
 import exastencils.core.Duplicate
 import exastencils.domain.l4.L4_Domain
@@ -34,7 +35,9 @@ case class L4_Field(
     var domain : L4_Domain,
     var fieldLayout : L4_FieldLayout,
     var numSlots : Int,
-    var boundary : L4_BoundaryCondition) extends L4_LeveledKnowledgeObject[IR_Field] {
+    var boundary : L4_BoundaryCondition,
+    var matStructure : Option[L4_MatStructure]
+) extends L4_LeveledKnowledgeObject[IR_Field] {
 
   override def createDuplicate() : L4_Field = {
     L4_Field.tupled(Duplicate(L4_Field.unapply(this).get))
@@ -45,7 +48,9 @@ case class L4_Field(
 
   override def prettyprintDecl(out : PpStream) = {
     out << "Field " << name
-    out << "< " << domain.name << ", " << fieldLayout.name << ", " << boundary << " >"
+    out << "< " << domain.name << ", " << fieldLayout.name << ", " << boundary
+    if (matStructure.isDefined) out << ", " << matStructure
+    out << " >"
     if (numSlots > 1) out << "[" << numSlots << "]"
     out << "@" << level
   }
@@ -62,6 +67,8 @@ case class L4_Field(
       name.toLowerCase + "Data_" + level,
       fieldLayout.getProgressedObj(),
       numSlots,
-      boundary.progress)
+      boundary.progress,
+      if(matStructure.isDefined) Some(matStructure.get.progress) else Some(None)
+    )
   }
 }
