@@ -369,6 +369,9 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
     val k = acc("k", IR_IntegerDatatype)
     val l = acc("l", IR_IntegerDatatype)
 
+    val Qn = acc("Qn", IR_TensorDatatype2(q.resolveDeclType, dims))
+    step.body += decl(Qn)
+
     // alpha = sign(A_n1) * || A_n ||_2
     val A_norm = acc("A_2", IR_RealDatatype)
     step.body += decl(A_norm)
@@ -410,10 +413,11 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
 
     val subt = acc("subt", IR_TensorDatatype2(q.resolveDeclType, dims))
     step.body += decl(subt, IR_Division(over, under)) // subt = (2* v * v^T)/(v^T * v)
-    step.body += IR_Assignment(Q, sub(I, subt)) // Q=I-(2* v * v^T)/(v^T * v)
-    step.body += IR_Assignment(R, mul(Q, R)) // R_n = Q*A
+    step.body += IR_Assignment(Qn, sub(I, subt)) // Qn=I-(2* v * v^T)/(v^T * v)
+    step.body += IR_Assignment(R, mul(Qn, R)) // R_n = Qn*A
+    step.body += IR_Assignment(Q, mul(transpose(Qn), Q)) // R_n = Qn*A
 
-    step // TODO: Ich muss schaun ob ich mir Q nicht noch extra speichern muss
+    step
   }
 
   // Algorithm
@@ -421,7 +425,7 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
   // 1. calc Q_n with householderStep
   // 2. Q_n+1 = Q_n * A_n
 
-  def householder(A : IR_VariableAccess, res : IR_VariableAccess) : IR_Scope = {
+  def qrDecompHouseholder(A : IR_VariableAccess, res : IR_VariableAccess, Q : IR_VariableAccess, R : IR_VariableAccess) : IR_Scope = {
     // 1. alpha = sign(a_n1) * || a_n ||_2
     // 2. v_n = a_n + alpha * e
     // 3. Q = I - (2 v * v^T )/(v^T * v)
@@ -446,8 +450,15 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
     house.body += decl(v)
     house.body += decl(alpha)
     house.body += decl(sign)
-    house.body += decl(R, A)
-    house.body += decl(Q)
+    for (x <- 0 until 3) {
+      for (y <- 0 until 3) {
+        if (x equals y) {
+          house.body += ass(hdacc(Q, IR_ConstIndex(x, y)), realc(1.0))
+        } else {
+          house.body += ass(hdacc(Q, IR_ConstIndex(x, y)), realc(0.0))
+        }
+      }
+    }
     house.body += decl(I)
     for (x <- 0 until 3) {
       for (y <- 0 until 3) {
@@ -464,29 +475,50 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
       householder_step(I, Q, R, sign, alpha, v, i, q, dims)
     )
 
-    // TODO: Hier gehts weiter
-
     house
   }
 
   /** Calculates the eigenvalue of a tensor
    *
-   * @param m : IR_Expression, represent tensor order 2
+   * @param A : IR_Expression, represent tensor order 2
    * @return : IR_Expression, expression of trace
    */
-  def eigenvalue(m: IR_Expression, n : IR_Expression) : IR_Scope = {
-    (m, n) match {
-      case (m : IR_VariableAccess, n : IR_VariableAccess) if (m.datatype.isInstanceOf[IR_TensorDatatype2]) &&
-        (n.datatype.isInstanceOf[IR_MatrixDatatype]) =>
-        val _m = m.datatype.asInstanceOf[IR_TensorDatatype2]
-        val _n = n.datatype.asInstanceOf[IR_MatrixDatatype]
+  def eigenvalue(A: IR_Expression, res : IR_Expression) : IR_Scope = {
+    (A, res) match {
+      case (A : IR_VariableAccess, res : IR_VariableAccess) if (A.datatype.isInstanceOf[IR_TensorDatatype2]) &&
+        (res.datatype.isInstanceOf[IR_MatrixDatatype]) =>
+        val _m = A.datatype.asInstanceOf[IR_TensorDatatype2]
+        val _n = res.datatype.asInstanceOf[IR_MatrixDatatype]
         if (_m.datatype.isInstanceOf[IR_HigherDimensionalDatatype]) {
           Logger.error("Eigenvalue Tensor: Inner Datatype can not be an High dimension datatype")
         }
-        if (_n.sizeM != 3 || _n.sizeN != 1) {  // TODO: N-Dimensional
-          Logger.error("Eigenvalue Tensor: Return array n need to has shape=(3,1)")
+        if (_n.sizeM != _m.dims || _n.sizeN != 1) {
+          Logger.error("Eigenvalue Tensor: Return array n need to has shape=(dimension,1)")
         }
-        householder(m, n)
+        // short names for better lookalike
+        val decl = IR_VariableDeclaration
+        val acc = IR_VariableAccess
+        val ass = IR_Assignment
+        val hdacc = IR_HighDimAccess
+        val realc = IR_RealConstant
+
+        val eigen = IR_Scope(Nil)
+        val q = A.datatype.asInstanceOf[IR_TensorDatatype2]
+        val dims = q.dims
+        val R = acc("R", IR_TensorDatatype2(q.resolveDeclType, dims))
+        val Q = acc("Q", IR_TensorDatatype2(q.resolveDeclType, dims))
+        eigen.body += decl(Q)
+        eigen.body += decl(R, A)
+        // TODO Hessebergmatrix?
+
+        val n = acc("n", IR_IntegerDatatype)
+        eigen.body += decl(n)
+        eigen.body += IR_ForLoop(ass(n, IR_IntegerConstant(1)), IR_Lower(n, IR_IntegerConstant(dims)), IR_PostIncrement(n),
+          qrDecompHouseholder(A, res, Q, R)
+        )
+
+
+        eigen
       case _                                           => Logger.error("Eigenvalue Tensor: got wrong datatype")
     }
   }
@@ -1104,6 +1136,28 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
       case (m : IR_VariableAccess, n : IR_VariableAccess) if m.datatype.isInstanceOf[IR_MatrixExpression]
         && n.datatype.isInstanceOf[IR_TensorExpression2] => dotProductTensor2Matrix(n, m)
       case (_, _)                                        => Logger.error("Dot product tensor got the a wrong type")
+    }
+  }
+
+  //################################################################################################################
+  // Transpose of the tensor
+
+  def transposeTens2(m: IR_VariableAccess) : IR_TensorExpression2 = {
+    val tens = m.datatype.asInstanceOf[IR_TensorDatatype2]
+    val tmp = IR_TensorExpression2(tens.resolveDeclType, tens.dims)
+    for (x <- 1 until tens.dims) {
+      for (y <- 0 until x) {
+        tmp.set(y, x, getElem(m, x, y, Nil))
+        tmp.set(x, y, getElem(m, y, x, Nil))
+      }
+    }
+    tmp
+  }
+
+  def transpose(m : IR_Expression) : IR_TensorExpression2 = {
+    m match {
+      case m : IR_VariableAccess if m.datatype.isInstanceOf[IR_TensorDatatype2] => transposeTens2(m)
+      case _  => Logger.error("Tensor Transpose: Need tensor 2")
     }
   }
 
