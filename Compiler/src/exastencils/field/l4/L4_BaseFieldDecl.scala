@@ -19,8 +19,6 @@
 package exastencils.field.l4
 
 import exastencils.base.l4._
-import exastencils.baseExt.ir.IR_MatStructure
-import exastencils.baseExt.ir.IR_MatStructure
 import exastencils.baseExt.l4.L4_MatStructure
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.boundary.l4._
@@ -30,8 +28,8 @@ import exastencils.prettyprinting._
 /// L4_BaseFieldDecl
 
 object L4_BaseFieldDecl {
-  def apply(name : String, levels : Option[L4_DeclarationLevelSpecification], domainName : String, fieldLayoutName : String, boundary : L4_BoundaryCondition, matStructure : Option[L4_MatStructure], numSlots : Integer) =
-    new L4_BaseFieldDecl(name, levels, L4_UnresolvedAccess(domainName), L4_UnresolvedAccess(fieldLayoutName), boundary, matStructure, numSlots)
+  def apply(name : String, levels : Option[L4_DeclarationLevelSpecification], domainName : String, fieldLayoutName : String, boundary : L4_BoundaryCondition, numSlots : Integer) =
+    new L4_BaseFieldDecl(name, levels, L4_UnresolvedAccess(domainName), L4_UnresolvedAccess(fieldLayoutName), boundary, numSlots)
 }
 
 case class L4_BaseFieldDecl(
@@ -40,8 +38,9 @@ case class L4_BaseFieldDecl(
     var domain : L4_Access,
     var fieldLayout : L4_Access,
     var boundary : L4_BoundaryCondition,
-    var matStructure : Option[L4_MatStructure],
-    var numSlots : Integer) extends L4_FieldDecl {
+    var numSlots : Integer,
+    var matStructure : Option[L4_MatStructure] = None
+) extends L4_FieldDecl {
 
   override def prettyprint(out : PpStream) = {
     out << "Field " << name << "< " << domain.name << ", " << fieldLayout.name << ", " << boundary

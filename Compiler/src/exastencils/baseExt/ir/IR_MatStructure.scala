@@ -5,8 +5,8 @@ import exastencils.base.ir.IR_Expression
 import exastencils.prettyprinting.PpStream
 
 object IR_MatStructure {
-  def apply(s : String, b : Int, sA : String, bA : Int) = {
-    new IR_MatStructure(s, b, sA, bA)
+  def apply(structure : String, blocksize : Int = -1, structureA : String = "-1", blocksizeA : Int = -1) = {
+    new IR_MatStructure(structure, blocksize, structureA, blocksizeA)
   }
 }
 //TODO extends IR_Expression?

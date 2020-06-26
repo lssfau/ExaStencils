@@ -23,8 +23,6 @@ import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.input._
 
 import exastencils.base.l4._
-import exastencils.baseExt.ir.IR_MatStructure
-import exastencils.baseExt.ir.IR_MatStructure
 import exastencils.baseExt.l4._
 import exastencils.boundary.l4._
 import exastencils.communication.l4._
@@ -375,14 +373,17 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val layoutOption = locationize((ident <~ "=") ~ constIndex ~ ("with" ~ "communication").?
     ^^ { case id ~ idx ~ comm => L4_FieldLayoutOption(id, idx, comm.isDefined) })
 
+  /*
   lazy val matStructOption = locationize(
     "MatrixShape" ~ "(" ~> ("Diagonal" ||| "Blockdiagonal" ||| "Schur") ~ ("," ~> integerLit).? ~ ("," ~> ("Diagonal" ||| "Blockdiagonal")).? ~ ("," ~> integerLit).? <~ ")"
       ^^ {
       case structure ~ blocksize ~ structureA ~ blocksizeA => IR_MatStructure(structure, blocksize.get, structureA.get, blocksizeA.get)
     })
+*/
+
   //TODO parse mat struct option
-  lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ("," ~> matStructOption).? ~ ">"  ~ ("[" ~> integerLit <~ "]").? ~ levelDecl.?
-    ^^ { case id ~ domain ~ layout ~ boundary ~ matStruct ~ _ ~ slots ~ level  => L4_BaseFieldDecl(id, level, domain, layout, boundary,matStruct, slots.getOrElse(1)) })
+  lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ levelDecl.?
+    ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level => L4_BaseFieldDecl(id, level, domain, layout, boundary, slots.getOrElse(1)) })
 
   lazy val fieldBoundary = (
     "Neumann" ~> ("(" ~> integerLit <~ ")").? ^^ { L4_NeumannBC(_) }

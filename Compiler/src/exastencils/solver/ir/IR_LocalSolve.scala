@@ -23,6 +23,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
@@ -209,9 +210,15 @@ case class IR_LocalSolve(
 
     //TODO sizecheck? go rt if mat too large
     //TODO check field for matrix structure
-    val matStructInfo = IR_DetermineMatrixStructure(AVals)
+    val matStructure : IR_MatStructure =
+    if(unknowns(0).field.matStructure.isDefined) {
+      unknowns(0).field.matStructure.get
+    } else if(Knowledge.experimental_classifyLES) {
+      IR_DetermineMatrixStructure(AVals)
+    } else IR_MatStructure("Filled")
 
-    // choose strategy used for inverting local matrix
+
+      // choose strategy used for inverting local matrix
     if (AInv != null) {
       AInv match {
         case va : IR_VariableAccess   => IR_Scope(IR_LocalPreCompInvert(va, fExp, unknowns, jacobiType, relax))
@@ -219,10 +226,10 @@ case class IR_LocalSolve(
         case _                        => Logger.error(s"Unsupported AInv: $AInv")
       }
     }
-    else if (isSolvableWithoutInverse(matStructInfo.structure))
-        IR_Scope(IR_LocalSchurComplGeneralized(AExp, fExp, unknowns, jacobiType, relax, omitConditions, matStructInfo))
+    else if (isSolvableWithoutInverse(matStructure.structure))
+        IR_Scope(IR_LocalSchurComplGeneralized(AExp, fExp, unknowns, jacobiType, relax, omitConditions, matStructure))
     else
-      IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax, omitConditions, matStructInfo))
+      IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax, omitConditions, matStructure))
   }
 }
 

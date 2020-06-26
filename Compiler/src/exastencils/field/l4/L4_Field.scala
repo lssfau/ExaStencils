@@ -36,7 +36,7 @@ case class L4_Field(
     var fieldLayout : L4_FieldLayout,
     var numSlots : Int,
     var boundary : L4_BoundaryCondition,
-    var matStructure : Option[L4_MatStructure]
+    var matStructure : Option[L4_MatStructure] = None
 ) extends L4_LeveledKnowledgeObject[IR_Field] {
 
   override def createDuplicate() : L4_Field = {
@@ -68,7 +68,7 @@ case class L4_Field(
       fieldLayout.getProgressedObj(),
       numSlots,
       boundary.progress,
-      if(matStructure.isDefined) Some(matStructure.get.progress) else Some(None)
+      if(matStructure.isDefined) Option(matStructure.get.progress) else None
     )
   }
 }
