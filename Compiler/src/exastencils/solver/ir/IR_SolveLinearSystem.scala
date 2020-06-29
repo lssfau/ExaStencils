@@ -1,7 +1,6 @@
 
 package exastencils.solver.ir
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Assignment
@@ -11,17 +10,15 @@ import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExternalFunctionReference
 import exastencils.base.ir.IR_FunctionCall
 import exastencils.base.ir.IR_HighDimAccess
-import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_Multiplication
 import exastencils.base.ir.IR_PlainInternalFunctionReference
 import exastencils.base.ir.IR_RealDatatype
 import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_StringConstant
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_BasicMatrixOperations
-import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatStructure
+import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation
 import exastencils.logger.Logger
@@ -42,6 +39,7 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_Expression, f : IR_Exp
       case mat : IR_MatrixDatatype => (mat.sizeM, mat.sizeN)
       case _                       => Logger.error(s"unexpected datatype of A: ${ A.datatype }")
     }
+    if(m != n) Logger.error("expected quadratic system matrix")
     val (k, i) = f.datatype match {
       case mat : IR_MatrixDatatype => (mat.sizeM, mat.sizeN)
       case _                       => Logger.error(s"unexpected datatype of f: ${ A.datatype }")
@@ -60,17 +58,15 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_Expression, f : IR_Exp
           stmts += IR_Assignment(IR_HighDimAccess(u, IR_ConstIndex(i, 0)), IR_Division(IR_HighDimAccess(f, IR_ConstIndex(i)), IR_HighDimAccess(A, IR_ConstIndex(i, i))))
         }
         stmts
-      //TODO in case of schur: solve with A-Decomposition to helper matrices
-      // or with schur inversion of sysstem matrix A
-      case "Schur" =>
+      // in case of schur: solve with A-Decomposition to helper matrices
+      // blocksize of
+      case "Schur" if(m - msi.blocksize < 2) =>
         var stmts = ListBuffer[IR_Statement]()
 
+        // accesses for lists of variable accesses representing system matrix, rhs and solution
         def vecAcc(vec : ListBuffer[IR_VariableAccess], i0 : Int) = IR_HighDimAccess(vec(i0 / msi.blocksizeA), IR_ConstIndex(i0 % msi.blocksizeA))
-
         def rowBlockMatAcc(mat : ListBuffer[IR_VariableAccess], i0 : Int, i1 : Int) = IR_HighDimAccess(mat(i0 / msi.blocksizeA), IR_ConstIndex(i0 % msi.blocksizeA, i1 % msi.blocksizeA))
-
         def colBlockMatAcc(mat : ListBuffer[IR_VariableAccess], i0 : Int, i1 : Int) = IR_HighDimAccess(mat(i1 / msi.blocksizeA), IR_ConstIndex(i0 % msi.blocksizeA, i1 % msi.blocksizeA))
-
         def genericAcc(mat : IR_Expression, i0 : Int, i1 : Int) = IR_BasicMatrixOperations.getElem(mat, i0, i1)
 
         // declare variables for A,B,C,D,F,G
@@ -78,6 +74,7 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_Expression, f : IR_Exp
         val bsizeA = msi.blocksizeA
         val size = IR_BasicMatrixOperations.getSize(A)._1
         val bsizeD = size - bsize
+
 
         val nComponents = bsize / bsizeA
         var A_blocks = ListBuffer[IR_VariableAccess]()
@@ -136,7 +133,7 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_Expression, f : IR_Exp
             }
 
             // retrieve G
-            innerStmts += IR_Assignment(IR_HighDimAccess(G, IR_ConstIndex(i, 0)), genericAcc(A, i, 0))
+            innerStmts += IR_Assignment(IR_HighDimAccess(G, IR_ConstIndex(i, 0)), genericAcc(f, i, 0))
           }
           stmts ++= innerStmts
         }
@@ -144,7 +141,7 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_Expression, f : IR_Exp
         // invert A blocks
         var A_inv = ListBuffer[IR_VariableAccess]()
         for (i <- 0 until nComponents) {
-          A_inv += IR_VariableAccess(s"local_A_inv_${ i }${ i }", IR_MatrixDatatype(IR_RealDatatype, bsizeA, bsizeA))
+          A_inv += IR_VariableAccess(s"local_A_inv_${ i + 1 }${ i + 1 }", IR_MatrixDatatype(IR_RealDatatype, bsizeA, bsizeA))
         }
         for (i <- 0 until nComponents) {
           stmts += IR_VariableDeclaration(A_inv(i), IR_FunctionCall(IR_PlainInternalFunctionReference("inverse", IR_MatrixDatatype(IR_RealDatatype, bsizeA, bsizeA)), A_blocks(i)))
@@ -157,7 +154,7 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_Expression, f : IR_Exp
           stmts += IR_Assignment(S, C(i) * A_inv(i) * B(i), "-=")
         }
 
-        var GTilde = IR_VariableAccess("local_GTilde", IR_MatrixDatatype(IR_RealDatatype, bsizeD, bsizeD))
+        var GTilde = IR_VariableAccess("local_GTilde", IR_MatrixDatatype(IR_RealDatatype, bsizeD, 1))
         stmts += IR_VariableDeclaration(GTilde, G)
         for (i <- 0 until nComponents) {
           stmts += IR_Assignment(GTilde, C(i) * A_inv(i) * F(i), "-=")
@@ -166,7 +163,7 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_Expression, f : IR_Exp
 
         // write to Ui
         for (i <- 0 until nComponents) {
-          stmts += IR_Assignment(U(i), A_inv(i) * (F(i) - B(i) * V))
+          stmts += IR_Assignment(U(i), A_inv(i) * (F(i) - (B(i) * V)))
         }
         // compile u
         for (i <- 0 until size) {
@@ -175,7 +172,7 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_Expression, f : IR_Exp
         stmts
       // Fallback: solve by inverting A
       //TODO solve with special invert or full invert
-      case _ => IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), mutable.ListBuffer[IR_Expression](A, IR_StringConstant(msi.structure), IR_IntegerConstant(msi.blocksize))), f))
+      case _ => IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toList()), f))
     }
 
   }

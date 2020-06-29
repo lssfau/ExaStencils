@@ -121,6 +121,7 @@ object IR_IntermediateInv {
           }
         case x : IR_MatrixExpression =>
           IR_DetermineMatrixStructure(x)
+        case _ => Logger.error(s"unexpected argument ${args(0)}, expected matrix as variable or anonymous value")
       }
     }
     Logger.warn(s"Inverting with the following configuration: ${ Knowledge.experimental_resolveInverseFunctionCall }, ${ (msi.structure,msi.blocksize,msi.structureA,msi.blocksizeA) }")

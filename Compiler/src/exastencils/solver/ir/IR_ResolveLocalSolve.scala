@@ -43,6 +43,7 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
         case loop : IR_LoopOverDimensions if loop.body.exists(_.isInstanceOf[IR_LocalSolve]) => handleLoop(loop)
       }, false)
     }
+    this.resetCollectors()
   }
 
 
@@ -147,12 +148,8 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
     List(haloLoop, tryPrecomputingInverse(innerLoop, innerLoop.body.head.asInstanceOf[IR_LocalSolve]))
   }
 
-  this += new Transformation("Perform expandSpecial for applicable nodes", {
+  this += new Transformation("Perform expand for applicable nodes", {
     case solve : IR_LocalSolve => solve.expandSpecial
-  })
-
-  //TODO resolve SolveLinearSystem
-  this += new Transformation("Resolve solveLinearSystem statements", {
     case sls @ IR_SolveLinearSystem(a, _, _) =>
       // classify structure of system matrix A of the linear equation system
       if (Knowledge.experimental_classifyLES) {
@@ -171,4 +168,5 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
       }
       else sls.expand(None)
   })
+
 }

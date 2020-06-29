@@ -34,17 +34,21 @@ import exastencils.baseExt.ir.IR_MatrixNodeUtilities._
 // simple operations with matrices like addition or multiplication
 object IR_BasicMatrixOperations {
   def getElem(exp : IR_Expression, pos : Int*) = {
-    exp match {
-      case x : IR_MatrixExpression                                                 =>
-        if (pos.length != 2)
-          Logger.error("position arguments of wrong form: " + pos)
-        x.get(pos(0), pos(1))
-      case va : IR_VariableAccess if (va.datatype.isInstanceOf[IR_MatrixDatatype]) =>
-        if (pos.length != 2)
-          Logger.error("position arguments of wrong form: " + pos)
-        IR_HighDimAccess(va, IR_ExpressionIndex(pos(0), pos(1)))
-      case sc if (isScalar(sc))                            => sc
-      case _                                                                       => Logger.error(s"Argument is of unexpected type ${ exp.getClass.getTypeName }: $exp")
+    try {
+      exp match {
+        case x : IR_MatrixExpression                                                 =>
+          if (pos.length != 2)
+            Logger.error("position arguments of wrong form: " + pos)
+          x.get(pos(0), pos(1))
+        case va : IR_VariableAccess if (va.datatype.isInstanceOf[IR_MatrixDatatype]) =>
+          if (pos.length != 2)
+            Logger.error("position arguments of wrong form: " + pos)
+          IR_HighDimAccess(va, IR_ExpressionIndex(pos(0), pos(1)))
+        case sc if (isScalar(sc))                                                    => sc
+        case _                                                                       => Logger.error(s"Argument is of unexpected type ${ exp.getClass.getTypeName }: $exp")
+      }
+    } catch {
+      case e : ArrayIndexOutOfBoundsException => throw new ArrayIndexOutOfBoundsException
     }
   }
 
@@ -306,7 +310,7 @@ object IR_BasicMatrixOperations {
         for (k <- 0 until a.summands.length) {
           for (i <- 0 until size._1) {
             for (j <- 0 until size._2) {
-              out.set(i, j, IR_Addition(Duplicate(out.get(i, j)), getElem(a.summands(k), i, j)))
+                out.set(i, j, IR_Addition(Duplicate(out.get(i, j)), getElem(a.summands(k), i, j)))
             }
           }
         }
