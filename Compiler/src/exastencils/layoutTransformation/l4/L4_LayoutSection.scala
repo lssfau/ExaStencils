@@ -94,7 +94,7 @@ object L4_AddSoAtoAoSTransformation extends DefaultStrategy("Add SoA to AoS tran
       map.put(levels.getOrElse(L4_AllLevels), (buffer, L4_GenericTransform(buffer, its, L4_ExpressionIndex(trafo))))
     }
 
-    for (L4_BaseFieldDecl(name, levelsOpt, _, layout, _, _) <- fieldDecls)
+    for (L4_BaseFieldDecl(name, levelsOpt, _, layout, _, _, _) <- fieldDecls)
       for (layoutLevels <- layouts.get(layout.name)) { // option
         val levels = levelsOpt.getOrElse(L4_AllLevels)
         val trafo = layoutLevels.getOrElse(levels, layoutLevels.getOrElse(L4_AllLevels, null))
