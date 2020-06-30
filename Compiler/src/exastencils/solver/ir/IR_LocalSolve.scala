@@ -211,21 +211,12 @@ case class IR_LocalSolve(
     //TODO sizecheck? go rt if mat too large
     //TODO check field for matrix structure
     val matStructure : IR_MatStructure =
-    if (unknowns(0).field.matStructure.isDefined) {
-      // matrix structure is given with field declaration
+    if(unknowns(0).field.matStructure.isDefined) {
       unknowns(0).field.matStructure.get
-    } else if (Knowledge.experimental_classifyLES || Knowledge.experimental_applySchurCompl) {
-      // matrix structure is to determine
+    } else if(Knowledge.experimental_classifyLES) {
       IR_DetermineMatrixStructure(AVals)
-    } else if (Knowledge.experimental_matStructure != "Filled") {
-      // matrix structure is given in Knowledge
-      IR_MatStructure(
-        Knowledge.experimental_matStructure,
-        Knowledge.experimental_matBlocksize,
-        Knowledge.experimental_matStructureA,
-        Knowledge.experimental_matBlocksizeA
-      )
     } else IR_MatStructure("Filled")
+
 
       // choose strategy used for inverting local matrix
     if (AInv != null) {

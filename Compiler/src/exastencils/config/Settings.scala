@@ -199,14 +199,14 @@ object Settings {
 
   var printClonedObjects : Boolean = false
 
-  var timeStrategies : Boolean = true
+  var timeStrategies : Boolean = false
   // five percent threshold by default -> measurements with less than 5.0 % share are not displayed
   var timeStratPercentThreshold : Int = 0
   var printNodeCountAfterTransformation : Boolean = false
   // print number of nodes after each transformation
   var printNodeCountAfterStrategy : Boolean = false
   // print number of nodes after each strategy
-  var printTransformationTime : Boolean = true
+  var printTransformationTime : Boolean = false
   var logStrategyResults : Boolean = true // Debug log strategy results
   // time the steps performed by the IR_PolyOpt strategy
   var timePolyOptSteps : Boolean = false
