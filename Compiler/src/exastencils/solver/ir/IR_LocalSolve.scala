@@ -217,6 +217,7 @@ case class IR_LocalSolve(
       IR_DetermineMatrixStructure(AVals)
     } else IR_MatStructure("Filled")
 
+    Logger.warn(s"LES is of shape ${matStructure}")
 
       // choose strategy used for inverting local matrix
     if (AInv != null) {
