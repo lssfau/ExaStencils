@@ -12,6 +12,8 @@ import exastencils.prettyprinting.PpStream
   //override def prettyprint(out : PpStream) : Unit = out <<  real << "+" << imag << "i"
 
   // bracket version
-  //override def prettyprint(out : PpStream) : Unit = out << "(" << real << (if(op) "+" else "-") << imag << "i)"
-  override def prettyprint(out : PpStream) : Unit = out << "complex(" << real << "," << imag << ")"
+  override def prettyprint(out : PpStream) : Unit = out << "(" << real << (if(op) "+" else "-") << imag << "j)"
+
+  // constructor version
+  //override def prettyprint(out : PpStream) : Unit = out << "complex(" << real << "," << imag << ")"
 }

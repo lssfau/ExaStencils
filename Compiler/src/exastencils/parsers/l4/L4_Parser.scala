@@ -452,7 +452,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| locationize("-" ~> genericAccess ^^ { L4_Negative(_) })
       ||| genericAccess
       ||| complexExpression
-      //||| complexExpression2
+      ||| complexExpression2
     )
 
   lazy val numLit = locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) L4_IntegerConstant((s.getOrElse("") + n).toInt) else L4_RealConstant((s.getOrElse("") + n).toDouble) })
@@ -467,20 +467,12 @@ object L4_Parser extends ExaParser with PackratParsers {
     ("{" ~> repsep(rowVectorExpression, ",") <~ "}") ~ "T".? ^^ { case x ~ t => val e = L4_MatrixExpression(None, x.map(_.expressions.toList)); if (t.isDefined) L4_FunctionCall(L4_UnresolvedFunctionReference("transpose", None, None), e); else e } |||
     ("[" ~> repsep(binaryexpression.+, ";")) <~ "]" ^^ { x => L4_MatrixExpression(None, x) })
 
-  lazy val complexExpression  = locationize(("complex" ~ "(") ~> term ~ "," ~ term <~ ")"
-    ^^ { case  real ~ _ ~ imag => L4_ComplexExpression(real, true, imag)})
-  /*
-    lazy val complexExpression  = locationize(("(" ~> term) ~ "+" ~ term <~ ("i" ~ ")")
+  //  lazy val complexExpression  = locationize(("complex" ~ "(") ~> term ~ "," ~ term <~ ")"
+  //  ^^ { case  real ~ _ ~ imag => L4_ComplexExpression(real, true, imag)})
+    lazy val complexExpression  = locationize(("(" ~> term) ~ "+" ~ term <~ ("j" ~ ")")
       ^^ { case  real ~ _ ~ imag => L4_ComplexExpression(real,true, imag)})
-    lazy val complexExpression2  = locationize(("(" ~> term) ~ "-" ~ term <~ ("i" ~ ")")
+    lazy val complexExpression2  = locationize(("(" ~> term) ~ "-" ~ term <~ ("j" ~ ")")
       ^^ { case  real ~ _ ~ imag => L4_ComplexExpression(real,false, imag)})
-    lazy val complexExpression  = locationize( term ~ "+" ~ term <~ "i"
-      ^^ { case  real ~ _ ~ imag => L4_ComplexExpression(real,true, imag)})
-    lazy val complexExpression2  = locationize(term ~ "-" ~ term <~ "i"
-      ^^ { case  real ~ _ ~ imag => L4_ComplexExpression(real,false, imag)})
-    lazy val complexExpression  = locationize((term ~ ("+" | "-") ~ term <~ "i")
-      ^^ { case  real ~ op ~ imag => L4_ComplexExpression(real, op == "+", imag)})
-    */
 
   lazy val booleanexpression : PackratParser[L4_Expression] = (
     locationize((booleanexpression ~ ("||" ||| "or") ~ booleanexpression1) ^^ { case ex1 ~ op ~ ex2 => L4_BinaryOperators.createExpression(op, ex1, ex2) })
