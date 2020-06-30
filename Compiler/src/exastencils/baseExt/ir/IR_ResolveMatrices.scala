@@ -46,7 +46,6 @@ import exastencils.baseExt.ir.IR_MatrixFunctionNodes.IR_SetElement
 import exastencils.baseExt.ir.IR_MatrixFunctionNodes.IR_SetSlice
 import exastencils.baseExt.ir.IR_MatrixFunctionNodes.IR_Trace
 import exastencils.baseExt.ir.IR_MatrixFunctionNodes.IR_Transpose
-import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.field.ir._
@@ -315,23 +314,6 @@ object IR_ResolveMatOperators extends DefaultStrategy("resolve operators") {
       IR_BasicMatrixOperations.elementwiseDivision(binOp.left, binOp.right)
     case binOp @ IR_ElementwiseAddition(_, _) if (checkIfMatOp(binOp) && isEvaluatable(binOp.left) && isEvaluatable(binOp.right))       =>
       IR_BasicMatrixOperations.add(binOp)
-    /*
-      case mult @ IR_Multiplication(facs) if (facs.exists(f => isMatrix(f)) && facs.forall(f => isEvaluatable(f)))                                                   =>
-        IR_BasicMatrixOperations.mult(mult)
-      case add @ (IR_Addition(sums)) if (sums.exists(f => isMatrix(f)) && sums.forall(f => isEvaluatable(f)))                                                        =>
-        IR_BasicMatrixOperations.add(add)
-      case binOp @ IR_ElementwiseSubtraction(_, _) if ((isMatrix(binOp.left) | isMatrix(binOp.right)) && isEvaluatable(binOp.left) && isEvaluatable(binOp.right))    =>
-        IR_BasicMatrixOperations.sub(binOp)
-      case binOp @ IR_Subtraction(_, _) if ((isMatrix(binOp.left) | isMatrix(binOp.right)) && isEvaluatable(binOp.left) && isEvaluatable(binOp.right))               =>
-        IR_BasicMatrixOperations.sub(binOp)
-      case binOp @ IR_ElementwiseMultiplication(_, _) if ((isMatrix(binOp.left) | isMatrix(binOp.right)) && isEvaluatable(binOp.left) && isEvaluatable(binOp.right)) =>
-        IR_BasicMatrixOperations.elementwiseMultiplication(binOp.left, binOp.right)
-      case binOp @ IR_ElementwiseDivision(_, _) if ((isMatrix(binOp.left) | isMatrix(binOp.right)) && isEvaluatable(binOp.left) && isEvaluatable(binOp.right))       =>
-        IR_BasicMatrixOperations.elementwiseDivision(binOp.left, binOp.right)
-      case binOp @ IR_ElementwiseAddition(_, _) if ((isMatrix(binOp.left) | isMatrix(binOp.right)) && isEvaluatable(binOp.left) && isEvaluatable(binOp.right))       =>
-        IR_BasicMatrixOperations.add(binOp)
-
-     */
     //TODO new non recursion
   })
 }
@@ -357,6 +339,7 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
         Logger.error(s"Declaration of variable of type: $declDt with expression of type: $srcDt, sizes must match!")
       IR_MatrixNodeUtilities.splitDeclaration(decl)
   })
+
   this += new Transformation("assignments", {
     // use std::fill for assignments of matrices with constants
     case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src, "=") if (IR_MatrixNodeUtilities.isScalar(src)) =>
@@ -562,25 +545,6 @@ object IR_MatrixNodeUtilities {
     IR_Scope(stmts)
   }
 
-  /*
-  // convert an assignment of a IR_MatrixExpression to multiple Assignments for all positions in dest/src; dest and src have to be of the same form
-  def expressionToAssignmentsLooped(dest : IR_VariableAccess, src : IR_MatrixExpression) : IR_Scope = {
-  var destSize = IR_BasicMatrixOperations.getSize(dest)
-  if (destSize != (src.rows, src.columns))
-   Logger.error("sizes do not match: " + destSize + " vs " + (src.rows, src.columns))
-  var stmts = ListBuffer[IR_Statement]()
-  var i = IR_VariableAccess("i",IR_IntegerDatatype)
-  var j = IR_VariableAccess("j",IR_IntegerDatatype)
-
-  stmts += IR_ForLoop(IR_VariableDeclaration(i,IR_IntegerConstant(0)),IR_Lower(i,destSize._1),IR_PreIncrement(i),ListBuffer[IR_Statement](
-   IR_ForLoop(IR_VariableDeclaration(j,IR_IntegerConstant(0)),IR_Lower(j,destSize._2),IR_PreIncrement(j),ListBuffer[IR_Statement](
-     IR_Assignment(IR_HighDimAccess(dest, IR_ExpressionIndex(i, j)), src.get(i, j))
-   ))
-  ))
-  IR_Scope(stmts)
-  }
-  */
-
   // copy a matrix from a IR_VariableAccess to a IR_MatrixExpression by building an expression of highDimAccesses
   def accessToExpression(src : IR_VariableAccess) : IR_MatrixExpression = {
     var size = IR_BasicMatrixOperations.getSize(src)
@@ -600,52 +564,4 @@ object IR_MatrixNodeUtilities {
     decl
   }
 
-  // check if a matrix variable will be written to at any point in the course of the program
-  //TODO multiple variables within different scopes?
-  //TODO where to start?
-  //TODO what if we check for constance when assignment were not yet build from other functions -> need to find all possibilities of writing to a matrix with name 'name' at all stages of processing
-  def notWrittenTo(name : String) : Boolean = {
-
-    var cconst = true
-    // assignments to matrix 'name'
-    if (StateManager.findAll[IR_Assignment]().exists(
-      x => x.dest.isInstanceOf[IR_VariableAccess] && x.dest.asInstanceOf[IR_VariableAccess].name == name
-    )) {
-      cconst = false
-    }
-
-    // setting elements of matrix 'name': find function calls to setElement with matrix 'name' as argument
-    var fcalls = StateManager.findAll[IR_FunctionCall]()
-    if (fcalls.exists(
-      x => (x.name == "set" | x.name == "setElement") && x.arguments(0).isInstanceOf[IR_VariableAccess] && x.arguments(0).asInstanceOf[IR_VariableAccess].name == name)) {
-      cconst = false
-    }
-
-    // find external function calls with matrix 'name' as argument
-    if (fcalls.exists(
-      x => x.function match {
-        case e : IR_ExternalFunctionReference if (x.arguments.exists(arg => arg.isInstanceOf[IR_VariableAccess] && arg.asInstanceOf[IR_VariableAccess].name == name)) => true
-        case _                                                                                                                                                        => false
-      })) {
-      cconst = false
-    }
-    //TODO calls nach inverse call? -> matrix "bis dahin" compiletime constant
-
-    // find inplace determinant or inverse calls
-    if (Knowledge.experimental_inplaceDeterminant) {
-      if (fcalls.exists(
-        x => (x.name == "det" | x.name == "deter" | x.name == "determinant" | x.name == "detRT") && x.arguments(0).isInstanceOf[IR_VariableAccess] && x.arguments(0).asInstanceOf[IR_VariableAccess].name == name)) {
-        cconst = false
-      }
-    }
-    if (Knowledge.experimental_inplaceInversion) {
-      if (fcalls.exists(
-        x => (x.name == "inv" | x.name == "inverse" | x.name == "invRT") && x.arguments(0).isInstanceOf[IR_VariableAccess] && x.arguments(0).asInstanceOf[IR_VariableAccess].name == name)) {
-        cconst = false
-      }
-    }
-
-    cconst
-
-  }
 }

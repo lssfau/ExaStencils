@@ -24,23 +24,24 @@ import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_DoubleDatatype
 import exastencils.base.ir.IR_ExpressionStatement
 import exastencils.base.ir.IR_FloatDatatype
+import exastencils.base.ir.IR_FunctionCall
 import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_ScalarFree
 import exastencils.base.ir.IR_SizeOf
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_MatrixNodeUtilities._
 import exastencils.config._
 import exastencils.core._
 import exastencils.logger.Logger
 import exastencils.util.ir._
-import exastencils.baseExt.ir.IR_MatrixNodeUtilities._
 
 // generate simple operations with matrices for execution at runtime for e.g. an inversion at runtime
 object IR_GenerateBasicMatrixOperations {
   var tmpCounter = 0
 
-  // generate code to copy a matrix per std::memcpy
+  // generate code to copy a matrix per std::copy
   def copyMatrix(dest : IR_VariableAccess, src : IR_Expression) : ListBuffer[IR_Statement] = {
     val destSize = IR_BasicMatrixOperations.getSize(dest)
     val srcSize = IR_BasicMatrixOperations.getSize(src)
@@ -128,37 +129,7 @@ object IR_GenerateBasicMatrixOperations {
     case IR_IntegerDatatype => IR_IntegerConstant(v.toInt)
     case _                  => exastencils.logger.Logger.error("mkConstant not implemented for " + dt.toString)
   }
-  /*
-    // generate code to calculate the euclidian norm of a "vector"
-    def norm(in : IR_VariableAccess, out : IR_VariableAccess, length : IR_Expression = IR_NullExpression) : IR_Scope = {
-      var func = IR_Scope(Nil)
-      var i = IR_VariableAccess("i", IR_IntegerDatatype)
-      var sum = IR_VariableAccess("sum", IR_DoubleDatatype)
-      func.body += IR_VariableDeclaration(i)
-      func.body += IR_VariableDeclaration(sum, IR_DoubleConstant(0))
-      in.datatype match {
-        case IR_MatrixDatatype(_, _, _) =>
-          var size = IR_BasicMatrixOperations.getSize(in)
-          var N : Int = 0
-          var columnvector = size match {
-            case (1, cols)    => false; N = cols
-            case (rows, 1)    => true; N = rows
-            case (rows, cols) => Logger.error("norming matrices without one dimension being of size 1 not supported")
-          }
-          func.body += IR_ForLoop(IR_Assignment(i, 0), IR_Lower(i, N), IR_PreIncrement(i), ListBuffer[IR_Statement](
-            IR_Assignment(sum, IR_Addition(sum, IR_Multiplication(IR_ArrayAccess(in, i), IR_ArrayAccess(in, i))))
-          ))
-        case IR_PointerDatatype(_)      =>
-          if (length == IR_NullExpression)
-            Logger.error("no length specified")
-          func.body += IR_ForLoop(IR_Assignment(i, 0), IR_Lower(i, length), IR_PreIncrement(i), ListBuffer[IR_Statement](
-            IR_Assignment(sum, IR_Addition(sum, IR_Multiplication(IR_ArrayAccess(in, i), IR_ArrayAccess(in, i))))
-          ))
-      }
-      func.body += IR_Assignment(out, IR_FunctionCall(IR_ExternalFunctionReference("std::sqrt", IR_DoubleDatatype), ListBuffer[IR_Expression](sum)))
-      func
-    }
-  */
+
   // generate code to transpose a matrix
   def transpose(in : IR_VariableAccess, out : IR_VariableAccess) : IR_Scope = {
     var insize = IR_BasicMatrixOperations.getSize(in)
@@ -373,30 +344,7 @@ object IR_GenerateBasicMatrixOperations {
     ))
     stmts
   }
-  /*
-    // code to generate a n-unitmatrix
-    def unitmatrix(size : IR_Expression, out : IR_VariableAccess) : IR_Scope = {
-      var outsize = IR_BasicMatrixOperations.getSize(out)
-      if (outsize._1 != outsize._2)
-        Logger.error("outmatrix not quadratic")
-      var func = IR_Scope(Nil)
-      var _i = IR_VariableAccess("_i", IR_IntegerDatatype)
-      var _j = IR_VariableAccess("_j", IR_IntegerDatatype)
 
-      func.body += IR_ForLoop(IR_VariableDeclaration(_i, 0), IR_Lower(_i, outsize._1), IR_PreIncrement(_i), ListBuffer[IR_Statement](
-        IR_ForLoop(IR_VariableDeclaration(_j, 0), IR_Lower(_j, outsize._2), IR_PreIncrement(_j), ListBuffer[IR_Statement](
-          IR_IfCondition(IR_EqEq(_i, _j), ListBuffer[IR_Statement](
-            IR_Assignment(IR_HighDimAccess(out, IR_ExpressionIndex(_i, _j)), IR_DoubleConstant(1))
-          ),
-            ListBuffer[IR_Statement](
-              IR_Assignment(IR_HighDimAccess(out, IR_ExpressionIndex(_i, _j)), IR_DoubleConstant(0))
-            )
-          )
-        ))
-      ))
-      func
-    }
-  */
   // generate determinant calculation if 'in' is lu decomposed
   def determinantLargeMatrix(in : IR_VariableAccess, P : IR_VariableAccess, out : IR_VariableAccess) : IR_Scope = {
     var func = IR_Scope(Nil)
@@ -558,9 +506,13 @@ object IR_GenerateRuntimeInversion {
         IR_VariableDeclaration(tmp_idx, IR_ArrayAccess(P, i)),
         IR_Assignment(IR_ArrayAccess(P, i), IR_ArrayAccess(P, imax)),
         IR_Assignment(IR_ArrayAccess(P, imax), tmp_idx),
-        IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::memcpy"), ListBuffer[IR_Expression](IR_AddressOf(IR_ArrayAccess(tmp_row, 0)), IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(i + offset_r, 0 + offset_c))), blocksize_asInt * IR_SizeOf(baseType)))),
-        IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::memcpy"), ListBuffer[IR_Expression](IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(i + offset_r, 0 + offset_c))), IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(imax + offset_r, 0 + offset_c))), blocksize_asInt * IR_SizeOf(baseType)))),
-        IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::memcpy"), ListBuffer[IR_Expression](IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(imax + offset_r, 0 + offset_c))), IR_AddressOf(IR_ArrayAccess(tmp_row, 0)), blocksize_asInt * IR_SizeOf(baseType)))),
+        //IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::memcpy"), ListBuffer[IR_Expression](IR_AddressOf(IR_ArrayAccess(tmp_row, 0)), IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(i + offset_r, 0 + offset_c))), blocksize_asInt * IR_SizeOf(baseType)))),
+        IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression](IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(i + offset_r, 0 + offset_c))),IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(i + offset_r, 0 + offset_c))) + blocksize_asInt, tmp_row)),
+        //IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::memcpy"), ListBuffer[IR_Expression](IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(i + offset_r, 0 + offset_c))), IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(imax + offset_r, 0 + offset_c))), blocksize_asInt * IR_SizeOf(baseType)))),
+        IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression](IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(imax + offset_r, 0 + offset_c))),IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(imax + offset_r, 0 + offset_c))) + blocksize_asInt, IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(i + offset_r, 0 + offset_c))))),
+        //IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::memcpy"), ListBuffer[IR_Expression](IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(imax + offset_r, 0 + offset_c))), IR_AddressOf(IR_ArrayAccess(tmp_row, 0)), blocksize_asInt * IR_SizeOf(baseType)))),
+        IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression](IR_AddressOf(IR_ArrayAccess(tmp_row, 0)),IR_AddressOf(IR_ArrayAccess(tmp_row, 0)) + blocksize_asInt,IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(imax + offset_r, 0 + offset_c))))),
+
         IR_PostIncrement(IR_ArrayAccess(P, blocksize_asInt))
       )),
       IR_ForLoop(IR_VariableDeclaration(j, i + 1), IR_Lower(j, blocksize_asInt), IR_PreIncrement(j), ListBuffer[IR_Statement](

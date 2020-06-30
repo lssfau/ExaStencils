@@ -610,6 +610,11 @@ object Knowledge {
   var experimental_inplaceDeterminant : Boolean = false
   // classify structure of system matrix for solveLinearSystem statements
   var experimental_classifyLES : Boolean = false
+  // if shape of system matrix is known
+  var experimental_locMatStructure : String = "Filled"
+  var experimental_locMatBlocksize : Int = -1
+  var experimental_locMatStructureA : String = ""
+  var experimental_locMatBlocksizeA : Int = -1
 
   // tries to apply an inversion based on the Schur complement in local solve blocks
   var experimental_applySchurCompl : Boolean = false
