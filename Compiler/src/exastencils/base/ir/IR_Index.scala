@@ -53,6 +53,7 @@ object IR_ExpressionIndex {
     new IR_ExpressionIndex((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
 
   // legacy support
+  //def apply(indices : Array[Int]) = new IR_ExpressionIndex(indices.map(IR_IntegerConstant(_) : IR_Expression))
   def apply(indices : Array[Int]) = new IR_ExpressionIndex(indices.map(IR_IntegerConstant(_) : IR_Expression))
   def apply(indices : Array[Long]) = new IR_ExpressionIndex(indices.map(IR_IntegerConstant(_) : IR_Expression))
 }
@@ -117,6 +118,7 @@ object IR_ConstIndex {
 case class IR_ConstIndex(override var indices : Array[Int]) extends IR_Index with IR_ArrayBasedIndex[Int] {
   override def datatype = /*FIXME*/ IR_UnitDatatype
   override def prettyprint(out : PpStream) = out << '[' << indices.mkString(", ") << ']'
+
 
   def +(that : IR_ConstIndex) = IR_ConstIndex(this, that, _ + _)
   override def +(that : IR_Index) = IR_ExpressionIndex(this.toExpressionIndex, that.toExpressionIndex, _ + _)

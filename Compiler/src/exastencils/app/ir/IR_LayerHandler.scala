@@ -190,6 +190,8 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_ApplyOffsetToFieldAccess.apply()
     IR_ApplyOffsetToStencilFieldAccess.apply()
 
+    //IR_ResolveComplexAccess.apply() TODO: brauche ich für den Complex Access
+
     IR_ResolveLoopOverPointsInOneFragment.apply()
 
     IR_ResolveLocalSolve.apply()

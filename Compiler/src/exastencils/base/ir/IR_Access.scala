@@ -18,6 +18,8 @@
 
 package exastencils.base.ir
 
+import java.lang.System.Logger
+
 import exastencils.communication.ir.IR_IV_AbstractCommBuffer
 import exastencils.polyhedron.IR_PolyArrayAccessLike
 import exastencils.prettyprinting._

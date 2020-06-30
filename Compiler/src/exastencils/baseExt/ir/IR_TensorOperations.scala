@@ -485,9 +485,9 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
    */
   def eigenvalue(A: IR_Expression, res : IR_Expression) : IR_Scope = {
     (A, res) match {
-      case (A : IR_VariableAccess, res : IR_VariableAccess) if (A.datatype.isInstanceOf[IR_TensorDatatype2]) &&
+      case (a : IR_VariableAccess, res : IR_VariableAccess) if (A.datatype.isInstanceOf[IR_TensorDatatype2]) &&
         (res.datatype.isInstanceOf[IR_MatrixDatatype]) =>
-        val _m = A.datatype.asInstanceOf[IR_TensorDatatype2]
+        val _m = a.datatype.asInstanceOf[IR_TensorDatatype2]
         val _n = res.datatype.asInstanceOf[IR_MatrixDatatype]
         if (_m.datatype.isInstanceOf[IR_HigherDimensionalDatatype]) {
           Logger.error("Eigenvalue Tensor: Inner Datatype can not be an High dimension datatype")
@@ -503,7 +503,7 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
         val realc = IR_RealConstant
 
         val eigen = IR_Scope(Nil)
-        val q = A.datatype.asInstanceOf[IR_TensorDatatype2]
+        val q = a.datatype.asInstanceOf[IR_TensorDatatype2]
         val dims = q.dims
         val R = acc("R", IR_TensorDatatype2(q.resolveDeclType, dims))
         val Q = acc("Q", IR_TensorDatatype2(q.resolveDeclType, dims))
@@ -514,7 +514,7 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
         val n = acc("n", IR_IntegerDatatype)
         eigen.body += decl(n)
         eigen.body += IR_ForLoop(ass(n, IR_IntegerConstant(1)), IR_Lower(n, IR_IntegerConstant(dims)), IR_PostIncrement(n),
-          qrDecompHouseholder(A, res, Q, R)
+          qrDecompHouseholder(a, res, Q, R)
         )
 
 
