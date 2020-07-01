@@ -19,7 +19,6 @@
 package exastencils.baseExt.ir
 
 import exastencils.base.ir._
-import exastencils.baseExt.l4.L4_ComplexAccess
 import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
@@ -30,11 +29,19 @@ import exastencils.util.l4.L4_VariableDeclarationCollector
 
 /** Factory for IR_ComplexAccess objects */
 object IR_ComplexAccess {
-  def apply(name : String) = new IR_ComplexAccess(name, None, None)
+
+  def apply(innerDatatype : Option[IR_Datatype], dims : Integer, expressions : Array[IR_Expression]) : IR_TensorExpression1 = {
+    if (expressions.length != dims) {
+      Logger.error("expressions has the wrong length")
+    }
+    val tmp = new IR_TensorExpression1(innerDatatype, dims)
+    tmp.expressions = expressions
+    tmp
+  }
 }
 
 
-case class IR_ComplexAccess(var name : String, var arrayIndex : Option[String], var mulDimIndex : Option[List[String]]) extends IR_Expression {
+case class IR_ComplexAccess(var name : String, var arrayIndex : Option[String], var mulDimIndex : Option[List[Any]]) extends IR_Expression {
   val declCollector = new L4_VariableDeclarationCollector
 
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " <<
@@ -48,7 +55,7 @@ case class IR_ComplexAccess(var name : String, var arrayIndex : Option[String], 
       IR_StringConstant("Complex Array Access not yet implemented")
     } else if (mulDimIndex.isDefined) {
       mulDimIndex match {
-        case Some(i) if !(i.exists(x => x.exists(k => k.isDigit)) ) => // check if not a a single string with didgits exists
+        case Some(i) if i.isInstanceOf[List[Int]] => // case classic access
           val l = i.asInstanceOf[List[Int]]
           acc.datatype match {
             case dat : IR_MatrixDatatype =>
@@ -78,14 +85,14 @@ case class IR_ComplexAccess(var name : String, var arrayIndex : Option[String], 
               IR_StringConstant(Array(name, "[", index , "]").mkString(""))
             case _ => Logger.error("Complex Access got not supported data type")
           }
-        case Some(i) if i.isInstanceOf[List[String]] =>
-          val l = i.asInstanceOf[List[String]]
-          //for (k <- l) {
-          //  if (!(k.isInstanceOf[Int]) || !(k.isInstanceOf[Char])) Logger.error("Complex Acces got strange indeces")
-          //}
+        case Some(i) if i.isInstanceOf[List[Any]] =>
+          val l = i.asInstanceOf[List[Any]]
+          for (k <- l) {
+            if (!(k.isInstanceOf[Int]) || !(k.isInstanceOf[Char])) Logger.error("Complex Acces got strange indeces")
+          }
           var myind : List[Any] = Nil
           for (k <- l) {
-            if ((k.length == 1) && (k(0).isDigit)) {
+            if (k.isInstanceOf[Char]) {
               val index : Int = myind.indexOf(k)
               if (index != -1) {
                 myind = myind.updated(index, myind.size) // a number points to the index of the next similar element
@@ -108,7 +115,6 @@ case class IR_ComplexAccess(var name : String, var arrayIndex : Option[String], 
               }
               IR_StringConstant(Array(name, "[", l(0) + l(1) * tmp.dims, "]").mkString(""))
           }*/
-          IR_StringConstant("")
 
         case _ => Logger.error("Complex Access got not supported data type")
       }

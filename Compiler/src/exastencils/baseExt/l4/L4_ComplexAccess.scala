@@ -26,23 +26,14 @@ import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
 /// L4_ComplexAccess
-object L4_ComplexAccess {
-  def apply(name : String) = new L4_ComplexAccess(name, None, None, None)
-  def apply(name : String, level : Option[L4_AccessLevelSpecification]) = new L4_ComplexAccess(name, level, None, None)
-  def apply(name : String, level : Option[L4_AccessLevelSpecification], arrayIndex : Option[String]) =
-    new L4_ComplexAccess(name, level, arrayIndex, None)
-  def apply(name : String, level : Option[L4_AccessLevelSpecification], arrayIndex : Option[String], mulDimIndex : Option[List[String]]) =
-    new L4_ComplexAccess(name, level, arrayIndex, mulDimIndex)
-
-}
 
 case class L4_ComplexAccess(
     var name : String,
     var level : Option[L4_AccessLevelSpecification],
     var arrayIndex : Option[String],
-    var mulDimIndex : Option[List[String]]) extends L4_Access { //TODO: Hier soll Option raus, nicht notwendig da * Operator
+    var mulDimIndex : Option[List[Any]]) extends L4_Access { //TODO: Hier soll Option raus, nicht notwendig da * Operator
 
-  def prettyprint(out : PpStream) : Unit = {
+  def prettyprint(out : PpStream) = {
     out << name
     if (level.isDefined) out << '@' << level.get
     if (arrayIndex.isDefined) out << ({
@@ -72,9 +63,6 @@ case class L4_ComplexAccess(
     if (arrayIndex.isDefined) Logger.warn("Discarding meaningless array index access on basic or leveled access")
     if (mulDimIndex.isDefined) Logger.warn("Discarding meaningless array index access on basic or leveled access")
 
-    if (arrayIndex.isDefined)
-      IR_ComplexAccess(name, arrayIndex, None)
-    else
-      IR_ComplexAccess(name, None, mulDimIndex)
+    IR_ComplexAccess(name, arrayIndex, mulDimIndex)
   }
 }
