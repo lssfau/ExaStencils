@@ -22,6 +22,7 @@ import scala.collection.mutable._
 import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.input._
 
+import exastencils.base.ir.IR_Node
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.boundary.l4._
@@ -421,12 +422,14 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val genericAccess = (
     //locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ ("[" ~> mulBraketIndex <~ "]").? // TODO: Zeus: Im Testfall ausgeklammert
       //^^ { case id ~ slot ~ level ~ offset ~ mulDimIndex => L4_UnresolvedAccess(id, level, slot, offset, None, None, mulDimIndex) })
-      locationize(ident ~ levelAccess.? ~ ("[" ~>  complexMulDimIndex <~ "]").? ^^ { case id ~ level ~ mulDimIndex => L4_ComplexAccess(id, level, None, mulDimIndex) })
+
       //||| locationize(ident ~ levelAccess.? ~ ("[" ~> ident <~ "]").? ^^ { case id ~ level ~ arrayIndex => L4_ComplexAccess(id, level, arrayIndex, None) })
-      ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
-      ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None, None) }) // component acccess mit spitzen klammern
+      locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
+      ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None) }) // component acccess mit spitzen klammern
       ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ ("[" ~> integerLit <~ "]").?
-      ^^ { case id ~ slot ~ level ~ offset ~ arrayIndex => L4_UnresolvedAccess(id, level, slot, offset, None, arrayIndex, None) })
+      ^^ { case id ~ slot ~ level ~ offset ~ arrayIndex => L4_UnresolvedAccess(id, level, slot, offset, None, arrayIndex) })
+      ||| locationize(ident ~ levelAccess.? ~ ("[" ~>  complexMulDimIndex <~ "]").? ^^ { case id ~ level ~ mulDimIndex => L4_ComplexAccess(id, level, None, mulDimIndex) })
+      ||| locationize(ident ~ levelAccess.? ~ ("[" ~>  ident <~ "]").? ^^ { case id ~ level ~ arrayIndex => L4_ComplexAccess(id, level, arrayIndex, None) })
     )
 
   lazy val mulBraketIndex = (
@@ -438,8 +441,8 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| integerLit.*)
 
   lazy val complexMulDimIndex = (
-    ((ident ||| integerLit) <~ ("," ||| ("]" ~ "["))).+ ~ (ident ||| integerLit) ^^ { case entries ~ entry => entries.::(entry) }
-      ||| (ident ||| integerLit).*)
+    ((ident) <~ ("," ||| ("]" ~ "["))).+ ~ (ident) ^^ { case entries ~ entry => entries.::(entry) }
+      ||| (ident).*)
 
   // ######################################
   // ##### Expressions
