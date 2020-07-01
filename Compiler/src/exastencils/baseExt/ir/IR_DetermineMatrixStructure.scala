@@ -28,6 +28,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_PlainFunction
 import exastencils.base.ir._
+import exastencils.baseExt
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 
@@ -154,7 +155,9 @@ object IR_DetermineMatrixStructure {
 
   // determine structure of 'matrix' (which must have compiletime evaluatable entries) and return it as a String + more specific structure information like blocksizes in case of Schur or Blockdiagonal matrices
   def isOfStructure(mat : ListBuffer[ListBuffer[IR_Addition]]) : IR_MatStructure = {
-    if(mat.length == 1 || mat(0).length == 1) Logger.error("can not classify 1 entry matrix")
+    if(mat.length == 1 || mat(0).length == 1) {
+      baseExt.ir.IR_MatStructure("Filled")
+    }
     var blocksize_A = 0
     var blocksize_D = 0
     var size = mat.length

@@ -594,22 +594,12 @@ object Knowledge {
 
   // when to resolve inverse call
   var experimental_resolveInverseFunctionCall : String = "Compiletime" // [Compiletime|Runtime] (with new strategies)
- /*
-  // structure of matrix to invert
-  var experimental_matrixStructure : String = "Filled" //[Filled|Diagonal|Blockdiagonal|Schur]
-  // user can add a blocksize in case of block matrices
-  var experimental_blocksize : Int = -1
-  // structure of A matrix in Schur structure
-  var experimental_structure_A : String = ""    //[Filled|Diagonal|Blockdiagonal]
-  // blocksize of A matrix in Schur structure in
-  var experimental_blocksize_A : Int = -1
-  */
   // runtime inversion executes inplace on input matrix
-  var experimental_inplaceInversion : Boolean = true
+  var experimental_inplaceInversion : Boolean = false
   // runtime determinant executes inplace on input matrix
   var experimental_inplaceDeterminant : Boolean = false
   // classify structure of system matrix for solveLinearSystem statements
-  var experimental_classifyLES : Boolean = false
+  var experimental_classifyLocMat : Boolean = false
   // if shape of system matrix is known
   var experimental_locMatStructure : String = "Filled"
   var experimental_locMatBlocksize : Int = -1

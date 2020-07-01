@@ -213,7 +213,7 @@ case class IR_LocalSolve(
     val matStructure : IR_MatStructure =
     if(unknowns(0).field.matStructure.isDefined) {
       unknowns(0).field.matStructure.get
-    } else if(Knowledge.experimental_classifyLES || Knowledge.experimental_applySchurCompl) {
+    } else if(Knowledge.experimental_classifyLocMat || Knowledge.experimental_applySchurCompl) {
       IR_DetermineMatrixStructure(AVals)
     } else if(Knowledge.experimental_locMatStructure != "Filled") {
       IR_MatStructure(
@@ -225,7 +225,7 @@ case class IR_LocalSolve(
     }
     else IR_MatStructure("Filled")
 
-    Logger.warn(s"LES is of shape ${matStructure.structure}")
+    Logger.warn(s"Local matrix is of shape ${matStructure.structure}")
 
       // choose strategy used for inverting local matrix
     if (AInv != null) {

@@ -152,7 +152,7 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
     case solve : IR_LocalSolve => solve.expandSpecial
     case sls @ IR_SolveLinearSystem(a, _, _) =>
       // classify structure of system matrix A of the linear equation system
-      if (Knowledge.experimental_classifyLES) {
+      if (Knowledge.experimental_classifyLocMat) {
         val structureInfo = a match {
           // if A is const: classify
           case x : IR_MatrixExpression => IR_DetermineMatrixStructure(x)
