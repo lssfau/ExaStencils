@@ -111,7 +111,7 @@ object L4_UnresolveFieldAccesses extends DefaultStrategy("Revert field accesses 
   this += new Transformation("Replace", {
     case L4_FieldAccess(target, slot, offset, arrayIndex, frozen) =>
       val newSlot = if (L4_ActiveSlot == slot) None else Some(slot)
-      def ret = L4_UnresolvedAccess(target.name, Some(L4_SingleLevel(target.level)), newSlot, offset, None, arrayIndex, None)
+      def ret = L4_UnresolvedAccess(target.name, Some(L4_SingleLevel(target.level)), newSlot, offset, None, arrayIndex)
       if (frozen)
         L4_FunctionCall(L4_UnresolvedFunctionReference("frozen", None, None), ret)
       else

@@ -106,6 +106,6 @@ object L4_UnresolveStencilFieldAccesses extends DefaultStrategy("Revert stencil 
   this += new Transformation("Replace", {
     case L4_StencilFieldAccess(target, slot, offset, dirAccess, arrayIndex) =>
       val newSlot = if (L4_ActiveSlot == slot) None else Some(slot)
-      L4_UnresolvedAccess(target.name, Some(L4_SingleLevel(target.level)), newSlot, offset, dirAccess, arrayIndex, None)
+      L4_UnresolvedAccess(target.name, Some(L4_SingleLevel(target.level)), newSlot, offset, dirAccess, arrayIndex)
   })
 }

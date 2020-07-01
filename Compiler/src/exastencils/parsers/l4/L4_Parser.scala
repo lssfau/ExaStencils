@@ -420,17 +420,20 @@ object L4_Parser extends ExaParser with PackratParsers {
     ^^ { case id ~ level => L4_UnresolvedAccess(id, Some(level)) })
 
   lazy val genericAccess = (
-    //locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ ("[" ~> mulBraketIndex <~ "]").? // TODO: Zeus: Im Testfall ausgeklammert
-      //^^ { case id ~ slot ~ level ~ offset ~ mulDimIndex => L4_UnresolvedAccess(id, level, slot, offset, None, None, mulDimIndex) })
-
-      //||| locationize(ident ~ levelAccess.? ~ ("[" ~> ident <~ "]").? ^^ { case id ~ level ~ arrayIndex => L4_ComplexAccess(id, level, arrayIndex, None) })
       locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
       ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None) }) // component acccess mit spitzen klammern
       ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ ("[" ~> integerLit <~ "]").?
       ^^ { case id ~ slot ~ level ~ offset ~ arrayIndex => L4_UnresolvedAccess(id, level, slot, offset, None, arrayIndex) })
-      ||| locationize(ident ~ levelAccess.? ~ ("[" ~>  complexMulDimIndex <~ "]").? ^^ { case id ~ level ~ mulDimIndex => L4_ComplexAccess(id, level, None, mulDimIndex) })
-      ||| locationize(ident ~ levelAccess.? ~ ("[" ~>  ident <~ "]").? ^^ { case id ~ level ~ arrayIndex => L4_ComplexAccess(id, level, arrayIndex, None) })
     )
+
+  lazy val complexAccess = (
+      locationize(ident ~ levelAccess.? ~ ("[" ~>  complexMulDimIndex <~ "]").?
+        ^^ { case id ~ level ~ mulDimIndex => L4_ComplexAccess(id, level, None, mulDimIndex) })
+      ||| locationize(ident ~ levelAccess.? ~ ("[" ~>  ident <~ "]").?
+        ^^ { case id ~ level ~ arrayIndex => L4_ComplexAccess(id, level, arrayIndex, None) })
+  )
+
+  lazy val spezialAccess = genericAccess ||| complexAccess
 
   lazy val mulBraketIndex = (
     (integerLit <~ ("]" ~ "[")).+ ~ integerLit ^^ { case entries ~ entry => entries.::(entry) }
