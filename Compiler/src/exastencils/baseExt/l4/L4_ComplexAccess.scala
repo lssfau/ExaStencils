@@ -42,7 +42,7 @@ case class L4_ComplexAccess(
     var arrayIndex : Option[String],
     var mulDimIndex : Option[List[String]]) extends L4_Access { //TODO: Hier soll Option raus, nicht notwendig da * Operator
 
-  def prettyprint(out : PpStream) : Unit = {
+  def prettyprint(out : PpStream) = {
     out << name
     if (level.isDefined) out << '@' << level.get
     if (arrayIndex.isDefined) out << ({

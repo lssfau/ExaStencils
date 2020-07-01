@@ -19,7 +19,6 @@
 package exastencils.baseExt.ir
 
 import exastencils.base.ir._
-import exastencils.baseExt.l4.L4_ComplexAccess
 import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
@@ -48,7 +47,7 @@ case class IR_ComplexAccess(var name : String, var arrayIndex : Option[String], 
       IR_StringConstant("Complex Array Access not yet implemented")
     } else if (mulDimIndex.isDefined) {
       mulDimIndex match {
-        case Some(i) if !(i.exists(x => x.exists(k => k.isDigit)) ) => // check if not a a single string with didgits exists
+        case Some(i) if !(i.exists(k => k.exists(l => l.isDigit))) => // case classic access
           val l = i.asInstanceOf[List[Int]]
           acc.datatype match {
             case dat : IR_MatrixDatatype =>
@@ -80,12 +79,12 @@ case class IR_ComplexAccess(var name : String, var arrayIndex : Option[String], 
           }
         case Some(i) if i.isInstanceOf[List[String]] =>
           val l = i.asInstanceOf[List[String]]
-          //for (k <- l) {
-          //  if (!(k.isInstanceOf[Int]) || !(k.isInstanceOf[Char])) Logger.error("Complex Acces got strange indeces")
-          //}
+          for (k <- l) {
+            if (!(k.isInstanceOf[Int]) || !(k.isInstanceOf[Char])) Logger.error("Complex Acces got strange indeces")
+          }
           var myind : List[Any] = Nil
           for (k <- l) {
-            if ((k.length == 1) && (k(0).isDigit)) {
+            if (k.isInstanceOf[Char]) {
               val index : Int = myind.indexOf(k)
               if (index != -1) {
                 myind = myind.updated(index, myind.size) // a number points to the index of the next similar element
@@ -108,7 +107,7 @@ case class IR_ComplexAccess(var name : String, var arrayIndex : Option[String], 
               }
               IR_StringConstant(Array(name, "[", l(0) + l(1) * tmp.dims, "]").mkString(""))
           }*/
-          IR_StringConstant("")
+          Logger.error("Not fully implemeneted")
 
         case _ => Logger.error("Complex Access got not supported data type")
       }
