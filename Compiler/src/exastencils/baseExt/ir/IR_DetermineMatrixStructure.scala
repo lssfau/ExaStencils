@@ -64,7 +64,7 @@ object IR_DetermineMatrixStructure {
     matrix match {
       case mat @ IR_MatrixExpression(_, _, _) =>
         var size = IR_BasicMatrixOperations.getSize(mat)
-        if (size._1 == 1) Logger.error("can not classify 1 entry matrix")
+        if (size._1 == 1) IR_MatShape("filled")
 
         mat.datatype.resolveBaseDatatype match {
           case dt @ (IR_IntegerDatatype | IR_RealDatatype | IR_FloatDatatype | IR_DoubleDatatype) =>

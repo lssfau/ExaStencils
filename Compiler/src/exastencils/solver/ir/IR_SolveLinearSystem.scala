@@ -34,7 +34,7 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_Expression, f : IR_Exp
   override def prettyprint(out : PpStream) : Unit = out << "solveLES" << A.prettyprint(out) << ", " << f.prettyprint(out)
   def expand(msi_ : Option[IR_MatShape]) : Transformation.OutputType = {
     val msi : IR_MatShape = msi_.getOrElse(IR_MatShape("filled"))
-    Logger.warn(s"Solving linear system with the following configuration: ${ Knowledge.experimental_resolveInverseFunctionCall }, " + msi.toExprList())
+    Logger.warn(s"Solving linear system with the following configuration: ${ Knowledge.experimental_resolveInverseFunctionCall }, " + msi.toStringList())
     val (m, n) = A.datatype match {
       case mat : IR_MatrixDatatype => (mat.sizeM, mat.sizeN)
       case _                       => Logger.error(s"unexpected datatype of A: ${ A.datatype }")
@@ -60,11 +60,11 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_Expression, f : IR_Exp
         stmts
       // in case of schur: solve with A-Decomposition to helper matrices
       // for blocksize of D == 1
-      case "schur" if(m - msi.size("bsize") == 1) =>
+      case "schur" if(m - msi.size("block") == 1) =>
         var stmts = ListBuffer[IR_Statement]()
         // blocksizes
-        val bsize = msi.size("bsize")
-        val bsizeA = msi.size("bsizeA")
+        val bsize = msi.size("block")
+        val bsizeA = msi.size("Ablock")
         val size = IR_BasicMatrixOperations.getSize(A)._1
         val bsizeD = size - bsize
         val nComponents = bsize / bsizeA

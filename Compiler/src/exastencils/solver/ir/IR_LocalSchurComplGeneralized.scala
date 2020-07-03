@@ -29,7 +29,7 @@ object IR_LocalSchurComplGeneralized {
   def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
       jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : IR_MatShape) = {
     msi.shape match {
-      case "Schur" => schur(AVals, fVals, unknowns, jacobiType, relax, omitConditions, msi)
+      case "schur" => schur(AVals, fVals, unknowns, jacobiType, relax, omitConditions, msi)
       case _ => Logger.error(s"matrix structure ${msi.shape} not supported (yet)")
     }
   }
@@ -40,8 +40,8 @@ object IR_LocalSchurComplGeneralized {
   def schur(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
       jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : IR_MatShape) : ListBuffer[IR_Statement] = {
 
-    val bsize : Int = msi.size("bsize")
-    val bsizeA : Int = msi.size("bsizeA")
+    val bsize : Int = msi.size("block")
+    val bsizeA : Int = msi.size("Ablock")
     val size = AVals.length
     val bsizeD = size - bsize
     def vecAcc(vec : ListBuffer[IR_VariableAccess], i0 : Int) = IR_HighDimAccess(vec(i0 / bsizeA), IR_ConstIndex(i0 % bsizeA))

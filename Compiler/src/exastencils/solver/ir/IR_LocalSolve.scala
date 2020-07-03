@@ -218,12 +218,12 @@ case class IR_LocalSolve(
       // structure to specify (blocksize to specify for apply schur compl, for backwards compatibility)
       // TODO: if all local matrices have the same structure: classify only once
       IR_DetermineMatrixStructure(AVals)
-    } else if(Knowledge.experimental_locMatStructure != "Filled") {
+    } else if(Knowledge.experimental_locMatStructure != "filled") {
       // structure for all local matrices given in knowledge
       IR_MatShape(Knowledge.experimental_locMatStructure)
-          .addInfo("bsize",Knowledge.experimental_locMatBlocksize)
+          .addInfo("block",Knowledge.experimental_locMatBlocksize)
           .addInfo("A",Knowledge.experimental_locMatStructureA)
-          .addInfo("bsizeA",Knowledge.experimental_locMatBlocksizeA)
+          .addInfo("Ablock",Knowledge.experimental_locMatBlocksizeA)
     }
     else IR_MatShape("filled")
 
@@ -239,7 +239,7 @@ case class IR_LocalSolve(
       }
     }
       // if matrix has schur structure and blocksize of D block is 1 -> solvable without inverse
-    else if (isSolvableWithoutInverse(msi) && AVals.length - msi.size("bsize") == 1)
+    else if (isSolvableWithoutInverse(msi) && AVals.length - msi.size("block") == 1)
         IR_Scope(IR_LocalSchurComplGeneralized(AExp, fExp, unknowns, jacobiType, relax, omitConditions, msi))
     else {
       // invert matrix with given structure information

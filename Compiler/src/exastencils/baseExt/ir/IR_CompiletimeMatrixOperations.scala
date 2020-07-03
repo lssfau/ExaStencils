@@ -568,17 +568,18 @@ object IR_CompiletimeInversion {
 
           with M of size (n + m) x (n + m) and S = D - C * A_inv * B
         */
-        val n : Int = msi.size("A")
+        val n : Int = msi.size("block")
         val m = that.rows - n
 
         if (n < 1) {
-          Logger.error("inverse n < 1!")
+          Logger.error("n < 1!")
         }
         else {
           var A = IR_BasicMatrixOperations.copySubMatrix(that, 0, 0, n, n)
+
           // build new matrix structure for submatrix A:
-          val structureA = IR_MatShape(msi.shape)
-          structureA.addInfo("bsize", msi.size("bsizeA"))
+          val structureA = IR_MatShape(msi.shape("A"))
+          structureA.addInfo("block", msi.size("Ablock"))
           var A_inv = inverse(A, structureA)
           IR_GeneralSimplify.doUntilDoneStandalone(A_inv)
 

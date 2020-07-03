@@ -1,13 +1,11 @@
 package exastencils.baseExt.ir.IR_MatrixFunctionNodes
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_StringConstant
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_CompiletimeInversion
@@ -103,37 +101,10 @@ object IR_IntermediateInv {
      */
     val mat = args.remove(0)
 
-    // read args to argmap
-    val arglist = args.toList
-    type OptionMap = mutable.HashMap[String, Any]
-    def nextOption(map : OptionMap, list : List[IR_Expression]) : OptionMap = {
-      //def isSwitch(s : String) = (s(0) == '-')
-      val optionPattern = """(.*)=(.*)""".r
-      list match {
-        case Nil         => map
-        case arg :: tail =>
-          arg match {
-            case IR_StringConstant(s) => s match {
-              case optionPattern(flag, value) => nextOption(map ++ Map(flag -> value), tail)
-              case uo                         => Logger.error(s"unknown option string: ${ uo }")
-            }
-            case uo                   => Logger.error(s"unknown option: ${ uo }")
-          }
-      }
+    // read args to argmap and produce matrix structure
+    var msi = IR_MatShape(args)
 
-    }
-    val argMap = nextOption(new OptionMap(), arglist)
-
-    // insert default values
-    if(argMap.get("detShape") == None)
-      argMap.put("detShape","no")
-    if(argMap.get("shape") == None)
-      argMap.put("shape","filled")
-
-    //println(options)
-    var msi = IR_MatShape(argMap.remove("shape").getOrElse(Logger.error("no shape found")).asInstanceOf[String])
-    msi.infos = Some(argMap.to[ListBuffer])
-    val detShape = argMap("detShape").asInstanceOf[String]
+    val detShape = msi.shape("detShape")
     if (detShape == "compiletime") {
       Logger.warn("determining matrix structure for inversion at compiletime")
       msi = mat match {
@@ -183,17 +154,11 @@ object IR_InverseCT {
     }
     new IR_InverseCT(tmp.arg, tmp.msi)
   }
-  //TODO commented out
-  /*
-  def apply(arg : IR_Expression, structureInformation : IR_MatStructInfo) = {
-    new IR_InverseCT(arg, structureInformation)
-  }
-   */
 }
 
 case class IR_InverseCT(
     arg : IR_Expression,
-    msi : IR_MatShape = IR_MatShape("filled")
+    msi : IR_MatShape
 ) extends IR_Inverse(arg, msi) with IR_ResolvableMNode {
   override def datatype = arg.datatype
   //  override def prettyprint(out : PpStream) = Logger.error("internal node no resolved!")

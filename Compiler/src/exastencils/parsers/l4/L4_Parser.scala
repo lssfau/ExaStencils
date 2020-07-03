@@ -380,7 +380,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       case structure ~ blocksize ~ structureA ~ blocksizeA => IR_MatStructure(structure, blocksize.get, structureA.get, blocksizeA.get)
     })
 */
-
+  //TODO matrix structure as type declarable and passed to field declaration
   //TODO parse mat struct option
   lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ levelDecl.?
     ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level => L4_BaseFieldDecl(id, level, domain, layout, boundary, slots.getOrElse(1)) })
