@@ -26,7 +26,17 @@
 # APPLICATION TESTS                                                                             #
 #################################################################################################
 
+Appl_OptFlow_2D          Main ./MatrixClassTests/NSGTestcase/2D_FD_OptFlow_fromL4/2D_FD_OptFlow_fromL4.knowledge ./MatrixClassTests/NSGTestcase/2D_FD_OptFlow_fromL4/2D_FD_OptFlow_fromL4.exa4 ./MatrixClassTests/NSGTestcase/RESULTS/2D_OPTFLOW.RESULTS 1 10
+
+Appl_Stokes_2D_FD        Main ./MatrixClassTests/NSGTestcase/2D_FD_Stokes_fromL4/2D_FD_Stokes_fromL4.knowledge ./MatrixClassTests/NSGTestcase/2D_FD_Stokes_fromL4/3D_FD_Stokes_fromL4.exa4 ./MatrixClassTests/NSGTestcase/RESULTS/2D_FD_STOKES.RESULTS 1 10
+Appl_Stokes_3D_FD        Main ./MatrixClassTests/NSGTestcase/3D_FD_Stokes_fromL4/3D_FD_Stokes_fromL4.knowledge ./MatrixClassTests/NSGTestcase/3D_FD_Stokes_fromL4/3D_FD_Stokes_fromL4.exa4 ./MatrixClassTests/NSGTestcase/RESULTS/3D_FD_STOKES.RESULTS 1 10
+Appl_Stokes_3D_FV        Main ./MatrixClassTests/NSGTestcase/3D_FV_Stokes_fromL4/3D_FV_Stokes_fromL4.knowledge ./MatrixClassTests/NSGTestcase/3D_FV_Stokes_fromL4/3D_FV_Stokes_fromL4.exa4 ./MatrixClassTests/NSGTestcase/RESULTS/3D_FV_STOKES.RESULTS 1 10
+
+Appl_Navier_Stokes_3D_Newton        Main ./MatrixClassTests/NSGTestcase/3D_FV_NavierStokes_localNewton/3D_FV_NavierStokes_localNewton.knowledge ./MatrixClassTests/NSGTestcase/3D_FV_NavierStokes_localNewton/3D_FV_NavierStokes_localNewton.exa4 ./MatrixClassTests/NSGTestcase/RESULTS/3D_NSG_NEWTON.RESULTS 1 10
+Appl_Navier_Stokes_3D_Newton        Main ./MatrixClassTests/NSGTestcase/3D_FV_NavierStokes_localPicard/3D_FV_NavierStokes_localPicard.knowledge ./MatrixClassTests/NSGTestcase/3D_FV_NavierStokes_localPicard/3D_FV_NavierStokes_localPicard.exa4 ./MatrixClassTests/NSGTestcase/RESULTS/3D_NSG_PICARD.RESULTS 1 10
+
 # 10 OMP threads
+
 Appl_ExaStokes_2D        Main  Application/ExaStokes_2D.knowledge        Application/ExaStokes_2D.exa4        Application/ExaStokes_2D.results        1  10
 Appl_ExaStokes_3D        Main  Application/ExaStokes_3D.knowledge        Application/ExaStokes_3D.exa4        Application/ExaStokes_3D.results        1  10
 
