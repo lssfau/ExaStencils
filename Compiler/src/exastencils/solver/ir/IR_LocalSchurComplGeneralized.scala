@@ -34,9 +34,6 @@ object IR_LocalSchurComplGeneralized {
     }
   }
 
-  //TODO apply with matrices: returns unknowns vector
-  //def apply()
-
   def schur(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
       jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : IR_MatShape) : ListBuffer[IR_Statement] = {
 
@@ -45,7 +42,6 @@ object IR_LocalSchurComplGeneralized {
     val size = AVals.length
     val bsizeD = size - bsize
     def vecAcc(vec : ListBuffer[IR_VariableAccess], i0 : Int) = IR_HighDimAccess(vec(i0 / bsizeA), IR_ConstIndex(i0 % bsizeA))
-
     def rowBlockMatAcc(mat : ListBuffer[IR_VariableAccess], i0 : Int, i1 : Int) = IR_HighDimAccess(mat(i0 / bsizeA), IR_ConstIndex(i0 %bsizeA, i1 %bsizeA))
     def colBlockMatAcc(mat : ListBuffer[IR_VariableAccess], i0 : Int, i1 : Int) = IR_HighDimAccess(mat(i1 / bsizeA), IR_ConstIndex(i0 %bsizeA, i1 %bsizeA))
 
@@ -66,8 +62,6 @@ object IR_LocalSchurComplGeneralized {
      */
 
     // declare variables for A,B,C,D,F,G
-
-
     val nComponents = bsize / bsizeA
     var A = ListBuffer[IR_VariableAccess]()
     var C = ListBuffer[IR_VariableAccess]()
@@ -95,7 +89,6 @@ object IR_LocalSchurComplGeneralized {
     U += V
 
     // construct rhs and matrix
-
     for (i <- 0 until size) {
       var innerStmts = ListBuffer[IR_Statement]()
       var boundaryStmts = ListBuffer[IR_Statement]()
@@ -178,7 +171,7 @@ object IR_LocalSchurComplGeneralized {
     }
 
     // write back results
-    for (i <- 0 until size) {
+    for (i <- unknowns.indices) {
       val dest = Duplicate(unknowns(i))
       if (jacobiType) dest.slot.asInstanceOf[IR_SlotAccess].offset += 1
 

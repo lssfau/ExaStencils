@@ -36,7 +36,7 @@ case class L4_Field(
     var fieldLayout : L4_FieldLayout,
     var numSlots : Int,
     var boundary : L4_BoundaryCondition,
-    var matStructure : Option[L4_MatShape] = None
+    var matShape : Option[L4_MatShape] = None
 ) extends L4_LeveledKnowledgeObject[IR_Field] {
 
   override def createDuplicate() : L4_Field = {
@@ -49,7 +49,7 @@ case class L4_Field(
   override def prettyprintDecl(out : PpStream) = {
     out << "Field " << name
     out << "< " << domain.name << ", " << fieldLayout.name << ", " << boundary
-    if (matStructure.isDefined) out << ", " << matStructure
+    if (matShape.isDefined) out << ", " << matShape
     out << " >"
     if (numSlots > 1) out << "[" << numSlots << "]"
     out << "@" << level
@@ -68,7 +68,7 @@ case class L4_Field(
       fieldLayout.getProgressedObj(),
       numSlots,
       boundary.progress,
-      if(matStructure.isDefined) Option(matStructure.get.progress) else None
+      if(matShape.isDefined) Some(matShape.get.progress) else None
     )
   }
 }

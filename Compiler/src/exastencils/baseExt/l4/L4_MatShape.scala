@@ -25,14 +25,14 @@ case class L4_MatShape(
   override def toString(): String = {
     var s = "{"
     if (args.length > 0) {
-      val a = args.remove(0)
+      val a = args(0)
       a match {
         case IR_StringConstant(value) => s += value
         case _ => Logger.error("unexpected argument")
       }
     }
-    for (a <- args) {
-      a match {
+    for (i <- 1 until args.length) {
+      args(i) match {
         case IR_StringConstant(value) => s += "," + value
         case _ => Logger.error("unexpected argument")
       }

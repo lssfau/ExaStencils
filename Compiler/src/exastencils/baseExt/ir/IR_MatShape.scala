@@ -33,11 +33,13 @@ object IR_MatShape {
     val argMap = nextOption(new OptionMap(), args.toList)
 
     // insert default values
-    if(argMap.get("detShape") == None)
+
+    if(argMap.get("detShape").isEmpty)
       argMap.put("detShape","no")
-    if(argMap.get("shape") == None)
+    if(argMap.get("shape").isEmpty)
       argMap.put("shape","filled")
     var msi = new IR_MatShape(argMap.remove("shape").getOrElse(Logger.error("no shape found")).asInstanceOf[String])
+
     msi.infos = Some(argMap.to[ListBuffer])
     msi
   }

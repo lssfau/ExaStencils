@@ -198,6 +198,15 @@ case class IR_LocalSolve(
         case _ => false
       }
   }
+  def findMatShape(faccs : ListBuffer[IR_FieldAccess]) : Option[IR_MatShape] = {
+    //TODO shapes can differ for different fields
+    // just use first shape found for now
+    for(f <- faccs) {
+      if(f.field.matShape.isDefined)
+        return Some(f.field.matShape.get)
+    }
+    None
+  }
 
   def expandSpecial : Output[IR_Scope] = {
     fVals = ListBuffer.fill(unknowns.length)(IR_Addition())
@@ -209,11 +218,11 @@ case class IR_LocalSolve(
     val AExp = AVals.map(_.map(mapToExp))
 
     //TODO sizecheck? go rt if mat too large
-    //TODO check field for matrix structure
+    val shapeFromField = findMatShape(unknowns)
     val msi : IR_MatShape =
-    if(unknowns(0).field.matStructure.isDefined) {
+    if(shapeFromField.isDefined) {
       // structure given in field declaration
-      unknowns(0).field.matStructure.get
+      shapeFromField.get
     } else if(Knowledge.experimental_classifyLocMat || Knowledge.experimental_applySchurCompl) {
       // structure to specify (blocksize to specify for apply schur compl, for backwards compatibility)
       // TODO: if all local matrices have the same structure: classify only once
