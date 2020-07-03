@@ -28,8 +28,8 @@ import exastencils.prettyprinting._
 /// L4_BaseFieldDecl
 
 object L4_BaseFieldDecl {
-  def apply(name : String, levels : Option[L4_DeclarationLevelSpecification], domainName : String, fieldLayoutName : String, boundary : L4_BoundaryCondition, numSlots : Integer) =
-    new L4_BaseFieldDecl(name, levels, L4_UnresolvedAccess(domainName), L4_UnresolvedAccess(fieldLayoutName), boundary, numSlots)
+  def apply(name : String, levels : Option[L4_DeclarationLevelSpecification], domainName : String, fieldLayoutName : String, boundary : L4_BoundaryCondition, numSlots : Integer, shape : Option[L4_MatShape]) =
+    new L4_BaseFieldDecl(name, levels, L4_UnresolvedAccess(domainName), L4_UnresolvedAccess(fieldLayoutName), boundary, numSlots, shape)
 }
 
 case class L4_BaseFieldDecl(
@@ -39,15 +39,14 @@ case class L4_BaseFieldDecl(
     var fieldLayout : L4_Access,
     var boundary : L4_BoundaryCondition,
     var numSlots : Integer,
-    var matStructure : Option[L4_MatShape] = None
+    var matShape : Option[L4_MatShape] = None
 ) extends L4_FieldDecl {
 
   override def prettyprint(out : PpStream) = {
-    out << "Field " << name << "< " << domain.name << ", " << fieldLayout.name << ", " << boundary
-    if (matStructure.isDefined) out << ", " << matStructure
-    out << ">"
+    out << "Field " << name << "< " << domain.name << ", " << fieldLayout.name << ", " << boundary << ">"
     if (numSlots > 1) out << '[' << numSlots << ']'
     if (levels.isDefined) out << '@' << levels.get
+    if (matShape.isDefined) out << matShape.get.toString()
   }
 
   override def addToKnowledge() : Unit = {
@@ -61,7 +60,7 @@ case class L4_BaseFieldDecl(
         fieldLayout.asInstanceOf[L4_FieldLayoutAccess].target,
         numSlots,
         boundary,
-        matStructure
+        matShape
       ))
   }
 }

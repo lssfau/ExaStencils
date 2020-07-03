@@ -22,6 +22,7 @@ import scala.collection.mutable._
 import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.input._
 
+import exastencils.base.ir.IR_StringConstant
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.boundary.l4._
@@ -373,17 +374,12 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val layoutOption = locationize((ident <~ "=") ~ constIndex ~ ("with" ~ "communication").?
     ^^ { case id ~ idx ~ comm => L4_FieldLayoutOption(id, idx, comm.isDefined) })
 
-  /*
-  lazy val matStructOption = locationize(
-    "MatrixShape" ~ "(" ~> ("Diagonal" ||| "Blockdiagonal" ||| "Schur") ~ ("," ~> integerLit).? ~ ("," ~> ("Diagonal" ||| "Blockdiagonal")).? ~ ("," ~> integerLit).? <~ ")"
-      ^^ {
-      case structure ~ blocksize ~ structureA ~ blocksizeA => IR_MatStructure(structure, blocksize.get, structureA.get, blocksizeA.get)
-    })
-*/
-  //TODO matrix structure as type declarable and passed to field declaration
-  //TODO parse mat struct option
-  lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ levelDecl.?
-    ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level => L4_BaseFieldDecl(id, level, domain, layout, boundary, slots.getOrElse(1)) })
+  //TODO matrix shape parsing in fields
+  lazy val matShapeOption = locationize("{" ~> repsep((ident <~ "=") ~ ident, ",") <~ "}"
+    ^^ { case args => L4_MatShape(args.to[ListBuffer].map(s => IR_StringConstant(s._1 + "=" + s._2))) })
+
+  lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ levelDecl.? ~ matShapeOption.?
+    ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level ~ shape => L4_BaseFieldDecl(id, level, domain, layout, boundary, slots.getOrElse(1), shape) })
 
   lazy val fieldBoundary = (
     "Neumann" ~> ("(" ~> integerLit <~ ")").? ^^ { L4_NeumannBC(_) }
