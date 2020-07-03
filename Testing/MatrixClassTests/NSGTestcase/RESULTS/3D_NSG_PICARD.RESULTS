@@ -1,0 +1,57 @@
+Reynolds number: 1120.28
+Starting iteration 0 at time 0 with dt 1
+Maximum number of cgs iterations ( 12800 ) was exceeded
+Error detected after 1 steps, residual is nan - reducing time step size to 0.5 and trying again with adapted time 0.5
+Maximum number of cgs iterations ( 12800 ) was exceeded
+Error detected after 2 steps, residual is nan - reducing time step size to 0.25 and trying again with adapted time 0.25 
+  Residual at 0.25 after 2 iterations is 3.69967e-12 , was initially 1.26953e-09
+  Residual at 0.5 after 1 iterations is 6.47182e-11 , was initially 9.22056e-10
+  Residual at 0.75 after 1 iterations is 4.74374e-11 , was initially 6.98685e-10
+  Residual at 1 after 1 iterations is 3.68623e-11 , was initially 5.37563e-10
+  Residual at 1.25 after 1 iterations is 2.81345e-11 , was initially 4.23732e-10
+  Residual at 1.5 after 1 iterations is 2.24493e-11 , was initially 3.42968e-10
+  Residual at 1.75 after 1 iterations is 1.94982e-11 , was initially 2.85465e-10
+  Residual at 2 after 1 iterations is 1.88649e-11 , was initially 2.44116e-10
+  Residual at 2.25 after 1 iterations is 1.97192e-11 , was initially 2.13924e-10
+  Residual at 2.5 after 1 iterations is 2.12237e-11 , was initially 1.91425e-10
+  Residual at 2.75 after 1 iterations is 2.28277e-11 , was initially 1.74248e-10
+  Residual at 3 after 1 iterations is 2.42608e-11 , was initially 1.60793e-10
+  Residual at 3.25 after 1 iterations is 2.54261e-11 , was initially 1.49981e-10
+  Residual at 3.5 after 1 iterations is 2.63142e-11 , was initially 1.41087e-10
+  Residual at 3.75 after 1 iterations is 2.69516e-11 , was initially 1.3362e-10
+  Residual at 4 after 1 iterations is 2.73741e-11 , was initially 1.27241e-10
+Trying to increase dt to 0.5
+Maximum number of cgs iterations ( 12800 ) was exceeded
+Error detected after 1 steps, residual is nan - reducing time step size to 0.25 and trying again with adapted time 4.25 
+  Residual at 4.25 after 1 iterations is 2.76153e-11 , was initially 1.21712e-10
+  Residual at 4.5 after 1 iterations is 2.77028e-11 , was initially 1.16863e-10
+  Residual at 4.75 after 1 iterations is 2.76581e-11 , was initially 1.12564e-10
+  Residual at 5 after 1 iterations is 2.74985e-11 , was initially 1.08721e-10
+  Residual at 5.25 after 1 iterations is 2.72377e-11 , was initially 1.05257e-10
+  Residual at 5.5 after 1 iterations is 2.68881e-11 , was initially 1.02115e-10
+  Residual at 5.75 after 1 iterations is 2.6461e-11 , was initially 9.92457e-11
+  Residual at 6 after 1 iterations is 2.5967e-11 , was initially 9.6613e-11
+  Residual at 6.25 after 1 iterations is 2.54168e-11 , was initially 9.4186e-11
+  Residual at 6.5 after 1 iterations is 2.48211e-11 , was initially 9.19401e-11
+  Residual at 6.75 after 1 iterations is 2.41903e-11 , was initially 8.98552e-11
+  Residual at 7 after 1 iterations is 2.35349e-11 , was initially 8.79148e-11
+  Residual at 7.25 after 1 iterations is 2.28652e-11 , was initially 8.61054e-11
+  Residual at 7.5 after 1 iterations is 2.21912e-11 , was initially 8.44157e-11
+  Residual at 7.75 after 1 iterations is 2.15225e-11 , was initially 8.28363e-11
+  Residual at 8 after 1 iterations is 2.08681e-11 , was initially 8.1359e-11
+Trying to increase dt to 0.5
+Maximum number of cgs iterations ( 12800 ) was exceeded
+Error detected after 2 steps, residual is nan - reducing time step size to 0.25 and trying again with adapted time 8.25 
+  Residual at 8.25 after 1 iterations is 2.02362e-11 , was initially 7.99769e-11
+  Residual at 8.5 after 1 iterations is 1.96341e-11 , was initially 7.86837e-11
+  Residual at 8.75 after 1 iterations is 1.9068e-11 , was initially 7.74738e-11
+  Residual at 9 after 1 iterations is 1.85428e-11 , was initially 7.63419e-11
+  Residual at 9.25 after 1 iterations is 1.80627e-11 , was initially 7.52832e-11
+  Residual at 9.5 after 1 iterations is 1.7631e-11 , was initially 7.4293e-11
+  Residual at 9.75 after 1 iterations is 1.72503e-11 , was initially 7.33672e-11
+  Residual at 10 after 1 iterations is 1.69225e-11 , was initially 7.25018e-11
+Total time to solve:    15264.1
+Total time in cycle:    14116.4
+Mean time per cycle:    300.348
+Number of cycles:       47
+Number of time steps:   40
