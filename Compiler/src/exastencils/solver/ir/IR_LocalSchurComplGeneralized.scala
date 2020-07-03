@@ -15,9 +15,8 @@ import exastencils.base.ir.IR_RealDatatype
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
+import exastencils.baseExt.ir.IR_MatShape
 import exastencils.baseExt.ir.IR_MatrixDatatype
-import exastencils.baseExt.ir.IR_MatStructure
-import exastencils.baseExt.ir.IR_MatStructure
 import exastencils.boundary.ir.IR_IsValidComputationPoint
 import exastencils.core.Duplicate
 import exastencils.field.ir.IR_FieldAccess
@@ -28,10 +27,10 @@ import exastencils.logger.Logger
 object IR_LocalSchurComplGeneralized {
 
   def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
-      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : IR_MatStructure) = {
-    msi.structure match {
+      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : IR_MatShape) = {
+    msi.shape match {
       case "Schur" => schur(AVals, fVals, unknowns, jacobiType, relax, omitConditions, msi)
-      case _ => Logger.error(s"matrix structure ${msi.structure} not supported (yet)")
+      case _ => Logger.error(s"matrix structure ${msi.shape} not supported (yet)")
     }
   }
 
@@ -39,11 +38,16 @@ object IR_LocalSchurComplGeneralized {
   //def apply()
 
   def schur(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
-      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : IR_MatStructure) : ListBuffer[IR_Statement] = {
-    def vecAcc(vec : ListBuffer[IR_VariableAccess], i0 : Int) = IR_HighDimAccess(vec(i0 / msi.blocksizeA), IR_ConstIndex(i0 % msi.blocksizeA))
+      jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : IR_MatShape) : ListBuffer[IR_Statement] = {
 
-    def rowBlockMatAcc(mat : ListBuffer[IR_VariableAccess], i0 : Int, i1 : Int) = IR_HighDimAccess(mat(i0 / msi.blocksizeA), IR_ConstIndex(i0 % msi.blocksizeA, i1 % msi.blocksizeA))
-    def colBlockMatAcc(mat : ListBuffer[IR_VariableAccess], i0 : Int, i1 : Int) = IR_HighDimAccess(mat(i1 / msi.blocksizeA), IR_ConstIndex(i0 % msi.blocksizeA, i1 % msi.blocksizeA))
+    val bsize : Int = msi.size("bsize")
+    val bsizeA : Int = msi.size("bsizeA")
+    val size = AVals.length
+    val bsizeD = size - bsize
+    def vecAcc(vec : ListBuffer[IR_VariableAccess], i0 : Int) = IR_HighDimAccess(vec(i0 / bsizeA), IR_ConstIndex(i0 % bsizeA))
+
+    def rowBlockMatAcc(mat : ListBuffer[IR_VariableAccess], i0 : Int, i1 : Int) = IR_HighDimAccess(mat(i0 / bsizeA), IR_ConstIndex(i0 %bsizeA, i1 %bsizeA))
+    def colBlockMatAcc(mat : ListBuffer[IR_VariableAccess], i0 : Int, i1 : Int) = IR_HighDimAccess(mat(i1 / bsizeA), IR_ConstIndex(i0 %bsizeA, i1 %bsizeA))
 
     val stmts = ListBuffer[IR_Statement]()
 
@@ -62,10 +66,7 @@ object IR_LocalSchurComplGeneralized {
      */
 
     // declare variables for A,B,C,D,F,G
-    val bsize = msi.blocksize
-    val bsizeA = msi.blocksizeA
-    val size = AVals.length
-    val bsizeD = size - bsize
+
 
     val nComponents = bsize / bsizeA
     var A = ListBuffer[IR_VariableAccess]()

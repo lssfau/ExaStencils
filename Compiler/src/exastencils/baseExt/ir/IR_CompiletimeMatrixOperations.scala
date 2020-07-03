@@ -509,46 +509,43 @@ object IR_BasicMatrixOperations {
 // methods to determine a inverse at compiletime
 object IR_CompiletimeInversion {
   // head function that branches to specific inversions
-  def inverse(that : IR_MatrixExpression, msi : IR_MatStructure) : IR_MatrixExpression = {
-    var matrixStructure = msi.structure
-    var blocksize = msi.blocksize
-    var matrixStructure_A = msi.structureA
-    var blocksize_A = msi.blocksizeA
+  def inverse(that : IR_MatrixExpression, msi : IR_MatShape) : IR_MatrixExpression = {
+    var matrixStructure = msi.shape
     if (that.rows != that.columns)
       Logger.error("inversion of non quadratic matrices not supported.")
     matrixStructure match {
-      case "Diagonal"
+      case "diagonal"
       => {
         val tmp = Duplicate(that)
         for (row <- 0 until that.rows) {
-          //Logger.error("IR_MatrixAccess::inverse: Diagonal element is 0!")
           tmp.set(row, row, IR_Division(IR_RealConstant(1.0), that.get(row, row)))
         }
         tmp
       }
-      case "Blockdiagonal"
+      case "blockdiagonal"
       => {
         if (that.rows < 4)
           Logger.error("Blockdiagonal inversion not applicable for matrices < 4, use diagonal")
         var out = Duplicate(that)
-        if (blocksize < 1) {
+        val sizeA : Int = msi.size("block")
+        if (sizeA < 1) {
           Logger.error("Blocksize must be at least 1")
         }
         else {
-          val n_blocks = that.rows / blocksize
-          if (that.rows % blocksize != 0) {
-            Logger.error("Rows are not a multiple of blocksize")
+          val n_blocks = that.rows / sizeA
+          if (that.rows % sizeA != 0) {
+            Logger.error("Rows are not a multiple of sizeA")
           }
           else {
             for (block <- 0 until n_blocks) {
-              val offset = block * blocksize
+              val offset = block * sizeA
 
               // extract matrix block
-              var subMatrix = IR_BasicMatrixOperations.copySubMatrix(that, offset, offset, blocksize, blocksize)
+              var subMatrix = IR_BasicMatrixOperations.copySubMatrix(that, offset, offset, sizeA, sizeA)
 
               // invert with GaussJordan method
               //var subMatrix_inv = gaussJordanInverse(subMatrix)
-              var subMatrix_inv = inverse(subMatrix, IR_MatStructure("Filled",-1,"no schur", -1))
+              var subMatrix_inv = inverse(subMatrix, IR_MatShape("filled"))
 
               // copy to out matrix
               IR_BasicMatrixOperations.pasteSubMatrix(subMatrix_inv, out, offset, offset)
@@ -557,7 +554,7 @@ object IR_CompiletimeInversion {
         }
         out
       }
-      case "Schur"
+      case "schur"
       => {
         if (that.rows < 3)
           Logger.error("Schur inversion not applicable for matrices < 3")
@@ -571,7 +568,7 @@ object IR_CompiletimeInversion {
 
           with M of size (n + m) x (n + m) and S = D - C * A_inv * B
         */
-        val n = blocksize
+        val n : Int = msi.size("A")
         val m = that.rows - n
 
         if (n < 1) {
@@ -579,7 +576,10 @@ object IR_CompiletimeInversion {
         }
         else {
           var A = IR_BasicMatrixOperations.copySubMatrix(that, 0, 0, n, n)
-          var A_inv = inverse(A, IR_MatStructure(matrixStructure_A, blocksize_A, "no schur", -1))
+          // build new matrix structure for submatrix A:
+          val structureA = IR_MatShape(msi.shape)
+          structureA.addInfo("bsize", msi.size("bsizeA"))
+          var A_inv = inverse(A, structureA)
           IR_GeneralSimplify.doUntilDoneStandalone(A_inv)
 
           // calculate S
@@ -591,8 +591,8 @@ object IR_CompiletimeInversion {
           val S = IR_BasicMatrixOperations.sub(D, CA_invB)
 
           // invert S
-          // for schur complement inversion multiple structure information is necessary(n and m, blocksize of A, S is probably always filled) in case  m is larger than 1 (default should be "Filled")
-          val S_inv = inverse(S, IR_MatStructure("Filled", -1, "no schur", -1))
+          // for schur complement inversion multiple structure information is necessary(n and m, blocksize of A, S is probably always filled) in case  m is larger than 1 (default should be "filled")
+          val S_inv = inverse(S, IR_MatShape("filled"))
 
           // copy result blocks to 'out' matrix
           val lowerLeft = IR_BasicMatrixOperations.negative(IR_BasicMatrixOperations.mult(S_inv, CA_inv))
@@ -609,7 +609,7 @@ object IR_CompiletimeInversion {
         }
         out
       }
-      case "Cofactors"
+      case "cofactors"
       => {
         val inv_det = IR_IntegerConstant(1) / IR_BasicMatrixOperations.smallMatrixDeterminant(that)
         val tmp = IR_MatrixExpression(Some(that.innerDatatype.getOrElse(IR_RealDatatype)), that.rows, that.columns)
@@ -620,11 +620,11 @@ object IR_CompiletimeInversion {
         }
         tmp
       }
-      case "GaussJordan"
+      case "gaussJordan"
       => {
         gaussJordanInverse(that)
       }
-      case "Filled"
+      case "filled"
       => {
         that.rows match {
           case 1 =>

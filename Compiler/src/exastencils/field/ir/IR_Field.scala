@@ -18,7 +18,7 @@
 
 package exastencils.field.ir
 
-import exastencils.baseExt.ir.IR_MatStructure
+import exastencils.baseExt.ir.IR_MatShape
 import exastencils.boundary.ir.IR_BoundaryCondition
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_Domain
@@ -35,7 +35,7 @@ case class IR_Field(
     var layout : IR_FieldLayout, // represents the number of data points and their distribution in each dimension
     var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
     var boundary : IR_BoundaryCondition, // the boundary condition to be enforced when calling apply bc
-    var matStructure: Option[IR_MatStructure]
+    var matStructure: Option[IR_MatShape]
 ) extends IR_LeveledKnowledgeObject {
 
   override def createDuplicate() : IR_Field = {

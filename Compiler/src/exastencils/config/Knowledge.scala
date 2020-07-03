@@ -601,7 +601,7 @@ object Knowledge {
   // classify structure of system matrix for solveLinearSystem statements
   var experimental_classifyLocMat : Boolean = false
   // if shape of system matrix is known
-  var experimental_locMatStructure : String = "Filled"
+  var experimental_locMatStructure : String = "filled"
   var experimental_locMatBlocksize : Int = -1
   var experimental_locMatStructureA : String = ""
   var experimental_locMatBlocksizeA : Int = -1

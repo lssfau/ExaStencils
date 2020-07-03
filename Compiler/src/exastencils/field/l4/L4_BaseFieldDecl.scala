@@ -19,7 +19,7 @@
 package exastencils.field.l4
 
 import exastencils.base.l4._
-import exastencils.baseExt.l4.L4_MatStructure
+import exastencils.baseExt.l4.L4_MatShape
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.boundary.l4._
 import exastencils.domain.l4._
@@ -39,7 +39,7 @@ case class L4_BaseFieldDecl(
     var fieldLayout : L4_Access,
     var boundary : L4_BoundaryCondition,
     var numSlots : Integer,
-    var matStructure : Option[L4_MatStructure] = None
+    var matStructure : Option[L4_MatShape] = None
 ) extends L4_FieldDecl {
 
   override def prettyprint(out : PpStream) = {

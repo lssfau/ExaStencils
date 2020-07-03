@@ -17,7 +17,7 @@ import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_BasicMatrixOperations
-import exastencils.baseExt.ir.IR_MatStructure
+import exastencils.baseExt.ir.IR_MatShape
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation
@@ -32,9 +32,9 @@ object IR_SolveLinearSystem {
 
 case class IR_SolveLinearSystem(A : IR_Expression, u : IR_Expression, f : IR_Expression) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "solveLES" << A.prettyprint(out) << ", " << f.prettyprint(out)
-  def expand(msi_ : Option[IR_MatStructure]) : Transformation.OutputType = {
-    val msi = msi_.getOrElse(IR_MatStructure("Filled", -1, "-1", -1))
-    Logger.warn(s"Solving linear system with the following configuration: ${ Knowledge.experimental_resolveInverseFunctionCall }, ${ (msi.structure, msi.blocksize, msi.structureA, msi.blocksizeA) }")
+  def expand(msi_ : Option[IR_MatShape]) : Transformation.OutputType = {
+    val msi : IR_MatShape = msi_.getOrElse(IR_MatShape("filled"))
+    Logger.warn(s"Solving linear system with the following configuration: ${ Knowledge.experimental_resolveInverseFunctionCall }, " + msi.toExprList())
     val (m, n) = A.datatype match {
       case mat : IR_MatrixDatatype => (mat.sizeM, mat.sizeN)
       case _                       => Logger.error(s"unexpected datatype of A: ${ A.datatype }")
@@ -51,32 +51,32 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_Expression, f : IR_Exp
         if (mat.sizeN != i) Logger.error("u and f do not match in size")
       case _                       => Logger.error(s"unexpected datatype of f: ${ A.datatype }")
     }
-    msi.structure match {
-      case "Diagonal" =>
+    msi.shape match {
+      case "diagonal" =>
         var stmts = ListBuffer[IR_Statement]()
         for (i <- 0 until m) {
           stmts += IR_Assignment(IR_HighDimAccess(u, IR_ConstIndex(i, 0)), IR_Division(IR_HighDimAccess(f, IR_ConstIndex(i)), IR_HighDimAccess(A, IR_ConstIndex(i, i))))
         }
         stmts
       // in case of schur: solve with A-Decomposition to helper matrices
-      // blocksize of
-      case "Schur" if(m - msi.blocksize < 2) =>
+      // for blocksize of D == 1
+      case "schur" if(m - msi.size("bsize") == 1) =>
         var stmts = ListBuffer[IR_Statement]()
-
-        // accesses for lists of variable accesses representing system matrix, rhs and solution
-        def vecAcc(vec : ListBuffer[IR_VariableAccess], i0 : Int) = IR_HighDimAccess(vec(i0 / msi.blocksizeA), IR_ConstIndex(i0 % msi.blocksizeA))
-        def rowBlockMatAcc(mat : ListBuffer[IR_VariableAccess], i0 : Int, i1 : Int) = IR_HighDimAccess(mat(i0 / msi.blocksizeA), IR_ConstIndex(i0 % msi.blocksizeA, i1 % msi.blocksizeA))
-        def colBlockMatAcc(mat : ListBuffer[IR_VariableAccess], i0 : Int, i1 : Int) = IR_HighDimAccess(mat(i1 / msi.blocksizeA), IR_ConstIndex(i0 % msi.blocksizeA, i1 % msi.blocksizeA))
-        def genericAcc(mat : IR_Expression, i0 : Int, i1 : Int) = IR_BasicMatrixOperations.getElem(mat, i0, i1)
-
-        // declare variables for A,B,C,D,F,G
-        val bsize = msi.blocksize
-        val bsizeA = msi.blocksizeA
+        // blocksizes
+        val bsize = msi.size("bsize")
+        val bsizeA = msi.size("bsizeA")
         val size = IR_BasicMatrixOperations.getSize(A)._1
         val bsizeD = size - bsize
-
-
         val nComponents = bsize / bsizeA
+        // accesses for lists of variable accesses representing system matrix, rhs and solution
+        def vecAcc(vec : ListBuffer[IR_VariableAccess], i0 : Int) = IR_HighDimAccess(vec(i0 / bsizeA), IR_ConstIndex(i0 % bsizeA))
+        def rowBlockMatAcc(mat : ListBuffer[IR_VariableAccess], i0 : Int, i1 : Int) = IR_HighDimAccess(mat(i0 / bsizeA), IR_ConstIndex(i0 % bsizeA, i1 % bsizeA))
+        def colBlockMatAcc(mat : ListBuffer[IR_VariableAccess], i0 : Int, i1 : Int) = IR_HighDimAccess(mat(i1 / bsizeA), IR_ConstIndex(i0 % bsizeA, i1 % bsizeA))
+        def genericAcc(mat : IR_Expression, i0 : Int, i1 : Int) = IR_BasicMatrixOperations.getElem(mat, i0, i1)
+
+
+
+        // declare variables for A,B,C,D,F,G
         var A_blocks = ListBuffer[IR_VariableAccess]()
         var C = ListBuffer[IR_VariableAccess]()
         var B = ListBuffer[IR_VariableAccess]()
@@ -161,7 +161,7 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_Expression, f : IR_Exp
         }
         stmts += IR_Assignment(V, IR_FunctionCall(IR_PlainInternalFunctionReference("inverse", S.datatype), S) * GTilde)
 
-        // write to Ui
+        // write to Ui blockwise
         for (i <- 0 until nComponents) {
           stmts += IR_Assignment(U(i), A_inv(i) * (F(i) - (B(i) * V)))
         }
@@ -170,9 +170,8 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_Expression, f : IR_Exp
           stmts += IR_Assignment(IR_HighDimAccess(u, IR_ConstIndex(i, 0)), rowBlockMatAcc(U, i, 0))
         }
         stmts
-      // Fallback: solve by inverting A
-      //TODO solve with special invert or full invert
-      case _ => IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toList()), f))
+      // Fallback: solve by inverting A with given structure
+      case _ => IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
     }
 
   }

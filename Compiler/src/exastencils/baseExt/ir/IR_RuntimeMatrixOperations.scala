@@ -673,7 +673,7 @@ object IR_GenerateRuntimeInversion {
 
     // calculate S_inv
     func.body += IR_VariableDeclaration(S_inv)
-    func.body += IR_GenerateRuntimeInversion.inverse(S, S_inv, IR_MatStructure("Filled",-1, "-1",-1))
+    func.body += IR_GenerateRuntimeInversion.inverse(S, S_inv, IR_MatShape("filled"))
 
     // calculate upper right result block
     func.body += IR_VariableDeclaration(A_invB)
@@ -817,12 +817,9 @@ object IR_GenerateRuntimeInversion {
   }
 
   // head function that branches to specific inversions
-  def inverse(in : IR_VariableAccess, out : IR_VariableAccess, msi : IR_MatStructure) : IR_Scope = {
-    val matrixStructure = msi.structure
-    val blocksize = msi.blocksize
-    val matrixStructure_A = msi.structureA
-    val blocksize_A = msi.blocksizeA
-    val insize = IR_BasicMatrixOperations.getSize(in)
+  def inverse(in : IR_VariableAccess, out : IR_VariableAccess, msi : IR_MatShape) : IR_Scope = {
+    val matrixStructure = msi.shape
+     val insize = IR_BasicMatrixOperations.getSize(in)
     val outsize = IR_BasicMatrixOperations.getSize(out)
     if (insize._1 != insize._2)
       Logger.error("inversion of matrices of size " + insize._1 + "," + insize._2 + " not supported")
@@ -830,7 +827,7 @@ object IR_GenerateRuntimeInversion {
       Logger.error("matrix sizes of in and out do not match: " + insize + " vs " + outsize)
 
     matrixStructure match {
-      case "Filled"        =>
+      case "filled"        =>
         var debug = false
         var stmts = ListBuffer[IR_Statement]()
         if (debug)
@@ -847,9 +844,15 @@ object IR_GenerateRuntimeInversion {
           stmts ++= IR_GenerateBasicMatrixOperations.printMatrix(out)
 
         IR_Scope(stmts)
-      case "Diagonal"      => diagonalInlined(in, out)
-      case "Blockdiagonal" => blockdiagonalInlined(in, blocksize, out)
-      case "Schur"         => schurInlined(in, blocksize, matrixStructure_A, blocksize_A, out)
+      case "diagonal"      => diagonalInlined(in, out)
+      case "blockdiagonal" =>
+        val blocksize : Int = msi.size("block")
+         blockdiagonalInlined(in, blocksize, out)
+      case "schur"         =>
+        val blocksize : Int = msi.size("block")
+        val matrixStructureA : String = msi.shape("A")
+        val blocksizeA : Int = msi.size("Ablock")
+          schurInlined(in, blocksize, matrixStructureA, blocksizeA, out)
       case _               => Logger.error("runtime inversion: unknown runtimeInverse resolve: " + matrixStructure)
     }
   }

@@ -191,9 +191,9 @@ case class IR_LocalSolve(
       Duplicate(AVals.map(_.map(mapToExp))))
   }
 
-  def isSolvableWithoutInverse(structure : String): Boolean = {
-      structure match {
-        case "Schur" => true
+  def isSolvableWithoutInverse(msi : IR_MatShape): Boolean = {
+      msi.shape match {
+        case "schur" => true
         //case "Diagonal" =>
         case _ => false
       }
@@ -210,24 +210,27 @@ case class IR_LocalSolve(
 
     //TODO sizecheck? go rt if mat too large
     //TODO check field for matrix structure
-    val matStructure : IR_MatStructure =
+    val msi : IR_MatShape =
     if(unknowns(0).field.matStructure.isDefined) {
+      // structure given in field declaration
       unknowns(0).field.matStructure.get
     } else if(Knowledge.experimental_classifyLocMat || Knowledge.experimental_applySchurCompl) {
+      // structure to specify (blocksize to specify for apply schur compl, for backwards compatibility)
+      // TODO: if all local matrices have the same structure: classify only once
       IR_DetermineMatrixStructure(AVals)
     } else if(Knowledge.experimental_locMatStructure != "Filled") {
-      IR_MatStructure(
-        Knowledge.experimental_locMatStructure,
-        Knowledge.experimental_locMatBlocksize,
-        Knowledge.experimental_locMatStructureA,
-        Knowledge.experimental_locMatBlocksizeA
-      )
+      // structure for all local matrices given in knowledge
+      IR_MatShape(Knowledge.experimental_locMatStructure)
+          .addInfo("bsize",Knowledge.experimental_locMatBlocksize)
+          .addInfo("A",Knowledge.experimental_locMatStructureA)
+          .addInfo("bsizeA",Knowledge.experimental_locMatBlocksizeA)
     }
-    else IR_MatStructure("Filled")
+    else IR_MatShape("filled")
 
-    Logger.warn(s"Local matrix is of shape ${matStructure.structure}")
+    Logger.warn(s"Local matrices are of shape ${msi.shape}")
 
-      // choose strategy used for inverting local matrix
+    // choose strategy used for inverting local matrix
+    // inverse precalculated
     if (AInv != null) {
       AInv match {
         case va : IR_VariableAccess   => IR_Scope(IR_LocalPreCompInvert(va, fExp, unknowns, jacobiType, relax))
@@ -235,10 +238,13 @@ case class IR_LocalSolve(
         case _                        => Logger.error(s"Unsupported AInv: $AInv")
       }
     }
-    else if (isSolvableWithoutInverse(matStructure.structure))
-        IR_Scope(IR_LocalSchurComplGeneralized(AExp, fExp, unknowns, jacobiType, relax, omitConditions, matStructure))
-    else
-      IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax, omitConditions, matStructure))
+      // if matrix has schur structure and blocksize of D block is 1 -> solvable without inverse
+    else if (isSolvableWithoutInverse(msi) && AVals.length - msi.size("bsize") == 1)
+        IR_Scope(IR_LocalSchurComplGeneralized(AExp, fExp, unknowns, jacobiType, relax, omitConditions, msi))
+    else {
+      // invert matrix with given structure information
+      IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax, omitConditions, msi))
+    }
   }
 }
 

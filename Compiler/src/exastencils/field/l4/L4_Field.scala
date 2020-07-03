@@ -18,7 +18,7 @@
 
 package exastencils.field.l4
 
-import exastencils.baseExt.l4.L4_MatStructure
+import exastencils.baseExt.l4.L4_MatShape
 import exastencils.boundary.l4.L4_BoundaryCondition
 import exastencils.core.Duplicate
 import exastencils.domain.l4.L4_Domain
@@ -36,7 +36,7 @@ case class L4_Field(
     var fieldLayout : L4_FieldLayout,
     var numSlots : Int,
     var boundary : L4_BoundaryCondition,
-    var matStructure : Option[L4_MatStructure] = None
+    var matStructure : Option[L4_MatShape] = None
 ) extends L4_LeveledKnowledgeObject[IR_Field] {
 
   override def createDuplicate() : L4_Field = {

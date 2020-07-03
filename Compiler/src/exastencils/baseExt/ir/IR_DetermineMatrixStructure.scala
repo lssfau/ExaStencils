@@ -32,7 +32,6 @@ import exastencils.baseExt
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 
-
 // methods to determine whether a matrix is a diagonal-, blockdiagonal-, schurmatrix at compiletime
 //TODO matrices have to be filled with constants
 object IR_DetermineMatrixStructure {
@@ -59,13 +58,13 @@ object IR_DetermineMatrixStructure {
   }
 
   // determine structure of 'matrix' (which must have compiletime evaluatable entries) and return it as a String + more specific structure information like blocksizes in case of Schur or Blockdiagonal matrices
-  def isOfStructure(matrix : IR_Expression) : IR_MatStructure = {
+  def isOfStructure(matrix : IR_Expression) : IR_MatShape = {
     var blocksize_A = 0
     var blocksize_D = 0
     matrix match {
       case mat @ IR_MatrixExpression(_, _, _) =>
         var size = IR_BasicMatrixOperations.getSize(mat)
-        if(size._1 == 1) Logger.error("can not classify 1 entry matrix")
+        if (size._1 == 1) Logger.error("can not classify 1 entry matrix")
 
         mat.datatype.resolveBaseDatatype match {
           case dt @ (IR_IntegerDatatype | IR_RealDatatype | IR_FloatDatatype | IR_DoubleDatatype) =>
@@ -86,8 +85,8 @@ object IR_DetermineMatrixStructure {
               else
                 blocksize_D += 1
             }
-            // if we reached other end of matrix: its a Filled matrix
-            if (blocksize_D == size._1) return IR_MatStructure("Filled", -1, "", -1)
+            // if we reached other end of matrix: its a filled matrix
+            if (blocksize_D == size._1) return IR_MatShape("filled")
 
             // count blocksize of blockmatrix A if present (Schur form with size(mat) - blocksize_D as size of A block (upper left block in schur form)
             cont = true
@@ -104,7 +103,7 @@ object IR_DetermineMatrixStructure {
 
             // if more than half of A block is reached, blockdiagonal is not possible anymore -> Schur form with filled A block is filled matrix
             if (blocksize_A == (size._1 - blocksize_D) / 2 + 1) {
-              return IR_MatStructure("Filled", -1, "", -1)
+              return IR_MatShape("filled")
             }
 
             // average blocksize over block
@@ -117,7 +116,7 @@ object IR_DetermineMatrixStructure {
                 var en0 : Double = evaluateEntry(mat, i, j)
                 var en1 : Double = evaluateEntry(mat, j, i)
                 if (en0 != 0 || en1 != 0)
-                  return IR_MatStructure("Filled", -1, "", -1)
+                  return IR_MatShape("filled")
               }
             }
 
@@ -125,25 +124,25 @@ object IR_DetermineMatrixStructure {
             if (blocksize_D == 0) {
               // size of A block: A block is the whole matrix with blocksize_D == 0 (no schur form)
               if (blocksize_A == 1) {
-                IR_MatStructure("Diagonal", -1, "", -1)
+                IR_MatShape("diagonal")
               }
               else if (blocksize_A == size._1)
-                IR_MatStructure("Filled", -1, "", -1)
+                IR_MatShape("filled")
               else {
-                IR_MatStructure("Blockdiagonal", blocksize_A, "", -1)
+                IR_MatShape("blockdiagonal").addInfo("block", blocksize_A)
               }
             }
             // schur form
             else {
               // form of A block in schur form
               if (blocksize_A == 1) {
-                IR_MatStructure("Schur", size._1 - blocksize_D, "Diagonal", -1)
+                IR_MatShape("schur").addInfo("block",size._1 - blocksize_D).addInfo("A","diagonal")
               }
               else if (blocksize_A == size._1) {
-                IR_MatStructure("Schur", size._1 - blocksize_D, "Filled", -1)
+                IR_MatShape("filled")
               }
               else {
-                IR_MatStructure("Schur", size._1 - blocksize_D, "Blockdiagonal", blocksize_A)
+                IR_MatShape("schur").addInfo("block",size._1 - blocksize_D).addInfo("A","blockdiagonal").addInfo("Ablock",blocksize_A)
               }
             }
           case _                                                                                  => Logger.error("unexpected datatype: " + mat.datatype.resolveBaseDatatype)
@@ -154,9 +153,9 @@ object IR_DetermineMatrixStructure {
   }
 
   // determine structure of 'matrix' (which must have compiletime evaluatable entries) and return it as a String + more specific structure information like blocksizes in case of Schur or Blockdiagonal matrices
-  def isOfStructure(mat : ListBuffer[ListBuffer[IR_Addition]]) : IR_MatStructure = {
-    if(mat.length == 1 || mat(0).length == 1) {
-      baseExt.ir.IR_MatStructure("Filled")
+  def isOfStructure(mat : ListBuffer[ListBuffer[IR_Addition]]) : IR_MatShape = {
+    if (mat.length == 1 || mat(0).length == 1) {
+      baseExt.ir.IR_MatShape("filled")
     }
     var blocksize_A = 0
     var blocksize_D = 0
@@ -184,8 +183,8 @@ object IR_DetermineMatrixStructure {
       if (cont == true)
         blocksize_D += 1
     }
-    // if we reached other end of matrix: its a Filled matrix
-    if (blocksize_D == size) return IR_MatStructure("Filled", -1, "", -1)
+    // if we reached other end of matrix: its a filled matrix
+    if (blocksize_D == size) return IR_MatShape("filled")
 
     // count blocksize of blockmatrix A if present (Schur form with size(mat) - blocksize_D as size of A block (upper left block in schur form))
     cont = true
@@ -209,7 +208,7 @@ object IR_DetermineMatrixStructure {
     // if more than half of A block is reached, blockdiagonal is not possible anymore -> Schur form with filled A block is filled matrix
     // if blocksize
     if (blocksize_A >= (size - blocksize_D) / 2 + 1) {
-      return IR_MatStructure("Filled", -1, "", -1)
+      return IR_MatShape("filled")
     }
 
     // average blocksize over block
@@ -233,7 +232,7 @@ object IR_DetermineMatrixStructure {
               nonzeroEntry = true
           })
         if (nonzeroEntry)
-          return IR_MatStructure("Filled", -1, "", -1)
+          return IR_MatShape("filled")
       }
     }
 
@@ -241,25 +240,25 @@ object IR_DetermineMatrixStructure {
     if (blocksize_D == 0) {
       // size of A block: A block is the whole matrix with blocksize_D == 0 (no schur form)
       if (blocksize_A == 1) {
-        IR_MatStructure("Diagonal", -1, "", -1)
+        IR_MatShape("diagonal")
       }
       else if (blocksize_A == size)
-        IR_MatStructure("Filled", -1, "", -1)
+        IR_MatShape("filled")
       else {
-        IR_MatStructure("Blockdiagonal", blocksize_A, "", -1)
+        IR_MatShape("blockdiagonal").addInfo("block",blocksize_A)
       }
     }
     // schur form
     else {
       // form of A block in schur form
       if (blocksize_A == 1) {
-        IR_MatStructure("Schur", size - blocksize_D, "Diagonal", -1)
+        IR_MatShape("schur").addInfo("block",size - blocksize_D).addInfo("A","diagonal")
       }
       else if (blocksize_A == size) {
-        IR_MatStructure("Schur", size - blocksize_D, "Filled", -1)
+        IR_MatShape("filled")
       }
       else {
-        IR_MatStructure("Schur", size - blocksize_D, "Blockdiagonal", blocksize_A)
+        IR_MatShape("schur").addInfo("block",size - blocksize_D).addInfo("A","blockdiagonal").addInfo("Ablock",blocksize_A)
       }
     }
   }
@@ -372,48 +371,5 @@ object IR_DetermineMatrixStructure {
     ),
       stmts)
   }
-  /*
-    // aestimate the blocksize by taking the whole first block of a matrix into account
-    //TODO blocksize 1 always has confirmation 1
-    def aestimateBlocksize(matrix : IR_Expression) : Int = {
-      matrix match {
-        case mat @ (IR_MatrixExpression(_, _, _) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))) =>
 
-          var size = IR_BasicMatrixOperations.getSize(matrix)
-          var aestimators = new Array[Float](size._1)
-          var accumulator = 0
-          if (evaluateEntry(matrix, 0, 0) == 0) {
-            aestimators(0) = 0
-          }
-          else {
-            aestimators(0) = 1
-          }
-          for (i <- 1 until size._1 / 2) {
-            for (j <- 0 until i) {
-              if (evaluateEntry(matrix, i, j) != 0)
-                accumulator += 1
-              if (evaluateEntry(matrix, i, j) != 0)
-                accumulator += 1
-            }
-
-            if (evaluateEntry(matrix, i, i) != 0)
-              accumulator += 1
-
-            aestimators(i) = accumulator.toFloat / ((i + 1) * (i + 1)).toFloat
-          }
-
-          var max = -1.0
-          var maxIdx = -1
-          for (i <- 0 until size._1) {
-            if (aestimators(i) >= max) {
-              max = aestimators(i)
-              maxIdx = i
-            }
-          }
-          print(aestimators)
-          return maxIdx + 1
-        case _                                                                                       => Logger.error("unexpected argument type: " + matrix)
-      }
-    }
-  */
 }
