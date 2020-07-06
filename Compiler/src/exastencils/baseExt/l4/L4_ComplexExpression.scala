@@ -1,12 +1,13 @@
 package exastencils.baseExt.l4
 
 import exastencils.base.ProgressLocation
+import exastencils.base.ir.IR_Negative
 import exastencils.base.l4.L4_Expression
 import exastencils.baseExt.ir.IR_ComplexExpression
 import exastencils.prettyprinting.PpStream
 
 case class L4_ComplexExpression(real : L4_Expression, op : Boolean, imag : L4_Expression) extends L4_Expression {
-  override def progress : IR_ComplexExpression = ProgressLocation(IR_ComplexExpression(real.progress,op, imag.progress))
+  override def progress : IR_ComplexExpression = ProgressLocation(IR_ComplexExpression(real.progress, if(op) imag.progress else IR_Negative(imag.progress)))
   // no bracket version
   //override def prettyprint(out : PpStream) : Unit = out << real << "+" << imag << "i"
 
