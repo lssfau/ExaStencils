@@ -23,7 +23,6 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
-import exastencils.baseExt.ir.IR_ComplexOperations
 import exastencils.config._
 import exastencils.core
 import exastencils.datastructures._
@@ -31,7 +30,6 @@ import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_Vectorization
 import exastencils.parallelization.api.cuda.CUDA_Util
 import exastencils.prettyprinting.PpStream
-import exastencils.util.ir.IR_UtilFunctions
 
 case class OMP_Parallel(var body : ListBuffer[IR_Statement]) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = {
@@ -105,19 +103,16 @@ object OMP_AddParallelSections extends DefaultStrategy("Handle potentially paral
       if(red.isDefined && red.get.target.datatype.isInstanceOf[IR_ComplexDatatype]) {
         // add combiner to util functions
         val dt = red.get.target.datatype
-        if (!IR_UtilFunctions.get.functions.exists(f => f.name == "ComplexRedAdd")) {
-          IR_UtilFunctions.get += IR_ComplexOperations.generateOMPRedAdd(dt)
-        }
+        //if (!IR_UtilFunctions.get.functions.exists(f => f.name == "ComplexRedAdd")) {
+        //  IR_UtilFunctions.get += IR_ComplexOperations.generateOMPRedAdd(dt)
+        //}
         ListBuffer[IR_Statement](
           OMP_DeclareReduction(
             "+",
-            ListBuffer[String](dt.toString()),
-            IR_FunctionCall(
-              IR_PlainInternalFunctionReference("ComplexRedAdd", dt),
-              IR_VariableAccess("omp_out", dt),
-              IR_VariableAccess("omp_in", dt)
-            ),
-
+            ListBuffer[IR_Datatype](dt),
+            //IR_Assignment(IR_VariableAccess("omp_out", dt), IR_VariableAccess("omp_in",dt), "+="),
+            IR_Addition(IR_VariableAccess("omp_out", dt), IR_VariableAccess("omp_in",dt)),
+            IR_IntegerConstant(0)
           ),
           OMP_ParallelFor(target, additionalOMPClauses, target.parallelization.collapseDepth)
         )

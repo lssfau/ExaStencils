@@ -143,7 +143,7 @@ object Settings {
 
   var binary : String = "exastencils"
 
-  var makefile_makeLibs : Boolean = false
+  var makefile_makeLibs : Boolean = true
   var makefile_additionalCFlags : ListBuffer[String] = ListBuffer()
   var makefile_additionalLDFlags : ListBuffer[String] = ListBuffer()
   // Additional flags for CUDA compiler
