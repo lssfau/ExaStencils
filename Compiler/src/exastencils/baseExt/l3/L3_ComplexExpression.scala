@@ -9,7 +9,7 @@ import exastencils.prettyprinting.PpStream
  case class L3_ComplexExpression(real : L3_Expression, op : Boolean, imag : L3_Expression ) extends L3_Expression {
   override def progress : L4_ComplexExpression = ProgressLocation(L4_ComplexExpression(real.progress,op,imag.progress))
   // no bracket version
-  //override def prettyprint(out : PpStream) : Unit = out <<  real << "+" << imag << "i"
+  //override def prettyprint(out : PpStream) : Unit = out <<  real << (if(op) "+" else "-") << imag << "j"
 
   // bracket version
   override def prettyprint(out : PpStream) : Unit = out << "(" << real << (if(op) "+" else "-") << imag << "j)"

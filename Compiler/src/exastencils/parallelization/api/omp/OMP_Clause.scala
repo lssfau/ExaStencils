@@ -38,6 +38,8 @@ case class OMP_Reduction(var op : String, var target : IR_VariableAccess) extend
   override def prettyprint(out : PpStream) : Unit = out << "reduction(" << op << " : " << target << ')'
 }
 
+
+
 /// OMP_LastPrivate
 
 case class OMP_LastPrivate(var vars : ListBuffer[IR_VariableAccess]) extends OMP_Clause {

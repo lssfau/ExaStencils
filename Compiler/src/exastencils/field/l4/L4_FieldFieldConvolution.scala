@@ -81,9 +81,8 @@ object L4_WrapFieldFieldConvolutions extends DefaultStrategy("Wrap field-field-c
             // TODO: warp in fragment loops?
             for (tmpVar <- tmpVarMap.toList.sortBy(_._1.name)) {
               val assignment = L4_Assignment(Duplicate(tmpVar._1), Duplicate(tmpVar._2), "+=", None)
-              val red = L4_Reduction("+", tmpVar._1.name)
+              val red = L4_Reduction("+", tmpVar._1.name, tmpVar._1.datatype)
               val commStmts = ListBuffer[L4_Communicate]() // can be extended if comm is required - dup maybe?
-
               val loop = L4_LoopOverField(tmpVar._2.lhs, assignment)
               loop.reduction = Some(red)
               loop.preComms = commStmts

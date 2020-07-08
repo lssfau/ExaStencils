@@ -143,10 +143,15 @@ object L3_Parser extends ExaParser with PackratParsers {
   ^^ { case  real ~ _ ~ imag => L3_ComplexExpression(real, true, imag)} |||
   ("(" ~> term) ~ "-" ~ term <~ ("j" ~ ")")
     ^^ { case  real ~ _ ~ imag => L3_ComplexExpression(real, false, imag)} |||
-  ("complex" ~ "(") ~> term ~ "+" ~ (term <~ ")")
+/*
+  lazy val complexExpression : PackratParser[L3_Expression] = locationize(
+   term ~ "+" ~ term <~ "j"
     ^^ { case  real ~ _ ~ imag => L3_ComplexExpression(real, true, imag)} |||
-    ("complex" ~ "(") ~> term ~ "-" ~ (term <~ ")")
-  ^^ { case  real ~ _ ~ imag => L3_ComplexExpression(real, false, imag)})
+    term ~ "-" ~ term <~ "j"
+      ^^ { case  real ~ _ ~ imag => L3_ComplexExpression(real, false, imag)} |||
+  */
+    ("complex" ~ "(") ~> term ~ "," ~ "-".? ~ (term <~ ")")
+    ^^ { case  real ~ _ ~ sign ~ imag => L3_ComplexExpression(real, if(sign.isDefined) false else true, imag)})
 
   lazy val booleanexpression : PackratParser[L3_Expression] = (
     locationize((booleanexpression ~ ("||" ||| "or") ~ booleanexpression1) ^^ { case ex1 ~ op ~ ex2 => L3_BinaryOperators.createExpression(op, ex1, ex2) })

@@ -189,11 +189,11 @@ case object IR_StringDatatype extends IR_Datatype {
 }
 
 case class IR_ComplexDatatype(datatype : IR_Datatype) extends IR_Datatype {
-
   if (!Settings.additionalIncludes.contains("complex"))
     Settings.additionalIncludes += "complex"
   override def prettyprint(out : PpStream) : Unit = out << "std::complex<" << datatype << '>'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+  override def toString() : String = "std::complex<" + datatype + '>'
 
   // TODO: treat like a vec2 or like a struct?
 

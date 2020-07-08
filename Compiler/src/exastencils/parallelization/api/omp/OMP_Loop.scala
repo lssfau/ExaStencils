@@ -23,13 +23,15 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
+import exastencils.baseExt.ir.IR_ComplexOperations
 import exastencils.config._
-import exastencils.core.Duplicate
+import exastencils.core
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_Vectorization
 import exastencils.parallelization.api.cuda.CUDA_Util
 import exastencils.prettyprinting.PpStream
+import exastencils.util.ir.IR_UtilFunctions
 
 case class OMP_Parallel(var body : ListBuffer[IR_Statement]) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = {
@@ -98,7 +100,29 @@ object OMP_AddParallelSections extends DefaultStrategy("Handle potentially paral
       if (target.parallelization.privateVars.nonEmpty)
         additionalOMPClauses += OMP_Private(target.parallelization.privateVars.clone())
 
-      OMP_ParallelFor(target, additionalOMPClauses, target.parallelization.collapseDepth)
+      // add declared custom "+"-reduction for complex numbers
+      var red = target.parallelization.reduction
+      if(red.isDefined && red.get.target.datatype.isInstanceOf[IR_ComplexDatatype]) {
+        // add combiner to util functions
+        val dt = red.get.target.datatype
+        if (!IR_UtilFunctions.get.functions.exists(f => f.name == "ComplexRedAdd")) {
+          IR_UtilFunctions.get += IR_ComplexOperations.generateOMPRedAdd(dt)
+        }
+        ListBuffer[IR_Statement](
+          OMP_DeclareReduction(
+            "+",
+            ListBuffer[String](dt.toString()),
+            IR_FunctionCall(
+              IR_PlainInternalFunctionReference("ComplexRedAdd", dt),
+              IR_VariableAccess("omp_out", dt),
+              IR_VariableAccess("omp_in", dt)
+            ),
+
+          ),
+          OMP_ParallelFor(target, additionalOMPClauses, target.parallelization.collapseDepth)
+        )
+      } else
+        OMP_ParallelFor(target, additionalOMPClauses, target.parallelization.collapseDepth)
   }, false) // switch off recursion due to wrapping mechanism
 }
 
@@ -158,8 +182,8 @@ object OMP_ResolveMinMaxReduction extends DefaultStrategy("Resolve omp min and m
     this += new Transformation("Search and replace", {
       // TODO: rely only on IR_VariableAccess => eliminate IR_StringLiteral occurrences
       case red : IR_Reduction                                     => red
-      case IR_StringLiteral(s) if s == toReplace                  => Duplicate(replacement)
-      case access : IR_VariableAccess if access.name == toReplace => Duplicate(replacement)
+      case IR_StringLiteral(s) if s == toReplace                  => core.Duplicate(replacement)
+      case access : IR_VariableAccess if access.name == toReplace => core.Duplicate(replacement)
     }, false)
   }
 

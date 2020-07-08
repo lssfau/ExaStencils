@@ -40,6 +40,7 @@ case class IR_ParallelizationInfo(
     var privateVars : ListBuffer[IR_VariableAccess] = ListBuffer(),
     var reduction : Option[IR_Reduction] = None,
     var parallelizationReasonable : Boolean = true
+
 ) extends IR_Node {}
 
 /// IR_HasParallelizationInfo

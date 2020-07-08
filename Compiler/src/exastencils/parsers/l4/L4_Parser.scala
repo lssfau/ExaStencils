@@ -467,14 +467,21 @@ object L4_Parser extends ExaParser with PackratParsers {
     ("{" ~> repsep(rowVectorExpression, ",") <~ "}") ~ "T".? ^^ { case x ~ t => val e = L4_MatrixExpression(None, x.map(_.expressions.toList)); if (t.isDefined) L4_FunctionCall(L4_UnresolvedFunctionReference("transpose", None, None), e); else e } |||
       ("[" ~> repsep(binaryexpression.+, ";")) <~ "]" ^^ { x => L4_MatrixExpression(None, x) })
 
-  lazy val complexExpression = locationize(("(" ~> term) ~ "+" ~ term <~ ("j" ~ ")")
+  lazy val complexExpression = locationize(
+    /*
+    ("(" ~> term) ~ "+" ~ term <~ ("j" ~ ")")
     ^^ { case real ~ _ ~ imag => L4_ComplexExpression(real, true, imag) } |||
     ("(" ~> term) ~ "-" ~ term <~ ("j" ~ ")")
       ^^ { case real ~ _ ~ imag => L4_ComplexExpression(real, false, imag) } |||
-    ("complex" ~ "(") ~> term ~ "+" ~ term <~ ")"
-    ^^ { case real ~ _ ~ imag => L4_ComplexExpression(real, true, imag) } |||
-    ("complex" ~ "(") ~> term ~ "-" ~ term <~ ")"
-     ^^ { case real ~ _ ~ imag => L4_ComplexExpression(real, false, imag) })
+
+     */
+    ("(" ~> term) ~ "+" ~ term <~ ("j" ~ ")")
+      ^^ { case real ~ _ ~ imag => L4_ComplexExpression(real, true, imag) } |||
+      ("(" ~> term) ~ "-" ~ term <~ ("j" ~ ")")
+        ^^ { case real ~ _ ~ imag => L4_ComplexExpression(real, false, imag) } |||
+
+      ("complex" ~ "(") ~> term ~ "+," ~ "-".? ~ term <~ ")"
+    ^^ { case real ~ _ ~ sign ~ imag => L4_ComplexExpression(real, if(sign.isDefined) false else true, imag) })
 
   lazy val booleanexpression : PackratParser[L4_Expression] = (
     locationize((booleanexpression ~ ("||" ||| "or") ~ booleanexpression1) ^^ { case ex1 ~ op ~ ex2 => L4_BinaryOperators.createExpression(op, ex1, ex2) })
