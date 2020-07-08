@@ -20,6 +20,7 @@ object IR_ComplexExpression {
   }
 }
 case class IR_ComplexExpression(real : IR_Expression, imag : IR_Expression) extends IR_Expression {
+
   override def datatype : IR_Datatype = IR_ComplexDatatype(IR_ResultingDatatype(real.datatype, imag.datatype))
   override def prettyprint(out : PpStream) : Unit = {
     out << real
