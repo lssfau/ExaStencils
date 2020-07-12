@@ -582,7 +582,7 @@ object IR_CompiletimeInversion {
           import exastencils.baseExt.ir.IR_BasicMatrixOperations.pasteSubMatrix
           import exastencils.baseExt.ir.IR_BasicMatrixOperations.negative
           import exastencils.baseExt.ir.IR_BasicMatrixOperations.add
-
+/*
           //TODO seperate implementation
           val dt = that.datatype.resolveBaseDatatype
           val helperMatrices = ListBuffer[IR_VariableDeclaration]()
@@ -596,6 +596,7 @@ object IR_CompiletimeInversion {
             var hm_A_invBS_invCA_inv = IR_VariableAccess("A_invBS_invCA_inv", IR_MatrixDatatype(dt, n, n))
             for(m <- List())
           }
+          */
           var A = copySubMatrix(that, 0, 0, n, n)
 
           // build new matrix structure for submatrix A:
