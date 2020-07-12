@@ -392,6 +392,7 @@ object IR_GenerateBasicMatrixOperations {
 }
 
 object IR_GenerateRuntimeInversion {
+  val pointerArithmetic = "pointerArithmetic"
 
   // generate code for direct inversion of small matrices
   def smallMatrixInversionAtSubMatrix(in : IR_VariableAccess, blocksize : Int, offsetRows : IR_Expression, offsetCols : IR_Expression, out : IR_VariableAccess) : IR_Scope = {
@@ -565,7 +566,9 @@ object IR_GenerateRuntimeInversion {
     if (!inplace) {
       var inCopy = IR_VariableAccess("inCopy", IR_MatrixDatatype(inDt.resolveBaseDatatype, N, N))
       func.body += IR_VariableDeclaration(inCopy)
-      func.body += IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression]((in), (in + N * N), inCopy))
+      val in_end = IR_Addition(in, N*N)
+      in_end.annotate(pointerArithmetic)
+      func.body += IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression]((in), in_end, inCopy))
       func.body ++= localLUDecomp(inCopy, P, blocksize_asInt, offset_r, offset_c)
       func.body ++= localLUDecomposedInversion(inCopy, P, blocksize_asInt, offset_r, offset_c, out)
     }

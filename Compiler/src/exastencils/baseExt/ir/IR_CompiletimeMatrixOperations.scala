@@ -25,11 +25,12 @@ import exastencils.base.ir.IR_FloatDatatype
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_MatrixNodeUtilities._
+import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
 import exastencils.util.ir._
-import exastencils.baseExt.ir.IR_MatrixNodeUtilities._
 
 // simple operations with matrices like addition or multiplication
 object IR_BasicMatrixOperations {
@@ -575,38 +576,60 @@ object IR_CompiletimeInversion {
           Logger.error("n < 1!")
         }
         else {
-          var A = IR_BasicMatrixOperations.copySubMatrix(that, 0, 0, n, n)
+          import exastencils.baseExt.ir.IR_BasicMatrixOperations.copySubMatrix
+          import exastencils.baseExt.ir.IR_BasicMatrixOperations.mult
+          import exastencils.baseExt.ir.IR_BasicMatrixOperations.sub
+          import exastencils.baseExt.ir.IR_BasicMatrixOperations.pasteSubMatrix
+          import exastencils.baseExt.ir.IR_BasicMatrixOperations.negative
+          import exastencils.baseExt.ir.IR_BasicMatrixOperations.add
+
+          //TODO seperate implementation
+          val dt = that.datatype.resolveBaseDatatype
+          val helperMatrices = ListBuffer[IR_VariableDeclaration]()
+          if(Knowledge.experimental_schurWithHelper) {
+            var hm_S_inv = IR_VariableAccess("S_inv", IR_MatrixDatatype(dt, m, m))
+            var hm_CA_inv = IR_VariableAccess("CA_inv", IR_MatrixDatatype(dt, m, n))
+            var hm_CA_invB = IR_VariableAccess("CA_invB", IR_MatrixDatatype(dt, m, m))
+            var hm_A_invB = IR_VariableAccess("A_invB", IR_MatrixDatatype(dt, n, m))
+            var hm_A_invBS_inv = IR_VariableAccess("A_invBS_inv", IR_MatrixDatatype(dt, n, m))
+            var hm_S_invCA_inv = IR_VariableAccess("S_invCA_inv", IR_MatrixDatatype(dt, m, n))
+            var hm_A_invBS_invCA_inv = IR_VariableAccess("A_invBS_invCA_inv", IR_MatrixDatatype(dt, n, n))
+            for(m <- List())
+          }
+          var A = copySubMatrix(that, 0, 0, n, n)
 
           // build new matrix structure for submatrix A:
-          val structureA = IR_MatShape(msi.shape("A"))
-          structureA.addInfo("block", msi.size("Ablock"))
-          var A_inv = inverse(A, structureA)
+          val shapeA = IR_MatShape(msi.shape("A"))
+          if(shapeA.shape == "blockdiagonal")
+              shapeA.addInfo("block", msi.size("Ablock"))
+          var A_inv = inverse(A, shapeA)
           IR_GeneralSimplify.doUntilDoneStandalone(A_inv)
 
           // calculate S
-          val B = IR_BasicMatrixOperations.copySubMatrix(that, 0, n, n, m)
-          val C = IR_BasicMatrixOperations.copySubMatrix(that, n, 0, m, n)
-          val D = IR_BasicMatrixOperations.copySubMatrix(that, n, n, m, m)
-          val CA_inv = IR_BasicMatrixOperations.mult(C, A_inv)
-          val CA_invB = IR_BasicMatrixOperations.mult(CA_inv, B)
-          val S = IR_BasicMatrixOperations.sub(D, CA_invB)
+          val B = copySubMatrix(that, 0, n, n, m)
+          val C = copySubMatrix(that, n, 0, m, n)
+          val D = copySubMatrix(that, n, n, m, m)
+          val CA_inv = mult(C, A_inv)
+          val CA_invB = mult(CA_inv, B)
+          val S = sub(D, CA_invB)
+
+          // variable accesses for A size matrices
 
           // invert S
           // for schur complement inversion multiple structure information is necessary(n and m, blocksize of A, S is probably always filled) in case  m is larger than 1 (default should be "filled")
           val S_inv = inverse(S, IR_MatShape("filled"))
 
           // copy result blocks to 'out' matrix
-          val lowerLeft = IR_BasicMatrixOperations.negative(IR_BasicMatrixOperations.mult(S_inv, CA_inv))
+          val lowerLeft = negative(mult(S_inv, CA_inv))
           val lowerRight = S_inv
-          val A_invB = IR_BasicMatrixOperations.mult(A_inv, B)
-          //val A_invB = IR_BasicMatrixOperations.mult(A_inv, B)
-          val A_invBS_inv = IR_BasicMatrixOperations.mult(A_invB, S_inv)
-          val upperRight = IR_BasicMatrixOperations.negative(A_invBS_inv)
-          val upperLeft = IR_BasicMatrixOperations.add(A_inv, IR_BasicMatrixOperations.mult(A_invBS_inv, CA_inv))
-          IR_BasicMatrixOperations.pasteSubMatrix(upperLeft, out, 0, 0)
-          IR_BasicMatrixOperations.pasteSubMatrix(upperRight, out, 0, n)
-          IR_BasicMatrixOperations.pasteSubMatrix(lowerLeft, out, n, 0)
-          IR_BasicMatrixOperations.pasteSubMatrix(lowerRight, out, n, n)
+          val A_invB = mult(A_inv, B)
+          val A_invBS_inv = mult(A_invB, S_inv)
+          val upperRight = negative(A_invBS_inv)
+          val upperLeft = add(A_inv, mult(A_invBS_inv, CA_inv))
+          pasteSubMatrix(upperLeft, out, 0, 0)
+          pasteSubMatrix(upperRight, out, 0, n)
+          pasteSubMatrix(lowerLeft, out, n, 0)
+          pasteSubMatrix(lowerRight, out, n, n)
         }
         out
       }

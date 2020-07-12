@@ -302,7 +302,7 @@ object IR_ResolveMatOperators extends DefaultStrategy("resolve operators") {
     //TODO match on supertype? -> introduce supertype
     case mult @ IR_Multiplication(facs) if (checkIfMatOp(mult) && facs.forall(f => isEvaluatable(f)))                                   =>
       IR_BasicMatrixOperations.mult(mult)
-    case add @ (IR_Addition(sums)) if (checkIfMatOp(add) && sums.forall(f => isEvaluatable(f)))                                         =>
+    case add @ (IR_Addition(sums)) if (checkIfMatOp(add) && sums.forall(f => isEvaluatable(f)) && !add.hasAnnotation(IR_GenerateRuntimeInversion.pointerArithmetic))                                         =>
       IR_BasicMatrixOperations.add(add)
     case binOp @ IR_ElementwiseSubtraction(_, _) if (checkIfMatOp(binOp) && isEvaluatable(binOp.left) && isEvaluatable(binOp.right))    =>
       IR_BasicMatrixOperations.sub(binOp)

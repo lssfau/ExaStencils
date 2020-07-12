@@ -22,7 +22,7 @@ Function Application {
 	Var mat : Matrix<Real,4,4> = { { 1.0, 2.0, 1.0, 3.0 }, { 4.0, 2.0, 1.0, 2.0 }, { 4.0, 1.0, 3.0, 2.0 }, { 1.0, 1.0, 2.0, 3.0 } }
 	Var mat2 : Matrix<Real,4,4> = { { 1.0, 2.0, 1.0, 3.0 }, { 4.0, 2.0, 1.0, 2.0 }, { 4.0, 1.0, 3.0, 2.0 }, { 1.0, 1.0, 2.0, 3.0 } }
 	Var mat_inverse : Matrix<Real,4,4>
-	mat_inverse = inverse ( mat, "Filled" )
+	mat_inverse = inverse ( mat )
 	Var mat_sol : Matrix<Real,4,4> = { { -0.7, 0.6, -0.3, 0.5 }, { 2.0, -1.0, 1.0, -2.0 }, { 1.0, -1.0, 1.0, -1.0 }, { -1.1, 0.8, -0.9, 1.5 } }
 	Var prec : Double = 1.0E-4
 	compare ( mat_inverse, mat_sol, prec )

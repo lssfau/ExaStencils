@@ -594,6 +594,8 @@ object Knowledge {
 
   // when to resolve inverse call
   var experimental_resolveInverseFunctionCall : String = "Compiletime" // [Compiletime|Runtime] (with new strategies)
+  // save common submatrices in helper variables for compiletime schur inversion
+  var experimental_schurWithHelper : Boolean = false
   // runtime inversion executes inplace on input matrix
   var experimental_inplaceInversion : Boolean = false
   // runtime determinant executes inplace on input matrix
@@ -605,6 +607,7 @@ object Knowledge {
   var experimental_locMatBlocksize : Int = -1
   var experimental_locMatStructureA : String = ""
   var experimental_locMatBlocksizeA : Int = -1
+
 
   // tries to apply an inversion based on the Schur complement in local solve blocks
   var experimental_applySchurCompl : Boolean = false
