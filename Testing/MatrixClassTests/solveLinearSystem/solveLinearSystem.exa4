@@ -8,6 +8,7 @@ Globals {
 /// main function
 
 Function Application ( ) : Unit {
+	/*
 	Var A1 : Matrix<Double, 3, 3> = {{3,2,-1},{2,-2,4},{-1,0.5,-1}}
 	Var f1 : Matrix<Double, 3, 1> = {{1},{-2},{0}}
 	Var u1 : Matrix<Double, 3, 1> 
@@ -17,8 +18,8 @@ Function Application ( ) : Unit {
 	Var f2 : Matrix<Double, 7, 1> = {{1},{-2},{0},{2},{1},{4},{1}}
 	Var u2 : Matrix<Double, 7, 1> 
 	solveLES A2,u2,f2
-
-	Var A3 : Matrix<Double, 3, 3> = {{3,0,0},{0,-2,0},{0,0,-1}}
+*/
+	Var A3 : Matrix<Double, 3, 3> = {{3,0,0},{0,-2,0},{0,0,-1}} {shape=diagonal}
 	Var f3 : Matrix<Double, 3, 1> = {{1},{-2},{1}}
 	Var u3 : Matrix<Double, 3, 1> 
 	solveLES A3,u3,f3

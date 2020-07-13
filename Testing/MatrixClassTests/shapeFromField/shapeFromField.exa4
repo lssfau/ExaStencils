@@ -62,7 +62,7 @@ Field u< global, FaceXWithComm, sin ( 2.0 * PI * vf_boundaryPosition_x ) - cos (
 Field v< global, FaceYWithComm, 0.0 >@(all but finest)
 Field v< global, FaceYWithComm, cos ( PI * vf_boundaryPosition_x ) - sin ( 2.0 * PI * vf_boundaryCoord_y ) >@finest
 
-Field p< global, CellWithComm, Neumann >@all
+Field p< global, CellWithComm, Neumann >@all{shape=schur,block=4,A=blockdiagonal,Ablock=2}
 
 Field rhs_u< global, FaceXNoGhost, None >@all
 Field rhs_v< global, FaceYNoGhost, None >@all

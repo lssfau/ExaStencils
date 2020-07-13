@@ -1,0 +1,650 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0] to [1.0, 1.0] >
+
+Layout CellNoComm< Real, Cell >@all {
+	duplicateLayers = [0, 0]
+	ghostLayers = [0, 0]
+}
+
+Layout FaceXNoComm< Real, Face_x >@all {
+	duplicateLayers = [1, 0]
+	ghostLayers = [0, 0]
+}
+
+Layout FaceYNoComm< Real, Face_y >@all {
+	duplicateLayers = [0, 1]
+	ghostLayers = [0, 0]
+}
+
+Layout CellWithComm< Real, Cell >@all {
+	duplicateLayers = [0, 0]
+	ghostLayers = [1, 1] with communication
+}
+
+Layout FaceXWithComm< Real, Face_x >@all {
+	duplicateLayers = [1, 0] with communication
+	ghostLayers = [1, 1] with communication
+}
+
+Layout FaceYWithComm< Real, Face_y >@all {
+	duplicateLayers = [0, 1] with communication
+	ghostLayers = [1, 1] with communication
+}
+
+Layout FaceXNoGhost< Real, Face_x >@all {
+	duplicateLayers = [1, 0] with communication
+	ghostLayers = [0, 0]
+}
+
+Layout FaceYNoGhost< Real, Face_y >@all {
+	duplicateLayers = [0, 1] with communication
+	ghostLayers = [0, 0]
+}
+
+Layout FaceX__0_1__0_1< Real, Face_x >@all {
+	duplicateLayers = [1, 0] with communication
+	ghostLayers = [0, 1] with communication
+}
+
+Layout FaceY__1_0__1_0< Real, Face_y >@all {
+	duplicateLayers = [0, 1] with communication
+	ghostLayers = [1, 0] with communication
+}
+
+Field u< global, FaceXWithComm, 0.0>@(all but (finest))
+
+Field u< global, FaceXWithComm, ( sin ( ( ( 2.0 * PI ) * vf_boundaryPosition_x ) ) - cos ( ( PI * vf_boundaryCoord_y ) ) )>@finest
+
+Field v< global, FaceYWithComm, 0.0>@(all but (finest))
+
+Field v< global, FaceYWithComm, ( cos ( ( PI * vf_boundaryPosition_x ) ) - sin ( ( ( 2.0 * PI ) * vf_boundaryCoord_y ) ) )>@finest
+
+Field p< global, CellWithComm, Neumann(1)>@all{shape=schur,block=4,A=blockdiagonal,Ablock=2}
+
+Field rhs_u< global, FaceXNoGhost, None>@all
+
+Field rhs_v< global, FaceYNoGhost, None>@all
+
+Field rhs_p< global, CellNoComm, None>@all
+
+Field residual_u< global, FaceX__0_1__0_1, 0.0>@coarsest
+
+Field residual_u< global, FaceXWithComm, 0.0>@(all but (coarsest))
+
+Field residual_v< global, FaceY__1_0__1_0, 0.0>@coarsest
+
+Field residual_v< global, FaceYWithComm, 0.0>@(all but (coarsest))
+
+Field residual_p< global, CellWithComm, Neumann(1)>@all
+
+Field h_u< global, FaceXNoGhost, None>@coarsest
+
+Field h_v< global, FaceYNoGhost, None>@coarsest
+
+Field h_p< global, CellNoComm, None>@coarsest
+
+Field nu_u< global, FaceXNoGhost, None>@coarsest
+
+Field nu_v< global, FaceYNoGhost, None>@coarsest
+
+Field nu_p< global, CellNoComm, None>@coarsest
+
+Field p_u< global, FaceXWithComm, 0.0>@coarsest
+
+Field p_v< global, FaceYWithComm, 0.0>@coarsest
+
+Field p_p< global, CellWithComm, Neumann(1)>@coarsest
+
+Field resHat_u< global, FaceXNoGhost, None>@coarsest
+
+Field resHat_v< global, FaceYNoGhost, None>@coarsest
+
+Field resHat_p< global, CellNoComm, None>@coarsest
+
+Field s_u< global, FaceXWithComm, 0.0>@coarsest
+
+Field s_v< global, FaceYWithComm, 0.0>@coarsest
+
+Field s_p< global, CellWithComm, Neumann(1)>@coarsest
+
+Field t_u< global, FaceXNoGhost, None>@coarsest
+
+Field t_v< global, FaceYNoGhost, None>@coarsest
+
+Field t_p< global, CellNoComm, None>@coarsest
+
+Stencil A11@all{
+	[0, 0] => ( ( ( ( vf_cellWidth_y / vf_cellWidth_x@[0, 0] ) + ( vf_cellWidth_y / vf_cellWidth_x@[1, 0] ) ) + ( vf_stagCVWidth_x / vf_stagCVWidth_y@[0, 0] ) ) + ( vf_stagCVWidth_x / vf_stagCVWidth_y@[0, 1] ) )
+	[-1, 0] => ( (-vf_cellWidth_y) / vf_cellWidth_x@[0, 0] )
+	[1, 0] => ( (-vf_cellWidth_y) / vf_cellWidth_x@[1, 0] )
+	[0, -1] => ( (-vf_stagCVWidth_x) / vf_stagCVWidth_y@[0, 0] )
+	[0, 1] => ( (-vf_stagCVWidth_x) / vf_stagCVWidth_y@[0, 1] )
+}
+
+Stencil A22@all{
+	[0, 0] => ( ( ( ( vf_stagCVWidth_y / vf_stagCVWidth_x@[0, 0] ) + ( vf_stagCVWidth_y / vf_stagCVWidth_x@[1, 0] ) ) + ( vf_cellWidth_x / vf_cellWidth_y@[0, 0] ) ) + ( vf_cellWidth_x / vf_cellWidth_y@[0, 1] ) )
+	[-1, 0] => ( (-vf_stagCVWidth_y) / vf_stagCVWidth_x@[0, 0] )
+	[1, 0] => ( (-vf_stagCVWidth_y) / vf_stagCVWidth_x@[1, 0] )
+	[0, -1] => ( (-vf_cellWidth_x) / vf_cellWidth_y@[0, 0] )
+	[0, 1] => ( (-vf_cellWidth_x) / vf_cellWidth_y@[0, 1] )
+}
+
+Stencil B1@all{
+	[0, 0] => vf_gridWidth_y
+	[-1, 0] => (-vf_gridWidth_y)
+}
+
+Stencil B2@all{
+	[0, 0] => vf_gridWidth_x
+	[0, -1] => (-vf_gridWidth_x)
+}
+
+Stencil C1@all{
+	[0, 0] => (-vf_gridWidth_y)
+	[1, 0] => vf_gridWidth_y
+}
+
+Stencil C2@all{
+	[0, 0] => (-vf_gridWidth_x)
+	[0, 1] => vf_gridWidth_x
+}
+
+Stencil CellRestrictionForRes@all{
+	[i0, i1] from [( 2.0 * i0 ), ( 2.0 * i1 )] with 1.0
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 )] with 1.0
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 )] with 1.0
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 1.0
+}
+
+Stencil CellRestrictionForSol@all{
+	[i0, i1] from [( 2.0 * i0 ), ( 2.0 * i1 )] with 0.25
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.25
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 )] with 0.25
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.25
+}
+
+Stencil FaceXRestrictionForRes@all{
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( 2.0 * i1 )] with 0.5
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.5
+	[i0, i1] from [( 2.0 * i0 ), ( 2.0 * i1 )] with 1.0
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 )] with 1.0
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 )] with 0.5
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.5
+}
+
+Stencil FaceXRestrictionForSol@all{
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( 2.0 * i1 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.125
+	[i0, i1] from [( 2.0 * i0 ), ( 2.0 * i1 )] with 0.25
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.25
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.125
+}
+
+Stencil FaceYRestrictionForRes@all{
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.5
+	[i0, i1] from [( 2.0 * i0 ), ( 2.0 * i1 )] with 1.0
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.5
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.5
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 )] with 1.0
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.5
+}
+
+Stencil FaceYRestrictionForSol@all{
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.125
+	[i0, i1] from [( 2.0 * i0 ), ( 2.0 * i1 )] with 0.25
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 )] with 0.25
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.125
+}
+
+Stencil CellProlongation@all{
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * i1 )] with 1
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * ( i1 - 1.0 ) )] with 1
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * i1 )] with 1
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) )] with 1
+}
+
+Stencil FaceXProlongation@all{
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * i1 )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) )] with 0.5
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * i1 )] with 1
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * ( i1 - 1.0 ) )] with 1
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * i1 )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) )] with 0.5
+}
+
+Stencil FaceYProlongation@all{
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * ( i1 + 1.0 ) )] with 0.5
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * i1 )] with 1
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * ( i1 - 1.0 ) )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * i1 )] with 1
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) )] with 0.5
+}
+
+Function ResNorm@(finest, coarsest) : Real {
+	Var norm : Real = 0.0
+	Var reductionVar_0 : Real = 0.0
+	loop over residual_u with reduction ( + : reductionVar_0 ) {
+		reductionVar_0 += ( residual_u * residual_u )
+	}
+	norm += reductionVar_0
+	Var reductionVar_1 : Real = 0.0
+	loop over residual_v with reduction ( + : reductionVar_1 ) {
+		reductionVar_1 += ( residual_v * residual_v )
+	}
+	norm += reductionVar_1
+	Var reductionVar_2 : Real = 0.0
+	loop over residual_p with reduction ( + : reductionVar_2 ) {
+		reductionVar_2 += ( residual_p * residual_p )
+	}
+	norm += reductionVar_2
+	return sqrt ( norm )
+}
+
+Function PrintError@finest {
+	NormalizePressure@finest (  )
+	Var norm_u : Real = 0.0
+	loop over u with reduction ( max : norm_u ) {
+		norm_u = max ( norm_u, fabs ( ( u - ( sin ( ( ( 2.0 * PI ) * vf_nodePosition_x ) ) - cos ( ( PI * vf_cellCenter_y ) ) ) ) ) )
+	}
+	Var norm_v : Real = 0.0
+	loop over v with reduction ( max : norm_v ) {
+		norm_v = max ( norm_v, fabs ( ( v - ( cos ( ( PI * vf_cellCenter_x ) ) - sin ( ( ( 2.0 * PI ) * vf_nodePosition_y ) ) ) ) ) )
+	}
+	Var norm_p : Real = 0.0
+	loop over p with reduction ( max : norm_p ) {
+		norm_p = max ( norm_p, fabs ( ( p - ( sin ( ( ( 4.0 * PI ) * vf_cellCenter_x ) ) + sin ( ( ( 4.0 * PI ) * vf_cellCenter_y ) ) ) ) ) )
+	}
+	if ( getKnowledge ( "testing_enabled" ) ) {
+		if ( getKnowledge ( "testing_printErr" ) ) {
+			printWithReducedPrec ( norm_u )
+			printWithReducedPrec ( norm_v )
+			printWithReducedPrec ( norm_p )
+		}
+	} else {
+		print ( "The maximum error (u,v,p) is", norm_u, norm_v, norm_p )
+	}
+}
+
+Function NormalizePressure@finest {
+	Expr numCells_x = ( ( ( ( 2 ** levels@current (  ) ) * getKnowledge ( "domain_fragmentLength_x" ) ) * getKnowledge ( "domain_rect_numBlocks_x" ) ) * getKnowledge ( "domain_rect_numFragsPerBlock_x" ) )
+	Expr numCells_y = ( ( ( ( 2 ** levels@current (  ) ) * getKnowledge ( "domain_fragmentLength_y" ) ) * getKnowledge ( "domain_rect_numBlocks_y" ) ) * getKnowledge ( "domain_rect_numFragsPerBlock_y" ) )
+	Expr numCells = ( numCells_x * numCells_y )
+	Var meanP : Real = 0.0
+	loop over p with reduction ( + : meanP ) {
+		meanP += p
+	}
+	meanP /= numCells
+	loop over p {
+		p -= meanP
+	}
+	apply bc to p
+}
+
+Function UpdateRes@all {
+	communicate all of u
+	communicate all of v
+	communicate all of p
+	loop over residual_u {
+		residual_u = ( rhs_u - ( ( A11 * u ) + ( B1 * p ) ) )
+	}
+	apply bc to residual_u
+	loop over residual_v {
+		residual_v = ( rhs_v - ( ( A22 * v ) + ( B2 * p ) ) )
+	}
+	apply bc to residual_v
+	loop over residual_p {
+		residual_p = ( rhs_p - ( ( C1 * u ) + ( C2 * v ) ) )
+	}
+	apply bc to residual_p
+}
+
+Function Solve@finest {
+	UpdateRes (  )
+	Var initRes : Real = ResNorm (  )
+	Var curRes : Real = initRes
+	Var prevRes : Real = curRes
+	print ( "Starting residual: ", initRes )
+	Var curIt : Integer = 0
+	repeat until ( ( ( curIt >= 30 ) || ( curRes <= ( 1.0E-12 * initRes ) ) ) || ( curRes <= 1.0E-12 ) ) {
+		curIt += 1
+		mgCycle (  )
+		UpdateRes (  )
+		prevRes = curRes
+		curRes = ResNorm (  )
+		print ( "Residual after", curIt, "iterations is", curRes, "--- convergence factor is", ( curRes / prevRes ) )
+		PrintError@finest (  )
+	}
+}
+
+Function mgCycle@coarsest {
+	UpdateRes (  )
+	Var curRes : Real = ResNorm (  )
+	Var initRes : Real = curRes
+	loop over resHat_u {
+		resHat_u = residual_u
+	}
+	loop over resHat_v {
+		resHat_v = residual_v
+	}
+	loop over resHat_p {
+		resHat_p = residual_p
+	}
+	Var rho : Real = 1.0
+	Var rhoOld : Real = 1.0
+	Var alpha : Real = 1.0
+	Var beta : Real = 1.0
+	Var omega : Real = 1.0
+	loop over nu_u {
+		nu_u = 0.0
+	}
+	loop over nu_v {
+		nu_v = 0.0
+	}
+	loop over nu_p {
+		nu_p = 0.0
+	}
+	loop over p_u {
+		p_u = 0.0
+	}
+	apply bc to p_u
+	loop over p_v {
+		p_v = 0.0
+	}
+	apply bc to p_v
+	loop over p_p {
+		p_p = 0.0
+	}
+	apply bc to p_p
+	Var curStep : Integer = 0
+	repeat 128 times count curStep {
+		rhoOld = rho
+		rho = 0.0
+		Var reductionVar_8 : Real = 0.0
+		loop over resHat_u with reduction ( + : reductionVar_8 ) {
+			reductionVar_8 += ( resHat_u * residual_u )
+		}
+		rho += reductionVar_8
+		Var reductionVar_9 : Real = 0.0
+		loop over resHat_v with reduction ( + : reductionVar_9 ) {
+			reductionVar_9 += ( resHat_v * residual_v )
+		}
+		rho += reductionVar_9
+		Var reductionVar_10 : Real = 0.0
+		loop over resHat_p with reduction ( + : reductionVar_10 ) {
+			reductionVar_10 += ( resHat_p * residual_p )
+		}
+		rho += reductionVar_10
+		beta = ( ( rho / rhoOld ) * ( alpha / omega ) )
+		loop over p_u {
+			p_u = ( residual_u + ( beta * ( p_u - ( omega * nu_u ) ) ) )
+		}
+		apply bc to p_u
+		loop over p_v {
+			p_v = ( residual_v + ( beta * ( p_v - ( omega * nu_v ) ) ) )
+		}
+		apply bc to p_v
+		loop over p_p {
+			p_p = ( residual_p + ( beta * ( p_p - ( omega * nu_p ) ) ) )
+		}
+		apply bc to p_p
+		communicate all of p_u
+		communicate all of p_v
+		communicate all of p_p
+		loop over nu_u {
+			nu_u = ( ( A11 * p_u ) + ( B1 * p_p ) )
+		}
+		loop over nu_v {
+			nu_v = ( ( A22 * p_v ) + ( B2 * p_p ) )
+		}
+		loop over nu_p {
+			nu_p = ( ( C1 * p_u ) + ( C2 * p_v ) )
+		}
+		Var alphaDenom : Real = 0.0
+		Var reductionVar_12 : Real = 0.0
+		loop over resHat_u with reduction ( + : reductionVar_12 ) {
+			reductionVar_12 += ( resHat_u * nu_u )
+		}
+		alphaDenom += reductionVar_12
+		Var reductionVar_13 : Real = 0.0
+		loop over resHat_v with reduction ( + : reductionVar_13 ) {
+			reductionVar_13 += ( resHat_v * nu_v )
+		}
+		alphaDenom += reductionVar_13
+		Var reductionVar_14 : Real = 0.0
+		loop over resHat_p with reduction ( + : reductionVar_14 ) {
+			reductionVar_14 += ( resHat_p * nu_p )
+		}
+		alphaDenom += reductionVar_14
+		alpha = ( rho / alphaDenom )
+		loop over h_u {
+			h_u = ( u + ( alpha * p_u ) )
+		}
+		loop over h_v {
+			h_v = ( v + ( alpha * p_v ) )
+		}
+		loop over h_p {
+			h_p = ( p + ( alpha * p_p ) )
+		}
+		loop over s_u {
+			s_u = ( residual_u - ( alpha * nu_u ) )
+		}
+		apply bc to s_u
+		loop over s_v {
+			s_v = ( residual_v - ( alpha * nu_v ) )
+		}
+		apply bc to s_v
+		loop over s_p {
+			s_p = ( residual_p - ( alpha * nu_p ) )
+		}
+		apply bc to s_p
+		communicate all of s_u
+		communicate all of s_v
+		communicate all of s_p
+		loop over t_u {
+			t_u = ( ( A11 * s_u ) + ( B1 * s_p ) )
+		}
+		loop over t_v {
+			t_v = ( ( A22 * s_v ) + ( B2 * s_p ) )
+		}
+		loop over t_p {
+			t_p = ( ( C1 * s_u ) + ( C2 * s_v ) )
+		}
+		Var omegaNom : Real = 0.0
+		Var omegaDenom : Real = 0.0
+		Var reductionVar_16 : Real = 0.0
+		loop over t_u with reduction ( + : reductionVar_16 ) {
+			reductionVar_16 += ( t_u * s_u )
+		}
+		omegaNom += reductionVar_16
+		Var reductionVar_17 : Real = 0.0
+		loop over t_u with reduction ( + : reductionVar_17 ) {
+			reductionVar_17 += ( t_u * t_u )
+		}
+		omegaDenom += reductionVar_17
+		Var reductionVar_18 : Real = 0.0
+		loop over t_v with reduction ( + : reductionVar_18 ) {
+			reductionVar_18 += ( t_v * s_v )
+		}
+		omegaNom += reductionVar_18
+		Var reductionVar_19 : Real = 0.0
+		loop over t_v with reduction ( + : reductionVar_19 ) {
+			reductionVar_19 += ( t_v * t_v )
+		}
+		omegaDenom += reductionVar_19
+		Var reductionVar_20 : Real = 0.0
+		loop over t_p with reduction ( + : reductionVar_20 ) {
+			reductionVar_20 += ( t_p * s_p )
+		}
+		omegaNom += reductionVar_20
+		Var reductionVar_21 : Real = 0.0
+		loop over t_p with reduction ( + : reductionVar_21 ) {
+			reductionVar_21 += ( t_p * t_p )
+		}
+		omegaDenom += reductionVar_21
+		omega = ( omegaNom / omegaDenom )
+		loop over u {
+			u = ( h_u + ( omega * s_u ) )
+		}
+		apply bc to u
+		loop over v {
+			v = ( h_v + ( omega * s_v ) )
+		}
+		apply bc to v
+		loop over p {
+			p = ( h_p + ( omega * s_p ) )
+		}
+		apply bc to p
+		loop over residual_u {
+			residual_u = ( s_u - ( omega * t_u ) )
+		}
+		apply bc to residual_u
+		loop over residual_v {
+			residual_v = ( s_v - ( omega * t_v ) )
+		}
+		apply bc to residual_v
+		loop over residual_p {
+			residual_p = ( s_p - ( omega * t_p ) )
+		}
+		apply bc to residual_p
+		curRes = ResNorm (  )
+		if ( ( curRes <= ( 0.001 * initRes ) ) ) {
+			return
+		}
+	}
+	print ( "Maximum number of cgs iterations (", 128, ") was exceeded" )
+}
+
+Function mgCycle@(all but (coarsest)) {
+	repeat 4 times {
+		color with {
+			( i0 % 3 ),
+			( i1 % 3 ),
+			communicate all of u
+			communicate all of v
+			communicate all of p
+			loop over p {
+				solve locally relax 0.8 {
+					u@[0, 0] => ( ( A11@[0, 0] * u@[0, 0] ) + ( B1@[0, 0] * p@[0, 0] ) ) == rhs_u@[0, 0]
+					u@[1, 0] => ( ( A11@[1, 0] * u@[1, 0] ) + ( B1@[1, 0] * p@[1, 0] ) ) == rhs_u@[1, 0]
+					v@[0, 0] => ( ( A22@[0, 0] * v@[0, 0] ) + ( B2@[0, 0] * p@[0, 0] ) ) == rhs_v@[0, 0]
+					v@[0, 1] => ( ( A22@[0, 1] * v@[0, 1] ) + ( B2@[0, 1] * p@[0, 1] ) ) == rhs_v@[0, 1]
+					p@[0, 0] => ( ( C2@[0, 0] * v@[0, 0] ) + ( C1@[0, 0] * u@[0, 0] ) ) == rhs_p@[0, 0]
+				}
+			}
+			apply bc to u
+			apply bc to v
+			apply bc to p
+		}
+	}
+	UpdateRes (  )
+	communicate all of residual_u
+	loop over rhs_u@coarser {
+		rhs_u@coarser = ( FaceXRestrictionForRes * residual_u )
+	}
+	communicate all of residual_v
+	loop over rhs_v@coarser {
+		rhs_v@coarser = ( FaceYRestrictionForRes * residual_v )
+	}
+	communicate all of residual_p
+	loop over rhs_p@coarser {
+		rhs_p@coarser = ( CellRestrictionForRes * residual_p )
+	}
+	loop over u@coarser {
+		u@coarser = 0.0
+	}
+	apply bc to u@coarser
+	loop over v@coarser {
+		v@coarser = 0.0
+	}
+	apply bc to v@coarser
+	loop over p@coarser {
+		p@coarser = 0.0
+	}
+	apply bc to p@coarser
+	mgCycle@coarser (  )
+	communicate all of u@coarser
+	loop over u {
+		u += ( FaceXProlongation@coarser * u@coarser )
+	}
+	apply bc to u
+	communicate all of v@coarser
+	loop over v {
+		v += ( FaceYProlongation@coarser * v@coarser )
+	}
+	apply bc to v
+	loop over p {
+		p += ( CellProlongation@coarser * p@coarser )
+	}
+	apply bc to p
+	repeat 4 times {
+		color with {
+			( i0 % 3 ),
+			( i1 % 3 ),
+			communicate all of u
+			communicate all of v
+			communicate all of p
+			loop over p {
+				solve locally relax 0.8 {
+					u@[0, 0] => ( ( A11@[0, 0] * u@[0, 0] ) + ( B1@[0, 0] * p@[0, 0] ) ) == rhs_u@[0, 0]
+					u@[1, 0] => ( ( A11@[1, 0] * u@[1, 0] ) + ( B1@[1, 0] * p@[1, 0] ) ) == rhs_u@[1, 0]
+					v@[0, 0] => ( ( A22@[0, 0] * v@[0, 0] ) + ( B2@[0, 0] * p@[0, 0] ) ) == rhs_v@[0, 0]
+					v@[0, 1] => ( ( A22@[0, 1] * v@[0, 1] ) + ( B2@[0, 1] * p@[0, 1] ) ) == rhs_v@[0, 1]
+					p@[0, 0] => ( ( C2@[0, 0] * v@[0, 0] ) + ( C1@[0, 0] * u@[0, 0] ) ) == rhs_p@[0, 0]
+				}
+			}
+			apply bc to u
+			apply bc to v
+			apply bc to p
+		}
+	}
+}
+
+Function InitFields@finest {
+	loop over rhs_p {
+		rhs_p = ( vf_cellVolume * ( ( ( 2.0 * PI ) * cos ( ( ( 2.0 * PI ) * vf_cellCenter_x ) ) ) - ( ( 2.0 * PI ) * cos ( ( ( 2.0 * PI ) * vf_cellCenter_y ) ) ) ) )
+	}
+	loop over rhs_u {
+		rhs_u = ( vf_xStagCellVolume * ( ( ( ( 4.0 * ( PI ** 2 ) ) * sin ( ( ( 2.0 * PI ) * vf_nodePosition_x ) ) ) - ( ( PI ** 2 ) * cos ( ( PI * vf_cellCenter_y ) ) ) ) + ( ( 4.0 * PI ) * cos ( ( ( 4.0 * PI ) * vf_nodePosition_x ) ) ) ) )
+	}
+	loop over rhs_v {
+		rhs_v = ( vf_yStagCellVolume * ( ( ( ( PI ** 2 ) * cos ( ( PI * vf_cellCenter_x ) ) ) - ( ( 4.0 * ( PI ** 2 ) ) * sin ( ( ( 2.0 * PI ) * vf_nodePosition_y ) ) ) ) + ( ( 4.0 * PI ) * cos ( ( ( 4.0 * PI ) * vf_nodePosition_y ) ) ) ) )
+	}
+}
+
+Function Application {
+	startTimer ( "setup" )
+	initGlobals (  )
+	initDomain (  )
+	initFieldsWithZero (  )
+	initGeometry (  )
+	InitFields@finest (  )
+	apply bc to u@finest
+	apply bc to v@finest
+	apply bc to p@finest
+	stopTimer ( "setup" )
+	startTimer ( "solve" )
+	Solve@finest (  )
+	stopTimer ( "solve" )
+	printAllTimers (  )
+	destroyGlobals (  )
+}
+

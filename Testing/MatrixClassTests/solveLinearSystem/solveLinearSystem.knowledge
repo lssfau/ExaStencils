@@ -2,4 +2,4 @@ dimensionality                = 2
 
 mpi_enabled = false
 
-experimental_classifyLocMat = true
+//experimental_classifyLocMat = true

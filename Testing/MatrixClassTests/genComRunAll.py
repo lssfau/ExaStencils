@@ -10,60 +10,67 @@ import ntpath
 tests = []
 
 # application testcases
-#tests.append("./NSGTestcase/2D_FD_Stokes_fromL4")
-#tests.append("./NSGTestcase/3D_FD_Stokes_fromL4")
-#tests.append("./NSGTestcase/3D_FV_NavierStokes_localNewton")
-#tests.append("./NSGTestcase/3D_FV_NavierStokes_localPicard")
-#tests.append("./NSGTestcase/3D_FV_Stokes_fromL4")
-#tests.append("./NSGTestcase/2D_FD_OptFlow_fromL4")
-#tests.append("./NSGTestcase/2D_FD_OptFlow_fromL4_Vec")
+tests.append("./NSGTestcase/2D_FD_Stokes_fromL4")
+tests.append("./NSGTestcase/3D_FD_Stokes_fromL4")
+tests.append("./NSGTestcase/3D_FV_NavierStokes_localNewton")
+tests.append("./NSGTestcase/3D_FV_NavierStokes_localPicard")
+tests.append("./NSGTestcase/3D_FV_Stokes_fromL4")
+tests.append("./NSGTestcase/2D_FD_OptFlow_fromL4")
+tests.append("./NSGTestcase/2D_FD_OptFlow_fromL4_Vec")
 
 # compiletime inversion
-tests.append("./invert/CompileTime/BlockDiagonal")
-tests.append("./invert/CompileTime/Cofactors")
-tests.append("./invert/CompileTime/Diagonal")
-tests.append("./invert/CompileTime/GaussJordan")
-tests.append("./invert/CompileTime/Schur")
-tests.append("./invert/CompileTime/smallMatrices")
+#tests.append("./invert/CompileTime/BlockDiagonal")
+#tests.append("./invert/CompileTime/Cofactors")
+#tests.append("./invert/CompileTime/Diagonal")
+#tests.append("./invert/CompileTime/GaussJordan")
+#tests.append("./invert/CompileTime/Schur")
+#tests.append("./invert/CompileTime/SchurWithHelpers")
+#tests.append("./invert/CompileTime/smallMatrices")
 
 # runtime inversion
-tests.append("./invert/Runtime/Schur")
-tests.append("./invert/Runtime/LU")
-tests.append("./invert/Runtime/Diagonal")
-tests.append("./invert/Runtime/Blockdiagonal")
-tests.append("./invert/Runtime/SchurLargeMatrix")
-tests.append("./invert/Runtime/SmallMatrix")
+#tests.append("./invert/Runtime/Schur")
+#tests.append("./invert/Runtime/LU")
+#tests.append("./invert/Runtime/Diagonal")
+#tests.append("./invert/Runtime/Blockdiagonal")
+#tests.append("./invert/Runtime/SchurLargeMatrix")
+#tests.append("./invert/Runtime/SmallMatrix")
 
 # misc functions
-tests.append("./resolvingMatrixFunctions/chaines")
-tests.append("./resolvingMatrixFunctions/cross")
-tests.append("./resolvingMatrixFunctions/determinant")
-tests.append("./resolvingMatrixFunctions/dot")
-tests.append("./resolvingMatrixFunctions/slicing")
-tests.append("./resolvingMatrixFunctions/trace")
-tests.append("./resolvingMatrixFunctions/transpose")
+#tests.append("./resolvingMatrixFunctions/chaines")
+#tests.append("./resolvingMatrixFunctions/cross")
+#tests.append("./resolvingMatrixFunctions/determinant")
+#tests.append("./resolvingMatrixFunctions/dot")
+#tests.append("./resolvingMatrixFunctions/slicing")
+#tests.append("./resolvingMatrixFunctions/trace")
+#tests.append("./resolvingMatrixFunctions/transpose")
 
 # arithmetic operators
-tests.append("./resolvingMatrixOperators")
+#tests.append("./resolvingMatrixOperators")
 
 
 # solveLinearSystem
-tests.append("./solveLinearSystem")
+#tests.append("./solveLinearSystem")
 
 # determine structure
-tests.append("./determineMatrixStructures")
+#tests.append("./determineMatrixStructures")
 
 # field declarations with matrix structure information
-tests.append("./shapeFromField")
+#tests.append("./shapeFromField")
 
 
 
 
-
-generator_path = "../../classes/artifacts/Compiler_jar/Compiler.jar"
 
 
 def main():
+    generator_path : str
+    if(len(sys.argv) == 2):
+        if(sys.argv[1] == "reference"):
+            generator_path =  "../../../refc/exastencils/classes/artifacts/Compiler_jar/Compiler.jar"
+            print("reference")
+        elif(str(sys.argv[1]) == "default"):
+            generator_path =  "../../classes/artifacts/Compiler_jar/Compiler.jar"
+            print("default")
     for test in tests:
         (dir_name,problem_name) = ntpath.split(test)
         #if not problem_name:
@@ -74,16 +81,30 @@ def main():
         knowledge_path = f'{test}/{problem_name}.knowledge'
         #print(settings_path)
         #print(knowledge_path)
+
+
+        # generate
         print("generating " + problem_name)
-        genfile = open(f"{test}/Debug/gen_{problem_name}.txt",'w+') 
+        genpath : str
+        if(sys.argv[1] == "reference"):
+            genpath = f"{test}/Debug/gen_{problem_name}_refc.txt"
+        else:
+            genpath = f"{test}/Debug/gen_{problem_name}.txt"
+        genfile = open(genpath,'w+') 
         out = subprocess.run(['java', '-cp', generator_path, 'Main',  settings_path, knowledge_path], stdout=genfile, stderr=genfile)
         if(out.returncode != 0): 
             print(problem_name + " failed while generating\n")
             continue
         
+
         # run makefile
         print("compiling " + problem_name)
-        compilefile = open(f"{test}/Debug/compile_{problem_name}.txt",'w+') 
+        compath : str
+        if(sys.argv[1] == "reference"):
+            compath = f"{test}/Debug/com_{problem_name}_refc.txt"
+        else:
+            compath = f"{test}/Debug/com_{problem_name}.txt"
+        compilefile = open(compath,'w+') 
         out = subprocess.run(['make', '-B'],cwd=f"{test}/output/", stdout=compilefile, stderr=compilefile)
         if(out.returncode != 0): 
             print(problem_name + " failed while compiling\n")
@@ -91,12 +112,27 @@ def main():
 
         # run application
         print("running " + problem_name + "\n")
-        runfile = open(f"{test}/Debug/run_{problem_name}.txt",'w+') 
+        runpath : str
+        if(sys.argv[1] == "reference"):
+            runpath = f"{test}/Debug/run_{problem_name}_refc.txt"
+        else:
+            runpath = f"{test}/Debug/run_{problem_name}.txt"
+        runfile = open(runpath,'w+')   
         out = subprocess.run(['./exastencils'], cwd=f"{test}/output/", stdout=runfile, stderr=runfile)
         if(out.returncode != 0): 
             print(problem_name + " failed while running\n")
             continue    
+
         # compare outputs with reference outputs
+        if(sys.argv[1] != "reference"):
+            print("comparing " + problem_name + " with reference\n")
+            default_comppath = f"{test}/Debug/run_{problem_name}.txt"
+            ref_comppath = f"{test}/Debug/run_{problem_name}_refc.txt"
+            compfile = open(f"{test}/Debug/compare_{problem_name}.txt",'w+')   
+            out = subprocess.run(['diff', ref_comppath, default_comppath], stdout=compfile, stderr=compfile)
+            if(out.returncode != 0): 
+                print(problem_name + " failed while comparing\n")
+                continue    
 
 if __name__ == "__main__":
     main()

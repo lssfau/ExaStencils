@@ -1,0 +1,30 @@
+5c5
+< The maximum error (u,v,p) is 0.00501067 0.00583284 1.19322 
+---
+> The maximum error (u,v,p) is 0.00501058 0.00583278 1.19321 
+7c7
+< The maximum error (u,v,p) is 0.000176952 0.000258038 0.0720271 
+---
+> The maximum error (u,v,p) is 0.000176952 0.000258038 0.0720259 
+9c9
+< The maximum error (u,v,p) is 2.98505e-05 1.79862e-05 0.00514816 
+---
+> The maximum error (u,v,p) is 2.98504e-05 1.79862e-05 0.00514815 
+11c11
+< The maximum error (u,v,p) is 1.60099e-05 1.55048e-05 0.000404397 
+---
+> The maximum error (u,v,p) is 1.60099e-05 1.55048e-05 0.000404398 
+18c18
+< Residual after 9 iterations is 8.29436e-05 --- convergence factor is 0.0724638 
+---
+> Residual after 9 iterations is 8.29432e-05 --- convergence factor is 0.0724634 
+20c20
+< Residual after 10 iterations is 5.9964e-06 --- convergence factor is 0.0722949 
+---
+> Residual after 10 iterations is 5.99634e-06 --- convergence factor is 0.0722945 
+22,23c22,23
+< Mean mean total time for Timer setup: 62.5676 
+< Mean mean total time for Timer solve: 879.652 
+---
+> Mean mean total time for Timer setup: 58.9887 
+> Mean mean total time for Timer solve: 893.551 
