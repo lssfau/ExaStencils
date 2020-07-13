@@ -289,7 +289,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => L4_Reduction(op, s) })
   lazy val regionSpecification = locationize((("ghost" ||| "dup" ||| "inner") ~ constIndex ~ ("on" <~ "boundary").?) ^^ { case region ~ dir ~ bc => L4_RegionSpecification(region, dir, bc.isDefined) })
 
-  lazy val assignment = locationize(genericAccess ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })
+  lazy val assignment = locationize(spezialAccess ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })
   lazy val operatorassignment = locationize(genericAccess ~ ("+=" ||| "-=" ||| "*=" ||| "/=") ~ binaryexpression
     ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })
 
@@ -444,7 +444,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| integerLit.*)
 
   lazy val complexMulDimIndex = (
-    ((ident) <~ ("," ||| ("]" ~ "["))).+ ~ (ident) ^^ { case entries ~ entry => entries.::(entry) }
+    (ident <~ ",").+ ~ ident ^^ { case entries ~ entry => entries.::(entry) }
       ||| (ident).*)
 
   // ######################################
@@ -480,7 +480,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| locationize("-" ~> functionCall ^^ { L4_Negative(_) })
       ||| functionCall
       ||| locationize("-" ~> genericAccess ^^ { L4_Negative(_) })
-      ||| genericAccess
+      ||| spezialAccess
     )
 
   lazy val numLit = locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) L4_IntegerConstant((s.getOrElse("") + n).toInt) else L4_RealConstant((s.getOrElse("") + n).toDouble) })

@@ -18,6 +18,8 @@
 
 package exastencils.baseExt.ir
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.base.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
@@ -29,35 +31,38 @@ import exastencils.util.l4.L4_VariableDeclarationCollector
 
 /** Factory for IR_ComplexAccess objects */
 object IR_ComplexAccess {
-  def apply(name : String) = new IR_ComplexAccess(name, None, None)
+  def apply(name : String, decl : IR_VariableDeclaration) = new IR_ComplexAccess(name, decl, None, None)
 }
 
 
-case class IR_ComplexAccess(var name : String, var arrayIndex : Option[String], var mulDimIndex : Option[List[String]]) extends IR_Expression {
-  val declCollector = new L4_VariableDeclarationCollector
+case class IR_ComplexAccess(var name : String, var decl : IR_VariableDeclaration, var arrayIndex : Option[String], var mulDimIndex : Option[List[String]]) extends IR_Access {
 
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " <<
     this.getClass.getName << "\n"
-  override def datatype : IR_Datatype = declCollector.getDeclaration(name).progress.datatype
+  override def datatype : IR_Datatype = decl.datatype
+
+  def isNUmeric(x : Char) : Boolean = {
+    if ((x < 48) || (x > 57)) return false
+    true
+  }
 
   def resolve() : IR_Expression = {
-    val decl : IR_VariableDeclaration = declCollector.getDeclaration(name).progress
     val acc = IR_VariableAccess(name, decl.datatype)
     if (arrayIndex.isDefined) {
       IR_StringConstant("Complex Array Access not yet implemented")
     } else if (mulDimIndex.isDefined) {
       mulDimIndex match {
-        case Some(i) if !(i.exists(k => k.exists(l => l.isDigit))) => // case classic access
+        case Some(i) if !(i.exists(k => k.exists(l => !isNUmeric(l)))) => // case classic access
           val l = i.asInstanceOf[List[Int]]
           acc.datatype match {
-            case dat : IR_MatrixDatatype =>
+            case _ : IR_MatrixDatatype =>
               if (l.length > 2) Logger.error("Matrix Access with more than 2 axes not yet implemented")
               val tmp = acc.datatype.asInstanceOf[IR_MatrixDatatype]
               if (l(0) > tmp.sizeM) Logger.error("Matrix Access x index out of bounds")
               if (l(1) > tmp.sizeN) Logger.error("Matrix Access y index out of bounds")
               IR_StringConstant(Array(name, "[", l(0) + l(1) * tmp.sizeN , "]").mkString(""))
 
-            case dat : IR_TensorDatatype2 =>
+            case _ : IR_TensorDatatype2 =>
               if (l.length > 2) Logger.error("Order 2 Tensor can not be accessed with more than 2 dimensions")
               IR_HighDimAccess(Duplicate(acc), IR_ExpressionIndex(l.toArray))
               val tmp = acc.datatype.asInstanceOf[IR_TensorDatatype2]
@@ -65,9 +70,10 @@ case class IR_ComplexAccess(var name : String, var arrayIndex : Option[String], 
               if (l(1) > tmp.dims) Logger.error("Matrix Access y index out of bounds")
               IR_StringConstant(Array(name, "[", l(0) + l(1) * tmp.dims , "]").mkString(""))
 
-            case dat : IR_TensorDatatypeN =>
+            case _ : IR_TensorDatatypeN =>
               val tmp = acc.datatype.asInstanceOf[IR_TensorDatatypeN]
               if (tmp.order != i.length) Logger.error("Access to Tensor has wrong dimensionality")
+              if (l.exists(a => a > tmp.order)) Logger.error("Tensor Acces index out of bounds")
               // Later it is possible to accept tmp.dims >= i.length
               // f.e.to access like [0, 1, :] = [0, 1] for a 3 dimensional tensor
               var index : Double = 0.0
@@ -78,13 +84,12 @@ case class IR_ComplexAccess(var name : String, var arrayIndex : Option[String], 
             case _ => Logger.error("Complex Access got not supported data type")
           }
         case Some(i) if i.isInstanceOf[List[String]] =>
-          val l = i.asInstanceOf[List[String]]
-          for (k <- l) {
-            if (!(k.isInstanceOf[Int]) || !(k.isInstanceOf[Char])) Logger.error("Complex Acces got strange indeces")
-          }
+          if (i.asInstanceOf[List[String]].exists(k => k.length > 1)) Logger.error("Complex Access got strange indeces")
+          var l = ListBuffer[Char]()
+          i.foreach(a => (l += a(0)))
           var myind : List[Any] = Nil
           for (k <- l) {
-            if (k.isInstanceOf[Char]) {
+            if (!isNUmeric(k)) {
               val index : Int = myind.indexOf(k)
               if (index != -1) {
                 myind = myind.updated(index, myind.size) // a number points to the index of the next similar element
@@ -94,25 +99,46 @@ case class IR_ComplexAccess(var name : String, var arrayIndex : Option[String], 
               myind = myind :+ k
             }
           }
-          /*acc.datatype match {
-            case dat : IR_TensorDatatype2 =>
+          acc.datatype match {
+            case _ : IR_MatrixDatatype =>
+              if (l.length > 2) Logger.error("Matrix Access with more than 2 axes not yet implemented")
+              val tmp = acc.datatype.asInstanceOf[IR_MatrixDatatype]
+              if (isNUmeric(l(0)) && !isNUmeric(l(1))) { // Case
+                if (l(0).asInstanceOf[Int] > tmp.sizeM) Logger.error("Matrix Access x index out of bounds")
+                val res = IR_MatrixExpression(acc.datatype, tmp.sizeM, tmp.sizeN)
+                for (i <- 0 until tmp.sizeM) res.set(l(0).asInstanceOf[Int], i, IR_HighDimAccess(acc, IR_ExpressionIndex(Array(l(0).asInstanceOf[Int], i))))
+                res
+              } else if (!isNUmeric(l(0)) && isNUmeric(l(1))) {
+                if (l(1).asInstanceOf[Int] > tmp.sizeN) Logger.error("Matrix Access y index out of bounds")
+                val res = IR_MatrixExpression(acc.datatype, tmp.sizeM, tmp.sizeN)
+                for (i <- 0 until tmp.sizeM) res.set(i, l(1).asInstanceOf[Int], IR_HighDimAccess(acc, IR_ExpressionIndex(Array(i, l(1).asInstanceOf[Int]))))
+                res
+              } else {
+                acc
+              }
+            case _ : IR_TensorDatatype2 =>
               if (l.length > 2) Logger.error("Order 2 Tensor can not be accessed with more than 2 dimensions")
-              IR_HighDimAccess(Duplicate(acc), IR_ExpressionIndex(Array(i)))
               val tmp = acc.datatype.asInstanceOf[IR_TensorDatatype2]
-              if (l(0).isInstanceOf[Int]) {
-                if (l(0).asInstanceOf[Int] > tmp.dims) Logger.error("Matrix Access x index out of bounds")
+              if (isNUmeric(l(0)) && !isNUmeric(l(1))) { // Case
+                if (l(0).asInstanceOf[Int] > tmp.dims) Logger.error("Tensor Access x index out of bounds")
+                val res = IR_TensorExpression2(acc.datatype, tmp.dims)
+                for (i <- 0 until res.dims) res.set(l(0).asInstanceOf[Int], i, IR_HighDimAccess(acc, IR_ExpressionIndex(Array(l(0).asInstanceOf[Int], i))))
+                res
+              } else if (!isNUmeric(l(0)) && isNUmeric(l(1))) {
+                if (l(1).asInstanceOf[Int] > tmp.dims) Logger.error("Tensor Access y index out of bounds")
+                val res = IR_TensorExpression2(acc.datatype, tmp.dims)
+                for (i <- 0 until res.dims) res.set(i, l(1).asInstanceOf[Int], IR_HighDimAccess(acc, IR_ExpressionIndex(Array(i, l(1).asInstanceOf[Int]))))
+                res
+              } else {
+                acc
               }
-              if (l(1).isInstanceOf[Int]) {
-                if (l(1).asInstanceOf[Int] > tmp.dims) Logger.error("Matrix Access y index out of bounds")
-              }
-              IR_StringConstant(Array(name, "[", l(0) + l(1) * tmp.dims, "]").mkString(""))
-          }*/
-          Logger.error("Not fully implemeneted")
+            case _ : IR_TensorDatatypeN => Logger.error("Tensor N not yet implemented")
+
+            case _ => Logger.error("Complex Access got not supported data type")
+          }
 
         case _ => Logger.error("Complex Access got not supported data type")
       }
-
-      IR_StringConstant("Not fully implemented")
     } else {
       IR_StringConstant("Not fully implemented")
     }
@@ -124,8 +150,12 @@ object IR_ResolveComplexAccess extends DefaultStrategy("Resolve user defined fun
   var declCollector = new L4_VariableDeclarationCollector
   this.register(declCollector)
 
+  def myresolve(access : IR_ComplexAccess) : IR_Expression = {
+    access.resolve()
+  }
+
   this += new Transformation("add assignments/decl to function returns to arguments", {
-    case access : IR_ComplexAccess if declCollector.existsPlain(access.name) =>
-        IR_ExpressionStatement(access.resolve())
+    //case access : IR_ComplexAccess if declCollector.existsPlain(access.name) => myresolve(access)
+    case access : IR_ComplexAccess => myresolve(access)
   })
 }

@@ -24,6 +24,7 @@ import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_ComplexAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
+import exastencils.util.l4.L4_VariableDeclarationCollector
 
 /// L4_ComplexAccess
 object L4_ComplexAccess {
@@ -41,6 +42,8 @@ case class L4_ComplexAccess(
     var level : Option[L4_AccessLevelSpecification],
     var arrayIndex : Option[String],
     var mulDimIndex : Option[List[String]]) extends L4_Access { //TODO: Hier soll Option raus, nicht notwendig da * Operator
+
+  val declCollector = new L4_VariableDeclarationCollector
 
   def prettyprint(out : PpStream) = {
     out << name
@@ -72,9 +75,15 @@ case class L4_ComplexAccess(
     if (arrayIndex.isDefined) Logger.warn("Discarding meaningless array index access on basic or leveled access")
     if (mulDimIndex.isDefined) Logger.warn("Discarding meaningless array index access on basic or leveled access")
 
+    declCollector.reset()
+
+    //if (!declCollector.exists(name)) Logger.error("Access on not defined value")
+
+    val decl = declCollector.getDeclaration(name).progress
+
     if (arrayIndex.isDefined)
-      IR_ComplexAccess(name, arrayIndex, None)
+      IR_ComplexAccess(name, decl, arrayIndex, None)
     else
-      IR_ComplexAccess(name, None, mulDimIndex)
+      IR_ComplexAccess(name, decl, None, mulDimIndex)
   }
 }

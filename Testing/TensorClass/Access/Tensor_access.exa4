@@ -1,10 +1,6 @@
 Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
 
 Globals {
-
-}
-
-Function Application() : Unit {
     Var t1 : Tensor2< Real, 3 > = tens2{ 3 ;
         [0,0] := 1.0,
         [1,0] := 1,
@@ -17,6 +13,10 @@ Function Application() : Unit {
         [2,2] := 1
         }
 
+}
+
+Function Application() : Unit {
+
     Var t2 : Tensor2< Real, 3 > = tens2{ 3 ;
         [0,0] := 1.0,
         [1,0] := 2,
@@ -25,7 +25,7 @@ Function Application() : Unit {
         [1,1] := 5
         }
 
-    Var t3 : Real = t1[a]
+    Var t3 : Real = t1[1,1]
 
 
 }
