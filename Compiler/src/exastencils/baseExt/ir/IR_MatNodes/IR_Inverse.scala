@@ -1,4 +1,4 @@
-package exastencils.baseExt.ir.IR_MatrixFunctionNodes
+package exastencils.baseExt.ir.IR_MatNodes
 
 import scala.collection.mutable.ListBuffer
 
@@ -9,8 +9,8 @@ import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_CompiletimeInversion
-import exastencils.baseExt.ir.IR_DetermineMatrixStructure
-import exastencils.baseExt.ir.IR_GenerateRuntimeInversion
+import exastencils.baseExt.ir.IR_ClassifyMatShape
+import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateRuntimeInversion
 import exastencils.baseExt.ir.IR_MatShape
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
@@ -116,14 +116,14 @@ object IR_IntermediateInv {
             case Some(x @ IR_MatrixExpression(_, _, _)) =>
               //if (IR_MatrixNodeUtilities.notWrittenTo(name)) {
               if (!IR_PreItMOps.variableCollector.writeInScope(name)) {
-                IR_DetermineMatrixStructure(x)
+                IR_ClassifyMatShape(x)
               }
               else
                 Logger.error("found assignment to matrix input that was to classify, cannot classify non compiletime constant matrices!")
             case _                                      => Logger.error(s"unexpected initialization value: ${ decl.initialValue }, expected matrix expression!")
           }
         case x : IR_MatrixExpression                                  =>
-          IR_DetermineMatrixStructure(x)
+          IR_ClassifyMatShape(x)
         case _                                                        => Logger.error(s"unexpected argument ${ args(0) }, expected matrix as variable or anonymous value")
       }
     }
@@ -207,7 +207,7 @@ case class IR_InverseRT(
 
     var newstmts = ListBuffer[IR_Statement]()
     var inMatrix = arg match {
-      case x @ IR_MatrixExpression(_, _, _) =>
+      case x @ IR_MatrixExpression(_, _, _,_) =>
         var decl = IR_MatrixNodeUtilities.expressionToDeclaration(x, "inverse_tmp_")
         newstmts += decl
         IR_VariableAccess(decl)

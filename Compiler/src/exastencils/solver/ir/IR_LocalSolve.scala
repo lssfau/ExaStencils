@@ -198,6 +198,7 @@ case class IR_LocalSolve(
         case _ => false
       }
   }
+
   def findMatShape(faccs : ListBuffer[IR_FieldAccess]) : Option[IR_MatShape] = {
     //TODO shapes can differ for different fields
     // just use first shape found for now
@@ -226,7 +227,7 @@ case class IR_LocalSolve(
     } else if(Knowledge.experimental_classifyLocMat || Knowledge.experimental_applySchurCompl) {
       // structure to specify (blocksize to specify for apply schur compl, for backwards compatibility)
       // TODO: if all local matrices have the same structure: classify only once
-      IR_DetermineMatrixStructure(AVals)
+      IR_ClassifyMatShape(AVals)
     } else if(Knowledge.experimental_locMatStructure != "filled") {
       // structure for all local matrices given in knowledge
       IR_MatShape(Knowledge.experimental_locMatStructure)

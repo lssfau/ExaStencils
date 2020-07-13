@@ -34,17 +34,17 @@ import exastencils.optimization.ir.IR_SimplifyExpression
 
 // methods to determine whether a matrix is a diagonal-, blockdiagonal-, schurmatrix at compiletime
 //TODO matrices have to be filled with constants
-object IR_DetermineMatrixStructure {
+object IR_ClassifyMatShape {
   def apply(mat : IR_Expression) = {
-    isOfStructure(mat)
+    isOfShape(mat)
   }
   def apply(mat : ListBuffer[ListBuffer[IR_Addition]]) = {
-    isOfStructure(mat)
+    isOfShape(mat)
   }
 
   def evaluateEntry(mat : IR_Expression, i : Int, j : Int) : Double = {
     mat match {
-      case x @ (IR_MatrixExpression(_, _, _) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))) =>
+      case x @ (IR_MatrixExpression(_, _, _,_) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))) =>
         val entry = IR_BasicMatrixOperations.getElem(x, i, j)
         entry match {
           case va : IR_VariableAccess                                                                                    => 1
@@ -58,11 +58,11 @@ object IR_DetermineMatrixStructure {
   }
 
   // determine structure of 'matrix' (which must have compiletime evaluatable entries) and return it as a String + more specific structure information like blocksizes in case of Schur or Blockdiagonal matrices
-  def isOfStructure(matrix : IR_Expression) : IR_MatShape = {
+  def isOfShape(matrix : IR_Expression) : IR_MatShape = {
     var blocksize_A = 0
     var blocksize_D = 0
     matrix match {
-      case mat @ IR_MatrixExpression(_, _, _) =>
+      case mat @ IR_MatrixExpression(_, _, _,_) =>
         var size = IR_BasicMatrixOperations.getSize(mat)
         if (size._1 == 1) IR_MatShape("filled")
 
@@ -153,7 +153,7 @@ object IR_DetermineMatrixStructure {
   }
 
   // determine structure of 'matrix' (which must have compiletime evaluatable entries) and return it as a String + more specific structure information like blocksizes in case of Schur or Blockdiagonal matrices
-  def isOfStructure(mat : ListBuffer[ListBuffer[IR_Addition]]) : IR_MatShape = {
+  def isOfShape(mat : ListBuffer[ListBuffer[IR_Addition]]) : IR_MatShape = {
     if (mat.length == 1 || mat(0).length == 1) {
       baseExt.ir.IR_MatShape("filled")
     }
@@ -264,7 +264,7 @@ object IR_DetermineMatrixStructure {
   }
 
   // do the same at runtime, entries do not have to be compiletime evaluatable
-  def isOfStructureRuntime() : IR_PlainFunction = {
+  def isOfShapeRuntime() : IR_PlainFunction = {
     var debug = true
     var stmts = ListBuffer[IR_Statement]()
     var i = IR_VariableAccess("i", IR_IntegerDatatype)

@@ -16,7 +16,7 @@
 //
 //=============================================================================
 
-package exastencils.baseExt.ir
+package exastencils.baseExt.ir.IR_MatOperations
 
 import scala.collection.mutable.ListBuffer
 
@@ -31,6 +31,12 @@ import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_ScalarFree
 import exastencils.base.ir.IR_SizeOf
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_ArrayDatatype
+import exastencils.baseExt.ir.IR_BasicMatrixOperations
+import exastencils.baseExt.ir.IR_ClassifyMatShape
+import exastencils.baseExt.ir.IR_MatShape
+import exastencils.baseExt.ir.IR_MatrixDatatype
+import exastencils.baseExt.ir.IR_MatrixExpression
 import exastencils.baseExt.ir.IR_MatrixNodeUtilities._
 import exastencils.config._
 import exastencils.core._
@@ -55,7 +61,7 @@ object IR_GenerateBasicMatrixOperations {
     src match {
       case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) =>
         stmts += IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression](va,(va + destSize._1 * destSize._2), (dest)))
-      case x @ IR_MatrixExpression(_, _, _)                      =>
+      case x @ IR_MatrixExpression(_, _,_, _)                      =>
         var tmpAccess = IR_VariableAccess("copyTmp_" + tmpCounter, src.datatype)
         tmpCounter += 1
         stmts += IR_VariableDeclaration(tmpAccess, src)
@@ -275,7 +281,7 @@ object IR_GenerateBasicMatrixOperations {
             IR_Assignment(IR_HighDimAccess(dest, IR_ExpressionIndex(i - offset_r, j - offset_c)), IR_HighDimAccess(source, IR_ExpressionIndex(i, j)))
           ))
         ))
-      case x @ IR_MatrixExpression(_, _, _)                      =>
+      case x @ IR_MatrixExpression(_, _, _,_)                      =>
         var decl = IR_VariableDeclaration(x.datatype, "copyTmp_" + tmpCounter, x)
         tmpCounter += 1
         stmts.body += decl
@@ -458,6 +464,7 @@ object IR_GenerateRuntimeInversion {
     var func = IR_Scope(Nil)
     var i = IR_VariableAccess("i", IR_IntegerDatatype)
 
+    // inversion loop
     func.body += IR_VariableDeclaration(i)
     func.body += IR_Assignment(i, IR_IntegerConstant(0))
     func.body += IR_WhileLoop(IR_Lower(i, IR_IntegerConstant(N)), ListBuffer[IR_Statement](
@@ -560,20 +567,27 @@ object IR_GenerateRuntimeInversion {
     var block = IR_VariableAccess("block", IR_IntegerDatatype)
     val inDt = in.datatype.asInstanceOf[IR_MatrixDatatype]
     val N = inDt.sizeM
-    if (N % blocksize_asInt != 0) Logger.error("IR_ResolveMatrixFunctions::localLUInversion: Matrices with size not mutliple of blocksize not implemented yet")
+    if (N % blocksize_asInt != 0) Logger.error(" Matrices with size not mutliple of blocksize not implemented yet")
     func.body += IR_VariableDeclaration(P)
-    var inplace = Knowledge.experimental_inplaceInversion
-    if (!inplace) {
+    if (!Knowledge.experimental_inplaceInversion) {
+      // copy input matrix and work on copy
       var inCopy = IR_VariableAccess("inCopy", IR_MatrixDatatype(inDt.resolveBaseDatatype, N, N))
       func.body += IR_VariableDeclaration(inCopy)
+
+      // addition must not be resolved in compiler
       val in_end = IR_Addition(in, N*N)
       in_end.annotate(pointerArithmetic)
       func.body += IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression]((in), in_end, inCopy))
+
+      // LU decompose
       func.body ++= localLUDecomp(inCopy, P, blocksize_asInt, offset_r, offset_c)
+      // invert
       func.body ++= localLUDecomposedInversion(inCopy, P, blocksize_asInt, offset_r, offset_c, out)
     }
     else {
+      // LU decompose
       func.body ++= localLUDecomp(in, P, blocksize_asInt, offset_r, offset_c)
+      // invert
       func.body ++= localLUDecomposedInversion(in, P, blocksize_asInt, offset_r, offset_c, out)
     }
     func
@@ -854,7 +868,7 @@ object IR_GenerateRuntimeInversion {
       case "schur"         =>
         val blocksize : Int = msi.size("block")
         val matrixStructureA : String = msi.shape("A")
-        val blocksizeA : Int = msi.size("Ablock")
+        val blocksizeA : Int = if(matrixStructureA == "blockdiagonal") msi.size("Ablock") else -1
           schurInlined(in, blocksize, matrixStructureA, blocksizeA, out)
       case _               => Logger.error("runtime inversion: unknown runtimeInverse resolve: " + matrixStructure)
     }
@@ -899,7 +913,7 @@ object IR_GenerateRuntimeInversion {
       IR_UtilFunctions.get += IR_GenerateRuntimeInversion.smallMatrixInversionAsFunction()
     }
     if (!IR_UtilFunctions.get.functions.exists(f => f.name == "isOfStructure")) {
-      IR_UtilFunctions.get += IR_DetermineMatrixStructure.isOfStructureRuntime()
+      IR_UtilFunctions.get += IR_ClassifyMatShape.isOfShapeRuntime()
     }
     if (!IR_UtilFunctions.get.functions.exists(f => f.name == "inv_schur")) {
       IR_UtilFunctions.get += IR_GenerateRuntimeInversion.schurAsFunction()

@@ -45,6 +45,12 @@ object IR_MatrixExpression {
     tmp.expressions = expressions
     tmp
   }
+  def apply(innerDatatype : Option[IR_Datatype], rows : Integer, columns : Integer, expressions : Array[IR_Expression], shape: Option[IR_MatShape]) : IR_MatrixExpression = {
+    val tmp = new IR_MatrixExpression(innerDatatype, rows, columns, shape)
+    tmp.expressions = expressions
+    tmp
+  }
+
 
   def apply(innerDatatype : Option[IR_Datatype], expressions : ListBuffer[ListBuffer[IR_Expression]]) : IR_MatrixExpression = {
     val rows = expressions.size
@@ -57,7 +63,6 @@ object IR_MatrixExpression {
     }
     tmp
   }
-
   def apply(datatype : IR_MatrixDatatype, expressions : ListBuffer[IR_Expression]) : IR_MatrixExpression = {
     val tmp = IR_MatrixExpression(datatype.datatype, datatype.sizeM, datatype.sizeN)
     tmp.expressions = expressions.toArray
@@ -72,7 +77,7 @@ object IR_MatrixExpression {
   }
 }
 
-case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var rows : Int, var columns : Int) extends IR_Expression {
+case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var rows : Int, var columns : Int, shape : Option[IR_MatShape] = None) extends IR_Expression {
   var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](rows * columns)
 
   override def datatype = {

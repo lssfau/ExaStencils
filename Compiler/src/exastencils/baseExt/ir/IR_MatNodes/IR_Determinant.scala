@@ -1,4 +1,4 @@
-package exastencils.baseExt.ir.IR_MatrixFunctionNodes
+package exastencils.baseExt.ir.IR_MatNodes
 
 import scala.collection.mutable.ListBuffer
 
@@ -7,7 +7,7 @@ import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_BasicMatrixOperations
-import exastencils.baseExt.ir.IR_GenerateBasicMatrixOperations
+import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
 import exastencils.baseExt.ir.IR_MatrixNodeUtilities

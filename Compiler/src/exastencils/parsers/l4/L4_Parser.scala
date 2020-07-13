@@ -476,8 +476,12 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val columnVectorExpression = locationize(rowVectorExpression <~ "T" ^^ (x => L4_VectorExpression(None, x.expressions, false)) |||
     "[" ~> repsep(binaryexpression, ";") <~ "]" ^^ { x => L4_VectorExpression(None, x, false) })
 
-  lazy val matrixExpression = locationize(("{" ~> repsep(rowVectorExpression, ",") <~ "}") ~ "T".? ^^ { case x ~ t => val e = L4_MatrixExpression(None, x.map(_.expressions.toList)); if (t.isDefined) L4_FunctionCall(L4_UnresolvedFunctionReference("transpose", None, None), e); else e } |||
-    ("[" ~> repsep(binaryexpression.+, ";")) <~ "]" ^^ { x => L4_MatrixExpression(None, x) })
+  lazy val matrixExpression = locationize(("{" ~> repsep(rowVectorExpression, ",") <~ "}") ~ "T".? ~ matShapeOption.?
+    ^^ { case x ~ t ~ s => val e =
+    L4_MatrixExpression(None, x.map(_.expressions.toList), s);
+    if (t.isDefined) L4_FunctionCall(L4_UnresolvedFunctionReference("transpose", None, None), e);
+    else e } |||
+    ("[" ~> repsep(binaryexpression.+, ";")) <~ "]" ^^ { x => L4_MatrixExpression(None, x, None) })
 
   lazy val booleanexpression : PackratParser[L4_Expression] = (
     locationize((booleanexpression ~ ("||" ||| "or") ~ booleanexpression1) ^^ { case ex1 ~ op ~ ex2 => L4_BinaryOperators.createExpression(op, ex1, ex2) })

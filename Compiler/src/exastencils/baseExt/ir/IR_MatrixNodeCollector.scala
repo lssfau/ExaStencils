@@ -13,8 +13,8 @@ import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.base.ir.IR_WhileLoop
-import exastencils.baseExt.ir.IR_MatrixFunctionNodes.IR_SetElement
-import exastencils.baseExt.ir.IR_MatrixFunctionNodes.IR_SetSlice
+import exastencils.baseExt.ir.IR_MatNodes.IR_SetElement
+import exastencils.baseExt.ir.IR_MatNodes.IR_SetSlice
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
 import exastencils.logger.Logger

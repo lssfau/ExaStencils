@@ -1,4 +1,4 @@
-package exastencils.baseExt.ir.IR_MatrixFunctionNodes
+package exastencils.baseExt.ir.IR_MatNodes
 
 import exastencils.base.ir.IR_Expression
 import exastencils.datastructures.Transformation

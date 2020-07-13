@@ -189,7 +189,7 @@ object IR_BasicMatrixOperations {
   // multiply two vectors/matrices per dot product
   def dotProduct(left : IR_Expression, right : IR_Expression) : IR_MatrixExpression = {
     (left, right) match {
-      case (l @ (IR_MatrixExpression(_, _, _) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))), r @ (IR_MatrixExpression(_, _, _) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)))) =>
+      case (l @ (IR_MatrixExpression(_, _,_, _) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))), r @ (IR_MatrixExpression(_,_, _, _) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)))) =>
         var lsize = getSize(l)
         var rsize = getSize(r)
         (lsize, rsize) match {
@@ -219,7 +219,7 @@ object IR_BasicMatrixOperations {
   // multiply two columnvectors of size 3 per crossProduct
   def crossProduct(left : IR_Expression, right : IR_Expression) : IR_MatrixExpression = {
     (left, right) match {
-      case (l @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) | IR_MatrixExpression(_, _, _)), r @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) | IR_MatrixExpression(_, _, _))) =>
+      case (l @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) | IR_MatrixExpression(_,_, _, _)), r @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) | IR_MatrixExpression(_,_, _, _))) =>
         var lsize = getSize(left)
         var rsize = getSize(right)
         if (lsize._1 != 3 || lsize._2 != 1 || rsize._1 != 3 || rsize._2 != 1)
@@ -507,7 +507,7 @@ object IR_BasicMatrixOperations {
         for (i <- 0 until s._1) {
           sum = IR_Addition(sum, getElem(va, i, i))
         }
-      case x @ IR_MatrixExpression(_, _, _)                      =>
+      case x @ IR_MatrixExpression(_, _,_, _)                      =>
         if (x.rows != x.columns)
           Logger.error("trace only for quadratic matrices supported, matrix is of form: " + (x.rows, x.columns))
         for (i <- 0 until x.rows) {
@@ -520,6 +520,8 @@ object IR_BasicMatrixOperations {
 
 // methods to determine a inverse at compiletime
 object IR_CompiletimeInversion {
+  var tmpCounter = 0
+
   // head function that branches to specific inversions
   def inverse(that : IR_MatrixExpression, msi : IR_MatShape) : IR_MatrixExpression = {
     var matrixStructure = msi.shape
@@ -615,7 +617,7 @@ object IR_CompiletimeInversion {
       => {
         that.rows match {
           case 1 =>
-            IR_MatrixExpression(that.innerDatatype, 1, 1, Array(IR_Division(IR_RealConstant(1.0), that.get(0, 0))))
+            IR_MatrixExpression(that.innerDatatype, 1, 1, Array(IR_Division(IR_RealConstant(1.0), that.get(0, 0))), None)
 
           case 2 =>
             val a = that.get(0, 0)
@@ -623,7 +625,7 @@ object IR_CompiletimeInversion {
             val c = that.get(1, 0)
             val d = that.get(1, 1)
             val det : IR_Expression = IR_Division(IR_RealConstant(1.0), (a * d) - (b * c))
-            IR_MatrixExpression(that.innerDatatype, 2, 2, Array(Duplicate(det) * Duplicate(d), Duplicate(det) * Duplicate(b) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(c) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(a)))
+            IR_MatrixExpression(that.innerDatatype, 2, 2, Array(Duplicate(det) * Duplicate(d), Duplicate(det) * Duplicate(b) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(c) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(a)), None)
 
           case 3 =>
             val a = that.get(0, 0)
@@ -645,7 +647,7 @@ object IR_CompiletimeInversion {
             val H = IR_IntegerConstant(-1) * (Duplicate(a) * Duplicate(f) - Duplicate(c) * Duplicate(d))
             val I = Duplicate(a) * Duplicate(e) - Duplicate(b) * Duplicate(d)
             val det = Duplicate(a) * A + Duplicate(b) * B + Duplicate(c) * C
-            IR_MatrixExpression(that.innerDatatype, 3, 3, Array(Duplicate(A) / Duplicate(det), Duplicate(D) / Duplicate(det), Duplicate(G) / Duplicate(det), Duplicate(B) / Duplicate(det), Duplicate(E) / Duplicate(det), Duplicate(H) / Duplicate(det), Duplicate(C) / Duplicate(det), Duplicate(F) / Duplicate(det), Duplicate(I) / Duplicate(det)))
+            IR_MatrixExpression(that.innerDatatype, 3, 3, Array(Duplicate(A) / Duplicate(det), Duplicate(D) / Duplicate(det), Duplicate(G) / Duplicate(det), Duplicate(B) / Duplicate(det), Duplicate(E) / Duplicate(det), Duplicate(H) / Duplicate(det), Duplicate(C) / Duplicate(det), Duplicate(F) / Duplicate(det), Duplicate(I) / Duplicate(det)), None)
           case _ =>
             gaussJordanInverse(that)
         }
@@ -715,43 +717,44 @@ object IR_CompiletimeInversion {
   }
 
   def schurWithHelpers(that : IR_MatrixExpression, dt : IR_Datatype, m : Int, n : Int, msi : IR_MatShape, out : IR_MatrixExpression) : IR_MatrixExpression = {
-    //TODO seperate implementation
-    val hms = ListBuffer[IR_VariableDeclaration]()
-    var S_inv = IR_VariableAccess("S_inv", IR_MatrixDatatype(dt, m, m))
-    var A_inv = IR_VariableAccess("A_inv", IR_MatrixDatatype(dt, n, n))
-    var CA_inv = IR_VariableAccess("CA_inv", IR_MatrixDatatype(dt, m, n))
-    var CA_invB = IR_VariableAccess("CA_invB", IR_MatrixDatatype(dt, m, m))
-    var A_invB = IR_VariableAccess("A_invB", IR_MatrixDatatype(dt, n, m))
-    var A_invBS_inv = IR_VariableAccess("A_invBS_inv", IR_MatrixDatatype(dt, n, m))
-    var S_invCA_inv = IR_VariableAccess("S_invCA_inv", IR_MatrixDatatype(dt, m, n))
-    var A_invBS_invCA_inv = IR_VariableAccess("A_invBS_invCA_inv", IR_MatrixDatatype(dt, n, n))
 
-    var A = copySubMatrix(that, 0, 0, n, n)
+    // helper matrix declarations, to be added to statement later
+    val hms = ListBuffer[IR_VariableDeclaration]()
+    var S_inv = IR_VariableAccess("S_inv_" + tmpCounter, IR_MatrixDatatype(dt, m, m))
+    var A_inv = IR_VariableAccess("A_inv_" + tmpCounter, IR_MatrixDatatype(dt, n, n))
+    var CA_inv = IR_VariableAccess("CA_inv_" + tmpCounter, IR_MatrixDatatype(dt, m, n))
+    var CA_invB = IR_VariableAccess("CA_invB_" + tmpCounter, IR_MatrixDatatype(dt, m, m))
+    var A_invB = IR_VariableAccess("A_invB_" + tmpCounter, IR_MatrixDatatype(dt, n, m))
+    var A_invBS_inv = IR_VariableAccess("A_invBS_inv_" + tmpCounter, IR_MatrixDatatype(dt, n, m))
+    var S_invCA_inv = IR_VariableAccess("S_invCA_inv_" + tmpCounter, IR_MatrixDatatype(dt, m, n))
+    var A_invBS_invCA_inv = IR_VariableAccess("A_invBS_invCA_inv_" + tmpCounter, IR_MatrixDatatype(dt, n, n))
+    tmpCounter += 1
 
     // build new matrix structure for submatrix A:
+    var A = copySubMatrix(that, 0, 0, n, n)
     val shapeA = IR_MatShape(msi.shape("A"))
     if (shapeA.shape == "blockdiagonal")
       shapeA.addInfo("block", msi.size("Ablock"))
     hms += IR_VariableDeclaration(A_inv,inverse(A, shapeA))
     IR_GeneralSimplify.doUntilDoneStandalone(A_inv)
 
-    // calculate S
+    // other block submatrices
     val B = copySubMatrix(that, 0, n, n, m)
     val C = copySubMatrix(that, n, 0, m, n)
     val D = copySubMatrix(that, n, n, m, m)
+
+    // calculate S
     hms += (IR_VariableDeclaration(CA_inv, mult(IR_Multiplication(C, A_inv))))
     hms += IR_VariableDeclaration(CA_invB, mult(IR_Multiplication(CA_inv, B)))
     val S = sub(IR_Subtraction(D, CA_invB))
-
-    // variable accesses for A size matrices
 
     // invert S
     // for schur complement inversion multiple structure information is necessary(n and m, blocksize of A, S is probably always filled) in case  m is larger than 1 (default should be "filled")
     hms += IR_VariableDeclaration(S_inv, inverse(S, IR_MatShape("filled")))
 
-
     // copy result blocks to 'out' matrix
     hms += IR_VariableDeclaration(A_invB, mult(IR_Multiplication(A_inv, B)))
+
     // upper right
     hms += (IR_VariableDeclaration(A_invBS_inv, mult(IR_Multiplication(A_invB, S_inv))))
     pasteSubMatrix(negative(A_invBS_inv), out, 0, n)
@@ -767,6 +770,7 @@ object IR_CompiletimeInversion {
     hms += (IR_VariableDeclaration(A_invBS_invCA_inv, mult(IR_Multiplication(A_invBS_inv, CA_inv))))
     pasteSubMatrix(add(IR_Addition(A_inv,A_invBS_invCA_inv)), out, 0, 0)
 
+    // helper matrices to inverted expression
     out.annotate("helperMatrices", hms)
     out
   }
