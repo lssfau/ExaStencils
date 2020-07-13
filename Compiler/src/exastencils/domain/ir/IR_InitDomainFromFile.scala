@@ -674,7 +674,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     // communicate (updated interior ghost layers)
     body += IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None)
     // deal with ghost layers on boundary
-    body += loopOverNumFragments(fillBoundaryGhostLayers(field))
+    //body += loopOverNumFragments(fillBoundaryGhostLayers(field))
     body += loopOverNumFragments(fillBoundaryGhostLayers2(field))
     // adapt ghost layers to match upper and lower triangles of neighbors
     body += IR_Comment("Adapt ghost layers by repositioning knots")
