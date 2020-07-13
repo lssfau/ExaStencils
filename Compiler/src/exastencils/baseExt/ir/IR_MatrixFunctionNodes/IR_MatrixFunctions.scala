@@ -148,7 +148,7 @@ case class IR_SetSlice(
         case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) =>
           IR_Scope(IR_GenerateBasicMatrixOperations.loopSetSubmatrixMat(va, matrix.asInstanceOf[IR_VariableAccess], IR_IntegerConstant(insize._1), IR_IntegerConstant(insize._2), offsetRows, offsetCols))
         case x @ IR_MatrixExpression(_, _, _)                      =>
-          var decl = IR_MatrixNodeUtilities.expressionToDeclaration(x)
+          var decl = IR_MatrixNodeUtilities.expressionToDeclaration(x,"slice_tmp_")
           IR_Scope(decl, IR_GenerateBasicMatrixOperations.loopSetSubmatrixMat(IR_VariableAccess(decl), matrix.asInstanceOf[IR_VariableAccess], IR_IntegerConstant(insize._1), IR_IntegerConstant(insize._2), offsetRows, offsetCols))
         case _                                                     => Logger.error(s"form of newValue matrix not supported: ${ newValue }, expected variable access to matrix variable")
       }

@@ -208,7 +208,7 @@ case class IR_InverseRT(
     var newstmts = ListBuffer[IR_Statement]()
     var inMatrix = arg match {
       case x @ IR_MatrixExpression(_, _, _) =>
-        var decl = IR_MatrixNodeUtilities.expressionToDeclaration(x)
+        var decl = IR_MatrixNodeUtilities.expressionToDeclaration(x, "inverse_tmp_")
         newstmts += decl
         IR_VariableAccess(decl)
       case va : IR_VariableAccess           => va

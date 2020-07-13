@@ -314,7 +314,6 @@ object IR_ResolveMatOperators extends DefaultStrategy("resolve operators") {
       IR_BasicMatrixOperations.elementwiseDivision(binOp.left, binOp.right)
     case binOp @ IR_ElementwiseAddition(_, _) if (checkIfMatOp(binOp) && isEvaluatable(binOp.left) && isEvaluatable(binOp.right))       =>
       IR_BasicMatrixOperations.add(binOp)
-    //TODO new non recursion
   })
 }
 
@@ -338,6 +337,15 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
       if (declDt.sizeM != srcDt.sizeM || declDt.sizeN != srcDt.sizeN)
         Logger.error(s"Declaration of variable of type: $declDt with expression of type: $srcDt, sizes must match!")
       IR_MatrixNodeUtilities.splitDeclaration(decl)
+
+    // resolve helper matrices
+    case s : IR_Assignment =>
+      val ms = StateManager.findAll[IR_MatrixExpression](s).filter(x => if(x.hasAnnotation("helperMatrices")) true else false)
+      val helperDecls = ListBuffer[IR_Statement]()
+      for(m <- ms) {
+        helperDecls ++= m.popAnnotationAs[IR_VariableDeclaration]("helperMatrices").asInstanceOf[ListBuffer[IR_Statement]]
+      }
+      helperDecls += s
   })
 
   this += new Transformation("assignments", {
@@ -558,8 +566,8 @@ object IR_MatrixNodeUtilities {
   }
 
   // transform a matrix expression to a temporary variable
-  def expressionToDeclaration(src : IR_MatrixExpression) : IR_VariableDeclaration = {
-    var decl = IR_VariableDeclaration(IR_MatrixDatatype(src.datatype.resolveBaseDatatype, src.rows, src.columns), "exprToDeclTmp_" + tmpCounter, src)
+  def expressionToDeclaration(src : IR_MatrixExpression, name : String) : IR_VariableDeclaration = {
+    var decl = IR_VariableDeclaration(IR_MatrixDatatype(src.datatype.resolveBaseDatatype, src.rows, src.columns), name + tmpCounter, src)
     tmpCounter += 1
     decl
   }
