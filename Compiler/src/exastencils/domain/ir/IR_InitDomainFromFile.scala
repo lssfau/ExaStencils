@@ -330,6 +330,161 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
             IR_Assignment(ghost, 2 * boundary - interior)
           ), null, IR_ParallelizationInfo())
       ))
+
+    }
+
+    body
+  }
+
+  def fillBoundaryGhostLayers2(field : IR_Field) = {
+    var body = new ListBuffer[IR_Statement]
+
+    def numDims = field.layout.numDimsGrid
+
+    val baseIndex = IR_LoopOverDimensions.defIt(numDims)
+
+    def resolveIndex(indexId : String, dim : Int) = field.layout.idxById(indexId, dim)
+
+    def genIndexRangeBoundaryWoutCorners(neigh : NeighborInfo) : IR_ExpressionIndexRange = {
+      IR_ExpressionIndexRange(
+        IR_ExpressionIndex(
+          (0 until numDims).toArray.map {
+            case i if neigh.dir(i) == 0 => resolveIndex("DLB", i) + 1
+            case i if neigh.dir(i) < 0  => resolveIndex("GLB", i)
+            case i if neigh.dir(i) > 0  => resolveIndex("GRB", i)
+          }),
+        IR_ExpressionIndex(
+          (0 until numDims).toArray.map {
+            case i if neigh.dir(i) == 0 => resolveIndex("DRE", i) - 1
+            case i if neigh.dir(i) < 0  => resolveIndex("GLE", i)
+            case i if neigh.dir(i) > 0  => resolveIndex("GRE", i)
+          }))
+    }
+
+    def genIndexBoundary(neigh : NeighborInfo) : IR_ExpressionIndex = {
+      IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => IR_LoopOverDimensions.defIt(numDims)(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("DLB", i)
+          case i if neigh.dir(i) > 0  => resolveIndex("DRE", i) - 1
+        })
+    }
+
+    def genIndexBegin(neigh : NeighborInfo) : IR_ExpressionIndex = {
+      IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => resolveIndex("DLB", i)
+          case i if neigh.dir(i) < 0  => resolveIndex("DLB", i)
+          case i if neigh.dir(i) > 0  => resolveIndex("DRE", i) - 1
+        })
+    }
+
+    def genIndexEnd(neigh : NeighborInfo) : IR_ExpressionIndex = {
+      IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => resolveIndex("DRE", i) - 1
+          case i if neigh.dir(i) < 0  => resolveIndex("DLB", i)
+          case i if neigh.dir(i) > 0  => resolveIndex("DRE", i) - 1
+        })
+    }
+
+    def indexNext(index : IR_ExpressionIndex, neigh : NeighborInfo) : IR_ExpressionIndex = {
+      IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => index(i) + 1
+          case i if neigh.dir(i) < 0  => index(i)
+          case i if neigh.dir(i) > 0  => index(i)
+        }
+      )
+    }
+
+    def indexPrev(index : IR_ExpressionIndex, neigh : NeighborInfo) : IR_ExpressionIndex = {
+      IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => index(i) - 1
+          case i if neigh.dir(i) < 0  => index(i)
+          case i if neigh.dir(i) > 0  => index(i)
+        }
+      )
+    }
+
+    def indexNeigh(index : IR_ExpressionIndex, neigh : NeighborInfo) : IR_ExpressionIndex = {
+      IR_ExpressionIndex(
+        (0 until numDims).toArray.map {
+          case i if neigh.dir(i) == 0 => index(i)
+          case i if neigh.dir(i) < 0  => index(i) - 1
+          case i if neigh.dir(i) > 0  => index(i) + 1
+        }
+      )
+    }
+
+    for (neigh <- DefaultNeighbors.neighbors) {
+      val boundaryIdx = genIndexBoundary(neigh)
+
+      def next(index : IR_ExpressionIndex) : IR_ExpressionIndex = {
+        indexNext(index, neigh)
+      }
+
+      def prev(index : IR_ExpressionIndex) : IR_ExpressionIndex = {
+        indexPrev(index, neigh)
+      }
+
+      val beginIdx = genIndexBegin(neigh)
+      val endIdx = genIndexEnd(neigh)
+
+      // tangent
+      val tx = IR_VariableAccess("tx", IR_FloatDatatype)
+      val ty = IR_VariableAccess("ty", IR_FloatDatatype)
+      // normal
+      val nx = IR_VariableAccess("nx", IR_FloatDatatype)
+      val ny = IR_VariableAccess("ny", IR_FloatDatatype)
+      // idx-distance to ghost layer
+      val ghostId = IR_VariableAccess("ghostId", IR_IntegerDatatype)
+
+      def nodePosition(index : IR_ExpressionIndex, dim : Int) = {
+        IR_VF_NodePositionPerDim(field.level, field.domain, dim).resolve(index - field.referenceOffset)
+      }
+
+      body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh.index)), ListBuffer[IR_Statement](
+        IR_Comment(neigh.index.toString()),
+        IR_LoopOverDimensions(numDims,
+          genIndexRangeBoundaryWoutCorners(neigh),
+          ListBuffer[IR_Statement](
+            IR_Comment("Non-Corner Boundaries"),
+            // tangent
+            IR_VariableDeclaration(tx, IR_FloatConstant(0.5) * (nodePosition(next(boundaryIdx), 0) - nodePosition(prev(boundaryIdx), 0))),
+            IR_VariableDeclaration(ty, IR_FloatConstant(0.5) * (nodePosition(next(boundaryIdx), 1) - nodePosition(prev(boundaryIdx), 1))),
+            // normal
+            IR_VariableDeclaration(nx, ty),
+            IR_VariableDeclaration(ny, IR_Negative(tx)),
+            // set ghost
+            if (neigh.index < 2)
+              IR_VariableDeclaration(ghostId, (baseIndex(0) - boundaryIdx(0)) + (baseIndex(1) - boundaryIdx(1)))
+            else
+              IR_VariableDeclaration(ghostId, (boundaryIdx(0) - baseIndex(0)) + (boundaryIdx(1) - baseIndex(1))),
+            IR_Assignment(nodePosition(baseIndex, 0), nodePosition(boundaryIdx, 0) + ghostId * nx),
+            IR_Assignment(nodePosition(baseIndex, 1), nodePosition(boundaryIdx, 1) + ghostId * ny)
+          ), null, IR_ParallelizationInfo()),
+        IR_Comment("Corners"),
+        // begin
+        IR_VariableDeclaration(tx, IR_FloatConstant(0.5) * (nodePosition(next(next(beginIdx)), 0) - nodePosition(beginIdx, 0))),
+        IR_VariableDeclaration(ty, IR_FloatConstant(0.5) * (nodePosition(next(next(beginIdx)), 1) - nodePosition(beginIdx, 1))),
+        // normal
+        IR_VariableDeclaration(nx, ty),
+        IR_VariableDeclaration(ny, IR_Negative(tx)),
+        IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 0), nodePosition(beginIdx, 0) + nx * neigh.dir.sum),
+        IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 1), nodePosition(beginIdx, 1) + ny * neigh.dir.sum),
+        // end
+        IR_Assignment(tx, IR_FloatConstant(0.5) * (nodePosition(endIdx, 0) - nodePosition(prev(prev(endIdx)), 0))),
+        IR_Assignment(ty, IR_FloatConstant(0.5) * (nodePosition(endIdx, 1) - nodePosition(prev(prev(endIdx)), 1))),
+        // normal
+        IR_Assignment(nx, ty),
+        IR_Assignment(ny, IR_Negative(tx)),
+        IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 0), nodePosition(endIdx, 0) + nx * neigh.dir.sum),
+        IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 1), nodePosition(endIdx, 1) + ny * neigh.dir.sum)
+      )
+
+      )
     }
 
     body
@@ -520,6 +675,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     body += IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None)
     // deal with ghost layers on boundary
     body += loopOverNumFragments(fillBoundaryGhostLayers(field))
+    body += loopOverNumFragments(fillBoundaryGhostLayers2(field))
     // adapt ghost layers to match upper and lower triangles of neighbors
     body += IR_Comment("Adapt ghost layers by repositioning knots")
     body += loopOverNumFragments(adaptGhostLayers(field))
