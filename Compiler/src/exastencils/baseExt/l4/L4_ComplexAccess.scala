@@ -66,8 +66,8 @@ case class L4_ComplexAccess(
             i(k) match {
               case l if l.isInstanceOf[L4_IntegerConstant] =>
                 string += Array(l.asInstanceOf[L4_IntegerConstant].value.toString , ",").mkString("")
-              case l if l.isInstanceOf[L4_StringLiteral] =>
-                string += Array(l.asInstanceOf[L4_StringLiteral].value.toString , ",").mkString("")
+              case l if l.isInstanceOf[L4_UnresolvedAccess] =>
+                string += Array(l.asInstanceOf[L4_UnresolvedAccess].name.toString , ",").mkString("")
               case _ => Logger.error("")
             }
           }
@@ -88,8 +88,6 @@ case class L4_ComplexAccess(
 
     if (arrayIndex.isDefined) Logger.warn("Discarding meaningless array index access on basic or leveled access")
     if (mulDimIndex.isDefined) Logger.warn("Discarding meaningless array index access on basic or leveled access")
-
-    //if (!declCollector.exists(name)) Logger.error("Access on not defined value")
 
     if (arrayIndex.isDefined)
       IR_ComplexAccess(name, decl.progress, arrayIndex, Nil)

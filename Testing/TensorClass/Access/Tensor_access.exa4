@@ -26,7 +26,7 @@ Function Application() : Unit {
         [1,1] := 5
         }
 
-    Var t3 : Real = t1[1,1]
+    Var t3 : Tensor2< Real, 3 >  = t1[a, 2]
 
 
 }

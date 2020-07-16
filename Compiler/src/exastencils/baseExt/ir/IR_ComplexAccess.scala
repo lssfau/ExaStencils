@@ -52,9 +52,10 @@ case class IR_ComplexAccess(var name : String, var decl : IR_VariableDeclaration
       IR_StringConstant("Complex Array Access not yet implemented")
     } else {
       mulDimIndex match {
-        case i if i.isInstanceOf[List[IR_Number]] => // case classic access
+        case i if i.forall(a => a.isInstanceOf[IR_Number]) => // case classic access
           var l = ListBuffer[Long]()
           i.asInstanceOf[List[IR_IntegerConstant]].foreach(a => l += a.value)
+          l = l.reverse
           acc.datatype match {
             case _ : IR_MatrixDatatype =>
               if (l.length > 2) Logger.error("Matrix Access with more than 2 axes not yet implemented")
@@ -95,6 +96,7 @@ case class IR_ComplexAccess(var name : String, var decl : IR_VariableDeclaration
               case _                  =>
             }
           }
+          l = l.reverse
           var myind : List[Any] = Nil
           for (k <- l) {
             if (!k.isInstanceOf[Long]) {
@@ -113,32 +115,52 @@ case class IR_ComplexAccess(var name : String, var decl : IR_VariableDeclaration
               val tmp = acc.datatype.asInstanceOf[IR_MatrixDatatype]
               if (l(0).isInstanceOf[Long] && !l(1).isInstanceOf[Long]) { // Case
                 if (l(0).asInstanceOf[Long] > tmp.sizeM) Logger.error("Matrix Access x index out of bounds")
-                val res = IR_MatrixExpression(acc.datatype, tmp.sizeM, tmp.sizeN)
-                for (i <- 0 until tmp.sizeM) res.set(l(0).asInstanceOf[Int], i, IR_HighDimAccess(acc, IR_ExpressionIndex(Array(l(0).asInstanceOf[Long], i))))
+                val res = IR_MatrixExpression(acc.datatype, 1, tmp.sizeN)
+                for (i <- 0 until tmp.sizeN) {
+                  val index = l(0).asInstanceOf[Long] + tmp.sizeM * i
+                  res.set(0, i, IR_StringLiteral(Array(name, "[", index , "]").mkString("")))
+                }
                 res
               } else if (!l(0).isInstanceOf[Long] && l(1).isInstanceOf[Long]) {
                 if (l(1).asInstanceOf[Long] > tmp.sizeN) Logger.error("Matrix Access y index out of bounds")
-                val res = IR_MatrixExpression(acc.datatype, tmp.sizeM, tmp.sizeN)
-                for (i <- 0 until tmp.sizeM) res.set(i, l(1).asInstanceOf[Int], IR_HighDimAccess(acc, IR_ExpressionIndex(Array(i, l(1).asInstanceOf[Long]))))
+                val res = IR_MatrixExpression(acc.datatype, tmp.sizeM, 1)
+                for (i <- 0 until tmp.sizeM) {
+                  val index = i + tmp.sizeM * l(1).asInstanceOf[Long]
+                  res.set(i, 0, IR_StringLiteral(Array(name, "[", index , "]").mkString("")))
+                }
                 res
               } else {
-                acc
+                val res = IR_MatrixExpression(acc.datatype, tmp.sizeM, tmp.sizeN)
+                for (i <- 0 until tmp.sizeM) {
+                  for (j <- 0 until tmp.sizeN) res.set(i, j, IR_StringLiteral(Array(name, "[", i + j*tmp.sizeM , "]").mkString("")))
+                }
+                res
               }
             case _ : IR_TensorDatatype2 =>
               if (l.length > 2) Logger.error("Order 2 Tensor can not be accessed with more than 2 dimensions")
               val tmp = acc.datatype.asInstanceOf[IR_TensorDatatype2]
               if (l(0).isInstanceOf[Long] && !l(1).isInstanceOf[Long]) { // Case
                 if (l(0).asInstanceOf[Long] > tmp.dims) Logger.error("Tensor Access x index out of bounds")
-                val res = IR_TensorExpression2(acc.datatype, tmp.dims)
-                for (i <- 0 until res.dims) res.set(l(0).asInstanceOf[Int], i, IR_HighDimAccess(acc, IR_ExpressionIndex(Array(l(0).asInstanceOf[Long], i))))
+                val res = IR_TensorExpression1(acc.datatype, tmp.dims)
+                for (i <- 0 until res.dims) {
+                  val index = l(0).asInstanceOf[Long] + tmp.dims * i
+                  res.set(i, IR_StringLiteral(Array(name, "[", index , "]").mkString("")))
+                }
                 res
               } else if (!l(0).isInstanceOf[Long] && l(1).isInstanceOf[Long]) {
                 if (l(1).asInstanceOf[Long] > tmp.dims) Logger.error("Tensor Access y index out of bounds")
-                val res = IR_TensorExpression2(acc.datatype, tmp.dims)
-                for (i <- 0 until res.dims) res.set(i, l(1).asInstanceOf[Int], IR_HighDimAccess(acc, IR_ExpressionIndex(Array(i, l(1).asInstanceOf[Long]))))
+                val res = IR_TensorExpression1(acc.datatype, tmp.dims)
+                for (i <- 0 until res.dims) {
+                    val index = i + l(1).asInstanceOf[Long] * tmp.dims
+                    res.set(i, IR_StringLiteral(Array(name, "[", index , "]").mkString("")))
+                  }
                 res
               } else {
-                acc
+                val res = IR_TensorExpression2(acc.datatype, tmp.dims)
+                for (i <- 0 until tmp.dims) {
+                  for (j <- 0 until tmp.dims) res.set(i, j, IR_StringLiteral(Array(name, "[", i + j*tmp.dims , "]").mkString("")))
+                }
+                res
               }
             case _ : IR_TensorDatatypeN => Logger.error("Tensor N not yet implemented")
             case _ => Logger.error("Complex Access got not supported data type")
