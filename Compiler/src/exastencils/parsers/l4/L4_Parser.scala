@@ -427,7 +427,7 @@ object L4_Parser extends ExaParser with PackratParsers {
     )
 
   lazy val complexAccess = (
-      locationize(ident ~ levelAccess.? ~ ("[" ~>  complexMulDimIndex <~ "]").?
+      locationize(p = ident ~ levelAccess.? ~ ("[" ~> complexMulDimIndex <~ "]").?
         ^^ { case id ~ level ~ mulDimIndex => L4_ComplexAccess(id, level, None, mulDimIndex) })
       ||| locationize(ident ~ levelAccess.? ~ ("[" ~>  ident <~ "]").?
         ^^ { case id ~ level ~ arrayIndex => L4_ComplexAccess(id, level, arrayIndex, None) })
@@ -435,17 +435,9 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val spezialAccess = genericAccess ||| complexAccess
 
-  lazy val mulBraketIndex = (
-    (integerLit <~ ("]" ~ "[")).+ ~ integerLit ^^ { case entries ~ entry => entries.::(entry) }
-      ||| integerLit.*)
-
-  lazy val mulDimIndex = (
-    (integerLit <~ ("," ||| ("]" ~ "["))).+ ~ integerLit ^^ { case entries ~ entry => entries.::(entry) }
-      ||| integerLit.*)
-
   lazy val complexMulDimIndex = (
-    (ident <~ ",").+ ~ ident ^^ { case entries ~ entry => entries.::(entry) }
-      ||| (ident).*)
+    ((flatAccess ||| numLit) <~ ",").+ ~ (flatAccess ||| numLit) ^^ { case entries ~ entry => entries.::(entry) }
+      ||| (flatAccess ||| numLit).*)
 
   // ######################################
   // ##### Expressions

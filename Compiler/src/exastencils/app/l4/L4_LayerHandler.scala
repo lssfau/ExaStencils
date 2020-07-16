@@ -223,6 +223,9 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
 
       L4_ResolveStencilComponentAccesses.apply()
       L4_ResolveStencilFieldComponentAccesses.apply()
+
+      //TODO Zeus: Complex Access
+      L4_ValidateComplexAccess.apply()
     }
 
     if (Settings.timeStrategies) StrategyTimer.startTiming("Progressing from L4 to IR")
