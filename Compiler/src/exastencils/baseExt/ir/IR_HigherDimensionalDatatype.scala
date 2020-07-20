@@ -76,7 +76,11 @@ case class IR_VectorDatatype(var datatype : IR_Datatype, var size : Int, var isR
 }
 
 case class IR_MatrixDatatype(var datatype : IR_Datatype, var sizeM : Int, var sizeN : Int) extends IR_HigherDimensionalDatatype with IR_HasTypeAlias {
-  override def prettyprint(out : PpStream) : Unit = out << "__matrix_" << datatype << '_' << sizeM << "_" << sizeN << "_t"
+  override def prettyprint(out : PpStream) : Unit = {
+    out << "__matrix_"
+    if (datatype.isInstanceOf[IR_ComplexDatatype]) out << "complex_" << datatype.resolveBaseDatatype else out << datatype
+    out << '_' << sizeM << "_" << sizeN << "_t"
+  }
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
   override def dimensionality : Int = 2 + datatype.dimensionality
