@@ -23,7 +23,7 @@ object IR_Determinant {
   def apply(args : ListBuffer[IR_Expression]) = {
     var inMatrix = args(0) match {
       case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) => IR_MatrixNodeUtilities.accessToExpression(va)
-      case x @ IR_MatrixExpression(_, _, _)                      => x
+      case x @ IR_MatrixExpression(_,_, _, _)                      => x
       case _                                                     => Logger.error(s"unexpected argument ${ args }, expected matrix expression or variable")
     }
     if (inMatrix.columns > 5)
@@ -67,7 +67,7 @@ case class IR_DeterminantRT(dest : IR_VariableAccess, var arg : IR_Expression) e
     arg match {
       case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) =>
         IR_GenerateBasicMatrixOperations.determinant(va, dest)
-      case x @ IR_MatrixExpression(_, _, _)                      =>
+      case x @ IR_MatrixExpression(_, _, _,_)                      =>
         var stmts = IR_Scope(Nil)
         var tmp_access = IR_VariableAccess("detTmp_" + IR_MatrixExpression.matTmpCounter, x.datatype)
         stmts.body += IR_VariableDeclaration(tmp_access, x)

@@ -113,7 +113,7 @@ object IR_IntermediateInv {
           val decl = IR_PreItMOps.variableCollector.lastDecl(name).getOrElse(Logger.error("declaration not found"))
           decl.initialValue match {
             case None                                   => Logger.error("trying to classify not initialized matrix variable at compiletime!")
-            case Some(x @ IR_MatrixExpression(_, _, _)) =>
+            case Some(x @ IR_MatrixExpression(_,_, _, _)) =>
               //if (IR_MatrixNodeUtilities.notWrittenTo(name)) {
               if (!IR_PreItMOps.variableCollector.writeInScope(name)) {
                 IR_ClassifyMatShape(x)

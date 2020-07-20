@@ -48,6 +48,7 @@ import exastencils.baseExt.ir.IR_MatNodes.IR_Trace
 import exastencils.baseExt.ir.IR_MatNodes.IR_Transpose
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateRuntimeInversion
+import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.field.ir._
@@ -85,9 +86,11 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
     ("setSlice", IR_SetSlice.apply)
   )
 
+  import exastencils.baseExt.ir.IR_MatrixNodeUtilities.checkIfMatOp
+
   // replace function calls to matrix methods with dedicated nodes so they dont appear in function call tree and are easier to recognize and process
   this += new Transformation("replace function calls with matrix method nodes", {
-    case IR_FunctionCall(ref, args) if (fctMap.contains(ref.name)) =>
+    case f @ IR_FunctionCall(ref, args) if (fctMap.contains(ref.name) && checkIfMatOp(f)) =>
       fctMap(ref.name)(args)
   })
 
@@ -239,35 +242,7 @@ object IR_ResolveMatFuncs extends DefaultStrategy("resolve matFuncs") {
 object IR_ResolveMatOperators extends DefaultStrategy("resolve operators") {
 
   import exastencils.baseExt.ir.IR_MatrixNodeUtilities.isEvaluatable
-  import exastencils.baseExt.ir.IR_MatrixNodeUtilities.isMatrix
-
-  // labels for operators that contains matrix expressions:
-  // buffer results checking for matrix operator
-  val isMatOp = "isMatrixOperation"
-  val isNotMatOp = "isNotMatrixOperation"
-  def checkIfMatOp(op : IR_Expression) : Boolean = {
-    if (op.hasAnnotation(isNotMatOp)) false
-    else if (op.hasAnnotation(isMatOp)) true
-    else {
-      val b = op match {
-        case m : IR_Multiplication            => m.factors.exists(f => isMatrix(f))
-        case a : IR_Addition                  => a.summands.exists(f => isMatrix(f))
-        case s : IR_Subtraction               => isMatrix(s.left) | isMatrix(s.right)
-        case s : IR_ElementwiseSubtraction    => isMatrix(s.left) | isMatrix(s.right)
-        case e : IR_ElementwiseMultiplication => isMatrix(e.left) | isMatrix(e.right)
-        case e : IR_ElementwiseAddition       => isMatrix(e.left) | isMatrix(e.right)
-        case e : IR_ElementwiseDivision       => isMatrix(e.left) | isMatrix(e.right)
-      }
-      if (b) {
-        op.annotate(isMatOp)
-        true
-      }
-      else {
-        op.annotate(isNotMatOp)
-        false
-      }
-    }
-  }
+  import exastencils.baseExt.ir.IR_MatrixNodeUtilities.checkIfMatOp
 
   this += new Transformation("resolve operators", {
     //TODO match on supertype? -> introduce supertype
@@ -310,7 +285,7 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
       IR_MatrixNodeUtilities.splitDeclaration(decl)
 
     // add helper matrix  decls from schur compiletime inversion
-    case s @ (IR_Assignment(_,_,_) | IR_VariableDeclaration(_,_,_,_)) =>
+    case s @ (IR_Assignment(_,_,_) | IR_VariableDeclaration(_,_,_,_)) if(Knowledge.experimental_schurWithHelper) =>
       val ms = StateManager.findAll[IR_MatrixExpression](s).filter(x => if(x.hasAnnotation("helperMatrices")) true else false)
       val helperDecls = ListBuffer[IR_Statement]()
       for(m <- ms) {
@@ -499,6 +474,35 @@ object IR_MatrixNodeUtilities {
       case IR_StringConstant(_)                    => true
       case IR_VariableAccess(_, IR_StringDatatype) => true
       case _                                       => false
+    }
+  }
+
+  // labels for operators that contains matrix expressions:
+  // buffer results checking for matrix operator
+  val isMatOp = "isMatrixOperation"
+  val isNotMatOp = "isNotMatrixOperation"
+  def checkIfMatOp(op : IR_Expression) : Boolean = {
+    if (op.hasAnnotation(isNotMatOp)) false
+    else if (op.hasAnnotation(isMatOp)) true
+    else {
+      val b = op match {
+        case m : IR_Multiplication            => m.factors.exists(f => isMatrix(f))
+        case a : IR_Addition                  => a.summands.exists(f => isMatrix(f))
+        case s : IR_Subtraction               => isMatrix(s.left) | isMatrix(s.right)
+        case s : IR_ElementwiseSubtraction    => isMatrix(s.left) | isMatrix(s.right)
+        case e : IR_ElementwiseMultiplication => isMatrix(e.left) | isMatrix(e.right)
+        case e : IR_ElementwiseAddition       => isMatrix(e.left) | isMatrix(e.right)
+        case e : IR_ElementwiseDivision       => isMatrix(e.left) | isMatrix(e.right)
+        case e : IR_FunctionCall       => e.arguments.exists(a => isMatrix(a))
+      }
+      if (b) {
+        op.annotate(isMatOp)
+        true
+      }
+      else {
+        op.annotate(isNotMatOp)
+        false
+      }
     }
   }
 

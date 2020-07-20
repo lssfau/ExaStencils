@@ -77,7 +77,7 @@ object IR_MatrixExpression {
   }
 }
 
-case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var rows : Int, var columns : Int, shape : Option[IR_MatShape] = None) extends IR_Expression {
+case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var rows : Int, var columns : Int, var shape : Option[IR_MatShape] = None) extends IR_Expression {
   var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](rows * columns)
 
   override def datatype = {

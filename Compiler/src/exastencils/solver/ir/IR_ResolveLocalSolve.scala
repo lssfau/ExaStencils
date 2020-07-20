@@ -149,14 +149,17 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
   }
 
   this += new Transformation("Perform expand for applicable nodes", {
-    case solve : IR_LocalSolve => solve.expandSpecial
-    case sls @ IR_SolveLinearSystem(a, _, _) =>
-      val ms : Option[IR_MatShape] = a match {
+    case solve : IR_LocalSolve                         => solve.expandSpecial
+    case sls @ IR_SolveLinearSystem(localSysMat, _, _) =>
+      val sysMatAsExpr : IR_MatrixExpression = localSysMat match {
           case x : IR_MatrixExpression =>
           // to classify and const -> classify
-            if(Knowledge.experimental_classifyLocMat) Some(IR_ClassifyMatShape(x))
-              // const and shape given -> get shape
-            else x.shape
+            if(Knowledge.experimental_classifyLocMat) {
+              x.shape = Some(IR_ClassifyMatShape(x))
+              x
+            }
+              // const and shape not to classify
+            else x
           // else: variable access: find initialization expression in declaration
           case va : IR_VariableAccess  =>
             val decl = variableCollector.lastDecl(va.name).getOrElse(Logger.error("declaration not found"))
@@ -169,13 +172,14 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
             if(Knowledge.experimental_classifyLocMat) {
               if (variableCollector.writeInScope(va.name))
                 Logger.error("write to system matrix found, can not classify shape from declaration")
-              Some(IR_ClassifyMatShape(init))
+              init.shape = Some(IR_ClassifyMatShape(init))
+              init
               // get shape from init if there
             } else {
-              init.shape
+              init
             }
         }
-      sls.expand(ms)
+      sls.expand(sysMatAsExpr)
   })
 
 }
