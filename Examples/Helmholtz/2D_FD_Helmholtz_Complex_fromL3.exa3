@@ -143,22 +143,42 @@ Function PreconditionedBiCGStab@finest {
   print ( "Maximum number of solver iterations (", 10000, ") was exceeded" )
 }
 
-Function PreSmoother@all {
-  repeat 3 times {
-    u += omegaRelax * diag_inv ( M ) * ( f - M * u ) where (i0 + i1) % 2 == 0
-    u += omegaRelax * diag_inv ( M ) * ( f - M * u ) where (i0 + i1) % 2 == 1
+Function Smoother@all {
+  solve locally at u@[0,0] relax omegaRelax {
+    u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
+    u@[1,0] => M@[1,0] * u@[1,0] == f@[1,0]
+    u@[0,1] => M@[0,1] * u@[0,1] == f@[0,1]
+    u@[1,1] => M@[1,1] * u@[1,1] == f@[1,1]
   }
-}
-Function PostSmoother@all {
-  repeat 3 times {
-    u += omegaRelax * diag_inv ( M ) * ( f - M * u ) where (i0 + i1) % 2 == 0
-    u += omegaRelax * diag_inv ( M ) * ( f - M * u ) where (i0 + i1) % 2 == 1
+  color with {
+    ((i0 + i1) % 2),
+    solve locally at u@[0,0] relax omegaRelax {
+      u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
+      u@[1,0] => M@[1,0] * u@[1,0] == f@[1,0]
+      u@[0,1] => M@[0,1] * u@[0,1] == f@[0,1]
+    }
+  }
+  color with {
+    (i0 % 2),
+    (i0 % 2),
+    solve locally at u@[0,0] relax omegaRelax {
+      u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
+      u@[0,1] => M@[0,1] * u@[0,1] == f@[0,1]
+    }
+  }
+  color with {
+    (i0 % 3),
+    (i0 % 3),
+    solve locally at u@[0,0] relax omegaRelax {
+      u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
+      u@[1,0] => M@[1,0] * u@[1,0] == f@[1,0]
+    }
   }
 }
 
 /// Preconditioner
 Function VCycle@(finest) {
-  PreSmoother ( )
+  Smoother ( )
 
   res = f - M * u
   f@coarser = Restriction_u * res
@@ -168,11 +188,11 @@ Function VCycle@(finest) {
 
   u += Prolongation_u@coarser * u@coarser
 
-  PostSmoother ( )
+  Smoother ( )
 }
 
 Function VCycle@(coarsest + 2 to finest - 1) {
-  PreSmoother ( )
+  Smoother ( )
 
   res = f - M * u
   f@coarser = Restriction_u * res
@@ -182,11 +202,11 @@ Function VCycle@(coarsest + 2 to finest - 1) {
 
   u += Prolongation_u@coarser * u@coarser
 
-  PostSmoother ( )
+  Smoother ( )
 }
 
 Function VCycle@(coarsest + 1) {
-  PreSmoother ( )
+  Smoother ( )
 
   res = f - M * u
   f@coarser = Restriction_u * res
@@ -197,7 +217,7 @@ Function VCycle@(coarsest + 1) {
 
   u += Prolongation_u@coarser * u@coarser
 
-  PostSmoother ( )
+  Smoother ( )
 }
 Field nu    @coarsest from gen_residual_u
 Field p     @coarsest from gen_residual_u
