@@ -93,7 +93,10 @@ case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var rows
   }
   override def prettyprint(out : PpStream) : Unit = {
     out << "__matrix_"
-    innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
+    // cant print std::complex: cpp recogizes namespace operator
+    if(innerDatatype.get.isInstanceOf[IR_ComplexDatatype]) {
+      out << "complex<" << innerDatatype.get.resolveBaseDatatype << ">"
+    } else out << innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
     out << '_' << rows << "_" << columns << "_t "
     prettyprintInner(out)
   }
@@ -144,7 +147,7 @@ case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var rows
         // TODO gather and exploit knowledge about matrix structure
         Knowledge.experimental_resolveInverseFunctionCall match {
           case "Cofactors"   => {
-            val inv_det = IR_IntegerConstant(1) / IR_ResolveMatrixFunctions.calculateDeterminant(this)
+            val inv_det = IR_RealConstant(1) / IR_ResolveMatrixFunctions.calculateDeterminant(this)
             val tmp = IR_MatrixExpression(Some(innerDatatype.getOrElse(IR_RealDatatype)), rows, columns)
             for (row <- 0 until rows) {
               for (col <- 0 until columns) {

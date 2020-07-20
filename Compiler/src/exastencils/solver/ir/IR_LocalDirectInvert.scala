@@ -26,6 +26,7 @@ import exastencils.baseExt.ir._
 import exastencils.boundary.ir.IR_IsValidComputationPoint
 import exastencils.core.Duplicate
 import exastencils.field.ir._
+import exastencils.util.ir.IR_ResultingDatatype
 
 /// IR_LocalDirectInvert
 
@@ -51,10 +52,17 @@ object IR_LocalDirectInvert {
 
     val stmts = ListBuffer[IR_Statement]()
 
-    def u = IR_VariableAccess("_local_unknowns", IR_MatrixDatatype(IR_RealDatatype, unknowns.length, 1))
-    def f = IR_VariableAccess("_local_rhs", IR_MatrixDatatype(IR_RealDatatype, unknowns.length, 1))
+    val innerDt : IR_Datatype = IR_ResultingDatatype(
+      AVals(0)(0).datatype.resolveBaseDatatype,
+      fVals(0).datatype.resolveBaseDatatype,
+      unknowns(0).field.layout.datatype
+    )
+
+
+    def u = IR_VariableAccess("_local_unknowns", IR_MatrixDatatype(innerDt, unknowns.length, 1))
+    def f = IR_VariableAccess("_local_rhs", IR_MatrixDatatype(innerDt, unknowns.length, 1))
     //def A = IR_VariableAccess("_local_matrix", IR_MatrixDatatype(IR_RealDatatype, unknowns.length, unknowns.length))
-    def A(i : Int, j : Int) = IR_VariableAccess(s"_local_matrix_${ i }_${ j }", IR_RealDatatype)
+    def A(i : Int, j : Int) = IR_VariableAccess(s"_local_matrix_${ i }_${ j }", innerDt)
 
     // declare local variables -> to be merged later
     stmts += IR_VariableDeclaration(u, 0.0)
@@ -92,7 +100,7 @@ object IR_LocalDirectInvert {
     }
 
     // compile matrix from single entries
-    def AMat = IR_MatrixExpression(Some(IR_MatrixDatatype(IR_RealDatatype, unknowns.length, unknowns.length)),
+    def AMat = IR_MatrixExpression(Some(IR_MatrixDatatype(innerDt, unknowns.length, unknowns.length)),
       unknowns.indices.map(i =>
         unknowns.indices.map(j =>
           AVals(i)(j) match {
