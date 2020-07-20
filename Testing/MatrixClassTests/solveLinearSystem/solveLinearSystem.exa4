@@ -18,11 +18,20 @@ Function Application ( ) : Unit {
 	Var f2 : Matrix<Double, 7, 1> = {{1},{-2},{0},{2},{1},{4},{1}}
 	Var u2 : Matrix<Double, 7, 1> 
 	solveLES A2,u2,f2
-*/
+
 	Var A3 : Matrix<Double, 3, 3> = {{3,0,0},{0,-2,0},{0,0,-1}} {shape=diagonal}
 	Var f3 : Matrix<Double, 3, 1> = {{1},{-2},{1}}
 	Var u3 : Matrix<Double, 3, 1> 
 	solveLES A3,u3,f3
-
+	
+	//Var A4 : Matrix<Double, 3, 3> = 
+	//Var f4 : Matrix<Double, 3, 1> = {{1},{-2},{0}}
+	Var u4 : Matrix<Double, 3, 1> 
+	solveLES {{1.0,3.0,5.0},{2.0,4.0,7.0},{1.0,1.0,0.0}},u4,{{1.0},{-2.0},{0.0}}
+*/
+	Var A5 : Matrix<Double, 3, 3> = {{1.0,3.0,5.0},{2.0,4.0,7.0},{1.0,1.0,0.0}}
+	Var f5 : Matrix<Double, 3, 1> = {{1},{-2},{0}}
+	Var u5 : Matrix<Double, 3, 1> 
+	solveLES A5,u5,f5
 }
 

@@ -13,7 +13,7 @@ Function Application ( ) : Unit {
 	Var m2 : Matrix<Double, 2, 2> = {{1, 2}, {3, 4}}
 	Var m3 : Matrix<Double, 2, 2> = {{1,1},{1,1}}
 	Var prec : Double = 0.0001
-
+/*
 	// setSlice
 	// setSlice(matrix, offsetRows, offsetCols, nRows, nCols, newValue) : Unit
 	Var offset : Int = 0
@@ -29,7 +29,7 @@ Function Application ( ) : Unit {
 	compare(m1,m3,0.1)
 	setSlice(m1,0,0,2,2,m2)
 	compare(m1,m2,0.1)
-
+*/
 	// getSlice
 	// getSlice(matrix, offsetRows, offsetCols, nRows, nCols) : Matrix
 	Var slice1 : Matrix<Double, 2, 2> = getSlice(m2,0,0,2,2)

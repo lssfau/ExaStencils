@@ -10,13 +10,13 @@ import ntpath
 tests = []
 
 # application testcases
-tests.append("./NSGTestcase/2D_FD_Stokes_fromL4")
-tests.append("./NSGTestcase/3D_FD_Stokes_fromL4")
-tests.append("./NSGTestcase/3D_FV_NavierStokes_localNewton")
-tests.append("./NSGTestcase/3D_FV_NavierStokes_localPicard")
-tests.append("./NSGTestcase/3D_FV_Stokes_fromL4")
-tests.append("./NSGTestcase/2D_FD_OptFlow_fromL4")
-tests.append("./NSGTestcase/2D_FD_OptFlow_fromL4_Vec")
+#tests.append("./NSGTestcase/2D_FD_Stokes_fromL4")
+#tests.append("./NSGTestcase/3D_FD_Stokes_fromL4")
+#tests.append("./NSGTestcase/3D_FV_NavierStokes_localNewton")
+#tests.append("./NSGTestcase/3D_FV_NavierStokes_localPicard")
+#tests.append("./NSGTestcase/3D_FV_Stokes_fromL4")
+#tests.append("./NSGTestcase/2D_FD_OptFlow_fromL4")
+#tests.append("./NSGTestcase/2D_FD_OptFlow_fromL4_Vec")
 
 # compiletime inversion
 #tests.append("./invert/CompileTime/BlockDiagonal")
@@ -55,7 +55,7 @@ tests.append("./NSGTestcase/2D_FD_OptFlow_fromL4_Vec")
 #tests.append("./determineMatrixStructures")
 
 # field declarations with matrix structure information
-#tests.append("./shapeFromField")
+tests.append("./shapeFromField")
 
 
 

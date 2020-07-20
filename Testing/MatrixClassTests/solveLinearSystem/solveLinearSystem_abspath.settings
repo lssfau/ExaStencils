@@ -7,7 +7,7 @@ l4file              = "$configName$.exa4"
 
 debugL4File         = "$configName$_debug.exa4"
 
-outputPath          = "/output/"
+outputPath          = "./output/"
 
 
 buildfileGenerators = { "MakefileGenerator" }

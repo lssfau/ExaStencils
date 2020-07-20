@@ -19,9 +19,9 @@ Domain global< [0.0, 0.0] to [0.1, 0.1] >
 
 
 Function Application {
-	Var A3 : Matrix<Double,3,3> = { { 3.0, 0.0, 0.0 }, { 0.0, -2.0, 0.0 }, { 0.0, 0.0, -1.0 } }{shape=diagonal}
-	Var f3 : Matrix<Double,3,1> = { { 1.0 }, { -2.0 }, { 1.0 } }
-	Var u3 : Matrix<Double,3,1>
-	solveLES A3, u3, f3
+	Var A5 : Matrix<Double,3,3> = { { 1.0, 3.0, 5.0 }, { 2.0, 4.0, 7.0 }, { 1.0, 1.0, 0.0 } }
+	Var f5 : Matrix<Double,3,1> = { { 1.0 }, { -2.0 }, { 0.0 } }
+	Var u5 : Matrix<Double,3,1>
+	solveLES A5, u5, f5
 }
 
