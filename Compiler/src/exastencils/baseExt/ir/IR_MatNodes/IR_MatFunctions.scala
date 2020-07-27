@@ -9,6 +9,7 @@ import exastencils.base.ir.IR_HighDimAccess
 import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_UnitDatatype
+import exastencils.base.ir.IR_UnknownDatatype
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.baseExt.ir.IR_BasicMatrixOperations
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
@@ -156,6 +157,25 @@ case class IR_SetSlice(
   }
   override def isResolvable() : Boolean = isExtractable() && !this.hasAnnotation(IR_PreItMOps.potentialInline)
   override def isExtractable() : Boolean = arguments.forall(arg => IR_MatrixNodeUtilities.isEvaluatable(arg))
+}
+
+object IR_ToMatrix {
+  def apply(arg : ListBuffer[IR_Expression]) = new IR_ToMatrix(arg(0))
+}
+case class IR_ToMatrix(
+    var arg : IR_Expression
+) extends IR_ExtractableMNode with IR_ResolvableMNode {
+  def name = "toMatrix"
+  override def datatype = IR_UnknownDatatype
+  override def prettyprint(out : PpStream) = out << "toMatrix" << '(' << arg << ')'
+  override def resolve() : Output[IR_Expression] = {
+    arg match {
+      case t if (IR_MatrixNodeUtilities.isTensor(t)) => IR_BasicMatrixOperations.convertTensorToMat(arg)
+      case _ => Logger.error(s"cast to matrix not implemented yet for ${arg}")
+    }
+  }
+  override def isResolvable() : Boolean = isExtractable() && !this.hasAnnotation(IR_PreItMOps.potentialInline)
+  override def isExtractable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arg)
 }
 
 /*
