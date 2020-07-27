@@ -171,15 +171,12 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
     val currItBody = IR_Scope(loop.body)
     var maxID : Int = 0
     this.execute(new Transformation("number nodes", {
-      // there are some singleton datatypes, so don't enumerate them
-      case d : IR_Datatype   => d
-      case IR_NullStatement  => IR_NullStatement
-      case IR_NullExpression => IR_NullExpression
-      case node : IR_Node    => // only enumerate subtypes of Node, all others are irrelevant
+      case n : IR_Node if Duplicate.constants.contains(n) => n // ignore constants, e.g. case objects
+      case node : IR_Node                                 => // only enumerate subtypes of Node, all others are irrelevant
         node.annotate(ID_ANNOT, maxID)
         maxID += 1
         node
-      case x                 => x // no node, so don't enumerate it, as it may appear multiple times (legally) in the AST
+      case x                                              => x // no node, so don't enumerate it, as it may appear multiple times (legally) in the AST
     }), Some(currItBody))
     currItBody.annotate(ID_ANNOT, maxID) // trafo does not get access to the AST root, so set annotation manually
 
@@ -355,6 +352,7 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
     val processedChildren = new java.util.IdentityHashMap[Any, Null]()
     var nju : ArrayBuffer[List[IR_Node]] = commonSubs.view.flatMap { x => x._2.getPositions() }.to[ArrayBuffer]
     val njuCommSubs = new HashMap[IR_Node, Subexpression]()
+
     def registerCS(node : IR_Expression with Product, prio : Int, prioBonus : Int, pos : List[IR_Node], recurse : Boolean, children : Seq[Any]) : Unit = {
       njuCommSubs.getOrElseUpdate(node, new Subexpression(curFunc, node, prio, prioBonus)).addPosition(pos)
       for (child <- children)
@@ -449,7 +447,7 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
     true
   }
 
-  private def splitIt3[A : ClassTag, B : ClassTag, C : ClassTag](it : TraversableOnce[_]) : (Seq[A], Seq[B], Seq[C], Seq[Any]) = {
+  private def splitIt3[A: ClassTag, B: ClassTag, C: ClassTag](it : TraversableOnce[_]) : (Seq[A], Seq[B], Seq[C], Seq[Any]) = {
 
     val listA = new ListBuffer[A]()
     val listB = new ListBuffer[B]()
@@ -775,7 +773,7 @@ case class IR_IV_LoopCarriedCSBuffer(var identifier : Int, var baseDatatype : IR
   override def registerIV(declarations : HashMap[String, IR_VariableDeclaration], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
     super.registerIV(declarations, ctors, dtors)
     if (Knowledge.data_alignFieldPointers) // align this buffer iff field pointers are aligned -> register corresponding base pointer
-      basePtr.registerIV(declarations, ctors, dtors)
+    basePtr.registerIV(declarations, ctors, dtors)
   }
 }
 

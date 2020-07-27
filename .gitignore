@@ -3,3 +3,5 @@ target
 .idea
 output/
 outputRef/
+.jar
+output*/

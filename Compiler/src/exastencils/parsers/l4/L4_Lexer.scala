@@ -27,7 +27,7 @@ import exastencils.parsers.ExaLexer
   */
 class L4_Lexer extends ExaLexer {
   // general delimiters
-  delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "^", "**", "%", ".+", ".-", ".*", "./", ".**", ".%", "!", "+=", "-=", "*=", "/=", "|", "[", "]", ",", ";", "<", ">", "<=", ">=", "@", "=>", "!=", "==", "&&", "||")
+  delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "^", "**", "%", ".+", ".-", ".*", "./", ".**", ".%", "!", "+=", "-=", "*=", "/=", "|", "[", "]", ",", ";", "<", ">", "<=", ">=", "@", "=>", "!=", "==", "&&", "||", ":=")
 
   // import functionality
   reserved += "import"
@@ -39,7 +39,7 @@ class L4_Lexer extends ExaLexer {
   reserved += ("FuncTemplate", "FunctionTemplate", "Inst", "Instantiate", "as")
 
   // declaration keywords - complex
-  reserved += ("Domain", "Layout", "Field", "Stencil", "StencilTemplate", "StencilField", "Set", "external", "from", "with")
+  reserved += ("Domain", "Layout", "Field", "Stencil", "StencilTemplate", "StencilField", "Set", "external", "from", "with", "tensN", "tens1", "tens2")
 
   // loop keywords
   reserved += ("repeat", "times", "count", "with", "contraction", "break")
@@ -59,7 +59,7 @@ class L4_Lexer extends ExaLexer {
     "Real", "real", "Float", "float", "Double", "double", "Dbl", "Flt",
     "Complex", "complex",
     "Boolean", "boolean", "Bool", "bool")
-  reserved += ("Array", "Vector", "RowVector", "ColumnVector", "RVector", "CVector", "Matrix", "T")
+  reserved += ("Array", "Vector", "RowVector", "ColumnVector", "RVector", "CVector", "Matrix", "T", "Tensor", "Tensor2", "Tensor1", "TensorN")
   reserved += ("Vec2", "Vec3", "Vec4")
 
   // level specification keywords

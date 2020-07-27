@@ -289,6 +289,9 @@ object Knowledge {
   // may be one of the following: 'Chrono', 'QPC', 'WIN_TIME', 'UNIX_TIME', 'MPI_TIME', 'RDSC', 'WINDOWS_RDSC'
   var timer_type : String = "Chrono"
 
+  // synchronizes all mpi ranks when a (potentially nested) timer is started for the first time or stopped for the last time
+  var timer_syncMpi : Boolean = false
+
   var timer_printTimersToFileForEachRank : Boolean = false
   // prints separate timer values for each rank -> requires some additional memory for the gather op
 
