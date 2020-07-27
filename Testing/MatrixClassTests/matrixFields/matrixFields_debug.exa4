@@ -1,0 +1,35 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0] to [1.0, 1.0] >
+
+Layout NodeNoComm< Matrix<Real,2,1>, Node >@all {
+	duplicateLayers = [1, 1]
+	ghostLayers = [0, 0]
+}
+
+Field Solution< global, NodeNoComm, 0.0>@(all but (finest))
+
+Function f@(all but (coarsest)) {
+	loop over Solution {
+		Solution += 0.8
+	}
+}
+
+Function Application {
+	
+}
+

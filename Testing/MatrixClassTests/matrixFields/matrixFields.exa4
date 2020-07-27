@@ -1,0 +1,27 @@
+// domain declarations
+
+Domain global< [ 0.0, 0.0 ] to [ 1.0, 1.0 ] >
+
+// field layout declarations
+
+Layout NodeNoComm< Matrix<Real, 2, 1>, Node >@all {
+  duplicateLayers = [1, 1]
+  ghostLayers     = [0, 0]
+}
+
+
+
+// field declarations
+
+Field Solution< global, NodeNoComm, 0.0 >@(all but finest)
+
+
+
+Function f@(all but coarsest) {
+	loop over Solution {
+        	Solution += 0.8 
+      	}
+}
+Function Application {
+ 	 
+}
