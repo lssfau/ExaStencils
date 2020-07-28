@@ -277,10 +277,10 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     // if compactAST is set, no Subtraction is created, so prevent creating a Neg(Const),
     //   which would lead to a non-terminating recursion
     // if posSums is empty we do not want to add the constant to the negSums, which would also result in a Neg(Const) -> non-terminating
-      if (intCst > 0 || compactAST || posSums.isEmpty)
-        posSums += IR_IntegerConstant(intCst)
-      else
-        negSums += IR_IntegerConstant(-intCst)
+    if (intCst > 0 || compactAST || posSums.isEmpty)
+      posSums += IR_IntegerConstant(intCst)
+    else
+      negSums += IR_IntegerConstant(-intCst)
 
     if (vecExpr != null) {
       if (posSums.isEmpty && negSums.isEmpty)

@@ -214,10 +214,10 @@ object L4_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     // if compactAST is set, no Subtraction is created, so prevent creating a Neg(Const),
     //   which would lead to a non-terminating recursion
     // if posSums is empty we do not want to add the constant to the negSums, which would also result in a Neg(Const) -> non-terminating
-      if (intCst > 0 || compactAST || posSums.isEmpty)
-        posSums += L4_IntegerConstant(intCst)
-      else
-        negSums += L4_IntegerConstant(-intCst)
+    if (intCst > 0 || compactAST || posSums.isEmpty)
+      posSums += L4_IntegerConstant(intCst)
+    else
+      negSums += L4_IntegerConstant(-intCst)
 
     if (vecExpr != null) {
       if (posSums.isEmpty && negSums.isEmpty)
@@ -259,7 +259,7 @@ object L4_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
           case L4_IntegerConstant(iv)                            => intCst *= iv
           case L4_RealConstant(fv)                               => floatCst *= fv
           case L4_Negative(e)                                    =>
-            workQ.enqueue(e)
+            workQ = (mutable.Queue() :+ e) ++ workQ
             intCst = -intCst
           case L4_Multiplication(iFacs)                          =>
             workQ = mutable.Queue() ++ iFacs ++ workQ

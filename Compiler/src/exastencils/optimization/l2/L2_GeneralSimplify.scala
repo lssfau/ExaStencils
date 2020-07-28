@@ -18,6 +18,7 @@
 
 package exastencils.optimization.l2
 
+import scala.collection.mutable
 import scala.collection.mutable.{ ArrayBuffer, ListBuffer, Queue }
 
 import exastencils.base.l2._
@@ -192,10 +193,10 @@ object L2_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     // if compactAST is set, no Subtraction is created, so prevent creating a Neg(Const),
     //   which would lead to a non-terminating recursion
     // if posSums is empty we do not want to add the constant to the negSums, which would also result in a Neg(Const) -> non-terminating
-      if (intCst > 0 || compactAST || posSums.isEmpty)
-        posSums += L2_IntegerConstant(intCst)
-      else
-        negSums += L2_IntegerConstant(-intCst)
+    if (intCst > 0 || compactAST || posSums.isEmpty)
+      posSums += L2_IntegerConstant(intCst)
+    else
+      negSums += L2_IntegerConstant(-intCst)
 
     if (posSums.length + negSums.length <= 1) { // result is only one summand (either a positive, or a negative, or 0)
       (posSums ++= negSums.transform(x => L2_Negative(x)) += L2_IntegerConstant(0L)).head
@@ -213,7 +214,7 @@ object L2_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
   private def simplifyMult(facs : Seq[L2_Expression]) : L2_Expression = {
     var intCst : Long = 1L
     var floatCst : Double = 1d
-    val workQ = new Queue[L2_Expression]()
+    var workQ = mutable.Queue[L2_Expression]()
     val remA = new ArrayBuffer[L2_Expression]() // use ArrayBuffer here for a more efficient access to the last element
     var div : L2_Division = null
     for (f <- facs) {
@@ -224,10 +225,10 @@ object L2_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
           case L2_IntegerConstant(iv)                  => intCst *= iv
           case L2_RealConstant(fv)                     => floatCst *= fv
           case L2_Negative(e)                          =>
-            workQ.enqueue(e)
+            workQ = (mutable.Queue() :+ e) ++ workQ
             intCst = -intCst
           case L2_Multiplication(iFacs)                =>
-            workQ.enqueue(iFacs : _*)
+            workQ = mutable.Queue() ++ iFacs ++ workQ
           case d @ L2_Division(L2_RealConstant(fv), _) =>
             floatCst *= fv
             d.left = L2_RealConstant(1.0)

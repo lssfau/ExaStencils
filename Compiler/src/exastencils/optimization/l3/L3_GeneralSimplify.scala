@@ -18,6 +18,7 @@
 
 package exastencils.optimization.l3
 
+import scala.collection.mutable
 import scala.collection.mutable.{ ArrayBuffer, ListBuffer, Queue }
 
 import exastencils.base.l3._
@@ -192,10 +193,10 @@ object L3_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     // if compactAST is set, no Subtraction is created, so prevent creating a Neg(Const),
     //   which would lead to a non-terminating recursion
     // if posSums is empty we do not want to add the constant to the negSums, which would also result in a Neg(Const) -> non-terminating
-      if (intCst > 0 || compactAST || posSums.isEmpty)
-        posSums += L3_IntegerConstant(intCst)
-      else
-        negSums += L3_IntegerConstant(-intCst)
+    if (intCst > 0 || compactAST || posSums.isEmpty)
+      posSums += L3_IntegerConstant(intCst)
+    else
+      negSums += L3_IntegerConstant(-intCst)
 
     if (posSums.length + negSums.length <= 1) { // result is only one summand (either a positive, or a negative, or 0)
       (posSums ++= negSums.transform(x => L3_Negative(x)) += L3_IntegerConstant(0L)).head
@@ -213,7 +214,7 @@ object L3_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
   private def simplifyMult(facs : Seq[L3_Expression]) : L3_Expression = {
     var intCst : Long = 1L
     var floatCst : Double = 1d
-    val workQ = new Queue[L3_Expression]()
+    var workQ = mutable.Queue[L3_Expression]()
     val remA = new ArrayBuffer[L3_Expression]() // use ArrayBuffer here for a more efficient access to the last element
     var div : L3_Division = null
     for (f <- facs) {
@@ -224,10 +225,10 @@ object L3_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
           case L3_IntegerConstant(iv)                  => intCst *= iv
           case L3_RealConstant(fv)                     => floatCst *= fv
           case L3_Negative(e)                          =>
-            workQ.enqueue(e)
+            workQ = (mutable.Queue() :+ e) ++ workQ
             intCst = -intCst
           case L3_Multiplication(iFacs)                =>
-            workQ.enqueue(iFacs : _*)
+            workQ = mutable.Queue() ++ iFacs ++ workQ
           case d @ L3_Division(L3_RealConstant(fv), _) =>
             floatCst *= fv
             d.left = L3_RealConstant(1.0)
