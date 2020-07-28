@@ -39,8 +39,6 @@ Appl_Navier_Stokes_3D_Newton        Main ./MatrixClassTests/NSGTestcase/3D_FV_Na
 
 Appl_ExaStokes_2D        Main  Application/ExaStokes_2D.knowledge        Application/ExaStokes_2D.exa4        Application/ExaStokes_2D.results        1  10
 Appl_ExaStokes_3D        Main  Application/ExaStokes_3D.knowledge        Application/ExaStokes_3D.exa4        Application/ExaStokes_3D.results        1  10
-Appl_ExaStokes_2D        Main  Application/ExaStokes_2D.knowledge        Application/ExaStokes_2D.exa4        Application/ExaStokes_2D.results        1  10
-#Appl_ExaStokes_3D        Main  Application/ExaStokes_3D.knowledge        Application/ExaStokes_3D.exa4        Application/ExaStokes_3D.results        1  10
 
 Appl_ExaFluids           Main  Application/ExaFluids.knowledge           Application/ExaFluids.exa4           Application/ExaFluids.results           1  10
 Appl_ExaFluids_PowerLaw  Main  Application/ExaFluids.knowledge           Application/ExaFluids_PowerLaw.exa4  Application/ExaFluids_PowerLaw.results  1  10
@@ -49,8 +47,8 @@ Appl_ExaFluids_Bingham   Main  Application/ExaFluids.knowledge           Applica
 Appl_ExaFluids_Par       Main  Application/ExaFluids_Parallel.knowledge  Application/ExaFluids.exa4           Application/ExaFluids_Parallel.results  4  2
 
 # Optical flow using vector data types
-#Appl_OptFlow2D           Main  Application/OpticalFlow2D.knowledge       Application/OpticalFlow2D.exa4       Application/OpticalFlow2D.results       1  10
-#Appl_OptFlow3D           Main  Application/OpticalFlow3D.knowledge       Application/OpticalFlow3D.exa4       Application/OpticalFlow3D.results       1  10
+Appl_OptFlow2D           Main  Application/OpticalFlow2D.knowledge       Application/OpticalFlow2D.exa4       Application/OpticalFlow2D.results       1  10
+Appl_OptFlow3D           Main  Application/OpticalFlow3D.knowledge       Application/OpticalFlow3D.exa4       Application/OpticalFlow3D.results       1  10
 
 #################################################################################################
 # BASIC COMMUNICATION TESTS                                                                     #
@@ -145,7 +143,8 @@ PolyExpl_Jac2Dccd_f6  Main  PolyExpl/2D_f6.knowledge  PolyExpl/Jac2Dccd.exa4  Po
 PolyExpl_Jac3Dcc_f0   Main  PolyExpl/3D_f0.knowledge  PolyExpl/Jac3Dcc.exa4  PolyExpl/all.results   1  4  AVX
 PolyExpl_Jac3Dcc_f1   Main  PolyExpl/3D_f1.knowledge  PolyExpl/Jac3Dcc.exa4  PolyExpl/all.results   1  4  AVX
 PolyExpl_Jac3Dcc_f3   Main  PolyExpl/3D_f3.knowledge  PolyExpl/Jac3Dcc.exa4  PolyExpl/all.results   1  4  AVX
-PolyExpl_Jac3Dcc_f5   Main  PolyExpl/3D_f5.knowledge  PolyExpl/Jac3Dcc.exa4  PolyExpl/all.results   1  4  AVXPolyExpl_Jac3Dcc_f6   Main  PolyExpl/3D_f6.knowledge  PolyExpl/Jac3Dcc.exa4  PolyExpl/all.results   1  4  AVX
+PolyExpl_Jac3Dcc_f5   Main  PolyExpl/3D_f5.knowledge  PolyExpl/Jac3Dcc.exa4  PolyExpl/all.results   1  4  AVX
+PolyExpl_Jac3Dcc_f6   Main  PolyExpl/3D_f6.knowledge  PolyExpl/Jac3Dcc.exa4  PolyExpl/all.results   1  4  AVX
 # RBGS 2D constant coefficient 5-pt
 PolyExpl_RBGS2Dcc_f0  Main  PolyExpl/2D_f0.knowledge  PolyExpl/RBGS2Dcc.exa4  PolyExpl/all.results  1  4  AVX
 PolyExpl_RBGS2Dcc_f1  Main  PolyExpl/2D_f1.knowledge  PolyExpl/RBGS2Dcc.exa4  PolyExpl/all.results  1  4  AVX
@@ -287,5 +286,4 @@ CUDA_ExaFluids_Bingham  Main CUDA/3D_ExaFluids_NN_CUDA.knowledge CUDA/3D_ExaFlui
 #################################################################################################
 
 # 10 OMP threads
-Large_Hybrid  Main  Large/Hybrid.knowledge  Large/Hybrid.exa4  Large/Hybrid.results  4  10
-
+#Large_Hybrid  Main  Large/Hybrid.knowledge  Large/Hybrid.exa4  Large/Hybrid.results  4  10
