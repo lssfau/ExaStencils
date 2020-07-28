@@ -19,12 +19,8 @@ Domain global< [0.0, 0.0] to [0.1, 0.1] >
 
 
 Function Application {
-	Var mat : Matrix<Real,4,4> = { { 1.0, 2.0, 1.0, 3.0 }, { 4.0, 2.0, 1.0, 2.0 }, { 4.0, 1.0, 3.0, 2.0 }, { 1.0, 1.0, 2.0, 3.0 } }
-	Var mat2 : Matrix<Real,4,4> = { { 1.0, 2.0, 1.0, 3.0 }, { 4.0, 2.0, 1.0, 2.0 }, { 4.0, 1.0, 3.0, 2.0 }, { 1.0, 1.0, 2.0, 3.0 } }
-	Var mat_inverse : Matrix<Real,4,4>
-	mat_inverse = inverse ( mat )
-	Var mat_sol : Matrix<Real,4,4> = { { -0.7, 0.6, -0.3, 0.5 }, { 2.0, -1.0, 1.0, -2.0 }, { 1.0, -1.0, 1.0, -1.0 }, { -1.1, 0.8, -0.9, 1.5 } }
-	Var prec : Double = 1.0E-4
-	compare ( mat_inverse, mat_sol, prec )
+	Var mat2 : Matrix<Real,5,5> = { { 1.0, 2.0, 1.0, 3.0, 3.0 }, { 4.0, 2.0, 1.0, 2.0, 5.0 }, { 4.0, 1.0, 3.0, 2.0, 7.0 }, { 1.0, 1.0, 2.0, 3.0, 4.0 }, { 1.0, 1.0, 2.0, 3.0, 9.0 } }
+	Var mat_inverse2 : Matrix<Real,5,5>
+	mat_inverse2 = inverse ( mat2 )
 }
 
