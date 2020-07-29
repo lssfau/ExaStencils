@@ -64,7 +64,7 @@ object IR_ClassifyMatShape {
     matrix match {
       case mat @ IR_MatrixExpression(_, _, _,_) =>
         var size = IR_BasicMatrixOperations.getSize(mat)
-        if (size._1 == 1) IR_MatShape("filled")
+        if (size._1 == 1) return IR_MatShape("filled")
 
         mat.datatype.resolveBaseDatatype match {
           case dt @ (IR_IntegerDatatype | IR_RealDatatype | IR_FloatDatatype | IR_DoubleDatatype) =>
@@ -155,7 +155,7 @@ object IR_ClassifyMatShape {
   // determine structure of 'matrix' (which must have compiletime evaluatable entries) and return it as a String + more specific structure information like blocksizes in case of Schur or Blockdiagonal matrices
   def isOfShape(mat : ListBuffer[ListBuffer[IR_Addition]]) : IR_MatShape = {
     if (mat.length == 1 || mat(0).length == 1) {
-      baseExt.ir.IR_MatShape("filled")
+      return baseExt.ir.IR_MatShape("filled")
     }
     var blocksize_A = 0
     var blocksize_D = 0
