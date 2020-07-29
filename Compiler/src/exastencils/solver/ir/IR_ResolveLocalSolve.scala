@@ -36,12 +36,7 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
   var variableCollector = new IR_MatrixVarCollector()
   this.register(variableCollector)
   this.onBefore = () => {
-    if (Knowledge.solver_splitLocalSolveLoops) {
-      this += new Transformation("Split loops containing local solve nodes", {
-        // check loop even if Knowledge.solver_splitLocalSolveLoops is false - conditions might still be unnecessary
-        case loop : IR_LoopOverDimensions if loop.body.exists(_.isInstanceOf[IR_LocalSolve]) => handleLoop(loop)
-      }, false)
-    }
+
     this.resetCollectors()
   }
 
@@ -120,10 +115,9 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
       return tryPrecomputingInverse(loop, solve)
     }
 
-    //TODO to this.onBefore() so trafo is not employed if !Knowledge.solver_splitLocalSolveLoops
     // abort if splitting is not allowed
-    //if (!Knowledge.solver_splitLocalSolveLoops)
-    //  return loop
+    if (!Knowledge.solver_splitLocalSolveLoops)
+     return loop
 
     // set up halo and inner loop
     val haloLoop = Duplicate(loop)
@@ -145,6 +139,11 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
 
     List(haloLoop, tryPrecomputingInverse(innerLoop, innerLoop.body.head.asInstanceOf[IR_LocalSolve]))
   }
+
+  this += new Transformation("Split loops containing local solve nodes", {
+    // check loop even if Knowledge.solver_splitLocalSolveLoops is false - conditions might still be unnecessary
+    case loop : IR_LoopOverDimensions if loop.body.exists(_.isInstanceOf[IR_LocalSolve]) => handleLoop(loop)
+  }, false)
 
   this += new Transformation("Perform expand for applicable nodes", {
     case solve : IR_LocalSolve                         => solve.expandSpecial
@@ -176,8 +175,10 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
           } else {
             IR_MatrixNodeUtilities.accessToExpression(va)
           }
+        //case s if(IR_MatrixNodeUtilities.isScalar(s)) => IR_MatrixExpression(Some(s.datatype))
       }
       sls.expand(sysMatAsExpr)
   })
+
 
 }
