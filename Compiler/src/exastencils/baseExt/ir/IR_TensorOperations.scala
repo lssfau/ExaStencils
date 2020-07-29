@@ -27,7 +27,6 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.util.ir._
-import exastencils.config.Knowledge
 
 /* ###################################################################################################################
 ################                 Implementation of tensor functions                        ##########################
@@ -1254,7 +1253,7 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
 
   //################################################################################################################
   // Functioncalls
-
+/*
   this += new Transformation("resolution of built-in functions 2/2", {
 
     case call : IR_FunctionCall if (call.name == "dyadic")    => // TODO : instanz prüfen
@@ -1320,6 +1319,8 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
         Logger.error("trace() must have one argument")
       }
       trace(call.arguments.head)  // TODO: Zeus, zu testen
+
+
 /*
     case IR_ExpressionStatement(call) if (call.isInstanceOf[IR_FunctionCall]) && (call.asInstanceOf[IR_FunctionCall].name == "eigen")            =>
       val call_res = call.asInstanceOf[IR_FunctionCall]
@@ -1335,4 +1336,5 @@ object IR_ResolveTensorFunctions extends DefaultStrategy("Resolve special tensor
       }
       printTensor(call.arguments.head) // TODO: Zeus, zu testen*/
   })
+*/
 }

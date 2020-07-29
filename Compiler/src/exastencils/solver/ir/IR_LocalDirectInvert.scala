@@ -103,7 +103,10 @@ object IR_LocalDirectInvert {
 
     // solve local system - TODO: replace inverse function call with internal function
     // TODO: set return value of the fct call
-    stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", ListBuffer[IR_Expression](AMat) ++= msi.toExprList()), f))
+    //stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", ListBuffer[IR_Expression](AMat) ++= msi.toExprList()), f))
+    // solveLES
+    AMat.shape = Some(msi)
+    stmts += IR_SolveLinearSystem(AMat, u, f)
 
 
     // write back results

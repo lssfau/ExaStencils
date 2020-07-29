@@ -407,7 +407,7 @@ object IR_BasicMatrixOperations {
   /** Method: matrix matrix subtraction
     *
     * @param subtraction : IR_Expression,  matrix operands can be IR_ElementwiseAddition or IR_Addition
-    * @return result of subtractio
+    * @return result of subtraction
     * **/
   def sub(subtraction : IR_Expression) : IR_MatrixExpression = {
     subtraction match {

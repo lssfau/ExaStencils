@@ -134,11 +134,14 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
   )
 
   import exastencils.baseExt.ir.IR_MatrixNodeUtilities.checkIfMatOp
+  import exastencils.baseExt.ir.IR_MatrixNodeUtilities.isMatOp
+
 
   // replace function calls to matrix methods with dedicated nodes so they dont appear in function call tree and are easier to recognize and process
   /** Transformation: replace function calls with matrix method nodes */
   this += new Transformation("replace function calls with matrix method nodes", {
     case f @ IR_FunctionCall(ref, args) if (fctMap.contains(ref.name) && checkIfMatOp(f)) =>
+      f.removeAnnotation(isMatOp)
       fctMap(ref.name)(args)
   })
 
@@ -288,6 +291,9 @@ object IR_ResolveMatFuncs extends DefaultStrategy("resolve matFuncs") {
     case IR_Assignment(dest : IR_VariableAccess, r : IR_RuntimeMNode, _) if (r.resolveAtRuntime && !r.hasAnnotation(potentialInline)) =>
       rtFctMap(r.name)(dest, r)
 
+    case IR_ExpressionStatement(mn : IR_ResolvableMNode) if(mn.isResolvable()) =>
+      mn.resolve()
+
     // resolve
     case mn : IR_ResolvableMNode if mn.isResolvable() =>
       mn.resolve()
@@ -303,23 +309,31 @@ object IR_ResolveMatFuncs extends DefaultStrategy("resolve matFuncs") {
 object IR_ResolveMatOperators extends DefaultStrategy("resolve operators") {
 
   import exastencils.baseExt.ir.IR_MatrixNodeUtilities.checkIfMatOp
+  import exastencils.baseExt.ir.IR_MatrixNodeUtilities.isMatOp
   import exastencils.baseExt.ir.IR_MatrixNodeUtilities.isEvaluatable
 
   this += new Transformation("resolve operators", {
     //TODO match on supertype? -> introduce supertype
     case mult @ IR_Multiplication(facs) if (checkIfMatOp(mult) && facs.forall(f => isEvaluatable(f)))                                                                =>
+      mult.removeAnnotation(isMatOp)
       IR_BasicMatrixOperations.mult(mult)
     case add @ (IR_Addition(sums)) if (checkIfMatOp(add) && sums.forall(f => isEvaluatable(f)) && !add.hasAnnotation(IR_GenerateRuntimeInversion.pointerArithmetic)) =>
+      add.removeAnnotation(isMatOp)
       IR_BasicMatrixOperations.add(add)
     case binOp @ IR_ElementwiseSubtraction(_, _) if (checkIfMatOp(binOp) && isEvaluatable(binOp.left) && isEvaluatable(binOp.right))                                 =>
+      binOp.removeAnnotation(isMatOp)
       IR_BasicMatrixOperations.sub(binOp)
     case binOp @ IR_Subtraction(_, _) if (checkIfMatOp(binOp) && isEvaluatable(binOp.left) && isEvaluatable(binOp.right))                                            =>
+      binOp.removeAnnotation(isMatOp)
       IR_BasicMatrixOperations.sub(binOp)
     case binOp @ IR_ElementwiseMultiplication(_, _) if (checkIfMatOp(binOp) && isEvaluatable(binOp.left) && isEvaluatable(binOp.right))                              =>
+      binOp.removeAnnotation(isMatOp)
       IR_BasicMatrixOperations.elementwiseMultiplication(binOp.left, binOp.right)
     case binOp @ IR_ElementwiseDivision(_, _) if (checkIfMatOp(binOp) && isEvaluatable(binOp.left) && isEvaluatable(binOp.right))                                    =>
+      binOp.removeAnnotation(isMatOp)
       IR_BasicMatrixOperations.elementwiseDivision(binOp.left, binOp.right)
     case binOp @ IR_ElementwiseAddition(_, _) if (checkIfMatOp(binOp) && isEvaluatable(binOp.left) && isEvaluatable(binOp.right))                                    =>
+      binOp.removeAnnotation(isMatOp)
       IR_BasicMatrixOperations.add(binOp)
   })
 }
@@ -464,7 +478,7 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
 /** Strategy: linearize matrix expressions */
 object IR_LinearizeMatrices extends DefaultStrategy("linearize matrices") {
   this += Transformation("Linearize", {
-    //case IR_HighDimAccess(base, _) if (!base.datatype.isInstanceOf[IR_MatrixDatatype]) => base
+    case IR_HighDimAccess(base, _) if (!base.datatype.isInstanceOf[IR_MatrixDatatype] && !base.datatype.isInstanceOf[IR_TensorDatatype]) => base
 
     case IR_HighDimAccess(base : IR_MultiDimFieldAccess, idx : IR_Index) =>
       val hoIdx = idx.toExpressionIndex
@@ -600,6 +614,7 @@ object IR_MatrixNodeUtilities {
         case e : IR_ElementwiseAddition                                 => isMatrix(e.left) | isMatrix(e.right)
         case e : IR_ElementwiseDivision                                 => isMatrix(e.left) | isMatrix(e.right)
         case cast @ IR_FunctionCall(ref, _) if (ref.name == "toMatrix") => true
+        case inverse @ IR_FunctionCall(ref, _) if (ref.name == "inverse") => true
         case e : IR_FunctionCall                                        => e.arguments.exists(a => isMatrix(a))
       }
       if (b) {
