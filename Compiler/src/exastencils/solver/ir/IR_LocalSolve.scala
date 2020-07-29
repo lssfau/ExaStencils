@@ -220,6 +220,7 @@ case class IR_LocalSolve(
 
     //TODO sizecheck? go rt if mat too large
     val shapeFromField = findMatShape(unknowns)
+
     val msi : IR_MatShape =
     if(shapeFromField.isDefined) {
       // structure given in field declaration

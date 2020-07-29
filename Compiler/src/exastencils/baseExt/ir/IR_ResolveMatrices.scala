@@ -648,13 +648,17 @@ object IR_MatrixNodeUtilities {
     * */
   def accessToExpression(src : IR_VariableAccess) : IR_MatrixExpression = {
     var size = IR_BasicMatrixOperations.getSize(src)
-    var out = IR_MatrixExpression(src.datatype.resolveBaseDatatype, size._1, size._2)
-    for (i <- 0 until size._1) {
-      for (j <- 0 until size._2) {
-        out.set(i, j, IR_HighDimAccess(src, IR_ExpressionIndex(IR_IntegerConstant(i), IR_IntegerConstant(j))))
+    if(size._1 > 1 || size._2 > 1) {
+      var out = IR_MatrixExpression(src.datatype.resolveBaseDatatype, size._1, size._2)
+      for (i <- 0 until size._1) {
+        for (j <- 0 until size._2) {
+          out.set(i, j, IR_HighDimAccess(src, IR_ExpressionIndex(IR_IntegerConstant(i), IR_IntegerConstant(j))))
+        }
       }
+      out
+    } else {
+      IR_MatrixExpression(Some(src.datatype.resolveBaseDatatype), 1, 1, Array[IR_Expression](src))
     }
-    out
   }
 
   /** Method: transform a matrix expression to a temporary variable

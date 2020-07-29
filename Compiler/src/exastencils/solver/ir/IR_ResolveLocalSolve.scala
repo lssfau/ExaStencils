@@ -35,8 +35,7 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
   // collector to find initialization expressions of matrices to classify
   var variableCollector = new IR_MatrixVarCollector()
   this.register(variableCollector)
-  this.onBefore = () =>
-  {
+  this.onBefore = () => {
     if (Knowledge.solver_splitLocalSolveLoops) {
       this += new Transformation("Split loops containing local solve nodes", {
         // check loop even if Knowledge.solver_splitLocalSolveLoops is false - conditions might still be unnecessary
@@ -45,7 +44,6 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
     }
     this.resetCollectors()
   }
-
 
   def computeMinMaxIndex(solve : IR_LocalSolve, numDimensions : Int) : (IR_ConstIndex, IR_ConstIndex) = {
     val minIndex = IR_ConstIndex(Array.fill(numDimensions)(Int.MinValue))
@@ -152,33 +150,33 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
     case solve : IR_LocalSolve                         => solve.expandSpecial
     case sls @ IR_SolveLinearSystem(localSysMat, _, _) =>
       val sysMatAsExpr : IR_MatrixExpression = localSysMat match {
-          case x : IR_MatrixExpression =>
+        case x : IR_MatrixExpression =>
           // to classify and const -> classify
-            if(Knowledge.experimental_classifyLocMat) {
-              x.shape = Some(IR_ClassifyMatShape(x))
-              x
-            }
-              // const and shape not to classify
-            else x
-          // else: variable access: find initialization expression in declaration
-          case va : IR_VariableAccess  =>
+          if (Knowledge.experimental_classifyLocMat) {
+            x.shape = Some(IR_ClassifyMatShape(x))
+            x
+          }
+          // const and shape not to classify
+          else x
+        // else: variable access: find initialization expression in declaration
+        case va : IR_VariableAccess =>
+          // classify init
+          if (Knowledge.experimental_classifyLocMat) {
             val decl = variableCollector.lastDecl(va.name).getOrElse(Logger.error("declaration not found"))
             val init = decl.initialValue.getOrElse(Logger.error("matrix to classify at compiletime not initialized")) match {
               case x : IR_MatrixExpression => x
-              case va : IR_VariableAccess => Logger.error("chained accesses to classify not supported yet")
-              case _ => Logger.error("unexpected initialization expression, provide a matrix expression")
+              case va : IR_VariableAccess  => Logger.error("chained accesses to classify not supported yet")
+              case x                       => Logger.error(s"unexpected initialization expression ${ x }, provide a matrix expression")
             }
-            // classify init
-            if(Knowledge.experimental_classifyLocMat) {
-              if (variableCollector.writeInScope(va.name))
-                Logger.error("write to system matrix found, can not classify shape from declaration")
-              init.shape = Some(IR_ClassifyMatShape(init))
-              init
-              // get shape from init if there
-            } else {
-              init
-            }
-        }
+            if (variableCollector.writeInScope(va.name))
+              Logger.error("write to system matrix found, can not classify shape from declaration")
+            init.shape = Some(IR_ClassifyMatShape(init))
+            init
+            // get shape from init if there
+          } else {
+            IR_MatrixNodeUtilities.accessToExpression(va)
+          }
+      }
       sls.expand(sysMatAsExpr)
   })
 

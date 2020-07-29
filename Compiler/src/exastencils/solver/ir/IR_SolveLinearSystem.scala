@@ -32,6 +32,7 @@ import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateRuntimeInversion.local
 import exastencils.baseExt.ir.IR_MatShape
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
+import exastencils.baseExt.ir.IR_MatrixNodeUtilities
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation
@@ -41,30 +42,28 @@ import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.prettyprinting.PpStream
 
 object IR_SolveLinearSystem {
-  def apply(A : IR_Expression, u : IR_Expression, f : IR_Expression) : IR_SolveLinearSystem = {
-    import exastencils.baseExt.ir.IR_MatrixNodeUtilities.accessToExpression
+  def apply(A : IR_Expression, u : IR_VariableAccess, f : IR_VariableAccess) : IR_SolveLinearSystem = {
+    new IR_SolveLinearSystem(A, u, f)
+  }
 
-    var f_expr : IR_MatrixExpression = f match {
-      case x : IR_MatrixExpression => x
-      case va : IR_VariableAccess  => accessToExpression(va)
-      case _                       =>
-        Logger.error("f not given as expression or access!")
-
+  def apply(A : IR_Expression, u : IR_Expression, f : IR_Expression) = {
+    var uacc : IR_VariableAccess = u match {
+      case acc : IR_VariableAccess => acc
+      case _                       => Logger.error(s"unexpected datatype for u ${ u.datatype }")
     }
-    var u_va : IR_VariableAccess = u match {
-      case va : IR_VariableAccess => va
-      case _                      =>
-        Logger.error("u not given as access!")
+    var facc : IR_VariableAccess = f match {
+      case acc : IR_VariableAccess => acc
+      case _                       => Logger.error(s"unexpected datatype for f ${ f.datatype }")
     }
-    new IR_SolveLinearSystem(A, u_va, f_expr)
   }
 }
 
-case class IR_SolveLinearSystem(A : IR_Expression, u : IR_VariableAccess, f : IR_MatrixExpression) extends IR_Statement {
+case class IR_SolveLinearSystem(A : IR_Expression, u : IR_VariableAccess, f : IR_VariableAccess) extends IR_Statement {
 
   override def prettyprint(out : PpStream) : Unit = out << "solveLES" << A.prettyprint(out) << ", " << f.prettyprint(out)
 
   def expand(AasExpr : IR_MatrixExpression) : Transformation.OutputType = {
+
     val msi : IR_MatShape = AasExpr.shape.getOrElse(IR_MatShape("filled"))
     Logger.warn(s"Solving linear system with the following configuration: ${ Knowledge.experimental_resolveInverseFunctionCall }, " + msi.toStringList())
     val (m, n) = AasExpr.datatype match {
@@ -73,50 +72,59 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
     }
     if (m != n) Logger.error("expected quadratic system matrix")
     val (k, i) = f.datatype match {
-      case mat : IR_MatrixDatatype => (mat.sizeM, mat.sizeN)
-      case _                       => Logger.error(s"unexpected datatype of f: ${ A.datatype }")
+      case mat : IR_MatrixDatatype                   => (mat.sizeM, mat.sizeN)
+      case s if (IR_MatrixNodeUtilities.isScalar(f)) => (1, 1)
+      case _                                         => Logger.error(s"unexpected datatype of f: ${ A.datatype }")
     }
     if (k != n) Logger.error("f and A do not match in size")
     u.datatype match {
-      case mat : IR_MatrixDatatype =>
+      case mat : IR_MatrixDatatype                   =>
         if (mat.sizeM != n) Logger.error("u and A do not match in size")
         if (mat.sizeN != i) Logger.error("u and f do not match in size")
-      case _                       => Logger.error(s"unexpected datatype of f: ${ A.datatype }")
+      case s if (IR_MatrixNodeUtilities.isScalar(u)) =>
+      case _                                         => Logger.error(s"unexpected datatype of f: ${ A.datatype }")
     }
-    msi.shape match {
-      case "diagonal" =>
-        var stmts = ListBuffer[IR_Statement]()
-        for (i <- 0 until m) {
-          stmts += IR_Assignment(IR_HighDimAccess(u, IR_ConstIndex(i, 0)), IR_Division(IR_HighDimAccess(f, IR_ConstIndex(i)), IR_HighDimAccess(A, IR_ConstIndex(i, i))))
-        }
-        stmts
-      // in case of schur: solve with A-Decomposition to helper matrices
-      // only for blocksize of D == 1
-      case "schur" if (m - msi.size("block") == 1) =>
-        schurDomainDecomp(AasExpr)
-      // Fallback1: solve by inverting A with given structure for Schur with size(D) > 1 or blockdiagonal
-      case _ if (msi.shape != "filled") => IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
-      // Fallback2: solve with lu for filled matrices
-      case _ =>
-        Logger.warn(s"solving LES with lu")
-        if (Knowledge.experimental_resolveInverseFunctionCall == "Runtime") {
-
+    // scalar system
+    if (m == 1 && n == 1) {
+      IR_Assignment(u, IR_Division(f, A))
+    } else {
+      msi.shape match {
+        case "diagonal" =>
           var stmts = ListBuffer[IR_Statement]()
-          var P = IR_VariableAccess("P", IR_ArrayDatatype(IR_IntegerDatatype, m + 1))
-          var AasAcc = IR_VariableAccess("A", IR_MatrixDatatype(AasExpr.innerDatatype.get, AasExpr.rows, AasExpr.columns))
-          var fasAcc = IR_VariableAccess("f", IR_MatrixDatatype(AasExpr.innerDatatype.get, AasExpr.rows, 1))
-          stmts += IR_VariableDeclaration(AasAcc, AasExpr)
-          stmts += IR_VariableDeclaration(fasAcc, f)
-          stmts += IR_VariableDeclaration(P)
-
-          // lu
-          stmts ++= localLUDecomp(AasAcc, P, m, IR_IntegerConstant(0), IR_IntegerConstant(0))
-          // forward backward sub
-          stmts ++= genForwardBackwardSub(AasAcc,P,fasAcc ,u)
-        } else
-        //TODO solve evaluation problem here: if A consists of variables i can not get the value of the entry
-        //IR_Assignment(u, luSolveCT(AasExpr, f))
+          for (i <- 0 until m) {
+            stmts += IR_Assignment(IR_HighDimAccess(u, IR_ConstIndex(i, 0)), IR_Division(IR_HighDimAccess(f, IR_ConstIndex(i)), IR_HighDimAccess(A, IR_ConstIndex(i, i))))
+          }
+          stmts
+        // in case of schur: solve with A-Decomposition to helper matrices
+        // only for blocksize of D == 1
+        case "schur" if (m - msi.size("block") == 1) =>
+          schurDomainDecomp(AasExpr)
+        // Fallback1: solve by inverting A with given structure for Schur with size(D) > 1 or blockdiagonal
+        case _ if (msi.shape != "filled") => IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
+        case _ if (m > 1 && m < 4) => // solve by inverse for small matrices
           IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
+        // Fallback2: solve with lu for filled matrices larger than 3
+        case _ if (m > 3)          =>
+          Logger.warn(s"solving LES with lu")
+          if (Knowledge.experimental_resolveInverseFunctionCall == "Runtime") {
+
+            var stmts = ListBuffer[IR_Statement]()
+            var P = IR_VariableAccess("P", IR_ArrayDatatype(IR_IntegerDatatype, m + 1))
+            var AasAcc = IR_VariableAccess("A", IR_MatrixDatatype(AasExpr.innerDatatype.get, AasExpr.rows, AasExpr.columns))
+            var fasAcc = IR_VariableAccess("f", IR_MatrixDatatype(AasExpr.innerDatatype.get, AasExpr.rows, 1))
+            stmts += IR_VariableDeclaration(AasAcc, AasExpr)
+            stmts += IR_VariableDeclaration(fasAcc, f)
+            stmts += IR_VariableDeclaration(P)
+
+            // lu
+            stmts ++= localLUDecomp(AasAcc, P, m, IR_IntegerConstant(0), IR_IntegerConstant(0))
+            // forward backward sub
+            stmts ++= genForwardBackwardSub(AasAcc, P, fasAcc, u)
+          } else
+          //TODO solve evaluation problem here: if A consists of variables i can not get the value of the entry
+          //IR_Assignment(u, luSolveCT(AasExpr, f))
+            IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
+      }
     }
   }
 
@@ -311,20 +319,19 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
     var k = IR_VariableAccess("k", IR_IntegerDatatype)
     var tmp_idx = IR_VariableAccess("tmp_idx", IR_IntegerDatatype)
     stmts += base.ir.IR_ForLoop(IR_VariableDeclaration(i, 0), IR_Lower(i, N), IR_PreIncrement(i), ListBuffer[IR_Statement](
-      IR_VariableDeclaration(tmp_idx,IR_ArrayAccess(P,i)),
+      IR_VariableDeclaration(tmp_idx, IR_ArrayAccess(P, i)),
       IR_Assignment(IR_HighDimAccess(u, IR_ExpressionIndex(i)), IR_HighDimAccess(f, IR_ExpressionIndex(tmp_idx))),
       base.ir.IR_ForLoop(IR_VariableDeclaration(k, 0), IR_Lower(k, i), IR_PreIncrement(k), ListBuffer[IR_Statement](
-        IR_Assignment(IR_HighDimAccess(u, IR_ExpressionIndex(i)), IR_Multiplication(IR_HighDimAccess(A, IR_ExpressionIndex(i, k)) , IR_HighDimAccess(u, IR_ExpressionIndex(k))), "-=")
+        IR_Assignment(IR_HighDimAccess(u, IR_ExpressionIndex(i)), IR_Multiplication(IR_HighDimAccess(A, IR_ExpressionIndex(i, k)), IR_HighDimAccess(u, IR_ExpressionIndex(k))), "-=")
       ))
     ))
     stmts += base.ir.IR_ForLoop(IR_VariableDeclaration(i, N - 1), IR_GreaterEqual(i, 0), IR_PreDecrement(i),
       base.ir.IR_ForLoop(IR_VariableDeclaration(k, i + 1), IR_Lower(k, N), IR_PreIncrement(k),
-        IR_Assignment(IR_HighDimAccess(u, IR_ExpressionIndex(i)),IR_Multiplication( IR_HighDimAccess(A, IR_ExpressionIndex(i, k)) , IR_HighDimAccess(u, IR_ExpressionIndex(k))), "-=")
+        IR_Assignment(IR_HighDimAccess(u, IR_ExpressionIndex(i)), IR_Multiplication(IR_HighDimAccess(A, IR_ExpressionIndex(i, k)), IR_HighDimAccess(u, IR_ExpressionIndex(k))), "-=")
       ),
-        IR_Assignment(IR_HighDimAccess(u, IR_ExpressionIndex(i)), IR_HighDimAccess(A, IR_ExpressionIndex(i,i)), "/=")
+      IR_Assignment(IR_HighDimAccess(u, IR_ExpressionIndex(i)), IR_HighDimAccess(A, IR_ExpressionIndex(i, i)), "/=")
     )
     stmts
   }
-
 
 }
