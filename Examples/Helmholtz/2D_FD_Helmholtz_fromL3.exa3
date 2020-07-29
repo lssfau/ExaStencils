@@ -75,10 +75,10 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 /// globals
 
 Globals {
-  Var k : Real = 160
+  Expr k = 40
   Expr omegaRelax = 1
-  Var beta1 : Real = -1
-  Var beta2 : Real = 0
+  Expr beta1 = -1
+  Expr beta2 = 0
 }
 
 Function NormResidual@(coarsest and finest) : Real {
