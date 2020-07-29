@@ -114,8 +114,9 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
           // forward backward sub
           stmts ++= genForwardBackwardSub(AasAcc,P,fasAcc ,u)
         } else
-          IR_Assignment(u, luSolveCT(AasExpr, f))
-
+        //TODO solve evaluation problem here: if A consists of variables i can not get the value of the entry
+        //IR_Assignment(u, luSolveCT(AasExpr, f))
+          IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
     }
   }
 
