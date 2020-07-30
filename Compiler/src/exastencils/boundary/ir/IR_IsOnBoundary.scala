@@ -141,15 +141,18 @@ object IR_ResolveBoundaryFunctions extends DefaultStrategy("ResolveBoundaryFunct
       IR_IV_CommNeighNeighIdx(0, args(1), args(0))
 
     case IR_FunctionCall(IR_UnresolvedFunctionReference("getNeighFragId", _), args) =>
-      // usage: IR_IV_NeighFragId ( fragmentIdx, neighIdx )
+      // usage: getNeighFragId ( fragmentIdx, neighIdx )
       IR_IV_NeighFragId(0, args(1), args(0))
 
     case IR_FunctionCall(IR_UnresolvedFunctionReference("getBoundaryConditionId", _), args) =>
-      // usage: IR_IV_BoundaryConditionId ( fragmentIdx, neighIdx )
+      // usage: getBoundaryConditionId ( fragmentIdx, neighIdx )
       IR_IV_BoundaryConditionId(0, args(1), args(0))
 
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("setBoundaryConditionId", _), args)) =>
       // usage: setBoundaryConditionId ( fragmentIdx, neighIdx, newId )
       IR_Assignment(IR_IV_BoundaryConditionId(0, args(1), args(0)), args(2))
+
   })
 }
+
+

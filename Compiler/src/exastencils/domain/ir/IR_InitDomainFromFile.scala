@@ -465,23 +465,25 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
             IR_Assignment(nodePosition(baseIndex, 0), nodePosition(boundaryIdx, 0) + ghostId * nx),
             IR_Assignment(nodePosition(baseIndex, 1), nodePosition(boundaryIdx, 1) + ghostId * ny)
           ), null, IR_ParallelizationInfo()),
-        IR_Comment("Corners"),
-        // begin
-        IR_VariableDeclaration(tx, IR_FloatConstant(0.5) * (nodePosition(next(next(beginIdx)), 0) - nodePosition(beginIdx, 0))),
-        IR_VariableDeclaration(ty, IR_FloatConstant(0.5) * (nodePosition(next(next(beginIdx)), 1) - nodePosition(beginIdx, 1))),
-        // normal
-        IR_VariableDeclaration(nx, ty),
-        IR_VariableDeclaration(ny, IR_Negative(tx)),
-        IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 0), nodePosition(beginIdx, 0) + nx * neigh.dir.sum),
-        IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 1), nodePosition(beginIdx, 1) + ny * neigh.dir.sum),
-        // end
-        IR_Assignment(tx, IR_FloatConstant(0.5) * (nodePosition(endIdx, 0) - nodePosition(prev(prev(endIdx)), 0))),
-        IR_Assignment(ty, IR_FloatConstant(0.5) * (nodePosition(endIdx, 1) - nodePosition(prev(prev(endIdx)), 1))),
-        // normal
-        IR_Assignment(nx, ty),
-        IR_Assignment(ny, IR_Negative(tx)),
-        IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 0), nodePosition(endIdx, 0) + nx * neigh.dir.sum),
-        IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 1), nodePosition(endIdx, 1) + ny * neigh.dir.sum)
+        IR_Scope(ListBuffer[IR_Statement](
+          IR_Comment("Corners"),
+          // begin
+          IR_VariableDeclaration(tx, IR_FloatConstant(0.5) * (nodePosition(next(next(beginIdx)), 0) - nodePosition(beginIdx, 0))),
+          IR_VariableDeclaration(ty, IR_FloatConstant(0.5) * (nodePosition(next(next(beginIdx)), 1) - nodePosition(beginIdx, 1))),
+          // normal
+          IR_VariableDeclaration(nx, ty),
+          IR_VariableDeclaration(ny, IR_Negative(tx)),
+          IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 0), nodePosition(beginIdx, 0) + nx * neigh.dir.sum),
+          IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 1), nodePosition(beginIdx, 1) + ny * neigh.dir.sum),
+          // end
+          IR_Assignment(tx, IR_FloatConstant(0.5) * (nodePosition(endIdx, 0) - nodePosition(prev(prev(endIdx)), 0))),
+          IR_Assignment(ty, IR_FloatConstant(0.5) * (nodePosition(endIdx, 1) - nodePosition(prev(prev(endIdx)), 1))),
+          // normal
+          IR_Assignment(nx, ty),
+          IR_Assignment(ny, IR_Negative(tx)),
+          IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 0), nodePosition(endIdx, 0) + nx * neigh.dir.sum),
+          IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 1), nodePosition(endIdx, 1) + ny * neigh.dir.sum)
+        ))
       )
 
       )
@@ -546,7 +548,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
           // else
           ListBuffer[IR_Statement](
             IR_Assignment(IR_IV_NeighFragId(d, neigh.index), IR_ArrayAccess(neighborFragID, neigh.index)),
-            IR_Assignment(IR_IV_BoundaryConditionId(d, neigh.index), IR_IntegerConstant(-1)))
+            IR_Assignment(IR_IV_BoundaryConditionId(d, neigh.index), IR_IntegerConstant(0)))
         )
         //connStmts += IR_Assignment(IR_IV_NeighFragId(d, neigh.index), IR_ArrayAccess(neighborFragID, neigh.index))
       }
@@ -674,7 +676,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     // communicate (updated interior ghost layers)
     body += IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None)
     // deal with ghost layers on boundary
-    body += loopOverNumFragments(fillBoundaryGhostLayers(field))
+    //body += loopOverNumFragments(fillBoundaryGhostLayers(field))
     body += loopOverNumFragments(fillBoundaryGhostLayers2(field))
     // adapt ghost layers to match upper and lower triangles of neighbors
     body += IR_Comment("Adapt ghost layers by repositioning knots")
