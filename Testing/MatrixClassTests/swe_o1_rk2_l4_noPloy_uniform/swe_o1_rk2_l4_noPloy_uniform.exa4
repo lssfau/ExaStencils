@@ -1231,7 +1231,7 @@ stopTimer ( 'SolvePhase' )
 Function Application (  ) {
 initGlobals (  )
 startTimer ( 'setup' )
-readParameterFile ( "../../swe_o1_rk2_l4_noPloy_uniform.parameter" )
+readParameterFile ( "../swe_o1_rk2_l4_noPloy_uniform.parameter" )
 initDomain (  )
 initFieldsWithZero (  )
 initGeometry (  )

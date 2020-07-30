@@ -1,8 +1,8 @@
 user                = "Guest"
 
-configName          = "swe_o1_rk2_l4_noPloy_uniform"
+configName          = "swe_o0_rk2_l4_noPloy_uniform"
 
-basePathPrefix      = "./swe_o1_rk2_l4_noPloy_uniform/"
+basePathPrefix      = "./swe_o0_rk2_l4_noPloy_uniform/"
 
 //l1file              = "$configName$.exa1"
 //l2file              = "$configName$.exa2"

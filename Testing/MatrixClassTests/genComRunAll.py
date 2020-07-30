@@ -10,15 +10,17 @@ import ntpath
 tests = []
 
 # application testcases
+tests.append("./swe_o0_rk2_l4_noPloy_uniform")
+#tests.append("./swe_o1_rk2_l4_noPloy_uniform")
 #tests.append("./NSGTestcase/2D_FV_Poisson_fromL4")
 #tests.append("./NSGTestcase/2D_FD_Poisson_fromL4")
 #tests.append("./NSGTestcase/3D_FV_Poisson_fromL4")
-tests.append("./NSGTestcase/2D_FD_Stokes_fromL4")
-tests.append("./NSGTestcase/3D_FD_Stokes_fromL4")
+#tests.append("./NSGTestcase/2D_FD_Stokes_fromL4")
+#tests.append("./NSGTestcase/3D_FD_Stokes_fromL4")
 #tests.append("./NSGTestcase/3D_FV_NavierStokes_localNewton")
 #tests.append("./NSGTestcase/3D_FV_NavierStokes_localPicard")
 #tests.append("./NSGTestcase/3D_FV_Stokes_fromL4")
-tests.append("./NSGTestcase/2D_FD_OptFlow_fromL4")
+#tests.append("./NSGTestcase/2D_FD_OptFlow_fromL4")
 #tests.append("./NSGTestcase/2D_FD_OptFlow_fromL4_Vec")
 
 # compiletime inversion
@@ -52,7 +54,7 @@ tests.append("./NSGTestcase/2D_FD_OptFlow_fromL4")
 
 
 # solveLinearSystem
-tests.append("./solveLinearSystem")
+#tests.append("./solveLinearSystem")
 
 # determine structure
 #tests.append("./determineMatrixStructures")

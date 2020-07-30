@@ -1,0 +1,26 @@
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o Domain/Domain_initDomain.o Domain/Domain_initDomain.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o Global/Global_declarations.o Global/Global_declarations.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o Global/Global_destroyGlobals.o Global/Global_destroyGlobals.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o Global/Global_initGlobals.o Global/Global_initGlobals.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o Global/Global_readParameterFile.o Global/Global_readParameterFile.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o Global/Global_setupBuffers.o Global/Global_setupBuffers.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o User/User_AdvanceRK2_4.o User/User_AdvanceRK2_4.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o User/User_ApplyAllBc_4.o User/User_ApplyAllBc_4.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o User/User_CommunicateAll_4.o User/User_CommunicateAll_4.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o User/User_InitBath_4.o User/User_InitBath_4.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o User/User_InitFieldsAnalytical_4.o User/User_InitFieldsAnalytical_4.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o User/User_PrintError_4.o User/User_PrintError_4.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o User/User_PrintVTK_4.o User/User_PrintVTK_4.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o User/User_SetupPhase_4.o User/User_SetupPhase_4.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o User/User_SolvePhase_4.o User/User_SolvePhase_4.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o User/User_UpdateCTilde_4.o User/User_UpdateCTilde_4.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o User/User_UpdateUnknowns_4.o User/User_UpdateUnknowns_4.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o User/User_initFieldsWithZero.o User/User_initFieldsWithZero.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o User/User_main.o User/User_main.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o Util/Timer_getTotalTime.o Util/Timer_getTotalTime.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o Util/Timer_printAllTimers.o Util/Timer_printAllTimers.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o Util/Timer_printAllTimersToFile.o Util/Timer_printAllTimersToFile.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o Util/Timer_reduceTimers.o Util/Timer_reduceTimers.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o Util/Util_declarations.o Util/Util_declarations.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o Util/Util_readLine.o Util/Util_readLine.cpp
+g++ -o exastencils  Domain/Domain_initDomain.o Global/Global_declarations.o Global/Global_destroyGlobals.o Global/Global_initGlobals.o Global/Global_readParameterFile.o Global/Global_setupBuffers.o User/User_AdvanceRK2_4.o User/User_ApplyAllBc_4.o User/User_CommunicateAll_4.o User/User_InitBath_4.o User/User_InitFieldsAnalytical_4.o User/User_PrintError_4.o User/User_PrintVTK_4.o User/User_SetupPhase_4.o User/User_SolvePhase_4.o User/User_UpdateCTilde_4.o User/User_UpdateUnknowns_4.o User/User_initFieldsWithZero.o User/User_main.o Util/Timer_getTotalTime.o Util/Timer_printAllTimers.o Util/Timer_printAllTimersToFile.o Util/Timer_reduceTimers.o Util/Util_declarations.o Util/Util_readLine.o 

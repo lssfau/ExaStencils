@@ -139,14 +139,14 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
 
   // replace function calls to matrix methods with dedicated nodes so they dont appear in function call tree and are easier to recognize and process
   /** Transformation: replace function calls with matrix method nodes */
-  this += new Transformation("replace function calls with matrix method nodes", {
+  this += new Transformation("Replace function calls with matrix method nodes", {
     case f @ IR_FunctionCall(ref, args) if (fctMap.contains(ref.name) && checkIfMatOp(f)) =>
       f.removeAnnotation(isMatOp)
       fctMap(ref.name)(args)
   })
 
   /** Transformation: split combined assignment: += to IR_Addition, *= to IR_Multiplication, /= to IR_Division, -= to IR_Subtraction */
-  this += new Transformation("split combined operators", {
+  this += new Transformation("Split combined operators", {
     case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src, "+=") =>
       IR_Assignment(dest, IR_Addition(dest, src))
     case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src, "*=") =>
@@ -160,7 +160,7 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
   /** Transformation: go through statements and mark extractable matrix nodes as potentially inlinable,
     * as well as statements as a statement containing extractable nodes */
   //TODO expression statement
-  this += new Transformation("prepare extraction", {
+  this += new Transformation("Prepare extraction", {
     case stmt @ (IR_Assignment(_, src, _)) if (extractables ++= StateManager.findAll[IR_ExtractableMNode](src)).nonEmpty                   =>
       extractables.foreach(e => e.annotate(potentialInline))
       var out = new IR_ExtractableStatement(stmt, extractables.length)
@@ -195,7 +195,7 @@ object IR_MatOpsInline extends DefaultStrategy("extract and inline matrix operat
   /** Strategy: collect variable declarations for extractables found in statements */
   object IR_ExtractMatrices extends QuietDefaultStrategy("extract") {
     /** Transformation: if an expression is extractable, extract to temporary variable declaration */
-    this += new Transformation("extract", {
+    this += new Transformation("Extract", {
       case e : IR_ExtractableMNode if (e.isExtractable() && !e.hasAnnotation(notInlinable)) =>
         // produce a new declaration for extractable expression
         val tmpname = "extractTmp_" + extractMethodsCounter
@@ -212,7 +212,7 @@ object IR_MatOpsInline extends DefaultStrategy("extract and inline matrix operat
   }
 
   /** Transformation: extract extractables in statements with extractables left in them  */
-  this += new Transformation("search stmts", {
+  this += new Transformation("Search stmts", {
     case estmt : IR_ExtractableStatement if (estmt.nExtractables > 0) =>
       // find extractables, produce declarations, replace with access to declaration
       IR_ExtractMatrices.applyStandalone(estmt)
@@ -228,7 +228,7 @@ object IR_MatOpsInline extends DefaultStrategy("extract and inline matrix operat
 
   /** Transformation: resolve inlineable declarations and mark accesses as resolvable
     * or remove the declaration and assign the expression to inline as annotation */
-  this += new Transformation("resolve and remove ext/inl statements", {
+  this += new Transformation("Resolve and remove ext/inl statements", {
     case d : IR_InlineableDeclaration =>
       d.removeAnnotation(nExtractables)
       d.initialValue.removeAnnotation(potentialInline)
@@ -251,14 +251,14 @@ object IR_MatOpsInline extends DefaultStrategy("extract and inline matrix operat
   }, false)
 
   /** Transformation: replace accesses with expressions to inline */
-  this += new Transformation("inline values", {
+  this += new Transformation("Inline values", {
     case va : IR_VariableAccess if (va.hasAnnotation(inline)) =>
       va.popAnnotationAs[IR_Expression](inline)
   })
 }
 
 /** Strategy: resolve matrix functions */
-object IR_ResolveMatFuncs extends DefaultStrategy("resolve matFuncs") {
+object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
   /** Attribute: Map to convert intermediate matrix function nodes to resolvable compiletime nodes */
   val ctFctMap = Map[String, IR_RuntimeMNode => IR_ResolvableMNode](
     ("IR_IntermediateInv", IR_InverseCT.apply),
@@ -279,7 +279,7 @@ object IR_ResolveMatFuncs extends DefaultStrategy("resolve matFuncs") {
     * function nodes with their resolvable counterparts if they are ready (considered for inline)
     * and resolve
     */
-  this += new Transformation("insert resolvables and resolve", {
+  this += new Transformation("Insert resolvables and resolve", {
     case decl @ IR_VariableDeclaration(_, _, Some(r : IR_RuntimeMNode), _) =>
       IR_MatrixNodeUtilities.splitDeclaration(decl)
     case estmt : IR_ExtractableStatement                                   =>
@@ -312,7 +312,7 @@ object IR_ResolveMatOperators extends DefaultStrategy("resolve operators") {
   import exastencils.baseExt.ir.IR_MatrixNodeUtilities.isMatOp
   import exastencils.baseExt.ir.IR_MatrixNodeUtilities.isEvaluatable
 
-  this += new Transformation("resolve operators", {
+  this += new Transformation("Resolve operators", {
     //TODO match on supertype? -> introduce supertype
     case mult @ IR_Multiplication(facs) if (checkIfMatOp(mult) && facs.forall(f => isEvaluatable(f)))                                                                =>
       mult.removeAnnotation(isMatOp)

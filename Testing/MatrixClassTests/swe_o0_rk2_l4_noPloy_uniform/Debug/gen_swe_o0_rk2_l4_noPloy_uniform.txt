@@ -1,0 +1,610 @@
+WARNING: An illegal reflective access operation has occurred
+WARNING: Illegal reflective access by com.rits.cloning.FastClonerTreeSet (file:/mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/classes/artifacts/Compiler_jar/Compiler.jar) to field java.util.TreeSet.m
+WARNING: Please consider reporting this to the maintainers of com.rits.cloning.FastClonerTreeSet
+WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
+WARNING: All illegal access operations will be denied in a future release
+WARN:  It is strongly recommended that the number of omp threads (8) is equal to the number of fragments per block (1) when experimental_allowCommInFragLoops is enabled!
+WARN:  comm_disableLocalCommSynchronization in conjunction with experimental_allowCommInFragLoops is strongly discouraged
+WARN:  Setting Knowledge.this.poly_numFinestLevels from 2 to 1 (number of fine levels (for optimization) cannot exceed the number of all levels)
+DBG:   Setting debugL1File to ./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa1
+DBG:   Setting debugL2File to ./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa2
+DBG:   Setting debugL3File to ./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa3
+DBG:   Setting debugL4File to ./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4
+DBG:   Setting htmlLogFile to ./debug/swe_o0_rk2_l4_noPloy_uniform_log.html
+DBG:   Setting l4file to ListBuffer(swe_o0_rk2_l4_noPloy_uniform.exa4)
+DBG:   Result of strategy "Process discretization hints::Process": Transformation Result: successful, 0 matches
+DBG:   Progressing 0 objects of collection L1_DomainCollection
+DBG:   Progressing 0 objects of collection L1_FieldCollection
+DBG:   Progressing 0 objects of collection L1_OperatorCollection
+DBG:   Progressing 0 objects of collection L1_EquationCollection
+DBG:   Progressing 0 objects of collection L1_FieldCombinationCollection
+DBG:   Result of strategy "Process solver hints::Process": Transformation Result: successful, 0 matches
+DBG:   Progressing 0 objects of collection L2_DomainCollection
+DBG:   Progressing 0 objects of collection L2_FieldCollection
+DBG:   Progressing 0 objects of collection L2_StencilCollection
+DBG:   Progressing 0 objects of collection L2_StencilFieldCollection
+DBG:   Progressing 0 objects of collection L2_VirtualFieldCollection
+DBG:   Progressing 0 objects of collection L2_EquationCollection
+DBG:   Progressing 0 objects of collection L2_FieldCombinationCollection
+DBG:   Result of strategy "Process application hints::Process": Transformation Result: successful, 0 matches
+DBG:   Progressing 0 objects of collection L3_DomainCollection
+DBG:   Progressing 0 objects of collection L3_FieldCollection
+DBG:   Progressing 0 objects of collection L3_StencilCollection
+DBG:   Progressing 0 objects of collection L3_StencilFieldCollection
+DBG:   Progressing 0 objects of collection L3_VirtualFieldCollection
+DBG:   Progressing 0 objects of collection L3_EquationCollection
+DBG:   Progressing 0 objects of collection L3_FieldCombinationCollection
+DBG:   Result of strategy "Revert stencil field convolutions to plain multiplications::Replace": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Revert field field convolutions to plain multiplications::Replace": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Revert stencil accesses to unresolved accesses::Replace": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Revert stencil field accesses to unresolved accesses::Replace": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Revert field accesses to unresolved accesses::Replace": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Replace explicit levels with current, coarser and finer in functions::Replace levels": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Combine single functions into leveled functions::Gather functions": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Process inline knowledge blocks::Process": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Validate L4 input::EscapeCppKeywordsAndInternalIdentifiers": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Validate L4 input::find Function calls": Transformation Result: successful, 336 matches
+DBG:   Result of strategy "Validate L4 input::check destroyGlobals": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Validate L4 input::Check assignment of vectors and matrices": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Unify all global sections and ensure at least one section exists::Collect and consume global sections": Transformation Result: successful, 1 matches
+DBG:   Result of strategy "Resolve color with loops::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve level specifications::Resolve first batch of level aliases": Transformation Result: successful, 81 matches
+DBG:   Result of strategy "Resolve level specifications::Resolve relative level specifications": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve level specifications::Resolve level ranges": Transformation Result: successful, 80 matches
+DBG:   Result of strategy "Resolve level specifications::Process level lists": Transformation Result: successful, 80 matches
+DBG:   Result of strategy "Resolving function templates and instantiations::Find and resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolving function templates and instantiations::Remove function templates": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Unfold leveled L4 function declarations::Process new declarations": Transformation Result: successful, 14 matches
+DBG:   Result of strategy "Process L4 function declarations::Process function declarations": Transformation Result: successful, 15 matches
+DBG:   Result of strategy "Unfold leveled L4 knowledge declarations::Process new declarations": Transformation Result: successful, 89 matches
+DBG:   Result of strategy "Unfold leveled expression declarations::Unfold": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Unfold leveled value and variable declarations::Unfold": Transformation Result: successful, 3 matches
+DBG:   Result of strategy "Resolve relative level specifications::Resolve relative level aliases": Transformation Result: successful, 7 matches
+DBG:   Result of strategy "Resolve level-specific scopes::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Prepare knowledge for L4 domains::Process new domains": Transformation Result: successful, 1 matches
+DBG:   Result of strategy "Prepare knowledge for L4 field layouts::Process new field layouts": Transformation Result: successful, 4 matches
+DBG:   Result of strategy "Prepare knowledge for L4 fields::Process new fields": Transformation Result: successful, 63 matches
+DBG:   Result of strategy "Prepare knowledge for L4 stencils::Process new stencils": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Prepare knowledge for L4 stencil templates::Process new stencil templates": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Prepare knowledge for L4 virtual fields::Resolve aliases": Transformation Result: successful, 2735 matches
+DBG:   Added 13 virtual fields
+DBG:   Result of strategy "Prepare knowledge for L4 equations::Process new equations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Inline accesses to declared expressions::Resolve": Transformation Result: successful, 95 matches
+DBG:   Result of strategy "Inline accesses to declared expressions::Remove applicable declarations": Transformation Result: successful, 3 matches
+DBG:   Result of strategy "Prepare accesses to domains::Resolve applicable unresolved accesses": Transformation Result: successful, 63 matches
+DBG:   Result of strategy "Prepare accesses to field layouts::Resolve applicable unresolved accesses": Transformation Result: successful, 63 matches
+DBG:   Result of strategy "Prepare accesses to fields::Resolve applicable unresolved accesses": Transformation Result: successful, 734 matches
+DBG:   Result of strategy "Prepare accesses to stencils::Resolve applicable unresolved accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Prepare accesses to stencil fields::Resolve applicable unresolved accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Prepare accesses to virtual fields::Resolve applicable unresolved accesses": Transformation Result: successful, 878 matches
+DBG:   Result of strategy "Prepare accesses to equations::Resolve applicable unresolved accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve value and variable accesses::Resolve": Transformation Result: successful, 692 matches
+DBG:   Result of strategy "Resolve value and variable accesses::Remove applicable declarations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve special constants::special functions and constants": Transformation Result: successful, 199 matches
+DBG:   Result of strategy "Resolve frozen field accesses::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve function references::Collecting function declarations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve function references::Resolve": Transformation Result: successful, 24 matches
+DBG:   Result of strategy "Resolve grid function references (evaluate)::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve grid function references (integrate)::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve math function references::Resolve": Transformation Result: successful, 252 matches
+DBG:   Result of strategy "Resolve timer function references::Resolve": Transformation Result: successful, 24 matches
+DBG:   Result of strategy "Resolve timer function references::Convert string constants in function call arguments": Transformation Result: successful, 24 matches
+DBG:   Result of strategy "Integrate L4 domain declarations with knowledge::Process new domains": Transformation Result: successful, 1 matches
+DBG:   Result of strategy "Integrate L4 field layout declarations with knowledge::Process field layout declarations": Transformation Result: successful, 4 matches
+DBG:   Result of strategy "Integrate L4 field declarations with knowledge::Process field declarations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 stencil declarations with knowledge::Process new stencils": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 stencil template declarations with knowledge::Process new stencil templates": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 equation declarations with knowledge::Process equation declarations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 field combination declarations with knowledge::Process field combination declarations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to domains::Resolve applicable future accesses": Transformation Result: successful, 63 matches
+DBG:   Result of strategy "Resolve accesses to field layouts::Resolve applicable unresolved accesses": Transformation Result: successful, 63 matches
+DBG:   Result of strategy "Resolve accesses to fields::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to stencils::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to stencil fields::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to virtual fields::Resolve applicable future accesses": Transformation Result: successful, 878 matches
+DBG:   Result of strategy "Resolve accesses to equations::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve grid integrations::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve grid evaluations::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 domain declarations with knowledge::Process new domains": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 field layout declarations with knowledge::Process field layout declarations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 field declarations with knowledge::Process field declarations": Transformation Result: successful, 63 matches
+DBG:   Result of strategy "Integrate L4 stencil declarations with knowledge::Process new stencils": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 stencil template declarations with knowledge::Process new stencil templates": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 equation declarations with knowledge::Process equation declarations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 field combination declarations with knowledge::Process field combination declarations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to domains::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to field layouts::Resolve applicable unresolved accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to fields::Resolve applicable future accesses": Transformation Result: successful, 734 matches
+DBG:   Result of strategy "Resolve accesses to stencils::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to stencil fields::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to virtual fields::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to equations::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve grid integrations::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve grid evaluations::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 domain declarations with knowledge::Process new domains": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 field layout declarations with knowledge::Process field layout declarations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 field declarations with knowledge::Process field declarations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 stencil declarations with knowledge::Process new stencils": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 stencil template declarations with knowledge::Process new stencil templates": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 equation declarations with knowledge::Process equation declarations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 field combination declarations with knowledge::Process field combination declarations": Transformation Result: successful, 22 matches
+DBG:   Result of strategy "Resolve accesses to domains::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to field layouts::Resolve applicable unresolved accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to fields::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to stencils::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to stencil fields::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to virtual fields::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to equations::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve grid integrations::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve grid evaluations::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 domain declarations with knowledge::Process new domains": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 field layout declarations with knowledge::Process field layout declarations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 field declarations with knowledge::Process field declarations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 stencil declarations with knowledge::Process new stencils": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 stencil template declarations with knowledge::Process new stencil templates": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 equation declarations with knowledge::Process equation declarations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 field combination declarations with knowledge::Process field combination declarations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to domains::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to field layouts::Resolve applicable unresolved accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to fields::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to stencils::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to stencil fields::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to virtual fields::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to equations::Resolve applicable future accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve grid integrations::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve grid evaluations::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve value and variable accesses::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve value and variable accesses::Remove applicable declarations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve stencil function references::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to loop iterators::Resolve iterator accesses": Transformation Result: successful, 12 matches
+DBG:   Result of strategy "Resolve native function references::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve print function references::Resolve": Transformation Result: successful, 13 matches
+DBG:   Result of strategy "Resolve build string function references::Resolve": Transformation Result: successful, 1 matches
+DBG:   Result of strategy "Resolve accesses to knowledge, settings and platform parameters::special functions and constants": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 4672 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 3812 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 3812 matches
+DBG:   Result of strategy "Integrate L4 stencil declarations with knowledge::Process new stencils": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 field layout declarations with knowledge::Process field layout declarations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 field declarations with knowledge::Process field declarations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrating L4 external field declarations with knowledge::Process new external fields": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Integrate L4 stencil template declarations with knowledge::Process new stencil templates": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve read field function references::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve print field function references::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to single components of stencils::Resolve applicable accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to single components of stencil fields::Resolve applicable accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve user defined functions::add assignments/decl to function returns to arguments": Transformation Result: successful, 0 matches
+DBG:   Progressing 1 objects of collection L4_DomainCollection
+DBG:   Progressing 63 objects of collection L4_FieldLayoutCollection
+DBG:   Progressing 63 objects of collection L4_FieldCollection
+DBG:   Progressing 0 objects of collection L4_StencilCollection
+DBG:   Progressing 0 objects of collection L4_StencilFieldCollection
+DBG:   Progressing 13 objects of collection L4_VirtualFieldCollection
+DBG:   Progressing 0 objects of collection L4_ExternalFieldCollection
+DBG:   Progressing 0 objects of collection L4_EquationCollection
+DBG:   Progressing 22 objects of collection L4_FieldCombinationCollection
+WARN:  Progressing unresolved function reference on L4: printVtkSWE ; at location 243.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+printVtkSWE ( filename_vtk, levels@current (  ) )
+^
+WARN:  Progressing unresolved function reference on L4: getNeighFragEdge ; at location 339.12 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+if ( ( ( ( getNeighFragEdge ( fragmentIdx, 0 ) < 0 ) || ( getNeighFragEdge ( fragmentIdx, 0 ) == 0 ) ) || ( getNeighFragEdge ( fragmentIdx, 0 ) == 1 ) ) ) {
+           ^
+WARN:  Progressing unresolved function reference on L4: getNeighFragEdge ; at location 339.59 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+if ( ( ( ( getNeighFragEdge ( fragmentIdx, 0 ) < 0 ) || ( getNeighFragEdge ( fragmentIdx, 0 ) == 0 ) ) || ( getNeighFragEdge ( fragmentIdx, 0 ) == 1 ) ) ) {
+                                                          ^
+WARN:  Progressing unresolved function reference on L4: getNeighFragEdge ; at location 339.109 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+if ( ( ( ( getNeighFragEdge ( fragmentIdx, 0 ) < 0 ) || ( getNeighFragEdge ( fragmentIdx, 0 ) == 0 ) ) || ( getNeighFragEdge ( fragmentIdx, 0 ) == 1 ) ) ) {
+                                                                                                            ^
+WARN:  Progressing unresolved function reference on L4: getNeighFragEdge ; at location 406.12 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+if ( ( ( ( getNeighFragEdge ( fragmentIdx, 1 ) < 0 ) || ( getNeighFragEdge ( fragmentIdx, 1 ) == 0 ) ) || ( getNeighFragEdge ( fragmentIdx, 1 ) == 1 ) ) ) {
+           ^
+WARN:  Progressing unresolved function reference on L4: getNeighFragEdge ; at location 406.59 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+if ( ( ( ( getNeighFragEdge ( fragmentIdx, 1 ) < 0 ) || ( getNeighFragEdge ( fragmentIdx, 1 ) == 0 ) ) || ( getNeighFragEdge ( fragmentIdx, 1 ) == 1 ) ) ) {
+                                                          ^
+WARN:  Progressing unresolved function reference on L4: getNeighFragEdge ; at location 406.109 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+if ( ( ( ( getNeighFragEdge ( fragmentIdx, 1 ) < 0 ) || ( getNeighFragEdge ( fragmentIdx, 1 ) == 0 ) ) || ( getNeighFragEdge ( fragmentIdx, 1 ) == 1 ) ) ) {
+                                                                                                            ^
+WARN:  Progressing unresolved function reference on L4: getNeighFragEdge ; at location 508.12 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+if ( ( ( ( getNeighFragEdge ( fragmentIdx, 2 ) < 0 ) || ( getNeighFragEdge ( fragmentIdx, 2 ) == 2 ) ) || ( getNeighFragEdge ( fragmentIdx, 2 ) == 3 ) ) ) {
+           ^
+WARN:  Progressing unresolved function reference on L4: getNeighFragEdge ; at location 508.59 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+if ( ( ( ( getNeighFragEdge ( fragmentIdx, 2 ) < 0 ) || ( getNeighFragEdge ( fragmentIdx, 2 ) == 2 ) ) || ( getNeighFragEdge ( fragmentIdx, 2 ) == 3 ) ) ) {
+                                                          ^
+WARN:  Progressing unresolved function reference on L4: getNeighFragEdge ; at location 508.109 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+if ( ( ( ( getNeighFragEdge ( fragmentIdx, 2 ) < 0 ) || ( getNeighFragEdge ( fragmentIdx, 2 ) == 2 ) ) || ( getNeighFragEdge ( fragmentIdx, 2 ) == 3 ) ) ) {
+                                                                                                            ^
+WARN:  Progressing unresolved function reference on L4: getNeighFragEdge ; at location 575.12 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+if ( ( ( ( getNeighFragEdge ( fragmentIdx, 3 ) < 0 ) || ( getNeighFragEdge ( fragmentIdx, 3 ) == 2 ) ) || ( getNeighFragEdge ( fragmentIdx, 3 ) == 3 ) ) ) {
+           ^
+WARN:  Progressing unresolved function reference on L4: getNeighFragEdge ; at location 575.59 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+if ( ( ( ( getNeighFragEdge ( fragmentIdx, 3 ) < 0 ) || ( getNeighFragEdge ( fragmentIdx, 3 ) == 2 ) ) || ( getNeighFragEdge ( fragmentIdx, 3 ) == 3 ) ) ) {
+                                                          ^
+WARN:  Progressing unresolved function reference on L4: getNeighFragEdge ; at location 575.109 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+if ( ( ( ( getNeighFragEdge ( fragmentIdx, 3 ) < 0 ) || ( getNeighFragEdge ( fragmentIdx, 3 ) == 2 ) ) || ( getNeighFragEdge ( fragmentIdx, 3 ) == 3 ) ) ) {
+                                                                                                            ^
+WARN:  Progressing unresolved function reference on L4: fmod ; at location 699.10 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+if ( ( ( fmod ( t, printInterval ) < ( 0.1 * dt ) ) || ( fmod ( t, printInterval ) > ( ( -0.1 * dt ) + printInterval ) ) ) ) {
+         ^
+WARN:  Progressing unresolved function reference on L4: fmod ; at location 699.58 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+if ( ( ( fmod ( t, printInterval ) < ( 0.1 * dt ) ) || ( fmod ( t, printInterval ) > ( ( -0.1 * dt ) + printInterval ) ) ) ) {
+                                                         ^
+WARN:  Progressing unresolved function reference on L4: initGlobals ; at location 714.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+initGlobals (  )
+^
+WARN:  Progressing unresolved function reference on L4: readParameterFile ; at location 716.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+readParameterFile ( "../swe_o0_rk2_l4_noPloy_uniform.parameter" )
+^
+WARN:  Progressing unresolved function reference on L4: initDomain ; at location 717.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+initDomain (  )
+^
+WARN:  Progressing unresolved function reference on L4: initFieldsWithZero ; at location 718.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+initFieldsWithZero (  )
+^
+WARN:  Progressing unresolved function reference on L4: initGeometry ; at location 719.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+initGeometry (  )
+^
+WARN:  Progressing unresolved function reference on L4: destroyGlobals ; at location 725.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+destroyGlobals (  )
+^
+DBG:   Result of strategy "Process inline knowledge blocks::Process": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 3812 matches
+DBG:   Result of strategy "Set up communication::Adding and linking communication functions": Transformation Result: successful, 57 matches
+DBG:   Result of strategy "InferDiagAndInverseCallDataTypes::do": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "HandleMainApplication::ResolveFunctionCalls": Transformation Result: successful, 1 matches
+DBG:   Result of strategy "ResolveBoundaryFunctions::ResolveFunctionCalls": Transformation Result: successful, 12 matches
+DBG:   Result of strategy "ResolveReadParameters::ResolveFunctionCalls": Transformation Result: successful, 1 matches
+DBG:   Result of strategy "ResolveStationFunctions::ResolveFunctionCalls": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "ResolveCImgFunctions::ResolveFunctionCalls": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "ResolveCharacteristicsFunctions::ResolveFunctionCalls": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "ResolveBenchmarkFunctions::ResolveFunctionCalls": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "ResolveGismoFunctions::ResolveFunctionCalls": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "ResolveVtkPrinters::ResolveFunctionCalls": Transformation Result: successful, 1 matches
+DBG:   Result of strategy "ResolvePrintWithReducedPrec::ResolveFunctionCalls": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Adapt function calls to timer functions::Handle function references": Transformation Result: successful, 24 matches
+DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 22 matches
+DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 22 matches
+DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 22 matches
+DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 207 matches
+DBG:   Result of strategy "Resolve grid integrations::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve grid evaluations::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to virtual fields::Resolve": Transformation Result: successful, 1780 matches
+DBG:   Result of strategy "Resolve LoopOverPoints nodes::Resolve": Transformation Result: successful, 46 matches
+DBG:   Result of strategy "Resolve indices in operations between two grid levels::ModifyIndices": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Apply offsets to FieldAccess nodes::Resolve": Transformation Result: successful, 452 matches
+DBG:   Result of strategy "Apply offsets to StencilFieldAccess nodes::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 6237 matches
+DBG:   Result of strategy "Find and mark stencil-stencil and stencil-field convolutions::SearchAndMark": Transformation Result: successful, 3127 matches
+DBG:   Result of strategy "Wrap stencil-field convolutions with relevant column strides::Wrap": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve stencil functions::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve grid integrations::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve grid evaluations::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve accesses to virtual fields::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Apply offsets to FieldAccess nodes::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Apply offsets to StencilFieldAccess nodes::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve user defined functions::add assignments/decl to function returns to arguments": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resole LoopOverPointsInOneFragment nodes::Resolve": Transformation Result: successful, 46 matches
+WARN:  Found IR_LocalSolve in loop but there are other statements in the body. Currently unsupported.
+WARN:  Found IR_LocalSolve in loop but there are other statements in the body. Currently unsupported.
+DBG:   Result of strategy "Resolve IR_LocalSolve nodes::Split loops containing local solve nodes": Transformation Result: successful, 10 matches
+WARN:  Local matrices are of shape filled ; at location 63.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+solve locally {
+^
+WARN:  A: IR_MatrixExpression(Some(IR_MatrixDatatype(IR_RealDatatype,1,1)), 1, 1; Items: IR_VariableAccess(_local_matrix_0_0,IR_RealDatatype))
+WARN:  Solving linear system with the following configuration: Runtime, ListBuffer(shape=filled)
+WARN:  Local matrices are of shape filled ; at location 66.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+solve locally {
+^
+WARN:  A: IR_MatrixExpression(Some(IR_MatrixDatatype(IR_RealDatatype,1,1)), 1, 1; Items: IR_VariableAccess(_local_matrix_0_0,IR_RealDatatype))
+WARN:  Solving linear system with the following configuration: Runtime, ListBuffer(shape=filled)
+WARN:  Local matrices are of shape filled ; at location 71.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+solve locally {
+^
+WARN:  A: IR_MatrixExpression(Some(IR_MatrixDatatype(IR_RealDatatype,1,1)), 1, 1; Items: IR_VariableAccess(_local_matrix_0_0,IR_RealDatatype))
+WARN:  Solving linear system with the following configuration: Runtime, ListBuffer(shape=filled)
+WARN:  Local matrices are of shape filled ; at location 74.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+solve locally {
+^
+WARN:  A: IR_MatrixExpression(Some(IR_MatrixDatatype(IR_RealDatatype,1,1)), 1, 1; Items: IR_VariableAccess(_local_matrix_0_0,IR_RealDatatype))
+WARN:  Solving linear system with the following configuration: Runtime, ListBuffer(shape=filled)
+WARN:  Local matrices are of shape filled ; at location 135.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+solve locally {
+^
+WARN:  A: IR_MatrixExpression(Some(IR_MatrixDatatype(IR_RealDatatype,1,1)), 1, 1; Items: IR_VariableAccess(_local_matrix_0_0,IR_RealDatatype))
+WARN:  Solving linear system with the following configuration: Runtime, ListBuffer(shape=filled)
+WARN:  Local matrices are of shape filled ; at location 140.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+solve locally {
+^
+WARN:  A: IR_MatrixExpression(Some(IR_MatrixDatatype(IR_RealDatatype,1,1)), 1, 1; Items: IR_VariableAccess(_local_matrix_0_0,IR_RealDatatype))
+WARN:  Solving linear system with the following configuration: Runtime, ListBuffer(shape=filled)
+WARN:  Local matrices are of shape filled ; at location 145.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+solve locally {
+^
+WARN:  A: IR_MatrixExpression(Some(IR_MatrixDatatype(IR_RealDatatype,1,1)), 1, 1; Items: IR_VariableAccess(_local_matrix_0_0,IR_RealDatatype))
+WARN:  Solving linear system with the following configuration: Runtime, ListBuffer(shape=filled)
+WARN:  Local matrices are of shape filled ; at location 150.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+solve locally {
+^
+WARN:  A: IR_MatrixExpression(Some(IR_MatrixDatatype(IR_RealDatatype,1,1)), 1, 1; Items: IR_VariableAccess(_local_matrix_0_0,IR_RealDatatype))
+WARN:  Solving linear system with the following configuration: Runtime, ListBuffer(shape=filled)
+WARN:  Local matrices are of shape filled ; at location 155.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+solve locally {
+^
+WARN:  A: IR_MatrixExpression(Some(IR_MatrixDatatype(IR_RealDatatype,1,1)), 1, 1; Items: IR_VariableAccess(_local_matrix_0_0,IR_RealDatatype))
+WARN:  Solving linear system with the following configuration: Runtime, ListBuffer(shape=filled)
+WARN:  Local matrices are of shape filled ; at location 160.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+solve locally {
+^
+WARN:  A: IR_MatrixExpression(Some(IR_MatrixDatatype(IR_RealDatatype,1,1)), 1, 1; Items: IR_VariableAccess(_local_matrix_0_0,IR_RealDatatype))
+WARN:  Solving linear system with the following configuration: Runtime, ListBuffer(shape=filled)
+WARN:  Local matrices are of shape filled ; at location 165.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+solve locally {
+^
+WARN:  A: IR_MatrixExpression(Some(IR_MatrixDatatype(IR_RealDatatype,1,1)), 1, 1; Items: IR_VariableAccess(_local_matrix_0_0,IR_RealDatatype))
+WARN:  Solving linear system with the following configuration: Runtime, ListBuffer(shape=filled)
+WARN:  Local matrices are of shape filled ; at location 170.1 in file ./swe_o0_rk2_l4_noPloy_uniform/./debug/swe_o0_rk2_l4_noPloy_uniform_debug.exa4:
+solve locally {
+^
+WARN:  A: IR_MatrixExpression(Some(IR_MatrixDatatype(IR_RealDatatype,1,1)), 1, 1; Items: IR_VariableAccess(_local_matrix_0_0,IR_RealDatatype))
+WARN:  Solving linear system with the following configuration: Runtime, ListBuffer(shape=filled)
+DBG:   Result of strategy "Resolve IR_LocalSolve nodes::Perform expand for applicable nodes": Transformation Result: successful, 24 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 5526 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 5408 matches
+DBG:   Result of strategy "Prelimirary transformations::replace function calls with matrix method nodes": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Prelimirary transformations::split combined operators": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Prelimirary transformations::prepare extraction": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 5408 matches
+DBG:   Result of strategy "extract and inline matrix operations::search stmts": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "extract and inline matrix operations::resolve and remove ext/inl statements": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "extract and inline matrix operations::inline values": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "resolve operators::resolve operators": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "resolve matFuncs::insert resolvables and resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve matrix decls and assignments::decls": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve matrix decls and assignments::assignments": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve matrix decls and assignments::simplify": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve matrix decls and assignments::function parameters and return types": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve matrix decls and assignments::function call returns": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "linearize matrices::Linearize": Transformation Result: successful, 28 matches
+DBG:   Result of strategy "Set up communication::Adding and linking communication functions": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Type inference::load global declarations first": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Type inference::infer types": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Type inference::replace nodes": Transformation Result: successful, 71 matches
+DBG:   Result of strategy "Type inference::remove annotations": Transformation Result: successful, 28489 matches
+DBG:   Result of strategy "Resolve ContractingLoop nodes::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Set up communication::Adding and linking communication functions": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Map assignments to stencils and stencil fields::SearchAndMark": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve FieldAccess nodes::Resolve": Transformation Result: successful, 655 matches
+DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 8 matches
+DBG:   Result of strategy "Resolve LoopOverFragments nodes::Resolve": Transformation Result: successful, 107 matches
+DBG:   Result of strategy "Resolve constant internal variables::Resolve IsValidForSubdomain": Transformation Result: successful, 118 matches
+DBG:   Result of strategy "Resolve constant internal variables::Resolve NeighborIsRemote and NeighborRemoteRank": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve constant internal variables::Resolve NeighborIsValid": Transformation Result: successful, 52 matches
+DBG:   Result of strategy "Resolve constant internal variables::Resolve local synchronization": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Simplify floating expressions::optimize": Transformation Result: successful, 565 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 3819 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 3574 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 3554 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 3522 matches
+DBG:   Result of strategy "Fuse Conditions::now": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve LoopOverDimensions nodes::Resolve": Transformation Result: successful, 116 matches
+DBG:   Result of strategy "Type inference::load global declarations first": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Type inference::infer types": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Type inference::replace nodes": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Type inference::remove annotations": Transformation Result: successful, 24550 matches
+DBG:   Result of strategy "Layout Transformation::collect transformation statements": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Linearize DirectFieldAccess nodes::Linearize": Transformation Result: successful, 694 matches
+DBG:   Result of strategy "Linearize ExternalFieldAccess nodes::Linearize": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Linearize TempBufferAccess nodes::Linearize": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Linearize ReductionDeviceDataAccess nodes::Linearize": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Linearize LoopCarriedCSBufferAccess nodes::Linearize": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "simplify modulo expressions::now": Transformation Result: successful, 6 matches
+DBG:   Result of strategy "Simplify index expressions::now": Transformation Result: successful, 739 matches
+DBG:   Result of strategy "Resolve BoundedScalar nodes::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve slot operations::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 694 matches
+DBG:   Result of strategy "Remove references to mpi functions and variables::Clean": Transformation Result: successful, 14 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 3767 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 3759 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 3748 matches
+DBG:   Result of strategy "Simplify floating expressions::optimize": Transformation Result: successful, 565 matches
+DBG:   Result of strategy "Add internal variables::Collecting buffer sizes": Transformation Result: successful, 694 matches
+DBG:   Result of strategy "Add internal variables::Updating temporary buffer allocations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Add internal variables::Extend SetupBuffers function": Transformation Result: successful, 1 matches
+DBG:   Result of strategy "Add internal variables::Collect": Transformation Result: successful, 1264 matches
+DBG:   Result of strategy "Add internal variables::Add to globals": Transformation Result: successful, 3 matches
+DBG:   Result of strategy "Resolve constant internal variables::Resolve IsValidForSubdomain": Transformation Result: successful, 63 matches
+DBG:   Result of strategy "Resolve constant internal variables::Resolve NeighborIsRemote and NeighborRemoteRank": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve constant internal variables::Resolve NeighborIsValid": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve constant internal variables::Resolve local synchronization": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 1 matches
+DBG:   Result of strategy "Resolve LoopOverFragments nodes::Resolve": Transformation Result: successful, 63 matches
+DBG:   Result of strategy "Handle potentially parallel omp sections::Adding OMP parallel for pragmas": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve potentially critical omp sections::Adding OMP critical pragmas": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 3874 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 3748 matches
+DBG:   Result of strategy "Function inlining::collect": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Function inlining::remove inlined functions": Transformation Result: successful, 19 matches
+DBG:   Result of strategy "Register type aliases::do": Transformation Result: successful, 0 matches
+DBG:   Prettyprinting to folder /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output
+WARN:  RealDatatype is deprecated - please switch to FloatDatatype or DoubleDatatype
+DBG:   Result of strategy "Prettyprint all file-prettyprintable nodes::Print": Transformation Result: successful, 8 matches
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Domain/Domain.h
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Util/Util_declarations.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/User/User_CommunicateAll_4.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Domain/Domain_initDomain.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/User/User_PrintError_4.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Global/Global_initGlobals.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Global/Global_readParameterFile.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Global/Global_declarations.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/User/User_SolvePhase_4.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/User/User_AdvanceRK2_4.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Util/Util_readLine.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Communication/Communication.h
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Global/Global_destroyGlobals.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/User/User_main.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Util/Timer_reduceTimers.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/User/User.h
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/User/User_InitBath_4.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Util/Util.h
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/User/User_InitFieldsAnalytical_4.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Global/Global.h
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/User/User_UpdateUnknowns_4.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Util/Stopwatch.h
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/User/User_ApplyAllBc_4.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Util/Timer_printAllTimers.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/User/User_initFieldsWithZero.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/User/User_SetupPhase_4.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Util/Timer_printAllTimersToFile.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Util/Timer.h
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Global/Global_setupBuffers.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/User/User_PrintVTK_4.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Util/Timer_getTotalTime.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/User/User_UpdateCTilde_4.cpp
+DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./swe_o0_rk2_l4_noPloy_uniform/./output/Makefile
+WARN:  Unknown target machine i10staff40, no job script is generated
+DBG:   Done!
+DBG:   Runtime:	16.9 seconds
+DBG:   Result of strategy "Count number of printed nodes::Count": Transformation Result: successful, 28721 matches
+DBG:   Counting number of printed nodes resulted in 28721 nodes with 326 annotations
+DBG:   1.0 ms (0.0 %) were consumed through 'Process solver hints' (1 top level transformation calls)
+DBG:   1.0 ms (0.0 %) were consumed through 'Process application hints' (1 top level transformation calls)
+DBG:   2.0 ms (0.0 %) were consumed through 'Convert string constants to literals' (24 top level transformation calls)
+DBG:   7.0 ms (0.0 %) were consumed through 'Check for (field) accesses to unknowns' (264 top level transformation calls)
+DBG:   7.0 ms (0.0 %) were consumed through 'Process discretization hints' (1 top level transformation calls)
+DBG:   11.0 ms (0.1 %) were consumed through 'Unfold leveled expression declarations' (1 top level transformation calls)
+DBG:   11.0 ms (0.1 %) were consumed through 'Prepare knowledge for L4 domains' (1 top level transformation calls)
+DBG:   11.0 ms (0.1 %) were consumed through 'Prepare knowledge for L4 stencil templates' (1 top level transformation calls)
+DBG:   11.0 ms (0.1 %) were consumed through 'Unfold leveled value and variable declarations' (1 top level transformation calls)
+DBG:   11.0 ms (0.1 %) were consumed through 'Prepare knowledge for L4 field layouts' (1 top level transformation calls)
+DBG:   12.0 ms (0.1 %) were consumed through 'Prepare knowledge for L4 stencils' (1 top level transformation calls)
+DBG:   12.0 ms (0.1 %) were consumed through 'Resolve frozen field accesses' (1 top level transformation calls)
+DBG:   12.0 ms (0.1 %) were consumed through 'Resolve level-specific scopes' (1 top level transformation calls)
+DBG:   13.0 ms (0.1 %) were consumed through 'Resolve color with loops' (1 top level transformation calls)
+DBG:   13.0 ms (0.1 %) were consumed through 'Prepare knowledge for L4 fields' (1 top level transformation calls)
+DBG:   13.0 ms (0.1 %) were consumed through 'Resolve special constants' (1 top level transformation calls)
+DBG:   13.0 ms (0.1 %) were consumed through 'Resolve accesses to single components of stencil fields' (1 top level transformation calls)
+DBG:   14.0 ms (0.1 %) were consumed through 'Resolve stencil function references' (1 top level transformation calls)
+DBG:   14.0 ms (0.1 %) were consumed through 'Unify all global sections and ensure at least one section exists' (1 top level transformation calls)
+DBG:   14.0 ms (0.1 %) were consumed through 'Resolve accesses to loop iterators' (1 top level transformation calls)
+DBG:   15.0 ms (0.1 %) were consumed through 'Resolve accesses to single components of stencils' (1 top level transformation calls)
+DBG:   15.0 ms (0.1 %) were consumed through 'Handling Layer 2' (1 top level transformation calls)
+DBG:   15.0 ms (0.1 %) were consumed through 'Integrating L4 external field declarations with knowledge' (1 top level transformation calls)
+DBG:   15.0 ms (0.1 %) were consumed through 'Resolve accesses to knowledge, settings and platform parameters' (1 top level transformation calls)
+DBG:   15.0 ms (0.1 %) were consumed through 'Linearize TempBufferAccess nodes' (1 top level transformation calls)
+DBG:   15.0 ms (0.1 %) were consumed through 'Resolve native function references' (1 top level transformation calls)
+DBG:   15.0 ms (0.1 %) were consumed through 'Resolve relative level specifications' (1 top level transformation calls)
+DBG:   16.0 ms (0.1 %) were consumed through 'Resolve BoundedScalar nodes' (1 top level transformation calls)
+DBG:   16.0 ms (0.1 %) were consumed through 'Linearize LoopCarriedCSBufferAccess nodes' (1 top level transformation calls)
+DBG:   16.0 ms (0.1 %) were consumed through 'Resolve print function references' (1 top level transformation calls)
+DBG:   16.0 ms (0.1 %) were consumed through 'Linearize ReductionDeviceDataAccess nodes' (1 top level transformation calls)
+DBG:   16.0 ms (0.1 %) were consumed through 'Linearize ExternalFieldAccess nodes' (1 top level transformation calls)
+DBG:   16.0 ms (0.1 %) were consumed through 'Resolve read field function references' (1 top level transformation calls)
+DBG:   17.0 ms (0.1 %) were consumed through 'ResolveGismoFunctions' (1 top level transformation calls)
+DBG:   17.0 ms (0.1 %) were consumed through 'ResolveBenchmarkFunctions' (1 top level transformation calls)
+DBG:   17.0 ms (0.1 %) were consumed through 'Resolve build string function references' (1 top level transformation calls)
+DBG:   17.0 ms (0.1 %) were consumed through 'ResolvePrintWithReducedPrec' (1 top level transformation calls)
+DBG:   17.0 ms (0.1 %) were consumed through 'Process L4 function declarations' (1 top level transformation calls)
+DBG:   18.0 ms (0.1 %) were consumed through 'Handling Layer 3' (1 top level transformation calls)
+DBG:   18.0 ms (0.1 %) were consumed through 'Adapt function calls to timer functions' (1 top level transformation calls)
+DBG:   18.0 ms (0.1 %) were consumed through 'ResolveStationFunctions' (1 top level transformation calls)
+DBG:   18.0 ms (0.1 %) were consumed through 'Map assignments to stencils and stencil fields' (1 top level transformation calls)
+DBG:   18.0 ms (0.1 %) were consumed through 'Layout Transformation' (1 top level transformation calls)
+DBG:   18.0 ms (0.1 %) were consumed through 'Resolve potentially critical omp sections' (1 top level transformation calls)
+DBG:   19.0 ms (0.1 %) were consumed through 'Remove references to mpi functions and variables' (1 top level transformation calls)
+DBG:   20.0 ms (0.1 %) were consumed through 'Resolve slot operations' (1 top level transformation calls)
+DBG:   20.0 ms (0.1 %) were consumed through 'Resolve ContractingLoop nodes' (1 top level transformation calls)
+DBG:   20.0 ms (0.1 %) were consumed through 'ResolveVtkPrinters' (1 top level transformation calls)
+DBG:   21.0 ms (0.1 %) were consumed through 'Resolve print field function references' (1 top level transformation calls)
+DBG:   21.0 ms (0.1 %) were consumed through 'Unfold leveled L4 knowledge declarations' (1 top level transformation calls)
+DBG:   21.0 ms (0.1 %) were consumed through 'ResolveCharacteristicsFunctions' (1 top level transformation calls)
+DBG:   21.0 ms (0.1 %) were consumed through 'Flatten complex computation expressions' (360 top level transformation calls)
+DBG:   21.0 ms (0.1 %) were consumed through 'linearize matrices' (1 top level transformation calls)
+DBG:   22.0 ms (0.1 %) were consumed through 'HandleMainApplication' (1 top level transformation calls)
+DBG:   22.0 ms (0.1 %) were consumed through 'ResolveCImgFunctions' (1 top level transformation calls)
+DBG:   22.0 ms (0.1 %) were consumed through 'Register type aliases' (1 top level transformation calls)
+DBG:   23.0 ms (0.1 %) were consumed through 'ResolveBoundaryFunctions' (1 top level transformation calls)
+DBG:   23.0 ms (0.1 %) were consumed through 'InferDiagAndInverseCallDataTypes' (1 top level transformation calls)
+DBG:   24.0 ms (0.1 %) were consumed through 'Combine single functions into leveled functions' (1 top level transformation calls)
+DBG:   24.0 ms (0.1 %) were consumed through 'resolve matFuncs' (1 top level transformation calls)
+DBG:   24.0 ms (0.1 %) were consumed through 'Handle potentially parallel omp sections' (1 top level transformation calls)
+DBG:   25.0 ms (0.2 %) were consumed through 'Revert stencil field accesses to unresolved accesses' (1 top level transformation calls)
+DBG:   25.0 ms (0.2 %) were consumed through 'Replace explicit levels with current, coarser and finer in functions' (1 top level transformation calls)
+DBG:   26.0 ms (0.2 %) were consumed through 'Resolve LoopOverPoints nodes' (1 top level transformation calls)
+DBG:   26.0 ms (0.2 %) were consumed through 'Resolve stencil functions' (1 top level transformation calls)
+DBG:   26.0 ms (0.2 %) were consumed through 'Resolve indices in operations between two grid levels' (1 top level transformation calls)
+DBG:   27.0 ms (0.2 %) were consumed through 'Count number of printed nodes' (1 top level transformation calls)
+DBG:   27.0 ms (0.2 %) were consumed through 'Handling Layer 1' (1 top level transformation calls)
+DBG:   27.0 ms (0.2 %) were consumed through 'resolve operators' (1 top level transformation calls)
+DBG:   28.0 ms (0.2 %) were consumed through 'Resolve timer function references' (2 top level transformation calls)
+DBG:   29.0 ms (0.2 %) were consumed through 'Resolve math function references' (1 top level transformation calls)
+DBG:   30.0 ms (0.2 %) were consumed through 'Revert field accesses to unresolved accesses' (1 top level transformation calls)
+DBG:   31.0 ms (0.2 %) were consumed through 'Prepare accesses to domains' (1 top level transformation calls)
+DBG:   31.0 ms (0.2 %) were consumed through 'simplify modulo expressions' (1 top level transformation calls)
+DBG:   31.0 ms (0.2 %) were consumed through 'Fuse Conditions' (1 top level transformation calls)
+DBG:   31.0 ms (0.2 %) were consumed through 'Prepare accesses to equations' (1 top level transformation calls)
+DBG:   32.0 ms (0.2 %) were consumed through 'Resolve grid function references (evaluate)' (1 top level transformation calls)
+DBG:   32.0 ms (0.2 %) were consumed through 'Prepare accesses to stencils' (1 top level transformation calls)
+DBG:   33.0 ms (0.2 %) were consumed through 'Prepare knowledge for L4 equations' (1 top level transformation calls)
+DBG:   34.0 ms (0.2 %) were consumed through 'Resolve grid function references (integrate)' (1 top level transformation calls)
+DBG:   34.0 ms (0.2 %) were consumed through 'Prepare accesses to field layouts' (1 top level transformation calls)
+DBG:   35.0 ms (0.2 %) were consumed through 'Find and mark stencil-stencil and stencil-field convolutions' (1 top level transformation calls)
+DBG:   36.0 ms (0.2 %) were consumed through 'Prepare accesses to virtual fields' (1 top level transformation calls)
+DBG:   37.0 ms (0.2 %) were consumed through 'Revert field field convolutions to plain multiplications' (1 top level transformation calls)
+DBG:   37.0 ms (0.2 %) were consumed through 'ResolveReadParameters' (1 top level transformation calls)
+DBG:   37.0 ms (0.2 %) were consumed through 'Resolve user defined functions' (2 top level transformation calls)
+DBG:   37.0 ms (0.2 %) were consumed through 'Prepare accesses to stencil fields' (1 top level transformation calls)
+DBG:   38.0 ms (0.2 %) were consumed through 'Resolve FieldAccess nodes' (1 top level transformation calls)
+DBG:   40.0 ms (0.2 %) were consumed through 'Revert stencil accesses to unresolved accesses' (1 top level transformation calls)
+DBG:   40.0 ms (0.2 %) were consumed through 'Resolve LoopOverFragments nodes' (2 top level transformation calls)
+DBG:   43.0 ms (0.3 %) were consumed through 'Apply offsets to StencilFieldAccess nodes' (2 top level transformation calls)
+DBG:   44.0 ms (0.3 %) were consumed through 'Resole LoopOverPointsInOneFragment nodes' (1 top level transformation calls)
+DBG:   45.0 ms (0.3 %) were consumed through 'Wrap stencil-field convolutions with relevant column strides' (1 top level transformation calls)
+DBG:   46.0 ms (0.3 %) were consumed through 'Resolve function references' (2 top level transformation calls)
+DBG:   47.0 ms (0.3 %) were consumed through 'Apply offsets to FieldAccess nodes' (2 top level transformation calls)
+DBG:   50.0 ms (0.3 %) were consumed through 'Prepare knowledge for L4 virtual fields' (1 top level transformation calls)
+DBG:   52.0 ms (0.3 %) were consumed through 'Prepare accesses to fields' (1 top level transformation calls)
+DBG:   54.0 ms (0.3 %) were consumed through 'Resolve LoopOverDimensions nodes' (1 top level transformation calls)
+DBG:   54.0 ms (0.3 %) were consumed through 'Collect all timers used' (3 top level transformation calls)
+DBG:   55.0 ms (0.3 %) were consumed through 'Resolving function templates and instantiations' (2 top level transformation calls)
+DBG:   56.0 ms (0.3 %) were consumed through 'Integrate L4 domain declarations with knowledge' (4 top level transformation calls)
+DBG:   58.0 ms (0.4 %) were consumed through 'Prettyprint all file-prettyprintable nodes' (1 top level transformation calls)
+DBG:   59.0 ms (0.4 %) were consumed through 'Set up communication' (3 top level transformation calls)
+DBG:   60.0 ms (0.4 %) were consumed through 'Resolve accesses to equations' (4 top level transformation calls)
+DBG:   62.0 ms (0.4 %) were consumed through 'Inline accesses to declared expressions' (2 top level transformation calls)
+DBG:   63.0 ms (0.4 %) were consumed through 'Resolve accesses to field layouts' (4 top level transformation calls)
+DBG:   65.0 ms (0.4 %) were consumed through 'Simplify index expressions' (1 top level transformation calls)
+DBG:   65.0 ms (0.4 %) were consumed through 'Integrate L4 equation declarations with knowledge' (4 top level transformation calls)
+DBG:   66.0 ms (0.4 %) were consumed through 'extract and inline matrix operations' (3 top level transformation calls)
+DBG:   68.0 ms (0.4 %) were consumed through 'Resolve accesses to stencil fields' (4 top level transformation calls)
+DBG:   68.0 ms (0.4 %) were consumed through 'Integrate L4 field combination declarations with knowledge' (4 top level transformation calls)
+DBG:   69.0 ms (0.4 %) were consumed through 'Resolve accesses to stencils' (4 top level transformation calls)
+DBG:   69.0 ms (0.4 %) were consumed through 'Process inline knowledge blocks' (2 top level transformation calls)
+DBG:   71.0 ms (0.4 %) were consumed through 'Resolve accesses to domains' (4 top level transformation calls)
+DBG:   73.0 ms (0.5 %) were consumed through 'Integrate L4 field declarations with knowledge' (5 top level transformation calls)
+DBG:   73.0 ms (0.5 %) were consumed through 'Integrate L4 field layout declarations with knowledge' (5 top level transformation calls)
+DBG:   81.0 ms (0.5 %) were consumed through 'Resolve accesses to fields' (4 top level transformation calls)
+DBG:   84.0 ms (0.5 %) were consumed through 'Resolve value and variable accesses' (4 top level transformation calls)
+DBG:   85.0 ms (0.5 %) were consumed through 'Validate L4 input' (4 top level transformation calls)
+DBG:   85.0 ms (0.5 %) were consumed through 'Integrate L4 stencil template declarations with knowledge' (5 top level transformation calls)
+DBG:   86.0 ms (0.5 %) were consumed through 'Integrate L4 stencil declarations with knowledge' (5 top level transformation calls)
+DBG:   94.0 ms (0.6 %) were consumed through 'Revert stencil field convolutions to plain multiplications' (1 top level transformation calls)
+DBG:   94.0 ms (0.6 %) were consumed through 'Resolve grid evaluations' (6 top level transformation calls)
+DBG:   95.0 ms (0.6 %) were consumed through 'Prelimirary transformations' (3 top level transformation calls)
+DBG:   96.0 ms (0.6 %) were consumed through 'Resolve grid integrations' (6 top level transformation calls)
+DBG:   108.0 ms (0.7 %) were consumed through 'Resolve matrix decls and assignments' (5 top level transformation calls)
+DBG:   119.0 ms (0.7 %) were consumed through 'Unfold leveled L4 function declarations' (1 top level transformation calls)
+DBG:   129.0 ms (0.8 %) were consumed through 'Progressing from L4 to IR' (1 top level transformation calls)
+DBG:   141.0 ms (0.9 %) were consumed through 'Linearize DirectFieldAccess nodes' (1 top level transformation calls)
+DBG:   150.0 ms (0.9 %) were consumed through 'Resolve level specifications' (4 top level transformation calls)
+DBG:   166.0 ms (1.0 %) were consumed through 'Function inlining' (1 top level transformation calls)
+DBG:   167.0 ms (1.0 %) were consumed through 'Resolve constant internal variables' (8 top level transformation calls)
+DBG:   175.0 ms (1.1 %) were consumed through 'Resolve IR_LocalSolve nodes' (2 top level transformation calls)
+DBG:   179.0 ms (1.1 %) were consumed through 'Type inference' (2 top level transformation calls)
+DBG:   197.0 ms (1.2 %) were consumed through 'Add internal variables' (5 top level transformation calls)
+DBG:   205.0 ms (1.3 %) were consumed through 'Resolve accesses to virtual fields' (6 top level transformation calls)
+DBG:   331.0 ms (2.0 %) were consumed through 'Expand all applicable nodes' (6 top level transformation calls)
+DBG:   450.0 ms (2.8 %) were consumed through 'Initializing' (1 top level transformation calls)
+DBG:   550.0 ms (3.4 %) were consumed through 'Simplify floating expressions' (2 top level transformation calls)
+DBG:   1610.0 ms (10.0 %) were consumed through 'Simplify general expressions' (3551 top level transformation calls)
+DBG:   7258.0 ms (44.9 %) were consumed through 'Handling Layer 4' (1 top level transformation calls)

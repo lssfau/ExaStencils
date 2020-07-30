@@ -100,7 +100,7 @@ class IR_MatrixVarCollector extends Collector {
 
   def writeInScope(key : String) : Boolean = {
     //TODO check not this write?
-    writes.find(p => p == key) != None
+    return writes.find(p => p == key) != None
   }
 
 }

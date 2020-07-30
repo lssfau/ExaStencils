@@ -26,7 +26,6 @@ import exastencils.baseExt.ir._
 import exastencils.boundary.ir.IR_IsValidComputationPoint
 import exastencils.core.Duplicate
 import exastencils.field.ir._
-import exastencils.logger.Logger
 
 /// IR_LocalDirectInvert
 
@@ -102,7 +101,6 @@ object IR_LocalDirectInvert {
           }).to[ListBuffer]).to[ListBuffer]
     )
 
-    Logger.warn(s"A: ${AMat}")
     // solve local system - TODO: replace inverse function call with internal function
     // TODO: set return value of the fct call
     //stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", ListBuffer[IR_Expression](AMat) ++= msi.toExprList()), f))
