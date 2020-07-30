@@ -1,5 +1,5 @@
 WARNING: An illegal reflective access operation has occurred
-WARNING: Illegal reflective access by com.rits.cloning.FastClonerTreeSet (file:/mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/classes/artifacts/Compiler_jar/Compiler.jar) to field java.util.TreeSet.m
+WARNING: Illegal reflective access by com.rits.cloning.FastClonerTreeSet (file:/mnt/c/Users/MonPreacthyl/Desktop/Ba/exastencils/classes/artifacts/Compiler_jar/Compiler.jar) to field java.util.TreeSet.m
 WARNING: Please consider reporting this to the maintainers of com.rits.cloning.FastClonerTreeSet
 WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
 WARNING: All illegal access operations will be denied in a future release
@@ -289,6 +289,7 @@ DBG:   Result of strategy "Resolve read field function references::Resolve": Tra
 DBG:   Result of strategy "Resolve print field function references::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve accesses to single components of stencils::Resolve applicable accesses": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve accesses to single components of stencil fields::Resolve applicable accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve user defined functions::add assignments/decl to function returns to arguments": Transformation Result: successful, 0 matches
 DBG:   Progressing 1 objects of collection L4_DomainCollection
 DBG:   Progressing 49 objects of collection L4_FieldLayoutCollection
 DBG:   Progressing 49 objects of collection L4_FieldCollection
@@ -304,16 +305,16 @@ resNorm += dot ( residual, residual )
 WARN:  Progressing unresolved function reference on L4: dot ; at location 100.12 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 resNorm += dot ( residual, residual )
            ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,5,26,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,5,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(32, 32)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,5,26,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,5,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(32, 32)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,5,26,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,5,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(32, 32)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,5,26,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,5,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(32, 32)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,5,26,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,5,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(32, 32)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,5,26,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,5,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(32, 32)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,5,26,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,5,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(32, 32)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,5,26,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,5,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(32, 32)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 137.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
@@ -322,16 +323,16 @@ flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow 
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 137.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow ) ) ) )
                   ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,5,26,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,5,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(32, 32)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,5,26,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,5,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(32, 32)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,5,26,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,5,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(32, 32)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,5,26,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,5,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(32, 32)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,5,26,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,5,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(32, 32)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,5,26,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,5,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(32, 32)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,5,26,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,5,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(32, 32)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,5,26,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,5,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(32, 32)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 167.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
@@ -340,16 +341,16 @@ flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow 
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 167.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow ) ) ) )
                   ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,6,28,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,6,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(64, 64)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,6,28,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,6,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(64, 64)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,6,28,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,6,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(64, 64)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,6,28,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,6,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(64, 64)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,6,28,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,6,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(64, 64)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,6,28,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,6,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(64, 64)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,6,28,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,6,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(64, 64)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,6,28,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,6,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(64, 64)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 137.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
@@ -358,16 +359,16 @@ flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow 
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 137.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow ) ) ) )
                   ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,6,28,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,6,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(64, 64)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,6,28,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,6,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(64, 64)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,6,28,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,6,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(64, 64)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,6,28,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,6,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(64, 64)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,6,28,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,6,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(64, 64)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,6,28,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,6,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(64, 64)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,6,28,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,6,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(64, 64)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,6,28,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,6,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(64, 64)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 167.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
@@ -376,16 +377,16 @@ flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow 
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 167.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow ) ) ) )
                   ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,3,29,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,3,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(8, 8)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,3,29,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,3,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(8, 8)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,3,29,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,3,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(8, 8)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,3,29,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,3,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(8, 8)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,3,29,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,3,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(8, 8)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,3,29,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,3,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(8, 8)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,3,29,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,3,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(8, 8)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,3,29,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,3,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(8, 8)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 137.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
@@ -394,16 +395,16 @@ flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow 
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 137.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow ) ) ) )
                   ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,3,29,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,3,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(8, 8)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,3,29,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,3,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(8, 8)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,3,29,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,3,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(8, 8)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,3,29,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,3,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(8, 8)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,3,29,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,3,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(8, 8)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,3,29,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,3,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(8, 8)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,3,29,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,3,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(8, 8)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,3,29,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,3,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(8, 8)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 167.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
@@ -412,16 +413,16 @@ flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow 
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 167.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow ) ) ) )
                   ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,7,30,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,7,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(128, 128)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,7,30,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,7,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(128, 128)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,7,30,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,7,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(128, 128)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,7,30,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,7,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(128, 128)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,7,30,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,7,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(128, 128)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,7,30,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,7,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(128, 128)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,7,30,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,7,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(128, 128)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,7,30,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,7,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(128, 128)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 137.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
@@ -430,16 +431,16 @@ flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow 
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 137.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow ) ) ) )
                   ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,7,30,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,7,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(128, 128)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,7,30,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,7,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(128, 128)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,7,30,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,7,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(128, 128)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,7,30,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,7,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(128, 128)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,7,30,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,7,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(128, 128)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,7,30,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,7,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(128, 128)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,7,30,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,7,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(128, 128)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,7,30,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,7,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(128, 128)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 167.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
@@ -448,16 +449,16 @@ flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow 
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 167.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow ) ) ) )
                   ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,4,31,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,4,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(16, 16)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,4,31,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,4,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(16, 16)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,4,31,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,4,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(16, 16)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,4,31,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,4,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(16, 16)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,4,31,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,4,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(16, 16)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,4,31,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,4,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(16, 16)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,4,31,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,4,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(16, 16)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,4,31,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,4,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(16, 16)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 137.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
@@ -466,16 +467,16 @@ flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow 
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 137.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow ) ) ) )
                   ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,4,31,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,4,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(16, 16)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,4,31,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,4,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(16, 16)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,4,31,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,4,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(16, 16)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,4,31,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,4,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(16, 16)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,4,31,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,4,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(16, 16)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,4,31,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,4,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(16, 16)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,4,31,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,4,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(16, 16)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,4,31,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,4,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(16, 16)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 167.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
@@ -484,16 +485,16 @@ flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow 
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 167.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow ) ) ) )
                   ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,8,32,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,8,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(256, 256)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,8,32,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,8,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(256, 256)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,8,32,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,8,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(256, 256)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,8,32,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,8,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(256, 256)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,8,32,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,8,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(256, 256)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,8,32,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,8,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(256, 256)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,8,32,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,8,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(256, 256)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,8,32,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,8,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(256, 256)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 132.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 137.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
@@ -502,16 +503,16 @@ flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow 
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 137.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 flow = ( flow + ( inverse ( diag ( combinedOp ) ) * ( rhs - ( combinedOp * flow ) ) ) )
                   ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,8,32,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,8,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(256, 256)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,8,32,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,8,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(256, 256)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,8,32,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,8,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(256, 256)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,8,32,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,8,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(256, 256)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,8,32,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,8,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(256, 256)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_Communicate(L4_FieldAccess(L4_Field(flow,8,32,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,8,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(256, 256)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false),both,ListBuffer(),None) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
-WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,8,32,L4_DomainFromAABB(global,L4_AABB([D@7c0b0090,[D@223c1a82)),L4_FieldLayout(vec2CellWComm_flow,8,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(256, 256)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
+WARN:  Ignoring statement while repeating/coloring: L4_ApplyBC(L4_FieldAccess(L4_Field(flow,8,32,L4_DomainFromAABB(global,L4_AABB([D@793942d9,[D@1b2092fe)),L4_FieldLayout(vec2CellWComm_flow,8,2,L4_VectorDatatype(L4_RealDatatype,2,false),L4_AtCellCenter,L4_ConstIndex(1, 1),true,L4_ConstIndex(0, 0),false,L4_ConstIndex(256, 256)),1,L4_NeumannBC(1),None),L4_ActiveSlot,None,None,false)) ; at location 162.1 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
 repeat with {
 ^
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 167.19 in file ./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/../Debug/2D_FD_OptFlow_fromL4_Vec_debug.exa4:
@@ -559,7 +560,8 @@ DBG:   Result of strategy "ResolvePrintWithReducedPrec::ResolveFunctionCalls": T
 DBG:   Result of strategy "Adapt function calls to timer functions::Handle function references": Transformation Result: successful, 5 matches
 DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 4 matches
 DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 4 matches
-DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 268 matches
+DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 4 matches
+DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 269 matches
 DBG:   Result of strategy "Resolve grid integrations::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve grid evaluations::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve accesses to virtual fields::Resolve": Transformation Result: successful, 8 matches
@@ -580,6 +582,7 @@ DBG:   Result of strategy "Resolve grid evaluations::Resolve": Transformation Re
 DBG:   Result of strategy "Resolve accesses to virtual fields::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Apply offsets to FieldAccess nodes::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Apply offsets to StencilFieldAccess nodes::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve user defined functions::add assignments/decl to function returns to arguments": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resole LoopOverPointsInOneFragment nodes::Resolve": Transformation Result: successful, 87 matches
 DBG:   Result of strategy "Resolve IR_LocalSolve nodes::Perform expand for applicable nodes": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 1165 matches
@@ -608,7 +611,7 @@ WARN:  Inverting with the following configuration: Compiletime, ListBuffer(shape
 WARN:  Inverting with the following configuration: Compiletime, ListBuffer(shape=filled, detShape=no)
 WARN:  Inverting with the following configuration: Compiletime, ListBuffer(shape=filled, detShape=no)
 WARN:  Inverting with the following configuration: Compiletime, ListBuffer(shape=filled, detShape=no)
-DBG:   Result of strategy "Prelimirary transformations::replace function calls with matrix method nodes": Transformation Result: successful, 28 matches
+DBG:   Result of strategy "Prelimirary transformations::replace function calls with matrix method nodes": Transformation Result: successful, 24 matches
 DBG:   Result of strategy "Prelimirary transformations::split combined operators": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Prelimirary transformations::prepare extraction": Transformation Result: successful, 24 matches
 DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 1083 matches
@@ -630,7 +633,7 @@ DBG:   Result of strategy "extract and inline matrix operations::resolve and rem
 DBG:   Result of strategy "extract and inline matrix operations::inline values": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "resolve operators::resolve operators": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "resolve matFuncs::insert resolvables and resolve": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Resolve matrix decls and assignments::decls": Transformation Result: successful, 1133 matches
+DBG:   Result of strategy "Resolve matrix decls and assignments::decls": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve matrix decls and assignments::assignments": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve matrix decls and assignments::simplify": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve matrix decls and assignments::function parameters and return types": Transformation Result: successful, 0 matches
@@ -640,7 +643,7 @@ DBG:   Result of strategy "Set up communication::Adding and linking communicatio
 DBG:   Result of strategy "Type inference::load global declarations first": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Type inference::infer types": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Type inference::replace nodes": Transformation Result: successful, 153 matches
-DBG:   Result of strategy "Type inference::remove annotations": Transformation Result: successful, 22128 matches
+DBG:   Result of strategy "Type inference::remove annotations": Transformation Result: successful, 22166 matches
 DBG:   Result of strategy "Resolve ContractingLoop nodes::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Set up communication::Adding and linking communication functions": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Map assignments to stencils and stencil fields::SearchAndMark": Transformation Result: successful, 0 matches
@@ -653,7 +656,7 @@ DBG:   Result of strategy "Resolve constant internal variables::Resolve Neighbor
 DBG:   Result of strategy "Resolve constant internal variables::Resolve local synchronization": Transformation Result: successful, 0 matches
 WARN:  RealDatatype is deprecated - please switch to FloatDatatype or DoubleDatatype
 DBG:   Result of strategy "Simplify floating expressions::optimize": Transformation Result: successful, 239 matches
-DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 4008 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 4006 matches
 DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 3669 matches
 DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 3601 matches
 DBG:   Result of strategy "Fuse Conditions::now": Transformation Result: successful, 0 matches
@@ -661,7 +664,7 @@ DBG:   Result of strategy "Resolve LoopOverDimensions nodes::Resolve": Transform
 DBG:   Result of strategy "Type inference::load global declarations first": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Type inference::infer types": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Type inference::replace nodes": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Type inference::remove annotations": Transformation Result: successful, 29709 matches
+DBG:   Result of strategy "Type inference::remove annotations": Transformation Result: successful, 29747 matches
 DBG:   Result of strategy "Layout Transformation::collect transformation statements": Transformation Result: successful, 0 matches
 WARN:  Index length mismatch for vec2CellWComm_residual@2: 2, should be 4
 WARN:  Index length mismatch for vec2CellWComm_residual@2: 2, should be 4
@@ -1306,7 +1309,7 @@ exastencils.util.ir.IR_ResultingDatatype$.apply(IR_ResultingDatatype.scala:31)
 	at scala.collection.mutable.ListBuffer.foreach(ListBuffer.scala:47)
 	at exastencils.datastructures.DefaultStrategy.apply(DefaultStrategy.scala:115)
 	at exastencils.optimization.ir.IR_GeneralSimplify$.doUntilDone(IR_GeneralSimplify.scala:44)
-	at exastencils.app.ir.IR_DefaultLayerHandler$.handle(IR_LayerHandler.scala:304)
+	at exastencils.app.ir.IR_DefaultLayerHandler$.handle(IR_LayerHandler.scala:316)
 	at exastencils.app.ExaLayerHandler$.$anonfun$handleAllLayers$1(ExaLayerHandler.scala:52)
 	at exastencils.app.ExaLayerHandler$.$anonfun$handleAllLayers$1$adapted(ExaLayerHandler.scala:52)
 	at scala.collection.IndexedSeqOptimized.foreach(IndexedSeqOptimized.scala:36)
@@ -1463,7 +1466,7 @@ Exception in thread "main" scala.MatchError: IR_PointerDatatype(IR_RealDatatype)
 	at scala.collection.mutable.ListBuffer.foreach(ListBuffer.scala:47)
 	at exastencils.datastructures.DefaultStrategy.apply(DefaultStrategy.scala:115)
 	at exastencils.optimization.ir.IR_GeneralSimplify$.doUntilDone(IR_GeneralSimplify.scala:44)
-	at exastencils.app.ir.IR_DefaultLayerHandler$.handle(IR_LayerHandler.scala:304)
+	at exastencils.app.ir.IR_DefaultLayerHandler$.handle(IR_LayerHandler.scala:316)
 	at exastencils.app.ExaLayerHandler$.$anonfun$handleAllLayers$1(ExaLayerHandler.scala:52)
 	at exastencils.app.ExaLayerHandler$.$anonfun$handleAllLayers$1$adapted(ExaLayerHandler.scala:52)
 	at scala.collection.IndexedSeqOptimized.foreach(IndexedSeqOptimized.scala:36)

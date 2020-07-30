@@ -19,8 +19,8 @@ Domain global< [0.0, 0.0] to [0.1, 0.1] >
 
 
 Function Application {
-	Var mat2 : Matrix<Real,5,5> = { { 1.0, 2.0, 1.0, 3.0, 3.0 }, { 4.0, 2.0, 1.0, 2.0, 5.0 }, { 4.0, 1.0, 3.0, 2.0, 7.0 }, { 1.0, 1.0, 2.0, 3.0, 4.0 }, { 1.0, 1.0, 2.0, 3.0, 9.0 } }
-	Var mat_inverse2 : Matrix<Real,5,5>
-	mat_inverse2 = inverse ( mat2 )
+	Var piv_3 : Matrix<Real,1,1> = { { 1.0 } }
+	Var piv_3_i : Matrix<Real,1,1>
+	piv_3_i = inverse ( piv_3 )
 }
 

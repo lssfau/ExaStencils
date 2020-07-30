@@ -3,6 +3,6 @@
 < Total time in cycle:    13473.3 
 < Mean time per cycle:    286.666 
 ---
-> Total time to solve:    11454.6 
-> Total time in cycle:    10687.3 
-> Mean time per cycle:    227.39 
+> Total time to solve:    14262.1 
+> Total time in cycle:    13407.3 
+> Mean time per cycle:    285.261 

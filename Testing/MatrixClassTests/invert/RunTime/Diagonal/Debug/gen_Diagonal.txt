@@ -1,5 +1,5 @@
 WARNING: An illegal reflective access operation has occurred
-WARNING: Illegal reflective access by com.rits.cloning.FastClonerTreeSet (file:/mnt/c/Users/MonPreacthyl/Desktop/BA/new/exastencils/classes/artifacts/Compiler_jar/Compiler.jar) to field java.util.TreeSet.m
+WARNING: Illegal reflective access by com.rits.cloning.FastClonerTreeSet (file:/mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/classes/artifacts/Compiler_jar/Compiler.jar) to field java.util.TreeSet.m
 WARNING: Please consider reporting this to the maintainers of com.rits.cloning.FastClonerTreeSet
 WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
 WARNING: All illegal access operations will be denied in a future release
@@ -132,6 +132,7 @@ DBG:   Result of strategy "Resolve read field function references::Resolve": Tra
 DBG:   Result of strategy "Resolve print field function references::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve accesses to single components of stencils::Resolve applicable accesses": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve accesses to single components of stencil fields::Resolve applicable accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve user defined functions::add assignments/decl to function returns to arguments": Transformation Result: successful, 0 matches
 DBG:   Progressing 1 objects of collection L4_DomainCollection
 DBG:   Progressing 0 objects of collection L4_FieldLayoutCollection
 DBG:   Progressing 0 objects of collection L4_FieldCollection
@@ -165,7 +166,8 @@ DBG:   Result of strategy "ResolvePrintWithReducedPrec::ResolveFunctionCalls": T
 DBG:   Result of strategy "Adapt function calls to timer functions::Handle function references": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 21 matches
+DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 22 matches
 DBG:   Result of strategy "Resolve grid integrations::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve grid evaluations::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve accesses to virtual fields::Resolve": Transformation Result: successful, 0 matches
@@ -183,6 +185,7 @@ DBG:   Result of strategy "Resolve grid evaluations::Resolve": Transformation Re
 DBG:   Result of strategy "Resolve accesses to virtual fields::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Apply offsets to FieldAccess nodes::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Apply offsets to StencilFieldAccess nodes::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve user defined functions::add assignments/decl to function returns to arguments": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resole LoopOverPointsInOneFragment nodes::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve IR_LocalSolve nodes::Perform expand for applicable nodes": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 19 matches
@@ -221,7 +224,7 @@ DBG:   Result of strategy "Set up communication::Adding and linking communicatio
 DBG:   Result of strategy "Type inference::load global declarations first": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Type inference::infer types": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Type inference::replace nodes": Transformation Result: successful, 1 matches
-DBG:   Result of strategy "Type inference::remove annotations": Transformation Result: successful, 566 matches
+DBG:   Result of strategy "Type inference::remove annotations": Transformation Result: successful, 580 matches
 DBG:   Result of strategy "Resolve ContractingLoop nodes::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Set up communication::Adding and linking communication functions": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Map assignments to stencils and stencil fields::SearchAndMark": Transformation Result: successful, 0 matches
@@ -239,7 +242,7 @@ DBG:   Result of strategy "Resolve LoopOverDimensions nodes::Resolve": Transform
 DBG:   Result of strategy "Type inference::load global declarations first": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Type inference::infer types": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Type inference::replace nodes": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Type inference::remove annotations": Transformation Result: successful, 561 matches
+DBG:   Result of strategy "Type inference::remove annotations": Transformation Result: successful, 575 matches
 DBG:   Result of strategy "Layout Transformation::collect transformation statements": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Linearize DirectFieldAccess nodes::Linearize": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Linearize ExternalFieldAccess nodes::Linearize": Transformation Result: successful, 0 matches
@@ -272,11 +275,11 @@ DBG:   Result of strategy "Simplify general expressions::Simplify": Transformati
 DBG:   Result of strategy "Function inlining::collect": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Function inlining::remove inlined functions": Transformation Result: successful, 12 matches
 DBG:   Result of strategy "Register type aliases::do": Transformation Result: successful, 9 matches
-DBG:   Prettyprinting to folder /mnt/c/Users/MonPreacthyl/Desktop/BA/new/exastencils/Testing/MatrixClassTests/./invert/RunTime/Diagonal/output
+DBG:   Prettyprinting to folder /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./invert/RunTime/Diagonal/output
 WARN:  RealDatatype is deprecated - please switch to FloatDatatype or DoubleDatatype
 DBG:   Result of strategy "Prettyprint all file-prettyprintable nodes::Print": Transformation Result: successful, 8 matches
 WARN:  Unknown target machine i10staff40, no job script is generated
 DBG:   Done!
-DBG:   Runtime:	4.9 seconds
-DBG:   Result of strategy "Count number of printed nodes::Count": Transformation Result: successful, 432 matches
-DBG:   Counting number of printed nodes resulted in 432 nodes with 22 annotations
+DBG:   Runtime:	6.9 seconds
+DBG:   Result of strategy "Count number of printed nodes::Count": Transformation Result: successful, 456 matches
+DBG:   Counting number of printed nodes resulted in 456 nodes with 23 annotations

@@ -4,7 +4,7 @@ minLevel                       = 2
 maxLevel                       = 8
 
 discr_type                     = "FiniteDifferences"
-experimental_resolveInverseFunctionCall = "Compiletime"
+experimental_resolveInverseFunctionCall = "Runtime"
 mpi_enabled = false
 // omp parallelization on exactly one fragment in one block
 //import '../lib/domain_onePatch.knowledge'

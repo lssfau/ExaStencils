@@ -132,6 +132,7 @@ DBG:   Result of strategy "Resolve read field function references::Resolve": Tra
 DBG:   Result of strategy "Resolve print field function references::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve accesses to single components of stencils::Resolve applicable accesses": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve accesses to single components of stencil fields::Resolve applicable accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve user defined functions::add assignments/decl to function returns to arguments": Transformation Result: successful, 0 matches
 DBG:   Progressing 1 objects of collection L4_DomainCollection
 DBG:   Progressing 0 objects of collection L4_FieldLayoutCollection
 DBG:   Progressing 0 objects of collection L4_FieldCollection
@@ -142,7 +143,7 @@ DBG:   Progressing 0 objects of collection L4_ExternalFieldCollection
 DBG:   Progressing 0 objects of collection L4_EquationCollection
 DBG:   Progressing 0 objects of collection L4_FieldCombinationCollection
 WARN:  Progressing unresolved function reference on L4: inverse ; at location 24.14 in file ./determineMatrixStructures/determineMatrixStructures_debug.exa4:
-t4_inverse = inverse ( t4, "DetermineRuntime" )
+t4_inverse = inverse ( t4, "detShape=compiletime" )
              ^
 WARN:  Progressing unresolved function reference on L4: compare ; at location 26.1 in file ./determineMatrixStructures/determineMatrixStructures_debug.exa4:
 compare ( t4_inverse, t4_sol, 0.001 )
@@ -165,7 +166,8 @@ DBG:   Result of strategy "ResolvePrintWithReducedPrec::ResolveFunctionCalls": T
 DBG:   Result of strategy "Adapt function calls to timer functions::Handle function references": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 21 matches
+DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 22 matches
 DBG:   Result of strategy "Resolve grid integrations::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve grid evaluations::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve accesses to virtual fields::Resolve": Transformation Result: successful, 0 matches
@@ -183,79 +185,103 @@ DBG:   Result of strategy "Resolve grid evaluations::Resolve": Transformation Re
 DBG:   Result of strategy "Resolve accesses to virtual fields::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Apply offsets to FieldAccess nodes::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Apply offsets to StencilFieldAccess nodes::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve user defined functions::add assignments/decl to function returns to arguments": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resole LoopOverPointsInOneFragment nodes::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve IR_LocalSolve nodes::Perform expand for applicable nodes": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 19 matches
 DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 19 matches
-Exception in thread "main" exastencils.logger.LoggerError: ERROR: unknown option string: DetermineRuntime
-	at exastencils.baseExt.ir.IR_MatShape$.nextOption$1(IR_MatShape.scala:26)
-	at exastencils.baseExt.ir.IR_MatShape$.apply(IR_MatShape.scala:33)
-	at exastencils.baseExt.ir.IR_MatrixFunctionNodes.IR_IntermediateInv$.apply(IR_Inverse.scala:105)
-	at exastencils.baseExt.ir.IR_PreItMOps$.$anonfun$fctMap$2(IR_ResolveMatrices.scala:70)
-	at exastencils.baseExt.ir.IR_PreItMOps$$anonfun$1.applyOrElse(IR_ResolveMatrices.scala:90)
-	at exastencils.baseExt.ir.IR_PreItMOps$$anonfun$1.applyOrElse(IR_ResolveMatrices.scala:88)
-	at exastencils.core.StateManager$.applyAtNode(StateManager.scala:155)
-	at exastencils.core.StateManager$.$anonfun$replace$1(StateManager.scala:183)
-	at exastencils.core.StateManager$.$anonfun$replace$1$adapted(StateManager.scala:172)
-	at scala.collection.immutable.List.foreach(List.scala:392)
-	at exastencils.core.StateManager$.replace(StateManager.scala:172)
-	at exastencils.core.StateManager$.$anonfun$replace$10(StateManager.scala:335)
-	at scala.collection.TraversableLike.$anonfun$flatMap$1(TraversableLike.scala:245)
-	at scala.collection.immutable.List.foreach(List.scala:392)
-	at scala.collection.generic.TraversableForwarder.foreach(TraversableForwarder.scala:38)
-	at scala.collection.generic.TraversableForwarder.foreach$(TraversableForwarder.scala:38)
-	at scala.collection.mutable.ListBuffer.foreach(ListBuffer.scala:47)
-	at scala.collection.TraversableLike.flatMap(TraversableLike.scala:245)
-	at scala.collection.TraversableLike.flatMap$(TraversableLike.scala:242)
-	at scala.collection.AbstractTraversable.flatMap(Traversable.scala:108)
-	at exastencils.core.StateManager$.$anonfun$replace$1(StateManager.scala:332)
-	at exastencils.core.StateManager$.$anonfun$replace$1$adapted(StateManager.scala:172)
-	at scala.collection.immutable.List.foreach(List.scala:392)
-	at exastencils.core.StateManager$.replace(StateManager.scala:172)
-	at exastencils.core.StateManager$.$anonfun$replace$10(StateManager.scala:335)
-	at scala.collection.TraversableLike.$anonfun$flatMap$1(TraversableLike.scala:245)
-	at scala.collection.immutable.List.foreach(List.scala:392)
-	at scala.collection.generic.TraversableForwarder.foreach(TraversableForwarder.scala:38)
-	at scala.collection.generic.TraversableForwarder.foreach$(TraversableForwarder.scala:38)
-	at scala.collection.mutable.ListBuffer.foreach(ListBuffer.scala:47)
-	at scala.collection.TraversableLike.flatMap(TraversableLike.scala:245)
-	at scala.collection.TraversableLike.flatMap$(TraversableLike.scala:242)
-	at scala.collection.AbstractTraversable.flatMap(Traversable.scala:108)
-	at exastencils.core.StateManager$.$anonfun$replace$1(StateManager.scala:332)
-	at exastencils.core.StateManager$.$anonfun$replace$1$adapted(StateManager.scala:172)
-	at scala.collection.immutable.List.foreach(List.scala:392)
-	at exastencils.core.StateManager$.replace(StateManager.scala:172)
-	at exastencils.core.StateManager$.$anonfun$replace$10(StateManager.scala:335)
-	at scala.collection.TraversableLike.$anonfun$flatMap$1(TraversableLike.scala:245)
-	at scala.collection.immutable.List.foreach(List.scala:392)
-	at scala.collection.generic.TraversableForwarder.foreach(TraversableForwarder.scala:38)
-	at scala.collection.generic.TraversableForwarder.foreach$(TraversableForwarder.scala:38)
-	at scala.collection.mutable.ListBuffer.foreach(ListBuffer.scala:47)
-	at scala.collection.TraversableLike.flatMap(TraversableLike.scala:245)
-	at scala.collection.TraversableLike.flatMap$(TraversableLike.scala:242)
-	at scala.collection.AbstractTraversable.flatMap(Traversable.scala:108)
-	at exastencils.core.StateManager$.$anonfun$replace$1(StateManager.scala:332)
-	at exastencils.core.StateManager$.$anonfun$replace$1$adapted(StateManager.scala:172)
-	at scala.collection.immutable.List.foreach(List.scala:392)
-	at exastencils.core.StateManager$.replace(StateManager.scala:172)
-	at exastencils.core.StateManager$.$anonfun$replace$1(StateManager.scala:214)
-	at exastencils.core.StateManager$.$anonfun$replace$1$adapted(StateManager.scala:172)
-	at scala.collection.immutable.List.foreach(List.scala:392)
-	at exastencils.core.StateManager$.replace(StateManager.scala:172)
-	at exastencils.core.StateManager$.apply(StateManager.scala:503)
-	at exastencils.datastructures.DefaultStrategy.executeInternal(DefaultStrategy.scala:136)
-	at exastencils.datastructures.DefaultStrategy.$anonfun$apply$1(DefaultStrategy.scala:116)
-	at scala.collection.immutable.List.foreach(List.scala:392)
-	at scala.collection.generic.TraversableForwarder.foreach(TraversableForwarder.scala:38)
-	at scala.collection.generic.TraversableForwarder.foreach$(TraversableForwarder.scala:38)
-	at scala.collection.mutable.ListBuffer.foreach(ListBuffer.scala:47)
-	at exastencils.datastructures.DefaultStrategy.apply(DefaultStrategy.scala:115)
-	at exastencils.app.ir.IR_DefaultLayerHandler$.handle(IR_LayerHandler.scala:198)
-	at exastencils.app.ExaLayerHandler$.$anonfun$handleAllLayers$1(ExaLayerHandler.scala:52)
-	at exastencils.app.ExaLayerHandler$.$anonfun$handleAllLayers$1$adapted(ExaLayerHandler.scala:52)
-	at scala.collection.IndexedSeqOptimized.foreach(IndexedSeqOptimized.scala:36)
-	at scala.collection.IndexedSeqOptimized.foreach$(IndexedSeqOptimized.scala:33)
-	at scala.collection.mutable.ArrayOps$ofRef.foreach(ArrayOps.scala:198)
-	at exastencils.app.ExaLayerHandler$.handleAllLayers(ExaLayerHandler.scala:52)
-	at Main$.main(Main.scala:109)
-	at Main.main(Main.scala)
+WARN:  determining matrix structure for inversion at compiletime
+WARN:  Inverting with the following configuration: Runtime, ListBuffer(shape=schur, block=6, A=blockdiagonal, Ablock=3)
+DBG:   Result of strategy "Prelimirary transformations::replace function calls with matrix method nodes": Transformation Result: successful, 1 matches
+DBG:   Result of strategy "Prelimirary transformations::split combined operators": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Prelimirary transformations::prepare extraction": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 19 matches
+DBG:   Result of strategy "extract and inline matrix operations::search stmts": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "extract and inline matrix operations::resolve and remove ext/inl statements": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "extract and inline matrix operations::inline values": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "resolve operators::resolve operators": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "resolve matFuncs::insert resolvables and resolve": Transformation Result: successful, 2 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 21 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 20 matches
+DBG:   Result of strategy "extract and inline matrix operations::search stmts": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "extract and inline matrix operations::resolve and remove ext/inl statements": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "extract and inline matrix operations::inline values": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "resolve operators::resolve operators": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "resolve matFuncs::insert resolvables and resolve": Transformation Result: successful, 1 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 188 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 60 matches
+DBG:   Result of strategy "extract and inline matrix operations::search stmts": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "extract and inline matrix operations::resolve and remove ext/inl statements": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "extract and inline matrix operations::inline values": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "resolve operators::resolve operators": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "resolve matFuncs::insert resolvables and resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve matrix decls and assignments::decls": Transformation Result: successful, 2 matches
+DBG:   Result of strategy "Resolve matrix decls and assignments::assignments": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve matrix decls and assignments::simplify": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve matrix decls and assignments::function parameters and return types": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve matrix decls and assignments::function call returns": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "linearize matrices::Linearize": Transformation Result: successful, 83 matches
+DBG:   Result of strategy "Set up communication::Adding and linking communication functions": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Type inference::load global declarations first": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Type inference::infer types": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Type inference::replace nodes": Transformation Result: successful, 1 matches
+DBG:   Result of strategy "Type inference::remove annotations": Transformation Result: successful, 2242 matches
+DBG:   Result of strategy "Resolve ContractingLoop nodes::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Set up communication::Adding and linking communication functions": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Map assignments to stencils and stencil fields::SearchAndMark": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve FieldAccess nodes::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve LoopOverFragments nodes::Resolve": Transformation Result: successful, 2 matches
+DBG:   Result of strategy "Resolve constant internal variables::Resolve IsValidForSubdomain": Transformation Result: successful, 1 matches
+DBG:   Result of strategy "Resolve constant internal variables::Resolve NeighborIsRemote and NeighborRemoteRank": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve constant internal variables::Resolve NeighborIsValid": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve constant internal variables::Resolve local synchronization": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Simplify floating expressions::optimize": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 191 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 179 matches
+DBG:   Result of strategy "Fuse Conditions::now": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve LoopOverDimensions nodes::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Type inference::load global declarations first": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Type inference::infer types": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Type inference::replace nodes": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Type inference::remove annotations": Transformation Result: successful, 2200 matches
+DBG:   Result of strategy "Layout Transformation::collect transformation statements": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Linearize DirectFieldAccess nodes::Linearize": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Linearize ExternalFieldAccess nodes::Linearize": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Linearize TempBufferAccess nodes::Linearize": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Linearize ReductionDeviceDataAccess nodes::Linearize": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Linearize LoopCarriedCSBufferAccess nodes::Linearize": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "simplify modulo expressions::now": Transformation Result: successful, 6 matches
+DBG:   Result of strategy "Simplify index expressions::now": Transformation Result: successful, 80 matches
+DBG:   Result of strategy "Resolve BoundedScalar nodes::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve slot operations::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Remove references to mpi functions and variables::Clean": Transformation Result: successful, 2 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 178 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 176 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 176 matches
+DBG:   Result of strategy "Simplify floating expressions::optimize": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Add internal variables::Collecting buffer sizes": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Add internal variables::Updating temporary buffer allocations": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Add internal variables::Extend SetupBuffers function": Transformation Result: successful, 1 matches
+DBG:   Result of strategy "Add internal variables::Collect": Transformation Result: successful, 20 matches
+DBG:   Result of strategy "Add internal variables::Add to globals": Transformation Result: successful, 3 matches
+DBG:   Result of strategy "Resolve constant internal variables::Resolve IsValidForSubdomain": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve constant internal variables::Resolve NeighborIsRemote and NeighborRemoteRank": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve constant internal variables::Resolve NeighborIsValid": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve constant internal variables::Resolve local synchronization": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve LoopOverFragments nodes::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 176 matches
+DBG:   Result of strategy "Function inlining::collect": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Function inlining::remove inlined functions": Transformation Result: successful, 12 matches
+WARN:  RealDatatype is deprecated - please switch to FloatDatatype or DoubleDatatype
+DBG:   Result of strategy "Register type aliases::do": Transformation Result: successful, 83 matches
+DBG:   Prettyprinting to folder /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./determineMatrixStructures/./output
+DBG:   Result of strategy "Prettyprint all file-prettyprintable nodes::Print": Transformation Result: successful, 8 matches
+WARN:  Unknown target machine i10staff40, no job script is generated
+DBG:   Done!
+DBG:   Runtime:	5.0 seconds
+DBG:   Result of strategy "Count number of printed nodes::Count": Transformation Result: successful, 2077 matches
+DBG:   Counting number of printed nodes resulted in 2077 nodes with 52 annotations

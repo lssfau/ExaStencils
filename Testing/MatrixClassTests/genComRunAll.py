@@ -10,12 +10,15 @@ import ntpath
 tests = []
 
 # application testcases
-#tests.append("./NSGTestcase/2D_FD_Stokes_fromL4")
-#tests.append("./NSGTestcase/3D_FD_Stokes_fromL4")
+#tests.append("./NSGTestcase/2D_FV_Poisson_fromL4")
+#tests.append("./NSGTestcase/2D_FD_Poisson_fromL4")
+#tests.append("./NSGTestcase/3D_FV_Poisson_fromL4")
+tests.append("./NSGTestcase/2D_FD_Stokes_fromL4")
+tests.append("./NSGTestcase/3D_FD_Stokes_fromL4")
 #tests.append("./NSGTestcase/3D_FV_NavierStokes_localNewton")
 #tests.append("./NSGTestcase/3D_FV_NavierStokes_localPicard")
 #tests.append("./NSGTestcase/3D_FV_Stokes_fromL4")
-#tests.append("./NSGTestcase/2D_FD_OptFlow_fromL4")
+tests.append("./NSGTestcase/2D_FD_OptFlow_fromL4")
 #tests.append("./NSGTestcase/2D_FD_OptFlow_fromL4_Vec")
 
 # compiletime inversion
@@ -37,7 +40,7 @@ tests = []
 
 # misc functions
 #tests.append("./resolvingMatrixFunctions/chaines")
-#tests.append("./resolvingMatrixFunctions/cross")
+#tests.append("./resolvingMatrixFunctions/cross")#
 #tests.append("./resolvingMatrixFunctions/determinant")
 #tests.append("./resolvingMatrixFunctions/dot")
 #tests.append("./resolvingMatrixFunctions/slicing")
@@ -49,15 +52,16 @@ tests = []
 
 
 # solveLinearSystem
-#tests.append("./solveLinearSystem")
+tests.append("./solveLinearSystem")
 
 # determine structure
 #tests.append("./determineMatrixStructures")
 
 # field declarations with matrix structure information
-tests.append("./shapeFromField")
+#tests.append("./shapeFromField")
 
 
+#tests.append("./solveLocally")
 
 
 
@@ -117,8 +121,10 @@ def main():
             runpath = f"{test}/Debug/run_{problem_name}_refc.txt"
         else:
             runpath = f"{test}/Debug/run_{problem_name}.txt"
-        runfile = open(runpath,'w+')   
-        out = subprocess.run(['./exastencils'], cwd=f"{test}/output/", stdout=runfile, stderr=runfile)
+        #runfile = open(runpath,'w+')   
+        #out = subprocess.run(['./exastencils'], cwd=f"{test}/output/", stdout=runfile, stderr=runfile)
+        out = subprocess.run(['./exastencils'], cwd=f"{test}/output/")
+        
         if(out.returncode != 0): 
             print(problem_name + " failed while running\n")
             continue    
@@ -128,8 +134,10 @@ def main():
             print("comparing " + problem_name + " with reference\n")
             default_comppath = f"{test}/Debug/run_{problem_name}.txt"
             ref_comppath = f"{test}/Debug/run_{problem_name}_refc.txt"
-            compfile = open(f"{test}/Debug/compare_{problem_name}.txt",'w+')   
-            out = subprocess.run(['diff', ref_comppath, default_comppath], stdout=compfile, stderr=compfile)
+            #compfile = open(f"{test}/Debug/compare_{problem_name}.txt",'w+')   
+            #out = subprocess.run(['diff', ref_comppath, default_comppath], stdout=compfile, stderr=compfile)
+            out = subprocess.run(['diff', ref_comppath, default_comppath])
+            
             if(out.returncode != 0): 
                 print(problem_name + " failed while comparing\n")
                 continue    

@@ -3,7 +3,7 @@ Starting iteration 0 at time 0 with dt 1
 Maximum number of cgs iterations ( 12800 ) was exceeded 
 Error detected after 1 steps, residual is -nan - reducing time step size to 0.5 and trying again with adapted time 0.5 
 Maximum number of cgs iterations ( 12800 ) was exceeded 
-Error detected after 2 steps, residual is nan - reducing time step size to 0.25 and trying again with adapted time 0.25 
+Error detected after 2 steps, residual is -nan - reducing time step size to 0.25 and trying again with adapted time 0.25 
   Residual at 0.25 after 2 iterations is 3.85772e-12 , was initially 1.26953e-09 
   Residual at 0.5 after 1 iterations is 5.12099e-11 , was initially 9.22057e-10 
   Residual at 0.75 after 1 iterations is 3.71277e-11 , was initially 6.97563e-10 
@@ -22,7 +22,7 @@ Error detected after 2 steps, residual is nan - reducing time step size to 0.25 
   Residual at 4 after 1 iterations is 2.60911e-11 , was initially 1.27315e-10 
 Trying to increase dt to 0.5 
 Maximum number of cgs iterations ( 12800 ) was exceeded 
-Error detected after 1 steps, residual is nan - reducing time step size to 0.25 and trying again with adapted time 4.25 
+Error detected after 1 steps, residual is -nan - reducing time step size to 0.25 and trying again with adapted time 4.25 
   Residual at 4.25 after 1 iterations is 2.49902e-11 , was initially 1.21417e-10 
   Residual at 4.5 after 1 iterations is 2.40502e-11 , was initially 1.16259e-10 
   Residual at 4.75 after 1 iterations is 2.32597e-11 , was initially 1.11711e-10 
@@ -50,8 +50,8 @@ Error detected after 1 steps, residual is -nan - reducing time step size to 0.25
   Residual at 9.5 after 1 iterations is 2.38807e-11 , was initially 7.58938e-11 
   Residual at 9.75 after 1 iterations is 2.39652e-11 , was initially 7.51348e-11 
   Residual at 10 after 1 iterations is 2.39928e-11 , was initially 7.44066e-11 
-Total time to solve:    82175.3 
-Total time in cycle:    81408.8 
-Mean time per cycle:    1769.76 
+Total time to solve:    43963.7 
+Total time in cycle:    43246.8 
+Mean time per cycle:    940.148 
 Number of cycles:       46 
 Number of time steps:   40 

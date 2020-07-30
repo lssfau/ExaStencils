@@ -1,5 +1,5 @@
 WARNING: An illegal reflective access operation has occurred
-WARNING: Illegal reflective access by com.rits.cloning.FastClonerTreeSet (file:/mnt/c/Users/MonPreacthyl/Desktop/BA/new/exastencils/classes/artifacts/Compiler_jar/Compiler.jar) to field java.util.TreeSet.m
+WARNING: Illegal reflective access by com.rits.cloning.FastClonerTreeSet (file:/mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/classes/artifacts/Compiler_jar/Compiler.jar) to field java.util.TreeSet.m
 WARNING: Please consider reporting this to the maintainers of com.rits.cloning.FastClonerTreeSet
 WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
 WARNING: All illegal access operations will be denied in a future release
@@ -37,7 +37,7 @@ DBG:   Result of strategy "Replace explicit levels with current, coarser and fin
 DBG:   Result of strategy "Combine single functions into leveled functions::Gather functions": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Process inline knowledge blocks::Process": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Validate L4 input::EscapeCppKeywordsAndInternalIdentifiers": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Validate L4 input::find Function calls": Transformation Result: successful, 12 matches
+DBG:   Result of strategy "Validate L4 input::find Function calls": Transformation Result: successful, 10 matches
 DBG:   Result of strategy "Validate L4 input::check destroyGlobals": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Validate L4 input::Check assignment of vectors and matrices": Transformation Result: successful, 4 matches
 DBG:   Result of strategy "Unify all global sections and ensure at least one section exists::Collect and consume global sections": Transformation Result: successful, 0 matches
@@ -60,7 +60,7 @@ DBG:   Result of strategy "Prepare knowledge for L4 field layouts::Process new f
 DBG:   Result of strategy "Prepare knowledge for L4 fields::Process new fields": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Prepare knowledge for L4 stencils::Process new stencils": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Prepare knowledge for L4 stencil templates::Process new stencil templates": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Prepare knowledge for L4 virtual fields::Resolve aliases": Transformation Result: successful, 22 matches
+DBG:   Result of strategy "Prepare knowledge for L4 virtual fields::Resolve aliases": Transformation Result: successful, 17 matches
 DBG:   Added 91 virtual fields
 DBG:   Result of strategy "Prepare knowledge for L4 equations::Process new equations": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Inline accesses to declared expressions::Resolve": Transformation Result: successful, 0 matches
@@ -72,7 +72,7 @@ DBG:   Result of strategy "Prepare accesses to stencils::Resolve applicable unre
 DBG:   Result of strategy "Prepare accesses to stencil fields::Resolve applicable unresolved accesses": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Prepare accesses to virtual fields::Resolve applicable unresolved accesses": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Prepare accesses to equations::Resolve applicable unresolved accesses": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Resolve value and variable accesses::Resolve": Transformation Result: successful, 22 matches
+DBG:   Result of strategy "Resolve value and variable accesses::Resolve": Transformation Result: successful, 17 matches
 DBG:   Result of strategy "Resolve value and variable accesses::Remove applicable declarations": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve special constants::special functions and constants": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve frozen field accesses::Resolve": Transformation Result: successful, 0 matches
@@ -133,6 +133,7 @@ DBG:   Result of strategy "Resolve read field function references::Resolve": Tra
 DBG:   Result of strategy "Resolve print field function references::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve accesses to single components of stencils::Resolve applicable accesses": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve accesses to single components of stencil fields::Resolve applicable accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve user defined functions::add assignments/decl to function returns to arguments": Transformation Result: successful, 0 matches
 DBG:   Progressing 1 objects of collection L4_DomainCollection
 DBG:   Progressing 0 objects of collection L4_FieldLayoutCollection
 DBG:   Progressing 0 objects of collection L4_FieldCollection
@@ -154,28 +155,22 @@ compare ( sol1, res1, prec )
 WARN:  Progressing unresolved function reference on L4: determinant ; at location 32.22 in file ./resolvingMatrixFunctions/determinant/determinant_debug.exa4:
 Var res3 : Integer = determinant ( m3 )
                      ^
-WARN:  Progressing unresolved function reference on L4: determinant ; at location 35.8 in file ./resolvingMatrixFunctions/determinant/determinant_debug.exa4:
-res5 = determinant ( m4 )
-       ^
-WARN:  Progressing unresolved function reference on L4: determinant ; at location 36.22 in file ./resolvingMatrixFunctions/determinant/determinant_debug.exa4:
-Var res6 : Integer = determinant ( { { 3, 4, 5, 6 }, { 1, 5, 7, 2 }, { 4, 6, 8, 1 }, { 4, 5, 1, 6 } } )
+WARN:  Progressing unresolved function reference on L4: determinant ; at location 33.22 in file ./resolvingMatrixFunctions/determinant/determinant_debug.exa4:
+Var res4 : Integer = determinant ( { { 1, 2, 3 }, { 3, 4, 5 }, { 1, 2, 7 } } )
                      ^
-WARN:  Progressing unresolved function reference on L4: compare ; at location 37.1 in file ./resolvingMatrixFunctions/determinant/determinant_debug.exa4:
-compare ( sol5, res5, prec )
+WARN:  Progressing unresolved function reference on L4: compare ; at location 34.1 in file ./resolvingMatrixFunctions/determinant/determinant_debug.exa4:
+compare ( sol3, res3, prec )
 ^
-WARN:  Progressing unresolved function reference on L4: compare ; at location 38.1 in file ./resolvingMatrixFunctions/determinant/determinant_debug.exa4:
-compare ( sol5, res6, prec )
-^
-WARN:  Progressing unresolved function reference on L4: determinant ; at location 39.22 in file ./resolvingMatrixFunctions/determinant/determinant_debug.exa4:
+WARN:  Progressing unresolved function reference on L4: determinant ; at location 35.22 in file ./resolvingMatrixFunctions/determinant/determinant_debug.exa4:
 Var res7 : Integer = determinant ( m5 )
                      ^
-WARN:  Progressing unresolved function reference on L4: determinant ; at location 41.22 in file ./resolvingMatrixFunctions/determinant/determinant_debug.exa4:
+WARN:  Progressing unresolved function reference on L4: determinant ; at location 37.22 in file ./resolvingMatrixFunctions/determinant/determinant_debug.exa4:
 Var res8 : Integer = determinant ( { { 3.0, 4, 5, 6, 1, 2 }, { 5, 6, 1, 5, 7, 2 }, { 5, 6, 4, 6, 8, 1 }, { 4, 3, 4, 5, 1, 6 }, { 5, 7, 8, 4, 2, 5 }, { 1, 2, 3, 4, 7, 8 } } )
                      ^
-WARN:  Progressing unresolved function reference on L4: compare ; at location 42.1 in file ./resolvingMatrixFunctions/determinant/determinant_debug.exa4:
+WARN:  Progressing unresolved function reference on L4: compare ; at location 38.1 in file ./resolvingMatrixFunctions/determinant/determinant_debug.exa4:
 compare ( sol7, res7, prec )
 ^
-WARN:  Progressing unresolved function reference on L4: compare ; at location 43.1 in file ./resolvingMatrixFunctions/determinant/determinant_debug.exa4:
+WARN:  Progressing unresolved function reference on L4: compare ; at location 39.1 in file ./resolvingMatrixFunctions/determinant/determinant_debug.exa4:
 compare ( sol7, res8, prec )
 ^
 DBG:   Result of strategy "Process inline knowledge blocks::Process": Transformation Result: successful, 0 matches
@@ -195,7 +190,8 @@ DBG:   Result of strategy "ResolvePrintWithReducedPrec::ResolveFunctionCalls": T
 DBG:   Result of strategy "Adapt function calls to timer functions::Handle function references": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 21 matches
+DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 22 matches
 DBG:   Result of strategy "Resolve grid integrations::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve grid evaluations::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve accesses to virtual fields::Resolve": Transformation Result: successful, 0 matches
@@ -213,11 +209,12 @@ DBG:   Result of strategy "Resolve grid evaluations::Resolve": Transformation Re
 DBG:   Result of strategy "Resolve accesses to virtual fields::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Apply offsets to FieldAccess nodes::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Apply offsets to StencilFieldAccess nodes::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve user defined functions::add assignments/decl to function returns to arguments": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resole LoopOverPointsInOneFragment nodes::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve IR_LocalSolve nodes::Perform expand for applicable nodes": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 19 matches
 DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 19 matches
-DBG:   Result of strategy "Prelimirary transformations::replace function calls with matrix method nodes": Transformation Result: successful, 7 matches
+DBG:   Result of strategy "Prelimirary transformations::replace function calls with matrix method nodes": Transformation Result: successful, 6 matches
 DBG:   Result of strategy "Prelimirary transformations::split combined operators": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Prelimirary transformations::prepare extraction": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 19 matches
@@ -227,17 +224,19 @@ DBG:   Result of strategy "extract and inline matrix operations::inline values":
 DBG:   Result of strategy "resolve operators::resolve operators": Transformation Result: successful, 0 matches
 WARN:  Critical error: null
 WARN:  Stack trace:
-java.base/jdk.internal.reflect.UnsafeFieldAccessorImpl.ensureObj(UnsafeFieldAccessorImpl.java:57)
-	at java.base/jdk.internal.reflect.UnsafeIntegerFieldAccessorImpl.getInt(UnsafeIntegerFieldAccessorImpl.java:56)
-	at java.base/jdk.internal.reflect.UnsafeIntegerFieldAccessorImpl.get(UnsafeIntegerFieldAccessorImpl.java:36)
-	at java.base/java.lang.reflect.Field.get(Field.java:418)
-	at com.rits.cloning.Cloner$CloneObjectCloner.deepClone(Cloner.java:600)
+java.base/java.util.IdentityHashMap.hash(IdentityHashMap.java:295)
+	at java.base/java.util.IdentityHashMap.get(IdentityHashMap.java:329)
+	at com.rits.cloning.Cloner$ClonesMap.get(Cloner.java:770)
+	at com.rits.cloning.Cloner.cloneInternal(Cloner.java:419)
+	at com.rits.cloning.Cloner.applyCloningStrategy(Cloner.java:629)
+	at com.rits.cloning.Cloner.access$1200(Cloner.java:25)
+	at com.rits.cloning.Cloner$CloneObjectCloner.deepClone(Cloner.java:601)
 	at com.rits.cloning.Cloner.cloneInternal(Cloner.java:436)
 	at com.rits.cloning.Cloner.deepClone(Cloner.java:327)
-	at exastencils.core.Duplicate$.apply(Duplicate.scala:40)
+	at exastencils.core.Duplicate$.apply(Duplicate.scala:43)
 	at exastencils.datastructures.Annotatable.annotate(Annotation.scala:85)
 	at exastencils.datastructures.Annotatable.annotate$(Annotation.scala:82)
-	at exastencils.baseExt.ir.IR_MatrixFunctionNodes.IR_DeterminantCT.annotate(IR_Determinant.scala:50)
+	at exastencils.baseExt.ir.IR_MatNodes.IR_DeterminantCT.annotate(IR_Determinant.scala:50)
 	at exastencils.core.StateManager$.$anonfun$replace$1(StateManager.scala:190)
 	at exastencils.core.StateManager$.$anonfun$replace$1$adapted(StateManager.scala:172)
 	at scala.collection.immutable.List.foreach(List.scala:392)
@@ -1249,20 +1248,20 @@ java.base/jdk.internal.reflect.UnsafeFieldAccessorImpl.ensureObj(UnsafeFieldAcce
 	at exastencils.core.StateManager$.$anonfun$replace$1(StateManager.scala:214)
 	at exastencils.core.StateManager$.$anonfun$replace$1$adapted(StateManager.scala:172)
 	at scala.collection.immutable.List.foreach(List.scala:392)
-	at exastencils.core.StateManager$.replace(StateManager.scala:172)
-	at exastencils.core.StateManager$.$anonfun$replace$1(StateManager.scala:214)
 Exception in thread "main" java.lang.StackOverflowError
-	at java.base/jdk.internal.reflect.UnsafeFieldAccessorImpl.ensureObj(UnsafeFieldAccessorImpl.java:57)
-	at java.base/jdk.internal.reflect.UnsafeIntegerFieldAccessorImpl.getInt(UnsafeIntegerFieldAccessorImpl.java:56)
-	at java.base/jdk.internal.reflect.UnsafeIntegerFieldAccessorImpl.get(UnsafeIntegerFieldAccessorImpl.java:36)
-	at java.base/java.lang.reflect.Field.get(Field.java:418)
-	at com.rits.cloning.Cloner$CloneObjectCloner.deepClone(Cloner.java:600)
+	at java.base/java.util.IdentityHashMap.hash(IdentityHashMap.java:295)
+	at java.base/java.util.IdentityHashMap.get(IdentityHashMap.java:329)
+	at com.rits.cloning.Cloner$ClonesMap.get(Cloner.java:770)
+	at com.rits.cloning.Cloner.cloneInternal(Cloner.java:419)
+	at com.rits.cloning.Cloner.applyCloningStrategy(Cloner.java:629)
+	at com.rits.cloning.Cloner.access$1200(Cloner.java:25)
+	at com.rits.cloning.Cloner$CloneObjectCloner.deepClone(Cloner.java:601)
 	at com.rits.cloning.Cloner.cloneInternal(Cloner.java:436)
 	at com.rits.cloning.Cloner.deepClone(Cloner.java:327)
-	at exastencils.core.Duplicate$.apply(Duplicate.scala:40)
+	at exastencils.core.Duplicate$.apply(Duplicate.scala:43)
 	at exastencils.datastructures.Annotatable.annotate(Annotation.scala:85)
 	at exastencils.datastructures.Annotatable.annotate$(Annotation.scala:82)
-	at exastencils.baseExt.ir.IR_MatrixFunctionNodes.IR_DeterminantCT.annotate(IR_Determinant.scala:50)
+	at exastencils.baseExt.ir.IR_MatNodes.IR_DeterminantCT.annotate(IR_Determinant.scala:50)
 	at exastencils.core.StateManager$.$anonfun$replace$1(StateManager.scala:190)
 	at exastencils.core.StateManager$.$anonfun$replace$1$adapted(StateManager.scala:172)
 	at scala.collection.immutable.List.foreach(List.scala:392)
@@ -2274,5 +2273,3 @@ Exception in thread "main" java.lang.StackOverflowError
 	at exastencils.core.StateManager$.$anonfun$replace$1(StateManager.scala:214)
 	at exastencils.core.StateManager$.$anonfun$replace$1$adapted(StateManager.scala:172)
 	at scala.collection.immutable.List.foreach(List.scala:392)
-	at exastencils.core.StateManager$.replace(StateManager.scala:172)
-	at exastencils.core.StateManager$.$anonfun$replace$1(StateManager.scala:214)

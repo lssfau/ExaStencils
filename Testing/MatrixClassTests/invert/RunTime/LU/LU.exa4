@@ -7,17 +7,26 @@ Globals {
 /// main function
 
 Function Application ( ) : Unit {
-  	/*
-	Var mat : Matrix<Real, 4, 4> = {{1.0, 2, 1, 3}, {4, 2, 1, 2}, {4, 1, 3, 2}, {1, 1, 2, 3}}
-	Var mat_inverse : Matrix<Real, 4 ,4>
-	mat_inverse = inverse(mat)	
-	Var mat_sol : Matrix<Real, 4, 4> = {{-0.7,0.6,-0.3,0.5},{2,-1,1,-2},{1,-1,1,-1},{-1.1,0.8,-0.9,1.5}}
-	Var prec : Double = 0.0001
-	compare(mat_inverse,mat_sol,prec)
-*/	
-	Var mat2 : Matrix<Real, 5, 5> = {{1.0, 2, 1, 3,3}, {4, 2, 1, 2,5}, {4, 1, 3, 2,7}, {1, 1, 2, 3, 4}, {1, 1, 2, 3, 9}}
-	Var mat_inverse2 : Matrix<Real, 5 ,5> 
-	mat_inverse2 = inverse(mat2)
-			
+/*
+	// wird richtig invertiert wie in 2D_FD_Stokes
+	Var nopiv : Matrix<Real, 5, 5> = {{576.0, -144, 0, 0, 12}, {-144, 576, 0, 0, -12}, {0, 0, 576, -144, 12 }, {0, 0, -144, 576, -12}, {-12, 12, -12, 12, 0	}}
+	Var nopiv_i : Matrix<Real, 5 ,5> 
+	nopiv_i = inverse(nopiv)
+	
+	// nan nan ...
+	Var piv : Matrix<Real, 5, 5> = {{1.0, 2, 1, 3,3}, {4, 2, 1, 2,1}, {4, 1, 3, 2,7}, {1, 1, 2, 3,2}, {1, 1, 2, 3,9}}
+	Var piv_i : Matrix<Real, 5 ,5> 
+	piv_i = inverse(piv)
+
+	// nan nan ...?
+	Var piv_2 : Matrix<Real, 5, 5> = {{3.0, 2, 1, 0,1}, {4, 2, 1, 2,1}, {4, 1, 3, 2,1}, {1, 1, 2, 3,2}, {1, 1, 2, 3,9}}
+	Var piv_2_i : Matrix<Real, 5 ,5> 
+	piv_2_i = inverse(piv_2)
+*/
+	// nan nan ...?
+	Var piv_3 : Matrix<Real, 1, 1> = {{1}}
+	Var piv_3_i : Matrix<Real, 1, 1> 
+	piv_3_i = inverse(piv_3)
+	
 }
 

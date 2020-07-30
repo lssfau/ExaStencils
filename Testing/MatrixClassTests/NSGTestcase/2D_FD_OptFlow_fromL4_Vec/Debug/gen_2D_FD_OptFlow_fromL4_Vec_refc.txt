@@ -1,5 +1,5 @@
 WARNING: An illegal reflective access operation has occurred
-WARNING: Illegal reflective access by com.rits.cloning.FastClonerTreeSet (file:/mnt/c/Users/MonPreacthyl/Desktop/BA/refc/exastencils/classes/artifacts/Compiler_jar/Compiler.jar) to field java.util.TreeSet.m
+WARNING: Illegal reflective access by com.rits.cloning.FastClonerTreeSet (file:/mnt/c/Users/MonPreacthyl/Desktop/Ba/refc/exastencils/classes/artifacts/Compiler_jar/Compiler.jar) to field java.util.TreeSet.m
 WARNING: Please consider reporting this to the maintainers of com.rits.cloning.FastClonerTreeSet
 WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
 WARNING: All illegal access operations will be denied in a future release
@@ -665,203 +665,149 @@ DBG:   Result of strategy "Simplify general expressions::Simplify": Transformati
 DBG:   Result of strategy "Function inlining::collect": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Function inlining::remove inlined functions": Transformation Result: successful, 23 matches
 DBG:   Result of strategy "Register type aliases::do": Transformation Result: successful, 0 matches
-DBG:   Prettyprinting to folder /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output
+DBG:   Prettyprinting to folder /mnt/c/Users/MonPreacthyl/Desktop/Ba/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output
 WARN:  RealDatatype is deprecated - please switch to FloatDatatype or DoubleDatatype
 DBG:   Result of strategy "Prettyprint all file-prettyprintable nodes::Print": Transformation Result: successful, 8 matches
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_initGradients_4.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Domain/Domain.h
-DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Communication/Communication_applyBCsresidual_8.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Util/Util_declarations.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_initGradients_8.cpp
-DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Communication/Communication_applyBCsflow_3.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Domain/Domain_initDomain.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_resNorm_8.cpp
-DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Communication/Communication_applyBCsflow_7.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_mgCycle_2.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Global/Global_initGlobals.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Global/Global_declarations.cpp
-DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Communication/Communication_applyBCsflow_4.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_mgCycle_6.cpp
-DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Communication/Communication_applyBCsresidual_5.cpp
-DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Communication/Communication_applyBCscgTmp0_2.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Communication/Communication_applyBCsimg1_8.cpp
-DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Communication/Communication_applyBCsflow_8.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_initGradients_5.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_initImgs_8.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Global/Global_destroyGlobals.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Communication/Communication.h
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_main.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_initGradients_2.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Communication/Communication_applyBCsimg0_8.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_mgCycle_3.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_initGradients_6.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_resNorm_2.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User.h
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Util/Util.h
-DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Communication/Communication_applyBCsflow_5.cpp
-DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Communication/Communication_applyBCsresidual_2.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_mgCycle_7.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Global/Global.h
-DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Communication/Communication_applyBCsresidual_6.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_mgCycle_4.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_mgCycle_8.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_doSolve_8.cpp
-DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Communication/Communication_applyBCsresidual_3.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Util/Stopwatch.h
-DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Communication/Communication_applyBCsresidual_7.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_initGradients_3.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_initFieldsWithZero.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_initGradients_7.cpp
-DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Communication/Communication_applyBCsflow_2.cpp
-DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Communication/Communication_applyBCsflow_6.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Util/Timer_printAllTimersToFile.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Global/Global_setupBuffers.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Util/Timer.h
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_mgCycle_5.cpp
-DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Util/Timer_getTotalTime.cpp
-DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/User/User_InitFields.cpp
-DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Communication/Communication_applyBCsresidual_4.cpp
-DBG:   Creating file: /mnt/c/Users/MonPreacthyl/Desktop/BA/exastencils/Testing/MatrixClassTests/./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/./output/Makefile
 WARN:  Unknown target machine i10staff40, no job script is generated
 DBG:   Done!
-DBG:   Runtime:	12.9 seconds
+DBG:   Runtime:	12.5 seconds
 DBG:   Result of strategy "Count number of printed nodes::Count": Transformation Result: successful, 47243 matches
 DBG:   Counting number of printed nodes resulted in 47243 nodes with 3020 annotations
 DBG:   1.0 ms (0.0 %) were consumed through 'Process application hints' (1 top level transformation calls)
 DBG:   1.0 ms (0.0 %) were consumed through 'Process solver hints' (1 top level transformation calls)
 DBG:   1.0 ms (0.0 %) were consumed through 'ResolveBoundaryCoordinates' (68 top level transformation calls)
 DBG:   1.0 ms (0.0 %) were consumed through 'Convert string constants to literals' (5 top level transformation calls)
-DBG:   2.0 ms (0.0 %) were consumed through 'Resolve build string function references' (1 top level transformation calls)
-DBG:   2.0 ms (0.0 %) were consumed through 'Resolve accesses to loop iterators' (1 top level transformation calls)
-DBG:   2.0 ms (0.0 %) were consumed through 'Resolve accesses to single components of stencil fields' (1 top level transformation calls)
 DBG:   2.0 ms (0.0 %) were consumed through 'Resolve native function references' (1 top level transformation calls)
+DBG:   2.0 ms (0.0 %) were consumed through 'Integrating L4 external field declarations with knowledge' (1 top level transformation calls)
+DBG:   2.0 ms (0.0 %) were consumed through 'Resolve build string function references' (1 top level transformation calls)
 DBG:   2.0 ms (0.0 %) were consumed through 'Resolve accesses to knowledge, settings and platform parameters' (1 top level transformation calls)
-DBG:   2.0 ms (0.0 %) were consumed through 'Resolve print field function references' (1 top level transformation calls)
+DBG:   2.0 ms (0.0 %) were consumed through 'Resolve accesses to loop iterators' (1 top level transformation calls)
 DBG:   2.0 ms (0.0 %) were consumed through 'Resolve accesses to single components of stencils' (1 top level transformation calls)
+DBG:   2.0 ms (0.0 %) were consumed through 'Resolve accesses to single components of stencil fields' (1 top level transformation calls)
+DBG:   2.0 ms (0.0 %) were consumed through 'Resolve print field function references' (1 top level transformation calls)
 DBG:   2.0 ms (0.0 %) were consumed through 'Resolve read field function references' (1 top level transformation calls)
-DBG:   3.0 ms (0.0 %) were consumed through 'Integrating L4 external field declarations with knowledge' (1 top level transformation calls)
-DBG:   3.0 ms (0.0 %) were consumed through 'Resolve print function references' (1 top level transformation calls)
-DBG:   4.0 ms (0.0 %) were consumed through 'Resolve stencil function references' (1 top level transformation calls)
-DBG:   4.0 ms (0.0 %) were consumed through 'Replace explicit levels with current, coarser and finer in functions' (1 top level transformation calls)
-DBG:   5.0 ms (0.0 %) were consumed through 'Revert field accesses to unresolved accesses' (1 top level transformation calls)
-DBG:   5.0 ms (0.0 %) were consumed through 'Combine single functions into leveled functions' (1 top level transformation calls)
+DBG:   2.0 ms (0.0 %) were consumed through 'Resolve print function references' (1 top level transformation calls)
+DBG:   3.0 ms (0.0 %) were consumed through 'Replace explicit levels with current, coarser and finer in functions' (1 top level transformation calls)
+DBG:   3.0 ms (0.0 %) were consumed through 'Resolve stencil function references' (1 top level transformation calls)
+DBG:   4.0 ms (0.0 %) were consumed through 'Combine single functions into leveled functions' (1 top level transformation calls)
+DBG:   4.0 ms (0.0 %) were consumed through 'Revert field accesses to unresolved accesses' (1 top level transformation calls)
+DBG:   5.0 ms (0.0 %) were consumed through 'Resolve frozen field accesses' (1 top level transformation calls)
 DBG:   6.0 ms (0.0 %) were consumed through 'Resolve color with loops' (1 top level transformation calls)
-DBG:   6.0 ms (0.1 %) were consumed through 'Revert stencil field accesses to unresolved accesses' (1 top level transformation calls)
+DBG:   6.0 ms (0.0 %) were consumed through 'Revert stencil field accesses to unresolved accesses' (1 top level transformation calls)
+DBG:   8.0 ms (0.1 %) were consumed through 'Resolve special constants' (1 top level transformation calls)
 DBG:   8.0 ms (0.1 %) were consumed through 'Unify all global sections and ensure at least one section exists' (1 top level transformation calls)
-DBG:   9.0 ms (0.1 %) were consumed through 'Prepare knowledge for L4 domains' (1 top level transformation calls)
-DBG:   9.0 ms (0.1 %) were consumed through 'Prepare knowledge for L4 stencil templates' (1 top level transformation calls)
-DBG:   9.0 ms (0.1 %) were consumed through 'Resolve grid function references (integrate)' (1 top level transformation calls)
+DBG:   8.0 ms (0.1 %) were consumed through 'Process L4 function declarations' (1 top level transformation calls)
+DBG:   9.0 ms (0.1 %) were consumed through 'Process discretization hints' (1 top level transformation calls)
+DBG:   9.0 ms (0.1 %) were consumed through 'Prepare knowledge for L4 fields' (1 top level transformation calls)
 DBG:   9.0 ms (0.1 %) were consumed through 'Resolve grid function references (evaluate)' (1 top level transformation calls)
-DBG:   9.0 ms (0.1 %) were consumed through 'Prepare accesses to stencil fields' (1 top level transformation calls)
-DBG:   9.0 ms (0.1 %) were consumed through 'Resolve frozen field accesses' (1 top level transformation calls)
-DBG:   9.0 ms (0.1 %) were consumed through 'Prepare knowledge for L4 equations' (1 top level transformation calls)
-DBG:   9.0 ms (0.1 %) were consumed through 'ResolveReadParameters' (1 top level transformation calls)
+DBG:   9.0 ms (0.1 %) were consumed through 'Resolve grid function references (integrate)' (1 top level transformation calls)
+DBG:   9.0 ms (0.1 %) were consumed through 'ResolveStationFunctions' (1 top level transformation calls)
+DBG:   9.0 ms (0.1 %) were consumed through 'ResolveGismoFunctions' (1 top level transformation calls)
 DBG:   10.0 ms (0.1 %) were consumed through 'ResolveBenchmarkFunctions' (1 top level transformation calls)
-DBG:   10.0 ms (0.1 %) were consumed through 'ResolveStationFunctions' (1 top level transformation calls)
+DBG:   10.0 ms (0.1 %) were consumed through 'Prepare knowledge for L4 stencil templates' (1 top level transformation calls)
 DBG:   10.0 ms (0.1 %) were consumed through 'ResolveCharacteristicsFunctions' (1 top level transformation calls)
 DBG:   10.0 ms (0.1 %) were consumed through 'ResolveCImgFunctions' (1 top level transformation calls)
-DBG:   10.0 ms (0.1 %) were consumed through 'ResolveVtkPrinters' (1 top level transformation calls)
-DBG:   10.0 ms (0.1 %) were consumed through 'Resolve math function references' (1 top level transformation calls)
-DBG:   10.0 ms (0.1 %) were consumed through 'Unfold leveled expression declarations' (1 top level transformation calls)
-DBG:   11.0 ms (0.1 %) were consumed through 'Unfold leveled value and variable declarations' (1 top level transformation calls)
-DBG:   11.0 ms (0.1 %) were consumed through 'Prepare accesses to equations' (1 top level transformation calls)
-DBG:   11.0 ms (0.1 %) were consumed through 'ResolveBoundaryFunctions' (1 top level transformation calls)
-DBG:   11.0 ms (0.1 %) were consumed through 'Prepare knowledge for L4 field layouts' (1 top level transformation calls)
-DBG:   11.0 ms (0.1 %) were consumed through 'Prepare knowledge for L4 fields' (1 top level transformation calls)
-DBG:   11.0 ms (0.1 %) were consumed through 'Prepare accesses to domains' (1 top level transformation calls)
-DBG:   11.0 ms (0.1 %) were consumed through 'InferDiagAndInverseCallDataTypes' (1 top level transformation calls)
-DBG:   12.0 ms (0.1 %) were consumed through 'Resolving function templates and instantiations' (2 top level transformation calls)
+DBG:   10.0 ms (0.1 %) were consumed through 'Resolving function templates and instantiations' (2 top level transformation calls)
+DBG:   10.0 ms (0.1 %) were consumed through 'Prepare knowledge for L4 stencils' (1 top level transformation calls)
+DBG:   10.0 ms (0.1 %) were consumed through 'ResolveReadParameters' (1 top level transformation calls)
+DBG:   10.0 ms (0.1 %) were consumed through 'Prepare knowledge for L4 domains' (1 top level transformation calls)
+DBG:   10.0 ms (0.1 %) were consumed through 'Prepare accesses to stencil fields' (1 top level transformation calls)
+DBG:   11.0 ms (0.1 %) were consumed through 'Revert stencil accesses to unresolved accesses' (1 top level transformation calls)
+DBG:   11.0 ms (0.1 %) were consumed through 'Prepare knowledge for L4 equations' (1 top level transformation calls)
+DBG:   11.0 ms (0.1 %) were consumed through 'Unfold leveled expression declarations' (1 top level transformation calls)
+DBG:   11.0 ms (0.1 %) were consumed through 'Resolve math function references' (1 top level transformation calls)
 DBG:   12.0 ms (0.1 %) were consumed through 'Handling Layer 2' (1 top level transformation calls)
-DBG:   12.0 ms (0.1 %) were consumed through 'Prepare accesses to stencils' (1 top level transformation calls)
-DBG:   12.0 ms (0.1 %) were consumed through 'Process L4 function declarations' (1 top level transformation calls)
-DBG:   12.0 ms (0.1 %) were consumed through 'Process discretization hints' (1 top level transformation calls)
+DBG:   12.0 ms (0.1 %) were consumed through 'ResolveBoundaryFunctions' (1 top level transformation calls)
+DBG:   12.0 ms (0.1 %) were consumed through 'Resolve level-specific scopes' (1 top level transformation calls)
 DBG:   12.0 ms (0.1 %) were consumed through 'ResolvePrintWithReducedPrec' (1 top level transformation calls)
-DBG:   13.0 ms (0.1 %) were consumed through 'ResolveGismoFunctions' (1 top level transformation calls)
-DBG:   13.0 ms (0.1 %) were consumed through 'Prepare knowledge for L4 stencils' (1 top level transformation calls)
-DBG:   13.0 ms (0.1 %) were consumed through 'Revert stencil accesses to unresolved accesses' (1 top level transformation calls)
-DBG:   15.0 ms (0.1 %) were consumed through 'Resolve level-specific scopes' (1 top level transformation calls)
-DBG:   15.0 ms (0.1 %) were consumed through 'Adapt function calls to timer functions' (1 top level transformation calls)
-DBG:   15.0 ms (0.1 %) were consumed through 'Handling Layer 3' (1 top level transformation calls)
-DBG:   17.0 ms (0.1 %) were consumed through 'Revert field field convolutions to plain multiplications' (1 top level transformation calls)
-DBG:   18.0 ms (0.1 %) were consumed through 'Resolve relative level specifications' (1 top level transformation calls)
-DBG:   18.0 ms (0.1 %) were consumed through 'HandleMainApplication' (1 top level transformation calls)
+DBG:   12.0 ms (0.1 %) were consumed through 'Prepare accesses to equations' (1 top level transformation calls)
+DBG:   12.0 ms (0.1 %) were consumed through 'Prepare accesses to stencils' (1 top level transformation calls)
+DBG:   12.0 ms (0.1 %) were consumed through 'Revert field field convolutions to plain multiplications' (1 top level transformation calls)
+DBG:   12.0 ms (0.1 %) were consumed through 'ResolveVtkPrinters' (1 top level transformation calls)
+DBG:   13.0 ms (0.1 %) were consumed through 'Adapt function calls to timer functions' (1 top level transformation calls)
+DBG:   13.0 ms (0.1 %) were consumed through 'InferDiagAndInverseCallDataTypes' (1 top level transformation calls)
+DBG:   13.0 ms (0.1 %) were consumed through 'Prepare knowledge for L4 field layouts' (1 top level transformation calls)
+DBG:   13.0 ms (0.1 %) were consumed through 'HandleMainApplication' (1 top level transformation calls)
+DBG:   14.0 ms (0.1 %) were consumed through 'Handling Layer 3' (1 top level transformation calls)
+DBG:   14.0 ms (0.1 %) were consumed through 'Prepare accesses to domains' (1 top level transformation calls)
+DBG:   16.0 ms (0.1 %) were consumed through 'Unfold leveled value and variable declarations' (1 top level transformation calls)
+DBG:   16.0 ms (0.1 %) were consumed through 'Resolve accesses to stencil fields' (5 top level transformation calls)
+DBG:   17.0 ms (0.1 %) were consumed through 'Resolve accesses to equations' (5 top level transformation calls)
+DBG:   17.0 ms (0.1 %) were consumed through 'Prepare accesses to field layouts' (1 top level transformation calls)
 DBG:   19.0 ms (0.2 %) were consumed through 'Resolve LoopOverPoints nodes' (1 top level transformation calls)
-DBG:   20.0 ms (0.2 %) were consumed through 'Prepare accesses to field layouts' (1 top level transformation calls)
-DBG:   20.0 ms (0.2 %) were consumed through 'Integrate L4 field combination declarations with knowledge' (5 top level transformation calls)
-DBG:   20.0 ms (0.2 %) were consumed through 'Resolve accesses to stencil fields' (5 top level transformation calls)
-DBG:   20.0 ms (0.2 %) were consumed through 'Integrate L4 equation declarations with knowledge' (5 top level transformation calls)
-DBG:   21.0 ms (0.2 %) were consumed through 'Resolve accesses to domains' (5 top level transformation calls)
-DBG:   22.0 ms (0.2 %) were consumed through 'Apply offsets to FieldAccess nodes' (2 top level transformation calls)
-DBG:   22.0 ms (0.2 %) were consumed through 'Resolve indices in operations between two grid levels' (1 top level transformation calls)
-DBG:   22.0 ms (0.2 %) were consumed through 'Resolve timer function references' (2 top level transformation calls)
-DBG:   22.0 ms (0.2 %) were consumed through 'Resolve accesses to field layouts' (5 top level transformation calls)
-DBG:   22.0 ms (0.2 %) were consumed through 'Apply offsets to StencilFieldAccess nodes' (2 top level transformation calls)
-DBG:   22.0 ms (0.2 %) were consumed through 'Resolve function references' (2 top level transformation calls)
+DBG:   20.0 ms (0.2 %) were consumed through 'Resolve accesses to stencils' (5 top level transformation calls)
+DBG:   20.0 ms (0.2 %) were consumed through 'Handling Layer 1' (1 top level transformation calls)
+DBG:   20.0 ms (0.2 %) were consumed through 'Resolve function references' (2 top level transformation calls)
+DBG:   20.0 ms (0.2 %) were consumed through 'Apply offsets to StencilFieldAccess nodes' (2 top level transformation calls)
+DBG:   21.0 ms (0.2 %) were consumed through 'Resolve indices in operations between two grid levels' (1 top level transformation calls)
+DBG:   21.0 ms (0.2 %) were consumed through 'Apply offsets to FieldAccess nodes' (2 top level transformation calls)
+DBG:   21.0 ms (0.2 %) were consumed through 'Prepare accesses to virtual fields' (1 top level transformation calls)
+DBG:   22.0 ms (0.2 %) were consumed through 'Resolve relative level specifications' (1 top level transformation calls)
 DBG:   22.0 ms (0.2 %) were consumed through 'Process inline knowledge blocks' (2 top level transformation calls)
-DBG:   23.0 ms (0.2 %) were consumed through 'Resolve accesses to equations' (5 top level transformation calls)
-DBG:   24.0 ms (0.2 %) were consumed through 'Integrate L4 stencil template declarations with knowledge' (6 top level transformation calls)
-DBG:   24.0 ms (0.2 %) were consumed through 'Handling Layer 1' (1 top level transformation calls)
-DBG:   24.0 ms (0.2 %) were consumed through 'Prepare accesses to virtual fields' (1 top level transformation calls)
-DBG:   24.0 ms (0.2 %) were consumed through 'Integrate L4 field declarations with knowledge' (6 top level transformation calls)
-DBG:   25.0 ms (0.2 %) were consumed through 'Linearize LoopCarriedCSBufferAccess nodes' (1 top level transformation calls)
-DBG:   25.0 ms (0.2 %) were consumed through 'Resolve accesses to stencils' (5 top level transformation calls)
-DBG:   26.0 ms (0.2 %) were consumed through 'Linearize ReductionDeviceDataAccess nodes' (1 top level transformation calls)
-DBG:   27.0 ms (0.2 %) were consumed through 'Prepare accesses to fields' (1 top level transformation calls)
-DBG:   27.0 ms (0.2 %) were consumed through 'Resolve accesses to fields' (5 top level transformation calls)
-DBG:   27.0 ms (0.2 %) were consumed through 'Resolve special constants' (1 top level transformation calls)
-DBG:   28.0 ms (0.2 %) were consumed through 'Integrate L4 domain declarations with knowledge' (5 top level transformation calls)
-DBG:   28.0 ms (0.2 %) were consumed through 'Resolve ContractingLoop nodes' (1 top level transformation calls)
-DBG:   28.0 ms (0.2 %) were consumed through 'Revert stencil field convolutions to plain multiplications' (1 top level transformation calls)
-DBG:   28.0 ms (0.2 %) were consumed through 'Validate L4 input' (4 top level transformation calls)
-DBG:   28.0 ms (0.2 %) were consumed through 'Prepare knowledge for L4 virtual fields' (1 top level transformation calls)
-DBG:   29.0 ms (0.2 %) were consumed through 'Layout Transformation' (1 top level transformation calls)
-DBG:   29.0 ms (0.2 %) were consumed through 'Linearize TempBufferAccess nodes' (1 top level transformation calls)
-DBG:   29.0 ms (0.2 %) were consumed through 'Integrate L4 field layout declarations with knowledge' (6 top level transformation calls)
-DBG:   30.0 ms (0.2 %) were consumed through 'Resolve BoundedScalar nodes' (1 top level transformation calls)
-DBG:   31.0 ms (0.2 %) were consumed through 'Collect all timers used' (3 top level transformation calls)
-DBG:   31.0 ms (0.3 %) were consumed through 'Map assignments to stencils and stencil fields' (1 top level transformation calls)
-DBG:   31.0 ms (0.3 %) were consumed through 'Register type aliases' (1 top level transformation calls)
-DBG:   32.0 ms (0.3 %) were consumed through 'Resolve IR_LocalSolve nodes' (2 top level transformation calls)
-DBG:   33.0 ms (0.3 %) were consumed through 'Remove references to mpi functions and variables' (1 top level transformation calls)
-DBG:   33.0 ms (0.3 %) were consumed through 'Linearize ExternalFieldAccess nodes' (1 top level transformation calls)
-DBG:   34.0 ms (0.3 %) were consumed through 'Fuse Conditions' (1 top level transformation calls)
-DBG:   35.0 ms (0.3 %) were consumed through 'Inline accesses to declared expressions' (2 top level transformation calls)
-DBG:   36.0 ms (0.3 %) were consumed through 'Find and mark stencil-stencil and stencil-field convolutions' (2 top level transformation calls)
-DBG:   36.0 ms (0.3 %) were consumed through 'Unfold leveled L4 knowledge declarations' (1 top level transformation calls)
-DBG:   37.0 ms (0.3 %) were consumed through 'Resolve slot operations' (1 top level transformation calls)
-DBG:   37.0 ms (0.3 %) were consumed through 'Resole LoopOverPointsInOneFragment nodes' (1 top level transformation calls)
-DBG:   37.0 ms (0.3 %) were consumed through 'Resolve value and variable accesses' (4 top level transformation calls)
-DBG:   40.0 ms (0.3 %) were consumed through 'Linearize matrices' (1 top level transformation calls)
-DBG:   40.0 ms (0.3 %) were consumed through 'simplify modulo expressions' (1 top level transformation calls)
-DBG:   41.0 ms (0.3 %) were consumed through 'Count number of printed nodes' (1 top level transformation calls)
-DBG:   42.0 ms (0.3 %) were consumed through 'Resolve grid evaluations' (7 top level transformation calls)
-DBG:   44.0 ms (0.4 %) were consumed through 'Resolve level specifications' (4 top level transformation calls)
-DBG:   45.0 ms (0.4 %) were consumed through 'Resolve LoopOverDimensions nodes' (1 top level transformation calls)
-DBG:   46.0 ms (0.4 %) were consumed through 'Resolve grid integrations' (7 top level transformation calls)
-DBG:   57.0 ms (0.5 %) were consumed through 'Prettyprint all file-prettyprintable nodes' (1 top level transformation calls)
+DBG:   22.0 ms (0.2 %) were consumed through 'Validate L4 input' (4 top level transformation calls)
+DBG:   22.0 ms (0.2 %) were consumed through 'Resolve accesses to fields' (5 top level transformation calls)
+DBG:   23.0 ms (0.2 %) were consumed through 'Resolve timer function references' (2 top level transformation calls)
+DBG:   24.0 ms (0.2 %) were consumed through 'Revert stencil field convolutions to plain multiplications' (1 top level transformation calls)
+DBG:   24.0 ms (0.2 %) were consumed through 'Resolve accesses to field layouts' (5 top level transformation calls)
+DBG:   25.0 ms (0.2 %) were consumed through 'Integrate L4 field declarations with knowledge' (6 top level transformation calls)
+DBG:   25.0 ms (0.2 %) were consumed through 'Prepare accesses to fields' (1 top level transformation calls)
+DBG:   26.0 ms (0.2 %) were consumed through 'Map assignments to stencils and stencil fields' (1 top level transformation calls)
+DBG:   26.0 ms (0.2 %) were consumed through 'Resolve accesses to domains' (5 top level transformation calls)
+DBG:   26.0 ms (0.2 %) were consumed through 'Collect all timers used' (3 top level transformation calls)
+DBG:   26.0 ms (0.2 %) were consumed through 'Integrate L4 stencil template declarations with knowledge' (6 top level transformation calls)
+DBG:   26.0 ms (0.2 %) were consumed through 'Linearize TempBufferAccess nodes' (1 top level transformation calls)
+DBG:   27.0 ms (0.2 %) were consumed through 'Resolve value and variable accesses' (4 top level transformation calls)
+DBG:   27.0 ms (0.2 %) were consumed through 'Linearize LoopCarriedCSBufferAccess nodes' (1 top level transformation calls)
+DBG:   27.0 ms (0.2 %) were consumed through 'Integrate L4 equation declarations with knowledge' (5 top level transformation calls)
+DBG:   28.0 ms (0.2 %) were consumed through 'Linearize ReductionDeviceDataAccess nodes' (1 top level transformation calls)
+DBG:   29.0 ms (0.2 %) were consumed through 'Integrate L4 field combination declarations with knowledge' (5 top level transformation calls)
+DBG:   29.0 ms (0.2 %) were consumed through 'Resolve ContractingLoop nodes' (1 top level transformation calls)
+DBG:   29.0 ms (0.2 %) were consumed through 'Resolve IR_LocalSolve nodes' (2 top level transformation calls)
+DBG:   30.0 ms (0.2 %) were consumed through 'Layout Transformation' (1 top level transformation calls)
+DBG:   30.0 ms (0.3 %) were consumed through 'Integrate L4 domain declarations with knowledge' (5 top level transformation calls)
+DBG:   30.0 ms (0.3 %) were consumed through 'Unfold leveled L4 knowledge declarations' (1 top level transformation calls)
+DBG:   30.0 ms (0.3 %) were consumed through 'Linearize matrices' (1 top level transformation calls)
+DBG:   32.0 ms (0.3 %) were consumed through 'Integrate L4 field layout declarations with knowledge' (6 top level transformation calls)
+DBG:   32.0 ms (0.3 %) were consumed through 'Resolve level specifications' (4 top level transformation calls)
+DBG:   32.0 ms (0.3 %) were consumed through 'Register type aliases' (1 top level transformation calls)
+DBG:   32.0 ms (0.3 %) were consumed through 'Remove references to mpi functions and variables' (1 top level transformation calls)
+DBG:   32.0 ms (0.3 %) were consumed through 'Resole LoopOverPointsInOneFragment nodes' (1 top level transformation calls)
+DBG:   34.0 ms (0.3 %) were consumed through 'Inline accesses to declared expressions' (2 top level transformation calls)
+DBG:   35.0 ms (0.3 %) were consumed through 'Fuse Conditions' (1 top level transformation calls)
+DBG:   35.0 ms (0.3 %) were consumed through 'Resolve slot operations' (1 top level transformation calls)
+DBG:   36.0 ms (0.3 %) were consumed through 'Resolve BoundedScalar nodes' (1 top level transformation calls)
+DBG:   36.0 ms (0.3 %) were consumed through 'Linearize ExternalFieldAccess nodes' (1 top level transformation calls)
+DBG:   37.0 ms (0.3 %) were consumed through 'Find and mark stencil-stencil and stencil-field convolutions' (2 top level transformation calls)
+DBG:   38.0 ms (0.3 %) were consumed through 'Count number of printed nodes' (1 top level transformation calls)
+DBG:   39.0 ms (0.3 %) were consumed through 'Resolve grid integrations' (7 top level transformation calls)
+DBG:   40.0 ms (0.3 %) were consumed through 'Resolve LoopOverDimensions nodes' (1 top level transformation calls)
+DBG:   40.0 ms (0.3 %) were consumed through 'Resolve grid evaluations' (7 top level transformation calls)
+DBG:   42.0 ms (0.3 %) were consumed through 'Prepare knowledge for L4 virtual fields' (1 top level transformation calls)
+DBG:   42.0 ms (0.3 %) were consumed through 'simplify modulo expressions' (1 top level transformation calls)
 DBG:   59.0 ms (0.5 %) were consumed through 'Resolve accesses to virtual fields' (7 top level transformation calls)
-DBG:   61.0 ms (0.5 %) were consumed through 'Resolve stencil functions' (1 top level transformation calls)
-DBG:   69.0 ms (0.6 %) were consumed through 'Convert accesses to matrices and vectors to MatrixExpressions' (1 top level transformation calls)
-DBG:   70.0 ms (0.6 %) were consumed through 'Unfold leveled L4 function declarations' (1 top level transformation calls)
+DBG:   61.0 ms (0.5 %) were consumed through 'Prettyprint all file-prettyprintable nodes' (1 top level transformation calls)
+DBG:   65.0 ms (0.5 %) were consumed through 'Resolve stencil functions' (1 top level transformation calls)
+DBG:   69.0 ms (0.6 %) were consumed through 'Unfold leveled L4 function declarations' (1 top level transformation calls)
+DBG:   71.0 ms (0.6 %) were consumed through 'Convert accesses to matrices and vectors to MatrixExpressions' (1 top level transformation calls)
 DBG:   73.0 ms (0.6 %) were consumed through 'Resolve LoopOverFragments nodes' (2 top level transformation calls)
-DBG:   86.0 ms (0.7 %) were consumed through 'Replace something with something else' (2132 top level transformation calls)
-DBG:   90.0 ms (0.7 %) were consumed through 'Resolve operations involving stencils' (14 top level transformation calls)
-DBG:   111.0 ms (0.9 %) were consumed through 'Extract and split matrix expressions where necessary' (7 top level transformation calls)
-DBG:   111.0 ms (0.9 %) were consumed through 'Set up communication' (3 top level transformation calls)
-DBG:   118.0 ms (1.0 %) were consumed through 'Resolve special matrix and vector functions' (2 top level transformation calls)
-DBG:   120.0 ms (1.0 %) were consumed through 'Wrap stencil-field convolutions with relevant column strides' (2 top level transformation calls)
-DBG:   143.0 ms (1.2 %) were consumed through 'Resolve FieldAccess nodes' (1 top level transformation calls)
-DBG:   207.0 ms (1.7 %) were consumed through 'Progressing from L4 to IR' (1 top level transformation calls)
-DBG:   280.0 ms (2.3 %) were consumed through 'Resolve assignments to matrices' (2 top level transformation calls)
-DBG:   299.0 ms (2.4 %) were consumed through 'Resolve constant internal variables' (8 top level transformation calls)
-DBG:   301.0 ms (2.4 %) were consumed through 'Type inference' (2 top level transformation calls)
-DBG:   338.0 ms (2.7 %) were consumed through 'Add internal variables' (5 top level transformation calls)
-DBG:   354.0 ms (2.9 %) were consumed through 'Function inlining' (1 top level transformation calls)
-DBG:   359.0 ms (2.9 %) were consumed through 'Integrate L4 stencil declarations with knowledge' (6 top level transformation calls)
-DBG:   424.0 ms (3.4 %) were consumed through 'Simplify index expressions' (1 top level transformation calls)
-DBG:   494.0 ms (4.0 %) were consumed through 'Linearize DirectFieldAccess nodes' (1 top level transformation calls)
-DBG:   523.0 ms (4.2 %) were consumed through 'Initializing' (1 top level transformation calls)
-DBG:   873.0 ms (7.1 %) were consumed through 'Expand all applicable nodes' (7 top level transformation calls)
-DBG:   924.0 ms (7.5 %) were consumed through 'Simplify floating expressions' (2 top level transformation calls)
-DBG:   1441.0 ms (11.7 %) were consumed through 'Handling Layer 4' (1 top level transformation calls)
-DBG:   2318.0 ms (18.8 %) were consumed through 'Simplify general expressions' (8824 top level transformation calls)
+DBG:   80.0 ms (0.7 %) were consumed through 'Replace something with something else' (2132 top level transformation calls)
+DBG:   102.0 ms (0.9 %) were consumed through 'Set up communication' (3 top level transformation calls)
+DBG:   116.0 ms (1.0 %) were consumed through 'Resolve special matrix and vector functions' (2 top level transformation calls)
+DBG:   122.0 ms (1.0 %) were consumed through 'Resolve operations involving stencils' (14 top level transformation calls)
+DBG:   128.0 ms (1.1 %) were consumed through 'Extract and split matrix expressions where necessary' (7 top level transformation calls)
+DBG:   134.0 ms (1.1 %) were consumed through 'Wrap stencil-field convolutions with relevant column strides' (2 top level transformation calls)
+DBG:   146.0 ms (1.2 %) were consumed through 'Resolve FieldAccess nodes' (1 top level transformation calls)
+DBG:   210.0 ms (1.7 %) were consumed through 'Progressing from L4 to IR' (1 top level transformation calls)
+DBG:   273.0 ms (2.3 %) were consumed through 'Resolve assignments to matrices' (2 top level transformation calls)
+DBG:   273.0 ms (2.3 %) were consumed through 'Type inference' (2 top level transformation calls)
+DBG:   294.0 ms (2.5 %) were consumed through 'Resolve constant internal variables' (8 top level transformation calls)
+DBG:   337.0 ms (2.8 %) were consumed through 'Function inlining' (1 top level transformation calls)
+DBG:   382.0 ms (3.2 %) were consumed through 'Add internal variables' (5 top level transformation calls)
+DBG:   392.0 ms (3.3 %) were consumed through 'Integrate L4 stencil declarations with knowledge' (6 top level transformation calls)
+DBG:   428.0 ms (3.6 %) were consumed through 'Simplify index expressions' (1 top level transformation calls)
+DBG:   484.0 ms (4.0 %) were consumed through 'Linearize DirectFieldAccess nodes' (1 top level transformation calls)
+DBG:   491.0 ms (4.1 %) were consumed through 'Initializing' (1 top level transformation calls)
+DBG:   721.0 ms (6.0 %) were consumed through 'Expand all applicable nodes' (7 top level transformation calls)
+DBG:   996.0 ms (8.3 %) were consumed through 'Simplify floating expressions' (2 top level transformation calls)
+DBG:   1227.0 ms (10.2 %) were consumed through 'Handling Layer 4' (1 top level transformation calls)
+DBG:   2316.0 ms (19.3 %) were consumed through 'Simplify general expressions' (8824 top level transformation calls)

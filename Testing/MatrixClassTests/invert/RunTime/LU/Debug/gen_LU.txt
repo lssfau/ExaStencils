@@ -1,5 +1,5 @@
 WARNING: An illegal reflective access operation has occurred
-WARNING: Illegal reflective access by com.rits.cloning.FastClonerTreeSet (file:/mnt/c/Users/MonPreacthyl/Desktop/BA/new/exastencils/classes/artifacts/Compiler_jar/Compiler.jar) to field java.util.TreeSet.m
+WARNING: Illegal reflective access by com.rits.cloning.FastClonerTreeSet (file:/mnt/c/Users/MonPreacthyl/Desktop/Ba/exastencils/classes/artifacts/Compiler_jar/Compiler.jar) to field java.util.TreeSet.m
 WARNING: Please consider reporting this to the maintainers of com.rits.cloning.FastClonerTreeSet
 WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
 WARNING: All illegal access operations will be denied in a future release
@@ -36,9 +36,9 @@ DBG:   Result of strategy "Replace explicit levels with current, coarser and fin
 DBG:   Result of strategy "Combine single functions into leveled functions::Gather functions": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Process inline knowledge blocks::Process": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Validate L4 input::EscapeCppKeywordsAndInternalIdentifiers": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Validate L4 input::find Function calls": Transformation Result: successful, 2 matches
+DBG:   Result of strategy "Validate L4 input::find Function calls": Transformation Result: successful, 1 matches
 DBG:   Result of strategy "Validate L4 input::check destroyGlobals": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Validate L4 input::Check assignment of vectors and matrices": Transformation Result: successful, 3 matches
+DBG:   Result of strategy "Validate L4 input::Check assignment of vectors and matrices": Transformation Result: successful, 1 matches
 DBG:   Result of strategy "Unify all global sections and ensure at least one section exists::Collect and consume global sections": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve color with loops::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve level specifications::Resolve first batch of level aliases": Transformation Result: successful, 0 matches
@@ -59,7 +59,7 @@ DBG:   Result of strategy "Prepare knowledge for L4 field layouts::Process new f
 DBG:   Result of strategy "Prepare knowledge for L4 fields::Process new fields": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Prepare knowledge for L4 stencils::Process new stencils": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Prepare knowledge for L4 stencil templates::Process new stencil templates": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Prepare knowledge for L4 virtual fields::Resolve aliases": Transformation Result: successful, 5 matches
+DBG:   Result of strategy "Prepare knowledge for L4 virtual fields::Resolve aliases": Transformation Result: successful, 2 matches
 DBG:   Added 91 virtual fields
 DBG:   Result of strategy "Prepare knowledge for L4 equations::Process new equations": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Inline accesses to declared expressions::Resolve": Transformation Result: successful, 0 matches
@@ -71,7 +71,7 @@ DBG:   Result of strategy "Prepare accesses to stencils::Resolve applicable unre
 DBG:   Result of strategy "Prepare accesses to stencil fields::Resolve applicable unresolved accesses": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Prepare accesses to virtual fields::Resolve applicable unresolved accesses": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Prepare accesses to equations::Resolve applicable unresolved accesses": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Resolve value and variable accesses::Resolve": Transformation Result: successful, 5 matches
+DBG:   Result of strategy "Resolve value and variable accesses::Resolve": Transformation Result: successful, 2 matches
 DBG:   Result of strategy "Resolve value and variable accesses::Remove applicable declarations": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve special constants::special functions and constants": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve frozen field accesses::Resolve": Transformation Result: successful, 0 matches
@@ -132,6 +132,7 @@ DBG:   Result of strategy "Resolve read field function references::Resolve": Tra
 DBG:   Result of strategy "Resolve print field function references::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve accesses to single components of stencils::Resolve applicable accesses": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve accesses to single components of stencil fields::Resolve applicable accesses": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve user defined functions::add assignments/decl to function returns to arguments": Transformation Result: successful, 0 matches
 DBG:   Progressing 1 objects of collection L4_DomainCollection
 DBG:   Progressing 0 objects of collection L4_FieldLayoutCollection
 DBG:   Progressing 0 objects of collection L4_FieldCollection
@@ -141,13 +142,11 @@ DBG:   Progressing 91 objects of collection L4_VirtualFieldCollection
 DBG:   Progressing 0 objects of collection L4_ExternalFieldCollection
 DBG:   Progressing 0 objects of collection L4_EquationCollection
 DBG:   Progressing 0 objects of collection L4_FieldCombinationCollection
-WARN:  Progressing unresolved function reference on L4: inverse ; at location 25.15 in file ./invert/RunTime/LU/LU_debug.exa4:
-mat_inverse = inverse ( mat )
-              ^
-WARN:  Progressing unresolved function reference on L4: compare ; at location 28.1 in file ./invert/RunTime/LU/LU_debug.exa4:
-compare ( mat_inverse, mat_sol, prec )
-^
+WARN:  Progressing unresolved function reference on L4: inverse ; at location 24.11 in file ./invert/RunTime/LU/LU_debug.exa4:
+piv_3_i = inverse ( piv_3 )
+          ^
 DBG:   Result of strategy "Process inline knowledge blocks::Process": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 5 matches
 DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Set up communication::Adding and linking communication functions": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "InferDiagAndInverseCallDataTypes::do": Transformation Result: successful, 1 matches
@@ -165,7 +164,8 @@ DBG:   Result of strategy "ResolvePrintWithReducedPrec::ResolveFunctionCalls": T
 DBG:   Result of strategy "Adapt function calls to timer functions::Handle function references": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 21 matches
+DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 22 matches
 DBG:   Result of strategy "Resolve grid integrations::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve grid evaluations::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve accesses to virtual fields::Resolve": Transformation Result: successful, 0 matches
@@ -183,6 +183,7 @@ DBG:   Result of strategy "Resolve grid evaluations::Resolve": Transformation Re
 DBG:   Result of strategy "Resolve accesses to virtual fields::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Apply offsets to FieldAccess nodes::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Apply offsets to StencilFieldAccess nodes::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve user defined functions::add assignments/decl to function returns to arguments": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resole LoopOverPointsInOneFragment nodes::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve IR_LocalSolve nodes::Perform expand for applicable nodes": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 19 matches
@@ -196,32 +197,31 @@ DBG:   Result of strategy "extract and inline matrix operations::search stmts": 
 DBG:   Result of strategy "extract and inline matrix operations::resolve and remove ext/inl statements": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "extract and inline matrix operations::inline values": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "resolve operators::resolve operators": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "resolve matFuncs::insert resolvables and resolve": Transformation Result: successful, 2 matches
-DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 21 matches
-DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 20 matches
+DBG:   Result of strategy "resolve matFuncs::insert resolvables and resolve": Transformation Result: successful, 1 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 19 matches
 DBG:   Result of strategy "extract and inline matrix operations::search stmts": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "extract and inline matrix operations::resolve and remove ext/inl statements": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "extract and inline matrix operations::inline values": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "resolve operators::resolve operators": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "resolve matFuncs::insert resolvables and resolve": Transformation Result: successful, 1 matches
-DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 87 matches
-DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 32 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 20 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 19 matches
 DBG:   Result of strategy "extract and inline matrix operations::search stmts": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "extract and inline matrix operations::resolve and remove ext/inl statements": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "extract and inline matrix operations::inline values": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "resolve operators::resolve operators": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "resolve matFuncs::insert resolvables and resolve": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Resolve matrix decls and assignments::decls": Transformation Result: successful, 3 matches
+DBG:   Result of strategy "Resolve matrix decls and assignments::decls": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve matrix decls and assignments::assignments": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve matrix decls and assignments::simplify": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve matrix decls and assignments::function parameters and return types": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve matrix decls and assignments::function call returns": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "linearize matrices::Linearize": Transformation Result: successful, 31 matches
+DBG:   Result of strategy "linearize matrices::Linearize": Transformation Result: successful, 1 matches
 DBG:   Result of strategy "Set up communication::Adding and linking communication functions": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Type inference::load global declarations first": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Type inference::infer types": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Type inference::replace nodes": Transformation Result: successful, 1 matches
-DBG:   Result of strategy "Type inference::remove annotations": Transformation Result: successful, 1096 matches
+DBG:   Result of strategy "Type inference::remove annotations": Transformation Result: successful, 368 matches
 DBG:   Result of strategy "Resolve ContractingLoop nodes::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Set up communication::Adding and linking communication functions": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Map assignments to stencils and stencil fields::SearchAndMark": Transformation Result: successful, 0 matches
@@ -232,15 +232,14 @@ DBG:   Result of strategy "Resolve constant internal variables::Resolve IsValidF
 DBG:   Result of strategy "Resolve constant internal variables::Resolve NeighborIsRemote and NeighborRemoteRank": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve constant internal variables::Resolve NeighborIsValid": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve constant internal variables::Resolve local synchronization": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Simplify floating expressions::optimize": Transformation Result: successful, 3 matches
-DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 88 matches
-DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 88 matches
+DBG:   Result of strategy "Simplify floating expressions::optimize": Transformation Result: successful, 2 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 19 matches
 DBG:   Result of strategy "Fuse Conditions::now": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve LoopOverDimensions nodes::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Type inference::load global declarations first": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Type inference::infer types": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Type inference::replace nodes": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Type inference::remove annotations": Transformation Result: successful, 1079 matches
+DBG:   Result of strategy "Type inference::remove annotations": Transformation Result: successful, 363 matches
 DBG:   Result of strategy "Layout Transformation::collect transformation statements": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Linearize DirectFieldAccess nodes::Linearize": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Linearize ExternalFieldAccess nodes::Linearize": Transformation Result: successful, 0 matches
@@ -248,15 +247,15 @@ DBG:   Result of strategy "Linearize TempBufferAccess nodes::Linearize": Transfo
 DBG:   Result of strategy "Linearize ReductionDeviceDataAccess nodes::Linearize": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Linearize LoopCarriedCSBufferAccess nodes::Linearize": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "simplify modulo expressions::now": Transformation Result: successful, 6 matches
-DBG:   Result of strategy "Simplify index expressions::now": Transformation Result: successful, 40 matches
+DBG:   Result of strategy "Simplify index expressions::now": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve BoundedScalar nodes::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve slot operations::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Remove references to mpi functions and variables::Clean": Transformation Result: successful, 2 matches
-DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 88 matches
-DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 86 matches
-DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 86 matches
-DBG:   Result of strategy "Simplify floating expressions::optimize": Transformation Result: successful, 3 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 21 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 19 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 19 matches
+DBG:   Result of strategy "Simplify floating expressions::optimize": Transformation Result: successful, 2 matches
 DBG:   Result of strategy "Add internal variables::Collecting buffer sizes": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Add internal variables::Updating temporary buffer allocations": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Add internal variables::Extend SetupBuffers function": Transformation Result: successful, 1 matches
@@ -269,15 +268,16 @@ DBG:   Result of strategy "Resolve constant internal variables::Resolve local sy
 DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve LoopOverFragments nodes::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 86 matches
+DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 19 matches
 DBG:   Result of strategy "Function inlining::collect": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Function inlining::remove inlined functions": Transformation Result: successful, 12 matches
+DBG:   Result of strategy "Register type aliases::do": Transformation Result: successful, 0 matches
+DBG:   Prettyprinting to folder /mnt/c/Users/MonPreacthyl/Desktop/Ba/exastencils/Testing/MatrixClassTests/./invert/RunTime/LU/output
 WARN:  RealDatatype is deprecated - please switch to FloatDatatype or DoubleDatatype
-DBG:   Result of strategy "Register type aliases::do": Transformation Result: successful, 35 matches
-DBG:   Prettyprinting to folder /mnt/c/Users/MonPreacthyl/Desktop/BA/new/exastencils/Testing/MatrixClassTests/./invert/RunTime/LU/output
 DBG:   Result of strategy "Prettyprint all file-prettyprintable nodes::Print": Transformation Result: successful, 8 matches
+DBG:   Updating file: /mnt/c/Users/MonPreacthyl/Desktop/Ba/exastencils/Testing/MatrixClassTests/./invert/RunTime/LU/output/User/User_main.cpp
 WARN:  Unknown target machine i10staff40, no job script is generated
 DBG:   Done!
-DBG:   Runtime:	6.2 seconds
-DBG:   Result of strategy "Count number of printed nodes::Count": Transformation Result: successful, 947 matches
-DBG:   Counting number of printed nodes resulted in 947 nodes with 31 annotations
+DBG:   Runtime:	2.4 seconds
+DBG:   Result of strategy "Count number of printed nodes::Count": Transformation Result: successful, 247 matches
+DBG:   Counting number of printed nodes resulted in 247 nodes with 19 annotations

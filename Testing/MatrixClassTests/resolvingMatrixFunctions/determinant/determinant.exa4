@@ -25,9 +25,9 @@ Function Application ( ) : Unit {
 
 	Var sol3 : Int = -8	
 	Var res3 : Int = determinant(m3)
-	//Var res4 : Int = determinant({{1,2,3},{3,4,5},{1,2,7}})
-	//compare(sol3,res3,prec)
-	
+	Var res4 : Int = determinant({{1,2,3},{3,4,5},{1,2,7}})
+	compare(sol3,res3,prec)
+	/*
 	// 4,5 : calculate with laplace expansion in compiletime
 	Var sol5 : Int = -407	
 	Var res5 : Int 
@@ -35,7 +35,7 @@ Function Application ( ) : Unit {
 	Var res6 : Int = determinant({{3,4,5,6},{1,5,7,2},{4,6,8,1},{4,5,1,6}})
 	compare(sol5,res5,prec)
 	compare(sol5,res6,prec)
-	
+	*/
 	// from 6 on: calculate with LU decomposition in runtime
 	Var res7 : Int = determinant(m5)
 	Var sol7 : Int = 12762

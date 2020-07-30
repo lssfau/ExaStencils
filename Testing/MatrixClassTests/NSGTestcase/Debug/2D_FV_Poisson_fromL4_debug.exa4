@@ -1,0 +1,268 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0] to [1.0, 1.0] >
+
+Layout NodeNoComm< Real, Node >@all {
+	duplicateLayers = [1, 1]
+	ghostLayers = [0, 0]
+}
+
+Layout NodeWithComm< Real, Node >@all {
+	duplicateLayers = [1, 1] with communication
+	ghostLayers = [1, 1] with communication
+}
+
+Layout NodeNoGhost< Real, Node >@all {
+	duplicateLayers = [1, 1] with communication
+	ghostLayers = [0, 0]
+}
+
+Field Solution< global, NodeWithComm, 0.0>@(all but (finest))
+
+Field Solution< global, NodeWithComm, ( cos ( ( PI * vf_boundaryPosition_x ) ) - sin ( ( ( 2.0 * PI ) * vf_boundaryPosition_y ) ) )>@finest
+
+Field RHS< global, NodeNoGhost, None>@all
+
+Field Residual< global, NodeNoGhost, 0.0>@coarsest
+
+Field Residual< global, NodeWithComm, 0.0>@(all but (coarsest))
+
+Field cgTmp0< global, NodeWithComm, 0.0>@coarsest
+
+Field cgTmp1< global, NodeNoGhost, None>@coarsest
+
+Stencil Laplace@all{
+	[0, 0] => ( ( ( ( vf_cellWidth_y / ( 0.5 * ( vf_cellWidth_x@[0, 0] + vf_cellWidth_x@[-1, 0] ) ) ) + ( vf_cellWidth_y / ( 0.5 * ( vf_cellWidth_x@[1, 0] + vf_cellWidth_x@[0, 0] ) ) ) ) + ( vf_cellWidth_x / ( 0.5 * ( vf_cellWidth_y@[0, 0] + vf_cellWidth_y@[0, -1] ) ) ) ) + ( vf_cellWidth_x / ( 0.5 * ( vf_cellWidth_y@[0, 1] + vf_cellWidth_y@[0, 0] ) ) ) )
+	[-1, 0] => ( (-vf_cellWidth_y) / ( 0.5 * ( vf_cellWidth_x@[0, 0] + vf_cellWidth_x@[-1, 0] ) ) )
+	[1, 0] => ( (-vf_cellWidth_y) / ( 0.5 * ( vf_cellWidth_x@[1, 0] + vf_cellWidth_x@[0, 0] ) ) )
+	[0, -1] => ( (-vf_cellWidth_x) / ( 0.5 * ( vf_cellWidth_y@[0, 0] + vf_cellWidth_y@[0, -1] ) ) )
+	[0, 1] => ( (-vf_cellWidth_x) / ( 0.5 * ( vf_cellWidth_y@[0, 1] + vf_cellWidth_y@[0, 0] ) ) )
+}
+
+Stencil NodeRestrictionForRes@all{
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.25
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( 2.0 * i1 )] with 0.5
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.25
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.5
+	[i0, i1] from [( 2.0 * i0 ), ( 2.0 * i1 )] with 1.0
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.5
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.25
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 )] with 0.5
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.25
+}
+
+Stencil NodeRestrictionForSol@all{
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.0625
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( 2.0 * i1 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.0625
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.125
+	[i0, i1] from [( 2.0 * i0 ), ( 2.0 * i1 )] with 0.25
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.0625
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.0625
+}
+
+Stencil NodeProlongation@all{
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) )] with 0.25
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * i1 )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) )] with 0.25
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * ( i1 + 1.0 ) )] with 0.5
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * i1 )] with 1
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * ( i1 - 1.0 ) )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) )] with 0.25
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * i1 )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) )] with 0.25
+}
+
+Function ResNorm@(finest, coarsest) : Real {
+	Var norm : Real = 0.0
+	loop over Residual with reduction ( + : norm ) {
+		norm += ( Residual * Residual )
+	}
+	return sqrt ( norm )
+}
+
+Function PrintError@finest {
+	Var norm : Real = 0.0
+	loop over Solution with reduction ( max : norm ) {
+		norm = max ( norm, fabs ( ( Solution - ( cos ( ( PI * vf_nodePos_x ) ) - sin ( ( ( 2.0 * PI ) * vf_nodePos_y ) ) ) ) ) )
+	}
+	if ( getKnowledge ( "testing_enabled" ) ) {
+		if ( getKnowledge ( "testing_printErr" ) ) {
+			printWithReducedPrec ( norm )
+		}
+	} else {
+		print ( "The maximum error is", norm )
+	}
+}
+
+Function Solve@finest {
+	communicate Solution
+	loop over Residual {
+		Residual = ( RHS - ( Laplace * Solution ) )
+	}
+	apply bc to Residual
+	Var initRes : Real = ResNorm (  )
+	Var curRes : Real = initRes
+	Var prevRes : Real = curRes
+	if ( getKnowledge ( "testing_enabled" ) ) {
+		if ( getKnowledge ( "testing_printRes" ) ) {
+			printWithReducedPrec ( initRes )
+		}
+	} else {
+		print ( "Starting residual: ", initRes )
+	}
+	Var curIt : Integer = 0
+	repeat until ( ( curIt >= 100 ) || ( curRes <= ( 1.0E-10 * initRes ) ) ) {
+		curIt += 1
+		mgCycle (  )
+		PrintError@finest (  )
+		communicate Solution
+		loop over Residual {
+			Residual = ( RHS - ( Laplace * Solution ) )
+		}
+		apply bc to Residual
+		prevRes = curRes
+		curRes = ResNorm (  )
+		if ( getKnowledge ( "testing_enabled" ) ) {
+			if ( getKnowledge ( "testing_printRes" ) ) {
+				printWithReducedPrec ( curRes )
+			}
+		} else {
+			print ( "Residual after", curIt, "iterations is", curRes, "--- convergence factor is", ( curRes / prevRes ) )
+		}
+	}
+}
+
+Function mgCycle@coarsest {
+	communicate Solution
+	loop over Residual {
+		Residual = ( RHS - ( Laplace * Solution ) )
+	}
+	apply bc to Residual
+	Var curRes : Real = ResNorm (  )
+	Var initRes : Real = curRes
+	loop over cgTmp0 {
+		cgTmp0 = Residual
+	}
+	apply bc to cgTmp0
+	Var curStep : Integer = 0
+	repeat 128 times count curStep {
+		communicate cgTmp0
+		loop over cgTmp1 {
+			cgTmp1 = ( Laplace * cgTmp0 )
+		}
+		Var reductionVar_2 : Real = 0.0
+		loop over Residual with reduction ( + : reductionVar_2 ) {
+			reductionVar_2 += ( Residual * Residual )
+		}
+		Var alphaNom_Solution : Real = reductionVar_2
+		Var reductionVar_3 : Real = 0.0
+		loop over cgTmp0 with reduction ( + : reductionVar_3 ) {
+			reductionVar_3 += ( cgTmp0 * cgTmp1 )
+		}
+		Var alphaDenom_Solution : Real = reductionVar_3
+		Var alpha : Real = ( alphaNom_Solution / alphaDenom_Solution )
+		loop over Solution {
+			Solution += ( alpha * cgTmp0 )
+		}
+		apply bc to Solution
+		loop over Residual {
+			Residual -= ( alpha * cgTmp1 )
+		}
+		apply bc to Residual
+		Var nextRes : Real = ResNorm (  )
+		if ( ( nextRes <= ( 0.001 * initRes ) ) ) {
+			return
+		}
+		Var beta : Real = ( ( nextRes * nextRes ) / ( curRes * curRes ) )
+		loop over cgTmp0 {
+			cgTmp0 = ( Residual + ( beta * cgTmp0 ) )
+		}
+		apply bc to cgTmp0
+		curRes = nextRes
+	}
+	print ( "Maximum number of cgs iterations (", 128, ") was exceeded" )
+}
+
+Function mgCycle@(all but (coarsest)) {
+	repeat 3 times {
+		color with {
+			( ( i0 + i1 ) % 2 ),
+			communicate Solution
+			loop over Solution {
+				Solution += ( ( 0.8 / diag ( Laplace ) ) * ( RHS - ( Laplace * Solution ) ) )
+			}
+			apply bc to Solution
+		}
+	}
+	communicate Solution
+	loop over Residual {
+		Residual = ( RHS - ( Laplace * Solution ) )
+	}
+	apply bc to Residual
+	communicate Residual
+	loop over RHS@coarser {
+		RHS@coarser = ( NodeRestrictionForRes * Residual )
+	}
+	loop over Solution@coarser {
+		Solution@coarser = 0.0
+	}
+	apply bc to Solution@coarser
+	mgCycle@coarser (  )
+	communicate Solution@coarser
+	loop over Solution {
+		Solution += ( NodeProlongation@coarser * Solution@coarser )
+	}
+	apply bc to Solution
+	repeat 3 times {
+		color with {
+			( ( i0 + i1 ) % 2 ),
+			communicate Solution
+			loop over Solution {
+				Solution += ( ( 0.8 / diag ( Laplace ) ) * ( RHS - ( Laplace * Solution ) ) )
+			}
+			apply bc to Solution
+		}
+	}
+}
+
+Function InitRHS@finest {
+	loop over RHS {
+		RHS = ( vf_cellVolume * ( ( ( PI ** 2 ) * cos ( ( PI * vf_nodePos_x ) ) ) - ( ( 4.0 * ( PI ** 2 ) ) * sin ( ( ( 2.0 * PI ) * vf_nodePos_y ) ) ) ) )
+	}
+}
+
+Function Application {
+	startTimer ( "setup" )
+	initGlobals (  )
+	initDomain (  )
+	initFieldsWithZero (  )
+	initGeometry (  )
+	InitRHS@finest (  )
+	apply bc to Solution@finest
+	stopTimer ( "setup" )
+	startTimer ( "solve" )
+	Solve@finest (  )
+	stopTimer ( "solve" )
+	if ( !(getKnowledge ( "testing_enabled" )) ) {
+		printAllTimers (  )
+	}
+	destroyGlobals (  )
+}
+

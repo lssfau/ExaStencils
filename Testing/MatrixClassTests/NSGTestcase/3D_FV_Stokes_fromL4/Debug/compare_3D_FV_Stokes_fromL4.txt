@@ -6,5 +6,5 @@
 < Mean mean total time for Timer setup: 56.2988 
 < Mean mean total time for Timer solve: 1045.55 
 ---
-> Mean mean total time for Timer setup: 54.1426 
-> Mean mean total time for Timer solve: 1010.54 
+> Mean mean total time for Timer setup: 264.242 
+> Mean mean total time for Timer solve: 4249.07 
