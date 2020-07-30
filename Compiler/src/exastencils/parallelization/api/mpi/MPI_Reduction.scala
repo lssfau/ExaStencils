@@ -100,7 +100,8 @@ object MPI_AddReductions extends DefaultStrategy("Add mpi reductions") {
       val reduction = loop.parallelization.reduction.get
       val stmts = ListBuffer[IR_Statement]()
       stmts += loop
-      stmts += MPI_AllReduce(IR_AddressOf(reduction.target), reduction.target.datatype, 1, reduction.op)
+      if (!reduction.skipMpi)
+        stmts += MPI_AllReduce(IR_AddressOf(reduction.target), reduction.target.datatype, 1, reduction.op)
       stmts
   }, false) // switch off recursion due to wrapping mechanism
 }

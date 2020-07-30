@@ -30,5 +30,5 @@ case class IR_IV_BoundaryConditionId(var domain : IR_Expression, var neighIdx : 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, domain, IR_NullExpression, IR_NullExpression, neighIdx)
   override def resolveName() = s"boundaryConditionId" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", neighIdx.prettyprint)
   override def resolveDatatype() = IR_IntegerDatatype
-  override def resolveDefValue() = Some(-100)
+  override def resolveDefValue() = Some(0)
 }
