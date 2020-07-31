@@ -136,7 +136,6 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
   import exastencils.baseExt.ir.IR_MatrixNodeUtilities.checkIfMatOp
   import exastencils.baseExt.ir.IR_MatrixNodeUtilities.isMatOp
 
-
   // replace function calls to matrix methods with dedicated nodes so they dont appear in function call tree and are easier to recognize and process
   /** Transformation: replace function calls with matrix method nodes */
   this += new Transformation("Replace function calls with matrix method nodes", {
@@ -291,7 +290,7 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
     case IR_Assignment(dest : IR_VariableAccess, r : IR_RuntimeMNode, _) if (r.resolveAtRuntime && !r.hasAnnotation(potentialInline)) =>
       rtFctMap(r.name)(dest, r)
 
-    case IR_ExpressionStatement(mn : IR_ResolvableMNode) if(mn.isResolvable()) =>
+    case IR_ExpressionStatement(mn : IR_ResolvableMNode) if (mn.isResolvable()) =>
       mn.resolve()
 
     // resolve
@@ -309,8 +308,8 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
 object IR_ResolveMatOperators extends DefaultStrategy("resolve operators") {
 
   import exastencils.baseExt.ir.IR_MatrixNodeUtilities.checkIfMatOp
-  import exastencils.baseExt.ir.IR_MatrixNodeUtilities.isMatOp
   import exastencils.baseExt.ir.IR_MatrixNodeUtilities.isEvaluatable
+  import exastencils.baseExt.ir.IR_MatrixNodeUtilities.isMatOp
 
   this += new Transformation("Resolve operators", {
     //TODO match on supertype? -> introduce supertype
@@ -341,6 +340,10 @@ object IR_ResolveMatOperators extends DefaultStrategy("resolve operators") {
 /** Strategy: resolve "Var matrix : Matrix<Datatype, rows, columns> = initialization" or split to declaration and assignment if convenient */
 object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignments") {
   var debug = false
+  val annotationMatrixRow = "IR_ResolveMatrices.matrixRow"
+  val annotationMatrixCol = "IR_ResolveMatrices.matrixCol"
+
+
   /** Transformation: resolve or split declarations */
   this += new Transformation("decls", {
     // split to use std::fill later
@@ -376,8 +379,38 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
       IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::fill", IR_UnitDatatype), ListBuffer[IR_Expression](Duplicate(dest), Duplicate(dest) + IR_IntegerConstant(dest.datatype.asInstanceOf[IR_MatrixDatatype].resolveFlattendSize), src)))
 
     // assignment of a matrix with another matrix : copy other matrix
-    case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src @ (IR_MatrixExpression(_, _, _, _) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))), "=") =>
+    case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src @ (IR_MatrixExpression(_, _, _, _) | _ : IR_VariableAccess ), "=") if (src.datatype.isInstanceOf[IR_MatrixDatatype]) =>
       IR_GenerateBasicMatrixOperations.copyMatrix(dest, src)
+
+    // other assignments
+    case stmt @ IR_Assignment(dest, _, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype]) =>
+      val matrix = dest.datatype.asInstanceOf[IR_MatrixDatatype]
+      var newStmts = ListBuffer[IR_Statement]()
+      for (row <- 0 until matrix.sizeM) {
+        for (col <- 0 until matrix.sizeN) {
+          var cloned = Duplicate(stmt)
+          StateManager.findAll[IR_Expression](cloned).foreach {
+            case _ : IR_FunctionArgument                                                                                                            => // do not mark function arguments to be resolved into individual accesses
+            case x @ ( _ : IR_MultiDimFieldAccess) if (x.datatype.isInstanceOf[IR_MatrixDatatype]) => {
+              x.annotate(annotationMatrixRow, row)
+              x.annotate(annotationMatrixCol, col)
+            }
+            case exp                                                                                                                                =>
+          }
+          newStmts += cloned
+        }
+      }
+      newStmts
+
+
+  })
+
+  this += new Transformation("expressions 2/2", {
+    case exp : IR_MatrixExpression if (exp.hasAnnotation(annotationMatrixRow)) =>
+      exp.get(exp.popAnnotationAs[Int](annotationMatrixRow), exp.popAnnotationAs[Int](annotationMatrixCol))
+
+    case exp : IR_Expression if (exp.hasAnnotation(annotationMatrixRow)) =>
+      IR_HighDimAccess(Duplicate(exp), IR_ConstIndex(Array(exp.popAnnotationAs[Int](annotationMatrixRow), exp.popAnnotationAs[Int](annotationMatrixCol))))
   }, false)
 
   /** Transformation: simplify matrices e.g. neg(mat) to negated entries and resolve user defined functions */
@@ -491,18 +524,18 @@ object IR_LinearizeMatrices extends DefaultStrategy("linearize matrices") {
       }
       base
 
-    case IR_HighDimAccess(base, idx : IR_ConstIndex)  if base.datatype.isInstanceOf[IR_MatrixDatatype] &&  idx.indices.length == 2 =>
+    case IR_HighDimAccess(base, idx : IR_ConstIndex) if idx.indices.length == 2 =>
       val matrix = base.datatype.asInstanceOf[IR_MatrixDatatype]
       if (matrix.sizeM > 1 || matrix.sizeN > 1 || idx(0) > 0 || idx(1) > 0)
         ir.IR_ArrayAccess(base, IR_IntegerConstant(matrix.sizeN * idx.indices(0) + idx.indices(1)))
       else
         base
 
-    case IR_HighDimAccess(base, idx : IR_ExpressionIndex) if (base.datatype.isInstanceOf[IR_MatrixDatatype] || base.datatype.isInstanceOf[IR_TensorDatatype]) && idx.indices.length == 2 =>
+    case IR_HighDimAccess(base, idx : IR_ExpressionIndex) if idx.indices.length == 2 =>
       val (rows, cols) = base.datatype match {
         case tdt1 : IR_TensorDatatype1 => (tdt1.dims, 1)
         case tdt2 : IR_TensorDatatype2 => (tdt2.dims, tdt2.dims)
-        case mdt : IR_MatrixDatatype => (mdt.sizeM, mdt.sizeN)
+        case mdt : IR_MatrixDatatype   => (mdt.sizeM, mdt.sizeN)
       }
 
       if (rows > 1 || cols > 1)
@@ -521,7 +554,7 @@ object IR_MatrixNodeUtilities {
     *
     * @param n : IR_Node, node to be checked for evaluatability
     * @return is evaluatable?
-    * */
+    **/
   //TODO other datatypes?
   def isEvaluatable(n : IR_Node) : Boolean = {
     n match {
@@ -534,7 +567,7 @@ object IR_MatrixNodeUtilities {
     *
     * @param x : IR_Expression, expression to be checked for
     * @return is matrix?
-    * */
+    **/
   def isMatrix(x : IR_Expression) : Boolean = {
     x match {
       case IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))                                                 => true
@@ -548,7 +581,7 @@ object IR_MatrixNodeUtilities {
     *
     * @param x : IR_Expression, expression to be checked for
     * @return is tensor?
-    * */
+    **/
   def isTensor(x : IR_Expression) : Boolean = {
     x match {
       case IR_VariableAccess(_, inner : IR_TensorDatatype)                                                  => true
@@ -561,7 +594,7 @@ object IR_MatrixNodeUtilities {
     *
     * @param x : IR_Expression, expression to be checked for
     * @return is scalar value?
-    * */
+    **/
   def isScalar(x : IR_Expression) : Boolean = {
     x match {
       case IR_VariableAccess(_, IR_RealDatatype | IR_IntegerDatatype | IR_DoubleDatatype | IR_FloatDatatype)                                                                           => true
@@ -581,7 +614,7 @@ object IR_MatrixNodeUtilities {
     *
     * @param x : IR_Expression, expression to be checked for
     * @return is string?
-    * */
+    **/
   def isString(x : IR_Expression) : Boolean = {
     x match {
       case IR_StringConstant(_)                    => true
@@ -600,22 +633,22 @@ object IR_MatrixNodeUtilities {
     *
     * @param op : IR_Expression, expression to be checked
     * @return is mat op?
-    * */
+    **/
   def checkIfMatOp(op : IR_Expression) : Boolean = {
     if (op.hasAnnotation(isNotMatOp)) false
     else if (op.hasAnnotation(isMatOp)) true
     else {
       val b = op match {
-        case m : IR_Multiplication                                      => m.factors.exists(f => isMatrix(f))
-        case a : IR_Addition                                            => a.summands.exists(f => isMatrix(f))
-        case s : IR_Subtraction                                         => isMatrix(s.left) | isMatrix(s.right)
-        case s : IR_ElementwiseSubtraction                              => isMatrix(s.left) | isMatrix(s.right)
-        case e : IR_ElementwiseMultiplication                           => isMatrix(e.left) | isMatrix(e.right)
-        case e : IR_ElementwiseAddition                                 => isMatrix(e.left) | isMatrix(e.right)
-        case e : IR_ElementwiseDivision                                 => isMatrix(e.left) | isMatrix(e.right)
-        case cast @ IR_FunctionCall(ref, _) if (ref.name == "toMatrix") => true
+        case m : IR_Multiplication                                        => m.factors.exists(f => isMatrix(f))
+        case a : IR_Addition                                              => a.summands.exists(f => isMatrix(f))
+        case s : IR_Subtraction                                           => isMatrix(s.left) | isMatrix(s.right)
+        case s : IR_ElementwiseSubtraction                                => isMatrix(s.left) | isMatrix(s.right)
+        case e : IR_ElementwiseMultiplication                             => isMatrix(e.left) | isMatrix(e.right)
+        case e : IR_ElementwiseAddition                                   => isMatrix(e.left) | isMatrix(e.right)
+        case e : IR_ElementwiseDivision                                   => isMatrix(e.left) | isMatrix(e.right)
+        case cast @ IR_FunctionCall(ref, _) if (ref.name == "toMatrix")   => true
         case inverse @ IR_FunctionCall(ref, _) if (ref.name == "inverse") => true
-        case e : IR_FunctionCall                                        => e.arguments.exists(a => isMatrix(a))
+        case e : IR_FunctionCall                                          => e.arguments.exists(a => isMatrix(a))
       }
       if (b) {
         op.annotate(isMatOp)
@@ -632,7 +665,7 @@ object IR_MatrixNodeUtilities {
     *
     * @param decl : IR_VariableDeclaration, declaration to be split
     * @return list containing variable declaration without init and assignment of that variable with init expresion
-    * */
+    **/
   def splitDeclaration(decl : IR_VariableDeclaration) : ListBuffer[IR_Statement] = {
     val newStmts = ListBuffer[IR_Statement]()
     newStmts += IR_VariableDeclaration(decl.datatype, decl.name, None)
@@ -645,10 +678,10 @@ object IR_MatrixNodeUtilities {
     *
     * @param src : IR_VariableAccess, access to convert
     * @return expression of hdas
-    * */
+    **/
   def accessToExpression(src : IR_VariableAccess) : IR_MatrixExpression = {
     var size = IR_BasicMatrixOperations.getSize(src)
-    if(size._1 > 1 || size._2 > 1) {
+    if (size._1 > 1 || size._2 > 1) {
       var out = IR_MatrixExpression(src.datatype.resolveBaseDatatype, size._1, size._2)
       for (i <- 0 until size._1) {
         for (j <- 0 until size._2) {
@@ -666,7 +699,7 @@ object IR_MatrixNodeUtilities {
     * @param src  : IR_MatrixExpression, used as initialization
     * @param name : String, name of the new temporary variable
     * @return declaration of the tmp
-    * */
+    **/
   def expressionToDeclaration(src : IR_MatrixExpression, name : String) : IR_VariableDeclaration = {
     var decl = IR_VariableDeclaration(IR_MatrixDatatype(src.datatype.resolveBaseDatatype, src.rows, src.columns), name + tmpCounter, src)
     tmpCounter += 1

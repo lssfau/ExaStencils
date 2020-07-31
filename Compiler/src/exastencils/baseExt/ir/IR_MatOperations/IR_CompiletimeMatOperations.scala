@@ -792,7 +792,7 @@ object IR_CompiletimeInversion {
       val currentValue = matrix.get(i, i)
       (topValue, currentValue) match {
         case (top : IR_Number, current : IR_Number) => swap = Math.abs(top.value.asInstanceOf[Number].doubleValue) > Math.abs(current.value.asInstanceOf[Number].doubleValue)
-        case _                                      =>
+        case _                                      => Logger.error("value not evaluatable!")
       }
 
       if (swap) {

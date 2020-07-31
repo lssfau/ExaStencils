@@ -19,6 +19,7 @@ import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_Lower
 import exastencils.base.ir.IR_Multiplication
+import exastencils.base.ir.IR_Number
 import exastencils.base.ir.IR_PlainInternalFunctionReference
 import exastencils.base.ir.IR_PreDecrement
 import exastencils.base.ir.IR_PreIncrement
@@ -37,8 +38,6 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation
 import exastencils.logger.Logger
-import exastencils.optimization.ir.EvaluationException
-import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.prettyprinting.PpStream
 
 object IR_SolveLinearSystem {
@@ -122,8 +121,8 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
             stmts ++= genForwardBackwardSub(AasAcc, P, fasAcc, u)
           } else
           //TODO solve evaluation problem here: if A consists of variables i can not get the value of the entry
-          //IR_Assignment(u, luSolveCT(AasExpr, f))
-            IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
+          IR_Assignment(u, luSolveCT(AasExpr, IR_MatrixNodeUtilities.accessToExpression(f)))
+          //  IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
       }
     }
   }
@@ -143,12 +142,23 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
       var maxA : Double = 0.0
       var imax : Int = i
       for (k <- i until N) {
-        var value_at_ki = 0.0
+  /*
+        var value_at_ki : Double = 0.0
         try {
           value_at_ki = IR_SimplifyExpression.evalFloating(LU.get(k, i))
         } catch {
-          case ev : EvaluationException => Logger.error("value not evaluatable, can not pivot here!")
+          case ev : EvaluationException => Logger.error("value not evaluatable, can not pivot here!, switching to ")
         }
+*/
+
+        var value_at_ki : Double = A.get(i,k) match {
+          case n : IR_Number => n.value.asInstanceOf[Number].doubleValue
+          case _                                      => Logger.error("value not evaluatable!")
+        }
+
+
+
+
         absA = value_at_ki.abs
         if (absA > maxA) {
           maxA = absA
