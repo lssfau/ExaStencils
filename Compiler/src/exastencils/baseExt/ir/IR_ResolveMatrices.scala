@@ -379,8 +379,12 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
       IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::fill", IR_UnitDatatype), ListBuffer[IR_Expression](Duplicate(dest), Duplicate(dest) + IR_IntegerConstant(dest.datatype.asInstanceOf[IR_MatrixDatatype].resolveFlattendSize), src)))
 
     // assignment of a matrix with another matrix : copy other matrix
-    case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src @ (IR_MatrixExpression(_, _, _, _) | _ : IR_VariableAccess ), "=") if (src.datatype.isInstanceOf[IR_MatrixDatatype]) =>
-      IR_GenerateBasicMatrixOperations.copyMatrix(dest, src)
+    //case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src @ (IR_MatrixExpression(_, _, _, _) | _ : IR_VariableAccess ), "=") if (src.datatype.isInstanceOf[IR_MatrixDatatype]) =>
+    //  IR_GenerateBasicMatrixOperations.copyMatrix(dest, src)
+
+    case IR_Assignment(dest, src : IR_VariableAccess, "=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] && !dest.isInstanceOf[IR_MatrixExpression] && src.datatype.isInstanceOf[IR_MatrixDatatype] =>
+      val dt = dest.datatype.asInstanceOf[IR_MatrixDatatype]
+      IR_FunctionCall("std::copy", ListBuffer[IR_Expression](Duplicate(src), Duplicate(src) + dt.resolveFlattendSize, dest)) : IR_Statement
 
     // other assignments
     case stmt @ IR_Assignment(dest, _, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype]) =>
@@ -391,7 +395,7 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
           var cloned = Duplicate(stmt)
           StateManager.findAll[IR_Expression](cloned).foreach {
             case _ : IR_FunctionArgument                                                                                                            => // do not mark function arguments to be resolved into individual accesses
-            case x @ ( _ : IR_MultiDimFieldAccess) if (x.datatype.isInstanceOf[IR_MatrixDatatype]) => {
+            case x @ ( _ : IR_VariableAccess | _ : IR_MatrixExpression | _ : IR_MultiDimFieldAccess) if (x.datatype.isInstanceOf[IR_MatrixDatatype]) => {
               x.annotate(annotationMatrixRow, row)
               x.annotate(annotationMatrixCol, col)
             }

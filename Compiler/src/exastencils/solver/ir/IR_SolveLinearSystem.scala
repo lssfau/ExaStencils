@@ -38,6 +38,7 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation
 import exastencils.logger.Logger
+import exastencils.optimization.ir.EvaluationException
 import exastencils.prettyprinting.PpStream
 
 object IR_SolveLinearSystem {
@@ -121,8 +122,13 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
             stmts ++= genForwardBackwardSub(AasAcc, P, fasAcc, u)
           } else
           //TODO solve evaluation problem here: if A consists of variables i can not get the value of the entry
-          IR_Assignment(u, luSolveCT(AasExpr, IR_MatrixNodeUtilities.accessToExpression(f)))
-          //  IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
+          try {
+            IR_Assignment(u, luSolveCT(AasExpr, IR_MatrixNodeUtilities.accessToExpression(f)))
+          } catch {
+            case ev : EvaluationException =>
+              Logger.warn("matrix entry not evaluatable, switching to inversion strategy!")
+              IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
+          }
       }
     }
   }
@@ -153,7 +159,7 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
 
         var value_at_ki : Double = A.get(i,k) match {
           case n : IR_Number => n.value.asInstanceOf[Number].doubleValue
-          case _                                      => Logger.error("value not evaluatable!")
+          case _                                      => throw EvaluationException("entry not evaluatable")
         }
 
 
