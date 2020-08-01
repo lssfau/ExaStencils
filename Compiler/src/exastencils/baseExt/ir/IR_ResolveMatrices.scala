@@ -384,7 +384,7 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
 
     case IR_Assignment(dest, src : IR_VariableAccess, "=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] && !dest.isInstanceOf[IR_MatrixExpression] && src.datatype.isInstanceOf[IR_MatrixDatatype] =>
       val dt = dest.datatype.asInstanceOf[IR_MatrixDatatype]
-      IR_FunctionCall("std::copy", ListBuffer[IR_Expression](Duplicate(src), Duplicate(src) + dt.resolveFlattendSize, dest)) : IR_Statement
+      IR_ExpressionStatement(IR_FunctionCall("std::copy", ListBuffer[IR_Expression](Duplicate(src), Duplicate(src) + IR_IntegerConstant(dt.resolveFlattendSize), dest)))
 
     // other assignments
     case stmt @ IR_Assignment(dest, _, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype]) =>
@@ -405,11 +405,9 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
         }
       }
       newStmts
-
-
   })
 
-  this += new Transformation("expressions 2/2", {
+  this += new Transformation("setup matrix entries", {
     case exp : IR_MatrixExpression if (exp.hasAnnotation(annotationMatrixRow)) =>
       exp.get(exp.popAnnotationAs[Int](annotationMatrixRow), exp.popAnnotationAs[Int](annotationMatrixCol))
 

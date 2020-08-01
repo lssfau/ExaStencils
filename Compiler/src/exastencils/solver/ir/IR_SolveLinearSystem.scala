@@ -161,10 +161,7 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
           case n : IR_Number => n.value.asInstanceOf[Number].doubleValue
           case _                                      => throw EvaluationException("entry not evaluatable")
         }
-
-
-
-
+        
         absA = value_at_ki.abs
         if (absA > maxA) {
           maxA = absA
