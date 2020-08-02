@@ -34,7 +34,7 @@ object Platform {
   var targetCompilerBinary : String = ""
 
   // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG", "ICC", "CLANG", "CRAY", "PGI"
-  var targetCompiler : String = "MSVC"
+  var targetCompiler : String = "GCC"
 
   // major version of the target compiler
   var targetCompilerVersion : Int = 8
