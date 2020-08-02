@@ -292,7 +292,6 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
 
     case IR_ExpressionStatement(mn : IR_ResolvableMNode) if (mn.isResolvable()) =>
       mn.resolve()
-
     // resolve
     case mn : IR_ResolvableMNode if mn.isResolvable() =>
       mn.resolve()
