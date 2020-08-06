@@ -78,8 +78,10 @@ Globals {
   Expr k = 40.0
   Expr factor = 1.0
   Expr omegaRelax = 1.0
+  //TODO does not converge 
   Expr shift = (0.04636751258450424 - 1.0016351080178985j)
-  // Expr shift = -1.0
+  // This works
+  // Var shift : Complex<Real> = (0.04636751258450424 - 1.0016351080178985j)
 }
 
 Function NormResidual@(coarsest and finest) : Complex<Real> {
