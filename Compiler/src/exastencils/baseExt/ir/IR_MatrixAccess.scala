@@ -575,7 +575,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
         Logger.error("inverse() must have one argument")
       }
       call.arguments(0) match {
-        case s : IR_Expression if (s.datatype.isInstanceOf[IR_ScalarDatatype])  => 1.0 / s
+        case s : IR_Expression if (s.datatype.isInstanceOf[IR_ScalarDatatype])  => 1 / s
         case s : IR_Expression if (s.datatype.isInstanceOf[IR_ComplexDatatype]) => 1.0 / s
         case m : IR_MatrixExpression                                            => m.inverse
         case _                                                                  => Logger.warn("Unable to handle inverse() argument: " + call.arguments(0)); call
