@@ -75,10 +75,10 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 /// globals
 
 Globals {
-  Expr k = 40
-  Expr factor = 1
-  Expr omegaRelax = 1
-  Var shift : Complex<Real> = (0.04636751258450424 - 1.0016351080178985j)
+  Expr k = 40.0
+  Expr factor = 1.0
+  Expr omegaRelax = 1.0
+  Expr shift = (0.04636751258450424 - 1.0016351080178985j)
   // Expr shift = -1.0
 }
 
@@ -144,6 +144,18 @@ Function PreconditionedBiCGStab@finest {
 }
 
 Function Smoother@all {
+
+  solve locally at u@[0,0] relax omegaRelax {
+    u@[0,0] => ( M@[0,0] * u@[0,0] ) == f@[0,0]
+  }
+
+  color with {
+    ((i0 + i1) % 2),
+    solve locally at u@[0,0] relax omegaRelax {
+      u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
+    }
+  }
+
   solve locally at u@[0,0] relax omegaRelax {
     u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
     u@[1,0] => M@[1,0] * u@[1,0] == f@[1,0]
@@ -175,7 +187,6 @@ Function Smoother@all {
     }
   }
 }
-
 /// Preconditioner
 Function VCycle@(finest) {
   Smoother ( )
