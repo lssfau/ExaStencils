@@ -34,6 +34,8 @@ import exastencils.baseExt.ir.IR_BasicMatrixOperations.sub
 import exastencils.baseExt.ir.IR_MatrixNodeUtilities._
 import exastencils.config.Knowledge
 import exastencils.core._
+import exastencils.field.ir.IR_FieldAccess
+import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
 import exastencils.util.ir._
@@ -77,6 +79,8 @@ object IR_BasicMatrixOperations {
       case s : IR_ScalarDatatype                                                     => (1, 1)
       case sva : IR_VariableAccess if (sva.datatype.isInstanceOf[IR_ScalarDatatype]) => (1, 1)
       case mdt : IR_MatrixDatatype                                                   => (mdt.sizeM, mdt.sizeN)
+      case fa : IR_FieldAccess if(fa.datatype.isInstanceOf[IR_MatrixDatatype]) => (fa.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, fa.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+      case fa : IR_MultiDimFieldAccess if(fa.datatype.isInstanceOf[IR_MatrixDatatype]) => (fa.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, fa.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
       case other                                                                     => Logger.error("argument is of unexpected type: " + in)
     }
   }
@@ -792,7 +796,7 @@ object IR_CompiletimeInversion {
       val currentValue = matrix.get(i, i)
       (topValue, currentValue) match {
         case (top : IR_Number, current : IR_Number) => swap = Math.abs(top.value.asInstanceOf[Number].doubleValue) > Math.abs(current.value.asInstanceOf[Number].doubleValue)
-        case _                                      => Logger.error("value not evaluatable!")
+        case _                                      =>
       }
 
       if (swap) {

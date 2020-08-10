@@ -1,8 +1,8 @@
 user                = "Guest"
 
-configName          = "solveLinearSystem"
+configName          = "matrixFields"
 
-basePathPrefix      = "./solveLinearSystem/"
+basePathPrefix      = "./matrixFields/"
 l4file              = "$configName$.exa4"
 
 debugL4File         = "$configName$_debug.exa4"

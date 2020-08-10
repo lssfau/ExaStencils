@@ -2,7 +2,7 @@ user                = "Guest"
 
 configName          = "matrixFields"
 
-basePathPrefix      = "C:\Users\MonPreacthyl\Desktop\BA\exastencils\Testing\MatrixClassTests\matrixFields\"
+basePathPrefix      = "C:\Users\MonPreacthyl\Desktop\BA\exastencils\Testing\MatrixClassTests\matrixFields"
 l4file              = "$configName$.exa4"
 
 debugL4File         = "$configName$_debug.exa4"
