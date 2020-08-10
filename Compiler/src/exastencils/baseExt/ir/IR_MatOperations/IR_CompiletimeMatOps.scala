@@ -20,8 +20,6 @@ package exastencils.baseExt.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_DoubleDatatype
-import exastencils.base.ir.IR_FloatDatatype
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir._
@@ -31,7 +29,7 @@ import exastencils.baseExt.ir.IR_BasicMatrixOperations.mult
 import exastencils.baseExt.ir.IR_BasicMatrixOperations.negative
 import exastencils.baseExt.ir.IR_BasicMatrixOperations.pasteSubMatrix
 import exastencils.baseExt.ir.IR_BasicMatrixOperations.sub
-import exastencils.baseExt.ir.IR_MatrixNodeUtilities._
+import exastencils.baseExt.ir.IR_MatNodeUtils._
 import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.field.ir.IR_FieldAccess
@@ -51,16 +49,16 @@ object IR_BasicMatrixOperations {
   def getElem(exp : IR_Expression, pos : Int*) = {
     try {
       exp match {
-        case x : IR_MatrixExpression                                                 =>
+        case x : IR_MatrixExpression                                         =>
           if (pos.length != 2)
             Logger.error("position arguments of wrong form: " + pos)
           x.get(pos(0), pos(1))
-        case va : IR_VariableAccess if (va.datatype.isInstanceOf[IR_MatrixDatatype]) =>
+        case va : IR_Access if (va.datatype.isInstanceOf[IR_MatrixDatatype]) =>
           if (pos.length != 2)
             Logger.error("position arguments of wrong form: " + pos)
           IR_HighDimAccess(va, IR_ExpressionIndex(pos(0), pos(1)))
-        case sc if (isScalar(sc))                                                    => sc
-        case _                                                                       => Logger.error(s"Argument is of unexpected type ${ exp.getClass.getTypeName }: $exp")
+        case sc if (isScalar(sc))                                            => sc
+        case _                                                               => Logger.error(s"Argument is of unexpected type ${ exp.getClass.getTypeName }: $exp")
       }
     } catch {
       case e : ArrayIndexOutOfBoundsException => throw new ArrayIndexOutOfBoundsException
@@ -74,14 +72,14 @@ object IR_BasicMatrixOperations {
     **/
   def getSize(in : IR_Expression) = {
     in match {
-      case me : IR_MatrixExpression                                                  => (me.rows, me.columns)
-      case va : IR_VariableAccess if (va.datatype.isInstanceOf[IR_MatrixDatatype])   => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
-      case s : IR_ScalarDatatype                                                     => (1, 1)
-      case sva : IR_VariableAccess if (sva.datatype.isInstanceOf[IR_ScalarDatatype]) => (1, 1)
-      case mdt : IR_MatrixDatatype                                                   => (mdt.sizeM, mdt.sizeN)
-      case fa : IR_FieldAccess if(fa.datatype.isInstanceOf[IR_MatrixDatatype]) => (fa.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, fa.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
-      case fa : IR_MultiDimFieldAccess if(fa.datatype.isInstanceOf[IR_MatrixDatatype]) => (fa.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, fa.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
-      case other                                                                     => Logger.error("argument is of unexpected type: " + in)
+      case me : IR_MatrixExpression                                                     => (me.rows, me.columns)
+      case va : IR_VariableAccess if (va.datatype.isInstanceOf[IR_MatrixDatatype])      => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+      case _ : IR_ScalarDatatype                                                        => (1, 1)
+      case sva : IR_VariableAccess if (sva.datatype.isInstanceOf[IR_ScalarDatatype])    => (1, 1)
+      case mdt : IR_MatrixDatatype                                                      => (mdt.sizeM, mdt.sizeN)
+      case fa : IR_FieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])         => (fa.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, fa.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+      case fa : IR_MultiDimFieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype]) => (fa.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, fa.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+      case _                                                                            => Logger.error("argument is of unexpected type: " + in)
     }
   }
 
@@ -150,14 +148,14 @@ object IR_BasicMatrixOperations {
     } else if (m.rows == 1) {
       return Duplicate(m.get(0, 0))
     } else if (m.rows == 2) {
-      return Duplicate(m.get(0, 0) * m.get(1, 1) - m.get(0, 1) * m.get(1, 0))
+      return Duplicate(m.get(0, 0)) * Duplicate(m.get(1, 1)) - Duplicate(m.get(0, 1)) * Duplicate(m.get(1, 0))
     } else if (m.rows == 3) {
-      return Duplicate(m.get(0, 0) * m.get(1, 1) * m.get(2, 2) +
-        m.get(0, 1) * m.get(1, 2) * m.get(2, 0) +
-        m.get(0, 2) * m.get(1, 0) * m.get(2, 1) -
-        m.get(2, 0) * m.get(1, 1) * m.get(0, 2) -
-        m.get(2, 1) * m.get(1, 2) * m.get(0, 0) -
-        m.get(2, 2) * m.get(1, 0) * m.get(0, 1))
+      return Duplicate(m.get(0, 0)) * Duplicate(m.get(1, 1)) * Duplicate(m.get(2, 2)) +
+        Duplicate(m.get(0, 1)) * Duplicate(m.get(1, 2)) * Duplicate(m.get(2, 0)) +
+        Duplicate(m.get(0, 2)) * Duplicate(m.get(1, 0)) * Duplicate(m.get(2, 1)) -
+        Duplicate(m.get(2, 0)) * Duplicate(m.get(1, 1)) * Duplicate(m.get(0, 2)) -
+        Duplicate(m.get(2, 1)) * Duplicate(m.get(1, 2)) * Duplicate(m.get(0, 0)) -
+        Duplicate(m.get(2, 2)) * Duplicate(m.get(1, 0)) * Duplicate(m.get(0, 1))
     } else {
       var det : IR_Expression = IR_IntegerConstant(0)
       val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows - 1, m.columns - 1)
@@ -197,7 +195,7 @@ object IR_BasicMatrixOperations {
         tmpRow += 1
       }
     }
-    return smallMatrixDeterminant(tmp)
+    smallMatrixDeterminant(tmp)
   }
 
   // transpose a matrix passed by a variable
@@ -206,7 +204,7 @@ object IR_BasicMatrixOperations {
     * @param source : IR_VariableDeclaration, matrix to calculate the transposed
     * @return transposed matrix
     **/
-  def transpose(source : IR_VariableAccess) : IR_MatrixExpression = {
+  def transpose(source : IR_Access) : IR_MatrixExpression = {
     var ssize = IR_BasicMatrixOperations.getSize(source)
     var out = IR_MatrixExpression(source.datatype.resolveBaseDatatype, ssize._2, ssize._1)
     for (i <- 0 until ssize._1) {
@@ -260,7 +258,7 @@ object IR_BasicMatrixOperations {
     **/
   def crossProduct(left : IR_Expression, right : IR_Expression) : IR_MatrixExpression = {
     (left, right) match {
-      case (l @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) | IR_MatrixExpression(_, _, _, _)), r @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) | IR_MatrixExpression(_, _, _, _))) =>
+      case (l, r) if (IR_MatNodeUtils.isMatrix(l) && IR_MatNodeUtils.isMatrix(l)) =>
         var lsize = getSize(left)
         var rsize = getSize(right)
         if (lsize._1 != 3 || lsize._2 != 1 || rsize._1 != 3 || rsize._2 != 1)
@@ -270,7 +268,7 @@ object IR_BasicMatrixOperations {
         out.set(1, 0, IR_Subtraction(IR_Multiplication(getElem(left, 2, 0), getElem(right, 0, 0)), IR_Multiplication(getElem(left, 0, 0), getElem(right, 2, 0))))
         out.set(2, 0, IR_Subtraction(IR_Multiplication(getElem(left, 0, 0), getElem(right, 1, 0)), IR_Multiplication(getElem(left, 1, 0), getElem(right, 0, 0))))
         out
-      case _                                                                                                                                                                                    => Logger.error("unexpected arguments: " + left + ", " + right + ", expected accesses to matrix variables or matrix expressions")
+      case _                                                                      => Logger.error("unexpected arguments: " + left + ", " + right + ", expected accesses to matrix variables or matrix expressions")
     }
   }
 
@@ -310,22 +308,22 @@ object IR_BasicMatrixOperations {
     mult.factors.remove(firstMatrixIdx)
     mult.factors.prepend(firstMatrix)
     var tmp = mult.factors(0) match {
-      case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) =>
-        IR_MatrixNodeUtilities.accessToExpression(va)
-      case x : IR_MatrixExpression                               =>
+      case va : IR_Access if (va.datatype.isInstanceOf[IR_MatrixDatatype]) =>
+        IR_MatNodeUtils.accessToExpression(va)
+      case x : IR_MatrixExpression                                         =>
         Duplicate(x)
-      case _                                                     =>
+      case _                                                               =>
         Logger.error("unexpected type: " + mult.factors(0))
     }
     for (f <- 1 until mult.factors.length) {
       result = mult.factors(f) match {
-        case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) =>
-          IR_BasicMatrixOperations.mult(tmp, IR_MatrixNodeUtilities.accessToExpression(va))
-        case x : IR_MatrixExpression                               =>
+        case va : IR_Access if (va.datatype.isInstanceOf[IR_MatrixDatatype]) =>
+          IR_BasicMatrixOperations.mult(tmp, IR_MatNodeUtils.accessToExpression(va))
+        case x : IR_MatrixExpression                                         =>
           IR_BasicMatrixOperations.mult(tmp, x)
-        case s if (isScalar(s))                                    =>
+        case s if (isScalar(s))                                              =>
           IR_BasicMatrixOperations.elementwiseMultiplication(tmp, s)
-        case _                                                     =>
+        case _                                                               =>
           Logger.error("unexpected type: " + mult.factors(f))
       }
       tmp = Duplicate(result)
@@ -428,11 +426,11 @@ object IR_BasicMatrixOperations {
             out
           case scalar if (isScalar(scalar)) =>
             sub.right match {
-              case x : IR_MatrixExpression                               =>
+              case x : IR_MatrixExpression                                         =>
                 IR_BasicMatrixOperations.sub(IR_Subtraction(negative(x), IR_Negative(sub.left)))
-              case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) =>
-                IR_BasicMatrixOperations.sub(IR_Subtraction(negative(IR_MatrixNodeUtilities.accessToExpression(va)), IR_Negative(sub.left)))
-              case _                                                     =>
+              case va : IR_Access if (va.datatype.isInstanceOf[IR_MatrixDatatype]) =>
+                IR_BasicMatrixOperations.sub(IR_Subtraction(negative(IR_MatNodeUtils.accessToExpression(va)), IR_Negative(sub.left)))
+              case _                                                               =>
                 Logger.error(s"unexpected argument of type: ${ sub.right.datatype } and basetype: ${ sub.right.datatype.resolveBaseDatatype }, left side is of type: ${ sub.left.datatype } and basetype: ${ sub.left.datatype.resolveBaseDatatype }")
             }
           case _                            => Logger.error("unexpected argument: " + sub.left + ", expected matrix or scalar")
@@ -496,7 +494,7 @@ object IR_BasicMatrixOperations {
   def elementwiseDivision(left : IR_Expression, right : IR_Expression) : IR_MatrixExpression = {
     (left, right) match {
       // scalar x matrix, matrix x scalar, matrix x matrix
-      case (scalar @ (IR_VariableAccess(_, IR_RealDatatype | IR_DoubleDatatype | IR_FloatDatatype | IR_IntegerDatatype)), matrix @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)))) =>
+      case (scalar, matrix) if (isScalar((scalar)) && isMatrix(matrix))   =>
         var size = getSize(matrix)
         var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), size._1, size._2)
         for (i <- 0 until size._1) {
@@ -505,7 +503,7 @@ object IR_BasicMatrixOperations {
           }
         }
         out
-      case (matrix @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))), scalar @ (IR_VariableAccess(_, IR_RealDatatype | IR_DoubleDatatype | IR_FloatDatatype | IR_IntegerDatatype))) =>
+      case (matrix, scalar) if (isScalar((scalar)) && isMatrix(matrix))        =>
         var size = getSize(matrix)
         var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), size._1, size._2)
         for (i <- 0 until size._1) {
@@ -514,7 +512,7 @@ object IR_BasicMatrixOperations {
           }
         }
         out
-      case (matrixLeft @ (IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))), matrixRight @ ((IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)))))                                       =>
+      case (matrixLeft, matrixRight) if (isMatrix((matrixLeft)) && isMatrix(matrixRight))                                      =>
         var size = getSize(matrixLeft)
         var sizeR = getSize(matrixRight)
         if (size != sizeR)
@@ -561,10 +559,11 @@ object IR_BasicMatrixOperations {
   // return a matrix with negative elements of input
   def negative(that : IR_Expression) : IR_MatrixExpression = {
     val out = that match {
-      case mat : IR_MatrixExpression                                  =>
+      case mat : IR_MatrixExpression                                       =>
         IR_MatrixExpression(mat.innerDatatype, mat.rows, mat.columns)
-      case mat @ IR_VariableAccess(_, IR_MatrixDatatype(inner, m, n)) =>
-        IR_MatrixExpression(inner, m, n)
+      case va : IR_Access if (va.datatype.isInstanceOf[IR_MatrixDatatype]) =>
+        val dt = va.datatype.asInstanceOf[IR_MatrixDatatype]
+        IR_MatrixExpression(dt.resolveBaseDatatype, dt.sizeM, dt.sizeN)
     }
     for (i <- 0 until out.rows) {
       for (j <- 0 until out.columns) {
@@ -580,14 +579,14 @@ object IR_BasicMatrixOperations {
     var sum = IR_Addition(IR_IntegerConstant(0))
 
     matrix match {
-      case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) =>
+      case va : IR_Access if (va.datatype.isInstanceOf[IR_MatrixDatatype]) =>
         var s = getSize(va)
         if (s._1 != s._2)
           Logger.error("trace only for quadratic matrices supported, matrix is of form: " + s)
         for (i <- 0 until s._1) {
           sum = IR_Addition(sum, getElem(va, i, i))
         }
-      case x @ IR_MatrixExpression(_, _, _, _)                   =>
+      case x @ IR_MatrixExpression(_, _, _, _)                             =>
         if (x.rows != x.columns)
           Logger.error("trace only for quadratic matrices supported, matrix is of form: " + (x.rows, x.columns))
         for (i <- 0 until x.rows) {
@@ -734,15 +733,15 @@ object IR_CompiletimeInversion {
       => {
         that.rows match {
           case 1 =>
-            IR_MatrixExpression(that.innerDatatype, 1, 1, Array(IR_Division(IR_RealConstant(1.0), that.get(0, 0))), None)
+            IR_MatrixExpression(that.innerDatatype, 1, 1, Array(IR_Division(IR_RealConstant(1.0), Duplicate(that.get(0, 0)))), None)
 
           case 2 =>
             val a = that.get(0, 0)
             val b = that.get(0, 1)
             val c = that.get(1, 0)
             val d = that.get(1, 1)
-            val det : IR_Expression = IR_Division(IR_RealConstant(1.0), (a * d) - (b * c))
-            IR_MatrixExpression(that.innerDatatype, 2, 2, Array(Duplicate(det) * Duplicate(d), Duplicate(det) * Duplicate(b) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(c) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(a)), None)
+            val det : IR_Expression = IR_Division(IR_RealConstant(1.0), (Duplicate(a) * Duplicate(d)) - (Duplicate(b) * Duplicate(c)))
+            IR_MatrixExpression(that.innerDatatype, 2, 2, Array(det * Duplicate(d), det * Duplicate(b) * IR_IntegerConstant(-1), det * Duplicate(c) * IR_IntegerConstant(-1), det * Duplicate(a)), None)
 
           case 3 =>
             val a = that.get(0, 0)

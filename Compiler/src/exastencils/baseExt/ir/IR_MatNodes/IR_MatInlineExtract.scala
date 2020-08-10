@@ -1,4 +1,5 @@
 package exastencils.baseExt.ir.IR_MatNodes
+
 import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_Statement
@@ -13,6 +14,7 @@ object IR_InlineableDeclaration {
     new IR_InlineableDeclaration(datatype, name, initialValue)
   }
 }
+
 case class IR_InlineableDeclaration(
     datatype : IR_Datatype,
     name : String,
@@ -21,9 +23,9 @@ case class IR_InlineableDeclaration(
   def isInlineable() : Boolean = {
     (initialValue match {
       case inv : IR_IntermediateInv => IR_BasicMatrixOperations.getSize(inv.arg)._1 < 4 && !inv.resolveAtRuntime
-      case det : IR_Determinant     => false//getSize(det.arg)._1 < 4 && !det.resolveAtRuntime
-      case gs : IR_GetSlice     => false//!gs.resolveAtRuntime
-      case _                    => false
+      case det : IR_Determinant     => false //getSize(det.arg)._1 < 4 && !det.resolveAtRuntime
+      case gs : IR_GetSlice         => false //!gs.resolveAtRuntime
+      case _                        => false
     })
   }
   override def prettyprint(out : PpStream) : Unit = Logger.error("internal node not resolved")
@@ -35,6 +37,7 @@ object IR_ExtractableStatement {
     new IR_ExtractableStatement(inner, nExtractables)
   }
 }
+
 case class IR_ExtractableStatement(inner : Node, var nExtractables : Int) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = Logger.error("internal node not resolved")
 }

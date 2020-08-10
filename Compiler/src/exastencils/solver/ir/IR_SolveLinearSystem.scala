@@ -33,7 +33,7 @@ import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateRuntimeInversion.local
 import exastencils.baseExt.ir.IR_MatShape
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
-import exastencils.baseExt.ir.IR_MatrixNodeUtilities
+import exastencils.baseExt.ir.IR_MatNodeUtils
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation
@@ -72,17 +72,17 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
     }
     if (m != n) Logger.error("expected quadratic system matrix")
     val (k, i) = f.datatype match {
-      case mat : IR_MatrixDatatype                   => (mat.sizeM, mat.sizeN)
-      case s if (IR_MatrixNodeUtilities.isScalar(f)) => (1, 1)
-      case _                                         => Logger.error(s"unexpected datatype of f: ${ A.datatype }")
+      case mat : IR_MatrixDatatype            => (mat.sizeM, mat.sizeN)
+      case s if (IR_MatNodeUtils.isScalar(f)) => (1, 1)
+      case _                                  => Logger.error(s"unexpected datatype of f: ${ A.datatype }")
     }
     if (k != n) Logger.error("f and A do not match in size")
     u.datatype match {
-      case mat : IR_MatrixDatatype                   =>
+      case mat : IR_MatrixDatatype            =>
         if (mat.sizeM != n) Logger.error("u and A do not match in size")
         if (mat.sizeN != i) Logger.error("u and f do not match in size")
-      case s if (IR_MatrixNodeUtilities.isScalar(u)) =>
-      case _                                         => Logger.error(s"unexpected datatype of f: ${ A.datatype }")
+      case s if (IR_MatNodeUtils.isScalar(u)) =>
+      case _                                  => Logger.error(s"unexpected datatype of f: ${ A.datatype }")
     }
     // scalar system
     if (m == 1 && n == 1) {
@@ -123,7 +123,7 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
           } else
           //TODO solve evaluation problem here: if A consists of variables i can not get the value of the entry
           try {
-            IR_Assignment(u, luSolveCT(AasExpr, IR_MatrixNodeUtilities.accessToExpression(f)))
+            IR_Assignment(u, luSolveCT(AasExpr, IR_MatNodeUtils.accessToExpression(f)))
           } catch {
             case ev : EvaluationException =>
               Logger.warn("matrix entry not evaluatable, switching to inversion strategy!")

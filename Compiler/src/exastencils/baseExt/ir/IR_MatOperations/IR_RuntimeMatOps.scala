@@ -37,7 +37,7 @@ import exastencils.baseExt.ir.IR_ClassifyMatShape
 import exastencils.baseExt.ir.IR_MatShape
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
-import exastencils.baseExt.ir.IR_MatrixNodeUtilities._
+import exastencils.baseExt.ir.IR_MatNodeUtils._
 import exastencils.config._
 import exastencils.core._
 import exastencils.logger.Logger
@@ -204,7 +204,7 @@ object IR_GenerateBasicMatrixOperations {
   }
 
   // add 'left' and 'right' and write result to specified place at 'offset_r', 'offset_c' in 'out'
-  def addAtSubmatrix(left : IR_VariableAccess, right : IR_VariableAccess, out : IR_VariableAccess, outsize : IR_Expression, oprows : IR_Expression, opcols : IR_Expression, offset_r : IR_Expression, offset_c : IR_Expression) : IR_Scope = {
+  def addAtSubmatrix(left : IR_Access, right : IR_Access, out : IR_Access, outsize : IR_Expression, oprows : IR_Expression, opcols : IR_Expression, offset_r : IR_Expression, offset_c : IR_Expression) : IR_Scope = {
     var func = IR_Scope(Nil)
     var _i = IR_VariableAccess("_i", IR_IntegerDatatype)
     var _j = IR_VariableAccess("_j", IR_IntegerDatatype)
@@ -226,7 +226,7 @@ object IR_GenerateBasicMatrixOperations {
   }
 
   // subtract 'left' from 'right' and write result to specified place at 'offset_r', 'offset_c' in 'out'
-  def subAtSubmatrix(left : IR_VariableAccess, right : IR_VariableAccess, out : IR_VariableAccess, opcols : IR_Expression, oprows : IR_Expression, destcols : IR_Expression, offset_r : IR_Expression, offset_c : IR_Expression) : IR_Scope = {
+  def subAtSubmatrix(left : IR_Access, right : IR_VariableAccess, out : IR_Access, opcols : IR_Expression, oprows : IR_Expression, destcols : IR_Expression, offset_r : IR_Expression, offset_c : IR_Expression) : IR_Scope = {
     var func = IR_Scope(Nil)
     var _i = IR_VariableAccess("_i", IR_IntegerDatatype)
     var _j = IR_VariableAccess("_j", IR_IntegerDatatype)
@@ -248,7 +248,7 @@ object IR_GenerateBasicMatrixOperations {
   }
 
   // produce negative of 'that' and write result to specified place at 'offset_r', 'offset_c' in 'out'
-  def negAtSubmatrix(that : IR_VariableAccess, out : IR_VariableAccess, outsize : IR_Expression, that_rows : IR_Expression, that_cols : IR_Expression, offset_r : IR_Expression, offset_c : IR_Expression) : IR_Scope = {
+  def negAtSubmatrix(that : IR_Access, out : IR_Access, outsize : IR_Expression, that_rows : IR_Expression, that_cols : IR_Expression, offset_r : IR_Expression, offset_c : IR_Expression) : IR_Scope = {
     var func = IR_Scope(Nil)
     var _i = IR_VariableAccess("_i", IR_IntegerDatatype)
     var _j = IR_VariableAccess("_j", IR_IntegerDatatype)
@@ -270,7 +270,7 @@ object IR_GenerateBasicMatrixOperations {
   }
 
   // copy a submatrix of n_rows x n_cols to 'copy' from position 'offset_r', 'offset_c' in 'source'
-  def loopCopySubmatrix(source : IR_Expression, dest : IR_VariableAccess, offset_r : IR_Expression, offset_c : IR_Expression, n_rows : IR_Expression, n_cols : IR_Expression) : IR_Scope = {
+  def loopCopySubmatrix(source : IR_Expression, dest : IR_Access, offset_r : IR_Expression, offset_c : IR_Expression, n_rows : IR_Expression, n_cols : IR_Expression) : IR_Scope = {
     var stmts = IR_Scope(Nil)
     var i = IR_VariableAccess("i", IR_IntegerDatatype)
     var j = IR_VariableAccess("j", IR_IntegerDatatype)
@@ -308,7 +308,7 @@ object IR_GenerateBasicMatrixOperations {
   }
 
   // write a submatrix 'source' of n_rows x n_cols to 'destination' at position 'offset_r', 'offset_c'
-  def loopSetSubmatrixMat(source : IR_VariableAccess, destination : IR_VariableAccess, rows_source : IR_Expression, cols_source : IR_Expression, offset_r : IR_Expression, offset_c : IR_Expression) : IR_Scope = {
+  def loopSetSubmatrixMat(source : IR_Access, destination : IR_Access, rows_source : IR_Expression, cols_source : IR_Expression, offset_r : IR_Expression, offset_c : IR_Expression) : IR_Scope = {
     if (!isScalar(offset_r) || !isScalar(offset_c))
       Logger.error("offsets of wrong type: " + offset_c + offset_r + ", expected scalar variable or constant!")
     var stmts = IR_Scope(Nil)
@@ -352,7 +352,7 @@ object IR_GenerateBasicMatrixOperations {
   }
 
   // generate determinant calculation if 'in' is lu decomposed
-  def determinantLargeMatrix(in : IR_VariableAccess, P : IR_VariableAccess, out : IR_VariableAccess) : IR_Scope = {
+  def determinantLargeMatrix(in : IR_Access, P : IR_VariableAccess, out : IR_Access) : IR_Scope = {
     var func = IR_Scope(Nil)
     var det = IR_VariableAccess("det", IR_DoubleDatatype)
     var N = IR_BasicMatrixOperations.getSize(in)._1
@@ -371,7 +371,7 @@ object IR_GenerateBasicMatrixOperations {
   }
 
   // give a algorithm to calculate the determinant of 'in' by using lu decomposition
-  def determinant(in : IR_VariableAccess, out : IR_VariableAccess) : IR_Scope = {
+  def determinant(in : IR_Access, out : IR_Access) : IR_Scope = {
     var func = IR_Scope(Nil)
     var size = IR_BasicMatrixOperations.getSize(in)
     if (size._1 != size._2)
@@ -401,7 +401,7 @@ object IR_GenerateRuntimeInversion {
   val pointerArithmetic = "pointerArithmetic"
 
   // generate code for direct inversion of small matrices
-  def smallMatrixInversionAtSubMatrix(in : IR_VariableAccess, blocksize : Int, offsetRows : IR_Expression, offsetCols : IR_Expression, out : IR_VariableAccess) : IR_Scope = {
+  def smallMatrixInversionAtSubMatrix(in : IR_Access, blocksize : Int, offsetRows : IR_Expression, offsetCols : IR_Expression, out : IR_Access) : IR_Scope = {
     var debug = false
 
     var stmts = ListBuffer[IR_Statement]()
@@ -456,7 +456,7 @@ object IR_GenerateRuntimeInversion {
   }
 
   // give a invert algorithm for diagonal matrices
-  def diagonalInlined(in : IR_VariableAccess, out : IR_VariableAccess) : IR_Scope = {
+  def diagonalInlined(in : IR_Access, out : IR_Access) : IR_Scope = {
     var debug = false
     val inDt = in.datatype.asInstanceOf[IR_MatrixDatatype]
     val N = inDt.sizeM
@@ -479,7 +479,7 @@ object IR_GenerateRuntimeInversion {
   }
 
   // generate a LU decomposition for a submatrix at 'offset_r','offset_c' of 'in' inplace
-  def localLUDecomp(in : IR_VariableAccess, P : IR_VariableAccess, blocksize_asInt : Int, offset_r : IR_Expression, offset_c : IR_Expression) : ListBuffer[IR_Statement] = {
+  def localLUDecomp(in : IR_Access, P : IR_VariableAccess, blocksize_asInt : Int, offset_r : IR_Expression, offset_c : IR_Expression) : ListBuffer[IR_Statement] = {
 
     val inDt = in.datatype.asInstanceOf[IR_MatrixDatatype]
     val Tol = IR_RealConstant(0.000000000000001)
@@ -534,7 +534,7 @@ object IR_GenerateRuntimeInversion {
   }
 
   // generate an inverted matrix for a submatrix at 'offset_r','offset_c' if submatrix('in') is LU decomposed
-  def localLUDecomposedInversion(in : IR_VariableAccess, P : IR_VariableAccess, blocksize : Int, offset_r : IR_Expression, offset_c : IR_Expression, out : IR_VariableAccess) : ListBuffer[IR_Statement] = {
+  def localLUDecomposedInversion(in : IR_Access, P : IR_VariableAccess, blocksize : Int, offset_r : IR_Expression, offset_c : IR_Expression, out : IR_Access) : ListBuffer[IR_Statement] = {
     var i = IR_VariableAccess("i", IR_IntegerDatatype)
     var j = IR_VariableAccess("j", IR_IntegerDatatype)
     var k = IR_VariableAccess("k", IR_IntegerDatatype)
@@ -561,7 +561,7 @@ object IR_GenerateRuntimeInversion {
   }
 
   // combines LU decomposition and inversion of submatrix of 'in' at 'offset_r', 'offset_c' of size 'blocksize'
-  def localLUInversionInlined(in : IR_VariableAccess, blocksize_asInt : Int, offset_r : IR_Expression, offset_c : IR_Expression, out : IR_VariableAccess) : IR_Scope = {
+  def localLUInversionInlined(in : IR_Access, blocksize_asInt : Int, offset_r : IR_Expression, offset_c : IR_Expression, out : IR_Access) : IR_Scope = {
     var func = IR_Scope(Nil)
     var P = IR_VariableAccess("P", IR_ArrayDatatype(IR_IntegerDatatype, blocksize_asInt + 1))
     var block = IR_VariableAccess("block", IR_IntegerDatatype)
@@ -594,7 +594,7 @@ object IR_GenerateRuntimeInversion {
   }
 
   // give an invert algorithm for blockdiagonal matrices
-  def blockdiagonalInlined(in : IR_VariableAccess, blocksize : Int, out : IR_VariableAccess) : IR_Scope = {
+  def blockdiagonalInlined(in : IR_Access, blocksize : Int, out : IR_Access) : IR_Scope = {
     var debug = false
     var func = IR_Scope(Nil)
     var block = IR_VariableAccess("block", IR_IntegerDatatype)
@@ -626,7 +626,7 @@ object IR_GenerateRuntimeInversion {
  */
 
   // schur complement inversion generated inlined in scope with stack memory for helper arrayss
-  def schurInlined(in : IR_VariableAccess, blockSize : Int, structureA : String, blockSizeA : Int, out : IR_VariableAccess) : IR_Scope = {
+  def schurInlined(in : IR_Access, blockSize : Int, structureA : String, blockSizeA : Int, out : IR_Access) : IR_Scope = {
     var debug = false
     var func = IR_Scope(Nil)
     var inDt = in.datatype.asInstanceOf[IR_MatrixDatatype]
@@ -834,9 +834,9 @@ object IR_GenerateRuntimeInversion {
   }
 
   // head function that branches to specific inversions
-  def inverse(in : IR_VariableAccess, out : IR_VariableAccess, msi : IR_MatShape) : IR_Scope = {
+  def inverse(in : IR_Access, out : IR_Access, msi : IR_MatShape) : IR_Scope = {
     val matrixStructure = msi.shape
-     val insize = IR_BasicMatrixOperations.getSize(in)
+    val insize = IR_BasicMatrixOperations.getSize(in)
     val outsize = IR_BasicMatrixOperations.getSize(out)
     if (insize._1 != insize._2)
       Logger.error("inversion of matrices of size " + insize._1 + "," + insize._2 + " not supported")
@@ -874,7 +874,7 @@ object IR_GenerateRuntimeInversion {
     }
   }
 
-  def inverseBranchAtRuntime(inMatrix : IR_VariableAccess, destname : String, dest : IR_VariableAccess) : IR_Scope = {
+  def inverseBranchAtRuntime(inMatrix : IR_Access, destname : String, dest : IR_Access) : IR_Scope = {
     var timing = false
     var newstmts = ListBuffer[IR_Statement]()
     var insize = IR_BasicMatrixOperations.getSize(inMatrix)

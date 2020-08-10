@@ -4,7 +4,7 @@ import exastencils.base.ir.IR_Expression
 import exastencils.datastructures.Transformation
 
 // nodes that can be resolved to results
-trait IR_ResolvableMNode extends IR_Expression {
+trait IR_ResolvableMNode {
   def isResolvable() : Boolean
   def resolve() : Transformation.OutputType
 }

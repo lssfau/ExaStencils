@@ -21,13 +21,11 @@ package exastencils.baseExt.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir
+import exastencils.base.ir.IR_Access
 import exastencils.base.ir.IR_Addition
 import exastencils.base.ir.IR_ArrayAccess
 import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_ConstIndex
-import exastencils.base.ir.IR_Division
-import exastencils.base.ir.IR_DoubleConstant
-import exastencils.base.ir.IR_DoubleDatatype
 import exastencils.base.ir.IR_ElementwiseAddition
 import exastencils.base.ir.IR_ElementwiseDivision
 import exastencils.base.ir.IR_ElementwiseMultiplication
@@ -36,32 +34,18 @@ import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_ExpressionStatement
 import exastencils.base.ir.IR_ExternalFunctionReference
-import exastencils.base.ir.IR_FloatConstant
-import exastencils.base.ir.IR_FloatDatatype
 import exastencils.base.ir.IR_Function
 import exastencils.base.ir.IR_FunctionArgument
 import exastencils.base.ir.IR_FunctionCall
 import exastencils.base.ir.IR_HighDimAccess
 import exastencils.base.ir.IR_Index
 import exastencils.base.ir.IR_IntegerConstant
-import exastencils.base.ir.IR_IntegerDatatype
-import exastencils.base.ir.IR_Maximum
-import exastencils.base.ir.IR_Minimum
-import exastencils.base.ir.IR_Modulo
-import exastencils.base.ir.IR_MultiDimArrayAccess
 import exastencils.base.ir.IR_Multiplication
 import exastencils.base.ir.IR_Negative
 import exastencils.base.ir.IR_Node
-import exastencils.base.ir.IR_NullExpression
-import exastencils.base.ir.IR_Power
-import exastencils.base.ir.IR_RealConstant
-import exastencils.base.ir.IR_RealDatatype
 import exastencils.base.ir.IR_ReferenceDatatype
 import exastencils.base.ir.IR_Return
-import exastencils.base.ir.IR_ScalarDatatype
 import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_StringConstant
-import exastencils.base.ir.IR_StringDatatype
 import exastencils.base.ir.IR_Subtraction
 import exastencils.base.ir.IR_UnitDatatype
 import exastencils.base.ir.IR_VariableAccess
@@ -94,9 +78,12 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.core.StateManager
 import exastencils.datastructures.DefaultStrategy
+import exastencils.datastructures.HelperNode
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
+import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_MultiDimFieldAccess
+import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.logger.Logger
 
 /** Strategy: preparatory transformations to resolve matrices */
@@ -133,8 +120,8 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
     ("toMatrix", IR_ToMatrix.apply)
   )
 
-  import exastencils.baseExt.ir.IR_MatrixNodeUtilities.checkIfMatOp
-  import exastencils.baseExt.ir.IR_MatrixNodeUtilities.isMatOp
+  import exastencils.baseExt.ir.IR_MatNodeUtils.checkIfMatOp
+  import exastencils.baseExt.ir.IR_MatNodeUtils.isMatOp
 
   // replace function calls to matrix methods with dedicated nodes so they dont appear in function call tree and are easier to recognize and process
   /** Transformation: replace function calls with matrix method nodes */
@@ -146,19 +133,68 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
 
   /** Transformation: split combined assignment: += to IR_Addition, *= to IR_Multiplication, /= to IR_Division, -= to IR_Subtraction */
   this += new Transformation("Split combined operators", {
-    case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src, "+=") =>
+    case IR_Assignment(dest : IR_Access, src, "+=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] =>
       IR_Assignment(dest, IR_Addition(dest, src))
-    case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src, "*=") =>
+    case IR_Assignment(dest : IR_Access, src, "*=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] =>
       IR_Assignment(dest, IR_Multiplication(ListBuffer[IR_Expression](dest, src)))
-    case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src, "-=") =>
+    case IR_Assignment(dest : IR_Access, src, "-=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] =>
       IR_Assignment(dest, IR_Subtraction(dest, src))
-    case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src, "/=") =>
+    case IR_Assignment(dest : IR_Access, src, "/=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] =>
       IR_Assignment(dest, IR_ElementwiseDivision(dest, src))
   }, false)
 
+  this += new Transformation("assignment of operation with self", {
+    case stmt @ IR_Assignment(dest : IR_VariableAccess, src, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype]) =>
+      // resolve M = M * M into tmp = M * M; M = tmp
+      var selfassign = false
+      StateManager.findAll[IR_Multiplication](HelperNode(src)).foreach(mult =>
+        if (mult.factors.exists(p => p.isInstanceOf[IR_VariableAccess] && p.asInstanceOf[IR_VariableAccess].name == dest.name))
+          selfassign = true
+      )
+
+      if (selfassign) {
+        var newStmts = ListBuffer[IR_Statement]()
+        val decl = IR_VariableDeclaration(dest.datatype, "extractTmp_" + IR_MatOpsInline.extractMethodsCounter, src)
+        newStmts += decl
+        stmt.src = IR_VariableAccess(decl)
+        newStmts += stmt
+        //newStmts += IR_Assignment(dest, IR_VariableAccess(decl))
+        IR_MatOpsInline.extractMethodsCounter += 1
+        newStmts
+      } else {
+        stmt
+      }
+    case stmt @ IR_Assignment(dest : IR_FieldAccess, src, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype])    =>
+      // resolve M = M * M into tmp = M * M; M = tmp
+      var selfassign = false
+      StateManager.findAll[IR_Multiplication](HelperNode(src)).foreach(mult =>
+        if (mult.factors.exists(p => p.isInstanceOf[IR_FieldAccess] && p.asInstanceOf[IR_FieldAccess].name == dest.name))
+          selfassign = true
+      )
+
+      if (selfassign) {
+        var newStmts = ListBuffer[IR_Statement]()
+        val decl = IR_VariableDeclaration(dest.datatype, "extractTmp_" + IR_MatOpsInline.extractMethodsCounter, src)
+        newStmts += decl
+        stmt.src = IR_VariableAccess(decl)
+        newStmts += stmt
+        //newStmts += IR_Assignment(dest, IR_VariableAccess(decl))
+        IR_MatOpsInline.extractMethodsCounter += 1
+        newStmts
+      } else {
+        stmt
+      }
+  })
+
+  this += new Transformation("global declarations", {
+    case decl @ IR_VariableDeclaration(_ : IR_MatrixDatatype, _, Some(exp : IR_Expression), _) =>
+      StateManager.findFirst[IR_GlobalCollection]().get.initGlobals.asInstanceOf[IR_Function].body += IR_Assignment(IR_VariableAccess(Duplicate(decl)), exp)
+      decl.initialValue = None
+      decl
+  }, applyAtNode = StateManager.findFirst[IR_GlobalCollection]())
+
   /** Transformation: go through statements and mark extractable matrix nodes as potentially inlinable,
     * as well as statements as a statement containing extractable nodes */
-  //TODO expression statement
   this += new Transformation("Prepare extraction", {
     case stmt @ (IR_Assignment(_, src, _)) if (extractables ++= StateManager.findAll[IR_ExtractableMNode](src)).nonEmpty                   =>
       extractables.foreach(e => e.annotate(potentialInline))
@@ -170,7 +206,13 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
       var out = new IR_ExtractableStatement(stmt, extractables.length)
       extractables.clear()
       out
+    case stmt @ (IR_ExpressionStatement(e : IR_Expression)) if (extractables ++= StateManager.findAll[IR_ExtractableMNode](e)).nonEmpty    =>
+      extractables.foreach(e => e.annotate(potentialInline))
+      var out = new IR_ExtractableStatement(stmt, extractables.length)
+      extractables.clear()
+      out
   }, false)
+
 }
 
 /** Strategy: inline or extract matrix operations from statements */
@@ -234,12 +276,12 @@ object IR_MatOpsInline extends DefaultStrategy("extract and inline matrix operat
       val accs = inlineAccessHolder.filter(a => (a.name == d.name))
       accs.foreach(a => {
         a.removeAnnotation(potentialInline)
-        a.annotate(notInlinable)
       })
       if (d.isInlineable()) {
         accs.foreach(a => a.annotate(inline, d.initialValue))
         None
       } else {
+        accs.foreach(a => a.annotate(notInlinable))
         var out = IR_VariableDeclaration(d.datatype, d.name, Some(d.initialValue))
         out.removeAnnotation(nExtractables)
         out
@@ -259,17 +301,17 @@ object IR_MatOpsInline extends DefaultStrategy("extract and inline matrix operat
 /** Strategy: resolve matrix functions */
 object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
   /** Attribute: Map to convert intermediate matrix function nodes to resolvable compiletime nodes */
-  val ctFctMap = Map[String, IR_RuntimeMNode => IR_ResolvableMNode](
+  val ctFctMap = Map[String, IR_RuntimeMNode => IR_Expression](
     ("IR_IntermediateInv", IR_InverseCT.apply),
     ("IR_GetSlice", IR_GetSliceCT.apply),
-    ("IR_Determinant", IR_DeterminantCT.apply)
+    ("IR_Determinant", IR_DeterminantCT.applyWithCheck)
   )
 
   /** Attribute: Map to convert intermediate matrix function nodes to resolvable compiletime nodes */
-  val rtFctMap = Map[String, (IR_VariableAccess, IR_RuntimeMNode) => IR_ResolvableMNode](
+  val rtFctMap = Map[String, (IR_Access, IR_RuntimeMNode) => IR_Statement](
     ("IR_IntermediateInv", IR_InverseRT.apply),
     ("IR_GetSlice", IR_GetSliceRT.apply),
-    ("IR_Determinant", IR_DeterminantRT.apply)
+    ("IR_Determinant", IR_DeterminantRT.applyWithCheck)
   )
 
   import exastencils.baseExt.ir.IR_MatOpsInline.potentialInline
@@ -279,21 +321,22 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
     * and resolve
     */
   this += new Transformation("Insert resolvables and resolve", {
-    case decl @ IR_VariableDeclaration(_, _, Some(r : IR_RuntimeMNode), _) =>
-      IR_MatrixNodeUtilities.splitDeclaration(decl)
+    case decl @ IR_VariableDeclaration(_, _, Some(_ : IR_RuntimeMNode), _) =>
+      IR_MatNodeUtils.splitDeclaration(decl)
     case estmt : IR_ExtractableStatement                                   =>
       estmt
     // not to resolve at runtime
     case r : IR_RuntimeMNode if (!r.resolveAtRuntime && !r.hasAnnotation(potentialInline)) =>
       ctFctMap(r.name)(r)
-    // to resolve at runtime
-    case IR_Assignment(dest : IR_VariableAccess, r : IR_RuntimeMNode, _) if (r.resolveAtRuntime && !r.hasAnnotation(potentialInline)) =>
-      rtFctMap(r.name)(dest, r)
-
-    case IR_ExpressionStatement(mn : IR_ResolvableMNode) if (mn.isResolvable()) =>
+    case mn : IR_ResolvableMNode if mn.isResolvable()                                      =>
       mn.resolve()
-    // resolve
-    case mn : IR_ResolvableMNode if mn.isResolvable() =>
+
+    // to resolve at runtime
+    case IR_Assignment(dest : IR_Access, r : IR_RuntimeMNode, _) if (r.resolveAtRuntime && !r.hasAnnotation(potentialInline)) =>
+      rtFctMap(r.name)(dest, r)
+    //case IR_Assignment(dest : IR_FieldAccess, r : IR_RuntimeMNode, _) if (r.resolveAtRuntime && !r.hasAnnotation(potentialInline)) =>
+    //rtFctMap(r.name)(dest, r)
+    case IR_ExpressionStatement(mn : IR_ResolvableMNode) if mn.isResolvable() =>
       mn.resolve()
 
     // debug
@@ -304,13 +347,13 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
 }
 
 /** Strategy:  resolve Matrix operators like addition of the operands are ready */
-object IR_ResolveMatOperators extends DefaultStrategy("resolve operators") {
+object IR_ResolveMatOperators extends DefaultStrategy("Resolve operators") {
 
-  import exastencils.baseExt.ir.IR_MatrixNodeUtilities.checkIfMatOp
-  import exastencils.baseExt.ir.IR_MatrixNodeUtilities.isEvaluatable
-  import exastencils.baseExt.ir.IR_MatrixNodeUtilities.isMatOp
+  import exastencils.baseExt.ir.IR_MatNodeUtils.checkIfMatOp
+  import exastencils.baseExt.ir.IR_MatNodeUtils.isEvaluatable
+  import exastencils.baseExt.ir.IR_MatNodeUtils.isMatOp
 
-  this += new Transformation("Resolve operators", {
+  this += new Transformation("resolve", {
     //TODO match on supertype? -> introduce supertype
     case mult @ IR_Multiplication(facs) if (checkIfMatOp(mult) && facs.forall(f => isEvaluatable(f)))                                                                =>
       mult.removeAnnotation(isMatOp)
@@ -341,13 +384,25 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
   var debug = false
   val annotationMatrixRow = "IR_ResolveMatrices.matrixRow"
   val annotationMatrixCol = "IR_ResolveMatrices.matrixCol"
+  val annotationFctCallCounter = "IR_ResolveMatrices.fctCallCounter"
+  var fctCallCounter = 0
+  // temporary variable used to replace function calls in expressions
+  val annotationMatExpCounter = "IR_ResolveMatrices.matrixExpressionCounter"
+  var matExpCounter = 0
+  var resolveFunctions = ListBuffer[String]()
+  var globalCollection : Option[IR_GlobalCollection] = None
 
+  this.onBefore = () => {
+    resolveFunctions.clear()
+    resolveFunctions ++= ListBuffer("dotProduct", "dot", "crossProduct", "cross", "det", "transpose", "inverse", "getSlice", "setSlice", "getElement", "setElement", "set", "get")
+    globalCollection = StateManager.findFirst[IR_GlobalCollection]()
+  }
 
   /** Transformation: resolve or split declarations */
   this += new Transformation("decls", {
     // split to use std::fill later
-    case decl @ IR_VariableDeclaration(IR_MatrixDatatype(_, _, _), _, Some(init), _) if (IR_MatrixNodeUtilities.isScalar(init)) =>
-      IR_MatrixNodeUtilities.splitDeclaration(decl)
+    case decl @ IR_VariableDeclaration(IR_MatrixDatatype(_, _, _), _, Some(init), _) if (IR_MatNodeUtils.isScalar(init)) =>
+      IR_MatNodeUtils.splitDeclaration(decl)
 
     // do nothing
     case decl @ IR_VariableDeclaration(declDt @ IR_MatrixDatatype(_, _, _), _, Some(srcDt @ IR_MatrixExpression(_, _, _, _)), _) =>
@@ -359,7 +414,7 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
     case decl @ IR_VariableDeclaration(declDt @ IR_MatrixDatatype(_, _, _), _, Some(IR_VariableAccess(_, srcDt @ IR_MatrixDatatype(_, _, _))), _) =>
       if (declDt.sizeM != srcDt.sizeM || declDt.sizeN != srcDt.sizeN)
         Logger.error(s"Declaration of variable of type: $declDt with expression of type: $srcDt, sizes must match!")
-      IR_MatrixNodeUtilities.splitDeclaration(decl)
+      IR_MatNodeUtils.splitDeclaration(decl)
 
     // add helper matrix  decls from schur compiletime inversion
     case s @ (IR_Assignment(_, _, _) | IR_VariableDeclaration(_, _, _, _)) if (Knowledge.experimental_schurWithHelper) =>
@@ -374,17 +429,17 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
   /** Transformation: resolve assignments */
   this += new Transformation("assignments", {
     // use std::fill for assignments of matrices with constants
-    case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src, "=") if (IR_MatrixNodeUtilities.isScalar(src)) =>
+    case IR_Assignment(dest : IR_Access, src, "=") if (dest.datatype.isInstanceOf[IR_MatrixDatatype] && IR_MatNodeUtils.isScalar(src)) =>
       IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::fill", IR_UnitDatatype), ListBuffer[IR_Expression](Duplicate(dest), Duplicate(dest) + IR_IntegerConstant(dest.datatype.asInstanceOf[IR_MatrixDatatype].resolveFlattendSize), src)))
 
     // assignment of a matrix with another matrix : copy other matrix
     //case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src @ (IR_MatrixExpression(_, _, _, _) | _ : IR_VariableAccess ), "=") if (src.datatype.isInstanceOf[IR_MatrixDatatype]) =>
     //  IR_GenerateBasicMatrixOperations.copyMatrix(dest, src)
-
-    case IR_Assignment(dest, src : IR_VariableAccess, "=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] && !dest.isInstanceOf[IR_MatrixExpression] && src.datatype.isInstanceOf[IR_MatrixDatatype] =>
-      val dt = dest.datatype.asInstanceOf[IR_MatrixDatatype]
-      IR_ExpressionStatement(IR_FunctionCall("std::copy", ListBuffer[IR_Expression](Duplicate(src), Duplicate(src) + IR_IntegerConstant(dt.resolveFlattendSize), dest)))
-
+    /*
+        case IR_Assignment(dest, src : IR_Access, "=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] && !dest.isInstanceOf[IR_MatrixExpression] && src.datatype.isInstanceOf[IR_MatrixDatatype] =>
+          val dt = dest.datatype.asInstanceOf[IR_MatrixDatatype]
+          IR_ExpressionStatement(IR_FunctionCall("std::copy", ListBuffer[IR_Expression](Duplicate(src), Duplicate(src) + IR_IntegerConstant(dt.resolveFlattendSize), dest)))
+    */
     // other assignments
     case stmt @ IR_Assignment(dest, _, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype]) =>
       val matrix = dest.datatype.asInstanceOf[IR_MatrixDatatype]
@@ -394,7 +449,7 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
           var cloned = Duplicate(stmt)
           StateManager.findAll[IR_Expression](cloned).foreach {
             case _ : IR_FunctionArgument                                                                                                            => // do not mark function arguments to be resolved into individual accesses
-            case x @ ( _ : IR_VariableAccess | _ : IR_MatrixExpression | _ : IR_MultiDimFieldAccess) if (x.datatype.isInstanceOf[IR_MatrixDatatype]) => {
+            case x @ (_ : IR_VariableAccess | _ : IR_MatrixExpression | _ : IR_MultiDimFieldAccess) if (x.datatype.isInstanceOf[IR_MatrixDatatype]) => {
               x.annotate(annotationMatrixRow, row)
               x.annotate(annotationMatrixCol, col)
             }
@@ -418,7 +473,7 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
   this += new Transformation("simplify", {
     case IR_Negative(m : IR_MatrixExpression)                               => m.expressions = m.expressions.map { y => IR_Negative(y) : IR_Expression }; m
     case IR_Negative(va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))) =>
-      var m = IR_MatrixNodeUtilities.accessToExpression(va)
+      var m = IR_MatNodeUtils.accessToExpression(va)
       m.expressions = m.expressions.map { y => IR_Negative(y) : IR_Expression };
       m
     case m @ IR_MatrixExpression(_, 1, 1, _)                                => m.get(0, 0)
@@ -466,47 +521,45 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
         IR_VariableDeclaration(dt, name, IR_VariableAccess(decl))
       )
 
-    case IR_Assignment(dest, src : IR_FunctionCall, "=") if (dest.datatype.isInstanceOf[IR_MatrixDatatype] && src.datatype.isInstanceOf[IR_MatrixDatatype])  =>
+    case IR_Assignment(dest, src : IR_FunctionCall, "=") if (dest.datatype.isInstanceOf[IR_MatrixDatatype] && src.datatype.isInstanceOf[IR_MatrixDatatype]) =>
       // FIXME resolve IR_Assignments with operator += before this
       src.arguments += dest
       IR_ExpressionStatement(src)
-    case IR_Assignment(dest, src : IR_FunctionCall, "+=") if (dest.datatype.isInstanceOf[IR_MatrixDatatype] && src.datatype.isInstanceOf[IR_MatrixDatatype]) =>
-      Logger.error("+= matrix operator resolution not yet implemented")
   })
-  /*
+/*
   this += new Transformation("simplify function call arguments", {
-  case stmt @ IR_ExpressionStatement(exp : IR_FunctionCall)                                               =>
-   var newStmts = ListBuffer[IR_Statement]()
+    case stmt @ IR_ExpressionStatement(exp : IR_FunctionCall)                                               =>
+      var newStmts = ListBuffer[IR_Statement]()
 
-   exp.arguments.transform {
-     case argexp : IR_MultiDimFieldAccess                                             => argexp
-     case argexp : IR_VariableAccess                                                  => argexp
-     case argexp : IR_Expression if (argexp.datatype.isInstanceOf[IR_MatrixDatatype]) => {
-       var decl = IR_VariableDeclaration(argexp.datatype, "_matrixExp" + tmpCounter, argexp)
-       newStmts += decl
-       IR_VariableAccess(decl)
-     }
-     case arg                                                                         => arg
-   }
-   newStmts += stmt
-   newStmts
-  case stmt @ IR_Assignment(_, exp : IR_FunctionCall, _) if !resolveFunctions.contains(exp.function.name) =>
-   var newStmts = ListBuffer[IR_Statement]()
+      exp.arguments.transform {
+        case argexp : IR_MultiDimFieldAccess                                             => argexp
+        case argexp : IR_VariableAccess                                                  => argexp
+        case argexp : IR_Expression if (argexp.datatype.isInstanceOf[IR_MatrixDatatype]) => {
+          var decl = IR_VariableDeclaration(argexp.datatype, "_matrixExp_" + matExpCounter, argexp)
+          newStmts += decl
+          IR_VariableAccess(decl)
+        }
+        case arg                                                                         => arg
+      }
+      newStmts += stmt
+      newStmts
+    case stmt @ IR_Assignment(_, exp : IR_FunctionCall, _) if !resolveFunctions.contains(exp.function.name) =>
+      var newStmts = ListBuffer[IR_Statement]()
 
-   exp.arguments.transform {
-     case argexp : IR_MultiDimFieldAccess                                             => argexp
-     case argexp : IR_VariableAccess                                                  => argexp
-     case argexp : IR_Expression if (argexp.datatype.isInstanceOf[IR_MatrixDatatype]) => {
-       var decl = IR_VariableDeclaration(argexp.datatype, "_matrixExp" + tmpCounter, argexp)
-       newStmts += decl
-       IR_VariableAccess(decl)
-     }
-     case arg                                                                         => arg
-   }
-   newStmts += stmt
-   newStmts
+      exp.arguments.transform {
+        case argexp : IR_MultiDimFieldAccess                                             => argexp
+        case argexp : IR_VariableAccess                                                  => argexp
+        case argexp : IR_Expression if (argexp.datatype.isInstanceOf[IR_MatrixDatatype]) => {
+          var decl = IR_VariableDeclaration(argexp.datatype, "_matrixExp_" + matExpCounter, argexp)
+          newStmts += decl
+          IR_VariableAccess(decl)
+        }
+        case arg                                                                         => arg
+      }
+      newStmts += stmt
+      newStmts
   })
-  */
+*/
 }
 
 /** Strategy: linearize matrix expressions */
@@ -544,167 +597,4 @@ object IR_LinearizeMatrices extends DefaultStrategy("linearize matrices") {
       else
         base
   }, false)
-}
-
-/** Strategy: methods to transform certain types of nodes related to matrices */
-object IR_MatrixNodeUtilities {
-  /** Attribute: int give temporary variables unique names */
-  var tmpCounter = 0
-
-  /** Method: check if an argument is ready to be evaluated
-    *
-    * @param n : IR_Node, node to be checked for evaluatability
-    * @return is evaluatable?
-    **/
-  //TODO other datatypes?
-  def isEvaluatable(n : IR_Node) : Boolean = {
-    n match {
-      case x : IR_Expression => isMatrix(x) | isScalar(x) | isString(x) | isTensor(x)
-      case _                 => Logger.error(s"unexpected type ${ n }")
-    }
-  }
-
-  /** Method: determine whether an expression is an access to a variable with type matrix or a matrix expression
-    *
-    * @param x : IR_Expression, expression to be checked for
-    * @return is matrix?
-    **/
-  def isMatrix(x : IR_Expression) : Boolean = {
-    x match {
-      case IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))                                                 => true
-      case IR_MatrixExpression(_, _, _, _)                                                                  => true
-      case IR_VariableAccess(_, IR_ReferenceDatatype(innerDt)) if (innerDt.isInstanceOf[IR_MatrixDatatype]) => true
-      case _                                                                                                => false
-    }
-  }
-
-  /** Method: determine whether an expression is an access to a variable with type tensor or a tensor expression
-    *
-    * @param x : IR_Expression, expression to be checked for
-    * @return is tensor?
-    **/
-  def isTensor(x : IR_Expression) : Boolean = {
-    x match {
-      case IR_VariableAccess(_, inner : IR_TensorDatatype)                                                  => true
-      case t : IR_TensorExpression                                                                          => true
-      case IR_VariableAccess(_, IR_ReferenceDatatype(innerDt)) if (innerDt.isInstanceOf[IR_TensorDatatype]) => true
-      case _                                                                                                => false
-    }
-  }
-  /** Method: determine whether an expression is an access to a scalar variable or constant/value
-    *
-    * @param x : IR_Expression, expression to be checked for
-    * @return is scalar value?
-    **/
-  def isScalar(x : IR_Expression) : Boolean = {
-    x match {
-      case IR_VariableAccess(_, IR_RealDatatype | IR_IntegerDatatype | IR_DoubleDatatype | IR_FloatDatatype)                                                                           => true
-      case (IR_IntegerConstant(_) | IR_DoubleConstant(_) | IR_FloatConstant(_) | IR_RealConstant(_))                                                                                   => true
-      case IR_HighDimAccess(_, _)                                                                                                                                                      => true
-      case op @ (IR_Addition(_) | IR_Subtraction(_, _) | IR_Multiplication(_) | IR_Division(_, _) | IR_Modulo(_, _) | IR_Power(_, _)) if (op.datatype.isInstanceOf[IR_ScalarDatatype]) => true
-      case minmax @ (IR_Minimum(_) | IR_Maximum(_)) if (minmax.datatype.isInstanceOf[IR_ScalarDatatype])                                                                               => true
-      case IR_VariableAccess(_, IR_ReferenceDatatype(innerDt)) if (innerDt.isInstanceOf[IR_ScalarDatatype])                                                                            => true
-      case IR_ArrayAccess(_, _, _)                                                                                                                                                     => true
-      case IR_MultiDimArrayAccess(_, _)                                                                                                                                                => true
-      case IR_Negative(x) if (x.datatype.isInstanceOf[IR_ScalarDatatype])                                                                                                              => true
-      case _                                                                                                                                                                           => false
-    }
-  }
-
-  /** Method: determine whether an expression is an access to a scalar variable or constant/value string
-    *
-    * @param x : IR_Expression, expression to be checked for
-    * @return is string?
-    **/
-  def isString(x : IR_Expression) : Boolean = {
-    x match {
-      case IR_StringConstant(_)                    => true
-      case IR_VariableAccess(_, IR_StringDatatype) => true
-      case _                                       => false
-    }
-  }
-
-  /** Attribute: label to mark an operation as matrix operation */
-  val isMatOp = "isMatrixOperation"
-
-  /** Attribute: label to mark an operation as non-matrix operation */
-  val isNotMatOp = "isNotMatrixOperation"
-
-  /** Method: check if an expression is a matrix operation or find out and label
-    *
-    * @param op : IR_Expression, expression to be checked
-    * @return is mat op?
-    **/
-  def checkIfMatOp(op : IR_Expression) : Boolean = {
-    if (op.hasAnnotation(isNotMatOp)) false
-    else if (op.hasAnnotation(isMatOp)) true
-    else {
-      val b = op match {
-        case m : IR_Multiplication                                        => m.factors.exists(f => isMatrix(f))
-        case a : IR_Addition                                              => a.summands.exists(f => isMatrix(f))
-        case s : IR_Subtraction                                           => isMatrix(s.left) | isMatrix(s.right)
-        case s : IR_ElementwiseSubtraction                                => isMatrix(s.left) | isMatrix(s.right)
-        case e : IR_ElementwiseMultiplication                             => isMatrix(e.left) | isMatrix(e.right)
-        case e : IR_ElementwiseAddition                                   => isMatrix(e.left) | isMatrix(e.right)
-        case e : IR_ElementwiseDivision                                   => isMatrix(e.left) | isMatrix(e.right)
-        case cast @ IR_FunctionCall(ref, _) if (ref.name == "toMatrix")   => true
-        case inverse @ IR_FunctionCall(ref, _) if (ref.name == "inverse") => true
-        case e : IR_FunctionCall                                          => e.arguments.exists(a => isMatrix(a))
-      }
-      if (b) {
-        op.annotate(isMatOp)
-        true
-      }
-      else {
-        op.annotate(isNotMatOp)
-        false
-      }
-    }
-  }
-
-  /** Method: split a declaration with init to declaration and assignment with init
-    *
-    * @param decl : IR_VariableDeclaration, declaration to be split
-    * @return list containing variable declaration without init and assignment of that variable with init expresion
-    **/
-  def splitDeclaration(decl : IR_VariableDeclaration) : ListBuffer[IR_Statement] = {
-    val newStmts = ListBuffer[IR_Statement]()
-    newStmts += IR_VariableDeclaration(decl.datatype, decl.name, None)
-    newStmts += IR_Assignment(IR_VariableAccess(Duplicate(decl)), decl.initialValue.getOrElse(IR_NullExpression))
-    newStmts
-  }
-
-  /** Method: copy a matrix from an IR_VariableAccess to an IR_MatrixExpression
-    * by building an expression of highDimAccesses
-    *
-    * @param src : IR_VariableAccess, access to convert
-    * @return expression of hdas
-    **/
-  def accessToExpression(src : IR_VariableAccess) : IR_MatrixExpression = {
-    var size = IR_BasicMatrixOperations.getSize(src)
-    if (size._1 > 1 || size._2 > 1) {
-      var out = IR_MatrixExpression(src.datatype.resolveBaseDatatype, size._1, size._2)
-      for (i <- 0 until size._1) {
-        for (j <- 0 until size._2) {
-          out.set(i, j, IR_HighDimAccess(src, IR_ExpressionIndex(IR_IntegerConstant(i), IR_IntegerConstant(j))))
-        }
-      }
-      out
-    } else {
-      IR_MatrixExpression(Some(src.datatype.resolveBaseDatatype), 1, 1, Array[IR_Expression](src))
-    }
-  }
-
-  /** Method: transform a matrix expression to a temporary variable
-    *
-    * @param src  : IR_MatrixExpression, used as initialization
-    * @param name : String, name of the new temporary variable
-    * @return declaration of the tmp
-    **/
-  def expressionToDeclaration(src : IR_MatrixExpression, name : String) : IR_VariableDeclaration = {
-    var decl = IR_VariableDeclaration(IR_MatrixDatatype(src.datatype.resolveBaseDatatype, src.rows, src.columns), name + tmpCounter, src)
-    tmpCounter += 1
-    decl
-  }
-
 }

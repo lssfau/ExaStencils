@@ -2,15 +2,16 @@ package exastencils.baseExt.ir.IR_MatNodes
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_Access
 import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_Scope
+import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_UnknownDatatype
-import exastencils.base.ir.IR_VariableAccess
 import exastencils.baseExt.ir.IR_BasicMatrixOperations
+import exastencils.baseExt.ir.IR_MatNodeUtils
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
 import exastencils.baseExt.ir.IR_MatrixDatatype
-import exastencils.baseExt.ir.IR_MatrixNodeUtilities
 import exastencils.datastructures.Transformation.Output
 import exastencils.logger.Logger
 import exastencils.optimization.ir.EvaluationException
@@ -23,7 +24,7 @@ object IR_GetSlice {
     var evaluatable = true
     var args_asInts = ListBuffer[Int]()
     try {
-      for(i <- 1 until 5)
+      for (i <- 1 until 5)
         args_asInts += IR_SimplifyExpression.evalIntegral(args(i)).toInt
     } catch {
       case e : EvaluationException => evaluatable = false
@@ -36,6 +37,7 @@ object IR_GetSlice {
     }
   }
 }
+
 case class IR_GetSlice(
     var arguments : ListBuffer[IR_Expression],
     resolveAtRuntime : Boolean,
@@ -43,10 +45,9 @@ case class IR_GetSlice(
 ) extends IR_RuntimeMNode {
   // cant define datatype if length of slice is runtime dependent
   override def prettyprint(out : PpStream) = Logger.error("internal node no resolved!")
-  override def isExtractable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arguments(0)) && !datatype.equals(IR_UnknownDatatype)
+  override def isExtractable() : Boolean = IR_MatNodeUtils.isEvaluatable(arguments(0)) && !datatype.equals(IR_UnknownDatatype)
   override def name : String = "IR_GetSlice"
 }
-
 
 // slice node for compiletime execution
 object IR_GetSliceCT {
@@ -58,7 +59,7 @@ object IR_GetSliceCT {
   def apply(gs : IR_RuntimeMNode) = {
     val tmp = (gs match {
       case i : IR_GetSlice => i
-      case _                      => Logger.error(s"unexpected type ${ gs }, expected IR_IntermediateInv")
+      case _               => Logger.error(s"unexpected type ${ gs }, expected IR_IntermediateInv")
     })
 
     var params = ListBuffer[Int]()
@@ -67,6 +68,7 @@ object IR_GetSliceCT {
   }
 
 }
+
 case class IR_GetSliceCT(
     inMatrix : IR_Expression,
     params : ListBuffer[Int]
@@ -76,25 +78,25 @@ case class IR_GetSliceCT(
   override def resolve() : Output[IR_Expression] = {
     IR_BasicMatrixOperations.copySubMatrix(inMatrix, params(0), params(1), params(2), params(3))
   }
-  override def isResolvable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(inMatrix)
+  override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(inMatrix)
 }
 
 // slice node for runtime execution
 object IR_GetSliceRT {
-  def apply(dest : IR_VariableAccess, gs : IR_RuntimeMNode) = {
+  def apply(dest : IR_Access, gs : IR_RuntimeMNode) = {
     val tmp = gs match {
       case i : IR_GetSlice => i
-      case _                      => Logger.error(s"unexpected type ${ gs }, expected IR_IntermediateInv")
+      case _               => Logger.error(s"unexpected type ${ gs }, expected IR_IntermediateInv")
     }
     new IR_GetSliceRT(dest, tmp.asInstanceOf[IR_GetSlice].arguments)
   }
 }
-case class IR_GetSliceRT(dest : IR_VariableAccess, var args : ListBuffer[IR_Expression]) extends IR_ResolvableMNode {
+
+case class IR_GetSliceRT(dest : IR_Access, var args : ListBuffer[IR_Expression]) extends IR_Statement with IR_ResolvableMNode {
   // cant define datatype if length of slice is runtime dependent
-  override def datatype = IR_UnknownDatatype
   override def prettyprint(out : PpStream) = Logger.error("internal node no resolved!")
   override def resolve() : Output[IR_Scope] = {
     IR_GenerateBasicMatrixOperations.loopCopySubmatrix(args(0), dest, args(1), args(2), args(3), args(4))
   }
-  override def isResolvable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(args(0))
+  override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(args(0))
 }

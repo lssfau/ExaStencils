@@ -2,15 +2,17 @@ package exastencils.baseExt.ir.IR_MatNodes
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_Access
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_Scope
+import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_BasicMatrixOperations
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
-import exastencils.baseExt.ir.IR_MatrixNodeUtilities
+import exastencils.baseExt.ir.IR_MatNodeUtils
 import exastencils.datastructures.Transformation.Output
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -24,7 +26,7 @@ object IR_Determinant {
     * */
   def apply(args : ListBuffer[IR_Expression]) = {
     var inMatrix = args(0) match {
-      case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) => IR_MatrixNodeUtilities.accessToExpression(va)
+      case va : IR_Access if(va.datatype.isInstanceOf[IR_MatrixDatatype]) => IR_MatNodeUtils.accessToExpression(va)
       case x @ IR_MatrixExpression(_,_, _, _)                      => x
       case _                                                     => Logger.error(s"unexpected argument ${ args }, expected matrix expression or variable")
     }
@@ -50,7 +52,7 @@ case class IR_Determinant(
     *
     * @return is extractable?
     * */
-  override def isExtractable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arg)
+  override def isExtractable() : Boolean = IR_MatNodeUtils.isEvaluatable(arg)
   /** Method: get identifier
     * @return identifier of this node
     * */
@@ -62,10 +64,15 @@ case class IR_Determinant(
 object IR_DeterminantCT {
   /** Method: produce an IR_DeterminantCT from an IR_Determinant
     *
-    * @param det : IR_Determinant, IR_Determiant object to transform
+    * @param r : IR_RuntimeMNode, Determiant object to transform
     *            @return IR_DeterminantCT object with the same matrix
     * */
-  def apply(det : IR_Determinant) = new IR_DeterminantCT(det.arg)
+  def applyWithCheck(r : IR_RuntimeMNode) : IR_DeterminantCT = {
+    r match {
+      case det : IR_Determinant => new IR_DeterminantCT(det.arg)
+      case _                    => Logger.error(s"unexpected type ${ r }, expected IR_Determinant")
+    }
+  }
 }
 /** Case class: Determinant to be resolved at Compiletime
   *
@@ -85,7 +92,7 @@ case class IR_DeterminantCT(arg : IR_Expression) extends IR_Expression with IR_R
     *
     * @return is argument available?
     * */
-  override def isResolvable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arg)
+  override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(arg)
 }
 
 /** Object: produce IR_DeterminantRTs */
@@ -93,19 +100,24 @@ object IR_DeterminantRT {
   /** Method: produce an IR_DeterminantRT from an IR_Determinant
     *
     * @param dest : IR_VariableAccess, variable the result of the calculation should be written to
-    * @param arg : IR_Expression, matrix to calculate the determinant of
+    * @param src : IR_RuntimeMNod, matrix to calculate the determinant of
     *            @return IR_DeterminantRT object with the same matrix
     * */
-  def apply(dest : IR_VariableAccess, arg : IR_Expression) = new IR_DeterminantRT(dest, arg)
+  def applyWithCheck(dest : IR_Access, src : IR_RuntimeMNode) = {
+    src match {
+      case det : IR_Determinant => new IR_DeterminantRT(dest, det.arg)
+      case _                    => Logger.error(s"unexpected type ${ src }, expected IR_Determinant")
+    }
+    }
+
 }
 /** Case class: Determinant to be resolved at Runtime
   *
   * @param dest : IR_VariableAccess, variable the result of the calculation should be written to
   * @param arg : IR_Expresion, matrix to calculate the determinant of
   */
-case class IR_DeterminantRT(dest : IR_VariableAccess, var arg : IR_Expression) extends IR_Expression with IR_ResolvableMNode {
-  override def datatype = arg.datatype.resolveBaseDatatype
-  override def prettyprint(out : PpStream) = Logger.error("internal node no resolved!")
+case class IR_DeterminantRT(dest : IR_Access, var arg : IR_Expression) extends IR_Statement with IR_ResolvableMNode {
+  override def prettyprint(out : PpStream) : Unit = Logger.error("internal node no resolved!")
   /** Method: resolve IR_DeterminantR node to the assignment of the result of determinant calculation to target variable
     *
     * @return statements to assign result to target variable
@@ -127,5 +139,5 @@ case class IR_DeterminantRT(dest : IR_VariableAccess, var arg : IR_Expression) e
     *
     * @return is argument available?
     * */
-  override def isResolvable() : Boolean = IR_MatrixNodeUtilities.isEvaluatable(arg)
+  override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(arg)
 }

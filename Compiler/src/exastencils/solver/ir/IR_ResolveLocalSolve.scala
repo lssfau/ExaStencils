@@ -173,7 +173,7 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
             init
             // get shape from init if there
           } else {
-            IR_MatrixNodeUtilities.accessToExpression(va)
+            IR_MatNodeUtils.accessToExpression(va)
           }
         //case s if(IR_MatrixNodeUtilities.isScalar(s)) => IR_MatrixExpression(Some(s.datatype))
       }
