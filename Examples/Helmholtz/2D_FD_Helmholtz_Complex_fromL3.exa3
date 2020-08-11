@@ -75,13 +75,10 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 /// globals
 
 Globals {
-  Expr k = 40.0
+  Expr k = 80.0
   Expr factor = 1.0
   Expr omegaRelax = 1.0
-  //TODO does not converge 
-  Expr shift = (0.04636751258450424 - 1.0016351080178985j)
-  // This works
-  // Var shift : Complex<Real> = (0.04636751258450424 - 1.0016351080178985j)
+  Expr shift = (0.6 - 1.0j)
 }
 
 Function NormResidual@(coarsest and finest) : Complex<Real> {
@@ -137,20 +134,35 @@ Function PreconditionedBiCGStab@finest {
 
     // print ( "Residual after", curStep, "iterations is", curRes)
     if ( abs(curRes) < 1e-6 * abs(initRes) ) {
-      print ( "Residual after", curStep, "iterations is", abs(curRes))
+      print ( "Residual after", curStep, "iterations is", abs(curRes), "--- convergence factor is", ( abs(curRes) / abs(initRes) ) )
       return
     }
   }
 
   print ( "Maximum number of solver iterations (", 10000, ") was exceeded" )
+  print ( "Residual after", curStep, "iterations is", abs(curRes), "--- convergence factor is", ( abs(curRes) / abs(initRes) ) )
 }
 
 Function Smoother@all {
 
+  color with {
+    ((i0 + i1) % 2),
+    solve locally at u@[0,0] relax omegaRelax {
+      u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
+    }
+  }
+  color with {
+    ((i0 + i1) % 2),
+    solve locally at u@[0,0] relax omegaRelax {
+      u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
+    }
+  }
+
+
+/*
   solve locally at u@[0,0] relax omegaRelax {
     u@[0,0] => ( M@[0,0] * u@[0,0] ) == f@[0,0]
   }
-
   color with {
     ((i0 + i1) % 2),
     solve locally at u@[0,0] relax omegaRelax {
@@ -187,7 +199,7 @@ Function Smoother@all {
       u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
       u@[1,0] => M@[1,0] * u@[1,0] == f@[1,0]
     }
-  }
+  }*/
 }
 /// Preconditioner
 Function VCycle@(finest) {
