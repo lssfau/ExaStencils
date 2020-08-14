@@ -45,7 +45,7 @@ object IR_ClassifyMatShape {
   def evaluateEntry(mat : IR_Expression, i : Int, j : Int) : Double = {
     mat match {
       case x @ (IR_MatrixExpression(_, _, _,_) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))) =>
-        val entry = IR_BasicMatrixOperations.getElem(x, i, j)
+        val entry = IR_CompiletimeMatOps.getElem(x, i, j)
         entry match {
           case va : IR_VariableAccess                                                                                    => 1
           case hda : IR_HighDimAccess                                                                                    => 1
@@ -63,20 +63,20 @@ object IR_ClassifyMatShape {
     var blocksize_D = 0
     matrix match {
       case mat @ IR_MatrixExpression(_, _, _,_) =>
-        var size = IR_BasicMatrixOperations.getSize(mat)
+        var size = IR_CompiletimeMatOps.getSize(mat)
         if (size._1 == 1) return IR_MatShape("filled")
 
         mat.datatype.resolveBaseDatatype match {
-          case dt @ (IR_IntegerDatatype | IR_RealDatatype | IR_FloatDatatype | IR_DoubleDatatype) =>
+          case _ @ (IR_IntegerDatatype | IR_RealDatatype | IR_FloatDatatype | IR_DoubleDatatype) =>
 
             // count blocksize of schur block
             var cont = true
             while ((blocksize_D < size._1) && cont == true) {
               // count on multiple lines to avoid mistakes due to random zeros
-              var en0 : Double = evaluateEntry(mat, 0, size._1 - blocksize_D - 1)
-              var en1 : Double = evaluateEntry(mat, size._1 - blocksize_D - 1, 0)
-              var en2 : Double = evaluateEntry(mat, 1, size._1 - blocksize_D - 1)
-              var en3 : Double = evaluateEntry(mat, size._1 - blocksize_D - 1, 1)
+              val en0 : Double = evaluateEntry(mat, 0, size._1 - blocksize_D - 1)
+              val en1 : Double = evaluateEntry(mat, size._1 - blocksize_D - 1, 0)
+              val en2 : Double = evaluateEntry(mat, 1, size._1 - blocksize_D - 1)
+              val en3 : Double = evaluateEntry(mat, size._1 - blocksize_D - 1, 1)
 
               // only if all lanes are zero break
               if (en0 == 0.0 && en1 == 0 && en2 == 0 && en3 == 0) {
@@ -91,8 +91,8 @@ object IR_ClassifyMatShape {
             // count blocksize of blockmatrix A if present (Schur form with size(mat) - blocksize_D as size of A block (upper left block in schur form)
             cont = true
             while (blocksize_A <= (size._1 - blocksize_D) / 2 + 1 && cont == true) {
-              var en0 : Double = evaluateEntry(mat, 0, blocksize_A)
-              var en1 : Double = evaluateEntry(mat, blocksize_A, 0)
+              val en0 : Double = evaluateEntry(mat, 0, blocksize_A)
+              val en1 : Double = evaluateEntry(mat, blocksize_A, 0)
 
               if (en0 == 0.0 && en1 == 0) {
                 cont = false
@@ -113,8 +113,8 @@ object IR_ClassifyMatShape {
             for (i <- 0 until border) {
               var start = (i / blocksize_A) * blocksize_A + blocksize_A
               for (j <- start until border) {
-                var en0 : Double = evaluateEntry(mat, i, j)
-                var en1 : Double = evaluateEntry(mat, j, i)
+                val en0 : Double = evaluateEntry(mat, i, j)
+                val en1 : Double = evaluateEntry(mat, j, i)
                 if (en0 != 0 || en1 != 0)
                   return IR_MatShape("filled")
               }

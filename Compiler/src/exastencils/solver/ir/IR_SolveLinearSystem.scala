@@ -19,23 +19,22 @@ import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_Lower
 import exastencils.base.ir.IR_Multiplication
-import exastencils.base.ir.IR_Number
 import exastencils.base.ir.IR_PlainInternalFunctionReference
 import exastencils.base.ir.IR_PreDecrement
 import exastencils.base.ir.IR_PreIncrement
 import exastencils.base.ir.IR_RealDatatype
+import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_ArrayDatatype
-import exastencils.baseExt.ir.IR_BasicMatrixOperations
+import exastencils.baseExt.ir.IR_CompiletimeMatOps
+import exastencils.baseExt.ir.IR_MatNodeUtils
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateRuntimeInversion.localLUDecomp
 import exastencils.baseExt.ir.IR_MatShape
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
-import exastencils.baseExt.ir.IR_MatNodeUtils
 import exastencils.config.Knowledge
-import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation
 import exastencils.logger.Logger
 import exastencils.optimization.ir.EvaluationException
@@ -101,112 +100,41 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
           schurDomainDecomp(AasExpr)
         // Fallback1: solve by inverting A with given structure for Schur with size(D) > 1 or blockdiagonal
         case _ if (msi.shape != "filled") => IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
-        case _ if (m > 1 && m < 4) => // solve by inverse for small matrices
+       /*
+        case _ if (m > 1 && m < 4)        => // solve by inverse for small matrices
+
           IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
+        */
         // Fallback2: solve with lu for filled matrices larger than 3
-        case _ if (m > 3)          =>
+
+        case _  =>
           Logger.warn(s"solving LES with lu")
           if (Knowledge.experimental_resolveInverseFunctionCall == "Runtime") {
 
             var stmts = ListBuffer[IR_Statement]()
             var P = IR_VariableAccess("P", IR_ArrayDatatype(IR_IntegerDatatype, m + 1))
             var AasAcc = IR_VariableAccess("A", IR_MatrixDatatype(AasExpr.innerDatatype.get, AasExpr.rows, AasExpr.columns))
-            var fasAcc = IR_VariableAccess("f", IR_MatrixDatatype(AasExpr.innerDatatype.get, AasExpr.rows, 1))
             stmts += IR_VariableDeclaration(AasAcc, AasExpr)
-            stmts += IR_VariableDeclaration(fasAcc, f)
             stmts += IR_VariableDeclaration(P)
 
             // lu
             stmts ++= localLUDecomp(AasAcc, P, m, IR_IntegerConstant(0), IR_IntegerConstant(0))
             // forward backward sub
-            stmts ++= genForwardBackwardSub(AasAcc, P, fasAcc, u)
-          } else
-          //TODO solve evaluation problem here: if A consists of variables i can not get the value of the entry
-          try {
-            IR_Assignment(u, luSolveCT(AasExpr, IR_MatNodeUtils.accessToExpression(f)))
-          } catch {
-            case ev : EvaluationException =>
-              Logger.warn("matrix entry not evaluatable, switching to inversion strategy!")
-              IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
+            stmts ++= genForwardBackwardSub(AasAcc, P, f, u)
+            IR_Scope(stmts)
+          } else {
+            try {
+              val LUP = IR_CompiletimeMatOps.LUDecomp(AasExpr)
+              IR_Assignment(u, (IR_CompiletimeMatOps.forwardBackwardSub(LUP._1, IR_MatNodeUtils.accessToExpression(f), LUP._2)))
+            }
+            catch {
+              case e : EvaluationException =>
+                Logger.warn("matrix entries were not evaluatable, switching to inverse calculation")
+                IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
+            }
           }
       }
     }
-  }
-
-  def luSolveCT(A : IR_MatrixExpression, b : IR_MatrixExpression) : IR_MatrixExpression = {
-    //var LU = IR_MatrixExpression(that.innerDatatype, that.rows, that.columns)
-    var LU = Duplicate(A)
-    val N = A.columns
-    if (N != A.rows) Logger.error("can only decompose quadratic matrices with LU")
-    var P = new Array[Int](N)
-    for (i <- 0 until N) P(i) = i
-    var absA : Double = 0.0
-    //Logger.error(s"matrix before ${LU}")
-    for (i <- 0 until N) {
-
-      // pivot
-      var maxA : Double = 0.0
-      var imax : Int = i
-      for (k <- i until N) {
-  /*
-        var value_at_ki : Double = 0.0
-        try {
-          value_at_ki = IR_SimplifyExpression.evalFloating(LU.get(k, i))
-        } catch {
-          case ev : EvaluationException => Logger.error("value not evaluatable, can not pivot here!, switching to ")
-        }
-*/
-
-        var value_at_ki : Double = A.get(i,k) match {
-          case n : IR_Number => n.value.asInstanceOf[Number].doubleValue
-          case _                                      => throw EvaluationException("entry not evaluatable")
-        }
-
-        absA = value_at_ki.abs
-        if (absA > maxA) {
-          maxA = absA
-          imax = k
-        }
-      }
-      //        if(maxA < scala.math.pow(10,-15)) Logger.error("very small entry is largest, unstable!")
-      if (imax != i) {
-        var tmp = P(i)
-        P(i) = P(imax)
-        P(imax) = tmp
-        for (j <- 0 until N) {
-          var tmp = Duplicate(LU.get(i, j))
-          LU.set(i, j, Duplicate(LU.get(imax, j)))
-          LU.set(imax, j, tmp)
-        }
-      }
-
-      // decompose
-      for (j <- i + 1 until N) {
-        val tmp1 = Duplicate(LU.get(j, i)) / Duplicate(LU.get(i, i))
-        LU.set(j, i, tmp1)
-        for (k <- i + 1 until N) {
-          val tmp2 = Duplicate(LU.get(j, k)) - (Duplicate(LU.get(j, i)) * Duplicate(LU.get(i, k)))
-          LU.set(j, k, tmp2)
-        }
-      }
-    }
-
-    // solve
-    var u_loc = IR_MatrixExpression(A.innerDatatype, A.columns, 1)
-    for (i <- 0 until N) {
-      u_loc.set(i, 0, Duplicate(b.get(P(i), 0)))
-      for (k <- 0 until i) {
-        u_loc.set(i, 0, Duplicate(u_loc.get(i, 0)) - Duplicate(LU.get(i, k)) * Duplicate(u_loc.get(k, 0)))
-      }
-    }
-    for (i <- N - 1 to 0 by -1) {
-      for (k <- i + 1 until N) {
-        u_loc.set(i, 0, Duplicate(u_loc.get(i, 0)) - Duplicate(LU.get(i, k)) * Duplicate(u_loc.get(k, 0)))
-      }
-      u_loc.set(i, 0, Duplicate(u_loc.get(i, 0)) / Duplicate(LU.get(i, i)))
-    }
-
-    u_loc
   }
 
   def schurDomainDecomp(A : IR_MatrixExpression) : Transformation.OutputType = {
@@ -226,7 +154,7 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
 
     def colBlockMatAcc(mat : ListBuffer[IR_VariableAccess], i0 : Int, i1 : Int) = IR_HighDimAccess(mat(i1 / bsizeA), IR_ConstIndex(i0 % bsizeA, i1 % bsizeA))
 
-    def genericAcc(mat : IR_Expression, i0 : Int, i1 : Int) = IR_BasicMatrixOperations.getElem(mat, i0, i1)
+    def genericAcc(mat : IR_Expression, i0 : Int, i1 : Int) = IR_CompiletimeMatOps.getElem(mat, i0, i1)
 
     // declare variables for A,B,C,D,F,G
     var A_blocks = ListBuffer[IR_VariableAccess]()

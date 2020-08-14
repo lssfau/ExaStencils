@@ -8,7 +8,7 @@ import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_UnknownDatatype
-import exastencils.baseExt.ir.IR_BasicMatrixOperations
+import exastencils.baseExt.ir.IR_CompiletimeMatOps
 import exastencils.baseExt.ir.IR_MatNodeUtils
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
 import exastencils.baseExt.ir.IR_MatrixDatatype
@@ -76,7 +76,7 @@ case class IR_GetSliceCT(
   override def datatype = IR_MatrixDatatype(inMatrix.datatype.resolveBaseDatatype, params(2), params(3))
   override def prettyprint(out : PpStream) = out << "getSliceCT(" << inMatrix << "," << params << ")"
   override def resolve() : Output[IR_Expression] = {
-    IR_BasicMatrixOperations.copySubMatrix(inMatrix, params(0), params(1), params(2), params(3))
+    IR_CompiletimeMatOps.copySubMatrix(inMatrix, params(0), params(1), params(2), params(3))
   }
   override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(inMatrix)
 }

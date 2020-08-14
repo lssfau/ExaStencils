@@ -9,24 +9,22 @@ import exastencils.base.ir.IR_ScalarDatatype
 import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableAccess
-import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_ClassifyMatShape
-import exastencils.baseExt.ir.IR_CompiletimeInversion
+import exastencils.baseExt.ir.IR_CompiletimeMatOps
+import exastencils.baseExt.ir.IR_MatNodeUtils
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateRuntimeInversion
 import exastencils.baseExt.ir.IR_MatShape
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
-import exastencils.baseExt.ir.IR_MatNodeUtils
 import exastencils.baseExt.ir.IR_PreItMOps
+import exastencils.baseExt.ir.IR_ResolveMatFuncs
 import exastencils.config.Knowledge
 import exastencils.config.Settings
-import exastencils.core.StateManager
 import exastencils.datastructures.Transformation.Output
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
-
 
 // pre calculation inverse node: parse arguments(structure information and time of execution) and extract, will be transformed to IR_InverseCT or IR_InverseRT
 object IR_IntermediateInv {
@@ -107,23 +105,28 @@ object IR_IntermediateInv {
     if (detShape == "compiletime") {
       Logger.warn("determining matrix structure for inversion at compiletime")
       msi = mat match {
-        case va @ IR_VariableAccess(name, IR_MatrixDatatype(_, _, _)) =>
-          var foundDecls = StateManager.findAll[IR_VariableDeclaration]().filter(d => d.name == name)
-          val decl = IR_PreItMOps.variableCollector.lastDecl(name).getOrElse(Logger.error("declaration not found"))
-          decl.initialValue match {
-            case None                                      => Logger.error("trying to classify not initialized matrix variable at compiletime!")
-            case Some(x @ IR_MatrixExpression(_, _, _, _)) =>
-              //if (IR_MatrixNodeUtilities.notWrittenTo(name)) {
-              if (!IR_PreItMOps.variableCollector.writeInScope(name)) {
-                IR_ClassifyMatShape(x)
-              }
-              else
-                Logger.error("found assignment to matrix input that was to classify, cannot classify non compiletime constant matrices!")
-            case _                                         => Logger.error(s"unexpected initialization value: ${ decl.initialValue }, expected matrix expression!")
-          }
-        case x : IR_MatrixExpression                                  =>
+        case _ @ IR_VariableAccess(name, IR_MatrixDatatype(_, _, _)) =>
+          var initVal = IR_PreItMOps.variableCollector.getConstInitVal(name)
+          IR_ClassifyMatShape(initVal.getOrElse(Logger.error("could not retrieve const init value of matrix to classify")))
+        /*
+        val decl = IR_PreItMOps.variableCollector.lastDecl(name).getOrElse(Logger.error("declaration not found"))
+
+        decl.initialValue match {
+          case None                                      => Logger.error("trying to classify not initialized matrix variable at compiletime!")
+          case Some(x @ IR_MatrixExpression(_, _, _, _)) =>
+            if (!IR_PreItMOps.variableCollector.writeInScope(name)) {
+              IR_ClassifyMatShape(x)
+            }
+            else
+              Logger.error("found assignment to matrix input that was to classify, cannot classify non compiletime constant matrices!")
+          case _                                         => Logger.error(s"unexpected initialization value: ${ decl.initialValue }, expected matrix expression!")
+
+        }
+
+         */
+        case x : IR_MatrixExpression =>
           IR_ClassifyMatShape(x)
-        case _                                                        => Logger.error(s"unexpected argument ${ args(0) }, expected matrix as variable or anonymous value")
+        case _                       => Logger.error(s"unexpected argument ${ args(0) }, expected matrix as variable or anonymous value")
       }
     }
     Logger.warn(s"Inverting with the following configuration: ${ Knowledge.experimental_resolveInverseFunctionCall }, " + msi.toStringList())
@@ -164,15 +167,16 @@ case class IR_InverseCT(
   override def prettyprint(out : PpStream) : Unit = out << "inverseCT(" << arg << ")"
   override def resolve() : Output[IR_Expression] = {
     var argexpr = arg match {
-      case x : IR_MatrixExpression                                                      => x
-      case va : IR_VariableAccess if (va.datatype.isInstanceOf[IR_MatrixDatatype])      => IR_MatNodeUtils.accessToExpression(va)
-      case fa : IR_FieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])         => IR_MatNodeUtils.accessToExpression(fa)
-      case fa : IR_MultiDimFieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype]) => IR_MatNodeUtils.accessToExpression(fa)
-      case va : IR_VariableAccess if(va.datatype.isInstanceOf[IR_ScalarDatatype]) => IR_MatNodeUtils.accessToExpression(va)
-      case _                                                                            => Logger.error(s"argument of unexpected type: ${ arg }")
+      case x : IR_MatrixExpression                                                                                                => x
+      case va : IR_VariableAccess if (va.datatype.isInstanceOf[IR_MatrixDatatype] || va.datatype.isInstanceOf[IR_ScalarDatatype]) =>
+        // get initial expression to use LU optimization
+        val initial = IR_ResolveMatFuncs.variableCollector.getConstInitVal(va.name)
+        initial.getOrElse(IR_MatNodeUtils.accessToExpression(va)).asInstanceOf[IR_MatrixExpression]
+      case fa : IR_FieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])                                                   => IR_MatNodeUtils.accessToExpression(fa)
+      case fa : IR_MultiDimFieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])                                           => IR_MatNodeUtils.accessToExpression(fa)
+      case _                                                                                                                      => Logger.error(s"argument of unexpected type: ${ arg }")
     }
-    var tmp = IR_CompiletimeInversion.inverse(argexpr, msi)
-    //IR_GeneralSimplify.doUntilDoneStandalone(tmp)
+    var tmp = IR_CompiletimeMatOps.inverse(argexpr, msi)
     tmp
   }
   override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(arg)

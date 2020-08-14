@@ -32,7 +32,7 @@ import exastencils.base.ir.IR_ScalarFree
 import exastencils.base.ir.IR_SizeOf
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
-import exastencils.baseExt.ir.IR_BasicMatrixOperations
+import exastencils.baseExt.ir.IR_CompiletimeMatOps
 import exastencils.baseExt.ir.IR_ClassifyMatShape
 import exastencils.baseExt.ir.IR_MatShape
 import exastencils.baseExt.ir.IR_MatrixDatatype
@@ -49,8 +49,8 @@ object IR_GenerateBasicMatrixOperations {
 
   // generate code to copy a matrix per std::copy
   def copyMatrix(dest : IR_VariableAccess, src : IR_Expression) : ListBuffer[IR_Statement] = {
-    val destSize = IR_BasicMatrixOperations.getSize(dest)
-    val srcSize = IR_BasicMatrixOperations.getSize(src)
+    val destSize = IR_CompiletimeMatOps.getSize(dest)
+    val srcSize = IR_CompiletimeMatOps.getSize(src)
     if (destSize != srcSize)
       Logger.error("sizes do not match: " + destSize + " vs " + srcSize)
     var srcDt = src.datatype.resolveBaseDatatype
@@ -138,8 +138,8 @@ object IR_GenerateBasicMatrixOperations {
 
   // generate code to transpose a matrix
   def transpose(in : IR_VariableAccess, out : IR_VariableAccess) : IR_Scope = {
-    var insize = IR_BasicMatrixOperations.getSize(in)
-    var outsize = IR_BasicMatrixOperations.getSize(out)
+    var insize = IR_CompiletimeMatOps.getSize(in)
+    var outsize = IR_CompiletimeMatOps.getSize(out)
     if (insize._1 != outsize._2 || insize._2 != outsize._1)
       Logger.error("sizes do not match")
     var N = insize._1
@@ -157,8 +157,8 @@ object IR_GenerateBasicMatrixOperations {
 
   // generate code to elementwise multiply a scalar with a matrix
   def elementwiseMultiplication(scalar : IR_Expression, in : IR_VariableAccess, out : IR_VariableAccess) : IR_Scope = {
-    var insize = IR_BasicMatrixOperations.getSize(in)
-    var outsize = IR_BasicMatrixOperations.getSize(out)
+    var insize = IR_CompiletimeMatOps.getSize(in)
+    var outsize = IR_CompiletimeMatOps.getSize(out)
     if (insize._1 != outsize._1 || insize._2 != outsize._2)
       Logger.error("sizes do not match: " + insize + " vs " + outsize)
     var N = insize._1
@@ -355,7 +355,7 @@ object IR_GenerateBasicMatrixOperations {
   def determinantLargeMatrix(in : IR_Access, P : IR_VariableAccess, out : IR_Access) : IR_Scope = {
     var func = IR_Scope(Nil)
     var det = IR_VariableAccess("det", IR_DoubleDatatype)
-    var N = IR_BasicMatrixOperations.getSize(in)._1
+    var N = IR_CompiletimeMatOps.getSize(in)._1
     var i = IR_VariableAccess("i", IR_IntegerDatatype)
     func.body += IR_VariableDeclaration(det, IR_HighDimAccess(in, IR_ExpressionIndex(0, 0)))
     func.body += IR_ForLoop(IR_VariableDeclaration(i, 1), IR_Lower(i, N), IR_PreIncrement(i), ListBuffer[IR_Statement](
@@ -373,7 +373,7 @@ object IR_GenerateBasicMatrixOperations {
   // give a algorithm to calculate the determinant of 'in' by using lu decomposition
   def determinant(in : IR_Access, out : IR_Access) : IR_Scope = {
     var func = IR_Scope(Nil)
-    var size = IR_BasicMatrixOperations.getSize(in)
+    var size = IR_CompiletimeMatOps.getSize(in)
     if (size._1 != size._2)
       Logger.error("determinants of nonquadratic matrices not supported")
     var N = size._1
@@ -407,7 +407,7 @@ object IR_GenerateRuntimeInversion {
     var stmts = ListBuffer[IR_Statement]()
     blocksize match {
       case 1 =>
-        stmts += IR_Assignment(IR_HighDimAccess(out, IR_ExpressionIndex(0, 0)), IR_Division(IR_RealConstant(1), IR_BasicMatrixOperations.getElem(in, 0, 0)))
+        stmts += IR_Assignment(IR_HighDimAccess(out, IR_ExpressionIndex(0, 0)), IR_Division(IR_RealConstant(1), IR_CompiletimeMatOps.getElem(in, 0, 0)))
 
       case 2 =>
         val a = IR_HighDimAccess(in, IR_ExpressionIndex(offsetRows + 0, offsetCols + 0))
@@ -836,8 +836,8 @@ object IR_GenerateRuntimeInversion {
   // head function that branches to specific inversions
   def inverse(in : IR_Access, out : IR_Access, msi : IR_MatShape) : IR_Scope = {
     val matrixStructure = msi.shape
-    val insize = IR_BasicMatrixOperations.getSize(in)
-    val outsize = IR_BasicMatrixOperations.getSize(out)
+    val insize = IR_CompiletimeMatOps.getSize(in)
+    val outsize = IR_CompiletimeMatOps.getSize(out)
     if (insize._1 != insize._2)
       Logger.error("inversion of matrices of size " + insize._1 + "," + insize._2 + " not supported")
     if (insize != outsize)
@@ -877,7 +877,7 @@ object IR_GenerateRuntimeInversion {
   def inverseBranchAtRuntime(inMatrix : IR_Access, destname : String, dest : IR_Access) : IR_Scope = {
     var timing = false
     var newstmts = ListBuffer[IR_Statement]()
-    var insize = IR_BasicMatrixOperations.getSize(inMatrix)
+    var insize = IR_CompiletimeMatOps.getSize(inMatrix)
     var structure = IR_VariableAccess(s"${ destname }_structure", IR_StringDatatype)
     var structure_A = IR_VariableAccess(s"${ destname }_structure_A", IR_StringDatatype)
     var blocksize = IR_VariableAccess(s"${ destname }_blocksize", IR_IntegerDatatype)

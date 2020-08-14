@@ -19,10 +19,42 @@
 package exastencils.baseExt.l4
 
 import exastencils.base.ProgressLocation
+import exastencils.base.ir.IR_Expression
 import exastencils.base.l4._
+import exastencils.baseExt.ir.IR_MatrixAccess
 import exastencils.baseExt.ir.IR_MatrixExpression
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
+
+/// L4_MatrixAccess
+object L4_MatrixAccess {
+  def apply(name : String, idxy : L4_Index, idxx : L4_Index) : L4_MatrixAccess = {
+    idxx match {
+      case expridx : L4_ExpressionIndex =>
+        if (expridx.indices.length > 1) Logger.error(s"Matrix access with more than 1 indices not allowed")
+      case cidx : L4_ConstIndex =>
+        if (cidx.indices.length > 1) Logger.error(s"Matrix access with more than 1 indices not allowed")
+      case ridx : L4_RangeIndex =>
+      case _ => Logger.error("unexprected index type")
+    }
+    idxy match {
+      case expridx : L4_ExpressionIndex =>
+        if (expridx.indices.length > 1) Logger.error(s"Matrix access with more than 1 indices not allowed")
+      case cidx : L4_ConstIndex =>
+        if (cidx.indices.length > 1) Logger.error(s"Matrix access with more than 1 indices not allowed")
+      case ridx : L4_RangeIndex =>
+      case _ => Logger.error("unexprected index type")
+    }
+    new L4_MatrixAccess(name, idxy, idxx)
+  }
+}
+
+case class L4_MatrixAccess(name : String, idxy : L4_Index, idxx : L4_Index) extends L4_Access {
+  override def progress : IR_Expression = ProgressLocation(IR_MatrixAccess(name, idxx.progress, idxy.progress, None))
+  override def prettyprint(out : PpStream) : Unit = {
+    out << name << idxy << idxx
+  }
+}
 
 /// L4_MatrixExpression
 
@@ -40,7 +72,7 @@ case class L4_MatrixExpression(
     expressions.foreach(out << "{ " <<< (_, ", ") << " }, ")
     out.removeLast(", ".length)
     out << " }"
-    if(shape.isDefined) out << shape.get.toString()
+    if (shape.isDefined) out << shape.get.toString()
   }
 
   override def progress = ProgressLocation(
@@ -49,7 +81,7 @@ case class L4_MatrixExpression(
       this.rows,
       this.columns,
       expressions.flatten.map(_.progress).toArray,
-      if(shape.isDefined) Some(shape.get.progress) else None
+      if (shape.isDefined) Some(shape.get.progress) else None
     )
   )
 

@@ -3,7 +3,7 @@ package exastencils.baseExt.ir.IR_MatNodes
 import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_Statement
-import exastencils.baseExt.ir.IR_BasicMatrixOperations
+import exastencils.baseExt.ir.IR_CompiletimeMatOps
 import exastencils.datastructures.Node
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -22,7 +22,7 @@ case class IR_InlineableDeclaration(
 ) extends IR_Statement {
   def isInlineable() : Boolean = {
     (initialValue match {
-      case inv : IR_IntermediateInv => IR_BasicMatrixOperations.getSize(inv.arg)._1 < 4 && !inv.resolveAtRuntime
+      case inv : IR_IntermediateInv => IR_CompiletimeMatOps.getSize(inv.arg)._1 < 4 && !inv.resolveAtRuntime
       case det : IR_Determinant     => false //getSize(det.arg)._1 < 4 && !det.resolveAtRuntime
       case gs : IR_GetSlice         => false //!gs.resolveAtRuntime
       case _                        => false

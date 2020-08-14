@@ -8,7 +8,7 @@ import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
-import exastencils.baseExt.ir.IR_BasicMatrixOperations
+import exastencils.baseExt.ir.IR_CompiletimeMatOps
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
@@ -86,7 +86,7 @@ case class IR_DeterminantCT(arg : IR_Expression) extends IR_Expression with IR_R
     * @return determinant of matrix arg
     * */
   override def resolve() : Output[IR_Expression] = {
-    IR_BasicMatrixOperations.smallMatrixDeterminant(arg.asInstanceOf[IR_MatrixExpression])
+    IR_CompiletimeMatOps.smallMatrixDeterminant(arg.asInstanceOf[IR_MatrixExpression])
   }
   /** Method: check if this node is ready to be resolved: all arguments are available
     *

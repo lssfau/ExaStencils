@@ -137,3 +137,24 @@ case class IR_ConstIndex(override var indices : Array[Int]) extends IR_Index wit
     }
   }
 }
+
+case class IR_Range(var begin : Option[IR_Expression], var end : Option[IR_Expression]) {
+  if (begin.isEmpty && end.isEmpty) {
+    Logger.warn("Empty IR_Range")
+  }
+}
+
+
+object IR_RangeIndex {
+  def apply(indices : IR_Range*) = new IR_RangeIndex(indices.toArray)
+}
+
+case class IR_RangeIndex(var indices : Array[IR_Range]) extends IR_Index  {
+  override def length() : Int = indices.length
+  override def toExpressionIndex : IR_ExpressionIndex = Logger.error("not implemented")
+  override def +(that : IR_Index) : IR_Index =  Logger.error("not implemented")
+  override def -(that : IR_Index) : IR_Index =  Logger.error("not implemented")
+  override def datatype : IR_Datatype = Logger.error("not implemented")
+  override def prettyprint(out : PpStream) : Unit = Logger.error("internal node not resolved")
+}
+

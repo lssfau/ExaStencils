@@ -160,22 +160,15 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
         // else: variable access: find initialization expression in declaration
         case va : IR_VariableAccess =>
           // classify init
+          val initOpt : Option[IR_Expression] = variableCollector.getConstInitVal(va.name)
           if (Knowledge.experimental_classifyLocMat) {
-            val decl = variableCollector.lastDecl(va.name).getOrElse(Logger.error("declaration not found"))
-            val init = decl.initialValue.getOrElse(Logger.error("matrix to classify at compiletime not initialized")) match {
-              case x : IR_MatrixExpression => x
-              case va : IR_VariableAccess  => Logger.error("chained accesses to classify not supported yet")
-              case x                       => Logger.error(s"unexpected initialization expression ${ x }, provide a matrix expression")
-            }
-            if (variableCollector.writeInScope(va.name))
-              Logger.error("write to system matrix found, can not classify shape from declaration")
+            val init = initOpt.getOrElse(Logger.error("local system matrix to classify is not compiletime constant")).asInstanceOf[IR_MatrixExpression]
             init.shape = Some(IR_ClassifyMatShape(init))
             init
-            // get shape from init if there
           } else {
-            IR_MatNodeUtils.accessToExpression(va)
+            // get shape from init if there
+            initOpt.getOrElse(IR_MatNodeUtils.accessToExpression(va)).asInstanceOf[IR_MatrixExpression]
           }
-        //case s if(IR_MatrixNodeUtilities.isScalar(s)) => IR_MatrixExpression(Some(s.datatype))
       }
       sls.expand(sysMatAsExpr)
   })

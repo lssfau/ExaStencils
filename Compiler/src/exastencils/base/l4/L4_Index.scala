@@ -124,6 +124,10 @@ case class L4_Range(var begin : Option[L4_Expression], var end : Option[L4_Expre
   if (begin.isEmpty && end.isEmpty) {
     Logger.warn("Empty L4_Range")
   }
+  def progress() : IR_Range = IR_Range(
+    if(begin.isDefined) Some(begin.get.progress) else None,
+    if(end.isDefined) Some(end.get.progress) else None
+  )
 }
 
 object L4_RangeIndex {
@@ -132,7 +136,7 @@ object L4_RangeIndex {
 
 case class L4_RangeIndex(override var indices : Array[L4_Range]) extends L4_Index with L4_ArrayBasedIndex[L4_Range] {
   override def prettyprint(out : PpStream) = out << '[' << indices.mkString(", ") << ']'
-  override def progress = ??? // FIXME
+  override def progress = IR_RangeIndex(indices.map(i => i.progress()))
 
   override def toExpressionIndex = ??? // FIXME (if a sensible conversion exists at all)
   override def +(that : L4_Index) : L4_Index = ???

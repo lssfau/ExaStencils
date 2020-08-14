@@ -106,6 +106,8 @@ object IR_LocalDirectInvert {
     //stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", ListBuffer[IR_Expression](AMat) ++= msi.toExprList()), f))
     // solveLES
     AMat.shape = Some(msi)
+    //val Aacc = IR_VariableAccess("local_matrix", IR_MatrixDatatype(IR_RealDatatype, unknowns.length, unknowns.length))
+    //stmts += IR_VariableDeclaration(Aacc, AMat)
     stmts += IR_SolveLinearSystem(AMat, u, f)
 
 

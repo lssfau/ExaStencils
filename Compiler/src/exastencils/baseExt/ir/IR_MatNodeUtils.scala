@@ -195,7 +195,7 @@ object IR_MatNodeUtils {
     * @return expression of hdas
     **/
   def accessToExpression(src : IR_Access) : IR_MatrixExpression = {
-    var size = IR_BasicMatrixOperations.getSize(src)
+    var size = IR_CompiletimeMatOps.getSize(src)
     if (size._1 > 1 || size._2 > 1) {
       var out = IR_MatrixExpression(src.datatype.resolveBaseDatatype, size._1, size._2)
       for (i <- 0 until size._1) {

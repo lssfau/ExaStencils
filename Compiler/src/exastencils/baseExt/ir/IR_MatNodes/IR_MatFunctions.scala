@@ -12,7 +12,7 @@ import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_UnitDatatype
 import exastencils.base.ir.IR_UnknownDatatype
 import exastencils.base.ir.IR_VariableAccess
-import exastencils.baseExt.ir.IR_BasicMatrixOperations
+import exastencils.baseExt.ir.IR_CompiletimeMatOps
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
@@ -33,7 +33,7 @@ case class IR_Transpose(var arg : IR_Expression)
   override def datatype = arg.datatype
   override def prettyprint(out : PpStream) = out << "transpose" << '(' << arg << ')'
   override def resolve() : Output[IR_Expression] = {
-    IR_BasicMatrixOperations.transpose(arg.asInstanceOf[IR_Access])
+    IR_CompiletimeMatOps.transpose(arg.asInstanceOf[IR_Access])
   }
   override def isResolvable() : Boolean = isExtractable() && !this.hasAnnotation(IR_PreItMOps.potentialInline)
   override def isExtractable() : Boolean = IR_MatNodeUtils.isEvaluatable(arg)
@@ -50,7 +50,7 @@ case class IR_DotProduct(
   override def datatype = arguments(0).datatype.resolveBaseDatatype
   override def prettyprint(out : PpStream) = out << "DotProduct" << '(' <<< (arguments, ", ") << ')'
   override def resolve() : Output[IR_Expression] = {
-    IR_BasicMatrixOperations.dotProduct(arguments(0), arguments(1))
+    IR_CompiletimeMatOps.dotProduct(arguments(0), arguments(1))
   }
 //  override def isResolvable() : Boolean = !this.hasAnnotation(IR_ResolveMOps.potentialInline) && arguments.forall(arg => IR_MatrixNodeUtilities.isEvaluatable(arg))
   override def isResolvable() : Boolean = isExtractable() && !this.hasAnnotation(IR_PreItMOps.potentialInline)
@@ -68,7 +68,7 @@ case class IR_CrossProduct(
   override def datatype = IR_MatrixDatatype(arguments(0).datatype.resolveBaseDatatype, 3, 3)
   override def prettyprint(out : PpStream) = out << "CrossProduct" << '(' <<< (arguments, ", ") << ')'
   override def resolve() : Output[IR_Expression] = {
-    IR_BasicMatrixOperations.crossProduct(arguments(0), arguments(1))
+    IR_CompiletimeMatOps.crossProduct(arguments(0), arguments(1))
   }
   override def isResolvable() : Boolean = isExtractable() && !this.hasAnnotation(IR_PreItMOps.potentialInline)
   override def isExtractable() : Boolean = arguments.forall(arg => IR_MatNodeUtils.isEvaluatable(arg))
@@ -85,7 +85,7 @@ case class IR_Trace(
   override def datatype = arg.datatype.resolveBaseDatatype
   override def prettyprint(out : PpStream) = out << "Trace" << '(' << arg << ')'
   override def resolve() : Output[IR_Expression] = {
-    IR_BasicMatrixOperations.trace(arg)
+    IR_CompiletimeMatOps.trace(arg)
   }
   override def isResolvable() : Boolean = isExtractable() && !this.hasAnnotation(IR_PreItMOps.potentialInline)
   override def isExtractable() : Boolean = IR_MatNodeUtils.isEvaluatable(arg)
@@ -145,7 +145,7 @@ case class IR_SetSlice(
     if (IR_MatNodeUtils.isScalar(newValue))
       IR_Scope(IR_GenerateBasicMatrixOperations.loopSetSubmatrixSc(matrix.asInstanceOf[IR_VariableAccess], offsetRows, offsetCols, nRows, nCols, newValue))
     else {
-      var insize = IR_BasicMatrixOperations.getSize(newValue)
+      var insize = IR_CompiletimeMatOps.getSize(newValue)
       newValue match {
         case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) =>
           IR_Scope(IR_GenerateBasicMatrixOperations.loopSetSubmatrixMat(va, matrix.asInstanceOf[IR_VariableAccess], IR_IntegerConstant(insize._1), IR_IntegerConstant(insize._2), offsetRows, offsetCols))
@@ -171,7 +171,7 @@ case class IR_ToMatrix(
   override def prettyprint(out : PpStream) = out << "toMatrix" << '(' << arg << ')'
   override def resolve() : Output[IR_Expression] = {
     arg match {
-      case t if (IR_MatNodeUtils.isTensor(t)) => IR_BasicMatrixOperations.convertTensorToMat(arg)
+      case t if (IR_MatNodeUtils.isTensor(t)) => IR_CompiletimeMatOps.convertTensorToMat(arg)
       case _                                  => Logger.error(s"cast to matrix not implemented yet for ${arg}")
     }
   }

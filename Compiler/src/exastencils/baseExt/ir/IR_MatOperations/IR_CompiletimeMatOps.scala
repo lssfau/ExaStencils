@@ -23,12 +23,6 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_BasicMatrixOperations.add
-import exastencils.baseExt.ir.IR_BasicMatrixOperations.copySubMatrix
-import exastencils.baseExt.ir.IR_BasicMatrixOperations.mult
-import exastencils.baseExt.ir.IR_BasicMatrixOperations.negative
-import exastencils.baseExt.ir.IR_BasicMatrixOperations.pasteSubMatrix
-import exastencils.baseExt.ir.IR_BasicMatrixOperations.sub
 import exastencils.baseExt.ir.IR_MatNodeUtils._
 import exastencils.config.Knowledge
 import exastencils.core._
@@ -39,13 +33,15 @@ import exastencils.optimization.ir._
 import exastencils.util.ir._
 
 // simple operations with matrices like addition or multiplication
-object IR_BasicMatrixOperations {
+object IR_CompiletimeMatOps {
+  var tmpCounter = 0
+
   /** Method: get an element of a however typed matrix
     *
     * @param exp : IR_Expression, matrix to get the element from
     * @param pos : Int*, optional position indices
     * @return element of position pos
-    **/
+    * */
   def getElem(exp : IR_Expression, pos : Int*) = {
     try {
       exp match {
@@ -65,11 +61,26 @@ object IR_BasicMatrixOperations {
     }
   }
 
+  def evalNumExpr(expr : IR_Expression) : Double = expr match {
+    case IR_RealConstant(v)                                   => v
+    case IR_DoubleConstant(v)                                 => v
+    case IR_FloatConstant(v)                                  => v.doubleValue()
+    case IR_IntegerConstant(v)                                => v.doubleValue()
+    case IR_Addition(sums : ListBuffer[IR_Expression])        => sums.view.map(s => evalNumExpr(s)).sum
+    case IR_Subtraction(l : IR_Expression, r : IR_Expression) => evalNumExpr(l) - evalNumExpr(r)
+    case IR_Multiplication(facs : ListBuffer[IR_Expression])  => facs.view.map(s => evalNumExpr(s)).product
+    case IR_Division(l : IR_Expression, r : IR_Expression)    => evalNumExpr(l) / evalNumExpr(r)
+    case IR_Minimum(l : ListBuffer[IR_Expression])            => l.view.map(e => evalNumExpr(e)).min
+    case IR_Maximum(l : ListBuffer[IR_Expression])            => l.view.map(e => evalNumExpr(e)).max
+    case _                                                    =>
+      throw EvaluationException("unknown expression type for evaluation: " + expr.getClass)
+  }
+
   /** Method: return the size of a however typed matrix
     *
     * @param in : IR_Expression, matrix to get the size of
     * @return tuple of int: size
-    **/
+    * */
   def getSize(in : IR_Expression) = {
     in match {
       case me : IR_MatrixExpression                                                     => (me.rows, me.columns)
@@ -91,7 +102,7 @@ object IR_BasicMatrixOperations {
     * @param n_rows      : Int, width in y direction
     * @param n_cols      : Int, width in x direction
     * @return slice of from as expression
-    **/
+    * */
   def copySubMatrix(from : IR_Expression, offset_rows : Int, offset_cols : Int, n_rows : Int, n_cols : Int) : IR_MatrixExpression = {
     if (offset_cols < 0 || offset_rows < 0) {
       Logger.error("negative offset")
@@ -116,7 +127,7 @@ object IR_BasicMatrixOperations {
     * @param offset_rows : Int, offset of the slice in y direction
     * @param offset_cols : Int, offset of the slice in x direction
     * @return unit, slice set in target
-    **/
+    * */
   def pasteSubMatrix(source : IR_Expression, target : IR_MatrixExpression, offset_rows : Int, offset_cols : Int) : Unit = {
     if (offset_rows < 0 || offset_cols < 0) {
       Logger.error("negative offset")
@@ -137,7 +148,7 @@ object IR_BasicMatrixOperations {
     *
     * @param m : IR_MatrixExpression, matrix to calculate the determinant of
     * @return determinant
-    **/
+    * */
   def smallMatrixDeterminant(m : IR_MatrixExpression) : IR_Expression = {
     if (m.rows != m.columns) {
       Logger.error("determinant for non-quadratic matrices not implemented")
@@ -203,13 +214,13 @@ object IR_BasicMatrixOperations {
     *
     * @param source : IR_VariableDeclaration, matrix to calculate the transposed
     * @return transposed matrix
-    **/
+    * */
   def transpose(source : IR_Access) : IR_MatrixExpression = {
-    var ssize = IR_BasicMatrixOperations.getSize(source)
+    var ssize = IR_CompiletimeMatOps.getSize(source)
     var out = IR_MatrixExpression(source.datatype.resolveBaseDatatype, ssize._2, ssize._1)
     for (i <- 0 until ssize._1) {
       for (j <- 0 until ssize._2) {
-        out.set(j, i, Duplicate(IR_BasicMatrixOperations.getElem(source, i, j)))
+        out.set(j, i, Duplicate(IR_CompiletimeMatOps.getElem(source, i, j)))
       }
     }
     out
@@ -220,7 +231,7 @@ object IR_BasicMatrixOperations {
     * @param left  : IR_Expression, left matrix operand
     * @param right : IR_Expression, right matrix  operand
     * @return dot product
-    **/
+    * */
   def dotProduct(left : IR_Expression, right : IR_Expression) : IR_MatrixExpression = {
     (left, right) match {
       case (l @ (IR_MatrixExpression(_, _, _, _) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))), r @ (IR_MatrixExpression(_, _, _, _) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)))) =>
@@ -255,7 +266,7 @@ object IR_BasicMatrixOperations {
     * @param left  : IR_Expression, left matrix operand
     * @param right : IR_Expression, right matrix  operand
     * @return cross product as matrix
-    **/
+    * */
   def crossProduct(left : IR_Expression, right : IR_Expression) : IR_MatrixExpression = {
     (left, right) match {
       case (l, r) if (IR_MatNodeUtils.isMatrix(l) && IR_MatNodeUtils.isMatrix(l)) =>
@@ -277,7 +288,7 @@ object IR_BasicMatrixOperations {
     * @param left  : IR_Expression, left matrix operand
     * @param right : IR_Expression, right matrix  operand
     * @return result of multiplication
-    ***/
+    * **/
   def mult(left : IR_MatrixExpression, right : IR_MatrixExpression) = {
     var lsize = getSize(left)
     var rsize = getSize(right)
@@ -300,7 +311,7 @@ object IR_BasicMatrixOperations {
     *
     * @param mult : IR_Multiplication, operands as multiplication
     * @return result of multiplication
-    ***/
+    * **/
   def mult(mult : IR_Multiplication) : IR_MatrixExpression = {
     var result = IR_MatrixExpression(IR_IntegerDatatype, 1, 1)
     var firstMatrix = mult.factors.find(fac => isMatrix(fac)).getOrElse(Logger.error("no matrix in factors!"))
@@ -318,11 +329,11 @@ object IR_BasicMatrixOperations {
     for (f <- 1 until mult.factors.length) {
       result = mult.factors(f) match {
         case va : IR_Access if (va.datatype.isInstanceOf[IR_MatrixDatatype]) =>
-          IR_BasicMatrixOperations.mult(tmp, IR_MatNodeUtils.accessToExpression(va))
+          IR_CompiletimeMatOps.mult(tmp, IR_MatNodeUtils.accessToExpression(va))
         case x : IR_MatrixExpression                                         =>
-          IR_BasicMatrixOperations.mult(tmp, x)
+          IR_CompiletimeMatOps.mult(tmp, x)
         case s if (isScalar(s))                                              =>
-          IR_BasicMatrixOperations.elementwiseMultiplication(tmp, s)
+          IR_CompiletimeMatOps.elementwiseMultiplication(tmp, s)
         case _                                                               =>
           Logger.error("unexpected type: " + mult.factors(f))
       }
@@ -336,7 +347,7 @@ object IR_BasicMatrixOperations {
     * @param left  : IR_Expression, left matrix operand
     * @param right : IR_Expression, right matrix  operand
     * @return result of addition
-    ***/
+    * **/
   def add(left : IR_MatrixExpression, right : IR_MatrixExpression) = {
     var lsize = getSize(left)
     var rsize = getSize(right)
@@ -355,7 +366,7 @@ object IR_BasicMatrixOperations {
     *
     * @param addition : IR_Expression,  matrix operands can be IR_ElementwiseAddition or IR_Addition
     * @return result of addition
-    ***/
+    * **/
   def add(addition : IR_Expression) : IR_MatrixExpression = {
     addition match {
       case a : IR_Addition                          =>
@@ -391,7 +402,7 @@ object IR_BasicMatrixOperations {
     * @param left  : IR_Expression, left matrix operand
     * @param right : IR_Expression, right matrix  operand
     * @return result of subtraction
-    ***/
+    * **/
   def sub(left : IR_MatrixExpression, right : IR_MatrixExpression) : IR_MatrixExpression = {
     var lsize = getSize(left)
     var rsize = getSize(right)
@@ -410,7 +421,7 @@ object IR_BasicMatrixOperations {
     *
     * @param subtraction : IR_Expression,  matrix operands can be IR_ElementwiseAddition or IR_Addition
     * @return result of subtraction
-    ***/
+    * **/
   def sub(subtraction : IR_Expression) : IR_MatrixExpression = {
     subtraction match {
       case sub : IR_Subtraction             =>
@@ -427,9 +438,9 @@ object IR_BasicMatrixOperations {
           case scalar if (isScalar(scalar)) =>
             sub.right match {
               case x : IR_MatrixExpression                                         =>
-                IR_BasicMatrixOperations.sub(IR_Subtraction(negative(x), IR_Negative(sub.left)))
+                IR_CompiletimeMatOps.sub(IR_Subtraction(negative(x), IR_Negative(sub.left)))
               case va : IR_Access if (va.datatype.isInstanceOf[IR_MatrixDatatype]) =>
-                IR_BasicMatrixOperations.sub(IR_Subtraction(negative(IR_MatNodeUtils.accessToExpression(va)), IR_Negative(sub.left)))
+                IR_CompiletimeMatOps.sub(IR_Subtraction(negative(IR_MatNodeUtils.accessToExpression(va)), IR_Negative(sub.left)))
               case _                                                               =>
                 Logger.error(s"unexpected argument of type: ${ sub.right.datatype } and basetype: ${ sub.right.datatype.resolveBaseDatatype }, left side is of type: ${ sub.left.datatype } and basetype: ${ sub.left.datatype.resolveBaseDatatype }")
             }
@@ -447,7 +458,7 @@ object IR_BasicMatrixOperations {
     * @param left  : IR_Expression, left operand can be scalar or matrix
     * @param right : IR_Expression, right operand can be scalar or matrix
     * @return result of multiplication
-    ***/
+    * **/
   def elementwiseMultiplication(left : IR_Expression, right : IR_Expression) : IR_MatrixExpression = {
     (left, right) match {
       // scalar x matrix, matrix x scalar, matrix x matrix
@@ -490,11 +501,11 @@ object IR_BasicMatrixOperations {
     * @param left  : IR_Expression, left operand can be scalar or matrix
     * @param right : IR_Expression, right operand can be scalar or matrix
     * @return result of division
-    ***/
+    * **/
   def elementwiseDivision(left : IR_Expression, right : IR_Expression) : IR_MatrixExpression = {
     (left, right) match {
       // scalar x matrix, matrix x scalar, matrix x matrix
-      case (scalar, matrix) if (isScalar((scalar)) && isMatrix(matrix))   =>
+      case (scalar, matrix) if (isScalar((scalar)) && isMatrix(matrix))                   =>
         var size = getSize(matrix)
         var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), size._1, size._2)
         for (i <- 0 until size._1) {
@@ -503,7 +514,7 @@ object IR_BasicMatrixOperations {
           }
         }
         out
-      case (matrix, scalar) if (isScalar((scalar)) && isMatrix(matrix))        =>
+      case (matrix, scalar) if (isScalar((scalar)) && isMatrix(matrix))                   =>
         var size = getSize(matrix)
         var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), size._1, size._2)
         for (i <- 0 until size._1) {
@@ -512,7 +523,7 @@ object IR_BasicMatrixOperations {
           }
         }
         out
-      case (matrixLeft, matrixRight) if (isMatrix((matrixLeft)) && isMatrix(matrixRight))                                      =>
+      case (matrixLeft, matrixRight) if (isMatrix((matrixLeft)) && isMatrix(matrixRight)) =>
         var size = getSize(matrixLeft)
         var sizeR = getSize(matrixRight)
         if (size != sizeR)
@@ -524,7 +535,7 @@ object IR_BasicMatrixOperations {
           }
         }
         out
-      case _                                                                                                                                                                           => Logger.error("unexpected argument combination")
+      case _                                                                              => Logger.error("unexpected argument combination")
     }
   }
 
@@ -568,7 +579,7 @@ object IR_BasicMatrixOperations {
     for (i <- 0 until out.rows) {
       for (j <- 0 until out.columns) {
         //        out.set(i,j,IR_Subtraction(IR_RealConstant(0),Duplicate(that.get(i,j))))
-        out.set(i, j, IR_Negative(Duplicate(IR_BasicMatrixOperations.getElem(that, i, j))))
+        out.set(i, j, IR_Negative(Duplicate(IR_CompiletimeMatOps.getElem(that, i, j))))
       }
     }
     out
@@ -632,17 +643,17 @@ object IR_BasicMatrixOperations {
       case _                                                                 => Logger.error(s"unexpected type ${ ten }, expected tensor as access or expression")
     }
   }
-}
-
-// methods to determine a inverse at compiletime
-object IR_CompiletimeInversion {
-  var tmpCounter = 0
 
   // head function that branches to specific inversions
   def inverse(that : IR_MatrixExpression, msi : IR_MatShape) : IR_MatrixExpression = {
     var matrixStructure = msi.shape
     if (that.rows != that.columns)
       Logger.error("inversion of non quadratic matrices not supported.")
+
+    var allNumbers = false
+    if (that.expressions.forall(e => if (e.isInstanceOf[IR_Number]) true else false)) {
+      allNumbers = true
+    }
     matrixStructure match {
       case "diagonal"
       => {
@@ -671,14 +682,14 @@ object IR_CompiletimeInversion {
               val offset = block * sizeA
 
               // extract matrix block
-              var subMatrix = IR_BasicMatrixOperations.copySubMatrix(that, offset, offset, sizeA, sizeA)
+              var subMatrix = IR_CompiletimeMatOps.copySubMatrix(that, offset, offset, sizeA, sizeA)
 
               // invert with GaussJordan method
               //var subMatrix_inv = gaussJordanInverse(subMatrix)
               var subMatrix_inv = inverse(subMatrix, IR_MatShape("filled"))
 
               // copy to out matrix
-              IR_BasicMatrixOperations.pasteSubMatrix(subMatrix_inv, out, offset, offset)
+              IR_CompiletimeMatOps.pasteSubMatrix(subMatrix_inv, out, offset, offset)
             }
           }
         }
@@ -705,7 +716,6 @@ object IR_CompiletimeInversion {
           Logger.error("n < 1!")
         }
         else {
-
           val dt = that.datatype.resolveBaseDatatype
           if (Knowledge.experimental_schurWithHelper) {
             schurWithHelpers(that, dt, m, n, msi, out)
@@ -716,11 +726,11 @@ object IR_CompiletimeInversion {
       }
       case "cofactors"
       => {
-        val inv_det = IR_IntegerConstant(1) / IR_BasicMatrixOperations.smallMatrixDeterminant(that)
+        val inv_det = IR_IntegerConstant(1) / IR_CompiletimeMatOps.smallMatrixDeterminant(that)
         val tmp = IR_MatrixExpression(Some(that.innerDatatype.getOrElse(IR_RealDatatype)), that.rows, that.columns)
         for (row <- 0 until that.rows) {
           for (col <- 0 until that.columns) {
-            tmp.set(col, row, IR_BasicMatrixOperations.calculateMatrixOfMinorsElement(that, row, col) * IR_DoubleConstant(math.pow(-1, row + col)) * inv_det)
+            tmp.set(col, row, IR_CompiletimeMatOps.calculateMatrixOfMinorsElement(that, row, col) * IR_DoubleConstant(math.pow(-1, row + col)) * inv_det)
           }
         }
         tmp
@@ -765,7 +775,20 @@ object IR_CompiletimeInversion {
             val det = Duplicate(a) * A + Duplicate(b) * B + Duplicate(c) * C
             IR_MatrixExpression(that.innerDatatype, 3, 3, Array(Duplicate(A) / Duplicate(det), Duplicate(D) / Duplicate(det), Duplicate(G) / Duplicate(det), Duplicate(B) / Duplicate(det), Duplicate(E) / Duplicate(det), Duplicate(H) / Duplicate(det), Duplicate(C) / Duplicate(det), Duplicate(F) / Duplicate(det), Duplicate(I) / Duplicate(det)), None)
           case _ =>
-            gaussJordanInverse(that)
+            val LUP = LUDecomp(that)
+            LUDecompedInverse(LUP._1, LUP._2)
+          /*
+            if (allNumbers) {
+              Logger.warn("allNumbers")
+              val LUP = LUDecomp(that)
+              LUDecompedInverse(LUP._1, LUP._2)
+            }
+            else {
+              Logger.warn(" not allNumbers")
+              gaussJordanInverse(that)
+            }
+
+             */
         }
       }
 
@@ -779,7 +802,7 @@ object IR_CompiletimeInversion {
     *
     * @param matrix : IR_MatrixExpression, matrix to invert
     * @return inverse
-    **/
+    * */
   def gaussJordanInverse(matrix : IR_MatrixExpression) : IR_MatrixExpression = {
     //var matrix = Duplicate(that)
     val other = IR_MatrixExpression(matrix.datatype, matrix.rows, matrix.columns)
@@ -837,6 +860,123 @@ object IR_CompiletimeInversion {
     other
   }
 
+  def LUDecomp(matrix : IR_MatrixExpression) : (IR_MatrixExpression, Array[Int]) = {
+    //var LU = IR_MatrixExpression(that.innerDatatype, that.rows, that.columns)
+    var LU = Duplicate(matrix)
+    val N = matrix.columns
+    if (N != matrix.rows) Logger.error("can only decompose quadratic matrices with LU")
+    var P = new Array[Int](N)
+    for (i <- 0 until N) P(i) = i
+    var absA : Double = 0.0
+    //Logger.error(s"matrix before ${LU}")
+    for (i <- 0 until N) {
+
+      // pivot
+      var maxA : Double = 0.0
+      var imax : Int = i
+      for (k <- i until N) {
+/*
+        val cur = LU.get(k, i)
+        cur match {
+          case n : IR_Number =>
+            val curVal : Double = n.value.asInstanceOf[Number].doubleValue().abs
+            if (curVal > maxA) {
+              maxA = curVal
+              imax = k
+            }
+          case n             => Logger.error(s"not evaluatable ${ n }")
+        }
+*/
+        var value_at_ki : Double = 0.0
+        var evaluatable = true
+        try {
+          value_at_ki = IR_CompiletimeMatOps.evalNumExpr(LU.get(k, i))
+
+        } catch {
+          case _ : EvaluationException => evaluatable = false
+        }
+        if(evaluatable) {
+          LU.set(k, i, IR_DoubleConstant(value_at_ki))
+          absA = value_at_ki.abs
+          if (absA > maxA) {
+            maxA = absA
+            imax = k
+          }
+        }
+      }
+      //        if(maxA < scala.math.pow(10,-15)) Logger.error("very small entry is largest, unstable!")
+      if (imax != i) {
+        Logger.warn("pivoting")
+        var tmp = P(i)
+        P(i) = P(imax)
+        P(imax) = tmp
+        for (j <- 0 until N) {
+          var tmp2 = Duplicate(LU.get(i, j))
+          LU.set(i, j, Duplicate(LU.get(imax, j)))
+          LU.set(imax, j, tmp2)
+        }
+      }
+
+      // decompose
+      for (j <- i + 1 until N) {
+        val tmp1 = Duplicate(LU.get(j, i)) / Duplicate(LU.get(i, i))
+        LU.set(j, i, tmp1)
+        for (k <- i + 1 until N) {
+          val tmp2 = Duplicate(LU.get(j, k)) - Duplicate(LU.get(j, i)) * Duplicate(LU.get(i, k))
+          LU.set(j, k, tmp2)
+        }
+      }
+    }
+    (LU, P)
+  }
+
+  def LUDecompedInverse(LU : IR_MatrixExpression, P : Array[Int]) : IR_MatrixExpression = {
+    val N = LU.columns
+    val LU_inv = IR_MatrixExpression(LU.innerDatatype, LU.rows, LU.rows)
+    for (j <- 0 until N) {
+      for (i <- 0 until N) {
+        if (P(i) == j)
+          LU_inv.set(i, j, IR_DoubleConstant(1.0));
+        else
+          LU_inv.set(i, j, IR_DoubleConstant(0.0));
+
+        for (k <- 0 until i)
+          LU_inv.set(i, j, Duplicate(LU_inv.get(i, j)) - Duplicate(LU.get(i, k)) * Duplicate(LU_inv.get(k, j)))
+      }
+
+      for (i <- N - 1 to 0 by -1) {
+        for (k <- i + 1 until N) {
+          LU_inv.set(i, j, Duplicate(LU_inv.get(i, j)) - Duplicate(LU.get(i, k)) * Duplicate(LU_inv.get(k, j)))
+
+        }
+        LU_inv.set(i, j, Duplicate(LU_inv.get(i, j)) / Duplicate(LU.get(i, i)))
+
+      }
+    }
+    LU_inv
+  }
+
+  def forwardBackwardSub(A : IR_MatrixExpression, b : IR_MatrixExpression, P : Array[Int]) : IR_MatrixExpression = {
+    // solve
+    val N = A.columns
+    if (N != A.rows) Logger.error("can only decompose quadratic matrices with LU")
+    var u_loc = IR_MatrixExpression(A.innerDatatype, A.columns, 1)
+    for (i <- 0 until N) {
+      u_loc.set(i, 0, Duplicate(b.get(P(i), 0)))
+      for (k <- 0 until i) {
+        u_loc.set(i, 0, Duplicate(u_loc.get(i, 0)) - Duplicate(A.get(i, k)) * Duplicate(u_loc.get(k, 0)))
+      }
+    }
+    for (i <- N - 1 to 0 by -1) {
+      for (k <- i + 1 until N) {
+        u_loc.set(i, 0, Duplicate(u_loc.get(i, 0)) - Duplicate(A.get(i, k)) * Duplicate(u_loc.get(k, 0)))
+      }
+      u_loc.set(i, 0, Duplicate(u_loc.get(i, 0)) / Duplicate(A.get(i, i)))
+    }
+
+    u_loc
+  }
+
   /** Method: calculates the inverse per schur complement and with saving the helper matrices in seperate variables
     *
     * @param that : IR_MatrixExpression, matrix to invert
@@ -847,7 +987,7 @@ object IR_CompiletimeInversion {
     * @param out  : IR_MatrixExpression, result of inversion
     * @return result of inversion
     *
-    **/
+    * */
   def schurWithHelpers(that : IR_MatrixExpression, dt : IR_Datatype, m : Int, n : Int, msi : IR_MatShape, out : IR_MatrixExpression) : IR_MatrixExpression = {
 
     // helper matrix declarations, to be added to statement later

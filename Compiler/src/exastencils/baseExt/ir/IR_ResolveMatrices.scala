@@ -131,6 +131,7 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
       fctMap(ref.name)(args)
   })
 
+
   /** Transformation: split combined assignment: += to IR_Addition, *= to IR_Multiplication, /= to IR_Division, -= to IR_Subtraction */
   this += new Transformation("Split combined operators", {
     case IR_Assignment(dest : IR_Access, src, "+=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] =>
@@ -142,6 +143,33 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
     case IR_Assignment(dest : IR_Access, src, "/=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] =>
       IR_Assignment(dest, IR_ElementwiseDivision(dest, src))
   }, false)
+
+  this += new Transformation("Resolve matrix access dts", {
+    case IR_MatrixAccess(id, idxy, idxx, _) =>
+      var decl = variableCollector.lastDecl(id).getOrElse(Logger.error("MatrixAccess to not declared variable"))
+      if(!decl.datatype.isInstanceOf[IR_MatrixDatatype]) Logger.error("MatrixAccess to variable that is not a matrix")
+      IR_MatrixAccess(id, idxx, idxy, Some(decl.datatype.asInstanceOf[IR_MatrixDatatype]))
+  })
+
+  object TransformMatAccesses extends QuietDefaultStrategy("Transforming MatAccesses to slice functions") {
+    this += new Transformation("transform", {
+      case macc : IR_MatrixAccess => macc.expand(false, None)
+    })
+  }
+
+  this += new Transformation("Transform Matrix accesses to slice nodes", {
+    case IR_Assignment(dest : IR_MatrixAccess, src, _) => dest.expand(true, Some(src))
+    case stmt : IR_Assignment =>
+      TransformMatAccesses.applyStandalone(stmt)
+      stmt
+    case stmt : IR_VariableDeclaration =>
+      TransformMatAccesses.applyStandalone(stmt)
+      stmt
+    case stmt : IR_ExpressionStatement =>
+      TransformMatAccesses.applyStandalone(stmt)
+      stmt
+  })
+
 
   this += new Transformation("assignment of operation with self", {
     case stmt @ IR_Assignment(dest : IR_VariableAccess, src, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype]) =>
@@ -300,6 +328,11 @@ object IR_MatOpsInline extends DefaultStrategy("extract and inline matrix operat
 
 /** Strategy: resolve matrix functions */
 object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
+  // collector to check for writes to variables
+  var variableCollector = new IR_MatrixVarCollector()
+  this.register(variableCollector)
+  this.onBefore = () => this.resetCollectors()
+
   /** Attribute: Map to convert intermediate matrix function nodes to resolvable compiletime nodes */
   val ctFctMap = Map[String, IR_RuntimeMNode => IR_Expression](
     ("IR_IntermediateInv", IR_InverseCT.apply),
@@ -357,25 +390,25 @@ object IR_ResolveMatOperators extends DefaultStrategy("Resolve operators") {
     //TODO match on supertype? -> introduce supertype
     case mult @ IR_Multiplication(facs) if (checkIfMatOp(mult) && facs.forall(f => isEvaluatable(f)))                                                                =>
       mult.removeAnnotation(isMatOp)
-      IR_BasicMatrixOperations.mult(mult)
+      IR_CompiletimeMatOps.mult(mult)
     case add @ (IR_Addition(sums)) if (checkIfMatOp(add) && sums.forall(f => isEvaluatable(f)) && !add.hasAnnotation(IR_GenerateRuntimeInversion.pointerArithmetic)) =>
       add.removeAnnotation(isMatOp)
-      IR_BasicMatrixOperations.add(add)
+      IR_CompiletimeMatOps.add(add)
     case binOp @ IR_ElementwiseSubtraction(_, _) if (checkIfMatOp(binOp) && isEvaluatable(binOp.left) && isEvaluatable(binOp.right))                                 =>
       binOp.removeAnnotation(isMatOp)
-      IR_BasicMatrixOperations.sub(binOp)
+      IR_CompiletimeMatOps.sub(binOp)
     case binOp @ IR_Subtraction(_, _) if (checkIfMatOp(binOp) && isEvaluatable(binOp.left) && isEvaluatable(binOp.right))                                            =>
       binOp.removeAnnotation(isMatOp)
-      IR_BasicMatrixOperations.sub(binOp)
+      IR_CompiletimeMatOps.sub(binOp)
     case binOp @ IR_ElementwiseMultiplication(_, _) if (checkIfMatOp(binOp) && isEvaluatable(binOp.left) && isEvaluatable(binOp.right))                              =>
       binOp.removeAnnotation(isMatOp)
-      IR_BasicMatrixOperations.elementwiseMultiplication(binOp.left, binOp.right)
+      IR_CompiletimeMatOps.elementwiseMultiplication(binOp.left, binOp.right)
     case binOp @ IR_ElementwiseDivision(_, _) if (checkIfMatOp(binOp) && isEvaluatable(binOp.left) && isEvaluatable(binOp.right))                                    =>
       binOp.removeAnnotation(isMatOp)
-      IR_BasicMatrixOperations.elementwiseDivision(binOp.left, binOp.right)
+      IR_CompiletimeMatOps.elementwiseDivision(binOp.left, binOp.right)
     case binOp @ IR_ElementwiseAddition(_, _) if (checkIfMatOp(binOp) && isEvaluatable(binOp.left) && isEvaluatable(binOp.right))                                    =>
       binOp.removeAnnotation(isMatOp)
-      IR_BasicMatrixOperations.add(binOp)
+      IR_CompiletimeMatOps.add(binOp)
   })
 }
 

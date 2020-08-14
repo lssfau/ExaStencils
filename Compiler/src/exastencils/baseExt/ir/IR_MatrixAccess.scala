@@ -21,103 +21,44 @@ package exastencils.baseExt.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.core._
+import exastencils.baseExt.ir.IR_MatNodes.IR_GetElement
+import exastencils.baseExt.ir.IR_MatNodes.IR_GetSlice
+import exastencils.baseExt.ir.IR_MatNodes.IR_SetElement
+import exastencils.baseExt.ir.IR_MatNodes.IR_SetSlice
+import exastencils.datastructures.Transformation.OutputType
+import exastencils.logger.Logger
 import exastencils.prettyprinting._
-import exastencils.util.ir._
 
 /// IR_HackMatComponentAccess
 // FIXME: update with actual accessors
 case class IR_HackMatComponentAccess(var mat : IR_VariableAccess, var i : IR_Expression, var j : IR_Expression) extends IR_Expression {
   override def datatype = mat.datatype
-
   override def prettyprint(out : PpStream) : Unit = out << mat << "(" << i << ", " << j << ")"
 }
 
-/// IR_MatrixExpression
-object IR_MatrixExpression {
-  var matTmpCounter = 0
-
-  //def apply(innerDatatype : Option[IR_Datatype], rows : Integer, columns : Integer) : IR_MatrixExpression = new IR_MatrixExpression(innerDatatype, rows, columns)
-  def apply(innerDatatype : IR_Datatype, rows : Integer, columns : Integer) : IR_MatrixExpression = new IR_MatrixExpression(Some(innerDatatype), rows, columns)
-
-  def apply(innerDatatype : Option[IR_Datatype], rows : Integer, columns : Integer, expressions : Array[IR_Expression]) : IR_MatrixExpression = {
-    val tmp = new IR_MatrixExpression(innerDatatype, rows, columns)
-    tmp.expressions = expressions
-    tmp
-  }
-  def apply(innerDatatype : Option[IR_Datatype], rows : Integer, columns : Integer, expressions : Array[IR_Expression], shape: Option[IR_MatShape]) : IR_MatrixExpression = {
-    val tmp = new IR_MatrixExpression(innerDatatype, rows, columns, shape)
-    tmp.expressions = expressions
-    tmp
-  }
-
-
-  def apply(innerDatatype : Option[IR_Datatype], expressions : ListBuffer[ListBuffer[IR_Expression]]) : IR_MatrixExpression = {
-    val rows = expressions.size
-    val columns = expressions(0).size
-    val tmp = new IR_MatrixExpression(innerDatatype, rows, columns)
-    for (row <- 0 until rows) {
-      for (col <- 0 until columns) {
-        tmp.set(row, col, expressions(row)(col))
-      }
+case class IR_MatrixAccess(name : String, idxy : IR_Index, idxx : IR_Index, dt : Option[IR_MatrixDatatype]) extends IR_Access {
+  override def datatype : IR_Datatype = dt.getOrElse(Logger.error("Accessing datatype that has not been assigned"))
+  override def prettyprint(out : PpStream) : Unit = Logger.error("internal node not resolved!")
+  def expand(lval : Boolean, rhsExpr : Option[IR_Expression]) : OutputType = {
+    val indices_y : Array[IR_Expression] = idxy match {
+      case _ @ IR_ExpressionIndex(idxs) => idxs
+      case _ @ IR_ConstIndex(idxs)      => idxs.map(i => IR_IntegerConstant(i))
+      case _ @ IR_RangeIndex(range)     => Array[IR_Expression](range(0).begin.getOrElse(IR_IntegerConstant(0)), range(0).end.getOrElse(IR_IntegerConstant(dt.asInstanceOf[IR_MatrixDatatype].sizeM)))
     }
-    tmp
-  }
-  def apply(datatype : IR_MatrixDatatype, expressions : ListBuffer[IR_Expression]) : IR_MatrixExpression = {
-    val tmp = IR_MatrixExpression(datatype.datatype, datatype.sizeM, datatype.sizeN)
-    tmp.expressions = expressions.toArray
-    tmp
-  }
-
-  def fromSingleExpression(innerDatatype : IR_Datatype, rows : Integer, columns : Integer, expression : IR_Expression) : IR_MatrixExpression = {
-    val tmp = new IR_MatrixExpression(Some(innerDatatype), rows, columns)
-    for (i <- 0 until rows * columns)
-      tmp.expressions(i) = Duplicate(expression)
-    tmp
-  }
-}
-
-case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var rows : Int, var columns : Int, var shape : Option[IR_MatShape] = None) extends IR_Expression {
-  var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](rows * columns)
-
-  override def datatype = {
-    innerDatatype match {
-      case None                         =>
-        var ret = expressions(0).datatype
-        expressions.foreach(s => ret = IR_ResultingDatatype(ret, s.datatype))
-        innerDatatype = Some(ret)
-      case Some(dt : IR_MatrixDatatype) => innerDatatype = Some(dt.resolveBaseDatatype)
-      case _                            =>
+    val indices_x : Array[IR_Expression] = idxx match {
+      case _ @ IR_ExpressionIndex(idxs) => idxs
+      case _ @ IR_ConstIndex(idxs)      => idxs.map(i => IR_IntegerConstant(i))
+      case _ @ IR_RangeIndex(range)     => Array[IR_Expression](range(0).begin.getOrElse(IR_IntegerConstant(0)), range(0).end.getOrElse(IR_IntegerConstant(dt.asInstanceOf[IR_MatrixDatatype].sizeN)))
     }
-    IR_MatrixDatatype(innerDatatype.getOrElse(IR_RealDatatype), this.rows, this.columns)
+    (indices_y.length, indices_x.length) match {
+      case (1, 1) =>
+        if (!lval) IR_GetElement(ListBuffer[IR_Expression](IR_VariableAccess(name, datatype), indices_y(0), indices_x(0)))
+        else IR_SetElement(ListBuffer[IR_Expression](IR_VariableAccess(name, datatype), indices_y(0), indices_x(0), rhsExpr.getOrElse(Logger.error("rhs value for MatrixAccess assignment not given"))))
+      case (2, 2) =>
+        if (!lval) IR_GetSlice(ListBuffer[IR_Expression](IR_VariableAccess(name, datatype), indices_y(0), indices_x(0), indices_y(1) - indices_y(0), indices_x(1) - indices_x(0)))
+        else IR_SetSlice(ListBuffer[IR_Expression](IR_VariableAccess(name, datatype), indices_y(0), indices_x(0), indices_y(1) - indices_y(0), indices_x(1) - indices_x(0), rhsExpr.getOrElse(Logger.error("rhs value for MatrixAccess assignment not given"))))
+      case _      => Logger.error(s"unexpected index combination: ${ indices_x.length }, ${ indices_y.length }")
+    }
   }
 
-  def prettyprintInner(out : PpStream) : Unit = {
-    out << '{' << expressions.map(_.prettyprint).mkString(", ") << '}'
-  }
-
-  override def prettyprint(out : PpStream) : Unit = {
-    out << "__matrix_"
-    innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
-    out << '_' << rows << "_" << columns << "_t "
-    prettyprintInner(out)
-  }
-
-  def isConstant = expressions.forall(e => e.isInstanceOf[IR_Number])
-
-  def isInteger = expressions.forall(e => e.isInstanceOf[IR_IntegerConstant])
-
-  def isReal = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
-
-  def get(row : Integer, column : Integer) = expressions(row * columns + column)
-
-  def set(row : Integer, column : Integer, exp : IR_Expression) = expressions(row * columns + column) = exp
-
-  def inverse : IR_MatrixExpression = {
-    IR_CompiletimeInversion.inverse(this,  IR_MatShape("filled"))
-  }
-
-  override def toString : String = {
-    "IR_MatrixExpression(" + innerDatatype + ", " + rows + ", " + columns + "; Items: " + expressions.mkString(", ") + ")"
-  }
 }
