@@ -7,7 +7,8 @@ Domain global< [ 0, 0 ] to [ 1, 1 ] >
 
 Field Solution with Real on Node of global = 1.0
 
-Field Solution@finest on boundary = (5.0 * PI**2 - k**2) * sin ( PI * vf_boundaryPos_x ) * sin ( 2 * PI * vf_boundaryPos_y ) 
+// Field Solution@finest on boundary = (5.0 * PI**2 - k**2) * sin ( PI * vf_boundaryPos_x ) * sin ( 2 * PI * vf_boundaryPos_y ) 
+Field Solution@finest on boundary = 0.0 
 Field Solution@(all but finest) on boundary = 0.0
 
 Field RHS@finest with Real on Node of global = 0.0
@@ -56,7 +57,7 @@ Operator A from Stencil {
 }
 
 Operator M from Stencil {
-  [ 0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) - beta1 * k**2
+  [ 0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) - shift * k**2
   [-1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
   [ 1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
   [ 0, -1] => -1.0 / ( vf_gridWidth_y ** 2 )
@@ -75,10 +76,9 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 /// globals
 
 Globals {
-  Var k : Real = 160
-  Expr omegaRelax = 1
-  Var beta1 : Real = -1
-  Var beta2 : Real = 0
+  Expr k = 40.0
+  Expr omegaRelax = 1.0
+  Expr shift = -1.0
 }
 
 Function NormResidual@(coarsest and finest) : Real {
@@ -409,15 +409,22 @@ Function PreconditionedMinRes@finest {
 
 /// Preconditioner
 
-Function Smoother@all {
+Function PreSmoother@all {
+  repeat 2 times {
+    u += omegaRelax * diag_inv ( M ) * ( f - M * u ) where (i0 + i1) % 2 == 0
+    u += omegaRelax * diag_inv ( M ) * ( f - M * u ) where (i0 + i1) % 2 == 1
+  }
+}
+Function PostSmoother@all {
   repeat 2 times {
     u += omegaRelax * diag_inv ( M ) * ( f - M * u ) where (i0 + i1) % 2 == 0
     u += omegaRelax * diag_inv ( M ) * ( f - M * u ) where (i0 + i1) % 2 == 1
   }
 }
 
+
 Function VCycle@(coarsest + 2 to finest) {
-  Smoother ( )
+  PreSmoother ( )
 
   res = f - M * u
   f@coarser = Restriction_u * res
@@ -427,11 +434,11 @@ Function VCycle@(coarsest + 2 to finest) {
 
   u += Prolongation_u@coarser * u@coarser
 
-  Smoother ( )
+  PostSmoother ( )
 }
 
 Function VCycle@(coarsest + 1) {
-  Smoother ( )
+  PreSmoother ( )
 
   res = f - M * u
   f@coarser = Restriction_u * res
@@ -442,9 +449,11 @@ Function VCycle@(coarsest + 1) {
 
   u += Prolongation_u@coarser * u@coarser
 
-  Smoother ( )
+  PostSmoother ( )
 }
+
 /*
+ * Conjugate Gradient Coarse Grid Solver
 Function VCycle@coarsest {
   // init residual
   gen_residual_u    = f - M * gen_error_u
@@ -476,9 +485,11 @@ Function VCycle@coarsest {
     p_u         = gen_residual_u + beta * p_u
     curRes    = nextRes
   }
+  print ( "Maximum number of cgs iterations (", 10000, ") was exceeded" )
 
 }
 */
+
 Field nu    @coarsest from gen_residual_u
 Field p     @coarsest from gen_residual_u
 Field h     @coarsest from gen_residual_u
@@ -527,6 +538,4 @@ Function VCycle@coarsest {
 
   //print ( "Maximum number of cgs iterations (", 10000, ") was exceeded" )
 }
-
-
 

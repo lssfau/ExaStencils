@@ -48,7 +48,7 @@ Field vNew@finest from Residual
 /// operators
 
 Operator A from Stencil {
-  [ 0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) - factor * k**2
+  [ 0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) - k**2
   [-1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
   [ 1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
   [ 0, -1] => -1.0 / ( vf_gridWidth_y ** 2 )
@@ -75,10 +75,10 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 /// globals
 
 Globals {
-  Expr k = 80.0
-  Expr factor = 1.0
+  Expr k = 40.0
   Expr omegaRelax = 1.0
   Expr shift = (0.6 - 1.0j)
+  // Var shift : Complex<Real> = (0.6 - 1.0j)
 }
 
 Function NormResidual@(coarsest and finest) : Complex<Real> {
