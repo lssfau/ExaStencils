@@ -22,77 +22,67 @@ import exastencils.base.ProgressLocation
 import exastencils.base.ir.IR_Expression
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_MatrixAccess
-import exastencils.baseExt.ir.IR_MatrixExpression
+import exastencils.datastructures.DefaultStrategy
+import exastencils.datastructures.Transformation
+import exastencils.field.l4.L4_FieldCollection
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
+import exastencils.util.l4.L4_VariableDeclarationCollector
 
 /// L4_MatrixAccess
 object L4_MatrixAccess {
-  def apply(name : String, idxy : L4_Index, idxx : L4_Index) : L4_MatrixAccess = {
+  def apply(acc : L4_Access, idxy : L4_Index, idxx : L4_Index) : L4_MatrixAccess = {
     idxx match {
       case expridx : L4_ExpressionIndex =>
         if (expridx.indices.length > 1) Logger.error(s"Matrix access with more than 1 indices not allowed")
-      case cidx : L4_ConstIndex =>
+      case cidx : L4_ConstIndex         =>
         if (cidx.indices.length > 1) Logger.error(s"Matrix access with more than 1 indices not allowed")
-      case ridx : L4_RangeIndex =>
-      case _ => Logger.error("unexprected index type")
+      case ridx : L4_RangeIndex         =>
+      case _                            => Logger.error("unexprected index type")
     }
     idxy match {
       case expridx : L4_ExpressionIndex =>
         if (expridx.indices.length > 1) Logger.error(s"Matrix access with more than 1 indices not allowed")
-      case cidx : L4_ConstIndex =>
+      case cidx : L4_ConstIndex         =>
         if (cidx.indices.length > 1) Logger.error(s"Matrix access with more than 1 indices not allowed")
-      case ridx : L4_RangeIndex =>
-      case _ => Logger.error("unexprected index type")
+      case ridx : L4_RangeIndex         =>
+      case _                            => Logger.error("unexprected index type")
     }
-    new L4_MatrixAccess(name, idxy, idxx)
+    new L4_MatrixAccess(acc, idxy, idxx)
   }
 }
 
-case class L4_MatrixAccess(name : String, idxy : L4_Index, idxx : L4_Index) extends L4_Access {
-  override def progress : IR_Expression = ProgressLocation(IR_MatrixAccess(name, idxx.progress, idxy.progress, None))
+case class L4_MatrixAccess(acc : L4_Access, idxy : L4_Index, idxx : L4_Index) extends L4_Access {
+  override def progress : IR_Expression = ProgressLocation(IR_MatrixAccess(acc.progress, idxy.progress, idxx.progress))
   override def prettyprint(out : PpStream) : Unit = {
     out << name << idxy << idxx
   }
+  override def name : String = acc.name
 }
 
-/// L4_MatrixExpression
 
-case class L4_MatrixExpression(
-    var datatype : Option[L4_Datatype],
-    var expressions : List[List[L4_Expression]],
-    var shape : Option[L4_MatShape]
-) extends L4_Expression {
+object L4_PrepareMatrixAccesses extends DefaultStrategy("Prepare matrix accesses") {
+  var declCollector = new L4_VariableDeclarationCollector
+  this.register(declCollector)
 
-  if (expressions.exists(_.length != expressions(0).length))
-    Logger.error("Rows of matrix must be of equal length")
+  this.onBefore = () => this.resetCollectors()
 
-  def prettyprint(out : PpStream) = {
-    out << "{ "
-    expressions.foreach(out << "{ " <<< (_, ", ") << " }, ")
-    out.removeLast(", ".length)
-    out << " }"
-    if (shape.isDefined) out << shape.get.toString()
-  }
+  this += new Transformation("Prepare", {
+    case uacc : L4_UnresolvedAccess if(uacc.matIndex.isDefined) =>
+      val decl = declCollector.plainDeclarations.last.get(uacc.name)
+      val fieldFound = L4_FieldCollection.exists(uacc.name)
+      if(decl.isEmpty && !fieldFound) Logger.error("Declaration for access not found")
+      else if(!decl.get.datatype.isInstanceOf[L4_MatrixDatatype]) Logger.error("Access with matIndex to non matrix variable")
+      if(fieldFound) uacc
+      else {
+        if(uacc.level.isDefined) Logger.warn("Discarding level on variable access to matrix variable")
+        if(uacc.slot.isDefined) Logger.warn("Discarding slot on variable access to matrix variable")
+        if(uacc.arrayIndex.isDefined) Logger.warn("Discarding array index on variable access to matrix variable")
+        if(uacc.offset.isDefined) Logger.warn("Discarding offset on variable access to matrix variable")
+        if(uacc.dirAccess.isDefined) Logger.warn("Discarding dirAccess on variable access to matrix variable")
+        L4_MatrixAccess(L4_PlainVariableAccess(uacc.name, decl.get.datatype, false), uacc.matIndex.get(0), uacc.matIndex.get(1))
+      }
+  })
 
-  override def progress = ProgressLocation(
-    IR_MatrixExpression(
-      L4_ProgressOption(datatype)(_.progress),
-      this.rows,
-      this.columns,
-      expressions.flatten.map(_.progress).toArray,
-      if (shape.isDefined) Some(shape.get.progress) else None
-    )
-  )
-
-  def rows = expressions.length
-  def columns = expressions(0).length
-  def isConstant = expressions.flatten.count(_.isInstanceOf[L4_Number]) == expressions.length
-  def convertConstants(dt : L4_Datatype) : Unit = {
-    expressions = expressions.map(_.map(exp => (exp, dt) match {
-      case (c : L4_IntegerConstant, L4_RealDatatype | L4_FloatDatatype | L4_DoubleDatatype) => L4_RealConstant(c.v)
-      case (c : L4_RealConstant, L4_IntegerDatatype)                                        => L4_IntegerConstant(c.v.toInt)
-      case (_, _)                                                                           => exp
-    }))
-  }
 }
+

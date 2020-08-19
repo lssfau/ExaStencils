@@ -138,10 +138,9 @@ case class IR_ConstIndex(override var indices : Array[Int]) extends IR_Index wit
   }
 }
 
-case class IR_Range(var begin : Option[IR_Expression], var end : Option[IR_Expression]) {
-  if (begin.isEmpty && end.isEmpty) {
-    Logger.warn("Empty IR_Range")
-  }
+case class IR_Range(var begin : Option[IR_Expression], var end : Option[IR_Expression]) extends IR_Expression {
+  override def datatype : IR_Datatype = Logger.error("this should not be asked for")
+  override def prettyprint(out : PpStream) : Unit = Logger.error("internal node not resolved")
 }
 
 

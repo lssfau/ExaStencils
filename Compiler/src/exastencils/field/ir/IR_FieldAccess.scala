@@ -106,6 +106,9 @@ object IR_FieldAccess {
 
   def apply(field : IR_Field, slot : IR_Expression, index : IR_ExpressionIndex, offset : Option[IR_ConstIndex], frozen : Boolean)
   = new IR_FieldAccess(field, slot, IR_LoopOverFragments.defIt, index, offset, frozen)
+
+  def apply(field : IR_Field, slot : IR_Expression, index : IR_ExpressionIndex, offset : Option[IR_ConstIndex], frozen : Boolean, matIndex : Option[Array[IR_Index]])
+  = new IR_FieldAccess(field, slot, IR_LoopOverFragments.defIt, index, offset, frozen, matIndex)
 }
 
 case class IR_FieldAccess(
@@ -114,7 +117,9 @@ case class IR_FieldAccess(
     var fragIdx : IR_Expression,
     var index : IR_ExpressionIndex,
     var offset : Option[IR_ConstIndex] = None,
-    var frozen : Boolean = false) extends IR_MultiDimFieldAccess with IR_CanBeOffset {
+    var frozen : Boolean = false,
+    var matIndex : Option[Array[IR_Index]] = None
+) extends IR_MultiDimFieldAccess with IR_CanBeOffset {
 
   override def datatype = {
     val layout = field.layout
