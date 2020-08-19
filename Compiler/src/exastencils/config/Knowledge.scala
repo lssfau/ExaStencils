@@ -605,11 +605,15 @@ object Knowledge {
   var experimental_inplaceDeterminant : Boolean = false
   // classify structure of system matrix for solveLinearSystem statements
   var experimental_classifyLocMat : Boolean = false
-  // if shape of system matrix is known
+  // if shape of system matrix is known for local solve statements
   var experimental_locMatStructure : String = "filled"
   var experimental_locMatBlocksize : Int = -1
   var experimental_locMatStructureA : String = ""
   var experimental_locMatBlocksizeA : Int = -1
+  // check if compiletime inversion might have become unstable at runtime by inspecting the pivot elements
+  var experimental_checkCTInversionPivots : Boolean = false
+  var experimental_CTInversionPivotTolerance : Double = 0.000001
+
 
 
   // tries to apply an inversion based on the Schur complement in local solve blocks
