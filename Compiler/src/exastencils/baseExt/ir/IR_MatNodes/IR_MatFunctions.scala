@@ -9,14 +9,14 @@ import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_HighDimAccess
 import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_Scope
-import exastencils.base.ir.IR_UnitDatatype
+import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_UnknownDatatype
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.baseExt.ir.IR_CompiletimeMatOps
+import exastencils.baseExt.ir.IR_MatNodeUtils
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
-import exastencils.baseExt.ir.IR_MatNodeUtils
 import exastencils.baseExt.ir.IR_PreItMOps
 import exastencils.datastructures.Transformation.Output
 import exastencils.logger.Logger
@@ -97,15 +97,13 @@ object IR_SetElement {
 }
 case class IR_SetElement(
     var arguments : ListBuffer[IR_Expression]
-) extends IR_ExtractableMNode with IR_ResolvableMNode {
+) extends IR_Statement with IR_ResolvableMNode {
   def name = "setElement"
-  override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) = out << "SetElement" << '(' <<< (arguments, ", ") << ')'
   override def resolve() : Output[IR_Scope] = {
     IR_Scope(IR_Assignment(IR_HighDimAccess(arguments(0), IR_ExpressionIndex(arguments(1), arguments(2))), arguments(3)))
   }
-  override def isResolvable() : Boolean = isExtractable() && !this.hasAnnotation(IR_PreItMOps.potentialInline)
-  override def isExtractable() : Boolean = IR_MatNodeUtils.isEvaluatable(arguments(0))
+  override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(arguments(0)) && !this.hasAnnotation(IR_PreItMOps.potentialInline)
 }
 
   // get element node for compiletime execution
@@ -131,9 +129,8 @@ object IR_SetSlice {
 }
 case class IR_SetSlice(
     var arguments : ListBuffer[IR_Expression]
-) extends IR_ExtractableMNode with IR_ResolvableMNode {
+) extends IR_Statement with IR_ResolvableMNode {
   def name = "setSlice"
-  override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) = out << "setSlice" << '(' <<< (arguments, ", ") << ')'
   override def resolve() : Output[IR_Scope] = {
     var matrix = arguments(0)
@@ -143,7 +140,7 @@ case class IR_SetSlice(
     var nCols = arguments(4)
     var newValue = arguments(5)
     if (IR_MatNodeUtils.isScalar(newValue))
-      IR_Scope(IR_GenerateBasicMatrixOperations.loopSetSubmatrixSc(matrix.asInstanceOf[IR_VariableAccess], offsetRows, offsetCols, nRows, nCols, newValue))
+      IR_Scope(IR_GenerateBasicMatrixOperations.loopSetSubmatrixSc(matrix.asInstanceOf[IR_Access], offsetRows, offsetCols, nRows, nCols, newValue))
     else {
       var insize = IR_CompiletimeMatOps.getSize(newValue)
       newValue match {
@@ -156,8 +153,7 @@ case class IR_SetSlice(
       }
     }
   }
-  override def isResolvable() : Boolean = isExtractable() && !this.hasAnnotation(IR_PreItMOps.potentialInline)
-  override def isExtractable() : Boolean = arguments.forall(arg => IR_MatNodeUtils.isEvaluatable(arg))
+  override def isResolvable() : Boolean = arguments.forall(arg => IR_MatNodeUtils.isEvaluatable(arg)) && !this.hasAnnotation(IR_PreItMOps.potentialInline)
 }
 
 object IR_ToMatrix {

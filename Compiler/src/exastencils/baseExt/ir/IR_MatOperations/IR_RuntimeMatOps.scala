@@ -46,6 +46,7 @@ import exastencils.util.ir._
 // generate simple operations with matrices for execution at runtime for e.g. an inversion at runtime
 object IR_GenerateBasicMatrixOperations {
   var tmpCounter = 0
+  var pivotVarCounter = 0
 
   // generate code to copy a matrix per std::copy
   def copyMatrix(dest : IR_VariableAccess, src : IR_Expression) : ListBuffer[IR_Statement] = {
@@ -126,6 +127,7 @@ object IR_GenerateBasicMatrixOperations {
         func.body += IR_IfCondition(IR_Greater(IR_FunctionCall(IR_ExternalFunctionReference.fabs, IR_Subtraction(left, right)), precision), ListBuffer[IR_Statement](
           IR_Print(outstream, ListBuffer[IR_Expression](IR_StringConstant("[Test] comparison failed: "), left, IR_StringConstant(" vs "), right, IR_StringConstant("\\n")))
         ))
+      case _ => Logger.error(s"unexpected combination: ${left.datatype}, ${right.datatype}")
     }
     func
   }
@@ -338,7 +340,7 @@ object IR_GenerateBasicMatrixOperations {
   }
 
   // write 'newVal' to all positions in 'n_rows' x 'n_cols' at position 'offset_r', 'offset_c' in 'matrix'
-  def loopSetSubmatrixSc(matrix : IR_VariableAccess, offsetRows : IR_Expression, offsetCols : IR_Expression, nRows : IR_Expression, nCols : IR_Expression, newValue : IR_Expression) : IR_Scope = {
+  def loopSetSubmatrixSc(matrix : IR_Access, offsetRows : IR_Expression, offsetCols : IR_Expression, nRows : IR_Expression, nCols : IR_Expression, newValue : IR_Expression) : IR_Scope = {
     var stmts = IR_Scope(Nil)
     var i = IR_VariableAccess("i", IR_IntegerDatatype)
     var j = IR_VariableAccess("j", IR_IntegerDatatype)
@@ -394,6 +396,19 @@ object IR_GenerateBasicMatrixOperations {
       func.body += determinantLargeMatrix(in, P, out)
     }
     func
+  }
+
+  def pivotCheck(pivots : IR_MatrixExpression) : ListBuffer[IR_Statement] = {
+    var stmts = ListBuffer[IR_Statement]()
+    var pivAcc = IR_VariableAccess("pivots_" + pivotVarCounter, pivots.datatype)
+    pivotVarCounter += 1
+    var i = IR_VariableAccess("i", IR_IntegerDatatype)
+    var cout = IR_VariableAccess("std::cout", IR_StringDatatype)
+    stmts += IR_VariableDeclaration(pivAcc, pivots)
+    stmts += IR_ForLoop(IR_VariableDeclaration(i, 0), IR_Lower(i, pivots.columns), IR_PreIncrement(i), ListBuffer[IR_Statement](
+      IR_IfCondition(IR_Lower(IR_HighDimAccess(pivAcc, IR_ExpressionIndex(0,i)), Knowledge.experimental_CTInversionPivotTolerance),ListBuffer[IR_Statement](IR_Print(cout,ListBuffer[IR_Expression](IR_StringConstant("Compiletime inversion may have become unstable, switch to runtime inversion!"))), IR_Return(-1)))
+    ))
+   stmts
   }
 }
 

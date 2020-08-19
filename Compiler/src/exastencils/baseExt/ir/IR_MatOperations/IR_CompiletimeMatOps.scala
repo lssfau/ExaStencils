@@ -234,7 +234,9 @@ object IR_CompiletimeMatOps {
     * */
   def dotProduct(left : IR_Expression, right : IR_Expression) : IR_MatrixExpression = {
     (left, right) match {
-      case (l @ (IR_MatrixExpression(_, _, _, _) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))), r @ (IR_MatrixExpression(_, _, _, _) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)))) =>
+      //case (l @ (IR_MatrixExpression(_, _, _, _) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))), r @ (IR_MatrixExpression(_, _, _, _) | IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)))) =>
+
+      case (l, r) if (IR_MatNodeUtils.isMatrix(l) && IR_MatNodeUtils.isMatrix(r)) =>
         var lsize = getSize(l)
         var rsize = getSize(r)
         (lsize, rsize) match {
@@ -256,7 +258,7 @@ object IR_CompiletimeMatOps {
             out
           case _                                                                      => Logger.error("unsupported argument form: " + lsize + ", " + rsize + ", expected arguments of the same size")
         }
-      case _                                                                                                                                                                                    => Logger.error("unexpected argument types: " + left + ", " + right + ", expected matrix variables or expressions as input")
+      case _                                                                      => Logger.error("unexpected argument types: " + left + ", " + right + ", expected matrix variables or expressions as input")
     }
 
   }
@@ -650,10 +652,7 @@ object IR_CompiletimeMatOps {
     if (that.rows != that.columns)
       Logger.error("inversion of non quadratic matrices not supported.")
 
-    var allNumbers = false
-    if (that.expressions.forall(e => if (e.isInstanceOf[IR_Number]) true else false)) {
-      allNumbers = true
-    }
+
     matrixStructure match {
       case "diagonal"
       => {
@@ -751,8 +750,8 @@ object IR_CompiletimeMatOps {
             val c = that.get(1, 0)
             val d = that.get(1, 1)
             val det : IR_Expression = IR_Division(IR_RealConstant(1.0), (Duplicate(a) * Duplicate(d)) - (Duplicate(b) * Duplicate(c)))
-            IR_MatrixExpression(that.innerDatatype, 2, 2, Array(det * Duplicate(d), det * Duplicate(b) * IR_IntegerConstant(-1), det * Duplicate(c) * IR_IntegerConstant(-1), det * Duplicate(a)), None)
-
+            IR_MatrixExpression(that.innerDatatype, 2, 2, Array(Duplicate(det) * Duplicate(d), Duplicate(det) * Duplicate(b) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(c) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(a)), None)
+/*
           case 3 =>
             val a = that.get(0, 0)
             val b = that.get(0, 1)
@@ -774,21 +773,11 @@ object IR_CompiletimeMatOps {
             val I = Duplicate(a) * Duplicate(e) - Duplicate(b) * Duplicate(d)
             val det = Duplicate(a) * A + Duplicate(b) * B + Duplicate(c) * C
             IR_MatrixExpression(that.innerDatatype, 3, 3, Array(Duplicate(A) / Duplicate(det), Duplicate(D) / Duplicate(det), Duplicate(G) / Duplicate(det), Duplicate(B) / Duplicate(det), Duplicate(E) / Duplicate(det), Duplicate(H) / Duplicate(det), Duplicate(C) / Duplicate(det), Duplicate(F) / Duplicate(det), Duplicate(I) / Duplicate(det)), None)
+*/
           case _ =>
             val LUP = LUDecomp(that)
             LUDecompedInverse(LUP._1, LUP._2)
-          /*
-            if (allNumbers) {
-              Logger.warn("allNumbers")
-              val LUP = LUDecomp(that)
-              LUDecompedInverse(LUP._1, LUP._2)
-            }
-            else {
-              Logger.warn(" not allNumbers")
-              gaussJordanInverse(that)
-            }
 
-             */
         }
       }
 
@@ -863,50 +852,65 @@ object IR_CompiletimeMatOps {
   def LUDecomp(matrix : IR_MatrixExpression) : (IR_MatrixExpression, Array[Int]) = {
     //var LU = IR_MatrixExpression(that.innerDatatype, that.rows, that.columns)
     var LU = Duplicate(matrix)
-    val N = matrix.columns
+    val N : Int = matrix.columns
     if (N != matrix.rows) Logger.error("can only decompose quadratic matrices with LU")
     var P = new Array[Int](N)
     for (i <- 0 until N) P(i) = i
-    var absA : Double = 0.0
+    var absA : IR_Expression = 0.0
     //Logger.error(s"matrix before ${LU}")
+
+    var ctPivots = IR_MatrixExpression(IR_RealDatatype, 1, N)
+    var ctPivotsIdx = 0
+
     for (i <- 0 until N) {
 
       // pivot
-      var maxA : Double = 0.0
+      var maxA : IR_Expression = IR_RealConstant(0.0)
       var imax : Int = i
       for (k <- i until N) {
-/*
-        val cur = LU.get(k, i)
-        cur match {
-          case n : IR_Number =>
-            val curVal : Double = n.value.asInstanceOf[Number].doubleValue().abs
-            if (curVal > maxA) {
-              maxA = curVal
-              imax = k
-            }
-          case n             => Logger.error(s"not evaluatable ${ n }")
-        }
-*/
+
         var value_at_ki : Double = 0.0
         var evaluatable = true
         try {
           value_at_ki = IR_CompiletimeMatOps.evalNumExpr(LU.get(k, i))
-
         } catch {
           case _ : EvaluationException => evaluatable = false
         }
-        if(evaluatable) {
-          LU.set(k, i, IR_DoubleConstant(value_at_ki))
-          absA = value_at_ki.abs
-          if (absA > maxA) {
+        if (evaluatable) {
+          // if evaluatable compare and switch if larger
+          LU.set(k, i, IR_RealConstant(value_at_ki))
+          absA = IR_RealConstant(value_at_ki.abs)
+          if (absA.asInstanceOf[IR_RealConstant].value > maxA.asInstanceOf[IR_RealConstant].value) {
             maxA = absA
             imax = k
           }
         }
       }
-      //        if(maxA < scala.math.pow(10,-15)) Logger.error("very small entry is largest, unstable!")
+
+      // no pivot element larger than 0 found or evaluatable -> take an Access and hope
+      if (maxA.asInstanceOf[IR_RealConstant].value == 0.0) {
+        for (k <- i until N) {
+          var value_at_ki : Double = 0.0
+          var evaluatable = true
+          try {
+            value_at_ki = IR_CompiletimeMatOps.evalNumExpr(LU.get(k, i))
+          } catch {
+            case _ : EvaluationException => evaluatable = false
+          }
+          if (!evaluatable) {
+            maxA = Duplicate(LU.get(k, i))
+            imax = k
+          }
+        }
+      }
+
+      if (Knowledge.experimental_checkCTInversionPivots) {
+        ctPivots.set(0, ctPivotsIdx, maxA)
+        ctPivotsIdx += 1
+      }
+
       if (imax != i) {
-        Logger.warn("pivoting")
+        Logger.warn(s"pivoting imax=${ imax } and i=${ i }")
         var tmp = P(i)
         P(i) = P(imax)
         P(imax) = tmp
@@ -926,6 +930,10 @@ object IR_CompiletimeMatOps {
           LU.set(j, k, tmp2)
         }
       }
+    }
+
+    if (Knowledge.experimental_checkCTInversionPivots) {
+      LU.annotate("checkCTInversionPivots", ctPivots)
     }
     (LU, P)
   }
@@ -953,27 +961,32 @@ object IR_CompiletimeMatOps {
 
       }
     }
+    if (Knowledge.experimental_checkCTInversionPivots) {
+      LU_inv.annotate("checkCTInversionPivots", LU.popAnnotationAs[IR_MatrixExpression]("checkCTInversionPivots"))
+    }
     LU_inv
   }
 
-  def forwardBackwardSub(A : IR_MatrixExpression, b : IR_MatrixExpression, P : Array[Int]) : IR_MatrixExpression = {
+  def forwardBackwardSub(LU : IR_MatrixExpression, b : IR_MatrixExpression, P : Array[Int]) : IR_MatrixExpression = {
     // solve
-    val N = A.columns
-    if (N != A.rows) Logger.error("can only decompose quadratic matrices with LU")
-    var u_loc = IR_MatrixExpression(A.innerDatatype, A.columns, 1)
+    val N = LU.columns
+    if (N != LU.rows) Logger.error("can only decompose quadratic matrices with LU")
+    var u_loc = IR_MatrixExpression(LU.innerDatatype, LU.columns, 1)
     for (i <- 0 until N) {
       u_loc.set(i, 0, Duplicate(b.get(P(i), 0)))
       for (k <- 0 until i) {
-        u_loc.set(i, 0, Duplicate(u_loc.get(i, 0)) - Duplicate(A.get(i, k)) * Duplicate(u_loc.get(k, 0)))
+        u_loc.set(i, 0, Duplicate(u_loc.get(i, 0)) - Duplicate(LU.get(i, k)) * Duplicate(u_loc.get(k, 0)))
       }
     }
     for (i <- N - 1 to 0 by -1) {
       for (k <- i + 1 until N) {
-        u_loc.set(i, 0, Duplicate(u_loc.get(i, 0)) - Duplicate(A.get(i, k)) * Duplicate(u_loc.get(k, 0)))
+        u_loc.set(i, 0, Duplicate(u_loc.get(i, 0)) - Duplicate(LU.get(i, k)) * Duplicate(u_loc.get(k, 0)))
       }
-      u_loc.set(i, 0, Duplicate(u_loc.get(i, 0)) / Duplicate(A.get(i, i)))
+      u_loc.set(i, 0, Duplicate(u_loc.get(i, 0)) / Duplicate(LU.get(i, i)))
     }
-
+    if (Knowledge.experimental_checkCTInversionPivots) {
+      u_loc.annotate("checkCTInversionPivots", LU.popAnnotationAs[IR_MatrixExpression]("checkCTInversionPivots"))
+    }
     u_loc
   }
 
