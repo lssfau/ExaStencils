@@ -37,7 +37,6 @@ import exastencils.baseExt.ir.IR_MatrixExpression
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation
 import exastencils.logger.Logger
-import exastencils.optimization.ir.EvaluationException
 import exastencils.prettyprinting.PpStream
 
 object IR_SolveLinearSystem {
@@ -64,7 +63,6 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
   def expand(AasExpr : IR_MatrixExpression) : Transformation.OutputType = {
 
     val msi : IR_MatShape = AasExpr.shape.getOrElse(IR_MatShape("filled"))
-    Logger.warn(s"Solving linear system with the following configuration: ${ Knowledge.experimental_resolveInverseFunctionCall }, " + msi.toStringList())
     val (m, n) = AasExpr.datatype match {
       case mat : IR_MatrixDatatype => (mat.sizeM, mat.sizeN)
       case _                       => Logger.error(s"unexpected datatype of A: ${ A.datatype }")
@@ -83,6 +81,7 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
       case s if (IR_MatNodeUtils.isScalar(u)) =>
       case _                                  => Logger.error(s"unexpected datatype of f: ${ A.datatype }")
     }
+    Logger.warn(s"Solving linear system with the following configuration: ${ Knowledge.experimental_resolveInverseFunctionCall }, (${ m }, ${ n } )")
     // scalar system
     if (m == 1 && n == 1) {
       IR_Assignment(u, IR_Division(f, A))
@@ -100,14 +99,15 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
           schurDomainDecomp(AasExpr)
         // Fallback1: solve by inverting A with given structure for Schur with size(D) > 1 or blockdiagonal
         case _ if (msi.shape != "filled") => IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
-       /*
-        case _ if (m > 1 && m < 4)        => // solve by inverse for small matrices
+        /*
+         case _ if (m > 1 && m < 4)        => // solve by inverse for small matrices
 
-          IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
-        */
+           IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
+         */
         // Fallback2: solve with lu for filled matrices larger than 3
 
-        case _  =>
+        case _ if (m < 3) => IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
+        case _            =>
           Logger.warn(s"solving LES with lu")
           if (Knowledge.experimental_resolveInverseFunctionCall == "Runtime") {
 
@@ -123,15 +123,8 @@ case class IR_SolveLinearSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
             stmts ++= genForwardBackwardSub(AasAcc, P, f, u)
             IR_Scope(stmts)
           } else {
-            try {
               val LUP = IR_CompiletimeMatOps.LUDecomp(AasExpr)
-              IR_Assignment(u, (IR_CompiletimeMatOps.forwardBackwardSub(LUP._1, IR_MatNodeUtils.accessToExpression(f), LUP._2)))
-            }
-            catch {
-              case e : EvaluationException =>
-                Logger.warn("matrix entries were not evaluatable, switching to inverse calculation")
-                IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
-            }
+              IR_Assignment(u, IR_CompiletimeMatOps.forwardBackwardSub(LUP._1, IR_MatNodeUtils.accessToExpression(f), LUP._2))
           }
       }
     }
