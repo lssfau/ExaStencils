@@ -72,6 +72,9 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     L4_ExternalFieldCollection
     L4_EquationCollection
     L4_FieldCombinationCollection
+
+
+    L4_PrepareAccesses.strategies += L4_PrepareMatrixAccesses
   }
 
   override def shutdown() : Unit = {
