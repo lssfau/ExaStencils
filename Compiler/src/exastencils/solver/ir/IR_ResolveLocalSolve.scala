@@ -162,12 +162,12 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
           // classify init
           val initOpt : Option[IR_Expression] = variableCollector.getConstInitVal(va.name)
           if (Knowledge.experimental_classifyLocMat) {
-            val init = initOpt.getOrElse(Logger.error("local system matrix to classify is not compiletime constant")).asInstanceOf[IR_MatrixExpression]
-            init.shape = Some(IR_ClassifyMatShape(init))
-            init
+            val init = initOpt.getOrElse(Logger.error("local system matrix to classify is not compiletime constant"))
+            if(!init.datatype.isInstanceOf[IR_MatrixDatatype]) Logger.error("init not of type IR_MatrixExpression, can not classify!")
+            init.asInstanceOf[IR_MatrixExpression].shape = Some(IR_ClassifyMatShape(init))
+            init.asInstanceOf[IR_MatrixExpression]
           } else {
-            // get shape from init if there
-            initOpt.getOrElse(IR_MatNodeUtils.accessToExpression(va)).asInstanceOf[IR_MatrixExpression]
+            IR_MatNodeUtils.accessToExpression(va)
           }
       }
       sls.expand(sysMatAsExpr)
