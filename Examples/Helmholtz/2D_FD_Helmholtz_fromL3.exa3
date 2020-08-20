@@ -76,7 +76,7 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 /// globals
 
 Globals {
-  Expr k = 80.0
+  Expr k = 40.0
   Expr omegaRelax = 1.0
   Expr shift = -1.0
 }
