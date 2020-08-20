@@ -63,7 +63,7 @@ object IR_MatNodeUtils {
     if (n.hasAnnotation(evaluatable)) true
     else {
       n match {
-        case x : IR_Expression if (isMatrix(x) | isScalar(x) | isString(x) | isTensor(x)) =>
+        case x : IR_Expression if (isMatrix(x) | isMatFieldAccess(x) | isScalar(x) | isString(x) | isTensor(x)) =>
           n.annotate(evaluatable)
           true
         case _ : IR_Expression                                                            =>
@@ -84,7 +84,7 @@ object IR_MatNodeUtils {
       case IR_MatrixExpression(_, _, _, _)                                                                  => true
       case IR_VariableAccess(_, IR_ReferenceDatatype(innerDt)) if (innerDt.isInstanceOf[IR_MatrixDatatype]) => true
       //case fa : IR_MultiDimFieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])                     => true
-      case fa : IR_FieldAccess if (fa.field.layout.datatype.isInstanceOf[IR_MatrixDatatype]) => true
+      //case fa : IR_FieldAccess if (fa.field.layout.datatype.isInstanceOf[IR_MatrixDatatype]) => true
       //case x if (x.datatype.isInstanceOf[IR_MatrixDatatype]) => true
       case _ => false
 
@@ -98,8 +98,8 @@ object IR_MatNodeUtils {
     * */
   def isTensor(x : IR_Expression) : Boolean = {
     x match {
-      case IR_VariableAccess(_, inner : IR_TensorDatatype)                                                  => true
-      case t : IR_TensorExpression                                                                          => true
+      case IR_VariableAccess(_, _ : IR_TensorDatatype)                                                  => true
+      case _ : IR_TensorExpression                                                                          => true
       case IR_VariableAccess(_, IR_ReferenceDatatype(innerDt)) if (innerDt.isInstanceOf[IR_TensorDatatype]) => true
       case _                                                                                                => false
     }
@@ -163,7 +163,8 @@ object IR_MatNodeUtils {
         case e : IR_ElementwiseDivision                              => isMatrix(e.left) | isMatrix(e.right)
         case _ @ IR_FunctionCall(ref, _) if (ref.name == "toMatrix") => true
         case _ @ IR_FunctionCall(ref, _) if (ref.name == "inverse")  => true
-        case e : IR_FunctionCall                                     => e.arguments.exists(a => isMatrix(a))
+        case _ @ IR_FunctionCall(_, args)                            => args.exists(a => isMatrix(a))
+
         //case e : IR_Expression if(e.datatype.isInstanceOf[IR_MatrixDatatype]) => true
       }
       if (b) {
@@ -175,6 +176,13 @@ object IR_MatNodeUtils {
         false
       }
     }
+  }
+
+  def isMatFieldAccess(expr : IR_Expression) : Boolean = {
+   expr match {
+     case fa : IR_FieldAccess if fa.field.layout.datatype.isInstanceOf[IR_MatrixDatatype] => true
+     case _ => false
+   }
   }
 
   /** Method: split a declaration with init to declaration and assignment with init

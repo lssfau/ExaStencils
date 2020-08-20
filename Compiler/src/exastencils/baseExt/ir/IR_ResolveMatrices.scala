@@ -20,58 +20,8 @@ package exastencils.baseExt.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir
-import exastencils.base.ir.IR_Access
-import exastencils.base.ir.IR_Addition
-import exastencils.base.ir.IR_ArrayAccess
-import exastencils.base.ir.IR_Assignment
-import exastencils.base.ir.IR_ConstIndex
-import exastencils.base.ir.IR_ElementwiseAddition
-import exastencils.base.ir.IR_ElementwiseDivision
-import exastencils.base.ir.IR_ElementwiseMultiplication
-import exastencils.base.ir.IR_ElementwiseSubtraction
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExpressionIndex
-import exastencils.base.ir.IR_ExpressionStatement
-import exastencils.base.ir.IR_ExternalFunctionReference
-import exastencils.base.ir.IR_Function
-import exastencils.base.ir.IR_FunctionArgument
-import exastencils.base.ir.IR_FunctionCall
-import exastencils.base.ir.IR_HighDimAccess
-import exastencils.base.ir.IR_Index
-import exastencils.base.ir.IR_IntegerConstant
-import exastencils.base.ir.IR_Multiplication
-import exastencils.base.ir.IR_Negative
-import exastencils.base.ir.IR_Node
-import exastencils.base.ir.IR_ReferenceDatatype
-import exastencils.base.ir.IR_Return
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_Subtraction
-import exastencils.base.ir.IR_UnitDatatype
-import exastencils.base.ir.IR_VariableAccess
-import exastencils.base.ir.IR_VariableDeclaration
-import exastencils.baseExt.ir.IR_MatNodes.IR_CrossProduct
-import exastencils.baseExt.ir.IR_MatNodes.IR_Determinant
-import exastencils.baseExt.ir.IR_MatNodes.IR_DeterminantCT
-import exastencils.baseExt.ir.IR_MatNodes.IR_DeterminantRT
-import exastencils.baseExt.ir.IR_MatNodes.IR_DotProduct
-import exastencils.baseExt.ir.IR_MatNodes.IR_ExtractableMNode
-import exastencils.baseExt.ir.IR_MatNodes.IR_ExtractableStatement
-import exastencils.baseExt.ir.IR_MatNodes.IR_GetElement
-import exastencils.baseExt.ir.IR_MatNodes.IR_GetSlice
-import exastencils.baseExt.ir.IR_MatNodes.IR_GetSliceCT
-import exastencils.baseExt.ir.IR_MatNodes.IR_GetSliceRT
-import exastencils.baseExt.ir.IR_MatNodes.IR_InlineableDeclaration
-import exastencils.baseExt.ir.IR_MatNodes.IR_IntermediateInv
-import exastencils.baseExt.ir.IR_MatNodes.IR_InverseCT
-import exastencils.baseExt.ir.IR_MatNodes.IR_InverseRT
-import exastencils.baseExt.ir.IR_MatNodes.IR_ResolvableMNode
-import exastencils.baseExt.ir.IR_MatNodes.IR_RuntimeMNode
-import exastencils.baseExt.ir.IR_MatNodes.IR_SetElement
-import exastencils.baseExt.ir.IR_MatNodes.IR_SetSlice
-import exastencils.baseExt.ir.IR_MatNodes.IR_ToMatrix
-import exastencils.baseExt.ir.IR_MatNodes.IR_Trace
-import exastencils.baseExt.ir.IR_MatNodes.IR_Transpose
+import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_MatNodes._
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateRuntimeInversion
 import exastencils.config.Knowledge
@@ -123,15 +73,16 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
   )
 
   import exastencils.baseExt.ir.IR_MatNodeUtils.checkIfMatOp
+  import exastencils.baseExt.ir.IR_MatNodeUtils.isMatFieldAccess
   import exastencils.baseExt.ir.IR_MatNodeUtils.isMatOp
 
   // replace function calls to matrix methods with dedicated nodes so they dont appear in function call tree and are easier to recognize and process
   /** Transformation: replace function calls with matrix method nodes */
   this += new Transformation("Replace function calls with matrix method nodes", {
-    case f @ IR_FunctionCall(ref, args) if (fctMapExprs.contains(ref.name) && checkIfMatOp(f)) =>
+    case f @ IR_FunctionCall(ref, args) if fctMapExprs.contains(ref.name) && (checkIfMatOp(f) || args.exists(a => isMatFieldAccess(a))) =>
       f.removeAnnotation(isMatOp)
       fctMapExprs(ref.name)(args)
-    case IR_ExpressionStatement(f @ IR_FunctionCall(ref, args)) if(fctMapStmts.contains(ref.name) && checkIfMatOp(f)) =>
+    case IR_ExpressionStatement(f @ IR_FunctionCall(ref, args)) if(fctMapStmts.contains(ref.name) && (checkIfMatOp(f) || args.exists(a => isMatFieldAccess(a)))) =>
       f.removeAnnotation(isMatOp)
       fctMapStmts(ref.name)(args)
   })
@@ -143,14 +94,14 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
 
   /** Transformation: split combined assignment: += to IR_Addition, *= to IR_Multiplication, /= to IR_Division, -= to IR_Subtraction */
   this += new Transformation("Split combined operators", {
-    case IR_Assignment(dest : IR_Access, src, "+=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] =>
+    case IR_Assignment(dest : IR_Access, src, "+=")  =>
       IR_Assignment(dest, IR_Addition(dest, src))
-    case IR_Assignment(dest : IR_Access, src, "*=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] =>
+    case IR_Assignment(dest : IR_Access, src, "*=") =>
       IR_Assignment(dest, IR_Multiplication(ListBuffer[IR_Expression](dest, src)))
-    case IR_Assignment(dest : IR_Access, src, "-=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] =>
+    case IR_Assignment(dest : IR_Access, src, "-=") =>
       IR_Assignment(dest, IR_Subtraction(dest, src))
-    case IR_Assignment(dest : IR_Access, src, "/=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] =>
-      IR_Assignment(dest, IR_ElementwiseDivision(dest, src))
+    case IR_Assignment(dest : IR_Access, src, "/=") =>
+      IR_Assignment(dest, IR_Division(dest, src))
   }, false)
 
   object TransformMatAccesses extends QuietDefaultStrategy("Transforming MatAccesses to slice nodes") {
@@ -351,6 +302,7 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
 
   import exastencils.baseExt.ir.IR_MatOpsInline.potentialInline
 
+
   /** Transformation: replace special(eventually to resolve at runtime)
     * function nodes with their resolvable counterparts if they are ready (considered for inline)
     * and resolve
@@ -364,6 +316,7 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
     case r : IR_RuntimeMNode if (!r.resolveAtRuntime && !r.hasAnnotation(potentialInline)) =>
       ctFctMap(r.name)(r)
     case mn : IR_ResolvableMNode if mn.isResolvable()                                      =>
+      //mn.removeAnnotation(isMatOp)
       mn.resolve()
 
     // to resolve at runtime
@@ -372,6 +325,7 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
     //case IR_Assignment(dest : IR_FieldAccess, r : IR_RuntimeMNode, _) if (r.resolveAtRuntime && !r.hasAnnotation(potentialInline)) =>
     //rtFctMap(r.name)(dest, r)
     case IR_ExpressionStatement(mn : IR_ResolvableMNode) if mn.isResolvable() =>
+      //mn.removeAnnotation(isMatOp)
       mn.resolve()
 
     // debug
@@ -483,7 +437,7 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
 
     // assignment of a matrix with another matrix : copy other matrix
     //case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src @ (IR_MatrixExpression(_, _, _, _) | _ : IR_VariableAccess ), "=") if (src.datatype.isInstanceOf[IR_MatrixDatatype]) =>
-    //  IR_GenerateBasicMatrixOperations.copyMatrix(dest, src)
+      //IR_GenerateBasicMatrixOperations.copyMatrix(dest, src)
     /*
         case IR_Assignment(dest, src : IR_Access, "=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] && !dest.isInstanceOf[IR_MatrixExpression] && src.datatype.isInstanceOf[IR_MatrixDatatype] =>
           val dt = dest.datatype.asInstanceOf[IR_MatrixDatatype]
@@ -608,7 +562,8 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
       newStmts += stmt
       newStmts
   })
-*/
+
+ */
 }
 
 /** Strategy: linearize matrix expressions */
@@ -630,7 +585,7 @@ object IR_LinearizeMatrices extends DefaultStrategy("linearize matrices") {
     case IR_HighDimAccess(base, idx : IR_ConstIndex) if idx.indices.length == 2 =>
       val matrix = base.datatype.asInstanceOf[IR_MatrixDatatype]
       if (matrix.sizeM > 1 || matrix.sizeN > 1 || idx(0) > 0 || idx(1) > 0)
-        ir.IR_ArrayAccess(base, IR_IntegerConstant(matrix.sizeN * idx.indices(0) + idx.indices(1)))
+        IR_ArrayAccess(base, IR_IntegerConstant(matrix.sizeN * idx.indices(0) + idx.indices(1)))
       else
         base
 
