@@ -415,7 +415,7 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val slotAccess = locationize(
     "$" ~> slotModifier ^^ (s => s)
-      ||| "[" ~> slotModifier <~ "]" ^^ (s => s))
+      ||| "<" ~> slotModifier <~ ">" ^^ (s => s))
 
   lazy val slotModifier = locationize("active" ^^ (_ => L4_ActiveSlot)
     ||| "activeSlot" ^^ (_ => L4_ActiveSlot)
@@ -432,21 +432,30 @@ object L4_Parser extends ExaParser with PackratParsers {
     ^^ (id => L4_UnresolvedAccess(id)))
   lazy val leveledAccess = locationize(ident ~ levelAccess
     ^^ { case id ~ level => L4_UnresolvedAccess(id, Some(level)) })
-/*
+
+
   lazy val genericAccess = (
-    locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ ((index ||| rangeIndex1d) ~ (index ||| rangeIndex1d)).?
+    locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (index ||| rangeIndex1d).? ~ (index ||| rangeIndex1d).?
       //("[" ~> integerLit <~ "]").?
-      ^^ { case id ~ slot ~ level ~ offset ~ matIdx => L4_UnresolvedAccess(id, level, slot, offset, None, None, if(matIdx.isDefined) Some(Array[L4_Index](matIdx.get._1, matIdx.get._2)) else None )})
+      ^^ { case id ~ slot ~ level ~ offset ~ matIdxY ~ matIdxX =>
+      val matIdx : Option[Array[L4_Index]] = (matIdxY.isDefined, matIdxX.isDefined) match {
+        case (false, false) => None
+        case (true, false) => Some(Array[L4_Index](matIdxY.get))
+        case (true, true) => Some(Array[L4_Index](matIdxY.get, matIdxX.get))
+        case _ => Logger.error("unexpected combination of matIndices")
+      }
+      L4_UnresolvedAccess(id, level, slot, offset, None, None, matIdx)})
       ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
       ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None, None) })
     ) // component acccess mit spitzen klammern
-  */
+
+  /*
   lazy val genericAccess = (
     locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ ("[" ~> integerLit <~ "]").?
       ^^ { case id ~ slot ~ level ~ offset ~ arrayIndex => L4_UnresolvedAccess(id, level, slot, offset, None, arrayIndex, None) })
       ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
       ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None, None) })) // component acccess mit spitzen klammern
-
+*/
 
 
   // ######################################

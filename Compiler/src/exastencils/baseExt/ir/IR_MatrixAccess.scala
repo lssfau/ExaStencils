@@ -37,34 +37,47 @@ case class IR_HackMatComponentAccess(var mat : IR_VariableAccess, var i : IR_Exp
 }
 
 object IR_MatrixAccess {
-  def apply(acc : IR_Expression, idxy : IR_Index, idxx : IR_Index) = {
+  def apply(acc : IR_Expression, idxy : IR_Index, idxx : Option[IR_Index]) = {
     new IR_MatrixAccess(acc.asInstanceOf[IR_Access], idxy, idxx)
   }
 }
 
-//TODO name -> IR_Access
-case class IR_MatrixAccess(acc : IR_Access, idxy : IR_Index, idxx : IR_Index) extends IR_Access {
+case class IR_MatrixAccess(acc : IR_Access, idxy : IR_Index, idxx : Option[IR_Index]) extends IR_Access {
   override def datatype : IR_Datatype = acc.datatype
-  override def prettyprint(out : PpStream) : Unit = Logger.error("internal node not resolved!")
+ // override def prettyprint(out : PpStream) : Unit = Logger.error("internal node not resolved!")
+  override def prettyprint(out : PpStream) : Unit = out << "MatAcc(" << acc << ")"
   def expand(lval : Boolean, rhsExpr : Option[IR_Expression]) : OutputType = {
     val indices_y : Array[IR_Expression] = idxy match {
       case _ @ IR_ExpressionIndex(idxs) => idxs
       case _ @ IR_ConstIndex(idxs)      => idxs.map(i => IR_IntegerConstant(i))
       case _ @ IR_RangeIndex(range)     => Array[IR_Expression](range(0).begin.getOrElse(IR_IntegerConstant(0)), range(0).end.getOrElse(IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeM)))
     }
-    val indices_x : Array[IR_Expression] = idxx match {
-      case _ @ IR_ExpressionIndex(idxs) => idxs
-      case _ @ IR_ConstIndex(idxs)      => idxs.map(i => IR_IntegerConstant(i))
-      case _ @ IR_RangeIndex(range)     => Array[IR_Expression](range(0).begin.getOrElse(IR_IntegerConstant(0)), range(0).end.getOrElse(IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)))
+    val indices_x : Array[IR_Expression] = if (idxx.isDefined) {
+      idxx.get match {
+        case _ @ IR_ExpressionIndex(idxs) => idxs
+        case _ @ IR_ConstIndex(idxs)      => idxs.map(i => IR_IntegerConstant(i))
+        case _ @ IR_RangeIndex(range)     => Array[IR_Expression](range(0).begin.getOrElse(IR_IntegerConstant(0)), range(0).end.getOrElse(IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)))
+      }
+    } else {
+      Array[IR_Expression]()
     }
+
     (indices_y.length, indices_x.length) match {
+        // scalar cases
+
+      case (1, 0) =>
+        if (!lval) IR_GetSlice(ListBuffer[IR_Expression](acc, indices_y(0), IR_IntegerConstant(0), IR_IntegerConstant(1), IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)))
+        else IR_SetSlice(ListBuffer[IR_Expression](acc, indices_y(0), IR_IntegerConstant(0), IR_IntegerConstant(1), IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN), rhsExpr.getOrElse(Logger.error("rhs value for MatrixAccess assignment not given"))))
+      case (2, 0) =>
+        if (!lval) IR_GetSlice(ListBuffer[IR_Expression](acc, indices_y(0), IR_IntegerConstant(0), indices_y(1) - indices_y(0), IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)))
+        else IR_SetSlice(ListBuffer[IR_Expression](acc, indices_y(0), IR_IntegerConstant(0), indices_y(1) - indices_y(0), IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN), rhsExpr.getOrElse(Logger.error("rhs value for MatrixAccess assignment not given"))))
       case (1, 1) =>
         if (!lval) IR_GetElement(ListBuffer[IR_Expression](acc, indices_y(0), indices_x(0)))
         else IR_SetElement(ListBuffer[IR_Expression](acc, indices_y(0), indices_x(0), rhsExpr.getOrElse(Logger.error("rhs value for MatrixAccess assignment not given"))))
-      case (2,1) =>
+      case (2, 1) =>
         if (!lval) IR_GetSlice(ListBuffer[IR_Expression](acc, indices_y(0), indices_x(0), indices_y(1) - indices_y(0), IR_IntegerConstant(1)))
         else IR_SetSlice(ListBuffer[IR_Expression](acc, indices_y(0), indices_x(0), indices_y(1) - indices_y(0), IR_IntegerConstant(1), rhsExpr.getOrElse(Logger.error("rhs value for MatrixAccess assignment not given"))))
-      case (1,2) =>
+      case (1, 2) =>
         if (!lval) IR_GetSlice(ListBuffer[IR_Expression](acc, indices_y(0), indices_x(0), IR_IntegerConstant(1), indices_x(1) - indices_x(0)))
         else IR_SetSlice(ListBuffer[IR_Expression](acc, indices_y(0), indices_x(0), IR_IntegerConstant(1), indices_x(1) - indices_x(0), rhsExpr.getOrElse(Logger.error("rhs value for MatrixAccess assignment not given"))))
       case (2, 2) =>
@@ -72,6 +85,7 @@ case class IR_MatrixAccess(acc : IR_Access, idxy : IR_Index, idxx : IR_Index) ex
         else IR_SetSlice(ListBuffer[IR_Expression](acc, indices_y(0), indices_x(0), indices_y(1) - indices_y(0), indices_x(1) - indices_x(0), rhsExpr.getOrElse(Logger.error("rhs value for MatrixAccess assignment not given"))))
       case _      => Logger.error(s"unexpected index combination: ${ indices_x.length }, ${ indices_y.length }")
     }
+
   }
 
 }
