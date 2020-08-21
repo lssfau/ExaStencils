@@ -106,7 +106,7 @@ object IR_GenerateBasicMatrixOperations {
   }
 
   // generate a compare function for two matrices
-  def compare(left : IR_Expression, right : IR_Expression, precision : IR_Expression) : IR_Scope = {
+  def compare(left : IR_Expression, right : IR_Expression, precision : IR_Expression, returnStmt : Boolean) : IR_Scope = {
     var func = IR_Scope(Nil)
     var outstream = IR_VariableAccess("std::cout", IR_StringDatatype)
     (left.datatype, right.datatype) match {
@@ -119,7 +119,7 @@ object IR_GenerateBasicMatrixOperations {
           IR_ForLoop(IR_VariableDeclaration(_j, 0), IR_Lower(_j, sizeNLeft), IR_PreIncrement(_j), ListBuffer[IR_Statement](
             IR_IfCondition(IR_Greater(IR_FunctionCall(IR_ExternalFunctionReference.fabs, IR_Subtraction(IR_HighDimAccess(left, IR_ExpressionIndex(_i, _j)), IR_HighDimAccess(right, IR_ExpressionIndex(_i, _j)))), precision), ListBuffer[IR_Statement](
               IR_Print(outstream, ListBuffer[IR_Expression](IR_StringConstant("[Test] comparison failed at "), _i, IR_StringConstant(" "), _j, IR_StringConstant("\\n"), IR_HighDimAccess(left, IR_ExpressionIndex(_i, _j)), IR_StringConstant(" vs "), IR_HighDimAccess(right, IR_ExpressionIndex(_i, _j)), IR_StringConstant("\\n"))),
-              IR_Return(IR_IntegerConstant(-1))
+              if(returnStmt) IR_Return(IR_IntegerConstant(-1)) else IR_NullStatement
             ), ListBuffer[IR_Statement]())
           ))
         ))
@@ -310,7 +310,7 @@ object IR_GenerateBasicMatrixOperations {
   }
 
   // write a submatrix 'source' of n_rows x n_cols to 'destination' at position 'offset_r', 'offset_c'
-  def loopSetSubmatrixMat(source : IR_Access, destination : IR_Access, rows_source : IR_Expression, cols_source : IR_Expression, offset_r : IR_Expression, offset_c : IR_Expression) : IR_Scope = {
+  def loopSetSubmatrixMat(source : IR_Expression, destination : IR_Expression, rows_source : IR_Expression, cols_source : IR_Expression, offset_r : IR_Expression, offset_c : IR_Expression) : IR_Scope = {
     if (!isScalar(offset_r) || !isScalar(offset_c))
       Logger.error("offsets of wrong type: " + offset_c + offset_r + ", expected scalar variable or constant!")
     var stmts = IR_Scope(Nil)
@@ -340,11 +340,10 @@ object IR_GenerateBasicMatrixOperations {
   }
 
   // write 'newVal' to all positions in 'n_rows' x 'n_cols' at position 'offset_r', 'offset_c' in 'matrix'
-  def loopSetSubmatrixSc(matrix : IR_Access, offsetRows : IR_Expression, offsetCols : IR_Expression, nRows : IR_Expression, nCols : IR_Expression, newValue : IR_Expression) : IR_Scope = {
+  def loopSetSubmatrixSc(matrix : IR_Expression, offsetRows : IR_Expression, offsetCols : IR_Expression, nRows : IR_Expression, nCols : IR_Expression, newValue : IR_Expression) : IR_Scope = {
     var stmts = IR_Scope(Nil)
     var i = IR_VariableAccess("i", IR_IntegerDatatype)
     var j = IR_VariableAccess("j", IR_IntegerDatatype)
-    var stream = IR_VariableAccess("std::cout", IR_StringDatatype)
     stmts.body += IR_ForLoop(IR_VariableDeclaration(i, offsetRows), IR_Lower(i, nRows + offsetRows), IR_PreIncrement(i), ListBuffer[IR_Statement](
       IR_ForLoop(IR_VariableDeclaration(j, offsetCols), IR_Lower(j, nCols + offsetCols), IR_PreIncrement(j), ListBuffer[IR_Statement](
         IR_Assignment(IR_HighDimAccess(matrix, IR_ExpressionIndex(i, j)), newValue)
