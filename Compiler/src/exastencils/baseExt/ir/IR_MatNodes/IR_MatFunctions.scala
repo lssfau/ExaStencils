@@ -2,114 +2,116 @@ package exastencils.baseExt.ir.IR_MatNodes
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Access
 import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_HighDimAccess
 import exastencils.base.ir.IR_IntegerConstant
+import exastencils.base.ir.IR_Number
 import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_UnknownDatatype
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.baseExt.ir.IR_CompiletimeMatOps
 import exastencils.baseExt.ir.IR_MatNodeUtils
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
-import exastencils.baseExt.ir.IR_PreItMOps
+import exastencils.baseExt.ir.IR_TensorDatatype1
+import exastencils.baseExt.ir.IR_TensorDatatype2
 import exastencils.datastructures.Transformation.Output
+import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
-
 
 // transpose node for compiletime execution
 object IR_Transpose {
   def apply(args : ListBuffer[IR_Expression]) = new IR_Transpose(args(0))
 }
+
 case class IR_Transpose(var arg : IR_Expression)
   extends IR_ExtractableMNode with IR_ResolvableMNode {
   def name = "transpose"
-  override def datatype = arg.datatype
+  override def datatype = IR_MatrixDatatype(arg.datatype.resolveBaseDatatype, arg.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, arg.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
   override def prettyprint(out : PpStream) = out << "transpose" << '(' << arg << ')'
   override def resolve() : Output[IR_Expression] = {
-    IR_CompiletimeMatOps.transpose(arg.asInstanceOf[IR_Access])
+    IR_CompiletimeMatOps.transpose(arg.asInstanceOf[IR_MatrixExpression])
   }
-  override def isResolvable() : Boolean = isExtractable() && !this.hasAnnotation(IR_PreItMOps.potentialInline)
-  override def isExtractable() : Boolean = IR_MatNodeUtils.isEvaluatable(arg)
+  override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(arg)
 }
 
- // dot product node for compiletime execution
+// dot product node for compiletime execution
 object IR_DotProduct {
-  def apply(args : IR_Expression*) = new IR_DotProduct(args.to[ListBuffer])
+  def apply(args : ListBuffer[IR_Expression]) = new IR_DotProduct(args.to[ListBuffer])
 }
+
 case class IR_DotProduct(
     var arguments : ListBuffer[IR_Expression]
 ) extends IR_ExtractableMNode with IR_ResolvableMNode {
   def name = "dotProduct"
   override def datatype = arguments(0).datatype.resolveBaseDatatype
-  override def prettyprint(out : PpStream) = out << "DotProduct" << '(' <<< (arguments, ", ") << ')'
+  override def prettyprint(out : PpStream) = out << "dotProduct" << '(' <<< (arguments, ", ") << ')'
   override def resolve() : Output[IR_Expression] = {
-    IR_CompiletimeMatOps.dotProduct(arguments(0), arguments(1))
+    IR_CompiletimeMatOps.dotProduct(arguments(0).asInstanceOf[IR_MatrixExpression], arguments(1).asInstanceOf[IR_MatrixExpression])
   }
-//  override def isResolvable() : Boolean = !this.hasAnnotation(IR_ResolveMOps.potentialInline) && arguments.forall(arg => IR_MatrixNodeUtilities.isEvaluatable(arg))
-  override def isResolvable() : Boolean = isExtractable() && !this.hasAnnotation(IR_PreItMOps.potentialInline)
-  override def isExtractable() : Boolean = arguments.forall(arg => IR_MatNodeUtils.isEvaluatable(arg))
+  //  override def isResolvable() : Boolean = !this.hasAnnotation(IR_ResolveMOps.potentialInline) && arguments.forall(arg => IR_MatrixNodeUtilities.isEvaluatable(arg))
+  override def isResolvable() : Boolean = arguments.forall(a => IR_MatNodeUtils.isEvaluatable(a))
 }
 
-  // cross product node for compiletime execution
+// cross product node for compiletime execution
 object IR_CrossProduct {
   def apply(args : IR_Expression*) = new IR_CrossProduct(args.to[ListBuffer])
 }
+
 case class IR_CrossProduct(
     var arguments : ListBuffer[IR_Expression]
 ) extends IR_ExtractableMNode with IR_ResolvableMNode {
   def name = "crossProduct"
-  override def datatype = IR_MatrixDatatype(arguments(0).datatype.resolveBaseDatatype, 3, 3)
-  override def prettyprint(out : PpStream) = out << "CrossProduct" << '(' <<< (arguments, ", ") << ')'
+  override def datatype = IR_MatrixDatatype(arguments(0).datatype.resolveBaseDatatype, 3, 1)
+  override def prettyprint(out : PpStream) = out << "crossProduct" << '(' <<< (arguments, ", ") << ')'
   override def resolve() : Output[IR_Expression] = {
     IR_CompiletimeMatOps.crossProduct(arguments(0), arguments(1))
   }
-  override def isResolvable() : Boolean = isExtractable() && !this.hasAnnotation(IR_PreItMOps.potentialInline)
-  override def isExtractable() : Boolean = arguments.forall(arg => IR_MatNodeUtils.isEvaluatable(arg))
+  override def isResolvable() : Boolean = arguments.forall(a => IR_MatNodeUtils.isEvaluatable(a))
 }
 
 // trace node for compiletime execution
 object IR_Trace {
   def apply(args : ListBuffer[IR_Expression]) = new IR_Trace(args(0))
 }
+
 case class IR_Trace(
     var arg : IR_Expression
 ) extends IR_ExtractableMNode with IR_ResolvableMNode {
   def name = "trace"
   override def datatype = arg.datatype.resolveBaseDatatype
-  override def prettyprint(out : PpStream) = out << "Trace" << '(' << arg << ')'
+  override def prettyprint(out : PpStream) = out << "trace" << '(' << arg << ')'
   override def resolve() : Output[IR_Expression] = {
-    IR_CompiletimeMatOps.trace(arg)
+    IR_CompiletimeMatOps.trace(arg.asInstanceOf[IR_MatrixExpression])
   }
-  override def isResolvable() : Boolean = isExtractable() && !this.hasAnnotation(IR_PreItMOps.potentialInline)
-  override def isExtractable() : Boolean = IR_MatNodeUtils.isEvaluatable(arg)
+  override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(arg)
 }
 
-  // set element node for compiletime execution
+// set element node for compiletime execution
 object IR_SetElement {
   def apply(args : IR_Expression*) = new IR_SetElement(args.to[ListBuffer])
 }
+
 case class IR_SetElement(
     var arguments : ListBuffer[IR_Expression]
 ) extends IR_Statement with IR_ResolvableMNode {
   def name = "setElement"
-  override def prettyprint(out : PpStream) = out << "SetElement" << '(' <<< (arguments, ", ") << ')'
-  override def resolve() : Output[IR_Scope] = {
-    IR_Scope(IR_Assignment(IR_HighDimAccess(arguments(0), IR_ExpressionIndex(arguments(1), arguments(2))), arguments(3)))
+  override def prettyprint(out : PpStream) = out << "setElement" << '(' <<< (arguments, ", ") << ')'
+  override def resolve() : Output[IR_Statement] = {
+    IR_Assignment(IR_HighDimAccess(arguments(0), IR_ExpressionIndex(arguments(1), arguments(2))), arguments(3))
   }
-  override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(arguments(0)) && !this.hasAnnotation(IR_PreItMOps.potentialInline)
+  override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(arguments(0))
 }
 
-  // get element node for compiletime execution
+// get element node for compiletime execution
 object IR_GetElement {
   def apply(args : IR_Expression*) = new IR_GetElement(args.to[ListBuffer])
 }
+
 case class IR_GetElement(
     var arguments : ListBuffer[IR_Expression]
 ) extends IR_ExtractableMNode with IR_ResolvableMNode {
@@ -119,14 +121,19 @@ case class IR_GetElement(
   override def resolve() : Output[IR_Expression] = {
     IR_HighDimAccess(arguments(0), IR_ExpressionIndex(arguments(1), arguments(2)))
   }
-  override def isResolvable() : Boolean = isExtractable() && !this.hasAnnotation(IR_PreItMOps.potentialInline)
-  override def isExtractable() : Boolean = IR_MatNodeUtils.isEvaluatable(arguments(0))
+  override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(arguments(0))
 }
 
-  // set slice node for compiletime execution
+// set slice node for compiletime execution
 object IR_SetSlice {
-  def apply(args : IR_Expression*) = new IR_SetSlice(args.to[ListBuffer])
+  def apply(args : IR_Expression*) = {
+    (args(3), args(4)) match {
+      case (r : IR_Number, c : IR_Number) if (r.asInstanceOf[IR_IntegerConstant].v == 1 && c.asInstanceOf[IR_IntegerConstant].v == 1) => IR_SetElement(args(0), args(1), args(2), args(5))
+      case _                              => new IR_SetSlice(args.to[ListBuffer])
+    }
+  }
 }
+
 case class IR_SetSlice(
     var arguments : ListBuffer[IR_Expression]
 ) extends IR_Statement with IR_ResolvableMNode {
@@ -139,40 +146,46 @@ case class IR_SetSlice(
     var nRows = arguments(3)
     var nCols = arguments(4)
     var newValue = arguments(5)
-    if (IR_MatNodeUtils.isScalar(newValue))
-      IR_Scope(IR_GenerateBasicMatrixOperations.loopSetSubmatrixSc(matrix.asInstanceOf[IR_Access], offsetRows, offsetCols, nRows, nCols, newValue))
-    else {
-      var insize = IR_CompiletimeMatOps.getSize(newValue)
-      newValue match {
-        case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) =>
-          IR_Scope(IR_GenerateBasicMatrixOperations.loopSetSubmatrixMat(va, matrix.asInstanceOf[IR_VariableAccess], IR_IntegerConstant(insize._1), IR_IntegerConstant(insize._2), offsetRows, offsetCols))
-        case x @ IR_MatrixExpression(_, _, _,_)                      =>
-          var decl = IR_MatNodeUtils.expressionToDeclaration(x,"slice_tmp_")
-          IR_Scope(decl, IR_GenerateBasicMatrixOperations.loopSetSubmatrixMat(IR_VariableAccess(decl), matrix.asInstanceOf[IR_VariableAccess], IR_IntegerConstant(insize._1), IR_IntegerConstant(insize._2), offsetRows, offsetCols))
-        case _                                                     => Logger.error(s"form of newValue matrix not supported: ${ newValue }, expected variable access to matrix variable")
-      }
+
+
+        if (IR_MatNodeUtils.isScalar(newValue))
+          IR_Scope(IR_GenerateBasicMatrixOperations.loopSetSubmatrixSc(matrix, offsetRows, offsetCols, nRows, nCols, newValue))
+        else {
+          var insize = IR_CompiletimeMatOps.getSize(newValue)
+          newValue match {
+            case x : IR_MatrixExpression                                  =>
+              var decl = IR_MatNodeUtils.expressionToDeclaration(x, "setSliceTmp_")
+              IR_Scope(decl, IR_GenerateBasicMatrixOperations.loopSetSubmatrixMat(IR_VariableAccess(decl), matrix, IR_IntegerConstant(insize._1), IR_IntegerConstant(insize._2), offsetRows, offsetCols))
+            case a @ (_ : IR_VariableAccess | _ : IR_MultiDimFieldAccess) =>
+              IR_Scope(IR_GenerateBasicMatrixOperations.loopSetSubmatrixMat(a, matrix, IR_IntegerConstant(insize._1), IR_IntegerConstant(insize._2), offsetRows, offsetCols))
+          }
+
     }
   }
-  override def isResolvable() : Boolean = arguments.forall(arg => IR_MatNodeUtils.isEvaluatable(arg)) && !this.hasAnnotation(IR_PreItMOps.potentialInline)
+  override def isResolvable() : Boolean = arguments.forall(arg => IR_MatNodeUtils.isEvaluatable(arg))
 }
 
 object IR_ToMatrix {
   def apply(arg : ListBuffer[IR_Expression]) = new IR_ToMatrix(arg(0))
 }
+
 case class IR_ToMatrix(
     var arg : IR_Expression
 ) extends IR_ExtractableMNode with IR_ResolvableMNode {
   def name = "toMatrix"
-  override def datatype = IR_UnknownDatatype
+  override def datatype = arg.datatype match {
+    case dt : IR_TensorDatatype2 => IR_MatrixDatatype(dt.datatype.resolveBaseDatatype, dt.dims, dt.dims)
+    case dt : IR_TensorDatatype1 => IR_MatrixDatatype(dt.datatype.resolveBaseDatatype, dt.dims, 1)
+    case _                       => Logger.error(s"unexpected datatype: ${ arg.datatype }")
+  }
   override def prettyprint(out : PpStream) = out << "toMatrix" << '(' << arg << ')'
   override def resolve() : Output[IR_Expression] = {
     arg match {
       case t if (IR_MatNodeUtils.isTensor(t)) => IR_CompiletimeMatOps.convertTensorToMat(arg)
-      case _                                  => Logger.error(s"cast to matrix not implemented yet for ${arg}")
+      case _                                  => Logger.error(s"cast to matrix not implemented yet for ${ arg }")
     }
   }
-  override def isResolvable() : Boolean = isExtractable() && !this.hasAnnotation(IR_PreItMOps.potentialInline)
-  override def isExtractable() : Boolean = IR_MatNodeUtils.isEvaluatable(arg)
+  override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(arg)
 }
 
 /*

@@ -57,7 +57,7 @@ object IR_MatNodeUtils {
     *
     * @param n : IR_Node, node to be checked for evaluatability
     * @return is evaluatable?
-    * */
+    **/
   //TODO other datatypes?
   def isEvaluatable(n : IR_Node) : Boolean = {
     if (n.hasAnnotation(evaluatable)) true
@@ -66,9 +66,9 @@ object IR_MatNodeUtils {
         case x : IR_Expression if (isMatrix(x) | isMatFieldAccess(x) | isScalar(x) | isString(x) | isTensor(x)) =>
           n.annotate(evaluatable)
           true
-        case _ : IR_Expression                                                            =>
+        case _ : IR_Expression                                                                                  =>
           false
-        case _                                                                            => Logger.error(s"unexpected type ${ n }")
+        case _                                                                                                  => Logger.error(s"unexpected type ${ n }")
       }
     }
   }
@@ -77,7 +77,7 @@ object IR_MatNodeUtils {
     *
     * @param x : IR_Expression, expression to be checked for
     * @return is matrix?
-    * */
+    **/
   def isMatrix(x : IR_Expression) : Boolean = {
     x match {
       case IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))                                                 => true
@@ -95,10 +95,10 @@ object IR_MatNodeUtils {
     *
     * @param x : IR_Expression, expression to be checked for
     * @return is tensor?
-    * */
+    **/
   def isTensor(x : IR_Expression) : Boolean = {
     x match {
-      case IR_VariableAccess(_, _ : IR_TensorDatatype)                                                  => true
+      case IR_VariableAccess(_, _ : IR_TensorDatatype)                                                      => true
       case _ : IR_TensorExpression                                                                          => true
       case IR_VariableAccess(_, IR_ReferenceDatatype(innerDt)) if (innerDt.isInstanceOf[IR_TensorDatatype]) => true
       case _                                                                                                => false
@@ -109,7 +109,7 @@ object IR_MatNodeUtils {
     *
     * @param x : IR_Expression, expression to be checked for
     * @return is scalar value?
-    * */
+    **/
   def isScalar(x : IR_Expression) : Boolean = {
     x match {
       case IR_VariableAccess(_, IR_RealDatatype | IR_IntegerDatatype | IR_DoubleDatatype | IR_FloatDatatype)                                                                           => true
@@ -120,6 +120,7 @@ object IR_MatNodeUtils {
       case IR_VariableAccess(_, IR_ReferenceDatatype(innerDt)) if (innerDt.isInstanceOf[IR_ScalarDatatype])                                                                            => true
       case IR_ArrayAccess(_, _, _)                                                                                                                                                     => true
       case IR_MultiDimArrayAccess(_, _)                                                                                                                                                => true
+      case fa : IR_FieldAccess if (fa.datatype.isInstanceOf[IR_ScalarDatatype])                                                                                                        => true
       case IR_Negative(x) if (x.datatype.isInstanceOf[IR_ScalarDatatype])                                                                                                              => true
       case _                                                                                                                                                                           => false
     }
@@ -129,7 +130,7 @@ object IR_MatNodeUtils {
     *
     * @param x : IR_Expression, expression to be checked for
     * @return is string?
-    * */
+    **/
   def isString(x : IR_Expression) : Boolean = {
     x match {
       case IR_StringConstant(_)                    => true
@@ -148,7 +149,7 @@ object IR_MatNodeUtils {
     *
     * @param op : IR_Expression, expression to be checked
     * @return is mat op?
-    * */
+    **/
   def checkIfMatOp(op : IR_Expression) : Boolean = {
     if (op.hasAnnotation(isNotMatOp)) false
     else if (op.hasAnnotation(isMatOp)) true
@@ -163,7 +164,7 @@ object IR_MatNodeUtils {
         case e : IR_ElementwiseDivision                              => isMatrix(e.left) | isMatrix(e.right)
         case _ @ IR_FunctionCall(ref, _) if (ref.name == "toMatrix") => true
         case _ @ IR_FunctionCall(ref, _) if (ref.name == "inverse")  => true
-        case _ @ IR_FunctionCall(_, args)                            => args.exists(a => isMatrix(a))
+        case _ @ IR_FunctionCall(_, args)                            => args.exists(a => isMatrix(a) | isMatFieldAccess(a))
 
         //case e : IR_Expression if(e.datatype.isInstanceOf[IR_MatrixDatatype]) => true
       }
@@ -179,17 +180,17 @@ object IR_MatNodeUtils {
   }
 
   def isMatFieldAccess(expr : IR_Expression) : Boolean = {
-   expr match {
-     case fa : IR_FieldAccess if fa.field.layout.datatype.isInstanceOf[IR_MatrixDatatype] => true
-     case _ => false
-   }
+    expr match {
+      case fa : IR_FieldAccess if fa.field.layout.datatype.isInstanceOf[IR_MatrixDatatype] => true
+      case _                                                                               => false
+    }
   }
 
   /** Method: split a declaration with init to declaration and assignment with init
     *
     * @param decl : IR_VariableDeclaration, declaration to be split
     * @return list containing variable declaration without init and assignment of that variable with init expresion
-    * */
+    **/
   def splitDeclaration(decl : IR_VariableDeclaration) : ListBuffer[IR_Statement] = {
     val newStmts = ListBuffer[IR_Statement]()
     newStmts += IR_VariableDeclaration(decl.datatype, decl.name, None)
@@ -202,7 +203,7 @@ object IR_MatNodeUtils {
     *
     * @param src : IR_VariableAccess, access to convert
     * @return expression of hdas
-    * */
+    **/
   def accessToExpression(src : IR_Access) : IR_MatrixExpression = {
     var size = IR_CompiletimeMatOps.getSize(src)
     if (size._1 > 1 || size._2 > 1) {
@@ -223,7 +224,7 @@ object IR_MatNodeUtils {
     * @param src  : IR_MatrixExpression, used as initialization
     * @param name : String, name of the new temporary variable
     * @return declaration of the tmp
-    * */
+    **/
   def expressionToDeclaration(src : IR_MatrixExpression, name : String) : IR_VariableDeclaration = {
     var decl = IR_VariableDeclaration(IR_MatrixDatatype(src.datatype.resolveBaseDatatype, src.rows, src.columns), name + tmpCounter, src)
     tmpCounter += 1
@@ -232,9 +233,9 @@ object IR_MatNodeUtils {
 
   def toMatExpr(src : IR_Expression) : IR_MatrixExpression = {
     src match {
-      case n : IR_Number => IR_MatrixExpression(IR_MatrixDatatype(n.datatype, 1, 1), ListBuffer[IR_Expression](n))
+      case n : IR_Number           => IR_MatrixExpression(IR_MatrixDatatype(n.datatype, 1, 1), ListBuffer[IR_Expression](n))
       case x : IR_MatrixExpression => x
-      case _ => Logger.error(s"unexpected type: ${src}")
+      case _                       => Logger.error(s"unexpected type: ${ src }")
     }
   }
 

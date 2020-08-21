@@ -202,24 +202,20 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_GeneralSimplify.doUntilDone()
 
     IR_PreItMOps.apply()
-    var c = true
-    while (c) {
+    IR_SetupMatrixExpressions.apply()
+    var sthChanged = true
+    while (sthChanged) {
       IR_GeneralSimplify.doUntilDone()
-      IR_MatOpsInline.apply()
-      IR_ResolveMatOperators.apply()
       IR_ResolveMatFuncs.apply()
-      if(IR_MatOpsInline.results.forall(t => t._2.matches == 0) &&
-        IR_ResolveMatOperators.results.forall(t => t._2.matches == 0) &&
-        IR_ResolveMatFuncs.results.forall(t => t._2.matches == 0)
-      ) {
-        c = false
-      }
-      IR_MatOpsInline.reset()
-      IR_ResolveMatOperators.reset()
-      IR_ResolveMatFuncs.reset()
+      IR_ResolveMatOperators.apply()
+      sthChanged = IR_ResolveMatFuncs.results.last._2.matches > 0 || IR_ResolveMatOperators.results.last._2.matches > 0
     }
+    IR_GeneralSimplify.doUntilDone()
+    IR_ResolveMatFuncs.apply()
     IR_PostItMOps.apply()
     IR_LinearizeMatrices.apply()
+
+
     // TODO ############################################################################################
     // TODO: Zeus hier beginnt das Matrix zeugs
     // TODO: Zeus, mal schaun was passiert wenn ich hier

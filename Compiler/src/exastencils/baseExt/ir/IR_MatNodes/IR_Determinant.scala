@@ -48,15 +48,8 @@ case class IR_Determinant(
 ) extends IR_RuntimeMNode {
   override def datatype = arg.datatype.resolveBaseDatatype
   override def prettyprint(out : PpStream) = Logger.error("internal node no resolved!")
-  /** Method: check if this node is ready to be extracted from a statement
-    *
-    * @return is extractable?
-    * */
-  override def isExtractable() : Boolean = IR_MatNodeUtils.isEvaluatable(arg)
-  /** Method: get identifier
-    * @return identifier of this node
-    * */
-  override def name : String = "IR_Determinant"
+
+  override def name : String = "determinant"
 }
 
 

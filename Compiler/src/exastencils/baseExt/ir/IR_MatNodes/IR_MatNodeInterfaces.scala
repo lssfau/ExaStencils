@@ -11,12 +11,13 @@ trait IR_ResolvableMNode {
 
 // nodes that have to be considered for inlining
 trait IR_ExtractableMNode extends IR_Expression {
-  def isExtractable() : Boolean
+  def name : String
+  //def isExtractable() : Boolean
 }
 
 // nodes that have to be considered for inlining and can later be resolved at runtime
 trait IR_RuntimeMNode extends IR_ExtractableMNode {
-  def name : String
+  //def name : String
   def resolveAtRuntime : Boolean
 }
 

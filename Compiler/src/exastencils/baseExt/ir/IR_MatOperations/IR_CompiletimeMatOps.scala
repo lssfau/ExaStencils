@@ -215,27 +215,26 @@ object IR_CompiletimeMatOps {
     * @param source : IR_VariableDeclaration, matrix to calculate the transposed
     * @return transposed matrix
     **/
-  def transpose(source : IR_Access) : IR_MatrixExpression = {
-    var ssize = IR_CompiletimeMatOps.getSize(source)
-    var out = IR_MatrixExpression(source.datatype.resolveBaseDatatype, ssize._2, ssize._1)
-    for (i <- 0 until ssize._1) {
-      for (j <- 0 until ssize._2) {
-        out.set(j, i, Duplicate(IR_CompiletimeMatOps.getElem(source, i, j)))
+  def transpose(source : IR_MatrixExpression) : IR_MatrixExpression = {
+    var out = IR_MatrixExpression(source.datatype.resolveBaseDatatype, source.datatype.sizeN, source.datatype.sizeM)
+    for (i <- 0 until source.datatype.sizeM) {
+      for (j <- 0 until source.datatype.sizeN) {
+        out.set(j, i, Duplicate(source.get( i, j)))
       }
     }
     out
   }
 
-  def dotProduct(l : IR_Expression, r : IR_Expression) : IR_MatrixExpression = {
-    var lsize = getSize(l)
-    var rsize = getSize(r)
+  def dotProduct(l : IR_MatrixExpression, r : IR_MatrixExpression) : IR_MatrixExpression = {
+    var lsize = (l.datatype.sizeM, l.datatype.sizeN)
+    var rsize = (r.datatype.sizeM, r.datatype.sizeN)
     (lsize, rsize) match {
       case ((lrows, lcols), (rrows, rcols)) if (lcols == rcols && lrows == rrows) =>
         var out = IR_MatrixExpression(IR_ResultingDatatype(l.datatype, r.datatype), 1, 1)
         out.set(0, 0, IR_IntegerConstant(0))
         for (i <- 0 until rrows) {
           for (j <- 0 until rcols) {
-            out.set(0, 0, IR_Addition(Duplicate(out.get(0, 0)), IR_Multiplication(getElem(l, i, j), getElem(r, i, j))))
+            out.set(0, 0, IR_Addition(Duplicate(out.get(0, 0)), IR_Multiplication(l.get( i, j), r.get(i, j))))
           }
         }
         out
@@ -243,7 +242,7 @@ object IR_CompiletimeMatOps {
         var out = IR_MatrixExpression(IR_ResultingDatatype(l.datatype, r.datatype), 1, 1)
         out.set(0, 0, IR_IntegerConstant(0))
         for (i <- 0 until rrows) {
-          out.set(0, 0, IR_Addition(Duplicate(out.get(0, 0)), IR_Multiplication(getElem(l, 0, i), getElem(r, i, 0))))
+          out.set(0, 0, IR_Addition(Duplicate(out.get(0, 0)), IR_Multiplication(l.get( 0, i), r.get( i, 0))))
         }
         out
       case _                                                                      => Logger.error("unsupported argument form: " + lsize + ", " + rsize + ", expected arguments of the same size")
@@ -572,24 +571,14 @@ object IR_CompiletimeMatOps {
   }
 
   // return the sum of the diagonal elements of a matrix
-  def trace(matrix : IR_Expression) : IR_Addition = {
+  def trace(matrix : IR_MatrixExpression) : IR_Addition = {
     var sum = IR_Addition(IR_IntegerConstant(0))
 
-    matrix match {
-      case va : IR_Access if (va.datatype.isInstanceOf[IR_MatrixDatatype]) =>
-        var s = getSize(va)
-        if (s._1 != s._2)
-          Logger.error("trace only for quadratic matrices supported, matrix is of form: " + s)
-        for (i <- 0 until s._1) {
-          sum = IR_Addition(sum, getElem(va, i, i))
+    if (matrix.datatype.sizeM != matrix.datatype.sizeN)
+          Logger.error("trace only for quadratic matrices supported")
+        for (i <- 0 until matrix.datatype.sizeM) {
+          sum = IR_Addition(sum, matrix.get(i, i))
         }
-      case x @ IR_MatrixExpression(_, _, _, _)                             =>
-        if (x.rows != x.columns)
-          Logger.error("trace only for quadratic matrices supported, matrix is of form: " + (x.rows, x.columns))
-        for (i <- 0 until x.rows) {
-          sum = IR_Addition(sum, getElem(x, i, i))
-        }
-    }
     sum
   }
 

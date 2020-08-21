@@ -45,8 +45,7 @@ case class IR_GetSlice(
 ) extends IR_RuntimeMNode {
   // cant define datatype if length of slice is runtime dependent
   override def prettyprint(out : PpStream) = Logger.error("internal node no resolved!")
-  override def isExtractable() : Boolean = IR_MatNodeUtils.isEvaluatable(arguments(0)) && !datatype.equals(IR_UnknownDatatype)
-  override def name : String = "IR_GetSlice"
+  override def name : String = "getSlice"
 }
 
 // slice node for compiletime execution
