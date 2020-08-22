@@ -66,7 +66,7 @@ Globals {
 }
 
 Function InitTestcase@finest {
-	Val testcase : Integer = 1
+	Val testcase : Integer = 3
 	if ( ( 0 == testcase ) ) {
 		loop over hVec {
 			b = -10
@@ -74,8 +74,7 @@ Function InitTestcase@finest {
 			hVec<next>[1] = 0.0
 			hVec<next>[2] = 0.0
 		}	
-	} else {
-		if ( ( 1 == testcase ) ) {
+	} else if ( ( 1 == testcase ) ) {
 			Expr damRadius = 100
 			Expr damHight = 1
 			loop over hVec {
@@ -88,7 +87,7 @@ Function InitTestcase@finest {
 				hVec<next>[1] = 0.0
 				hVec<next>[2] = 0.0
 			}
-		} else if ( 2 == testcase ) {
+	} else if ( 2 == testcase ) {
     			/// test case 2 - circular elevation on the floor, flat water surface
    			// boundary conditions need to be chosen in addition
    			// ideally nothing would happen, but due to the artificial diffusion, movement is induced
@@ -107,8 +106,26 @@ Function InitTestcase@finest {
 				hVec<next>[1] = 0.0
       				hVec<next>[2] = 0.0
     			}
-  		}
-	}
+  	}  else if ( 3 == testcase ) {
+    		/// test case 3 - circular elevation on the floor, water surface elevated accordingly
+    		// boundary conditions need to be chosen in addition
+
+    		Expr elevationRadius = 300
+	    	Expr elevationHight  = 1
+
+    		loop over hVec {
+ 	     		b = -10
+
+  	    		hVec<next>[0] = -b
+
+      			if ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) <= elevationRadius ) {
+        			b += elevationHight * sin ( PI * ( 0.5 + 0.5 * ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) / elevationRadius ) ) )
+      			}
+
+      			hVec<next>[1] = 0.0
+      			hVec<next>[2] = 0.0
+		}
+    	}	
 
 
 	communicate b
@@ -119,7 +136,7 @@ Function InitTestcase@finest {
 
 Function applyBC_hVec@all {
 // former h
-
+// TODO fuse loops
 	loop over hVec only ghost [-1, 0] on boundary {
 		hVec[0] = hVec@[1, 0][0]
 	}
@@ -167,80 +184,76 @@ Function Update@all {
 	Val version : Integer = 2
 	Expr dx = vf_gridWidth_x
 	Expr dy = vf_gridWidth_y
+	if ( 1 == version ) {
+    		/// version 1 - use inline expressions and local solves
 /*
-	if ( ( 1 == version ) ) {
-		loop over hVec {
-			Expr F0 = hVec[1]
-			Expr F1 = ( ( ( hVec[1] ** 2 ) / hVec[0] ) + ( ( 0.5 * g ) * ( hVec[0] * hVec[0] ) ) )
-			Expr F2 = ( ( hVec[1] * hVec[2] ) / h )
-			Expr G0 = hVec[2]
-			Expr G1 = ( ( hVec[1] * hVec[2] ) / hVec[0] )
-			Expr G2 = ( ( ( hVec[2] ** 2 ) / hVec[0] ) + ( ( 0.5 * g ) * ( hVec[0] * hVec[0] ) ) )
-			Expr S0 = 0.0
-			Expr S1 = ( ( ( -0.5 * g ) * hVec[0] ) * b )
-			Expr S2 = ( ( ( -0.5 * g ) * hVec[0] ) * b )
-			Expr hc = ( Centering * hVec[0] )
-			Expr huc = ( Centering * hVec[1] )
-			Expr hvc = ( Centering * hVec[2] )
-			solve locally {
-				hVec<next>[0] => ( ( ( ( dx * dy ) * ( hVec<next>[0] - hc ) ) + ( ( ( dt * dy ) * 0.5 ) * ( F0@[1, 0] - F0@[-1, 0] ) ) ) + ( ( ( dt * dx ) * 0.5 ) * ( G0@[0, 1] - G0@[0, -1] ) ) ) == S0
-				hVec<next>[1] => ( ( ( ( dx * dy ) * ( hVec<next>[1] - huc ) ) + ( ( ( dt * dy ) * 0.5 ) * ( F1@[1, 0] - F1@[-1, 0] ) ) ) + ( ( ( dt * dx ) * 0.5 ) * ( G1@[0, 1] - G1@[0, -1] ) ) ) == ( ( ( dt * dy ) * 0.5 ) * ( S1@[-1, 0] - S1@[1, 0] ) )
-				hVec<next>[2] => ( ( ( ( dx * dy ) * ( hVec<next>[2] - hvc ) ) + ( ( ( dt * dy ) * 0.5 ) * ( F2@[1, 0] - F2@[-1, 0] ) ) ) + ( ( ( dt * dx ) * 0.5 ) * ( G2@[0, 1] - G2@[0, -1] ) ) ) == ( ( ( dt * dx ) * 0.5 ) * ( S2@[0, 1] - S2@[0, -1] ) )
-			}
-		}
-	} else if ( 2 == version ) {
+    		loop over hVec {
+      			Expr F0 = hVec[0]
+      			Expr F1 = hu**2 / h + 0.5 * g * h**2
+      			Expr F2 = hu * hv / h
+
+      			Expr G0 = hv
+      			Expr G1 = hu * hv / h
+      			Expr G2 = hv**2 / h + 0.5 * g * h**2
+
+      			Expr S0 = 0.0
+      			Expr S1 = -0.5 * g * h * b
+      			Expr S2 = -0.5 * g * h * b
+
+      			Expr hc  = Centering * h
+      			Expr huc = Centering * hu
+      			Expr hvc = Centering * hv
+
+      			solve locally {
+        			h<next>  => dx * dy * ( h<next>  - hc  ) + dt * dy * 0.5 * ( F0@east - F0@west ) + dt * dx * 0.5 * ( G0@north - G0@south ) == S0
+        			hu<next> => dx * dy * ( hu<next> - huc ) + dt * dy * 0.5 * ( F1@east - F1@west ) + dt * dx * 0.5 * ( G1@north - G1@south ) == dt * dy * 0.5 * ( S1@west  - S1@east  )
+        			hv<next> => dx * dy * ( hv<next> - hvc ) + dt * dy * 0.5 * ( F2@east - F2@west ) + dt * dx * 0.5 * ( G2@north - G2@south ) == dt * dx * 0.5 * ( S2@north - S2@south )
+      			}
+    		}
 */
+  	} else if ( 2 == version ) {
     		/// version 2 - split loops
 
-    		Expr F0_east = hVec@east[1]
-    		Expr F0_west = hVec@west[1]
-    		
-		Expr F1_east = hVec@east[1]**2 / hVec@east[0] + 0.5 * g * hVec@east[0]**2
-    		Expr F1_west = hVec@west[1]**2 / hVec@west[0] + 0.5 * g * hVec@west[0]**2
-    		
-		Expr F2_north = hVec@north[1] * hVec@north[2] / hVec@north[0]
-		Expr F2_south = hVec@south[1] * hVec@south[2] / hVec@south[0]
+    		Expr F0 = hVec[1]
+    		Expr F1 = hVec[1]**2 / hVec[0] + 0.5 * g * hVec[0]**2
+    		Expr F2 = hVec[1] * hVec[2] / hVec[0]
 
-    		Expr G0_north = hVec@north[2]
-    		Expr G0_south = hVec@south[2]
-    		
-		Expr G1_north = hVec@north[1] * hVec@north[2] / hVec@north[0]
-		Expr G1_south = hVec@south[1] * hVec@south[2] / hVec@south[0]
-
-    		Expr G2_north = hVec@north[2]**2 / hVec@north[0] + 0.5 * g * hVec@north[0]**2
-    		Expr G2_south = hVec@south[2]**2 / hVec@south[0] + 0.5 * g * hVec@south[0]**2
+    		Expr G0 = hVec[2]
+    		Expr G1 = hVec[1] * hVec[2] / hVec[0]
+    		Expr G2 = hVec[2]**2 / hVec[0] + 0.5 * g * hVec[0]**2
 
     		Expr S0 = 0.0
-    		
-		Expr S1_east = -0.5 * g * hVec@east[0] * b
-    		Expr S1_west = -0.5 * g * hVec@west[0] * b
-    		
-		Expr S2_north = -0.5 * g * hVec@north[0] * b
-		Expr S2_south = -0.5 * g * hVec@south[0] * b
+    		Expr S1 = -0.5 * g * hVec[0] * b
+    		Expr S2 = -0.5 * g * hVec[0] * b
 
     		Expr hc  = Centering * hVec[0]
     		Expr huc = Centering * hVec[1]
     		Expr hvc = Centering * hVec[2]
 
-    		loop over hVec {
-     			hVec<next>[0] = hc  - ( dt / dx ) * 0.5 * ( F0_east  - F0_west  ) - ( dt / dy ) * 0.5 * ( G0_north - G0_south )
-      			hVec<next>[1] = huc + ( dt / dx ) * 0.5 * ( S1_east  - S1_west  ) - ( dt / dx ) * 0.5 * ( F1_east - F1_west ) - ( dt / dy ) * 0.5 * ( G1_north - G1_south )
-      			hVec<next>[2] = hvc + ( dt / dy ) * 0.5 * ( S2_north - S2_south ) - ( dt / dx ) * 0.5 * ( F2_east - F2_west ) - ( dt / dy ) * 0.5 * ( G2_north - G2_south )
-   
-  		} 
-
-	//}
-	if ( checkForNegativeH ) {
+		
 		loop over hVec {
-			if ( ( h<next>[0] < 0.0 ) ) {
-				//print ( 'negative h at', i0, i1, h[next] )
-				hVec<next>[0] = 0
-				hVec<next>[1] = 0
-				hVec<next>[2] = 0
+      			hVec<next>[0]  = hc  - ( dt / dx ) * 0.5 * ( F0@east  - F0@west  ) - ( dt / dy ) * 0.5 * ( G0@north - G0@south )
+   
+      			hVec<next>[1] = huc + ( dt / dx ) * 0.5 * ( S1@east  - S1@west  ) - ( dt / dx ) * 0.5 * ( F1@east - F1@west ) - ( dt / dy ) * 0.5 * ( G1@north - G1@south )
+   
+      			hVec<next>[2] = hvc + ( dt / dy ) * 0.5 * ( S2@north - S2@south ) - ( dt / dx ) * 0.5 * ( F2@east - F2@west ) - ( dt / dy ) * 0.5 * ( G2@north - G2@south )
+    		}
+	}
+
+
+		if ( checkForNegativeH ) {
+			loop over hVec {
+				if ( ( h<next>[0] < 0.0 ) ) {
+					//print ( 'negative h at', i0, i1, h<next> )
+					hVec<next>[0] = 0
+					hVec<next>[1] = 0
+					hVec<next>[2] = 0
+				}
 			}
 		}
-	}
+	
 }
+
 
 Function AdvanceTimestep@all {
 	advance hVec
@@ -359,19 +372,21 @@ Function UpdateVis@finest {
 
 Function printMinMax@finest {
 	Var hMin : Real = 1.0E30
-	loop over hVec with reduction ( min : hMin ) {
+
+//TODO fuse loops
+	loop over hVec {
 		hMin = min ( hMin, ( hVec[0] + b ) )
 	}
 	Var hMax : Real = -1.0E30
-	loop over hVec with reduction ( max : hMax ) {
+	loop over hVec {
 		hMax = max ( hMax, ( hVec[0] + b ) )
 	}
 	Var uMax : Real = 0.0
-	loop over hVec with reduction ( max : uMax ) {
+	loop over hVec  {
 		uMax = max ( uMax, fabs ( ( hVec[1] / hVec[0] ) ) )
 	}
 	Var vMax : Real = 0.0
-	loop over hv with reduction ( max : vMax ) {
+	loop over hVec  {
 		vMax = max ( vMax, fabs ( ( hVec[2] / hVec[0] ) ) )
 	}
 	print ( "hMin:", hMin, "hMax:", hMax, "uMax:", uMax, "vMax:", vMax )
