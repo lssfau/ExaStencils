@@ -106,6 +106,7 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
       val ma = IR_MatrixAccess(fa, fa.matIndex.get(0), if (fa.matIndex.get.length == 2) Some(fa.matIndex.get(1)) else None)
       //fa.matIndex = None
       ma
+
   }, false)
 
   object TransformMatAccesses extends QuietDefaultStrategy("Transforming MatAccesses to slice nodes") {
@@ -118,6 +119,7 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
     case IR_Assignment(dest : IR_MatrixAccess, src, _) =>
       dest.expand(true, Some(src))
   })
+
   this += new Transformation("Transform rval matrix accesses to slice nodes", {
     case stmt : IR_Assignment          =>
       TransformMatAccesses.applyStandalone(stmt)
@@ -131,6 +133,9 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
     case setSlice : IR_SetSlice =>
       TransformMatAccesses.applyStandalone(setSlice)
       setSlice
+    case setElement : IR_SetElement =>
+      TransformMatAccesses.applyStandalone(setElement)
+      setElement
   })
   /////////////////////////////////////////////
 

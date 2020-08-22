@@ -129,7 +129,7 @@ object IR_SetSlice {
   def apply(args : IR_Expression*) = {
     (args(3), args(4)) match {
       case (r : IR_Number, c : IR_Number) if (r.asInstanceOf[IR_IntegerConstant].v == 1 && c.asInstanceOf[IR_IntegerConstant].v == 1) => IR_SetElement(args(0), args(1), args(2), args(5))
-      case _                              => new IR_SetSlice(args.to[ListBuffer])
+      case _                                                                                                                          => new IR_SetSlice(args.to[ListBuffer])
     }
   }
 }
@@ -147,18 +147,17 @@ case class IR_SetSlice(
     var nCols = arguments(4)
     var newValue = arguments(5)
 
-
-        if (IR_MatNodeUtils.isScalar(newValue))
-          IR_Scope(IR_GenerateBasicMatrixOperations.loopSetSubmatrixSc(matrix, offsetRows, offsetCols, nRows, nCols, newValue))
-        else {
-          var insize = IR_CompiletimeMatOps.getSize(newValue)
-          newValue match {
-            case x : IR_MatrixExpression                                  =>
-              var decl = IR_MatNodeUtils.expressionToDeclaration(x, "setSliceTmp_")
-              IR_Scope(decl, IR_GenerateBasicMatrixOperations.loopSetSubmatrixMat(IR_VariableAccess(decl), matrix, IR_IntegerConstant(insize._1), IR_IntegerConstant(insize._2), offsetRows, offsetCols))
-            case a @ (_ : IR_VariableAccess | _ : IR_MultiDimFieldAccess) =>
-              IR_Scope(IR_GenerateBasicMatrixOperations.loopSetSubmatrixMat(a, matrix, IR_IntegerConstant(insize._1), IR_IntegerConstant(insize._2), offsetRows, offsetCols))
-          }
+    if (IR_MatNodeUtils.isScalar(newValue))
+      IR_Scope(IR_GenerateBasicMatrixOperations.loopSetSubmatrixSc(matrix, offsetRows, offsetCols, nRows, nCols, newValue))
+    else {
+      var insize = IR_CompiletimeMatOps.getSize(newValue)
+      newValue match {
+        case x : IR_MatrixExpression                                  =>
+          var decl = IR_MatNodeUtils.expressionToDeclaration(x, "setSliceTmp_")
+          IR_Scope(decl, IR_GenerateBasicMatrixOperations.loopSetSubmatrixMat(IR_VariableAccess(decl), matrix, IR_IntegerConstant(insize._1), IR_IntegerConstant(insize._2), offsetRows, offsetCols))
+        case a @ (_ : IR_VariableAccess | _ : IR_MultiDimFieldAccess) =>
+          IR_Scope(IR_GenerateBasicMatrixOperations.loopSetSubmatrixMat(a, matrix, IR_IntegerConstant(insize._1), IR_IntegerConstant(insize._2), offsetRows, offsetCols))
+      }
 
     }
   }

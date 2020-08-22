@@ -49,7 +49,7 @@ case class IR_StencilConvolution(var left : IR_StencilAccess, var right : IR_Fie
       IR_OffsetAllApplicable.applyStandalone(coeff)
     }
 
-    coeff.expression * Duplicate(IR_FieldAccess(right.field, Duplicate(right.slot), right.index + offset))
+    coeff.expression * Duplicate(IR_FieldAccess.applySpecial(right.field, Duplicate(right.slot), right.index + offset, right.matIndex))
   }
 
   override def expand() : Output[IR_Expression] = {

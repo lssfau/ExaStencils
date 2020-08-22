@@ -52,7 +52,7 @@ object IR_CompiletimeMatOps {
           if (pos.length != 2)
             Logger.error("position arguments of wrong form: " + pos)
           IR_HighDimAccess(va, IR_ExpressionIndex(pos(0), pos(1)))
-        case fa : IR_FieldAccess if (fa.field.layout.datatype.isInstanceOf[IR_MatrixDatatype]) =>
+        case fa : IR_FieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype]) =>
           IR_HighDimAccess(fa, IR_ExpressionIndex(pos(0), pos(1)))
         case sc if (isScalar(sc))                                                              => sc
         case _                                                                                 => Logger.error(s"Argument is of unexpected type ${ exp.getClass.getTypeName }: $exp")

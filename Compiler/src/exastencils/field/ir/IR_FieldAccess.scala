@@ -101,6 +101,12 @@ object IR_LinearizeDirectFieldAccess extends DefaultStrategy("Linearize DirectFi
 object IR_FieldAccess {
   def apply(field : IR_Field, slot : IR_Expression, index : IR_ExpressionIndex) = new IR_FieldAccess(field, slot, IR_LoopOverFragments.defIt, index)
 
+  def applySpecial(field : IR_Field, slot : IR_Expression, index : IR_ExpressionIndex, matIndex : Option[Array[IR_Index]]): IR_FieldAccess = {
+    val fa = new IR_FieldAccess(field, slot, IR_LoopOverFragments.defIt, index)
+    fa.matIndex = matIndex
+    fa
+  }
+
   def apply(field : IR_Field, slot : IR_Expression, index : IR_ExpressionIndex, offset : Option[IR_ConstIndex])
   = new IR_FieldAccess(field, slot, IR_LoopOverFragments.defIt, index, offset)
 
