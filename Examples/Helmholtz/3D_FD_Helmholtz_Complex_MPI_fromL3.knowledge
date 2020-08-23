@@ -1,0 +1,10 @@
+dimensionality                 = 3
+
+minLevel                       = 2
+maxLevel                       = 5
+
+discr_type                     = "FiniteDifferences"
+
+// omp parallelization on exactly one fragment in one block
+import '../lib/domain_fourPatches.knowledge'
+import '../lib/parallelization_fourMPI.knowledge'
