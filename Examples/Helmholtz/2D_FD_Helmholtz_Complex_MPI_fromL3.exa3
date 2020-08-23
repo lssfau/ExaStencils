@@ -77,8 +77,8 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 Globals {
   Expr k = 80.0
   Expr omegaRelax = 1.0
-  // Expr shift = (0.6 - 1.0j)
-  Var shift : Complex<Real> = (0.6 - 1.0j)
+  Expr shift = (0.6 - 1.0j)
+  // Var shift : Complex<Real> = (0.6 - 1.0j)
 }
 
 Function NormResidual@(coarsest and finest) : Complex<Real> {
