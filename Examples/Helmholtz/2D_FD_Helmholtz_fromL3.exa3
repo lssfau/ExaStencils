@@ -5,15 +5,15 @@ Domain global< [ 0, 0 ] to [ 1, 1 ] >
 
 /// fields
 
+//Field Solution with Real on Node of global = 0.0
 Field Solution with Real on Node of global = 1.0
-
-// Field Solution@finest on boundary = (5.0 * PI**2 - k**2) * sin ( PI * vf_boundaryPos_x ) * sin ( 2 * PI * vf_boundaryPos_y ) 
-Field Solution@finest on boundary = 0.0 
+//Field Solution@finest on boundary = (5.0 * PI**2 - k**2) * sin ( PI * vf_boundaryPos_x ) * sin ( 2 * PI * vf_boundaryPos_y )
+Field Solution@finest on boundary = 0.0
 Field Solution@(all but finest) on boundary = 0.0
 
 Field RHS@finest with Real on Node of global = 0.0
+//Field RHS@finest with Real on Node of global = 1.0
 Field RHS@(all but finest) with Real on Node of global
-
 Field Residual        from RHS
 override bc for Residual@finest with 0.0
 
@@ -31,14 +31,16 @@ Field p@finest from Residual
 Field ap@finest from Residual
 
 /// for BiCGStab
+/*
 Field h     @finest from Residual
 Field s     @finest from Residual
 Field t     @finest from Residual
 Field resHat@finest from Residual
-
+*/
 /// for Conjugate Residual
+/*
 Field ar@finest from Residual
-
+*/
 /// for MinRes
 Field pOld@finest from Residual
 Field pNew@finest from Residual
@@ -76,7 +78,7 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 /// globals
 
 Globals {
-  Expr k = 40.0
+  Expr k = 160.0
   Expr omegaRelax = 1.0
   Expr shift = -1.0
 }
@@ -86,7 +88,8 @@ Function NormResidual@(coarsest and finest) : Real {
 }
 
 Function Solve@finest {
-  PreconditionedBiCGStab@finest (  )
+  //PreconditionedBiCGStab@finest (  )
+  PreconditionedMinRes@finest (  )
   /*
   Residual@finest = RHS@finest - ( A@finest * Solution@finest )
   Var initRes : Real = NormResidual@finest (  )
@@ -105,8 +108,8 @@ Function Solve@finest {
     curIt += 1
     // PreconditionedCG@finest (  )
     // PreconditionedConjugateResidual@finest (  )
-    PreconditionedBiCGStab@finest (  )
-    // PreconditionedMinRes@finest (  )
+    //PreconditionedBiCGStab@finest (  )
+    PreconditionedMinRes@finest (  )
     Residual@finest = RHS@finest - ( A@finest * Solution@finest )
     prevRes = curRes
     curRes = NormResidual@finest (  )
@@ -209,10 +212,12 @@ Function PreconditionedCG@finest {
 }
 */
 /// Preconditioned BiCGStab
+/*
 Function PreconditionedBiCGStab@finest {
   // init residual
   Residual    = RHS - A * Solution
   Var curRes  : Real = NormResidual ( )
+  Var nextRes  : Real = curRes
   if (curRes != curRes) {
     // print ( "Residual after", 0, "iterations is", curRes, "--- convergence factor is", ( curRes ) ) 
     print(curRes)
@@ -261,19 +266,19 @@ Function PreconditionedBiCGStab@finest {
     //Solution = u
     Solution = h + omega * u
     Residual  = s - omega * t
-    curRes    = NormResidual ( )
-
+    curRes    = nextRes
+    nextRes    = NormResidual ( )
     // print ( "Residual after", curStep, "iterations is", curRes)
-    if ( curRes <= 1e-6 * initRes ) {
-      print ( "Residual after", curStep, "iterations is", curRes, "--- convergence factor is", ( curRes / initRes ) )
+    if ( nextRes <= 1e-6 * initRes ) {
+      print ( "Residual after", curStep, "iterations is", nextRes, "--- convergence factor is", ( nextRes / initRes ) )
       return
     }
   }
 
   print ( "Maximum number of solver iterations (", 10000, ") was exceeded" )
-  print ( "Residual after", curStep, "iterations is", curRes, "--- convergence factor is", ( curRes / initRes ) )
+  print ( "Residual after", curStep, "iterations is", curRes, "--- convergence factor is", ( nextRes / initRes ) )
 }
-
+*/
 /*
 
 Function PreconditionedConjugateResidual@finest {
@@ -313,7 +318,7 @@ Function PreconditionedConjugateResidual@finest {
     Solution += alpha * p
     Residual -= alpha * u
     // print ( "Residual after", curStep, "iterations is", curRes)
-    if ( curRes < 1e-7 * initRes ) {
+    if ( curRes < 1e-6 * initRes ) {
       print ( "Residual after", curStep, "iterations is", curRes, "--- convergence factor is", ( curRes / initRes ) )
       return
     }
@@ -329,7 +334,8 @@ Function PreconditionedConjugateResidual@finest {
   print ( "Maximum number of solver iterations (", 10000, ") was exceeded" )
   print ( "Residual after", curStep, "iterations is", curRes, "--- convergence factor is", ( curRes / initRes ) )
 }
-/** Preconditioned MinRes
+*/
+// Preconditioned MinRes
 Function PreconditionedMinRes@finest {
   // init residual
   Residual    = RHS - A * Solution
@@ -396,19 +402,18 @@ Function PreconditionedMinRes@finest {
     Solution += u
     curRes   *= -sigmaNew
 
-    if ( fabs ( curRes ) <= 1e-6 * initRes ) { 
-      print ( "Residual after", curStep, "iterations is", curRes)
+    if ( fabs(curRes)  <= 1e-6 * initRes ) { 
+      print ( "Residual after", curStep, "iterations is", fabs(curRes), "--- convergence factor is", ( fabs(curRes) / initRes ) )
       return 
     }
   }
 
   print ( "Maximum number of solver iterations (", 10000, ") was exceeded" )
+  print ( "Residual after", curStep, "iterations is", fabs(curRes), "--- convergence factor is", ( fabs(curRes) / initRes ) )
 }
 
-*/
 
 /// Preconditioner
-
 Function PreSmoother@all {
   repeat 2 times {
     u += omegaRelax * diag_inv ( M ) * ( f - M * u ) where (i0 + i1) % 2 == 0
@@ -421,7 +426,6 @@ Function PostSmoother@all {
     u += omegaRelax * diag_inv ( M ) * ( f - M * u ) where (i0 + i1) % 2 == 1
   }
 }
-
 
 Function VCycle@(coarsest + 2 to finest) {
   PreSmoother ( )
@@ -451,9 +455,7 @@ Function VCycle@(coarsest + 1) {
 
   PostSmoother ( )
 }
-
-/*
- * Conjugate Gradient Coarse Grid Solver
+// Conjugate Gradient Coarse Grid Solver
 Function VCycle@coarsest {
   // init residual
   gen_residual_u    = f - M * gen_error_u
@@ -488,9 +490,8 @@ Function VCycle@coarsest {
   print ( "Maximum number of cgs iterations (", 10000, ") was exceeded" )
 
 }
-*/
-
-Field nu    @coarsest from gen_residual_u
+/*
+Field mp    @coarsest from gen_residual_u
 Field p     @coarsest from gen_residual_u
 Field h     @coarsest from gen_residual_u
 Field s     @coarsest from gen_residual_u
@@ -513,7 +514,7 @@ Function VCycle@coarsest {
   Var omega   : Real = 1.0
 
   resHat      = gen_residual_u
-  nu          = 0.0
+  mp          = 0.0
   p           = 0.0
 
   // main loop
@@ -522,11 +523,11 @@ Function VCycle@coarsest {
     rho       = rhoNew
     rhoNew    = dot ( resHat, gen_residual_u )
     beta      = ( rhoNew / rho ) * ( alpha / omega )
-    p         = gen_residual_u + beta * ( p - omega * nu )
-    nu        = M * p
-    alpha     = rhoNew / dot ( resHat, nu )
+    p         = gen_residual_u + beta * ( p - omega * mp )
+    mp        = M * p
+    alpha     = rhoNew / dot ( resHat, mp )
     h         = gen_error_u + alpha * p
-    s         = gen_residual_u - alpha * nu
+    s         = gen_residual_u - alpha * mp
     t         = M * s
     omega     = dot ( t, s ) / dot ( t, t )
     gen_error_u  = h + omega * s
@@ -538,4 +539,76 @@ Function VCycle@coarsest {
 
   //print ( "Maximum number of cgs iterations (", 10000, ") was exceeded" )
 }
+*/
+/*
+Field pOld_u@coarsest from gen_residual_u
+Field p_u   @coarsest from gen_residual_u
+Field pNew_u@coarsest from gen_residual_u
+Field vOld_u@coarsest from gen_residual_u
+Field v_u   @coarsest from gen_residual_u
+Field vNew_u@coarsest from gen_residual_u
 
+Function VCycle@coarsest {
+  // init residual
+  gen_residual_u    = f - M * gen_error_u
+  Var curRes  : Real = sqrt(dot(gen_residual_u, gen_residual_u))
+  Var initRes : Real = curRes
+
+  if ( curRes == 0.0 ) { return }
+
+  // init variables and fields
+  Var alpha   : Real
+  Var beta    : Real
+  Var betaNew : Real = 0.0
+  Var cOld    : Real
+  Var c       : Real = 1.0
+  Var cNew    : Real = 1.0
+  Var sOld    : Real
+  Var s       : Real = 0.0
+  Var sNew    : Real = 0.0
+
+  Var rho1    : Real
+  Var rho2    : Real
+  Var rho3Tld : Real
+  Var tau     : Real
+  Var nu      : Real
+  Var rho3    : Real
+
+  v_u           = 0.0
+  vNew_u        = gen_residual_u / initRes
+  p_u           = 0.0
+  pNew_u        = 0.0
+
+  // main loop
+  Var curStep : Int  = 0
+  repeat 128 times count curStep {
+    beta      = betaNew
+    vOld_u      = v_u
+    v_u         = vNew_u
+    vNew_u      = M * v_u - beta * vOld_u
+    alpha     = dot ( vNew_u, v_u )
+    vNew_u     -= alpha * v_u
+    betaNew   = sqrt ( dot ( vNew_u, vNew_u ) )
+    vNew_u     /= betaNew
+    cOld      = c
+    c         = cNew
+    sOld      = s
+    s         = sNew
+    rho1      = sOld * beta
+    rho2      = c * cOld * beta + s * alpha
+    rho3Tld   = c * alpha - s * cOld * beta
+    tau       = fabs ( rho3Tld ) + fabs ( betaNew )
+    nu        = tau * sqrt ( ( rho3Tld / tau )**2 + ( betaNew / tau )**2 )
+    cNew      = rho3Tld / nu
+    sNew      = betaNew / nu
+    rho3      = nu
+    pOld_u      = p_u
+    p_u         = pNew_u
+    pNew_u      = ( v_u - rho1 * pOld_u - rho2 * p_u ) / rho3
+    gen_error_u += cNew * curRes * pNew_u
+    curRes   *= -sNew
+
+    if ( fabs ( curRes ) <= 1e-6 * initRes ) { return }
+  }
+
+}*/

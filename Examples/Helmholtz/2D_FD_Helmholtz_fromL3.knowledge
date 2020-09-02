@@ -1,7 +1,7 @@
 dimensionality                 = 2
 
-minLevel                       = 2
-maxLevel                       = 6
+minLevel                       = 4
+maxLevel                       = 8
 
 discr_type                     = "FiniteDifferences"
 
