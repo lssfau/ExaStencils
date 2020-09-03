@@ -197,7 +197,7 @@ case class IR_ComplexDatatype(datatype : IR_Datatype) extends IR_Datatype {
     Settings.additionalNamespaces += "std::complex_literals"
 
   override def prettyprint(out : PpStream) : Unit = out << "std::complex<" << datatype << '>'
-  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+  override def prettyprint_mpi = "MPI::DOUBLE_COMPLEX"//s"INVALID DATATYPE: " + this.prettyprint()
   override def toString() : String = "std::complex<" + datatype + '>'
 
   // TODO: treat like a vec2 or like a struct?

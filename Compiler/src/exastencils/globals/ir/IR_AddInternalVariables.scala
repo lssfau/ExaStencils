@@ -199,7 +199,13 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
           IR_Assignment(buf, buf.basePtr + s"offset_$counter")),
           IR_ParallelizationInfo(potentiallyParallel = true)))
       } else {
-        bufferAllocs += (id -> IR_LoopOverFragments(IR_ArrayAllocation(buf, IR_RealDatatype, size), IR_ParallelizationInfo(potentiallyParallel = true)))
+        bufferAllocs += (id -> IR_LoopOverFragments(
+          IR_ArrayAllocation(
+            buf,
+            if(buf.field.layout.datatype.isInstanceOf[IR_ComplexDatatype]) buf.field.layout.datatype
+            else IR_DoubleDatatype,
+            size
+          ), IR_ParallelizationInfo(potentiallyParallel = true)))
       }
 
       buf

@@ -38,7 +38,11 @@ abstract class IR_IV_AbstractCommBuffer extends IR_IV_CommVariable {
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
-  override def resolveDatatype() = IR_PointerDatatype(field.resolveBaseDatatype)
+  override def resolveDatatype() = {
+    // IR_ComplexDatatype should be a base datatype on one level with IR_DoubleDatatype
+    if(field.layout.datatype.isInstanceOf[IR_ComplexDatatype]) IR_PointerDatatype(field.layout.datatype)
+    else IR_PointerDatatype(field.resolveBaseDatatype)
+  }
   override def resolveDefValue() = Some(0)
 
   override def getDtor() : Option[IR_Statement] = {
@@ -64,6 +68,7 @@ case class IR_IV_CommBuffer(override var field : IR_Field, override var directio
   def basePtr = IR_IV_CommBufferBasePtr(field, direction, size, neighIdx, fragmentIdx)
 
   override def resolveName() = s"buffer_$direction" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+
 
   override def getDtor() : Option[IR_Statement] = {
     if (Knowledge.data_alignTmpBufferPointers) {
