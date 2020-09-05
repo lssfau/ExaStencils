@@ -9,10 +9,10 @@ Domain global< [ 0, 0 ] to [ 1, 1 ] >
 Field Solution with Real on Node of global = 1.0
 Field Solution@finest on boundary = 0.0
 
-Field RHS@finest with Real on Node of global = (5.0 * PI**2 - k**2) * sin ( PI * vf_nodePos_x ) * sin ( 2 * PI * vf_nodePos_y )
-//Field RHS@finest with Real on Node of global = 1.0
+//Field RHS@finest with Real on Node of global = (5.0 * PI**2 - k**2) * sin ( PI * vf_nodePos_x ) * sin ( 2 * PI * vf_nodePos_y )
+Field RHS@finest with Real on Node of global = 0.0
 Field RHS@(all but finest) with Real on Node of global
-Field Residual        from Solution
+Field Residual        from RHS
 override bc for Residual@finest with 0.0
 
 // For the Preconditioner
@@ -75,7 +75,7 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 /// globals
 
 Globals {
-  Expr k = 160.0
+  Var k : Real = 80.0
   Expr omegaRelax = 1.0
   Expr shift = -1.0
 }
