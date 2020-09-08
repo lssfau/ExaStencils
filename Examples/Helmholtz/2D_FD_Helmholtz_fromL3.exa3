@@ -5,14 +5,12 @@ Domain global< [ 0, 0 ] to [ 1, 1 ] >
 
 /// fields
 
-//Field Solution with Real on Node of global = 0.0
+// Field Solution with Real on Node of global = 0.0
 Field Solution with Real on Node of global = 1.0
-//Field Solution@finest on boundary = (5.0 * PI**2 - k**2) * sin ( PI * vf_boundaryPos_x ) * sin ( 2 * PI * vf_boundaryPos_y )
 Field Solution@finest on boundary = 0.0
-Field Solution@(all but finest) on boundary = 0.0
 
+//Field RHS@finest with Real on Node of global = (5.0 * PI**2 - k**2) * sin ( PI * vf_nodePos_x ) * sin ( 2 * PI * vf_nodePos_y )
 Field RHS@finest with Real on Node of global = 0.0
-//Field RHS@finest with Real on Node of global = 1.0
 Field RHS@(all but finest) with Real on Node of global
 Field Residual        from RHS
 override bc for Residual@finest with 0.0
@@ -31,23 +29,22 @@ Field p@finest from Residual
 Field ap@finest from Residual
 
 /// for BiCGStab
-/*
 Field h     @finest from Residual
 Field s     @finest from Residual
 Field t     @finest from Residual
 Field resHat@finest from Residual
-*/
 /// for Conjugate Residual
 /*
 Field ar@finest from Residual
 */
 /// for MinRes
+/*
 Field pOld@finest from Residual
 Field pNew@finest from Residual
 Field vOld@finest from Residual
 Field v   @finest from Residual
 Field vNew@finest from Residual
-
+*/
 /// operators
 
 Operator A from Stencil {
@@ -78,7 +75,7 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 /// globals
 
 Globals {
-  Expr k = 160.0
+  Var k : Real = 80.0
   Expr omegaRelax = 1.0
   Expr shift = -1.0
 }
@@ -88,8 +85,8 @@ Function NormResidual@(coarsest and finest) : Real {
 }
 
 Function Solve@finest {
-  //PreconditionedBiCGStab@finest (  )
-  PreconditionedMinRes@finest (  )
+  PreconditionedBiCGStab@finest (  )
+  //PreconditionedMinRes@finest (  )
   /*
   Residual@finest = RHS@finest - ( A@finest * Solution@finest )
   Var initRes : Real = NormResidual@finest (  )
@@ -122,45 +119,67 @@ Function Solve@finest {
   }*/
 }
 
-/*** Conjugate Gradient without Preconditioning
-Function ConjugateGradient@finest {
+
+/// Preconditioned BiCGStab
+Function PreconditionedBiCGStab@finest {
   // init residual
   Residual    = RHS - A * Solution
   Var curRes  : Real = NormResidual ( )
+  if (curRes != curRes) {
+    // print ( "Residual after", 0, "iterations is", curRes, "--- convergence factor is", ( curRes ) )
+    print(curRes)
+    print ( "Maximum number of solver iterations (", 10000, ") was exceeded" )
+    return
+  }
+
   Var initRes : Real = curRes
-  Var nextRes : Real = 0.0
 
   if ( curRes == 0.0 ) { return }
 
   // init variables and fields
-  Var alpha   : Real = 0.0
-  Var beta    : Real = 0.0
+  Var alpha   : Real = 1.0
+  Var beta    : Real = 1.0
+  Var rho     : Real
+  Var rhoNew  : Real = 1.0
+  Var omega   : Real = 1.0
 
-  p           = Residual
+  resHat      = Residual
+  ap          = 0.0
+  p           = 0.0
 
   // main loop
   Var curStep : Int  = 0
   repeat 10000 times count curStep {
-    ap        = A * p
-
-    alpha     = dot ( Residual, Residual ) / dot ( p, ap )
-    Solution += alpha * p
-    Residual -= alpha * ap
-
-    nextRes   = NormResidual ( )
-    // print ( "Residual after", curStep, "iterations is", curRes, "--- convergence factor is", ( nextRes / curRes ) )
-    if ( nextRes <= 1e-6 * initRes ) {
-      print ( "Residual after", curStep, "iterations is", nextRes)
+    rho       = rhoNew
+    rhoNew    = dot ( resHat, Residual )
+    beta      = ( rhoNew / rho ) * ( alpha / omega )
+    p         = Residual + beta * ( p - omega * ap )
+    u = 0
+    f = p
+    VCycle()
+    ap        = A * u
+    alpha     = rhoNew / dot ( resHat, ap )
+    h         = Solution + alpha * u
+    s         = Residual - alpha * ap
+    u = 0
+    f = s
+    VCycle()
+    t = A * u
+    omega     = dot ( t, s ) / dot ( t, t )
+    Solution = h + omega * u
+    Residual  = s - omega * t
+    curRes    = NormResidual ( )
+    // print ( "Residual after", curStep, "iterations is", curRes)
+    if ( curRes <= 1e-6 * initRes ) {
+      print ( "Residual after", curStep, "iterations is", curRes, "--- convergence factor is", ( curRes / initRes ) )
       return
     }
-
-    beta      = nextRes**2 / curRes**2
-    p         = Residual + beta * p
-    curRes    = nextRes
   }
 
-  print ( "Maximum number of cgs iterations (", 10000, ") was exceeded" )
+  print ( "Maximum number of solver iterations (", 10000, ") was exceeded" )
+  print ( "Residual after", curStep, "iterations is", curRes, "--- convergence factor is", ( curRes / initRes ) )
 }
+/*
 
 /// Preconditioned CG
 Function PreconditionedCG@finest {
@@ -210,76 +229,6 @@ Function PreconditionedCG@finest {
 
   print ( "Maximum number of solver iterations (", 10000, ") was exceeded" )
 }
-*/
-/// Preconditioned BiCGStab
-/*
-Function PreconditionedBiCGStab@finest {
-  // init residual
-  Residual    = RHS - A * Solution
-  Var curRes  : Real = NormResidual ( )
-  Var nextRes  : Real = curRes
-  if (curRes != curRes) {
-    // print ( "Residual after", 0, "iterations is", curRes, "--- convergence factor is", ( curRes ) ) 
-    print(curRes)
-    print ( "Maximum number of solver iterations (", 10000, ") was exceeded" )
-    return
-  }
-
-  Var initRes : Real = curRes
-
-  if ( curRes == 0.0 ) { return }
-
-  // init variables and fields
-  Var alpha   : Real = 1.0
-  Var beta    : Real = 1.0
-  Var rho     : Real
-  Var rhoNew  : Real = 1.0
-  Var omega   : Real = 1.0
-
-  resHat      = Residual
-  ap          = 0.0
-  p           = 0.0
-
-  // main loop
-  Var curStep : Int  = 0
-  repeat 10000 times count curStep {
-    rho       = rhoNew
-    rhoNew    = dot ( resHat, Residual )
-    beta      = ( rhoNew / rho ) * ( alpha / omega )
-    p         = Residual + beta * ( p - omega * ap )
-    u = 0
-    f = p
-    VCycle()
-    ap        = A * u
-    alpha     = rhoNew / dot ( resHat, ap )
-    //h         = Solution + alpha * p
-    h         = Solution + alpha * u
-    s         = Residual - alpha * ap
-    u = 0
-    f = s
-    VCycle()
-    t = A * u
-    omega     = dot ( t, s ) / dot ( t, t )
-    //u = 0
-    //f = h + omega * s
-    //VCycle()
-    //Solution = u
-    Solution = h + omega * u
-    Residual  = s - omega * t
-    curRes    = nextRes
-    nextRes    = NormResidual ( )
-    // print ( "Residual after", curStep, "iterations is", curRes)
-    if ( nextRes <= 1e-6 * initRes ) {
-      print ( "Residual after", curStep, "iterations is", nextRes, "--- convergence factor is", ( nextRes / initRes ) )
-      return
-    }
-  }
-
-  print ( "Maximum number of solver iterations (", 10000, ") was exceeded" )
-  print ( "Residual after", curStep, "iterations is", curRes, "--- convergence factor is", ( nextRes / initRes ) )
-}
-*/
-/*
 
 Function PreconditionedConjugateResidual@finest {
   // init residual
@@ -336,6 +285,7 @@ Function PreconditionedConjugateResidual@finest {
 }
 */
 // Preconditioned MinRes
+/*
 Function PreconditionedMinRes@finest {
   // init residual
   Residual    = RHS - A * Solution
@@ -411,7 +361,7 @@ Function PreconditionedMinRes@finest {
   print ( "Maximum number of solver iterations (", 10000, ") was exceeded" )
   print ( "Residual after", curStep, "iterations is", fabs(curRes), "--- convergence factor is", ( fabs(curRes) / initRes ) )
 }
-
+*/
 
 /// Preconditioner
 Function PreSmoother@all {
@@ -455,42 +405,7 @@ Function VCycle@(coarsest + 1) {
 
   PostSmoother ( )
 }
-// Conjugate Gradient Coarse Grid Solver
-Function VCycle@coarsest {
-  // init residual
-  gen_residual_u    = f - M * gen_error_u
-  Var curRes  : Real = sqrt(dot(gen_residual_u, gen_residual_u))
-  Var initRes : Real = curRes
-  Var nextRes : Real = 0.0
 
-  if ( curRes == 0.0 ) { return }
-
-  // init variables and fields
-  Var alpha   : Real = 0.0
-  Var beta    : Real = 0.0
-
-  p_u           = gen_residual_u
-
-  // main loop
-  Var curStep : Int  = 0
-  repeat 10000 times count curStep {
-    ap_u        = M * p_u
-
-    alpha     = dot ( gen_residual_u, gen_residual_u ) / dot ( p_u, ap_u )
-    gen_error_u += alpha * p_u
-    gen_residual_u -= alpha * ap_u
-
-    nextRes   = sqrt (dot (gen_residual_u, gen_residual_u) )
-    if ( nextRes <= 1e-6 * initRes ) { return }
-
-    beta      = nextRes**2 / curRes**2
-    p_u         = gen_residual_u + beta * p_u
-    curRes    = nextRes
-  }
-  print ( "Maximum number of cgs iterations (", 10000, ") was exceeded" )
-
-}
-/*
 Field mp    @coarsest from gen_residual_u
 Field p     @coarsest from gen_residual_u
 Field h     @coarsest from gen_residual_u
@@ -539,7 +454,45 @@ Function VCycle@coarsest {
 
   //print ( "Maximum number of cgs iterations (", 10000, ") was exceeded" )
 }
+
+/*
+// Conjugate Gradient Coarse Grid Solver
+Function VCycle@coarsest {
+  // init residual
+  gen_residual_u    = f - M * gen_error_u
+  Var curRes  : Real = sqrt(dot(gen_residual_u, gen_residual_u))
+  Var initRes : Real = curRes
+  Var nextRes : Real = 0.0
+
+  if ( curRes == 0.0 ) { return }
+
+  // init variables and fields
+  Var alpha   : Real = 0.0
+  Var beta    : Real = 0.0
+
+  p_u           = gen_residual_u
+
+  // main loop
+  Var curStep : Int  = 0
+  repeat 10000 times count curStep {
+    ap_u        = M * p_u
+
+    alpha     = dot ( gen_residual_u, gen_residual_u ) / dot ( p_u, ap_u )
+    gen_error_u += alpha * p_u
+    gen_residual_u -= alpha * ap_u
+
+    nextRes   = sqrt (dot (gen_residual_u, gen_residual_u) )
+    if ( nextRes <= 1e-6 * initRes ) { return }
+
+    beta      = nextRes**2 / curRes**2
+    p_u         = gen_residual_u + beta * p_u
+    curRes    = nextRes
+  }
+  print ( "Maximum number of cgs iterations (", 10000, ") was exceeded" )
+
+}
 */
+
 /*
 Field pOld_u@coarsest from gen_residual_u
 Field p_u   @coarsest from gen_residual_u
