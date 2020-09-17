@@ -34,7 +34,6 @@ import exastencils.datastructures.Transformation
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.globals.ir.IR_GlobalCollection
-import exastencils.logger.Logger
 
 /** Strategy: preparatory transformations to resolve matrices */
 object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
@@ -193,8 +192,8 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
         val extAcc = IR_VariableAccess("fct_" + e.name + "_" + extDeclCounter, e.datatype)
         extDeclCounter += 1
         IR_ExtractFunctionCalls.applyStandalone(e)
-        extDeclHolder += IR_VariableDeclaration(extAcc)
-        extDeclHolder += IR_Assignment(extAcc, Duplicate(e))
+        extDeclHolder += IR_VariableDeclaration(extAcc, Duplicate(e))
+        //extDeclHolder += IR_Assignment(extAcc, Duplicate(e))
         extAcc
     }, false)
   }
@@ -307,7 +306,7 @@ object IR_SetupMatrixExpressions extends DefaultStrategy("Convert accesses to ma
     //case IR_MatrixDatatype(dt, 1, 1)                  => dt
     case m : IR_MatrixExpression => m // no need to process further
     case hda : IR_HighDimAccess  => hda // no need to process further
-    //case x : IR_FunctionCall if (x.name != "inverse") => x
+    //case x : IR_FunctionCall if (x.name == "inverse") => x
 
     case x : IR_GetSlice                                                         => x
     case x : IR_SetSlice                                                         => x
@@ -359,7 +358,7 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
     */
 
   this += new Transformation("Insert resolvables and resolve", {
-    case decl @ IR_VariableDeclaration(_, _, Some(_ : IR_RuntimeMNode), _) =>
+    case decl @ IR_VariableDeclaration(_, _, Some(r : IR_RuntimeMNode), _) if r.resolveAtRuntime =>
       IR_MatNodeUtils.splitDeclaration(decl)
 
     // not to resolve at runtime
@@ -436,6 +435,7 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
 
   /** Transformation: resolve or split declarations */
   this += new Transformation("decls", {
+/*
     // split to use std::fill later
     case decl @ IR_VariableDeclaration(IR_MatrixDatatype(_, _, _), _, Some(init), _) if (IR_MatNodeUtils.isScalar(init)) =>
       IR_MatNodeUtils.splitDeclaration(decl)
@@ -446,12 +446,12 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
         Logger.error(s"Declaration of variable of type: $declDt with expression of type: $srcDt, sizes must match!")
       decl
 
-    // split to use std::memcpy or std::copy later
+    // split to use std::copy later
     case decl @ IR_VariableDeclaration(declDt @ IR_MatrixDatatype(_, _, _), _, Some(IR_VariableAccess(_, srcDt @ IR_MatrixDatatype(_, _, _))), _) =>
       if (declDt.sizeM != srcDt.sizeM || declDt.sizeN != srcDt.sizeN)
         Logger.error(s"Declaration of variable of type: $declDt with expression of type: $srcDt, sizes must match!")
       IR_MatNodeUtils.splitDeclaration(decl)
-
+*/
     // add helper matrix  decls from schur compiletime inversion
     case stmt @ (IR_VariableDeclaration(_, _, _, _) | IR_Assignment(_, _, _)) if (Knowledge.experimental_schurWithHelper) =>
       val ms = StateManager.findAll[IR_MatrixExpression](stmt).filter(x => if (x.hasAnnotation("helperMatrices")) true else false)
@@ -483,12 +483,13 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
       IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::fill", IR_UnitDatatype), ListBuffer[IR_Expression](Duplicate(dest), Duplicate(dest) + IR_IntegerConstant(dest.datatype.asInstanceOf[IR_MatrixDatatype].resolveFlattendSize), src)))
 
     // assignment of a matrix with another matrix : copy other matrix
-    //case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src @ (IR_MatrixExpression(_, _, _, _) | _ : IR_VariableAccess ), "=") if (src.datatype.isInstanceOf[IR_MatrixDatatype]) =>
-    //IR_GenerateBasicMatrixOperations.copyMatrix(dest, src)
+  //  case IR_Assignment(dest @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)), src @ (IR_MatrixExpression(_, _, _, _) | _ : IR_VariableAccess ), "=") if (src.datatype.isInstanceOf[IR_MatrixDatatype]) =>
+  //  IR_GenerateBasicMatrixOperations.copyMatrix(dest, src)
 
-    case IR_Assignment(dest, src : IR_Access, "=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] && !dest.isInstanceOf[IR_MatrixExpression] && src.datatype.isInstanceOf[IR_MatrixDatatype] =>
+   case IR_Assignment(dest, src : IR_Access, "=") if dest.datatype.isInstanceOf[IR_MatrixDatatype] && !dest.isInstanceOf[IR_MatrixExpression] && src.datatype.isInstanceOf[IR_MatrixDatatype] =>
       val dt = dest.datatype.asInstanceOf[IR_MatrixDatatype]
       IR_ExpressionStatement(IR_FunctionCall("std::copy", ListBuffer[IR_Expression](Duplicate(src), Duplicate(src) + IR_IntegerConstant(dt.resolveFlattendSize), dest)))
+
 
     // other assignments
     case stmt @ IR_Assignment(dest, _, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype]) =>

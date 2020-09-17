@@ -41,7 +41,6 @@ import exastencils.base.ir.IR_StringDatatype
 import exastencils.base.ir.IR_Subtraction
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
-import exastencils.core.Duplicate
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
 
@@ -115,7 +114,11 @@ object IR_MatNodeUtils {
       case IR_VariableAccess(_, IR_RealDatatype | IR_IntegerDatatype | IR_DoubleDatatype | IR_FloatDatatype)                                                                           => true
       case (IR_IntegerConstant(_) | IR_DoubleConstant(_) | IR_FloatConstant(_) | IR_RealConstant(_))                                                                                   => true
       case IR_HighDimAccess(_, _)                                                                                                                                                      => true
-      case op @ (IR_Addition(_) | IR_Subtraction(_, _) | IR_Multiplication(_) | IR_Division(_, _) | IR_Modulo(_, _) | IR_Power(_, _)) if (op.datatype.isInstanceOf[IR_ScalarDatatype]) => true
+      case op @ (IR_Addition(_) | IR_Subtraction(_, _) | IR_Multiplication(_) | IR_Division(_, _) | IR_Modulo(_, _) | IR_Power(_, _)) //if (op.datatype.isInstanceOf[IR_ScalarDatatype]) => true
+       =>
+        val dt = op.datatype
+        if(dt.isInstanceOf[IR_ScalarDatatype]) true
+        else false
       case minmax @ (IR_Minimum(_) | IR_Maximum(_)) if (minmax.datatype.isInstanceOf[IR_ScalarDatatype])                                                                               => true
       case IR_VariableAccess(_, IR_ReferenceDatatype(innerDt)) if (innerDt.isInstanceOf[IR_ScalarDatatype])                                                                            => true
       case IR_ArrayAccess(_, _, _)                                                                                                                                                     => true
@@ -194,7 +197,7 @@ object IR_MatNodeUtils {
   def splitDeclaration(decl : IR_VariableDeclaration) : ListBuffer[IR_Statement] = {
     val newStmts = ListBuffer[IR_Statement]()
     newStmts += IR_VariableDeclaration(decl.datatype, decl.name, None)
-    newStmts += IR_Assignment(IR_VariableAccess(Duplicate(decl)), decl.initialValue.getOrElse(IR_NullExpression))
+    newStmts += IR_Assignment(IR_VariableAccess(decl), decl.initialValue.getOrElse(IR_NullExpression))
     newStmts
   }
 
