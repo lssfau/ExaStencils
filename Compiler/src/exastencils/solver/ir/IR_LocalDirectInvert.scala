@@ -108,7 +108,7 @@ object IR_LocalDirectInvert {
     AMat.shape = Some(msi)
     //val Aacc = IR_VariableAccess("local_matrix", IR_MatrixDatatype(IR_RealDatatype, unknowns.length, unknowns.length))
     //stmts += IR_VariableDeclaration(Aacc, AMat)
-    stmts += IR_SolveLinearSystem(AMat, u, f)
+    stmts += IR_SolveMatrixSystem(AMat, u, f)
 
 
     // write back results

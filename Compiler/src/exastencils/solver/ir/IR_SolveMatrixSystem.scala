@@ -40,9 +40,9 @@ import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
 /// solve local linear system
-object IR_SolveLLS {
-  def apply(A : IR_Expression, u : IR_VariableAccess, f : IR_VariableAccess) : IR_SolveLLS = {
-    new IR_SolveLLS(A, u, f)
+object IR_SolveMatrixSystem {
+  def apply(A : IR_Expression, u : IR_VariableAccess, f : IR_VariableAccess) : IR_SolveMatrixSystem = {
+    new IR_SolveMatrixSystem(A, u, f)
   }
 
   def apply(A : IR_Expression, u : IR_Expression, f : IR_Expression) = {
@@ -57,13 +57,13 @@ object IR_SolveLLS {
   }
 }
 
-case class IR_SolveLLS(A : IR_Expression, u : IR_VariableAccess, f : IR_VariableAccess) extends IR_Statement {
+case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR_VariableAccess, shape : Option[IR_MatShape] = None) extends IR_Statement {
 
-  override def prettyprint(out : PpStream) : Unit = out << "solveLES" << A.prettyprint(out) << ", " << f.prettyprint(out)
+  override def prettyprint(out : PpStream) : Unit = out << "solveMatSys" << A.prettyprint(out) << ", " << f.prettyprint(out)
 
   def expand(AasExpr : IR_MatrixExpression) : Transformation.OutputType = {
 
-    val msi : IR_MatShape = AasExpr.shape.getOrElse(IR_MatShape("filled"))
+    val msi : IR_MatShape = if(AasExpr.shape.isDefined) AasExpr.shape.get else shape.getOrElse(IR_MatShape("filled"))
     val (m, n) = AasExpr.datatype match {
       case mat : IR_MatrixDatatype => (mat.sizeM, mat.sizeN)
       case _                       => Logger.error(s"unexpected datatype of A: ${ A.datatype }")
@@ -97,7 +97,7 @@ case class IR_SolveLLS(A : IR_Expression, u : IR_VariableAccess, f : IR_Variable
         // in case of schur: solve with A-Decomposition to helper matrices
         // only for blocksize of D == 1
         case "schur" if (m - msi.size("block") == 1) =>
-          schurDomainDecomp(AasExpr)
+          schurDomainDecomp(AasExpr, msi)
         // Fallback1: solve by inverting A with given structure for Schur with size(D) > 1 or blockdiagonal
         case _ if (msi.shape != "filled") => IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
         /*
@@ -131,9 +131,8 @@ case class IR_SolveLLS(A : IR_Expression, u : IR_VariableAccess, f : IR_Variable
     }
   }
 
-  def schurDomainDecomp(A : IR_MatrixExpression) : Transformation.OutputType = {
+  def schurDomainDecomp(A : IR_MatrixExpression, msi : IR_MatShape) : Transformation.OutputType = {
     var stmts = ListBuffer[IR_Statement]()
-    val msi = A.shape.get
     // blocksizes
     val bsize = msi.size("block")
     val bsizeA = msi.size("Ablock")

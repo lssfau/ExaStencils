@@ -335,8 +335,8 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   //TODO parse L4 local solve for matrices
   // -> L4 SolveLinearSystem
-  lazy val solveLinearSystemStatement = locationize(("solveLES") ~> (binaryexpression <~ ",") ~ (binaryexpression <~ ",") ~ binaryexpression ^^ {
-    case a ~ u ~ f => L4_SolveLinearSystem(a, u, f)
+  lazy val solveLinearSystemStatement = locationize(("solveMatSys") ~> (binaryexpression <~ ",") ~ (binaryexpression <~ ",") ~ binaryexpression ~ matShapeOption.? ^^ {
+    case a ~ u ~ f ~ shape => L4_SolveMatrixSystem(a, u, f, shape)
   })
 
   // ######################################

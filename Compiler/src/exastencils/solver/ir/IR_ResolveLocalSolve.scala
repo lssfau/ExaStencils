@@ -147,7 +147,7 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
 
   this += new Transformation("Perform expand for applicable nodes", {
     case solve : IR_LocalSolve                         => solve.expandSpecial
-    case sls @ IR_SolveLinearSystem(localSysMat, _, _) =>
+    case sls @ IR_SolveMatrixSystem(localSysMat, _, _, _) =>
       val sysMatAsExpr : IR_MatrixExpression = localSysMat match {
         case x : IR_MatrixExpression =>
           // to classify and const -> classify

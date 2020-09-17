@@ -575,13 +575,13 @@ object IR_GenerateRuntimeInversion {
   }
 
   // combines LU decomposition and inversion of submatrix of 'in' at 'offset_r', 'offset_c' of size 'blocksize'
-  def localLUInversionInlined(in : IR_Access, blocksize_asInt : Int, offset_r : IR_Expression, offset_c : IR_Expression, out : IR_Access) : IR_Scope = {
+  def localLUPINV(in : IR_Access, blocksize : Int, offset_r : IR_Expression, offset_c : IR_Expression, out : IR_Access) : IR_Scope = {
     var func = IR_Scope(Nil)
-    var P = IR_VariableAccess("P", IR_ArrayDatatype(IR_IntegerDatatype, blocksize_asInt + 1))
+    var P = IR_VariableAccess("P", IR_ArrayDatatype(IR_IntegerDatatype, blocksize + 1))
     var block = IR_VariableAccess("block", IR_IntegerDatatype)
     val inDt = in.datatype.asInstanceOf[IR_MatrixDatatype]
     val N = inDt.sizeM
-    if (N % blocksize_asInt != 0) Logger.error(" Matrices with size not mutliple of blocksize not implemented yet")
+    if (N % blocksize != 0) Logger.error(" Matrices with size not mutliple of blocksize not implemented yet")
     func.body += IR_VariableDeclaration(P)
     if (!Knowledge.experimental_inplaceInversion) {
       // copy input matrix and work on copy
@@ -594,15 +594,15 @@ object IR_GenerateRuntimeInversion {
       func.body += IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression]((in), in_end, inCopy))
 
       // LU decompose
-      func.body ++= localLUDecomp(inCopy, P, blocksize_asInt, offset_r, offset_c)
+      func.body ++= localLUDecomp(inCopy, P, blocksize, offset_r, offset_c)
       // invert
-      func.body ++= localLUDecomposedInversion(inCopy, P, blocksize_asInt, offset_r, offset_c, out)
+      func.body ++= localLUDecomposedInversion(inCopy, P, blocksize, offset_r, offset_c, out)
     }
     else {
       // LU decompose
-      func.body ++= localLUDecomp(in, P, blocksize_asInt, offset_r, offset_c)
+      func.body ++= localLUDecomp(in, P, blocksize, offset_r, offset_c)
       // invert
-      func.body ++= localLUDecomposedInversion(in, P, blocksize_asInt, offset_r, offset_c, out)
+      func.body ++= localLUDecomposedInversion(in, P, blocksize, offset_r, offset_c, out)
     }
     func
   }
@@ -621,7 +621,7 @@ object IR_GenerateRuntimeInversion {
     }
     else {
       func.body += IR_ForLoop(IR_VariableDeclaration(block, 0), IR_Lower(block, N), IR_Assignment(block, IR_Addition(block, blocksize)), ListBuffer[IR_Statement](
-      ) += localLUInversionInlined(in, blocksize, block, block, out))
+      ) += localLUPINV(in, blocksize, block, block, out))
     }
 
     if (debug)
@@ -677,7 +677,7 @@ object IR_GenerateRuntimeInversion {
     else if (structureA == "Diagonal")
       func.body += IR_GenerateRuntimeInversion.diagonalInlined(A, A_inv)
     else
-      func.body += IR_GenerateRuntimeInversion.localLUInversionInlined(A, n_asInt, 0, 0, A_inv)
+      func.body += IR_GenerateRuntimeInversion.localLUPINV(A, n_asInt, 0, 0, A_inv)
 
     if (debug)
       func.body ++= IR_GenerateBasicMatrixOperations.printMatrix(A_inv)
@@ -867,7 +867,7 @@ object IR_GenerateRuntimeInversion {
         if (insize._1 < 4) {
           stmts ++= smallMatrixInversionAtSubMatrix(in, N, 0, 0, out).body
         } else {
-          stmts ++= localLUInversionInlined(in, N, 0,0, out ).body
+          stmts ++= localLUPINV(in, N, 0,0, out ).body
           //stmts += runtimeInverse(in,out)
         }
 
