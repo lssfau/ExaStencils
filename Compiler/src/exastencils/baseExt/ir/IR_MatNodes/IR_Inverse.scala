@@ -17,7 +17,6 @@ import exastencils.baseExt.ir.IR_MatShape
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
 import exastencils.baseExt.ir.IR_PreItMOps
-import exastencils.baseExt.ir.IR_ResolveMatFuncs
 import exastencils.config.Knowledge
 import exastencils.config.Settings
 import exastencils.datastructures.Transformation.Output
@@ -100,8 +99,9 @@ case class IR_InverseCT(
       case x : IR_MatrixExpression                                                                                                => x
       case va : IR_VariableAccess if (va.datatype.isInstanceOf[IR_MatrixDatatype] || va.datatype.isInstanceOf[IR_ScalarDatatype]) =>
         // get initial expression to use LU optimization
-        val initial = IR_ResolveMatFuncs.variableCollector.getConstInitVal(va.name)
-        initial.getOrElse(IR_MatNodeUtils.accessToExpression(va)).asInstanceOf[IR_MatrixExpression]
+        IR_MatNodeUtils.accessToExpression(va)
+        //val initial = IR_ResolveMatFuncs.variableCollector.getConstInitVal(va.name)
+        //initial.getOrElse(IR_MatNodeUtils.accessToExpression(va)).asInstanceOf[IR_MatrixExpression]
       case fa : IR_FieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])                                                   => IR_MatNodeUtils.accessToExpression(fa)
       case fa : IR_MultiDimFieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])                                           => IR_MatNodeUtils.accessToExpression(fa)
       case _                                                                                                                      => Logger.error(s"argument of unexpected type: ${ arg }")
