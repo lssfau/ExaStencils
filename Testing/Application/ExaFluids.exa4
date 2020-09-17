@@ -343,7 +343,7 @@ Function Solve@finest ( ) : Unit {
 
 		// reset field
 		loop over pc@current starting [-1, -1, -1] ending [-1, -1, -1] {
-			pc[active]@current = 0.0
+			pc<active>@current = 0.0
 		}
 
 		// setup stencil and rhs, and solve resulting system
@@ -710,7 +710,7 @@ Function CompileStencil_u@finest (  ) : Unit {
 			- AuStencil@current:[ 0,  0,  1] - AuStencil@current:[ 0,  0, -1] ) / relax_1
 
 		rhs_u@current = ( u<active>@current * smasa
-			+ u[previous]@current * evalAtWestFace ( rho<previous>@current ) / dt )
+			+ u<previous>@current * evalAtWestFace ( rho<previous>@current ) / dt )
 		rhs_u@current = rhs_u@current * vf_xStagCellVolume@current + ( 1.0 - relax_1 ) * AuStencil@current:[ 0,  0,  0] * u<active>@current
 		rhs_u@current += ( vf_cellWidth_y@current * vf_cellWidth_z@current ) * ( p@current@[-1,  0,  0] - p@current )
 	}
@@ -1068,56 +1068,56 @@ FunctionTemplate SetFieldComponent < target > ( value : Real ) : Unit {
 // instantiations
 
 Instantiate SolveComponent < VCycle_u, NormResidual_u, 100, rhs_u@current, converged_u > as Solve_u@finest
-Instantiate NormResidualComponent < u[active]@current, AuStencil@current, rhs_u@current > as NormResidual_u@finest
-Instantiate SmoothComponent < u[active]@current, AuStencil@current, rhs_u@current, 1.0, true > as Smooth_u@all
+Instantiate NormResidualComponent < u<active>@current, AuStencil@current, rhs_u@current > as NormResidual_u@finest
+Instantiate SmoothComponent < u<active>@current, AuStencil@current, rhs_u@current, 1.0, true > as Smooth_u@all
 Instantiate VCycleComponent < VCycle_u, Smooth_u, UpdateResidual_u, Restriction_u, SetSolution_u, Correction_u > as VCycle_u@( ( coarsest + 1 ) to finest )
-Instantiate CGSComponent < u[active]@current, AuStencil@current, rhs_u@current, 1.0, true > as VCycle_u@coarsest
-Instantiate UpdateResidualComponent < u[active]@current, AuStencil@current, rhs_u@current, residual_u@current > as UpdateResidual_u@all
+Instantiate CGSComponent < u<active>@current, AuStencil@current, rhs_u@current, 1.0, true > as VCycle_u@coarsest
+Instantiate UpdateResidualComponent < u<active>@current, AuStencil@current, rhs_u@current, residual_u@current > as UpdateResidual_u@all
 Instantiate RestrictionComponent < residual_u@current, rhs_u@coarser, RestrictionFaceX@current > as Restriction_u@( ( coarsest + 1 ) to finest )
 Instantiate StencilRestrictionComponent < StencilRestriction_u, AuStencil@current, AuStencil@coarser, RestrictionFaceX@current > as StencilRestriction_u@( ( coarsest + 1 ) to finest )
-Instantiate CorrectionComponent < u[active]@coarser, u[active]@current, CorrectionFaceX@current, true > as Correction_u@( ( coarsest + 1 ) to finest )
-Instantiate SetFieldComponent < u[active]@current > as SetSolution_u@all
+Instantiate CorrectionComponent < u<active>@coarser, u<active>@current, CorrectionFaceX@current, true > as Correction_u@( ( coarsest + 1 ) to finest )
+Instantiate SetFieldComponent < u<active>@current > as SetSolution_u@all
 
 Instantiate SolveComponent < VCycle_v, NormResidual_v, 100, rhs_v@current, converged_v > as Solve_v@finest
-Instantiate NormResidualComponent < v[active]@current, AvStencil@current, rhs_v@current > as NormResidual_v@finest
-Instantiate SmoothComponent < v[active]@current, AvStencil@current, rhs_v@current, 1.0, true > as Smooth_v@all
+Instantiate NormResidualComponent < v<active>@current, AvStencil@current, rhs_v@current > as NormResidual_v@finest
+Instantiate SmoothComponent < v<active>@current, AvStencil@current, rhs_v@current, 1.0, true > as Smooth_v@all
 Instantiate VCycleComponent < VCycle_v, Smooth_v, UpdateResidual_v, Restriction_v, SetSolution_v, Correction_v > as VCycle_v@( ( coarsest + 1 ) to finest )
-Instantiate CGSComponent < v[active]@current, AvStencil@current, rhs_v@current, 1.0, true > as VCycle_v@coarsest
-Instantiate UpdateResidualComponent < v[active]@current, AvStencil@current, rhs_v@current, residual_v@current > as UpdateResidual_v@all
+Instantiate CGSComponent < v<active>@current, AvStencil@current, rhs_v@current, 1.0, true > as VCycle_v@coarsest
+Instantiate UpdateResidualComponent < v<active>@current, AvStencil@current, rhs_v@current, residual_v@current > as UpdateResidual_v@all
 Instantiate RestrictionComponent < residual_v@current, rhs_v@coarser, RestrictionFaceY@current > as Restriction_v@( ( coarsest + 1 ) to finest )
 Instantiate StencilRestrictionComponent < StencilRestriction_v, AvStencil@current, AvStencil@coarser, RestrictionFaceY@current > as StencilRestriction_v@( ( coarsest + 1 ) to finest )
-Instantiate CorrectionComponent < v[active]@coarser, v[active]@current, CorrectionFaceY@current, true > as Correction_v@( ( coarsest + 1 ) to finest )
-Instantiate SetFieldComponent < v[active]@current > as SetSolution_v@all
+Instantiate CorrectionComponent < v<active>@coarser, v<active>@current, CorrectionFaceY@current, true > as Correction_v@( ( coarsest + 1 ) to finest )
+Instantiate SetFieldComponent < v<active>@current > as SetSolution_v@all
 
 Instantiate SolveComponent < VCycle_w, NormResidual_w, 100, rhs_w@current, converged_w > as Solve_w@finest
-Instantiate NormResidualComponent < w[active]@current, AwStencil@current, rhs_w@current > as NormResidual_w@finest
-Instantiate SmoothComponent < w[active]@current, AwStencil@current, rhs_w@current, 1.0, true > as Smooth_w@all
+Instantiate NormResidualComponent < w<active>@current, AwStencil@current, rhs_w@current > as NormResidual_w@finest
+Instantiate SmoothComponent < w<active>@current, AwStencil@current, rhs_w@current, 1.0, true > as Smooth_w@all
 Instantiate VCycleComponent < VCycle_w, Smooth_w, UpdateResidual_w, Restriction_w, SetSolution_w, Correction_w > as VCycle_w@( ( coarsest + 1 ) to finest )
-Instantiate CGSComponent < w[active]@current, AwStencil@current, rhs_w@current, 1.0, true > as VCycle_w@coarsest
-Instantiate UpdateResidualComponent < w[active]@current, AwStencil@current, rhs_w@current, residual_w@current > as UpdateResidual_w@all
+Instantiate CGSComponent < w<active>@current, AwStencil@current, rhs_w@current, 1.0, true > as VCycle_w@coarsest
+Instantiate UpdateResidualComponent < w<active>@current, AwStencil@current, rhs_w@current, residual_w@current > as UpdateResidual_w@all
 Instantiate RestrictionComponent < residual_w@current, rhs_w@coarser, RestrictionFaceZ@current > as Restriction_w@( ( coarsest + 1 ) to finest )
 Instantiate StencilRestrictionComponent < StencilRestriction_w, AwStencil@current, AwStencil@coarser, RestrictionFaceZ@current > as StencilRestriction_w@( ( coarsest + 1 ) to finest )
-Instantiate CorrectionComponent < w[active]@coarser, w[active]@current, CorrectionFaceZ@current, true > as Correction_w@( ( coarsest + 1 ) to finest )
-Instantiate SetFieldComponent < w[active]@current > as SetSolution_w@all
+Instantiate CorrectionComponent < w<active>@coarser, w<active>@current, CorrectionFaceZ@current, true > as Correction_w@( ( coarsest + 1 ) to finest )
+Instantiate SetFieldComponent < w<active>@current > as SetSolution_w@all
 
 Instantiate SolveComponent < VCycle_pc, NormResidual_pc, 100, rhs_pc@current, converged_pc > as Solve_pc@finest
-Instantiate NormResidualComponent < pc[active]@current, ApcStencil@current, rhs_pc@current > as NormResidual_pc@finest
-Instantiate SmoothComponent < pc[active]@current, ApcStencil@current, rhs_pc@current, 0.8, true > as Smooth_pc@all
+Instantiate NormResidualComponent < pc<active>@current, ApcStencil@current, rhs_pc@current > as NormResidual_pc@finest
+Instantiate SmoothComponent < pc<active>@current, ApcStencil@current, rhs_pc@current, 0.8, true > as Smooth_pc@all
 Instantiate VCycleComponent < VCycle_pc, Smooth_pc, UpdateResidual_pc, Restriction_pc, SetSolution_pc, Correction_pc > as VCycle_pc@( ( coarsest + 1 ) to finest )
-Instantiate CGSComponent < pc[active]@current, ApcStencil@current, rhs_pc@current, 0.8, true > as VCycle_pc@coarsest
-Instantiate UpdateResidualComponent < pc[active]@current, ApcStencil@current, rhs_pc@current, residual_pc@current > as UpdateResidual_pc@all
+Instantiate CGSComponent < pc<active>@current, ApcStencil@current, rhs_pc@current, 0.8, true > as VCycle_pc@coarsest
+Instantiate UpdateResidualComponent < pc<active>@current, ApcStencil@current, rhs_pc@current, residual_pc@current > as UpdateResidual_pc@all
 Instantiate RestrictionComponent < residual_pc@current, rhs_pc@coarser, RestrictionCell@current > as Restriction_pc@( ( coarsest + 1 ) to finest )
 Instantiate StencilRestrictionComponent < StencilRestriction_pc, ApcStencil@current, ApcStencil@coarser, RestrictionCell@current > as StencilRestriction_pc@( ( coarsest + 1 ) to finest )
-Instantiate CorrectionComponent < pc[active]@coarser, pc[active]@current, CorrectionCell@current, true > as Correction_pc@( ( coarsest + 1 ) to finest )
-Instantiate SetFieldComponent < pc[active]@current > as SetSolution_pc@all
+Instantiate CorrectionComponent < pc<active>@coarser, pc<active>@current, CorrectionCell@current, true > as Correction_pc@( ( coarsest + 1 ) to finest )
+Instantiate SetFieldComponent < pc<active>@current > as SetSolution_pc@all
 
 Instantiate SolveComponent < VCycle_t, NormResidual_t, 100, rhs_t@current, converged_t > as Solve_t@finest
-Instantiate NormResidualComponent < phi7[active]@current, AtStencil@current, rhs_t@current > as NormResidual_t@finest
-Instantiate SmoothComponent < phi7[active]@current, AtStencil@current, rhs_t@current, 1.0, true > as Smooth_t@all
+Instantiate NormResidualComponent < phi7<active>@current, AtStencil@current, rhs_t@current > as NormResidual_t@finest
+Instantiate SmoothComponent < phi7<active>@current, AtStencil@current, rhs_t@current, 1.0, true > as Smooth_t@all
 Instantiate VCycleComponent < VCycle_t, Smooth_t, UpdateResidual_t, Restriction_t, SetSolution_t, Correction_t > as VCycle_t@( ( coarsest + 1 ) to finest )
-Instantiate CGSComponent < phi7[active]@current, AtStencil@current, rhs_t@current, 1.0, true > as VCycle_t@coarsest
-Instantiate UpdateResidualComponent < phi7[active]@current, AtStencil@current, rhs_t@current, residual_t@current > as UpdateResidual_t@all
+Instantiate CGSComponent < phi7<active>@current, AtStencil@current, rhs_t@current, 1.0, true > as VCycle_t@coarsest
+Instantiate UpdateResidualComponent < phi7<active>@current, AtStencil@current, rhs_t@current, residual_t@current > as UpdateResidual_t@all
 Instantiate RestrictionComponent < residual_t@current, rhs_t@coarser, RestrictionCell@current > as Restriction_t@( ( coarsest + 1 ) to finest )
 Instantiate StencilRestrictionComponent < StencilRestriction_t, AtStencil@current, AtStencil@coarser, RestrictionCell@current > as StencilRestriction_t@( ( coarsest + 1 ) to finest )
-Instantiate CorrectionComponent < phi7[active]@coarser, phi7[active]@current, CorrectionCell@current, true > as Correction_t@( ( coarsest + 1 ) to finest )
-Instantiate SetFieldComponent < phi7[active]@current > as SetSolution_t@all
+Instantiate CorrectionComponent < phi7<active>@coarser, phi7<active>@current, CorrectionCell@current, true > as Correction_t@( ( coarsest + 1 ) to finest )
+Instantiate SetFieldComponent < phi7<active>@current > as SetSolution_t@all
