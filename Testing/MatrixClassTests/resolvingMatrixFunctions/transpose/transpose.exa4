@@ -17,13 +17,16 @@ Function Application ( ) : Unit {
 	Var m1_trans : Matrix<Double, 2, 2> = transpose(m1)
 	Var m1_trans_sol : Matrix<Double, 2, 2> = {{1,3},{2,4}}
 	compare(m1_trans,m1_trans_sol,prec)
+	print('stage 0 done')
 
 	Var m1_trans2 : Matrix<Double, 2, 2> 
 	m1_trans2 =  transpose(m1)
 	compare(m1_trans2,m1_trans_sol,prec)
+print('stage 1 done')
 
 	Var m2_trans : Matrix<Double, 2, 3> = transpose(m2)
 	Var m2_trans_sol : Matrix<Double, 2, 3> = {{3,1,5},{2,4,1}}
 	compare(m2_trans,m2_trans_sol,prec)
+print('stage 2 done')
 }
 

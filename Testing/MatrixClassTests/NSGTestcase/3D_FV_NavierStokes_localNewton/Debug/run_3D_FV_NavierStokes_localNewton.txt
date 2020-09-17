@@ -50,8 +50,8 @@ Error detected after 1 steps, residual is -nan - reducing time step size to 0.25
   Residual at 9.5 after 1 iterations is 2.38807e-11 , was initially 7.58938e-11 
   Residual at 9.75 after 1 iterations is 2.39652e-11 , was initially 7.51348e-11 
   Residual at 10 after 1 iterations is 2.39928e-11 , was initially 7.44066e-11 
-Total time to solve:    43963.7 
-Total time in cycle:    43246.8 
-Mean time per cycle:    940.148 
+Total time to solve:    43924.5 
+Total time in cycle:    43198.4 
+Mean time per cycle:    939.095 
 Number of cycles:       46 
 Number of time steps:   40 

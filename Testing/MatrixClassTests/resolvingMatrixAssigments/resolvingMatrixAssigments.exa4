@@ -8,8 +8,9 @@ Globals {
 /// main function
 
 Function Application ( ) : Unit {
-	Var v : Double = 1
+	//Var v : Double = 1
 	Var m1 : Matrix<Double, 2, 2> = {{1,2},{3,4}}
+/*	
 	Var m2 : Matrix<Double, 2, 2> = 1
 	Var m3 : Matrix<Double, 2, 2> = m1
 	Var m4 : Matrix<Double, 2, 2> = {{1,1},{2,3}}
@@ -17,6 +18,6 @@ Function Application ( ) : Unit {
 	//m1 = m2
 	Var inverse : Matrix<Double, 2, 2> = inverse(m1,"DetermineCompiletime")
 	m1 = m2
-	
+*/
 }
 

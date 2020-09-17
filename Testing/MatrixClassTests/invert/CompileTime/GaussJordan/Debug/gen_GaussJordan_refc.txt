@@ -1,5 +1,5 @@
 WARNING: An illegal reflective access operation has occurred
-WARNING: Illegal reflective access by com.rits.cloning.FastClonerTreeSet (file:/mnt/c/Users/MonPreacthyl/Desktop/Ba/refc/exastencils/classes/artifacts/Compiler_jar/Compiler.jar) to field java.util.TreeSet.m
+WARNING: Illegal reflective access by com.rits.cloning.FastClonerTreeSet (file:/mnt/c/Users/MonPreacthyl/Desktop/BA/refc/exastencils/classes/artifacts/Compiler_jar/Compiler.jar) to field java.util.TreeSet.m
 WARNING: Please consider reporting this to the maintainers of com.rits.cloning.FastClonerTreeSet
 WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
 WARNING: All illegal access operations will be denied in a future release
@@ -36,7 +36,7 @@ DBG:   Result of strategy "Replace explicit levels with current, coarser and fin
 DBG:   Result of strategy "Combine single functions into leveled functions::Gather functions": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Process inline knowledge blocks::Process": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Validate L4 input::EscapeCppKeywordsAndInternalIdentifiers": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Validate L4 input::find Function calls": Transformation Result: successful, 2 matches
+DBG:   Result of strategy "Validate L4 input::find Function calls": Transformation Result: successful, 5 matches
 DBG:   Result of strategy "Validate L4 input::check destroyGlobals": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Validate L4 input::Check assignment of vectors and matrices": Transformation Result: successful, 2 matches
 DBG:   Result of strategy "Unify all global sections and ensure at least one section exists::Collect and consume global sections": Transformation Result: successful, 0 matches
@@ -59,7 +59,7 @@ DBG:   Result of strategy "Prepare knowledge for L4 field layouts::Process new f
 DBG:   Result of strategy "Prepare knowledge for L4 fields::Process new fields": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Prepare knowledge for L4 stencils::Process new stencils": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Prepare knowledge for L4 stencil templates::Process new stencil templates": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Prepare knowledge for L4 virtual fields::Resolve aliases": Transformation Result: successful, 4 matches
+DBG:   Result of strategy "Prepare knowledge for L4 virtual fields::Resolve aliases": Transformation Result: successful, 10 matches
 DBG:   Added 91 virtual fields
 DBG:   Result of strategy "Prepare knowledge for L4 equations::Process new equations": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Inline accesses to declared expressions::Resolve": Transformation Result: successful, 0 matches
@@ -71,7 +71,7 @@ DBG:   Result of strategy "Prepare accesses to stencils::Resolve applicable unre
 DBG:   Result of strategy "Prepare accesses to stencil fields::Resolve applicable unresolved accesses": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Prepare accesses to virtual fields::Resolve applicable unresolved accesses": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Prepare accesses to equations::Resolve applicable unresolved accesses": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Resolve value and variable accesses::Resolve": Transformation Result: successful, 4 matches
+DBG:   Result of strategy "Resolve value and variable accesses::Resolve": Transformation Result: successful, 10 matches
 DBG:   Result of strategy "Resolve value and variable accesses::Remove applicable declarations": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve special constants::special functions and constants": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve frozen field accesses::Resolve": Transformation Result: successful, 0 matches
@@ -119,7 +119,7 @@ DBG:   Result of strategy "Resolve value and variable accesses::Remove applicabl
 DBG:   Result of strategy "Resolve stencil function references::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve accesses to loop iterators::Resolve iterator accesses": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve native function references::Resolve": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Resolve print function references::Resolve": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "Resolve print function references::Resolve": Transformation Result: successful, 2 matches
 DBG:   Result of strategy "Resolve build string function references::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve accesses to knowledge, settings and platform parameters::special functions and constants": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 0 matches
@@ -141,12 +141,15 @@ DBG:   Progressing 91 objects of collection L4_VirtualFieldCollection
 DBG:   Progressing 0 objects of collection L4_ExternalFieldCollection
 DBG:   Progressing 0 objects of collection L4_EquationCollection
 DBG:   Progressing 0 objects of collection L4_FieldCombinationCollection
-WARN:  Progressing unresolved function reference on L4: inverse ; at location 23.34 in file ./invert/CompileTime/GaussJordan/GaussJordan_debug.exa4:
+WARN:  Progressing unresolved function reference on L4: inverse ; at location 24.34 in file ./invert/CompileTime/GaussJordan/GaussJordan_debug.exa4:
 Var mat_inv : Matrix<Real,5,5> = inverse ( mat )
                                  ^
-WARN:  Progressing unresolved function reference on L4: compare ; at location 26.1 in file ./invert/CompileTime/GaussJordan/GaussJordan_debug.exa4:
-compare ( mat_inv, sol, prec )
-^
+WARN:  Progressing unresolved function reference on L4: getElement ; at location 31.9 in file ./invert/CompileTime/GaussJordan/GaussJordan_debug.exa4:
+print ( getElement ( i, j, mat_inv ) )
+        ^
+WARN:  Progressing unresolved function reference on L4: getElement ; at location 32.9 in file ./invert/CompileTime/GaussJordan/GaussJordan_debug.exa4:
+print ( getElement ( i, j, sol ) )
+        ^
 DBG:   Result of strategy "Process inline knowledge blocks::Process": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Set up communication::Adding and linking communication functions": Transformation Result: successful, 0 matches
@@ -154,6 +157,8 @@ DBG:   Result of strategy "InferDiagAndInverseCallDataTypes::do": Transformation
 DBG:   Result of strategy "InferDiagAndInverseCallDataTypes::do": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "HandleMainApplication::ResolveFunctionCalls": Transformation Result: successful, 1 matches
 DBG:   Result of strategy "ResolveBoundaryFunctions::ResolveFunctionCalls": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "ResolveFragmentOrder::ResolveFunctionCalls": Transformation Result: successful, 0 matches
+DBG:   Result of strategy "ResolveFragmentNlock::ResolveFunctionCalls": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "ResolveReadParameters::ResolveFunctionCalls": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "ResolveStationFunctions::ResolveFunctionCalls": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "ResolveCImgFunctions::ResolveFunctionCalls": Transformation Result: successful, 0 matches
@@ -166,7 +171,7 @@ DBG:   Result of strategy "Adapt function calls to timer functions::Handle funct
 DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Collect all timers used::Collect" in standalone mode: Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 22 matches
+DBG:   Result of strategy "Expand all applicable nodes::Expand": Transformation Result: successful, 24 matches
 DBG:   Result of strategy "Resolve grid integrations::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve grid evaluations::Resolve": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Resolve accesses to virtual fields::Resolve": Transformation Result: successful, 0 matches
@@ -195,17 +200,49 @@ DBG:   Result of strategy "Extract and split matrix expressions where necessary:
 DBG:   Result of strategy "Extract and split matrix expressions where necessary::extract function calls 2/2": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Extract and split matrix expressions where necessary::parameters and return types": Transformation Result: successful, 0 matches
 DBG:   Result of strategy "Extract and split matrix expressions where necessary::function call returns": Transformation Result: successful, 0 matches
-DBG:   Result of strategy "Extract and split matrix expressions where necessary::simplify function call arguments": Transformation Result: successful, 5 matches
-DBG:   Result of strategy "Convert accesses to matrices and vectors to MatrixExpressions::Wrap": Transformation Result: successful, 17 matches
+DBG:   Result of strategy "Extract and split matrix expressions where necessary::simplify function call arguments": Transformation Result: successful, 4 matches
+DBG:   Result of strategy "Convert accesses to matrices and vectors to MatrixExpressions::Wrap": Transformation Result: successful, 18 matches
 DBG:   Result of strategy "Simplify general expressions::Simplify": Transformation Result: successful, 19 matches
-Exception in thread "main" exastencils.logger.LoggerError: ERROR: Unknown matrix inversion resolution strategy "Compiletime" ; at location 23.44 in file ./invert/CompileTime/GaussJordan/GaussJordan_debug.exa4:
-Var mat_inv : Matrix<Real,5,5> = inverse ( mat )
-                                           ^
-	at exastencils.baseExt.ir.IR_MatrixExpression.inverse(IR_MatrixAccess.scala:213)
-	at exastencils.baseExt.ir.IR_ResolveMatrixFunctions$$anonfun$9.applyOrElse(IR_MatrixAccess.scala:577)
+Exception in thread "main" exastencils.logger.LoggerError: ERROR: getElement() may only be used for matrix datatypes
+	at exastencils.baseExt.ir.IR_ResolveMatrixFunctions$$anonfun$9.applyOrElse(IR_MatrixAccess.scala:745)
 	at exastencils.baseExt.ir.IR_ResolveMatrixFunctions$$anonfun$9.applyOrElse(IR_MatrixAccess.scala:501)
 	at exastencils.core.StateManager$.applyAtNode(StateManager.scala:155)
-	at exastencils.core.StateManager$.$anonfun$replace$1(StateManager.scala:219)
+	at exastencils.core.StateManager$.$anonfun$replace$10(StateManager.scala:333)
+	at scala.collection.TraversableLike.$anonfun$flatMap$1(TraversableLike.scala:245)
+	at scala.collection.immutable.List.foreach(List.scala:392)
+	at scala.collection.generic.TraversableForwarder.foreach(TraversableForwarder.scala:38)
+	at scala.collection.generic.TraversableForwarder.foreach$(TraversableForwarder.scala:38)
+	at scala.collection.mutable.ListBuffer.foreach(ListBuffer.scala:47)
+	at scala.collection.TraversableLike.flatMap(TraversableLike.scala:245)
+	at scala.collection.TraversableLike.flatMap$(TraversableLike.scala:242)
+	at scala.collection.AbstractTraversable.flatMap(Traversable.scala:108)
+	at exastencils.core.StateManager$.$anonfun$replace$1(StateManager.scala:332)
+	at exastencils.core.StateManager$.$anonfun$replace$1$adapted(StateManager.scala:172)
+	at scala.collection.immutable.List.foreach(List.scala:392)
+	at exastencils.core.StateManager$.replace(StateManager.scala:172)
+	at exastencils.core.StateManager$.$anonfun$replace$10(StateManager.scala:335)
+	at scala.collection.TraversableLike.$anonfun$flatMap$1(TraversableLike.scala:245)
+	at scala.collection.immutable.List.foreach(List.scala:392)
+	at scala.collection.generic.TraversableForwarder.foreach(TraversableForwarder.scala:38)
+	at scala.collection.generic.TraversableForwarder.foreach$(TraversableForwarder.scala:38)
+	at scala.collection.mutable.ListBuffer.foreach(ListBuffer.scala:47)
+	at scala.collection.TraversableLike.flatMap(TraversableLike.scala:245)
+	at scala.collection.TraversableLike.flatMap$(TraversableLike.scala:242)
+	at scala.collection.AbstractTraversable.flatMap(Traversable.scala:108)
+	at exastencils.core.StateManager$.$anonfun$replace$1(StateManager.scala:332)
+	at exastencils.core.StateManager$.$anonfun$replace$1$adapted(StateManager.scala:172)
+	at scala.collection.immutable.List.foreach(List.scala:392)
+	at exastencils.core.StateManager$.replace(StateManager.scala:172)
+	at exastencils.core.StateManager$.$anonfun$replace$10(StateManager.scala:335)
+	at scala.collection.TraversableLike.$anonfun$flatMap$1(TraversableLike.scala:245)
+	at scala.collection.immutable.List.foreach(List.scala:392)
+	at scala.collection.generic.TraversableForwarder.foreach(TraversableForwarder.scala:38)
+	at scala.collection.generic.TraversableForwarder.foreach$(TraversableForwarder.scala:38)
+	at scala.collection.mutable.ListBuffer.foreach(ListBuffer.scala:47)
+	at scala.collection.TraversableLike.flatMap(TraversableLike.scala:245)
+	at scala.collection.TraversableLike.flatMap$(TraversableLike.scala:242)
+	at scala.collection.AbstractTraversable.flatMap(Traversable.scala:108)
+	at exastencils.core.StateManager$.$anonfun$replace$1(StateManager.scala:332)
 	at exastencils.core.StateManager$.$anonfun$replace$1$adapted(StateManager.scala:172)
 	at scala.collection.immutable.List.foreach(List.scala:392)
 	at exastencils.core.StateManager$.replace(StateManager.scala:172)
@@ -260,7 +297,7 @@ Var mat_inv : Matrix<Real,5,5> = inverse ( mat )
 	at scala.collection.generic.TraversableForwarder.foreach$(TraversableForwarder.scala:38)
 	at scala.collection.mutable.ListBuffer.foreach(ListBuffer.scala:47)
 	at exastencils.datastructures.DefaultStrategy.apply(DefaultStrategy.scala:115)
-	at exastencils.app.ir.IR_DefaultLayerHandler$.handle(IR_LayerHandler.scala:204)
+	at exastencils.app.ir.IR_DefaultLayerHandler$.handle(IR_LayerHandler.scala:208)
 	at exastencils.app.ExaLayerHandler$.$anonfun$handleAllLayers$1(ExaLayerHandler.scala:52)
 	at exastencils.app.ExaLayerHandler$.$anonfun$handleAllLayers$1$adapted(ExaLayerHandler.scala:52)
 	at scala.collection.IndexedSeqOptimized.foreach(IndexedSeqOptimized.scala:36)

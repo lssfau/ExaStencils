@@ -70,6 +70,7 @@ Function Application ( ) : Unit {
 	// mult matrices
 	Var multMatrices_res1 : Matrix<Double, 2, 2> 
 	multMatrices_res1 = m2 * m1 
+	//multMatrices_res1 =multMatrices_res1* m2  
 	Var multMatrices_sol1 : Matrix<Double, 2, 2> = {{7, 10},{15, 22}}
 	compare(multMatrices_res1, multMatrices_sol1,prec)
 

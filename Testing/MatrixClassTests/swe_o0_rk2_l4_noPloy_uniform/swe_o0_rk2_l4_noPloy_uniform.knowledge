@@ -27,5 +27,6 @@ omp_minWorkItemsPerThread      = 300
 experimental_generateParaviewFiles = true
 experimental_disableIterationOffsets = true
 experimental_forceOmitCondInLocalSolve = true
-experimental_resolveInverseFunctionCall = "Runtime"
+//experimental_resolveInverseFunctionCall = "Runtime"
+experimental_resolveInverseFunctionCall = "Compiletime"
 experimental_allowCommInFragLoops = true

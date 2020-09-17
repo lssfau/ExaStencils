@@ -19,13 +19,6 @@ Domain global< [0.0, 0.0] to [0.1, 0.1] >
 
 
 Function Application {
-	Var v : Double = 1
 	Var m1 : Matrix<Double,2,2> = { { 1.0, 2.0 }, { 3.0, 4.0 } }
-	Var m2 : Matrix<Double,2,2> = 1
-	Var m3 : Matrix<Double,2,2> = m1
-	Var m4 : Matrix<Double,2,2> = { { 1.0, 1.0 }, { 2.0, 3.0 } }
-	Var det : Double = determinant ( m1 )
-	Var inverse : Matrix<Double,2,2> = inverse ( m1, "DetermineCompiletime" )
-	m1 = m2
 }
 

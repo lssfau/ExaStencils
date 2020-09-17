@@ -181,36 +181,36 @@ Function applyBC_hVec@all {
 
 Function Update@all {
 	communicate hVec
-	Val version : Integer = 2
+	Val version : Integer = 1
 	Expr dx = vf_gridWidth_x
 	Expr dy = vf_gridWidth_y
 	if ( 1 == version ) {
     		/// version 1 - use inline expressions and local solves
-/*
-    		loop over hVec {
-      			Expr F0 = hVec[0]
-      			Expr F1 = hu**2 / h + 0.5 * g * h**2
-      			Expr F2 = hu * hv / h
 
-      			Expr G0 = hv
-      			Expr G1 = hu * hv / h
-      			Expr G2 = hv**2 / h + 0.5 * g * h**2
+    		loop over hVec {
+      			Expr F0 = hVec[1]
+      			Expr F1 = hVec[1]**2 / hVec[0] + 0.5 * g * hVec[0]**2
+      			Expr F2 = hVec[1] * hVec[2] / hVec[0]
+
+      			Expr G0 = hVec[2]
+      			Expr G1 = hVec[1] * hVec[2] / hVec[0]
+      			Expr G2 = hVec[2]**2 / hVec[0] + 0.5 * g * hVec[0]**2
 
       			Expr S0 = 0.0
-      			Expr S1 = -0.5 * g * h * b
-      			Expr S2 = -0.5 * g * h * b
+      			Expr S1 = -0.5 * g * hVec[0] * b
+      			Expr S2 = -0.5 * g * hVec[0] * b
 
-      			Expr hc  = Centering * h
-      			Expr huc = Centering * hu
-      			Expr hvc = Centering * hv
+      			Expr hc  = Centering * hVec[0]
+      			Expr huc = Centering * hVec[1]
+      			Expr hvc = Centering * hVec[2]
 
       			solve locally {
-        			h<next>  => dx * dy * ( h<next>  - hc  ) + dt * dy * 0.5 * ( F0@east - F0@west ) + dt * dx * 0.5 * ( G0@north - G0@south ) == S0
-        			hu<next> => dx * dy * ( hu<next> - huc ) + dt * dy * 0.5 * ( F1@east - F1@west ) + dt * dx * 0.5 * ( G1@north - G1@south ) == dt * dy * 0.5 * ( S1@west  - S1@east  )
-        			hv<next> => dx * dy * ( hv<next> - hvc ) + dt * dy * 0.5 * ( F2@east - F2@west ) + dt * dx * 0.5 * ( G2@north - G2@south ) == dt * dx * 0.5 * ( S2@north - S2@south )
+        			hVec<next>[0]  => dx * dy * ( hVec<next>[0]  - hc  ) + dt * dy * 0.5 * ( F0@east - F0@west ) + dt * dx * 0.5 * ( G0@north - G0@south ) == S0
+        			hVec<next>[1] => dx * dy * ( hVec<next>[1] - huc ) + dt * dy * 0.5 * ( F1@east - F1@west ) + dt * dx * 0.5 * ( G1@north - G1@south ) == dt * dy * 0.5 * ( S1@west  - S1@east  )
+        			hVec<next>[2] => dx * dy * ( hVec<next>[2] - hvc ) + dt * dy * 0.5 * ( F2@east - F2@west ) + dt * dx * 0.5 * ( G2@north - G2@south ) == dt * dx * 0.5 * ( S2@north - S2@south )
       			}
     		}
-*/
+
   	} else if ( 2 == version ) {
     		/// version 2 - split loops
 

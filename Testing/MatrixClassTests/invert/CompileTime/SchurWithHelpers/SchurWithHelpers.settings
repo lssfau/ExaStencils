@@ -1,6 +1,6 @@
 user                = "Guest"
 
-configName          = "Schur"
+configName          = "SchurWithHelpers"
 
 basePathPrefix      = "./invert/CompileTime/$configName$/"
 l4file              = "$configName$.exa4"

@@ -27,7 +27,9 @@ Function Application {
 	res_split = dotProduct ( m1, m2 )
 	Var mult_sol : Matrix<Double,1,1> = { { 19.0 } }
 	compare ( res_split, mult_sol, prec )
+	print ( "stage 0 done" )
 	compare ( res_init, mult_sol, prec )
+	print ( "stage 1 done" )
 	Var m3 : Matrix<Real,3,3> = { { 1.0, 2.0, 3.0 }, { 4.0, 5.0, 6.0 }, { 7.0, 8.0, 9.0 } }
 	Var m4 : Matrix<Real,3,3>
 	m4 = { { 1.0, 2, 3 }, { 4, 5, 6 }, { 7, 8, 9 } }
@@ -35,5 +37,6 @@ Function Application {
 	res2 = dot ( m3, m4 )
 	Var mult_sol2 : Matrix<Double,1,1> = { { ( ( ( ( ( ( ( ( 1.0 + 4 ) + 9 ) + 16 ) + 25 ) + 36 ) + 49 ) + 64 ) + 81 ) } }
 	compare ( mult_sol2, mult_sol2, prec )
+	print ( "stage 2 done" )
 }
 

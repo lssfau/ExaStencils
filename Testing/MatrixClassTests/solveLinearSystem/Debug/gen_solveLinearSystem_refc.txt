@@ -1,7 +1,0 @@
-WARNING: An illegal reflective access operation has occurred
-WARNING: Illegal reflective access by com.rits.cloning.FastClonerTreeSet (file:/mnt/c/Users/MonPreacthyl/Desktop/Ba/refc/exastencils/classes/artifacts/Compiler_jar/Compiler.jar) to field java.util.TreeSet.m
-WARNING: Please consider reporting this to the maintainers of com.rits.cloning.FastClonerTreeSet
-WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
-WARNING: All illegal access operations will be denied in a future release
-DBG:   Setting debugL4File to solveLinearSystem_debug.exa4
-DBG:   Setting l4file to ListBuffer(solveLinearSystem.exa4)

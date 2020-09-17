@@ -1,5 +1,3 @@
 dimensionality                = 2
 
 mpi_enabled = false
-
-experimental_useNewMatrixStrategies = true

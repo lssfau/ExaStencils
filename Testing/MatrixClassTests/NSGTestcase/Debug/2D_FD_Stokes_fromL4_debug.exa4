@@ -66,67 +66,67 @@ Layout FaceY__1_0__1_0< Real, Face_y >@all {
 	ghostLayers = [1, 0] with communication
 }
 
-Field u< global, FaceXWithComm, 0.0>@(all but (finest))
+Field u< global, FaceXWithComm, 0.0 >@(all but (finest))
 
-Field u< global, FaceXWithComm, ( sin ( ( ( 2.0 * PI ) * vf_boundaryPosition_x ) ) - cos ( ( PI * vf_boundaryCoord_y ) ) )>@finest
+Field u< global, FaceXWithComm, ( sin ( ( ( 2.0 * PI ) * vf_boundaryPosition_x ) ) - cos ( ( PI * vf_boundaryCoord_y ) ) ) >@finest
 
-Field v< global, FaceYWithComm, 0.0>@(all but (finest))
+Field v< global, FaceYWithComm, 0.0 >@(all but (finest))
 
-Field v< global, FaceYWithComm, ( cos ( ( PI * vf_boundaryPosition_x ) ) - sin ( ( ( 2.0 * PI ) * vf_boundaryCoord_y ) ) )>@finest
+Field v< global, FaceYWithComm, ( cos ( ( PI * vf_boundaryPosition_x ) ) - sin ( ( ( 2.0 * PI ) * vf_boundaryCoord_y ) ) ) >@finest
 
-Field p< global, CellWithComm, Neumann(1)>@all
+Field p< global, CellWithComm, Neumann(1) >@all
 
-Field rhs_u< global, FaceXNoGhost, None>@all
+Field rhs_u< global, FaceXNoGhost, None >@all
 
-Field rhs_v< global, FaceYNoGhost, None>@all
+Field rhs_v< global, FaceYNoGhost, None >@all
 
-Field rhs_p< global, CellNoComm, None>@all
+Field rhs_p< global, CellNoComm, None >@all
 
-Field residual_u< global, FaceX__0_1__0_1, 0.0>@coarsest
+Field residual_u< global, FaceX__0_1__0_1, 0.0 >@coarsest
 
-Field residual_u< global, FaceXWithComm, 0.0>@(all but (coarsest))
+Field residual_u< global, FaceXWithComm, 0.0 >@(all but (coarsest))
 
-Field residual_v< global, FaceY__1_0__1_0, 0.0>@coarsest
+Field residual_v< global, FaceY__1_0__1_0, 0.0 >@coarsest
 
-Field residual_v< global, FaceYWithComm, 0.0>@(all but (coarsest))
+Field residual_v< global, FaceYWithComm, 0.0 >@(all but (coarsest))
 
-Field residual_p< global, CellWithComm, Neumann(1)>@all
+Field residual_p< global, CellWithComm, Neumann(1) >@all
 
-Field h_u< global, FaceXNoGhost, None>@coarsest
+Field h_u< global, FaceXNoGhost, None >@coarsest
 
-Field h_v< global, FaceYNoGhost, None>@coarsest
+Field h_v< global, FaceYNoGhost, None >@coarsest
 
-Field h_p< global, CellNoComm, None>@coarsest
+Field h_p< global, CellNoComm, None >@coarsest
 
-Field nu_u< global, FaceXNoGhost, None>@coarsest
+Field nu_u< global, FaceXNoGhost, None >@coarsest
 
-Field nu_v< global, FaceYNoGhost, None>@coarsest
+Field nu_v< global, FaceYNoGhost, None >@coarsest
 
-Field nu_p< global, CellNoComm, None>@coarsest
+Field nu_p< global, CellNoComm, None >@coarsest
 
-Field p_u< global, FaceXWithComm, 0.0>@coarsest
+Field p_u< global, FaceXWithComm, 0.0 >@coarsest
 
-Field p_v< global, FaceYWithComm, 0.0>@coarsest
+Field p_v< global, FaceYWithComm, 0.0 >@coarsest
 
-Field p_p< global, CellWithComm, Neumann(1)>@coarsest
+Field p_p< global, CellWithComm, Neumann(1) >@coarsest
 
-Field resHat_u< global, FaceXNoGhost, None>@coarsest
+Field resHat_u< global, FaceXNoGhost, None >@coarsest
 
-Field resHat_v< global, FaceYNoGhost, None>@coarsest
+Field resHat_v< global, FaceYNoGhost, None >@coarsest
 
-Field resHat_p< global, CellNoComm, None>@coarsest
+Field resHat_p< global, CellNoComm, None >@coarsest
 
-Field s_u< global, FaceXWithComm, 0.0>@coarsest
+Field s_u< global, FaceXWithComm, 0.0 >@coarsest
 
-Field s_v< global, FaceYWithComm, 0.0>@coarsest
+Field s_v< global, FaceYWithComm, 0.0 >@coarsest
 
-Field s_p< global, CellWithComm, Neumann(1)>@coarsest
+Field s_p< global, CellWithComm, Neumann(1) >@coarsest
 
-Field t_u< global, FaceXNoGhost, None>@coarsest
+Field t_u< global, FaceXNoGhost, None >@coarsest
 
-Field t_v< global, FaceYNoGhost, None>@coarsest
+Field t_v< global, FaceYNoGhost, None >@coarsest
 
-Field t_p< global, CellNoComm, None>@coarsest
+Field t_p< global, CellNoComm, None >@coarsest
 
 Stencil A11@all{
 	[0, 0] => ( ( 2.0 / ( vf_gridWidth_x ** 2 ) ) + ( 2.0 / ( vf_gridWidth_y ** 2 ) ) )

@@ -10,7 +10,8 @@ mpi_enabled = false
 grid_isStaggered               = true
 
 experimental_applySchurCompl   = true
-experimental_resolveInverseFunctionCall = "Runtime"
+//experimental_resolveInverseFunctionCall = "Runtime"
+experimental_resolveInverseFunctionCall = "Compiletime"
 
 // omp parallelization on exactly one fragment in one block
 //import '../lib/domain_onePatch.knowledge'

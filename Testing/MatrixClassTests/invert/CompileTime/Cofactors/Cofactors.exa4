@@ -8,10 +8,10 @@ Globals {
 
 Function Application ( ) : Unit {
      Var mat : Matrix<Real, 4, 4> = {{1.0, 2, 1, 3}, {4, 2, 1, 2}, {4, 1, 3, 2}, {1, 1, 2, 3}}
-	Var mat_inverse : Matrix<Real, 4, 4> = inverse(mat)
+	Var mat_inverse : Matrix<Real, 4, 4> = inverse(mat, "shape=cofactors")
 	Var mat_inverse2 : Matrix<Real, 4, 4> 
-	mat_inverse2 = inverse(mat)
-	Var mat_inverse3 : Matrix<Real, 4, 4> = inverse({{1.0, 2, 1, 3}, {4, 2, 1, 2}, {4, 1, 3, 2}, {1, 1, 2, 3}})
+	mat_inverse2 = inverse(mat, "shape=cofactors")
+	Var mat_inverse3 : Matrix<Real, 4, 4> = inverse({{1.0, 2, 1, 3}, {4, 2, 1, 2}, {4, 1, 3, 2}, {1, 1, 2, 3}}, "shape=cofactors")
 	Var mat_sol : Matrix<Real, 4, 4> = {{-0.7,0.6,-0.3,0.5},{2,-1,1,-2},{1,-1,1,-1},{-1.1,0.8,-0.9,1.5}}
 	Var prec : Double = 0.0001
 	compare(mat_inverse,mat_sol,prec)

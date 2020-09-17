@@ -15,5 +15,5 @@ The maximum error is 4.61884e-05
 Residual after 7 iterations is 0.000937542 --- convergence factor is 0.0639992 
 The maximum error is 4.61982e-05 
 Residual after 8 iterations is 6.38521e-05 --- convergence factor is 0.0681059 
-Mean mean total time for Timer setup: 5.2061 
-Mean mean total time for Timer solve: 60.2346 
+Mean mean total time for Timer setup: 4.2387 
+Mean mean total time for Timer solve: 45.4765 

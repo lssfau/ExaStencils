@@ -7,10 +7,10 @@ Globals {
 /// main function
 
 Function Application ( ) : Unit {
-	
+Var mat_00 : Real = 5.0
 Var mat : Matrix<Real, 5, 5> = {
 {
-5, 7, 3, 3, 1 },
+mat_00, 7, 3, 3, 1 },
 {
 1, 4, 6, 1, 2 },
 {
@@ -21,6 +21,8 @@ Var mat : Matrix<Real, 5, 5> = {
 2, 0, 2, 3, 2 }
 }
 Var mat_inv : Matrix<Real, 5, 5> = inverse(mat)
+//Var mat_inv : Matrix<Real, 5, 5> = inverse(mat, "shape=cofactors")
+	
 	Var sol : Matrix<Real, 5,5> = 
 {
 {
@@ -36,8 +38,17 @@ Var mat_inv : Matrix<Real, 5, 5> = inverse(mat)
 }
 
 	Var prec : Double = 0.0001
-	
-	compare(mat_inv,sol,prec)
+
+	Var i : Int
+	repeat 5 times count i {
+		Var j : Int
+		repeat 5 times count j {
+			print(getElement( i, j, mat_inv))
+			print(getElement( i, j, sol))
+		}
+	}
+
+	//compare(mat_inv,sol,prec)
 
 
 }

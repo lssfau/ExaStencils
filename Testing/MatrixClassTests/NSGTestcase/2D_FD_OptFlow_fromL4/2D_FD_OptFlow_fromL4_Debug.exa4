@@ -26,43 +26,43 @@ Layout cellWComm< Real, Cell >@all {
 	ghostLayers = [1, 1] with communication
 }
 
-Field img0< global, cellWComm, Neumann(1) >@finest
+Field img0< global, cellWComm, Neumann(1)>@finest
 
-Field img1< global, cellWComm, Neumann(1) >@finest
+Field img1< global, cellWComm, Neumann(1)>@finest
 
-Field Ix< global, defLayoutForCell, None >@finest
+Field Ix< global, defLayoutForCell, None>@finest
 
-Field Iy< global, defLayoutForCell, None >@finest
+Field Iy< global, defLayoutForCell, None>@finest
 
-Field It< global, defLayoutForCell, None >@finest
+Field It< global, defLayoutForCell, None>@finest
 
-Field IxIx< global, defLayoutForCell, None >@all
+Field IxIx< global, defLayoutForCell, None>@all
 
-Field IxIy< global, defLayoutForCell, None >@all
+Field IxIy< global, defLayoutForCell, None>@all
 
-Field IyIy< global, defLayoutForCell, None >@all
+Field IyIy< global, defLayoutForCell, None>@all
 
-Field It< global, defLayoutForCell, None >@finest
+Field It< global, defLayoutForCell, None>@finest
 
-Field u< global, cellWComm, Neumann(1) >@all
+Field u< global, cellWComm, Neumann(1)>@all
 
-Field v< global, cellWComm, Neumann(1) >@all
+Field v< global, cellWComm, Neumann(1)>@all
 
-Field rhs_u< global, defLayoutForCell, None >@all
+Field rhs_u< global, defLayoutForCell, None>@all
 
-Field rhs_v< global, defLayoutForCell, None >@all
+Field rhs_v< global, defLayoutForCell, None>@all
 
-Field residual_u< global, cellWComm, Neumann(1) >@all
+Field residual_u< global, cellWComm, Neumann(1)>@all
 
-Field residual_v< global, cellWComm, Neumann(1) >@all
+Field residual_v< global, cellWComm, Neumann(1)>@all
 
-Field cgTmp0_u< global, cellWComm, Neumann(1) >@coarsest
+Field cgTmp0_u< global, cellWComm, Neumann(1)>@coarsest
 
-Field cgTmp1_u< global, defLayoutForCell, None >@coarsest
+Field cgTmp1_u< global, defLayoutForCell, None>@coarsest
 
-Field cgTmp0_v< global, cellWComm, Neumann(1) >@coarsest
+Field cgTmp0_v< global, cellWComm, Neumann(1)>@coarsest
 
-Field cgTmp1_v< global, defLayoutForCell, None >@coarsest
+Field cgTmp1_v< global, defLayoutForCell, None>@coarsest
 
 Stencil RestrictionCell from default restriction on Cell with "linear"
 

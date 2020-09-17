@@ -1,0 +1,25 @@
+user                = "Guest"
+
+configName          = "swe_o0_rk2_l3_supercritical_b1_f28"
+
+basePathPrefix      = "C:\Users\MonPreacthyl\Desktop\BA\exastencils\Testing\MatrixClassTests\swe_o0_rk2_l3_supercritical_b1_f28\"
+
+experimental_domain_file = "../BSG"
+
+//l1file              = "$configName$.exa1"
+//l2file              = "$configName$.exa2"
+//l3file              = "$configName$.exa3"
+l4file              = "$configName$.exa4"
+
+debugL1File         = "./debug/$configName$_debug.exa1"
+debugL2File         = "./debug/$configName$_debug.exa2"
+debugL3File         = "./debug/$configName$_debug.exa3"
+debugL4File         = "./debug/$configName$_debug.exa4"
+
+htmlLogFile         = "./debug/$configName$_log.html"
+outputPath          = "./output/"
+
+produceHtmlLog      = true
+timeStrategies      = true
+
+buildfileGenerators = { "MakefileGenerator" }
