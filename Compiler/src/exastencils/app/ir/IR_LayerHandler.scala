@@ -211,7 +211,6 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       sthChanged = IR_ResolveMatFuncs.results.last._2.matches > 0 || IR_ResolveMatOperators.results.last._2.matches > 0
     }
     IR_GeneralSimplify.doUntilDone()
-    IR_ResolveMatFuncs.apply()
     IR_PostItMOps.apply()
     IR_LinearizeMatrices.apply()
 
