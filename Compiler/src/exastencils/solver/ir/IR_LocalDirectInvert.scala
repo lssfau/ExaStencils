@@ -96,18 +96,15 @@ object IR_LocalDirectInvert {
       unknowns.indices.map(i =>
         unknowns.indices.map(j =>
           AVals(i)(j) match {
-            case n : IR_Number if i != j && 0 == n.value => IR_RealConstant(0) // explicitly mark zero entries not located on the diagonal
+            case n : IR_Number if i != j && 0 == n.value =>
+              IR_RealConstant(0) // explicitly mark zero entries not located on the diagonal
             case _                                       => A(i, j)
           }).to[ListBuffer]).to[ListBuffer]
     )
 
     // solve local system - TODO: replace inverse function call with internal function
     // TODO: set return value of the fct call
-    //stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", ListBuffer[IR_Expression](AMat) ++= msi.toExprList()), f))
-    // solveLES
     AMat.shape = Some(msi)
-    //val Aacc = IR_VariableAccess("local_matrix", IR_MatrixDatatype(IR_RealDatatype, unknowns.length, unknowns.length))
-    //stmts += IR_VariableDeclaration(Aacc, AMat)
     stmts += IR_SolveMatrixSystem(AMat, u, f)
 
 

@@ -228,7 +228,10 @@ case class IR_LocalSolve(
     } else if(Knowledge.experimental_classifyLocMat || Knowledge.experimental_applySchurCompl) {
       // structure to specify (blocksize to specify for apply schur compl, for backwards compatibility)
       // TODO: if all local matrices have the same structure: classify only once
-      IR_ClassifyMatShape(AVals)
+      val shape = IR_ClassifyMatShape(AVals)
+      if(Knowledge.experimental_matrixDebugConfig)
+        Logger.warn(shape.toStringList())
+      shape
     } else if(Knowledge.experimental_locMatStructure != "filled") {
       // structure for all local matrices given in knowledge
       IR_MatShape(Knowledge.experimental_locMatStructure)

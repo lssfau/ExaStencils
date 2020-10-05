@@ -41,20 +41,21 @@ case class IR_Transpose(var arg : IR_Expression)
 
 // dot product node for compiletime execution
 object IR_DotProduct {
-  def apply(args : ListBuffer[IR_Expression]) = new IR_DotProduct(args.to[ListBuffer])
+  def apply(args : ListBuffer[IR_Expression]) = new IR_DotProduct(args(0),args(1))
 }
 
 case class IR_DotProduct(
-    var arguments : ListBuffer[IR_Expression]
+    var left : IR_Expression,
+    var right : IR_Expression
 ) extends IR_ExtractableMNode with IR_ResolvableMNode {
   def name = "dotProduct"
-  override def datatype = arguments(0).datatype.resolveBaseDatatype
-  override def prettyprint(out : PpStream) = out << "dotProduct" << '(' <<< (arguments, ", ") << ')'
+  override def datatype = left.datatype.resolveBaseDatatype
+  override def prettyprint(out : PpStream) = out << "dotProduct" << '(' << left << ", " << right << ')'
   override def resolve() : Output[IR_Expression] = {
-    IR_CompiletimeMatOps.dotProduct(arguments(0).asInstanceOf[IR_MatrixExpression], arguments(1).asInstanceOf[IR_MatrixExpression])
+    IR_CompiletimeMatOps.dotProduct(left.asInstanceOf[IR_MatrixExpression], right.asInstanceOf[IR_MatrixExpression])
   }
   //  override def isResolvable() : Boolean = !this.hasAnnotation(IR_ResolveMOps.potentialInline) && arguments.forall(arg => IR_MatrixNodeUtilities.isEvaluatable(arg))
-  override def isResolvable() : Boolean = arguments.forall(a => IR_MatNodeUtils.isEvaluatable(a))
+  override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(left) && IR_MatNodeUtils.isEvaluatable(right)
 }
 
 // cross product node for compiletime execution
