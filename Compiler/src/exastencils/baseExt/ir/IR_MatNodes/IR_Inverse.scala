@@ -17,12 +17,14 @@ import exastencils.baseExt.ir.IR_MatShape
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
 import exastencils.baseExt.ir.IR_PreItMOps
+import exastencils.baseExt.ir.IR_ResolveMatFuncs
 import exastencils.config.Knowledge
 import exastencils.config.Settings
 import exastencils.datastructures.Transformation.Output
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.logger.Logger
+import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.prettyprinting.PpStream
 
 // pre calculation inverse node: parse arguments(structure information and time of execution) and extract, will be transformed to IR_InverseCT or IR_InverseRT
@@ -92,21 +94,24 @@ case class IR_InverseCT(
     msi : IR_MatShape
 ) extends IR_Expression with IR_ResolvableMNode {
   override def datatype = arg.datatype
-  //  override def prettyprint(out : PpStream) = Logger.error("internal node no resolved!")
-  override def prettyprint(out : PpStream) : Unit = out << "inverseCT(" << arg << ")"
+  override def prettyprint(out : PpStream) = Logger.error("internal node no resolved!")
   override def resolve() : Output[IR_Expression] = {
     var argexpr = arg match {
       case x : IR_MatrixExpression                                                                                                => x
       case va : IR_VariableAccess if (va.datatype.isInstanceOf[IR_MatrixDatatype] || va.datatype.isInstanceOf[IR_ScalarDatatype]) =>
         // get initial expression to use LU optimization
-        IR_MatNodeUtils.accessToExpression(va)
-        //val initial = IR_ResolveMatFuncs.variableCollector.getConstInitVal(va.name)
-        //initial.getOrElse(IR_MatNodeUtils.accessToExpression(va)).asInstanceOf[IR_MatrixExpression]
+        //IR_MatNodeUtils.accessToExpression(va)
+        val initOp = IR_ResolveMatFuncs.variableCollector.getConstInitVal(va.name)
+        if(initOp.isDefined){
+          Logger.warn("inverting initial expression")
+        }
+        initOp.getOrElse(IR_MatNodeUtils.accessToExpression(va)).asInstanceOf[IR_MatrixExpression]
       case fa : IR_FieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])                                                   => IR_MatNodeUtils.accessToExpression(fa)
       case fa : IR_MultiDimFieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])                                           => IR_MatNodeUtils.accessToExpression(fa)
       case _                                                                                                                      => Logger.error(s"argument of unexpected type: ${ arg }")
     }
     var tmp = IR_CompiletimeMatOps.inverse(argexpr, msi)
+    IR_GeneralSimplify.doUntilDoneStandalone(tmp)
     tmp
   }
   override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(arg)
