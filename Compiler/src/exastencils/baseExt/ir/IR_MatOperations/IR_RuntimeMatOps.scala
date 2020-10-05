@@ -117,7 +117,7 @@ object IR_GenerateBasicMatrixOperations {
         var _j = IR_VariableAccess("_j", IR_IntegerDatatype)
         func.body += IR_ForLoop(IR_VariableDeclaration(_i, IR_IntegerConstant(0)), IR_Lower(_i, sizeMLeft), IR_PreIncrement(_i), ListBuffer[IR_Statement](
           IR_ForLoop(IR_VariableDeclaration(_j, 0), IR_Lower(_j, sizeNLeft), IR_PreIncrement(_j), ListBuffer[IR_Statement](
-            IR_IfCondition(IR_Greater(IR_FunctionCall(IR_ExternalFunctionReference.fabs, IR_Subtraction(IR_HighDimAccess(left, IR_ExpressionIndex(_i, _j)), IR_HighDimAccess(right, IR_ExpressionIndex(_i, _j)))), precision), ListBuffer[IR_Statement](
+            IR_IfCondition(IR_Greater(IR_FunctionCall(IR_ExternalFunctionReference.fabs, IR_Subtraction(IR_FunctionCall(IR_ExternalFunctionReference.fabs, IR_HighDimAccess(left, IR_ExpressionIndex(_i, _j))), IR_FunctionCall(IR_ExternalFunctionReference.fabs, IR_HighDimAccess(right, IR_ExpressionIndex(_i, _j))))), precision), ListBuffer[IR_Statement](
               IR_Print(outstream, ListBuffer[IR_Expression](IR_StringConstant("[Test] comparison failed at "), _i, IR_StringConstant(" "), _j, IR_StringConstant("\\n"), IR_HighDimAccess(left, IR_ExpressionIndex(_i, _j)), IR_StringConstant(" vs "), IR_HighDimAccess(right, IR_ExpressionIndex(_i, _j)), IR_StringConstant("\\n"))),
               if(returnStmt) IR_Return(IR_IntegerConstant(-1)) else IR_NullStatement
             ), ListBuffer[IR_Statement]())
@@ -201,6 +201,7 @@ object IR_GenerateBasicMatrixOperations {
             ))
           ))
         ))
+      case _ => Logger.error("unexprected combination")
     }
     func
   }
@@ -405,7 +406,7 @@ object IR_GenerateBasicMatrixOperations {
     var cout = IR_VariableAccess("std::cout", IR_StringDatatype)
     stmts += IR_VariableDeclaration(pivAcc, pivots)
     stmts += IR_ForLoop(IR_VariableDeclaration(i, 0), IR_Lower(i, pivots.columns), IR_PreIncrement(i), ListBuffer[IR_Statement](
-      IR_IfCondition(IR_Lower(IR_HighDimAccess(pivAcc, IR_ExpressionIndex(0,i)), Knowledge.experimental_CTInversionPivotTolerance),ListBuffer[IR_Statement](IR_Print(cout,ListBuffer[IR_Expression](IR_StringConstant("Compiletime inversion may have become unstable, switch to runtime inversion!"))), IR_Return(-1)))
+      IR_IfCondition(IR_Lower(IR_HighDimAccess(pivAcc, IR_ExpressionIndex(0,i)), Knowledge.experimental_CTPivotTolerance),ListBuffer[IR_Statement](IR_Print(cout,ListBuffer[IR_Expression](IR_StringConstant("Compiletime inversion may have become unstable, switch to runtime inversion!"))), IR_Return(-1)))
     ))
    stmts
   }
@@ -495,9 +496,8 @@ object IR_GenerateRuntimeInversion {
   // generate a LU decomposition for a submatrix at 'offset_r','offset_c' of 'in' inplace
   def localLUDecomp(in : IR_Access, P : IR_VariableAccess, blocksize_asInt : Int, offset_r : IR_Expression, offset_c : IR_Expression) : ListBuffer[IR_Statement] = {
 
-    val inDt = in.datatype.asInstanceOf[IR_MatrixDatatype]
     val Tol = IR_RealConstant(0.000000000000001)
-    val baseType = inDt.resolveBaseDatatype
+    val baseType = in.datatype.resolveBaseDatatype
     val func = ListBuffer[IR_Statement]()
     val i = IR_VariableAccess("i", IR_IntegerDatatype)
     val j = IR_VariableAccess("j", IR_IntegerDatatype)
@@ -672,9 +672,9 @@ object IR_GenerateRuntimeInversion {
     func.body += IR_VariableDeclaration(A)
     func.body += IR_GenerateBasicMatrixOperations.loopCopySubmatrix(in, A, 0, 0, n, n)
     func.body += IR_VariableDeclaration(A_inv)
-    if (structureA == "Blockdiagonal")
+    if (structureA == "blockdiagonal")
       func.body += IR_GenerateRuntimeInversion.blockdiagonalInlined(A, blockSizeA, A_inv)
-    else if (structureA == "Diagonal")
+    else if (structureA == "biagonal")
       func.body += IR_GenerateRuntimeInversion.diagonalInlined(A, A_inv)
     else
       func.body += IR_GenerateRuntimeInversion.localLUPINV(A, n_asInt, 0, 0, A_inv)
@@ -849,7 +849,7 @@ object IR_GenerateRuntimeInversion {
 
   // head function that branches to specific inversions
   def inverse(in : IR_Access, out : IR_Access, msi : IR_MatShape) : IR_Scope = {
-    val matrixStructure = msi.shape
+    val matrixShape = msi.shape
     val insize = IR_CompiletimeMatOps.getSize(in)
     val outsize = IR_CompiletimeMatOps.getSize(out)
     if (insize._1 != insize._2)
@@ -857,7 +857,10 @@ object IR_GenerateRuntimeInversion {
     if (insize != outsize)
       Logger.error("matrix sizes of in and out do not match: " + insize + " vs " + outsize)
 
-    matrixStructure match {
+    if(Knowledge.experimental_matrixDebugConfig)
+      Logger.warn("inverting at runtime with shape=" + matrixShape)
+
+    matrixShape match {
       case "filled"        =>
         var debug = false
         var stmts = ListBuffer[IR_Statement]()
@@ -884,7 +887,7 @@ object IR_GenerateRuntimeInversion {
         val matrixStructureA : String = msi.shape("A")
         val blocksizeA : Int = if(matrixStructureA == "blockdiagonal") msi.size("Ablock") else -1
           schurInlined(in, blocksize, matrixStructureA, blocksizeA, out)
-      case _               => Logger.error("runtime inversion: unknown runtimeInverse resolve: " + matrixStructure)
+      case _               => Logger.error("runtime inversion: unknown runtimeInverse resolve: " + matrixShape)
     }
   }
 

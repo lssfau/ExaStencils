@@ -10,6 +10,7 @@ import exastencils.base.ir.IR_Function
 import exastencils.base.ir.IR_FunctionCall
 import exastencils.base.ir.IR_HighDimAccess
 import exastencils.base.ir.IR_IfCondition
+import exastencils.base.ir.IR_Number
 import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
@@ -18,6 +19,7 @@ import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
+
 
 class IR_MatrixVarCollector extends Collector {
   var writes = ListBuffer[scala.collection.mutable.Set[String]]()
@@ -38,9 +40,9 @@ class IR_MatrixVarCollector extends Collector {
   def addWrite(dest : IR_Expression) {
     dest match {
       case va : IR_VariableAccess => writes.last += va.name
+        //TODO add h
+      //case hda : IR_HighDimAccess => writes+=matWriteAccess(hda.uniqueID,hda.index.asInstanceOf)
       case fa : IR_FieldAccess => writes.last += fa.name
-      // access to matrix variable transformed to a matrix expression
-      case x : IR_MatrixExpression if (x.get(0, 0).isInstanceOf[IR_HighDimAccess]) => writes.last += x.get(0, 0).asInstanceOf[IR_HighDimAccess].uniqueID
       case _                                                                       => Logger.error(s"unexpected type ${dest}")
     }
   }
@@ -100,8 +102,19 @@ class IR_MatrixVarCollector extends Collector {
     d
   }
 
-  def writeInScope(key : String) : Boolean = {
-    writes.last(key)
+  def writePresent(key : String) : Boolean = {
+    writes.last.exists({ s : String => if (s == key) true else false })
+  }
+
+  def isConstMatExpr(e : IR_Expression) : Boolean = {
+    e match {
+      case expression : IR_MatrixExpression =>
+        expression.expressions.forall {
+          case _ : IR_Number => true
+          case _             => false
+        }
+      case _                                => false
+    }
   }
 
   def getConstInitVal(key : String) : Option[IR_Expression] = {
@@ -112,14 +125,18 @@ class IR_MatrixVarCollector extends Collector {
     while (!found && idx >= 0) {
       d = decls(idx).get(key)
       if(d.isDefined) found = true
-      write = writes(idx).contains(key)
+      write = writePresent(key)
       idx -= 1
     }
     if(write) None
     else {
-      if(d.isDefined) d.get.initialValue
-      else None
+      if(d.isDefined) {
+        val init = d.get.initialValue
+        if(init.isEmpty) None
+        else {
+          init
+        }
+      } else None
     }
   }
-
 }
