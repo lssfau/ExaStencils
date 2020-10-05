@@ -157,53 +157,79 @@ object IR_ClassifyMatShape {
     if (mat.length == 1 || mat(0).length == 1) {
       return baseExt.ir.IR_MatShape("filled")
     }
-    var blocksize_A = 0
+    var blocksize_A = 1
     var blocksize_D = 0
     var size = mat.length
-
-    // count blocksize of schur block
     var cont = true
-    while ((blocksize_D < size) && cont == true) {
-      // count on multiple lines to avoid mistakes due to random zeros
-      //TODO right ordering of rows/cols?
-      val add0 = mat(0)(size - blocksize_D - 1)
-      val add1 = mat(size - blocksize_D - 1)(0)
-      val add2 = mat(1)(size - blocksize_D - 1)
-      val add3 = mat(size - blocksize_D - 1)(1)
+
+    // count blocksize of blockmatrix A if present (Schur form with size(mat) - blocksize_D as size of A block (upper left block in schur form))
+    while (blocksize_A < size && cont == true) {
+      var entries : ListBuffer[IR_Addition] =  ListBuffer[IR_Addition]()
+      for(i <- 0 until blocksize_A) {
+        // collect entries of A blocks, advancing from upper left corner for the matrix
+        entries += mat(i)(blocksize_A)
+        entries += mat(blocksize_A)(i)
+      }
+
+      // if all of them are 0, the block ended
       cont = false
-      List[IR_Addition](add0, add1, add2, add3).foreach(add =>
+      entries.foreach(add =>
         add.summands.foreach {
           case IR_RealConstant(0.0)   =>
           case IR_DoubleConstant(0.0) =>
           case IR_FloatConstant(0.0)  =>
           case IR_IntegerConstant(0)  =>
-          case other                  =>
+          case _                  =>
             cont = true
         })
+      // else advance blocksize
+      if (cont == true)
+        blocksize_A += 1
+    }
+
+    cont = true
+    // count blocksize of schur block
+    while ((blocksize_D < size) && cont == true) {
+      var entriesVert : ListBuffer[IR_Addition] =  ListBuffer[IR_Addition]()
+      var entriesHorz : ListBuffer[IR_Addition] =  ListBuffer[IR_Addition]()
+
+      for(i <- 0 until size - blocksize_D) {
+        // collect entries of D, B, C blocks, advancing from right side and bottom of the matrix
+        entriesVert += mat(i)(size - blocksize_D - 1)
+        entriesHorz += mat(size - blocksize_D - 1)(i)
+      }
+
+      // if all of them are 0, the blocks ended
+      // check only until last A-block meets B and C block
+      cont = false
+      for(i <- 0 until size - blocksize_D - blocksize_A) {
+        entriesVert(i).summands.foreach({
+          case IR_RealConstant(0.0)   =>
+          case IR_DoubleConstant(0.0) =>
+          case IR_FloatConstant(0.0)  =>
+          case IR_IntegerConstant(0)  =>
+          case _                  =>
+            cont = true
+      })
+        entriesHorz(i).summands.foreach({
+          case IR_RealConstant(0.0)   =>
+          case IR_DoubleConstant(0.0) =>
+          case IR_FloatConstant(0.0)  =>
+          case IR_IntegerConstant(0)  =>
+          case _                  =>
+            cont = true
+        })
+      }
+
+      // else advance blocksize
       if (cont == true)
         blocksize_D += 1
     }
+
     // if we reached other end of matrix: its a filled matrix
     if (blocksize_D == size) return IR_MatShape("filled")
 
-    // count blocksize of blockmatrix A if present (Schur form with size(mat) - blocksize_D as size of A block (upper left block in schur form))
-    cont = true
-    while (blocksize_A <= (size - blocksize_D) / 2 + 1 && cont == true) {
-      val add0 = mat(0)(blocksize_A)
-      val add1 = mat(blocksize_A)(0)
-      cont = false
-      List[IR_Addition](add0, add1).foreach(add =>
-        add.summands.foreach {
-          case IR_RealConstant(0.0)   =>
-          case IR_DoubleConstant(0.0) =>
-          case IR_FloatConstant(0.0)  =>
-          case IR_IntegerConstant(0)  =>
-          case other                  =>
-            cont = true
-        })
-      if (cont != false)
-        blocksize_A += 1
-    }
+
 
     // if more than half of A block is reached, blockdiagonal is not possible anymore -> Schur form with filled A block is filled matrix
     // if blocksize
