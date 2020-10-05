@@ -4,13 +4,16 @@ package exastencils.solver.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base
+import exastencils.base.ir.IR_Access
 import exastencils.base.ir.IR_ArrayAccess
 import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_ConstIndex
 import exastencils.base.ir.IR_Division
+import exastencils.base.ir.IR_DoubleDatatype
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_ExternalFunctionReference
+import exastencils.base.ir.IR_FunctionArgument
 import exastencils.base.ir.IR_FunctionCall
 import exastencils.base.ir.IR_GreaterEqual
 import exastencils.base.ir.IR_HighDimAccess
@@ -19,21 +22,25 @@ import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_Lower
 import exastencils.base.ir.IR_Multiplication
+import exastencils.base.ir.IR_PlainFunction
 import exastencils.base.ir.IR_PlainInternalFunctionReference
 import exastencils.base.ir.IR_PreDecrement
 import exastencils.base.ir.IR_PreIncrement
 import exastencils.base.ir.IR_RealDatatype
-import exastencils.base.ir.IR_Scope
+import exastencils.base.ir.IR_ReferenceDatatype
 import exastencils.base.ir.IR_Statement
+import exastencils.base.ir.IR_UnitDatatype
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_CompiletimeMatOps
 import exastencils.baseExt.ir.IR_MatNodeUtils
+import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateRuntimeInversion
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateRuntimeInversion.localLUDecomp
 import exastencils.baseExt.ir.IR_MatShape
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
+import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation
 import exastencils.logger.Logger
@@ -45,25 +52,16 @@ object IR_SolveMatrixSystem {
     new IR_SolveMatrixSystem(A, u, f)
   }
 
-  def apply(A : IR_Expression, u : IR_Expression, f : IR_Expression) = {
-    var uacc : IR_VariableAccess = u match {
-      case acc : IR_VariableAccess => acc
-      case _                       => Logger.error(s"unexpected datatype for u ${ u.datatype }")
-    }
-    var facc : IR_VariableAccess = f match {
-      case acc : IR_VariableAccess => acc
-      case _                       => Logger.error(s"unexpected datatype for f ${ f.datatype }")
-    }
-  }
 }
 
 case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR_VariableAccess, shape : Option[IR_MatShape] = None) extends IR_Statement {
+  var systemCounter : Int = 0
 
   override def prettyprint(out : PpStream) : Unit = out << "solveMatSys" << A.prettyprint(out) << ", " << f.prettyprint(out)
 
   def expand(AasExpr : IR_MatrixExpression) : Transformation.OutputType = {
 
-    val msi : IR_MatShape = if(AasExpr.shape.isDefined) AasExpr.shape.get else shape.getOrElse(IR_MatShape("filled"))
+    val msi : IR_MatShape = if (AasExpr.shape.isDefined) AasExpr.shape.get else shape.getOrElse(IR_MatShape("filled"))
     val (m, n) = AasExpr.datatype match {
       case mat : IR_MatrixDatatype => (mat.sizeM, mat.sizeN)
       case _                       => Logger.error(s"unexpected datatype of A: ${ A.datatype }")
@@ -82,7 +80,10 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
       case s if (IR_MatNodeUtils.isScalar(u)) =>
       case _                                  => Logger.error(s"unexpected datatype of f: ${ A.datatype }")
     }
-    Logger.warn(s"Solving linear system with the following configuration: ${ Knowledge.experimental_resolveInverseFunctionCall }, (${ m }, ${ n } )")
+
+    if (Knowledge.experimental_matrixDebugConfig)
+      Logger.warn(s"Solving linear system with the following configuration: ${ Knowledge.experimental_resolveLocalMatSys }, ${ msi.shape },  ${ m }, ${ n }")
+
     // scalar system
     if (m == 1 && n == 1) {
       IR_Assignment(u, IR_Division(f, A))
@@ -94,38 +95,39 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
             stmts += IR_Assignment(IR_HighDimAccess(u, IR_ConstIndex(i, 0)), IR_Division(IR_HighDimAccess(f, IR_ConstIndex(i)), IR_HighDimAccess(A, IR_ConstIndex(i, i))))
           }
           stmts
+
         // in case of schur: solve with A-Decomposition to helper matrices
         // only for blocksize of D == 1
         case "schur" if (m - msi.size("block") == 1) =>
           schurDomainDecomp(AasExpr, msi)
-        // Fallback1: solve by inverting A with given structure for Schur with size(D) > 1 or blockdiagonal
-        case _ if (msi.shape != "filled") => IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
-        /*
-         case _ if (m > 1 && m < 4)        => // solve by inverse for small matrices
 
-           IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
-         */
-        // Fallback2: solve with lu for filled matrices larger than 3
+          // blockdiagonal systems are solved by LU at runtime or compiletime
+        case _ if (msi.shape == "blockdiagonal") =>
+          val bsize = msi.size("block")
+          if (Knowledge.experimental_resolveLocalMatSys == "Runtime")
+            genBlockdiagonal(msi, AasExpr, m, bsize)
+          else blockdiagonal(msi, AasExpr, m, bsize)
 
-        case _ if (m < 3) => IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), ListBuffer[IR_Expression](A) ++= msi.toExprList()), f))
-        case _            =>
-          Logger.warn(s"solving LES with lu")
-          if (Knowledge.experimental_resolveInverseFunctionCall == "Runtime") {
+        // solve by inverting A with given structure for Schur with size(D) > 1  or fallback due to impossible pivoting in LU
+        case _ if (msi.shape != "filled")        =>
+          if (msi.shape == "fallback_inverse") msi.shape = "cofactors"
+          val args = ListBuffer[IR_Expression](A) ++= msi.toExprList()
+          IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), args), f))
 
+        // solve with lu
+        case _ =>
+          if (Knowledge.experimental_matrixDebugConfig)
+            Logger.warn(s"solving localMatSys with lu at ${ Knowledge.experimental_resolveLocalMatSys }")
+
+          if (Knowledge.experimental_resolveLocalMatSys == "Runtime") {
             var stmts = ListBuffer[IR_Statement]()
-            var P = IR_VariableAccess("P", IR_ArrayDatatype(IR_IntegerDatatype, m + 1))
             var AasAcc = IR_VariableAccess("A", IR_MatrixDatatype(AasExpr.innerDatatype.get, AasExpr.rows, AasExpr.columns))
             stmts += IR_VariableDeclaration(AasAcc, AasExpr)
-            stmts += IR_VariableDeclaration(P)
+            stmts ++= genLUSolveInlined(AasAcc, m, f, u)
 
-            // lu
-            stmts ++= localLUDecomp(AasAcc, P, m, IR_IntegerConstant(0), IR_IntegerConstant(0))
-            // forward backward sub
-            stmts ++= genForwardBackwardSub(AasAcc, P, f, u)
-            IR_Scope(stmts)
           } else {
-              val LUP = IR_CompiletimeMatOps.LUDecomp(AasExpr)
-              IR_Assignment(u, IR_CompiletimeMatOps.forwardBackwardSub(LUP._1, IR_MatNodeUtils.accessToExpression(f), LUP._2))
+            val LUP = IR_CompiletimeMatOps.LUDecomp(AasExpr)
+            IR_Assignment(u, IR_CompiletimeMatOps.forwardBackwardSub(LUP._1, IR_MatNodeUtils.accessToExpression(f), LUP._2))
           }
       }
     }
@@ -135,7 +137,11 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
     var stmts = ListBuffer[IR_Statement]()
     // blocksizes
     val bsize = msi.size("block")
-    val bsizeA = msi.size("Ablock")
+    val bsizeA = msi.shape("A") match {
+      case "blockdiagonal" => msi.size("Ablock")
+      case "diagonal" => 1
+      case _ => Logger.error(s"unexpected shape of Ablock: ${msi.shape("A")}")
+    }
     val size = A.columns
     val bsizeD = size - bsize
     val nComponents = bsize / bsizeA
@@ -245,7 +251,7 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
     stmts
   }
 
-  def genForwardBackwardSub(A : IR_VariableAccess, P : IR_VariableAccess, f : IR_VariableAccess, u : IR_VariableAccess) : ListBuffer[IR_Statement] = {
+  def genForwardBackwardSub(A : IR_Access, P : IR_VariableAccess, f : IR_VariableAccess, u : IR_VariableAccess) : ListBuffer[IR_Statement] = {
     var stmts = ListBuffer[IR_Statement]()
     val N = u.datatype.asInstanceOf[IR_MatrixDatatype].sizeM
     var i = IR_VariableAccess("i", IR_IntegerDatatype)
@@ -268,4 +274,105 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
     stmts
   }
 
+  def genLUSolveInlined(A : IR_Access, m : Int, f : IR_VariableAccess, u : IR_VariableAccess) : ListBuffer[IR_Statement] = {
+    var stmts = ListBuffer[IR_Statement]()
+
+    // pivoting array
+    var P = IR_VariableAccess("P", IR_ArrayDatatype(IR_IntegerDatatype, m + 1))
+    stmts += IR_VariableDeclaration(P)
+
+    // lu
+    stmts ++= localLUDecomp(A, P, m, IR_IntegerConstant(0), IR_IntegerConstant(0))
+
+    // forward backward sub
+    stmts ++= genForwardBackwardSub(A, P, f, u)
+    stmts
+  }
+
+  def genLUSolveAsFunction(m : Int) : IR_PlainFunction = {
+    val A = IR_VariableAccess("A", IR_MatrixDatatype(IR_DoubleDatatype, m, m))
+    val f = IR_VariableAccess("f", IR_MatrixDatatype(IR_DoubleDatatype, m, 1))
+    val u = IR_VariableAccess("u", IR_MatrixDatatype(IR_DoubleDatatype, m, 1))
+    var pfunc = IR_PlainFunction(s"LUSolve_${ m }x${ m }", IR_UnitDatatype, ListBuffer[IR_FunctionArgument](
+      IR_FunctionArgument("A", IR_ReferenceDatatype(IR_MatrixDatatype(IR_DoubleDatatype, m, m))),
+      IR_FunctionArgument("f", IR_ReferenceDatatype(IR_MatrixDatatype(IR_DoubleDatatype, m, 1))),
+      IR_FunctionArgument("u", IR_ReferenceDatatype(IR_MatrixDatatype(IR_DoubleDatatype, m, 1)))
+    ),
+      genLUSolveInlined(A, m, f, u)
+    )
+    pfunc.allowInlining = false
+    pfunc
+  }
+
+  def genBlockdiagonal(msi : IR_MatShape, AasExpr : IR_MatrixExpression, m : Int, bsize : Int) : ListBuffer[IR_Statement] = {
+    import exastencils.baseExt.ir.IR_CompiletimeMatOps.copySubMatrix
+    val stmts = ListBuffer[IR_Statement]()
+    val Ablocks = ListBuffer[IR_VariableAccess]()
+    val ublocks = ListBuffer[IR_VariableAccess]()
+    val fblocks = ListBuffer[IR_VariableAccess]()
+
+    // produce A blocks
+    for (i <- 0 until m / bsize) {
+      val Aii = IR_VariableAccess(s"MatSys_${ systemCounter }_A${ i }${ i }", IR_MatrixDatatype(IR_DoubleDatatype, bsize, bsize))
+      val fi = IR_VariableAccess(s"MatSys_${ systemCounter }_f${ i }", IR_MatrixDatatype(IR_DoubleDatatype, bsize, 1))
+      val ui = IR_VariableAccess(s"MatSys_${ systemCounter }_u${ i }", IR_MatrixDatatype(IR_DoubleDatatype, bsize, 1))
+      fi.annotate("noMatrixExpressionSetup")
+      ui.annotate("noMatrixExpressionSetup")
+      Aii.annotate("noMatrixExpressionSetup")
+      Ablocks += Aii
+      fblocks += fi
+      ublocks += ui
+      stmts += IR_VariableDeclaration(Aii, copySubMatrix(AasExpr, i * bsize, i * bsize, bsize, bsize))
+      stmts += IR_VariableDeclaration(fi)
+      stmts += IR_VariableDeclaration(ui)
+      val start = f + i * bsize
+      start.annotate(IR_GenerateRuntimeInversion.pointerArithmetic)
+      val end = f + (i + 1) * bsize
+      end.annotate(IR_GenerateRuntimeInversion.pointerArithmetic)
+      stmts += IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression](start, end, fi))
+    }
+    f.annotate("noMatrixExpressionSetup")
+    u.annotate("noMatrixExpressionSetup")
+
+    // produce a function call to LUSolve for all blocks
+    for (i <- 0 until m / bsize) {
+      stmts += IR_FunctionCall(IR_PlainInternalFunctionReference(s"LUSolve_${ bsize }x${ bsize }", IR_UnitDatatype), Ablocks(i), fblocks(i), ublocks(i))
+    }
+    if (!IR_UserFunctions.get.functions.exists(f => f.name == s"LUSolve_${ bsize }x${ bsize }")) {
+      IR_UserFunctions.get += genLUSolveAsFunction(bsize)
+    }
+
+    // write back to u
+    for (i <- 0 until m / bsize) {
+      val end = ublocks(i) + bsize
+      end.annotate(IR_GenerateRuntimeInversion.pointerArithmetic)
+      val target = u + bsize * i
+      target.annotate(IR_GenerateRuntimeInversion.pointerArithmetic)
+
+      stmts += IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression](ublocks(i), end, target))
+    }
+    systemCounter += 1
+    stmts
+  }
+
+  def blockdiagonal(msi : IR_MatShape, AasExpr : IR_MatrixExpression, m : Int, bsize : Int) : ListBuffer[IR_Statement] = {
+    import exastencils.baseExt.ir.IR_CompiletimeMatOps.copySubMatrix
+    val bsize = msi.size("block")
+    val stmts = ListBuffer[IR_Statement]()
+    val Ablocks = ListBuffer[IR_MatrixExpression]()
+    // collect diagonal blocks
+    for (i <- 0 until m / bsize) {
+      Ablocks += copySubMatrix(AasExpr, i * bsize, i * bsize, bsize, bsize)
+    }
+    // solve system for each block
+    val fexpr = IR_MatNodeUtils.accessToExpression(f)
+    for (i <- 0 until m / bsize) {
+      val LUP = IR_CompiletimeMatOps.LUDecomp(Ablocks(i))
+      val ublock : IR_MatrixExpression = IR_CompiletimeMatOps.forwardBackwardSub(LUP._1, copySubMatrix(fexpr, i * bsize, 0, bsize, 1), LUP._2)
+      for (j <- 0 until bsize) {
+        stmts += IR_Assignment(IR_HighDimAccess(u, IR_ConstIndex(i * bsize + j)), ublock.get(j, 0))
+      }
+    }
+    stmts
+  }
 }
