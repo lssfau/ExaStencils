@@ -377,8 +377,8 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val layoutOption = locationize((ident <~ "=") ~ constIndex ~ ("with" ~ "communication").?
     ^^ { case id ~ idx ~ comm => L4_FieldLayoutOption(id, idx, comm.isDefined) })
 
-  lazy val matShapeOption = locationize("{" ~> repsep((ident <~ "=") ~ (ident | integerLit), ",").? <~ "}"
-    ^^ { case args => L4_MatShape(args.getOrElse(List()).to[ListBuffer].map(s => IR_StringConstant(s._1 + "=" + s._2))) })
+  lazy val matShapeOption = locationize("{" ~> repsep((ident <~ "=") ~ (ident | integerLit), ",") <~ "}"
+    ^^ { case args => L4_MatShape(args.to[ListBuffer].map(s => IR_StringConstant(s._1 + "=" + s._2))) })
 
   lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ levelDecl.? ~ matShapeOption.?
     ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level ~ shape => L4_BaseFieldDecl(id, level, domain, layout, boundary, slots.getOrElse(1), shape) })
@@ -415,7 +415,9 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val slotAccess = locationize(
     "$" ~> slotModifier ^^ (s => s)
-      ||| "<" ~> slotModifier <~ ">" ^^ (s => s))
+  //    ||| "<" ~> slotModifier <~ ">" ^^ (s => s))
+  ||| "[" ~> slotModifier <~ "]" ^^ (s => s))
+
 
   lazy val slotModifier = locationize("active" ^^ (_ => L4_ActiveSlot)
     ||| "activeSlot" ^^ (_ => L4_ActiveSlot)
@@ -433,30 +435,29 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val leveledAccess = locationize(ident ~ levelAccess
     ^^ { case id ~ level => L4_UnresolvedAccess(id, Some(level)) })
 
-
+/*
+//FIXME parser error in stokes
   lazy val genericAccess = (
-    locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (index ||| rangeIndex1d).? ~ (index ||| rangeIndex1d).?
-      //("[" ~> integerLit <~ "]").?
-      ^^ { case id ~ slot ~ level ~ offset ~ matIdxY ~ matIdxX =>
-      val matIdx : Option[Array[L4_Index]] = (matIdxY.isDefined, matIdxX.isDefined) match {
-        case (false, false) => None
-        case (true, false) => Some(Array[L4_Index](matIdxY.get))
-        case (true, true) => Some(Array[L4_Index](matIdxY.get, matIdxX.get))
-        case _ => Logger.error("unexpected combination of matIndices")
-      }
+    locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ matIndex.? ^^ {
+        case id ~ slot ~ level ~ offset ~ matIdx =>
       L4_UnresolvedAccess(id, level, slot, offset, None, None, matIdx)})
       ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
       ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None, None) })
     ) // component acccess mit spitzen klammern
 
-  /*
+   lazy val matIndex = (index ||| rangeIndex1d) ~ (index ||| rangeIndex1d).? ^^ {
+     case matIdxY ~ matIdxX =>
+     matIdxX.isDefined match {
+       case false  => Array[L4_Index](matIdxY)
+       case true   => Array[L4_Index](matIdxY, matIdxX.get)
+     }
+   }
+  */
   lazy val genericAccess = (
     locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ ("[" ~> integerLit <~ "]").?
-      ^^ { case id ~ slot ~ level ~ offset ~ arrayIndex => L4_UnresolvedAccess(id, level, slot, offset, None, arrayIndex, None) })
+      ^^ { case id ~ slot ~ level ~ offset ~ arrayIndex => L4_UnresolvedAccess(id, level, slot, offset, None, arrayIndex,None) })
       ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
       ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None, None) })) // component acccess mit spitzen klammern
-*/
-
 
   // ######################################
   // ##### Expressions
