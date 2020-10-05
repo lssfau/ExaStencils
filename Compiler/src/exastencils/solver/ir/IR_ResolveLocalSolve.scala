@@ -159,19 +159,26 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
           else x
         // else: variable access: find initialization expression in declaration
         case va : IR_VariableAccess =>
-          // classify init
+          //TODO classification
           val initOpt : Option[IR_Expression] = variableCollector.getConstInitVal(va.name)
-          if (Knowledge.experimental_classifyLocMat) {
-            val init = initOpt.getOrElse(Logger.error("local system matrix to classify is not compiletime constant"))
-            if(!init.datatype.isInstanceOf[IR_MatrixDatatype]) Logger.error("init not of type IR_MatrixExpression, can not classify!")
-            init.asInstanceOf[IR_MatrixExpression].shape = Some(IR_ClassifyMatShape(init))
-            init.asInstanceOf[IR_MatrixExpression]
-          } else {
-            IR_MatNodeUtils.accessToExpression(va)
+          // compiletime LU most likely does not work without pivoting -> use initial here too
+          if(Knowledge.experimental_resolveLocalMatSys == "Compiletime") {
+            if (initOpt.isEmpty) {
+              Logger.warn("Compiletime LU without effective pivoting will most likely fail, switching back to inversion with cofactors!")
+              val A = IR_MatNodeUtils.accessToExpression(va)
+              A.shape = Some(IR_MatShape("fallback_inverse"))
+              A
+            } else {
+              if (Knowledge.experimental_matrixDebugConfig)
+                Logger.warn("pivoting initial expression for solveMatSy ")
+              val init = initOpt.get
+              init.asInstanceOf[IR_MatrixExpression]
+            }
           }
+          else if (Knowledge.experimental_resolveLocalMatSys == "Runtime")
+              IR_MatNodeUtils.accessToExpression(va)
+          else Logger.error("something unexpected occurred")
       }
       sls.expand(sysMatAsExpr)
   })
-
-
 }
