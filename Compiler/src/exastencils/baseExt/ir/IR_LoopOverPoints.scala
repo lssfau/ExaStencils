@@ -68,6 +68,9 @@ case class IR_LoopOverPoints(
       else
         IR_LoopOverPointsInOneFragment(field.domain.index, field, region, startOffset, endOffset, increment, body, ListBuffer(), ListBuffer(), Duplicate(parallelization), condition)
 
+    if (insideFragLoop && innerLoop.parallelization.reduction.isDefined)
+      innerLoop.parallelization.reduction.get.skipMpi = true
+
     var stmts = ListBuffer[IR_Statement]()
     stmts += innerLoop
 

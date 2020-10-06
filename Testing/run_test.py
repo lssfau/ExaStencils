@@ -80,7 +80,8 @@ def run_test(generator_path: str, problem_name: str, knowledge_path: str, exa_fi
     if not result.returncode == 0:
         print(result.stderr.decode('utf-8'))
         return result.returncode
-    result = subprocess.run([f'mpirun', '--allow-run-as-root', f'-np', f'{nprocs}',
+    result = subprocess.run([f'mpirun', '--allow-run-as-root', '--mca', 'btl_base_warn_component_unused', '0',
+                             f'-np', f'{nprocs}',
                              f'{output_path}/generated/{problem_name}/exastencils'],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if not result.returncode == 0:

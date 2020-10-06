@@ -24,6 +24,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.communication.DefaultNeighbors
+import exastencils.communication.ir.IR_IV_CommNeighNeighIdx
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
@@ -76,6 +77,7 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
       IR_Assignment(IR_IV_NeighborIsValid(domain, neighIdx, Duplicate(localFragmentIdx)), true),
       IR_Assignment(IR_IV_NeighborIsRemote(domain, neighIdx, Duplicate(localFragmentIdx)), false),
       IR_Assignment(IR_IV_NeighborFragmentIdx(domain, neighIdx, Duplicate(localFragmentIdx)), neighFragmentIdx),
+      IR_Assignment(IR_IV_CommNeighNeighIdx(domain, neighIdx, Duplicate(localFragmentIdx)), DefaultNeighbors.getOpposingNeigh(neighIdx).index),
       setIterationOffset(neighIdx, domain, Duplicate(localFragmentIdx)))
   }
 
@@ -85,6 +87,7 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
       IR_Assignment(IR_IV_NeighborIsRemote(domain, neighIdx, Duplicate(localFragmentIdx)), true),
       IR_Assignment(IR_IV_NeighborFragmentIdx(domain, neighIdx, Duplicate(localFragmentIdx)), localNeighIdx),
       IR_Assignment(IR_IV_NeighborRemoteRank(domain, neighIdx, Duplicate(localFragmentIdx)), remoteRank),
+      IR_Assignment(IR_IV_CommNeighNeighIdx(domain, neighIdx, Duplicate(localFragmentIdx)), DefaultNeighbors.getOpposingNeigh(neighIdx).index),
       setIterationOffset(neighIdx, domain, Duplicate(localFragmentIdx)))
   }
 
@@ -102,6 +105,7 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
 
         // store offset position to allow for implementation of periodic domains
         def offsetPos(dim : Int) = IR_VariableAccess(s"offsetPos_$dim", IR_RealDatatype)
+
         for (dim <- Knowledge.dimensions) {
           statements += IR_VariableDeclaration(offsetPos(dim), IR_IV_FragmentPosition(dim) + neigh.dir(dim) * fragWidth(dim))
           if (Knowledge.domain_rect_periodicAsVec(dim)) {
@@ -117,6 +121,7 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
 
         def localConnect(domainIdx : Int) = connectLocalElement(IR_LoopOverFragments.defIt,
           localFragmentIdxForPoint(offsetPos), neigh.index, domainIdx)
+
         def remoteConnect(domainIdx : Int) = connectRemoteElement(IR_LoopOverFragments.defIt,
           localFragmentIdxForPoint(offsetPos), owningRankForPoint(offsetPos, domains(domainIdx)), neigh.index, domainIdx)
 
