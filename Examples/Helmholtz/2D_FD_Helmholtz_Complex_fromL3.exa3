@@ -75,10 +75,9 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 /// globals
 
 Globals {
-  Expr k = 40.0
-  Expr omegaRelax = 1.0
-  // Expr shift = (0.6 - 1.0j)
-  Var shift : Complex<Real> = (0.6 - 1.0j)
+  Expr k = 80.0
+  Expr omegaRelax = 0.6
+  Expr shift = (1.0 + 1.0j) 
 }
 
 Function NormResidual@(coarsest and finest) : Complex<Real> {
@@ -157,7 +156,6 @@ Function Smoother@all {
       u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
     }
   }
-
 
 /*
   solve locally at u@[0,0] relax omegaRelax {

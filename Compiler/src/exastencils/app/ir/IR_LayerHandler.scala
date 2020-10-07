@@ -341,6 +341,9 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       if (Platform.omp_version < 3.1)
         OMP_ResolveMinMaxReduction.apply()
 
+      if (Knowledge.omp_fixArithmeticReductionOrder)
+        OMP_FixArithmeticReductionOrder.apply()
+
       if (Platform.omp_requiresCriticalSections)
         OMP_AddCriticalSections.apply()
     }

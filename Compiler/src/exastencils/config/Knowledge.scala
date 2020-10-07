@@ -448,6 +448,8 @@ object Knowledge {
   var omp_minWorkItemsPerThread : Int = 400
   // specifies if unique (usually consecutively numbered) identifiers are to be generated for OMP critical sections => allows entering multiple, disctinct sections concurrently
   var omp_nameCriticalSections : Boolean = false
+  // [true|false] // if true fix the order of arithmetic reductions by replacing the builtin reduction clause with a custom version
+  var omp_fixArithmeticReductionOrder : Boolean = false
 
   /// --- MPI ---
 
