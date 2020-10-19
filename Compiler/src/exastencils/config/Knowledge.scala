@@ -620,6 +620,8 @@ object Knowledge {
   // optimization for LU-decomposition: elimination of often occuring subexpressions, which are the pivot elements in an LU-decomposition
   var experimental_CTPivotElimination : Boolean = false
 
+  var experimental_QRPivot : Boolean = false
+
 
   // tries to apply an inversion based on the Schur complement in local solve blocks
   var experimental_applySchurCompl : Boolean = false

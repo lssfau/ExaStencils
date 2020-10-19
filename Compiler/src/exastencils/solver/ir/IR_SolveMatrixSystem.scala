@@ -4,7 +4,9 @@ package exastencils.solver.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base
+import exastencils.base.ir
 import exastencils.base.ir.IR_Access
+import exastencils.base.ir.IR_Addition
 import exastencils.base.ir.IR_ArrayAccess
 import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_ConstIndex
@@ -22,10 +24,12 @@ import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_Lower
 import exastencils.base.ir.IR_Multiplication
+import exastencils.base.ir.IR_Negative
 import exastencils.base.ir.IR_PlainFunction
 import exastencils.base.ir.IR_PlainInternalFunctionReference
 import exastencils.base.ir.IR_PreDecrement
 import exastencils.base.ir.IR_PreIncrement
+import exastencils.base.ir.IR_RealConstant
 import exastencils.base.ir.IR_RealDatatype
 import exastencils.base.ir.IR_ReferenceDatatype
 import exastencils.base.ir.IR_Statement
@@ -42,8 +46,11 @@ import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
 import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
+import exastencils.core.NodeCounter
 import exastencils.datastructures.Transformation
 import exastencils.logger.Logger
+import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.prettyprinting.PpStream
 
 /// solve local linear system
@@ -101,15 +108,42 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
         case "schur" if (m - msi.size("block") == 1) =>
           schurDomainDecomp(AasExpr, msi)
 
-          // blockdiagonal systems are solved by LU at runtime or compiletime
+        // blockdiagonal systems are solved by LU at runtime or compiletime
         case _ if (msi.shape == "blockdiagonal") =>
           val bsize = msi.size("block")
           if (Knowledge.experimental_resolveLocalMatSys == "Runtime")
             genBlockdiagonal(msi, AasExpr, m, bsize)
           else blockdiagonal(msi, AasExpr, m, bsize)
 
+        case _ if(msi.shape == "QR") => {
+          // QR decomp
+          val QR = qrDecomp(IR_MatNodeUtils.exprToMatExpr(AasExpr))
+          val y = IR_CompiletimeMatOps.mult(IR_CompiletimeMatOps.transpose(QR._1), IR_MatNodeUtils.accessToMatExpr(f))
+
+          NodeCounter.countSubTree(QR._1, "Q", None, None)
+          NodeCounter.countSubTree(QR._2, "R", None, None)
+          NodeCounter.countSubTree(y, "y", None, None)
+
+
+          // solve resulting systems: orthogonal by inversion, triangular by backward substitution
+          val x = IR_MatrixExpression(IR_RealDatatype, m, 1)
+          for(i <- 0 until m)
+            x.set(i,0,IR_RealConstant(0))
+          for (i <- m - 1 to 0 by -1) {
+            for (k <- i + 1 until m) {
+              x.set(i, 0, Duplicate(x.get(i, 0)) - Duplicate(QR._2.get(i, k)) * Duplicate(QR._2.get(k, 0)))
+            }
+            x.set(i, 0, Duplicate(x.get(i, 0)) / Duplicate(QR._2.get(i, i)))
+          }
+          NodeCounter.countSubTree(x, "x", None, None)
+
+          // transfer annotations
+          x.annotate("QRPivot", QR._1.popAnnotationAs("QRPivot"))
+          IR_Assignment(u, x)
+        }
+
         // solve by inverting A with given structure for Schur with size(D) > 1  or fallback due to impossible pivoting in LU
-        case _ if (msi.shape != "filled")        =>
+        case _ if A.hasAnnotation("SolveMatSys:fallback_inverse") =>
           if (msi.shape == "fallback_inverse") msi.shape = "cofactors"
           val args = ListBuffer[IR_Expression](A) ++= msi.toExprList()
           IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), args), f))
@@ -127,10 +161,164 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
 
           } else {
             val LUP = IR_CompiletimeMatOps.LUDecomp(AasExpr)
-            IR_Assignment(u, IR_CompiletimeMatOps.forwardBackwardSub(LUP._1, IR_MatNodeUtils.accessToExpression(f), LUP._2))
+            IR_Assignment(u, IR_CompiletimeMatOps.forwardBackwardSub(LUP._1, IR_MatNodeUtils.accessToMatExpr(f), LUP._2))
           }
       }
     }
+  }
+
+  var QRpivCounter = 0
+  var QRsysCounter = 0
+
+  def houseHolderMatrixWiki(x : IR_MatrixExpression, len : Int) : (IR_MatrixExpression, ListBuffer[IR_VariableDeclaration]) = {
+    val simplified = IR_CompiletimeMatOps.evalNumExprWrapper(x.get(0, 0))
+    if (simplified.isDefined) x.set(0, 0, simplified.get)
+    val alpha = if(x.get(0,0).asInstanceOf[IR_RealConstant].v >= 0) IR_Negative(norm(x)) else norm(x)
+ /*   val normAcc_x = IR_VariableAccess("sys_" + QRsysCounter + "QRNorm_x_" + QRpivCounter , IR_RealDatatype)
+   val normDecl_x = IR_VariableDeclaration(normAcc_x, alpha)
+
+    val pivAcc = IR_VariableAccess("sys_" + QRsysCounter + "QRPiv_" + QRpivCounter , IR_RealDatatype)
+    val piv = IR_VariableDeclaration(pivAcc, Duplicate(x.get(0, 0)))
+*/
+
+   // x.set(0, 0, pivAcc - normAcc_x)
+    x.set(0, 0, Duplicate(x.get(0,0)) - alpha)
+    val m = x.rows
+    val v = IR_MatrixExpression(x.innerDatatype, m, 1)
+    val norm_u = norm(x)
+/*
+    val normAcc_u = IR_VariableAccess("sys_" + QRsysCounter + "QRNorm_u_" + QRpivCounter , IR_RealDatatype)
+    QRpivCounter += 1
+    val normDecl_u = IR_VariableDeclaration(normAcc_u, norm_u)
+*/
+
+    for (i <- 0 until m) {
+      v.set(i, 0, x.get(i, 0) / norm_u)
+    }
+
+    val tmp = IR_CompiletimeMatOps.mult(v, IR_CompiletimeMatOps.transpose(v))
+    for (i <- 0 until m) {
+      for (j <- 0 until m) {
+        if (i == j)
+          tmp.set(i, j, IR_RealConstant(1) - 2 * tmp.get(i, j))
+        else
+          tmp.set(i, j, IR_RealConstant(-2) * tmp.get(i, j))
+      }
+    }
+
+    (tmp, ListBuffer[IR_VariableDeclaration](/*piv, normDecl_x, normDecl_u*/))
+  }
+
+  /*
+  def houseHolderMatrixGolubLoan(x : IR_MatrixExpression) : IR_MatrixExpression = {
+    val m = x.rows
+    val x_tail = IR_CompiletimeMatOps.copySubMatrix(x,1,0, m-1, 1)
+    val sigma = IR_CompiletimeMatOps.dotProduct(x_tail, x_tail)
+    val mu = IR_Power(x.get(0,0)*x.get(0,0) + sigma, 1.0/2.0)
+    val beta = 2*
+  }*/
+
+  def norm(x : IR_MatrixExpression) : IR_Expression = {
+    var norm = IR_Addition(IR_RealConstant(0))
+    val m = if (x.rows == 1) x.columns else x.rows
+    for (i <- 0 until m) {
+      norm.summands += x.get(i, 0) * x.get(i, 0)
+    }
+    ir.IR_Power(norm, 1.0 / 2.0)
+  }
+
+  // multiplication of a quadratic submatrix of A with a smaller, identical sized quadratic matrix B
+  def QLMultSubmat(A : IR_MatrixExpression, B : IR_MatrixExpression, y : Int, x : Int) : Unit = {
+    var tmp = IR_MatrixExpression(IR_RealDatatype, B.rows, B.columns)
+    val m = B.rows
+    // calculate res in tmp
+    for(i <- 0 until m) {
+      for(j <- 0 until m) {
+        var T = IR_Addition(IR_RealConstant(0))
+        for(k <- 0 until m) {
+          T.summands += A.get(y + i, x + k) * B.get(k, j)
+        }
+        tmp.set(i,j,T)
+      }
+    }
+    // copy to position in A
+    for(i <- 0 until m) {
+      for (j <- 0 until m) {
+        A.set(y + i, x + j, tmp.get(i,j))
+      }
+    }
+  }
+  def QRMultSubmat(A : IR_MatrixExpression, B : IR_MatrixExpression, y : Int, x : Int) : Unit = {
+    var tmp = IR_MatrixExpression(IR_RealDatatype, A.rows, A.columns)
+    val m = A.rows
+    // calculate res in tmp
+    for(i <- 0 until m) {
+      for(j <- 0 until m) {
+        var T = IR_Addition(IR_RealConstant(0))
+        for(k <- 0 until m) {
+          T.summands += A.get(k,j) * B.get(y + k, x + j)
+        }
+        tmp.set(i,j,T)
+      }
+    }
+    // copy to position in A
+    for(i <- 0 until m) {
+      for (j <- 0 until m) {
+        B.set(y + i, x + j, tmp.get(i,j))
+      }
+    }
+  }
+
+  import exastencils.baseExt.ir.IR_CompiletimeMatOps.copySubMatrix
+  import exastencils.baseExt.ir.IR_CompiletimeMatOps.transpose
+
+
+  def qrDecomp(A : IR_MatrixExpression) : (IR_MatrixExpression, IR_MatrixExpression) = {
+
+    val m = A.columns
+    var R = Duplicate(A)
+    var Q = IR_MatrixExpression(A.innerDatatype, m, m)
+    var pivBuffer = ListBuffer[IR_VariableDeclaration]()
+
+    // zero out all m columns
+    for (i <- 0 until m) {
+      val x_i = copySubMatrix(R, i, i, m - i, 1)
+      val tmp = houseHolderMatrixWiki(x_i, m)
+      val Q_i = tmp._1
+      pivBuffer ++= tmp._2
+
+      // zero out columns to retrieve R
+      QRMultSubmat(Q_i, R, i, i)
+
+      // accumulate Q
+      if (i == 0) {
+        Q = transpose(Q_i)
+      } else {
+        QLMultSubmat(Q, transpose(Q_i), i, i)
+      }
+
+      for (i <- 0 until m) {
+        for (j <- 0 until m) {
+          var simplified = IR_CompiletimeMatOps.evalNumExprWrapper(R.get(i, j))
+          if (simplified.isDefined) R.set(i, j, simplified.get)
+          simplified = IR_CompiletimeMatOps.evalNumExprWrapper(Q.get(i, j))
+          if (simplified.isDefined) Q.set(i, j, simplified.get)
+        }
+      }
+
+      IR_GeneralSimplify.applyStandalone(Q)
+      IR_GeneralSimplify.applyStandalone(R)
+
+
+      NodeCounter.countSubTree(Q, "Q", None, None)
+      NodeCounter.countSubTree(Q_i, "Q_" + i, None, None)
+      NodeCounter.countSubTree(R, "R_" + i, None, None)
+    }
+
+
+
+    Q.annotate("QRPivot", pivBuffer)
+    (Q, R)
   }
 
   def schurDomainDecomp(A : IR_MatrixExpression, msi : IR_MatShape) : Transformation.OutputType = {
@@ -139,8 +327,8 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
     val bsize = msi.size("block")
     val bsizeA = msi.shape("A") match {
       case "blockdiagonal" => msi.size("Ablock")
-      case "diagonal" => 1
-      case _ => Logger.error(s"unexpected shape of Ablock: ${msi.shape("A")}")
+      case "diagonal"      => 1
+      case _               => Logger.error(s"unexpected shape of Ablock: ${ msi.shape("A") }")
     }
     val size = A.columns
     val bsizeD = size - bsize
@@ -355,6 +543,8 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
     stmts
   }
 
+  import exastencils.baseExt.ir.IR_CompiletimeMatOps.mult
+
   def blockdiagonal(msi : IR_MatShape, AasExpr : IR_MatrixExpression, m : Int, bsize : Int) : ListBuffer[IR_Statement] = {
     import exastencils.baseExt.ir.IR_CompiletimeMatOps.copySubMatrix
     val bsize = msi.size("block")
@@ -365,14 +555,20 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
       Ablocks += copySubMatrix(AasExpr, i * bsize, i * bsize, bsize, bsize)
     }
     // solve system for each block
-    val fexpr = IR_MatNodeUtils.accessToExpression(f)
+    val fexpr = IR_MatNodeUtils.accessToMatExpr(f)
     for (i <- 0 until m / bsize) {
-      val LUP = IR_CompiletimeMatOps.LUDecomp(Ablocks(i))
-      val ublock : IR_MatrixExpression = IR_CompiletimeMatOps.forwardBackwardSub(LUP._1, copySubMatrix(fexpr, i * bsize, 0, bsize, 1), LUP._2)
+      val ublock : IR_MatrixExpression =
+      if (AasExpr.hasAnnotation("SolveMatSys:fallback_inverse")) {
+         mult(IR_CompiletimeMatOps.cofactorInverse(Ablocks(i)), copySubMatrix(fexpr, i * bsize, 0, bsize, 1))
+      } else {
+        val LUP = IR_CompiletimeMatOps.LUDecomp(Ablocks(i))
+        IR_CompiletimeMatOps.forwardBackwardSub(LUP._1, copySubMatrix(fexpr, i * bsize, 0, bsize, 1), LUP._2)
+      }
       for (j <- 0 until bsize) {
         stmts += IR_Assignment(IR_HighDimAccess(u, IR_ConstIndex(i * bsize + j)), ublock.get(j, 0))
       }
     }
     stmts
   }
+
 }
