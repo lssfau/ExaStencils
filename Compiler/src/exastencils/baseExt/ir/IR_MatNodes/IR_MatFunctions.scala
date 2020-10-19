@@ -25,7 +25,7 @@ import exastencils.prettyprinting.PpStream
 
 // transpose node for compiletime execution
 object IR_Transpose {
-  def apply(args : ListBuffer[IR_Expression]) = new IR_Transpose(args(0))
+  def apply(args : ListBuffer[IR_Expression]) = new IR_Transpose(IR_MatNodeUtils.exprToMatExpr(args(0)))
 }
 
 case class IR_Transpose(var arg : IR_Expression)
@@ -41,7 +41,9 @@ case class IR_Transpose(var arg : IR_Expression)
 
 // dot product node for compiletime execution
 object IR_DotProduct {
-  def apply(args : ListBuffer[IR_Expression]) = new IR_DotProduct(args(0),args(1))
+  def apply(args : ListBuffer[IR_Expression]) = {
+    new IR_DotProduct(args(0), args(1))
+  }
 }
 
 case class IR_DotProduct(
@@ -52,7 +54,7 @@ case class IR_DotProduct(
   override def datatype = left.datatype.resolveBaseDatatype
   override def prettyprint(out : PpStream) = out << "dotProduct" << '(' << left << ", " << right << ')'
   override def resolve() : Output[IR_Expression] = {
-    IR_CompiletimeMatOps.dotProduct(left.asInstanceOf[IR_MatrixExpression], right.asInstanceOf[IR_MatrixExpression])
+    IR_CompiletimeMatOps.dotProduct(IR_MatNodeUtils.exprToMatExpr(left), IR_MatNodeUtils.exprToMatExpr(right))
   }
   //  override def isResolvable() : Boolean = !this.hasAnnotation(IR_ResolveMOps.potentialInline) && arguments.forall(arg => IR_MatrixNodeUtilities.isEvaluatable(arg))
   override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(left) && IR_MatNodeUtils.isEvaluatable(right)
@@ -60,19 +62,19 @@ case class IR_DotProduct(
 
 // cross product node for compiletime execution
 object IR_CrossProduct {
-  def apply(args : IR_Expression*) = new IR_CrossProduct(args.to[ListBuffer])
+  def apply(args : ListBuffer[IR_Expression]) = new IR_CrossProduct(args(0), args(1))
 }
 
 case class IR_CrossProduct(
-    var arguments : ListBuffer[IR_Expression]
+    var left : IR_Expression, right : IR_Expression
 ) extends IR_ExtractableMNode with IR_ResolvableMNode {
   def name = "crossProduct"
-  override def datatype = IR_MatrixDatatype(arguments(0).datatype.resolveBaseDatatype, 3, 1)
-  override def prettyprint(out : PpStream) = out << "crossProduct" << '(' <<< (arguments, ", ") << ')'
+  override def datatype = IR_MatrixDatatype(left.datatype.resolveBaseDatatype, 3, 1)
+  override def prettyprint(out : PpStream) = Logger.error("internal node not resolved")
   override def resolve() : Output[IR_Expression] = {
-    IR_CompiletimeMatOps.crossProduct(arguments(0), arguments(1))
+    IR_CompiletimeMatOps.crossProduct(IR_MatNodeUtils.exprToMatExpr(left), IR_MatNodeUtils.exprToMatExpr(right))
   }
-  override def isResolvable() : Boolean = arguments.forall(a => IR_MatNodeUtils.isEvaluatable(a))
+  override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(left) && IR_MatNodeUtils.isEvaluatable(right)
 }
 
 // trace node for compiletime execution
@@ -87,7 +89,7 @@ case class IR_Trace(
   override def datatype = arg.datatype.resolveBaseDatatype
   override def prettyprint(out : PpStream) = out << "trace" << '(' << arg << ')'
   override def resolve() : Output[IR_Expression] = {
-    IR_CompiletimeMatOps.trace(arg.asInstanceOf[IR_MatrixExpression])
+    IR_CompiletimeMatOps.trace(IR_MatNodeUtils.exprToMatExpr(arg))
   }
   override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(arg)
 }

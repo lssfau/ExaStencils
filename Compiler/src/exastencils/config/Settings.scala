@@ -199,7 +199,7 @@ object Settings {
 
   var printClonedObjects : Boolean = false
 
-  var timeStrategies : Boolean = false
+  var timeStrategies : Boolean = true
   // five percent threshold by default -> measurements with less than 5.0 % share are not displayed
   var timeStratPercentThreshold : Int = 0
   var printNodeCountAfterTransformation : Boolean = true

@@ -202,7 +202,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_GeneralSimplify.doUntilDone()
 
     IR_PreItMOps.apply()
-    IR_SetupMatrixExpressions.apply()
+    //IR_SetupMatrixExpressions.apply()
     var sthChanged = true
     while (sthChanged) {
       IR_GeneralSimplify.doUntilDone()

@@ -36,7 +36,7 @@ object IR_IntermediateInv {
   ) = {
     var argexpr = arg match {
       case x : IR_MatrixExpression                               => x
-      case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) => IR_MatNodeUtils.accessToExpression(va)
+      case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) => IR_MatNodeUtils.accessToMatExpr(va)
       case _                                                     => Logger.error(s"argument of unexpected type: ${ arg }")
     }
     new IR_IntermediateInv(argexpr, structInfo, determineStructure, Knowledge.experimental_resolveInverseFunctionCall == "Runtime")
@@ -105,9 +105,9 @@ case class IR_InverseCT(
         if(initOp.isDefined){
           Logger.warn("inverting initial expression")
         }
-        initOp.getOrElse(IR_MatNodeUtils.accessToExpression(va)).asInstanceOf[IR_MatrixExpression]
-      case fa : IR_FieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])                                                   => IR_MatNodeUtils.accessToExpression(fa)
-      case fa : IR_MultiDimFieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])                                           => IR_MatNodeUtils.accessToExpression(fa)
+        initOp.getOrElse(IR_MatNodeUtils.accessToMatExpr(va)).asInstanceOf[IR_MatrixExpression]
+      case fa : IR_FieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])                                                   => IR_MatNodeUtils.accessToMatExpr(fa)
+      case fa : IR_MultiDimFieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])                                           => IR_MatNodeUtils.accessToMatExpr(fa)
       case _                                                                                                                      => Logger.error(s"argument of unexpected type: ${ arg }")
     }
     var tmp = IR_CompiletimeMatOps.inverse(argexpr, msi)

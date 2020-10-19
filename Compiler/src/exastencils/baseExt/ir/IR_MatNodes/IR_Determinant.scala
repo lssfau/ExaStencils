@@ -26,7 +26,7 @@ object IR_Determinant {
     * */
   def apply(args : ListBuffer[IR_Expression]) = {
     var inMatrix = args(0) match {
-      case va : IR_Access if(va.datatype.isInstanceOf[IR_MatrixDatatype]) => IR_MatNodeUtils.accessToExpression(va)
+      case va : IR_Access if(va.datatype.isInstanceOf[IR_MatrixDatatype]) => IR_MatNodeUtils.accessToMatExpr(va)
       case x @ IR_MatrixExpression(_,_, _, _)                      => x
       case _                                                     => Logger.error(s"unexpected argument ${ args }, expected matrix expression or variable")
     }
