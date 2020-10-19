@@ -42,6 +42,7 @@ import exastencils.base.ir.IR_Subtraction
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.field.ir.IR_FieldAccess
+import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.logger.Logger
 
 /** Strategy: methods to transform certain types of nodes related to matrices */
@@ -207,7 +208,7 @@ object IR_MatNodeUtils {
     * @param src : IR_VariableAccess, access to convert
     * @return expression of hdas
     **/
-  def accessToExpression(src : IR_Access) : IR_MatrixExpression = {
+  def accessToMatExpr(src : IR_Access) : IR_MatrixExpression = {
     var size = IR_CompiletimeMatOps.getSize(src)
     if (size._1 > 1 || size._2 > 1) {
       var out = IR_MatrixExpression(src.datatype.resolveBaseDatatype, size._1, size._2)
@@ -222,6 +223,14 @@ object IR_MatNodeUtils {
     }
   }
 
+  def exprToMatExpr(src : IR_Expression) : IR_MatrixExpression = {
+    src match {
+      case me : IR_MatrixExpression => me
+      case va : IR_VariableAccess => accessToMatExpr(va)
+      case mdfa : IR_MultiDimFieldAccess => accessToMatExpr(mdfa)
+      case _ => Logger.error(s"unexpected input expression: ${src}")
+    }
+  }
   /** Method: transform a matrix expression to a temporary variable
     *
     * @param src  : IR_MatrixExpression, used as initialization

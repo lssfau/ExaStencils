@@ -165,8 +165,8 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
           if(Knowledge.experimental_resolveLocalMatSys == "Compiletime") {
             if (initOpt.isEmpty) {
               Logger.warn("Compiletime LU without effective pivoting will most likely fail, switching back to inversion with cofactors!")
-              val A = IR_MatNodeUtils.accessToExpression(va)
-              A.shape = Some(IR_MatShape("fallback_inverse"))
+              val A = IR_MatNodeUtils.accessToMatExpr(va)
+              A.annotate("SolveMatSys:fallback_inverse")
               A
             } else {
               if (Knowledge.experimental_matrixDebugConfig)
@@ -176,7 +176,7 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
             }
           }
           else if (Knowledge.experimental_resolveLocalMatSys == "Runtime")
-              IR_MatNodeUtils.accessToExpression(va)
+              IR_MatNodeUtils.accessToMatExpr(va)
           else Logger.error("something unexpected occurred")
       }
       sls.expand(sysMatAsExpr)
