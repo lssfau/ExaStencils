@@ -1,6 +1,6 @@
 
 omp_enabled                       = true
-omp_numThreads                    = 4
+omp_numThreads                    = 8
 
 mpi_enabled                       = false
 mpi_numThreads                    = 1
