@@ -31,6 +31,8 @@ import exastencils.prettyprinting.PpStream
 object IR_Print {
   def apply(stream : IR_VariableAccess, toPrint : IR_Expression*) = new IR_Print(stream, toPrint.to[ListBuffer])
 
+  def newline : IR_Expression = IR_StringConstant("\n")
+  def flush : IR_Expression = IR_VariableAccess("std::flush", IR_StringDatatype)
   def endl : IR_Expression = IR_VariableAccess("std::endl", IR_StringDatatype)
 }
 

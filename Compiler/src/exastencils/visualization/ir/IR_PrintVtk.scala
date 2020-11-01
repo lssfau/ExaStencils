@@ -43,7 +43,7 @@ abstract class IR_PrintVtk extends IR_Statement with IR_Expandable {
 
   def separator = IR_StringConstant(" ")
 
-  def newStream = IR_VariableAccess(IR_PrintField.getNewName(), IR_SpecialDatatype("std::ofstream"))
+  def newStream = IR_VariableAccess(IR_FieldIO.getNewStreamName(), IR_SpecialDatatype("std::ofstream"))
 
   def level : Int
 

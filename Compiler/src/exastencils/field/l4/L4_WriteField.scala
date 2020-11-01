@@ -23,31 +23,30 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.datastructures._
-import exastencils.field.ir.IR_PrintField
+import exastencils.field.ir.IR_WriteField
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
-/// L4_PrintField
+/// L4_WriteField
 
-case class L4_PrintField(
+case class L4_WriteField(
     var basenameFile : L4_Expression,
     var field : L4_FieldAccess,
-    var condition : Option[L4_Expression] = None,
+    var condition: Option[L4_Expression] = None,
     var includeGhostLayers : Boolean = false,
     var format : L4_Expression = L4_StringConstant("ascii"),
     var outputSingleFile : Boolean = true,
     var useLocking : Boolean = true) extends L4_Statement {
 
   override def prettyprint(out : PpStream) = {
-    out << "print ( "
+    out << "write ( "
     out << basenameFile << ", " << field
-    if (condition.isDefined) out << ", " << condition.get
     out << " )"
   }
 
   override def progress = {
     val progField = field.progress
-    ProgressLocation(IR_PrintField(
+    ProgressLocation(IR_WriteField(
       basenameFile.progress,
       progField.field,
       progField.slot,
@@ -61,11 +60,9 @@ case class L4_PrintField(
 
 /// L4_ResolvePrintFieldFunctions
 
-object L4_ResolvePrintFieldFunctions extends DefaultStrategy("Resolve print field function references") {
+object L4_ResolveWriteFieldFunctions extends DefaultStrategy("Resolve write field function references") {
   val knownFunctionNames = {
-    var ret = ListBuffer("printField")
-    ret = ret ++ ret.map(_ + "Binary")
-    ret = ret ++ ret.map(_ + "Values")
+    var ret = ListBuffer("writeField")
     ret = ret ++ ret.map(_ + "WithGhost")
 
     ret
@@ -84,36 +81,23 @@ object L4_ResolvePrintFieldFunctions extends DefaultStrategy("Resolve print fiel
       }
 
       val includeGhosts = checkOptionAndRemove("WithGhost")
-      val onlyValues = checkOptionAndRemove("Values")
-      val binary = if (checkOptionAndRemove("Binary")) L4_StringConstant("bin") else L4_StringConstant("ascii")
-
-      // wrapper function to provide backwards compatibility.
-      // determines if plain field values are written to file (WriteField) or field values including a visualization format (PrintField)
-      def wrapStmtCtorOnlyValues(fn : L4_Expression, fieldAcc : L4_FieldAccess, cond : Option[L4_Expression], includeGhost : Boolean, useBin : L4_StringConstant) = {
-        if(onlyValues)
-          L4_WriteField(fn, fieldAcc, cond, includeGhost, useBin)
-        else
-          L4_PrintField(fn, fieldAcc, cond, includeGhost, useBin)
-      }
 
       if (level.isDefined) Logger.warn(s"Found leveled print field function with level ${ level.get }; level is ignored")
       if (offset.isDefined) Logger.warn(s"Found print field function with offset; offset is ignored")
 
       args match {
-        // deprecated function calls (backwards compatibility)
         case ListBuffer(field : L4_FieldAccess)                      => // option 1: only field -> deduce name
-          wrapStmtCtorOnlyValues(L4_StringConstant(field.target.name), field, None, includeGhosts, binary)
-        case ListBuffer(basename, field : L4_FieldAccess)            => // option 2: filename and field
-          wrapStmtCtorOnlyValues(basename, field, None, includeGhosts, binary)
-        case ListBuffer(basename, field : L4_FieldAccess, condition) => // option 3: filename, file and condition
-          wrapStmtCtorOnlyValues(basename, field, Some(condition), includeGhosts, binary)
-        // new function calls. "format" parameter has precedence over old parameters (e.g. binary)
-        case ListBuffer(basename, field : L4_FieldAccess, fmt : L4_StringConstant) => // option 4: filename, file and format
-          L4_PrintField(basename, field, includeGhostLayers = includeGhosts, format = fmt)
-        case ListBuffer(basename, field : L4_FieldAccess, fmt : L4_StringConstant, singleFile : L4_BooleanConstant, useLock : L4_BooleanConstant) => // option 5: filename, file, format, single-shared-file and locking
-          L4_PrintField(basename, field, includeGhostLayers = includeGhosts, format = fmt, outputSingleFile = singleFile.value, useLocking = useLock.value)
-        case _                                                       =>
-          Logger.warn("Ignoring call to printField with unsupported arguments: " + args.mkString(", "))
+          L4_WriteField(L4_StringConstant(field.target.name + ".txt"), field, includeGhostLayers = includeGhosts)
+        case ListBuffer(fileName, field : L4_FieldAccess)            => // option 2: filename and field
+          L4_WriteField(fileName, field, includeGhostLayers = includeGhosts)
+        case ListBuffer(fileName, field : L4_FieldAccess, condition) => // option 3: filename, file and condition
+          L4_WriteField(fileName, field, Some(condition), includeGhostLayers = includeGhosts)
+        case ListBuffer(fileName, field : L4_FieldAccess, fmt : L4_StringConstant) => // option 4: filename, file and format
+          L4_WriteField(fileName, field, includeGhostLayers = includeGhosts, format = fmt)
+        case ListBuffer(fileName, field : L4_FieldAccess, fmt : L4_StringConstant, singleFile : L4_BooleanConstant, useLock : L4_BooleanConstant) => // option 5: filename, file, format, single-shared-file and locking
+          L4_WriteField(fileName, field, includeGhostLayers = includeGhosts, format = fmt, outputSingleFile = singleFile.value, useLocking = useLock.value)
+        case _  =>
+          Logger.warn("Ignoring call to writeField with unsupported arguments: " + args.mkString(", "))
           L4_NullStatement
       }
   })

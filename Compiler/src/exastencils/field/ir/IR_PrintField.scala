@@ -22,18 +22,17 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir._
 import exastencils.config._
-import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
-import exastencils.domain.ir._
-import exastencils.grid.ir._
+import exastencils.io.ir.IR_FileAccess
+import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir._
 
 /// IR_PrintField
 
+/*
 object IR_PrintField {
   private var counter : Int = 0
   def getNewName() : String = {
@@ -41,16 +40,19 @@ object IR_PrintField {
     "fieldPrintStream_%02d".format(counter)
   }
 }
+*/
 
 case class IR_PrintField(
-    var filename : IR_Expression,
+    var basenameFile : IR_Expression,
     var field : IR_Field,
     var slot : IR_Expression,
     var condition : IR_Expression = true,
     var includeGhostLayers : Boolean = false,
-    var onlyValues : Boolean = false,
-    var binary : Boolean = false) extends IR_Statement with IR_Expandable {
+    var format : IR_Expression = IR_StringConstant("ascii"),
+    var outputSingleFile : Boolean = false,
+    var useLocking : Boolean = true) extends IR_Statement with IR_Expandable with IR_FieldIO {
 
+  /*
   def numDimsGrid = field.layout.numDimsGrid
   def numDimsData = field.layout.numDimsData
 
@@ -63,13 +65,54 @@ case class IR_PrintField(
       case IR_AtFaceCenter(_)     => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
     }
   }
+  */
+
+  val arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
+
+  def writeCSV(fileAccessHandler : IR_FileAccess) : ListBuffer[IR_Statement] = {
+    var statements : ListBuffer[IR_Statement] = ListBuffer()
+    statements ++= fileAccessHandler.prologue()
+    val fileHeader : ListBuffer[IR_Statement] = {
+      var ret : ListBuffer[IR_Statement] = ListBuffer()
+      var tmp : ListBuffer[IR_Statement] = ListBuffer()
+      if (Knowledge.experimental_generateParaviewFiles) {
+        val streamName = IR_FieldIO.getNewStreamName()
+        def streamType = IR_SpecialDatatype("std::ofstream")
+        def stream = IR_VariableAccess(streamName, streamType)
+        tmp += IR_ObjectInstantiation(streamType, streamName, fileAccessHandler.getFilename(), IR_VariableAccess("std::ios::app", IR_UnknownDatatype))
+        tmp += IR_Print(stream, "\"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\"", IR_Print.endl)
+        tmp += IR_MemberFunctionCall(stream, "close")
+        if (Knowledge.mpi_enabled)
+          ret += IR_IfCondition(MPI_IsRootProc(), tmp)
+        else
+          ret = tmp
+      }
+      ret
+    }
+    statements ++= fileHeader
+    statements ++= fileAccessHandler.kernel()
+    statements ++= fileAccessHandler.epilogue()
+    statements
+  }
+
+  def writeXmlVtk(fileAccessHandler : IR_FileAccess) : ListBuffer[IR_Statement] = {
+    // TODO
+    ListBuffer(IR_NullStatement)
+  }
+
+  def writeXdmf(fileAccessHandler : IR_FileAccess, useHDF5 : Boolean) : ListBuffer[IR_Statement] = {
+    // TODO
+    ListBuffer(IR_NullStatement)
+  }
+
+  def writeNetCDF(fileAccessHandler : IR_FileAccess) : ListBuffer[IR_Statement] = {
+    // TODO
+    ListBuffer(IR_NullStatement)
+  }
 
   override def expand() : Output[StatementList] = {
-    if (!Settings.additionalIncludes.contains("fstream"))
-      Settings.additionalIncludes += "fstream"
-    if (!Settings.additionalIncludes.contains("iomanip"))
-      Settings.additionalIncludes += "iomanip"
 
+    /*
     // TODO: incorporate component accesses
     val arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
 
@@ -142,6 +185,34 @@ case class IR_PrintField(
       statements += MPI_Sequential(innerLoop)
     } else {
       statements ++= innerLoop
+    }
+
+    statements
+    */
+
+    val printStmts = selectAndAddStatements(basenameFile, field, slot, Some(condition), includeGhostLayers, format, outputSingleFile, useLocking, doWrite = true, onlyVals = false)
+
+    var statements : ListBuffer[IR_Statement] = ListBuffer()
+
+    format.asInstanceOf[IR_StringConstant].value match {
+      case "ascii" | "bin"                            =>
+        if (!outputSingleFile) {
+          statements ++= writeXmlVtk(printStmts)
+        } else if (useLocking) {
+          statements ++= writeCSV(printStmts)
+        } else {
+          statements ++= writeXdmf(printStmts, useHDF5 = false)
+        }
+      case s : String if fmtOptionsHDF5.contains(s)   =>
+        statements ++= writeXdmf(printStmts, useHDF5 = true)
+      case s : String if fmtOptionsNetCDF.contains(s) =>
+        statements ++= writeXdmf(printStmts, useHDF5 = false)
+      case s : String if fmtOptionsSION.contains(s)   =>
+        Logger.warn("Sion Files cannot directly be visualized. Defaulting to \"writeField\" implementation.")
+        statements += printStmts
+      case _                                          =>
+        Logger.warn("Ignoring call to \"printField\" with unsupported format: " + format)
+        IR_NullStatement
     }
 
     statements

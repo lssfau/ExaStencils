@@ -22,18 +22,12 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir._
-import exastencils.config._
-import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
-import exastencils.domain.ir.IR_IV_IsValidForDomain
-import exastencils.grid.ir._
-import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
-import exastencils.util.ir._
 
 /// IR_ReadField
 
+/*
 object IR_ReadField {
   private var counter : Int = 0
   def getNewName() : String = {
@@ -47,14 +41,19 @@ object IR_ReadField {
     "fieldName_%02d".format(fileNameCounter)
   }
 }
+*/
 
 case class IR_ReadField(
-    var filename : IR_Expression,
+    var basenameFile : IR_Expression,
     var field : IR_Field,
     var slot : IR_Expression,
-    var condition : IR_Expression = true,
-    var includeGhostLayers : Boolean = false) extends IR_Statement with IR_Expandable {
+    var condition: IR_Expression = true,
+    var includeGhostLayers : Boolean = false,
+    var format : IR_Expression = IR_StringConstant("ascii"),
+    var outputSingleFile : Boolean = false,
+    var useLocking : Boolean = false) extends IR_Statement with IR_Expandable with IR_FieldIO {
 
+  /*
   def numDimsGrid = field.layout.numDimsGrid
   def numDimsData = field.layout.numDimsData
 
@@ -67,11 +66,11 @@ case class IR_ReadField(
       case IR_AtFaceCenter(_)     => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
     }
   }
+  */
 
   override def expand() : Output[StatementList] = {
-    if (!Settings.additionalIncludes.contains("fstream"))
-      Settings.additionalIncludes += "fstream"
 
+    /*
     // TODO: incorporate component accesses
     val arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
 
@@ -119,6 +118,13 @@ case class IR_ReadField(
             IR_IfCondition(condition, read))))
 
     statements += IR_MemberFunctionCall(stream, "close")
+
+    statements
+    */
+
+    var statements : ListBuffer[IR_Statement] = ListBuffer()
+
+    statements += selectAndAddStatements(basenameFile, field, slot, Some(condition), includeGhostLayers, format, outputSingleFile, useLocking, doWrite = false, onlyVals = true)
 
     statements
   }

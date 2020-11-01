@@ -584,7 +584,7 @@ object Knowledge {
 
   var experimental_allowCommInFragLoops : Boolean = false
 
-  var experimental_generateParaviewFiles : Boolean = false
+  var experimental_generateParaviewFiles : Boolean = true
 
   var experimental_trimBoundsForReductionLoops : Boolean = true
 
