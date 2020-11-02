@@ -39,22 +39,24 @@ trait IR_FieldIO {
   def getExtension(fn : IR_Expression) : String = extension findFirstIn fn.asInstanceOf[IR_StringConstant].value getOrElse ""
 
   // appends file extension depending on specified format
-  def createFilename(basename : IR_Expression, fmt : IR_Expression) : IR_Expression = {
+  def createFilename(basename : IR_Expression, fmt : IR_Expression, outputSingleFile : Boolean) : IR_Expression = {
     val ext = getExtension(basename)
     val base = basename.asInstanceOf[IR_StringConstant].value
     val fn = if(ext.trim.isEmpty) {
+      val fpp_substr = if(!outputSingleFile) "$blockId" else ""
+      def buildName(extension : String) = base + fpp_substr + "." + extension
       fmt.asInstanceOf[IR_StringConstant].value match {
-        case "ascii" => base + ".txt"
-        case "bin"   => base + ".bin"
-        case s : String if fmtOptionsHDF5.contains(s) => base + ".hdf5"
-        case s : String if fmtOptionsNetCDF.contains(s) => base + ".nc"
-        case s : String if fmtOptionsSION.contains(s) => base + ".sion"
+        case "ascii" => buildName("txt")
+        case "bin"   => buildName("bin")
+        case s : String if fmtOptionsHDF5.contains(s) => buildName("hdf5")
+        case s : String if fmtOptionsNetCDF.contains(s) => buildName("nc")
+        case s : String if fmtOptionsSION.contains(s) => buildName("sion")
         case _ =>
-          Logger.warn("Unsupported file format: " + _)
+          Logger.error("Unsupported file format: " + _)
           ""
       }
     } else {
-      base
+      base // use provided filename
     }
     IR_StringConstant(fn)
   }
@@ -86,7 +88,7 @@ trait IR_FieldIO {
       doWrite : Boolean,
       onlyVals : Boolean) : IR_FileAccess = {
 
-    val fn = createFilename(basenameFile, format)
+    val fn = createFilename(basenameFile, format, outputSingleFile)
     val fmt = format.asInstanceOf[IR_StringConstant].value
     fmt match {
       case "ascii" | "bin"                            =>

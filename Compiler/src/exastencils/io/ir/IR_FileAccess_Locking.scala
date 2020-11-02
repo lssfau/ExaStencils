@@ -3,6 +3,7 @@ package exastencils.io.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir.IR_MemberFunctionCall
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
@@ -27,7 +28,7 @@ case class IR_FileAccess_Locking(
   val arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
 
   def separator = IR_StringConstant(if (!useAscii) "" else if (Knowledge.experimental_generateParaviewFiles) "," else " ")
-  var openMode = if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc" // TODO appended mode when multiple fields are written to the same file
+  var openMode = if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc"
   if (!useAscii)
     openMode += " | std::ios::binary"
 
@@ -51,7 +52,46 @@ case class IR_FileAccess_Locking(
   // file already closed by "last" process
   override def epilogue() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
 
-  override def readField() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement) // TODO implement
+  override def readField() : ListBuffer[IR_Statement] = {
+    val streamName = IR_FieldIO.getNewStreamName()
+    def streamType = IR_SpecialDatatype("std::ifstream")
+    def stream = IR_VariableAccess(streamName, streamType)
+
+    var statements : ListBuffer[IR_Statement] = ListBuffer()
+
+    val read = IR_Read(stream)
+    //    arrayIndexRange.foreach { index =>
+    val access = IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData))
+    //      if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
+    //        access.index(numDimsData - 2) = index // TODO: other hodt
+    read.toRead += access
+    if(separator.value != " ") { // skip separator
+      // TODO: maybe implement with std::getline
+      val decl = IR_VariableDeclaration(IR_CharDatatype, "skipSeparator")
+      statements += decl
+      read.toRead += IR_VariableAccess(decl)
+    }
+
+    var innerLoop = ListBuffer[IR_Statement](
+      IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess(openMode, IR_UnknownDatatype)),
+      IR_LoopOverFragments(
+        IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
+          IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
+            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(beginId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
+            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(endId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
+            IR_IfCondition(condition.getOrElse(IR_BooleanConstant(true)), read))))
+      ,
+      IR_MemberFunctionCall(stream, "close")
+    )
+
+    if (Knowledge.mpi_enabled) {
+      statements += MPI_Sequential(innerLoop)
+    } else {
+      statements ++= innerLoop
+    }
+
+    statements
+  }
 
   override def writeField() : ListBuffer[IR_Statement] = {
     val streamName = IR_FieldIO.getNewStreamName()

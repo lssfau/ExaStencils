@@ -13,6 +13,7 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir._
+import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_BuildString
 import exastencils.util.ir.IR_Read
@@ -29,8 +30,13 @@ case class IR_FileAccess_FPP(
 
   val arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
 
+  def fctName = if (writeAccess) {
+    if (onlyValues) "WriteField" else "PrintField"
+  } else
+    "ReadField"
+
   val streamName = IR_FieldIO.getNewStreamName()
-  def streamType = IR_SpecialDatatype("std::ifstream")
+  def streamType = IR_SpecialDatatype("std::ifstream") // TODO: distinguish read/write
   def stream = IR_VariableAccess(streamName, streamType)
 
   override def prologue() : ListBuffer[IR_Statement] = {
@@ -40,6 +46,9 @@ case class IR_FileAccess_FPP(
       case filenameStrConst : IR_StringConstant =>
         val str : String = filenameStrConst.value
         val strSplit = ListBuffer(str.split("\\$blockId") : _ *)
+        if(!str.contains("$blockId")) {
+          Logger.error("Error in \"" + fctName +"\" using file-per-process: Parameter \"basename\" must contain sequence: \"$blockId\".")
+        }
 
         val strListMpi = strSplit.flatMap(e => MPI_IV_MpiRank :: IR_StringConstant(e) :: Nil).tail
 
