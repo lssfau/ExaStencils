@@ -206,7 +206,7 @@ case class IR_PrintField(
       case s : String if fmtOptionsHDF5.contains(s)   =>
         statements ++= writeXdmf(printStmts, useHDF5 = true)
       case s : String if fmtOptionsNetCDF.contains(s) =>
-        statements ++= writeXdmf(printStmts, useHDF5 = false)
+        statements ++= writeNetCDF(printStmts)
       case s : String if fmtOptionsSION.contains(s)   =>
         Logger.warn("Sion Files cannot directly be visualized. Defaulting to \"writeField\" implementation.")
         statements += printStmts

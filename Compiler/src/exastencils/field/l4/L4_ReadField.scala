@@ -44,6 +44,7 @@ case class L4_ReadField(
     else
       out << "readField ( "
     out << basenameFile << ", " << field
+    if (condition.isDefined) out << ", " << condition.get
     out << " )"
   }
   override def progress = {

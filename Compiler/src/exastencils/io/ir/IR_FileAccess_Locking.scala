@@ -27,7 +27,7 @@ case class IR_FileAccess_Locking(
   val arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
 
   def separator = IR_StringConstant(if (!useAscii) "" else if (Knowledge.experimental_generateParaviewFiles) "," else " ")
-  var openMode = if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc"
+  var openMode = if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc" // TODO appended mode when multiple fields are written to the same file
   if (!useAscii)
     openMode += " | std::ios::binary"
 

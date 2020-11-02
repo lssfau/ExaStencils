@@ -41,6 +41,7 @@ case class L4_WriteField(
   override def prettyprint(out : PpStream) = {
     out << "write ( "
     out << basenameFile << ", " << field
+    if (condition.isDefined) out << ", " << condition.get
     out << " )"
   }
 
@@ -87,7 +88,7 @@ object L4_ResolveWriteFieldFunctions extends DefaultStrategy("Resolve write fiel
 
       args match {
         case ListBuffer(field : L4_FieldAccess)                      => // option 1: only field -> deduce name
-          L4_WriteField(L4_StringConstant(field.target.name + ".txt"), field, includeGhostLayers = includeGhosts)
+          L4_WriteField(L4_StringConstant(field.target.name), field, includeGhostLayers = includeGhosts)
         case ListBuffer(fileName, field : L4_FieldAccess)            => // option 2: filename and field
           L4_WriteField(fileName, field, includeGhostLayers = includeGhosts)
         case ListBuffer(fileName, field : L4_FieldAccess, condition) => // option 3: filename, file and condition

@@ -54,7 +54,7 @@ trait IR_FieldIO {
           ""
       }
     } else {
-      base + ext
+      base
     }
     IR_StringConstant(fn)
   }
