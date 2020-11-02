@@ -1,0 +1,82 @@
+// domain declarations
+
+Domain global< [0.0, 0.0, 0.0] to [1.0, 1.0, 1.0] >
+
+// field layout declarations
+
+Layout NodeNoComm< Real, Node >@all {
+  duplicateLayers = [1, 1, 1]
+  ghostLayers     = [0, 0, 0]
+}
+
+Layout NodeWithComm< Real, Node >@all {
+  duplicateLayers = [1, 1, 1] with communication
+  ghostLayers     = [1, 1, 1] with communication
+}
+
+Layout NodeNoGhost< Real, Node >@all {
+  duplicateLayers = [1, 1, 1] with communication
+  ghostLayers     = [0, 0, 0]
+}
+
+// field declarations
+
+Field src< global, NodeWithComm, vf_boundaryPosition_x ** 2 - 0.5 * vf_boundaryPosition_y ** 2 - 0.5 * vf_boundaryPosition_z ** 2 >@all
+Field dest< global, NodeWithComm, 0.0 >@all
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// functions
+
+Function compareFields@all {
+    loop over dest {
+        Var diff : Real = fabs(dest - src)
+        if( diff > 0.001 ) {
+            print("fields are not equal!")
+            print("Error occurred at idx: i0 =", i0, ",i1 =", i1, ",i2=", i2)
+        }
+    }
+}
+
+Function Application {
+  // init
+  startTimer ( "setup" )
+  initGlobals ( )
+  initDomain ( )
+  initFieldsWithZero ( )
+  initGeometry ( )
+  apply bc to src@finest
+  stopTimer ( "setup" )
+  
+  /* Start FPP I/O */
+  // write field
+  startTimer ("FPP: writeField")
+  //writeField ("src", src@finest, "ascii", false, false)
+  stopTimer ("FPP: writeField")
+
+  // read field
+  startTimer ("FPP: readField")
+  //readField ("src", dest@finest, "ascii", false, false)
+  stopTimer ("FPP: readField")
+  /* End FPP I/O */
+  
+  /* Start Locking I/O */
+  startTimer ("Lock: writeField")
+  writeField ("src", src@finest, "ascii", true, true)
+  stopTimer ("Lock: writeField")
+  
+  startTimer ("Lock: readField")
+  readField ("src", dest@finest, "ascii", true, true)
+  stopTimer ("Lock: readField")
+  
+  compareFields@finest ( )
+  /* End Locking I/O */
+  
+  // de-init
+  printAllTimers ( )
+  destroyGlobals ( )
+}
