@@ -442,8 +442,8 @@ object L4_Parser extends ExaParser with PackratParsers {
     locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ matIndex.? ^^ {
         case id ~ slot ~ level ~ offset ~ matIdx =>
       L4_UnresolvedAccess(id, level, slot, offset, None, None, matIdx)})
-      //||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
-      //^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None, None) })
+      ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
+      ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None, None) })
     ) // component acccess mit spitzen klammern
 /*
   //FIXME index prolly collides with stencils entry -> only parser matIndex within genericAccess, not alone

@@ -187,35 +187,35 @@ Function InitRHS@all {
 }
 
 Function SetFuncDir@all {
-	loop over Solution[0]@current only dup [-1, 0] on boundary {
-		Solution[0]@current = ( kappa * ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) )
+	loop over Solution<0>@current only dup [-1, 0] on boundary {
+		Solution<0>@current = ( kappa * ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) )
 	}
-	loop over Solution[1]@current only dup [-1, 0] on boundary {
-		Solution[1]@current = ( kappa * ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) )
+	loop over Solution<1>@current only dup [-1, 0] on boundary {
+		Solution<1>@current = ( kappa * ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) )
 	}
-	loop over Solution[0]@current only dup [1, 0] on boundary {
-		Solution[0]@current = ( kappa * ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) )
+	loop over Solution<0>@current only dup [1, 0] on boundary {
+		Solution<0>@current = ( kappa * ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) )
 	}
-	loop over Solution[1]@current only dup [1, 0] on boundary {
-		Solution[1]@current = ( kappa * ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) )
+	loop over Solution<1>@current only dup [1, 0] on boundary {
+		Solution<1>@current = ( kappa * ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) )
 	}
-	loop over Solution[0]@current only dup [0, -1] on boundary {
-		Solution[0]@current = ( kappa * ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) )
+	loop over Solution<0>@current only dup [0, -1] on boundary {
+		Solution<0>@current = ( kappa * ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) )
 	}
-	loop over Solution[1]@current only dup [0, -1] on boundary {
-		Solution[1]@current = ( kappa * ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) )
+	loop over Solution<1>@current only dup [0, -1] on boundary {
+		Solution<1>@current = ( kappa * ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) )
 	}
-	loop over Solution[0]@current only dup [0, 1] on boundary {
-		Solution[0]@current = ( kappa * ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) )
+	loop over Solution<0>@current only dup [0, 1] on boundary {
+		Solution<0>@current = ( kappa * ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) )
 	}
-	loop over Solution[1]@current only dup [0, 1] on boundary {
-		Solution[1]@current = ( kappa * ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) )
+	loop over Solution<1>@current only dup [0, 1] on boundary {
+		Solution<1>@current = ( kappa * ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) )
 	}
 }
 
 Function ResetBC@all {
-	apply bc to Solution[0]@current
-	apply bc to Solution[1]@current
+	apply bc to Solution<0>@current
+	apply bc to Solution<1>@current
 }
 
 Function FMG@(all but (finest)) {
