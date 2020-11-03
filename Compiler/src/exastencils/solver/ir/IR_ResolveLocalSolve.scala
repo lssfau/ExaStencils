@@ -147,38 +147,6 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
 
   this += new Transformation("Perform expand for applicable nodes", {
     case solve : IR_LocalSolve                         => solve.expandSpecial
-    case sls @ IR_SolveMatrixSystem(localSysMat, _, _, _) =>
-      val sysMatAsExpr : IR_MatrixExpression = localSysMat match {
-        case x : IR_MatrixExpression =>
-          // to classify and const -> classify
-          if (Knowledge.experimental_classifyLocMat) {
-            x.shape = Some(IR_ClassifyMatShape(x))
-            x
-          }
-          // const and shape not to classify
-          else x
-        // else: variable access: find initialization expression in declaration
-        case va : IR_VariableAccess =>
-          //TODO classification
-          val initOpt : Option[IR_Expression] = variableCollector.getConstInitVal(va.name)
-          // compiletime LU most likely does not work without pivoting -> use initial here too
-          if(Knowledge.experimental_resolveLocalMatSys == "Compiletime") {
-            if (initOpt.isEmpty) {
-              Logger.warn("Compiletime LU without effective pivoting will most likely fail, switching back to inversion with cofactors!")
-              val A = IR_MatNodeUtils.accessToMatExpr(va)
-              A.annotate("SolveMatSys:fallback_inverse")
-              A
-            } else {
-              if (Knowledge.experimental_matrixDebugConfig)
-                Logger.warn("pivoting initial expression for solveMatSy ")
-              val init = initOpt.get
-              init.asInstanceOf[IR_MatrixExpression]
-            }
-          }
-          else if (Knowledge.experimental_resolveLocalMatSys == "Runtime")
-              IR_MatNodeUtils.accessToMatExpr(va)
-          else Logger.error("something unexpected occurred")
-      }
-      sls.expand(sysMatAsExpr)
+    case sms : IR_SolveMatrixSystem  => sms.expand()
   })
 }
