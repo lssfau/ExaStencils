@@ -90,7 +90,7 @@ Function VCycle_0@coarsest {
 		}
 		Var alpha : Real = ( ( res * res ) / alphaDenom )
 		loop over Solution@current {
-			Solution[active]@current += ( alpha * VecP@current )
+			Solution<active>@current += ( alpha * VecP@current )
 			Residual@current -= ( alpha * VecGradP@current )
 		}
 		Var nextRes : Real = NormResidual_0@current (  )
@@ -131,22 +131,22 @@ Function VCycle@(7 to finest) {
 }
 
 Function Smoother@((coarsest + 1) to 6) {
-	communicate ghost of Solution[active]@current
+	communicate ghost of Solution<active>@current
 	loop over fragments {
 		loop over Solution@current {
-			Solution[next]@current = ( Solution[active]@current + ( ( ( 1.0 / diag ( Laplace@current ) ) * 0.8 ) * ( RHS@current - ( Laplace@current * Solution[active]@current ) ) ) )
+			Solution<next>@current = ( Solution<active>@current + ( ( ( 1.0 / diag ( Laplace@current ) ) * 0.8 ) * ( RHS@current - ( Laplace@current * Solution<active>@current ) ) ) )
 		}
 		advance Solution@current
 	}
 }
 
 Function Smoother@(7 to finest) {
-	communicate ghost of Solution[active]@current
+	communicate ghost of Solution<active>@current
 	communicate ghost of RHS@current
 	loop over fragments {
 		repeat 3 times with contraction [1, 1, 1] {
 			loop over Solution@current {
-				Solution[next]@current = ( Solution[active]@current + ( ( ( 1.0 / diag ( Laplace@current ) ) * 0.8 ) * ( RHS@current - ( Laplace@current * Solution[active]@current ) ) ) )
+				Solution<next>@current = ( Solution<active>@current + ( ( ( 1.0 / diag ( Laplace@current ) ) * 0.8 ) * ( RHS@current - ( Laplace@current * Solution<active>@current ) ) ) )
 			}
 			advance Solution@current
 		}
@@ -154,10 +154,10 @@ Function Smoother@(7 to finest) {
 }
 
 Function UpResidual@all {
-	communicate dup ghost [0, 0, 0] of Solution[active]@current
+	communicate dup ghost [0, 0, 0] of Solution<active>@current
 	loop over fragments {
 		loop over Residual@current {
-			Residual@current = ( RHS@current - ( Laplace@current * Solution[active]@current ) )
+			Residual@current = ( RHS@current - ( Laplace@current * Solution<active>@current ) )
 		}
 	}
 }
@@ -182,23 +182,23 @@ Function Restriction@((coarsest + 1) to finest) {
 }
 
 Function Correction@((coarsest + 1) to finest) {
-	communicate ghost [0, 0, 0] of Solution[active]@coarser
+	communicate ghost [0, 0, 0] of Solution<active>@coarser
 	loop over fragments {
 		loop over Solution@current {
-			Solution[active]@current += ( CorrectionStencil@current * Solution[active]@coarser )
+			Solution<active>@current += ( CorrectionStencil@current * Solution<active>@coarser )
 		}
 	}
 }
 
 Function SetSolution@all ( value : Real ) {
 	loop over Solution@current {
-		Solution[active]@current = value
+		Solution<active>@current = value
 	}
 }
 
 Function InitSolution {
 	loop over Solution@finest sequentially {
-		Solution[active]@finest = native ( "((double)std::rand()/RAND_MAX)" )
+		Solution<active>@finest = native ( "((double)std::rand()/RAND_MAX)" )
 	}
 }
 

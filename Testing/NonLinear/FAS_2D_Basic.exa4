@@ -24,7 +24,7 @@ Stencil Laplace@all {
 	[ 0, -1] => ( ( -1.0 / ( vf_gridWidth_y@current * vf_gridWidth_y@current ) ) )
 }
 Stencil gamSten@all {
-	[ 0,  0] => ( gam * exp( Solution[active]@current ) )
+	[ 0,  0] => ( gam * exp( Solution<active>@current ) )
 }
 
 Stencil RestrictionNode@all from default restriction on Node with 'linear'
@@ -76,19 +76,19 @@ Function VCycle@((coarsest + 1) to finest) ( ) : Unit {
 }
 
 Function Smoother@all ( ) : Unit {
-	communicate ghost of Solution[active]@current
+	communicate ghost of Solution<active>@current
 	loop over Solution@current {
-		Solution[next]@current = Solution[active]@current + 0.8 * (
-			( RHS@current - ( Laplace@current * Solution[active]@current + gamSten@current * Solution[active]@current ) )
-			/ ( diag ( Laplace@current ) + gam * ( 1.0 + Solution[active]@current ) * exp ( Solution[active]@current ) ) )
+		Solution<next>@current = Solution<active>@current + 0.8 * (
+			( RHS@current - ( Laplace@current * Solution<active>@current + gamSten@current * Solution<active>@current ) )
+			/ ( diag ( Laplace@current ) + gam * ( 1.0 + Solution<active>@current ) * exp ( Solution<active>@current ) ) )
 	}
 	advance Solution@current
 }
 
 Function UpResidual@all (  ) : Unit {
-	communicate Solution[active]@current
+	communicate Solution<active>@current
 	loop over Residual@current {
-		Residual@current = RHS@current - ( Laplace@current * Solution[active]@current + gamSten@current * Solution[active]@current )
+		Residual@current = RHS@current - ( Laplace@current * Solution<active>@current + gamSten@current * Solution<active>@current )
 	}
 }
 Function NormResidual_0@(coarsest and finest) ( ) : Real {
@@ -102,7 +102,7 @@ Function NormResidual_0@(coarsest and finest) ( ) : Real {
 Function NormError_0@(finest) ( ) : Real {
 	Variable err : Real = 0
 	loop over Solution@current where x > 0 && y > 0 with reduction( max : err ) {
-		Variable curErr : Real = fabs ( Solution[active]@current
+		Variable curErr : Real = fabs ( Solution<active>@current
 			- solFct ( vf_nodePosition_x@current, vf_nodePosition_y@current ) )
 		err = max ( err, curErr )
 	}
@@ -116,10 +116,10 @@ Function Restriction@((coarsest + 1) to finest) ( ) : Unit {
 	}
 
 	// coarsen current guess
-	communicate ghost of Solution[active]@current
+	communicate ghost of Solution<active>@current
 	loop over Approximation@coarser {
-		Approximation@coarser = RestrictionNode@current * Solution[active]@current
-		Solution[active]@coarser = Approximation@coarser
+		Approximation@coarser = RestrictionNode@current * Solution<active>@current
+		Solution<active>@coarser = Approximation@coarser
 	}
 
 	// f = r + A v
@@ -130,21 +130,21 @@ Function Restriction@((coarsest + 1) to finest) ( ) : Unit {
 }
 
 Function Correction@((coarsest + 1) to finest) ( ) : Unit {
-	communicate ghost of Solution[active]@coarser
+	communicate ghost of Solution<active>@coarser
 
 	// e = u - v
-	loop over Solution[active]@coarser {
-		Solution[active]@coarser -= Approximation@coarser
+	loop over Solution<active>@coarser {
+		Solution<active>@coarser -= Approximation@coarser
 	}
 
 	loop over Solution@current {
-		Solution[active]@current += CorrectionNode@current * Solution[active]@coarser
+		Solution<active>@current += CorrectionNode@current * Solution<active>@coarser
 	}
 }
 
 Function InitSolution ( ) : Unit {
 	loop over Solution@finest {
-		Solution[active]@finest = 0
+		Solution<active>@finest = 0
 	}
 }
 Function InitRHS@finest ( ) : Unit {

@@ -26,7 +26,7 @@ Function Smoother() : Unit {
     loop over fragments {
         repeat 5 times with contraction [1, 1 , 1] {
             loop over Solution@finest {
-                Solution[nextSlot]@finest = Solution[active]@finest + (0.8 / diag(Laplace@finest) * (RHS@finest - Laplace@finest * Solution[active]@finest))
+                Solution[nextSlot]@finest = Solution<active>@finest + (0.8 / diag(Laplace@finest) * (RHS@finest - Laplace@finest * Solution<active>@finest))
             }
             advance Solution@finest
         }
@@ -35,7 +35,7 @@ Function Smoother() : Unit {
 Function InitFields() : Unit {
     native('std::srand(42)')
     loop over Solution@finest sequentially {
-        Solution[active]@finest = native('((double)std::rand()/RAND_MAX)')
+        Solution<active>@finest = native('((double)std::rand()/RAND_MAX)')
         Solution[nextSlot]@finest = native('((double)std::rand()/RAND_MAX)')
     }
     loop over RHS@finest sequentially {
@@ -59,7 +59,7 @@ Function Benchmark() : Unit {
 }
 Function CheckSolution() : Unit {
     loop over Solution@finest sequentially {
-        Var s : Real = Solution[active]@finest * Solution[nextSlot]@finest
+        Var s : Real = Solution<active>@finest * Solution[nextSlot]@finest
         if (s == 0.0 || s == 1./0. || s == -1./0. || s != s) {
             print('ERROR: value out of bounds found: ', s)
         }
