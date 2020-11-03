@@ -232,11 +232,11 @@ case class IR_LocalSolve(
       if(Knowledge.experimental_matrixDebugConfig)
         Logger.warn(shape.toStringList())
       shape
-    } else if(Knowledge.experimental_locMatStructure != "filled") {
+    } else if(Knowledge.experimental_locMatShape != "filled") {
       // structure for all local matrices given in knowledge
-      IR_MatShape(Knowledge.experimental_locMatStructure)
+      IR_MatShape(Knowledge.experimental_locMatShape)
           .addInfo("block",Knowledge.experimental_locMatBlocksize)
-          .addInfo("A",Knowledge.experimental_locMatStructureA)
+          .addInfo("A",Knowledge.experimental_locMatShapeA)
           .addInfo("Ablock",Knowledge.experimental_locMatBlocksizeA)
     }
     else IR_MatShape("filled")
@@ -253,8 +253,8 @@ case class IR_LocalSolve(
       }
     }
       // if matrix has schur structure and blocksize of D block is 1 -> solvable without inverse
-    else if (isSolvableWithoutInverse(msi) && AVals.length - msi.size("block") == 1)
-        IR_Scope(IR_LocalSchurComplGeneralized(AExp, fExp, unknowns, jacobiType, relax, omitConditions, msi))
+    //else if (isSolvableWithoutInverse(msi) && AVals.length - msi.size("block") == 1)
+     //   IR_Scope(IR_LocalSchurComplGeneralized(AExp, fExp, unknowns, jacobiType, relax, omitConditions, msi))
     else {
       // invert matrix with given structure information
       IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax, omitConditions, msi))
