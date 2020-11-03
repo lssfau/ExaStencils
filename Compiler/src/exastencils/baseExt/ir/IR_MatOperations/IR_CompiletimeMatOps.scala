@@ -20,15 +20,18 @@ package exastencils.baseExt.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_AddressOf
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_MatNodeUtils._
+import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateRuntimeInversion
 import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
+import exastencils.solver.ir.IR_MatrixSolveOps
 import exastencils.util.ir._
 
 // simple operations with matrices like addition or multiplication
@@ -41,7 +44,7 @@ object IR_CompiletimeMatOps {
     * @param exp : IR_Expression, matrix to get the element from
     * @param pos : Int*, optional position indices
     * @return element of position pos
-    * */
+    **/
   def getElem(exp : IR_Expression, pos : Int*) = {
     try {
       exp match {
@@ -82,8 +85,8 @@ object IR_CompiletimeMatOps {
     case IR_Subtraction(l : IR_Expression, r : IR_Expression) => evalNumExpr(l) - evalNumExpr(r)
     case IR_Multiplication(facs : ListBuffer[IR_Expression])  => facs.view.map(s => evalNumExpr(s)).product
     case IR_Division(l : IR_Expression, r : IR_Expression)    => evalNumExpr(l) / evalNumExpr(r)
-    case IR_Power(base, exp) => scala.math.pow(evalNumExpr(base),evalNumExpr(exp))
-    case IR_Negative(v) => evalNumExpr(v) * (-1.0)
+    case IR_Power(base, exp)                                  => scala.math.pow(evalNumExpr(base), evalNumExpr(exp))
+    case IR_Negative(v)                                       => evalNumExpr(v) * (-1.0)
     case _                                                    =>
       throw EvaluationException("unknown expression type for evaluation: " + expr.getClass)
   }
@@ -153,7 +156,7 @@ object IR_CompiletimeMatOps {
     *
     * @param in : IR_Expression, matrix to get the size of
     * @return tuple of int: size
-    * */
+    **/
   def getSize(in : IR_Expression) = {
     in match {
       case me : IR_MatrixExpression                                                          => (me.rows, me.columns)
@@ -174,7 +177,7 @@ object IR_CompiletimeMatOps {
     * @param n_rows      : Int, width in y direction
     * @param n_cols      : Int, width in x direction
     * @return slice of from as expression
-    * */
+    **/
   def copySubMatrix(from : IR_Expression, offset_rows : Int, offset_cols : Int, n_rows : Int, n_cols : Int) : IR_MatrixExpression = {
     if (offset_cols < 0 || offset_rows < 0) {
       Logger.error("negative offset")
@@ -190,8 +193,8 @@ object IR_CompiletimeMatOps {
         submatrix.set(i - offset_rows, j - offset_cols, n)
       }
     }
-    for(a <- from.annotations)
-      submatrix.annotate(a._1,a._2)
+    for (a <- from.annotations)
+      submatrix.annotate(a._1, a._2)
     submatrix
   }
 
@@ -202,7 +205,7 @@ object IR_CompiletimeMatOps {
     * @param offset_rows : Int, offset of the slice in y direction
     * @param offset_cols : Int, offset of the slice in x direction
     * @return unit, slice set in target
-    * */
+    **/
   def pasteSubMatrix(source : IR_Expression, target : IR_MatrixExpression, offset_rows : Int, offset_cols : Int) : Unit = {
     if (offset_rows < 0 || offset_cols < 0) {
       Logger.error("negative offset")
@@ -218,8 +221,8 @@ object IR_CompiletimeMatOps {
         target.set(i, j, n)
       }
     }
-    if(source.hasAnnotation("CTPivotElimination")) {
-      if(target.hasAnnotation("CTPivotElimination")) {
+    if (source.hasAnnotation("CTPivotElimination")) {
+      if (target.hasAnnotation("CTPivotElimination")) {
         target.annotate("CTPivotElimination", target.popAnnotationAs[ListBuffer[IR_VariableDeclaration]]("CTPivotElimination")
           ++= source.popAnnotationAs[ListBuffer[IR_VariableDeclaration]]("CTPivotElimination"))
       } else {
@@ -232,7 +235,7 @@ object IR_CompiletimeMatOps {
     *
     * @param m : IR_MatrixExpression, matrix to calculate the determinant of
     * @return determinant
-    * */
+    **/
   def smallMatrixDeterminant(m : IR_MatrixExpression) : IR_Expression = {
     if (m.rows != m.columns) {
       Logger.error("determinant for non-quadratic matrices not implemented")
@@ -298,7 +301,7 @@ object IR_CompiletimeMatOps {
     *
     * @param source : IR_VariableDeclaration, matrix to calculate the transposed
     * @return transposed matrix
-    * */
+    **/
   def transpose(source : IR_MatrixExpression) : IR_MatrixExpression = {
     var out = IR_MatrixExpression(source.datatype.resolveBaseDatatype, source.datatype.sizeN, source.datatype.sizeM)
     for (i <- 0 until source.datatype.sizeM) {
@@ -339,7 +342,7 @@ object IR_CompiletimeMatOps {
     * @param left  : IR_Expression, left matrix operand
     * @param right : IR_Expression, right matrix  operand
     * @return cross product as matrix
-    * */
+    **/
   def crossProduct(left : IR_Expression, right : IR_Expression) : IR_MatrixExpression = {
     var lsize = getSize(left)
     var rsize = getSize(right)
@@ -357,7 +360,7 @@ object IR_CompiletimeMatOps {
     * @param left  : IR_Expression, left matrix operand
     * @param right : IR_Expression, right matrix  operand
     * @return result of multiplication
-    * **/
+    ***/
   def mult(left : IR_MatrixExpression, right : IR_MatrixExpression) = {
     var lsize = getSize(left)
     var rsize = getSize(right)
@@ -380,7 +383,7 @@ object IR_CompiletimeMatOps {
     *
     * @param mult : IR_Multiplication, operands as multiplication
     * @return result of multiplication
-    * **/
+    ***/
   def mult(mult : IR_Multiplication) : IR_MatrixExpression = {
     var result = IR_MatrixExpression(IR_IntegerDatatype, 1, 1)
     var firstMatrix = mult.factors.find(fac => isMatrix(fac)).getOrElse(Logger.error("no matrix in factors!"))
@@ -416,7 +419,7 @@ object IR_CompiletimeMatOps {
     * @param left  : IR_Expression, left matrix operand
     * @param right : IR_Expression, right matrix  operand
     * @return result of addition
-    * **/
+    ***/
   def add(left : IR_MatrixExpression, right : IR_MatrixExpression) = {
     var lsize = getSize(left)
     var rsize = getSize(right)
@@ -435,7 +438,7 @@ object IR_CompiletimeMatOps {
     *
     * @param addition : IR_Expression,  matrix operands can be IR_ElementwiseAddition or IR_Addition
     * @return result of addition
-    * **/
+    ***/
   def add(addition : IR_Expression) : IR_MatrixExpression = {
     addition match {
       case a : IR_Addition                  =>
@@ -471,7 +474,7 @@ object IR_CompiletimeMatOps {
     * @param left  : IR_Expression, left matrix operand
     * @param right : IR_Expression, right matrix  operand
     * @return result of subtraction
-    * **/
+    ***/
   def sub(left : IR_MatrixExpression, right : IR_MatrixExpression) : IR_MatrixExpression = {
     var lsize = getSize(left)
     var rsize = getSize(right)
@@ -490,7 +493,7 @@ object IR_CompiletimeMatOps {
     *
     * @param subtraction : IR_Expression,  matrix operands can be IR_ElementwiseAddition or IR_Addition
     * @return result of subtraction
-    * **/
+    ***/
   def sub(subtraction : IR_Expression) : IR_MatrixExpression = {
     subtraction match {
       case sub : IR_Subtraction             =>
@@ -527,7 +530,7 @@ object IR_CompiletimeMatOps {
     * @param left  : IR_Expression, left operand can be scalar or matrix
     * @param right : IR_Expression, right operand can be scalar or matrix
     * @return result of multiplication
-    * **/
+    ***/
   def elementwiseMultiplication(left : IR_Expression, right : IR_Expression) : IR_MatrixExpression = {
     (left, right) match {
       // scalar x matrix, matrix x scalar, matrix x matrix
@@ -570,7 +573,7 @@ object IR_CompiletimeMatOps {
     * @param left  : IR_Expression, left operand can be scalar or matrix
     * @param right : IR_Expression, right operand can be scalar or matrix
     * @return result of division
-    * **/
+    ***/
   def elementwiseDivision(left : IR_Expression, right : IR_Expression) : IR_MatrixExpression = {
     (left, right) match {
       // scalar x matrix, matrix x scalar, matrix x matrix
@@ -716,7 +719,7 @@ object IR_CompiletimeMatOps {
       case "diagonal"
                 => {
 
-        if(Knowledge.experimental_matrixDebugConfig) Logger.warn("using diagonal for inversion")
+        if (Knowledge.experimental_matrixDebugConfig) Logger.warn("using diagonal for inversion")
         val tmp = Duplicate(that)
         for (row <- 0 until that.rows) {
           tmp.set(row, row, IR_Division(IR_RealConstant(1.0), that.get(row, row)))
@@ -725,7 +728,7 @@ object IR_CompiletimeMatOps {
       }
       case "blockdiagonal"
                 => {
-        if(Knowledge.experimental_matrixDebugConfig) Logger.warn("using blockdiagonal for inversion")
+        if (Knowledge.experimental_matrixDebugConfig) Logger.warn("using blockdiagonal for inversion")
         if (that.rows < 4)
           Logger.error("Blockdiagonal inversion not applicable for matrices < 4, use diagonal")
         var out = Duplicate(that)
@@ -770,7 +773,7 @@ object IR_CompiletimeMatOps {
       }
       case "schur"
                 => {
-        if(Knowledge.experimental_matrixDebugConfig) Logger.warn("using schur for inversion")
+        if (Knowledge.experimental_matrixDebugConfig) Logger.warn("using schur for inversion")
         if (that.rows < 3)
           Logger.error("Schur inversion not applicable for matrices < 3")
         //var out = IR_MatrixExpression(that.datatype.datatype, that.rows, that.columns)
@@ -805,12 +808,12 @@ object IR_CompiletimeMatOps {
       }
       case "cofactors"
                 => {
-        if(Knowledge.experimental_matrixDebugConfig) Logger.warn("using CF for inversion")
+        if (Knowledge.experimental_matrixDebugConfig) Logger.warn("using CF for inversion")
         cofactorInverse(that)
       }
       case "gaussJordan"
                 => {
-        if(Knowledge.experimental_matrixDebugConfig) Logger.warn("using GS for inversion")
+        if (Knowledge.experimental_matrixDebugConfig) Logger.warn("using GS for inversion")
         val out = gaussJordanInverse(that)
 
         if (Knowledge.experimental_matrixDebugConfig)
@@ -819,7 +822,7 @@ object IR_CompiletimeMatOps {
         out
       }
       case "LU" =>
-        if(Knowledge.experimental_matrixDebugConfig) Logger.warn("using LU for inversion")
+        if (Knowledge.experimental_matrixDebugConfig) Logger.warn("using LU for inversion")
         val LUP = LUDecomp(that)
 
         if (Knowledge.experimental_matrixDebugConfig)
@@ -872,10 +875,10 @@ object IR_CompiletimeMatOps {
             IR_MatrixExpression(that.innerDatatype, 3, 3, Array(Duplicate(A) / Duplicate(det), Duplicate(D) / Duplicate(det), Duplicate(G) / Duplicate(det), Duplicate(B) / Duplicate(det), Duplicate(E) / Duplicate(det), Duplicate(H) / Duplicate(det), Duplicate(C) / Duplicate(det), Duplicate(F) / Duplicate(det), Duplicate(I) / Duplicate(det)), None)
           case _ =>
             if (!Knowledge.experimental_CTPivotElimination && !isConstMatrix(that)) {
-             if(Knowledge.experimental_matrixDebugConfig) Logger.warn("using cofactors for inversion")
+              if (Knowledge.experimental_matrixDebugConfig) Logger.warn("using cofactors for inversion")
               cofactorInverse(that)
             } else {
-              if(Knowledge.experimental_matrixDebugConfig) Logger.warn("using LU for inversion")
+              if (Knowledge.experimental_matrixDebugConfig) Logger.warn("using LU for inversion")
               val LUP = LUDecomp(that)
 
               if (Knowledge.experimental_matrixDebugConfig)
@@ -886,8 +889,8 @@ object IR_CompiletimeMatOps {
               if (Knowledge.experimental_matrixDebugConfig)
                 exastencils.core.NodeCounter.countSubTree(out, "LUtmp_2", None, None)
 
-             // for(a <- LUP._1.annotations)
-             //   out.annotate(a._1, a._2)
+              // for(a <- LUP._1.annotations)
+              //   out.annotate(a._1, a._2)
 
               out
             }
@@ -931,7 +934,7 @@ object IR_CompiletimeMatOps {
     *
     * @param matrix : IR_MatrixExpression, matrix to invert
     * @return inverse
-    * */
+    **/
   def gaussJordanInverse(matrix : IR_MatrixExpression) : IR_MatrixExpression = {
     //var matrix = Duplicate(that)
     val other = IR_MatrixExpression(matrix.datatype, matrix.rows, matrix.columns)
@@ -1188,28 +1191,7 @@ object IR_CompiletimeMatOps {
     LU_inv
   }
 
-  def forwardBackwardSub(LU : IR_MatrixExpression, b : IR_MatrixExpression, P : Array[Int]) : IR_MatrixExpression = {
-    // solve
-    val N = LU.columns
-    if (N != LU.rows) Logger.error("can only decompose quadratic matrices with LU")
-    var u_loc = IR_MatrixExpression(LU.innerDatatype, LU.columns, 1)
-    for (i <- 0 until N) {
-      u_loc.set(i, 0, Duplicate(b.get(P(i), 0)))
-      for (k <- 0 until i) {
-        u_loc.set(i, 0, Duplicate(u_loc.get(i, 0)) - Duplicate(LU.get(i, k)) * Duplicate(u_loc.get(k, 0)))
-      }
-    }
-    for (i <- N - 1 to 0 by -1) {
-      for (k <- i + 1 until N) {
-        u_loc.set(i, 0, Duplicate(u_loc.get(i, 0)) - Duplicate(LU.get(i, k)) * Duplicate(u_loc.get(k, 0)))
-      }
-      u_loc.set(i, 0, Duplicate(u_loc.get(i, 0)) / Duplicate(LU.get(i, i)))
-    }
-    if (Knowledge.experimental_checkCTPivots) {
-      u_loc.annotate("checkCTInversionPivots", LU.popAnnotationAs[IR_MatrixExpression]("checkCTInversionPivots"))
-    }
-    u_loc
-  }
+
 
   /** Method: calculates the inverse per schur complement and with saving the helper matrices in seperate variables
     *
@@ -1221,7 +1203,7 @@ object IR_CompiletimeMatOps {
     * @param out  : IR_MatrixExpression, result of inversion
     * @return result of inversion
     *
-    * */
+    **/
   def schurWithHelpers(that : IR_MatrixExpression, dt : IR_Datatype, m : Int, n : Int, msi : IR_MatShape, out : IR_MatrixExpression) : IR_MatrixExpression = {
 
     // helper matrix declarations, to be added to statement later
@@ -1326,4 +1308,85 @@ object IR_CompiletimeMatOps {
     out
   }
 
+
+
+  def genColPivoting(m : IR_VariableAccess, curColumn : Int, N : Int) : ListBuffer[IR_Statement] = {
+    var stmts = ListBuffer[IR_Statement]()
+
+    val k = IR_VariableAccess("k", IR_IntegerDatatype)
+    val maxColumn = IR_VariableAccess("maxCol", IR_IntegerDatatype)
+    val absA = IR_VariableAccess("absA", IR_RealDatatype)
+    val maxA = IR_VariableAccess("maxA", IR_RealDatatype)
+    stmts += IR_Assignment(maxColumn, curColumn)
+    stmts += IR_Assignment(maxA, IR_HighDimAccess(m, IR_ConstIndex(curColumn, curColumn)))
+    stmts += IR_ForLoop(IR_VariableDeclaration(k, curColumn), IR_Lower(k, N), IR_PreIncrement(k), ListBuffer[IR_Statement](
+      IR_Assignment(absA, IR_FunctionCall(IR_ExternalFunctionReference.fabs, ListBuffer[IR_Expression](IR_HighDimAccess(m, IR_ExpressionIndex(k, curColumn))))),
+      IR_IfCondition(IR_Greater(absA, maxA), ListBuffer[IR_Statement](IR_Assignment(maxA, absA), IR_Assignment(maxColumn, k)), ListBuffer[IR_Statement]())
+    ))
+    val pointerAdd = IR_Addition(IR_AddressOf(IR_HighDimAccess(m, IR_ExpressionIndex(curColumn, 0))) + N)
+    pointerAdd.annotate(IR_GenerateRuntimeInversion.pointerArithmetic)
+    stmts += IR_IfCondition(IR_Neq(curColumn, maxColumn), ListBuffer[IR_Statement](
+      IR_FunctionCall(IR_ExternalFunctionReference("std::swap_ranges", IR_UnitDatatype), ListBuffer[IR_Expression](
+        IR_AddressOf(IR_HighDimAccess(m, IR_ExpressionIndex(curColumn, 0))),
+        pointerAdd,
+        IR_AddressOf(IR_HighDimAccess(m, IR_ExpressionIndex(maxColumn, 0)))
+      )),
+    ))
+    stmts
+  }
+
+  def mirrorLU(A : IR_MatrixExpression) : ListBuffer[IR_Statement] = {
+    val N = A.rows
+
+    var copies = ListBuffer[IR_MatrixExpression]()
+    copies += Duplicate(A)
+    for (i <- 1 to N) copies += IR_MatrixSolveOps.unit(N)
+    var copyAccs = ListBuffer[IR_VariableAccess]()
+    for (i <- 0 until N - 1) {
+      val acc = IR_VariableAccess("copies_" + i, A.datatype)
+      copyAccs += acc
+    }
+
+    // fill not iterated areas with entries from last copy
+    for (c <- 1 until N) {
+      for (i <- 0 until c) {
+        copies(c).set(i, i, IR_HighDimAccess(copyAccs(c - 1), IR_ExpressionIndex(i, i)))
+        for (j <- i + 1 until N) {
+          copies(c).set(i, j, IR_HighDimAccess(copyAccs(c - 1), IR_ExpressionIndex(i, j)))
+        }
+      }
+      for (i <- 0 until c - 1) {
+        for (j <- i + 1 until N) {
+          copies(c).set(i, j, IR_HighDimAccess(copyAccs(c - 1), IR_ExpressionIndex(i, j)))
+        }
+      }
+    }
+
+    var copies_idx = 1
+    for (i <- 0 until N) {
+      for (j <- i + 1 until N) {
+        //copies(copies_idx).set(j, i,  copies(copies_idx - 1).get(j, i) / copies(copies_idx - 1).get(i, i))
+        copies(copies_idx).set(j, i, IR_HighDimAccess(copyAccs(copies_idx - 1), IR_ExpressionIndex(j, i)) / IR_HighDimAccess(copyAccs(copies_idx - 1), IR_ExpressionIndex(i, i)))
+        for (k <- i + 1 until N) {
+          //         copies(copies_idx).set(j, k, copies(copies_idx - 1).get(j, k) - copies(copies_idx).get(j, i) * copies(copies_idx - 1).get(i, k))
+          copies(copies_idx).set(j, k, IR_HighDimAccess(copyAccs(copies_idx - 1), IR_ExpressionIndex(j, k)) - copies(copies_idx).get(j, i) * IR_HighDimAccess(copyAccs(copies_idx - 1), IR_ExpressionIndex(i, k)))
+        }
+      }
+      copies_idx += 1
+    }
+
+    var stmts = ListBuffer[IR_Statement]()
+    stmts += IR_VariableDeclaration(IR_RealDatatype, "absA")
+    stmts += IR_VariableDeclaration(IR_RealDatatype, "maxA")
+    stmts += IR_VariableDeclaration(IR_IntegerDatatype, "maxCol")
+    for (i <- 0 until N) {
+      val acc = IR_VariableAccess("copies_" + i, A.datatype)
+      val decl = IR_VariableDeclaration(Duplicate(acc), Duplicate(copies(i)).asInstanceOf[IR_Expression]).asInstanceOf[IR_Statement]
+      stmts += decl
+
+      stmts ++= genColPivoting(Duplicate(acc), i, N)
+    }
+    for(i <- 0 until N) NodeCounter.countSubTree( copies(i),"mirror_" + i, None, None)
+    stmts
+  }
 }
