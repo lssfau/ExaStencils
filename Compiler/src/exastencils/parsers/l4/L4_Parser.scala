@@ -445,7 +445,8 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
       ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None, None) })
     ) // component acccess mit spitzen klammern
-
+/*
+  //FIXME index prolly collides with stencils entry -> only parser matIndex within genericAccess, not alone
    lazy val matIndex = (index ||| rangeIndex1d) ~ (index ||| rangeIndex1d).? ^^ {
      case matIdxY ~ matIdxX =>
      matIdxX.isDefined match {
@@ -453,7 +454,11 @@ object L4_Parser extends ExaParser with PackratParsers {
        case true   => Array[L4_Index](matIdxY, matIdxX.get)
      }
    }
-
+  */
+  lazy val matIndex = (index ||| rangeIndex1d) ~ (index ||| rangeIndex1d) ^^ {
+    case matIdxY ~ matIdxX =>
+         Array[L4_Index](matIdxY, matIdxX)
+  }
   /*
   lazy val genericAccess = (
     locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ ("[" ~> integerLit <~ "]").?
@@ -495,7 +500,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| functionCall
       ||| locationize("-" ~> genericAccess ^^ { L4_Negative(_) })
       ||| genericAccess
-     // ||| matAccess
+
     )
 
   lazy val numLit = locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) L4_IntegerConstant((s.getOrElse("") + n).toInt) else L4_RealConstant((s.getOrElse("") + n).toDouble) })
