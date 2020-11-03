@@ -46,6 +46,9 @@ case class IR_GetSlice(
   // cant define datatype if length of slice is runtime dependent
   override def prettyprint(out : PpStream) = Logger.error("internal node no resolved!")
   override def name : String = "getSlice"
+  override def isExtractable() : Boolean = {
+    true
+  }
 }
 
 // slice node for compiletime execution

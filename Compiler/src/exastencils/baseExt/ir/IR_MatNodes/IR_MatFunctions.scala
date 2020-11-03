@@ -37,6 +37,7 @@ case class IR_Transpose(var arg : IR_Expression)
     IR_CompiletimeMatOps.transpose(arg.asInstanceOf[IR_MatrixExpression])
   }
   override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(arg)
+  override def isExtractable() : Boolean = true
 }
 
 // dot product node for compiletime execution
@@ -58,6 +59,7 @@ case class IR_DotProduct(
   }
   //  override def isResolvable() : Boolean = !this.hasAnnotation(IR_ResolveMOps.potentialInline) && arguments.forall(arg => IR_MatrixNodeUtilities.isEvaluatable(arg))
   override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(left) && IR_MatNodeUtils.isEvaluatable(right)
+  override def isExtractable() : Boolean = true
 }
 
 // cross product node for compiletime execution
@@ -75,6 +77,7 @@ case class IR_CrossProduct(
     IR_CompiletimeMatOps.crossProduct(IR_MatNodeUtils.exprToMatExpr(left), IR_MatNodeUtils.exprToMatExpr(right))
   }
   override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(left) && IR_MatNodeUtils.isEvaluatable(right)
+  override def isExtractable() : Boolean = true
 }
 
 // trace node for compiletime execution
@@ -92,6 +95,7 @@ case class IR_Trace(
     IR_CompiletimeMatOps.trace(IR_MatNodeUtils.exprToMatExpr(arg))
   }
   override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(arg)
+  override def isExtractable() : Boolean = true
 }
 
 // set element node for compiletime execution
@@ -125,6 +129,7 @@ case class IR_GetElement(
     IR_HighDimAccess(arguments(0), IR_ExpressionIndex(arguments(1), arguments(2)))
   }
   override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(arguments(0))
+  override def isExtractable() : Boolean = false
 }
 
 // set slice node for compiletime execution
@@ -188,6 +193,7 @@ case class IR_ToMatrix(
     }
   }
   override def isResolvable() : Boolean = IR_MatNodeUtils.isEvaluatable(arg)
+  override def isExtractable() : Boolean = true
 }
 
 /*

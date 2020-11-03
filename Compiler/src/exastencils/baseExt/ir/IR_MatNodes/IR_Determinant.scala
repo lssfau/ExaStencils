@@ -50,6 +50,7 @@ case class IR_Determinant(
   override def prettyprint(out : PpStream) = Logger.error("internal node no resolved!")
 
   override def name : String = "determinant"
+  override def isExtractable() : Boolean = true
 }
 
 

@@ -34,6 +34,7 @@ import exastencils.datastructures.Transformation
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.globals.ir.IR_GlobalCollection
+import exastencils.solver.ir.IR_MatrixSolveOps
 import exastencils.util.ir.IR_Print
 
 /** Strategy: preparatory transformations to resolve matrices */
@@ -199,7 +200,7 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
 
   object IR_ExtractFunctionCalls extends QuietDefaultStrategy("extract") {
     this += new Transformation("extract", {
-      case e : IR_ExtractableMNode =>
+      case e : IR_ExtractableMNode if e.isExtractable() =>
         val extAcc = IR_VariableAccess("fct_" + e.name + "_" + extDeclCounter, e.datatype)
         val ptrAcc = IR_VariableAccess("fct_" + e.name + "_" + extDeclCounter, IR_PointerDatatype(IR_DoubleDatatype))
         extDeclCounter += 1
@@ -340,7 +341,16 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
     case call @ IR_FunctionCall(_, args) if (call.name == "classifyMatShape")                 =>
       val shape = IR_ClassifyMatShape(IR_MatNodeUtils.exprToMatExpr(args(0)))
       IR_Print(IR_VariableAccess("std::cout", IR_StringDatatype), shape.toExprList())
-
+    case call @ IR_FunctionCall(_, args) if (call.name == "qrDecomp")                 =>
+      val QR = IR_MatrixSolveOps.QRDecomp(IR_MatNodeUtils.exprToMatExpr(args(0)))
+      QR._2
+    case call @ IR_FunctionCall(_, args) if (call.name == "luDecomp")                 =>
+      val LU = IR_CompiletimeMatOps.LUDecomp(IR_MatNodeUtils.exprToMatExpr(args(0)))
+      LU._1
+     case IR_ExpressionStatement(call @ IR_FunctionCall(_, args)) if (call.name == "mirrorLU")                 =>
+      val input = IR_MatNodeUtils.exprToMatExpr(args(0))
+      val LU = IR_CompiletimeMatOps.mirrorLU(input)
+      LU
   })
 
 }
