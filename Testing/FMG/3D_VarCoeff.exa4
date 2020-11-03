@@ -214,49 +214,48 @@ Function InitLaplace@all {
 		Laplace@current:[0, 0, -1] = ( ( -1.0 * getCoefficient ( vf_nodePosition_x@current, vf_nodePosition_y@current, ( vf_nodePosition_z@current - ( 0.5 * vf_gridWidth_z@current ) ) ) ) / ( vf_gridWidth_z@current * vf_gridWidth_z@current ) )
 	}
 }
-
 Function SetFuncDir@all {
-	loop over Solution[0]@current only dup [-1, 0, 0] on boundary {
-		Solution[0]@current = ( 1.0 - exp ( ( ( -1.0 * kappa ) * ( ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) * ( vf_nodePosition_z@current - ( vf_nodePosition_z@current ** 2 ) ) ) ) ) )
+	loop over Solution<0>@current only dup [-1, 0, 0] on boundary {
+		Solution<0>@current = ( ( sin ( ( PI * vf_nodePosition_x@current ) ) * sin ( ( PI * vf_nodePosition_y@current ) ) ) * sinh ( ( ( sqrt ( 2.0 ) * PI ) * vf_nodePosition_z@current ) ) )
 	}
-	loop over Solution[1]@current only dup [-1, 0, 0] on boundary {
-		Solution[1]@current = ( 1.0 - exp ( ( ( -1.0 * kappa ) * ( ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) * ( vf_nodePosition_z@current - ( vf_nodePosition_z@current ** 2 ) ) ) ) ) )
+	loop over Solution<1>@current only dup [-1, 0, 0] on boundary {
+		Solution<1>@current = ( ( sin ( ( PI * vf_nodePosition_x@current ) ) * sin ( ( PI * vf_nodePosition_y@current ) ) ) * sinh ( ( ( sqrt ( 2.0 ) * PI ) * vf_nodePosition_z@current ) ) )
 	}
-	loop over Solution[0]@current only dup [1, 0, 0] on boundary {
-		Solution[0]@current = ( 1.0 - exp ( ( ( -1.0 * kappa ) * ( ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) * ( vf_nodePosition_z@current - ( vf_nodePosition_z@current ** 2 ) ) ) ) ) )
+	loop over Solution<0>@current only dup [1, 0, 0] on boundary {
+		Solution<0>@current = ( ( sin ( ( PI * vf_nodePosition_x@current ) ) * sin ( ( PI * vf_nodePosition_y@current ) ) ) * sinh ( ( ( sqrt ( 2.0 ) * PI ) * vf_nodePosition_z@current ) ) )
 	}
-	loop over Solution[1]@current only dup [1, 0, 0] on boundary {
-		Solution[1]@current = ( 1.0 - exp ( ( ( -1.0 * kappa ) * ( ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) * ( vf_nodePosition_z@current - ( vf_nodePosition_z@current ** 2 ) ) ) ) ) )
+	loop over Solution<1>@current only dup [1, 0, 0] on boundary {
+		Solution<1>@current = ( ( sin ( ( PI * vf_nodePosition_x@current ) ) * sin ( ( PI * vf_nodePosition_y@current ) ) ) * sinh ( ( ( sqrt ( 2.0 ) * PI ) * vf_nodePosition_z@current ) ) )
 	}
-	loop over Solution[0]@current only dup [0, -1, 0] on boundary {
-		Solution[0]@current = ( 1.0 - exp ( ( ( -1.0 * kappa ) * ( ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) * ( vf_nodePosition_z@current - ( vf_nodePosition_z@current ** 2 ) ) ) ) ) )
+	loop over Solution<0>@current only dup [0, -1, 0] on boundary {
+		Solution<0>@current = ( ( sin ( ( PI * vf_nodePosition_x@current ) ) * sin ( ( PI * vf_nodePosition_y@current ) ) ) * sinh ( ( ( sqrt ( 2.0 ) * PI ) * vf_nodePosition_z@current ) ) )
 	}
-	loop over Solution[1]@current only dup [0, -1, 0] on boundary {
-		Solution[1]@current = ( 1.0 - exp ( ( ( -1.0 * kappa ) * ( ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) * ( vf_nodePosition_z@current - ( vf_nodePosition_z@current ** 2 ) ) ) ) ) )
+	loop over Solution<1>@current only dup [0, -1, 0] on boundary {
+		Solution<1>@current = ( ( sin ( ( PI * vf_nodePosition_x@current ) ) * sin ( ( PI * vf_nodePosition_y@current ) ) ) * sinh ( ( ( sqrt ( 2.0 ) * PI ) * vf_nodePosition_z@current ) ) )
 	}
-	loop over Solution[0]@current only dup [0, 1, 0] on boundary {
-		Solution[0]@current = ( 1.0 - exp ( ( ( -1.0 * kappa ) * ( ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) * ( vf_nodePosition_z@current - ( vf_nodePosition_z@current ** 2 ) ) ) ) ) )
+	loop over Solution<0>@current only dup [0, 1, 0] on boundary {
+		Solution<0>@current = ( ( sin ( ( PI * vf_nodePosition_x@current ) ) * sin ( ( PI * vf_nodePosition_y@current ) ) ) * sinh ( ( ( sqrt ( 2.0 ) * PI ) * vf_nodePosition_z@current ) ) )
 	}
-	loop over Solution[1]@current only dup [0, 1, 0] on boundary {
-		Solution[1]@current = ( 1.0 - exp ( ( ( -1.0 * kappa ) * ( ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) * ( vf_nodePosition_z@current - ( vf_nodePosition_z@current ** 2 ) ) ) ) ) )
+	loop over Solution<1>@current only dup [0, 1, 0] on boundary {
+		Solution<1>@current = ( ( sin ( ( PI * vf_nodePosition_x@current ) ) * sin ( ( PI * vf_nodePosition_y@current ) ) ) * sinh ( ( ( sqrt ( 2.0 ) * PI ) * vf_nodePosition_z@current ) ) )
 	}
-	loop over Solution[0]@current only dup [0, 0, -1] on boundary {
-		Solution[0]@current = ( 1.0 - exp ( ( ( -1.0 * kappa ) * ( ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) * ( vf_nodePosition_z@current - ( vf_nodePosition_z@current ** 2 ) ) ) ) ) )
+	loop over Solution<0>@current only dup [0, 0, -1] on boundary {
+		Solution<0>@current = ( ( sin ( ( PI * vf_nodePosition_x@current ) ) * sin ( ( PI * vf_nodePosition_y@current ) ) ) * sinh ( ( ( sqrt ( 2.0 ) * PI ) * vf_nodePosition_z@current ) ) )
 	}
-	loop over Solution[1]@current only dup [0, 0, -1] on boundary {
-		Solution[1]@current = ( 1.0 - exp ( ( ( -1.0 * kappa ) * ( ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) * ( vf_nodePosition_z@current - ( vf_nodePosition_z@current ** 2 ) ) ) ) ) )
+	loop over Solution<1>@current only dup [0, 0, -1] on boundary {
+		Solution<1>@current = ( ( sin ( ( PI * vf_nodePosition_x@current ) ) * sin ( ( PI * vf_nodePosition_y@current ) ) ) * sinh ( ( ( sqrt ( 2.0 ) * PI ) * vf_nodePosition_z@current ) ) )
 	}
-	loop over Solution[0]@current only dup [0, 0, 1] on boundary {
-		Solution[0]@current = ( 1.0 - exp ( ( ( -1.0 * kappa ) * ( ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) * ( vf_nodePosition_z@current - ( vf_nodePosition_z@current ** 2 ) ) ) ) ) )
+	loop over Solution<0>@current only dup [0, 0, 1] on boundary {
+		Solution<0>@current = ( ( sin ( ( PI * vf_nodePosition_x@current ) ) * sin ( ( PI * vf_nodePosition_y@current ) ) ) * sinh ( ( ( sqrt ( 2.0 ) * PI ) * vf_nodePosition_z@current ) ) )
 	}
-	loop over Solution[1]@current only dup [0, 0, 1] on boundary {
-		Solution[1]@current = ( 1.0 - exp ( ( ( -1.0 * kappa ) * ( ( ( vf_nodePosition_x@current - ( vf_nodePosition_x@current ** 2 ) ) * ( vf_nodePosition_y@current - ( vf_nodePosition_y@current ** 2 ) ) ) * ( vf_nodePosition_z@current - ( vf_nodePosition_z@current ** 2 ) ) ) ) ) )
+	loop over Solution<1>@current only dup [0, 0, 1] on boundary {
+		Solution<1>@current = ( ( sin ( ( PI * vf_nodePosition_x@current ) ) * sin ( ( PI * vf_nodePosition_y@current ) ) ) * sinh ( ( ( sqrt ( 2.0 ) * PI ) * vf_nodePosition_z@current ) ) )
 	}
 }
 
 Function ResetBC@all {
-	apply bc to Solution[0]@current
-	apply bc to Solution[1]@current
+	apply bc to Solution<0>@current
+	apply bc to Solution<1>@current
 }
 
 Function FMG@(all but (finest)) {
