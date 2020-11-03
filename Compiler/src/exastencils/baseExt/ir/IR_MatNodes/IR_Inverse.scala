@@ -54,7 +54,12 @@ object IR_IntermediateInv {
       msi = mat match {
         case _ @ IR_VariableAccess(name, IR_MatrixDatatype(_, _, _)) =>
           var initVal = IR_PreItMOps.variableCollector.getConstInitVal(name)
-          IR_ClassifyMatShape(initVal.getOrElse(Logger.error("could not retrieve const init value of matrix to classify")))
+          if(!initVal.isDefined) Logger.error("could not retrieve const init value of matrix to classify")
+          initVal.get match {
+            case me : IR_MatrixExpression => IR_ClassifyMatShape(me)
+            case va : IR_VariableAccess => IR_ClassifyMatShape(IR_MatNodeUtils.accessToMatExpr(va))
+            case _ => Logger.error(s"can not classify initial value of type: ${initVal.get}")
+          }
 
         case x : IR_MatrixExpression =>
           IR_ClassifyMatShape(x)
@@ -76,6 +81,7 @@ case class IR_IntermediateInv(
   override def prettyprint(out : PpStream) : Unit = Logger.error("internal node no resolved!")
   //override def prettyprint(out : PpStream) : Unit = out << "inverseMM(" << arg << ")"
   override def name : String = "inverse"
+  override def isExtractable() : Boolean = true
 }
 
 // inverse node for compiletime execution

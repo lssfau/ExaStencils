@@ -44,8 +44,8 @@ case class L4_UnresolvedAccess(
 
   def prettyprint(out : PpStream) = {
     out << name
-  //  if (slot.isDefined) out << '<' << slot.get << '>'
-    if (slot.isDefined) out << '[' << slot.get << ']'
+    if (slot.isDefined) out << '<' << slot.get << '>'
+  //  if (slot.isDefined) out << '[' << slot.get << ']'
     if (level.isDefined) out << '@' << level.get
     if (offset.isDefined) out << '@' << offset.get
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'

@@ -87,5 +87,14 @@ case class IR_MatShape(
     l
 
   }
+
+  def toClassify() : Boolean = {
+    if(!infos.isDefined) false
+    else {
+      val detShape = infos.get.find(s => s._1 == "detShape")
+      if(detShape == "compiletime") true
+      else false
+    }
+  }
 }
 
