@@ -116,11 +116,11 @@ Function VCycle@((coarsest + 1) to finest) {
 Function Smoother@((coarsest + 1) to finest) {
 	communicate Solution@current where ( 1 == ( ( ( ( 64 + i0 ) + i1 ) + i2 ) % 2 ) )
 	loop over Solution@current where ( 0 == ( ( ( i0 + i1 ) + i2 ) % 2 ) ) {
-		Solution[0]@current = ( Solution[0]@current + ( ( ( 1.0 / diag ( Laplace@current ) ) * 1.0 ) * ( RHS@current - ( Laplace@current * Solution[0]@current ) ) ) )
+		Solution<0>@current = ( Solution<0>@current + ( ( ( 1.0 / diag ( Laplace@current ) ) * 1.0 ) * ( RHS@current - ( Laplace@current * Solution<0>@current ) ) ) )
 	}
 	communicate Solution@current where ( 0 == ( ( ( ( 64 + i0 ) + i1 ) + i2 ) % 2 ) )
 	loop over Solution@current where ( 1 == ( ( ( i0 + i1 ) + i2 ) % 2 ) ) {
-		Solution[0]@current = ( Solution[0]@current + ( ( ( 1.0 / diag ( Laplace@current ) ) * 1.0 ) * ( RHS@current - ( Laplace@current * Solution[0]@current ) ) ) )
+		Solution<0>@current = ( Solution<0>@current + ( ( ( 1.0 / diag ( Laplace@current ) ) * 1.0 ) * ( RHS@current - ( Laplace@current * Solution<0>@current ) ) ) )
 	}
 }
 

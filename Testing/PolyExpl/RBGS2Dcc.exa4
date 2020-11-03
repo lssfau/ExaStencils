@@ -24,10 +24,10 @@ Function Smoother() : Unit {
     loop over fragments {
         repeat 5 times with contraction [1, 1 ] {
             loop over Solution@finest where 0 == ((i0 + i1 ) % 2) {
-                Solution[0]@finest = Solution[0]@finest + ((0.8 / diag(Laplace@finest)) * (RHS@finest - Laplace@finest * Solution[0]@finest))
+                Solution<0>@finest = Solution<0>@finest + ((0.8 / diag(Laplace@finest)) * (RHS@finest - Laplace@finest * Solution<0>@finest))
             }
             loop over Solution@finest where 1 == ((i0 + i1 ) % 2) {
-                Solution[0]@finest = Solution[0]@finest + ((0.8 / diag(Laplace@finest)) * (RHS@finest - Laplace@finest * Solution[0]@finest))
+                Solution<0>@finest = Solution<0>@finest + ((0.8 / diag(Laplace@finest)) * (RHS@finest - Laplace@finest * Solution<0>@finest))
             }
         }
     }
