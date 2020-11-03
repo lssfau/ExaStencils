@@ -35,7 +35,20 @@ import exastencils.optimization.ir.IR_SimplifyExpression
 // methods to determine whether a matrix is a diagonal-, blockdiagonal-, schurmatrix at compiletime
 //TODO matrices have to be filled with constants
 object IR_ClassifyMatShape {
-  def apply(mat : IR_Expression) = {
+  def apply(matExpr : IR_MatrixExpression) = {
+    var mat = ListBuffer[ListBuffer[IR_Addition]]()
+    for(i <- 0 until matExpr.rows) {
+      mat += ListBuffer[IR_Addition]()
+      for(j <- 0 until matExpr.columns) {
+        mat(i) += IR_Addition()
+        matExpr.get(i,j) match {
+          case IR_IntegerConstant(0) =>
+          case IR_RealConstant(0) =>
+          case IR_DoubleConstant(0) =>
+          case other => mat(i)(j) += other
+        }
+      }
+    }
     isOfShape(mat)
   }
   def apply(mat : ListBuffer[ListBuffer[IR_Addition]]) = {
@@ -58,6 +71,7 @@ object IR_ClassifyMatShape {
   }
 
   // determine structure of 'matrix' (which must have compiletime evaluatable entries) and return it as a String + more specific structure information like blocksizes in case of Schur or Blockdiagonal matrices
+ /*
   def isOfShape(matrix : IR_Expression) : IR_MatShape = {
     var blocksize_A = 0
     var blocksize_D = 0
@@ -151,13 +165,18 @@ object IR_ClassifyMatShape {
     }
 
   }
-
+*/
   // determine structure of 'matrix' (which must have compiletime evaluatable entries) and return it as a String + more specific structure information like blocksizes in case of Schur or Blockdiagonal matrices
   def isOfShape(mat : ListBuffer[ListBuffer[IR_Addition]]) : IR_MatShape = {
+    isSchurOrBlockdiag(mat)
+  }
+
+  def isSchurOrBlockdiag(mat : ListBuffer[ListBuffer[IR_Addition]]) : IR_MatShape = {
     if (mat.length == 1 || mat(0).length == 1) {
       return baseExt.ir.IR_MatShape("filled")
     }
-    var blocksize_A = 1
+
+  var blocksize_A = 1
     var blocksize_D = 0
     var size = mat.length
     var cont = true
