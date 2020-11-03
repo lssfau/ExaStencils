@@ -14,7 +14,7 @@ Globals {
 
 
 Function InitTestcase@finest {
-  Val testcase : Int = 0
+  Val testcase : Int = 3
 
   if ( 0 == testcase ) {
     /// test case 0 - flat floor, no initial movement

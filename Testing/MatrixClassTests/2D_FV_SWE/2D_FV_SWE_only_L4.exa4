@@ -181,7 +181,7 @@ Function applyBC_hVec@all {
 
 Function Update@all {
 	communicate hVec
-	Val version : Integer = 1
+	Val version : Integer = 2
 	Expr dx = vf_gridWidth_x
 	Expr dy = vf_gridWidth_y
 	if ( 1 == version ) {
@@ -203,12 +203,13 @@ Function Update@all {
       			Expr hc  = Centering * hVec[0]
       			Expr huc = Centering * hVec[1]
       			Expr hvc = Centering * hVec[2]
-
+/*
       			solve locally {
         			hVec<next>[0]  => dx * dy * ( hVec<next>[0]  - hc  ) + dt * dy * 0.5 * ( F0@east - F0@west ) + dt * dx * 0.5 * ( G0@north - G0@south ) == S0
         			hVec<next>[1] => dx * dy * ( hVec<next>[1] - huc ) + dt * dy * 0.5 * ( F1@east - F1@west ) + dt * dx * 0.5 * ( G1@north - G1@south ) == dt * dy * 0.5 * ( S1@west  - S1@east  )
         			hVec<next>[2] => dx * dy * ( hVec<next>[2] - hvc ) + dt * dy * 0.5 * ( F2@east - F2@west ) + dt * dx * 0.5 * ( G2@north - G2@south ) == dt * dx * 0.5 * ( S2@north - S2@south )
       			}
+*/
     		}
 
   	} else if ( 2 == version ) {
@@ -229,8 +230,7 @@ Function Update@all {
     		Expr hc  = Centering * hVec[0]
     		Expr huc = Centering * hVec[1]
     		Expr hvc = Centering * hVec[2]
-
-		
+/*
 		loop over hVec {
       			hVec<next>[0]  = hc  - ( dt / dx ) * 0.5 * ( F0@east  - F0@west  ) - ( dt / dy ) * 0.5 * ( G0@north - G0@south )
    
@@ -238,6 +238,23 @@ Function Update@all {
    
       			hVec<next>[2] = hvc + ( dt / dy ) * 0.5 * ( S2@north - S2@south ) - ( dt / dx ) * 0.5 * ( F2@east - F2@west ) - ( dt / dy ) * 0.5 * ( G2@north - G2@south )
     		}
+*/
+/*
+			Var F : Matrix<Real, 3, 1> = {{F0@east  - F0@west },{F1@east - F1@west},{F2@east - F2@west}}
+			Var G : Matrix<Real, 3, 1> = {{G0@north - G0@south},{G1@north - G1@south },{G2@north - G2@south}}
+			Var h : Matrix<Real, 3, 1> = {{hc}, {huc}, {hvc}}
+			Var S : Matrix<Real, 3, 1> = {{0},{S1@east  - S1@west},{S2@north - S2@south }}
+*/
+			Expr F = {{F0@east  - F0@west },{F1@east - F1@west},{F2@east - F2@west}}
+			Expr G = {{G0@north - G0@south},{G1@north - G1@south },{G2@north - G2@south}}
+			Expr h = {{hc}, {huc}, {hvc}}
+			Expr S = {{0},{S1@east  - S1@west},{S2@north - S2@south }}
+		
+		print('hello')
+		loop over hVec {
+
+			hVec<next>[:] = h + ( dt / dx ) * 0.5 * S - ( dt / dx ) * 0.5 * F - ( dt / dy ) * 0.5 * ( G )
+		}
 	}
 
 
