@@ -63,7 +63,9 @@ case class IR_MatrixAccess(acc : IR_Access, idxy : IR_Index, idxx : Option[IR_In
     }
 
     (indices_y.length, indices_x.length) match {
-        // scalar cases
+     case (1, 0) if(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN == 1) =>
+        if (!lval) IR_GetElement(ListBuffer[IR_Expression](acc, indices_y(0), IR_IntegerConstant(0)))
+        else IR_SetElement(ListBuffer[IR_Expression](acc, indices_y(0), IR_IntegerConstant(0), rhsExpr.getOrElse(Logger.error("rhs value for MatrixAccess assignment not given"))))
       case (1, 0) =>
         if (!lval) IR_GetSlice(ListBuffer[IR_Expression](acc, indices_y(0), IR_IntegerConstant(0), IR_IntegerConstant(1), IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)))
         else IR_SetSlice(ListBuffer[IR_Expression](acc, indices_y(0), IR_IntegerConstant(0), IR_IntegerConstant(1), IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN), rhsExpr.getOrElse(Logger.error("rhs value for MatrixAccess assignment not given"))))
