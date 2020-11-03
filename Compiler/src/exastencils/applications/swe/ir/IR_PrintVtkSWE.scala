@@ -102,7 +102,8 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
             IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
               IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.layout.idxById("IB", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression)),
               IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.layout.idxById("IE", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression))),
-              print))),
+              print)),
+          IR_Print(stream, IR_Print.flush)),
         IR_MemberFunctionCall(stream, "close"))
 
       stmts ++= genStmtBlock(initCells)
@@ -113,7 +114,7 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
       var nodePrint = ListBuffer[IR_Expression]()
       nodeOffsets.foreach { offset =>
         nodePrint += IR_FieldAccess(bath, IR_IV_ActiveSlot(bath), IR_LoopOverDimensions.defIt(numDimsGrid) + offset)
-        nodePrint += IR_Print.endl
+        nodePrint += IR_Print.newline
       }
       nodePrint
     })
@@ -123,7 +124,7 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
       var nodePrint = ListBuffer[IR_Expression]()
       etaDisc.foreach { eta =>
         nodePrint += IR_FieldAccess(eta, IR_IV_ActiveSlot(eta), IR_LoopOverDimensions.defIt(numDimsGrid))
-        nodePrint += IR_Print.endl
+        nodePrint += IR_Print.newline
       }
       nodePrint
     })
@@ -133,7 +134,7 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
       var nodePrint = ListBuffer[IR_Expression]()
       uDisc.foreach { u =>
         nodePrint += IR_FieldAccess(u, IR_IV_ActiveSlot(u), IR_LoopOverDimensions.defIt(numDimsGrid))
-        nodePrint += IR_Print.endl
+        nodePrint += IR_Print.newline
       }
       nodePrint
     })
@@ -143,7 +144,7 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
       var nodePrint = ListBuffer[IR_Expression]()
       vDisc.foreach { v =>
         nodePrint += IR_FieldAccess(v, IR_IV_ActiveSlot(v), IR_LoopOverDimensions.defIt(numDimsGrid))
-        nodePrint += IR_Print.endl
+        nodePrint += IR_Print.newline
       }
       nodePrint
     })
@@ -155,7 +156,7 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
         List(optLocalOrderLower.get, optLocalOrderUpper.get).foreach { f =>
           for (_ <- 0 until 3) { // TODO: cell data instead of
             nodePrint += IR_FieldAccess(f, IR_IV_ActiveSlot(f), IR_LoopOverDimensions.defIt(numDimsGrid))
-            nodePrint += IR_Print.endl
+            nodePrint += IR_Print.newline
           }
         }
         nodePrint

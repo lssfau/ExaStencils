@@ -78,7 +78,8 @@ case class IR_PrintVtkNS(var filename : IR_Expression, level : Int) extends IR_P
             IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
               IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DLB", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)),
               IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DRE", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression))),
-              print))),
+              print)),
+          IR_Print(stream, IR_Print.flush)),
         IR_MemberFunctionCall(stream, "close"))
 
       stmts ++= genStmtBlock(initCells)
@@ -103,14 +104,14 @@ case class IR_PrintVtkNS(var filename : IR_Expression, level : Int) extends IR_P
         cellPrint += separator
         cellPrint += meanW
       }
-      cellPrint += IR_Print.endl
+      cellPrint += IR_Print.newline
     }, numDimsGrid)
 
     // add p
     addCellPrint("p", {
       var cellPrint = ListBuffer[IR_Expression]()
       cellPrint += IR_FieldAccess(p, IR_IV_ActiveSlot(p), IR_LoopOverDimensions.defIt(numDimsGrid))
-      cellPrint += IR_Print.endl
+      cellPrint += IR_Print.newline
     })
 
     stmts

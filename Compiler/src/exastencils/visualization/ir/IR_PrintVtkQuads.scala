@@ -53,7 +53,7 @@ abstract class IR_PrintVtkQuads extends IR_PrintVtk {
         nodePrint += separator
       }
       nodePrint = nodePrint.dropRight(1)
-      nodePrint += IR_Print.endl
+      nodePrint += IR_Print.newline
       IR_Print(stream, nodePrint)
     }
 
@@ -65,7 +65,8 @@ abstract class IR_PrintVtkQuads extends IR_PrintVtk {
           IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DRE", dim) + 1 - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
-            pointPrint))),
+            pointPrint)),
+        IR_Print(stream, IR_Print.flush)),
       IR_MemberFunctionCall(stream, "close"))
 
     genStmtBlock(initPoints)
@@ -89,7 +90,7 @@ abstract class IR_PrintVtkQuads extends IR_PrintVtk {
           cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1)
           cellPrint += separator
           cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1)
-          cellPrint += IR_Print.endl
+          cellPrint += IR_Print.newline
         case 3 =>
           cellPrint += 8
           cellPrint += separator
@@ -108,7 +109,7 @@ abstract class IR_PrintVtkQuads extends IR_PrintVtk {
           cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 1) * (numCells_x + 1) * (numCells_y + 1)
           cellPrint += separator
           cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 1) * (numCells_x + 1) * (numCells_y + 1)
-          cellPrint += IR_Print.endl
+          cellPrint += IR_Print.newline
       }
 
       IR_Print(stream, cellPrint)
@@ -126,7 +127,8 @@ abstract class IR_PrintVtkQuads extends IR_PrintVtk {
           IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
-            cellPrint))),
+            cellPrint)),
+        IR_Print(stream, IR_Print.flush)),
       IR_MemberFunctionCall(stream, "close"))
 
     genStmtBlock(initCells)

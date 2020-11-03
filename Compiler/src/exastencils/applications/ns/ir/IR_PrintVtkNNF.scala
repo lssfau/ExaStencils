@@ -82,7 +82,8 @@ case class IR_PrintVtkNNF(var filename : IR_Expression, level : Int) extends IR_
             IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
               IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DLB", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)),
               IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DRE", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression))),
-              print))),
+              print)),
+          IR_Print(stream, IR_Print.flush)),
         IR_MemberFunctionCall(stream, "close"))
 
       stmts ++= genStmtBlock(initCells)
@@ -107,42 +108,42 @@ case class IR_PrintVtkNNF(var filename : IR_Expression, level : Int) extends IR_
         cellPrint += separator
         cellPrint += meanW
       }
-      cellPrint += IR_Print.endl
+      cellPrint += IR_Print.newline
     }, numDimsGrid)
 
     // add p
     addCellPrint("p", {
       var cellPrint = ListBuffer[IR_Expression]()
       cellPrint += IR_FieldAccess(p, IR_IV_ActiveSlot(p), IR_LoopOverDimensions.defIt(numDimsGrid))
-      cellPrint += IR_Print.endl
+      cellPrint += IR_Print.newline
     })
 
     // add rho
     addCellPrint("rho", {
       var cellPrint = ListBuffer[IR_Expression]()
       cellPrint += IR_FieldAccess(rho, IR_IV_ActiveSlot(rho), IR_LoopOverDimensions.defIt(numDimsGrid))
-      cellPrint += IR_Print.endl
+      cellPrint += IR_Print.newline
     })
 
     // add rho
     addCellPrint("mue", {
       var cellPrint = ListBuffer[IR_Expression]()
       cellPrint += IR_FieldAccess(mue, IR_IV_ActiveSlot(mue), IR_LoopOverDimensions.defIt(numDimsGrid))
-      cellPrint += IR_Print.endl
+      cellPrint += IR_Print.newline
     })
 
     // add rho
     addCellPrint("gamma", {
       var cellPrint = ListBuffer[IR_Expression]()
       cellPrint += IR_FieldAccess(gamma, IR_IV_ActiveSlot(gamma), IR_LoopOverDimensions.defIt(numDimsGrid))
-      cellPrint += IR_Print.endl
+      cellPrint += IR_Print.newline
     })
 
     // add phi
     addCellPrint("phi", {
       var cellPrint = ListBuffer[IR_Expression]()
       cellPrint += IR_FieldAccess(phi, IR_IV_ActiveSlot(phi), IR_LoopOverDimensions.defIt(numDimsGrid))
-      cellPrint += IR_Print.endl
+      cellPrint += IR_Print.newline
     })
     stmts
   }

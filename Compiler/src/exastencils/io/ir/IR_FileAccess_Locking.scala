@@ -28,7 +28,7 @@ case class IR_FileAccess_Locking(
   val arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
 
   def separator = IR_StringConstant(if (!useAscii) "" else if (Knowledge.experimental_generateParaviewFiles) "," else " ")
-  var openMode = if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc"
+  var openMode = if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc" // TODO appended mode for multiple fields in file
   if (!useAscii)
     openMode += " | std::ios::binary"
 
@@ -43,8 +43,6 @@ case class IR_FileAccess_Locking(
         ListBuffer[IR_Statement](
           IR_ObjectInstantiation(streamType, streamName, Duplicate(filename), IR_VariableAccess("std::ios::trunc", IR_UnknownDatatype)),
           IR_MemberFunctionCall(stream, "close")))
-    } else {
-      // TODO open file for read accesses
     }
     statements
   }
@@ -110,7 +108,7 @@ case class IR_FileAccess_Locking(
         access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
       List(access, separator)
     }
-    printComponents += IR_Print.endl // TODO do not flush all the time. search for more occurrences
+    printComponents += IR_Print.newline
 
     // TODO: less monolithic code
     var innerLoop = ListBuffer[IR_Statement](
@@ -125,8 +123,8 @@ case class IR_FileAccess_Locking(
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(beginId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(endId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
             IR_IfCondition(condition.getOrElse(IR_BooleanConstant(true)),
-              IR_Print(stream, printComponents)))))
-      ,
+              IR_Print(stream, printComponents)))),
+        IR_Print(stream, IR_Print.flush)),
       IR_MemberFunctionCall(stream, "close")
     )
 

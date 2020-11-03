@@ -74,7 +74,7 @@ abstract class IR_PrintVtkTriangles extends IR_PrintVtk {
           nodePrint += separator
         }
         nodePrint = nodePrint.dropRight(1)
-        nodePrint += IR_Print.endl
+        nodePrint += IR_Print.newline
         IR_Print(stream, nodePrint) : IR_Statement
       })
     }
@@ -87,7 +87,9 @@ abstract class IR_PrintVtkTriangles extends IR_PrintVtk {
           IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("IB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("IE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
-            triPrint))),
+            triPrint)),
+        IR_Print(stream, IR_Print.flush)
+      ),
       IR_MemberFunctionCall(stream, "close"))
 
     genStmtBlock(initPoints)
@@ -108,7 +110,7 @@ abstract class IR_PrintVtkTriangles extends IR_PrintVtk {
       cellPrint += offset + 6 * (IR_LoopOverDimensions.defItForDim(0) + IR_LoopOverDimensions.defItForDim(1) * numCells_x) + 1
       cellPrint += separator
       cellPrint += offset + 6 * (IR_LoopOverDimensions.defItForDim(0) + IR_LoopOverDimensions.defItForDim(1) * numCells_x) + 2
-      cellPrint += IR_Print.endl
+      cellPrint += IR_Print.newline
 
       cellPrint += 3
       cellPrint += separator
@@ -117,7 +119,7 @@ abstract class IR_PrintVtkTriangles extends IR_PrintVtk {
       cellPrint += offset + 6 * (IR_LoopOverDimensions.defItForDim(0) + IR_LoopOverDimensions.defItForDim(1) * numCells_x) + 4
       cellPrint += separator
       cellPrint += offset + 6 * (IR_LoopOverDimensions.defItForDim(0) + IR_LoopOverDimensions.defItForDim(1) * numCells_x) + 5
-      cellPrint += IR_Print.endl
+      cellPrint += IR_Print.newline
 
       IR_Print(stream, cellPrint)
     }
@@ -135,7 +137,8 @@ abstract class IR_PrintVtkTriangles extends IR_PrintVtk {
           IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
-            cellPrint))),
+            cellPrint)),
+        IR_Print(stream, IR_Print.flush)),
       IR_MemberFunctionCall(stream, "close"),
       IR_Assignment(fragmentOffset, fragmentOffset + numValidFrags))
 
