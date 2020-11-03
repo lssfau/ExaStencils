@@ -92,7 +92,7 @@ Function VCycle_0@coarsest {
 		}
 		Var alpha : Real = ( ( res * res ) / alphaDenom )
 		loop over Solution@current {
-			Solution[active]@current += ( alpha * VecP@current )
+			Solution<active>@current += ( alpha * VecP@current )
 			Residual@current -= ( alpha * VecGradP@current )
 		}
 		Var nextRes : Real = NormResidual_0@current (  )
@@ -130,9 +130,9 @@ Function Smoother@((coarsest + 1) to finest) {
 }
 
 Function UpResidual@all {
-	communicate Solution[active]@current
+	communicate Solution<active>@current
 	loop over Residual@current {
-		Residual@current = ( RHS@current - ( Laplace@current * Solution[active]@current ) )
+		Residual@current = ( RHS@current - ( Laplace@current * Solution<active>@current ) )
 	}
 }
 
@@ -152,21 +152,21 @@ Function Restriction@((coarsest + 1) to finest) {
 }
 
 Function Correction@((coarsest + 1) to finest) {
-	communicate ghost of Solution[active]@coarser
+	communicate ghost of Solution<active>@coarser
 	loop over Solution@current {
-		Solution[active]@current += ( CorrectionStencil@current * Solution[active]@coarser )
+		Solution<active>@current += ( CorrectionStencil@current * Solution<active>@coarser )
 	}
 }
 
 Function SetSolution@all ( value : Real ) {
 	loop over Solution@current {
-		Solution[active]@current = value
+		Solution<active>@current = value
 	}
 }
 
 Function InitSolution {
 	loop over Solution@finest {
-		Solution[active]@finest = 0
+		Solution<active>@finest = 0
 	}
 }
 
