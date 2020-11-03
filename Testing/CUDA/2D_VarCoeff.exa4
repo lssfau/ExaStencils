@@ -298,18 +298,18 @@ Function Application {
 	InitLaplace@5 (  )
 	InitRHS@finest (  )
 	InitSolution (  )
-	apply bc to Solution[0]@5
-	apply bc to Solution[1]@5
-	apply bc to Solution[0]@6
-	apply bc to Solution[1]@6
-	apply bc to Solution[0]@7
-	apply bc to Solution[1]@7
-	apply bc to Solution[0]@8
-	apply bc to Solution[1]@8
-	apply bc to Solution[0]@9
-	apply bc to Solution[1]@9
-	apply bc to Solution[0]@10
-	apply bc to Solution[1]@10
+	apply bc to Solution<0>@5
+	apply bc to Solution<1>@5
+	apply bc to Solution<0>@6
+	apply bc to Solution<1>@6
+	apply bc to Solution<0>@7
+	apply bc to Solution<1>@7
+	apply bc to Solution<0>@8
+	apply bc to Solution<1>@8
+	apply bc to Solution<0>@9
+	apply bc to Solution<1>@9
+	apply bc to Solution<0>@10
+	apply bc to Solution<1>@10
 	apply bc to VecP@coarsest
 	Solve (  )
 	destroyGlobals (  )
