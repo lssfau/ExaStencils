@@ -169,26 +169,9 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
       } else {
         stmt
       }
-    case stmt @ IR_Assignment(dest : IR_FieldAccess, src, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype])    =>
-      // resolve M = M * M into tmp = M * M; M = tmp
-      var selfassign = false
-      StateManager.findAll[IR_Multiplication](HelperNode(src)).foreach(mult =>
-        if (mult.factors.exists(p => p.isInstanceOf[IR_FieldAccess] && p.asInstanceOf[IR_FieldAccess].name == dest.name))
-          selfassign = true
-      )
 
-      if (selfassign) {
-        var newStmts = ListBuffer[IR_Statement]()
-        val decl = IR_VariableDeclaration(dest.datatype, "selfassignTmp_" + tmpCounter, src)
-        newStmts += decl
-        stmt.src = IR_VariableAccess(decl)
-        newStmts += stmt
-        //newStmts += IR_Assignment(dest, IR_VariableAccess(decl))
-        tmpCounter += 1
-        newStmts
-      } else {
-        stmt
-      }
+
+
   })
   //////////////////////////////////////////////
 
@@ -670,5 +653,7 @@ object IR_LinearizeMatrices extends DefaultStrategy("linearize matrices") {
         IR_ArrayAccess(base, IR_IntegerConstant(cols) * idx.indices(0) + idx.indices(1))
       else
         base
-  }, false)
+
+
+  })
 }
