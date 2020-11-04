@@ -83,7 +83,7 @@ object IR_MatNodeUtils {
       case IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))                                                 => true
       case IR_MatrixExpression(_, _, _, _)                                                                  => true
       case IR_VariableAccess(_, IR_ReferenceDatatype(innerDt)) if (innerDt.isInstanceOf[IR_MatrixDatatype]) => true
-      //case fa : IR_MultiDimFieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])                     => true
+      case fa : IR_MultiDimFieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])                     => true
       //case fa : IR_FieldAccess if (fa.field.layout.datatype.isInstanceOf[IR_MatrixDatatype]) => true
       //case x if (x.datatype.isInstanceOf[IR_MatrixDatatype]) => true
       case _ => false

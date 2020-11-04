@@ -288,7 +288,6 @@ Function Application {
 	initFieldsWithZero (  )
 	InitRHS@finest (  )
 	InitSolution (  )
-	apply bc to Solution[0]@0
 	apply bc to Solution<0>@0
 	apply bc to Solution<1>@0
 	apply bc to Solution<0>@1
