@@ -17,7 +17,9 @@ import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_BuildString
 import exastencils.util.ir.IR_Read
+import exastencils.util.ir.IR_ReadBinary
 
+// TODO distinguish ascii/binary
 case class IR_FileAccess_FPP(
     var filename : IR_Expression,
     var field : IR_Field,
@@ -26,11 +28,12 @@ case class IR_FileAccess_FPP(
     var useAscii : Boolean,
     var writeAccess : Boolean,
     var onlyValues : Boolean = true,
+    var appendedMode : Boolean = false,
     var condition : Option[IR_Expression]) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess) {
 
   val arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
 
-  def fctName = if (writeAccess) {
+  val fctName = if (writeAccess) {
     if (onlyValues) "WriteField" else "PrintField"
   } else
     "ReadField"
@@ -64,12 +67,12 @@ case class IR_FileAccess_FPP(
 
   override def readField() : ListBuffer[IR_Statement] = {
 
-    val read = IR_Read(stream)
+    val read = if (useAscii) IR_Read(stream) else IR_ReadBinary(stream)
     //    arrayIndexRange.foreach { index =>
     val access = IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData))
     //      if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
     //        access.index(numDimsData - 2) = index // TODO: other hodt
-    read.toRead += access
+    read.exprToRead += access
     //    }
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()

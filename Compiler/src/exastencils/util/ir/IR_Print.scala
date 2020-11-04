@@ -26,6 +26,11 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.parallelization.api.mpi.MPI_IsRootProc
 import exastencils.prettyprinting.PpStream
 
+trait PrintStream extends IR_Statement {
+  def vAccStream : IR_VariableAccess
+  def exprToPrint : ListBuffer[IR_Expression]
+}
+
 /// IR_Print
 
 object IR_Print {
@@ -36,8 +41,26 @@ object IR_Print {
   def endl : IR_Expression = IR_VariableAccess("std::endl", IR_StringDatatype)
 }
 
-case class IR_Print(var stream : IR_VariableAccess, var toPrint : ListBuffer[IR_Expression]) extends IR_Statement {
+case class IR_Print(var stream : IR_VariableAccess, var toPrint : ListBuffer[IR_Expression]) extends PrintStream {
+  override def vAccStream : IR_VariableAccess = stream
+  override def exprToPrint : ListBuffer[IR_Expression] = toPrint
   override def prettyprint(out : PpStream) = out << stream << " << " <<< (toPrint, " << ") << ';'
+}
+
+/// IR_PrintBinary
+
+object IR_PrintBinary {
+  def apply(stream : IR_VariableAccess, toPrint : IR_Access*) = new IR_PrintBinary(stream, toPrint.to[ListBuffer])
+}
+
+case class IR_PrintBinary(var stream : IR_VariableAccess, var toPrint : ListBuffer[IR_Access]) extends PrintStream {
+  override def vAccStream : IR_VariableAccess = stream
+  override def exprToPrint : ListBuffer[IR_Expression] = toPrint.asInstanceOf[ListBuffer[IR_Expression]]
+  override def prettyprint(out : PpStream) = {
+    toPrint.foreach(acc => {
+      out << IR_MemberFunctionCall(stream, "write",  IR_Cast(IR_PointerDatatype(IR_CharDatatype), IR_AddressOf(acc)), IR_IntegerConstant(acc.datatype.resolveBaseDatatype.typicalByteSize)) << ";"
+    })
+  }
 }
 
 /// IR_RawPrint

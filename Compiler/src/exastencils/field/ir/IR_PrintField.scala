@@ -25,7 +25,6 @@ import exastencils.base.ir._
 import exastencils.config._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
-import exastencils.io.ir.IR_FileAccess
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir._
@@ -68,18 +67,24 @@ case class IR_PrintField(
   */
 
   val arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
+  val fmt = format.asInstanceOf[IR_StringConstant].value
 
-  def writeCSV(fileAccessHandler : IR_FileAccess) : ListBuffer[IR_Statement] = {
+  // writes comma-separated files in ascii mode, raw binaries otherwise
+  def writeCSV() : ListBuffer[IR_Statement] = {
+    val fileAccessHandler = selectAndAddStatements(
+      basenameFile, field, slot, Some(condition), includeGhostLayers, format, outputSingleFile, useLocking, doWrite = true, appendToFile = true, onlyVals = false
+    )
     var statements : ListBuffer[IR_Statement] = ListBuffer()
     statements ++= fileAccessHandler.prologue()
     val fileHeader : ListBuffer[IR_Statement] = {
       var ret : ListBuffer[IR_Statement] = ListBuffer()
       var tmp : ListBuffer[IR_Statement] = ListBuffer()
-      if (Knowledge.experimental_generateParaviewFiles) {
+      val openMode = if(Knowledge.mpi_enabled) IR_VariableAccess("std::ios::app", IR_UnknownDatatype) else IR_VariableAccess("std::ios::trunc", IR_UnknownDatatype)
+      if (fmt == "ascii" && Knowledge.experimental_generateParaviewFiles) { // write header
         val streamName = IR_FieldIO.getNewStreamName()
         def streamType = IR_SpecialDatatype("std::ofstream")
         def stream = IR_VariableAccess(streamName, streamType)
-        tmp += IR_ObjectInstantiation(streamType, streamName, fileAccessHandler.getFilename(), IR_VariableAccess("std::ios::app", IR_UnknownDatatype))
+        tmp += IR_ObjectInstantiation(streamType, streamName, fileAccessHandler.getFilename(), openMode)
         tmp += IR_Print(stream, "\"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\"", IR_Print.endl)
         tmp += IR_MemberFunctionCall(stream, "close")
         if (Knowledge.mpi_enabled)
@@ -95,17 +100,17 @@ case class IR_PrintField(
     statements
   }
 
-  def writeXmlVtk(fileAccessHandler : IR_FileAccess) : ListBuffer[IR_Statement] = {
+  def writeXmlVtk() : ListBuffer[IR_Statement] = {
     // TODO
     ListBuffer(IR_NullStatement)
   }
 
-  def writeXdmf(fileAccessHandler : IR_FileAccess, useHDF5 : Boolean) : ListBuffer[IR_Statement] = {
+  def writeXdmf(useHDF5 : Boolean) : ListBuffer[IR_Statement] = {
     // TODO
     ListBuffer(IR_NullStatement)
   }
 
-  def writeNetCDF(fileAccessHandler : IR_FileAccess) : ListBuffer[IR_Statement] = {
+  def writeNetCDF() : ListBuffer[IR_Statement] = {
     // TODO
     ListBuffer(IR_NullStatement)
   }
@@ -190,26 +195,24 @@ case class IR_PrintField(
     statements
     */
 
-    val printStmts = selectAndAddStatements(basenameFile, field, slot, Some(condition), includeGhostLayers, format, outputSingleFile, useLocking, doWrite = true, onlyVals = false)
-
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    format.asInstanceOf[IR_StringConstant].value match {
+    fmt match {
       case "ascii" | "bin"                            =>
         if (!outputSingleFile) {
-          statements ++= writeXmlVtk(printStmts)
+          statements ++= writeXmlVtk()
         } else if (useLocking) {
-          statements ++= writeCSV(printStmts)
+          statements ++= writeCSV()
         } else {
-          statements ++= writeXdmf(printStmts, useHDF5 = false)
+          statements ++= writeXdmf(useHDF5 = false)
         }
       case s : String if fmtOptionsHDF5.contains(s)   =>
-        statements ++= writeXdmf(printStmts, useHDF5 = true)
+        statements ++= writeXdmf(useHDF5 = true)
       case s : String if fmtOptionsNetCDF.contains(s) =>
-        statements ++= writeNetCDF(printStmts)
+        statements ++= writeNetCDF()
       case s : String if fmtOptionsSION.contains(s)   =>
         Logger.warn("Sion Files cannot directly be visualized. Defaulting to \"writeField\" implementation.")
-        statements += printStmts
+        statements += selectAndAddStatements(basenameFile, field, slot, Some(condition), includeGhostLayers, format, outputSingleFile, useLocking, doWrite = true, onlyVals = false)
       case _                                          =>
         Logger.warn("Ignoring call to \"printField\" with unsupported format: " + format)
         IR_NullStatement

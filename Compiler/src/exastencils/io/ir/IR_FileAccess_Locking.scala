@@ -23,14 +23,17 @@ case class IR_FileAccess_Locking(
     var useAscii : Boolean,
     var writeAccess : Boolean,
     var onlyValues : Boolean = true,
+    var appendedMode : Boolean = false,
     var condition : Option[IR_Expression]) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess) {
 
   val arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
 
-  def separator = IR_StringConstant(if (!useAscii) "" else if (Knowledge.experimental_generateParaviewFiles) "," else " ")
-  var openMode = if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc" // TODO appended mode for multiple fields in file
+  def separator = if (!useAscii) IR_NullExpression else if (Knowledge.experimental_generateParaviewFiles) IR_StringConstant(",") else IR_StringConstant(" ")
+
+  var openFlags = if (writeAccess) { if (Knowledge.mpi_enabled || appendedMode) "std::ios::app" else "std::ios::trunc"} else "std::ios::in"
   if (!useAscii)
-    openMode += " | std::ios::binary"
+    openFlags += " | std::ios::binary"
+  val openMode = IR_VariableAccess(openFlags, IR_UnknownDatatype)
 
   override def prologue() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
@@ -57,30 +60,61 @@ case class IR_FileAccess_Locking(
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    val read = IR_Read(stream)
+    val read = if (useAscii) IR_Read(stream) else IR_ReadBinary(stream)
     //    arrayIndexRange.foreach { index =>
     val access = IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData))
     //      if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
     //        access.index(numDimsData - 2) = index // TODO: other hodt
-    read.toRead += access
-    if(separator.value != " ") { // skip separator
+    read.exprToRead += access
+    if(useAscii && Knowledge.experimental_generateParaviewFiles) { // skip separator
       // TODO: maybe implement with std::getline
       val decl = IR_VariableDeclaration(IR_CharDatatype, "skipSeparator")
       statements += decl
-      read.toRead += IR_VariableAccess(decl)
+      read.exprToRead += IR_VariableAccess(decl)
     }
 
-    var innerLoop = ListBuffer[IR_Statement](
-      IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess(openMode, IR_UnknownDatatype)),
-      IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-          IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(beginId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(endId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
-            IR_IfCondition(condition.getOrElse(IR_BooleanConstant(true)), read))))
-      ,
-      IR_MemberFunctionCall(stream, "close")
-    )
+    val filePointerDecl = IR_VariableDeclaration(IR_IntegerDatatype, "currFilePointer", 0)
+    val filePointer = IR_VariableAccess(filePointerDecl)
+
+    if(Knowledge.mpi_enabled)
+      statements += filePointerDecl
+
+    // open file
+    var innerLoop = ListBuffer[IR_Statement]()
+    innerLoop += IR_ObjectInstantiation(stream, Duplicate(filename), openMode)
+
+    // get file pointer from previous rank
+    if(Knowledge.mpi_enabled) {
+      val recvRequest = IR_VariableAccess("recvRequest", "MPI_Request")
+
+      innerLoop += IR_IfCondition(MPI_IV_MpiRank > 0, ListBuffer[IR_Statement](
+        IR_VariableDeclaration(recvRequest),
+        MPI_Receive(IR_AddressOf(filePointer), 1, IR_IntegerDatatype, MPI_IV_MpiRank - 1, 0, recvRequest),
+        IR_FunctionCall(MPI_WaitForRequest.generateFctAccess(), IR_AddressOf(recvRequest))))
+      innerLoop += IR_MemberFunctionCall(stream, "seekg", filePointer, IR_MemberAccess(stream, "beg"))
+    }
+
+    // read data from file
+    innerLoop += IR_LoopOverFragments(
+      IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
+        IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
+          IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(beginId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
+          IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(endId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
+          IR_IfCondition(condition.getOrElse(IR_BooleanConstant(true)), read))))
+
+    // comm file pointer to next rank
+    if (Knowledge.mpi_enabled) {
+      val sendRequest = IR_VariableAccess("sendRequest", "MPI_Request")
+
+      innerLoop += IR_Assignment(filePointer, IR_MemberFunctionCall(stream, "tellg"))
+      innerLoop += IR_IfCondition(MPI_IV_MpiRank < Knowledge.mpi_numThreads - 1, ListBuffer[IR_Statement](
+        IR_VariableDeclaration(sendRequest),
+        MPI_Send(IR_AddressOf(filePointer), 1, IR_IntegerDatatype, MPI_IV_MpiRank + 1, 0, sendRequest),
+        IR_FunctionCall(MPI_WaitForRequest.generateFctAccess(), IR_AddressOf(sendRequest))))
+    }
+
+    // close file
+    innerLoop += IR_MemberFunctionCall(stream, "close")
 
     if (Knowledge.mpi_enabled) {
       statements += MPI_Sequential(innerLoop)
@@ -96,35 +130,53 @@ case class IR_FileAccess_Locking(
     def streamType = IR_SpecialDatatype("std::ofstream")
     def stream = IR_VariableAccess(streamName, streamType)
 
-    val printComponents = ListBuffer[IR_Expression]()
-    if (!onlyValues) {
-      printComponents += "std::defaultfloat"
-      printComponents ++= (0 until numDimsGrid).view.flatMap { dim => List(getPos(field, dim), separator) }
-    }
-    printComponents += "std::scientific"
-    printComponents ++= arrayIndexRange.view.flatMap { index =>
-      val access = IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData))
-      if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
-        access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
-      List(access, separator)
-    }
-    printComponents += IR_Print.newline
-
-    // TODO: less monolithic code
-    var innerLoop = ListBuffer[IR_Statement](
-      IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess(openMode, IR_UnknownDatatype)),
+    val printSetPrecision = if(useAscii) {
       if (Knowledge.field_printFieldPrecision == -1)
         IR_Print(stream, "std::scientific")
       else
-        IR_Print(stream, "std::scientific << std::setprecision(" + Knowledge.field_printFieldPrecision + ")"), //std::defaultfloat
+        IR_Print(stream, "std::scientific << std::setprecision(" + Knowledge.field_printFieldPrecision + ")") //std::defaultfloat
+    } else {
+      IR_NullStatement
+    }
+
+    val print = if(useAscii) {
+      val printComponents = ListBuffer[IR_Expression]()
+      if (!onlyValues) {
+        printComponents += "std::defaultfloat"
+        printComponents ++= (0 until numDimsGrid).view.flatMap { dim => List(getPos(field, dim), separator) }
+      }
+      printComponents += "std::scientific"
+      printComponents ++= arrayIndexRange.view.flatMap { index =>
+        val access = IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData))
+        if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
+          access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
+        List(access, separator)
+      }
+      printComponents += IR_Print.newline
+      IR_Print(stream, printComponents)
+    } else {
+      val printComponents = ListBuffer[IR_Access]()
+      printComponents ++= arrayIndexRange.view.flatMap { index =>
+        val access = IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData))
+        if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
+          access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
+        List(access)
+      }
+      IR_PrintBinary(stream, printComponents)
+    }
+
+    // TODO: less monolithic code
+    var innerLoop = ListBuffer[IR_Statement](
+      IR_ObjectInstantiation(stream, Duplicate(filename), openMode),
+      printSetPrecision,
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
           IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(beginId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(endId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
-            IR_IfCondition(condition.getOrElse(IR_BooleanConstant(true)),
-              IR_Print(stream, printComponents)))),
-        IR_Print(stream, IR_Print.flush)),
+            IR_IfCondition(condition.getOrElse(IR_BooleanConstant(true)), print))),
+        IR_Print(stream, IR_Print.flush))
+      ,
       IR_MemberFunctionCall(stream, "close")
     )
 

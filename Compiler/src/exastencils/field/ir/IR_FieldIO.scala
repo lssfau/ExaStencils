@@ -86,6 +86,7 @@ trait IR_FieldIO {
       outputSingleFile : Boolean,
       useLock : Boolean,
       doWrite : Boolean,
+      appendToFile : Boolean = false,
       onlyVals : Boolean) : IR_FileAccess = {
 
     val fn = createFilename(basenameFile, format, outputSingleFile)
@@ -93,9 +94,9 @@ trait IR_FieldIO {
     fmt match {
       case "ascii" | "bin"                            =>
         if (!outputSingleFile) {
-          IR_FileAccess_FPP(fn, field, slot, includeGhostLayers, fmt == "ascii", writeAccess = doWrite, onlyValues = onlyVals, condition)
+          IR_FileAccess_FPP(fn, field, slot, includeGhostLayers, fmt == "ascii", writeAccess = doWrite, onlyValues = onlyVals, appendedMode = appendToFile, condition)
         } else if (useLock) {
-          IR_FileAccess_Locking(fn, field, slot, includeGhostLayers, fmt == "ascii", writeAccess = doWrite, onlyValues = onlyVals, condition)
+          IR_FileAccess_Locking(fn, field, slot, includeGhostLayers, fmt == "ascii", writeAccess = doWrite, onlyValues = onlyVals, appendedMode = appendToFile, condition)
         } else {
           IR_FileAccess_MPIIO(fn, field, slot, includeGhostLayers, fmt == "ascii", writeAccess = true)
         }
