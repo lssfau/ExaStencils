@@ -5,11 +5,13 @@ Domain global< [ 0, 0 ] to [ 1, 1 ] >
 
 /// fields
 
-Field Solution with Complex<Real> on Node of global = 1.0
+Field Solution with Complex<Real> on Node of global = 0.0
 
-Field Solution on boundary = Neumann
+Field Solution on boundary = 0.0
+//Field Solution on boundary = Neumann
 
-Field RHS@finest with Complex<Real> on Node of global = 0.0
+//Field RHS@finest with Complex<Real> on Node of global = 0.0
+Field RHS@finest with Complex<Real> on Node of global = 1.0/(2*PI*a) * exp(-((vf_nodePos_x-0.5)**2+(vf_nodePos_y-0.5)**2)/(2*a))
 Field RHS@(all but finest) with Complex<Real> on Node of global
 
 Field Residual        from RHS
@@ -55,7 +57,7 @@ Operator A from Stencil {
 }
 
 Operator M from Stencil {
-  [ 0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) - shift
+  [ 0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) - shift * k**2
   [-1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
   [ 1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
   [ 0, -1] => -1.0 / ( vf_gridWidth_y ** 2 )
@@ -75,10 +77,10 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 
 Globals {
   Expr k = 80.0
+  Expr a = 1.0/k**2
   Expr omegaRelax = 0.6
-  Var imag : Complex<Real> = (0.0 + 0.5j)
-  Expr pow = 2
-  Expr shift = k**2 + imag * k**pow
+  //Var shift : Complex<Real> = (1.0 + 1.0j)
+  Var shift : Complex<Real> = (1.0 + 0.5j)
 }
 
 Function NormResidual@(coarsest and finest) : Complex<Real> {
@@ -157,6 +159,14 @@ Function Smoother@all {
       u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
     }
   }
+/*
+  color with {
+    ((i0 + i1) % 2),
+    solve locally at u@[0,0] relax omegaRelax {
+      u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
+    }
+  }
+*/
 
 /*
   solve locally at u@[0,0] relax omegaRelax {
