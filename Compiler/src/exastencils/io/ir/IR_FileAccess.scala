@@ -2,22 +2,27 @@ package exastencils.io.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Expandable
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_NullStatement
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_StringConstant
-import exastencils.baseExt.ir.IR_LoopOverDimensions
+import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
+import exastencils.baseExt.ir._
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.OutputType
-import exastencils.field.ir.IR_Field
-import exastencils.grid.ir.IR_AtCellCenter
-import exastencils.grid.ir.IR_AtFaceCenter
-import exastencils.grid.ir.IR_AtNode
-import exastencils.grid.ir.IR_VF_CellCenterPerDim
-import exastencils.grid.ir.IR_VF_NodePositionPerDim
+import exastencils.domain.ir._
+import exastencils.field.ir._
+import exastencils.grid.ir._
+import exastencils.util.ir._
 
 // IR_FileAccess
 // Used to read/write field data from/to files
+
+object IR_FileAccess {
+  // prohibit redeclaration of variables for sequences of I/O statements in the same scope
+  private var counter : Int = 0
+  def declareVariable(s: String) : String = {
+    counter += 1
+    s + "_%03d".format(counter)
+  }
+}
 
 abstract class IR_FileAccess(
     filename : IR_Expression,
@@ -31,8 +36,30 @@ abstract class IR_FileAccess(
 
   def getFilename() : IR_Expression = filename
 
+  def getSeparatorString() : String = {
+    val ret = IR_FieldIO.getExtension(filename) match {
+      case ".txt" => " "
+      case ".csv" => ","
+      case _ => ""
+    }
+    ret
+  }
+  def separator : IR_Expression = if(getSeparatorString() == "") IR_NullExpression else IR_StringConstant(getSeparatorString())
+
   def beginId = if (includeGhostLayers) "GLB" else "DLB"
   def endId = if (includeGhostLayers) "GRE" else "DRE"
+
+  def arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
+
+  def ioStreamLoopOverFrags(stream : IR_VariableAccess, fileAcc : IR_Statement, condition: Option[IR_Expression]) : IR_LoopOverFragments = {
+    IR_LoopOverFragments(
+      IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
+        IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
+          IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(beginId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
+          IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(endId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
+          IR_IfCondition(condition.getOrElse(IR_BooleanConstant(true)), fileAcc))),
+      if(writeAccess) IR_Print(stream, IR_Print.flush) else IR_NullStatement)
+  }
 
   def getPos(field : IR_Field, dim : Int) : IR_Expression = {
     // TODO: add function to field (layout) to decide node/cell for given dim

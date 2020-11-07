@@ -47,7 +47,7 @@ case class IR_PrintField(
     var slot : IR_Expression,
     var condition : IR_Expression = true,
     var includeGhostLayers : Boolean = false,
-    var format : IR_Expression = IR_StringConstant("ascii"),
+    var format : IR_Expression = IR_StringConstant("txt"),
     var outputSingleFile : Boolean = false,
     var useLocking : Boolean = true) extends IR_Statement with IR_Expandable with IR_FieldIO {
 
@@ -69,10 +69,10 @@ case class IR_PrintField(
   val arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
   val fmt = format.asInstanceOf[IR_StringConstant].value
 
-  // writes comma-separated files in ascii mode, raw binaries otherwise
+  // writes comma-separated files in ascii mode, raw binaries otherwise (locking)
   def writeCSV() : ListBuffer[IR_Statement] = {
     val fileAccessHandler = selectAndAddStatements(
-      basenameFile, field, slot, Some(condition), includeGhostLayers, format, outputSingleFile, useLocking, doWrite = true, appendToFile = true, onlyVals = false
+      basenameFile, field, slot, Some(condition), includeGhostLayers, IR_StringConstant("csv"), outputSingleFile, useLocking, doWrite = true, appendToFile = true, onlyVals = false
     )
     var statements : ListBuffer[IR_Statement] = ListBuffer()
     statements ++= fileAccessHandler.prologue()
@@ -80,7 +80,7 @@ case class IR_PrintField(
       var ret : ListBuffer[IR_Statement] = ListBuffer()
       var tmp : ListBuffer[IR_Statement] = ListBuffer()
       val openMode = if(Knowledge.mpi_enabled) IR_VariableAccess("std::ios::app", IR_UnknownDatatype) else IR_VariableAccess("std::ios::trunc", IR_UnknownDatatype)
-      if (fmt == "ascii" && Knowledge.experimental_generateParaviewFiles) { // write header
+      if (fmtOptionsText.contains(fmt)) { // write header
         val streamName = IR_FieldIO.getNewStreamName()
         def streamType = IR_SpecialDatatype("std::ofstream")
         def stream = IR_VariableAccess(streamName, streamType)
@@ -198,7 +198,7 @@ case class IR_PrintField(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     fmt match {
-      case "ascii" | "bin"                            =>
+      case "txt" | "csv" | "bin"                            =>
         if (!outputSingleFile) {
           statements ++= writeXmlVtk()
         } else if (useLocking) {

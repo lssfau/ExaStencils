@@ -26,27 +26,29 @@ object IR_FieldIO {
     fileNameCounter += 1
     "fieldName_%03d".format(fileNameCounter)
   }
+
+  // get file extensions in case that the user has specified it (also for backwards-compatibility)
+  val extension = "[.][^.]+$".r
+  def getExtension(fn : IR_Expression) : String = extension findFirstIn fn.asInstanceOf[IR_StringConstant].value getOrElse ""
 }
 
 trait IR_FieldIO {
+  val fmtOptionsText = List("txt", "csv")
   val fmtOptionsHDF5 = List("hdf5", "h5")
   val fmtOptionsNetCDF = List("netCDF", "nc")
   val fmtOptionsSION = List("sionlib", "sion")
   val fmtOptionsSharedFile = fmtOptionsHDF5 ++ fmtOptionsNetCDF ++ fmtOptionsSION
 
-  // get file extensions in case that the user has specified it (also for backwards-compatibility)
-  val extension = "[.][^.]+$".r
-  def getExtension(fn : IR_Expression) : String = extension findFirstIn fn.asInstanceOf[IR_StringConstant].value getOrElse ""
-
   // appends file extension depending on specified format
   def createFilename(basename : IR_Expression, fmt : IR_Expression, outputSingleFile : Boolean) : IR_Expression = {
-    val ext = getExtension(basename)
+    val ext = IR_FieldIO.getExtension(basename)
     val base = basename.asInstanceOf[IR_StringConstant].value
     val fn = if(ext.trim.isEmpty) {
       val fpp_substr = if(!outputSingleFile) "$blockId" else ""
       def buildName(extension : String) = base + fpp_substr + "." + extension
       fmt.asInstanceOf[IR_StringConstant].value match {
-        case "ascii" => buildName("txt")
+        case "txt" => buildName("txt")
+        case "csv" => buildName("csv")
         case "bin"   => buildName("bin")
         case s : String if fmtOptionsHDF5.contains(s) => buildName("hdf5")
         case s : String if fmtOptionsNetCDF.contains(s) => buildName("nc")
@@ -92,13 +94,13 @@ trait IR_FieldIO {
     val fn = createFilename(basenameFile, format, outputSingleFile)
     val fmt = format.asInstanceOf[IR_StringConstant].value
     fmt match {
-      case "ascii" | "bin"                            =>
+      case "txt" | "csv" | "bin"                      =>
         if (!outputSingleFile) {
-          IR_FileAccess_FPP(fn, field, slot, includeGhostLayers, fmt == "ascii", writeAccess = doWrite, onlyValues = onlyVals, appendedMode = appendToFile, condition)
+          IR_FileAccess_FPP(fn, field, slot, includeGhostLayers, fmtOptionsText.contains(fmt), writeAccess = doWrite, onlyValues = onlyVals, appendedMode = appendToFile, condition)
         } else if (useLock) {
-          IR_FileAccess_Locking(fn, field, slot, includeGhostLayers, fmt == "ascii", writeAccess = doWrite, onlyValues = onlyVals, appendedMode = appendToFile, condition)
+          IR_FileAccess_Locking(fn, field, slot, includeGhostLayers, fmtOptionsText.contains(fmt), writeAccess = doWrite, onlyValues = onlyVals, appendedMode = appendToFile, condition)
         } else {
-          IR_FileAccess_MPIIO(fn, field, slot, includeGhostLayers, fmt == "ascii", writeAccess = true)
+          IR_FileAccess_MPIIO(fn, field, slot, includeGhostLayers, fmtOptionsText.contains(fmt), writeAccess = true)
         }
       case s : String if fmtOptionsHDF5.contains(s)   =>
         IR_FileAccess_HDF5(fn, field, slot, includeGhostLayers, writeAccess = doWrite)

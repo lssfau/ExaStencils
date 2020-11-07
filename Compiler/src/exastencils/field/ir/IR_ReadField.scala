@@ -49,7 +49,7 @@ case class IR_ReadField(
     var slot : IR_Expression,
     var condition: IR_Expression = true,
     var includeGhostLayers : Boolean = false,
-    var format : IR_Expression = IR_StringConstant("ascii"),
+    var format : IR_Expression = IR_StringConstant("txt"),
     var outputSingleFile : Boolean = false,
     var useLocking : Boolean = false) extends IR_Statement with IR_Expandable with IR_FieldIO {
 

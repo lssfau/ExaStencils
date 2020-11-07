@@ -584,7 +584,7 @@ object Knowledge {
 
   var experimental_allowCommInFragLoops : Boolean = false
 
-  var experimental_generateParaviewFiles : Boolean = true
+  //var experimental_generateParaviewFiles : Boolean = false // unused for now: Distinction between WriteField and PrintField makes this flag redundant
 
   var experimental_trimBoundsForReductionLoops : Boolean = true
 

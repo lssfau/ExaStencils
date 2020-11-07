@@ -34,7 +34,7 @@ case class L4_PrintField(
     var field : L4_FieldAccess,
     var condition : Option[L4_Expression] = None,
     var includeGhostLayers : Boolean = false,
-    var format : L4_Expression = L4_StringConstant("ascii"),
+    var format : L4_Expression = L4_StringConstant("txt"),
     var outputSingleFile : Boolean = true,
     var useLocking : Boolean = true) extends L4_Statement {
 
@@ -85,7 +85,7 @@ object L4_ResolvePrintFieldFunctions extends DefaultStrategy("Resolve print fiel
 
       val includeGhosts = checkOptionAndRemove("WithGhost")
       val onlyValues = checkOptionAndRemove("Values")
-      val binary = if (checkOptionAndRemove("Binary")) L4_StringConstant("bin") else L4_StringConstant("ascii")
+      val binary = if (checkOptionAndRemove("Binary")) L4_StringConstant("bin") else L4_StringConstant("txt")
 
       // wrapper function to provide backwards compatibility.
       // determines if plain field values are written to file (WriteField) or field values including a visualization format (PrintField)

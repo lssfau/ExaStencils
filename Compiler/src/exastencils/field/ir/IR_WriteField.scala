@@ -33,7 +33,7 @@ case class IR_WriteField(
     var slot : IR_Expression,
     var condition: IR_Expression = true,
     var includeGhostLayers : Boolean = false,
-    var format : IR_Expression = IR_StringConstant("ascii"),
+    var format : IR_Expression = IR_StringConstant("txt"),
     var outputSingleFile : Boolean = true,
     var useLocking : Boolean = true) extends IR_Statement with IR_Expandable with IR_FieldIO {
 

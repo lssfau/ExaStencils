@@ -10,7 +10,6 @@ import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
-import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir._
@@ -25,10 +24,6 @@ case class IR_FileAccess_Locking(
     var onlyValues : Boolean = true,
     var appendedMode : Boolean = false,
     var condition : Option[IR_Expression]) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess) {
-
-  val arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
-
-  def separator = if (!useAscii) IR_NullExpression else if (Knowledge.experimental_generateParaviewFiles) IR_StringConstant(",") else IR_StringConstant(" ")
 
   var openFlags = if (writeAccess) { if (Knowledge.mpi_enabled || appendedMode) "std::ios::app" else "std::ios::trunc"} else "std::ios::in"
   if (!useAscii)
@@ -66,14 +61,14 @@ case class IR_FileAccess_Locking(
     //      if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
     //        access.index(numDimsData - 2) = index // TODO: other hodt
     read.exprToRead += access
-    if(useAscii && Knowledge.experimental_generateParaviewFiles) { // skip separator
+    if(getSeparatorString() == ",") { // skip separator
       // TODO: maybe implement with std::getline
-      val decl = IR_VariableDeclaration(IR_CharDatatype, "skipSeparator")
+      val decl = IR_VariableDeclaration(IR_CharDatatype, IR_FileAccess.declareVariable("skipSeparator"))
       statements += decl
       read.exprToRead += IR_VariableAccess(decl)
     }
 
-    val filePointerDecl = IR_VariableDeclaration(IR_IntegerDatatype, "currFilePointer", 0)
+    val filePointerDecl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("currFilePointer"), 0)
     val filePointer = IR_VariableAccess(filePointerDecl)
 
     if(Knowledge.mpi_enabled)
@@ -95,12 +90,7 @@ case class IR_FileAccess_Locking(
     }
 
     // read data from file
-    innerLoop += IR_LoopOverFragments(
-      IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-        IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
-          IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(beginId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
-          IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(endId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
-          IR_IfCondition(condition.getOrElse(IR_BooleanConstant(true)), read))))
+    innerLoop += ioStreamLoopOverFrags(stream, read, condition)
 
     // comm file pointer to next rank
     if (Knowledge.mpi_enabled) {
@@ -141,7 +131,7 @@ case class IR_FileAccess_Locking(
 
     val print = if(useAscii) {
       val printComponents = ListBuffer[IR_Expression]()
-      if (!onlyValues) {
+      if (!onlyValues) { // print coords for CSV files (Paraview)
         printComponents += "std::defaultfloat"
         printComponents ++= (0 until numDimsGrid).view.flatMap { dim => List(getPos(field, dim), separator) }
       }
@@ -169,14 +159,7 @@ case class IR_FileAccess_Locking(
     var innerLoop = ListBuffer[IR_Statement](
       IR_ObjectInstantiation(stream, Duplicate(filename), openMode),
       printSetPrecision,
-      IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-          IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(beginId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(endId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
-            IR_IfCondition(condition.getOrElse(IR_BooleanConstant(true)), print))),
-        IR_Print(stream, IR_Print.flush))
-      ,
+      ioStreamLoopOverFrags(stream, print, condition),
       IR_MemberFunctionCall(stream, "close")
     )
 

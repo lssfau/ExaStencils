@@ -34,7 +34,7 @@ case class L4_ReadField(
     var field : L4_FieldAccess,
     var condition : Option[L4_Expression] = None,
     var includeGhostLayers : Boolean = false,
-    var format : L4_Expression = L4_StringConstant("ascii"),
+    var format : L4_Expression = L4_StringConstant("txt"),
     var outputSingleFile : Boolean = false,
     var useLocking : Boolean = false) extends L4_Statement {
 
