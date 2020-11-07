@@ -21,7 +21,7 @@ Layout NodeNoGhost< Real, Node >@all {
 
 // field declarations
 
-Field src< global, NodeWithComm, vf_boundaryPosition_x ** 2 - 0.5 * vf_boundaryPosition_y ** 2 - 0.5 * vf_boundaryPosition_z ** 2 >@all
+Field src< global, NodeWithComm, 0.0 >@all
 Field dest< global, NodeWithComm, 0.0 >@all
 
 // external field declarations
@@ -32,14 +32,29 @@ Field dest< global, NodeWithComm, 0.0 >@all
 
 // functions
 
-Function compareFields@all {
+Function compareFields@all : Int {
     loop over dest {
         Var diff : Real = fabs(dest - src)
         if( diff > 0.001 ) {
             print("fields are not equal!")
             print("Error occurred at idx: i0 =", i0, ",i1 =", i1, ",i2=", i2)
+            return -1
         }
     }
+    return 0
+}
+
+Function initSRC@finest {
+  loop over src {
+    src = vf_nodePos_x**2 - vf_nodePos_y**2 - vf_nodePos_z**2
+  }
+}
+
+Function checkEquality@finest {
+  Val ret : Int = compareFields@finest ( )
+  if( ret == -1 ) {
+    exit(1)
+  }
 }
 
 Function Application {
@@ -49,31 +64,40 @@ Function Application {
   initDomain ( )
   initFieldsWithZero ( )
   initGeometry ( )
-  apply bc to src@finest
+  initSRC@finest ( )
   stopTimer ( "setup" )
+  
+  Val fmt : String = "bin"
   
   /* Start FPP I/O */
   // write field
   startTimer ("FPP: writeField")
-  //writeField ("src", src@finest, "ascii", false, false)
+  writeField ("src_fpp", src@finest, fmt, false, false)
   stopTimer ("FPP: writeField")
 
   // read field
   startTimer ("FPP: readField")
-  //readField ("src", dest@finest, "ascii", false, false)
+  readField ("src_fpp", dest@finest, fmt, false, false)
   stopTimer ("FPP: readField")
+  
+  checkEquality@finest ( )
+  
+  writeField ("dest_fpp", dest@finest, fmt, false, false)
   /* End FPP I/O */
   
   /* Start Locking I/O */
   startTimer ("Lock: writeField")
-  writeField ("src", src@finest, "ascii", true, true)
+  writeField ("src_lock", src@finest, fmt, true, true)
   stopTimer ("Lock: writeField")
   
   startTimer ("Lock: readField")
-  readField ("src", dest@finest, "ascii", true, true)
+  readField ("src_lock", dest@finest, fmt, true, true)
   stopTimer ("Lock: readField")
   
-  compareFields@finest ( )
+  checkEquality@finest ( )
+  
+  printField ("src_vis", src@finest, "csv", true, true)
+  writeField ("dest_lock", dest@finest, fmt, true, true)
   /* End Locking I/O */
   
   // de-init

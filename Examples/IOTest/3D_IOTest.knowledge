@@ -8,3 +8,6 @@ discr_type                     = "FiniteDifferences"
 // omp parallelization on exactly one fragment in one block
 import '../lib/domain_fourPatches.knowledge'
 import '../lib/parallelization_fourMPI.knowledge'
+
+//import '../lib/domain_onePatch.knowledge'
+//import '../lib/parallelization_serial.knowledge'
