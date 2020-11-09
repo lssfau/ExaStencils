@@ -1,6 +1,7 @@
 package exastencils.field.ir
 
 import exastencils.base.ir.IR_Expression
+import exastencils.base.ir.IR_NullExpression
 import exastencils.base.ir.IR_StringConstant
 import exastencils.io.ir.IR_FileAccess
 import exastencils.io.ir.IR_FileAccess_FPP
@@ -82,14 +83,15 @@ trait IR_FieldIO {
       basenameFile : IR_Expression,
       field : IR_Field,
       slot : IR_Expression,
-      condition : Option[IR_Expression],
       includeGhostLayers : Boolean,
       format : IR_Expression,
       outputSingleFile : Boolean,
       useLock : Boolean,
       doWrite : Boolean,
-      appendToFile : Boolean = false,
-      onlyVals : Boolean) : IR_FileAccess = {
+      onlyVals : Boolean,
+      dataset : Option[IR_Expression],
+      condition : Option[IR_Expression],
+      appendToFile : Boolean = false) : IR_FileAccess = {
 
     val fn = createFilename(basenameFile, format, outputSingleFile)
     val fmt = format.asInstanceOf[IR_StringConstant].value
@@ -103,11 +105,11 @@ trait IR_FieldIO {
           IR_FileAccess_MPIIO(fn, field, slot, includeGhostLayers, fmtOptionsText.contains(fmt), writeAccess = true)
         }
       case s : String if fmtOptionsHDF5.contains(s)   =>
-        IR_FileAccess_HDF5(fn, field, slot, includeGhostLayers, writeAccess = doWrite)
+        IR_FileAccess_HDF5(fn, dataset.getOrElse(IR_NullExpression), field, slot, includeGhostLayers, writeAccess = doWrite, appendedMode = appendToFile)
       case s : String if fmtOptionsNetCDF.contains(s) =>
-        IR_FileAccess_PnetCDF(fn, field, slot, includeGhostLayers, writeAccess = doWrite)
+        IR_FileAccess_PnetCDF(fn, dataset.getOrElse(IR_NullExpression), field, slot, includeGhostLayers, writeAccess = doWrite, appendedMode = appendToFile)
       case s : String if fmtOptionsSION.contains(s)   =>
-        IR_FileAccess_SionLib(fn, field, slot, includeGhostLayers, writeAccess = doWrite)
+        IR_FileAccess_SionLib(fn, field, slot, includeGhostLayers, writeAccess = doWrite, appendedMode = appendToFile)
       case _                                          =>
         Logger.warn("Ignoring call to writeField with unsupported format: " + fmt)
         IR_FileAccess_None(field, slot)

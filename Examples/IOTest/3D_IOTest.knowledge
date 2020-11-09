@@ -5,6 +5,8 @@ maxLevel                       = 6
 
 discr_type                     = "FiniteDifferences"
 
+//parIO_generateDebugStatements = true
+
 // omp parallelization on exactly one fragment in one block
 import '../lib/domain_fourPatches.knowledge'
 import '../lib/parallelization_fourMPI.knowledge'

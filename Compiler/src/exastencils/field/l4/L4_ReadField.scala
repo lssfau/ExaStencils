@@ -32,6 +32,7 @@ import exastencils.prettyprinting.PpStream
 case class L4_ReadField(
     var basenameFile : L4_Expression,
     var field : L4_FieldAccess,
+    var dataset : Option[L4_Expression] = None,
     var condition : Option[L4_Expression] = None,
     var includeGhostLayers : Boolean = false,
     var format : L4_Expression = L4_StringConstant("txt"),
@@ -53,6 +54,7 @@ case class L4_ReadField(
       basenameFile.progress,
       progField.field,
       progField.slot,
+      dataset.getOrElse(L4_NullExpression).progress,
       condition.getOrElse(L4_BooleanConstant(true)).progress,
       includeGhostLayers,
       format.progress,
@@ -94,13 +96,17 @@ object L4_ResolveReadFieldFunctions extends DefaultStrategy("Resolve read field 
           L4_ReadField(L4_StringConstant(field.target.name), field, includeGhostLayers = includeGhosts)
         case ListBuffer(basename, field : L4_FieldAccess)            => // option 2: filename and field
           L4_ReadField(basename, field, includeGhostLayers = includeGhosts)
-        case ListBuffer(basename, field : L4_FieldAccess, condition) => // option 3: filename, file and condition
+        case ListBuffer(basename, field : L4_FieldAccess, condition) => // option 3: filename, field and condition
           L4_ReadField(basename, field, Some(condition), includeGhostLayers = includeGhosts)
         // new function calls. "format" parameter has precedence over old parameters (e.g. binary)
-        case ListBuffer(basename, field : L4_FieldAccess, fmt : L4_StringConstant) => // option 4: filename, file and format
+        // TODO
+        case ListBuffer(basename, field : L4_FieldAccess, fmt : L4_StringConstant) => // option 4: filename, field and format
           L4_ReadField(basename, field, includeGhostLayers = includeGhosts, format = fmt)
-        case ListBuffer(basename, field : L4_FieldAccess, fmt : L4_StringConstant, singleFile : L4_BooleanConstant, useLock : L4_BooleanConstant) => // option 5: filename, file, format, single-shared-file and locking
+        case ListBuffer(basename, field : L4_FieldAccess, fmt : L4_StringConstant, singleFile : L4_BooleanConstant, useLock : L4_BooleanConstant) => // option 5: filename, field, format, single-shared-file and locking
           L4_ReadField(basename, field, includeGhostLayers = includeGhosts, format = fmt, outputSingleFile = singleFile.value, useLocking = useLock.value)
+        case ListBuffer(fileName, field : L4_FieldAccess, dataset : L4_StringConstant, fmt : L4_StringConstant, singleFile : L4_BooleanConstant, useLock : L4_BooleanConstant) => // option 6: filename, field, dataset, format, single-shared-file and locking
+          L4_ReadField(fileName, field, Some(dataset), includeGhostLayers = includeGhosts, format = fmt, outputSingleFile = singleFile.value, useLocking = useLock.value)
+        // TODO: condition for locking/fpp
         case _                                                       =>
           Logger.warn("Ignoring call to readField with unsupported arguments: " + args.mkString(", "))
           L4_NullStatement

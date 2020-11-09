@@ -36,7 +36,7 @@ Function compareFields@all : Int {
     loop over dest {
         Var diff : Real = fabs(dest - src)
         if( diff > 0.001 ) {
-            print("fields are not equal!")
+            print("fields are not equal! src=", src, " dest=", dest)
             print("Error occurred at idx: i0 =", i0, ",i1 =", i1, ",i2=", i2)
             return -1
         }
@@ -99,6 +99,18 @@ Function Application {
   printField ("src_vis", src@finest, "csv", true, true)
   writeField ("dest_lock", dest@finest, fmt, true, true)
   /* End Locking I/O */
+  
+  /* Start HDF5 */
+  startTimer ("HDF5: writeField")
+  writeField ("src", src@finest, "src", "h5", true, true)
+  stopTimer ("HDF5: writeField")
+  
+  startTimer ("HDF5: readField")
+  readField ("src", dest@finest, "src", "h5", true, true)
+  stopTimer ("HDF5: readField")
+  
+  checkEquality@finest ( )
+  /* END HDF5 */
   
   // de-init
   printAllTimers ( )

@@ -45,6 +45,7 @@ case class IR_PrintField(
     var basenameFile : IR_Expression,
     var field : IR_Field,
     var slot : IR_Expression,
+    var dataset : IR_Expression = IR_NullExpression,
     var condition : IR_Expression = true,
     var includeGhostLayers : Boolean = false,
     var format : IR_Expression = IR_StringConstant("txt"),
@@ -72,7 +73,7 @@ case class IR_PrintField(
   // writes comma-separated files in ascii mode, raw binaries otherwise (locking)
   def writeCSV() : ListBuffer[IR_Statement] = {
     val fileAccessHandler = selectAndAddStatements(
-      basenameFile, field, slot, Some(condition), includeGhostLayers, IR_StringConstant("csv"), outputSingleFile, useLocking, doWrite = true, appendToFile = true, onlyVals = false
+      basenameFile, field, slot, includeGhostLayers, format = IR_StringConstant("csv"), outputSingleFile, useLocking, doWrite = true, onlyVals = false, Some(dataset), Some(condition), appendToFile = true
     )
     var statements : ListBuffer[IR_Statement] = ListBuffer()
     statements ++= fileAccessHandler.prologue()
@@ -212,7 +213,7 @@ case class IR_PrintField(
         statements ++= writeNetCDF()
       case s : String if fmtOptionsSION.contains(s)   =>
         Logger.warn("Sion Files cannot directly be visualized. Defaulting to \"writeField\" implementation.")
-        statements += selectAndAddStatements(basenameFile, field, slot, Some(condition), includeGhostLayers, format, outputSingleFile, useLocking, doWrite = true, onlyVals = false)
+        statements += selectAndAddStatements(basenameFile, field, slot, includeGhostLayers, format, outputSingleFile, useLocking, doWrite = true, onlyVals = false, Some(dataset), Some(condition))
       case _                                          =>
         Logger.warn("Ignoring call to \"printField\" with unsupported format: " + format)
         IR_NullStatement

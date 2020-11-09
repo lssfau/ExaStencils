@@ -32,6 +32,7 @@ import exastencils.prettyprinting.PpStream
 case class L4_WriteField(
     var basenameFile : L4_Expression,
     var field : L4_FieldAccess,
+    var dataset : Option[L4_Expression] = None,
     var condition: Option[L4_Expression] = None,
     var includeGhostLayers : Boolean = false,
     var format : L4_Expression = L4_StringConstant("txt"),
@@ -51,6 +52,7 @@ case class L4_WriteField(
       basenameFile.progress,
       progField.field,
       progField.slot,
+      dataset.getOrElse(L4_NullExpression).progress,
       condition.getOrElse(L4_BooleanConstant(true)).progress,
       includeGhostLayers,
       format.progress,
@@ -87,16 +89,22 @@ object L4_ResolveWriteFieldFunctions extends DefaultStrategy("Resolve write fiel
       if (offset.isDefined) Logger.warn(s"Found print field function with offset; offset is ignored")
 
       args match {
+        // deprecated function calls (backwards compatibility)
         case ListBuffer(field : L4_FieldAccess)                      => // option 1: only field -> deduce name
           L4_WriteField(L4_StringConstant(field.target.name), field, includeGhostLayers = includeGhosts)
         case ListBuffer(fileName, field : L4_FieldAccess)            => // option 2: filename and field
           L4_WriteField(fileName, field, includeGhostLayers = includeGhosts)
-        case ListBuffer(fileName, field : L4_FieldAccess, condition) => // option 3: filename, file and condition
+        case ListBuffer(fileName, field : L4_FieldAccess, condition) => // option 3: filename, field and condition
           L4_WriteField(fileName, field, Some(condition), includeGhostLayers = includeGhosts)
-        case ListBuffer(fileName, field : L4_FieldAccess, fmt : L4_StringConstant) => // option 4: filename, file and format
+        // new function calls. "format" parameter has precedence over old parameters (e.g. binary)
+        // TODO
+        case ListBuffer(fileName, field : L4_FieldAccess, fmt : L4_StringConstant) => // option 4: filename, field and format
           L4_WriteField(fileName, field, includeGhostLayers = includeGhosts, format = fmt)
-        case ListBuffer(fileName, field : L4_FieldAccess, fmt : L4_StringConstant, singleFile : L4_BooleanConstant, useLock : L4_BooleanConstant) => // option 5: filename, file, format, single-shared-file and locking
+        case ListBuffer(fileName, field : L4_FieldAccess, fmt : L4_StringConstant, singleFile : L4_BooleanConstant, useLock : L4_BooleanConstant) => // option 5: filename, field, format, single-shared-file and locking
           L4_WriteField(fileName, field, includeGhostLayers = includeGhosts, format = fmt, outputSingleFile = singleFile.value, useLocking = useLock.value)
+        case ListBuffer(fileName, field : L4_FieldAccess, dataset : L4_StringConstant, fmt : L4_StringConstant, singleFile : L4_BooleanConstant, useLock : L4_BooleanConstant) => // option 6: filename, field, dataset, format, single-shared-file and locking
+          L4_WriteField(fileName, field, Some(dataset), includeGhostLayers = includeGhosts, format = fmt, outputSingleFile = singleFile.value, useLocking = useLock.value)
+        // TODO: condition for locking/fpp
         case _  =>
           Logger.warn("Ignoring call to writeField with unsupported arguments: " + args.mkString(", "))
           L4_NullStatement

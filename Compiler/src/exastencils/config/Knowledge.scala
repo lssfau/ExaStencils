@@ -466,6 +466,11 @@ object Knowledge {
   // [true|false] // specifies if MPI_Test (true) or MPI_Wait (false) is to be used when waiting for async communication
   var mpi_useBusyWait : Boolean = false
 
+  // --- Parallel I/O ---
+
+  // [true|false] // enables generation of debugging statements when using parallel I/O libraries
+  var parIO_generateDebugStatements : Boolean = false
+
   /// --- CUDA ---
 
   // [true|false]

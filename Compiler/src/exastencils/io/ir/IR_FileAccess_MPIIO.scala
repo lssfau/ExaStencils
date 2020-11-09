@@ -13,7 +13,8 @@ case class IR_FileAccess_MPIIO(
     var slot : IR_Expression,
     var includeGhostLayers : Boolean,
     var useAscii : Boolean,
-    var writeAccess : Boolean) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess) {
+    var appendedMode : Boolean = false,
+    var writeAccess : Boolean) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess, appendedMode) {
 
   override def prologue() : ListBuffer[IR_Statement] = ???
   override def epilogue() : ListBuffer[IR_Statement] = ???

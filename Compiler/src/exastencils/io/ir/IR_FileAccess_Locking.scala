@@ -23,7 +23,7 @@ case class IR_FileAccess_Locking(
     var writeAccess : Boolean,
     var onlyValues : Boolean = true,
     var appendedMode : Boolean = false,
-    var condition : Option[IR_Expression]) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess) {
+    var condition : Option[IR_Expression]) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess, appendedMode) {
 
   var openFlags = if (writeAccess) { if (Knowledge.mpi_enabled || appendedMode) "std::ios::app" else "std::ios::trunc"} else "std::ios::in"
   if (!useAscii)

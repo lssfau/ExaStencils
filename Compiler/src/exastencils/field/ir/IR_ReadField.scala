@@ -47,6 +47,7 @@ case class IR_ReadField(
     var basenameFile : IR_Expression,
     var field : IR_Field,
     var slot : IR_Expression,
+    var dataset : IR_Expression = IR_NullExpression,
     var condition: IR_Expression = true,
     var includeGhostLayers : Boolean = false,
     var format : IR_Expression = IR_StringConstant("txt"),
@@ -124,7 +125,7 @@ case class IR_ReadField(
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    statements += selectAndAddStatements(basenameFile, field, slot, Some(condition), includeGhostLayers, format, outputSingleFile, useLocking, doWrite = false, onlyVals = true)
+    statements += selectAndAddStatements(basenameFile, field, slot, includeGhostLayers, format, outputSingleFile, useLocking, doWrite = false, onlyVals = true, Some(dataset), Some(condition))
 
     statements
   }

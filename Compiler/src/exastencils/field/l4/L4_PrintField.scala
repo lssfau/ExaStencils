@@ -32,6 +32,7 @@ import exastencils.prettyprinting.PpStream
 case class L4_PrintField(
     var basenameFile : L4_Expression,
     var field : L4_FieldAccess,
+    var dataset : Option[L4_Expression] = None,
     var condition : Option[L4_Expression] = None,
     var includeGhostLayers : Boolean = false,
     var format : L4_Expression = L4_StringConstant("txt"),
@@ -51,6 +52,7 @@ case class L4_PrintField(
       basenameFile.progress,
       progField.field,
       progField.slot,
+      dataset.getOrElse(L4_NullExpression).progress,
       condition.getOrElse(L4_BooleanConstant(true)).progress,
       includeGhostLayers,
       format.progress,
@@ -91,9 +93,9 @@ object L4_ResolvePrintFieldFunctions extends DefaultStrategy("Resolve print fiel
       // determines if plain field values are written to file (WriteField) or field values including a visualization format (PrintField)
       def wrapStmtCtorOnlyValues(fn : L4_Expression, fieldAcc : L4_FieldAccess, cond : Option[L4_Expression], includeGhost : Boolean, useBin : L4_StringConstant) = {
         if(onlyValues)
-          L4_WriteField(fn, fieldAcc, cond, includeGhost, useBin)
+          L4_WriteField(fn, fieldAcc, None, cond, includeGhost, useBin)
         else
-          L4_PrintField(fn, fieldAcc, cond, includeGhost, useBin)
+          L4_PrintField(fn, fieldAcc, None, cond, includeGhost, useBin)
       }
 
       if (level.isDefined) Logger.warn(s"Found leveled print field function with level ${ level.get }; level is ignored")
@@ -105,13 +107,17 @@ object L4_ResolvePrintFieldFunctions extends DefaultStrategy("Resolve print fiel
           wrapStmtCtorOnlyValues(L4_StringConstant(field.target.name), field, None, includeGhosts, binary)
         case ListBuffer(basename, field : L4_FieldAccess)            => // option 2: filename and field
           wrapStmtCtorOnlyValues(basename, field, None, includeGhosts, binary)
-        case ListBuffer(basename, field : L4_FieldAccess, condition) => // option 3: filename, file and condition
+        case ListBuffer(basename, field : L4_FieldAccess, condition) => // option 3: filename, field and condition
           wrapStmtCtorOnlyValues(basename, field, Some(condition), includeGhosts, binary)
         // new function calls. "format" parameter has precedence over old parameters (e.g. binary)
-        case ListBuffer(basename, field : L4_FieldAccess, fmt : L4_StringConstant) => // option 4: filename, file and format
+        // TODO
+        case ListBuffer(basename, field : L4_FieldAccess, fmt : L4_StringConstant) => // option 4: filename, field and format
           L4_PrintField(basename, field, includeGhostLayers = includeGhosts, format = fmt)
-        case ListBuffer(basename, field : L4_FieldAccess, fmt : L4_StringConstant, singleFile : L4_BooleanConstant, useLock : L4_BooleanConstant) => // option 5: filename, file, format, single-shared-file and locking
+        case ListBuffer(basename, field : L4_FieldAccess, fmt : L4_StringConstant, singleFile : L4_BooleanConstant, useLock : L4_BooleanConstant) => // option 5: filename, field, format, single-shared-file and locking
           L4_PrintField(basename, field, includeGhostLayers = includeGhosts, format = fmt, outputSingleFile = singleFile.value, useLocking = useLock.value)
+        case ListBuffer(fileName, field : L4_FieldAccess, dataset : L4_StringConstant, fmt : L4_StringConstant, singleFile : L4_BooleanConstant, useLock : L4_BooleanConstant) => // option 6: filename, field, dataset, format, single-shared-file and locking
+          L4_PrintField(fileName, field, Some(dataset), includeGhostLayers = includeGhosts, format = fmt, outputSingleFile = singleFile.value, useLocking = useLock.value)
+        // TODO: condition for locking/fpp
         case _                                                       =>
           Logger.warn("Ignoring call to printField with unsupported arguments: " + args.mkString(", "))
           L4_NullStatement
