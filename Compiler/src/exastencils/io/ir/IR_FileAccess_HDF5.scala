@@ -170,8 +170,42 @@ case class IR_FileAccess_HDF5(
     // get dataspace
     statements ++= callH5Function(dataspace, "H5Dget_space", dataset)
 
-    statements += accessFileFragwise(
-      callH5Function(err, "H5Dread", dataset, h5Datatype, memspace, dataspace, transferList, IR_AddressOf(IR_LinearizedFieldAccess(field, slot, IR_LoopOverFragments.defIt, 0)))
+    // get properties from dataspace and compare with provided values
+    def checkDims(readField : IR_LoopOverFragments) : ListBuffer[IR_Statement] = if(Knowledge.parIO_generateDebugStatements) {
+      val rank_decl = IR_VariableDeclaration(IR_IntegerDatatype, "rank")
+      val dimsDataset_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("dimsDataset"))
+      val rank = IR_VariableAccess(rank_decl)
+      val dimsDataset = IR_VariableAccess(dimsDataset_decl)
+
+      var dbgStmts : ListBuffer[IR_Statement] = ListBuffer()
+      dbgStmts += rank_decl
+
+      var falseBdy = ListBuffer[IR_Statement]()
+      falseBdy += dimsDataset_decl
+      falseBdy ++= callH5Function(rank, "H5Sget_simple_extent_dims", dataspace, dimsDataset, nullptr)
+      falseBdy += IR_IfCondition(
+        numDimsDataRange.map(d => IR_ArrayAccess(dimsDataset, d) Neq IR_ArrayAccess(globalDims, d)).fold(IR_BooleanConstant(true))((a, b) => a AndAnd(b)), // compare dimensionality
+        IR_Print(IR_VariableAccess("std::cout", IR_UnknownDatatype), IR_StringConstant("Dimensionality mismatch! No data is read from the file.")),
+        readField
+      )
+
+      dbgStmts ++= callH5Function(rank, "H5Sget_simple_extent_ndims", dataspace)
+      dbgStmts += IR_IfCondition(rank Neq numDimsData,
+        ListBuffer[IR_Statement](
+          IR_Print(IR_VariableAccess("std::cout", IR_UnknownDatatype), IR_StringConstant("Rank mismatch! No data is read from the file."))
+        ),
+        falseBdy
+      )
+
+      dbgStmts
+    } else {
+      ListBuffer(readField)
+    }
+
+    statements ++= checkDims(
+      accessFileFragwise(
+        callH5Function(err, "H5Dread", dataset, h5Datatype, memspace, dataspace, transferList, IR_AddressOf(IR_LinearizedFieldAccess(field, slot, IR_LoopOverFragments.defIt, 0)))
+      )
     )
 
     statements
