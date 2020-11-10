@@ -39,7 +39,6 @@ case class IR_LocalSolve(
     var jacobiType : Boolean,
     var relax : Option[IR_Expression]) extends IR_Statement with IR_SpecialExpandable {
   var omitConditions = false
- // var omitConditions = Knowledge.experimental_forceOmitCondInLocalSolve
 
   var fVals = ListBuffer[IR_Addition]()
   var AVals = ListBuffer[ListBuffer[IR_Addition]]()
