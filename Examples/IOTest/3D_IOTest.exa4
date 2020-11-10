@@ -70,6 +70,7 @@ Function Application {
   Val fmt : String = "bin"
   
   /* Start FPP I/O */
+  /*
   // write field
   startTimer ("FPP: writeField")
   writeField ("src_fpp", src@finest, fmt, false, false)
@@ -83,9 +84,11 @@ Function Application {
   checkEquality@finest ( )
   
   writeField ("dest_fpp", dest@finest, fmt, false, false)
+  */
   /* End FPP I/O */
   
   /* Start Locking I/O */
+  /*
   startTimer ("Lock: writeField")
   writeField ("src_lock", src@finest, fmt, true, true)
   stopTimer ("Lock: writeField")
@@ -98,15 +101,16 @@ Function Application {
   
   printField ("src_vis", src@finest, "csv", true, true)
   writeField ("dest_lock", dest@finest, fmt, true, true)
+  */
   /* End Locking I/O */
   
   /* Start HDF5 */
   startTimer ("HDF5: writeField")
-  writeField ("src", src@finest, "src", "h5", true, true)
+  writeField ("src", src@finest, "/test/abs/path/src", "h5", true, true)
   stopTimer ("HDF5: writeField")
   
   startTimer ("HDF5: readField")
-  readField ("src", dest@finest, "src", "h5", true, true)
+  readField ("src", dest@finest, "/test/abs/path/src", "h5", true, true)
   stopTimer ("HDF5: readField")
   
   checkEquality@finest ( )

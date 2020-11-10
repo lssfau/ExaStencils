@@ -32,12 +32,11 @@ case class IR_FileAccess_HDF5(
   val rank = numDimsData
   val nullptr = IR_VariableAccess("NULL", IR_UnknownDatatype)
 
-  // TODO handle groups in datasetName parameter
-
   // hdf5 specific datatypes
   val hid_t = IR_SpecialDatatype("hid_t")
   val hsize_t = IR_SpecialDatatype("hsize_t")
   val herr_t = IR_SpecialDatatype("herr_t")
+  val htri_t = IR_SpecialDatatype("htri_t")
   // decls
   val err_decl = IR_VariableDeclaration(herr_t, IR_FileAccess.declareVariable("err"))
   val fileId_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("fileId"))
@@ -99,12 +98,55 @@ case class IR_FileAccess_HDF5(
     IR_VariableAccess(dt, IR_UnknownDatatype)
   }
 
+  // NOTE: loc_id is fixed to filename in this implementation
+  // -> name of dataset must contain an absolute path beginning from root ("\") of the group hierarchy
+  // https://support.hdfgroup.org/HDF5/doc1.8/_topic/loc_id+name_obj.htm
+  val locationId = fileId
+  val groups : ListBuffer[String] = { // get group names from absolute dataset path (w/o dataset name)
+    val absPath = datasetName.asInstanceOf[IR_StringConstant].value
+    absPath.tail.split("/").scanLeft(""){_ + "/" + _}.tail.dropRight(1).to[ListBuffer]
+  }
+
   def callH5Function(toAssign : IR_VariableAccess, funcName : String, args : IR_Expression*) : ListBuffer[IR_Statement] = {
     val stmts : ListBuffer[IR_Statement] = ListBuffer()
     stmts += IR_Assignment(toAssign, IR_FunctionCall(IR_ExternalFunctionReference(funcName), args : _*))
     if(Knowledge.parIO_generateDebugStatements)
       stmts += IR_IfCondition(toAssign < 0,
         IR_Print(IR_VariableAccess("std::cout", IR_UnknownDatatype), IR_VariableAccess("__FILE__", IR_UnknownDatatype), IR_StringConstant(": Error at line: "), IR_VariableAccess("__LINE__", IR_UnknownDatatype), IR_Print.endl))
+    stmts
+  }
+
+  // handling of groups within the file
+  var groupDecls : ListBuffer[IR_VariableDeclaration] = ListBuffer()
+  def createGroupHierarchy : ListBuffer[IR_Statement] = {
+    var stmts : ListBuffer[IR_Statement] = ListBuffer()
+
+    val groupExists_decl = IR_VariableDeclaration(htri_t, IR_FileAccess.declareVariable("linkExists"))
+    val groupExists = IR_VariableAccess(groupExists_decl)
+    stmts += groupExists_decl
+
+    for(gName <- groups) {
+      val groupId_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("groupId"))
+      val groupId = IR_VariableAccess(groupId_decl)
+      stmts += groupId_decl
+      groupDecls += groupId_decl
+
+      // check if group already exists and open, otherwise create
+      stmts ++= callH5Function(groupExists, "H5Lexists", locationId, IR_StringConstant(gName), defaultPropertyList)
+      stmts += IR_IfCondition(groupExists > 0,
+        callH5Function(groupId, "H5Gopen2", locationId, IR_StringConstant(gName), defaultPropertyList),
+        callH5Function(groupId, "H5Gcreate2", locationId, IR_StringConstant(gName), defaultPropertyList, defaultPropertyList, defaultPropertyList)
+      )
+    }
+
+    stmts
+  }
+  def closeGroupHierarchy : ListBuffer[IR_Statement] = {
+    var stmts : ListBuffer[IR_Statement] = ListBuffer()
+
+    for(g <- groupDecls)
+      stmts ++= callH5Function(err, "H5Gclose", IR_VariableAccess(g))
+
     stmts
   }
 
@@ -125,6 +167,8 @@ case class IR_FileAccess_HDF5(
     else
       statements ++= callH5Function(fileId, "H5Fopen", fileName, openMode, propertyList)
 
+    statements ++= createGroupHierarchy
+
     // create memspace. select hyperslab to only use the inner points for file accesses.
     statements ++= callH5Function(memspace, "H5Screate_simple", rank, localDims, nullptr)
     statements ++= callH5Function(err, "H5Sselect_hyperslab", memspace, IR_VariableAccess("H5S_SELECT_SET", IR_UnknownDatatype), localStart, stride, count, nullptr)
@@ -135,10 +179,12 @@ case class IR_FileAccess_HDF5(
 
     statements
   }
+
   override def epilogue() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     // cleanup
+    statements ++= closeGroupHierarchy
     statements ++= callH5Function(err, "H5Pclose", propertyList)
     statements ++= callH5Function(err, "H5Pclose", transferList)
     statements ++= callH5Function(err, "H5Sclose", dataspace)
@@ -164,7 +210,6 @@ case class IR_FileAccess_HDF5(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     // open dataset
-    val locationId = fileId // TODO: handle groups
     statements ++= callH5Function(dataset, "H5Dopen2", locationId, datasetName, defaultPropertyList)
 
     // get dataspace
@@ -218,7 +263,6 @@ case class IR_FileAccess_HDF5(
     statements ++= callH5Function(dataspace, "H5Screate_simple", rank, globalDims, nullptr)
 
     // create dataset
-    val locationId = fileId // TODO: handle groups
     statements ++= callH5Function(dataset, "H5Dcreate2", locationId, datasetName, h5Datatype, dataspace, defaultPropertyList, defaultPropertyList, defaultPropertyList)
 
     statements += accessFileFragwise(
