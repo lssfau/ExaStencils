@@ -20,11 +20,13 @@ package exastencils.stencil.ir
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.operator.ir._
 import exastencils.optimization.ir._
+import exastencils.solver.ir.IR_ResolveIntergridIndices
 import exastencils.util.ir.IR_ResultingDatatype
 
 // TODO: is it really necessary to wrap convolutions in separate nodes?
@@ -48,6 +50,12 @@ case class IR_StencilConvolution(var left : IR_StencilAccess, var right : IR_Fie
       IR_OffsetAllApplicable.offset = left.offset.get
       IR_OffsetAllApplicable.applyStandalone(coeff)
     }
+
+    val level = if (Knowledge.useFasterExpand) IR_ExpandInOnePass.collector.getCurrentLevel else IR_Expand.collector.getCurrentLevel
+
+    IR_ResolveIntergridIndices.overrideLevel = Some(level)
+    IR_ResolveIntergridIndices.applyStandalone(coeff)
+    IR_ResolveIntergridIndices.overrideLevel = None
 
     coeff.expression * Duplicate(IR_FieldAccess(right.field, Duplicate(right.slot), right.index + offset))
   }
