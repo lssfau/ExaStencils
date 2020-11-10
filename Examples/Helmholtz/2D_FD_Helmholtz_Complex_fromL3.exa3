@@ -10,8 +10,14 @@ Field Solution with Complex<Real> on Node of global = 0.0
 Field Solution on boundary = 0.0
 //Field Solution on boundary = Neumann
 
+// Zero rhs
 //Field RHS@finest with Complex<Real> on Node of global = 0.0
-Field RHS@finest with Complex<Real> on Node of global = 1.0/(2*PI*a) * exp(-((vf_nodePos_x-0.5)**2+(vf_nodePos_y-0.5)**2)/(2*a))
+
+// Gaussian approximation of the dirac pulse
+//Field RHS@finest with Complex<Real> on Node of global = 1.0/(2*PI*a) * exp(-((vf_nodePos_x-0.5)**2+(vf_nodePos_y-0.5)**2)/(2*a))
+
+// Zenger correction of the dirac pulse
+Field RHS@finest with Complex<Real> on Node of global = max( - (abs(vf_nodePos_x - 0.5) - vf_gridWidth_x) / vf_gridWidth_x**2) * max( - (abs(vf_nodePos_y - 0.5) - vf_gridWidth_y) / vf_gridWidth_y**2)
 Field RHS@(all but finest) with Complex<Real> on Node of global
 
 Field Residual        from RHS
@@ -77,7 +83,7 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 
 Globals {
   Expr k = 80.0
-  Expr a = 1.0/k**2
+  //Expr a = 1e-4
   Expr omegaRelax = 0.6
   //Var shift : Complex<Real> = (1.0 + 1.0j)
   Var shift : Complex<Real> = (1.0 + 0.5j)
@@ -159,16 +165,15 @@ Function Smoother@all {
       u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
     }
   }
-/*
+
+  /*
   color with {
     ((i0 + i1) % 2),
     solve locally at u@[0,0] relax omegaRelax {
       u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
     }
   }
-*/
 
-/*
   solve locally at u@[0,0] relax omegaRelax {
     u@[0,0] => ( M@[0,0] * u@[0,0] ) == f@[0,0]
   }
