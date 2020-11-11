@@ -17,7 +17,7 @@ Field Solution on boundary = 0.0
 //Field RHS@finest with Complex<Real> on Node of global = 1.0/(2*PI*a) * exp(-((vf_nodePos_x-0.5)**2+(vf_nodePos_y-0.5)**2)/(2*a))
 
 // Zenger correction of the dirac pulse
-Field RHS@finest with Complex<Real> on Node of global = max( - (fabs(vf_nodePos_x - 0.5) - vf_gridWidth_x) / vf_gridWidth_x**2) * max( - (fabs(vf_nodePos_y - 0.5) - vf_gridWidth_y) / vf_gridWidth_y**2)
+Field RHS@finest with Complex<Real> on Node of global = max(0, -(fabs(vf_nodePos_x - 0.5) - vf_gridWidth_x) / vf_gridWidth_x**2) * max(0, -(fabs(vf_nodePos_y - 0.5) - vf_gridWidth_y) / vf_gridWidth_y**2)
 Field RHS@(all but finest) with Complex<Real> on Node of global
 
 Field Residual        from RHS
