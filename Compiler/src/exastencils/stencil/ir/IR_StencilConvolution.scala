@@ -51,9 +51,7 @@ case class IR_StencilConvolution(var left : IR_StencilAccess, var right : IR_Fie
       IR_OffsetAllApplicable.applyStandalone(coeff)
     }
 
-<<<<<<< HEAD
-    coeff.expression * Duplicate(IR_FieldAccess.applySpecial(right.field, Duplicate(right.slot), right.index + offset, right.matIndex))
-=======
+
     val level = if (Knowledge.useFasterExpand) IR_ExpandInOnePass.collector.getCurrentLevel else IR_Expand.collector.getCurrentLevel
 
     IR_ResolveIntergridIndices.overrideLevel = Some(level)
@@ -61,7 +59,7 @@ case class IR_StencilConvolution(var left : IR_StencilAccess, var right : IR_Fie
     IR_ResolveIntergridIndices.overrideLevel = None
 
     coeff.expression * Duplicate(IR_FieldAccess(right.field, Duplicate(right.slot), right.index + offset))
->>>>>>> master
+
   }
 
   override def expand() : Output[IR_Expression] = {
