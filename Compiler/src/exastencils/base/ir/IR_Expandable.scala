@@ -22,11 +22,13 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.datastructures._
 import exastencils.prettyprinting.PpStream
+import exastencils.util.ir.IR_LevelCollector
 
 /// IR_Expandable
 
 trait IR_Expandable {
   def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
+
   def expand() : Transformation.OutputType
 }
 
@@ -39,6 +41,10 @@ trait IR_SpecialExpandable {
 /// IR_Expand
 
 object IR_Expand extends DefaultStrategy("Expand all applicable nodes") {
+  val collector = new IR_LevelCollector
+  this.register(collector)
+  this.onBefore = () => this.resetCollectors()
+
   def doUntilDone(node : Option[Node] = None) = {
     do { apply(node) }
     while (results.last._2.matches > 0) // FIXME: cleaner code
@@ -58,6 +64,10 @@ object IR_Expand extends DefaultStrategy("Expand all applicable nodes") {
 
 // TODO: this strategy becomes somewhat obsolete as soon as trafos implement the required behavior directly
 object IR_ExpandInOnePass extends DefaultStrategy("Expand all applicable nodes") {
+  val collector = new IR_LevelCollector
+  this.register(collector)
+  this.onBefore = () => this.resetCollectors()
+
   this += new Transformation("Expand", {
     case expandable : IR_Expandable =>
       var nodes : ListBuffer[Node] = ListBuffer()

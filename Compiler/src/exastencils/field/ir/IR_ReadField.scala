@@ -82,12 +82,12 @@ case class IR_ReadField(
     def stream = IR_VariableAccess(streamName, streamType)
 
     val read = IR_Read(stream)
-    arrayIndexRange.foreach { index =>
-      val access = IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData))
-      if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
-        access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
-      read.toRead += access
-    }
+    //    arrayIndexRange.foreach { index =>
+    val access = IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData))
+    //      if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
+    //        access.index(numDimsData - 2) = index // TODO: other hodt
+    read.toRead += access
+    //    }
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
