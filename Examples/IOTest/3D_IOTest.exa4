@@ -116,6 +116,19 @@ Function Application {
   checkEquality@finest ( )
   /* END HDF5 */
   
+  /* Start MPIIO */
+  startTimer ("MPIIO: writeField")
+  writeField ("src", src@finest, "bin", true, false)
+  stopTimer ("MPIIO: writeField")
+  
+  startTimer ("MPIIO: readField")
+  readField ("src", dest@finest, "bin", true, false)
+  stopTimer ("MPIIO: readField")
+  
+  checkEquality@finest ( )
+  /* END MPIIO */
+  
+  
   // de-init
   printAllTimers ( )
   destroyGlobals ( )

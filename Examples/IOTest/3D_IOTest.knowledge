@@ -5,11 +5,16 @@ maxLevel                       = 6
 
 discr_type                     = "FiniteDifferences"
 
-parIO_generateDebugStatements = true
+//parIO_generateDebugStatements = true
 
 // omp parallelization on exactly one fragment in one block
-import '../lib/domain_fourPatches.knowledge'
-import '../lib/parallelization_fourMPI.knowledge'
+//import '../lib/domain_fourPatches.knowledge'
+//import '../lib/parallelization_fourMPI.knowledge'
 
+// 8 blocks (2, 2, 2), 2 frags per block in x direction
+import '../lib/domain_16Patches.knowledge'
+import '../lib/parallelization_eightMPI.knowledge'
+
+// one block, one frag. serial code
 //import '../lib/domain_onePatch.knowledge'
 //import '../lib/parallelization_serial.knowledge'

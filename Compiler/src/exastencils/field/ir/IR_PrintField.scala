@@ -199,7 +199,7 @@ case class IR_PrintField(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     fmt match {
-      case "txt" | "csv" | "bin"                            =>
+      case "txt" | "csv" | "bin"                      =>
         if (!outputSingleFile) {
           statements ++= writeXmlVtk()
         } else if (useLocking) {
@@ -215,7 +215,7 @@ case class IR_PrintField(
         Logger.warn("Sion Files cannot directly be visualized. Defaulting to \"writeField\" implementation.")
         statements += selectAndAddStatements(basenameFile, field, slot, includeGhostLayers, format, outputSingleFile, useLocking, doWrite = true, onlyVals = false, Some(dataset), Some(condition))
       case _                                          =>
-        Logger.warn("Ignoring call to \"printField\" with unsupported format: " + format)
+        Logger.error("Ignoring call to \"printField\" with unsupported format: " + format)
         IR_NullStatement
     }
 

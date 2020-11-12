@@ -3,6 +3,7 @@ package exastencils.io.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.field.ir._
@@ -22,6 +23,10 @@ case class IR_FileAccess_PnetCDF(
 
   override def readField() : ListBuffer[IR_Statement] = ???
   override def writeField() : ListBuffer[IR_Statement] = ???
+
+  // TODO: Handling collective/independent I/O
+
+  def accessFileFragwise(accessStmts : ListBuffer[IR_Statement]) : IR_LoopOverFragments = ???
 
   override def expand() : Output[StatementList]  = {
     // TODO: PnetCDF headers

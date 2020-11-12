@@ -73,7 +73,7 @@ trait IR_FieldIO {
       Logger.warn("writeField: unsupported parameter combination: Shared file format \"" + fmt + "\" with useLocking=\"true\". Parameter <useLocking> is ignored.")
     }
     if(useLocking && !outputSingleFile) {
-      Logger.warn("Ignoring call to writeField with unsupported parameter combination: useLocking=\"true\" and outputSingleFile=\"false\". Locking only applicable with a shared files.")
+      Logger.error("Ignoring call to writeField with unsupported parameter combination: useLocking=\"true\" and outputSingleFile=\"false\". Locking only applicable with a shared files.")
       return false
     }
     true
@@ -102,7 +102,7 @@ trait IR_FieldIO {
         } else if (useLock) {
           IR_FileAccess_Locking(fn, field, slot, includeGhostLayers, fmtOptionsText.contains(fmt), writeAccess = doWrite, onlyValues = onlyVals, appendedMode = appendToFile, condition)
         } else {
-          IR_FileAccess_MPIIO(fn, field, slot, includeGhostLayers, fmtOptionsText.contains(fmt), writeAccess = true)
+          IR_FileAccess_MPIIO(fn, field, slot, includeGhostLayers, fmtOptionsText.contains(fmt), writeAccess = doWrite)
         }
       case s : String if fmtOptionsHDF5.contains(s)   =>
         IR_FileAccess_HDF5(fn, dataset.getOrElse(IR_NullExpression), field, slot, includeGhostLayers, writeAccess = doWrite, appendedMode = appendToFile)
@@ -111,7 +111,7 @@ trait IR_FieldIO {
       case s : String if fmtOptionsSION.contains(s)   =>
         IR_FileAccess_SionLib(fn, field, slot, includeGhostLayers, writeAccess = doWrite, appendedMode = appendToFile)
       case _                                          =>
-        Logger.warn("Ignoring call to writeField with unsupported format: " + fmt)
+        Logger.error("Ignoring call to writeField with unsupported format: " + fmt)
         IR_FileAccess_None(field, slot)
     }
   }

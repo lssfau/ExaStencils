@@ -9,6 +9,7 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.OutputType
+import exastencils.logger._
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.grid.ir._
@@ -67,14 +68,40 @@ abstract class IR_FileAccess(
 
   // local/global dimensions and offsets
   // TODO: handling for "includeGhostLayers" parameter
+  // TODO: handle other domains
+  // TODO: handle data reduction
   val numDimsDataRange = (0 until numDimsData).reverse // KJI order
   def stride_local : Array[IR_Expression] = numDimsDataRange.map (_ => IR_IntegerConstant(1)).toArray
-  def innerPoints_local : Array[IR_Expression] = numDimsDataRange.map(d => IR_IntegerConstant(field.layout.defIdxDupRightEnd(d) - field.layout.defIdxDupLeftBegin(d))).toArray
+  def innerPoints_local : Array[IR_Expression] = if(includeGhostLayers) {
+    numDimsDataRange.map(d => IR_IntegerConstant(field.layout.defIdxGhostRightEnd(d) - field.layout.defIdxGhostLeftBegin(d))).toArray
+  } else {
+    numDimsDataRange.map(d => IR_IntegerConstant(field.layout.defIdxDupRightEnd(d) - field.layout.defIdxDupLeftBegin(d))).toArray
+  }
   def totalPoints_local : Array[IR_Expression] = numDimsDataRange.map(d => IR_IntegerConstant(field.layout.defTotal(d))).toArray
-  def startIdx_local : Array[IR_Expression] = numDimsDataRange.map(d => IR_IntegerConstant(field.layout.defIdxDupLeftBegin(d))).toArray
-  // TODO handling for other domains
-  def innerPoints_global : Array[IR_Expression] = numDimsDataRange.map(d => Knowledge.domain_rect_numFragsTotalAsVec(d) * innerPoints_local(d)).toArray
-  def startIdx_global : Array[IR_Expression] = numDimsDataRange.map(d => innerPoints_local(d) * (IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsTotalAsVec(d))).toArray
+  def startIdx_local : Array[IR_Expression] = numDimsDataRange.map(d => IR_IntegerConstant(if(includeGhostLayers) field.layout.defIdxGhostLeftBegin(d) else field.layout.defIdxDupLeftBegin(d))).toArray
+  def innerPoints_global : Array[IR_Expression] = if(Knowledge.domain_onlyRectangular) {
+    numDimsDataRange.map(d => Knowledge.domain_rect_numFragsTotalAsVec(d) * innerPoints_local(d)).toArray
+  } else { // TODO handling for other domain types
+    Logger.error("Unimplemented!")
+    numDimsDataRange.map(_ => IR_NullExpression).toArray
+  }
+  def startIdx_global : Array[IR_Expression] = if(Knowledge.domain_onlyRectangular) {
+    numDimsDataRange.map(d => innerPoints_local(d) * (IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsTotalAsVec(d))).toArray
+  } else { // TODO handling for other domain types
+    Logger.error("Unimplemented!")
+    numDimsDataRange.map(_ => IR_NullExpression).toArray
+  }
+
+  // commonly used declarations
+  // ...
+
+  // commonly used variable accesses
+  def mpiCommunicator = IR_VariableAccess("mpiCommunicator", IR_UnknownDatatype)
+  def nullptr = IR_VariableAccess("NULL", IR_UnknownDatatype)
+  def fieldptr = IR_AddressOf(IR_LinearizedFieldAccess(field, slot, IR_LoopOverFragments.defIt, 0))
+
+  // commonly used datatypes
+  // ...
 
   def getPos(field : IR_Field, dim : Int) : IR_Expression = {
     // TODO: add function to field (layout) to decide node/cell for given dim

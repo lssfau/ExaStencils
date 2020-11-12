@@ -30,7 +30,8 @@ case class IR_FileAccess_HDF5(
     IR_VariableAccess("H5F_ACC_RDONLY", IR_UnknownDatatype)
   val ioMode = IR_VariableAccess("H5FD_MPIO_COLLECTIVE", IR_UnknownDatatype) // TODO: knowledge parameter
   val rank = numDimsData
-  val nullptr = IR_VariableAccess("NULL", IR_UnknownDatatype)
+
+  // TODO: Handling collective/independent I/O
 
   // hdf5 specific datatypes
   val hid_t = IR_SpecialDatatype("hid_t")
@@ -70,7 +71,6 @@ case class IR_FileAccess_HDF5(
   val globalDims = IR_VariableAccess(globalDims_decl)
   val globalStart = IR_VariableAccess(globalStart_decl)
   val info = IR_VariableAccess(info_decl)
-  val mpiCommunicator = IR_VariableAccess("mpiCommunicator", IR_UnknownDatatype)
   val defaultPropertyList = IR_VariableAccess("H5P_DEFAULT", IR_UnknownDatatype)
 
   val h5Datatype = {
@@ -99,7 +99,7 @@ case class IR_FileAccess_HDF5(
   }
 
   // NOTE: loc_id is fixed to filename in this implementation
-  // -> name of dataset must contain an absolute path beginning from root ("\") of the group hierarchy
+  // -> name of dataset must contain an absolute path beginning from root ("/") of the group hierarchy
   // https://support.hdfgroup.org/HDF5/doc1.8/_topic/loc_id+name_obj.htm
   val locationId = fileId
   val groups : ListBuffer[String] = { // get group names from absolute dataset path (w/o dataset name)
@@ -170,8 +170,13 @@ case class IR_FileAccess_HDF5(
     statements ++= createGroupHierarchy
 
     // create memspace. select hyperslab to only use the inner points for file accesses.
-    statements ++= callH5Function(memspace, "H5Screate_simple", rank, localDims, nullptr)
-    statements ++= callH5Function(err, "H5Sselect_hyperslab", memspace, IR_VariableAccess("H5S_SELECT_SET", IR_UnknownDatatype), localStart, stride, count, nullptr)
+    if(Knowledge.domain_onlyRectangular) {
+      statements ++= callH5Function(memspace, "H5Screate_simple", rank, localDims, nullptr)
+      statements ++= callH5Function(err, "H5Sselect_hyperslab", memspace, IR_VariableAccess("H5S_SELECT_SET", IR_UnknownDatatype), localStart, stride, count, nullptr)
+    } else {
+      // TODO
+      Logger.error("Unimplemented!")
+    }
 
     // request I/O mode (independent/collective) via transfer list
     statements ++= callH5Function(transferList, "H5Pcreate", IR_VariableAccess("H5P_DATASET_XFER", IR_UnknownDatatype))
@@ -249,7 +254,7 @@ case class IR_FileAccess_HDF5(
 
     statements ++= checkDims(
       accessFileFragwise(
-        callH5Function(err, "H5Dread", dataset, h5Datatype, memspace, dataspace, transferList, IR_AddressOf(IR_LinearizedFieldAccess(field, slot, IR_LoopOverFragments.defIt, 0)))
+        callH5Function(err, "H5Dread", dataset, h5Datatype, memspace, dataspace, transferList, fieldptr)
       )
     )
 
@@ -266,7 +271,7 @@ case class IR_FileAccess_HDF5(
     statements ++= callH5Function(dataset, "H5Dcreate2", locationId, datasetName, h5Datatype, dataspace, defaultPropertyList, defaultPropertyList, defaultPropertyList)
 
     statements += accessFileFragwise(
-      callH5Function(err, "H5Dwrite", dataset, h5Datatype, memspace, dataspace, transferList, IR_AddressOf(IR_LinearizedFieldAccess(field, slot, IR_LoopOverFragments.defIt, 0)))
+      callH5Function(err, "H5Dwrite", dataset, h5Datatype, memspace, dataspace, transferList, fieldptr)
     )
 
     statements
