@@ -433,17 +433,34 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       val endIdx = genIndexEnd(neigh)
 
       // tangent
-      val tx = IR_VariableAccess("tx", IR_FloatDatatype)
-      val ty = IR_VariableAccess("ty", IR_FloatDatatype)
+      //val tx = IR_VariableAccess("tx", IR_FloatDatatype)
+      //val ty = IR_VariableAccess("ty", IR_FloatDatatype)
       // normal
-      val nx = IR_VariableAccess("nx", IR_FloatDatatype)
-      val ny = IR_VariableAccess("ny", IR_FloatDatatype)
+      //val nx = IR_VariableAccess("nx", IR_FloatDatatype)
+      //val ny = IR_VariableAccess("ny", IR_FloatDatatype)
       // idx-distance to ghost layer
       val ghostId = IR_VariableAccess("ghostId", IR_IntegerDatatype)
 
       def nodePosition(index : IR_ExpressionIndex, dim : Int) = {
         IR_VF_NodePositionPerDim(field.level, field.domain, dim).resolve(index - field.referenceOffset)
       }
+
+      // tangent
+      def tx = 0.5 * (nodePosition(next(boundaryIdx), 0) - nodePosition(prev(boundaryIdx), 0))
+      def ty = IR_FloatConstant(0.5) * (nodePosition(next(boundaryIdx), 1) - nodePosition(prev(boundaryIdx), 1))
+      // normal
+      def nx = ty
+      def ny = IR_Negative(tx)
+      // corners
+      def txCornerBeg = IR_FloatConstant(0.5) * (nodePosition(next(next(beginIdx)), 0) - nodePosition(beginIdx, 0))
+      def tyCornerBeg = IR_FloatConstant(0.5) * (nodePosition(next(next(beginIdx)), 1) - nodePosition(beginIdx, 1))
+      def nxCornerBeg = tyCornerBeg
+      def nyCornerBeg = IR_Negative(txCornerBeg)
+      def txCornerEnd = IR_FloatConstant(0.5) * (nodePosition(endIdx, 0) - nodePosition(prev(prev(endIdx)), 0))
+      def tyCornerEnd = IR_FloatConstant(0.5) * (nodePosition(endIdx, 1) - nodePosition(prev(prev(endIdx)), 1))
+      def nxCornerEnd = tyCornerEnd
+      def nyCornerEnd = IR_Negative(txCornerEnd)
+
 
       body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh.index)), ListBuffer[IR_Statement](
         IR_Comment(neigh.index.toString()),
@@ -452,11 +469,11 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
           ListBuffer[IR_Statement](
             IR_Comment("Non-Corner Boundaries"),
             // tangent
-            IR_VariableDeclaration(tx, IR_FloatConstant(0.5) * (nodePosition(next(boundaryIdx), 0) - nodePosition(prev(boundaryIdx), 0))),
-            IR_VariableDeclaration(ty, IR_FloatConstant(0.5) * (nodePosition(next(boundaryIdx), 1) - nodePosition(prev(boundaryIdx), 1))),
+            //IR_VariableDeclaration(tx, IR_FloatConstant(0.5) * (nodePosition(next(boundaryIdx), 0) - nodePosition(prev(boundaryIdx), 0))),
+            //IR_VariableDeclaration(ty, IR_FloatConstant(0.5) * (nodePosition(next(boundaryIdx), 1) - nodePosition(prev(boundaryIdx), 1))),
             // normal
-            IR_VariableDeclaration(nx, ty),
-            IR_VariableDeclaration(ny, IR_Negative(tx)),
+            //IR_VariableDeclaration(nx, ty),
+            //IR_VariableDeclaration(ny, IR_Negative(tx)),
             // set ghost
             if (neigh.index < 2)
               IR_VariableDeclaration(ghostId, (baseIndex(0) - boundaryIdx(0)) + (baseIndex(1) - boundaryIdx(1)))
@@ -468,21 +485,21 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
         IR_Scope(ListBuffer[IR_Statement](
           IR_Comment("Corners"),
           // begin
-          IR_VariableDeclaration(tx, IR_FloatConstant(0.5) * (nodePosition(next(next(beginIdx)), 0) - nodePosition(beginIdx, 0))),
-          IR_VariableDeclaration(ty, IR_FloatConstant(0.5) * (nodePosition(next(next(beginIdx)), 1) - nodePosition(beginIdx, 1))),
+          //IR_VariableDeclaration(tx, IR_FloatConstant(0.5) * (nodePosition(next(next(beginIdx)), 0) - nodePosition(beginIdx, 0))),
+          //IR_VariableDeclaration(ty, IR_FloatConstant(0.5) * (nodePosition(next(next(beginIdx)), 1) - nodePosition(beginIdx, 1))),
           // normal
-          IR_VariableDeclaration(nx, ty),
-          IR_VariableDeclaration(ny, IR_Negative(tx)),
-          IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 0), nodePosition(beginIdx, 0) + nx * neigh.dir.sum),
-          IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 1), nodePosition(beginIdx, 1) + ny * neigh.dir.sum),
+          //IR_VariableDeclaration(nx, ty),
+          //IR_VariableDeclaration(ny, IR_Negative(tx)),
+          IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 0), nodePosition(beginIdx, 0) + nxCornerBeg * neigh.dir.sum),
+          IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 1), nodePosition(beginIdx, 1) + nyCornerBeg * neigh.dir.sum),
           // end
-          IR_Assignment(tx, IR_FloatConstant(0.5) * (nodePosition(endIdx, 0) - nodePosition(prev(prev(endIdx)), 0))),
-          IR_Assignment(ty, IR_FloatConstant(0.5) * (nodePosition(endIdx, 1) - nodePosition(prev(prev(endIdx)), 1))),
+          //IR_Assignment(tx, IR_FloatConstant(0.5) * (nodePosition(endIdx, 0) - nodePosition(prev(prev(endIdx)), 0))),
+          //IR_Assignment(ty, IR_FloatConstant(0.5) * (nodePosition(endIdx, 1) - nodePosition(prev(prev(endIdx)), 1))),
           // normal
-          IR_Assignment(nx, ty),
-          IR_Assignment(ny, IR_Negative(tx)),
-          IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 0), nodePosition(endIdx, 0) + nx * neigh.dir.sum),
-          IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 1), nodePosition(endIdx, 1) + ny * neigh.dir.sum)
+          //IR_Assignment(nx, ty),
+          //IR_Assignment(ny, IR_Negative(tx)),
+          IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 0), nodePosition(endIdx, 0) + nxCornerEnd * neigh.dir.sum),
+          IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 1), nodePosition(endIdx, 1) + nyCornerEnd * neigh.dir.sum)
         ))
       )
 
