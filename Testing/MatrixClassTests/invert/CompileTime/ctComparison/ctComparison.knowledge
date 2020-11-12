@@ -1,0 +1,7 @@
+dimensionality                = 2
+mpi_enabled 		      = false
+
+experimental_resolveInverseFunctionCall = "Compiletime"
+
+//experimental_resolveInverseFunctionCall = "GaussJordan"
+experimental_checkCTInversionPivots = true

@@ -1,0 +1,32 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0] to [0.1, 0.1] >
+
+
+
+Layout DefaultFL< Real, Node >@all {
+	
+}
+
+Field u< global, DefaultFL, 0.0>@all
+
+Field rhs< global, DefaultFL, None>@all
+
+Function Application {
+	print ( u@finest )
+}
+

@@ -1,0 +1,288 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0, 0.0] to [1.0, 1.0, 1.0] >
+
+Layout NodeNoComm< Real, Node >@all {
+	duplicateLayers = [1, 1, 1]
+	ghostLayers = [0, 0, 0]
+}
+
+Layout NodeWithComm< Real, Node >@all {
+	duplicateLayers = [1, 1, 1] with communication
+	ghostLayers = [1, 1, 1] with communication
+}
+
+Layout NodeNoGhost< Real, Node >@all {
+	duplicateLayers = [1, 1, 1] with communication
+	ghostLayers = [0, 0, 0]
+}
+
+Field Solution< global, NodeWithComm, 0.0>@(all but (finest))
+
+Field Solution< global, NodeWithComm, ( ( ( vf_boundaryPosition_x ** 2 ) - ( 0.5 * ( vf_boundaryPosition_y ** 2 ) ) ) - ( 0.5 * ( vf_boundaryPosition_z ** 2 ) ) )>@finest
+
+Field RHS< global, NodeNoGhost, None>@all
+
+Field Residual< global, NodeNoGhost, 0.0>@coarsest
+
+Field Residual< global, NodeWithComm, 0.0>@(all but (coarsest))
+
+Field cgTmp0< global, NodeWithComm, 0.0>@coarsest
+
+Field cgTmp1< global, NodeNoGhost, None>@coarsest
+
+Stencil Laplace@all{
+	[0, 0, 0] => ( ( ( ( ( ( ( vf_cellWidth_y * vf_cellWidth_z ) / ( 0.5 * ( vf_cellWidth_x@[0, 0, 0] + vf_cellWidth_x@[-1, 0, 0] ) ) ) + ( ( vf_cellWidth_y * vf_cellWidth_z ) / ( 0.5 * ( vf_cellWidth_x@[1, 0, 0] + vf_cellWidth_x@[0, 0, 0] ) ) ) ) + ( ( vf_cellWidth_x * vf_cellWidth_z ) / ( 0.5 * ( vf_cellWidth_y@[0, 0, 0] + vf_cellWidth_y@[0, -1, 0] ) ) ) ) + ( ( vf_cellWidth_x * vf_cellWidth_z ) / ( 0.5 * ( vf_cellWidth_y@[0, 1, 0] + vf_cellWidth_y@[0, 0, 0] ) ) ) ) + ( ( vf_cellWidth_x * vf_cellWidth_y ) / ( 0.5 * ( vf_cellWidth_z@[0, 0, 0] + vf_cellWidth_z@[0, 0, -1] ) ) ) ) + ( ( vf_cellWidth_x * vf_cellWidth_y ) / ( 0.5 * ( vf_cellWidth_z@[0, 0, 1] + vf_cellWidth_z@[0, 0, 0] ) ) ) )
+	[-1, 0, 0] => ( (-( vf_cellWidth_y * vf_cellWidth_z )) / ( 0.5 * ( vf_cellWidth_x@[0, 0, 0] + vf_cellWidth_x@[-1, 0, 0] ) ) )
+	[1, 0, 0] => ( (-( vf_cellWidth_y * vf_cellWidth_z )) / ( 0.5 * ( vf_cellWidth_x@[1, 0, 0] + vf_cellWidth_x@[0, 0, 0] ) ) )
+	[0, -1, 0] => ( (-( vf_cellWidth_x * vf_cellWidth_z )) / ( 0.5 * ( vf_cellWidth_y@[0, 0, 0] + vf_cellWidth_y@[0, -1, 0] ) ) )
+	[0, 1, 0] => ( (-( vf_cellWidth_x * vf_cellWidth_z )) / ( 0.5 * ( vf_cellWidth_y@[0, 1, 0] + vf_cellWidth_y@[0, 0, 0] ) ) )
+	[0, 0, -1] => ( (-( vf_cellWidth_x * vf_cellWidth_y )) / ( 0.5 * ( vf_cellWidth_z@[0, 0, 0] + vf_cellWidth_z@[0, 0, -1] ) ) )
+	[0, 0, 1] => ( (-( vf_cellWidth_x * vf_cellWidth_y )) / ( 0.5 * ( vf_cellWidth_z@[0, 0, 1] + vf_cellWidth_z@[0, 0, 0] ) ) )
+}
+
+Stencil NodeRestrictionForRes@all{
+	[i0, i1, i2] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) - 1.0 ), ( ( 2.0 * i2 ) - 1.0 )] with 0.125
+	[i0, i1, i2] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) - 1.0 ), ( 2.0 * i2 )] with 0.25
+	[i0, i1, i2] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) - 1.0 ), ( ( 2.0 * i2 ) + 1.0 )] with 0.125
+	[i0, i1, i2] from [( ( 2.0 * i0 ) - 1.0 ), ( 2.0 * i1 ), ( ( 2.0 * i2 ) - 1.0 )] with 0.25
+	[i0, i1, i2] from [( ( 2.0 * i0 ) - 1.0 ), ( 2.0 * i1 ), ( 2.0 * i2 )] with 0.5
+	[i0, i1, i2] from [( ( 2.0 * i0 ) - 1.0 ), ( 2.0 * i1 ), ( ( 2.0 * i2 ) + 1.0 )] with 0.25
+	[i0, i1, i2] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) + 1.0 ), ( ( 2.0 * i2 ) - 1.0 )] with 0.125
+	[i0, i1, i2] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) + 1.0 ), ( 2.0 * i2 )] with 0.25
+	[i0, i1, i2] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) + 1.0 ), ( ( 2.0 * i2 ) + 1.0 )] with 0.125
+	[i0, i1, i2] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) - 1.0 ), ( ( 2.0 * i2 ) - 1.0 )] with 0.25
+	[i0, i1, i2] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) - 1.0 ), ( 2.0 * i2 )] with 0.5
+	[i0, i1, i2] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) - 1.0 ), ( ( 2.0 * i2 ) + 1.0 )] with 0.25
+	[i0, i1, i2] from [( 2.0 * i0 ), ( 2.0 * i1 ), ( ( 2.0 * i2 ) - 1.0 )] with 0.5
+	[i0, i1, i2] from [( 2.0 * i0 ), ( 2.0 * i1 ), ( 2.0 * i2 )] with 1.0
+	[i0, i1, i2] from [( 2.0 * i0 ), ( 2.0 * i1 ), ( ( 2.0 * i2 ) + 1.0 )] with 0.5
+	[i0, i1, i2] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 ), ( ( 2.0 * i2 ) - 1.0 )] with 0.25
+	[i0, i1, i2] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 ), ( 2.0 * i2 )] with 0.5
+	[i0, i1, i2] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 ), ( ( 2.0 * i2 ) + 1.0 )] with 0.25
+	[i0, i1, i2] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) - 1.0 ), ( ( 2.0 * i2 ) - 1.0 )] with 0.125
+	[i0, i1, i2] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) - 1.0 ), ( 2.0 * i2 )] with 0.25
+	[i0, i1, i2] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) - 1.0 ), ( ( 2.0 * i2 ) + 1.0 )] with 0.125
+	[i0, i1, i2] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 ), ( ( 2.0 * i2 ) - 1.0 )] with 0.25
+	[i0, i1, i2] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 ), ( 2.0 * i2 )] with 0.5
+	[i0, i1, i2] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 ), ( ( 2.0 * i2 ) + 1.0 )] with 0.25
+	[i0, i1, i2] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 ), ( ( 2.0 * i2 ) - 1.0 )] with 0.125
+	[i0, i1, i2] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 ), ( 2.0 * i2 )] with 0.25
+	[i0, i1, i2] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 ), ( ( 2.0 * i2 ) + 1.0 )] with 0.125
+}
+
+Stencil NodeRestrictionForSol@all{
+	[i0, i1, i2] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) - 1.0 ), ( ( 2.0 * i2 ) - 1.0 )] with 0.015625
+	[i0, i1, i2] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) - 1.0 ), ( 2.0 * i2 )] with 0.03125
+	[i0, i1, i2] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) - 1.0 ), ( ( 2.0 * i2 ) + 1.0 )] with 0.015625
+	[i0, i1, i2] from [( ( 2.0 * i0 ) - 1.0 ), ( 2.0 * i1 ), ( ( 2.0 * i2 ) - 1.0 )] with 0.03125
+	[i0, i1, i2] from [( ( 2.0 * i0 ) - 1.0 ), ( 2.0 * i1 ), ( 2.0 * i2 )] with 0.0625
+	[i0, i1, i2] from [( ( 2.0 * i0 ) - 1.0 ), ( 2.0 * i1 ), ( ( 2.0 * i2 ) + 1.0 )] with 0.03125
+	[i0, i1, i2] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) + 1.0 ), ( ( 2.0 * i2 ) - 1.0 )] with 0.015625
+	[i0, i1, i2] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) + 1.0 ), ( 2.0 * i2 )] with 0.03125
+	[i0, i1, i2] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) + 1.0 ), ( ( 2.0 * i2 ) + 1.0 )] with 0.015625
+	[i0, i1, i2] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) - 1.0 ), ( ( 2.0 * i2 ) - 1.0 )] with 0.03125
+	[i0, i1, i2] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) - 1.0 ), ( 2.0 * i2 )] with 0.0625
+	[i0, i1, i2] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) - 1.0 ), ( ( 2.0 * i2 ) + 1.0 )] with 0.03125
+	[i0, i1, i2] from [( 2.0 * i0 ), ( 2.0 * i1 ), ( ( 2.0 * i2 ) - 1.0 )] with 0.0625
+	[i0, i1, i2] from [( 2.0 * i0 ), ( 2.0 * i1 ), ( 2.0 * i2 )] with 0.125
+	[i0, i1, i2] from [( 2.0 * i0 ), ( 2.0 * i1 ), ( ( 2.0 * i2 ) + 1.0 )] with 0.0625
+	[i0, i1, i2] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 ), ( ( 2.0 * i2 ) - 1.0 )] with 0.03125
+	[i0, i1, i2] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 ), ( 2.0 * i2 )] with 0.0625
+	[i0, i1, i2] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 ), ( ( 2.0 * i2 ) + 1.0 )] with 0.03125
+	[i0, i1, i2] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) - 1.0 ), ( ( 2.0 * i2 ) - 1.0 )] with 0.015625
+	[i0, i1, i2] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) - 1.0 ), ( 2.0 * i2 )] with 0.03125
+	[i0, i1, i2] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) - 1.0 ), ( ( 2.0 * i2 ) + 1.0 )] with 0.015625
+	[i0, i1, i2] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 ), ( ( 2.0 * i2 ) - 1.0 )] with 0.03125
+	[i0, i1, i2] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 ), ( 2.0 * i2 )] with 0.0625
+	[i0, i1, i2] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 ), ( ( 2.0 * i2 ) + 1.0 )] with 0.03125
+	[i0, i1, i2] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 ), ( ( 2.0 * i2 ) - 1.0 )] with 0.015625
+	[i0, i1, i2] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 ), ( 2.0 * i2 )] with 0.03125
+	[i0, i1, i2] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 ), ( ( 2.0 * i2 ) + 1.0 )] with 0.015625
+}
+
+Stencil NodeProlongation@all{
+	[i0, i1, i2] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) ), ( 0.5 * ( i2 + 1.0 ) )] with 0.125
+	[i0, i1, i2] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) ), ( 0.5 * i2 )] with 0.25
+	[i0, i1, i2] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) ), ( 0.5 * ( i2 - 1.0 ) )] with 0.125
+	[i0, i1, i2] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * i1 ), ( 0.5 * ( i2 + 1.0 ) )] with 0.25
+	[i0, i1, i2] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * i1 ), ( 0.5 * i2 )] with 0.5
+	[i0, i1, i2] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * i1 ), ( 0.5 * ( i2 - 1.0 ) )] with 0.25
+	[i0, i1, i2] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) ), ( 0.5 * ( i2 + 1.0 ) )] with 0.125
+	[i0, i1, i2] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) ), ( 0.5 * i2 )] with 0.25
+	[i0, i1, i2] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) ), ( 0.5 * ( i2 - 1.0 ) )] with 0.125
+	[i0, i1, i2] from [( 0.5 * i0 ), ( 0.5 * ( i1 + 1.0 ) ), ( 0.5 * ( i2 + 1.0 ) )] with 0.25
+	[i0, i1, i2] from [( 0.5 * i0 ), ( 0.5 * ( i1 + 1.0 ) ), ( 0.5 * i2 )] with 0.5
+	[i0, i1, i2] from [( 0.5 * i0 ), ( 0.5 * ( i1 + 1.0 ) ), ( 0.5 * ( i2 - 1.0 ) )] with 0.25
+	[i0, i1, i2] from [( 0.5 * i0 ), ( 0.5 * i1 ), ( 0.5 * ( i2 + 1.0 ) )] with 0.5
+	[i0, i1, i2] from [( 0.5 * i0 ), ( 0.5 * i1 ), ( 0.5 * i2 )] with 1
+	[i0, i1, i2] from [( 0.5 * i0 ), ( 0.5 * i1 ), ( 0.5 * ( i2 - 1.0 ) )] with 0.5
+	[i0, i1, i2] from [( 0.5 * i0 ), ( 0.5 * ( i1 - 1.0 ) ), ( 0.5 * ( i2 + 1.0 ) )] with 0.25
+	[i0, i1, i2] from [( 0.5 * i0 ), ( 0.5 * ( i1 - 1.0 ) ), ( 0.5 * i2 )] with 0.5
+	[i0, i1, i2] from [( 0.5 * i0 ), ( 0.5 * ( i1 - 1.0 ) ), ( 0.5 * ( i2 - 1.0 ) )] with 0.25
+	[i0, i1, i2] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) ), ( 0.5 * ( i2 + 1.0 ) )] with 0.125
+	[i0, i1, i2] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) ), ( 0.5 * i2 )] with 0.25
+	[i0, i1, i2] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) ), ( 0.5 * ( i2 - 1.0 ) )] with 0.125
+	[i0, i1, i2] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * i1 ), ( 0.5 * ( i2 + 1.0 ) )] with 0.25
+	[i0, i1, i2] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * i1 ), ( 0.5 * i2 )] with 0.5
+	[i0, i1, i2] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * i1 ), ( 0.5 * ( i2 - 1.0 ) )] with 0.25
+	[i0, i1, i2] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) ), ( 0.5 * ( i2 + 1.0 ) )] with 0.125
+	[i0, i1, i2] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) ), ( 0.5 * i2 )] with 0.25
+	[i0, i1, i2] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) ), ( 0.5 * ( i2 - 1.0 ) )] with 0.125
+}
+
+Function ResNorm@(finest, coarsest) : Real {
+	Var norm : Real = 0.0
+	loop over Residual with reduction ( + : norm ) {
+		norm += ( Residual * Residual )
+	}
+	return sqrt ( norm )
+}
+
+Function Solve@finest {
+	communicate Solution
+	loop over Residual {
+		Residual = ( RHS - ( Laplace * Solution ) )
+	}
+	apply bc to Residual
+	Var initRes : Real = ResNorm (  )
+	Var curRes : Real = initRes
+	Var prevRes : Real = curRes
+	print ( "Starting residual: ", initRes )
+	Var curIt : Integer = 0
+	repeat until ( ( curIt >= 100 ) || ( curRes <= ( 1.0E-6 * initRes ) ) ) {
+		curIt += 1
+		mgCycle (  )
+		communicate Solution
+		loop over Residual {
+			Residual = ( RHS - ( Laplace * Solution ) )
+		}
+		apply bc to Residual
+		prevRes = curRes
+		curRes = ResNorm (  )
+		print ( "Residual after", curIt, "iterations is", curRes, "--- convergence factor is", ( curRes / prevRes ) )
+	}
+}
+
+Function mgCycle@coarsest {
+	communicate Solution
+	loop over Residual {
+		Residual = ( RHS - ( Laplace * Solution ) )
+	}
+	apply bc to Residual
+	Var curRes : Real = ResNorm (  )
+	Var initRes : Real = curRes
+	loop over cgTmp0 {
+		cgTmp0 = Residual
+	}
+	apply bc to cgTmp0
+	Var curStep : Integer = 0
+	repeat 128 times count curStep {
+		communicate cgTmp0
+		loop over cgTmp1 {
+			cgTmp1 = ( Laplace * cgTmp0 )
+		}
+		Var reductionVar_2 : Real = 0.0
+		loop over Residual with reduction ( + : reductionVar_2 ) {
+			reductionVar_2 += ( Residual * Residual )
+		}
+		Var alphaNom_Solution : Real = reductionVar_2
+		Var reductionVar_3 : Real = 0.0
+		loop over cgTmp0 with reduction ( + : reductionVar_3 ) {
+			reductionVar_3 += ( cgTmp0 * cgTmp1 )
+		}
+		Var alphaDenom_Solution : Real = reductionVar_3
+		Var alpha : Real = ( alphaNom_Solution / alphaDenom_Solution )
+		loop over Solution {
+			Solution += ( alpha * cgTmp0 )
+		}
+		apply bc to Solution
+		loop over Residual {
+			Residual -= ( alpha * cgTmp1 )
+		}
+		apply bc to Residual
+		Var nextRes : Real = ResNorm (  )
+		if ( ( nextRes <= ( 0.001 * initRes ) ) ) {
+			return
+		}
+		Var beta : Real = ( ( nextRes * nextRes ) / ( curRes * curRes ) )
+		loop over cgTmp0 {
+			cgTmp0 = ( Residual + ( beta * cgTmp0 ) )
+		}
+		apply bc to cgTmp0
+		curRes = nextRes
+	}
+	print ( "Maximum number of cgs iterations (", 128, ") was exceeded" )
+}
+
+Function mgCycle@(all but (coarsest)) {
+	repeat 3 times {
+		color with {
+			( ( ( i0 + i1 ) + i2 ) % 2 ),
+			communicate Solution
+			loop over Solution {
+				Solution += ( ( 0.8 / diag ( Laplace ) ) * ( RHS - ( Laplace * Solution ) ) )
+			}
+			apply bc to Solution
+		}
+	}
+	communicate Solution
+	loop over Residual {
+		Residual = ( RHS - ( Laplace * Solution ) )
+	}
+	apply bc to Residual
+	communicate Residual
+	loop over RHS@coarser {
+		RHS@coarser = ( NodeRestrictionForRes * Residual )
+	}
+	loop over Solution@coarser {
+		Solution@coarser = 0.0
+	}
+	apply bc to Solution@coarser
+	mgCycle@coarser (  )
+	communicate Solution@coarser
+	loop over Solution {
+		Solution += ( NodeProlongation@coarser * Solution@coarser )
+	}
+	apply bc to Solution
+	repeat 3 times {
+		color with {
+			( ( ( i0 + i1 ) + i2 ) % 2 ),
+			communicate Solution
+			loop over Solution {
+				Solution += ( ( 0.8 / diag ( Laplace ) ) * ( RHS - ( Laplace * Solution ) ) )
+			}
+			apply bc to Solution
+		}
+	}
+}
+
+Function Application {
+	startTimer ( "setup" )
+	initGlobals (  )
+	initDomain (  )
+	initFieldsWithZero (  )
+	initGeometry (  )
+	apply bc to Solution@finest
+	stopTimer ( "setup" )
+	startTimer ( "solve" )
+	Solve@finest (  )
+	stopTimer ( "solve" )
+	printAllTimers (  )
+	destroyGlobals (  )
+}
+

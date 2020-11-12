@@ -1,0 +1,23 @@
+user                = "Guest"
+
+configName          = "swe_o1_rk2_l4_noPloy_uniform"
+
+basePathPrefix      = "./swe_o1_rk2_l4_noPloy_uniform/"
+
+//l1file              = "$configName$.exa1"
+//l2file              = "$configName$.exa2"
+//l3file              = "$configName$.exa3"
+l4file              = "$configName$.exa4"
+
+debugL1File         = "./debug/$configName$_debug.exa1"
+debugL2File         = "./debug/$configName$_debug.exa2"
+debugL3File         = "./debug/$configName$_debug.exa3"
+debugL4File         = "./debug/$configName$_debug.exa4"
+
+htmlLogFile         = "./debug/$configName$_log.html"
+outputPath          = "./output/"
+
+produceHtmlLog      = true
+timeStrategies      = true
+
+buildfileGenerators = { "MakefileGenerator" }

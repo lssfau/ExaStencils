@@ -1,0 +1,30 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0] to [0.1, 0.1] >
+
+
+
+Function Application {
+	Var m1 : Matrix<Integer,2,2> = { { 1, 2 }, { 3, 4 } }
+	Var m2 : Matrix<Double,2,2> = { { 1.312, 2.21 }, { 3.32, 4.123 } }
+	Var prec : Double = 1.0E-4
+	Var t1 : Integer = trace ( m1 )
+	Var t2 : Double = trace ( m2 )
+	compare ( t2, ( 1.312 + 4.123 ), prec )
+	compare ( t1, 5, prec )
+}
+

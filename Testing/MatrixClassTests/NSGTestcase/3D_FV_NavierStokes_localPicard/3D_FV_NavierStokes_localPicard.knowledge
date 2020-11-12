@@ -1,0 +1,24 @@
+dimensionality                = 3
+
+minLevel                      = 1
+maxLevel                      = 6
+
+discr_type                    = "FiniteVolumes"
+discr_defaultNeumannOrder     = 1
+discr_defaultDirichletOrder   = 2
+
+grid_isUniform                = true
+grid_isStaggered              = true
+grid_isAxisAligned            = true
+
+grid_spacingModel             = "linearFct" // forced to "uniform" if grid_isUniform
+
+experimental_applySchurCompl  = true
+
+//experimental_resolveInverseFunctionCall = "Compiletime"
+experimental_resolveInverseFunctionCall = "Runtime"
+
+mpi_enabled = false
+// omp parallelization on exactly one fragment in one block
+//import '../lib/domain_onePatch.knowledge'
+//import '../lib/parallelization_pureOmp.knowledge'

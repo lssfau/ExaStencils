@@ -1,0 +1,89 @@
+Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
+
+Globals {
+
+}
+
+Function Application() : Unit {
+    Var t1 : Tensor2< Real, 3 > = tens2{ 3 ;
+        [0,0] := 1.0,
+        [1,0] := 1,
+        [2,0] := 1,
+        [0,1] := 1,
+        [1,1] := 1,
+        [2,1] := 1,
+        [0,2] := 1,
+        [1,2] := 1,
+        [2,2] := 1
+        }
+
+    Var t2 : Tensor2< Real, 3 > = tens2{ 3 ;
+        [0,0] := 1.0,
+        [1,0] := 2,
+        [2,0] := 3,
+        [0,1] := 4,
+        [1,1] := 5
+        }
+
+    Var t3 : Tensor2< Real, 3 > = m1
+
+    Var t4 : Tensor2< Real , 3>
+    t4 = t1
+
+    if ( compare( t1, t4 ) ) { print( "sucess t1 == t4" ) }
+
+    Var t5 : TensorN< Real, 3, 2 > = tensN{ 3;  2 ;
+        [0,0] := 1.0,
+        [1,0] := 2,
+        [2,0] := 3,
+        [0,1] := 4,
+        [1,1] := 5
+        }
+
+    Var t6 : Tensor2< Real, 3 > = asTensor2( t5 )
+
+    if ( compare( t2, t6 ) ) { print( "success: converted TensorN to Tensor2" ) }
+
+    Var t7_1 : Tensor1< Real, 3 > = tens1{ 3;
+        [0] := 1.0,
+        [1] := 1.0,
+        [2] := 1.0
+    }
+
+    Var t7_2 : Tensor1< Real, 3 > = tens1{ 3;
+        [0] := 1.0,
+        [1] := 2.0,
+        [2] := 3.0
+    }
+
+    Var t7_3 : Tensor2< Real , 3 > = dyadic( t7_1, t7_2 )
+
+    Var t7_4 : Tensor2< Real , 3> = tens2{ 3;
+         [0,0] := 1.0,
+         [1,0] := 2.0,
+         [2,0] := 3.0,
+         [0,1] := 1.0,
+         [1,1] := 2.0,
+         [2,1] := 3.0,
+         [0,2] := 1.0,
+         [1,2] := 2.0,
+         [2,2] := 3.0
+     }
+
+    if ( compare( t7_3, t7_4 ) ) { print( "success: build correct Tensor2 with dyadic 2x Tensor1") }
+
+    Var t8 : Tensor2< Real, 2> = tens2 { 2;
+    }
+
+    Var t9 : Tensor2< Real, 4> = tens2 { 4;
+         [0,0] := 1.0,
+         [1,0] := 2.0,
+         [2,0] := 3.0,
+         [3,0] := 4.0,
+         [0,1] := 1.0,
+         [1,1] := 2.0,
+         [2,1] := 3.0,
+         [3,1] := 4.0
+    }
+
+}

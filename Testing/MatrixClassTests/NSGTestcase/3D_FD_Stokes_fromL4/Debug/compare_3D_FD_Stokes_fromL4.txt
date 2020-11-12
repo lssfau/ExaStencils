@@ -1,0 +1,14 @@
+20c20
+< Residual after 10 iterations is 1.21109e-06 --- convergence factor is 0.0874261 
+---
+> Residual after 10 iterations is 1.21109e-06 --- convergence factor is 0.0874264 
+22c22
+< Residual after 11 iterations is 1.06578e-07 --- convergence factor is 0.0880016 
+---
+> Residual after 11 iterations is 1.0658e-07 --- convergence factor is 0.0880028 
+24,25c24,25
+< Mean mean total time for Timer setup: 49.3902 
+< Mean mean total time for Timer solve: 1065.96 
+---
+> Mean mean total time for Timer setup: 47.5745 
+> Mean mean total time for Timer solve: 1135.09 

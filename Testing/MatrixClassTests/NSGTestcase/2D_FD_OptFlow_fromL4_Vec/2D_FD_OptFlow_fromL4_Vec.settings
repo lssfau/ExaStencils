@@ -1,0 +1,17 @@
+user                = "Guest"
+
+configName          = "2D_FD_OptFlow_fromL4_Vec"
+
+basePathPrefix      = "./NSGTestcase/2D_FD_OptFlow_fromL4_Vec/"
+
+l4file              = "$configName$.exa4"
+
+debugL4File         = "../Debug/$configName$_debug.exa4"
+
+htmlLogFile         = "../Debug/$configName$_log.html"
+outputPath          = "./output/"
+
+produceHtmlLog      = true
+timeStrategies      = true
+
+buildfileGenerators = { "MakefileGenerator" }

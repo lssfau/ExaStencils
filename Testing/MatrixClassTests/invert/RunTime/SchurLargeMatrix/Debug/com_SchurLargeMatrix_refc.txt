@@ -1,0 +1,13 @@
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o Domain/Domain_initDomain.o Domain/Domain_initDomain.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o Global/Global_declarations.o Global/Global_declarations.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o Global/Global_initGlobals.o Global/Global_initGlobals.cpp
+g++ -O3 -DNDEBUG -std=c++11 -I.   -c -o User/User_main.o User/User_main.cpp
+User/User_main.cpp: In function ‘int main(int, char**)’:
+User/User_main.cpp:6:2: error: ‘_runtimeInverseMatrix’ was not declared in this scope
+  _runtimeInverseMatrix(mat_large, "shape=schur", "block=9", "A=blockdiagonal", "Ablock=3", mat_large_inverse);
+  ^~~~~~~~~~~~~~~~~~~~~
+User/User_main.cpp:9:2: error: ‘compare’ was not declared in this scope
+  compare(mat_sol, mat_large_inverse, prec);
+  ^~~~~~~
+<builtin>: recipe for target 'User/User_main.o' failed
+make: *** [User/User_main.o] Error 1

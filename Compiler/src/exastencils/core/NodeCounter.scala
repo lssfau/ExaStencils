@@ -50,6 +50,26 @@ object NodeCounter extends CustomStrategy("internal::NodeCounter") {
 
   def apply() = count(None, None)
 
+  def countSubTree(node : Node, subTreeLabel : String, strategy : Option[String], transformation : Option[String]) : Unit = {
+    iteration += 1
+    hits = 0
+    StateManager.applyStandalone(this, t, node)
+
+    var sb = new StringBuilder()
+    sb.append("nodecounter;")
+    sb.append(subTreeLabel)
+    sb.append(';')
+    sb.append(strategy.getOrElse("unknown").replace(" ", "\\_"))
+    sb.append(';')
+    sb.append(transformation.getOrElse("unknown").replace(" ", "\\_"))
+    sb.append(';')
+    sb.append(iteration)
+    sb.append(';')
+    sb.append(hits)
+    sb.append("\\\\")
+    println(sb.toString)
+  }
+
   def resetHits() = {
     hits = 0
   }

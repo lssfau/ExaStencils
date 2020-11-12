@@ -1,0 +1,27 @@
+
+
+user                = "Guest"
+
+configName          = "3D_FV_NavierStokes_localNewton"
+
+l2file              = "$configName$.exa2"
+l3file              = "$configName$.exa3"
+l4file              = "$configName$.exa4"
+
+debugL2File         = "../Debug/$configName$_debug.exa2"
+debugL3File         = "../Debug/$configName$_debug.exa3"
+debugL4File         = "../Debug/$configName$_debug.exa4"
+
+basePathPrefix      = "C:\Users\MonPreacthyl\Desktop\BA\exastencils\Testing\MatrixClassTests\NSGTestcase\3D_FV_NavierStokes_localNewton\"
+
+l4file              = "$configName$.exa4"
+
+debugL4File         = "./$configName$_debug.exa4"
+
+htmlLogFile         = "./Debug/$configName$_log.html"
+outputPath          = "./outputRef"
+
+produceHtmlLog      = true
+timeStrategies      = true
+
+buildfileGenerators = { "MakefileGenerator" }

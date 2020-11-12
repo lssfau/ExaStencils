@@ -1,0 +1,23 @@
+Starting residual:  1.93207e+07 
+Residual after 1 iterations is 146587 --- convergence factor is 0.00758707 
+The maximum error (u,v,p) is 0.13817 0.127749 30.3251 
+Residual after 2 iterations is 8222.78 --- convergence factor is 0.0560948 
+The maximum error (u,v,p) is 0.00501058 0.00583278 1.19321 
+Residual after 3 iterations is 550.085 --- convergence factor is 0.0668977 
+The maximum error (u,v,p) is 0.000176952 0.000258038 0.0720259 
+Residual after 4 iterations is 39.3754 --- convergence factor is 0.0715806 
+The maximum error (u,v,p) is 2.98504e-05 1.79862e-05 0.00514815 
+Residual after 5 iterations is 2.90837 --- convergence factor is 0.0738626 
+The maximum error (u,v,p) is 1.60099e-05 1.55048e-05 0.000404398 
+Residual after 6 iterations is 0.214824 --- convergence factor is 0.0738639 
+The maximum error (u,v,p) is 1.55361e-05 1.55222e-05 0.000158957 
+Residual after 7 iterations is 0.0158074 --- convergence factor is 0.0735833 
+The maximum error (u,v,p) is 1.54941e-05 1.54956e-05 0.000146518 
+Residual after 8 iterations is 0.00114462 --- convergence factor is 0.0724104 
+The maximum error (u,v,p) is 1.54935e-05 1.54936e-05 0.000146439 
+Residual after 9 iterations is 8.29432e-05 --- convergence factor is 0.0724634 
+The maximum error (u,v,p) is 1.54936e-05 1.54936e-05 0.000146455 
+Residual after 10 iterations is 5.99634e-06 --- convergence factor is 0.0722945 
+The maximum error (u,v,p) is 1.54936e-05 1.54936e-05 0.000146452 
+Mean mean total time for Timer setup: 58.9887 
+Mean mean total time for Timer solve: 893.551 

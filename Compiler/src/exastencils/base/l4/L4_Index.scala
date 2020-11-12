@@ -55,6 +55,7 @@ object L4_ExpressionIndex {
   def apply(indices : L4_Expression*) = new L4_ExpressionIndex(indices.toArray)
   def apply(left : L4_ExpressionIndex, right : L4_ExpressionIndex, f : (L4_Expression, L4_Expression) => L4_Expression) =
     new L4_ExpressionIndex((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
+  def apply(indices : Array[Int]) = new L4_ExpressionIndex(indices.map(L4_IntegerConstant(_) : L4_Expression))
 }
 
 case class L4_ExpressionIndex(override var indices : Array[L4_Expression]) extends L4_Index with L4_ArrayBasedIndex[L4_Expression] {
@@ -119,9 +120,21 @@ case class L4_ConstIndex(override var indices : Array[Int]) extends L4_Index wit
 
 /// L4_RangeIndex
 
-case class L4_Range(var begin : Option[L4_Expression], var end : Option[L4_Expression]) {
+case class L4_Range(var begin : Option[L4_Expression], var end : Option[L4_Expression]) extends L4_Expression  {
   if (begin.isEmpty && end.isEmpty) {
     Logger.warn("Empty L4_Range")
+  }
+
+  override def progress : IR_Range = {
+    IR_Range(
+    if(begin.isDefined) Some(begin.get.progress) else None,
+    if(end.isDefined) Some(end.get.progress) else None
+    )
+  }
+  override def prettyprint(out : PpStream) : Unit = {
+    if(begin.isDefined) out << begin.get
+    out << ":"
+    if(end.isDefined) out << end.get
   }
 }
 
@@ -130,8 +143,17 @@ object L4_RangeIndex {
 }
 
 case class L4_RangeIndex(override var indices : Array[L4_Range]) extends L4_Index with L4_ArrayBasedIndex[L4_Range] {
-  override def prettyprint(out : PpStream) = out << '[' << indices.mkString(", ") << ']'
-  override def progress = ??? // FIXME
+  override def prettyprint(out : PpStream) = {
+    out << '['
+    for (idx <- 0 until indices.length) {
+      out << indices(idx)
+      if(idx != indices.length - 1)
+        out << ","
+    }
+    out << "]"
+  }
+
+  override def progress = ProgressLocation(IR_RangeIndex(indices.map(i => i.progress)))
 
   override def toExpressionIndex = ??? // FIXME (if a sensible conversion exists at all)
   override def +(that : L4_Index) : L4_Index = ???

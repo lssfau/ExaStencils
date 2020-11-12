@@ -1,0 +1,10 @@
+dimensionality                 = 2
+
+minLevel                       = 0
+maxLevel                       = 8
+
+discr_type                     = "FiniteVolumes"
+mpi_enabled = false
+// omp parallelization on exactly one fragment in one block
+//import '../lib/domain_onePatch.knowledge'
+//import '../lib/parallelization_pureOmp.knowledge'

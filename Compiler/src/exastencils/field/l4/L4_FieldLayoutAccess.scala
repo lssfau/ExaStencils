@@ -52,6 +52,6 @@ object L4_ResolveFieldLayoutAccesses extends DefaultStrategy("Resolve accesses t
 object L4_UnresolveFieldLayoutAccesses extends DefaultStrategy("Revert field layout accesses to unresolved accesses") {
   this += new Transformation("Replace", {
     case L4_FieldLayoutAccess(target) =>
-      L4_UnresolvedAccess(target.name, Some(L4_SingleLevel(target.level)), None, None, None, None)
+      L4_UnresolvedAccess(target.name, Some(L4_SingleLevel(target.level)), None, None, None, None, None)
   })
 }

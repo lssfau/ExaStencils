@@ -1,0 +1,325 @@
+// domain declarations
+
+Domain global< [0.0, 0.0] to [1.0, 1.0] >
+
+// field layout declarations
+
+Layout defLayoutForCell< Real, Cell >@all {
+  duplicateLayers = [0, 0]
+  ghostLayers     = [1, 1]
+}
+
+Layout cellWComm< Real, Cell >@all {
+  duplicateLayers = [0, 0]
+  ghostLayers     = [1, 1] with communication
+}
+
+Layout vec2Cell< Vec2, Cell >@all {
+  duplicateLayers = [0, 0]
+  ghostLayers     = [0, 0]
+}
+
+Layout vec2CellWComm< Vec2, Cell >@all {
+  duplicateLayers = [0, 0]
+  ghostLayers     = [1, 1] with communication
+}
+
+// field declarations
+
+Field img0< global, cellWComm, Neumann >@finest
+Field img1< global, cellWComm, Neumann >@finest
+
+Field Ix< global, defLayoutForCell, None >@finest
+Field Iy< global, defLayoutForCell, None >@finest
+Field It< global, defLayoutForCell, None >@finest
+
+Field IxIx< global, defLayoutForCell, None >@all
+Field IxIy< global, defLayoutForCell, None >@all
+Field IyIy< global, defLayoutForCell, None >@all
+
+Field flow< global, vec2CellWComm, Neumann >@all
+
+Field rhs< global, vec2Cell, None >@all
+
+Field residual< global, vec2CellWComm, Neumann >@all
+
+Field cgTmp0< global, vec2CellWComm, Neumann >@coarsest
+Field cgTmp1< global, vec2Cell, None >@coarsest
+
+// stencil declarations
+
+Stencil RestrictionCell  from default restriction  on Cell with 'linear'
+Stencil ProlongationCell from default prolongation on Cell with 'linear'
+
+// forward difference
+Stencil GradX@finest {
+  [ 1,  0] =>  1.0 / vf_gridWidth_x
+  [ 0,  0] => -1.0 / vf_gridWidth_x
+}
+Stencil GradY@finest {
+  [ 0,  1] =>  1.0 / vf_gridWidth_y
+  [ 0,  0] => -1.0 / vf_gridWidth_y
+}
+
+// forward difference with averaging
+/*Operator GradX from Stencil {
+  [ 1,  1] =>  0.5 / vf_gridWidth_x
+  [ 1,  0] =>  0.5 / vf_gridWidth_x
+  [ 0,  1] => -0.5 / vf_gridWidth_x
+  [ 0,  0] => -0.5 / vf_gridWidth_x
+}
+Operator GradY from Stencil {
+  [ 1,  1] =>  0.5 / vf_gridWidth_y
+  [ 0,  1] =>  0.5 / vf_gridWidth_y
+  [ 1,  0] => -0.5 / vf_gridWidth_y
+  [ 0,  0] => -0.5 / vf_gridWidth_y
+}*/
+
+Stencil Laplace@all {
+  [ 0,  0] => { { 2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ), 0 }, { 0, 2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) } }
+  [-1,  0] => { { -1.0 / ( vf_gridWidth_x ** 2 ), 0 }, { 0, -1.0 / ( vf_gridWidth_x ** 2 ) } }
+  [ 1,  0] => { { -1.0 / ( vf_gridWidth_x ** 2 ), 0 }, { 0, -1.0 / ( vf_gridWidth_x ** 2 ) } }
+  [ 0, -1] => { { -1.0 / ( vf_gridWidth_y ** 2 ), 0 }, { 0, -1.0 / ( vf_gridWidth_y ** 2 ) } }
+  [ 0,  1] => { { -1.0 / ( vf_gridWidth_y ** 2 ), 0 }, { 0, -1.0 / ( vf_gridWidth_y ** 2 ) } }
+}
+
+Stencil gradContribution@all {
+  [ 0,  0] => { { IxIx, IxIy }, { IxIy, IyIy } }
+}
+
+Stencil combinedOp@all from ( ( alpha**2 ) * Laplace + gradContribution )
+
+// globals declarations
+
+Globals {
+  Val alpha : Real = 1
+}
+
+// function declarations
+
+Function resNorm@(coarsest and finest) : Real {
+  Var resNorm : Real = 0.0
+  loop over residual with reduction ( + : resNorm ) {
+    resNorm += dot ( residual, residual )
+  }
+  return sqrt ( resNorm )
+}
+
+Function doSolve@finest {
+  // update residual
+  communicate flow
+  loop over residual {
+    residual = rhs - combinedOp * flow
+  }
+  apply bc to residual
+  Var initRes : Real = resNorm (  )
+  Var curRes : Real = initRes
+  Var prevRes : Real = curRes
+  print ( "Starting residual: ", initRes )
+  Var curIt : Integer = 0
+  repeat until ( ( curIt >= 128 ) || ( curRes <= ( 1.0E-5 * initRes ) ) ) {
+    curIt += 1
+    mgCycle (  )
+    communicate flow
+    loop over residual {
+    residual = rhs - combinedOp * flow
+    }
+    apply bc to residual
+    prevRes = curRes
+    curRes = resNorm (  )
+    print ( "Residual after", curIt, "iterations is", curRes, "--- convergence factor is", ( curRes / prevRes ) )
+  }
+}
+
+Function mgCycle@(all but coarsest) {
+  // smoother
+  repeat 3 times {
+    repeat with {
+      ( 0 == ( ( i0 + i1 ) % 2 ) ),
+      ( 1 == ( ( i0 + i1 ) % 2 ) ),
+      communicate flow
+      loop over flow {
+        flow = flow + inverse( diag ( combinedOp ) ) * ( rhs - combinedOp * flow )
+      }
+      apply bc to flow
+    }
+  }
+
+  // update residual
+  communicate flow
+  loop over residual {
+    residual = rhs - combinedOp * flow
+  }
+  apply bc to residual
+
+  // update coarser rhs
+  communicate residual
+  loop over rhs@coarser {
+    rhs@coarser = RestrictionCell * residual
+  }
+
+  // update coarser solution
+  loop over flow@coarser {
+    flow@coarser = 0.0
+  }
+  apply bc to flow@coarser
+
+  // recursion
+  mgCycle@coarser (  )
+
+  // correction
+  communicate flow@coarser
+  loop over flow {
+    flow += ProlongationCell@coarser * flow@coarser
+  }
+  apply bc to flow
+
+  // smoother
+  repeat 3 times {
+    repeat with {
+      ( 0 == ( ( i0 + i1 ) % 2 ) ),
+      ( 1 == ( ( i0 + i1 ) % 2 ) ),
+      communicate flow
+      loop over flow {
+        flow = flow + inverse( diag ( combinedOp ) ) * ( rhs - combinedOp * flow )
+      }
+      apply bc to flow
+    }
+  }
+}
+
+Function mgCycle@coarsest {
+  // parallel conjugate gradient (CG)
+
+  communicate flow
+  loop over residual {
+    residual = rhs - combinedOp * flow
+  }
+  apply bc to residual
+  Var curRes : Real = resNorm (  )
+  Var initRes : Real = curRes
+  loop over cgTmp0 {
+    cgTmp0 = residual
+  }
+  apply bc to cgTmp0
+  Var curStep : Integer = 0
+  repeat 128 times count curStep {
+    communicate cgTmp0
+    loop over cgTmp1 {
+      cgTmp1 = combinedOp * cgTmp0
+    }
+
+    Var reductionVar_4 : Real = 0.0
+    loop over residual with reduction ( + : reductionVar_4 ) {
+      reductionVar_4 += dot ( residual, residual )
+    }
+    Var alphaNom : Real = reductionVar_4
+    Var reductionVar_5 : Real = 0.0
+    loop over cgTmp0 with reduction ( + : reductionVar_5 ) {
+      reductionVar_5 += dot ( cgTmp0, cgTmp1 )
+    }
+    Var alphaDenom : Real = reductionVar_5
+    Var alpha : Real = ( alphaNom ) / ( alphaDenom )
+    loop over flow {
+      flow += alpha * cgTmp0
+    }
+    apply bc to flow
+    loop over residual {
+      residual -= alpha * cgTmp1
+    }
+    apply bc to residual
+    Var nextRes : Real = resNorm (  )
+    if ( nextRes <= 0.001 * initRes ) {
+      return
+    }
+    Var beta : Real = ( nextRes * nextRes ) / ( curRes * curRes )
+    loop over cgTmp0 {
+      cgTmp0 = residual + ( beta * cgTmp0 )
+    }
+    apply bc to cgTmp0
+    curRes = nextRes
+  }
+  print ( "Maximum number of cgs iterations (", 128, ") was exceeded" )
+}
+
+Function initImgs@finest {
+  loop over img0 {
+    img0 = sin ( vf_cellCenter_x ) + cos ( vf_cellCenter_y )
+  }
+  apply bc to img0
+  communicate img0
+
+  loop over img1 {
+    img1 = sin ( vf_cellCenter_x - 0.01 ) + cos ( vf_cellCenter_y + 0.01 )
+  }
+  apply bc to img1
+  communicate img1
+}
+
+Function initGradients@all {
+  @finest {
+    loop over Ix {
+      Ix = GradX * img0
+    }
+    loop over Iy {
+      Iy = GradY * img0
+    }
+    loop over It {
+      It = img1 - img0
+    }
+
+    loop over IxIx {
+      IxIx = Ix * Ix
+    }
+    loop over IxIy {
+      IxIy = Ix * Iy
+    }
+    loop over IyIy {
+      IyIy = Iy * Iy
+    }
+  }
+  
+  @(all but finest) {
+    loop over IxIx {
+      IxIx = RestrictionCell@finer * IxIx@finer
+    }
+    loop over IxIy {
+      IxIy = RestrictionCell@finer * IxIy@finer
+    }
+    loop over IyIy {
+      IyIy = RestrictionCell@finer * IyIy@finer
+    }
+  }
+
+  @(all but coarsest) {
+    initGradients@coarser ( )
+  }
+}
+
+Function InitFields {
+  initImgs@finest ( )
+  initGradients@finest ( )
+
+  loop over rhs@finest {
+    rhs@finest = { -Ix@finest * It@finest, -Iy@finest * It@finest }T
+  }
+}
+
+Function Application {
+    startTimer("setup")
+    initGlobals ( )
+    initDomain ( )
+    initFieldsWithZero ( )
+    initGeometry ( )
+    InitFields ( )
+    stopTimer("setup")
+
+    // solve
+    startTimer("solve")
+    doSolve@finest ( )
+    stopTimer("solve")
+
+    // de-init
+    printAllTimers ( )
+    destroyGlobals ( )
+}

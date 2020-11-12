@@ -17,7 +17,7 @@ mkdir Debug 2>/dev/null
 for config in $configList; do
   echo generating $config ...
   printf "\033]2;generating $config\007"
-  TIME=$( time java -cp ../Compiler/lib:../Compiler/Compiler.jar Main $config.settings $config.knowledge $platform > ./Debug/${config##*/}_generateResult.txt; exit ${PIPESTATUS[0]}
+  TIME=$( time java -cp ../../Compiler/lib:../Compiler/Compiler.jar Main $config.settings $config.knowledge $platform > ./Debug/${config##*/}_generateResult.txt; exit ${PIPESTATUS[0]}
 )
   RET=$?
   echo $TIME

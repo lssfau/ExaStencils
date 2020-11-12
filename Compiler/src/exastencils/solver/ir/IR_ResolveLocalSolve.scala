@@ -18,6 +18,8 @@
 
 package exastencils.solver.ir
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
@@ -31,6 +33,15 @@ import exastencils.optimization.ir._
 /// IR_ResolveLocalSolve
 
 object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes") {
+  //TODO register collector
+  // collector to find initialization expressions of matrices to classify
+  var variableCollector = new IR_MatrixVarCollector()
+  this.register(variableCollector)
+  this.onBefore = () => {
+
+    this.resetCollectors()
+  }
+
   def computeMinMaxIndex(solve : IR_LocalSolve, numDimensions : Int) : (IR_ConstIndex, IR_ConstIndex) = {
     val minIndex = IR_ConstIndex(Array.fill(numDimensions)(Int.MinValue))
     val maxIndex = IR_ConstIndex(Array.fill(numDimensions)(Int.MaxValue))
@@ -108,7 +119,7 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
 
     // abort if splitting is not allowed
     if (!Knowledge.solver_splitLocalSolveLoops)
-      return loop
+     return loop
 
     // set up halo and inner loop
     val haloLoop = Duplicate(loop)
@@ -131,12 +142,25 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
     List(haloLoop, tryPrecomputingInverse(innerLoop, innerLoop.body.head.asInstanceOf[IR_LocalSolve]))
   }
 
+  def existsLocalSolve(stmts : ListBuffer[IR_Statement]) : Boolean = {
+      stmts.exists({
+        case _ : IR_LocalSolve => true
+        case s : IR_IfCondition => existsLocalSolve(s.trueBody) || existsLocalSolve(s.falseBody)
+        case s : IR_ForLoop => existsLocalSolve(s.body)
+        case _ => false
+      })
+  }
+
   this += new Transformation("Split loops containing local solve nodes", {
     // check loop even if Knowledge.solver_splitLocalSolveLoops is false - conditions might still be unnecessary
-    case loop : IR_LoopOverDimensions if loop.body.exists(_.isInstanceOf[IR_LocalSolve]) => handleLoop(loop)
+    //FIXME if local solve is contained in If-statement this does not trigger
+    //case loop : IR_LoopOverDimensions if loop.body.exists(_.isInstanceOf[IR_LocalSolve]) => handleLoop(loop)
+    case loop : IR_LoopOverDimensions if existsLocalSolve(loop.body) =>
+      handleLoop(loop)
   }, false)
 
-  this += new Transformation("Perform expandSpecial for applicable nodes", {
-    case solve : IR_LocalSolve => solve.expandSpecial
+  this += new Transformation("Perform expand for applicable nodes", {
+    case solve : IR_LocalSolve                         => solve.expandSpecial
+    case sms : IR_SolveMatrixSystem  => sms.expand()
   })
 }

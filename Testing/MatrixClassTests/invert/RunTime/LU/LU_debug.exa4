@@ -1,0 +1,26 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0] to [0.1, 0.1] >
+
+
+
+Function Application {
+	Var piv_3 : Matrix<Real,1,1> = { { 1.0 } }
+	Var piv_3_i : Matrix<Real,1,1>
+	piv_3_i = inverse ( piv_3 )
+}
+
