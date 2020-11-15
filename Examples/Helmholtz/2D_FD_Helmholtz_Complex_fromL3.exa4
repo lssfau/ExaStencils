@@ -20,3 +20,22 @@ Function Application {
   }
   destroyGlobals ( )
 }
+
+Function applyBC_Solution@all ( ) : Unit {
+
+  loop over Solution only dup [-1, 0] on boundary {
+    // Equation
+    // (Solution@[0, 0] - Solution@[1, 0]) / vf_gridWidth_x + (0.0 + 1.0j) * k * Solution@[0,0] = 0.0
+    Solution@[0, 0] = Solution@[1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
+  }
+  loop over Solution only dup [1, 0] on boundary {
+    Solution@[0, 0] = Solution@[-1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
+  }
+  loop over Solution only dup [0,  1] on boundary {
+    Solution@[0, 0] = 0.0 
+  }
+  loop over Solution only dup [0, -1] on boundary {
+    Solution@[0, 0] = 0.0
+  }
+}
+

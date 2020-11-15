@@ -7,7 +7,8 @@ Domain global< [ 0, 0 ] to [ 1, 1 ] >
 
 Field Solution with Complex<Real> on Node of global = 0.0
 
-Field Solution on boundary = 0.0
+//Field Solution on boundary = 0.0
+Field Solution@finest on boundary = applyBC_Solution@current()
 //Field Solution on boundary = Neumann
 
 // Zero rhs
@@ -21,7 +22,7 @@ Field RHS@finest with Complex<Real> on Node of global = max(0, -(fabs(vf_nodePos
 Field RHS@(all but finest) with Complex<Real> on Node of global
 
 Field Residual        from RHS
-override bc for Residual@finest with 0.0
+override bc for Residual@all with 0.0
 
 // For the Preconditioner
 Field u from Residual
@@ -83,7 +84,7 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 
 Globals {
   Expr k = 80.0
-  //Expr a = 1e-4
+  //Expr a = 0.1
   Expr omegaRelax = 0.6
   //Var shift : Complex<Real> = (1.0 + 1.0j)
   Var shift : Complex<Real> = (1.0 + 0.5j)
