@@ -468,8 +468,11 @@ object Knowledge {
 
   // --- Parallel I/O ---
 
-  // [true|false] // enables generation of debugging statements when using parallel I/O libraries
+  // [true|false] // allows generation of debugging statements when using parallel I/O libraries
   var parIO_generateDebugStatements : Boolean = false
+
+  // [true|false] // decides whether collective or individual I/O is used when using parallel I/O libraries
+  var parIO_useCollectiveIO : Boolean = true
 
   /// --- CUDA ---
 

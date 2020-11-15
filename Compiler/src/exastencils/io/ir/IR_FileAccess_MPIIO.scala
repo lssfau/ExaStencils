@@ -37,6 +37,7 @@ case class IR_FileAccess_MPIIO(
   val rowMajor = IR_VariableAccess("MPI_ORDER_C", IR_UnknownDatatype)
 
   // declarations
+  // TODO move most to IR_FileAccess ...
   val fileHandle_decl = IR_VariableDeclaration(MPI_File, IR_FileAccess.declareVariable("fh"))
   val localView_decl = IR_VariableDeclaration(MPIIO_Datatype, IR_FileAccess.declareVariable("localSubarray"))
   val globalView_decl = IR_VariableDeclaration(IR_ArrayDatatype(MPIIO_Datatype, Knowledge.domain_numFragmentsPerBlock), IR_FileAccess.declareVariable("globalSubarray"))

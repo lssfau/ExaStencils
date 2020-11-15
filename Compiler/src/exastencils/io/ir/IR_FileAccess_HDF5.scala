@@ -39,6 +39,7 @@ case class IR_FileAccess_HDF5(
   val herr_t = IR_SpecialDatatype("herr_t")
   val htri_t = IR_SpecialDatatype("htri_t")
   // decls
+  // TODO move most to IR_FileAccess ...
   val err_decl = IR_VariableDeclaration(herr_t, IR_FileAccess.declareVariable("err"))
   val fileId_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("fileId"))
   val propertyList_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("propertyList"))
@@ -73,6 +74,7 @@ case class IR_FileAccess_HDF5(
   val info = IR_VariableAccess(info_decl)
   val defaultPropertyList = IR_VariableAccess("H5P_DEFAULT", IR_UnknownDatatype)
 
+  // from: https://support.hdfgroup.org/HDF5/doc1.6/UG/11_Datatypes.html
   val h5Datatype = {
     val dt = field.layout.datatype.prettyprint match {
       case "char" => "H5T_NATIVE_CHAR"
@@ -81,7 +83,7 @@ case class IR_FileAccess_HDF5(
       case "short" => "H5T_NATIVE_SHORT"
       case "unsigned short" => "H5T_NATIVE_USHORT"
       case "int" => "H5T_NATIVE_INT"
-      case "unsigned" => "H5T_NATIVE_UINT"
+      case "unsigned" | "unsigned int" => "H5T_NATIVE_UINT"
       case "long" => "H5T_NATIVE_LONG"
       case "unsigned long" => "H5T_NATIVE_ULONG"
       case "long long" => "H5T_NATIVE_LLONG"
@@ -89,10 +91,12 @@ case class IR_FileAccess_HDF5(
       case "float" => "H5T_NATIVE_FLOAT"
       case "double" => "H5T_NATIVE_DOUBLE"
       case "long double" => "H5T_NATIVE_LDOUBLE"
+      /*
       case "hsize_t" => "H5T_NATIVE_HSIZE"
       case "hssize_t" => "H5T_NATIVE_HSSIZE"
       case "herr_t" => "H5T_NATIVE_HERR"
       case "hbool_t" => "H5T_NATIVE_HBOOL"
+       */
       case _ => Logger.error("Unsupported field datatype when using HDF5: " + field.layout.datatype.resolveBaseDatatype.prettyprint)
     }
     IR_VariableAccess(dt, IR_UnknownDatatype)
@@ -107,6 +111,7 @@ case class IR_FileAccess_HDF5(
     absPath.tail.split("/").scanLeft(""){_ + "/" + _}.tail.dropRight(1).to[ListBuffer]
   }
 
+  // calls a function from the HDF5 library and checks if an error occured (i.e. toAssign was set to a value < 0) when debug statements are enabled
   def callH5Function(toAssign : IR_VariableAccess, funcName : String, args : IR_Expression*) : ListBuffer[IR_Statement] = {
     val stmts : ListBuffer[IR_Statement] = ListBuffer()
     stmts += IR_Assignment(toAssign, IR_FunctionCall(IR_ExternalFunctionReference(funcName), args : _*))

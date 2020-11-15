@@ -101,7 +101,7 @@ abstract class IR_FileAccess(
   def fieldptr = IR_AddressOf(IR_LinearizedFieldAccess(field, slot, IR_LoopOverFragments.defIt, 0))
 
   // commonly used datatypes
-  // ...
+  val MPI_Offset = IR_SpecialDatatype("MPI_Offset")
 
   def getPos(field : IR_Field, dim : Int) : IR_Expression = {
     // TODO: add function to field (layout) to decide node/cell for given dim
