@@ -1,6 +1,6 @@
 user                = "Guest"
 
-configName          = "3D_IOTest"
+configName          = "CheckEquality_ReadAfterWrite"
 
 basePathPrefix      = "./IOTest/"
 
