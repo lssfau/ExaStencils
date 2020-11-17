@@ -28,21 +28,21 @@ import exastencils.datastructures.ir._
 /// IR_WriteField
 
 case class IR_WriteField(
-    var basenameFile : IR_Expression,
+    var filename : IR_Expression,
     var field : IR_Field,
     var slot : IR_Expression,
-    var dataset : IR_Expression = IR_NullExpression,
+    var ioInterface : IR_Expression,
+    var includeGhostLayers : Boolean,
+    var binaryOutput : Boolean = false,
+    var separator : IR_Expression = IR_StringConstant(" "),
     var condition: IR_Expression = true,
-    var includeGhostLayers : Boolean = false,
-    var format : IR_Expression = IR_StringConstant("txt"),
-    var outputSingleFile : Boolean = true,
-    var useLocking : Boolean = true) extends IR_Statement with IR_Expandable with IR_FieldIO {
+    var dataset : IR_Expression = IR_NullExpression) extends IR_FieldIO(filename, field, slot, ioInterface, doWrite = true, onlyVals = true, includeGhostLayers, binaryOutput, separator, condition, dataset) {
 
   override def expand() : Output[StatementList] = {
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    statements += selectAndAddStatements(basenameFile, field, slot, includeGhostLayers, format, outputSingleFile, useLocking, doWrite = true, onlyVals = true, Some(dataset), Some(condition))
+    statements += generateFileAccess()
 
     statements
   }

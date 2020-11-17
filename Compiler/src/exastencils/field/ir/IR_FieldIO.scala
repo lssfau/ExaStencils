@@ -1,7 +1,10 @@
 package exastencils.field.ir
 
+import exastencils.base.ir.IR_Expandable
 import exastencils.base.ir.IR_Expression
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_NullExpression
+import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_StringConstant
 import exastencils.io.ir.IR_FileAccess
 import exastencils.io.ir.IR_FileAccess_FPP
@@ -27,91 +30,42 @@ object IR_FieldIO {
     fileNameCounter += 1
     "fieldName_%03d".format(fileNameCounter)
   }
-
-  // get file extensions in case that the user has specified it (also for backwards-compatibility)
-  val extension = "[.][^.]+$".r
-  def getExtension(fn : IR_Expression) : String = extension findFirstIn fn.asInstanceOf[IR_StringConstant].value getOrElse ""
 }
 
-trait IR_FieldIO {
-  val fmtOptionsText = List("txt", "csv")
-  val fmtOptionsHDF5 = List("hdf5", "h5")
-  val fmtOptionsNetCDF = List("netCDF", "nc")
-  val fmtOptionsSION = List("sionlib", "sion")
-  val fmtOptionsSharedFile = fmtOptionsHDF5 ++ fmtOptionsNetCDF ++ fmtOptionsSION
+abstract class IR_FieldIO(
+    // general parameters
+    filename : IR_Expression,
+    field : IR_Field,
+    slot : IR_Expression,
+    ioInterface : IR_Expression,
+    doWrite : Boolean,
+    onlyVals : Boolean,
+    includeGhostLayers : Boolean,
+    // locking/fpp specific parameters (essentially when using "iostreams")
+    useBinary : Boolean = false,
+    separator : IR_Expression = IR_StringConstant(" "),
+    condition : IR_Expression = true,
+    // dataset which can be specified for a netCDF/HDF5 file (for HDF5 this can be a path)
+    dataset : IR_Expression = IR_NullExpression) extends IR_Statement with IR_Expandable {
 
-  // appends file extension depending on specified format
-  def createFilename(basename : IR_Expression, fmt : IR_Expression, outputSingleFile : Boolean) : IR_Expression = {
-    val ext = IR_FieldIO.getExtension(basename)
-    val base = basename.asInstanceOf[IR_StringConstant].value
-    val fn = if(ext.trim.isEmpty) {
-      val fpp_substr = if(!outputSingleFile) "$blockId" else ""
-      def buildName(extension : String) = base + fpp_substr + "." + extension
-      fmt.asInstanceOf[IR_StringConstant].value match {
-        case "txt" => buildName("txt")
-        case "csv" => buildName("csv")
-        case "bin"   => buildName("bin")
-        case s : String if fmtOptionsHDF5.contains(s) => buildName("hdf5")
-        case s : String if fmtOptionsNetCDF.contains(s) => buildName("nc")
-        case s : String if fmtOptionsSION.contains(s) => buildName("sion")
-        case _ =>
-          Logger.error("Unsupported file format: " + _)
-          ""
-      }
-    } else {
-      base // use provided filename
-    }
-    IR_StringConstant(fn)
-  }
+  // wrapper function that generates statements for file access using the specified I/O interface
+  def generateFileAccess(appendToFile : Boolean = false) : IR_FileAccess = {
 
-  def validateInputParams(format : IR_Expression, outputSingleFile : Boolean, useLocking : Boolean) : Boolean = {
-    val fmt = format.asInstanceOf[IR_StringConstant].value
-    if(fmtOptionsSharedFile.contains(fmt) && !outputSingleFile) {
-      Logger.warn("writeField: unsupported parameter combination: Shared file format \"" + fmt + "\" with outputSingleFile=\"false\". Parameter <outputSingleFile> is ignored.")
-    }
-    if(fmtOptionsSharedFile.contains(fmt) && useLocking) {
-      Logger.warn("writeField: unsupported parameter combination: Shared file format \"" + fmt + "\" with useLocking=\"true\". Parameter <useLocking> is ignored.")
-    }
-    if(useLocking && !outputSingleFile) {
-      Logger.error("Ignoring call to writeField with unsupported parameter combination: useLocking=\"true\" and outputSingleFile=\"false\". Locking only applicable with a shared files.")
-      return false
-    }
-    true
-  }
-
-  def selectAndAddStatements(
-      basenameFile : IR_Expression,
-      field : IR_Field,
-      slot : IR_Expression,
-      includeGhostLayers : Boolean,
-      format : IR_Expression,
-      outputSingleFile : Boolean,
-      useLock : Boolean,
-      doWrite : Boolean,
-      onlyVals : Boolean,
-      dataset : Option[IR_Expression],
-      condition : Option[IR_Expression],
-      appendToFile : Boolean = false) : IR_FileAccess = {
-
-    val fn = createFilename(basenameFile, format, outputSingleFile)
-    val fmt = format.asInstanceOf[IR_StringConstant].value
-    fmt match {
-      case "txt" | "csv" | "bin"                      =>
-        if (!outputSingleFile) {
-          IR_FileAccess_FPP(fn, field, slot, includeGhostLayers, fmtOptionsText.contains(fmt), writeAccess = doWrite, onlyValues = onlyVals, appendedMode = appendToFile, condition)
-        } else if (useLock) {
-          IR_FileAccess_Locking(fn, field, slot, includeGhostLayers, fmtOptionsText.contains(fmt), writeAccess = doWrite, onlyValues = onlyVals, appendedMode = appendToFile, condition)
-        } else {
-          IR_FileAccess_MPIIO(fn, field, slot, includeGhostLayers, fmtOptionsText.contains(fmt), writeAccess = doWrite)
-        }
-      case s : String if fmtOptionsHDF5.contains(s)   =>
-        IR_FileAccess_HDF5(fn, dataset.getOrElse(IR_NullExpression), field, slot, includeGhostLayers, writeAccess = doWrite, appendedMode = appendToFile)
-      case s : String if fmtOptionsNetCDF.contains(s) =>
-        IR_FileAccess_PnetCDF(fn, dataset.getOrElse(IR_NullExpression), field, slot, includeGhostLayers, writeAccess = doWrite, appendedMode = appendToFile)
-      case s : String if fmtOptionsSION.contains(s)   =>
-        IR_FileAccess_SionLib(fn, field, slot, includeGhostLayers, writeAccess = doWrite, appendedMode = appendToFile)
-      case _                                          =>
-        Logger.error("Ignoring call to writeField with unsupported format: " + fmt)
+    ioInterface.asInstanceOf[IR_StringConstant].value.toLowerCase match {
+      case "lock"  =>
+        IR_FileAccess_Locking(filename, field, slot, includeGhostLayers, useBinary, doWrite, onlyVals, separator, condition, appendToFile)
+      case "fpp"   =>
+        IR_FileAccess_FPP(filename, field, slot, includeGhostLayers, useBinary, doWrite, onlyVals, separator, condition, appendToFile)
+      case "mpiio" =>
+        IR_FileAccess_MPIIO(filename, field, slot, includeGhostLayers, doWrite, appendToFile)
+      case "hdf5"  =>
+        IR_FileAccess_HDF5(filename, dataset, field, slot, includeGhostLayers, doWrite, appendToFile)
+      case "nc"    =>
+        IR_FileAccess_PnetCDF(filename, dataset, field, slot, includeGhostLayers, doWrite, appendToFile)
+      case "sion"  =>
+        IR_FileAccess_SionLib(filename, field, slot, includeGhostLayers, doWrite, appendToFile)
+      case _       =>
+        Logger.error("Ignoring call to " + (if (doWrite) {if (onlyVals) "writeField" else "printField"} else "readField") + " using unsupported I/O interface: " + ioInterface)
         IR_FileAccess_None(field, slot)
     }
   }

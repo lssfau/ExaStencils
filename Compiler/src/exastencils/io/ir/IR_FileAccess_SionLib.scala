@@ -12,8 +12,8 @@ case class IR_FileAccess_SionLib(
     var field : IR_Field,
     var slot : IR_Expression,
     var includeGhostLayers : Boolean,
-    var appendedMode : Boolean = false,
-    var writeAccess : Boolean) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess, appendedMode) {
+    var writeAccess : Boolean,
+    var appendedMode : Boolean = false) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess, appendedMode) {
 
   override def prologue() : ListBuffer[IR_Statement] = ???
   override def epilogue() : ListBuffer[IR_Statement] = ???

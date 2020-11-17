@@ -33,6 +33,7 @@ Field dest< global, NodeWithComm, 0.0 >@all
 // functions
 
 Function compareFields@all : Int {
+    // check for equality
     loop over dest {
         Var diff : Real = fabs(dest - src)
         if( diff > 0.001 ) {
@@ -41,6 +42,12 @@ Function compareFields@all : Int {
             return -1
         }
     }
+    
+    // reset dest
+    loop over dest {
+        dest = -1.0
+    }
+    
     return 0
 }
 
@@ -67,51 +74,49 @@ Function Application {
   initSRC@finest ( )
   stopTimer ( "setup" )
   
-  Val fmt : String = "bin"
-  
+  Val useGhost : Bool = false
+  Val useBin : Bool = true
+  Val condition : Bool = true
+  Val separator : String = ","
+    
   /* Start FPP I/O */
-  
-  // write field
+   
   startTimer ("FPP: writeField")
-  writeField ("src_fpp", src@finest, fmt, false, false)
+  writeField_fpp ("src_fpp_$blockId.txt", src@finest, useGhost, useBin, condition)
   stopTimer ("FPP: writeField")
 
-  // read field
   startTimer ("FPP: readField")
-  readField ("src_fpp", dest@finest, fmt, false, false)
+  readField_fpp ("src_fpp_$blockId.txt", dest@finest, useGhost, useBin, condition)
   stopTimer ("FPP: readField")
   
   checkEquality@finest ( )
   
-  writeField ("dest_fpp", dest@finest, fmt, false, false)
-
   /* End FPP I/O */
   
   /* Start Locking I/O */
 
   startTimer ("Lock: writeField")
-  writeField ("src_lock", src@finest, fmt, true, true)
+  writeField_lock ("src_lock.bin", src@finest, useGhost, !useBin, condition, separator)
   stopTimer ("Lock: writeField")
   
   startTimer ("Lock: readField")
-  readField ("src_lock", dest@finest, fmt, true, true)
+  readField_lock ("src_lock.bin", dest@finest, useGhost, !useBin, condition, separator)
   stopTimer ("Lock: readField")
   
   checkEquality@finest ( )
   
-  printField ("src_vis", src@finest, "csv", true, true)
-  writeField ("dest_lock", dest@finest, fmt, true, true)
+  printField_lock ("src_vis.csv", src@finest, useGhost, !useBin, condition, separator) // write csv for paraview
 
   /* End Locking I/O */
   
   /* Start HDF5 */
 
   startTimer ("HDF5: writeField")
-  writeField ("src", src@finest, "/test/abs/path/src", "h5", true, true)
+  writeField_hdf5 ("src", "/test/abs/path/src", src@finest)
   stopTimer ("HDF5: writeField")
   
   startTimer ("HDF5: readField")
-  readField ("src", dest@finest, "/test/abs/path/src", "h5", true, true)
+  readField_hdf5 ("src", "/test/abs/path/src", dest@finest)
   stopTimer ("HDF5: readField")
   
   checkEquality@finest ( )
@@ -121,11 +126,11 @@ Function Application {
   /* Start MPIIO */
 
   startTimer ("MPIIO: writeField")
-  writeField ("src", src@finest, "bin", true, false)
+  writeField_mpiio ("src", src@finest)
   stopTimer ("MPIIO: writeField")
   
   startTimer ("MPIIO: readField")
-  readField ("src", dest@finest, "bin", true, false)
+  readField_mpiio ("src", dest@finest)
   stopTimer ("MPIIO: readField")
   
   checkEquality@finest ( )
@@ -135,11 +140,11 @@ Function Application {
   /* Start PnetCDF */
   
   startTimer ("PnetCDF: writeField")
-  writeField ("src", src@finest, "field_src", "nc", true, false)
+  writeField_nc ("src", "field_src", src@finest)
   stopTimer ("PnetCDF: writeField")
   
   startTimer ("PnetCDF: readField")
-  readField ("src", dest@finest, "field_src", "nc", true, false)
+  readField_nc ("src", "field_src", dest@finest)
   stopTimer ("PnetCDF: readField")
   
   checkEquality@finest ( )

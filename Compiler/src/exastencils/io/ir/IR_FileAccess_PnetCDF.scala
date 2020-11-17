@@ -21,8 +21,8 @@ case class IR_FileAccess_PnetCDF(
     var field : IR_Field,
     var slot : IR_Expression,
     var includeGhostLayers : Boolean,
-    var appendedMode : Boolean = false,
-    var writeAccess : Boolean) extends IR_FileAccess(fileName, field, slot, includeGhostLayers, writeAccess, appendedMode) {
+    var writeAccess : Boolean,
+    var appendedMode : Boolean = false) extends IR_FileAccess(fileName, field, slot, includeGhostLayers, writeAccess, appendedMode) {
 
   // TODO: Handling collective/independent I/O
   // TODO: serial function calls

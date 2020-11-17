@@ -41,28 +41,18 @@ abstract class IR_FileAccess(
 
   def getFilename() : IR_Expression = filename
 
-  def getSeparatorString() : String = {
-    val ret = IR_FieldIO.getExtension(filename) match {
-      case ".txt" => " "
-      case ".csv" => ","
-      case _ => ""
-    }
-    ret
-  }
-  def separator : IR_Expression = if(getSeparatorString() == "") IR_NullExpression else IR_StringConstant(getSeparatorString())
-
   def beginId = if (includeGhostLayers) "GLB" else "DLB"
   def endId = if (includeGhostLayers) "GRE" else "DRE"
 
   def arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
 
-  def ioStreamLoopOverFrags(stream : IR_VariableAccess, fileAcc : IR_Statement, condition: Option[IR_Expression]) : IR_LoopOverFragments = {
+  def ioStreamLoopOverFrags(stream : IR_VariableAccess, fileAcc : IR_Statement, condition: IR_Expression) : IR_LoopOverFragments = {
     IR_LoopOverFragments(
       IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
         IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
           IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(beginId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
           IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(endId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
-          IR_IfCondition(condition.getOrElse(IR_BooleanConstant(true)), fileAcc))),
+          IR_IfCondition(condition, fileAcc))),
       if(writeAccess) IR_Print(stream, IR_Print.flush) else IR_NullStatement)
   }
 

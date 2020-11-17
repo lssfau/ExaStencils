@@ -2,6 +2,7 @@ package exastencils.io.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.logger.Logger
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
@@ -17,9 +18,8 @@ case class IR_FileAccess_MPIIO(
     var field : IR_Field,
     var slot : IR_Expression,
     var includeGhostLayers : Boolean, // TODO handling
-    var useAscii : Boolean,
-    var appendedMode : Boolean = false,
-    var writeAccess : Boolean) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess, appendedMode) {
+    var writeAccess : Boolean,
+    var appendedMode : Boolean = false) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess, appendedMode) {
 
   val openMode = if(writeAccess) {
     val openOrCreate = if (appendedMode) "MPI_MODE_APPEND" else "MPI_MODE_CREATE"
@@ -150,6 +150,9 @@ case class IR_FileAccess_MPIIO(
   }
 
   override def expand() : Output[StatementList]  = {
+    if(!Knowledge.mpi_enabled) {
+      Logger.error("MPI-I/O can only be used when MPI is enabled!")
+    }
 
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
     stmts ++= prologue()

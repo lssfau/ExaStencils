@@ -19,14 +19,15 @@ case class IR_FileAccess_Locking(
     var field : IR_Field,
     var slot : IR_Expression,
     var includeGhostLayers : Boolean,
-    var useAscii : Boolean,
+    var useBinary : Boolean,
     var writeAccess : Boolean,
-    var onlyValues : Boolean = true,
-    var appendedMode : Boolean = false,
-    var condition : Option[IR_Expression]) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess, appendedMode) {
+    var onlyValues : Boolean,
+    var separator : IR_Expression,
+    var condition : IR_Expression,
+    var appendedMode : Boolean = false) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess, appendedMode) {
 
   var openFlags = if (writeAccess) { if (Knowledge.mpi_enabled || appendedMode) "std::ios::app" else "std::ios::trunc"} else "std::ios::in"
-  if (!useAscii)
+  if (useBinary)
     openFlags += " | std::ios::binary"
   val openMode = IR_VariableAccess(openFlags, IR_UnknownDatatype)
 
@@ -55,13 +56,13 @@ case class IR_FileAccess_Locking(
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    val read = if (useAscii) IR_Read(stream) else IR_ReadBinary(stream)
+    val read = if (useBinary) IR_ReadBinary(stream) else IR_Read(stream)
     //    arrayIndexRange.foreach { index =>
     val access = IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData))
     //      if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
     //        access.index(numDimsData - 2) = index // TODO: other hodt
     read.exprToRead += access
-    if(getSeparatorString() == ",") { // skip separator
+    if(separator.asInstanceOf[IR_StringConstant].value == ",") { // skip separator
       // TODO: maybe implement with std::getline
       val decl = IR_VariableDeclaration(IR_CharDatatype, IR_FileAccess.declareVariable("skipSeparator"))
       statements += decl
@@ -120,7 +121,7 @@ case class IR_FileAccess_Locking(
     def streamType = IR_SpecialDatatype("std::ofstream")
     def stream = IR_VariableAccess(streamName, streamType)
 
-    val printSetPrecision = if(useAscii) {
+    val printSetPrecision = if(!useBinary) {
       if (Knowledge.field_printFieldPrecision == -1)
         IR_Print(stream, "std::scientific")
       else
@@ -129,7 +130,7 @@ case class IR_FileAccess_Locking(
       IR_NullStatement
     }
 
-    val print = if(useAscii) {
+    val print = if(!useBinary) {
       val printComponents = ListBuffer[IR_Expression]()
       if (!onlyValues) { // print coords for CSV files (Paraview)
         printComponents += "std::defaultfloat"

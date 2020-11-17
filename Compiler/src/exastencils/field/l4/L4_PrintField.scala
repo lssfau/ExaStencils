@@ -30,18 +30,19 @@ import exastencils.prettyprinting.PpStream
 /// L4_PrintField
 
 case class L4_PrintField(
-    var basenameFile : L4_Expression,
+    var filename : L4_Expression,
     var field : L4_FieldAccess,
-    var dataset : Option[L4_Expression] = None,
-    var condition : Option[L4_Expression] = None,
+    var ioInterface : L4_Expression,
     var includeGhostLayers : Boolean = false,
-    var format : L4_Expression = L4_StringConstant("txt"),
-    var outputSingleFile : Boolean = true,
-    var useLocking : Boolean = true) extends L4_Statement {
+    var binaryOutput : Boolean = false,
+    var separator : Option[L4_Expression] = None,
+    var condition : Option[L4_Expression] = None,
+    var dataset : Option[L4_Expression] = None) extends L4_Statement {
 
   override def prettyprint(out : PpStream) = {
+    // TODO
     out << "print ( "
-    out << basenameFile << ", " << field
+    out << filename << ", " << field
     if (condition.isDefined) out << ", " << condition.get
     out << " )"
   }
@@ -49,23 +50,27 @@ case class L4_PrintField(
   override def progress = {
     val progField = field.progress
     ProgressLocation(IR_PrintField(
-      basenameFile.progress,
+      filename.progress,
       progField.field,
       progField.slot,
-      dataset.getOrElse(L4_NullExpression).progress,
-      condition.getOrElse(L4_BooleanConstant(true)).progress,
+      ioInterface.progress,
       includeGhostLayers,
-      format.progress,
-      outputSingleFile,
-      useLocking))
+      binaryOutput,
+      separator.getOrElse(L4_StringConstant(" ")).progress,
+      condition.getOrElse(L4_BooleanConstant(true)).progress,
+      dataset.getOrElse(L4_NullExpression).progress))
   }
 }
 
 /// L4_ResolvePrintFieldFunctions
 
 object L4_ResolvePrintFieldFunctions extends DefaultStrategy("Resolve print field function references") {
+  val basenameFunction = "printField"
+  val optionsIO = ListBuffer("lock", "fpp", "mpiio", "hdf5", "nc", "sion")
+
   val knownFunctionNames = {
-    var ret = ListBuffer("printField")
+    var ret = ListBuffer(basenameFunction)
+    ret = ret ++ optionsIO.map(opt => basenameFunction + "_" + opt)
     ret = ret ++ ret.map(_ + "Binary")
     ret = ret ++ ret.map(_ + "Values")
     ret = ret ++ ret.map(_ + "WithGhost")
@@ -85,41 +90,86 @@ object L4_ResolvePrintFieldFunctions extends DefaultStrategy("Resolve print fiel
         false
       }
 
+      @deprecated
       val includeGhosts = checkOptionAndRemove("WithGhost")
+      @deprecated
       val onlyValues = checkOptionAndRemove("Values")
-      val binary = if (checkOptionAndRemove("Binary")) L4_StringConstant("bin") else L4_StringConstant("txt")
+      @deprecated
+      val binary = checkOptionAndRemove("Binary")
 
-      // wrapper function to provide backwards compatibility.
+      // new flags
+      val ifaceSelection = L4_StringConstant(procFctNam.diff(basenameFunction + "_"))
+
+      // wrapper function for deprecated "onlyValues" flag (redundant since we have distinct Print/Write field functions)
       // determines if plain field values are written to file (WriteField) or field values including a visualization format (PrintField)
-      def wrapStmtCtorOnlyValues(fn : L4_Expression, fieldAcc : L4_FieldAccess, cond : Option[L4_Expression], includeGhost : Boolean, useBin : L4_StringConstant) = {
+      @deprecated
+      def wrapStmtCtorOnlyValues(fn : L4_Expression, fieldAcc : L4_FieldAccess, includeGhost : Boolean, useBin : Boolean, cond : Option[L4_Expression] = None) = {
         if(onlyValues)
-          L4_WriteField(fn, fieldAcc, None, cond, includeGhost, useBin)
+          L4_WriteField(fn, fieldAcc, ioInterface = L4_StringConstant("lock"), includeGhostLayers = includeGhosts, binaryOutput = useBin, condition = cond)
         else
-          L4_PrintField(fn, fieldAcc, None, cond, includeGhost, useBin)
+          L4_PrintField(fn, fieldAcc, ioInterface = L4_StringConstant("lock"), includeGhostLayers = includeGhosts, binaryOutput = useBin, condition = cond)
       }
 
       if (level.isDefined) Logger.warn(s"Found leveled print field function with level ${ level.get }; level is ignored")
       if (offset.isDefined) Logger.warn(s"Found print field function with offset; offset is ignored")
 
-      args match {
+      ifaceSelection.value.toLowerCase match {
         // deprecated function calls (backwards compatibility)
-        case ListBuffer(field : L4_FieldAccess)                      => // option 1: only field -> deduce name
-          wrapStmtCtorOnlyValues(L4_StringConstant(field.target.name), field, None, includeGhosts, binary)
-        case ListBuffer(basename, field : L4_FieldAccess)            => // option 2: filename and field
-          wrapStmtCtorOnlyValues(basename, field, None, includeGhosts, binary)
-        case ListBuffer(basename, field : L4_FieldAccess, condition) => // option 3: filename, field and condition
-          wrapStmtCtorOnlyValues(basename, field, Some(condition), includeGhosts, binary)
-        // new function calls. "format" parameter has precedence over old parameters (e.g. binary)
-        // TODO
-        case ListBuffer(basename, field : L4_FieldAccess, fmt : L4_StringConstant) => // option 4: filename, field and format
-          L4_PrintField(basename, field, includeGhostLayers = includeGhosts, format = fmt)
-        case ListBuffer(basename, field : L4_FieldAccess, fmt : L4_StringConstant, singleFile : L4_BooleanConstant, useLock : L4_BooleanConstant) => // option 5: filename, field, format, single-shared-file and locking
-          L4_PrintField(basename, field, includeGhostLayers = includeGhosts, format = fmt, outputSingleFile = singleFile.value, useLocking = useLock.value)
-        case ListBuffer(fileName, field : L4_FieldAccess, dataset : L4_StringConstant, fmt : L4_StringConstant, singleFile : L4_BooleanConstant, useLock : L4_BooleanConstant) => // option 6: filename, field, dataset, format, single-shared-file and locking
-          L4_PrintField(fileName, field, Some(dataset), includeGhostLayers = includeGhosts, format = fmt, outputSingleFile = singleFile.value, useLocking = useLock.value)
-        // TODO: condition for locking/fpp
-        case _                                                       =>
-          Logger.warn("Ignoring call to printField with unsupported arguments: " + args.mkString(", "))
+        case "" => args match {
+          case ListBuffer(field : L4_FieldAccess)                      => // option 1: only field -> deduce name
+            wrapStmtCtorOnlyValues(L4_StringConstant(field.target.name + ".txt"), field, includeGhosts, binary)
+          case ListBuffer(filename, field : L4_FieldAccess)            => // option 2: filename and field
+            wrapStmtCtorOnlyValues(filename, field, includeGhosts, binary)
+          case ListBuffer(filename, field : L4_FieldAccess, condition) => // option 3: filename, field and condition
+            wrapStmtCtorOnlyValues(filename, field, includeGhosts, binary, Some(condition))
+        }
+        // new function calls with explicit I/O interface selection in the function name.
+        case "lock" | "fpp" => args match {
+          case ListBuffer(fn, field : L4_FieldAccess)                                                                           => // option 1: filename, field
+            L4_PrintField(fn, field, ioInterface = ifaceSelection)
+          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)                                           => // option 2: filename, field, inclGhost
+            L4_PrintField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value)
+          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, useBin : L4_BooleanConstant)              => // option 3: filename, field, inclGhost, useBin
+            L4_PrintField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, binaryOutput = useBin.value)
+          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, useBin : L4_BooleanConstant, cond)        => // option 4: filename, field, inclGhost, useBin, cond
+            L4_PrintField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, binaryOutput = useBin.value, condition = Some(cond))
+          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, useBin : L4_BooleanConstant, cond, sep)   => // option 5: filename, field, inclGhost, useBin, cond, sep
+            if(useBin.value) Logger.error("Invalid parameter combination in \"readField\": binaryMode = true and separator set.")
+            L4_PrintField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, binaryOutput = useBin.value, condition = Some(cond), separator = Some(sep))
+          case _ =>
+            Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
+        }
+        case "mpiio" => args match {
+          case ListBuffer(fn, field : L4_FieldAccess)                                 => // option 1: filename, field
+            L4_PrintField(fn, field, ioInterface = ifaceSelection)
+          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant) => // option 2: filename, field, inclGhost
+            L4_PrintField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value)
+          case _ =>
+            Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
+        }
+        case "hdf5" => args match {
+          case ListBuffer(fn, datasetPath, field : L4_FieldAccess)                                  => // option 1: filename, /path/to/dataset, field
+            L4_PrintField(fn, field, ioInterface = ifaceSelection, dataset = Some(datasetPath))
+          case ListBuffer(fn, datasetPath, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)  => // option 2: filename, /path/to/dataset, field, inclGhost
+            L4_PrintField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, dataset = Some(datasetPath))
+          case _ =>
+            Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
+        }
+        case "nc" => args match {
+          case ListBuffer(fn, datasetName, field : L4_FieldAccess)                                  => // option 1: filename, datasetName, field
+            L4_PrintField(fn, field, ioInterface = ifaceSelection, dataset = Some(datasetName))
+          case ListBuffer(fn, datasetName, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)  => // option 2: filename, datasetName, field, inclGhost
+            L4_PrintField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, dataset = Some(datasetName))
+          case _ =>
+            Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
+        }
+        case "sion" => args match {
+          // TODO
+          case _ =>
+            Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
+        }
+        case _ =>
+          Logger.error("Ignoring call to " + fctName + " with unsupported I/O interface: " + ifaceSelection)
           L4_NullStatement
       }
   })

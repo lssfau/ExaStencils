@@ -42,15 +42,15 @@ object IR_PrintField {
 */
 
 case class IR_PrintField(
-    var basenameFile : IR_Expression,
+    var filename : IR_Expression,
     var field : IR_Field,
     var slot : IR_Expression,
-    var dataset : IR_Expression = IR_NullExpression,
+    var ioInterface : IR_Expression,
+    var includeGhostLayers : Boolean,
+    var binaryOutput : Boolean = false,
+    var separator : IR_Expression = IR_StringConstant(" "),
     var condition : IR_Expression = true,
-    var includeGhostLayers : Boolean = false,
-    var format : IR_Expression = IR_StringConstant("txt"),
-    var outputSingleFile : Boolean = false,
-    var useLocking : Boolean = true) extends IR_Statement with IR_Expandable with IR_FieldIO {
+    var dataset : IR_Expression = IR_NullExpression) extends IR_FieldIO(filename, field, slot, ioInterface, doWrite = true, onlyVals = false, includeGhostLayers, binaryOutput, separator, condition, dataset) {
 
   /*
   def numDimsGrid = field.layout.numDimsGrid
@@ -68,24 +68,21 @@ case class IR_PrintField(
   */
 
   val arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
-  val fmt = format.asInstanceOf[IR_StringConstant].value
 
   // writes comma-separated files in ascii mode, raw binaries otherwise (locking)
-  def writeCSV() : ListBuffer[IR_Statement] = {
-    val fileAccessHandler = selectAndAddStatements(
-      basenameFile, field, slot, includeGhostLayers, format = IR_StringConstant("csv"), outputSingleFile, useLocking, doWrite = true, onlyVals = false, Some(dataset), Some(condition), appendToFile = true
-    )
+  def printCSV() : ListBuffer[IR_Statement] = {
+    val fileAccess = generateFileAccess(appendToFile = true)
     var statements : ListBuffer[IR_Statement] = ListBuffer()
-    statements ++= fileAccessHandler.prologue()
+    statements ++= fileAccess.prologue()
     val fileHeader : ListBuffer[IR_Statement] = {
       var ret : ListBuffer[IR_Statement] = ListBuffer()
       var tmp : ListBuffer[IR_Statement] = ListBuffer()
       val openMode = if(Knowledge.mpi_enabled) IR_VariableAccess("std::ios::app", IR_UnknownDatatype) else IR_VariableAccess("std::ios::trunc", IR_UnknownDatatype)
-      if (fmtOptionsText.contains(fmt)) { // write header
+      if (!binaryOutput) { // write header
         val streamName = IR_FieldIO.getNewStreamName()
         def streamType = IR_SpecialDatatype("std::ofstream")
         def stream = IR_VariableAccess(streamName, streamType)
-        tmp += IR_ObjectInstantiation(streamType, streamName, fileAccessHandler.getFilename(), openMode)
+        tmp += IR_ObjectInstantiation(streamType, streamName, fileAccess.getFilename(), openMode)
         tmp += IR_Print(stream, "\"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\"", IR_Print.endl)
         tmp += IR_MemberFunctionCall(stream, "close")
         if (Knowledge.mpi_enabled)
@@ -96,22 +93,22 @@ case class IR_PrintField(
       ret
     }
     statements ++= fileHeader
-    statements ++= fileAccessHandler.kernel()
-    statements ++= fileAccessHandler.epilogue()
+    statements ++= fileAccess.kernel()
+    statements ++= fileAccess.epilogue()
     statements
   }
 
-  def writeXmlVtk() : ListBuffer[IR_Statement] = {
+  def printXmlVtk() : ListBuffer[IR_Statement] = {
     // TODO
     ListBuffer(IR_NullStatement)
   }
 
-  def writeXdmf(useHDF5 : Boolean) : ListBuffer[IR_Statement] = {
+  def printXdmf(useHDF5 : Boolean) : ListBuffer[IR_Statement] = {
     // TODO
     ListBuffer(IR_NullStatement)
   }
 
-  def writeNetCDF() : ListBuffer[IR_Statement] = {
+  def printNetCDF() : ListBuffer[IR_Statement] = {
     // TODO
     ListBuffer(IR_NullStatement)
   }
@@ -198,25 +195,17 @@ case class IR_PrintField(
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    fmt match {
-      case "txt" | "csv" | "bin"                      =>
-        if (!outputSingleFile) {
-          statements ++= writeXmlVtk()
-        } else if (useLocking) {
-          statements ++= writeCSV()
-        } else {
-          statements ++= writeXdmf(useHDF5 = false)
-        }
-      case s : String if fmtOptionsHDF5.contains(s)   =>
-        statements ++= writeXdmf(useHDF5 = true)
-      case s : String if fmtOptionsNetCDF.contains(s) =>
-        statements ++= writeNetCDF()
-      case s : String if fmtOptionsSION.contains(s)   =>
+    ioInterface.asInstanceOf[IR_StringConstant].value.toLowerCase match {
+      case "lock"   => statements ++= printCSV()
+      case "fpp"    => statements ++= printXmlVtk()
+      case "mpiio"  => statements ++= printXdmf(useHDF5 = false)
+      case "hdf5"   => statements ++= printXdmf(useHDF5 = true)
+      case "nc"     => statements ++= printNetCDF()
+      case "sion"   =>
         Logger.warn("Sion Files cannot directly be visualized. Defaulting to \"writeField\" implementation.")
-        statements += selectAndAddStatements(basenameFile, field, slot, includeGhostLayers, format, outputSingleFile, useLocking, doWrite = true, onlyVals = false, Some(dataset), Some(condition))
-      case _                                          =>
-        Logger.error("Ignoring call to \"printField\" with unsupported format: " + format)
-        IR_NullStatement
+        statements += generateFileAccess()
+      case _        =>
+        Logger.error("Ignoring call to \"printField\" with unsupported I/O interface: " + ioInterface)
     }
 
     statements
