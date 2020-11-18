@@ -4,11 +4,11 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.baseExt.ir.IR_LoopOverDimensions
-import exastencils.config._
+import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.core.Duplicate
-import exastencils.datastructures.Transformation.Output
-import exastencils.datastructures.ir._
+import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
@@ -30,21 +30,16 @@ case class IR_FileAccess_FPP(
     var condition : IR_Expression,
     var appendedMode : Boolean = false) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess, appendedMode) {
 
-  var openFlags = if (writeAccess) { if (Knowledge.mpi_enabled || appendedMode) "std::ios::app" else "std::ios::trunc"} else "std::ios::in"
+  var openFlags : String = if (writeAccess) { if (appendedMode) "std::ios::app" else "std::ios::trunc"} else "std::ios::in"
   if (useBinary)
     openFlags += " | std::ios::binary"
-  val openMode = IR_VariableAccess(openFlags, IR_UnknownDatatype)
+  override def openMode = IR_VariableAccess(openFlags, IR_UnknownDatatype)
 
-  val fctName = if (writeAccess) {
-    if (onlyValues) "WriteField" else "PrintField"
-  } else
-    "ReadField"
-
-  val streamName = IR_FieldIO.getNewStreamName()
-  def streamType = if (writeAccess) IR_SpecialDatatype("std::ofstream") else IR_SpecialDatatype("std::ifstream")
+  val streamName : String = IR_FieldIO.getNewStreamName()
+  def streamType : IR_SpecialDatatype = if (writeAccess) IR_SpecialDatatype("std::ofstream") else IR_SpecialDatatype("std::ifstream")
   def stream = IR_VariableAccess(streamName, streamType)
 
-  override def prologue() : ListBuffer[IR_Statement] = {
+  override def createOrOpenFile() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     filename match {
@@ -52,7 +47,7 @@ case class IR_FileAccess_FPP(
         val str : String = filenameStrConst.value
         val strSplit = ListBuffer(str.split("\\$blockId") : _ *)
         if(!str.contains("$blockId")) {
-          Logger.error("Error in \"" + fctName +"\" using file-per-process: Parameter \"basename\" must contain substring: \"$blockId\".")
+          Logger.error("Error when accessing a file with file-per-process: Parameter \"basename\" must contain substring: \"$blockId\".")
         }
 
         val strListMpi = strSplit.flatMap(e => MPI_IV_MpiRank :: IR_StringConstant(e) :: Nil).tail
@@ -65,7 +60,22 @@ case class IR_FileAccess_FPP(
         statements += IR_ObjectInstantiation(stream, Duplicate(filename))
     }
   }
-  override def epilogue() : ListBuffer[IR_Statement] = ListBuffer(IR_MemberFunctionCall(stream, "close"))
+
+  // nothing to setup/cleanup
+  override def setupAccess() : ListBuffer[IR_Statement] = ListBuffer()
+  override def cleanupAccess() : ListBuffer[IR_Statement] = ListBuffer()
+
+  override def closeFile() : ListBuffer[IR_Statement] = ListBuffer(IR_MemberFunctionCall(stream, "close"))
+
+  override def accessFileFragwise(fileAcc : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
+    IR_LoopOverFragments(
+      IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
+        IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
+          IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(beginId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
+          IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(endId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
+          IR_IfCondition(condition, fileAcc))),
+      if(writeAccess) IR_Print(stream, IR_Print.flush) else IR_NullStatement)
+  }
 
   override def readField() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
@@ -84,7 +94,7 @@ case class IR_FileAccess_FPP(
       read.exprToRead += IR_VariableAccess(decl)
     }
 
-    statements += ioStreamLoopOverFrags(stream, read, condition)
+    statements += accessFileFragwise(ListBuffer(read))
 
     statements
   }
@@ -118,19 +128,8 @@ case class IR_FileAccess_FPP(
       IR_PrintBinary(stream, printComponents)
     }
 
-    statements += ioStreamLoopOverFrags(stream, print, condition)
+    statements += accessFileFragwise(ListBuffer(print))
   }
 
-  override def expand() : Output[StatementList]  = {
-    if (!Settings.additionalIncludes.contains("fstream"))
-      Settings.additionalIncludes += "fstream"
-    if (!Settings.additionalIncludes.contains("iomanip"))
-      Settings.additionalIncludes += "iomanip"
-
-    var stmts : ListBuffer[IR_Statement] = ListBuffer()
-    stmts ++= prologue()
-    stmts ++= kernel()
-    stmts ++= epilogue()
-    stmts
-  }
+  override def includes : ListBuffer[String] = ListBuffer("fstream", "iomanip")
 }

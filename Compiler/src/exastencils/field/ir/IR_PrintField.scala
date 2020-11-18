@@ -67,22 +67,25 @@ case class IR_PrintField(
   }
   */
 
-  val arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
+  val arrayIndexRange : Range = 0 until field.gridDatatype.resolveFlattendSize
 
   // writes comma-separated files in ascii mode, raw binaries otherwise (locking)
   def printCSV() : ListBuffer[IR_Statement] = {
-    val fileAccess = generateFileAccess(appendToFile = true)
+    val fileAccess = generateFileAccess()
     var statements : ListBuffer[IR_Statement] = ListBuffer()
-    statements ++= fileAccess.prologue()
+    statements ++= fileAccess.createOrOpenFile()
     val fileHeader : ListBuffer[IR_Statement] = {
       var ret : ListBuffer[IR_Statement] = ListBuffer()
       var tmp : ListBuffer[IR_Statement] = ListBuffer()
-      val openMode = if(Knowledge.mpi_enabled) IR_VariableAccess("std::ios::app", IR_UnknownDatatype) else IR_VariableAccess("std::ios::trunc", IR_UnknownDatatype)
+      val openMode = if(Knowledge.mpi_enabled)
+        IR_VariableAccess("std::ios::app", IR_UnknownDatatype) // file was already created by root process
+      else
+        IR_VariableAccess("std::ios::trunc", IR_UnknownDatatype)
       if (!binaryOutput) { // write header
         val streamName = IR_FieldIO.getNewStreamName()
         def streamType = IR_SpecialDatatype("std::ofstream")
         def stream = IR_VariableAccess(streamName, streamType)
-        tmp += IR_ObjectInstantiation(streamType, streamName, fileAccess.getFilename(), openMode)
+        tmp += IR_ObjectInstantiation(streamType, streamName, filename, openMode)
         tmp += IR_Print(stream, "\"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\"", IR_Print.endl)
         tmp += IR_MemberFunctionCall(stream, "close")
         if (Knowledge.mpi_enabled)
@@ -93,8 +96,8 @@ case class IR_PrintField(
       ret
     }
     statements ++= fileHeader
-    statements ++= fileAccess.kernel()
-    statements ++= fileAccess.epilogue()
+    statements ++= fileAccess.accessFile()
+    statements ++= fileAccess.closeFile()
     statements
   }
 

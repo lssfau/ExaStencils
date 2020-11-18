@@ -82,11 +82,11 @@ Function Application {
   /* Start FPP I/O */
    
   startTimer ("FPP: writeField")
-  writeField_fpp ("src_fpp_$blockId.txt", src@finest, useGhost, useBin, condition)
+  writeField_fpp ("src_fpp_$blockId.bin", src@finest, useGhost, useBin, condition)
   stopTimer ("FPP: writeField")
 
   startTimer ("FPP: readField")
-  readField_fpp ("src_fpp_$blockId.txt", dest@finest, useGhost, useBin, condition)
+  readField_fpp ("src_fpp_$blockId.bin", dest@finest, useGhost, useBin, condition)
   stopTimer ("FPP: readField")
   
   checkEquality@finest ( )
@@ -96,11 +96,11 @@ Function Application {
   /* Start Locking I/O */
 
   startTimer ("Lock: writeField")
-  writeField_lock ("src_lock.bin", src@finest, useGhost, !useBin, condition, separator)
+  writeField_lock ("src_lock.txt", src@finest, useGhost, !useBin, condition, separator)
   stopTimer ("Lock: writeField")
   
   startTimer ("Lock: readField")
-  readField_lock ("src_lock.bin", dest@finest, useGhost, !useBin, condition, separator)
+  readField_lock ("src_lock.txt", dest@finest, useGhost, !useBin, condition, separator)
   stopTimer ("Lock: readField")
   
   checkEquality@finest ( )
@@ -112,11 +112,11 @@ Function Application {
   /* Start HDF5 */
 
   startTimer ("HDF5: writeField")
-  writeField_hdf5 ("src", "/test/abs/path/src", src@finest)
+  writeField_hdf5 ("src.h5", "/test/abs/path/src", src@finest)
   stopTimer ("HDF5: writeField")
   
   startTimer ("HDF5: readField")
-  readField_hdf5 ("src", "/test/abs/path/src", dest@finest)
+  readField_hdf5 ("src.h5", "/test/abs/path/src", dest@finest)
   stopTimer ("HDF5: readField")
   
   checkEquality@finest ( )
@@ -126,11 +126,11 @@ Function Application {
   /* Start MPIIO */
 
   startTimer ("MPIIO: writeField")
-  writeField_mpiio ("src", src@finest)
+  writeField_mpiio ("src.bin", src@finest)
   stopTimer ("MPIIO: writeField")
   
   startTimer ("MPIIO: readField")
-  readField_mpiio ("src", dest@finest)
+  readField_mpiio ("src.bin", dest@finest)
   stopTimer ("MPIIO: readField")
   
   checkEquality@finest ( )
@@ -140,11 +140,11 @@ Function Application {
   /* Start PnetCDF */
   
   startTimer ("PnetCDF: writeField")
-  writeField_nc ("src", "field_src", src@finest)
+  writeField_nc ("src.nc", "field_src", src@finest)
   stopTimer ("PnetCDF: writeField")
   
   startTimer ("PnetCDF: readField")
-  readField_nc ("src", "field_src", dest@finest)
+  readField_nc ("src.nc", "field_src", dest@finest)
   stopTimer ("PnetCDF: readField")
   
   checkEquality@finest ( )

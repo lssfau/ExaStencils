@@ -7,9 +7,6 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
-import exastencils.config.Settings
-import exastencils.datastructures.Transformation.Output
-import exastencils.datastructures.ir._
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir._
 import exastencils.logger.Logger
@@ -32,7 +29,7 @@ case class IR_FileAccess_PnetCDF(
   */
 
   // general variables
-  val openMode = if(appendedMode) {
+  override def openMode : IR_VariableAccess = if(appendedMode) {
     // from: http://cucis.ece.northwestern.edu/projects/PnetCDF/doc/pnetcdf-c/ncmpi_005fopen.html
     if(writeAccess) IR_VariableAccess("NC_WRITE", IR_UnknownDatatype) else IR_VariableAccess("NC_NOWRITE", IR_UnknownDatatype)
   } else {
@@ -41,13 +38,13 @@ case class IR_FileAccess_PnetCDF(
   }
 
   // time variable handling
-  val useTimeDim = true // TODO parameter: [true | false] to enable/disable writing record variables
-  val numDimsDataAndTime = numDimsData + (if (useTimeDim) 1 else 0) // record variables are bound to the "unlimited" dimension (often used as time)
+  val useTimeDim = true // TODO add as parameter: [true | false] to enable/disable writing record variables
+  val numDimsDataAndTime : Int = numDimsData + (if (useTimeDim) 1 else 0) // record variables are bound to the "unlimited" dimension (often used as time)
   val indexTimeArray_decl = IR_VariableDeclaration(MPI_Offset, IR_FileAccess.declareVariable("printStep"), 0) // TODO parameter
   val timeStep_decl = IR_VariableDeclaration(IR_DoubleDatatype, IR_FileAccess.declareVariable("t"), 0.0) // TODO parameter
 
   // describes in-memory structure of array
-  val linearizedOffsets = (0 until numDimsData).map(d => {
+  val linearizedOffsets : Array[IR_IntegerConstant] = (0 until numDimsData).map(d => {
     if(d == 0)
       IR_IntegerConstant(1) // stride in x direction is "1"
     else
@@ -55,7 +52,6 @@ case class IR_FileAccess_PnetCDF(
   }).toArray.reverse
 
   // decls
-  // TODO move most to IR_FileAccess ...
   val err_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("err"))
   val ncFile_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("ncFile"))
   val info_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Info"), IR_FileAccess.declareVariable("info"), IR_VariableAccess("MPI_INFO_NULL", IR_UnknownDatatype)) //TODO handle hints
@@ -63,15 +59,15 @@ case class IR_FileAccess_PnetCDF(
   val varIdField_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("varId_"+field.name))
   val varIdTime_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("varIdTime"))
   val stride_decl = IR_VariableDeclaration(IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime), IR_FileAccess.declareVariable("stride"),
-    IR_InitializerList( (if (useTimeDim) IR_IntegerConstant(1) +: stride_local else stride_local) : _*) // add one more entry for unlimited "time" dimension
+    IR_InitializerList( (if (useTimeDim) IR_IntegerConstant(1) +: strideLocal else strideLocal) : _*) // add one more entry for unlimited "time" dimension
   )
   val count_decl = IR_VariableDeclaration(IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime), IR_FileAccess.declareVariable("count"),
-    IR_InitializerList( (if (useTimeDim) IR_IntegerConstant(1) +: innerPoints_local else innerPoints_local) : _*) // prepend "1" since "1*(innerPoints_local.product)" values are written per timestep
+    IR_InitializerList( (if (useTimeDim) IR_IntegerConstant(1) +: innerPointsLocal else innerPointsLocal) : _*) // prepend "1" since "1*(innerPoints_local.product)" values are written per timestep
   )
   val imap_decl = IR_VariableDeclaration(IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime), IR_FileAccess.declareVariable("imap"),
     IR_InitializerList( (if (useTimeDim) IR_IntegerConstant(0) +: linearizedOffsets else linearizedOffsets) : _*) // prepend "0" since the memory layout doesn't change with the additional time dimension
   )
-  val globalDims_decl = IR_VariableDeclaration(IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime), IR_FileAccess.declareVariable("globalDims"), IR_InitializerList(innerPoints_global : _*))
+  val globalDims_decl = IR_VariableDeclaration(IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime), IR_FileAccess.declareVariable("globalDims"), IR_InitializerList(innerPointsGlobal : _*))
   val globalStart_decl = IR_VariableDeclaration(IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime), IR_FileAccess.declareVariable("globalStart"), IR_InitializerList(IR_IntegerConstant(0)))
   val declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(
     err_decl, ncFile_decl, info_decl, dimId_decl, varIdField_decl,
@@ -98,7 +94,7 @@ case class IR_FileAccess_PnetCDF(
   val globalStart = IR_VariableAccess(globalStart_decl)
 
   // from: http://cucis.ece.northwestern.edu/projects/PnetCDF/doc/pnetcdf-c/Variable-Types.html#Variable-Types
-  val ncDatatype = {
+  val ncDatatype : IR_VariableAccess = {
     val dt = field.layout.datatype.prettyprint match {
       case "char" => "NC_CHAR"
       case "byte" => "NC_BYTE"
@@ -132,7 +128,7 @@ case class IR_FileAccess_PnetCDF(
   def accessFileFragwise(accessStmts : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
     // set global starting index for fragment
     val setOffsetFrag : ListBuffer[IR_Assignment] = (0 until numDimsData).map(d => {
-      IR_Assignment(IR_ArrayAccess(globalStart, d + (if (useTimeDim) 1 else 0)), startIdx_global(d))
+      IR_Assignment(IR_ArrayAccess(globalStart, d + (if (useTimeDim) 1 else 0)), startIdxGlobal(d))
     }).to[ListBuffer]
 
     IR_LoopOverFragments(
@@ -142,19 +138,25 @@ case class IR_FileAccess_PnetCDF(
     )
   }
 
-  override def prologue() : ListBuffer[IR_Statement] = {
+  override def createOrOpenFile() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     // add declarations
-    for(decl <- declarations) {
+    for (decl <- declarations) {
       statements += decl
     }
 
     // create/open file
-    if(writeAccess && !appendedMode)
+    if (writeAccess && !appendedMode)
       statements ++= callNcFunction("ncmpi_create", mpiCommunicator, fileName, openMode, info, IR_AddressOf(ncFile))
     else
       statements ++= callNcFunction("ncmpi_open", mpiCommunicator, fileName, openMode, info, IR_AddressOf(ncFile))
+
+    statements
+  }
+
+  override def setupAccess() : ListBuffer[IR_Statement] = {
+    var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     // define dimensions in case of write operations
     if(writeAccess) {
@@ -198,13 +200,9 @@ case class IR_FileAccess_PnetCDF(
     statements
   }
 
-  override def epilogue() : ListBuffer[IR_Statement] = {
-    var statements : ListBuffer[IR_Statement] = ListBuffer()
+  override def cleanupAccess() : ListBuffer[IR_Statement] = ListBuffer() // nothing to cleanup yet
 
-    statements ++= callNcFunction("ncmpi_close", ncFile)
-
-    statements
-  }
+  override def closeFile() : ListBuffer[IR_Statement] = callNcFunction("ncmpi_close", ncFile)
 
   // field pointer at offset of first non-ghost index
   val fieldPtrInner = IR_AddressOf(IR_FieldAccess(field, slot, IR_ExpressionIndex((0 until numDimsData).map(d => field.layout.defIdxGhostLeftBegin(d)).toArray)))
@@ -216,8 +214,8 @@ case class IR_FileAccess_PnetCDF(
       statements ++= callNcFunction("ncmpi_put_var1_double_all", ncFile, varIdTime, IR_AddressOf(IR_VariableAccess(indexTimeArray_decl)), IR_AddressOf(IR_VariableAccess(timeStep_decl)))
     }
 
-    val bufcount = innerPoints_local.reduce(_ * _) // indicates how many derived datatype elements are written to file
-    val write = if(startIdx_local.map(expr => expr.asInstanceOf[IR_IntegerConstant].value).sum == 0) {
+    val bufcount = innerPointsLocal.reduce(_ * _) // indicates how many derived datatype elements are written to file
+    val write = if(startIdxLocal.map(expr => expr.asInstanceOf[IR_IntegerConstant].value).sum == 0) {
       // use simpler method if the whole array can be written without having to exclude ghost layers
       callNcFunction("ncmpi_put_vara_all", ncFile, varIdField, globalStart, count, fieldptr, bufcount, IR_VariableAccess(field.layout.datatype.prettyprint_mpi, IR_UnknownDatatype))
     } else {
@@ -233,8 +231,8 @@ case class IR_FileAccess_PnetCDF(
   override def readField() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    val bufcount = innerPoints_local.reduce(_ * _) // indicates how many derived datatype elements are written to file
-    val read = if(startIdx_local.map(expr => expr.asInstanceOf[IR_IntegerConstant].value).sum == 0) {
+    val bufcount = innerPointsLocal.reduce(_ * _) // indicates how many derived datatype elements are written to file
+    val read = if(startIdxLocal.map(expr => expr.asInstanceOf[IR_IntegerConstant].value).sum == 0) {
       // use simpler method if the whole array can be written without having to exclude ghost layers
       callNcFunction("ncmpi_get_vara_all", ncFile, varIdField, globalStart, count, fieldptr, bufcount, IR_VariableAccess(field.layout.datatype.prettyprint_mpi, IR_UnknownDatatype))
     } else {
@@ -247,25 +245,15 @@ case class IR_FileAccess_PnetCDF(
     statements
   }
 
-  override def expand() : Output[StatementList]  = {
-    // headers, paths and libs
-    if (!Settings.additionalIncludes.contains("pnetcdf.h"))
-      Settings.additionalIncludes += "pnetcdf.h"
-    if(!Settings.additionalLibs.contains("pnetcdf"))
-      Settings.additionalLibs += "pnetcdf"
-    if(!Settings.pathsInc.contains("$(PNETCDF_HOME)/include"))
-      Settings.pathsInc += "$(PNETCDF_HOME)/include"
-    if(!Settings.pathsLib.contains("$(PNETCDF_HOME)/lib"))
-      Settings.pathsLib += "$(PNETCDF_HOME)/lib"
+  // headers, paths and libs
+  override def includes : ListBuffer[String] = ListBuffer("pnetcdf.h")
+  override def libraries : ListBuffer[String] = ListBuffer("pnetcdf")
+  override def pathsInc : ListBuffer[String] = ListBuffer("$(PNETCDF_HOME)/include")
+  override def pathsLib : ListBuffer[String] = ListBuffer("$(PNETCDF_HOME)/lib")
 
-    if(datasetName == IR_NullExpression) {
+  override def validateParams() : Unit = {
+    if (datasetName == IR_NullExpression) {
       Logger.error("Parameter \"dataset\" was not specified.")
     }
-
-    var stmts : ListBuffer[IR_Statement] = ListBuffer()
-    stmts ++= prologue()
-    stmts ++= kernel()
-    stmts ++= epilogue()
-    stmts
   }
 }

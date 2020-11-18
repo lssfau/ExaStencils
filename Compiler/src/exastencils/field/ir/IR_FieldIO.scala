@@ -49,21 +49,21 @@ abstract class IR_FieldIO(
     dataset : IR_Expression = IR_NullExpression) extends IR_Statement with IR_Expandable {
 
   // wrapper function that generates statements for file access using the specified I/O interface
-  def generateFileAccess(appendToFile : Boolean = false) : IR_FileAccess = {
+  def generateFileAccess() : IR_FileAccess = {
 
     ioInterface.asInstanceOf[IR_StringConstant].value.toLowerCase match {
       case "lock"  =>
-        IR_FileAccess_Locking(filename, field, slot, includeGhostLayers, useBinary, doWrite, onlyVals, separator, condition, appendToFile)
+        IR_FileAccess_Locking(filename, field, slot, includeGhostLayers, useBinary, doWrite, onlyVals, separator, condition)
       case "fpp"   =>
-        IR_FileAccess_FPP(filename, field, slot, includeGhostLayers, useBinary, doWrite, onlyVals, separator, condition, appendToFile)
+        IR_FileAccess_FPP(filename, field, slot, includeGhostLayers, useBinary, doWrite, onlyVals, separator, condition)
       case "mpiio" =>
-        IR_FileAccess_MPIIO(filename, field, slot, includeGhostLayers, doWrite, appendToFile)
+        IR_FileAccess_MPIIO(filename, field, slot, includeGhostLayers, doWrite)
       case "hdf5"  =>
-        IR_FileAccess_HDF5(filename, dataset, field, slot, includeGhostLayers, doWrite, appendToFile)
+        IR_FileAccess_HDF5(filename, dataset, field, slot, includeGhostLayers, doWrite)
       case "nc"    =>
-        IR_FileAccess_PnetCDF(filename, dataset, field, slot, includeGhostLayers, doWrite, appendToFile)
+        IR_FileAccess_PnetCDF(filename, dataset, field, slot, includeGhostLayers, doWrite)
       case "sion"  =>
-        IR_FileAccess_SionLib(filename, field, slot, includeGhostLayers, doWrite, appendToFile)
+        IR_FileAccess_SionLib(filename, field, slot, includeGhostLayers, doWrite)
       case _       =>
         Logger.error("Ignoring call to " + (if (doWrite) {if (onlyVals) "writeField" else "printField"} else "readField") + " using unsupported I/O interface: " + ioInterface)
         IR_FileAccess_None(field, slot)

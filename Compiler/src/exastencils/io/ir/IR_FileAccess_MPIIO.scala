@@ -2,16 +2,14 @@ package exastencils.io.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.logger.Logger
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
-import exastencils.datastructures.Transformation.Output
-import exastencils.datastructures.ir._
 import exastencils.domain.ir
 import exastencils.field.ir._
+import exastencils.logger.Logger
 
 case class IR_FileAccess_MPIIO(
     var filename : IR_Expression,
@@ -21,7 +19,7 @@ case class IR_FileAccess_MPIIO(
     var writeAccess : Boolean,
     var appendedMode : Boolean = false) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess, appendedMode) {
 
-  val openMode = if(writeAccess) {
+  val openMode : IR_VariableAccess = if(writeAccess) {
     val openOrCreate = if (appendedMode) "MPI_MODE_APPEND" else "MPI_MODE_CREATE"
     IR_VariableAccess("MPI_MODE_WRONLY | " + openOrCreate, IR_UnknownDatatype)
   } else {
@@ -37,16 +35,15 @@ case class IR_FileAccess_MPIIO(
   val rowMajor = IR_VariableAccess("MPI_ORDER_C", IR_UnknownDatatype)
 
   // declarations
-  // TODO move most to IR_FileAccess ...
   val fileHandle_decl = IR_VariableDeclaration(MPI_File, IR_FileAccess.declareVariable("fh"))
   val localView_decl = IR_VariableDeclaration(MPIIO_Datatype, IR_FileAccess.declareVariable("localSubarray"))
   val globalView_decl = IR_VariableDeclaration(IR_ArrayDatatype(MPIIO_Datatype, Knowledge.domain_numFragmentsPerBlock), IR_FileAccess.declareVariable("globalSubarray"))
   val info_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Info"), IR_FileAccess.declareVariable("info"), IR_VariableAccess("MPI_INFO_NULL", IR_UnknownDatatype)) //TODO handle hints
   val status_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Status"), IR_FileAccess.declareVariable("status"))
-  val count_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numDimsData), IR_FileAccess.declareVariable("count"), IR_InitializerList(innerPoints_local : _*))
-  val localDims_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numDimsData), IR_FileAccess.declareVariable("localDims"), IR_InitializerList(totalPoints_local : _*))
-  val localStart_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numDimsData), IR_FileAccess.declareVariable("localStart"), IR_InitializerList(startIdx_local : _*))
-  val globalDims_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numDimsData), IR_FileAccess.declareVariable("globalDims"), IR_InitializerList(innerPoints_global : _*))
+  val count_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numDimsData), IR_FileAccess.declareVariable("count"), IR_InitializerList(innerPointsLocal : _*))
+  val localDims_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numDimsData), IR_FileAccess.declareVariable("localDims"), IR_InitializerList(totalPointsLocal : _*))
+  val localStart_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numDimsData), IR_FileAccess.declareVariable("localStart"), IR_InitializerList(startIdxLocal : _*))
+  val globalDims_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numDimsData), IR_FileAccess.declareVariable("globalDims"), IR_InitializerList(innerPointsGlobal : _*))
   val globalStart_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numDimsData), IR_FileAccess.declareVariable("globalStart"))
   val declCollection : ListBuffer[IR_VariableDeclaration] = ListBuffer(
     fileHandle_decl, localView_decl, globalView_decl, info_decl, status_decl,
@@ -64,9 +61,10 @@ case class IR_FileAccess_MPIIO(
   val globalDims = IR_VariableAccess(globalDims_decl)
   val globalStart = IR_VariableAccess(globalStart_decl)
 
-  def accessFileFragwise(accessStmts : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
+  override def accessFileFragwise(accessStmts : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
     val offset = IR_IntegerConstant(0) // offset is set via "globalView" parameter
-    val setView : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_set_view"), fileHandle, offset, mpiDatatypeField, globalView, IR_StringConstant("native"), info)
+    val nativeRepresentation = IR_Cast(IR_PointerDatatype(IR_CharDatatype), IR_StringConstant("native")) // to suppress warning
+    val setView : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_set_view"), fileHandle, offset, mpiDatatypeField, globalView, nativeRepresentation, info)
     IR_LoopOverFragments(
       IR_IfCondition(ir.IR_IV_IsValidForDomain(field.domain.index),
          ListBuffer(setView) ++ accessStmts
@@ -74,16 +72,26 @@ case class IR_FileAccess_MPIIO(
     )
   }
 
-  override def prologue() : ListBuffer[IR_Statement] = {
+  override def createOrOpenFile() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     // add decls
     declCollection.foreach(decl => statements += decl)
 
+    // open file
+    val fn = IR_Cast(IR_PointerDatatype(IR_CharDatatype), filename) // to suppress warning
+    statements += IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_open"), mpiCommunicator, fn, openMode, info, IR_AddressOf(fileHandle))
+
+    statements
+  }
+
+  override def setupAccess() : ListBuffer[IR_Statement] = {
+    var statements : ListBuffer[IR_Statement] = ListBuffer()
+
     // create derived datatypes
     if(Knowledge.domain_onlyRectangular) {
       // global view (location within the whole domain) per fragment
-      val setOffsetFrag : ListBuffer[IR_Assignment] = numDimsDataRange.map(d => IR_Assignment(IR_ArrayAccess(globalStart, d), startIdx_global(d))).to[ListBuffer]
+      val setOffsetFrag : ListBuffer[IR_Assignment] = numDimsDataRange.map(d => IR_Assignment(IR_ArrayAccess(globalStart, d), startIdxGlobal(d))).to[ListBuffer]
       val createGlobalSubarray : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_create_subarray"), numDimsData, globalDims, count, globalStart, rowMajor, mpiDatatypeField, IR_AddressOf(globalView))
       val commitGlobalDatatype : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_commit"), IR_AddressOf(globalView))
       statements += IR_LoopOverFragments(
@@ -99,12 +107,9 @@ case class IR_FileAccess_MPIIO(
       // TODO
     }
 
-    // open file
-    statements += IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_open"), mpiCommunicator, filename, openMode, info, IR_AddressOf(fileHandle))
-
     statements
   }
-  override def epilogue() : ListBuffer[IR_Statement] = {
+  override def cleanupAccess() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     // free derived datatypes
@@ -119,11 +124,10 @@ case class IR_FileAccess_MPIIO(
       // TODO
     }
 
-    // close file
-    statements += IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_close"), IR_AddressOf(fileHandle))
-
     statements
   }
+
+  override def closeFile() : ListBuffer[IR_Statement] = ListBuffer(IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_close"), IR_AddressOf(fileHandle)))
 
   override def readField() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
@@ -149,15 +153,9 @@ case class IR_FileAccess_MPIIO(
     statements
   }
 
-  override def expand() : Output[StatementList]  = {
+  override def validateParams() : Unit = {
     if(!Knowledge.mpi_enabled) {
       Logger.error("MPI-I/O can only be used when MPI is enabled!")
     }
-
-    var stmts : ListBuffer[IR_Statement] = ListBuffer()
-    stmts ++= prologue()
-    stmts ++= kernel()
-    stmts ++= epilogue()
-    stmts
   }
 }

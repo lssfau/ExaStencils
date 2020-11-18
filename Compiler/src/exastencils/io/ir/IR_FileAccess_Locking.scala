@@ -8,8 +8,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
-import exastencils.datastructures.Transformation.Output
-import exastencils.datastructures.ir._
+import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir._
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir._
@@ -26,34 +25,52 @@ case class IR_FileAccess_Locking(
     var condition : IR_Expression,
     var appendedMode : Boolean = false) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess, appendedMode) {
 
-  var openFlags = if (writeAccess) { if (Knowledge.mpi_enabled || appendedMode) "std::ios::app" else "std::ios::trunc"} else "std::ios::in"
+  var openFlags : String = if (writeAccess) { if (appendedMode) "std::ios::app" else "std::ios::trunc"} else "std::ios::in"
   if (useBinary)
     openFlags += " | std::ios::binary"
-  val openMode = IR_VariableAccess(openFlags, IR_UnknownDatatype)
+  override def openMode = IR_VariableAccess(openFlags, IR_UnknownDatatype)
 
-  override def prologue() : ListBuffer[IR_Statement] = {
+  val streamName : String = IR_FieldIO.getNewStreamName()
+  def streamType : IR_SpecialDatatype = if(writeAccess) IR_SpecialDatatype("std::ofstream") else IR_SpecialDatatype("std::ifstream")
+  def stream = IR_VariableAccess(streamName, streamType)
+
+  override def createOrOpenFile() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
-    if(writeAccess && Knowledge.mpi_enabled) {
-      val streamName = IR_FieldIO.getNewStreamName()
-      def streamType = IR_SpecialDatatype("std::ofstream")
-      def stream = IR_VariableAccess(streamName, streamType)
+
+    // for parallel programs: create file on root process before writing via locking
+    if(writeAccess && Knowledge.mpi_enabled && !appendedMode) {
+      val streamNameCreate = IR_FieldIO.getNewStreamName()
+      def streamTypeCreate = IR_SpecialDatatype("std::ofstream")
+      def streamCreate = IR_VariableAccess(streamNameCreate, streamType)
 
       statements += IR_IfCondition(MPI_IsRootProc(),
         ListBuffer[IR_Statement](
-          IR_ObjectInstantiation(streamType, streamName, Duplicate(filename), IR_VariableAccess("std::ios::trunc", IR_UnknownDatatype)),
-          IR_MemberFunctionCall(stream, "close")))
+          IR_ObjectInstantiation(streamTypeCreate, streamNameCreate, Duplicate(filename), openMode),
+          IR_MemberFunctionCall(streamCreate, "close")))
     }
+    // otherwise: the file is created/opened in the MPI_Sequential accordingly
+
     statements
   }
 
-  // file already closed by "last" process
-  override def epilogue() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
+  // nothing to setup here
+  override def setupAccess() : ListBuffer[IR_Statement] = ListBuffer()
+
+  override def accessFileFragwise(fileAcc : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
+    IR_LoopOverFragments(
+      IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
+        IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
+          IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(beginId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
+          IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(endId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
+          IR_IfCondition(condition, fileAcc))),
+      if(writeAccess) IR_Print(stream, IR_Print.flush) else IR_NullStatement)
+  }
+
+  // nothing to cleanup & file already closed by "last" process
+  override def cleanupAccess() : ListBuffer[IR_Statement] = ListBuffer()
+  override def closeFile() : ListBuffer[IR_Statement] = ListBuffer()
 
   override def readField() : ListBuffer[IR_Statement] = {
-    val streamName = IR_FieldIO.getNewStreamName()
-    def streamType = IR_SpecialDatatype("std::ifstream")
-    def stream = IR_VariableAccess(streamName, streamType)
-
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     val read = if (useBinary) IR_ReadBinary(stream) else IR_Read(stream)
@@ -91,7 +108,7 @@ case class IR_FileAccess_Locking(
     }
 
     // read data from file
-    innerLoop += ioStreamLoopOverFrags(stream, read, condition)
+    innerLoop += accessFileFragwise(ListBuffer(read))
 
     // comm file pointer to next rank
     if (Knowledge.mpi_enabled) {
@@ -117,10 +134,6 @@ case class IR_FileAccess_Locking(
   }
 
   override def writeField() : ListBuffer[IR_Statement] = {
-    val streamName = IR_FieldIO.getNewStreamName()
-    def streamType = IR_SpecialDatatype("std::ofstream")
-    def stream = IR_VariableAccess(streamName, streamType)
-
     val printSetPrecision = if(!useBinary) {
       if (Knowledge.field_printFieldPrecision == -1)
         IR_Print(stream, "std::scientific")
@@ -156,11 +169,17 @@ case class IR_FileAccess_Locking(
       IR_PrintBinary(stream, printComponents)
     }
 
-    // TODO: less monolithic code
+    // append to file in MPI_Sequential instead of truncating
+    val openModeLock = if(Knowledge.mpi_enabled && !appendedMode) {
+      IR_VariableAccess(openFlags.replace("std::ios::trunc", "std::ios::app"), IR_UnknownDatatype)
+    } else {
+      openMode
+    }
+
     var innerLoop = ListBuffer[IR_Statement](
-      IR_ObjectInstantiation(stream, Duplicate(filename), openMode),
+      IR_ObjectInstantiation(stream, Duplicate(filename), openModeLock),
       printSetPrecision,
-      ioStreamLoopOverFrags(stream, print, condition),
+      accessFileFragwise(ListBuffer(print)),
       IR_MemberFunctionCall(stream, "close")
     )
 
@@ -175,16 +194,5 @@ case class IR_FileAccess_Locking(
     statements
   }
 
-  override def expand() : Output[StatementList]  = {
-    if (!Settings.additionalIncludes.contains("fstream"))
-      Settings.additionalIncludes += "fstream"
-    if (!Settings.additionalIncludes.contains("iomanip"))
-      Settings.additionalIncludes += "iomanip"
-
-    var stmts : ListBuffer[IR_Statement] = ListBuffer()
-    stmts ++= prologue()
-    stmts ++= kernel()
-    stmts ++= epilogue()
-    stmts
-  }
+  override def includes : ListBuffer[String] = ListBuffer("fstream", "iomanip")
 }

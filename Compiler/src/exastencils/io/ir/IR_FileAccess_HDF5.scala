@@ -7,9 +7,6 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
-import exastencils.config.Settings
-import exastencils.datastructures.Transformation.Output
-import exastencils.datastructures.ir._
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir._
 import exastencils.logger.Logger
@@ -24,12 +21,13 @@ case class IR_FileAccess_HDF5(
     var writeAccess : Boolean,
     var appendedMode : Boolean = false) extends IR_FileAccess(fileName, field, slot, includeGhostLayers, writeAccess, appendedMode) {
 
-  val openMode = if(writeAccess)
+  val openMode : IR_VariableAccess = if(writeAccess) {
     if(appendedMode) IR_VariableAccess("H5F_ACC_RDWR", IR_UnknownDatatype) else IR_VariableAccess("H5F_ACC_TRUNC", IR_UnknownDatatype)
-  else
+  } else {
     IR_VariableAccess("H5F_ACC_RDONLY", IR_UnknownDatatype)
-  val ioMode = IR_VariableAccess("H5FD_MPIO_COLLECTIVE", IR_UnknownDatatype) // TODO: knowledge parameter
-  val rank = numDimsData
+  }
+  val ioMode : IR_VariableAccess = IR_VariableAccess(if(Knowledge.parIO_useCollectiveIO) "H5FD_MPIO_COLLECTIVE" else "H5FD_MPIO_INDEPENDENT", IR_UnknownDatatype)
+  val rank : Int = numDimsData
 
   // TODO: Handling collective/independent I/O
 
@@ -47,11 +45,11 @@ case class IR_FileAccess_HDF5(
   val dataspace_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("dataspace_"+field.name))
   val memspace_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("memspace_"+field.name))
   val dataset_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("dataset_"+field.name))
-  val stride_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("stride"), IR_InitializerList(stride_local : _*))
-  val count_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("count"), IR_InitializerList(innerPoints_local : _*))
-  val localDims_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("localDims"), IR_InitializerList(totalPoints_local : _*))
-  val localStart_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("localStart"), IR_InitializerList(startIdx_local : _*))
-  val globalDims_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("globalDims"), IR_InitializerList(innerPoints_global : _*))
+  val stride_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("stride"), IR_InitializerList(strideLocal : _*))
+  val count_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("count"), IR_InitializerList(innerPointsLocal : _*))
+  val localDims_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("localDims"), IR_InitializerList(totalPointsLocal : _*))
+  val localStart_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("localStart"), IR_InitializerList(startIdxLocal : _*))
+  val globalDims_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("globalDims"), IR_InitializerList(innerPointsGlobal : _*))
   val globalStart_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("globalStart"))
   val info_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Info"), IR_FileAccess.declareVariable("info"), IR_VariableAccess("MPI_INFO_NULL", IR_UnknownDatatype)) //TODO handle hints
   val declCollection : ListBuffer[IR_VariableDeclaration] = ListBuffer(
@@ -75,7 +73,7 @@ case class IR_FileAccess_HDF5(
   val defaultPropertyList = IR_VariableAccess("H5P_DEFAULT", IR_UnknownDatatype)
 
   // from: https://support.hdfgroup.org/HDF5/doc1.6/UG/11_Datatypes.html
-  val h5Datatype = {
+  val h5Datatype : IR_VariableAccess = {
     val dt = field.layout.datatype.prettyprint match {
       case "char" => "H5T_NATIVE_CHAR"
       case "signed char" => "H5T_NATIVE_SCHAR"
@@ -105,7 +103,7 @@ case class IR_FileAccess_HDF5(
   // NOTE: loc_id is fixed to filename in this implementation
   // -> name of dataset must contain an absolute path beginning from root ("/") of the group hierarchy
   // https://support.hdfgroup.org/HDF5/doc1.8/_topic/loc_id+name_obj.htm
-  val locationId = fileId
+  val locationId : IR_VariableAccess = fileId
   val groups : ListBuffer[String] = { // get group names from absolute dataset path (w/o dataset name)
     val absPath = datasetName.asInstanceOf[IR_StringConstant].value
     absPath.tail.split("/").scanLeft(""){_ + "/" + _}.tail.dropRight(1).to[ListBuffer]
@@ -146,6 +144,7 @@ case class IR_FileAccess_HDF5(
 
     stmts
   }
+
   def closeGroupHierarchy : ListBuffer[IR_Statement] = {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
 
@@ -155,13 +154,13 @@ case class IR_FileAccess_HDF5(
     stmts
   }
 
-  override def prologue() : ListBuffer[IR_Statement] = {
+  override def createOrOpenFile() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     // add decls
     declCollection.foreach(decl => statements += decl)
 
-    // setup property list for file access
+    // setup property list for file creation/opening
     statements ++= callH5Function(propertyList, "H5Pcreate", IR_VariableAccess("H5P_FILE_ACCESS", IR_UnknownDatatype))
     if(Knowledge.mpi_enabled)
       statements ++= callH5Function(err, "H5Pset_fapl_mpio", propertyList, mpiCommunicator, info)
@@ -171,6 +170,12 @@ case class IR_FileAccess_HDF5(
       statements ++= callH5Function(fileId, "H5Fcreate", fileName, openMode, defaultPropertyList, propertyList)
     else
       statements ++= callH5Function(fileId, "H5Fopen", fileName, openMode, propertyList)
+
+    statements
+  }
+
+  override def setupAccess() : ListBuffer[IR_Statement] = {
+    var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     statements ++= createGroupHierarchy
 
@@ -190,24 +195,24 @@ case class IR_FileAccess_HDF5(
     statements
   }
 
-  override def epilogue() : ListBuffer[IR_Statement] = {
+  override def cleanupAccess() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    // cleanup
     statements ++= closeGroupHierarchy
     statements ++= callH5Function(err, "H5Pclose", propertyList)
     statements ++= callH5Function(err, "H5Pclose", transferList)
     statements ++= callH5Function(err, "H5Sclose", dataspace)
     statements ++= callH5Function(err, "H5Sclose", memspace)
     statements ++= callH5Function(err, "H5Dclose", dataset)
-    statements ++= callH5Function(err, "H5Fclose", fileId)
 
     statements
   }
 
-  def accessFileFragwise(accessStmts : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
+  override def closeFile() : ListBuffer[IR_Statement] = callH5Function(err, "H5Fclose", fileId)
+
+  override def accessFileFragwise(accessStmts : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
     // set global starting index for fragment and select hyperslab in global domain
-    val setOffsetFrag : ListBuffer[IR_Assignment] = numDimsDataRange.map(d => IR_Assignment(IR_ArrayAccess(globalStart, d), startIdx_global(d))).to[ListBuffer]
+    val setOffsetFrag : ListBuffer[IR_Assignment] = numDimsDataRange.map(d => IR_Assignment(IR_ArrayAccess(globalStart, d), startIdxGlobal(d))).to[ListBuffer]
     val selectHyperslab : ListBuffer[IR_Statement] = callH5Function(err, "H5Sselect_hyperslab", dataspace, IR_VariableAccess("H5S_SELECT_SET", IR_UnknownDatatype), globalStart, stride, count, nullptr)
     IR_LoopOverFragments(
       IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
@@ -239,7 +244,7 @@ case class IR_FileAccess_HDF5(
       falseBdy += dimsDataset_decl
       falseBdy ++= callH5Function(rank, "H5Sget_simple_extent_dims", dataspace, dimsDataset, nullptr)
       falseBdy += IR_IfCondition(
-        numDimsDataRange.map(d => IR_ArrayAccess(dimsDataset, d) Neq IR_ArrayAccess(globalDims, d)).fold(IR_BooleanConstant(true))((a, b) => a AndAnd(b)), // compare dimensionality
+        numDimsDataRange.map(d => IR_ArrayAccess(dimsDataset, d) Neq IR_ArrayAccess(globalDims, d)).fold(IR_BooleanConstant(true))((a, b) => a AndAnd b), // compare dimensionality
         IR_Print(IR_VariableAccess("std::cout", IR_UnknownDatatype), IR_StringConstant("Dimensionality mismatch! No data is read from the file.")),
         readField
       )
@@ -282,25 +287,14 @@ case class IR_FileAccess_HDF5(
     statements
   }
 
-  override def expand() : Output[StatementList]  = {
-    // headers, paths and libs
-    if (!Settings.additionalIncludes.contains("hdf5.h"))
-      Settings.additionalIncludes += "hdf5.h"
-    if(!Settings.additionalLibs.contains("hdf5"))
-      Settings.additionalLibs += "hdf5"
-    if(!Settings.pathsInc.contains("$(HDF5_HOME)/include"))
-      Settings.pathsInc += "$(HDF5_HOME)/include"
-    if(!Settings.pathsLib.contains("$(HDF5_HOME)/lib"))
-      Settings.pathsLib += "$(HDF5_HOME)/lib"
-
+  override def validateParams() : Unit = {
     if(datasetName == IR_NullExpression) {
       Logger.error("Parameter \"dataset\" was not specified.")
     }
-
-    var stmts : ListBuffer[IR_Statement] = ListBuffer()
-    stmts ++= prologue()
-    stmts ++= kernel()
-    stmts ++= epilogue()
-    stmts
   }
+
+  override def includes : ListBuffer[String] = ListBuffer("hdf5.h")
+  override def libraries : ListBuffer[String] = ListBuffer("hdf5")
+  override def pathsInc : ListBuffer[String] = ListBuffer("$(HDF5_HOME)/include")
+  override def pathsLib : ListBuffer[String] = ListBuffer("$(HDF5_HOME)/lib")
 }

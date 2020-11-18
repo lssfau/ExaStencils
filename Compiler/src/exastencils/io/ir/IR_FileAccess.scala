@@ -1,26 +1,26 @@
 package exastencils.io.ir
 
-import scala.collection.mutable.HashMap
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
-import exastencils.core.Duplicate
-import exastencils.datastructures.Transformation.OutputType
-import exastencils.logger._
+import exastencils.config.Settings
+import exastencils.datastructures.Transformation.Output
+import exastencils.datastructures.ir.StatementList
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.grid.ir._
-import exastencils.util.ir._
+import exastencils.logger._
 
 // IR_FileAccess
 // Used to read/write field data from/to files
 
 object IR_FileAccess {
   // prohibit redeclaration of variables for sequences of I/O statements in the same scope
-  private var declMap : HashMap[String, Int] = HashMap()
+  private var declMap : mutable.HashMap[String, Int] = mutable.HashMap()
   def declareVariable(s: String) : String = {
     val counter = declMap.getOrElseUpdate(s, 0)
     declMap.update(s, counter+1)
@@ -36,47 +36,44 @@ abstract class IR_FileAccess(
     writeAccess : Boolean,
     appendedMode : Boolean = false) extends IR_Statement with IR_Expandable {
 
-  def numDimsGrid = field.layout.numDimsGrid
-  def numDimsData = field.layout.numDimsData
+  def numDimsGrid : Int = field.layout.numDimsGrid
+  def numDimsData : Int = field.layout.numDimsData
+  def numDimsDataRange : Range = (0 until numDimsData).reverse // KJI order
 
-  def getFilename() : IR_Expression = filename
+  def beginId : String = if (includeGhostLayers) "GLB" else "DLB"
+  def endId : String = if (includeGhostLayers) "GRE" else "DRE"
 
-  def beginId = if (includeGhostLayers) "GLB" else "DLB"
-  def endId = if (includeGhostLayers) "GRE" else "DRE"
-
-  def arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
-
-  def ioStreamLoopOverFrags(stream : IR_VariableAccess, fileAcc : IR_Statement, condition: IR_Expression) : IR_LoopOverFragments = {
-    IR_LoopOverFragments(
-      IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-        IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
-          IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(beginId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
-          IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(endId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
-          IR_IfCondition(condition, fileAcc))),
-      if(writeAccess) IR_Print(stream, IR_Print.flush) else IR_NullStatement)
-  }
+  def arrayIndexRange : Range = 0 until field.gridDatatype.resolveFlattendSize
 
   // local/global dimensions and offsets
   // TODO: handling for "includeGhostLayers" parameter
   // TODO: handle other domains
   // TODO: handle data reduction
-  val numDimsDataRange = (0 until numDimsData).reverse // KJI order
-  def stride_local : Array[IR_Expression] = numDimsDataRange.map (_ => IR_IntegerConstant(1)).toArray
-  def innerPoints_local : Array[IR_Expression] = if(includeGhostLayers) {
+  def strideLocal : Array[IR_Expression] = numDimsDataRange.map (_ => IR_IntegerConstant(1)).toArray
+
+  def innerPointsLocal : Array[IR_Expression] = if(includeGhostLayers) {
     numDimsDataRange.map(d => IR_IntegerConstant(field.layout.defIdxGhostRightEnd(d) - field.layout.defIdxGhostLeftBegin(d))).toArray
   } else {
     numDimsDataRange.map(d => IR_IntegerConstant(field.layout.defIdxDupRightEnd(d) - field.layout.defIdxDupLeftBegin(d))).toArray
   }
-  def totalPoints_local : Array[IR_Expression] = numDimsDataRange.map(d => IR_IntegerConstant(field.layout.defTotal(d))).toArray
-  def startIdx_local : Array[IR_Expression] = numDimsDataRange.map(d => IR_IntegerConstant(if(includeGhostLayers) field.layout.defIdxGhostLeftBegin(d) else field.layout.defIdxDupLeftBegin(d))).toArray
-  def innerPoints_global : Array[IR_Expression] = if(Knowledge.domain_onlyRectangular) {
-    numDimsDataRange.map(d => Knowledge.domain_rect_numFragsTotalAsVec(d) * innerPoints_local(d)).toArray
+
+  def totalPointsLocal : Array[IR_Expression] = numDimsDataRange.map(d => IR_IntegerConstant(field.layout.defTotal(d))).toArray
+
+  def startIdxLocal : Array[IR_Expression] = numDimsDataRange.map(d => IR_IntegerConstant(
+    if(includeGhostLayers)
+      field.layout.defIdxGhostLeftBegin(d)
+    else field.layout.defIdxDupLeftBegin(d))
+  ).toArray
+
+  def innerPointsGlobal : Array[IR_Expression] = if(Knowledge.domain_onlyRectangular) {
+    numDimsDataRange.map(d => Knowledge.domain_rect_numFragsTotalAsVec(d) * innerPointsLocal(d)).toArray
   } else { // TODO handling for other domain types
     Logger.error("Unimplemented!")
     numDimsDataRange.map(_ => IR_NullExpression).toArray
   }
-  def startIdx_global : Array[IR_Expression] = if(Knowledge.domain_onlyRectangular) {
-    numDimsDataRange.map(d => innerPoints_local(d) * (IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsTotalAsVec(d))).toArray
+
+  def startIdxGlobal : Array[IR_Expression] = if(Knowledge.domain_onlyRectangular) {
+    numDimsDataRange.map(d => innerPointsLocal(d) * (IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsTotalAsVec(d))).toArray
   } else { // TODO handling for other domain types
     Logger.error("Unimplemented!")
     numDimsDataRange.map(_ => IR_NullExpression).toArray
@@ -103,26 +100,71 @@ abstract class IR_FileAccess(
     }
   }
 
-  // TODO: naming convention
-  def prologue() : ListBuffer[IR_Statement]
-  def kernel() : ListBuffer[IR_Statement] = {
+  // structure of file accesses
+  def createOrOpenFile() : ListBuffer[IR_Statement]
+  def setupAccess() : ListBuffer[IR_Statement]
+  def accessFile() : ListBuffer[IR_Statement] = {
     if(writeAccess) {
       writeField()
     } else {
       readField()
     }
   }
-  def epilogue() : ListBuffer[IR_Statement]
+  def cleanupAccess() : ListBuffer[IR_Statement]
+  def closeFile() : ListBuffer[IR_Statement]
 
+  // headers, libs and paths of each I/O interface
+  def libraries : ListBuffer[String] = ListBuffer()
+  def pathsLib : ListBuffer[String] = ListBuffer()
+  def includes : ListBuffer[String] = ListBuffer()
+  def pathsInc : ListBuffer[String] = ListBuffer()
+
+  override def expand() : Output[StatementList] = {
+    // add new headers, paths and libs
+    for(inc <- includes)
+      Settings.additionalIncludes = (Settings.additionalIncludes :+ inc).distinct
+    for(lib <- libraries)
+      Settings.additionalLibs = (Settings.additionalLibs :+ lib).distinct
+    for(pathInc <- pathsInc)
+      Settings.pathsInc = (Settings.pathsInc :+ pathInc).distinct
+    for(pathLib <- pathsLib)
+      Settings.pathsLib = (Settings.pathsLib :+ pathLib).distinct
+
+    validateParams()
+
+    var stmts : ListBuffer[IR_Statement] = ListBuffer()
+    stmts ++= createOrOpenFile()
+    stmts ++= setupAccess()
+    stmts ++= accessFile()
+    stmts ++= cleanupAccess()
+    stmts ++= closeFile()
+    stmts
+  }
+
+  // determines with which mode the file is opened/created
+  def openMode : IR_VariableAccess
+
+  // checks input parameters that were passed
+  def validateParams() : Unit = {}
+
+  // method to access the file in a fragment-wise fashion
+  def accessFileFragwise(accessStatements : ListBuffer[IR_Statement]) : IR_LoopOverFragments
+
+  // core methods for file access
   def readField() : ListBuffer[IR_Statement]
   def writeField() : ListBuffer[IR_Statement]
 }
 
-// basically a NullStatement. Used when wrong input arguments were passed.
+// basically a NullStatement. Used as a dummy return value when wrong input arguments were passed.
 case class IR_FileAccess_None(field : IR_Field, slot : IR_Expression) extends IR_FileAccess(IR_StringConstant(""), field, slot, false, false, false) {
-  override def prologue() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
-  override def epilogue() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
+  override def createOrOpenFile() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
+  override def setupAccess() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
+  override def accessFile() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
+  override def cleanupAccess() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
+  override def closeFile() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
   override def readField() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
   override def writeField() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
-  override def expand() : OutputType = IR_NullStatement
+  override def openMode : IR_VariableAccess = IR_VariableAccess("", IR_UnknownDatatype)
+  override def validateParams() : Unit = {}
+  override def accessFileFragwise(accessStatements : ListBuffer[IR_Statement]) : IR_LoopOverFragments = IR_LoopOverFragments(IR_NullStatement)
 }
