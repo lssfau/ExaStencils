@@ -1,99 +1,296 @@
+// domain declarations
 
-Stencil Centering {
-  east  => 0.25
-  west  => 0.25
-  north => 0.25
-  south => 0.25
+Domain global< [0.0, 0.0] to [1000.0, 1000.0] >
+
+// field layout declarations
+
+Layout defLayoutFor_Real_on_Cell< Real, Cell >@(8) {
+	duplicateLayers = [0, 0]
+	ghostLayers = [0, 0]
 }
 
+Layout defLayoutFor_Real_on_Cell__1_1__1_1< Real, Cell >@(8) {
+	duplicateLayers = [0, 0]
+	ghostLayers = [1, 1] with communication
+}
+
+//////////////////////////////////////////////////////////////////
+Layout defLayoutFor_Vec_on_Cell< Matrix<Real, 3, 1>, Cell >@(8) {
+	duplicateLayers = [0, 0]
+	ghostLayers = [1, 1] with communication
+}
+// field declarations
+
+Field hVec<global, defLayoutFor_Vec_on_Cell, applyBC_hVec@8()>[2]@8
+
+//////////////////////////////////////////////////////////////////
+
+Field h< global, defLayoutFor_Real_on_Cell__1_1__1_1, Neumann(1) >[2]@8
+
+Field b< global, defLayoutFor_Real_on_Cell__1_1__1_1, Neumann(1) >@8
+
+Field hu< global, defLayoutFor_Real_on_Cell__1_1__1_1, applyBC_hu_wall@8 (  ) >[2]@8
+
+Field hv< global, defLayoutFor_Real_on_Cell__1_1__1_1, applyBC_hv_wall@8 (  ) >[2]@8
+
+Field uVis< global, defLayoutFor_Real_on_Cell__1_1__1_1, applyBC_hu_wall@8 (  ) >[2]@8
+
+Field vVis< global, defLayoutFor_Real_on_Cell__1_1__1_1, applyBC_hv_wall@8 (  ) >[2]@8
+
+Field velMag< global, defLayoutFor_Real_on_Cell__1_1__1_1, Neumann(1) >[2]@8
+
+Field hVis< global, defLayoutFor_Real_on_Cell__1_1__1_1, Neumann(1) >[2]@8
+
+Field bVis< global, defLayoutFor_Real_on_Cell__1_1__1_1, Neumann(1) >@8
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Stencil Centering{
+	[1, 0] => 0.25
+	[-1, 0] => 0.25
+	[0, 1] => 0.25
+	[0, -1] => 0.25
+}
 
 Globals {
-  Expr cflNumber         = 0.4
-  Expr checkForNegativeH = false
+	Expr cflNumber = 0.4
+	Expr checkForNegativeH = false
 }
-
 
 Function InitTestcase@finest {
-  Val testcase : Int = 3
+	Val testcase : Integer = 3
+	if ( ( 0 == testcase ) ) {
+		loop over hVec {
+			b = -10
+			hVec<next>[0][0]  = (-b)
+			hVec<next>[1][0] = 0.0
+			hVec<next>[2][0] = 0.0
+		}	
+	} else if ( ( 1 == testcase ) ) {
+			Expr damRadius = 100
+			Expr damHight = 1
+			loop over hVec {
+				b = -10
+				if ( ( sqrt ( ( ( ( vf_cellCenter_x - 500.0 ) ** 2 ) + ( ( vf_cellCenter_y - 500.0 ) ** 2 ) ) ) < damRadius ) ) {
+					hVec<next>[0][0] = ( (-b) + damHight )
+				} else {
+					hVec<next>[0][0] = (-b)
+				}
+				hVec<next>[1][0] = 0.0
+				hVec<next>[2][0] = 0.0
+			}
+	} else if ( 2 == testcase ) {
+    			/// test case 2 - circular elevation on the floor, flat water surface
+   			// boundary conditions need to be chosen in addition
+   			// ideally nothing would happen, but due to the artificial diffusion, movement is induced
 
-  if ( 0 == testcase ) {
-    /// test case 0 - flat floor, no initial movement
-    // nothing should happen in the simulation
+    			Expr elevationRadius = 300
+    			Expr elevationHight  = 1
 
-    loop over h {
-      b = -10
+    			loop over hVec {
+      				b = -10
 
-      h<next> = -b
+      				if ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) <= elevationRadius ) {
+      					b += elevationHight * sin ( PI * ( 0.5 + 0.5 * ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) / elevationRadius ) ) )
+      				}
 
-      hu<next> = 0.0
-      hv<next> = 0.0
-    }
-  } else if ( 1 == testcase ) {
-    /// test case 1 - flat floor, circular dam break in the middle of the domain
-    // boundary conditions need to be chosen in addition
+      				hVec<next>[0][0] = -b
+				hVec<next>[1][0] = 0.0
+      				hVec<next>[2][0] = 0.0
+    			}
+  	}  else if ( 3 == testcase ) {
+    		/// test case 3 - circular elevation on the floor, water surface elevated accordingly
+    		// boundary conditions need to be chosen in addition
 
-    Expr damRadius = 100
-    Expr damHight  = 1
+    		Expr elevationRadius = 300
+	    	Expr elevationHight  = 1
 
-    loop over h {
-      b = -10
+    		loop over hVec {
+ 	     		b = -10
 
-      if ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) < damRadius ) {
-        h<next> = -b + damHight
-      } else {
-        h<next> = -b
-      }
+  	    		hVec<next>[0][0] = -b
 
-      hu<next> = 0.0
-      hv<next> = 0.0
-    }
-  } else if ( 2 == testcase ) {
-    /// test case 2 - circular elevation on the floor, flat water surface
-    // boundary conditions need to be chosen in addition
-    // ideally nothing would happen, but due to the artificial diffusion, movement is induced
+      			if ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) <= elevationRadius ) {
+        			b += elevationHight * sin ( PI * ( 0.5 + 0.5 * ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) / elevationRadius ) ) )
+      			}
 
-    Expr elevationRadius = 300
-    Expr elevationHight  = 1
+      			hVec<next>[1][0] = 0.0
+      			hVec<next>[2][0] = 0.0
+		}
+    	}	
 
-    loop over h {
-      b = -10
 
-      if ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) <= elevationRadius ) {
-        b += elevationHight * sin ( PI * ( 0.5 + 0.5 * ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) / elevationRadius ) ) )
-      }
+	communicate b
+	apply bc to b
+	AdvanceTimestep (  )
 
-      h<next> = -b
-
-      hu<next> = 0.0
-      hv<next> = 0.0
-    }
-  } else if ( 3 == testcase ) {
-    /// test case 3 - circular elevation on the floor, water surface elevated accordingly
-    // boundary conditions need to be chosen in addition
-
-    Expr elevationRadius = 300
-    Expr elevationHight  = 1
-
-    loop over h {
-      b = -10
-
-      h<next> = -b
-
-      if ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) <= elevationRadius ) {
-        b += elevationHight * sin ( PI * ( 0.5 + 0.5 * ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) / elevationRadius ) ) )
-      }
-
-      hu<next> = 0.0
-      hv<next> = 0.0
-    }
-  }
-
-  communicate b
-  apply bc to b
-
-  AdvanceTimestep ( )
 }
 
+Function applyBC_hVec@all {
+// former h
+// TODO fuse loops
+	loop over hVec only ghost [-1, 0] on boundary {
+		hVec[0][0] = hVec@[1, 0][0][0] 
+	}
+	loop over hVec only ghost [1, 0] on boundary {
+		hVec[0][0] = hVec@[-1, 0][0][0] 
+	}
+	loop over hVec only ghost [0, 1] on boundary {
+		hVec[0][0] = hVec@[0, -1][0][0] 
+	}
+	loop over hVec only ghost [0, -1] on boundary {
+		hVec[0][0] = hVec@[0, 1][0][0] 
+	}
+// former hu
+	loop over hVec only ghost [-1, 0] on boundary {
+		hVec[1][0] = (-hVec@[1, 0][1][0])
+	}
+	loop over hVec only ghost [1, 0] on boundary {
+		hVec[1][0]   = (-hVec@[-1, 0][1][0])
+	}
+	loop over hVec only ghost [0, 1] on boundary {
+		hVec[1][0] = hVec@[0, -1][1][0] 
+	}
+	loop over hVec only ghost [0, -1] on boundary {
+		hVec[1][0] = hVec@[0, 1][1][0] 
+	}
+// former hv
+	loop over hVec only ghost [-1, 0] on boundary {
+		hVec[2][0] = hVec@[1, 0][2][0] 
+	}
+	loop over hVec only ghost [1, 0] on boundary {
+		hVec[2][0] = hVec@[-1, 0][2][0] 
+	}
+	loop over hVec only ghost [0, 1] on boundary {
+		hVec[2][0] = (-hVec@[0, -1][2][0])
+	}
+	loop over hVec only ghost [0, -1] on boundary {
+		hVec[2][0] = (-hVec@[0, 1][2][0])
+	}
+
+}
+////////////////////////////////////////////////////////
+
+Function Update@all {
+	communicate hVec
+	Val version : Integer = 2
+	Expr dx = vf_gridWidth_x
+	Expr dy = vf_gridWidth_y
+	if ( 1 == version ) {
+    		/// version 1 - use inline expressions and local solves
+
+    		loop over hVec {
+      			Expr F0 = hVec[1][0] 
+      			Expr F1 = hVec[1][0] **2 / hVec[0][:[0] ] + 0.5 * g * hVec[0][0] **2
+      			Expr F2 = hVec[1][0] * hVec[2][0] / hVec[0][0] 
+
+      			Expr G0 = hVec[2][0] 
+      			Expr G1 = hVec[1][0] * hVec[2][0] / hVec[0][0] 
+      			Expr G2 = hVec[2][0]  **2 / hVec[0][0] + 0.5 * g * hVec[0][0]**2
+
+      			Expr S0 = 0.0
+      			Expr S1 = -0.5 * g * hVec[0][0] * b
+      			Expr S2 = -0.5 * g * hVec[0][0]  * b
+
+      			Expr hc  = Centering * hVec[0][0] 
+      			Expr huc = Centering * hVec[1][0] 
+      			Expr hvc = Centering * hVec[2][0] 
+/*
+      			solve locally {
+        			hVec<next>[0][0] => dx * dy * ( hVec<next>[0][0] - hc  ) + dt * dy * 0.5 * ( F0@east - F0@west ) + dt * dx * 0.5 * ( G0@north - G0@south ) == S0
+        			hVec<next>[1][0] => dx * dy * ( hVec<next>[1][0] - huc ) + dt * dy * 0.5 * ( F1@east - F1@west ) + dt * dx * 0.5 * ( G1@north - G1@south ) == dt * dy * 0.5 * ( S1@west  - S1@east  )
+        			hVec<next>[2][0] => dx * dy * ( hVec<next>[2][0] - hvc ) + dt * dy * 0.5 * ( F2@east - F2@west ) + dt * dx * 0.5 * ( G2@north - G2@south ) == dt * dx * 0.5 * ( S2@north - S2@south )
+      			}
+*/
+    		}
+
+  	} else if ( 2 == version ) {
+    		/// version 2 - split loops
+
+    		Expr F0 = hVec[1][0] 
+    		Expr F1 = hVec[1][0]**2 / hVec[0][0] + 0.5 * g * hVec[0][0]**2
+    		Expr F2 = hVec[1][0] * hVec[2][0] / hVec[0][0] 
+
+    		Expr G0 = hVec[2][0] 
+    		Expr G1 = hVec[1][:] * hVec[2][0] / hVec[0][0] 
+    		Expr G2 = hVec[2][0]**2 / hVec[0][0] + 0.5 * g * hVec[0][0]**2
+
+    		Expr S0 = 0.0
+    		Expr S1 = -0.5 * g * hVec[0][0] * b
+    		Expr S2 = -0.5 * g * hVec[0][0] * b
+
+    		Expr hc  = Centering * hVec[0][:] 
+    		Expr huc = Centering * hVec[1][0] 
+    		Expr hvc = Centering * hVec[2][0] 
+
+
+		loop over hVec {
+      			hVec<next>[0][0] = hc  - ( dt / dx ) * 0.5 * ( F0@east  - F0@west  ) - ( dt / dy ) * 0.5 * ( G0@north - G0@south )
+   
+      			hVec<next>[1][0] = huc + ( dt / dx ) * 0.5 * ( S1@east  - S1@west  ) - ( dt / dx ) * 0.5 * ( F1@east - F1@west ) - ( dt / dy ) * 0.5 * ( G1@north - G1@south )
+   
+      			hVec<next>[2][0] = hvc + ( dt / dy ) * 0.5 * ( S2@north - S2@south ) - ( dt / dx ) * 0.5 * ( F2@east - F2@west ) - ( dt / dy ) * 0.5 * ( G2@north - G2@south )
+    		}
+/*
+
+			Expr F = {{F0@east  - F0@west },{F1@east - F1@west},{F2@east - F2@west}}
+			Expr G = {{G0@north - G0@south},{G1@north - G1@south },{G2@north - G2@south}}
+			Expr h = {{hc}, {huc}, {hvc}}
+			Expr S = {{0},{S1@east  - S1@west},{S2@north - S2@south }}
+		
+		print('hello')
+		loop over hVec {
+			hVec<next>[:][0] = h + ( dt / dx ) * 0.5 * S - ( dt / dx ) * 0.5 * F - ( dt / dy ) * 0.5 * ( G )
+		}
+	*/
+
+}
+
+		if ( checkForNegativeH ) {
+			loop over hVec {
+				if ( ( h<next>[0][0] < 0.0 ) ) {
+					//print ( 'negative h at', i0, i1, h<next> )
+					hVec<next>[0][0] = 0
+					hVec<next>[1][0] = 0
+					hVec<next>[2][0] = 0
+				}
+			}
+		}
+	
+}
+
+
+Function AdvanceTimestep@all {
+	advance hVec
+	apply bc to hVec
+}
+
+Function Application {
+	startTimer ( "setup" )
+	initGlobals (  )
+	initDomain (  )
+	initFieldsWithZero (  )
+	initGeometry (  )
+	InitFields (  )
+	InitTestcase@finest (  )
+	stopTimer ( "setup" )
+	startTimer ( "solve" )
+	Solve@finest (  )
+	stopTimer ( "solve" )
+	UpdateVis@finest (  )
+	printAllTimers (  )
+	destroyGlobals (  )
+}
+
+////////////////////////////////////////////////////////////////
 
 Function applyBC_hu_wall@all ( ) : Unit {
   // Dirichlet 0
@@ -131,218 +328,191 @@ Function applyBC_hv_wall@all ( ) : Unit {
   }
 }
 
-Function Update@all {
-  communicate h
-  communicate hu
-  communicate hv
-
-  Val version : Int = 2
-
-  Expr dx  = vf_gridWidth_x
-  Expr dy  = vf_gridWidth_y
-
-  if ( 1 == version ) {
-    /// version 1 - use inline expressions and local solves
-
-    loop over h {
-      Expr F0 = hu
-      Expr F1 = hu**2 / h + 0.5 * g * h**2
-      Expr F2 = hu * hv / h
-
-      Expr G0 = hv
-      Expr G1 = hu * hv / h
-      Expr G2 = hv**2 / h + 0.5 * g * h**2
-
-      Expr S0 = 0.0
-      Expr S1 = -0.5 * g * h * b
-      Expr S2 = -0.5 * g * h * b
-
-      Expr hc  = Centering * h
-      Expr huc = Centering * hu
-      Expr hvc = Centering * hv
-
-      solve locally {
-        h<next>  => dx * dy * ( h<next>  - hc  ) + dt * dy * 0.5 * ( F0@east - F0@west ) + dt * dx * 0.5 * ( G0@north - G0@south ) == S0
-        hu<next> => dx * dy * ( hu<next> - huc ) + dt * dy * 0.5 * ( F1@east - F1@west ) + dt * dx * 0.5 * ( G1@north - G1@south ) == dt * dy * 0.5 * ( S1@west  - S1@east  )
-        hv<next> => dx * dy * ( hv<next> - hvc ) + dt * dy * 0.5 * ( F2@east - F2@west ) + dt * dx * 0.5 * ( G2@north - G2@south ) == dt * dx * 0.5 * ( S2@north - S2@south )
-      }
-    }
-  } else if ( 2 == version ) {
-    /// version 2 - split loops
-
-    Expr F0 = hu
-    Expr F1 = hu**2 / h + 0.5 * g * h**2
-    Expr F2 = hu * hv / h
-
-    Expr G0 = hv
-    Expr G1 = hu * hv / h
-    Expr G2 = hv**2 / h + 0.5 * g * h**2
-
-    Expr S0 = 0.0
-    Expr S1 = -0.5 * g * h * b
-    Expr S2 = -0.5 * g * h * b
-
-    Expr hc  = Centering * h
-    Expr huc = Centering * hu
-    Expr hvc = Centering * hv
-
-    loop over h {
-      h<next>  = hc  - ( dt / dx ) * 0.5 * ( F0@east  - F0@west  ) - ( dt / dy ) * 0.5 * ( G0@north - G0@south )
-    }
-
-    loop over hu {
-      hu<next> = huc + ( dt / dx ) * 0.5 * ( S1@east  - S1@west  ) - ( dt / dx ) * 0.5 * ( F1@east - F1@west ) - ( dt / dy ) * 0.5 * ( G1@north - G1@south )
-    }
-
-    loop over hu {
-      hv<next> = hvc + ( dt / dy ) * 0.5 * ( S2@north - S2@south ) - ( dt / dx ) * 0.5 * ( F2@east - F2@west ) - ( dt / dy ) * 0.5 * ( G2@north - G2@south )
-    }
-  } else if ( 3 == version ) {
-    /// version 3 - use vector data types
-
-    loop over h {
-      Expr dx  = vf_gridWidth_x
-      Expr dy  = vf_gridWidth_y
-
-      Expr S1 = [ 0; -0.5 * g * h * b; 0 ]
-      Expr S2 = [ 0; 0; -0.5 * g * h * b ]
-      Expr F  = [ hu; hu**2 / h + 0.5 * g * h**2; hu * hv / h ]
-      Expr G  = [ hv; hu * hv / h; hv**2 / h + 0.5 * g * h**2 ]
-      Expr q  = [ h; hu; hv ]
-
-      Expr qNew = Centering * q + 0.5 * dt * (
-          ( S1@east - S1@west ) / dx + ( S2@north - S2@south ) / dy
-        - ( F@east  - F@west  ) / dx - ( G@north  - G@south  ) / dy )
-
-      h<next>  = dot ( qNew, { 1, 0, 0 }T )
-      hu<next> = dot ( qNew, { 0, 1, 0 }T )
-      hv<next> = dot ( qNew, { 0, 0, 1 }T )
-    }
-  }
-
-  if ( checkForNegativeH ) {
-    loop over h {
-      if ( h<next> < 0.0 ) {
-        //print ( 'negative h at', i0, i1, h[next] )
-        h<next>  = 0
-        hu<next> = 0
-        hv<next> = 0
-      }
-    }
-  }
-}
-
-Function AdvanceTimestep@all {
-  advance h
-  advance hu
-  advance hv
-
-  apply bc to h
-  apply bc to hu
-  apply bc to hv
-}
-
-Function Application ( ) : Unit {
-  startTimer ( 'setup' )
-
-  initGlobals ( )
-  initDomain ( )
-  initFieldsWithZero ( )
-  initGeometry ( )
-  InitFields ( )
-
-  InitTestcase@finest ( )
-
-  stopTimer ( 'setup' )
-
-  startTimer ( 'solve' )
-  Solve@finest ( )
-  stopTimer ( 'solve' )
-
-  UpdateVis@finest ( )
-
-  printAllTimers ( )
-  destroyGlobals ( )
-}
-
 Function UpdateTimestepSize@finest {
-  if ( adaptDt ) { // removes function body if not required
-    Var maxWaveSpeed : Real = 0.0
-    loop over h with reduction ( max : maxWaveSpeed ) {
-      //Var cellVel   : Real = sqrt ( ( hu / h )**2 + ( hv / h )**2 )
-      Val cellVel   : Real = max ( fabs ( hu / h ), fabs ( hv / h ) )
-      Val waveSpeed : Real = cellVel + sqrt ( g * h )
+	
+	if ( adaptDt ) {
+		Var maxWaveSpeed : Real = 0.0
+		loop over hVec with reduction ( max : maxWaveSpeed ) {
+			Val cellVel : Real = max ( fabs ( ( hVec[1][0] / hVec[0][0] ) ), fabs ( ( hVec[2][0] / hVec[0][0] ) ) )
+			Val waveSpeed : Real = ( cellVel + sqrt ( ( g * hVec[0][0] ) ) )
+			maxWaveSpeed = max ( maxWaveSpeed, waveSpeed )
+		}
+		dt = ( ( cflNumber * min ( vf_gridWidth_x, vf_gridWidth_y ) ) / maxWaveSpeed )
+	}
 
-      maxWaveSpeed = max ( maxWaveSpeed, waveSpeed )
-    }
-
-    dt = cflNumber * min ( vf_gridWidth_x, vf_gridWidth_y ) / maxWaveSpeed
-  }
 }
 
 Function UpdateVis@finest {
-  if ( visInterval > 0 ) { // removes function body if not required
-    Var uMax : Real = 0.0
-    loop over hu with reduction( max : uMax ) {
-      uMax = max ( uMax, fabs ( hu / h ) )
-    }
-    Var vMax : Real = 0.0
-    loop over hv with reduction( max : vMax ) {
-      vMax = max ( vMax, fabs ( hv / h ) )
-    }
-    Var hMax : Real = -1.0e30
-    loop over h with reduction( max : hMax ) {
-      hMax = max ( hMax, ( h + b ) )
-    }
-    Var hMin : Real = 1.0e30
-    loop over h with reduction( min : hMin ) {
-      hMin = min ( hMin, ( h + b ) )
-    }
-    Var bMax : Real = -1.0e30
-    loop over b with reduction( max : bMax ) {
-      bMax = max ( bMax, b )
-    }
-    Var bMin : Real = 1.0e30
-    loop over b with reduction( min : bMin ) {
-      bMin = min ( bMin, b )
-    }
-
-    Val scaleVel : Real = 1.0 / max ( uMax, vMax )
-    Val scaleH : Real = 1.0 / ( hMax - hMin )
-    Val scaleB : Real = 1.0 / ( bMax - bMin )
-
-    loop over velMag {
-      velMag = scaleVel * sqrt ( ( hu / h )**2  + ( hv / h )**2 )
-      uVis = 0.5 + 0.5 * scaleVel * ( hu / h )
-      vVis = 0.5 + 0.5 * scaleVel * ( hv / h )
-      hVis = scaleH * ( h + b - hMin )
-      bVis = scaleB * ( b - bMin )
-    }
-
-    print ( 'hMin:', hMin, 'hMax:', hMax, 'uMax:', uMax, 'vMax:', vMax )
-
-    //showMappedImageAndWaitWhen ( curTime < maxTime, uVis, vVis, hVis, velMag, bVis )
-  }
+	if ( ( visInterval > 0 ) ) {
+		Var uMax : Real = 0.0
+		loop over hVec with reduction ( max : uMax ) {
+			uMax = max ( uMax, fabs ( ( hVec[1][0] / hVec[0][0]  ) ) )
+		}
+		Var vMax : Real = 0.0
+		loop over hVec with reduction ( max : vMax ) {
+			vMax = max ( vMax, fabs ( ( hVec[2][0]  / hVec[0][0]  ) ) )
+		}
+		Var hMax : Real = -1.0E30
+		loop over hVec with reduction ( max : hMax ) {
+			hMax = max ( hMax, ( hVec[0][0]  + b ) )
+		}
+		Var hMin : Real = 1.0E30
+		loop over hVec with reduction ( min : hMin ) {
+			hMin = min ( hMin, ( hVec[0][0]  + b ) )
+		}
+		Var bMax : Real = -1.0E30
+		loop over b with reduction ( max : bMax ) {
+			bMax = max ( bMax, b )
+		}
+		Var bMin : Real = 1.0E30
+		loop over b with reduction ( min : bMin ) {
+			bMin = min ( bMin, b )
+		}
+		Val scaleVel : Real = ( 1.0 / max ( uMax, vMax ) )
+		Val scaleH : Real = ( 1.0 / ( hMax - hMin ) )
+		Val scaleB : Real = ( 1.0 / ( bMax - bMin ) )
+		loop over velMag {
+			velMag = ( scaleVel * sqrt ( ( ( ( hVec[1][0]  / hVec[0][0]  ) ** 2 ) + ( ( hVec[2][0]  / hVec[0][0]  ) ** 2 ) ) ) )
+			uVis = ( 0.5 + ( ( 0.5 * scaleVel ) * ( hVec[1][0]  / hVec[0][0]  ) ) )
+			vVis = ( 0.5 + ( ( 0.5 * scaleVel ) * ( hVec[2][0]  / hVec[0][0]  ) ) )
+			hVis = ( scaleH * ( ( hVec[0][0]  + b ) - hMin ) )
+			bVis = ( scaleB * ( b - bMin ) )
+		}
+		print ( "hMin:", hMin, "hMax:", hMax, "uMax:", uMax, "vMax:", vMax )
+		//showMappedImageAndWaitWhen ( ( curTime < maxTime ), uVis, vVis, hVis, velMag, bVis )
+	}
 }
 
 Function printMinMax@finest {
-    Var hMin : Real = 1.0e30
-    loop over h with reduction( min : hMin ) {
-      hMin = min ( hMin, ( h + b ) )
-    }
-    Var hMax : Real = -1.0e30
-    loop over h with reduction( max : hMax ) {
-      hMax = max ( hMax, ( h + b ) )
-    }
+	Var hMin : Real = 1.0E30
 
-    Var uMax : Real = 0.0
-    loop over hu with reduction( max : uMax ) {
-      uMax = max ( uMax, fabs ( hu / h ) )
-    }
-    Var vMax : Real = 0.0
-    loop over hv with reduction( max : vMax ) {
-      vMax = max ( vMax, fabs ( hv / h ) )
-    }
-
-    print ( 'hMin:', hMin, 'hMax:', hMax, 'uMax:', uMax, 'vMax:', vMax )
+//TODO fuse loops
+	loop over hVec {
+		hMin = min ( hMin, ( hVec[0][0]  + b ) )
+	}
+	Var hMax : Real = -1.0E30
+	loop over hVec {
+		hMax = max ( hMax, ( hVec[0][0]  + b ) )
+	}
+	Var uMax : Real = 0.0
+	loop over hVec  {
+		uMax = max ( uMax, fabs ( ( hVec[1][0]  / hVec[0][0]  ) ) )
+	}
+	Var vMax : Real = 0.0
+	loop over hVec  {
+		vMax = max ( vMax, fabs ( ( hVec[2][0]  / hVec[0][0]  ) ) )
+	}
+	print ( "hMin:", hMin, "hMax:", hMax, "uMax:", uMax, "vMax:", vMax )
 }
+
+Globals {
+	Var curTime : Real = 0.0
+	Var maxTime : Real = 100.0
+	Var dt : Real = 1.0E-5
+	Expr adaptDt = true
+	Expr printInterval = -1
+	Expr visInterval = 10
+	Expr g = 9.81
+}
+
+Function Solve@8 {
+	Var it : Integer = 0
+	repeat until ( curTime >= maxTime ) {
+		if ( ( 0 == ( it % 1000 ) ) ) {
+			print ( curTime, "/", maxTime, "dt = ", dt )
+			printMinMax@8 (  )
+		}
+		if ( ( ( 10 > 0 ) && ( 0 == ( it % 10 ) ) ) ) {
+			UpdateVis@8 (  )
+		}
+		if ( ( ( -1 > 0 ) && ( 0 == ( it % -1 ) ) ) ) {
+			PrintFields@8 ( ( it / -1 ) )
+		}
+		startTimer ( "timeloop" )
+		if ( true ) {
+			UpdateTimestepSize@8 (  )
+		}
+		Update (  )
+		AdvanceTimestep (  )
+		curTime += dt
+		it += 1
+		stopTimer ( "timeloop" )
+		if ( ( 0 == ( it % 1000 ) ) ) {
+			Val numCells_x : Real = ( ( ( getKnowledge ( "domain_rect_numBlocks_x" ) * getKnowledge ( "domain_rect_numFragsPerBlock_x" ) ) * getKnowledge ( "domain_fragmentLength_x" ) ) * ( 2 ** 8 ) )
+			Val numCells_y : Real = ( ( ( getKnowledge ( "domain_rect_numBlocks_y" ) * getKnowledge ( "domain_rect_numFragsPerBlock_y" ) ) * getKnowledge ( "domain_fragmentLength_y" ) ) * ( 2 ** 8 ) )
+			Val numCells : Real = ( numCells_x * numCells_y )
+			Val timeSpent : Real = ( getTotalTime ( "timeloop" ) / 1000 )
+			print ( "MLUpS:", ( ( ( 1.0E-6 * numCells ) * it ) / timeSpent ) )
+		}
+	}
+	print ( "Total number of iterations:", it )
+}
+
+Function PrintFields@8 ( index : Integer ) {
+	if ( ( -1 > 0 ) ) {
+		/* hu => 0, 0 <-> 0, 0 */
+		/* h => 0, 0 <-> 0, 0 */
+		/* uVis => 0, 0 <-> 0, 0 */
+		loop over uVis@8 {
+			uVis@8 = ( hu@8 / h@8 )
+		}
+		apply bc to uVis@8
+		/* hv => 0, 0 <-> 0, 0 */
+		/* vVis => 0, 0 <-> 0, 0 */
+		/* h => 0, 0 <-> 0, 0 */
+		loop over vVis@8 {
+			vVis@8 = ( hv@8 / h@8 )
+		}
+		apply bc to vVis@8
+		Var filename_u : String
+		buildString ( filename_u, "u_", index, ".csv" )
+		Var filename_v : String
+		buildString ( filename_v, "v_", index, ".csv" )
+		Var filename_h : String
+		buildString ( filename_h, "h_", index, ".csv" )
+		printField ( filename_u, vVis@8 )
+		printField ( filename_v, uVis@8 )
+		printField ( filename_h, h@8 )
+	}
+}
+
+Function InitFields {
+	/* h => 0, 0 <-> 0, 0 */
+	loop over hVec@8 {
+		hVec@8[0][0]  = 0.0
+		hVec@8[1][0]  = 0.0
+		hVec@8[2][0]  = 0.0
+	}
+	apply bc to hVec@8
+	/* b => 0, 0 <-> 0, 0 */
+	loop over b@8 {
+		b@8 = 0.0
+	}
+	apply bc to b@8
+	/* uVis => 0, 0 <-> 0, 0 */
+	loop over uVis@8 {
+		uVis@8 = 0.0
+	}
+	apply bc to uVis@8
+	/* vVis => 0, 0 <-> 0, 0 */
+	loop over vVis@8 {
+		vVis@8 = 0.0
+	}
+	apply bc to vVis@8
+	/* velMag => 0, 0 <-> 0, 0 */
+	loop over velMag@8 {
+		velMag@8 = 0.0
+	}
+	apply bc to velMag@8
+	/* hVis => 0, 0 <-> 0, 0 */
+	loop over hVis@8 {
+		hVis@8 = 0.0
+	}
+	apply bc to hVis@8
+	/* bVis => 0, 0 <-> 0, 0 */
+	loop over bVis@8 {
+		bVis@8 = 0.0
+	}
+	apply bc to bVis@8
+}
+

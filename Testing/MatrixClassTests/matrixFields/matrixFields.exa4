@@ -21,102 +21,85 @@ Function init_mat_field_quad@finest : Unit {
   loop over mat_field_quad {
     	mat_field_quad = comp_mat
   }
+  loop over mat_field_quad {
+    	compare(mat_field_quad,comp_mat,0.01, true)
+  }
+
 }
 
-Function mult_det_mat_field_quad@finest : Unit {
+Function mult_mat_field_quad@finest : Unit {
   loop over mat_field_quad {
-    	mat_field_quad *= determinant(mat_field_quad) 
+    	mat_field_quad = mat_field_quad * 3
+  }
+	Var comp_mat_3 : Matrix<Real, 2, 2> = 3*comp_mat
+  loop over mat_field_quad {
+    	compare(mat_field_quad, comp_mat_3, 0.01, true)
   }
 }
 
 Function invert_mat_field_quad@finest : Unit {
+
   loop over mat_field_quad {
     	mat_field_quad = inverse(mat_field_quad)
-	
   }
+  loop over mat_field_quad {
+    	compare(mat_field_quad, inv, 0.01, true)
+  }
+  
 }
 
-Function slice_mat_field_quad@finest : Unit {
-  loop over mat_field_quad {
-    	mat_field_quad = getSlice(mat_field_quad, 0, 0, 2, 2)
-  }
-}
 
 Function slice_mat_field@finest : Unit {
   loop over mat_field {
-    	mat_field = getSlice(mat_field_quad, 0, 0, 2, 1)
+    	//mat_field[:][0] = getSlice(mat_field_quad, 0, 0, 2, 1)
+mat_field = getSlice(mat_field_quad, 0, 0, 2, 1)
+   
+}
+  loop over mat_field {
+	compare(mat_field, slice, 0.01, true)
   }
 }
-/*
-Function compare@finest(Var mat : Matrix<Real, 2, 2>) : Boolean {
-	loop over mat_field_quad {
-		Var i : Int = 0
-		repeat 2 times count i {
- 			Var j : Int = 0
-			repeat 2 times count j {
- 				if(getElement(mat_field_quad, i, j) != getElement(mat, i, j))
-					print(' not equal' )
-					return false
-			}	
-		}
-	}
-	return true
-}
-*/
-// field declarations
 
-Field mat_field< global, mat_layout, 0.0 >@all
+
+
+// field declarations
 
 
 Field mat_field_quad< global, mat_layout_quad, 0.0 >@all
 
+Field mat_field< global, mat_layout, 0.0 >@all
+
 Globals {
+
 	Var comp_mat : Matrix<Real, 2, 2> = {{3,3},{1,2}}
-	
-  Var comp_mat_mult_det : Matrix<Real, 2, 2> = comp_mat * det(comp_mat) 
-  Var comp_mat_inv : Matrix<Real, 2, 2> = inverse(comp_mat_mult_det)
-  Var comp_slice : Matrix<Real, 2, 1> = getSlice(comp_mat_inv, 0, 0, 2, 1)
+	Var inv : Matrix<Real, 2, 2> = inverse(comp_mat * 3)
+	Var slice : Matrix<Real, 2, 1> = getSlice(inv, 0,0,2,1)
   
 }
 Function Application {
     // init
-  initGlobals ( )
+
+initGlobals ( )
   initDomain ( )
   initFieldsWithZero ( )
 
 	init_mat_field_quad@finest()
+	print('stage 0 done')
 
-	//if(compare(comp_mat) == false) return -1
- Var init : String
-  buildString (init, "./data/init.txt" )
-	printField( init,mat_field_quad@finest)
-  	mult_det_mat_field_quad@finest()
- Var mult_det : String
-  buildString (mult_det, "./data/mult_det.txt" )
-printField( mult_det, mat_field_quad@finest)
-  
-	//if(compare(comp_mat_mult_det) == false) return -1
+	Var init : String
+
+	mult_mat_field_quad@finest()
+
+	print('stage 1 done')
+
 	invert_mat_field_quad@finest()
- Var inv : String
-  buildString (inv, "./data/inv.txt" )
-printField( inv,mat_field_quad@finest)
-  
-  
-	//if(compare(comp_mat_inv) == false) return -1
-	slice_mat_field_quad@finest()
- Var slice : String
-  buildString (slice , "./data/slice .txt" )
-printField( slice,mat_field_quad@finest )
-  
-  
-  
-	//if(compare(comp_mat_inv) == false) return -1
-  	slice_mat_field@finest()
-Var slice_2 : String
-  buildString (slice_2 , "./data/slice_2 .txt" )
-printField(mat_field@finest, slice_2 )
-  
-	//if(compare(comp_slice) == false) return -1
-  
+
+	print('stage 2 done')
+ 
+	slice_mat_field@finest()
+
+	print('stage 3 done')
+    
+
  	destroyGlobals ( )
 }

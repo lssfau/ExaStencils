@@ -23,13 +23,15 @@ Function Application ( ) : Unit {
 	//m1 *= determinant(m1)
 
 	res1 = determinant(m1)
-	compare(sol1,res1,prec)		
+	compare(sol1,res1,prec)
+	print('stage 0 done')		
 
 	Var sol3 : Int = -8	
 	Var res3 : Int = determinant(m3)
 	Var res4 : Int = determinant({{1,2,3},{3,4,5},{1,2,7}})
 	compare(sol3,res3,prec)
 	
+	print('stage 1 done')	
 	// 4,5 : calculate with laplace expansion in compiletime
 	Var sol5 : Int = -407	
 	Var res5 : Int 
@@ -38,12 +40,15 @@ Function Application ( ) : Unit {
 	compare(sol5,res5,prec)
 	compare(sol5,res6,prec)
 
+	print('stage 2 done')	
 	// from 6 on: calculate with LU decomposition in runtime
 	Var res7 : Int = determinant(m5)
 	Var sol7 : Int = 12762
 	Var res8 : Int = determinant({{3.0,4,5,6,1,2},{5,6,1,5,7,2},{5,6,4,6,8,1},{4,3,4,5,1,6},{5,7,8,4,2,5},{1,2,3,4,7,8}})
 	compare(sol7,res7,prec)
 	compare(sol7,res8,prec)
+
+	print('stage 3 done')	
 
 }
 
