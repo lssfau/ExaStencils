@@ -1,0 +1,10 @@
+dimensionality                = 2
+
+mpi_enabled = false
+
+
+//experimental_resolveLocalMatSys = "Compiletime"
+
+experimental_resolveLocalMatSys = "Compiletime"
+
+experimental_resolveInverseFunctionCall = "Compiletime"

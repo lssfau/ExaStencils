@@ -2,3 +2,6 @@ dimensionality                = 2
 mpi_enabled 		      = false
 
 experimental_resolveInverseFunctionCall = "Runtime"
+experimental_matrixStructure = "Blockdiagonal"
+experimental_blocksize = 3
+experimental_useNewMatrixStrategies = true

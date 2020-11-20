@@ -19,10 +19,15 @@ Domain global< [0.0, 0.0] to [0.1, 0.1] >
 
 
 Function Application {
-	Var prec : Double = 1.0E-4
 	Var small : Matrix<Real,3,3> = { { 1.0, 2.0, 1.0 }, { 2.0, 5.0, 1.0 }, { 1.0, 3.0, 2.0 } }
+	Var smaller : Matrix<Real,2,2> = { { 1.0, 2.0 }, { 5.0, 1.0 } }
 	Var small_i : Matrix<Real,3,3>
-	small_i = inverse ( small )
+	small_i = inverse ( small, "Filled" )
+	Var smaller_i : Matrix<Real,2,2>
+	smaller_i = inverse ( smaller, "Filled" )
+	Var smaller_sol : Matrix<Real,2,2> = { { -0.1111111111111111, 0.2222222222222222 }, { 0.5555555555555556, -0.1111111111111111 } }
+	Var prec : Double = 1.0E-4
+	compare ( smaller_sol, smaller_i, prec )
 	Var small_sol : Matrix<Real,3,3> = { { 3.5, -0.5, -1.5 }, { -1.5, 0.5, 0.5 }, { 0.5, -0.5, 0.5 } }
 	compare ( small_sol, small_i, prec )
 }
