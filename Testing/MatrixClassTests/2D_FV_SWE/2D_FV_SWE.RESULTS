@@ -68,6 +68,4 @@ hMin: -0.117187 hMax: 0.457522 uMax: 0.138517 vMax: 0.138517
 hMin: -0.131783 hMax: 0.426179 uMax: 0.133474 vMax: 0.133474
 Total number of iterations: 652
 hMin: -0.134466 hMax: 0.419743 uMax: 0.135854 vMax: 0.135854
-Mean mean total time for Timer setup: 15.217
-Mean mean total time for Timer solve: 1455.34
-Mean mean total time for Timer timeloop: 1164.12
+
