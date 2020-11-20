@@ -23,17 +23,50 @@
 # generated code is only compiled, but not executed
 
 #################################################################################################
-# APPLICATION TESTS                                                                             #
+# MATRIX TESTS                                                                         #
 #################################################################################################
 
-Appl_OptFlow_2D          Main ./MatrixClassTests/NSGTestcase/2D_FD_OptFlow_fromL4/2D_FD_OptFlow_fromL4.knowledge ./MatrixClassTests/NSGTestcase/2D_FD_OptFlow_fromL4/2D_FD_OptFlow_fromL4.exa4 ./MatrixClassTests/NSGTestcase/RESULTS/2D_OPTFLOW.RESULTS 1 10
+# classification of matrix shapes/structures
+Matrix_determineMatrixStructures  Main  ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.knowledge  ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.exa4  ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.RESULTS  1  1
 
-Appl_Stokes_2D_FD        Main ./MatrixClassTests/NSGTestcase/2D_FD_Stokes_fromL4/2D_FD_Stokes_fromL4.knowledge ./MatrixClassTests/NSGTestcase/2D_FD_Stokes_fromL4/3D_FD_Stokes_fromL4.exa4 ./MatrixClassTests/NSGTestcase/RESULTS/2D_FD_STOKES.RESULTS 1 10
-Appl_Stokes_3D_FD        Main ./MatrixClassTests/NSGTestcase/3D_FD_Stokes_fromL4/3D_FD_Stokes_fromL4.knowledge ./MatrixClassTests/NSGTestcase/3D_FD_Stokes_fromL4/3D_FD_Stokes_fromL4.exa4 ./MatrixClassTests/NSGTestcase/RESULTS/3D_FD_STOKES.RESULTS 1 10
-Appl_Stokes_3D_FV        Main ./MatrixClassTests/NSGTestcase/3D_FV_Stokes_fromL4/3D_FV_Stokes_fromL4.knowledge ./MatrixClassTests/NSGTestcase/3D_FV_Stokes_fromL4/3D_FV_Stokes_fromL4.exa4 ./MatrixClassTests/NSGTestcase/RESULTS/3D_FV_STOKES.RESULTS 1 10
+# operations on fields with matrices as inner data type
+Matrix_matrixFields  Main  ./MatrixClassTests/matrixFields/matrixFields.knowledge  ./MatrixClassTests/matrixFields/matrixFields.exa4  ./MatrixClassTests/matrixFields/matrixFields.RESULTS  1  1
 
-Appl_Navier_Stokes_3D_Newton        Main ./MatrixClassTests/NSGTestcase/3D_FV_NavierStokes_localNewton/3D_FV_NavierStokes_localNewton.knowledge ./MatrixClassTests/NSGTestcase/3D_FV_NavierStokes_localNewton/3D_FV_NavierStokes_localNewton.exa4 ./MatrixClassTests/NSGTestcase/RESULTS/3D_NSG_NEWTON.RESULTS 1 10
-Appl_Navier_Stokes_3D_Newton        Main ./MatrixClassTests/NSGTestcase/3D_FV_NavierStokes_localPicard/3D_FV_NavierStokes_localPicard.knowledge ./MatrixClassTests/NSGTestcase/3D_FV_NavierStokes_localPicard/3D_FV_NavierStokes_localPicard.exa4 ./MatrixClassTests/NSGTestcase/RESULTS/3D_NSG_PICARD.RESULTS 1 10
+# shallow water equation in vector form
+Matrix_2D_FV_SWE Main  ./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.knowledge  ./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.exa4  ./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.RESULTS  1  1
+
+# built-in operations of matrices
+Matrix_slicing Main  ./MatrixClassTests/resolvingMatrixFunctions/slicing/slicing.knowledge  ./MatrixClassTests/resolvingMatrixFunctions/slicing/slicing.exa4  ./MatrixClassTests/resolvingMatrixFunctions/slicing/slicing.RESULTS  1  1
+Matrix_chaines Main  ./MatrixClassTests/resolvingMatrixFunctions/chaines/chaines.knowledge  ./MatrixClassTests/resolvingMatrixFunctions/chaines/chaines.exa4  ./MatrixClassTests/resolvingMatrixFunctions/chaines/chaines.RESULTS  1  1
+Matrix_cross Main  ./MatrixClassTests/resolvingMatrixFunctions/cross/cross.knowledge  ./MatrixClassTests/resolvingMatrixFunctions/cross/cross.exa4  ./MatrixClassTests/resolvingMatrixFunctions/cross/cross.RESULTS  1  1
+Matrix_dot Main  ./MatrixClassTests/resolvingMatrixFunctions/dot/dot.knowledge  ./MatrixClassTests/resolvingMatrixFunctions/dot/dot.exa4  ./MatrixClassTests/resolvingMatrixFunctions/dot/dot.RESULTS  1  1
+Matrix_trace Main  ./MatrixClassTests/resolvingMatrixFunctions/trace/trace.knowledge  ./MatrixClassTests/resolvingMatrixFunctions/trace/trace.exa4  ./MatrixClassTests/resolvingMatrixFunctions/trace/trace.RESULTS  1  1
+Matrix_transpose Main  ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.knowledge  ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.exa4  ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.RESULTS  1  1
+
+# slicing and access of matrices per bracket operator
+Matrix_resolvingMatrixAccesses Main  ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.knowledge  ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.exa4  ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.RESULTS  1  1
+
+# direct solution of small linear systems
+Matrix_SolveMatSysRunTime Main  ./MatrixClassTests/SolveMatSys/SolveMatSysRunTime/SolveMatSysRunTime.knowledge  ./MatrixClassTests/SolveMatSys/SolveMatSysRunTime/SolveMatSysRunTime.exa4  ./MatrixClassTests/SolveMatSys/SolveMatSysRunTime/SolveMatSysRunTime.RESULTS  1  1
+Matrix_SolveMatSysCompileTime Main  ./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.knowledge  ./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.exa4  ./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.RESULTS  1  1
+
+# arithmetic operators
+Matrix_resolvingMatrixOperators Main  ./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.knowledge  ./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.exa4  ./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.RESULTS  1  1
+
+# inversion at compiletime
+Matrix_LUCompileTime Main  ./MatrixClassTests/invert/CompileTime/LU/LU.knowledge  ./MatrixClassTests/invert/CompileTime/LU/LU.exa4  ./MatrixClassTests/invert/CompileTime/LU/LU.RESULTS  1  1
+Matrix_BlockDiagonalCompileTime Main  ./MatrixClassTests/invert/CompileTime/BlockDiagonal/BlockDiagonal.knowledge  ./MatrixClassTests/invert/CompileTime/BlockDiagonal/BlockDiagonal.exa4  ./MatrixClassTests/invert/CompileTime/BlockDiagonal/BlockDiagonal.RESULTS  1  1
+Matrix_DiagonalCompileTime Main  ./MatrixClassTests/invert/CompileTime/Diagonal/Diagonal.knowledge  ./MatrixClassTests/invert/CompileTime/Diagonal/Diagonal.exa4  ./MatrixClassTests/invert/CompileTime/Diagonal/Diagonal.RESULTS  1  1
+Matrix_SchurCompileTime Main  ./MatrixClassTests/invert/CompileTime/Schur/Schur.knowledge  ./MatrixClassTests/invert/CompileTime/Schur/Schur.exa4  ./MatrixClassTests/invert/CompileTime/Schur/Schur.RESULTS  1  1
+Matrix_SchurWithHelpersCompileTime Main  ./MatrixClassTests/invert/CompileTime/SchurWithHelpers/SchurWithHelpers.knowledge  ./MatrixClassTests/invert/CompileTime/SchurWithHelpers/SchurWithHelpers.exa4  ./MatrixClassTests/invert/CompileTime/SchurWithHelpers/SchurWithHelpers.RESULTS  1  1
+Matrix_smallMatricesCompileTime Main  ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.knowledge  ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.exa4  ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.RESULTS  1  1
+
+# inversion at runtime
+Matrix_SchurRunTime Main  ./MatrixClassTests/invert/RunTime/Schur/Schur.knowledge  ./MatrixClassTests/invert/RunTime/Schur/Schur.exa4  ./MatrixClassTests/invert/RunTime/Schur/Schur.RESULTS  1  1
+Matrix_DiagonalRunTime Main  ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.knowledge  ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.exa4  ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.RESULTS  1  1
+Matrix_BlockDiagonalRunTime Main  ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.knowledge  ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.exa4  ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.RESULTS  1  1
+Matrix_SchurLargeMatrixRunTime Main  ./MatrixClassTests/invert/RunTime/SchurLargeMatrix/SchurLargeMatrix.knowledge  ./MatrixClassTests/invert/RunTime/SchurLargeMatrix/SchurLargeMatrix.exa4  ./MatrixClassTests/invert/RunTime/SchurLargeMatrix/SchurLargeMatrix.RESULTS  1  1
+Matrix_SmallMatrixRunTime Main  ./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.knowledge  ./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.exa4  ./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.RESULTS  1  1
 
 # 10 OMP threads
 
@@ -315,48 +348,3 @@ Large_Hybrid  Main  Large/Hybrid.knowledge  Large/Hybrid.exa4  Large/Hybrid.resu
 # Eigenvalues
 #Tensor2_eigenvalues  Main  TensorClass/Eigenvalues/Tensor2_eigenvalues.knowledge  TensorClass/Eigenvalues/Tensor2_eigenvalues.exa4  TensorClass/Eigenvalues/Tensor2_eigenvalues.results  1  8
 
-#################################################################################################
-# MATRIX TESTS                                                                         #
-#################################################################################################
-
-# classification of matrix shapes/structures
-determineMatrixStructures  Main  ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.knowledge  ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.exa4  ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.RESULTS  1  1
-
-# operations on fields with matrices as inner data type
-matrixFields  Main  ./MatrixClassTests/matrixFields/matrixFields.knowledge  ./MatrixClassTests/matrixFields/matrixFields.exa4  ./MatrixClassTests/matrixFields/matrixFields.RESULTS  1  1
-
-# shallow water equation in vector form
-2D_FV_SWE Main  ./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.knowledge  ./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.exa4  ./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.RESULTS  1  1
-
-# built-in operations of matrices
-slicing Main  ./MatrixClassTests/resolvingMatrixFunctions/slicing/slicing.knowledge  ./MatrixClassTests/resolvingMatrixFunctions/slicing/slicing.exa4  ./MatrixClassTests/resolvingMatrixFunctions/slicing/slicing.RESULTS  1  1
-chaines Main  ./MatrixClassTests/resolvingMatrixFunctions/chaines/chaines.knowledge  ./MatrixClassTests/resolvingMatrixFunctions/chaines/chaines.exa4  ./MatrixClassTests/resolvingMatrixFunctions/chaines/chaines.RESULTS  1  1
-cross Main  ./MatrixClassTests/resolvingMatrixFunctions/cross/cross.knowledge  ./MatrixClassTests/resolvingMatrixFunctions/cross/cross.exa4  ./MatrixClassTests/resolvingMatrixFunctions/cross/cross.RESULTS  1  1
-dot Main  ./MatrixClassTests/resolvingMatrixFunctions/dot/dot.knowledge  ./MatrixClassTests/resolvingMatrixFunctions/dot/dot.exa4  ./MatrixClassTests/resolvingMatrixFunctions/dot/dot.RESULTS  1  1
-trace Main  ./MatrixClassTests/resolvingMatrixFunctions/trace/trace.knowledge  ./MatrixClassTests/resolvingMatrixFunctions/trace/trace.exa4  ./MatrixClassTests/resolvingMatrixFunctions/trace/trace.RESULTS  1  1
-transpose Main  ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.knowledge  ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.exa4  ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.RESULTS  1  1
-
-# slicing and access of matrices per bracket operator
-resolvingMatrixAccesses Main  ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.knowledge  ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.exa4  ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.RESULTS  1  1
-
-# direct solution of small linear systems
-SolveMatSysRunTime Main  ./MatrixClassTests/SolveMatSys/SolveMatSysRunTime/SolveMatSysRunTime.knowledge  ./MatrixClassTests/SolveMatSys/SolveMatSysRunTime/SolveMatSysRunTime.exa4  ./MatrixClassTests/SolveMatSys/SolveMatSysRunTime/SolveMatSysRunTime.RESULTS  1  1
-SolveMatSysCompileTime Main  ./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.knowledge  ./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.exa4  ./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.RESULTS  1  1
-
-# arithmetic operators
-resolvingMatrixOperators Main  ./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.knowledge  ./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.exa4  ./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.RESULTS  1  1
-
-# inversion at compiletime
-LUCompileTime Main  ./MatrixClassTests/invert/CompileTime/LU/LU.knowledge  ./MatrixClassTests/invert/CompileTime/LU/LU.exa4  ./MatrixClassTests/invert/CompileTime/LU/LU.RESULTS  1  1
-BlockDiagonalCompileTime Main  ./MatrixClassTests/invert/CompileTime/BlockDiagonal/BlockDiagonal.knowledge  ./MatrixClassTests/invert/CompileTime/BlockDiagonal/BlockDiagonal.exa4  ./MatrixClassTests/invert/CompileTime/BlockDiagonal/BlockDiagonal.RESULTS  1  1
-DiagonalCompileTime Main  ./MatrixClassTests/invert/CompileTime/Diagonal/Diagonal.knowledge  ./MatrixClassTests/invert/CompileTime/Diagonal/Diagonal.exa4  ./MatrixClassTests/invert/CompileTime/Diagonal/Diagonal.RESULTS  1  1
-SchurCompileTime Main  ./MatrixClassTests/invert/CompileTime/Schur/Schur.knowledge  ./MatrixClassTests/invert/CompileTime/Schur/Schur.exa4  ./MatrixClassTests/invert/CompileTime/Schur/Schur.RESULTS  1  1
-SchurWithHelpersCompileTime Main  ./MatrixClassTests/invert/CompileTime/SchurWithHelpers/SchurWithHelpers.knowledge  ./MatrixClassTests/invert/CompileTime/SchurWithHelpers/SchurWithHelpers.exa4  ./MatrixClassTests/invert/CompileTime/SchurWithHelpers/SchurWithHelpers.RESULTS  1  1
-smallMatricesCompileTime Main  ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.knowledge  ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.exa4  ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.RESULTS  1  1
-
-# inversion at runtime
-SchurRunTime Main  ./MatrixClassTests/invert/RunTime/Schur/Schur.knowledge  ./MatrixClassTests/invert/RunTime/Schur/Schur.exa4  ./MatrixClassTests/invert/RunTime/Schur/Schur.RESULTS  1  1
-DiagonalRunTime Main  ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.knowledge  ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.exa4  ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.RESULTS  1  1
-BlockDiagonalRunTime Main  ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.knowledge  ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.exa4  ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.RESULTS  1  1
-SchurLargeMatrixRunTime Main  ./MatrixClassTests/invert/RunTime/SchurLargeMatrix/SchurLargeMatrix.knowledge  ./MatrixClassTests/invert/RunTime/SchurLargeMatrix/SchurLargeMatrix.exa4  ./MatrixClassTests/invert/RunTime/SchurLargeMatrix/SchurLargeMatrix.RESULTS  1  1
-SmallMatrixRunTime Main  ./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.knowledge  ./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.exa4  ./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.RESULTS  1  1

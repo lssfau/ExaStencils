@@ -27,7 +27,7 @@ build:generator:
         - sbt compile
         - sbt assembly
 
-test:Appl_OptFlow_2D:
+test:Matrix_determineMatrixStructures:
     stage: test
     dependencies:
         - build:generator
@@ -45,9 +45,9 @@ test:Appl_OptFlow_2D:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Appl_OptFlow_2D ./MatrixClassTests/NSGTestcase/2D_FD_OptFlow_fromL4/2D_FD_OptFlow_fromL4.knowledge "./MatrixClassTests/NSGTestcase/2D_FD_OptFlow_fromL4/2D_FD_OptFlow_fromL4.exa4" ./MatrixClassTests/NSGTestcase/RESULTS/2D_OPTFLOW.RESULTS 1 10 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_determineMatrixStructures ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.knowledge "./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.exa4" ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.RESULTS 1 1 Platform/random.platform output
 
-test:Appl_Stokes_2D_FD:
+test:Matrix_matrixFields:
     stage: test
     dependencies:
         - build:generator
@@ -65,9 +65,9 @@ test:Appl_Stokes_2D_FD:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Appl_Stokes_2D_FD ./MatrixClassTests/NSGTestcase/2D_FD_Stokes_fromL4/2D_FD_Stokes_fromL4.knowledge "./MatrixClassTests/NSGTestcase/2D_FD_Stokes_fromL4/3D_FD_Stokes_fromL4.exa4" ./MatrixClassTests/NSGTestcase/RESULTS/2D_FD_STOKES.RESULTS 1 10 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_matrixFields ./MatrixClassTests/matrixFields/matrixFields.knowledge "./MatrixClassTests/matrixFields/matrixFields.exa4" ./MatrixClassTests/matrixFields/matrixFields.RESULTS 1 1 Platform/random.platform output
 
-test:Appl_Stokes_3D_FD:
+test:Matrix_2D_FV_SWE:
     stage: test
     dependencies:
         - build:generator
@@ -85,9 +85,9 @@ test:Appl_Stokes_3D_FD:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Appl_Stokes_3D_FD ./MatrixClassTests/NSGTestcase/3D_FD_Stokes_fromL4/3D_FD_Stokes_fromL4.knowledge "./MatrixClassTests/NSGTestcase/3D_FD_Stokes_fromL4/3D_FD_Stokes_fromL4.exa4" ./MatrixClassTests/NSGTestcase/RESULTS/3D_FD_STOKES.RESULTS 1 10 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_2D_FV_SWE ./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.knowledge "./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.exa4" ./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.RESULTS 1 1 Platform/random.platform output
 
-test:Appl_Stokes_3D_FV:
+test:Matrix_slicing:
     stage: test
     dependencies:
         - build:generator
@@ -105,9 +105,9 @@ test:Appl_Stokes_3D_FV:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Appl_Stokes_3D_FV ./MatrixClassTests/NSGTestcase/3D_FV_Stokes_fromL4/3D_FV_Stokes_fromL4.knowledge "./MatrixClassTests/NSGTestcase/3D_FV_Stokes_fromL4/3D_FV_Stokes_fromL4.exa4" ./MatrixClassTests/NSGTestcase/RESULTS/3D_FV_STOKES.RESULTS 1 10 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_slicing ./MatrixClassTests/resolvingMatrixFunctions/slicing/slicing.knowledge "./MatrixClassTests/resolvingMatrixFunctions/slicing/slicing.exa4" ./MatrixClassTests/resolvingMatrixFunctions/slicing/slicing.RESULTS 1 1 Platform/random.platform output
 
-test:Appl_Navier_Stokes_3D_Newton:
+test:Matrix_chaines:
     stage: test
     dependencies:
         - build:generator
@@ -125,9 +125,9 @@ test:Appl_Navier_Stokes_3D_Newton:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Appl_Navier_Stokes_3D_Newton ./MatrixClassTests/NSGTestcase/3D_FV_NavierStokes_localNewton/3D_FV_NavierStokes_localNewton.knowledge "./MatrixClassTests/NSGTestcase/3D_FV_NavierStokes_localNewton/3D_FV_NavierStokes_localNewton.exa4" ./MatrixClassTests/NSGTestcase/RESULTS/3D_NSG_NEWTON.RESULTS 1 10 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_chaines ./MatrixClassTests/resolvingMatrixFunctions/chaines/chaines.knowledge "./MatrixClassTests/resolvingMatrixFunctions/chaines/chaines.exa4" ./MatrixClassTests/resolvingMatrixFunctions/chaines/chaines.RESULTS 1 1 Platform/random.platform output
 
-test:Appl_Navier_Stokes_3D_Newton:
+test:Matrix_cross:
     stage: test
     dependencies:
         - build:generator
@@ -145,7 +145,367 @@ test:Appl_Navier_Stokes_3D_Newton:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Appl_Navier_Stokes_3D_Newton ./MatrixClassTests/NSGTestcase/3D_FV_NavierStokes_localPicard/3D_FV_NavierStokes_localPicard.knowledge "./MatrixClassTests/NSGTestcase/3D_FV_NavierStokes_localPicard/3D_FV_NavierStokes_localPicard.exa4" ./MatrixClassTests/NSGTestcase/RESULTS/3D_NSG_PICARD.RESULTS 1 10 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_cross ./MatrixClassTests/resolvingMatrixFunctions/cross/cross.knowledge "./MatrixClassTests/resolvingMatrixFunctions/cross/cross.exa4" ./MatrixClassTests/resolvingMatrixFunctions/cross/cross.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_dot:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_dot ./MatrixClassTests/resolvingMatrixFunctions/dot/dot.knowledge "./MatrixClassTests/resolvingMatrixFunctions/dot/dot.exa4" ./MatrixClassTests/resolvingMatrixFunctions/dot/dot.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_trace:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_trace ./MatrixClassTests/resolvingMatrixFunctions/trace/trace.knowledge "./MatrixClassTests/resolvingMatrixFunctions/trace/trace.exa4" ./MatrixClassTests/resolvingMatrixFunctions/trace/trace.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_transpose:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_transpose ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.knowledge "./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.exa4" ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_resolvingMatrixAccesses:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_resolvingMatrixAccesses ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.knowledge "./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.exa4" ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_SolveMatSysRunTime:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SolveMatSysRunTime ./MatrixClassTests/SolveMatSys/SolveMatSysRunTime/SolveMatSysRunTime.knowledge "./MatrixClassTests/SolveMatSys/SolveMatSysRunTime/SolveMatSysRunTime.exa4" ./MatrixClassTests/SolveMatSys/SolveMatSysRunTime/SolveMatSysRunTime.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_SolveMatSysCompileTime:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SolveMatSysCompileTime ./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.knowledge "./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.exa4" ./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_resolvingMatrixOperators:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_resolvingMatrixOperators ./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.knowledge "./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.exa4" ./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_LUCompileTime:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_LUCompileTime ./MatrixClassTests/invert/CompileTime/LU/LU.knowledge "./MatrixClassTests/invert/CompileTime/LU/LU.exa4" ./MatrixClassTests/invert/CompileTime/LU/LU.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_BlockDiagonalCompileTime:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_BlockDiagonalCompileTime ./MatrixClassTests/invert/CompileTime/BlockDiagonal/BlockDiagonal.knowledge "./MatrixClassTests/invert/CompileTime/BlockDiagonal/BlockDiagonal.exa4" ./MatrixClassTests/invert/CompileTime/BlockDiagonal/BlockDiagonal.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_DiagonalCompileTime:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_DiagonalCompileTime ./MatrixClassTests/invert/CompileTime/Diagonal/Diagonal.knowledge "./MatrixClassTests/invert/CompileTime/Diagonal/Diagonal.exa4" ./MatrixClassTests/invert/CompileTime/Diagonal/Diagonal.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_SchurCompileTime:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SchurCompileTime ./MatrixClassTests/invert/CompileTime/Schur/Schur.knowledge "./MatrixClassTests/invert/CompileTime/Schur/Schur.exa4" ./MatrixClassTests/invert/CompileTime/Schur/Schur.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_SchurWithHelpersCompileTime:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SchurWithHelpersCompileTime ./MatrixClassTests/invert/CompileTime/SchurWithHelpers/SchurWithHelpers.knowledge "./MatrixClassTests/invert/CompileTime/SchurWithHelpers/SchurWithHelpers.exa4" ./MatrixClassTests/invert/CompileTime/SchurWithHelpers/SchurWithHelpers.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_smallMatricesCompileTime:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_smallMatricesCompileTime ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.knowledge "./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.exa4" ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_SchurRunTime:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SchurRunTime ./MatrixClassTests/invert/RunTime/Schur/Schur.knowledge "./MatrixClassTests/invert/RunTime/Schur/Schur.exa4" ./MatrixClassTests/invert/RunTime/Schur/Schur.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_DiagonalRunTime:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_DiagonalRunTime ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.knowledge "./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.exa4" ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_BlockDiagonalRunTime:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_BlockDiagonalRunTime ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.knowledge "./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.exa4" ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_SchurLargeMatrixRunTime:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SchurLargeMatrixRunTime ./MatrixClassTests/invert/RunTime/SchurLargeMatrix/SchurLargeMatrix.knowledge "./MatrixClassTests/invert/RunTime/SchurLargeMatrix/SchurLargeMatrix.exa4" ./MatrixClassTests/invert/RunTime/SchurLargeMatrix/SchurLargeMatrix.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_SmallMatrixRunTime:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SmallMatrixRunTime ./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.knowledge "./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.exa4" ./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.RESULTS 1 1 Platform/random.platform output
 
 test:Appl_ExaStokes_2D:
     stage: test
@@ -2589,484 +2949,4 @@ test:Large_Hybrid:
         - mpirun --version
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Large_Hybrid Large/Hybrid.knowledge "Large/Hybrid.exa4" Large/Hybrid.results 4 10 Platform/random.platform output
-
-test:determineMatrixStructures:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib determineMatrixStructures ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.knowledge "./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.exa4" ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.RESULTS 1 1 Platform/random.platform output
-
-test:matrixFields:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib matrixFields ./MatrixClassTests/matrixFields/matrixFields.knowledge "./MatrixClassTests/matrixFields/matrixFields.exa4" ./MatrixClassTests/matrixFields/matrixFields.RESULTS 1 1 Platform/random.platform output
-
-test:2D_FV_SWE:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_SWE ./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.knowledge "./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.exa4" ./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.RESULTS 1 1 Platform/random.platform output
-
-test:slicing:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib slicing ./MatrixClassTests/resolvingMatrixFunctions/slicing/slicing.knowledge "./MatrixClassTests/resolvingMatrixFunctions/slicing/slicing.exa4" ./MatrixClassTests/resolvingMatrixFunctions/slicing/slicing.RESULTS 1 1 Platform/random.platform output
-
-test:chaines:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib chaines ./MatrixClassTests/resolvingMatrixFunctions/chaines/chaines.knowledge "./MatrixClassTests/resolvingMatrixFunctions/chaines/chaines.exa4" ./MatrixClassTests/resolvingMatrixFunctions/chaines/chaines.RESULTS 1 1 Platform/random.platform output
-
-test:cross:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib cross ./MatrixClassTests/resolvingMatrixFunctions/cross/cross.knowledge "./MatrixClassTests/resolvingMatrixFunctions/cross/cross.exa4" ./MatrixClassTests/resolvingMatrixFunctions/cross/cross.RESULTS 1 1 Platform/random.platform output
-
-test:dot:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib dot ./MatrixClassTests/resolvingMatrixFunctions/dot/dot.knowledge "./MatrixClassTests/resolvingMatrixFunctions/dot/dot.exa4" ./MatrixClassTests/resolvingMatrixFunctions/dot/dot.RESULTS 1 1 Platform/random.platform output
-
-test:trace:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib trace ./MatrixClassTests/resolvingMatrixFunctions/trace/trace.knowledge "./MatrixClassTests/resolvingMatrixFunctions/trace/trace.exa4" ./MatrixClassTests/resolvingMatrixFunctions/trace/trace.RESULTS 1 1 Platform/random.platform output
-
-test:transpose:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib transpose ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.knowledge "./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.exa4" ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.RESULTS 1 1 Platform/random.platform output
-
-test:resolvingMatrixAccesses:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib resolvingMatrixAccesses ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.knowledge "./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.exa4" ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.RESULTS 1 1 Platform/random.platform output
-
-test:SolveMatSysRunTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib SolveMatSysRunTime ./MatrixClassTests/SolveMatSys/SolveMatSysRunTime/SolveMatSysRunTime.knowledge "./MatrixClassTests/SolveMatSys/SolveMatSysRunTime/SolveMatSysRunTime.exa4" ./MatrixClassTests/SolveMatSys/SolveMatSysRunTime/SolveMatSysRunTime.RESULTS 1 1 Platform/random.platform output
-
-test:SolveMatSysCompileTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib SolveMatSysCompileTime ./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.knowledge "./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.exa4" ./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.RESULTS 1 1 Platform/random.platform output
-
-test:resolvingMatrixOperators:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib resolvingMatrixOperators ./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.knowledge "./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.exa4" ./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.RESULTS 1 1 Platform/random.platform output
-
-test:LUCompileTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib LUCompileTime ./MatrixClassTests/invert/CompileTime/LU/LU.knowledge "./MatrixClassTests/invert/CompileTime/LU/LU.exa4" ./MatrixClassTests/invert/CompileTime/LU/LU.RESULTS 1 1 Platform/random.platform output
-
-test:BlockDiagonalCompileTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BlockDiagonalCompileTime ./MatrixClassTests/invert/CompileTime/BlockDiagonal/BlockDiagonal.knowledge "./MatrixClassTests/invert/CompileTime/BlockDiagonal/BlockDiagonal.exa4" ./MatrixClassTests/invert/CompileTime/BlockDiagonal/BlockDiagonal.RESULTS 1 1 Platform/random.platform output
-
-test:DiagonalCompileTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib DiagonalCompileTime ./MatrixClassTests/invert/CompileTime/Diagonal/Diagonal.knowledge "./MatrixClassTests/invert/CompileTime/Diagonal/Diagonal.exa4" ./MatrixClassTests/invert/CompileTime/Diagonal/Diagonal.RESULTS 1 1 Platform/random.platform output
-
-test:SchurCompileTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib SchurCompileTime ./MatrixClassTests/invert/CompileTime/Schur/Schur.knowledge "./MatrixClassTests/invert/CompileTime/Schur/Schur.exa4" ./MatrixClassTests/invert/CompileTime/Schur/Schur.RESULTS 1 1 Platform/random.platform output
-
-test:SchurWithHelpersCompileTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib SchurWithHelpersCompileTime ./MatrixClassTests/invert/CompileTime/SchurWithHelpers/SchurWithHelpers.knowledge "./MatrixClassTests/invert/CompileTime/SchurWithHelpers/SchurWithHelpers.exa4" ./MatrixClassTests/invert/CompileTime/SchurWithHelpers/SchurWithHelpers.RESULTS 1 1 Platform/random.platform output
-
-test:smallMatricesCompileTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib smallMatricesCompileTime ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.knowledge "./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.exa4" ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.RESULTS 1 1 Platform/random.platform output
-
-test:SchurRunTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib SchurRunTime ./MatrixClassTests/invert/RunTime/Schur/Schur.knowledge "./MatrixClassTests/invert/RunTime/Schur/Schur.exa4" ./MatrixClassTests/invert/RunTime/Schur/Schur.RESULTS 1 1 Platform/random.platform output
-
-test:DiagonalRunTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib DiagonalRunTime ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.knowledge "./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.exa4" ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.RESULTS 1 1 Platform/random.platform output
-
-test:BlockDiagonalRunTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BlockDiagonalRunTime ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.knowledge "./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.exa4" ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.RESULTS 1 1 Platform/random.platform output
-
-test:SchurLargeMatrixRunTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib SchurLargeMatrixRunTime ./MatrixClassTests/invert/RunTime/SchurLargeMatrix/SchurLargeMatrix.knowledge "./MatrixClassTests/invert/RunTime/SchurLargeMatrix/SchurLargeMatrix.exa4" ./MatrixClassTests/invert/RunTime/SchurLargeMatrix/SchurLargeMatrix.RESULTS 1 1 Platform/random.platform output
-
-test:SmallMatrixRunTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib SmallMatrixRunTime ./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.knowledge "./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.exa4" ./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.RESULTS 1 1 Platform/random.platform output
 
