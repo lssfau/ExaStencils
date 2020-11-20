@@ -286,7 +286,7 @@ Function Application {
 	Solve@finest (  )
 	stopTimer ( "solve" )
 	UpdateVis@finest (  )
-	printAllTimers (  )
+	//printAllTimers (  )
 	destroyGlobals (  )
 }
 
