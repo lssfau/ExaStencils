@@ -17,8 +17,10 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_Lower
 import exastencils.base.ir.IR_Multiplication
+import exastencils.base.ir.IR_Number
 import exastencils.base.ir.IR_PreDecrement
 import exastencils.base.ir.IR_PreIncrement
+import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
@@ -149,6 +151,7 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
             var AasAcc = IR_VariableAccess("A", IR_MatrixDatatype(AasExpr.innerDatatype.get, AasExpr.rows, AasExpr.columns))
             stmts += IR_VariableDeclaration(AasAcc, AasExpr)
             stmts ++= IR_MatrixSolveOps.genLUSolveInlined(AasAcc, m, f, u)
+            IR_Scope(stmts)
           } else {
             val LUP = IR_CompiletimeMatOps.LUDecomp(AasExpr)
             val sol = IR_MatrixSolveOps.forwardBackwardSub(LUP._1, IR_MatNodeUtils.accessToMatExpr(f), LUP._2)
@@ -194,7 +197,10 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
             if(Knowledge.experimental_matrixDebugConfig)
               Logger.warn(s"classified local matrix as: ${A.asInstanceOf[IR_MatrixExpression].shape.get.toStringList()}")
           }
-          A.asInstanceOf[IR_MatrixExpression]
+          A match {
+            case n : IR_Number => IR_MatrixExpression.fromSingleExpression(n.datatype, 1, 1, n)
+            case me : IR_MatrixExpression => me
+          }
         }
     }
   }

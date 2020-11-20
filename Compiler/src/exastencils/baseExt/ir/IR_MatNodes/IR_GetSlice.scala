@@ -88,7 +88,7 @@ object IR_GetSliceRT {
   def apply(dest : IR_Access, gs : IR_RuntimeMNode) = {
     val tmp = gs match {
       case i : IR_GetSlice => i
-      case _               => Logger.error(s"unexpected type ${ gs }, expected IR_IntermediateInv")
+      case _               => Logger.error(s"unexpected type ${ gs }")
     }
     new IR_GetSliceRT(dest, tmp.asInstanceOf[IR_GetSlice].arguments)
   }
