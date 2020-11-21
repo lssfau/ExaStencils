@@ -30,7 +30,7 @@ case class IR_FileAccess_FPP(
     var condition : IR_Expression,
     var appendedMode : Boolean = false) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess, appendedMode) {
 
-  var openFlags : String = if (writeAccess) { if (appendedMode) "std::ios::app" else "std::ios::trunc"} else "std::ios::in"
+  var openFlags : String = if (writeAccess) { if (appendedMode) "std::ios::app" else "std::ios::trunc" } else "std::ios::in"
   if (useBinary)
     openFlags += " | std::ios::binary"
   override def openMode = IR_VariableAccess(openFlags, IR_UnknownDatatype)

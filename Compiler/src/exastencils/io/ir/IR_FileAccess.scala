@@ -49,6 +49,7 @@ abstract class IR_FileAccess(
   // TODO: handling for "includeGhostLayers" parameter
   // TODO: handle other domains
   // TODO: handle data reduction
+  // TODO: global variable for totalNumberOfFrags and validFragsPerBlock
   def strideLocal : Array[IR_Expression] = numDimsDataRange.map (_ => IR_IntegerConstant(1)).toArray
 
   def innerPointsLocal : Array[IR_Expression] = if(includeGhostLayers) {
@@ -121,14 +122,22 @@ abstract class IR_FileAccess(
 
   override def expand() : Output[StatementList] = {
     // add new headers, paths and libs
-    for(inc <- includes)
-      Settings.additionalIncludes = (Settings.additionalIncludes :+ inc).distinct
-    for(lib <- libraries)
-      Settings.additionalLibs = (Settings.additionalLibs :+ lib).distinct
-    for(pathInc <- pathsInc)
-      Settings.pathsInc = (Settings.pathsInc :+ pathInc).distinct
-    for(pathLib <- pathsLib)
-      Settings.pathsLib = (Settings.pathsLib :+ pathLib).distinct
+    for(inc <- includes) {
+      if(!Settings.additionalIncludes.contains(inc))
+        Settings.additionalIncludes += inc
+    }
+    for(lib <- libraries) {
+      if(!Settings.additionalLibs.contains(lib))
+        Settings.additionalLibs += lib
+    }
+    for(pathInc <- pathsInc) {
+      if(!Settings.pathsInc.contains(pathInc))
+        Settings.pathsInc += pathInc
+    }
+    for(pathLib <- pathsLib) {
+      if(!Settings.pathsInc.contains(pathLib))
+        Settings.pathsLib += pathLib
+    }
 
     validateParams()
 
@@ -148,6 +157,12 @@ abstract class IR_FileAccess(
   def validateParams() : Unit = {}
 
   // method to access the file in a fragment-wise fashion
+  /* IMPORTANT:
+    For collective I/O, each process must participate in a read/write call. Therefore, the I/O library matches the function calls of each process (synchronization).
+    In case that a process's number of valid fragments differs from the other processes, some adaptions need to be made:
+      1. Instead of checking if the fragment is valid before writing, we write without any conditions. Otherwise we would deadlock (this is quite similar to a conditional MPI_Barrier).
+      2. In case that we have an "invalid" fragment, we participate in the collective function call but actually write nothing.
+  */
   def accessFileFragwise(accessStatements : ListBuffer[IR_Statement]) : IR_LoopOverFragments
 
   // core methods for file access

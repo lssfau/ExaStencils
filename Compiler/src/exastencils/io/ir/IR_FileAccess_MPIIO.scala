@@ -7,7 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
-import exastencils.domain.ir
+import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir._
 import exastencils.logger.Logger
 
@@ -19,14 +19,14 @@ case class IR_FileAccess_MPIIO(
     var writeAccess : Boolean,
     var appendedMode : Boolean = false) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess, appendedMode) {
 
-  val openMode : IR_VariableAccess = if(writeAccess) {
+  override def openMode : IR_VariableAccess = if(writeAccess) {
     val openOrCreate = if (appendedMode) "MPI_MODE_APPEND" else "MPI_MODE_CREATE"
     IR_VariableAccess("MPI_MODE_WRONLY | " + openOrCreate, IR_UnknownDatatype)
   } else {
     IR_VariableAccess("MPI_MODE_RDONLY", IR_UnknownDatatype)
   }
 
-  // TODO: Handling collective/independent I/O
+  // TODO: Test handling collective/independent I/O for "invalid" fragments
 
   // mpi i/o specific datatypes
   val MPI_File = IR_SpecialDatatype("MPI_File")
@@ -65,11 +65,16 @@ case class IR_FileAccess_MPIIO(
     val offset = IR_IntegerConstant(0) // offset is set via "globalView" parameter
     val nativeRepresentation = IR_Cast(IR_PointerDatatype(IR_CharDatatype), IR_StringConstant("native")) // to suppress warning
     val setView : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_set_view"), fileHandle, offset, mpiDatatypeField, globalView, nativeRepresentation, info)
-    IR_LoopOverFragments(
-      IR_IfCondition(ir.IR_IV_IsValidForDomain(field.domain.index),
-         ListBuffer(setView) ++ accessStmts
+    if(Knowledge.parIO_useCollectiveIO) {
+      IR_LoopOverFragments(setView +: accessStmts)
+    } else {
+      IR_LoopOverFragments(
+        setView, // setView is a collective function
+        IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
+          accessStmts
+        )
       )
-    )
+    }
   }
 
   override def createOrOpenFile() : ListBuffer[IR_Statement] = {
@@ -91,12 +96,12 @@ case class IR_FileAccess_MPIIO(
     // create derived datatypes
     if(Knowledge.domain_onlyRectangular) {
       // global view (location within the whole domain) per fragment
-      val setOffsetFrag : ListBuffer[IR_Assignment] = numDimsDataRange.map(d => IR_Assignment(IR_ArrayAccess(globalStart, d), startIdxGlobal(d))).to[ListBuffer]
+      val setOffsetFrag = IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
+        ListBuffer[IR_Statement]() ++ numDimsDataRange.map(d => IR_Assignment(IR_ArrayAccess(globalStart, d), startIdxGlobal(d)))
+      )
       val createGlobalSubarray : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_create_subarray"), numDimsData, globalDims, count, globalStart, rowMajor, mpiDatatypeField, IR_AddressOf(globalView))
       val commitGlobalDatatype : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_commit"), IR_AddressOf(globalView))
-      statements += IR_LoopOverFragments(
-        setOffsetFrag ++ ListBuffer(createGlobalSubarray) ++ ListBuffer(commitGlobalDatatype)
-      )
+      statements += IR_LoopOverFragments(setOffsetFrag, createGlobalSubarray, commitGlobalDatatype)
       // local view (mainly to omit ghost layers) per fragment
       val createLocalSubarray : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_create_subarray"), numDimsData, localDims, count, localStart, rowMajor, mpiDatatypeField, IR_AddressOf(localView))
       val commitLocalDatatype : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_commit"), IR_AddressOf(localView))
@@ -132,11 +137,20 @@ case class IR_FileAccess_MPIIO(
   override def readField() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    val numElements = IR_IntegerConstant(1) // local view contains a whole fragment (with or without fragments)
-    val readCall = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_read_all"), fileHandle, fieldptr, numElements, localView, status)
-    statements += accessFileFragwise(
-      ListBuffer(readCall)
-    )
+    if(Knowledge.parIO_useCollectiveIO) {
+      val numElements_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("numElems"), 1)
+      val condAssignNumElements = IR_IfCondition(IR_Negation(IR_IV_IsValidForDomain(field.domain.index)), IR_Assignment(IR_VariableAccess(numElements_decl), 0))
+      val readCall = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_read_all"), fileHandle, fieldptr, IR_VariableAccess(numElements_decl), localView, status)
+      statements += accessFileFragwise(
+        ListBuffer(numElements_decl, condAssignNumElements, readCall)
+      )
+    } else {
+      val numElements = IR_IntegerConstant(1) // derived datatype localView contains a whole fragment (with or without ghost layers)
+      val readCall = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_read"), fileHandle, fieldptr, numElements, localView, status)
+      statements += accessFileFragwise(
+        ListBuffer(readCall)
+      )
+    }
 
     statements
   }
@@ -144,11 +158,20 @@ case class IR_FileAccess_MPIIO(
   override def writeField() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    val numElements = IR_IntegerConstant(1) // local view contains a whole fragment (with or without fragments)
-    val writeCall = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_write_all"), fileHandle, fieldptr, numElements, localView, status)
-    statements += accessFileFragwise(
-      ListBuffer(writeCall)
-    )
+    if(Knowledge.parIO_useCollectiveIO) {
+      val numElements_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("numElems"), 1)
+      val condAssignNumElements = IR_IfCondition(IR_Negation(IR_IV_IsValidForDomain(field.domain.index)), IR_Assignment(IR_VariableAccess(numElements_decl), 0))
+      val writeCall = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_write_all"), fileHandle, fieldptr, IR_VariableAccess(numElements_decl), localView, status)
+      statements += accessFileFragwise(
+        ListBuffer(numElements_decl, condAssignNumElements, writeCall)
+      )
+    } else {
+      val numElements = IR_IntegerConstant(1) // derived datatype localView contains a whole fragment (with or without ghost layers)
+      val writeCall = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_write"), fileHandle, fieldptr, numElements, localView, status)
+      statements += accessFileFragwise(
+        ListBuffer(writeCall)
+      )
+    }
 
     statements
   }

@@ -80,7 +80,6 @@ Function Application {
   Val separator : String = ","
     
   /* Start FPP I/O */
-   
   startTimer ("FPP: writeField")
   writeField_fpp ("src_fpp_$blockId.bin", src@finest, useGhost, useBin, condition)
   stopTimer ("FPP: writeField")
@@ -90,11 +89,9 @@ Function Application {
   stopTimer ("FPP: readField")
   
   checkEquality@finest ( )
-  
   /* End FPP I/O */
   
   /* Start Locking I/O */
-
   startTimer ("Lock: writeField")
   writeField_lock ("src_lock.txt", src@finest, useGhost, !useBin, condition, separator)
   stopTimer ("Lock: writeField")
@@ -106,7 +103,6 @@ Function Application {
   checkEquality@finest ( )
   
   printField_lock ("src_vis.csv", src@finest, useGhost, !useBin, condition, separator) // write csv for paraview
-
   /* End Locking I/O */
   
   /* Start HDF5 */
@@ -124,7 +120,6 @@ Function Application {
   /* END HDF5 */
   
   /* Start MPIIO */
-
   startTimer ("MPIIO: writeField")
   writeField_mpiio ("src.bin", src@finest)
   stopTimer ("MPIIO: writeField")
@@ -132,13 +127,11 @@ Function Application {
   startTimer ("MPIIO: readField")
   readField_mpiio ("src.bin", dest@finest)
   stopTimer ("MPIIO: readField")
-  
-  checkEquality@finest ( )
 
+  checkEquality@finest ( )
   /* END MPIIO */
   
   /* Start PnetCDF */
-  
   startTimer ("PnetCDF: writeField")
   writeField_nc ("src.nc", "field_src", src@finest)
   stopTimer ("PnetCDF: writeField")
@@ -148,7 +141,6 @@ Function Application {
   stopTimer ("PnetCDF: readField")
   
   checkEquality@finest ( )
-  
   /* END PnetCDF */
   
   

@@ -29,7 +29,7 @@ case class IR_FileAccess_HDF5(
   val ioMode : IR_VariableAccess = IR_VariableAccess(if(Knowledge.parIO_useCollectiveIO) "H5FD_MPIO_COLLECTIVE" else "H5FD_MPIO_INDEPENDENT", IR_UnknownDatatype)
   val rank : Int = numDimsData
 
-  // TODO: Handling collective/independent I/O
+  // TODO: Test handling collective/independent I/O for "invalid" fragments
 
   // hdf5 specific datatypes
   val hid_t = IR_SpecialDatatype("hid_t")
@@ -37,11 +37,11 @@ case class IR_FileAccess_HDF5(
   val herr_t = IR_SpecialDatatype("herr_t")
   val htri_t = IR_SpecialDatatype("htri_t")
   // decls
-  // TODO move most to IR_FileAccess ...
   val err_decl = IR_VariableDeclaration(herr_t, IR_FileAccess.declareVariable("err"))
   val fileId_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("fileId"))
   val propertyList_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("propertyList"))
   val transferList_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("transferList"))
+  val emptyDataspace_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("emptyDataspace"))
   val dataspace_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("dataspace_"+field.name))
   val memspace_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("memspace_"+field.name))
   val dataset_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("dataset_"+field.name))
@@ -53,13 +53,14 @@ case class IR_FileAccess_HDF5(
   val globalStart_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("globalStart"))
   val info_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Info"), IR_FileAccess.declareVariable("info"), IR_VariableAccess("MPI_INFO_NULL", IR_UnknownDatatype)) //TODO handle hints
   val declCollection : ListBuffer[IR_VariableDeclaration] = ListBuffer(
-    err_decl, fileId_decl, propertyList_decl, transferList_decl, dataspace_decl, memspace_decl, dataset_decl, info_decl,
+    err_decl, fileId_decl, propertyList_decl, transferList_decl, emptyDataspace_decl, dataspace_decl, memspace_decl, dataset_decl, info_decl,
     stride_decl, count_decl, localDims_decl, localStart_decl, globalDims_decl, globalStart_decl)
   // variable accesses
   val err = IR_VariableAccess(err_decl)
   val fileId = IR_VariableAccess(fileId_decl)
   val propertyList = IR_VariableAccess(propertyList_decl)
   val transferList = IR_VariableAccess(transferList_decl)
+  val emptyDataspace = IR_VariableAccess(emptyDataspace_decl)
   val dataspace = IR_VariableAccess(dataspace_decl)
   val memspace = IR_VariableAccess(memspace_decl)
   val dataset = IR_VariableAccess(dataset_decl)
@@ -100,11 +101,11 @@ case class IR_FileAccess_HDF5(
     IR_VariableAccess(dt, IR_UnknownDatatype)
   }
 
-  // NOTE: loc_id is fixed to filename in this implementation
+  // NOTE: loc_id is fixed to fileId in this implementation
   // -> name of dataset must contain an absolute path beginning from root ("/") of the group hierarchy
   // https://support.hdfgroup.org/HDF5/doc1.8/_topic/loc_id+name_obj.htm
   val locationId : IR_VariableAccess = fileId
-  val groups : ListBuffer[String] = { // get group names from absolute dataset path (w/o dataset name)
+  val groups : ListBuffer[String] = { // get group names from absolute dataset path (w/o dataset name). E.g. /path/to/datasetName contains groups: /path, /path/to
     val absPath = datasetName.asInstanceOf[IR_StringConstant].value
     absPath.tail.split("/").scanLeft(""){_ + "/" + _}.tail.dropRight(1).to[ListBuffer]
   }
@@ -188,6 +189,11 @@ case class IR_FileAccess_HDF5(
       Logger.error("Unimplemented!")
     }
 
+    // empty dataspace in case of collective I/O with invalid frags
+    if(Knowledge.parIO_useCollectiveIO) {
+      statements ++= callH5Function(emptyDataspace, "H5Screate", IR_VariableAccess("H5S_NULL", IR_UnknownDatatype))
+    }
+
     // request I/O mode (independent/collective) via transfer list
     statements ++= callH5Function(transferList, "H5Pcreate", IR_VariableAccess("H5P_DATASET_XFER", IR_UnknownDatatype))
     statements ++= callH5Function(err, "H5Pset_dxpl_mpio", transferList, ioMode)
@@ -199,10 +205,18 @@ case class IR_FileAccess_HDF5(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     statements ++= closeGroupHierarchy
+
+    // close property lists
     statements ++= callH5Function(err, "H5Pclose", propertyList)
     statements ++= callH5Function(err, "H5Pclose", transferList)
+
+    // close spaces
+    if(Knowledge.parIO_useCollectiveIO)
+     statements ++= callH5Function(err, "H5Sclose", emptyDataspace)
     statements ++= callH5Function(err, "H5Sclose", dataspace)
     statements ++= callH5Function(err, "H5Sclose", memspace)
+
+    // close dataset
     statements ++= callH5Function(err, "H5Dclose", dataset)
 
     statements
@@ -214,12 +228,35 @@ case class IR_FileAccess_HDF5(
     // set global starting index for fragment and select hyperslab in global domain
     val setOffsetFrag : ListBuffer[IR_Assignment] = numDimsDataRange.map(d => IR_Assignment(IR_ArrayAccess(globalStart, d), startIdxGlobal(d))).to[ListBuffer]
     val selectHyperslab : ListBuffer[IR_Statement] = callH5Function(err, "H5Sselect_hyperslab", dataspace, IR_VariableAccess("H5S_SELECT_SET", IR_UnknownDatatype), globalStart, stride, count, nullptr)
-    IR_LoopOverFragments(
-      IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-        setOffsetFrag ++ selectHyperslab ++ accessStmts
+
+    if(Knowledge.parIO_useCollectiveIO) {
+      val condAssignOffset = IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index), ListBuffer[IR_Statement]() ++ setOffsetFrag)
+      IR_LoopOverFragments(
+        (condAssignOffset +: selectHyperslab) ++ accessStmts
+      )
+    }
+    else {
+      IR_LoopOverFragments(
+        IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
+          setOffsetFrag ++ selectHyperslab ++ accessStmts
+        )
+      )
+    }
+  }
+
+  // set data- and memspace to an empty space for "invalid" frags in order to perform a NOP read/write
+  val dataspaceSelection_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("selectDataspace"), dataspace)
+  val memspaceSelection_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("selectMemspace"), memspace)
+  def condAssignSpace : ListBuffer[IR_Statement] = ListBuffer(
+    dataspaceSelection_decl,
+    memspaceSelection_decl,
+    IR_IfCondition(IR_Negation(IR_IV_IsValidForDomain(field.domain.index)),
+      ListBuffer[IR_Statement](
+        IR_Assignment(IR_VariableAccess(dataspaceSelection_decl), emptyDataspace),
+        IR_Assignment(IR_VariableAccess(memspaceSelection_decl), emptyDataspace)
       )
     )
-  }
+  )
 
   override def readField() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
@@ -262,11 +299,20 @@ case class IR_FileAccess_HDF5(
       ListBuffer(readField)
     }
 
-    statements ++= checkDims(
-      accessFileFragwise(
-        callH5Function(err, "H5Dread", dataset, h5Datatype, memspace, dataspace, transferList, fieldptr)
+    if(Knowledge.parIO_useCollectiveIO) {
+      statements ++= checkDims(
+        accessFileFragwise(
+          condAssignSpace ++
+            callH5Function(err, "H5Dread", dataset, h5Datatype, IR_VariableAccess(memspaceSelection_decl), IR_VariableAccess(dataspaceSelection_decl), transferList, fieldptr)
+        )
       )
-    )
+    } else {
+      statements ++= checkDims(
+        accessFileFragwise(
+          callH5Function(err, "H5Dread", dataset, h5Datatype, memspace, dataspace, transferList, fieldptr)
+        )
+      )
+    }
 
     statements
   }
@@ -280,9 +326,16 @@ case class IR_FileAccess_HDF5(
     // create dataset
     statements ++= callH5Function(dataset, "H5Dcreate2", locationId, datasetName, h5Datatype, dataspace, defaultPropertyList, defaultPropertyList, defaultPropertyList)
 
-    statements += accessFileFragwise(
-      callH5Function(err, "H5Dwrite", dataset, h5Datatype, memspace, dataspace, transferList, fieldptr)
-    )
+    if(Knowledge.parIO_useCollectiveIO) {
+      statements += accessFileFragwise(
+        condAssignSpace ++
+          callH5Function(err, "H5Dwrite", dataset, h5Datatype, IR_VariableAccess(memspaceSelection_decl), IR_VariableAccess(dataspaceSelection_decl), transferList, fieldptr)
+      )
+    } else {
+      statements += accessFileFragwise(
+        callH5Function(err, "H5Dwrite", dataset, h5Datatype, memspace, dataspace, transferList, fieldptr)
+      )
+    }
 
     statements
   }
