@@ -1,8 +1,8 @@
 user                = "Guest"
 
-configName          = "Blockdiagonal"
+configName          = "BlockDiagonal"
 
-basePathPrefix      = "./invert/RunTime/Blockdiagonal/"
+basePathPrefix      = "./invert/RunTime/BlockDiagonal/"
 l4file              = "$configName$.exa4"
 
 debugL4File         = "$configName$_debug.exa4"
