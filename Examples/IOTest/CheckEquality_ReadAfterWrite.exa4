@@ -106,7 +106,6 @@ Function Application {
   /* End Locking I/O */
   
   /* Start HDF5 */
-
   startTimer ("HDF5: writeField")
   writeField_hdf5 ("src.h5", "/test/abs/path/src", src@finest)
   stopTimer ("HDF5: writeField")
@@ -116,7 +115,6 @@ Function Application {
   stopTimer ("HDF5: readField")
   
   checkEquality@finest ( )
-
   /* END HDF5 */
   
   /* Start MPIIO */

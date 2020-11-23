@@ -34,7 +34,10 @@ case class IR_FileAccess_PnetCDF(
     if(appendedMode) {
       IR_VariableAccess("NC_WRITE", IR_UnknownDatatype) // open in read-write mode
     } else {
-      IR_VariableAccess("NC_64BIT_DATA | NC_CLOBBER", IR_UnknownDatatype) // create new CDF-5 file (clobber equals truncation)
+      if(Knowledge.mpi_enabled)
+        IR_VariableAccess("NC_64BIT_DATA | NC_CLOBBER", IR_UnknownDatatype) // create new CDF-5 file (clobber equals truncation)
+      else
+        IR_VariableAccess("NC_64BIT_OFFSET | NC_CLOBBER", IR_UnknownDatatype) // create new CDF-2 file
     }
   } else {
     IR_VariableAccess("NC_NOWRITE", IR_UnknownDatatype) // open as read-only
@@ -53,6 +56,9 @@ case class IR_FileAccess_PnetCDF(
       IR_IntegerConstant((0 until d).map(dd => field.layout.defTotal(dd)).product) // product of total points from "previous dimensions"
   }).toArray.reverse
 
+  // serial API uses "ptrdiff_t" for "imap" and "stride" parameters
+  val ptrDatatype = if(Knowledge.mpi_enabled) MPI_Offset else IR_SpecialDatatype("ptrdiff_t")
+
   // decls
   val err_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("err"))
   val ncFile_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("ncFile"))
@@ -60,22 +66,27 @@ case class IR_FileAccess_PnetCDF(
   val dimId_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numDimsDataAndTime), IR_FileAccess.declareVariable("dimId")) // numDimsData + time dimension
   val varIdField_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("varId_"+field.name))
   val varIdTime_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("varIdTime"))
-  val stride_decl = IR_VariableDeclaration(IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime), IR_FileAccess.declareVariable("stride"),
+  val stride_decl = IR_VariableDeclaration(IR_ArrayDatatype(ptrDatatype, numDimsDataAndTime), IR_FileAccess.declareVariable("stride"),
     IR_InitializerList( (if (useTimeDim) IR_IntegerConstant(1) +: strideLocal else strideLocal) : _*) // add one more entry for unlimited "time" dimension
   )
   val count_decl = IR_VariableDeclaration(IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime), IR_FileAccess.declareVariable("count"),
     IR_InitializerList( (if (useTimeDim) IR_IntegerConstant(1) +: innerPointsLocal else innerPointsLocal) : _*) // prepend "1" since "1*(innerPoints_local.product)" values are written per timestep
   )
   val emptyCount_decl = IR_VariableDeclaration(IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime), IR_FileAccess.declareVariable("emptyCount"), IR_InitializerList(IR_IntegerConstant(0)))
-  val imap_decl = IR_VariableDeclaration(IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime), IR_FileAccess.declareVariable("imap"),
+  val imap_decl = IR_VariableDeclaration(IR_ArrayDatatype(ptrDatatype, numDimsDataAndTime), IR_FileAccess.declareVariable("imap"),
     IR_InitializerList( (if (useTimeDim) IR_IntegerConstant(0) +: linearizedOffsets else linearizedOffsets) : _*) // prepend "0" since the memory layout doesn't change with the additional time dimension
   )
   val globalDims_decl = IR_VariableDeclaration(IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime), IR_FileAccess.declareVariable("globalDims"), IR_InitializerList(innerPointsGlobal : _*))
   val globalStart_decl = IR_VariableDeclaration(IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime), IR_FileAccess.declareVariable("globalStart"), IR_InitializerList(IR_IntegerConstant(0)))
   val declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(
-    err_decl, ncFile_decl, info_decl, dimId_decl, varIdField_decl,
+    err_decl, ncFile_decl, dimId_decl, varIdField_decl,
     stride_decl, count_decl, imap_decl, globalDims_decl, globalStart_decl
   )
+
+  // add declarations which are only used in a parallel application
+  if(Knowledge.mpi_enabled) {
+    declarations += info_decl
+  }
 
   // declarations when using record variables
   if(useTimeDim) {
@@ -104,37 +115,72 @@ case class IR_FileAccess_PnetCDF(
   val globalDims = IR_VariableAccess(globalDims_decl)
   val globalStart = IR_VariableAccess(globalStart_decl)
 
-  // from: http://cucis.ece.northwestern.edu/projects/PnetCDF/doc/pnetcdf-c/Variable-Types.html#Variable-Types
+  /*
+  Determines the netCDF datatype of a field. Those are commonly used when defining variables/attributes.
+  Table from: http://cucis.ece.northwestern.edu/projects/PnetCDF/doc/pnetcdf-c/Variable-Types.html#Variable-Types
+  */
   val ncDatatype : IR_VariableAccess = {
     val dt = field.layout.datatype.prettyprint match {
-      case "char" => "NC_CHAR"
-      case "byte" => "NC_BYTE"
-      case "unsigned byte" => "NC_UBYTE"
-      case "short" => "NC_SHORT"
-      case "unsigned short" => "NC_USHORT"
-      case "int" => "NC_INT"
-      case "unsigned" | "unsigned int" => "NC_UINT"
-      case "float" => "NC_FLOAT"
-      case "double" => "NC_DOUBLE"
-      case "long long" => "NC_INT64"
-      case "unsigned long long" => "NC_UINT64"
+      case "char"                       => "NC_CHAR"
+      case "byte"                       => "NC_BYTE"
+      case "unsigned byte"              => "NC_UBYTE"
+      case "short"                      => "NC_SHORT"
+      case "unsigned short"             => "NC_USHORT"
+      case "int"                        => "NC_INT"
+      case "unsigned" | "unsigned int"  => "NC_UINT"
+      case "float"                      => "NC_FLOAT"
+      case "double"                     => "NC_DOUBLE"
+      case "long long"                  => "NC_INT64"
+      case "unsigned long long"         => "NC_UINT64"
       case _ => Logger.error("Unsupported field datatype when using PnetCDF: " + field.layout.datatype.resolveBaseDatatype.prettyprint)
     }
     IR_VariableAccess(dt, IR_UnknownDatatype)
+  }
+
+  /*
+  Conversion table used to get the corresponding function of the API for a given datatype.
+  When reading/writing data (vars, attrs, ...), it is possible to specify the datatype of the memory buffer per argument (flexible API) or by using a designated function (e.g. ncmpi_get_varm_double)
+  but the flexible API only exists for parallel netcdf and makes the handling of parallel/serial programs cumbersome -> designated functions are used instead
+  Table from: http://cucis.ece.northwestern.edu/projects/PnetCDF/doc/pnetcdf-c/ncmpi_005fget_005fvarm_005f_003ctype_003e.html#ncmpi_005fget_005fvarm_005f_003ctype_003e
+  */
+  val apiTypename : String = {
+    field.layout.datatype.prettyprint match {
+      case "char"               => "text"
+      case "signed char"        => "schar"
+      case "short"              => "short"
+      case "int"                => "int"
+      case "float"              => "float"
+      case "double"             => "double"
+      case "unsigned char"      => "uchar"
+      case "unsigned short"     => "ushort"
+      case "unsigned int"       => "uint"
+      case "long long"          => "longlong"
+      case "unsigned longlong"  => "ulonglong"
+      case _ => Logger.error("Unsupported field datatype when using PnetCDF: " + _)
+    }
   }
 
   def createDimName(d : Int) = IR_StringConstant(IR_FileAccess.declareVariable(field.name + "_" + "dim" + (numDimsData - d)))
 
   // calls a function from the PnetCDF library and checks if an error occured (i.e. err was set to a value < 0) when debug statements are enabled
   def callNcFunction(funcName : String, args : IR_Expression*) : ListBuffer[IR_Statement] = {
+    // handle serial/parallel API differences
+    val nonFlexibleFuncName = funcName.replaceFirst("<type>", apiTypename)
+    val functionName = if(Knowledge.mpi_enabled) // parallel netcdf functions have a different prefix
+      nonFlexibleFuncName
+    else
+      nonFlexibleFuncName.replaceFirst("ncmpi", "nc").replaceFirst("_all", "")
+    // call function and print debugging statements
     val stmts : ListBuffer[IR_Statement] = ListBuffer()
-    stmts += IR_Assignment(err, IR_FunctionCall(IR_ExternalFunctionReference(funcName), args : _*))
-    if(Knowledge.parIO_generateDebugStatements)
-      stmts += IR_IfCondition(err Neq  IR_VariableAccess("NC_NOERR", IR_UnknownDatatype),
+    stmts += IR_Assignment(err, IR_FunctionCall(IR_ExternalFunctionReference(functionName), args : _*))
+    if(Knowledge.parIO_generateDebugStatements) {
+      val buildErrorStringFunction = if (Knowledge.mpi_enabled) "ncmpi_strerror" else "nc_strerror"
+      stmts += IR_IfCondition(err Neq IR_VariableAccess("NC_NOERR", IR_UnknownDatatype),
         IR_Print(IR_VariableAccess("std::cout", IR_UnknownDatatype),
           IR_VariableAccess("__FILE__", IR_UnknownDatatype), IR_StringConstant(": Error at line: "), IR_VariableAccess("__LINE__", IR_UnknownDatatype),
-          IR_StringConstant(". Message: "), IR_FunctionCall(IR_ExternalFunctionReference("ncmpi_strerror"), err), IR_Print.endl)
+          IR_StringConstant(". Message: "), IR_FunctionCall(IR_ExternalFunctionReference(buildErrorStringFunction), err), IR_Print.endl)
       )
+    }
     stmts
   }
 
@@ -167,10 +213,20 @@ case class IR_FileAccess_PnetCDF(
     }
 
     // create/open file
-    if (writeAccess && !appendedMode)
-      statements ++= callNcFunction("ncmpi_create", mpiCommunicator, fileName, openMode, info, IR_AddressOf(ncFile))
-    else
-      statements ++= callNcFunction("ncmpi_open", mpiCommunicator, fileName, openMode, info, IR_AddressOf(ncFile))
+    if (writeAccess && !appendedMode) {
+      if(Knowledge.mpi_enabled) {
+        statements ++= callNcFunction("ncmpi_create", mpiCommunicator, fileName, openMode, info, IR_AddressOf(ncFile))
+      } else {
+        statements ++= callNcFunction("nc_create", fileName, openMode, IR_AddressOf(ncFile))
+      }
+    } else {
+      if (Knowledge.mpi_enabled) {
+        statements ++= callNcFunction("ncmpi_open", mpiCommunicator, fileName, openMode, info, IR_AddressOf(ncFile))
+      } else {
+        statements ++= callNcFunction("nc_open", fileName, openMode, IR_AddressOf(ncFile))
+      }
+    }
+
 
     statements
   }
@@ -212,7 +268,7 @@ case class IR_FileAccess_PnetCDF(
       statements ++= callNcFunction("ncmpi_enddef", ncFile)
 
     // go into "data mode"
-    if(!Knowledge.parIO_useCollectiveIO) {
+    if(!Knowledge.parIO_useCollectiveIO && Knowledge.mpi_enabled) {
       // start individual I/O
       statements ++= callNcFunction("ncmpi_begin_indep_data", ncFile)
     }
@@ -222,7 +278,7 @@ case class IR_FileAccess_PnetCDF(
 
   override def cleanupAccess() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
-    if(!Knowledge.parIO_useCollectiveIO) {
+    if(!Knowledge.parIO_useCollectiveIO && Knowledge.mpi_enabled) {
       statements ++= callNcFunction("ncmpi_end_indep_data", ncFile)
     }
     statements
@@ -236,17 +292,13 @@ case class IR_FileAccess_PnetCDF(
   val numMpiDatatypes : IR_Expression = innerPointsLocal.reduce(_ * _) // indicates how many derived datatype elements are written to file
   val mpiDatatypeField : IR_VariableAccess = IR_VariableAccess(field.layout.datatype.prettyprint_mpi, IR_UnknownDatatype)
 
-  // set count/bufcount to "0" for "invalid" frags in order to perform a NOP read/write
-  val bufcount_decl = IR_VariableDeclaration(MPI_Offset, IR_FileAccess.declareVariable("bufcount"), numMpiDatatypes)
+  // set count to "0" for "invalid" frags in order to perform a NOP read/write
   val countSelection_decl = IR_VariableDeclaration(IR_PointerDatatype(MPI_Offset), IR_FileAccess.declareVariable("countSelection"), count)
-  val bufcount = IR_VariableAccess(bufcount_decl)
   val countSelection = IR_VariableAccess(countSelection_decl)
   def condAssignCount : ListBuffer[IR_Statement] = ListBuffer(
     countSelection_decl,
-    bufcount_decl,
     IR_IfCondition(IR_Negation(IR_IV_IsValidForDomain(field.domain.index)),
       ListBuffer[IR_Statement](
-        IR_Assignment(bufcount, 0),
         IR_Assignment(count, emptyCount)
       )
     )
@@ -268,19 +320,19 @@ case class IR_FileAccess_PnetCDF(
       // use simpler method if the whole array can be written without having to exclude ghost layers
       if(Knowledge.parIO_useCollectiveIO) {
         condAssignCount ++ callNcFunction(
-          "ncmpi_put_vara_all", ncFile, varIdField, globalStart, countSelection, fieldptr, bufcount, mpiDatatypeField
+          "ncmpi_put_vara_<type>_all", ncFile, varIdField, globalStart, countSelection, fieldptr
         )
       } else {
-        callNcFunction("ncmpi_put_vara", ncFile, varIdField, globalStart, count, fieldptr, numMpiDatatypes, mpiDatatypeField)
+        callNcFunction("ncmpi_put_vara_<type>", ncFile, varIdField, globalStart, count, fieldptr)
       }
     } else {
       // more complex method that describes the memory layout (imap parameter with linearized distance between two values (e.g. in x-direction "1") for each dimension in KJI order)
       if(Knowledge.parIO_useCollectiveIO) {
         condAssignCount ++ callNcFunction(
-          "ncmpi_put_varm_all", ncFile, varIdField, globalStart, countSelection, stride, imap, fieldPtrInner, bufcount, mpiDatatypeField
+          "ncmpi_put_varm_<type>_all", ncFile, varIdField, globalStart, countSelection, stride, imap, fieldPtrInner
         )
       } else {
-        callNcFunction("ncmpi_put_varm", ncFile, varIdField, globalStart, count, stride, imap, fieldPtrInner, numMpiDatatypes, mpiDatatypeField)
+        callNcFunction("ncmpi_put_varm_<type>", ncFile, varIdField, globalStart, count, stride, imap, fieldPtrInner)
       }
     }
 
@@ -292,24 +344,23 @@ case class IR_FileAccess_PnetCDF(
   override def readField() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    val bufcount = innerPointsLocal.reduce(_ * _) // indicates how many derived datatype elements are written to file
     val read = if(startIdxLocal.map(expr => expr.asInstanceOf[IR_IntegerConstant].value).sum == 0) {
       // use simpler method if the whole array can be written without having to exclude ghost layers
       if(Knowledge.parIO_useCollectiveIO) {
         condAssignCount ++ callNcFunction(
-          "ncmpi_get_vara_all", ncFile, varIdField, globalStart, countSelection, fieldptr, bufcount, mpiDatatypeField
+          "ncmpi_get_vara_<type>_all", ncFile, varIdField, globalStart, countSelection, fieldptr
         )
       } else {
-        callNcFunction("ncmpi_get_vara", ncFile, varIdField, globalStart, count, fieldptr, numMpiDatatypes, mpiDatatypeField)
+        callNcFunction("ncmpi_get_vara_<type>", ncFile, varIdField, globalStart, count, fieldptr)
       }
     } else {
       // more complex method that describes the memory layout (i.e. linearized offsets for each dimension in KJI order)
       if(Knowledge.parIO_useCollectiveIO) {
         condAssignCount ++ callNcFunction(
-          "ncmpi_get_varm_all", ncFile, varIdField, globalStart, countSelection, stride, imap, fieldPtrInner, bufcount, mpiDatatypeField
+          "ncmpi_get_varm_<type>_all", ncFile, varIdField, globalStart, countSelection, stride, imap, fieldPtrInner
         )
       } else {
-        callNcFunction("ncmpi_get_varm", ncFile, varIdField, globalStart, count, stride, imap, fieldPtrInner, numMpiDatatypes, mpiDatatypeField)
+        callNcFunction("ncmpi_get_varm_<type>", ncFile, varIdField, globalStart, count, stride, imap, fieldPtrInner)
       }
     }
 
@@ -319,14 +370,18 @@ case class IR_FileAccess_PnetCDF(
   }
 
   // headers, paths and libs
-  override def includes : ListBuffer[String] = ListBuffer("pnetcdf.h")
-  override def libraries : ListBuffer[String] = ListBuffer("pnetcdf")
+  override def includes : ListBuffer[String] = ListBuffer(if(Knowledge.mpi_enabled) "pnetcdf.h" else "netcdf.h")
+  override def libraries : ListBuffer[String] = ListBuffer(if(Knowledge.mpi_enabled) "pnetcdf" else "netcdf")
   override def pathsInc : ListBuffer[String] = ListBuffer("$(PNETCDF_HOME)/include")
   override def pathsLib : ListBuffer[String] = ListBuffer("$(PNETCDF_HOME)/lib")
 
   override def validateParams() : Unit = {
     if (datasetName == IR_NullExpression) {
       Logger.error("Parameter \"dataset\" was not specified.")
+    }
+
+    if(!Knowledge.mpi_enabled) {
+      Knowledge.parIO_useCollectiveIO = false // no collective I/O handling for serial programs
     }
   }
 }

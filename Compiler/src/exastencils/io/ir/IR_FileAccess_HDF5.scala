@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
+import exastencils.config.Platform
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir._
 import exastencils.logger.Logger
@@ -50,11 +51,22 @@ case class IR_FileAccess_HDF5(
   val localDims_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("localDims"), IR_InitializerList(totalPointsLocal : _*))
   val localStart_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("localStart"), IR_InitializerList(startIdxLocal : _*))
   val globalDims_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("globalDims"), IR_InitializerList(innerPointsGlobal : _*))
-  val globalStart_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("globalStart"))
+  val globalStart_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("globalStart"), IR_InitializerList(IR_IntegerConstant(0)))
   val info_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Info"), IR_FileAccess.declareVariable("info"), IR_VariableAccess("MPI_INFO_NULL", IR_UnknownDatatype)) //TODO handle hints
   val declCollection : ListBuffer[IR_VariableDeclaration] = ListBuffer(
-    err_decl, fileId_decl, propertyList_decl, transferList_decl, emptyDataspace_decl, dataspace_decl, memspace_decl, dataset_decl, info_decl,
+    err_decl, fileId_decl, propertyList_decl, transferList_decl, dataspace_decl, memspace_decl, dataset_decl,
     stride_decl, count_decl, localDims_decl, localStart_decl, globalDims_decl, globalStart_decl)
+
+  // add declarations which are only used in a parallel application
+  if(Knowledge.mpi_enabled) {
+    declCollection += info_decl
+  }
+
+  // declarations for collective I/O
+  if(Knowledge.parIO_useCollectiveIO) {
+    declCollection += emptyDataspace_decl
+  }
+
   // variable accesses
   val err = IR_VariableAccess(err_decl)
   val fileId = IR_VariableAccess(fileId_decl)
@@ -195,8 +207,10 @@ case class IR_FileAccess_HDF5(
     }
 
     // request I/O mode (independent/collective) via transfer list
-    statements ++= callH5Function(transferList, "H5Pcreate", IR_VariableAccess("H5P_DATASET_XFER", IR_UnknownDatatype))
-    statements ++= callH5Function(err, "H5Pset_dxpl_mpio", transferList, ioMode)
+    if(Knowledge.mpi_enabled) {
+      statements ++= callH5Function(transferList, "H5Pcreate", IR_VariableAccess("H5P_DATASET_XFER", IR_UnknownDatatype))
+      statements ++= callH5Function(err, "H5Pset_dxpl_mpio", transferList, ioMode)
+    }
 
     statements
   }
@@ -207,8 +221,10 @@ case class IR_FileAccess_HDF5(
     statements ++= closeGroupHierarchy
 
     // close property lists
-    statements ++= callH5Function(err, "H5Pclose", propertyList)
-    statements ++= callH5Function(err, "H5Pclose", transferList)
+    if(Knowledge.mpi_enabled) {
+      statements ++= callH5Function(err, "H5Pclose", propertyList)
+      statements ++= callH5Function(err, "H5Pclose", transferList)
+    }
 
     // close spaces
     if(Knowledge.parIO_useCollectiveIO)
@@ -344,6 +360,16 @@ case class IR_FileAccess_HDF5(
     if(datasetName == IR_NullExpression) {
       Logger.error("Parameter \"dataset\" was not specified.")
     }
+
+    if(!Knowledge.mpi_enabled) {
+      Knowledge.parIO_useCollectiveIO = false // no collective I/O handling for serial programs
+    }
+  }
+
+  // when hdf5 is installed with --enable-parallel flag, the "hdf5.h" header requires "mpi.h" -> serial programs unfortunately require MPI headers and libs, too
+  // alternative solution: install an additional, serial version of hdf5
+  if(!Knowledge.mpi_enabled) {
+    Platform.targetCompilerBinary = "mpicxx" // TODO
   }
 
   override def includes : ListBuffer[String] = ListBuffer("hdf5.h")
