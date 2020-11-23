@@ -1,2 +1,0 @@
-testcase    |  time new  | time old
-./NSGTestcase/2D_FD_Stokes_fromL4       21.870115439999996   49.291729499999995./NSGTestcase/3D_FV_NavierStokes_localNewton       172.83012013999996   166.45403109999984./NSGTestcase/3D_FV_NavierStokes_localPicard       101.6582652   96.93196444999967

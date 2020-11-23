@@ -1,1 +1,0 @@
-diff: ./resolvingMatrixFunctions/transpose/Debug/run_transpose_refc.txt: No such file or directory

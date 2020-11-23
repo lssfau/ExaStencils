@@ -1,9 +1,0 @@
-Starting residual:  1.19153 
-Residual after 1 iterations is 0.0923473 --- convergence factor is 0.0775034 
-Residual after 2 iterations is 0.00715558 --- convergence factor is 0.0774855 
-Residual after 3 iterations is 0.000608017 --- convergence factor is 0.084971 
-Residual after 4 iterations is 5.54999e-05 --- convergence factor is 0.0912803 
-Residual after 5 iterations is 5.35889e-06 --- convergence factor is 0.0965567 
-Residual after 6 iterations is 5.41996e-07 --- convergence factor is 0.10114 
-Mean mean total time for Timer setup: 12.2232 
-Mean mean total time for Timer solve: 99.8783 

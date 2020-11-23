@@ -1,1 +1,0 @@
-diff: ./invert/CompileTime/Cofactors/Debug/run_Cofactors_refc.txt: No such file or directory
