@@ -319,7 +319,7 @@ CUDA_ExaFluids_Bingham  Main CUDA/3D_ExaFluids_NN_CUDA.knowledge CUDA/3D_ExaFlui
 #################################################################################################
 
 # 10 OMP threads
-Large_Hybrid  Main  Large/Hybrid.knowledge  Large/Hybrid.exa4  Large/Hybrid.results  4  10
+#Large_Hybrid  Main  Large/Hybrid.knowledge  Large/Hybrid.exa4  Large/Hybrid.results  4  10
 
 #################################################################################################
 # TENSOR CLASS TESTS                                                                         #
