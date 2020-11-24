@@ -5,23 +5,26 @@ Domain global< [ 0, 0 ] to [ 1, 1 ] >
 
 /// fields
 
-Field Solution with Complex<Real> on Node of global = 0.0
+Field Solution with Complex<Real> on Node of global = 1.0
 
-//Field Solution on boundary = 0.0
 Field Solution@finest on boundary = applyBC_Solution@current()
+// Dirichlet BC
+//Field Solution on boundary = 0.0
+// Neumann BC
 //Field Solution on boundary = Neumann
 
 // Zero rhs
 //Field RHS@finest with Complex<Real> on Node of global = 0.0
 
-// Gaussian approximation of the dirac pulse
+// Gaussian rhs
 //Field RHS@finest with Complex<Real> on Node of global = 1.0/(2*PI*a) * exp(-((vf_nodePos_x-0.5)**2+(vf_nodePos_y-0.5)**2)/(2*a))
 
-// Zenger correction of the dirac pulse
+// B-Spline approximation of the dirac pulse
 Field RHS@finest with Complex<Real> on Node of global = max(0, -(fabs(vf_nodePos_x - 0.5) - vf_gridWidth_x) / vf_gridWidth_x**2) * max(0, -(fabs(vf_nodePos_y - 0.5) - vf_gridWidth_y) / vf_gridWidth_y**2)
+
 Field RHS@(all but finest) with Complex<Real> on Node of global
 
-Field Residual        from RHS
+Field Residual with Complex<Real> on Node of global = 0.0
 override bc for Residual@all with 0.0
 
 // For the Preconditioner
@@ -84,7 +87,7 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 
 Globals {
   Expr k = 80.0
-  //Expr a = 0.1
+  //Expr a = 0.01
   Expr omegaRelax = 0.6
   //Var shift : Complex<Real> = (1.0 + 1.0j)
   Var shift : Complex<Real> = (1.0 + 0.5j)
@@ -142,16 +145,17 @@ Function PreconditionedBiCGStab@finest {
     curRes    = NormResidual ( )
 
     // print ( "Residual after", curStep, "iterations is", curRes)
-    if ( abs(curRes) < 1e-6 * abs(initRes) ) {
-      print ( "Residual after", curStep, "iterations is", abs(curRes), "--- convergence factor is", ( abs(curRes) / abs(initRes) ) )
+    if ( fabs(curRes) < 1e-7 * fabs(initRes) ) {
+      print ( "Residual after", curStep, "iterations is", fabs(curRes), "--- convergence factor is", ( fabs(curRes) / fabs(initRes) ) )
       return
     }
   }
 
   print ( "Maximum number of solver iterations (", 10000, ") was exceeded" )
-  print ( "Residual after", curStep, "iterations is", abs(curRes), "--- convergence factor is", ( abs(curRes) / abs(initRes) ) )
+  print ( "Residual after", curStep, "iterations is", fabs(curRes), "--- convergence factor is", ( fabs(curRes) / fabs(initRes) ) )
 }
 
+/*
 Function Smoother@all {
 
   color with {
@@ -167,7 +171,6 @@ Function Smoother@all {
     }
   }
 
-  /*
   color with {
     ((i0 + i1) % 2),
     solve locally at u@[0,0] relax omegaRelax {
@@ -214,11 +217,20 @@ Function Smoother@all {
       u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
       u@[1,0] => M@[1,0] * u@[1,0] == f@[1,0]
     }
-  }*/
+  }
 }
+*/
+
 /// Preconditioner
 Function VCycle@(finest) {
-  Smoother ( )
+  repeat 2 times {
+    color with {
+      ((i0 + i1) % 2),
+      solve locally at u@[0,0] relax omegaRelax {
+        u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
+      }
+    }
+  }
 
   res = f - M * u
   f@coarser = Restriction_u * res
@@ -228,11 +240,25 @@ Function VCycle@(finest) {
 
   u += Prolongation_u@coarser * u@coarser
 
-  Smoother ( )
+  repeat 2 times {
+    color with {
+      ((i0 + i1) % 2),
+      solve locally at u@[0,0] relax omegaRelax {
+        u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
+      }
+    }
+  }
 }
 
 Function VCycle@(coarsest + 2 to finest - 1) {
-  Smoother ( )
+  repeat 2 times {
+    color with {
+      ((i0 + i1) % 2),
+      solve locally at u@[0,0] relax omegaRelax {
+        u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
+      }
+    }
+  }
 
   res = f - M * u
   f@coarser = Restriction_u * res
@@ -242,12 +268,25 @@ Function VCycle@(coarsest + 2 to finest - 1) {
 
   u += Prolongation_u@coarser * u@coarser
 
-  Smoother ( )
+  repeat 2 times {
+    color with {
+      ((i0 + i1) % 2),
+      solve locally at u@[0,0] relax omegaRelax {
+        u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
+      }
+    }
+  }
 }
 
 Function VCycle@(coarsest + 1) {
-  Smoother ( )
-
+  repeat 2 times {
+    color with {
+      ((i0 + i1) % 2),
+      solve locally at u@[0,0] relax omegaRelax {
+        u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
+      }
+    }
+  }
   res = f - M * u
   f@coarser = Restriction_u * res
 
@@ -257,8 +296,16 @@ Function VCycle@(coarsest + 1) {
 
   u += Prolongation_u@coarser * u@coarser
 
-  Smoother ( )
+  repeat 2 times {
+    color with {
+      ((i0 + i1) % 2),
+      solve locally at u@[0,0] relax omegaRelax {
+        u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
+      }
+    }
+  }
 }
+
 Field nu    @coarsest from gen_residual_u
 Field p     @coarsest from gen_residual_u
 Field h     @coarsest from gen_residual_u
@@ -302,6 +349,6 @@ Function VCycle@coarsest {
     gen_residual_u  = s - omega * t
     curRes    = sqrt(dot(gen_residual_u, gen_residual_u))
 
-    if ( abs(curRes) < 1e-6 * abs(initRes) ) { return }
+    if ( fabs(curRes) < 1e-6 * fabs(initRes) ) { return }
   }
 }
