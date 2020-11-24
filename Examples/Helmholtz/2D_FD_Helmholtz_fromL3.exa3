@@ -3,6 +3,9 @@
 
 Domain global< [ 0, 0 ] to [ 1, 1 ] >
 
+// For 3D
+//Domain global< [ 0, 0, 0] to [ 1, 1, 1] >
+
 /// fields
 
 Field Solution with Complex<Real> on Node of global = 1.0
@@ -73,6 +76,29 @@ Operator M from Stencil {
   [ 0, -1] => -1.0 / ( vf_gridWidth_y ** 2 )
   [ 0,  1] => -1.0 / ( vf_gridWidth_y ** 2 )
 }
+/*
+ * 3D Operators
+Operator A from Stencil {
+  [ 0,  0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) + 2.0 / ( vf_gridWidth_z ** 2 ) - k**2
+  [-1,  0,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
+  [ 1,  0,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
+  [ 0, -1,  0] => -1.0 / ( vf_gridWidth_y ** 2 )
+  [ 0,  1,  0] => -1.0 / ( vf_gridWidth_y ** 2 )
+  [ 0,  0, -1] => -1.0 / ( vf_gridWidth_z ** 2 )
+  [ 0,  0,  1] => -1.0 / ( vf_gridWidth_z ** 2 )
+}
+
+Operator M from Stencil {
+  [ 0,  0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) + 2.0 / ( vf_gridWidth_z ** 2 ) - shift * k**2
+  [-1,  0,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
+  [ 1,  0,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
+  [ 0, -1,  0] => -1.0 / ( vf_gridWidth_y ** 2 )
+  [ 0,  1,  0] => -1.0 / ( vf_gridWidth_y ** 2 )
+  [ 0,  0, -1] => -1.0 / ( vf_gridWidth_z ** 2 )
+  [ 0,  0,  1] => -1.0 / ( vf_gridWidth_z ** 2 )
+}
+*/
+
 
 
 Equation PrecEq {
