@@ -79,7 +79,7 @@ case class IR_FileAccess_PnetCDF(
   )
   val globalDims_decl = IR_VariableDeclaration(IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime), IR_FileAccess.declareVariable("globalDims"), IR_InitializerList(innerPointsGlobal : _*))
   val globalStart_decl = IR_VariableDeclaration(IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime), IR_FileAccess.declareVariable("globalStart"), IR_InitializerList(IR_IntegerConstant(0)))
-  val declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(
+  var declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(
     err_decl, ncFile_decl, dimId_decl, varIdField_decl,
     stride_decl, count_decl, imap_decl, globalDims_decl, globalStart_decl
   )

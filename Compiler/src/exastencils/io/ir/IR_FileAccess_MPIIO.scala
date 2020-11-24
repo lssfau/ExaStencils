@@ -45,7 +45,7 @@ case class IR_FileAccess_MPIIO(
   val localStart_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numDimsData), IR_FileAccess.declareVariable("localStart"), IR_InitializerList(startIdxLocal : _*))
   val globalDims_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numDimsData), IR_FileAccess.declareVariable("globalDims"), IR_InitializerList(innerPointsGlobal : _*))
   val globalStart_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numDimsData), IR_FileAccess.declareVariable("globalStart"))
-  val declCollection : ListBuffer[IR_VariableDeclaration] = ListBuffer(
+  var declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(
     fileHandle_decl, localView_decl, globalView_decl, info_decl, status_decl,
     count_decl, localDims_decl, localStart_decl, globalDims_decl, globalStart_decl
   )
@@ -81,7 +81,7 @@ case class IR_FileAccess_MPIIO(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     // add decls
-    declCollection.foreach(decl => statements += decl)
+    declarations.foreach(decl => statements += decl)
 
     // open file
     val fn = IR_Cast(IR_PointerDatatype(IR_CharDatatype), filename) // to suppress warning

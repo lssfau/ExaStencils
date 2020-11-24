@@ -54,18 +54,18 @@ case class IR_FileAccess_HDF5(
   val globalDims_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("globalDims"), IR_InitializerList(innerPointsGlobal : _*))
   val globalStart_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsData), IR_FileAccess.declareVariable("globalStart"), IR_InitializerList(IR_IntegerConstant(0)))
   val info_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Info"), IR_FileAccess.declareVariable("info"), IR_VariableAccess("MPI_INFO_NULL", IR_UnknownDatatype)) //TODO handle hints
-  val declCollection : ListBuffer[IR_VariableDeclaration] = ListBuffer(
+  var declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(
     err_decl, fileId_decl, propertyList_decl, transferList_decl, dataspace_decl, memspace_decl, dataset_decl,
     stride_decl, count_decl, localDims_decl, localStart_decl, globalDims_decl, globalStart_decl)
 
   // add declarations which are only used in a parallel application
   if(Knowledge.mpi_enabled) {
-    declCollection += info_decl
+    declarations += info_decl
   }
 
   // declarations for collective I/O
   if(Knowledge.parIO_useCollectiveIO) {
-    declCollection += emptyDataspace_decl
+    declarations += emptyDataspace_decl
   }
 
   // variable accesses
@@ -174,7 +174,7 @@ case class IR_FileAccess_HDF5(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     // add decls
-    declCollection.foreach(decl => statements += decl)
+    declarations.foreach(decl => statements += decl)
 
     // setup property list for file creation/opening
     statements ++= callH5Function(propertyList, "H5Pcreate", IR_VariableAccess("H5P_FILE_ACCESS", IR_UnknownDatatype))

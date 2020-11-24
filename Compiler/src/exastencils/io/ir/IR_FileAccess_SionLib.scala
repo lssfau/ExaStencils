@@ -58,7 +58,7 @@ case class IR_FileAccess_SionLib(
   }
   val filePtr_decl = IR_VariableDeclaration(IR_PointerDatatype(FILE), IR_FileAccess.declareVariable("filePtr"), nullptr)
   val newPhysFilenames_decl = IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), IR_FileAccess.declareVariable("newPhysFilenames"), nullptr)
-  val declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(
+  var declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(
     fileId_decl, numPhysFiles_decl, chunkSizes_decl, fsBlockSize_decl, bytesAccessed_decl, globalRanks_decl, filePtr_decl
   )
 
@@ -205,10 +205,10 @@ case class IR_FileAccess_SionLib(
   }
 
   // use "sionconfig" script (comes with sionlib installation) to select correct compile flags
-  val selectLibsCmd = "sionconfig --libs --cxx " + (if(Knowledge.mpi_enabled) "--mpi" else "--ser")
-  val selectCflagsCmd = "sionconfig --cflags --cxx " + (if(Knowledge.mpi_enabled) "--mpi" else "--ser")
-  val selectLibs = selectLibsCmd.!!
-  val selectCflags = selectCflagsCmd.!!
+  val selectLibsCmd : String = "sionconfig --libs --cxx " + (if(Knowledge.mpi_enabled) "--mpi" else "--ser")
+  val selectCflagsCmd : String = "sionconfig --cflags --cxx " + (if(Knowledge.mpi_enabled) "--mpi" else "--ser")
+  val selectLibs : String = selectLibsCmd.!!
+  val selectCflags : String = selectCflagsCmd.!!
   if(!Settings.makefile_additionalCFlags.contains(selectCflags))
     Settings.makefile_additionalCFlags += selectCflags
 

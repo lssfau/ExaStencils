@@ -46,7 +46,6 @@ abstract class IR_FileAccess(
   def arrayIndexRange : Range = 0 until field.gridDatatype.resolveFlattendSize
 
   // local/global dimensions and offsets
-  // TODO: handling for "includeGhostLayers" parameter
   // TODO: handle other domains
   // TODO: handle data reduction
   // TODO: global variable for totalNumberOfFrags and validFragsPerBlock
@@ -172,18 +171,4 @@ abstract class IR_FileAccess(
   // core methods for file access
   def readField() : ListBuffer[IR_Statement]
   def writeField() : ListBuffer[IR_Statement]
-}
-
-// basically a NullStatement. Used as a dummy return value when wrong input arguments were passed.
-case class IR_FileAccess_None(field : IR_Field, slot : IR_Expression) extends IR_FileAccess(IR_StringConstant(""), field, slot, false, false, false) {
-  override def createOrOpenFile() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
-  override def setupAccess() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
-  override def accessFile() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
-  override def cleanupAccess() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
-  override def closeFile() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
-  override def readField() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
-  override def writeField() : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
-  override def openMode : IR_VariableAccess = IR_VariableAccess("", IR_UnknownDatatype)
-  override def validateParams() : Unit = {}
-  override def accessFileFragwise(accessStatements : ListBuffer[IR_Statement]) : IR_LoopOverFragments = IR_LoopOverFragments(IR_NullStatement)
 }

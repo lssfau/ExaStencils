@@ -11,7 +11,6 @@ import exastencils.io.ir.IR_FileAccess_FPP
 import exastencils.io.ir.IR_FileAccess_HDF5
 import exastencils.io.ir.IR_FileAccess_Locking
 import exastencils.io.ir.IR_FileAccess_MPIIO
-import exastencils.io.ir.IR_FileAccess_None
 import exastencils.io.ir.IR_FileAccess_PnetCDF
 import exastencils.io.ir.IR_FileAccess_SionLib
 import exastencils.logger.Logger
@@ -66,7 +65,6 @@ abstract class IR_FieldIO(
         IR_FileAccess_SionLib(filename, field, slot, includeGhostLayers, doWrite, condition)
       case _       =>
         Logger.error("Ignoring call to " + (if (doWrite) {if (onlyVals) "writeField" else "printField"} else "readField") + " using unsupported I/O interface: " + ioInterface)
-        IR_FileAccess_None(field, slot)
     }
   }
 }
