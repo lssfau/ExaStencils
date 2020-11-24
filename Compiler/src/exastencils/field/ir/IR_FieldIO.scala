@@ -63,7 +63,7 @@ abstract class IR_FieldIO(
       case "nc"    =>
         IR_FileAccess_PnetCDF(filename, dataset, field, slot, includeGhostLayers, doWrite)
       case "sion"  =>
-        IR_FileAccess_SionLib(filename, field, slot, includeGhostLayers, doWrite)
+        IR_FileAccess_SionLib(filename, field, slot, includeGhostLayers, doWrite, condition)
       case _       =>
         Logger.error("Ignoring call to " + (if (doWrite) {if (onlyVals) "writeField" else "printField"} else "readField") + " using unsupported I/O interface: " + ioInterface)
         IR_FileAccess_None(field, slot)

@@ -89,7 +89,8 @@ abstract class IR_FileAccess(
   def fieldptr = IR_AddressOf(IR_LinearizedFieldAccess(field, slot, IR_LoopOverFragments.defIt, 0))
 
   // commonly used datatypes
-  val MPI_Offset = if(Knowledge.mpi_enabled) IR_SpecialDatatype("MPI_Offset") else IR_SpecialDatatype("size_t")
+  val MPI_Offset : IR_SpecialDatatype = if(Knowledge.mpi_enabled) IR_SpecialDatatype("MPI_Offset") else IR_SpecialDatatype("size_t")
+  val MPI_Comm = IR_SpecialDatatype("MPI_Comm")
 
   def getPos(field : IR_Field, dim : Int) : IR_Expression = {
     // TODO: add function to field (layout) to decide node/cell for given dim
@@ -100,6 +101,9 @@ abstract class IR_FileAccess(
       case IR_AtFaceCenter(_)     => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
     }
   }
+
+  // determines whether ghost layers shall be excluded for I/O operations or not
+  def accessWholeField : Boolean = startIdxLocal.map(expr => expr.asInstanceOf[IR_IntegerConstant].value).sum == 0
 
   // structure of file accesses
   def createOrOpenFile() : ListBuffer[IR_Statement]
@@ -135,7 +139,7 @@ abstract class IR_FileAccess(
         Settings.pathsInc += pathInc
     }
     for(pathLib <- pathsLib) {
-      if(!Settings.pathsInc.contains(pathLib))
+      if(!Settings.pathsLib.contains(pathLib))
         Settings.pathsLib += pathLib
     }
 

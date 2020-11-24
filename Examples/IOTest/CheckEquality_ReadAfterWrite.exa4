@@ -74,12 +74,13 @@ Function Application {
   initSRC@finest ( )
   stopTimer ( "setup" )
   
-  Val useGhost : Bool = false
+  Val useGhost : Bool = true
   Val useBin : Bool = true
   Val condition : Bool = true
   Val separator : String = ","
     
   /* Start FPP I/O */
+  /*
   startTimer ("FPP: writeField")
   writeField_fpp ("src_fpp_$blockId.bin", src@finest, useGhost, useBin, condition)
   stopTimer ("FPP: writeField")
@@ -89,9 +90,11 @@ Function Application {
   stopTimer ("FPP: readField")
   
   checkEquality@finest ( )
+  */
   /* End FPP I/O */
   
   /* Start Locking I/O */
+  /*
   startTimer ("Lock: writeField")
   writeField_lock ("src_lock.txt", src@finest, useGhost, !useBin, condition, separator)
   stopTimer ("Lock: writeField")
@@ -103,9 +106,11 @@ Function Application {
   checkEquality@finest ( )
   
   printField_lock ("src_vis.csv", src@finest, useGhost, !useBin, condition, separator) // write csv for paraview
+  */
   /* End Locking I/O */
   
   /* Start HDF5 */
+  /*
   startTimer ("HDF5: writeField")
   writeField_hdf5 ("src.h5", "/test/abs/path/src", src@finest)
   stopTimer ("HDF5: writeField")
@@ -115,9 +120,11 @@ Function Application {
   stopTimer ("HDF5: readField")
   
   checkEquality@finest ( )
+  */
   /* END HDF5 */
   
   /* Start MPIIO */
+  /*
   startTimer ("MPIIO: writeField")
   writeField_mpiio ("src.bin", src@finest)
   stopTimer ("MPIIO: writeField")
@@ -127,9 +134,11 @@ Function Application {
   stopTimer ("MPIIO: readField")
 
   checkEquality@finest ( )
+  */
   /* END MPIIO */
   
   /* Start PnetCDF */
+  /*
   startTimer ("PnetCDF: writeField")
   writeField_nc ("src.nc", "field_src", src@finest)
   stopTimer ("PnetCDF: writeField")
@@ -139,7 +148,20 @@ Function Application {
   stopTimer ("PnetCDF: readField")
   
   checkEquality@finest ( )
+  */
   /* END PnetCDF */
+  
+  /* Start SionLib */
+  startTimer ("SionLib: writeField")
+  writeField_sion ("src.sion", src@finest, useGhost, condition)
+  stopTimer ("SionLib: writeField")
+  
+  startTimer ("SionLib: readField")
+  readField_sion ("src.sion", dest@finest, useGhost, condition)
+  stopTimer ("SionLib: readField")
+  
+  checkEquality@finest ( )
+  /* END SionLib */
   
   
   // de-init

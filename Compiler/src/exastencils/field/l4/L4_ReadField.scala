@@ -150,7 +150,12 @@ object L4_ResolveReadFieldFunctions extends DefaultStrategy("Resolve read field 
             Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
         }
         case "sion" => args match {
-          // TODO
+          case ListBuffer(fn, field : L4_FieldAccess)                                       => // option 1: filename, field
+            L4_ReadField(fn, field, ioInterface = ifaceSelection)
+          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)       => // option 2: filename, field, inclGhost
+            L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value)
+          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, cond) => // option 3: filename, field, inclGhost, cond
+            L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, condition = Some(cond))
           case _ =>
             Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
         }

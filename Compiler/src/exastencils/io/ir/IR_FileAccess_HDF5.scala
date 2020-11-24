@@ -11,6 +11,7 @@ import exastencils.config.Platform
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir._
 import exastencils.logger.Logger
+import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_Print
 
 case class IR_FileAccess_HDF5(
@@ -22,7 +23,7 @@ case class IR_FileAccess_HDF5(
     var writeAccess : Boolean,
     var appendedMode : Boolean = false) extends IR_FileAccess(fileName, field, slot, includeGhostLayers, writeAccess, appendedMode) {
 
-  val openMode : IR_VariableAccess = if(writeAccess) {
+  override def openMode : IR_VariableAccess = if(writeAccess) {
     if(appendedMode) IR_VariableAccess("H5F_ACC_RDWR", IR_UnknownDatatype) else IR_VariableAccess("H5F_ACC_TRUNC", IR_UnknownDatatype)
   } else {
     IR_VariableAccess("H5F_ACC_RDONLY", IR_UnknownDatatype)
@@ -128,7 +129,9 @@ case class IR_FileAccess_HDF5(
     stmts += IR_Assignment(toAssign, IR_FunctionCall(IR_ExternalFunctionReference(funcName), args : _*))
     if(Knowledge.parIO_generateDebugStatements)
       stmts += IR_IfCondition(toAssign < 0,
-        IR_Print(IR_VariableAccess("std::cout", IR_UnknownDatatype), IR_VariableAccess("__FILE__", IR_UnknownDatatype), IR_StringConstant(": Error at line: "), IR_VariableAccess("__LINE__", IR_UnknownDatatype), IR_Print.endl))
+        IR_Print(IR_VariableAccess("std::cout", IR_UnknownDatatype),
+          IR_StringConstant("Rank: "), MPI_IV_MpiRank, IR_StringConstant(". "),
+          IR_VariableAccess("__FILE__", IR_UnknownDatatype), IR_StringConstant(": Error at line: "), IR_VariableAccess("__LINE__", IR_UnknownDatatype), IR_Print.endl))
     stmts
   }
 

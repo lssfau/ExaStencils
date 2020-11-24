@@ -10,6 +10,7 @@ import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir._
 import exastencils.logger.Logger
+import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.api.mpi.MPI_IsRootProc
 import exastencils.util.ir.IR_Print
 
@@ -57,7 +58,7 @@ case class IR_FileAccess_PnetCDF(
   }).toArray.reverse
 
   // serial API uses "ptrdiff_t" for "imap" and "stride" parameters
-  val ptrDatatype = if(Knowledge.mpi_enabled) MPI_Offset else IR_SpecialDatatype("ptrdiff_t")
+  val ptrDatatype : IR_SpecialDatatype = if(Knowledge.mpi_enabled) MPI_Offset else IR_SpecialDatatype("ptrdiff_t")
 
   // decls
   val err_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("err"))
@@ -177,6 +178,7 @@ case class IR_FileAccess_PnetCDF(
       val buildErrorStringFunction = if (Knowledge.mpi_enabled) "ncmpi_strerror" else "nc_strerror"
       stmts += IR_IfCondition(err Neq IR_VariableAccess("NC_NOERR", IR_UnknownDatatype),
         IR_Print(IR_VariableAccess("std::cout", IR_UnknownDatatype),
+          IR_StringConstant("Rank: "), MPI_IV_MpiRank, IR_StringConstant(". "),
           IR_VariableAccess("__FILE__", IR_UnknownDatatype), IR_StringConstant(": Error at line: "), IR_VariableAccess("__LINE__", IR_UnknownDatatype),
           IR_StringConstant(". Message: "), IR_FunctionCall(IR_ExternalFunctionReference(buildErrorStringFunction), err), IR_Print.endl)
       )
@@ -316,7 +318,7 @@ case class IR_FileAccess_PnetCDF(
         )
     }
 
-    val write = if(startIdxLocal.map(expr => expr.asInstanceOf[IR_IntegerConstant].value).sum == 0) {
+    val write = if(accessWholeField) {
       // use simpler method if the whole array can be written without having to exclude ghost layers
       if(Knowledge.parIO_useCollectiveIO) {
         condAssignCount ++ callNcFunction(
@@ -344,7 +346,7 @@ case class IR_FileAccess_PnetCDF(
   override def readField() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    val read = if(startIdxLocal.map(expr => expr.asInstanceOf[IR_IntegerConstant].value).sum == 0) {
+    val read = if(accessWholeField) {
       // use simpler method if the whole array can be written without having to exclude ghost layers
       if(Knowledge.parIO_useCollectiveIO) {
         condAssignCount ++ callNcFunction(
