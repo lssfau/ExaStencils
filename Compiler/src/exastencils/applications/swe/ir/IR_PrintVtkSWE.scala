@@ -23,9 +23,11 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir._
+import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_PrintVtkTriangles
@@ -38,7 +40,7 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
   def numCells_x = etaDiscLower0.layout.layoutsPerDim(0).numInnerLayers
   def numCells_y = etaDiscLower0.layout.layoutsPerDim(1).numInnerLayers
   def numCells_z = 1
-  def numPointsPerFrag = 6 * numCells_x * numCells_y
+  def numPointsPerFrag = if(Knowledge.swe_nodalReductionPrint) (numCells_x+1)*(numCells_y+1) else 6 * numCells_x * numCells_y
 
   def bath = IR_FieldCollection.getByIdentifier("bath", level).get
 
@@ -101,8 +103,107 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
           IR_IfCondition(IR_IV_IsValidForDomain(etaDiscLower0.domain.index),
             IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
               IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.layout.idxById("IB", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression)),
-              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.layout.idxById("IE", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression))),
+              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => nodalLoopEnd + etaDiscLower0.layout.idxById("IE", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression))),
               print)),
+          IR_Print(stream, IR_Print.flush)),
+        IR_MemberFunctionCall(stream, "close"))
+
+      stmts ++= genStmtBlock(initCells)
+    }
+
+    def addReducedNodePrint(name : String, discFields : ListBuffer[IR_Field]) {
+      val stream = newStream
+
+      if(discFields.length != 6) {
+        Logger.error("Wrong usage of \"addReducedNodePrint\" in IR_PrintVtkSWE.")
+      }
+
+      val low : ListBuffer[IR_Field] = discFields.take(3)
+      val upp : ListBuffer[IR_Field] = discFields.takeRight(3)
+
+      def constructLoopForDim(dim : Int, offStart : Int, offEnd : Int, loopStmts : IR_Statement*) = IR_ForLoop(
+        IR_VariableDeclaration(IR_LoopOverDimensions.defItForDim(dim), etaDiscLower0.layout.idxById("IB", dim) + offStart - Duplicate(etaDiscLower0.referenceOffset(dim))),
+        IR_LoopOverDimensions.defItForDim(dim) < etaDiscLower0.layout.idxById("IE", dim) - offEnd - Duplicate(etaDiscLower0.referenceOffset(dim)),
+        IR_PreIncrement(IR_LoopOverDimensions.defItForDim(dim)),
+        loopStmts.to[ListBuffer])
+
+      // TODO: comments
+      var statementsFragLoop : ListBuffer[IR_Statement] = ListBuffer()
+
+      statementsFragLoop += IR_Comment("lower left corner: vertex contained by 1 triangle")
+      statementsFragLoop += IR_Print(stream,
+        IR_FieldAccess(low(0), IR_IV_ActiveSlot(low(0)), IR_ExpressionIndex(0, 0)),
+        IR_Print.newline)
+
+      statementsFragLoop += IR_Comment("lowermost row w/o corners: vertex contained by 3 triangles")
+      statementsFragLoop += constructLoopForDim(dim = 0, offStart = 1, offEnd = 0,
+        IR_Print(stream,
+          ( IR_FieldAccess(low(0), IR_IV_ActiveSlot(low(0)), IR_ExpressionIndex(IR_LoopOverDimensions.defItForDim(0), 0)) +
+            IR_FieldAccess(low(1), IR_IV_ActiveSlot(low(1)), IR_ExpressionIndex(IR_LoopOverDimensions.defItForDim(0), 0) + IR_ConstIndex(-1, 0)) +
+            IR_FieldAccess(upp(2), IR_IV_ActiveSlot(upp(2)), IR_ExpressionIndex(IR_LoopOverDimensions.defItForDim(0), 0) + IR_ConstIndex(-1, 0)) ) / 3.0,
+          IR_Print.newline))
+
+      statementsFragLoop += IR_Comment("lower right corner: vertex contained by 2 triangles")
+      statementsFragLoop += IR_Print(stream,
+        ( IR_FieldAccess(low(1), IR_IV_ActiveSlot(low(1)), IR_ExpressionIndex(low(1).layout.layoutsPerDim(0).numInnerLayers, 0) + IR_ConstIndex(-1, 0)) +
+          IR_FieldAccess(upp(2), IR_IV_ActiveSlot(upp(2)), IR_ExpressionIndex(upp(2).layout.layoutsPerDim(0).numInnerLayers, 0) + IR_ConstIndex(-1, 0)) ) / 2.0,
+        IR_Print.newline)
+
+      statementsFragLoop += IR_Comment("inner rows")
+      statementsFragLoop += constructLoopForDim(dim = 1, offStart = 1, offEnd = 0,
+        IR_Comment("leftmost column: vertex contained by 3 triangles"),
+        IR_Print(stream,
+          ( IR_FieldAccess(low(0), IR_IV_ActiveSlot(low(0)), IR_ExpressionIndex(0, IR_LoopOverDimensions.defItForDim(1))) +
+            IR_FieldAccess(low(2), IR_IV_ActiveSlot(low(2)), IR_ExpressionIndex(0, IR_LoopOverDimensions.defItForDim(1)) + IR_ConstIndex(0, -1)) +
+            IR_FieldAccess(upp(1), IR_IV_ActiveSlot(upp(1)), IR_ExpressionIndex(0, IR_LoopOverDimensions.defItForDim(1)) + IR_ConstIndex(0, -1)) ) / 3.0,
+          IR_Print.newline),
+        IR_Comment("inner points: vertex contained by 6 triangles"),
+        constructLoopForDim(dim = 0, offStart = 1, offEnd = 0,
+          IR_Print(stream,
+            ( IR_FieldAccess(low(0), IR_IV_ActiveSlot(low(0)), IR_LoopOverDimensions.defIt(numDimsGrid)) +
+              IR_FieldAccess(low(1), IR_IV_ActiveSlot(low(1)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(-1, 0)) +
+              IR_FieldAccess(upp(2), IR_IV_ActiveSlot(upp(2)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(-1, 0)) +
+              IR_FieldAccess(low(2), IR_IV_ActiveSlot(low(2)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, -1)) +
+              IR_FieldAccess(upp(1), IR_IV_ActiveSlot(upp(1)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, -1)) +
+              IR_FieldAccess(upp(0), IR_IV_ActiveSlot(upp(0)), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(-1, -1)) ) / 6.0,
+            IR_Print.newline)),
+        IR_Comment("rightmost column: vertex contained by 3 triangles"),
+        IR_Print(stream,
+          ( IR_FieldAccess(upp(0), IR_IV_ActiveSlot(upp(0)), IR_ExpressionIndex(upp(0).layout.layoutsPerDim(0).numInnerLayers, IR_LoopOverDimensions.defItForDim(1)) + IR_ConstIndex(-1, -1)) +
+            IR_FieldAccess(low(1), IR_IV_ActiveSlot(low(1)), IR_ExpressionIndex(low(1).layout.layoutsPerDim(0).numInnerLayers, IR_LoopOverDimensions.defItForDim(1)) + IR_ConstIndex(-1, 0)) +
+            IR_FieldAccess(upp(2), IR_IV_ActiveSlot(upp(2)), IR_ExpressionIndex(upp(2).layout.layoutsPerDim(0).numInnerLayers, IR_LoopOverDimensions.defItForDim(1)) + IR_ConstIndex(-1, 0)) ) / 3.0,
+          IR_Print.newline)
+      )
+
+      statementsFragLoop += IR_Comment("upper left corner: vertex contained by 2 triangles")
+      statementsFragLoop += IR_Print(stream,
+        ( IR_FieldAccess(low(2), IR_IV_ActiveSlot(low(2)), IR_ExpressionIndex(0, low(2).layout.layoutsPerDim(1).numInnerLayers) + IR_ConstIndex(0, -1)) +
+          IR_FieldAccess(upp(1), IR_IV_ActiveSlot(upp(1)), IR_ExpressionIndex(0, upp(1).layout.layoutsPerDim(1).numInnerLayers) + IR_ConstIndex(0, -1)) ) / 2.0,
+        IR_Print.newline)
+
+      statementsFragLoop += IR_Comment("uppermost row w/o corners: vertex contained by 3 triangles")
+      statementsFragLoop += constructLoopForDim(dim = 0, offStart = 1, offEnd = 0,
+        IR_Print(stream,
+          ( IR_FieldAccess(upp(0), IR_IV_ActiveSlot(upp(0)), IR_ExpressionIndex(IR_LoopOverDimensions.defItForDim(0), upp(0).layout.layoutsPerDim(1).numInnerLayers) + IR_ConstIndex(-1, -1)) +
+            IR_FieldAccess(low(2), IR_IV_ActiveSlot(low(2)), IR_ExpressionIndex(IR_LoopOverDimensions.defItForDim(0), low(2).layout.layoutsPerDim(1).numInnerLayers) + IR_ConstIndex(0, -1)) +
+            IR_FieldAccess(upp(1), IR_IV_ActiveSlot(upp(1)), IR_ExpressionIndex(IR_LoopOverDimensions.defItForDim(0), upp(1).layout.layoutsPerDim(1).numInnerLayers) + IR_ConstIndex(0, -1)) ) / 3.0,
+          IR_Print.newline))
+
+      statementsFragLoop += IR_Comment("upper right corner: vertex contained by 1 triangle")
+      statementsFragLoop += IR_Print(stream,
+        IR_FieldAccess(upp(0), IR_IV_ActiveSlot(upp(0)), IR_ExpressionIndex((0 until numDimsGrid).map(d => upp(0).layout.layoutsPerDim(d).numInnerLayers).toArray) + IR_ConstIndex(-1, -1)),
+        IR_Print.newline)
+
+
+      val initCells = ListBuffer[IR_Statement](
+        IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
+        IR_IfCondition(MPI_IsRootProc(),
+          IR_Print(stream, IR_StringConstant(name), separator, 1, separator, numNodes, separator, IR_StringConstant("double"), IR_Print.endl)),
+        IR_Print(stream, "std::scientific"),
+        IR_LoopOverFragments(
+          IR_IfCondition(IR_IV_IsValidForDomain(etaDiscLower0.domain.index),
+            statementsFragLoop
+          ),
           IR_Print(stream, IR_Print.flush)),
         IR_MemberFunctionCall(stream, "close"))
 
@@ -120,47 +221,63 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
     })
 
     // add eta
-    addNodePrint("eta", {
-      var nodePrint = ListBuffer[IR_Expression]()
-      etaDisc.foreach { eta =>
-        nodePrint += IR_FieldAccess(eta, IR_IV_ActiveSlot(eta), IR_LoopOverDimensions.defIt(numDimsGrid))
-        nodePrint += IR_Print.newline
-      }
-      nodePrint
-    })
-
-    // add u
-    addNodePrint("u", {
-      var nodePrint = ListBuffer[IR_Expression]()
-      uDisc.foreach { u =>
-        nodePrint += IR_FieldAccess(u, IR_IV_ActiveSlot(u), IR_LoopOverDimensions.defIt(numDimsGrid))
-        nodePrint += IR_Print.newline
-      }
-      nodePrint
-    })
-
-    // add v
-    addNodePrint("v", {
-      var nodePrint = ListBuffer[IR_Expression]()
-      vDisc.foreach { v =>
-        nodePrint += IR_FieldAccess(v, IR_IV_ActiveSlot(v), IR_LoopOverDimensions.defIt(numDimsGrid))
-        nodePrint += IR_Print.newline
-      }
-      nodePrint
-    })
-
-    // add local order
-    if (optLocalOrderLower.isDefined && optLocalOrderUpper.isDefined) {
-      addNodePrint("order", {
+    if(Knowledge.swe_nodalReductionPrint) {
+      addReducedNodePrint("eta", etaDisc)
+    } else {
+      addNodePrint("eta", {
         var nodePrint = ListBuffer[IR_Expression]()
-        List(optLocalOrderLower.get, optLocalOrderUpper.get).foreach { f =>
-          for (_ <- 0 until 3) { // TODO: cell data instead of
-            nodePrint += IR_FieldAccess(f, IR_IV_ActiveSlot(f), IR_LoopOverDimensions.defIt(numDimsGrid))
-            nodePrint += IR_Print.newline
-          }
+        etaDisc.foreach { eta =>
+          nodePrint += IR_FieldAccess(eta, IR_IV_ActiveSlot(eta), IR_LoopOverDimensions.defIt(numDimsGrid))
+          nodePrint += IR_Print.newline
         }
         nodePrint
       })
+    }
+
+    // add u
+    if(Knowledge.swe_nodalReductionPrint) {
+      addReducedNodePrint("u", uDisc)
+    } else {
+      addNodePrint("u", {
+        var nodePrint = ListBuffer[IR_Expression]()
+        uDisc.foreach { u =>
+          nodePrint += IR_FieldAccess(u, IR_IV_ActiveSlot(u), IR_LoopOverDimensions.defIt(numDimsGrid))
+          nodePrint += IR_Print.newline
+        }
+        nodePrint
+      })
+    }
+
+    // add v
+    if(Knowledge.swe_nodalReductionPrint) {
+      addReducedNodePrint("v", vDisc)
+    } else {
+      addNodePrint("v", {
+        var nodePrint = ListBuffer[IR_Expression]()
+        vDisc.foreach { v =>
+          nodePrint += IR_FieldAccess(v, IR_IV_ActiveSlot(v), IR_LoopOverDimensions.defIt(numDimsGrid))
+          nodePrint += IR_Print.newline
+        }
+        nodePrint
+      })
+    }
+
+    // add local order
+    if (optLocalOrderLower.isDefined && optLocalOrderUpper.isDefined) {
+      if(Knowledge.swe_nodalReductionPrint) {
+        addReducedNodePrint("order", ListBuffer() ++ (0 until 3).map(_ => optLocalOrderLower.get) ++ (0 until 3).map(_ => optLocalOrderUpper.get))
+      } else {
+        addNodePrint("order", {
+          var nodePrint = ListBuffer[IR_Expression]()
+          List(optLocalOrderLower.get, optLocalOrderUpper.get).foreach { f =>
+            for (_ <- 0 until 3) { // TODO: cell data instead of
+              nodePrint += IR_FieldAccess(f, IR_IV_ActiveSlot(f), IR_LoopOverDimensions.defIt(numDimsGrid))
+              nodePrint += IR_Print.newline
+            }
+          }
+          nodePrint
+        })
+      }
     }
 
     stmts

@@ -81,7 +81,7 @@ case class IR_PrintField(
         IR_VariableAccess("std::ios::app", IR_UnknownDatatype) // file was already created by root process
       else
         IR_VariableAccess("std::ios::trunc", IR_UnknownDatatype)
-      if (!binaryOutput) { // write header
+      if (!binaryOutput && Knowledge.experimental_generateParaviewFiles) { // write header
         val streamName = IR_FieldIO.getNewStreamName()
         def streamType = IR_SpecialDatatype("std::ofstream")
         def stream = IR_VariableAccess(streamName, streamType)

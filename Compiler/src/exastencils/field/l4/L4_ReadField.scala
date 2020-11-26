@@ -94,20 +94,22 @@ object L4_ResolveReadFieldFunctions extends DefaultStrategy("Resolve read field 
       val includeGhosts = checkOptionAndRemove("WithGhost")
 
       // new flags
-      val ifaceSelection = L4_StringConstant(procFctNam.diff(basenameFunction + "_"))
+      val ifaceSelection = L4_StringConstant(procFctNam.diff(basenameFunction + "_").replace("_", ""))
 
       if (level.isDefined) Logger.warn(s"Found leveled read field function with level ${ level.get }; level is ignored")
       if (offset.isDefined) Logger.warn(s"Found read field function with offset; offset is ignored")
 
       ifaceSelection.value.toLowerCase match {
         // deprecated function calls (backwards compatibility)
-        case "" => args match {
+        case s : String if s.isEmpty => args match {
           case ListBuffer(field : L4_FieldAccess)                      => // option 1: only field -> deduce name
-            L4_ReadField(L4_StringConstant(field.target.name + ".txt"), field, ioInterface = L4_StringConstant("lock"), includeGhostLayers = includeGhosts)
+            L4_ReadField(L4_StringConstant(field.target.name + ".txt"), field, ioInterface = L4_StringConstant("fpp"), includeGhostLayers = includeGhosts)
           case ListBuffer(filename, field : L4_FieldAccess)            => // option 2: filename and field
-            L4_ReadField(filename, field, ioInterface = L4_StringConstant("lock"), includeGhostLayers = includeGhosts)
+            L4_ReadField(filename, field, ioInterface = L4_StringConstant("fpp"), includeGhostLayers = includeGhosts)
           case ListBuffer(filename, field : L4_FieldAccess, condition) => // option 3: filename, field and condition
-            L4_ReadField(filename, field, ioInterface = L4_StringConstant("lock"), includeGhostLayers = includeGhosts, condition = Some(condition))
+            L4_ReadField(filename, field, ioInterface = L4_StringConstant("fpp"), includeGhostLayers = includeGhosts, condition = Some(condition))
+          case _ =>
+            Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
         }
         // new function calls with explicit I/O interface selection in the function name.
         case "lock" | "fpp" => args match {

@@ -173,6 +173,7 @@ object Knowledge {
 
   /// swe special flags
   var swe_stationsMax = 10
+  var swe_nodalReductionPrint : Boolean = false
 
   /// === Layer 3 ===
 
@@ -592,7 +593,7 @@ object Knowledge {
 
   var experimental_allowCommInFragLoops : Boolean = false
 
-  //var experimental_generateParaviewFiles : Boolean = false // unused for now: Distinction between WriteField and PrintField makes this flag redundant
+  var experimental_generateParaviewFiles : Boolean = false
 
   var experimental_trimBoundsForReductionLoops : Boolean = true
 

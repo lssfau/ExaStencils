@@ -22,6 +22,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ProgressLocation
 import exastencils.base.l4._
+import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.field.ir.IR_PrintField
 import exastencils.logger.Logger
@@ -91,23 +92,24 @@ object L4_ResolvePrintFieldFunctions extends DefaultStrategy("Resolve print fiel
       }
 
       @deprecated
-      val includeGhosts = checkOptionAndRemove("WithGhost")
+      val includeGhosts = checkOptionAndRemove("WithGhost") // new interface: passed as parameter
       @deprecated
-      val onlyValues = checkOptionAndRemove("Values")
+      val onlyValues = checkOptionAndRemove("Values") // new interface: distinction between printField and writeField makes this flag obsolete
       @deprecated
-      val binary = checkOptionAndRemove("Binary")
+      val binary = checkOptionAndRemove("Binary") // new interface: passed as parameter
 
       // new flags
-      val ifaceSelection = L4_StringConstant(procFctNam.diff(basenameFunction + "_"))
+      val ifaceSelection = L4_StringConstant(procFctNam.diff(basenameFunction + "_").replace("_", ""))
 
       // wrapper function for deprecated "onlyValues" flag (redundant since we have distinct Print/Write field functions)
       // determines if plain field values are written to file (WriteField) or field values including a visualization format (PrintField)
       @deprecated
       def wrapStmtCtorOnlyValues(fn : L4_Expression, fieldAcc : L4_FieldAccess, includeGhost : Boolean, useBin : Boolean, cond : Option[L4_Expression] = None) = {
+        val sep = L4_StringConstant(if(Knowledge.experimental_generateParaviewFiles) "," else " ")
         if(onlyValues)
           L4_WriteField(fn, fieldAcc, ioInterface = L4_StringConstant("lock"), includeGhostLayers = includeGhosts, binaryOutput = useBin, condition = cond)
         else
-          L4_PrintField(fn, fieldAcc, ioInterface = L4_StringConstant("lock"), includeGhostLayers = includeGhosts, binaryOutput = useBin, condition = cond)
+          L4_PrintField(fn, fieldAcc, ioInterface = L4_StringConstant("lock"), includeGhostLayers = includeGhosts, binaryOutput = useBin, separator = Some(sep), condition = cond)
       }
 
       if (level.isDefined) Logger.warn(s"Found leveled print field function with level ${ level.get }; level is ignored")
@@ -115,13 +117,15 @@ object L4_ResolvePrintFieldFunctions extends DefaultStrategy("Resolve print fiel
 
       ifaceSelection.value.toLowerCase match {
         // deprecated function calls (backwards compatibility)
-        case "" => args match {
+        case s : String if s.isEmpty => args match {
           case ListBuffer(field : L4_FieldAccess)                      => // option 1: only field -> deduce name
             wrapStmtCtorOnlyValues(L4_StringConstant(field.target.name + ".txt"), field, includeGhosts, binary)
           case ListBuffer(filename, field : L4_FieldAccess)            => // option 2: filename and field
             wrapStmtCtorOnlyValues(filename, field, includeGhosts, binary)
           case ListBuffer(filename, field : L4_FieldAccess, condition) => // option 3: filename, field and condition
             wrapStmtCtorOnlyValues(filename, field, includeGhosts, binary, Some(condition))
+          case _ =>
+            Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
         }
         // new function calls with explicit I/O interface selection in the function name.
         case "lock" | "fpp" => args match {
