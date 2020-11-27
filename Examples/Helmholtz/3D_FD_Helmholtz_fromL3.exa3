@@ -96,9 +96,9 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 Globals {
   Expr k = 40.0
   //Expr a = 0.01
-  Expr omegaRelax = 1.0
+  Expr omegaRelax = 0.8
   //Var shift : Complex<Real> = (1.0 + 1.0j)
-  Var shift : Complex<Real> = (1.0 + 0.5j)
+  Var shift : Complex<Real> = (1.0 + 1.0j)
 }
 
 Function NormResidual@(coarsest and finest) : Complex<Real> {
@@ -152,7 +152,7 @@ Function PreconditionedBiCGStab@finest {
     Residual  = s - omega * t
     curRes    = NormResidual ( )
 
-    print ( "Residual after", curStep, "iterations is", curRes)
+    //print ( "Residual after", curStep, "iterations is", curRes)
     if ( fabs(curRes) < 1e-7 * fabs(initRes) ) {
       print ( "Residual after", curStep, "iterations is", fabs(curRes), "--- convergence factor is", ( fabs(curRes) / fabs(initRes) ) )
       return
