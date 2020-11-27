@@ -3,9 +3,6 @@
 
 Domain global< [ 0, 0 ] to [ 1, 1 ] >
 
-// For 3D
-//Domain global< [ 0, 0, 0] to [ 1, 1, 1] >
-
 /// fields
 
 Field Solution with Complex<Real> on Node of global = 0.0
@@ -76,30 +73,6 @@ Operator M from Stencil {
   [ 0, -1] => -1.0 / ( vf_gridWidth_y ** 2 )
   [ 0,  1] => -1.0 / ( vf_gridWidth_y ** 2 )
 }
-/*
- * 3D Operators
-Operator A from Stencil {
-  [ 0,  0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) + 2.0 / ( vf_gridWidth_z ** 2 ) - k**2
-  [-1,  0,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
-  [ 1,  0,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
-  [ 0, -1,  0] => -1.0 / ( vf_gridWidth_y ** 2 )
-  [ 0,  1,  0] => -1.0 / ( vf_gridWidth_y ** 2 )
-  [ 0,  0, -1] => -1.0 / ( vf_gridWidth_z ** 2 )
-  [ 0,  0,  1] => -1.0 / ( vf_gridWidth_z ** 2 )
-}
-
-Operator M from Stencil {
-  [ 0,  0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) + 2.0 / ( vf_gridWidth_z ** 2 ) - shift * k**2
-  [-1,  0,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
-  [ 1,  0,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
-  [ 0, -1,  0] => -1.0 / ( vf_gridWidth_y ** 2 )
-  [ 0,  1,  0] => -1.0 / ( vf_gridWidth_y ** 2 )
-  [ 0,  0, -1] => -1.0 / ( vf_gridWidth_z ** 2 )
-  [ 0,  0,  1] => -1.0 / ( vf_gridWidth_z ** 2 )
-}
-*/
-
-
 
 Equation PrecEq {
   M * u  == f
@@ -115,8 +88,8 @@ Globals {
   Expr k = 80.0
   //Expr a = 0.01
   Expr omegaRelax = 0.6
-  //Var shift : Complex<Real> = (1.0 + 1.0j)
   Var shift : Complex<Real> = (1.0 + 0.5j)
+  //Var shift : Complex<Real> = (1.0 + 1.0j)
 }
 
 Function NormResidual@(coarsest and finest) : Complex<Real> {
@@ -181,82 +154,50 @@ Function PreconditionedBiCGStab@finest {
   print ( "Residual after", curStep, "iterations is", fabs(curRes), "--- convergence factor is", ( fabs(curRes) / fabs(initRes) ) )
 }
 
+Function PreSmoother@all {
+  // RB-GS
+  repeat 3 times {
+    color with {
+      ((i0 + i1) % 2),
+      solve locally at u@[0,0] relax omegaRelax {
+        u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
+      }
+    }
+  }
+  // Jacobi
 /*
-Function Smoother@all {
-
-  color with {
-    ((i0 + i1) % 2),
-    solve locally at u@[0,0] relax omegaRelax {
+  repeat 3 times {
+    solve locally at u@[0,0] with jacobi relax omegaRelax {
       u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
     }
   }
-  color with {
-    ((i0 + i1) % 2),
-    solve locally at u@[0,0] relax omegaRelax {
-      u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
-    }
-  }
-
-  color with {
-    ((i0 + i1) % 2),
-    solve locally at u@[0,0] relax omegaRelax {
-      u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
-    }
-  }
-
-  solve locally at u@[0,0] relax omegaRelax {
-    u@[0,0] => ( M@[0,0] * u@[0,0] ) == f@[0,0]
-  }
-  color with {
-    ((i0 + i1) % 2),
-    solve locally at u@[0,0] relax omegaRelax {
-      u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
-    }
-  }
-
-  solve locally at u@[0,0] relax omegaRelax {
-    u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
-    u@[1,0] => M@[1,0] * u@[1,0] == f@[1,0]
-    u@[0,1] => M@[0,1] * u@[0,1] == f@[0,1]
-    u@[1,1] => M@[1,1] * u@[1,1] == f@[1,1]
-  }
-  color with {
-    ((i0 + i1) % 2),
-    solve locally at u@[0,0] relax omegaRelax {
-      u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
-      u@[1,0] => M@[1,0] * u@[1,0] == f@[1,0]
-      u@[0,1] => M@[0,1] * u@[0,1] == f@[0,1]
-    }
-  }
-  color with {
-    (i0 % 2),
-    (i0 % 2),
-    solve locally at u@[0,0] relax omegaRelax {
-      u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
-      u@[0,1] => M@[0,1] * u@[0,1] == f@[0,1]
-    }
-  }
-  color with {
-    (i0 % 3),
-    (i0 % 3),
-    solve locally at u@[0,0] relax omegaRelax {
-      u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
-      u@[1,0] => M@[1,0] * u@[1,0] == f@[1,0]
-    }
-  }
-}
 */
+}
+
+Function PostSmoother@all {
+  // RB-GS
+  repeat 3 times {
+    color with {
+      ((i0 + i1) % 2),
+      solve locally at u@[0,0] relax omegaRelax {
+        u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
+      }
+    }
+  }
+  // Jacobi
+/*
+  repeat 3 times {
+    solve locally at u@[0,0,0] with jacobi relax omegaRelax {
+      u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
+    }
+  }
+*/
+}
+
 
 /// Preconditioner
 Function VCycle@(finest) {
-  repeat 2 times {
-    color with {
-      ((i0 + i1) % 2),
-      solve locally at u@[0,0] relax omegaRelax {
-        u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
-      }
-    }
-  }
+  PreSmoother()
 
   res = f - M * u
   f@coarser = Restriction_u * res
@@ -266,25 +207,13 @@ Function VCycle@(finest) {
 
   u += Prolongation_u@coarser * u@coarser
 
-  repeat 2 times {
-    color with {
-      ((i0 + i1) % 2),
-      solve locally at u@[0,0] relax omegaRelax {
-        u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
-      }
-    }
-  }
+  PostSmoother()
+
 }
 
 Function VCycle@(coarsest + 2 to finest - 1) {
-  repeat 2 times {
-    color with {
-      ((i0 + i1) % 2),
-      solve locally at u@[0,0] relax omegaRelax {
-        u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
-      }
-    }
-  }
+
+  PreSmoother()
 
   res = f - M * u
   f@coarser = Restriction_u * res
@@ -294,25 +223,14 @@ Function VCycle@(coarsest + 2 to finest - 1) {
 
   u += Prolongation_u@coarser * u@coarser
 
-  repeat 2 times {
-    color with {
-      ((i0 + i1) % 2),
-      solve locally at u@[0,0] relax omegaRelax {
-        u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
-      }
-    }
-  }
+  PostSmoother()
+
 }
 
+
 Function VCycle@(coarsest + 1) {
-  repeat 2 times {
-    color with {
-      ((i0 + i1) % 2),
-      solve locally at u@[0,0] relax omegaRelax {
-        u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
-      }
-    }
-  }
+  PreSmoother()
+
   res = f - M * u
   f@coarser = Restriction_u * res
 
@@ -322,15 +240,11 @@ Function VCycle@(coarsest + 1) {
 
   u += Prolongation_u@coarser * u@coarser
 
-  repeat 2 times {
-    color with {
-      ((i0 + i1) % 2),
-      solve locally at u@[0,0] relax omegaRelax {
-        u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
-      }
-    }
-  }
+  PostSmoother()
+
 }
+
+
 
 Field nu    @coarsest from gen_residual_u
 Field p     @coarsest from gen_residual_u
