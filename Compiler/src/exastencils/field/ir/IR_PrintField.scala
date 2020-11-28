@@ -101,14 +101,13 @@ case class IR_PrintField(
     statements
   }
 
-  def printXmlVtk() : ListBuffer[IR_Statement] = {
+  def printXdmf() : ListBuffer[IR_Statement] = {
     // TODO
-    ListBuffer(IR_NullStatement)
-  }
-
-  def printXdmf(useHDF5 : Boolean) : ListBuffer[IR_Statement] = {
-    // TODO
-    ListBuffer(IR_NullStatement)
+    ioInterface.asInstanceOf[IR_StringConstant].value.toLowerCase match {
+      case "fpp" => ListBuffer(IR_NullStatement)
+      case "mpiio" => ListBuffer(IR_NullStatement)
+      case "hdf5" => ListBuffer(IR_NullStatement)
+    }
   }
 
   def printNetCDF() : ListBuffer[IR_Statement] = {
@@ -200,9 +199,7 @@ case class IR_PrintField(
 
     ioInterface.asInstanceOf[IR_StringConstant].value.toLowerCase match {
       case "lock"   => statements ++= printCSV()
-      case "fpp"    => statements ++= printXmlVtk()
-      case "mpiio"  => statements ++= printXdmf(useHDF5 = false)
-      case "hdf5"   => statements ++= printXdmf(useHDF5 = true)
+      case "fpp" | "mpiio" | "hdf5"   => statements ++= printXdmf()
       case "nc"     => statements ++= printNetCDF()
       case "sion"   =>
         Logger.warn("Sion Files cannot directly be visualized. Defaulting to \"writeField\" implementation.")

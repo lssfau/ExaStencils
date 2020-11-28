@@ -34,20 +34,7 @@ import exastencils.util.ir.IR_Print
 // 2D only
 // for a variable number of fragments per block
 
-abstract class IR_PrintVtkTriangles extends IR_PrintVtk {
-  def numCells = 2 * numCells_x * numCells_y * numCells_z * numFrags
-
-  def nodeOffsets = if(Knowledge.swe_nodalReductionPrint)
-    ListBuffer(IR_ConstIndex(0, 0))
-  else
-    ListBuffer(IR_ConstIndex(0, 0), IR_ConstIndex(1, 0), IR_ConstIndex(0, 1), IR_ConstIndex(1, 1), IR_ConstIndex(0, 1), IR_ConstIndex(1, 0))
-
-  def numFrags = IR_VariableAccess("totalNumFrags", IR_IntegerDatatype) // Knowledge.domain_numFragmentsTotal
-  def numValidFrags = IR_VariableAccess("numValidFrags", IR_IntegerDatatype)
-  def fragmentOffset = IR_VariableAccess("fragmentOffset", IR_IntegerDatatype)
-
-  // write bath once for each grid node -> extend loop end by 1 to iterate through all nodes instead of cells
-  val nodalLoopEnd = if(Knowledge.swe_nodalReductionPrint) 1 else 0
+abstract class IR_PrintVtkTriangles extends IR_PrintVtk with IR_PrintVisualizationTriangles {
 
   def stmtsForPreparation() : ListBuffer[IR_Statement] = {
     var statements = ListBuffer[IR_Statement]()
@@ -105,38 +92,23 @@ abstract class IR_PrintVtkTriangles extends IR_PrintVtk {
     val stream = newStream
 
     val cellPrint = {
-      val offsetFragLoop = //(MPI_IV_MpiRank * Knowledge.domain_numFragmentsPerBlock + IR_LoopOverFragments.defIt) * numPointsPerFrag
-        (fragmentOffset + IR_LoopOverFragments.defIt) * numPointsPerFrag
-      val offsetLoopOverDim = if(Knowledge.swe_nodalReductionPrint) {
-        IR_LoopOverDimensions.defItForDim(0) + IR_LoopOverDimensions.defItForDim(1) * (numCells_x+1)
-      } else {
-        6 * (IR_LoopOverDimensions.defItForDim(0) + IR_LoopOverDimensions.defItForDim(1) * numCells_x)
-      }
-
-      // offsets for vertices: (Lower0, Lower1, Lower2, Upper0, Upper1, Upper2)
-      val vertexOffsets = if(Knowledge.swe_nodalReductionPrint) {
-        Array(0, 1, numCells_x+1, (numCells_x+1)+1, numCells_x+1, 1) // we're not writing 6 vertices per cell in this case
-      } else {
-        Array(0, 1, 2, 3, 4, 5)
-      }
-
       var cellPrint = ListBuffer[IR_Expression]()
       cellPrint += 3
       cellPrint += separator
-      cellPrint += offsetFragLoop + offsetLoopOverDim + vertexOffsets(0)
+      cellPrint += connectivityTriangle(0)
       cellPrint += separator
-      cellPrint += offsetFragLoop + offsetLoopOverDim + vertexOffsets(1)
+      cellPrint += connectivityTriangle(1)
       cellPrint += separator
-      cellPrint += offsetFragLoop + offsetLoopOverDim + vertexOffsets(2)
+      cellPrint += connectivityTriangle(2)
       cellPrint += IR_Print.newline
 
       cellPrint += 3
       cellPrint += separator
-      cellPrint += offsetFragLoop + offsetLoopOverDim + vertexOffsets(3)
+      cellPrint += connectivityTriangle(3)
       cellPrint += separator
-      cellPrint += offsetFragLoop + offsetLoopOverDim + vertexOffsets(4)
+      cellPrint += connectivityTriangle(4)
       cellPrint += separator
-      cellPrint += offsetFragLoop + offsetLoopOverDim + vertexOffsets(5)
+      cellPrint += connectivityTriangle(5)
       cellPrint += IR_Print.newline
 
       IR_Print(stream, cellPrint)

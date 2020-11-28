@@ -23,7 +23,6 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
@@ -34,8 +33,7 @@ import exastencils.util.ir.IR_Print
 // 2D or 3D
 // for a fixed number of fragments per block
 
-abstract class IR_PrintVtkQuads extends IR_PrintVtk {
-  def numCells : IR_Expression = numCells_x * numCells_y * numCells_z * numFrags
+abstract class IR_PrintVtkQuads extends IR_PrintVtk with IR_PrintVisualizationQuads {
 
   override def stmtsForPreparation : ListBuffer[IR_Statement] = { ListBuffer() }
 
@@ -76,39 +74,38 @@ abstract class IR_PrintVtkQuads extends IR_PrintVtk {
     val stream = newStream
 
     val cellPrint = {
-      val offset = (MPI_IV_MpiRank * Knowledge.domain_numFragmentsPerBlock + IR_LoopOverFragments.defIt) * numPointsPerFrag
 
       var cellPrint = ListBuffer[IR_Expression]()
       numDimsGrid match {
         case 2 =>
           cellPrint += 4
           cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1)
+          cellPrint += connectivityQuads(0)
           cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1)
+          cellPrint += connectivityQuads(1)
           cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1)
+          cellPrint += connectivityQuads(2)
           cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1)
+          cellPrint += connectivityQuads(3)
           cellPrint += IR_Print.newline
         case 3 =>
           cellPrint += 8
           cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 0) * (numCells_x + 1) * (numCells_y + 1)
+          cellPrint += connectivityQuads(0)
           cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 0) * (numCells_x + 1) * (numCells_y + 1)
+          cellPrint += connectivityQuads(1)
           cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 0) * (numCells_x + 1) * (numCells_y + 1)
+          cellPrint += connectivityQuads(2)
           cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 0) * (numCells_x + 1) * (numCells_y + 1)
+          cellPrint += connectivityQuads(3)
           cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 1) * (numCells_x + 1) * (numCells_y + 1)
+          cellPrint += connectivityQuads(4)
           cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 1) * (numCells_x + 1) * (numCells_y + 1)
+          cellPrint += connectivityQuads(5)
           cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 1) * (numCells_x + 1) * (numCells_y + 1)
+          cellPrint += connectivityQuads(6)
           cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 1) * (numCells_x + 1) * (numCells_y + 1)
+          cellPrint += connectivityQuads(7)
           cellPrint += IR_Print.newline
       }
 
