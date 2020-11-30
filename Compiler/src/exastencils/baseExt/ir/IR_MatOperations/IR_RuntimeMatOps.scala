@@ -862,21 +862,18 @@ object IR_GenerateRuntimeInversion {
 
     matrixShape match {
       case "filled"        =>
-        var debug = false
+
         var stmts = ListBuffer[IR_Statement]()
-        if (debug)
-          stmts ++= IR_GenerateBasicMatrixOperations.printMatrix(in)
+
         val N = insize._1
         if (insize._1 < 4) {
           stmts ++= smallMatrixInversionAtSubMatrix(in, N, 0, 0, out).body
         } else {
+
+
           stmts ++= localLUPINV(in, N, 0,0, out ).body
           //stmts += runtimeInverse(in,out)
         }
-
-        if (debug)
-          stmts ++= IR_GenerateBasicMatrixOperations.printMatrix(out)
-
         IR_Scope(stmts)
       case "diagonal"      => diagonalInlined(in, out)
       case "blockdiagonal" =>
@@ -942,7 +939,7 @@ object IR_GenerateRuntimeInversion {
       IR_UtilFunctions.get += IR_GenerateRuntimeInversion.diagonalAsFunction()
     }
     if (!IR_UtilFunctions.get.functions.exists(f => f.name == "inv_filled")) {
-      IR_UtilFunctions.get += IR_GenerateRuntimeInversion.localLUInversionAsFunction()
+      IR_UtilFunctions.get += IR_GenerateRuntimeInversion.LUInversionAsFunction()
     }
     IR_Scope(newstmts)
   }
@@ -1333,40 +1330,33 @@ object IR_GenerateRuntimeInversion {
     pfunc
   }
   // combines LU decomposition and inversion of submatrix of 'in' at 'offset_r', 'offset_c' of size 'blocksize'
-  def localLUInversionAsFunction() : IR_PlainFunction = {
+  def LUInversionAsFunction() : IR_PlainFunction = {
     var func = IR_Scope(Nil)
-    var offset_r = IR_VariableAccess("offset_r", IR_IntegerDatatype)
-    var offset_c = IR_VariableAccess("offset_c", IR_IntegerDatatype)
     var in = IR_VariableAccess("in", IR_PointerDatatype(IR_DoubleDatatype))
     var insize = IR_VariableAccess("insize", IR_IntegerDatatype)
-    var blocksize = IR_VariableAccess("blocksize", IR_IntegerDatatype)
     var out = IR_VariableAccess("out", IR_PointerDatatype(IR_DoubleDatatype))
     var P = IR_VariableAccess("P", IR_PointerDatatype(IR_IntegerDatatype))
-    var block = IR_VariableAccess("block", IR_IntegerDatatype)
     val baseType = in.datatype.resolveBaseDatatype
     func.body += IR_VariableDeclaration(P)
-    func.body += IR_ArrayAllocation(P, IR_IntegerDatatype, blocksize + IR_IntegerConstant(1))
+    func.body += IR_ArrayAllocation(P, IR_IntegerDatatype, insize)
     var inplace = Knowledge.experimental_inplaceInversion
     if (!inplace) {
       var inCopy = IR_VariableAccess("inCopy", IR_PointerDatatype(baseType))
       func.body += IR_VariableDeclaration(inCopy)
       func.body += IR_ArrayAllocation(inCopy, baseType, insize * insize)
       func.body += IR_FunctionCall(IR_ExternalFunctionReference("std::memcpy", IR_UnitDatatype), ListBuffer[IR_Expression](IR_AddressOf(inCopy), IR_AddressOf(in), IR_SizeOf(baseType) * insize * insize))
-      func.body ++= localLUDecompDynMem(inCopy, insize, P, blocksize, offset_r, offset_c)
-      func.body ++= localLUDecomposedInversionDynMem(inCopy, insize, P, blocksize, offset_r, offset_c, out)
+      func.body ++= localLUDecompDynMem(inCopy, insize, P, insize, IR_IntegerConstant(0), IR_IntegerConstant(0))
+      func.body ++= localLUDecomposedInversionDynMem(inCopy, insize, P, insize, IR_IntegerConstant(0), IR_IntegerConstant(0), out)
     }
     else {
-      func.body ++= localLUDecompDynMem(in, insize, P, blocksize, offset_r, offset_c)
-      func.body ++= localLUDecomposedInversionDynMem(in, insize, P, blocksize, offset_r, offset_c, out)
+      func.body ++= localLUDecompDynMem(in, insize, P, insize, IR_IntegerConstant(0), IR_IntegerConstant(0))
+      func.body ++= localLUDecomposedInversionDynMem(in, insize, P, insize, IR_IntegerConstant(0), IR_IntegerConstant(0), out)
     }
     func.body += IR_ArrayFree(P)
 
     var pfunc = IR_PlainFunction("inv_filled", IR_UnitDatatype, ListBuffer[IR_FunctionArgument](
       IR_FunctionArgument("in", IR_PointerDatatype(IR_DoubleDatatype)),
       IR_FunctionArgument("insize", IR_IntegerDatatype),
-      IR_FunctionArgument("blocksize", IR_IntegerDatatype),
-      IR_FunctionArgument("offset_r", IR_IntegerDatatype),
-      IR_FunctionArgument("offset_c", IR_IntegerDatatype),
       IR_FunctionArgument("out", IR_PointerDatatype(IR_DoubleDatatype))
     ),
       func.body
