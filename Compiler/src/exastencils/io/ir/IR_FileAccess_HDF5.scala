@@ -19,7 +19,7 @@ case class IR_FileAccess_HDF5(
     var datasetName : IR_Expression,
     var field : IR_Field,
     var slot : IR_Expression,
-    var includeGhostLayers : Boolean, // TODO: handling
+    var includeGhostLayers : Boolean,
     var writeAccess : Boolean,
     var appendedMode : Boolean = false) extends IR_FileAccess(fileName, field, slot, includeGhostLayers, writeAccess, appendedMode) {
 

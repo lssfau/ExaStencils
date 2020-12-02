@@ -93,23 +93,15 @@ abstract class IR_PrintVtkTriangles extends IR_PrintVtk with IR_PrintVisualizati
 
     val cellPrint = {
       var cellPrint = ListBuffer[IR_Expression]()
-      cellPrint += 3
-      cellPrint += separator
-      cellPrint += connectivityTriangle(0)
-      cellPrint += separator
-      cellPrint += connectivityTriangle(1)
-      cellPrint += separator
-      cellPrint += connectivityTriangle(2)
-      cellPrint += IR_Print.newline
 
-      cellPrint += 3
-      cellPrint += separator
-      cellPrint += connectivityTriangle(3)
-      cellPrint += separator
-      cellPrint += connectivityTriangle(4)
-      cellPrint += separator
-      cellPrint += connectivityTriangle(5)
-      cellPrint += IR_Print.newline
+      for(tri <- 0 until 2) {
+        cellPrint += 3
+        for(vert <- 0 until 3) {
+          cellPrint += separator
+          cellPrint += connectivityForCell(3 * tri + vert)
+        }
+        cellPrint += IR_Print.newline
+      }
 
       IR_Print(stream, cellPrint)
     }

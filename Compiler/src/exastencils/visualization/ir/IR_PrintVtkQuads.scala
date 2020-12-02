@@ -76,37 +76,18 @@ abstract class IR_PrintVtkQuads extends IR_PrintVtk with IR_PrintVisualizationQu
     val cellPrint = {
 
       var cellPrint = ListBuffer[IR_Expression]()
+      connectivityForCell.foreach(conn => {
+        cellPrint += separator
+        cellPrint += conn
+      })
+
       numDimsGrid match {
         case 2 =>
-          cellPrint += 4
-          cellPrint += separator
-          cellPrint += connectivityQuads(0)
-          cellPrint += separator
-          cellPrint += connectivityQuads(1)
-          cellPrint += separator
-          cellPrint += connectivityQuads(2)
-          cellPrint += separator
-          cellPrint += connectivityQuads(3)
-          cellPrint += IR_Print.newline
+          cellPrint.prepend(4)
+          cellPrint.append(IR_Print.newline)
         case 3 =>
-          cellPrint += 8
-          cellPrint += separator
-          cellPrint += connectivityQuads(0)
-          cellPrint += separator
-          cellPrint += connectivityQuads(1)
-          cellPrint += separator
-          cellPrint += connectivityQuads(2)
-          cellPrint += separator
-          cellPrint += connectivityQuads(3)
-          cellPrint += separator
-          cellPrint += connectivityQuads(4)
-          cellPrint += separator
-          cellPrint += connectivityQuads(5)
-          cellPrint += separator
-          cellPrint += connectivityQuads(6)
-          cellPrint += separator
-          cellPrint += connectivityQuads(7)
-          cellPrint += IR_Print.newline
+          cellPrint.prepend(8)
+          cellPrint.append(IR_Print.newline)
       }
 
       IR_Print(stream, cellPrint)

@@ -15,7 +15,7 @@ case class IR_FileAccess_MPIIO(
     var filename : IR_Expression,
     var field : IR_Field,
     var slot : IR_Expression,
-    var includeGhostLayers : Boolean, // TODO handling
+    var includeGhostLayers : Boolean,
     var writeAccess : Boolean,
     var appendedMode : Boolean = false) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess, appendedMode) {
 

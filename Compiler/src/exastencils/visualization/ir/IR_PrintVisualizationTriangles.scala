@@ -12,8 +12,6 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 
 trait IR_PrintVisualizationTriangles extends IR_PrintVisualization {
-  def numCells = 2 * numCells_x * numCells_y * numCells_z * numFrags
-
   // offsets used when accessing a field within a loop
   def nodeOffsets = if(Knowledge.swe_nodalReductionPrint)
     ListBuffer(IR_ConstIndex(0, 0))
@@ -23,9 +21,12 @@ trait IR_PrintVisualizationTriangles extends IR_PrintVisualization {
   def numFrags = IR_VariableAccess("totalNumFrags", IR_IntegerDatatype) // Knowledge.domain_numFragmentsTotal
   def numValidFrags = IR_VariableAccess("numValidFrags", IR_IntegerDatatype)
   def fragmentOffset = IR_VariableAccess("fragmentOffset", IR_IntegerDatatype)
+  def numFragsPerBlock = numValidFrags
 
-  // without the reduction: 6 values for the position- and field data are written per cell
-  // with the reduction: position and fields are output per grid node (one value per node) -> extend loop end by 1 to iterate through all nodes instead of cells
+  /*
+    - without the reduction: 6 values for the position- and field data are written per cell
+    - with the reduction: position and fields are output per grid node (one value per node) -> extend loop end by 1 to iterate through all nodes instead of cells
+  */
   def nodalLoopEnd = if(Knowledge.swe_nodalReductionPrint) 1 else 0
 
   // offsets for vertices: (Lower0, Lower1, Lower2, Upper0, Upper1, Upper2)
@@ -45,5 +46,5 @@ trait IR_PrintVisualizationTriangles extends IR_PrintVisualization {
     6 * (IR_LoopOverDimensions.defItForDim(0) + IR_LoopOverDimensions.defItForDim(1) * numCells_x)
   }
 
-  def connectivityTriangle : Array[IR_Expression] = (0 until 6).map(v => offsetFragLoop + offsetLoopOverDim + vertexOffsets(v)).toArray
+  def connectivityForCell : Array[IR_Expression] = (0 until 6).map(v => offsetFragLoop + offsetLoopOverDim + vertexOffsets(v)).toArray
 }

@@ -28,6 +28,7 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
   def numCells_x = etaDiscLower0.layout.layoutsPerDim(0).numInnerLayers
   def numCells_y = etaDiscLower0.layout.layoutsPerDim(1).numInnerLayers
   def numCells_z = 1
+  def numCellsPerFrag = 2 * numCells_x * numCells_y * numCells_z
   def numPointsPerFrag = if(Knowledge.swe_nodalReductionPrint) (numCells_x+1)*(numCells_y+1) else 6 * numCells_x * numCells_y
 
   def bath = IR_FieldCollection.getByIdentifier("bath", level).get
