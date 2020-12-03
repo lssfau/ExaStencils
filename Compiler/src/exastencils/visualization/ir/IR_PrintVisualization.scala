@@ -49,6 +49,7 @@ import exastencils.logger.Logger
 
 trait IR_PrintVisualization {
   def filename : IR_Expression
+  def ioInterface : String
 
   // remove file extension
   def extRegex = "[.][^.]+$"

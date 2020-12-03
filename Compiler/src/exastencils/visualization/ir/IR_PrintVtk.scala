@@ -34,6 +34,8 @@ import exastencils.util.ir.IR_Print
 
 abstract class IR_PrintVtk extends IR_PrintVisualization with IR_Statement with IR_Expandable {
 
+  def ioInterface = "lock"
+
   def separator = IR_StringConstant(" ")
 
   def genStmtBlock(newStmts : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
