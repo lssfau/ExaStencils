@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 import scala.sys.process._
 
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.baseExt.ir.IR_LoopOverDimensions
@@ -137,7 +138,7 @@ case class IR_FileAccess_SionLib(
       IR_VariableAccess("std::cout", IR_UnknownDatatype),
       IR_StringConstant("Rank: "), MPI_IV_MpiRank, IR_StringConstant(". "),
       IR_VariableAccess("__FILE__", IR_UnknownDatatype), IR_StringConstant(": Error at line: "), IR_VariableAccess("__LINE__", IR_UnknownDatatype),
-      IR_StringConstant(". Number of bytes read="), bytesAccessed, IR_StringConstant(" differ from : "), numBytesFrag
+      IR_StringConstant(". Number of bytes read="), bytesAccessed, IR_StringConstant(" differ from : "), numBytesBlock / numBytesDatatype
     )
   )
 
@@ -146,20 +147,30 @@ case class IR_FileAccess_SionLib(
     val funcName = if (writeAccess) "sion_fwrite" else "sion_fread"
     IR_Assignment(
       bytesAccessed,
-      IR_FunctionCall(IR_ExternalFunctionReference(funcName), fieldptr, numBytesDatatype, numBytesFrag / numBytesDatatype, fileId)
-    )
-  } else {
-    val funcName = if (writeAccess) "fwrite" else "fread" // use ANSI C function to reduce "sion_ensure_free_space" calls from "sion_fread" wrapper function
-    val fieldAccess = IR_AddressOf(IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData)))
-    val readValue = IR_Assignment(
-      bytesAccessed,
-      IR_FunctionCall(IR_ExternalFunctionReference(funcName), fieldAccess, numBytesDatatype, 1, filePtr),
+      IR_FunctionCall(IR_ExternalFunctionReference(funcName), fieldptr, numBytesDatatype, numBytesFrag / numBytesDatatype, fileId),
       "+="
     )
-    IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
+  } else  {
+    val funcName = if (writeAccess) "fwrite" else "fread" // use ANSI C function to reduce "sion_ensure_free_space" calls from "sion_fread" wrapper function
+    val idxRange = IR_ExpressionIndexRange(
       IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(beginId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
-      IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(endId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
-      IR_IfCondition(condition, readValue))
+      IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(endId, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)))
+
+    // write whole row of values (in x-dimension) if no condition is defined
+    if (bytesAccessedKnownApriori) {
+      val fieldAccess = IR_AddressOf(IR_FieldAccess(field, Duplicate(slot), IR_ExpressionIndex(IR_IntegerConstant(0) +: IR_LoopOverDimensions.defIt(numDimsData-1).indices)))
+      IR_LoopOverDimensions(numDimsData-1, idxRange,
+        IR_Assignment(bytesAccessed,
+          IR_FunctionCall(IR_ExternalFunctionReference(funcName), fieldAccess, numBytesDatatype, innerPointsLocal(0), filePtr),
+          "+="))
+    } else {
+      val fieldAccess = IR_AddressOf(IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData)))
+      IR_LoopOverDimensions(numDimsData, idxRange,
+        IR_IfCondition(condition,
+          IR_Assignment(bytesAccessed,
+            IR_FunctionCall(IR_ExternalFunctionReference(funcName), fieldAccess, numBytesDatatype, 1, filePtr),
+            "+=")))
+    }
   }
 
   override def readField() : ListBuffer[IR_Statement] = {
