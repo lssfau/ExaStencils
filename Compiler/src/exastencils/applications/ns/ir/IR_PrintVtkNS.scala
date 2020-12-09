@@ -22,20 +22,24 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir._
 import exastencils.core.Duplicate
-import exastencils.domain.ir.IR_IV_IsValidForDomain
-import exastencils.field.ir._
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_PrintVtkQuads
 
 /// IR_PrintVtkNS
 
-case class IR_PrintVtkNS(var filename : IR_Expression, level : Int) extends IR_PrintVtkQuads with IR_PrintVisualizationNS {
+case class IR_PrintVtkNS(var filename : IR_Expression, level : Int) extends IR_PrintVtkQuads with IR_PrintVisualizationNS with IR_PrintFieldAsciiNS {
   override def stmtsForNodeData : ListBuffer[IR_Statement] = ListBuffer()
 
   def numFields = 2
+
+  override def printField(name : String, stream : IR_VariableAccess, loopBody : ListBuffer[IR_Statement], numComponents : Int = 1) : ListBuffer[IR_Statement] = ListBuffer(
+    IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
+    IR_IfCondition(MPI_IsRootProc(),
+      IR_Print(stream, IR_StringConstant(name), separator, numComponents, separator, numCells, separator, IR_StringConstant("double"), IR_Print.endl))) ++
+    super.printField(name, stream, loopBody) :+
+    IR_ExpressionStatement(IR_MemberFunctionCall(stream, "close"))
 
   override def stmtsForCellData : ListBuffer[IR_Statement] = {
     val stmts = ListBuffer[IR_Statement]()
@@ -49,6 +53,7 @@ case class IR_PrintVtkNS(var filename : IR_Expression, level : Int) extends IR_P
         IR_Print(stream, IR_StringConstant("FIELD"), separator, IR_StringConstant("FieldData"), separator, numFields, IR_Print.endl),
         IR_MemberFunctionCall(stream, "close")))))
 
+    /*
     def addCellPrint(name : String, cellPrint : ListBuffer[IR_Expression], numComponents : Int = 1) = {
       val stream = newStream
 
@@ -90,6 +95,11 @@ case class IR_PrintVtkNS(var filename : IR_Expression, level : Int) extends IR_P
       cellPrint += IR_FieldAccess(p, IR_IV_ActiveSlot(p), IR_LoopOverDimensions.defIt(numDimsGrid))
       cellPrint += IR_Print.newline
     })
+    */
+
+    // implemented in IR_PrintFieldsAsciiNS
+    stmts ++= genStmtBlock(printVel())
+    stmts ++= genStmtBlock(printP())
 
     stmts
   }

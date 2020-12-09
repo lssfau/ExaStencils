@@ -21,10 +21,9 @@ import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.util.ir.IR_Print
 
 /// IR_PrintFieldsAsciiSWE
-// provides functions to write values in ascii format
+// provides functions to write geometry and field in ascii format
 // encapsulated in trait to minimize duplicate code in ascii writers
 
-// TODO test generated code
 trait IR_PrintFieldsAsciiSWE extends IR_PrintVisualizationSWE {
 
   def printField(name : String, stream : IR_VariableAccess, loopBody : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = ListBuffer(

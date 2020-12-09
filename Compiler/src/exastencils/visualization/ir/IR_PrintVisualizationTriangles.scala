@@ -49,8 +49,8 @@ trait IR_PrintVisualizationTriangles extends IR_PrintVisualization {
   */
   def nodalLoopEnd : Int = if(Knowledge.swe_nodalReductionPrint) 1 else 0
 
-  // offsets for vertices: (Lower0, Lower1, Lower2, Upper0, Upper1, Upper2)
-  def vertexOffsets : Array[Int] = if(Knowledge.swe_nodalReductionPrint) {
+  // offsets for vertex positions: (Lower0, Lower1, Lower2, Upper0, Upper1, Upper2)
+  def nodePositionOffsets : Array[Int] = if(Knowledge.swe_nodalReductionPrint) {
     Array(0, 1, numCells_x+1, (numCells_x+1)+1, numCells_x+1, 1) // we're not writing 6 vertices per cell in this case
   } else {
     Array(0, 1, 2, 3, 4, 5)
@@ -66,7 +66,7 @@ trait IR_PrintVisualizationTriangles extends IR_PrintVisualization {
     6 * (IR_LoopOverDimensions.defItForDim(0) + IR_LoopOverDimensions.defItForDim(1) * numCells_x)
   }
 
-  def connectivityForCell : ListBuffer[IR_Expression] = ListBuffer() ++ (0 until 6).map(v => offsetFragLoop + offsetLoopOverDim + vertexOffsets(v))
+  def connectivityForCell : ListBuffer[IR_Expression] = ListBuffer() ++ (0 until 6).map(v => offsetFragLoop + offsetLoopOverDim + nodePositionOffsets(v))
 
   def communicateFragmentInfo(calculateFragOffset : Boolean = false) : ListBuffer[IR_Statement] = {
     var statements = ListBuffer[IR_Statement]()
