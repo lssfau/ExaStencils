@@ -14,6 +14,7 @@ import exastencils.base.ir.IR_ArrayAllocation
 import exastencils.base.ir.IR_ArrayFree
 import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_BooleanConstant
+import exastencils.base.ir.IR_BooleanDatatype
 import exastencils.base.ir.IR_ConstIndex
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
@@ -46,6 +47,10 @@ import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldIO
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.logger.Logger
+
+/// IR_PrintVisualization
+// provides general functions and structure for visualization interfaces
+// resolves function calls for visualization in the DSL
 
 trait IR_PrintVisualization {
   def filename : IR_Expression
@@ -89,13 +94,19 @@ trait IR_PrintVisualization {
   }
 
   def numDimsGrid : Int
+  def numFields : Int
 
   def newStream = IR_VariableAccess(IR_FieldIO.getNewStreamName(), IR_SpecialDatatype("std::ofstream"))
 
   def level : Int
 
+  // careful: must be in KJI order (i.e. slowest varying dimension first)
+  def dimsConnectivityFrag : ListBuffer[IR_IntegerConstant] = ListBuffer(numCells_z, numCells_y, numCells_x, connectivityForCell.length)
+  def dimsPositionsFrag    : ListBuffer[IR_IntegerConstant]
+
   def numCellsPerFrag : Int
-  def numPointsPerFrag : Int
+  def numPointsPerFrag : Long = dimsPositionsFrag.foldLeft(1L)((a, b) => a.v * b.v)
+
   def numFrags : IR_Expression
   def numFragsPerBlock : IR_Expression
 
@@ -110,7 +121,11 @@ trait IR_PrintVisualization {
 
   def nodeOffsets : ListBuffer[IR_ConstIndex] // essentially only for SWE, but used here to reduce duplicate code
 
-  def connectivityForCell : Array[IR_Expression]
+  // global variable used for constant data reduction
+  def constantsWritten_decl = IR_VariableDeclaration(IR_BooleanDatatype, "constantsWritten", false)
+  def constantsWritten = IR_VariableAccess(constantsWritten_decl)
+
+  def connectivityForCell : ListBuffer[IR_Expression]
 
   def connectivity_decl = IR_VariableDeclaration(IR_PointerDatatype(IR_IntegerDatatype), "connectivity")
   def connectivity = IR_VariableAccess(connectivity_decl)
@@ -123,22 +138,21 @@ trait IR_PrintVisualization {
   // allocates and initializes buffer with connectivity info. this buffer is then passed to the I/O library
   def setupConnectivity : ListBuffer[IR_Statement] = {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
-    val numConnections = connectivityForCell.length
-    val sizeConnectionFrag = numCells_x * numCells_y * numCells_z * numConnections
-
-    val initBuffer : ListBuffer[IR_Statement] = ListBuffer() ++ (0 until numConnections).map(d => {
-      val linearizedLoopIdx = loopOverInnerDims(false).indices.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
-      IR_Assignment(
-        IR_ArrayAccess(connectivity, IR_LoopOverFragments.defIt * sizeConnectionFrag + numConnections * linearizedLoopIdx + d),
-        connectivityForCell(d))
-    })
+    val sizeConnectionFrag = dimsConnectivityFrag.reduce((a, b) => a.v * b.v)
 
     stmts += connectivity_decl
     stmts += IR_ArrayAllocation(connectivity, IR_IntegerDatatype, numFragsPerBlock * sizeConnectionFrag)
 
+    val initBuffer : ListBuffer[IR_Statement] = ListBuffer() ++ connectivityForCell.indices.map(d => {
+      val linearizedLoopIdx = loopOverInnerDims(nodalLoopEnd = false).indices.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
+      IR_Assignment(
+        IR_ArrayAccess(connectivity, IR_LoopOverFragments.defIt * sizeConnectionFrag + connectivityForCell.length * linearizedLoopIdx + d),
+        connectivityForCell(d))
+    })
+
     stmts += IR_LoopOverFragments(
       IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
-        loopOverInnerDims(false, initBuffer)))
+        loopOverInnerDims(nodalLoopEnd = false, initBuffer)))
 
     stmts
   }
@@ -160,12 +174,12 @@ trait IR_PrintVisualization {
     stmts += nodePositions_decl
 
     for(d <- 0 until numDimsGrid) {
-      stmts += IR_ArrayAllocation(nodePositions(d), IR_RealDatatype, numCells_x * numCells_y * numCells_z * numFragsPerBlock)
+      stmts += IR_ArrayAllocation(nodePositions(d), IR_RealDatatype, numPointsPerFrag * numFragsPerBlock)
 
       val numAccPerCell = nodeOffsets.length
 
       val initBuffer : ListBuffer[IR_Statement] = ListBuffer() ++ (0 until numAccPerCell).map(n => {
-        val linearizedLoopIdx = loopOverInnerDims(true).indices.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
+        val linearizedLoopIdx = loopOverInnerDims(nodalLoopEnd = true).indices.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
         IR_Assignment(
           IR_ArrayAccess(nodePositions(d), IR_LoopOverFragments.defIt * numPointsPerFrag + numAccPerCell * linearizedLoopIdx + n),
           IR_VF_NodePositionPerDim.access(level, d, IR_LoopOverDimensions.defIt(numDimsGrid) + nodeOffsets(n)))
@@ -173,7 +187,7 @@ trait IR_PrintVisualization {
 
       stmts += IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
-          loopOverInnerDims(true, initBuffer)))
+          loopOverInnerDims(nodalLoopEnd = true, initBuffer)))
     }
 
     stmts
@@ -208,20 +222,20 @@ object IR_ResolveVisualizationPrinters extends DefaultStrategy("IR_ResolveVisual
     // xdmf printers
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfNNF", _), args)) =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_Expression)                              => IR_PrintXdmfNNF(s, i.toInt, ioInterface, false)
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_Expression, binFpp : IR_BooleanConstant) => IR_PrintXdmfNNF(s, i.toInt, ioInterface, binFpp.value)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant)                              => IR_PrintXdmfNNF(s, i.toInt, ioInterface, false)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant, binFpp : IR_BooleanConstant) => IR_PrintXdmfNNF(s, i.toInt, ioInterface, binFpp.value)
         case _                                                                                                              => Logger.error("Malformed call to printXdmfNNF; usage: printXdmfNNF ( \"filename\", level, \"ioInterface\", binFpp = false)")
       }
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfNS", _), args)) =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_Expression)                              => IR_PrintXdmfNS(s, i.toInt, ioInterface, false)
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_Expression, binFpp : IR_BooleanConstant) => IR_PrintXdmfNS(s, i.toInt, ioInterface, binFpp.value)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant)                              => IR_PrintXdmfNS(s, i.toInt, ioInterface, false)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant, binFpp : IR_BooleanConstant) => IR_PrintXdmfNS(s, i.toInt, ioInterface, binFpp.value)
         case _                                                                                                              => Logger.error("Malformed call to printXdmfNS; usage: printXdmfNS ( \"filename\", level, \"ioInterface\", binFpp = false)")
       }
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfSWE", _), args)) =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_Expression)                              => IR_PrintXdmfSWE(s, i.toInt, ioInterface, false)
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_Expression, binFpp : IR_BooleanConstant) => IR_PrintXdmfSWE(s, i.toInt, ioInterface, binFpp.value)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant)                              => IR_PrintXdmfSWE(s, i.toInt, ioInterface, false)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant, binFpp : IR_BooleanConstant) => IR_PrintXdmfSWE(s, i.toInt, ioInterface, binFpp.value)
         case _                                                                                                              => Logger.error("Malformed call to printXdmfSWE; usage: printXdmfSWE ( \"filename\", level, \"ioInterface\", binFpp = false)")
       }
 

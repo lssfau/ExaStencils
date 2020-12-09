@@ -22,18 +22,21 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir._
-import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.domain.ir.IR_IV_IsValidForDomain
-import exastencils.field.ir._
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_PrintVtkTriangles
 
 /// IR_PrintVtkSWE
 
-case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_PrintVtkTriangles with IR_PrintVisualizationSWE {
+case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_PrintVtkTriangles with IR_PrintVisualizationSWE with IR_PrintFieldsAsciiSWE {
+
+  override def printField(name : String, stream : IR_VariableAccess, loopBody : ListBuffer[IR_Statement]) = ListBuffer[IR_Statement](
+    IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
+    IR_IfCondition(MPI_IsRootProc(),
+      IR_Print(stream, IR_StringConstant(name), separator, 1, separator, numNodes, separator, IR_StringConstant("double"), IR_Print.endl))) ++
+    super.printField(name, stream, loopBody) :+
+    IR_ExpressionStatement(IR_MemberFunctionCall(stream, "close"))
 
   override def stmtsForNodeData : ListBuffer[IR_Statement] = {
     val stmts = ListBuffer[IR_Statement]()
@@ -47,18 +50,7 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
         IR_Print(stream, IR_StringConstant("FIELD"), separator, IR_StringConstant("FieldData"), separator, numFields, IR_Print.endl),
         IR_MemberFunctionCall(stream, "close")))))
 
-    def initCells(name : String, stream : IR_VariableAccess, loopBody : ListBuffer[IR_Statement]) = ListBuffer[IR_Statement](
-      IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
-      IR_IfCondition(MPI_IsRootProc(),
-        IR_Print(stream, IR_StringConstant(name), separator, 1, separator, numNodes, separator, IR_StringConstant("double"), IR_Print.endl)),
-      IR_Print(stream, "std::scientific"),
-      IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(etaDiscLower0.domain.index),
-          loopBody
-        ),
-        IR_Print(stream, IR_Print.flush)),
-      IR_MemberFunctionCall(stream, "close"))
-
+    /*
     def addNodePrint(name : String, cellPrint : ListBuffer[IR_Expression]) = {
       val stream = newStream
 
@@ -147,6 +139,14 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_
         })
       }
     }
+    */
+
+    // implemented in IR_PrintFieldsAsciiSWE
+    stmts ++= genStmtBlock(printBath())
+    stmts ++= genStmtBlock(printEta())
+    stmts ++= genStmtBlock(printU())
+    stmts ++= genStmtBlock(printV())
+    stmts ++= genStmtBlock(printOrder())
 
     stmts
   }

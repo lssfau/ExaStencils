@@ -11,6 +11,7 @@ import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_PointerDatatype
 import exastencils.base.ir.IR_Statement
@@ -34,7 +35,9 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads{
   def numCells_y = p.layout.layoutsPerDim(1).numInnerLayers
   def numCells_z = if (numDimsGrid > 2) p.layout.layoutsPerDim(2).numInnerLayers else 1
   def numCellsPerFrag = numCells_x * numCells_y * numCells_z
-  def numPointsPerFrag = (numCells_x + 1) * (numCells_y + 1) * (if (numDimsGrid > 2) numCells_z + 1 else 1)
+
+  def dimsPositionsFrag = ListBuffer(if (numDimsGrid > 2) numCells_z+1 else 1, numCells_y+1, numCells_x+1).map(a => IR_IntegerConstant(a))
+
   def numFrags = Knowledge.domain_numFragmentsTotal
 
   def u = IR_FieldCollection.getByIdentifier("u", level).get

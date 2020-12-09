@@ -31,26 +31,10 @@ import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_Print
 
 /// IR_PrintVtkTriangles
-// 2D only
-// for a variable number of fragments per block
 
 abstract class IR_PrintVtkTriangles extends IR_PrintVtk with IR_PrintVisualizationTriangles {
 
-  def stmtsForPreparation() : ListBuffer[IR_Statement] = {
-    var statements = ListBuffer[IR_Statement]()
-
-    // determine number of valid fragments per block and total number of valid fragments
-    statements ++= ListBuffer(
-      IR_VariableDeclaration(fragmentOffset, 0),
-      IR_VariableDeclaration(numValidFrags, 0),
-      IR_LoopOverFragments(IR_IfCondition(IR_IV_IsValidForDomain(0), IR_Assignment(numValidFrags, numValidFrags + 1))),
-      IR_VariableDeclaration(numFrags, numValidFrags))
-
-    if (Knowledge.mpi_enabled)
-      statements += MPI_Reduce(0, IR_AddressOf(numFrags), IR_IntegerDatatype, 1, "+")
-
-    statements
-  }
+  def stmtsForPreparation() : ListBuffer[IR_Statement] = communicateFragmentInfo()
 
   override def stmtsForMeshVertices : ListBuffer[IR_Statement] = {
     val stream = newStream

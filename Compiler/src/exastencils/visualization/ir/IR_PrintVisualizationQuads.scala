@@ -20,14 +20,14 @@ trait IR_PrintVisualizationQuads extends IR_PrintVisualization {
 
   def nodalLoopEnd = 0
 
-  def connectivityForCell : Array[IR_Expression] = numDimsGrid match {
-    case 2 => Array(
+  def connectivityForCell : ListBuffer[IR_Expression] = numDimsGrid match {
+    case 2 => ListBuffer(
       offsetFragLoop + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1),
       offsetFragLoop + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1),
       offsetFragLoop + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1),
       offsetFragLoop + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1)
     )
-    case 3 => Array(
+    case 3 => ListBuffer(
       offsetFragLoop + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 0) * (numCells_x + 1) * (numCells_y + 1),
       offsetFragLoop + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 0) * (numCells_x + 1) * (numCells_y + 1),
       offsetFragLoop + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 0) * (numCells_x + 1) * (numCells_y + 1),

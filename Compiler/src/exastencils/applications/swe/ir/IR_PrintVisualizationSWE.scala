@@ -14,6 +14,7 @@ import exastencils.base.ir.IR_PointerDatatype
 import exastencils.base.ir.IR_PreIncrement
 import exastencils.base.ir.IR_SpecialDatatype
 import exastencils.base.ir.IR_Statement
+import exastencils.base.ir.IR_StringConstant
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
@@ -35,7 +36,8 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
   def numCells_y = etaDiscLower0.layout.layoutsPerDim(1).numInnerLayers
   def numCells_z = 1
   def numCellsPerFrag = 2 * numCells_x * numCells_y * numCells_z
-  def numPointsPerFrag = if(Knowledge.swe_nodalReductionPrint) (numCells_x+1)*(numCells_y+1) else 6 * numCells_x * numCells_y
+
+  def dimsPositionsFrag = if(Knowledge.swe_nodalReductionPrint) ListBuffer(numCells_y+1, numCells_x+1) else ListBuffer(numCells_y, numCells_x, 6)
 
   def bath = IR_FieldCollection.getByIdentifier("bath", level).get
 
@@ -69,10 +71,11 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
 
   def someCellField = etaDiscLower0
 
-  def numFields = 4 + (if (optLocalOrderLower.isDefined && optLocalOrderUpper.isDefined) 1 else 0)
+  def fieldnames = ListBuffer("bath", "eta", "u", "v") ++ (if(optLocalOrderLower.isDefined && optLocalOrderUpper.isDefined) "order"::Nil else Nil)
+  def numFields = fieldnames.length
 
   // nodal data reduction
-  def reducedCellPrint(buf : IR_VariableAccess, discFields : ListBuffer[IR_Field]) : ListBuffer[IR_Statement] = {
+  def reducedCellPrint(buf : IR_VariableAccess, discFields : ListBuffer[IR_Field], indentation : Option[IR_StringConstant] = None) : ListBuffer[IR_Statement] = {
 
     val low : ListBuffer[IR_Field] = discFields.take(3)
     val upp : ListBuffer[IR_Field] = discFields.takeRight(3)
@@ -87,7 +90,8 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
     ).linearizeIndex(idx)
 
     def storeOperation(toStore : IR_Expression, idx : IR_ExpressionIndex) = buf.datatype match {
-      case IR_SpecialDatatype("std::ofstream") => IR_Print(buf, toStore, IR_Print.newline)
+      case IR_SpecialDatatype("std::ofstream") => IR_Print(buf,
+        ((if(indentation.isDefined) indentation.get :: Nil else Nil) :+ toStore :+ IR_Print.newline) : _*)
       case IR_PointerDatatype(_) => IR_Assignment(IR_ArrayAccess(buf, getIdxNodalLoop(idx)), toStore)
     }
 

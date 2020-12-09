@@ -35,6 +35,8 @@ import exastencils.visualization.ir.IR_PrintVtkQuads
 case class IR_PrintVtkNNF(var filename : IR_Expression, level : Int) extends IR_PrintVtkQuads with IR_PrintVisualizationNS {
   override def stmtsForNodeData : ListBuffer[IR_Statement] = ListBuffer()
 
+  def numFields = 6
+
   override def stmtsForCellData : ListBuffer[IR_Statement] = {
     val stmts = ListBuffer[IR_Statement]()
 
@@ -44,7 +46,7 @@ case class IR_PrintVtkNNF(var filename : IR_Expression, level : Int) extends IR_
       IR_IfCondition(MPI_IsRootProc(), ListBuffer[IR_Statement](
         IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
         IR_Print(stream, IR_StringConstant("CELL_DATA"), separator, numCells, IR_Print.endl),
-        IR_Print(stream, IR_StringConstant("FIELD"), separator, IR_StringConstant("FieldData"), separator, 6, IR_Print.endl),
+        IR_Print(stream, IR_StringConstant("FIELD"), separator, IR_StringConstant("FieldData"), separator, numFields, IR_Print.endl),
         IR_MemberFunctionCall(stream, "close")))))
 
     def addCellPrint(name : String, cellPrint : ListBuffer[IR_Expression], numComponents : Int = 1) = {

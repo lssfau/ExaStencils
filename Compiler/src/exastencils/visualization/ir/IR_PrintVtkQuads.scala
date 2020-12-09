@@ -30,8 +30,6 @@ import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_Print
 
 /// IR_PrintVtkQuads
-// 2D or 3D
-// for a fixed number of fragments per block
 
 abstract class IR_PrintVtkQuads extends IR_PrintVtk with IR_PrintVisualizationQuads {
 

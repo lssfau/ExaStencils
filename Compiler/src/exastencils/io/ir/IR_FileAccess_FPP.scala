@@ -47,7 +47,7 @@ case class IR_FileAccess_FPP(
         val str : String = filenameStrConst.value
         val strSplit = ListBuffer(str.split("\\$blockId") : _ *)
         if(!str.contains("$blockId")) {
-          Logger.error("Error when accessing a file with file-per-process: Parameter \"basename\" must contain substring: \"$blockId\".")
+          Logger.error("Error when accessing a file with file-per-process: Parameter \"filename\" must contain substring: \"$blockId\".")
         }
 
         val strListMpi = strSplit.flatMap(e => MPI_IV_MpiRank :: IR_StringConstant(e) :: Nil).tail
