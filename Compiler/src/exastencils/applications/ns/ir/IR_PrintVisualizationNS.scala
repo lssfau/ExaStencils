@@ -13,6 +13,7 @@ import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_IntegerDatatype
+import exastencils.base.ir.IR_Multiplication
 import exastencils.base.ir.IR_PointerDatatype
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableAccess
@@ -23,49 +24,50 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_IsValidForDomain
+import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_FieldCollection
 import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.visualization.ir.IR_PrintVisualizationQuads
 
 trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads{
-  def numDimsGrid = p.numDimsGrid
+  def numDimsGrid : Int = p.numDimsGrid
 
-  def numCells_x = p.layout.layoutsPerDim(0).numInnerLayers
-  def numCells_y = p.layout.layoutsPerDim(1).numInnerLayers
-  def numCells_z = if (numDimsGrid > 2) p.layout.layoutsPerDim(2).numInnerLayers else 1
-  def numCellsPerFrag = numCells_x * numCells_y * numCells_z
+  def numCells_x : Int = p.layout.layoutsPerDim(0).numInnerLayers
+  def numCells_y : Int = p.layout.layoutsPerDim(1).numInnerLayers
+  def numCells_z : Int = if (numDimsGrid > 2) p.layout.layoutsPerDim(2).numInnerLayers else 1
+  def numCellsPerFrag : Int = numCells_x * numCells_y * numCells_z
 
-  def dimsPositionsFrag = ListBuffer(if (numDimsGrid > 2) numCells_z+1 else 1, numCells_y+1, numCells_x+1).map(a => IR_IntegerConstant(a))
+  def dimsPositionsFrag : ListBuffer[IR_IntegerConstant] = ListBuffer(if (numDimsGrid > 2) numCells_z+1 else 1, numCells_y+1, numCells_x+1).map(a => IR_IntegerConstant(a))
 
-  def numFrags = Knowledge.domain_numFragmentsTotal
+  def numFrags : IR_IntegerConstant = Knowledge.domain_numFragmentsTotal
 
-  def u = IR_FieldCollection.getByIdentifier("u", level).get
-  def v = IR_FieldCollection.getByIdentifier("v", level).get
-  def w = IR_FieldCollection.getByIdentifier("w", level).get
-  def p = IR_FieldCollection.getByIdentifier("p", level).get
-  def rho = IR_FieldCollection.getByIdentifier("rho", level).get
-  def mue = IR_FieldCollection.getByIdentifier("mue", level).get
-  def gamma = IR_FieldCollection.getByIdentifier("gamma", level).get
-  def phi = IR_FieldCollection.getByIdentifier("phi", level).get
+  def u : IR_Field = IR_FieldCollection.getByIdentifier("u", level).get
+  def v : IR_Field = IR_FieldCollection.getByIdentifier("v", level).get
+  def w : IR_Field = IR_FieldCollection.getByIdentifier("w", level).get
+  def p : IR_Field = IR_FieldCollection.getByIdentifier("p", level).get
+  def rho : IR_Field = IR_FieldCollection.getByIdentifier("rho", level).get
+  def mue : IR_Field = IR_FieldCollection.getByIdentifier("mue", level).get
+  def gamma : IR_Field = IR_FieldCollection.getByIdentifier("gamma", level).get
+  def phi : IR_Field = IR_FieldCollection.getByIdentifier("phi", level).get
 
-  def someCellField = p
+  def someCellField : IR_Field = p
 
   def velAsVec = Array(meanU, meanV, meanW)
 
-  def meanU = 0.5 * (IR_FieldAccess(u, IR_IV_ActiveSlot(u), IR_LoopOverDimensions.defIt(numDimsGrid))
+  def meanU : IR_Multiplication = 0.5 * (IR_FieldAccess(u, IR_IV_ActiveSlot(u), IR_LoopOverDimensions.defIt(numDimsGrid))
     + IR_FieldAccess(u, IR_IV_ActiveSlot(u), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(1, 0, 0)))
 
-  def meanV = 0.5 * (IR_FieldAccess(v, IR_IV_ActiveSlot(v), IR_LoopOverDimensions.defIt(numDimsGrid))
+  def meanV : IR_Multiplication = 0.5 * (IR_FieldAccess(v, IR_IV_ActiveSlot(v), IR_LoopOverDimensions.defIt(numDimsGrid))
     + IR_FieldAccess(v, IR_IV_ActiveSlot(v), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 1, 0)))
 
-  def meanW = 0.5 * (IR_FieldAccess(w, IR_IV_ActiveSlot(w), IR_LoopOverDimensions.defIt(numDimsGrid))
+  def meanW : IR_Multiplication = 0.5 * (IR_FieldAccess(w, IR_IV_ActiveSlot(w), IR_LoopOverDimensions.defIt(numDimsGrid))
     + IR_FieldAccess(w, IR_IV_ActiveSlot(w), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 0, 1)))
 
   def velocity_decl = IR_VariableDeclaration(IR_PointerDatatype(IR_IntegerDatatype), "vel")
   def velocity = IR_VariableAccess(velocity_decl)
 
-  def setupVelocity = {
+  def setupVelocity : ListBuffer[IR_Statement] = {
     // init buffer with values of vector field
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
 

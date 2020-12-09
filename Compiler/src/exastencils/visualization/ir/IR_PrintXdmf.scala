@@ -59,7 +59,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
       s.value
     }
     case _ =>
-      Logger.error("Wrong I/O interface passed to \"printXdmf\". Options are: " + supportedInterfaces.mkString("\"", " ", "\""))
+      Logger.error("Wrong I/O interface passed to \"printXdmf\". Options are: " + supportedInterfaces.mkString("\"", "\", \"", "\""))
   }
 
   // determine endianness in target code
@@ -79,7 +79,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   def xmlHeader = "<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>"
 
   // table from: https://www.xdmf.org/index.php/XDMF_Model_and_Format
-  def numberType(dt : IR_Datatype) = dt match {
+  def numberType(dt : IR_Datatype) : String = dt match {
     case IR_FloatDatatype | IR_DoubleDatatype | IR_RealDatatype => "Float"
     case IR_IntegerDatatype                                     => "Int"
     case IR_CharDatatype                                        => "Char"
@@ -88,7 +88,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   }
 
   def separator = IR_StringConstant(" ")
-  def separateSequenceAndFilter(dims : ListBuffer[IR_Expression]) = dims.filter(d => d != IR_IntegerConstant(1)) // remove dims of size "1"
+  def separateSequenceAndFilter(dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = dims.filter(d => d != IR_IntegerConstant(1)) // remove dims of size "1"
     .flatMap(d => d :: separator :: Nil)
     .dropRight(1)
 
@@ -101,12 +101,12 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     s"""\t\t<Grid Name=\\\"$name\\\" GridType=\\\"$tpe\\\">"""
   def openGeometry(tpe : String) =
     s"""\t\t\t<Geometry GeometryType=\\\"$tpe\\\">"""
-  def openTopology(tpe : String, dims : ListBuffer[IR_Expression], npe : Option[String] = None) = ListBuffer(IR_StringConstant(
+  def openTopology(tpe : String, dims : ListBuffer[IR_Expression], npe : Option[String] = None) : ListBuffer[IR_Expression] = ListBuffer(IR_StringConstant(
     "\t\t\t<Topology Dimensions=\\\"")) ++ separateSequenceAndFilter(dims) :+ IR_StringConstant(s"""\\\" Type=\\\"$tpe\\\"""") :+
     (if(npe.isDefined) IR_StringConstant(s""" NodesPerElement=\\\"${npe.get}\\\">""") else IR_StringConstant(">"))
   def openAttribute(name : String, tpe : String, ctr : String) =
     s"""\t\t\t<Attribute Center=\\\"$ctr\\\" AttributeType=\\\"$tpe\\\" Name=\\\"$name\\\">"""
-  def openDataItem(dt : IR_Datatype, dims : ListBuffer[IR_Expression], seekp : IR_Expression = 0) = ListBuffer(IR_StringConstant(
+  def openDataItem(dt : IR_Datatype, dims : ListBuffer[IR_Expression], seekp : IR_Expression = 0) : ListBuffer[IR_Expression] = ListBuffer(IR_StringConstant(
     s"""\t\t\t\t<DataItem DataType=\\\"${numberType(dt)}\\\" Precision=\\\"${dt.typicalByteSize}\\\" Dimensions=\\\"""")) ++ separateSequenceAndFilter(dims) :+
       IR_StringConstant(s"""\\\" Format=\\\"$fmt\\\" Endian=\\\"""") :+ IR_VariableAccess(endianness) :+
       IR_StringConstant("\\\" Seek=\\\"") :+ seekp :+ IR_StringConstant("\\\">")
@@ -129,7 +129,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   })))
 
   // KJI order: first dimension shows how many fragments were written
-  def dimFrags(global : Boolean) = if (global) numFrags else numFragsPerBlock
+  def dimFrags(global : Boolean) : IR_Expression = if (global) numFrags else numFragsPerBlock
 
   def indentData = IR_StringConstant("\t\t\t\t\t")
 
@@ -156,7 +156,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     statements += printXdmfElement(stream, openDomain)
 
     // write global grid element
-    statements ++= writeXdmfGrid(stream, global = (ioInterface != "fpp"))
+    statements ++= writeXdmfGrid(stream, global = ioInterface != "fpp")
 
     // write footer and close file
     statements += printXdmfElement(stream, closeDomain)

@@ -33,35 +33,33 @@ case class IR_PrintXdmfSWE(
     binaryFpp : Boolean) extends IR_PrintXdmf(ioMethod, binaryFpp) with IR_PrintVisualizationSWE with IR_PrintFieldsAsciiSWE {
 
   // dataset names for hdf5
-  def datasetCoords = ListBuffer("/constants/X", "/constants/Y")
+  def datasetCoords : ListBuffer[String] = ListBuffer("/constants/X", "/constants/Y")
   def datasetConnectivity = "/constants/Connectivity"
-  def datasetFields = "/constants/bath" +: // values don't change -> write once and reference
+  def datasetFields : ListBuffer[String] = "/constants/bath" +: // values don't change -> write once and reference
     fieldnames.drop(1).map(name => "/fieldData/" + name)
 
-  override def stmtsForPreparation = communicateFragmentInfo(
+  override def stmtsForPreparation : ListBuffer[IR_Statement] = communicateFragmentInfo(
     // in file-per-process, each rank writes its own domain piece individually -> fragOffset = 0
-    calculateFragOffset = (ioInterface != "fpp")
+    calculateFragOffset = ioInterface != "fpp"
   )
 
-  override def writeData() = {
+  override def writeData : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     // TODO
     fmt match {
-      case "Binary" => {
+      case "Binary" =>
         // distinguish fpp/mpiio
         // ...
-      }
-      case "HDF"    => {
-
-      }
+      case "HDF"    =>
+        // ...
       case "XML"    => // values already incorporated in xdmf file -> nothing to do
     }
 
     statements
   }
 
-  override def writeXdmfGeometry(stream : IR_VariableAccess, global : Boolean) = {
+  override def writeXdmfGeometry(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     statements += printXdmfElement(stream, openGeometry("X_Y")) // nodePositions are not interleaved
@@ -86,7 +84,7 @@ case class IR_PrintXdmfSWE(
     statements += printXdmfElement(stream, closeGeometry)
   }
 
-  override def writeXdmfTopology(stream : IR_VariableAccess, global : Boolean) = {
+  override def writeXdmfTopology(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     statements += printXdmfElement(stream, openTopology("Triangle", ListBuffer(dimFrags(global), numCellsPerFrag)) : _*)
@@ -111,7 +109,7 @@ case class IR_PrintXdmfSWE(
     statements
   }
 
-  override def writeXdmfAttributes(stream : IR_VariableAccess, global : Boolean) = {
+  override def writeXdmfAttributes(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     for(fieldId <- fieldnames.indices) {
@@ -137,10 +135,10 @@ case class IR_PrintXdmfSWE(
   }
 
   // ternary condition (depending on constant data reduction) used print the seek pointer for DataItem with index "idx"
-  def getSeekp(idx : Int, global : Boolean) = {
+  def getSeekp(idx : Int, global : Boolean) : IR_TernaryCondition = {
     IR_TernaryCondition(constantsWritten,
-      seekpOffsets(global, true).take(idx).reduceOption(_ + _).getOrElse(0),
-      seekpOffsets(global, false).take(idx).reduceOption(_ + _).getOrElse(0))
+      seekpOffsets(global, constantReduction = true).take(idx).reduceOption(_ + _).getOrElse(0),
+      seekpOffsets(global, constantReduction = false).take(idx).reduceOption(_ + _).getOrElse(0))
   }
 
   // contains expressions that calculate the seek pointer for each DataItem (used for raw binary files)

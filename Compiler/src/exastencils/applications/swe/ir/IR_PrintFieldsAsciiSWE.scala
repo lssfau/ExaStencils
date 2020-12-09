@@ -55,7 +55,7 @@ trait IR_PrintFieldsAsciiSWE extends IR_PrintVisualizationSWE {
     printField(name, stream, reducedCellPrint(stream, discFields, indentation))
   }
 
-  def printBath(stream : Option[IR_VariableAccess] = None, indentation : Option[IR_StringConstant] = None) = {
+  def printBath(stream : Option[IR_VariableAccess] = None, indentation : Option[IR_StringConstant] = None) : ListBuffer[IR_Statement] = {
     addNodePrint("bath", {
       var nodePrint = ListBuffer[IR_Expression]()
       nodeOffsets.foreach { offset =>
@@ -68,7 +68,7 @@ trait IR_PrintFieldsAsciiSWE extends IR_PrintVisualizationSWE {
     }, stream)
   }
 
-  def printEta(stream : Option[IR_VariableAccess] = None, indentation : Option[IR_StringConstant] = None) = {
+  def printEta(stream : Option[IR_VariableAccess] = None, indentation : Option[IR_StringConstant] = None) : ListBuffer[IR_Statement] = {
     if(Knowledge.swe_nodalReductionPrint) {
       addReducedNodePrint("eta", etaDisc, stream, indentation)
     } else {
@@ -85,7 +85,7 @@ trait IR_PrintFieldsAsciiSWE extends IR_PrintVisualizationSWE {
     }
   }
 
-  def printU(stream : Option[IR_VariableAccess] = None, indentation : Option[IR_StringConstant] = None) = {
+  def printU(stream : Option[IR_VariableAccess] = None, indentation : Option[IR_StringConstant] = None) : ListBuffer[IR_Statement] = {
     if(Knowledge.swe_nodalReductionPrint) {
       addReducedNodePrint("u", uDisc, stream, indentation)
     } else {
@@ -102,7 +102,7 @@ trait IR_PrintFieldsAsciiSWE extends IR_PrintVisualizationSWE {
     }
   }
 
-  def printV(stream : Option[IR_VariableAccess] = None, indentation : Option[IR_StringConstant] = None) = {
+  def printV(stream : Option[IR_VariableAccess] = None, indentation : Option[IR_StringConstant] = None) : ListBuffer[IR_Statement] = {
     if(Knowledge.swe_nodalReductionPrint) {
       addReducedNodePrint("v", vDisc, stream, indentation)
     } else {
@@ -119,7 +119,7 @@ trait IR_PrintFieldsAsciiSWE extends IR_PrintVisualizationSWE {
     }
   }
 
-  def printOrder(stream : Option[IR_VariableAccess] = None, indentation : Option[IR_StringConstant] = None) = {
+  def printOrder(stream : Option[IR_VariableAccess] = None, indentation : Option[IR_StringConstant] = None) : ListBuffer[IR_Statement] = {
     if (optLocalOrderLower.isDefined && optLocalOrderUpper.isDefined) {
       if(Knowledge.swe_nodalReductionPrint) {
         addReducedNodePrint("order", ListBuffer() ++ (0 until 3).map(_ => optLocalOrderLower.get) ++ (0 until 3).map(_ => optLocalOrderUpper.get), stream, indentation)

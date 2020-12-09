@@ -10,6 +10,7 @@ import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_ForLoop
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_PointerDatatype
 import exastencils.base.ir.IR_PreIncrement
 import exastencils.base.ir.IR_SpecialDatatype
@@ -32,47 +33,47 @@ import exastencils.visualization.ir.IR_PrintVisualizationTriangles
 trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
   def numDimsGrid = 2
 
-  def numCells_x = etaDiscLower0.layout.layoutsPerDim(0).numInnerLayers
-  def numCells_y = etaDiscLower0.layout.layoutsPerDim(1).numInnerLayers
+  def numCells_x : Int = etaDiscLower0.layout.layoutsPerDim(0).numInnerLayers
+  def numCells_y : Int = etaDiscLower0.layout.layoutsPerDim(1).numInnerLayers
   def numCells_z = 1
-  def numCellsPerFrag = 2 * numCells_x * numCells_y * numCells_z
+  def numCellsPerFrag : Int = 2 * numCells_x * numCells_y * numCells_z
 
-  def dimsPositionsFrag = if(Knowledge.swe_nodalReductionPrint) ListBuffer(numCells_y+1, numCells_x+1) else ListBuffer(numCells_y, numCells_x, 6)
+  def dimsPositionsFrag : ListBuffer[IR_IntegerConstant] = if(Knowledge.swe_nodalReductionPrint) ListBuffer(numCells_y+1, numCells_x+1) else ListBuffer(numCells_y, numCells_x, 6)
 
-  def bath = IR_FieldCollection.getByIdentifier("bath", level).get
+  def bath : IR_Field = IR_FieldCollection.getByIdentifier("bath", level).get
 
-  def etaDiscLower0 = IR_FieldCollection.getByIdentifier("etaDiscLower0", level).get
-  def etaDiscLower1 = IR_FieldCollection.getByIdentifier("etaDiscLower1", level).get
-  def etaDiscLower2 = IR_FieldCollection.getByIdentifier("etaDiscLower2", level).get
-  def etaDiscUpper0 = IR_FieldCollection.getByIdentifier("etaDiscUpper0", level).get
-  def etaDiscUpper1 = IR_FieldCollection.getByIdentifier("etaDiscUpper1", level).get
-  def etaDiscUpper2 = IR_FieldCollection.getByIdentifier("etaDiscUpper2", level).get
+  def etaDiscLower0 : IR_Field = IR_FieldCollection.getByIdentifier("etaDiscLower0", level).get
+  def etaDiscLower1 : IR_Field = IR_FieldCollection.getByIdentifier("etaDiscLower1", level).get
+  def etaDiscLower2 : IR_Field = IR_FieldCollection.getByIdentifier("etaDiscLower2", level).get
+  def etaDiscUpper0 : IR_Field = IR_FieldCollection.getByIdentifier("etaDiscUpper0", level).get
+  def etaDiscUpper1 : IR_Field = IR_FieldCollection.getByIdentifier("etaDiscUpper1", level).get
+  def etaDiscUpper2 : IR_Field = IR_FieldCollection.getByIdentifier("etaDiscUpper2", level).get
 
-  def uDiscLower0 = IR_FieldCollection.getByIdentifier("uDiscLower0", level).get
-  def uDiscLower1 = IR_FieldCollection.getByIdentifier("uDiscLower1", level).get
-  def uDiscLower2 = IR_FieldCollection.getByIdentifier("uDiscLower2", level).get
-  def uDiscUpper0 = IR_FieldCollection.getByIdentifier("uDiscUpper0", level).get
-  def uDiscUpper1 = IR_FieldCollection.getByIdentifier("uDiscUpper1", level).get
-  def uDiscUpper2 = IR_FieldCollection.getByIdentifier("uDiscUpper2", level).get
+  def uDiscLower0 : IR_Field = IR_FieldCollection.getByIdentifier("uDiscLower0", level).get
+  def uDiscLower1 : IR_Field = IR_FieldCollection.getByIdentifier("uDiscLower1", level).get
+  def uDiscLower2 : IR_Field = IR_FieldCollection.getByIdentifier("uDiscLower2", level).get
+  def uDiscUpper0 : IR_Field = IR_FieldCollection.getByIdentifier("uDiscUpper0", level).get
+  def uDiscUpper1 : IR_Field = IR_FieldCollection.getByIdentifier("uDiscUpper1", level).get
+  def uDiscUpper2 : IR_Field = IR_FieldCollection.getByIdentifier("uDiscUpper2", level).get
 
-  def vDiscLower0 = IR_FieldCollection.getByIdentifier("vDiscLower0", level).get
-  def vDiscLower1 = IR_FieldCollection.getByIdentifier("vDiscLower1", level).get
-  def vDiscLower2 = IR_FieldCollection.getByIdentifier("vDiscLower2", level).get
-  def vDiscUpper0 = IR_FieldCollection.getByIdentifier("vDiscUpper0", level).get
-  def vDiscUpper1 = IR_FieldCollection.getByIdentifier("vDiscUpper1", level).get
-  def vDiscUpper2 = IR_FieldCollection.getByIdentifier("vDiscUpper2", level).get
+  def vDiscLower0 : IR_Field = IR_FieldCollection.getByIdentifier("vDiscLower0", level).get
+  def vDiscLower1 : IR_Field = IR_FieldCollection.getByIdentifier("vDiscLower1", level).get
+  def vDiscLower2 : IR_Field = IR_FieldCollection.getByIdentifier("vDiscLower2", level).get
+  def vDiscUpper0 : IR_Field = IR_FieldCollection.getByIdentifier("vDiscUpper0", level).get
+  def vDiscUpper1 : IR_Field = IR_FieldCollection.getByIdentifier("vDiscUpper1", level).get
+  def vDiscUpper2 : IR_Field = IR_FieldCollection.getByIdentifier("vDiscUpper2", level).get
 
-  def etaDisc = ListBuffer(etaDiscLower0, etaDiscLower1, etaDiscLower2, etaDiscUpper0, etaDiscUpper1, etaDiscUpper2)
-  def uDisc = ListBuffer(uDiscLower0, uDiscLower1, uDiscLower2, uDiscUpper0, uDiscUpper1, uDiscUpper2)
-  def vDisc = ListBuffer(vDiscLower0, vDiscLower1, vDiscLower2, vDiscUpper0, vDiscUpper1, vDiscUpper2)
+  def etaDisc : ListBuffer[IR_Field] = ListBuffer(etaDiscLower0, etaDiscLower1, etaDiscLower2, etaDiscUpper0, etaDiscUpper1, etaDiscUpper2)
+  def uDisc : ListBuffer[IR_Field] = ListBuffer(uDiscLower0, uDiscLower1, uDiscLower2, uDiscUpper0, uDiscUpper1, uDiscUpper2)
+  def vDisc : ListBuffer[IR_Field] = ListBuffer(vDiscLower0, vDiscLower1, vDiscLower2, vDiscUpper0, vDiscUpper1, vDiscUpper2)
 
-  def optLocalOrderLower = IR_FieldCollection.getByIdentifier("local_orderLower0", level, suppressError = true)
-  def optLocalOrderUpper = IR_FieldCollection.getByIdentifier("local_orderUpper0", level, suppressError = true)
+  def optLocalOrderLower : Option[IR_Field] = IR_FieldCollection.getByIdentifier("local_orderLower0", level, suppressError = true)
+  def optLocalOrderUpper : Option[IR_Field] = IR_FieldCollection.getByIdentifier("local_orderUpper0", level, suppressError = true)
 
-  def someCellField = etaDiscLower0
+  def someCellField : IR_Field = etaDiscLower0
 
-  def fieldnames = ListBuffer("bath", "eta", "u", "v") ++ (if(optLocalOrderLower.isDefined && optLocalOrderUpper.isDefined) "order"::Nil else Nil)
-  def numFields = fieldnames.length
+  def fieldnames : ListBuffer[String] = ListBuffer("bath", "eta", "u", "v") ++ (if(optLocalOrderLower.isDefined && optLocalOrderUpper.isDefined) "order"::Nil else Nil)
+  def numFields : Int = fieldnames.length
 
   // nodal data reduction
   def reducedCellPrint(buf : IR_VariableAccess, discFields : ListBuffer[IR_Field], indentation : Option[IR_StringConstant] = None) : ListBuffer[IR_Statement] = {
@@ -84,14 +85,14 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
       Logger.error("Wrong usage of \"addReducedNodePrint\" in IR_PrintVtkSWE.")
     }
 
-    def getIdxNodalLoop(idx : IR_ExpressionIndex) = IR_ExpressionIndexRange(
+    def getIdxNodalLoop(idx : IR_ExpressionIndex) : IR_Expression = IR_ExpressionIndexRange(
       IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.layout.idxById("IB", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression)),
       IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => 1 + etaDiscLower0.layout.idxById("IE", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression))
     ).linearizeIndex(idx)
 
-    def storeOperation(toStore : IR_Expression, idx : IR_ExpressionIndex) = buf.datatype match {
+    def storeOperation(toStore : IR_Expression, idx : IR_ExpressionIndex) : IR_Statement = buf.datatype match {
       case IR_SpecialDatatype("std::ofstream") => IR_Print(buf,
-        ((if(indentation.isDefined) indentation.get :: Nil else Nil) :+ toStore :+ IR_Print.newline) : _*)
+        (if(indentation.isDefined) indentation.get :: Nil else Nil) :+ toStore :+ IR_Print.newline : _*)
       case IR_PointerDatatype(_) => IR_Assignment(IR_ArrayAccess(buf, getIdxNodalLoop(idx)), toStore)
     }
 

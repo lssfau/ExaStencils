@@ -34,7 +34,7 @@ import exastencils.util.ir.IR_Print
 
 abstract class IR_PrintVtkTriangles extends IR_PrintVtk with IR_PrintVisualizationTriangles {
 
-  def stmtsForPreparation() : ListBuffer[IR_Statement] = communicateFragmentInfo()
+  override def stmtsForPreparation : ListBuffer[IR_Statement] = communicateFragmentInfo()
 
   override def stmtsForMeshVertices : ListBuffer[IR_Statement] = {
     val stream = newStream

@@ -5,6 +5,8 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ConstIndex
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir.IR_IntegerConstant
+import exastencils.base.ir.IR_Multiplication
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
@@ -12,11 +14,11 @@ import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 
 trait IR_PrintVisualizationQuads extends IR_PrintVisualization {
-  def numFragsPerBlock = Knowledge.domain_numFragmentsPerBlock
+  def numFragsPerBlock : IR_IntegerConstant = Knowledge.domain_numFragmentsPerBlock
 
-  def offsetFragLoop = (MPI_IV_MpiRank * numFragsPerBlock + IR_LoopOverFragments.defIt) * numPointsPerFrag
+  def offsetFragLoop : IR_Multiplication = (MPI_IV_MpiRank * numFragsPerBlock + IR_LoopOverFragments.defIt) * numPointsPerFrag
 
-  def nodeOffsets = ListBuffer(IR_ConstIndex((0 until numDimsGrid).map(_ => 0).toArray))
+  def nodeOffsets : ListBuffer[IR_ConstIndex] = ListBuffer(IR_ConstIndex((0 until numDimsGrid).map(_ => 0).toArray))
 
   def nodalLoopEnd = 0
 

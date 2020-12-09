@@ -9,6 +9,7 @@ import exastencils.applications.ns.ir.IR_PrintXdmfNNF
 import exastencils.applications.ns.ir.IR_PrintXdmfNS
 import exastencils.applications.swe.ir.IR_PrintVtkSWE
 import exastencils.applications.swe.ir.IR_PrintXdmfSWE
+import exastencils.base.ir.IR_Access
 import exastencils.base.ir.IR_ArrayAccess
 import exastencils.base.ir.IR_ArrayAllocation
 import exastencils.base.ir.IR_ArrayFree
@@ -25,6 +26,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_MemberFunctionCall
+import exastencils.base.ir.IR_Multiplication
 import exastencils.base.ir.IR_PointerDatatype
 import exastencils.base.ir.IR_RealDatatype
 import exastencils.base.ir.IR_SpecialDatatype
@@ -61,25 +63,21 @@ trait IR_PrintVisualization {
   def lastIdxSubst(vAcc : IR_VariableAccess, pattern : String) = IR_MemberFunctionCall(vAcc, "find_last_of", pattern)
 
   def ext : IR_Expression = filename match {
-    case sc : IR_StringConstant                                          => IR_StringConstant(extRegex.r findFirstIn sc.value getOrElse "")
-    case vAcc : IR_VariableAccess if(vAcc.datatype == IR_StringDatatype) => {
-      IR_MemberFunctionCall(vAcc, "substr", lastIdxSubst(vAcc,"\".\""))
-    }
-    case _ =>
-      Logger.error("Parameter \"filename\" is not a string.")
+    case sc : IR_StringConstant                                         => IR_StringConstant(extRegex.r findFirstIn sc.value getOrElse "")
+    case vAcc : IR_VariableAccess if vAcc.datatype == IR_StringDatatype => IR_MemberFunctionCall(vAcc, "substr", lastIdxSubst(vAcc,"\".\""))
+    case _                                                              => Logger.error("Parameter \"filename\" is not a string.")
   }
 
   // generates the basename either as StringConstant or as expressions which extract the basename in the target code (via "substr")
   def basename(noPath : Boolean, appStr : Option[IR_StringConstant] = None) : IR_Expression = filename match {
-    case sc : IR_StringConstant                                          => {
+    case sc : IR_StringConstant                                          =>
       val bnConst = IR_StringConstant(if(noPath) {
         sc.value.substring(sc.value.lastIndexOf(File.separator) + 1).replaceFirst(extRegex, "")
       } else {
         sc.value.replaceFirst(extRegex, "")
       })
       if(appStr.isDefined) bnConst + appStr.get else bnConst
-    }
-    case vAcc : IR_VariableAccess if(vAcc.datatype == IR_StringDatatype) => {
+    case vAcc : IR_VariableAccess if vAcc.datatype == IR_StringDatatype =>
       val bnExpr = if(noPath) {
         IR_MemberFunctionCall(
           IR_MemberFunctionCall(vAcc, "substr", 0, lastIdxSubst(vAcc, "\".\"")), // remove extension
@@ -88,7 +86,6 @@ trait IR_PrintVisualization {
         IR_MemberFunctionCall(vAcc, "substr", 0, lastIdxSubst(vAcc, "\".\""))
       }
       if(appStr.isDefined) bnExpr + appStr.get else bnExpr
-    }
     case _ =>
       Logger.error("Parameter \"filename\" is not a string.")
   }
@@ -115,7 +112,7 @@ trait IR_PrintVisualization {
   def numCells_z : Int
 
   def numCells : IR_Expression = numCellsPerFrag * numFrags
-  def numNodes = numPointsPerFrag * numFrags
+  def numNodes : IR_Multiplication = numPointsPerFrag * numFrags
 
   def someCellField : IR_Field // required as base for setting up iteration spaces later
 
@@ -157,9 +154,9 @@ trait IR_PrintVisualization {
     stmts
   }
 
-  val nodePositionsCopied = Knowledge.grid_isAxisAligned || Knowledge.grid_isUniform // otherwise we directly use virtual field
+  val nodePositionsCopied : Boolean = Knowledge.grid_isAxisAligned || Knowledge.grid_isUniform // otherwise we directly use virtual field
   def nodePositions_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_PointerDatatype(IR_RealDatatype), numDimsGrid), "nodePosition")
-  def nodePositions(dim : Int) = if(!nodePositionsCopied)
+  def nodePositions(dim : Int) : IR_Access = if(!nodePositionsCopied)
     IR_VF_NodePositionPerDim.access(level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
   else
     IR_ArrayAccess(IR_VariableAccess(nodePositions_decl), dim)
@@ -195,7 +192,7 @@ trait IR_PrintVisualization {
 
   // frees the buffers with nodePositions/connectivity information
   def cleanupConnectivity = IR_ArrayFree(connectivity)
-  def cleanupNodePositions = ListBuffer[IR_Statement]() ++ (0 until numDimsGrid).map(d => IR_ArrayFree(nodePositions(d)))
+  def cleanupNodePositions : ListBuffer[IR_Statement] = ListBuffer[IR_Statement]() ++ (0 until numDimsGrid).map(d => IR_ArrayFree(nodePositions(d)))
 }
 
 /// IR_ResolveVisualizationPrinters
@@ -222,19 +219,19 @@ object IR_ResolveVisualizationPrinters extends DefaultStrategy("IR_ResolveVisual
     // xdmf printers
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfNNF", _), args)) =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant)                              => IR_PrintXdmfNNF(s, i.toInt, ioInterface, false)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant)                              => IR_PrintXdmfNNF(s, i.toInt, ioInterface, binaryFpp = false)
         case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant, binFpp : IR_BooleanConstant) => IR_PrintXdmfNNF(s, i.toInt, ioInterface, binFpp.value)
         case _                                                                                                              => Logger.error("Malformed call to printXdmfNNF; usage: printXdmfNNF ( \"filename\", level, \"ioInterface\", binFpp = false)")
       }
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfNS", _), args)) =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant)                              => IR_PrintXdmfNS(s, i.toInt, ioInterface, false)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant)                              => IR_PrintXdmfNS(s, i.toInt, ioInterface, binaryFpp = false)
         case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant, binFpp : IR_BooleanConstant) => IR_PrintXdmfNS(s, i.toInt, ioInterface, binFpp.value)
         case _                                                                                                              => Logger.error("Malformed call to printXdmfNS; usage: printXdmfNS ( \"filename\", level, \"ioInterface\", binFpp = false)")
       }
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfSWE", _), args)) =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant)                              => IR_PrintXdmfSWE(s, i.toInt, ioInterface, false)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant)                              => IR_PrintXdmfSWE(s, i.toInt, ioInterface, binaryFpp = false)
         case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant, binFpp : IR_BooleanConstant) => IR_PrintXdmfSWE(s, i.toInt, ioInterface, binFpp.value)
         case _                                                                                                              => Logger.error("Malformed call to printXdmfSWE; usage: printXdmfSWE ( \"filename\", level, \"ioInterface\", binFpp = false)")
       }
