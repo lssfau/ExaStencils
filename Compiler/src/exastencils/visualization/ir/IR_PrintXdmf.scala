@@ -34,6 +34,7 @@ import exastencils.datastructures.Transformation.OutputType
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.io.ir.IR_FileAccess
 import exastencils.logger.Logger
+import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.api.mpi.MPI_IsRootProc
 import exastencils.util.ir.IR_BuildString
 import exastencils.util.ir.IR_Print
@@ -58,7 +59,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
       s.value
     }
     case _ =>
-      Logger.error("Wrong I/O interface passed to \"printXdmf\"")
+      Logger.error("Wrong I/O interface passed to \"printXdmf\". Options are: " + supportedInterfaces.mkString("\"", " ", "\""))
   }
 
   // determine endianness in target code
@@ -127,12 +128,69 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     case "HDF"    => ".h5"
   })))
 
+  // KJI order: first dimension shows how many fragments were written
+  def dimFrags(global : Boolean) = if (global) numFrags else numFragsPerBlock
+
+  def indentData = IR_StringConstant("\t\t\t\t\t")
+
+  def printFilename(stream : IR_VariableAccess, dataset : String) = IR_Print(stream, ListBuffer(indentData, buildFilenameData) ++
+    (if(fmt == "HDF") IR_StringConstant(dataset)::Nil else Nil) :+ IR_Print.newline
+  )
+
+  // prints a complete xdmf file
+  def writeXdmf : ListBuffer[IR_Statement] = {
+    var statements : ListBuffer[IR_Statement] = ListBuffer()
+
+    // open file and write header
+    val stream = newStream
+    if(ioInterface == "fpp") {
+      val buildStr = IR_VariableAccess(filenamePieceFpp.name, IR_StringDatatype)
+      statements += IR_VariableDeclaration(buildStr)
+      statements += buildFilenamePiece(stripPath = false, rank = MPI_IV_MpiRank)
+      statements += IR_ObjectInstantiation(stream, Duplicate(buildStr))
+    } else {
+      statements += IR_ObjectInstantiation(stream, Duplicate(filename))
+    }
+    statements += printXdmfElement(stream, xmlHeader)
+    statements += printXdmfElement(stream, openXdmf)
+    statements += printXdmfElement(stream, openDomain)
+
+    // write global grid element
+    statements ++= writeXdmfGrid(stream, global = (ioInterface != "fpp"))
+
+    // write footer and close file
+    statements += printXdmfElement(stream, closeDomain)
+    statements += printXdmfElement(stream, closeXdmf)
+    statements += IR_MemberFunctionCall(stream, "close")
+
+    statements
+  }
+
+  /* writes a xdmf "grid" element. used by writeXdmf and the "main" file for file-per-process
+      - global = true : for single-shared file approaches (mpiio, hdf5)
+      - global = false: for file-per-process. writes a domain piece
+
+      NOTE: in case of XML we write the data directly into the Xdmf file, otherwise we reference the file with the data
+  */
+  def writeXdmfGrid(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
+    var statements : ListBuffer[IR_Statement] = ListBuffer()
+
+    statements += printXdmfElement(stream, openGrid("Grid", "Uniform"))
+    statements ++= writeXdmfGeometry(stream, global)
+    statements ++= writeXdmfTopology(stream, global)
+    statements ++= writeXdmfAttributes(stream, global)
+    statements += printXdmfElement(stream, closeGrid)
+
+    statements
+  }
+
   // methods to be implemented in application.ir
   def stmtsForPreparation : ListBuffer[IR_Statement]
-  def writeXdmf : ListBuffer[IR_Statement]
+  def writeXdmfGeometry(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement]
+  def writeXdmfTopology(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement]
+  def writeXdmfAttributes(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement]
   def writeData : ListBuffer[IR_Statement]
   def seekpOffsets(global : Boolean, constantReduction : Boolean) : ListBuffer[IR_Expression]
-  def writeXdmfGrid(gstream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] // to be used by writeXdmf and the "main" file for file-per-process
 
   override def expand() : OutputType = {
     if (!Settings.additionalIncludes.contains("fstream"))
@@ -200,8 +258,8 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
       )
     }
 
-    // write xdmf file and the values using the selected I/O interface
-    if(!binaryFpp) { // for binaryFpp: previously written "main" file contains all info -> only writing the binary files is left now
+    // for binaryFpp: previously written "main" file contains all info -> only writing the binary files is left now
+    if(!binaryFpp) {
       statements ++= writeXdmf
     }
     statements ++= writeData
