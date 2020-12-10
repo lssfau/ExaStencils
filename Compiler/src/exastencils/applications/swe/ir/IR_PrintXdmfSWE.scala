@@ -9,7 +9,6 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_RealDatatype
 import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_TernaryCondition
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.baseExt.ir.IR_LoopOverDimensions
@@ -82,6 +81,8 @@ case class IR_PrintXdmfSWE(
       statements += printXdmfElement(stream, closeDataItem)
     }
     statements += printXdmfElement(stream, closeGeometry)
+
+    statements
   }
 
   override def writeXdmfTopology(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
@@ -96,7 +97,7 @@ case class IR_PrintXdmfSWE(
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
             ListBuffer[IR_Statement]() ++ (0 until numDimsGrid).map(dim =>
-              IR_Print(stream, indentData +: separateSequenceAndFilter(connectivityForCell.take(3 * (dim + 1)).takeRight(3)) :+ IR_Print.newline)
+              IR_Print(stream, indentData +: separateSequenceAndFilter(connectivityForCell(global = false).take(3 * (dim + 1)).takeRight(3)) :+ IR_Print.newline)
             ))),
         IR_Print(stream, IR_Print.flush))
     } else {
@@ -132,13 +133,6 @@ case class IR_PrintXdmfSWE(
     }
 
     statements
-  }
-
-  // ternary condition (depending on constant data reduction) used print the seek pointer for DataItem with index "idx"
-  def getSeekp(idx : Int, global : Boolean) : IR_TernaryCondition = {
-    IR_TernaryCondition(constantsWritten,
-      seekpOffsets(global, constantReduction = true).take(idx).reduceOption(_ + _).getOrElse(0),
-      seekpOffsets(global, constantReduction = false).take(idx).reduceOption(_ + _).getOrElse(0))
   }
 
   // contains expressions that calculate the seek pointer for each DataItem (used for raw binary files)

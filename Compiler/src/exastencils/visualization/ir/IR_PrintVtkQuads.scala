@@ -74,7 +74,7 @@ abstract class IR_PrintVtkQuads extends IR_PrintVtk with IR_PrintVisualizationQu
     val cellPrint = {
 
       var cellPrint = ListBuffer[IR_Expression]()
-      connectivityForCell.foreach(conn => {
+      connectivityForCell().foreach(conn => {
         cellPrint += separator
         cellPrint += conn
       })

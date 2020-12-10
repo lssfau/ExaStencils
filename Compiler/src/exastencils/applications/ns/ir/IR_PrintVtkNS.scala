@@ -32,7 +32,7 @@ import exastencils.visualization.ir.IR_PrintVtkQuads
 case class IR_PrintVtkNS(var filename : IR_Expression, level : Int) extends IR_PrintVtkQuads with IR_PrintVisualizationNS with IR_PrintFieldAsciiNS {
   override def stmtsForNodeData : ListBuffer[IR_Statement] = ListBuffer()
 
-  def numFields = 2
+  def fieldnames : ListBuffer[String] = ListBuffer("vel", "p")
 
   override def printField(name : String, stream : IR_VariableAccess, loopBody : ListBuffer[IR_Statement], numComponents : Int = 1) : ListBuffer[IR_Statement] = ListBuffer(
     IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),

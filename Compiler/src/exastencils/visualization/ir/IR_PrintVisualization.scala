@@ -98,7 +98,7 @@ trait IR_PrintVisualization {
   def level : Int
 
   // careful: must be in KJI order (i.e. slowest varying dimension first)
-  def dimsConnectivityFrag : ListBuffer[IR_IntegerConstant] = ListBuffer(numCells_z, numCells_y, numCells_x, connectivityForCell.length)
+  def dimsConnectivityFrag : ListBuffer[IR_IntegerConstant] = ListBuffer(numCells_z, numCells_y, numCells_x, connectivityForCell().length)
   def dimsPositionsFrag    : ListBuffer[IR_IntegerConstant]
 
   def numCellsPerFrag : Int
@@ -122,7 +122,7 @@ trait IR_PrintVisualization {
   def constantsWritten_decl = IR_VariableDeclaration(IR_BooleanDatatype, "constantsWritten", false)
   def constantsWritten = IR_VariableAccess(constantsWritten_decl)
 
-  def connectivityForCell : ListBuffer[IR_Expression]
+  def connectivityForCell(global : Boolean = true) : ListBuffer[IR_Expression]
 
   def connectivity_decl = IR_VariableDeclaration(IR_PointerDatatype(IR_IntegerDatatype), "connectivity")
   def connectivity = IR_VariableAccess(connectivity_decl)
@@ -140,11 +140,11 @@ trait IR_PrintVisualization {
     stmts += connectivity_decl
     stmts += IR_ArrayAllocation(connectivity, IR_IntegerDatatype, numFragsPerBlock * sizeConnectionFrag)
 
-    val initBuffer : ListBuffer[IR_Statement] = ListBuffer() ++ connectivityForCell.indices.map(d => {
+    val initBuffer : ListBuffer[IR_Statement] = ListBuffer() ++ connectivityForCell().indices.map(d => {
       val linearizedLoopIdx = loopOverInnerDims(nodalLoopEnd = false).indices.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
       IR_Assignment(
-        IR_ArrayAccess(connectivity, IR_LoopOverFragments.defIt * sizeConnectionFrag + connectivityForCell.length * linearizedLoopIdx + d),
-        connectivityForCell(d))
+        IR_ArrayAccess(connectivity, IR_LoopOverFragments.defIt * sizeConnectionFrag + connectivityForCell().length * linearizedLoopIdx + d),
+        connectivityForCell()(d))
     })
 
     stmts += IR_LoopOverFragments(

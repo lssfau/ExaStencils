@@ -82,7 +82,7 @@ abstract class IR_PrintVtkTriangles extends IR_PrintVtk with IR_PrintVisualizati
         cellPrint += 3
         for(vert <- 0 until 3) {
           cellPrint += separator
-          cellPrint += connectivityForCell(3 * tri + vert)
+          cellPrint += connectivityForCell()(3 * tri + vert)
         }
         cellPrint += IR_Print.newline
       }

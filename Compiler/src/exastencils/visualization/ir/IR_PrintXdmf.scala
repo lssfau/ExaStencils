@@ -88,7 +88,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   }
 
   def separator = IR_StringConstant(" ")
-  def separateSequenceAndFilter(dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = dims.filter(d => d != IR_IntegerConstant(1)) // remove dims of size "1"
+  def separateSequenceAndFilter(dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = dims.filter(d => d != IR_IntegerConstant(1) || d != IR_IntegerConstant(0)) // remove unnecessary dim specifications
     .flatMap(d => d :: separator :: Nil)
     .dropRight(1)
 
@@ -133,8 +133,8 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
 
   def indentData = IR_StringConstant("\t\t\t\t\t")
 
-  def printFilename(stream : IR_VariableAccess, dataset : String) = IR_Print(stream, ListBuffer(indentData, buildFilenameData) ++
-    (if(fmt == "HDF") IR_StringConstant(dataset)::Nil else Nil) :+ IR_Print.newline
+  def printFilename(stream : IR_VariableAccess, dataset : String) = IR_Print(stream,
+    ListBuffer(indentData, buildFilenameData) ++ (if(fmt == "HDF") IR_StringConstant(dataset)::Nil else Nil) :+ IR_Print.newline
   )
 
   // prints a complete xdmf file
@@ -182,6 +182,13 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     statements += printXdmfElement(stream, closeGrid)
 
     statements
+  }
+
+  // ternary condition (depending on constant data reduction) used print the seek pointer for DataItem with index "idx"
+  def getSeekp(idx : Int, global : Boolean) : IR_TernaryCondition = {
+    IR_TernaryCondition(constantsWritten,
+      seekpOffsets(global, constantReduction = true).take(idx).reduceOption(_ + _).getOrElse(0),
+      seekpOffsets(global, constantReduction = false).take(idx).reduceOption(_ + _).getOrElse(0))
   }
 
   // methods to be implemented in application.ir

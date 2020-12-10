@@ -12,6 +12,7 @@ import exastencils.base.ir.IR_ForLoop
 import exastencils.base.ir.IR_FunctionCall
 import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_Lower
 import exastencils.base.ir.IR_Multiplication
@@ -56,9 +57,6 @@ trait IR_PrintVisualizationTriangles extends IR_PrintVisualization {
     Array(0, 1, 2, 3, 4, 5)
   }
 
-  // indices into node list to construct cells
-  def offsetFragLoop : IR_Multiplication = //(MPI_IV_MpiRank * Knowledge.domain_numFragmentsPerBlock + IR_LoopOverFragments.defIt) * numPointsPerFrag
-    (fragmentOffset + IR_LoopOverFragments.defIt) * numPointsPerFrag
 
   def offsetLoopOverDim : IR_Expression = if(Knowledge.swe_nodalReductionPrint) {
     IR_LoopOverDimensions.defItForDim(0) + IR_LoopOverDimensions.defItForDim(1) * (numCells_x+1)
@@ -66,7 +64,13 @@ trait IR_PrintVisualizationTriangles extends IR_PrintVisualization {
     6 * (IR_LoopOverDimensions.defItForDim(0) + IR_LoopOverDimensions.defItForDim(1) * numCells_x)
   }
 
-  def connectivityForCell : ListBuffer[IR_Expression] = ListBuffer() ++ (0 until 6).map(v => offsetFragLoop + offsetLoopOverDim + nodePositionOffsets(v))
+  def connectivityForCell(global : Boolean = true) : ListBuffer[IR_Expression] = {
+    // indices into node list to construct cells
+    def offsetFragLoop : IR_Multiplication = //(MPI_IV_MpiRank * Knowledge.domain_numFragmentsPerBlock + IR_LoopOverFragments.defIt) * numPointsPerFrag
+      ((if(global) fragmentOffset else IR_IntegerConstant(0)) + IR_LoopOverFragments.defIt) * numPointsPerFrag
+
+    ListBuffer() ++ (0 until 6).map(v => offsetFragLoop + offsetLoopOverDim + nodePositionOffsets(v))
+  }
 
   def communicateFragmentInfo(calculateFragOffset : Boolean = false) : ListBuffer[IR_Statement] = {
     var statements = ListBuffer[IR_Statement]()
@@ -80,6 +84,8 @@ trait IR_PrintVisualizationTriangles extends IR_PrintVisualization {
 
     if (Knowledge.mpi_enabled) {
       statements += MPI_Reduce(0, IR_AddressOf(numFrags), IR_IntegerDatatype, 1, "+")
+
+      // PrintVtk calculates the fragmentOffset in a MPI_Sequential, for other approaches this flag needs to be set
       if(calculateFragOffset) {
         val actualFragsPerBlock = IR_VariableAccess("validFragsPerBlock", IR_ArrayDatatype(IR_IntegerDatatype, Knowledge.mpi_numThreads))
         val mpiInt = IR_VariableAccess(IR_IntegerDatatype.prettyprint_mpi, IR_UnknownDatatype)
