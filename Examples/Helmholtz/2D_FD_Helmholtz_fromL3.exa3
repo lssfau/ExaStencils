@@ -5,14 +5,16 @@ Domain global< [ 0, 0 ] to [ 1, 1 ] >
 
 /// fields
 
-Field Solution with Complex<Real> on Node of global = 0.0
+Field Solution@finest with Complex<Real> on Node of global = 0.0
 
 // Dirichlet BC
-Field Solution on boundary = 0.0
+// Field Solution@finest on boundary = 0.0
+//Field Solution@finest on boundary = cos ( PI * vf_boundaryPos_x ) - sin ( 2.0 * PI * vf_boundaryPos_y )
 // Neumann BC
-//Field Solution on boundary = Neumann
+//Field Solution@finest on boundary = Neumann
+//Field Solution@(all but finest) on boundary = 0.0
 // Mixed BC
-//Field Solution@finest on boundary = applyBC_Solution@current()
+Field Solution@finest on boundary = applyBC_Solution@finest()
 
 // Zero rhs
 //Field RHS@finest with Complex<Real> on Node of global = 0.0
@@ -22,41 +24,43 @@ Field Solution on boundary = 0.0
 
 // B-Spline approximation of the dirac pulse
 Field RHS@finest with Complex<Real> on Node of global = max(0, -(fabs(vf_nodePos_x - 0.5) - vf_gridWidth_x) / vf_gridWidth_x**2) * max(0, -(fabs(vf_nodePos_y - 0.5) - vf_gridWidth_y) / vf_gridWidth_y**2)
+Field Residual@finest with Complex<Real> on Node of global
 
-Field RHS@(all but finest) with Complex<Real> on Node of global
-
-Field Residual with Complex<Real> on Node of global = 0.0
-override bc for Residual@all with 0.0
+//Field Residual with Complex<Real> on Node of global
+//Field Residual@finest on boundary = 0.0
+//Field Residual@finest on boundary = applyBC_Residual@finest()
 
 // For the Preconditioner
-Field u from Residual
-Field f from Residual
-Field res from Residual
-Field gen_error_u from u
+Field u with Complex<Real> on Node of global
+//Field u on boundary = Neumann
+Field u@finest on boundary = applyBC_u@finest()
+Field u@(all but finest) on boundary = 0.0
+
+Field f with Complex<Real> on Node of global
+Field res with Complex<Real> on Node of global
+Field gen_error_u from res
 Field gen_residual_u from res
 Field gen_rhs_u from f
-Field p_u @coarsest from res
-Field ap_u@coarsest from res
 
-Field p@finest from Residual
+Field p@finest with Complex<Real> on Node of global
+//Field p@finest with Complex<Real> on Node of global
+//Field p@finest on boundary = 0.0
+//Field p@finest on boundary = Neumann
+//Field p@finest on boundary = applyBC_p@finest()
+
 Field ap@finest from Residual
 
+Field s@finest with Complex<Real> on Node of global
+//Field s@finest on boundary = 0.0
+//Field s@finest on boundary = Neumann
+//Field s@finest on boundary = applyBC_s@finest()
+
+Field t@finest with Complex<Real> on Node of global
+Field h@finest with Complex<Real> on Node of global
+Field resHat@finest with Complex<Real> on Node of global
+
 /// for BiCGStab
-Field h     @finest from Residual
-Field s     @finest from Residual
-Field t     @finest from Residual
-Field resHat@finest from Residual
-Field nu@finest from Residual
-
-/// for Conjugate Residual
-Field ar@finest from Residual
-
-/// for MinRes
-Field pOld@finest from Residual
-Field pNew@finest from Residual
-Field vOld@finest from Residual
-Field v   @finest from Residual
-Field vNew@finest from Residual
+//Field nu@finest with Complex<Real> on Node of global
 
 /// operators
 
@@ -87,14 +91,14 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 /// globals
 
 Globals {
-  //Expr a = 0.01
+  Expr a = 0.01
   Expr k = 80.0
   Expr omegaRelax = 0.6
   Var shift : Complex<Real> = (1.0 + 0.5j)
   //Var shift : Complex<Real> = (1.0 + 1.0j)
 }
 
-Function NormResidual@(coarsest and finest) : Complex<Real> {
+Function NormResidual@finest : Complex<Real> {
   return sqrt ( dot ( Residual, Residual ) )
 }
 
@@ -102,7 +106,7 @@ Function Solve@finest {
   PreconditionedBiCGStab@finest (  )
   //BiCGStab@finest (  )
 }
-
+/*
 Function BiCGStab@finest {
   // init residual
   Residual    = RHS - A * Solution
@@ -137,11 +141,9 @@ Function BiCGStab@finest {
     Solution  = h + omega * s
     Residual  = RHS - A * Solution
     curRes    = NormResidual ( )
-    /*
     if (curStep % 100 == 0) {
       print ( "Residual after", curStep, "iterations is", fabs(curRes), "--- convergence factor is", ( fabs(curRes) / fabs(initRes) ) )
     }
-    */
     if ( fabs(curRes) < 1e-6 * fabs(initRes) ) {
       print ( "Residual after", curStep, "iterations is", fabs(curRes), "--- convergence factor is", ( fabs(curRes) / fabs(initRes) ) )
       return
@@ -151,6 +153,8 @@ Function BiCGStab@finest {
 
   print ( "Maximum number of cgs iterations (", 20000, ") was exceeded" )
 }
+*/
+
 /// Preconditioned BiCGStab
 Function PreconditionedBiCGStab@finest {
 
@@ -191,19 +195,19 @@ Function PreconditionedBiCGStab@finest {
     t = A * u
     omega     = dot ( t, s ) / dot ( t, t )
     Solution = h + omega * u
-    Residual  = RHS - A * Solution
+    Residual  = s - omega * t
     curRes    = NormResidual ( )
     /*
+    Residual  = RHS - A * Solution
+    curRes    = NormResidual ( )
     if (curStep % 100 == 0) {
       print ( "Residual after", curStep, "iterations is", fabs(curRes), "--- convergence factor is", ( fabs(curRes) / fabs(initRes) ) )
-    }
-    */
+    }*/
     
     if ( fabs(curRes) < 1e-7 * fabs(initRes) ) {
       print ( "Residual after", curStep, "iterations is", fabs(curRes), "--- convergence factor is", ( fabs(curRes) / fabs(initRes) ) )
       return
     }
-    Residual  = s - omega * t
   }
 
   print ( "Maximum number of solver iterations (", 10000, ") was exceeded" )

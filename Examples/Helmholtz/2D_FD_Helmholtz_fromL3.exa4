@@ -20,39 +20,17 @@ Function Application {
   }
   destroyGlobals ( )
 }
-// Neumann BC
-/*
-Function applyBC_Solution@all ( ) : Unit {
-
-  loop over Solution only dup [-1, 0] on boundary {
-    // Equation
-    // (Solution@[0, 0] - Solution@[1, 0]) / vf_gridWidth_x + (0.0 + 1.0j) * k * Solution@[0,0] = 0.0
-    Solution@[0, 0] = Solution@[1, 0]
-  }
-  loop over Solution only dup [1, 0] on boundary {
-    Solution@[0, 0] = Solution@[-1, 0]
-  }
-  loop over Solution only dup [0,  1] on boundary {
-    Solution@[0, 0] = Solution@[0, -1]
-  }
-  loop over Solution only dup [0, -1] on boundary {
-    Solution@[0, 0] = Solution@[0, 1]
-  }
-}
-*/
 
 // Dirichlet BC on the top and bottom, Robin BC on the left and right
-Function applyBC_Solution@all ( ) : Unit {
+Function applyBC_Solution@finest ( ) : Unit {
 
   loop over Solution only dup [-1, 0] on boundary {
     // u[0,0] - u[1,0] / h_x - ik * u[0,0] = 0.0
     Solution@[0, 0] = Solution@[1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
-    // Solution@[0, 0] = 0.25 * (2.0 * Solution@[1, 0] + Solution@[0, 1] + Solution@[0,-1] + vf_gridWidth_x**2 * RHS@[0,0])
   }
   loop over Solution only dup [1, 0] on boundary {
     // u[0,0] - u[-1,0] / h_x - ik * u[0,0] = 0.0
     Solution@[0, 0] = Solution@[-1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
-    // Solution@[0, 0] = 0.25 * (2.0 * Solution@[-1, 0] + Solution@[0, 1] + Solution@[0,-1] + vf_gridWidth_x**2 * RHS@[0,0])
   }
   loop over Solution only dup [0,  1] on boundary {
     Solution@[0, 0] = 0.0 
@@ -62,3 +40,70 @@ Function applyBC_Solution@all ( ) : Unit {
   }
 }
 
+Function applyBC_u@finest ( ) : Unit {
+
+  loop over u only dup [-1, 0] on boundary {
+    u@[0, 0] = u@[1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x) 
+  }
+  loop over u only dup [1, 0] on boundary {
+    u@[0, 0] = u@[-1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
+  }
+  loop over u only dup [0,  1] on boundary {
+    u@[0, 0] = 0.0 
+  }
+  loop over u only dup [0, -1] on boundary {
+    u@[0, 0] = 0.0
+  }
+}
+
+
+/*
+Function applyBC_Residual@finest ( ) : Unit {
+
+  loop over Residual only dup [-1, 0] on boundary {
+    Residual@[0, 0] = Residual@[1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
+  }
+  loop over Residual only dup [1, 0] on boundary {
+    Residual@[0, 0] = Residual@[-1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
+
+  }
+  loop over Residual only dup [0,  1] on boundary {
+    Residual@[0, 0] = 0.0 
+  }
+  loop over Residual only dup [0, -1] on boundary {
+    Residual@[0, 0] = 0.0
+  }
+}
+Function applyBC_p@all ( ) : Unit {
+
+  loop over p only dup [-1, 0] on boundary {
+    p@[0, 0] = p@[1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
+  }
+  loop over p only dup [1, 0] on boundary {
+    p@[0, 0] = p@[-1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
+  }
+  loop over p only dup [0,  1] on boundary {
+    p@[0, 0] = 0.0 
+  }
+  loop over p only dup [0, -1] on boundary {
+    p@[0, 0] = 0.0
+  }
+}
+
+
+Function applyBC_s@all ( ) : Unit {
+
+  loop over s only dup [-1, 0] on boundary {
+    s@[0, 0] = s@[1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x) 
+  }
+  loop over s only dup [1, 0] on boundary {
+    s@[0, 0] = s@[-1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
+  }
+  loop over s only dup [0,  1] on boundary {
+    s@[0, 0] = 0.0 
+  }
+  loop over s only dup [0, -1] on boundary {
+    s@[0, 0] = 0.0
+  }
+}
+*/
