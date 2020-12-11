@@ -62,7 +62,8 @@ abstract class IR_FileAccess(
   def startIdxLocal : Array[IR_Expression] = numDimsDataRange.map(d => IR_IntegerConstant(
     if(includeGhostLayers)
       field.layout.defIdxGhostLeftBegin(d)
-    else field.layout.defIdxDupLeftBegin(d))
+    else
+      field.layout.defIdxDupLeftBegin(d))
   ).toArray
 
   def innerPointsGlobal : Array[IR_Expression] = if(Knowledge.domain_onlyRectangular) {
@@ -91,6 +92,7 @@ abstract class IR_FileAccess(
   val MPI_Offset : IR_SpecialDatatype = if(Knowledge.mpi_enabled) IR_SpecialDatatype("MPI_Offset") else IR_SpecialDatatype("size_t")
   val MPI_Comm = IR_SpecialDatatype("MPI_Comm")
 
+  // TODO move to printField and accept positions as optional parameter
   def getPos(field : IR_Field, dim : Int) : IR_Expression = {
     // TODO: add function to field (layout) to decide node/cell for given dim
     field.localization match {
@@ -102,7 +104,7 @@ abstract class IR_FileAccess(
   }
 
   // determines whether ghost layers shall be excluded for I/O operations or not
-  def accessWholeField : Boolean = startIdxLocal.map(expr => expr.asInstanceOf[IR_IntegerConstant].value).sum == 0
+  def accessWholeBuffer : Boolean = startIdxLocal.map(expr => expr.asInstanceOf[IR_IntegerConstant].value).sum == 0
 
   // structure of file accesses
   def createOrOpenFile() : ListBuffer[IR_Statement]
@@ -159,6 +161,12 @@ abstract class IR_FileAccess(
   // checks input parameters that were passed
   def validateParams() : Unit = {}
 
+  def accessFileWithGranularity(blockwiseGranularity : Boolean, accessStatements : ListBuffer[IR_Statement]) = if(blockwiseGranularity) { // TODO access Databuffer member
+    accessFileBlockwise(accessStatements)
+  } else {
+    accessFileFragwise(accessStatements)
+  }
+
   // method to access the file in a fragment-wise fashion
   /* IMPORTANT:
     For collective I/O, each process must participate in a read/write call. Therefore, the I/O library matches the function calls of each process (synchronization).
@@ -167,6 +175,9 @@ abstract class IR_FileAccess(
       2. In case that we have an "invalid" fragment, we participate in the collective function call but actually write nothing.
   */
   def accessFileFragwise(accessStatements : ListBuffer[IR_Statement]) : IR_LoopOverFragments
+
+  // method to access the file in a block-wise fashion
+  def accessFileBlockwise(accessStatements : ListBuffer[IR_Statement]) : IR_Statement = IR_NullStatement // TODO
 
   // core methods for file access
   def readField() : ListBuffer[IR_Statement]

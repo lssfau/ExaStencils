@@ -9,10 +9,6 @@ import exastencils.applications.ns.ir.IR_PrintXdmfNNF
 import exastencils.applications.ns.ir.IR_PrintXdmfNS
 import exastencils.applications.swe.ir.IR_PrintVtkSWE
 import exastencils.applications.swe.ir.IR_PrintXdmfSWE
-import exastencils.base.ir.IR_Access
-import exastencils.base.ir.IR_ArrayAccess
-import exastencils.base.ir.IR_ArrayAllocation
-import exastencils.base.ir.IR_ArrayFree
 import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_BooleanConstant
 import exastencils.base.ir.IR_BooleanDatatype
@@ -27,7 +23,6 @@ import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_MemberFunctionCall
 import exastencils.base.ir.IR_Multiplication
-import exastencils.base.ir.IR_PointerDatatype
 import exastencils.base.ir.IR_RealDatatype
 import exastencils.base.ir.IR_SpecialDatatype
 import exastencils.base.ir.IR_Statement
@@ -36,7 +31,6 @@ import exastencils.base.ir.IR_StringDatatype
 import exastencils.base.ir.IR_UnresolvedFunctionReference
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
-import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
@@ -48,6 +42,7 @@ import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldIO
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
+import exastencils.io.ir.IR_IV_TemporaryBuffer
 import exastencils.logger.Logger
 
 /// IR_PrintVisualization
@@ -97,6 +92,8 @@ trait IR_PrintVisualization {
 
   def level : Int
 
+  def connectivityForCell(global : Boolean = true) : ListBuffer[IR_Expression] // contains expressions to describe a mesh's connectivity list (e.g. 4 expressions for a quad)
+
   // careful: must be in KJI order (i.e. slowest varying dimension first)
   def dimsConnectivityFrag : ListBuffer[IR_IntegerConstant] = ListBuffer(numCells_z, numCells_y, numCells_x, connectivityForCell().length)
   def dimsPositionsFrag    : ListBuffer[IR_IntegerConstant]
@@ -122,30 +119,27 @@ trait IR_PrintVisualization {
   def constantsWritten_decl = IR_VariableDeclaration(IR_BooleanDatatype, "constantsWritten", false)
   def constantsWritten = IR_VariableAccess(constantsWritten_decl)
 
-  def connectivityForCell(global : Boolean = true) : ListBuffer[IR_Expression]
-
-  def connectivity_decl = IR_VariableDeclaration(IR_PointerDatatype(IR_IntegerDatatype), "connectivity")
-  def connectivity = IR_VariableAccess(connectivity_decl)
-
   def loopOverInnerDims(nodalLoopEnd : Boolean, initBuffer : ListBuffer[IR_Statement] = ListBuffer()) = IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
     IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
     IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => (if(nodalLoopEnd) 1 else 0) + someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
     initBuffer)
+
+  def connectivityBuf = IR_IV_TemporaryBuffer(IR_IntegerDatatype, "connectivity", numFragsPerBlock +: dimsConnectivityFrag)
 
   // allocates and initializes buffer with connectivity info. this buffer is then passed to the I/O library
   def setupConnectivity : ListBuffer[IR_Statement] = {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
     val sizeConnectionFrag = dimsConnectivityFrag.reduce((a, b) => a.v * b.v)
 
-    stmts += connectivity_decl
-    stmts += IR_ArrayAllocation(connectivity, IR_IntegerDatatype, numFragsPerBlock * sizeConnectionFrag)
+    stmts += connectivityBuf.getDeclaration()
+    stmts += connectivityBuf.allocateMemory
 
-    val initBuffer : ListBuffer[IR_Statement] = ListBuffer() ++ connectivityForCell().indices.map(d => {
+    val initBuffer : ListBuffer[IR_Statement] = connectivityForCell().indices.map(d => {
       val linearizedLoopIdx = loopOverInnerDims(nodalLoopEnd = false).indices.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
       IR_Assignment(
-        IR_ArrayAccess(connectivity, IR_LoopOverFragments.defIt * sizeConnectionFrag + connectivityForCell().length * linearizedLoopIdx + d),
-        connectivityForCell()(d))
-    })
+        connectivityBuf.resolveAccess(IR_LoopOverFragments.defIt * sizeConnectionFrag + connectivityForCell().length * linearizedLoopIdx + d),
+        connectivityForCell()(d)) : IR_Statement
+    }).to[ListBuffer]
 
     stmts += IR_LoopOverFragments(
       IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
@@ -155,11 +149,8 @@ trait IR_PrintVisualization {
   }
 
   val nodePositionsCopied : Boolean = Knowledge.grid_isAxisAligned || Knowledge.grid_isUniform // otherwise we directly use virtual field
-  def nodePositions_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_PointerDatatype(IR_RealDatatype), numDimsGrid), "nodePosition")
-  def nodePositions(dim : Int) : IR_Access = if(!nodePositionsCopied)
-    IR_VF_NodePositionPerDim.access(level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
-  else
-    IR_ArrayAccess(IR_VariableAccess(nodePositions_decl), dim)
+  def nodePositionsBuf : ListBuffer[IR_IV_TemporaryBuffer] = (0 until numDimsGrid).map(
+    d => IR_IV_TemporaryBuffer(IR_RealDatatype, "nodePosition" + ('X' + d).toChar.toString, numFragsPerBlock +: dimsPositionsFrag)).to[ListBuffer]
 
   // allocates and initializes buffer with the node positions on-demand. on some occasions, the virtual field can be directly passed to the library. this buffer is then passed to the I/O library
   def setupNodePositions : ListBuffer[IR_Statement] = if(!nodePositionsCopied) {
@@ -168,19 +159,18 @@ trait IR_PrintVisualization {
     // init buffer with node positions
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
 
-    stmts += nodePositions_decl
-
     for(d <- 0 until numDimsGrid) {
-      stmts += IR_ArrayAllocation(nodePositions(d), IR_RealDatatype, numPointsPerFrag * numFragsPerBlock)
+      stmts += nodePositionsBuf(d).getDeclaration()
+      stmts += nodePositionsBuf(d).allocateMemory
 
       val numAccPerCell = nodeOffsets.length
 
-      val initBuffer : ListBuffer[IR_Statement] = ListBuffer() ++ (0 until numAccPerCell).map(n => {
+      val initBuffer : ListBuffer[IR_Statement] = (0 until numAccPerCell).map(n => {
         val linearizedLoopIdx = loopOverInnerDims(nodalLoopEnd = true).indices.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
         IR_Assignment(
-          IR_ArrayAccess(nodePositions(d), IR_LoopOverFragments.defIt * numPointsPerFrag + numAccPerCell * linearizedLoopIdx + n),
-          IR_VF_NodePositionPerDim.access(level, d, IR_LoopOverDimensions.defIt(numDimsGrid) + nodeOffsets(n)))
-      })
+          nodePositionsBuf(d).resolveAccess(IR_LoopOverFragments.defIt * numPointsPerFrag + numAccPerCell * linearizedLoopIdx + n),
+          IR_VF_NodePositionPerDim.access(level, d, IR_LoopOverDimensions.defIt(numDimsGrid) + nodeOffsets(n))) : IR_Statement
+      }).to[ListBuffer]
 
       stmts += IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
@@ -191,8 +181,8 @@ trait IR_PrintVisualization {
   }
 
   // frees the buffers with nodePositions/connectivity information
-  def cleanupConnectivity = IR_ArrayFree(connectivity)
-  def cleanupNodePositions : ListBuffer[IR_Statement] = ListBuffer[IR_Statement]() ++ (0 until numDimsGrid).map(d => IR_ArrayFree(nodePositions(d)))
+  def cleanupConnectivity : IR_Statement = connectivityBuf.getDtor().get
+  def cleanupNodePositions : ListBuffer[IR_Statement] = (0 until numDimsGrid).map(d => nodePositionsBuf(d).getDtor().get).to[ListBuffer]
 }
 
 /// IR_ResolveVisualizationPrinters

@@ -69,7 +69,7 @@ trait IR_PrintVisualizationTriangles extends IR_PrintVisualization {
     def offsetFragLoop : IR_Multiplication = //(MPI_IV_MpiRank * Knowledge.domain_numFragmentsPerBlock + IR_LoopOverFragments.defIt) * numPointsPerFrag
       ((if(global) fragmentOffset else IR_IntegerConstant(0)) + IR_LoopOverFragments.defIt) * numPointsPerFrag
 
-    ListBuffer() ++ (0 until 6).map(v => offsetFragLoop + offsetLoopOverDim + nodePositionOffsets(v))
+    (0 until 6).map(v => offsetFragLoop + offsetLoopOverDim + nodePositionOffsets(v) : IR_Expression).to[ListBuffer]
   }
 
   def communicateFragmentInfo(calculateFragOffset : Boolean = false) : ListBuffer[IR_Statement] = {

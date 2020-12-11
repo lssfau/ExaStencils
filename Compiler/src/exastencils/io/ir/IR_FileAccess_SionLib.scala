@@ -36,7 +36,7 @@ case class IR_FileAccess_SionLib(
   val nPhysFiles = 1
 
   val bytesAccessedKnownApriori : Boolean = condition == IR_BooleanConstant(true) // if there is no condition -> required number of accessed bytes are known
-  val numBytesDatatype : Int = field.layout.datatype.typicalByteSize
+  val numBytesDatatype : Int = field.layout.datatype.resolveBaseDatatype.typicalByteSize
   val numBytesFrag : IR_Multiplication = innerPointsLocal.reduce(_ * _) * numBytesDatatype
   val numBytesBlock : IR_Multiplication = numBytesFrag * Knowledge.domain_numFragmentsPerBlock // TODO only valid frags
 
@@ -143,7 +143,7 @@ case class IR_FileAccess_SionLib(
   )
 
   // read/write values from/to file and count the number of bytes that were accessed
-  val bodyFragLoop : IR_Statement = if (accessWholeField && bytesAccessedKnownApriori) {
+  val bodyFragLoop : IR_Statement = if (accessWholeBuffer && bytesAccessedKnownApriori) {
     val funcName = if (writeAccess) "sion_fwrite" else "sion_fread"
     IR_Assignment(
       bytesAccessed,

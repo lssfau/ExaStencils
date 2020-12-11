@@ -121,7 +121,7 @@ case class IR_FileAccess_PnetCDF(
   Table from: http://cucis.ece.northwestern.edu/projects/PnetCDF/doc/pnetcdf-c/Variable-Types.html#Variable-Types
   */
   val ncDatatype : IR_VariableAccess = {
-    val dt = field.layout.datatype.prettyprint match {
+    val dt = field.layout.datatype.resolveBaseDatatype.prettyprint match {
       case "char"                       => "NC_CHAR"
       case "byte"                       => "NC_BYTE"
       case "unsigned byte"              => "NC_UBYTE"
@@ -145,7 +145,7 @@ case class IR_FileAccess_PnetCDF(
   Table from: http://cucis.ece.northwestern.edu/projects/PnetCDF/doc/pnetcdf-c/ncmpi_005fget_005fvarm_005f_003ctype_003e.html#ncmpi_005fget_005fvarm_005f_003ctype_003e
   */
   val apiTypename : String = {
-    field.layout.datatype.prettyprint match {
+    field.layout.datatype.resolveBaseDatatype.prettyprint match {
       case "char"               => "text"
       case "signed char"        => "schar"
       case "short"              => "short"
@@ -188,12 +188,12 @@ case class IR_FileAccess_PnetCDF(
 
   def accessFileFragwise(accessStmts : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
     // set global starting index for fragment
-    val setOffsetFrag : ListBuffer[IR_Assignment] = (0 until numDimsData).map(d => {
-      IR_Assignment(IR_ArrayAccess(globalStart, d + (if (useTimeDim) 1 else 0)), startIdxGlobal(d))
+    val setOffsetFrag : ListBuffer[IR_Statement] = (0 until numDimsData).map(d => {
+      IR_Assignment(IR_ArrayAccess(globalStart, d + (if (useTimeDim) 1 else 0)), startIdxGlobal(d)) : IR_Statement
     }).to[ListBuffer]
 
     if(Knowledge.parIO_useCollectiveIO) {
-      val condSetOffset = IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index), ListBuffer[IR_Statement]() ++ setOffsetFrag)
+      val condSetOffset = IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index), setOffsetFrag)
       IR_LoopOverFragments(
         condSetOffset +: accessStmts
       )
@@ -289,10 +289,10 @@ case class IR_FileAccess_PnetCDF(
   override def closeFile() : ListBuffer[IR_Statement] = callNcFunction("ncmpi_close", ncFile)
 
   // field pointer at offset of first non-ghost index
-  val fieldPtrInner = IR_AddressOf(IR_FieldAccess(field, slot, IR_ExpressionIndex((0 until numDimsData).map(d => field.layout.defIdxGhostLeftBegin(d)).toArray)))
+  val fieldPtrInner = IR_AddressOf(IR_FieldAccess(field, slot, IR_ExpressionIndex(0)))
 
   val numMpiDatatypes : IR_Expression = innerPointsLocal.reduce(_ * _) // indicates how many derived datatype elements are written to file
-  val mpiDatatypeField : IR_VariableAccess = IR_VariableAccess(field.layout.datatype.prettyprint_mpi, IR_UnknownDatatype)
+  val mpiDatatypeField : IR_VariableAccess = IR_VariableAccess(field.layout.datatype.resolveBaseDatatype.prettyprint_mpi, IR_UnknownDatatype)
 
   // set count to "0" for "invalid" frags in order to perform a NOP read/write
   val countSelection_decl = IR_VariableDeclaration(IR_PointerDatatype(MPI_Offset), IR_FileAccess.declareVariable("countSelection"), count)
@@ -318,7 +318,7 @@ case class IR_FileAccess_PnetCDF(
         )
     }
 
-    val write = if(accessWholeField) {
+    val write = if(accessWholeBuffer) {
       // use simpler method if the whole array can be written without having to exclude ghost layers
       if(Knowledge.parIO_useCollectiveIO) {
         condAssignCount ++ callNcFunction(
@@ -346,7 +346,7 @@ case class IR_FileAccess_PnetCDF(
   override def readField() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    val read = if(accessWholeField) {
+    val read = if(accessWholeBuffer) {
       // use simpler method if the whole array can be written without having to exclude ghost layers
       if(Knowledge.parIO_useCollectiveIO) {
         condAssignCount ++ callNcFunction(

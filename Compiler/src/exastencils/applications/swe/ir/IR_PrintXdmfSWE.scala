@@ -45,6 +45,11 @@ case class IR_PrintXdmfSWE(
   override def writeData : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
+    /*
+    if(Knowledge.swe_nodalReductionPrint)
+      statements ++= setupReducedData
+    */
+
     // TODO
     fmt match {
       case "Binary" =>
@@ -96,9 +101,9 @@ case class IR_PrintXdmfSWE(
           new IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
-            ListBuffer[IR_Statement]() ++ (0 until numDimsGrid).map(dim =>
-              IR_Print(stream, indentData +: separateSequenceAndFilter(connectivityForCell(global = false).take(3 * (dim + 1)).takeRight(3)) :+ IR_Print.newline)
-            ))),
+            (0 until numDimsGrid).map(dim =>
+              IR_Print(stream, indentData +: separateSequenceAndFilter(connectivityForCell(global = false).take(3 * (dim + 1)).takeRight(3)) :+ IR_Print.newline) : IR_Statement
+            ).to[ListBuffer])),
         IR_Print(stream, IR_Print.flush))
     } else {
       printFilename(stream, datasetConnectivity)

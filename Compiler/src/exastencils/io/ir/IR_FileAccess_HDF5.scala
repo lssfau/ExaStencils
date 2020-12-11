@@ -88,7 +88,7 @@ case class IR_FileAccess_HDF5(
 
   // from: https://support.hdfgroup.org/HDF5/doc1.6/UG/11_Datatypes.html
   val h5Datatype : IR_VariableAccess = {
-    val dt = field.layout.datatype.prettyprint match {
+    val dt = field.layout.datatype.resolveBaseDatatype.prettyprint match {
       case "char" => "H5T_NATIVE_CHAR"
       case "signed char" => "H5T_NATIVE_SCHAR"
       case "unsigned char" => "H5T_NATIVE_UCHAR"
@@ -245,11 +245,11 @@ case class IR_FileAccess_HDF5(
 
   override def accessFileFragwise(accessStmts : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
     // set global starting index for fragment and select hyperslab in global domain
-    val setOffsetFrag : ListBuffer[IR_Assignment] = numDimsDataRange.map(d => IR_Assignment(IR_ArrayAccess(globalStart, d), startIdxGlobal(d))).to[ListBuffer]
+    val setOffsetFrag : ListBuffer[IR_Statement] = numDimsDataRange.map(d => IR_Assignment(IR_ArrayAccess(globalStart, d), startIdxGlobal(d)) : IR_Statement).to[ListBuffer]
     val selectHyperslab : ListBuffer[IR_Statement] = callH5Function(err, "H5Sselect_hyperslab", dataspace, IR_VariableAccess("H5S_SELECT_SET", IR_UnknownDatatype), globalStart, stride, count, nullptr)
 
     if(Knowledge.parIO_useCollectiveIO) {
-      val condAssignOffset = IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index), ListBuffer[IR_Statement]() ++ setOffsetFrag)
+      val condAssignOffset = IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index), setOffsetFrag)
       IR_LoopOverFragments(
         (condAssignOffset +: selectHyperslab) ++ accessStmts
       )

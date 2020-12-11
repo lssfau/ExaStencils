@@ -119,9 +119,9 @@ trait IR_PrintFieldsAsciiSWE extends IR_PrintVisualizationSWE {
   }
 
   def printOrder(stream : Option[IR_VariableAccess] = None, indentation : Option[IR_StringConstant] = None) : ListBuffer[IR_Statement] = {
-    if (optLocalOrderLower.isDefined && optLocalOrderUpper.isDefined) {
+    if (orderDisc.isDefined) {
       if(Knowledge.swe_nodalReductionPrint) {
-        addReducedNodePrint("order", ListBuffer() ++ (0 until 3).map(_ => optLocalOrderLower.get) ++ (0 until 3).map(_ => optLocalOrderUpper.get), stream, indentation)
+        addReducedNodePrint("order", orderDisc.get, stream, indentation)
       } else {
         addNodePrint("order", {
           var nodePrint = ListBuffer[IR_Expression]()

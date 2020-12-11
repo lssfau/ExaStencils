@@ -9,6 +9,7 @@ import exastencils.base.ir.IR_ConstIndex
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_ForLoop
+import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_PointerDatatype
@@ -20,12 +21,15 @@ import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.baseExt.ir.IR_LoopOverDimensions
+import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
+import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_FieldCollection
 import exastencils.field.ir.IR_IV_ActiveSlot
+import exastencils.io.ir.IR_IV_TemporaryBuffer
 import exastencils.logger.Logger
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_PrintVisualizationTriangles
@@ -70,18 +74,63 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
   def optLocalOrderLower : Option[IR_Field] = IR_FieldCollection.getByIdentifier("local_orderLower0", level, suppressError = true)
   def optLocalOrderUpper : Option[IR_Field] = IR_FieldCollection.getByIdentifier("local_orderUpper0", level, suppressError = true)
 
+  def orderDisc : Option[ListBuffer[IR_Field]] = if(optLocalOrderLower.isDefined && optLocalOrderUpper.isDefined)
+    Some((0 until 3).map(_ => optLocalOrderLower.get).to[ListBuffer] ++ (0 until 3).map(_ => optLocalOrderUpper.get))
+  else
+    None
+
   def someCellField : IR_Field = etaDiscLower0
 
   def fieldnames : ListBuffer[String] = ListBuffer("bath", "eta", "u", "v") ++ (if(optLocalOrderLower.isDefined && optLocalOrderUpper.isDefined) "order"::Nil else Nil)
   def numFields : Int = fieldnames.length
 
+  def setupReducedData : ListBuffer[IR_Statement] = {
+    val eta = IR_IV_TemporaryBuffer(etaDiscLower0.resolveBaseDatatype, "etaReduced", numFragsPerBlock +: dimsPositionsFrag)
+    val u = IR_IV_TemporaryBuffer(uDiscLower0.resolveBaseDatatype, "uReduced", numFragsPerBlock +: dimsPositionsFrag)
+    val v = IR_IV_TemporaryBuffer(vDiscLower0.resolveBaseDatatype, "vReduced", numFragsPerBlock +: dimsPositionsFrag)
+    val order = if(orderDisc.isDefined)
+      Some(IR_IV_TemporaryBuffer(optLocalOrderLower.get.resolveBaseDatatype, "orderReduced", numFragsPerBlock +: dimsPositionsFrag))
+    else
+      None
+
+    var stmts : ListBuffer[IR_Statement] = ListBuffer()
+
+    // allocate buffers before calculations
+    stmts += eta.allocateMemory
+    stmts += u.allocateMemory
+    stmts += v.allocateMemory
+    if (orderDisc.isDefined)
+      stmts += order.get.allocateMemory
+
+    // compute averages and store into buffer before writing
+    var stmtsFragLoop : ListBuffer[IR_Statement] = ListBuffer()
+    stmtsFragLoop += IR_Comment("\\n Nodal data reduction for eta \\n")
+    stmtsFragLoop ++= reducedCellPrint(IR_VariableAccess(eta.name, eta.resolveDatatype()), etaDisc)
+    stmtsFragLoop += IR_Comment("\\n Nodal data reduction for u \\n")
+    stmtsFragLoop ++= reducedCellPrint(IR_VariableAccess(u.name, u.resolveDatatype()), uDisc)
+    stmtsFragLoop += IR_Comment("\\n Nodal data reduction for v \\n")
+    stmtsFragLoop ++= reducedCellPrint(IR_VariableAccess(v.name, v.resolveDatatype()), vDisc)
+    if (orderDisc.isDefined) {
+      stmtsFragLoop += IR_Comment("\\n Nodal data reduction for order \\n")
+      stmtsFragLoop ++= reducedCellPrint(IR_VariableAccess(order.get.name, order.get.resolveDatatype()), orderDisc.get)
+    }
+
+    stmts += IR_LoopOverFragments(
+      IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
+        stmtsFragLoop
+      )
+    )
+
+    stmts
+  }
+
   // nodal data reduction
-  def reducedCellPrint(buf : IR_VariableAccess, discFields : ListBuffer[IR_Field], indentation : Option[IR_StringConstant] = None) : ListBuffer[IR_Statement] = {
+  def reducedCellPrint(buf : IR_VariableAccess, discField : ListBuffer[IR_Field], indentation : Option[IR_StringConstant] = None) : ListBuffer[IR_Statement] = {
 
-    val low : ListBuffer[IR_Field] = discFields.take(3)
-    val upp : ListBuffer[IR_Field] = discFields.takeRight(3)
+    val low : ListBuffer[IR_Field] = discField.take(3)
+    val upp : ListBuffer[IR_Field] = discField.takeRight(3)
 
-    if (discFields.length != 6) {
+    if (discField.length != 6) {
       Logger.error("Wrong usage of \"addReducedNodePrint\" in IR_PrintVtkSWE.")
     }
 
@@ -93,7 +142,7 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
     def storeOperation(toStore : IR_Expression, idx : IR_ExpressionIndex) : IR_Statement = buf.datatype match {
       case IR_SpecialDatatype("std::ofstream") => IR_Print(buf,
         (if(indentation.isDefined) indentation.get :: Nil else Nil) :+ toStore :+ IR_Print.newline : _*)
-      case IR_PointerDatatype(_) => IR_Assignment(IR_ArrayAccess(buf, getIdxNodalLoop(idx)), toStore)
+      case IR_PointerDatatype(_) => IR_Assignment(IR_ArrayAccess(buf, numPointsPerFrag * IR_LoopOverFragments.defIt + getIdxNodalLoop(idx)), toStore)
     }
 
     def constructLoopForDim(dim : Int, offStart : Int, offEnd : Int, loopStmts : IR_Statement*) = IR_ForLoop(

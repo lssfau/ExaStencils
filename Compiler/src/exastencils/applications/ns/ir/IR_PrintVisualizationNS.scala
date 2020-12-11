@@ -2,9 +2,6 @@ package exastencils.applications.ns.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ArrayAccess
-import exastencils.base.ir.IR_ArrayAllocation
-import exastencils.base.ir.IR_ArrayFree
 import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_ConstIndex
 import exastencils.base.ir.IR_Expression
@@ -12,12 +9,8 @@ import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerConstant
-import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_Multiplication
-import exastencils.base.ir.IR_PointerDatatype
 import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_VariableAccess
-import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
@@ -28,6 +21,7 @@ import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_FieldCollection
 import exastencils.field.ir.IR_IV_ActiveSlot
+import exastencils.io.ir.IR_IV_TemporaryBuffer
 import exastencils.visualization.ir.IR_PrintVisualizationQuads
 
 trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads{
@@ -72,33 +66,34 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads{
   def meanW : IR_Multiplication = 0.5 * (IR_FieldAccess(w, IR_IV_ActiveSlot(w), IR_LoopOverDimensions.defIt(numDimsGrid))
     + IR_FieldAccess(w, IR_IV_ActiveSlot(w), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 0, 1)))
 
-  def velocity_decl = IR_VariableDeclaration(IR_PointerDatatype(IR_IntegerDatatype), "vel")
-  def velocity = IR_VariableAccess(velocity_decl)
+  def velocityBuf = IR_IV_TemporaryBuffer(u.resolveBaseDatatype, "vel", numFragsPerBlock +: dimsConnectivityFrag.dropRight(1) :+ IR_IntegerConstant(numDimsGrid))
 
   def setupVelocity : ListBuffer[IR_Statement] = {
     // init buffer with values of vector field
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
 
-    stmts += velocity_decl
+    stmts += velocityBuf.getDeclaration()
 
-    stmts += IR_ArrayAllocation(velocity, u.resolveBaseDatatype, numDimsGrid * numCellsPerFrag * numFragsPerBlock)
+    stmts += velocityBuf.allocateMemory
 
-    val initBuffer : ListBuffer[IR_Statement] = ListBuffer() ++ (0 until numDimsGrid).map(d => {
-      val linearizedIdx = u.layout.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
+    def idxRange = IR_ExpressionIndexRange(
+      IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DLB", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)),
+      IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DRE", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)))
+
+    val initBuffer : ListBuffer[IR_Statement] = (0 until numDimsGrid).map(d => {
+      val linearizedIdx = idxRange.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
       IR_Assignment(
-        IR_ArrayAccess(velocity, IR_LoopOverFragments.defIt * numCellsPerFrag * numDimsGrid + numDimsGrid * linearizedIdx + d),
-        velAsVec(d))
-    })
+        velocityBuf.resolveAccess(IR_LoopOverFragments.defIt * numCellsPerFrag * numDimsGrid + numDimsGrid * linearizedIdx + d),
+        velAsVec(d)) : IR_Statement
+    }).to[ListBuffer]
 
     stmts += IR_LoopOverFragments(
       IR_IfCondition(IR_IV_IsValidForDomain(p.domain.index),
-        IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
-          IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DLB", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)),
-          IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DRE", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression))),
+        IR_LoopOverDimensions(numDimsGrid, idxRange,
           initBuffer)))
 
     stmts
   }
 
-  def cleanupVelocity = IR_ArrayFree(velocity)
+  def cleanupVelocity : IR_Statement = velocityBuf.getDtor().get
 }

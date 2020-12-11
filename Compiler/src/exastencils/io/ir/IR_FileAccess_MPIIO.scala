@@ -31,7 +31,7 @@ case class IR_FileAccess_MPIIO(
   // mpi i/o specific datatypes
   val MPI_File = IR_SpecialDatatype("MPI_File")
   val MPIIO_Datatype = IR_SpecialDatatype("MPI_Datatype")
-  val mpiDatatypeField = IR_VariableAccess(field.layout.datatype.prettyprint_mpi, IR_UnknownDatatype)
+  val mpiDatatypeField = IR_VariableAccess(field.layout.datatype.resolveBaseDatatype.prettyprint_mpi, IR_UnknownDatatype)
   val rowMajor = IR_VariableAccess("MPI_ORDER_C", IR_UnknownDatatype)
 
   // declarations
@@ -97,7 +97,7 @@ case class IR_FileAccess_MPIIO(
     if(Knowledge.domain_onlyRectangular) {
       // global view (location within the whole domain) per fragment
       val setOffsetFrag = IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-        ListBuffer[IR_Statement]() ++ numDimsDataRange.map(d => IR_Assignment(IR_ArrayAccess(globalStart, d), startIdxGlobal(d)))
+        numDimsDataRange.map(d => IR_Assignment(IR_ArrayAccess(globalStart, d), startIdxGlobal(d)) : IR_Statement).to[ListBuffer]
       )
       val createGlobalSubarray : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_create_subarray"), numDimsData, globalDims, count, globalStart, rowMajor, mpiDatatypeField, IR_AddressOf(globalView))
       val commitGlobalDatatype : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_commit"), IR_AddressOf(globalView))

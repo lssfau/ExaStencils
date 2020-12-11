@@ -214,6 +214,12 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
+    /*
+    // TODO move
+    statements ++= setupConnectivity
+    statements ++= setupNodePositions
+    */
+
     // set up fragment info
     statements ++= stmtsForPreparation
 
@@ -222,12 +228,12 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
       val stream = newStream
 
       // construct xdmf filename for domain pieces in same directory as the global file
-      def refPieces : ListBuffer[IR_Statement] = ListBuffer() ++ (0 until Knowledge.mpi_numThreads).map(curRank => {  // assumes the file of process "curRank" only has one grid instance
+      def refPieces : ListBuffer[IR_Statement] = (0 until Knowledge.mpi_numThreads).map(curRank => {  // assumes the file of process "curRank" only has one grid instance
         printXdmfElement(stream,
           ListBuffer(IR_StringConstant("\t\t\t<xi:include href=\\\"")) ++
           buildFilenamePiece(stripPath = true, rank = IR_IntegerConstant(curRank)).toPrint :+
           IR_StringConstant("\\\" xpointer=\\\"xpointer(//Xdmf/Domain/Grid[1])\\\"/>") : _*)
-      })
+      }).to[ListBuffer]
 
       val printGlobalFile : ListBuffer[IR_Statement] = ListBuffer()
 
