@@ -1,5 +1,7 @@
 package exastencils.field.ir
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.base.ir.IR_Expandable
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ImplicitConversion._
@@ -48,13 +50,13 @@ abstract class IR_FieldIO(
     dataset : IR_Expression = IR_NullExpression) extends IR_Statement with IR_Expandable {
 
   // wrapper function that generates statements for file access using the specified I/O interface
-  def generateFileAccess() : IR_FileAccess = {
+  def generateFileAccess(optPrintComponents : Option[ListBuffer[IR_Expression]] = None) : IR_FileAccess = {
 
     ioInterface.asInstanceOf[IR_StringConstant].value.toLowerCase match {
       case "lock"  =>
-        IR_FileAccess_Locking(filename, field, slot, includeGhostLayers, useBinary, doWrite, onlyVals, separator, condition)
+        IR_FileAccess_Locking(filename, field, slot, includeGhostLayers, useBinary, doWrite, separator, condition, optPrintComponents)
       case "fpp"   =>
-        IR_FileAccess_FPP(filename, field, slot, includeGhostLayers, useBinary, doWrite, onlyVals, separator, condition)
+        IR_FileAccess_FPP(filename, field, slot, includeGhostLayers, useBinary, doWrite, separator, condition, optPrintComponents)
       case "mpiio" =>
         IR_FileAccess_MPIIO(filename, field, slot, includeGhostLayers, doWrite)
       case "hdf5"  =>

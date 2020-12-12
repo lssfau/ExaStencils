@@ -20,9 +20,9 @@ case class IR_FileAccess_Locking(
     var includeGhostLayers : Boolean,
     var useBinary : Boolean,
     var writeAccess : Boolean,
-    var onlyValues : Boolean,
     var separator : IR_Expression,
     var condition : IR_Expression,
+    var optPrintComponents : Option[ListBuffer[IR_Expression]],
     var appendedMode : Boolean = false) extends IR_FileAccess(filename, field, slot, includeGhostLayers, writeAccess, appendedMode) {
 
   var openFlags : String = if (writeAccess) { if (appendedMode) "std::ios::app" else "std::ios::trunc"} else "std::ios::in"
@@ -144,11 +144,7 @@ case class IR_FileAccess_Locking(
     }
 
     val print = if(!useBinary) {
-      val printComponents = ListBuffer[IR_Expression]()
-      if (!onlyValues) { // print coords for CSV files (Paraview)
-        printComponents += "std::defaultfloat"
-        printComponents ++= (0 until numDimsGrid).view.flatMap { dim => List(getPos(field, dim), separator) }
-      }
+      val printComponents = optPrintComponents getOrElse ListBuffer[IR_Expression]()
       printComponents += "std::scientific"
       printComponents ++= arrayIndexRange.view.flatMap { index =>
         val access = IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData))

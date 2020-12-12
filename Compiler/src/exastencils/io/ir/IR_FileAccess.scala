@@ -12,7 +12,6 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.StatementList
 import exastencils.domain.ir._
 import exastencils.field.ir._
-import exastencils.grid.ir._
 import exastencils.logger._
 
 // IR_FileAccess
@@ -92,17 +91,6 @@ abstract class IR_FileAccess(
   val MPI_Offset : IR_SpecialDatatype = if(Knowledge.mpi_enabled) IR_SpecialDatatype("MPI_Offset") else IR_SpecialDatatype("size_t")
   val MPI_Comm = IR_SpecialDatatype("MPI_Comm")
 
-  // TODO move to printField and accept positions as optional parameter
-  def getPos(field : IR_Field, dim : Int) : IR_Expression = {
-    // TODO: add function to field (layout) to decide node/cell for given dim
-    field.localization match {
-      case IR_AtNode              => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
-      case IR_AtCellCenter        => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
-      case IR_AtFaceCenter(`dim`) => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
-      case IR_AtFaceCenter(_)     => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
-    }
-  }
-
   // determines whether ghost layers shall be excluded for I/O operations or not
   def accessWholeBuffer : Boolean = startIdxLocal.map(expr => expr.asInstanceOf[IR_IntegerConstant].value).sum == 0
 
@@ -161,7 +149,7 @@ abstract class IR_FileAccess(
   // checks input parameters that were passed
   def validateParams() : Unit = {}
 
-  def accessFileWithGranularity(blockwiseGranularity : Boolean, accessStatements : ListBuffer[IR_Statement]) = if(blockwiseGranularity) { // TODO access Databuffer member
+  def accessFileWithGranularity(blockwiseGranularity : Boolean, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = if(blockwiseGranularity) { // TODO access Databuffer member
     accessFileBlockwise(accessStatements)
   } else {
     accessFileFragwise(accessStatements)

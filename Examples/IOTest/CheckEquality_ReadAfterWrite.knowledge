@@ -5,7 +5,8 @@ maxLevel                       = 6
 
 discr_type                     = "FiniteDifferences"
 
-//parIO_generateDebugStatements = true
+experimental_generateParaviewFiles = true
+parIO_generateDebugStatements = true
 //parIO_useCollectiveIO = false
 
 // omp parallelization on exactly one fragment in one block

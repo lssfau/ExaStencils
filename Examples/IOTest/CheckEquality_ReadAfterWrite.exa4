@@ -80,11 +80,11 @@ Function Application {
   Val separator : String = ","
   
   // toggle I/O modes here
-  Val lockingIO : Bool = false
-  Val fppIO     : Bool = false
-  Val hdfIO     : Bool = true
-  Val mpiIO     : Bool = true
-  Val ncIO      : Bool = true
+  Val lockingIO : Bool = true
+  Val fppIO     : Bool = true
+  Val hdfIO     : Bool = false
+  Val mpiIO     : Bool = false
+  Val ncIO      : Bool = false
   Val sionIO    : Bool = true
        
   if(lockingIO) {

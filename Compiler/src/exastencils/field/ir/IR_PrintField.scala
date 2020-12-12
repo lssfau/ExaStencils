@@ -22,9 +22,15 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.config._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
+import exastencils.grid.ir.IR_AtCellCenter
+import exastencils.grid.ir.IR_AtFaceCenter
+import exastencils.grid.ir.IR_AtNode
+import exastencils.grid.ir.IR_VF_CellCenterPerDim
+import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir._
@@ -69,9 +75,23 @@ case class IR_PrintField(
 
   val arrayIndexRange : Range = 0 until field.gridDatatype.resolveFlattendSize
 
-  // writes comma-separated files in ascii mode, raw binaries otherwise (locking)
+  // writes comma-separated files in ascii mode, raw binaries otherwise (via locking)
   def printCSV() : ListBuffer[IR_Statement] = {
-    val fileAccess = generateFileAccess()
+    // print coords for CSV files (Paraview)
+    def getPos(dim : Int) : IR_Expression = {
+      // TODO: add function to field (layout) to decide node/cell for given dim
+      field.localization match {
+        case IR_AtNode              => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(field.layout.numDimsGrid))
+        case IR_AtCellCenter        => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(field.layout.numDimsGrid))
+        case IR_AtFaceCenter(`dim`) => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(field.layout.numDimsGrid))
+        case IR_AtFaceCenter(_)     => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(field.layout.numDimsGrid))
+      }
+    }
+    val printPos = ListBuffer(IR_VariableAccess("std::defaultfloat", IR_UnknownDatatype)) ++
+      (0 until field.layout.numDimsGrid).view.flatMap { dim => List(getPos(dim), separator) : List[IR_Expression] }
+
+    // begin file access
+    val fileAccess = generateFileAccess(Some(printPos))
     var statements : ListBuffer[IR_Statement] = ListBuffer()
     statements ++= fileAccess.createOrOpenFile()
     val fileHeader : ListBuffer[IR_Statement] = {
