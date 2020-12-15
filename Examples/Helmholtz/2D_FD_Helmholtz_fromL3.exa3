@@ -344,6 +344,5 @@ Function VCycle@coarsest {
     gen_residual_u  = s - omega * t
     curRes    = sqrt(dot(gen_residual_u, gen_residual_u))
     if ( fabs(curRes) < 1e-6 * fabs(initRes) || fabs(curRes) < 1e-6) { return }
-    if ( fabs(curRes) < 1e-15 * fabs(initRes)) { return }
   }
 }
