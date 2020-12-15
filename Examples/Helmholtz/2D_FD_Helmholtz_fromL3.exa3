@@ -5,62 +5,52 @@ Domain global< [ 0, 0 ] to [ 1, 1 ] >
 
 /// fields
 
+// Solution and error fields
 Field Solution@finest with Complex<Real> on Node of global = 0.0
-
-// Dirichlet BC
-//Field Solution@finest on boundary = 0.0
-//Field Solution@finest on boundary = cos ( PI * vf_boundaryPos_x ) - sin ( 2.0 * PI * vf_boundaryPos_y )
-// Neumann BC
-//Field Solution@finest on boundary = Neumann
-// Mixed BC
 Field Solution@finest on boundary = applyBC_Solution@finest()
+//Field Solution@finest on boundary = 0.0
 
-// Zero rhs
-//Field RHS@finest with Complex<Real> on Node of global = 0.0
+Field u with Complex<Real> on Node of global
+//Field u@finest on boundary = applyBC_u@finest()
+Field u on boundary = applyBC_u()
+//Field u on boundary = 0.0
 
-// Gaussian rhs
-//Field RHS@finest with Complex<Real> on Node of global = 1.0/(2*PI*a) * exp(-((vf_nodePos_x-0.5)**2+(vf_nodePos_y-0.5)**2)/(2*a))
+Field gen_error_u with Complex<Real> on Node of global
+Field gen_error_u on boundary = applyBC_gen_error_u()
+//Field gen_error_u on boundary = 0.0
+
+// RHS fields
 
 // B-Spline approximation of the dirac pulse
 Field RHS@finest with Complex<Real> on Node of global = max(0, -(fabs(vf_nodePos_x - 0.5) - vf_gridWidth_x) / vf_gridWidth_x**2) * max(0, -(fabs(vf_nodePos_y - 0.5) - vf_gridWidth_y) / vf_gridWidth_y**2)
-Field Residual@finest with Complex<Real> on Node of global
-
-//Field Residual with Complex<Real> on Node of global
-//Field Residual@finest on boundary = 0.0
-//Field Residual@finest on boundary = applyBC_Residual@finest()
-
-// For the Preconditioner
-Field u with Complex<Real> on Node of global
-//Field u@finest on boundary = 0.0
-//Field u@finest on boundary = Neumann
-Field u@finest on boundary = applyBC_u@finest()
-Field u@(all but finest) on boundary = 0.0
+//Field RHS@finest with Complex<Real> on Node of global = 0.0
+//Field RHS@finest with Complex<Real> on Node of global = 1.0/(2*PI*a) * exp(-((vf_nodePos_x-0.5)**2+(vf_nodePos_y-0.5)**2)/(2*a))
 
 Field f with Complex<Real> on Node of global
+Field gen_rhs_u with Complex<Real> on Node of global
+
+// Residual fields
+Field Residual@finest with Complex<Real> on Node of global
+
 Field res with Complex<Real> on Node of global
-Field gen_error_u from res
-Field gen_residual_u from res
-Field gen_rhs_u from f
+Field res on boundary = applyBC_res()
+//Field res on boundary = 0.0
+
+Field gen_residual_u with Complex<Real> on Node of global
+Field gen_residual_u on boundary = applyBC_gen_residual_u()
+//Field gen_residual_u on boundary = 0.0
 
 Field p@finest with Complex<Real> on Node of global
-//Field p@finest with Complex<Real> on Node of global
-//Field p@finest on boundary = 0.0
-//Field p@finest on boundary = Neumann
-//Field p@finest on boundary = applyBC_p@finest()
-
-Field ap@finest from Residual
-
+Field ap@finest with Complex<Real> on Node of global
 Field s@finest with Complex<Real> on Node of global
-//Field s@finest on boundary = 0.0
-//Field s@finest on boundary = Neumann
-//Field s@finest on boundary = applyBC_s@finest()
-
 Field t@finest with Complex<Real> on Node of global
 Field h@finest with Complex<Real> on Node of global
 Field resHat@finest with Complex<Real> on Node of global
 
 /// for BiCGStab
 //Field nu@finest with Complex<Real> on Node of global
+//Field s@finest on boundary = applyBC_s@finest()
+//Field p@finest on boundary = applyBC_p@finest()
 
 /// operators
 
@@ -73,7 +63,7 @@ Operator A from Stencil {
 }
 
 Operator M from Stencil {
-  [ 0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) - shift * k**2
+  [ 0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) - k**2 * shift
   [-1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
   [ 1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
   [ 0, -1] => -1.0 / ( vf_gridWidth_y ** 2 )
@@ -83,7 +73,6 @@ Operator M from Stencil {
 Equation PrecEq {
   M * u  == f
 }
-
 
 Operator Restriction_u  from default restriction  on Node with 'linear'
 Operator Prolongation_u from default prolongation on Node with 'linear'
@@ -197,13 +186,13 @@ Function PreconditionedBiCGStab@finest {
     Solution = h + omega * u
     Residual  = s - omega * t
     curRes    = NormResidual ( )
-    //Residual  = RHS - A * Solution
-    //curRes    = NormResidual ( )
     /*
+    Residual  = RHS - A * Solution
+    curRes    = NormResidual ( )
     if (curStep % 100 == 0) {
       print ( "Residual after", curStep, "iterations is", fabs(curRes), "--- convergence factor is", ( fabs(curRes) / fabs(initRes) ) )
-    }*/
-    
+    }
+    */
     if ( fabs(curRes) < 1e-7 * fabs(initRes) ) {
       print ( "Residual after", curStep, "iterations is", fabs(curRes), "--- convergence factor is", ( fabs(curRes) / fabs(initRes) ) )
       return
@@ -224,12 +213,13 @@ Function PreSmoother@all {
       }
     }
   }
+  /*
   // Jacobi
   repeat 3 times {
     solve locally at u@[0,0] with jacobi relax omegaRelax {
       u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
     }
-  }
+  }*/
 }
 
 Function PostSmoother@all {
@@ -243,11 +233,12 @@ Function PostSmoother@all {
     }
   }
   // Jacobi
+  /*
   repeat 3 times {
     solve locally at u@[0,0,0] with jacobi relax omegaRelax {
       u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
     }
-  }
+  }*/
 }
 
 
@@ -302,12 +293,20 @@ Function VCycle@(coarsest + 1) {
 
 
 
-Field nu    @coarsest from gen_residual_u
-Field p     @coarsest from gen_residual_u
-Field h     @coarsest from gen_residual_u
-Field s     @coarsest from gen_residual_u
-Field t     @coarsest from gen_residual_u
-Field resHat@coarsest from gen_residual_u
+Field nu@coarsest with Complex<Real> on Node of global
+
+Field p@coarsest with Complex<Real> on Node of global
+Field p@coarsest on boundary = applyBC_p@coarsest()
+//Field p@coarsest on boundary = 0.0
+
+Field h@coarsest with Complex<Real> on Node of global
+
+Field s@coarsest with Complex<Real> on Node of global
+Field s@coarsest on boundary = applyBC_s@coarsest()
+//Field s@coarsest on boundary = 0.0
+
+Field t@coarsest with Complex<Real> on Node of global
+Field resHat@coarsest with Complex<Real> on Node of global
 
 Function VCycle@coarsest {
   // init residual
@@ -344,7 +343,6 @@ Function VCycle@coarsest {
     gen_error_u  = h + omega * s
     gen_residual_u  = s - omega * t
     curRes    = sqrt(dot(gen_residual_u, gen_residual_u))
-
-    if ( fabs(curRes) < 1e-6 * fabs(initRes) ) { return }
+    if ( fabs(curRes) < 1e-15 * fabs(initRes)) { return }
   }
 }
