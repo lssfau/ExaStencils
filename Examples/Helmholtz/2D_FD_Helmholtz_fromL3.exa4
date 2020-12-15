@@ -74,7 +74,7 @@ Function applyBC_Residual@finest ( ) : Unit {
     Residual@[0, 0] = 0.0
   }
 }
-Function applyBC_p@all ( ) : Unit {
+Function applyBC_p@finest ( ) : Unit {
 
   loop over p only dup [-1, 0] on boundary {
     p@[0, 0] = p@[1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
@@ -91,7 +91,7 @@ Function applyBC_p@all ( ) : Unit {
 }
 
 
-Function applyBC_s@all ( ) : Unit {
+Function applyBC_s@finest ( ) : Unit {
 
   loop over s only dup [-1, 0] on boundary {
     s@[0, 0] = s@[1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x) 

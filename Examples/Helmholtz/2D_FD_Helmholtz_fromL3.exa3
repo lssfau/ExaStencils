@@ -8,11 +8,10 @@ Domain global< [ 0, 0 ] to [ 1, 1 ] >
 Field Solution@finest with Complex<Real> on Node of global = 0.0
 
 // Dirichlet BC
-// Field Solution@finest on boundary = 0.0
+//Field Solution@finest on boundary = 0.0
 //Field Solution@finest on boundary = cos ( PI * vf_boundaryPos_x ) - sin ( 2.0 * PI * vf_boundaryPos_y )
 // Neumann BC
 //Field Solution@finest on boundary = Neumann
-//Field Solution@(all but finest) on boundary = 0.0
 // Mixed BC
 Field Solution@finest on boundary = applyBC_Solution@finest()
 
@@ -32,7 +31,8 @@ Field Residual@finest with Complex<Real> on Node of global
 
 // For the Preconditioner
 Field u with Complex<Real> on Node of global
-//Field u on boundary = Neumann
+//Field u@finest on boundary = 0.0
+//Field u@finest on boundary = Neumann
 Field u@finest on boundary = applyBC_u@finest()
 Field u@(all but finest) on boundary = 0.0
 
@@ -197,9 +197,9 @@ Function PreconditionedBiCGStab@finest {
     Solution = h + omega * u
     Residual  = s - omega * t
     curRes    = NormResidual ( )
+    //Residual  = RHS - A * Solution
+    //curRes    = NormResidual ( )
     /*
-    Residual  = RHS - A * Solution
-    curRes    = NormResidual ( )
     if (curStep % 100 == 0) {
       print ( "Residual after", curStep, "iterations is", fabs(curRes), "--- convergence factor is", ( fabs(curRes) / fabs(initRes) ) )
     }*/
