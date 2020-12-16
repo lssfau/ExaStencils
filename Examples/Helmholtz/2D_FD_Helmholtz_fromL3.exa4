@@ -107,8 +107,8 @@ Function applyBC_gen_error_u@all ( ) : Unit {
   }
 }
 
+//Function applyBC_p@(finest and coarsest) ( ) : Unit {
 Function applyBC_p@coarsest ( ) : Unit {
-  //Function applyBC_p@(finest and coarsest) ( ) : Unit {
   loop over p only dup [-1, 0] on boundary {
     p@[0, 0] = p@[1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
     //p@[0, 0] = p@[1, 0]
@@ -123,24 +123,23 @@ Function applyBC_p@coarsest ( ) : Unit {
   loop over p only dup [0, -1] on boundary {
     p@[0, 0] = 0.0
   }
+}
+
+
+//Function applyBC_s@(finest and coarsest) ( ) : Unit {
+Function applyBC_s@coarsest ( ) : Unit {
+  loop over s only dup [-1, 0] on boundary {
+    s@[0, 0] = s@[1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
+    //s@[0, 0] = s@[1, 0]
   }
-
-
-  Function applyBC_s@coarsest ( ) : Unit {
-    //Function applyBC_s@(finest and coarsest) ( ) : Unit {
-
-    loop over s only dup [-1, 0] on boundary {
-      s@[0, 0] = s@[1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
-      //s@[0, 0] = s@[1, 0]
-    }
-    loop over s only dup [1, 0] on boundary {
-      s@[0, 0] = s@[-1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
-      //s@[0, 0] = s@[-1, 0]
-    }
-    loop over s only dup [0,  1] on boundary {
-      s@[0, 0] = 0.0
-    }
-    loop over s only dup [0, -1] on boundary {
-      s@[0, 0] = 0.0
-    }
-    }
+  loop over s only dup [1, 0] on boundary {
+    s@[0, 0] = s@[-1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
+    //s@[0, 0] = s@[-1, 0]
+  }
+  loop over s only dup [0,  1] on boundary {
+    s@[0, 0] = 0.0
+  }
+  loop over s only dup [0, -1] on boundary {
+    s@[0, 0] = 0.0
+  }
+}

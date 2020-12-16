@@ -11,7 +11,6 @@ Field Solution@finest on boundary = applyBC_Solution@finest()
 //Field Solution@finest on boundary = 0.0
 
 Field u with Complex<Real> on Node of global
-//Field u@finest on boundary = applyBC_u@finest()
 Field u on boundary = applyBC_u()
 //Field u on boundary = 0.0
 
@@ -343,6 +342,6 @@ Function VCycle@coarsest {
     gen_error_u  = h + omega * s
     gen_residual_u  = s - omega * t
     curRes    = sqrt(dot(gen_residual_u, gen_residual_u))
-    if ( fabs(curRes) < 1e-6 * fabs(initRes) || fabs(curRes) < 1e-6) { return }
+    if ( fabs(curRes) < 1e-6 * fabs(initRes)) { return }
   }
 }
