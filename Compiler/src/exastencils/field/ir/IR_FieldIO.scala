@@ -8,6 +8,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_NullExpression
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_StringConstant
+import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_FileAccess
 import exastencils.io.ir.IR_FileAccess_FPP
 import exastencils.io.ir.IR_FileAccess_HDF5
@@ -49,22 +50,24 @@ abstract class IR_FieldIO(
     // dataset which can be specified for a netCDF/HDF5 file (for HDF5 this can be a path)
     dataset : IR_Expression = IR_NullExpression) extends IR_Statement with IR_Expandable {
 
+  def fieldAsDataBuffer = IR_DataBuffer(field, slot, includeGhostLayers, None, dataset = Some(dataset))
+
   // wrapper function that generates statements for file access using the specified I/O interface
   def generateFileAccess(optPrintComponents : Option[ListBuffer[IR_Expression]] = None) : IR_FileAccess = {
 
     ioInterface.asInstanceOf[IR_StringConstant].value.toLowerCase match {
       case "lock"  =>
-        IR_FileAccess_Locking(filename, field, slot, includeGhostLayers, useBinary, doWrite, separator, condition, optPrintComponents)
+        IR_FileAccess_Locking(filename, ListBuffer(fieldAsDataBuffer), useBinary, doWrite, separator, condition, optPrintComponents)
       case "fpp"   =>
-        IR_FileAccess_FPP(filename, field, slot, includeGhostLayers, useBinary, doWrite, separator, condition, optPrintComponents)
+        IR_FileAccess_FPP(filename, ListBuffer(fieldAsDataBuffer), useBinary, doWrite, separator, condition, optPrintComponents)
       case "mpiio" =>
-        IR_FileAccess_MPIIO(filename, field, slot, includeGhostLayers, doWrite)
+        IR_FileAccess_MPIIO(filename, ListBuffer(fieldAsDataBuffer), doWrite)
       case "hdf5"  =>
-        IR_FileAccess_HDF5(filename, dataset, field, slot, includeGhostLayers, doWrite)
+        IR_FileAccess_HDF5(filename, ListBuffer(fieldAsDataBuffer), doWrite)
       case "nc"    =>
-        IR_FileAccess_PnetCDF(filename, dataset, field, slot, includeGhostLayers, doWrite)
+        IR_FileAccess_PnetCDF(filename, ListBuffer(fieldAsDataBuffer), doWrite)
       case "sion"  =>
-        IR_FileAccess_SionLib(filename, field, slot, includeGhostLayers, doWrite, condition)
+        IR_FileAccess_SionLib(filename, ListBuffer(fieldAsDataBuffer), doWrite, condition)
       case _       =>
         Logger.error("Ignoring call to " + (if (doWrite) {if (onlyVals) "writeField" else "printField"} else "readField") + " using unsupported I/O interface: " + ioInterface)
     }

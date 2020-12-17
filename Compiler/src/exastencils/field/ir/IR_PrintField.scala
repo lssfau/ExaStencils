@@ -116,7 +116,7 @@ case class IR_PrintField(
       ret
     }
     statements ++= fileHeader
-    statements ++= fileAccess.accessFile()
+    statements ++= fileAccess.accessFile(fieldAsDataBuffer)
     statements ++= fileAccess.closeFile()
     statements
   }

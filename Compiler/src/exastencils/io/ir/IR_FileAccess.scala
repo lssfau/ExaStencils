@@ -3,16 +3,14 @@ package exastencils.io.ir
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.config.Settings
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.StatementList
-import exastencils.domain.ir._
-import exastencils.field.ir._
-import exastencils.logger._
+import exastencils.grid.ir.IR_Localization
+import exastencils.optimization.ir.IR_SimplifyExpression
 
 // IR_FileAccess
 // Used to read/write field data from/to files
@@ -25,59 +23,23 @@ object IR_FileAccess {
     declMap.update(s, counter+1)
     s + "_%02d".format(counter)
   }
+
+  // reduce the number of duplicate declarations in the target code for identical dimensionalities
+  private var dimensionalityMap : mutable.HashMap[String, IR_VariableDeclaration] = mutable.HashMap()
+  def declareDimensionality(dt : IR_Datatype, name : String, localization : IR_Localization, dims : Option[ListBuffer[IR_Expression]] = None) : IR_VariableDeclaration = {
+    val declName = name + localization.name
+    val lookup = declName + IR_SimplifyExpression.simplifyIntegralExpr(
+      if (dims.isDefined) dims.get.reduce(_ * _) else IR_IntegerConstant(0)).prettyprint // TODO maybe find a more robust key
+    dimensionalityMap.getOrElseUpdate(lookup, IR_VariableDeclaration(dt, declareVariable(declName), if(dims.isDefined) Some(IR_InitializerList(dims.get.reverse : _*)) else None))
+  }
+  def resetDimensionalityMap() : Unit = dimensionalityMap.clear()
 }
 
 abstract class IR_FileAccess(
     filename : IR_Expression,
-    field : IR_Field,
-    slot : IR_Expression,
-    includeGhostLayers : Boolean,
+    dataBuffers : ListBuffer[IR_DataBuffer],
     writeAccess : Boolean,
     appendedMode : Boolean = false) extends IR_Statement with IR_Expandable {
-
-  def numDimsGrid : Int = field.layout.numDimsGrid
-  def numDimsData : Int = field.layout.numDimsData
-  def numDimsDataRange : Range = (0 until numDimsData).reverse // KJI order
-
-  def beginId : String = if (includeGhostLayers) "GLB" else "DLB"
-  def endId : String = if (includeGhostLayers) "GRE" else "DRE"
-
-  def arrayIndexRange : Range = 0 until field.gridDatatype.resolveFlattendSize
-
-  // local/global dimensions and offsets
-  // TODO: handle other domains
-  // TODO: handle data reduction
-  // TODO: global variable for totalNumberOfFrags and validFragsPerBlock
-  def strideLocal : Array[IR_Expression] = numDimsDataRange.map (_ => IR_IntegerConstant(1)).toArray
-
-  def innerPointsLocal : Array[IR_Expression] = if(includeGhostLayers) {
-    numDimsDataRange.map(d => IR_IntegerConstant(field.layout.defIdxGhostRightEnd(d) - field.layout.defIdxGhostLeftBegin(d))).toArray
-  } else {
-    numDimsDataRange.map(d => IR_IntegerConstant(field.layout.defIdxDupRightEnd(d) - field.layout.defIdxDupLeftBegin(d))).toArray
-  }
-
-  def totalPointsLocal : Array[IR_Expression] = numDimsDataRange.map(d => IR_IntegerConstant(field.layout.defTotal(d))).toArray
-
-  def startIdxLocal : Array[IR_Expression] = numDimsDataRange.map(d => IR_IntegerConstant(
-    if(includeGhostLayers)
-      field.layout.defIdxGhostLeftBegin(d)
-    else
-      field.layout.defIdxDupLeftBegin(d))
-  ).toArray
-
-  def innerPointsGlobal : Array[IR_Expression] = if(Knowledge.domain_onlyRectangular) {
-    numDimsDataRange.map(d => Knowledge.domain_rect_numFragsTotalAsVec(d) * innerPointsLocal(d)).toArray
-  } else { // TODO handling for other domain types
-    Logger.error("Unimplemented!")
-    numDimsDataRange.map(_ => IR_NullExpression).toArray
-  }
-
-  def startIdxGlobal : Array[IR_Expression] = if(Knowledge.domain_onlyRectangular) {
-    numDimsDataRange.map(d => innerPointsLocal(d) * (IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsTotalAsVec(d))).toArray
-  } else { // TODO handling for other domain types
-    Logger.error("Unimplemented!")
-    numDimsDataRange.map(_ => IR_NullExpression).toArray
-  }
 
   // commonly used declarations
   // ...
@@ -85,23 +47,19 @@ abstract class IR_FileAccess(
   // commonly used variable accesses
   def mpiCommunicator = IR_VariableAccess("mpiCommunicator", IR_UnknownDatatype)
   def nullptr = IR_VariableAccess("NULL", IR_UnknownDatatype)
-  def fieldptr = IR_AddressOf(IR_LinearizedFieldAccess(field, slot, IR_LoopOverFragments.defIt, 0))
 
   // commonly used datatypes
   val MPI_Offset : IR_SpecialDatatype = if(Knowledge.mpi_enabled) IR_SpecialDatatype("MPI_Offset") else IR_SpecialDatatype("size_t")
   val MPI_Comm = IR_SpecialDatatype("MPI_Comm")
 
-  // determines whether ghost layers shall be excluded for I/O operations or not
-  def accessWholeBuffer : Boolean = startIdxLocal.map(expr => expr.asInstanceOf[IR_IntegerConstant].value).sum == 0
-
   // structure of file accesses
   def createOrOpenFile() : ListBuffer[IR_Statement]
   def setupAccess() : ListBuffer[IR_Statement]
-  def accessFile() : ListBuffer[IR_Statement] = {
+  def accessFile(buffer : IR_DataBuffer) : ListBuffer[IR_Statement] = { // TODO change to bufIdx
     if(writeAccess) {
-      writeField()
+      write(buffer)
     } else {
-      readField()
+      read(buffer)
     }
   }
   def cleanupAccess() : ListBuffer[IR_Statement]
@@ -112,6 +70,34 @@ abstract class IR_FileAccess(
   def pathsLib : ListBuffer[String] = ListBuffer()
   def includes : ListBuffer[String] = ListBuffer()
   def pathsInc : ListBuffer[String] = ListBuffer()
+
+  // determines with which mode the file is opened/created
+  def openMode : IR_VariableAccess
+
+  // checks input parameters that were passed
+  def validateParams() : Unit = {}
+
+  def accessFileWithGranularity(buf : IR_DataBuffer, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = if(buf.accessBlockwise) {
+    accessFileBlockwise(buf, accessStatements)
+  } else {
+    accessFileFragwise(buf, accessStatements)
+  }
+
+  // method to access the file in a fragment-wise fashion
+  /* IMPORTANT:
+    For collective I/O, each process must participate in a read/write call. Therefore, the I/O library matches the function calls of each process (synchronization).
+    In case that a process's number of valid fragments differs from the other processes, some adaptions need to be made:
+      1. Instead of checking if the fragment is valid before writing, we write without any conditions. Otherwise we would deadlock (this is quite similar to a conditional MPI_Barrier).
+      2. In case that we have an "invalid" fragment, we participate in the collective function call but actually write nothing.
+  */
+  def accessFileFragwise(buf : IR_DataBuffer, accessStatements : ListBuffer[IR_Statement]) : IR_LoopOverFragments
+
+  // method to access the file in a block-wise fashion
+  def accessFileBlockwise(buf : IR_DataBuffer, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = IR_NullStatement // TODO implement and replace calls with accessFileWithGranularity
+
+  // core methods for file access
+  def read(buf : IR_DataBuffer) : ListBuffer[IR_Statement]
+  def write(buf : IR_DataBuffer) : ListBuffer[IR_Statement]
 
   override def expand() : Output[StatementList] = {
     // add new headers, paths and libs
@@ -135,39 +121,19 @@ abstract class IR_FileAccess(
     validateParams()
 
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
+
     stmts ++= createOrOpenFile()
     stmts ++= setupAccess()
-    stmts ++= accessFile()
+    for(buf <- dataBuffers) {
+      stmts ++= accessFile(buf)
+    }
     stmts ++= cleanupAccess()
     stmts ++= closeFile()
+
+    // reset caches
+    IR_FileAccess.resetDimensionalityMap()
+    MPI_View.resetViews()
+
     stmts
   }
-
-  // determines with which mode the file is opened/created
-  def openMode : IR_VariableAccess
-
-  // checks input parameters that were passed
-  def validateParams() : Unit = {}
-
-  def accessFileWithGranularity(blockwiseGranularity : Boolean, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = if(blockwiseGranularity) { // TODO access Databuffer member
-    accessFileBlockwise(accessStatements)
-  } else {
-    accessFileFragwise(accessStatements)
-  }
-
-  // method to access the file in a fragment-wise fashion
-  /* IMPORTANT:
-    For collective I/O, each process must participate in a read/write call. Therefore, the I/O library matches the function calls of each process (synchronization).
-    In case that a process's number of valid fragments differs from the other processes, some adaptions need to be made:
-      1. Instead of checking if the fragment is valid before writing, we write without any conditions. Otherwise we would deadlock (this is quite similar to a conditional MPI_Barrier).
-      2. In case that we have an "invalid" fragment, we participate in the collective function call but actually write nothing.
-  */
-  def accessFileFragwise(accessStatements : ListBuffer[IR_Statement]) : IR_LoopOverFragments
-
-  // method to access the file in a block-wise fashion
-  def accessFileBlockwise(accessStatements : ListBuffer[IR_Statement]) : IR_Statement = IR_NullStatement // TODO
-
-  // core methods for file access
-  def readField() : ListBuffer[IR_Statement]
-  def writeField() : ListBuffer[IR_Statement]
 }

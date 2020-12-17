@@ -116,6 +116,7 @@ trait IR_PrintVisualization {
   def nodeOffsets : ListBuffer[IR_ConstIndex] // essentially only for SWE, but used here to reduce duplicate code
 
   // global variable used for constant data reduction
+  // TODO make IV
   def constantsWritten_decl = IR_VariableDeclaration(IR_BooleanDatatype, "constantsWritten", false)
   def constantsWritten = IR_VariableAccess(constantsWritten_decl)
 
