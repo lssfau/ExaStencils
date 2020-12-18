@@ -55,10 +55,10 @@ case class IR_FileAccess_PnetCDF(
   val ncFile_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("ncFile"))
   val info_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Info"), IR_FileAccess.declareVariable("info"), IR_VariableAccess("MPI_INFO_NULL", IR_UnknownDatatype)) //TODO handle hints
   val varIdTime_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("varIdTime"))
-
-  // decls for data extents
   val varIdField_decl = dataBuffers.map(buf =>
     IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("varId_"+buf.name)))
+
+  // decls for data extents
   val stride_decl = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
     IR_ArrayDatatype(ptrDatatype, numDimsDataAndTime(buf.numDimsData)), "stride", buf.localization,
     Some(if (useTimeDim) buf.stride :+ IR_IntegerConstant(1) else buf.stride))) // add one more entry for unlimited "time" dimension
