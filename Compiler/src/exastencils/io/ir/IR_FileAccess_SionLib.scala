@@ -21,7 +21,7 @@ case class IR_FileAccess_SionLib(
     var dataBuffers : ListBuffer[IR_DataBuffer],
     var writeAccess : Boolean,
     var condition: IR_Expression,
-    var appendedMode : Boolean = false) extends IR_FileAccess(filename, dataBuffers, writeAccess, appendedMode) {
+    var appendedMode : Boolean = false) extends IR_FileAccess("sion", filename, dataBuffers, writeAccess, appendedMode) {
 
   // datatypes
   val sion_int64 = IR_SpecialDatatype("sion_int64")

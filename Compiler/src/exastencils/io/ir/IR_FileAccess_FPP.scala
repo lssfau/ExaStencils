@@ -26,7 +26,7 @@ case class IR_FileAccess_FPP(
     var separator : IR_Expression,
     var condition : IR_Expression,
     var optPrintComponents : Option[ListBuffer[IR_Expression]],
-    var appendedMode : Boolean = false) extends IR_FileAccess(filename, dataBuffers, writeAccess, appendedMode) {
+    var appendedMode : Boolean = false) extends IR_FileAccess("fpp", filename, dataBuffers, writeAccess, appendedMode) {
 
   var openFlags : String = if (writeAccess) { if (appendedMode) "std::ios::app" else "std::ios::trunc" } else "std::ios::in"
   if (useBinary)

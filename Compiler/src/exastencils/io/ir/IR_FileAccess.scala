@@ -10,6 +10,7 @@ import exastencils.config.Settings
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.StatementList
 import exastencils.grid.ir.IR_Localization
+import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 
 // IR_FileAccess
@@ -36,23 +37,52 @@ object IR_FileAccess {
 }
 
 abstract class IR_FileAccess(
+    interfaceName : String,
     filename : IR_Expression,
     dataBuffers : ListBuffer[IR_DataBuffer],
     writeAccess : Boolean,
     appendedMode : Boolean = false) extends IR_Statement with IR_Expandable {
 
-  // commonly used declarations
-  // ...
-
-  // commonly used variable accesses
-  def mpiCommunicator = IR_VariableAccess("mpiCommunicator", IR_UnknownDatatype)
-  def nullptr = IR_VariableAccess("NULL", IR_UnknownDatatype)
-
   // commonly used datatypes
   val MPI_Offset : IR_SpecialDatatype = if(Knowledge.mpi_enabled) IR_SpecialDatatype("MPI_Offset") else IR_SpecialDatatype("size_t")
   val MPI_Comm = IR_SpecialDatatype("MPI_Comm")
+  lazy val datatypeDimArray : IR_Datatype = interfaceName match {
+    case "mpiio" => IR_IntegerDatatype
+    case "nc"    => MPI_Offset
+    case "hdf5"  => IR_SpecialDatatype("hsize_t")
+    case _ =>
+      Logger.warn("IR_FileAccess: Unknown I/O interface used for \"datatypeDimArray\"")
+      IR_UnknownDatatype
+  }
+  def mpiDatatypeBuffer(buf : IR_DataBuffer) = IR_VariableAccess(buf.datatype.resolveBaseDatatype.prettyprint_mpi, IR_UnknownDatatype)
 
-  // structure of file accesses
+  // commonly used declarations
+  def stride_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
+    IR_ArrayDatatype(datatypeDimArray, buf.numDimsData), "stride", buf.localization, Some(buf.stride)))
+  def count_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
+    IR_ArrayDatatype(datatypeDimArray, buf.numDimsData), "count", buf.localization, Some(buf.innerDimsLocal)))
+  def localDims_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
+    IR_ArrayDatatype(datatypeDimArray, buf.numDimsData), "localDims", buf.localization, Some(buf.totalDimsLocal)))
+  def localStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
+    IR_ArrayDatatype(datatypeDimArray, buf.numDimsData), "localStart", buf.localization, Some(buf.startIndexLocal)))
+  def globalDims_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
+    IR_ArrayDatatype(datatypeDimArray, buf.numDimsData), "globalDims", buf.localization, Some(buf.innerDimsGlobal)))
+  def globalStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
+    IR_ArrayDatatype(datatypeDimArray, buf.numDimsData), "globalStart", buf.localization, Some(ListBuffer.fill(buf.numDimsData)(IR_IntegerConstant(0)))))
+  def dimensionalityDeclarations : ListBuffer[IR_VariableDeclaration] = stride_decl.distinct ++ count_decl.distinct ++
+    localDims_decl.distinct ++ localStart_decl.distinct ++ globalDims_decl.distinct ++ globalStart_decl.distinct
+
+  // commonly used variable accesses
+  val mpiCommunicator = IR_VariableAccess("mpiCommunicator", IR_UnknownDatatype)
+  val nullptr = IR_VariableAccess("NULL", IR_UnknownDatatype)
+  def stride(buf : IR_DataBuffer) = IR_VariableAccess(stride_decl(dataBuffers.indexOf(buf)))
+  def count(buf : IR_DataBuffer) = IR_VariableAccess(count_decl(dataBuffers.indexOf(buf)))
+  def localDims(buf : IR_DataBuffer) = IR_VariableAccess(localDims_decl(dataBuffers.indexOf(buf)))
+  def localStart(buf : IR_DataBuffer) = IR_VariableAccess(localStart_decl(dataBuffers.indexOf(buf)))
+  def globalDims(buf : IR_DataBuffer) = IR_VariableAccess(globalDims_decl(dataBuffers.indexOf(buf)))
+  def globalStart(buf : IR_DataBuffer) = IR_VariableAccess(globalStart_decl(dataBuffers.indexOf(buf)))
+
+  // structure of file access classes
   def createOrOpenFile() : ListBuffer[IR_Statement]
   def setupAccess() : ListBuffer[IR_Statement]
   def accessFile(buffer : IR_DataBuffer) : ListBuffer[IR_Statement] = { // TODO change to bufIdx
@@ -130,9 +160,8 @@ abstract class IR_FileAccess(
     stmts ++= cleanupAccess()
     stmts ++= closeFile()
 
-    // reset caches
+    // reset lookup tables
     IR_FileAccess.resetDimensionalityMap()
-    MPI_View.resetViews()
 
     stmts
   }

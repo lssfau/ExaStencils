@@ -18,7 +18,7 @@ case class IR_FileAccess_HDF5(
     var fileName : IR_Expression,
     var dataBuffers : ListBuffer[IR_DataBuffer],
     var writeAccess : Boolean,
-    var appendedMode : Boolean = false) extends IR_FileAccess(fileName, dataBuffers, writeAccess, appendedMode) {
+    var appendedMode : Boolean = false) extends IR_FileAccess("hdf5", fileName, dataBuffers, writeAccess, appendedMode) {
 
   override def openMode : IR_VariableAccess = if (writeAccess) {
     if (appendedMode) IR_VariableAccess("H5F_ACC_RDWR", IR_UnknownDatatype) else IR_VariableAccess("H5F_ACC_TRUNC", IR_UnknownDatatype)
@@ -34,6 +34,7 @@ case class IR_FileAccess_HDF5(
   val hsize_t = IR_SpecialDatatype("hsize_t")
   val herr_t = IR_SpecialDatatype("herr_t")
   val htri_t = IR_SpecialDatatype("htri_t")
+
   // decls
   val err_decl = IR_VariableDeclaration(herr_t, IR_FileAccess.declareVariable("err"))
   val fileId_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("fileId"))
@@ -42,30 +43,11 @@ case class IR_FileAccess_HDF5(
   val emptyDataspace_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("emptyDataspace"))
   val dataset_decl = dataBuffers.map(buf =>
     IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("dataset_" + buf.name)))
-  val stride_decl = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(hsize_t, buf.numDimsData), "stride", buf.localization, Some(buf.stride)))
-  val count_decl = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(hsize_t, buf.numDimsData), "count", buf.localization, Some(buf.innerDimsLocal)))
-  val localDims_decl = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(hsize_t, buf.numDimsData), "localDims", buf.localization, Some(buf.totalDimsLocal)))
-  val localStart_decl = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(hsize_t, buf.numDimsData), "localStart", buf.localization, Some(buf.startIndexLocal)))
-  val globalDims_decl = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(hsize_t, buf.numDimsData), "globalDims", buf.localization, Some(buf.innerDimsGlobal)))
-  val globalStart_decl = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(hsize_t, buf.numDimsData), "globalStart", buf.localization, Some(ListBuffer.fill(buf.numDimsData)(IR_IntegerConstant(0)))))
   val info_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Info"), IR_FileAccess.declareVariable("info"), IR_VariableAccess("MPI_INFO_NULL", IR_UnknownDatatype)) //TODO handle hints
-  var declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(err_decl, fileId_decl, propertyList_decl, transferList_decl)
+  var declarations : ListBuffer[IR_VariableDeclaration] = dimensionalityDeclarations :+ err_decl :+ fileId_decl :+ propertyList_decl :+ transferList_decl
 
   // declarations per databuffer
   declarations ++= dataset_decl
-  declarations ++= stride_decl.distinct
-  declarations ++= count_decl.distinct
-  declarations ++= localDims_decl.distinct
-  declarations ++= localStart_decl.distinct
-  declarations ++= globalDims_decl.distinct
-  declarations ++= globalStart_decl.distinct
-
 
   // add declarations which are only used in a parallel application
   if (Knowledge.mpi_enabled) {
@@ -86,12 +68,6 @@ case class IR_FileAccess_HDF5(
   val dataspace = (buf : IR_DataBuffer) => getDataspace(buf).get
   val memspace = (buf : IR_DataBuffer) => getMemspace(buf).get
   val dataset = (buf : IR_DataBuffer) => IR_VariableAccess(dataset_decl(dataBuffers.indexOf(buf)))
-  val stride = (buf : IR_DataBuffer) => IR_VariableAccess(stride_decl(dataBuffers.indexOf(buf)))
-  val count = (buf : IR_DataBuffer) => IR_VariableAccess(count_decl(dataBuffers.indexOf(buf)))
-  val localDims = (buf : IR_DataBuffer) => IR_VariableAccess(localDims_decl(dataBuffers.indexOf(buf)))
-  val localStart = (buf : IR_DataBuffer) => IR_VariableAccess(localStart_decl(dataBuffers.indexOf(buf)))
-  val globalDims = (buf : IR_DataBuffer) => IR_VariableAccess(globalDims_decl(dataBuffers.indexOf(buf)))
-  val globalStart = (buf : IR_DataBuffer) => IR_VariableAccess(globalStart_decl(dataBuffers.indexOf(buf)))
 
   // dataspaces and memspaces per buffer
   var memspaces : mutable.HashMap[String, IR_VariableAccess] = mutable.HashMap()
@@ -322,7 +298,7 @@ case class IR_FileAccess_HDF5(
         falseBdy += dimsDataset_decl
         falseBdy ++= callH5Function(rank, "H5Sget_simple_extent_dims", dataspace, dimsDataset, nullptr)
         falseBdy += IR_IfCondition(
-          buffer.numDimsDataRangeKJI.map(d => IR_ArrayAccess(dimsDataset, d) Neq IR_ArrayAccess(globalDims(buffer), d)).fold(IR_BooleanConstant(true))((a, b) => a AndAnd b), // compare dimensionality
+          buffer.numDimsDataRange.map(d => IR_ArrayAccess(dimsDataset, d) Neq IR_ArrayAccess(globalDims(buffer), d)).fold(IR_BooleanConstant(true))((a, b) => a AndAnd b), // compare dimensionality
           IR_Print(IR_VariableAccess("std::cout", IR_UnknownDatatype), IR_StringConstant("Dimensionality mismatch! No data is read from the file.")),
           readField)
 

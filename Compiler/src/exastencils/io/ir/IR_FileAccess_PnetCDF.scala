@@ -18,7 +18,7 @@ case class IR_FileAccess_PnetCDF(
     var fileName : IR_Expression,
     var dataBuffers : ListBuffer[IR_DataBuffer],
     var writeAccess : Boolean,
-    var appendedMode : Boolean = false) extends IR_FileAccess(fileName, dataBuffers, writeAccess, appendedMode) {
+    var appendedMode : Boolean = false) extends IR_FileAccess("nc", fileName, dataBuffers, writeAccess, appendedMode) {
 
   // TODO: Test handling collective/independent I/O for "invalid" fragments
   // TODO: serial function calls
@@ -43,12 +43,9 @@ case class IR_FileAccess_PnetCDF(
 
   // time variable handling
   val useTimeDim = true // TODO add as parameter: [true | false] to enable/disable writing record variables
-  val numDimsDataAndTime = (numDimsData : Int) => numDimsData + (if (useTimeDim) 1 else 0) // record variables are bound to the "unlimited" dimension (often used as time)
+  def numDimsDataAndTime(numDimsData : Int) : Int = numDimsData + (if (useTimeDim) 1 else 0) // record variables are bound to the "unlimited" dimension (often used as time)
   val indexTimeArray_decl = IR_VariableDeclaration(MPI_Offset, IR_FileAccess.declareVariable("printStep"), 0) // TODO make iv
   val timeStep_decl = IR_VariableDeclaration(IR_DoubleDatatype, IR_FileAccess.declareVariable("t"), 0.0) // TODO make iv
-
-  // serial API uses "ptrdiff_t" for "imap" and "stride" parameters
-  val ptrDatatype : IR_SpecialDatatype = if (Knowledge.mpi_enabled) MPI_Offset else IR_SpecialDatatype("ptrdiff_t")
 
   // decls
   val err_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("err"))
@@ -59,34 +56,28 @@ case class IR_FileAccess_PnetCDF(
     IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("varId_"+buf.name)))
 
   // decls for data extents
-  val stride_decl = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
+  val ptrDatatype : IR_SpecialDatatype = if (Knowledge.mpi_enabled) MPI_Offset else IR_SpecialDatatype("ptrdiff_t") // serial API uses "ptrdiff_t" for "imap" and "stride" parameters
+  override def stride_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
     IR_ArrayDatatype(ptrDatatype, numDimsDataAndTime(buf.numDimsData)), "stride", buf.localization,
     Some(if (useTimeDim) buf.stride :+ IR_IntegerConstant(1) else buf.stride))) // add one more entry for unlimited "time" dimension
-  val count_decl = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
+  override def count_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
     IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime(buf.numDimsData)), "count", buf.localization,
     Some(if (useTimeDim) buf.innerDimsLocal :+ IR_IntegerConstant(1) else buf.innerDimsLocal))) // prepend "1" since "1*(count.product)" values are written per timestep
-  val emptyCount_decl = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime(buf.numDimsData)), "emptyCount", buf.localization,
-    Some(ListBuffer.fill(numDimsDataAndTime(buf.numDimsData))(IR_IntegerConstant(0)))))
-  val imap_decl = dataBuffers.map(buf => IR_FileAccess.declareDimensionality( // describes in-memory access pattern
-    IR_ArrayDatatype(ptrDatatype, numDimsDataAndTime(buf.numDimsData)),"imap", buf.localization,
-    Some(if (useTimeDim) buf.imap :+ IR_IntegerConstant(0) else buf.imap))) // prepend "0" since the memory layout doesn't change with the additional time dimension
-  val globalDims_decl = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(MPI_Offset, buf.numDimsData), "globalDims", buf.localization,
-    Some(buf.innerDimsGlobal)))
-  val globalStart_decl = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
+  override def globalStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
     IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime(buf.numDimsData)), "globalStart", buf.localization,
     Some(ListBuffer.fill(numDimsDataAndTime(buf.numDimsData))(IR_IntegerConstant(0)))))
+  val emptyCount_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
+    IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime(buf.numDimsData)), "emptyCount", buf.localization,
+    Some(ListBuffer.fill(numDimsDataAndTime(buf.numDimsData))(IR_IntegerConstant(0)))))
+  val imap_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality( // describes in-memory access pattern
+    IR_ArrayDatatype(ptrDatatype, numDimsDataAndTime(buf.numDimsData)),"imap", buf.localization,
+    Some(if (useTimeDim) buf.imap :+ IR_IntegerConstant(0) else buf.imap))) // prepend "0" since the memory layout doesn't change with the additional time dimension
 
-  var declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(err_decl, ncFile_decl)
+  var declarations : ListBuffer[IR_VariableDeclaration] = dimensionalityDeclarations :+ err_decl :+ ncFile_decl
 
   // declarations per databuffer
   declarations ++= varIdField_decl
-  declarations ++= stride_decl.distinct
-  declarations ++= count_decl.distinct
   declarations ++= imap_decl.distinct
-  declarations ++= globalDims_decl.distinct
-  declarations ++= globalStart_decl.distinct
 
   // add declarations which are only used in a parallel application
   if(Knowledge.mpi_enabled) {
@@ -111,12 +102,8 @@ case class IR_FileAccess_PnetCDF(
   val info = IR_VariableAccess(info_decl)
   val varIdTime = IR_VariableAccess(varIdTime_decl)
   val varIdField = (buf : IR_DataBuffer) => IR_VariableAccess(varIdField_decl(dataBuffers.indexOf(buf)))
-  val stride = (buf : IR_DataBuffer) => IR_VariableAccess(stride_decl(dataBuffers.indexOf(buf)))
-  val count = (buf : IR_DataBuffer) => IR_VariableAccess(count_decl(dataBuffers.indexOf(buf)))
   val emptyCount = (buf : IR_DataBuffer) => IR_VariableAccess(emptyCount_decl(dataBuffers.indexOf(buf)))
   val imap = (buf : IR_DataBuffer) => IR_VariableAccess(imap_decl(dataBuffers.indexOf(buf)))
-  val globalDims = (buf : IR_DataBuffer) => IR_VariableAccess(globalDims_decl(dataBuffers.indexOf(buf)))
-  val globalStart = (buf : IR_DataBuffer) => IR_VariableAccess(globalStart_decl(dataBuffers.indexOf(buf)))
 
   /*
   Determines the netCDF datatype of a field. Those are commonly used when defining variables/attributes.
@@ -165,7 +152,7 @@ case class IR_FileAccess_PnetCDF(
 
   def createDimName(buf : IR_DataBuffer, d : Int) = IR_StringConstant(IR_FileAccess.declareVariable(buf.name + "_" + "dim" + (buf.numDimsData - d))) // TODO
 
-  // calls a function from the PnetCDF library and checks if an error occured (i.e. err was set to a value < 0) when debug statements are enabled
+  // calls a function from the PnetCDF library and checks if an error occurred (i.e. err was set to a value < 0) when debug statements are enabled
   def callNcFunction(funcName : String, datatype : Option[IR_Datatype], args : IR_Expression*) : ListBuffer[IR_Statement] = {
     // handle serial/parallel API differences
     val nonFlexibleFuncName = funcName.replaceFirst("<type>", if (datatype.isDefined) apiTypename(datatype.get) else "")
@@ -309,8 +296,6 @@ case class IR_FileAccess_PnetCDF(
 
     statements
   }
-
-  val mpiDatatypeBuffer = (buf : IR_DataBuffer) => IR_VariableAccess(buf.datatype.resolveBaseDatatype.prettyprint_mpi, IR_UnknownDatatype)
 
   // set count to "0" for "invalid" frags in order to perform a NOP read/write
   val countSelection_decl = dataBuffers.map(buf => IR_VariableDeclaration(IR_PointerDatatype(MPI_Offset), IR_FileAccess.declareVariable("countSelection"), count(buf)))

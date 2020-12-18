@@ -93,7 +93,7 @@ case class IR_FileAccess_MPIIO(
     var filename : IR_Expression,
     var dataBuffers : ListBuffer[IR_DataBuffer],
     var writeAccess : Boolean,
-    var appendedMode : Boolean = false) extends IR_FileAccess(filename, dataBuffers, writeAccess, appendedMode) {
+    var appendedMode : Boolean = false) extends IR_FileAccess("mpiio", filename, dataBuffers, writeAccess, appendedMode) {
 
   override def openMode : IR_VariableAccess = if (writeAccess) {
     val openOrCreate = if (appendedMode) "MPI_MODE_APPEND" else "MPI_MODE_CREATE"
@@ -107,39 +107,18 @@ case class IR_FileAccess_MPIIO(
   // mpi i/o specific datatypes
   val MPI_File = IR_SpecialDatatype("MPI_File")
   val MPI_Datatype = IR_SpecialDatatype("MPI_Datatype")
-  lazy val mpiDatatypeBuffer = (buf : IR_DataBuffer) => IR_VariableAccess(buf.datatype.resolveBaseDatatype.prettyprint_mpi, IR_UnknownDatatype)
 
   // declarations
   val fileHandle_decl = IR_VariableDeclaration(MPI_File, IR_FileAccess.declareVariable("fh"))
   val info_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Info"), IR_FileAccess.declareVariable("info"), IR_VariableAccess("MPI_INFO_NULL", IR_UnknownDatatype)) //TODO handle hints
   val status_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Status"), IR_FileAccess.declareVariable("status"))
 
-  // declarations per buffer
-  val count_decl = (buf: IR_DataBuffer) => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(IR_IntegerDatatype, buf.numDimsData), "count", buf.localization, Some(buf.innerDimsLocal))
-  val localDims_decl = (buf: IR_DataBuffer) => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(IR_IntegerDatatype, buf.numDimsData), "localDims", buf.localization, Some(buf.totalDimsLocal))
-  val localStart_decl = (buf: IR_DataBuffer) => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(IR_IntegerDatatype, buf.numDimsData), "localStart", buf.localization, Some(buf.startIndexLocal))
-  val globalDims_decl = (buf: IR_DataBuffer) => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(IR_IntegerDatatype, buf.numDimsData), "globalDims", buf.localization, Some(buf.innerDimsGlobal))
-  val globalStart_decl = (buf: IR_DataBuffer) => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(IR_IntegerDatatype, buf.numDimsData), "globalStart", buf.localization)
-
-  var declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(fileHandle_decl, info_decl, status_decl)
-  for (buf <- dataBuffers) {
-    declarations = (declarations :+ count_decl(buf) :+ localDims_decl(buf) :+ localStart_decl(buf) :+ globalDims_decl(buf) :+ globalStart_decl(buf)).distinct
-  }
+  var declarations : ListBuffer[IR_VariableDeclaration] = dimensionalityDeclarations :+ fileHandle_decl :+ info_decl :+ status_decl
 
   // accesses
   val fileHandle = IR_VariableAccess(fileHandle_decl)
   val info = IR_VariableAccess(info_decl)
   val status = IR_AddressOf(IR_VariableAccess(status_decl))
-  val count = (buf : IR_DataBuffer) => IR_VariableAccess(count_decl(buf))
-  val localDims = (buf : IR_DataBuffer) => IR_VariableAccess(localDims_decl(buf))
-  val localStart = (buf : IR_DataBuffer) => IR_VariableAccess(localStart_decl(buf))
-  val globalDims = (buf : IR_DataBuffer) => IR_VariableAccess(globalDims_decl(buf))
-  val globalStart = (buf : IR_DataBuffer) => IR_VariableAccess(globalStart_decl(buf))
 
   // derived datatypes
   val localView = (buf : IR_DataBuffer) => MPI_View.getView(dataBuffers.indexOf(buf), global = false)
@@ -224,7 +203,7 @@ case class IR_FileAccess_MPIIO(
     } else {
       val numElements = IR_IntegerConstant(1) // derived datatype localView contains a whole fragment (with or without ghost layers)
       val readCall = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_read"),
-        fileHandle, buffer.getAddress(IR_ConstIndex(0)), numElements, localView(buffer).getAccess, status)
+        fileHandle, buffer.getBaseAddress, numElements, localView(buffer).getAccess, status)
 
       statements += accessFileFragwise(buffer,
         ListBuffer(readCall)
