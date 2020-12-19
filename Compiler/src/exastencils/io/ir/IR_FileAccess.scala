@@ -74,7 +74,6 @@ abstract class IR_FileAccess(
 
   // commonly used variable accesses
   val mpiCommunicator = IR_VariableAccess("mpiCommunicator", IR_UnknownDatatype)
-  val nullptr = IR_VariableAccess("NULL", IR_UnknownDatatype)
   def stride(bufIdx : Int) = IR_VariableAccess(stride_decl(bufIdx))
   def count(bufIdx : Int) = IR_VariableAccess(count_decl(bufIdx))
   def localDims(bufIdx : Int) = IR_VariableAccess(localDims_decl(bufIdx))

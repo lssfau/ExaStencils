@@ -55,6 +55,7 @@ case class IR_FileAccess_SionLib(
   } else {
     IR_VariableDeclaration(IR_PointerDatatype(IR_IntegerDatatype), IR_FileAccess.declareVariable("globalRanks"))
   }
+  val nullptr = IR_VariableAccess("NULL", IR_UnknownDatatype)
   val filePtr_decl = IR_VariableDeclaration(IR_PointerDatatype(FILE), IR_FileAccess.declareVariable("filePtr"), nullptr)
   val newPhysFilenames_decl = IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), IR_FileAccess.declareVariable("newPhysFilenames"), nullptr)
   var declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(
