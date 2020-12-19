@@ -66,7 +66,8 @@ case class IR_FileAccess_Locking(
   // nothing to setup here
   override def setupAccess() : ListBuffer[IR_Statement] = ListBuffer()
 
-  override def accessFileFragwise(buffer : IR_DataBuffer, fileAcc : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
+  override def accessFileFragwise(bufIdx : Int, fileAcc : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
+    val buffer = dataBuffers(bufIdx)
     IR_LoopOverFragments(
       IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),
         IR_LoopOverDimensions(buffer.numDimsData, IR_ExpressionIndexRange(
@@ -80,7 +81,7 @@ case class IR_FileAccess_Locking(
   override def cleanupAccess() : ListBuffer[IR_Statement] = ListBuffer()
   override def closeFile() : ListBuffer[IR_Statement] = ListBuffer()
 
-  override def read(buffer : IR_DataBuffer) : ListBuffer[IR_Statement] = {
+  override def read(bufIdx : Int) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     val read = if (useBinary) IR_ReadBinary(stream) else IR_Read(stream)
@@ -92,7 +93,7 @@ case class IR_FileAccess_Locking(
     read.exprToRead += access
     */
     // TODO
-    read.exprToRead += buffer.getAccess(IR_LoopOverDimensions.defIt(buffer.numDimsData))
+    read.exprToRead += dataBuffers(bufIdx).getAccess(IR_LoopOverDimensions.defIt(dataBuffers(bufIdx).numDimsData))
 
     // skip separator
     if (!separator.asInstanceOf[IR_StringConstant].value.trim().isEmpty) {
@@ -124,7 +125,7 @@ case class IR_FileAccess_Locking(
     }
 
     // read data from file
-    innerLoop += accessFileFragwise(buffer, ListBuffer(read))
+    innerLoop += accessFileFragwise(bufIdx, ListBuffer(read))
 
     // comm file pointer to next rank
     if (Knowledge.mpi_enabled) {
@@ -149,7 +150,7 @@ case class IR_FileAccess_Locking(
     statements
   }
 
-  override def write(buffer : IR_DataBuffer) : ListBuffer[IR_Statement] = {
+  override def write(bufIdx : Int) : ListBuffer[IR_Statement] = {
     val printSetPrecision = if (!useBinary) {
       if (Knowledge.field_printFieldPrecision == -1)
         IR_Print(stream, "std::scientific")
@@ -171,7 +172,7 @@ case class IR_FileAccess_Locking(
       }
       */
       // TODO
-      printComponents += buffer.getAccess(IR_LoopOverDimensions.defIt(buffer.numDimsData))
+      printComponents += dataBuffers(bufIdx).getAccess(IR_LoopOverDimensions.defIt(dataBuffers(bufIdx).numDimsData))
       printComponents += separator
       printComponents += IR_Print.newline
       IR_Print(stream, printComponents)
@@ -186,7 +187,7 @@ case class IR_FileAccess_Locking(
       }
       */
       // TODO
-      printComponents += buffer.getAccess(IR_LoopOverDimensions.defIt(buffer.numDimsData))
+      printComponents += dataBuffers(bufIdx).getAccess(IR_LoopOverDimensions.defIt(dataBuffers(bufIdx).numDimsData))
       IR_PrintBinary(stream, printComponents)
     }
 
@@ -200,7 +201,7 @@ case class IR_FileAccess_Locking(
     var innerLoop = ListBuffer[IR_Statement](
       IR_ObjectInstantiation(stream, Duplicate(filename), openModeLock),
       printSetPrecision,
-      accessFileFragwise(buffer, ListBuffer(print)),
+      accessFileFragwise(bufIdx, ListBuffer(print)),
       IR_MemberFunctionCall(stream, "close")
     )
 

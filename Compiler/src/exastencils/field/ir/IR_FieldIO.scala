@@ -50,7 +50,7 @@ abstract class IR_FieldIO(
     // dataset which can be specified for a netCDF/HDF5 file (for HDF5 this can be a path)
     dataset : IR_Expression = IR_NullExpression) extends IR_Statement with IR_Expandable {
 
-  def fieldAsDataBuffer = IR_DataBuffer(field, slot, includeGhostLayers, None, dataset = Some(dataset))
+  val fieldAsDataBuffer = IR_DataBuffer(field, slot, includeGhostLayers, None, dataset = Some(dataset))
 
   // wrapper function that generates statements for file access using the specified I/O interface
   def generateFileAccess(optPrintComponents : Option[ListBuffer[IR_Expression]] = None) : IR_FileAccess = {

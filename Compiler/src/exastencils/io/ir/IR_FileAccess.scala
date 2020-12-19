@@ -18,7 +18,7 @@ import exastencils.optimization.ir.IR_SimplifyExpression
 
 object IR_FileAccess {
   // prohibit redeclaration of variables for sequences of I/O statements in the same scope
-  private var declMap : mutable.HashMap[String, Int] = mutable.HashMap()
+  private val declMap : mutable.HashMap[String, Int] = mutable.HashMap()
   def declareVariable(s: String) : String = {
     val counter = declMap.getOrElseUpdate(s, 0)
     declMap.update(s, counter+1)
@@ -26,7 +26,7 @@ object IR_FileAccess {
   }
 
   // reduce the number of duplicate declarations in the target code for identical dimensionalities
-  private var dimensionalityMap : mutable.HashMap[String, IR_VariableDeclaration] = mutable.HashMap()
+  private val dimensionalityMap : mutable.HashMap[String, IR_VariableDeclaration] = mutable.HashMap()
   def declareDimensionality(dt : IR_Datatype, name : String, localization : IR_Localization, dims : Option[ListBuffer[IR_Expression]] = None) : IR_VariableDeclaration = {
     val declName = name + localization.name
     val lookup = declName + IR_SimplifyExpression.simplifyIntegralExpr(
@@ -44,7 +44,7 @@ abstract class IR_FileAccess(
     appendedMode : Boolean = false) extends IR_Statement with IR_Expandable {
 
   // commonly used datatypes
-  val MPI_Offset : IR_SpecialDatatype = if(Knowledge.mpi_enabled) IR_SpecialDatatype("MPI_Offset") else IR_SpecialDatatype("size_t")
+  val MPI_Offset : IR_SpecialDatatype = if (Knowledge.mpi_enabled) IR_SpecialDatatype("MPI_Offset") else IR_SpecialDatatype("size_t")
   val MPI_Comm = IR_SpecialDatatype("MPI_Comm")
   lazy val datatypeDimArray : IR_Datatype = interfaceName match {
     case "mpiio" => IR_IntegerDatatype
@@ -75,23 +75,24 @@ abstract class IR_FileAccess(
   // commonly used variable accesses
   val mpiCommunicator = IR_VariableAccess("mpiCommunicator", IR_UnknownDatatype)
   val nullptr = IR_VariableAccess("NULL", IR_UnknownDatatype)
-  def stride(buf : IR_DataBuffer) = IR_VariableAccess(stride_decl(dataBuffers.indexOf(buf)))
-  def count(buf : IR_DataBuffer) = IR_VariableAccess(count_decl(dataBuffers.indexOf(buf)))
-  def localDims(buf : IR_DataBuffer) = IR_VariableAccess(localDims_decl(dataBuffers.indexOf(buf)))
-  def localStart(buf : IR_DataBuffer) = IR_VariableAccess(localStart_decl(dataBuffers.indexOf(buf)))
-  def globalDims(buf : IR_DataBuffer) = IR_VariableAccess(globalDims_decl(dataBuffers.indexOf(buf)))
-  def globalStart(buf : IR_DataBuffer) = IR_VariableAccess(globalStart_decl(dataBuffers.indexOf(buf)))
+  def stride(bufIdx : Int) = IR_VariableAccess(stride_decl(bufIdx))
+  def count(bufIdx : Int) = IR_VariableAccess(count_decl(bufIdx))
+  def localDims(bufIdx : Int) = IR_VariableAccess(localDims_decl(bufIdx))
+  def localStart(bufIdx : Int) = IR_VariableAccess(localStart_decl(bufIdx))
+  def globalDims(bufIdx : Int) = IR_VariableAccess(globalDims_decl(bufIdx))
+  def globalStart(bufIdx : Int) = IR_VariableAccess(globalStart_decl(bufIdx))
 
   // structure of file access classes
   def createOrOpenFile() : ListBuffer[IR_Statement]
   def setupAccess() : ListBuffer[IR_Statement]
-  def accessFile(buffer : IR_DataBuffer) : ListBuffer[IR_Statement] = { // TODO change to bufIdx
+  def accessFile(bufIdx : Int) : ListBuffer[IR_Statement] = {
     if(writeAccess) {
-      write(buffer)
+      write(bufIdx)
     } else {
-      read(buffer)
+      read(bufIdx)
     }
   }
+  def accessFile(buffer : IR_DataBuffer) : ListBuffer[IR_Statement] = accessFile(dataBuffers.indexOf(buffer))
   def cleanupAccess() : ListBuffer[IR_Statement]
   def closeFile() : ListBuffer[IR_Statement]
 
@@ -107,10 +108,10 @@ abstract class IR_FileAccess(
   // checks input parameters that were passed
   def validateParams() : Unit = {}
 
-  def accessFileWithGranularity(buf : IR_DataBuffer, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = if(buf.accessBlockwise) {
-    accessFileBlockwise(buf, accessStatements)
+  def accessFileWithGranularity(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = if (dataBuffers(bufIdx).accessBlockwise) {
+    accessFileBlockwise(bufIdx, accessStatements)
   } else {
-    accessFileFragwise(buf, accessStatements)
+    accessFileFragwise(bufIdx, accessStatements)
   }
 
   // method to access the file in a fragment-wise fashion
@@ -120,31 +121,31 @@ abstract class IR_FileAccess(
       1. Instead of checking if the fragment is valid before writing, we write without any conditions. Otherwise we would deadlock (this is quite similar to a conditional MPI_Barrier).
       2. In case that we have an "invalid" fragment, we participate in the collective function call but actually write nothing.
   */
-  def accessFileFragwise(buf : IR_DataBuffer, accessStatements : ListBuffer[IR_Statement]) : IR_LoopOverFragments
+  def accessFileFragwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_LoopOverFragments
 
   // method to access the file in a block-wise fashion
-  def accessFileBlockwise(buf : IR_DataBuffer, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = IR_NullStatement // TODO implement and replace calls with accessFileWithGranularity
+  def accessFileBlockwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = IR_NullStatement // TODO implement and replace calls with accessFileWithGranularity
 
   // core methods for file access
-  def read(buf : IR_DataBuffer) : ListBuffer[IR_Statement]
-  def write(buf : IR_DataBuffer) : ListBuffer[IR_Statement]
+  def read(bufIdx : Int) : ListBuffer[IR_Statement]
+  def write(bufIdx : Int) : ListBuffer[IR_Statement]
 
   override def expand() : Output[StatementList] = {
     // add new headers, paths and libs
-    for(inc <- includes) {
-      if(!Settings.additionalIncludes.contains(inc))
+    for (inc <- includes) {
+      if (!Settings.additionalIncludes.contains(inc))
         Settings.additionalIncludes += inc
     }
-    for(lib <- libraries) {
-      if(!Settings.additionalLibs.contains(lib))
+    for (lib <- libraries) {
+      if (!Settings.additionalLibs.contains(lib))
         Settings.additionalLibs += lib
     }
-    for(pathInc <- pathsInc) {
-      if(!Settings.pathsInc.contains(pathInc))
+    for (pathInc <- pathsInc) {
+      if (!Settings.pathsInc.contains(pathInc))
         Settings.pathsInc += pathInc
     }
-    for(pathLib <- pathsLib) {
-      if(!Settings.pathsLib.contains(pathLib))
+    for (pathLib <- pathsLib) {
+      if (!Settings.pathsLib.contains(pathLib))
         Settings.pathsLib += pathLib
     }
 
@@ -154,8 +155,8 @@ abstract class IR_FileAccess(
 
     stmts ++= createOrOpenFile()
     stmts ++= setupAccess()
-    for(buf <- dataBuffers) {
-      stmts ++= accessFile(buf)
+    for (bufIdx <- dataBuffers.indices) {
+      stmts ++= accessFile(bufIdx)
     }
     stmts ++= cleanupAccess()
     stmts ++= closeFile()

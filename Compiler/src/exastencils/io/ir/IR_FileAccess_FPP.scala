@@ -75,7 +75,8 @@ case class IR_FileAccess_FPP(
 
   override def closeFile() : ListBuffer[IR_Statement] = ListBuffer(IR_MemberFunctionCall(stream, "close"))
 
-  override def accessFileFragwise(buffer : IR_DataBuffer, fileAcc : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
+  override def accessFileFragwise(bufIdx : Int, fileAcc : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
+    val buffer = dataBuffers(bufIdx)
     IR_LoopOverFragments(
       IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),
         IR_LoopOverDimensions(buffer.numDimsData, IR_ExpressionIndexRange(
@@ -85,7 +86,7 @@ case class IR_FileAccess_FPP(
       if(writeAccess) IR_Print(stream, IR_Print.flush) else IR_NullStatement)
   }
 
-  override def read(buffer : IR_DataBuffer) : ListBuffer[IR_Statement] = {
+  override def read(bufIdx : Int) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     val read = if (useBinary) IR_ReadBinary(stream) else IR_Read(stream)
@@ -98,7 +99,7 @@ case class IR_FileAccess_FPP(
     //    }
     */
     // TODO
-    read.exprToRead += buffer.getAccess(IR_LoopOverDimensions.defIt(buffer.numDimsData))
+    read.exprToRead += dataBuffers(bufIdx).getAccess(IR_LoopOverDimensions.defIt(dataBuffers(bufIdx).numDimsData))
 
     // skip separator
     if(!separator.asInstanceOf[IR_StringConstant].value.trim().isEmpty) {
@@ -108,12 +109,12 @@ case class IR_FileAccess_FPP(
       read.exprToRead += IR_VariableAccess(decl)
     }
 
-    statements += accessFileFragwise(buffer, ListBuffer(read))
+    statements += accessFileFragwise(bufIdx, ListBuffer(read))
 
     statements
   }
 
-  override def write(buffer : IR_DataBuffer) : ListBuffer[IR_Statement] = {
+  override def write(bufIdx : Int) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     //val arrayIndexRange = 0 until buffer.datatype.resolveFlattendSize
@@ -129,7 +130,7 @@ case class IR_FileAccess_FPP(
       }
       */
       // TODO
-      printComponents += buffer.getAccess(IR_LoopOverDimensions.defIt(buffer.numDimsData))
+      printComponents += dataBuffers(bufIdx).getAccess(IR_LoopOverDimensions.defIt(dataBuffers(bufIdx).numDimsData))
       printComponents += separator
       printComponents += IR_Print.newline
       IR_Print(stream, printComponents)
@@ -144,11 +145,11 @@ case class IR_FileAccess_FPP(
       }
      */
       // TODO
-      printComponents += buffer.getAccess(IR_LoopOverDimensions.defIt(buffer.numDimsData))
+      printComponents += dataBuffers(bufIdx).getAccess(IR_LoopOverDimensions.defIt(dataBuffers(bufIdx).numDimsData))
       IR_PrintBinary(stream, printComponents)
     }
 
-    statements += accessFileFragwise(buffer, ListBuffer(print))
+    statements += accessFileFragwise(bufIdx, ListBuffer(print))
   }
 
   override def includes : ListBuffer[String] = ListBuffer("fstream", "iomanip")
