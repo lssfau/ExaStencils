@@ -20,8 +20,9 @@ package exastencils.visualization.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.{ IR_Expression, _ }
+import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
@@ -33,8 +34,6 @@ import exastencils.util.ir.IR_Print
 /// IR_PrintVtkTriangles
 
 abstract class IR_PrintVtkTriangles extends IR_PrintVtk with IR_PrintVisualizationTriangles {
-
-  override def stmtsForPreparation : ListBuffer[IR_Statement] = communicateFragmentInfo()
 
   override def stmtsForMeshVertices : ListBuffer[IR_Statement] = {
     val stream = newStream
@@ -106,7 +105,7 @@ abstract class IR_PrintVtkTriangles extends IR_PrintVtk with IR_PrintVisualizati
             cellPrint)),
         IR_Print(stream, IR_Print.flush)),
       IR_MemberFunctionCall(stream, "close"),
-      IR_Assignment(fragmentOffset, fragmentOffset + numValidFrags))
+      IR_Assignment(fragmentOffset, fragmentOffset + numFragsPerBlock))
 
     if (Knowledge.mpi_enabled) {
       initCells.prepend(

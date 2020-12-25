@@ -34,7 +34,7 @@ case class IR_FileAccess_SionLib(
 
   val bytesAccessedKnownApriori : Boolean = condition == IR_BooleanConstant(true) // if there is no condition -> required number of accessed bytes are known
   val numBytesDatatype : Array[Int] = dataBuffers.map(buf => buf.datatype.resolveBaseDatatype.typicalByteSize).toArray
-  val numBytesFrag : Array[IR_Expression] = dataBuffers.indices.map(bufIdx => dataBuffers(bufIdx).innerDimsLocal.reduce(_ * _) * numBytesDatatype(bufIdx)).toArray
+  val numBytesFrag : Array[IR_Expression] = dataBuffers.indices.map(bufIdx => dataBuffers(bufIdx).innerDimsLocalKJI.reduce(_ * _) * numBytesDatatype(bufIdx)).toArray
   val numBytesBlock : Array[IR_Expression] = dataBuffers.indices.map(bufIdx => numBytesFrag(bufIdx) * Knowledge.domain_numFragmentsPerBlock).toArray // TODO only valid frags
   val totalBytesBlock : IR_Expression = dataBuffers.indices.map(bufIdx => numBytesBlock(bufIdx) : IR_Expression).reduce(_ + _)
 
@@ -124,12 +124,21 @@ case class IR_FileAccess_SionLib(
   }
   override def setupAccess() : ListBuffer[IR_Statement] = ListBuffer()
 
-  override def accessFileFragwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_LoopOverFragments = IR_LoopOverFragments(
+  override def accessFileFragwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
+    IR_LoopOverFragments(
+      IR_IfCondition(
+        IR_IV_IsValidForDomain(dataBuffers(bufIdx).domainIdx),
+        accessStatements
+      )
+    )
+  }
+
+  override def accessFileBlockwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = {
     IR_IfCondition(
       IR_IV_IsValidForDomain(dataBuffers(bufIdx).domainIdx),
       accessStatements
     )
-  )
+  }
 
   def checkBytesAccessed(bufIdx : Int) : ListBuffer[IR_Statement] = ListBuffer(
     IR_IfCondition(
@@ -164,7 +173,7 @@ case class IR_FileAccess_SionLib(
           IR_Assignment(bytesAccessed,
             IR_FunctionCall(IR_ExternalFunctionReference(funcName),
               buf.getAddress(IR_ExpressionIndex(IR_IntegerConstant(0) +: IR_LoopOverDimensions.defIt(buf.numDimsData-1).indices)),
-              numBytesDatatype(bufIdx), buf.innerDimsLocal.head, filePtr),
+              numBytesDatatype(bufIdx), buf.innerDimsLocalKJI.head, filePtr),
             "+="))
       )
     } else  {
@@ -181,7 +190,7 @@ case class IR_FileAccess_SionLib(
   override def read(bufIdx : Int) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    statements += accessFileFragwise(bufIdx, ListBuffer(bodyFragLoop(bufIdx)))
+    statements += accessFileWithGranularity(bufIdx, ListBuffer(bodyFragLoop(bufIdx)))
 
     if (Knowledge.parIO_generateDebugStatements && bytesAccessedKnownApriori) {
       statements ++= checkBytesAccessed(bufIdx)
@@ -197,7 +206,7 @@ case class IR_FileAccess_SionLib(
       IR_FunctionCall(IR_ExternalFunctionReference("sion_ensure_free_space"), fileId, numBytesFrag(bufIdx)),
       bodyFragLoop(bufIdx)
     )
-    statements += accessFileFragwise(bufIdx, ListBuffer(writeFrag))
+    statements += accessFileWithGranularity(bufIdx, ListBuffer(writeFrag))
 
     if (Knowledge.parIO_generateDebugStatements && bytesAccessedKnownApriori) {
       statements ++= checkBytesAccessed(bufIdx)

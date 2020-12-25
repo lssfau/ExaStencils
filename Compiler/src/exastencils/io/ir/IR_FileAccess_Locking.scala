@@ -77,6 +77,15 @@ case class IR_FileAccess_Locking(
       if (writeAccess) IR_Print(stream, IR_Print.flush) else IR_NullStatement)
   }
 
+  override def accessFileBlockwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = {
+    val buffer = dataBuffers(bufIdx)
+    IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),
+      IR_LoopOverDimensions(buffer.numDimsData, IR_ExpressionIndexRange(
+        IR_ExpressionIndex(buffer.numDimsDataRange.map(dim => buffer.beginIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray),
+        IR_ExpressionIndex(buffer.numDimsDataRange.map(dim => buffer.endIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray)),
+        IR_IfCondition(condition, accessStatements)))
+  }
+
   // nothing to cleanup & file already closed by "last" process
   override def cleanupAccess() : ListBuffer[IR_Statement] = ListBuffer()
   override def closeFile() : ListBuffer[IR_Statement] = ListBuffer()
@@ -125,7 +134,7 @@ case class IR_FileAccess_Locking(
     }
 
     // read data from file
-    innerLoop += accessFileFragwise(bufIdx, ListBuffer(read))
+    innerLoop += accessFileWithGranularity(bufIdx, ListBuffer(read))
 
     // comm file pointer to next rank
     if (Knowledge.mpi_enabled) {
@@ -201,7 +210,7 @@ case class IR_FileAccess_Locking(
     var innerLoop = ListBuffer[IR_Statement](
       IR_ObjectInstantiation(stream, Duplicate(filename), openModeLock),
       printSetPrecision,
-      accessFileFragwise(bufIdx, ListBuffer(print)),
+      accessFileWithGranularity(bufIdx, ListBuffer(print)),
       IR_MemberFunctionCall(stream, "close")
     )
 

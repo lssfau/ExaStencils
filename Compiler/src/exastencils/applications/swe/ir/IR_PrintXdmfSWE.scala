@@ -13,9 +13,12 @@ import exastencils.base.ir.IR_VariableAccess
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
+import exastencils.io.ir.IR_DataBuffer
+import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_PrintXdmf
 
@@ -37,18 +40,30 @@ case class IR_PrintXdmfSWE(
   def datasetFields : ListBuffer[String] = "/constants/bath" +: // values don't change -> write once and reference
     fieldnames.drop(1).map(name => "/fieldData/" + name)
 
-  override def stmtsForPreparation : ListBuffer[IR_Statement] = communicateFragmentInfo(
-    // in file-per-process, each rank writes its own domain piece individually -> fragOffset = 0
-    calculateFragOffset = ioInterface != "fpp"
-  )
+  override def stmtsForPreparation : ListBuffer[IR_Statement] = {
+    var stmts : ListBuffer[IR_Statement] = ListBuffer()
 
-  override def writeData : ListBuffer[IR_Statement] = {
+    // setup frag info
+    stmts ++= IR_IV_FragmentInfo.init(
+      someCellField.domain.index,
+      // in file-per-process, each rank writes its own domain piece individually -> fragOffset = 0
+      calculateFragOffset = ioInterface != "fpp"
+    )
+
+    // setup buffers
+    stmts ++= setupNodePositions
+    stmts ++= setupConnectivity
+    if (Knowledge.swe_nodalReductionPrint) {
+      stmts ++= setupReducedData
+    }
+
+    stmts
+  }
+
+  override def dataBuffers(constants : Boolean) : ListBuffer[IR_DataBuffer] = ???
+
+  override def writeData(constants : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
-
-    /*
-    if(Knowledge.swe_nodalReductionPrint)
-      statements ++= setupReducedData
-    */
 
     // TODO
     fmt match {
@@ -68,7 +83,7 @@ case class IR_PrintXdmfSWE(
 
     statements += printXdmfElement(stream, openGeometry("X_Y")) // nodePositions are not interleaved
     for (d <- 0 until numDimsGrid) {
-      statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, dimFrags(global) +: dimsPositionsFrag, seekp = getSeekp(d, global)) : _*)
+      statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, dimsPositionsFrag :+ dimFrags(global), seekp = getSeekp(d, global)) : _*)
       val printValsOrRefFile = if (fmt == "XML") {
         ListBuffer(IR_Print(stream, "std::scientific"),
           IR_LoopOverFragments(
@@ -93,8 +108,8 @@ case class IR_PrintXdmfSWE(
   override def writeXdmfTopology(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    statements += printXdmfElement(stream, openTopology("Triangle", ListBuffer(dimFrags(global), numCellsPerFrag)) : _*)
-    statements += printXdmfElement(stream, openDataItem(IR_IntegerDatatype, dimFrags(global) +: dimsConnectivityFrag, seekp = getSeekp(2, global)) : _*)
+    statements += printXdmfElement(stream, openTopology("Triangle", ListBuffer(numCellsPerFrag, dimFrags(global))) : _*)
+    statements += printXdmfElement(stream, openDataItem(IR_IntegerDatatype, dimsConnectivityFrag :+ dimFrags(global), seekp = getSeekp(2, global)) : _*)
     val printValsOrRefFile = if (fmt == "XML") {
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
@@ -120,7 +135,7 @@ case class IR_PrintXdmfSWE(
 
     for(fieldId <- fieldnames.indices) {
       statements += printXdmfElement(stream, openAttribute(name = fieldnames(fieldId), tpe = "Scalar", ctr = "Node"))
-      statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, dimFrags(global) +: dimsPositionsFrag, seekp = getSeekp(2 + fieldId, global)) : _*)
+      statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, dimsPositionsFrag :+ dimFrags(global), seekp = getSeekp(2 + fieldId, global)) : _*)
       val printValsOrRefFile = if(fmt == "XML") {
         fieldnames(fieldId) match {
           case "bath" => printBath(Some(stream), Some(indentData))
@@ -138,22 +153,5 @@ case class IR_PrintXdmfSWE(
     }
 
     statements
-  }
-
-  // contains expressions that calculate the seek pointer for each DataItem (used for raw binary files)
-  override def seekpOffsets(global : Boolean, constantReduction : Boolean) : ListBuffer[IR_Expression] = {
-    val dimFrags = if (global) numFrags else numValidFrags
-    val offsetConstants = ListBuffer(
-      (dimFrags +: dimsPositionsFrag).reduce(_ * _) * IR_RealDatatype.typicalByteSize, // x coords
-      (dimFrags +: dimsPositionsFrag).reduce(_ * _) * IR_RealDatatype.typicalByteSize, // y coords
-      (dimFrags +: dimsConnectivityFrag).reduce(_ * _) * IR_IntegerDatatype.typicalByteSize, // connectivity
-      (dimFrags +: dimsPositionsFrag).reduce(_ * _) * IR_RealDatatype.typicalByteSize, // bath
-    )
-    val offsetFields : ListBuffer[IR_Expression] = ListBuffer.fill(numFields-1)((dimFrags +: dimsPositionsFrag).reduce(_ * _) * IR_RealDatatype.typicalByteSize) // eta, u, v, [order]
-
-    if(constantReduction)
-      offsetFields
-    else
-      offsetConstants ++ offsetFields
   }
 }

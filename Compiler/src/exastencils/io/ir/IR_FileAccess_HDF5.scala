@@ -152,7 +152,7 @@ case class IR_FileAccess_HDF5(
         val memspace = IR_VariableAccess(IR_FileAccess.declareVariable("memspace_" + dataBuffers(bufIdx).localization.name), hid_t)
         statements += IR_VariableDeclaration(memspace)
         statements ++= H5Screate_simple(memspace, dataBuffers(bufIdx).numDimsData, localDims(bufIdx))
-        statements ++= H5Sselect_hyperslab(err, memspace, IR_VariableAccess("H5S_SELECT_SET", IR_UnknownDatatype), localStart(bufIdx), stride(bufIdx), count(bufIdx))
+        statements ++= H5Sselect_hyperslab(err, memspace, IR_VariableAccess("H5S_SELECT_SET", IR_UnknownDatatype), localStart(bufIdx), stride(bufIdx), localCount(bufIdx))
         addMemspace(bufIdx, memspace)
       }
     }
@@ -200,11 +200,11 @@ case class IR_FileAccess_HDF5(
     val buffer = dataBuffers(bufIdx)
 
     // set global starting index for fragment and select hyperslab in global domain
-    val setOffsetFrag : ListBuffer[IR_Statement] = buffer.numDimsDataRange.map(d =>
-      IR_Assignment(IR_ArrayAccess(globalStart(bufIdx), d), buffer.startIndexGlobal.reverse(d)) : IR_Statement).to[ListBuffer]
-    val selectHyperslab : ListBuffer[IR_Statement] = H5Sselect_hyperslab(err, dataspace(bufIdx), IR_VariableAccess("H5S_SELECT_SET", IR_UnknownDatatype), globalStart(bufIdx), stride(bufIdx), count(bufIdx))
+    val setOffsetFrag : ListBuffer[IR_Statement] = buffer.startIndexGlobalKJI.indices.map(d =>
+      IR_Assignment(IR_ArrayAccess(globalStart(bufIdx), d), buffer.startIndexGlobalKJI(d)) : IR_Statement).to[ListBuffer]
+    val selectHyperslab : ListBuffer[IR_Statement] = H5Sselect_hyperslab(err, dataspace(bufIdx), IR_VariableAccess("H5S_SELECT_SET", IR_UnknownDatatype), globalStart(bufIdx), stride(bufIdx), localCount(bufIdx))
 
-    if (Knowledge.parIO_useCollectiveIO) {
+    if (Knowledge.parIO_useCollectiveIO && !dataBuffers(bufIdx).accessBlockwise) {
       val condAssignOffset = IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx), setOffsetFrag)
       IR_LoopOverFragments(
         (condAssignOffset +: selectHyperslab) ++ accessStmts)
@@ -214,6 +214,18 @@ case class IR_FileAccess_HDF5(
         IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),
           setOffsetFrag ++ selectHyperslab ++ accessStmts))
     }
+  }
+
+  override def accessFileBlockwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = {
+    val buffer = dataBuffers(bufIdx)
+
+    // set global starting index for block and select hyperslab in global domain
+    val setOffsetBlock : ListBuffer[IR_Statement] = buffer.startIndexGlobalKJI.indices.map(d =>
+      IR_Assignment(IR_ArrayAccess(globalStart(bufIdx), d), buffer.startIndexGlobalKJI(d)) : IR_Statement).to[ListBuffer]
+    val selectHyperslab : ListBuffer[IR_Statement] = H5Sselect_hyperslab(err, dataspace(bufIdx), IR_VariableAccess("H5S_SELECT_SET", IR_UnknownDatatype), globalStart(bufIdx), stride(bufIdx), localCount(bufIdx))
+
+    IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),
+      setOffsetBlock ++ selectHyperslab ++ accessStatements)
   }
 
   // set data- and memspace to an empty space for "invalid" frags in order to perform a NOP read/write
@@ -243,10 +255,10 @@ case class IR_FileAccess_HDF5(
     addDataspace(bufIdx, dataspace)
 
     // get properties from dataspace and compare with provided values
-    def checkDims(readBuffer : IR_LoopOverFragments) : ListBuffer[IR_Statement] = {
+    def checkDims(readBuffer : IR_Statement) : ListBuffer[IR_Statement] = {
       if (Knowledge.parIO_generateDebugStatements) {
         val rank_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("rank"))
-        val dimsDataset_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, buffer.numDimsData), IR_FileAccess.declareVariable("dimsDataset"))
+        val dimsDataset_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, buffer.globalDimsKJI.length), IR_FileAccess.declareVariable("dimsDataset"))
         val rank = IR_VariableAccess(rank_decl)
         val dimsDataset = IR_VariableAccess(dimsDataset_decl)
 
@@ -257,12 +269,12 @@ case class IR_FileAccess_HDF5(
         falseBdy += dimsDataset_decl
         falseBdy ++= H5Sget_simple_extent_dims(rank, dataspace, dimsDataset)
         falseBdy += IR_IfCondition(
-          buffer.numDimsDataRange.map(d => IR_ArrayAccess(dimsDataset, d) Neq IR_ArrayAccess(globalDims(bufIdx), d)).fold(IR_BooleanConstant(true))((a, b) => a AndAnd b), // compare dimensionality
+          buffer.globalDimsKJI.indices.map(d => IR_ArrayAccess(dimsDataset, d) Neq IR_ArrayAccess(globalDims(bufIdx), d)).fold(IR_BooleanConstant(true))((a, b) => a AndAnd b), // compare dimensionality
           IR_Print(IR_VariableAccess("std::cout", IR_UnknownDatatype), IR_StringConstant("Dimensionality mismatch! No data is read from the file.")),
           readBuffer)
 
         dbgStmts ++= H5Sget_simple_extent_ndims(rank, dataspace)
-        dbgStmts += IR_IfCondition(rank Neq buffer.numDimsData,
+        dbgStmts += IR_IfCondition(rank Neq buffer.globalDimsKJI.length,
           ListBuffer[IR_Statement](IR_Print(IR_VariableAccess("std::cout", IR_UnknownDatatype), IR_StringConstant("Rank mismatch! No data is read from the file."))),
           falseBdy)
 
@@ -272,14 +284,14 @@ case class IR_FileAccess_HDF5(
       }
     }
 
-    if (Knowledge.parIO_useCollectiveIO) {
+    if (Knowledge.parIO_useCollectiveIO && !dataBuffers(bufIdx).accessBlockwise) {
       statements ++= checkDims(
-        accessFileFragwise(bufIdx,
+        accessFileWithGranularity(bufIdx,
           condAssignSpace(bufIdx) ++
             H5Dread(err, dataset(bufIdx), buffer.datatype, memspaceSelection, dataspaceSelection, transferList, buffer.getBaseAddress)))
     } else {
       statements ++= checkDims(
-        accessFileFragwise(bufIdx,
+        accessFileWithGranularity(bufIdx,
           H5Dread(err, dataset(bufIdx), buffer.datatype, memspace(bufIdx), dataspace, transferList, buffer.getBaseAddress)))
     }
 
@@ -294,7 +306,7 @@ case class IR_FileAccess_HDF5(
     val dataspace = getDataspace(bufIdx).getOrElse({
       val space = IR_VariableAccess(IR_FileAccess.declareVariable("dataspace_" + buffer.localization.name), hid_t)
       statements += IR_VariableDeclaration(space)
-      statements ++= H5Screate_simple(space, buffer.numDimsData, globalDims(bufIdx))
+      statements ++= H5Screate_simple(space, buffer.globalDimsKJI.length, globalDims(bufIdx))
       addDataspace(bufIdx, space)
 
       space
@@ -303,12 +315,12 @@ case class IR_FileAccess_HDF5(
     // create dataset
     statements ++= H5Dcreate2(dataset(bufIdx), locationId, buffer.datasetName, buffer.datatype, dataspace, defaultPropertyList, defaultPropertyList, defaultPropertyList)
 
-    if (Knowledge.parIO_useCollectiveIO) {
-      statements += accessFileFragwise(bufIdx,
+    if (Knowledge.parIO_useCollectiveIO && !dataBuffers(bufIdx).accessBlockwise) {
+      statements += accessFileWithGranularity(bufIdx,
         condAssignSpace(bufIdx) ++
           H5Dwrite(err, dataset(bufIdx), buffer.datatype, memspaceSelection, dataspaceSelection, transferList, buffer.getBaseAddress))
     } else {
-      statements += accessFileFragwise(bufIdx,
+      statements += accessFileWithGranularity(bufIdx,
         H5Dwrite(err, dataset(bufIdx), buffer.datatype, memspace(bufIdx), dataspace, transferList, buffer.getBaseAddress))
     }
 

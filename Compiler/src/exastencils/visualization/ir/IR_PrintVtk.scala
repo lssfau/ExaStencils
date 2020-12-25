@@ -26,6 +26,7 @@ import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.StatementList
+import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_Print
 
@@ -67,7 +68,7 @@ abstract class IR_PrintVtk extends IR_PrintVisualization with IR_Statement with 
         IR_MemberFunctionCall(stream, "close"))))
   }
 
-  def stmtsForPreparation : ListBuffer[IR_Statement]
+  def stmtsForPreparation : ListBuffer[IR_Statement] = IR_IV_FragmentInfo.init(someCellField.domain.index)
 
   def stmtsForMeshVertices : ListBuffer[IR_Statement]
   def stmtsForMeshCells : ListBuffer[IR_Statement]

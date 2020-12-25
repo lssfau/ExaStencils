@@ -17,6 +17,8 @@ import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
+import exastencils.io.ir.IR_DataBuffer
+import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_PrintXdmf
 
@@ -28,14 +30,25 @@ case class IR_PrintXdmfNNF(
 
   def fieldnames : ListBuffer[String] = ListBuffer("vel", "p", "rho", "mue", "gamma", "phi")
 
-  override def stmtsForPreparation : ListBuffer[IR_Statement] = ListBuffer()
+  override def stmtsForPreparation : ListBuffer[IR_Statement] = {
+    var stmts : ListBuffer[IR_Statement] = ListBuffer()
+
+    // setup frag info and temp buffers
+    stmts ++= IR_IV_FragmentInfo.init(someCellField.domain.index)
+    stmts ++= setupNodePositions
+    stmts ++= setupConnectivity
+    stmts ++= setupVelocity
+
+    stmts
+  }
 
   override def writeXdmfGeometry(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    statements += printXdmfElement(stream, openGeometry("X_Y" + (if(numDimsGrid > 2) "_Z" else ""))) // nodePositions are not interleaved
+    // TODO ref geometry from "constant file"
+    statements += printXdmfElement(stream, openGeometry("X_Y" + (if (numDimsGrid > 2) "_Z" else ""))) // nodePositions are not interleaved
     for (d <- 0 until numDimsGrid) {
-      statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, dimFrags(global) +: dimsPositionsFrag, seekp = getSeekp(d, global)) : _*)
+      statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, dimsPositionsFrag :+ dimFrags(global), seekp = getSeekp(d, global)) : _*)
       val printValsOrRefFile = if (fmt == "XML") {
         ListBuffer(IR_Print(stream, "std::scientific"),
           IR_LoopOverFragments(
@@ -59,8 +72,9 @@ case class IR_PrintXdmfNNF(
   override def writeXdmfTopology(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    statements += printXdmfElement(stream, openTopology(if(numDimsGrid == 2) "Quadrilateral" else "Hexahedron", ListBuffer(dimFrags(global), numCellsPerFrag)) : _*)
-    statements += printXdmfElement(stream, openDataItem(IR_IntegerDatatype, dimFrags(global) +: dimsConnectivityFrag, seekp = getSeekp(numDimsGrid, global)) : _*)
+    // TODO ref topology from "constant file"
+    statements += printXdmfElement(stream, openTopology(if (numDimsGrid == 2) "Quadrilateral" else "Hexahedron", ListBuffer(numCellsPerFrag, dimFrags(global))) : _*)
+    statements += printXdmfElement(stream, openDataItem(IR_IntegerDatatype, dimsConnectivityFrag :+ dimFrags(global), seekp = getSeekp(numDimsGrid, global)) : _*)
     val printValsOrRefFile = if (fmt == "XML") {
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
@@ -84,11 +98,11 @@ case class IR_PrintXdmfNNF(
 
     for(fieldId <- fieldnames.indices) {
       val isVector = fieldnames(fieldId) == "vel"
-      val dimsFieldData = IR_IntegerConstant(if(isVector) numDimsGrid else 1)
+      val dimsFieldData = IR_IntegerConstant(if (isVector) numDimsGrid else 1)
       val dimsCellData = ListBuffer[IR_Expression](numCells_z, numCells_y, numCells_x)
-      statements += printXdmfElement(stream, openAttribute(name = fieldnames(fieldId), tpe = if(isVector) "Vector" else "Scalar", ctr = "Cell"))
+      statements += printXdmfElement(stream, openAttribute(name = fieldnames(fieldId), tpe = if (isVector) "Vector" else "Scalar", ctr = "Cell"))
       statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, dimFrags(global) +: dimsCellData :+ dimsFieldData, seekp = getSeekp(numDimsGrid + fieldId, global)) : _*)
-      val printValsOrRefFile = if(fmt == "XML") {
+      val printValsOrRefFile = if (fmt == "XML") {
         fieldnames(fieldId) match {
           case "vel"   => printVel(Some(stream), Some(indentData))
           case "p"     => printP(Some(stream), Some(indentData))
@@ -108,7 +122,8 @@ case class IR_PrintXdmfNNF(
     statements
   }
 
-  override def writeData : ListBuffer[IR_Statement] = ListBuffer() // TODO
+  override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = ???
 
-  override def seekpOffsets(global : Boolean, constantReduction : Boolean) : ListBuffer[IR_Expression] = ListBuffer(IR_IntegerConstant(0)) // TODO
+  override def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = ListBuffer() // TODO
+
 }

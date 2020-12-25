@@ -86,6 +86,15 @@ case class IR_FileAccess_FPP(
       if(writeAccess) IR_Print(stream, IR_Print.flush) else IR_NullStatement)
   }
 
+  override def accessFileBlockwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = {
+    val buffer = dataBuffers(bufIdx)
+    IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),
+      IR_LoopOverDimensions(buffer.numDimsData, IR_ExpressionIndexRange(
+        IR_ExpressionIndex(buffer.numDimsDataRange.map(dim => buffer.beginIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray),
+        IR_ExpressionIndex(buffer.numDimsDataRange.map(dim => buffer.endIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray)),
+        IR_IfCondition(condition, accessStatements)))
+  }
+
   override def read(bufIdx : Int) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
@@ -109,7 +118,7 @@ case class IR_FileAccess_FPP(
       read.exprToRead += IR_VariableAccess(decl)
     }
 
-    statements += accessFileFragwise(bufIdx, ListBuffer(read))
+    statements += accessFileWithGranularity(bufIdx, ListBuffer(read))
 
     statements
   }
@@ -149,7 +158,7 @@ case class IR_FileAccess_FPP(
       IR_PrintBinary(stream, printComponents)
     }
 
-    statements += accessFileFragwise(bufIdx, ListBuffer(print))
+    statements += accessFileWithGranularity(bufIdx, ListBuffer(print))
   }
 
   override def includes : ListBuffer[String] = ListBuffer("fstream", "iomanip")

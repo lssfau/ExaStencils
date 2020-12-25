@@ -33,8 +33,6 @@ import exastencils.util.ir.IR_Print
 
 abstract class IR_PrintVtkQuads extends IR_PrintVtk with IR_PrintVisualizationQuads {
 
-  override def stmtsForPreparation : ListBuffer[IR_Statement] = { ListBuffer() }
-
   override def stmtsForMeshVertices : ListBuffer[IR_Statement] = {
     val stream = newStream
 

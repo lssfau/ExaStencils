@@ -2,32 +2,14 @@ package exastencils.visualization.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_AddressOf
-import exastencils.base.ir.IR_ArrayAccess
-import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_ConstIndex
 import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExternalFunctionReference
-import exastencils.base.ir.IR_ForLoop
-import exastencils.base.ir.IR_FunctionCall
-import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerConstant
-import exastencils.base.ir.IR_IntegerDatatype
-import exastencils.base.ir.IR_Lower
 import exastencils.base.ir.IR_Multiplication
-import exastencils.base.ir.IR_PreIncrement
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_UnknownDatatype
-import exastencils.base.ir.IR_VariableAccess
-import exastencils.base.ir.IR_VariableDeclaration
-import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
-import exastencils.domain.ir.IR_IV_IsValidForDomain
-import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
-import exastencils.parallelization.api.mpi.MPI_Reduce
 
 // 2D only
 // for a variable number of fragments per block
@@ -38,11 +20,6 @@ trait IR_PrintVisualizationTriangles extends IR_PrintVisualization {
     ListBuffer(IR_ConstIndex(0, 0))
   else
     ListBuffer(IR_ConstIndex(0, 0), IR_ConstIndex(1, 0), IR_ConstIndex(0, 1), IR_ConstIndex(1, 1), IR_ConstIndex(0, 1), IR_ConstIndex(1, 0))
-
-  def numFrags = IR_VariableAccess("totalNumFrags", IR_IntegerDatatype) // Knowledge.domain_numFragmentsTotal
-  def numValidFrags = IR_VariableAccess("numValidFrags", IR_IntegerDatatype)
-  def fragmentOffset = IR_VariableAccess("fragmentOffset", IR_IntegerDatatype)
-  def numFragsPerBlock : IR_VariableAccess = numValidFrags
 
   /*
     - without the reduction: 6 values for the position- and field data are written per cell
@@ -70,41 +47,5 @@ trait IR_PrintVisualizationTriangles extends IR_PrintVisualization {
       ((if(global) fragmentOffset else IR_IntegerConstant(0)) + IR_LoopOverFragments.defIt) * numPointsPerFrag
 
     (0 until 6).map(v => offsetFragLoop + offsetLoopOverDim + nodePositionOffsets(v) : IR_Expression).to[ListBuffer]
-  }
-
-  def communicateFragmentInfo(calculateFragOffset : Boolean = false) : ListBuffer[IR_Statement] = {
-    var statements = ListBuffer[IR_Statement]()
-
-    // determine number of valid fragments per block and total number of valid fragments
-    statements ++= ListBuffer(
-      IR_VariableDeclaration(fragmentOffset, 0),
-      IR_VariableDeclaration(numValidFrags, 0),
-      IR_LoopOverFragments(IR_IfCondition(IR_IV_IsValidForDomain(0), IR_Assignment(numValidFrags, numValidFrags + 1))),
-      IR_VariableDeclaration(numFrags, numValidFrags))
-
-    if (Knowledge.mpi_enabled) {
-      statements += MPI_Reduce(0, IR_AddressOf(numFrags), IR_IntegerDatatype, 1, "+")
-
-      // PrintVtk calculates the fragmentOffset in a MPI_Sequential, for other approaches this flag needs to be set
-      if(calculateFragOffset) {
-        val actualFragsPerBlock = IR_VariableAccess("validFragsPerBlock", IR_ArrayDatatype(IR_IntegerDatatype, Knowledge.mpi_numThreads))
-        val mpiInt = IR_VariableAccess(IR_IntegerDatatype.prettyprint_mpi, IR_UnknownDatatype)
-        val mpiComm = IR_VariableAccess("mpiCommunicator", IR_UnknownDatatype)
-        statements += IR_VariableDeclaration(actualFragsPerBlock)
-        statements += IR_FunctionCall(
-          IR_ExternalFunctionReference("MPI_Allgather"),
-          IR_AddressOf(numValidFrags), 1, mpiInt,
-          actualFragsPerBlock, 1, mpiInt, mpiComm
-        )
-        statements += IR_ForLoop(
-          IR_VariableDeclaration(IR_IntegerDatatype, "curRank", 0),
-          IR_Lower("curRank", MPI_IV_MpiRank),
-          IR_PreIncrement("curRank"),
-          IR_Assignment(fragmentOffset, IR_ArrayAccess(actualFragsPerBlock, "curRank"), "+=")
-        )
-      }
-    }
-
-    statements
   }
 }
