@@ -46,6 +46,8 @@ object MPI_View {
   def resetViews() : Unit = {
     localViews = ListBuffer()
     globalViews = ListBuffer()
+    lookupTableLocal = ListBuffer()
+    lookupTableGlobal = ListBuffer()
   }
 }
 

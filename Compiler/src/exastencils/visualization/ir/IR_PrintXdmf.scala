@@ -2,6 +2,7 @@ package exastencils.visualization.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir
 import exastencils.base.ir.IR_CharDatatype
 import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_DoubleDatatype
@@ -95,7 +96,19 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   def printXdmfElement(stream : IR_VariableAccess, str : String*): IR_Statement = IR_Print(stream, str.map(s => IR_StringConstant(s)).to[ListBuffer] :+ IR_Print.newline)
   def printXdmfElement(stream : IR_VariableAccess, expr : IR_Expression*)(implicit d: DummyImplicit) : IR_Statement = IR_Print(stream, expr.to[ListBuffer] :+ IR_Print.newline)
 
+  // xml elements used in xdmf
   def xmlHeader = "<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>"
+  def XInclude(href : IR_Expression, xpath : IR_Expression*) : ListBuffer[IR_Expression] = ListBuffer(
+    IR_StringConstant("\t\t\t<xi:include href=\\\""), href, IR_StringConstant("\\\" "), // reference file
+      IR_StringConstant("xpointer=\\\"xpointer(")) ++ xpath.to[ListBuffer] :+ IR_StringConstant(")\\\"/>") // reference specific elements in the file
+  def XInclude(href : ListBuffer[IR_Expression], xpath : IR_Expression*) : ListBuffer[IR_Expression] =
+    (IR_StringConstant("\t\t\t<xi:include href=\\\"") +: href :+ IR_StringConstant("\\\" ")) ++
+      (IR_StringConstant("xpointer=\\\"xpointer(") +: xpath.to[ListBuffer] :+ IR_StringConstant(")\\\"/>"))
+  def XPath(elem : String) : ListBuffer[IR_Expression] = if (binaryFpp) {
+    ListBuffer(IR_StringConstant("/Xdmf/Domain/Grid["), MPI_IV_MpiRank + 1, IR_StringConstant("]/" + elem))
+  } else {
+    ListBuffer[IR_Expression](IR_StringConstant("/Xdmf/Domain/Grid[1]/" + elem))
+  }
 
   // table from: https://www.xdmf.org/index.php/XDMF_Model_and_Format
   def numberType(dt : IR_Datatype) : String = dt match {
@@ -207,9 +220,10 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
 
   // ternary condition (depending on constant data reduction) used print the seek pointer for DataItem with index "idx"
   def getSeekp(idx : Int, global : Boolean) : IR_TernaryCondition = {
-    IR_TernaryCondition(IR_MemberFunctionCall(IR_IV_ConstantsWrittenToFile(), "empty"),
+    val idxNoConst = idx - (dataBuffers(constsIncluded = true).length - dataBuffers(constsIncluded = false).length)
+    IR_TernaryCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
       IR_SimplifyExpression.simplifyIntegralExpr(seekpOffsets(global, constsIncluded = true).take(idx).reduceOption(_ + _).getOrElse(0)),
-      IR_SimplifyExpression.simplifyIntegralExpr(seekpOffsets(global, constsIncluded = false).take(idx).reduceOption(_ + _).getOrElse(0)))
+      IR_SimplifyExpression.simplifyIntegralExpr(seekpOffsets(global, constsIncluded = false).take(idxNoConst).reduceOption(_ + _).getOrElse(0)))
   }
 
   // contains expressions that calculate the seek pointer for each DataItem (used for raw binary files)
@@ -228,8 +242,8 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     if (!Settings.additionalIncludes.contains("fstream"))
       Settings.additionalIncludes += "fstream"
 
-    if(!IR_GlobalCollection.get.variables.contains(endianness)) {
-      if(!IR_GlobalCollection.get.externalDependencies.contains("arpa/inet.h"))
+    if (!IR_GlobalCollection.get.variables.contains(endianness)) {
+      if (!IR_GlobalCollection.get.externalDependencies.contains("arpa/inet.h"))
         IR_GlobalCollection.get.externalDependencies += "arpa/inet.h"
       IR_GlobalCollection.get.variables += endianness
     }
@@ -240,15 +254,14 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     statements ++= stmtsForPreparation
 
     // write "main" file for file-per-process with root rank
-    if(ioInterface == "fpp") {
+    if (ioInterface == "fpp") {
       val stream = newStream
 
       // construct xdmf filename for domain pieces in same directory as the global file
       def refPieces : ListBuffer[IR_Statement] = (0 until Knowledge.mpi_numThreads).map(curRank => {  // assumes the file of process "curRank" only has one grid instance
         printXdmfElement(stream,
-          ListBuffer(IR_StringConstant("\t\t\t<xi:include href=\\\"")) ++
-          buildFilenamePiece(stripPath = true, rank = IR_IntegerConstant(curRank)).toPrint :+
-          IR_StringConstant("\\\" xpointer=\\\"xpointer(//Xdmf/Domain/Grid[1])\\\"/>") : _*)
+          XInclude(href = buildFilenamePiece(stripPath = true, rank = IR_IntegerConstant(curRank)).toPrint,
+            xpath = IR_StringConstant("/Xdmf/Domain/Grid[1]")) : _*)
       }).to[ListBuffer]
 
       val printGlobalFile : ListBuffer[IR_Statement] = ListBuffer()
@@ -259,7 +272,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
       printGlobalFile += printXdmfElement(stream, openXdmf)
       printGlobalFile += printXdmfElement(stream, openDomain)
 
-      val printPieces = if(binaryFpp) {
+      val printPieces = if (binaryFpp) {
         val curRank = IR_VariableAccess("curRank", IR_IntegerDatatype)
         ListBuffer(
           printXdmfElement(stream, openGrid("Grid" + curRank, "Collection")),
@@ -288,20 +301,17 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     }
 
     // for binaryFpp: previously written "main" file contains all info -> only writing the binary files is left now
-    if(!binaryFpp) {
+    if (!binaryFpp) {
       statements ++= writeXdmf
     }
 
     // check if data is already incorporated in xml file
-    if(fmt != "XML") {
-      statements ++= writeData(constsIncluded = true)
-      /* // TODO uncomment when constant data reduction is finished
-      statements += IR_IfCondition(IR_MemberFunctionCall(IR_IV_ConstantsWrittenToFile(), "empty"),
+    if (fmt != "XML") {
+      statements += IR_IfCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
         /* true: write constants to file and save filename to reference later */
-        writeData(constsIncluded = true) :+ IR_Assignment(IR_IV_ConstantsWrittenToFile(), buildFilenameData),
+        writeData(constsIncluded = true) :+ ir.IR_Assignment(IR_IV_ConstantsWrittenToFile(), basename(noPath = true) + ext),
         /* false: write field data and reference constants from saved filename */
         writeData(constsIncluded = false))
-      */
     }
 
     statements

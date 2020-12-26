@@ -49,10 +49,13 @@ import exastencils.io.ir.IR_IV_TotalNumFrags
 import exastencils.logger.Logger
 
 // determines whether constants were already written to file or not
+// name of the file containing the constant data can be queried here
 case class IR_IV_ConstantsWrittenToFile() extends IR_UnduplicatedVariable {
   override def resolveName() : String = "constantsWrittenToFile"
   override def resolveDatatype() : IR_Datatype = IR_StringDatatype
   override def resolveDefValue() : Option[IR_Expression] = Some("\"\"")
+
+  def isEmpty : IR_Expression = IR_MemberFunctionCall(IR_VariableAccess(resolveName(), resolveDatatype()), "empty")
 }
 
 /// IR_PrintVisualization
