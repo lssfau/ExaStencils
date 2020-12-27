@@ -167,6 +167,7 @@ case class IR_DataBuffer(
   }
 
   // describes in-memory access pattern of an array (linearized "distances" to next value in the same dimension)
+  // TODO handle "fragment dimension" when non-canonical order is used
   def imapKJI : ListBuffer[IR_Expression] = numDimsDataRange.map(d => {
     if (d == 0)
       IR_IntegerConstant(1) // stride in x direction is "1"

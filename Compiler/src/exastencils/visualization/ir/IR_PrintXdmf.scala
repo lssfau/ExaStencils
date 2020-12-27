@@ -2,7 +2,7 @@ package exastencils.visualization.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir
+import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_CharDatatype
 import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_DoubleDatatype
@@ -168,7 +168,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   def indentData = IR_StringConstant("\t\t\t\t\t")
 
   def printFilename(stream : IR_VariableAccess, dataset : String) = IR_Print(stream,
-    ListBuffer(indentData, buildFilenameData(noPath = true)) ++ (if(fmt == "HDF") IR_StringConstant(dataset)::Nil else Nil) :+ IR_Print.newline
+    ListBuffer(indentData, buildFilenameData(noPath = true)) ++ (if(fmt == "HDF") IR_StringConstant(":" + dataset)::Nil else Nil) :+ IR_Print.newline
   )
 
   // prints a complete xdmf file
@@ -242,6 +242,9 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     if (!Settings.additionalIncludes.contains("fstream"))
       Settings.additionalIncludes += "fstream"
 
+    // header for I/O interfaces
+    ioHandler(false, filename).handleDependencies()
+
     if (!IR_GlobalCollection.get.variables.contains(endianness)) {
       if (!IR_GlobalCollection.get.externalDependencies.contains("arpa/inet.h"))
         IR_GlobalCollection.get.externalDependencies += "arpa/inet.h"
@@ -309,7 +312,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     if (fmt != "XML") {
       statements += IR_IfCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
         /* true: write constants to file and save filename to reference later */
-        writeData(constsIncluded = true) :+ ir.IR_Assignment(IR_IV_ConstantsWrittenToFile(), basename(noPath = true) + ext),
+        writeData(constsIncluded = true) :+ IR_Assignment(IR_IV_ConstantsWrittenToFile(), basename(noPath = true) + ext),
         /* false: write field data and reference constants from saved filename */
         writeData(constsIncluded = false))
     }

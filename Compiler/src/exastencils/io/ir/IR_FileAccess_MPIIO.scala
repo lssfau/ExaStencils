@@ -161,12 +161,8 @@ case class IR_FileAccess_MPIIO(
     declarations.foreach(decl => statements += decl)
 
     // open file
-    val fn = filename match { // cast to suppress warning
-      case sc : IR_StringConstant                                         => IR_Cast(IR_PointerDatatype(IR_CharDatatype), sc)
-      case vAcc : IR_VariableAccess if vAcc.datatype == IR_StringDatatype => IR_Cast(IR_PointerDatatype(IR_CharDatatype), IR_MemberFunctionCall(vAcc, "c_str"))
-      case _                                                              => Logger.error("Wrong datatype passed for parameter \"filename\" to IR_FileAccess_MPIIO. Should be a \"String\" instead of:" + _)
-    }
-    statements += IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_open"), mpiCommunicator, fn, openMode, info, IR_AddressOf(fileHandle))
+    statements += IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_open"),
+      mpiCommunicator, IR_Cast(IR_PointerDatatype(IR_CharDatatype), filenameAsCString), openMode, info, IR_AddressOf(fileHandle))
 
     statements
   }
@@ -179,8 +175,8 @@ case class IR_FileAccess_MPIIO(
       val buf = dataBuffers(bufIdx)
       // global view (location within the whole domain) per fragment
       val datatypeGlobalView = if (buf.accessBlockwise) MPI_Datatype else IR_ArrayDatatype(MPI_Datatype, Knowledge.domain_numFragmentsPerBlock)
-      val globalView = MPI_View(globalDims(bufIdx), globalCount(bufIdx), globalStart(bufIdx),
-        buf.globalDimsKJI.length, buf.domainIdx, mpiDatatypeBuffer(buf), datatypeGlobalView, "globalSubarray")
+      val globalView = MPI_View(globalDims(bufIdx), count(bufIdx), globalStart(bufIdx),
+        numDimsGlobal(bufIdx), buf.domainIdx, mpiDatatypeBuffer(buf), datatypeGlobalView, "globalSubarray")
       if (MPI_View.addView(bufIdx, global = true, globalView)) {
         val initDatatype = ListBuffer(
           IR_IfCondition(IR_IV_IsValidForDomain(buf.domainIdx), // set global start index
@@ -190,15 +186,14 @@ case class IR_FileAccess_MPIIO(
 
         statements += globalView.declaration
         if (buf.accessBlockwise)
-          statements += IR_ForLoop( // HACK: artificial fragment loop (of length 1) to set start indices to "startIndexGlobalKJI"
-            IR_VariableDeclaration(IR_LoopOverFragments.defIt, 0), IR_Lower(IR_LoopOverFragments.defIt, 1), IR_PreIncrement(IR_LoopOverFragments.defIt), initDatatype)
+          statements += IR_LoopOverBlocks(initDatatype)
         else
           statements += IR_LoopOverFragments(initDatatype)
       }
 
       // local view (mainly to omit ghost layers) per fragment
-      val localView = MPI_View(localDims(bufIdx), localCount(bufIdx), localStart(bufIdx),
-        buf.numDimsData, buf.domainIdx, mpiDatatypeBuffer(buf), MPI_Datatype, "localSubarray")
+      val localView = MPI_View(localDims(bufIdx), count(bufIdx), localStart(bufIdx),
+        numDimsLocal(buf), buf.domainIdx, mpiDatatypeBuffer(buf), MPI_Datatype, "localSubarray")
       if(MPI_View.addView(bufIdx, global = false, localView)) {
         statements += localView.declaration
         statements += localView.createDatatype

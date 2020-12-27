@@ -48,7 +48,7 @@ abstract class IR_FileAccess(
   // commonly used datatypes
   val MPI_Offset : IR_SpecialDatatype = if (Knowledge.mpi_enabled) IR_SpecialDatatype("MPI_Offset") else IR_SpecialDatatype("size_t")
   val MPI_Comm = IR_SpecialDatatype("MPI_Comm")
-  lazy val datatypeDimArray : IR_Datatype = interfaceName match {
+  def datatypeDimArray : IR_Datatype = interfaceName match {
     case "mpiio" => IR_IntegerDatatype
     case "nc"    => MPI_Offset
     case "hdf5"  => IR_SpecialDatatype("hsize_t")
@@ -58,36 +58,56 @@ abstract class IR_FileAccess(
   }
   def mpiDatatypeBuffer(buf : IR_DataBuffer) = IR_VariableAccess(buf.datatype.resolveBaseDatatype.prettyprint_mpi, IR_UnknownDatatype)
 
+  // helpers to declare dimensionalities
+  protected def declareDimensionality(name : String, localization: IR_Localization, dims : ListBuffer[IR_Expression], datatype : IR_Datatype = datatypeDimArray) : IR_VariableDeclaration = {
+    IR_FileAccess.declareDimensionality(IR_ArrayDatatype(datatype, dims.length), name, localization, Some(dims))
+  }
+  // output data fragment-after-fragment -> additional dimensionality in this case
+  protected def handleFragmentDimension(buf : IR_DataBuffer, dims : ListBuffer[IR_Expression], fragmentDim : IR_Expression) : ListBuffer[IR_Expression] = {
+    if (!buf.canonicalOrder) {
+      fragmentDim +: (if (buf.accessBlockwise) dims.drop(1) else dims)
+    } else {
+      dims
+    }
+  }
+
   // commonly used declarations
-  def stride_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality( // TODO global necessary as well?
-    IR_ArrayDatatype(datatypeDimArray, buf.numDimsData), "stride", buf.localization, Some(buf.strideKJI)))
-  def localCount_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(datatypeDimArray, buf.numDimsData), "localCount", buf.localization, Some(buf.innerDimsLocalKJI)))
-  def globalCount_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => { // TODO update accesses in HDF5/PnetCDF
-    if (!buf.canonicalOrder) // output data fragment-after-fragment -> additional dimensionality in this case
-      IR_FileAccess.declareDimensionality(IR_ArrayDatatype(datatypeDimArray, buf.globalDimsKJI.length), "globalCount", buf.localization,
-        Some((if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else IR_IntegerConstant(1)) +: buf.globalDimsKJI.drop(1)))
-    else
-      localCount_decl(dataBuffers.indexOf(buf))
+  def stride_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
+    declareDimensionality("stride", buf.localization,
+      handleFragmentDimension(buf, buf.strideKJI,
+        fragmentDim = 1))
   })
-  def localDims_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(datatypeDimArray, buf.numDimsData), "localDims", buf.localization, Some(buf.totalDimsLocalKJI)))
-  def localStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(datatypeDimArray, buf.numDimsData), "localStart", buf.localization, Some(buf.startIndexLocalKJI)))
-  def globalDims_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(datatypeDimArray, buf.globalDimsKJI.length), "globalDims", buf.localization, Some(buf.globalDimsKJI)))
-  def globalStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(datatypeDimArray, buf.startIndexGlobalKJI.length), "globalStart", buf.localization, Some(ListBuffer.fill(buf.startIndexGlobalKJI.length)(IR_IntegerConstant(0)))))
+  def count_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
+    declareDimensionality("count", buf.localization,
+      handleFragmentDimension(buf, buf.innerDimsLocalKJI,
+        fragmentDim = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else 1))
+  })
+  def localDims_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
+    declareDimensionality("localDims", buf.localization,
+      handleFragmentDimension(buf, buf.totalDimsLocalKJI,
+        fragmentDim = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else 1))
+  })
+  def localStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
+    declareDimensionality("localStart", buf.localization,
+      handleFragmentDimension(buf, buf.startIndexLocalKJI,
+        fragmentDim = 0))
+  })
+  def globalDims_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
+    declareDimensionality("globalDims", buf.localization, buf.globalDimsKJI)
+  })
+  def globalStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
+    declareDimensionality("globalStart", buf.localization, ListBuffer.fill(numDimsGlobal(buf))(IR_IntegerConstant(0)))
+  })
 
   // collection with declarations of dim. extents
-  def dimensionalityDeclarations : ListBuffer[IR_VariableDeclaration] = stride_decl.distinct ++ (localCount_decl ++ globalCount_decl).distinct ++
-    localDims_decl.distinct ++ localStart_decl.distinct ++ globalDims_decl.distinct ++ globalStart_decl.distinct
+  def dimensionalityDeclarations : ListBuffer[IR_VariableDeclaration] = dataBuffers.indices.flatMap(idx => {
+    stride_decl(idx) :: count_decl(idx) :: localDims_decl(idx) :: localStart_decl(idx) :: globalDims_decl(idx) :: globalStart_decl(idx) :: Nil
+  }).distinct.to[ListBuffer]
 
   // commonly used variable accesses
   val mpiCommunicator = IR_VariableAccess("mpiCommunicator", IR_UnknownDatatype)
   def stride(bufIdx : Int) = IR_VariableAccess(stride_decl(bufIdx))
-  def localCount(bufIdx : Int) = IR_VariableAccess(localCount_decl(bufIdx))
-  def globalCount(bufIdx : Int) = IR_VariableAccess(globalCount_decl(bufIdx))
+  def count(bufIdx : Int) = IR_VariableAccess(count_decl(bufIdx))
   def localDims(bufIdx : Int) = IR_VariableAccess(localDims_decl(bufIdx))
   def localStart(bufIdx : Int) = IR_VariableAccess(localStart_decl(bufIdx))
   def globalDims(bufIdx : Int) = IR_VariableAccess(globalDims_decl(bufIdx))
@@ -97,6 +117,18 @@ abstract class IR_FileAccess(
   def fileDisplacement(bufIdx : Int) : IR_Expression = {
     IR_SimplifyExpression.simplifyIntegralExpr(dataBuffers.map(_.typicalByteSize(global = true)).take(bufIdx).reduceOption(_ + _).getOrElse(0))
   }
+
+  def filenameAsCString : IR_Expression = filename match {
+    case sc : IR_StringConstant                                         => sc
+    case vAcc : IR_VariableAccess if vAcc.datatype == IR_StringDatatype => IR_MemberFunctionCall(vAcc, "c_str")
+    case _                                                              => Logger.error("Wrong datatype passed for parameter \"filename\" to IR_FileAccess. Should be a \"String\" instead of:" + _)
+  }
+
+  // determine number of dims (numDimsData does not work since the data can be laid out canonically or fragment-wise -> differences in dimensionality)
+  def numDimsLocal(bufIdx : Int) : Int = numDimsLocal(dataBuffers(bufIdx))
+  def numDimsGlobal(bufIdx : Int) : Int = numDimsGlobal(dataBuffers(bufIdx))
+  def numDimsLocal(buf : IR_DataBuffer) : Int = if (!buf.canonicalOrder) numDimsGlobal(buf) else buf.startIndexLocalKJI.length
+  def numDimsGlobal(buf : IR_DataBuffer) : Int = buf.globalDimsKJI.length
 
   // structure of file access classes
   def createOrOpenFile() : ListBuffer[IR_Statement]
@@ -142,6 +174,13 @@ abstract class IR_FileAccess(
   // method to access the file in a block-wise fashion
   def accessFileBlockwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_Statement
 
+  // HACK: artificial fragment loop (of length 1) to set start indices to "startIndexGlobalKJI" (which uses fragmentIdx)
+  def IR_LoopOverBlocks(stmts : ListBuffer[IR_Statement]) = IR_ForLoop(
+    IR_VariableDeclaration(IR_LoopOverFragments.defIt, 0),
+    IR_Lower(IR_LoopOverFragments.defIt, 1),
+    IR_PreIncrement(IR_LoopOverFragments.defIt),
+    stmts)
+
   // core methods for file access
   def read(bufIdx : Int) : ListBuffer[IR_Statement]
   def write(bufIdx : Int) : ListBuffer[IR_Statement]
@@ -160,8 +199,8 @@ abstract class IR_FileAccess(
     stmts
   }
 
-  override def expand() : Output[StatementList] = {
-    // add new headers, paths and libs
+  // add new headers, paths and libs
+  def handleDependencies() : Unit = {
     for (inc <- includes) {
       if (!Settings.additionalIncludes.contains(inc))
         Settings.additionalIncludes += inc
@@ -178,7 +217,10 @@ abstract class IR_FileAccess(
       if (!Settings.pathsLib.contains(pathLib))
         Settings.pathsLib += pathLib
     }
+  }
 
+  override def expand() : Output[StatementList] = {
+    handleDependencies()
     validateParams()
 
     val ret = statementList

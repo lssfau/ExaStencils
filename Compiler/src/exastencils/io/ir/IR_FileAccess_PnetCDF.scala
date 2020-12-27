@@ -53,21 +53,32 @@ case class IR_FileAccess_PnetCDF(
 
   // decls for data extents
   val ptrDatatype : IR_SpecialDatatype = if (Knowledge.mpi_enabled) MPI_Offset else IR_SpecialDatatype("ptrdiff_t") // serial API uses "ptrdiff_t" for "imap" and "stride" parameters
-  override def stride_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(ptrDatatype, numDimsDataAndTime(buf.numDimsData)), "stride", buf.localization,
-    Some(if (useTimeDim) IR_IntegerConstant(1) +: buf.strideKJI else buf.strideKJI))) // prepend one more entry for unlimited "time" dimension
-  override def localCount_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime(buf.numDimsData)), "count", buf.localization,
-    Some(if (useTimeDim) IR_IntegerConstant(1) +: buf.innerDimsLocalKJI else buf.innerDimsLocalKJI))) // prepend "1" since "1*(count.product)" values are written per timestep
-  override def globalStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime(buf.startIndexGlobalKJI.length)), "globalStart", buf.localization,
-    Some(ListBuffer.fill(numDimsDataAndTime(buf.startIndexGlobalKJI.length))(IR_IntegerConstant(0)))))
-  lazy val emptyCount_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality(
-    IR_ArrayDatatype(MPI_Offset, numDimsDataAndTime(buf.numDimsData)), "emptyCount", buf.localization,
-    Some(ListBuffer.fill(numDimsDataAndTime(buf.numDimsData))(IR_IntegerConstant(0)))))
-  val imap_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => IR_FileAccess.declareDimensionality( // describes in-memory access pattern
-    IR_ArrayDatatype(ptrDatatype, numDimsDataAndTime(buf.numDimsData)),"imap", buf.localization,
-    Some(if (useTimeDim) IR_IntegerConstant(0) +: buf.imapKJI else buf.imapKJI))) // prepend "0" since the memory layout doesn't change with the additional time dimension
+  override def stride_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
+    declareDimensionality("stride", buf.localization,
+      handleFragmentDimension(buf,
+        if (useTimeDim) IR_IntegerConstant(1) +: buf.strideKJI else buf.strideKJI,  // prepend one more entry for unlimited "time" dimension
+        fragmentDim = 1),
+      ptrDatatype)
+  })
+  override def count_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
+    declareDimensionality("count", buf.localization,
+      handleFragmentDimension(buf,
+        if (useTimeDim) IR_IntegerConstant(1) +: buf.innerDimsLocalKJI else buf.innerDimsLocalKJI, // prepend "1" since "1*(count.product)" values are written per timestep
+        fragmentDim = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else 1))
+  })
+  override def globalStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
+    declareDimensionality( "globalStart", buf.localization,
+      ListBuffer.fill(numDimsDataAndTime(numDimsGlobal(buf)))(IR_IntegerConstant(0)))
+  })
+  lazy val emptyCount_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
+    declareDimensionality("emptyCount", buf.localization,
+      ListBuffer.fill(numDimsDataAndTime(numDimsGlobal(buf)))(IR_IntegerConstant(0)))
+  })
+  val imap_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => { // describes in-memory access pattern
+    declareDimensionality("imap", buf.localization,
+      if (useTimeDim) IR_IntegerConstant(0) +: buf.imapKJI else buf.imapKJI, // prepend "0" since the memory layout doesn't change with the additional time dimension,
+      ptrDatatype)
+  })
 
   var declarations : ListBuffer[IR_VariableDeclaration] = dimensionalityDeclarations :+ err_decl :+ ncFile_decl
 
@@ -146,15 +157,15 @@ case class IR_FileAccess_PnetCDF(
     // create/open file
     if (writeAccess && !appendedMode) {
       if (Knowledge.mpi_enabled) {
-        statements ++= ncmpi_create(mpiCommunicator, fileName, openMode, info, ncFile)
+        statements ++= ncmpi_create(mpiCommunicator, filenameAsCString, openMode, info, ncFile)
       } else {
-        statements ++= nc_create(fileName, openMode, ncFile)
+        statements ++= nc_create(filenameAsCString, openMode, ncFile)
       }
     } else {
       if (Knowledge.mpi_enabled) {
-        statements ++= ncmpi_open(mpiCommunicator, fileName, openMode, info, ncFile)
+        statements ++= ncmpi_open(mpiCommunicator, filenameAsCString, openMode, info, ncFile)
       } else {
-        statements ++= nc_open(fileName, openMode, ncFile)
+        statements ++= nc_open(filenameAsCString, openMode, ncFile)
       }
     }
 
@@ -180,10 +191,10 @@ case class IR_FileAccess_PnetCDF(
 
         // lookup cache to prevent the definition of dimensions with identical extents
         if (!distinctDimIds.contains(key)) {
-          val dimId = IR_VariableAccess(IR_FileAccess.declareVariable("dimId"), IR_ArrayDatatype(IR_IntegerDatatype, dataBuffers(bufIdx).globalDimsKJI.length))
+          val dimId = IR_VariableAccess(IR_FileAccess.declareVariable("dimId"), IR_ArrayDatatype(IR_IntegerDatatype, numDimsGlobal(bufIdx)))
           statements += IR_VariableDeclaration(dimId)
 
-          for (d <- dataBuffers(bufIdx).globalDimsKJI.indices) {
+          for (d <- 0 until numDimsGlobal(bufIdx)) {
             statements ++= ncmpi_def_dim(ncFile, createDimName(dataBuffers(bufIdx), d), IR_ArrayAccess(globalDims(bufIdx), d), IR_AddressOf(IR_ArrayAccess(dimId, d)))
           }
 
@@ -201,7 +212,7 @@ case class IR_FileAccess_PnetCDF(
         val buf = dataBuffers(bufIdx)
         val dimIdSpatial = distinctDimIds(globalDims(bufIdx).name)
         val dimIdRecord = IR_VariableAccess(IR_FileAccess.declareVariable("dimId" + buf.name), IR_ArrayDatatype(IR_IntegerDatatype, numDimsDataAndTime(buf.numDimsData)))
-        val numDims = buf.globalDimsKJI.length
+        val numDims = numDimsGlobal(bufIdx)
 
         // pass array with spatial and temporal dimension ids for record variables
         if (useTimeDim)
@@ -230,7 +241,7 @@ case class IR_FileAccess_PnetCDF(
 
   // set count to "0" for "invalid" frags in order to perform a NOP read/write
   val countSelection_decl : Array[IR_VariableDeclaration] = dataBuffers.indices.map(bufIdx =>
-    IR_VariableDeclaration(IR_PointerDatatype(MPI_Offset), IR_FileAccess.declareVariable("countSelection"), localCount(bufIdx))).toArray
+    IR_VariableDeclaration(IR_PointerDatatype(MPI_Offset), IR_FileAccess.declareVariable("countSelection"), count(bufIdx))).toArray
   val countSelection : Array[IR_VariableAccess] = dataBuffers.indices.map(bufIdx =>
     IR_VariableAccess(countSelection_decl(bufIdx))).toArray
   def condAssignCount(bufIdx : Int) : ListBuffer[IR_Statement] = {
@@ -267,7 +278,7 @@ case class IR_FileAccess_PnetCDF(
         condAssignCount(bufIdx) ++
           ncmpi_put_vara_type_all(buffer.datatype, ncFile, varIdField(bufIdx), globalStart(bufIdx), countSelection(bufIdx), buffer.getBaseAddress)
       } else {
-        ncmpi_put_vara_type(buffer.datatype, ncFile, varIdField(bufIdx), globalStart(bufIdx), localCount(bufIdx), buffer.getBaseAddress)
+        ncmpi_put_vara_type(buffer.datatype, ncFile, varIdField(bufIdx), globalStart(bufIdx), count(bufIdx), buffer.getBaseAddress)
       },
       /* falsebody */
       // more complex method that describes the memory layout (imap parameter with linearized distance between two values (e.g. in x-direction "1") for each dimension in KJI order)
@@ -276,7 +287,7 @@ case class IR_FileAccess_PnetCDF(
         condAssignCount(bufIdx) ++
           ncmpi_put_varm_type_all(buffer.datatype, ncFile, varIdField(bufIdx), globalStart(bufIdx), countSelection(bufIdx), stride(bufIdx), imap(bufIdx), buffer.getAddressReferenceOffset)
       } else {
-        ncmpi_put_varm_type(buffer.datatype, ncFile, varIdField(bufIdx), globalStart(bufIdx), localCount(bufIdx), stride(bufIdx), imap(bufIdx), buffer.getAddressReferenceOffset)
+        ncmpi_put_varm_type(buffer.datatype, ncFile, varIdField(bufIdx), globalStart(bufIdx), count(bufIdx), stride(bufIdx), imap(bufIdx), buffer.getAddressReferenceOffset)
       }
     )
 
@@ -297,7 +308,7 @@ case class IR_FileAccess_PnetCDF(
         condAssignCount(bufIdx) ++
           ncmpi_get_vara_type_all(buffer.datatype, ncFile, varIdField(bufIdx), globalStart(bufIdx), countSelection(bufIdx), buffer.getBaseAddress)
       } else {
-        ncmpi_get_vara_type(buffer.datatype, ncFile, varIdField(bufIdx), globalStart(bufIdx), localCount(bufIdx), buffer.getBaseAddress)
+        ncmpi_get_vara_type(buffer.datatype, ncFile, varIdField(bufIdx), globalStart(bufIdx), count(bufIdx), buffer.getBaseAddress)
       },
       /* falsebody */
       // more complex method that describes the memory layout (i.e. linearized offsets for each dimension in KJI order)
@@ -306,7 +317,7 @@ case class IR_FileAccess_PnetCDF(
         condAssignCount(bufIdx) ++
           ncmpi_get_varm_type_all(buffer.datatype, ncFile, varIdField(bufIdx), globalStart(bufIdx), countSelection(bufIdx), stride(bufIdx), imap(bufIdx), buffer.getAddressReferenceOffset)
       } else {
-        ncmpi_get_varm_type(buffer.datatype, ncFile, varIdField(bufIdx), globalStart(bufIdx), localCount(bufIdx), stride(bufIdx), imap(bufIdx), buffer.getAddressReferenceOffset)
+        ncmpi_get_varm_type(buffer.datatype, ncFile, varIdField(bufIdx), globalStart(bufIdx), count(bufIdx), stride(bufIdx), imap(bufIdx), buffer.getAddressReferenceOffset)
       }
     )
 
