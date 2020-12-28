@@ -52,7 +52,7 @@ case class IR_PrintXdmfSWE(
 
     // setup buffers
     stmts ++= setupNodePositions
-    stmts ++= setupConnectivity
+    stmts ++= setupConnectivity(global = ioInterface != "fpp")
     if (Knowledge.swe_nodalReductionPrint) {
       stmts ++= setupReducedData
     }

@@ -36,7 +36,7 @@ case class IR_PrintXdmfNNF(
     // setup frag info and temp buffers
     stmts ++= IR_IV_FragmentInfo.init(someCellField.domain.index)
     stmts ++= setupNodePositions
-    stmts ++= setupConnectivity
+    stmts ++= setupConnectivity(global = ioInterface != "fpp")
     stmts ++= setupVelocity
 
     stmts

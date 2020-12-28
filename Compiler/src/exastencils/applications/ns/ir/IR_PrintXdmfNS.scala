@@ -46,7 +46,7 @@ case class IR_PrintXdmfNS(
     if (fmt != "XML") {
       stmts ++= IR_IV_FragmentInfo.init(someCellField.domain.index)
       stmts ++= setupNodePositions
-      stmts ++= setupConnectivity
+      stmts ++= setupConnectivity(global = ioInterface != "fpp")
       stmts ++= setupVelocity
     }
 
@@ -107,7 +107,7 @@ case class IR_PrintXdmfNS(
         printXdmfElement(stream, closeTopology)),
       /* falsebody */
       ListBuffer[IR_Statement](
-        printXdmfElement(stream, XInclude(href = IR_IV_ConstantsWrittenToFile(), xpath = XPath("Topology") :_*) : _*)
+        printXdmfElement(stream, XInclude(href = IR_IV_ConstantsWrittenToFile(), xpath = XPath("Topology") : _*) : _*)
       )
     )
 
@@ -151,7 +151,7 @@ case class IR_PrintXdmfNS(
   }
 
   override def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
-    if (binaryFpp) {
+    val stmts = if (binaryFpp) {
       IR_VariableDeclaration(filenamePieceFpp) +:
         buildFilenamePiece(noPath = false, MPI_IV_MpiRank) +:
         ioHandler(constsIncluded, filenamePieceFpp).statementList
@@ -160,6 +160,16 @@ case class IR_PrintXdmfNS(
       IR_VariableDeclaration(filenameData, buildFilenameData(noPath = false)) +:
         ioHandler(constsIncluded, filenameData).statementList
     }
+
+    // cleanup
+    // TODO remove once temp. buffer IV's work correctly
+    if (fmt != "XML") {
+      stmts ++= cleanupNodePositions
+      stmts += cleanupConnectivity
+      stmts += cleanupVelocity
+    }
+
+    stmts
   }
 
 }

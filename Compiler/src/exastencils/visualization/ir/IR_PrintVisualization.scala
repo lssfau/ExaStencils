@@ -136,7 +136,7 @@ trait IR_PrintVisualization {
   def connectivityBuf = IR_IV_TemporaryBuffer(IR_IntegerDatatype, "connectivity", someCellField.domain.index, ListBuffer() ++ dimsConnectivityFrag)
 
   // allocates and initializes buffer with connectivity info. this buffer is then passed to the I/O library
-  def setupConnectivity : ListBuffer[IR_Statement] = {
+  def setupConnectivity(global : Boolean) : ListBuffer[IR_Statement] = {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
     val sizeConnectionFrag = dimsConnectivityFrag.reduce((a, b) => a.v * b.v)
 
@@ -147,7 +147,7 @@ trait IR_PrintVisualization {
       val linearizedLoopIdx = loopOverInnerDims(nodalLoopEnd = false).indices.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
       IR_Assignment(
         connectivityBuf.at(IR_LoopOverFragments.defIt * sizeConnectionFrag + connectivityForCell().length * linearizedLoopIdx + d),
-        connectivityForCell()(d)) : IR_Statement
+        connectivityForCell(global)(d)) : IR_Statement
     }).to[ListBuffer]
 
     stmts += IR_LoopOverFragments(

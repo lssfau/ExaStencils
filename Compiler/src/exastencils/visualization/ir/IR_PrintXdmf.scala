@@ -104,9 +104,9 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     (IR_StringConstant("\t\t\t<xi:include href=\\\"") +: href :+ IR_StringConstant("\\\" ")) ++
       (IR_StringConstant("xpointer=\\\"xpointer(") +: xpath.to[ListBuffer] :+ IR_StringConstant(")\\\"/>"))
   def XPath(elem : String) : ListBuffer[IR_Expression] = if (binaryFpp) {
-    ListBuffer(IR_StringConstant("/Xdmf/Domain/Grid/Grid["), curRank + 1, IR_StringConstant("]/" + elem))
+    ListBuffer(IR_StringConstant("/Xdmf/Domain/Grid/Grid["), curRank + 1, IR_StringConstant("]/" + elem)) // collection of grids (one for each subdomain)
   } else {
-    ListBuffer[IR_Expression](IR_StringConstant("/Xdmf/Domain/Grid[1]/" + elem))
+    ListBuffer[IR_Expression](IR_StringConstant("/Xdmf/Domain/Grid[1]/" + elem)) // a single global grid
   }
 
   // table from: https://www.xdmf.org/index.php/XDMF_Model_and_Format
