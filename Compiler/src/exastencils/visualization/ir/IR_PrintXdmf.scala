@@ -18,7 +18,6 @@ import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_Lower
 import exastencils.base.ir.IR_MemberFunctionCall
-import exastencils.base.ir.IR_NullExpression
 import exastencils.base.ir.IR_ObjectInstantiation
 import exastencils.base.ir.IR_PreIncrement
 import exastencils.base.ir.IR_RealDatatype
@@ -53,11 +52,11 @@ import exastencils.util.ir.IR_Print
 abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) extends IR_Statement with IR_Expandable with IR_PrintVisualization {
 
   // declarations
-  val filenamePieceFpp_decl = IR_VariableDeclaration(IR_StringDatatype, IR_FileAccess.declareVariable("fnPiece"))
   val endianness = IR_VariableDeclaration(IR_StringDatatype, "endianness",
     IR_TernaryCondition(IR_FunctionCall(IR_ExternalFunctionReference("htonl"), 47) EqEq 47, "\"Big\"", "\"Little\"")) // determine endianness in target code
   // accesses
-  val filenamePieceFpp = IR_VariableAccess(filenamePieceFpp_decl)
+  val curRank = IR_VariableAccess("curRank", IR_IntegerDatatype)
+  val filenamePieceFpp = IR_VariableAccess(IR_FileAccess.declareVariable("fnPiece"), IR_StringDatatype)
 
   val supportedInterfaces : ListBuffer[String] = ListBuffer("mpiio", "fpp", "hdf5")
 
@@ -78,7 +77,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
       case "mpiio" =>
         IR_FileAccess_MPIIO(fn, dataBuffers(constsIncluded), writeAccess = true)
       case "fpp"   =>
-        IR_FileAccess_FPP(fn, dataBuffers(constsIncluded), useBinary = binaryFpp, writeAccess = true, separator, condition = IR_NullExpression, optPrintComponents = None)
+        IR_FileAccess_FPP(fn, dataBuffers(constsIncluded), useBinary = binaryFpp, writeAccess = true, separator, condition = true, optPrintComponents = None)
       case "hdf5"  =>
         IR_FileAccess_HDF5(fn, dataBuffers(constsIncluded), writeAccess = true)
       case _ =>
@@ -105,7 +104,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     (IR_StringConstant("\t\t\t<xi:include href=\\\"") +: href :+ IR_StringConstant("\\\" ")) ++
       (IR_StringConstant("xpointer=\\\"xpointer(") +: xpath.to[ListBuffer] :+ IR_StringConstant(")\\\"/>"))
   def XPath(elem : String) : ListBuffer[IR_Expression] = if (binaryFpp) {
-    ListBuffer(IR_StringConstant("/Xdmf/Domain/Grid["), MPI_IV_MpiRank + 1, IR_StringConstant("]/" + elem))
+    ListBuffer(IR_StringConstant("/Xdmf/Domain/Grid/Grid["), curRank + 1, IR_StringConstant("]/" + elem))
   } else {
     ListBuffer[IR_Expression](IR_StringConstant("/Xdmf/Domain/Grid[1]/" + elem))
   }
@@ -131,8 +130,8 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     "<Xdmf xmlns:xi=\\\"http://www.w3.org/2001/XInclude\\\" Version=\\\"3.0\\\">"
   def openDomain =
     "\t<Domain>"
-  def openGrid(name : String, tpe : String) =
-    s"""\t\t<Grid Name=\\\"$name\\\" GridType=\\\"$tpe\\\">"""
+  def openGrid(name : IR_Expression, tpe : String) : ListBuffer[IR_Expression] = ListBuffer(IR_StringConstant(
+    "\t\t<Grid Name=\\\""), name, IR_StringConstant(s"""\\\" GridType=\\\"$tpe\\\">"""))
   def openGeometry(tpe : String) =
     s"""\t\t\t<Geometry GeometryType=\\\"$tpe\\\">"""
   def openTopology(tpe : String, dims : ListBuffer[IR_Expression], npe : Option[String] = None) : ListBuffer[IR_Expression] = ListBuffer(IR_StringConstant(
@@ -155,9 +154,9 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   def closeDataItem  = "\t\t\t\t</DataItem>"
 
   // helpers to construct filenames
-  def buildFilenamePiece(stripPath : Boolean, rank : IR_Expression) : IR_BuildString = IR_BuildString(filenamePieceFpp.name,
-    ListBuffer(basename(stripPath), IR_StringConstant("_rank"), rank, if(binaryFpp) IR_StringConstant(".bin") else ext))
-  def buildFilenameData(noPath : Boolean)  : IR_Expression = basename(noPath = noPath, Some(IR_StringConstant(fmt match {
+  def buildFilenamePiece(noPath : Boolean, rank : IR_Expression) : IR_BuildString = IR_BuildString(filenamePieceFpp.name,
+    ListBuffer(basename(noPath), IR_StringConstant("_rank"), rank, if (binaryFpp) IR_StringConstant(".bin") else ext))
+  def buildFilenameData(noPath : Boolean)  : IR_Expression = basename(noPath, Some(IR_StringConstant(fmt match {
     case "Binary" => ".bin"
     case "HDF"    => ".h5"
   })))
@@ -167,9 +166,12 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
 
   def indentData = IR_StringConstant("\t\t\t\t\t")
 
-  def printFilename(stream : IR_VariableAccess, dataset : String) = IR_Print(stream,
-    ListBuffer(indentData, buildFilenameData(noPath = true)) ++ (if(fmt == "HDF") IR_StringConstant(":" + dataset)::Nil else Nil) :+ IR_Print.newline
-  )
+  def printFilename(stream : IR_VariableAccess, dataset : String) : IR_Print = {
+    val refFile = if (binaryFpp) buildFilenamePiece(noPath = true, curRank).toPrint else ListBuffer(buildFilenameData(noPath = true))
+    val refDataset = if (fmt == "HDF") IR_StringConstant(":" + dataset) :: Nil else Nil
+
+    IR_Print(stream, ListBuffer(indentData) ++ refFile ++ refDataset :+ IR_Print.newline)
+  }
 
   // prints a complete xdmf file
   def writeXdmf : ListBuffer[IR_Statement] = {
@@ -180,7 +182,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     if(ioInterface == "fpp") {
       val buildStr = IR_VariableAccess(filenamePieceFpp.name, IR_StringDatatype)
       statements += IR_VariableDeclaration(buildStr)
-      statements += buildFilenamePiece(stripPath = false, rank = MPI_IV_MpiRank)
+      statements += buildFilenamePiece(noPath = false, rank = MPI_IV_MpiRank)
       statements += IR_ObjectInstantiation(stream, Duplicate(buildStr))
     } else {
       statements += IR_ObjectInstantiation(stream, Duplicate(filename))
@@ -209,7 +211,12 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   def writeXdmfGrid(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    statements += printXdmfElement(stream, openGrid("Grid", "Uniform"))
+    val gridName = if (binaryFpp) {
+      IR_StringConstant("Grid") + IR_FunctionCall(IR_ExternalFunctionReference("std::to_string"), curRank)
+    } else {
+      IR_StringConstant("Grid")
+    }
+    statements += printXdmfElement(stream, openGrid(gridName, "Uniform") : _*)
     statements ++= writeXdmfGeometry(stream, global)
     statements ++= writeXdmfTopology(stream, global)
     statements ++= writeXdmfAttributes(stream, global)
@@ -242,8 +249,11 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     if (!Settings.additionalIncludes.contains("fstream"))
       Settings.additionalIncludes += "fstream"
 
+    if (!Settings.additionalIncludes.contains("string"))
+      Settings.additionalIncludes += "string"
+
     // header for I/O interfaces
-    ioHandler(false, filename).handleDependencies()
+    ioHandler(constsIncluded = false, filename).handleDependencies()
 
     if (!IR_GlobalCollection.get.variables.contains(endianness)) {
       if (!IR_GlobalCollection.get.externalDependencies.contains("arpa/inet.h"))
@@ -261,9 +271,9 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
       val stream = newStream
 
       // construct xdmf filename for domain pieces in same directory as the global file
-      def refPieces : ListBuffer[IR_Statement] = (0 until Knowledge.mpi_numThreads).map(curRank => {  // assumes the file of process "curRank" only has one grid instance
+      def refPieces : ListBuffer[IR_Statement] = (0 until Knowledge.mpi_numThreads).map(r => {  // assumes the file of process "curRank" only has one grid instance
         printXdmfElement(stream,
-          XInclude(href = buildFilenamePiece(stripPath = true, rank = IR_IntegerConstant(curRank)).toPrint,
+          XInclude(href = buildFilenamePiece(noPath = true, rank = IR_IntegerConstant(r)).toPrint,
             xpath = IR_StringConstant("/Xdmf/Domain/Grid[1]")) : _*)
       }).to[ListBuffer]
 
@@ -276,17 +286,16 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
       printGlobalFile += printXdmfElement(stream, openDomain)
 
       val printPieces = if (binaryFpp) {
-        val curRank = IR_VariableAccess("curRank", IR_IntegerDatatype)
         ListBuffer(
-          printXdmfElement(stream, openGrid("Grid" + curRank, "Collection")),
+          printXdmfElement(stream, openGrid(IR_StringConstant("Grid"), "Collection") : _*),
           IR_ForLoop(
-            IR_VariableDeclaration(IR_IntegerDatatype, "curRank", 0),
-            IR_Lower("curRank", Knowledge.mpi_numThreads),
-            IR_PreIncrement("curRank"),
+            IR_VariableDeclaration(curRank, 0),
+            IR_Lower(curRank, Knowledge.mpi_numThreads),
+            IR_PreIncrement(curRank),
             writeXdmfGrid(stream, global = false)),
           printXdmfElement(stream, closeGrid))
       } else {
-        ListBuffer(printXdmfElement(stream, openGrid("GlobalGrid", "Collection"))) ++
+        ListBuffer(printXdmfElement(stream, openGrid(IR_StringConstant("GlobalGrid"), "Collection") : _*)) ++
           refPieces :+ // when using ascii, the data is directly incorporated in the xdmf file -> reference xdmf file of each piece
           printXdmfElement(stream, closeGrid)
       }

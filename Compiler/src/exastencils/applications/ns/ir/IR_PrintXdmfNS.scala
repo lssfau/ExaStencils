@@ -26,6 +26,7 @@ import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_FileAccess
 import exastencils.io.ir.IR_IV_FragmentInfo
+import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_IV_ConstantsWrittenToFile
 import exastencils.visualization.ir.IR_PrintXdmf
@@ -76,7 +77,7 @@ case class IR_PrintXdmfNS(
         }) :+ printXdmfElement(stream, closeGeometry),
       /* falsebody */
       ListBuffer[IR_Statement](
-        printXdmfElement(stream, XInclude(href = IR_IV_ConstantsWrittenToFile(), xpath = XPath("Geometry") :_*) : _*)
+        printXdmfElement(stream, XInclude(href = IR_IV_ConstantsWrittenToFile(), xpath = XPath("Geometry") : _*) : _*)
       )
     )
 
@@ -150,8 +151,15 @@ case class IR_PrintXdmfNS(
   }
 
   override def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
-    val filenameData = IR_VariableDeclaration(IR_StringDatatype, IR_FileAccess.declareVariable("filenameData"), buildFilenameData(false))
-    filenameData +: ioHandler(constsIncluded, IR_VariableAccess(filenameData)).statementList
+    if (binaryFpp) {
+      IR_VariableDeclaration(filenamePieceFpp) +:
+        buildFilenamePiece(noPath = false, MPI_IV_MpiRank) +:
+        ioHandler(constsIncluded, filenamePieceFpp).statementList
+    } else {
+      val filenameData = IR_VariableAccess(IR_FileAccess.declareVariable("filenameData"), IR_StringDatatype)
+      IR_VariableDeclaration(filenameData, buildFilenameData(noPath = false)) +:
+        ioHandler(constsIncluded, filenameData).statementList
+    }
   }
 
 }

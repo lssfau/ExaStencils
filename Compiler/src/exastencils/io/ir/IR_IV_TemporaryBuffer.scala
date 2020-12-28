@@ -9,6 +9,7 @@ import exastencils.base.ir.IR_ArrayFree
 import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_Expression
+import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_Index
@@ -17,6 +18,7 @@ import exastencils.base.ir.IR_PointerDatatype
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_UnknownDatatype
 import exastencils.base.ir.IR_VariableAccess
+import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.baseExt.ir.IR_LoopOverDomains
 
@@ -42,10 +44,14 @@ case class IR_IV_TemporaryBuffer(
 
   def at(index : IR_Expression) : IR_Access = index match {
     case idx : IR_Index =>
-      val simplifiedIndex = (0 until numDims).map(d => idx.toExpressionIndex.indices(d) * dimsLocal(d) : IR_Expression).reduce(_ + _)
+      val linearizedIdx = IR_ExpressionIndexRange(
+        IR_ExpressionIndex(Array.fill(numDims)(0)),
+        IR_ExpressionIndex(dimsLocal.toArray)
+      ).linearizeIndex(idx)
+
       IR_ArrayAccess(
         resolveAccess(resolveName(), IR_NullExpression, IR_LoopOverDomains.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression),
-        simplifiedIndex)
+        linearizedIdx)
     case _ =>
       IR_ArrayAccess(name, index)
   }

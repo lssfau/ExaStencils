@@ -162,7 +162,7 @@ trait IR_PrintVisualization {
     d => IR_IV_TemporaryBuffer(IR_RealDatatype, "nodePosition" + ('X' + d).toChar.toString, someCellField.domain.index, ListBuffer() ++ dimsPositionsFrag)).to[ListBuffer]
 
   // allocates and initializes buffer with the node positions on-demand. on some occasions, the virtual field can be directly passed to the library. this buffer is then passed to the I/O library
-  def setupNodePositions : ListBuffer[IR_Statement] = if(!nodePositionsCopied) {
+  def setupNodePositions : ListBuffer[IR_Statement] = if (!nodePositionsCopied) {
     ListBuffer()
   } else {
     // init buffer with node positions
