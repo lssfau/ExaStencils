@@ -79,9 +79,9 @@ case class IR_FileAccess_FPP(
     val buffer = dataBuffers(bufIdx)
     IR_LoopOverFragments(
       IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),
-        IR_LoopOverDimensions(buffer.numDimsData, IR_ExpressionIndexRange(
-          IR_ExpressionIndex(buffer.numDimsDataRange.map(dim => buffer.beginIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray),
-          IR_ExpressionIndex(buffer.numDimsDataRange.map(dim => buffer.endIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray)),
+        IR_LoopOverDimensions(buffer.numDimsGrid, IR_ExpressionIndexRange(
+          IR_ExpressionIndex(buffer.numDimsGridRange.map(dim => buffer.beginIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray),
+          IR_ExpressionIndex(buffer.numDimsGridRange.map(dim => buffer.endIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray)),
           IR_IfCondition(condition, fileAcc))),
       if(writeAccess) IR_Print(stream, IR_Print.flush) else IR_NullStatement)
   }
@@ -89,9 +89,9 @@ case class IR_FileAccess_FPP(
   override def accessFileBlockwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = {
     val buffer = dataBuffers(bufIdx)
     IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),
-      IR_LoopOverDimensions(buffer.numDimsData, IR_ExpressionIndexRange(
-        IR_ExpressionIndex(buffer.numDimsDataRange.map(dim => buffer.beginIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray),
-        IR_ExpressionIndex(buffer.numDimsDataRange.map(dim => buffer.endIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray)),
+      IR_LoopOverDimensions(buffer.numDimsGrid, IR_ExpressionIndexRange(
+        IR_ExpressionIndex(buffer.numDimsGridRange.map(dim => buffer.beginIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray),
+        IR_ExpressionIndex(buffer.numDimsGridRange.map(dim => buffer.endIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray)),
         IR_IfCondition(condition, accessStatements)))
   }
 
@@ -99,24 +99,22 @@ case class IR_FileAccess_FPP(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     val read = if (useBinary) IR_ReadBinary(stream) else IR_Read(stream)
-    /*
-    //    arrayIndexRange.foreach { index =>
-    val access = IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData))
-    //      if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
-    //        access.index(numDimsData - 2) = index // TODO: other hodt
-    read.exprToRead += access
-    //    }
-    */
-    // TODO
-    read.exprToRead += dataBuffers(bufIdx).getAccess(IR_LoopOverDimensions.defIt(dataBuffers(bufIdx).numDimsData))
 
-    // skip separator
-    if(!separator.asInstanceOf[IR_StringConstant].value.trim().isEmpty) {
-      // TODO: maybe implement with std::getline
+    // skip separator if not whitespace
+    val skipSep = if(!separator.asInstanceOf[IR_StringConstant].value.trim().isEmpty) {
+      // TODO: maybe implement with std::getline but will be slower
       val decl = IR_VariableDeclaration(IR_CharDatatype, IR_FileAccess.declareVariable("skipSeparator"))
       statements += decl
-      read.exprToRead += IR_VariableAccess(decl)
+      Some(IR_VariableAccess(decl))
+    } else {
+      None
     }
+
+    val accesses = handleAccessesHodt(dataBuffers(bufIdx)).flatMap(acc => List(acc) ++ skipSep)
+    if (skipSep.isDefined)
+      read.exprToRead ++= accesses.dropRight(1)
+    else
+      read.exprToRead ++= accesses
 
     statements += accessFileWithGranularity(bufIdx, ListBuffer(read))
 
@@ -126,35 +124,15 @@ case class IR_FileAccess_FPP(
   override def write(bufIdx : Int) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    //val arrayIndexRange = 0 until buffer.datatype.resolveFlattendSize
     val print = if(!useBinary) {
       val printComponents = optPrintComponents getOrElse ListBuffer[IR_Expression]()
       printComponents += "std::scientific"
-      /*
-      printComponents ++= arrayIndexRange.view.flatMap { index =>
-        val access = IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData))
-        if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
-          access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
-        List(access, separator)
-      }
-      */
-      // TODO
-      printComponents += dataBuffers(bufIdx).getAccess(IR_LoopOverDimensions.defIt(dataBuffers(bufIdx).numDimsData))
-      printComponents += separator
+      printComponents ++= handleAccessesHodt(dataBuffers(bufIdx)).flatMap(acc => List(acc, separator)).dropRight(1)
       printComponents += IR_Print.newline
       IR_Print(stream, printComponents)
     } else {
       val printComponents = ListBuffer[IR_Access]()
-      /*
-      printComponents ++= arrayIndexRange.view.flatMap { index =>
-        val access = IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData))
-        if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
-          access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
-        List(access)
-      }
-     */
-      // TODO
-      printComponents += dataBuffers(bufIdx).getAccess(IR_LoopOverDimensions.defIt(dataBuffers(bufIdx).numDimsData))
+      printComponents ++= handleAccessesHodt(dataBuffers(bufIdx))
       IR_PrintBinary(stream, printComponents)
     }
 

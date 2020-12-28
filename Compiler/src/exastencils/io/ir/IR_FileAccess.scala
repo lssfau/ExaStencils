@@ -3,9 +3,9 @@ package exastencils.io.ir
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.config.Knowledge
 import exastencils.config.Settings
 import exastencils.datastructures.Transformation.Output
@@ -69,6 +69,27 @@ abstract class IR_FileAccess(
     } else {
       dims
     }
+  }
+
+  // helper function to handle accesses for hodt
+  def handleAccessesHodt(buf : IR_DataBuffer) : ListBuffer[IR_Access] = {
+    val indices = if(buf.numDimsData > buf.numDimsGrid) {
+      buf.datatype match {
+        case mat : IR_MatrixDatatype =>
+          Array.range(0, mat.sizeM).flatMap(rows =>
+            Array.range(0, mat.sizeN).map(cols =>
+              IR_ExpressionIndex(IR_LoopOverDimensions.defIt(buf.numDimsGrid).indices :+ IR_IntegerConstant(rows) :+ IR_IntegerConstant(cols))))
+        case _ : IR_ScalarDatatype   =>
+          Array(IR_LoopOverDimensions.defIt(buf.numDimsData))
+        case _                       =>
+          Logger.error("Unsupported higher dimensional datatype used for I/O interface.")
+      }
+    } else {
+      Array(IR_LoopOverDimensions.defIt(buf.numDimsData))
+    }
+
+    // return access list with last separator removed
+    indices.map(idx => buf.getAccess(idx)).to[ListBuffer]
   }
 
   // commonly used declarations

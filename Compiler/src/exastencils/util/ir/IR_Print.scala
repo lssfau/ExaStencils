@@ -58,7 +58,8 @@ case class IR_PrintBinary(var stream : IR_VariableAccess, var toPrint : ListBuff
   override def exprToPrint : ListBuffer[IR_Expression] = toPrint.asInstanceOf[ListBuffer[IR_Expression]]
   override def prettyprint(out : PpStream) = {
     toPrint.foreach(acc => {
-      out << IR_MemberFunctionCall(stream, "write",  IR_Cast(IR_PointerDatatype(IR_CharDatatype), IR_AddressOf(acc)), IR_IntegerConstant(acc.datatype.resolveBaseDatatype.typicalByteSize)) << ";"
+      out << IR_MemberFunctionCall(stream, "write",  IR_Cast(IR_PointerDatatype(IR_CharDatatype), IR_AddressOf(acc)), IR_IntegerConstant(acc.datatype.resolveBaseDatatype.typicalByteSize))
+      out << ";" << (if (toPrint.last equals acc) "" else "\n")
     })
   }
 }
