@@ -137,12 +137,14 @@ case class IR_DataBuffer(
   */
   val canonicalOrder : Boolean = canonicalStorageLayout && Knowledge.domain_onlyRectangular
 
+  def numDimsDatatype : Int = numDimsData - numDimsGrid
   def numDimsGridRange : Range = 0 until numDimsGrid
   def numDimsDataRange : Range = 0 until numDimsData
 
   def strideKJI : ListBuffer[IR_Expression] = accessPattern.stridePerDimension.getOrElse(numDimsDataRange.map(_ => 1 : IR_Expression).to[ListBuffer]).reverse
 
-  def innerDimsLocalKJI : ListBuffer[IR_Expression] = numDimsDataRange.map(d => endIndices(d) - beginIndices(d) : IR_Expression).to[ListBuffer].reverse
+  private def innerDimsLocal: ListBuffer[IR_Expression] = numDimsDataRange.map(d => endIndices(d) - beginIndices(d) : IR_Expression).to[ListBuffer]
+  def innerDimsLocalKJI : ListBuffer[IR_Expression] = innerDimsLocal.reverse
 
   def startIndexLocalKJI : ListBuffer[IR_Expression] = numDimsDataRange.map(d => referenceOffset(d)).to[ListBuffer].reverse
 
@@ -150,21 +152,25 @@ case class IR_DataBuffer(
 
   def globalDimsKJI : ListBuffer[IR_Expression] = {
     if (canonicalOrder) {
-      numDimsDataRange.map(d => Knowledge.domain_rect_numFragsTotalAsVec(d) * innerDimsLocalKJI(d) : IR_Expression).to[ListBuffer]
+      numDimsDataRange.map(d => innerDimsLocal(d) *
+      (if (d < numDimsGrid) Knowledge.domain_rect_numFragsTotalAsVec(d) else 1) : IR_Expression).to[ListBuffer]
     } else {
-      IR_IV_TotalNumFrags(domainIdx) +:
-        (if (accessBlockwise) innerDimsLocalKJI.tail else innerDimsLocalKJI) // buffer contains data for the whole block -> fragment count already contained in dimensionalities (index "0" in KJI order)
+      // buffer contains data for the whole block -> fragment count already contained in dimensionalities (index "0" in KJI order)
+      (if (accessBlockwise) innerDimsLocal.tail else innerDimsLocal) :+
+        IR_IV_TotalNumFrags(domainIdx)
     }
-  }
+  }.reverse
 
   def startIndexGlobalKJI : ListBuffer[IR_Expression] = {
     if (canonicalOrder) {
-      numDimsDataRange.map(d => innerDimsLocalKJI(d) * (IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsTotalAsVec(d)) : IR_Expression).to[ListBuffer]
+      numDimsDataRange.map(d => innerDimsLocal(d) *
+        (if (d < numDimsGrid) IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsTotalAsVec(d) else 0) : IR_Expression).to[ListBuffer]
     } else {
-      (IR_IV_FragmentOffset(domainIdx) + IR_LoopOverFragments.defIt) +:
-        (if (accessBlockwise) innerDimsLocalKJI.tail else innerDimsLocalKJI).map(_ => 0 : IR_Expression) // buffer contains data for the whole block -> fragment count already contained in dimensionalities (index "0" in KJI order)
+      // buffer contains data for the whole block -> fragment count already contained in dimensionalities (index "0" in KJI order)
+      (if (accessBlockwise) innerDimsLocal.tail else innerDimsLocal).map(_ => 0 : IR_Expression) :+
+        (IR_IV_FragmentOffset(domainIdx) + IR_LoopOverFragments.defIt)
     }
-  }
+  }.reverse
 
   // describes in-memory access pattern of an array (linearized "distances" to next value in the same dimension)
   // TODO handle "fragment dimension" when non-canonical order is used
