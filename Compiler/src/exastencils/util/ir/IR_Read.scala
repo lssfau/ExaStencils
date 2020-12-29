@@ -51,8 +51,18 @@ case class IR_ReadBinary(var stream : IR_VariableAccess, var toRead : ListBuffer
   override def exprToRead : ListBuffer[IR_Expression] = toRead.asInstanceOf[ListBuffer[IR_Expression]]
   override def prettyprint(out : PpStream) = {
     toRead.foreach(acc => {
-      out << IR_MemberFunctionCall(stream, "read",  IR_Cast(IR_PointerDatatype(IR_CharDatatype), IR_AddressOf(acc)), IR_IntegerConstant(acc.datatype.resolveBaseDatatype.typicalByteSize))
+      out << IR_MemberFunctionCall(stream, "read", IR_Cast(IR_PointerDatatype(IR_CharDatatype), IR_AddressOf(acc)), IR_IntegerConstant(acc.datatype.resolveBaseDatatype.typicalByteSize))
       out << ";" << (if (toRead.last equals acc) "" else "\n")
     })
+  }
+}
+
+/// IR_ReadBlockBinary
+
+case class IR_ReadBlockBinary(var stream : IR_VariableAccess, var address : IR_Expression, var byteSize : IR_Expression) extends ReadStream {
+  override def vAccStream : IR_VariableAccess = stream
+  override def exprToRead : ListBuffer[IR_Expression] = ListBuffer(address)
+  override def prettyprint(out : PpStream) = {
+      out << IR_MemberFunctionCall(stream, "read", IR_Cast(IR_PointerDatatype(IR_CharDatatype), address), byteSize) << ";\n"
   }
 }

@@ -41,6 +41,8 @@ import exastencils.datastructures.Transformation
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldIO
+import exastencils.grid.ir.IR_AtCellCenter
+import exastencils.grid.ir.IR_AtNode
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.io.ir.IR_IV_FragmentOffset
 import exastencils.io.ir.IR_IV_NumValidFrags
@@ -133,7 +135,7 @@ trait IR_PrintVisualization {
     IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => (if(nodalLoopEnd) 1 else 0) + someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
     initBuffer)
 
-  def connectivityBuf = IR_IV_TemporaryBuffer(IR_IntegerDatatype, "connectivity", someCellField.domain.index, ListBuffer() ++ dimsConnectivityFrag)
+  def connectivityBuf = IR_IV_TemporaryBuffer(IR_IntegerDatatype, IR_AtCellCenter, "connectivity", someCellField.domain.index, ListBuffer() ++ dimsConnectivityFrag)
 
   // allocates and initializes buffer with connectivity info. this buffer is then passed to the I/O library
   def setupConnectivity(global : Boolean) : ListBuffer[IR_Statement] = {
@@ -159,7 +161,7 @@ trait IR_PrintVisualization {
 
   val nodePositionsCopied : Boolean = Knowledge.grid_isAxisAligned || Knowledge.grid_isUniform // otherwise we directly use virtual field
   def nodePositionsBuf : ListBuffer[IR_IV_TemporaryBuffer] = (0 until numDimsGrid).map(
-    d => IR_IV_TemporaryBuffer(IR_RealDatatype, "nodePosition" + ('X' + d).toChar.toString, someCellField.domain.index, ListBuffer() ++ dimsPositionsFrag)).to[ListBuffer]
+    d => IR_IV_TemporaryBuffer(IR_RealDatatype, IR_AtNode, "nodePosition" + ('X' + d).toChar.toString, someCellField.domain.index, ListBuffer() ++ dimsPositionsFrag)).to[ListBuffer]
 
   // allocates and initializes buffer with the node positions on-demand. on some occasions, the virtual field can be directly passed to the library. this buffer is then passed to the I/O library
   def setupNodePositions : ListBuffer[IR_Statement] = if (!nodePositionsCopied) {

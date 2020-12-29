@@ -30,6 +30,8 @@ case class IR_FileAccess_Locking(
     openFlags += " | std::ios::binary"
   override def openMode = IR_VariableAccess(openFlags, IR_UnknownDatatype)
 
+  val bytesAccessedKnownApriori : Boolean = condition == IR_BooleanConstant(true) // if there is no condition -> required number of accessed bytes are known
+
   val streamName : String = IR_FieldIO.getNewStreamName()
   def streamType : IR_SpecialDatatype = if (writeAccess) IR_SpecialDatatype("std::ofstream") else IR_SpecialDatatype("std::ifstream")
   def stream = IR_VariableAccess(streamName, streamType)
@@ -66,24 +68,25 @@ case class IR_FileAccess_Locking(
   // nothing to setup here
   override def setupAccess() : ListBuffer[IR_Statement] = ListBuffer()
 
-  override def accessFileFragwise(bufIdx : Int, fileAcc : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
+  def loopOverDims(bufIdx : Int, accessStatements : IR_Statement*) : IR_LoopOverDimensions = {
     val buffer = dataBuffers(bufIdx)
+    IR_LoopOverDimensions(buffer.numDimsGrid, IR_ExpressionIndexRange(
+      IR_ExpressionIndex(buffer.numDimsGridRange.map(dim => buffer.beginIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray),
+      IR_ExpressionIndex(buffer.numDimsGridRange.map(dim => buffer.endIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray)),
+      IR_IfCondition(condition, accessStatements.to[ListBuffer]))
+  }
+
+  override def accessFileFragwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
     IR_LoopOverFragments(
-      IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),
-        IR_LoopOverDimensions(buffer.numDimsGrid, IR_ExpressionIndexRange(
-          IR_ExpressionIndex(buffer.numDimsGridRange.map(dim => buffer.beginIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray),
-          IR_ExpressionIndex(buffer.numDimsGridRange.map(dim => buffer.endIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray)),
-          IR_IfCondition(condition, fileAcc))),
-      if (writeAccess) IR_Print(stream, IR_Print.flush) else IR_NullStatement)
+      IR_IfCondition(IR_IV_IsValidForDomain(dataBuffers(bufIdx).domainIdx),
+        accessStatements,
+      if (writeAccess) IR_Print(stream, IR_Print.flush) else IR_NullStatement))
   }
 
   override def accessFileBlockwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = {
     val buffer = dataBuffers(bufIdx)
     IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),
-      IR_LoopOverDimensions(buffer.numDimsGrid, IR_ExpressionIndexRange(
-        IR_ExpressionIndex(buffer.numDimsGridRange.map(dim => buffer.beginIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray),
-        IR_ExpressionIndex(buffer.numDimsGridRange.map(dim => buffer.endIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray)),
-        IR_IfCondition(condition, accessStatements)))
+      accessStatements)
   }
 
   // nothing to cleanup & file already closed by "last" process
@@ -92,24 +95,29 @@ case class IR_FileAccess_Locking(
 
   override def read(bufIdx : Int) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
+    val buf = dataBuffers(bufIdx)
 
-    val read = if (useBinary) IR_ReadBinary(stream) else IR_Read(stream)
+    val read = if (!useBinary) {
+      // skip separator if not whitespace
+      val skipSep = if (!separator.asInstanceOf[IR_StringConstant].value.trim().isEmpty) {
+        // TODO: maybe implement with std::getline but will be slower
+        val decl = IR_VariableDeclaration(IR_CharDatatype, IR_FileAccess.declareVariable("skipSeparator"))
+        statements += decl
+        Some(IR_VariableAccess(decl))
+      } else {
+        None
+      }
+      // handle accesses of hodt
+      val acc = handleAccessesHodt(buf).flatMap(acc => List(acc) ++ skipSep)
 
-    // skip separator if not whitespace
-    val skipSep = if(!separator.asInstanceOf[IR_StringConstant].value.trim().isEmpty) {
-      // TODO: maybe implement with std::getline but will be slower
-      val decl = IR_VariableDeclaration(IR_CharDatatype, IR_FileAccess.declareVariable("skipSeparator"))
-      statements += decl
-      Some(IR_VariableAccess(decl))
+      loopOverDims(bufIdx, IR_Read(stream, (if (skipSep.isDefined) acc.dropRight(1) else acc) : _*)) // cond. remove sep at end
     } else {
-      None
+      IR_IfCondition(bytesAccessedKnownApriori AndAnd buf.accessWithoutExclusion,
+        /* true: write whole buffer */
+        IR_ReadBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSize(global = false)),
+        /* false: write component by component in a loop */
+        loopOverDims(bufIdx, IR_ReadBinary(stream, handleAccessesHodt(buf))))
     }
-
-    val accesses = handleAccessesHodt(dataBuffers(bufIdx)).flatMap(acc => List(acc) ++ skipSep)
-    if (skipSep.isDefined)
-      read.exprToRead ++= accesses.dropRight(1)
-    else
-      read.exprToRead ++= accesses
 
     val filePointerDecl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("currFilePointer"), 0)
     val filePointer = IR_VariableAccess(filePointerDecl)
@@ -168,16 +176,19 @@ case class IR_FileAccess_Locking(
       IR_NullStatement
     }
 
+    val buf = dataBuffers(bufIdx)
     val print = if (!useBinary) {
       val printComponents = optPrintComponents getOrElse ListBuffer[IR_Expression]()
       printComponents += "std::scientific"
-      printComponents ++= handleAccessesHodt(dataBuffers(bufIdx)).flatMap(acc => List(acc, separator)).dropRight(1)
+      printComponents ++= handleAccessesHodt(buf).flatMap(acc => List(acc, separator)).dropRight(1)
       printComponents += IR_Print.newline
-      IR_Print(stream, printComponents)
+      loopOverDims(bufIdx, IR_Print(stream, printComponents))
     } else {
-      val printComponents = ListBuffer[IR_Access]()
-      printComponents ++= handleAccessesHodt(dataBuffers(bufIdx))
-      IR_PrintBinary(stream, printComponents)
+      IR_IfCondition(bytesAccessedKnownApriori AndAnd buf.accessWithoutExclusion,
+        /* true: write whole buffer */
+        IR_PrintBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSize(global = false)),
+        /* false: write component by component in a loop */
+        loopOverDims(bufIdx, IR_PrintBinary(stream, handleAccessesHodt(buf))))
     }
 
     // append to file in MPI_Sequential instead of truncating

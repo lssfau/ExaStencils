@@ -56,7 +56,6 @@ object IR_DataBuffer {
   def apply(
       tmpBuf : IR_IV_TemporaryBuffer,
       slot : IR_Expression,
-      localization: IR_Localization,
       pattern : Option[IR_AccessPattern],
       dataset : Option[IR_Expression],
       canonicalOrder : Boolean) : IR_DataBuffer = {
@@ -64,11 +63,11 @@ object IR_DataBuffer {
     new IR_DataBuffer(
       slot = slot,
       datatype = tmpBuf.resolveDatatype(),
-      localization = localization,
-      referenceOffset = IR_ExpressionIndex(Array.fill(tmpBuf.numDims)(0)),
-      beginIndices = ListBuffer.fill(tmpBuf.numDims)(0),
-      endIndices = tmpBuf.dimsLocal,
-      totalDimsLocal = tmpBuf.dimsLocal,
+      localization = tmpBuf.localization,
+      referenceOffset = tmpBuf.referenceOffset,
+      beginIndices = tmpBuf.beginIndices,
+      endIndices = tmpBuf.endIndices,
+      totalDimsLocal = tmpBuf.totalDimsLocal,
       numDimsGrid = tmpBuf.numDims,
       numDimsData = tmpBuf.numDims,
       domainIdx = tmpBuf.domainIdx,

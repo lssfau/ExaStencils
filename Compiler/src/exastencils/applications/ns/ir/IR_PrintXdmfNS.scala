@@ -20,8 +20,6 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir.IR_IV_ActiveSlot
-import exastencils.grid.ir.IR_AtCellCenter
-import exastencils.grid.ir.IR_AtNode
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_FileAccess
@@ -141,10 +139,10 @@ case class IR_PrintXdmfNS(
 
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
     val constants = nodePositionsBuf.indices.to[ListBuffer].map(bufIdx =>
-      IR_DataBuffer(nodePositionsBuf(bufIdx), IR_IV_ActiveSlot(p), IR_AtNode, None, Some(IR_StringConstant(datasetCoords(bufIdx))), canonicalOrder = false)) :+
-      IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(p), IR_AtCellCenter, None, Some(IR_StringConstant(datasetConnectivity)), canonicalOrder = false)
+      IR_DataBuffer(nodePositionsBuf(bufIdx), IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetCoords(bufIdx))), canonicalOrder = false)) :+
+      IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetConnectivity)), canonicalOrder = false)
     val fields = ListBuffer(
-      IR_DataBuffer(velocityBuf, IR_IV_ActiveSlot(u), IR_AtCellCenter, None, Some(IR_StringConstant(datasetFields.head)), canonicalOrder = false),
+      IR_DataBuffer(velocityBuf, IR_IV_ActiveSlot(u), None, Some(IR_StringConstant(datasetFields.head)), canonicalOrder = false),
       IR_DataBuffer(p, IR_IV_ActiveSlot(p), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(1))),  canonicalOrder = false))
 
     if (constsIncluded) constants ++ fields else fields

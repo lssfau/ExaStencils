@@ -29,6 +29,7 @@ import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_FieldCollection
 import exastencils.field.ir.IR_IV_ActiveSlot
+import exastencils.grid.ir.IR_AtNode
 import exastencils.io.ir.IR_IV_TemporaryBuffer
 import exastencils.logger.Logger
 import exastencils.util.ir.IR_Print
@@ -85,11 +86,11 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
   def numFields : Int = fieldnames.length
 
   def setupReducedData : ListBuffer[IR_Statement] = {
-    val eta = IR_IV_TemporaryBuffer(etaDiscLower0.resolveBaseDatatype, "etaReduced", etaDiscLower0.domain.index, ListBuffer() ++ dimsPositionsFrag)
-    val u = IR_IV_TemporaryBuffer(uDiscLower0.resolveBaseDatatype, "uReduced", uDiscLower0.domain.index, ListBuffer() ++ dimsPositionsFrag)
-    val v = IR_IV_TemporaryBuffer(vDiscLower0.resolveBaseDatatype, "vReduced", vDiscLower0.domain.index, ListBuffer() ++ dimsPositionsFrag)
+    val eta = IR_IV_TemporaryBuffer(etaDiscLower0.resolveBaseDatatype, IR_AtNode, "etaReduced", etaDiscLower0.domain.index, ListBuffer() ++ dimsPositionsFrag)
+    val u = IR_IV_TemporaryBuffer(uDiscLower0.resolveBaseDatatype, IR_AtNode, "uReduced", uDiscLower0.domain.index, ListBuffer() ++ dimsPositionsFrag)
+    val v = IR_IV_TemporaryBuffer(vDiscLower0.resolveBaseDatatype, IR_AtNode, "vReduced", vDiscLower0.domain.index, ListBuffer() ++ dimsPositionsFrag)
     val order = if(orderDisc.isDefined)
-      Some(IR_IV_TemporaryBuffer(optLocalOrderLower.get.resolveBaseDatatype, "orderReduced", optLocalOrderLower.get.domain.index, ListBuffer() ++ dimsPositionsFrag))
+      Some(IR_IV_TemporaryBuffer(optLocalOrderLower.get.resolveBaseDatatype, IR_AtNode, "orderReduced", optLocalOrderLower.get.domain.index, ListBuffer() ++ dimsPositionsFrag))
     else
       None
 

@@ -20,6 +20,7 @@ import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_FieldCollection
 import exastencils.field.ir.IR_IV_ActiveSlot
+import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.io.ir.IR_IV_TemporaryBuffer
 import exastencils.visualization.ir.IR_PrintVisualizationQuads
 
@@ -63,7 +64,8 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads{
   def meanW : IR_Multiplication = 0.5 * (IR_FieldAccess(w, IR_IV_ActiveSlot(w), IR_LoopOverDimensions.defIt(numDimsGrid))
     + IR_FieldAccess(w, IR_IV_ActiveSlot(w), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 0, 1)))
 
-  def velocityBuf = IR_IV_TemporaryBuffer(u.resolveBaseDatatype, "vel", someCellField.domain.index, ListBuffer(IR_IntegerConstant(numDimsGrid), numCells_x, numCells_y, numCells_z))
+  def velocityBuf = IR_IV_TemporaryBuffer(u.resolveBaseDatatype, IR_AtCellCenter, "vel", someCellField.domain.index,
+    ListBuffer(IR_IntegerConstant(numDimsGrid), numCells_x, numCells_y, numCells_z))
 
   def setupVelocity : ListBuffer[IR_Statement] = {
     // init buffer with values of vector field

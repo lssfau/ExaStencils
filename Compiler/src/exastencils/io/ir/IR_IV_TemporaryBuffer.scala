@@ -21,14 +21,19 @@ import exastencils.base.ir.IR_VariableAccess
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.baseExt.ir.IR_LoopOverDomains
+import exastencils.grid.ir.IR_Localization
 
 /// IR_IV_TemporaryBuffer
 // represents a temporary buffer where data is stored before writing it to file
 // should be used in combination with parallel I/O libraries (MPI I/O, HDF5, PnetCDF) and only when necessary
+// NOTE: assumes that a temporary buffer:
+//   - only contains data of interest
+//   - does not have layers to be excluded (e.g. pad/ghost/...)
 
 // TODO the IVs are not automatically declared in Globals.h and their ctors/dtors are not called
 case class IR_IV_TemporaryBuffer(
     var baseDatatype : IR_Datatype,
+    var localization: IR_Localization,
     var name : String,
     var domainIdx : Int,
     dims : ListBuffer[IR_Expression]) extends IR_InternalVariable(false, true, false, false, false) {
@@ -41,6 +46,11 @@ case class IR_IV_TemporaryBuffer(
 
   def dimsLocal : ListBuffer[IR_Expression] = dims :+ IR_IV_NumValidFrags(domainIdx)
   def dimsGlobal : ListBuffer[IR_Expression] = dims :+ IR_IV_TotalNumFrags(domainIdx)
+
+  def referenceOffset = IR_ExpressionIndex(Array.fill(numDims)(0))
+  def beginIndices : ListBuffer[IR_Expression] = referenceOffset.indices.to[ListBuffer]
+  def endIndices : ListBuffer[IR_Expression] = dimsLocal
+  def totalDimsLocal : ListBuffer[IR_Expression] = dimsLocal
 
   def at(index : IR_Expression) : IR_Access = index match {
     case idx : IR_Index =>
