@@ -77,13 +77,13 @@ object IR_IV_FragmentInfo {
 case class IR_IV_TotalNumFrags(var domain : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(false, true, false, false, false)  {
   override def resolveName() : String = "totalNumFrags" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", "")
   override def resolveDatatype() : IR_Datatype = IR_IntegerDatatype
-  override def resolveDefValue() : Option[IR_Expression] = Some(0)
+  override def resolveDefValue() : Option[IR_Expression] = Some(Knowledge.domain_numFragmentsTotal)
 }
 
 case class IR_IV_NumValidFrags(var domain : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(false, true, false, false, false)  {
   override def resolveName() : String = "numValidFrags" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", "")
   override def resolveDatatype() : IR_Datatype = IR_IntegerDatatype
-  override def resolveDefValue() : Option[IR_Expression] = Some(0)
+  override def resolveDefValue() : Option[IR_Expression] = Some(Knowledge.domain_numFragmentsPerBlock)
 }
 
 case class IR_IV_FragmentOffset(var domain : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(false, true, false, false, false) {

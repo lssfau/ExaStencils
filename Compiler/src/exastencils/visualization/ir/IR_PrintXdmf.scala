@@ -317,13 +317,18 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
       statements ++= writeXdmf
     }
 
-    // check if data is already incorporated in xml file
     if (fmt != "XML") {
+      // write data into a separate, binary file
       statements += IR_IfCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
         /* true: write constants to file and save filename to reference later */
         writeData(constsIncluded = true) :+ IR_Assignment(IR_IV_ConstantsWrittenToFile(), basename(noPath = true) + ext),
         /* false: write field data and reference constants from saved filename */
         writeData(constsIncluded = false))
+    } else {
+      // data is already incorporated in the xml file
+      statements += IR_IfCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
+        IR_Assignment(IR_IV_ConstantsWrittenToFile(),
+          IR_MemberFunctionCall(filenamePieceFpp, "substr", lastIdxSubst(filenamePieceFpp, "\"\\\\/\"") + 1))) // constant file in same dir -> remove path
     }
 
     statements
