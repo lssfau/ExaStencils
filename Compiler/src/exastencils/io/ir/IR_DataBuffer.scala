@@ -183,7 +183,13 @@ case class IR_DataBuffer(
   // determines if some layers (e.g. ghost/pad/...) are excluded for I/O operations or not
   def accessWithoutExclusion : IR_Expression = numDimsDataRange.map(d => innerDimsLocalKJI(d) EqEq totalDimsLocalKJI(d)).fold(IR_BooleanConstant(true))((a, b) => a AndAnd b)
 
-  def typicalByteSize(global : Boolean) : IR_Expression = (if (global) globalDimsKJI else innerDimsLocalKJI).reduce(_ * _) * datatype.resolveBaseDatatype.typicalByteSize
+  // accessBlockwise : temp. buffer for a whole block is used -> fragment count already incorporated in local dims
+  private val innerDimsFragKJI = if (accessBlockwise) innerDimsLocalKJI.drop(1) else innerDimsLocalKJI
+  private val innerDimsBlockKJI = if (accessBlockwise) innerDimsLocalKJI else IR_IV_NumValidFrags(domainIdx) +: innerDimsLocalKJI
+  def typicalByteSizeFrag : IR_Expression = innerDimsFragKJI.reduce(_ * _) * datatype.resolveBaseDatatype.typicalByteSize
+  def typicalByteSizeBlock : IR_Expression = innerDimsBlockKJI.reduce(_ * _) * datatype.resolveBaseDatatype.typicalByteSize
+  def typicalByteSizeLocal : IR_Expression = innerDimsLocalKJI.reduce(_ * _) * datatype.resolveBaseDatatype.typicalByteSize
+  def typicalByteSizeGlobal : IR_Expression = globalDimsKJI.reduce(_ * _) * datatype.resolveBaseDatatype.typicalByteSize
 
   def getAccess(index : IR_Index) : IR_Access = accessPattern.callAccessFunction(index)
 

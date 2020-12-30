@@ -114,7 +114,7 @@ case class IR_FileAccess_Locking(
     } else {
       IR_IfCondition(bytesAccessedKnownApriori AndAnd buf.accessWithoutExclusion,
         /* true: write whole buffer */
-        IR_ReadBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSize(global = false)),
+        IR_ReadBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal),
         /* false: write component by component in a loop */
         loopOverDims(bufIdx, IR_ReadBinary(stream, handleAccessesHodt(buf))))
     }
@@ -186,7 +186,7 @@ case class IR_FileAccess_Locking(
     } else {
       IR_IfCondition(bytesAccessedKnownApriori AndAnd buf.accessWithoutExclusion,
         /* true: write whole buffer */
-        IR_PrintBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSize(global = false)),
+        IR_PrintBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal),
         /* false: write component by component in a loop */
         loopOverDims(bufIdx, IR_PrintBinary(stream, handleAccessesHodt(buf))))
     }

@@ -136,7 +136,7 @@ abstract class IR_FileAccess(
 
   // file offsets for each databuffer
   def fileDisplacement(bufIdx : Int) : IR_Expression = {
-    IR_SimplifyExpression.simplifyIntegralExpr(dataBuffers.map(_.typicalByteSize(global = true)).take(bufIdx).reduceOption(_ + _).getOrElse(0))
+    IR_SimplifyExpression.simplifyIntegralExpr(dataBuffers.map(_.typicalByteSizeGlobal).take(bufIdx).reduceOption(_ + _).getOrElse(0))
   }
 
   def filenameAsCString : IR_Expression = filename match {

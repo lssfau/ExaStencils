@@ -30,13 +30,12 @@ case class IR_FileAccess_SionLib(
 
   // for serial API: we assume that the number of chunks (there is always one chunk per process) in a sion file equals the number of MPI processes (1)
   val nTasks = 1
-  val nPhysFiles = 1
 
+  val nPhysFiles = 1
   val bytesAccessedKnownApriori : Boolean = condition == IR_BooleanConstant(true) // if there is no condition -> required number of accessed bytes are known
   val numBytesDatatype : Array[Int] = dataBuffers.map(buf => buf.datatype.resolveBaseDatatype.typicalByteSize).toArray
-  val numBytesFrag : Array[IR_Expression] = dataBuffers.indices.map(bufIdx => dataBuffers(bufIdx).innerDimsLocalKJI.reduce(_ * _) * numBytesDatatype(bufIdx)).toArray
-  val numBytesBlock : Array[IR_Expression] = dataBuffers.indices.map(bufIdx => numBytesFrag(bufIdx) * Knowledge.domain_numFragmentsPerBlock).toArray // TODO only valid frags
-  val totalBytesBlock : IR_Expression = dataBuffers.indices.map(bufIdx => numBytesBlock(bufIdx) : IR_Expression).reduce(_ + _)
+  val numBytesLocal : Array[IR_Expression] = dataBuffers.indices.map(bufIdx => dataBuffers(bufIdx).typicalByteSizeLocal).toArray
+  val totalBytesBlock : IR_Expression = dataBuffers.indices.map(bufIdx => dataBuffers(bufIdx).typicalByteSizeBlock).reduce(_ + _)
 
   // declarations
   val fileId_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("fileId"))
@@ -142,77 +141,62 @@ case class IR_FileAccess_SionLib(
 
   def checkBytesAccessed(bufIdx : Int) : ListBuffer[IR_Statement] = ListBuffer(
     IR_IfCondition(
-      bytesAccessed Neq numBytesBlock(bufIdx) / numBytesDatatype(bufIdx),
+      bytesAccessed Neq numBytesLocal(bufIdx) / numBytesDatatype(bufIdx),
       IR_Print(
         IR_VariableAccess("std::cout", IR_UnknownDatatype),
         IR_StringConstant("Rank: "), MPI_IV_MpiRank, IR_StringConstant(". "),
         IR_VariableAccess("__FILE__", IR_UnknownDatatype), IR_StringConstant(": Error at line: "), IR_VariableAccess("__LINE__", IR_UnknownDatatype),
-        IR_StringConstant(". Number of bytes read="), bytesAccessed, IR_StringConstant(" differ from : "), numBytesBlock(bufIdx) / numBytesDatatype(bufIdx))),
+        IR_StringConstant(". Number of bytes read="), bytesAccessed, IR_StringConstant(" differ from : "), numBytesLocal(bufIdx) / numBytesDatatype(bufIdx))),
     IR_Assignment(bytesAccessed, 0) // reset count
   )
 
   // read/write values from/to file and count the number of bytes that were accessed
-  def bodyFragLoop(bufIdx : Int) : IR_Statement = {
+  def loopBodyFileAccess(bufIdx : Int) : ListBuffer[IR_Statement] = {
+    val stmts : ListBuffer[IR_Statement] = ListBuffer()
     val buf = dataBuffers(bufIdx)
-    val idxRange = IR_ExpressionIndexRange(
-      IR_ExpressionIndex(buf.numDimsDataRange.map(dim => buf.beginIndices(dim) - Duplicate(buf.referenceOffset(dim)) : IR_Expression).toArray),
-      IR_ExpressionIndex(buf.numDimsDataRange.map(dim => buf.endIndices(dim) - Duplicate(buf.referenceOffset(dim)) : IR_Expression).toArray))
     val funcName = if (writeAccess) "fwrite" else "fread" // use ANSI C function to reduce "sion_ensure_free_space" calls from "sion_fread" wrapper function
 
-    if (bytesAccessedKnownApriori) {
-      IR_IfCondition(
-        buf.accessWithoutExclusion,
-        /* true */
-        IR_Assignment(
-          bytesAccessed,
-          IR_FunctionCall(IR_ExternalFunctionReference(if (writeAccess) "sion_fwrite" else "sion_fread"), // use sion wrapper directly
-            buf.getBaseAddress, numBytesDatatype(bufIdx), numBytesFrag(bufIdx) / numBytesDatatype(bufIdx), fileId),
-          "+="),
-        /* false */
-        IR_LoopOverDimensions(buf.numDimsData-1, idxRange, // write whole row of values (in x-dimension) if no condition is defined
-          IR_Assignment(bytesAccessed,
-            IR_FunctionCall(IR_ExternalFunctionReference(funcName),
-              buf.getAddress(IR_ExpressionIndex(IR_IntegerConstant(0) +: IR_LoopOverDimensions.defIt(buf.numDimsData-1).indices)),
-              numBytesDatatype(bufIdx), buf.innerDimsLocalKJI.head, filePtr),
-            "+="))
-      )
-    } else  {
-      IR_LoopOverDimensions(buf.numDimsData, idxRange,
-          IR_IfCondition(condition,
+    stmts += IR_IfCondition(bytesAccessedKnownApriori AndAnd buf.accessWithoutExclusion,
+      /* true: write whole buffer */
+      IR_Assignment(bytesAccessed,
+        IR_FunctionCall(IR_ExternalFunctionReference(if (writeAccess) "sion_fwrite" else "sion_fread"), // use sion wrapper directly
+          buf.getBaseAddress, numBytesDatatype(bufIdx), numBytesLocal(bufIdx) / numBytesDatatype(bufIdx), fileId),
+        "+="),
+      /* false: write component by component in a loop */
+      IR_LoopOverDimensions(buf.numDimsGrid, IR_ExpressionIndexRange(
+        IR_ExpressionIndex(buf.numDimsGridRange.map(dim => buf.beginIndices(dim) - Duplicate(buf.referenceOffset(dim)) : IR_Expression).toArray),
+        IR_ExpressionIndex(buf.numDimsGridRange.map(dim => buf.endIndices(dim) - Duplicate(buf.referenceOffset(dim)) : IR_Expression).toArray)),
+        IR_IfCondition(condition,
+          handleAccessesHodt(buf).map(acc =>
             IR_Assignment(bytesAccessed,
               IR_FunctionCall(IR_ExternalFunctionReference(funcName),
-                buf.getAddress(IR_LoopOverDimensions.defIt(buf.numDimsData)),
+                IR_AddressOf(acc),
                 numBytesDatatype(bufIdx), 1, filePtr),
-              "+=")))
-    }
-  }
-
-  override def read(bufIdx : Int) : ListBuffer[IR_Statement] = {
-    var statements : ListBuffer[IR_Statement] = ListBuffer()
-
-    statements += accessFileWithGranularity(bufIdx, ListBuffer(bodyFragLoop(bufIdx)))
+              "+=") : IR_Statement))))
 
     if (Knowledge.parIO_generateDebugStatements && bytesAccessedKnownApriori) {
-      statements ++= checkBytesAccessed(bufIdx)
+      stmts ++= checkBytesAccessed(bufIdx)
     }
 
-    statements
+    stmts
   }
+
+  override def read(bufIdx : Int) : ListBuffer[IR_Statement] = ListBuffer(
+    accessFileWithGranularity(bufIdx, loopBodyFileAccess(bufIdx))
+  )
 
   override def write(bufIdx : Int) : ListBuffer[IR_Statement] = {
-    var statements : ListBuffer[IR_Statement] = ListBuffer()
+    // in debug mode: ensure there is enough space, but this is normally not necessary since the chunk sizes are set accordingly
+    val ensureSpace = if (Knowledge.parIO_generateDebugStatements)
+        IR_FunctionCall(IR_ExternalFunctionReference("sion_ensure_free_space"), fileId, numBytesLocal(bufIdx))
+      else
+        IR_BooleanConstant(true)
 
-    val writeFrag = IR_IfCondition(
-      IR_FunctionCall(IR_ExternalFunctionReference("sion_ensure_free_space"), fileId, numBytesFrag(bufIdx)),
-      bodyFragLoop(bufIdx)
-    )
-    statements += accessFileWithGranularity(bufIdx, ListBuffer(writeFrag))
-
-    if (Knowledge.parIO_generateDebugStatements && bytesAccessedKnownApriori) {
-      statements ++= checkBytesAccessed(bufIdx)
-    }
-
-    statements
+    ListBuffer(
+      accessFileWithGranularity(bufIdx,
+      ListBuffer(
+        IR_IfCondition(ensureSpace,
+        loopBodyFileAccess(bufIdx)))))
   }
 
   override def cleanupAccess() : ListBuffer[IR_Statement] = if (Knowledge.mpi_enabled) {
@@ -229,7 +213,7 @@ case class IR_FileAccess_SionLib(
     ListBuffer(IR_FunctionCall(IR_ExternalFunctionReference(funcName), fileId))
   }
 
-  // use "sionconfig" script (comes with sionlib installation) to select correct compile flags
+  // use "sionconfig" script (comes with sionlib installation) to select appropriate compile flags
   val selectLibsCmd : String = "sionconfig --libs --cxx " + (if(Knowledge.mpi_enabled) "--mpi" else "--ser")
   val selectCflagsCmd : String = "sionconfig --cflags --cxx " + (if(Knowledge.mpi_enabled) "--mpi" else "--ser")
   val selectLibs : String = selectLibsCmd.!!
