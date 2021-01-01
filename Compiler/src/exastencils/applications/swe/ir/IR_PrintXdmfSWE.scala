@@ -83,7 +83,7 @@ case class IR_PrintXdmfSWE(
 
     statements += printXdmfElement(stream, openGeometry("X_Y")) // nodePositions are not interleaved
     for (d <- 0 until numDimsGrid) {
-      statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, dimsPositionsFrag :+ dimFrags(global), seekp = getSeekp(d, global)) : _*)
+      statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, dimsPositionsFrag :+ dimFrags(global), seekp = getSeekp(global)) : _*)
       val printValsOrRefFile = if (fmt == "XML") {
         ListBuffer(IR_Print(stream, "std::scientific"),
           IR_LoopOverFragments(
@@ -109,11 +109,11 @@ case class IR_PrintXdmfSWE(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     statements += printXdmfElement(stream, openTopology("Triangle", ListBuffer(numCellsPerFrag, dimFrags(global))) : _*)
-    statements += printXdmfElement(stream, openDataItem(IR_IntegerDatatype, dimsConnectivityFrag :+ dimFrags(global), seekp = getSeekp(2, global)) : _*)
+    statements += printXdmfElement(stream, openDataItem(IR_IntegerDatatype, dimsConnectivityFrag :+ dimFrags(global), seekp = getSeekp(global)) : _*)
     val printValsOrRefFile = if (fmt == "XML") {
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
-          new IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
+          IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
             (0 until numDimsGrid).map(dim =>
@@ -135,7 +135,7 @@ case class IR_PrintXdmfSWE(
 
     for(fieldId <- fieldnames.indices) {
       statements += printXdmfElement(stream, openAttribute(name = fieldnames(fieldId), tpe = "Scalar", ctr = "Node"))
-      statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, dimsPositionsFrag :+ dimFrags(global), seekp = getSeekp(2 + fieldId, global)) : _*)
+      statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, dimsPositionsFrag :+ dimFrags(global), seekp = getSeekp(global)) : _*)
       val printValsOrRefFile = if(fmt == "XML") {
         fieldnames(fieldId) match {
           case "bath" => printBath(Some(stream), Some(indentData))

@@ -199,7 +199,10 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     statements += printXdmfElement(stream, closeXdmf)
     statements += IR_MemberFunctionCall(stream, "close")
 
-    statements
+    if (ioInterface != "fpp")
+      ListBuffer(IR_IfCondition(MPI_IsRootProc(), statements))
+    else
+      statements
   }
 
   /* writes a xdmf "grid" element. used by writeXdmf and the "main" file for file-per-process
@@ -226,8 +229,11 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   }
 
   // ternary condition (depending on constant data reduction) used print the seek pointer for DataItem with index "idx"
-  def getSeekp(idx : Int, global : Boolean) : IR_TernaryCondition = {
+  private var seekpIdx : Int = 0
+  def getSeekp(global : Boolean) : IR_TernaryCondition = {
+    val idx = seekpIdx
     val idxNoConst = idx - (dataBuffers(constsIncluded = true).length - dataBuffers(constsIncluded = false).length)
+    seekpIdx += 1
     IR_TernaryCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
       IR_SimplifyExpression.simplifyIntegralExpr(seekpOffsets(global, constsIncluded = true).take(idx).reduceOption(_ + _).getOrElse(0)),
       IR_SimplifyExpression.simplifyIntegralExpr(seekpOffsets(global, constsIncluded = false).take(idxNoConst).reduceOption(_ + _).getOrElse(0)))

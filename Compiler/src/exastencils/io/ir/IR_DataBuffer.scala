@@ -155,7 +155,7 @@ case class IR_DataBuffer(
       (if (d < numDimsGrid) Knowledge.domain_rect_numFragsTotalAsVec(d) else 1) : IR_Expression).to[ListBuffer]
     } else {
       // buffer contains data for the whole block -> fragment count already contained in dimensionalities (index "0" in KJI order)
-      (if (accessBlockwise) innerDimsLocal.tail else innerDimsLocal) :+
+      (if (accessBlockwise) innerDimsLocal.dropRight(1) else innerDimsLocal) :+
         IR_IV_TotalNumFrags(domainIdx)
     }
   }.reverse
@@ -166,7 +166,7 @@ case class IR_DataBuffer(
         (if (d < numDimsGrid) IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsTotalAsVec(d) else 0) : IR_Expression).to[ListBuffer]
     } else {
       // buffer contains data for the whole block -> fragment count already contained in dimensionalities (index "0" in KJI order)
-      (if (accessBlockwise) innerDimsLocal.tail else innerDimsLocal).map(_ => 0 : IR_Expression) :+
+      (if (accessBlockwise) innerDimsLocal.dropRight(1) else innerDimsLocal).map(_ => 0 : IR_Expression) :+
         (IR_IV_FragmentOffset(domainIdx) + IR_LoopOverFragments.defIt)
     }
   }.reverse
@@ -184,7 +184,7 @@ case class IR_DataBuffer(
   def accessWithoutExclusion : IR_Expression = numDimsDataRange.map(d => innerDimsLocalKJI(d) EqEq totalDimsLocalKJI(d)).fold(IR_BooleanConstant(true))((a, b) => a AndAnd b)
 
   // accessBlockwise : temp. buffer for a whole block is used -> fragment count already incorporated in local dims
-  private val innerDimsFragKJI = if (accessBlockwise) innerDimsLocalKJI.drop(1) else innerDimsLocalKJI
+  private val innerDimsFragKJI = if (accessBlockwise) innerDimsLocalKJI.tail else innerDimsLocalKJI
   private val innerDimsBlockKJI = if (accessBlockwise) innerDimsLocalKJI else IR_IV_NumValidFrags(domainIdx) +: innerDimsLocalKJI
   def typicalByteSizeFrag : IR_Expression = innerDimsFragKJI.reduce(_ * _) * datatype.resolveBaseDatatype.typicalByteSize
   def typicalByteSizeBlock : IR_Expression = innerDimsBlockKJI.reduce(_ * _) * datatype.resolveBaseDatatype.typicalByteSize

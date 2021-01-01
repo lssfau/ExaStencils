@@ -48,7 +48,7 @@ case class IR_PrintXdmfNNF(
     // TODO ref geometry from "constant file"
     statements += printXdmfElement(stream, openGeometry("X_Y" + (if (numDimsGrid > 2) "_Z" else ""))) // nodePositions are not interleaved
     for (d <- 0 until numDimsGrid) {
-      statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, dimsPositionsFrag :+ dimFrags(global), seekp = getSeekp(d, global)) : _*)
+      statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, dimsPositionsFrag :+ dimFrags(global), seekp = getSeekp(global)) : _*)
       val printValsOrRefFile = if (fmt == "XML") {
         ListBuffer(IR_Print(stream, "std::scientific"),
           IR_LoopOverFragments(
@@ -74,7 +74,7 @@ case class IR_PrintXdmfNNF(
 
     // TODO ref topology from "constant file"
     statements += printXdmfElement(stream, openTopology(if (numDimsGrid == 2) "Quadrilateral" else "Hexahedron", ListBuffer(numCellsPerFrag, dimFrags(global))) : _*)
-    statements += printXdmfElement(stream, openDataItem(IR_IntegerDatatype, dimsConnectivityFrag :+ dimFrags(global), seekp = getSeekp(numDimsGrid, global)) : _*)
+    statements += printXdmfElement(stream, openDataItem(IR_IntegerDatatype, dimsConnectivityFrag :+ dimFrags(global), seekp = getSeekp(global)) : _*)
     val printValsOrRefFile = if (fmt == "XML") {
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
@@ -101,7 +101,7 @@ case class IR_PrintXdmfNNF(
       val dimsFieldData = IR_IntegerConstant(if (isVector) numDimsGrid else 1)
       val dimsCellData = ListBuffer[IR_Expression](numCells_z, numCells_y, numCells_x)
       statements += printXdmfElement(stream, openAttribute(name = fieldnames(fieldId), tpe = if (isVector) "Vector" else "Scalar", ctr = "Cell"))
-      statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, dimFrags(global) +: dimsCellData :+ dimsFieldData, seekp = getSeekp(numDimsGrid + fieldId, global)) : _*)
+      statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, dimFrags(global) +: dimsCellData :+ dimsFieldData, seekp = getSeekp(global)) : _*)
       val printValsOrRefFile = if (fmt == "XML") {
         fieldnames(fieldId) match {
           case "vel"   => printVel(Some(stream), Some(indentData))
