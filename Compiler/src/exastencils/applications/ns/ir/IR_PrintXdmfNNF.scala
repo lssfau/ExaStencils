@@ -96,14 +96,14 @@ case class IR_PrintXdmfNNF(
   override def writeXdmfAttributes(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    for(fieldId <- fieldnames.indices) {
-      val isVector = fieldnames(fieldId) == "vel"
+    fieldnames.zipWithIndex.foreach { case (fname, fid) =>
+      val isVector = fname == "vel"
       val dimsFieldData = IR_IntegerConstant(if (isVector) numDimsGrid else 1)
       val dimsCellData = ListBuffer[IR_Expression](numCells_z, numCells_y, numCells_x)
-      statements += printXdmfElement(stream, openAttribute(name = fieldnames(fieldId), tpe = if (isVector) "Vector" else "Scalar", ctr = "Cell"))
+      statements += printXdmfElement(stream, openAttribute(name = fname, tpe = if (isVector) "Vector" else "Scalar", ctr = "Cell"))
       statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, dimFrags(global) +: dimsCellData :+ dimsFieldData, seekp = getSeekp(global)) : _*)
       val printValsOrRefFile = if (fmt == "XML") {
-        fieldnames(fieldId) match {
+        fname match {
           case "vel"   => printVel(Some(stream), Some(indentData))
           case "p"     => printP(Some(stream), Some(indentData))
           case "rho"   => printRho(Some(stream), Some(indentData))
@@ -112,7 +112,7 @@ case class IR_PrintXdmfNNF(
           case "phi"   => printPhi(Some(stream), Some(indentData))
         }
       } else {
-        ListBuffer(printFilename(stream, datasetFields(fieldId)))
+        ListBuffer(printFilename(stream, datasetFields(fid)))
       }
       statements ++= printValsOrRefFile
       statements += printXdmfElement(stream, closeDataItem)

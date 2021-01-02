@@ -115,19 +115,19 @@ case class IR_PrintXdmfNS(
   override def writeXdmfAttributes(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    for (fieldId <- fieldnames.indices) {
-      val isVector = fieldnames(fieldId) == "vel"
+    fieldnames.zipWithIndex.foreach { case (fname, fid) =>
+      val isVector = fname == "vel"
       val dimsFieldData = IR_IntegerConstant(if (isVector) numDimsGrid else 1)
       val dimsCellData = ListBuffer[IR_Expression](numCells_x, numCells_y, numCells_z)
-      statements += printXdmfElement(stream, openAttribute(name = fieldnames(fieldId), tpe = if (isVector) "Vector" else "Scalar", ctr = "Cell"))
+      statements += printXdmfElement(stream, openAttribute(name = fname, tpe = if (isVector) "Vector" else "Scalar", ctr = "Cell"))
       statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, dimsFieldData +: dimsCellData :+ dimFrags(global), seekp = getSeekp(global)) : _*)
       val printValsOrRefFile = if (fmt == "XML") {
-        fieldnames(fieldId) match {
+        fname match {
           case "vel"   => printVel(Some(stream), Some(indentData))
           case "p"     => printP(Some(stream), Some(indentData))
         }
       } else {
-        ListBuffer(printFilename(stream, datasetFields(fieldId)))
+        ListBuffer(printFilename(stream, datasetFields(fid)))
       }
       statements ++= printValsOrRefFile
       statements += printXdmfElement(stream, closeDataItem)
@@ -138,12 +138,12 @@ case class IR_PrintXdmfNS(
   }
 
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
-    val constants = nodePositionsBuf.indices.to[ListBuffer].map(bufIdx =>
-      IR_DataBuffer(nodePositionsBuf(bufIdx), IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetCoords(bufIdx))), canonicalOrder = false)) :+
+    val constants = nodePositionsBuf.zipWithIndex.map { case (buf, idx) =>
+      IR_DataBuffer(buf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetCoords(idx))), canonicalOrder = false) } :+
       IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetConnectivity)), canonicalOrder = false)
     val fields = ListBuffer(
       IR_DataBuffer(velocityBuf, IR_IV_ActiveSlot(u), None, Some(IR_StringConstant(datasetFields.head)), canonicalOrder = false),
-      IR_DataBuffer(p, IR_IV_ActiveSlot(p), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(1))),  canonicalOrder = false))
+      IR_DataBuffer(p, IR_IV_ActiveSlot(p), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(1))), canonicalOrder = false))
 
     if (constsIncluded) constants ++ fields else fields
   }

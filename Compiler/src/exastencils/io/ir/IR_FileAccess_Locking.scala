@@ -85,8 +85,8 @@ case class IR_FileAccess_Locking(
 
   override def accessFileBlockwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = {
     val buffer = dataBuffers(bufIdx)
-    IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),
-      accessStatements)
+    IR_LoopOverBlocks(IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),
+      accessStatements))
   }
 
   // nothing to cleanup & file already closed by "last" process

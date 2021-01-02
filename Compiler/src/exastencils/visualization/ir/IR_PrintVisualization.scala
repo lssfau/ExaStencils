@@ -193,7 +193,11 @@ trait IR_PrintVisualization {
 
   // frees the buffers with nodePositions/connectivity information
   def cleanupConnectivity : IR_Statement = connectivityBuf.getDtor().get
-  def cleanupNodePositions : ListBuffer[IR_Statement] = (0 until numDimsGrid).map(d => nodePositionsBuf(d).getDtor().get).to[ListBuffer]
+  def cleanupNodePositions : ListBuffer[IR_Statement] = if (!nodePositionsCopied) {
+    ListBuffer()
+  } else {
+    (0 until numDimsGrid).map(d => nodePositionsBuf(d).getDtor().get).to[ListBuffer]
+  }
 }
 
 /// IR_ResolveVisualizationPrinters

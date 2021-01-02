@@ -127,16 +127,14 @@ case class IR_FileAccess_SionLib(
     IR_LoopOverFragments(
       IR_IfCondition(
         IR_IV_IsValidForDomain(dataBuffers(bufIdx).domainIdx),
-        accessStatements
-      )
-    )
+        accessStatements))
   }
 
   override def accessFileBlockwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = {
-    IR_IfCondition(
-      IR_IV_IsValidForDomain(dataBuffers(bufIdx).domainIdx),
-      accessStatements
-    )
+    IR_LoopOverBlocks(
+      IR_IfCondition(
+        IR_IV_IsValidForDomain(dataBuffers(bufIdx).domainIdx),
+        accessStatements))
   }
 
   def checkBytesAccessed(bufIdx : Int) : ListBuffer[IR_Statement] = ListBuffer(

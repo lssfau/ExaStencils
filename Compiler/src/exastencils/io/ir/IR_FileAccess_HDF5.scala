@@ -230,8 +230,8 @@ case class IR_FileAccess_HDF5(
         IR_Assignment(IR_ArrayAccess(globalStart(bufIdx), d), buffer.startIndexGlobalKJI(d)) : IR_Statement).to[ListBuffer])
     val selectHyperslab = H5Sselect_hyperslab(err, dataspace(bufIdx), IR_VariableAccess("H5S_SELECT_SET", IR_UnknownDatatype), globalStart(bufIdx), stride(bufIdx), count(bufIdx))
 
-    IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),
-      setOffsetBlock +: (selectHyperslab ++ accessStatements))
+    IR_LoopOverBlocks(IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),
+      setOffsetBlock +: (selectHyperslab ++ accessStatements)))
   }
 
   // set data- and memspace to an empty space for "invalid" frags in order to perform a NOP read/write

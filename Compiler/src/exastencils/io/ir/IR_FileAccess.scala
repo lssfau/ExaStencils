@@ -196,11 +196,12 @@ abstract class IR_FileAccess(
   def accessFileBlockwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_Statement
 
   // HACK: artificial fragment loop (of length 1) to set start indices to "startIndexGlobalKJI" (which uses fragmentIdx)
-  def IR_LoopOverBlocks(stmts : ListBuffer[IR_Statement]) = IR_ForLoop(
+  def IR_LoopOverBlocks(stmts : ListBuffer[IR_Statement]) : IR_ForLoop = IR_LoopOverBlocks(stmts : _*)
+  def IR_LoopOverBlocks(stmts : IR_Statement*) = IR_ForLoop(
     IR_VariableDeclaration(IR_LoopOverFragments.defIt, 0),
     IR_Lower(IR_LoopOverFragments.defIt, 1),
     IR_PreIncrement(IR_LoopOverFragments.defIt),
-    stmts)
+    stmts.to[ListBuffer])
 
   // core methods for file access
   def read(bufIdx : Int) : ListBuffer[IR_Statement]

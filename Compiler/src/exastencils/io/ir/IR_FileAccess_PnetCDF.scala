@@ -141,9 +141,9 @@ case class IR_FileAccess_PnetCDF(
       IR_Assignment(IR_ArrayAccess(globalStart(bufIdx), d + (if (useTimeDim) 1 else 0)), buffer.startIndexGlobalKJI(d)) : IR_Statement
     }).to[ListBuffer]
 
-    IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),
+    IR_LoopOverBlocks(IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),
       setOffsetBlock ++ accessStatements
-    )
+    ))
   }
 
   override def createOrOpenFile() : ListBuffer[IR_Statement] = {

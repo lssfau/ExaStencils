@@ -24,8 +24,8 @@ import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_IV_IsValidForDomain
+import exastencils.parallelization.api.mpi.MPI_AllReduce
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
-import exastencils.parallelization.api.mpi.MPI_Reduce
 
 
 object IR_IV_FragmentInfo {
@@ -48,7 +48,7 @@ object IR_IV_FragmentInfo {
         IR_Assignment(IR_IV_TotalNumFrags(domainIdx), IR_IV_NumValidFrags(domainIdx)))
 
       if (Knowledge.mpi_enabled)
-        statements += MPI_Reduce(0, IR_AddressOf(IR_IV_TotalNumFrags(domainIdx)), IR_IntegerDatatype, 1, "+")
+        statements += MPI_AllReduce(IR_AddressOf(IR_IV_TotalNumFrags(domainIdx)), IR_IntegerDatatype, 1, "+")
 
       // Special case: PrintVtk calculates the fragmentOffset in a MPI_Sequential, for other approaches this flag needs to be set
       if (calculateFragOffset) {

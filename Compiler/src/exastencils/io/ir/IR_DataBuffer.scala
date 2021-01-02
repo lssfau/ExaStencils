@@ -79,35 +79,6 @@ object IR_DataBuffer {
       isDiscField = false
     )
   }
-
-  // special case for SWE (e.g. etaDiscLower0, ...)
-  def apply(
-      discField : ListBuffer[IR_Field],
-      slot : IR_Expression,
-      pattern : Option[IR_AccessPattern],
-      dataset : Option[IR_Expression]) : IR_DataBuffer = {
-
-    val field = discField.head
-    val idxRange = 0 until field.layout.numDimsData
-    new IR_DataBuffer(
-      slot = slot,
-      datatype = field.gridDatatype,
-      localization = field.layout.localization,
-      referenceOffset = field.referenceOffset,
-      beginIndices = idxRange.map(d => field.layout.defIdxById("IB", d) : IR_Expression).to[ListBuffer],
-      endIndices = idxRange.map(d => field.layout.defIdxById("IE", d) : IR_Expression).to[ListBuffer],
-      totalDimsLocal = idxRange.map(d => field.layout.defTotal(d) : IR_Expression).to[ListBuffer],
-      numDimsGrid = field.layout.numDimsGrid,
-      numDimsData = field.layout.numDimsData,
-      domainIdx = field.domain.index,
-      accessPattern = pattern getOrElse IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(field, Duplicate(slot), idx.toExpressionIndex)),
-      datasetName = dataset getOrElse IR_NullExpression,
-      name = field.name,
-      canonicalStorageLayout = false,
-      accessBlockwise = false,
-      isDiscField = true
-    )
-  }
 }
 
 // TODO comments for params

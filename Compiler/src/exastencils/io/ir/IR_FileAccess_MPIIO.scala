@@ -150,8 +150,8 @@ case class IR_FileAccess_MPIIO(
     val setView : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_set_view"),
       fileHandle, disp, mpiDatatypeBuffer(dataBuffers(bufIdx)), globalView(bufIdx).getAccess, nativeRepresentation, info)
 
-    IR_IfCondition(IR_IV_IsValidForDomain(dataBuffers(bufIdx).domainIdx),
-      setView +: accessStatements)
+    IR_LoopOverBlocks(IR_IfCondition(IR_IV_IsValidForDomain(dataBuffers(bufIdx).domainIdx),
+      setView +: accessStatements))
   }
 
   override def createOrOpenFile() : ListBuffer[IR_Statement] = {
