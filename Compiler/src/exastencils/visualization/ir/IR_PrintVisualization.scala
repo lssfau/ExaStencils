@@ -57,7 +57,7 @@ case class IR_IV_ConstantsWrittenToFile() extends IR_UnduplicatedVariable {
   override def resolveDatatype() : IR_Datatype = IR_StringDatatype
   override def resolveDefValue() : Option[IR_Expression] = Some("\"\"")
 
-  def isEmpty : IR_Expression = IR_MemberFunctionCall(IR_VariableAccess(resolveName(), resolveDatatype()), "empty")
+  def isEmpty : IR_Expression = !Knowledge.parIO_constantDataReduction OrOr IR_MemberFunctionCall(IR_VariableAccess(resolveName(), resolveDatatype()), "empty")
 }
 
 /// IR_PrintVisualization

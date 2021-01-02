@@ -26,7 +26,6 @@ import exastencils.io.ir.IR_FileAccess
 import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_Print
-import exastencils.visualization.ir.IR_IV_ConstantsWrittenToFile
 import exastencils.visualization.ir.IR_PrintXdmf
 
 case class IR_PrintXdmfNS(
@@ -54,62 +53,48 @@ case class IR_PrintXdmfNS(
   override def writeXdmfGeometry(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    statements += new IR_IfCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
-      /* truebody */
-      ListBuffer[IR_Statement](
-        printXdmfElement(stream, openGeometry("X_Y" + (if (numDimsGrid > 2) "_Z" else "")))) ++ // nodePositions are not interleaved
-        (0 until numDimsGrid).flatMap(d => {
-          printXdmfElement(stream, openDataItem(IR_RealDatatype, dimsPositionsFrag :+ dimFrags(global), seekp = getSeekp(global)) : _*) +: (
-          if (fmt == "XML") {
-            ListBuffer(IR_Print(stream, "std::scientific"),
-              IR_LoopOverFragments(
-                IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
-                  IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
-                    IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
-                    IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => 1 + someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
-                    IR_Print(stream, indentData, IR_VF_NodePositionPerDim.access(level, d, IR_LoopOverDimensions.defIt(numDimsGrid)), IR_Print.newline))),
-                IR_Print(stream, IR_Print.flush)))
-          } else {
-            ListBuffer(printFilename(stream, datasetCoords(d)))
-          }) :+ printXdmfElement(stream, closeDataItem)
-        }) :+ printXdmfElement(stream, closeGeometry),
-      /* falsebody */
-      ListBuffer[IR_Statement](
-        printXdmfElement(stream, XInclude(href = IR_IV_ConstantsWrittenToFile(), xpath = XPath("Geometry") : _*) : _*)
-      )
-    )
+    statements += printXdmfElement(stream, openGeometry("X_Y" + (if (numDimsGrid > 2) "_Z" else ""))) // nodePositions are not interleaved
+    (0 until numDimsGrid).foreach(d => {
+      statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, dimsPositionsFrag :+ dimFrags(global), seekp = getSeekp(global)) : _*)
+      statements ++= (if (fmt == "XML") {
+        ListBuffer(IR_Print(stream, "std::scientific"),
+          IR_LoopOverFragments(
+            IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
+              IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
+                IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
+                IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => 1 + someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
+                IR_Print(stream, indentData, IR_VF_NodePositionPerDim.access(level, d, IR_LoopOverDimensions.defIt(numDimsGrid)), IR_Print.newline))),
+            IR_Print(stream, IR_Print.flush)))
+      } else {
+        ListBuffer(printFilename(stream, datasetCoords(d)))
+      })
+      statements += printXdmfElement(stream, closeDataItem)
+    })
+    statements += printXdmfElement(stream, closeGeometry)
 
-    statements
+    writeOrReferenceConstants(stream, statements, elemToRef = "Geometry")
   }
 
   override def writeXdmfTopology(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    statements += IR_IfCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
-      /* truebody */
-      ListBuffer[IR_Statement](
-        printXdmfElement(stream, openTopology(if (numDimsGrid == 2) "Quadrilateral" else "Hexahedron", ListBuffer(numCellsPerFrag, dimFrags(global))) : _*),
-        printXdmfElement(stream, openDataItem(IR_IntegerDatatype, dimsConnectivityFrag :+ dimFrags(global), seekp = getSeekp(global)) : _*),
-        if (fmt == "XML") {
-          IR_LoopOverFragments(
-            IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
-              IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
-                IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
-                IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
-                IR_Print(stream, indentData +: separateSequenceAndFilter(connectivityForCell(global = false)) :+ IR_Print.newline))),
-            IR_Print(stream, IR_Print.flush))
-        } else {
-          printFilename(stream, datasetConnectivity)
-        },
-        printXdmfElement(stream, closeDataItem),
-        printXdmfElement(stream, closeTopology)),
-      /* falsebody */
-      ListBuffer[IR_Statement](
-        printXdmfElement(stream, XInclude(href = IR_IV_ConstantsWrittenToFile(), xpath = XPath("Topology") : _*) : _*)
-      )
-    )
+    statements += printXdmfElement(stream, openTopology(if (numDimsGrid == 2) "Quadrilateral" else "Hexahedron", ListBuffer(numCellsPerFrag, dimFrags(global))) : _*)
+    statements += printXdmfElement(stream, openDataItem(IR_IntegerDatatype, dimsConnectivityFrag :+ dimFrags(global), seekp = getSeekp(global)) : _*)
+    statements += (if (fmt == "XML") {
+      IR_LoopOverFragments(
+        IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
+          IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
+            IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
+            IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
+            IR_Print(stream, indentData +: separateSequenceAndFilter(connectivityForCell(global = false)) :+ IR_Print.newline))),
+        IR_Print(stream, IR_Print.flush))
+    } else {
+      printFilename(stream, datasetConnectivity)
+    })
+    statements += printXdmfElement(stream, closeDataItem)
+    statements += printXdmfElement(stream, closeTopology)
 
-    statements
+    writeOrReferenceConstants(stream, statements, elemToRef = "Topology")
   }
 
   override def writeXdmfAttributes(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {

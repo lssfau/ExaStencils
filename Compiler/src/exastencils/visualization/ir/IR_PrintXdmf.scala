@@ -173,6 +173,17 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     IR_Print(stream, ListBuffer(indentData) ++ refFile ++ refDataset :+ IR_Print.newline)
   }
 
+  def writeOrReferenceConstants(stream : IR_VariableAccess, writeConsts : ListBuffer[IR_Statement], elemToRef : String, altCondition : Option[IR_Expression] = None) : ListBuffer[IR_Statement] = ListBuffer(
+    new IR_IfCondition(altCondition getOrElse IR_IV_ConstantsWrittenToFile().isEmpty,
+      /* true branch */
+      writeConsts,
+      /* false branch */
+      ListBuffer[IR_Statement](
+        printXdmfElement(stream, XInclude(href = IR_IV_ConstantsWrittenToFile(), xpath = XPath(elemToRef) : _*) : _*)
+      )
+    )
+  )
+
   // prints a complete xdmf file
   def writeXdmf : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()

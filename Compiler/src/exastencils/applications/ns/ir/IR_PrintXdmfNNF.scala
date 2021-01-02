@@ -34,10 +34,12 @@ case class IR_PrintXdmfNNF(
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
 
     // setup frag info and temp buffers
-    stmts ++= IR_IV_FragmentInfo.init(someCellField.domain.index)
-    stmts ++= setupNodePositions
-    stmts ++= setupConnectivity(global = ioInterface != "fpp")
-    stmts ++= setupVelocity
+    if (fmt != "XML") {
+      stmts ++= IR_IV_FragmentInfo.init(someCellField.domain.index)
+      stmts ++= setupNodePositions
+      stmts ++= setupConnectivity(global = ioInterface != "fpp")
+      stmts ++= setupVelocity
+    }
 
     stmts
   }
@@ -45,7 +47,6 @@ case class IR_PrintXdmfNNF(
   override def writeXdmfGeometry(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    // TODO ref geometry from "constant file"
     statements += printXdmfElement(stream, openGeometry("X_Y" + (if (numDimsGrid > 2) "_Z" else ""))) // nodePositions are not interleaved
     for (d <- 0 until numDimsGrid) {
       statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, dimsPositionsFrag :+ dimFrags(global), seekp = getSeekp(global)) : _*)
@@ -66,13 +67,12 @@ case class IR_PrintXdmfNNF(
     }
     statements += printXdmfElement(stream, closeGeometry)
 
-    statements
+    writeOrReferenceConstants(stream, statements, elemToRef = "Geometry")
   }
 
   override def writeXdmfTopology(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    // TODO ref topology from "constant file"
     statements += printXdmfElement(stream, openTopology(if (numDimsGrid == 2) "Quadrilateral" else "Hexahedron", ListBuffer(numCellsPerFrag, dimFrags(global))) : _*)
     statements += printXdmfElement(stream, openDataItem(IR_IntegerDatatype, dimsConnectivityFrag :+ dimFrags(global), seekp = getSeekp(global)) : _*)
     val printValsOrRefFile = if (fmt == "XML") {
@@ -90,7 +90,7 @@ case class IR_PrintXdmfNNF(
     statements += printXdmfElement(stream, closeDataItem)
     statements += printXdmfElement(stream, closeTopology)
 
-    statements
+    writeOrReferenceConstants(stream, statements, elemToRef = "Topology")
   }
 
   override def writeXdmfAttributes(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {

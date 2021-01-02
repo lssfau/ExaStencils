@@ -185,14 +185,14 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
 
     // compute averages and store into buffer before writing
     var stmtsFragLoop : ListBuffer[IR_Statement] = ListBuffer()
-    stmtsFragLoop += IR_Comment("\\n Nodal data reduction for eta \\n")
+    stmtsFragLoop += IR_Comment("\n Nodal data reduction for eta \n")
     stmtsFragLoop ++= reducedCellPrint(IR_VariableAccess(etaReduced.name, etaReduced.resolveDatatype()), etaDisc)
-    stmtsFragLoop += IR_Comment("\\n Nodal data reduction for u \\n")
+    stmtsFragLoop += IR_Comment("\n Nodal data reduction for u \n")
     stmtsFragLoop ++= reducedCellPrint(IR_VariableAccess(uReduced.name, uReduced.resolveDatatype()), uDisc)
-    stmtsFragLoop += IR_Comment("\\n Nodal data reduction for v \\n")
+    stmtsFragLoop += IR_Comment("\n Nodal data reduction for v \n")
     stmtsFragLoop ++= reducedCellPrint(IR_VariableAccess(vReduced.name, vReduced.resolveDatatype()), vDisc)
     if (orderDisc.isDefined) {
-      stmtsFragLoop += IR_Comment("\\n Nodal data reduction for order \\n")
+      stmtsFragLoop += IR_Comment("\n Nodal data reduction for order \n")
       stmtsFragLoop ++= reducedCellPrint(IR_VariableAccess(orderReduced.get.name, orderReduced.get.resolveDatatype()), orderDisc.get)
     }
 
