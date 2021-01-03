@@ -81,8 +81,9 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 Globals {
   Expr a = 0.01
   Expr k = 80.0
-  Expr omegaRelax = 0.6
+  Expr omegaRelax = 0.55
   Var shift : Complex<Real> = (1.0 + 0.5j)
+  //Expr omegaRelax = 0.65
   //Var shift : Complex<Real> = (1.0 + 1.0j)
 }
 
@@ -234,7 +235,7 @@ Function PostSmoother@all {
   // Jacobi
   /*
   repeat 3 times {
-    solve locally at u@[0,0,0] with jacobi relax omegaRelax {
+    solve locally at u@[0,0] with jacobi relax omegaRelax {
       u@[0,0] => M@[0,0] * u@[0,0] == f@[0,0]
     }
   }*/
