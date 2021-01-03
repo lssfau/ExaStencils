@@ -203,8 +203,8 @@ case class IR_FileAccess_PnetCDF(
       }
     }
 
-    // define(write) or inquire(read) variables for each buffer and the time
-    if (writeAccess) {
+    // define or inquire variables for each buffer and the time
+    if (writeAccess && !appendedMode) {
       if (useTimeDim) {
         statements ++= ncmpi_def_var(ncFile, IR_StringConstant("time"), IR_DoubleDatatype, 1, IR_AddressOf(dimIdTime), IR_AddressOf(varIdTime))
       }
@@ -221,7 +221,7 @@ case class IR_FileAccess_PnetCDF(
         statements ++= ncmpi_def_var(ncFile, buf.datasetName, buf.datatype, numDimsDataAndTime(numDims), if (useTimeDim) dimIdRecord else dimIdSpatial, IR_AddressOf(varIdField(bufIdx)))
       }
     } else {
-      //statements ++= ncmpi_inq_varid(ncFile, IR_StringConstant("time"), varIdTime)
+      statements ++= ncmpi_inq_varid(ncFile, IR_StringConstant("time"), IR_AddressOf(varIdTime))
       for (bufIdx <- dataBuffers.indices)
         statements ++= ncmpi_inq_varid(ncFile, dataBuffers(bufIdx).datasetName, IR_AddressOf(varIdField(bufIdx)))
     }
@@ -234,6 +234,15 @@ case class IR_FileAccess_PnetCDF(
     if (!Knowledge.parIO_useCollectiveIO && Knowledge.mpi_enabled) {
       // start individual I/O
       statements ++= ncmpi_begin_indep_data(ncFile)
+    }
+
+    // write time values
+    if (writeAccess && useTimeDim) {
+      if (Knowledge.parIO_useCollectiveIO)
+        statements ++= ncmpi_put_var1_type_all(IR_DoubleDatatype, ncFile, varIdTime, IR_AddressOf(IR_VariableAccess(indexTimeArray_decl)), IR_AddressOf(IR_VariableAccess(timeStep_decl)))
+      else
+        statements += IR_IfCondition(MPI_IsRootProc.apply(), // only root needs to write the time value for independent I/O
+          ncmpi_put_var1_type(IR_DoubleDatatype, ncFile, varIdTime, IR_AddressOf(IR_VariableAccess(indexTimeArray_decl)), IR_AddressOf(IR_VariableAccess(timeStep_decl))))
     }
 
     statements
@@ -260,15 +269,6 @@ case class IR_FileAccess_PnetCDF(
   override def write(bufIdx : Int) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
     val buffer = dataBuffers(bufIdx)
-
-    // write time values
-    if (useTimeDim) {
-      if (Knowledge.parIO_useCollectiveIO)
-        statements ++= ncmpi_put_var1_type_all(IR_DoubleDatatype, ncFile, varIdTime, IR_AddressOf(IR_VariableAccess(indexTimeArray_decl)), IR_AddressOf(IR_VariableAccess(timeStep_decl)))
-      else
-        statements += IR_IfCondition(MPI_IsRootProc.apply(), // only root needs to write the time value for independent I/O
-          ncmpi_put_var1_type(IR_DoubleDatatype, ncFile, varIdTime, IR_AddressOf(IR_VariableAccess(indexTimeArray_decl)), IR_AddressOf(IR_VariableAccess(timeStep_decl))))
-    }
 
     // write dataset
     val write = IR_IfCondition(dataBuffers(bufIdx).accessWithoutExclusion,

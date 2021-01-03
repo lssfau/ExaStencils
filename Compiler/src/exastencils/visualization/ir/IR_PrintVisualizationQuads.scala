@@ -6,7 +6,6 @@ import exastencils.base.ir.IR_ConstIndex
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerConstant
-import exastencils.base.ir.IR_Multiplication
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.logger.Logger
@@ -18,7 +17,7 @@ trait IR_PrintVisualizationQuads extends IR_PrintVisualization {
   def nodalLoopEnd = 0
 
   def connectivityForCell(global : Boolean = true) : ListBuffer[IR_Expression] = {
-    val offsetFragLoop : IR_Multiplication = ((if (global) fragmentOffset else IR_IntegerConstant(0)) + IR_LoopOverFragments.defIt) * numPointsPerFrag
+    val offsetFragLoop : IR_Expression = ((if (global) fragmentOffset else IR_IntegerConstant(0)) + IR_LoopOverFragments.defIt) * numPointsPerFrag + connectivityStartIndex
 
     numDimsGrid match {
       case 2 => ListBuffer(

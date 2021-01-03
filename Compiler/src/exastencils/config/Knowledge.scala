@@ -475,7 +475,7 @@ object Knowledge {
   // [true|false] // decides whether collective or individual I/O is used when using parallel I/O libraries
   var parIO_useCollectiveIO : Boolean = true
 
-  // [true|false] // enables duplication of constant data when printing Xdmf or Exodus files
+  // [true|false] // prevents duplication of constant data when printing Xdmf or Exodus files
   var parIO_constantDataReduction : Boolean = true
 
   /// --- CUDA ---

@@ -157,7 +157,7 @@ case class IR_PrintXdmfSWE(
       IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(someCellField), None, Some(IR_StringConstant(datasetConnectivity)), canonicalOrder = false) :+
       IR_DataBuffer(bath, IR_IV_ActiveSlot(bath), includeGhosts = false, Some(bathAccess), Some(IR_StringConstant(datasetFields.head)), canonicalOrder = false)
     val fields = datasetFields.tail.zipWithIndex.map { case (ds, i) =>
-      discFieldsAsDataBuffers(discFields(i), ds)
+      discFieldsAsDataBuffers(discFields(i), IR_StringConstant(ds))
     }
 
     if (constsIncluded) constants ++ fields else fields
