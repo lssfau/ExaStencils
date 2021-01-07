@@ -21,6 +21,7 @@ import exastencils.base.ir.IR_MemberFunctionCall
 import exastencils.base.ir.IR_ObjectInstantiation
 import exastencils.base.ir.IR_PreIncrement
 import exastencils.base.ir.IR_RealDatatype
+import exastencils.base.ir.IR_ScalarDatatype
 import exastencils.base.ir.IR_SpecialDatatype
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_StringConstant
@@ -28,11 +29,17 @@ import exastencils.base.ir.IR_StringDatatype
 import exastencils.base.ir.IR_TernaryCondition
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
+import exastencils.baseExt.ir.IR_MatrixDatatype
+import exastencils.baseExt.ir.IR_VectorDatatype
 import exastencils.config.Knowledge
 import exastencils.config.Settings
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.OutputType
 import exastencils.globals.ir.IR_GlobalCollection
+import exastencils.grid.ir.IR_AtCellCenter
+import exastencils.grid.ir.IR_AtFaceCenter
+import exastencils.grid.ir.IR_AtNode
+import exastencils.grid.ir.IR_Localization
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_FileAccess
 import exastencils.io.ir.IR_FileAccess_FPP
@@ -88,7 +95,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   def fmt : String = ioInterface match {
     case "mpiio" => "Binary"
     case "hdf5"  => "HDF"
-    case "fpp"   => if(binaryFpp) "Binary" else "XML"
+    case "fpp"   => if (binaryFpp) "Binary" else "XML"
   }
 
   // overloaded helper methods to write xdmf elements
@@ -97,16 +104,36 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
 
   // xml elements used in xdmf
   def xmlHeader = "<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>"
-  def XInclude(href : IR_Expression, xpath : IR_Expression*) : ListBuffer[IR_Expression] = ListBuffer(
-    IR_StringConstant("\t\t\t<xi:include href=\\\""), href, IR_StringConstant("\\\" "), // reference file
+  def XInclude(href : IR_Expression, xpath : IR_Expression*) : ListBuffer[IR_Expression] = {
+    ListBuffer(
+      IR_StringConstant("\t\t\t<xi:include href=\\\""), href, IR_StringConstant("\\\" "), // reference file
       IR_StringConstant("xpointer=\\\"xpointer(")) ++ xpath.to[ListBuffer] :+ IR_StringConstant(")\\\"/>") // reference specific elements in the file
-  def XInclude(href : ListBuffer[IR_Expression], xpath : IR_Expression*) : ListBuffer[IR_Expression] =
+  }
+  def XInclude(href : ListBuffer[IR_Expression], xpath : IR_Expression*) : ListBuffer[IR_Expression] = {
     (IR_StringConstant("\t\t\t<xi:include href=\\\"") +: href :+ IR_StringConstant("\\\" ")) ++
       (IR_StringConstant("xpointer=\\\"xpointer(") +: xpath.to[ListBuffer] :+ IR_StringConstant(")\\\"/>"))
-  def XPath(elem : String) : ListBuffer[IR_Expression] = if (binaryFpp) {
-    ListBuffer(IR_StringConstant("/Xdmf/Domain/Grid/Grid["), curRank + 1, IR_StringConstant("]/" + elem)) // collection of grids (one for each subdomain)
-  } else {
-    ListBuffer[IR_Expression](IR_StringConstant("/Xdmf/Domain/Grid[1]/" + elem)) // a single global grid
+  }
+  def XPath(elem : String) : ListBuffer[IR_Expression] = {
+    if (binaryFpp) {
+      ListBuffer(IR_StringConstant("/Xdmf/Domain/Grid/Grid["), curRank + 1, IR_StringConstant("]/" + elem)) // collection of grids (one for each subdomain)
+    } else {
+      ListBuffer[IR_Expression](IR_StringConstant("/Xdmf/Domain/Grid[1]/" + elem)) // a single global grid
+    }
+  }
+
+  def attributeType(gridDatatype : IR_Datatype) : String = gridDatatype match {
+    case _ : IR_ScalarDatatype                           => "Scalar"
+    case _ : IR_VectorDatatype                           => "Vector"
+    case matrix : IR_MatrixDatatype if matrix.sizeM == 1 => "Vector"
+    case _ : IR_MatrixDatatype                           => "Matrix" // TODO does this work with xdmf?
+    case _                                               => Logger.error("Unsupported datatype for IR_PrintXdmf!")
+  }
+  def centeringType(localization : IR_Localization) : String = localization match {
+    case IR_AtNode       => "Node"
+    case IR_AtCellCenter => "Cell"
+    // according to the docs ("https://www.xdmf.org/index.php/XDMF_Model_and_Format"), face centered variables are supported but do not map well for vis. systems (e.g. ParaView)
+    case IR_AtFaceCenter(_) => Logger.error("Unsupported localization for IR_PrintXdmf!") // TODO handling?
+    case _                  => Logger.error("Unsupported localization for IR_PrintXdmf!")
   }
 
   // table from: https://www.xdmf.org/index.php/XDMF_Model_and_Format
@@ -119,30 +146,63 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   }
 
   def separator = IR_StringConstant(" ")
-  def separateSequenceAndFilter(dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = dims
+  def separateSequence(dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = dims
     .reverse // KJI order
-    .filter(d => d != IR_IntegerConstant(1) || d != IR_IntegerConstant(0)) // remove unnecessary dim specifications
     .flatMap(d => d :: separator :: Nil)
     .dropRight(1)
+  def separateSequenceAndFilter(dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = separateSequence(
+    dims.filter(d => d != IR_IntegerConstant(1) || d != IR_IntegerConstant(0)) // remove unnecessary dim specifications
+  )
 
   // open xdmf elements
-  def openXdmf =
+  def openXdmf : String = {
     "<Xdmf xmlns:xi=\\\"http://www.w3.org/2001/XInclude\\\" Version=\\\"3.0\\\">"
-  def openDomain =
+  }
+  def openDomain : String = {
     "\t<Domain>"
-  def openGrid(name : IR_Expression, tpe : String) : ListBuffer[IR_Expression] = ListBuffer(IR_StringConstant(
-    "\t\t<Grid Name=\\\""), name, IR_StringConstant(s"""\\\" GridType=\\\"$tpe\\\">"""))
-  def openGeometry(tpe : String) =
+  }
+  def openGrid(name : IR_Expression, tpe : String) : ListBuffer[IR_Expression] = {
+    ListBuffer(IR_StringConstant("\t\t<Grid Name=\\\""), name, IR_StringConstant(s"""\\\" GridType=\\\"$tpe\\\">"""))
+  }
+  def openGeometry(tpe : String) : String = {
     s"""\t\t\t<Geometry GeometryType=\\\"$tpe\\\">"""
-  def openTopology(tpe : String, dims : ListBuffer[IR_Expression], npe : Option[String] = None) : ListBuffer[IR_Expression] = ListBuffer(IR_StringConstant(
-    "\t\t\t<Topology Dimensions=\\\"")) ++ separateSequenceAndFilter(dims) :+ IR_StringConstant(s"""\\\" Type=\\\"$tpe\\\"""") :+
-    (if(npe.isDefined) IR_StringConstant(s""" NodesPerElement=\\\"${npe.get}\\\">""") else IR_StringConstant(">"))
-  def openAttribute(name : String, tpe : String, ctr : String) =
+  }
+  def openTopology(tpe : String, dims : ListBuffer[IR_Expression], npe : Option[String] = None) : ListBuffer[IR_Expression] = {
+    ListBuffer(IR_StringConstant(
+      "\t\t\t<Topology Dimensions=\\\"")) ++ separateSequenceAndFilter(dims) :+ IR_StringConstant(s"""\\\" Type=\\\"$tpe\\\"""") :+
+      (if (npe.isDefined) IR_StringConstant(s""" NodesPerElement=\\\"${ npe.get }\\\">""") else IR_StringConstant(">"))
+  }
+  def openAttribute(name : String, tpe : String, ctr : String) : String = {
     s"""\t\t\t<Attribute Center=\\\"$ctr\\\" AttributeType=\\\"$tpe\\\" Name=\\\"$name\\\">"""
-  def openDataItem(dt : IR_Datatype, dims : ListBuffer[IR_Expression], seekp : IR_Expression = 0) : ListBuffer[IR_Expression] = ListBuffer(IR_StringConstant(
-    s"""\t\t\t\t<DataItem DataType=\\\"${numberType(dt)}\\\" Precision=\\\"${dt.typicalByteSize}\\\" Dimensions=\\\"""")) ++ separateSequenceAndFilter(dims) :+
-      IR_StringConstant(s"""\\\" Format=\\\"$fmt\\\" Endian=\\\"""") :+ IR_VariableAccess(endianness) :+
+  }
+  def openDataItem(dt : IR_Datatype, dims : ListBuffer[IR_Expression], seekp : IR_Expression = 0, name : String = "", altFmt : Option[String] = None) : ListBuffer[IR_Expression] = {
+    ListBuffer(IR_StringConstant(
+      s"""\t\t\t\t<DataItem Name=\\\"${ name }\\\" DataType=\\\"${ numberType(dt) }\\\" Precision=\\\"${ dt.typicalByteSize }\\\" Dimensions=\\\"""")) ++ separateSequenceAndFilter(dims) :+
+      IR_StringConstant(s"""\\\" Format=\\\"${ altFmt getOrElse fmt }\\\" Endian=\\\"""") :+ IR_VariableAccess(endianness) :+
       IR_StringConstant("\\\" Seek=\\\"") :+ seekp :+ IR_StringConstant("\\\">")
+  }
+  // hyperslabs DataItems consist of two other DataItems: the selection and the source
+  def openDataItemHyperslab(dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = {
+    ListBuffer(IR_StringConstant(
+      s"""\t\t\t\t<DataItem ItemType=\\\"HyperSlab\\\" Dimensions=\\\"""")) ++ separateSequenceAndFilter(dims) :+
+      IR_StringConstant(s"""\\\" Type=\\\"HyperSlab\\\">""")
+  }
+  def dataItemHyperslabSelection(start : ListBuffer[IR_Expression], stride : ListBuffer[IR_Expression], count : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = {
+    var buffer : ListBuffer[IR_Expression] = ListBuffer()
+    buffer ++= IR_StringConstant(s"""\t\t\t\t\t<DataItem Dimensions=\\\"3 ${ start.length }\\\" Format=\\\"XML\\\">""") :: IR_Print.newline :: Nil
+    buffer ++= IR_StringConstant("\t" + indentData.value) +: separateSequence(start) :+ IR_Print.newline
+    buffer ++= IR_StringConstant("\t" + indentData.value) +: separateSequence(stride) :+ IR_Print.newline
+    buffer ++= IR_StringConstant("\t" + indentData.value) +: separateSequence(count) :+ IR_Print.newline
+    buffer += IR_StringConstant("\t" + closeDataItem)
+    buffer
+  }
+  def dataItemHyperslabSource(dt : IR_Datatype, dims : ListBuffer[IR_Expression], printFilename : IR_Print) : ListBuffer[IR_Expression] = {
+    var buffer : ListBuffer[IR_Expression] = ListBuffer()
+    buffer ++= IR_StringConstant("\t") +: openDataItem(dt, dims) :+ IR_Print.newline
+    buffer ++= IR_StringConstant("\t") +: printFilename.toPrint
+    buffer += IR_StringConstant("\t" + closeDataItem)
+    buffer
+  }
 
   // close xdmf elements
   def closeXdmf      = "</Xdmf>"
@@ -159,6 +219,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   def buildFilenameData(noPath : Boolean)  : IR_Expression = basename(noPath, Some(IR_StringConstant(fmt match {
     case "Binary" => ".bin"
     case "HDF"    => ".h5"
+    case "XML"    => ".xmf"
   })))
 
   // KJI order: first dimension shows how many fragments were written
@@ -166,9 +227,18 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
 
   def indentData = IR_StringConstant("\t\t\t\t\t")
 
+  // writes the path to the "heavy data" file (incl. dataset for hdf5) to the xdmf file
   def printFilename(stream : IR_VariableAccess, dataset : String) : IR_Print = {
     val refFile = if (binaryFpp) buildFilenamePiece(noPath = true, curRank).toPrint else ListBuffer(buildFilenameData(noPath = true))
     val refDataset = if (fmt == "HDF") IR_StringConstant(":" + dataset) :: Nil else Nil
+
+    IR_Print(stream, ListBuffer(indentData) ++ refFile ++ refDataset :+ IR_Print.newline)
+  }
+
+  // overload for dataset names whose names are not a string literal
+  def printFilename(stream : IR_VariableAccess, dataset : IR_Expression) : IR_Print = {
+    val refFile = if (binaryFpp) buildFilenamePiece(noPath = true, curRank).toPrint else ListBuffer(buildFilenameData(noPath = true))
+    val refDataset = if (fmt == "HDF") IR_StringConstant(":") :: dataset :: Nil else Nil
 
     IR_Print(stream, ListBuffer(indentData) ++ refFile ++ refDataset :+ IR_Print.newline)
   }
@@ -216,6 +286,19 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
       statements
   }
 
+  // builds filename for "heavy data" and writes via corresponding I/O interface
+  def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
+    if (binaryFpp) {
+      IR_VariableDeclaration(filenamePieceFpp) +:
+        buildFilenamePiece(noPath = false, MPI_IV_MpiRank) +:
+        ioHandler(constsIncluded, filenamePieceFpp).statementList
+    } else {
+      val filenameData = IR_VariableAccess(IR_FileAccess.declareVariable("filenameData"), IR_StringDatatype)
+      IR_VariableDeclaration(filenameData, buildFilenameData(noPath = false)) +:
+        ioHandler(constsIncluded, filenameData).statementList
+    }
+  }
+
   /* writes a xdmf "grid" element. used by writeXdmf and the "main" file for file-per-process
       - global = true : for single-shared file approaches (mpiio, hdf5)
       - global = false: for file-per-process. writes a domain piece
@@ -260,7 +343,30 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   def writeXdmfGeometry(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement]
   def writeXdmfTopology(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement]
   def writeXdmfAttributes(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement]
-  def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement]
+
+  // construct xdmf filename for domain pieces in same directory as the global file
+  protected def refPiecesXml(stream : IR_VariableAccess) : ListBuffer[IR_Statement] = (0 until Knowledge.mpi_numThreads).map(r => {
+    printXdmfElement(stream,
+      XInclude(href = buildFilenamePiece(noPath = true, rank = IR_IntegerConstant(r)).toPrint,
+        xpath = IR_StringConstant("/Xdmf/Domain/Grid[1]")) : _*) // assumes the file of process "curRank" only has one grid instance
+  }).to[ListBuffer]
+
+  // constant data reduction handling
+  def writeDataAndSetConstFile() : ListBuffer[IR_Statement] = ListBuffer({
+    if (fmt != "XML") {
+      // write data into a separate, binary file
+      IR_IfCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
+        /* true: write constants to file and save filename to reference later */
+        writeData(constsIncluded = true) :+ IR_Assignment(IR_IV_ConstantsWrittenToFile(), basename(noPath = true) + ext),
+        /* false: write field data and reference constants from saved filename */
+        writeData(constsIncluded = false))
+    } else {
+      // data is already incorporated in the xml file
+      IR_IfCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
+        IR_Assignment(IR_IV_ConstantsWrittenToFile(),
+          IR_MemberFunctionCall(filenamePieceFpp, "substr", lastIdxSubst(filenamePieceFpp, "\"\\\\/\"") + 1))) // constant file in same dir -> remove path
+    }
+  })
 
   override def expand() : OutputType = {
     if (!Settings.additionalIncludes.contains("fstream"))
@@ -280,19 +386,12 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    // set up fragment info
+    // e.g. set up fragment info
     statements ++= stmtsForPreparation
 
     // write "main" file for file-per-process with root rank
     if (ioInterface == "fpp") {
       val stream = newStream
-
-      // construct xdmf filename for domain pieces in same directory as the global file
-      def refPieces : ListBuffer[IR_Statement] = (0 until Knowledge.mpi_numThreads).map(r => {  // assumes the file of process "curRank" only has one grid instance
-        printXdmfElement(stream,
-          XInclude(href = buildFilenamePiece(noPath = true, rank = IR_IntegerConstant(r)).toPrint,
-            xpath = IR_StringConstant("/Xdmf/Domain/Grid[1]")) : _*)
-      }).to[ListBuffer]
 
       val printGlobalFile : ListBuffer[IR_Statement] = ListBuffer()
 
@@ -312,8 +411,9 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
             writeXdmfGrid(stream, global = false)),
           printXdmfElement(stream, closeGrid))
       } else {
-        ListBuffer(printXdmfElement(stream, openGrid(IR_StringConstant("GlobalGrid"), "Collection") : _*)) ++
-          refPieces :+ // when using ascii, the data is directly incorporated in the xdmf file -> reference xdmf file of each piece
+        ListBuffer(
+          printXdmfElement(stream, openGrid(IR_StringConstant("GlobalGrid"), "Collection") : _*)) ++
+          refPiecesXml(stream) :+ // when using ascii, the data is directly incorporated in the xdmf file -> reference xdmf file of each piece
           printXdmfElement(stream, closeGrid)
       }
 
@@ -334,19 +434,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
       statements ++= writeXdmf
     }
 
-    if (fmt != "XML") {
-      // write data into a separate, binary file
-      statements += IR_IfCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
-        /* true: write constants to file and save filename to reference later */
-        writeData(constsIncluded = true) :+ IR_Assignment(IR_IV_ConstantsWrittenToFile(), basename(noPath = true) + ext),
-        /* false: write field data and reference constants from saved filename */
-        writeData(constsIncluded = false))
-    } else {
-      // data is already incorporated in the xml file
-      statements += IR_IfCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
-        IR_Assignment(IR_IV_ConstantsWrittenToFile(),
-          IR_MemberFunctionCall(filenamePieceFpp, "substr", lastIdxSubst(filenamePieceFpp, "\"\\\\/\"") + 1))) // constant file in same dir -> remove path
-    }
+    statements ++= writeDataAndSetConstFile()
 
     statements
   }

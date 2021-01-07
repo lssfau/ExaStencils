@@ -166,20 +166,13 @@ case class IR_FileAccess_Locking(
     statements
   }
 
-  override def write(bufIdx : Int) : ListBuffer[IR_Statement] = {
-    val printSetPrecision = if (!useBinary) {
-      if (Knowledge.field_printFieldPrecision == -1)
-        IR_Print(stream, "std::scientific")
-      else
-        IR_Print(stream, "std::scientific << std::setprecision(" + Knowledge.field_printFieldPrecision + ")") //std::defaultfloat
-    } else {
-      IR_NullStatement
-    }
-
+  // allows code re-usage in visualization interface
+  def printKernel(stream : IR_VariableAccess, bufIdx : Int, indent : Option[IR_Expression] = None) : ListBuffer[IR_Statement] = {
     val buf = dataBuffers(bufIdx)
     val print = if (!useBinary) {
       val printComponents = optPrintComponents getOrElse ListBuffer[IR_Expression]()
       printComponents += "std::scientific"
+      printComponents ++= indent
       printComponents ++= handleAccessesHodt(buf).flatMap(acc => List(acc, separator)).dropRight(1)
       printComponents += IR_Print.newline
       loopOverDims(bufIdx, IR_Print(stream, printComponents))
@@ -189,6 +182,19 @@ case class IR_FileAccess_Locking(
         IR_PrintBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal),
         /* false: write component by component in a loop */
         loopOverDims(bufIdx, IR_PrintBinary(stream, handleAccessesHodt(buf))))
+    }
+
+    ListBuffer(print)
+  }
+
+  override def write(bufIdx : Int) : ListBuffer[IR_Statement] = {
+    val printSetPrecision = if (!useBinary) {
+      if (Knowledge.field_printFieldPrecision == -1)
+        IR_Print(stream, "std::scientific")
+      else
+        IR_Print(stream, "std::scientific << std::setprecision(" + Knowledge.field_printFieldPrecision + ")") //std::defaultfloat
+    } else {
+      IR_NullStatement
     }
 
     // append to file in MPI_Sequential instead of truncating
@@ -201,7 +207,7 @@ case class IR_FileAccess_Locking(
     var innerLoop = ListBuffer[IR_Statement](
       IR_ObjectInstantiation(stream, Duplicate(filename), openModeLock),
       printSetPrecision,
-      accessFileWithGranularity(bufIdx, ListBuffer(print)),
+      accessFileWithGranularity(bufIdx, printKernel(stream, bufIdx)),
       IR_MemberFunctionCall(stream, "close")
     )
 

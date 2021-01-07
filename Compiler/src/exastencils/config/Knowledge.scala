@@ -478,6 +478,9 @@ object Knowledge {
   // [true|false] // prevents duplication of constant data when printing Xdmf or Exodus files
   var parIO_constantDataReduction : Boolean = true
 
+  // [true|false] // specifies whether ParaView or VisIt files are printed. Distinction only relevant for IR_PrintXdmfUniform
+  var parIO_generateVisItFiles : Boolean = false
+
   /// --- CUDA ---
 
   // [true|false]

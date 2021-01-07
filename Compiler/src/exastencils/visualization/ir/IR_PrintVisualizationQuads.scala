@@ -12,6 +12,9 @@ import exastencils.logger.Logger
 
 trait IR_PrintVisualizationQuads extends IR_PrintVisualization {
 
+  // fields are written fragment-wise -> not canonical
+  override def canonicalFileLayout : Boolean = false
+
   def nodeOffsets : ListBuffer[IR_ConstIndex] = ListBuffer(IR_ConstIndex((0 until numDimsGrid).map(_ => 0).toArray))
 
   def nodalLoopEnd = 0

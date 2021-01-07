@@ -12,9 +12,7 @@ import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_RealDatatype
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_StringConstant
-import exastencils.base.ir.IR_StringDatatype
 import exastencils.base.ir.IR_VariableAccess
-import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
@@ -26,9 +24,7 @@ import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.io.ir.IR_AccessPattern
 import exastencils.io.ir.IR_DataBuffer
-import exastencils.io.ir.IR_FileAccess
 import exastencils.io.ir.IR_IV_FragmentInfo
-import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_IV_ConstantsWrittenToFile
 import exastencils.visualization.ir.IR_PrintXdmf
@@ -164,15 +160,7 @@ case class IR_PrintXdmfSWE(
   }
 
   override def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
-    val stmts = if (binaryFpp) {
-      IR_VariableDeclaration(filenamePieceFpp) +:
-        buildFilenamePiece(noPath = false, MPI_IV_MpiRank) +:
-        ioHandler(constsIncluded, filenamePieceFpp).statementList
-    } else {
-      val filenameData = IR_VariableAccess(IR_FileAccess.declareVariable("filenameData"), IR_StringDatatype)
-      IR_VariableDeclaration(filenameData, buildFilenameData(noPath = false)) +:
-        ioHandler(constsIncluded, filenameData).statementList
-    }
+    val stmts = super.writeData(constsIncluded)
 
     // cleanup
     // TODO remove once temp. buffer IV's work correctly

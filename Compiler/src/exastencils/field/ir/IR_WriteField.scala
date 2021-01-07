@@ -33,10 +33,12 @@ case class IR_WriteField(
     var slot : IR_Expression,
     var ioInterface : IR_Expression,
     var includeGhostLayers : Boolean,
+    var canonicalOrder : Boolean = false,
     var binaryOutput : Boolean = false,
     var separator : IR_Expression = IR_StringConstant(" "),
     var condition: IR_Expression = true,
-    var dataset : IR_Expression = IR_NullExpression) extends IR_FieldIO(filename, field, slot, ioInterface, doWrite = true, onlyVals = true, includeGhostLayers, binaryOutput, separator, condition, dataset) {
+    var dataset : IR_Expression = IR_NullExpression)
+  extends IR_FieldIO(filename, field, slot, ioInterface, doWrite = true, onlyVals = true, includeGhostLayers, canonicalOrder, binaryOutput, separator, condition, dataset) {
 
   override def expand() : Output[StatementList] = {
 

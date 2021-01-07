@@ -55,14 +55,14 @@ case class IR_FileAccess_PnetCDF(
   val ptrDatatype : IR_SpecialDatatype = if (Knowledge.mpi_enabled) MPI_Offset else IR_SpecialDatatype("ptrdiff_t") // serial API uses "ptrdiff_t" for "imap" and "stride" parameters
   override def stride_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
     declareDimensionality("stride", buf.localization,
-      handleFragmentDimension(buf,
+      IR_DataBuffer.handleFragmentDimension(buf,
         if (useTimeDim) IR_IntegerConstant(1) +: buf.strideKJI else buf.strideKJI,  // prepend one more entry for unlimited "time" dimension
         fragmentDim = 1),
       ptrDatatype)
   })
   override def count_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
     declareDimensionality("count", buf.localization,
-      handleFragmentDimension(buf,
+      IR_DataBuffer.handleFragmentDimension(buf,
         if (useTimeDim) IR_IntegerConstant(1) +: buf.innerDimsLocalKJI else buf.innerDimsLocalKJI, // prepend "1" since "1*(count.product)" values are written per timestep
         fragmentDim = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else 1))
   })

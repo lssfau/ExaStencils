@@ -34,6 +34,7 @@ case class L4_ReadField(
     var field : L4_FieldAccess,
     var ioInterface : L4_Expression,
     var includeGhostLayers : Boolean = false,
+    var canonicalOrder : Boolean = false,
     var binaryInput : Boolean = false,
     var separator : Option[L4_Expression] = None,
     var condition : Option[L4_Expression] = None,
@@ -57,6 +58,7 @@ case class L4_ReadField(
       progField.slot,
       ioInterface.progress,
       includeGhostLayers,
+      canonicalOrder,
       binaryInput,
       separator.getOrElse(L4_StringConstant(" ")).progress,
       condition.getOrElse(L4_BooleanConstant(true)).progress,
@@ -128,27 +130,33 @@ object L4_ResolveReadFieldFunctions extends DefaultStrategy("Resolve read field 
             Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
         }
         case "mpiio" => args match {
-          case ListBuffer(fn, field : L4_FieldAccess)                                 => // option 1: filename, field
-            L4_ReadField(fn, field, ioInterface = ifaceSelection)
-          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant) => // option 2: filename, field, inclGhost
-            L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value)
-          case _ =>
+          case ListBuffer(fn, field : L4_FieldAccess)                                                                      => // option 1: filename, field
+            L4_ReadField(fn, field, ioInterface = ifaceSelection, canonicalOrder = true)
+          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)                                      => // option 2: filename, field, inclGhost
+            L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, canonicalOrder = true)
+          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, canonicalOrder : L4_BooleanConstant) => // option 3: filename, field, inclGhost, canonicalOrder
+            L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, canonicalOrder = canonicalOrder.value)
+          case _                                                                                                           =>
             Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
         }
         case "hdf5" => args match {
-          case ListBuffer(fn, datasetPath, field : L4_FieldAccess)                                  => // option 1: filename, /path/to/dataset, field
-            L4_ReadField(fn, field, ioInterface = ifaceSelection, dataset = Some(datasetPath))
-          case ListBuffer(fn, datasetPath, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)  => // option 2: filename, /path/to/dataset, field, inclGhost
-            L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, dataset = Some(datasetPath))
-          case _ =>
+          case ListBuffer(fn, datasetPath, field : L4_FieldAccess)                                                                      => // option 1: filename, /path/to/dataset, field
+            L4_ReadField(fn, field, ioInterface = ifaceSelection, canonicalOrder = true, dataset = Some(datasetPath))
+          case ListBuffer(fn, datasetPath, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)                                      => // option 2: filename, /path/to/dataset, field, inclGhost
+            L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, canonicalOrder = true, dataset = Some(datasetPath))
+          case ListBuffer(fn, datasetPath, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, canonicalOrder : L4_BooleanConstant) => // option 3: filename, /path/to/dataset, field, inclGhost, canonicalOrder
+            L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, canonicalOrder = canonicalOrder.value, dataset = Some(datasetPath))
+          case _                                                                                                                        =>
             Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
         }
         case "nc" => args match {
-          case ListBuffer(fn, datasetName, field : L4_FieldAccess)                                  => // option 1: filename, datasetName, field
-            L4_ReadField(fn, field, ioInterface = ifaceSelection, dataset = Some(datasetName))
-          case ListBuffer(fn, datasetName, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)  => // option 2: filename, datasetName, field, inclGhost
-            L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, dataset = Some(datasetName))
-          case _ =>
+          case ListBuffer(fn, datasetName, field : L4_FieldAccess)                                                                      => // option 1: filename, datasetName, field
+            L4_ReadField(fn, field, ioInterface = ifaceSelection, canonicalOrder = true, dataset = Some(datasetName))
+          case ListBuffer(fn, datasetName, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)                                      => // option 2: filename, datasetName, field, inclGhost
+            L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, canonicalOrder = true, dataset = Some(datasetName))
+          case ListBuffer(fn, datasetName, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, canonicalOrder : L4_BooleanConstant) => // option 3: filename, datasetName, field, inclGhost, canonicalOrder
+            L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, canonicalOrder = canonicalOrder.value, dataset = Some(datasetName))
+          case _                                                                                                                        =>
             Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
         }
         case "sion" => args match {

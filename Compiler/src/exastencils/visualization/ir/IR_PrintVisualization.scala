@@ -81,15 +81,17 @@ trait IR_PrintVisualization {
     case _                                                              => Logger.error("Parameter \"filename\" is not a string.")
   }
 
+  def canonicalFileLayout : Boolean
+
   // generates the basename either as StringConstant or as expressions which extract the basename in the target code (via "substr")
   def basename(noPath : Boolean, appStr : Option[IR_StringConstant] = None) : IR_Expression = filename match {
     case sc : IR_StringConstant                                          =>
-      val bnConst = IR_StringConstant(if(noPath) {
+      val bnConst = if(noPath) {
         sc.value.substring(sc.value.lastIndexOf(File.separator) + 1).replaceFirst(extRegex, "")
       } else {
         sc.value.replaceFirst(extRegex, "")
-      })
-      if(appStr.isDefined) bnConst + appStr.get else bnConst
+      }
+      if(appStr.isDefined) IR_StringConstant(bnConst + appStr.get.value) else IR_StringConstant(bnConst)
     case vAcc : IR_VariableAccess if vAcc.datatype == IR_StringDatatype =>
       val bnExpr = if(noPath) {
         IR_MemberFunctionCall(

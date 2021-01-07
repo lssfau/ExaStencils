@@ -53,10 +53,12 @@ case class IR_PrintField(
     var slot : IR_Expression,
     var ioInterface : IR_Expression,
     var includeGhostLayers : Boolean,
+    var canonicalOrder : Boolean = false,
     var binaryOutput : Boolean = false,
     var separator : IR_Expression = IR_StringConstant(" "),
     var condition : IR_Expression = true,
-    var dataset : IR_Expression = IR_NullExpression) extends IR_FieldIO(filename, field, slot, ioInterface, doWrite = true, onlyVals = false, includeGhostLayers, binaryOutput, separator, condition, dataset) {
+    var dataset : IR_Expression = IR_NullExpression)
+  extends IR_FieldIO(filename, field, slot, ioInterface, doWrite = true, onlyVals = false, includeGhostLayers, canonicalOrder, binaryOutput, separator, condition, dataset) {
 
   /*
   def numDimsGrid = field.layout.numDimsGrid
@@ -74,6 +76,7 @@ case class IR_PrintField(
   */
 
   val arrayIndexRange : Range = 0 until field.gridDatatype.resolveFlattendSize
+  val ioInterfaceName = ioInterface.asInstanceOf[IR_StringConstant].value
 
   // writes comma-separated files in ascii mode, raw binaries otherwise (via locking)
   def printCSV() : ListBuffer[IR_Statement] = {
@@ -121,18 +124,18 @@ case class IR_PrintField(
     statements
   }
 
-  def printXdmf() : ListBuffer[IR_Statement] = {
-    // TODO
-    ioInterface.asInstanceOf[IR_StringConstant].value.toLowerCase match {
-      case "fpp" => ListBuffer(IR_NullStatement)
-      case "mpiio" => ListBuffer(IR_NullStatement)
-      case "hdf5" => ListBuffer(IR_NullStatement)
+  def printXdmf() : IR_Statement = {
+    if (Knowledge.grid_isUniform) {
+      IR_PrintXdmfUniform(filename, field, slot, ioInterface, includeGhostLayers, dataset, binaryOutput && ioInterfaceName == "fpp", canonicalOrder)
+    } else {
+      // TODO
+      IR_NullStatement
     }
   }
 
-  def printNetCDF() : ListBuffer[IR_Statement] = {
+  def printNetCDF() : IR_Statement = {
     // TODO
-    ListBuffer(IR_NullStatement)
+    IR_NullStatement
   }
 
   override def expand() : Output[StatementList] = {
@@ -217,10 +220,10 @@ case class IR_PrintField(
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    ioInterface.asInstanceOf[IR_StringConstant].value.toLowerCase match {
+    ioInterfaceName.toLowerCase match {
       case "lock"   => statements ++= printCSV()
-      case "fpp" | "mpiio" | "hdf5"   => statements ++= printXdmf()
-      case "nc"     => statements ++= printNetCDF()
+      case "fpp" | "mpiio" | "hdf5"   => statements += printXdmf()
+      case "nc"     => statements += printNetCDF()
       case "sion"   =>
         Logger.warn("Sion Files cannot directly be visualized. Defaulting to \"writeField\" implementation.")
         statements += generateFileAccess()

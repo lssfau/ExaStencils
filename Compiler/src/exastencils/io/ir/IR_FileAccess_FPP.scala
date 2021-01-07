@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir._
@@ -54,6 +55,15 @@ case class IR_FileAccess_FPP(
   override def createOrOpenFile() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
+    val printSetPrecision = if (writeAccess && !useBinary) {
+      if (Knowledge.field_printFieldPrecision == -1)
+        IR_Print(stream, "std::scientific")
+      else
+        IR_Print(stream, "std::scientific << std::setprecision(" + Knowledge.field_printFieldPrecision + ")") //std::defaultfloat
+    } else {
+      IR_NullStatement
+    }
+
     filename match {
       case filenameStrConst : IR_StringConstant =>
         val str : String = filenameStrConst.value
@@ -67,10 +77,13 @@ case class IR_FileAccess_FPP(
         val mpiFileName = IR_VariableAccess(IR_FieldIO.getNewFileName(), IR_StringDatatype)
         statements += IR_VariableDeclaration(mpiFileName)
         statements += IR_BuildString(mpiFileName, strListMpi)
-        statements += IR_ObjectInstantiation(stream, Duplicate(mpiFileName))
+        statements += IR_ObjectInstantiation(stream, Duplicate(mpiFileName), openMode)
       case _                                    =>
-        statements += IR_ObjectInstantiation(stream, Duplicate(filename))
+        statements += IR_ObjectInstantiation(stream, Duplicate(filename), openMode)
     }
+    statements += printSetPrecision
+
+    statements
   }
 
   // nothing to setup/cleanup
@@ -130,13 +143,14 @@ case class IR_FileAccess_FPP(
     statements
   }
 
-  override def write(bufIdx : Int) : ListBuffer[IR_Statement] = {
-    var statements : ListBuffer[IR_Statement] = ListBuffer()
+  // allows code re-usage in visualization interface
+  def printKernel(stream : IR_VariableAccess, bufIdx : Int, indent : Option[IR_Expression] = None) : ListBuffer[IR_Statement] = {
     val buf = dataBuffers(bufIdx)
 
     val print = if (!useBinary) {
       val printComponents = optPrintComponents getOrElse ListBuffer[IR_Expression]()
       printComponents += "std::scientific"
+      printComponents ++= indent
       printComponents ++= handleAccessesHodt(buf).flatMap(acc => List(acc, separator)).dropRight(1)
       printComponents += IR_Print.newline
       loopOverDims(bufIdx, IR_Print(stream, printComponents))
@@ -148,8 +162,12 @@ case class IR_FileAccess_FPP(
         loopOverDims(bufIdx, IR_PrintBinary(stream, handleAccessesHodt(buf))))
     }
 
-    statements += accessFileWithGranularity(bufIdx, ListBuffer(print))
+    ListBuffer(print)
   }
+
+  override def write(bufIdx : Int) : ListBuffer[IR_Statement] = ListBuffer(
+    accessFileWithGranularity(bufIdx, printKernel(stream, bufIdx))
+  )
 
   override def includes : ListBuffer[String] = ListBuffer("fstream", "iomanip")
 }

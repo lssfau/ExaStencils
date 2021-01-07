@@ -30,7 +30,7 @@ object IR_FileAccess {
   private val dimensionalityMap : mutable.HashMap[String, IR_VariableDeclaration] = mutable.HashMap()
   def declareDimensionality(dt : IR_Datatype, name : String, localization : IR_Localization, dims : Option[ListBuffer[IR_Expression]] = None) : IR_VariableDeclaration = {
     val declName = name + localization.name
-    val lookup = declName + (if (dims.isDefined) dims.get.hashCode() else 0).toString
+    val lookup = dt.resolveBaseDatatype.prettyprint + declName + (if (dims.isDefined) dims.get.hashCode() else 0).toString
     dimensionalityMap.getOrElseUpdate(
       lookup,
       IR_VariableDeclaration(dt, declareVariable(declName), if(dims.isDefined) Some(IR_InitializerList(dims.get : _*)) else None)) // dims already specified in KJI order
@@ -62,14 +62,6 @@ abstract class IR_FileAccess(
   protected def declareDimensionality(name : String, localization: IR_Localization, dims : ListBuffer[IR_Expression], datatype : IR_Datatype = datatypeDimArray) : IR_VariableDeclaration = {
     IR_FileAccess.declareDimensionality(IR_ArrayDatatype(datatype, dims.length), name, localization, Some(dims))
   }
-  // output data fragment-after-fragment -> additional dimensionality in this case
-  protected def handleFragmentDimension(buf : IR_DataBuffer, dims : ListBuffer[IR_Expression], fragmentDim : IR_Expression) : ListBuffer[IR_Expression] = {
-    if (!buf.canonicalOrder) {
-      fragmentDim +: (if (buf.accessBlockwise) dims.drop(1) else dims)
-    } else {
-      dims
-    }
-  }
 
   // helper function to handle accesses for hodt
   def handleAccessesHodt(buf : IR_DataBuffer) : ListBuffer[IR_Access] = {
@@ -95,22 +87,22 @@ abstract class IR_FileAccess(
   // commonly used declarations
   def stride_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
     declareDimensionality("stride", buf.localization,
-      handleFragmentDimension(buf, buf.strideKJI,
+      IR_DataBuffer.handleFragmentDimension(buf, buf.strideKJI,
         fragmentDim = 1))
   })
   def count_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
     declareDimensionality("count", buf.localization,
-      handleFragmentDimension(buf, buf.innerDimsLocalKJI,
+      IR_DataBuffer.handleFragmentDimension(buf, buf.innerDimsLocalKJI,
         fragmentDim = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else 1))
   })
   def localDims_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
     declareDimensionality("localDims", buf.localization,
-      handleFragmentDimension(buf, buf.totalDimsLocalKJI,
+      IR_DataBuffer.handleFragmentDimension(buf, buf.totalDimsLocalKJI,
         fragmentDim = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else 1))
   })
   def localStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
     declareDimensionality("localStart", buf.localization,
-      handleFragmentDimension(buf, buf.startIndexLocalKJI,
+      IR_DataBuffer.handleFragmentDimension(buf, buf.startIndexLocalKJI,
         fragmentDim = 0))
   })
   def globalDims_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
