@@ -176,7 +176,9 @@ case class IR_DataBuffer(
   }).to[ListBuffer].reverse
 
   // determines if some layers (e.g. ghost/pad/...) are excluded for I/O operations or not
-  def accessWithoutExclusion : IR_Expression = numDimsDataRange.map(d => innerDimsLocalKJI(d) EqEq totalDimsLocalKJI(d)).fold(IR_BooleanConstant(true))((a, b) => a AndAnd b)
+  def accessWithoutExclusion : IR_Expression = numDimsDataRange
+    .map(d => innerDimsLocalKJI(d) EqEq totalDimsLocalKJI(d))
+    .fold(IR_BooleanConstant(true))((a, b) => a AndAnd b)
 
   // accessBlockwise : temp. buffer for a whole block is used -> fragment count already incorporated in local dims
   private val innerDimsFragKJI = if (accessBlockwise) innerDimsLocalKJI.tail else innerDimsLocalKJI

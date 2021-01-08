@@ -178,11 +178,11 @@ case class IR_FileAccess_PnetCDF(
     val dimIdTime = IR_VariableAccess("dimIdTime", IR_IntegerDatatype) // "time" is the slowest-varying dimension ("0" in KJI order)
 
     // define dimensions in case of write operations
-    if (writeAccess) {
+    if (writeAccess && !appendedMode) {
       // define unlimited time dimension
       if (useTimeDim) {
         statements += IR_VariableDeclaration(dimIdTime)
-        statements ++= ncmpi_def_dim(ncFile, IR_StringConstant("time"), IR_VariableAccess("NC_UNLIMITED", IR_UnknownDatatype), IR_AddressOf(dimIdTime))
+        statements ++= ncmpi_def_dim(ncFile, IR_StringConstant("time_whole"), IR_VariableAccess("NC_UNLIMITED", IR_UnknownDatatype), IR_AddressOf(dimIdTime))
       }
 
       // spatial dimensions
@@ -206,7 +206,7 @@ case class IR_FileAccess_PnetCDF(
     // define or inquire variables for each buffer and the time
     if (writeAccess && !appendedMode) {
       if (useTimeDim) {
-        statements ++= ncmpi_def_var(ncFile, IR_StringConstant("time"), IR_DoubleDatatype, 1, IR_AddressOf(dimIdTime), IR_AddressOf(varIdTime))
+        statements ++= ncmpi_def_var(ncFile, IR_StringConstant("time_whole"), IR_DoubleDatatype, 1, IR_AddressOf(dimIdTime), IR_AddressOf(varIdTime))
       }
       for (bufIdx <- dataBuffers.indices) {
         val buf = dataBuffers(bufIdx)
@@ -221,16 +221,15 @@ case class IR_FileAccess_PnetCDF(
         statements ++= ncmpi_def_var(ncFile, buf.datasetName, buf.datatype, numDimsDataAndTime(numDims), if (useTimeDim) dimIdRecord else dimIdSpatial, IR_AddressOf(varIdField(bufIdx)))
       }
     } else {
-      statements ++= ncmpi_inq_varid(ncFile, IR_StringConstant("time"), IR_AddressOf(varIdTime))
+      statements ++= ncmpi_inq_varid(ncFile, IR_StringConstant("time_whole"), IR_AddressOf(varIdTime))
       for (bufIdx <- dataBuffers.indices)
         statements ++= ncmpi_inq_varid(ncFile, dataBuffers(bufIdx).datasetName, IR_AddressOf(varIdField(bufIdx)))
     }
 
-    // end "define mode" when writing the file
-    if (writeAccess)
+    // end "define mode" when writing the file and go into "data mode"
+    if (writeAccess && !appendedMode)
       statements ++= ncmpi_enddef(ncFile)
 
-    // go into "data mode"
     if (!Knowledge.parIO_useCollectiveIO && Knowledge.mpi_enabled) {
       // start individual I/O
       statements ++= ncmpi_begin_indep_data(ncFile)

@@ -5,22 +5,28 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_IfCondition
+import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir.IR_IntegerConstant
+import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_RealDatatype
 import exastencils.base.ir.IR_Statement
+import exastencils.base.ir.IR_StringConstant
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.core.Duplicate
-import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_IntegerConstant
-import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.domain.ir.IR_IV_IsValidForDomain
+import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_PrintXdmf
+
+/// IR_PrintXdmfNNF
+// 2D or 3D
+// for a fixed number of fragments per block
 
 case class IR_PrintXdmfNNF(
     var filename : IR_Expression,
@@ -29,6 +35,11 @@ case class IR_PrintXdmfNNF(
     binaryFpp : Boolean) extends IR_PrintXdmf(ioMethod, binaryFpp) with IR_PrintVisualizationNS with IR_PrintFieldAsciiNS {
 
   def fieldnames : ListBuffer[String] = ListBuffer("vel", "p", "rho", "mue", "gamma", "phi")
+
+  // dataset names for hdf5
+  def datasetCoords : ListBuffer[String] = ListBuffer("/constants/X", "/constants/Y", "/constants/Z")
+  def datasetConnectivity = "/constants/Connectivity"
+  def datasetFields : ListBuffer[String] = fieldnames.map(name => "/fieldData/" + name)
 
   override def stmtsForPreparation : ListBuffer[IR_Statement] = {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
@@ -122,7 +133,20 @@ case class IR_PrintXdmfNNF(
     statements
   }
 
-  override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = ???
+  override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
+    val constants = nodePositionsBuf.zipWithIndex.map { case (buf, idx) =>
+      IR_DataBuffer(buf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetCoords(idx))), canonicalOrder = false) } :+
+      IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetConnectivity)), canonicalOrder = false)
+    val fields = ListBuffer(
+      IR_DataBuffer(velocityBuf, IR_IV_ActiveSlot(u), None, Some(IR_StringConstant(datasetFields.head)), canonicalOrder = false),
+      IR_DataBuffer(p, IR_IV_ActiveSlot(p), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(1))), canonicalOrder = false),
+      IR_DataBuffer(rho, IR_IV_ActiveSlot(rho), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(2))), canonicalOrder = false),
+      IR_DataBuffer(mue, IR_IV_ActiveSlot(mue), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(3))), canonicalOrder = false),
+      IR_DataBuffer(gamma, IR_IV_ActiveSlot(gamma), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(4))), canonicalOrder = false),
+      IR_DataBuffer(phi, IR_IV_ActiveSlot(phi), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(5))), canonicalOrder = false))
+
+    if (constsIncluded) constants ++ fields else fields
+  }
 
   override def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = ListBuffer() // TODO
 

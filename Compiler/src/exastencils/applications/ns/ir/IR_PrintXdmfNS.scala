@@ -24,6 +24,10 @@ import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_PrintXdmf
 
+/// IR_PrintXdmfNS
+// 2D or 3D
+// for a fixed number of fragments per block
+
 case class IR_PrintXdmfNS(
     var filename : IR_Expression,
     level : Int,
@@ -31,6 +35,11 @@ case class IR_PrintXdmfNS(
     binaryFpp : Boolean) extends IR_PrintXdmf(ioMethod, binaryFpp) with IR_PrintVisualizationNS with IR_PrintFieldAsciiNS {
 
   def fieldnames : ListBuffer[String] = ListBuffer("vel", "p")
+
+  // dataset names for hdf5
+  def datasetCoords : ListBuffer[String] = ListBuffer("/constants/X", "/constants/Y", "/constants/Z")
+  def datasetConnectivity = "/constants/Connectivity"
+  def datasetFields : ListBuffer[String] = fieldnames.map(name => "/fieldData/" + name)
 
   override def stmtsForPreparation : ListBuffer[IR_Statement] = {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()

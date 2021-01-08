@@ -78,7 +78,7 @@ case class IR_PrintXdmfUniform(
   private def fragId(global : Boolean) : IR_Expression = IR_LoopOverFragments.defIt + (if (global) curRank * Knowledge.domain_numFragmentsPerBlock else 0)
 
   private def globalIndexOnRoot : ListBuffer[IR_Expression] = if (canonicalFileLayout) {
-    dataBuffer.canonicalStartIndexGlobal(dataBuffer.numDimsDataRange.map(fragIndex))
+    dataBuffer.canonicalStartIndexGlobal(dataBuffer.numDimsGridRange.map(fragIndex))
   } else {
     dataBuffer.fragmentwiseStartIndexGlobal(fragId(global = true))
   }
@@ -178,7 +178,7 @@ case class IR_PrintXdmfUniform(
     val nodeDims = (0 until numDimsGrid).map(d => Knowledge.domain_fragmentLengthAsVec(d) * (1 << level) + 1 : IR_Expression).to[ListBuffer]
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()
-    statements += printXdmfElement(stream, openTopology("3DCoRectMesh", nodeDims) : _*)
+    statements += printXdmfElement(stream, openTopology(if (numDimsGrid == 3) "3DCoRectMesh" else "2DCoRectMesh", nodeDims) : _*)
     statements += printXdmfElement(stream, closeTopology)
 
     statements

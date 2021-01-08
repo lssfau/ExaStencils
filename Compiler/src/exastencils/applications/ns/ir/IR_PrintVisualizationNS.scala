@@ -37,11 +37,6 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads{
   def fieldnames : ListBuffer[String]
   def numFields : Int = fieldnames.length
 
-  // dataset names for hdf5
-  def datasetCoords : ListBuffer[String] = ListBuffer("/constants/X", "/constants/Y", "/constants/Z")
-  def datasetConnectivity = "/constants/Connectivity"
-  def datasetFields : ListBuffer[String] = fieldnames.map(name => "/fieldData/" + name)
-
   def u : IR_Field = IR_FieldCollection.getByIdentifier("u", level).get
   def v : IR_Field = IR_FieldCollection.getByIdentifier("v", level).get
   def w : IR_Field = IR_FieldCollection.getByIdentifier("w", level).get

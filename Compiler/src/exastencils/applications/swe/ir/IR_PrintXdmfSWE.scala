@@ -29,8 +29,9 @@ import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_IV_ConstantsWrittenToFile
 import exastencils.visualization.ir.IR_PrintXdmf
 
-// 2D or 3D
-// for a fixed number of fragments per block
+/// IR_PrintXdmfSWE
+// 2D only
+// for a variable number of fragments per block
 
 // TODO test for serial applications
 
