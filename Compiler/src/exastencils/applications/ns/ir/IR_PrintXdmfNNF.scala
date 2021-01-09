@@ -112,7 +112,7 @@ case class IR_PrintXdmfNNF(
       val dimsFieldData = IR_IntegerConstant(if (isVector) numDimsGrid else 1)
       val dimsCellData = ListBuffer[IR_Expression](numCells_z, numCells_y, numCells_x)
       statements += printXdmfElement(stream, openAttribute(name = fname, tpe = if (isVector) "Vector" else "Scalar", ctr = "Cell"))
-      statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, dimFrags(global) +: dimsCellData :+ dimsFieldData, seekp = getSeekp(global)) : _*)
+      statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, dimsFieldData +: dimsCellData :+ dimFrags(global), seekp = getSeekp(global)) : _*)
       val printValsOrRefFile = if (fmt == "XML") {
         fname match {
           case "vel"   => printVel(Some(stream), Some(indentData))
@@ -148,6 +148,18 @@ case class IR_PrintXdmfNNF(
     if (constsIncluded) constants ++ fields else fields
   }
 
-  override def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = ListBuffer() // TODO
+  override def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
+    val stmts = super.writeData(constsIncluded)
+
+    // cleanup
+    // TODO remove once temp. buffer IV's work correctly
+    if (fmt != "XML") {
+      stmts ++= cleanupNodePositions
+      stmts += cleanupConnectivity
+      stmts += cleanupVelocity
+    }
+
+    stmts
+  }
 
 }

@@ -48,7 +48,7 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads{
 
   def someCellField : IR_Field = p
 
-  def velAsVec = Array(meanU, meanV, meanW)
+  def velAsVec : Array[IR_Expression] = Array(meanU, meanV) ++ (if (numDimsGrid > 2) Some(meanW) else None)
 
   def meanU : IR_Multiplication = 0.5 * (IR_FieldAccess(u, IR_IV_ActiveSlot(u), IR_LoopOverDimensions.defIt(numDimsGrid))
     + IR_FieldAccess(u, IR_IV_ActiveSlot(u), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(1, 0, 0)))
