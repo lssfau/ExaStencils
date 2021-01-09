@@ -1,5 +1,6 @@
 package exastencils.visualization.ir
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_AddressOf
@@ -159,14 +160,20 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
 
   def ioInterface : String = "nc"
 
+  def getRecordVariables(constsIncluded : Boolean) : mutable.HashMap[Int, Boolean] = {
+    val consts = dataBuffers(true).map(_.name).diff(dataBuffers(false).map(_.name)) // extract const bufs
+    mutable.HashMap(dataBuffers(constsIncluded).zipWithIndex.map { case (buf, bufIdx) => (bufIdx, !consts.contains(buf.name)) } : _*) // non-constants are record variables
+  }
+
   def ioHandler(constsIncluded : Boolean, fn : IR_Expression) : IR_FileAccess = {
     val appendedMode = true // we create the file via the exodus library and then open it with pnetcdf to write the data
+    val recordVariables = getRecordVariables(constsIncluded)
     fn match {
-      case sc : IR_StringConstant => IR_FileAccess_PnetCDF(sc, dataBuffers(constsIncluded), writeAccess = true, appendedMode)
+      case sc : IR_StringConstant => IR_FileAccess_PnetCDF(sc, dataBuffers(constsIncluded), Some(recordVariables), writeAccess = true, appendedMode)
       case vAcc : IR_VariableAccess if vAcc.datatype == IR_StringDatatype => if (Knowledge.parIO_constantDataReduction) {
         Logger.error("Error in IR_PrintExodus: Parameter \"filename\" must be a string constant when \"Knowledge.parIO_constantDataReduction\" is enabled.")
       } else {
-        IR_FileAccess_PnetCDF(vAcc, dataBuffers(constsIncluded), writeAccess = true, appendedMode)
+        IR_FileAccess_PnetCDF(vAcc, dataBuffers(constsIncluded), Some(recordVariables), writeAccess = true, appendedMode)
       }
       case _ =>
         Logger.error("Error in IR_PrintExodus: Parameter \"filename\" has wrong datatype.")

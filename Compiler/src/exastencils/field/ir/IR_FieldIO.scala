@@ -66,7 +66,7 @@ abstract class IR_FieldIO(
       case "hdf5"  =>
         IR_FileAccess_HDF5(filename, ListBuffer(fieldAsDataBuffer), doWrite)
       case "nc"    =>
-        IR_FileAccess_PnetCDF(filename, ListBuffer(fieldAsDataBuffer), doWrite)
+        IR_FileAccess_PnetCDF(filename, ListBuffer(fieldAsDataBuffer), None, doWrite)
       case "sion"  =>
         IR_FileAccess_SionLib(filename, ListBuffer(fieldAsDataBuffer), doWrite, condition)
       case _       =>

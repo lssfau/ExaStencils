@@ -15,6 +15,7 @@ import exastencils.parallelization.api.mpi.MPI_IsRootProc
 case class IR_FileAccess_PnetCDF(
     var fileName : IR_Expression,
     var dataBuffers : ListBuffer[IR_DataBuffer],
+    var bufferIsRecordVariable : Option[mutable.HashMap[Int, Boolean]],
     var writeAccess : Boolean,
     var appendedMode : Boolean = false) extends IR_FileAccess("nc", fileName, dataBuffers, writeAccess, appendedMode) with IR_PnetCDF_API {
 
@@ -38,11 +39,16 @@ case class IR_FileAccess_PnetCDF(
     IR_VariableAccess("NC_NOWRITE", IR_UnknownDatatype) // open as read-only
   }
 
-  // time variable handling
-  val useTimeDim = true // TODO add as parameter: [true | false] to enable/disable writing record variables
-  def numDimsDataAndTime(numDimsData : Int) : Int = numDimsData + (if (useTimeDim) 1 else 0) // record variables are bound to the "unlimited" dimension (often used as time)
-  val indexTimeArray_decl = IR_VariableDeclaration(MPI_Offset, IR_FileAccess.declareVariable("printStep"), 0) // TODO make iv
-  val timeStep_decl = IR_VariableDeclaration(IR_DoubleDatatype, IR_FileAccess.declareVariable("t"), 0.0) // TODO make iv
+  // time variable handling:
+  // datasets can be specified as "fixed-size" or "record" variables
+  // fixed-size arrays only consist of spatial dimensions
+  // record variables are additionally bound to a "unlimited" dimension (mostly for time)
+  def fileContainsRecordVariables : Boolean = if (bufferIsRecordVariable.isDefined) bufferIsRecordVariable.get.exists(_._2 == true) else false
+  def numDimsDataAndTime(bufIdx : Int, numDimsData : Int) : Int = numDimsData + (if (useTimeDim(bufIdx)) 1 else 0)
+  def useTimeDim(bufIdx : Int) : Boolean = if (bufferIsRecordVariable.isDefined) bufferIsRecordVariable.get(bufIdx) else false
+  def handleTimeDimension(timeValue : Int, bufIdx : Int, dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = {
+    if (useTimeDim(bufIdx)) IR_IntegerConstant(timeValue) +: dims else dims // prepend one more entry for unlimited "time" dimension
+  }
 
   // decls
   val ncFile_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("ncFile"))
@@ -53,32 +59,30 @@ case class IR_FileAccess_PnetCDF(
 
   // decls for data extents
   val ptrDatatype : IR_SpecialDatatype = if (Knowledge.mpi_enabled) MPI_Offset else IR_SpecialDatatype("ptrdiff_t") // serial API uses "ptrdiff_t" for "imap" and "stride" parameters
-  override def stride_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
+  override def stride_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) =>
     declareDimensionality("stride", buf.localization,
-      IR_DataBuffer.handleFragmentDimension(buf,
-        if (useTimeDim) IR_IntegerConstant(1) +: buf.strideKJI else buf.strideKJI,  // prepend one more entry for unlimited "time" dimension
-        fragmentDim = 1),
+       handleTimeDimension(timeValue = 1, bufIdx, // prepend one more entry for unlimited "time" dimension
+         dims = IR_DataBuffer.handleFragmentDimension(buf, buf.strideKJI, fragmentDim = 1)),
       ptrDatatype)
-  })
-  override def count_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
+  }
+  override def count_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) =>
     declareDimensionality("count", buf.localization,
-      IR_DataBuffer.handleFragmentDimension(buf,
-        if (useTimeDim) IR_IntegerConstant(1) +: buf.innerDimsLocalKJI else buf.innerDimsLocalKJI, // prepend "1" since "1*(count.product)" values are written per timestep
-        fragmentDim = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else 1))
-  })
-  override def globalStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
+      handleTimeDimension(timeValue = 1, bufIdx, // prepend "1" since "1*(count.product)" values are written per timestep
+        dims = IR_DataBuffer.handleFragmentDimension(buf, buf.innerDimsLocalKJI, fragmentDim = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else 1)))
+  }
+  override def globalStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) =>
     declareDimensionality( "globalStart", buf.localization,
-      ListBuffer.fill(numDimsDataAndTime(numDimsGlobal(buf)))(IR_IntegerConstant(0)))
-  })
-  lazy val emptyCount_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
+      ListBuffer.fill(numDimsDataAndTime(bufIdx, numDimsGlobal(buf)))(IR_IntegerConstant(0)))
+  }
+  lazy val emptyCount_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) =>
     declareDimensionality("emptyCount", buf.localization,
-      ListBuffer.fill(numDimsDataAndTime(numDimsGlobal(buf)))(IR_IntegerConstant(0)))
-  })
-  val imap_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => { // describes in-memory access pattern
+      ListBuffer.fill(numDimsDataAndTime(bufIdx, numDimsGlobal(buf)))(IR_IntegerConstant(0)))
+  }
+  val imap_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) => // describes in-memory access pattern
     declareDimensionality("imap", buf.localization,
-      if (useTimeDim) IR_IntegerConstant(0) +: buf.imapKJI else buf.imapKJI, // prepend "0" since the memory layout doesn't change with the additional time dimension,
+      handleTimeDimension(timeValue = 0, bufIdx, dims = buf.imapKJI), // prepend "0" since the memory layout doesn't change with the additional time dimension,
       ptrDatatype)
-  })
+  }
 
   var declarations : ListBuffer[IR_VariableDeclaration] = dimensionalityDeclarations :+ err_decl :+ ncFile_decl
 
@@ -87,19 +91,17 @@ case class IR_FileAccess_PnetCDF(
   declarations ++= imap_decl.distinct
 
   // add declarations which are only used in a parallel application
-  if(Knowledge.mpi_enabled) {
+  if (Knowledge.mpi_enabled) {
     declarations += info_decl
   }
 
   // declarations when using record variables
-  if(useTimeDim) {
-    declarations += timeStep_decl // TODO
-    declarations += indexTimeArray_decl // TODO
+  if (fileContainsRecordVariables) {
     declarations += varIdTime_decl
   }
 
   // declarations for collective I/O
-  if(Knowledge.parIO_useCollectiveIO) {
+  if (Knowledge.parIO_useCollectiveIO) {
     declarations ++= emptyCount_decl.distinct
   }
 
@@ -117,7 +119,7 @@ case class IR_FileAccess_PnetCDF(
     val buffer = dataBuffers(bufIdx)
     // set global starting index for fragment
     val setOffsetFrag : ListBuffer[IR_Statement] = buffer.startIndexGlobalKJI.indices.map(d => {
-      IR_Assignment(IR_ArrayAccess(globalStart(bufIdx), d + (if (useTimeDim) 1 else 0)), buffer.startIndexGlobalKJI(d)) : IR_Statement
+      IR_Assignment(IR_ArrayAccess(globalStart(bufIdx), numDimsDataAndTime(bufIdx, d)), buffer.startIndexGlobalKJI(d)) : IR_Statement
     }).to[ListBuffer]
 
     if (Knowledge.parIO_useCollectiveIO) {
@@ -138,7 +140,7 @@ case class IR_FileAccess_PnetCDF(
     val buffer = dataBuffers(bufIdx)
     // set global starting index for block
     val setOffsetBlock : ListBuffer[IR_Statement] = buffer.startIndexGlobalKJI.indices.map(d => {
-      IR_Assignment(IR_ArrayAccess(globalStart(bufIdx), d + (if (useTimeDim) 1 else 0)), buffer.startIndexGlobalKJI(d)) : IR_Statement
+      IR_Assignment(IR_ArrayAccess(globalStart(bufIdx), numDimsDataAndTime(bufIdx, d)), buffer.startIndexGlobalKJI(d)) : IR_Statement
     }).to[ListBuffer]
 
     IR_LoopOverBlocks(IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),
@@ -155,6 +157,7 @@ case class IR_FileAccess_PnetCDF(
     }
 
     // create/open file
+    // distinction of serial/parallel interfaces only made for these functions since their signature (serial <-> parallel) differs greatly
     if (writeAccess && !appendedMode) {
       if (Knowledge.mpi_enabled) {
         statements ++= ncmpi_create(mpiCommunicator, filenameAsCString, openMode, info, ncFile)
@@ -180,7 +183,7 @@ case class IR_FileAccess_PnetCDF(
     // define dimensions in case of write operations
     if (writeAccess && !appendedMode) {
       // define unlimited time dimension
-      if (useTimeDim) {
+      if (fileContainsRecordVariables) {
         statements += IR_VariableDeclaration(dimIdTime)
         statements ++= ncmpi_def_dim(ncFile, IR_StringConstant("time_whole"), IR_VariableAccess("NC_UNLIMITED", IR_UnknownDatatype), IR_AddressOf(dimIdTime))
       }
@@ -205,25 +208,31 @@ case class IR_FileAccess_PnetCDF(
 
     // define or inquire variables for each buffer and the time
     if (writeAccess && !appendedMode) {
-      if (useTimeDim) {
+      // define
+      if (fileContainsRecordVariables) {
         statements ++= ncmpi_def_var(ncFile, IR_StringConstant("time_whole"), IR_DoubleDatatype, 1, IR_AddressOf(dimIdTime), IR_AddressOf(varIdTime))
       }
       for (bufIdx <- dataBuffers.indices) {
         val buf = dataBuffers(bufIdx)
         val dimIdSpatial = distinctDimIds(globalDims(bufIdx).name)
-        val dimIdRecord = IR_VariableAccess(IR_FileAccess.declareVariable("dimId" + buf.name), IR_ArrayDatatype(IR_IntegerDatatype, numDimsDataAndTime(buf.numDimsData)))
+        val dimIdRecord = IR_VariableAccess(IR_FileAccess.declareVariable("dimId" + buf.name), IR_ArrayDatatype(IR_IntegerDatatype, numDimsDataAndTime(bufIdx, buf.numDimsData)))
         val numDims = numDimsGlobal(bufIdx)
 
         // pass array with spatial and temporal dimension ids for record variables
-        if (useTimeDim)
+        if (useTimeDim(bufIdx))
           statements += IR_VariableDeclaration(dimIdRecord, IR_InitializerList(dimIdTime +: (0 until numDims).map(d => IR_ArrayAccess(dimIdSpatial, d)) : _*))
 
-        statements ++= ncmpi_def_var(ncFile, buf.datasetName, buf.datatype, numDimsDataAndTime(numDims), if (useTimeDim) dimIdRecord else dimIdSpatial, IR_AddressOf(varIdField(bufIdx)))
+        statements ++= ncmpi_def_var(ncFile, buf.datasetName, buf.datatype,
+          numDimsDataAndTime(bufIdx, numDims), if (useTimeDim(bufIdx)) dimIdRecord else dimIdSpatial, IR_AddressOf(varIdField(bufIdx)))
       }
     } else {
-      statements ++= ncmpi_inq_varid(ncFile, IR_StringConstant("time_whole"), IR_AddressOf(varIdTime))
-      for (bufIdx <- dataBuffers.indices)
+      // inquire
+      if (fileContainsRecordVariables) {
+        statements ++= ncmpi_inq_varid(ncFile, IR_StringConstant("time_whole"), IR_AddressOf(varIdTime))
+      }
+      for (bufIdx <- dataBuffers.indices) {
         statements ++= ncmpi_inq_varid(ncFile, dataBuffers(bufIdx).datasetName, IR_AddressOf(varIdField(bufIdx)))
+      }
     }
 
     // end "define mode" when writing the file and go into "data mode"
@@ -236,12 +245,17 @@ case class IR_FileAccess_PnetCDF(
     }
 
     // write time values
-    if (writeAccess && useTimeDim) {
-      if (Knowledge.parIO_useCollectiveIO)
-        statements ++= ncmpi_put_var1_type_all(IR_DoubleDatatype, ncFile, varIdTime, IR_AddressOf(IR_VariableAccess(indexTimeArray_decl)), IR_AddressOf(IR_VariableAccess(timeStep_decl)))
-      else
+    if (writeAccess && fileContainsRecordVariables) {
+      if (Knowledge.parIO_useCollectiveIO) {
+        statements ++= ncmpi_put_var1_type_all(IR_DoubleDatatype, ncFile, varIdTime, IR_AddressOf(IR_IV_TimeIndexRecordVariables()), IR_AddressOf(IR_IV_TimeValueRecordVariables()))
+      } else {
         statements += IR_IfCondition(MPI_IsRootProc.apply(), // only root needs to write the time value for independent I/O
-          ncmpi_put_var1_type(IR_DoubleDatatype, ncFile, varIdTime, IR_AddressOf(IR_VariableAccess(indexTimeArray_decl)), IR_AddressOf(IR_VariableAccess(timeStep_decl))))
+          ncmpi_put_var1_type(IR_DoubleDatatype, ncFile, varIdTime, IR_AddressOf(IR_IV_TimeIndexRecordVariables()), IR_AddressOf(IR_IV_TimeValueRecordVariables())))
+      }
+
+      // TODO
+      statements += IR_Assignment(IR_IV_TimeIndexRecordVariables(), 1, "+=")
+      statements += IR_Assignment(IR_IV_TimeValueRecordVariables(), 1.0, "+=")
     }
 
     statements
