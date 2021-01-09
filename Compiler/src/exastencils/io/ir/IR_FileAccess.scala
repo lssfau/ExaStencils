@@ -18,6 +18,12 @@ import exastencils.optimization.ir.IR_SimplifyExpression
 // Used to read/write field data from/to files
 
 object IR_FileAccess {
+  def filenameAsCString(filename : IR_Expression) : IR_Expression = filename match {
+    case sc : IR_StringConstant                                         => sc
+    case vAcc : IR_VariableAccess if vAcc.datatype == IR_StringDatatype => IR_MemberFunctionCall(vAcc, "c_str")
+    case _                                                              => Logger.error("Wrong datatype passed for parameter \"filename\" to IR_FileAccess. Should be a \"String\" instead of:" + _)
+  }
+
   // prohibit redeclaration of variables for sequences of I/O statements in the same scope
   private val declMap : mutable.HashMap[String, Int] = mutable.HashMap()
   def declareVariable(s: String) : String = {
@@ -131,11 +137,7 @@ abstract class IR_FileAccess(
     IR_SimplifyExpression.simplifyIntegralExpr(dataBuffers.map(_.typicalByteSizeGlobal).take(bufIdx).reduceOption(_ + _).getOrElse(0))
   }
 
-  def filenameAsCString : IR_Expression = filename match {
-    case sc : IR_StringConstant                                         => sc
-    case vAcc : IR_VariableAccess if vAcc.datatype == IR_StringDatatype => IR_MemberFunctionCall(vAcc, "c_str")
-    case _                                                              => Logger.error("Wrong datatype passed for parameter \"filename\" to IR_FileAccess. Should be a \"String\" instead of:" + _)
-  }
+  def filenameAsCString : IR_Expression = IR_FileAccess.filenameAsCString(filename)
 
   // determine number of dims (numDimsData does not work since the data can be laid out canonically or fragment-wise -> differences in dimensionality)
   def numDimsLocal(bufIdx : Int) : Int = numDimsLocal(dataBuffers(bufIdx))

@@ -160,11 +160,39 @@ trait IR_PnetCDF_API {
   def ncmpi_close(fileId : IR_VariableAccess) : ListBuffer[IR_Statement] =
     callNcFunction("ncmpi_close", None, fileId)
 
+  /* flexible API */
+
+  // collective calls
+  def ncmpi_put_vara_all(fileId : IR_VariableAccess, varId : IR_Access, startPtr : IR_Expression, countPtr : IR_Expression, bufPtr : IR_AddressOf, bufCount : IR_Expression, mpiDatatype : IR_VariableAccess) : ListBuffer[IR_Statement] =
+    callNcFunction("ncmpi_put_vara_all", None, fileId, varId, startPtr, countPtr, bufPtr, bufCount, mpiDatatype)
+
+  def ncmpi_put_varm_all(fileId : IR_VariableAccess, varId : IR_Access, startPtr : IR_Expression, countPtr : IR_Expression, stridePtr : IR_Expression, imapPtr : IR_Expression, bufPtr : IR_AddressOf, bufCount : IR_Expression, mpiDatatype : IR_VariableAccess) : ListBuffer[IR_Statement] =
+    callNcFunction("ncmpi_put_varm_all", None, fileId, varId, startPtr, countPtr, stridePtr, imapPtr, bufPtr, bufCount, mpiDatatype)
+
+  def ncmpi_get_vara_all(fileId : IR_VariableAccess, varId : IR_Access, startPtr : IR_Expression, countPtr : IR_Expression, bufPtr : IR_AddressOf, bufCount : IR_Expression, mpiDatatype : IR_VariableAccess) : ListBuffer[IR_Statement] =
+    callNcFunction("ncmpi_get_vara_all", None, fileId, varId, startPtr, countPtr, bufPtr, bufCount, mpiDatatype)
+
+  def ncmpi_get_varm_all(fileId : IR_VariableAccess, varId : IR_Access, startPtr : IR_Expression, countPtr : IR_Expression, stridePtr : IR_Expression, imapPtr : IR_Expression, bufPtr : IR_AddressOf, bufCount : IR_Expression, mpiDatatype : IR_VariableAccess) : ListBuffer[IR_Statement] =
+    callNcFunction("ncmpi_get_varm_all", None, fileId, varId, startPtr, countPtr, stridePtr, imapPtr, bufPtr, bufCount, mpiDatatype)
+
+  // independent calls
+  def ncmpi_put_vara(fileId : IR_VariableAccess, varId : IR_Access, startPtr : IR_Expression, countPtr : IR_Expression, bufPtr : IR_AddressOf, bufCount : IR_Expression, mpiDatatype : IR_VariableAccess) : ListBuffer[IR_Statement] =
+    callNcFunction("ncmpi_put_vara", None, fileId, varId, startPtr, countPtr, bufPtr, bufCount, mpiDatatype)
+
+  def ncmpi_put_varm(fileId : IR_VariableAccess, varId : IR_Access, startPtr : IR_Expression, countPtr : IR_Expression, stridePtr : IR_Expression, imapPtr : IR_Expression, bufPtr : IR_AddressOf, bufCount : IR_Expression, mpiDatatype : IR_VariableAccess) : ListBuffer[IR_Statement] =
+    callNcFunction("ncmpi_put_varm", None, fileId, varId, startPtr, countPtr, stridePtr, imapPtr, bufPtr, bufCount, mpiDatatype)
+
+  def ncmpi_get_vara(fileId : IR_VariableAccess, varId : IR_Access, startPtr : IR_Expression, countPtr : IR_Expression, bufPtr : IR_AddressOf, bufCount : IR_Expression, mpiDatatype : IR_VariableAccess) : ListBuffer[IR_Statement] =
+    callNcFunction("ncmpi_get_vara", None, fileId, varId, startPtr, countPtr, bufPtr, bufCount, mpiDatatype)
+
+  def ncmpi_get_varm(fileId : IR_VariableAccess, varId : IR_Access, startPtr : IR_Expression, countPtr : IR_Expression, stridePtr : IR_Expression, imapPtr : IR_Expression, bufPtr : IR_AddressOf, bufCount : IR_Expression, mpiDatatype : IR_VariableAccess) : ListBuffer[IR_Statement] =
+    callNcFunction("ncmpi_get_varm", None, fileId, varId, startPtr, countPtr, stridePtr, imapPtr, bufPtr, bufCount, mpiDatatype)
+
   /* non-flexible API */
 
   // collective calls
   def ncmpi_put_var1_type_all(datatype: IR_Datatype, fileId : IR_VariableAccess, varId : IR_Access, indexPtr : IR_Expression, bufPtr : IR_AddressOf) : ListBuffer[IR_Statement] =
-    callNcFunction("ncmpi_put_var1_<type>_all", datatype = Some(datatype), fileId, varId, indexPtr, bufPtr)
+    callNcFunction("ncmpi_put_var1_<type>_all", Some(datatype), fileId, varId, indexPtr, bufPtr)
 
   def ncmpi_put_vara_type_all(datatype: IR_Datatype, fileId : IR_VariableAccess, varId : IR_Access, startPtr : IR_Expression, countPtr : IR_Expression, bufPtr : IR_AddressOf) : ListBuffer[IR_Statement] =
     callNcFunction("ncmpi_put_vara_<type>_all", Some(datatype), fileId, varId, startPtr, countPtr, bufPtr)
@@ -180,7 +208,7 @@ trait IR_PnetCDF_API {
 
   // independent calls
   def ncmpi_put_var1_type(datatype: IR_Datatype, fileId : IR_VariableAccess, varId : IR_Access, indexPtr : IR_Expression, bufPtr : IR_AddressOf) : ListBuffer[IR_Statement] =
-    callNcFunction("ncmpi_put_var1_<type>", datatype = Some(datatype), fileId, varId, indexPtr, bufPtr)
+    callNcFunction("ncmpi_put_var1_<type>", Some(datatype), fileId, varId, indexPtr, bufPtr)
 
   def ncmpi_put_vara_type(datatype: IR_Datatype, fileId : IR_VariableAccess, varId : IR_Access, startPtr : IR_Expression, countPtr : IR_Expression, bufPtr : IR_AddressOf) : ListBuffer[IR_Statement] =
     callNcFunction("ncmpi_put_vara_<type>", Some(datatype), fileId, varId, startPtr, countPtr, bufPtr)

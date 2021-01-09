@@ -115,7 +115,7 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   val wordSizeIO = IR_VariableAccess(wordSizeIO_decl)
   val truthTable = IR_VariableAccess(truthTable_decl)
   val mpiCommunicator = IR_VariableAccess("mpiCommunicator", IR_UnknownDatatype)
-  val openMode = IR_VariableAccess("EX_CLOBBER | EX_64BIT_DATA", IR_UnknownDatatype)
+  val openMode = IR_VariableAccess("EX_CLOBBER | EX_LARGE_MODEL", IR_UnknownDatatype)
 
   // helper functions
   def IR_CStringConstant(s : String) = IR_Cast(IR_PointerDatatype(IR_CharDatatype), IR_StringConstant(s))
@@ -124,15 +124,14 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   def callExodusFunction(funcName : String, args : IR_Expression*) : ListBuffer[IR_Statement] = {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
 
-    val retVal = if (funcName.contains("create") || funcName.contains("open")) exoId else err // TODO somewhat hacky
-    stmts += IR_Assignment(retVal, IR_FunctionCall(IR_ExternalFunctionReference(funcName), args : _*))
+    stmts += IR_Assignment(err, IR_FunctionCall(IR_ExternalFunctionReference(funcName), args : _*))
     if (Knowledge.parIO_generateDebugStatements) {
-      stmts += IR_IfCondition(retVal Neq 0,
+      stmts += IR_IfCondition(err Neq 0,
         ListBuffer[IR_Statement](
           IR_Print(IR_VariableAccess("std::cout", IR_UnknownDatatype),
             IR_StringConstant("Rank: "), MPI_IV_MpiRank, IR_StringConstant(". "),
             IR_VariableAccess("__FILE__", IR_UnknownDatatype), IR_StringConstant(": Error at line: "), IR_VariableAccess("__LINE__", IR_UnknownDatatype), IR_Print.endl),
-          IR_FunctionCall(IR_ExternalFunctionReference("ex_err"), IR_StringConstant("printExodus"), "\"\"", retVal)
+          IR_FunctionCall(IR_ExternalFunctionReference("ex_err"), IR_VariableAccess("__func__", IR_UnknownDatatype), "\"\"", err)
         )
       )
     }
@@ -141,8 +140,11 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   }
 
   // library functions
-  def ex_create_par() : ListBuffer[IR_Statement] =
-    callExodusFunction("ex_create_par", filename, openMode, IR_AddressOf(wordSizeCPU), IR_AddressOf(wordSizeIO), mpiCommunicator, info)
+  def ex_create_par() : ListBuffer[IR_Statement] = ListBuffer(
+    IR_Assignment(
+      exoId,
+      IR_FunctionCall(IR_ExternalFunctionReference("ex_create_par"), IR_FileAccess.filenameAsCString(filename), openMode, IR_AddressOf(wordSizeCPU), IR_AddressOf(wordSizeIO), mpiCommunicator, info))
+  )
   def ex_put_init() : ListBuffer[IR_Statement] =
     callExodusFunction("ex_put_init", exoId, IR_CStringConstant("title"), numDimsGrid, numNodes, numCells, numElemBlocks, numNodeSets, numSideSets)
   def ex_put_block() : ListBuffer[IR_Statement] =
@@ -151,8 +153,11 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     callExodusFunction("ex_put_coord_names", exoId, coordNames)
   def ex_put_variable_param() : ListBuffer[IR_Statement] =
     callExodusFunction("ex_put_variable_param", exoId, variableEntityType, numVariables)
-  def ex_put_truth_table() : ListBuffer[IR_Statement] =
+  def ex_put_truth_table() : ListBuffer[IR_Statement] = if (variableEntityType != EX_NODAL) {
     callExodusFunction("ex_put_truth_table", exoId, variableEntityType, numElemBlocks, numVariables, truthTable)
+  } else {
+    ListBuffer() // this function is only meant for "element variables"
+  }
   def ex_put_variable_names() : ListBuffer[IR_Statement] =
     callExodusFunction("ex_put_variable_names", exoId, variableEntityType, numVariables, IR_Cast(IR_PointerDatatype(IR_PointerDatatype(IR_CharDatatype)), fieldNames))
   def ex_close() : ListBuffer[IR_Statement] =
@@ -160,22 +165,23 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
 
   def ioInterface : String = "nc"
 
-  def getRecordVariables(constsIncluded : Boolean) : mutable.HashMap[Int, Boolean] = {
-    val consts = dataBuffers(true).map(_.name).diff(dataBuffers(false).map(_.name)) // extract const bufs
-    mutable.HashMap(dataBuffers(constsIncluded).zipWithIndex.map { case (buf, bufIdx) => (bufIdx, !consts.contains(buf.name)) } : _*) // non-constants are record variables
-  }
-
   def ioHandler(constsIncluded : Boolean, fn : IR_Expression) : IR_FileAccess = {
     val appendedMode = true // we create the file via the exodus library and then open it with pnetcdf to write the data
-    val recordVariables = getRecordVariables(constsIncluded)
+    val recordVariables = {
+      val consts = dataBuffers(true).map(_.name).diff(dataBuffers(false).map(_.name)) // extract const bufs
+      mutable.HashMap(dataBuffers(constsIncluded).zipWithIndex.map { case (buf, bufIdx) => (bufIdx, !consts.contains(buf.name)) } : _*) // non-constants are record variables
+    }
+
     fn match {
-      case sc : IR_StringConstant => IR_FileAccess_PnetCDF(sc, dataBuffers(constsIncluded), Some(recordVariables), writeAccess = true, appendedMode)
-      case vAcc : IR_VariableAccess if vAcc.datatype == IR_StringDatatype => if (Knowledge.parIO_constantDataReduction) {
-        Logger.error("Error in IR_PrintExodus: Parameter \"filename\" must be a string constant when \"Knowledge.parIO_constantDataReduction\" is enabled.")
-      } else {
-        IR_FileAccess_PnetCDF(vAcc, dataBuffers(constsIncluded), Some(recordVariables), writeAccess = true, appendedMode)
-      }
-      case _ =>
+      case sc : IR_StringConstant                                         =>
+        IR_FileAccess_PnetCDF(sc, dataBuffers(constsIncluded), Some(recordVariables), writeAccess = true, appendedMode)
+      case vAcc : IR_VariableAccess if vAcc.datatype == IR_StringDatatype =>
+        if (Knowledge.parIO_constantDataReduction) {
+          Logger.error("Error in IR_PrintExodus: Parameter \"filename\" must be a string constant when \"Knowledge.parIO_constantDataReduction\" is enabled.")
+        } else {
+          IR_FileAccess_PnetCDF(vAcc, dataBuffers(constsIncluded), Some(recordVariables), writeAccess = true, appendedMode)
+        }
+      case _                                                              =>
         Logger.error("Error in IR_PrintExodus: Parameter \"filename\" has wrong datatype.")
     }
   }
@@ -187,6 +193,10 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
 
     // declarations for exodus
     stmts ++= declarations
+
+    // enable error messages to be printed to std::cerr
+    if (Knowledge.parIO_generateDebugStatements)
+      stmts += IR_FunctionCall(IR_ExternalFunctionReference("ex_opts"), IR_VariableAccess("EX_VERBOSE", IR_UnknownDatatype))
 
     // open file via exodus library, write metadata for visualization and close
     stmts ++= ex_create_par()

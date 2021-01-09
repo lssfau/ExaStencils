@@ -7,88 +7,8 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
-import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.logger.Logger
-
-/// MPI_View
-object MPI_View {
-  // TODO simplify?
-  private var localViews : ListBuffer[MPI_View] = ListBuffer()
-  private var globalViews : ListBuffer[MPI_View] = ListBuffer()
-  private var lookupTableLocal : ListBuffer[Int] = ListBuffer()
-  private var lookupTableGlobal : ListBuffer[Int] = ListBuffer()
-  def addView(idx : Int, global : Boolean, view : MPI_View) : Boolean = {
-    var ret = true
-    if (global) {
-      var lookup = globalViews.indexOf(view)
-      if (lookup != -1) {
-        ret = false
-      } else {
-        globalViews.append(view)
-        lookup = globalViews.length-1
-      }
-      lookupTableGlobal += lookup
-    } else {
-      var lookup = localViews.indexOf(view)
-      if (lookup != -1) {
-        ret = false
-      } else {
-        localViews.append(view)
-        lookup = localViews.length-1
-      }
-      lookupTableLocal += lookup
-    }
-    ret
-  }
-  def getView(idx : Int, global : Boolean) : MPI_View = if (global) globalViews(lookupTableGlobal(idx)) else localViews(lookupTableLocal(idx))
-  def getAllViews : ListBuffer[MPI_View] = Duplicate(globalViews) ++ Duplicate(localViews)
-  def resetViews() : Unit = {
-    localViews = ListBuffer()
-    globalViews = ListBuffer()
-    lookupTableLocal = ListBuffer()
-    lookupTableGlobal = ListBuffer()
-  }
-}
-
-case class MPI_View(
-    var totalDims : IR_VariableAccess,
-    var count : IR_VariableAccess,
-    var start : IR_VariableAccess,
-    var numDims : Int,
-    var domainIdx : Int,
-    var mpiBaseDatatype : IR_VariableAccess,
-    var datatype : IR_Datatype,
-    var name : String) {
-
-  val rowMajor = IR_VariableAccess("MPI_ORDER_C", IR_UnknownDatatype)
-  val MPI_Datatype = IR_SpecialDatatype("MPI_Datatype")
-
-  lazy val declName : String = IR_FileAccess.declareVariable(name)
-  lazy val declaration = IR_VariableDeclaration(datatype, declName)
-
-  // views are currently only defined per fragment (array access) or per block (variable access)
-  lazy val getAccess : IR_Access = datatype match {
-    case IR_ArrayDatatype(MPI_Datatype, _) =>
-      IR_ArrayAccess(IR_VariableAccess(declaration), IR_LoopOverFragments.defIt)
-    case MPI_Datatype =>
-      IR_VariableAccess(declaration)
-    case _ =>
-      Logger.error("Wrong datatype passed to MPI_View: " + datatype.prettyprint)
-  }
-
-  def createDatatype : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_create_subarray"),
-    numDims, totalDims, count, start, rowMajor, mpiBaseDatatype, IR_AddressOf(getAccess))
-  def commitDatatype : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_commit"), IR_AddressOf(getAccess))
-  def freeDatatype : IR_Statement = datatype match {
-    case IR_ArrayDatatype(MPI_Datatype, _) => IR_LoopOverFragments(IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_free"), IR_AddressOf(getAccess)))
-    case MPI_Datatype => IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_free"), IR_AddressOf(getAccess))
-    case _ =>
-      Logger.error("Wrong datatype passed to MPI_View: " + datatype.prettyprint)
-  }
-
-  // TODO: indexed selection for blockstructured meshes: "MPI_Type_indexed"
-}
 
 /// IR_FileAccess_MPIIO
 case class IR_FileAccess_MPIIO(
@@ -123,8 +43,8 @@ case class IR_FileAccess_MPIIO(
   val status = IR_AddressOf(IR_VariableAccess(status_decl))
 
   // derived datatypes
-  lazy val localView : Array[MPI_View] = dataBuffers.indices.map(bufIdx => MPI_View.getView(bufIdx, global = false)).toArray
-  lazy val globalView : Array[MPI_View] = dataBuffers.indices.map(bufIdx => MPI_View.getView(bufIdx, global = true)).toArray
+  lazy val localView : Array[IR_MPI_View] = dataBuffers.indices.map(bufIdx => IR_MPI_View.getView(bufIdx, global = false)).toArray
+  lazy val globalView : Array[IR_MPI_View] = dataBuffers.indices.map(bufIdx => IR_MPI_View.getView(bufIdx, global = true)).toArray
 
   override def accessFileFragwise(bufIdx : Int, accessStmts : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
     val disp = fileDisplacement(bufIdx)
@@ -175,9 +95,9 @@ case class IR_FileAccess_MPIIO(
       val buf = dataBuffers(bufIdx)
       // global view (location within the whole domain) per fragment
       val datatypeGlobalView = if (buf.accessBlockwise) MPI_Datatype else IR_ArrayDatatype(MPI_Datatype, Knowledge.domain_numFragmentsPerBlock)
-      val globalView = MPI_View(globalDims(bufIdx), count(bufIdx), globalStart(bufIdx),
+      val globalView = IR_MPI_View(globalDims(bufIdx), count(bufIdx), globalStart(bufIdx),
         numDimsGlobal(bufIdx), buf.domainIdx, mpiDatatypeBuffer(buf), datatypeGlobalView, "globalSubarray")
-      if (MPI_View.addView(bufIdx, global = true, globalView)) {
+      if (IR_MPI_View.addView(bufIdx, global = true, globalView)) {
         val initDatatype = ListBuffer(
           IR_IfCondition(IR_IV_IsValidForDomain(buf.domainIdx), // set global start index
             buf.startIndexGlobalKJI.indices.map(d => IR_Assignment(IR_ArrayAccess(globalStart(bufIdx), d), buf.startIndexGlobalKJI(d)) : IR_Statement).to[ListBuffer]),
@@ -192,9 +112,9 @@ case class IR_FileAccess_MPIIO(
       }
 
       // local view (mainly to omit ghost layers) per fragment
-      val localView = MPI_View(localDims(bufIdx), count(bufIdx), localStart(bufIdx),
+      val localView = IR_MPI_View(localDims(bufIdx), count(bufIdx), localStart(bufIdx),
         numDimsLocal(buf), buf.domainIdx, mpiDatatypeBuffer(buf), MPI_Datatype, "localSubarray")
-      if(MPI_View.addView(bufIdx, global = false, localView)) {
+      if(IR_MPI_View.addView(bufIdx, global = false, localView)) {
         statements += localView.declaration
         statements += localView.createDatatype
         statements += localView.commitDatatype
@@ -263,12 +183,12 @@ case class IR_FileAccess_MPIIO(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     // free derived datatypes
-    for (view <- MPI_View.getAllViews) {
+    for (view <- IR_MPI_View.getAllViews) {
       statements += view.freeDatatype
     }
 
     // reset map of views after everything is done
-    MPI_View.resetViews()
+    IR_MPI_View.resetViews()
 
     statements
   }

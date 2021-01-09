@@ -46,8 +46,8 @@ case class IR_FileAccess_PnetCDF(
   def fileContainsRecordVariables : Boolean = if (bufferIsRecordVariable.isDefined) bufferIsRecordVariable.get.exists(_._2 == true) else false
   def numDimsDataAndTime(bufIdx : Int, numDimsData : Int) : Int = numDimsData + (if (useTimeDim(bufIdx)) 1 else 0)
   def useTimeDim(bufIdx : Int) : Boolean = if (bufferIsRecordVariable.isDefined) bufferIsRecordVariable.get(bufIdx) else false
-  def handleTimeDimension(timeValue : Int, bufIdx : Int, dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = {
-    if (useTimeDim(bufIdx)) IR_IntegerConstant(timeValue) +: dims else dims // prepend one more entry for unlimited "time" dimension
+  def handleTimeDimension(timeValue : IR_Expression, bufIdx : Int, dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = {
+    if (useTimeDim(bufIdx)) timeValue +: dims else dims // prepend one more entry for unlimited "time" dimension
   }
 
   // decls
@@ -71,8 +71,9 @@ case class IR_FileAccess_PnetCDF(
         dims = IR_DataBuffer.handleFragmentDimension(buf, buf.innerDimsLocalKJI, fragmentDim = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else 1)))
   }
   override def globalStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) =>
-    declareDimensionality( "globalStart", buf.localization,
-      ListBuffer.fill(numDimsDataAndTime(bufIdx, numDimsGlobal(buf)))(IR_IntegerConstant(0)))
+    declareDimensionality("globalStart", buf.localization,
+      handleTimeDimension(timeValue = IR_IV_TimeIndexRecordVariables(), bufIdx,
+        dims = ListBuffer.fill(numDimsGlobal(buf))(IR_IntegerConstant(0))))
   }
   lazy val emptyCount_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) =>
     declareDimensionality("emptyCount", buf.localization,
@@ -84,6 +85,7 @@ case class IR_FileAccess_PnetCDF(
       ptrDatatype)
   }
 
+  // TODO filter unused dimension declarations
   var declarations : ListBuffer[IR_VariableDeclaration] = dimensionalityDeclarations :+ err_decl :+ ncFile_decl
 
   // declarations per databuffer
