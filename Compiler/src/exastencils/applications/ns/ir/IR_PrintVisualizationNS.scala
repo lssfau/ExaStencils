@@ -59,10 +59,48 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads{
   def meanW : IR_Multiplication = 0.5 * (IR_FieldAccess(w, IR_IV_ActiveSlot(w), IR_LoopOverDimensions.defIt(numDimsGrid))
     + IR_FieldAccess(w, IR_IV_ActiveSlot(w), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 0, 1)))
 
+  // for exodusII: velocity vector must be provided as separate components
+  def velocityComponentX = IR_IV_TemporaryBuffer(u.resolveBaseDatatype, IR_AtCellCenter, "velX", someCellField.domain.index,
+    ListBuffer(numCells_x, numCells_y, numCells_z))
+  def velocityComponentY = IR_IV_TemporaryBuffer(v.resolveBaseDatatype, IR_AtCellCenter, "velY", someCellField.domain.index,
+    ListBuffer(numCells_x, numCells_y, numCells_z))
+  def velocityComponentZ : Option[IR_IV_TemporaryBuffer] = if (numDimsGrid > 2)
+    Some(IR_IV_TemporaryBuffer(w.resolveBaseDatatype, IR_AtCellCenter, "velZ", someCellField.domain.index, ListBuffer(numCells_x, numCells_y, numCells_z)))
+  else
+    None
+
+  def velocityComponentsAsVec : Array[IR_IV_TemporaryBuffer] = Array(velocityComponentX, velocityComponentY) ++ velocityComponentZ
+
+  def setupVelocityComponents : ListBuffer[IR_Statement] = {
+    // init buffer with components of the vector field
+    var stmts : ListBuffer[IR_Statement] = ListBuffer()
+
+    velocityComponentsAsVec.zipWithIndex.foreach { case (vel, dir) =>
+      stmts += vel.getDeclaration()
+      stmts += vel.allocateMemory
+
+      def idxRange = IR_ExpressionIndexRange(
+        IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DLB", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)),
+        IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DRE", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)))
+
+      val linearizedIdx = idxRange.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
+      stmts += IR_LoopOverFragments(
+        IR_IfCondition(IR_IV_IsValidForDomain(p.domain.index),
+          IR_LoopOverDimensions(numDimsGrid, idxRange,
+            IR_Assignment(
+              vel.at(IR_LoopOverFragments.defIt * numCellsPerFrag + linearizedIdx),
+              velAsVec(dir)))))
+    }
+
+    stmts
+  }
+
+  def cleanupVelocityComponents : ListBuffer[IR_Statement] = velocityComponentsAsVec.map(_.getDtor().get).to[ListBuffer]
+
   def velocityBuf = IR_IV_TemporaryBuffer(u.resolveBaseDatatype, IR_AtCellCenter, "vel", someCellField.domain.index,
     ListBuffer(IR_IntegerConstant(numDimsGrid), numCells_x, numCells_y, numCells_z))
 
-  def setupVelocity : ListBuffer[IR_Statement] = {
+  def setupVelocityBuf : ListBuffer[IR_Statement] = {
     // init buffer with values of vector field
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
 

@@ -36,10 +36,6 @@ case class IR_PrintExodusSWE(
       (if (Knowledge.swe_nodalReductionPrint) setupReducedData else ListBuffer())
   }
 
-  override def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
-    ioHandler(constsIncluded, filename).statementList
-  }
-
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
     // access pattern dependent on reduction mode for blockstructured meshes
     val accessIndices : ListBuffer[IR_Index] = if (Knowledge.swe_nodalReductionPrint)
@@ -56,4 +52,6 @@ case class IR_PrintExodusSWE(
 
     if (constsIncluded) constants ++ fields else fields
   }
+
+  override def statementsForCleanup : ListBuffer[IR_Statement] = cleanupReducedData
 }

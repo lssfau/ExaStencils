@@ -24,8 +24,6 @@ case class IR_FileAccess_MPIIO(
     IR_VariableAccess("MPI_MODE_RDONLY", IR_UnknownDatatype)
   }
 
-  // TODO: Test handling collective/independent I/O for "invalid" fragments
-
   // mpi i/o specific datatypes
   val MPI_File = IR_SpecialDatatype("MPI_File")
   val MPI_Datatype = IR_SpecialDatatype("MPI_Datatype")

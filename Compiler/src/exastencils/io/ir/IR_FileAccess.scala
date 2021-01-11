@@ -65,7 +65,7 @@ abstract class IR_FileAccess(
   def mpiDatatypeBuffer(buf : IR_DataBuffer) = IR_VariableAccess(buf.datatype.resolveBaseDatatype.prettyprint_mpi, IR_UnknownDatatype)
 
   // helpers to declare dimensionalities
-  protected def declareDimensionality(name : String, localization: IR_Localization, dims : ListBuffer[IR_Expression], datatype : IR_Datatype = datatypeDimArray) : IR_VariableDeclaration = {
+  def declareDimensionality(name : String, localization: IR_Localization, dims : ListBuffer[IR_Expression], datatype : IR_Datatype = datatypeDimArray) : IR_VariableDeclaration = {
     IR_FileAccess.declareDimensionality(IR_ArrayDatatype(datatype, dims.length), name, localization, Some(dims))
   }
 

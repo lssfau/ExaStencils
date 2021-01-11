@@ -49,7 +49,7 @@ case class IR_PrintXdmfNS(
       stmts ++= IR_IV_FragmentInfo.init(someCellField.domain.index)
       stmts ++= setupNodePositions
       stmts ++= setupConnectivity(global = ioInterface != "fpp")
-      stmts ++= setupVelocity
+      stmts ++= setupVelocityBuf
     }
 
     stmts

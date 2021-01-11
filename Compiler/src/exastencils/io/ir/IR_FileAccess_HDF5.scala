@@ -26,8 +26,6 @@ case class IR_FileAccess_HDF5(
   }
   val ioMode : IR_VariableAccess = IR_VariableAccess(if (Knowledge.parIO_useCollectiveIO) "H5FD_MPIO_COLLECTIVE" else "H5FD_MPIO_INDEPENDENT", IR_UnknownDatatype)
 
-  // TODO: Test handling collective/independent I/O for "invalid" fragments
-
   // hdf5 specific datatypes
   val hid_t = IR_SpecialDatatype("hid_t")
   val hsize_t = IR_SpecialDatatype("hsize_t")

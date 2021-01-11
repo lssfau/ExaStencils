@@ -9,6 +9,8 @@ import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.visualization.ir.IR_PrintExodus
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir.IR_StringConstant
+import exastencils.field.ir.IR_IV_ActiveSlot
 
 
 /// IR_PrintExodusNNF
@@ -23,16 +25,30 @@ case class IR_PrintExodusNNF(
   override def elementName : String = if (numDimsGrid > 2) "hex" else "quad"
   override def nodesPerElement : Int = connectivityForCell().length
 
-  override def fieldnames : ListBuffer[String] = ListBuffer("velX", "velY", "velZ", "p", "rho", "mue", "gamma", "phi")
+  override def fieldnames : ListBuffer[String] = (0 until numDimsGrid).map(d => "vel" + ('X' + d).toChar.toString).to[ListBuffer] ++ ListBuffer("p", "rho", "mue", "gamma", "phi")
 
   override def statementsForPreparation : ListBuffer[IR_Statement] = {
     IR_IV_FragmentInfo.init(someCellField.domain.index) ++
       setupNodePositions ++
       setupConnectivity(global = true) ++
-      setupVelocity
+      setupVelocityComponents
   }
 
-  override def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = ???
+  override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
+    val constants = nodePositionsBuf.zipWithIndex.map { case (buf, idx) =>
+      IR_DataBuffer(buf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetCoords(idx))), canonicalOrder = false) } :+
+      IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetConnectivity)), canonicalOrder = false)
+    var fields = velocityComponentsAsVec.zipWithIndex.map { case (tmpBuf, d) =>
+      IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(u), None, Some(IR_StringConstant(datasetFields(d))), canonicalOrder = false)
+    }.to[ListBuffer]
+    fields += IR_DataBuffer(p, IR_IV_ActiveSlot(p), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(numDimsGrid))), canonicalOrder = false)
+    fields += IR_DataBuffer(rho, IR_IV_ActiveSlot(rho), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(numDimsGrid+1))), canonicalOrder = false)
+    fields += IR_DataBuffer(mue, IR_IV_ActiveSlot(mue), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(numDimsGrid+2))), canonicalOrder = false)
+    fields += IR_DataBuffer(gamma, IR_IV_ActiveSlot(gamma), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(numDimsGrid+3))), canonicalOrder = false)
+    fields += IR_DataBuffer(phi, IR_IV_ActiveSlot(phi), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(numDimsGrid+4))), canonicalOrder = false)
 
-  override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = ???
+    if (constsIncluded) constants ++ fields else fields
+  }
+
+  override def statementsForCleanup : ListBuffer[IR_Statement] = cleanupVelocityComponents
 }
