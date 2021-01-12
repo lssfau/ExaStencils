@@ -14,12 +14,15 @@ import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_Lower
 import exastencils.base.ir.IR_PreIncrement
 import exastencils.base.ir.IR_RealDatatype
+import exastencils.base.ir.IR_ScalarDatatype
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_StringConstant
 import exastencils.base.ir.IR_ToInt
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.baseExt.ir.IR_MatrixDatatype
+import exastencils.baseExt.ir.IR_VectorDatatype
 import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.domain.ir.IR_DomainFromAABB
@@ -33,6 +36,17 @@ import exastencils.logger.Logger
 import exastencils.util.ir.IR_AABB
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_PrintXdmf
+
+/// IR_PrintXdmfUniform
+// provides visualization of scalar and vector datatypes on an uniform mesh
+// usable with following I/O interfaces: file-per-process, hdf5, mpiio
+// supports file layouts: canonical and fragment-wise ordering
+
+/*
+ NOTE, otherwise the visualization will break:
+ - when using VisIt, enable "Knowledge.parIO_generateVisItFiles" flag
+ - when using ParaView, disable "Knowledge.parIO_generateVisItFiles" flag
+*/
 
 case class IR_PrintXdmfUniform(
     var filename : IR_Expression,
@@ -58,29 +72,51 @@ case class IR_PrintXdmfUniform(
   val dataBuffer = IR_DataBuffer(field, slot, includeGhostLayers, None, Some(dataset), canonicalFileLayout)
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = ListBuffer(dataBuffer)
 
+  val dimsDt : Int = dataBuffer.numDimsData - dataBuffer.numDimsGrid
+
   override def stmtsForPreparation : ListBuffer[IR_Statement] = IR_IV_FragmentInfo.init(
     dataBuffer.domainIdx,
     // in file-per-process, each rank writes its own domain piece individually -> fragOffset = 0
     calculateFragOffset = ioInterface != "fpp"
   )
 
-  // only root writes the xdmf file (except for "XML" format) -> fragment position for other processes must be calculated
   private def globalSize : IR_AABB = IR_DomainCollection.getByIdentifier("global").get.asInstanceOf[IR_DomainFromAABB].aabb
   private def fragWidth(dim : Int) : Double = globalSize.width(dim) / Knowledge.domain_rect_numFragsTotalAsVec(dim)
   private def localFragIndex(dim : Int) : IR_Expression = (IR_LoopOverFragments.defIt / (0 until dim).map(Knowledge.domain_rect_numFragsPerBlockAsVec(_)).product) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(dim)
-  private def rankIndex(dim : Int) : IR_Expression = (curRank / (0 until dim).map(dim => Knowledge.domain_rect_numBlocksAsVec(dim)).product) Mod Knowledge.domain_rect_numBlocksAsVec(dim)
 
-  private def fragPos(dim : Int) : IR_Expression = (rankIndex(dim) * Knowledge.domain_rect_numFragsPerBlockAsVec(dim) + 0.5 + localFragIndex(dim)) * fragWidth(dim) + globalSize.lower(dim)
-  private def fragPosBegin(dim : Int) : IR_Expression = fragPos(dim) - 0.5 * fragWidth(dim)
-  private def fragIndex(dim : Int) : IR_Expression = IR_ToInt((fragPos(dim) - globalSize.lower(dim)) / fragWidth(dim))
+  // only root writes the xdmf file (except for "XML" format) -> fragment position for other processes must be calculated
+  private def indexCurRank(dim : Int) : IR_Expression = (curRank / (0 until dim).map(dim => Knowledge.domain_rect_numBlocksAsVec(dim)).product) Mod Knowledge.domain_rect_numBlocksAsVec(dim)
+  private def fragPosCurRank(dim : Int) : IR_Expression = (indexCurRank(dim) * Knowledge.domain_rect_numFragsPerBlockAsVec(dim) + 0.5 + localFragIndex(dim)) * fragWidth(dim) + globalSize.lower(dim)
+  private def fragPosBeginCurRank(dim : Int) : IR_Expression = fragPosCurRank(dim) - 0.5 * fragWidth(dim)
+  private def fragIndexCurRank(dim : Int) : IR_Expression = IR_ToInt((fragPosCurRank(dim) - globalSize.lower(dim)) / fragWidth(dim))
 
   // assumes uniform grids always have "valid" frags
-  private def fragId(global : Boolean) : IR_Expression = IR_LoopOverFragments.defIt + (if (global) curRank * Knowledge.domain_numFragmentsPerBlock else 0)
+  private def fragIdCurRank(global : Boolean) : IR_Expression = IR_LoopOverFragments.defIt + (if (global) curRank * Knowledge.domain_numFragmentsPerBlock else 0)
 
-  private def globalIndexOnRoot : ListBuffer[IR_Expression] = if (canonicalFileLayout) {
-    dataBuffer.canonicalStartIndexGlobal(dataBuffer.numDimsGridRange.map(fragIndex))
-  } else {
-    dataBuffer.fragmentwiseStartIndexGlobal(fragId(global = true))
+  // set start index in global domain and select component of a higher-dim. datatype
+  private def globalStartCurRank(componentIndex : Int = 0) : ListBuffer[IR_Expression] = {
+    def accessComponent(startIdx : ListBuffer[IR_Expression]) = dataBuffer.datatype match {
+      case mat : IR_MatrixDatatype =>
+        val r = componentIndex / mat.sizeN
+        val c = componentIndex % mat.sizeN
+        startIdx :+ IR_IntegerConstant(r) :+ IR_IntegerConstant(c)
+      case _ : IR_VectorDatatype =>
+        startIdx :+ IR_IntegerConstant(componentIndex)
+      case _ : IR_ScalarDatatype   =>
+        startIdx
+      case _                       =>
+        Logger.error("Unsupported higher dimensional datatype used for \"IR_PrintXdmfUniform\".")
+    }
+
+    if (canonicalFileLayout) {
+      // replace last indices (of the multidim datatype) with the component selection
+      val start = dataBuffer.canonicalStartIndexGlobal(dataBuffer.numDimsGridRange.map(fragIndexCurRank))
+      accessComponent(start.dropRight(dimsDt)) // e.g. [global x, global y, v0, v1]
+    } else {
+      // replace indices at the end (except "fragment dimension") with the component selection
+      val start = dataBuffer.fragmentwiseStartIndexGlobal(fragIdCurRank(global = true))
+      accessComponent(start.dropRight(dimsDt + 1)) :+ start.last // e.g. [x, y, z, v0, v1, v2, fragment]
+    }
   }
 
   // specialization for file-per-process: fields are written fragment-after-fragment (i.e. no canonical layout)
@@ -154,7 +190,7 @@ case class IR_PrintXdmfUniform(
 
     val origin = handleOrderCoRectMesh((0 until numDimsGrid).map(dim =>
       if (fmt != "XML") {
-        fragPosBegin(dim)
+        fragPosBeginCurRank(dim)
       } else {
         IR_IV_FragmentPositionBegin(dim) : IR_Expression
       })
@@ -186,33 +222,67 @@ case class IR_PrintXdmfUniform(
 
   override def writeXdmfAttributes(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
-    val seekp : IR_Expression = if (fmt == "Binary") fragId(global) * dataBuffer.typicalByteSizeFrag else 0 // field data laid out fragment-wise -> calc. offset to each fragment
 
-    // depending on format and file layout, select the appropriate portion from the "heavy data" file for each fragment
     statements += printXdmfElement(stream, openAttribute(field.name, attributeType(dataBuffer.datatype), centeringType(dataBuffer.localization)))
-    if ( (ioInterface == "hdf5") || (ioInterface == "mpiio" && canonicalFileLayout) ) {
-      // global file is hdf5 or laid out canonically -> select portion via "hyperslabs"
-      val globalDims = dataBuffer.globalDims
-      val startIndexGlobal = globalIndexOnRoot
-      // conditionally add "fragment dimension" to local dims (for non-canonical layouts)
-      val localDims = IR_DataBuffer.handleFragmentDimension(dataBuffer, dataBuffer.innerDimsLocal, 1, orderKJI = false)
-      val stride = IR_DataBuffer.handleFragmentDimension(dataBuffer, dataBuffer.stride, 1, orderKJI = false)
-      statements += printXdmfElement(stream, openDataItemHyperslab(dataBuffer.innerDimsLocal) : _*)
-      statements += printXdmfElement(stream, dataItemHyperslabSelection(startIndexGlobal, stride, localDims) : _*)
-      statements += printXdmfElement(stream, dataItemHyperslabSource(dataBuffer.datatype.resolveBaseDatatype, globalDims, printFilename(stream, dataset)) : _*)
+
+    // handle non-scalar datatypes
+    val joinDataItems = dimsDt > 0 && ioInterface != "fpp"
+    val arrayIndexRange = dataBuffer.datatype.resolveFlattendSize
+    val dimsHigherDimDatatype = IR_IntegerConstant(arrayIndexRange) +: dataBuffer.innerDimsLocal.dropRight(dimsDt)
+    val localDimsTotal = if (ioInterface == "fpp") {
+      // in fpp schemes, all components are written at once in a IR_LoopOverDimensions
+      dimsHigherDimDatatype
     } else {
-      // file laid out fragment-wise -> select portion via seek pointers
-      val localDims = dataBuffer.innerDimsLocal
-      statements += printXdmfElement(stream, openDataItem(field.resolveBaseDatatype, localDims, seekp) : _*)
-      if (fmt == "XML") {
-        val handler = ioHandler(constsIncluded = false, filenamePieceFpp).asInstanceOf[IR_FileAccess_FPP]
-        for (bufIdx <- handler.dataBuffers.indices)
-          statements ++= handler.printKernel(stream, bufIdx, Some(indentData))
-      } else {
-        statements += printFilename(stream, dataset)
-      }
+      // otherwise, multidim. datatypes are output as multiple "scalar" components
+      dataBuffer.innerDimsLocal
     }
-    statements += printXdmfElement(stream, closeDataItem)
+    val dimsComponent = if (joinDataItems) {
+      localDimsTotal.dropRight(dimsDt) // select a component of the datatype
+    } else {
+      localDimsTotal // already correctly formatted
+    }
+
+    // introduce "Function DataItem" to combine (join) components of non-scalar datatypes
+    if (joinDataItems) {
+      val function = "JOIN(" + (0 until arrayIndexRange).map("$"+_).mkString(",") + ")"
+      statements += printXdmfElement(stream, openDataItemFunction(dimsHigherDimDatatype, function) : _*)
+    }
+
+    val numComponents = if (joinDataItems) arrayIndexRange else 1
+    (0 until numComponents).foreach(component => {
+      val offsetComponent = component * dimsComponent.reduce(_ * _) * dataBuffer.datatype.resolveBaseDatatype.typicalByteSize // for non-scalar datatypes: skip to current component
+      val seekp = offsetComponent + (if (fmt == "Binary") fragIdCurRank(global) * dataBuffer.typicalByteSizeFrag else 0) // field data laid out fragment-wise -> calc. offset to each fragment
+
+      // depending on format and file layout, select the appropriate portion from the "heavy data" file for each fragment
+      if ((ioInterface == "hdf5") || (ioInterface == "mpiio" && canonicalFileLayout)) {
+        // global file is hdf5 or laid out canonically -> select portion via "hyperslabs"
+        val startIndexGlobal = globalStartCurRank(component)
+        // conditionally add "fragment dimension" to local dims (for non-canonical layouts)
+        val localDimsComponent = dimsComponent ++ ListBuffer.fill(dimsDt)(IR_IntegerConstant(1)) // extract values for one component
+        val count = IR_DataBuffer.handleFragmentDimension(dataBuffer, localDimsComponent, 1, orderKJI = false)
+        val stride = IR_DataBuffer.handleFragmentDimension(dataBuffer, dataBuffer.stride, 1, orderKJI = false)
+
+        statements += printXdmfElement(stream, openDataItemHyperslab(dimsComponent) : _*)
+        statements += printXdmfElement(stream, dataItemHyperslabSelection(startIndexGlobal, stride, count) : _*)
+        statements += printXdmfElement(stream, dataItemHyperslabSource(dataBuffer.datatype.resolveBaseDatatype, dataBuffer.globalDims, printFilename(stream, dataset)) : _*)
+      } else {
+        // file laid out fragment-wise -> select portion via seek pointers
+        statements += printXdmfElement(stream, openDataItem(field.resolveBaseDatatype, dimsComponent, seekp) : _*)
+        if (fmt == "XML") {
+          val handler = ioHandler(constsIncluded = false, filenamePieceFpp).asInstanceOf[IR_FileAccess_FPP]
+          for (bufIdx <- handler.dataBuffers.indices)
+            statements ++= handler.printKernel(stream, bufIdx, Some(indentData))
+        } else {
+          statements += printFilename(stream, dataset)
+        }
+      }
+      statements += printXdmfElement(stream, closeDataItem)
+    })
+
+    // close data item with join function
+    if (joinDataItems)
+      statements += printXdmfElement(stream, closeDataItem)
+
     statements += printXdmfElement(stream, closeAttribute)
 
     statements

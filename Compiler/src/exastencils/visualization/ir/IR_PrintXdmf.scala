@@ -181,6 +181,9 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
       IR_StringConstant(s"""\\\" Format=\\\"${ altFmt getOrElse fmt }\\\" Endian=\\\"""") :+ IR_VariableAccess(endianness) :+
       IR_StringConstant("\\\" Seek=\\\"") :+ seekp :+ IR_StringConstant("\\\">")
   }
+  def openDataItemFunction(dims : ListBuffer[IR_Expression], function : String) : ListBuffer[IR_Expression] =
+    ListBuffer(IR_StringConstant(
+      s"""\t\t\t\t<DataItem ItemType=\\\"Function\\\" Function=\\\"$function\\\" Dimensions=\\\"""")) ++ separateSequenceAndFilter(dims) :+ IR_StringConstant("\\\">")
   // hyperslabs DataItems consist of two other DataItems: the selection and the source
   def openDataItemHyperslab(dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = {
     ListBuffer(IR_StringConstant(
