@@ -1,8 +1,0 @@
-dimensionality                = 2
-
-mpi_enabled = false
-
-experimental_resolveInverseFunctionCall = "Compiletime"
-
-experimental_resolveLocalMatSys = "Compiletime"
-experimental_schurWithHelper=true
