@@ -135,10 +135,10 @@ case class IR_PrintXdmfNNF(
 
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
     val constants = nodePositionsBuf.zipWithIndex.map { case (buf, idx) =>
-      IR_DataBuffer(buf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetCoords(idx))), canonicalOrder = false) } :+
-      IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetConnectivity)), canonicalOrder = false)
+      IR_DataBuffer(buf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetCoords(idx)))) } :+
+      IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetConnectivity)))
     val fields = ListBuffer(
-      IR_DataBuffer(velocityBuf, IR_IV_ActiveSlot(u), None, Some(IR_StringConstant(datasetFields.head)), canonicalOrder = false),
+      IR_DataBuffer(velocityBuf, IR_IV_ActiveSlot(u), None, Some(IR_StringConstant(datasetFields.head))),
       IR_DataBuffer(p, IR_IV_ActiveSlot(p), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(1))), canonicalOrder = false),
       IR_DataBuffer(rho, IR_IV_ActiveSlot(rho), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(2))), canonicalOrder = false),
       IR_DataBuffer(mue, IR_IV_ActiveSlot(mue), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(3))), canonicalOrder = false),

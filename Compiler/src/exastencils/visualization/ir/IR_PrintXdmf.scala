@@ -126,7 +126,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     case _ : IR_VectorDatatype                           => "Vector"
     case matrix : IR_MatrixDatatype if matrix.sizeN == 1 => "Vector"
     case _ : IR_MatrixDatatype                           => "Matrix" // TODO does this work with xdmf?
-    case _                                               => Logger.error("Unsupported datatype for IR_PrintXdmf!")
+    case _                                               => Logger.error("Unsupported datatype for IR_PrintXdmf: " + gridDatatype.prettyprint)
   }
   def centeringType(localization : IR_Localization) : String = localization match {
     case IR_AtNode       => "Node"

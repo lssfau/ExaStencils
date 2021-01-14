@@ -24,7 +24,7 @@ import exastencils.baseExt.ir.IR_LoopOverDomains
 import exastencils.grid.ir.IR_Localization
 
 /// IR_IV_TemporaryBuffer
-// represents a temporary buffer where data is stored before writing it to file
+// represents a temporary buffer where data is stored (fragment-wise) before writing it to file
 // should be used in combination with parallel I/O libraries (MPI I/O, HDF5, PnetCDF) and only when necessary
 // NOTE: assumes that a temporary buffer:
 //   - only contains data of interest

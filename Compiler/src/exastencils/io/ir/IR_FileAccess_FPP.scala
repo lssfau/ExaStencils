@@ -126,8 +126,8 @@ case class IR_FileAccess_FPP(
       } else {
         None
       }
-      // handle accesses of hodt
-      val acc = handleAccessesHodt(buf).flatMap(acc => List(acc) ++ skipSep)
+      // handle accesses of high dim datatypes
+      val acc = handleAccessesMultiDimDatatypes(buf).flatMap(acc => List(acc) ++ skipSep)
 
       loopOverDims(bufIdx, IR_Read(stream, (if (skipSep.isDefined) acc.dropRight(1) else acc) : _*)) // cond. remove sep at end
     } else {
@@ -135,7 +135,7 @@ case class IR_FileAccess_FPP(
         /* true: write whole buffer */
         IR_ReadBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal),
         /* false: write component by component in a loop */
-        loopOverDims(bufIdx, IR_ReadBinary(stream, handleAccessesHodt(buf))))
+        loopOverDims(bufIdx, IR_ReadBinary(stream, handleAccessesMultiDimDatatypes(buf))))
     }
 
     statements += accessFileWithGranularity(bufIdx, ListBuffer(read))
@@ -143,15 +143,13 @@ case class IR_FileAccess_FPP(
     statements
   }
 
-  // allows code re-usage in visualization interface
-  def printKernel(stream : IR_VariableAccess, bufIdx : Int, indent : Option[IR_Expression] = None) : ListBuffer[IR_Statement] = {
+  override def write(bufIdx : Int) : ListBuffer[IR_Statement] = {
     val buf = dataBuffers(bufIdx)
 
     val print = if (!useBinary) {
       val printComponents = optPrintComponents getOrElse ListBuffer[IR_Expression]()
       printComponents += "std::scientific"
-      printComponents ++= indent
-      printComponents ++= handleAccessesHodt(buf).flatMap(acc => List(acc, separator)).dropRight(1)
+      printComponents ++= handleAccessesMultiDimDatatypes(buf).flatMap(acc => List(acc, separator)).dropRight(1)
       printComponents += IR_Print.newline
       loopOverDims(bufIdx, IR_Print(stream, printComponents))
     } else {
@@ -159,15 +157,11 @@ case class IR_FileAccess_FPP(
         /* true: write whole buffer */
         IR_PrintBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal),
         /* false: write component by component in a loop */
-        loopOverDims(bufIdx, IR_PrintBinary(stream, handleAccessesHodt(buf))))
+        loopOverDims(bufIdx, IR_PrintBinary(stream, handleAccessesMultiDimDatatypes(buf))))
     }
 
-    ListBuffer(print)
+    ListBuffer(accessFileWithGranularity(bufIdx, ListBuffer(print)))
   }
-
-  override def write(bufIdx : Int) : ListBuffer[IR_Statement] = ListBuffer(
-    accessFileWithGranularity(bufIdx, printKernel(stream, bufIdx))
-  )
 
   override def includes : ListBuffer[String] = ListBuffer("fstream", "iomanip")
 }

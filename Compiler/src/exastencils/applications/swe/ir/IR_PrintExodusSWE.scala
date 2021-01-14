@@ -45,7 +45,7 @@ case class IR_PrintExodusSWE(
     val bathAccess = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(bath, IR_IV_ActiveSlot(bath), idx.toExpressionIndex), accessIndices)
 
     val constants = nodePosVecAsDataBuffers(accessIndices, datasetCoords.map(s => IR_StringConstant(s))) :+
-      IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(someCellField), None, Some(IR_StringConstant(datasetConnectivity)), canonicalOrder = false)
+      IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(someCellField), None, Some(IR_StringConstant(datasetConnectivity)))
     // bath is constant but cannot be reduced in this format since in Exodus fields are defined as record variables (i.e. bound to time)
     val fields = IR_DataBuffer(bath, IR_IV_ActiveSlot(bath), includeGhosts = false, Some(bathAccess), Some(IR_StringConstant(datasetFields.head)), canonicalOrder = false) +:
       datasetFields.tail.zipWithIndex.map { case (ds, i) => discFieldsAsDataBuffers(discFields(i), IR_StringConstant(ds))}

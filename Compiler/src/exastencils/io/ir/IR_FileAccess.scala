@@ -69,25 +69,28 @@ abstract class IR_FileAccess(
     IR_FileAccess.declareDimensionality(IR_ArrayDatatype(datatype, dims.length), name, localization, Some(dims))
   }
 
-  // helper function to handle accesses for hodt
-  def handleAccessesHodt(buf : IR_DataBuffer) : ListBuffer[IR_Access] = {
-    val indices = if(buf.numDimsData > buf.numDimsGrid) {
+  // helper function to get access indices for multidim. datatypes
+  def getIndicesMultiDimDatatypes(buf : IR_DataBuffer) : Array[IR_Index] = {
+    if(buf.numDimsData > buf.numDimsGrid) {
       buf.datatype match {
         case mat : IR_MatrixDatatype =>
           Array.range(0, mat.sizeM).flatMap(rows =>
             Array.range(0, mat.sizeN).map(cols =>
               IR_ExpressionIndex(IR_LoopOverDimensions.defIt(buf.numDimsGrid).indices :+ IR_IntegerConstant(rows) :+ IR_IntegerConstant(cols))))
         case _ : IR_ScalarDatatype   =>
-          Array(IR_LoopOverDimensions.defIt(buf.numDimsData))
+          Array(IR_LoopOverDimensions.defIt(buf.numDimsGrid))
         case _                       =>
           Logger.error("Unsupported higher dimensional datatype used for I/O interface.")
       }
     } else {
-      Array(IR_LoopOverDimensions.defIt(buf.numDimsData))
+      Array(IR_LoopOverDimensions.defIt(buf.numDimsGrid))
     }
+  }
 
+  // helper function to handle accesses for multidim. datatypes
+  def handleAccessesMultiDimDatatypes(buf : IR_DataBuffer) : ListBuffer[IR_Access] = {
     // return access list with last separator removed
-    indices.map(idx => buf.getAccess(idx)).to[ListBuffer]
+    getIndicesMultiDimDatatypes(buf).map(idx => buf.getAccess(idx)).to[ListBuffer]
   }
 
   // commonly used declarations

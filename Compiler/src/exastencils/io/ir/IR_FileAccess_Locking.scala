@@ -107,8 +107,8 @@ case class IR_FileAccess_Locking(
       } else {
         None
       }
-      // handle accesses of hodt
-      val acc = handleAccessesHodt(buf).flatMap(acc => List(acc) ++ skipSep)
+      // handle accesses of high dim datatypes
+      val acc = handleAccessesMultiDimDatatypes(buf).flatMap(acc => List(acc) ++ skipSep)
 
       loopOverDims(bufIdx, IR_Read(stream, (if (skipSep.isDefined) acc.dropRight(1) else acc) : _*)) // cond. remove sep at end
     } else {
@@ -116,7 +116,7 @@ case class IR_FileAccess_Locking(
         /* true: write whole buffer */
         IR_ReadBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal),
         /* false: write component by component in a loop */
-        loopOverDims(bufIdx, IR_ReadBinary(stream, handleAccessesHodt(buf))))
+        loopOverDims(bufIdx, IR_ReadBinary(stream, handleAccessesMultiDimDatatypes(buf))))
     }
 
     val filePointerDecl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("currFilePointer"), 0)
@@ -166,28 +166,9 @@ case class IR_FileAccess_Locking(
     statements
   }
 
-  // allows code re-usage in visualization interface
-  def printKernel(stream : IR_VariableAccess, bufIdx : Int, indent : Option[IR_Expression] = None) : ListBuffer[IR_Statement] = {
-    val buf = dataBuffers(bufIdx)
-    val print = if (!useBinary) {
-      val printComponents = optPrintComponents getOrElse ListBuffer[IR_Expression]()
-      printComponents += "std::scientific"
-      printComponents ++= indent
-      printComponents ++= handleAccessesHodt(buf).flatMap(acc => List(acc, separator)).dropRight(1)
-      printComponents += IR_Print.newline
-      loopOverDims(bufIdx, IR_Print(stream, printComponents))
-    } else {
-      IR_IfCondition(bytesAccessedKnownApriori AndAnd buf.accessWithoutExclusion,
-        /* true: write whole buffer */
-        IR_PrintBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal),
-        /* false: write component by component in a loop */
-        loopOverDims(bufIdx, IR_PrintBinary(stream, handleAccessesHodt(buf))))
-    }
-
-    ListBuffer(print)
-  }
-
   override def write(bufIdx : Int) : ListBuffer[IR_Statement] = {
+    val buf = dataBuffers(bufIdx)
+
     val printSetPrecision = if (!useBinary) {
       if (Knowledge.field_printFieldPrecision == -1)
         IR_Print(stream, "std::scientific")
@@ -204,10 +185,24 @@ case class IR_FileAccess_Locking(
       openMode
     }
 
+    val print = if (!useBinary) {
+      val printComponents = optPrintComponents getOrElse ListBuffer[IR_Expression]()
+      printComponents += "std::scientific"
+      printComponents ++= handleAccessesMultiDimDatatypes(buf).flatMap(acc => List(acc, separator)).dropRight(1)
+      printComponents += IR_Print.newline
+      loopOverDims(bufIdx, IR_Print(stream, printComponents))
+    } else {
+      IR_IfCondition(bytesAccessedKnownApriori AndAnd buf.accessWithoutExclusion,
+        /* true: write whole buffer */
+        IR_PrintBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal),
+        /* false: write component by component in a loop */
+        loopOverDims(bufIdx, IR_PrintBinary(stream, handleAccessesMultiDimDatatypes(buf))))
+    }
+
     var innerLoop = ListBuffer[IR_Statement](
       IR_ObjectInstantiation(stream, Duplicate(filename), openModeLock),
       printSetPrecision,
-      accessFileWithGranularity(bufIdx, printKernel(stream, bufIdx)),
+      accessFileWithGranularity(bufIdx, ListBuffer(print)),
       IR_MemberFunctionCall(stream, "close")
     )
 

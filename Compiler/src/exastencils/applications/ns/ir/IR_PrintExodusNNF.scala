@@ -36,10 +36,10 @@ case class IR_PrintExodusNNF(
 
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
     val constants = nodePositionsBuf.zipWithIndex.map { case (buf, idx) =>
-      IR_DataBuffer(buf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetCoords(idx))), canonicalOrder = false) } :+
-      IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetConnectivity)), canonicalOrder = false)
+      IR_DataBuffer(buf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetCoords(idx)))) } :+
+      IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetConnectivity)))
     var fields = velocityComponentsAsVec.zipWithIndex.map { case (tmpBuf, d) =>
-      IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(u), None, Some(IR_StringConstant(datasetFields(d))), canonicalOrder = false)
+      IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(u), None, Some(IR_StringConstant(datasetFields(d))))
     }.to[ListBuffer]
     fields += IR_DataBuffer(p, IR_IV_ActiveSlot(p), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(numDimsGrid))), canonicalOrder = false)
     fields += IR_DataBuffer(rho, IR_IV_ActiveSlot(rho), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(numDimsGrid+1))), canonicalOrder = false)

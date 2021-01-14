@@ -69,8 +69,7 @@ object IR_DataBuffer {
       tmpBuf : IR_IV_TemporaryBuffer,
       slot : IR_Expression,
       pattern : Option[IR_AccessPattern],
-      dataset : Option[IR_Expression],
-      canonicalOrder : Boolean) : IR_DataBuffer = {
+      dataset : Option[IR_Expression]) : IR_DataBuffer = {
 
     new IR_DataBuffer(
       slot = slot,
@@ -86,7 +85,7 @@ object IR_DataBuffer {
       name = tmpBuf.name,
       accessPattern = pattern getOrElse IR_AccessPattern((idx : IR_Index) => tmpBuf.at(idx)),
       datasetName = dataset getOrElse IR_NullExpression,
-      canonicalStorageLayout = canonicalOrder,
+      canonicalStorageLayout = false,
       accessBlockwise = true,
       isDiscField = false
     )
@@ -137,7 +136,7 @@ case class IR_DataBuffer(
   def globalDims : ListBuffer[IR_Expression] = {
     if (canonicalOrder) {
       numDimsDataRange.map(d => innerDimsLocal(d) *
-      (if (d < numDimsGrid) Knowledge.domain_rect_numFragsTotalAsVec(d) else 1) : IR_Expression).to[ListBuffer]
+      (if (d < Knowledge.dimensionality) Knowledge.domain_rect_numFragsTotalAsVec(d) else 1) : IR_Expression).to[ListBuffer]
     } else {
       // buffer contains data for the whole block -> fragment count already contained in dimensionalities (index "0" in KJI order)
       (if (accessBlockwise) innerDimsLocal.dropRight(1) else innerDimsLocal) :+
@@ -148,7 +147,7 @@ case class IR_DataBuffer(
 
   def canonicalStartIndexGlobal(forIndex : Seq[IR_Expression]) : ListBuffer[IR_Expression] = {
     numDimsDataRange.map(d => innerDimsLocal(d) *
-      (if (d < numDimsGrid) forIndex(d) Mod Knowledge.domain_rect_numFragsTotalAsVec(d) else 0) : IR_Expression).to[ListBuffer]
+      (if (d < Knowledge.dimensionality) forIndex(d) Mod Knowledge.domain_rect_numFragsTotalAsVec(d) else 0) : IR_Expression).to[ListBuffer]
   }
 
   def fragmentwiseStartIndexGlobal(forIndex : IR_Expression) : ListBuffer[IR_Expression] = {

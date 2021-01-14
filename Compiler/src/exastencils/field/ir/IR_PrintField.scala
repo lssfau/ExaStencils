@@ -76,7 +76,7 @@ case class IR_PrintField(
   */
 
   val arrayIndexRange : Range = 0 until field.gridDatatype.resolveFlattendSize
-  val ioInterfaceName = ioInterface.asInstanceOf[IR_StringConstant].value
+  val ioInterfaceName : String = ioInterface.asInstanceOf[IR_StringConstant].value
 
   // writes comma-separated files in ascii mode, raw binaries otherwise (via locking)
   def printCSV() : ListBuffer[IR_Statement] = {

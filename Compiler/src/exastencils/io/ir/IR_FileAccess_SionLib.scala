@@ -165,7 +165,7 @@ case class IR_FileAccess_SionLib(
         IR_ExpressionIndex(buf.numDimsGridRange.map(dim => buf.beginIndices(dim) - Duplicate(buf.referenceOffset(dim)) : IR_Expression).toArray),
         IR_ExpressionIndex(buf.numDimsGridRange.map(dim => buf.endIndices(dim) - Duplicate(buf.referenceOffset(dim)) : IR_Expression).toArray)),
         IR_IfCondition(condition,
-          handleAccessesHodt(buf).map(acc =>
+          handleAccessesMultiDimDatatypes(buf).map(acc =>
             IR_Assignment(bytesAccessed,
               IR_FunctionCall(IR_ExternalFunctionReference(funcName),
                 IR_AddressOf(acc),
