@@ -83,6 +83,8 @@ case class IR_PrintXdmfUniform(
     case _                  => Logger.error("Unsupported localization for IR_PrintXdmf!")
   }
 
+  override def domainIndex : Int = field.domain.index
+
   // handling staggered grids: cell-centered temp. buffers with interpolation
   override def numCells_x : Int = (1 << level) * Knowledge.domain_fragmentLengthAsVec(0)
   override def numCells_y : Int = (1 << level) * Knowledge.domain_fragmentLengthAsVec(1)
@@ -94,7 +96,7 @@ case class IR_PrintXdmfUniform(
   }
   val tmpBufStag : Option[IR_IV_TemporaryBuffer] = if (Knowledge.grid_isStaggered && staggerDim >= 0) {
     val dims = ListBuffer[IR_Expression](numCells_x, numCells_y, numCells_z).take(numDimsGrid)
-    Some(IR_IV_TemporaryBuffer(field.resolveBaseDatatype, IR_AtCellCenter, "tmp_" + field.name, field.domain.index, dims))
+    Some(IR_IV_TemporaryBuffer(field.resolveBaseDatatype, IR_AtCellCenter, "tmp_" + field.name, domainIndex, dims))
   } else {
     None
   }
@@ -210,7 +212,7 @@ case class IR_PrintXdmfUniform(
       body.to[ListBuffer])
 
     val printSubdomains = IR_LoopOverFragments(
-      IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
+      IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
         ListBuffer[IR_Statement](
           printXdmfElement(stream, openGrid(gridName, "Uniform") : _*)) ++
           writeXdmfGeometry(stream, global) ++
@@ -351,7 +353,7 @@ case class IR_PrintXdmfUniform(
         statements += printXdmfElement(stream, dataItemHyperslabSelection(startIndexGlobal, stride, count) : _*)
         statements += printXdmfElement(stream, dataItemHyperslabSource(dataBuffer.datatype.resolveBaseDatatype, dataBuffer.globalDims, printFilename(stream, dataset)) : _*)
       } else {
-        // file laid out fragment-wise -> select portion via seek pointers
+        // file laid out fragment-wise -> select portion via offsets
         statements += printXdmfElement(stream, openDataItem(field.resolveBaseDatatype, dimsComponent, seekp) : _*)
         if (fmt == "XML") {
           val handler = ioHandler(constsIncluded = false, filenamePieceFpp)

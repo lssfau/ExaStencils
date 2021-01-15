@@ -52,7 +52,7 @@ case class IR_PrintXdmfSWE(
 
     // setup frag info
     stmts ++= IR_IV_FragmentInfo.init(
-      someCellField.domain.index,
+      domainIndex,
       // in file-per-process, each rank writes its own domain piece individually -> fragOffset = 0
       calculateFragOffset = ioInterface != "fpp"
     )
@@ -76,7 +76,7 @@ case class IR_PrintXdmfSWE(
       statements ++= (if (fmt == "XML") {
         ListBuffer(IR_Print(stream, "std::scientific"),
           IR_LoopOverFragments(
-            IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
+            IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
               IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
                 IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("IB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
                 IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => nodalLoopEnd + someCellField.layout.idxById("IE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
@@ -101,7 +101,7 @@ case class IR_PrintXdmfSWE(
     statements += printXdmfElement(stream, openDataItem(IR_IntegerDatatype, dimsConnectivityFrag :+ dimFrags(global), seekp = getSeekp(global)) : _*)
     statements += (if (fmt == "XML") {
       IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
+        IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
           IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),

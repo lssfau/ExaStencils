@@ -30,7 +30,7 @@ case class IR_PrintExodusSWE(
   override def nodesPerElement : Int = 3
 
   override def statementsForPreparation : ListBuffer[IR_Statement] = {
-    IR_IV_FragmentInfo.init(someCellField.domain.index, calculateFragOffset = true) ++
+    IR_IV_FragmentInfo.init(domainIndex, calculateFragOffset = true) ++
       setupNodePositions ++
       setupConnectivity(global = true) ++
       (if (Knowledge.swe_nodalReductionPrint) setupReducedData else ListBuffer())

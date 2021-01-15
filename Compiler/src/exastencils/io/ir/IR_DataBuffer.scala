@@ -21,6 +21,7 @@ import exastencils.domain.ir.IR_IV_FragmentIndex
 import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid.ir.IR_Localization
+import exastencils.logger.Logger
 
 object IR_DataBuffer {
   /* helper methods */
@@ -64,7 +65,40 @@ object IR_DataBuffer {
     )
   }
 
-  // assumes the temporary buffer only contains the values of interest (e.g. no padding/ghost layers to exclude)
+  // non-AA case: accepts a vf's associated field
+  def apply(
+      vfAssocField : IR_Field,
+      accessIndices: ListBuffer[IR_Index],
+      dataset: Option[IR_Expression],
+      dim : Int) : IR_DataBuffer = {
+
+    if (Knowledge.grid_isAxisAligned) {
+      Logger.error("Trying to access associated field for subclass of \"IR_VirtualFieldWithVec\"; Not applicable for AA grids.")
+    }
+
+    // treat position vector (defined as IR_MatrixDatatype(IR_RealDatatype, numDims, 1) ) as "numDims" separate fields
+    def highDimIndex(idx : IR_Index) = IR_ExpressionIndex(idx.toExpressionIndex.indices :+ (dim : IR_Expression) :+ (0 : IR_Expression)) // access vector component for "dim"
+    new IR_DataBuffer(
+      slot = 0,
+      datatype = vfAssocField.resolveBaseDatatype, // vec -> numDims * scalar
+      localization = vfAssocField.localization,
+      referenceOffset = IR_ExpressionIndex(vfAssocField.referenceOffset.indices.slice(0, vfAssocField.layout.numDimsGrid)),
+      beginIndices = (0 until vfAssocField.layout.numDimsGrid).map(d => vfAssocField.layout.defIdxById("DLB", d) : IR_Expression).to[ListBuffer],
+      endIndices = (0 until vfAssocField.layout.numDimsGrid).map(d => vfAssocField.layout.defIdxById("DRE", d) : IR_Expression).to[ListBuffer],
+      totalDimsLocal = (0 until vfAssocField.layout.numDimsGrid).map(d => vfAssocField.layout.defTotal(d) : IR_Expression).to[ListBuffer],
+      numDimsGrid = vfAssocField.layout.numDimsGrid,
+      numDimsData = vfAssocField.layout.numDimsGrid,
+      domainIdx = vfAssocField.domain.index,
+      name = vfAssocField.name,
+      accessPattern = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(vfAssocField, 0, highDimIndex(idx)), accessIndices),
+      datasetName = dataset getOrElse IR_NullExpression,
+      canonicalStorageLayout = false,
+      accessBlockwise = false,
+      isDiscField = false
+    )
+  }
+
+  // assumes the temporary buffer contains only the values of interest (e.g. no padding/ghost layers to exclude)
   def apply(
       tmpBuf : IR_IV_TemporaryBuffer,
       slot : IR_Expression,

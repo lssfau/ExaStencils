@@ -44,6 +44,10 @@ case class IR_IV_TemporaryBuffer(
 
   def numDims : Int = dims.length + 1
 
+  /* NOTE: temp. buffers contain the data for a whole block
+     - Reduces the number of malloc's/free's
+     - But more importantly: Reduces the number of file accesses where each has a greater granularity compared to fragment-wise accesses
+  */
   def dimsLocal : ListBuffer[IR_Expression] = dims :+ IR_IV_NumValidFrags(domainIdx)
   def dimsGlobal : ListBuffer[IR_Expression] = dims :+ IR_IV_TotalNumFrags(domainIdx)
 

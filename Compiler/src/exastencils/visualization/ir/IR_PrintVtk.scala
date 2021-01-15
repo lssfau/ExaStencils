@@ -68,7 +68,7 @@ abstract class IR_PrintVtk extends IR_PrintVisualization with IR_Statement with 
         IR_MemberFunctionCall(stream, "close"))))
   }
 
-  def stmtsForPreparation : ListBuffer[IR_Statement] = IR_IV_FragmentInfo.init(someCellField.domain.index)
+  def stmtsForPreparation : ListBuffer[IR_Statement] = IR_IV_FragmentInfo.init(domainIndex)
 
   def stmtsForMeshVertices : ListBuffer[IR_Statement]
   def stmtsForMeshCells : ListBuffer[IR_Statement]

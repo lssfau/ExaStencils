@@ -88,7 +88,7 @@ case class IR_FileAccess_HDF5(
   val locationId : IR_VariableAccess = fileId
   val groups : ListBuffer[String] = dataBuffers.flatMap(buf => {
     val absPath = buf.datasetName.asInstanceOf[IR_StringConstant].value
-    absPath.tail.split("/").scanLeft(""){_ + "/" + _}.tail.dropRight(1)
+    (if (absPath.startsWith("/")) absPath else "/" + absPath).tail.split("/").scanLeft(""){_ + "/" + _}.tail.dropRight(1)
   }).distinct
 
   // handling of groups within the file

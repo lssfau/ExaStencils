@@ -28,7 +28,7 @@ case class IR_PrintExodusNNF(
   override def fieldnames : ListBuffer[String] = (0 until numDimsGrid).map(d => "vel" + ('X' + d).toChar.toString).to[ListBuffer] ++ ListBuffer("p", "rho", "mue", "gamma", "phi")
 
   override def statementsForPreparation : ListBuffer[IR_Statement] = {
-    IR_IV_FragmentInfo.init(someCellField.domain.index) ++
+    IR_IV_FragmentInfo.init(domainIndex) ++
       setupNodePositions ++
       setupConnectivity(global = true) ++
       setupVelocityComponents

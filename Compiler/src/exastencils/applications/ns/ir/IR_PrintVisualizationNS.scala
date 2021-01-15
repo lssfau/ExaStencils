@@ -60,12 +60,12 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads{
     + IR_FieldAccess(w, IR_IV_ActiveSlot(w), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(0, 0, 1)))
 
   // for exodusII: velocity vector must be provided as separate components
-  def velocityComponentX = IR_IV_TemporaryBuffer(u.resolveBaseDatatype, IR_AtCellCenter, "velX", someCellField.domain.index,
+  def velocityComponentX = IR_IV_TemporaryBuffer(u.resolveBaseDatatype, IR_AtCellCenter, "velX", domainIndex,
     ListBuffer(numCells_x, numCells_y, numCells_z))
-  def velocityComponentY = IR_IV_TemporaryBuffer(v.resolveBaseDatatype, IR_AtCellCenter, "velY", someCellField.domain.index,
+  def velocityComponentY = IR_IV_TemporaryBuffer(v.resolveBaseDatatype, IR_AtCellCenter, "velY", domainIndex,
     ListBuffer(numCells_x, numCells_y, numCells_z))
   def velocityComponentZ : Option[IR_IV_TemporaryBuffer] = if (numDimsGrid > 2)
-    Some(IR_IV_TemporaryBuffer(w.resolveBaseDatatype, IR_AtCellCenter, "velZ", someCellField.domain.index, ListBuffer(numCells_x, numCells_y, numCells_z)))
+    Some(IR_IV_TemporaryBuffer(w.resolveBaseDatatype, IR_AtCellCenter, "velZ", domainIndex, ListBuffer(numCells_x, numCells_y, numCells_z)))
   else
     None
 
@@ -97,7 +97,7 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads{
 
   def cleanupVelocityComponents : ListBuffer[IR_Statement] = velocityComponentsAsVec.map(_.getDtor().get).to[ListBuffer]
 
-  def velocityBuf = IR_IV_TemporaryBuffer(u.resolveBaseDatatype, IR_AtCellCenter, "vel", someCellField.domain.index,
+  def velocityBuf = IR_IV_TemporaryBuffer(u.resolveBaseDatatype, IR_AtCellCenter, "vel", domainIndex,
     ListBuffer(IR_IntegerConstant(numDimsGrid), numCells_x, numCells_y, numCells_z))
 
   def setupVelocityBuf : ListBuffer[IR_Statement] = {

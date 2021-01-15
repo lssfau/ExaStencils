@@ -59,7 +59,7 @@ abstract class IR_PrintVtkTriangles extends IR_PrintVtk with IR_PrintVisualizati
       IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
       IR_Print(stream, "std::scientific"), //std::defaultfloat
       IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
+        IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
           IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("IB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => nodalLoopEnd + someCellField.layout.idxById("IE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
@@ -98,7 +98,7 @@ abstract class IR_PrintVtkTriangles extends IR_PrintVtk with IR_PrintVisualizati
       IR_IfCondition(MPI_IsRootProc(), IR_Print(stream, IR_StringConstant("CELLS"), separator, numCells, separator, 4 * numCells, IR_Print.endl)),
       //IR_Print(stream, "std::scientific"), //std::defaultfloat
       IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
+        IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
           IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),

@@ -54,7 +54,7 @@ import exastencils.util.ir.IR_Print
 
 // IR_PrintXdmf: Visualization interface using the eXtensible Data Model and Format (Xdmf)
 // to be used in combination with parallel I/O methods: MPI I/O, HDF5, file-per-process
-// to be implemented as specific printer in exastencils.application.ir
+// to be implemented as specific printer in exastencils.application.ir or field.ir
 
 abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) extends IR_Statement with IR_Expandable with IR_PrintVisualization {
 
@@ -225,7 +225,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     case "XML"    => ".xmf"
   })))
 
-  // KJI order: first dimension shows how many fragments were written
+  // specifies "fragment dimension" (i.e. how many fragments are written to a file)
   def dimFrags(global : Boolean) : IR_Expression = if (global) numFrags else numFragsPerBlock
 
   def indentData = IR_StringConstant("\t\t\t\t\t")
@@ -341,7 +341,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     dataBuffers(constsIncluded).map(buf => if (global) buf.typicalByteSizeGlobal else buf.typicalByteSizeLocal)
   }
 
-  // methods to be implemented in application.ir
+  // methods to be implemented in application.ir or field.ir
   def stmtsForPreparation : ListBuffer[IR_Statement]
   def writeXdmfGeometry(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement]
   def writeXdmfTopology(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement]
@@ -360,7 +360,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
       // write data into a separate, binary file
       IR_IfCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
         /* true: write constants to file and save filename to reference later */
-        writeData(constsIncluded = true) :+ IR_Assignment(IR_IV_ConstantsWrittenToFile(), basename(noPath = true) + ext),
+        writeData(constsIncluded = true) :+ IR_IV_ConstantsWrittenToFile().setFilename(basename(noPath = true), Some(ext)),
         /* false: write field data and reference constants from saved filename */
         writeData(constsIncluded = false))
     } else {
@@ -379,6 +379,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
       Settings.additionalIncludes += "string"
 
     // header for I/O interfaces
+    ioHandler(constsIncluded = false, filename).validateParams()
     ioHandler(constsIncluded = false, filename).handleDependencies()
 
     if (!IR_GlobalCollection.get.variables.contains(endianness)) {

@@ -225,7 +225,7 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     val ncInterface = ioHandler(constsIncluded, filename)
 
     /* declare flattened dims of the datasets */
-    val fragOffset = IR_IV_FragmentOffset(someCellField.domain.index) + IR_LoopOverFragments.defIt
+    val fragOffset = IR_IV_FragmentOffset(domainIndex) + IR_LoopOverFragments.defIt
     val spatialDimField : IR_Expression = variableEntityType match {
       case EX_NODAL      => numPointsPerFrag
       case EX_ELEM_BLOCK => numCellsPerFrag
@@ -336,7 +336,7 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     // write data via PnetCDF interface
     statements += IR_IfCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
       /* true: write constants and field data to file and mark that constants were already written */
-      writeData(constsIncluded = true) :+ IR_Assignment(IR_IV_ConstantsWrittenToFile(), filename),
+      writeData(constsIncluded = true) :+ IR_IV_ConstantsWrittenToFile().setFilename(filename),
       /* false: only write field data */
       writeData(constsIncluded = false))
 

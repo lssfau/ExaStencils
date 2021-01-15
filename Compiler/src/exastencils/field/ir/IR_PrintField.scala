@@ -60,21 +60,6 @@ case class IR_PrintField(
     var dataset : IR_Expression = IR_NullExpression)
   extends IR_FieldIO(filename, field, slot, ioInterface, doWrite = true, onlyVals = false, includeGhostLayers, canonicalOrder, binaryOutput, separator, condition, dataset) {
 
-  /*
-  def numDimsGrid = field.layout.numDimsGrid
-  def numDimsData = field.layout.numDimsData
-
-  def getPos(field : IR_Field, dim : Int) : IR_Expression = {
-    // TODO: add function to field (layout) to decide node/cell for given dim
-    field.localization match {
-      case IR_AtNode              => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
-      case IR_AtCellCenter        => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
-      case IR_AtFaceCenter(`dim`) => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
-      case IR_AtFaceCenter(_)     => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
-    }
-  }
-  */
-
   val arrayIndexRange : Range = 0 until field.gridDatatype.resolveFlattendSize
   val ioInterfaceName : String = ioInterface.asInstanceOf[IR_StringConstant].value
 
@@ -82,7 +67,6 @@ case class IR_PrintField(
   def printCSV() : ListBuffer[IR_Statement] = {
     // print coords for CSV files (Paraview)
     def getPos(dim : Int) : IR_Expression = {
-      // TODO: add function to field (layout) to decide node/cell for given dim
       field.localization match {
         case IR_AtNode              => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(field.layout.numDimsGrid))
         case IR_AtCellCenter        => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(field.layout.numDimsGrid))
@@ -125,11 +109,10 @@ case class IR_PrintField(
   }
 
   def printXdmf() : IR_Statement = {
-    if (Knowledge.grid_isUniform) {
+    if (Knowledge.grid_isUniform && Knowledge.grid_isAxisAligned) {
       IR_PrintXdmfUniform(filename, field, slot, ioInterface, includeGhostLayers, dataset, binaryOutput && ioInterfaceName == "fpp", canonicalOrder)
     } else {
-      // TODO
-      IR_NullStatement
+      IR_PrintXdmfMeshless(filename, field, slot, ioInterface, includeGhostLayers, dataset, binaryOutput && ioInterfaceName == "fpp")
     }
   }
 

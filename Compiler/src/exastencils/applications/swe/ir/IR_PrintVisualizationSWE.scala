@@ -40,42 +40,7 @@ import exastencils.logger.Logger
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_PrintVisualizationTriangles
 
-trait IR_NodeVecAsDataBuffer {
-  // glue logic for virtual/disc fields to be mapped to data buffers
-  // special case for node positions of a non-AA grid
-  def createDataBuffersNodePos(
-      level : Int,
-      numDimsGrid : Int,
-      accessIndices: ListBuffer[IR_Index],
-      dataset: ListBuffer[IR_Expression]) : ListBuffer[IR_DataBuffer] = {
-
-    // treat node pos. vector (defined as IR_MatrixDatatype(IR_RealDatatype, numDims, 1) ) as "numDims" separate fields
-    val field = IR_VF_NodePositionAsVec.find(level).associatedField
-    (0 until numDimsGrid).to[ListBuffer].map(dim => {
-      def highDimIndex(idx : IR_Index) = IR_ExpressionIndex(idx.toExpressionIndex.indices :+ (dim : IR_Expression) :+ (0 : IR_Expression)) // access with additional offset
-      new IR_DataBuffer(
-        slot = 0,
-        datatype = field.resolveBaseDatatype,
-        localization = field.localization,
-        referenceOffset = IR_ExpressionIndex(field.referenceOffset.indices.slice(0, field.layout.numDimsGrid)),
-        beginIndices = (0 until field.layout.numDimsGrid).map(d => field.layout.defIdxById("DLB", d) : IR_Expression).to[ListBuffer],
-        endIndices = (0 until field.layout.numDimsGrid).map(d => field.layout.defIdxById("DRE", d) : IR_Expression).to[ListBuffer],
-        totalDimsLocal = (0 until field.layout.numDimsGrid).map(d => field.layout.defTotal(d) : IR_Expression).to[ListBuffer],
-        numDimsGrid = field.layout.numDimsGrid,
-        numDimsData = field.layout.numDimsGrid,
-        domainIdx = field.domain.index,
-        name = field.name,
-        accessPattern = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(field, 0, highDimIndex(idx)), accessIndices),
-        datasetName = dataset(dim),
-        canonicalStorageLayout = false,
-        accessBlockwise = false,
-        isDiscField = false
-      )}
-    )
-  }
-}
-
-trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles with IR_NodeVecAsDataBuffer {
+trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
   def numDimsGrid = 2
 
   def numCells_x : Int = etaDiscLower0.layout.layoutsPerDim(0).numInnerLayers
@@ -129,10 +94,10 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles with IR_No
   def numFields : Int = fieldnames.length
 
   def nodePosVecAsDataBuffers(accessIndices: ListBuffer[IR_Index], dataset: ListBuffer[IR_Expression]) : ListBuffer[IR_DataBuffer] = {
-    createDataBuffersNodePos(level, numDimsGrid, accessIndices, dataset)
+    (0 until numDimsGrid).map(dim => IR_DataBuffer(IR_VF_NodePositionAsVec.find(level).associatedField, accessIndices, Some(dataset(dim)), dim)).to[ListBuffer]
   }
 
-  // special case for disc fields
+  // glue logic for disc fields to be mapped to data buffers
   def discFieldsAsDataBuffers(
       discField : ListBuffer[IR_Field],
       dataset : IR_Expression) : IR_DataBuffer = {
@@ -206,7 +171,7 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles with IR_No
     }
 
     stmts += IR_LoopOverFragments(
-      IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
+      IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
         stmtsFragLoop
       )
     )

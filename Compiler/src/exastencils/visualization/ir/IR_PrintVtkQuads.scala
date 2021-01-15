@@ -55,7 +55,7 @@ abstract class IR_PrintVtkQuads extends IR_PrintVtk with IR_PrintVisualizationQu
       IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
       IR_Print(stream, "std::scientific"), //std::defaultfloat
       IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
+        IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
           IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DRE", dim) + 1 - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
@@ -97,7 +97,7 @@ abstract class IR_PrintVtkQuads extends IR_PrintVtk with IR_PrintVisualizationQu
       },
       //IR_Print(stream, "std::scientific"), //std::defaultfloat
       IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
+        IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
           IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),

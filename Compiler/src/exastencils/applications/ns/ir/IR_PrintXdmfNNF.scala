@@ -46,7 +46,7 @@ case class IR_PrintXdmfNNF(
 
     // setup frag info and temp buffers
     if (fmt != "XML") {
-      stmts ++= IR_IV_FragmentInfo.init(someCellField.domain.index)
+      stmts ++= IR_IV_FragmentInfo.init(domainIndex)
       stmts ++= setupNodePositions
       stmts ++= setupConnectivity(global = ioInterface != "fpp")
       stmts ++= setupVelocityBuf
@@ -64,7 +64,7 @@ case class IR_PrintXdmfNNF(
       val printValsOrRefFile = if (fmt == "XML") {
         ListBuffer(IR_Print(stream, "std::scientific"),
           IR_LoopOverFragments(
-            IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
+            IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
               IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
                 IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
                 IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => 1 + someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
@@ -88,7 +88,7 @@ case class IR_PrintXdmfNNF(
     statements += printXdmfElement(stream, openDataItem(IR_IntegerDatatype, dimsConnectivityFrag :+ dimFrags(global), seekp = getSeekp(global)) : _*)
     val printValsOrRefFile = if (fmt == "XML") {
       IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
+        IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
           IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
