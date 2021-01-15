@@ -207,6 +207,26 @@ test:Matrix_transpose:
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_transpose ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.knowledge "./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.exa4" ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.RESULTS 1 1 Platform/random.platform output
 
+test:Matrix_frobeniusNorm:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_frobeniusNorm ./MatrixClassTests/resolvingMatrixFunctions/frobeniusNorm/frobeniusNorm.knowledge "./MatrixClassTests/resolvingMatrixFunctions/frobeniusNorm/frobeniusNorm.exa4" ./MatrixClassTests/resolvingMatrixFunctions/frobeniusNorm/frobeniusNorm.RESULTS 1 1 Platform/random.platform output
+
 test:Matrix_resolvingMatrixAccesses:
     stage: test
     dependencies:
@@ -2187,6 +2207,26 @@ test:BC_3D_Periodic:
         - mpirun --version
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_3D_Periodic BC/3D_Periodic.knowledge "BC/3D_Periodic.exa4" BC/3D_Periodic.results 8 2 Platform/random.platform output
+
+test:BC_Matrix:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_Matrix BC/Matrix/BC_Matrix.knowledge "BC/Matrix/BC_Matrix.exa4" BC/Matrix/BC_Matrix.results 1 1 Platform/random.platform output
 
 test:Cell_2D_Basic:
     stage: test
