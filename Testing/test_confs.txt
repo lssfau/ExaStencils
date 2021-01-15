@@ -42,6 +42,7 @@ Matrix_cross Main  ./MatrixClassTests/resolvingMatrixFunctions/cross/cross.knowl
 Matrix_dot Main  ./MatrixClassTests/resolvingMatrixFunctions/dot/dot.knowledge  ./MatrixClassTests/resolvingMatrixFunctions/dot/dot.exa4  ./MatrixClassTests/resolvingMatrixFunctions/dot/dot.RESULTS  1  1
 Matrix_trace Main  ./MatrixClassTests/resolvingMatrixFunctions/trace/trace.knowledge  ./MatrixClassTests/resolvingMatrixFunctions/trace/trace.exa4  ./MatrixClassTests/resolvingMatrixFunctions/trace/trace.RESULTS  1  1
 Matrix_transpose Main  ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.knowledge  ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.exa4  ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.RESULTS  1  1
+Matrix_frobeniusNorm Main  ./MatrixClassTests/resolvingMatrixFunctions/frobeniusNorm/frobeniusNorm.knowledge  ./MatrixClassTests/resolvingMatrixFunctions/frobeniusNorm/frobeniusNorm.exa4  ./MatrixClassTests/resolvingMatrixFunctions/frobeniusNorm/frobeniusNorm.RESULTS  1  1
 
 # slicing and access of matrices per bracket operator
 Matrix_resolvingMatrixAccesses Main  ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.knowledge  ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.exa4  ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.RESULTS  1  1
@@ -212,6 +213,9 @@ BC_2D_Periodic       Main  BC/2D_Periodic.knowledge       BC/2D_Periodic.exa4   
 BC_3D_Polynomial     Main  BC/3D_Polynomial.knowledge     BC/3D_Polynomial.exa4     BC/3D_Polynomial.results     8  2
 BC_3D_Trigonometric  Main  BC/3D_Trigonometric.knowledge  BC/3D_Trigonometric.exa4  BC/3D_Trigonometric.results  8  2
 BC_3D_Periodic       Main  BC/3D_Periodic.knowledge       BC/3D_Periodic.exa4       BC/3D_Periodic.results       8  2
+# matrix fields
+BC_Matrix       Main  BC/Matrix/BC_Matrix.knowledge       BC/Matrix/BC_Matrix.exa4       BC/Matrix/BC_Matrix.results       1  1
+
 
 #################################################################################################
 # CELL BASED DISCRETIZATION TESTS                                                               #

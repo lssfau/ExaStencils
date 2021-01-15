@@ -68,7 +68,8 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
     ("trace", IR_Trace.apply),
     ("get", IR_GetElement.apply),
     ("getElement", IR_GetElement.apply),
-    ("toMatrix", IR_ToMatrix.apply)
+    ("toMatrix", IR_ToMatrix.apply),
+    ("fnorm", IR_FrobeniusNorm.apply)
   )
   val fctMapStmts = Map[String, ListBuffer[IR_Expression] => IR_Statement](
     ("set", IR_SetElement.apply),

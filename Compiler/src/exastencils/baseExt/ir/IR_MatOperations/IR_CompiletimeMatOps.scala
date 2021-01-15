@@ -680,6 +680,17 @@ object IR_CompiletimeMatOps {
     sum
   }
 
+  // calculate the frobenius norm of a matrix
+  def frobeniusNorm(matrix : IR_MatrixExpression) : IR_Expression = {
+    var entries = ListBuffer[IR_Expression]()
+    for (i <- 0 until matrix.rows) {
+      for (j <- 0 until matrix.columns) {
+        entries += IR_Power(IR_FunctionCall(IR_ExternalFunctionReference.fabs, ListBuffer[IR_Expression](matrix.get(i,j))), 2)
+      }
+    }
+    IR_Power(IR_Addition(entries), 1.0/2)
+  }
+
   // convert tensor to matrix expression
   def tenExprToMatExpr(ten : IR_Expression) : IR_MatrixExpression = {
     ten match {
