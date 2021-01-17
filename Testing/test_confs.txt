@@ -169,6 +169,7 @@ BC_2D_Periodic       Main  BC/2D_Periodic.knowledge       BC/2D_Periodic.exa4   
 BC_3D_Polynomial     Main  BC/3D_Polynomial.knowledge     BC/3D_Polynomial.exa4     BC/3D_Polynomial.results     8  2
 BC_3D_Trigonometric  Main  BC/3D_Trigonometric.knowledge  BC/3D_Trigonometric.exa4  BC/3D_Trigonometric.results  8  2
 BC_3D_Periodic       Main  BC/3D_Periodic.knowledge       BC/3D_Periodic.exa4       BC/3D_Periodic.results       8  2
+COMPLEX_NUMBERS_BC Main BC/ComplexNumbers/ComplexNumbers.knowledge BC/ComplexNumbers/ComplexNumbers.exa4 BC/ComplexNumbers/ComplexNumbers.results 1 1
 
 #################################################################################################
 # CELL BASED DISCRETIZATION TESTS                                                               #
@@ -277,3 +278,9 @@ CUDA_ExaFluids_Bingham  Main CUDA/3D_ExaFluids_NN_CUDA.knowledge CUDA/3D_ExaFlui
 
 # 10 OMP threads
 #Large_Hybrid  Main  Large/Hybrid.knowledge  Large/Hybrid.exa4  Large/Hybrid.results  4  10
+
+#################################################################################################
+# complex numbers TESTS                                                                         #
+#################################################################################################
+
+COMPLEX_NUMBERS_BasicFunc  Main  ComplexNumbers/BasicFunc/BasicFunc.knowledge  ComplexNumbers/BasicFunc/BasicFunc.exa3  ComplexNumbers/BasicFunc/BasicFunc.results  1  1

@@ -1,0 +1,41 @@
+
+Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
+
+Layout complexNumberLayout< Complex<Double>, Node >@all {
+	ghostLayers = [0, 0]
+}
+
+
+Field complexNumberField< global, complexNumberLayout, c1 >[2]@all
+
+
+
+Globals {
+	Var c1 : Complex<Double> = (1.0 + 0.5j)
+
+}
+
+Function checkComplexNumberField@(coarsest to finest) {
+	loop over complexNumberField starting [-1,-1] ending [-1,-1] where ( ( i0 == 0 ) || ( i1 == 0 ) ){
+	if(notEqual(complexNumberField,c1)) {
+            print('boundary value differs from expected value')
+            return
+        }
+	if(notEqual(complexNumberField<1>,c1)) {
+            print('boundary value differs from expected value')
+            return
+        }	
+	}
+}
+/// main function
+
+Function Application ( ) : Unit {
+    initGlobals (  )
+    initDomain (  )
+    initFieldsWithZero (  )
+    apply bc to complexNumberField@1
+    checkComplexNumberField@1 ()
+    print('stage 0 done')
+
+	destroyGlobals (  )
+}

@@ -1,0 +1,17 @@
+
+
+Domain global< [ 0, 0 ] to [ 1, 1 ] >
+
+Function Application ( ) : Unit {
+	Var A : Complex<Double> = (1.0 + 0.5j) 
+	Var B : Complex<Double> = (1.0 + 0.5j) 
+	Var C : Complex<Double> = A + B 
+	Var Aimag : Double = imag(A)
+	Var absA : Double = abs(A)
+	Var Aconj : Complex<Double> = conj(A)
+	Var eq : Boolean = equal(A,B)
+	Var eq2 : Boolean = A == B
+
+	print('stage 0 done')
+}
+
