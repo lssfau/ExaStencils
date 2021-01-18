@@ -16,13 +16,13 @@ Globals {
 }
 
 Function checkComplexNumberField@(coarsest to finest) {
-	loop over complexNumberField starting [-1,-1] ending [-1,-1] where ( ( i0 == 0 ) || ( i1 == 0 ) ){
+	loop over complexNumberField starting [-1,-1] ending [-1,-1] where ( ( i0 == 0 ) || ( i1 == 0 ) ) {
 	if(notEqual(complexNumberField,c1)) {
-            print('boundary value differs from expected value')
+    print('boundary value differs from expected value')
             return
         }
-	if(notEqual(complexNumberField<1>,c1)) {
-            print('boundary value differs from expected value')
+	if(notEqual(complexNumberField[1],c1)) {
+	 print('boundary value differs from expected value')
             return
         }	
 	}
@@ -34,6 +34,8 @@ Function Application ( ) : Unit {
     initDomain (  )
     initFieldsWithZero (  )
     apply bc to complexNumberField@1
+    apply bc to complexNumberField[1]@1
+
     checkComplexNumberField@1 ()
     print('stage 0 done')
 

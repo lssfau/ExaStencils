@@ -4,14 +4,54 @@ Domain global< [ 0, 0 ] to [ 1, 1 ] >
 
 Function Application ( ) : Unit {
 	Var A : Complex<Double> = (1.0 + 0.5j) 
-	Var B : Complex<Double> = (1.0 + 0.5j) 
-	Var C : Complex<Double> = A + B 
-	Var Aimag : Double = imag(A)
-	Var absA : Double = abs(A)
-	Var Aconj : Complex<Double> = conj(A)
-	Var eq : Boolean = equal(A,B)
-	Var eq2 : Boolean = A == B
+	Var B : Complex<Double> = (0.75 + 1.5j) 
+	if(notEqual(A + B, (1.75 + 2.0j))) {
+		print('addition does not match result')
+	} 
 
+	if(notEqual(A - B, (0.25 - 1.0j))) {
+		print(A-B)
+		print('subtraction does not match result')
+	}
+
+
+
+	if(notEqual(A * B, ((1.0*0.75 - 0.5*1.5) + (1.0*1.5 + 0.5*0.75)j))) {
+		native ( "std::streamsize oldPrec = std::cout.precision()" )
+		native ( "std::cout.precision(17)" )
+		print(A*B)
+		print(((1.0*0.75 - 0.5*1.5) + (1.0*1.5 + 0.5*0.75)j))
+		native ( "std::cout.precision(oldPrec)" )
+		print('multiplication does not match result')
+	}
+
+	if(notEqual(B / A, 1.0/(1.0*1.0 + 0.5*0.5) * ((1.0*0.75 + 0.5*1.5)  + (1.0*1.5 - 0.5*0.75)j))) {
+		native ( "std::streamsize oldPrec = std::cout.precision()" )
+		native ( "std::cout.precision(17)" )
+		print(B/A)
+		print(1.0/(1.0*1.0 + 0.5*0.5) * ((1.0*0.75 + 0.5*1.5)  + (1.0*1.5 - 0.5*0.75)j))
+		native ( "std::cout.precision(oldPrec)" )
+		print('division does not match result')
+	}
 	print('stage 0 done')
+	
+	if(Im(A) != 0.5) {
+		print('imag() does not match')
+	}
+	if(Re(A) != 1.0) {
+		print('real() does not match')
+	}
+	print('stage 1 done')
+
+	if(fabs(abs(A) - 1.1180) > 0.0005) {
+		print('abs does not match result')
+	}
+	print('stage 2 done')
+
+	if(notEqual(conj(A), (1.0 - 0.5j))) {
+		print('conjugate does not match')
+	} 
+	print('stage 3 done')
+
 }
 
