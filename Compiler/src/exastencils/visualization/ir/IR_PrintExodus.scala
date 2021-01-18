@@ -18,6 +18,7 @@ import exastencils.base.ir.IR_InitializerList
 import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_PointerDatatype
+import exastencils.base.ir.IR_RealDatatype
 import exastencils.base.ir.IR_SizeOf
 import exastencils.base.ir.IR_SpecialDatatype
 import exastencils.base.ir.IR_Statement
@@ -63,16 +64,17 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] // contains data buffers for node positions, connectivity and field values
 
   // dataset names created by exodus
-  def datasetCoords : ListBuffer[String] = (0 until numDimsGrid).map(d => "coord" + ('x' + d).toChar.toString).to[ListBuffer]
-  def datasetConnectivity : String = "connect" + elemBlockId
-  def datasetTime = "time_whole"
-  def datasetFields : ListBuffer[String] = (0 until numFields).map(field => {
+  def datasetCoords : ListBuffer[IR_StringConstant] = (0 until numDimsGrid).map(d => IR_StringConstant("coord" + ('x' + d).toChar.toString)).to[ListBuffer]
+  def datasetConnectivity : IR_StringConstant = IR_StringConstant("connect" + elemBlockId)
+  def datasetTime = IR_StringConstant("time_whole")
+  def datasetFields : ListBuffer[IR_StringConstant] = (0 until numFields).map(field => {
     val basenameVariable = variableEntityType match {
       case EX_NODAL      => "vals_nod_var"
       case EX_ELEM_BLOCK => "vals_elem_var"
       case _             => Logger.error("Unknown variable entity type used in IR_PrintExodus.")
     }
-    basenameVariable + (field + 1).toString + "eb" + elemBlockId
+    val elemBlockName = if (variableEntityType == EX_ELEM_BLOCK) "eb" + elemBlockId else ""
+    IR_StringConstant(basenameVariable + (field + 1).toString + elemBlockName)
   }).to[ListBuffer]
 
   // constants
@@ -80,6 +82,8 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   val numSideSets : Int = 0 // unused, allows specifying load/boundary cond. for the side of an element
   val numElemBlocks : Int = 1 // group of elements of the same type. no mixed topologies -> 1
   val elemBlockId : Int = 1 // id of a block of elements
+  val numElem : IR_Expression = numCells // total number of elements
+  val numElemInBlock : IR_Expression = numElem // number of elements per block
   val numVariables : Int = fieldnames.length
 
   // use "ex_put_block" instead of "ex_put_elem_block" due to deprecation warnings (options: edge, face, or element blocks)
@@ -103,9 +107,9 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     IR_InitializerList((0 until numDimsGrid).map(dim => IR_CStringConstant(('x' + dim).toChar.toString)) : _*))
   val fieldNames_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_PointerDatatype(IR_CharDatatype), numVariables), "fieldNames",
     IR_InitializerList(fieldnames.map(fn => IR_CStringConstant(fn)) : _*))
-  // cpu and I/O word size. no mixing of 4- and 8-byte numbers allowed in a single file
-  val wordSizeCPU_decl = IR_VariableDeclaration(IR_IntegerDatatype, "wordSizeCPU", IR_SizeOf(someCellField.resolveBaseDatatype))
-  val wordSizeIO_decl = IR_VariableDeclaration(IR_IntegerDatatype, "wordSizeIO", IR_SizeOf(someCellField.resolveBaseDatatype)) // no conversion
+  // cpu and I/O word size of floating point data. no mixing of 4- and 8-byte numbers allowed in a single file
+  val wordSizeCPU_decl = IR_VariableDeclaration(IR_IntegerDatatype, "wordSizeCPU", IR_SizeOf(IR_RealDatatype))
+  val wordSizeIO_decl = IR_VariableDeclaration(IR_IntegerDatatype, "wordSizeIO", IR_SizeOf(IR_RealDatatype)) // no conversion
   // truth table indicates whether a variable is written for the elements in a block, creates netCDF variables for each enabled entry at once
   val truthTable_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numElemBlocks*numVariables), "truthTable",
     IR_InitializerList(Array.fill(numElemBlocks*numVariables)(IR_IntegerConstant(1)) : _*))
@@ -113,7 +117,6 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   val declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(
     info_decl, exoErr_decl, exoId_decl, coordNames_decl, fieldNames_decl, wordSizeCPU_decl, wordSizeIO_decl, truthTable_decl
   )
-
 
   // accesses
   val info = IR_VariableAccess(info_decl)
@@ -153,9 +156,9 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   def ex_create_par() : ListBuffer[IR_Statement] = ListBuffer(
     IR_Assignment(exoId, IR_FunctionCall(IR_ExternalFunctionReference("ex_create_par"), IR_FileAccess.filenameAsCString(filename), openMode, IR_AddressOf(wordSizeCPU), IR_AddressOf(wordSizeIO), mpiCommunicator, info)))
   def ex_put_init() : ListBuffer[IR_Statement] =
-    callExodusFunction("ex_put_init", exoId, IR_CStringConstant("title"), numDimsGrid, numNodes, numCells, numElemBlocks, numNodeSets, numSideSets)
+    callExodusFunction("ex_put_init", exoId, IR_CStringConstant("title"), numDimsGrid, numNodes, numElem, numElemBlocks, numNodeSets, numSideSets)
   def ex_put_block() : ListBuffer[IR_Statement] =
-    callExodusFunction("ex_put_block", exoId, elemBlockType, elemBlockId, IR_StringConstant(elementName), numCells, nodesPerElement, numEdgesPerElem, numFacesPerElem, numAttrsPerElem)
+    callExodusFunction("ex_put_block", exoId, elemBlockType, elemBlockId, IR_StringConstant(elementName), numElemInBlock, nodesPerElement, numEdgesPerElem, numFacesPerElem, numAttrsPerElem)
   def ex_put_coord_names() : ListBuffer[IR_Statement] =
     callExodusFunction("ex_put_coord_names", exoId, coordNames)
   def ex_put_variable_param() : ListBuffer[IR_Statement] =
@@ -226,11 +229,6 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
 
     /* declare flattened dims of the datasets */
     val fragOffset = IR_IV_FragmentOffset(domainIndex) + IR_LoopOverFragments.defIt
-    val spatialDimField : IR_Expression = variableEntityType match {
-      case EX_NODAL      => numPointsPerFrag
-      case EX_ELEM_BLOCK => numCellsPerFrag
-      case _             => Logger.error("Unknown entity type used for field data in \"IR_PrintExodus\"")
-    }
     def declareDims(numDims : Int, name : String, localization : IR_Localization, optDims : Option[ListBuffer[IR_Expression]] = None) = {
       val dt = IR_ArrayDatatype(ncInterface.datatypeDimArray, numDims)
       val decl = IR_FileAccess.declareDimensionality(dt, name, localization, optDims)
@@ -239,13 +237,10 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     }
     // node positions: 1 spatial dim = number of nodes
     def countNodePos(numFragsPerWrite : IR_Expression) = declareDims(1, "countNodePos", IR_AtNode, Some(ListBuffer(numFragsPerWrite * numPointsPerFrag)))
-    val startNodePos = declareDims(1, "startNodePos", IR_AtNode) -> ListBuffer[IR_Expression](fragOffset * numPointsPerFrag)
+    lazy val startNodePos = declareDims(1, "startNodePos", IR_AtNode) -> ListBuffer[IR_Expression](fragOffset * numPointsPerFrag)
     // connectivity: 2 spatial dims = (number of elements, nodes per element)
     def countConnectivity(numFragsPerWrite : IR_Expression) = declareDims(2, "countConnectivity", IR_AtCellCenter, Some(ListBuffer(numFragsPerWrite * numCellsPerFrag, nodesPerElement)))
-    val startConnectivity = declareDims(2, "startConnectivity", IR_AtCellCenter) -> ListBuffer[IR_Expression](fragOffset * numCellsPerFrag, 0)
-    // variables: 1 spatial dim and 1 temporal dim: (timestep, number of field values [dep. on localization])
-    def countFieldData(numFragsPerWrite : IR_Expression) = declareDims(2, "countFieldData", someCellField.localization, Some(ListBuffer(1, numFragsPerWrite * spatialDimField)))
-    val startFieldData = declareDims(3, "startFieldData", someCellField.localization) -> ListBuffer[IR_Expression](IR_IV_TimeIndexRecordVariables(), fragOffset * spatialDimField)
+    lazy val startConnectivity = declareDims(2, "startConnectivity", IR_AtCellCenter) -> ListBuffer[IR_Expression](fragOffset * numCellsPerFrag, 0)
 
     /* create MPI Derived Datatypes to describe the memory layout of each buffer */
     // TODO free datatypes
@@ -271,11 +266,29 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
 
     // set global start index for each process, handle "invalid" fragments and write data
     def writeExodusDatasets() : mutable.ListBuffer[IR_Statement] = dataBuffers(constsIncluded).zipWithIndex.map { case (buf, bufIdx) =>
+      // declare extents of variables: 1 spatial dim and 1 temporal dim: (timestep, number of field values [dep. on localization])
+      val spatialDimField : IR_Expression = variableEntityType match {
+        case EX_NODAL      => numPointsPerFrag
+        case EX_ELEM_BLOCK => numCellsPerFrag
+        case _             => Logger.error("Unknown entity type used for field data in \"IR_PrintExodus\":" + variableEntityType.name)
+      }
+      def countFieldData(numFragsPerWrite : IR_Expression) = declareDims(2, "countFieldData", buf.localization, Some(ListBuffer(1, numFragsPerWrite * spatialDimField)))
+      val startFieldData = declareDims(3, "startFieldData", buf.localization) -> ListBuffer[IR_Expression](IR_IV_TimeIndexRecordVariables(), fragOffset * spatialDimField)
+
       // associate flattened dims with buffers depending on the buffers characteristics
       val numFragsPerWrite = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else IR_IntegerConstant(1)
-      // if buffer time dep. -> variable, otherwise constants: if cell-centered -> connectivity, else node positions
-      val count = if (ncInterface.useTimeDim(bufIdx)) countFieldData(numFragsPerWrite) else if (buf.localization == IR_AtCellCenter) countConnectivity(numFragsPerWrite) else countNodePos(numFragsPerWrite)
-      val start = if (ncInterface.useTimeDim(bufIdx)) startFieldData else if (buf.localization == IR_AtCellCenter) startConnectivity else startNodePos
+      val count = buf.datasetName match {
+        case s : IR_StringConstant if datasetCoords.contains(s) => countNodePos(numFragsPerWrite)
+        case s : IR_StringConstant if s == datasetConnectivity  => countConnectivity(numFragsPerWrite)
+        case s : IR_StringConstant if datasetFields.contains(s) => countFieldData(numFragsPerWrite)
+        case _                                                  => Logger.error("Unknown dataset used in IR_PrintExodus: " + buf.datasetName)
+      }
+      val start = buf.datasetName match {
+        case s : IR_StringConstant if datasetCoords.contains(s) => startNodePos
+        case s : IR_StringConstant if s == datasetConnectivity  => startConnectivity
+        case s : IR_StringConstant if datasetFields.contains(s) => startFieldData
+        case _                                                  => Logger.error("Unknown dataset used in IR_PrintExodus: " + buf.datasetName)
+      }
 
       val numDims = count.datatype.asInstanceOf[IR_ArrayDatatype].numElements
       val bufCount = IR_VariableAccess(IR_FileAccess.declareVariable("bufCount"), IR_IntegerDatatype)

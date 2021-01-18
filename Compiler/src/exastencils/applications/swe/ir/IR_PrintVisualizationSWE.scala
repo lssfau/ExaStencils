@@ -12,7 +12,6 @@ import exastencils.base.ir.IR_ForLoop
 import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_Index
-import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_NullStatement
 import exastencils.base.ir.IR_PointerDatatype
 import exastencils.base.ir.IR_PreIncrement
@@ -46,9 +45,9 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
   def numCells_x : Int = etaDiscLower0.layout.layoutsPerDim(0).numInnerLayers
   def numCells_y : Int = etaDiscLower0.layout.layoutsPerDim(1).numInnerLayers
   def numCells_z = 1
-  def numCellsPerFrag : Int = 2 * numCells_x * numCells_y * numCells_z
+  def numCellsPerFrag : IR_Expression = 2 * numCells_x * numCells_y * numCells_z
 
-  def dimsPositionsFrag : ListBuffer[IR_IntegerConstant] = if (Knowledge.swe_nodalReductionPrint) ListBuffer(numCells_x+1, numCells_y+1) else ListBuffer(6, numCells_x, numCells_y)
+  override def dimsPositionsFrag : ListBuffer[IR_Expression] = if (Knowledge.swe_nodalReductionPrint) ListBuffer(numCells_x+1, numCells_y+1) else ListBuffer(6, numCells_x, numCells_y)
 
   def bath : IR_Field = IR_FieldCollection.getByIdentifier("bath", level).get
 
@@ -132,11 +131,11 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
     }
   }
 
-  val etaReduced = IR_IV_TemporaryBuffer(etaDiscLower0.resolveBaseDatatype, IR_AtNode, "etaReduced", etaDiscLower0.domain.index, ListBuffer() ++ dimsPositionsFrag)
-  val uReduced = IR_IV_TemporaryBuffer(uDiscLower0.resolveBaseDatatype, IR_AtNode, "uReduced", uDiscLower0.domain.index, ListBuffer() ++ dimsPositionsFrag)
-  val vReduced = IR_IV_TemporaryBuffer(vDiscLower0.resolveBaseDatatype, IR_AtNode, "vReduced", vDiscLower0.domain.index, ListBuffer() ++ dimsPositionsFrag)
+  val etaReduced = IR_IV_TemporaryBuffer(etaDiscLower0.resolveBaseDatatype, IR_AtNode, "etaReduced", etaDiscLower0.domain.index, dimsPositionsFrag)
+  val uReduced = IR_IV_TemporaryBuffer(uDiscLower0.resolveBaseDatatype, IR_AtNode, "uReduced", uDiscLower0.domain.index, dimsPositionsFrag)
+  val vReduced = IR_IV_TemporaryBuffer(vDiscLower0.resolveBaseDatatype, IR_AtNode, "vReduced", vDiscLower0.domain.index, dimsPositionsFrag)
   val orderReduced : Option[IR_IV_TemporaryBuffer] = if (orderDisc.isDefined)
-    Some(IR_IV_TemporaryBuffer(optLocalOrderLower.get.resolveBaseDatatype, IR_AtNode, "orderReduced", optLocalOrderLower.get.domain.index, ListBuffer() ++ dimsPositionsFrag))
+    Some(IR_IV_TemporaryBuffer(optLocalOrderLower.get.resolveBaseDatatype, IR_AtNode, "orderReduced", optLocalOrderLower.get.domain.index, dimsPositionsFrag))
   else
     None
 

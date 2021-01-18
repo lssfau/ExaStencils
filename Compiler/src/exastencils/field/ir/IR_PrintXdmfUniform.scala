@@ -15,7 +15,6 @@ import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_Lower
 import exastencils.base.ir.IR_PreIncrement
 import exastencils.base.ir.IR_RealDatatype
-import exastencils.base.ir.IR_ScalarDatatype
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_StringConstant
 import exastencils.base.ir.IR_ToInt
@@ -24,17 +23,14 @@ import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
-import exastencils.baseExt.ir.IR_MatrixDatatype
-import exastencils.baseExt.ir.IR_VectorDatatype
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.domain.ir.IR_DomainFromAABB
 import exastencils.domain.ir.IR_IV_FragmentPositionBegin
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.grid.ir.IR_AtFaceCenter
-import exastencils.grid.ir.IR_AtNode
-import exastencils.grid.ir.IR_Localization
 import exastencils.grid.ir.IR_VF_CellWidthPerDim
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_FragmentInfo
@@ -42,6 +38,7 @@ import exastencils.io.ir.IR_IV_TemporaryBuffer
 import exastencils.logger.Logger
 import exastencils.util.ir.IR_AABB
 import exastencils.util.ir.IR_Print
+import exastencils.visualization.ir.IR_IV_ConstantsWrittenToFile
 import exastencils.visualization.ir.IR_PrintXdmf
 
 /// IR_PrintXdmfUniform
@@ -76,20 +73,13 @@ case class IR_PrintXdmfUniform(
     Logger.error("IR_PrintXdmfUniform is only usable for 2D/3D cases.")
   }
 
-  override def centeringType(localization : IR_Localization) : String = localization match {
-    case IR_AtNode          => "Node"
-    case IR_AtCellCenter    => "Cell"
-    case IR_AtFaceCenter(_) => "Cell" // interpolated
-    case _                  => Logger.error("Unsupported localization for IR_PrintXdmf!")
-  }
-
   override def domainIndex : Int = field.domain.index
 
   // handling staggered grids: cell-centered temp. buffers with interpolation
   override def numCells_x : Int = (1 << level) * Knowledge.domain_fragmentLengthAsVec(0)
   override def numCells_y : Int = (1 << level) * Knowledge.domain_fragmentLengthAsVec(1)
   override def numCells_z : Int = if (numDimsGrid < 3) 1 else (1 << level) * Knowledge.domain_fragmentLengthAsVec(2)
-  override def numCellsPerFrag : Int = numCells_x * numCells_y * numCells_z
+  override def numCellsPerFrag : IR_Expression = numCells_x * numCells_y * numCells_z
   val staggerDim : Int = field.localization match {
     case IR_AtFaceCenter(dim) => dim
     case _ => -1
@@ -166,27 +156,14 @@ case class IR_PrintXdmfUniform(
 
   // set start index in global domain and select component of a higher-dim. datatype
   private def globalStartCurRank(componentIndex : Int = 0) : ListBuffer[IR_Expression] = {
-    def accessComponent(startIdx : ListBuffer[IR_Expression]) = field.gridDatatype match {
-      case mat : IR_MatrixDatatype =>
-        val r = componentIndex / mat.sizeN
-        val c = componentIndex % mat.sizeN
-        startIdx :+ IR_IntegerConstant(r) :+ IR_IntegerConstant(c)
-      case _ : IR_VectorDatatype =>
-        startIdx :+ IR_IntegerConstant(componentIndex)
-      case _ : IR_ScalarDatatype   =>
-        startIdx
-      case _                       =>
-        Logger.error("Unsupported higher dimensional datatype used for \"IR_PrintXdmfUniform\".")
-    }
-
     if (canonicalFileLayout) {
       // replace last indices (of the multidim datatype) with the component selection
       val start = dataBuffer.canonicalStartIndexGlobal((0 until field.numDimsGrid).map(fragIndexCurRank))
-      accessComponent(start.dropRight(dimsDt)) // e.g. [global x, global y, v0, v1]
+      accessComponent(componentIndex, field.gridDatatype, start.dropRight(dimsDt)) // e.g. [global x, global y, 2, 1] -> [global x, global y, 1, 1]
     } else {
       // replace indices at the end (except "fragment dimension") with the component selection
       val start = dataBuffer.fragmentwiseStartIndexGlobal(fragIdCurRank(global = true))
-      accessComponent(start.dropRight(dimsDt + 1)) :+ start.last // e.g. [x, y, z, v0, v1, v2, fragment]
+      accessComponent(componentIndex, field.gridDatatype, start.dropRight(dimsDt + 1)) :+ start.last // e.g. [x, y, z, 3, 1, fragment] -> [x, y, z, 1, 1, fragment]
     }
   }
 
@@ -293,30 +270,24 @@ case class IR_PrintXdmfUniform(
 
   override def writeXdmfAttributes(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
+    val offsetDataBuffer = getSeekp(global)
 
     statements += printXdmfElement(stream, openAttribute(field.name, attributeType(field.gridDatatype), centeringType(dataBuffer.localization)))
-
-    // set up inner dims per frag
-    val innerDimsLocal = if (dataBuffer.accessBlockwise) {
-      dataBuffer.innerDimsLocal.dropRight(1) // temp. buffers: remove "fragment dimension"
-    } else {
-      dataBuffer.innerDimsLocal
-    }
 
     // handle non-scalar datatypes
     val joinDataItems = dimsDt > 0 && ioInterface != "fpp"
     val arrayIndexRange = dataBuffer.datatype.resolveFlattendSize
     val dimsHigherDimDatatype = if (dimsDt > 0) {
-      IR_IntegerConstant(arrayIndexRange) +: innerDimsLocal.dropRight(dimsDt) // reorder indices (e.g. for matrix: [x, y, 2, 1] -> [2, x, y])
+      IR_IntegerConstant(arrayIndexRange) +: dataBuffer.innerDimsPerFrag.dropRight(dimsDt) // reorder indices (e.g. for matrix: [x, y, 2, 1] -> [2, x, y])
     } else {
-      innerDimsLocal
+      dataBuffer.innerDimsPerFrag
     }
     val localDimsTotal = if (ioInterface == "fpp") {
       // in fpp schemes, all components are written at once in a IR_LoopOverDimensions
       dimsHigherDimDatatype
     } else {
       // otherwise, multidim. datatypes are output as multiple "scalar" components
-      innerDimsLocal
+      dataBuffer.innerDimsPerFrag
     }
     val dimsComponent = if (joinDataItems) {
       localDimsTotal.dropRight(dimsDt) // select a component of the datatype
@@ -333,25 +304,20 @@ case class IR_PrintXdmfUniform(
     val numComponents = if (joinDataItems) arrayIndexRange else 1
     (0 until numComponents).foreach(component => {
       val offsetComponent = component * dimsComponent.reduce(_ * _) * dataBuffer.datatype.resolveBaseDatatype.typicalByteSize // for non-scalar datatypes: skip to current component
-      val seekp = offsetComponent + (if (fmt == "Binary") fragIdCurRank(global) * dataBuffer.typicalByteSizeFrag else 0) // field data laid out fragment-wise -> calc. offset to each fragment
+      val seekp = offsetDataBuffer + offsetComponent + (if (fmt == "Binary") fragIdCurRank(global) * dataBuffer.typicalByteSizeFrag else 0) // field data laid out fragment-wise -> calc. offset to each fragment
 
       // depending on format and file layout, select the appropriate portion from the "heavy data" file for each fragment
       if ((ioInterface == "hdf5") || (ioInterface == "mpiio" && canonicalFileLayout)) {
         // global file is hdf5 or laid out canonically -> select portion via "hyperslabs"
         val startIndexGlobal = globalStartCurRank(component)
-        // conditionally add "fragment dimension" to local dims (for non-canonical layouts)
+        // conditionally add "fragment dimension (1)" to local dims
         val localDimsComponent = dimsComponent ++ ListBuffer.fill(dimsDt)(IR_IntegerConstant(1)) // extract values for one component
-        val count = if (dataBuffer.accessBlockwise) {
-          // "fragment dim" already removed in "innerDimsLocal" -> add unconditionally (i.e. w/o handleFragmentDimension(...))
-          localDimsComponent :+ IR_IntegerConstant(1)
-        } else {
-          IR_DataBuffer.handleFragmentDimension(dataBuffer, localDimsComponent, 1, orderKJI = false)
-        }
+        val count = if (!canonicalFileLayout) localDimsComponent :+ IR_IntegerConstant(1) else localDimsComponent
         val stride = IR_DataBuffer.handleFragmentDimension(dataBuffer, dataBuffer.stride, 1, orderKJI = false)
 
         statements += printXdmfElement(stream, openDataItemHyperslab(dimsComponent) : _*)
         statements += printXdmfElement(stream, dataItemHyperslabSelection(startIndexGlobal, stride, count) : _*)
-        statements += printXdmfElement(stream, dataItemHyperslabSource(dataBuffer.datatype.resolveBaseDatatype, dataBuffer.globalDims, printFilename(stream, dataset)) : _*)
+        statements += printXdmfElement(stream, dataItemHyperslabSource(dataBuffer.datatype.resolveBaseDatatype, dataBuffer.globalDims, printFilename(stream, dataset), offsetDataBuffer) : _*)
       } else {
         // file laid out fragment-wise -> select portion via offsets
         statements += printXdmfElement(stream, openDataItem(field.resolveBaseDatatype, dimsComponent, seekp) : _*)
@@ -363,7 +329,7 @@ case class IR_PrintXdmfUniform(
             printComponents += indentData
             printComponents ++= handler.getIndicesMultiDimDatatypes(buf).flatMap(idx => {
               if (buf.accessBlockwise) {
-                // already within a fragment loop -> use index from outer loop
+                // HACK: already within a fragment loop -> drop fragment loop from temp. buffer and access values with index from outer loop
                 val accessIndices = idx.toExpressionIndex.indices.dropRight(1) :+ IR_LoopOverFragments.defIt
                 List(buf.getAccess(IR_ExpressionIndex(accessIndices)), separator)
               } else {
@@ -373,7 +339,9 @@ case class IR_PrintXdmfUniform(
             printComponents += IR_Print.newline
 
             statements += IR_LoopOverDimensions(numDimsGrid,
-              IR_ExpressionIndexRange(IR_ExpressionIndex(buf.beginIndices : _*), IR_ExpressionIndex(buf.endIndices : _*)),
+              IR_ExpressionIndexRange(
+                IR_ExpressionIndex(buf.numDimsGridRange.map(dim => buf.beginIndices(dim) - Duplicate(buf.referenceOffset(dim)) : IR_Expression).toArray),
+                IR_ExpressionIndex(buf.numDimsGridRange.map(dim => buf.endIndices(dim) - Duplicate(buf.referenceOffset(dim)) : IR_Expression).toArray)),
               IR_Print(stream, printComponents))
           })
         } else {
@@ -404,13 +372,14 @@ case class IR_PrintXdmfUniform(
     stmts
   }
 
-  // no constants to be reduced -> only write data
   override def writeDataAndSetConstFile() : ListBuffer[IR_Statement] = {
-    if (fmt != "XML") {
+    val setConstFile = IR_IV_ConstantsWrittenToFile().setFilename(IR_StringConstant("")) // no constants to be reduced -> set to empty string
+    val write = if (fmt != "XML") {
       writeData(constsIncluded = false)
     } else {
       ListBuffer() // data already incorporated in xdmf file
     }
+    setConstFile +: write
   }
 
   override def numDimsGrid : Int = field.layout.numDimsGrid
@@ -419,7 +388,6 @@ case class IR_PrintXdmfUniform(
 
   // unused for this implementation
   override def connectivityForCell(global : Boolean) : ListBuffer[IR_Expression] = ???
-  override def dimsPositionsFrag : ListBuffer[IR_IntegerConstant] = ???
   override def someCellField : IR_Field = ???
   override def nodeOffsets : ListBuffer[IR_ConstIndex] = ???
 }

@@ -30,9 +30,9 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads{
   def numCells_x : Int = p.layout.layoutsPerDim(0).numInnerLayers
   def numCells_y : Int = p.layout.layoutsPerDim(1).numInnerLayers
   def numCells_z : Int = if (numDimsGrid > 2) p.layout.layoutsPerDim(2).numInnerLayers else 1
-  def numCellsPerFrag : Int = numCells_x * numCells_y * numCells_z
+  def numCellsPerFrag : IR_Expression = numCells_x * numCells_y * numCells_z
 
-  def dimsPositionsFrag : ListBuffer[IR_IntegerConstant] = ListBuffer(numCells_x+1, numCells_y+1, if (numDimsGrid > 2) numCells_z+1 else 1).map(a => IR_IntegerConstant(a))
+  override def dimsPositionsFrag : ListBuffer[IR_Expression] = ListBuffer(numCells_x+1, numCells_y+1, if (numDimsGrid > 2) numCells_z+1 else 1).map(a => IR_IntegerConstant(a))
 
   def fieldnames : ListBuffer[String]
   def numFields : Int = fieldnames.length

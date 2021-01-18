@@ -87,13 +87,15 @@ case class IR_PrintField(
       val openMode = if(Knowledge.mpi_enabled)
         IR_VariableAccess("std::ios::app", IR_UnknownDatatype) // file was already created by root process
       else
-        IR_VariableAccess("std::ios::trunc", IR_UnknownDatatype)
-      if (!binaryOutput && Knowledge.experimental_generateParaviewFiles) { // write header
+        IR_VariableAccess("std::ios::trunc", IR_UnknownDatatype) // create new file
+
+      // write header at the beginning of the file with root
+      if (!binaryOutput && Knowledge.experimental_generateParaviewFiles) {
         val streamName = IR_FieldIO.getNewStreamName()
         def streamType = IR_SpecialDatatype("std::ofstream")
         def stream = IR_VariableAccess(streamName, streamType)
         tmp += IR_ObjectInstantiation(streamType, streamName, filename, openMode)
-        tmp += IR_Print(stream, "\"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\"", IR_Print.endl)
+        tmp += IR_Print(stream, s"""\"${ (0 until field.numDimsGrid).map(d => ('x' + d).toChar.toString).mkString(",") },""" + arrayIndexRange.map(index => s"s$index").mkString(",") + "\"", IR_Print.endl)
         tmp += IR_MemberFunctionCall(stream, "close")
         if (Knowledge.mpi_enabled)
           ret += IR_IfCondition(MPI_IsRootProc(), tmp)
@@ -109,6 +111,9 @@ case class IR_PrintField(
   }
 
   def printXdmf() : IR_Statement = {
+    if (condition != IR_BooleanConstant(true))
+      Logger.error("Conditions are not applicable in combination with \"IR_PrintXdmf\" since the data extents must be determinable.")
+
     if (Knowledge.grid_isUniform && Knowledge.grid_isAxisAligned) {
       IR_PrintXdmfUniform(filename, field, slot, ioInterface, includeGhostLayers, dataset, binaryOutput && ioInterfaceName == "fpp", canonicalOrder)
     } else {

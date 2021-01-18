@@ -37,14 +37,13 @@ trait IR_PrintVisualizationTriangles extends IR_PrintVisualization {
     Array(0, 1, 2, 3, 4, 5)
   }
 
-
-  def offsetLoopOverDim : IR_Expression = if (Knowledge.swe_nodalReductionPrint) {
-    IR_LoopOverDimensions.defItForDim(0) + IR_LoopOverDimensions.defItForDim(1) * (numCells_x+1)
-  } else {
-    6 * (IR_LoopOverDimensions.defItForDim(0) + IR_LoopOverDimensions.defItForDim(1) * numCells_x)
-  }
-
   def connectivityForCell(global : Boolean = true) : ListBuffer[IR_Expression] = {
+    val offsetLoopOverDim = if (Knowledge.swe_nodalReductionPrint) {
+      IR_LoopOverDimensions.defItForDim(0) + IR_LoopOverDimensions.defItForDim(1) * (numCells_x+1)
+    } else {
+      6 * (IR_LoopOverDimensions.defItForDim(0) + IR_LoopOverDimensions.defItForDim(1) * numCells_x)
+    }
+
     // indices into node list to construct cells
     val offsetFragLoop : IR_Expression = //(MPI_IV_MpiRank * Knowledge.domain_numFragmentsPerBlock + IR_LoopOverFragments.defIt) * numPointsPerFrag
       ((if (global) fragmentOffset else IR_IntegerConstant(0)) + IR_LoopOverFragments.defIt) * numPointsPerFrag + connectivityStartIndex

@@ -128,11 +128,12 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     case _ : IR_MatrixDatatype                           => "Matrix" // TODO does this work with xdmf?
     case _                                               => Logger.error("Unsupported datatype for IR_PrintXdmf: " + gridDatatype.prettyprint)
   }
+
   def centeringType(localization : IR_Localization) : String = localization match {
-    case IR_AtNode       => "Node"
-    case IR_AtCellCenter => "Cell"
+    case IR_AtNode          => "Node"
+    case IR_AtCellCenter    => "Cell"
     // according to the docs ("https://www.xdmf.org/index.php/XDMF_Model_and_Format"), face centered variables are supported but do not map well for vis. systems (e.g. ParaView)
-    case IR_AtFaceCenter(_) => Logger.error("Unsupported localization for IR_PrintXdmf!") // TODO handling?
+    case IR_AtFaceCenter(_) => "Cell" // values are interpolated
     case _                  => Logger.error("Unsupported localization for IR_PrintXdmf!")
   }
 
@@ -199,9 +200,9 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     buffer += IR_StringConstant("\t" + closeDataItem)
     buffer
   }
-  def dataItemHyperslabSource(dt : IR_Datatype, dims : ListBuffer[IR_Expression], printFilename : IR_Print) : ListBuffer[IR_Expression] = {
+  def dataItemHyperslabSource(dt : IR_Datatype, dims : ListBuffer[IR_Expression], printFilename : IR_Print, seekp : IR_Expression) : ListBuffer[IR_Expression] = {
     var buffer : ListBuffer[IR_Expression] = ListBuffer()
-    buffer ++= IR_StringConstant("\t") +: openDataItem(dt, dims) :+ IR_Print.newline
+    buffer ++= IR_StringConstant("\t") +: openDataItem(dt, dims, seekp) :+ IR_Print.newline
     buffer ++= IR_StringConstant("\t") +: printFilename.toPrint
     buffer += IR_StringConstant("\t" + closeDataItem)
     buffer

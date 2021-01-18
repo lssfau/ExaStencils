@@ -3,14 +3,13 @@ package exastencils.applications.ns.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Expression
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableAccess
+import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.visualization.ir.IR_PrintExodus
-import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_StringConstant
-import exastencils.field.ir.IR_IV_ActiveSlot
 
 /// IR_PrintExodusNS
 // 2D or 3D
@@ -35,12 +34,12 @@ case class IR_PrintExodusNS(
 
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
     val constants = nodePositionsBuf.zipWithIndex.map { case (buf, idx) =>
-      IR_DataBuffer(buf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetCoords(idx)))) } :+
-      IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetConnectivity)))
+      IR_DataBuffer(buf, IR_IV_ActiveSlot(p), None, Some(datasetCoords(idx))) } :+
+      IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(p), None, Some(datasetConnectivity))
     var fields = velocityComponentsAsVec.zipWithIndex.map { case (tmpBuf, d) =>
-      IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(u), None, Some(IR_StringConstant(datasetFields(d))))
+      IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(u), None, Some(datasetFields(d)))
     }.to[ListBuffer]
-    fields += IR_DataBuffer(p, IR_IV_ActiveSlot(p), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(numDimsGrid))), canonicalOrder = false)
+    fields += IR_DataBuffer(p, IR_IV_ActiveSlot(p), includeGhosts = false, None, Some(datasetFields(numDimsGrid)), canonicalOrder = false)
 
     if (constsIncluded) constants ++ fields else fields
   }

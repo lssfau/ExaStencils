@@ -28,7 +28,7 @@ object IR_DataBuffer {
   // output data fragment-after-fragment -> additional dimensionality in this case
   def handleFragmentDimension(buf : IR_DataBuffer, dims : ListBuffer[IR_Expression], fragmentDim : IR_Expression, orderKJI : Boolean = true) : ListBuffer[IR_Expression] = {
     if (!buf.canonicalOrder) {
-      val dimsPerFrag = if (buf.accessBlockwise) dims.drop(1) else dims
+      val dimsPerFrag = if (buf.accessBlockwise) { if (orderKJI) dims.drop(1) else dims.dropRight(1) } else dims
       if (orderKJI) fragmentDim +: dimsPerFrag else dimsPerFrag :+ fragmentDim
     } else {
       dims
@@ -147,7 +147,7 @@ case class IR_DataBuffer(
 ) {
 
   /* In this implementation, two data layouts are supported:
-      1. Data is accessed in a canonical order (data is stored as if the whole was written in one piece, i.e. as if the domain was never decomposed)
+      1. Data is accessed in a canonical order (data is stored as if the whole global domain was written in one piece, i.e. as if is was never decomposed)
       2. Data is laid out in fragment-wise order (e.g. the data of fragment "1" is stored after fragment "0" linearly)
   */
   val canonicalOrder : Boolean = canonicalStorageLayout && Knowledge.domain_onlyRectangular
@@ -159,7 +159,12 @@ case class IR_DataBuffer(
   def stride : ListBuffer[IR_Expression] = accessPattern.stridePerDimension.getOrElse(numDimsDataRange.map(_ => 1 : IR_Expression).to[ListBuffer])
   def strideKJI : ListBuffer[IR_Expression] = stride.reverse
 
-  def innerDimsLocal: ListBuffer[IR_Expression] = numDimsDataRange.map(d => endIndices(d) - beginIndices(d) : IR_Expression).to[ListBuffer]
+  // temp. buffers: remove "fragment dimension"
+  def innerDimsPerFrag : ListBuffer[IR_Expression] = if (accessBlockwise) innerDimsLocal.dropRight(1) else innerDimsLocal
+  def totalDimsPerFrag : ListBuffer[IR_Expression] = if (accessBlockwise) totalDimsLocal.dropRight(1) else totalDimsLocal
+  def startIndexPerFrag : ListBuffer[IR_Expression] = if (accessBlockwise) startIndexLocal.dropRight(1) else startIndexLocal
+
+  def innerDimsLocal : ListBuffer[IR_Expression] = numDimsDataRange.map(d => endIndices(d) - beginIndices(d) : IR_Expression).to[ListBuffer]
   def innerDimsLocalKJI : ListBuffer[IR_Expression] = innerDimsLocal.reverse
 
   def startIndexLocal: ListBuffer[IR_Expression] = numDimsDataRange.map(d => referenceOffset(d)).to[ListBuffer]

@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ConstIndex
 import exastencils.base.ir.IR_Expression
+import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_Index
@@ -12,8 +13,11 @@ import exastencils.base.ir.IR_RealDatatype
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_StringConstant
 import exastencils.base.ir.IR_VariableAccess
+import exastencils.baseExt.ir.IR_ExpressionIndexRange
+import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.grid.ir.IR_AtFaceCenter
@@ -25,6 +29,9 @@ import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_FileAccess_FPP
 import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.io.ir.IR_IV_TemporaryBuffer
+import exastencils.io.ir.IR_IV_TotalNumFrags
+import exastencils.logger.Logger
+import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_PrintXdmf
 
 case class IR_PrintXdmfMeshless(
@@ -38,11 +45,17 @@ case class IR_PrintXdmfMeshless(
 
   def datasetCoords : ListBuffer[IR_Expression] = (0 until numDimsGrid).map(d => IR_StringConstant("/constants/" + ('X' + d).toChar.toString) : IR_Expression).to[ListBuffer]
 
+  // validate params
+  if (includeGhostLayers) {
+    includeGhostLayers = false
+    Logger.warn("Ghost layer visualization is currently unsupported for IR_PrintXdmfMeshless!")
+  }
+  if (numDimsGrid < 2) {
+    Logger.error("IR_PrintXdmfMeshless is only usable for 2D/3D cases.")
+  }
+
   // we always have the association: vertex position <-> field data. values do not need to be output canonically
   override def canonicalFileLayout : Boolean = false
-
-  override def dimsPositionsFrag : ListBuffer[IR_IntegerConstant] =
-    (0 until numDimsGrid).map(dim => IR_IntegerConstant((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1)).to[ListBuffer]
 
   override def domainIndex : Int = field.domain.index
 
@@ -80,19 +93,21 @@ case class IR_PrintXdmfMeshless(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     statements ++= IR_IV_FragmentInfo.init(
-      dataBufferField.domainIdx,
+      domainIndex,
       // in file-per-process, each rank writes its own domain piece individually -> fragOffset = 0
       calculateFragOffset = ioInterface != "fpp"
     )
 
     // conditionally init buffer with the corresponding field's positions
-    (0 until numDimsGrid).to[ListBuffer].foreach { dim =>
-      val initBuf = field.localization match {
-        case IR_AtNode          => initNodePosBuf(dim)
-        case IR_AtCellCenter    => initCellCenterBuf(dim)
-        case IR_AtFaceCenter(_) => initFacePosBuf(getFaceDir(field.localization))(dim)
+    if (fmt != "XML") {
+      (0 until numDimsGrid).to[ListBuffer].foreach { dim =>
+        val initBuf = field.localization match {
+          case IR_AtNode          => initNodePosBuf(dim)
+          case IR_AtCellCenter    => initCellCenterBuf(dim)
+          case IR_AtFaceCenter(_) => initFacePosBuf(getFaceDir(field.localization))(dim)
+        }
+        statements ++= initBuf
       }
-      statements ++= initBuf
     }
 
     statements
@@ -104,15 +119,17 @@ case class IR_PrintXdmfMeshless(
     statements += printXdmfElement(stream, openGeometry((0 until numDimsGrid).map(d => ('X'+d).toChar.toString).mkString("_"))) // positions are not interleaved
     for (d <- 0 until field.numDimsGrid) {
       val buf = dataBuffersVertexPos(d)
-      val bufIdx = dataBuffers(constsIncluded = true).indexOf(buf)
       val numVertices = IR_DataBuffer.handleFragmentDimension(buf, buf.innerDimsLocal, dimFrags(global), orderKJI = false)
 
       statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, numVertices, seekp = getSeekp(global)) : _*)
       statements += (if (fmt == "XML") {
-        val handler = ioHandler(constsIncluded = true, filenamePieceFpp).asInstanceOf[IR_FileAccess_FPP]
         IR_LoopOverFragments(
           IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
-          handler.printBufferAscii(bufIdx, stream, condition =  true, separator, indent = Some(indentData))))
+            IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
+              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => field.layout.idxById("DLB", dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
+              IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => field.layout.idxById("DRE", dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
+              IR_Print(stream, indentData, getPos(field.localization, level, d), IR_Print.newline))),
+          IR_Print(stream, IR_Print.flush))
       } else {
         printFilename(stream, datasetCoords(d))
       })
@@ -138,20 +155,55 @@ case class IR_PrintXdmfMeshless(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
     val buf = dataBufferField
     val bufIdx = dataBuffers(constsIncluded = true).indexOf(buf)
-    val dimsAttr = IR_DataBuffer.handleFragmentDimension(buf, buf.innerDimsLocal, dimFrags(global), orderKJI = false)
+    val seekp = getSeekp(global)
+
+    // handle multidim. field datatypes
+    val dimsDt = field.layout.numDimsData - field.numDimsGrid
+    val arrayIndexRange = field.gridDatatype.resolveFlattendSize
+    val joinDataItems = dimsDt > 0 && ioInterface != "fpp"
+    val dimsComponentFrag = buf.innerDimsPerFrag.dropRight(dimsDt)
+    val dimsGridDatatypeFrag = if (dimsDt > 0)
+      IR_IntegerConstant(arrayIndexRange) +: dimsComponentFrag // e.g. [x, y, z, 3, 1] -> [3, x, y, z]
+    else
+      buf.innerDimsPerFrag
+    val totalDimsComponent = IR_DataBuffer.handleFragmentDimension(buf, dimsComponentFrag, dimFrags(global), orderKJI = false)
+    val totalDimsAttr = IR_DataBuffer.handleFragmentDimension(buf, dimsGridDatatypeFrag, dimFrags(global), orderKJI = false)
 
     statements += printXdmfElement(stream, openAttribute(name = field.name, tpe = attributeType(field.gridDatatype), ctr = "Node"))
-    statements += printXdmfElement(stream, openDataItem(field.resolveBaseDatatype, dimsAttr, seekp = getSeekp(global)) : _*)
-    statements += (if(fmt == "XML") {
-      val handler = ioHandler(constsIncluded = true, filenamePieceFpp).asInstanceOf[IR_FileAccess_FPP]
-      IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
-          handler.printBufferAscii(bufIdx, stream, condition = true, separator, indent = Some(indentData))))
+    if (!joinDataItems) {
+      // non-scalar datatypes are already correctly formatted (i.e. components are output in an interleaved way)
+      statements += printXdmfElement(stream, openDataItem(field.resolveBaseDatatype, totalDimsAttr, seekp) : _*)
+      statements += (if (fmt == "XML") {
+        // incorporate field values into the Xdmf file via I/O handler
+        val handler = ioHandler(constsIncluded = true, filenamePieceFpp).asInstanceOf[IR_FileAccess_FPP]
+        IR_LoopOverFragments(
+          IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
+            handler.printBufferAscii(bufIdx, stream, condition = true, separator, indent = Some(indentData))))
+      } else {
+        printFilename(stream, dataset) // reference binary file
+      })
+      statements += printXdmfElement(stream, closeDataItem)
     } else {
-      printFilename(stream, dataset)
-    })
-    statements += printXdmfElement(stream, closeDataItem)
+      // handle non-scalar datatypes via hyperslab selection and Xdmf's "JOIN" funcions
+      val function = "JOIN(" + (0 until arrayIndexRange).map("$" + _).mkString(",") + ")"
+      statements += printXdmfElement(stream, openDataItemFunction(totalDimsAttr, function) : _*)
+      (0 until arrayIndexRange).foreach(component => {
+        val countComponent = dimsComponentFrag ++ ListBuffer.fill(dimsDt)(IR_IntegerConstant(1)) // extract values for one component
+        val startComponent = accessComponent(component, field.gridDatatype, dimsComponentFrag.map(_ => IR_IntegerConstant(0))) // start at "current" component
+        val count = IR_DataBuffer.handleFragmentDimension(dataBufferField, countComponent, IR_IV_TotalNumFrags(domainIndex), orderKJI = false)
+        val start = IR_DataBuffer.handleFragmentDimension(dataBufferField, startComponent, 0, orderKJI = false)
+        val stride = IR_DataBuffer.handleFragmentDimension(dataBufferField, buf.stride, 1, orderKJI = false)
+
+        statements += printXdmfElement(stream, openDataItemHyperslab(totalDimsComponent) : _*)
+        statements += printXdmfElement(stream, dataItemHyperslabSelection(start, stride, count) : _*)
+        statements += printXdmfElement(stream, dataItemHyperslabSource(field.resolveBaseDatatype, dataBufferField.globalDims, printFilename(stream, dataset), seekp) : _*)
+        statements += printXdmfElement(stream, closeDataItem)
+      })
+      statements += printXdmfElement(stream, closeDataItem)
+    }
     statements += printXdmfElement(stream, closeAttribute)
+
+    statements
   }
 
   override def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
@@ -159,7 +211,7 @@ case class IR_PrintXdmfMeshless(
 
     // cleanup
     // TODO remove once temp. buffer IV's work correctly
-    if (fmt != "XML" && !Knowledge.grid_isAxisAligned && getFaceDir(field.localization) < 0) {
+    if (fmt != "XML") {
       field.localization match {
         case IR_AtNode          => cleanupNodePositions
         case IR_AtCellCenter    => cleanupCellCenters
@@ -176,7 +228,7 @@ case class IR_PrintXdmfMeshless(
 
   // unused for this implementation
   override def someCellField : IR_Field = ???
-  override def numCellsPerFrag : Int = ???
+  override def numCellsPerFrag : IR_Expression = ???
   override def numCells_x : Int = ???
   override def numCells_y : Int = ???
   override def numCells_z : Int = ???

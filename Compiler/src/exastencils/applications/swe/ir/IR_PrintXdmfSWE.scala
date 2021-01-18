@@ -21,7 +21,7 @@ import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_IV_ActiveSlot
-import exastencils.grid.ir.IR_VF_NodePositionPerDim
+import exastencils.grid.ir.IR_AtNode
 import exastencils.io.ir.IR_AccessPattern
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_FragmentInfo
@@ -81,7 +81,7 @@ case class IR_PrintXdmfSWE(
                 IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("IB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
                 IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => nodalLoopEnd + someCellField.layout.idxById("IE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
                 IR_Print(stream, nodeOffsets.flatMap(offset =>
-                  ListBuffer(indentData, IR_VF_NodePositionPerDim.access(level, d, IR_LoopOverDimensions.defIt(numDimsGrid) + offset), IR_Print.newline)) : _*))),
+                  ListBuffer(indentData, getPos(IR_AtNode, level, d, IR_LoopOverDimensions.defIt(numDimsGrid) + offset), IR_Print.newline)) : _*))),
             IR_Print(stream, IR_Print.flush)))
       } else {
         ListBuffer(printFilename(stream, datasetCoords(d)))

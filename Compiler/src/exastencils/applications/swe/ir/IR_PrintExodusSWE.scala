@@ -4,9 +4,9 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ConstIndex
 import exastencils.base.ir.IR_Expression
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_Index
 import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_StringConstant
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.config.Knowledge
 import exastencils.field.ir.IR_FieldAccess
@@ -15,7 +15,6 @@ import exastencils.io.ir.IR_AccessPattern
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.visualization.ir.IR_PrintExodus
-import exastencils.base.ir.IR_ImplicitConversion._
 
 /// IR_PrintExodusSWE
 // 2D only
@@ -44,11 +43,11 @@ case class IR_PrintExodusSWE(
       nodeOffsets.map(_.toExpressionIndex)
     val bathAccess = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(bath, IR_IV_ActiveSlot(bath), idx.toExpressionIndex), accessIndices)
 
-    val constants = nodePosVecAsDataBuffers(accessIndices, datasetCoords.map(s => IR_StringConstant(s))) :+
-      IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(someCellField), None, Some(IR_StringConstant(datasetConnectivity)))
+    val constants = nodePosVecAsDataBuffers(accessIndices, datasetCoords.map(s => s : IR_Expression)) :+
+      IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetConnectivity))
     // bath is constant but cannot be reduced in this format since in Exodus fields are defined as record variables (i.e. bound to time)
-    val fields = IR_DataBuffer(bath, IR_IV_ActiveSlot(bath), includeGhosts = false, Some(bathAccess), Some(IR_StringConstant(datasetFields.head)), canonicalOrder = false) +:
-      datasetFields.tail.zipWithIndex.map { case (ds, i) => discFieldsAsDataBuffers(discFields(i), IR_StringConstant(ds))}
+    val fields = IR_DataBuffer(bath, IR_IV_ActiveSlot(bath), includeGhosts = false, Some(bathAccess), Some(datasetFields.head), canonicalOrder = false) +:
+      datasetFields.tail.zipWithIndex.map { case (ds, i) => discFieldsAsDataBuffers(discFields(i), ds) }
 
     if (constsIncluded) constants ++ fields else fields
   }

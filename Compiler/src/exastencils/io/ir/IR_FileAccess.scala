@@ -133,11 +133,12 @@ abstract class IR_FileAccess(
     loopOverDims(bufIdx, condition, IR_Print(stream, printComponents))
   }
 
-  def printBufferBinary(bufIdx : Int, stream : IR_VariableAccess, condition : IR_Expression) : IR_ScopedStatement = {
+  def printBufferBinary(bufIdx : Int, stream : IR_VariableAccess, condition : IR_Expression, printInterleavedComponents : Boolean = true) : IR_ScopedStatement = {
     val buf = dataBuffers(bufIdx)
     val bytesAccessedKnownApriori = condition == IR_BooleanConstant(true) // if there is no condition -> required number of accessed bytes are known
+    val printAllComponentsPerLocation = printInterleavedComponents && buf.numDimsData > buf.numDimsGrid // determines if all components of a higher dim. dt are printed per grid node/cell/...
 
-    IR_IfCondition(bytesAccessedKnownApriori AndAnd buf.accessWithoutExclusion,
+    IR_IfCondition(bytesAccessedKnownApriori AndAnd buf.accessWithoutExclusion AndAnd !printAllComponentsPerLocation,
       /* true: write whole buffer */
       IR_PrintBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal),
       /* false: write component by component in a loop */
@@ -158,11 +159,12 @@ abstract class IR_FileAccess(
     loopOverDims(bufIdx, condition, IR_Read(stream, (if (skipSep.isDefined) acc.dropRight(1) else acc) : _*)) // cond. remove sep at end
   }
 
-  def readBufferBinary(bufIdx : Int, stream : IR_VariableAccess, condition : IR_Expression) : IR_ScopedStatement = {
+  def readBufferBinary(bufIdx : Int, stream : IR_VariableAccess, condition : IR_Expression, printInterleavedComponents : Boolean = true) : IR_ScopedStatement = {
     val buf = dataBuffers(bufIdx)
     val bytesAccessedKnownApriori = condition == IR_BooleanConstant(true) // if there is no condition -> required number of accessed bytes are known
+    val printAllComponentsPerLocation = printInterleavedComponents && buf.numDimsData > buf.numDimsGrid // determines if all components of a higher dim. dt are printed per grid node/cell/...
 
-    IR_IfCondition(bytesAccessedKnownApriori AndAnd buf.accessWithoutExclusion,
+    IR_IfCondition(bytesAccessedKnownApriori AndAnd buf.accessWithoutExclusion AndAnd !printAllComponentsPerLocation,
       /* true: read whole buffer */
       IR_ReadBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal),
       /* false: read component by component in a loop */
