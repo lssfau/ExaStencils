@@ -34,8 +34,7 @@ Function checkMat1x1Field@(coarsest to finest) {
 
 Function checkMat3x1Field@(coarsest to finest) {
 	loop over mat3x1Field starting [-1,-1] ending [-1,-1] where ( ( i0 == 0 ) || ( i1 == 0 ) ){
-	print(fnorm(mat3x1Field))
-       if(abs(fnorm(mat3x1Field) - 3.7416) > 0.0005) {
+	   if(abs(fnorm(mat3x1Field) - 3.7416) > 0.0005) {
             print('boundary value differs from expected value')
             return
        }
