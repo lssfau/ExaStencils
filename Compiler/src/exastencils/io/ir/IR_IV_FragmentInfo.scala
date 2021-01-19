@@ -52,20 +52,18 @@ object IR_IV_FragmentInfo {
 
       // Special case: PrintVtk calculates the fragmentOffset in a MPI_Sequential, for other approaches this flag needs to be set
       if (calculateFragOffset) {
-        val actualFragsPerBlock = IR_VariableAccess("validFragsPerBlock", IR_ArrayDatatype(IR_IntegerDatatype, Knowledge.mpi_numThreads))
         val mpiInt = IR_VariableAccess(IR_IntegerDatatype.prettyprint_mpi, IR_UnknownDatatype)
         val mpiComm = IR_VariableAccess("mpiCommunicator", IR_UnknownDatatype)
-        statements += IR_VariableDeclaration(actualFragsPerBlock)
         statements += IR_FunctionCall(
           IR_ExternalFunctionReference("MPI_Allgather"),
           IR_AddressOf(IR_IV_NumValidFrags(domainIdx)), 1, mpiInt,
-          actualFragsPerBlock, 1, mpiInt, mpiComm
+          IR_IV_NumValidFragsPerBlock(domainIdx), 1, mpiInt, mpiComm
         )
         statements += IR_ForLoop(
           IR_VariableDeclaration(IR_IntegerDatatype, "curRank", 0),
           IR_Lower("curRank", MPI_IV_MpiRank),
           IR_PreIncrement("curRank"),
-          IR_Assignment(IR_IV_FragmentOffset(domainIdx), IR_ArrayAccess(actualFragsPerBlock, "curRank"), "+=")
+          IR_Assignment(IR_IV_FragmentOffset(domainIdx), IR_ArrayAccess(IR_IV_NumValidFragsPerBlock(domainIdx), "curRank"), "+=")
         )
       }
     }
@@ -78,6 +76,24 @@ case class IR_IV_TotalNumFrags(var domain : IR_Expression, var fragmentIdx : IR_
   override def resolveName() : String = "totalNumFrags" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", "")
   override def resolveDatatype() : IR_Datatype = IR_IntegerDatatype
   override def resolveDefValue() : Option[IR_Expression] = Some(Knowledge.domain_numFragmentsTotal)
+}
+
+case class IR_IV_NumValidFragsPerBlock(var domain : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(false, true, false, false, false) {
+  override def resolveName() : String = "numValidFragsBlock" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", "")
+  override def resolveDatatype() : IR_Datatype = IR_ArrayDatatype(IR_IntegerDatatype, Knowledge.mpi_numThreads)
+  override def resolveDefValue() : Option[IR_Expression] = Some(Knowledge.domain_numFragmentsPerBlock)
+
+  override def getCtor() : Option[IR_Statement] = {
+    val i = IR_VariableAccess("i", IR_IntegerDatatype)
+
+    if (resolveDefValue().isDefined)
+      Some(IR_ForLoop(IR_VariableDeclaration(i, 0), IR_Lower(i, Knowledge.mpi_numThreads), IR_PreIncrement(i),
+        IR_Assignment(resolveAccess(i), resolveDefValue().get)))
+    else
+      None
+  }
+
+  def resolveAccess(index : IR_Expression = IR_VariableAccess("curRank", IR_IntegerDatatype)) : IR_Expression = IR_ArrayAccess(resolveName(), index)
 }
 
 case class IR_IV_NumValidFrags(var domain : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(false, true, false, false, false)  {

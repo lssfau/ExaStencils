@@ -339,7 +339,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
 
   // contains expressions that calculate the seek pointer for each DataItem (used for raw binary files)
   def seekpOffsets(global : Boolean, constsIncluded : Boolean) : ListBuffer[IR_Expression] = {
-    dataBuffers(constsIncluded).map(buf => if (global) buf.typicalByteSizeGlobal else buf.typicalByteSizeLocal)
+    dataBuffers(constsIncluded).map(buf => if (global) buf.typicalByteSizeGlobal else buf.typicalByteSizeBlock)
   }
 
   // methods to be implemented in application.ir or field.ir

@@ -121,7 +121,7 @@ case class IR_PrintXdmfMeshless(
       val buf = dataBuffersVertexPos(d)
       val numVertices = IR_DataBuffer.handleFragmentDimension(buf, buf.innerDimsLocal, dimFrags(global), orderKJI = false)
 
-      statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, numVertices, seekp = getSeekp(global)) : _*)
+      statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, numVertices, getSeekp(global)) : _*)
       statements += (if (fmt == "XML") {
         IR_LoopOverFragments(
           IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
@@ -213,9 +213,9 @@ case class IR_PrintXdmfMeshless(
     // TODO remove once temp. buffer IV's work correctly
     if (fmt != "XML") {
       field.localization match {
-        case IR_AtNode          => cleanupNodePositions
-        case IR_AtCellCenter    => cleanupCellCenters
-        case IR_AtFaceCenter(_) => cleanupFacePositions(getFaceDir(field.localization))
+        case IR_AtNode          => stmts ++= cleanupNodePositions
+        case IR_AtCellCenter    => stmts ++= cleanupCellCenters
+        case IR_AtFaceCenter(_) => stmts ++= cleanupFacePositions(getFaceDir(field.localization))
       }
     }
 

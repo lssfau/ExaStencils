@@ -323,10 +323,11 @@ trait IR_PrintVisualization {
   } else {
     (0 until numDimsGrid).map(d => cellCentersBuf(d).getDtor().get).to[ListBuffer]
   }
-  def cleanupFacePositions(faceDir : Int) : ListBuffer[IR_Statement] = if (faceDir >= 0)
-    (0 until numDimsGrid).map(d => facePositionsBuf(faceDir)(d).getDtor().get).to[ListBuffer]
-  else
+  def cleanupFacePositions(faceDir : Int) : ListBuffer[IR_Statement] = if (faceDir < 0) {
     ListBuffer()
+  } else {
+    (0 until numDimsGrid).map(d => facePositionsBuf(faceDir)(d).getDtor().get).to[ListBuffer]
+  }
 }
 
 /// IR_ResolveVisualizationPrinters

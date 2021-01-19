@@ -109,11 +109,7 @@ case class IR_PrintXdmfUniform(
   override def stmtsForPreparation : ListBuffer[IR_Statement] = {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
 
-    stmts ++= IR_IV_FragmentInfo.init(
-      dataBuffer.domainIdx,
-      // in file-per-process, each rank writes its own domain piece individually -> fragOffset = 0
-      calculateFragOffset = ioInterface != "fpp"
-    )
+    stmts ++= IR_IV_FragmentInfo.init(dataBuffer.domainIdx) // TODO any scenario where fragOffset is required?
 
     // interpolate face centered values towards cell centers
     if (tmpBufStag.isDefined) {

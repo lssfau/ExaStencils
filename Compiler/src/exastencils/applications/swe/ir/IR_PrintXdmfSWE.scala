@@ -25,6 +25,7 @@ import exastencils.grid.ir.IR_AtNode
 import exastencils.io.ir.IR_AccessPattern
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_FragmentInfo
+import exastencils.io.ir.IR_IV_NumValidFragsPerBlock
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_IV_ConstantsWrittenToFile
 import exastencils.visualization.ir.IR_PrintXdmf
@@ -53,8 +54,13 @@ case class IR_PrintXdmfSWE(
     // setup frag info
     stmts ++= IR_IV_FragmentInfo.init(
       domainIndex,
-      // in file-per-process, each rank writes its own domain piece individually -> fragOffset = 0
-      calculateFragOffset = ioInterface != "fpp"
+      /*
+      - In file-per-process, each rank writes its own domain piece individually:
+        - ascii: each rank writes its own individual xdmf file
+        - binary: root writes the xdmf file and each rank writes its own binary file -> root needs to know the number of valid frags of each rank (included in fragOffset calc.)
+      - For single-shared file approaches, the offset for the global "valid" fragment needs to be known for each process -> compute frag offset
+      */
+      calculateFragOffset = fmt != "XML"
     )
 
     // setup buffers
@@ -67,12 +73,30 @@ case class IR_PrintXdmfSWE(
     stmts
   }
 
+  // specifies "fragment dimension" (i.e. how many fragments are written to a file)
+  // special handling for a variable number of frags
+  override def dimFrags(global : Boolean) : IR_Expression = if (!binaryFpp) {
+    super.dimFrags(global)
+  } else {
+    // binary fpp: only root writes the xdmf file -> requires the number of valid frags for each rank
+    IR_IV_NumValidFragsPerBlock(domainIndex).resolveAccess()
+  }
+
+  // contains expressions that calculate the seek pointer for each DataItem (used for raw binary files)
+  // special handling for a variable number of frags
+  override def seekpOffsets(global : Boolean, constsIncluded : Boolean) : ListBuffer[IR_Expression] = if (!binaryFpp) {
+    super.seekpOffsets(global, constsIncluded)
+  } else {
+    // binary fpp: root needs to know the actual number of fragments of each rank to compute the file offsets correctly
+    dataBuffers(constsIncluded).map(buf => if (global) buf.typicalByteSizeGlobal else buf.typicalByteSizeFrag * IR_IV_NumValidFragsPerBlock(domainIndex).resolveAccess())
+  }
+
   override def writeXdmfGeometry(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     statements += printXdmfElement(stream, openGeometry("X_Y")) // nodePositions are not interleaved
     (0 until numDimsGrid).foreach(d => {
-      statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, dimsPositionsFrag :+ dimFrags(global), seekp = getSeekp(global)) : _*)
+      statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, dimsPositionsFrag :+ dimFrags(global), getSeekp(global)) : _*)
       statements ++= (if (fmt == "XML") {
         ListBuffer(IR_Print(stream, "std::scientific"),
           IR_LoopOverFragments(
@@ -98,7 +122,7 @@ case class IR_PrintXdmfSWE(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     statements += printXdmfElement(stream, openTopology("Triangle", ListBuffer(numCellsPerFrag, dimFrags(global))) : _*)
-    statements += printXdmfElement(stream, openDataItem(IR_IntegerDatatype, dimsConnectivityFrag :+ dimFrags(global), seekp = getSeekp(global)) : _*)
+    statements += printXdmfElement(stream, openDataItem(IR_IntegerDatatype, dimsConnectivityFrag :+ dimFrags(global), getSeekp(global)) : _*)
     statements += (if (fmt == "XML") {
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
@@ -122,7 +146,7 @@ case class IR_PrintXdmfSWE(
     fieldnames.zipWithIndex.flatMap { case (fname, fid) =>
       var statements : ListBuffer[IR_Statement] = ListBuffer()
       statements += printXdmfElement(stream, openAttribute(name = fname, tpe = "Scalar", ctr = "Node"))
-      statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, dimsPositionsFrag :+ dimFrags(global), seekp = getSeekp(global)) : _*)
+      statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, dimsPositionsFrag :+ dimFrags(global), getSeekp(global)) : _*)
       statements ++= (if(fmt == "XML") {
         fname match {
           case "bath" => printBath(Some(stream), Some(indentData))

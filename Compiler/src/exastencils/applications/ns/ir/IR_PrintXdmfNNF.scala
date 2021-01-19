@@ -60,7 +60,7 @@ case class IR_PrintXdmfNNF(
 
     statements += printXdmfElement(stream, openGeometry("X_Y" + (if (numDimsGrid > 2) "_Z" else ""))) // nodePositions are not interleaved
     for (d <- 0 until numDimsGrid) {
-      statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, dimsPositionsFrag :+ dimFrags(global), seekp = getSeekp(global)) : _*)
+      statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, dimsPositionsFrag :+ dimFrags(global), getSeekp(global)) : _*)
       val printValsOrRefFile = if (fmt == "XML") {
         ListBuffer(IR_Print(stream, "std::scientific"),
           IR_LoopOverFragments(
@@ -85,7 +85,7 @@ case class IR_PrintXdmfNNF(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     statements += printXdmfElement(stream, openTopology(if (numDimsGrid == 2) "Quadrilateral" else "Hexahedron", ListBuffer(numCellsPerFrag, dimFrags(global))) : _*)
-    statements += printXdmfElement(stream, openDataItem(IR_IntegerDatatype, dimsConnectivityFrag :+ dimFrags(global), seekp = getSeekp(global)) : _*)
+    statements += printXdmfElement(stream, openDataItem(IR_IntegerDatatype, dimsConnectivityFrag :+ dimFrags(global), getSeekp(global)) : _*)
     val printValsOrRefFile = if (fmt == "XML") {
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
@@ -112,7 +112,7 @@ case class IR_PrintXdmfNNF(
       val dimsFieldData = IR_IntegerConstant(if (isVector) numDimsGrid else 1)
       val dimsCellData = ListBuffer[IR_Expression](numCells_z, numCells_y, numCells_x)
       statements += printXdmfElement(stream, openAttribute(name = fname, tpe = if (isVector) "Vector" else "Scalar", ctr = "Cell"))
-      statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, dimsFieldData +: dimsCellData :+ dimFrags(global), seekp = getSeekp(global)) : _*)
+      statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, dimsFieldData +: dimsCellData :+ dimFrags(global), getSeekp(global)) : _*)
       val printValsOrRefFile = if (fmt == "XML") {
         fname match {
           case "vel"   => printVel(Some(stream), Some(indentData))
