@@ -76,7 +76,6 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads{
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
 
     velocityComponentsAsVec.zipWithIndex.foreach { case (vel, dir) =>
-      stmts += vel.getDeclaration()
       stmts += vel.allocateMemory
 
       def idxRange = IR_ExpressionIndexRange(
@@ -95,8 +94,6 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads{
     stmts
   }
 
-  def cleanupVelocityComponents : ListBuffer[IR_Statement] = velocityComponentsAsVec.map(_.getDtor().get).to[ListBuffer]
-
   def velocityBuf = IR_IV_TemporaryBuffer(u.resolveBaseDatatype, IR_AtCellCenter, "vel", domainIndex,
     ListBuffer(IR_IntegerConstant(numDimsGrid), numCells_x, numCells_y, numCells_z))
 
@@ -104,7 +101,6 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads{
     // init buffer with values of vector field
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
 
-    stmts += velocityBuf.getDeclaration()
     stmts += velocityBuf.allocateMemory
 
     def idxRange = IR_ExpressionIndexRange(
@@ -125,6 +121,4 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads{
 
     stmts
   }
-
-  def cleanupVelocity : IR_Statement = velocityBuf.getDtor().get
 }

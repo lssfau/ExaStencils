@@ -61,8 +61,8 @@ import exastencils.logger.Logger
 
 // determines whether constants were already written to file or not
 // name of the file containing the constant data can be queried here
-case class IR_IV_ConstantsWrittenToFile() extends IR_UnduplicatedVariable {
-  override def resolveName() : String = "constantsWrittenToFile"
+case class IR_IV_ConstantsWrittenToFile(id : Int) extends IR_UnduplicatedVariable {
+  override def resolveName() : String = "constantsWrittenToFile" + id
   override def resolveDatatype() : IR_Datatype = IR_StringDatatype
   override def resolveDefValue() : Option[IR_Expression] = Some("\"\"")
 
@@ -75,7 +75,7 @@ case class IR_IV_ConstantsWrittenToFile() extends IR_UnduplicatedVariable {
         case (base : IR_Expression, ext : IR_Expression)       => base + ext
       }
     }
-    IR_Assignment(IR_IV_ConstantsWrittenToFile(), rhs)
+    IR_Assignment(this, rhs)
   }
   def isEmpty : IR_Expression = !Knowledge.parIO_constantDataReduction OrOr IR_MemberFunctionCall(IR_VariableAccess(resolveName(), resolveDatatype()), "empty")
 }
@@ -132,6 +132,10 @@ trait IR_PrintVisualization {
   def newStream = IR_VariableAccess(IR_FieldIO.getNewStreamName(), IR_SpecialDatatype("std::ofstream"))
 
   def level : Int
+
+  // create a new instance of a the IV for each visualization function that is resolved
+  def resolveId : Int
+  def IR_ConstantsWrittenToFile() = IR_IV_ConstantsWrittenToFile(resolveId)
 
   def connectivityStartIndex : Int = 0 // start index when initializing the connectivity buffer. for exodus: "1"
   def connectivityForCell(global : Boolean = true) : ListBuffer[IR_Expression] // contains expressions to describe a mesh's connectivity list (e.g. 4 expressions for a quad)
@@ -203,7 +207,6 @@ trait IR_PrintVisualization {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
     val sizeConnectionFrag = dimsConnectivityFrag.reduce((a, b) => a.v * b.v)
 
-    stmts += connectivityBuf.getDeclaration()
     stmts += connectivityBuf.allocateMemory
 
     val initBuffer : ListBuffer[IR_Statement] = connectivityForCell().indices.map(d => {
@@ -239,7 +242,6 @@ trait IR_PrintVisualization {
 
     // declare, allocate and init temp. buffer with cell centers
     ListBuffer[IR_Statement](
-      cellCentersBuf(dim).getDeclaration(),
       cellCentersBuf(dim).allocateMemory,
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
@@ -269,7 +271,6 @@ trait IR_PrintVisualization {
 
     // declare, allocate and init temp. buffer with face positions
     ListBuffer[IR_Statement](
-      facePositionsBuf(faceDir)(dim).getDeclaration(),
       facePositionsBuf(faceDir)(dim).allocateMemory,
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
@@ -301,7 +302,6 @@ trait IR_PrintVisualization {
 
     // declare, allocate and init temp. buffer with node position
     ListBuffer[IR_Statement](
-      nodePositionsBuf(dim).getDeclaration(),
       nodePositionsBuf(dim).allocateMemory,
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
@@ -310,81 +310,72 @@ trait IR_PrintVisualization {
 
   // allocates and initializes buffer with the node positions on-demand
   def setupNodePositions : ListBuffer[IR_Statement] = (0 until numDimsGrid).flatMap(initNodePosBuf).to[ListBuffer]
-
-  // frees the buffers with nodePositions/connectivity information
-  def cleanupConnectivity : IR_Statement = connectivityBuf.getDtor().get
-  def cleanupNodePositions : ListBuffer[IR_Statement] = if (!gridPositionsCopied) {
-    ListBuffer()
-  } else {
-    (0 until numDimsGrid).map(d => nodePositionsBuf(d).getDtor().get).to[ListBuffer]
-  }
-  def cleanupCellCenters : ListBuffer[IR_Statement] = if (!gridPositionsCopied) {
-    ListBuffer()
-  } else {
-    (0 until numDimsGrid).map(d => cellCentersBuf(d).getDtor().get).to[ListBuffer]
-  }
-  def cleanupFacePositions(faceDir : Int) : ListBuffer[IR_Statement] = if (faceDir < 0) {
-    ListBuffer()
-  } else {
-    (0 until numDimsGrid).map(d => facePositionsBuf(faceDir)(d).getDtor().get).to[ListBuffer]
-  }
 }
 
 /// IR_ResolveVisualizationPrinters
 
 object IR_ResolveVisualizationPrinters extends DefaultStrategy("IR_ResolveVisualizationPrinters") {
+
+  // count number of vis. functions resolved and create an unique "IR_IV_ConstantsWrittenToFile" instance for each
+  var funcsResolved : Int = 0
+  def getResolveId : Int = {
+    val ret = Duplicate(funcsResolved)
+    funcsResolved += 1
+    ret
+  }
+
   this += new Transformation("ResolveFunctionCalls", {
     // vtk printers
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printVtkSWE", _), args)) =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintVtkSWE(s, i.toInt)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintVtkSWE(s, i.toInt, getResolveId)
         case _                                                    => Logger.error("Malformed call to printVtkSWE; usage: printVtkSWE ( \"filename\", level )")
       }
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printVtkNS", _), args)) =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintVtkNS(s, i.toInt)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintVtkNS(s, i.toInt, getResolveId)
         case _                                                    => Logger.error("Malformed call to printVtkNS; usage: printVtkNS ( \"filename\", level )")
       }
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printVtkNNF", _), args)) =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintVtkNNF(s, i.toInt)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintVtkNNF(s, i.toInt, getResolveId)
         case _                                                    => Logger.error("Malformed call to printVtkNNF; usage: printVtkNNF ( \"filename\", level )")
       }
 
     // xdmf printers
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfNNF", _), args)) =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant)                              => IR_PrintXdmfNNF(s, i.toInt, ioInterface, binaryFpp = false)
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant, binFpp : IR_BooleanConstant) => IR_PrintXdmfNNF(s, i.toInt, ioInterface, binFpp.value)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant)                              => IR_PrintXdmfNNF(s, i.toInt, ioInterface, binaryFpp = false, getResolveId)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant, binFpp : IR_BooleanConstant) => IR_PrintXdmfNNF(s, i.toInt, ioInterface, binFpp.value, getResolveId)
         case _                                                                                                                  => Logger.error("Malformed call to printXdmfNNF; usage: printXdmfNNF ( \"filename\", level, \"ioInterface\", binFpp = false )")
       }
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfNS", _), args)) =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant)                              => IR_PrintXdmfNS(s, i.toInt, ioInterface, binaryFpp = false)
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant, binFpp : IR_BooleanConstant) => IR_PrintXdmfNS(s, i.toInt, ioInterface, binFpp.value)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant)                              => IR_PrintXdmfNS(s, i.toInt, ioInterface, binaryFpp = false, getResolveId)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant, binFpp : IR_BooleanConstant) => IR_PrintXdmfNS(s, i.toInt, ioInterface, binFpp.value, getResolveId)
         case _                                                                                                                  => Logger.error("Malformed call to printXdmfNS; usage: printXdmfNS ( \"filename\", level, \"ioInterface\", binFpp = false )")
       }
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfSWE", _), args)) =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant)                              => IR_PrintXdmfSWE(s, i.toInt, ioInterface, binaryFpp = false)
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant, binFpp : IR_BooleanConstant) => IR_PrintXdmfSWE(s, i.toInt, ioInterface, binFpp.value)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant)                              => IR_PrintXdmfSWE(s, i.toInt, ioInterface, binaryFpp = false, getResolveId)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant, binFpp : IR_BooleanConstant) => IR_PrintXdmfSWE(s, i.toInt, ioInterface, binFpp.value, getResolveId)
         case _                                                                                                                  => Logger.error("Malformed call to printXdmfSWE; usage: printXdmfSWE ( \"filename\", level, \"ioInterface\", binFpp = false )")
       }
 
     // exodus printers
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printExodusNNF", _), args)) =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintExodusNNF(s, i.toInt)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintExodusNNF(s, i.toInt, getResolveId)
         case _                                                    => Logger.error("Malformed call to printExodusNNF; usage: printExodusNNF ( \"filename\", level )")
       }
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printExodusNS", _), args)) =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintExodusNS(s, i.toInt)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintExodusNS(s, i.toInt, getResolveId)
         case _                                                    => Logger.error("Malformed call to printExodusNS; usage: printExodusNS ( \"filename\", level )")
       }
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printExodusSWE", _), args)) =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintExodusSWE(s, i.toInt)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintExodusSWE(s, i.toInt, getResolveId)
         case _                                                    => Logger.error("Malformed call to printExodusSWE; usage: printExodusSWE ( \"filename\", level )")
       }
   })

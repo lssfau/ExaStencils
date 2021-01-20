@@ -248,12 +248,12 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   }
 
   def writeOrReferenceConstants(stream : IR_VariableAccess, writeConsts : ListBuffer[IR_Statement], elemToRef : String, altCondition : Option[IR_Expression] = None) : ListBuffer[IR_Statement] = ListBuffer(
-    new IR_IfCondition(altCondition getOrElse IR_IV_ConstantsWrittenToFile().isEmpty,
+    new IR_IfCondition(altCondition getOrElse IR_ConstantsWrittenToFile().isEmpty,
       /* true branch */
       writeConsts,
       /* false branch */
       ListBuffer[IR_Statement](
-        printXdmfElement(stream, XInclude(href = IR_IV_ConstantsWrittenToFile(), xpath = XPath(elemToRef) : _*) : _*)
+        printXdmfElement(stream, XInclude(href = IR_ConstantsWrittenToFile(), xpath = XPath(elemToRef) : _*) : _*)
       )
     )
   )
@@ -332,7 +332,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     val idx = seekpIdx
     val idxNoConst = idx - (dataBuffers(constsIncluded = true).length - dataBuffers(constsIncluded = false).length)
     seekpIdx += 1
-    IR_TernaryCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
+    IR_TernaryCondition(IR_ConstantsWrittenToFile().isEmpty,
       IR_SimplifyExpression.simplifyIntegralExpr(seekpOffsets(global, constsIncluded = true).take(idx).reduceOption(_ + _).getOrElse(0)),
       IR_SimplifyExpression.simplifyIntegralExpr(seekpOffsets(global, constsIncluded = false).take(idxNoConst).reduceOption(_ + _).getOrElse(0)))
   }
@@ -359,15 +359,15 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   def writeDataAndSetConstFile() : ListBuffer[IR_Statement] = ListBuffer({
     if (fmt != "XML") {
       // write data into a separate, binary file
-      IR_IfCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
+      IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty,
         /* true: write constants to file and save filename to reference later */
-        writeData(constsIncluded = true) :+ IR_IV_ConstantsWrittenToFile().setFilename(basename(noPath = true), Some(ext)),
+        writeData(constsIncluded = true) :+ IR_ConstantsWrittenToFile().setFilename(basename(noPath = true), Some(ext)),
         /* false: write field data and reference constants from saved filename */
         writeData(constsIncluded = false))
     } else {
       // data is already incorporated in the xml file
-      IR_IfCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
-        IR_Assignment(IR_IV_ConstantsWrittenToFile(),
+      IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty,
+        IR_Assignment(IR_ConstantsWrittenToFile(),
           IR_MemberFunctionCall(filenamePieceFpp, "substr", lastIdxSubst(filenamePieceFpp, "\"\\\\/\"") + 1))) // constant file in same dir -> remove path
     }
   })
@@ -378,6 +378,13 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
 
     if (!Settings.additionalIncludes.contains("string"))
       Settings.additionalIncludes += "string"
+
+    if (Knowledge.parIO_constantDataReduction) {
+      filename match {
+        case _ : IR_StringConstant => Logger.warn("Constants are reduced but filename is constant; Do not use \"printField\" in a loop with this parameter combination, otherwise the reduction will go wrong.")
+        case _ =>
+      }
+    }
 
     // header for I/O interfaces
     ioHandler(constsIncluded = false, filename).validateParams()

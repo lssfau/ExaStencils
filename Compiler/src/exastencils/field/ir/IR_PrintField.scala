@@ -115,9 +115,9 @@ case class IR_PrintField(
       Logger.error("Conditions are not applicable in combination with \"IR_PrintXdmf\" since the data extents must be determinable.")
 
     if (Knowledge.grid_isUniform && Knowledge.grid_isAxisAligned) {
-      IR_PrintXdmfUniform(filename, field, slot, ioInterface, includeGhostLayers, dataset, binaryOutput && ioInterfaceName == "fpp", canonicalOrder)
+      IR_PrintXdmfUniform(filename, field, slot, ioInterface, includeGhostLayers, dataset, binaryOutput && ioInterfaceName == "fpp", canonicalOrder, IR_FieldIO.getNewResolveId())
     } else {
-      IR_PrintXdmfMeshless(filename, field, slot, ioInterface, includeGhostLayers, dataset, binaryOutput && ioInterfaceName == "fpp")
+      IR_PrintXdmfMeshless(filename, field, slot, ioInterface, includeGhostLayers, dataset, binaryOutput && ioInterfaceName == "fpp", IR_FieldIO.getNewResolveId())
     }
   }
 

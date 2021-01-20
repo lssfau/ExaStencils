@@ -17,7 +17,9 @@ import exastencils.visualization.ir.IR_PrintExodus
 
 case class IR_PrintExodusNS(
     var filename : IR_Expression,
-    level : Int) extends IR_PrintExodus with IR_PrintVisualizationNS {
+    level : Int,
+    var resolveId : Int,
+) extends IR_PrintExodus with IR_PrintVisualizationNS {
 
   override def variableEntityType : IR_VariableAccess = EX_ELEM_BLOCK
   override def elementName : String = if (numDimsGrid > 2) "hex" else "quad"
@@ -44,5 +46,5 @@ case class IR_PrintExodusNS(
     if (constsIncluded) constants ++ fields else fields
   }
 
-  override def statementsForCleanup : ListBuffer[IR_Statement] = cleanupVelocityComponents
+  override def statementsForCleanup : ListBuffer[IR_Statement] = ListBuffer()
 }

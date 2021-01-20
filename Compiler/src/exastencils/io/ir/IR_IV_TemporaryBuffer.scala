@@ -13,14 +13,13 @@ import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_Index
+import exastencils.base.ir.IR_Negation
 import exastencils.base.ir.IR_NullExpression
 import exastencils.base.ir.IR_PointerDatatype
 import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_UnknownDatatype
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.baseExt.ir.IR_InternalVariable
-import exastencils.baseExt.ir.IR_LoopOverDomains
 import exastencils.grid.ir.IR_Localization
 
 /// IR_IV_TemporaryBuffer
@@ -30,7 +29,6 @@ import exastencils.grid.ir.IR_Localization
 //   - only contains data of interest
 //   - does not have layers to be excluded (e.g. pad/ghost/...)
 
-// TODO the IVs are not automatically declared in Globals.h and their ctors/dtors are not called
 case class IR_IV_TemporaryBuffer(
     var baseDatatype : IR_Datatype,
     var localization: IR_Localization,
@@ -40,14 +38,11 @@ case class IR_IV_TemporaryBuffer(
 
   override def resolveName() : String = name + resolvePostfix("", domainIdx.prettyprint, "", "", "")
   override def resolveDatatype() : IR_Datatype = IR_PointerDatatype(baseDatatype)
-  override def resolveDefValue() = Some(IR_VariableAccess("NULL", IR_UnknownDatatype))
+  override def resolveDefValue() = Some(0)
 
   def numDims : Int = dims.length + 1
 
-  /* NOTE: temp. buffers contain the data for a whole block
-     - Reduces the number of malloc's/free's
-     - But more importantly: Reduces the number of file accesses where each has a greater granularity compared to fragment-wise accesses
-  */
+  // NOTE: temp. buffers contain the data for a whole block -> Reduces the number of file accesses where each has a greater granularity compared to fragment-wise accesses
   def dimsLocal : ListBuffer[IR_Expression] = dims :+ IR_IV_NumValidFrags(domainIdx)
   def dimsGlobal : ListBuffer[IR_Expression] = dims :+ IR_IV_TotalNumFrags(domainIdx)
 
@@ -55,6 +50,8 @@ case class IR_IV_TemporaryBuffer(
   def beginIndices : ListBuffer[IR_Expression] = referenceOffset.indices.to[ListBuffer]
   def endIndices : ListBuffer[IR_Expression] = dimsLocal
   def totalDimsLocal : ListBuffer[IR_Expression] = dimsLocal
+
+  val access : IR_Expression = resolveAccess(resolveName(), IR_NullExpression, domainIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression)
 
   def at(index : IR_Expression) : IR_Access = index match {
     case idx : IR_Index =>
@@ -64,13 +61,14 @@ case class IR_IV_TemporaryBuffer(
       ).linearizeIndex(idx)
 
       IR_ArrayAccess(
-        resolveAccess(resolveName(), IR_NullExpression, IR_LoopOverDomains.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression),
+        access,
         linearizedIdx)
     case _ =>
       IR_ArrayAccess(name, index)
   }
 
-  def allocateMemory = IR_ArrayAllocation(name, baseDatatype, dimsLocal.reduce(_ * _))
+  def allocateMemory = IR_IfCondition(IR_Negation(access),
+    IR_ArrayAllocation(this, baseDatatype, dimsLocal.reduce(_ * _)))
 
   override def getCtor() : Option[IR_Statement] = Some(
     IR_Assignment(
@@ -78,8 +76,6 @@ case class IR_IV_TemporaryBuffer(
       resolveDefValue().get))
 
   override def getDtor() : Option[IR_Statement] = {
-    val access = resolveAccess(resolveName(), IR_NullExpression, IR_LoopOverDomains.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression)
-
     Some(wrapInLoops(
       IR_IfCondition(access,
         ListBuffer[IR_Statement](

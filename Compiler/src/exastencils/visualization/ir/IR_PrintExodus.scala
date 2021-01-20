@@ -42,7 +42,7 @@ import exastencils.io.ir.IR_FileAccess_PnetCDF
 import exastencils.io.ir.IR_IV_FragmentOffset
 import exastencils.io.ir.IR_IV_NumValidFrags
 import exastencils.io.ir.IR_IV_TimeIndexRecordVariables
-import exastencils.io.ir.IR_MPI_View
+import exastencils.io.ir.MPI_View
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_Print
@@ -225,12 +225,12 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
     val flatDimDecls : mutable.HashSet[IR_VariableDeclaration] = mutable.HashSet()
-    val ncInterface = ioHandler(constsIncluded, filename)
+    val ioHanderNc = ioHandler(constsIncluded, filename)
 
     /* declare flattened dims of the datasets */
     val fragOffset = IR_IV_FragmentOffset(domainIndex) + IR_LoopOverFragments.defIt
     def declareDims(numDims : Int, name : String, localization : IR_Localization, optDims : Option[ListBuffer[IR_Expression]] = None) = {
-      val dt = IR_ArrayDatatype(ncInterface.datatypeDimArray, numDims)
+      val dt = IR_ArrayDatatype(ioHanderNc.datatypeDimArray, numDims)
       val decl = IR_FileAccess.declareDimensionality(dt, name, localization, optDims)
       if (flatDimDecls.add(decl)) statements += decl
       decl
@@ -243,26 +243,28 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     lazy val startConnectivity = declareDims(2, "startConnectivity", IR_AtCellCenter) -> ListBuffer[IR_Expression](fragOffset * numCellsPerFrag, 0)
 
     /* create MPI Derived Datatypes to describe the memory layout of each buffer */
-    // TODO free datatypes
     val localViews = dataBuffers(constsIncluded).zipWithIndex.map { case (buf, bufIdx) =>
       // declare dims for the datasets (unflattened)
       val numDims = buf.totalDimsLocalKJI.length
-      val total = ncInterface.declareDimensionality("localDimsTotal", buf.localization, buf.totalDimsLocalKJI, IR_IntegerDatatype)
-      val count = ncInterface.declareDimensionality("localCount", buf.localization, buf.innerDimsLocalKJI, IR_IntegerDatatype)
-      val start = ncInterface.declareDimensionality("localStart", buf.localization, buf.startIndexLocalKJI, IR_IntegerDatatype)
+      val total = ioHanderNc.declareDimensionality("localDimsTotal", buf.localization, buf.totalDimsLocalKJI, IR_IntegerDatatype)
+      val count = ioHanderNc.declareDimensionality("localCount", buf.localization, buf.innerDimsLocalKJI, IR_IntegerDatatype)
+      val start = ioHanderNc.declareDimensionality("localStart", buf.localization, buf.startIndexLocalKJI, IR_IntegerDatatype)
 
       // only create datatype when necessary, otherwise re-use previously created datatype
-      val localView = IR_MPI_View(IR_VariableAccess(total), IR_VariableAccess(count), IR_VariableAccess(start), numDims, buf.domainIdx, ncInterface.mpiDatatypeBuffer(buf), IR_SpecialDatatype("MPI_Datatype"), "localSubarray")
-      if (IR_MPI_View.addView(bufIdx, global = false, localView)) {
+      val localView = MPI_View(IR_VariableAccess(total), IR_VariableAccess(count), IR_VariableAccess(start),
+        numDims, createViewPerFragment = false, isLocal = true, buf, "localSubarray")
+      if (MPI_View.addView(localView)) {
         statements ++= ListBuffer(total, count, start)
-        statements ++= ListBuffer(localView.declaration, localView.createDatatype, localView.commitDatatype)
+        statements += localView.createDatatype
 
         localView
       } else {
-        IR_MPI_View.getView(bufIdx, global = false)
+        MPI_View.getView(bufIdx, global = false)
       }
     }
-    IR_MPI_View.resetViews()
+
+    // reset view cache after everything is done
+    MPI_View.resetViews()
 
     // set global start index for each process, handle "invalid" fragments and write data
     def writeExodusDatasets() : mutable.ListBuffer[IR_Statement] = dataBuffers(constsIncluded).zipWithIndex.map { case (buf, bufIdx) =>
@@ -292,8 +294,8 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
 
       val numDims = count.datatype.asInstanceOf[IR_ArrayDatatype].numElements
       val bufCount = IR_VariableAccess(IR_FileAccess.declareVariable("bufCount"), IR_IntegerDatatype)
-      val emptyCount = IR_VariableAccess("emptyCount", IR_ArrayDatatype(ncInterface.MPI_Offset, numDims))
-      val countSelection = IR_VariableDeclaration(IR_PointerDatatype(ncInterface.MPI_Offset), IR_FileAccess.declareVariable("countSelection"), IR_VariableAccess(count))
+      val emptyCount = IR_VariableAccess("emptyCount", IR_ArrayDatatype(ioHanderNc.MPI_Offset, numDims))
+      val countSelection = IR_VariableDeclaration(IR_PointerDatatype(ioHanderNc.MPI_Offset), IR_FileAccess.declareVariable("countSelection"), IR_VariableAccess(count))
 
       // inner statement block of a fragment/block loop
       var writeStatements : ListBuffer[IR_Statement] = ListBuffer()
@@ -302,30 +304,28 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
         start._2.zipWithIndex.map { case (extent, dim) => IR_Assignment(IR_ArrayAccess(IR_VariableAccess(start._1), dim), extent) : IR_Statement } :+
         IR_Assignment(bufCount, 1))
       writeStatements += IR_VariableDeclaration(emptyCount, new IR_InitializerList(ListBuffer.fill(numDims)(0)))
-      writeStatements ++= ncInterface.condAssignCount(bufIdx, Some(countSelection), Some(emptyCount))
-      writeStatements ++= ncInterface.ncmpi_put_vara_all(
-        ncInterface.ncFile, ncInterface.varIdBuffer(bufIdx), IR_VariableAccess(start._1), IR_VariableAccess(countSelection), buf.getBaseAddress, bufCount, localViews(bufIdx).getAccess
+      writeStatements ++= ioHanderNc.condAssignCount(bufIdx, Some(countSelection), Some(emptyCount))
+      writeStatements ++= ioHanderNc.ncmpi_put_vara_all(
+        ioHanderNc.ncFile, ioHanderNc.varIdBuffer(bufIdx), IR_VariableAccess(start._1), IR_VariableAccess(countSelection), buf.getBaseAddress, bufCount, localViews(bufIdx).getAccess
       )
 
       if (buf.accessBlockwise)
-        ncInterface.IR_LoopOverBlocks(writeStatements)
+        ioHanderNc.IR_LoopOverBlocks(writeStatements)
       else
         IR_LoopOverFragments(writeStatements)
     }
 
     // re-use most of PnetCDF interface
-    statements ++= ncInterface.createOrOpenFile()
-    statements ++= ncInterface.setupAccess()
+    statements ++= ioHanderNc.createOrOpenFile()
+    statements ++= ioHanderNc.setupAccess()
     statements ++= writeExodusDatasets()
-    statements ++= ncInterface.cleanupAccess()
-    statements ++= ncInterface.closeFile()
+    statements ++= ioHanderNc.cleanupAccess()
+    statements ++= ioHanderNc.closeFile()
 
     statements
   }
 
   override def expand() : OutputType = {
-    var statements : ListBuffer[IR_Statement] = ListBuffer()
-
     // dependencies for ExodusII library
     if (!Settings.additionalIncludes.contains("exodusII.h"))
       Settings.additionalIncludes += "exodusII.h"
@@ -336,20 +336,28 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     if (!Settings.pathsLib.contains("$(EXODUS_HOME)/lib"))
       Settings.pathsLib += "$(EXODUS_HOME)/lib"
 
+    if (Knowledge.parIO_constantDataReduction) {
+      filename match {
+        case _ : IR_StringConstant => Logger.warn("Constants are reduced but filename is constant; Do not use \"printField\" in a loop with this parameter combination, otherwise the reduction will go wrong.")
+        case _ =>
+      }
+    }
+
     // dependencies for I/O interface
     ioHandler(constsIncluded = false, filename).handleDependencies()
 
     // preparations
+    var statements : ListBuffer[IR_Statement] = ListBuffer()
     statements ++= statementsForPreparation
 
     // enable visualization via exodusII
-    statements += IR_IfCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
+    statements += IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty,
       writeExodus())
 
     // write data via PnetCDF interface
-    statements += IR_IfCondition(IR_IV_ConstantsWrittenToFile().isEmpty,
+    statements += IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty,
       /* true: write constants and field data to file and mark that constants were already written */
-      writeData(constsIncluded = true) :+ IR_IV_ConstantsWrittenToFile().setFilename(filename),
+      writeData(constsIncluded = true) :+ IR_ConstantsWrittenToFile().setFilename(filename),
       /* false: only write field data */
       writeData(constsIncluded = false))
 

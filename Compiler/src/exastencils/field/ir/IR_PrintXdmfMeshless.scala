@@ -7,7 +7,6 @@ import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_Index
 import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_RealDatatype
 import exastencils.base.ir.IR_Statement
@@ -41,14 +40,15 @@ case class IR_PrintXdmfMeshless(
     var ioMethod : IR_Expression,
     var includeGhostLayers : Boolean,
     var dataset : IR_Expression,
-    var binaryFpp : Boolean) extends IR_PrintXdmf(ioMethod, binaryFpp) {
+    var binaryFpp : Boolean,
+    var resolveId : Int) extends IR_PrintXdmf(ioMethod, binaryFpp) {
 
   def datasetCoords : ListBuffer[IR_Expression] = (0 until numDimsGrid).map(d => IR_StringConstant("/constants/" + ('X' + d).toChar.toString) : IR_Expression).to[ListBuffer]
 
   // validate params
   if (includeGhostLayers) {
     includeGhostLayers = false
-    Logger.warn("Ghost layer visualization is currently unsupported for IR_PrintXdmfMeshless!")
+    Logger.error("Ghost layer visualization is currently unsupported for IR_PrintXdmfMeshless!")
   }
   if (numDimsGrid < 2) {
     Logger.error("IR_PrintXdmfMeshless is only usable for 2D/3D cases.")
@@ -64,7 +64,6 @@ case class IR_PrintXdmfMeshless(
   val dataBufferField = IR_DataBuffer(field, slot, includeGhostLayers, None, Some(dataset), canonicalFileLayout)
 
   val dataBuffersVertexPos : ListBuffer[IR_DataBuffer] = {
-    val accessIndices = ListBuffer[IR_Index](IR_ConstIndex(Array.fill(numDimsGrid)(0)))
     val faceDir = getFaceDir(field.localization)
 
     (0 until numDimsGrid).to[ListBuffer].map(dim => {
@@ -77,7 +76,7 @@ case class IR_PrintXdmfMeshless(
 
       if (!Knowledge.grid_isAxisAligned && faceDir < 0) {
         // use associated field of vf directly
-        IR_DataBuffer(dataBufSources._1, accessIndices, Some(datasetCoords(dim)), dim)
+        IR_DataBuffer(dataBufSources._1, None, Some(datasetCoords(dim)), dim)
       } else {
         // the vf's associated field doesn't have a suitable dimensionality -> create temp. buffer with positions depending on localization
         IR_DataBuffer(dataBufSources._2, IR_IV_ActiveSlot(field), None, Some(datasetCoords(dim)))
@@ -204,22 +203,6 @@ case class IR_PrintXdmfMeshless(
     statements += printXdmfElement(stream, closeAttribute)
 
     statements
-  }
-
-  override def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
-    val stmts = super.writeData(constsIncluded)
-
-    // cleanup
-    // TODO remove once temp. buffer IV's work correctly
-    if (fmt != "XML") {
-      field.localization match {
-        case IR_AtNode          => stmts ++= cleanupNodePositions
-        case IR_AtCellCenter    => stmts ++= cleanupCellCenters
-        case IR_AtFaceCenter(_) => stmts ++= cleanupFacePositions(getFaceDir(field.localization))
-      }
-    }
-
-    stmts
   }
 
   override def numDimsGrid : Int = field.layout.numDimsGrid

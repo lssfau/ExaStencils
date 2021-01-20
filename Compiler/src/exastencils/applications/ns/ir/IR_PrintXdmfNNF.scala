@@ -32,7 +32,8 @@ case class IR_PrintXdmfNNF(
     var filename : IR_Expression,
     level : Int,
     ioMethod : IR_Expression,
-    binaryFpp : Boolean) extends IR_PrintXdmf(ioMethod, binaryFpp) with IR_PrintVisualizationNS with IR_PrintFieldAsciiNS {
+    binaryFpp : Boolean,
+    var resolveId : Int) extends IR_PrintXdmf(ioMethod, binaryFpp) with IR_PrintVisualizationNS with IR_PrintFieldAsciiNS {
 
   def fieldnames : ListBuffer[String] = ListBuffer("vel", "p", "rho", "mue", "gamma", "phi")
 
@@ -146,20 +147,6 @@ case class IR_PrintXdmfNNF(
       IR_DataBuffer(phi, IR_IV_ActiveSlot(phi), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(5))), canonicalOrder = false))
 
     if (constsIncluded) constants ++ fields else fields
-  }
-
-  override def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
-    val stmts = super.writeData(constsIncluded)
-
-    // cleanup
-    // TODO remove once temp. buffer IV's work correctly
-    if (fmt != "XML") {
-      stmts ++= cleanupNodePositions
-      stmts += cleanupConnectivity
-      stmts += cleanupVelocity
-    }
-
-    stmts
   }
 
 }

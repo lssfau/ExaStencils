@@ -29,7 +29,7 @@ import exastencils.visualization.ir.IR_PrintVtkTriangles
 
 /// IR_PrintVtkSWE
 
-case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int) extends IR_PrintVtkTriangles with IR_PrintVisualizationSWE with IR_PrintFieldsAsciiSWE {
+case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int, var resolveId : Int) extends IR_PrintVtkTriangles with IR_PrintVisualizationSWE with IR_PrintFieldsAsciiSWE {
 
   override def printField(name : String, stream : IR_VariableAccess, loopBody : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = ListBuffer[IR_Statement](
     IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),

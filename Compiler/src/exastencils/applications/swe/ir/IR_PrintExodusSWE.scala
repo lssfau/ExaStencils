@@ -2,7 +2,6 @@ package exastencils.applications.swe.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ConstIndex
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_Index
@@ -22,7 +21,9 @@ import exastencils.visualization.ir.IR_PrintExodus
 
 case class IR_PrintExodusSWE(
     var filename : IR_Expression,
-    level : Int) extends IR_PrintExodus with IR_PrintVisualizationSWE {
+    level : Int,
+    var resolveId : Int,
+) extends IR_PrintExodus with IR_PrintVisualizationSWE {
 
   override def variableEntityType : IR_VariableAccess = EX_NODAL
   override def elementName : String = "tri"
@@ -37,10 +38,10 @@ case class IR_PrintExodusSWE(
 
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
     // access pattern dependent on reduction mode for blockstructured meshes
-    val accessIndices : ListBuffer[IR_Index] = if (Knowledge.swe_nodalReductionPrint)
-      ListBuffer(IR_ConstIndex(Array.fill(numDimsGrid)(0)))
+    val accessIndices : Option[ListBuffer[IR_Index]]= if (Knowledge.swe_nodalReductionPrint)
+      None
     else
-      nodeOffsets.map(_.toExpressionIndex)
+      Some(nodeOffsets.map(_.toExpressionIndex))
     val bathAccess = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(bath, IR_IV_ActiveSlot(bath), idx.toExpressionIndex), accessIndices)
 
     val constants = nodePosVecAsDataBuffers(accessIndices, datasetCoords.map(s => s : IR_Expression)) :+
@@ -52,5 +53,5 @@ case class IR_PrintExodusSWE(
     if (constsIncluded) constants ++ fields else fields
   }
 
-  override def statementsForCleanup : ListBuffer[IR_Statement] = cleanupReducedData
+  override def statementsForCleanup : ListBuffer[IR_Statement] = ListBuffer()
 }

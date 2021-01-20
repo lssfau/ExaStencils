@@ -2,7 +2,6 @@ package exastencils.applications.swe.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ConstIndex
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_IfCondition
@@ -27,7 +26,6 @@ import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.io.ir.IR_IV_NumValidFragsPerBlock
 import exastencils.util.ir.IR_Print
-import exastencils.visualization.ir.IR_IV_ConstantsWrittenToFile
 import exastencils.visualization.ir.IR_PrintXdmf
 
 /// IR_PrintXdmfSWE
@@ -40,7 +38,8 @@ case class IR_PrintXdmfSWE(
     var filename : IR_Expression,
     level : Int,
     ioMethod : IR_Expression,
-    binaryFpp : Boolean) extends IR_PrintXdmf(ioMethod, binaryFpp) with IR_PrintVisualizationSWE with IR_PrintFieldsAsciiSWE {
+    binaryFpp : Boolean,
+    var resolveId : Int) extends IR_PrintXdmf(ioMethod, binaryFpp) with IR_PrintVisualizationSWE with IR_PrintFieldsAsciiSWE {
 
   // dataset names for hdf5
   def datasetCoords : ListBuffer[String] = ListBuffer("/constants/X", "/constants/Y")
@@ -162,16 +161,16 @@ case class IR_PrintXdmfSWE(
       statements += printXdmfElement(stream, closeAttribute)
 
       writeOrReferenceConstants(stream, statements, elemToRef = s"Attribute[${fid+1}]",
-        altCondition = Some(IR_IV_ConstantsWrittenToFile().isEmpty OrOr fid != fieldnames.indexOf("bath")))
+        altCondition = Some(IR_ConstantsWrittenToFile().isEmpty OrOr fid != fieldnames.indexOf("bath")))
     }
   }
 
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
     // access pattern dependent on reduction mode for blockstructured meshes
-    val accessIndices : ListBuffer[IR_Index] = if (Knowledge.swe_nodalReductionPrint)
-      ListBuffer(IR_ConstIndex(Array.fill(numDimsGrid)(0)))
+    val accessIndices : Option[ListBuffer[IR_Index]]= if (Knowledge.swe_nodalReductionPrint)
+      None
     else
-      nodeOffsets.map(_.toExpressionIndex)
+      Some(nodeOffsets.map(_.toExpressionIndex))
     val bathAccess = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(bath, IR_IV_ActiveSlot(bath), idx.toExpressionIndex), accessIndices)
 
     val constants = nodePosVecAsDataBuffers(accessIndices, datasetCoords.map(s => IR_StringConstant(s))) :+
@@ -182,19 +181,5 @@ case class IR_PrintXdmfSWE(
     }
 
     if (constsIncluded) constants ++ fields else fields
-  }
-
-  override def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
-    val stmts = super.writeData(constsIncluded)
-
-    // cleanup
-    // TODO remove once temp. buffer IV's work correctly
-    if (fmt != "XML") {
-      stmts ++= cleanupNodePositions
-      stmts += cleanupConnectivity
-      stmts ++= cleanupReducedData
-    }
-
-    stmts
   }
 }

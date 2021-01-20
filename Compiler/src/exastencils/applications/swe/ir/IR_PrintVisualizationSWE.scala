@@ -12,7 +12,6 @@ import exastencils.base.ir.IR_ForLoop
 import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_Index
-import exastencils.base.ir.IR_NullStatement
 import exastencils.base.ir.IR_PointerDatatype
 import exastencils.base.ir.IR_PreIncrement
 import exastencils.base.ir.IR_SpecialDatatype
@@ -92,7 +91,7 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
   def fieldnames : ListBuffer[String] = ListBuffer("bath", "eta", "u", "v") ++ (if (optLocalOrderLower.isDefined && optLocalOrderUpper.isDefined) "order" :: Nil else Nil)
   def numFields : Int = fieldnames.length
 
-  def nodePosVecAsDataBuffers(accessIndices: ListBuffer[IR_Index], dataset: ListBuffer[IR_Expression]) : ListBuffer[IR_DataBuffer] = {
+  def nodePosVecAsDataBuffers(accessIndices: Option[ListBuffer[IR_Index]], dataset: ListBuffer[IR_Expression]) : ListBuffer[IR_DataBuffer] = {
     (0 until numDimsGrid).map(dim => IR_DataBuffer(IR_VF_NodePositionAsVec.find(level).associatedField, accessIndices, Some(dataset(dim)), dim)).to[ListBuffer]
   }
 
@@ -142,13 +141,6 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
   def setupReducedData : ListBuffer[IR_Statement] = {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
 
-    // TODO remove once temp. buffer IV's work correctly
-    stmts += etaReduced.getDeclaration()
-    stmts += uReduced.getDeclaration()
-    stmts += vReduced.getDeclaration()
-    if (orderDisc.isDefined)
-      stmts += orderReduced.get.getDeclaration()
-
     // allocate buffers before calculations
     stmts += etaReduced.allocateMemory
     stmts += uReduced.allocateMemory
@@ -177,13 +169,6 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
 
     stmts
   }
-
-  def cleanupReducedData : ListBuffer[IR_Statement] = ListBuffer(
-    etaReduced.getDtor().get,
-    uReduced.getDtor().get,
-    vReduced.getDtor().get,
-    if (orderReduced.isDefined) orderReduced.get.getDtor().get else IR_NullStatement
-  )
 
   // nodal data reduction
   def reducedCellPrint(buf : IR_VariableAccess, discField : ListBuffer[IR_Field], indentation : Option[IR_StringConstant] = None) : ListBuffer[IR_Statement] = {

@@ -68,8 +68,8 @@ object IR_DataBuffer {
   // non-AA case: accepts a vf's associated field
   def apply(
       vfAssocField : IR_Field,
-      accessIndices: ListBuffer[IR_Index],
-      dataset: Option[IR_Expression],
+      accessIndices: Option[ListBuffer[IR_Index]],
+      dataset : Option[IR_Expression],
       dim : Int) : IR_DataBuffer = {
 
     if (Knowledge.grid_isAxisAligned) {
@@ -126,24 +126,27 @@ object IR_DataBuffer {
   }
 }
 
-// TODO comments for params
+/// IR_DataBuffer
+// wrapper class for fields and temporary buffers
+// provides data extents and information needed for I/O
+
 case class IR_DataBuffer(
-    var slot : IR_Expression,
-    var datatype : IR_Datatype,
-    var localization : IR_Localization,
-    var accessPattern : IR_AccessPattern,
-    var referenceOffset : IR_ExpressionIndex,
-    var beginIndices : ListBuffer[IR_Expression],
-    var endIndices : ListBuffer[IR_Expression],
-    var totalDimsLocal : ListBuffer[IR_Expression],
-    var numDimsGrid : Int,
-    var numDimsData : Int,
-    var domainIdx : Int,
-    var name : String,
-    var datasetName : IR_Expression,
-    var canonicalStorageLayout : Boolean,
-    var accessBlockwise : Boolean,
-    var isDiscField : Boolean
+    var slot : IR_Expression, // slot for field accesses
+    var datatype : IR_Datatype, // datatype of the buffer
+    var localization : IR_Localization, // indicates where data is located
+    var accessPattern : IR_AccessPattern, // describes the in-memory access pattern
+    var referenceOffset : IR_ExpressionIndex, // offset from the lower corner of the buffer to the first reference point
+    var beginIndices : ListBuffer[IR_Expression], // specifies where the portion of interest in the buffer begins in each dimension
+    var endIndices : ListBuffer[IR_Expression], // specifies where the portion of interest in the buffer ends in each dimension
+    var totalDimsLocal : ListBuffer[IR_Expression], // total data extents of the buffer; including excluded data (e.g. pad/ghost layers)
+    var numDimsGrid : Int, // dimensionality of the grid
+    var numDimsData : Int, // dimensionality of the stored data
+    var domainIdx : Int, // ID of the (sub)domain the buffer lives on
+    var name : String, // name of the buffer
+    var datasetName : IR_Expression, // dataset name to be used in netCDF/HDF5 files
+    var canonicalStorageLayout : Boolean, // describes the data layout in the file
+    var accessBlockwise : Boolean, // specifies if the data is stored per fragment (field) or block (temp. buffers)
+    var isDiscField : Boolean // special case for SWE; fields with the structure:  lower_0, lower_1, lower_2, upper_0, upper_1, upper_2
 ) {
 
   /* In this implementation, two data layouts are supported:
@@ -206,12 +209,13 @@ case class IR_DataBuffer(
 
   // describes in-memory access pattern of an array (linearized "distances" to next value in the same dimension)
   // TODO handle "fragment dimension" when non-canonical order is used
-  def imapKJI : ListBuffer[IR_Expression] = numDimsDataRange.map(d => {
+  def imap : ListBuffer[IR_Expression] = numDimsDataRange.map(d => {
     if (d == 0)
       IR_IntegerConstant(1) // stride in x direction is "1"
     else
       (0 until d).map(dd => totalDimsLocal(dd)).reduce(_ * _) // product of total points from "previous dimensions"
-  }).to[ListBuffer].reverse
+  }).to[ListBuffer]
+  def imapKJI : ListBuffer[IR_Expression] = imap.reverse
 
   // determines if some layers (e.g. ghost/pad/...) are excluded for I/O operations or not
   def accessWithoutExclusion : IR_Expression = numDimsDataRange
@@ -228,9 +232,14 @@ case class IR_DataBuffer(
 
   def getAccess(index : IR_Index) : IR_Access = accessPattern.callAccessFunction(index)
 
+  def getAddress(access : IR_Access) = IR_AddressOf(access)
   def getAddress(index : IR_Index) = IR_AddressOf(getAccess(index))
 
   private val negativeReferenceOffset : IR_ExpressionIndex = IR_ExpressionIndex(referenceOffset.indices.map(idx => IR_Negative(idx)) : _*)
-  def getBaseAddress : IR_AddressOf = getAddress(negativeReferenceOffset)
-  def getAddressReferenceOffset : IR_AddressOf = getAddress(IR_ConstIndex(numDimsDataRange.map(_ => 0) : _*))
+  def getBaseAccess : IR_Access = getAccess(negativeReferenceOffset)
+  def getBaseAddress : IR_AddressOf = getAddress(getBaseAccess)
+
+  def zeroIndex = IR_ConstIndex(numDimsDataRange.map(_ => 0) : _*)
+  def getAccessReferenceOffset : IR_Access = getAccess(zeroIndex)
+  def getAddressReferenceOffset : IR_AddressOf = getAddress(getAccessReferenceOffset)
 }

@@ -4,7 +4,6 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_IV_IsValidForDomain
@@ -41,8 +40,8 @@ case class IR_FileAccess_MPIIO(
   val status = IR_AddressOf(IR_VariableAccess(status_decl))
 
   // derived datatypes
-  lazy val localView : Array[IR_MPI_View] = dataBuffers.indices.map(bufIdx => IR_MPI_View.getView(bufIdx, global = false)).toArray
-  lazy val globalView : Array[IR_MPI_View] = dataBuffers.indices.map(bufIdx => IR_MPI_View.getView(bufIdx, global = true)).toArray
+  lazy val localView : Array[MPI_View] = dataBuffers.indices.map(bufIdx => MPI_View.getView(bufIdx, global = false)).toArray
+  lazy val globalView : Array[MPI_View] = dataBuffers.indices.map(bufIdx => MPI_View.getView(bufIdx, global = true)).toArray
 
   override def accessFileFragwise(bufIdx : Int, accessStmts : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
     val disp = fileDisplacement(bufIdx)
@@ -92,30 +91,25 @@ case class IR_FileAccess_MPIIO(
     for (bufIdx <- dataBuffers.indices) {
       val buf = dataBuffers(bufIdx)
       // global view (location within the whole domain) per fragment
-      val datatypeGlobalView = if (buf.accessBlockwise) MPI_Datatype else IR_ArrayDatatype(MPI_Datatype, Knowledge.domain_numFragmentsPerBlock)
-      val globalView = IR_MPI_View(globalDims(bufIdx), count(bufIdx), globalStart(bufIdx),
-        numDimsGlobal(bufIdx), buf.domainIdx, mpiDatatypeBuffer(buf), datatypeGlobalView, "globalSubarray")
-      if (IR_MPI_View.addView(bufIdx, global = true, globalView)) {
-        val initDatatype = ListBuffer(
+      val globalView = MPI_View(globalDims(bufIdx), count(bufIdx), globalStart(bufIdx), numDimsGlobal(bufIdx), !buf.accessBlockwise, isLocal = false, buf, "globalSubarray")
+      if (MPI_View.addView(globalView)) {
+        val initDatatype : ListBuffer[IR_Statement] = ListBuffer(
           IR_IfCondition(IR_IV_IsValidForDomain(buf.domainIdx), // set global start index
             buf.startIndexGlobalKJI.indices.map(d => IR_Assignment(IR_ArrayAccess(globalStart(bufIdx), d), buf.startIndexGlobalKJI(d)) : IR_Statement).to[ListBuffer]),
-          globalView.createDatatype,
-          globalView.commitDatatype)
+          globalView.createDatatype
+        )
 
-        statements += globalView.declaration
         if (buf.accessBlockwise)
           statements += IR_LoopOverBlocks(initDatatype)
         else
           statements += IR_LoopOverFragments(initDatatype)
       }
 
-      // local view (mainly to omit ghost layers) per fragment
-      val localView = IR_MPI_View(localDims(bufIdx), count(bufIdx), localStart(bufIdx),
-        numDimsLocal(buf), buf.domainIdx, mpiDatatypeBuffer(buf), MPI_Datatype, "localSubarray")
-      if(IR_MPI_View.addView(bufIdx, global = false, localView)) {
-        statements += localView.declaration
+      // local view (mainly to omit ghost layers) used by each fragment
+      val localView = MPI_View(localDims(bufIdx), count(bufIdx), localStart(bufIdx),
+        numDimsLocal(buf), createViewPerFragment = false, isLocal = true, buf, "localSubarray")
+      if(MPI_View.addView(localView)) {
         statements += localView.createDatatype
-        statements += localView.commitDatatype
       }
     }
 
@@ -178,17 +172,10 @@ case class IR_FileAccess_MPIIO(
   }
 
   override def cleanupAccess() : ListBuffer[IR_Statement] = {
-    var statements : ListBuffer[IR_Statement] = ListBuffer()
+    // reset view cache after everything is done
+    MPI_View.resetViews()
 
-    // free derived datatypes
-    for (view <- IR_MPI_View.getAllViews) {
-      statements += view.freeDatatype
-    }
-
-    // reset map of views after everything is done
-    IR_MPI_View.resetViews()
-
-    statements
+    ListBuffer()
   }
 
   override def closeFile() : ListBuffer[IR_Statement] = ListBuffer(IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_close"), IR_AddressOf(fileHandle)))

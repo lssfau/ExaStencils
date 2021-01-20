@@ -29,7 +29,7 @@ import exastencils.visualization.ir.IR_PrintVtkQuads
 
 /// IR_PrintVtkNS
 
-case class IR_PrintVtkNS(var filename : IR_Expression, level : Int) extends IR_PrintVtkQuads with IR_PrintVisualizationNS with IR_PrintFieldAsciiNS {
+case class IR_PrintVtkNS(var filename : IR_Expression, level : Int, var resolveId : Int) extends IR_PrintVtkQuads with IR_PrintVisualizationNS with IR_PrintFieldAsciiNS {
   override def stmtsForNodeData : ListBuffer[IR_Statement] = ListBuffer()
 
   def fieldnames : ListBuffer[String] = ListBuffer("vel", "p")

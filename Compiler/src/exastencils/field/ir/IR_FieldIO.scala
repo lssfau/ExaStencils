@@ -8,6 +8,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_NullExpression
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_StringConstant
+import exastencils.core.Duplicate
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_FileAccess
 import exastencils.io.ir.IR_FileAccess_FPP
@@ -17,6 +18,7 @@ import exastencils.io.ir.IR_FileAccess_MPIIO
 import exastencils.io.ir.IR_FileAccess_PnetCDF
 import exastencils.io.ir.IR_FileAccess_SionLib
 import exastencils.logger.Logger
+import exastencils.visualization.ir.IR_ResolveVisualizationPrinters
 
 /// IR_FieldIO
 
@@ -31,6 +33,13 @@ object IR_FieldIO {
   def getNewFileName() : String = {
     fileNameCounter += 1
     "fieldName_%03d".format(fileNameCounter)
+  }
+
+  private var resolveId : Int = Duplicate(IR_ResolveVisualizationPrinters.funcsResolved) // vis. funcs are resolved first
+  def getNewResolveId() : Int = {
+    val ret = Duplicate(resolveId)
+    resolveId += 1
+    ret
   }
 }
 

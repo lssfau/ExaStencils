@@ -38,7 +38,6 @@ import exastencils.io.ir.IR_IV_TemporaryBuffer
 import exastencils.logger.Logger
 import exastencils.util.ir.IR_AABB
 import exastencils.util.ir.IR_Print
-import exastencils.visualization.ir.IR_IV_ConstantsWrittenToFile
 import exastencils.visualization.ir.IR_PrintXdmf
 
 /// IR_PrintXdmfUniform
@@ -60,14 +59,15 @@ case class IR_PrintXdmfUniform(
     var includeGhostLayers : Boolean,
     var dataset : IR_Expression,
     var binaryFpp : Boolean,
-    var canonicalFileLayout : Boolean) extends IR_PrintXdmf(ioMethod, binaryFpp) {
+    var canonicalFileLayout : Boolean,
+    var resolveId : Int) extends IR_PrintXdmf(ioMethod, binaryFpp) {
 
   // TODO: test for serial applications
 
   // validate params
   if (includeGhostLayers) {
     includeGhostLayers = false
-    Logger.warn("Ghost layer visualization is currently unsupported for IR_PrintXdmfUniform!")
+    Logger.error("Ghost layer visualization is currently unsupported for IR_PrintXdmfUniform!")
   }
   if (numDimsGrid < 2) {
     Logger.error("IR_PrintXdmfUniform is only usable for 2D/3D cases.")
@@ -114,7 +114,6 @@ case class IR_PrintXdmfUniform(
     // interpolate face centered values towards cell centers
     if (tmpBufStag.isDefined) {
       val tmpBuf = tmpBufStag.get
-      stmts += tmpBuf.getDeclaration()
       stmts += tmpBuf.allocateMemory
 
       val indexStagDim = IR_ConstIndex(Array.fill(numDimsGrid)(0).updated(staggerDim, 1))
@@ -356,20 +355,8 @@ case class IR_PrintXdmfUniform(
     statements
   }
 
-  override def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
-    val stmts = super.writeData(constsIncluded)
-
-    // cleanup
-    // TODO remove once temp. buffer IV's work correctly
-    if (fmt != "XML" && tmpBufStag.isDefined) {
-      stmts ++= tmpBufStag.get.getDtor()
-    }
-
-    stmts
-  }
-
   override def writeDataAndSetConstFile() : ListBuffer[IR_Statement] = {
-    val setConstFile = IR_IV_ConstantsWrittenToFile().setFilename(IR_StringConstant("")) // no constants to be reduced -> set to empty string
+    val setConstFile = IR_ConstantsWrittenToFile().setFilename(IR_StringConstant("")) // no constants to be reduced -> set to empty string
     val write = if (fmt != "XML") {
       writeData(constsIncluded = false)
     } else {
