@@ -25,6 +25,7 @@ import exastencils.applications.swe.ir.IR_ResolveFragmentOrder
 import exastencils.applications.swe.ir.IR_ResolveStationFunctions
 import exastencils.base.ExaRootNode
 import exastencils.base.ir._
+import exastencils.baseExt.ir.ComplexNumbers.IR_ResolveComplexNumbers
 import exastencils.baseExt.ir._
 import exastencils.boundary.ir.IR_ResolveBoundaryFunctions
 import exastencils.communication.DefaultNeighbors
@@ -198,6 +199,8 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_ResolveLocalSolve.apply()
     IR_GeneralSimplify.doUntilDone()
+
+    IR_ResolveComplexNumbers.apply()
 
     IR_ExtractMatrices.apply()
     IR_SetupMatrixExpressions.apply()

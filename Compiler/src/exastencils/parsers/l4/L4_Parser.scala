@@ -23,6 +23,8 @@ import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.input._
 
 import exastencils.base.l4._
+import exastencils.baseExt.l4.ComplexNumbers
+import exastencils.baseExt.l4.ComplexNumbers.L4_ComplexExpression
 import exastencils.baseExt.l4._
 import exastencils.boundary.l4._
 import exastencils.communication.l4._
@@ -478,10 +480,10 @@ object L4_Parser extends ExaParser with PackratParsers {
     ("(" ~> term) ~ "+" ~ term <~ ("j" ~ ")")
       ^^ { case real ~ _ ~ imag => L4_ComplexExpression(real, true, imag) } |||
       ("(" ~> term) ~ "-" ~ term <~ ("j" ~ ")")
-        ^^ { case real ~ _ ~ imag => L4_ComplexExpression(real, false, imag) } |||
+        ^^ { case real ~ _ ~ imag => ComplexNumbers.L4_ComplexExpression(real, false, imag) } |||
 
       ("complex" ~ "(") ~> term ~ "+," ~ "-".? ~ term <~ ")"
-    ^^ { case real ~ _ ~ sign ~ imag => L4_ComplexExpression(real, if(sign.isDefined) false else true, imag) })
+    ^^ { case real ~ _ ~ sign ~ imag => ComplexNumbers.L4_ComplexExpression(real, if(sign.isDefined) false else true, imag) })
 
   lazy val booleanexpression : PackratParser[L4_Expression] = (
     locationize((booleanexpression ~ ("||" ||| "or") ~ booleanexpression1) ^^ { case ex1 ~ op ~ ex2 => L4_BinaryOperators.createExpression(op, ex1, ex2) })
