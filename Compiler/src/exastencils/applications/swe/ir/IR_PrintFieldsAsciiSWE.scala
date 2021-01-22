@@ -18,6 +18,7 @@ import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_IV_ActiveSlot
+import exastencils.logger.Logger
 import exastencils.util.ir.IR_Print
 
 /// IR_PrintFieldsAsciiSWE
@@ -54,90 +55,37 @@ trait IR_PrintFieldsAsciiSWE extends IR_PrintVisualizationSWE {
     printField(name, stream, reducedCellPrint(stream, discFields, indentation))
   }
 
-  def printBath(stream : Option[IR_VariableAccess] = None, indentation : Option[IR_StringConstant] = None) : ListBuffer[IR_Statement] = {
-    addNodePrint("bath", {
+  def printNodalField(nodeField : IR_Field, stream : Option[IR_VariableAccess] = None, indentation : Option[IR_StringConstant] = None) : ListBuffer[IR_Statement] = {
+    addNodePrint(nodeField.name, {
       var nodePrint = ListBuffer[IR_Expression]()
       nodeOffsets.foreach { offset =>
         if(indentation.isDefined)
           nodePrint += indentation.get
-        nodePrint += IR_FieldAccess(bath, IR_IV_ActiveSlot(bath), IR_LoopOverDimensions.defIt(numDimsGrid) + offset)
+        nodePrint += IR_FieldAccess(nodeField, IR_IV_ActiveSlot(nodeField), IR_LoopOverDimensions.defIt(numDimsGrid) + offset)
         nodePrint += IR_Print.newline
       }
       nodePrint
     }, stream)
   }
 
-  def printEta(stream : Option[IR_VariableAccess] = None, indentation : Option[IR_StringConstant] = None) : ListBuffer[IR_Statement] = {
+  def printDiscField(discField : ListBuffer[IR_Field], stream : Option[IR_VariableAccess] = None, indentation : Option[IR_StringConstant] = None) : ListBuffer[IR_Statement] = {
+    if (discField.length != 6) {
+      Logger.error("Wrong usage for \"printDiscField\" in \"IR_PrintFieldsAsciiSWE\". Parameter \"discField\" should have length: 6.")
+    }
+
     if(Knowledge.swe_nodalReductionPrint) {
-      addReducedNodePrint("eta", etaDisc, stream, indentation)
+      addReducedNodePrint(getBasenameDiscField(discField), discField, stream, indentation)
     } else {
-      addNodePrint("eta", {
+      addNodePrint(getBasenameDiscField(discField), {
         var nodePrint = ListBuffer[IR_Expression]()
-        etaDisc.foreach { eta =>
+        discField.foreach { field =>
           if(indentation.isDefined)
             nodePrint += indentation.get
-          nodePrint += IR_FieldAccess(eta, IR_IV_ActiveSlot(eta), IR_LoopOverDimensions.defIt(numDimsGrid))
+          nodePrint += IR_FieldAccess(field, IR_IV_ActiveSlot(field), IR_LoopOverDimensions.defIt(numDimsGrid))
           nodePrint += IR_Print.newline
         }
         nodePrint
       }, stream)
-    }
-  }
-
-  def printU(stream : Option[IR_VariableAccess] = None, indentation : Option[IR_StringConstant] = None) : ListBuffer[IR_Statement] = {
-    if(Knowledge.swe_nodalReductionPrint) {
-      addReducedNodePrint("u", uDisc, stream, indentation)
-    } else {
-      addNodePrint("u", {
-        var nodePrint = ListBuffer[IR_Expression]()
-        uDisc.foreach { u =>
-          if(indentation.isDefined)
-            nodePrint += indentation.get
-          nodePrint += IR_FieldAccess(u, IR_IV_ActiveSlot(u), IR_LoopOverDimensions.defIt(numDimsGrid))
-          nodePrint += IR_Print.newline
-        }
-        nodePrint
-      }, stream)
-    }
-  }
-
-  def printV(stream : Option[IR_VariableAccess] = None, indentation : Option[IR_StringConstant] = None) : ListBuffer[IR_Statement] = {
-    if(Knowledge.swe_nodalReductionPrint) {
-      addReducedNodePrint("v", vDisc, stream, indentation)
-    } else {
-      addNodePrint("v", {
-        var nodePrint = ListBuffer[IR_Expression]()
-        vDisc.foreach { v =>
-          if(indentation.isDefined)
-            nodePrint += indentation.get
-          nodePrint += IR_FieldAccess(v, IR_IV_ActiveSlot(v), IR_LoopOverDimensions.defIt(numDimsGrid))
-          nodePrint += IR_Print.newline
-        }
-        nodePrint
-      }, stream)
-    }
-  }
-
-  def printOrder(stream : Option[IR_VariableAccess] = None, indentation : Option[IR_StringConstant] = None) : ListBuffer[IR_Statement] = {
-    if (orderDisc.isDefined) {
-      if(Knowledge.swe_nodalReductionPrint) {
-        addReducedNodePrint("order", orderDisc.get, stream, indentation)
-      } else {
-        addNodePrint("order", {
-          var nodePrint = ListBuffer[IR_Expression]()
-          List(optLocalOrderLower.get, optLocalOrderUpper.get).foreach { f =>
-            for (_ <- 0 until 3) { // TODO: cell data instead of
-              if(indentation.isDefined)
-                nodePrint += indentation.get
-              nodePrint += IR_FieldAccess(f, IR_IV_ActiveSlot(f), IR_LoopOverDimensions.defIt(numDimsGrid))
-              nodePrint += IR_Print.newline
-            }
-          }
-          nodePrint
-        }, stream)
-      }
-    } else {
-      ListBuffer[IR_Statement]()
     }
   }
 }

@@ -142,11 +142,12 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int, var resolve
     */
 
     // implemented in IR_PrintFieldsAsciiSWE
-    stmts ++= genStmtBlock(printBath())
-    stmts ++= genStmtBlock(printEta())
-    stmts ++= genStmtBlock(printU())
-    stmts ++= genStmtBlock(printV())
-    stmts ++= genStmtBlock(printOrder())
+    nodalFields.values.foreach { field =>
+      stmts ++= genStmtBlock(printNodalField(field))
+    }
+    discFields.values.foreach { discField =>
+      stmts ++= genStmtBlock(printDiscField(discField))
+    }
 
     stmts
   }

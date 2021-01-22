@@ -60,8 +60,7 @@ object IR_DataBuffer {
       accessPattern = pattern getOrElse IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(field, Duplicate(slot), idx.toExpressionIndex)),
       datasetName = dataset getOrElse IR_NullExpression,
       canonicalStorageLayout = canonicalOrder,
-      accessBlockwise = false,
-      isDiscField = false
+      accessBlockwise = false
     )
   }
 
@@ -93,8 +92,7 @@ object IR_DataBuffer {
       accessPattern = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(vfAssocField, 0, highDimIndex(idx)), accessIndices),
       datasetName = dataset getOrElse IR_NullExpression,
       canonicalStorageLayout = false,
-      accessBlockwise = false,
-      isDiscField = false
+      accessBlockwise = false
     )
   }
 
@@ -120,8 +118,7 @@ object IR_DataBuffer {
       accessPattern = pattern getOrElse IR_AccessPattern((idx : IR_Index) => tmpBuf.at(idx)),
       datasetName = dataset getOrElse IR_NullExpression,
       canonicalStorageLayout = false,
-      accessBlockwise = true,
-      isDiscField = false
+      accessBlockwise = true
     )
   }
 }
@@ -145,8 +142,7 @@ case class IR_DataBuffer(
     var name : String, // name of the buffer
     var datasetName : IR_Expression, // dataset name to be used in netCDF/HDF5 files
     var canonicalStorageLayout : Boolean, // describes the data layout in the file
-    var accessBlockwise : Boolean, // specifies if the data is stored per fragment (field) or block (temp. buffers)
-    var isDiscField : Boolean // special case for SWE; fields with the structure:  lower_0, lower_1, lower_2, upper_0, upper_1, upper_2
+    var accessBlockwise : Boolean // specifies if the data is stored per fragment (field) or block (temp. buffers)
 ) {
 
   /* In this implementation, two data layouts are supported:
@@ -159,7 +155,7 @@ case class IR_DataBuffer(
   def numDimsGridRange : Range = 0 until numDimsGrid
   def numDimsDataRange : Range = 0 until numDimsData
 
-  def stride : ListBuffer[IR_Expression] = accessPattern.stridePerDimension.getOrElse(numDimsDataRange.map(_ => 1 : IR_Expression).to[ListBuffer])
+  def stride : ListBuffer[IR_Expression] = numDimsDataRange.map(_ => 1 : IR_Expression).to[ListBuffer]
   def strideKJI : ListBuffer[IR_Expression] = stride.reverse
 
   // temp. buffers: remove "fragment dimension"

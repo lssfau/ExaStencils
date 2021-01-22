@@ -15,6 +15,7 @@ import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_InitializerList
 import exastencils.base.ir.IR_IntegerDatatype
+import exastencils.base.ir.IR_NullStatement
 import exastencils.base.ir.IR_SpecialDatatype
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_UnknownDatatype
@@ -25,6 +26,7 @@ import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.globals.ir.IR_GlobalCollection
+import exastencils.logger.Logger
 
 /// MPI_View
 object MPI_View {
@@ -139,16 +141,30 @@ case class MPI_View(
   def commitDatatype(access : IR_Access = getAccess) : IR_Statement =  IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_commit"), IR_AddressOf(access))
 
   def createDatatype : IR_Statement = {
-    if (isLocal && buffer.accessPattern.accessIndices.isDefined) {
-      // an access pattern was defined where certain indices are selected per cell
-      // currently only used for nodal fields in SWE (e.g node positions & bath with 6 values per grid cell) to describe in-memory accesses
-      val accessPattern = buffer.accessPattern
-      val indices = accessPattern.accessIndices.get
-      val indexedDatatype = IR_VariableAccess("indexedSelection", MPI_Datatype)
-      val numBlocks = indices.length // number of blocks
-      val displacements = IR_VariableAccess(IR_FileAccess.declareVariable("dispIndexedAcc"), IR_ArrayDatatype(IR_IntegerDatatype, numBlocks))
+    if (buffer.accessPattern.accessIndices.isDefined) {
+      createIndexedBlocks
+    } else {
+      createSubarray
+    }
+  }
+
+  // SWE specialized implementation. to be used for (non-reduced) nodal fields (e.g node positions & bath with "6" values per grid cell)
+  private def createIndexedBlocks : IR_Statement = {
+    // make sure this datatype is only used when nodal data reduction is turned off
+    if (Knowledge.swe_nodalReductionPrint) {
+      Logger.error("MPI View: Wrong derived datatype for \"Knowledge.swe_nodalReductionPrint\"=true.")
+    }
+
+    val accessPattern = buffer.accessPattern
+    val indices = accessPattern.accessIndices.get
+
+    if (isLocal) {
+      val cellCount = buffer.innerDimsPerFrag.map(_ - 1) // node -> cell
+      val numBlocks = indices.length // number of accesses
       val blocklength = 1 // always access 1 element per block
+      val displacements = IR_VariableAccess(IR_FileAccess.declareVariable("dispIndexedAcc"), IR_ArrayDatatype(IR_IntegerDatatype, numBlocks)) // displacements for each access
       val idxRangeTotal = IR_ExpressionIndexRange(buffer.zeroIndex.toExpressionIndex, IR_ExpressionIndex(buffer.totalDimsLocal : _*))
+      val indexedDatatype = IR_VariableAccess("indexedSelection", MPI_Datatype)
 
       val stmts : ListBuffer[IR_Statement] = ListBuffer()
 
@@ -165,28 +181,38 @@ case class MPI_View(
       stmts += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_size"), baseDatatypeMPI, IR_AddressOf(sizeBaseDatatype))
 
       // created nested "hvectors" to construct the access pattern for the whole grid
-      val cellCount = buffer.innerDimsPerFrag.map(_ - 1) // node -> cell
       val stride = buffer.imap.map(_ * sizeBaseDatatype) // strides for the next cell in x/y/z/... direction (in bytes)
       val numDimsGrid = Knowledge.dimensionality
-      var nestedDatatypes = ListBuffer(indexedDatatype)
+      var nestedDatatypes : ListBuffer[IR_Access] = ListBuffer(indexedDatatype)
       for (d <- 0 until numDimsGrid) {
         val oldDatatype = nestedDatatypes.last
         val hvector = IR_VariableAccess("hvector_dim" + d, MPI_Datatype)
-        stmts += IR_VariableDeclaration(hvector, MPI_DATATYPE_NULL)
+        val newDatatype = if (d != numDimsGrid -1) {
+          stmts += IR_VariableDeclaration(hvector, MPI_DATATYPE_NULL)
+          hvector
+        } else {
+          getAccess
+        }
         // create new datatype from old and free old afterwards
-        stmts += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_hvector"), cellCount(d), blocklength, stride(d), oldDatatype, IR_AddressOf(hvector))
-        if (d != numDimsGrid - 1) stmts += commitDatatype(hvector)
+        stmts += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_hvector"), cellCount(d), blocklength, stride(d), oldDatatype, IR_AddressOf(newDatatype))
+        stmts += commitDatatype(newDatatype)
         stmts += freeDatatype(oldDatatype)
 
-        nestedDatatypes += hvector // use as base for next dimension
+        nestedDatatypes += newDatatype // use as base for next dimension
       }
 
       IR_IfCondition(getAccess EqEq MPI_DATATYPE_NULL, stmts)
     } else {
-      // access pattern describes the selection of a subarray within a local/global array of data
-      val create = IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_create_subarray"), numDims, totalDims, count, start, rowMajor, baseDatatypeMPI, IR_AddressOf(getAccess))
-
-      IR_IfCondition(getAccess EqEq MPI_DATATYPE_NULL, ListBuffer[IR_Statement](create, commitDatatype()))
+      IR_NullStatement // TODO
     }
   }
+
+  // access pattern describes the selection of a subarray within a local (global) array of data in memory (in file)
+  private def createSubarray : IR_Statement = {
+    IR_IfCondition(getAccess EqEq MPI_DATATYPE_NULL,
+      ListBuffer[IR_Statement](
+        IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_create_subarray"), numDims, totalDims, count, start, rowMajor, baseDatatypeMPI, IR_AddressOf(getAccess)),
+        commitDatatype()))
+  }
+
 }

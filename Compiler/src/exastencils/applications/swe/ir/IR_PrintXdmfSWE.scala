@@ -1,5 +1,6 @@
 package exastencils.applications.swe.ir
 
+import scala.collection.immutable.ListMap
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Expression
@@ -18,6 +19,7 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_IsValidForDomain
+import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.grid.ir.IR_AtNode
@@ -25,6 +27,7 @@ import exastencils.io.ir.IR_AccessPattern
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.io.ir.IR_IV_NumValidFragsPerBlock
+import exastencils.logger.Logger
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_PrintXdmf
 
@@ -42,10 +45,25 @@ case class IR_PrintXdmfSWE(
     var resolveId : Int) extends IR_PrintXdmf(ioMethod, binaryFpp) with IR_PrintVisualizationSWE with IR_PrintFieldsAsciiSWE {
 
   // dataset names for hdf5
-  def datasetCoords : ListBuffer[String] = ListBuffer("/constants/X", "/constants/Y")
-  def datasetConnectivity = "/constants/Connectivity"
-  def datasetFields : ListBuffer[String] = "/constants/bath" +: // values don't change -> write once and reference
-    fieldnames.drop(1).map(name => "/fieldData/" + name)
+  def datasetCoords : ListBuffer[IR_StringConstant] = ListBuffer(IR_StringConstant("/constants/X"), IR_StringConstant("/constants/Y"))
+  def datasetConnectivity : IR_StringConstant = IR_StringConstant("/constants/Connectivity")
+  def datasetFields : ListMap[String, ListBuffer[IR_StringConstant]] = {
+    val datasetNodeFields = ListMap(nodalFields.keys.toSeq.map(fieldname =>
+      // bath: values don't change -> can be referenced over and over. others: written in each print call
+      fieldname -> ListBuffer(IR_StringConstant((if (fieldname == "bath") "/constants/" else "/fieldData/") + fieldname))) : _*)
+
+    val datasetDiscFields = if (Knowledge.swe_nodalReductionPrint) {
+      discFieldsReduced.values.map(buf => buf.name -> ListBuffer(IR_StringConstant("/fieldData/" + buf.name)))
+    } else {
+      discFields.values.map { discField =>
+        // for fields like order (lower0, lower0, lower0, upper0, ...): add suffix to create unique dataset names for each component
+        val suffix = (0 until 6).map(i => if (discField.toSet.size != discField.size) s"_$i" else "")
+        getBasenameDiscField(discField) -> discField.zipWithIndex.map { case (field, fid) => IR_StringConstant("/fieldData/" + field.name + suffix(fid)) }
+      }
+    }
+
+    datasetNodeFields ++ datasetDiscFields
+  }
 
   override def stmtsForPreparation : ListBuffer[IR_Statement] = {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
@@ -129,7 +147,10 @@ case class IR_PrintXdmfSWE(
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
             (0 until numDimsGrid).map(dim =>
-              IR_Print(stream, indentData +: separateSequenceAndFilter(connectivityForCell(global = false).take(3 * (dim + 1)).takeRight(3)) :+ IR_Print.newline) : IR_Statement
+              IR_Print(stream,
+                indentData +:
+                  connectivityForCell(global = false).slice(3*dim, 3*(dim+1)).flatMap(List(_, separator)).dropRight(1) :+
+                  IR_Print.newline) : IR_Statement
             ).to[ListBuffer])),
         IR_Print(stream, IR_Print.flush))
     } else {
@@ -142,44 +163,110 @@ case class IR_PrintXdmfSWE(
   }
 
   override def writeXdmfAttributes(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
+    val nodalDims = dimsPositionsFrag :+ dimFrags(global)
     fieldnames.zipWithIndex.flatMap { case (fname, fid) =>
       var statements : ListBuffer[IR_Statement] = ListBuffer()
       statements += printXdmfElement(stream, openAttribute(name = fname, tpe = "Scalar", ctr = "Node"))
-      statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, dimsPositionsFrag :+ dimFrags(global), getSeekp(global)) : _*)
-      statements ++= (if(fmt == "XML") {
-        fname match {
-          case "bath" => printBath(Some(stream), Some(indentData))
-          case "eta"  => printEta(Some(stream), Some(indentData))
-          case "u"    => printU(Some(stream), Some(indentData))
-          case "v"    => printV(Some(stream), Some(indentData))
-          case "order"=> printOrder(Some(stream), Some(indentData))
-        }
+      if (Knowledge.swe_nodalReductionPrint || fields(fname).head.localization == IR_AtNode || fmt == "XML") {
+        // reduced fields or nodal fields (e.g. bath)
+        statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, nodalDims, getSeekp(global)) : _*)
+        statements ++= (if (fmt == "XML") {
+          fields(fname).length match {
+            case 1 => printNodalField(fields(fname).head, Some(stream), Some(indentData))
+            case 6 => printDiscField(fields(fname), Some(stream), Some(indentData))
+            case _ => Logger.error("IR_PrintXdmfSWE: Unknown field type; neither nodal nor disc field.")
+          }
+        } else {
+          ListBuffer(printFilename(stream, datasetFields(fname).head))
+        })
+        statements += printXdmfElement(stream, closeDataItem)
       } else {
-        ListBuffer(printFilename(stream, datasetFields(fid)))
-      })
-      statements += printXdmfElement(stream, closeDataItem)
+        // non-reduced disc fields -> join lower and upper components from file
+        val discField = discFields(fname)
+        val function = "JOIN(" + discField.indices.map("$" + _).mkString(",") + ")"
+        statements += printXdmfElement(stream, openDataItemFunction(nodalDims, function) : _*)
+        discField.zipWithIndex.foreach { case (discField, discId) =>
+          statements += printXdmfElement(stream, openDataItem(discField.resolveBaseDatatype, nodalDims.drop(1), getSeekp(global)) : _*)
+          statements += printFilename(stream, datasetFields(fname)(discId))
+          statements += printXdmfElement(stream, closeDataItem)
+        }
+        statements += printXdmfElement(stream, closeDataItem)
+      }
       statements += printXdmfElement(stream, closeAttribute)
 
       writeOrReferenceConstants(stream, statements, elemToRef = s"Attribute[${fid+1}]",
-        altCondition = Some(IR_ConstantsWrittenToFile().isEmpty OrOr fid != fieldnames.indexOf("bath")))
+        altCondition = Some(IR_ConstantsWrittenToFile().isEmpty OrOr fname != "bath"))
+    }
+  }
+
+  override def discFieldsToDatabuffers(discField : ListBuffer[IR_Field]) : ListBuffer[IR_DataBuffer] = {
+    // source for data buffer is dependent on reduction mode: temp buffer or field
+    val fieldname = getBasenameDiscField(discField)
+    val dataset = datasetFields(fieldname).head
+    if (Knowledge.swe_nodalReductionPrint) {
+      ListBuffer(
+        IR_DataBuffer(discFieldsReduced(fieldname), IR_IV_ActiveSlot(someCellField), None, Some(dataset))
+      )
+    } else {
+      discField.zipWithIndex.map { case (field, fid) =>
+        val idxRange = 0 until field.layout.numDimsData
+        val slot = IR_IV_ActiveSlot(field)
+        new IR_DataBuffer(
+          slot = slot,
+          datatype = field.gridDatatype,
+          localization = field.layout.localization,
+          referenceOffset = field.referenceOffset,
+          beginIndices = idxRange.map(d => field.layout.defIdxById("IB", d) : IR_Expression).to[ListBuffer],
+          endIndices = idxRange.map(d => field.layout.defIdxById("IE", d) : IR_Expression).to[ListBuffer],
+          totalDimsLocal = idxRange.map(d => field.layout.defTotal(d) : IR_Expression).to[ListBuffer],
+          numDimsGrid = field.layout.numDimsGrid,
+          numDimsData = field.layout.numDimsData,
+          domainIdx = field.domain.index,
+          accessPattern = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(field, slot, idx.toExpressionIndex)),
+          datasetName = datasetFields(getBasenameDiscField(discField))(fid),
+          name = field.name,
+          canonicalStorageLayout = false,
+          accessBlockwise = false
+        )
+      }
     }
   }
 
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
     // access pattern dependent on reduction mode for blockstructured meshes
-    val accessIndices : Option[ListBuffer[IR_Index]]= if (Knowledge.swe_nodalReductionPrint)
+    val accessIndices : Option[ListBuffer[IR_Index]] = if (Knowledge.swe_nodalReductionPrint)
       None
     else
       Some(nodeOffsets.map(_.toExpressionIndex))
-    val bathAccess = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(bath, IR_IV_ActiveSlot(bath), idx.toExpressionIndex), accessIndices)
+    def nodalAccess(field : IR_Field) = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(field, IR_IV_ActiveSlot(field), idx.toExpressionIndex), accessIndices)
 
-    val constants = nodePosVecAsDataBuffers(accessIndices, datasetCoords.map(s => IR_StringConstant(s))) :+
-      IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(someCellField), None, Some(IR_StringConstant(datasetConnectivity))) :+
-      IR_DataBuffer(bath, IR_IV_ActiveSlot(bath), includeGhosts = false, Some(bathAccess), Some(IR_StringConstant(datasetFields.head)), canonicalOrder = false)
-    val fields = datasetFields.tail.zipWithIndex.map { case (ds, i) =>
-      discFieldsAsDataBuffers(discFields(i), IR_StringConstant(ds))
+    // bath is constant and can be reduced -> move to constants if exists
+    val bath = nodalFields.get("bath")
+    var constants : ListBuffer[IR_DataBuffer] = ListBuffer()
+    constants ++= nodePosVecAsDataBuffers(accessIndices, datasetCoords.map(s => s : IR_Expression))
+    constants += IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetConnectivity))
+    if (bath.isDefined) {
+      constants += IR_DataBuffer(bath.get, IR_IV_ActiveSlot(bath.get), includeGhosts = false, Some(nodalAccess(bath.get)), Some(datasetFields("bath").head), canonicalOrder = false)
     }
 
-    if (constsIncluded) constants ++ fields else fields
+    // non-constant fields
+    val nonConstFields = fields.filterKeys(_ != "bath").flatMap { fieldMap =>
+      val fieldCollection = fieldMap._2
+      val name = fieldMap._1
+
+      fieldCollection.length match {
+        case 1 =>
+          val nodeField = fieldCollection.head
+          ListBuffer(
+            IR_DataBuffer(nodeField, IR_IV_ActiveSlot(nodeField), includeGhosts = false, Some(nodalAccess(nodeField)), Some(datasetFields(name).head), canonicalOrder = false)
+          )
+        case 6 =>
+          discFieldsToDatabuffers(fieldCollection)
+        case _ =>
+          Logger.error("IR_PrintXdmfSWE: Unknown field type; neither nodal nor disc field.")
+      }
+    }
+
+    if (constsIncluded) constants ++ nonConstFields else nonConstFields.to[ListBuffer]
   }
 }

@@ -149,7 +149,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   def separator = IR_StringConstant(" ")
   def separateSequence(dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = dims
     .reverse // KJI order
-    .flatMap(d => d :: separator :: Nil)
+    .flatMap(List(_, separator))
     .dropRight(1)
   def separateSequenceAndFilter(dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = separateSequence(
     dims.filter(d => d != IR_IntegerConstant(1) || d != IR_IntegerConstant(0)) // remove unnecessary dim specifications

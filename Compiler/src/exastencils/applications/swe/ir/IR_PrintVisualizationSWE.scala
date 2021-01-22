@@ -1,5 +1,6 @@
 package exastencils.applications.swe.ir
 
+import scala.collection.immutable.ListMap
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ArrayAccess
@@ -31,7 +32,6 @@ import exastencils.field.ir.IR_FieldCollection
 import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.grid.ir.IR_AtNode
 import exastencils.grid.ir.IR_VF_NodePositionAsVec
-import exastencils.io.ir.IR_AccessPattern
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_TemporaryBuffer
 import exastencils.logger.Logger
@@ -48,6 +48,7 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
 
   override def dimsPositionsFrag : ListBuffer[IR_Expression] = if (Knowledge.swe_nodalReductionPrint) ListBuffer(numCells_x+1, numCells_y+1) else ListBuffer(6, numCells_x, numCells_y)
 
+  // TODO flexible output: fields as function parameters
   def bath : IR_Field = IR_FieldCollection.getByIdentifier("bath", level).get
 
   def etaDiscLower0 : IR_Field = IR_FieldCollection.getByIdentifier("etaDiscLower0", level).get
@@ -83,82 +84,45 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
   else
     None
 
-  def discFields : ListBuffer[ListBuffer[IR_Field]] = ListBuffer(etaDisc, uDisc, vDisc) ++ orderDisc
-  def discFieldsReduced : ListBuffer[IR_IV_TemporaryBuffer] = ListBuffer(etaReduced, uReduced, vReduced) ++ orderReduced
+  // TODO flexible output: fill with input parameters
+  def nodalFields : ListMap[String, IR_Field] = ListMap(bath.name -> bath)
+  def discFields : ListMap[String, ListBuffer[IR_Field]] = ListMap(
+    (ListBuffer(etaDisc, uDisc, vDisc) ++ orderDisc).map(discField => getBasenameDiscField(discField) -> discField) : _*)
+  def discFieldsReduced : ListMap[String, IR_IV_TemporaryBuffer] = discFields.map (discField =>
+    discField._1 -> IR_IV_TemporaryBuffer(discField._2.head.resolveBaseDatatype, IR_AtNode, discField._1, domainIndex, dimsPositionsFrag))
 
   def someCellField : IR_Field = etaDiscLower0
 
-  def fieldnames : ListBuffer[String] = ListBuffer("bath", "eta", "u", "v") ++ (if (optLocalOrderLower.isDefined && optLocalOrderUpper.isDefined) "order" :: Nil else Nil)
+  def fields : ListMap[String, ListBuffer[IR_Field]] = nodalFields.map(field => field._1 -> ListBuffer(field._2)) ++ discFields
+  def fieldnames : ListBuffer[String] = fields.keys.to[ListBuffer]
   def numFields : Int = fieldnames.length
 
   def nodePosVecAsDataBuffers(accessIndices: Option[ListBuffer[IR_Index]], dataset: ListBuffer[IR_Expression]) : ListBuffer[IR_DataBuffer] = {
     (0 until numDimsGrid).map(dim => IR_DataBuffer(IR_VF_NodePositionAsVec.find(level).associatedField, accessIndices, Some(dataset(dim)), dim)).to[ListBuffer]
   }
 
-  // glue logic for disc fields to be mapped to data buffers
-  def discFieldsAsDataBuffers(
-      discField : ListBuffer[IR_Field],
-      dataset : IR_Expression) : IR_DataBuffer = {
-
-    // source for data buffer is dependent on reduction mode: temp buffer or field
-    if (Knowledge.swe_nodalReductionPrint) {
-      val tmpBuf = discFieldsReduced(discFields.indexOf(discField))
-      IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(someCellField), None, Some(dataset))
-    } else {
-      val field = discField.head
-      val idxRange = 0 until field.layout.numDimsData
-      val slot = IR_IV_ActiveSlot(field)
-      // TODO access pattern for non-reduction case
-      new IR_DataBuffer(
-        slot = slot,
-        datatype = field.gridDatatype,
-        localization = field.layout.localization,
-        referenceOffset = field.referenceOffset,
-        beginIndices = idxRange.map(d => field.layout.defIdxById("IB", d) : IR_Expression).to[ListBuffer],
-        endIndices = idxRange.map(d => field.layout.defIdxById("IE", d) : IR_Expression).to[ListBuffer],
-        totalDimsLocal = idxRange.map(d => field.layout.defTotal(d) : IR_Expression).to[ListBuffer],
-        numDimsGrid = field.layout.numDimsGrid,
-        numDimsData = field.layout.numDimsData,
-        domainIdx = field.domain.index,
-        accessPattern = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(field, slot, idx.toExpressionIndex)),
-        datasetName = dataset,
-        name = field.name,
-        canonicalStorageLayout = false,
-        accessBlockwise = false,
-        isDiscField = true
-      )
-    }
+  // get the common prefix of a disc field and use as name (e.g. etaDiscLower0, etaDiscLower1, ... -> etaDisc)
+  def getBasenameDiscField(discField : ListBuffer[IR_Field]) : String = {
+    discField.map(_.name).reduce((a, b) => (a zip b).takeWhile(Function.tupled(_ == _)).map(_._1).mkString)
   }
 
-  val etaReduced = IR_IV_TemporaryBuffer(etaDiscLower0.resolveBaseDatatype, IR_AtNode, "etaReduced", etaDiscLower0.domain.index, dimsPositionsFrag)
-  val uReduced = IR_IV_TemporaryBuffer(uDiscLower0.resolveBaseDatatype, IR_AtNode, "uReduced", uDiscLower0.domain.index, dimsPositionsFrag)
-  val vReduced = IR_IV_TemporaryBuffer(vDiscLower0.resolveBaseDatatype, IR_AtNode, "vReduced", vDiscLower0.domain.index, dimsPositionsFrag)
-  val orderReduced : Option[IR_IV_TemporaryBuffer] = if (orderDisc.isDefined)
-    Some(IR_IV_TemporaryBuffer(optLocalOrderLower.get.resolveBaseDatatype, IR_AtNode, "orderReduced", optLocalOrderLower.get.domain.index, dimsPositionsFrag))
-  else
-    None
+  // glue logic for disc fields to be mapped to data buffers
+  def discFieldsToDatabuffers(discField : ListBuffer[IR_Field]) : ListBuffer[IR_DataBuffer] = ListBuffer()
 
+  // calculating an average over a disc field to reduce the amount of data written to file
   def setupReducedData : ListBuffer[IR_Statement] = {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
 
-    // allocate buffers before calculations
-    stmts += etaReduced.allocateMemory
-    stmts += uReduced.allocateMemory
-    stmts += vReduced.allocateMemory
-    if (orderDisc.isDefined)
-      stmts += orderReduced.get.allocateMemory
+    // allocate buffers before calculation
+    discFieldsReduced.values.foreach { tmpBuf =>
+      stmts += tmpBuf.allocateMemory
+    }
 
     // compute averages and store into buffer before writing
     var stmtsFragLoop : ListBuffer[IR_Statement] = ListBuffer()
-    stmtsFragLoop += IR_Comment("\n Nodal data reduction for eta \n")
-    stmtsFragLoop ++= reducedCellPrint(IR_VariableAccess(etaReduced.name, etaReduced.resolveDatatype()), etaDisc)
-    stmtsFragLoop += IR_Comment("\n Nodal data reduction for u \n")
-    stmtsFragLoop ++= reducedCellPrint(IR_VariableAccess(uReduced.name, uReduced.resolveDatatype()), uDisc)
-    stmtsFragLoop += IR_Comment("\n Nodal data reduction for v \n")
-    stmtsFragLoop ++= reducedCellPrint(IR_VariableAccess(vReduced.name, vReduced.resolveDatatype()), vDisc)
-    if (orderDisc.isDefined) {
-      stmtsFragLoop += IR_Comment("\n Nodal data reduction for order \n")
-      stmtsFragLoop ++= reducedCellPrint(IR_VariableAccess(orderReduced.get.name, orderReduced.get.resolveDatatype()), orderDisc.get)
+    discFieldsReduced.values.foreach { tmpBuf =>
+      stmtsFragLoop += IR_Comment(s"\n Nodal data reduction for ${tmpBuf.name} \n")
+      stmtsFragLoop ++= reducedCellPrint(IR_VariableAccess(tmpBuf.name, tmpBuf.resolveDatatype()), discFields(tmpBuf.name))
     }
 
     stmts += IR_LoopOverFragments(
@@ -177,7 +141,7 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
     val upp : ListBuffer[IR_Field] = discField.takeRight(3)
 
     if (discField.length != 6) {
-      Logger.error("Wrong usage of \"addReducedNodePrint\" in IR_PrintVtkSWE.")
+      Logger.error("Wrong usage of \"addReducedNodePrint\" in IR_PrintVisualizationSWE.")
     }
 
     def getIdxNodalLoop(idx : IR_ExpressionIndex) : IR_Expression = IR_ExpressionIndexRange(
