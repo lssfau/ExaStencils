@@ -6,12 +6,9 @@ import scala.sys.process._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_ExpressionIndexRange
-import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.config.Settings
-import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_Print
@@ -21,6 +18,7 @@ case class IR_FileAccess_SionLib(
     var dataBuffers : ListBuffer[IR_DataBuffer],
     var writeAccess : Boolean,
     var condition: IR_Expression,
+    var interleavedAccHighDimDt : Boolean,
     var appendedMode : Boolean = false) extends IR_FileAccess("sion", filename, dataBuffers, writeAccess, appendedMode) {
 
   // datatypes
@@ -28,7 +26,7 @@ case class IR_FileAccess_SionLib(
   val sion_int32 = IR_SpecialDatatype("sion_int32")
   val FILE = IR_SpecialDatatype("FILE")
 
-  // for serial API: we assume that the number of chunks (there is always one chunk per process) in a sion file equals the number of MPI processes (1)
+  // for serial API: assume that the number of chunks (there is always one chunk per process) in a sion file equals the number of MPI processes (1)
   val nTasks = 1
 
   val nPhysFiles = 1
@@ -154,23 +152,22 @@ case class IR_FileAccess_SionLib(
     val buf = dataBuffers(bufIdx)
     val funcName = if (writeAccess) "fwrite" else "fread" // use ANSI C function to reduce "sion_ensure_free_space" calls from "sion_fread" wrapper function
 
-    stmts += IR_IfCondition(bytesAccessedKnownApriori AndAnd buf.accessWithoutExclusion,
+    stmts += IR_IfCondition(isAccessForWholeBlockAllowed(buf, bytesAccessedKnownApriori, interleavedAccHighDimDt),
       /* true: write whole buffer */
       IR_Assignment(bytesAccessed,
         IR_FunctionCall(IR_ExternalFunctionReference(if (writeAccess) "sion_fwrite" else "sion_fread"), // use sion wrapper directly
           buf.getBaseAddress, numBytesDatatype(bufIdx), numBytesLocal(bufIdx) / numBytesDatatype(bufIdx), fileId),
         "+="),
       /* false: write component by component in a loop */
-      IR_LoopOverDimensions(buf.numDimsGrid, IR_ExpressionIndexRange(
-        IR_ExpressionIndex(buf.numDimsGridRange.map(dim => buf.beginIndices(dim) - Duplicate(buf.referenceOffset(dim)) : IR_Expression).toArray),
-        IR_ExpressionIndex(buf.numDimsGridRange.map(dim => buf.endIndices(dim) - Duplicate(buf.referenceOffset(dim)) : IR_Expression).toArray)),
-        IR_IfCondition(condition,
-          handleAccessesMultiDimDatatypes(buf).map(acc =>
-            IR_Assignment(bytesAccessed,
-              IR_FunctionCall(IR_ExternalFunctionReference(funcName),
-                IR_AddressOf(acc),
-                numBytesDatatype(bufIdx), 1, filePtr),
-              "+=") : IR_Statement))))
+      loopOverDims(bufIdx,
+        condition,
+        handleAccesses(buf).flatten.map(acc =>
+          IR_Assignment(bytesAccessed,
+            IR_FunctionCall(IR_ExternalFunctionReference(funcName),
+              IR_AddressOf(acc),
+              numBytesDatatype(bufIdx), 1, filePtr),
+            "+=") : IR_Statement
+        ) : _*))
 
     if (Knowledge.parIO_generateDebugStatements && bytesAccessedKnownApriori) {
       stmts ++= checkBytesAccessed(bufIdx)

@@ -14,10 +14,11 @@ import exastencils.base.ir.IR_FunctionCall
 import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_InitializerList
+import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_IntegerDatatype
-import exastencils.base.ir.IR_NullStatement
 import exastencils.base.ir.IR_SpecialDatatype
 import exastencils.base.ir.IR_Statement
+import exastencils.base.ir.IR_TernaryCondition
 import exastencils.base.ir.IR_UnknownDatatype
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
@@ -25,7 +26,9 @@ import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
+import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.globals.ir.IR_GlobalCollection
+import exastencils.grid.ir.IR_AtNode
 import exastencils.logger.Logger
 
 /// MPI_View
@@ -150,16 +153,20 @@ case class MPI_View(
 
   // SWE specialized implementation. to be used for (non-reduced) nodal fields (e.g node positions & bath with "6" values per grid cell)
   private def createIndexedBlocks : IR_Statement = {
-    // make sure this datatype is only used when nodal data reduction is turned off
+    // check if datatype is only used for its special use-case
     if (Knowledge.swe_nodalReductionPrint) {
-      Logger.error("MPI View: Wrong derived datatype for \"Knowledge.swe_nodalReductionPrint\"=true.")
+      // make sure this datatype is only used when nodal data reduction is turned off
+      Logger.error("MPI View: Wrong derived datatype for \"Knowledge.swe_nodalReductionPrint\"=true. Should be: \"createSubarray\".")
+    }
+    if (buffer.localization != IR_AtNode && Knowledge.dimensionality != 2) {
+      Logger.error("MPI View: \"createIndexedBlocks\" is currently only supported for nodal meshes in SWE applications (2D).")
     }
 
     val accessPattern = buffer.accessPattern
     val indices = accessPattern.accessIndices.get
 
     if (isLocal) {
-      val cellCount = buffer.innerDimsPerFrag.map(_ - 1) // node -> cell
+      val cellCountFrag = buffer.innerDimsPerFrag.map(_ - 1) // node -> cell
       val numBlocks = indices.length // number of accesses
       val blocklength = 1 // always access 1 element per block
       val displacements = IR_VariableAccess(IR_FileAccess.declareVariable("dispIndexedAcc"), IR_ArrayDatatype(IR_IntegerDatatype, numBlocks)) // displacements for each access
@@ -194,7 +201,7 @@ case class MPI_View(
           getAccess
         }
         // create new datatype from old and free old afterwards
-        stmts += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_hvector"), cellCount(d), blocklength, stride(d), oldDatatype, IR_AddressOf(newDatatype))
+        stmts += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_hvector"), cellCountFrag(d), blocklength, stride(d), oldDatatype, IR_AddressOf(newDatatype))
         stmts += commitDatatype(newDatatype)
         stmts += freeDatatype(oldDatatype)
 
@@ -203,7 +210,24 @@ case class MPI_View(
 
       IR_IfCondition(getAccess EqEq MPI_DATATYPE_NULL, stmts)
     } else {
-      IR_NullStatement // TODO
+      // create global subarray with modified dimensions (nodal -> zonal with 6 accesses each)
+      val dimsGlobal  = accessPattern.transformDataExtents(buffer.globalDimsKJI, orderKJI = true)
+      val countGlobal = IR_IntegerConstant(1) +: dimsGlobal.drop(1) // TotalNumFrags -> 1 Fragment per write
+      val fragOffset = IR_IV_FragmentOffset(buffer.domainIdx) + IR_TernaryCondition(IR_IV_IsValidForDomain(buffer.domainIdx), IR_LoopOverFragments.defIt, 0) // dummy: set to "0" for "invalid" frags
+      val startGlobal = fragOffset +: dimsGlobal.drop(1).map(_ => IR_IntegerConstant(0)) // start at global "valid" fragment
+      val newDims = dimsGlobal.length
+      val globalDims  = IR_VariableAccess("globalDims", IR_ArrayDatatype(IR_IntegerDatatype, newDims))
+      val globalCount = IR_VariableAccess("globalCount", IR_ArrayDatatype(IR_IntegerDatatype, newDims))
+      val globalStart = IR_VariableAccess("globalStart", IR_ArrayDatatype(IR_IntegerDatatype, newDims))
+
+      IR_IfCondition(getAccess EqEq MPI_DATATYPE_NULL,
+        ListBuffer[IR_Statement](
+          // specify modified dims in KJI order
+          IR_VariableDeclaration(globalDims, IR_InitializerList(dimsGlobal : _*)),
+          IR_VariableDeclaration(globalCount, IR_InitializerList(countGlobal : _*)),
+          IR_VariableDeclaration(globalStart, IR_InitializerList(startGlobal : _*)),
+          IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_create_subarray"), newDims, globalDims, globalCount, globalStart, rowMajor, baseDatatypeMPI, IR_AddressOf(getAccess)),
+          commitDatatype()))
     }
   }
 

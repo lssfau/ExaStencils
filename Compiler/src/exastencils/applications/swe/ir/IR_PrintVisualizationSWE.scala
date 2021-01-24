@@ -88,8 +88,9 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
   def nodalFields : ListMap[String, IR_Field] = ListMap(bath.name -> bath)
   def discFields : ListMap[String, ListBuffer[IR_Field]] = ListMap(
     (ListBuffer(etaDisc, uDisc, vDisc) ++ orderDisc).map(discField => getBasenameDiscField(discField) -> discField) : _*)
-  def discFieldsReduced : ListMap[String, IR_IV_TemporaryBuffer] = discFields.map (discField =>
-    discField._1 -> IR_IV_TemporaryBuffer(discField._2.head.resolveBaseDatatype, IR_AtNode, discField._1, domainIndex, dimsPositionsFrag))
+  def discFieldsReduced : ListMap[String, IR_IV_TemporaryBuffer] = discFields.map { discField =>
+    discField._1 -> IR_IV_TemporaryBuffer(discField._2.head.resolveBaseDatatype, IR_AtNode, discField._1, domainIndex, dimsPositionsFrag)
+  }
 
   def someCellField : IR_Field = etaDiscLower0
 

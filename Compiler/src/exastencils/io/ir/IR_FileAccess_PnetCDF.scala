@@ -59,29 +59,27 @@ case class IR_FileAccess_PnetCDF(
   // decls for data extents
   val ptrDatatype : IR_SpecialDatatype = if (Knowledge.mpi_enabled) MPI_Offset else IR_SpecialDatatype("ptrdiff_t") // serial API uses "ptrdiff_t" for "imap" and "stride" parameters
   override def stride_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) =>
-    declareDimensionality("stride", buf.localization,
+    buf.declareDimensionality("stride", ptrDatatype,
        handleTimeDimension(timeValue = 1, bufIdx, // prepend one more entry for unlimited "time" dimension
-         dims = IR_DataBuffer.handleFragmentDimension(buf, buf.strideKJI, fragmentDim = 1)),
-      ptrDatatype)
+         dims = IR_DataBuffer.handleFragmentDimension(buf, buf.strideKJI, fragmentDim = 1)))
   }
   override def count_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) =>
-    declareDimensionality("count", buf.localization,
+    buf.declareDimensionality("count", datatypeDimArray,
       handleTimeDimension(timeValue = 1, bufIdx, // prepend "1" since "1*(count.product)" values are written per timestep
         dims = IR_DataBuffer.handleFragmentDimension(buf, buf.innerDimsLocalKJI, fragmentDim = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else 1)))
   }
   override def globalStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) =>
-    declareDimensionality("globalStart", buf.localization,
+    buf.declareDimensionality("globalStart", datatypeDimArray,
       handleTimeDimension(timeValue = IR_IV_TimeIndexRecordVariables(), bufIdx,
-        dims = ListBuffer.fill(numDimsGlobal(buf))(IR_IntegerConstant(0))))
+        dims = ListBuffer.fill(buf.datasetDimsGlobal)(IR_IntegerConstant(0))))
   }
   lazy val emptyCount_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) =>
-    declareDimensionality("emptyCount", buf.localization,
-      ListBuffer.fill(numDimsDataAndTime(bufIdx, numDimsGlobal(buf)))(IR_IntegerConstant(0)))
+    buf.declareDimensionality("emptyCount", datatypeDimArray,
+      ListBuffer.fill(numDimsDataAndTime(bufIdx, buf.datasetDimsGlobal))(IR_IntegerConstant(0)))
   }
   val imap_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) => // describes in-memory access pattern
-    declareDimensionality("imap", buf.localization,
-      handleTimeDimension(timeValue = 0, bufIdx, dims = buf.imapKJI), // prepend "0" since the memory layout doesn't change with the additional time dimension,
-      ptrDatatype)
+    buf.declareDimensionality("imap", ptrDatatype,
+      handleTimeDimension(timeValue = 0, bufIdx, dims = buf.imapKJI)) // prepend "0" since the memory layout doesn't change with the additional time dimension,
   }
 
   var declarations : ListBuffer[IR_VariableDeclaration] = dimensionalityDeclarations :+ err_decl :+ ncFile_decl
@@ -194,10 +192,11 @@ case class IR_FileAccess_PnetCDF(
 
         // lookup cache to prevent the definition of dimensions with identical extents
         if (!distinctDimIds.contains(key)) {
-          val dimId = IR_VariableAccess(IR_FileAccess.declareVariable("dimId"), IR_ArrayDatatype(IR_IntegerDatatype, numDimsGlobal(bufIdx)))
+          val buf = dataBuffers(bufIdx)
+          val dimId = IR_VariableAccess(IR_FileAccess.declareVariable("dimId"), IR_ArrayDatatype(IR_IntegerDatatype, buf.datasetDimsGlobal))
           statements += IR_VariableDeclaration(dimId)
 
-          for (d <- 0 until numDimsGlobal(bufIdx)) {
+          for (d <- 0 until buf.datasetDimsGlobal) {
             statements ++= ncmpi_def_dim(ncFile, createDimName(dataBuffers(bufIdx), d), IR_ArrayAccess(globalDims(bufIdx), d), IR_AddressOf(IR_ArrayAccess(dimId, d)))
           }
 
@@ -216,7 +215,7 @@ case class IR_FileAccess_PnetCDF(
         val buf = dataBuffers(bufIdx)
         val dimIdSpatial = distinctDimIds(globalDims(bufIdx).name)
         val dimIdRecord = IR_VariableAccess(IR_FileAccess.declareVariable("dimId" + buf.name), IR_ArrayDatatype(IR_IntegerDatatype, numDimsDataAndTime(bufIdx, buf.numDimsData)))
-        val numDims = numDimsGlobal(bufIdx)
+        val numDims = buf.datasetDimsGlobal
 
         // pass array with spatial and temporal dimension ids for record variables
         if (useTimeDim(bufIdx))

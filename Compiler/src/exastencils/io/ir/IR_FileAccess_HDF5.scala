@@ -153,9 +153,10 @@ case class IR_FileAccess_HDF5(
     // create memspace. select hyperslab to only use the inner points for file accesses.
     for (bufIdx <- dataBuffers.indices) {
       if (getMemspace(bufIdx).isEmpty) {
+        val buf = dataBuffers(bufIdx)
         val memspace = IR_VariableAccess(IR_FileAccess.declareVariable("memspace_" + dataBuffers(bufIdx).localization.name), hid_t)
         statements += IR_VariableDeclaration(memspace)
-        statements ++= H5Screate_simple(memspace, numDimsLocal(bufIdx), localDims(bufIdx))
+        statements ++= H5Screate_simple(memspace, buf.datasetDimsLocal, localDims(bufIdx))
         statements ++= H5Sselect_hyperslab(err, memspace, IR_VariableAccess("H5S_SELECT_SET", IR_UnknownDatatype), localStart(bufIdx), stride(bufIdx), count(bufIdx))
         addMemspace(bufIdx, memspace)
       }
@@ -262,7 +263,7 @@ case class IR_FileAccess_HDF5(
     def checkDims(readBuffer : IR_Statement) : ListBuffer[IR_Statement] = {
       if (Knowledge.parIO_generateDebugStatements) {
         val rank_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("rank"))
-        val dimsDataset_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, numDimsGlobal(bufIdx)), IR_FileAccess.declareVariable("dimsDataset"))
+        val dimsDataset_decl = IR_VariableDeclaration(IR_ArrayDatatype(hsize_t, buffer.datasetDimsGlobal), IR_FileAccess.declareVariable("dimsDataset"))
         val rank = IR_VariableAccess(rank_decl)
         val dimsDataset = IR_VariableAccess(dimsDataset_decl)
 
@@ -278,7 +279,7 @@ case class IR_FileAccess_HDF5(
           readBuffer)
 
         dbgStmts ++= H5Sget_simple_extent_ndims(rank, dataspace)
-        dbgStmts += IR_IfCondition(rank Neq numDimsGlobal(bufIdx),
+        dbgStmts += IR_IfCondition(rank Neq buffer.datasetDimsGlobal,
           ListBuffer[IR_Statement](IR_Print(IR_VariableAccess("std::cout", IR_UnknownDatatype), IR_StringConstant("Rank mismatch! No data is read from the file."))),
           falseBdy)
 
@@ -310,7 +311,7 @@ case class IR_FileAccess_HDF5(
     val dataspace = getDataspace(bufIdx).getOrElse({
       val space = IR_VariableAccess(IR_FileAccess.declareVariable("dataspace_" + buffer.localization.name), hid_t)
       statements += IR_VariableDeclaration(space)
-      statements ++= H5Screate_simple(space, numDimsGlobal(bufIdx), globalDims(bufIdx))
+      statements ++= H5Screate_simple(space, buffer.datasetDimsGlobal, globalDims(bufIdx))
       addDataspace(bufIdx, space)
 
       space

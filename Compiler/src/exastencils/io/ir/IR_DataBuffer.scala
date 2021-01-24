@@ -1,19 +1,26 @@
 package exastencils.io.ir
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Access
 import exastencils.base.ir.IR_AddressOf
 import exastencils.base.ir.IR_BooleanConstant
+import exastencils.base.ir.IR_Cast
 import exastencils.base.ir.IR_ConstIndex
 import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_Index
+import exastencils.base.ir.IR_InitializerList
 import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_Negative
 import exastencils.base.ir.IR_NullExpression
+import exastencils.base.ir.IR_VariableAccess
+import exastencils.base.ir.IR_VariableDeclaration
+import exastencils.baseExt.ir.IR_ArrayDatatype
+import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
@@ -21,6 +28,7 @@ import exastencils.domain.ir.IR_IV_FragmentIndex
 import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid.ir.IR_Localization
+import exastencils.io.ir.IR_FileAccess.declareVariable
 import exastencils.logger.Logger
 
 object IR_DataBuffer {
@@ -34,6 +42,24 @@ object IR_DataBuffer {
       dims
     }
   }
+
+  // reduce the number of duplicate declarations in the target code for identical dimensionalities
+  private val dimensionalityMap : mutable.HashMap[String, IR_VariableDeclaration] = mutable.HashMap()
+  def declareDimensionality(dt : IR_Datatype, name : String, localization : IR_Localization, dims : Option[ListBuffer[IR_Expression]] = None) : IR_VariableDeclaration = {
+    val declName = name + localization.name
+    val baseDt = dt.resolveBaseDatatype
+    val lookup = baseDt.prettyprint + declName + (if (dims.isDefined) dims.get.hashCode() else 0).toString
+    // cast dims when used in initializer list, otherwise "Wnarrowing" warning
+    val castDims = (dims getOrElse Nil) map {
+      case vAcc : IR_VariableAccess if vAcc.datatype != baseDt => IR_Cast(baseDt, vAcc)
+      case iv : IR_InternalVariable if iv.resolveDatatype() != baseDt => IR_Cast(baseDt, iv)
+      case expr : IR_Expression => expr
+    }
+    dimensionalityMap.getOrElseUpdate(
+      lookup,
+      IR_VariableDeclaration(dt, declareVariable(declName), if(dims.isDefined) Some(IR_InitializerList(castDims : _*)) else None)) // dims already specified in KJI order
+  }
+  def resetDimensionalityMap() : Unit = dimensionalityMap.clear()
 
   /* apply methods */
   // accepts a field as input and retrieves dims, localization, etc. from it
@@ -151,9 +177,28 @@ case class IR_DataBuffer(
   */
   val canonicalOrder : Boolean = canonicalStorageLayout && Knowledge.domain_onlyRectangular
 
+  /*
+  determine data extents:
+    - computed from the local data dims that originate from the source that was passed to this wrapper
+    - independent of the access pattern that was specified
+    - specified in "KJI" order (slowest varying dim. at first index) or in "IJK" order (fastest varying dim first)
+  */
+
+  // declare array with a buffer's dimensionality
+  def declareDimensionality(name : String, baseDatatype : IR_Datatype, dims : ListBuffer[IR_Expression]) : IR_VariableDeclaration = {
+    IR_DataBuffer.declareDimensionality(IR_ArrayDatatype(baseDatatype, dims.length), name, localization, Some(dims))
+  }
+
+  // dimensions of the buffer's source (e.g. field)
   def numDimsDatatype : Int = numDimsData - numDimsGrid
   def numDimsGridRange : Range = 0 until numDimsGrid
   def numDimsDataRange : Range = 0 until numDimsData
+
+  // determine number of dims of the final dataset written to file
+  // may differ from the dims of the buffer's source
+  // depends on file layout: canonical: identical to local num of dims, fragment-wise: additional "fragment dimension"
+  def datasetDimsLocal : Int = if (canonicalOrder) startIndexLocalKJI.length else datasetDimsGlobal
+  def datasetDimsGlobal : Int = globalDimsKJI.length
 
   def stride : ListBuffer[IR_Expression] = numDimsDataRange.map(_ => 1 : IR_Expression).to[ListBuffer]
   def strideKJI : ListBuffer[IR_Expression] = stride.reverse
@@ -183,11 +228,13 @@ case class IR_DataBuffer(
   }
   def globalDimsKJI : ListBuffer[IR_Expression] = globalDims.reverse
 
+  // get start index for canonical layout
   def canonicalStartIndexGlobal(forIndex : Seq[IR_Expression]) : ListBuffer[IR_Expression] = {
     numDimsDataRange.map(d => innerDimsLocal(d) *
       (if (d < Knowledge.dimensionality) forIndex(d) Mod Knowledge.domain_rect_numFragsTotalAsVec(d) else 0) : IR_Expression).to[ListBuffer]
   }
 
+  // get start index for fragment-wise layout
   def fragmentwiseStartIndexGlobal(forIndex : IR_Expression) : ListBuffer[IR_Expression] = {
     // buffer contains data for the whole block -> fragment count already contained in dimensionalities (index "0" in KJI order)
     (if (accessBlockwise) innerDimsLocal.dropRight(1) else innerDimsLocal).map(_ => 0 : IR_Expression) :+
@@ -204,7 +251,6 @@ case class IR_DataBuffer(
   def startIndexGlobalKJI : ListBuffer[IR_Expression] = startIndexGlobal.reverse
 
   // describes in-memory access pattern of an array (linearized "distances" to next value in the same dimension)
-  // TODO handle "fragment dimension" when non-canonical order is used
   def imap : ListBuffer[IR_Expression] = numDimsDataRange.map(d => {
     if (d == 0)
       IR_IntegerConstant(1) // stride in x direction is "1"
@@ -218,13 +264,21 @@ case class IR_DataBuffer(
     .map(d => innerDimsLocalKJI(d) EqEq totalDimsLocalKJI(d))
     .fold(IR_BooleanConstant(true))((a, b) => a AndAnd b)
 
+  /*
+  forwarding to a buffer's access pattern instance:
+    - get the actual data extents depending on the pattern
+    - call the registered callback function
+  */
+
   // accessBlockwise : temp. buffer for a whole block is used -> fragment count already incorporated in local dims
   private val innerDimsFragKJI = if (accessBlockwise) innerDimsLocalKJI.tail else innerDimsLocalKJI
   private val innerDimsBlockKJI = if (accessBlockwise) innerDimsLocalKJI else IR_IV_NumValidFrags(domainIdx) +: innerDimsLocalKJI
-  def typicalByteSizeFrag : IR_Expression = innerDimsFragKJI.reduce(_ * _) * datatype.resolveBaseDatatype.typicalByteSize
-  def typicalByteSizeBlock : IR_Expression = innerDimsBlockKJI.reduce(_ * _) * datatype.resolveBaseDatatype.typicalByteSize
-  def typicalByteSizeLocal : IR_Expression = innerDimsLocalKJI.reduce(_ * _) * datatype.resolveBaseDatatype.typicalByteSize
-  def typicalByteSizeGlobal : IR_Expression = globalDimsKJI.reduce(_ * _) * datatype.resolveBaseDatatype.typicalByteSize
+  private val typicalByteSize = datatype.resolveBaseDatatype.typicalByteSize
+  private def getTransformedExtents(dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = accessPattern.transformDataExtents(dims, orderKJI = true)
+  def typicalByteSizeFrag : IR_Expression = getTransformedExtents(innerDimsFragKJI).reduce(_ * _)* typicalByteSize
+  def typicalByteSizeBlock : IR_Expression = getTransformedExtents(innerDimsBlockKJI).reduce(_ * _) * typicalByteSize
+  def typicalByteSizeLocal : IR_Expression = getTransformedExtents(innerDimsLocalKJI).reduce(_ * _) * typicalByteSize
+  def typicalByteSizeGlobal : IR_Expression = getTransformedExtents(globalDimsKJI).reduce(_ * _) * typicalByteSize
 
   def getAccess(index : IR_Index) : IR_Access = accessPattern.callAccessFunction(index)
 

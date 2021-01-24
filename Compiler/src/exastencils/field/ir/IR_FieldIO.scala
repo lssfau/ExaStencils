@@ -77,7 +77,7 @@ abstract class IR_FieldIO(
       case "nc"    =>
         IR_FileAccess_PnetCDF(filename, ListBuffer(fieldAsDataBuffer), None, doWrite)
       case "sion"  =>
-        IR_FileAccess_SionLib(filename, ListBuffer(fieldAsDataBuffer), doWrite, condition)
+        IR_FileAccess_SionLib(filename, ListBuffer(fieldAsDataBuffer), doWrite, condition, interleavedAccHighDimDt = false)
       case _       =>
         Logger.error("Ignoring call to " + (if (doWrite) {if (onlyVals) "writeField" else "printField"} else "readField") + " using unsupported I/O interface: " + ioInterface)
     }

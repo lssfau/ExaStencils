@@ -231,7 +231,7 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     val fragOffset = IR_IV_FragmentOffset(domainIndex) + IR_LoopOverFragments.defIt
     def declareDims(numDims : Int, name : String, localization : IR_Localization, optDims : Option[ListBuffer[IR_Expression]] = None) = {
       val dt = IR_ArrayDatatype(ioHanderNc.datatypeDimArray, numDims)
-      val decl = IR_FileAccess.declareDimensionality(dt, name, localization, optDims)
+      val decl = IR_DataBuffer.declareDimensionality(dt, name, localization, optDims)
       if (flatDimDecls.add(decl)) statements += decl
       decl
     }
@@ -246,9 +246,9 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     val localViews = dataBuffers(constsIncluded).zipWithIndex.map { case (buf, bufIdx) =>
       // declare dims for the datasets (unflattened)
       val numDims = buf.totalDimsLocalKJI.length
-      val total = ioHanderNc.declareDimensionality("localDimsTotal", buf.localization, buf.totalDimsLocalKJI, IR_IntegerDatatype)
-      val count = ioHanderNc.declareDimensionality("localCount", buf.localization, buf.innerDimsLocalKJI, IR_IntegerDatatype)
-      val start = ioHanderNc.declareDimensionality("localStart", buf.localization, buf.startIndexLocalKJI, IR_IntegerDatatype)
+      val total = buf.declareDimensionality("localDimsTotal", IR_IntegerDatatype, buf.totalDimsLocalKJI)
+      val count = buf.declareDimensionality("localCount", IR_IntegerDatatype, buf.innerDimsLocalKJI)
+      val start = buf.declareDimensionality("localStart", IR_IntegerDatatype, buf.startIndexLocalKJI)
 
       // only create datatype when necessary, otherwise re-use previously created datatype
       val localView = MPI_View(IR_VariableAccess(total), IR_VariableAccess(count), IR_VariableAccess(start),

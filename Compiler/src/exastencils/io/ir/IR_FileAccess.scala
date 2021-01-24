@@ -11,7 +11,6 @@ import exastencils.config.Settings
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.StatementList
-import exastencils.grid.ir.IR_Localization
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.util.ir.IR_Print
@@ -38,17 +37,6 @@ object IR_FileAccess {
     declMap.update(s, counter+1)
     s + "_%02d".format(counter)
   }
-
-  // reduce the number of duplicate declarations in the target code for identical dimensionalities
-  private val dimensionalityMap : mutable.HashMap[String, IR_VariableDeclaration] = mutable.HashMap()
-  def declareDimensionality(dt : IR_Datatype, name : String, localization : IR_Localization, dims : Option[ListBuffer[IR_Expression]] = None) : IR_VariableDeclaration = {
-    val declName = name + localization.name
-    val lookup = dt.resolveBaseDatatype.prettyprint + declName + (if (dims.isDefined) dims.get.hashCode() else 0).toString
-    dimensionalityMap.getOrElseUpdate(
-      lookup,
-      IR_VariableDeclaration(dt, declareVariable(declName), if(dims.isDefined) Some(IR_InitializerList(dims.get : _*)) else None)) // dims already specified in KJI order
-  }
-  def resetDimensionalityMap() : Unit = dimensionalityMap.clear()
 }
 
 abstract class IR_FileAccess(
@@ -71,17 +59,6 @@ abstract class IR_FileAccess(
   }
   def mpiDatatypeBuffer(buf : IR_DataBuffer) = IR_VariableAccess(buf.datatype.resolveBaseDatatype.prettyprint_mpi, IR_UnknownDatatype)
 
-  /* helpers to declare dimensionalities */
-  def declareDimensionality(name : String, localization: IR_Localization, dims : ListBuffer[IR_Expression], datatype : IR_Datatype = datatypeDimArray) : IR_VariableDeclaration = {
-    // cast dims when used in initializer list, otherwise "Wnarrowing" warning
-    val castDims = dims.map {
-      case vAcc : IR_VariableAccess if vAcc.datatype != datatype => IR_Cast(datatype, vAcc)
-      case iv : IR_InternalVariable if iv.resolveDatatype() != datatype => IR_Cast(datatype, iv)
-      case expr : IR_Expression => expr
-    }
-    IR_FileAccess.declareDimensionality(IR_ArrayDatatype(datatype, dims.length), name, localization, Some(castDims))
-  }
-
   /* helper function to get access indices for multidim. datatypes */
   def getIndicesMultiDimDatatypes(buf : IR_DataBuffer) : Array[IR_Index] = {
     if(buf.numDimsData > buf.numDimsGrid) {
@@ -100,19 +77,28 @@ abstract class IR_FileAccess(
     }
   }
 
-  // helper function to handle accesses for multidim. datatypes
-  def handleAccessesMultiDimDatatypes(buf : IR_DataBuffer) : ListBuffer[IR_Access] = {
-    // return access list with last separator removed
-    getIndicesMultiDimDatatypes(buf).map(idx => buf.getAccess(idx)).to[ListBuffer]
+  // helper function to handle accesses for access patterns and multidim. datatypes
+  def handleAccesses(buf : IR_DataBuffer) : ListBuffer[ListBuffer[IR_Access]] = {
+    buf.accessPattern.accessesForPattern(getIndicesMultiDimDatatypes(buf) : _*) // per access from the pattern: access components of a high-dim datatype
   }
 
-  /* helper functions for I/O operations using C++ STL I/O streams */
+  /* helper functions for I/O operations using C++ STL I/O streams/SionLib */
   def loopOverDims(bufIdx : Int, condition : IR_Expression, accessStatements : IR_Statement*) : IR_LoopOverDimensions = {
     val buffer = dataBuffers(bufIdx)
-    IR_LoopOverDimensions(buffer.numDimsGrid, IR_ExpressionIndexRange(
-      IR_ExpressionIndex(buffer.numDimsGridRange.map(dim => buffer.beginIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray),
-      IR_ExpressionIndex(buffer.numDimsGridRange.map(dim => buffer.endIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray)),
-      IR_IfCondition(condition, accessStatements.to[ListBuffer]))
+    IR_LoopOverDimensions(buffer.numDimsGrid,
+      buffer.accessPattern.transformExpressionIndexRange(
+        IR_ExpressionIndex(buffer.numDimsGridRange.map(dim => buffer.beginIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray),
+        IR_ExpressionIndex(buffer.numDimsGridRange.map(dim => buffer.endIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray)
+      ),
+      IR_IfCondition(condition,
+        accessStatements.to[ListBuffer]))
+  }
+
+  def isAccessForWholeBlockAllowed(buf : IR_DataBuffer, conditionSpecified : Boolean, writeHighDimDatatypeInterleaved : Boolean) : IR_Expression = {
+    conditionSpecified AndAnd // condition specified?
+      buf.accessWithoutExclusion AndAnd // is any layer excluded (e.g. ghost)?
+      !writeHighDimDatatypeInterleaved AndAnd // do we write higher dim. datatypes in an interleaved way?
+      buf.accessPattern.isRegular // compatible with access pattern?
   }
 
   def printBufferAscii(
@@ -128,8 +114,9 @@ abstract class IR_FileAccess(
     val printComponents = optPrintComponents getOrElse ListBuffer[IR_Expression]()
     printComponents += "std::scientific"
     printComponents ++= indent
-    printComponents ++= handleAccessesMultiDimDatatypes(buf).flatMap(acc => List(acc, separator)).dropRight(1)
-    printComponents += IR_Print.newline
+    printComponents ++= handleAccesses(buf).flatMap(accessesForPatternIndex =>
+      accessesForPatternIndex.flatMap(acc => List(acc, separator)).dropRight(1) :+ IR_Print.newline
+    )
     loopOverDims(bufIdx, condition, IR_Print(stream, printComponents))
   }
 
@@ -138,11 +125,11 @@ abstract class IR_FileAccess(
     val bytesAccessedKnownApriori = condition == IR_BooleanConstant(true) // if there is no condition -> required number of accessed bytes are known
     val printAllComponentsPerLocation = printInterleavedComponents && buf.numDimsData > buf.numDimsGrid // determines if all components of a higher dim. dt are printed per grid node/cell/...
 
-    IR_IfCondition(bytesAccessedKnownApriori AndAnd buf.accessWithoutExclusion AndAnd !printAllComponentsPerLocation,
+    IR_IfCondition(isAccessForWholeBlockAllowed(buf, bytesAccessedKnownApriori, printAllComponentsPerLocation),
       /* true: write whole buffer */
       IR_PrintBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal),
       /* false: write component by component in a loop */
-      loopOverDims(bufIdx, condition, IR_PrintBinary(stream, handleAccessesMultiDimDatatypes(buf))))
+      loopOverDims(bufIdx, condition, IR_PrintBinary(stream, handleAccesses(buf).flatten)))
   }
 
   def readBufferAscii(
@@ -154,9 +141,11 @@ abstract class IR_FileAccess(
     val buf = dataBuffers(bufIdx)
 
     // handle accesses of high dim datatypes
-    val acc = handleAccessesMultiDimDatatypes(buf).flatMap(acc => List(acc) ++ skipSep)
+    val acc = handleAccesses(buf).flatMap(accessesForPatternIndex =>
+      accessesForPatternIndex.flatMap(acc => List(acc) ++ skipSep).dropRight(if (skipSep.isDefined) 1 else 0) // cond. remove sep at end
+    )
 
-    loopOverDims(bufIdx, condition, IR_Read(stream, (if (skipSep.isDefined) acc.dropRight(1) else acc) : _*)) // cond. remove sep at end
+    loopOverDims(bufIdx, condition, IR_Read(stream, acc : _*))
   }
 
   def readBufferBinary(bufIdx : Int, stream : IR_VariableAccess, condition : IR_Expression, printInterleavedComponents : Boolean = true) : IR_ScopedStatement = {
@@ -164,39 +153,39 @@ abstract class IR_FileAccess(
     val bytesAccessedKnownApriori = condition == IR_BooleanConstant(true) // if there is no condition -> required number of accessed bytes are known
     val printAllComponentsPerLocation = printInterleavedComponents && buf.numDimsData > buf.numDimsGrid // determines if all components of a higher dim. dt are printed per grid node/cell/...
 
-    IR_IfCondition(bytesAccessedKnownApriori AndAnd buf.accessWithoutExclusion AndAnd !printAllComponentsPerLocation,
+    IR_IfCondition(isAccessForWholeBlockAllowed(buf, bytesAccessedKnownApriori, printAllComponentsPerLocation),
       /* true: read whole buffer */
       IR_ReadBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal),
       /* false: read component by component in a loop */
-      loopOverDims(bufIdx, condition, IR_ReadBinary(stream, handleAccessesMultiDimDatatypes(buf))))
+      loopOverDims(bufIdx, condition, IR_ReadBinary(stream, handleAccesses(buf).flatten)))
   }
 
   /* commonly used declarations. mainly for dimensionality extents */
   def stride_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
-    declareDimensionality("stride", buf.localization,
+    buf.declareDimensionality("stride", datatypeDimArray,
       IR_DataBuffer.handleFragmentDimension(buf, buf.strideKJI,
         fragmentDim = 1))
   })
   def count_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
-    declareDimensionality("count", buf.localization,
+    buf.declareDimensionality("count", datatypeDimArray,
       IR_DataBuffer.handleFragmentDimension(buf, buf.innerDimsLocalKJI,
         fragmentDim = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else 1))
   })
   def localDims_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
-    declareDimensionality("localDims", buf.localization,
+    buf.declareDimensionality("localDims", datatypeDimArray,
       IR_DataBuffer.handleFragmentDimension(buf, buf.totalDimsLocalKJI,
         fragmentDim = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else 1))
   })
   def localStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
-    declareDimensionality("localStart", buf.localization,
+    buf.declareDimensionality("localStart", datatypeDimArray,
       IR_DataBuffer.handleFragmentDimension(buf, buf.startIndexLocalKJI,
         fragmentDim = 0))
   })
   def globalDims_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
-    declareDimensionality("globalDims", buf.localization, buf.globalDimsKJI)
+    buf.declareDimensionality("globalDims", datatypeDimArray, buf.globalDimsKJI)
   })
   def globalStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
-    declareDimensionality("globalStart", buf.localization, ListBuffer.fill(numDimsGlobal(buf))(IR_IntegerConstant(0)))
+    buf.declareDimensionality("globalStart", datatypeDimArray, ListBuffer.fill(buf.datasetDimsGlobal)(IR_IntegerConstant(0)))
   })
 
   /* collection with declarations of dim. extents */
@@ -220,12 +209,6 @@ abstract class IR_FileAccess(
 
   // casts string variables to "const char*", string constants are unaffected
   def filenameAsCString : IR_Expression = IR_FileAccess.filenameAsCString(filename)
-
-  /* determine number of dims (numDimsData does not work since the data can be laid out canonically or fragment-wise -> differences in dimensionality) */
-  def numDimsLocal(bufIdx : Int) : Int = numDimsLocal(dataBuffers(bufIdx))
-  def numDimsGlobal(bufIdx : Int) : Int = numDimsGlobal(dataBuffers(bufIdx))
-  def numDimsLocal(buf : IR_DataBuffer) : Int = if (!buf.canonicalOrder) numDimsGlobal(buf) else buf.startIndexLocalKJI.length
-  def numDimsGlobal(buf : IR_DataBuffer) : Int = buf.globalDimsKJI.length
 
   /* structure of file access classes */
   def createOrOpenFile() : ListBuffer[IR_Statement]
@@ -325,7 +308,7 @@ abstract class IR_FileAccess(
     val ret = statementList
 
     // reset lookup tables
-    IR_FileAccess.resetDimensionalityMap()
+    IR_DataBuffer.resetDimensionalityMap()
 
     ret
   }
