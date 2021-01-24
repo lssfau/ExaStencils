@@ -34,17 +34,17 @@ case class IR_IV_TemporaryBuffer(
     var localization: IR_Localization,
     var name : String,
     var domainIdx : Int,
-    dims : ListBuffer[IR_Expression]) extends IR_InternalVariable(false, true, false, false, false) {
+    dimsPerFrag : ListBuffer[IR_Expression]) extends IR_InternalVariable(false, true, false, false, false) {
 
   override def resolveName() : String = name + resolvePostfix("", domainIdx.prettyprint, "", "", "")
   override def resolveDatatype() : IR_Datatype = IR_PointerDatatype(baseDatatype)
   override def resolveDefValue() = Some(0)
 
-  def numDims : Int = dims.length + 1
+  def numDims : Int = dimsPerFrag.length + 1
 
   // NOTE: temp. buffers contain the data for a whole block -> Reduces the number of file accesses where each has a greater granularity compared to fragment-wise accesses
-  def dimsLocal : ListBuffer[IR_Expression] = dims :+ IR_IV_NumValidFrags(domainIdx)
-  def dimsGlobal : ListBuffer[IR_Expression] = dims :+ IR_IV_TotalNumFrags(domainIdx)
+  def dimsLocal : ListBuffer[IR_Expression] = dimsPerFrag :+ IR_IV_NumValidFrags(domainIdx)
+  def dimsGlobal : ListBuffer[IR_Expression] = dimsPerFrag :+ IR_IV_TotalNumFrags(domainIdx)
 
   def referenceOffset = IR_ExpressionIndex(Array.fill(numDims)(0))
   def beginIndices : ListBuffer[IR_Expression] = referenceOffset.indices.to[ListBuffer]

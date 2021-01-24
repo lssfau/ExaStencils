@@ -30,7 +30,7 @@ case class IR_PrintExodusNNF(
 
   override def statementsForPreparation : ListBuffer[IR_Statement] = {
     IR_IV_FragmentInfo.init(domainIndex) ++
-      setupNodePositions ++
+      setupNodePositions() ++
       setupConnectivity(global = true) ++
       setupVelocityComponents
   }

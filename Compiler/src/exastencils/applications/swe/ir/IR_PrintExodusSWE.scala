@@ -44,7 +44,7 @@ case class IR_PrintExodusSWE(
   override def statementsForPreparation : ListBuffer[IR_Statement] = {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
     stmts ++= IR_IV_FragmentInfo.init(domainIndex, calculateFragOffset = true)
-    stmts ++= setupNodePositions
+    stmts ++= setupNodePositions()
     stmts ++= setupConnectivity(global = true)
     if (Knowledge.swe_nodalReductionPrint)
       stmts ++= setupReducedData

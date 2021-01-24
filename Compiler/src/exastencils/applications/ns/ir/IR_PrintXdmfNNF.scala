@@ -48,7 +48,7 @@ case class IR_PrintXdmfNNF(
     // setup frag info and temp buffers
     if (fmt != "XML") {
       stmts ++= IR_IV_FragmentInfo.init(domainIndex)
-      stmts ++= setupNodePositions
+      stmts ++= setupNodePositions()
       stmts ++= setupConnectivity(global = ioInterface != "fpp")
       stmts ++= setupVelocityBuf
     }

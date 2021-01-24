@@ -230,7 +230,7 @@ trait IR_PrintVisualization {
   }
 
   // on some occasions, the virtual field can be directly passed to the library. this buffer is then passed to the I/O library
-  def initCellCenterBuf(dim : Int) : ListBuffer[IR_Statement] = if (!gridPositionsCopied) {
+  def initCellCenterBuf(dim : Int, copyNodePositions : Boolean = gridPositionsCopied) : ListBuffer[IR_Statement] = if (!copyNodePositions) {
     ListBuffer()
   } else {
     val indexRange = loopOverCells().indices
@@ -249,7 +249,8 @@ trait IR_PrintVisualization {
   }
 
   // allocates and initializes buffer with cell-center positions on-demand.
-  def setupCellCenters : ListBuffer[IR_Statement] = (0 until numDimsGrid).flatMap(initCellCenterBuf).to[ListBuffer]
+  def setupCellCenters(copyNodePositions : Boolean = gridPositionsCopied) : ListBuffer[IR_Statement] =
+    (0 until numDimsGrid).flatMap(initCellCenterBuf(_, copyNodePositions)).to[ListBuffer]
 
   def getFaceDir(localization: IR_Localization) : Int = {
     (0 until numDimsGrid).collectFirst { case d if IR_AtFaceCenter(d) == localization => d } getOrElse -1
@@ -288,13 +289,14 @@ trait IR_PrintVisualization {
     IR_IV_TemporaryBuffer(IR_RealDatatype, IR_AtNode, "nodePosition" + ('X' + d).toChar.toString, domainIndex, dimsPositionsFrag)
   }
 
-  def initNodePosBuf(dim : Int) : ListBuffer[IR_Statement] = if (!gridPositionsCopied) {
+  def initNodePosBuf(dim : Int, copyNodePositions : Boolean = gridPositionsCopied) : ListBuffer[IR_Statement] = if (!copyNodePositions) {
     ListBuffer() // use vf's associated field directly
   } else {
     val numAccPerCell = nodeOffsets.length // for non-reduced SWE "6", otherwise "1"
+    val isNodalLoop = Knowledge.swe_nodalReductionPrint || numAccPerCell == 1 // special case for SWE: cell loop (6 accesses each) for non-reduced SWE
 
     val initBuffer : ListBuffer[IR_Statement] = (0 until numAccPerCell).map(n => {
-      val linearizedLoopIdx = loopOverNodes().indices.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
+      val linearizedLoopIdx = loopOverDims(isNodalLoop).indices.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
       IR_Assignment(
         nodePositionsBuf(dim).at(IR_LoopOverFragments.defIt * numPointsPerFrag + numAccPerCell * linearizedLoopIdx + n),
         getPos(IR_AtNode, level, dim, IR_LoopOverDimensions.defIt(numDimsGrid) + nodeOffsets(n))) : IR_Statement
@@ -305,11 +307,12 @@ trait IR_PrintVisualization {
       nodePositionsBuf(dim).allocateMemory,
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
-          loopOverNodes(initBuffer))))
+          loopOverDims(isNodalLoop, initBuffer))))
   }
 
   // allocates and initializes buffer with the node positions on-demand
-  def setupNodePositions : ListBuffer[IR_Statement] = (0 until numDimsGrid).flatMap(initNodePosBuf).to[ListBuffer]
+  def setupNodePositions(copyNodePositions : Boolean = gridPositionsCopied) : ListBuffer[IR_Statement] =
+    (0 until numDimsGrid).flatMap(initNodePosBuf(_, copyNodePositions)).to[ListBuffer]
 }
 
 /// IR_ResolveVisualizationPrinters

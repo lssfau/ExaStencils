@@ -247,6 +247,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     IR_Print(stream, ListBuffer(indentData) ++ refFile ++ refDataset :+ IR_Print.newline)
   }
 
+  // write constant data once and reference the file containing the constant data afterswards
   def writeOrReferenceConstants(stream : IR_VariableAccess, writeConsts : ListBuffer[IR_Statement], elemToRef : String, altCondition : Option[IR_Expression] = None) : ListBuffer[IR_Statement] = ListBuffer(
     new IR_IfCondition(altCondition getOrElse IR_ConstantsWrittenToFile().isEmpty,
       /* true branch */
@@ -303,7 +304,8 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     }
   }
 
-  /* writes a xdmf "grid" element. used by writeXdmf and the "main" file for file-per-process
+  /* writes a xdmf "grid" element. a "grid" contains topology & geometry data to describe the mesh and also attributes (e.g. fields) that belong to the mesh
+    used by writeXdmf and the "main" file for file-per-process
       - global = true : for single-shared file approaches (mpiio, hdf5)
       - global = false: for file-per-process. writes a domain piece
 
@@ -344,8 +346,11 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
 
   // methods to be implemented in application.ir or field.ir
   def stmtsForPreparation : ListBuffer[IR_Statement]
+  /* geometry: describes the locations of a mesh's grid nodes */
   def writeXdmfGeometry(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement]
+  /* topology: specifies the connectivity between the mesh's grid nodes*/
   def writeXdmfTopology(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement]
+  /* attributes: values centered on various locations of the grid (e.g. cell/node/...) */
   def writeXdmfAttributes(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement]
 
   // construct xdmf filename for domain pieces in same directory as the global file

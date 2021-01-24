@@ -3,6 +3,7 @@ package exastencils.applications.swe.ir
 import scala.collection.immutable.ListMap
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_IfCondition
@@ -27,6 +28,7 @@ import exastencils.io.ir.IR_AccessPattern
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.io.ir.IR_IV_NumValidFragsPerBlock
+import exastencils.io.ir.IR_IV_TemporaryBuffer
 import exastencils.logger.Logger
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_PrintXdmf
@@ -81,26 +83,65 @@ case class IR_PrintXdmfSWE(
     )
 
     // setup buffers
-    stmts ++= setupNodePositions
     stmts ++= setupConnectivity(global = ioInterface != "fpp")
     if (Knowledge.swe_nodalReductionPrint) {
       stmts ++= setupReducedData
+    } else if (ioInterface == "hdf5") {
+      stmts ++= setupNodalFieldsHdf5
     }
 
     stmts
   }
 
+  /* NOTE: in HDF5 it is possible to implement the access pattern of nodal fields (6 node offsets for each grid cell):
+      1. via the "H5Sselect_elements" function for the memory space
+      2. via copies
+      Despite the fact that the first option is the more elegant, the performance degrades significantly, because it results to many small and non-contiguous accesses to the file
+      -> copies are used instead
+   */
+
+  def nodalFieldBuffersHdf5 : ListMap[String, IR_IV_TemporaryBuffer] = ListMap(nodalFields.toSeq.map { nodeFieldMap =>
+    nodeFieldMap._1 -> IR_IV_TemporaryBuffer(nodeFieldMap._2.resolveBaseDatatype, IR_AtNode, nodeFieldMap._1, domainIndex, dimsPositionsFrag)
+  } : _*)
+
+  def setupNodalFieldsHdf5 : ListBuffer[IR_Statement] = {
+    val stmts : ListBuffer[IR_Statement] = ListBuffer()
+
+    // buffers for node positions
+    stmts ++= setupNodePositions(copyNodePositions = true)
+
+    // buffers for nodal fields (e.g. bath)
+    nodalFieldBuffersHdf5.map { case(name, tmpBuf) =>
+      val indexRangeCells = IR_ExpressionIndexRange(
+        IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.layout.idxById("IB", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression)),
+        IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.layout.idxById("IE", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression)))
+
+      val numAccessesPerCell = nodeOffsets.length // for non-reduced SWE "6"
+      val offset = IR_LoopOverFragments.defIt * dimsPositionsFrag.reduce(_ * _) + numAccessesPerCell * indexRangeCells.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
+
+      stmts += tmpBuf.allocateMemory
+      stmts += IR_LoopOverFragments(
+        IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
+          IR_LoopOverDimensions(numDimsGrid, indexRangeCells,
+            (0 until numAccessesPerCell).to[ListBuffer].map(idx => {
+              IR_Assignment(
+                tmpBuf.at(offset + idx),
+                IR_FieldAccess(nodalFields(name), IR_IV_ActiveSlot(nodalFields(name)), IR_LoopOverDimensions.defIt(numDimsGrid) + nodeOffsets(idx)))  : IR_Statement
+            }))))
+    }
+
+    stmts
+  }
+
+  /* special handling for a variable number of frags */
   // specifies "fragment dimension" (i.e. how many fragments are written to a file)
-  // special handling for a variable number of frags
   override def dimFrags(global : Boolean) : IR_Expression = if (!binaryFpp) {
     super.dimFrags(global)
   } else {
     // binary fpp: only root writes the xdmf file -> requires the number of valid frags for each rank
     IR_IV_NumValidFragsPerBlock(domainIndex).resolveAccess()
   }
-
   // contains expressions that calculate the seek pointer for each DataItem (used for raw binary files)
-  // special handling for a variable number of frags
   override def seekpOffsets(global : Boolean, constsIncluded : Boolean) : ListBuffer[IR_Expression] = if (!binaryFpp) {
     super.seekpOffsets(global, constsIncluded)
   } else {
@@ -243,10 +284,18 @@ case class IR_PrintXdmfSWE(
     // bath is constant and can be reduced -> move to constants if exists
     val bath = nodalFields.get("bath")
     var constants : ListBuffer[IR_DataBuffer] = ListBuffer()
-    constants ++= nodePosVecAsDataBuffers(accessIndices, datasetCoords.map(s => s : IR_Expression))
+    if (ioInterface != "hdf5") {
+      constants ++= nodePosVecAsDataBuffers(accessIndices, datasetCoords.map(s => s : IR_Expression))
+    } else {
+      constants ++= nodePositionsBuf.zipWithIndex.map { case(tmpBuf, idx) => IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetCoords(idx))) }
+    }
     constants += IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetConnectivity))
     if (bath.isDefined) {
-      constants += IR_DataBuffer(bath.get, IR_IV_ActiveSlot(bath.get), includeGhosts = false, Some(nodalAccess(bath.get)), Some(datasetFields("bath").head), canonicalOrder = false)
+      if (ioInterface != "hdf5") {
+        constants += IR_DataBuffer(bath.get, IR_IV_ActiveSlot(bath.get), includeGhosts = false, Some(nodalAccess(bath.get)), Some(datasetFields("bath").head), canonicalOrder = false)
+      } else {
+        constants += IR_DataBuffer(nodalFieldBuffersHdf5("bath"), IR_IV_ActiveSlot(bath.get), None, Some(datasetFields("bath").head))
+      }
     }
 
     // non-constant fields
@@ -257,9 +306,12 @@ case class IR_PrintXdmfSWE(
       fieldCollection.length match {
         case 1 =>
           val nodeField = fieldCollection.head
-          ListBuffer(
+          val buf = if (ioInterface != "hdf5") {
             IR_DataBuffer(nodeField, IR_IV_ActiveSlot(nodeField), includeGhosts = false, Some(nodalAccess(nodeField)), Some(datasetFields(name).head), canonicalOrder = false)
-          )
+          } else {
+            IR_DataBuffer(nodalFieldBuffersHdf5(name), IR_IV_ActiveSlot(nodeField), None, Some(datasetFields(name).head))
+          }
+          ListBuffer(buf)
         case 6 =>
           discFieldsToDatabuffers(fieldCollection)
         case _ =>
