@@ -67,6 +67,12 @@ Function Application ( ) : Unit {
 		print('construction from magnitude and phase angle does not match')
 	}
 	print('stage 6 done')
+
+	Var C : Complex<Double> = polar(abs(A), arg(A))
+	if(notEqual(C, A)) {
+		print('construction from magnitude and phase angle does not match')
+	}
+	print('stage 7 done')
 	
 }
 

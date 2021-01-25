@@ -84,7 +84,8 @@ object IR_ResolveComplexNumbers extends DefaultStrategy("Resolve operations with
     case assign @ IR_Assignment(_, src, _) if (src.hasAnnotation(potentialComplexNumberOps))                                    =>
       // is the marked node a assignment for a complex variable
       if (assign.dest.datatype.isInstanceOf[IR_ComplexDatatype]) {
-        callMap(src.asInstanceOf[IR_FunctionCall].name)(src.asInstanceOf[IR_FunctionCall].arguments)
+        assign.src = callMap(src.asInstanceOf[IR_FunctionCall].name)(src.asInstanceOf[IR_FunctionCall].arguments)
+        assign
       } else {
         src.removeAnnotation(potentialComplexNumberOps)
         assign
@@ -92,7 +93,8 @@ object IR_ResolveComplexNumbers extends DefaultStrategy("Resolve operations with
     case decl @ IR_VariableDeclaration(dt, _, init, _) if (init.isDefined && init.get.hasAnnotation(potentialComplexNumberOps)) =>
       // initialization of a complex variable declaration
       if (dt.isInstanceOf[IR_ComplexDatatype]) {
-        callMap(init.get.asInstanceOf[IR_FunctionCall].name)(init.get.asInstanceOf[IR_FunctionCall].arguments)
+        decl.initialValue = Some(callMap(init.get.asInstanceOf[IR_FunctionCall].name)(init.get.asInstanceOf[IR_FunctionCall].arguments))
+        decl
       } else {
         init.get.removeAnnotation(potentialComplexNumberOps)
         decl
