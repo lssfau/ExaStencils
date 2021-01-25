@@ -104,7 +104,7 @@ case class IR_PrintXdmfSWE(
       Despite the fact that the first option is the more elegant, the performance degrades significantly, because it results to many small and non-contiguous accesses to the file
       -> copies are used instead
   */
-  val enforceCopiesHdf5 = ioInterface == "hdf5" && !Knowledge.swe_nodalReductionPrint
+  val enforceCopiesHdf5 : Boolean = ioInterface == "hdf5" && !Knowledge.swe_nodalReductionPrint
   def nodalFieldBuffersHdf5 : ListMap[String, IR_IV_TemporaryBuffer] = ListMap(nodalFields.toSeq.map { nodeFieldMap =>
     nodeFieldMap._1 -> IR_IV_TemporaryBuffer(nodeFieldMap._2.resolveBaseDatatype, IR_AtNode, nodeFieldMap._1, domainIndex, dimsPositionsFrag)
   } : _*)
@@ -291,7 +291,7 @@ case class IR_PrintXdmfSWE(
       constants ++= nodePositionsBuf.zipWithIndex.map { case(tmpBuf, idx) => IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetCoords(idx))) }
     } else {
       // use vf's associated field directly
-      constants ++= nodePosVecAsDataBuffers(accessIndices, datasetCoords.map(s => s : IR_Expression))
+      constants ++= nodePosVecAsDataBuffers(accessIndices, Some(datasetCoords.map(s => s : IR_Expression)))
     }
     constants += IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetConnectivity))
     if (bath.isDefined) {

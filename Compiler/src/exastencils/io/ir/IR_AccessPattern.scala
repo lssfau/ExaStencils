@@ -47,7 +47,7 @@ case class IR_AccessPattern(
   // transform index range depending on access pattern
   def transformExpressionIndexRange(start : IR_ExpressionIndex, end : IR_ExpressionIndex) : IR_ExpressionIndexRange = {
     if (isAccessPatternSWE) {
-      IR_ExpressionIndexRange(start, end - IR_ExpressionIndex(end.indices.map(_ => -1)))
+      IR_ExpressionIndexRange(start, IR_ExpressionIndex(end.indices.map(_ - 1) : _*))
     } else {
       IR_ExpressionIndexRange(start, end)
     }

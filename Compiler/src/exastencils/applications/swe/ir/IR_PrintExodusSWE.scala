@@ -113,7 +113,7 @@ case class IR_PrintExodusSWE(
 
     val constants : ListBuffer[IR_DataBuffer] = ListBuffer()
     if (!gridPositionsCopied) {
-      constants ++= nodePosVecAsDataBuffers(accessIndices, datasetCoords.map(s => s : IR_Expression))
+      constants ++= nodePosVecAsDataBuffers(accessIndices, Some(datasetCoords.map(s => s : IR_Expression)))
     } else {
       // no associated field for vf -> copy positions to buffer
       constants ++= nodePositionsBuf.zipWithIndex.map { case(tmpBuf, idx) => IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetCoords(idx))) }

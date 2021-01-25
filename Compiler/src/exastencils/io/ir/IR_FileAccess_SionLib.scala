@@ -10,6 +10,7 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.config.Settings
 import exastencils.domain.ir.IR_IV_IsValidForDomain
+import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_Print
 
@@ -33,7 +34,8 @@ case class IR_FileAccess_SionLib(
   val bytesAccessedKnownApriori : Boolean = condition == IR_BooleanConstant(true) // if there is no condition -> required number of accessed bytes are known
   val numBytesDatatype : Array[Int] = dataBuffers.map(buf => buf.datatype.resolveBaseDatatype.typicalByteSize).toArray
   val numBytesLocal : Array[IR_Expression] = dataBuffers.indices.map(bufIdx => dataBuffers(bufIdx).typicalByteSizeLocal).toArray
-  val totalBytesBlock : IR_Expression = dataBuffers.indices.map(bufIdx => dataBuffers(bufIdx).typicalByteSizeBlock).reduce(_ + _)
+  val numValuesLocal : Array[IR_Expression] = dataBuffers.indices.map(bufIdx => IR_SimplifyExpression.simplifyIntegralExpr(numBytesLocal(bufIdx) / numBytesDatatype(bufIdx))).toArray
+  val totalBytesBlock : IR_Expression = dataBuffers.indices.map(bufIdx => dataBuffers(bufIdx).typicalByteSizeBlock).reduceOption(_ + _) getOrElse 0
 
   // declarations
   val fileId_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("fileId"))
@@ -98,7 +100,7 @@ case class IR_FileAccess_SionLib(
       statements += IR_Assignment(fileId,
         IR_FunctionCall(
           IR_ExternalFunctionReference("sion_paropen_mpi"),
-          filename, openMode, IR_AddressOf(numPhysFiles), mpiCommunicator, IR_AddressOf(localCommunicator),
+          filenameAsCString, openMode, IR_AddressOf(numPhysFiles), mpiCommunicator, IR_AddressOf(localCommunicator),
           IR_AddressOf(chunkSizes), IR_AddressOf(fsBlockSize), IR_AddressOf(globalRanks), IR_AddressOf(filePtr), IR_AddressOf(newPhysFilenames)
         )
       )
@@ -112,7 +114,7 @@ case class IR_FileAccess_SionLib(
       statements += IR_Assignment(fileId,
         IR_FunctionCall(
           IR_ExternalFunctionReference("sion_open"),
-          IR_Cast(IR_PointerDatatype(IR_CharDatatype), filename), openMode, IR_AddressOf(numTasks), IR_AddressOf(numPhysFiles), IR_AddressOf(chunkSizes), IR_AddressOf(fsBlockSize), IR_AddressOf(globalRanks), IR_AddressOf(filePtr)
+          filenameAsCString, openMode, IR_AddressOf(numTasks), IR_AddressOf(numPhysFiles), IR_AddressOf(chunkSizes), IR_AddressOf(fsBlockSize), IR_AddressOf(globalRanks), IR_AddressOf(filePtr)
         )
       )
     }
@@ -137,12 +139,12 @@ case class IR_FileAccess_SionLib(
 
   def checkBytesAccessed(bufIdx : Int) : ListBuffer[IR_Statement] = ListBuffer(
     IR_IfCondition(
-      bytesAccessed Neq numBytesLocal(bufIdx) / numBytesDatatype(bufIdx),
+      bytesAccessed Neq numValuesLocal(bufIdx),
       IR_Print(
         IR_VariableAccess("std::cout", IR_UnknownDatatype),
         IR_StringConstant("Rank: "), MPI_IV_MpiRank, IR_StringConstant(". "),
         IR_VariableAccess("__FILE__", IR_UnknownDatatype), IR_StringConstant(": Error at line: "), IR_VariableAccess("__LINE__", IR_UnknownDatatype),
-        IR_StringConstant(". Number of bytes read="), bytesAccessed, IR_StringConstant(" differ from : "), numBytesLocal(bufIdx) / numBytesDatatype(bufIdx))),
+        IR_StringConstant(". Number of bytes read="), bytesAccessed, IR_StringConstant(" differ from : "), numValuesLocal(bufIdx))),
     IR_Assignment(bytesAccessed, 0) // reset count
   )
 
@@ -156,7 +158,7 @@ case class IR_FileAccess_SionLib(
       /* true: write whole buffer */
       IR_Assignment(bytesAccessed,
         IR_FunctionCall(IR_ExternalFunctionReference(if (writeAccess) "sion_fwrite" else "sion_fread"), // use sion wrapper directly
-          buf.getBaseAddress, numBytesDatatype(bufIdx), numBytesLocal(bufIdx) / numBytesDatatype(bufIdx), fileId),
+          buf.getBaseAddress, numBytesDatatype(bufIdx), numValuesLocal(bufIdx), fileId),
         "+="),
       /* false: write component by component in a loop */
       loopOverDims(bufIdx,

@@ -10,6 +10,7 @@ import exastencils.applications.ns.ir.IR_PrintVtkNS
 import exastencils.applications.ns.ir.IR_PrintXdmfNNF
 import exastencils.applications.ns.ir.IR_PrintXdmfNS
 import exastencils.applications.swe.ir.IR_PrintExodusSWE
+import exastencils.applications.swe.ir.IR_PrintSionSWE
 import exastencils.applications.swe.ir.IR_PrintVtkSWE
 import exastencils.applications.swe.ir.IR_PrintXdmfSWE
 import exastencils.base.ir.IR_BooleanConstant
@@ -159,6 +160,15 @@ object IR_ResolveVisualizationPrinters extends DefaultStrategy("IR_ResolveVisual
           IR_PrintExodusSWE(s, i.toInt, getResolveId, extractNodalFields(fields), extractDiscFields(fields))
         case _                                                                 =>
           Logger.error("Malformed call to printExodusSWE; usage: printExodusSWE ( \"filename\", level, , fields : IR_FieldAccess*)")
+      }
+
+    // sion printer (SWE) for performance comparison
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printSionSWE", _), args)) =>
+      args match {
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), fields @ _*) =>
+          IR_PrintSionSWE(s, i.toInt, getResolveId, extractNodalFields(fields), extractDiscFields(fields))
+        case _                                                                 =>
+          Logger.error("Malformed call to printSionSWE; usage: printSionSWE ( \"filename\", level, , fields : IR_FieldAccess*)")
       }
   })
 }

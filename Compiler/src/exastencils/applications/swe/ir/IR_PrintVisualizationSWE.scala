@@ -67,8 +67,10 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
   def fieldnames : ListBuffer[String] = fields.keys.to[ListBuffer]
   def numFields : Int = fieldnames.length
 
-  def nodePosVecAsDataBuffers(accessIndices: Option[ListBuffer[IR_Index]], dataset: ListBuffer[IR_Expression]) : ListBuffer[IR_DataBuffer] = {
-    (0 until numDimsGrid).map(dim => IR_DataBuffer(IR_VF_NodePositionAsVec.find(level).associatedField, accessIndices, Some(dataset(dim)), dim)).to[ListBuffer]
+  def nodePosVecAsDataBuffers(accessIndices: Option[ListBuffer[IR_Index]], datasets: Option[ListBuffer[IR_Expression]]) : ListBuffer[IR_DataBuffer] = {
+    (0 until numDimsGrid).map(dim =>
+      IR_DataBuffer(IR_VF_NodePositionAsVec.find(level).associatedField, accessIndices, if (datasets.isDefined) Some(datasets.get(dim)) else None, dim)
+    ).to[ListBuffer]
   }
 
   // get the common prefix of a disc field and use as name (e.g. etaDiscLower0, etaDiscLower1, ... -> etaDisc)
@@ -82,7 +84,7 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
   }
 
   // glue logic for disc fields to be mapped to data buffers
-  def discFieldsToDatabuffers(discField : ListBuffer[IR_Field]) : ListBuffer[IR_DataBuffer] = ListBuffer()
+  def discFieldsToDatabuffers(discField : ListBuffer[IR_Field]) : ListBuffer[IR_DataBuffer] = ???
 
   // calculating an average over a disc field to reduce the amount of data written to file
   def setupReducedData : ListBuffer[IR_Statement] = {
