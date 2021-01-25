@@ -35,6 +35,8 @@ case class IR_PrintExodusSWE(
     var filename : IR_Expression,
     level : Int,
     var resolveId : Int,
+    var nodalFieldCollection : ListBuffer[IR_Field],
+    var discFieldCollection : ListBuffer[ListBuffer[IR_Field]]
 ) extends IR_PrintExodus with IR_PrintVisualizationSWE {
 
   override def variableEntityType : IR_VariableAccess = EX_NODAL
@@ -109,8 +111,15 @@ case class IR_PrintExodusSWE(
       Some(nodeOffsets.map(_.toExpressionIndex))
     def nodalAccess(field : IR_Field) = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(field, IR_IV_ActiveSlot(field), idx.toExpressionIndex), accessIndices)
 
-    val constants = nodePosVecAsDataBuffers(accessIndices, datasetCoords.map(s => s : IR_Expression)) :+
-      IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetConnectivity))
+    val constants : ListBuffer[IR_DataBuffer] = ListBuffer()
+    if (!gridPositionsCopied) {
+      constants ++= nodePosVecAsDataBuffers(accessIndices, datasetCoords.map(s => s : IR_Expression))
+    } else {
+      // no associated field for vf -> copy positions to buffer
+      constants ++= nodePositionsBuf.zipWithIndex.map { case(tmpBuf, idx) => IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetCoords(idx))) }
+    }
+    constants += IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetConnectivity))
+
     // bath is constant but cannot be reduced in this format since in Exodus fields are defined as record variables (i.e. bound to time)
     val allFields = fields.values.to[ListBuffer].zipWithIndex.flatMap { case (fieldCollection, idx) =>
       // distinguish nodal and disc fields

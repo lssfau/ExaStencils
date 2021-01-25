@@ -23,13 +23,20 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.core.Duplicate
+import exastencils.field.ir.IR_Field
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_PrintVtkTriangles
 
 /// IR_PrintVtkSWE
 
-case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int, var resolveId : Int) extends IR_PrintVtkTriangles with IR_PrintVisualizationSWE with IR_PrintFieldsAsciiSWE {
+case class IR_PrintVtkSWE(
+    var filename : IR_Expression,
+    level : Int,
+    var resolveId : Int,
+    var nodalFieldCollection : ListBuffer[IR_Field],
+    var discFieldCollection : ListBuffer[ListBuffer[IR_Field]]
+) extends IR_PrintVtkTriangles with IR_PrintVisualizationSWE with IR_PrintFieldsAsciiSWE {
 
   override def printField(name : String, stream : IR_VariableAccess, loopBody : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = ListBuffer[IR_Statement](
     IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),

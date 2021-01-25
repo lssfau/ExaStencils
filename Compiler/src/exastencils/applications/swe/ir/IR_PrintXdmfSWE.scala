@@ -44,7 +44,10 @@ case class IR_PrintXdmfSWE(
     level : Int,
     ioMethod : IR_Expression,
     binaryFpp : Boolean,
-    var resolveId : Int) extends IR_PrintXdmf(ioMethod, binaryFpp) with IR_PrintVisualizationSWE with IR_PrintFieldsAsciiSWE {
+    var resolveId : Int,
+    var nodalFieldCollection : ListBuffer[IR_Field],
+    var discFieldCollection : ListBuffer[ListBuffer[IR_Field]]
+) extends IR_PrintXdmf(ioMethod, binaryFpp) with IR_PrintVisualizationSWE with IR_PrintFieldsAsciiSWE {
 
   // dataset names for hdf5
   def datasetCoords : ListBuffer[IR_StringConstant] = ListBuffer(IR_StringConstant("/constants/X"), IR_StringConstant("/constants/Y"))
@@ -83,6 +86,8 @@ case class IR_PrintXdmfSWE(
     )
 
     // setup buffers
+    if (enforceCopiesHdf5 || gridPositionsCopied)
+      stmts ++= setupNodePositions(copyNodePositions = true)
     stmts ++= setupConnectivity(global = ioInterface != "fpp")
     if (Knowledge.swe_nodalReductionPrint) {
       stmts ++= setupReducedData
@@ -98,17 +103,14 @@ case class IR_PrintXdmfSWE(
       2. via copies
       Despite the fact that the first option is the more elegant, the performance degrades significantly, because it results to many small and non-contiguous accesses to the file
       -> copies are used instead
-   */
-
+  */
+  val enforceCopiesHdf5 = ioInterface == "hdf5" && !Knowledge.swe_nodalReductionPrint
   def nodalFieldBuffersHdf5 : ListMap[String, IR_IV_TemporaryBuffer] = ListMap(nodalFields.toSeq.map { nodeFieldMap =>
     nodeFieldMap._1 -> IR_IV_TemporaryBuffer(nodeFieldMap._2.resolveBaseDatatype, IR_AtNode, nodeFieldMap._1, domainIndex, dimsPositionsFrag)
   } : _*)
 
   def setupNodalFieldsHdf5 : ListBuffer[IR_Statement] = {
     val stmts : ListBuffer[IR_Statement] = ListBuffer()
-
-    // buffers for node positions
-    stmts ++= setupNodePositions(copyNodePositions = true)
 
     // buffers for nodal fields (e.g. bath)
     nodalFieldBuffersHdf5.map { case(name, tmpBuf) =>
@@ -284,17 +286,20 @@ case class IR_PrintXdmfSWE(
     // bath is constant and can be reduced -> move to constants if exists
     val bath = nodalFields.get("bath")
     var constants : ListBuffer[IR_DataBuffer] = ListBuffer()
-    if (ioInterface != "hdf5") {
-      constants ++= nodePosVecAsDataBuffers(accessIndices, datasetCoords.map(s => s : IR_Expression))
-    } else {
+    if (enforceCopiesHdf5 || gridPositionsCopied) {
+      // special case for non-reduced SWE with hdf5 or no associated field for vf -> copy positions to buffer
       constants ++= nodePositionsBuf.zipWithIndex.map { case(tmpBuf, idx) => IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetCoords(idx))) }
+    } else {
+      // use vf's associated field directly
+      constants ++= nodePosVecAsDataBuffers(accessIndices, datasetCoords.map(s => s : IR_Expression))
     }
     constants += IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetConnectivity))
     if (bath.isDefined) {
-      if (ioInterface != "hdf5") {
-        constants += IR_DataBuffer(bath.get, IR_IV_ActiveSlot(bath.get), includeGhosts = false, Some(nodalAccess(bath.get)), Some(datasetFields("bath").head), canonicalOrder = false)
-      } else {
+      if (enforceCopiesHdf5) {
+        // special case for non-reduced SWE with hdf5
         constants += IR_DataBuffer(nodalFieldBuffersHdf5("bath"), IR_IV_ActiveSlot(bath.get), None, Some(datasetFields("bath").head))
+      } else {
+        constants += IR_DataBuffer(bath.get, IR_IV_ActiveSlot(bath.get), includeGhosts = false, Some(nodalAccess(bath.get)), Some(datasetFields("bath").head), canonicalOrder = false)
       }
     }
 
@@ -306,10 +311,10 @@ case class IR_PrintXdmfSWE(
       fieldCollection.length match {
         case 1 =>
           val nodeField = fieldCollection.head
-          val buf = if (ioInterface != "hdf5") {
-            IR_DataBuffer(nodeField, IR_IV_ActiveSlot(nodeField), includeGhosts = false, Some(nodalAccess(nodeField)), Some(datasetFields(name).head), canonicalOrder = false)
-          } else {
+          val buf = if (enforceCopiesHdf5) {
             IR_DataBuffer(nodalFieldBuffersHdf5(name), IR_IV_ActiveSlot(nodeField), None, Some(datasetFields(name).head))
+          } else {
+            IR_DataBuffer(nodeField, IR_IV_ActiveSlot(nodeField), includeGhosts = false, Some(nodalAccess(nodeField)), Some(datasetFields(name).head), canonicalOrder = false)
           }
           ListBuffer(buf)
         case 6 =>

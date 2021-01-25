@@ -48,50 +48,19 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
 
   override def dimsPositionsFrag : ListBuffer[IR_Expression] = if (Knowledge.swe_nodalReductionPrint) ListBuffer(numCells_x+1, numCells_y+1) else ListBuffer(6, numCells_x, numCells_y)
 
-  // TODO flexible output: fields as function parameters
-  def bath : IR_Field = IR_FieldCollection.getByIdentifier("bath", level).get
+  // passed as arguments to function
+  def discFieldCollection : ListBuffer[ListBuffer[IR_Field]]
+  def nodalFieldCollection : ListBuffer[IR_Field]
 
-  def etaDiscLower0 : IR_Field = IR_FieldCollection.getByIdentifier("etaDiscLower0", level).get
-  def etaDiscLower1 : IR_Field = IR_FieldCollection.getByIdentifier("etaDiscLower1", level).get
-  def etaDiscLower2 : IR_Field = IR_FieldCollection.getByIdentifier("etaDiscLower2", level).get
-  def etaDiscUpper0 : IR_Field = IR_FieldCollection.getByIdentifier("etaDiscUpper0", level).get
-  def etaDiscUpper1 : IR_Field = IR_FieldCollection.getByIdentifier("etaDiscUpper1", level).get
-  def etaDiscUpper2 : IR_Field = IR_FieldCollection.getByIdentifier("etaDiscUpper2", level).get
-
-  def uDiscLower0 : IR_Field = IR_FieldCollection.getByIdentifier("uDiscLower0", level).get
-  def uDiscLower1 : IR_Field = IR_FieldCollection.getByIdentifier("uDiscLower1", level).get
-  def uDiscLower2 : IR_Field = IR_FieldCollection.getByIdentifier("uDiscLower2", level).get
-  def uDiscUpper0 : IR_Field = IR_FieldCollection.getByIdentifier("uDiscUpper0", level).get
-  def uDiscUpper1 : IR_Field = IR_FieldCollection.getByIdentifier("uDiscUpper1", level).get
-  def uDiscUpper2 : IR_Field = IR_FieldCollection.getByIdentifier("uDiscUpper2", level).get
-
-  def vDiscLower0 : IR_Field = IR_FieldCollection.getByIdentifier("vDiscLower0", level).get
-  def vDiscLower1 : IR_Field = IR_FieldCollection.getByIdentifier("vDiscLower1", level).get
-  def vDiscLower2 : IR_Field = IR_FieldCollection.getByIdentifier("vDiscLower2", level).get
-  def vDiscUpper0 : IR_Field = IR_FieldCollection.getByIdentifier("vDiscUpper0", level).get
-  def vDiscUpper1 : IR_Field = IR_FieldCollection.getByIdentifier("vDiscUpper1", level).get
-  def vDiscUpper2 : IR_Field = IR_FieldCollection.getByIdentifier("vDiscUpper2", level).get
-
-  def etaDisc : ListBuffer[IR_Field] = ListBuffer(etaDiscLower0, etaDiscLower1, etaDiscLower2, etaDiscUpper0, etaDiscUpper1, etaDiscUpper2)
-  def uDisc : ListBuffer[IR_Field] = ListBuffer(uDiscLower0, uDiscLower1, uDiscLower2, uDiscUpper0, uDiscUpper1, uDiscUpper2)
-  def vDisc : ListBuffer[IR_Field] = ListBuffer(vDiscLower0, vDiscLower1, vDiscLower2, vDiscUpper0, vDiscUpper1, vDiscUpper2)
-
-  def optLocalOrderLower : Option[IR_Field] = IR_FieldCollection.getByIdentifier("local_orderLower0", level, suppressError = true)
-  def optLocalOrderUpper : Option[IR_Field] = IR_FieldCollection.getByIdentifier("local_orderUpper0", level, suppressError = true)
-
-  def orderDisc : Option[ListBuffer[IR_Field]] = if (optLocalOrderLower.isDefined && optLocalOrderUpper.isDefined)
-    Some((0 until 3).map(_ => optLocalOrderLower.get).to[ListBuffer] ++ (0 until 3).map(_ => optLocalOrderUpper.get))
-  else
-    None
-
-  // TODO flexible output: fill with input parameters
-  def nodalFields : ListMap[String, IR_Field] = ListMap(bath.name -> bath)
+  def nodalFields : ListMap[String, IR_Field] = ListMap(
+    nodalFieldCollection.map(field => field.name -> field) : _*)
   def discFields : ListMap[String, ListBuffer[IR_Field]] = ListMap(
-    (ListBuffer(etaDisc, uDisc, vDisc) ++ orderDisc).map(discField => getBasenameDiscField(discField) -> discField) : _*)
+    discFieldCollection.map(discField => getBasenameDiscField(discField) -> discField) : _*)
   def discFieldsReduced : ListMap[String, IR_IV_TemporaryBuffer] = discFields.map { discField =>
     discField._1 -> IR_IV_TemporaryBuffer(discField._2.head.resolveBaseDatatype, IR_AtNode, discField._1, domainIndex, dimsPositionsFrag)
   }
 
+  def etaDiscLower0 : IR_Field = IR_FieldCollection.getByIdentifier("etaDiscLower0", level).get
   def someCellField : IR_Field = etaDiscLower0
 
   def fields : ListMap[String, ListBuffer[IR_Field]] = nodalFields.map(field => field._1 -> ListBuffer(field._2)) ++ discFields
@@ -104,7 +73,12 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
 
   // get the common prefix of a disc field and use as name (e.g. etaDiscLower0, etaDiscLower1, ... -> etaDisc)
   def getBasenameDiscField(discField : ListBuffer[IR_Field]) : String = {
-    discField.map(_.name).reduce((a, b) => (a zip b).takeWhile(Function.tupled(_ == _)).map(_._1).mkString)
+    val basename = discField.map(_.name).reduce((a, b) => (a zip b).takeWhile(Function.tupled(_ == _)).map(_._1).mkString)
+    if (basename.isEmpty) {
+      Logger.error("\"IR_PrintVisualizationSWE:\" Could not extract a common name from disc field components. Components do not belong to the same disc field.")
+    }
+
+    basename
   }
 
   // glue logic for disc fields to be mapped to data buffers
