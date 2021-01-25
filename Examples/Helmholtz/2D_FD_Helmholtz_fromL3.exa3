@@ -23,7 +23,6 @@ Field gen_error_u on boundary = applyBC_gen_error_u()
 // B-Spline approximation of the dirac pulse
 Field RHS@finest with Complex<Real> on Node of global = max(0, -(fabs(vf_nodePos_x - 0.5) - vf_gridWidth_x) / vf_gridWidth_x**2) * max(0, -(fabs(vf_nodePos_y - 0.5) - vf_gridWidth_y) / vf_gridWidth_y**2)
 //Field RHS@finest with Complex<Real> on Node of global = 0.0
-//Field RHS@finest with Complex<Real> on Node of global = 1.0/(2*PI*a) * exp(-((vf_nodePos_x-0.5)**2+(vf_nodePos_y-0.5)**2)/(2*a))
 
 Field f with Complex<Real> on Node of global
 Field gen_rhs_u with Complex<Real> on Node of global
@@ -79,12 +78,9 @@ Operator Prolongation_u from default prolongation on Node with 'linear'
 /// globals
 
 Globals {
-  Expr a = 0.01
   Expr k = 80.0
-  Expr omegaRelax = 0.55
+  Expr omegaRelax = 0.6
   Var shift : Complex<Real> = (1.0 + 0.5j)
-  //Expr omegaRelax = 0.65
-  //Var shift : Complex<Real> = (1.0 + 1.0j)
 }
 
 Function NormResidual@finest : Complex<Real> {
@@ -173,18 +169,14 @@ Function PreconditionedBiCGStab@finest {
     p         = Residual + beta * ( p - omega * ap )
     u = 0
     f = p
-    FCycle()
-    //VCycle()
-    //WCycle()
+    mgCycle()
     ap        = A * u
     alpha     = rhoNew / dot ( resHat, ap )
     h         = Solution + alpha * u
     s         = Residual - alpha * ap
     u = 0
     f = s
-    FCycle()
-    //VCycle()
-    //WCycle()
+    mgCycle()
     t = A * u
     omega     = dot ( t, s ) / dot ( t, t )
     Solution = h + omega * u
@@ -209,7 +201,7 @@ Function PreconditionedBiCGStab@finest {
 
 Function PreSmoother@all {
   // RB-GS
-  repeat 3 times {
+  repeat 2 times {
     color with {
       ((i0 + i1) % 2),
       solve locally at u@[0,0] relax omegaRelax {
@@ -228,7 +220,7 @@ Function PreSmoother@all {
 
 Function PostSmoother@all {
   // RB-GS
-  repeat 3 times {
+  repeat 1 times {
     color with {
       ((i0 + i1) % 2),
       solve locally at u@[0,0] relax omegaRelax {
@@ -245,8 +237,41 @@ Function PostSmoother@all {
   }*/
 }
 
+Function mgCycle@(coarsest + 2 to finest) {
+
+  PreSmoother()
+
+  res = f - M * u
+  f@coarser = Restriction_u * res
+
+  u@coarser = 0.0
+  mgCycle@coarser ( )
+
+  u += Prolongation_u@coarser * u@coarser
+
+  PostSmoother()
+
+}
 
 /// Preconditioner
+
+Function mgCycle@(coarsest + 1) {
+  PreSmoother()
+
+  res = f - M * u
+  f@coarser = Restriction_u * res
+
+  gen_error_u@coarser = 0.0
+  mgCycle@coarser ( )
+  u@coarser = gen_error_u@coarser
+
+  u += Prolongation_u@coarser * u@coarser
+
+  PostSmoother()
+
+}
+
+/*
 Function VCycle@(coarsest + 2 to finest) {
 
   PreSmoother()
@@ -349,7 +374,7 @@ Function FCycle@(coarsest + 1) {
 
 }
 
-
+*/
 
 
 
@@ -368,6 +393,45 @@ Field s@coarsest on boundary = applyBC_s@coarsest()
 Field t@coarsest with Complex<Real> on Node of global
 Field resHat@coarsest with Complex<Real> on Node of global
 
+Function mgCycle@coarsest {
+  // init residual
+  gen_residual_u    = f - M * gen_error_u
+  Var curRes  : Complex<Real> = sqrt(dot(gen_residual_u, gen_residual_u))
+  Var initRes : Complex<Real> = curRes
+
+  if ( curRes == 0.0 ) { return }
+
+  // init variables and fields
+  Var alpha   : Complex<Real> = 1.0
+  Var beta    : Complex<Real> = 1.0
+  Var rho     : Complex<Real>
+  Var rhoNew  : Complex<Real> = 1.0
+  Var omega   : Complex<Real> = 1.0
+
+  resHat      = gen_residual_u
+  nu          = 0.0
+  p           = 0.0
+
+  // main loop
+  Var curStep : Int  = 0
+  repeat 1000 times count curStep {
+    rho       = rhoNew
+    rhoNew    = dot ( resHat, gen_residual_u )
+    beta      = ( rhoNew / rho ) * ( alpha / omega )
+    p         = gen_residual_u + beta * ( p - omega * nu )
+    nu        = M * p
+    alpha     = rhoNew / dot ( resHat, nu )
+    h         = gen_error_u + alpha * p
+    s         = gen_residual_u - alpha * nu
+    t         = M * s
+    omega     = dot ( t, s ) / dot ( t, t )
+    gen_error_u  = h + omega * s
+    gen_residual_u  = s - omega * t
+    curRes    = sqrt(dot(gen_residual_u, gen_residual_u))
+    if ( fabs(curRes) < 1e-6 * fabs(initRes)) { return }
+  }
+}
+/*
 Function VCycle@coarsest {
   // init residual
   gen_residual_u    = f - M * gen_error_u
@@ -389,7 +453,7 @@ Function VCycle@coarsest {
 
   // main loop
   Var curStep : Int  = 0
-  repeat 10000 times count curStep {
+  repeat 1000 times count curStep {
     rho       = rhoNew
     rhoNew    = dot ( resHat, gen_residual_u )
     beta      = ( rhoNew / rho ) * ( alpha / omega )
@@ -406,6 +470,7 @@ Function VCycle@coarsest {
     if ( fabs(curRes) < 1e-6 * fabs(initRes)) { return }
   }
 }
+
 
 Function WCycle@coarsest {
   // init residual
@@ -428,7 +493,7 @@ Function WCycle@coarsest {
 
   // main loop
   Var curStep : Int  = 0
-  repeat 10000 times count curStep {
+  repeat 1000 times count curStep {
     rho       = rhoNew
     rhoNew    = dot ( resHat, gen_residual_u )
     beta      = ( rhoNew / rho ) * ( alpha / omega )
@@ -467,7 +532,7 @@ Function FCycle@coarsest {
 
   // main loop
   Var curStep : Int  = 0
-  repeat 10000 times count curStep {
+  repeat 1000 times count curStep {
     rho       = rhoNew
     rhoNew    = dot ( resHat, gen_residual_u )
     beta      = ( rhoNew / rho ) * ( alpha / omega )
@@ -484,3 +549,4 @@ Function FCycle@coarsest {
     if ( fabs(curRes) < 1e-6 * fabs(initRes)) { return }
   }
 }
+*/
