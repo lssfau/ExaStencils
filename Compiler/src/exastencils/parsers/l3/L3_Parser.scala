@@ -23,8 +23,7 @@ import scala.util.parsing.combinator._
 import scala.util.parsing.input._
 
 import exastencils.base.l3._
-import exastencils.baseExt.l3.ComplexNumbers
-import exastencils.baseExt.l3.ComplexNumbers.L3_ComplexExpression
+import exastencils.baseExt.l3.L3_ComplexExpression
 import exastencils.baseExt.l3._
 import exastencils.boundary.l3._
 import exastencils.domain.l3.L3_DomainFromAABBDecl
@@ -144,9 +143,9 @@ object L3_Parser extends ExaParser with PackratParsers {
     ("(" ~> term) ~ "+" ~ term <~ ("j" ~ ")")
   ^^ { case  real ~ _ ~ imag => L3_ComplexExpression(real, true, imag)} |||
   ("(" ~> term) ~ "-" ~ term <~ ("j" ~ ")")
-    ^^ { case  real ~ _ ~ imag => ComplexNumbers.L3_ComplexExpression(real, false, imag)} |||
+    ^^ { case  real ~ _ ~ imag => L3_ComplexExpression(real, false, imag)} |||
   ("complex" ~ "(") ~> term ~ "," ~ "-".? ~ (term <~ ")")
-    ^^ { case  real ~ _ ~ sign ~ imag => ComplexNumbers.L3_ComplexExpression(real, if(sign.isDefined) false else true, imag)})
+    ^^ { case  real ~ _ ~ sign ~ imag => L3_ComplexExpression(real, if(sign.isDefined) false else true, imag)})
 
   lazy val booleanexpression : PackratParser[L3_Expression] = (
     locationize((booleanexpression ~ ("||" ||| "or") ~ booleanexpression1) ^^ { case ex1 ~ op ~ ex2 => L3_BinaryOperators.createExpression(op, ex1, ex2) })

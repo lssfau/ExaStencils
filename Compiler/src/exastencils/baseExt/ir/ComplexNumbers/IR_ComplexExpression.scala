@@ -1,6 +1,5 @@
 package exastencils.baseExt.ir.ComplexNumbers
 
-import exastencils.base.ir.IR_BooleanDatatype
 import exastencils.base.ir.IR_ComplexDatatype
 import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_DoubleConstant
@@ -42,15 +41,7 @@ case class IR_ComplexExpression(var real : IR_Expression, op : Boolean, imag : I
   }
 }
 
-case class IR_ComplexNumberEqual(left : IR_Expression, right : IR_Expression) extends IR_Expression {
-  override def datatype : IR_Datatype = IR_BooleanDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "((fabs(real(" << left << ") - real(" << right << ")) < 0.000000000001) && (fabs(imag(" << left << ") - imag(" << right << ")) < 0.0000000000001))"
-}
 
-case class IR_ComplexNumberNotEqual(left : IR_Expression, right : IR_Expression) extends IR_Expression {
-  override def datatype : IR_Datatype = IR_BooleanDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "((fabs(real(" << left << ") - real(" << right << ")) > 0.000000000001) || (fabs(imag(" << left << ") - imag(" << right << ")) > 0.0000000000001))"
-}
 
 
 
