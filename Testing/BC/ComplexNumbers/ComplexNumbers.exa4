@@ -8,24 +8,48 @@ Layout complexNumberLayout< Complex<Double>, Node >@all {
 
 Field complexNumberField< global, complexNumberLayout, c1 >[2]@all
 
+Field complexNumberField2< global, complexNumberLayout, boundaryFunction() >[2]@all
+
 
 
 Globals {
 	Var c1 : Complex<Double> = (1.0 + 0.5j)
 
 }
+Function boundaryFunction@all : Unit {
+	Var innerPoints : Int = 2^3 - 1
+	loop over complexNumberField2 starting [-1,-1] ending [-1,-1] where ( 
+		( i0 == 0 ) || ( i1 == 0 ) || 
+		( i0 == innerPoints + 1) || ( i1 == innerPoints + 1) ) {
+		complexNumberField2 = c1
+	} 
 
-Function checkComplexNumberField@(coarsest to finest) {
-	loop over complexNumberField starting [-1,-1] ending [-1,-1] where ( ( i0 == 0 ) || ( i1 == 0 ) ) {
-	if(notEqual(complexNumberField,c1)) {
-    print('boundary value differs from expected value')
-            return
-        }
-	if(notEqual(complexNumberField[1],c1)) {
-	 print('boundary value differs from expected value')
-            return
-        }	
-	}
+}
+Function checkComplexNumberField@2 {
+	
+	Var innerPoints : Int = 2^2 - 1
+	loop over complexNumberField starting [-1,-1] ending [-1,-1] where ( 
+		( i0 == 0 ) || ( i1 == 0 ) || 
+		( i0 == innerPoints + 1) || ( i1 == innerPoints + 1) ) {
+		if(notEqual(complexNumberField,c1)) {
+    			print('boundary value differs from expected value')
+            		return
+        	}
+	} 
+
+}
+Function checkComplexNumberField2@3 {
+	
+	Var innerPoints : Int = 2^3 - 1
+	loop over complexNumberField2 starting [-1,-1] ending [-1,-1] where ( 
+		( i0 == 0 ) || ( i1 == 0 ) || 
+		( i0 == innerPoints + 1) || ( i1 == innerPoints + 1) ) {
+		if(notEqual(complexNumberField2,c1)) {
+    			print('boundary value differs from expected value')
+            		return
+        	}
+	} 
+
 }
 /// main function
 
@@ -33,11 +57,15 @@ Function Application ( ) : Unit {
     initGlobals (  )
     initDomain (  )
     initFieldsWithZero (  )
-    apply bc to complexNumberField@1
-    apply bc to complexNumberField[1]@1
 
-    checkComplexNumberField@1 ()
+    apply bc to complexNumberField@2
+    checkComplexNumberField@2 ()
     print('stage 0 done')
 
-	destroyGlobals (  )
+    apply bc to complexNumberField2@3
+    checkComplexNumberField2@3 ()
+    print('stage 1 done')
+
+
+    destroyGlobals (  )
 }

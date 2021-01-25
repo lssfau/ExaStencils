@@ -52,6 +52,21 @@ Function Application ( ) : Unit {
 		print('conjugate does not match')
 	} 
 	print('stage 3 done')
+	
+	if(abs(arg(A) - 0.463648) > 0.0000005) {
+		print('phase angle does not match')
+	}
+	print('stage 4 done')
 
+	if(abs(norm(A) - abs(A) * abs(A)) > 0.0000005) {
+		print('norm does not match')
+	}
+	print('stage 5 done')
+	
+	if(notEqual(polar(abs(A), arg(A)), A)) {
+		print('construction from magnitude and phase angle does not match')
+	}
+	print('stage 6 done')
+	
 }
 
