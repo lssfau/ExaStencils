@@ -41,46 +41,59 @@ object IR_ResolveVisualizationPrinters extends DefaultStrategy("IR_ResolveVisual
     ret
   }
 
-  // extract nodal/disc fields from collection of fields passed to the function
-  def checkErrors(fields : Seq[IR_Expression]) : Unit = {
-    // TODO
-    // check for different level specifications in the field access sequence
-    val level = fields.collectFirst { case field : IR_FieldAccess => field.level } getOrElse -1 // -1: no field was specified
-    fields.foreach {
-      case field : IR_FieldAccess if field.level != level =>
-        Logger.error("\"IR_ResolveVisualizationPrinters (SWE)\": Field accesses occur on different levels.")
-      case _ =>
-    }
-  }
-  def extractNodalFields(fields : Seq[IR_Expression]) : ListBuffer[IR_Field] = {
-    checkErrors(fields)
+  /* SWE: extract nodal/disc fields from collection of fields passed to the function */
+  def checkFieldsAreValid(fieldAccesses : Seq[IR_Expression]) : Unit = {
+    val level = fieldAccesses.collectFirst { case acc : IR_FieldAccess => acc.level } getOrElse -1 // -1: no field was specified
+    val supportedLocalizations = List(IR_AtNode, IR_AtCellCenter)
 
-    // collect nodal fields
-    fields.to[ListBuffer].collect {
+    // check if only fields are passed
+    if (fieldAccesses.exists { acc => !acc.isInstanceOf[IR_FieldAccess] })
+      Logger.error("\"IR_ResolveVisualizationPrinters (SWE)\": Only field accesses should are allowed for parameter: \"fields : IR_FieldAccess*\"")
+
+    // check for correct localizations of fields
+    if (fieldAccesses.exists { case acc : IR_FieldAccess => !supportedLocalizations.contains(acc.field.localization) })
+      Logger.error("\"IR_ResolveVisualizationPrinters (SWE)\": Only node- or cell-centered fields are allowed.")
+
+    // check if level specification is equal for each field
+    if (fieldAccesses.exists { case field : IR_FieldAccess => field.level != level })
+      Logger.error("\"IR_ResolveVisualizationPrinters (SWE)\": Field accesses must occur on the same level.")
+  }
+
+  // collect nodal fields
+  def extractNodalFields(fieldAccesses : Seq[IR_Expression]) : ListBuffer[IR_Field] = {
+    checkFieldsAreValid(fieldAccesses)
+
+    fieldAccesses.to[ListBuffer].collect {
       case acc : IR_FieldAccess if acc.field.localization == IR_AtNode => acc.field
     }.distinct
   }
 
-  def extractDiscFields(fields : Seq[IR_Expression]) : ListBuffer[ListBuffer[IR_Field]] = {
+  // collect disc fields
+  def extractDiscFields(fieldAccesses : Seq[IR_Expression]) : ListBuffer[ListBuffer[IR_Field]] = {
     val discFieldComponents : mutable.HashSet[String] = mutable.HashSet() // no duplicate disc fields
-    def throwErrorMsg = Logger.error(s""""IR_ResolveVisualizationPrinters (SWE)": Not enough components specified for disc field (should always consist of 6 cell-centered components).
-                                        | The convention is: discFieldLower0, discFieldLower1, discFieldLower2, discFieldUpper0, discFieldUpper1, discFieldUpper2.""".stripMargin)
-    checkErrors(fields)
+    def throwErrorMsg = Logger.error(
+      s""""IR_ResolveVisualizationPrinters (SWE)": Not enough components specified for disc field (should always consist of 6 cell-centered components).
+         | The convention is: discFieldLower0, discFieldLower1, discFieldLower2, discFieldUpper0, discFieldUpper1, discFieldUpper2.""".stripMargin)
+    checkFieldsAreValid(fieldAccesses)
 
     // begin with cell-centered field and build disc field from the following 6 components
-    fields.to[ListBuffer].zipWithIndex.collect {
+    fieldAccesses.to[ListBuffer].zipWithIndex.collect {
       case (acc : IR_FieldAccess, index) if acc.field.localization == IR_AtCellCenter && !discFieldComponents.contains(acc.name) =>
-        if (index + 6 > fields.length) // not enough fields passed
+        if (index + 6 > fieldAccesses.length) // not enough fields passed
           throwErrorMsg
 
         // check if all 6 fields are cell-centered
-        val components = fields.slice(index, index + 6).to[ListBuffer] collect {
+        val components = fieldAccesses.slice(index, index + 6).to[ListBuffer] collect {
           case accComponent : IR_FieldAccess if accComponent.field.localization == IR_AtCellCenter =>
             discFieldComponents.add(accComponent.name)
             accComponent.field
         }
+
+        // check if disc field has 6 components and if they share a common prefix in their names
         if (components.length != 6)
           throwErrorMsg
+        if (components.map(_.name).reduce((a, b) => (a zip b).takeWhile(Function.tupled(_ == _)).map(_._1).mkString).isEmpty)
+          Logger.error("\"IR_ResolveVisualizationPrinters (SWE):\" Could not extract a common name from disc field components. Components do not belong to the same disc field.")
 
         components
     }.distinct
@@ -93,7 +106,7 @@ object IR_ResolveVisualizationPrinters extends DefaultStrategy("IR_ResolveVisual
         case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), fields @ _*) =>
           IR_PrintVtkSWE(s, i.toInt, getResolveId, extractNodalFields(fields), extractDiscFields(fields))
         case _                                                                 =>
-          Logger.error("Malformed call to printVtkSWE; usage: printVtkSWE ( \"filename\", level, , fields : IR_FieldAccess*)")
+          Logger.error("Malformed call to printVtkSWE; usage: printVtkSWE ( \"filename\", level, fields : IR_FieldAccess*)")
       }
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printVtkNS", _), args))  =>
       args match {
@@ -159,7 +172,7 @@ object IR_ResolveVisualizationPrinters extends DefaultStrategy("IR_ResolveVisual
         case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), fields @ _*) =>
           IR_PrintExodusSWE(s, i.toInt, getResolveId, extractNodalFields(fields), extractDiscFields(fields))
         case _                                                                 =>
-          Logger.error("Malformed call to printExodusSWE; usage: printExodusSWE ( \"filename\", level, , fields : IR_FieldAccess*)")
+          Logger.error("Malformed call to printExodusSWE; usage: printExodusSWE ( \"filename\", level, fields : IR_FieldAccess*)")
       }
 
     // sion printer (SWE) for performance comparison
@@ -168,7 +181,7 @@ object IR_ResolveVisualizationPrinters extends DefaultStrategy("IR_ResolveVisual
         case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), fields @ _*) =>
           IR_PrintSionSWE(s, i.toInt, getResolveId, extractNodalFields(fields), extractDiscFields(fields))
         case _                                                                 =>
-          Logger.error("Malformed call to printSionSWE; usage: printSionSWE ( \"filename\", level, , fields : IR_FieldAccess*)")
+          Logger.error("Malformed call to printSionSWE; usage: printSionSWE ( \"filename\", level, fields : IR_FieldAccess*)")
       }
   })
 }
