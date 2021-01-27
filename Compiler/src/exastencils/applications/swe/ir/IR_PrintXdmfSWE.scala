@@ -4,6 +4,7 @@ import scala.collection.immutable.ListMap
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Assignment
+import exastencils.base.ir.IR_BooleanConstant
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_IfCondition
@@ -122,14 +123,16 @@ case class IR_PrintXdmfSWE(
       val offset = IR_LoopOverFragments.defIt * dimsPositionsFrag.reduce(_ * _) + numAccessesPerCell * indexRangeCells.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
 
       stmts += tmpBuf.allocateMemory
-      stmts += IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
-          IR_LoopOverDimensions(numDimsGrid, indexRangeCells,
-            (0 until numAccessesPerCell).to[ListBuffer].map(idx => {
-              IR_Assignment(
-                tmpBuf.at(offset + idx),
-                IR_FieldAccess(nodalFields(name), IR_IV_ActiveSlot(nodalFields(name)), IR_LoopOverDimensions.defIt(numDimsGrid) + nodeOffsets(idx)))  : IR_Statement
-            }))))
+      // bath is constant -> only written once (-> init only needed once)
+      stmts += IR_IfCondition(if (name == "bath") IR_ConstantsWrittenToFile().isEmpty else IR_BooleanConstant(true),
+        IR_LoopOverFragments(
+          IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
+            IR_LoopOverDimensions(numDimsGrid, indexRangeCells,
+              (0 until numAccessesPerCell).to[ListBuffer].map(idx => {
+                IR_Assignment(
+                  tmpBuf.at(offset + idx),
+                  IR_FieldAccess(nodalFields(name), IR_IV_ActiveSlot(nodalFields(name)), IR_LoopOverDimensions.defIt(numDimsGrid) + nodeOffsets(idx)))  : IR_Statement
+              })))))
     }
 
     stmts

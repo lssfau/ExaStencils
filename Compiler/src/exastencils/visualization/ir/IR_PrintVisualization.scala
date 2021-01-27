@@ -201,9 +201,10 @@ trait IR_PrintVisualization {
         connectivityForCell(global)(d)) : IR_Statement
     }).to[ListBuffer]
 
-    stmts += IR_LoopOverFragments(
+    stmts += IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty,
+      IR_LoopOverFragments(
       IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
-        loopOverCells(initBuffer)))
+        loopOverCells(initBuffer))))
 
     stmts
   }
@@ -228,9 +229,10 @@ trait IR_PrintVisualization {
     // declare, allocate and init temp. buffer with cell centers
     ListBuffer[IR_Statement](
       cellCentersBuf(dim).allocateMemory,
-      IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
-          loopOverCells(ListBuffer(init)))))
+      IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty,
+        IR_LoopOverFragments(
+          IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
+            loopOverCells(ListBuffer(init))))))
   }
 
   // allocates and initializes buffer with cell-center positions on-demand.
@@ -258,13 +260,14 @@ trait IR_PrintVisualization {
     // declare, allocate and init temp. buffer with face positions
     ListBuffer[IR_Statement](
       facePositionsBuf(faceDir)(dim).allocateMemory,
-      IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
-          IR_LoopOverDimensions(numDimsGrid,
-            indexRange,
-            IR_Assignment(
-              facePositionsBuf(faceDir)(dim).at(IR_LoopOverFragments.defIt * dims.reduce(_ * _) + linearizedLoopIdx),
-              getPos(IR_AtFaceCenter(faceDir), level, dim))))))
+      IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty,
+        IR_LoopOverFragments(
+          IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
+            IR_LoopOverDimensions(numDimsGrid,
+              indexRange,
+              IR_Assignment(
+                facePositionsBuf(faceDir)(dim).at(IR_LoopOverFragments.defIt * dims.reduce(_ * _) + linearizedLoopIdx),
+                getPos(IR_AtFaceCenter(faceDir), level, dim)))))))
   }
 
   // allocates and initializes buffer with face positions on-demand
@@ -290,9 +293,10 @@ trait IR_PrintVisualization {
     // declare, allocate and init temp. buffer with node position
     ListBuffer[IR_Statement](
       nodePositionsBuf(dim).allocateMemory,
-      IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
-          loopOverDims(isNodalLoop, initBuffer))))
+      IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty,
+        IR_LoopOverFragments(
+          IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
+            loopOverDims(isNodalLoop, initBuffer)))))
   }
 
   // allocates and initializes buffer with the node positions on-demand
