@@ -56,6 +56,8 @@ CommBasic_2D              Main  CommBasic/2D.knowledge              CommBasic/2D
 # cell based
 CommBasic_HybridCell      Main  CommBasic/HybridCell.knowledge      CommBasic/HybridCell.exa4      CommBasic/HybridCell.results      27  2
 CommBasic_Strategy26Cell  Main  CommBasic/Strategy26Cell.knowledge  CommBasic/Strategy26Cell.exa4  CommBasic/Strategy26Cell.results  27  2
+# complex numbers
+CommBasic_complexNumbers Main CommBasic/ComplexNumbers.knowledge CommBasic/ComplexNumbers.exa4 CommBasic/ComplexNumbers.results 9 2
 
 #################################################################################################
 # OPTIMIZATION TESTS                                                                            #
@@ -169,7 +171,8 @@ BC_2D_Periodic       Main  BC/2D_Periodic.knowledge       BC/2D_Periodic.exa4   
 BC_3D_Polynomial     Main  BC/3D_Polynomial.knowledge     BC/3D_Polynomial.exa4     BC/3D_Polynomial.results     8  2
 BC_3D_Trigonometric  Main  BC/3D_Trigonometric.knowledge  BC/3D_Trigonometric.exa4  BC/3D_Trigonometric.results  8  2
 BC_3D_Periodic       Main  BC/3D_Periodic.knowledge       BC/3D_Periodic.exa4       BC/3D_Periodic.results       8  2
-COMPLEX_NUMBERS_BC Main BC/ComplexNumbers/ComplexNumbers.knowledge BC/ComplexNumbers/ComplexNumbers.exa4 BC/ComplexNumbers/ComplexNumbers.results 1 1
+
+BC_COMPLEX_NUMBERS Main BC/ComplexNumbers.knowledge BC/ComplexNumbers.exa4 BC/ComplexNumbers.results 1 1
 
 #################################################################################################
 # CELL BASED DISCRETIZATION TESTS                                                               #

@@ -347,6 +347,26 @@ test:CommBasic_Strategy26Cell:
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_Strategy26Cell CommBasic/Strategy26Cell.knowledge "CommBasic/Strategy26Cell.exa4" CommBasic/Strategy26Cell.results 27 2 Platform/random.platform output
 
+test:CommBasic_complexNumbers:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_complexNumbers CommBasic/ComplexNumbers.knowledge "CommBasic/ComplexNumbers.exa4" CommBasic/ComplexNumbers.results 9 2 Platform/random.platform output
+
 test:Seq_TestF_naive:
     stage: test
     dependencies:
@@ -1749,7 +1769,7 @@ test:BC_3D_Periodic:
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_3D_Periodic BC/3D_Periodic.knowledge "BC/3D_Periodic.exa4" BC/3D_Periodic.results 8 2 Platform/random.platform output
 
-test:COMPLEX_NUMBERS_BC:
+test:BC_COMPLEX_NUMBERS:
     stage: test
     dependencies:
         - build:generator
@@ -1767,7 +1787,7 @@ test:COMPLEX_NUMBERS_BC:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib COMPLEX_NUMBERS_BC BC/ComplexNumbers/ComplexNumbers.knowledge "BC/ComplexNumbers/ComplexNumbers.exa4" BC/ComplexNumbers/ComplexNumbers.results 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_COMPLEX_NUMBERS BC/ComplexNumbers.knowledge "BC/ComplexNumbers.exa4" BC/ComplexNumbers.results 1 1 Platform/random.platform output
 
 test:Cell_2D_Basic:
     stage: test
