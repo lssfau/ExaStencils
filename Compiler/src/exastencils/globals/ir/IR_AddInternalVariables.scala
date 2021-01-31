@@ -203,7 +203,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
           IR_ArrayAllocation(
             buf,
             if(buf.field.layout.datatype.isInstanceOf[IR_ComplexDatatype]) buf.field.layout.datatype
-            else IR_DoubleDatatype,
+            else IR_RealDatatype,
             size
           ), IR_ParallelizationInfo(potentiallyParallel = true)))
       }
