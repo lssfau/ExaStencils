@@ -288,3 +288,5 @@ CUDA_ExaFluids_Bingham  Main CUDA/3D_ExaFluids_NN_CUDA.knowledge CUDA/3D_ExaFlui
 
 COMPLEX_NUMBERS_BasicFunc  Main  ComplexNumbers/BasicFunc/BasicFunc.knowledge  ComplexNumbers/BasicFunc/BasicFunc.exa3  ComplexNumbers/BasicFunc/BasicFunc.results  1  1
 COMPLEX_NUMBERS_Helmholtz  Main  ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.knowledge  ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.exa3  ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.results  1  1
+COMPLEX_NUMBERS_Helmholtz_MPI  Main  ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.knowledge  ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.exa3  ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.results  4  2
+
