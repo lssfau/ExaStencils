@@ -34,13 +34,13 @@ object Platform {
   var targetCompilerBinary : String = ""
 
   // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG", "ICC", "CLANG", "CRAY", "PGI"
-  var targetCompiler : String = "GCC"
+  var targetCompiler : String = "MSVC"
 
   // major version of the target compiler
-  var targetCompilerVersion : Int = 8
+  var targetCompilerVersion : Int = 0
 
   // minor version of the target compiler
-  var targetCompilerVersionMinor : Int = 2
+  var targetCompilerVersionMinor : Int = 0
 
   // target hw platform; may be "CPU" or "ARM"
   var targetHardware : String = "CPU"
