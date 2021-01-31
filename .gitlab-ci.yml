@@ -2569,7 +2569,7 @@ test:COMPLEX_NUMBERS_Helmholtz:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib COMPLEX_NUMBERS_Helmholtz ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.knowledge "ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.exa3" ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.results 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib COMPLEX_NUMBERS_Helmholtz ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.knowledge "ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.exa3" ; ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.exa4 ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.results Platform/random.platform output
 
 test:COMPLEX_NUMBERS_Helmholtz_MPI:
     stage: test
@@ -2589,5 +2589,5 @@ test:COMPLEX_NUMBERS_Helmholtz_MPI:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib COMPLEX_NUMBERS_Helmholtz_MPI ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.knowledge "ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.exa3" ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.results 4 2 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib COMPLEX_NUMBERS_Helmholtz_MPI ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.knowledge "ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.exa3" ; ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.exa4 ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.results Platform/random.platform output
 
