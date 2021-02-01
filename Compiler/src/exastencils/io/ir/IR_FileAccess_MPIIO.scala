@@ -14,7 +14,7 @@ case class IR_FileAccess_MPIIO(
     var filename : IR_Expression,
     var dataBuffers : ListBuffer[IR_DataBuffer],
     var writeAccess : Boolean,
-    var appendedMode : Boolean = false) extends IR_FileAccess("mpiio", filename, dataBuffers, writeAccess, appendedMode) {
+    var appendedMode : Boolean = false) extends IR_FileAccess("mpiio") {
 
   override def openMode : IR_VariableAccess = if (writeAccess) {
     val openOrCreate = if (appendedMode) "MPI_MODE_APPEND" else "MPI_MODE_CREATE"
@@ -32,7 +32,7 @@ case class IR_FileAccess_MPIIO(
   val info_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Info"), IR_FileAccess.declareVariable("info"), IR_VariableAccess("MPI_INFO_NULL", IR_UnknownDatatype)) //TODO handle hints
   val status_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Status"), IR_FileAccess.declareVariable("status"))
 
-  var declarations : ListBuffer[IR_VariableDeclaration] = dimensionalityDeclarations :+ fileHandle_decl :+ info_decl :+ status_decl
+  var declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(fileHandle_decl, info_decl, status_decl)
 
   // accesses
   val fileHandle = IR_VariableAccess(fileHandle_decl)
@@ -75,7 +75,7 @@ case class IR_FileAccess_MPIIO(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     // add decls
-    declarations.foreach(decl => statements += decl)
+    (dimensionalityDeclarations ++ declarations).foreach(decl => statements += decl)
 
     // open file
     statements += IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_open"),

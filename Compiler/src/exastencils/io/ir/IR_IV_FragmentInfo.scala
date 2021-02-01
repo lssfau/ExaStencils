@@ -63,7 +63,7 @@ object IR_IV_FragmentInfo {
           IR_VariableDeclaration(IR_IntegerDatatype, "curRank", 0),
           IR_Lower("curRank", MPI_IV_MpiRank),
           IR_PreIncrement("curRank"),
-          IR_Assignment(IR_IV_FragmentOffset(domainIdx), IR_ArrayAccess(IR_IV_NumValidFragsPerBlock(domainIdx), "curRank"), "+=")
+          IR_Assignment(IR_IV_FragmentOffset(domainIdx), IR_IV_NumValidFragsPerBlock(domainIdx).resolveAccess("curRank"), "+=")
         )
       }
     }
@@ -93,7 +93,7 @@ case class IR_IV_NumValidFragsPerBlock(var domain : IR_Expression, var fragmentI
       None
   }
 
-  def resolveAccess(index : IR_Expression = IR_VariableAccess("curRank", IR_IntegerDatatype)) : IR_Expression = IR_ArrayAccess(resolveName(), index)
+  def resolveAccess(index : IR_Expression) : IR_Expression = IR_ArrayAccess(this, index)
 }
 
 case class IR_IV_NumValidFrags(var domain : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(false, true, false, false, false)  {

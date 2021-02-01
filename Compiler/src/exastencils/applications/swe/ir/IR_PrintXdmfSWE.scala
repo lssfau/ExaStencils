@@ -144,14 +144,14 @@ case class IR_PrintXdmfSWE(
     super.dimFrags(global)
   } else {
     // binary fpp: only root writes the xdmf file -> requires the number of valid frags for each rank
-    IR_IV_NumValidFragsPerBlock(domainIndex).resolveAccess()
+    IR_IV_NumValidFragsPerBlock(domainIndex).resolveAccess(curRank)
   }
   // contains expressions that calculate the seek pointer for each DataItem (used for raw binary files)
   override def seekpOffsets(global : Boolean, constsIncluded : Boolean) : ListBuffer[IR_Expression] = if (!binaryFpp) {
     super.seekpOffsets(global, constsIncluded)
   } else {
     // binary fpp: root needs to know the actual number of fragments of each rank to compute the file offsets correctly
-    dataBuffers(constsIncluded).map(buf => if (global) buf.typicalByteSizeGlobal else buf.typicalByteSizeFrag * IR_IV_NumValidFragsPerBlock(domainIndex).resolveAccess())
+    dataBuffers(constsIncluded).map(buf => if (global) buf.typicalByteSizeGlobal else buf.typicalByteSizeFrag * IR_IV_NumValidFragsPerBlock(domainIndex).resolveAccess(curRank))
   }
 
   override def writeXdmfGeometry(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {

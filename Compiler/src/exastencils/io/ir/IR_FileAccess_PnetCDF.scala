@@ -13,12 +13,12 @@ import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_IsRootProc
 
 case class IR_FileAccess_PnetCDF(
-    var fileName : IR_Expression,
+    var filename : IR_Expression,
     var dataBuffers : ListBuffer[IR_DataBuffer],
     var bufferIsRecordVariable : Option[mutable.HashMap[Int, Boolean]],
     var writeAccess : Boolean,
     var appendedMode : Boolean = false // TODO: additional param "timeIndex" for appended mode?
-) extends IR_FileAccess("nc", fileName, dataBuffers, writeAccess, appendedMode) with IR_PnetCDF_API {
+) extends IR_FileAccess("nc") with IR_PnetCDF_API {
 
   /* hints:
     1. nc_header_align_size: Default size if 512 Byte. In case that an exisiting file is re-opened and more metadata is added, the file header expands and actual data is moved to higher file offsets
@@ -82,7 +82,7 @@ case class IR_FileAccess_PnetCDF(
       handleTimeDimension(timeValue = 0, bufIdx, dims = buf.imapKJI)) // prepend "0" since the memory layout doesn't change with the additional time dimension,
   }
 
-  var declarations : ListBuffer[IR_VariableDeclaration] = dimensionalityDeclarations :+ err_decl :+ ncFile_decl
+  var declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(err_decl, ncFile_decl) // file handle and error variable for debugging
 
   // declarations per databuffer
   declarations ++= varIdBuffer_decl
@@ -150,9 +150,7 @@ case class IR_FileAccess_PnetCDF(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     // add declarations
-    for (decl <- declarations) {
-      statements += decl
-    }
+    (dimensionalityDeclarations ++ declarations).foreach(decl => statements += decl)
 
     // create/open file
     // distinction of serial/parallel interfaces only made for these functions since their signature (serial <-> parallel) differs greatly

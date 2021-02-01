@@ -39,12 +39,7 @@ object IR_FileAccess {
   }
 }
 
-abstract class IR_FileAccess(
-    interfaceName : String,
-    filename : IR_Expression,
-    dataBuffers : ListBuffer[IR_DataBuffer],
-    writeAccess : Boolean,
-    appendedMode : Boolean = false) extends IR_Statement with IR_Expandable {
+abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with IR_Expandable {
 
   /* commonly used datatypes */
   val MPI_Offset : IR_SpecialDatatype = if (Knowledge.mpi_enabled) IR_SpecialDatatype("MPI_Offset") else IR_SpecialDatatype("size_t")
@@ -58,6 +53,12 @@ abstract class IR_FileAccess(
       IR_UnknownDatatype
   }
   def mpiDatatypeBuffer(buf : IR_DataBuffer) = IR_VariableAccess(buf.datatype.resolveBaseDatatype.prettyprint_mpi, IR_UnknownDatatype)
+
+  // to be implemented by all subclasses
+  def dataBuffers : ListBuffer[IR_DataBuffer]
+  def filename : IR_Expression
+  def writeAccess : Boolean
+  def appendedMode : Boolean
 
   /* helper function to get access indices for multidim. datatypes */
   def getIndicesMultiDimDatatypes(buf : IR_DataBuffer) : Array[IR_Index] = {
@@ -267,20 +268,6 @@ abstract class IR_FileAccess(
   def read(bufIdx : Int) : ListBuffer[IR_Statement]
   def write(bufIdx : Int) : ListBuffer[IR_Statement]
 
-  lazy val statementList : ListBuffer[IR_Statement] = {
-    var stmts : ListBuffer[IR_Statement] = ListBuffer()
-
-    stmts ++= createOrOpenFile()
-    stmts ++= setupAccess()
-    for (bufIdx <- dataBuffers.indices) {
-      stmts ++= fileAccess(bufIdx)
-    }
-    stmts ++= cleanupAccess()
-    stmts ++= closeFile()
-
-    stmts
-  }
-
   // add new headers, paths and libs
   def handleDependencies() : Unit = {
     for (inc <- includes) {
@@ -305,11 +292,19 @@ abstract class IR_FileAccess(
     handleDependencies()
     validateParams()
 
-    val ret = statementList
+    var stmts : ListBuffer[IR_Statement] = ListBuffer()
+
+    stmts ++= createOrOpenFile()
+    stmts ++= setupAccess()
+    for (bufIdx <- dataBuffers.indices) {
+      stmts ++= fileAccess(bufIdx)
+    }
+    stmts ++= cleanupAccess()
+    stmts ++= closeFile()
 
     // reset lookup tables
     IR_DataBuffer.resetDimensionalityMap()
 
-    ret
+    stmts
   }
 }

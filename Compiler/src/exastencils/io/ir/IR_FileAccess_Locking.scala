@@ -22,7 +22,7 @@ case class IR_FileAccess_Locking(
     var separator : IR_Expression,
     var condition : IR_Expression,
     var optPrintComponents : Option[ListBuffer[IR_Expression]],
-    var appendedMode : Boolean = false) extends IR_FileAccess("lock", filename, dataBuffers, writeAccess, appendedMode) {
+    var appendedMode : Boolean = false) extends IR_FileAccess("lock") {
 
   val appendedHack : Boolean = optPrintComponents.isDefined && Knowledge.experimental_generateParaviewFiles && !Knowledge.mpi_enabled
   var openFlags : String = if (writeAccess) { if (appendedMode || appendedHack) "std::ios::app" else "std::ios::trunc" } else "std::ios::in"

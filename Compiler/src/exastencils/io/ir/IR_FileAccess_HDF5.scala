@@ -14,10 +14,10 @@ import exastencils.logger.Logger
 import exastencils.util.ir.IR_Print
 
 case class IR_FileAccess_HDF5(
-    var fileName : IR_Expression,
+    var filename : IR_Expression,
     var dataBuffers : ListBuffer[IR_DataBuffer],
     var writeAccess : Boolean,
-    var appendedMode : Boolean = false) extends IR_FileAccess("hdf5", fileName, dataBuffers, writeAccess, appendedMode) with IR_Hdf5_API {
+    var appendedMode : Boolean = false) extends IR_FileAccess("hdf5") with IR_Hdf5_API {
 
   override def openMode : IR_VariableAccess = if (writeAccess) {
     if (appendedMode) IR_VariableAccess("H5F_ACC_RDWR", IR_UnknownDatatype) else IR_VariableAccess("H5F_ACC_TRUNC", IR_UnknownDatatype)
@@ -40,7 +40,14 @@ case class IR_FileAccess_HDF5(
   val emptyDataspace_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("emptyDataspace"))
   val dataset_decl : Array[IR_VariableDeclaration] = dataBuffers.map(buf => IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("dataset_" + buf.name))).toArray
   val info_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Info"), IR_FileAccess.declareVariable("info"), IR_VariableAccess("MPI_INFO_NULL", IR_UnknownDatatype)) //TODO handle hints
-  var declarations : ListBuffer[IR_VariableDeclaration] = dimensionalityDeclarations :+ err_decl :+ fileId_decl :+ propertyList_decl :+ transferList_decl
+
+  var declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(
+    err_decl, // error variable for debugging
+    fileId_decl, // file handle
+    propertyList_decl, // properties for file access
+    transferList_decl, // properties for transfer e.g. I/O mode
+
+  )
 
   // declarations per databuffer
   declarations ++= dataset_decl
@@ -72,14 +79,8 @@ case class IR_FileAccess_HDF5(
 
   var dataspaces : mutable.HashMap[String, IR_VariableAccess] = mutable.HashMap()
   def dataspaceKey : Array[String] = dataBuffers.indices.map(bufIdx => if (writeAccess) globalDims(bufIdx).name else globalDims(bufIdx).name + bufIdx).toArray
-  def addDataspace(bufIdx : Int, acc : IR_VariableAccess) : Option[IR_VariableAccess] = {
-    Logger.dbg(dataspaceKey(bufIdx))
-    dataspaces.put(dataspaceKey(bufIdx), acc)
-  }
-  def getDataspace(bufIdx : Int) : Option[IR_VariableAccess] = {
-    Logger.dbg(dataspaceKey(bufIdx))
-    dataspaces.get(dataspaceKey(bufIdx))
-  }
+  def addDataspace(bufIdx : Int, acc : IR_VariableAccess) : Option[IR_VariableAccess] = dataspaces.put(dataspaceKey(bufIdx), acc)
+  def getDataspace(bufIdx : Int) : Option[IR_VariableAccess] = dataspaces.get(dataspaceKey(bufIdx))
 
   val info = IR_VariableAccess(info_decl)
   val defaultPropertyList = IR_VariableAccess("H5P_DEFAULT", IR_UnknownDatatype)
@@ -129,7 +130,7 @@ case class IR_FileAccess_HDF5(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     // add decls
-    declarations.foreach(decl => statements += decl)
+    (dimensionalityDeclarations ++ declarations).foreach(decl => statements += decl)
 
     // setup property list for file creation/opening
     statements ++= H5Pcreate(propertyList, IR_VariableAccess("H5P_FILE_ACCESS", IR_UnknownDatatype))

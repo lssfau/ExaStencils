@@ -68,11 +68,8 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   val supportedInterfaces : ListBuffer[String] = ListBuffer("mpiio", "fpp", "hdf5")
 
   def ioInterface : String = ioMethod match {
-    case s : IR_StringConstant if supportedInterfaces.contains(s.value) => if(s.value != "fpp" && binaryFpp) {
-      Logger.error("Parameter \"binFpp\" set with I/O interface=" + s.value + ". Should be \"fpp\"")
-    } else {
+    case s : IR_StringConstant if supportedInterfaces.contains(s.value) =>
       s.value
-    }
     case _ =>
       Logger.error("Wrong I/O interface passed to \"printXdmf\". Options are: " + supportedInterfaces.mkString("\"", "\", \"", "\""))
   }
@@ -294,13 +291,17 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   // builds filename for "heavy data" and writes via corresponding I/O interface
   def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
     if (binaryFpp) {
-      IR_VariableDeclaration(filenamePieceFpp) +:
-        buildFilenamePiece(noPath = false, MPI_IV_MpiRank) +:
-        ioHandler(constsIncluded, filenamePieceFpp).statementList
+      ListBuffer[IR_Statement](
+        IR_VariableDeclaration(filenamePieceFpp),
+        buildFilenamePiece(noPath = false, MPI_IV_MpiRank),
+        ioHandler(constsIncluded, filenamePieceFpp)
+      )
     } else {
       val filenameData = IR_VariableAccess(IR_FileAccess.declareVariable("filenameData"), IR_StringDatatype)
-      IR_VariableDeclaration(filenameData, buildFilenameData(noPath = false)) +:
-        ioHandler(constsIncluded, filenameData).statementList
+      ListBuffer[IR_Statement](
+        IR_VariableDeclaration(filenameData, buildFilenameData(noPath = false)),
+        ioHandler(constsIncluded, filenameData)
+      )
     }
   }
 
@@ -390,10 +391,6 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
         case _ =>
       }
     }
-
-    // header for I/O interfaces
-    ioHandler(constsIncluded = false, filename).validateParams()
-    ioHandler(constsIncluded = false, filename).handleDependencies()
 
     if (!IR_GlobalCollection.get.variables.contains(endianness)) {
       if (!IR_GlobalCollection.get.externalDependencies.contains("arpa/inet.h"))

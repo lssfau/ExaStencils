@@ -102,16 +102,12 @@ case class IR_PrintSionSWE(
     if (constsIncluded) constants ++ nonConstFields else nonConstFields.to[ListBuffer]
   }
 
-  def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
-    ioHandler(constsIncluded).statementList
-  }
+  def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = ListBuffer(ioHandler(constsIncluded))
 
   def ioHandler(constsIncluded : Boolean) = IR_FileAccess_SionLib(filename, dataBuffers(constsIncluded), writeAccess = true, interleavedAccHighDimDt = false, condition = true)
 
   override def expand() : OutputType ={
    var statements : ListBuffer[IR_Statement] = ListBuffer()
-
-    ioHandler(false).handleDependencies()
 
     // init temp buffers
     if (gridPositionsCopied)

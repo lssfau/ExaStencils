@@ -28,7 +28,6 @@ import exastencils.domain.ir.IR_IV_FragmentIndex
 import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid.ir.IR_Localization
-import exastencils.io.ir.IR_FileAccess.declareVariable
 import exastencils.logger.Logger
 
 object IR_DataBuffer {
@@ -57,7 +56,7 @@ object IR_DataBuffer {
     }
     dimensionalityMap.getOrElseUpdate(
       lookup,
-      IR_VariableDeclaration(dt, declareVariable(declName), if(dims.isDefined) Some(IR_InitializerList(castDims : _*)) else None)) // dims already specified in KJI order
+      IR_VariableDeclaration(dt, IR_FileAccess.declareVariable(declName), if(dims.isDefined) Some(IR_InitializerList(castDims : _*)) else None)) // dims already specified in KJI order
   }
   def resetDimensionalityMap() : Unit = dimensionalityMap.clear()
 

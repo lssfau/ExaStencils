@@ -20,7 +20,7 @@ case class IR_FileAccess_SionLib(
     var writeAccess : Boolean,
     var condition: IR_Expression,
     var interleavedAccHighDimDt : Boolean,
-    var appendedMode : Boolean = false) extends IR_FileAccess("sion", filename, dataBuffers, writeAccess, appendedMode) {
+    var appendedMode : Boolean = false) extends IR_FileAccess("sion") {
 
   // datatypes
   val sion_int64 = IR_SpecialDatatype("sion_int64")

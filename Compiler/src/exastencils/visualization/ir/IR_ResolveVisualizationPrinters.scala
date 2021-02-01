@@ -123,33 +123,71 @@ object IR_ResolveVisualizationPrinters extends DefaultStrategy("IR_ResolveVisual
           Logger.error("Malformed call to printVtkNNF; usage: printVtkNNF ( \"filename\", level )")
       }
 
-    // xdmf printers
-    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfNNF", _), args)) =>
+    // xdmf + mpiio
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfNNF_mpiio", _), args)) =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant)                              =>
-          IR_PrintXdmfNNF(s, i.toInt, ioInterface, binaryFpp = false, getResolveId)
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant, binFpp : IR_BooleanConstant) =>
-          IR_PrintXdmfNNF(s, i.toInt, ioInterface, binFpp.value, getResolveId)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) =>
+          IR_PrintXdmfNNF(s, i.toInt, IR_StringConstant("mpiio"), binaryFpp = false, getResolveId)
         case _                                                                                                                  =>
-          Logger.error("Malformed call to printXdmfNNF; usage: printXdmfNNF ( \"filename\", level, \"ioInterface\", binFpp = false )")
+          Logger.error("Malformed call to printXdmfNNF_mpiio; usage: printXdmfNNF_mpiio ( \"filename\", level ).")
       }
-    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfNS", _), args))  =>
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfNS_mpiio", _), args))  =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant)                              =>
-          IR_PrintXdmfNS(s, i.toInt, ioInterface, binaryFpp = false, getResolveId)
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant, binFpp : IR_BooleanConstant) =>
-          IR_PrintXdmfNS(s, i.toInt, ioInterface, binFpp.value, getResolveId)
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) =>
+          IR_PrintXdmfNS(s, i.toInt, IR_StringConstant("mpiio"), binaryFpp = false, getResolveId)
         case _                                                                                                                  =>
-          Logger.error("Malformed call to printXdmfNS; usage: printXdmfNS ( \"filename\", level, \"ioInterface\", binFpp = false )")
+          Logger.error("Malformed call to printXdmfNS_mpiio; usage: printXdmfNS_mpiio ( \"filename\", level ).")
       }
-    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfSWE", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfSWE_mpiio", _), args)) =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant, fields @ _*)                              =>
-          IR_PrintXdmfSWE(s, i.toInt, ioInterface, binaryFpp = false, getResolveId, extractNodalFields(fields), extractDiscFields(fields))
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), ioInterface : IR_StringConstant, binFpp : IR_BooleanConstant, fields @ _*) =>
-          IR_PrintXdmfSWE(s, i.toInt, ioInterface, binFpp.value, getResolveId, extractNodalFields(fields), extractDiscFields(fields))
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), fields @ _*) =>
+          IR_PrintXdmfSWE(s, i.toInt, IR_StringConstant("mpiio"), binaryFpp = false, getResolveId, extractNodalFields(fields), extractDiscFields(fields))
         case _                                                                                                                               =>
-          Logger.error("Malformed call to printXdmfSWE; usage: printXdmfSWE ( \"filename\", level, \"ioInterface\", binFpp = false, fields : IR_FieldAccess*)")
+          Logger.error("Malformed call to printXdmfSWE_mpiio; usage: printXdmfSWE_mpiio ( \"filename\", level, fields : IR_FieldAccess* ).")
+      }
+    // xdmf + hdf5
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfNNF_hdf5", _), args)) =>
+      args match {
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) =>
+          IR_PrintXdmfNNF(s, i.toInt, IR_StringConstant("hdf5"), binaryFpp = false, getResolveId)
+        case _                                                                                                                  =>
+          Logger.error("Malformed call to printXdmfNNF_hdf5; usage: printXdmfNNF_hdf5 ( \"filename\", level ).")
+      }
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfNS_hdf5", _), args))  =>
+      args match {
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) =>
+          IR_PrintXdmfNS(s, i.toInt, IR_StringConstant("hdf5"), binaryFpp = false, getResolveId)
+        case _                                                                                                                  =>
+          Logger.error("Malformed call to printXdmfNS_hdf5; usage: printXdmfNS_hdf5 ( \"filename\", level ).")
+      }
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfSWE_hdf5", _), args)) =>
+      args match {
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), fields @ _*) =>
+          IR_PrintXdmfSWE(s, i.toInt, IR_StringConstant("hdf5"), binaryFpp = false, getResolveId, extractNodalFields(fields), extractDiscFields(fields))
+        case _                                                                                                                               =>
+          Logger.error("Malformed call to printXdmfSWE_hdf5; usage: printXdmfSWE_hdf5 ( \"filename\", level, fields : IR_FieldAccess* ).")
+      }
+    // xdmf + file-per-process (additional parameter "binaryFpp": binary or ascii)
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfNNF_fpp", _), args)) =>
+      args match {
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), useBinary : IR_BooleanConstant) =>
+          IR_PrintXdmfNNF(s, i.toInt, IR_StringConstant("fpp"), binaryFpp = useBinary.value, getResolveId)
+        case _                                                                                                                  =>
+          Logger.error("Malformed call to printXdmfNNF_fpp; usage: printXdmfNNF_fpp ( \"filename\", level, useBinary ).")
+      }
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfNS_fpp", _), args))  =>
+      args match {
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), useBinary : IR_BooleanConstant) =>
+          IR_PrintXdmfNS(s, i.toInt, IR_StringConstant("fpp"), binaryFpp = useBinary.value, getResolveId)
+        case _                                                                                                                  =>
+          Logger.error("Malformed call to printXdmfNS_fpp; usage: printXdmfNS_fpp ( \"filename\", level, useBinary).")
+      }
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printXdmfSWE_fpp", _), args)) =>
+      args match {
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), useBinary : IR_BooleanConstant, fields @ _*) =>
+          IR_PrintXdmfSWE(s, i.toInt, IR_StringConstant("fpp"), binaryFpp = useBinary.value, getResolveId, extractNodalFields(fields), extractDiscFields(fields))
+        case _                                                                                                                               =>
+          Logger.error("Malformed call to printXdmfSWE_fpp; usage: printXdmfSWE_fpp ( \"filename\", level, useBinary, fields : IR_FieldAccess* ).")
       }
 
     // exodus printers
