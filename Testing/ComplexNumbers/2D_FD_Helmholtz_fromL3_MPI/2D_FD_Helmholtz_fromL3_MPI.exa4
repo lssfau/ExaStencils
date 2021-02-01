@@ -1,143 +1,1120 @@
+// domain declarations
+
+Domain global< [0.0, 0.0] to [1.0, 1.0] >
+
+// field layout declarations
+
+Layout defLayoutFor_ComplexReal_on_Node< Complex<Real>, Node >@(2) {
+	duplicateLayers = [1, 1]
+	ghostLayers = [0, 0]
+}
+
+Layout defLayoutFor_ComplexReal_on_Node< Complex<Real>, Node >@(3) {
+	duplicateLayers = [1, 1]
+	ghostLayers = [0, 0]
+}
+
+Layout defLayoutFor_ComplexReal_on_Node< Complex<Real>, Node >@(4) {
+	duplicateLayers = [1, 1]
+	ghostLayers = [0, 0]
+}
+
+Layout defLayoutFor_ComplexReal_on_Node< Complex<Real>, Node >@(5) {
+	duplicateLayers = [1, 1]
+	ghostLayers = [0, 0]
+}
+
+Layout defLayoutFor_ComplexReal_on_Node< Complex<Real>, Node >@(6) {
+	duplicateLayers = [1, 1]
+	ghostLayers = [0, 0]
+}
+
+Layout defLayoutFor_ComplexReal_on_Node__1_1__1_1< Complex<Real>, Node >@(6) {
+	duplicateLayers = [1, 1] with communication
+	ghostLayers = [1, 1] with communication
+}
+
+Layout defLayoutFor_ComplexReal_on_Node__1_1__1_1< Complex<Real>, Node >@(2) {
+	duplicateLayers = [1, 1] with communication
+	ghostLayers = [1, 1] with communication
+}
+
+Layout defLayoutFor_ComplexReal_on_Node__1_1__1_1< Complex<Real>, Node >@(3) {
+	duplicateLayers = [1, 1] with communication
+	ghostLayers = [1, 1] with communication
+}
+
+Layout defLayoutFor_ComplexReal_on_Node__1_1__1_1< Complex<Real>, Node >@(4) {
+	duplicateLayers = [1, 1] with communication
+	ghostLayers = [1, 1] with communication
+}
+
+Layout defLayoutFor_ComplexReal_on_Node__1_1__1_1< Complex<Real>, Node >@(5) {
+	duplicateLayers = [1, 1] with communication
+	ghostLayers = [1, 1] with communication
+}
+
+Layout defLayoutFor_ComplexReal_on_Node__0_0__0_0< Complex<Real>, Node >@(3) {
+	duplicateLayers = [1, 1] with communication
+	ghostLayers = [0, 0]
+}
+
+Layout defLayoutFor_ComplexReal_on_Node__0_0__0_0< Complex<Real>, Node >@(4) {
+	duplicateLayers = [1, 1] with communication
+	ghostLayers = [0, 0]
+}
+
+Layout defLayoutFor_ComplexReal_on_Node__0_0__0_0< Complex<Real>, Node >@(5) {
+	duplicateLayers = [1, 1] with communication
+	ghostLayers = [0, 0]
+}
+
+Layout defLayoutFor_ComplexReal_on_Node__0_0__0_0< Complex<Real>, Node >@(6) {
+	duplicateLayers = [1, 1] with communication
+	ghostLayers = [0, 0]
+}
+
+Layout defLayoutFor_ComplexReal_on_Node__0_0__0_0< Complex<Real>, Node >@(2) {
+	duplicateLayers = [1, 1] with communication
+	ghostLayers = [0, 0]
+}
+
+// field declarations
+
+Field Solution< global, defLayoutFor_ComplexReal_on_Node__1_1__1_1, applyBC_Solution@6 (  ) >@6
+
+Field u< global, defLayoutFor_ComplexReal_on_Node__1_1__1_1, applyBC_u (  ) >@2
+
+Field u< global, defLayoutFor_ComplexReal_on_Node__1_1__1_1, applyBC_u (  ) >@3
+
+Field u< global, defLayoutFor_ComplexReal_on_Node__1_1__1_1, applyBC_u (  ) >@4
+
+Field u< global, defLayoutFor_ComplexReal_on_Node__1_1__1_1, applyBC_u (  ) >@5
+
+Field u< global, defLayoutFor_ComplexReal_on_Node__1_1__1_1, applyBC_u (  ) >@6
+
+Field gen_error_u< global, defLayoutFor_ComplexReal_on_Node__1_1__1_1, applyBC_gen_error_u (  ) >@2
+
+Field gen_error_u< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, applyBC_gen_error_u (  ) >@3
+
+Field gen_error_u< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, applyBC_gen_error_u (  ) >@4
+
+Field gen_error_u< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, applyBC_gen_error_u (  ) >@5
+
+Field gen_error_u< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, applyBC_gen_error_u (  ) >@6
+
+Field f< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@2
+
+Field f< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@3
+
+Field f< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@4
+
+Field f< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@5
+
+Field f< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@6
+
+Field gen_rhs_u< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@2
+
+Field gen_rhs_u< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@3
+
+Field gen_rhs_u< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@4
+
+Field gen_rhs_u< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@5
+
+Field gen_rhs_u< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@6
+
+Field Residual< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@6
+
+Field res< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, applyBC_res (  ) >@2
+
+Field res< global, defLayoutFor_ComplexReal_on_Node__1_1__1_1, applyBC_res (  ) >@3
+
+Field res< global, defLayoutFor_ComplexReal_on_Node__1_1__1_1, applyBC_res (  ) >@4
+
+Field res< global, defLayoutFor_ComplexReal_on_Node__1_1__1_1, applyBC_res (  ) >@5
+
+Field res< global, defLayoutFor_ComplexReal_on_Node__1_1__1_1, applyBC_res (  ) >@6
+
+Field gen_residual_u< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, applyBC_gen_residual_u (  ) >@2
+
+Field gen_residual_u< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, applyBC_gen_residual_u (  ) >@3
+
+Field gen_residual_u< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, applyBC_gen_residual_u (  ) >@4
+
+Field gen_residual_u< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, applyBC_gen_residual_u (  ) >@5
+
+Field gen_residual_u< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, applyBC_gen_residual_u (  ) >@6
+
+Field p< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@6
+
+Field ap< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@6
+
+Field s< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@6
+
+Field t< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@6
+
+Field h< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@6
+
+Field resHat< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@6
+
+Field nu< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@2
+
+Field p< global, defLayoutFor_ComplexReal_on_Node__1_1__1_1, applyBC_p@2 (  ) >@2
+
+Field h< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@2
+
+Field s< global, defLayoutFor_ComplexReal_on_Node__1_1__1_1, applyBC_s@2 (  ) >@2
+
+Field t< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@2
+
+Field resHat< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@2
+
+Field RHS< global, defLayoutFor_ComplexReal_on_Node__0_0__0_0, None >@6
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+Stencil Restriction_u@2{
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.0625
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( 2.0 * i1 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.0625
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.125
+	[i0, i1] from [( 2.0 * i0 ), ( 2.0 * i1 )] with 0.25
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.0625
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.0625
+}
+
+Stencil Restriction_u@3{
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.0625
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( 2.0 * i1 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.0625
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.125
+	[i0, i1] from [( 2.0 * i0 ), ( 2.0 * i1 )] with 0.25
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.0625
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.0625
+}
+
+Stencil Restriction_u@4{
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.0625
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( 2.0 * i1 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.0625
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.125
+	[i0, i1] from [( 2.0 * i0 ), ( 2.0 * i1 )] with 0.25
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.0625
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.0625
+}
+
+Stencil Restriction_u@5{
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.0625
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( 2.0 * i1 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.0625
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.125
+	[i0, i1] from [( 2.0 * i0 ), ( 2.0 * i1 )] with 0.25
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.0625
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.0625
+}
+
+Stencil Restriction_u@6{
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.0625
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( 2.0 * i1 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) - 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.0625
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.125
+	[i0, i1] from [( 2.0 * i0 ), ( 2.0 * i1 )] with 0.25
+	[i0, i1] from [( 2.0 * i0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) - 1.0 )] with 0.0625
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( 2.0 * i1 )] with 0.125
+	[i0, i1] from [( ( 2.0 * i0 ) + 1.0 ), ( ( 2.0 * i1 ) + 1.0 )] with 0.0625
+}
+
+Stencil Prolongation_u@2{
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) )] with 0.25
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * i1 )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) )] with 0.25
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * ( i1 + 1.0 ) )] with 0.5
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * i1 )] with 1
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * ( i1 - 1.0 ) )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) )] with 0.25
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * i1 )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) )] with 0.25
+}
+
+Stencil Prolongation_u@3{
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) )] with 0.25
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * i1 )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) )] with 0.25
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * ( i1 + 1.0 ) )] with 0.5
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * i1 )] with 1
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * ( i1 - 1.0 ) )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) )] with 0.25
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * i1 )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) )] with 0.25
+}
+
+Stencil Prolongation_u@4{
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) )] with 0.25
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * i1 )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) )] with 0.25
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * ( i1 + 1.0 ) )] with 0.5
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * i1 )] with 1
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * ( i1 - 1.0 ) )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) )] with 0.25
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * i1 )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) )] with 0.25
+}
+
+Stencil Prolongation_u@5{
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) )] with 0.25
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * i1 )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) )] with 0.25
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * ( i1 + 1.0 ) )] with 0.5
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * i1 )] with 1
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * ( i1 - 1.0 ) )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) )] with 0.25
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * i1 )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) )] with 0.25
+}
+
+Stencil Prolongation_u@6{
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) )] with 0.25
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * i1 )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 + 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) )] with 0.25
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * ( i1 + 1.0 ) )] with 0.5
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * i1 )] with 1
+	[i0, i1] from [( 0.5 * i0 ), ( 0.5 * ( i1 - 1.0 ) )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 + 1.0 ) )] with 0.25
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * i1 )] with 0.5
+	[i0, i1] from [( 0.5 * ( i0 - 1.0 ) ), ( 0.5 * ( i1 - 1.0 ) )] with 0.25
+}
+
+Stencil A@2{
+	[i0, i1] from [i0, i1] with -6144.0
+	[i0, i1] from [( i0 - 1.0 ), i1] with -64.0
+	[i0, i1] from [( i0 + 1.0 ), i1] with -64.0
+	[i0, i1] from [i0, ( i1 - 1.0 )] with -64.0
+	[i0, i1] from [i0, ( i1 + 1.0 )] with -64.0
+}
+
+Stencil A@3{
+	[i0, i1] from [i0, i1] with -5376.0
+	[i0, i1] from [( i0 - 1.0 ), i1] with -256.0
+	[i0, i1] from [( i0 + 1.0 ), i1] with -256.0
+	[i0, i1] from [i0, ( i1 - 1.0 )] with -256.0
+	[i0, i1] from [i0, ( i1 + 1.0 )] with -256.0
+}
+
+Stencil A@4{
+	[i0, i1] from [i0, i1] with -2304.0
+	[i0, i1] from [( i0 - 1.0 ), i1] with -1024.0
+	[i0, i1] from [( i0 + 1.0 ), i1] with -1024.0
+	[i0, i1] from [i0, ( i1 - 1.0 )] with -1024.0
+	[i0, i1] from [i0, ( i1 + 1.0 )] with -1024.0
+}
+
+Stencil A@5{
+	[i0, i1] from [i0, i1] with 9984.0
+	[i0, i1] from [( i0 - 1.0 ), i1] with -4096.0
+	[i0, i1] from [( i0 + 1.0 ), i1] with -4096.0
+	[i0, i1] from [i0, ( i1 - 1.0 )] with -4096.0
+	[i0, i1] from [i0, ( i1 + 1.0 )] with -4096.0
+}
+
+Stencil A@6{
+	[i0, i1] from [i0, i1] with 59136.0
+	[i0, i1] from [( i0 - 1.0 ), i1] with -16384.0
+	[i0, i1] from [( i0 + 1.0 ), i1] with -16384.0
+	[i0, i1] from [i0, ( i1 - 1.0 )] with -16384.0
+	[i0, i1] from [i0, ( i1 + 1.0 )] with -16384.0
+}
+
+Stencil M@2{
+	[i0, i1] from [i0, i1] with ( 256.0 - ( 6400.0 * shift ) )
+	[i0, i1] from [( i0 - 1.0 ), i1] with -64.0
+	[i0, i1] from [( i0 + 1.0 ), i1] with -64.0
+	[i0, i1] from [i0, ( i1 - 1.0 )] with -64.0
+	[i0, i1] from [i0, ( i1 + 1.0 )] with -64.0
+}
+
+Stencil M@3{
+	[i0, i1] from [i0, i1] with ( 1024.0 - ( 6400.0 * shift ) )
+	[i0, i1] from [( i0 - 1.0 ), i1] with -256.0
+	[i0, i1] from [( i0 + 1.0 ), i1] with -256.0
+	[i0, i1] from [i0, ( i1 - 1.0 )] with -256.0
+	[i0, i1] from [i0, ( i1 + 1.0 )] with -256.0
+}
+
+Stencil M@4{
+	[i0, i1] from [i0, i1] with ( 4096.0 - ( 6400.0 * shift ) )
+	[i0, i1] from [( i0 - 1.0 ), i1] with -1024.0
+	[i0, i1] from [( i0 + 1.0 ), i1] with -1024.0
+	[i0, i1] from [i0, ( i1 - 1.0 )] with -1024.0
+	[i0, i1] from [i0, ( i1 + 1.0 )] with -1024.0
+}
+
+Stencil M@5{
+	[i0, i1] from [i0, i1] with ( 16384.0 - ( 6400.0 * shift ) )
+	[i0, i1] from [( i0 - 1.0 ), i1] with -4096.0
+	[i0, i1] from [( i0 + 1.0 ), i1] with -4096.0
+	[i0, i1] from [i0, ( i1 - 1.0 )] with -4096.0
+	[i0, i1] from [i0, ( i1 + 1.0 )] with -4096.0
+}
+
+Stencil M@6{
+	[i0, i1] from [i0, i1] with ( 65536.0 - ( 6400.0 * shift ) )
+	[i0, i1] from [( i0 - 1.0 ), i1] with -16384.0
+	[i0, i1] from [( i0 + 1.0 ), i1] with -16384.0
+	[i0, i1] from [i0, ( i1 - 1.0 )] with -16384.0
+	[i0, i1] from [i0, ( i1 + 1.0 )] with -16384.0
+}
+
+// stencil field declarations
+
+// equations declarations
+
+Equation PrecEq@2 {
+	( M@2 * u@2 ) == f@2
+}
+
+Equation PrecEq@3 {
+	( M@3 * u@3 ) == f@3
+}
+
+Equation PrecEq@4 {
+	( M@4 * u@4 ) == f@4
+}
+
+Equation PrecEq@5 {
+	( M@5 * u@5 ) == f@5
+}
+
+Equation PrecEq@6 {
+	( M@6 * u@6 ) == f@6
+}
+
 Function Application {
-  // init
-  startTimer ( "setup" )
-  initGlobals ( )
-  initDomain ( )
-  initFieldsWithZero ( )
-  initGeometry ( )
-  InitFields ( )
-  apply bc to Solution@finest
-  stopTimer ( "setup" )
-
-  // solve
-  startTimer ( "solve" )
-  Solve@finest ( )
-  stopTimer ( "solve" )
-
-  // de-init
- 
-  destroyGlobals ( )
+	startTimer ( "setup" )
+	initGlobals (  )
+	initDomain (  )
+	initFieldsWithZero (  )
+	initGeometry (  )
+	InitFields (  )
+	apply bc to Solution@finest
+	stopTimer ( "setup" )
+	startTimer ( "solve" )
+	Solve@finest (  )
+	stopTimer ( "solve" )
+	destroyGlobals (  )
 }
 
-// Dirichlet BC on the top and bottom, Robin BC on the left and right
-Function applyBC_Solution@finest ( ) : Unit {
-
-  loop over Solution only dup [-1, 0] on boundary {
-    Solution@[0, 0] = Solution@[1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
-    //Solution@[0, 0] = Solution@[1, 0]
-  }
-  loop over Solution only dup [1, 0] on boundary {
-    Solution@[0, 0] = Solution@[-1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
-    //Solution@[0, 0] = Solution@[-1, 0]
-  }
-  loop over Solution only dup [0,  1] on boundary {
-    Solution@[0, 0] = 0.0 
-  }
-  loop over Solution only dup [0, -1] on boundary {
-    Solution@[0, 0] = 0.0
-  }
+Function applyBC_Solution@finest {
+	loop over Solution only dup [-1, 0] on boundary {
+		Solution@[0, 0] = ( Solution@[1, 0] / ( 1.0 - ( ( (0.0+1.0j) * k ) * vf_gridWidth_x ) ) )
+	}
+	loop over Solution only dup [1, 0] on boundary {
+		Solution@[0, 0] = ( Solution@[-1, 0] / ( 1.0 - ( ( (0.0+1.0j) * k ) * vf_gridWidth_x ) ) )
+	}
+	loop over Solution only dup [0, 1] on boundary {
+		Solution@[0, 0] = 0.0
+	}
+	loop over Solution only dup [0, -1] on boundary {
+		Solution@[0, 0] = 0.0
+	}
 }
 
-Function applyBC_u@all ( ) : Unit {
-
-  loop over u only dup [-1, 0] on boundary {
-    u@[0, 0] = u@[1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
-    //u@[0, 0] = u@[1, 0]
-  }
-  loop over u only dup [1, 0] on boundary {
-    u@[0, 0] = u@[-1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
-    //u@[0, 0] = u@[-1, 0]
-  }
-  loop over u only dup [0,  1] on boundary {
-    u@[0, 0] = 0.0
-  }
-  loop over u only dup [0, -1] on boundary {
-    u@[0, 0] = 0.0
-  }
+Function applyBC_u@all {
+	loop over u only dup [-1, 0] on boundary {
+		u@[0, 0] = ( u@[1, 0] / ( 1.0 - ( ( (0.0+1.0j) * k ) * vf_gridWidth_x ) ) )
+	}
+	loop over u only dup [1, 0] on boundary {
+		u@[0, 0] = ( u@[-1, 0] / ( 1.0 - ( ( (0.0+1.0j) * k ) * vf_gridWidth_x ) ) )
+	}
+	loop over u only dup [0, 1] on boundary {
+		u@[0, 0] = 0.0
+	}
+	loop over u only dup [0, -1] on boundary {
+		u@[0, 0] = 0.0
+	}
 }
 
-Function applyBC_res@all ( ) : Unit {
-
-  loop over res only dup [-1, 0] on boundary {
-    res@[0, 0] = res@[1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
-  }
-  loop over res only dup [1, 0] on boundary {
-    res@[0, 0] = res@[-1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
-  }
-  loop over res only dup [0,  1] on boundary {
-    res@[0, 0] = 0.0
-  }
-  loop over res only dup [0, -1] on boundary {
-    res@[0, 0] = 0.0
-  }
+Function applyBC_res@all {
+	loop over res only dup [-1, 0] on boundary {
+		res@[0, 0] = ( res@[1, 0] / ( 1.0 - ( ( (0.0+1.0j) * k ) * vf_gridWidth_x ) ) )
+	}
+	loop over res only dup [1, 0] on boundary {
+		res@[0, 0] = ( res@[-1, 0] / ( 1.0 - ( ( (0.0+1.0j) * k ) * vf_gridWidth_x ) ) )
+	}
+	loop over res only dup [0, 1] on boundary {
+		res@[0, 0] = 0.0
+	}
+	loop over res only dup [0, -1] on boundary {
+		res@[0, 0] = 0.0
+	}
 }
 
-Function applyBC_gen_residual_u@all ( ) : Unit {
-
-  loop over gen_residual_u only dup [-1, 0] on boundary {
-    gen_residual_u@[0, 0] = gen_residual_u@[1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
-  }
-  loop over gen_residual_u only dup [1, 0] on boundary {
-    gen_residual_u@[0, 0] = gen_residual_u@[-1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
-
-  }
-  loop over gen_residual_u only dup [0,  1] on boundary {
-    gen_residual_u@[0, 0] = 0.0
-  }
-  loop over gen_residual_u only dup [0, -1] on boundary {
-    gen_residual_u@[0, 0] = 0.0
-  }
+Function applyBC_gen_residual_u@all {
+	loop over gen_residual_u only dup [-1, 0] on boundary {
+		gen_residual_u@[0, 0] = ( gen_residual_u@[1, 0] / ( 1.0 - ( ( (0.0+1.0j) * k ) * vf_gridWidth_x ) ) )
+	}
+	loop over gen_residual_u only dup [1, 0] on boundary {
+		gen_residual_u@[0, 0] = ( gen_residual_u@[-1, 0] / ( 1.0 - ( ( (0.0+1.0j) * k ) * vf_gridWidth_x ) ) )
+	}
+	loop over gen_residual_u only dup [0, 1] on boundary {
+		gen_residual_u@[0, 0] = 0.0
+	}
+	loop over gen_residual_u only dup [0, -1] on boundary {
+		gen_residual_u@[0, 0] = 0.0
+	}
 }
 
-Function applyBC_gen_error_u@all ( ) : Unit {
-
-  loop over gen_error_u only dup [-1, 0] on boundary {
-    gen_error_u@[0, 0] = gen_error_u@[1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
-  }
-  loop over gen_error_u only dup [1, 0] on boundary {
-    gen_error_u@[0, 0] = gen_error_u@[-1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
-  }
-  loop over gen_error_u only dup [0,  1] on boundary {
-    gen_error_u@[0, 0] = 0.0
-  }
-  loop over gen_error_u only dup [0, -1] on boundary {
-    gen_error_u@[0, 0] = 0.0
-  }
+Function applyBC_gen_error_u@all {
+	loop over gen_error_u only dup [-1, 0] on boundary {
+		gen_error_u@[0, 0] = ( gen_error_u@[1, 0] / ( 1.0 - ( ( (0.0+1.0j) * k ) * vf_gridWidth_x ) ) )
+	}
+	loop over gen_error_u only dup [1, 0] on boundary {
+		gen_error_u@[0, 0] = ( gen_error_u@[-1, 0] / ( 1.0 - ( ( (0.0+1.0j) * k ) * vf_gridWidth_x ) ) )
+	}
+	loop over gen_error_u only dup [0, 1] on boundary {
+		gen_error_u@[0, 0] = 0.0
+	}
+	loop over gen_error_u only dup [0, -1] on boundary {
+		gen_error_u@[0, 0] = 0.0
+	}
 }
 
-//Function applyBC_p@(finest and coarsest) ( ) : Unit {
-Function applyBC_p@coarsest ( ) : Unit {
-  loop over p only dup [-1, 0] on boundary {
-    p@[0, 0] = p@[1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
-    //p@[0, 0] = p@[1, 0]
-  }
-  loop over p only dup [1, 0] on boundary {
-    p@[0, 0] = p@[-1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
-    //p@[0, 0] = p@[-1, 0]
-  }
-  loop over p only dup [0,  1] on boundary {
-    p@[0, 0] = 0.0 
-  }
-  loop over p only dup [0, -1] on boundary {
-    p@[0, 0] = 0.0
-  }
+Function applyBC_p@coarsest {
+	loop over p only dup [-1, 0] on boundary {
+		p@[0, 0] = ( p@[1, 0] / ( 1.0 - ( ( (0.0+1.0j) * k ) * vf_gridWidth_x ) ) )
+	}
+	loop over p only dup [1, 0] on boundary {
+		p@[0, 0] = ( p@[-1, 0] / ( 1.0 - ( ( (0.0+1.0j) * k ) * vf_gridWidth_x ) ) )
+	}
+	loop over p only dup [0, 1] on boundary {
+		p@[0, 0] = 0.0
+	}
+	loop over p only dup [0, -1] on boundary {
+		p@[0, 0] = 0.0
+	}
 }
 
-
-//Function applyBC_s@(finest and coarsest) ( ) : Unit {
-Function applyBC_s@coarsest ( ) : Unit {
-  loop over s only dup [-1, 0] on boundary {
-    s@[0, 0] = s@[1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
-    //s@[0, 0] = s@[1, 0]
-  }
-  loop over s only dup [1, 0] on boundary {
-    s@[0, 0] = s@[-1, 0] / (1.0 - (0.0 + 1.0j) * k * vf_gridWidth_x)
-    //s@[0, 0] = s@[-1, 0]
-  }
-  loop over s only dup [0,  1] on boundary {
-    s@[0, 0] = 0.0
-  }
-  loop over s only dup [0, -1] on boundary {
-    s@[0, 0] = 0.0
-  }
+Function applyBC_s@coarsest {
+	loop over s only dup [-1, 0] on boundary {
+		s@[0, 0] = ( s@[1, 0] / ( 1.0 - ( ( (0.0+1.0j) * k ) * vf_gridWidth_x ) ) )
+	}
+	loop over s only dup [1, 0] on boundary {
+		s@[0, 0] = ( s@[-1, 0] / ( 1.0 - ( ( (0.0+1.0j) * k ) * vf_gridWidth_x ) ) )
+	}
+	loop over s only dup [0, 1] on boundary {
+		s@[0, 0] = 0.0
+	}
+	loop over s only dup [0, -1] on boundary {
+		s@[0, 0] = 0.0
+	}
 }
+
+Globals {
+	Expr k = 80.0
+	Expr omegaRelax = 0.6
+	Var shift : Complex<Real> = (1.0+0.5j)
+}
+
+Function NormResidual@6 : Complex<Real> {
+	Var reductionVar_0 : Complex<Real> = 0.0
+	/* Residual => 0, 0 <-> 0, 0 */
+	loop over Residual@6 with reduction ( + : reductionVar_0 ) {
+		reductionVar_0 += ( Residual@6 * Residual@6 )
+	}
+	return sqrt ( reductionVar_0 )
+}
+
+Function Solve@6 {
+	PreconditionedBiCGStab@6 (  )
+}
+
+Function PreconditionedBiCGStab@6 {
+	/* RHS => 0, 0 <-> 0, 0 */
+	/* Solution => -1, -1 <-> 1, 1 */
+	/* Residual => 0, 0 <-> 0, 0 */
+	communicate all of Solution@6
+	loop over Residual@6 {
+		Residual@6 = ( RHS@6 - ( ( A@6 * Solution@6 ) ) )
+	}
+	Var curRes : Complex<Real> = NormResidual@6 (  )
+	Var initRes : Complex<Real> = curRes
+	if ( ( curRes == 0.0 ) ) {
+		return
+	}
+	Var alpha : Complex<Real> = 1.0
+	Var beta : Complex<Real> = 1.0
+	Var rho : Complex<Real>
+	Var rhoNew : Complex<Real> = 1.0
+	Var omega : Complex<Real> = 1.0
+	/* Residual => 0, 0 <-> 0, 0 */
+	/* resHat => 0, 0 <-> 0, 0 */
+	loop over resHat@6 {
+		resHat@6 = Residual@6
+	}
+	/* ap => 0, 0 <-> 0, 0 */
+	loop over ap@6 {
+		ap@6 = 0.0
+	}
+	/* p => 0, 0 <-> 0, 0 */
+	loop over p@6 {
+		p@6 = 0.0
+	}
+	Var curStep : Integer = 0
+	repeat 10000 times count curStep {
+		rho = rhoNew
+		Var reductionVar_1 : Complex<Real> = 0.0
+		/* Residual => 0, 0 <-> 0, 0 */
+		/* resHat => 0, 0 <-> 0, 0 */
+		loop over resHat@6 with reduction ( + : reductionVar_1 ) {
+			reductionVar_1 += ( resHat@6 * Residual@6 )
+		}
+		rhoNew = reductionVar_1
+		beta = ( ( rhoNew / rho ) * ( alpha / omega ) )
+		/* p => 0, 0 <-> 0, 0 */
+		/* Residual => 0, 0 <-> 0, 0 */
+		/* ap => 0, 0 <-> 0, 0 */
+		loop over p@6 {
+			p@6 = ( Residual@6 + ( beta * ( p@6 - ( omega * ap@6 ) ) ) )
+		}
+		/* u => 0, 0 <-> 0, 0 */
+		loop over u@6 {
+			u@6 = 0
+		}
+		apply bc to u@6
+		/* f => 0, 0 <-> 0, 0 */
+		/* p => 0, 0 <-> 0, 0 */
+		loop over f@6 {
+			f@6 = p@6
+		}
+		mgCycle@6 (  )
+		/* u => -1, -1 <-> 1, 1 */
+		/* ap => 0, 0 <-> 0, 0 */
+		communicate all of u@6
+		loop over ap@6 {
+			ap@6 = ( ( A@6 * u@6 ) )
+		}
+		Var reductionVar_2 : Complex<Real> = 0.0
+		/* resHat => 0, 0 <-> 0, 0 */
+		/* ap => 0, 0 <-> 0, 0 */
+		loop over resHat@6 with reduction ( + : reductionVar_2 ) {
+			reductionVar_2 += ( resHat@6 * ap@6 )
+		}
+		alpha = ( rhoNew / reductionVar_2 )
+		/* h => 0, 0 <-> 0, 0 */
+		/* Solution => 0, 0 <-> 0, 0 */
+		/* u => 0, 0 <-> 0, 0 */
+		loop over h@6 {
+			h@6 = ( Solution@6 + ( alpha * u@6 ) )
+		}
+		/* Residual => 0, 0 <-> 0, 0 */
+		/* ap => 0, 0 <-> 0, 0 */
+		/* s => 0, 0 <-> 0, 0 */
+		loop over s@6 {
+			s@6 = ( Residual@6 - ( alpha * ap@6 ) )
+		}
+		/* u => 0, 0 <-> 0, 0 */
+		loop over u@6 {
+			u@6 = 0
+		}
+		apply bc to u@6
+		/* f => 0, 0 <-> 0, 0 */
+		/* s => 0, 0 <-> 0, 0 */
+		loop over f@6 {
+			f@6 = s@6
+		}
+		mgCycle@6 (  )
+		/* u => -1, -1 <-> 1, 1 */
+		/* t => 0, 0 <-> 0, 0 */
+		communicate all of u@6
+		loop over t@6 {
+			t@6 = ( ( A@6 * u@6 ) )
+		}
+		Var reductionVar_3 : Complex<Real> = 0.0
+		Var reductionVar_4 : Complex<Real> = 0.0
+		/* t => 0, 0 <-> 0, 0 */
+		/* s => 0, 0 <-> 0, 0 */
+		loop over t@6 with reduction ( + : reductionVar_3 ) {
+			reductionVar_3 += ( t@6 * s@6 )
+		}
+		/* t => 0, 0 <-> 0, 0 */
+		loop over t@6 with reduction ( + : reductionVar_4 ) {
+			reductionVar_4 += ( t@6 * t@6 )
+		}
+		omega = ( reductionVar_3 / reductionVar_4 )
+		/* h => 0, 0 <-> 0, 0 */
+		/* Solution => 0, 0 <-> 0, 0 */
+		/* u => 0, 0 <-> 0, 0 */
+		loop over Solution@6 {
+			Solution@6 = ( h@6 + ( omega * u@6 ) )
+		}
+		apply bc to Solution@6
+		/* Residual => 0, 0 <-> 0, 0 */
+		/* t => 0, 0 <-> 0, 0 */
+		/* s => 0, 0 <-> 0, 0 */
+		loop over Residual@6 {
+			Residual@6 = ( s@6 - ( omega * t@6 ) )
+		}
+		curRes = NormResidual@6 (  )
+		if ( ( fabs ( curRes ) < ( 1.0E-7 * fabs ( initRes ) ) ) ) {
+			print ( "Residual after", curStep, "iterations is", fabs ( curRes ), "--- convergence factor is", ( fabs ( curRes ) / fabs ( initRes ) ) )
+			return
+		}
+	}
+	print ( "Maximum number of solver iterations (", 10000, ") was exceeded" )
+	print ( "Residual after", curStep, "iterations is", fabs ( curRes ), "--- convergence factor is", ( fabs ( curRes ) / fabs ( initRes ) ) )
+}
+
+Function PreSmoother@5 {
+	repeat 2 times {
+		color with {
+			( ( i0 + i1 ) % 2 ),
+			/* u => -1, -1 <-> 1, 1 */
+			/* f => 0, 0 <-> 0, 0 */
+			communicate all of u@5
+			loop over u@5@[0, 0] {
+				solve locally relax 0.6 {
+					u@5@[0, 0] => ( ( M@5@[0, 0] * u@5@[0, 0] ) ) == f@5@[0, 0]
+				}
+			}
+			apply bc to u@5
+		}
+	}
+}
+
+Function PreSmoother@2 {
+	repeat 2 times {
+		color with {
+			( ( i0 + i1 ) % 2 ),
+			/* f => 0, 0 <-> 0, 0 */
+			/* u => -1, -1 <-> 1, 1 */
+			communicate all of u@2
+			loop over u@2@[0, 0] {
+				solve locally relax 0.6 {
+					u@2@[0, 0] => ( ( M@2@[0, 0] * u@2@[0, 0] ) ) == f@2@[0, 0]
+				}
+			}
+			apply bc to u@2
+		}
+	}
+}
+
+Function PreSmoother@6 {
+	repeat 2 times {
+		color with {
+			( ( i0 + i1 ) % 2 ),
+			/* f => 0, 0 <-> 0, 0 */
+			/* u => -1, -1 <-> 1, 1 */
+			communicate all of u@6
+			loop over u@6@[0, 0] {
+				solve locally relax 0.6 {
+					u@6@[0, 0] => ( ( M@6@[0, 0] * u@6@[0, 0] ) ) == f@6@[0, 0]
+				}
+			}
+			apply bc to u@6
+		}
+	}
+}
+
+Function PreSmoother@3 {
+	repeat 2 times {
+		color with {
+			( ( i0 + i1 ) % 2 ),
+			/* f => 0, 0 <-> 0, 0 */
+			/* u => -1, -1 <-> 1, 1 */
+			communicate all of u@3
+			loop over u@3@[0, 0] {
+				solve locally relax 0.6 {
+					u@3@[0, 0] => ( ( M@3@[0, 0] * u@3@[0, 0] ) ) == f@3@[0, 0]
+				}
+			}
+			apply bc to u@3
+		}
+	}
+}
+
+Function PreSmoother@4 {
+	repeat 2 times {
+		color with {
+			( ( i0 + i1 ) % 2 ),
+			/* u => -1, -1 <-> 1, 1 */
+			/* f => 0, 0 <-> 0, 0 */
+			communicate all of u@4
+			loop over u@4@[0, 0] {
+				solve locally relax 0.6 {
+					u@4@[0, 0] => ( ( M@4@[0, 0] * u@4@[0, 0] ) ) == f@4@[0, 0]
+				}
+			}
+			apply bc to u@4
+		}
+	}
+}
+
+Function PostSmoother@5 {
+	repeat 1 times {
+		color with {
+			( ( i0 + i1 ) % 2 ),
+			/* u => -1, -1 <-> 1, 1 */
+			/* f => 0, 0 <-> 0, 0 */
+			communicate all of u@5
+			loop over u@5@[0, 0] {
+				solve locally relax 0.6 {
+					u@5@[0, 0] => ( ( M@5@[0, 0] * u@5@[0, 0] ) ) == f@5@[0, 0]
+				}
+			}
+			apply bc to u@5
+		}
+	}
+}
+
+Function PostSmoother@2 {
+	repeat 1 times {
+		color with {
+			( ( i0 + i1 ) % 2 ),
+			/* f => 0, 0 <-> 0, 0 */
+			/* u => -1, -1 <-> 1, 1 */
+			communicate all of u@2
+			loop over u@2@[0, 0] {
+				solve locally relax 0.6 {
+					u@2@[0, 0] => ( ( M@2@[0, 0] * u@2@[0, 0] ) ) == f@2@[0, 0]
+				}
+			}
+			apply bc to u@2
+		}
+	}
+}
+
+Function PostSmoother@6 {
+	repeat 1 times {
+		color with {
+			( ( i0 + i1 ) % 2 ),
+			/* f => 0, 0 <-> 0, 0 */
+			/* u => -1, -1 <-> 1, 1 */
+			communicate all of u@6
+			loop over u@6@[0, 0] {
+				solve locally relax 0.6 {
+					u@6@[0, 0] => ( ( M@6@[0, 0] * u@6@[0, 0] ) ) == f@6@[0, 0]
+				}
+			}
+			apply bc to u@6
+		}
+	}
+}
+
+Function PostSmoother@3 {
+	repeat 1 times {
+		color with {
+			( ( i0 + i1 ) % 2 ),
+			/* f => 0, 0 <-> 0, 0 */
+			/* u => -1, -1 <-> 1, 1 */
+			communicate all of u@3
+			loop over u@3@[0, 0] {
+				solve locally relax 0.6 {
+					u@3@[0, 0] => ( ( M@3@[0, 0] * u@3@[0, 0] ) ) == f@3@[0, 0]
+				}
+			}
+			apply bc to u@3
+		}
+	}
+}
+
+Function PostSmoother@4 {
+	repeat 1 times {
+		color with {
+			( ( i0 + i1 ) % 2 ),
+			/* u => -1, -1 <-> 1, 1 */
+			/* f => 0, 0 <-> 0, 0 */
+			communicate all of u@4
+			loop over u@4@[0, 0] {
+				solve locally relax 0.6 {
+					u@4@[0, 0] => ( ( M@4@[0, 0] * u@4@[0, 0] ) ) == f@4@[0, 0]
+				}
+			}
+			apply bc to u@4
+		}
+	}
+}
+
+Function mgCycle@5 {
+	PreSmoother@5 (  )
+	/* res => 0, 0 <-> 0, 0 */
+	/* u => -1, -1 <-> 1, 1 */
+	/* f => 0, 0 <-> 0, 0 */
+	communicate all of u@5
+	loop over res@5 {
+		res@5 = ( f@5 - ( ( M@5 * u@5 ) ) )
+	}
+	apply bc to res@5
+	/* res => -1, -1 <-> 1, 1 */
+	/* f => 0, 0 <-> 0, 0 */
+	communicate all of res@5
+	loop over f@4 {
+		f@4 = ( ( Restriction_u@5 * res@5 ) )
+	}
+	/* u => 0, 0 <-> 0, 0 */
+	loop over u@4 {
+		u@4 = 0.0
+	}
+	apply bc to u@4
+	mgCycle@4 (  )
+	/* u => 0, 0 <-> 1, 1 */
+	/* u => 0, 0 <-> 0, 0 */
+	communicate all of u@4
+	loop over u@5 {
+		u@5 += ( ( Prolongation_u@4 * u@4 ) )
+	}
+	apply bc to u@5
+	PostSmoother@5 (  )
+}
+
+Function mgCycle@6 {
+	PreSmoother@6 (  )
+	/* f => 0, 0 <-> 0, 0 */
+	/* u => -1, -1 <-> 1, 1 */
+	/* res => 0, 0 <-> 0, 0 */
+	communicate all of u@6
+	loop over res@6 {
+		res@6 = ( f@6 - ( ( M@6 * u@6 ) ) )
+	}
+	apply bc to res@6
+	/* f => 0, 0 <-> 0, 0 */
+	/* res => -1, -1 <-> 1, 1 */
+	communicate all of res@6
+	loop over f@5 {
+		f@5 = ( ( Restriction_u@6 * res@6 ) )
+	}
+	/* u => 0, 0 <-> 0, 0 */
+	loop over u@5 {
+		u@5 = 0.0
+	}
+	apply bc to u@5
+	mgCycle@5 (  )
+	/* u => 0, 0 <-> 0, 0 */
+	/* u => 0, 0 <-> 1, 1 */
+	communicate all of u@5
+	loop over u@6 {
+		u@6 += ( ( Prolongation_u@5 * u@5 ) )
+	}
+	apply bc to u@6
+	PostSmoother@6 (  )
+}
+
+Function mgCycle@4 {
+	PreSmoother@4 (  )
+	/* u => -1, -1 <-> 1, 1 */
+	/* f => 0, 0 <-> 0, 0 */
+	/* res => 0, 0 <-> 0, 0 */
+	communicate all of u@4
+	loop over res@4 {
+		res@4 = ( f@4 - ( ( M@4 * u@4 ) ) )
+	}
+	apply bc to res@4
+	/* f => 0, 0 <-> 0, 0 */
+	/* res => -1, -1 <-> 1, 1 */
+	communicate all of res@4
+	loop over f@3 {
+		f@3 = ( ( Restriction_u@4 * res@4 ) )
+	}
+	/* u => 0, 0 <-> 0, 0 */
+	loop over u@3 {
+		u@3 = 0.0
+	}
+	apply bc to u@3
+	mgCycle@3 (  )
+	/* u => 0, 0 <-> 1, 1 */
+	/* u => 0, 0 <-> 0, 0 */
+	communicate all of u@3
+	loop over u@4 {
+		u@4 += ( ( Prolongation_u@3 * u@3 ) )
+	}
+	apply bc to u@4
+	PostSmoother@4 (  )
+}
+
+Function mgCycle@3 {
+	PreSmoother@3 (  )
+	/* f => 0, 0 <-> 0, 0 */
+	/* res => 0, 0 <-> 0, 0 */
+	/* u => -1, -1 <-> 1, 1 */
+	communicate all of u@3
+	loop over res@3 {
+		res@3 = ( f@3 - ( ( M@3 * u@3 ) ) )
+	}
+	apply bc to res@3
+	/* res => -1, -1 <-> 1, 1 */
+	/* f => 0, 0 <-> 0, 0 */
+	communicate all of res@3
+	loop over f@2 {
+		f@2 = ( ( Restriction_u@3 * res@3 ) )
+	}
+	/* gen_error_u => 0, 0 <-> 0, 0 */
+	loop over gen_error_u@2 {
+		gen_error_u@2 = 0.0
+	}
+	apply bc to gen_error_u@2
+	mgCycle@2 (  )
+	/* gen_error_u => 0, 0 <-> 0, 0 */
+	/* u => 0, 0 <-> 0, 0 */
+	loop over u@2 {
+		u@2 = gen_error_u@2
+	}
+	apply bc to u@2
+	/* u => 0, 0 <-> 0, 0 */
+	/* u => 0, 0 <-> 1, 1 */
+	communicate all of u@2
+	loop over u@3 {
+		u@3 += ( ( Prolongation_u@2 * u@2 ) )
+	}
+	apply bc to u@3
+	PostSmoother@3 (  )
+}
+
+Function mgCycle@2 {
+	/* gen_error_u => -1, -1 <-> 1, 1 */
+	/* f => 0, 0 <-> 0, 0 */
+	/* gen_residual_u => 0, 0 <-> 0, 0 */
+	communicate all of gen_error_u@2
+	loop over gen_residual_u@2 {
+		gen_residual_u@2 = ( f@2 - ( ( M@2 * gen_error_u@2 ) ) )
+	}
+	apply bc to gen_residual_u@2
+	Var reductionVar_5 : Complex<Real> = 0.0
+	/* gen_residual_u => 0, 0 <-> 0, 0 */
+	loop over gen_residual_u@2 with reduction ( + : reductionVar_5 ) {
+		reductionVar_5 += ( gen_residual_u@2 * gen_residual_u@2 )
+	}
+	Var curRes : Complex<Real> = sqrt ( reductionVar_5 )
+	Var initRes : Complex<Real> = curRes
+	if ( ( curRes == 0.0 ) ) {
+		return
+	}
+	Var alpha : Complex<Real> = 1.0
+	Var beta : Complex<Real> = 1.0
+	Var rho : Complex<Real>
+	Var rhoNew : Complex<Real> = 1.0
+	Var omega : Complex<Real> = 1.0
+	/* resHat => 0, 0 <-> 0, 0 */
+	/* gen_residual_u => 0, 0 <-> 0, 0 */
+	loop over resHat@2 {
+		resHat@2 = gen_residual_u@2
+	}
+	/* nu => 0, 0 <-> 0, 0 */
+	loop over nu@2 {
+		nu@2 = 0.0
+	}
+	/* p => 0, 0 <-> 0, 0 */
+	loop over p@2 {
+		p@2 = 0.0
+	}
+	apply bc to p@2
+	Var curStep : Integer = 0
+	repeat 1000 times count curStep {
+		rho = rhoNew
+		Var reductionVar_6 : Complex<Real> = 0.0
+		/* resHat => 0, 0 <-> 0, 0 */
+		/* gen_residual_u => 0, 0 <-> 0, 0 */
+		loop over resHat@2 with reduction ( + : reductionVar_6 ) {
+			reductionVar_6 += ( resHat@2 * gen_residual_u@2 )
+		}
+		rhoNew = reductionVar_6
+		beta = ( ( rhoNew / rho ) * ( alpha / omega ) )
+		/* p => 0, 0 <-> 0, 0 */
+		/* gen_residual_u => 0, 0 <-> 0, 0 */
+		/* nu => 0, 0 <-> 0, 0 */
+		loop over p@2 {
+			p@2 = ( gen_residual_u@2 + ( beta * ( p@2 - ( omega * nu@2 ) ) ) )
+		}
+		apply bc to p@2
+		/* p => -1, -1 <-> 1, 1 */
+		/* nu => 0, 0 <-> 0, 0 */
+		communicate all of p@2
+		loop over nu@2 {
+			nu@2 = ( ( M@2 * p@2 ) )
+		}
+		Var reductionVar_7 : Complex<Real> = 0.0
+		/* resHat => 0, 0 <-> 0, 0 */
+		/* nu => 0, 0 <-> 0, 0 */
+		loop over resHat@2 with reduction ( + : reductionVar_7 ) {
+			reductionVar_7 += ( resHat@2 * nu@2 )
+		}
+		alpha = ( rhoNew / reductionVar_7 )
+		/* gen_error_u => 0, 0 <-> 0, 0 */
+		/* p => 0, 0 <-> 0, 0 */
+		/* h => 0, 0 <-> 0, 0 */
+		loop over h@2 {
+			h@2 = ( gen_error_u@2 + ( alpha * p@2 ) )
+		}
+		/* s => 0, 0 <-> 0, 0 */
+		/* gen_residual_u => 0, 0 <-> 0, 0 */
+		/* nu => 0, 0 <-> 0, 0 */
+		loop over s@2 {
+			s@2 = ( gen_residual_u@2 - ( alpha * nu@2 ) )
+		}
+		apply bc to s@2
+		/* s => -1, -1 <-> 1, 1 */
+		/* t => 0, 0 <-> 0, 0 */
+		communicate all of s@2
+		loop over t@2 {
+			t@2 = ( ( M@2 * s@2 ) )
+		}
+		Var reductionVar_8 : Complex<Real> = 0.0
+		Var reductionVar_9 : Complex<Real> = 0.0
+		/* s => 0, 0 <-> 0, 0 */
+		/* t => 0, 0 <-> 0, 0 */
+		loop over t@2 with reduction ( + : reductionVar_8 ) {
+			reductionVar_8 += ( t@2 * s@2 )
+		}
+		/* t => 0, 0 <-> 0, 0 */
+		loop over t@2 with reduction ( + : reductionVar_9 ) {
+			reductionVar_9 += ( t@2 * t@2 )
+		}
+		omega = ( reductionVar_8 / reductionVar_9 )
+		/* gen_error_u => 0, 0 <-> 0, 0 */
+		/* s => 0, 0 <-> 0, 0 */
+		/* h => 0, 0 <-> 0, 0 */
+		loop over gen_error_u@2 {
+			gen_error_u@2 = ( h@2 + ( omega * s@2 ) )
+		}
+		apply bc to gen_error_u@2
+		/* s => 0, 0 <-> 0, 0 */
+		/* t => 0, 0 <-> 0, 0 */
+		/* gen_residual_u => 0, 0 <-> 0, 0 */
+		loop over gen_residual_u@2 {
+			gen_residual_u@2 = ( s@2 - ( omega * t@2 ) )
+		}
+		apply bc to gen_residual_u@2
+		Var reductionVar_10 : Complex<Real> = 0.0
+		/* gen_residual_u => 0, 0 <-> 0, 0 */
+		loop over gen_residual_u@2 with reduction ( + : reductionVar_10 ) {
+			reductionVar_10 += ( gen_residual_u@2 * gen_residual_u@2 )
+		}
+		curRes = sqrt ( reductionVar_10 )
+		if ( ( fabs ( curRes ) < ( 1.0E-6 * fabs ( initRes ) ) ) ) {
+			return
+		}
+	}
+}
+
+Function InitFields {
+	/* Solution => 0, 0 <-> 0, 0 */
+	loop over Solution@6 {
+		Solution@6 = 0.0
+	}
+	apply bc to Solution@6
+	/* RHS => 0, 0 <-> 0, 0 */
+	loop over RHS@6 {
+		RHS@6 = ( max ( 0, ( (-( fabs ( ( vf_nodePosition_0@6@[0, 0] - 0.5 ) ) - 0.0078125 )) / ( 0.0078125 ** 2 ) ) ) * max ( 0, ( (-( fabs ( ( vf_nodePosition_1@6@[0, 0] - 0.5 ) ) - 0.0078125 )) / ( 0.0078125 ** 2 ) ) ) )
+	}
+}
+
