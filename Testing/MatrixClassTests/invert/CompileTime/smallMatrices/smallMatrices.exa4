@@ -1,0 +1,18 @@
+
+Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
+
+Globals {
+}
+
+/// main function
+
+Function Application ( ) : Unit {
+     	
+	Var mat : Matrix<Double, 3, 3> = {{1,0,1},{0,1,1},{1,1,1}}
+	Var inverse : Matrix<Double, 3, 3> = inverse(mat, "shape=schur", "block=2", "A=diagonal") 
+	Var sol : Matrix<Double, 3, 3> = {{0, -1, 1},{-1, 0, 1},{1, 1, -1}}
+	compare(inverse, sol, 0.001)
+ 	print('stage 0 done')
+	
+}
+

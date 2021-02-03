@@ -53,6 +53,7 @@ object IR_ExpressionIndex {
     new IR_ExpressionIndex((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
 
   // legacy support
+  //def apply(indices : Array[Int]) = new IR_ExpressionIndex(indices.map(IR_IntegerConstant(_) : IR_Expression))
   def apply(indices : Array[Int]) = new IR_ExpressionIndex(indices.map(IR_IntegerConstant(_) : IR_Expression))
   def apply(indices : Array[Long]) = new IR_ExpressionIndex(indices.map(IR_IntegerConstant(_) : IR_Expression))
 }
@@ -118,6 +119,7 @@ case class IR_ConstIndex(override var indices : Array[Int]) extends IR_Index wit
   override def datatype = /*FIXME*/ IR_UnitDatatype
   override def prettyprint(out : PpStream) = out << '[' << indices.mkString(", ") << ']'
 
+
   def +(that : IR_ConstIndex) = IR_ConstIndex(this, that, _ + _)
   override def +(that : IR_Index) = IR_ExpressionIndex(this.toExpressionIndex, that.toExpressionIndex, _ + _)
 
@@ -135,3 +137,23 @@ case class IR_ConstIndex(override var indices : Array[Int]) extends IR_Index wit
     }
   }
 }
+
+case class IR_Range(var begin : Option[IR_Expression], var end : Option[IR_Expression]) extends IR_Expression {
+  override def datatype : IR_Datatype = Logger.error("this should not be asked for")
+  override def prettyprint(out : PpStream) : Unit = Logger.error("internal node not resolved")
+}
+
+
+object IR_RangeIndex {
+  def apply(indices : IR_Range*) = new IR_RangeIndex(indices.toArray)
+}
+
+case class IR_RangeIndex(var indices : Array[IR_Range]) extends IR_Index  {
+  override def length() : Int = indices.length
+  override def toExpressionIndex : IR_ExpressionIndex = Logger.error("not implemented")
+  override def +(that : IR_Index) : IR_Index =  Logger.error("not implemented")
+  override def -(that : IR_Index) : IR_Index =  Logger.error("not implemented")
+  override def datatype : IR_Datatype = Logger.error("not implemented")
+  override def prettyprint(out : PpStream) : Unit = Logger.error("internal node not resolved")
+}
+

@@ -1,0 +1,22 @@
+
+Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
+
+Globals {
+	
+}
+
+/// main function
+
+Function Application ( ) : Unit {
+
+	Var m1 : Matrix<Int, 2, 2> = {{1, 2}, {3, 4}}
+	Var m2 : Matrix<Double, 2, 2> = {{1.312, 2.21}, {3.32, 4.123}}
+	Var prec : Double = 0.0001
+
+	Var t1 : Int = trace(m1)
+	Var t2 : Double = trace(m2)
+	compare(t2,1.312 + 4.123,prec)
+	compare(t1,5,prec)
+	print('stage 0 done')
+}
+

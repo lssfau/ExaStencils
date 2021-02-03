@@ -1,0 +1,40 @@
+
+Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
+
+Globals {
+	
+}
+
+/// main function
+
+Function Application ( ) : Unit {
+	Var m : Matrix<Double, 2, 2> = {{1,2},{3,1}}
+	Var G : Matrix<Double, 2, 2> 
+	Var ret : int =	g(G)
+	Var E : Matrix<Double, 2, 2> = f(G)
+	E = f(G)
+	Var d : Double = determinant(m)
+	Var F : Int = g(f(m))
+}
+
+noinline Function g (in : Matrix<Double, 2, 2>)  : Int {
+	Var i : Int = 0
+	Var j : Int = 0		
+	repeat 2 times count i {
+		repeat 2 times count j {
+			setElement(in,i,j,5)
+		}
+	}
+	return 3
+}
+
+noinline Function f (in : Matrix<Double, 2, 2>)  : Matrix<Double, 2, 2> {
+	Var i : Int = 0
+	Var j : Int = 0		
+	repeat 2 times count i {
+		repeat 2 times count j {
+			setElement(in,i,j,5)
+		}
+	}
+	return in
+}

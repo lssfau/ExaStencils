@@ -1,0 +1,52 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0] to [0.1, 0.1] >
+
+
+
+Function Application {
+	Var m : Matrix<Double,2,2> = { { 1.0, 2.0 }, { 3.0, 1.0 } }
+	Var G : Matrix<Double,2,2>
+	Var ret : Integer = g ( G )
+	Var E : Matrix<Double,2,2> = f ( G )
+	E = f ( G )
+	Var d : Double = determinant ( m )
+	Var F : Integer = g ( f ( m ) )
+}
+
+Function g ( in : Matrix<Double,2,2> ) : Integer {
+	Var i : Integer = 0
+	Var j : Integer = 0
+	repeat 2 times count i {
+		repeat 2 times count j {
+			setElement ( in, i, j, 5 )
+		}
+	}
+	return 3
+}
+
+Function f ( in : Matrix<Double,2,2> ) : Matrix<Double,2,2> {
+	Var i : Integer = 0
+	Var j : Integer = 0
+	repeat 2 times count i {
+		repeat 2 times count j {
+			setElement ( in, i, j, 5 )
+		}
+	}
+	return in
+}
+

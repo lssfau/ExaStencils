@@ -22,6 +22,7 @@ import scala.collection.mutable._
 import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.input._
 
+import exastencils.base.ir.IR_StringConstant
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.boundary.l4._
@@ -176,6 +177,9 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| "Vec2" ^^ { _ => L4_VectorDatatype(L4_RealDatatype, 2) }
       ||| "Vec3" ^^ { _ => L4_VectorDatatype(L4_RealDatatype, 3) }
       ||| "Vec4" ^^ { _ => L4_VectorDatatype(L4_RealDatatype, 4) }
+      ||| "TensorN" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ dims ~ order => L4_TensorDatatypeN(x, dims, order) }
+      ||| "Tensor1" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ dims => L4_TensorDatatype1(x, dims) }
+      ||| "Tensor2" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ dims => L4_TensorDatatype2(x, dims) }
       ||| "Matrix" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ m ~ n => L4_MatrixDatatype(x, m, n) }
       ||| numericDatatype ~ ("<" ~> integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case x ~ m ~ n => L4_MatrixDatatype(x, m, n) }
       ||| numericDatatype)
@@ -199,6 +203,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val functionReference = locationize(ident ~ levelAccess.? ~ ("@" ~> constIndex).? ^^ { case id ~ level ~ offset => L4_UnresolvedFunctionReference(id, level, offset) })
   lazy val functionCall = locationize(functionReference ~ ("(" ~> repsep(binaryexpression ||| booleanexpression, ",").? <~ ")")
     ^^ { case id ~ args => L4_FunctionCall(id, args.getOrElse(List()).to[ListBuffer]) })
+  //  ||| locationize(("(" ~> repsep(binaryexpression ||| booleanexpression, ",").? <~ ")") ~ (("^"  ||| "**") ~> functionReference)) ^^ { case args ~ id => L4_FunctionCall(id, args.getOrElse(List()).to[ListBuffer]) })
 
   lazy val functionTemplate = locationize((("FuncTemplate" ||| "FunctionTemplate") ~> ident) ~ ("<" ~> repsep(ident, ",").? <~ ">") ~ ("(" ~> repsep(functionArgument, ",").? <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}"))
     ^^ { case id ~ templateArgs ~ functionArgs ~ retType ~ stmts => L4_FunctionTemplate(id, retType, templateArgs.getOrElse(List()), functionArgs.getOrElse(List()), stmts) })
@@ -230,7 +235,9 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| levelScope
       ||| solveLocallyStatement
       ||| colorWithStatement
-      ||| repeatWithStatement)
+      ||| repeatWithStatement
+      ||| solveLinearSystemStatement
+    )
 
   lazy val statementInsideRepeat = statement ||| breakStatement
 
@@ -284,7 +291,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => L4_Reduction(op, s) })
   lazy val regionSpecification = locationize((("ghost" ||| "dup" ||| "inner") ~ constIndex ~ ("on" <~ "boundary").?) ^^ { case region ~ dir ~ bc => L4_RegionSpecification(region, dir, bc.isDefined) })
 
-  lazy val assignment = locationize(genericAccess ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })
+  lazy val assignment = locationize((genericAccess ) ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })
   lazy val operatorassignment = locationize(genericAccess ~ ("+=" ||| "-=" ||| "*=" ||| "/=") ~ binaryexpression
     ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })
 
@@ -326,6 +333,12 @@ object L4_Parser extends ExaParser with PackratParsers {
       Logger.error("color expression in 'color with' statement must be a modulo expression with a constant integral divisor" + exp.location.toAppendString)
   })
 
+  //TODO parse L4 local solve for matrices
+  // -> L4 SolveLinearSystem
+  lazy val solveLinearSystemStatement = locationize(("solveMatSys") ~> (binaryexpression <~ ",") ~ (binaryexpression <~ ",") ~ binaryexpression ~ matShapeOption.? ^^ {
+    case a ~ u ~ f ~ shape => L4_SolveMatrixSystem(a, u, f, shape)
+  })
+
   // ######################################
   // ##### Globals
   // ######################################
@@ -364,8 +377,12 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val layoutOption = locationize((ident <~ "=") ~ constIndex ~ ("with" ~ "communication").?
     ^^ { case id ~ idx ~ comm => L4_FieldLayoutOption(id, idx, comm.isDefined) })
 
-  lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ levelDecl.?
-    ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level => L4_BaseFieldDecl(id, level, domain, layout, boundary, slots.getOrElse(1)) })
+  lazy val matShapeOption = locationize("{" ~> repsep((ident <~ "=") ~ (ident | integerLit), ",") <~ "}"
+    ^^ { case args => L4_MatShape(args.to[ListBuffer].map(s => IR_StringConstant(s._1 + "=" + s._2))) })
+
+  lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ levelDecl.? ~ matShapeOption.?
+    ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level ~ shape => L4_BaseFieldDecl(id, level, domain, layout, boundary, slots.getOrElse(1), shape) })
+
   lazy val fieldBoundary = (
     "Neumann" ~> ("(" ~> integerLit <~ ")").? ^^ { L4_NeumannBC(_) }
       ||| "None" ^^ { _ => L4_NoBC }
@@ -375,10 +392,12 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val fieldCombinationDeclaration = locationize(("FieldCombination".? ~> ident) ~ levelDecl.? ~ (":" ~> stringLit) ~ ("=" ~> repsep(genericAccess, ","))
     ^^ { case id ~ levels ~ combType ~ fields => L4_FieldCombinationDecl(id, levels, combType, fields) })
 
+
   lazy val rangeIndex1d = locationize(("[" ~> binaryexpression.? <~ ":") ~ (binaryexpression.? <~ "]") ^^ { case x ~ y => L4_RangeIndex(L4_Range(x, y)) })
   lazy val rangeIndex2d = locationize("[" ~> binaryexpression.? ~ ":" ~ binaryexpression.? ~ "," ~ binaryexpression.? ~ ":" ~ binaryexpression.? <~ "]" ^^ {
     case a ~ _ ~ b ~ _ ~ x ~ _ ~ y => L4_RangeIndex(Array(L4_Range(a, b), L4_Range(x, y)))
   })
+
 
   lazy val stencilField = locationize((("StencilField" ~> ident) ~ ("<" ~> ident <~ "=>") ~ (ident <~ ">") ~ levelDecl.?)
     ^^ { case id ~ f ~ s ~ level => L4_StencilFieldDecl(id, level, s, f) })
@@ -396,10 +415,13 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val slotAccess = locationize(
     "$" ~> slotModifier ^^ (s => s)
-      ||| "[" ~> slotModifier <~ "]" ^^ (s => s))
+      ||| "<" ~> slotModifier <~ ">" ^^ (s => s))
+  //||| "[" ~> slotModifier <~ "]" ^^ (s => s))
+
 
   lazy val slotModifier = locationize("active" ^^ (_ => L4_ActiveSlot)
     ||| "activeSlot" ^^ (_ => L4_ActiveSlot)
+    //||| "current" ^^ (_ => L4_ActiveSlot)
     ||| "currentSlot" ^^ (_ => L4_ActiveSlot)
     ||| "next" ^^ (_ => L4_NextSlot)
     ||| "nextSlot" ^^ (_ => L4_NextSlot)
@@ -414,12 +436,27 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val leveledAccess = locationize(ident ~ levelAccess
     ^^ { case id ~ level => L4_UnresolvedAccess(id, Some(level)) })
 
+
+  lazy val genericAccess = (
+    locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ matIndex.? ^^ {
+        case id ~ slot ~ level ~ offset ~ matIdx =>
+      L4_UnresolvedAccess(id, level, slot, offset, None, None, matIdx)})
+      ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
+      ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None, None) })
+    ) // component acccess mit spitzen klammern
+
+    lazy val matIndex = (index ||| rangeIndex1d) ~ (index ||| rangeIndex1d) ^^ {
+
+    case matIdxY ~ matIdxX =>
+         Array[L4_Index](matIdxY, matIdxX)
+  }
+  /*
   lazy val genericAccess = (
     locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ ("[" ~> integerLit <~ "]").?
-      ^^ { case id ~ slot ~ level ~ offset ~ arrayIndex => L4_UnresolvedAccess(id, level, slot, offset, None, arrayIndex) })
+      ^^ { case id ~ slot ~ level ~ offset ~ arrayIndex => L4_UnresolvedAccess(id, level, slot, offset, None, arrayIndex,None) })
       ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
-      ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None) })) // component acccess mit spitzen klammern
-
+      ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None, None) })) // component acccess mit spitzen klammern
+*/
   // ######################################
   // ##### Expressions
   // ######################################
@@ -442,6 +479,9 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| rowVectorExpression
       ||| columnVectorExpression
       ||| matrixExpression
+      ||| tensorExpression1
+      ||| tensorExpression2
+      ||| tensorExpressionN
       ||| locationize("-" ~> matrixExpression ^^ { L4_Negative })
       ||| locationize(stringLit ^^ (s => L4_StringConstant(s)))
       ||| fieldIteratorAccess
@@ -461,8 +501,21 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val columnVectorExpression = locationize(rowVectorExpression <~ "T" ^^ (x => L4_VectorExpression(None, x.expressions, false)) |||
     "[" ~> repsep(binaryexpression, ";") <~ "]" ^^ { x => L4_VectorExpression(None, x, false) })
 
-  lazy val matrixExpression = locationize(("{" ~> repsep(rowVectorExpression, ",") <~ "}") ~ "T".? ^^ { case x ~ t => val e = L4_MatrixExpression(None, x.map(_.expressions.toList)); if (t.isDefined) L4_FunctionCall(L4_UnresolvedFunctionReference("transpose", None, None), e); else e } |||
-    ("[" ~> repsep(binaryexpression.+, ";")) <~ "]" ^^ { x => L4_MatrixExpression(None, x) })
+  lazy val matrixExpression = locationize(("{" ~> repsep(rowVectorExpression, ",") <~ "}") ~ "T".? ~ matShapeOption.?
+    ^^ { case x ~ t ~ s => val e =
+    L4_MatrixExpression(None, x.map(_.expressions.toList), s);
+    if (t.isDefined) L4_FunctionCall(L4_UnresolvedFunctionReference("transpose", None, None), e);
+    else e
+  } |||
+    ("[" ~> repsep(binaryexpression.+, ";")) <~ "]" ^^ { x => L4_MatrixExpression(None, x, None) })
+
+  lazy val tensorExpression1 = locationize(("tens1" ~ "{") ~> (integerLit <~ ";") ~ (repsep(tensorEntry, ",") <~ "}") ^^ { case dims ~ x => L4_TensorExpression1(None, dims, x) })
+
+  lazy val tensorExpression2 = locationize(("tens2" ~ "{") ~> (integerLit <~ ";") ~ (repsep(tensorEntry, ",") <~ "}") ^^ { case dims ~ x => L4_TensorExpression2(None, dims, x) })
+
+  lazy val tensorExpressionN = locationize(("tensN" ~ "{") ~> (integerLit <~ ";") ~ (integerLit <~ ";") ~ (repsep(tensorEntry, ",") <~ "}") ^^ { case dims ~ order ~ x => L4_TensorExpressionN(None, dims, order, x) })
+
+  lazy val tensorEntry = locationize(("[" ~> repsep(integerLit, ",") <~ "]") ~ ((":=") ~> numLit) ^^ { case index ~ coeff => L4_TensorEntry(index, coeff) })
 
   lazy val booleanexpression : PackratParser[L4_Expression] = (
     locationize((booleanexpression ~ ("||" ||| "or") ~ booleanexpression1) ^^ { case ex1 ~ op ~ ex2 => L4_BinaryOperators.createExpression(op, ex1, ex2) })
@@ -580,4 +633,5 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val equationExpression = locationize((binaryexpression <~ "==") ~ binaryexpression ^^ { case lhs ~ rhs => L4_Equation(lhs, rhs) })
   lazy val equationDeclaration = locationize(("Equation" ~> ident) ~ levelDecl.? ~ ("{" ~> equationExpression <~ "}")
     ^^ { case id ~ levels ~ eq => L4_EquationDecl(id, levels, eq) })
+
 }

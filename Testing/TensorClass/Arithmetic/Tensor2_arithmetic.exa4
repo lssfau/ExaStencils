@@ -1,0 +1,38 @@
+Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
+
+Globals {
+
+}
+
+Function Application() : Unit {
+    Var m1 : Tensor2< Real > = tens2{
+        [0,0] := 1.0,
+        [1,0] := 1,
+        [2,0] := 1,
+        [0,1] := 1,
+        [1,1] := 1,
+        [2,1] := 1,
+        [0,2] := 1,
+        [1,2] := 1,
+        [2,2] := 1
+        }
+
+    print( m1 )
+
+    Var m2 : Tensor2< Real > = tens2{
+        [0,0] := 1.0,
+        [1,0] := 2,
+        [2,0] := 3,
+        [0,1] := 4,
+        [1,1] := 5
+        }
+
+    print( m2 )
+
+    Var m3 : Tensor2< Real > = add( m1, m2 )
+
+    Var m4 : Tensor2< Real >
+    m4 = dotp( m1, m2 )
+
+
+}
