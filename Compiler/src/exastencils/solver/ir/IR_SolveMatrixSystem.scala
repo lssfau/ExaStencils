@@ -18,6 +18,7 @@ import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_Lower
 import exastencils.base.ir.IR_Multiplication
 import exastencils.base.ir.IR_PlainInternalFunctionReference
+import exastencils.base.ir.IR_Number
 import exastencils.base.ir.IR_PreDecrement
 import exastencils.base.ir.IR_PreIncrement
 import exastencils.base.ir.IR_Scope
