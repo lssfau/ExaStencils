@@ -153,7 +153,7 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
           if (Knowledge.experimental_resolveLocalMatSys == "Runtime") {
             var stmts = ListBuffer[IR_Statement]()
             var AasAcc = IR_VariableAccess("local_A_{local_A_counter}", IR_MatrixDatatype(AasExpr.innerDatatype.get, AasExpr.rows, AasExpr.columns))
-            local_A_counter++
+            local_A_counter = local_A_counter + 1
             stmts += IR_VariableDeclaration(AasAcc, AasExpr)
 
             if (!IR_UserFunctions.get.functions.exists(f => f.name == s"LUSolve_${ m }x${ m }")) {
