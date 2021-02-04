@@ -92,7 +92,7 @@ case class IR_MatShape(
     if(!infos.isDefined) false
     else {
       val detShape = infos.get.find(s => s._1 == "detShape")
-      if(detShape == "compiletime") true
+      if(detShape.isDefined && (detShape.get._2 == "compiletime")) true
       else false
     }
   }

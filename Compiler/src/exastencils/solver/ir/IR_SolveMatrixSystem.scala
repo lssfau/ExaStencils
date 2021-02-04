@@ -17,11 +17,10 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_Lower
 import exastencils.base.ir.IR_Multiplication
-import exastencils.base.ir.IR_PlainInternalFunctionReference
 import exastencils.base.ir.IR_Number
+import exastencils.base.ir.IR_PlainInternalFunctionReference
 import exastencils.base.ir.IR_PreDecrement
 import exastencils.base.ir.IR_PreIncrement
-import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_UnitDatatype
 import exastencils.base.ir.IR_VariableAccess
@@ -44,13 +43,12 @@ object IR_SolveMatrixSystem {
   def apply(A : IR_Expression, u : IR_VariableAccess, f : IR_VariableAccess) : IR_SolveMatrixSystem = {
     new IR_SolveMatrixSystem(A, u, f)
   }
-
+  var local_A_count : Int = 0
 }
 
 case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR_VariableAccess, shape : Option[IR_MatShape] = None) extends IR_Statement {
 
   override def prettyprint(out : PpStream) : Unit = out << "solveMatSys" << A.prettyprint(out) << ", " << f.prettyprint(out)
-  var local_A_counter : Int = 0
 
   def expand() : Transformation.OutputType = {
 
@@ -152,8 +150,8 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
 
           if (Knowledge.experimental_resolveLocalMatSys == "Runtime") {
             var stmts = ListBuffer[IR_Statement]()
-            var AasAcc = IR_VariableAccess("local_A_{local_A_counter}", IR_MatrixDatatype(AasExpr.innerDatatype.get, AasExpr.rows, AasExpr.columns))
-            local_A_counter = local_A_counter + 1
+            var AasAcc = IR_VariableAccess(s"local_A_${IR_SolveMatrixSystem.local_A_count}", IR_MatrixDatatype(AasExpr.innerDatatype.get, AasExpr.rows, AasExpr.columns))
+            IR_SolveMatrixSystem.local_A_count = IR_SolveMatrixSystem.local_A_count + 1
             stmts += IR_VariableDeclaration(AasAcc, AasExpr)
 
             if (!IR_UserFunctions.get.functions.exists(f => f.name == s"LUSolve_${ m }x${ m }")) {
