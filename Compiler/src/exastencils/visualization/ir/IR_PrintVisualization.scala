@@ -62,7 +62,7 @@ case class IR_IV_ConstantsWrittenToFile(id : Int) extends IR_UnduplicatedVariabl
     }
     IR_Assignment(this, rhs)
   }
-  def isEmpty : IR_Expression = !Knowledge.parIO_constantDataReduction OrOr IR_MemberFunctionCall(IR_VariableAccess(resolveName(), resolveDatatype()), "empty")
+  def isEmpty : IR_Expression = !Knowledge.parIO_vis_constantDataReduction OrOr IR_MemberFunctionCall(IR_VariableAccess(resolveName(), resolveDatatype()), "empty")
 }
 
 /// IR_PrintVisualization

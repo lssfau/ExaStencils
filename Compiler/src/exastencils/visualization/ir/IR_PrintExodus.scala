@@ -186,7 +186,7 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
       case sc : IR_StringConstant                                         =>
         IR_FileAccess_PnetCDF(sc, dataBuffers(constsIncluded), Some(recordVariables), writeAccess = true, appendedMode)
       case vAcc : IR_VariableAccess if vAcc.datatype == IR_StringDatatype =>
-        if (Knowledge.parIO_constantDataReduction) {
+        if (Knowledge.parIO_vis_constantDataReduction) {
           Logger.error("Error in IR_PrintExodus: Parameter \"filename\" must be a string constant when \"Knowledge.parIO_constantDataReduction\" is enabled.")
         } else {
           IR_FileAccess_PnetCDF(vAcc, dataBuffers(constsIncluded), Some(recordVariables), writeAccess = true, appendedMode)
@@ -336,7 +336,7 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     if (!Settings.pathsLib.contains("$(EXODUS_HOME)/lib"))
       Settings.pathsLib += "$(EXODUS_HOME)/lib"
 
-    if (Knowledge.parIO_constantDataReduction) {
+    if (Knowledge.parIO_vis_constantDataReduction) {
       filename match {
         case _ : IR_StringConstant => Logger.warn("Constants are reduced but filename is constant; Do not use \"printField\" in a loop with this parameter combination, otherwise the reduction will go wrong.")
         case _ =>

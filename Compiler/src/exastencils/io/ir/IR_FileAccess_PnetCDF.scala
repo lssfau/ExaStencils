@@ -242,7 +242,7 @@ case class IR_FileAccess_PnetCDF(
     }
 
     // write time values
-    if (writeAccess && fileContainsRecordVariables && Knowledge.parIO_constantDataReduction) { // TODO cond
+    if (writeAccess && fileContainsRecordVariables && Knowledge.parIO_vis_constantDataReduction) { // TODO cond
       if (Knowledge.parIO_useCollectiveIO) {
         statements ++= ncmpi_put_var1_type_all(IR_DoubleDatatype, ncFile, varIdTime, IR_AddressOf(IR_IV_TimeIndexRecordVariables()), IR_AddressOf(IR_IV_TimeValueRecordVariables()))
       } else {
@@ -337,7 +337,7 @@ case class IR_FileAccess_PnetCDF(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     // increment time index/value once data was written
-    if (fileContainsRecordVariables && Knowledge.parIO_constantDataReduction) { // TODO cond
+    if (fileContainsRecordVariables && Knowledge.parIO_vis_constantDataReduction) { // TODO cond
       statements += IR_Assignment(IR_IV_TimeIndexRecordVariables(), 1, "+=")
       statements += IR_Assignment(IR_IV_TimeValueRecordVariables(), 1.0, "+=")
     }

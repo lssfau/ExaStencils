@@ -475,11 +475,13 @@ object Knowledge {
   // [true|false] // decides whether collective or individual I/O is used when using parallel I/O libraries
   var parIO_useCollectiveIO : Boolean = true
 
+  // -- Visualization with Xdmf/Exodus --
+
   // [true|false] // prevents duplication of constant data when printing Xdmf or Exodus files
-  var parIO_constantDataReduction : Boolean = true
+  var parIO_vis_constantDataReduction : Boolean = true
 
   // [true|false] // specifies whether ParaView or VisIt files are printed. Distinction only relevant for IR_PrintXdmfUniform
-  var parIO_generateVisItFiles : Boolean = false
+  var parIO_vis_generateVisItFiles : Boolean = false
 
   /// --- CUDA ---
 

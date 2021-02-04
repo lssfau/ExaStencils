@@ -385,7 +385,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     if (!Settings.additionalIncludes.contains("string"))
       Settings.additionalIncludes += "string"
 
-    if (Knowledge.parIO_constantDataReduction) {
+    if (Knowledge.parIO_vis_constantDataReduction) {
       filename match {
         case _ : IR_StringConstant => Logger.warn("Constants are reduced but filename is constant; Do not use \"printField\" in a loop with this parameter combination, otherwise the reduction will go wrong.")
         case _ =>

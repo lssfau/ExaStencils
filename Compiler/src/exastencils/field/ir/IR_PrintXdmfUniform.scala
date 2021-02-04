@@ -209,7 +209,7 @@ case class IR_PrintXdmfUniform(
 
   // HACK: VisIt needs every subdomain to be referenced explicitly whereas in ParaView it is possible to reference a process's "grid collection"
   override def refPiecesXml(stream : IR_VariableAccess) : ListBuffer[IR_Statement] = {
-    if (!Knowledge.parIO_generateVisItFiles) {
+    if (!Knowledge.parIO_vis_generateVisItFiles) {
       super.refPiecesXml(stream)
     } else {
       (0 until Knowledge.mpi_numThreads).flatMap(r => { // ref each process's grid
@@ -229,7 +229,7 @@ case class IR_PrintXdmfUniform(
       - when specifying the origin/spacing for a CoRectMesh, the order of these values depends on the vis. tool
       - https://gitlab.kitware.com/paraview/paraview/-/issues/13274 and https://gitlab.kitware.com/vtk/vtk/-/issues/17886
     */
-    def handleOrderCoRectMesh(seq: Seq[IR_Expression]) : ListBuffer[IR_Expression] = (if (Knowledge.parIO_generateVisItFiles) seq.reverse else seq).to[ListBuffer]
+    def handleOrderCoRectMesh(seq: Seq[IR_Expression]) : ListBuffer[IR_Expression] = (if (Knowledge.parIO_vis_generateVisItFiles) seq.reverse else seq).to[ListBuffer]
 
     val origin = handleOrderCoRectMesh((0 until numDimsGrid).map(dim =>
       if (fmt != "XML") {
