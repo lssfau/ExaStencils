@@ -50,6 +50,7 @@ object IR_SolveMatrixSystem {
 case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR_VariableAccess, shape : Option[IR_MatShape] = None) extends IR_Statement {
 
   override def prettyprint(out : PpStream) : Unit = out << "solveMatSys" << A.prettyprint(out) << ", " << f.prettyprint(out)
+  var local_A_counter : Int = 0
 
   def expand() : Transformation.OutputType = {
 
@@ -151,7 +152,8 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
 
           if (Knowledge.experimental_resolveLocalMatSys == "Runtime") {
             var stmts = ListBuffer[IR_Statement]()
-            var AasAcc = IR_VariableAccess("A", IR_MatrixDatatype(AasExpr.innerDatatype.get, AasExpr.rows, AasExpr.columns))
+            var AasAcc = IR_VariableAccess("local_A_{local_A_counter}", IR_MatrixDatatype(AasExpr.innerDatatype.get, AasExpr.rows, AasExpr.columns))
+            local_A_counter++
             stmts += IR_VariableDeclaration(AasAcc, AasExpr)
 
             if (!IR_UserFunctions.get.functions.exists(f => f.name == s"LUSolve_${ m }x${ m }")) {
