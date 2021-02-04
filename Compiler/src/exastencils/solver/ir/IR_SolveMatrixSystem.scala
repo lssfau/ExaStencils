@@ -18,10 +18,11 @@ import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_Lower
 import exastencils.base.ir.IR_Multiplication
 import exastencils.base.ir.IR_Number
+import exastencils.base.ir.IR_PlainInternalFunctionReference
 import exastencils.base.ir.IR_PreDecrement
 import exastencils.base.ir.IR_PreIncrement
-import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_Statement
+import exastencils.base.ir.IR_UnitDatatype
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_ClassifyMatShape
@@ -30,6 +31,7 @@ import exastencils.baseExt.ir.IR_MatNodeUtils
 import exastencils.baseExt.ir.IR_MatShape
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
+import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.config.Knowledge
 import exastencils.core.NodeCounter
 import exastencils.datastructures.Transformation
@@ -41,7 +43,7 @@ object IR_SolveMatrixSystem {
   def apply(A : IR_Expression, u : IR_VariableAccess, f : IR_VariableAccess) : IR_SolveMatrixSystem = {
     new IR_SolveMatrixSystem(A, u, f)
   }
-
+  var local_A_count : Int = 0
 }
 
 case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR_VariableAccess, shape : Option[IR_MatShape] = None) extends IR_Statement {
@@ -148,10 +150,15 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
 
           if (Knowledge.experimental_resolveLocalMatSys == "Runtime") {
             var stmts = ListBuffer[IR_Statement]()
-            var AasAcc = IR_VariableAccess("A", IR_MatrixDatatype(AasExpr.innerDatatype.get, AasExpr.rows, AasExpr.columns))
+            var AasAcc = IR_VariableAccess(s"local_A_${IR_SolveMatrixSystem.local_A_count}", IR_MatrixDatatype(AasExpr.innerDatatype.get, AasExpr.rows, AasExpr.columns))
+            IR_SolveMatrixSystem.local_A_count = IR_SolveMatrixSystem.local_A_count + 1
             stmts += IR_VariableDeclaration(AasAcc, AasExpr)
-            stmts ++= IR_MatrixSolveOps.genLUSolveInlined(AasAcc, m, f, u)
-            IR_Scope(stmts)
+
+            if (!IR_UserFunctions.get.functions.exists(f => f.name == s"LUSolve_${ m }x${ m }")) {
+              IR_UserFunctions.get += IR_MatrixSolveOps.genLUSolveAsFunction(m)
+            }
+            stmts += IR_FunctionCall(IR_PlainInternalFunctionReference(s"LUSolve_${ m }x${ m }", IR_UnitDatatype), ListBuffer[IR_Expression](AasAcc, f, u))
+         //   stmts ++= IR_MatrixSolveOps.genLUSolveInlined(AasAcc, m, f, u)
           } else {
             val LUP = IR_CompiletimeMatOps.LUDecomp(AasExpr)
             val sol = IR_MatrixSolveOps.forwardBackwardSub(LUP._1, IR_MatNodeUtils.accessToMatExpr(f), LUP._2)

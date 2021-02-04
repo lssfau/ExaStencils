@@ -10,7 +10,7 @@ import ntpath
 tests = []
 
 # solveLinearSystem
-tests.append("./SolveMatSys")
+tests.append("./SolveMatSys/SolveMatSysRunTime")
 
 # application testcases
 tests.append("./2D_FV_SWE")

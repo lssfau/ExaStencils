@@ -18,8 +18,6 @@
 
 package exastencils.solver.ir
 
-import scala.collection.mutable.ListBuffer
-
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
@@ -142,21 +140,10 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
     List(haloLoop, tryPrecomputingInverse(innerLoop, innerLoop.body.head.asInstanceOf[IR_LocalSolve]))
   }
 
-  def existsLocalSolve(stmts : ListBuffer[IR_Statement]) : Boolean = {
-      stmts.exists({
-        case _ : IR_LocalSolve => true
-        case s : IR_IfCondition => existsLocalSolve(s.trueBody) || existsLocalSolve(s.falseBody)
-        case s : IR_ForLoop => existsLocalSolve(s.body)
-        case _ => false
-      })
-  }
 
   this += new Transformation("Split loops containing local solve nodes", {
     // check loop even if Knowledge.solver_splitLocalSolveLoops is false - conditions might still be unnecessary
-    //FIXME if local solve is contained in If-statement this does not trigger
-    //case loop : IR_LoopOverDimensions if loop.body.exists(_.isInstanceOf[IR_LocalSolve]) => handleLoop(loop)
-    case loop : IR_LoopOverDimensions if existsLocalSolve(loop.body) =>
-      handleLoop(loop)
+    case loop : IR_LoopOverDimensions if loop.body.exists(_.isInstanceOf[IR_LocalSolve]) => handleLoop(loop)
   }, false)
 
   this += new Transformation("Perform expand for applicable nodes", {
