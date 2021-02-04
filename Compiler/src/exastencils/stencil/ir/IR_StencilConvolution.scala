@@ -58,7 +58,7 @@ case class IR_StencilConvolution(var left : IR_StencilAccess, var right : IR_Fie
     IR_ResolveIntergridIndices.applyStandalone(coeff)
     IR_ResolveIntergridIndices.overrideLevel = None
 
-    coeff.expression * Duplicate(IR_FieldAccess(right.field, Duplicate(right.slot), right.index + offset))
+    coeff.expression * Duplicate(IR_FieldAccess(right.field, Duplicate(right.slot), right.index + offset, None, false, right.matIndex))
 
   }
 
@@ -85,7 +85,7 @@ case class IR_StencilFieldConvolution(var left : IR_StencilFieldAccess, var righ
       offset.indices :+= 0
 
     IR_FieldAccess(left.field, Duplicate(left.slot), Duplicate(left.fragIdx), stencilFieldIdx) *
-      IR_FieldAccess(right.field, Duplicate(right.slot), Duplicate(right.fragIdx), right.index + offset)
+      IR_FieldAccess(right.field, Duplicate(right.slot), Duplicate(right.fragIdx), right.index + offset, None, false, right.matIndex)
   }
 
   override def expand() : Output[IR_Expression] = {

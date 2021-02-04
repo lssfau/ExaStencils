@@ -19,5 +19,6 @@ Function Application ( ) : Unit {
 	
 	Var sol1 : Matrix<Double, 3, 1> = {{0},{6},{-4}}
 	compare(crossRes,sol1,prec)
+	print('stage 0 done')
 }
 

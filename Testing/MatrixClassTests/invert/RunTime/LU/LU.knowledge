@@ -2,5 +2,6 @@ dimensionality                = 2
 mpi_enabled 		      = false
 
 experimental_resolveInverseFunctionCall = "Runtime"
-
+experimental_useNewMatrixStrategies = true
+experimental_matrixStructure = "Filled"
 experimental_inplaceInversion = true

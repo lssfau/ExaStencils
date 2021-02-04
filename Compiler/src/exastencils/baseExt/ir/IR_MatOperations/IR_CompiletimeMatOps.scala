@@ -164,7 +164,8 @@ object IR_CompiletimeMatOps {
       case _ : IR_ScalarDatatype                                                             => (1, 1)
       case sva : IR_VariableAccess if (sva.datatype.isInstanceOf[IR_ScalarDatatype])         => (1, 1)
       case mdt : IR_MatrixDatatype                                                           => (mdt.sizeM, mdt.sizeN)
-      case fa : IR_FieldAccess if (fa.field.layout.datatype.isInstanceOf[IR_MatrixDatatype]) => (fa.field.layout.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, fa.field.layout.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+      case fa : IR_FieldAccess if (fa.field.layout.datatype.isInstanceOf[IR_MatrixDatatype])
+        => (fa.field.layout.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, fa.field.layout.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
       case _                                                                                 => Logger.error("argument is of unexpected type: " + in)
     }
   }
@@ -188,8 +189,8 @@ object IR_CompiletimeMatOps {
     val bound_rows = offset_rows + n_rows
     for (i <- offset_rows until bound_rows) {
       for (j <- offset_cols until bound_cols) {
-        //        var n = Duplicate(getElem(from, i, j))
-        var n = getElem(from, i, j)
+               var n = Duplicate(getElem(from, i, j))
+        //var n = getElem(from, i, j)
         submatrix.set(i - offset_rows, j - offset_cols, n)
       }
     }
@@ -378,7 +379,17 @@ object IR_CompiletimeMatOps {
     }
     out
   }
-
+  def isMatrixCpy(x : IR_Expression) : Boolean = {
+    x match {
+      case IR_VariableAccess(_, IR_MatrixDatatype(_, _, _))                                                 => true
+      case IR_MatrixExpression(_, _, _, _)                                                                  => true
+      case IR_VariableAccess(_, IR_ReferenceDatatype(innerDt)) if (innerDt.isInstanceOf[IR_MatrixDatatype]) => true
+      //FIXME this stmt enables SWE test
+      //case fa : IR_MultiDimFieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])      => true
+      //case fa : IR_FieldAccess if (fa.field.layout.datatype.isInstanceOf[IR_MatrixDatatype]) => true
+      case _                                                                                 => false
+    }
+  }
   /** Method: matrix matrix multiplication
     *
     * @param mult : IR_Multiplication, operands as multiplication
@@ -536,7 +547,7 @@ object IR_CompiletimeMatOps {
       // scalar x matrix, matrix x scalar, matrix x matrix
       case (scalar, matrix) if (isScalar((scalar)) && isMatrix(matrix))                   =>
         var size = getSize(matrix)
-        var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), size._1, size._2)
+        var out = IR_MatrixExpression(IR_RealDatatype, size._1, size._2)
         for (i <- 0 until size._1) {
           for (j <- 0 until size._2) {
             out.set(i, j, IR_Multiplication(getElem(matrix, i, j), getElem(scalar, i, j)))
@@ -545,7 +556,7 @@ object IR_CompiletimeMatOps {
         out
       case (matrix, scalar) if (isScalar((scalar)) && isMatrix(matrix))                   =>
         var size = getSize(matrix)
-        var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), size._1, size._2)
+        var out = IR_MatrixExpression(IR_RealDatatype, size._1, size._2)
         for (i <- 0 until size._1) {
           for (j <- 0 until size._2) {
             out.set(i, j, IR_Multiplication(getElem(scalar, i, j), getElem(matrix, i, j)))
@@ -557,7 +568,7 @@ object IR_CompiletimeMatOps {
         var sizeR = getSize(matrixRight)
         if (size != sizeR)
           Logger.error("sizes do not match: " + size + " vs " + sizeR)
-        var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), size._1, size._2)
+        var out = IR_MatrixExpression(IR_RealDatatype, size._1, size._2)
         for (i <- 0 until size._1) {
           for (j <- 0 until size._2) {
             out.set(i, j, IR_Multiplication(getElem(matrixLeft, i, j), getElem(matrixRight, i, j)))
@@ -579,7 +590,7 @@ object IR_CompiletimeMatOps {
       // scalar x matrix, matrix x scalar, matrix x matrix
       case (scalar, matrix) if (isScalar((scalar)) && isMatrix(matrix))                   =>
         var size = getSize(matrix)
-        var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), size._1, size._2)
+        var out = IR_MatrixExpression(IR_RealDatatype, size._1, size._2)
         for (i <- 0 until size._1) {
           for (j <- 0 until size._2) {
             out.set(i, j, IR_Division(getElem(scalar, i, j), getElem(matrix, i, j)))
@@ -588,7 +599,7 @@ object IR_CompiletimeMatOps {
         out
       case (matrix, scalar) if (isScalar((scalar)) && isMatrix(matrix))                   =>
         var size = getSize(matrix)
-        var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), size._1, size._2)
+        var out = IR_MatrixExpression(IR_RealDatatype, size._1, size._2)
         for (i <- 0 until size._1) {
           for (j <- 0 until size._2) {
             out.set(i, j, IR_Division(getElem(matrix, i, j), getElem(scalar, i, j)))
@@ -600,7 +611,7 @@ object IR_CompiletimeMatOps {
         var sizeR = getSize(matrixRight)
         if (size != sizeR)
           Logger.error("sizes do not match: " + size + " vs " + sizeR)
-        var out = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), size._1, size._2)
+        var out = IR_MatrixExpression(IR_RealDatatype, size._1, size._2)
         for (i <- 0 until size._1) {
           for (j <- 0 until size._2) {
             out.set(i, j, IR_Division(getElem(matrixLeft, i, j), getElem(matrixRight, i, j)))
@@ -667,6 +678,17 @@ object IR_CompiletimeMatOps {
       sum = IR_Addition(sum, matrix.get(i, i))
     }
     sum
+  }
+
+  // calculate the frobenius norm of a matrix
+  def frobeniusNorm(matrix : IR_MatrixExpression) : IR_Expression = {
+    var entries = ListBuffer[IR_Expression]()
+    for (i <- 0 until matrix.rows) {
+      for (j <- 0 until matrix.columns) {
+        entries += IR_Power(IR_FunctionCall(IR_ExternalFunctionReference.fabs, ListBuffer[IR_Expression](matrix.get(i,j))), 2)
+      }
+    }
+    IR_Power(IR_Addition(entries), 1.0/2)
   }
 
   // convert tensor to matrix expression

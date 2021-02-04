@@ -14,5 +14,6 @@ Function Application ( ) : Unit {
 }}
 	Var prec : Double = 0.0001
 	compare(mat_inverse,mat_sol,prec)
+	print('stage 0 done')
 }
 

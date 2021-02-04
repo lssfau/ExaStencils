@@ -1,1 +1,0 @@
-diff: ./invert/CompileTime/GaussJordan/Debug/run_GaussJordan_refc.txt: No such file or directory

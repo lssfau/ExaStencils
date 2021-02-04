@@ -1,1 +1,0 @@
-diff: ./invert/Runtime/SmallMatrix/Debug/run_SmallMatrix_refc.txt: No such file or directory

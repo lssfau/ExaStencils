@@ -19,24 +19,24 @@ Function Application ( ) : Unit {
 	Var res1 : Matrix<Double, 2, 2> 
 	res1 = m1 * inverse(m1)
 	Var sol1 : Matrix<Double, 2, 2> = {{1,0},{0,1}}
-	//compare(res1,sol1,0.001)
+	compare(res1,sol1,0.001)
 	print('stage 1 done')
 
-	/*
+	
 	Var res2 : Matrix<Double, 2, 2> = m1 .* det(m1)
 	Var sol2 : Matrix<Double, 2, 2> = {{-2,-4},{-6,-8}}
 	compare(res2,sol2,0.1)
 	print('stage 2 done')
-	*/
+	
 	
 	Var res3 : Double 
 	res3 = 42 + dotProduct(m1, inverse(m1))
 	Var sol3 : Double = 44.5
-	//compare(res3,sol3,0.01)
+	compare(res3,sol3,0.01)
 
 	print('stage 3 done')
 
-/*
+
 	Var res5 : Matrix<Double, 2, 2>
 	res5 = inverse(getSlice(m1,0,0,2,2))
 
@@ -44,10 +44,10 @@ Function Application ( ) : Unit {
 	compare(res5, sol5, 0.001)
 
 	print('stage 4 done')
-*/
+
 	m1 = m2 * m1
 	Var sol6 : Matrix<Double, 2, 2> = {{9,14},{13,18}}
-	//compare(m1, sol6, 0.001)
+	compare(m1, sol6, 0.001)
 
 	print('stage 5 done')
 

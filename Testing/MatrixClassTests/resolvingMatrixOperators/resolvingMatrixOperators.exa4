@@ -32,10 +32,7 @@ Function Application ( ) : Unit {
 
 	
 	// add matrices
-	Var addMatrices_res1 : Matrix<Real, 2, 2> = (m2 + m1) 
-	Var addMatrices_sol1 : Matrix<Real, 2, 2> = {{2, 4},{6, 8}}
-	//compare(addMatrices_res1, addMatrices_sol1,prec)
-
+	
 	Var addMatrices_res2 : Matrix<Real, 2, 2> = (m2 + 1) + m1 + -2
 	Var addMatrices_sol2 : Matrix<Real, 2, 2> = {{1, 3},{5, 7}}
 	compare(addMatrices_res2, addMatrices_sol2,prec)
@@ -66,6 +63,7 @@ Function Application ( ) : Unit {
 	Var addMatrices_sol4 : Matrix<Double, 2, 2> = {{3, 5},{7, 9}}
 	compare(addMatrices_res4, addMatrices_sol4,prec)
 	compare(addMatrices_res5, addMatrices_sol4,prec)
+print('stage 0 done')
 
 	// mult matrices
 	Var multMatrices_res1 : Matrix<Double, 2, 2> 
@@ -88,7 +86,7 @@ Function Application ( ) : Unit {
 	Var multMatrices_res6 : Matrix<Double, 2, 2> = m2 * 3 * m1 * 25 * m1
 	Var multMatrices_sol6 : Matrix<Double, 2, 2> = {{2775,4050},{6075,8850}}
 	compare(multMatrices_res6,multMatrices_sol6,0.1)
-
+print('stage 1 done')
 	// subtract matrices	
 	Var subMatrices_res1 : Matrix<Double, 2, 2> = m2 - m1 
 	Var subMatrices_sol1 : Matrix<Double, 2, 2> = {{0, 0},{0, 0}}
@@ -102,7 +100,7 @@ Function Application ( ) : Unit {
 	Var subMatrices_res3 : Matrix<Double, 2, 2> = 1 - m1
 	Var subMatrices_sol3 : Matrix<Double, 2, 2> = {{0,-1},{-2,-3}}
 	compare(subMatrices_res3, subMatrices_sol3, 0.1)
-
+print('stage 2 done')
 	// elementwise multiplication
 	Var multelemMatrices_res1 : Matrix<Double, 2, 2> = m2 .* m1 
 	Var multelemMatrices_res2 : Matrix<Double, 2, 2> = v2 .* m1
@@ -113,7 +111,7 @@ Function Application ( ) : Unit {
 	compare(multelemMatrices_res1, multelemMatrices_sol1,prec)
 	compare(multelemMatrices_res2, multelemMatrices_sol2,prec)
 	compare(multelemMatrices_res3, multelemMatrices_sol2,prec)
-
+print('stage 3 done')
 	// elementwise division
 	Var divelemMatrices_res1 : Matrix<Double, 2, 2> = m2 ./ m1 
 	Var divelemMatrices_res2 : Matrix<Double, 2, 2> 
@@ -125,6 +123,6 @@ Function Application ( ) : Unit {
 	compare(divelemMatrices_res1, divelemMatrices_sol1,prec)
 	compare(divelemMatrices_res2, divelemMatrices_sol2,prec)
 	compare(divelemMatrices_res3, divelemMatrices_sol3,prec)
-	
+print('stage 4 done')
 }
 

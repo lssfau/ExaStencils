@@ -136,7 +136,7 @@ case class IR_GetElement(
 object IR_SetSlice {
   def apply(args : IR_Expression*) = {
     (args(3), args(4)) match {
-      case (r : IR_Number, c : IR_Number) if (r.asInstanceOf[IR_IntegerConstant].v == 1 && c.asInstanceOf[IR_IntegerConstant].v == 1) => IR_SetElement(args(0), args(1), args(2), args(5))
+     case (r : IR_Number, c : IR_Number) if (r.asInstanceOf[IR_IntegerConstant].v == 1 && c.asInstanceOf[IR_IntegerConstant].v == 1) => IR_SetElement(args(0), args(1), args(2), args(5))
       case _                                                                                                                          => new IR_SetSlice(args.to[ListBuffer])
     }
   }

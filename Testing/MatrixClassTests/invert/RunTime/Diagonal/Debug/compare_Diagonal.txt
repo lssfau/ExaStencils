@@ -1,1 +1,0 @@
-diff: ./invert/Runtime/Diagonal/Debug/run_Diagonal_refc.txt: No such file or directory

@@ -437,7 +437,6 @@ object L4_Parser extends ExaParser with PackratParsers {
     ^^ { case id ~ level => L4_UnresolvedAccess(id, Some(level)) })
 
 
-//FIXME parser error in stokes
   lazy val genericAccess = (
     locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ matIndex.? ^^ {
         case id ~ slot ~ level ~ offset ~ matIdx =>
@@ -445,16 +444,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
       ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None, None) })
     ) // component acccess mit spitzen klammern
-/*
-  //FIXME index prolly collides with stencils entry -> only parser matIndex within genericAccess, not alone
-   lazy val matIndex = (index ||| rangeIndex1d) ~ (index ||| rangeIndex1d).? ^^ {
-     case matIdxY ~ matIdxX =>
-     matIdxX.isDefined match {
-       case false  => Array[L4_Index](matIdxY)
-       case true   => Array[L4_Index](matIdxY, matIdxX.get)
-     }
-   }
-*/
+
     lazy val matIndex = (index ||| rangeIndex1d) ~ (index ||| rangeIndex1d) ^^ {
 
     case matIdxY ~ matIdxX =>

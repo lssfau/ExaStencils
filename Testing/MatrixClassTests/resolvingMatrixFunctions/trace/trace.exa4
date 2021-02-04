@@ -17,5 +17,6 @@ Function Application ( ) : Unit {
 	Var t2 : Double = trace(m2)
 	compare(t2,1.312 + 4.123,prec)
 	compare(t1,5,prec)
+	print('stage 0 done')
 }
 

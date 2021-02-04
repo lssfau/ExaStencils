@@ -20,6 +20,7 @@ import exastencils.base.ir.IR_Multiplication
 import exastencils.base.ir.IR_PlainInternalFunctionReference
 import exastencils.base.ir.IR_PreDecrement
 import exastencils.base.ir.IR_PreIncrement
+import exastencils.base.ir.IR_Scope
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_UnitDatatype
 import exastencils.base.ir.IR_VariableAccess
@@ -202,7 +203,10 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
             if(Knowledge.experimental_matrixDebugConfig)
               Logger.warn(s"classified local matrix as: ${A.asInstanceOf[IR_MatrixExpression].shape.get.toStringList()}")
           }
-          A.asInstanceOf[IR_MatrixExpression]
+          A match {
+            case n : IR_Number => IR_MatrixExpression.fromSingleExpression(n.datatype, 1, 1, n)
+            case me : IR_MatrixExpression => me
+          }
         }
     }
   }
