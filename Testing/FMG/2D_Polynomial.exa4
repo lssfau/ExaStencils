@@ -90,7 +90,7 @@ Function VCycle_0@coarsest {
 		}
 		Var alpha : Real = ( ( res * res ) / alphaDenom )
 		loop over Solution@current {
-			Solution[active]@current += ( alpha * VecP@current )
+			Solution<active>@current += ( alpha * VecP@current )
 			Residual@current -= ( alpha * VecGradP@current )
 		}
 		Var nextRes : Real = NormResidual_0@current (  )
@@ -121,17 +121,17 @@ Function VCycle@((coarsest + 1) to finest) {
 }
 
 Function Smoother@((coarsest + 1) to finest) {
-	communicate ghost of Solution[active]@current
+	communicate ghost of Solution<active>@current
 	loop over Solution@current {
-		Solution[next]@current = ( Solution[active]@current + ( ( ( 1.0 / diag ( Laplace@current ) ) * 0.8 ) * ( RHS@current - ( Laplace@current * Solution[active]@current ) ) ) )
+		Solution<next>@current = ( Solution<active>@current + ( ( ( 1.0 / diag ( Laplace@current ) ) * 0.8 ) * ( RHS@current - ( Laplace@current * Solution<active>@current ) ) ) )
 	}
 	advance Solution@current
 }
 
 Function UpResidual@all {
-	communicate Solution[active]@current
+	communicate Solution<active>@current
 	loop over Residual@current {
-		Residual@current = ( RHS@current - ( Laplace@current * Solution[active]@current ) )
+		Residual@current = ( RHS@current - ( Laplace@current * Solution<active>@current ) )
 	}
 }
 
@@ -146,7 +146,7 @@ Function NormResidual_0@(finest, coarsest) : Real {
 Function NormError_0@(finest) : Real {
 	Var err : Real = 0
 	loop over Solution@current where ( ( i0 > 0 ) && ( i1 > 0 ) ) with reduction ( max : err ) {
-		Var curErr : Real = fabs ( ( Solution[active]@current - ( ( vf_nodePosition_x@current * vf_nodePosition_x@current ) - ( vf_nodePosition_y@current * vf_nodePosition_y@current ) ) ) )
+		Var curErr : Real = fabs ( ( Solution<active>@current - ( ( vf_nodePosition_x@current * vf_nodePosition_x@current ) - ( vf_nodePosition_y@current * vf_nodePosition_y@current ) ) ) )
 		err = max ( err, curErr )
 	}
 	return err
@@ -160,21 +160,21 @@ Function Restriction@((coarsest + 1) to finest) {
 }
 
 Function Correction@((coarsest + 1) to finest) {
-	communicate ghost of Solution[active]@coarser
+	communicate ghost of Solution<active>@coarser
 	loop over Solution@current {
-		Solution[active]@current += ( CorrectionStencil@current * Solution[active]@coarser )
+		Solution<active>@current += ( CorrectionStencil@current * Solution<active>@coarser )
 	}
 }
 
 Function SetSolution@all ( value : Real ) {
 	loop over Solution@current {
-		Solution[active]@current = value
+		Solution<active>@current = value
 	}
 }
 
 Function InitSolution {
 	loop over Solution@finest {
-		Solution[active]@finest = 0
+		Solution<active>@finest = 0
 	}
 }
 
@@ -185,35 +185,35 @@ Function InitRHS@all {
 }
 
 Function SetFuncDir@all {
-	loop over Solution[0]@current only dup [-1, 0] on boundary {
-		Solution[0]@current = ( ( vf_nodePosition_x@current * vf_nodePosition_x@current ) - ( vf_nodePosition_y@current * vf_nodePosition_y@current ) )
+	loop over Solution<0>@current only dup [-1, 0] on boundary {
+		Solution<0>@current = ( ( vf_nodePosition_x@current * vf_nodePosition_x@current ) - ( vf_nodePosition_y@current * vf_nodePosition_y@current ) )
 	}
-	loop over Solution[1]@current only dup [-1, 0] on boundary {
-		Solution[1]@current = ( ( vf_nodePosition_x@current * vf_nodePosition_x@current ) - ( vf_nodePosition_y@current * vf_nodePosition_y@current ) )
+	loop over Solution<1>@current only dup [-1, 0] on boundary {
+		Solution<1>@current = ( ( vf_nodePosition_x@current * vf_nodePosition_x@current ) - ( vf_nodePosition_y@current * vf_nodePosition_y@current ) )
 	}
-	loop over Solution[0]@current only dup [1, 0] on boundary {
-		Solution[0]@current = ( ( vf_nodePosition_x@current * vf_nodePosition_x@current ) - ( vf_nodePosition_y@current * vf_nodePosition_y@current ) )
+	loop over Solution<0>@current only dup [1, 0] on boundary {
+		Solution<0>@current = ( ( vf_nodePosition_x@current * vf_nodePosition_x@current ) - ( vf_nodePosition_y@current * vf_nodePosition_y@current ) )
 	}
-	loop over Solution[1]@current only dup [1, 0] on boundary {
-		Solution[1]@current = ( ( vf_nodePosition_x@current * vf_nodePosition_x@current ) - ( vf_nodePosition_y@current * vf_nodePosition_y@current ) )
+	loop over Solution<1>@current only dup [1, 0] on boundary {
+		Solution<1>@current = ( ( vf_nodePosition_x@current * vf_nodePosition_x@current ) - ( vf_nodePosition_y@current * vf_nodePosition_y@current ) )
 	}
-	loop over Solution[0]@current only dup [0, -1] on boundary {
-		Solution[0]@current = ( ( vf_nodePosition_x@current * vf_nodePosition_x@current ) - ( vf_nodePosition_y@current * vf_nodePosition_y@current ) )
+	loop over Solution<0>@current only dup [0, -1] on boundary {
+		Solution<0>@current = ( ( vf_nodePosition_x@current * vf_nodePosition_x@current ) - ( vf_nodePosition_y@current * vf_nodePosition_y@current ) )
 	}
-	loop over Solution[1]@current only dup [0, -1] on boundary {
-		Solution[1]@current = ( ( vf_nodePosition_x@current * vf_nodePosition_x@current ) - ( vf_nodePosition_y@current * vf_nodePosition_y@current ) )
+	loop over Solution<1>@current only dup [0, -1] on boundary {
+		Solution<1>@current = ( ( vf_nodePosition_x@current * vf_nodePosition_x@current ) - ( vf_nodePosition_y@current * vf_nodePosition_y@current ) )
 	}
-	loop over Solution[0]@current only dup [0, 1] on boundary {
-		Solution[0]@current = ( ( vf_nodePosition_x@current * vf_nodePosition_x@current ) - ( vf_nodePosition_y@current * vf_nodePosition_y@current ) )
+	loop over Solution<0>@current only dup [0, 1] on boundary {
+		Solution<0>@current = ( ( vf_nodePosition_x@current * vf_nodePosition_x@current ) - ( vf_nodePosition_y@current * vf_nodePosition_y@current ) )
 	}
-	loop over Solution[1]@current only dup [0, 1] on boundary {
-		Solution[1]@current = ( ( vf_nodePosition_x@current * vf_nodePosition_x@current ) - ( vf_nodePosition_y@current * vf_nodePosition_y@current ) )
+	loop over Solution<1>@current only dup [0, 1] on boundary {
+		Solution<1>@current = ( ( vf_nodePosition_x@current * vf_nodePosition_x@current ) - ( vf_nodePosition_y@current * vf_nodePosition_y@current ) )
 	}
 }
 
 Function ResetBC@all {
-	apply bc to Solution[0]@current
-	apply bc to Solution[1]@current
+	apply bc to Solution<0>@current
+	apply bc to Solution<1>@current
 }
 
 Function FMG@(all but (finest)) {
@@ -309,20 +309,20 @@ Function Application {
 	initFieldsWithZero (  )
 	InitRHS@finest (  )
 	InitSolution (  )
-	apply bc to Solution[0]@0
-	apply bc to Solution[1]@0
-	apply bc to Solution[0]@1
-	apply bc to Solution[1]@1
-	apply bc to Solution[0]@2
-	apply bc to Solution[1]@2
-	apply bc to Solution[0]@3
-	apply bc to Solution[1]@3
-	apply bc to Solution[0]@4
-	apply bc to Solution[1]@4
-	apply bc to Solution[0]@5
-	apply bc to Solution[1]@5
-	apply bc to Solution[0]@6
-	apply bc to Solution[1]@6
+	apply bc to Solution<0>@0
+	apply bc to Solution<1>@0
+	apply bc to Solution<0>@1
+	apply bc to Solution<1>@1
+	apply bc to Solution<0>@2
+	apply bc to Solution<1>@2
+	apply bc to Solution<0>@3
+	apply bc to Solution<1>@3
+	apply bc to Solution<0>@4
+	apply bc to Solution<1>@4
+	apply bc to Solution<0>@5
+	apply bc to Solution<1>@5
+	apply bc to Solution<0>@6
+	apply bc to Solution<1>@6
 	apply bc to VecP@coarsest
 	Solve (  )
 	destroyGlobals (  )

@@ -80,3 +80,4 @@ configList+="OpticalFlow/3D_FD_OptFlow_fromL4_Vec "
 # LinearElasticity
 
 configList+="LinearElasticity/2D_FD_LinearElasticity_fromL2 "
+

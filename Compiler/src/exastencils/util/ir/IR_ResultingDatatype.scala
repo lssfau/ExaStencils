@@ -40,6 +40,11 @@ object IR_ResultingDatatype {
         case IR_ComplexDatatype(dt)      => IR_ComplexDatatype(dt)
         case IR_VectorDatatype(dt, l, r) => IR_VectorDatatype(dt, l, r)
         case IR_MatrixDatatype(dt, m, n) => IR_MatrixDatatype(dt, m, n)
+        case IR_TensorDatatype1(dt, d)      => IR_TensorDatatype1(dt, d)
+        case IR_TensorDatatype2(dt, d)      => IR_TensorDatatype2(dt, d)
+        case IR_TensorDatatypeN(dt, d, 1)   => IR_TensorDatatype1(dt, d)
+        case IR_TensorDatatypeN(dt, d, 2)   => IR_TensorDatatype2(dt, d)
+        case IR_TensorDatatypeN(dt, d, ord) => IR_TensorDatatypeN(dt, d, ord)
       }
       case IR_RealDatatype             => b match {
         case IR_IntegerDatatype          => IR_RealDatatype
@@ -52,6 +57,11 @@ object IR_ResultingDatatype {
         case IR_ComplexDatatype(dt)      => IR_ComplexDatatype(IR_ResultingDatatype(dt, a))
         case IR_VectorDatatype(dt, l, r) => IR_VectorDatatype(IR_ResultingDatatype(dt, a), l, r)
         case IR_MatrixDatatype(dt, m, n) => IR_MatrixDatatype(IR_ResultingDatatype(dt, a), m, n)
+        case IR_TensorDatatype1(dt, d)      => IR_TensorDatatype1(IR_ResultingDatatype(dt, a), d)
+        case IR_TensorDatatype2(dt, d)      => IR_TensorDatatype2(IR_ResultingDatatype(dt, a), d)
+        case IR_TensorDatatypeN(dt, d, 1)   => IR_TensorDatatype1(IR_ResultingDatatype(dt, a), d)
+        case IR_TensorDatatypeN(dt, d, 2)   => IR_TensorDatatype2(IR_ResultingDatatype(dt, a), d)
+        case IR_TensorDatatypeN(dt, d, ord) => IR_TensorDatatypeN(IR_ResultingDatatype(dt, a), d, ord)
       }
       case IR_FloatDatatype            => b match {
         case IR_IntegerDatatype          => IR_RealDatatype
@@ -64,6 +74,11 @@ object IR_ResultingDatatype {
         case IR_ComplexDatatype(dt)      => IR_ComplexDatatype(IR_ResultingDatatype(dt, a))
         case IR_VectorDatatype(dt, l, r) => IR_VectorDatatype(IR_ResultingDatatype(dt, a), l, r)
         case IR_MatrixDatatype(dt, m, n) => IR_MatrixDatatype(IR_ResultingDatatype(dt, a), m, n)
+        case IR_TensorDatatype1(dt, d)      => IR_TensorDatatype1(IR_ResultingDatatype(dt, a), d)
+        case IR_TensorDatatype2(dt, d)      => IR_TensorDatatype2(IR_ResultingDatatype(dt, a), d)
+        case IR_TensorDatatypeN(dt, d, 1)   => IR_TensorDatatype1(IR_ResultingDatatype(dt, a), d)
+        case IR_TensorDatatypeN(dt, d, 2)   => IR_TensorDatatype2(IR_ResultingDatatype(dt, a), d)
+        case IR_TensorDatatypeN(dt, d, ord) => IR_TensorDatatypeN(IR_ResultingDatatype(dt, a), d, ord)
       }
       case IR_DoubleDatatype           => b match {
         case IR_IntegerDatatype          => IR_DoubleDatatype
@@ -76,6 +91,11 @@ object IR_ResultingDatatype {
         case IR_ComplexDatatype(dt)      => IR_ComplexDatatype(IR_ResultingDatatype(dt, a))
         case IR_VectorDatatype(dt, l, r) => IR_VectorDatatype(IR_ResultingDatatype(dt, a), l, r)
         case IR_MatrixDatatype(dt, m, n) => IR_MatrixDatatype(IR_ResultingDatatype(dt, a), m, n)
+        case IR_TensorDatatype1(dt, d)      => IR_TensorDatatype1(IR_ResultingDatatype(dt, a), d)
+        case IR_TensorDatatype2(dt, d)      => IR_TensorDatatype2(IR_ResultingDatatype(dt, a), d)
+        case IR_TensorDatatypeN(dt, d, 1)   => IR_TensorDatatype1(IR_ResultingDatatype(dt, a), d)
+        case IR_TensorDatatypeN(dt, d, 2)   => IR_TensorDatatype2(IR_ResultingDatatype(dt, a), d)
+        case IR_TensorDatatypeN(dt, d, ord) => IR_TensorDatatypeN(IR_ResultingDatatype(dt, a), d, ord)
       }
       case IR_StringDatatype           => b match {
         case IR_IntegerDatatype          => IR_StringDatatype
@@ -88,6 +108,9 @@ object IR_ResultingDatatype {
         case IR_ComplexDatatype(dt)      => IR_StringDatatype
         case IR_VectorDatatype(dt, l, r) => IR_StringDatatype
         case IR_MatrixDatatype(dt, m, n) => IR_StringDatatype
+        case IR_TensorDatatype1(dt, d)      => IR_StringDatatype
+        case IR_TensorDatatype2(dt, d)      => IR_StringDatatype
+        case IR_TensorDatatypeN(dt, d, ord) => IR_StringDatatype
       }
       case IR_CharDatatype             => b match {
         case IR_IntegerDatatype          => IR_IntegerDatatype
@@ -99,11 +122,21 @@ object IR_ResultingDatatype {
         case IR_ComplexDatatype(dt)      => IR_ComplexDatatype(dt)
         case IR_VectorDatatype(dt, l, r) => IR_VectorDatatype(dt, l, r)
         case IR_MatrixDatatype(dt, m, n) => IR_MatrixDatatype(dt, m, n)
+        case IR_TensorDatatype1(dt, d)      => IR_TensorDatatype1(dt, d)
+        case IR_TensorDatatype2(dt, d)      => IR_TensorDatatype2(dt, d)
+        case IR_TensorDatatypeN(dt, d, 1)   => IR_TensorDatatype1(dt, d)
+        case IR_TensorDatatypeN(dt, d, 2)   => IR_TensorDatatype2(dt, d)
+        case IR_TensorDatatypeN(dt, d, ord) => IR_TensorDatatypeN(dt, d, ord)
       }
       case IR_ArrayDatatype(dt, l)     => IR_ArrayDatatype(IR_ResultingDatatype(dt, a), l)
       case IR_ComplexDatatype(dt)      => IR_ComplexDatatype(IR_ResultingDatatype(dt, a))
       case IR_VectorDatatype(dt, l, r) => IR_VectorDatatype(IR_ResultingDatatype(dt, a), l, r)
       case IR_MatrixDatatype(dt, m, n) => IR_MatrixDatatype(IR_ResultingDatatype(dt, a.resolveBaseDatatype), m, n)
+      case IR_TensorDatatype1(dt, d)      => IR_TensorDatatype1(IR_ResultingDatatype(dt, a.resolveBaseDatatype), d)
+      case IR_TensorDatatype2(dt, d)      => IR_TensorDatatype2(IR_ResultingDatatype(dt, a.resolveBaseDatatype), d)
+      case IR_TensorDatatypeN(dt, d, 1)   => IR_TensorDatatype1(IR_ResultingDatatype(dt, a.resolveBaseDatatype), d)
+      case IR_TensorDatatypeN(dt, d, 2)   => IR_TensorDatatype2(IR_ResultingDatatype(dt, a.resolveBaseDatatype), d)
+      case IR_TensorDatatypeN(dt, d, ord) => IR_TensorDatatypeN(IR_ResultingDatatype(dt, a.resolveBaseDatatype), d, ord)
       case x : IR_SpecialDatatype      => x
     }
   }

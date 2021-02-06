@@ -95,7 +95,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
   private def updateSlots(stmts : ListBuffer[IR_Statement], fieldOffset : HashMap[FieldKey, Int]) : Unit = {
     object AdaptFieldSlots extends QuietDefaultStrategy("Adapt field slots") {
       this += new Transformation("now", {
-        case fa @ IR_FieldAccess(field, IR_SlotAccess(slot, offset), _, _, _, _) =>
+        case fa @ IR_FieldAccess(field, IR_SlotAccess(slot, offset), _, _, _, _, _) =>
           fa.slot = IR_SlotAccess(slot, offset + fieldOffset.getOrElse(FieldKey(field), 0))
           fa
 

@@ -72,6 +72,9 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     L4_ExternalFieldCollection
     L4_EquationCollection
     L4_FieldCombinationCollection
+
+
+    L4_PrepareAccesses.strategies += L4_PrepareMatrixAccesses
   }
 
   override def shutdown() : Unit = {
@@ -97,7 +100,11 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
       L4_AdaptFieldLayoutsForComm.apply()
     }
 
-    ExaRootNode.mergeL4(L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node)))
+    //try {
+      ExaRootNode.mergeL4(L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node)))
+    //} catch {
+    //  case foo : Exception => Logger.error("first parse")
+    //}
     ExaRootNode.l4_root.flatten()
 
     if (true) {
@@ -121,7 +128,11 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     L4_KnowledgeContainer.clear()
 
     val l4FileName = if (Settings.getDebugL4file.nonEmpty) Settings.getDebugL4file else "debugLayer4"
-    ExaRootNode.l4_root = L4_Parser.parse(oldL4Code, l4FileName)
+    try {
+      ExaRootNode.l4_root = L4_Parser.parse(oldL4Code, l4FileName)
+    } catch {
+      case foo : Exception => Logger.error("second parse")
+    }
     ExaRootNode.l4_root.flatten()
 
     if (ExaRootNode.l4_root.nodes.nonEmpty) {
@@ -216,6 +227,9 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
 
       L4_ResolveStencilComponentAccesses.apply()
       L4_ResolveStencilFieldComponentAccesses.apply()
+
+      //TODO Zeus: Complex Access
+      L4_ValidateComplexAccess.apply()
     }
 
     if (Settings.timeStrategies) StrategyTimer.startTiming("Progressing from L4 to IR")

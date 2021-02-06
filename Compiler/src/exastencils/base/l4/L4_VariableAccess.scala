@@ -70,7 +70,7 @@ object L4_ResolveVariableAccesses extends DefaultStrategy("Resolve value and var
         if (Knowledge.experimental_l4_inlineValueDeclarations && decl.isConst)
           Duplicate(decl.initialValue.get)
         else
-          L4_PlainVariableAccess(decl.name, decl.datatype, decl.isConst)
+            L4_PlainVariableAccess(decl.name, decl.datatype, decl.isConst)
       } else {
         // access to leveled variable
         val lvl = {

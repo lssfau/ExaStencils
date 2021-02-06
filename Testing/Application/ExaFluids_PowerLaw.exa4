@@ -203,42 +203,42 @@ Globals {
 /// specialized boundary handling functions
 Function applyBC_t@finest ( ) : Unit {
 	loop over phi7@current only ghost [-1,  0,  0] on boundary {
-		phi7[active]@current = 2.0 * th - phi7[active]@current@[ 1,  0,  0]
+		phi7<active>@current = 2.0 * th - phi7<active>@current@[ 1,  0,  0]
 	}
 	loop over phi7@current only ghost [ 1,  0,  0] on boundary {
-		phi7[active]@current = 2.0 * tc - phi7[active]@current@[-1,  0,  0]
+		phi7<active>@current = 2.0 * tc - phi7<active>@current@[-1,  0,  0]
 	}
 	loop over phi7@current only ghost [ 0, -1,  0] on boundary {
-		phi7[active]@current = phi7[active]@current@[ 0,  1,  0]
+		phi7<active>@current = phi7<active>@current@[ 0,  1,  0]
 	}
 	loop over phi7@current only ghost [ 0,  1,  0] on boundary {
-		phi7[active]@current = phi7[active]@current@[ 0, -1,  0]
+		phi7<active>@current = phi7<active>@current@[ 0, -1,  0]
 	}
 	loop over phi7@current only ghost [ 0,  0, -1] on boundary {
-		phi7[active]@current = phi7[active]@current@[ 0,  0,  1]
+		phi7<active>@current = phi7<active>@current@[ 0,  0,  1]
 	}
 	loop over phi7@current only ghost [ 0,  0,  1] on boundary {
-		phi7[active]@current = phi7[active]@current@[ 0,  0, -1]
+		phi7<active>@current = phi7<active>@current@[ 0,  0, -1]
 	}
 }
 Function applyBC_t@(coarsest to (finest - 1)) ( ) : Unit {
 	loop over phi7@current only ghost [-1,  0,  0] on boundary {
-		phi7[active]@current = 0.0 - phi7[active]@current@[ 1,  0,  0]
+		phi7<active>@current = 0.0 - phi7<active>@current@[ 1,  0,  0]
 	}
 	loop over phi7@current only ghost [ 1,  0,  0] on boundary {
-		phi7[active]@current = 0.0 - phi7[active]@current@[-1,  0,  0]
+		phi7<active>@current = 0.0 - phi7<active>@current@[-1,  0,  0]
 	}
 	loop over phi7@current only ghost [ 0, -1,  0] on boundary {
-		phi7[active]@current = phi7[active]@current@[ 0,  1,  0]
+		phi7<active>@current = phi7<active>@current@[ 0,  1,  0]
 	}
 	loop over phi7@current only ghost [ 0,  1,  0] on boundary {
-		phi7[active]@current = phi7[active]@current@[ 0, -1,  0]
+		phi7<active>@current = phi7<active>@current@[ 0, -1,  0]
 	}
 	loop over phi7@current only ghost [ 0,  0, -1] on boundary {
-		phi7[active]@current = phi7[active]@current@[ 0,  0,  1]
+		phi7<active>@current = phi7<active>@current@[ 0,  0,  1]
 	}
 	loop over phi7@current only ghost [ 0,  0,  1] on boundary {
-		phi7[active]@current = phi7[active]@current@[ 0,  0, -1]
+		phi7<active>@current = phi7<active>@current@[ 0,  0, -1]
 	}
 }
 
@@ -343,7 +343,7 @@ Function Solve@finest ( ) : Unit {
 
 		// reset field
 		loop over pc@current starting [-1, -1, -1] ending [-1, -1, -1] {
-			pc[active]@current = 0.0
+			pc<active>@current = 0.0
 		}
 
 		// setup stencil and rhs, and solve resulting system
@@ -363,22 +363,22 @@ Function Solve@finest ( ) : Unit {
 		apply bc to p@current
 
 		loop over u@current {
-			u[active]@current += du@current * ( pc@current@[-1, 0, 0] - pc@current )
+			u<active>@current += du@current * ( pc@current@[-1, 0, 0] - pc@current )
 		}
-		communicate u[active]@current
-		apply bc to u[active]@current
+		communicate u<active>@current
+		apply bc to u<active>@current
 
 		loop over v@current {
-			v[active]@current += dv@current * ( pc@current@[0, -1, 0] - pc@current )
+			v<active>@current += dv@current * ( pc@current@[0, -1, 0] - pc@current )
 		}
-		communicate v[active]@current
-		apply bc to v[active]@current
+		communicate v<active>@current
+		apply bc to v<active>@current
 
 		loop over w@current {
-			w[active]@current += dw@current * ( pc@current@[0, 0, -1] - pc@current )
+			w<active>@current += dw@current * ( pc@current@[0, 0, -1] - pc@current )
 		}
-		communicate w[active]@current
-		apply bc to w[active]@current
+		communicate w<active>@current
+		apply bc to w<active>@current
 
 		stopTimer ( 'PressureCorrection' )
 
@@ -441,11 +441,11 @@ Function Solve@finest ( ) : Unit {
 		Var filename_temp : String
 		buildString ( filename_temp, "temp_", index, ".csv" )
 
-		printField ( filename_rho, rho[active]@current, 2**( levels@current ( ) - 1 ) == i2 )
-		printField ( filename_u, u[active]@current, 2**( levels@current ( ) - 1 ) == i2 )
-		printField ( filename_v, v[active]@current, 2**( levels@current ( ) - 1 ) == i2 )
-		printField ( filename_w, w[active]@current, 2**( levels@current ( ) - 1 ) == i2 )
-		printField ( filename_temp, phi7[active]@current, 2**( levels@current ( ) - 1 ) == i2 )
+		printField ( filename_rho, rho<active>@current, 2**( levels@current ( ) - 1 ) == i2 )
+		printField ( filename_u, u<active>@current, 2**( levels@current ( ) - 1 ) == i2 )
+		printField ( filename_v, v<active>@current, 2**( levels@current ( ) - 1 ) == i2 )
+		printField ( filename_w, w<active>@current, 2**( levels@current ( ) - 1 ) == i2 )
+		printField ( filename_temp, phi7<active>@current, 2**( levels@current ( ) - 1 ) == i2 )
 	}*/
 
 	// print some information about achieved residuals and required steps
@@ -496,15 +496,15 @@ Function InitFields@finest ( ) : Unit {
 	// fields that are not initialized with 0
 
 	loop over rho@current {
-		rho[active]@current = rhocon
-		rho[previous]@current = rhocon
+		rho<active>@current = rhocon
+		rho<previous>@current = rhocon
 	}
 
-	communicate rho[active]@current
-	apply bc to rho[active]@current
+	communicate rho<active>@current
+	apply bc to rho<active>@current
 
-	communicate rho[previous]@current
-	apply bc to rho[previous]@current
+	communicate rho<previous>@current
+	apply bc to rho<previous>@current
 
 	loop over vis@current {
 		vis@current = visl
@@ -514,42 +514,42 @@ Function InitFields@finest ( ) : Unit {
 	apply bc to vis@current
 
 	loop over phi7@current {
-		phi7[active]@current = th
-		phi7[previous]@current = th
+		phi7<active>@current = th
+		phi7<previous>@current = th
 	}
 
-	communicate phi7[active]@current
-	apply bc to phi7[active]@current
+	communicate phi7<active>@current
+	apply bc to phi7<active>@current
 
-	communicate phi7[previous]@current
-	apply bc to phi7[previous]@current
+	communicate phi7<previous>@current
+	apply bc to phi7<previous>@current
 }
 
 /// utility functions
 
 Function AdvanceFields@finest ( ) : Unit {
 	loop over phi7@current starting [-1, -1, -1] ending [-1, -1, -1] {
-		phi7[next]@current = phi7[active]@current
+		phi7<next>@current = phi7<active>@current
 	}
 	advance phi7@current
 
 	loop over u@current starting [-1, -1, -1] ending [-1, -1, -1] {
-		u[next]@current = u[active]@current
+		u<next>@current = u<active>@current
 	}
 	advance u@current
 
 	loop over v@current starting [-1, -1, -1] ending [-1, -1, -1] {
-		v[next]@current = v[active]@current
+		v<next>@current = v<active>@current
 	}
 	advance v@current
 
 	loop over w@current starting [-1, -1, -1] ending [-1, -1, -1] {
-		w[next]@current = w[active]@current
+		w<next>@current = w<active>@current
 	}
 	advance w@current
 
 	loop over rho@current starting [-1, -1, -1] ending [-1, -1, -1] {
-		rho[next]@current = rho[active]@current
+		rho<next>@current = rho<active>@current
 	}
 	advance rho@current
 }
@@ -566,19 +566,19 @@ Function UpdateProperties@finest ( ) : Unit {
 
 	loop over vis@current {
 		// Gangi et al. (Kohlrausch) Density
-		rho[active]@current = ( a_den + b_den * ( phi7[active]@current - t_ph )
-			+ c_den * ( phi7[active]@current - t_ph )**2
-			+ d_den * ( phi7[active]@current - t_ph )**3
-			+ e_den * ( phi7[active]@current - t_ph )**4 )
+		rho<active>@current = ( a_den + b_den * ( phi7<active>@current - t_ph )
+			+ c_den * ( phi7<active>@current - t_ph )**2
+			+ d_den * ( phi7<active>@current - t_ph )**3
+			+ e_den * ( phi7<active>@current - t_ph )**4 )
 
 		// Zografos et al. Specific heat, thermal conductivity and viscosity
-		Var cp : Real = ( -3755.9 + 67.953 * phi7[active]@current
-			- 0.19149 * phi7[active]@current**2
-			+ 1.7850e-4 * phi7[active]@current**3 )
-		Var cond : Real = ( -0.63262 + 7.1959e-3 * phi7[active]@current
-			- 1.144e-5 * phi7[active]@current**2
-			+ 4.2365e-9 * phi7[active]@current**3 )
-		vis@current = 3.8208e-2 / ( phi7[active]@current - 252.33 )
+		Var cp : Real = ( -3755.9 + 67.953 * phi7<active>@current
+			- 0.19149 * phi7<active>@current**2
+			+ 1.7850e-4 * phi7<active>@current**3 )
+		Var cond : Real = ( -0.63262 + 7.1959e-3 * phi7<active>@current
+			- 1.144e-5 * phi7<active>@current**2
+			+ 4.2365e-9 * phi7<active>@current**3 )
+		vis@current = 3.8208e-2 / ( phi7<active>@current - 252.33 )
 
 		gamma@current = cond / cp
 	}
@@ -586,8 +586,8 @@ Function UpdateProperties@finest ( ) : Unit {
 	communicate vis@current
 	apply bc to vis@current
 
-	communicate rho[active]@current
-	apply bc to rho[active]@current
+	communicate rho<active>@current
+	apply bc to rho<active>@current
 
 	communicate gamma@current
 	apply bc to gamma@current
@@ -598,19 +598,19 @@ Function UpdatePropertiesNN@finest ( ) : Unit {
 
 	loop over miu@current {
 		// Gangi et al. (Kohlrausch) Density
-		rho[active]@current = ( a_den + b_den * ( phi7[active]@current - t_ph )
-			+ c_den * ( phi7[active]@current - t_ph )**2
-			+ d_den * ( phi7[active]@current - t_ph )**3
-			+ e_den * ( phi7[active]@current - t_ph )**4 )
+		rho<active>@current = ( a_den + b_den * ( phi7<active>@current - t_ph )
+			+ c_den * ( phi7<active>@current - t_ph )**2
+			+ d_den * ( phi7<active>@current - t_ph )**3
+			+ e_den * ( phi7<active>@current - t_ph )**4 )
 
 		// Zografos et al. Specific heat, thermal conductivity and viscosity
-		Var cp : Real = ( -3755.9 + 67.953 * phi7[active]@current
-			- 0.19149 * phi7[active]@current**2
-			+ 1.7850e-4 * phi7[active]@current**3 )
-		Var cond : Real = ( -0.63262 + 7.1959e-3 * phi7[active]@current
-			- 1.144e-5 * phi7[active]@current**2
-			+ 4.2365e-9 * phi7[active]@current**3 )
-		miu@current = 3.8208e-2 / ( phi7[active]@current - 252.33 )
+		Var cp : Real = ( -3755.9 + 67.953 * phi7<active>@current
+			- 0.19149 * phi7<active>@current**2
+			+ 1.7850e-4 * phi7<active>@current**3 )
+		Var cond : Real = ( -0.63262 + 7.1959e-3 * phi7<active>@current
+			- 1.144e-5 * phi7<active>@current**2
+			+ 4.2365e-9 * phi7<active>@current**3 )
+		miu@current = 3.8208e-2 / ( phi7<active>@current - 252.33 )
 
 		gamma@current = cond / cp
 	}
@@ -618,8 +618,8 @@ Function UpdatePropertiesNN@finest ( ) : Unit {
 	communicate miu@current
 	apply bc to miu@current
 
-	communicate rho[active]@current
-	apply bc to rho[active]@current
+	communicate rho<active>@current
+	apply bc to rho<active>@current
 
 	communicate gamma@current
 	apply bc to gamma@current
@@ -670,14 +670,14 @@ Function UpdatePropertiesNN@finest ( ) : Unit {
 
 Function CompileStencil_u@finest (  ) : Unit {
 	loop over AuStencil@current {
-		Val flow_e : Real = integrateOverXStaggeredEastFace ( u[active]@current * rho[active]@current )
-		Val flow_w : Real = integrateOverXStaggeredWestFace ( u[active]@current * rho[active]@current )
+		Val flow_e : Real = integrateOverXStaggeredEastFace ( u<active>@current * rho<active>@current )
+		Val flow_w : Real = integrateOverXStaggeredWestFace ( u<active>@current * rho<active>@current )
 
-		Val flow_n : Real = integrateOverXStaggeredNorthFace ( v[active]@current * rho[active]@current )
-		Val flow_s : Real = integrateOverXStaggeredSouthFace ( v[active]@current * rho[active]@current )
+		Val flow_n : Real = integrateOverXStaggeredNorthFace ( v<active>@current * rho<active>@current )
+		Val flow_s : Real = integrateOverXStaggeredSouthFace ( v<active>@current * rho<active>@current )
 
-		Val flow_t : Real = integrateOverXStaggeredTopFace ( w[active]@current * rho[active]@current )
-		Val flow_b : Real = integrateOverXStaggeredBottomFace ( w[active]@current * rho[active]@current )
+		Val flow_t : Real = integrateOverXStaggeredTopFace ( w<active>@current * rho<active>@current )
+		Val flow_b : Real = integrateOverXStaggeredBottomFace ( w<active>@current * rho<active>@current )
 
 		Val diff_e : Real = integrateOverXStaggeredEastFace ( vis@current ) / vf_cellWidth_x@current
 		Val diff_w : Real = integrateOverXStaggeredWestFace ( vis@current ) / vf_cellWidth_x@current@[-1,  0,  0]
@@ -699,19 +699,19 @@ Function CompileStencil_u@finest (  ) : Unit {
 
 		Var smasa : Real = (
 			( flow_e - flow_w + flow_n - flow_s + flow_t - flow_b ) / vf_xStagCellVolume@current
-			+ ( rho[active]@current - rho[previous]@current ) / dt )
+			+ ( rho<active>@current - rho<previous>@current ) / dt )
 		smasa = max ( 0.0, smasa )
 
 		AuStencil@current:[ 0,  0,  0] = smasa
-		AuStencil@current:[ 0,  0,  0] += evalAtWestFace ( rho[active]@current ) / dt
+		AuStencil@current:[ 0,  0,  0] += evalAtWestFace ( rho<active>@current ) / dt
 		AuStencil@current:[ 0,  0,  0] = ( AuStencil@current:[ 0,  0,  0] * vf_xStagCellVolume@current
 			- AuStencil@current:[ 1,  0,  0] - AuStencil@current:[-1,  0,  0]
 			- AuStencil@current:[ 0,  1,  0] - AuStencil@current:[ 0, -1,  0]
 			- AuStencil@current:[ 0,  0,  1] - AuStencil@current:[ 0,  0, -1] ) / relax_1
 
-		rhs_u@current = ( u[active]@current * smasa
-			+ u[previous]@current * evalAtWestFace ( rho[previous]@current ) / dt )
-		rhs_u@current = rhs_u@current * vf_xStagCellVolume@current + ( 1.0 - relax_1 ) * AuStencil@current:[ 0,  0,  0] * u[active]@current
+		rhs_u@current = ( u<active>@current * smasa
+			+ u<previous>@current * evalAtWestFace ( rho<previous>@current ) / dt )
+		rhs_u@current = rhs_u@current * vf_xStagCellVolume@current + ( 1.0 - relax_1 ) * AuStencil@current:[ 0,  0,  0] * u<active>@current
 		rhs_u@current += ( vf_cellWidth_y@current * vf_cellWidth_z@current ) * ( p@current@[-1,  0,  0] - p@current )
 	}
 
@@ -731,14 +731,14 @@ Function CompileStencil_u@finest (  ) : Unit {
 
 Function CompileStencil_v@finest (  ) : Unit {
 	loop over AvStencil@current {
-		Val flow_e : Real = integrateOverYStaggeredEastFace ( u[active]@current * rho[active]@current )
-		Val flow_w : Real = integrateOverYStaggeredWestFace ( u[active]@current * rho[active]@current )
+		Val flow_e : Real = integrateOverYStaggeredEastFace ( u<active>@current * rho<active>@current )
+		Val flow_w : Real = integrateOverYStaggeredWestFace ( u<active>@current * rho<active>@current )
 
-		Val flow_n : Real = integrateOverYStaggeredNorthFace ( v[active]@current * rho[active]@current )
-		Val flow_s : Real = integrateOverYStaggeredSouthFace ( v[active]@current * rho[active]@current )
+		Val flow_n : Real = integrateOverYStaggeredNorthFace ( v<active>@current * rho<active>@current )
+		Val flow_s : Real = integrateOverYStaggeredSouthFace ( v<active>@current * rho<active>@current )
 
-		Val flow_t : Real = integrateOverYStaggeredTopFace ( w[active]@current * rho[active]@current )
-		Val flow_b : Real = integrateOverYStaggeredBottomFace ( w[active]@current * rho[active]@current )
+		Val flow_t : Real = integrateOverYStaggeredTopFace ( w<active>@current * rho<active>@current )
+		Val flow_b : Real = integrateOverYStaggeredBottomFace ( w<active>@current * rho<active>@current )
 
 		Val diff_e : Real = integrateOverYStaggeredEastFace ( evalAtYStaggeredEastFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current@[ 1,  0,  0]
 		Val diff_w : Real = integrateOverYStaggeredWestFace ( evalAtYStaggeredWestFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current
@@ -760,20 +760,20 @@ Function CompileStencil_v@finest (  ) : Unit {
 
 		Var smasa : Real = (
 			( flow_e - flow_w + flow_n - flow_s + flow_t - flow_b ) / vf_yStagCellVolume@current
-			+ ( rho[active]@current - rho[previous]@current ) / dt )
+			+ ( rho<active>@current - rho<previous>@current ) / dt )
 		smasa = max ( 0.0, smasa )
 
 		AvStencil@current:[ 0,  0,  0] = smasa
-		AvStencil@current:[ 0,  0,  0] += evalAtSouthFace ( rho[active]@current ) / dt
+		AvStencil@current:[ 0,  0,  0] += evalAtSouthFace ( rho<active>@current ) / dt
 		AvStencil@current:[ 0,  0,  0] = ( AvStencil@current:[ 0,  0,  0] * vf_yStagCellVolume@current
 			- AvStencil@current:[ 1,  0,  0] - AvStencil@current:[-1,  0,  0]
 			- AvStencil@current:[ 0,  1,  0] - AvStencil@current:[ 0, -1,  0]
 			- AvStencil@current:[ 0,  0,  1] - AvStencil@current:[ 0,  0, -1] ) / relax_2
 
-		rhs_v@current = -9.81 * ( rho[active]@current - rhoref ) // incorporate gravity
-		rhs_v@current += v[active]@current * smasa
-			+ v[previous]@current * evalAtSouthFace ( rho[previous]@current ) / dt
-		rhs_v@current = rhs_v@current * vf_yStagCellVolume@current + ( 1.0 - relax_2 ) * AvStencil@current:[ 0,  0,  0] * v[active]@current
+		rhs_v@current = -9.81 * ( rho<active>@current - rhoref ) // incorporate gravity
+		rhs_v@current += v<active>@current * smasa
+			+ v<previous>@current * evalAtSouthFace ( rho<previous>@current ) / dt
+		rhs_v@current = rhs_v@current * vf_yStagCellVolume@current + ( 1.0 - relax_2 ) * AvStencil@current:[ 0,  0,  0] * v<active>@current
 		rhs_v@current += ( vf_cellWidth_x@current * vf_cellWidth_z@current ) * ( p@current@[ 0, -1,  0] - p@current )
 	}
 
@@ -793,14 +793,14 @@ Function CompileStencil_v@finest (  ) : Unit {
 
 Function CompileStencil_w@finest (  ) : Unit {
 	loop over AwStencil@current {
-		Val flow_e : Real = integrateOverZStaggeredEastFace ( u[active]@current * rho[active]@current )
-		Val flow_w : Real = integrateOverZStaggeredWestFace ( u[active]@current * rho[active]@current )
+		Val flow_e : Real = integrateOverZStaggeredEastFace ( u<active>@current * rho<active>@current )
+		Val flow_w : Real = integrateOverZStaggeredWestFace ( u<active>@current * rho<active>@current )
 
-		Val flow_n : Real = integrateOverZStaggeredNorthFace ( v[active]@current * rho[active]@current )
-		Val flow_s : Real = integrateOverZStaggeredSouthFace ( v[active]@current * rho[active]@current )
+		Val flow_n : Real = integrateOverZStaggeredNorthFace ( v<active>@current * rho<active>@current )
+		Val flow_s : Real = integrateOverZStaggeredSouthFace ( v<active>@current * rho<active>@current )
 
-		Val flow_t : Real = integrateOverZStaggeredTopFace ( w[active]@current * rho[active]@current )
-		Val flow_b : Real = integrateOverZStaggeredBottomFace ( w[active]@current * rho[active]@current )
+		Val flow_t : Real = integrateOverZStaggeredTopFace ( w<active>@current * rho<active>@current )
+		Val flow_b : Real = integrateOverZStaggeredBottomFace ( w<active>@current * rho<active>@current )
 
 		Val diff_e : Real = integrateOverZStaggeredEastFace ( evalAtZStaggeredEastFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current@[ 1,  0,  0]
 		Val diff_w : Real = integrateOverZStaggeredWestFace ( evalAtZStaggeredWestFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current
@@ -822,19 +822,19 @@ Function CompileStencil_w@finest (  ) : Unit {
 
 		Var smasa : Real = (
 			( flow_e - flow_w + flow_n - flow_s + flow_t - flow_b ) / vf_zStagCellVolume@current
-			+ ( rho[active]@current - rho[previous]@current ) / dt )
+			+ ( rho<active>@current - rho<previous>@current ) / dt )
 		smasa = max ( 0.0, smasa )
 
 		AwStencil@current:[ 0,  0,  0] = smasa
-		AwStencil@current:[ 0,  0,  0] += evalAtBottomFace ( rho[active]@current ) / dt
+		AwStencil@current:[ 0,  0,  0] += evalAtBottomFace ( rho<active>@current ) / dt
 		AwStencil@current:[ 0,  0,  0] = ( AwStencil@current:[ 0,  0,  0] * vf_zStagCellVolume@current
 			- AwStencil@current:[ 1,  0,  0] - AwStencil@current:[-1,  0,  0]
 			- AwStencil@current:[ 0,  1,  0] - AwStencil@current:[ 0, -1,  0]
 			- AwStencil@current:[ 0,  0,  1] - AwStencil@current:[ 0,  0, -1] ) / relax_3
 
-		rhs_w@current = w[active]@current * smasa
-			+ w[previous]@current * evalAtBottomFace ( rho[previous]@current ) / dt
-		rhs_w@current = rhs_w@current * vf_zStagCellVolume@current + ( 1.0 - relax_3 ) * AwStencil@current:[ 0,  0,  0] * w[active]@current
+		rhs_w@current = w<active>@current * smasa
+			+ w<previous>@current * evalAtBottomFace ( rho<previous>@current ) / dt
+		rhs_w@current = rhs_w@current * vf_zStagCellVolume@current + ( 1.0 - relax_3 ) * AwStencil@current:[ 0,  0,  0] * w<active>@current
 		rhs_w@current += vf_cellWidth_x@current * vf_cellWidth_y@current * ( p@current@[ 0,  0, -1] - p@current )
 	}
 
@@ -854,12 +854,12 @@ Function CompileStencil_w@finest (  ) : Unit {
 
 Function CompileStencil_pc@finest (  ) : Unit {
 	loop over ApcStencil@current {
-		ApcStencil@current:[ 1,  0,  0] = -1.0 * integrateOverEastFace ( du@current * rho[active]@current )
-		ApcStencil@current:[-1,  0,  0] = -1.0 * integrateOverWestFace ( du@current * rho[active]@current )
-		ApcStencil@current:[ 0,  1,  0] = -1.0 * integrateOverNorthFace ( dv@current * rho[active]@current )
-		ApcStencil@current:[ 0, -1,  0] = -1.0 * integrateOverSouthFace ( dv@current * rho[active]@current )
-		ApcStencil@current:[ 0,  0,  1] = -1.0 * integrateOverTopFace ( dw@current * rho[active]@current )
-		ApcStencil@current:[ 0,  0, -1] = -1.0 * integrateOverBottomFace ( dw@current * rho[active]@current )
+		ApcStencil@current:[ 1,  0,  0] = -1.0 * integrateOverEastFace ( du@current * rho<active>@current )
+		ApcStencil@current:[-1,  0,  0] = -1.0 * integrateOverWestFace ( du@current * rho<active>@current )
+		ApcStencil@current:[ 0,  1,  0] = -1.0 * integrateOverNorthFace ( dv@current * rho<active>@current )
+		ApcStencil@current:[ 0, -1,  0] = -1.0 * integrateOverSouthFace ( dv@current * rho<active>@current )
+		ApcStencil@current:[ 0,  0,  1] = -1.0 * integrateOverTopFace ( dw@current * rho<active>@current )
+		ApcStencil@current:[ 0,  0, -1] = -1.0 * integrateOverBottomFace ( dw@current * rho<active>@current )
 
 		ApcStencil@current:[ 0,  0,  0] = -1.0 * (
 			ApcStencil@current:[ 1,  0,  0] + ApcStencil@current:[-1,  0,  0] +
@@ -867,13 +867,13 @@ Function CompileStencil_pc@finest (  ) : Unit {
 			ApcStencil@current:[ 0,  0,  1] + ApcStencil@current:[ 0,  0, -1] )
 
 		rhs_pc@current = (
-			integrateOverWestFace ( u[active]@current * rho[active]@current )
-			- integrateOverEastFace ( u[active]@current * rho[active]@current )
-			+ integrateOverSouthFace ( v[active]@current * rho[active]@current )
-			- integrateOverNorthFace ( v[active]@current * rho[active]@current )
-			+ integrateOverBottomFace ( w[active]@current * rho[active]@current )
-			- integrateOverTopFace ( w[active]@current * rho[active]@current )
-			+ vf_cellWidth_y@current * vf_cellWidth_z@current * vf_cellWidth_x@current * ( rho[previous]@current - rho[active]@current ) / dt )
+			integrateOverWestFace ( u<active>@current * rho<active>@current )
+			- integrateOverEastFace ( u<active>@current * rho<active>@current )
+			+ integrateOverSouthFace ( v<active>@current * rho<active>@current )
+			- integrateOverNorthFace ( v<active>@current * rho<active>@current )
+			+ integrateOverBottomFace ( w<active>@current * rho<active>@current )
+			- integrateOverTopFace ( w<active>@current * rho<active>@current )
+			+ vf_cellWidth_y@current * vf_cellWidth_z@current * vf_cellWidth_x@current * ( rho<previous>@current - rho<active>@current ) / dt )
 	}
 
 	// restrict stencil
@@ -882,14 +882,14 @@ Function CompileStencil_pc@finest (  ) : Unit {
 
 Function CompileStencil_t@finest (  ) : Unit {
 	loop over AtStencil@current {
-		Val flow_e : Real = integrateOverEastFace ( u[active]@current * rho[active]@current )
-		Val flow_w : Real = integrateOverWestFace ( u[active]@current * rho[active]@current )
+		Val flow_e : Real = integrateOverEastFace ( u<active>@current * rho<active>@current )
+		Val flow_w : Real = integrateOverWestFace ( u<active>@current * rho<active>@current )
 
-		Val flow_n : Real = integrateOverNorthFace ( v[active]@current * rho[active]@current )
-		Val flow_s : Real = integrateOverSouthFace ( v[active]@current * rho[active]@current )
+		Val flow_n : Real = integrateOverNorthFace ( v<active>@current * rho<active>@current )
+		Val flow_s : Real = integrateOverSouthFace ( v<active>@current * rho<active>@current )
 
-		Val flow_t : Real = integrateOverTopFace ( w[active]@current * rho[active]@current )
-		Val flow_b : Real = integrateOverBottomFace ( w[active]@current * rho[active]@current )
+		Val flow_t : Real = integrateOverTopFace ( w<active>@current * rho<active>@current )
+		Val flow_b : Real = integrateOverBottomFace ( w<active>@current * rho<active>@current )
 
 		Val diff_e : Real = integrateOverEastFace ( evalAtEastFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current@[ 1,  0,  0]
 		Val diff_w : Real = integrateOverWestFace ( evalAtWestFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current
@@ -911,18 +911,18 @@ Function CompileStencil_t@finest (  ) : Unit {
 
 		Var smasa : Real = (
 			( flow_e - flow_w + flow_n - flow_s + flow_t - flow_b ) / vf_cellVolume@current
-			+ ( rho[active]@current - rho[previous]@current ) / dt )
+			+ ( rho<active>@current - rho<previous>@current ) / dt )
 		smasa = max ( 0.0, smasa )
 
-		AtStencil@current:[ 0,  0,  0] = smasa + rho[active]@current / dt
+		AtStencil@current:[ 0,  0,  0] = smasa + rho<active>@current / dt
 		AtStencil@current:[ 0,  0,  0] = ( AtStencil@current:[ 0,  0,  0] * vf_cellVolume@current
 			- AtStencil@current:[ 1,  0,  0] - AtStencil@current:[-1,  0,  0]
 			- AtStencil@current:[ 0,  1,  0] - AtStencil@current:[ 0, -1,  0]
 			- AtStencil@current:[ 0,  0,  1] - AtStencil@current:[ 0,  0, -1] ) / relax_7
 
-		rhs_t@current = smasa * phi7[active]@current
-			+ ( rho[active]@current / dt ) * phi7[previous]@current
-		rhs_t@current = rhs_t@current * vf_cellVolume@current + ( 1.0 - relax_7 ) * AtStencil@current:[ 0,  0,  0] * phi7[active]@current
+		rhs_t@current = smasa * phi7<active>@current
+			+ ( rho<active>@current / dt ) * phi7<previous>@current
+		rhs_t@current = rhs_t@current * vf_cellVolume@current + ( 1.0 - relax_7 ) * AtStencil@current:[ 0,  0,  0] * phi7<active>@current
 	}
 
 	// restrict stencil
@@ -1068,56 +1068,56 @@ FunctionTemplate SetFieldComponent < target > ( value : Real ) : Unit {
 // instantiations
 
 Instantiate SolveComponent < VCycle_u, NormResidual_u, 100, rhs_u@current, converged_u > as Solve_u@finest
-Instantiate NormResidualComponent < u[active]@current, AuStencil@current, rhs_u@current > as NormResidual_u@finest
-Instantiate SmoothComponent < u[active]@current, AuStencil@current, rhs_u@current, 1.0, true > as Smooth_u@all
+Instantiate NormResidualComponent < u<active>@current, AuStencil@current, rhs_u@current > as NormResidual_u@finest
+Instantiate SmoothComponent < u<active>@current, AuStencil@current, rhs_u@current, 1.0, true > as Smooth_u@all
 Instantiate VCycleComponent < VCycle_u, Smooth_u, UpdateResidual_u, Restriction_u, SetSolution_u, Correction_u > as VCycle_u@( ( coarsest + 1 ) to finest )
-Instantiate CGSComponent < u[active]@current, AuStencil@current, rhs_u@current, 1.0, true > as VCycle_u@coarsest
-Instantiate UpdateResidualComponent < u[active]@current, AuStencil@current, rhs_u@current, residual_u@current > as UpdateResidual_u@all
+Instantiate CGSComponent < u<active>@current, AuStencil@current, rhs_u@current, 1.0, true > as VCycle_u@coarsest
+Instantiate UpdateResidualComponent < u<active>@current, AuStencil@current, rhs_u@current, residual_u@current > as UpdateResidual_u@all
 Instantiate RestrictionComponent < residual_u@current, rhs_u@coarser, RestrictionFaceX@current > as Restriction_u@( ( coarsest + 1 ) to finest )
 Instantiate StencilRestrictionComponent < StencilRestriction_u, AuStencil@current, AuStencil@coarser, RestrictionFaceX@current > as StencilRestriction_u@( ( coarsest + 1 ) to finest )
-Instantiate CorrectionComponent < u[active]@coarser, u[active]@current, CorrectionFaceX@current, true > as Correction_u@( ( coarsest + 1 ) to finest )
-Instantiate SetFieldComponent < u[active]@current > as SetSolution_u@all
+Instantiate CorrectionComponent < u<active>@coarser, u<active>@current, CorrectionFaceX@current, true > as Correction_u@( ( coarsest + 1 ) to finest )
+Instantiate SetFieldComponent < u<active>@current > as SetSolution_u@all
 
 Instantiate SolveComponent < VCycle_v, NormResidual_v, 100, rhs_v@current, converged_v > as Solve_v@finest
-Instantiate NormResidualComponent < v[active]@current, AvStencil@current, rhs_v@current > as NormResidual_v@finest
-Instantiate SmoothComponent < v[active]@current, AvStencil@current, rhs_v@current, 1.0, true > as Smooth_v@all
+Instantiate NormResidualComponent < v<active>@current, AvStencil@current, rhs_v@current > as NormResidual_v@finest
+Instantiate SmoothComponent < v<active>@current, AvStencil@current, rhs_v@current, 1.0, true > as Smooth_v@all
 Instantiate VCycleComponent < VCycle_v, Smooth_v, UpdateResidual_v, Restriction_v, SetSolution_v, Correction_v > as VCycle_v@( ( coarsest + 1 ) to finest )
-Instantiate CGSComponent < v[active]@current, AvStencil@current, rhs_v@current, 1.0, true > as VCycle_v@coarsest
-Instantiate UpdateResidualComponent < v[active]@current, AvStencil@current, rhs_v@current, residual_v@current > as UpdateResidual_v@all
+Instantiate CGSComponent < v<active>@current, AvStencil@current, rhs_v@current, 1.0, true > as VCycle_v@coarsest
+Instantiate UpdateResidualComponent < v<active>@current, AvStencil@current, rhs_v@current, residual_v@current > as UpdateResidual_v@all
 Instantiate RestrictionComponent < residual_v@current, rhs_v@coarser, RestrictionFaceY@current > as Restriction_v@( ( coarsest + 1 ) to finest )
 Instantiate StencilRestrictionComponent < StencilRestriction_v, AvStencil@current, AvStencil@coarser, RestrictionFaceY@current > as StencilRestriction_v@( ( coarsest + 1 ) to finest )
-Instantiate CorrectionComponent < v[active]@coarser, v[active]@current, CorrectionFaceY@current, true > as Correction_v@( ( coarsest + 1 ) to finest )
-Instantiate SetFieldComponent < v[active]@current > as SetSolution_v@all
+Instantiate CorrectionComponent < v<active>@coarser, v<active>@current, CorrectionFaceY@current, true > as Correction_v@( ( coarsest + 1 ) to finest )
+Instantiate SetFieldComponent < v<active>@current > as SetSolution_v@all
 
 Instantiate SolveComponent < VCycle_w, NormResidual_w, 100, rhs_w@current, converged_w > as Solve_w@finest
-Instantiate NormResidualComponent < w[active]@current, AwStencil@current, rhs_w@current > as NormResidual_w@finest
-Instantiate SmoothComponent < w[active]@current, AwStencil@current, rhs_w@current, 1.0, true > as Smooth_w@all
+Instantiate NormResidualComponent < w<active>@current, AwStencil@current, rhs_w@current > as NormResidual_w@finest
+Instantiate SmoothComponent < w<active>@current, AwStencil@current, rhs_w@current, 1.0, true > as Smooth_w@all
 Instantiate VCycleComponent < VCycle_w, Smooth_w, UpdateResidual_w, Restriction_w, SetSolution_w, Correction_w > as VCycle_w@( ( coarsest + 1 ) to finest )
-Instantiate CGSComponent < w[active]@current, AwStencil@current, rhs_w@current, 1.0, true > as VCycle_w@coarsest
-Instantiate UpdateResidualComponent < w[active]@current, AwStencil@current, rhs_w@current, residual_w@current > as UpdateResidual_w@all
+Instantiate CGSComponent < w<active>@current, AwStencil@current, rhs_w@current, 1.0, true > as VCycle_w@coarsest
+Instantiate UpdateResidualComponent < w<active>@current, AwStencil@current, rhs_w@current, residual_w@current > as UpdateResidual_w@all
 Instantiate RestrictionComponent < residual_w@current, rhs_w@coarser, RestrictionFaceZ@current > as Restriction_w@( ( coarsest + 1 ) to finest )
 Instantiate StencilRestrictionComponent < StencilRestriction_w, AwStencil@current, AwStencil@coarser, RestrictionFaceZ@current > as StencilRestriction_w@( ( coarsest + 1 ) to finest )
-Instantiate CorrectionComponent < w[active]@coarser, w[active]@current, CorrectionFaceZ@current, true > as Correction_w@( ( coarsest + 1 ) to finest )
-Instantiate SetFieldComponent < w[active]@current > as SetSolution_w@all
+Instantiate CorrectionComponent < w<active>@coarser, w<active>@current, CorrectionFaceZ@current, true > as Correction_w@( ( coarsest + 1 ) to finest )
+Instantiate SetFieldComponent < w<active>@current > as SetSolution_w@all
 
 Instantiate SolveComponent < VCycle_pc, NormResidual_pc, 100, rhs_pc@current, converged_pc > as Solve_pc@finest
-Instantiate NormResidualComponent < pc[active]@current, ApcStencil@current, rhs_pc@current > as NormResidual_pc@finest
-Instantiate SmoothComponent < pc[active]@current, ApcStencil@current, rhs_pc@current, 0.8, true > as Smooth_pc@all
+Instantiate NormResidualComponent < pc<active>@current, ApcStencil@current, rhs_pc@current > as NormResidual_pc@finest
+Instantiate SmoothComponent < pc<active>@current, ApcStencil@current, rhs_pc@current, 0.8, true > as Smooth_pc@all
 Instantiate VCycleComponent < VCycle_pc, Smooth_pc, UpdateResidual_pc, Restriction_pc, SetSolution_pc, Correction_pc > as VCycle_pc@( ( coarsest + 1 ) to finest )
-Instantiate CGSComponent < pc[active]@current, ApcStencil@current, rhs_pc@current, 0.8, true > as VCycle_pc@coarsest
-Instantiate UpdateResidualComponent < pc[active]@current, ApcStencil@current, rhs_pc@current, residual_pc@current > as UpdateResidual_pc@all
+Instantiate CGSComponent < pc<active>@current, ApcStencil@current, rhs_pc@current, 0.8, true > as VCycle_pc@coarsest
+Instantiate UpdateResidualComponent < pc<active>@current, ApcStencil@current, rhs_pc@current, residual_pc@current > as UpdateResidual_pc@all
 Instantiate RestrictionComponent < residual_pc@current, rhs_pc@coarser, RestrictionCell@current > as Restriction_pc@( ( coarsest + 1 ) to finest )
 Instantiate StencilRestrictionComponent < StencilRestriction_pc, ApcStencil@current, ApcStencil@coarser, RestrictionCell@current > as StencilRestriction_pc@( ( coarsest + 1 ) to finest )
-Instantiate CorrectionComponent < pc[active]@coarser, pc[active]@current, CorrectionCell@current, true > as Correction_pc@( ( coarsest + 1 ) to finest )
-Instantiate SetFieldComponent < pc[active]@current > as SetSolution_pc@all
+Instantiate CorrectionComponent < pc<active>@coarser, pc<active>@current, CorrectionCell@current, true > as Correction_pc@( ( coarsest + 1 ) to finest )
+Instantiate SetFieldComponent < pc<active>@current > as SetSolution_pc@all
 
 Instantiate SolveComponent < VCycle_t, NormResidual_t, 100, rhs_t@current, converged_t > as Solve_t@finest
-Instantiate NormResidualComponent < phi7[active]@current, AtStencil@current, rhs_t@current > as NormResidual_t@finest
-Instantiate SmoothComponent < phi7[active]@current, AtStencil@current, rhs_t@current, 1.0, true > as Smooth_t@all
+Instantiate NormResidualComponent < phi7<active>@current, AtStencil@current, rhs_t@current > as NormResidual_t@finest
+Instantiate SmoothComponent < phi7<active>@current, AtStencil@current, rhs_t@current, 1.0, true > as Smooth_t@all
 Instantiate VCycleComponent < VCycle_t, Smooth_t, UpdateResidual_t, Restriction_t, SetSolution_t, Correction_t > as VCycle_t@( ( coarsest + 1 ) to finest )
-Instantiate CGSComponent < phi7[active]@current, AtStencil@current, rhs_t@current, 1.0, true > as VCycle_t@coarsest
-Instantiate UpdateResidualComponent < phi7[active]@current, AtStencil@current, rhs_t@current, residual_t@current > as UpdateResidual_t@all
+Instantiate CGSComponent < phi7<active>@current, AtStencil@current, rhs_t@current, 1.0, true > as VCycle_t@coarsest
+Instantiate UpdateResidualComponent < phi7<active>@current, AtStencil@current, rhs_t@current, residual_t@current > as UpdateResidual_t@all
 Instantiate RestrictionComponent < residual_t@current, rhs_t@coarser, RestrictionCell@current > as Restriction_t@( ( coarsest + 1 ) to finest )
 Instantiate StencilRestrictionComponent < StencilRestriction_t, AtStencil@current, AtStencil@coarser, RestrictionCell@current > as StencilRestriction_t@( ( coarsest + 1 ) to finest )
-Instantiate CorrectionComponent < phi7[active]@coarser, phi7[active]@current, CorrectionCell@current, true > as Correction_t@( ( coarsest + 1 ) to finest )
-Instantiate SetFieldComponent < phi7[active]@current > as SetSolution_t@all
+Instantiate CorrectionComponent < phi7<active>@coarser, phi7<active>@current, CorrectionCell@current, true > as Correction_t@( ( coarsest + 1 ) to finest )
+Instantiate SetFieldComponent < phi7<active>@current > as SetSolution_t@all

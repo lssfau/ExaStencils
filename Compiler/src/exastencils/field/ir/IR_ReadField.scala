@@ -108,6 +108,10 @@ case class IR_ReadField(
         statements += IR_ObjectInstantiation(stream, Duplicate(filename))
     }
 
+    // check on stream if open?
+    //statements += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileName), IR_FunctionCall("exit", 1))
+
+
     def beginId = if (includeGhostLayers) "GLB" else "DLB"
 
     def endId = if (includeGhostLayers) "GRE" else "DRE"

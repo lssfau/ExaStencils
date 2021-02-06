@@ -1,0 +1,9 @@
+dimensionality                = 2
+mpi_enabled 		      = false
+
+experimental_resolveInverseFunctionCall = "Runtime"
+experimental_matrixStructure = "Schur"
+experimental_blocksize = 6
+experimental_blocksize_A = 3
+
+experimental_useNewMatrixStrategies = true

@@ -38,7 +38,7 @@ case class IR_LocalSolve(
     var equations : ListBuffer[IR_Equation],
     var jacobiType : Boolean,
     var relax : Option[IR_Expression]) extends IR_Statement with IR_SpecialExpandable {
-  var omitConditions = false
+  var omitConditions = Knowledge.experimental_forceOmitCondInLocalSolve
 
   var fVals = ListBuffer[IR_Addition]()
   var AVals = ListBuffer[ListBuffer[IR_Addition]]()
@@ -191,6 +191,24 @@ case class IR_LocalSolve(
       Duplicate(AVals.map(_.map(mapToExp))))
   }
 
+  def isSolvableWithoutInverse(msi : IR_MatShape): Boolean = {
+      msi.shape match {
+        case "schur" => true
+        //case "Diagonal" =>
+        case _ => false
+      }
+  }
+
+  def findMatShape(faccs : ListBuffer[IR_FieldAccess]) : Option[IR_MatShape] = {
+    //TODO shapes can differ for different fields
+    // just use first shape found for now
+    for(f <- faccs) {
+      if(f.field.matShape.isDefined)
+        return Some(f.field.matShape.get)
+    }
+    None
+  }
+
   def expandSpecial : Output[IR_Scope] = {
     fVals = ListBuffer.fill(unknowns.length)(IR_Addition())
     AVals = ListBuffer.fill(unknowns.length)(ListBuffer.fill(unknowns.length)(IR_Addition()))
@@ -200,7 +218,33 @@ case class IR_LocalSolve(
     val fExp = fVals.map(mapToExp)
     val AExp = AVals.map(_.map(mapToExp))
 
+    //TODO sizecheck? go rt if mat too large
+    val shapeFromField = findMatShape(unknowns)
+
+    val msi : IR_MatShape =
+    if(shapeFromField.isDefined) {
+      // structure given in field declaration
+      shapeFromField.get
+    } else if(Knowledge.experimental_classifyLocMat || Knowledge.experimental_applySchurCompl) {
+      // structure to specify (blocksize to specify for apply schur compl, for backwards compatibility)
+      // TODO: if all local matrices have the same structure: classify only once
+      val shape = IR_ClassifyMatShape(AVals)
+      if(Knowledge.experimental_matrixDebugConfig)
+        Logger.warn(shape.toStringList())
+      shape
+    } else if(Knowledge.experimental_locMatShape != "filled") {
+      // structure for all local matrices given in knowledge
+      IR_MatShape(Knowledge.experimental_locMatShape)
+          .addInfo("block",Knowledge.experimental_locMatBlocksize)
+          .addInfo("A",Knowledge.experimental_locMatShapeA)
+          .addInfo("Ablock",Knowledge.experimental_locMatBlocksizeA)
+    }
+    else IR_MatShape("filled")
+
+    Logger.warn(s"Local matrices are of shape ${msi.shape}")
+
     // choose strategy used for inverting local matrix
+    // inverse precalculated
     if (AInv != null) {
       AInv match {
         case va : IR_VariableAccess   => IR_Scope(IR_LocalPreCompInvert(va, fExp, unknowns, jacobiType, relax))
@@ -208,10 +252,13 @@ case class IR_LocalSolve(
         case _                        => Logger.error(s"Unsupported AInv: $AInv")
       }
     }
-
-    else if (Knowledge.experimental_applySchurCompl && IR_LocalSchurCompl.suitable(AVals))
-      IR_Scope(IR_LocalSchurCompl(AExp, fExp, unknowns, jacobiType, relax, omitConditions))
-    else
-      IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax, omitConditions))
+      // if matrix has schur structure and blocksize of D block is 1 -> solvable without inverse
+    //else if (isSolvableWithoutInverse(msi) && AVals.length - msi.size("block") == 1)
+     //   IR_Scope(IR_LocalSchurComplGeneralized(AExp, fExp, unknowns, jacobiType, relax, omitConditions, msi))
+    else {
+      // invert matrix with given structure information
+      IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax, omitConditions, msi))
+    }
   }
 }
+
