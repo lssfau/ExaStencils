@@ -39,7 +39,7 @@ case class L4_BaseStencilDecl(
   override def prettyprint(out : PpStream) = {
     out << "Stencil " << name
     if (levels.isDefined) out << "@" << levels.get
-    out << "{\n" <<< (entries, "\n") << "\n}"
+    out << "{\n" <<< (entries, ",\n") << "\n}"
   }
 
   override def addToKnowledge() : Unit = {
