@@ -291,7 +291,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => L4_Reduction(op, s) })
   lazy val regionSpecification = locationize((("ghost" ||| "dup" ||| "inner") ~ constIndex ~ ("on" <~ "boundary").?) ^^ { case region ~ dir ~ bc => L4_RegionSpecification(region, dir, bc.isDefined) })
 
-  lazy val assignment = locationize((genericAccess ) ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })
+  lazy val assignment = locationize((genericAccess) ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })
   lazy val operatorassignment = locationize(genericAccess ~ ("+=" ||| "-=" ||| "*=" ||| "/=") ~ binaryexpression
     ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })
 
@@ -392,12 +392,10 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val fieldCombinationDeclaration = locationize(("FieldCombination".? ~> ident) ~ levelDecl.? ~ (":" ~> stringLit) ~ ("=" ~> repsep(genericAccess, ","))
     ^^ { case id ~ levels ~ combType ~ fields => L4_FieldCombinationDecl(id, levels, combType, fields) })
 
-
   lazy val rangeIndex1d = locationize(("[" ~> binaryexpression.? <~ ":") ~ (binaryexpression.? <~ "]") ^^ { case x ~ y => L4_RangeIndex(L4_Range(x, y)) })
   lazy val rangeIndex2d = locationize("[" ~> binaryexpression.? ~ ":" ~ binaryexpression.? ~ "," ~ binaryexpression.? ~ ":" ~ binaryexpression.? <~ "]" ^^ {
     case a ~ _ ~ b ~ _ ~ x ~ _ ~ y => L4_RangeIndex(Array(L4_Range(a, b), L4_Range(x, y)))
   })
-
 
   lazy val stencilField = locationize((("StencilField" ~> ident) ~ ("<" ~> ident <~ "=>") ~ (ident <~ ">") ~ levelDecl.?)
     ^^ { case id ~ f ~ s ~ level => L4_StencilFieldDecl(id, level, s, f) })
@@ -418,7 +416,6 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| "<" ~> slotModifier <~ ">" ^^ (s => s))
   //||| "[" ~> slotModifier <~ "]" ^^ (s => s))
 
-
   lazy val slotModifier = locationize("active" ^^ (_ => L4_ActiveSlot)
     ||| "activeSlot" ^^ (_ => L4_ActiveSlot)
     //||| "current" ^^ (_ => L4_ActiveSlot)
@@ -437,26 +434,23 @@ object L4_Parser extends ExaParser with PackratParsers {
     ^^ { case id ~ level => L4_UnresolvedAccess(id, Some(level)) })
 
 
-  lazy val genericAccess = (
-    locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ matIndex.? ^^ {
-        case id ~ slot ~ level ~ offset ~ matIdx =>
+    lazy val genericAccess = (
+      locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ ("[" ~> integerLit <~ "]").?
+        ^^ { case id ~ slot ~ level ~ offset ~ arrayIndex => L4_UnresolvedAccess(id, level, slot, offset, None, arrayIndex, None) }) |||
+    locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).?  ~ matIndex.? ^^ {
+        case id ~ slot ~ level ~ offset  ~ matIdx =>
       L4_UnresolvedAccess(id, level, slot, offset, None, None, matIdx)})
       ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
       ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None, None) })
     ) // component acccess mit spitzen klammern
 
-    lazy val matIndex = (index ||| rangeIndex1d) ~ (index ||| rangeIndex1d) ^^ {
 
+   lazy val matIndex = (index ||| rangeIndex1d) ~ (index ||| rangeIndex1d) ^^ {
     case matIdxY ~ matIdxX =>
          Array[L4_Index](matIdxY, matIdxX)
   }
-  /*
-  lazy val genericAccess = (
-    locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ ("[" ~> integerLit <~ "]").?
-      ^^ { case id ~ slot ~ level ~ offset ~ arrayIndex => L4_UnresolvedAccess(id, level, slot, offset, None, arrayIndex,None) })
-      ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
-      ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None, None) })) // component acccess mit spitzen klammern
-*/
+
+
   // ######################################
   // ##### Expressions
   // ######################################
@@ -612,7 +606,7 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val stencilEntries = (
     (stencilEntry <~ ",").* ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
-      ||| stencilEntry.*)
+  ||| stencilEntry.*)
 
   lazy val stencilEntry = (
     locationize((constIndex ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L4_StencilOffsetEntry(offset, coeff) })

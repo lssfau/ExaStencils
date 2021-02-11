@@ -24,7 +24,6 @@ import exastencils.base.l4.L4_ImplicitConversion._
 import exastencils.base.l4._
 import exastencils.baseExt.l4.L4_FieldIteratorAccess
 import exastencils.core._
-import exastencils.knowledge.l4.L4_KnowledgeObject
 import exastencils.knowledge.l4.L4_LeveledKnowledgeObject
 import exastencils.logger.Logger
 import exastencils.operator.ir._
@@ -47,7 +46,7 @@ case class L4_Stencil(
 
   override def prettyprintDecl(out : PpStream) : Unit = {
     out << "Stencil " << name << "@" << level << "{\n"
-    out <<< (entries, "\n")
+    out <<< (entries, ",\n")
     out << "\n}"
   }
 
