@@ -116,7 +116,7 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
     printComponents += "std::scientific"
     printComponents ++= indent
     printComponents ++= handleAccesses(buf).flatMap(accessesForPatternIndex =>
-      accessesForPatternIndex.flatMap(acc => List(acc, separator)).dropRight(1) :+ IR_Print.newline
+      accessesForPatternIndex.flatMap(acc => List(acc, separator)) :+ IR_Print.newline
     )
     loopOverDims(bufIdx, condition, IR_Print(stream, printComponents))
   }
@@ -143,7 +143,7 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
 
     // handle accesses of high dim datatypes
     val acc = handleAccesses(buf).flatMap(accessesForPatternIndex =>
-      accessesForPatternIndex.flatMap(acc => List(acc) ++ skipSep).dropRight(if (skipSep.isDefined) 1 else 0) // cond. remove sep at end
+      accessesForPatternIndex.flatMap(acc => List(acc) ++ skipSep)
     )
 
     loopOverDims(bufIdx, condition, IR_Read(stream, acc : _*))

@@ -33,7 +33,7 @@ import exastencils.grid.ir.IR_VF_CellCenterPerDim
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
-import exastencils.util.ir._
+import exastencils.util.ir.IR_Print
 
 /// IR_PrintField
 
@@ -65,7 +65,7 @@ case class IR_PrintField(
 
   // writes comma-separated files in ascii mode, raw binaries otherwise (via locking)
   def printCSV() : ListBuffer[IR_Statement] = {
-    // print coords for CSV files (Paraview)
+    // get pos in grid depending on localization
     def getPos(dim : Int) : IR_Expression = {
       field.localization match {
         case IR_AtNode              => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(field.layout.numDimsGrid))
@@ -74,11 +74,14 @@ case class IR_PrintField(
         case IR_AtFaceCenter(_)     => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(field.layout.numDimsGrid))
       }
     }
+    // print coords for CSV files (Paraview)
+    val csvFormat = !binaryOutput && Knowledge.experimental_generateParaviewFiles
+    val altSep = if (csvFormat) IR_StringConstant(",") else separator // use alternative sep if paraview file
     val printPos = ListBuffer(IR_VariableAccess("std::defaultfloat", IR_UnknownDatatype)) ++
-      (0 until field.layout.numDimsGrid).view.flatMap { dim => List(getPos(dim), separator) : List[IR_Expression] }
+      (0 until field.layout.numDimsGrid).view.flatMap { dim => List(getPos(dim), altSep) : List[IR_Expression] }
 
     // begin file access
-    val fileAccess = generateFileAccess(Some(printPos))
+    val fileAccess = generateFileAccess(Some(altSep), Some(printPos))
     var statements : ListBuffer[IR_Statement] = ListBuffer()
     statements ++= fileAccess.createOrOpenFile()
     val fileHeader : ListBuffer[IR_Statement] = {
@@ -90,12 +93,13 @@ case class IR_PrintField(
         IR_VariableAccess("std::ios::trunc", IR_UnknownDatatype) // create new file
 
       // write header at the beginning of the file with root
-      if (!binaryOutput && Knowledge.experimental_generateParaviewFiles) {
+      if (csvFormat) {
         val streamName = IR_FieldIO.getNewStreamName()
         def streamType = IR_SpecialDatatype("std::ofstream")
         def stream = IR_VariableAccess(streamName, streamType)
         tmp += IR_ObjectInstantiation(streamType, streamName, filename, openMode)
-        tmp += IR_Print(stream, s"""\"${ (0 until field.numDimsGrid).map(d => ('x' + d).toChar.toString).mkString(",") },""" + arrayIndexRange.map(index => s"s$index").mkString(",") + "\"", IR_Print.endl)
+        tmp += IR_Print(stream, "\"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\"", IR_Print.endl)
+        //tmp += IR_Print(stream, s"""\"${ (0 until field.numDimsGrid).map(d => ('x' + d).toChar.toString).mkString(",") },""" + arrayIndexRange.map(index => s"s$index").mkString(",") + "\"", IR_Print.endl)
         tmp += IR_MemberFunctionCall(stream, "close")
         if (Knowledge.mpi_enabled)
           ret += IR_IfCondition(MPI_IsRootProc(), tmp)

@@ -69,8 +69,8 @@ case class IR_FileAccess_Locking(
   override def accessFileFragwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
     IR_LoopOverFragments(
       IR_IfCondition(IR_IV_IsValidForDomain(dataBuffers(bufIdx).domainIdx),
-        accessStatements,
-      if (writeAccess) IR_Print(stream, IR_Print.flush) else IR_NullStatement))
+        accessStatements),
+      if (writeAccess) IR_Print(stream, IR_Print.flush) else IR_NullStatement)
   }
 
   override def accessFileBlockwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = {

@@ -61,14 +61,14 @@ abstract class IR_FieldIO(
     dataset : IR_Expression = IR_NullExpression) extends IR_Statement with IR_Expandable {
 
   // wrapper function that generates statements for file access using the specified I/O interface
-  def generateFileAccess(optPrintComponents : Option[ListBuffer[IR_Expression]] = None) : IR_FileAccess = {
+  def generateFileAccess(optSep : Option[IR_Expression] = None, optPrintComponents : Option[ListBuffer[IR_Expression]] = None) : IR_FileAccess = {
     val fieldAsDataBuffer = IR_DataBuffer(field, slot, includeGhostLayers, None, dataset = Some(dataset), canonicalFileLayout)
 
     ioInterface.asInstanceOf[IR_StringConstant].value.toLowerCase match {
       case "lock"  =>
-        IR_FileAccess_Locking(filename, ListBuffer(fieldAsDataBuffer), useBinary, doWrite, separator, condition, optPrintComponents)
+        IR_FileAccess_Locking(filename, ListBuffer(fieldAsDataBuffer), useBinary, doWrite, optSep getOrElse separator, condition, optPrintComponents)
       case "fpp"   =>
-        IR_FileAccess_FPP(filename, ListBuffer(fieldAsDataBuffer), useBinary, doWrite, separator, condition, optPrintComponents)
+        IR_FileAccess_FPP(filename, ListBuffer(fieldAsDataBuffer), useBinary, doWrite, optSep getOrElse separator, condition, optPrintComponents)
       case "mpiio" =>
         IR_FileAccess_MPIIO(filename, ListBuffer(fieldAsDataBuffer), doWrite)
       case "hdf5"  =>
