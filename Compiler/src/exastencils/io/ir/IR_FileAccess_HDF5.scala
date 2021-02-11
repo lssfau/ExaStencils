@@ -345,7 +345,7 @@ case class IR_FileAccess_HDF5(
   // when hdf5 is installed with --enable-parallel flag, the "hdf5.h" header requires "mpi.h" -> serial programs unfortunately require MPI headers and libs, too
   // alternative solution: install an additional, serial version of hdf5
   if (!Knowledge.mpi_enabled) {
-    Platform.targetCompilerBinary = "mpicxx" // TODO
+    Platform.targetCompilerBinary = "mpicxx" // TODO: handle dependency
   }
 
   override def includes : ListBuffer[String] = ListBuffer("hdf5.h")

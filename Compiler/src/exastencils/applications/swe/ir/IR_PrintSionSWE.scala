@@ -64,13 +64,6 @@ case class IR_PrintSionSWE(
   }
 
   def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
-    // access pattern dependent on reduction mode for blockstructured meshes
-    val accessIndices : Option[ListBuffer[IR_Index]] = if (Knowledge.swe_nodalReductionPrint)
-      None
-    else
-      Some(nodeOffsets.map(_.toExpressionIndex))
-    def nodalAccess(field : IR_Field) = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(field, IR_IV_ActiveSlot(field), idx.toExpressionIndex), accessIndices)
-
     // bath is constant and can be reduced -> move to constants if exists
     val bath = nodalFields.get("bath")
     var constants : ListBuffer[IR_DataBuffer] = ListBuffer()

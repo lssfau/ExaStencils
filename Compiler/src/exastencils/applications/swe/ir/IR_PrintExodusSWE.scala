@@ -8,7 +8,6 @@ import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_Index
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
@@ -21,10 +20,10 @@ import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.grid.ir.IR_AtNode
-import exastencils.io.ir.IR_AccessPattern
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.io.ir.IR_IV_TemporaryBuffer
+import exastencils.logger.Logger
 import exastencils.visualization.ir.IR_PrintExodus
 
 /// IR_PrintExodusSWE
@@ -48,6 +47,7 @@ case class IR_PrintExodusSWE(
     stmts ++= IR_IV_FragmentInfo.init(domainIndex, calculateFragOffset = true)
     stmts ++= setupNodePositions()
     stmts ++= setupConnectivity(global = true)
+    // disc fields
     if (Knowledge.swe_nodalReductionPrint)
       stmts ++= setupReducedData
     else
@@ -103,33 +103,29 @@ case class IR_PrintExodusSWE(
     ListBuffer(buffer)
   }
 
-  override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
-    // access pattern dependent on reduction mode for blockstructured meshes
-    val accessIndices : Option[ListBuffer[IR_Index]]= if (Knowledge.swe_nodalReductionPrint)
-      None
-    else
-      Some(nodeOffsets.map(_.toExpressionIndex))
-    def nodalAccess(field : IR_Field) = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(field, IR_IV_ActiveSlot(field), idx.toExpressionIndex), accessIndices)
+  override def dataBuffersNodePos : ListBuffer[IR_DataBuffer] = if (!gridPositionsCopied) {
+    nodePosVecAsDataBuffers(accessIndices, Some(datasetCoords.map(s => s : IR_Expression)))
+  } else {
+    // no associated field for vf -> copy positions to buffer
+    nodePositionsBuf.zipWithIndex.map { case(tmpBuf, idx) => IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetCoords(idx))) }
+  }
 
-    val constants : ListBuffer[IR_DataBuffer] = ListBuffer()
-    if (!gridPositionsCopied) {
-      constants ++= nodePosVecAsDataBuffers(accessIndices, Some(datasetCoords.map(s => s : IR_Expression)))
-    } else {
-      // no associated field for vf -> copy positions to buffer
-      constants ++= nodePositionsBuf.zipWithIndex.map { case(tmpBuf, idx) => IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetCoords(idx))) }
-    }
-    constants += IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetConnectivity))
+  override def dataBuffersConnectivity : IR_DataBuffer = IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetConnectivity))
+
+  override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
+    val constants = dataBuffersNodePos :+ dataBuffersConnectivity
 
     // bath is constant but cannot be reduced in this format since in Exodus fields are defined as record variables (i.e. bound to time)
-    val allFields = fields.values.to[ListBuffer].zipWithIndex.flatMap { case (fieldCollection, idx) =>
+    val allFields = fields.to[ListBuffer].zipWithIndex.flatMap { case ((_, fieldCollection), idx) =>
       // distinguish nodal and disc fields
-      if (fieldCollection.length == 1) {
-        val nodalField = fieldCollection.head
-        ListBuffer(
-          IR_DataBuffer(nodalField, IR_IV_ActiveSlot(nodalField), includeGhosts = false, Some(nodalAccess(nodalField)), Some(datasetFields(idx)), canonicalOrder = false)
-        )
-      } else {
-        discFieldsToDatabuffers(fieldCollection)
+      fieldCollection.length match {
+        case 1 =>
+          val nodalField = fieldCollection.head
+          ListBuffer(IR_DataBuffer(nodalField, IR_IV_ActiveSlot(nodalField), includeGhosts = false, Some(nodalAccess(nodalField)), Some(datasetFields(idx)), canonicalOrder = false))
+        case 6 =>
+          discFieldsToDatabuffers(fieldCollection)
+        case _ =>
+          Logger.error("IR_PrintExodusSWE: Unknown field type; neither nodal nor disc field.")
       }
     }
 

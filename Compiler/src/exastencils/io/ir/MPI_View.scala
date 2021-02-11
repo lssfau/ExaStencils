@@ -211,7 +211,7 @@ case class MPI_View(
       IR_IfCondition(getAccess EqEq MPI_DATATYPE_NULL, stmts)
     } else {
       // create global subarray with modified dimensions (nodal -> zonal with 6 accesses each)
-      val dimsGlobal  = accessPattern.transformDataExtents(buffer.globalDimsKJI, orderKJI = true)
+      val dimsGlobal  = accessPattern.transformDataExtents(buffer.globalDimsKJI, buffer.localization, orderKJI = true)
       val countGlobal = IR_IntegerConstant(1) +: dimsGlobal.drop(1) // TotalNumFrags -> 1 Fragment per write
       val fragOffset = IR_IV_FragmentOffset(buffer.domainIdx) + IR_TernaryCondition(IR_IV_IsValidForDomain(buffer.domainIdx), IR_LoopOverFragments.defIt, 0) // dummy: set to "0" for "invalid" frags
       val startGlobal = fragOffset +: dimsGlobal.drop(1).map(_ => IR_IntegerConstant(0)) // start at global "valid" fragment

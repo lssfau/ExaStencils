@@ -62,7 +62,6 @@ case class IR_PrintXdmfUniform(
     var canonicalFileLayout : Boolean,
     var resolveId : Int) extends IR_PrintXdmf(ioMethod, binaryFpp) {
 
-  // TODO: test for serial applications
 
   // validate params
   if (includeGhostLayers) {

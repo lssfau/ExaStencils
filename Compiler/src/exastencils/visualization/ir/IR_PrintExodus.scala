@@ -8,9 +8,12 @@ import exastencils.base.ir.IR_ArrayAccess
 import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_Cast
 import exastencils.base.ir.IR_CharDatatype
+import exastencils.base.ir.IR_ConstIndex
 import exastencils.base.ir.IR_Expandable
 import exastencils.base.ir.IR_Expression
+import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_ExternalFunctionReference
+import exastencils.base.ir.IR_FloatDatatype
 import exastencils.base.ir.IR_FunctionCall
 import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
@@ -28,9 +31,13 @@ import exastencils.base.ir.IR_UnknownDatatype
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_ArrayDatatype
+import exastencils.baseExt.ir.IR_ExpressionIndexRange
+import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
+import exastencils.config.Platform
 import exastencils.config.Settings
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.OutputType
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.ir.IR_AtCellCenter
@@ -41,7 +48,9 @@ import exastencils.io.ir.IR_FileAccess
 import exastencils.io.ir.IR_FileAccess_PnetCDF
 import exastencils.io.ir.IR_IV_FragmentOffset
 import exastencils.io.ir.IR_IV_NumValidFrags
+import exastencils.io.ir.IR_IV_TemporaryBuffer
 import exastencils.io.ir.IR_IV_TimeIndexRecordVariables
+import exastencils.io.ir.IR_IV_TimeValueRecordVariables
 import exastencils.io.ir.MPI_View
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
@@ -62,6 +71,8 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   def statementsForPreparation : ListBuffer[IR_Statement]
   def statementsForCleanup : ListBuffer[IR_Statement]
   def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] // contains data buffers for node positions, connectivity and field values
+  def dataBuffersNodePos : ListBuffer[IR_DataBuffer]
+  def dataBuffersConnectivity : IR_DataBuffer
 
   // dataset names created by exodus
   def datasetCoords : ListBuffer[IR_StringConstant] = (0 until numDimsGrid).map(d => IR_StringConstant("coord" + ('x' + d).toChar.toString)).to[ListBuffer]
@@ -115,10 +126,14 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     IR_InitializerList(Array.fill(numElemBlocks*numVariables)(IR_IntegerConstant(1)) : _*))
 
   val declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(
-    info_decl, exoErr_decl, exoId_decl, coordNames_decl, fieldNames_decl, wordSizeCPU_decl, wordSizeIO_decl, truthTable_decl
+    exoErr_decl, exoId_decl, coordNames_decl, fieldNames_decl, wordSizeCPU_decl, wordSizeIO_decl, truthTable_decl
   )
 
+  if (Knowledge.mpi_enabled)
+    declarations += info_decl
+
   // accesses
+  val nullptr = IR_VariableAccess("NULL", IR_UnknownDatatype)
   val info = IR_VariableAccess(info_decl)
   val exoErr = IR_VariableAccess(exoErr_decl)
   val exoId = IR_VariableAccess(exoId_decl)
@@ -153,6 +168,12 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   }
 
   // library functions
+  def ex_create() : ListBuffer[IR_Statement] = ListBuffer(
+    IR_Assignment(exoId, IR_FunctionCall(IR_ExternalFunctionReference("ex_create"), IR_FileAccess.filenameAsCString(filename), openMode, IR_AddressOf(wordSizeCPU), IR_AddressOf(wordSizeIO))))
+  def ex_open() : ListBuffer[IR_Statement] = ListBuffer(
+    IR_VariableDeclaration(IR_FloatDatatype, "version"),
+    IR_Assignment(exoId, IR_FunctionCall(IR_ExternalFunctionReference("ex_open"), IR_FileAccess.filenameAsCString(filename), "EX_WRITE", IR_AddressOf(wordSizeCPU), IR_AddressOf(wordSizeIO), IR_AddressOf("version")))
+  )
   def ex_create_par() : ListBuffer[IR_Statement] = ListBuffer(
     IR_Assignment(exoId, IR_FunctionCall(IR_ExternalFunctionReference("ex_create_par"), IR_FileAccess.filenameAsCString(filename), openMode, IR_AddressOf(wordSizeCPU), IR_AddressOf(wordSizeIO), mpiCommunicator, info)))
   def ex_put_init() : ListBuffer[IR_Statement] =
@@ -170,6 +191,17 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   }
   def ex_put_variable_names() : ListBuffer[IR_Statement] =
     callExodusFunction("ex_put_variable_names", exoId, variableEntityType, numVariables, IR_Cast(IR_PointerDatatype(IR_PointerDatatype(IR_CharDatatype)), fieldNames))
+  def ex_put_coord(pointers : ListBuffer[IR_Expression]) : ListBuffer[IR_Statement] =
+    callExodusFunction("ex_put_coord", exoId +: pointers.padTo(3, nullptr) :_*)
+  def ex_put_time : ListBuffer[IR_Statement] =
+    callExodusFunction("ex_put_time", exoId, IR_IV_TimeIndexRecordVariables(), IR_AddressOf(IR_IV_TimeValueRecordVariables()))
+  def ex_put_conn(ptr : IR_Expression) : ListBuffer[IR_Statement] =
+    callExodusFunction("ex_put_conn", exoId, EX_ELEM_BLOCK, elemBlockId, ptr, 0, 0)
+  def ex_put_var(varIndex : Int, ptr : IR_Expression) : ListBuffer[IR_Statement] = {
+    val numVals = if (variableEntityType == EX_NODAL) numNodes else numElemInBlock
+    callExodusFunction("ex_put_var", exoId, IR_IV_TimeIndexRecordVariables(), variableEntityType, varIndex, elemBlockId, numVals, ptr)
+  }
+
   def ex_close() : ListBuffer[IR_Statement] =
     callExodusFunction("ex_close", exoId)
 
@@ -196,19 +228,15 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     }
   }
 
-  def writeExodus() : ListBuffer[IR_Statement] = {
+  // Parallel mode: open file via exodusII library, write metadata for visualization and close
+  // perform heavy I/O operations with PnetCDF
+  def writeExodusMetaData() : ListBuffer[IR_Statement] = {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
-
-    // TODO handling for serial applications
-
-    // declarations for exodus
-    stmts ++= declarations
 
     // enable error messages to be printed to std::cerr
     if (Knowledge.parIO_generateDebugStatements)
       stmts += IR_FunctionCall(IR_ExternalFunctionReference("ex_opts"), IR_VariableAccess("EX_VERBOSE", IR_UnknownDatatype))
 
-    // open file via exodus library, write metadata for visualization and close
     stmts ++= ex_create_par()
     stmts ++= ex_put_init()
     stmts ++= ex_put_block()
@@ -221,8 +249,79 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     stmts
   }
 
+  // in serial applications: no mpi datatypes to describe memory layout, but exodus only creates 1D dims for variables (immutable)
+  // -> unfortunately, if data is excluded (e.g. ghost layers) all data has to be copied regardless if exodusII or serial netcdf API is used
+  // we directly use the serial exodusII library here for simplicity
+  def writeDataSerial(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
+    var stmts : ListBuffer[IR_Statement] = ListBuffer()
+
+    if (constsIncluded) {
+      stmts ++= ex_create()
+      stmts ++= ex_put_init()
+      stmts ++= ex_put_block()
+      stmts ++= ex_put_coord_names()
+      stmts ++= ex_put_variable_param()
+      stmts ++= ex_put_truth_table()
+      stmts ++= ex_put_variable_names()
+    } else {
+      stmts ++= ex_open()
+    }
+
+    stmts ++= ex_put_time
+
+    var varIdx = 1
+    dataBuffers(constsIncluded).foreach { buf =>
+      val tmpBufPtr : IR_AddressOf = if (!buf.accessBlockwise && !buf.evalAccessWithoutExclusion) {
+        val indexRange = IR_ExpressionIndexRange(
+          IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => buf.beginIndices(dim) - Duplicate(buf.referenceOffset(dim)) : IR_Expression)),
+          IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => buf.endIndices(dim) - Duplicate(buf.referenceOffset(dim)) : IR_Expression)))
+        val indexRangeTransformed = buf.accessPattern.transformExpressionIndexRange(indexRange.begin, indexRange.end)
+
+        val dims = buf.accessPattern.transformDataExtents((indexRange.end - indexRange.begin).indices.to[ListBuffer], buf.localization, orderKJI = false)
+        val tmp = IR_IV_TemporaryBuffer(buf.datatype.resolveBaseDatatype, buf.localization, "tmp" + buf.name, buf.domainIdx, dims)
+        val accesses = buf.accessPattern.accessIndices getOrElse ListBuffer(IR_ConstIndex(Array.fill(buf.numDimsData)(0)))
+        val numAccesses = buf.accessPattern.numAccesses
+        val offset = IR_LoopOverFragments.defIt * dims.reduce(_ * _) + numAccesses * indexRangeTransformed.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
+
+        stmts += tmp.allocateMemory
+        stmts += IR_LoopOverFragments(
+          IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
+            IR_LoopOverDimensions(numDimsGrid, indexRangeTransformed,
+              (0 until numAccesses).to[ListBuffer].map(idx => {
+                IR_Assignment(
+                  tmp.at(offset + idx), buf.getAccess(IR_LoopOverDimensions.defIt(numDimsGrid) + accesses(idx))) : IR_Statement
+              }))))
+
+        IR_AddressOf(tmp.at(0))
+      } else {
+        buf.getBaseAddress
+      }
+
+      val isCoordBuffer = dataBuffersNodePos.zipWithIndex.collectFirst { case(coordBuf, bufIdx) if coordBuf.datasetName == buf.datasetName => bufIdx}
+      val isConnectivityBuffer = buf.datasetName == dataBuffersConnectivity.datasetName
+
+      if (isCoordBuffer.isDefined) {
+        stmts ++= ex_put_coord(ListBuffer.fill[IR_Expression](3)(nullptr).updated(isCoordBuffer.get, tmpBufPtr))
+      } else if (isConnectivityBuffer) {
+        stmts ++= ex_put_conn(tmpBufPtr)
+      } else {
+        stmts ++= ex_put_var(varIdx, tmpBufPtr)
+        varIdx += 1
+      }
+    }
+
+    // update time
+    stmts += IR_Assignment(IR_IV_TimeIndexRecordVariables(), 1, "+=")
+    stmts += IR_Assignment(IR_IV_TimeValueRecordVariables(), 1.0, "+=")
+
+    stmts ++= ex_close()
+
+    stmts
+  }
+
+
   // dims of datasets created by Exodus are flattened (contain only the "inner" points/cells/...) and require special handling
-  def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
+  def writeDataParallel(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
     val flatDimDecls : mutable.HashSet[IR_VariableDeclaration] = mutable.HashSet()
     val ioHanderNc = ioHandler(constsIncluded, filename)
@@ -242,77 +341,80 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     def countConnectivity(numFragsPerWrite : IR_Expression) = declareDims(2, "countConnectivity", IR_AtCellCenter, Some(ListBuffer(numFragsPerWrite * numCellsPerFrag, nodesPerElement)))
     lazy val startConnectivity = declareDims(2, "startConnectivity", IR_AtCellCenter) -> ListBuffer[IR_Expression](fragOffset * numCellsPerFrag, 0)
 
-    /* create MPI Derived Datatypes to describe the memory layout of each buffer */
-    val localViews = dataBuffers(constsIncluded).zipWithIndex.map { case (buf, bufIdx) =>
-      // declare dims for the datasets (unflattened)
-      val numDims = buf.totalDimsLocalKJI.length
-      val total = buf.declareDimensionality("localDimsTotal", IR_IntegerDatatype, buf.totalDimsLocalKJI)
-      val count = buf.declareDimensionality("localCount", IR_IntegerDatatype, buf.innerDimsLocalKJI)
-      val start = buf.declareDimensionality("localStart", IR_IntegerDatatype, buf.startIndexLocalKJI)
-
-      // only create datatype when necessary, otherwise re-use previously created datatype
-      val localView = MPI_View(IR_VariableAccess(total), IR_VariableAccess(count), IR_VariableAccess(start),
-        numDims, createViewPerFragment = false, isLocal = true, buf, "localSubarray")
-      if (MPI_View.addView(localView)) {
-        statements ++= ListBuffer(total, count, start)
-        statements += localView.createDatatype
-
-        localView
-      } else {
-        MPI_View.getView(bufIdx, global = false)
-      }
-    }
-
-    // reset view cache after everything is done
-    MPI_View.resetViews()
-
     // set global start index for each process, handle "invalid" fragments and write data
-    def writeExodusDatasets() : mutable.ListBuffer[IR_Statement] = dataBuffers(constsIncluded).zipWithIndex.map { case (buf, bufIdx) =>
-      // declare extents of variables: 1 spatial dim and 1 temporal dim: (timestep, number of field values [dep. on localization])
-      val spatialDimField : IR_Expression = variableEntityType match {
-        case EX_NODAL      => numPointsPerFrag
-        case EX_ELEM_BLOCK => numCellsPerFrag
-        case _             => Logger.error("Unknown entity type used for field data in \"IR_PrintExodus\":" + variableEntityType.name)
-      }
-      def countFieldData(numFragsPerWrite : IR_Expression) = declareDims(2, "countFieldData", buf.localization, Some(ListBuffer(1, numFragsPerWrite * spatialDimField)))
-      val startFieldData = declareDims(3, "startFieldData", buf.localization) -> ListBuffer[IR_Expression](IR_IV_TimeIndexRecordVariables(), fragOffset * spatialDimField)
+    def writeExodusDatasets() : mutable.ListBuffer[IR_Statement] = {
+      /* create MPI Derived Datatypes to describe the memory layout of each buffer */
+      val localViews = dataBuffers(constsIncluded).zipWithIndex.map { case (buf, bufIdx) =>
+        // declare dims for the datasets (unflattened)
+        val numDims = buf.totalDimsLocalKJI.length
+        val total = buf.declareDimensionality("localDimsTotal", IR_IntegerDatatype, buf.totalDimsLocalKJI)
+        val count = buf.declareDimensionality("localCount", IR_IntegerDatatype, buf.innerDimsLocalKJI)
+        val start = buf.declareDimensionality("localStart", IR_IntegerDatatype, buf.startIndexLocalKJI)
 
-      // associate flattened dims with buffers depending on the buffers characteristics
-      val numFragsPerWrite = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else IR_IntegerConstant(1)
-      val count = buf.datasetName match {
-        case s : IR_StringConstant if datasetCoords.contains(s) => countNodePos(numFragsPerWrite)
-        case s : IR_StringConstant if s == datasetConnectivity  => countConnectivity(numFragsPerWrite)
-        case s : IR_StringConstant if datasetFields.contains(s) => countFieldData(numFragsPerWrite)
-        case _                                                  => Logger.error("Unknown dataset used in IR_PrintExodus: " + buf.datasetName)
-      }
-      val start = buf.datasetName match {
-        case s : IR_StringConstant if datasetCoords.contains(s) => startNodePos
-        case s : IR_StringConstant if s == datasetConnectivity  => startConnectivity
-        case s : IR_StringConstant if datasetFields.contains(s) => startFieldData
-        case _                                                  => Logger.error("Unknown dataset used in IR_PrintExodus: " + buf.datasetName)
+        // only create datatype when necessary, otherwise re-use previously created datatype
+        val localView = MPI_View(IR_VariableAccess(total), IR_VariableAccess(count), IR_VariableAccess(start),
+          numDims, createViewPerFragment = false, isLocal = true, buf, "localSubarray")
+        if (MPI_View.addView(localView)) {
+          statements ++= ListBuffer(total, count, start)
+          statements += localView.createDatatype
+
+          localView
+        } else {
+          MPI_View.getView(bufIdx, global = false)
+        }
       }
 
-      val numDims = count.datatype.asInstanceOf[IR_ArrayDatatype].numElements
-      val bufCount = IR_VariableAccess(IR_FileAccess.declareVariable("bufCount"), IR_IntegerDatatype)
-      val emptyCount = IR_VariableAccess("emptyCount", IR_ArrayDatatype(ioHanderNc.MPI_Offset, numDims))
-      val countSelection = IR_VariableDeclaration(IR_PointerDatatype(ioHanderNc.MPI_Offset), IR_FileAccess.declareVariable("countSelection"), IR_VariableAccess(count))
+      // reset view cache after everything is done
+      MPI_View.resetViews()
 
-      // inner statement block of a fragment/block loop
-      var writeStatements : ListBuffer[IR_Statement] = ListBuffer()
-      writeStatements += IR_VariableDeclaration(bufCount, 0)
-      writeStatements += IR_IfCondition(IR_IV_IsValidForDomain(buf.domainIdx),
-        start._2.zipWithIndex.map { case (extent, dim) => IR_Assignment(IR_ArrayAccess(IR_VariableAccess(start._1), dim), extent) : IR_Statement } :+
-        IR_Assignment(bufCount, 1))
-      writeStatements += IR_VariableDeclaration(emptyCount, new IR_InitializerList(ListBuffer.fill(numDims)(0)))
-      writeStatements ++= ioHanderNc.condAssignCount(bufIdx, Some(countSelection), Some(emptyCount))
-      writeStatements ++= ioHanderNc.ncmpi_put_vara_all(
-        ioHanderNc.ncFile, ioHanderNc.varIdBuffer(bufIdx), IR_VariableAccess(start._1), IR_VariableAccess(countSelection), buf.getBaseAddress, bufCount, localViews(bufIdx).getAccess
-      )
+      // write data
+      dataBuffers(constsIncluded).zipWithIndex.map { case (buf, bufIdx) =>
+        // declare extents of variables: 1 spatial dim and 1 temporal dim: (timestep, number of field values [dep. on localization])
+        val spatialDimField : IR_Expression = variableEntityType match {
+          case EX_NODAL      => numPointsPerFrag
+          case EX_ELEM_BLOCK => numCellsPerFrag
+          case _             => Logger.error("Unknown entity type used for field data in \"IR_PrintExodus\":" + variableEntityType.name)
+        }
+        def countFieldData(numFragsPerWrite : IR_Expression) = declareDims(2, "countFieldData", buf.localization, Some(ListBuffer(1, numFragsPerWrite * spatialDimField)))
+        val startFieldData = declareDims(2, "startFieldData", buf.localization) -> ListBuffer[IR_Expression](IR_IV_TimeIndexRecordVariables(), fragOffset * spatialDimField)
 
-      if (buf.accessBlockwise)
-        ioHanderNc.IR_LoopOverBlocks(writeStatements)
-      else
-        IR_LoopOverFragments(writeStatements)
+        // associate flattened dims with buffers depending on the buffers characteristics
+        val numFragsPerWrite = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else IR_IntegerConstant(1)
+        val count = buf.datasetName match {
+          case s : IR_StringConstant if datasetCoords.contains(s) => countNodePos(numFragsPerWrite)
+          case s : IR_StringConstant if s == datasetConnectivity  => countConnectivity(numFragsPerWrite)
+          case s : IR_StringConstant if datasetFields.contains(s) => countFieldData(numFragsPerWrite)
+          case _                                                  => Logger.error("Unknown dataset used in IR_PrintExodus: " + buf.datasetName)
+        }
+        val start = buf.datasetName match {
+          case s : IR_StringConstant if datasetCoords.contains(s) => startNodePos
+          case s : IR_StringConstant if s == datasetConnectivity  => startConnectivity
+          case s : IR_StringConstant if datasetFields.contains(s) => startFieldData
+          case _                                                  => Logger.error("Unknown dataset used in IR_PrintExodus: " + buf.datasetName)
+        }
+
+        val numDims = count.datatype.asInstanceOf[IR_ArrayDatatype].numElements
+        val bufCount = IR_VariableAccess(IR_FileAccess.declareVariable("bufCount"), IR_IntegerDatatype)
+        val emptyCount = IR_VariableAccess("emptyCount", IR_ArrayDatatype(ioHanderNc.MPI_Offset, numDims))
+        val countSelection = IR_VariableDeclaration(IR_PointerDatatype(ioHanderNc.MPI_Offset), IR_FileAccess.declareVariable("countSelection"), IR_VariableAccess(count))
+
+        // inner statement block of a fragment/block loop
+        var writeStatements : ListBuffer[IR_Statement] = ListBuffer()
+        writeStatements += IR_VariableDeclaration(bufCount, 0)
+        writeStatements += IR_IfCondition(IR_IV_IsValidForDomain(buf.domainIdx),
+          start._2.zipWithIndex.map { case (extent, dim) => IR_Assignment(IR_ArrayAccess(IR_VariableAccess(start._1), dim), extent) : IR_Statement } :+
+            IR_Assignment(bufCount, 1))
+        writeStatements += IR_VariableDeclaration(emptyCount, new IR_InitializerList(ListBuffer.fill(numDims)(0)))
+        writeStatements ++= ioHanderNc.condAssignCount(bufIdx, Some(countSelection), Some(emptyCount))
+        writeStatements ++= ioHanderNc.ncmpi_put_vara_all(
+          ioHanderNc.ncFile, ioHanderNc.varIdBuffer(bufIdx), IR_VariableAccess(start._1), IR_VariableAccess(countSelection), buf.getBaseAddress, bufCount, localViews(bufIdx).getAccess
+        )
+
+        if (buf.accessBlockwise)
+          ioHanderNc.IR_LoopOverBlocks(writeStatements)
+        else
+          IR_LoopOverFragments(writeStatements)
+      }
     }
 
     // re-use most of PnetCDF interface
@@ -323,6 +425,12 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     statements ++= ioHanderNc.closeFile()
 
     statements
+  }
+
+  // when exodus is installed with "MPI=ON" flag, the "exodusII.h" header requires "mpi.h" -> serial programs unfortunately require MPI headers and libs, too
+  // alternative solution: install pure serial version additionally
+  if (!Knowledge.mpi_enabled) {
+    Platform.targetCompilerBinary = "mpicxx" // TODO: handle dependency
   }
 
   override def expand() : OutputType = {
@@ -350,16 +458,17 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     var statements : ListBuffer[IR_Statement] = ListBuffer()
     statements ++= statementsForPreparation
 
-    // enable visualization via exodusII
-    statements += IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty,
-      writeExodus())
+    // declarations for exodus
+    statements ++= declarations
+    if (Knowledge.mpi_enabled)
+      statements += IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty, writeExodusMetaData())
 
-    // write data via PnetCDF interface
+    // write data via exodusII (serial) or PnetCDF (parallel) interface
     statements += IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty,
       /* true: write constants and field data to file and mark that constants were already written */
-      writeData(constsIncluded = true) :+ IR_ConstantsWrittenToFile().setFilename(filename),
+      (if (Knowledge.mpi_enabled) writeDataParallel(constsIncluded = true) else writeDataSerial(constsIncluded = true)) :+ IR_ConstantsWrittenToFile().setFilename(filename),
       /* false: only write field data */
-      writeData(constsIncluded = false))
+      if (Knowledge.mpi_enabled) writeDataParallel(constsIncluded = false) else writeDataSerial(constsIncluded = false))
 
     statements
   }

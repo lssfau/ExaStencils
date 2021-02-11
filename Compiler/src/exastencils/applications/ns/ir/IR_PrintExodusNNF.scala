@@ -35,10 +35,14 @@ case class IR_PrintExodusNNF(
       setupVelocityComponents
   }
 
+  override def dataBuffersNodePos : ListBuffer[IR_DataBuffer] = nodePositionsBuf.zipWithIndex.map { case (buf, idx) =>
+    IR_DataBuffer(buf, IR_IV_ActiveSlot(p), None, Some(datasetCoords(idx)))
+  }
+
+  override def dataBuffersConnectivity : IR_DataBuffer = IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(p), None, Some(datasetConnectivity))
+
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
-    val constants = nodePositionsBuf.zipWithIndex.map { case (buf, idx) =>
-      IR_DataBuffer(buf, IR_IV_ActiveSlot(p), None, Some(datasetCoords(idx))) } :+
-      IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(p), None, Some(datasetConnectivity))
+    val constants = dataBuffersNodePos :+ dataBuffersConnectivity
     var fields = velocityComponentsAsVec.zipWithIndex.map { case (tmpBuf, d) =>
       IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(u), None, Some(datasetFields(d)))
     }.to[ListBuffer]

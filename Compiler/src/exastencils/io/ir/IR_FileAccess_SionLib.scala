@@ -114,7 +114,8 @@ case class IR_FileAccess_SionLib(
       statements += IR_Assignment(fileId,
         IR_FunctionCall(
           IR_ExternalFunctionReference("sion_open"),
-          filenameAsCString, openMode, IR_AddressOf(numTasks), IR_AddressOf(numPhysFiles), IR_AddressOf(chunkSizes), IR_AddressOf(fsBlockSize), IR_AddressOf(globalRanks), IR_AddressOf(filePtr)
+          IR_FunctionCall("strdup", filenameAsCString),
+          openMode, IR_AddressOf(numTasks), IR_AddressOf(numPhysFiles), IR_AddressOf(chunkSizes), IR_AddressOf(fsBlockSize), IR_AddressOf(globalRanks), IR_AddressOf(filePtr)
         )
       )
     }
@@ -218,7 +219,7 @@ case class IR_FileAccess_SionLib(
   if(!Settings.makefile_additionalCFlags.contains(selectCflags))
     Settings.makefile_additionalCFlags += selectCflags
 
-  override def includes : ListBuffer[String] = ListBuffer("sion.h")
+  override def includes : ListBuffer[String] = ListBuffer("sion.h") ++ (if (!Knowledge.mpi_enabled) Some("string.h") else None)
   override def libraries : ListBuffer[String] = ListBuffer[String]() ++ selectLibs.split(" ").filter(f => f.startsWith("-l")).map(l => l.replace("-l", ""))
   override def pathsInc : ListBuffer[String] = super.pathsInc
   override def pathsLib : ListBuffer[String] = ListBuffer[String]() ++ selectLibs.split(" ").filter(f => f.startsWith("-L")).map(l => l.replace("-L", ""))

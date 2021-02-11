@@ -119,11 +119,11 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   }
 
   def attributeType(gridDatatype : IR_Datatype) : String = gridDatatype match {
-    case _ : IR_ScalarDatatype                           => "Scalar"
-    case _ : IR_VectorDatatype                           => "Vector"
-    case matrix : IR_MatrixDatatype if matrix.sizeN == 1 => "Vector"
-    case _ : IR_MatrixDatatype                           => "Matrix" // TODO does this work with xdmf?
-    case _                                               => Logger.error("Unsupported datatype for IR_PrintXdmf: " + gridDatatype.prettyprint)
+    case _ : IR_ScalarDatatype                                                => "Scalar"
+    case _ : IR_VectorDatatype                                                => "Vector"
+    case matrix : IR_MatrixDatatype if matrix.sizeN == 1 || matrix.sizeM == 1 => "Vector"
+    case matrix : IR_MatrixDatatype if matrix.sizeN == 1 && matrix.sizeM == 1 => "Scalar"
+    case _                                                                    => Logger.error("Unsupported datatype for IR_PrintXdmf: " + gridDatatype.prettyprint)
   }
 
   def centeringType(localization : IR_Localization) : String = localization match {

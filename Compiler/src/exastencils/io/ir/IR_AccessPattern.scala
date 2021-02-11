@@ -11,6 +11,8 @@ import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_Node
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.config.Knowledge
+import exastencils.grid.ir.IR_AtNode
+import exastencils.grid.ir.IR_Localization
 
 object IR_AccessPattern {
   def apply(callback : IR_Index => IR_Access) : IR_AccessPattern = new IR_AccessPattern(accessCallbackFuntion = callback, accessIndices = None)
@@ -30,6 +32,8 @@ case class IR_AccessPattern(
 
   // specifies if elements are accessed regularly
   def isRegular : Boolean = !isAccessPatternSWE
+
+  def numAccesses = if (accessIndices.isDefined) accessIndices.get.length else 1
 
   // special access pattern for nodal fields in SWE (e.g. node positions and bath) applications
   // 6 elements are accesses per grid cell
@@ -54,12 +58,12 @@ case class IR_AccessPattern(
   }
 
   // transform dimensionality depending on access pattern
-  def transformDataExtents(dims : ListBuffer[IR_Expression], orderKJI : Boolean) : ListBuffer[IR_Expression] = {
-    if (isAccessPatternSWE) {
+  def transformDataExtents(dims : ListBuffer[IR_Expression], localization : IR_Localization, orderKJI : Boolean) : ListBuffer[IR_Expression] = {
+    if (isAccessPatternSWE && localization == IR_AtNode) {
       // 6 accesses per grid cell instead of 1 access per grid node
       val numDims = Knowledge.dimensionality
       val nodalToZonal = (if (orderKJI) dims.reverse else dims).zipWithIndex.map { case (dim, idx) => if (idx < numDims) dim-1 else dim }
-      val newDims = IR_IntegerConstant(accessIndices.get.length) +: nodalToZonal
+      val newDims = IR_IntegerConstant(numAccesses) +: nodalToZonal
       if (orderKJI) newDims.reverse else newDims
     } else {
       dims

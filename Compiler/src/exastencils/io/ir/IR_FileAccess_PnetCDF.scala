@@ -111,7 +111,7 @@ case class IR_FileAccess_PnetCDF(
   lazy val emptyCount : Array[IR_VariableAccess] = dataBuffers.indices.map(bufIdx => IR_VariableAccess(emptyCount_decl(bufIdx))).toArray
   lazy val imap : Array[IR_VariableAccess] = dataBuffers.indices.map(bufIdx => IR_VariableAccess(imap_decl(bufIdx))).toArray
 
-  def createDimName(buf : IR_DataBuffer, d : Int) = IR_StringConstant(IR_FileAccess.declareVariable(buf.name + "_" + "dim" + (buf.numDimsData - d))) // TODO
+  def createDimName(buf : IR_DataBuffer, d : Int) = IR_StringConstant(IR_FileAccess.declareVariable(buf.name + "_" + "dim" + (buf.numDimsData - d))) // TODO better name convention
 
   def accessFileFragwise(bufIdx : Int, accessStmts : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
     val buffer = dataBuffers(bufIdx)

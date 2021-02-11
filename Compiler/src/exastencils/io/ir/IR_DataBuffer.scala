@@ -259,6 +259,7 @@ case class IR_DataBuffer(
   def imapKJI : ListBuffer[IR_Expression] = imap.reverse
 
   // determines if some layers (e.g. ghost/pad/...) are excluded for I/O operations or not
+  def evalAccessWithoutExclusion : Boolean = numDimsDataRange.map(d => innerDimsLocalKJI(d) == totalDimsLocalKJI(d)).reduce(_ && _)
   def accessWithoutExclusion : IR_Expression = numDimsDataRange
     .map(d => innerDimsLocalKJI(d) EqEq totalDimsLocalKJI(d))
     .fold(IR_BooleanConstant(true))((a, b) => a AndAnd b)
@@ -273,7 +274,7 @@ case class IR_DataBuffer(
   private val innerDimsFragKJI = if (accessBlockwise) innerDimsLocalKJI.tail else innerDimsLocalKJI
   private val innerDimsBlockKJI = if (accessBlockwise) innerDimsLocalKJI else IR_IV_NumValidFrags(domainIdx) +: innerDimsLocalKJI
   private val typicalByteSize = datatype.resolveBaseDatatype.typicalByteSize
-  private def getTransformedExtents(dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = accessPattern.transformDataExtents(dims, orderKJI = true)
+  private def getTransformedExtents(dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = accessPattern.transformDataExtents(dims, localization, orderKJI = true)
   def typicalByteSizeFrag : IR_Expression = getTransformedExtents(innerDimsFragKJI).reduce(_ * _)* typicalByteSize
   def typicalByteSizeBlock : IR_Expression = getTransformedExtents(innerDimsBlockKJI).reduce(_ * _) * typicalByteSize
   def typicalByteSizeLocal : IR_Expression = getTransformedExtents(innerDimsLocalKJI).reduce(_ * _) * typicalByteSize
