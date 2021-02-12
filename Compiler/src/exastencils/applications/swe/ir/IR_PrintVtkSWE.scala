@@ -44,6 +44,8 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int, fieldAccess
   def numCells_z = 1
   def numPointsPerFrag = 6 * numCells_x * numCells_y
 
+  def getBasenameDiscField(discField : ListBuffer[IR_Field]) = discField.map(_.name).reduce((a, b) => (a zip b).takeWhile(Function.tupled(_ == _)).map(_._1).mkString)
+
   /* validate arguments passed for "fieldAccesses" */
   // check if only field accesses were passed
   if (fieldAccesses.exists { acc => !acc.isInstanceOf[IR_FieldAccess] })
@@ -56,7 +58,8 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int, fieldAccess
   if (fieldAccesses.exists { case field : IR_FieldAccess => field.level != level })
     Logger.error("\"IR_PrintVtkSWE\": Field accesses must occur on the same level.")
 
-  // extract different field types from the collection of fields passed to function
+  /* extract different field types from the collection of fields passed to function */
+  // get disc fields
   def discFields : ListBuffer[ListBuffer[IR_Field]] = {
     val discFieldComponents : mutable.HashSet[String] = mutable.HashSet() // no duplicate disc fields
     def throwErrorMsg = Logger.error(
@@ -69,7 +72,7 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int, fieldAccess
         // check if enough components were passed for a disc field
         if (index + 6 > fieldAccesses.length)
           throwErrorMsg
-        // check if all 6 fields are cell-centered
+        // collect all 6 cell-centered components
         val components = fieldAccesses.slice(index, index + 6) collect {
           case accComponent : IR_FieldAccess if accComponent.field.localization == IR_AtCellCenter =>
             discFieldComponents.add(accComponent.name)
@@ -78,16 +81,14 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int, fieldAccess
         // check if disc field has 6 components and if they share a common prefix in their names
         if (components.length != 6)
           throwErrorMsg
-        if (components.map(_.name).reduce((a, b) => (a zip b).takeWhile(Function.tupled(_ == _)).map(_._1).mkString).isEmpty)
+        if (getBasenameDiscField(components).isEmpty)
           Logger.error("\"IR_PrintVtkSWE:\" Could not extract a common name from disc field components. Components do not belong to the same disc field.")
 
         components
     }.distinct
   }
-
-  def nodalFields : ListBuffer[IR_Field] = fieldAccesses.collect {
-      case acc : IR_FieldAccess if acc.field.localization == IR_AtNode => acc.field
-  }.distinct
+  // get node fields
+  def nodalFields : ListBuffer[IR_Field] = fieldAccesses.collect { case acc : IR_FieldAccess if acc.field.localization == IR_AtNode => acc.field }.distinct
 
   // etaDiscLower0 required to setup iteration spaces
   def etaDiscLower0 = IR_FieldCollection.getByIdentifier("etaDiscLower0", level).get
@@ -144,12 +145,7 @@ case class IR_PrintVtkSWE(var filename : IR_Expression, level : Int, fieldAccess
 
     // add disc fields
     discFields.foreach { discField =>
-      // get basename for disc field
-      val basename = discField.map(_.name).reduce((a, b) => (a zip b).takeWhile(Function.tupled(_ == _)).map(_._1).mkString)
-      if (basename.isEmpty)
-        Logger.error("\"IR_PrintVtkSWE:\" Could not extract a common name from disc field components. Components do not belong to the same disc field.")
-
-      addNodePrint(basename, {
+      addNodePrint(getBasenameDiscField(discField), {
         var nodePrint = ListBuffer[IR_Expression]()
         discField.foreach { component =>
           nodePrint += IR_FieldAccess(component, IR_IV_ActiveSlot(component), IR_LoopOverDimensions.defIt(numDimsGrid))
