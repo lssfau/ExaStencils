@@ -17,7 +17,8 @@ case class IR_FileAccess_PnetCDF(
     var dataBuffers : ListBuffer[IR_DataBuffer],
     var bufferIsRecordVariable : Option[mutable.HashMap[Int, Boolean]],
     var writeAccess : Boolean,
-    var appendedMode : Boolean = false // TODO: additional param "timeIndex" for appended mode?
+    var appendedMode : Boolean = false, // TODO: additional param "timeIndex" for appended mode?
+    var initFragInfo : Boolean = true
 ) extends IR_FileAccess("nc") with IR_PnetCDF_API {
 
   /* hints:
@@ -38,13 +39,15 @@ case class IR_FileAccess_PnetCDF(
     IR_VariableAccess("NC_NOWRITE", IR_UnknownDatatype) // open as read-only
   }
 
-  // time variable handling:
+  /* time variable handling */
   // datasets can be specified as "fixed-size" or "record" variables
   // fixed-size arrays only consist of spatial dimensions
   // record variables are additionally bound to a "unlimited" dimension (mostly for time)
-  def fileContainsRecordVariables : Boolean = if (bufferIsRecordVariable.isDefined) bufferIsRecordVariable.get.exists(_._2 == true) else false
+  def truthTableRecordVariables : mutable.HashMap[Int, Boolean] = bufferIsRecordVariable getOrElse mutable.HashMap()
+  def fileContainsRecordVariables : Boolean = truthTableRecordVariables.exists(_._2 == true)
+  def useTimeDim(bufIdx : Int) : Boolean = truthTableRecordVariables.getOrElse(bufIdx, false)
   def numDimsDataAndTime(bufIdx : Int, numDimsData : Int) : Int = numDimsData + (if (useTimeDim(bufIdx)) 1 else 0)
-  def useTimeDim(bufIdx : Int) : Boolean = if (bufferIsRecordVariable.isDefined) bufferIsRecordVariable.get(bufIdx) else false
+  def writeTimeToFile = writeAccess && fileContainsRecordVariables && Knowledge.parIO_vis_constantDataReduction
   def handleTimeDimension(timeValue : IR_Expression, bufIdx : Int, dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = {
     if (useTimeDim(bufIdx)) timeValue +: dims else dims // prepend one more entry for unlimited "time" dimension
   }
@@ -109,6 +112,7 @@ case class IR_FileAccess_PnetCDF(
   val varIdTime = IR_VariableAccess(varIdTime_decl)
   lazy val varIdBuffer : Array[IR_VariableAccess] = dataBuffers.indices.map(bufIdx => IR_VariableAccess(varIdBuffer_decl(bufIdx))).toArray
   lazy val emptyCount : Array[IR_VariableAccess] = dataBuffers.indices.map(bufIdx => IR_VariableAccess(emptyCount_decl(bufIdx))).toArray
+  lazy val localView : Array[MPI_View] = dataBuffers.indices.map(bufIdx => MPI_View.getView(bufIdx, global = false)).toArray
   lazy val imap : Array[IR_VariableAccess] = dataBuffers.indices.map(bufIdx => IR_VariableAccess(imap_decl(bufIdx))).toArray
 
   def createDimName(buf : IR_DataBuffer, d : Int) = IR_StringConstant(IR_FileAccess.declareVariable(buf.name + "_" + "dim" + (buf.numDimsData - d))) // TODO better name convention
@@ -176,6 +180,10 @@ case class IR_FileAccess_PnetCDF(
     val distinctDimIds : mutable.HashMap[String, IR_VariableAccess] = mutable.HashMap()
     val dimIdTime = IR_VariableAccess("dimIdTime", IR_IntegerDatatype) // "time" is the slowest-varying dimension ("0" in KJI order)
 
+    // init frag info if it was not already (e.g. in visualization interface)
+    if (initFragInfo)
+      statements ++= IR_IV_FragmentInfo.init(dataBuffers.head.domainIdx, calculateFragOffset = dataBuffers.exists(!_.canonicalOrder))
+
     // define dimensions in case of write operations
     if (writeAccess && !appendedMode) {
       // define unlimited time dimension
@@ -232,6 +240,26 @@ case class IR_FileAccess_PnetCDF(
       }
     }
 
+    // create derived data types for memory access (omit ghost layers)
+    if (Knowledge.mpi_enabled) {
+      for (bufIdx <- dataBuffers.indices) {
+        val buf = dataBuffers(bufIdx)
+        val numDims = buf.totalDimsLocalKJI.length
+        val total = buf.declareDimensionality("localDimsTotal", IR_IntegerDatatype, buf.totalDimsLocalKJI)
+        val count = buf.declareDimensionality("localCount", IR_IntegerDatatype, buf.innerDimsLocalKJI)
+        val start = buf.declareDimensionality("localStart", IR_IntegerDatatype, buf.startIndexLocalKJI)
+
+        val localView = MPI_View(IR_VariableAccess(total), IR_VariableAccess(count), IR_VariableAccess(start),
+          numDims, createViewPerFragment = false, isLocal = true, buf, "localSubarray")
+        if (MPI_View.addView(localView)) {
+          statements += IR_IfCondition(IR_Negation(buf.accessWithoutExclusion),
+            ListBuffer[IR_Statement](
+              total, count, start,
+              localView.createDatatype))
+        }
+      }
+    }
+
     // end "define mode" when writing the file and go into "data mode"
     if (writeAccess && !appendedMode)
       statements ++= ncmpi_enddef(ncFile)
@@ -242,7 +270,7 @@ case class IR_FileAccess_PnetCDF(
     }
 
     // write time values
-    if (writeAccess && fileContainsRecordVariables && Knowledge.parIO_vis_constantDataReduction) { // TODO cond
+    if (writeTimeToFile) {
       if (Knowledge.parIO_useCollectiveIO) {
         statements ++= ncmpi_put_var1_type_all(IR_DoubleDatatype, ncFile, varIdTime, IR_AddressOf(IR_IV_TimeIndexRecordVariables()), IR_AddressOf(IR_IV_TimeValueRecordVariables()))
       } else {
@@ -259,14 +287,21 @@ case class IR_FileAccess_PnetCDF(
     IR_VariableDeclaration(IR_PointerDatatype(MPI_Offset), IR_FileAccess.declareVariable("countSelection"), count(bufIdx))).toArray
   val countSelection : Array[IR_VariableAccess] = dataBuffers.indices.map(bufIdx =>
     IR_VariableAccess(countSelection_decl(bufIdx))).toArray
-  def condAssignCount(bufIdx : Int, altCountSelection : Option[IR_VariableDeclaration] = None, altEmptyCount : Option[IR_VariableAccess] = None) : ListBuffer[IR_Statement] = {
+  val bufcount = IR_VariableAccess("bufcount", MPI_Offset)
+  val bufcount_decl = IR_VariableDeclaration(bufcount, 1)
+  def condAssignCount(bufIdx : Int,
+      altCountSelection : Option[IR_VariableDeclaration] = None,
+      altEmptyCount : Option[IR_VariableAccess] = None) : ListBuffer[IR_Statement] = {
+
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
     val countSel_decl = altCountSelection getOrElse countSelection_decl(bufIdx)
     stmts += countSel_decl
+    stmts += bufcount_decl
 
     if (!dataBuffers(bufIdx).accessBlockwise) {
       stmts += IR_IfCondition(IR_Negation(IR_IV_IsValidForDomain(dataBuffers(bufIdx).domainIdx)),
         ListBuffer[IR_Statement](
+          IR_Assignment(bufcount, 0),
           IR_Assignment(IR_VariableAccess(countSel_decl), altEmptyCount getOrElse emptyCount(bufIdx))))
     }
 
@@ -288,12 +323,16 @@ case class IR_FileAccess_PnetCDF(
         ncmpi_put_vara_type(buffer.datatype, ncFile, varIdBuffer(bufIdx), globalStart(bufIdx), count(bufIdx), buffer.getBaseAddress)
       },
       /* falsebody */
-      // more complex method that describes the memory layout (imap parameter with linearized distance between two values (e.g. in x-direction "1") for each dimension in KJI order)
-      // needs pointer at offset of first non-ghost index
-      if (Knowledge.parIO_useCollectiveIO) {
-        condAssignCount(bufIdx) ++
-          ncmpi_put_varm_type_all(buffer.datatype, ncFile, varIdBuffer(bufIdx), globalStart(bufIdx), countSelection(bufIdx), stride(bufIdx), imap(bufIdx), buffer.getAddressReferenceOffset)
+      if (Knowledge.mpi_enabled) {
+        // parallel application: use MPI derived datatype to skip (internal) intermediate buffer from "ncmpi_put_varm_type"
+        if (Knowledge.parIO_useCollectiveIO) {
+          condAssignCount(bufIdx) ++
+            ncmpi_put_vara_all(ncFile, varIdBuffer(bufIdx), globalStart(bufIdx), countSelection(bufIdx), buffer.getBaseAddress, bufcount, localView(bufIdx).getAccess)
+        } else {
+          ncmpi_put_vara(ncFile, varIdBuffer(bufIdx), globalStart(bufIdx), count(bufIdx), buffer.getBaseAddress, 1, localView(bufIdx).getAccess)
+        }
       } else {
+        // serial: no MPI data types to describe in-memory layout -> use "nc_put_varm_<type>" instead
         ncmpi_put_varm_type(buffer.datatype, ncFile, varIdBuffer(bufIdx), globalStart(bufIdx), count(bufIdx), stride(bufIdx), imap(bufIdx), buffer.getAddressReferenceOffset)
       }
     )
@@ -318,12 +357,16 @@ case class IR_FileAccess_PnetCDF(
         ncmpi_get_vara_type(buffer.datatype, ncFile, varIdBuffer(bufIdx), globalStart(bufIdx), count(bufIdx), buffer.getBaseAddress)
       },
       /* falsebody */
-      // more complex method that describes the memory layout (i.e. linearized offsets for each dimension in KJI order)
-      // needs pointer at offset of first non-ghost index
-      if (Knowledge.parIO_useCollectiveIO) {
-        condAssignCount(bufIdx) ++
-          ncmpi_get_varm_type_all(buffer.datatype, ncFile, varIdBuffer(bufIdx), globalStart(bufIdx), countSelection(bufIdx), stride(bufIdx), imap(bufIdx), buffer.getAddressReferenceOffset)
+      if (Knowledge.mpi_enabled) {
+        // parallel application: use MPI derived datatype
+        if (Knowledge.parIO_useCollectiveIO) {
+          condAssignCount(bufIdx) ++
+            ncmpi_get_vara_all(ncFile, varIdBuffer(bufIdx), globalStart(bufIdx), countSelection(bufIdx), buffer.getBaseAddress, bufcount, localView(bufIdx).getAccess)
+        } else {
+          ncmpi_get_vara(ncFile, varIdBuffer(bufIdx), globalStart(bufIdx), count(bufIdx), buffer.getBaseAddress, 1, localView(bufIdx).getAccess)
+        }
       } else {
+        // serial: no MPI data types to describe in-memory layout -> use "nc_get_varm_<type>" instead
         ncmpi_get_varm_type(buffer.datatype, ncFile, varIdBuffer(bufIdx), globalStart(bufIdx), count(bufIdx), stride(bufIdx), imap(bufIdx), buffer.getAddressReferenceOffset)
       }
     )
@@ -336,8 +379,11 @@ case class IR_FileAccess_PnetCDF(
   override def cleanupAccess() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
+    if (Knowledge.mpi_enabled)
+      MPI_View.resetViews()
+
     // increment time index/value once data was written
-    if (fileContainsRecordVariables && Knowledge.parIO_vis_constantDataReduction) { // TODO cond
+    if (writeTimeToFile) {
       statements += IR_Assignment(IR_IV_TimeIndexRecordVariables(), 1, "+=")
       statements += IR_Assignment(IR_IV_TimeValueRecordVariables(), 1.0, "+=")
     }
@@ -357,9 +403,13 @@ case class IR_FileAccess_PnetCDF(
   override def pathsLib : ListBuffer[String] = ListBuffer("$(PNETCDF_HOME)/lib")
 
   override def validateParams() : Unit = {
-    for (buf <- dataBuffers)
+    for (buf <- dataBuffers) {
       if (buf.datasetName == IR_NullExpression)
         Logger.error("Parameter \"dataset\" was not specified.")
+
+      if (!Knowledge.parIO_useCollectiveIO && buf.canonicalOrder)
+        Logger.error("Parameter \"canonicalOrder\" should only be used with collective I/O.")
+    }
 
     if(!Knowledge.mpi_enabled) {
       Knowledge.parIO_useCollectiveIO = false // no collective I/O handling for serial programs

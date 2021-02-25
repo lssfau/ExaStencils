@@ -131,9 +131,9 @@ object L4_ResolveReadFieldFunctions extends DefaultStrategy("Resolve read field 
         }
         case "mpiio" => args match {
           case ListBuffer(fn, field : L4_FieldAccess)                                                                      => // option 1: filename, field
-            L4_ReadField(fn, field, ioInterface = ifaceSelection, canonicalOrder = true)
+            L4_ReadField(fn, field, ioInterface = ifaceSelection)
           case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)                                      => // option 2: filename, field, inclGhost
-            L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, canonicalOrder = true)
+            L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value)
           case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, canonicalOrder : L4_BooleanConstant) => // option 3: filename, field, inclGhost, canonicalOrder
             L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, canonicalOrder = canonicalOrder.value)
           case _                                                                                                           =>
@@ -141,9 +141,9 @@ object L4_ResolveReadFieldFunctions extends DefaultStrategy("Resolve read field 
         }
         case "hdf5" => args match {
           case ListBuffer(fn, datasetPath, field : L4_FieldAccess)                                                                      => // option 1: filename, /path/to/dataset, field
-            L4_ReadField(fn, field, ioInterface = ifaceSelection, canonicalOrder = true, dataset = Some(datasetPath))
+            L4_ReadField(fn, field, ioInterface = ifaceSelection, dataset = Some(datasetPath))
           case ListBuffer(fn, datasetPath, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)                                      => // option 2: filename, /path/to/dataset, field, inclGhost
-            L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, canonicalOrder = true, dataset = Some(datasetPath))
+            L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, dataset = Some(datasetPath))
           case ListBuffer(fn, datasetPath, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, canonicalOrder : L4_BooleanConstant) => // option 3: filename, /path/to/dataset, field, inclGhost, canonicalOrder
             L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, canonicalOrder = canonicalOrder.value, dataset = Some(datasetPath))
           case _                                                                                                                        =>
@@ -151,9 +151,9 @@ object L4_ResolveReadFieldFunctions extends DefaultStrategy("Resolve read field 
         }
         case "nc" => args match {
           case ListBuffer(fn, datasetName, field : L4_FieldAccess)                                                                      => // option 1: filename, datasetName, field
-            L4_ReadField(fn, field, ioInterface = ifaceSelection, canonicalOrder = true, dataset = Some(datasetName))
+            L4_ReadField(fn, field, ioInterface = ifaceSelection, dataset = Some(datasetName))
           case ListBuffer(fn, datasetName, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)                                      => // option 2: filename, datasetName, field, inclGhost
-            L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, canonicalOrder = true, dataset = Some(datasetName))
+            L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, dataset = Some(datasetName))
           case ListBuffer(fn, datasetName, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, canonicalOrder : L4_BooleanConstant) => // option 3: filename, datasetName, field, inclGhost, canonicalOrder
             L4_ReadField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, canonicalOrder = canonicalOrder.value, dataset = Some(datasetName))
           case _                                                                                                                        =>

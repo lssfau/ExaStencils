@@ -49,12 +49,15 @@ case class IR_ReadField(
     var slot : IR_Expression,
     var ioInterface : IR_Expression,
     var includeGhostLayers : Boolean,
-    var canonicalOrder : Boolean = false,
-    var binaryInput : Boolean = false,
+    var canonicalFileLayout : Boolean = false,
+    var useBinary : Boolean = false,
     var separator : IR_Expression = IR_StringConstant(" "),
     var condition : IR_Expression = true,
-    var dataset : IR_Expression = IR_NullExpression)
-  extends IR_FieldIO(filename, field, slot, ioInterface, doWrite = false, onlyVals = true, includeGhostLayers, canonicalOrder, binaryInput, separator, condition, dataset) {
+    var dataset : IR_Expression = IR_NullExpression
+) extends IR_FieldIO {
+
+  def doWrite = false
+  def onlyVals = true
 
   /*
   def numDimsGrid = field.layout.numDimsGrid

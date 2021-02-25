@@ -14,7 +14,9 @@ case class IR_FileAccess_MPIIO(
     var filename : IR_Expression,
     var dataBuffers : ListBuffer[IR_DataBuffer],
     var writeAccess : Boolean,
-    var appendedMode : Boolean = false) extends IR_FileAccess("mpiio") {
+    var appendedMode : Boolean = false,
+    var initFragInfo : Boolean = true
+) extends IR_FileAccess("mpiio") {
 
   override def openMode : IR_VariableAccess = if (writeAccess) {
     val openOrCreate = if (appendedMode) "MPI_MODE_APPEND" else "MPI_MODE_CREATE"
@@ -86,6 +88,10 @@ case class IR_FileAccess_MPIIO(
 
   override def setupAccess() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
+
+    // init frag info if it was not already (e.g. in visualization interface)
+    if (initFragInfo)
+      statements ++= IR_IV_FragmentInfo.init(dataBuffers.head.domainIdx, calculateFragOffset = dataBuffers.exists(!_.canonicalOrder))
 
     // create derived datatypes
     for (bufIdx <- dataBuffers.indices) {
@@ -181,8 +187,12 @@ case class IR_FileAccess_MPIIO(
   override def closeFile() : ListBuffer[IR_Statement] = ListBuffer(IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_close"), IR_AddressOf(fileHandle)))
 
   override def validateParams() : Unit = {
-    if(!Knowledge.mpi_enabled) {
+    if (!Knowledge.mpi_enabled) {
       Logger.error("MPI-I/O can only be used when MPI is enabled!")
     }
+
+    for (buf <- dataBuffers)
+      if (!Knowledge.parIO_useCollectiveIO && buf.canonicalOrder)
+        Logger.error("Parameter \"canonicalOrder\" should only be used with collective I/O.")
   }
 }

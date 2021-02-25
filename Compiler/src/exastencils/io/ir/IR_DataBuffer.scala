@@ -210,7 +210,7 @@ case class IR_DataBuffer(
   def innerDimsLocal : ListBuffer[IR_Expression] = numDimsDataRange.map(d => endIndices(d) - beginIndices(d) : IR_Expression).to[ListBuffer]
   def innerDimsLocalKJI : ListBuffer[IR_Expression] = innerDimsLocal.reverse
 
-  def startIndexLocal: ListBuffer[IR_Expression] = numDimsDataRange.map(d => referenceOffset(d)).to[ListBuffer]
+  def startIndexLocal: ListBuffer[IR_Expression] = numDimsDataRange.map(d => beginIndices(d)).to[ListBuffer]
   def startIndexLocalKJI : ListBuffer[IR_Expression] = startIndexLocal.reverse
 
   def totalDimsLocalKJI : ListBuffer[IR_Expression] = totalDimsLocal.reverse

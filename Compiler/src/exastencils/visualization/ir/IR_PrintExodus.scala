@@ -51,7 +51,6 @@ import exastencils.io.ir.IR_IV_NumValidFrags
 import exastencils.io.ir.IR_IV_TemporaryBuffer
 import exastencils.io.ir.IR_IV_TimeIndexRecordVariables
 import exastencils.io.ir.IR_IV_TimeValueRecordVariables
-import exastencils.io.ir.MPI_View
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_Print
@@ -216,12 +215,12 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
 
     fn match {
       case sc : IR_StringConstant                                         =>
-        IR_FileAccess_PnetCDF(sc, dataBuffers(constsIncluded), Some(recordVariables), writeAccess = true, appendedMode)
+        IR_FileAccess_PnetCDF(sc, dataBuffers(constsIncluded), Some(recordVariables), writeAccess = true, appendedMode, initFragInfo = false)
       case vAcc : IR_VariableAccess if vAcc.datatype == IR_StringDatatype =>
         if (Knowledge.parIO_vis_constantDataReduction) {
           Logger.error("Error in IR_PrintExodus: Parameter \"filename\" must be a string constant when \"Knowledge.parIO_constantDataReduction\" is enabled.")
         } else {
-          IR_FileAccess_PnetCDF(vAcc, dataBuffers(constsIncluded), Some(recordVariables), writeAccess = true, appendedMode)
+          IR_FileAccess_PnetCDF(vAcc, dataBuffers(constsIncluded), Some(recordVariables), writeAccess = true, appendedMode, initFragInfo = false)
         }
       case _                                                              =>
         Logger.error("Error in IR_PrintExodus: Parameter \"filename\" has wrong datatype.")
@@ -343,30 +342,6 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
 
     // set global start index for each process, handle "invalid" fragments and write data
     def writeExodusDatasets() : mutable.ListBuffer[IR_Statement] = {
-      /* create MPI Derived Datatypes to describe the memory layout of each buffer */
-      val localViews = dataBuffers(constsIncluded).zipWithIndex.map { case (buf, bufIdx) =>
-        // declare dims for the datasets (unflattened)
-        val numDims = buf.totalDimsLocalKJI.length
-        val total = buf.declareDimensionality("localDimsTotal", IR_IntegerDatatype, buf.totalDimsLocalKJI)
-        val count = buf.declareDimensionality("localCount", IR_IntegerDatatype, buf.innerDimsLocalKJI)
-        val start = buf.declareDimensionality("localStart", IR_IntegerDatatype, buf.startIndexLocalKJI)
-
-        // only create datatype when necessary, otherwise re-use previously created datatype
-        val localView = MPI_View(IR_VariableAccess(total), IR_VariableAccess(count), IR_VariableAccess(start),
-          numDims, createViewPerFragment = false, isLocal = true, buf, "localSubarray")
-        if (MPI_View.addView(localView)) {
-          statements ++= ListBuffer(total, count, start)
-          statements += localView.createDatatype
-
-          localView
-        } else {
-          MPI_View.getView(bufIdx, global = false)
-        }
-      }
-
-      // reset view cache after everything is done
-      MPI_View.resetViews()
-
       // write data
       dataBuffers(constsIncluded).zipWithIndex.map { case (buf, bufIdx) =>
         // declare extents of variables: 1 spatial dim and 1 temporal dim: (timestep, number of field values [dep. on localization])
@@ -394,21 +369,29 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
         }
 
         val numDims = count.datatype.asInstanceOf[IR_ArrayDatatype].numElements
-        val bufCount = IR_VariableAccess(IR_FileAccess.declareVariable("bufCount"), IR_IntegerDatatype)
         val emptyCount = IR_VariableAccess("emptyCount", IR_ArrayDatatype(ioHanderNc.MPI_Offset, numDims))
         val countSelection = IR_VariableDeclaration(IR_PointerDatatype(ioHanderNc.MPI_Offset), IR_FileAccess.declareVariable("countSelection"), IR_VariableAccess(count))
+        val localView = ioHanderNc.localView(bufIdx)
 
         // inner statement block of a fragment/block loop
         var writeStatements : ListBuffer[IR_Statement] = ListBuffer()
-        writeStatements += IR_VariableDeclaration(bufCount, 0)
-        writeStatements += IR_IfCondition(IR_IV_IsValidForDomain(buf.domainIdx),
-          start._2.zipWithIndex.map { case (extent, dim) => IR_Assignment(IR_ArrayAccess(IR_VariableAccess(start._1), dim), extent) : IR_Statement } :+
-            IR_Assignment(bufCount, 1))
-        writeStatements += IR_VariableDeclaration(emptyCount, new IR_InitializerList(ListBuffer.fill(numDims)(0)))
-        writeStatements ++= ioHanderNc.condAssignCount(bufIdx, Some(countSelection), Some(emptyCount))
-        writeStatements ++= ioHanderNc.ncmpi_put_vara_all(
-          ioHanderNc.ncFile, ioHanderNc.varIdBuffer(bufIdx), IR_VariableAccess(start._1), IR_VariableAccess(countSelection), buf.getBaseAddress, bufCount, localViews(bufIdx).getAccess
-        )
+        if (Knowledge.parIO_useCollectiveIO) {
+          // collective calls: NOP-write for "invalid" fragments
+          writeStatements += IR_IfCondition(IR_IV_IsValidForDomain(buf.domainIdx),
+            start._2.zipWithIndex.map { case (extent, dim) => IR_Assignment(IR_ArrayAccess(IR_VariableAccess(start._1), dim), extent) : IR_Statement })
+          writeStatements += IR_VariableDeclaration(emptyCount, new IR_InitializerList(ListBuffer.fill(numDims)(0)))
+          writeStatements ++= ioHanderNc.condAssignCount(bufIdx, Some(countSelection), Some(emptyCount))
+
+          writeStatements ++= ioHanderNc.ncmpi_put_vara_all(
+            ioHanderNc.ncFile, ioHanderNc.varIdBuffer(bufIdx), IR_VariableAccess(start._1), IR_VariableAccess(countSelection), buf.getBaseAddress, ioHanderNc.bufcount, localView.getAccess
+          )
+        } else {
+          // independent calls
+          writeStatements ++= start._2.zipWithIndex.map { case (extent, dim) => IR_Assignment(IR_ArrayAccess(IR_VariableAccess(start._1), dim), extent) : IR_Statement }
+          writeStatements ++= ioHanderNc.ncmpi_put_vara(
+            ioHanderNc.ncFile, ioHanderNc.varIdBuffer(bufIdx), IR_VariableAccess(start._1), IR_VariableAccess(count), buf.getBaseAddress, 1, localView.getAccess
+          )
+        }
 
         if (buf.accessBlockwise)
           ioHanderNc.IR_LoopOverBlocks(writeStatements)

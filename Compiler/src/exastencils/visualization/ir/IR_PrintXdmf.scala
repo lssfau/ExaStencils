@@ -79,11 +79,11 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   def ioHandler(constsIncluded : Boolean, fn : IR_Expression) : IR_FileAccess = {
     ioInterface match {
       case "mpiio" =>
-        IR_FileAccess_MPIIO(fn, dataBuffers(constsIncluded), writeAccess = true)
+        IR_FileAccess_MPIIO(fn, dataBuffers(constsIncluded), writeAccess = true, initFragInfo = false)
       case "fpp"   =>
         IR_FileAccess_FPP(fn, dataBuffers(constsIncluded), useBinary = binaryFpp, writeAccess = true, separator, condition = true, optPrintComponents = None)
       case "hdf5"  =>
-        IR_FileAccess_HDF5(fn, dataBuffers(constsIncluded), writeAccess = true)
+        IR_FileAccess_HDF5(fn, dataBuffers(constsIncluded), writeAccess = true, initFragInfo = false)
       case _ =>
         Logger.error("Wrong I/O interface passed to \"printXdmf\". Options are: " + supportedInterfaces.mkString("\"", "\", \"", "\""))
     }

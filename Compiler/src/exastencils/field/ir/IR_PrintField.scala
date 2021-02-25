@@ -53,12 +53,15 @@ case class IR_PrintField(
     var slot : IR_Expression,
     var ioInterface : IR_Expression,
     var includeGhostLayers : Boolean,
-    var canonicalOrder : Boolean = false,
-    var binaryOutput : Boolean = false,
+    var canonicalFileLayout : Boolean = false,
+    var useBinary : Boolean = false,
     var separator : IR_Expression = IR_StringConstant(" "),
     var condition : IR_Expression = true,
-    var dataset : IR_Expression = IR_NullExpression)
-  extends IR_FieldIO(filename, field, slot, ioInterface, doWrite = true, onlyVals = false, includeGhostLayers, canonicalOrder, binaryOutput, separator, condition, dataset) {
+    var dataset : IR_Expression = IR_NullExpression
+) extends IR_FieldIO {
+
+  def doWrite = true
+  def onlyVals = false
 
   val arrayIndexRange : Range = 0 until field.gridDatatype.resolveFlattendSize
   val ioInterfaceName : String = ioInterface.asInstanceOf[IR_StringConstant].value
@@ -75,7 +78,7 @@ case class IR_PrintField(
       }
     }
     // print coords for CSV files (Paraview)
-    val csvFormat = !binaryOutput && Knowledge.experimental_generateParaviewFiles
+    val csvFormat = !useBinary && Knowledge.experimental_generateParaviewFiles
     val altSep = if (csvFormat) IR_StringConstant(",") else separator // use alternative sep if paraview file
     val printPos = ListBuffer(IR_VariableAccess("std::defaultfloat", IR_UnknownDatatype)) ++
       (0 until field.layout.numDimsGrid).view.flatMap { dim => List(getPos(dim), altSep) : List[IR_Expression] }
@@ -121,9 +124,9 @@ case class IR_PrintField(
       Logger.error("Conditions are not applicable in combination with \"IR_PrintXdmf\" since the data extents must be determinable.")
 
     if (Knowledge.grid_isUniform && Knowledge.grid_isAxisAligned) {
-      IR_PrintXdmfUniform(filename, field, slot, ioInterface, includeGhostLayers, dataset, binaryOutput && ioInterfaceName == "fpp", canonicalOrder, IR_FieldIO.getNewResolveId())
+      IR_PrintXdmfUniform(filename, field, slot, ioInterface, includeGhostLayers, dataset, useBinary && ioInterfaceName == "fpp", canonicalFileLayout, IR_FieldIO.getNewResolveId())
     } else {
-      IR_PrintXdmfMeshless(filename, field, slot, ioInterface, includeGhostLayers, dataset, binaryOutput && ioInterfaceName == "fpp", IR_FieldIO.getNewResolveId())
+      IR_PrintXdmfMeshless(filename, field, slot, ioInterface, includeGhostLayers, dataset, useBinary && ioInterfaceName == "fpp", IR_FieldIO.getNewResolveId())
     }
   }
 

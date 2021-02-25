@@ -17,7 +17,9 @@ case class IR_FileAccess_HDF5(
     var filename : IR_Expression,
     var dataBuffers : ListBuffer[IR_DataBuffer],
     var writeAccess : Boolean,
-    var appendedMode : Boolean = false) extends IR_FileAccess("hdf5") with IR_Hdf5_API {
+    var appendedMode : Boolean = false,
+    var initFragInfo : Boolean = true
+) extends IR_FileAccess("hdf5") with IR_Hdf5_API {
 
   override def openMode : IR_VariableAccess = if (writeAccess) {
     if (appendedMode) IR_VariableAccess("H5F_ACC_RDWR", IR_UnknownDatatype) else IR_VariableAccess("H5F_ACC_TRUNC", IR_UnknownDatatype)
@@ -150,6 +152,10 @@ case class IR_FileAccess_HDF5(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     statements ++= createGroupHierarchy
+
+    // init frag info if it was not already (e.g. in visualization interface)
+    if (initFragInfo)
+      statements ++= IR_IV_FragmentInfo.init(dataBuffers.head.domainIdx, calculateFragOffset = dataBuffers.exists(!_.canonicalOrder))
 
     // create memspace. select hyperslab to only use the inner points for file accesses.
     for (bufIdx <- dataBuffers.indices) {

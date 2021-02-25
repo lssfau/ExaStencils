@@ -4,8 +4,6 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Expandable
 import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_NullExpression
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_StringConstant
 import exastencils.core.Duplicate
@@ -43,22 +41,25 @@ object IR_FieldIO {
   }
 }
 
-abstract class IR_FieldIO(
-    // general parameters
-    filename : IR_Expression,
-    field : IR_Field,
-    slot : IR_Expression,
-    ioInterface : IR_Expression,
-    doWrite : Boolean,
-    onlyVals : Boolean,
-    includeGhostLayers : Boolean,
-    canonicalFileLayout : Boolean,
-    // locking/fpp specific parameters (essentially when using "iostreams")
-    useBinary : Boolean = false,
-    separator : IR_Expression = IR_StringConstant(" "),
-    condition : IR_Expression = true,
-    // dataset which can be specified for a netCDF/HDF5 file (for HDF5 this can be a path)
-    dataset : IR_Expression = IR_NullExpression) extends IR_Statement with IR_Expandable {
+abstract class IR_FieldIO extends IR_Statement with IR_Expandable {
+
+  // general members
+  def filename : IR_Expression
+  def field : IR_Field
+  def slot : IR_Expression
+  def ioInterface : IR_Expression
+  def doWrite : Boolean
+  def onlyVals : Boolean
+  def includeGhostLayers : Boolean
+  def canonicalFileLayout : Boolean
+
+  // locking/fpp specific members (essentially when using "iostreams")
+  def useBinary : Boolean
+  def separator : IR_Expression
+  def condition : IR_Expression
+
+  // dataset which can be specified for a netCDF/HDF5 file (for HDF5 this can be a path)
+  def dataset : IR_Expression
 
   // wrapper function that generates statements for file access using the specified I/O interface
   def generateFileAccess(optSep : Option[IR_Expression] = None, optPrintComponents : Option[ListBuffer[IR_Expression]] = None) : IR_FileAccess = {
