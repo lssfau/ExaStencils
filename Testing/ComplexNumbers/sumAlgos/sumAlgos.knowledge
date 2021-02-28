@@ -1,0 +1,5 @@
+minLevel                       = 1
+maxLevel                       = 7
+dimensionality                 = 2
+
+mpi_enabled = false

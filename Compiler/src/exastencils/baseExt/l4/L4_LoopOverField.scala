@@ -48,6 +48,9 @@ object L4_LoopOverField {
   def apply(field : L4_Access, body : L4_Statement*) =
     new L4_LoopOverField(field, None, false, None, None, None, None, body.to[ListBuffer], None, ListBuffer(), ListBuffer())
 
+  def apply(field : L4_Access, body : ListBuffer[L4_Statement]) =
+    new L4_LoopOverField(field, None, false, None, None, None, None, body, None, ListBuffer(), ListBuffer())
+
   def apply(field : L4_Access, modifiers : List[(String, Any)], body : List[L4_Statement]) = {
     val loop = new L4_LoopOverField(field, None, false, None, None, None, None, body.to[ListBuffer], None, ListBuffer(), ListBuffer())
 

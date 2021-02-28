@@ -1,0 +1,28 @@
+
+Function Application ( ) : Unit {
+ 	initGlobals ( )
+  	initDomain ( )
+  	initFieldsWithZero ( )
+
+	native('std::random_device rd')
+	native('std::mt19937 gen(rd())')
+	native('std::uniform_real_distribution<> dis(10000000.0,-10000000.0)')
+	
+	loop over f@finest {
+		f@finest = native('dis(gen)') 
+		//f@finest = 1.0	
+	}	
+	Var sum : Complex<Real> = defaultDot@finest()
+	Var sumKahan : Complex<Real> = kahanDot@finest()
+	Var sumNeumaier : Complex<Real> = neumaierDot@finest()
+	
+	if(abs((Re(sum) - Re(sumKahan))) > 0.0000005) {
+		print('results do not match')
+	}
+	native ( 'std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1)' )
+	print(Re(sum))
+	print(Re(sumKahan))
+	print(Re(sumNeumaier))
+	print("stage 0 done")
+	
+}

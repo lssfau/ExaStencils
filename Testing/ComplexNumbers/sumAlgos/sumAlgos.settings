@@ -1,0 +1,18 @@
+user                = "Guest"
+
+configName          = "sumAlgos"
+
+basePathPrefix      = "./sumAlgos/"
+
+l3file              = "$configName$.exa3"
+
+l4file              = "$configName$.exa4"
+debugL3File         = "./debug/$configName$_debug.exa3"
+debugL4File         = "./debug/$configName$_debug.exa4"
+
+outputPath          = "./output/"
+
+additionalIncludes += "random"
+additionalIncludes += "iomanip"
+
+buildfileGenerators = { "MakefileGenerator" }

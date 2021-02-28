@@ -1,0 +1,25 @@
+
+
+Domain global< [ 0, 0 ] to [ 1, 1 ] >
+
+
+Field f with Complex<Real> on Node of global
+Function defaultDot@finest() : Complex<Real> {
+	return dot(f, f)
+}
+Function kahanDot@finest() : Complex<Real> {
+	return dot(f, f, "kahan")
+}
+Function neumaierDot@finest() : Complex<Real> {
+	return dot(f, f, "neumaier")
+}
+Globals {
+	Var N_entries : Int = 0
+}
+
+
+
+
+
+
+
