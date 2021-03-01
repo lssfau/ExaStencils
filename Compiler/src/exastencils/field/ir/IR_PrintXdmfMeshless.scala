@@ -76,7 +76,7 @@ case class IR_PrintXdmfMeshless(
 
       if (!Knowledge.grid_isAxisAligned && faceDir < 0) {
         // use associated field of vf directly
-        IR_DataBuffer(dataBufSources._1, None, Some(datasetCoords(dim)), dim)
+        IR_DataBuffer(dataBufSources._1, None, Some(datasetCoords(dim)), dim, canonicalFileLayout)
       } else {
         // the vf's associated field doesn't have a suitable dimensionality -> create temp. buffer with positions depending on localization
         IR_DataBuffer(dataBufSources._2, IR_IV_ActiveSlot(field), None, Some(datasetCoords(dim)))

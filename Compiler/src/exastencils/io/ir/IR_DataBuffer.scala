@@ -94,7 +94,8 @@ object IR_DataBuffer {
       vfAssocField : IR_Field,
       accessIndices: Option[ListBuffer[IR_Index]],
       dataset : Option[IR_Expression],
-      dim : Int) : IR_DataBuffer = {
+      dim : Int,
+      canonicalOrder : Boolean) : IR_DataBuffer = {
 
     if (Knowledge.grid_isAxisAligned) {
       Logger.error("Trying to access associated field for subclass of \"IR_VirtualFieldWithVec\"; Not applicable for AA grids.")
@@ -116,7 +117,7 @@ object IR_DataBuffer {
       name = vfAssocField.name,
       accessPattern = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(vfAssocField, 0, highDimIndex(idx)), accessIndices),
       datasetName = dataset getOrElse IR_NullExpression,
-      canonicalStorageLayout = false,
+      canonicalStorageLayout = canonicalOrder,
       accessBlockwise = false
     )
   }

@@ -123,17 +123,20 @@ case class IR_PrintField(
     if (condition != IR_BooleanConstant(true))
       Logger.error("Conditions are not applicable in combination with \"IR_PrintXdmf\" since the data extents must be determinable.")
 
-    if (Knowledge.grid_isUniform && Knowledge.grid_isAxisAligned) {
-      IR_PrintXdmfUniform(filename, field, slot, ioInterface, includeGhostLayers, dataset, useBinary && ioInterfaceName == "fpp", canonicalFileLayout, IR_FieldIO.getNewResolveId())
-    } else {
+    if (Knowledge.parIO_vis_forceMeshlessVisualization) {
       IR_PrintXdmfMeshless(filename, field, slot, ioInterface, includeGhostLayers, dataset, useBinary && ioInterfaceName == "fpp", IR_FieldIO.getNewResolveId())
+    } else if (Knowledge.grid_isUniform && Knowledge.grid_isAxisAligned) {
+      IR_PrintXdmfUniform(filename, field, slot, ioInterface, includeGhostLayers, dataset, useBinary && ioInterfaceName == "fpp", canonicalFileLayout, IR_FieldIO.getNewResolveId())
+    } else if (Knowledge.grid_isAxisAligned) {
+      IR_PrintXdmfNonUniform_AA(filename, field, slot, ioInterface, includeGhostLayers, dataset, useBinary && ioInterfaceName == "fpp", canonicalFileLayout, IR_FieldIO.getNewResolveId())
+    } else {
+      IR_PrintXdmfNonUniform_NonAA(filename, field, slot, ioInterface, includeGhostLayers, dataset, useBinary && ioInterfaceName == "fpp", canonicalFileLayout, IR_FieldIO.getNewResolveId())
     }
   }
 
-  def printNetCDF() : IR_Statement = {
-    // TODO
-    IR_NullStatement
-  }
+  // use one interface for uniform, non-uniform axis-aligned and non-uniform
+  def printNetCDF() : IR_Statement = IR_NullStatement // TODO
+  // IR_PrintNetCDF(filename, field, slot, ioInterface, includeGhostLayers, dataset, canonicalFileLayout)
 
   override def expand() : Output[StatementList] = {
 

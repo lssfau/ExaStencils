@@ -477,6 +477,8 @@ object Knowledge {
 
   // -- Visualization with Xdmf/Exodus --
 
+  var parIO_vis_forceMeshlessVisualization : Boolean = false
+
   // [true|false] // prevents duplication of constant data when printing Xdmf or Exodus files
   var parIO_vis_constantDataReduction : Boolean = true
 
