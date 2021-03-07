@@ -14,13 +14,13 @@ import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_Print
 
-case class IR_FileAccess_SionLib(
+case class IR_FileAccess_SIONlib(
     var filename : IR_Expression,
     var dataBuffers : ListBuffer[IR_DataBuffer],
     var writeAccess : Boolean,
     var condition: IR_Expression,
     var interleavedAccHighDimDt : Boolean,
-    var appendedMode : Boolean = false) extends IR_FileAccess("sion") {
+    var appendedMode : Boolean = false) extends IR_FileAccess("sion") with IR_Iostream {
 
   // datatypes
   val sion_int64 = IR_SpecialDatatype("sion_int64")
@@ -80,7 +80,7 @@ case class IR_FileAccess_SionLib(
   val filePtr = IR_VariableAccess(filePtr_decl)
   val newPhysFilenames = IR_VariableAccess(newPhysFilenames_decl)
 
-  override def openMode : IR_VariableAccess = {
+  override def fileMode : IR_VariableAccess = {
     val flags = if (writeAccess) {
       if (appendedMode) "a" else "w"
     } else {
@@ -100,7 +100,7 @@ case class IR_FileAccess_SionLib(
       statements += IR_Assignment(fileId,
         IR_FunctionCall(
           IR_ExternalFunctionReference("sion_paropen_mpi"),
-          filenameAsCString, openMode, IR_AddressOf(numPhysFiles), mpiCommunicator, IR_AddressOf(localCommunicator),
+          filenameAsCString, fileMode, IR_AddressOf(numPhysFiles), mpiCommunicator, IR_AddressOf(localCommunicator),
           IR_AddressOf(chunkSizes), IR_AddressOf(fsBlockSize), IR_AddressOf(globalRanks), IR_AddressOf(filePtr), IR_AddressOf(newPhysFilenames)
         )
       )
@@ -115,7 +115,7 @@ case class IR_FileAccess_SionLib(
         IR_FunctionCall(
           IR_ExternalFunctionReference("sion_open"),
           IR_FunctionCall("strdup", filenameAsCString),
-          openMode, IR_AddressOf(numTasks), IR_AddressOf(numPhysFiles), IR_AddressOf(chunkSizes), IR_AddressOf(fsBlockSize), IR_AddressOf(globalRanks), IR_AddressOf(filePtr)
+          fileMode, IR_AddressOf(numTasks), IR_AddressOf(numPhysFiles), IR_AddressOf(chunkSizes), IR_AddressOf(fsBlockSize), IR_AddressOf(globalRanks), IR_AddressOf(filePtr)
         )
       )
     }
@@ -162,15 +162,15 @@ case class IR_FileAccess_SionLib(
           buf.getBaseAddress, numBytesDatatype(bufIdx), numValuesLocal(bufIdx), fileId),
         "+="),
       /* false: write component by component in a loop */
-      loopOverDims(bufIdx,
+      buf.loopOverDims(
         condition,
-        handleAccesses(buf).flatten.map(acc =>
+        buf.handleAccesses.flatten.map(acc =>
           IR_Assignment(bytesAccessed,
             IR_FunctionCall(IR_ExternalFunctionReference(funcName),
               IR_AddressOf(acc),
               numBytesDatatype(bufIdx), 1, filePtr),
             "+=") : IR_Statement
-        ) : _*))
+        ) : _* ))
 
     if (Knowledge.parIO_generateDebugStatements && bytesAccessedKnownApriori) {
       stmts ++= checkBytesAccessed(bufIdx)

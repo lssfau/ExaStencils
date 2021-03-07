@@ -47,7 +47,6 @@ case class IR_PrintXdmfMeshless(
 
   // validate params
   if (includeGhostLayers) {
-    includeGhostLayers = false
     Logger.error("Ghost layer visualization is currently unsupported for IR_PrintXdmfMeshless!")
   }
   if (numDimsGrid < 2) {
@@ -76,13 +75,15 @@ case class IR_PrintXdmfMeshless(
 
       if (!Knowledge.grid_isAxisAligned && faceDir < 0) {
         // use associated field of vf directly
-        IR_DataBuffer(dataBufSources._1, None, Some(datasetCoords(dim)), dim, canonicalFileLayout)
+        IR_DataBuffer(dataBufSources._1, None, Some(datasetCoords(dim)), dim, 0, canonicalFileLayout)
       } else {
         // the vf's associated field doesn't have a suitable dimensionality -> create temp. buffer with positions depending on localization
         IR_DataBuffer(dataBufSources._2, IR_IV_ActiveSlot(field), None, Some(datasetCoords(dim)))
       }
     })
   }
+
+  override def dataBuffersConst : ListBuffer[IR_DataBuffer] = dataBuffersVertexPos
 
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
     (if (constsIncluded) dataBuffersVertexPos else ListBuffer()) :+ dataBufferField
@@ -153,7 +154,6 @@ case class IR_PrintXdmfMeshless(
   override def writeXdmfAttributes(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
     val buf = dataBufferField
-    val bufIdx = dataBuffers(constsIncluded = true).indexOf(buf)
     val seekp = getSeekp(global)
 
     // handle multidim. field datatypes
@@ -177,7 +177,7 @@ case class IR_PrintXdmfMeshless(
         val handler = ioHandler(constsIncluded = true, filenamePieceFpp).asInstanceOf[IR_FileAccess_FPP]
         IR_LoopOverFragments(
           IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
-            handler.printBufferAscii(bufIdx, stream, condition = true, separator, indent = Some(indentData))))
+            handler.printBufferAscii(buf, stream, condition = true, separator, indent = Some(indentData))))
       } else {
         printFilename(stream, dataset) // reference binary file
       })

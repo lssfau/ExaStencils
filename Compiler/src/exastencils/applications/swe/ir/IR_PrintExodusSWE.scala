@@ -110,11 +110,9 @@ case class IR_PrintExodusSWE(
     nodePositionsBuf.zipWithIndex.map { case(tmpBuf, idx) => IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetCoords(idx))) }
   }
 
-  override def dataBuffersConnectivity : IR_DataBuffer = IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetConnectivity))
+  override def dataBufferConnectivity : IR_DataBuffer = IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetConnectivity))
 
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
-    val constants = dataBuffersNodePos :+ dataBuffersConnectivity
-
     // bath is constant but cannot be reduced in this format since in Exodus fields are defined as record variables (i.e. bound to time)
     val allFields = fields.to[ListBuffer].zipWithIndex.flatMap { case ((_, fieldCollection), idx) =>
       // distinguish nodal and disc fields
@@ -129,7 +127,7 @@ case class IR_PrintExodusSWE(
       }
     }
 
-    if (constsIncluded) constants ++ allFields else allFields
+    if (constsIncluded) dataBuffersConstant ++ allFields else allFields
   }
 
   override def statementsForCleanup : ListBuffer[IR_Statement] = ListBuffer()

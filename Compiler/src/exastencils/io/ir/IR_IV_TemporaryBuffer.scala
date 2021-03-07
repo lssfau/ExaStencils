@@ -34,7 +34,8 @@ case class IR_IV_TemporaryBuffer(
     var localization: IR_Localization,
     var name : String,
     var domainIdx : Int,
-    dimsPerFrag : ListBuffer[IR_Expression]) extends IR_InternalVariable(false, true, false, false, false) {
+    dimsPerFrag : ListBuffer[IR_Expression]
+) extends IR_InternalVariable(false, true, false, false, false) {
 
   override def resolveName() : String = name + resolvePostfix("", domainIdx.prettyprint, "", "", "")
   override def resolveDatatype() : IR_Datatype = IR_PointerDatatype(baseDatatype)
@@ -64,7 +65,7 @@ case class IR_IV_TemporaryBuffer(
         access,
         linearizedIdx)
     case _ =>
-      IR_ArrayAccess(name, index)
+      IR_ArrayAccess(access, index)
   }
 
   def allocateMemory = IR_IfCondition(IR_Negation(access),

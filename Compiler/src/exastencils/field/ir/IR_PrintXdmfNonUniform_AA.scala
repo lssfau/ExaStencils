@@ -14,8 +14,8 @@ import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.io.ir.IR_DataBuffer
+import exastencils.io.ir.IR_Iostream
 import exastencils.io.ir.IR_IV_FragmentInfo
-import exastencils.logger.Logger
 import exastencils.util.ir.IR_Print
 
 case class IR_PrintXdmfNonUniform_AA(
@@ -27,18 +27,9 @@ case class IR_PrintXdmfNonUniform_AA(
     var dataset : IR_Expression,
     var binaryFpp : Boolean,
     var canonicalFileLayout : Boolean,
-    var resolveId : Int) extends IR_PrintXdmfRectilinear(ioMethod, binaryFpp) {
+    var resolveId : Int) extends IR_PrintXdmfStructured(ioMethod, binaryFpp) with IR_Iostream {
 
   def datasetCoords : ListBuffer[IR_Expression] = (0 until numDimsGrid).map(d => IR_StringConstant("/constants/" + ('X' + d).toChar.toString) : IR_Expression).to[ListBuffer]
-
-  // validate params
-  if (includeGhostLayers) {
-    includeGhostLayers = false
-    Logger.error("Ghost layer visualization is currently unsupported for IR_PrintXdmfNonUniform_NonAA!")
-  }
-  if (numDimsGrid < 2) {
-    Logger.error("IR_PrintXdmfNonUniform_NonAA is only usable for 2D/3D cases.")
-  }
 
   override def domainIndex : Int = field.domain.index
 
@@ -48,18 +39,14 @@ case class IR_PrintXdmfNonUniform_AA(
     IR_DataBuffer(nodePosAssocField(dim), slot, includeGhostLayers, None, Some(datasetCoords(dim)), canonicalFileLayout)
   })
 
+  override def dataBuffersConst : ListBuffer[IR_DataBuffer] = dataBuffersNodePos
+
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
     (if (constsIncluded) dataBuffersNodePos else ListBuffer()) :+ dataBuffer
   }
 
   override def stmtsForPreparation : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
-
-    // TODO do once
-    if (fmt != "XML" || Knowledge.mpi_enabled) {
-      statements ++= communicateFragIndexToRoot
-      statements += communicateFragIdToRoot
-    }
 
     statements ++= IR_IV_FragmentInfo.init(dataBuffer.domainIdx)
 
@@ -98,7 +85,7 @@ case class IR_PrintXdmfNonUniform_AA(
         statements += printXdmfElement(stream, openDataItem(field.resolveBaseDatatype, buf.innerDimsPerFrag, seekp) : _*)
         if (fmt == "XML") {
           statements += IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
-            ioHandler(constsIncluded = true, filename).printBufferAscii(dataBuffers(constsIncluded = true).indexOf(buf), stream, true, separator, indent = Some(indentData)))
+            printBufferAscii(buf, stream, true, separator, indent = Some(indentData)))
           statements += IR_Print(stream, IR_Print.flush)
         } else {
           statements += printFilename(stream, datasetCoords(d))

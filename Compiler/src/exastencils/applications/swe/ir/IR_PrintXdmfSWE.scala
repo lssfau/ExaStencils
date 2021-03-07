@@ -272,13 +272,14 @@ case class IR_PrintXdmfSWE(
           datasetName = datasetFields(getBasenameDiscField(discField))(fid),
           name = field.name,
           canonicalStorageLayout = false,
-          accessBlockwise = false
+          accessBlockwise = false,
+          isTemporaryBuffer = false
         )
       }
     }
   }
 
-  override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
+  override def dataBuffersConst : ListBuffer[IR_DataBuffer] = {
     // bath is constant and can be reduced -> move to constants if exists
     val bath = nodalFields.get("bath")
     var constants : ListBuffer[IR_DataBuffer] = ListBuffer()
@@ -299,6 +300,10 @@ case class IR_PrintXdmfSWE(
       }
     }
 
+    constants
+  }
+
+  override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
     // non-constant fields
     val nonConstFields = fields.filterKeys(_ != "bath").flatMap { fieldMap =>
       val fieldCollection = fieldMap._2
@@ -320,6 +325,6 @@ case class IR_PrintXdmfSWE(
       }
     }
 
-    if (constsIncluded) constants ++ nonConstFields else nonConstFields.to[ListBuffer]
+    if (constsIncluded) dataBuffersConst ++ nonConstFields else nonConstFields.to[ListBuffer]
   }
 }

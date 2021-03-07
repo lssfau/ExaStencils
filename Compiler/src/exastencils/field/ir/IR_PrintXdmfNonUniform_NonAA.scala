@@ -16,7 +16,6 @@ import exastencils.grid.ir.IR_AtNode
 import exastencils.grid.ir.IR_VF_NodePositionAsVec
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_FragmentInfo
-import exastencils.logger.Logger
 import exastencils.util.ir.IR_Print
 
 case class IR_PrintXdmfNonUniform_NonAA(
@@ -28,24 +27,16 @@ case class IR_PrintXdmfNonUniform_NonAA(
     var dataset : IR_Expression,
     var binaryFpp : Boolean,
     var canonicalFileLayout : Boolean,
-    var resolveId : Int) extends IR_PrintXdmfRectilinear(ioMethod, binaryFpp) {
+    var resolveId : Int) extends IR_PrintXdmfStructured(ioMethod, binaryFpp) {
 
   def datasetCoords : ListBuffer[IR_Expression] = (0 until numDimsGrid).map(d => IR_StringConstant("/constants/" + ('X' + d).toChar.toString) : IR_Expression).to[ListBuffer]
-
-  // validate params
-  if (includeGhostLayers) {
-    includeGhostLayers = false
-    Logger.error("Ghost layer visualization is currently unsupported for IR_PrintXdmfNonUniform_NonAA!")
-  }
-  if (numDimsGrid < 2) {
-    Logger.error("IR_PrintXdmfNonUniform_NonAA is only usable for 2D/3D cases.")
-  }
 
   override def domainIndex : Int = field.domain.index
 
   val dataBuffersNodePos : ListBuffer[IR_DataBuffer] = (0 until numDimsGrid).to[ListBuffer].map(dim =>
-    IR_DataBuffer(IR_VF_NodePositionAsVec.find(level).associatedField, None, Some(datasetCoords(dim)), dim, canonicalFileLayout))
+    IR_DataBuffer(IR_VF_NodePositionAsVec.find(level).associatedField, None, Some(datasetCoords(dim)), dim, 0, canonicalFileLayout))
 
+  override def dataBuffersConst : ListBuffer[IR_DataBuffer] = dataBuffersNodePos
 
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
     (if (constsIncluded) dataBuffersNodePos else ListBuffer()) :+ dataBuffer
@@ -53,12 +44,6 @@ case class IR_PrintXdmfNonUniform_NonAA(
 
   override def stmtsForPreparation : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
-
-    // TODO do once
-    if (fmt != "XML" || Knowledge.mpi_enabled) {
-      statements ++= communicateFragIndexToRoot
-      statements += communicateFragIdToRoot
-    }
 
     statements ++= IR_IV_FragmentInfo.init(dataBuffer.domainIdx)
 

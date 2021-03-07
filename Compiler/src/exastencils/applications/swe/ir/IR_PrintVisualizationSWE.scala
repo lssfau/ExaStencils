@@ -70,7 +70,7 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
 
   def nodePosVecAsDataBuffers(accessIndices: Option[ListBuffer[IR_Index]], datasets: Option[ListBuffer[IR_Expression]]) : ListBuffer[IR_DataBuffer] = {
     (0 until numDimsGrid).map(dim =>
-      IR_DataBuffer(IR_VF_NodePositionAsVec.find(level).associatedField, accessIndices, if (datasets.isDefined) Some(datasets.get(dim)) else None, dim, canonicalFileLayout)
+      IR_DataBuffer(IR_VF_NodePositionAsVec.find(level).associatedField, accessIndices, if (datasets.isDefined) Some(datasets.get(dim)) else None, dim, 0, canonicalFileLayout)
     ).to[ListBuffer]
   }
 

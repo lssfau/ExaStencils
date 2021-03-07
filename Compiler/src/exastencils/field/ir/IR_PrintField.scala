@@ -24,8 +24,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.config._
-import exastencils.datastructures.Transformation.Output
-import exastencils.datastructures.ir._
+import exastencils.datastructures.Transformation.OutputType
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.grid.ir.IR_AtFaceCenter
 import exastencils.grid.ir.IR_AtNode
@@ -34,18 +33,9 @@ import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_Print
+import exastencils.visualization.ir.IR_PrintXdmf
 
 /// IR_PrintField
-
-/*
-object IR_PrintField {
-  private var counter : Int = 0
-  def getNewName() : String = {
-    counter += 1
-    "fieldPrintStream_%02d".format(counter)
-  }
-}
-*/
 
 case class IR_PrintField(
     var filename : IR_Expression,
@@ -119,7 +109,7 @@ case class IR_PrintField(
     statements
   }
 
-  def printXdmf() : IR_Statement = {
+  def printXdmf() : IR_PrintXdmf = {
     if (condition != IR_BooleanConstant(true))
       Logger.error("Conditions are not applicable in combination with \"IR_PrintXdmf\" since the data extents must be determinable.")
 
@@ -136,101 +126,18 @@ case class IR_PrintField(
 
   // use one interface for uniform, non-uniform axis-aligned and non-uniform
   def printNetCDF() : IR_Statement = IR_NullStatement // TODO
-  // IR_PrintNetCDF(filename, field, slot, ioInterface, includeGhostLayers, dataset, canonicalFileLayout)
+  // IR_PrintNetCDF(filename, field, slot, ioInterface, includeGhostLayers, dataset, canonicalFileLayout, IR_FieldIO.getNewResolveId())
 
-  override def expand() : Output[StatementList] = {
-
-    /*
-    // TODO: incorporate component accesses
-    val arrayIndexRange = 0 until field.gridDatatype.resolveFlattendSize
-
-    def separator = IR_StringConstant(if (binary) "" else if (Knowledge.experimental_generateParaviewFiles) "," else " ")
-
-    val streamName = IR_PrintField.getNewName()
-
-    def streamType = IR_SpecialDatatype("std::ofstream")
-
-    def stream = IR_VariableAccess(streamName, streamType)
-
-    val fileHeader = {
-      var ret : IR_Statement = IR_NullStatement
-      if (Knowledge.experimental_generateParaviewFiles) {
-        ret = IR_Print(stream, "\"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\"", IR_Print.endl)
-        if (Knowledge.mpi_enabled)
-          ret = IR_IfCondition(MPI_IsRootProc(), ret)
-      }
-      ret
-    }
-
-    val printComponents = ListBuffer[IR_Expression]()
-    if (!onlyValues) {
-      printComponents += "std::defaultfloat"
-      printComponents ++= (0 until numDimsGrid).view.flatMap { dim => List(getPos(field, dim), separator) }
-    }
-    printComponents += "std::scientific"
-    printComponents ++= arrayIndexRange.view.flatMap { index =>
-      val access = IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData))
-      if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
-        access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
-      List(access, separator)
-    }
-    printComponents += IR_Print.endl
-
-    val fieldBegin = if (includeGhostLayers) "GLB" else "DLB"
-    val fieldEnd = if (includeGhostLayers) "GRE" else "DRE"
-
-    var openMode = if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc"
-    if (binary)
-      openMode += " | std::ios::binary"
-
-    // TODO: less monolithic code
-    var innerLoop = ListBuffer[IR_Statement](
-      IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess(openMode, IR_UnknownDatatype)),
-      fileHeader,
-      if (Knowledge.field_printFieldPrecision == -1)
-        IR_Print(stream, "std::scientific")
-      else
-        IR_Print(stream, "std::scientific << std::setprecision(" + Knowledge.field_printFieldPrecision + ")"), //std::defaultfloat
-      IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-          IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(fieldBegin, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(fieldEnd, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
-            IR_IfCondition(condition,
-              IR_Print(stream, printComponents)))))
-      ,
-      IR_MemberFunctionCall(stream, "close")
-    )
-
-    var statements : ListBuffer[IR_Statement] = ListBuffer()
-
-    if (Knowledge.mpi_enabled) {
-      statements += IR_IfCondition(MPI_IsRootProc(),
-        ListBuffer[IR_Statement](
-          IR_ObjectInstantiation(streamType, streamName, Duplicate(filename), IR_VariableAccess("std::ios::trunc", IR_UnknownDatatype)),
-          IR_MemberFunctionCall(stream, "close")))
-
-      statements += MPI_Sequential(innerLoop)
-    } else {
-      statements ++= innerLoop
-    }
-
-    statements
-    */
-
-    var statements : ListBuffer[IR_Statement] = ListBuffer()
-
+  override def expand() : OutputType = {
     ioInterfaceName.toLowerCase match {
-      case "lock"   => statements ++= printCSV()
-      case "fpp" | "mpiio" | "hdf5"   => statements += printXdmf()
-      case "nc"     => statements += printNetCDF()
-      case "sion"   =>
+      case "lock"                   => printCSV()
+      case "fpp" | "mpiio" | "hdf5" => printXdmf()
+      case "nc"                     => printNetCDF()
+      case "sion"                   =>
         Logger.warn("Sion Files cannot directly be visualized. Defaulting to \"writeField\" implementation.")
-        statements += generateFileAccess()
-      case _        =>
+        generateFileAccess()
+      case _                        =>
         Logger.error("Ignoring call to \"printField\" with unsupported I/O interface: " + ioInterface)
     }
-
-    statements
   }
 }

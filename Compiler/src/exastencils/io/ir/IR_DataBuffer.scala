@@ -11,17 +11,22 @@ import exastencils.base.ir.IR_ConstIndex
 import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
+import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_Index
 import exastencils.base.ir.IR_InitializerList
 import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_Negative
 import exastencils.base.ir.IR_NullExpression
+import exastencils.base.ir.IR_ScalarDatatype
+import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_InternalVariable
+import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_FragmentIndex
@@ -85,40 +90,41 @@ object IR_DataBuffer {
       accessPattern = pattern getOrElse IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(field, Duplicate(slot), idx.toExpressionIndex)),
       datasetName = dataset getOrElse IR_NullExpression,
       canonicalStorageLayout = canonicalOrder,
-      accessBlockwise = false
+      accessBlockwise = false,
+      isTemporaryBuffer = false
     )
   }
 
-  // non-AA case: accepts a vf's associated field
+  // data buffer for matrix component access
+  // used, for example, in non-AA case:
+  //    - accepts a vf's associated (vector) field as parameter
+  //    - treat position vector (defined as IR_MatrixDatatype(IR_RealDatatype, numDims, 1) ) as "numDims" separate fields
   def apply(
-      vfAssocField : IR_Field,
+      matField : IR_Field,
       accessIndices: Option[ListBuffer[IR_Index]],
       dataset : Option[IR_Expression],
-      dim : Int,
+      indexRow : IR_Expression,
+      indexCol : IR_Expression,
       canonicalOrder : Boolean) : IR_DataBuffer = {
 
-    if (Knowledge.grid_isAxisAligned) {
-      Logger.error("Trying to access associated field for subclass of \"IR_VirtualFieldWithVec\"; Not applicable for AA grids.")
-    }
-
-    // treat position vector (defined as IR_MatrixDatatype(IR_RealDatatype, numDims, 1) ) as "numDims" separate fields
-    def highDimIndex(idx : IR_Index) = IR_ExpressionIndex(idx.toExpressionIndex.indices :+ (dim : IR_Expression) :+ (0 : IR_Expression)) // access vector component for "dim"
+    def highDimIndex(idx : IR_Index) = IR_ExpressionIndex(idx.toExpressionIndex.indices :+ indexRow :+ indexCol) // access component
     new IR_DataBuffer(
       slot = 0,
-      datatype = vfAssocField.resolveBaseDatatype, // vec -> numDims * scalar
-      localization = vfAssocField.localization,
-      referenceOffset = IR_ExpressionIndex(vfAssocField.referenceOffset.indices.slice(0, vfAssocField.layout.numDimsGrid)),
-      beginIndices = (0 until vfAssocField.layout.numDimsGrid).map(d => vfAssocField.layout.defIdxById("DLB", d) : IR_Expression).to[ListBuffer],
-      endIndices = (0 until vfAssocField.layout.numDimsGrid).map(d => vfAssocField.layout.defIdxById("DRE", d) : IR_Expression).to[ListBuffer],
-      totalDimsLocal = (0 until vfAssocField.layout.numDimsGrid).map(d => vfAssocField.layout.defTotal(d) : IR_Expression).to[ListBuffer],
-      numDimsGrid = vfAssocField.layout.numDimsGrid,
-      numDimsData = vfAssocField.layout.numDimsGrid,
-      domainIdx = vfAssocField.domain.index,
-      name = vfAssocField.name,
-      accessPattern = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(vfAssocField, 0, highDimIndex(idx)), accessIndices),
+      datatype = matField.resolveBaseDatatype, // vec -> numDims * scalar
+      localization = matField.localization,
+      referenceOffset = IR_ExpressionIndex(matField.referenceOffset.indices.slice(0, matField.layout.numDimsGrid)),
+      beginIndices = (0 until matField.layout.numDimsGrid).map(d => matField.layout.defIdxById("DLB", d) : IR_Expression).to[ListBuffer],
+      endIndices = (0 until matField.layout.numDimsGrid).map(d => matField.layout.defIdxById("DRE", d) : IR_Expression).to[ListBuffer],
+      totalDimsLocal = (0 until matField.layout.numDimsGrid).map(d => matField.layout.defTotal(d) : IR_Expression).to[ListBuffer],
+      numDimsGrid = matField.layout.numDimsGrid,
+      numDimsData = matField.layout.numDimsGrid,
+      domainIdx = matField.domain.index,
+      name = matField.name,
+      accessPattern = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(matField, 0, highDimIndex(idx)), accessIndices),
       datasetName = dataset getOrElse IR_NullExpression,
       canonicalStorageLayout = canonicalOrder,
-      accessBlockwise = false
+      accessBlockwise = false,
+      isTemporaryBuffer = false
     )
   }
 
@@ -144,7 +150,8 @@ object IR_DataBuffer {
       accessPattern = pattern getOrElse IR_AccessPattern((idx : IR_Index) => tmpBuf.at(idx)),
       datasetName = dataset getOrElse IR_NullExpression,
       canonicalStorageLayout = false,
-      accessBlockwise = true
+      accessBlockwise = true, // currently only implemented as block-wise to reduce number of file accesses
+      isTemporaryBuffer = true
     )
   }
 }
@@ -168,7 +175,8 @@ case class IR_DataBuffer(
     var name : String, // name of the buffer
     var datasetName : IR_Expression, // dataset name to be used in netCDF/HDF5 files
     var canonicalStorageLayout : Boolean, // describes the data layout in the file
-    var accessBlockwise : Boolean // specifies if the data is stored per fragment (field) or block (temp. buffers)
+    var accessBlockwise : Boolean, // specifies if the data is stored per fragment (field) or block (temp. buffers)
+    var isTemporaryBuffer : Boolean // specified if underlying buffer is a temp. buffer (can be used to implement temp. buffers where data is stored per fragment in the future)
 ) {
 
   /* In this implementation, two data layouts are supported:
@@ -265,11 +273,45 @@ case class IR_DataBuffer(
     .map(d => innerDimsLocalKJI(d) EqEq totalDimsLocalKJI(d))
     .fold(IR_BooleanConstant(true))((a, b) => a AndAnd b)
 
+
+  /* helper function to get access indices for multidim. datatypes */
+  def getIndicesMultiDimDatatypes : Array[IR_Index] = {
+    if (numDimsData > numDimsGrid) {
+      datatype match {
+        case mat : IR_MatrixDatatype =>
+          Array.range(0, mat.sizeM).flatMap(rows =>
+            Array.range(0, mat.sizeN).map(cols =>
+              IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDimsGrid).indices :+ IR_IntegerConstant(rows) :+ IR_IntegerConstant(cols))))
+        case _ : IR_ScalarDatatype   =>
+          Array(IR_LoopOverDimensions.defIt(numDimsGrid))
+        case _                       =>
+          Logger.error("Unsupported higher dimensional datatype used for I/O interface.")
+      }
+    } else {
+      Array(IR_LoopOverDimensions.defIt(numDimsGrid))
+    }
+  }
+
+  def loopOverDims(condition : IR_Expression, accessStatements : IR_Statement*) : IR_LoopOverDimensions = {
+    IR_LoopOverDimensions(numDimsGrid,
+      accessPattern.transformExpressionIndexRange(
+        IR_ExpressionIndex(numDimsGridRange.map(dim => beginIndices(dim) - Duplicate(referenceOffset(dim)) : IR_Expression).toArray),
+        IR_ExpressionIndex(numDimsGridRange.map(dim => endIndices(dim) - Duplicate(referenceOffset(dim)) : IR_Expression).toArray)
+      ),
+      IR_IfCondition(condition,
+        accessStatements.to[ListBuffer]))
+  }
+
   /*
   forwarding to a buffer's access pattern instance:
     - get the actual data extents depending on the pattern
     - call the registered callback function
   */
+
+  // helper function to handle accesses for access patterns and multidim. datatypes
+  def handleAccesses : ListBuffer[ListBuffer[IR_Access]] = {
+    accessPattern.accessesForPattern(getIndicesMultiDimDatatypes : _*) // per access from the pattern: access components of a high-dim datatype
+  }
 
   // accessBlockwise : temp. buffer for a whole block is used -> fragment count already incorporated in local dims
   private val innerDimsFragKJI = if (accessBlockwise) innerDimsLocalKJI.tail else innerDimsLocalKJI

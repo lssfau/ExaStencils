@@ -128,15 +128,18 @@ case class IR_PrintXdmfNS(
     statements
   }
 
-  override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
-    val constants = nodePositionsBuf.zipWithIndex.map { case (buf, idx) =>
+  override def dataBuffersConst : ListBuffer[IR_DataBuffer] = {
+    nodePositionsBuf.zipWithIndex.map { case (buf, idx) =>
       IR_DataBuffer(buf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetCoords(idx)))) } :+
       IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetConnectivity)))
+  }
+
+  override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
     val fields = ListBuffer(
       IR_DataBuffer(velocityBuf, IR_IV_ActiveSlot(u), None, Some(IR_StringConstant(datasetFields.head))),
       IR_DataBuffer(p, IR_IV_ActiveSlot(p), includeGhosts = false, None, Some(IR_StringConstant(datasetFields(1))), canonicalOrder = false))
 
-    if (constsIncluded) constants ++ fields else fields
+    if (constsIncluded) dataBuffersConst ++ fields else fields
   }
 
 }

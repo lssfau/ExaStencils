@@ -22,13 +22,13 @@ case class IR_FileAccess_Locking(
     var separator : IR_Expression,
     var condition : IR_Expression,
     var optPrintComponents : Option[ListBuffer[IR_Expression]],
-    var appendedMode : Boolean = false) extends IR_FileAccess("lock") {
+    var appendedMode : Boolean = false) extends IR_FileAccess("lock") with IR_Iostream {
 
   val appendedHack : Boolean = optPrintComponents.isDefined && Knowledge.experimental_generateParaviewFiles && !Knowledge.mpi_enabled
   var openFlags : String = if (writeAccess) { if (appendedMode || appendedHack) "std::ios::app" else "std::ios::trunc" } else "std::ios::in"
   if (useBinary)
     openFlags += " | std::ios::binary"
-  override def openMode = IR_VariableAccess(openFlags, IR_UnknownDatatype)
+  override def fileMode = IR_VariableAccess(openFlags, IR_UnknownDatatype)
 
   val streamName : String = IR_FieldIO.getNewStreamName()
   def streamType : IR_SpecialDatatype = if (writeAccess) IR_SpecialDatatype("std::ofstream") else IR_SpecialDatatype("std::ifstream")
@@ -55,7 +55,7 @@ case class IR_FileAccess_Locking(
 
       statements += IR_IfCondition(MPI_IsRootProc(),
         ListBuffer[IR_Statement](
-          IR_ObjectInstantiation(streamTypeCreate, streamNameCreate, Duplicate(filename), openMode),
+          IR_ObjectInstantiation(streamTypeCreate, streamNameCreate, Duplicate(filename), fileMode),
           IR_MemberFunctionCall(streamCreate, "close")))
     }
     // otherwise: the file is created/opened in the MPI_Sequential accordingly
@@ -85,6 +85,7 @@ case class IR_FileAccess_Locking(
 
   override def read(bufIdx : Int) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
+    val buf = dataBuffers(bufIdx)
 
     val read = if (!useBinary) {
       // skip separator if not whitespace
@@ -96,9 +97,9 @@ case class IR_FileAccess_Locking(
         None
       }
 
-      readBufferAscii(bufIdx, stream, condition, skipSep)
+      readBufferAscii(buf, stream, condition, skipSep)
     } else {
-      readBufferBinary(bufIdx, stream, condition)
+      readBufferBinary(buf, stream, condition)
     }
 
     val filePointerDecl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("currFilePointer"), 0)
@@ -109,7 +110,7 @@ case class IR_FileAccess_Locking(
 
     // open file
     var innerLoop = ListBuffer[IR_Statement]()
-    innerLoop += IR_ObjectInstantiation(stream, Duplicate(filename), openMode)
+    innerLoop += IR_ObjectInstantiation(stream, Duplicate(filename), fileMode)
 
     // get file pointer from previous rank
     if (Knowledge.mpi_enabled) {
@@ -149,7 +150,7 @@ case class IR_FileAccess_Locking(
   }
 
   override def write(bufIdx : Int) : ListBuffer[IR_Statement] = {
-
+    val buf = dataBuffers(bufIdx)
     val printSetPrecision = if (!useBinary) {
       if (Knowledge.field_printFieldPrecision == -1)
         IR_Print(stream, "std::scientific")
@@ -163,13 +164,13 @@ case class IR_FileAccess_Locking(
     val openModeLock = if (Knowledge.mpi_enabled && !appendedMode) {
       IR_VariableAccess(openFlags.replace("std::ios::trunc", "std::ios::app"), IR_UnknownDatatype)
     } else {
-      openMode
+      fileMode
     }
 
     val print = if (!useBinary) {
-      printBufferAscii(bufIdx, stream, condition, separator, optPrintComponents)
+      printBufferAscii(buf, stream, condition, separator, optPrintComponents)
     } else {
-      printBufferBinary(bufIdx, stream, condition)
+      printBufferBinary(buf, stream, condition)
     }
 
     var innerLoop = ListBuffer[IR_Statement](

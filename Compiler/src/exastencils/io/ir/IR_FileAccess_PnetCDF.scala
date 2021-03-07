@@ -26,7 +26,7 @@ case class IR_FileAccess_PnetCDF(
   */
 
   // general variables
-  override def openMode : IR_VariableAccess = if (writeAccess) {
+  override def fileMode : IR_VariableAccess = if (writeAccess) {
     if (appendedMode) {
       IR_VariableAccess("NC_WRITE", IR_UnknownDatatype) // open in read-write mode
     } else {
@@ -47,7 +47,7 @@ case class IR_FileAccess_PnetCDF(
   def fileContainsRecordVariables : Boolean = truthTableRecordVariables.exists(_._2 == true)
   def useTimeDim(bufIdx : Int) : Boolean = truthTableRecordVariables.getOrElse(bufIdx, false)
   def numDimsDataAndTime(bufIdx : Int, numDimsData : Int) : Int = numDimsData + (if (useTimeDim(bufIdx)) 1 else 0)
-  def writeTimeToFile = writeAccess && fileContainsRecordVariables && Knowledge.parIO_vis_constantDataReduction
+  def writeTimeToFile : Boolean = writeAccess && fileContainsRecordVariables && Knowledge.parIO_vis_constantDataReduction
   def handleTimeDimension(timeValue : IR_Expression, bufIdx : Int, dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = {
     if (useTimeDim(bufIdx)) timeValue +: dims else dims // prepend one more entry for unlimited "time" dimension
   }
@@ -82,7 +82,8 @@ case class IR_FileAccess_PnetCDF(
   }
   val imap_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) => // describes in-memory access pattern
     buf.declareDimensionality("imap", ptrDatatype,
-      handleTimeDimension(timeValue = 0, bufIdx, dims = buf.imapKJI)) // prepend "0" since the memory layout doesn't change with the additional time dimension,
+      handleTimeDimension(timeValue = 0, bufIdx, // prepend "0" since the memory layout doesn't change with the additional time dimension
+        dims = IR_DataBuffer.handleFragmentDimension(buf, buf.imapKJI, buf.imapKJI.head))) // for fragment-wise storage of fields: repeat imap entry for slowest-varying dim to match to the dimensionality of count, stride, etc.
   }
 
   var declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(err_decl, ncFile_decl) // file handle and error variable for debugging
@@ -153,6 +154,10 @@ case class IR_FileAccess_PnetCDF(
   override def createOrOpenFile() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
+    // init frag info if it was not already (e.g. in visualization interface)
+    if (initFragInfo)
+      statements ++= IR_IV_FragmentInfo.init(dataBuffers.head.domainIdx, calculateFragOffset = dataBuffers.exists(!_.canonicalOrder))
+
     // add declarations
     (dimensionalityDeclarations ++ declarations).foreach(decl => statements += decl)
 
@@ -160,15 +165,15 @@ case class IR_FileAccess_PnetCDF(
     // distinction of serial/parallel interfaces only made for these functions since their signature (serial <-> parallel) differs greatly
     if (writeAccess && !appendedMode) {
       if (Knowledge.mpi_enabled) {
-        statements ++= ncmpi_create(mpiCommunicator, filenameAsCString, openMode, info, ncFile)
+        statements ++= ncmpi_create(mpiCommunicator, filenameAsCString, fileMode, info, ncFile)
       } else {
-        statements ++= nc_create(filenameAsCString, openMode, ncFile)
+        statements ++= nc_create(filenameAsCString, fileMode, ncFile)
       }
     } else {
       if (Knowledge.mpi_enabled) {
-        statements ++= ncmpi_open(mpiCommunicator, filenameAsCString, openMode, info, ncFile)
+        statements ++= ncmpi_open(mpiCommunicator, filenameAsCString, fileMode, info, ncFile)
       } else {
-        statements ++= nc_open(filenameAsCString, openMode, ncFile)
+        statements ++= nc_open(filenameAsCString, fileMode, ncFile)
       }
     }
 
@@ -179,10 +184,6 @@ case class IR_FileAccess_PnetCDF(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
     val distinctDimIds : mutable.HashMap[String, IR_VariableAccess] = mutable.HashMap()
     val dimIdTime = IR_VariableAccess("dimIdTime", IR_IntegerDatatype) // "time" is the slowest-varying dimension ("0" in KJI order)
-
-    // init frag info if it was not already (e.g. in visualization interface)
-    if (initFragInfo)
-      statements ++= IR_IV_FragmentInfo.init(dataBuffers.head.domainIdx, calculateFragOffset = dataBuffers.exists(!_.canonicalOrder))
 
     // define dimensions in case of write operations
     if (writeAccess && !appendedMode) {
@@ -220,8 +221,8 @@ case class IR_FileAccess_PnetCDF(
       for (bufIdx <- dataBuffers.indices) {
         val buf = dataBuffers(bufIdx)
         val dimIdSpatial = distinctDimIds(globalDims(bufIdx).name)
-        val dimIdRecord = IR_VariableAccess(IR_FileAccess.declareVariable("dimId" + buf.name), IR_ArrayDatatype(IR_IntegerDatatype, numDimsDataAndTime(bufIdx, buf.numDimsData)))
         val numDims = buf.datasetDimsGlobal
+        val dimIdRecord = IR_VariableAccess(IR_FileAccess.declareVariable("dimId" + buf.name), IR_ArrayDatatype(IR_IntegerDatatype, numDimsDataAndTime(bufIdx, numDims)))
 
         // pass array with spatial and temporal dimension ids for record variables
         if (useTimeDim(bufIdx))
@@ -283,9 +284,9 @@ case class IR_FileAccess_PnetCDF(
   }
 
   // set count to "0" for "invalid" frags in order to perform a NOP read/write
-  val countSelection_decl : Array[IR_VariableDeclaration] = dataBuffers.indices.map(bufIdx =>
+  lazy val countSelection_decl : Array[IR_VariableDeclaration] = dataBuffers.indices.map(bufIdx =>
     IR_VariableDeclaration(IR_PointerDatatype(MPI_Offset), IR_FileAccess.declareVariable("countSelection"), count(bufIdx))).toArray
-  val countSelection : Array[IR_VariableAccess] = dataBuffers.indices.map(bufIdx =>
+  lazy val countSelection : Array[IR_VariableAccess] = dataBuffers.indices.map(bufIdx =>
     IR_VariableAccess(countSelection_decl(bufIdx))).toArray
   val bufcount = IR_VariableAccess("bufcount", MPI_Offset)
   val bufcount_decl = IR_VariableDeclaration(bufcount, 1)
@@ -407,7 +408,7 @@ case class IR_FileAccess_PnetCDF(
       if (buf.datasetName == IR_NullExpression)
         Logger.error("Parameter \"dataset\" was not specified.")
 
-      if (!Knowledge.parIO_useCollectiveIO && buf.canonicalOrder)
+      if (Knowledge.mpi_enabled && !Knowledge.parIO_useCollectiveIO && buf.canonicalOrder)
         Logger.error("Parameter \"canonicalOrder\" should only be used with collective I/O.")
     }
 

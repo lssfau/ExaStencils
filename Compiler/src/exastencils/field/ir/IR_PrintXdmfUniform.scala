@@ -15,7 +15,6 @@ import exastencils.domain.ir.IR_IV_FragmentPositionBegin
 import exastencils.grid.ir.IR_VF_CellWidthPerDim
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_FragmentInfo
-import exastencils.logger.Logger
 import exastencils.util.ir.IR_Print
 
 /// IR_PrintXdmfUniform
@@ -38,34 +37,19 @@ case class IR_PrintXdmfUniform(
     var dataset : IR_Expression,
     var binaryFpp : Boolean,
     var canonicalFileLayout : Boolean,
-    var resolveId : Int) extends IR_PrintXdmfRectilinear(ioMethod, binaryFpp) {
+    var resolveId : Int) extends IR_PrintXdmfStructured(ioMethod, binaryFpp) {
 
   override def numDimsGrid : Int = field.layout.numDimsGrid
   override def numFields : Int = 1
   override def level : Int = field.level
 
-  // validate params
-  if (includeGhostLayers) {
-    includeGhostLayers = false
-    Logger.error("Ghost layer visualization is currently unsupported for IR_PrintXdmfUniform!")
-  }
-  if (numDimsGrid < 2) {
-    Logger.error("IR_PrintXdmfUniform is only usable for 2D/3D cases.")
-  }
-
   override def domainIndex : Int = field.domain.index
 
+  override def dataBuffersConst : ListBuffer[IR_DataBuffer] = ListBuffer() // no node pos. or connectivity needed
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = ListBuffer(dataBuffer)
 
   override def stmtsForPreparation : ListBuffer[IR_Statement] = {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
-
-    // TODO do once
-    if (fmt != "XML" || Knowledge.mpi_enabled) {
-      stmts ++= communicateFragIndexToRoot
-      stmts ++= communicateFragPosBeginToRoot
-      stmts += communicateFragIdToRoot
-    }
 
     stmts ++= IR_IV_FragmentInfo.init(dataBuffer.domainIdx)
 

@@ -15,7 +15,7 @@ import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.io.ir.IR_AccessPattern
 import exastencils.io.ir.IR_DataBuffer
-import exastencils.io.ir.IR_FileAccess_SionLib
+import exastencils.io.ir.IR_FileAccess_SIONlib
 import exastencils.logger.Logger
 
 /// IR_PrintSionSWE
@@ -57,7 +57,8 @@ case class IR_PrintSionSWE(
           datasetName = IR_NullExpression,
           name = field.name,
           canonicalStorageLayout = false,
-          accessBlockwise = false
+          accessBlockwise = false,
+          isTemporaryBuffer = false
         )
       }
     }
@@ -97,7 +98,7 @@ case class IR_PrintSionSWE(
 
   def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = ListBuffer(ioHandler(constsIncluded))
 
-  def ioHandler(constsIncluded : Boolean) = IR_FileAccess_SionLib(filename, dataBuffers(constsIncluded), writeAccess = true, interleavedAccHighDimDt = false, condition = true)
+  def ioHandler(constsIncluded : Boolean) = IR_FileAccess_SIONlib(filename, dataBuffers(constsIncluded), writeAccess = true, interleavedAccHighDimDt = false, condition = true)
 
   override def expand() : OutputType ={
    var statements : ListBuffer[IR_Statement] = ListBuffer()

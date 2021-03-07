@@ -8,17 +8,10 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.config.Settings
-import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.StatementList
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
-import exastencils.util.ir.IR_Print
-import exastencils.util.ir.IR_PrintBinary
-import exastencils.util.ir.IR_PrintBlockBinary
-import exastencils.util.ir.IR_Read
-import exastencils.util.ir.IR_ReadBinary
-import exastencils.util.ir.IR_ReadBlockBinary
 
 // IR_FileAccess
 // Used to read/write field data from/to files
@@ -59,107 +52,6 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
   def filename : IR_Expression
   def writeAccess : Boolean
   def appendedMode : Boolean
-
-  /* helper function to get access indices for multidim. datatypes */
-  def getIndicesMultiDimDatatypes(buf : IR_DataBuffer) : Array[IR_Index] = {
-    if(buf.numDimsData > buf.numDimsGrid) {
-      buf.datatype match {
-        case mat : IR_MatrixDatatype =>
-          Array.range(0, mat.sizeM).flatMap(rows =>
-            Array.range(0, mat.sizeN).map(cols =>
-              IR_ExpressionIndex(IR_LoopOverDimensions.defIt(buf.numDimsGrid).indices :+ IR_IntegerConstant(rows) :+ IR_IntegerConstant(cols))))
-        case _ : IR_ScalarDatatype   =>
-          Array(IR_LoopOverDimensions.defIt(buf.numDimsGrid))
-        case _                       =>
-          Logger.error("Unsupported higher dimensional datatype used for I/O interface.")
-      }
-    } else {
-      Array(IR_LoopOverDimensions.defIt(buf.numDimsGrid))
-    }
-  }
-
-  // helper function to handle accesses for access patterns and multidim. datatypes
-  def handleAccesses(buf : IR_DataBuffer) : ListBuffer[ListBuffer[IR_Access]] = {
-    buf.accessPattern.accessesForPattern(getIndicesMultiDimDatatypes(buf) : _*) // per access from the pattern: access components of a high-dim datatype
-  }
-
-  /* helper functions for I/O operations using C++ STL I/O streams/SionLib */
-  def loopOverDims(bufIdx : Int, condition : IR_Expression, accessStatements : IR_Statement*) : IR_LoopOverDimensions = {
-    val buffer = dataBuffers(bufIdx)
-    IR_LoopOverDimensions(buffer.numDimsGrid,
-      buffer.accessPattern.transformExpressionIndexRange(
-        IR_ExpressionIndex(buffer.numDimsGridRange.map(dim => buffer.beginIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray),
-        IR_ExpressionIndex(buffer.numDimsGridRange.map(dim => buffer.endIndices(dim) - Duplicate(buffer.referenceOffset(dim)) : IR_Expression).toArray)
-      ),
-      IR_IfCondition(condition,
-        accessStatements.to[ListBuffer]))
-  }
-
-  def isAccessForWholeBlockAllowed(buf : IR_DataBuffer, conditionSpecified : Boolean, writeHighDimDatatypeInterleaved : Boolean) : IR_Expression = {
-    conditionSpecified AndAnd // condition specified?
-      buf.accessWithoutExclusion AndAnd // is any layer excluded (e.g. ghost)?
-      !writeHighDimDatatypeInterleaved AndAnd // do we write higher dim. datatypes in an interleaved way?
-      buf.accessPattern.isRegular // compatible with access pattern?
-  }
-
-  def printBufferAscii(
-      bufIdx : Int,
-      stream : IR_VariableAccess,
-      condition : IR_Expression,
-      separator : IR_Expression,
-      optPrintComponents : Option[ListBuffer[IR_Expression]] = None,
-      indent : Option[IR_Expression] = None) : IR_ScopedStatement = {
-
-    val buf = dataBuffers(bufIdx)
-
-    val printComponents = optPrintComponents getOrElse ListBuffer[IR_Expression]()
-    printComponents += "std::scientific"
-    printComponents ++= indent
-    printComponents ++= handleAccesses(buf).flatMap(accessesForPatternIndex =>
-      accessesForPatternIndex.flatMap(acc => List(acc, separator)) :+ IR_Print.newline
-    )
-    loopOverDims(bufIdx, condition, IR_Print(stream, printComponents))
-  }
-
-  def printBufferBinary(bufIdx : Int, stream : IR_VariableAccess, condition : IR_Expression, printInterleavedComponents : Boolean = true) : IR_ScopedStatement = {
-    val buf = dataBuffers(bufIdx)
-    val bytesAccessedKnownApriori = condition == IR_BooleanConstant(true) // if there is no condition -> required number of accessed bytes are known
-    val printAllComponentsPerLocation = printInterleavedComponents && buf.numDimsData > buf.numDimsGrid // determines if all components of a higher dim. dt are printed per grid node/cell/...
-
-    IR_IfCondition(isAccessForWholeBlockAllowed(buf, bytesAccessedKnownApriori, printAllComponentsPerLocation),
-      /* true: write whole buffer */
-      IR_PrintBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal),
-      /* false: write component by component in a loop */
-      loopOverDims(bufIdx, condition, IR_PrintBinary(stream, handleAccesses(buf).flatten)))
-  }
-
-  def readBufferAscii(
-      bufIdx : Int,
-      stream : IR_VariableAccess,
-      condition : IR_Expression,
-      skipSep : Option[IR_VariableAccess] = None) : IR_ScopedStatement = {
-
-    val buf = dataBuffers(bufIdx)
-
-    // handle accesses of high dim datatypes
-    val acc = handleAccesses(buf).flatMap(accessesForPatternIndex =>
-      accessesForPatternIndex.flatMap(acc => List(acc) ++ skipSep)
-    )
-
-    loopOverDims(bufIdx, condition, IR_Read(stream, acc : _*))
-  }
-
-  def readBufferBinary(bufIdx : Int, stream : IR_VariableAccess, condition : IR_Expression, printInterleavedComponents : Boolean = true) : IR_ScopedStatement = {
-    val buf = dataBuffers(bufIdx)
-    val bytesAccessedKnownApriori = condition == IR_BooleanConstant(true) // if there is no condition -> required number of accessed bytes are known
-    val printAllComponentsPerLocation = printInterleavedComponents && buf.numDimsData > buf.numDimsGrid // determines if all components of a higher dim. dt are printed per grid node/cell/...
-
-    IR_IfCondition(isAccessForWholeBlockAllowed(buf, bytesAccessedKnownApriori, printAllComponentsPerLocation),
-      /* true: read whole buffer */
-      IR_ReadBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal),
-      /* false: read component by component in a loop */
-      loopOverDims(bufIdx, condition, IR_ReadBinary(stream, handleAccesses(buf).flatten)))
-  }
 
   /* commonly used declarations. mainly for dimensionality extents */
   def stride_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
@@ -232,7 +124,7 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
   def pathsInc : ListBuffer[String] = ListBuffer()
 
   // determines with which mode the file is opened/created
-  def openMode : IR_VariableAccess
+  def fileMode : IR_VariableAccess
 
   // checks input parameters that were passed
   def validateParams() : Unit = {}

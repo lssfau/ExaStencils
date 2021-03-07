@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_AddressOf
 import exastencils.base.ir.IR_ArrayAccess
+import exastencils.base.ir.IR_ArrayFree
 import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_Cast
 import exastencils.base.ir.IR_CharDatatype
@@ -69,9 +70,11 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   def nodesPerElement : Int
   def statementsForPreparation : ListBuffer[IR_Statement]
   def statementsForCleanup : ListBuffer[IR_Statement]
+
   def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] // contains data buffers for node positions, connectivity and field values
   def dataBuffersNodePos : ListBuffer[IR_DataBuffer]
-  def dataBuffersConnectivity : IR_DataBuffer
+  def dataBufferConnectivity : IR_DataBuffer
+  def dataBuffersConstant : ListBuffer[IR_DataBuffer] = dataBuffersNodePos :+ dataBufferConnectivity
 
   // dataset names created by exodus
   def datasetCoords : ListBuffer[IR_StringConstant] = (0 until numDimsGrid).map(d => IR_StringConstant("coord" + ('x' + d).toChar.toString)).to[ListBuffer]
@@ -209,8 +212,7 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   def ioHandler(constsIncluded : Boolean, fn : IR_Expression) : IR_FileAccess_PnetCDF = {
     val appendedMode = true // we create the file via the exodus library and then open it with pnetcdf to write the data
     val recordVariables = {
-      val consts = dataBuffers(true).map(_.name).diff(dataBuffers(false).map(_.name)) // extract const bufs
-      mutable.HashMap(dataBuffers(constsIncluded).zipWithIndex.map { case (buf, bufIdx) => (bufIdx, !consts.contains(buf.name)) } : _*) // non-constants are record variables
+      mutable.HashMap(dataBuffers(constsIncluded).zipWithIndex.map { case (buf, bufIdx) => (bufIdx, !dataBuffersConstant.map(_.name).contains(buf.name)) } : _*) // non-constants are record variables
     }
 
     fn match {
@@ -297,7 +299,7 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
       }
 
       val isCoordBuffer = dataBuffersNodePos.zipWithIndex.collectFirst { case(coordBuf, bufIdx) if coordBuf.datasetName == buf.datasetName => bufIdx}
-      val isConnectivityBuffer = buf.datasetName == dataBuffersConnectivity.datasetName
+      val isConnectivityBuffer = buf.datasetName == dataBufferConnectivity.datasetName
 
       if (isCoordBuffer.isDefined) {
         stmts ++= ex_put_coord(ListBuffer.fill[IR_Expression](3)(nullptr).updated(isCoordBuffer.get, tmpBufPtr))
@@ -446,10 +448,27 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     if (Knowledge.mpi_enabled)
       statements += IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty, writeExodusMetaData())
 
+    // free buffer if only used once, others are used in each print step and free'd later
+    val freeTmpBuffersConst : ListBuffer[IR_Statement] = ListBuffer()
+    dataBuffersConstant.foreach(constBuf => {
+      if (constBuf.isTemporaryBuffer) {
+        if (constBuf.accessBlockwise) {
+          freeTmpBuffersConst += IR_IfCondition(constBuf.name,
+            ListBuffer[IR_Statement](
+              IR_ArrayFree(constBuf.name),
+              IR_Assignment(constBuf.name, 0)))
+        } else {
+          Logger.error("Unimplemented: temp. buffers are currently only stored block-wise")
+        }
+      }
+    })
+
     // write data via exodusII (serial) or PnetCDF (parallel) interface
     statements += IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty,
       /* true: write constants and field data to file and mark that constants were already written */
-      (if (Knowledge.mpi_enabled) writeDataParallel(constsIncluded = true) else writeDataSerial(constsIncluded = true)) :+ IR_ConstantsWrittenToFile().setFilename(filename),
+      (if (Knowledge.mpi_enabled) writeDataParallel(constsIncluded = true) else writeDataSerial(constsIncluded = true))
+        ++ freeTmpBuffersConst
+        :+ IR_ConstantsWrittenToFile().setFilename(filename),
       /* false: only write field data */
       if (Knowledge.mpi_enabled) writeDataParallel(constsIncluded = false) else writeDataSerial(constsIncluded = false))
 

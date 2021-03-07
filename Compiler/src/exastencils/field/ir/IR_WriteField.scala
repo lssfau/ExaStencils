@@ -18,12 +18,9 @@
 
 package exastencils.field.ir
 
-import scala.collection.mutable.ListBuffer
-
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.datastructures.Transformation.Output
-import exastencils.datastructures.ir._
+import exastencils.datastructures.Transformation.OutputType
 
 /// IR_WriteField
 
@@ -36,19 +33,12 @@ case class IR_WriteField(
     var canonicalFileLayout : Boolean = false,
     var useBinary : Boolean = false,
     var separator : IR_Expression = IR_StringConstant(" "),
-    var condition: IR_Expression = true,
+    var condition : IR_Expression = true,
     var dataset : IR_Expression = IR_NullExpression
 ) extends IR_FieldIO {
 
   def doWrite = true
   def onlyVals = true
 
-  override def expand() : Output[StatementList] = {
-
-    var statements : ListBuffer[IR_Statement] = ListBuffer()
-
-    statements += generateFileAccess()
-
-    statements
-  }
+  override def expand() : OutputType = generateFileAccess()
 }

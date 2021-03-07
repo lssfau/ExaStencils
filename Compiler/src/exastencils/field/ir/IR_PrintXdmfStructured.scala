@@ -16,6 +16,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_Lower
+import exastencils.base.ir.IR_PlainFunction
 import exastencils.base.ir.IR_PreIncrement
 import exastencils.base.ir.IR_RealDatatype
 import exastencils.base.ir.IR_Statement
@@ -30,10 +31,13 @@ import exastencils.baseExt.ir.IR_UnduplicatedVariable
 import exastencils.config.Knowledge
 import exastencils.config.Settings
 import exastencils.core.Duplicate
+import exastencils.core.StateManager
+import exastencils.domain.ir.IR_DomainFunctions
 import exastencils.domain.ir.IR_IV_FragmentId
 import exastencils.domain.ir.IR_IV_FragmentIndex
 import exastencils.domain.ir.IR_IV_FragmentPositionBegin
 import exastencils.domain.ir.IR_IV_IsValidForDomain
+import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.grid.ir.IR_AtFaceCenter
 import exastencils.io.ir.IR_DataBuffer
@@ -41,31 +45,11 @@ import exastencils.io.ir.IR_IV_TemporaryBuffer
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_Gather
 import exastencils.util.ir.IR_Print
+import exastencils.util.ir.IR_UtilFunctions
 import exastencils.visualization.ir.IR_PrintXdmf
 
-// communicate fragment info to root at startup to be able to write the Xdmf file solely on root
-case class IR_IV_FragmentIdPerBlock() extends IR_UnduplicatedVariable {
-  def resolveAccess(curRank : IR_Expression, fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) : IR_Expression =
-    IR_ArrayAccess(this, Knowledge.domain_numFragmentsPerBlock * curRank + fragmentIdx)
-  override def resolveName() = s"fragmentIdOnRoot"
-  override def resolveDatatype() = IR_ArrayDatatype("size_t", Knowledge.domain_numFragmentsTotal)
-}
 
-case class IR_IV_FragmentPosBeginPerBlock(var dim : Int) extends IR_UnduplicatedVariable {
-  def resolveAccess(curRank : IR_Expression, fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) : IR_Expression =
-    IR_ArrayAccess(this, Knowledge.domain_numFragmentsPerBlock * curRank + fragmentIdx)
-  override def resolveName() = s"fragmentPosBeginOnRoot_$dim"
-  override def resolveDatatype() = IR_ArrayDatatype(IR_RealDatatype, Knowledge.domain_numFragmentsTotal)
-}
-
-case class IR_IV_FragmentIndexPerBlock(var dim : Int) extends IR_UnduplicatedVariable {
-  def resolveAccess(curRank : IR_Expression, fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) : IR_Expression =
-    IR_ArrayAccess(this, Knowledge.domain_numFragmentsPerBlock * curRank + fragmentIdx)
-  override def resolveName() = s"fragmentIndexOnRoot_$dim"
-  override def resolveDatatype() = IR_ArrayDatatype(IR_IntegerDatatype, Knowledge.domain_numFragmentsTotal)
-}
-
-abstract class IR_PrintXdmfRectilinear(
+abstract class IR_PrintXdmfStructured(
     ioMethod : IR_Expression,
     binaryFpp : Boolean
 ) extends IR_PrintXdmf(ioMethod, binaryFpp) {
@@ -77,6 +61,17 @@ abstract class IR_PrintXdmfRectilinear(
   var dataset : IR_Expression
   var canonicalFileLayout : Boolean
   var resolveId : Int
+
+  // validate params
+  if (includeGhostLayers) {
+    Logger.error("Ghost layer visualization is currently unsupported for IR_PrintXdmfStructured!")
+  }
+  if (numDimsGrid < 2) {
+    Logger.error("IR_PrintXdmfStructured is only usable for 2D/3D cases.")
+  }
+
+  // append statements for preparation (i.e. gather fragment info on root) to domain function
+  IR_PrintXdmfStructured.gatherFragInfoRoot(fmt)
 
   /* handling staggered grids: cell-centered temp. buffers with interpolation */
   override def numCells_x : Int = (1 << level) * Knowledge.domain_fragmentLengthAsVec(0)
@@ -130,41 +125,6 @@ abstract class IR_PrintXdmfRectilinear(
   }
 
   val dimsDt : Int = dataBuffer.numDimsData - dataBuffer.numDimsGrid
-
-  /* gather fragment info on root */
-  Settings.additionalMacros = (Settings.additionalMacros :+
-    s"""#if SIZE_MAX == UCHAR_MAX
-       |   #define MPI_SIZE_T MPI_UNSIGNED_CHAR
-       |#elif SIZE_MAX == USHRT_MAX
-       |   #define MPI_SIZE_T MPI_UNSIGNED_SHORT
-       |#elif SIZE_MAX == UINT_MAX
-       |   #define MPI_SIZE_T MPI_UNSIGNED
-       |#elif SIZE_MAX == ULONG_MAX
-       |   #define MPI_SIZE_T MPI_UNSIGNED_LONG
-       |#elif SIZE_MAX == ULLONG_MAX
-       |   #define MPI_SIZE_T MPI_UNSIGNED_LONG_LONG
-       |#else
-       |   #error "Could not determine MPI_SIZE_T"
-       |#endif""".stripMargin).distinct
-  protected def communicateFragIdToRoot = {
-    new MPI_Gather(
-      IR_AddressOf(IR_IV_FragmentId(0)),
-      IR_AddressOf(IR_IV_FragmentIdPerBlock().resolveAccess(0, 0)),
-      "MPI_SIZE_T",
-      Knowledge.domain_numFragmentsPerBlock)
-  }
-  protected def communicateFragIndexToRoot = (0 until numDimsGrid).map(dim =>
-    new MPI_Gather(
-      IR_AddressOf(IR_IV_FragmentIndex(dim, 0)),
-      IR_AddressOf(IR_IV_FragmentIndexPerBlock(dim).resolveAccess(0, 0)),
-      IR_IntegerDatatype,
-      Knowledge.domain_numFragmentsPerBlock))
-  protected def communicateFragPosBeginToRoot = (0 until numDimsGrid).map(dim =>
-    new MPI_Gather(
-      IR_AddressOf(IR_IV_FragmentPositionBegin(dim, 0)),
-      IR_AddressOf(IR_IV_FragmentPosBeginPerBlock(dim).resolveAccess(0, 0)),
-      IR_RealDatatype,
-      Knowledge.domain_numFragmentsPerBlock))
 
   protected def fragIdCurRank(global : Boolean, rank : IR_Expression = curRank, fragIdx : IR_Expression = IR_LoopOverFragments.defIt) : IR_Expression = {
     if (Knowledge.mpi_enabled)
@@ -293,11 +253,10 @@ abstract class IR_PrintXdmfRectilinear(
         // file laid out fragment-wise -> select portion via offsets
         statements += printXdmfElement(stream, openDataItem(field.resolveBaseDatatype, dimsComponent, seekp) : _*)
         if (fmt == "XML") {
-          val handler = ioHandler(constsIncluded = false, filenamePieceFpp)
           val printComponents = ListBuffer[IR_Expression]()
           printComponents += "std::scientific"
           printComponents += indentData
-          printComponents ++= handler.getIndicesMultiDimDatatypes(dataBuffer).flatMap(idx => {
+          printComponents ++= dataBuffer.getIndicesMultiDimDatatypes.flatMap(idx => {
             if (dataBuffer.accessBlockwise) {
               // HACK: already within a fragment loop -> drop fragment loop from temp. buffer and access values with index from outer loop
               val accessIndices = idx.toExpressionIndex.indices.dropRight(1) :+ IR_LoopOverFragments.defIt
@@ -341,6 +300,85 @@ abstract class IR_PrintXdmfRectilinear(
               xpath = ListBuffer(IR_StringConstant("/Xdmf/Domain/Grid/Grid["), f + 1 : IR_Expression, IR_StringConstant("]")) : _*) : _*)
         })
       }).to[ListBuffer]
+    }
+  }
+}
+
+// communicate fragment info to root at startup to be able to write the Xdmf file solely on root
+case class IR_IV_FragmentIdPerBlock() extends IR_UnduplicatedVariable {
+  def resolveAccess(curRank : IR_Expression, fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) : IR_Expression =
+    IR_ArrayAccess(this, Knowledge.domain_numFragmentsPerBlock * curRank + fragmentIdx)
+  override def resolveName() = s"fragmentIdOnRoot"
+  override def resolveDatatype() = IR_ArrayDatatype("size_t", Knowledge.domain_numFragmentsTotal)
+}
+
+case class IR_IV_FragmentPosBeginPerBlock(var dim : Int) extends IR_UnduplicatedVariable {
+  def resolveAccess(curRank : IR_Expression, fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) : IR_Expression =
+    IR_ArrayAccess(this, Knowledge.domain_numFragmentsPerBlock * curRank + fragmentIdx)
+  override def resolveName() = s"fragmentPosBeginOnRoot_$dim"
+  override def resolveDatatype() = IR_ArrayDatatype(IR_RealDatatype, Knowledge.domain_numFragmentsTotal)
+}
+
+case class IR_IV_FragmentIndexPerBlock(var dim : Int) extends IR_UnduplicatedVariable {
+  def resolveAccess(curRank : IR_Expression, fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) : IR_Expression =
+    IR_ArrayAccess(this, Knowledge.domain_numFragmentsPerBlock * curRank + fragmentIdx)
+  override def resolveName() = s"fragmentIndexOnRoot_$dim"
+  override def resolveDatatype() = IR_ArrayDatatype(IR_IntegerDatatype, Knowledge.domain_numFragmentsTotal)
+}
+
+object IR_PrintXdmfStructured {
+  var firstCall = true
+  var gatherFuncName = "gatherFragInfoRoot"
+
+  def gatherFragInfoRoot(fmt : String) : Unit = {
+    if (firstCall && fmt != "XML" && Knowledge.mpi_enabled) {
+      // add headers and macro for MPI base datatype for "size_t"
+      if (!IR_GlobalCollection.get.externalDependencies.contains("limits.h"))
+        IR_GlobalCollection.get.externalDependencies += "limits.h"
+      if (!IR_UtilFunctions.get.externalDependencies.contains("limits.h"))
+        IR_UtilFunctions.get.externalDependencies += "limits.h"
+      Settings.additionalMacros = (Settings.additionalMacros :+
+        s"""#if SIZE_MAX == UCHAR_MAX
+           |   #define MPI_SIZE_T MPI_UNSIGNED_CHAR
+           |#elif SIZE_MAX == USHRT_MAX
+           |   #define MPI_SIZE_T MPI_UNSIGNED_SHORT
+           |#elif SIZE_MAX == UINT_MAX
+           |   #define MPI_SIZE_T MPI_UNSIGNED
+           |#elif SIZE_MAX == ULONG_MAX
+           |   #define MPI_SIZE_T MPI_UNSIGNED_LONG
+           |#elif SIZE_MAX == ULLONG_MAX
+           |   #define MPI_SIZE_T MPI_UNSIGNED_LONG_LONG
+           |#else
+           |   #error "Could not determine MPI_SIZE_T"
+           |#endif""".stripMargin).distinct
+
+      // gather info on root
+      StateManager.findFirst[IR_DomainFunctions]().get.functions foreach {
+        case func : IR_PlainFunction if func.name == "initGeometry" =>
+          firstCall = false
+
+          func.body += new MPI_Gather(
+            IR_AddressOf(IR_IV_FragmentId(0)),
+            IR_AddressOf(IR_IV_FragmentIdPerBlock().resolveAccess(0, 0)),
+            "MPI_SIZE_T",
+            Knowledge.domain_numFragmentsPerBlock)
+          func.body ++= (0 until Knowledge.dimensionality).to[ListBuffer].map(dim =>
+            new MPI_Gather(
+              IR_AddressOf(IR_IV_FragmentIndex(dim, 0)),
+              IR_AddressOf(IR_IV_FragmentIndexPerBlock(dim).resolveAccess(0, 0)),
+              IR_IntegerDatatype,
+              Knowledge.domain_numFragmentsPerBlock))
+          func.body ++= (0 until Knowledge.dimensionality).map(dim =>
+            new MPI_Gather(
+              IR_AddressOf(IR_IV_FragmentPositionBegin(dim, 0)),
+              IR_AddressOf(IR_IV_FragmentPosBeginPerBlock(dim).resolveAccess(0, 0)),
+              IR_RealDatatype,
+              Knowledge.domain_numFragmentsPerBlock))
+        case _                            =>
+      }
+
+      if (firstCall)
+        Logger.error("Did not find domain function: \"initGeometry\".")
     }
   }
 }

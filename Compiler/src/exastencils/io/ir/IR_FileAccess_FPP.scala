@@ -22,12 +22,12 @@ case class IR_FileAccess_FPP(
     var separator : IR_Expression,
     var condition : IR_Expression,
     var optPrintComponents : Option[ListBuffer[IR_Expression]],
-    var appendedMode : Boolean = false) extends IR_FileAccess("fpp") {
+    var appendedMode : Boolean = false) extends IR_FileAccess("fpp") with IR_Iostream {
 
   var openFlags : String = if (writeAccess) { if (appendedMode) "std::ios::app" else "std::ios::trunc" } else "std::ios::in"
   if (useBinary)
     openFlags += " | std::ios::binary"
-  override def openMode = IR_VariableAccess(openFlags, IR_UnknownDatatype)
+  override def fileMode = IR_VariableAccess(openFlags, IR_UnknownDatatype)
 
   val streamName : String = IR_FieldIO.getNewStreamName()
   def streamType : IR_SpecialDatatype = if (writeAccess) IR_SpecialDatatype("std::ofstream") else IR_SpecialDatatype("std::ifstream")
@@ -68,9 +68,9 @@ case class IR_FileAccess_FPP(
         val mpiFileName = IR_VariableAccess(IR_FieldIO.getNewFileName(), IR_StringDatatype)
         statements += IR_VariableDeclaration(mpiFileName)
         statements += IR_BuildString(mpiFileName, strListMpi)
-        statements += IR_ObjectInstantiation(stream, Duplicate(mpiFileName), openMode)
+        statements += IR_ObjectInstantiation(stream, Duplicate(mpiFileName), fileMode)
       case _                                    =>
-        statements += IR_ObjectInstantiation(stream, Duplicate(filename), openMode)
+        statements += IR_ObjectInstantiation(stream, Duplicate(filename), fileMode)
     }
     statements += printSetPrecision
 
@@ -97,6 +97,7 @@ case class IR_FileAccess_FPP(
 
   override def read(bufIdx : Int) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
+    val buf = dataBuffers(bufIdx)
 
     val read = if (!useBinary) {
       // skip separator if not whitespace
@@ -108,9 +109,9 @@ case class IR_FileAccess_FPP(
         None
       }
 
-      readBufferAscii(bufIdx, stream, condition, skipSep)
+      readBufferAscii(buf, stream, condition, skipSep)
     } else {
-      readBufferBinary(bufIdx, stream, condition)
+      readBufferBinary(buf, stream, condition)
     }
 
     statements += accessFileWithGranularity(bufIdx, ListBuffer(read))
@@ -119,10 +120,12 @@ case class IR_FileAccess_FPP(
   }
 
   override def write(bufIdx : Int) : ListBuffer[IR_Statement] = {
+    val buf = dataBuffers(bufIdx)
+
     val print = if (!useBinary) {
-      printBufferAscii(bufIdx, stream, condition, separator, optPrintComponents)
+      printBufferAscii(buf, stream, condition, separator, optPrintComponents)
     } else {
-      printBufferBinary(bufIdx, stream, condition)
+      printBufferBinary(buf, stream, condition)
     }
 
     ListBuffer(accessFileWithGranularity(bufIdx, ListBuffer(print)))

@@ -33,7 +33,7 @@ case class IR_AccessPattern(
   // specifies if elements are accessed regularly
   def isRegular : Boolean = !isAccessPatternSWE
 
-  def numAccesses = if (accessIndices.isDefined) accessIndices.get.length else 1
+  def numAccesses : Int = if (accessIndices.isDefined) accessIndices.get.length else 1
 
   // special access pattern for nodal fields in SWE (e.g. node positions and bath) applications
   // 6 elements are accesses per grid cell

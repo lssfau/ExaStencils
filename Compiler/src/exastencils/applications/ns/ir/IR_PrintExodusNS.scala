@@ -38,16 +38,15 @@ case class IR_PrintExodusNS(
     IR_DataBuffer(buf, IR_IV_ActiveSlot(p), None, Some(datasetCoords(idx)))
   }
 
-  override def dataBuffersConnectivity : IR_DataBuffer = IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(p), None, Some(datasetConnectivity))
+  override def dataBufferConnectivity : IR_DataBuffer = IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(p), None, Some(datasetConnectivity))
 
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
-    val constants = dataBuffersNodePos :+ dataBuffersConnectivity
     var fields = velocityComponentsAsVec.zipWithIndex.map { case (tmpBuf, d) =>
       IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(u), None, Some(datasetFields(d)))
     }.to[ListBuffer]
     fields += IR_DataBuffer(p, IR_IV_ActiveSlot(p), includeGhosts = false, None, Some(datasetFields(numDimsGrid)), canonicalOrder = false)
 
-    if (constsIncluded) constants ++ fields else fields
+    if (constsIncluded) dataBuffersConstant ++ fields else fields
   }
 
   override def statementsForCleanup : ListBuffer[IR_Statement] = ListBuffer()

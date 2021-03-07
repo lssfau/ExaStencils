@@ -21,7 +21,7 @@ case class IR_FileAccess_HDF5(
     var initFragInfo : Boolean = true
 ) extends IR_FileAccess("hdf5") with IR_Hdf5_API {
 
-  override def openMode : IR_VariableAccess = if (writeAccess) {
+  override def fileMode : IR_VariableAccess = if (writeAccess) {
     if (appendedMode) IR_VariableAccess("H5F_ACC_RDWR", IR_UnknownDatatype) else IR_VariableAccess("H5F_ACC_TRUNC", IR_UnknownDatatype)
   } else {
     IR_VariableAccess("H5F_ACC_RDONLY", IR_UnknownDatatype)
@@ -131,6 +131,10 @@ case class IR_FileAccess_HDF5(
   override def createOrOpenFile() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
+    // init frag info if it was not already (e.g. in visualization interface)
+    if (initFragInfo)
+      statements ++= IR_IV_FragmentInfo.init(dataBuffers.head.domainIdx, calculateFragOffset = dataBuffers.exists(!_.canonicalOrder))
+
     // add decls
     (dimensionalityDeclarations ++ declarations).foreach(decl => statements += decl)
 
@@ -141,9 +145,9 @@ case class IR_FileAccess_HDF5(
 
     // create/open file
     if (writeAccess && !appendedMode)
-      statements ++= H5Fcreate(fileId, filenameAsCString, openMode, defaultPropertyList, propertyList)
+      statements ++= H5Fcreate(fileId, filenameAsCString, fileMode, defaultPropertyList, propertyList)
     else
-      statements ++= H5Fopen(fileId, filenameAsCString, openMode, propertyList)
+      statements ++= H5Fopen(fileId, filenameAsCString, fileMode, propertyList)
 
     statements
   }
@@ -152,10 +156,6 @@ case class IR_FileAccess_HDF5(
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     statements ++= createGroupHierarchy
-
-    // init frag info if it was not already (e.g. in visualization interface)
-    if (initFragInfo)
-      statements ++= IR_IV_FragmentInfo.init(dataBuffers.head.domainIdx, calculateFragOffset = dataBuffers.exists(!_.canonicalOrder))
 
     // create memspace. select hyperslab to only use the inner points for file accesses.
     for (bufIdx <- dataBuffers.indices) {

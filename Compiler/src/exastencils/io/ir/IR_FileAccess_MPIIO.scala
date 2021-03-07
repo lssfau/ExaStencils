@@ -18,7 +18,7 @@ case class IR_FileAccess_MPIIO(
     var initFragInfo : Boolean = true
 ) extends IR_FileAccess("mpiio") {
 
-  override def openMode : IR_VariableAccess = if (writeAccess) {
+  override def fileMode : IR_VariableAccess = if (writeAccess) {
     val openOrCreate = if (appendedMode) "MPI_MODE_APPEND" else "MPI_MODE_CREATE"
     IR_VariableAccess("MPI_MODE_WRONLY | " + openOrCreate, IR_UnknownDatatype)
   } else {
@@ -76,22 +76,22 @@ case class IR_FileAccess_MPIIO(
   override def createOrOpenFile() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
+    // init frag info if it was not already (e.g. in visualization interface)
+    if (initFragInfo)
+      statements ++= IR_IV_FragmentInfo.init(dataBuffers.head.domainIdx, calculateFragOffset = dataBuffers.exists(!_.canonicalOrder))
+
     // add decls
     (dimensionalityDeclarations ++ declarations).foreach(decl => statements += decl)
 
     // open file
     statements += IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_open"),
-      mpiCommunicator, IR_Cast(IR_PointerDatatype(IR_CharDatatype), filenameAsCString), openMode, info, IR_AddressOf(fileHandle))
+      mpiCommunicator, IR_Cast(IR_PointerDatatype(IR_CharDatatype), filenameAsCString), fileMode, info, IR_AddressOf(fileHandle))
 
     statements
   }
 
   override def setupAccess() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
-
-    // init frag info if it was not already (e.g. in visualization interface)
-    if (initFragInfo)
-      statements ++= IR_IV_FragmentInfo.init(dataBuffers.head.domainIdx, calculateFragOffset = dataBuffers.exists(!_.canonicalOrder))
 
     // create derived datatypes
     for (bufIdx <- dataBuffers.indices) {
@@ -192,7 +192,7 @@ case class IR_FileAccess_MPIIO(
     }
 
     for (buf <- dataBuffers)
-      if (!Knowledge.parIO_useCollectiveIO && buf.canonicalOrder)
+      if (Knowledge.mpi_enabled && !Knowledge.parIO_useCollectiveIO && buf.canonicalOrder)
         Logger.error("Parameter \"canonicalOrder\" should only be used with collective I/O.")
   }
 }

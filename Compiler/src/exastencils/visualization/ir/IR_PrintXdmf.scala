@@ -2,6 +2,7 @@ package exastencils.visualization.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ArrayFree
 import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_CharDatatype
 import exastencils.base.ir.IR_Datatype
@@ -74,6 +75,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
       Logger.error("Wrong I/O interface passed to \"printXdmf\". Options are: " + supportedInterfaces.mkString("\"", "\", \"", "\""))
   }
 
+  def dataBuffersConst : ListBuffer[IR_DataBuffer]
   def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] // contains data buffers for node positions, connectivity and field values
 
   def ioHandler(constsIncluded : Boolean, fn : IR_Expression) : IR_FileAccess = {
@@ -362,21 +364,40 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   }).to[ListBuffer]
 
   // constant data reduction handling
-  def writeDataAndSetConstFile() : ListBuffer[IR_Statement] = ListBuffer({
-    if (fmt != "XML") {
-      // write data into a separate, binary file
-      IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty,
-        /* true: write constants to file and save filename to reference later */
-        writeData(constsIncluded = true) :+ IR_ConstantsWrittenToFile().setFilename(basename(noPath = true), Some(ext)),
-        /* false: write field data and reference constants from saved filename */
-        writeData(constsIncluded = false))
-    } else {
-      // data is already incorporated in the xml file
-      IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty,
-        IR_Assignment(IR_ConstantsWrittenToFile(),
-          IR_MemberFunctionCall(filenamePieceFpp, "substr", lastIdxSubst(filenamePieceFpp, "\"\\\\/\"") + 1))) // constant file in same dir -> remove path
-    }
-  })
+  def writeDataAndSetConstFile() : ListBuffer[IR_Statement] = {
+    // free buffer if only used once, others are used in each print step and free'd later
+    val freeTmpBuffersConst : ListBuffer[IR_Statement] = ListBuffer()
+    dataBuffersConst.foreach(constBuf => {
+      if (constBuf.isTemporaryBuffer) {
+        if (constBuf.accessBlockwise) {
+          freeTmpBuffersConst += IR_IfCondition(constBuf.name,
+            ListBuffer[IR_Statement](
+              IR_ArrayFree(constBuf.name),
+              IR_Assignment(constBuf.name, 0)))
+        } else {
+          Logger.error("Unimplemented: temp. buffers are currently only stored block-wise")
+        }
+      }
+    })
+
+    ListBuffer({
+      if (fmt != "XML") {
+        // write data into a separate, binary file
+        IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty,
+          /* true: write constants to file and save filename to reference later */
+          writeData(constsIncluded = true)
+            ++ freeTmpBuffersConst
+            :+ IR_ConstantsWrittenToFile().setFilename(basename(noPath = true), Some(ext)),
+          /* false: write field data and reference constants from saved filename */
+          writeData(constsIncluded = false))
+      } else {
+        // data is already incorporated in the xml file
+        IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty,
+          IR_Assignment(IR_ConstantsWrittenToFile(),
+            IR_MemberFunctionCall(filenamePieceFpp, "substr", lastIdxSubst(filenamePieceFpp, "\"\\\\/\"") + 1))) // constant file in same dir -> remove path
+      }
+    })
+  }
 
   override def expand() : OutputType = {
     if (!Settings.additionalIncludes.contains("fstream"))
