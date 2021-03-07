@@ -14,6 +14,7 @@ import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_Lower
+import exastencils.base.ir.IR_PlainFunction
 import exastencils.base.ir.IR_PreIncrement
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_UnknownDatatype
@@ -23,12 +24,16 @@ import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
+import exastencils.core.StateManager
+import exastencils.domain.ir.IR_DomainFunctions
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.parallelization.api.mpi.MPI_AllReduce
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 
 
 object IR_IV_FragmentInfo {
+  var firstCall = true
+
   // determine number of valid fragments per block and total number of valid fragments
   def init(domainIdx : IR_Expression, calculateFragOffset : Boolean = false) : ListBuffer[IR_Statement] = {
     // prepare fragment info
@@ -41,24 +46,36 @@ object IR_IV_FragmentInfo {
       statements += IR_Assignment(IR_IV_FragmentOffset(domainIdx), MPI_IV_MpiRank * Knowledge.domain_numFragmentsPerBlock)
     } else {
       // the number of fragments per block is not uniformly distributed -> communicate fragment info
-      statements ++= ListBuffer(
-        IR_Assignment(IR_IV_NumValidFrags(domainIdx), 0),
-        IR_Assignment(IR_IV_FragmentOffset(domainIdx), 0),
-        IR_LoopOverFragments(IR_IfCondition(IR_IV_IsValidForDomain(0), IR_Assignment(IR_IV_NumValidFrags(domainIdx), IR_IV_NumValidFrags(domainIdx) + 1))),
-        IR_Assignment(IR_IV_TotalNumFrags(domainIdx), IR_IV_NumValidFrags(domainIdx)))
-
-      if (Knowledge.mpi_enabled)
-        statements += MPI_AllReduce(IR_AddressOf(IR_IV_TotalNumFrags(domainIdx)), IR_IntegerDatatype, 1, "+")
-
-      // Special case: PrintVtk calculates the fragmentOffset in a MPI_Sequential, for other approaches this flag needs to be set
-      if (calculateFragOffset) {
+      if (firstCall) {
+        // communicate once at startup
         val mpiInt = IR_VariableAccess(IR_IntegerDatatype.prettyprint_mpi, IR_UnknownDatatype)
         val mpiComm = IR_VariableAccess("mpiCommunicator", IR_UnknownDatatype)
-        statements += IR_FunctionCall(
-          IR_ExternalFunctionReference("MPI_Allgather"),
-          IR_AddressOf(IR_IV_NumValidFrags(domainIdx)), 1, mpiInt,
-          IR_IV_NumValidFragsPerBlock(domainIdx), 1, mpiInt, mpiComm
-        )
+        StateManager.findFirst[IR_DomainFunctions]().get.functions foreach {
+          case func : IR_PlainFunction if func.name == "initGeometry" =>
+            firstCall = false
+
+            // total number of valid frags
+            func.body += IR_Assignment(IR_IV_NumValidFrags(domainIdx), 0)
+            func.body += IR_LoopOverFragments(IR_IfCondition(IR_IV_IsValidForDomain(0), IR_Assignment(IR_IV_NumValidFrags(domainIdx), IR_IV_NumValidFrags(domainIdx) + 1)))
+            func.body += IR_Assignment(IR_IV_TotalNumFrags(domainIdx), IR_IV_NumValidFrags(domainIdx))
+            if (Knowledge.mpi_enabled) {
+              func.body += MPI_AllReduce(IR_AddressOf(IR_IV_TotalNumFrags(domainIdx)), IR_IntegerDatatype, 1, "+")
+            }
+
+            // valid frags per block
+            func.body += IR_FunctionCall(
+              IR_ExternalFunctionReference("MPI_Allgather"),
+              IR_AddressOf(IR_IV_NumValidFrags(domainIdx)), 1, mpiInt,
+              IR_IV_NumValidFragsPerBlock(domainIdx), 1, mpiInt, mpiComm
+            )
+          case _ =>
+        }
+      }
+
+      // Special case: PrintVtk calculates the fragmentOffset in a MPI_Sequential and for fpp it needs to be zero
+      // for other approaches this flag needs to be set
+      statements ++= ListBuffer(IR_Assignment(IR_IV_FragmentOffset(domainIdx), 0))
+      if (calculateFragOffset) {
         statements += IR_ForLoop(
           IR_VariableDeclaration(IR_IntegerDatatype, "curRank", 0),
           IR_Lower("curRank", MPI_IV_MpiRank),

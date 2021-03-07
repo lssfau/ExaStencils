@@ -27,6 +27,7 @@ import exastencils.grid.ir.IR_VF_NodePositionAsVec
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_FileAccess_FPP
 import exastencils.io.ir.IR_IV_FragmentInfo
+import exastencils.io.ir.IR_IV_NumValidFragsPerBlock
 import exastencils.io.ir.IR_IV_TemporaryBuffer
 import exastencils.io.ir.IR_IV_TotalNumFrags
 import exastencils.logger.Logger
@@ -94,7 +95,7 @@ case class IR_PrintXdmfMeshless(
 
     statements ++= IR_IV_FragmentInfo.init(
       domainIndex,
-      // in file-per-process, each rank writes its own domain piece individually -> fragOffset = 0
+      // only calculate fragmentOffset for global filespaces
       calculateFragOffset = ioInterface != "fpp"
     )
 
@@ -111,6 +112,22 @@ case class IR_PrintXdmfMeshless(
     }
 
     statements
+  }
+
+  /* special handling for a variable number of frags */
+  // specifies "fragment dimension" (i.e. how many fragments are written to a file)
+  override def dimFrags(global : Boolean) : IR_Expression = if (!binaryFpp) {
+    super.dimFrags(global)
+  } else {
+    // binary fpp: only root writes the xdmf file -> requires the number of valid frags for each rank
+    IR_IV_NumValidFragsPerBlock(domainIndex).resolveAccess(curRank)
+  }
+  // contains expressions that calculate the seek pointer for each DataItem (used for raw binary files)
+  override def seekpOffsets(global : Boolean, constsIncluded : Boolean) : ListBuffer[IR_Expression] = if (!binaryFpp) {
+    super.seekpOffsets(global, constsIncluded)
+  } else {
+    // binary fpp: root needs to know the actual number of fragments of each rank to compute the file offsets correctly
+    dataBuffers(constsIncluded).map(buf => if (global) buf.typicalByteSizeGlobal else buf.typicalByteSizeFrag * IR_IV_NumValidFragsPerBlock(domainIndex).resolveAccess(curRank))
   }
 
   override def writeXdmfGeometry(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {

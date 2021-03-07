@@ -50,10 +50,10 @@ case class IR_ReadBinary(var stream : IR_VariableAccess, var toRead : ListBuffer
   override def vAccStream : IR_VariableAccess = stream
   override def exprToRead : ListBuffer[IR_Expression] = toRead.asInstanceOf[ListBuffer[IR_Expression]]
   override def prettyprint(out : PpStream) = {
-    toRead.foreach(acc => {
+    toRead.zipWithIndex.foreach { case (acc, idx) =>
       out << IR_MemberFunctionCall(stream, "read", IR_Cast(IR_PointerDatatype(IR_CharDatatype), IR_AddressOf(acc)), IR_IntegerConstant(acc.datatype.resolveBaseDatatype.typicalByteSize))
-      out << ";" << (if (toRead.last equals acc) "" else "\n")
-    })
+      out << ";" << (if (idx == toRead.length - 1) "" else "\n")
+    }
   }
 }
 

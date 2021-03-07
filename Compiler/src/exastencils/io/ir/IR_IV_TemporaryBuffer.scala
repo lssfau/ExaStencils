@@ -52,7 +52,7 @@ case class IR_IV_TemporaryBuffer(
   def endIndices : ListBuffer[IR_Expression] = dimsLocal
   def totalDimsLocal : ListBuffer[IR_Expression] = dimsLocal
 
-  val access : IR_Expression = resolveAccess(resolveName(), IR_NullExpression, domainIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression)
+  val access : IR_Expression = resolveAccess(IR_VariableAccess(resolveName(), resolveDatatype()), IR_NullExpression, domainIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression)
 
   def at(index : IR_Expression) : IR_Access = index match {
     case idx : IR_Index =>

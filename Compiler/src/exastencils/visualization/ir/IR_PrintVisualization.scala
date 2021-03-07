@@ -14,6 +14,7 @@ import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_MemberFunctionCall
 import exastencils.base.ir.IR_Multiplication
+import exastencils.base.ir.IR_NullStatement
 import exastencils.base.ir.IR_RealDatatype
 import exastencils.base.ir.IR_ScalarDatatype
 import exastencils.base.ir.IR_SpecialDatatype
@@ -51,7 +52,7 @@ case class IR_IV_ConstantsWrittenToFile(id : Int) extends IR_UnduplicatedVariabl
   override def resolveDatatype() : IR_Datatype = IR_StringDatatype
   override def resolveDefValue() : Option[IR_Expression] = Some("\"\"")
 
-  def setFilename(basename : IR_Expression, extension : Option[IR_Expression] = None) : IR_Assignment = {
+  def setFilename(basename : IR_Expression, extension : Option[IR_Expression] = None) : IR_Statement = if (Knowledge.parIO_vis_constantDataReduction) {
     val rhs = if (extension.isEmpty) {
       basename
     } else {
@@ -61,6 +62,8 @@ case class IR_IV_ConstantsWrittenToFile(id : Int) extends IR_UnduplicatedVariabl
       }
     }
     IR_Assignment(this, rhs)
+  } else {
+    IR_NullStatement
   }
   def isEmpty : IR_Expression = !Knowledge.parIO_vis_constantDataReduction OrOr IR_MemberFunctionCall(IR_VariableAccess(resolveName(), resolveDatatype()), "empty")
 }

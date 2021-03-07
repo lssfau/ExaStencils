@@ -38,8 +38,6 @@ import exastencils.visualization.ir.IR_PrintXdmf
 // 2D only
 // for a variable number of fragments per block
 
-// TODO test for serial applications
-
 case class IR_PrintXdmfSWE(
     var filename : IR_Expression,
     level : Int,
@@ -78,12 +76,10 @@ case class IR_PrintXdmfSWE(
     stmts ++= IR_IV_FragmentInfo.init(
       domainIndex,
       /*
-      - In file-per-process, each rank writes its own domain piece individually:
-        - ascii: each rank writes its own individual xdmf file
-        - binary: root writes the xdmf file and each rank writes its own binary file -> root needs to know the number of valid frags of each rank (included in fragOffset calc.)
+      - In file-per-process, each rank writes its own domain piece individually -> fragOffset = 0
       - For single-shared file approaches, the offset for the global "valid" fragment needs to be known for each process -> compute frag offset
       */
-      calculateFragOffset = fmt != "XML"
+      calculateFragOffset = fmt != "fpp"
     )
 
     // setup buffers

@@ -113,14 +113,16 @@ case class IR_PrintField(
     if (condition != IR_BooleanConstant(true))
       Logger.error("Conditions are not applicable in combination with \"IR_PrintXdmf\" since the data extents must be determinable.")
 
-    if (Knowledge.parIO_vis_forceMeshlessVisualization) {
-      IR_PrintXdmfMeshless(filename, field, slot, ioInterface, includeGhostLayers, dataset, useBinary && ioInterfaceName == "fpp", IR_FieldIO.getNewResolveId())
+    val binaryFpp = useBinary && ioInterfaceName == "fpp"
+
+    if (Knowledge.parIO_vis_forceMeshlessVisualization || Knowledge.grid_spacingModel == "blockstructured") {
+      IR_PrintXdmfMeshless(filename, field, slot, ioInterface, includeGhostLayers, dataset, binaryFpp, IR_FieldIO.getNewResolveId())
     } else if (Knowledge.grid_isUniform && Knowledge.grid_isAxisAligned) {
-      IR_PrintXdmfUniform(filename, field, slot, ioInterface, includeGhostLayers, dataset, useBinary && ioInterfaceName == "fpp", canonicalFileLayout, IR_FieldIO.getNewResolveId())
+      IR_PrintXdmfUniform(filename, field, slot, ioInterface, includeGhostLayers, dataset, binaryFpp, canonicalFileLayout, IR_FieldIO.getNewResolveId())
     } else if (Knowledge.grid_isAxisAligned) {
-      IR_PrintXdmfNonUniform_AA(filename, field, slot, ioInterface, includeGhostLayers, dataset, useBinary && ioInterfaceName == "fpp", canonicalFileLayout, IR_FieldIO.getNewResolveId())
+      IR_PrintXdmfNonUniform_AA(filename, field, slot, ioInterface, includeGhostLayers, dataset, binaryFpp, canonicalFileLayout, IR_FieldIO.getNewResolveId())
     } else {
-      IR_PrintXdmfNonUniform_NonAA(filename, field, slot, ioInterface, includeGhostLayers, dataset, useBinary && ioInterfaceName == "fpp", canonicalFileLayout, IR_FieldIO.getNewResolveId())
+      IR_PrintXdmfNonUniform_NonAA(filename, field, slot, ioInterface, includeGhostLayers, dataset, binaryFpp, canonicalFileLayout, IR_FieldIO.getNewResolveId())
     }
   }
 
