@@ -56,22 +56,22 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
   /* commonly used declarations. mainly for dimensionality extents */
   def stride_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
     buf.declareDimensionality("stride", datatypeDimArray,
-      IR_DataBuffer.handleFragmentDimension(buf, buf.strideKJI,
+      IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, buf.strideKJI,
         fragmentDim = 1))
   })
   def count_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
     buf.declareDimensionality("count", datatypeDimArray,
-      IR_DataBuffer.handleFragmentDimension(buf, buf.innerDimsLocalKJI,
+      IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, buf.innerDimsLocalKJI,
         fragmentDim = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else 1))
   })
   def localDims_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
     buf.declareDimensionality("localDims", datatypeDimArray,
-      IR_DataBuffer.handleFragmentDimension(buf, buf.totalDimsLocalKJI,
+      IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, buf.totalDimsLocalKJI,
         fragmentDim = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else 1))
   })
   def localStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {
     buf.declareDimensionality("localStart", datatypeDimArray,
-      IR_DataBuffer.handleFragmentDimension(buf, buf.startIndexLocalKJI,
+      IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, buf.startIndexLocalKJI,
         fragmentDim = 0))
   })
   def globalDims_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.map(buf => {

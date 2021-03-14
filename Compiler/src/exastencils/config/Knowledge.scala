@@ -475,6 +475,14 @@ object Knowledge {
   // [true|false] // decides whether collective or individual I/O is used when using parallel I/O libraries
   var parIO_useCollectiveIO : Boolean = true
 
+  // --- Stream-based I/O ---
+  // manual buffering to reduce library/function calls to ANSI C/C++ STL streams(binary). only has an effect for buffers which cannot be written at once (e.g. condition or ghost layers/... excluded)
+  var experimental_parIO_streams_useIntermediateBuffer : Boolean = false
+
+  // --- SION ---
+  // set size of internal ANSI C buffer, -1 = use system default (mostly fs blocksize)
+  var sion_setvbuf_size : Int = -1
+
   // -- Visualization with Xdmf/Exodus --
 
   var parIO_vis_forceMeshlessVisualization : Boolean = false

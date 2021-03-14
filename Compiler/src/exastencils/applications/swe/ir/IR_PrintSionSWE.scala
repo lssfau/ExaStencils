@@ -98,7 +98,7 @@ case class IR_PrintSionSWE(
 
   def writeData(constsIncluded : Boolean) : ListBuffer[IR_Statement] = ListBuffer(ioHandler(constsIncluded))
 
-  def ioHandler(constsIncluded : Boolean) = IR_FileAccess_SIONlib(filename, dataBuffers(constsIncluded), writeAccess = true, interleavedAccHighDimDt = false, condition = true)
+  def ioHandler(constsIncluded : Boolean) = IR_FileAccess_SIONlib(filename, dataBuffers(constsIncluded), writeAccess = true, condition = true)
 
   override def expand() : OutputType ={
    var statements : ListBuffer[IR_Statement] = ListBuffer()

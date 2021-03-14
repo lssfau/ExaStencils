@@ -2,12 +2,22 @@ package exastencils.io.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_AddressOf
+import exastencils.base.ir.IR_ArrayAccess
+import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_BooleanConstant
 import exastencils.base.ir.IR_Expression
+import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir.IR_MemberFunctionCall
 import exastencils.base.ir.IR_ScopedStatement
+import exastencils.base.ir.IR_SpecialDatatype
+import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableAccess
+import exastencils.base.ir.IR_VariableDeclaration
+import exastencils.baseExt.ir.IR_LoopOverDimensions
+import exastencils.config.Knowledge
 import exastencils.util.ir.IR_Print
 import exastencils.util.ir.IR_PrintBinary
 import exastencils.util.ir.IR_PrintBlockBinary
@@ -20,11 +30,11 @@ import exastencils.util.ir.IR_ReadBlockBinary
 
 trait IR_Iostream {
 
-  def isAccessForWholeBlockAllowed(buf : IR_DataBuffer, conditionSpecified : Boolean, writeHighDimDatatypeInterleaved : Boolean) : IR_Expression = {
+  def isAccessForWholeBlockAllowed(buf : IR_DataBuffer, conditionSpecified : Boolean) : IR_Expression = {
     conditionSpecified AndAnd // condition specified?
       buf.accessWithoutExclusion AndAnd // is any layer excluded (e.g. ghost)?
-      !writeHighDimDatatypeInterleaved AndAnd // do we write higher dim. datatypes in an interleaved way?
-      buf.accessPattern.isRegular // compatible with access pattern?
+      !(buf.numDimsData > buf.numDimsGrid) AndAnd // do we write a higher dim. datatype?
+      !buf.accessPattern.isAccessPatternSWE // compatible with access pattern?
   }
 
   def printBufferAscii(
@@ -47,17 +57,34 @@ trait IR_Iostream {
   def printBufferBinary(
       buf : IR_DataBuffer,
       stream : IR_VariableAccess,
-      condition : IR_Expression,
-      printInterleavedComponents : Boolean = true) : IR_ScopedStatement = {
+      condition : IR_Expression) : IR_ScopedStatement = {
 
     val bytesAccessedKnownApriori = condition == IR_BooleanConstant(true) // if there is no condition -> required number of accessed bytes are known
-    val printAllComponentsPerLocation = printInterleavedComponents && buf.numDimsData > buf.numDimsGrid // determines if all components of a higher dim. dt are printed per grid node/cell/...
+    val tmpBuf = IR_VariableAccess("buffer", IR_SpecialDatatype(s"std::vector<${buf.datatype.resolveBaseDatatype.prettyprint}>"))
+    def loopOverDimsBuf(body : IR_Statement*) = buf.loopOverDims(condition, body : _*)
 
-    IR_IfCondition(isAccessForWholeBlockAllowed(buf, bytesAccessedKnownApriori, printAllComponentsPerLocation),
+    new IR_IfCondition(isAccessForWholeBlockAllowed(buf, bytesAccessedKnownApriori),
       /* true: write whole buffer */
-      IR_PrintBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal),
+      ListBuffer(IR_PrintBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal)),
       /* false: write component by component in a loop */
-      buf.loopOverDims(condition, IR_PrintBinary(stream, buf.handleAccesses.flatten)))
+      if (Knowledge.experimental_parIO_streams_useIntermediateBuffer) {
+        // use manual buffering
+        ListBuffer(
+          IR_VariableDeclaration(tmpBuf),
+          IR_MemberFunctionCall(tmpBuf, "reserve", buf.innerDimsLocalKJI.reduce(_ * _)),
+          loopOverDimsBuf(
+            buf.handleAccesses.flatten.map(acc =>
+              IR_MemberFunctionCall(tmpBuf, "push_back", acc) : IR_Statement
+            ) : _*),
+          IR_PrintBlockBinary(
+            stream,
+            IR_AddressOf(IR_ArrayAccess(tmpBuf, 0)),
+            IR_MemberFunctionCall(tmpBuf, "size") * buf.datatype.resolveBaseDatatype.typicalByteSize),
+        )
+      } else {
+        // write each value via stream.write(...)
+        ListBuffer(loopOverDimsBuf(IR_PrintBinary(stream, buf.handleAccesses.flatten)))
+      })
   }
 
   def readBufferAscii(
@@ -77,16 +104,33 @@ trait IR_Iostream {
   def readBufferBinary(
       buf : IR_DataBuffer,
       stream : IR_VariableAccess,
-      condition : IR_Expression,
-      printInterleavedComponents : Boolean = true) : IR_ScopedStatement = {
+      condition : IR_Expression) : IR_ScopedStatement = {
 
     val bytesAccessedKnownApriori = condition == IR_BooleanConstant(true) // if there is no condition -> required number of accessed bytes are known
-    val printAllComponentsPerLocation = printInterleavedComponents && buf.numDimsData > buf.numDimsGrid // determines if all components of a higher dim. dt are printed per grid node/cell/...
+    val tmpBuf = IR_VariableAccess("buffer", IR_SpecialDatatype(s"std::vector<${buf.datatype.resolveBaseDatatype.prettyprint}>"))
+    def loopOverDimsBuf(body : IR_Statement*) = buf.loopOverDims(condition, body : _*)
 
-    IR_IfCondition(isAccessForWholeBlockAllowed(buf, bytesAccessedKnownApriori, printAllComponentsPerLocation),
+    new IR_IfCondition(isAccessForWholeBlockAllowed(buf, bytesAccessedKnownApriori),
       /* true: read whole buffer */
-      IR_ReadBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal),
+      ListBuffer(IR_ReadBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal)),
       /* false: read component by component in a loop */
-      buf.loopOverDims(condition, IR_ReadBinary(stream, buf.handleAccesses.flatten)))
+      if (bytesAccessedKnownApriori && Knowledge.experimental_parIO_streams_useIntermediateBuffer) {
+        // use manual buffering
+        ListBuffer(
+          IR_VariableDeclaration(tmpBuf),
+          IR_MemberFunctionCall(tmpBuf, "reserve", buf.innerDimsLocalKJI.reduce(_ * _)),
+          IR_ReadBlockBinary(stream, IR_AddressOf(IR_ArrayAccess(tmpBuf, 0)), buf.typicalByteSizeLocal),
+          loopOverDimsBuf(
+            buf.handleAccesses.flatten.zipWithIndex.map { case (acc, i) =>
+              val offset = buf.referenceOffset - IR_ExpressionIndex(buf.beginIndices.toArray)
+              val loopIdx = loopOverDimsBuf().indices.linearizeIndex(IR_LoopOverDimensions.defIt(buf.numDimsGrid) + offset)
+              val idx = buf.handleAccesses.flatten.length * loopIdx
+              IR_Assignment(acc, IR_ArrayAccess(tmpBuf, idx + i)) : IR_Statement
+            } : _*)
+        )
+      } else {
+        // read each value via stream.read(...)
+        ListBuffer(loopOverDimsBuf(IR_ReadBinary(stream, buf.handleAccesses.flatten)))
+      })
   }
 }

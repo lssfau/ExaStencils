@@ -38,9 +38,15 @@ import exastencils.logger.Logger
 object IR_DataBuffer {
   /* helper methods */
   // output data fragment-after-fragment -> additional dimensionality in this case
-  def handleFragmentDimension(buf : IR_DataBuffer, dims : ListBuffer[IR_Expression], fragmentDim : IR_Expression, orderKJI : Boolean = true) : ListBuffer[IR_Expression] = {
-    if (!buf.canonicalOrder) {
-      val dimsPerFrag = if (buf.accessBlockwise) { if (orderKJI) dims.drop(1) else dims.dropRight(1) } else dims
+  def handleFragmentDimension(
+      canonicalOrder : Boolean,
+      accessBlockwise : Boolean,
+      dims : ListBuffer[IR_Expression],
+      fragmentDim : IR_Expression,
+      orderKJI : Boolean = true) : ListBuffer[IR_Expression] = {
+
+    if (!canonicalOrder) {
+      val dimsPerFrag = if (accessBlockwise) { if (orderKJI) dims.drop(1) else dims.dropRight(1) } else dims
       if (orderKJI) fragmentDim +: dimsPerFrag else dimsPerFrag :+ fragmentDim
     } else {
       dims
@@ -183,7 +189,12 @@ case class IR_DataBuffer(
       1. Data is accessed in a canonical order (data is stored as if the whole global domain was written in one piece, i.e. as if is was never decomposed)
       2. Data is laid out in fragment-wise order (e.g. the data of fragment "1" is stored after fragment "0" linearly)
   */
-  val canonicalOrder : Boolean = canonicalStorageLayout && Knowledge.domain_onlyRectangular
+  val canonicalOrder : Boolean = {
+    if (canonicalStorageLayout && !Knowledge.domain_onlyRectangular) {
+      Logger.warn(s"""Ignored canonical layout flag for IR_DataBuffer \"$name\": only applicable for \"domain_onlyRectangular\". Fragment-wise storage is used instead.""")
+    }
+    canonicalStorageLayout && Knowledge.domain_onlyRectangular
+  }
 
   /*
   determine data extents:

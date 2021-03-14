@@ -29,7 +29,6 @@ import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.baseExt.ir.IR_UnduplicatedVariable
 import exastencils.config.Knowledge
-import exastencils.config.Settings
 import exastencils.core.Duplicate
 import exastencils.core.StateManager
 import exastencils.domain.ir.IR_DomainFunctions
@@ -37,7 +36,6 @@ import exastencils.domain.ir.IR_IV_FragmentId
 import exastencils.domain.ir.IR_IV_FragmentIndex
 import exastencils.domain.ir.IR_IV_FragmentPositionBegin
 import exastencils.domain.ir.IR_IV_IsValidForDomain
-import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.grid.ir.IR_AtFaceCenter
 import exastencils.io.ir.IR_DataBuffer
@@ -45,7 +43,6 @@ import exastencils.io.ir.IR_IV_TemporaryBuffer
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_Gather
 import exastencils.util.ir.IR_Print
-import exastencils.util.ir.IR_UtilFunctions
 import exastencils.visualization.ir.IR_PrintXdmf
 
 
@@ -128,7 +125,7 @@ abstract class IR_PrintXdmfStructured(
 
   protected def fragIdCurRank(global : Boolean, rank : IR_Expression = curRank, fragIdx : IR_Expression = IR_LoopOverFragments.defIt) : IR_Expression = {
     if (Knowledge.mpi_enabled)
-      if (global) IR_IV_FragmentIdPerBlock().resolveAccess(rank, fragIdx) else fragIdx
+      Knowledge.domain_numFragmentsPerBlock * curRank + fragIdx
     else
       IR_IV_FragmentId(fragIdx)
   }
@@ -193,23 +190,24 @@ abstract class IR_PrintXdmfStructured(
   override def writeXdmfAttributes(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
     val offsetDataBuffer = getSeekp(global)
+    val buf = dataBuffer
 
-    statements += printXdmfElement(stream, openAttribute(field.name, attributeType(field.gridDatatype), centeringType(dataBuffer.localization)))
+    statements += printXdmfElement(stream, openAttribute(field.name, attributeType(field.gridDatatype), centeringType(buf.localization)))
 
     // handle non-scalar datatypes
     val joinDataItems = dimsDt > 0 && ioInterface != "fpp"
-    val arrayIndexRange = dataBuffer.datatype.resolveFlattendSize
+    val arrayIndexRange = buf.datatype.resolveFlattendSize
     val dimsHigherDimDatatype = if (dimsDt > 0) {
-      IR_IntegerConstant(arrayIndexRange) +: dataBuffer.innerDimsPerFrag.dropRight(dimsDt) // reorder indices (e.g. for matrix: [x, y, 2, 1] -> [2, x, y])
+      IR_IntegerConstant(arrayIndexRange) +: buf.innerDimsPerFrag.dropRight(dimsDt) // reorder indices (e.g. for matrix: [x, y, 2, 1] -> [2, x, y])
     } else {
-      dataBuffer.innerDimsPerFrag
+      buf.innerDimsPerFrag
     }
     val localDimsTotal = if (ioInterface == "fpp") {
       // in fpp schemes, all components are written at once in a IR_LoopOverDimensions
       dimsHigherDimDatatype
     } else {
       // otherwise, multidim. datatypes are output as multiple "scalar" components
-      dataBuffer.innerDimsPerFrag
+      buf.innerDimsPerFrag
     }
     val dimsComponent = if (joinDataItems) {
       localDimsTotal.dropRight(dimsDt) // select a component of the datatype
@@ -226,29 +224,29 @@ abstract class IR_PrintXdmfStructured(
     val numComponents = if (joinDataItems) arrayIndexRange else 1
     (0 until numComponents).foreach(component => {
       // depending on format and file layout, select the appropriate portion from the "heavy data" file for each fragment
-      if ((ioInterface == "hdf5") || (ioInterface == "mpiio" && dataBuffer.canonicalOrder)) {
+      if ((ioInterface == "hdf5") || (ioInterface == "mpiio" && buf.canonicalOrder)) {
         // global file is hdf5 or laid out canonically -> select portion via "hyperslabs"
-        val startIndexGlobal = if (dataBuffer.canonicalOrder) {
+        val startIndexGlobal = if (buf.canonicalOrder) {
           // replace last indices (of the multidim datatype) with the component selection
-          val start = dataBuffer.canonicalStartIndexGlobal((0 until field.numDimsGrid).map(dim => fragIndexCurRank(dim)))
+          val start = buf.canonicalStartIndexGlobal((0 until field.numDimsGrid).map(dim => fragIndexCurRank(dim)))
           accessComponent(component, field.gridDatatype, start.dropRight(dimsDt)) // e.g. [global x, global y, 2, 1] -> [global x, global y, 1, 1]
         } else {
           // replace indices at the end (except "fragment dimension") with the component selection
-          val start = dataBuffer.fragmentwiseStartIndexGlobal(fragIdCurRank(global = true))
+          val start = buf.fragmentwiseStartIndexGlobal(fragIdCurRank(global = true))
           accessComponent(component, field.gridDatatype, start.dropRight(dimsDt + 1)) :+ start.last // e.g. [x, y, z, 3, 1, fragment] -> [x, y, z, 1, 1, fragment]
         }
 
         // conditionally add "fragment dimension (1)" to local dims
         val localDimsComponent = dimsComponent ++ ListBuffer.fill(dimsDt)(IR_IntegerConstant(1)) // extract values for one component
-        val count = if (!dataBuffer.canonicalOrder) localDimsComponent :+ IR_IntegerConstant(1) else localDimsComponent
-        val stride = IR_DataBuffer.handleFragmentDimension(dataBuffer, dataBuffer.stride, 1, orderKJI = false)
+        val count = if (!buf.canonicalOrder) localDimsComponent :+ IR_IntegerConstant(1) else localDimsComponent
+        val stride = IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, buf.stride, 1, orderKJI = false)
 
         statements += printXdmfElement(stream, openDataItemHyperslab(dimsComponent) : _*)
         statements += printXdmfElement(stream, dataItemHyperslabSelection(startIndexGlobal, stride, count) : _*)
-        statements += printXdmfElement(stream, dataItemHyperslabSource(dataBuffer.datatype.resolveBaseDatatype, dataBuffer.globalDims, printFilename(stream, dataset), offsetDataBuffer) : _*)
+        statements += printXdmfElement(stream, dataItemHyperslabSource(buf.datatype.resolveBaseDatatype, buf.globalDims, printFilename(stream, dataset), offsetDataBuffer) : _*)
       } else {
-        val offsetComponent = component * dimsComponent.reduce(_ * _) * dataBuffer.datatype.resolveBaseDatatype.typicalByteSize // for non-scalar datatypes: skip to current component
-        val seekp = offsetDataBuffer + offsetComponent + (if (fmt == "Binary") fragIdCurRank(global) * dataBuffer.typicalByteSizeFrag else 0) // field data laid out fragment-wise -> calc. offset to each fragment
+        val offsetComponent = component * dimsComponent.reduce(_ * _) * buf.datatype.resolveBaseDatatype.typicalByteSize // for non-scalar datatypes: skip to current component
+        val seekp = offsetDataBuffer + offsetComponent + (if (fmt == "Binary") fragIdCurRank(global) * buf.typicalByteSizeFrag else 0) // field data laid out fragment-wise -> calc. offset to each fragment
 
         // file laid out fragment-wise -> select portion via offsets
         statements += printXdmfElement(stream, openDataItem(field.resolveBaseDatatype, dimsComponent, seekp) : _*)
@@ -256,21 +254,21 @@ abstract class IR_PrintXdmfStructured(
           val printComponents = ListBuffer[IR_Expression]()
           printComponents += "std::scientific"
           printComponents += indentData
-          printComponents ++= dataBuffer.getIndicesMultiDimDatatypes.flatMap(idx => {
-            if (dataBuffer.accessBlockwise) {
+          printComponents ++= buf.getIndicesMultiDimDatatypes.flatMap(idx => {
+            if (buf.accessBlockwise) {
               // HACK: already within a fragment loop -> drop fragment loop from temp. buffer and access values with index from outer loop
               val accessIndices = idx.toExpressionIndex.indices.dropRight(1) :+ IR_LoopOverFragments.defIt
-              List(dataBuffer.getAccess(IR_ExpressionIndex(accessIndices)), separator)
+              List(buf.getAccess(IR_ExpressionIndex(accessIndices)), separator)
             } else {
-              List(dataBuffer.getAccess(idx), separator)
+              List(buf.getAccess(idx), separator)
             }
           }).dropRight(1) // last separator
           printComponents += IR_Print.newline
 
           statements += IR_LoopOverDimensions(numDimsGrid,
             IR_ExpressionIndexRange(
-              IR_ExpressionIndex(dataBuffer.numDimsGridRange.map(dim => dataBuffer.beginIndices(dim) - Duplicate(dataBuffer.referenceOffset(dim)) : IR_Expression).toArray),
-              IR_ExpressionIndex(dataBuffer.numDimsGridRange.map(dim => dataBuffer.endIndices(dim) - Duplicate(dataBuffer.referenceOffset(dim)) : IR_Expression).toArray)),
+              IR_ExpressionIndex(buf.numDimsGridRange.map(dim => buf.beginIndices(dim) - Duplicate(buf.referenceOffset(dim)) : IR_Expression).toArray),
+              IR_ExpressionIndex(buf.numDimsGridRange.map(dim => buf.endIndices(dim) - Duplicate(buf.referenceOffset(dim)) : IR_Expression).toArray)),
             IR_Print(stream, printComponents))
         } else {
           statements += printFilename(stream, dataset)
@@ -305,13 +303,6 @@ abstract class IR_PrintXdmfStructured(
 }
 
 // communicate fragment info to root at startup to be able to write the Xdmf file solely on root
-case class IR_IV_FragmentIdPerBlock() extends IR_UnduplicatedVariable {
-  def resolveAccess(curRank : IR_Expression, fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) : IR_Expression =
-    IR_ArrayAccess(this, Knowledge.domain_numFragmentsPerBlock * curRank + fragmentIdx)
-  override def resolveName() = s"fragmentIdOnRoot"
-  override def resolveDatatype() = IR_ArrayDatatype("size_t", Knowledge.domain_numFragmentsTotal)
-}
-
 case class IR_IV_FragmentPosBeginPerBlock(var dim : Int) extends IR_UnduplicatedVariable {
   def resolveAccess(curRank : IR_Expression, fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) : IR_Expression =
     IR_ArrayAccess(this, Knowledge.domain_numFragmentsPerBlock * curRank + fragmentIdx)
@@ -332,36 +323,11 @@ object IR_PrintXdmfStructured {
 
   def gatherFragInfoRoot(fmt : String) : Unit = {
     if (firstCall && fmt != "XML" && Knowledge.mpi_enabled) {
-      // add headers and macro for MPI base datatype for "size_t"
-      if (!IR_GlobalCollection.get.externalDependencies.contains("limits.h"))
-        IR_GlobalCollection.get.externalDependencies += "limits.h"
-      if (!IR_UtilFunctions.get.externalDependencies.contains("limits.h"))
-        IR_UtilFunctions.get.externalDependencies += "limits.h"
-      Settings.additionalMacros = (Settings.additionalMacros :+
-        s"""#if SIZE_MAX == UCHAR_MAX
-           |   #define MPI_SIZE_T MPI_UNSIGNED_CHAR
-           |#elif SIZE_MAX == USHRT_MAX
-           |   #define MPI_SIZE_T MPI_UNSIGNED_SHORT
-           |#elif SIZE_MAX == UINT_MAX
-           |   #define MPI_SIZE_T MPI_UNSIGNED
-           |#elif SIZE_MAX == ULONG_MAX
-           |   #define MPI_SIZE_T MPI_UNSIGNED_LONG
-           |#elif SIZE_MAX == ULLONG_MAX
-           |   #define MPI_SIZE_T MPI_UNSIGNED_LONG_LONG
-           |#else
-           |   #error "Could not determine MPI_SIZE_T"
-           |#endif""".stripMargin).distinct
-
       // gather info on root
       StateManager.findFirst[IR_DomainFunctions]().get.functions foreach {
         case func : IR_PlainFunction if func.name == "initGeometry" =>
           firstCall = false
 
-          func.body += new MPI_Gather(
-            IR_AddressOf(IR_IV_FragmentId(0)),
-            IR_AddressOf(IR_IV_FragmentIdPerBlock().resolveAccess(0, 0)),
-            "MPI_SIZE_T",
-            Knowledge.domain_numFragmentsPerBlock)
           func.body ++= (0 until Knowledge.dimensionality).to[ListBuffer].map(dim =>
             new MPI_Gather(
               IR_AddressOf(IR_IV_FragmentIndex(dim, 0)),

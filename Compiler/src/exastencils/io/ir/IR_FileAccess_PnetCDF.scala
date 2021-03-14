@@ -64,12 +64,12 @@ case class IR_FileAccess_PnetCDF(
   override def stride_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) =>
     buf.declareDimensionality("stride", ptrDatatype,
        handleTimeDimension(timeValue = 1, bufIdx, // prepend one more entry for unlimited "time" dimension
-         dims = IR_DataBuffer.handleFragmentDimension(buf, buf.strideKJI, fragmentDim = 1)))
+         dims = IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, buf.strideKJI, fragmentDim = 1)))
   }
   override def count_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) =>
     buf.declareDimensionality("count", datatypeDimArray,
       handleTimeDimension(timeValue = 1, bufIdx, // prepend "1" since "1*(count.product)" values are written per timestep
-        dims = IR_DataBuffer.handleFragmentDimension(buf, buf.innerDimsLocalKJI, fragmentDim = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else 1)))
+        dims = IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, buf.innerDimsLocalKJI, fragmentDim = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else 1)))
   }
   override def globalStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) =>
     buf.declareDimensionality("globalStart", datatypeDimArray,
@@ -83,7 +83,7 @@ case class IR_FileAccess_PnetCDF(
   val imap_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) => // describes in-memory access pattern
     buf.declareDimensionality("imap", ptrDatatype,
       handleTimeDimension(timeValue = 0, bufIdx, // prepend "0" since the memory layout doesn't change with the additional time dimension
-        dims = IR_DataBuffer.handleFragmentDimension(buf, buf.imapKJI, buf.imapKJI.head))) // for fragment-wise storage of fields: repeat imap entry for slowest-varying dim to match to the dimensionality of count, stride, etc.
+        dims = IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, buf.imapKJI, buf.imapKJI.head))) // for fragment-wise storage of fields: repeat imap entry for slowest-varying dim to match to the dimensionality of count, stride, etc.
   }
 
   var declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(err_decl, ncFile_decl) // file handle and error variable for debugging

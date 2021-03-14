@@ -73,7 +73,7 @@ case class IR_PrintXdmfNonUniform_AA(
           buf.fragmentwiseStartIndexGlobal(fragIdCurRank(global = true))
         }
         val count = if (!buf.canonicalOrder) buf.innerDimsPerFrag :+ IR_IntegerConstant(1) else buf.innerDimsPerFrag
-        val stride = IR_DataBuffer.handleFragmentDimension(buf, buf.stride, 1, orderKJI = false)
+        val stride = IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, buf.stride, 1, orderKJI = false)
 
         statements += printXdmfElement(stream, openDataItemHyperslab(buf.innerDimsLocal) : _*)
         statements += printXdmfElement(stream, dataItemHyperslabSelection(startIndexGlobal, stride, count) : _*)

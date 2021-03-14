@@ -30,9 +30,6 @@ case class IR_AccessPattern(
     var accessIndices : Option[ListBuffer[IR_Index]], // contains N indices to be accessed for each grid element (e.g. nodes/cells/...)
 ) extends IR_Node {
 
-  // specifies if elements are accessed regularly
-  def isRegular : Boolean = !isAccessPatternSWE
-
   def numAccesses : Int = if (accessIndices.isDefined) accessIndices.get.length else 1
 
   // special access pattern for nodal fields in SWE (e.g. node positions and bath) applications

@@ -6,6 +6,7 @@ import scala.sys.process._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.config.Settings
@@ -19,7 +20,6 @@ case class IR_FileAccess_SIONlib(
     var dataBuffers : ListBuffer[IR_DataBuffer],
     var writeAccess : Boolean,
     var condition: IR_Expression,
-    var interleavedAccHighDimDt : Boolean,
     var appendedMode : Boolean = false) extends IR_FileAccess("sion") with IR_Iostream {
 
   // datatypes
@@ -75,7 +75,7 @@ case class IR_FileAccess_SIONlib(
   val localCommunicator = IR_VariableAccess(localCommunicator_decl)
   val chunkSizes = IR_VariableAccess(chunkSizes_decl)
   val fsBlockSize = IR_VariableAccess(fsBlockSize_decl)
-  val bytesAccessed = IR_VariableAccess(bytesAccessed_decl)
+  val valuesAccessed = IR_VariableAccess(bytesAccessed_decl)
   val globalRanks = IR_VariableAccess(globalRanks_decl)
   val filePtr = IR_VariableAccess(filePtr_decl)
   val newPhysFilenames = IR_VariableAccess(newPhysFilenames_decl)
@@ -120,6 +120,13 @@ case class IR_FileAccess_SIONlib(
       )
     }
 
+    // set different buffer size for ANSI C
+    if (Knowledge.sion_setvbuf_size != -1) {
+      statements += IR_IfCondition(IR_FunctionCall(IR_ExternalFunctionReference("setvbuf"), filePtr, nullptr, "_IOFBF", Knowledge.sion_setvbuf_size) Neq 0,
+        IR_Print(IR_VariableAccess("std::cerr", IR_UnknownDatatype), IR_StringConstant("setvbuf failed!"), IR_Print.endl)
+      )
+    }
+
     statements
   }
   override def setupAccess() : ListBuffer[IR_Statement] = ListBuffer()
@@ -138,42 +145,93 @@ case class IR_FileAccess_SIONlib(
         accessStatements))
   }
 
-  def checkBytesAccessed(bufIdx : Int) : ListBuffer[IR_Statement] = ListBuffer(
-    IR_IfCondition(
-      bytesAccessed Neq numValuesLocal(bufIdx),
-      IR_Print(
-        IR_VariableAccess("std::cout", IR_UnknownDatatype),
-        IR_StringConstant("Rank: "), MPI_IV_MpiRank, IR_StringConstant(". "),
-        IR_VariableAccess("__FILE__", IR_UnknownDatatype), IR_StringConstant(": Error at line: "), IR_VariableAccess("__LINE__", IR_UnknownDatatype),
-        IR_StringConstant(". Number of bytes read="), bytesAccessed, IR_StringConstant(" differ from : "), numValuesLocal(bufIdx))),
-    IR_Assignment(bytesAccessed, 0) // reset count
-  )
-
   // read/write values from/to file and count the number of bytes that were accessed
   def loopBodyFileAccess(bufIdx : Int) : ListBuffer[IR_Statement] = {
     val stmts : ListBuffer[IR_Statement] = ListBuffer()
     val buf = dataBuffers(bufIdx)
-    val funcName = if (writeAccess) "fwrite" else "fread" // use ANSI C function to reduce "sion_ensure_free_space" calls from "sion_fread" wrapper function
+    def loopOverDimsBuf(body : IR_Statement*) = buf.loopOverDims(condition, body : _*)
 
-    stmts += IR_IfCondition(isAccessForWholeBlockAllowed(buf, bytesAccessedKnownApriori, interleavedAccHighDimDt),
-      /* true: write whole buffer */
-      IR_Assignment(bytesAccessed,
-        IR_FunctionCall(IR_ExternalFunctionReference(if (writeAccess) "sion_fwrite" else "sion_fread"), // use sion wrapper directly
-          buf.getBaseAddress, numBytesDatatype(bufIdx), numValuesLocal(bufIdx), fileId),
-        "+="),
-      /* false: write component by component in a loop */
-      buf.loopOverDims(
-        condition,
-        buf.handleAccesses.flatten.map(acc =>
-          IR_Assignment(bytesAccessed,
-            IR_FunctionCall(IR_ExternalFunctionReference(funcName),
-              IR_AddressOf(acc),
-              numBytesDatatype(bufIdx), 1, filePtr),
-            "+=") : IR_Statement
-        ) : _* ))
+    val useAnsiC = !Knowledge.experimental_parIO_streams_useIntermediateBuffer || (!writeAccess && !bytesAccessedKnownApriori)
+    val funcName = if (writeAccess) // use POSIX/ANSI C function to reduce "sion_ensure_free_space" calls from "sion_fread/fwrite" wrapper functions
+      if (useAnsiC) "fwrite" else "write"
+    else
+      if (useAnsiC) "fread" else "read"
+
+    val tmpBuf = IR_VariableAccess("buffer", IR_SpecialDatatype(s"std::vector<${buf.datatype.resolveBaseDatatype.prettyprint}>"))
+    if (!useAnsiC) {
+      stmts += IR_VariableDeclaration(tmpBuf)
+      stmts += IR_MemberFunctionCall(tmpBuf, "reserve", numValuesLocal(bufIdx))
+    }
+
+    stmts += IR_IfCondition(isAccessForWholeBlockAllowed(buf, bytesAccessedKnownApriori),
+      /* true: access whole buffer */
+      ListBuffer[IR_Statement](
+        IR_Assignment(valuesAccessed,
+          IR_FunctionCall(IR_ExternalFunctionReference(if (writeAccess) "sion_fwrite" else "sion_fread"), // use sion wrapper directly
+            buf.getBaseAddress, numBytesDatatype(bufIdx), numValuesLocal(bufIdx), fileId),
+          "+=")),
+      /* false: access component by component in a loop via ANSI C*/
+      if (useAnsiC) {
+        // total number of bytes is unknown (read) or user-defined buffering is off (read and write)
+        // write via ANSI C interface (buffered)
+        ListBuffer[IR_Statement](
+          loopOverDimsBuf(
+            buf.handleAccesses.flatten.map(acc =>
+              IR_Assignment(valuesAccessed,
+                IR_FunctionCall(IR_ExternalFunctionReference(funcName),
+                  IR_AddressOf(acc),
+                  numBytesDatatype(bufIdx), 1, filePtr),
+                "+=") : IR_Statement
+            ) : _* ))
+      } else {
+        // bundle multiple small accesses into one large with help of user-provided intermediate buffer
+        // write via POSIX interface (unbuffered)
+        if (writeAccess) {
+          // write: total number of accessed bytes is unknown during compile time
+          ListBuffer[IR_Statement](
+            loopOverDimsBuf(
+              buf.handleAccesses.flatten.map(acc =>
+                IR_MemberFunctionCall(tmpBuf, "push_back", acc) : IR_Statement
+              ) : _*),
+            IR_Assignment(
+              valuesAccessed,
+              IR_FunctionCall(IR_ExternalFunctionReference(funcName),
+                IR_FunctionCall(IR_ExternalFunctionReference("fileno"), filePtr),
+                IR_AddressOf(IR_ArrayAccess(tmpBuf, 0)),
+                IR_MemberFunctionCall(tmpBuf, "size") * numBytesDatatype(bufIdx)),
+              "+="))
+        } else {
+          // read: total number of accessed bytes is known, other case is handled with ANSI C
+          ListBuffer[IR_Statement](
+            IR_Assignment(
+              valuesAccessed,
+              IR_FunctionCall(IR_ExternalFunctionReference(funcName),
+                IR_FunctionCall(IR_ExternalFunctionReference("fileno"), filePtr),
+                IR_AddressOf(IR_ArrayAccess(tmpBuf, 0)),
+                numBytesLocal(bufIdx)),
+              "+="),
+            loopOverDimsBuf(
+              buf.handleAccesses.flatten.zipWithIndex.map { case (acc, i) =>
+                val offset = buf.referenceOffset - IR_ExpressionIndex(buf.beginIndices.toArray)
+                val loopIdx = loopOverDimsBuf().indices.linearizeIndex(IR_LoopOverDimensions.defIt(buf.numDimsGrid) + offset)
+                val idx = buf.handleAccesses.flatten.length * loopIdx
+                IR_Assignment(acc, IR_ArrayAccess(tmpBuf, idx + i)) : IR_Statement
+              } : _*))
+        }
+      }
+    )
 
     if (Knowledge.parIO_generateDebugStatements && bytesAccessedKnownApriori) {
-      stmts ++= checkBytesAccessed(bufIdx)
+      // check if each I/O request was successful
+      val compareTo = if (useAnsiC) numValuesLocal(bufIdx) else numBytesLocal(bufIdx) // POSIX: bytes, ANSI C: elements
+      stmts += IR_IfCondition(
+        valuesAccessed Neq compareTo,
+        IR_Print(
+          IR_VariableAccess("std::cout", IR_UnknownDatatype),
+          IR_StringConstant("Rank: "), MPI_IV_MpiRank, IR_StringConstant(". "),
+          IR_VariableAccess("__FILE__", IR_UnknownDatatype), IR_StringConstant(": Error at line: "), IR_VariableAccess("__LINE__", IR_UnknownDatatype),
+          IR_StringConstant(s". Number of ${if (useAnsiC) "elements" else "bytes"} ${if (writeAccess) "written" else "read"}="), valuesAccessed, IR_StringConstant(" differ from : "), compareTo))
+      stmts += IR_Assignment(valuesAccessed, 0) // reset count
     }
 
     stmts
@@ -219,7 +277,9 @@ case class IR_FileAccess_SIONlib(
   if(!Settings.makefile_additionalCFlags.contains(selectCflags))
     Settings.makefile_additionalCFlags += selectCflags
 
-  override def includes : ListBuffer[String] = ListBuffer("sion.h") ++ (if (!Knowledge.mpi_enabled) Some("string.h") else None)
+  override def includes : ListBuffer[String] = ListBuffer("sion.h", "unistd.h", "stdio.h", "stdlib.h") ++
+    (if (!Knowledge.mpi_enabled) Some("string.h") else None) ++
+    (if (Knowledge.experimental_parIO_streams_useIntermediateBuffer) Some("vector") else None)
   override def libraries : ListBuffer[String] = ListBuffer[String]() ++ selectLibs.split(" ").filter(f => f.startsWith("-l")).map(l => l.replace("-l", ""))
   override def pathsInc : ListBuffer[String] = super.pathsInc
   override def pathsLib : ListBuffer[String] = ListBuffer[String]() ++ selectLibs.split(" ").filter(f => f.startsWith("-L")).map(l => l.replace("-L", ""))

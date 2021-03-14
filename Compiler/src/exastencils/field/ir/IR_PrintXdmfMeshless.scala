@@ -136,7 +136,7 @@ case class IR_PrintXdmfMeshless(
     statements += printXdmfElement(stream, openGeometry((0 until numDimsGrid).map(d => ('X'+d).toChar.toString).mkString("_"))) // positions are not interleaved
     for (d <- 0 until field.numDimsGrid) {
       val buf = dataBuffersVertexPos(d)
-      val numVertices = IR_DataBuffer.handleFragmentDimension(buf, buf.innerDimsLocal, dimFrags(global), orderKJI = false)
+      val numVertices = IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, buf.innerDimsLocal, dimFrags(global), orderKJI = false)
 
       statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, numVertices, getSeekp(global)) : _*)
       statements += (if (fmt == "XML") {
@@ -160,7 +160,7 @@ case class IR_PrintXdmfMeshless(
   override def writeXdmfTopology(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
     val buf = dataBuffersVertexPos.head
-    val numVertices = IR_DataBuffer.handleFragmentDimension(buf, buf.innerDimsLocal, dimFrags(global), orderKJI = false)
+    val numVertices = IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, buf.innerDimsLocal, dimFrags(global), orderKJI = false)
 
     statements += printXdmfElement(stream, openTopology("Polyvertex", numVertices, Some("1")) : _*)
     statements += printXdmfElement(stream, closeTopology)
@@ -182,8 +182,8 @@ case class IR_PrintXdmfMeshless(
       IR_IntegerConstant(arrayIndexRange) +: dimsComponentFrag // e.g. [x, y, z, 3, 1] -> [3, x, y, z]
     else
       buf.innerDimsPerFrag
-    val totalDimsComponent = IR_DataBuffer.handleFragmentDimension(buf, dimsComponentFrag, dimFrags(global), orderKJI = false)
-    val totalDimsAttr = IR_DataBuffer.handleFragmentDimension(buf, dimsGridDatatypeFrag, dimFrags(global), orderKJI = false)
+    val totalDimsComponent = IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, dimsComponentFrag, dimFrags(global), orderKJI = false)
+    val totalDimsAttr = IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, dimsGridDatatypeFrag, dimFrags(global), orderKJI = false)
 
     statements += printXdmfElement(stream, openAttribute(name = field.name, tpe = attributeType(field.gridDatatype), ctr = "Node"))
     if (!joinDataItems) {
@@ -206,13 +206,13 @@ case class IR_PrintXdmfMeshless(
       (0 until arrayIndexRange).foreach(component => {
         val countComponent = dimsComponentFrag ++ ListBuffer.fill(dimsDt)(IR_IntegerConstant(1)) // extract values for one component
         val startComponent = accessComponent(component, field.gridDatatype, dimsComponentFrag.map(_ => IR_IntegerConstant(0))) // start at "current" component
-        val count = IR_DataBuffer.handleFragmentDimension(dataBufferField, countComponent, IR_IV_TotalNumFrags(domainIndex), orderKJI = false)
-        val start = IR_DataBuffer.handleFragmentDimension(dataBufferField, startComponent, 0, orderKJI = false)
-        val stride = IR_DataBuffer.handleFragmentDimension(dataBufferField, buf.stride, 1, orderKJI = false)
+        val count = IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, countComponent, IR_IV_TotalNumFrags(domainIndex), orderKJI = false)
+        val start = IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, startComponent, 0, orderKJI = false)
+        val stride = IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, buf.stride, 1, orderKJI = false)
 
         statements += printXdmfElement(stream, openDataItemHyperslab(totalDimsComponent) : _*)
         statements += printXdmfElement(stream, dataItemHyperslabSelection(start, stride, count) : _*)
-        statements += printXdmfElement(stream, dataItemHyperslabSource(field.resolveBaseDatatype, dataBufferField.globalDims, printFilename(stream, dataset), seekp) : _*)
+        statements += printXdmfElement(stream, dataItemHyperslabSource(field.resolveBaseDatatype, buf.globalDims, printFilename(stream, dataset), seekp) : _*)
         statements += printXdmfElement(stream, closeDataItem)
       })
       statements += printXdmfElement(stream, closeDataItem)
