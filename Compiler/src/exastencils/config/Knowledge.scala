@@ -483,6 +483,9 @@ object Knowledge {
   // set size of internal ANSI C buffer, -1 = use system default (mostly fs blocksize)
   var sion_setvbuf_size : Int = -1
 
+  // set number of underlying physical files
+  var sion_phys_files : Int = 1
+
   // -- Visualization with Xdmf/Exodus --
 
   var parIO_vis_forceMeshlessVisualization : Boolean = false
@@ -817,6 +820,9 @@ object Knowledge {
     Constraints.condEnsureValue(performance_addEstimation, true, performance_printEstimation, "printing performance estimations requires actually estimating them")
     Constraints.condEnsureValue(performance_addEstimation, true, opt_loopBlocked, "loop blocking requires setting up a performance model")
     Constraints.condEnsureValue(poly_optLevel_fine, 3, opt_loopBlocked, "loop blocking requires poly_optLevel_fine 3")
+
+    // sion
+    Constraints.condError(sion_phys_files > mpi_numThreads, "Number of physical files in a sionlib container must be smaller than the number of MPI threads.")
 
     // experimental
     Constraints.condEnsureValue(experimental_trimBoundsForReductionLoops, false, data_genVariableFieldSizes, "experimental_trimBoundsForReductionLoops is currently not compatible with data_genVariableFieldSizes")

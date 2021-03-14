@@ -30,7 +30,7 @@ case class IR_FileAccess_SIONlib(
   // for serial API: assume that the number of chunks (there is always one chunk per process) in a sion file equals the number of MPI processes (1)
   val nTasks = 1
 
-  val nPhysFiles = 1
+  val nPhysFiles : Int = Knowledge.sion_phys_files
   val bytesAccessedKnownApriori : Boolean = condition == IR_BooleanConstant(true) // if there is no condition -> required number of accessed bytes are known
   val numBytesDatatype : Array[Int] = dataBuffers.map(buf => buf.datatype.resolveBaseDatatype.typicalByteSize).toArray
   val numBytesLocal : Array[IR_Expression] = dataBuffers.indices.map(bufIdx => dataBuffers(bufIdx).typicalByteSizeLocal).toArray
