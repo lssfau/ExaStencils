@@ -143,7 +143,7 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
       1. Instead of checking if the fragment is valid before writing, we write without any conditions. Otherwise we would deadlock (this is quite similar to a conditional MPI_Barrier).
       2. In case that we have an "invalid" fragment, we participate in the collective function call but actually write nothing.
   */
-  def accessFileFragwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_LoopOverFragments
+  def accessFileFragwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_Statement
 
   // method to access the file in a block-wise fashion
   def accessFileBlockwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_Statement

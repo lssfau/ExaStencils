@@ -208,7 +208,7 @@ case class IR_FileAccess_HDF5(
 
   override def closeFile() : ListBuffer[IR_Statement] = H5Fclose(err, fileId)
 
-  override def accessFileFragwise(bufIdx : Int, accessStmts : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
+  override def accessFileFragwise(bufIdx : Int, accessStmts : ListBuffer[IR_Statement]) : IR_Statement = {
     val buffer = dataBuffers(bufIdx)
 
     // set global starting index for fragment and select hyperslab in global domain

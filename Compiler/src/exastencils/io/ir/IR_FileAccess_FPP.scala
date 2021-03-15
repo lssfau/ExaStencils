@@ -83,7 +83,7 @@ case class IR_FileAccess_FPP(
 
   override def closeFile() : ListBuffer[IR_Statement] = ListBuffer(IR_MemberFunctionCall(stream, "close"))
 
-  override def accessFileFragwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
+  override def accessFileFragwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = {
     IR_LoopOverFragments(
       IR_IfCondition(IR_IV_IsValidForDomain(dataBuffers(bufIdx).domainIdx),
         accessStatements),

@@ -45,29 +45,44 @@ case class IR_FileAccess_MPIIO(
   lazy val localView : Array[MPI_View] = dataBuffers.indices.map(bufIdx => MPI_View.getView(bufIdx, global = false)).toArray
   lazy val globalView : Array[MPI_View] = dataBuffers.indices.map(bufIdx => MPI_View.getView(bufIdx, global = true)).toArray
 
-  override def accessFileFragwise(bufIdx : Int, accessStmts : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
+  override def accessFileFragwise(bufIdx : Int, accessStmts : ListBuffer[IR_Statement]) : IR_Statement = {
+    val buf = dataBuffers(bufIdx)
     val disp = fileDisplacement(bufIdx)
+    val offsetBlock = buf.fragmentwiseStartOffset * buf.datatype.resolveBaseDatatype.typicalByteSize
     val nativeRepresentation = IR_Cast(IR_PointerDatatype(IR_CharDatatype), IR_StringConstant("native"))
-    val setView : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_set_view"),
-      fileHandle, disp, mpiDatatypeBuffer(dataBuffers(bufIdx)), globalView(bufIdx).getAccess, nativeRepresentation, info)
-
-    if (Knowledge.parIO_useCollectiveIO) {
-      IR_LoopOverFragments(setView +: accessStmts)
+    val mpiBaseDt = mpiDatatypeBuffer(dataBuffers(bufIdx))
+    val setView : IR_Statement = if (globalView(bufIdx).createViewPerFragment) {
+      IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_set_view"), fileHandle, disp, mpiBaseDt, globalView(bufIdx).getAccess, nativeRepresentation, info)
     } else {
+      IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_set_view"), fileHandle, disp + offsetBlock, mpiBaseDt, mpiBaseDt, nativeRepresentation, info)
+    }
+
+    val cond = if (Knowledge.parIO_useCollectiveIO) IR_BooleanConstant(true) else IR_IV_IsValidForDomain(dataBuffers(bufIdx).domainIdx)
+    if (globalView(bufIdx).createViewPerFragment) {
       IR_LoopOverFragments(
         setView, // setView is a collective function
-        IR_IfCondition(IR_IV_IsValidForDomain(dataBuffers(bufIdx).domainIdx),
-          accessStmts
-        )
-      )
+        IR_IfCondition(cond,
+          accessStmts))
+    } else {
+      IR_IfCondition(true,
+        ListBuffer(
+          setView,
+          IR_LoopOverFragments(
+            IR_IfCondition(cond,
+              accessStmts
+            ))))
     }
   }
 
   override def accessFileBlockwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = {
+    val buf = dataBuffers(bufIdx)
     val disp = fileDisplacement(bufIdx)
+    val offsetBlock = buf.fragmentwiseStartOffset * buf.datatype.resolveBaseDatatype.typicalByteSize
+    val mpiBaseDt = mpiDatatypeBuffer(dataBuffers(bufIdx))
     val nativeRepresentation = IR_Cast(IR_PointerDatatype(IR_CharDatatype), IR_StringConstant("native"))
-    val setView : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_set_view"),
-      fileHandle, disp, mpiDatatypeBuffer(dataBuffers(bufIdx)), globalView(bufIdx).getAccess, nativeRepresentation, info)
+    //val setView : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_set_view"), fileHandle, disp, mpiDatatypeBuffer(dataBuffers(bufIdx)), globalView(bufIdx).getAccess, nativeRepresentation, info)
+    val setView : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_set_view"), fileHandle,
+      disp + offsetBlock, mpiBaseDt, mpiBaseDt, nativeRepresentation, info)
 
     IR_LoopOverBlocks(IR_IfCondition(IR_IV_IsValidForDomain(dataBuffers(bufIdx).domainIdx),
       setView +: accessStatements))
@@ -96,8 +111,12 @@ case class IR_FileAccess_MPIIO(
     // create derived datatypes
     for (bufIdx <- dataBuffers.indices) {
       val buf = dataBuffers(bufIdx)
-      // global view (location within the whole domain) per fragment
-      val globalView = MPI_View(globalDims(bufIdx), count(bufIdx), globalStart(bufIdx), buf.datasetDimsGlobal, !buf.accessBlockwise, isLocal = false, buf, "globalSubarray")
+      /* global view (location within the whole domain) per fragment:
+        - canonical order: create view per fragment
+        - fragmentwise order: set view to current block via offsets (handled in accessFile funcs)
+      */
+      val createPerFragment = buf.canonicalOrder && !buf.accessBlockwise
+      val globalView = MPI_View(globalDims(bufIdx), count(bufIdx), globalStart(bufIdx), buf.datasetDimsGlobal, createPerFragment, isLocal = false, buf, "globalSubarray")
       if (MPI_View.addView(globalView)) {
         val initDatatype : ListBuffer[IR_Statement] = ListBuffer(
           IR_IfCondition(IR_IV_IsValidForDomain(buf.domainIdx), // set global start index
@@ -105,9 +124,7 @@ case class IR_FileAccess_MPIIO(
           globalView.createDatatype
         )
 
-        if (buf.accessBlockwise)
-          statements += IR_LoopOverBlocks(initDatatype)
-        else
+        if (createPerFragment)
           statements += IR_LoopOverFragments(initDatatype)
       }
 

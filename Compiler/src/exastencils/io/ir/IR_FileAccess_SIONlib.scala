@@ -131,7 +131,7 @@ case class IR_FileAccess_SIONlib(
   }
   override def setupAccess() : ListBuffer[IR_Statement] = ListBuffer()
 
-  override def accessFileFragwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
+  override def accessFileFragwise(bufIdx : Int, accessStatements : ListBuffer[IR_Statement]) : IR_Statement = {
     IR_LoopOverFragments(
       IR_IfCondition(
         IR_IV_IsValidForDomain(dataBuffers(bufIdx).domainIdx),
@@ -280,7 +280,7 @@ case class IR_FileAccess_SIONlib(
   override def includes : ListBuffer[String] = ListBuffer("sion.h", "unistd.h", "stdio.h", "stdlib.h") ++
     (if (!Knowledge.mpi_enabled) Some("string.h") else None) ++
     (if (Knowledge.experimental_parIO_streams_useIntermediateBuffer) Some("vector") else None)
-  override def libraries : ListBuffer[String] = ListBuffer[String]() ++ selectLibs.split(" ").filter(f => f.startsWith("-l")).map(l => l.replace("-l", ""))
+  override def libraries : ListBuffer[String] = ListBuffer[String]() ++ selectLibs.split(" ").filter(f => f.startsWith("-l")).map(l => l.replace("-l", "").filter(_ >= ' '))
   override def pathsInc : ListBuffer[String] = super.pathsInc
-  override def pathsLib : ListBuffer[String] = ListBuffer[String]() ++ selectLibs.split(" ").filter(f => f.startsWith("-L")).map(l => l.replace("-L", ""))
+  override def pathsLib : ListBuffer[String] = ListBuffer[String]() ++ selectLibs.split(" ").filter(f => f.startsWith("-L")).map(l => l.replace("-L", "").filter(_ >= ' '))
 }

@@ -118,7 +118,7 @@ case class IR_FileAccess_PnetCDF(
 
   def createDimName(buf : IR_DataBuffer, d : Int) = IR_StringConstant(IR_FileAccess.declareVariable(buf.name + "_" + "dim" + (buf.numDimsData - d))) // TODO better name convention
 
-  def accessFileFragwise(bufIdx : Int, accessStmts : ListBuffer[IR_Statement]) : IR_LoopOverFragments = {
+  def accessFileFragwise(bufIdx : Int, accessStmts : ListBuffer[IR_Statement]) : IR_Statement = {
     val buffer = dataBuffers(bufIdx)
     // set global starting index for fragment
     val setOffsetFrag : ListBuffer[IR_Statement] = buffer.startIndexGlobalKJI.indices.map(d => {

@@ -260,12 +260,16 @@ case class IR_DataBuffer(
       forIndex
   }
 
+  def fragmentwiseStartOffset : IR_Expression = {
+    (accessPattern.transformDataExtents(if (accessBlockwise) innerDimsLocal.dropRight(1) else innerDimsLocal, localization, orderKJI = false)
+      :+ IR_IV_FragmentOffset(domainIdx)).reduce(_ * _)
+  }
+
   def startIndexGlobal : ListBuffer[IR_Expression] = {
-    if (canonicalOrder) {
+    if (canonicalOrder)
       canonicalStartIndexGlobal(numDimsGridRange.map(IR_IV_FragmentIndex(_)))
-    } else {
+    else
       fragmentwiseStartIndexGlobal(IR_IV_FragmentOffset(domainIdx) + IR_LoopOverFragments.defIt)
-    }
   }
   def startIndexGlobalKJI : ListBuffer[IR_Expression] = startIndexGlobal.reverse
 
