@@ -34,7 +34,8 @@ case class IR_ReadField(
     var useBinary : Boolean = false,
     var separator : IR_Expression = IR_StringConstant(" "),
     var condition : IR_Expression = true,
-    var dataset : IR_Expression = IR_NullExpression
+    var dataset : IR_Expression = IR_NullExpression,
+    var mpiioRepresentation : IR_StringConstant = IR_StringConstant("native")
 ) extends IR_FieldIO {
 
   def doWrite = false

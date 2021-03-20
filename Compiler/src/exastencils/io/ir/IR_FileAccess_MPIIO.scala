@@ -8,6 +8,7 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.logger.Logger
+import exastencils.util.ir.IR_Print
 
 /// IR_FileAccess_MPIIO
 case class IR_FileAccess_MPIIO(
@@ -15,6 +16,7 @@ case class IR_FileAccess_MPIIO(
     var dataBuffers : ListBuffer[IR_DataBuffer],
     var writeAccess : Boolean,
     var appendedMode : Boolean = false,
+    var representation : IR_StringConstant = IR_StringConstant("native"),
     var initFragInfo : Boolean = true
 ) extends IR_FileAccess("mpiio") {
 
@@ -28,6 +30,10 @@ case class IR_FileAccess_MPIIO(
   // mpi i/o specific datatypes
   val MPI_File = IR_SpecialDatatype("MPI_File")
   val MPI_Datatype = IR_SpecialDatatype("MPI_Datatype")
+
+  // data representation: "native", "internal" or "external32". CAREFUL: representations besides "native" are not supported by all MPI applications
+  // Moreover, with these data is converted resulting in byte truncation, swapping, etc.
+  val repr = IR_Cast(IR_PointerDatatype(IR_CharDatatype), representation)
 
   // declarations
   val fileHandle_decl = IR_VariableDeclaration(MPI_File, IR_FileAccess.declareVariable("fh"))
@@ -45,32 +51,46 @@ case class IR_FileAccess_MPIIO(
   lazy val localView : Array[MPI_View] = dataBuffers.indices.map(bufIdx => MPI_View.getView(bufIdx, global = false)).toArray
   lazy val globalView : Array[MPI_View] = dataBuffers.indices.map(bufIdx => MPI_View.getView(bufIdx, global = true)).toArray
 
+  // check if MPI implementation supports the representation
+  private def checkSupportedRepr(setView : IR_Expression) : ListBuffer[IR_Statement] = if (representation.value != "native" && Knowledge.parIO_generateDebugStatements) {
+    val ierrName = IR_FileAccess.declareVariable("ierr")
+    ListBuffer(
+      IR_VariableDeclaration(datatype = IR_IntegerDatatype, ierrName, setView),
+      IR_IfCondition(ierrName EqEq "MPI_ERR_UNSUPPORTED_DATAREP",
+        ListBuffer[IR_Statement](
+          IR_Print(IR_VariableAccess("std::cerr", IR_UnknownDatatype), IR_StringConstant("Unsupported data representation when using MPI-I/O"), IR_Print.endl),
+          IR_FunctionCall(IR_ExternalFunctionReference("MPI_Abort"), mpiCommunicator, IR_IntegerConstant(1))
+        )
+      )
+    )
+  } else {
+    ListBuffer(setView)
+  }
+
   override def accessFileFragwise(bufIdx : Int, accessStmts : ListBuffer[IR_Statement]) : IR_Statement = {
     val buf = dataBuffers(bufIdx)
     val disp = fileDisplacement(bufIdx)
     val offsetBlock = buf.fragmentwiseStartOffset * buf.datatype.resolveBaseDatatype.typicalByteSize
-    val nativeRepresentation = IR_Cast(IR_PointerDatatype(IR_CharDatatype), IR_StringConstant("native"))
     val mpiBaseDt = mpiDatatypeBuffer(dataBuffers(bufIdx))
-    val setView : IR_Statement = if (globalView(bufIdx).createViewPerFragment) {
-      IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_set_view"), fileHandle, disp, mpiBaseDt, globalView(bufIdx).getAccess, nativeRepresentation, info)
+    val setView = if (globalView(bufIdx).createViewPerFragment) {
+      IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_set_view"), fileHandle, disp, mpiBaseDt, globalView(bufIdx).getAccess, repr, info)
     } else {
-      IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_set_view"), fileHandle, disp + offsetBlock, mpiBaseDt, mpiBaseDt, nativeRepresentation, info)
+      IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_set_view"), fileHandle, disp + offsetBlock, mpiBaseDt, mpiBaseDt, repr, info)
     }
 
     val cond = if (Knowledge.parIO_useCollectiveIO) IR_BooleanConstant(true) else IR_IV_IsValidForDomain(dataBuffers(bufIdx).domainIdx)
     if (globalView(bufIdx).createViewPerFragment) {
       IR_LoopOverFragments(
-        setView, // setView is a collective function
+        checkSupportedRepr(setView) :+ // setView is a collective function
         IR_IfCondition(cond,
           accessStmts))
     } else {
       IR_IfCondition(true,
-        ListBuffer(
-          setView,
-          IR_LoopOverFragments(
-            IR_IfCondition(cond,
-              accessStmts
-            ))))
+        checkSupportedRepr(setView) :+
+        IR_LoopOverFragments(
+          IR_IfCondition(cond,
+            accessStmts
+          )))
     }
   }
 
@@ -79,13 +99,12 @@ case class IR_FileAccess_MPIIO(
     val disp = fileDisplacement(bufIdx)
     val offsetBlock = buf.fragmentwiseStartOffset * buf.datatype.resolveBaseDatatype.typicalByteSize
     val mpiBaseDt = mpiDatatypeBuffer(dataBuffers(bufIdx))
-    val nativeRepresentation = IR_Cast(IR_PointerDatatype(IR_CharDatatype), IR_StringConstant("native"))
-    //val setView : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_set_view"), fileHandle, disp, mpiDatatypeBuffer(dataBuffers(bufIdx)), globalView(bufIdx).getAccess, nativeRepresentation, info)
-    val setView : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_set_view"), fileHandle,
-      disp + offsetBlock, mpiBaseDt, mpiBaseDt, nativeRepresentation, info)
+    //val setView : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_set_view"), fileHandle, disp, mpiDatatypeBuffer(dataBuffers(bufIdx)), globalView(bufIdx).getAccess, repr, info)
+    val setView = IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_set_view"), fileHandle,
+      disp + offsetBlock, mpiBaseDt, mpiBaseDt, repr, info)
 
     IR_LoopOverBlocks(IR_IfCondition(IR_IV_IsValidForDomain(dataBuffers(bufIdx).domainIdx),
-      setView +: accessStatements))
+      checkSupportedRepr(setView) ++ accessStatements))
   }
 
   override def createOrOpenFile() : ListBuffer[IR_Statement] = {

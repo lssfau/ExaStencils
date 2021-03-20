@@ -39,7 +39,8 @@ case class L4_PrintField(
     var binaryOutput : Boolean = false,
     var separator : Option[L4_Expression] = None,
     var condition : Option[L4_Expression] = None,
-    var dataset : Option[L4_Expression] = None) extends L4_Statement {
+    var dataset : Option[L4_Expression] = None,
+    var mpiioRepresentation : Option[L4_StringConstant] = None) extends L4_Statement {
 
   override def prettyprint(out : PpStream) = {
     // TODO
@@ -61,7 +62,8 @@ case class L4_PrintField(
       binaryOutput,
       separator.getOrElse(L4_StringConstant(" ")).progress,
       condition.getOrElse(L4_BooleanConstant(true)).progress,
-      dataset.getOrElse(L4_NullExpression).progress))
+      dataset.getOrElse(L4_NullExpression).progress,
+      mpiioRepresentation.getOrElse(L4_StringConstant("native")).progress))
   }
 }
 
@@ -140,7 +142,7 @@ object L4_ResolvePrintFieldFunctions extends DefaultStrategy("Resolve print fiel
           case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, useBin : L4_BooleanConstant, cond)        => // option 4: filename, field, inclGhost, useBin, cond
             L4_PrintField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, binaryOutput = useBin.value, condition = Some(cond))
           case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, useBin : L4_BooleanConstant, cond, sep)   => // option 5: filename, field, inclGhost, useBin, cond, sep
-            if(useBin.value) Logger.error("Invalid parameter combination in \"readField\": binaryMode = true and separator set.")
+            if(useBin.value) Logger.error("Invalid parameter combination in \"printField\": binaryMode = true and separator set.")
             L4_PrintField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, binaryOutput = useBin.value, condition = Some(cond), separator = Some(sep))
           case _ =>
             Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))

@@ -67,7 +67,7 @@ trait IR_Iostream {
       /* true: write whole buffer */
       ListBuffer(IR_PrintBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal)),
       /* false: write component by component in a loop */
-      if (Knowledge.experimental_parIO_streams_useIntermediateBuffer) {
+      if (Knowledge.parIO_streams_useIntermediateBuffer) {
         // use manual buffering
         ListBuffer(
           IR_VariableDeclaration(tmpBuf),
@@ -114,7 +114,7 @@ trait IR_Iostream {
       /* true: read whole buffer */
       ListBuffer(IR_ReadBlockBinary(stream, buf.getBaseAddress, buf.typicalByteSizeLocal)),
       /* false: read component by component in a loop */
-      if (bytesAccessedKnownApriori && Knowledge.experimental_parIO_streams_useIntermediateBuffer) {
+      if (bytesAccessedKnownApriori && Knowledge.parIO_streams_useIntermediateBuffer) {
         // use manual buffering
         ListBuffer(
           IR_VariableDeclaration(tmpBuf),

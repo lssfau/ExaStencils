@@ -81,7 +81,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   def ioHandler(constsIncluded : Boolean, fn : IR_Expression) : IR_FileAccess = {
     ioInterface match {
       case "mpiio" =>
-        IR_FileAccess_MPIIO(fn, dataBuffers(constsIncluded), writeAccess = true, initFragInfo = false)
+        IR_FileAccess_MPIIO(fn, dataBuffers(constsIncluded), writeAccess = true, representation = IR_StringConstant("native"), initFragInfo = false)
       case "fpp"   =>
         IR_FileAccess_FPP(fn, dataBuffers(constsIncluded), useBinary = binaryFpp, writeAccess = true, separator, condition = true, optPrintComponents = None)
       case "hdf5"  =>
@@ -265,6 +265,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     // open file and write header
     val stream = newStream
     if(ioInterface == "fpp") {
+      // build filename for each rank
       val buildStr = IR_VariableAccess(filenamePieceFpp.name, IR_StringDatatype)
       statements += IR_VariableDeclaration(buildStr)
       statements += buildFilenamePiece(noPath = false, rank = MPI_IV_MpiRank)

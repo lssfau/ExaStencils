@@ -120,7 +120,7 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
   // headers, libs and paths of each I/O interface
   def libraries : ListBuffer[String] = ListBuffer()
   def pathsLib : ListBuffer[String] = ListBuffer()
-  def includes : ListBuffer[String] = ListBuffer()
+  def includes : ListBuffer[String] = if (Knowledge.parIO_generateDebugStatements) ListBuffer("iostream") else ListBuffer()
   def pathsInc : ListBuffer[String] = ListBuffer()
 
   // determines with which mode the file is opened/created

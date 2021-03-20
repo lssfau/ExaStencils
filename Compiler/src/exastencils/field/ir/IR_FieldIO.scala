@@ -61,6 +61,9 @@ abstract class IR_FieldIO extends IR_Statement with IR_Expandable {
   // dataset which can be specified for a netCDF/HDF5 file (for HDF5 this can be a path)
   def dataset : IR_Expression
 
+  // binary representation for MPI-I/O
+  def mpiioRepresentation : IR_StringConstant
+
   // wrapper function that generates statements for file access using the specified I/O interface
   def generateFileAccess(optSep : Option[IR_Expression] = None, optPrintComponents : Option[ListBuffer[IR_Expression]] = None) : IR_FileAccess = {
     val fieldAsDataBuffer = IR_DataBuffer(field, slot, includeGhostLayers, None, dataset = Some(dataset), canonicalFileLayout)
@@ -71,7 +74,7 @@ abstract class IR_FieldIO extends IR_Statement with IR_Expandable {
       case "fpp"   =>
         IR_FileAccess_FPP(filename, ListBuffer(fieldAsDataBuffer), useBinary, doWrite, optSep getOrElse separator, condition, optPrintComponents)
       case "mpiio" =>
-        IR_FileAccess_MPIIO(filename, ListBuffer(fieldAsDataBuffer), doWrite)
+        IR_FileAccess_MPIIO(filename, ListBuffer(fieldAsDataBuffer), doWrite, representation = mpiioRepresentation)
       case "hdf5"  =>
         IR_FileAccess_HDF5(filename, ListBuffer(fieldAsDataBuffer), doWrite)
       case "nc"    =>

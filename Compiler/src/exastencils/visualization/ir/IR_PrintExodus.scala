@@ -65,7 +65,7 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
 
   // to be implemented in application.ir
   def fieldnames : ListBuffer[String]
-  def variableEntityType : IR_VariableAccess
+  def variableEntityType : IR_VariableAccess // currently identical for all buffers in the applications
   def elementName : String
   def nodesPerElement : Int
   def statementsForPreparation : ListBuffer[IR_Statement]

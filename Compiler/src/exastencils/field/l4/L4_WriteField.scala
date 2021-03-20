@@ -38,7 +38,8 @@ case class L4_WriteField(
     var binaryOutput : Boolean = false,
     var separator : Option[L4_Expression] = None,
     var condition: Option[L4_Expression] = None,
-    var dataset : Option[L4_Expression] = None) extends L4_Statement {
+    var dataset : Option[L4_Expression] = None,
+    var mpiioRepresentation : Option[L4_StringConstant] = None) extends L4_Statement {
 
   override def prettyprint(out : PpStream) = {
     // TODO
@@ -60,7 +61,8 @@ case class L4_WriteField(
       binaryOutput,
       separator.getOrElse(L4_StringConstant(" ")).progress,
       condition.getOrElse(L4_BooleanConstant(true)).progress,
-      dataset.getOrElse(L4_NullExpression).progress))
+      dataset.getOrElse(L4_NullExpression).progress,
+      mpiioRepresentation.getOrElse(L4_StringConstant("native")).progress))
   }
 }
 
@@ -129,13 +131,16 @@ object L4_ResolveWriteFieldFunctions extends DefaultStrategy("Resolve write fiel
             Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
         }
         case "mpiio" => args match {
-          case ListBuffer(fn, field : L4_FieldAccess)                                                                      => // option 1: filename, field
+          case ListBuffer(fn, field : L4_FieldAccess)                                                                                                => // option 1: filename, field
             L4_WriteField(fn, field, ioInterface = ifaceSelection)
-          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)                                      => // option 2: filename, field, inclGhost
+          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)                                                                => // option 2: filename, field, inclGhost
             L4_WriteField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value)
-          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, canonicalOrder : L4_BooleanConstant) => // option 3: filename, field, inclGhost, canonicalOrder
+          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, canonicalOrder : L4_BooleanConstant)                           => // option 3: filename, field, inclGhost, canonicalOrder
             L4_WriteField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, canonicalOrder = canonicalOrder.value)
-          case _                                                                                                           =>
+          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, canonicalOrder : L4_BooleanConstant, repr : L4_StringConstant) => // option 4: filename, field, inclGhost, canonicalOrder, repr
+            if (!List("external32", "internal", "native").contains(repr.value)) Logger.error("Unknown representation type for MPI-I/O. Should be: \"external32\", \"internal\", \"native\".")
+            L4_WriteField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, canonicalOrder = canonicalOrder.value, mpiioRepresentation = Some(repr))
+          case _                                                                                                                                     =>
             Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
         }
         case "hdf5" => args match {

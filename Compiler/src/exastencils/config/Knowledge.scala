@@ -477,7 +477,7 @@ object Knowledge {
 
   // --- Stream-based I/O ---
   // manual buffering to reduce library/function calls to ANSI C/C++ STL streams(binary). only has an effect for buffers which cannot be written at once (e.g. condition or ghost layers/... excluded)
-  var experimental_parIO_streams_useIntermediateBuffer : Boolean = false
+  var parIO_streams_useIntermediateBuffer : Boolean = false
 
   // --- SION ---
   // set size of internal ANSI C buffer, -1 = use system default (mostly fs blocksize)
@@ -485,6 +485,9 @@ object Knowledge {
 
   // set number of underlying physical files
   var sion_phys_files : Int = 1
+
+  // enable byte-wise swapping when reading sion files (only swaps when necessary)
+  var sion_ensure_byteswap_read : Boolean = false
 
   // -- Visualization with Xdmf/Exodus --
 
