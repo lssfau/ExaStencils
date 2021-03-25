@@ -112,12 +112,8 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     (IR_StringConstant("\t\t\t<xi:include href=\\\"") +: href :+ IR_StringConstant("\\\" ")) ++
       (IR_StringConstant("xpointer=\\\"xpointer(") +: xpath.to[ListBuffer] :+ IR_StringConstant(")\\\"/>"))
   }
-  def XPath(elem : String) : ListBuffer[IR_Expression] = {
-    if (binaryFpp) {
-      ListBuffer(IR_StringConstant("/Xdmf/Domain/Grid/Grid["), curRank + 1, IR_StringConstant("]/" + elem)) // collection of grids (one for each subdomain)
-    } else {
-      ListBuffer[IR_Expression](IR_StringConstant("/Xdmf/Domain/Grid[1]/" + elem)) // a single global grid
-    }
+  def XPath(grid : ListBuffer[IR_Expression], elem : String) : ListBuffer[IR_Expression] = {
+    IR_StringConstant("/Xdmf/Domain/") +: grid :+ IR_StringConstant("/" + elem)
   }
 
   def attributeType(gridDatatype : IR_Datatype) : String = gridDatatype match {
@@ -246,17 +242,24 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     IR_Print(stream, ListBuffer(indentData) ++ refFile ++ refDataset :+ IR_Print.newline)
   }
 
-  // write constant data once and reference the file containing the constant data afterswards
-  def writeOrReferenceConstants(stream : IR_VariableAccess, writeConsts : ListBuffer[IR_Statement], elemToRef : String, altCondition : Option[IR_Expression] = None) : ListBuffer[IR_Statement] = ListBuffer(
-    new IR_IfCondition(altCondition getOrElse IR_ConstantsWrittenToFile().isEmpty,
-      /* true branch */
-      writeConsts,
-      /* false branch */
-      ListBuffer[IR_Statement](
-        printXdmfElement(stream, XInclude(href = IR_ConstantsWrittenToFile(), xpath = XPath(elemToRef) : _*) : _*)
+  // write constant data once and reference the file containing the constant data afterwards
+  def writeXdmfElemOrReferenceConstants(stream : IR_VariableAccess, writeConsts : ListBuffer[IR_Statement], elemToRef : String, altCondition : Option[IR_Expression] = None) : ListBuffer[IR_Statement] = {
+    val selectGrid = if (binaryFpp) {
+      ListBuffer[IR_Expression](IR_StringConstant("Grid/Grid["), curRank + 1, IR_StringConstant("]")) // collection of grids (one for each subdomain)
+    } else {
+      ListBuffer[IR_Expression](IR_StringConstant("Grid[1]")) // a single global grid
+    }
+    ListBuffer(
+      new IR_IfCondition(altCondition getOrElse IR_ConstantsWrittenToFile().isEmpty,
+        /* true branch */
+        writeConsts,
+        /* false branch */
+        ListBuffer[IR_Statement](
+          printXdmfElement(stream, XInclude(href = IR_ConstantsWrittenToFile(), xpath = XPath(selectGrid, elemToRef) : _*) : _*)
+        )
       )
     )
-  )
+  }
 
   // prints a complete xdmf file
   def writeXdmf : ListBuffer[IR_Statement] = {
@@ -357,7 +360,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   /* attributes: values centered on various locations of the grid (e.g. cell/node/...) */
   def writeXdmfAttributes(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement]
 
-  // construct xdmf filename for domain pieces in same directory as the global file
+  // construct xdmf filename for domain pieces in same directory as the global file (e.g. "test_rank0.xmf")
   protected def refPiecesXml(stream : IR_VariableAccess) : ListBuffer[IR_Statement] = (0 until Knowledge.mpi_numThreads).map(r => {
     printXdmfElement(stream,
       XInclude(href = buildFilenamePiece(noPath = true, rank = IR_IntegerConstant(r)).toPrint,

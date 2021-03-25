@@ -78,7 +78,7 @@ case class IR_PrintXdmfNS(
     })
     statements += printXdmfElement(stream, closeGeometry)
 
-    writeOrReferenceConstants(stream, statements, elemToRef = "Geometry")
+    writeXdmfElemOrReferenceConstants(stream, statements, elemToRef = "Geometry")
   }
 
   override def writeXdmfTopology(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
@@ -100,7 +100,7 @@ case class IR_PrintXdmfNS(
     statements += printXdmfElement(stream, closeDataItem)
     statements += printXdmfElement(stream, closeTopology)
 
-    writeOrReferenceConstants(stream, statements, elemToRef = "Topology")
+    writeXdmfElemOrReferenceConstants(stream, statements, elemToRef = "Topology")
   }
 
   override def writeXdmfAttributes(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {

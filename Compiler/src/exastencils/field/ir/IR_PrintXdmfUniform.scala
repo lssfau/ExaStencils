@@ -14,7 +14,6 @@ import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_IV_FragmentPositionBegin
 import exastencils.grid.ir.IR_VF_CellWidthPerDim
 import exastencils.io.ir.IR_DataBuffer
-import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.util.ir.IR_Print
 
 /// IR_PrintXdmfUniform
@@ -48,18 +47,6 @@ case class IR_PrintXdmfUniform(
   override def dataBuffersConst : ListBuffer[IR_DataBuffer] = ListBuffer() // no node pos. or connectivity needed
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = ListBuffer(dataBuffer)
 
-  override def stmtsForPreparation : ListBuffer[IR_Statement] = {
-    var stmts : ListBuffer[IR_Statement] = ListBuffer()
-
-    stmts ++= IR_IV_FragmentInfo.init(dataBuffer.domainIdx)
-
-    // interpolate face centered values towards cell centers
-    if (tmpBufStag.isDefined)
-      stmts ++= interpStagField(tmpBufStag.get)
-
-    stmts
-  }
-
   override def writeXdmfGeometry(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
@@ -90,16 +77,10 @@ case class IR_PrintXdmfUniform(
     statements
   }
 
-  override def writeXdmfTopology(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
-    // in this implementation, a xdmf "grid" is specified for each fragment -> calc. local number of nodes
-    val nodeDims = (0 until numDimsGrid).map(d => Knowledge.domain_fragmentLengthAsVec(d) * (1 << level) + 1 : IR_Expression).to[ListBuffer]
-
-    var statements : ListBuffer[IR_Statement] = ListBuffer()
-    statements += printXdmfElement(stream, openTopology(if (numDimsGrid == 3) "3DCoRectMesh" else "2DCoRectMesh", nodeDims) : _*)
-    statements += printXdmfElement(stream, closeTopology)
-
-    statements
-  }
+  override def writeXdmfTopology(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = ListBuffer(
+    printXdmfElement(stream, openTopology(if (numDimsGrid == 3) "3DCoRectMesh" else "2DCoRectMesh", nodeDims) : _*),
+    printXdmfElement(stream, closeTopology)
+  )
 
   override def writeDataAndSetConstFile() : ListBuffer[IR_Statement] = {
     val setConstFile = IR_ConstantsWrittenToFile().setFilename(IR_StringConstant("")) // no constants to be reduced -> set to empty string

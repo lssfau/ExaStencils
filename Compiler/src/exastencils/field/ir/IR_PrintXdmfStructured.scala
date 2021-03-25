@@ -39,6 +39,9 @@ import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.grid.ir.IR_AtFaceCenter
 import exastencils.io.ir.IR_DataBuffer
+import exastencils.io.ir.IR_FileAccess
+import exastencils.io.ir.IR_IV_FragmentInfo
+import exastencils.io.ir.IR_IV_NumValidFragsPerBlock
 import exastencils.io.ir.IR_IV_TemporaryBuffer
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_Gather
@@ -97,6 +100,51 @@ abstract class IR_PrintXdmfStructured(
     IR_DataBuffer(tmpBufStag.get, slot, None, Some(dataset))
   }
 
+  override def stmtsForPreparation : ListBuffer[IR_Statement] = {
+    var statements : ListBuffer[IR_Statement] = ListBuffer()
+
+    statements ++= IR_IV_FragmentInfo.init(
+      dataBuffer.domainIdx,
+      calculateFragOffset = ioInterface != "fpp"
+    )
+
+    val varname = IR_FileAccess.declareVariable("fragOffset")
+    statements += IR_VariableDeclaration(IR_IntegerDatatype, varname)
+    statements += loopOverRanks(
+      IR_IfCondition(curRank > 0,
+        IR_Assignment(varname, IR_IV_NumValidFragsPerBlock(domainIndex).resolveAccess(curRank-1), "+="),
+        IR_Assignment(varname, 0)),
+      IR_Assignment(IR_IV_FragmentOffsetPerBlock().resolveAccess(curRank), varname)
+    )
+
+    // interpolate face centered values towards cell centers
+    if (tmpBufStag.isDefined)
+      statements ++= interpStagField(tmpBufStag.get)
+
+    statements
+  }
+
+  // write constant data once and reference the file containing the constant data afterwards
+  override def writeXdmfElemOrReferenceConstants(stream : IR_VariableAccess, writeConsts : ListBuffer[IR_Statement], elemToRef : String, altCondition : Option[IR_Expression] = None) : ListBuffer[IR_Statement] = {
+    val fragId = if (fmt != "XML") {
+      fragIdCurRank(global = true)
+    } else {
+      IR_LoopOverFragments.defIt
+    }
+    val selectGrid = ListBuffer[IR_Expression](IR_StringConstant("Grid/Grid["), fragId + 1, IR_StringConstant("]")) // collection of grids (one for each fragment)
+
+    ListBuffer(
+      new IR_IfCondition(altCondition getOrElse IR_ConstantsWrittenToFile().isEmpty,
+        /* true branch */
+        writeConsts,
+        /* false branch */
+        ListBuffer[IR_Statement](
+          printXdmfElement(stream, XInclude(href = IR_ConstantsWrittenToFile(), xpath = XPath(selectGrid, elemToRef) : _*) : _*)
+        )
+      )
+    )
+  }
+
   // interpolate face centered values towards cell centers
   def interpStagField(tmpBufDest : IR_IV_TemporaryBuffer) : ListBuffer[IR_Statement] = {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
@@ -125,7 +173,7 @@ abstract class IR_PrintXdmfStructured(
 
   protected def fragIdCurRank(global : Boolean, rank : IR_Expression = curRank, fragIdx : IR_Expression = IR_LoopOverFragments.defIt) : IR_Expression = {
     if (Knowledge.mpi_enabled)
-      Knowledge.domain_numFragmentsPerBlock * curRank + fragIdx
+      (if (global) IR_IV_FragmentOffsetPerBlock().resolveAccess(curRank) else IR_IntegerConstant(0)) + fragIdx
     else
       IR_IV_FragmentId(fragIdx)
   }
@@ -142,14 +190,29 @@ abstract class IR_PrintXdmfStructured(
       IR_IV_FragmentIndex(dim, fragIdx)
   }
 
-  // specialization for file-per-process: fields are written fragment-after-fragment (i.e. no canonical layout)
-  // -> an Xdmf "Grid" element with positions must be specified for each fragment to match the layout of the written field data
+  /* special handling for a variable number of frags */
+  // specifies "fragment dimension" (i.e. how many fragments are written to a file)
+  override def dimFrags(global : Boolean) : IR_Expression = if (!binaryFpp) {
+    super.dimFrags(global)
+  } else {
+    // binary fpp: only root writes the xdmf file -> requires the number of valid frags for each rank
+    IR_IV_NumValidFragsPerBlock(domainIndex).resolveAccess(curRank)
+  }
+  // contains expressions that calculate the seek pointer for each DataItem (used for raw binary files)
+  override def seekpOffsets(global : Boolean, constsIncluded : Boolean) : ListBuffer[IR_Expression] = if (!binaryFpp) {
+    super.seekpOffsets(global, constsIncluded)
+  } else {
+    // binary fpp: root needs to know the actual number of fragments of each rank to compute the file offsets correctly
+    dataBuffers(constsIncluded).map(buf => if (global) buf.typicalByteSizeGlobal else buf.typicalByteSizeFrag * IR_IV_NumValidFragsPerBlock(domainIndex).resolveAccess(curRank))
+  }
+
+  // writes an Xdmf "Grid" element for each existing fragment
   override def writeXdmfGrid(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    // write grids per fragment of a single block ("XML") or of the whole domain
+    // write "Grid" for each fragment in 1) a single block: "XML" or 2) the whole domain
     val gridName = if (fmt != "XML") {
-      IR_StringConstant("Grid") + IR_FunctionCall(IR_ExternalFunctionReference("std::to_string"), Knowledge.domain_numFragmentsPerBlock*curRank + IR_LoopOverFragments.defIt)
+      IR_StringConstant("Grid") + IR_FunctionCall(IR_ExternalFunctionReference("std::to_string"), fragIdCurRank(global = true))
     } else {
       IR_StringConstant("Grid") + IR_FunctionCall(IR_ExternalFunctionReference("std::to_string"), IR_LoopOverFragments.defIt)
     }
@@ -157,20 +220,24 @@ abstract class IR_PrintXdmfStructured(
     // write each subdomain with origins and spacing to the "global" file
     // this kind of loop is only used for "global" files in case of uniform meshes
     // since the handling is fundamentally different from other xdmf writers
-    def loopOverRanks(body : IR_Statement*) = IR_ForLoop(
-      IR_VariableDeclaration(curRank, 0),
-      IR_Lower(curRank, Knowledge.mpi_numThreads),
-      IR_PreIncrement(curRank),
-      body.to[ListBuffer])
 
-    val printSubdomains = IR_LoopOverFragments(
-      IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
+    def loopOverFrags(statements: ListBuffer[IR_Statement]) = if (fmt == "XML") {
+      IR_LoopOverFragments(IR_IfCondition(IR_IV_IsValidForDomain(domainIndex), statements))
+    } else {
+      IR_ForLoop(
+        IR_VariableDeclaration(IR_LoopOverFragments.defIt, 0),
+        IR_Lower(IR_LoopOverFragments.defIt, IR_IV_NumValidFragsPerBlock(domainIndex).resolveAccess(curRank)),
+        IR_PreIncrement(IR_LoopOverFragments.defIt),
+        statements : _*
+      )
+    }
+    val printSubdomains = loopOverFrags(
         ListBuffer[IR_Statement](
           printXdmfElement(stream, openGrid(gridName, "Uniform") : _*)) ++
           writeXdmfGeometry(stream, global) ++
           writeXdmfTopology(stream, global) ++
           writeXdmfAttributes(stream, global) :+
-          printXdmfElement(stream, closeGrid)))
+          printXdmfElement(stream, closeGrid))
 
     if (!binaryFpp) {
       // write grids for each fragment
@@ -286,18 +353,30 @@ abstract class IR_PrintXdmfStructured(
     statements
   }
 
+  // in this implementation, a xdmf "grid" is specified for each fragment -> calc. local number of nodes
+  def nodeDims : ListBuffer[IR_Expression] = (0 until numDimsGrid).map(d => Knowledge.domain_fragmentLengthAsVec(d) * (1 << level) + 1 : IR_Expression).to[ListBuffer]
+
+  def loopOverRanks(body : IR_Statement*) = IR_ForLoop(
+    IR_VariableDeclaration(curRank, 0),
+    IR_Lower(curRank, Knowledge.mpi_numThreads),
+    IR_PreIncrement(curRank),
+    body.to[ListBuffer])
+
   // VisIt needs every subdomain to be referenced explicitly whereas in ParaView it is possible to reference a process's "grid collection"
   override def refPiecesXml(stream : IR_VariableAccess) : ListBuffer[IR_Statement] = {
     if (!Knowledge.parIO_vis_generateVisItFiles) {
       super.refPiecesXml(stream)
     } else {
-      (0 until Knowledge.mpi_numThreads).flatMap(r => { // ref each process's grid
-        (0 until Knowledge.domain_numFragmentsPerBlock).map(f => { // if a process has a collection of grids -> ref each
-          printXdmfElement(stream,
-            XInclude(href = buildFilenamePiece(noPath = true, rank = IR_IntegerConstant(r)).toPrint,
-              xpath = ListBuffer(IR_StringConstant("/Xdmf/Domain/Grid/Grid["), f + 1 : IR_Expression, IR_StringConstant("]")) : _*) : _*)
-        })
-      }).to[ListBuffer]
+      ListBuffer(
+        loopOverRanks( // ref each process's grid
+          IR_ForLoop( // if a process has a collection of grids -> ref each
+            IR_VariableDeclaration(IR_LoopOverFragments.defIt, 0),
+            IR_Lower(IR_LoopOverFragments.defIt, IR_IV_NumValidFragsPerBlock(domainIndex).resolveAccess(curRank)),
+            IR_PreIncrement(IR_LoopOverFragments.defIt),
+            printXdmfElement(stream,
+              XInclude(href = buildFilenamePiece(noPath = true, rank = curRank).toPrint,
+                xpath = ListBuffer(IR_StringConstant("/Xdmf/Domain/Grid/Grid["), IR_LoopOverFragments.defIt + 1 : IR_Expression, IR_StringConstant("]")) : _*) : _*)
+          )))
     }
   }
 }
@@ -315,6 +394,12 @@ case class IR_IV_FragmentIndexPerBlock(var dim : Int) extends IR_UnduplicatedVar
     IR_ArrayAccess(this, Knowledge.domain_numFragmentsPerBlock * curRank + fragmentIdx)
   override def resolveName() = s"fragmentIndexOnRoot_$dim"
   override def resolveDatatype() = IR_ArrayDatatype(IR_IntegerDatatype, Knowledge.domain_numFragmentsTotal)
+}
+
+case class IR_IV_FragmentOffsetPerBlock() extends IR_UnduplicatedVariable {
+  def resolveAccess(curRank : IR_Expression) : IR_Expression = IR_ArrayAccess(this, curRank)
+  override def resolveName() = s"fragmentOffsetOnRoot"
+  override def resolveDatatype() = IR_ArrayDatatype(IR_IntegerDatatype, Knowledge.domain_numBlocks)
 }
 
 object IR_PrintXdmfStructured {

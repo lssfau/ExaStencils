@@ -212,7 +212,11 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   def ioHandler(constsIncluded : Boolean, fn : IR_Expression) : IR_FileAccess_PnetCDF = {
     val appendedMode = true // we create the file via the exodus library and then open it with pnetcdf to write the data
     val recordVariables = {
-      mutable.HashMap(dataBuffers(constsIncluded).zipWithIndex.map { case (buf, bufIdx) => (bufIdx, !dataBuffersConstant.map(_.name).contains(buf.name)) } : _*) // non-constants are record variables
+      mutable.HashMap(dataBuffers(constsIncluded).zipWithIndex.map { case (buf, bufIdx) => // non-constants are record variables
+        if (!Knowledge.parIO_vis_constantDataReduction)
+          (bufIdx, false)
+        else
+          (bufIdx, !dataBuffersConstant.map(_.name).contains(buf.name)) } : _*)
     }
 
     fn match {
@@ -255,6 +259,12 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   // we directly use the serial exodusII library here for simplicity
   def writeDataSerial(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
+
+    // enable error messages to be printed to std::cerr
+    if (Knowledge.parIO_generateDebugStatements)
+      stmts += IR_FunctionCall(IR_ExternalFunctionReference("ex_opts"), IR_VariableAccess("EX_VERBOSE", IR_UnknownDatatype))
+
+    stmts += IR_Assignment(IR_IV_TimeIndexRecordVariables(), 1) // ex_put_var expects start value 1
 
     if (constsIncluded) {
       stmts ++= ex_create()
@@ -312,8 +322,10 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     }
 
     // update time
-    stmts += IR_Assignment(IR_IV_TimeIndexRecordVariables(), 1, "+=")
-    stmts += IR_Assignment(IR_IV_TimeValueRecordVariables(), 1.0, "+=")
+    if (Knowledge.parIO_vis_constantDataReduction) {
+      stmts += IR_Assignment(IR_IV_TimeIndexRecordVariables(), 1, "+=")
+      stmts += IR_Assignment(IR_IV_TimeValueRecordVariables(), 1.0, "+=")
+    }
 
     stmts ++= ex_close()
 

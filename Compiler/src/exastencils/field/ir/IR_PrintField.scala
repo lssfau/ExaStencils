@@ -116,11 +116,11 @@ case class IR_PrintField(
 
     val binaryFpp = useBinary && ioInterfaceName == "fpp"
 
-    if (Knowledge.parIO_vis_forceMeshlessVisualization || Knowledge.grid_spacingModel == "blockstructured") {
+    if (Knowledge.parIO_vis_forceMeshlessVisualization) {
       IR_PrintXdmfMeshless(filename, field, slot, ioInterface, includeGhostLayers, dataset, binaryFpp, IR_FieldIO.getNewResolveId())
     } else if (Knowledge.grid_isUniform && Knowledge.grid_isAxisAligned) {
       IR_PrintXdmfUniform(filename, field, slot, ioInterface, includeGhostLayers, dataset, binaryFpp, canonicalFileLayout, IR_FieldIO.getNewResolveId())
-    } else if (Knowledge.grid_isAxisAligned) {
+    } else if (Knowledge.grid_isAxisAligned && Knowledge.grid_spacingModel != "blockstructured") {
       IR_PrintXdmfNonUniform_AA(filename, field, slot, ioInterface, includeGhostLayers, dataset, binaryFpp, canonicalFileLayout, IR_FieldIO.getNewResolveId())
     } else {
       IR_PrintXdmfNonUniform_NonAA(filename, field, slot, ioInterface, includeGhostLayers, dataset, binaryFpp, canonicalFileLayout, IR_FieldIO.getNewResolveId())

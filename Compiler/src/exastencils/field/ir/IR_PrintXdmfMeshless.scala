@@ -154,7 +154,7 @@ case class IR_PrintXdmfMeshless(
     }
     statements += printXdmfElement(stream, closeGeometry)
 
-    writeOrReferenceConstants(stream, statements, elemToRef = "Geometry")
+    writeXdmfElemOrReferenceConstants(stream, statements, elemToRef = "Geometry")
   }
 
   override def writeXdmfTopology(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {

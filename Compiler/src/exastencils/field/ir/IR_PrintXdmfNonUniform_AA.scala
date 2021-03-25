@@ -10,12 +10,10 @@ import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_StringConstant
 import exastencils.base.ir.IR_VariableAccess
-import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_Iostream
-import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.util.ir.IR_Print
 
 case class IR_PrintXdmfNonUniform_AA(
@@ -43,18 +41,6 @@ case class IR_PrintXdmfNonUniform_AA(
 
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {
     (if (constsIncluded) dataBuffersNodePos else ListBuffer()) :+ dataBuffer
-  }
-
-  override def stmtsForPreparation : ListBuffer[IR_Statement] = {
-    var statements : ListBuffer[IR_Statement] = ListBuffer()
-
-    statements ++= IR_IV_FragmentInfo.init(dataBuffer.domainIdx)
-
-    // interpolate face centered values towards cell centers
-    if (tmpBufStag.isDefined)
-      statements ++= interpStagField(tmpBufStag.get)
-
-    statements
   }
 
   override def writeXdmfGeometry(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
@@ -96,19 +82,13 @@ case class IR_PrintXdmfNonUniform_AA(
 
     statements += printXdmfElement(stream, closeGeometry)
 
-    writeOrReferenceConstants(stream, statements, elemToRef = "Geometry")
+    writeXdmfElemOrReferenceConstants(stream, statements, elemToRef = "Geometry")
   }
 
-  override def writeXdmfTopology(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
-    // in this implementation, a xdmf "grid" is specified for each fragment -> calc. local number of nodes
-    val nodeDims = (0 until numDimsGrid).map(d => Knowledge.domain_fragmentLengthAsVec(d) * (1 << level) + 1 : IR_Expression).to[ListBuffer]
-
-    var statements : ListBuffer[IR_Statement] = ListBuffer()
-    statements += printXdmfElement(stream, openTopology(if (numDimsGrid == 3) "3DRectMesh" else "2DRectMesh", nodeDims) : _*)
-    statements += printXdmfElement(stream, closeTopology)
-
-    statements
-  }
+  override def writeXdmfTopology(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = ListBuffer(
+    printXdmfElement(stream, openTopology(if (numDimsGrid == 3) "3DRectMesh" else "2DRectMesh", nodeDims) : _*),
+    printXdmfElement(stream, closeTopology)
+  )
 
   override def numDimsGrid : Int = field.layout.numDimsGrid
   override def numFields : Int = 1
