@@ -35,7 +35,7 @@ case class IR_FileAccess_SIONlib(
   val numBytesDatatype : Array[Int] = dataBuffers.map(buf => buf.datatype.resolveBaseDatatype.typicalByteSize).toArray
   val numBytesLocal : Array[IR_Expression] = dataBuffers.indices.map(bufIdx => dataBuffers(bufIdx).typicalByteSizeLocal).toArray
   val numValuesLocal : Array[IR_Expression] = dataBuffers.indices.map(bufIdx => IR_SimplifyExpression.simplifyIntegralExpr(numBytesLocal(bufIdx) / numBytesDatatype(bufIdx))).toArray
-  val totalBytesBlock : IR_Expression = dataBuffers.indices.map(bufIdx => dataBuffers(bufIdx).typicalByteSizeBlock).reduceOption(_ + _) getOrElse 0
+  val totalBytesBlock : IR_Expression = IR_SimplifyExpression.simplifyIntegralExpr(dataBuffers.indices.map(bufIdx => dataBuffers(bufIdx).typicalByteSizeBlock).reduceOption(_ + _) getOrElse 0)
 
   // declarations
   val fileId_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("fileId"))

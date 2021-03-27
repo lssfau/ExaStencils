@@ -264,9 +264,8 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     if (Knowledge.parIO_generateDebugStatements)
       stmts += IR_FunctionCall(IR_ExternalFunctionReference("ex_opts"), IR_VariableAccess("EX_VERBOSE", IR_UnknownDatatype))
 
-    stmts += IR_Assignment(IR_IV_TimeIndexRecordVariables(), 1) // ex_put_var expects start value 1
-
     if (constsIncluded) {
+      stmts += IR_Assignment(IR_IV_TimeIndexRecordVariables(), 1) // ex_put_var expects start value 1
       stmts ++= ex_create()
       stmts ++= ex_put_init()
       stmts ++= ex_put_block()
@@ -463,7 +462,7 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     // free buffer if only used once, others are used in each print step and free'd later
     val freeTmpBuffersConst : ListBuffer[IR_Statement] = ListBuffer()
     dataBuffersConstant.foreach(constBuf => {
-      if (constBuf.isTemporaryBuffer) {
+      if (Knowledge.parIO_vis_constantDataReduction && constBuf.isTemporaryBuffer) {
         if (constBuf.accessBlockwise) {
           freeTmpBuffersConst += IR_IfCondition(constBuf.name,
             ListBuffer[IR_Statement](

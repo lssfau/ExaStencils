@@ -372,7 +372,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     // free buffer if only used once, others are used in each print step and free'd later
     val freeTmpBuffersConst : ListBuffer[IR_Statement] = ListBuffer()
     dataBuffersConst.foreach(constBuf => {
-      if (constBuf.isTemporaryBuffer) {
+      if (Knowledge.parIO_vis_constantDataReduction && constBuf.isTemporaryBuffer) {
         if (constBuf.accessBlockwise) {
           freeTmpBuffersConst += IR_IfCondition(constBuf.name,
             ListBuffer[IR_Statement](

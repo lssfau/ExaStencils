@@ -83,9 +83,11 @@ case class IR_PrintXdmfSWE(
     )
 
     // setup buffers
-    if (enforceCopiesHdf5 || gridPositionsCopied)
-      stmts ++= setupNodePositions(copyNodePositions = true)
-    stmts ++= setupConnectivity(global = ioInterface != "fpp")
+    if (fmt != "XML") {
+      if (enforceCopiesHdf5 || gridPositionsCopied)
+        stmts ++= setupNodePositions(copyNodePositions = true)
+      stmts ++= setupConnectivity(global = ioInterface != "fpp")
+    }
     if (Knowledge.swe_nodalReductionPrint) {
       stmts ++= setupReducedData
     } else if (ioInterface == "hdf5") {
