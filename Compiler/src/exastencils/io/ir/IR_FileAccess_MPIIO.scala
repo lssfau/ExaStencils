@@ -117,7 +117,7 @@ case class IR_FileAccess_MPIIO(
     (dimensionalityDeclarations ++ declarations).foreach(decl => statements += decl)
 
     // setup hints
-    statements += info.setHints()
+    statements ++= info.setHints()
 
     // open file
     statements += IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_open"),

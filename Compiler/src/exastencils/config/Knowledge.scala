@@ -512,9 +512,19 @@ object Knowledge {
   // [true|false] // automatic meta-data evictions. careful: if the application crashes before meta-data is flushed to file, the file is unusable
   var hdf5_auto_metadata_flush : Boolean = true
 
-  // (threshold, alignment) in bytes. default = (1, 1), for parallel I/O best choice is the block- or stripe-size
+  // (threshold, alignment) of HDF5 objects in bytes. default = (1, 1), for parallel I/O best choice is the block- or stripe-size
   var hdf5_object_alignment_threshold : Int = 1
-  var hdf5_object_alignment_size : Int = 1
+  var hdf5_object_alignment_size : Int = 1 // auto = -1
+
+  // - PnetCDF params -
+  // alignment of the header. 1 = default, -1 = auto, else = user-defined
+  var nc_header_align_size : Int = 1
+
+  // alignment of fixed-size arrays. 1 = default, -1 = auto, else = user-defined
+  var nc_var_align_size : Int = 1
+
+  // alignment of record variable section. 1 = default, -1 = auto, else = user-defined
+  var nc_record_align_size : Int = 1
 
   // - Stream-based I/O -
   // manual buffering to reduce library/function calls to ANSI C/C++ STL streams(binary). only has an effect for buffers which cannot be written at once (e.g. condition or ghost layers/... excluded)

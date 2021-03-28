@@ -103,7 +103,7 @@ case class IR_FileAccess_PnetCDF(
 
   // accesses
   val ncFile = IR_VariableAccess(ncFile_decl)
-  val info = MPI_Info()
+  val info = PnetCDF_Info()
   val varIdTime = IR_VariableAccess(varIdTime_decl)
   lazy val varIdBuffer : Array[IR_VariableAccess] = dataBuffers.indices.map(bufIdx => IR_VariableAccess(varIdBuffer_decl(bufIdx))).toArray
   lazy val emptyCount : Array[IR_VariableAccess] = dataBuffers.indices.map(bufIdx => IR_VariableAccess(emptyCount_decl(bufIdx))).toArray
@@ -159,14 +159,14 @@ case class IR_FileAccess_PnetCDF(
     // distinction of serial/parallel interfaces only made for these functions since their signature (serial <-> parallel) differs greatly
     if (writeAccess && !appendedMode) {
       if (Knowledge.mpi_enabled) {
-        statements += info.setHints()
+        statements ++= info.setHints()
         statements ++= ncmpi_create(mpiCommunicator, filenameAsCString, fileMode, info, ncFile)
       } else {
         statements ++= nc_create(filenameAsCString, fileMode, ncFile)
       }
     } else {
       if (Knowledge.mpi_enabled) {
-        statements += info.setHints()
+        statements ++= info.setHints()
         statements ++= ncmpi_open(mpiCommunicator, filenameAsCString, fileMode, info, ncFile)
       } else {
         statements ++= nc_open(filenameAsCString, fileMode, ncFile)

@@ -185,7 +185,7 @@ case class IR_FileAccess_HDF5(
     // setup property list for file access
     statements ++= H5Pcreate(fapl, IR_VariableAccess("H5P_FILE_ACCESS", IR_UnknownDatatype))
     if (Knowledge.mpi_enabled) {
-      statements += info.setHints()
+      statements ++= info.setHints()
       statements ++= H5Pset_fapl_mpio(err, fapl, mpiCommunicator, info)
     }
 
