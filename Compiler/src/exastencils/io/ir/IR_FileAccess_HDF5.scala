@@ -1,10 +1,28 @@
 package exastencils.io.ir
-
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_AddressOf
+import exastencils.base.ir.IR_ArrayAccess
+import exastencils.base.ir.IR_Assignment
+import exastencils.base.ir.IR_BitwiseAnd
+import exastencils.base.ir.IR_BooleanConstant
+import exastencils.base.ir.IR_Expression
+import exastencils.base.ir.IR_ExternalFunctionReference
+import exastencils.base.ir.IR_FunctionCall
+import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir._
+import exastencils.base.ir.IR_IntegerConstant
+import exastencils.base.ir.IR_IntegerDatatype
+import exastencils.base.ir.IR_MemberAccess
+import exastencils.base.ir.IR_Negation
+import exastencils.base.ir.IR_NullExpression
+import exastencils.base.ir.IR_SpecialDatatype
+import exastencils.base.ir.IR_Statement
+import exastencils.base.ir.IR_StringConstant
+import exastencils.base.ir.IR_UnknownDatatype
+import exastencils.base.ir.IR_VariableAccess
+import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
@@ -17,6 +35,7 @@ case class IR_FileAccess_HDF5(
     var filename : IR_Expression,
     var dataBuffers : ListBuffer[IR_DataBuffer],
     var writeAccess : Boolean,
+    var zlibCompressionLevel : Int,
     var appendedMode : Boolean = false,
     var initFragInfo : Boolean = true
 ) extends IR_FileAccess("hdf5") with IR_Hdf5_API {
@@ -37,37 +56,39 @@ case class IR_FileAccess_HDF5(
   // decls
   val err_decl = IR_VariableDeclaration(herr_t, IR_FileAccess.declareVariable("err"))
   val fileId_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("fileId"))
-  val propertyList_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("propertyList"))
+  val fapl_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("fapl")) // file access property list
+  val fcpl_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("fcpl")) // file creation property list
+  val dcpl_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("dcpl")) // dataset creation property list
+  val configMdc_decl = IR_VariableDeclaration(IR_SpecialDatatype("H5AC_cache_config_t"), IR_FileAccess.declareVariable("mdc_config")) // metadata cache config
   val transferList_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("transferList"))
   val emptyDataspace_decl = IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("emptyDataspace"))
   val dataset_decl : Array[IR_VariableDeclaration] = dataBuffers.map(buf => IR_VariableDeclaration(hid_t, IR_FileAccess.declareVariable("dataset_" + buf.name))).toArray
-  val info_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Info"), IR_FileAccess.declareVariable("info"), IR_VariableAccess("MPI_INFO_NULL", IR_UnknownDatatype)) //TODO handle hints
 
   var declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(
     err_decl, // error variable for debugging
     fileId_decl, // file handle
-    propertyList_decl, // properties for file access
+    fapl_decl, // properties for file access
+    fcpl_decl, // properties for file creation
+    dcpl_decl, // properties for dataset creation
     transferList_decl, // properties for transfer e.g. I/O mode
-
   )
 
   // declarations per databuffer
   declarations ++= dataset_decl
-
-  // add declarations which are only used in a parallel application
-  if (Knowledge.mpi_enabled) {
-    declarations += info_decl
-  }
-
+  // config structure for meta-data cache
+  if (!Knowledge.hdf5_auto_metadata_flush)
+    declarations += configMdc_decl
   // declarations for collective I/O
-  if (Knowledge.parIO_useCollectiveIO) {
+  if (Knowledge.parIO_useCollectiveIO)
     declarations += emptyDataspace_decl
-  }
 
   // variable accesses
   val err = IR_VariableAccess(err_decl)
   val fileId = IR_VariableAccess(fileId_decl)
-  val propertyList = IR_VariableAccess(propertyList_decl)
+  val fapl = IR_VariableAccess(fapl_decl)
+  val fcpl = IR_VariableAccess(fcpl_decl)
+  val dcpl = IR_VariableAccess(dcpl_decl)
+  val configMdc = IR_VariableAccess(configMdc_decl)
   val transferList = IR_VariableAccess(transferList_decl)
   val emptyDataspace = IR_VariableAccess(emptyDataspace_decl)
   def dataspace(bufIdx : Int) : IR_VariableAccess = getDataspace(bufIdx).get
@@ -84,7 +105,7 @@ case class IR_FileAccess_HDF5(
   def addDataspace(bufIdx : Int, acc : IR_VariableAccess) : Option[IR_VariableAccess] = dataspaces.put(dataspaceKey(bufIdx), acc)
   def getDataspace(bufIdx : Int) : Option[IR_VariableAccess] = dataspaces.get(dataspaceKey(bufIdx))
 
-  val info = IR_VariableAccess(info_decl)
+  val info = MPI_Info()
   val defaultPropertyList = IR_VariableAccess("H5P_DEFAULT", IR_UnknownDatatype)
 
   // get group names from absolute dataset path (w/o dataset name) beginning from root ("/"). E.g. /path/to/datasetName contains groups: /path, /path/to
@@ -130,24 +151,72 @@ case class IR_FileAccess_HDF5(
 
   override def createOrOpenFile() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
+    val domainIdx = dataBuffers.head.domainIdx
 
     // init frag info if it was not already (e.g. in visualization interface)
     if (initFragInfo)
-      statements ++= IR_IV_FragmentInfo.init(dataBuffers.head.domainIdx, calculateFragOffset = dataBuffers.exists(!_.canonicalOrder))
+      statements ++= IR_IV_FragmentInfo.init(domainIdx, calculateFragOffset = dataBuffers.exists(!_.canonicalOrder))
 
     // add decls
     (dimensionalityDeclarations ++ declarations).foreach(decl => statements += decl)
 
-    // setup property list for file creation/opening
-    statements ++= H5Pcreate(propertyList, IR_VariableAccess("H5P_FILE_ACCESS", IR_UnknownDatatype))
-    if (Knowledge.mpi_enabled)
-      statements ++= H5Pset_fapl_mpio(err, propertyList, mpiCommunicator, info)
+    // check if compression is available
+    if (zlibCompressionLevel > 0) {
+      val avail = IR_VariableAccess(IR_FileAccess.declareVariable("zlibAvail"), htri_t)
+      val filterInfo = IR_VariableAccess(IR_FileAccess.declareVariable("filterInfo"), IR_SpecialDatatype("unsigned int"))
+      statements += IR_VariableDeclaration(avail)
+      statements += IR_VariableDeclaration(filterInfo)
+      statements ++= callH5Function(avail, "H5Zfilter_avail", IR_VariableAccess("H5Z_FILTER_DEFLATE", IR_UnknownDatatype))
+      statements += IR_IfCondition(IR_Negation(avail),
+        IR_Print(IR_VariableAccess("std::cerr", IR_UnknownDatatype), IR_StringConstant("zlib is not installed"), IR_Print.endl))
+      statements ++= callH5Function(err, "H5Zget_filter_info", IR_VariableAccess("H5Z_FILTER_DEFLATE", IR_UnknownDatatype), IR_AddressOf(filterInfo))
+      statements += IR_IfCondition(
+        IR_Negation(IR_BitwiseAnd(filterInfo, IR_VariableAccess("H5Z_FILTER_CONFIG_ENCODE_ENABLED", IR_UnknownDatatype))) OrOr
+          IR_Negation(IR_BitwiseAnd(filterInfo, IR_VariableAccess("H5Z_FILTER_CONFIG_DECODE_ENABLED", IR_UnknownDatatype))),
+        ListBuffer[IR_Statement](
+          IR_Print(IR_VariableAccess("std::cerr", IR_UnknownDatatype), IR_StringConstant("zlib not available for en- and decoding"), IR_Print.endl),
+          if (Knowledge.mpi_enabled)
+            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Abort"), mpiCommunicator, IR_IntegerConstant(1))
+          else
+            IR_FunctionCall(IR_ExternalFunctionReference("exit"), IR_IntegerConstant(1))
+        ))
+    }
+
+    // setup property list for file access
+    statements ++= H5Pcreate(fapl, IR_VariableAccess("H5P_FILE_ACCESS", IR_UnknownDatatype))
+    if (Knowledge.mpi_enabled) {
+      statements += info.setHints()
+      statements ++= H5Pset_fapl_mpio(err, fapl, mpiCommunicator, info)
+    }
+
+    // set alignment if knowledge flag does not have default value (this option is mainly meant for MPI parallel applications)
+    if (Knowledge.hdf5_object_alignment_threshold != 1 || Knowledge.hdf5_object_alignment_size != 1)
+      statements ++= H5Pset_alignment(err, fapl)
+
+    // setup property list for file creation
+    statements ++= H5Pcreate(fcpl, IR_VariableAccess("H5P_FILE_CREATE", IR_UnknownDatatype))
+    if (Knowledge.hdf5_use_chunking) {
+      val ik = IR_IV_TotalNumFrags(domainIdx) / 2
+      statements += IR_IfCondition(ik > 1 AndAnd ik < 65536, // cannot exceed limit: https://support.hdfgroup.org/HDF5/doc/RM/RM_H5P.html#Property-SetIstoreK
+        H5Pset_istore_k(err, fcpl, ik))
+    }
+
+    // disable automatic flushing of meta-data for better performance
+    if (!Knowledge.hdf5_auto_metadata_flush) {
+      statements += IR_Assignment(IR_MemberAccess(configMdc, "version"), IR_VariableAccess("H5AC__CURR_CACHE_CONFIG_VERSION", IR_UnknownDatatype))
+      statements ++= H5Pget_mdc_config(err, fapl, IR_AddressOf(configMdc))
+      statements += IR_Assignment(IR_MemberAccess(configMdc, "evictions_enabled"), IR_BooleanConstant(false))
+      statements += IR_Assignment(IR_MemberAccess(configMdc, "flash_incr_mode"), IR_VariableAccess("H5C_flash_incr__off", IR_UnknownDatatype))
+      statements += IR_Assignment(IR_MemberAccess(configMdc, "incr_mode"), IR_VariableAccess("H5C_incr__off", IR_UnknownDatatype))
+      statements += IR_Assignment(IR_MemberAccess(configMdc, "decr_mode"), IR_VariableAccess("H5C_decr__off", IR_UnknownDatatype))
+      statements ++= H5Pset_mdc_config(err, fapl, IR_AddressOf(configMdc))
+    }
 
     // create/open file
     if (writeAccess && !appendedMode)
-      statements ++= H5Fcreate(fileId, filenameAsCString, fileMode, defaultPropertyList, propertyList)
+      statements ++= H5Fcreate(fileId, filenameAsCString, fileMode, fcpl, fapl)
     else
-      statements ++= H5Fopen(fileId, filenameAsCString, fileMode, propertyList)
+      statements ++= H5Fopen(fileId, filenameAsCString, fileMode, fapl)
 
     statements
   }
@@ -189,10 +258,13 @@ case class IR_FileAccess_HDF5(
     statements ++= closeGroupHierarchy
 
     // close property lists
-    if (Knowledge.mpi_enabled) {
-      statements ++= H5Pclose(err, propertyList)
-      statements ++= H5Pclose(err, transferList)
+    statements ++= H5Pclose(err, fapl)
+    if (writeAccess) {
+      statements ++= H5Pclose(err, fcpl)
+      statements ++= H5Pclose(err, dcpl)
     }
+    if (Knowledge.mpi_enabled)
+      statements ++= H5Pclose(err, transferList)
 
     // close data- and memspaces
     if (Knowledge.parIO_useCollectiveIO)
@@ -325,7 +397,13 @@ case class IR_FileAccess_HDF5(
     })
 
     // create dataset
-    statements ++= H5Dcreate2(dataset(bufIdx), locationId, buffer.datasetName, buffer.datatype, dataspace, defaultPropertyList, defaultPropertyList, defaultPropertyList)
+    statements ++= H5Pcreate(dcpl, IR_VariableAccess("H5P_DATASET_CREATE", IR_UnknownDatatype))
+    if (zlibCompressionLevel > 0) // enable compression
+      statements ++= callH5Function(err, "H5Pset_deflate", dcpl, zlibCompressionLevel)
+    if (Knowledge.hdf5_use_chunking) // enable chunking
+      statements ++= H5Pset_chunk(err, dcpl, buffer.datasetDimsGlobal, count(bufIdx))
+
+    statements ++= H5Dcreate2(dataset(bufIdx), locationId, buffer.datasetName, buffer.datatype, dataspace, defaultPropertyList, dcpl, defaultPropertyList)
 
     if (Knowledge.parIO_useCollectiveIO && !dataBuffers(bufIdx).accessBlockwise) {
       statements += accessFileWithGranularity(bufIdx,

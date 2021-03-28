@@ -85,7 +85,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
       case "fpp"   =>
         IR_FileAccess_FPP(fn, dataBuffers(constsIncluded), useBinary = binaryFpp, writeAccess = true, separator, condition = true, optPrintComponents = None)
       case "hdf5"  =>
-        IR_FileAccess_HDF5(fn, dataBuffers(constsIncluded), writeAccess = true, initFragInfo = false)
+        IR_FileAccess_HDF5(fn, dataBuffers(constsIncluded), writeAccess = true, initFragInfo = false, zlibCompressionLevel = 0)
       case _ =>
         Logger.error("Wrong I/O interface passed to \"printXdmf\". Options are: " + supportedInterfaces.mkString("\"", "\", \"", "\""))
     }

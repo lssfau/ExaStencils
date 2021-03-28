@@ -24,7 +24,6 @@ import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_PointerDatatype
 import exastencils.base.ir.IR_RealDatatype
 import exastencils.base.ir.IR_SizeOf
-import exastencils.base.ir.IR_SpecialDatatype
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_StringConstant
 import exastencils.base.ir.IR_StringDatatype
@@ -52,6 +51,7 @@ import exastencils.io.ir.IR_IV_NumValidFrags
 import exastencils.io.ir.IR_IV_TemporaryBuffer
 import exastencils.io.ir.IR_IV_TimeIndexRecordVariables
 import exastencils.io.ir.IR_IV_TimeValueRecordVariables
+import exastencils.io.ir.MPI_Info
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_Print
@@ -113,7 +113,6 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   override def connectivityStartIndex : Int = 1
 
   // declarations
-  val info_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Info"), "info", IR_VariableAccess("MPI_INFO_NULL", IR_UnknownDatatype)) //TODO handle hints
   val exoErr_decl = IR_VariableDeclaration(IR_IntegerDatatype, "exoErr")
   val exoId_decl = IR_VariableDeclaration(IR_IntegerDatatype, "exoId")
   val coordNames_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_PointerDatatype(IR_CharDatatype), numDimsGrid), "coordNames",
@@ -131,12 +130,9 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     exoErr_decl, exoId_decl, coordNames_decl, fieldNames_decl, wordSizeCPU_decl, wordSizeIO_decl, truthTable_decl
   )
 
-  if (Knowledge.mpi_enabled)
-    declarations += info_decl
-
   // accesses
   val nullptr = IR_VariableAccess("NULL", IR_UnknownDatatype)
-  val info = IR_VariableAccess(info_decl)
+  val info = MPI_Info()
   val exoErr = IR_VariableAccess(exoErr_decl)
   val exoId = IR_VariableAccess(exoId_decl)
   val coordNames = IR_VariableAccess(coordNames_decl)
@@ -241,6 +237,9 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     // enable error messages to be printed to std::cerr
     if (Knowledge.parIO_generateDebugStatements)
       stmts += IR_FunctionCall(IR_ExternalFunctionReference("ex_opts"), IR_VariableAccess("EX_VERBOSE", IR_UnknownDatatype))
+
+    if (Knowledge.mpi_enabled)
+      stmts += info.setHints()
 
     stmts ++= ex_create_par()
     stmts ++= ex_put_init()

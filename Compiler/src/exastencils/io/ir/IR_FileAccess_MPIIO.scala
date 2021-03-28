@@ -37,14 +37,13 @@ case class IR_FileAccess_MPIIO(
 
   // declarations
   val fileHandle_decl = IR_VariableDeclaration(MPI_File, IR_FileAccess.declareVariable("fh"))
-  val info_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Info"), IR_FileAccess.declareVariable("info"), IR_VariableAccess("MPI_INFO_NULL", IR_UnknownDatatype)) //TODO handle hints
   val status_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Status"), IR_FileAccess.declareVariable("status"))
 
-  var declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(fileHandle_decl, info_decl, status_decl)
+  var declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(fileHandle_decl, status_decl)
 
   // accesses
   val fileHandle = IR_VariableAccess(fileHandle_decl)
-  val info = IR_VariableAccess(info_decl)
+  val info = MPI_Info()
   val status = IR_AddressOf(IR_VariableAccess(status_decl))
 
   // derived datatypes
@@ -116,6 +115,9 @@ case class IR_FileAccess_MPIIO(
 
     // add decls
     (dimensionalityDeclarations ++ declarations).foreach(decl => statements += decl)
+
+    // setup hints
+    statements += info.setHints()
 
     // open file
     statements += IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_open"),

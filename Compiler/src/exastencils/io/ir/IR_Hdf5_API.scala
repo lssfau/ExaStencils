@@ -88,7 +88,22 @@ trait IR_Hdf5_API {
   def H5Pcreate(propertyList : IR_VariableAccess, properyListClass : IR_VariableAccess) : ListBuffer[IR_Statement] =
     callH5Function(propertyList, "H5Pcreate", properyListClass)
 
-  def H5Pset_fapl_mpio(err : IR_VariableAccess, propertyList : IR_VariableAccess, comm : IR_VariableAccess, info : IR_VariableAccess) : ListBuffer[IR_Statement] =
+  def H5Pset_chunk(err : IR_VariableAccess, propertyList : IR_VariableAccess, rank : Int, chunkDimsPtr : IR_VariableAccess) : ListBuffer[IR_Statement] =
+    callH5Function(err, "H5Pset_chunk", propertyList, rank, chunkDimsPtr)
+
+  def H5Pset_alignment(err : IR_VariableAccess, propertyList : IR_VariableAccess) : ListBuffer[IR_Statement] =
+    callH5Function(err, "H5Pset_alignment", propertyList, Knowledge.hdf5_object_alignment_threshold, Knowledge.hdf5_object_alignment_size)
+
+  def H5Pset_istore_k(err : IR_VariableAccess, propertyList : IR_VariableAccess, value : IR_Expression) : ListBuffer[IR_Statement] =
+    callH5Function(err, "H5Pset_istore_k", propertyList, value)
+
+  def H5Pget_mdc_config(err : IR_VariableAccess, fileId : IR_VariableAccess, configPtr : IR_AddressOf) : ListBuffer[IR_Statement] =
+    callH5Function(err, "H5Pget_mdc_config", fileId, configPtr)
+
+  def H5Pset_mdc_config(err : IR_VariableAccess, fileId : IR_VariableAccess, configPtr : IR_AddressOf) : ListBuffer[IR_Statement] =
+    callH5Function(err, "H5Pset_mdc_config", fileId, configPtr)
+
+  def H5Pset_fapl_mpio(err : IR_VariableAccess, propertyList : IR_VariableAccess, comm : IR_VariableAccess, info : IR_Expression) : ListBuffer[IR_Statement] =
     callH5Function(err, "H5Pset_fapl_mpio", propertyList, comm, info)
 
   def H5Pset_dxpl_mpio(err : IR_VariableAccess, transferList : IR_VariableAccess, ioMode : IR_VariableAccess) : ListBuffer[IR_Statement] =

@@ -469,17 +469,58 @@ object Knowledge {
 
   // --- Parallel I/O ---
 
+  // -- General parameters --
+
   // [true|false] // allows generation of debugging statements when using parallel I/O libraries
   var parIO_generateDebugStatements : Boolean = false
 
   // [true|false] // decides whether collective or individual I/O is used when using parallel I/O libraries
   var parIO_useCollectiveIO : Boolean = true
 
-  // --- Stream-based I/O ---
+  // -- Tuning parameters --
+
+  // - MPI hints -
+
+  // 0 = off or externally defined, else = user-defined
+  var lustre_stripe_count : Int = 0 // number for OSTs
+  var lustre_stripe_size : Int = 0 // number of bytes written to one OST
+
+  // Data sieving
+  // "automatic" = default, "enable", "disable" otherwise
+  var romio_ds_read : String = "automatic"
+  var romio_ds_write : String = "automatic"
+
+  // Collective buffering
+  // 0 = default, -1 = number of OSTs, else = user-defined
+  var cb_nodes : Int = 0
+
+  // 0 = default (4194304 = 4 MB), else = user-defined
+  var cb_buffer_size : Int = 0
+
+  // "automatic" = default, "enable", "disable" otherwise
+  var romio_cb_read : String = "automatic"
+  var romio_cb_write : String = "automatic"
+
+  // - HDF5 params -
+
+  // use chunking when storing datasets. size is automatically set to the extents of a fragment/block
+  var hdf5_use_chunking : Boolean = false
+
+  // use zlib compression when writing a dataset. compression rate in range [0,9]. 0 = no compression
+  var hdf5_write_zlib_compression_level : Int = 0
+
+  // [true|false] // automatic meta-data evictions. careful: if the application crashes before meta-data is flushed to file, the file is unusable
+  var hdf5_auto_metadata_flush : Boolean = true
+
+  // (threshold, alignment) in bytes. default = (1, 1), for parallel I/O best choice is the block- or stripe-size
+  var hdf5_object_alignment_threshold : Int = 1
+  var hdf5_object_alignment_size : Int = 1
+
+  // - Stream-based I/O -
   // manual buffering to reduce library/function calls to ANSI C/C++ STL streams(binary). only has an effect for buffers which cannot be written at once (e.g. condition or ghost layers/... excluded)
   var parIO_streams_useIntermediateBuffer : Boolean = false
 
-  // --- SION ---
+  // - SION params -
   // set size of internal ANSI C buffer, -1 = use system default (mostly fs blocksize)
   var sion_setvbuf_size : Int = -1
 
@@ -491,6 +532,7 @@ object Knowledge {
 
   // -- Visualization with Xdmf/Exodus --
 
+  // [true|false] // print mesh in form of a point cloud
   var parIO_vis_forceMeshlessVisualization : Boolean = false
 
   // [true|false] // prevents duplication of constant data when printing Xdmf or Exodus files
@@ -823,6 +865,15 @@ object Knowledge {
     Constraints.condEnsureValue(performance_addEstimation, true, performance_printEstimation, "printing performance estimations requires actually estimating them")
     Constraints.condEnsureValue(performance_addEstimation, true, opt_loopBlocked, "loop blocking requires setting up a performance model")
     Constraints.condEnsureValue(poly_optLevel_fine, 3, opt_loopBlocked, "loop blocking requires poly_optLevel_fine 3")
+
+    // MPI I/O
+    Constraints.condError(cb_nodes == -1 && lustre_stripe_count < 1, "When setting the number of collective buffering nodes automatically to the number of OSTs, lustre_stripe_count must be >= 1.")
+    Constraints.condError(cb_nodes == -1 && lustre_stripe_count > mpi_numThreads, "Setting the number of cb_nodes greater than the number of MPI threads. Adjust the lustre_stripe_count flag.")
+    Constraints.condError(cb_nodes > mpi_numThreads, "Setting the number of cb_nodes greater than the number of MPI threads.")
+
+    // hdf5
+    Constraints.condError(!hdf5_use_chunking && hdf5_write_zlib_compression_level > 0, "HDF5: chunking must be enabled for writing compressed datasets.")
+    Constraints.condError(hdf5_write_zlib_compression_level > 0 && Knowledge.mpi_enabled, "HDF5: zlib compression currently only works for serial applications. Parallel filters are required.")
 
     // sion
     Constraints.condError(sion_phys_files > mpi_numThreads, "Number of physical files in a sionlib container must be smaller than the number of MPI threads.")

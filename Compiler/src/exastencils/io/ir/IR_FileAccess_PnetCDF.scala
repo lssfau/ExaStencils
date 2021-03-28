@@ -54,7 +54,6 @@ case class IR_FileAccess_PnetCDF(
 
   // decls
   val ncFile_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("ncFile"))
-  val info_decl = IR_VariableDeclaration(IR_SpecialDatatype("MPI_Info"), IR_FileAccess.declareVariable("info"), IR_VariableAccess("MPI_INFO_NULL", IR_UnknownDatatype)) //TODO handle hints
   val varIdTime_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("varIdTime"))
   val varIdBuffer_decl : Array[IR_VariableDeclaration] = dataBuffers.map(buf =>
     IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("varId_"+buf.name))).toArray
@@ -92,11 +91,6 @@ case class IR_FileAccess_PnetCDF(
   declarations ++= varIdBuffer_decl
   declarations ++= imap_decl.distinct
 
-  // add declarations which are only used in a parallel application
-  if (Knowledge.mpi_enabled) {
-    declarations += info_decl
-  }
-
   // declarations when using record variables
   if (fileContainsRecordVariables) {
     declarations += varIdTime_decl
@@ -109,7 +103,7 @@ case class IR_FileAccess_PnetCDF(
 
   // accesses
   val ncFile = IR_VariableAccess(ncFile_decl)
-  val info = IR_VariableAccess(info_decl)
+  val info = MPI_Info()
   val varIdTime = IR_VariableAccess(varIdTime_decl)
   lazy val varIdBuffer : Array[IR_VariableAccess] = dataBuffers.indices.map(bufIdx => IR_VariableAccess(varIdBuffer_decl(bufIdx))).toArray
   lazy val emptyCount : Array[IR_VariableAccess] = dataBuffers.indices.map(bufIdx => IR_VariableAccess(emptyCount_decl(bufIdx))).toArray
@@ -165,12 +159,14 @@ case class IR_FileAccess_PnetCDF(
     // distinction of serial/parallel interfaces only made for these functions since their signature (serial <-> parallel) differs greatly
     if (writeAccess && !appendedMode) {
       if (Knowledge.mpi_enabled) {
+        statements += info.setHints()
         statements ++= ncmpi_create(mpiCommunicator, filenameAsCString, fileMode, info, ncFile)
       } else {
         statements ++= nc_create(filenameAsCString, fileMode, ncFile)
       }
     } else {
       if (Knowledge.mpi_enabled) {
+        statements += info.setHints()
         statements ++= ncmpi_open(mpiCommunicator, filenameAsCString, fileMode, info, ncFile)
       } else {
         statements ++= nc_open(filenameAsCString, fileMode, ncFile)

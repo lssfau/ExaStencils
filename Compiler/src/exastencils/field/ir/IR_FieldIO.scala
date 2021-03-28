@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_Expandable
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_StringConstant
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_FileAccess
@@ -76,7 +77,7 @@ abstract class IR_FieldIO extends IR_Statement with IR_Expandable {
       case "mpiio" =>
         IR_FileAccess_MPIIO(filename, ListBuffer(fieldAsDataBuffer), doWrite, representation = mpiioRepresentation)
       case "hdf5"  =>
-        IR_FileAccess_HDF5(filename, ListBuffer(fieldAsDataBuffer), doWrite)
+        IR_FileAccess_HDF5(filename, ListBuffer(fieldAsDataBuffer), doWrite, zlibCompressionLevel = if (onlyVals) Knowledge.hdf5_write_zlib_compression_level else 0)
       case "nc"    =>
         IR_FileAccess_PnetCDF(filename, ListBuffer(fieldAsDataBuffer), None, doWrite)
       case "sion"  =>
