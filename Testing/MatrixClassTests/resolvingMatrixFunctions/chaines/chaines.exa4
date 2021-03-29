@@ -1,0 +1,60 @@
+
+Domain global< [ 0, 0 ] to [ 0.1, 0.1 ] >
+
+Globals {
+	
+}
+
+/// main function
+
+Function Application ( ) : Unit {
+
+	Var m1 : Matrix<Double, 2, 2> = {{1, 2}, {3, 4}}
+	Var m2 : Matrix<Double, 2, 2> = {{3,2},{1,4}}
+	//Var m3 : Matrix<Real, 7, 7> = {{1.0, 2, 1, 0, 0, 0, 3}, {4, 2, 1, 0, 0, 0, 1}, {1,5,1,0,0,0,5},{0, 0, 0, 4, 1, 3, 2}, {0, 0, 0, 1, 1, 2, 3}, {0,0,0,4,6,7,3},{3,5,7,4,4,5,1}}
+
+	//Var prec : Double = 0.0001
+
+
+	Var res1 : Matrix<Double, 2, 2> 
+	res1 = m1 * inverse(m1)
+	Var sol1 : Matrix<Double, 2, 2> = {{1,0},{0,1}}
+	compare(res1,sol1,0.001)
+	print('stage 1 done')
+
+	
+	Var res2 : Matrix<Double, 2, 2> = m1 .* det(m1)
+	Var sol2 : Matrix<Double, 2, 2> = {{-2,-4},{-6,-8}}
+	compare(res2,sol2,0.1)
+	print('stage 2 done')
+	
+	
+	Var res3 : Double 
+	res3 = 42 + dotProduct(m1, inverse(m1))
+	Var sol3 : Double = 44.5
+	compare(res3,sol3,0.01)
+
+	print('stage 3 done')
+
+
+	Var res5 : Matrix<Double, 2, 2>
+	res5 = inverse(getSlice(m1,0,0,2,2))
+
+	Var sol5 : Matrix<Double, 2, 2> = inverse(m1)
+	compare(res5, sol5, 0.001)
+
+	print('stage 4 done')
+
+	m1 = m2 * m1
+	Var sol6 : Matrix<Double, 2, 2> = {{9,14},{13,18}}
+	compare(m1, sol6, 0.001)
+
+	print('stage 5 done')
+
+	m1 = transpose(m1) * inverse(m1)
+	
+
+	print('stage 6 done')
+	
+}
+

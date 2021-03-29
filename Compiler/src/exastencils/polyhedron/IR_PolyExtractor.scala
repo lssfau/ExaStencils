@@ -959,7 +959,7 @@ class IR_PolyExtractor extends Collector {
             varAcc.annotate(DEAD_AFTER_SCOP_ANNOT)
             init.annotate(HIDDEN_ASSIGN_ANNOT, IR_Assignment(varAcc, init, "="))
 
-          case (mdt @ IR_MatrixDatatype(dt, m, n), mExpr @ IR_MatrixExpression(baseDt, m2, n2)) if (dt.dimensionality == 0) =>
+          case (mdt @ IR_MatrixDatatype(dt, m, n), mExpr @ IR_MatrixExpression(baseDt, m2, n2, _)) if (dt.dimensionality == 0) =>
             assume(m == m2 && n == n2)
             if (baseDt.isDefined)
               baseDt.get.annotate(SKIP_ANNOT)

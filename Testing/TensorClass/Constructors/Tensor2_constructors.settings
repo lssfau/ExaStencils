@@ -1,0 +1,17 @@
+user                = "Guest"
+
+configName          = "Tensor2_constructors"
+
+basePathPrefix      = ""
+
+l4file              = "/home/martin/Schreibtisch/Uni/Bachelorarbeit/thesis_martin/exastencils/Testing/TensorClass/Constructors/$configName$.exa4"
+
+debugL4File         = "/home/martin/Schreibtisch/Uni/Bachelorarbeit/thesis_martin/exastencils/Testing/output/Debug/$configName$_debug.exa4"
+
+htmlLogFile         = "/home/martin/Schreibtisch/Uni/Bachelorarbeit/thesis_martin/exastencils/Testing/output/Debug/$configName$_log.html"
+outputPath          = "/home/martin/Schreibtisch/Uni/Bachelorarbeit/thesis_martin/exastencils/Testing/output/generated/$configName$/"
+
+produceHtmlLog      = true
+timeStrategies      = true
+
+buildfileGenerators = { "MakefileGenerator" }

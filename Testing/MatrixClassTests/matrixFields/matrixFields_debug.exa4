@@ -1,0 +1,96 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0] to [1.0, 1.0] >
+
+Layout mat_layout_quad< Matrix<Real,2,2>, Node >@all {
+	duplicateLayers = [1, 1]
+	ghostLayers = [0, 0]
+}
+
+Layout mat_layout< Matrix<Real,2,1>, Node >@all {
+	duplicateLayers = [1, 1]
+	ghostLayers = [0, 0]
+}
+
+Function init_mat_field_quad@finest {
+	loop over mat_field_quad {
+		mat_field_quad = comp_mat
+	}
+}
+
+Function mult_det_mat_field_quad@finest {
+	loop over mat_field_quad {
+		mat_field_quad *= determinant ( mat_field_quad )
+	}
+}
+
+Function invert_mat_field_quad@finest {
+	loop over mat_field_quad {
+		mat_field_quad = inverse ( mat_field_quad )
+	}
+}
+
+Function slice_mat_field_quad@finest {
+	loop over mat_field_quad {
+		mat_field_quad = getSlice ( mat_field_quad, 0, 0, 2, 2 )
+	}
+}
+
+Function slice_mat_field@finest {
+	loop over mat_field {
+		mat_field = getSlice ( mat_field_quad, 0, 0, 2, 1 )
+	}
+}
+
+Field mat_field< global, mat_layout, 0.0>@all
+
+Field mat_field_quad< global, mat_layout_quad, 0.0>@all
+
+Globals {
+	Var comp_mat : Matrix<Real,2,2> = { { 3.0, 3.0 }, { 1.0, 2.0 } }
+	Var comp_mat_mult_det : Matrix<Real,2,2> = ( comp_mat * det ( comp_mat ) )
+	Var comp_mat_inv : Matrix<Real,2,2> = inverse ( comp_mat_mult_det )
+	Var comp_slice : Matrix<Real,2,1> = getSlice ( comp_mat_inv, 0, 0, 2, 1 )
+}
+
+Function Application {
+	initGlobals (  )
+	initDomain (  )
+	initFieldsWithZero (  )
+	init_mat_field_quad@finest (  )
+	Var init : String
+	buildString ( init, "./data/init.txt" )
+	printField ( init, mat_field_quad@finest )
+	mult_det_mat_field_quad@finest (  )
+	Var mult_det : String
+	buildString ( mult_det, "./data/mult_det.txt" )
+	printField ( mult_det, mat_field_quad@finest )
+	invert_mat_field_quad@finest (  )
+	Var inv : String
+	buildString ( inv, "./data/inv.txt" )
+	printField ( inv, mat_field_quad@finest )
+	slice_mat_field_quad@finest (  )
+	Var slice : String
+	buildString ( slice, "./data/slice .txt" )
+	printField ( slice, mat_field_quad@finest )
+	slice_mat_field@finest (  )
+	Var slice_2 : String
+	buildString ( slice_2, "./data/slice_2 .txt" )
+	printField ( mat_field@finest, slice_2 )
+	destroyGlobals (  )
+}
+

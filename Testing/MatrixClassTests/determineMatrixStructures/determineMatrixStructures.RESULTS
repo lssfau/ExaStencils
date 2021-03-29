@@ -1,0 +1,11 @@
+shape=filled
+shape=diagonal
+shape=blockdiagonalblock=2
+shape=schurblock=4A=blockdiagonalAblock=2
+shape=schurblock=9A=blockdiagonalAblock=3
+shape=filled
+shape=filled
+shape=blockdiagonalblock=2
+shape=schurblock=4A=diagonal
+shape=filled
+shape=schurblock=4A=diagonal

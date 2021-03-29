@@ -1,0 +1,9 @@
+dimensionality                = 2
+mpi_enabled 		      = false
+
+//experimental_resolveInverseFunctionCall = "Runtime"
+
+//experimental_matrixDebugConfig = true
+experimental_resolveInverseFunctionCall = "Cofactors"
+experimental_resolveLocalMatSys = "Compiletime"
+experimental_QRPivot = true

@@ -127,7 +127,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     // Simplify matrices
     case IR_Negative(m : IR_MatrixExpression) => m.expressions = m.expressions.map { y => IR_Negative(y) : IR_Expression }; m
 
-    case m @ IR_MatrixExpression(_, 1, 1) => m.get(0, 0)
+    case m @ IR_MatrixExpression(_, 1, 1,_) => m.get(0, 0)
     case m @ IR_MatrixDatatype(dt, 1, 1)  => dt
 
     case IR_Scope(body) if body.forall(_.isInstanceOf[IR_ScopedStatement]) => body
@@ -331,7 +331,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
 
     var intCst : Long = if (negate) -1L else 1L
     var floatCst : Double = 1d
-    var workQ = mutable.Queue[IR_Expression]()
+    var workQ = new mutable.Queue[IR_Expression]()
     val remA = new ArrayBuffer[IR_Expression]() // use ArrayBuffer here for a more efficient access to the last element
     var div : IR_Division = null
     for (f <- facs) {

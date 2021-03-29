@@ -420,10 +420,10 @@ Instantiate RestrictionComponent < residual_u@current, rhs_u@coarser, Restrictio
 Instantiate RestrictionComponent < residual_v@current, rhs_v@coarser, RestrictionFaceY@current > as Restriction_v@( ( coarsest + 1 ) to finest )
 Instantiate RestrictionComponent < residual_p@current, rhs_p@coarser, RestrictionCell@current > as Restriction_p@( ( coarsest + 1 ) to finest )
 
-Instantiate CorrectionComponent < u[active]@coarser, u[active]@current, CorrectionFaceX@current, true > as Correction_u@( ( coarsest + 1 ) to finest )
-Instantiate CorrectionComponent < v[active]@coarser, v[active]@current, CorrectionFaceY@current, true > as Correction_v@( ( coarsest + 1 ) to finest )
-Instantiate CorrectionComponent < p[active]@coarser, p[active]@current, CorrectionCell@current, true > as Correction_p@( ( coarsest + 1 ) to finest )
+Instantiate CorrectionComponent < u<active>@coarser, u<active>@current, CorrectionFaceX@current, true > as Correction_u@( ( coarsest + 1 ) to finest )
+Instantiate CorrectionComponent < v<active>@coarser, v<active>@current, CorrectionFaceY@current, true > as Correction_v@( ( coarsest + 1 ) to finest )
+Instantiate CorrectionComponent < p<active>@coarser, p<active>@current, CorrectionCell@current, true > as Correction_p@( ( coarsest + 1 ) to finest )
 
-Instantiate SetFieldComponent < u[active]@current > as SetSolution_u@all
-Instantiate SetFieldComponent < v[active]@current > as SetSolution_v@all
-Instantiate SetFieldComponent < p[active]@current > as SetSolution_p@all
+Instantiate SetFieldComponent < u<active>@current > as SetSolution_u@all
+Instantiate SetFieldComponent < v<active>@current > as SetSolution_v@all
+Instantiate SetFieldComponent < p<active>@current > as SetSolution_p@all

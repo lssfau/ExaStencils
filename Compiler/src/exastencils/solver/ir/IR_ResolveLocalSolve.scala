@@ -31,6 +31,15 @@ import exastencils.optimization.ir._
 /// IR_ResolveLocalSolve
 
 object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes") {
+  //TODO register collector
+  // collector to find initialization expressions of matrices to classify
+  var variableCollector = new IR_MatrixVarCollector()
+  this.register(variableCollector)
+  this.onBefore = () => {
+
+    this.resetCollectors()
+  }
+
   def computeMinMaxIndex(solve : IR_LocalSolve, numDimensions : Int) : (IR_ConstIndex, IR_ConstIndex) = {
     val minIndex = IR_ConstIndex(Array.fill(numDimensions)(Int.MinValue))
     val maxIndex = IR_ConstIndex(Array.fill(numDimensions)(Int.MaxValue))
@@ -108,7 +117,7 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
 
     // abort if splitting is not allowed
     if (!Knowledge.solver_splitLocalSolveLoops)
-      return loop
+     return loop
 
     // set up halo and inner loop
     val haloLoop = Duplicate(loop)
@@ -131,12 +140,14 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
     List(haloLoop, tryPrecomputingInverse(innerLoop, innerLoop.body.head.asInstanceOf[IR_LocalSolve]))
   }
 
+
   this += new Transformation("Split loops containing local solve nodes", {
     // check loop even if Knowledge.solver_splitLocalSolveLoops is false - conditions might still be unnecessary
     case loop : IR_LoopOverDimensions if loop.body.exists(_.isInstanceOf[IR_LocalSolve]) => handleLoop(loop)
   }, false)
 
-  this += new Transformation("Perform expandSpecial for applicable nodes", {
-    case solve : IR_LocalSolve => solve.expandSpecial
+  this += new Transformation("Perform expand for applicable nodes", {
+    case solve : IR_LocalSolve                         => solve.expandSpecial
+    case sms : IR_SolveMatrixSystem  => sms.expand()
   })
 }

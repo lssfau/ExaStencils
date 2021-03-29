@@ -94,6 +94,64 @@ case class IR_MatrixDatatype(var datatype : IR_Datatype, var sizeM : Int, var si
   def transposed = IR_MatrixDatatype(datatype, sizeN, sizeM)
 }
 
+abstract class IR_TensorDatatype(datatype : IR_Datatype, dims : Int) extends IR_HigherDimensionalDatatype with IR_HasTypeAlias {
+  override def prettyprint(out : PpStream)
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+
+  override def dimensionality: Int
+  override def getSizeArray: Array[Int]
+  override def resolveDeclType: IR_Datatype
+  override def resolveDeclPostscript : String = ""
+  override def resolveFlattendSize: Int
+  override def typicalByteSize: Int
+
+  override def aliasFor = datatype.prettyprint + '[' + this.resolveFlattendSize + ']'
+}
+
+case class IR_TensorDatatype1(datatype : IR_Datatype, dims : Int) extends IR_TensorDatatype(datatype, dims) {
+  override def prettyprint(out : PpStream) : Unit = out << "__tensor1_" << this.dims.toString << "_" << datatype << "_t"
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+
+  override def dimensionality : Int = 1 + datatype.dimensionality
+  override def getSizeArray : Array[Int] = Array(dims) ++ datatype.getSizeArray
+  override def resolveDeclType : IR_Datatype = this.datatype.resolveDeclType
+  override def resolveDeclPostscript : String = ""
+  override def resolveFlattendSize : Int = dims * datatype.resolveFlattendSize
+  override def typicalByteSize = dims * datatype.typicalByteSize
+
+  override def aliasFor = datatype.prettyprint + '[' + this.resolveFlattendSize + ']'
+}
+
+case class IR_TensorDatatype2(datatype : IR_Datatype, dims : Int) extends IR_TensorDatatype(datatype, dims) {
+  override def prettyprint(out : PpStream) : Unit = out << "__tensor2_" << this.dims.toString << "_" << datatype << "_t"
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+
+  override def dimensionality : Int = 2 + datatype.dimensionality
+  override def getSizeArray : Array[Int] = Array(dims * dims) ++ datatype.getSizeArray
+  override def resolveDeclType : IR_Datatype = this.datatype.resolveDeclType
+  override def resolveDeclPostscript : String = ""
+  override def resolveFlattendSize : Int = dims * dims * datatype.resolveFlattendSize
+  override def typicalByteSize = dims * dims * datatype.typicalByteSize
+
+  override def aliasFor = datatype.prettyprint + '[' + this.resolveFlattendSize + ']'
+  def transposed = IR_TensorDatatype2(datatype, dims)
+}
+
+case class IR_TensorDatatypeN(datatype : IR_Datatype, dims : Int, var order : Int) extends IR_TensorDatatype(datatype, dims) {
+  override def prettyprint(out : PpStream) : Unit = out << "__tensorN_" << this.order.toString << "_" << this.datatype << "_t"
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+
+  override def dimensionality : Int = order + datatype.dimensionality
+  override def getSizeArray : Array[Int] = Array(scala.math.pow(dims, order).toInt) ++ datatype.getSizeArray
+  override def resolveDeclType : IR_Datatype = this.datatype.resolveDeclType
+  override def resolveDeclPostscript : String = ""
+  override def resolveFlattendSize : Int = scala.math.pow(dims, order).toInt * this.datatype.resolveFlattendSize
+  override def typicalByteSize = scala.math.pow(dims, order).toInt * datatype.typicalByteSize
+
+  override def aliasFor = datatype.prettyprint + '[' + this.resolveFlattendSize.toString  + ']'
+  def transposed = IR_TensorDatatypeN(datatype, dims, order)
+}
+
 object IR_HACK_TypeAliases extends DefaultStrategy("Register type aliases") {
   // FIXME remove this hack for a better data layout
   var global : IR_GlobalCollection = null

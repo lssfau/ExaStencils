@@ -1,0 +1,17 @@
+user                = "Guest"
+
+configName          = "2D_FV_SWE"
+
+basePathPrefix      = "./2D_FV_SWE/"
+
+l4file              = "$configName$_only_L4.exa4"
+
+debugL4File         = "./Debug/$configName$_debug.exa4"
+
+htmlLogFile         = "./Debug/$configName$_log.html"
+outputPath          = "./output/"
+
+produceHtmlLog      = true
+timeStrategies      = true
+
+buildfileGenerators = { "MakefileGenerator" }

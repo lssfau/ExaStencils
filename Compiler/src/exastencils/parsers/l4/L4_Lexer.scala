@@ -27,7 +27,7 @@ import exastencils.parsers.ExaLexer
   */
 class L4_Lexer extends ExaLexer {
   // general delimiters
-  delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "^", "**", "%", ".+", ".-", ".*", "./", ".**", ".%", "!", "+=", "-=", "*=", "/=", "|", "[", "]", ",", ";", "<", ">", "<=", ">=", "@", "=>", "!=", "==", "&&", "||")
+  delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "^", "**", "%", ".+", ".-", ".*", "./", ".**", ".%", "!", "+=", "-=", "*=", "/=", "|", "[", "]", ",", ";", "<", ">", "<=", ">=", "@", "=>", "!=", "==", "&&", "||", ":=")
 
   // import functionality
   reserved += "import"
@@ -39,7 +39,7 @@ class L4_Lexer extends ExaLexer {
   reserved += ("FuncTemplate", "FunctionTemplate", "Inst", "Instantiate", "as")
 
   // declaration keywords - complex
-  reserved += ("Domain", "Layout", "Field", "Stencil", "StencilTemplate", "StencilField", "Set", "external", "from", "with")
+  reserved += ("Domain", "Layout", "Field", "Stencil", "StencilTemplate", "StencilField", "Set", "external", "from", "with", "tensN", "tens1", "tens2")
 
   // loop keywords
   reserved += ("repeat", "times", "count", "with", "contraction", "break")
@@ -60,7 +60,7 @@ class L4_Lexer extends ExaLexer {
     "Complex", "complex",
     "j",
     "Boolean", "boolean", "Bool", "bool")
-  reserved += ("Array", "Vector", "RowVector", "ColumnVector", "RVector", "CVector", "Matrix", "T")
+  reserved += ("Array", "Vector", "RowVector", "ColumnVector", "RVector", "CVector", "Matrix", "T", "Tensor", "Tensor2", "Tensor1", "TensorN")
   reserved += ("Vec2", "Vec3", "Vec4")
 
   // level specification keywords
@@ -73,7 +73,9 @@ class L4_Lexer extends ExaLexer {
   reserved += ("with", "communication", "None",
     "Node", "Cell", "node", "cell",
     "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z",
-    "Edge_Cell", "edge_cell", "Edge_Node", "edge_node")
+    "Edge_Cell", "edge_cell", "Edge_Node", "edge_node",
+    "MatrixShape","Diagonal","Blockdiagonal","Schur"
+  )
 
   reserved += "FieldCombination"
 
@@ -87,7 +89,7 @@ class L4_Lexer extends ExaLexer {
   reserved += ("advance", "active", "activeSlot", "currentSlot", "next", "nextSlot", "previous", "previousSlot")
 
   // solve keywords
-  reserved += ("solve", "locally", "jacobi", "relax")
+  reserved += ("solve", "locally", "jacobi", "relax", "solveMatSys")
 
   // math keywords
   //  reserved += ()
