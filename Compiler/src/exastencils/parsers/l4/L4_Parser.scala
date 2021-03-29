@@ -333,6 +333,10 @@ object L4_Parser extends ExaParser with PackratParsers {
       Logger.error("color expression in 'color with' statement must be a modulo expression with a constant integral divisor" + exp.location.toAppendString)
   })
 
+  lazy val solveLinearSystemStatement = locationize(("solveMatSys") ~> (binaryexpression <~ ",") ~ (binaryexpression <~ ",") ~ binaryexpression ~ matShapeOption.? ^^ {
+    case a ~ u ~ f ~ shape => L4_SolveMatrixSystem(a, u, f, shape)
+  })
+
   // ######################################
   // ##### Globals
   // ######################################
