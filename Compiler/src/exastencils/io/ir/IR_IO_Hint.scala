@@ -101,11 +101,15 @@ case class MPI_Info() extends IR_IO_Hint
 case class PnetCDF_Info() extends IR_IO_Hint {
   override def resolveName() : String = "infoNc"
 
+  val mpiInfo = MPI_Info()
+
+  override def resolveAccess() : IR_Expression = IR_VariableAccess(resolveName(), resolveDatatype())
+
   override def setHints() : ListBuffer[IR_Statement] = {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
 
     if (!IR_IO_Hint.infoSet)
-      stmts ++= super.setHints()
+      stmts ++= mpiInfo.setHints()
 
     if (!IR_IO_Hint.infoSetNc) {
       var innerStmts : ListBuffer[IR_Statement] = ListBuffer()

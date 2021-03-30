@@ -29,6 +29,7 @@ import exastencils.config.Knowledge
 import exastencils.config.Platform
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.logger.Logger
+import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.util.ir.IR_Print
 
 case class IR_FileAccess_HDF5(
@@ -196,7 +197,9 @@ case class IR_FileAccess_HDF5(
     // setup property list for file creation
     statements ++= H5Pcreate(fcpl, IR_VariableAccess("H5P_FILE_CREATE", IR_UnknownDatatype))
     if (Knowledge.hdf5_use_chunking) {
-      val ik = IR_IV_TotalNumFrags(domainIdx) / 2
+      val ik = IR_SimplifyExpression.simplifyIntegralExpr(
+        dataBuffers.map(buf => if(buf.isTemporaryBuffer) IR_IntegerConstant(Knowledge.mpi_numThreads) else IR_IV_TotalNumFrags(domainIdx)).reduce(_ + _) / 2
+      )
       statements += IR_IfCondition(ik > 1 AndAnd ik < 65536, // cannot exceed limit: https://support.hdfgroup.org/HDF5/doc/RM/RM_H5P.html#Property-SetIstoreK
         H5Pset_istore_k(err, fcpl, ik))
     }
