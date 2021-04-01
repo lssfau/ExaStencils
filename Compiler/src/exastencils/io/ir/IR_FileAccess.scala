@@ -186,13 +186,15 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
 
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
 
-    stmts ++= createOrOpenFile()
-    stmts ++= setupAccess()
-    for (bufIdx <- dataBuffers.indices) {
-      stmts ++= fileAccess(bufIdx)
+    if (dataBuffers.nonEmpty) {
+      stmts ++= createOrOpenFile()
+      stmts ++= setupAccess()
+      for (bufIdx <- dataBuffers.indices) {
+        stmts ++= fileAccess(bufIdx)
+      }
+      stmts ++= cleanupAccess()
+      stmts ++= closeFile()
     }
-    stmts ++= cleanupAccess()
-    stmts ++= closeFile()
 
     // reset lookup tables
     IR_DataBuffer.resetDimensionalityMap()

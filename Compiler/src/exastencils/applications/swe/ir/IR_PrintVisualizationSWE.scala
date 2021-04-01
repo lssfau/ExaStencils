@@ -84,6 +84,43 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
     basename
   }
 
+  /*
+  Store disc components interleaved in buffer
+    - in exodus, the individual datasets of each disc field component cannot be joined together as in xdmf
+      - this causes the disc components to be written in an interleaved fashion
+      - to reduce the number of interleaved accesses, the disc components are joined together in a buffer before writing
+    - can be enabled for comparison in Xdmf printers via "swe_interleaveDiscComponentsPrint" flag
+  */
+  def discFieldBuffers : ListMap[String, IR_IV_TemporaryBuffer] = discFields.map { discField =>
+    discField._1 -> IR_IV_TemporaryBuffer(discField._2.head.resolveBaseDatatype, IR_AtNode, discField._1, domainIndex, dimsPositionsFrag)
+  }
+
+  def setupNonReducedDiscData() : ListBuffer[IR_Statement] = {
+    var stmts : ListBuffer[IR_Statement] = ListBuffer()
+
+    // join disc components
+    discFieldBuffers.values.foreach { tmpBuf =>
+      val indexRangeCells = IR_ExpressionIndexRange(
+        IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.layout.idxById("IB", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression)),
+        IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.layout.idxById("IE", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression)))
+
+      val numAccessesPerCell = nodeOffsets.length // for non-reduced SWE "6"
+      val offset = IR_LoopOverFragments.defIt * dimsPositionsFrag.reduce(_ * _) + numAccessesPerCell * indexRangeCells.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
+
+      stmts += tmpBuf.allocateMemory
+      stmts += IR_LoopOverFragments(
+        IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
+          IR_LoopOverDimensions(numDimsGrid, indexRangeCells,
+            (0 until numAccessesPerCell).to[ListBuffer].map(idx => {
+              IR_Assignment(
+                tmpBuf.at(offset + idx),
+                IR_FieldAccess(discFields(tmpBuf.name)(idx), IR_IV_ActiveSlot(someCellField), IR_LoopOverDimensions.defIt(numDimsGrid)))  : IR_Statement
+            }))))
+    }
+
+    stmts
+  }
+
   // access pattern dependent on reduction mode for blockstructured meshes
   def accessIndices : Option[ListBuffer[IR_Index]]= if (Knowledge.swe_nodalReductionPrint)
     None

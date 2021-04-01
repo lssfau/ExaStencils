@@ -174,6 +174,7 @@ object Knowledge {
   /// swe special flags
   var swe_stationsMax = 10
   var swe_nodalReductionPrint : Boolean = false
+  var swe_interleaveDiscComponentsPrint : Boolean = false
 
   /// === Layer 3 ===
 
@@ -887,6 +888,9 @@ object Knowledge {
 
     // sion
     Constraints.condError(sion_phys_files > mpi_numThreads, "Number of physical files in a sionlib container must be smaller than the number of MPI threads.")
+
+    // swe
+    Constraints.condError(swe_interleaveDiscComponentsPrint && swe_nodalReductionPrint, "Cannot interleave disc components if they are reduced!")
 
     // experimental
     Constraints.condEnsureValue(experimental_trimBoundsForReductionLoops, false, data_genVariableFieldSizes, "experimental_trimBoundsForReductionLoops is currently not compatible with data_genVariableFieldSizes")

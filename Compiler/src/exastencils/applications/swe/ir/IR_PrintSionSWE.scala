@@ -38,6 +38,8 @@ case class IR_PrintSionSWE(
     val fieldname = getBasenameDiscField(discField)
     if (Knowledge.swe_nodalReductionPrint) {
       ListBuffer(IR_DataBuffer(discFieldsReduced(fieldname), IR_IV_ActiveSlot(someCellField), None, None))
+    } else if (Knowledge.swe_interleaveDiscComponentsPrint) {
+      ListBuffer(IR_DataBuffer(discFieldBuffers(fieldname), IR_IV_ActiveSlot(someCellField), None, None))
     } else {
       discField.map { field =>
         val idxRange = 0 until field.layout.numDimsData
@@ -109,6 +111,8 @@ case class IR_PrintSionSWE(
     statements ++= setupConnectivity(global = true)
     if (Knowledge.swe_nodalReductionPrint) {
       statements ++= setupReducedData
+    } else if (Knowledge.swe_interleaveDiscComponentsPrint) {
+      statements ++= setupNonReducedDiscData
     }
 
     statements += IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty,

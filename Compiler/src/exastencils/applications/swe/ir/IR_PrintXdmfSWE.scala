@@ -58,6 +58,8 @@ case class IR_PrintXdmfSWE(
 
     val datasetDiscFields = if (Knowledge.swe_nodalReductionPrint) {
       discFieldsReduced.values.map(buf => buf.name -> ListBuffer(IR_StringConstant("/fieldData/" + buf.name)))
+    } else if (Knowledge.swe_interleaveDiscComponentsPrint) {
+      discFieldBuffers.values.map(buf => buf.name -> ListBuffer(IR_StringConstant("/fieldData/" + buf.name)))
     } else {
       discFields.values.map { discField =>
         // for fields like order (lower0, lower0, lower0, upper0, ...): add suffix to create unique dataset names for each component
@@ -86,6 +88,8 @@ case class IR_PrintXdmfSWE(
     if (fmt != "XML") {
       if (enforceCopiesHdf5 || gridPositionsCopied)
         stmts ++= setupNodePositions(copyNodePositions = true)
+      if (!Knowledge.swe_nodalReductionPrint && Knowledge.swe_interleaveDiscComponentsPrint)
+        stmts ++= setupNonReducedDiscData
       stmts ++= setupConnectivity(global = ioInterface != "fpp")
     }
     if (Knowledge.swe_nodalReductionPrint) {
@@ -225,16 +229,22 @@ case class IR_PrintXdmfSWE(
         })
         statements += printXdmfElement(stream, closeDataItem)
       } else {
-        // non-reduced disc fields -> join lower and upper components from file
-        val discField = discFields(fname)
-        val function = "JOIN(" + discField.indices.map("$" + _).mkString(",") + ")"
-        statements += printXdmfElement(stream, openDataItemFunction(nodalDims, function) : _*)
-        discField.zipWithIndex.foreach { case (discField, discId) =>
-          statements += printXdmfElement(stream, openDataItem(discField.resolveBaseDatatype, nodalDims.drop(1), getSeekp(global)) : _*)
-          statements += printFilename(stream, datasetFields(fname)(discId))
+        if (!Knowledge.swe_interleaveDiscComponentsPrint) {
+          // non-reduced disc fields -> join lower and upper components from file
+          val discField = discFields(fname)
+          val function = "JOIN(" + discField.indices.map("$" + _).mkString(",") + ")"
+          statements += printXdmfElement(stream, openDataItemFunction(nodalDims, function) : _*)
+          discField.zipWithIndex.foreach { case (discField, discId) =>
+            statements += printXdmfElement(stream, openDataItem(discField.resolveBaseDatatype, nodalDims.drop(1), getSeekp(global)) : _*)
+            statements += printFilename(stream, datasetFields(fname)(discId))
+            statements += printXdmfElement(stream, closeDataItem)
+          }
+          statements += printXdmfElement(stream, closeDataItem)
+        } else {
+          statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, nodalDims, getSeekp(global)) : _*)
+          statements += printFilename(stream, datasetFields(fname).head)
           statements += printXdmfElement(stream, closeDataItem)
         }
-        statements += printXdmfElement(stream, closeDataItem)
       }
       statements += printXdmfElement(stream, closeAttribute)
 
@@ -248,9 +258,9 @@ case class IR_PrintXdmfSWE(
     val fieldname = getBasenameDiscField(discField)
     val dataset = datasetFields(fieldname).head
     if (Knowledge.swe_nodalReductionPrint) {
-      ListBuffer(
-        IR_DataBuffer(discFieldsReduced(fieldname), IR_IV_ActiveSlot(someCellField), None, Some(dataset))
-      )
+      ListBuffer(IR_DataBuffer(discFieldsReduced(fieldname), IR_IV_ActiveSlot(someCellField), None, Some(dataset)))
+    } else if (Knowledge.swe_interleaveDiscComponentsPrint) {
+      ListBuffer(IR_DataBuffer(discFieldBuffers(fieldname), IR_IV_ActiveSlot(someCellField), None, Some(dataset)))
     } else {
       discField.zipWithIndex.map { case (field, fid) =>
         val idxRange = 0 until field.layout.numDimsData
