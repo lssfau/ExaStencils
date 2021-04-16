@@ -60,10 +60,10 @@ abstract class IR_IO_Hint extends IR_UnduplicatedVariable {
       var innerStmts : ListBuffer[IR_Statement] = ListBuffer()
       innerStmts += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Info_create"), IR_AddressOf(resolveAccess()))
       // striping
-      if (Knowledge.lustre_stripe_count > 0)
-        innerStmts += setInfo("striping_factor", s"${ Knowledge.lustre_stripe_count }")
-      if (Knowledge.lustre_stripe_size > 0)
-        innerStmts += setInfo("striping_unit", s"${ Knowledge.lustre_stripe_size }")
+      if (Knowledge.stripe_count > 0)
+        innerStmts += setInfo("striping_factor", s"${ Knowledge.stripe_count }")
+      if (Knowledge.stripe_size > 0)
+        innerStmts += setInfo("striping_unit", s"${ Knowledge.stripe_size }")
 
       // data sieving
       if (checkForAutomatic(Knowledge.romio_ds_read))
@@ -73,8 +73,8 @@ abstract class IR_IO_Hint extends IR_UnduplicatedVariable {
 
       // collective buffering
       if (Knowledge.cb_nodes != 0) {
-        if (Knowledge.cb_nodes == -1 && Knowledge.lustre_stripe_count < Knowledge.mpi_numThreads) {
-          innerStmts += setInfo("cb_nodes", s"${ Knowledge.lustre_stripe_count }")
+        if (Knowledge.cb_nodes == -1 && Knowledge.stripe_count < Knowledge.mpi_numThreads) {
+          innerStmts += setInfo("cb_nodes", s"${ Knowledge.stripe_count }")
         } else if (Knowledge.cb_nodes < Knowledge.mpi_numThreads) {
           innerStmts += setInfo("cb_nodes", s"${ Knowledge.cb_nodes }")
         }
@@ -115,7 +115,7 @@ case class PnetCDF_Info() extends IR_IO_Hint {
       var innerStmts : ListBuffer[IR_Statement] = ListBuffer()
       innerStmts += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Info_dup"), IR_VariableAccess(name, resolveDatatype()), IR_AddressOf(resolveAccess()))
 
-      def handleAlignments(input : Int) = if (input == -1 && Knowledge.lustre_stripe_size != 0) Knowledge.lustre_stripe_size else input
+      def handleAlignments(input : Int) = if (input == -1 && Knowledge.stripe_size != 0) Knowledge.stripe_size else input
       if (Knowledge.nc_header_align_size != 1)
         innerStmts += setInfo("nc_header_align_size", s"${handleAlignments(Knowledge.nc_header_align_size)}")
       if (Knowledge.nc_var_align_size != 1)

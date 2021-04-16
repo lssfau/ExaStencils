@@ -179,7 +179,7 @@ case class IR_FileAccess_PnetCDF(
   override def setupAccess() : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
     val distinctDimIds : mutable.HashMap[String, IR_VariableAccess] = mutable.HashMap()
-    val dimIdTime = IR_VariableAccess("dimIdTime", IR_IntegerDatatype) // "time" is the slowest-varying dimension ("0" in KJI order)
+    val dimIdTime = IR_VariableAccess(IR_FileAccess.declareVariable("dimIdTime"), IR_IntegerDatatype) // "time" is the slowest-varying dimension ("0" in KJI order)
 
     // define dimensions in case of write operations
     if (writeAccess && !appendedMode) {

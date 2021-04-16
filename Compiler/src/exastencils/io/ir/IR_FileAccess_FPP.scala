@@ -131,5 +131,5 @@ case class IR_FileAccess_FPP(
     ListBuffer(accessFileWithGranularity(bufIdx, ListBuffer(print)))
   }
 
-  override def includes : ListBuffer[String] = ListBuffer("fstream", "iomanip")
+  override def includes : ListBuffer[String] = ListBuffer("fstream", "iomanip") ++ (if (Knowledge.parIO_streams_useIntermediateBuffer) Some("vector") else None)
 }

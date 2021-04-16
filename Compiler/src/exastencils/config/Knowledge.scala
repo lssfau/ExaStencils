@@ -483,8 +483,8 @@ object Knowledge {
   // - MPI hints -
 
   // 0 = off or externally defined, else = user-defined
-  var lustre_stripe_count : Int = 0 // number for OSTs
-  var lustre_stripe_size : Int = 0 // number of bytes written to one OST
+  var stripe_count : Int = 0 // number for OSTs
+  var stripe_size : Int = 0 // number of bytes written to one OST
 
   // Data sieving
   // "automatic" = default, "enable", "disable" otherwise
@@ -878,13 +878,14 @@ object Knowledge {
     Constraints.condEnsureValue(poly_optLevel_fine, 3, opt_loopBlocked, "loop blocking requires poly_optLevel_fine 3")
 
     // MPI I/O
-    Constraints.condError(cb_nodes == -1 && lustre_stripe_count < 1, "When setting the number of collective buffering nodes automatically to the number of OSTs, lustre_stripe_count must be >= 1.")
-    Constraints.condError(cb_nodes == -1 && lustre_stripe_count > mpi_numThreads, "Setting the number of cb_nodes greater than the number of MPI threads. Adjust the lustre_stripe_count flag.")
+    Constraints.condError(cb_nodes == -1 && stripe_count < 1, "When setting the number of collective buffering nodes automatically to the number of OSTs, lustre_stripe_count must be >= 1.")
+    Constraints.condError(cb_nodes == -1 && stripe_count > mpi_numThreads, "Setting the number of cb_nodes greater than the number of MPI threads. Adjust the lustre_stripe_count flag.")
     Constraints.condError(cb_nodes > mpi_numThreads, "Setting the number of cb_nodes greater than the number of MPI threads.")
 
     // hdf5
     Constraints.condError(!hdf5_use_chunking && hdf5_write_zlib_compression_level > 0, "HDF5: chunking must be enabled for writing compressed datasets.")
-    Constraints.condError(hdf5_write_zlib_compression_level > 0 && Knowledge.mpi_enabled, "HDF5: zlib compression currently only works for serial applications. Parallel filters are required.")
+    Constraints.condError(hdf5_write_zlib_compression_level > 0 && Knowledge.mpi_enabled && !Knowledge.parIO_useCollectiveIO, "HDF5: zlib compression requires collective I/O.")
+    Constraints.condWarn(hdf5_write_zlib_compression_level > 0 && Knowledge.mpi_enabled, "HDF5: zlib compression may not be functional for parallel writes in all HDF5 versions.")
 
     // sion
     Constraints.condError(sion_phys_files > mpi_numThreads, "Number of physical files in a sionlib container must be smaller than the number of MPI threads.")

@@ -92,8 +92,8 @@ trait IR_Hdf5_API {
     callH5Function(err, "H5Pset_chunk", propertyList, rank, chunkDimsPtr)
 
   def H5Pset_alignment(err : IR_VariableAccess, propertyList : IR_VariableAccess) : ListBuffer[IR_Statement] = {
-    val alignment = if (Knowledge.hdf5_object_alignment_size == -1 && Knowledge.lustre_stripe_size != 0)
-      Knowledge.lustre_stripe_size
+    val alignment = if (Knowledge.hdf5_object_alignment_size == -1 && Knowledge.stripe_size != 0)
+      Knowledge.stripe_size
     else
       Knowledge.hdf5_object_alignment_size
     callH5Function(err, "H5Pset_alignment", propertyList, Knowledge.hdf5_object_alignment_threshold, alignment)
