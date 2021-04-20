@@ -399,7 +399,7 @@ case class IR_IV_FragmentIndexPerBlock(var dim : Int) extends IR_UnduplicatedVar
 case class IR_IV_FragmentOffsetPerBlock() extends IR_UnduplicatedVariable {
   def resolveAccess(curRank : IR_Expression) : IR_Expression = IR_ArrayAccess(this, curRank)
   override def resolveName() = s"fragmentOffsetOnRoot"
-  override def resolveDatatype() = IR_ArrayDatatype(IR_IntegerDatatype, Knowledge.domain_numBlocks)
+  override def resolveDatatype() = IR_ArrayDatatype(IR_IntegerDatatype, Knowledge.mpi_numThreads)
 }
 
 object IR_PrintXdmfStructured {

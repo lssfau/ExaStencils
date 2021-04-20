@@ -158,24 +158,29 @@ case class IR_FileAccess_SIONlib(
     else
       toAssign
 
+    // for non-contiguous access patterns: use ANSI C function to reduce "sion_ensure_free_space" calls from "sion_fread/fwrite" wrapper functions
+    // for one contiguous access: use SION wrapper function
     val useAnsiC = !Knowledge.parIO_streams_useIntermediateBuffer || (!writeAccess && !bytesAccessedKnownApriori)
-    val funcName = if (writeAccess) // use POSIX/ANSI C function to reduce "sion_ensure_free_space" calls from "sion_fread/fwrite" wrapper functions
-      if (useAnsiC) "fwrite" else "write"
+    val funcName = if (writeAccess)
+      if (useAnsiC) "fwrite" else "sion_fwrite"
     else
-      if (useAnsiC) "fread" else "read"
+      if (useAnsiC) "fread" else "sion_fread"
 
     val tmpBuf = IR_VariableAccess("buffer", IR_SpecialDatatype(s"std::vector<${buf.datatype.resolveBaseDatatype.prettyprint}>"))
+    val tmpBufPtr = IR_AddressOf(IR_ArrayAccess(tmpBuf, 0))
     if (!useAnsiC) {
-      stmts += IR_VariableDeclaration(tmpBuf)
-      stmts += IR_MemberFunctionCall(tmpBuf, "reserve", numValuesLocal(bufIdx))
+      stmts += IR_IfCondition(IR_Negation(isAccessForWholeBlockAllowed(buf, bytesAccessedKnownApriori)),
+        ListBuffer[IR_Statement](
+          IR_VariableDeclaration(tmpBuf),
+          IR_MemberFunctionCall(tmpBuf, "reserve", numValuesLocal(bufIdx))))
     }
 
     stmts += IR_IfCondition(isAccessForWholeBlockAllowed(buf, bytesAccessedKnownApriori),
       /* true: access whole buffer */
       ListBuffer[IR_Statement](
         assignValuesAccessed(
-          IR_FunctionCall(IR_ExternalFunctionReference(if (writeAccess) "sion_fwrite" else "sion_fread"), // use sion wrapper directly
-            buf.getBaseAddress, numBytesDatatype(bufIdx), numValuesLocal(bufIdx), fileId))),
+          IR_FunctionCall(IR_ExternalFunctionReference(funcName),
+            buf.getBaseAddress, numBytesDatatype(bufIdx), numValuesLocal(bufIdx), if (useAnsiC) filePtr else fileId))),
       /* false: access component by component in a loop via ANSI C*/
       if (useAnsiC) {
         // total number of bytes is unknown (read) or user-defined buffering is off (read and write)
@@ -198,7 +203,6 @@ case class IR_FileAccess_SIONlib(
         )
       } else {
         // bundle multiple small accesses into one large with help of user-provided intermediate buffer
-        // write via POSIX interface (unbuffered)
         if (writeAccess) {
           // write: total number of accessed bytes is unknown during compile time
           ListBuffer[IR_Statement](
@@ -208,18 +212,13 @@ case class IR_FileAccess_SIONlib(
               ) : _*),
             assignValuesAccessed(
               IR_FunctionCall(IR_ExternalFunctionReference(funcName),
-                IR_FunctionCall(IR_ExternalFunctionReference("fileno"), filePtr),
-                IR_AddressOf(IR_ArrayAccess(tmpBuf, 0)),
-                IR_MemberFunctionCall(tmpBuf, "size") * numBytesDatatype(bufIdx))))
+                tmpBufPtr, numBytesDatatype(bufIdx), IR_MemberFunctionCall(tmpBuf, "size"), fileId)))
         } else {
           // read: total number of accessed bytes is known, other case is handled with ANSI C
-          val tmpBufPtr = IR_AddressOf(IR_ArrayAccess(tmpBuf, 0))
           ListBuffer[IR_Statement](
             assignValuesAccessed(
               IR_FunctionCall(IR_ExternalFunctionReference(funcName),
-                IR_FunctionCall(IR_ExternalFunctionReference("fileno"), filePtr),
-                tmpBufPtr,
-                numBytesLocal(bufIdx))),
+                tmpBufPtr, numBytesDatatype(bufIdx), numValuesLocal(bufIdx), fileId)),
             if (Knowledge.sion_ensure_byteswap_read) {
               IR_FunctionCall(IR_ExternalFunctionReference("sion_swap"), tmpBufPtr, tmpBufPtr, numBytesDatatype(bufIdx), numValuesLocal(bufIdx), byteswapNeeded)
             } else {
@@ -239,14 +238,14 @@ case class IR_FileAccess_SIONlib(
     )
 
     if (trackValuesAccessed) { // check if each I/O request was successful
-      val compareTo = if (useAnsiC) numValuesLocal(bufIdx) else numBytesLocal(bufIdx) // POSIX: bytes, ANSI C: elements
+      val compareTo = numValuesLocal(bufIdx)
       stmts += IR_IfCondition(
         valuesAccessed Neq compareTo,
         IR_Print(
           IR_VariableAccess("std::cout", IR_UnknownDatatype),
           IR_StringConstant("Rank: "), MPI_IV_MpiRank, IR_StringConstant(". "),
           IR_VariableAccess("__FILE__", IR_UnknownDatatype), IR_StringConstant(": Error at line: "), IR_VariableAccess("__LINE__", IR_UnknownDatatype),
-          IR_StringConstant(s". Number of ${if (useAnsiC) "elements" else "bytes"} ${if (writeAccess) "written" else "read"}="), valuesAccessed, IR_StringConstant(" differ from : "), compareTo))
+          IR_StringConstant(s". Number of ${if (useAnsiC) "elements" else "bytes"} ${if (writeAccess) "written" else "read"}="), valuesAccessed, IR_StringConstant(" differ from : "), compareTo, IR_Print.endl))
       stmts += IR_Assignment(valuesAccessed, 0) // reset count
     }
 
