@@ -1,0 +1,16 @@
+user                = "Guest"
+
+configName          = "2D_Test_PrintField_NonUniform_AA"
+
+basePathPrefix      = "./IOTest/"
+
+l4file              = "$configName$.exa4"
+debugL4File         = "../Debug/$configName$_debug.exa4"
+
+htmlLogFile         = "../Debug/$configName$_log.html"
+outputPath          = "../generated/$configName$/"
+
+produceHtmlLog      = true
+timeStrategies      = true
+
+buildfileGenerators = { "MakefileGenerator" }

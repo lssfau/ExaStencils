@@ -1,7 +1,7 @@
 dimensionality                = 3
 
 minLevel                      = 1
-maxLevel                      = 6
+maxLevel                      = 3
 
 discr_type                    = "FiniteVolumes"
 discr_defaultNeumannOrder     = 1
@@ -15,6 +15,12 @@ grid_spacingModel             = "linearFct" // forced to "uniform" if grid_isUni
 
 experimental_applySchurCompl  = true
 
+experimental_generateParaviewFiles = true
+
 // omp parallelization on exactly one fragment in one block
-import '../lib/domain_onePatch.knowledge'
-import '../lib/parallelization_pureOmp.knowledge'
+//import '../lib/domain_onePatch.knowledge'
+//import '../lib/parallelization_pureOmp.knowledge'
+
+// four blocks (2, 2, 1), 2 fragments in x direction per block
+import '../lib/domain_eightPatches.knowledge'
+import '../lib/parallelization_fourMPI.knowledge'

@@ -6,16 +6,15 @@ maxLevel                       = 6
 discr_type                     = "FiniteDifferences"
 
 experimental_generateParaviewFiles = true
-//parIO_generateDebugStatements = true
-//parIO_useCollectiveIO = false
+//parIO_vis_generateVisItFiles = true
 
 // four blocks (2, 2, 1), 1 frag per block
-//import '../lib/domain_fourPatches.knowledge'
-//import '../lib/parallelization_fourMPI.knowledge'
+import '../lib/domain_fourPatches.knowledge'
+import '../lib/parallelization_fourMPI.knowledge'
 
 // eight blocks (2, 2, 2), 2 frags per block in x direction
-import '../lib/domain_16Patches.knowledge'
-import '../lib/parallelization_eightMPI.knowledge'
+//import '../lib/domain_16Patches.knowledge'
+//import '../lib/parallelization_eightMPI.knowledge'
 
 // one block, one frag. serial code
 //import '../lib/domain_onePatch.knowledge'

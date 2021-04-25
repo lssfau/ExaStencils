@@ -1,0 +1,17 @@
+dimensionality                 = 2
+
+minLevel                       = 6
+maxLevel                       = 6
+
+discr_type                     = "FiniteDifferences"
+
+experimental_generateParaviewFiles = true
+//parIO_vis_generateVisItFiles = true
+
+// four blocks (2, 2, 1), 1 frag per block
+import '../lib/domain_fourPatches.knowledge'
+import '../lib/parallelization_fourMPI.knowledge'
+
+// one block, four frags. serial code
+//import '../lib/domain_fourFrags.knowledge'
+//import '../lib/parallelization_serial.knowledge'

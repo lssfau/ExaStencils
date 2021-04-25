@@ -1,0 +1,193 @@
+// domain declarations
+
+Domain global< [0.0, 0.0] to [1.0, 1.0] >
+
+// field layout declarations
+
+Layout NodeWithComm < Real, Node >@all {
+  duplicateLayers = [1, 1] with communication
+  ghostLayers     = [1, 1] with communication
+}
+
+// field declarations
+
+Field src< global, NodeWithComm, None >@all
+Field dest< global, NodeWithComm, None >@all
+
+// globals
+
+Globals {
+  Val condition : Bool = true
+  //Val condition : Bool = sqrt(4) == 2
+  //Val condition : Bool = (i0+i1) % 2 == 0
+}
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// functions
+
+Function compareFields@all () : Int {
+  // check for equality
+  loop over dest {
+    Var diff : Real = fabs(dest - src)
+    if( condition && diff > 0.001 ) {
+      print("fields are not equal! src=", src, " dest=", dest)
+      print("Error occurred at idx: i0 =", i0, ",i1 =", i1)
+      return -1
+    }
+  }
+
+  // reset dest
+  loop over dest {
+    dest = -1.0
+  }
+    
+  return 0
+}
+
+Function initSRC@finest {
+  loop over src {
+    src = vf_nodePos_x**2 - vf_nodePos_y**2
+  }
+  
+  loop over src only dup [0, 0, 0] {
+    src = vf_nodePos_x**2 - vf_nodePos_y**2
+  }
+}
+
+Function checkEquality@finest () : Unit {
+  Val ret : Int = compareFields@finest ()
+  if( ret == -1 ) {
+    exit(1)
+  }
+}
+
+Function Application {
+  // init
+  startTimer ( "setup" )
+  initGlobals ( )
+  initDomain ( )
+  initFieldsWithZero ( )
+  initGeometry ( )
+  initSRC@finest ( )
+  stopTimer ( "setup" )
+  
+  // arguments
+  Val useGhost : Bool = true
+  Val useBin : Bool = true
+  Val useCanonicalLayout : Bool = true
+  Val separator : String = ","
+    
+  // toggle I/O modes here
+  Val lockingIO : Bool = true
+  Val fppIO     : Bool = true
+  Val hdfIO     : Bool = true
+  Val mpiIO     : Bool = true
+  Val ncIO      : Bool = true
+  Val sionIO    : Bool = true
+       
+  if (lockingIO) {
+    startTimer ("Lock: writeField")
+    writeField_lock ("data/src_lock.txt", src@finest, useGhost, !useBin, condition, separator)
+    stopTimer ("Lock: writeField")
+
+    startTimer ("Lock: readField")
+    readField_lock ("data/src_lock.txt", dest@finest, useGhost, !useBin, condition, separator)
+    stopTimer ("Lock: readField")
+
+    checkEquality@finest ()
+    print ( 'Passed lock test' )
+
+    // write csv for paraview
+    printField_lock ("data/src_vis.csv", src@finest, useGhost, !useBin, condition, separator)
+  }
+  
+  if (fppIO) {
+      startTimer ("FPP: writeField")
+      writeField_fpp ("data/src_fpp_$blockId.bin", src@finest, useGhost, useBin, condition)
+      stopTimer ("FPP: writeField")
+
+      startTimer ("FPP: readField")
+      readField_fpp ("data/src_fpp_$blockId.bin", dest@finest, useGhost, useBin, condition)
+      stopTimer ("FPP: readField")
+      
+      checkEquality@finest ()
+      print ( 'Passed fpp test' )
+      
+      // write xdmf files for paraview/visit
+      printField_fpp ("data/src_vis_fpp_bin.xmf", src@finest, useBin)
+      printField_fpp ("data/src_vis_fpp.xmf", src@finest)
+  }
+  
+  if (hdfIO) {
+    startTimer ("HDF5: writeField")
+    writeField_hdf5 ("data/src.h5", "/test/abs/path/src", src@finest)
+    stopTimer ("HDF5: writeField")
+
+    startTimer ("HDF5: readField")
+    readField_hdf5 ("data/src.h5", "/test/abs/path/src", dest@finest)
+    stopTimer ("HDF5: readField")
+
+    checkEquality@finest ()
+    print ( 'Passed hdf5 test' )
+
+    // write xdmf files for paraview/visit
+    printField_hdf5 ("data/src_vis_h5.xmf", src@finest, useCanonicalLayout)
+  }
+  
+  if (mpiIO) {
+    Val repr : String = "native"
+    startTimer ("MPIIO: writeField")
+    writeField_mpiio ("data/src.bin", src@finest, !useGhost, !useCanonicalLayout, repr)
+    stopTimer ("MPIIO: writeField")
+
+    startTimer ("MPIIO: readField")
+    readField_mpiio ("data/src.bin", dest@finest, !useGhost, !useCanonicalLayout, repr)
+    stopTimer ("MPIIO: readField")
+
+    checkEquality@finest ()
+    print ( 'Passed MPI I/O test' )
+
+    // write xdmf files for paraview/visit
+    printField_mpiio ("data/src_vis_mpiio.xmf", src@finest, !useCanonicalLayout)
+  }
+  
+  if (ncIO) {
+    startTimer ("PnetCDF: writeField")
+    writeField_nc ("data/src.nc", "field_src", src@finest, useGhost, !useCanonicalLayout)
+    stopTimer ("PnetCDF: writeField")
+
+    startTimer ("PnetCDF: readField")
+    readField_nc ("data/src.nc", "field_src", dest@finest, useGhost, !useCanonicalLayout)
+    stopTimer ("PnetCDF: readField")
+
+    checkEquality@finest ()
+    print ( 'Passed nc test' )
+
+    // write nc files for paraview/visit
+    printField_nc ("data/src_vis.nc", src@finest, useCanonicalLayout)
+  }
+   
+  
+  if(sionIO) {
+    startTimer ("SionLib: writeField")
+    writeField_sion ("data/src.sion", src@finest, !useGhost, condition)
+    stopTimer ("SionLib: writeField")
+
+    startTimer ("SionLib: readField")
+    readField_sion ("data/src.sion", dest@finest, !useGhost, condition)
+    stopTimer ("SionLib: readField")
+
+    checkEquality@finest ()
+    print ( 'Passed sion test' )
+  }
+  
+  
+  // de-init
+  printAllTimers ( )
+  destroyGlobals ( )
+}

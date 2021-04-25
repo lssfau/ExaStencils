@@ -28,7 +28,7 @@ Globals {
 
   // printing
   Var printInterval : Real = 1
-  Var nextPrint : Real = 1e30
+  Var nextPrint : Real = 1
 
   Var totalNumCycles : Int = 0
   Var totalNumTimeSteps : Int = 0

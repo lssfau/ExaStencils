@@ -1,0 +1,24 @@
+dimensionality                 = 3
+
+minLevel                       = 1
+maxLevel                       = 3
+
+discr_type                     = "FiniteDifferences"
+
+domain_onlyRectangular         = true
+domain_rect_generate           = true
+grid_isUniform                 = false
+grid_isStaggered               = false
+grid_isAxisAligned             = false
+grid_spacingModel              = "random"
+experimental_grid_randomMaxOffset = 0.2
+
+experimental_generateParaviewFiles = true
+
+// four blocks (2, 2, 1), 2 frags per block in x direction
+//import '../lib/domain_eightPatches.knowledge'
+//import '../lib/parallelization_fourMPI.knowledge'
+
+// one block, four frags. serial code
+import '../lib/domain_fourFrags.knowledge'
+import '../lib/parallelization_serial.knowledge'

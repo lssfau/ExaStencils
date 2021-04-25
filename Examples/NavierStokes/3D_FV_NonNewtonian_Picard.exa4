@@ -23,9 +23,84 @@ Function Application ( ) : Unit {
       Var filename_vel : String
       //buildString ( filename_vel, "img/vel_", curPrintIt, ".png" )
       //writeMappedImage ( velMag@finest, filename_vel )
+
+      /* unstruct hex/quad mesh visualization */
+      startTimer ( 'printVtk' )
       buildString ( filename_vel, "data/output_", curPrintIt, ".vtk" )
       //printVtkNS ( filename_vel, levels@finest ( ) )
       printVtkNNF ( filename_vel, levels@finest ( ) )
+      stopTimer ( 'printVtk' )
+
+      startTimer ( 'xdmf_fpp_ascii' )
+      buildString ( filename_vel, "data/output_fpp_ascii", curPrintIt, ".xmf" )
+      printXdmfNNF_fpp ( filename_vel, levels@finest ( ), false )
+      stopTimer ( 'xdmf_fpp_ascii' )
+
+      startTimer ( 'xdmf_fpp_bin' )
+      buildString ( filename_vel, "data/output_fpp_bin", curPrintIt, ".xmf" )
+      printXdmfNNF_fpp ( filename_vel, levels@finest ( ), true )
+      stopTimer ( 'xdmf_fpp_bin' )
+
+      startTimer ( 'xdmf_hdf5' )
+      buildString ( filename_vel, "data/output_h5_", curPrintIt, ".xmf" )
+      printXdmfNNF_hdf5 ( filename_vel, levels@finest ( ) )
+      stopTimer ( 'xdmf_hdf5' )
+
+      startTimer ( 'xdmf_mpiiio' )
+      buildString ( filename_vel, "data/output_mpiio_", curPrintIt, ".xmf" )
+      printXdmfNNF_mpiio ( filename_vel, levels@finest ( ) )
+      stopTimer ( 'xdmf_mpiiio' )
+
+      startTimer ( 'exodusII' )
+      printExodusNNF ( "data/output.e", levels@finest ( ) ) // const data reduction on
+      //buildString ( filename_vel, "data/output_", curPrintIt, ".e" ) // const data reduction off
+      //printExodusNNF ( filename_vel, levels@finest ( ) )
+      stopTimer ( 'exodusII' )
+
+      /* uniform mesh visualization */
+      Val useGhost : Boolean = true
+      Val useBin : Boolean = true
+
+      startTimer ( 'printField_lock: p' )
+      buildString ( filename_vel, "data/p_lock_", curPrintIt, ".csv" )
+      printField_lock ( filename_vel, p@finest, !useGhost, !useBin )
+      stopTimer ( 'printField_lock: p' )
+
+      startTimer ( 'printField_fpp: u' )
+      buildString ( filename_vel, "data/u_fpp_bin_", curPrintIt, ".xmf" )
+      printField_fpp ( filename_vel, u@finest, !useBin )
+      stopTimer ( 'printField_fpp: u' )
+
+      startTimer ( 'printField_fpp bin: v' )
+      buildString ( filename_vel, "data/v_fpp_xml_", curPrintIt, ".xmf" )
+      printField_fpp ( filename_vel, v@finest, useBin )
+      stopTimer ( 'printField_fpp bin: v' )
+
+      startTimer ( 'writeField_sion: u' )
+      buildString ( filename_vel, "data/u_", curPrintIt, ".sion" )
+      writeField_sion ( filename_vel, u@finest, !useGhost )
+      stopTimer ( 'writeField_sion: u' )
+
+      startTimer ( 'printField_hdf5: u' )
+      buildString ( filename_vel, "data/u_h5_", curPrintIt, ".xmf" )
+      printField_hdf5 ( filename_vel, u@finest)
+      stopTimer ( 'printField_hdf5: u' )
+
+      startTimer ( 'printField_hdf5: p' )
+      buildString ( filename_vel, "data/p_h5_", curPrintIt, ".xmf" )
+      printField_hdf5 ( filename_vel, p@finest)
+      stopTimer ( 'printField_hdf5: p' )
+
+      startTimer ( 'printField_mpiio: p' )
+      buildString ( filename_vel, "data/p_mpiio_", curPrintIt, ".xmf" )
+      printField_mpiio ( filename_vel, p@finest)
+      stopTimer ( 'printField_mpiio: p' )
+
+      startTimer ( 'printField_nc: u' )
+      buildString ( filename_vel, "data/u_nc_", curPrintIt, ".nc" )
+      printField_nc ( filename_vel, u@finest )
+      stopTimer ( 'printField_nc: u' )
+
       curPrintIt += 1
     }
 

@@ -1,0 +1,42 @@
+dimensionality                 = 2
+
+minLevel                       = 5
+maxLevel                       = 5
+
+discr_type                     = "FiniteVolumes"
+
+domain_onlyRectangular         = false
+domain_rect_generate           = false
+domain_readFromFile            = true
+experimental_domain_readAllLevelsFromFile = true
+
+domain_numBlocks               = 4
+domain_numFragmentsPerBlock    = 21
+
+//parIO_generateDebugStatements = true
+parIO_vis_constantDataReduction = true
+//parIO_useCollectiveIO            = false
+//swe_nodalReductionPrint = true
+swe_interleaveDiscComponentsPrint = true
+
+comm_onlyAxisNeighbors         = true
+comm_syncGhostData             = false
+comm_batchCommunication        = false
+grid_isUniform                 = false
+grid_isStaggered               = false
+grid_isAxisAligned             = false
+grid_spacingModel              = "blockstructured"
+
+mpi_enabled                    = true
+mpi_numThreads                 = 4
+
+omp_enabled                    = true
+omp_numThreads                 = 21
+omp_parallelizeLoopOverFragments = true
+omp_parallelizeLoopOverDimensions = false
+omp_minWorkItemsPerThread      = 300
+experimental_generateParaviewFiles = true
+experimental_disableIterationOffsets = true
+experimental_forceOmitCondInLocalSolve = true
+experimental_resolveInverseFunctionCall = "Runtime"
+experimental_allowCommInFragLoops = true

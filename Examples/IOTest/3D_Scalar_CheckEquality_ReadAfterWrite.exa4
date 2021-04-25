@@ -4,25 +4,15 @@ Domain global< [0.0, 0.0, 0.0] to [1.0, 1.0, 1.0] >
 
 // field layout declarations
 
-Layout NodeNoComm< Real, Node >@all {
-  duplicateLayers = [1, 1, 1]
-  ghostLayers     = [0, 0, 0]
-}
-
-Layout NodeWithComm< Real, Node >@all {
+Layout NodeWithComm < Real, Node >@all {
   duplicateLayers = [1, 1, 1] with communication
   ghostLayers     = [1, 1, 1] with communication
 }
 
-Layout NodeNoGhost< Real, Node >@all {
-  duplicateLayers = [1, 1, 1] with communication
-  ghostLayers     = [0, 0, 0]
-}
-
 // field declarations
 
-Field src< global, NodeWithComm, 0.0 >@all
-Field dest< global, NodeWithComm, 0.0 >@all
+Field src< global, NodeWithComm, None >@all
+Field dest< global, NodeWithComm, None >@all
 
 // external field declarations
 
@@ -32,23 +22,23 @@ Field dest< global, NodeWithComm, 0.0 >@all
 
 // functions
 
-Function compareFields@all : Int {
-    // check for equality
-    loop over dest {
-        Var diff : Real = fabs(dest - src)
-        if( diff > 0.001 ) {
-            print("fields are not equal! src=", src, " dest=", dest)
-            print("Error occurred at idx: i0 =", i0, ",i1 =", i1, ",i2=", i2)
-            return -1
-        }
+Function compareFields@all ( ) : Int {
+  // check for equality
+  loop over dest {
+    Var diff : Real = fabs(dest - src)
+    if( diff > 0.001 ) {
+      print("fields are not equal! src=", src, " dest=", dest)
+      print("Error occurred at idx: i0 =", i0, ",i1 =", i1, ",i2=", i2)
+      return -1
     }
+  }
+
+  // reset dest
+  loop over dest {
+    dest = -1.0
+  }
     
-    // reset dest
-    loop over dest {
-        dest = -1.0
-    }
-    
-    return 0
+  return 0
 }
 
 Function initSRC@finest {
@@ -57,7 +47,7 @@ Function initSRC@finest {
   }
 }
 
-Function checkEquality@finest {
+Function checkEquality@finest ( ) : Unit {
   Val ret : Int = compareFields@finest ( )
   if( ret == -1 ) {
     exit(1)
@@ -74,11 +64,13 @@ Function Application {
   initSRC@finest ( )
   stopTimer ( "setup" )
   
+  // arguments
   Val useGhost : Bool = true
   Val useBin : Bool = true
-  Val condition : Bool = true
+  Val useCanonicalLayout : Bool = true
+  Val condition : Bool = sqrt(4) == 2
   Val separator : String = ","
-  
+    
   // toggle I/O modes here
   Val lockingIO : Bool = true
   Val fppIO     : Bool = true
@@ -87,82 +79,92 @@ Function Application {
   Val ncIO      : Bool = true
   Val sionIO    : Bool = true
        
-  if(lockingIO) {
+  if (lockingIO) {
     startTimer ("Lock: writeField")
-    writeField_lock ("src_lock.txt", src@finest, useGhost, !useBin, condition, separator)
+    writeField_lock ("data/src_lock.txt", src@finest, useGhost, !useBin, condition, separator)
     stopTimer ("Lock: writeField")
 
     startTimer ("Lock: readField")
-    readField_lock ("src_lock.txt", dest@finest, useGhost, !useBin, condition, separator)
+    readField_lock ("data/src_lock.txt", dest@finest, useGhost, !useBin, condition, separator)
     stopTimer ("Lock: readField")
 
     checkEquality@finest ( )
     print ( 'Passed lock test' )
 
     // write csv for paraview
-    printField_lock ("src_vis.csv", src@finest, useGhost, !useBin, condition, separator)
+    printField_lock ("data/src_vis.csv", src@finest, useGhost, !useBin, condition, separator)
   }
   
-  if(fppIO) {
+  if (fppIO) {
       startTimer ("FPP: writeField")
-      writeField_fpp ("src_fpp_$blockId.bin", src@finest, useGhost, useBin, condition)
+      writeField_fpp ("data/src_fpp_$blockId.bin", src@finest, useGhost, useBin, condition)
       stopTimer ("FPP: writeField")
 
       startTimer ("FPP: readField")
-      readField_fpp ("src_fpp_$blockId.bin", dest@finest, useGhost, useBin, condition)
+      readField_fpp ("data/src_fpp_$blockId.bin", dest@finest, useGhost, useBin, condition)
       stopTimer ("FPP: readField")
       
       checkEquality@finest ( )
       print ( 'Passed fpp test' )
+      
+      // write xdmf files for paraview
+      printField_fpp ("data/src_vis_fpp_bin.xmf", src@finest, useBin)
+      printField_fpp ("data/src_vis_fpp.xmf", src@finest)
   }
   
-  if(hdfIO) {
+  if (hdfIO) {
     startTimer ("HDF5: writeField")
-    writeField_hdf5 ("src.h5", "/test/abs/path/src", src@finest)
+    writeField_hdf5 ("data/src.h5", "/test/abs/path/src", src@finest)
     stopTimer ("HDF5: writeField")
 
     startTimer ("HDF5: readField")
-    readField_hdf5 ("src.h5", "/test/abs/path/src", dest@finest)
+    readField_hdf5 ("data/src.h5", "/test/abs/path/src", dest@finest)
     stopTimer ("HDF5: readField")
 
     checkEquality@finest ( )
     print ( 'Passed hdf5 test' )
+    
+    printField_hdf5 ("data/src_vis_h5.xmf", src@finest, useCanonicalLayout)
   }
   
-  if(mpiIO) {
+  if (mpiIO) {
     startTimer ("MPIIO: writeField")
-    writeField_mpiio ("src.bin", src@finest)
+    writeField_mpiio ("data/src.bin", src@finest)
     stopTimer ("MPIIO: writeField")
 
     startTimer ("MPIIO: readField")
-    readField_mpiio ("src.bin", dest@finest)
+    readField_mpiio ("data/src.bin", dest@finest)
     stopTimer ("MPIIO: readField")
 
     checkEquality@finest ( )
     print ( 'Passed MPI I/O test' )
+    
+    printField_mpiio ("data/src_vis_mpiio.xmf", src@finest, !useCanonicalLayout)
   }
   
-  if(ncIO) {
+  if (ncIO) {
     startTimer ("PnetCDF: writeField")
-    writeField_nc ("src.nc", "field_src", src@finest)
+    writeField_nc ("data/src.nc", "field_src", src@finest, useGhost)
     stopTimer ("PnetCDF: writeField")
 
     startTimer ("PnetCDF: readField")
-    readField_nc ("src.nc", "field_src", dest@finest)
+    readField_nc ("data/src.nc", "field_src", dest@finest, useGhost)
     stopTimer ("PnetCDF: readField")
 
     checkEquality@finest ( )
     print ( 'Passed nc test' )
+    
+    printField_nc ("data/src_vis.nc", src@finest, useCanonicalLayout)
   }
    
   
   if(sionIO) {
     startTimer ("SionLib: writeField")
-    writeField_sion ("src.sion", src@finest, useGhost, condition)
+    writeField_sion ("data/src.sion", src@finest, !useGhost, condition)
     stopTimer ("SionLib: writeField")
 
     startTimer ("SionLib: readField")
-    readField_sion ("src.sion", dest@finest, useGhost, condition)
+    readField_sion ("data/src.sion", dest@finest, !useGhost, condition)
     stopTimer ("SionLib: readField")
 
     checkEquality@finest ( )
