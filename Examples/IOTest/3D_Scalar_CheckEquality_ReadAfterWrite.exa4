@@ -107,7 +107,7 @@ Function Application {
       checkEquality@finest ( )
       print ( 'Passed fpp test' )
       
-      // write xdmf files for paraview
+      // write xdmf files for paraview/visit
       printField_fpp ("data/src_vis_fpp_bin.xmf", src@finest, useBin)
       printField_fpp ("data/src_vis_fpp.xmf", src@finest)
   }
@@ -123,7 +123,8 @@ Function Application {
 
     checkEquality@finest ( )
     print ( 'Passed hdf5 test' )
-    
+
+    // write xdmf file for paraview/visit
     printField_hdf5 ("data/src_vis_h5.xmf", src@finest, useCanonicalLayout)
   }
   
@@ -138,7 +139,8 @@ Function Application {
 
     checkEquality@finest ( )
     print ( 'Passed MPI I/O test' )
-    
+
+    // write xdmf file for paraview/visit
     printField_mpiio ("data/src_vis_mpiio.xmf", src@finest, !useCanonicalLayout)
   }
   
@@ -153,7 +155,8 @@ Function Application {
 
     checkEquality@finest ( )
     print ( 'Passed nc test' )
-    
+
+    // write nc file for paraview/visit
     printField_nc ("data/src_vis.nc", src@finest, useCanonicalLayout)
   }
    

@@ -88,7 +88,7 @@ Function Application {
   }
   
   if (fppIO) {
-    // write xdmf files for paraview
+    // write xdmf files for paraview/visit
     startTimer ("Fpp: printField(srcVec) binary")
     printField_fpp ("data/srcVec_vis_fpp_bin.xmf", srcVec@finest, useBin)
     stopTimer ("Fpp: printField(srcVec) binary")
@@ -107,7 +107,7 @@ Function Application {
   }
   
   if (hdfIO) {
-    // write xdmf file for paraview
+    // write xdmf files for paraview/visit
     startTimer ("HDF5: printField(srcVec)") 
     printField_hdf5 ("data/srcVec_vis_h5.xmf", srcVec@finest, useCanonicalLayout)
     stopTimer ("HDF5: printField(srcVec)")
@@ -118,7 +118,7 @@ Function Application {
   }
   
   if (mpiIO) {
-    // write xdmf file for paraview
+    // write xdmf files for paraview/visit
     startTimer ("MPI-I/O: printField(srcVec)") 
     printField_mpiio ("data/srcVec_vis_mpiio.xmf", srcVec@finest, useCanonicalLayout)
     stopTimer ("MPI-I/O: printField(srcVec)")
@@ -129,13 +129,13 @@ Function Application {
   }
   
   if (ncIO) {
-    // write exodus file for paraview
+    // write nc files for paraview/visit
     startTimer ("PnetCDF: printField(srcVec)") 
-    printField_nc ("data/srcVec_vis.e", srcVec@finest, useCanonicalLayout)
+    printField_nc ("data/srcVec_vis.nc", srcVec@finest, useCanonicalLayout)
     stopTimer ("PnetCDF: printField(srcVec)")
     
     startTimer ("PnetCDF: printField(srcCell)") 
-    printField_nc ("data/srcCell_vis.e", srcCell@finest, useCanonicalLayout)
+    printField_nc ("data/srcCell_vis.nc", srcCell@finest, useCanonicalLayout)
     stopTimer ("PnetCDF: printField(srcCell)") 
   }
    

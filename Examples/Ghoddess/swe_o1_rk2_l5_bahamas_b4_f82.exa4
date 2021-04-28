@@ -692,7 +692,7 @@ printField_fpp ( filename_vtk, etaDiscLower0@finest )
 stopTimer ( 'printField_fpp_etaDiscLower0' )
 
 startTimer ( 'printField_lock' )
-printField ( "bath.csv", bath@finest )
+printField ( "data/bath.csv", bath@finest )
 stopTimer ( 'printField_lock' )
 
 /* triangle mesh plot */

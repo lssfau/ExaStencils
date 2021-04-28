@@ -59,7 +59,7 @@ Function Application {
   Val lockingIO : Bool = true
   Val fppIO     : Bool = true
   Val hdfIO     : Bool = true
-  Val mpiIO     : Bool = false
+  Val mpiIO     : Bool = false // enable if MPI parallel
   Val ncIO      : Bool = false
        
   if (lockingIO) {
@@ -84,7 +84,7 @@ Function Application {
   }
   
   if (fppIO) {
-    // write xdmf files for paraview
+    // write xdmf files for paraview/visit
     startTimer ("Fpp: printField(srcCell) binary")
     printField_fpp ("data/srcCell_vis_fpp_bin.xmf", srcCell@finest, useBin)
     stopTimer ("Fpp: printField(srcCell) binary")
@@ -103,7 +103,7 @@ Function Application {
   }
   
   if (hdfIO) {
-    // write xdmf file for paraview
+    // write xdmf files for paraview/visit
     startTimer ("HDF5: printField(srcCell)") 
     printField_hdf5 ("data/srcCell_vis_h5.xmf", srcCell@finest, !useCanonicalLayout)
     stopTimer ("HDF5: printField(srcCell)")
@@ -114,7 +114,7 @@ Function Application {
   }
   
   if (mpiIO) {
-    // write xdmf file for paraview
+    // write xdmf files for paraview/visit
     startTimer ("MPI-I/O: printField(srcCell)") 
     printField_mpiio ("data/srcCell_vis_mpiio.xmf", srcCell@finest, useCanonicalLayout)
     stopTimer ("MPI-I/O: printField(srcCell)")
