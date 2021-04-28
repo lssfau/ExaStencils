@@ -353,10 +353,18 @@ buildString ( filename_vtk, "data/bath_h5_", print_count, ".xmf" )
 printField_hdf5 ( filename_vtk, bath@finest, useCanonicalLayout )
 stopTimer ( 'printField_hdf5: bath' )
 
+// constant data reduction on
+startTimer ( 'printField_nc: bath' )
+printField_nc ( "data/bath.nc", bath@finest, useCanonicalLayout )
+stopTimer ( 'printField_nc: bath' )
+
+/*
+// constant data reduction off
 startTimer ( 'printField_nc: bath' )
 buildString ( filename_vtk, "data/bath_", print_count, ".nc" )
 printField_nc ( filename_vtk, bath@finest, useCanonicalLayout )
 stopTimer ( 'printField_nc: bath' )
+*/
 
 }
 

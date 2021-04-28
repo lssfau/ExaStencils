@@ -96,10 +96,18 @@ Function Application ( ) : Unit {
       printField_mpiio ( filename_vel, p@finest)
       stopTimer ( 'printField_mpiio: p' )
 
+      // constant data reduction on
+      startTimer ( 'printField_nc: u' )
+      printField_nc ( "data/u.nc", u@finest, /*canonicalOrder*/ true)
+      stopTimer ( 'printField_nc: u' )
+
+      /*
+      // constant data reduction off
       startTimer ( 'printField_nc: u' )
       buildString ( filename_vel, "data/u_nc_", curPrintIt, ".nc" )
-      printField_nc ( filename_vel, u@finest )
+      printField_nc ( filename_vel, u@finest, true )
       stopTimer ( 'printField_nc: u' )
+      */
 
       curPrintIt += 1
     }
