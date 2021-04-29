@@ -33,12 +33,25 @@ import exastencils.logger.Logger
 
 /// MPI_View
 object MPI_View {
-  private val localViews : ListBuffer[MPI_View] = ListBuffer()
-  private val globalViews : ListBuffer[MPI_View] = ListBuffer()
+  val localViews : ListBuffer[MPI_View] = ListBuffer()
+  val globalViews : ListBuffer[MPI_View] = ListBuffer()
   private val lookupTableLocal : ListBuffer[Int] = ListBuffer()
   private val lookupTableGlobal : ListBuffer[Int] = ListBuffer()
   def addView(view : MPI_View) : Boolean = {
     var ret = true
+    val container = if (!view.isLocal) globalViews else localViews
+    val lut = if (!view.isLocal) lookupTableGlobal else lookupTableLocal
+
+    var lookup = container.indexOf(view)
+    if (lookup != -1) {
+      ret = false
+    } else {
+      container.append(view)
+      lookup = container.length-1
+    }
+    lut.append(lookup)
+
+    /*
     if (!view.isLocal) {
       var lookup = globalViews.indexOf(view)
       if (lookup != -1) {
@@ -58,6 +71,7 @@ object MPI_View {
       }
       lookupTableLocal.append(lookup)
     }
+    */
 
     // add to globals if a new view instance is required, otherwise reuse already created instances
     if (ret) {

@@ -127,9 +127,8 @@ case class IR_PrintField(
     }
   }
 
-  // use one interface for uniform, non-uniform axis-aligned and non-uniform
-  def printNetCDF() : IR_Statement = IR_NullStatement // TODO
-  // IR_PrintNetCDF(filename, field, slot, ioInterface, includeGhostLayers, dataset, canonicalFileLayout, IR_FieldIO.getNewResolveId())
+  // use one interface for uniform and axis-aligned meshes
+  def printNetCDF() : IR_Statement = IR_PrintNetCDF(filename, field, slot, ioInterface, includeGhostLayers, dataset, canonicalFileLayout, IR_FieldIO.getNewResolveId())
 
   override def expand() : OutputType = {
     ioInterfaceName.toLowerCase match {

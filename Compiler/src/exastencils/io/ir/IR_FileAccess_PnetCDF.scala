@@ -17,8 +17,11 @@ case class IR_FileAccess_PnetCDF(
     var dataBuffers : ListBuffer[IR_DataBuffer],
     var bufferIsRecordVariable : Option[mutable.HashMap[Int, Boolean]],
     var writeAccess : Boolean,
-    var appendedMode : Boolean = false, // TODO: additional param "timeIndex" for appended mode?
-    var initFragInfo : Boolean = true
+    var appendedMode : Boolean = false,
+    var initFragInfo : Boolean = true,
+    var timeIdx : IR_Expression,
+    var timeVal : IR_Expression,
+    var altFileMode : Option[IR_VariableAccess] = None
 ) extends IR_FileAccess("nc") with IR_PnetCDF_API {
 
   /* hints:
@@ -26,17 +29,21 @@ case class IR_FileAccess_PnetCDF(
   */
 
   // general variables
-  override def fileMode : IR_VariableAccess = if (writeAccess) {
-    if (appendedMode) {
-      IR_VariableAccess("NC_WRITE", IR_UnknownDatatype) // open in read-write mode
-    } else {
-      if (Knowledge.mpi_enabled)
-        IR_VariableAccess("NC_64BIT_DATA | NC_CLOBBER", IR_UnknownDatatype) // create new CDF-5 file (clobber equals truncation)
-      else
-        IR_VariableAccess("NC_64BIT_OFFSET | NC_CLOBBER", IR_UnknownDatatype) // create new CDF-2 file
-    }
+  override def fileMode : IR_VariableAccess = if (altFileMode.isDefined) {
+    altFileMode.get
   } else {
-    IR_VariableAccess("NC_NOWRITE", IR_UnknownDatatype) // open as read-only
+    if (writeAccess) {
+      if (appendedMode) {
+        IR_VariableAccess("NC_WRITE", IR_UnknownDatatype) // open in read-write mode
+      } else {
+        if (Knowledge.mpi_enabled)
+          IR_VariableAccess("NC_64BIT_DATA | NC_CLOBBER", IR_UnknownDatatype) // create new CDF-5 file (clobber equals truncation)
+        else
+          IR_VariableAccess("NC_64BIT_OFFSET | NC_CLOBBER", IR_UnknownDatatype) // create new CDF-2 file
+      }
+    } else {
+      IR_VariableAccess("NC_NOWRITE", IR_UnknownDatatype) // open as read-only
+    }
   }
 
   /* time variable handling */
@@ -72,7 +79,7 @@ case class IR_FileAccess_PnetCDF(
   }
   override def globalStart_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) =>
     buf.declareDimensionality("globalStart", datatypeDimArray,
-      handleTimeDimension(timeValue = IR_IV_TimeIndexRecordVariables(), bufIdx,
+      handleTimeDimension(timeValue = timeIdx, bufIdx,
         dims = ListBuffer.fill(buf.datasetDimsGlobal)(IR_IntegerConstant(0))))
   }
   lazy val emptyCount_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) =>
@@ -269,10 +276,10 @@ case class IR_FileAccess_PnetCDF(
     // write time values
     if (writeTimeToFile) {
       if (Knowledge.parIO_useCollectiveIO) {
-        statements ++= ncmpi_put_var1_type_all(IR_DoubleDatatype, ncFile, varIdTime, IR_AddressOf(IR_IV_TimeIndexRecordVariables()), IR_AddressOf(IR_IV_TimeValueRecordVariables()))
+        statements ++= ncmpi_put_var1_type_all(IR_DoubleDatatype, ncFile, varIdTime, IR_AddressOf(timeIdx), IR_AddressOf(timeVal))
       } else {
         statements += IR_IfCondition(MPI_IsRootProc.apply(), // only root needs to write the time value for independent I/O
-          ncmpi_put_var1_type(IR_DoubleDatatype, ncFile, varIdTime, IR_AddressOf(IR_IV_TimeIndexRecordVariables()), IR_AddressOf(IR_IV_TimeValueRecordVariables())))
+          ncmpi_put_var1_type(IR_DoubleDatatype, ncFile, varIdTime, IR_AddressOf(timeIdx), IR_AddressOf(timeVal)))
       }
     }
 
@@ -381,8 +388,8 @@ case class IR_FileAccess_PnetCDF(
 
     // increment time index/value once data was written
     if (writeTimeToFile) {
-      statements += IR_Assignment(IR_IV_TimeIndexRecordVariables(), 1, "+=")
-      statements += IR_Assignment(IR_IV_TimeValueRecordVariables(), 1.0, "+=")
+      statements += IR_Assignment(timeIdx, 1, "+=")
+      statements += IR_Assignment(timeVal, 1.0, "+=")
     }
 
     if (!Knowledge.parIO_useCollectiveIO && Knowledge.mpi_enabled) {

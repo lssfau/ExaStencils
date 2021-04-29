@@ -76,6 +76,9 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   def dataBufferConnectivity : IR_DataBuffer
   def dataBuffersConstant : ListBuffer[IR_DataBuffer] = dataBuffersNodePos :+ dataBufferConnectivity
 
+  def IR_IV_TimeIdxRecords() = IR_IV_TimeIndexRecordVariables(resolveId)
+  def IR_IV_TimeValRecords() = IR_IV_TimeValueRecordVariables(resolveId)
+
   // dataset names created by exodus
   def datasetCoords : ListBuffer[IR_StringConstant] = (0 until numDimsGrid).map(d => IR_StringConstant("coord" + ('x' + d).toChar.toString)).to[ListBuffer]
   def datasetConnectivity : IR_StringConstant = IR_StringConstant("connect" + elemBlockId)
@@ -192,12 +195,12 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   def ex_put_coord(pointers : ListBuffer[IR_Expression]) : ListBuffer[IR_Statement] =
     callExodusFunction("ex_put_coord", exoId +: pointers.padTo(3, nullptr) :_*)
   def ex_put_time : ListBuffer[IR_Statement] =
-    callExodusFunction("ex_put_time", exoId, IR_IV_TimeIndexRecordVariables(), IR_AddressOf(IR_IV_TimeValueRecordVariables()))
+    callExodusFunction("ex_put_time", exoId, IR_IV_TimeIdxRecords(), IR_AddressOf(IR_IV_TimeValRecords()))
   def ex_put_conn(ptr : IR_Expression) : ListBuffer[IR_Statement] =
     callExodusFunction("ex_put_conn", exoId, EX_ELEM_BLOCK, elemBlockId, ptr, 0, 0)
   def ex_put_var(varIndex : Int, ptr : IR_Expression) : ListBuffer[IR_Statement] = {
     val numVals = if (variableEntityType == EX_NODAL) numNodes else numElemInBlock
-    callExodusFunction("ex_put_var", exoId, IR_IV_TimeIndexRecordVariables(), variableEntityType, varIndex, elemBlockId, numVals, ptr)
+    callExodusFunction("ex_put_var", exoId, IR_IV_TimeIdxRecords(), variableEntityType, varIndex, elemBlockId, numVals, ptr)
   }
 
   def ex_close() : ListBuffer[IR_Statement] =
@@ -217,12 +220,14 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
 
     fn match {
       case sc : IR_StringConstant                                         =>
-        IR_FileAccess_PnetCDF(sc, dataBuffers(constsIncluded), Some(recordVariables), writeAccess = true, appendedMode, initFragInfo = false)
+        IR_FileAccess_PnetCDF(sc, dataBuffers(constsIncluded), Some(recordVariables),
+          writeAccess = true, appendedMode, initFragInfo = false, timeIdx = IR_IV_TimeIdxRecords(), timeVal = IR_IV_TimeValRecords(), altFileMode = None)
       case vAcc : IR_VariableAccess if vAcc.datatype == IR_StringDatatype =>
         if (Knowledge.parIO_vis_constantDataReduction) {
           Logger.error("Error in IR_PrintExodus: Parameter \"filename\" must be a string constant when \"Knowledge.parIO_constantDataReduction\" is enabled.")
         } else {
-          IR_FileAccess_PnetCDF(vAcc, dataBuffers(constsIncluded), Some(recordVariables), writeAccess = true, appendedMode, initFragInfo = false)
+          IR_FileAccess_PnetCDF(vAcc, dataBuffers(constsIncluded), Some(recordVariables),
+            writeAccess = true, appendedMode, initFragInfo = false, timeIdx = IR_IV_TimeIdxRecords(), timeVal = IR_IV_TimeValRecords(), altFileMode = None)
         }
       case _                                                              =>
         Logger.error("Error in IR_PrintExodus: Parameter \"filename\" has wrong datatype.")
@@ -264,7 +269,7 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
       stmts += IR_FunctionCall(IR_ExternalFunctionReference("ex_opts"), IR_VariableAccess("EX_VERBOSE", IR_UnknownDatatype))
 
     if (constsIncluded) {
-      stmts += IR_Assignment(IR_IV_TimeIndexRecordVariables(), 1) // ex_put_var expects start value 1
+      stmts += IR_Assignment(IR_IV_TimeIdxRecords(), 1) // ex_put_var expects start value 1
       stmts ++= ex_create()
       stmts ++= ex_put_init()
       stmts ++= ex_put_block()
@@ -321,8 +326,8 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
 
     // update time
     if (Knowledge.parIO_vis_constantDataReduction) {
-      stmts += IR_Assignment(IR_IV_TimeIndexRecordVariables(), 1, "+=")
-      stmts += IR_Assignment(IR_IV_TimeValueRecordVariables(), 1.0, "+=")
+      stmts += IR_Assignment(IR_IV_TimeIdxRecords(), 1, "+=")
+      stmts += IR_Assignment(IR_IV_TimeValRecords(), 1.0, "+=")
     }
 
     stmts ++= ex_close()
@@ -363,7 +368,7 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
           case _             => Logger.error("Unknown entity type used for field data in \"IR_PrintExodus\":" + variableEntityType.name)
         }
         def countFieldData(numFragsPerWrite : IR_Expression) = declareDims(2, "countFieldData", buf.localization, Some(ListBuffer(1, numFragsPerWrite * spatialDimField)))
-        val startFieldData = declareDims(2, "startFieldData", buf.localization) -> ListBuffer[IR_Expression](IR_IV_TimeIndexRecordVariables(), fragOffset * spatialDimField)
+        val startFieldData = declareDims(2, "startFieldData", buf.localization) -> ListBuffer[IR_Expression](IR_IV_TimeIdxRecords(), fragOffset * spatialDimField)
 
         // associate flattened dims with buffers depending on the buffers characteristics
         val numFragsPerWrite = if (buf.accessBlockwise) IR_IV_NumValidFrags(buf.domainIdx) else IR_IntegerConstant(1)

@@ -29,15 +29,15 @@ import exastencils.util.ir.IR_Print
 // PnetCDF IVs
 
 // provides an index for the time dimension used by record variables
-case class IR_IV_TimeIndexRecordVariables() extends IR_UnduplicatedVariable {
-  override def resolveName() : String = "timeIndexRecord"
+case class IR_IV_TimeIndexRecordVariables(id : Int) extends IR_UnduplicatedVariable {
+  override def resolveName() : String = "timeIndexRecord" + id
   override def resolveDatatype() : IR_Datatype = if (Knowledge.mpi_enabled) IR_SpecialDatatype("MPI_Offset") else IR_SpecialDatatype("size_t")
   override def resolveDefValue() : Option[IR_Expression] = Some(0)
 }
 
 // provides a time value for record variables (here: current print count)
-case class IR_IV_TimeValueRecordVariables() extends IR_UnduplicatedVariable {
-  override def resolveName() : String = "timeValue"
+case class IR_IV_TimeValueRecordVariables(id : Int) extends IR_UnduplicatedVariable {
+  override def resolveName() : String = "timeValue" + id
   override def resolveDatatype() : IR_Datatype = IR_DoubleDatatype
   override def resolveDefValue() : Option[IR_Expression] = Some(0.0)
 }
@@ -222,4 +222,11 @@ trait IR_PnetCDF_API {
   def ncmpi_get_varm_type(datatype: IR_Datatype, fileId : IR_VariableAccess, varId : IR_Access, startPtr : IR_Expression, countPtr : IR_Expression, stridePtr : IR_Expression, imapPtr : IR_Expression, bufPtr : IR_AddressOf) : ListBuffer[IR_Statement] =
     callNcFunction("ncmpi_get_varm_<type>", Some(datatype), fileId, varId, startPtr, countPtr, stridePtr, imapPtr, bufPtr)
 
+  /* attributes */
+
+  def ncmpi_put_att(datatype: IR_Datatype, fileId : IR_VariableAccess, varId : IR_Access, attrNameStr : IR_Expression, nElems : IR_Expression, bufPtr : IR_Expression) : ListBuffer[IR_Statement] =
+  callNcFunction("ncmpi_put_att_<type>", Some(datatype), fileId, varId, attrNameStr, ncDatatype(datatype), nElems, bufPtr)
+
+  def ncmpi_put_att_text(fileId : IR_VariableAccess, varId : IR_Access, attrNameStr : IR_Expression, nElems : IR_Expression, bufPtr : IR_Expression) : ListBuffer[IR_Statement] =
+    callNcFunction("ncmpi_put_att_text", None, fileId, varId, attrNameStr, nElems, bufPtr)
 }

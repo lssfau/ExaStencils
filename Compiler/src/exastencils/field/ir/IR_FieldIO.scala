@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Expandable
 import exastencils.base.ir.IR_Expression
+import exastencils.base.ir.IR_NullExpression
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_StringConstant
 import exastencils.config.Knowledge
@@ -79,7 +80,7 @@ abstract class IR_FieldIO extends IR_Statement with IR_Expandable {
       case "hdf5"  =>
         IR_FileAccess_HDF5(filename, ListBuffer(fieldAsDataBuffer), doWrite, zlibCompressionLevel = if (onlyVals) Knowledge.hdf5_write_zlib_compression_level else 0)
       case "nc"    =>
-        IR_FileAccess_PnetCDF(filename, ListBuffer(fieldAsDataBuffer), None, doWrite)
+        IR_FileAccess_PnetCDF(filename, ListBuffer(fieldAsDataBuffer), None, doWrite, timeIdx = IR_NullExpression, timeVal = IR_NullExpression, altFileMode = None)
       case "sion"  =>
         IR_FileAccess_SIONlib(filename, ListBuffer(fieldAsDataBuffer), doWrite, condition)
       case _       =>
