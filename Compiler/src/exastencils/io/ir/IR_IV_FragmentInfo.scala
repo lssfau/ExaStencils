@@ -62,12 +62,14 @@ object IR_IV_FragmentInfo {
               func.body += MPI_AllReduce(IR_AddressOf(IR_IV_TotalNumFrags(domainIdx)), IR_IntegerDatatype, 1, "+")
             }
 
-            // valid frags per block
-            func.body += IR_FunctionCall(
-              IR_ExternalFunctionReference("MPI_Allgather"),
-              IR_AddressOf(IR_IV_NumValidFrags(domainIdx)), 1, mpiInt,
-              IR_IV_NumValidFragsPerBlock(domainIdx), 1, mpiInt, mpiComm
-            )
+            if (Knowledge.mpi_enabled) {
+              // valid frags per block
+              func.body += IR_FunctionCall(
+                IR_ExternalFunctionReference("MPI_Allgather"),
+                IR_AddressOf(IR_IV_NumValidFrags(domainIdx)), 1, mpiInt,
+                IR_IV_NumValidFragsPerBlock(domainIdx), 1, mpiInt, mpiComm
+              )
+            }
           case _ =>
         }
       }
