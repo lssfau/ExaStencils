@@ -29,6 +29,7 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.domain.ir._
 import exastencils.grid.ir._
+import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir._
 
@@ -97,12 +98,21 @@ case class IR_PrintField(
       printComponents ++= (0 until numDimsGrid).view.flatMap { dim => List(getPos(field, dim), separator) }
     }
     printComponents += "std::scientific"
-    printComponents ++= arrayIndexRange.view.flatMap { index =>
-      val access = IR_FieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDimsData))
-      if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
-        access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
-      List(access, separator)
+    val accesses = if (numDimsData > numDimsGrid) {
+      field.gridDatatype match {
+        case mat : IR_MatrixDatatype =>
+          Array.range(0, mat.sizeM).flatMap(rows =>
+            Array.range(0, mat.sizeN).map(cols =>
+              IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDimsGrid).indices :+ IR_IntegerConstant(rows) :+ IR_IntegerConstant(cols))))
+        case _ : IR_ScalarDatatype   =>
+          Array(IR_LoopOverDimensions.defIt(numDimsGrid))
+        case _                       =>
+          Logger.error("Unsupported higher dimensional datatype used for I/O interface.")
+      }
+    } else {
+      Array(IR_LoopOverDimensions.defIt(numDimsGrid))
     }
+    printComponents ++= accesses.flatMap(acc => ListBuffer(IR_FieldAccess(field, Duplicate(slot), acc), separator))
     printComponents += IR_Print.endl
 
     val fieldBegin = if (includeGhostLayers) "GLB" else "DLB"
@@ -122,9 +132,9 @@ case class IR_PrintField(
         IR_Print(stream, "std::scientific << std::setprecision(" + Knowledge.field_printFieldPrecision + ")"), //std::defaultfloat
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-          IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(fieldBegin, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.layout.idxById(fieldEnd, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
+          IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
+            IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => field.layout.idxById(fieldBegin, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
+            IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => field.layout.idxById(fieldEnd, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
             IR_IfCondition(condition,
               IR_Print(stream, printComponents)))))
       ,

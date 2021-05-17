@@ -1063,7 +1063,7 @@ Access to a [variable](#variable-declaration), a [value](#value-declaration) or 
 <i>target</i>
   /* optional */ [ <i>slot</i> ]
   /* optional */ @ <i>level</i>
-  /* optional */ @ <i>offet</i>
+  /* optional */ @ <i>offset</i>
   /* optional */ : <i>direction</i>
   /* optional */ [ <i>component</i> ]
 </pre>
