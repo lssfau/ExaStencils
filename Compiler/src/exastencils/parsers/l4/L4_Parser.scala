@@ -39,6 +39,7 @@ import exastencils.operator.l4._
 import exastencils.parsers._
 import exastencils.solver.l4._
 import exastencils.util.l4.L4_OffsetAlias
+import exastencils.waLBerla.l4.L4_WaLBerlaFieldDecl
 
 /// L4_Parser
 
@@ -89,6 +90,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| fieldCombinationDeclaration
       ||| stencilField
       ||| externalField
+      ||| waLBerlaField
       ||| stencilDeclaration
       ||| stencilFromDefault
       ||| equationDeclaration
@@ -380,6 +382,8 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ levelDecl.? ~ matShapeOption.?
     ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level ~ shape => L4_BaseFieldDecl(id, level, domain, layout, boundary, slots.getOrElse(1), shape) })
+
+  lazy val waLBerlaField = locationize("waLBerla" ~> field ^^ (f => L4_WaLBerlaFieldDecl(f)))
 
   lazy val fieldBoundary = (
     "Neumann" ~> ("(" ~> integerLit <~ ")").? ^^ { L4_NeumannBC(_) }

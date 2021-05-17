@@ -53,6 +53,12 @@ import exastencils.timing.ir._
 import exastencils.util._
 import exastencils.util.ir._
 import exastencils.visualization.ir._
+import exastencils.waLBerla.ir.IR_ResolveWaLBerlaFieldAccess
+import exastencils.waLBerla.ir.IR_WaLBerlaFunctions
+import exastencils.waLBerla.ir.IR_WaLBerlaReplaceFieldIteratorAccesses
+import exastencils.waLBerla.ir.IR_WaLBerlaReplaceLayoutIVs
+import exastencils.waLBerla.ir.IR_WaLBerlaResolveLoopOverPoints
+import exastencils.waLBerla.ir.IR_WaLBerlaUtil
 
 /// IR_LayerHandler
 
@@ -110,6 +116,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       // Util
       IR_Stopwatch(),
       IR_TimerFunctions(),
+      IR_WaLBerlaFunctions(),
       CImg() // TODO: only if required
     )
 
@@ -121,6 +128,8 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_GeneralSimplify.doUntilDone() // removes (conditional) calls to communication functions that are not possible
     IR_SetupCommunication.firstCall = true
     IR_SetupCommunication.apply()
+
+    IR_WaLBerlaUtil.apply()
 
     IR_InferDiagAndInverseCallDataTypes.doUntilDone()
     IR_HandleMainApplication.apply()
@@ -162,6 +171,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_ResolveEvaluateOnGrid.apply()
     IR_ResolveVirtualFieldAccesses.apply()
 
+    IR_WaLBerlaResolveLoopOverPoints.apply()
     IR_ResolveLoopOverPoints.apply()
     IR_ResolveIntergridIndices.apply()
     IR_ApplyOffsetToFieldAccess.apply()
@@ -197,6 +207,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_ResolveComplexAccess.apply() //TODO: brauche ich für den Complex Access
 
+    //IR_WaLBerlaReplaceLoopOverFragments.apply() // after IR_ResolveLoopOverPoints, before IR_ResolveLoopOverPointsInOneFragment and IR_ResolveLoopOverFragments
     IR_ResolveLoopOverPointsInOneFragment.apply()
 
     IR_ResolveLocalSolve.apply()
@@ -239,6 +250,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_MapStencilAssignments.apply()
     IR_ResolveFieldAccess.apply()
+    IR_ResolveWaLBerlaFieldAccess.apply()
 
     if (Knowledge.useFasterExpand)
       IR_ExpandInOnePass.apply()
@@ -267,6 +279,9 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary
 
+    IR_WaLBerlaReplaceFieldIteratorAccesses.apply() // after LoopOverDimensions
+    //WB_ReplaceFieldAccesses.apply() // after WB_ReplaceFieldIteratorAccesses, before Linearize...FieldAccesses
+
     // Apply CUDA kernel extraction after polyhedral optimizations to work on optimized ForLoopStatements
     if (Knowledge.cuda_enabled) {
       CUDA_AnnotateLoop.apply()
@@ -277,6 +292,8 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     }
 
     IR_LayoutTansformation.apply()
+
+    IR_WaLBerlaReplaceLayoutIVs.apply()
 
     // before converting kernel functions -> requires linearized accesses
     IR_LinearizeDirectFieldAccess.apply()
@@ -331,6 +348,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     else
       IR_Expand.doUntilDone()
 
+    //IR_WaLBerlaReplaceLoopOverFragments.apply() // before IR_ResolveLoopOverFragments
     // resolve newly added fragment loops
     IR_ResolveLoopOverFragments.apply()
 

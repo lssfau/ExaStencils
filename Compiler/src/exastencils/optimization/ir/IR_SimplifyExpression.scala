@@ -205,6 +205,14 @@ object IR_SimplifyExpression {
         res = new mutable.HashMap[IR_Expression, Long]()
         res(m) = 1L
 
+      case m : IR_MemberFunctionCall =>
+        res = new mutable.HashMap[IR_Expression, Long]()
+        res(m) = 1L
+
+      case m : IR_MemberFunctionCallArrow =>
+        res = new mutable.HashMap[IR_Expression, Long]()
+        res(m) = 1L
+
       case IR_StringLiteral(varName) =>
         res = new HashMap[IR_Expression, Long]()
         res(IR_VariableAccess(varName, IR_IntegerDatatype)) = 1L // ONLY VariableAccess in res keys, NO StringLiteral

@@ -43,6 +43,8 @@ import exastencils.prettyprinting.Indenter
 import exastencils.solver.l4._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util.l4._
+import exastencils.waLBerla.l4.L4_WaLBerlaFieldCollection
+import exastencils.waLBerla.l4.L4_WaLBerlaReplaceLoopOverField
 
 /// L4_LayerHandler
 
@@ -70,6 +72,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     L4_StencilFieldCollection
     L4_VirtualFieldCollection
     L4_ExternalFieldCollection
+    L4_WaLBerlaFieldCollection
     L4_EquationCollection
     L4_FieldCombinationCollection
 
@@ -131,7 +134,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     try {
       ExaRootNode.l4_root = L4_Parser.parse(oldL4Code, l4FileName)
     } catch {
-      case foo : Exception => Logger.error("second parse")
+      case foo : Exception => Logger.error("second parse: " + foo.getMessage)
     }
     ExaRootNode.l4_root.flatten()
 
@@ -235,6 +238,8 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
 
     // progress knowledge to IR
     L4_KnowledgeContainer.progress()
+
+    L4_WaLBerlaReplaceLoopOverField.apply()
 
     //L4_ProgressKnowledge.apply()
 

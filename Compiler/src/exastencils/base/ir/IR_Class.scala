@@ -61,3 +61,18 @@ case class IR_MemberFunctionCall(var objectName : IR_Expression, var name : Stri
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << objectName << '.' << name << '(' <<< (arguments, ", ") << ')'
 }
+
+object IR_MemberFunctionCallArrow {
+  def apply(objectName : IR_Expression, name : String, dt : IR_Datatype, args : IR_Expression*) =
+    new IR_MemberFunctionCallArrow(objectName, name, args.to[ListBuffer], dt)
+}
+
+case class IR_MemberFunctionCallArrow(
+    var objectName : IR_Expression,
+    var name : String,
+    var arguments : ListBuffer[IR_Expression],
+    var datatype : IR_Datatype = IR_UnitDatatype
+) extends IR_Expression {
+
+  override def prettyprint(out : PpStream) : Unit = out << objectName << "->" << name << '(' <<< (arguments, ", ") << ')'
+}
