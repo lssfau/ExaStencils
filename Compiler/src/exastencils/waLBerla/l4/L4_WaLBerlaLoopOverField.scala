@@ -15,12 +15,14 @@ import exastencils.communication.l4.L4_Communicate
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.field.l4.L4_FieldAccess
+import exastencils.field.l4.L4_FutureFieldAccess
 import exastencils.prettyprinting.PpStream
+import exastencils.waLBerla.ir.IR_WaLBerlaField
 import exastencils.waLBerla.ir.IR_WaLBerlaLoopOverPoints
 
 
 case class L4_WaLBerlaLoopOverField(
-    var fieldAcc : L4_WaLBerlaFieldAccess,
+    var fieldAcc : L4_FieldAccess,
     var region : Option[L4_RegionSpecification],
     var seq : Boolean, // FIXME: seq HACK
     var condition : Option[L4_Expression],
@@ -34,14 +36,15 @@ case class L4_WaLBerlaLoopOverField(
 
   // reuse most of L4_LoopOverField impl
   val loopOverField : IR_LoopOverPoints =
-    L4_LoopOverField(L4_FieldAccess(fieldAcc.target.field, fieldAcc.slot, fieldAcc.offset, fieldAcc.arrayIndex, fieldAcc.frozen, fieldAcc.matIndex)).progress
+    L4_LoopOverField(L4_FieldAccess(fieldAcc.target, fieldAcc.slot, fieldAcc.offset, fieldAcc.arrayIndex, fieldAcc.frozen, fieldAcc.matIndex)).progress
 
   override def prettyprint(out : PpStream) : Unit = {
     out << loopOverField.prettyprint()
   }
 
   override def progress : IR_Statement = {
-    val newloop = IR_WaLBerlaLoopOverPoints(fieldAcc.target.getProgressedObj(),
+    val newloop = IR_WaLBerlaLoopOverPoints(
+      IR_WaLBerlaField(fieldAcc.target.getProgressedObj()),
       if (region.isDefined) Some(region.get.progress) else None,
       loopOverField.startOffset,
       loopOverField.endOffset,
@@ -57,9 +60,15 @@ case class L4_WaLBerlaLoopOverField(
   }
 }
 
-object L4_WaLBerlaReplaceLoopOverField extends DefaultStrategy("Replace LoopOverField for WB fields") {
-  this += Transformation("Replace", {
-    case loop @ L4_LoopOverField(fAcc : L4_WaLBerlaFieldAccess, region, seq, condition, start, end, incr, body, reduction, preComms, postComms) =>
-      L4_WaLBerlaLoopOverField(fAcc, region, seq, condition, start, end, incr, body, reduction, preComms, postComms)
+/// L4_WaLBerlaReplaceLoopOverField
+
+object L4_WaLBerlaResolveLoopOverField extends DefaultStrategy("Resolve LoopOverField for WB fields") {
+  this += Transformation("Resolve", {
+    case L4_LoopOverField(fAcc : L4_FutureFieldAccess, region, seq, condition, start, end, incr, body, reduction, preComms, postComms) if L4_WaLBerlaFieldCollection.contains(fAcc) =>
+      // resolve accesses to waLBerla fields
+      val wbField = L4_WaLBerlaFieldCollection.getByFieldAccess(fAcc).get // get field from wb field collection
+      val newAcc = L4_FieldAccess(wbField.field, fAcc.slot, fAcc.offset, fAcc.arrayIndex, fAcc.frozen, fAcc.matIndex) // create 'regular' access for it
+
+      L4_WaLBerlaLoopOverField(newAcc, region, seq, condition, start, end, incr, body, reduction, preComms, postComms)
   })
 }

@@ -44,7 +44,8 @@ import exastencils.solver.l4._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util.l4._
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldCollection
-import exastencils.waLBerla.l4.L4_WaLBerlaReplaceLoopOverField
+import exastencils.waLBerla.l4.L4_WaLBerlaResolveFieldAccesses
+import exastencils.waLBerla.l4.L4_WaLBerlaResolveLoopOverField
 
 /// L4_LayerHandler
 
@@ -239,7 +240,9 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     // progress knowledge to IR
     L4_KnowledgeContainer.progress()
 
-    L4_WaLBerlaReplaceLoopOverField.apply()
+    // waLBerla field handling
+    L4_WaLBerlaResolveLoopOverField.apply()
+    L4_WaLBerlaResolveFieldAccesses.apply()
 
     //L4_ProgressKnowledge.apply()
 

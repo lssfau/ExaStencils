@@ -1,19 +1,9 @@
 package exastencils.waLBerla.ir
 
-import scala.util.matching.Regex
-
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
-import exastencils.base.ir.IR_ForLoop
-import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_SpecialDatatype
 import exastencils.base.ir.IR_VariableAccess
-import exastencils.base.ir.IR_VariableDeclaration
-import exastencils.baseExt.ir.IR_FieldIteratorAccess
-import exastencils.core.Duplicate
-import exastencils.datastructures.DefaultStrategy
-import exastencils.datastructures.Transformation
-import exastencils.logger.Logger
 
 /// IR_WaLBerlaFieldIteratorAccess
 
@@ -27,11 +17,11 @@ object IR_WaLBerlaFieldIteratorAccess {
   def fullIndex(numDims : Int) = IR_ExpressionIndex((0 until numDims).map(this (_) : IR_Expression).toArray)
 }
 
-class IR_WaLBerlaFieldIteratorAccess(layout : String = "fzyx") extends IR_VariableAccess("x", IR_SpecialDatatype("cell_idx_t")) {
+class IR_WaLBerlaFieldIteratorAccess() extends IR_VariableAccess("i0", IR_SpecialDatatype("cell_idx_t")) {
   private var dim_ : Int = 0
   def dim_=(d : Int) = {
     dim_ = d
-    name = s"${ layout.reverse(dim_) }" // rightmost is innermost dim
+    name = s"i$dim_"
   }
   def dim = dim_
 
@@ -44,14 +34,16 @@ class IR_WaLBerlaFieldIteratorAccess(layout : String = "fzyx") extends IR_Variab
   }
 }
 
-object IR_WaLBerlaReplaceFieldIteratorAccesses extends DefaultStrategy("Replace field iterators") {
+/*
+// old stuff
+object IR_WaLBerlaReplaceFieldIteratorAccesses extends DefaultStrategy("Replace field iterators in loops") {
 
   val regexIter : Regex = "\\d$".r // extract dim from iterator name, e.g. "i0" -> 0
 
   this += Transformation("Replace iterators", {
     case it : IR_FieldIteratorAccess =>
       IR_WaLBerlaFieldIteratorAccess(it.dim)
-  }, applyAtNode = IR_WaLBerlaUtil.startNode)
+  })
 
   this += Transformation("Replace loop iterators", {
     case IR_ForLoop(begin, end, incr, bdy, parInfo) =>
@@ -88,5 +80,6 @@ object IR_WaLBerlaReplaceFieldIteratorAccesses extends DefaultStrategy("Replace 
         case _                                           => decl
       }
      */
-  }, applyAtNode = IR_WaLBerlaUtil.startNode)
+  })
 }
+*/

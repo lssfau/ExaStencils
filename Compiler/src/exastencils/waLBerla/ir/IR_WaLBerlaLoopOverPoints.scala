@@ -63,13 +63,12 @@ case class IR_WaLBerlaLoopOverPoints(
         parallelization)
     }
 
-    // TODO: check if using the underlying 'real' field for the inner loop breaks anything
     val insideFragLoop = collector.stack.exists(_.isInstanceOf[IR_LoopOverFragments])
     val innerLoop =
       if (Knowledge.experimental_splitLoopsForAsyncComm)
-        IR_LoopOverPointsInOneFragment(wbField.domain.index, wbField.field, region, startOffset, endOffset, increment, body, preComms, postComms, Duplicate(parallelization), condition)
+        IR_WaLBerlaLoopOverPointsInOneFragment(wbField.domain.index, wbField, region, startOffset, endOffset, increment, body, preComms, postComms, Duplicate(parallelization), condition)
       else
-        IR_LoopOverPointsInOneFragment(wbField.domain.index, wbField.field, region, startOffset, endOffset, increment, body, ListBuffer(), ListBuffer(), Duplicate(parallelization), condition)
+        IR_WaLBerlaLoopOverPointsInOneFragment(wbField.domain.index, wbField, region, startOffset, endOffset, increment, body, ListBuffer(), ListBuffer(), Duplicate(parallelization), condition)
 
     if (insideFragLoop && innerLoop.parallelization.reduction.isDefined)
       innerLoop.parallelization.reduction.get.skipMpi = true
@@ -84,7 +83,8 @@ case class IR_WaLBerlaLoopOverPoints(
 }
 
 /// IR_WaLBerlaResolveLoopOverPoints
-object IR_WaLBerlaResolveLoopOverPoints extends DefaultStrategy("Resolve LoopOverPoints nodes") {
+
+object IR_WaLBerlaResolveLoopOverPoints extends DefaultStrategy("Resolve WB LoopOverPoints nodes") {
   val collector = new IR_StackCollector
   this.register(collector)
   this.onBefore = () => this.resetCollectors()
