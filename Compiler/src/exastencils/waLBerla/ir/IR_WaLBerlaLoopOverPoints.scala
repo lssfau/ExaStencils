@@ -12,7 +12,6 @@ import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.StatementList
 import exastencils.field.ir.IR_FieldAccess
-import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.parallelization.ir.IR_ParallelizationInfo
@@ -38,15 +37,13 @@ case class IR_WaLBerlaLoopOverPoints(
 
     // collect fields accessed in loop
     val fieldAccesses = ListBuffer[IR_FieldAccess]()
-    val vfieldAccesses = ListBuffer[IR_VirtualFieldAccess]()
     IR_CollectFieldAccesses.applyStandalone(body)
-    fieldAccesses ++= Duplicate(IR_CollectFieldAccesses.fieldAccesses).groupBy(_.name).map(_._2.head)
-    vfieldAccesses ++= Duplicate(IR_CollectFieldAccesses.vFieldAccesses).groupBy(_.name).map(_._2.head) // TODO handle too
+    fieldAccesses ++= Duplicate(IR_CollectFieldAccesses.fieldAccesses).filter(IR_WaLBerlaFieldCollection.contains).groupBy(_.name).map(_._2.head)
 
     // get field data from block
-    val blockDataIDs = fieldAccesses.map(f => getBlockDataID(f) : IR_Expression)
+    val blockDataIDs = fieldAccesses.map(f => getBlockDataID(f.name) : IR_Expression)
     for (fAcc <- fieldAccesses) {
-      val fieldDt = WB_FieldDatatype(fAcc.field)
+      val fieldDt = WB_FieldDatatype(IR_WaLBerlaField(fAcc.field))
       body.prepend(WB_IV_FieldData(IR_WaLBerlaField(fAcc.field), fAcc.slot, fAcc.fragIdx).declare(
         Some(new IR_MemberFunctionCallArrow(iblock, s"getData< ${fieldDt.typeName} >", blockDataIDs, fieldDt))))
     }

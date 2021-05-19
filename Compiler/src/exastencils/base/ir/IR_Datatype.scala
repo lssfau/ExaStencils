@@ -282,5 +282,15 @@ case class IR_ReferenceDatatype(override val datatype : IR_Datatype) extends IR_
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 
+case class IR_ConstReferenceDatatype(override val datatype : IR_Datatype) extends IR_ReferenceLikeDatatype {
+  override def prettyprint(out : PpStream) : Unit = out << "const " << datatype << '&'
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+}
+
+case class IR_SharedPointerDatatype(override val datatype : IR_Datatype) extends IR_PointerLikeDatatype {
+  override def prettyprint(out : PpStream) : Unit = out << "std::shared_ptr<" << datatype << ">"
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+}
+
 // add const ref, etc here if required
 

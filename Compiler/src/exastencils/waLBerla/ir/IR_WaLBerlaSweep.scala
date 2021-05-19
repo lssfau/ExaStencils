@@ -2,28 +2,30 @@ package exastencils.waLBerla.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ConstReferenceDatatype
 import exastencils.base.ir.IR_FunctionArgument
 import exastencils.base.ir.IR_Node
-import exastencils.base.ir.IR_PointerDatatype
+import exastencils.base.ir.IR_SharedPointerDatatype
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.config.Knowledge
+import exastencils.config.Platform
 import exastencils.prettyprinting.FilePrettyPrintable
 import exastencils.prettyprinting.PrettyprintingManager
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes._
 
 
 object IR_WaLBerlaSweep {
-  def defHeader = IR_WaLBerlaFunctions.defBaseName + "_Sweep.h"
-  def defSource = IR_WaLBerlaFunctions.defBaseName + "_Sweep.cpp"
+  def defHeader : String = IR_WaLBerlaFunctions.defBaseName + "_Sweep.h"
+  def defSource : String = IR_WaLBerlaFunctions.defBaseName + "_Sweep.cpp"
 
   val iblock = IR_VariableAccess("block", WB_IBlock)
-  val iblockPtr = IR_FunctionArgument(iblock.name, IR_PointerDatatype(WB_IBlock))
+  val iblockPtr = IR_FunctionArgument(iblock.name, IR_SharedPointerDatatype(WB_IBlock))
 
   val blockStorage = IR_VariableAccess("blocks", WB_StructuredBlockStorage)
-  val blockStoragePtr = IR_VariableAccess("blocks", IR_PointerDatatype(WB_StructuredBlockStorage))
+  val blockStoragePtr = IR_VariableAccess(blockStorage.name, IR_SharedPointerDatatype(WB_StructuredBlockStorage))
 
-  def getBlockDataID(acc : IR_FieldAccess) = IR_VariableAccess(acc.name + "_ID", WB_BlockDataID)
+  def getBlockDataID(name : String) = IR_VariableAccess(name + "_ID" + "_", WB_BlockDataID)
 }
 
 case class IR_WaLBerlaSweep(
@@ -35,28 +37,70 @@ case class IR_WaLBerlaSweep(
   val namespace = "exastencils"
   val className = "Solver"
 
-  // TODO blockstorage ref member
+  private def toBlockDataID(name : String) = IR_VariableAccess(name + "_ID", WB_BlockDataID)
 
-  val blockDataIDs = context.fieldAccesses.map(acc => acc.name -> IR_FunctionArgument(getBlockDataID(acc))).toMap
+  val blockDataIDs : Map[String, IR_FunctionArgument] = context.fields.map(acc => acc.name -> IR_FunctionArgument(toBlockDataID(acc.name))).toMap
 
-  val ctorParams : ListBuffer[IR_FunctionArgument] = blockDataIDs.values.to[ListBuffer] ++ context.parameters
+  // extract ctor params
+  var ctorParams : ListBuffer[IR_FunctionArgument] = ListBuffer()
+
+  // block data IDs and params of waLBerla function
+  ctorParams ++= blockDataIDs.values
+  ctorParams ++= context.parameters
+
+  // reference to block storage shared_ptr
+  val blockStorageRef = IR_VariableAccess(blockStoragePtr.name, IR_ConstReferenceDatatype(blockStoragePtr.datatype))
+  ctorParams += IR_FunctionArgument(blockStorageRef)
+
+  // create member for each ctor param
   val members : ListBuffer[IR_VariableAccess] = ctorParams.map(param => IR_VariableAccess(param.name + "_", param.datatype))
 
   def printHeader() : Unit = {
     val writerHeader = PrettyprintingManager.getPrinter(IR_WaLBerlaSweep.defHeader)
-    writerHeader.addExternalDependency(IR_WaLBerlaFunctions.defHeader)
 
+    /* dependencies */
+    writerHeader.addInternalDependency(IR_WaLBerlaFunctions.defHeader)
+    // headers from waLBerla
+    if (Knowledge.cuda_enabled)
+      // TODO inner/outer split ?
+      writerHeader.addExternalDependency("cuda/GPUField.h")
+    else if (Platform.targetHardware == "CPU")
+      writerHeader.addExternalDependency("field/GhostLayerField.h")
+    writerHeader.addExternalDependency("core/DataTypes.h")
+    writerHeader.addExternalDependency("field/SwapableCompare.h")
+    writerHeader.addExternalDependency("domain_decomposition/BlockDataID.h")
+    writerHeader.addExternalDependency("domain_decomposition/IBlock.h")
+    writerHeader.addExternalDependency("domain_decomposition/StructuredBlockStorage.h")
+    writerHeader.addExternalDependency("set")
+
+    /* defines and pragmas */
+    writerHeader <<< """#ifdef __GNUC__
+                       |#define RESTRICT __restrict__
+                       |#elif _MSC_VER
+                       |#define RESTRICT __restrict
+                       |#else
+                       |#define RESTRICT
+                       |#endif
+                       |
+                       |#if ( defined WALBERLA_CXX_COMPILER_IS_GNU ) || ( defined WALBERLA_CXX_COMPILER_IS_CLANG )
+                       |#   pragma GCC diagnostic push
+                       |#   pragma GCC diagnostic ignored "-Wunused-parameter"
+                       |#   pragma GCC diagnostic ignored "-Wreorder"
+                       |#endif
+                       |""".stripMargin
+
+    /* class */
     writerHeader <<< s"namespace walberla {"
-    writerHeader <<< s"namespace ${namespace} { "
-    writerHeader <<< s"class ${className}"
+    writerHeader <<< s"namespace $namespace { "
+    writerHeader <<< s"class $className"
     writerHeader <<< "{\npublic:"
 
     // TODO ...
 
     /* ctor */
-    writerHeader << s"\t${className} ("
+    writerHeader << s"\t$className ("
     for ((param, i) <- ctorParams.zipWithIndex) // param list
-      writerHeader << param.prettyprint() + (if (i != ctorParams.size-1) "," else "")
+      writerHeader << param.prettyprint() + (if (i != ctorParams.size-1) ", " else "")
     writerHeader << s") ${if (members.nonEmpty) ":" else ""} "
     for ((member, i) <- members.zipWithIndex) // initializer list
       writerHeader << member.prettyprint() + "(" + ctorParams(i).access.prettyprint() + ")" + (if (i != members.size-1) ", " else " ")
@@ -73,26 +117,66 @@ case class IR_WaLBerlaSweep(
 
     writerHeader <<< "};" // class
     writerHeader <<< "}\n}" // namespaces
+
+    /* pragma */
+    writerHeader <<< """#if ( defined WALBERLA_CXX_COMPILER_IS_GNU ) || ( defined WALBERLA_CXX_COMPILER_IS_CLANG )
+                       |#   pragma GCC diagnostic pop
+                       |#endif
+                       |""".stripMargin
   }
 
   def printSource() : Unit = {
     val writerHeader = PrettyprintingManager.getPrinter(IR_WaLBerlaSweep.defSource)
-    writerHeader.addExternalDependency(IR_WaLBerlaSweep.defHeader)
-    writerHeader.addExternalDependency(IR_WaLBerlaFunctions.defHeader)
+
+    /* dependencies */
+    writerHeader.addInternalDependency(IR_WaLBerlaSweep.defHeader)
+    writerHeader.addInternalDependency(IR_WaLBerlaFunctions.defHeader)
+    // waLBerla headers
+    writerHeader.addExternalDependency("core/DataTypes.h")
+    writerHeader.addExternalDependency("core/Macros.h")
+
+    /* defines and macros */
+    writerHeader <<< s"""
+                       | ${if (Knowledge.cuda_enabled) "#define FUNC_PREFIX __global__" else if (Platform.targetHardware == "CPU") "#define FUNC_PREFIX"}
+                       |
+                       |#if ( defined WALBERLA_CXX_COMPILER_IS_GNU ) || ( defined WALBERLA_CXX_COMPILER_IS_CLANG )
+                       |#   pragma GCC diagnostic push
+                       |#   pragma GCC diagnostic ignored "-Wfloat-equal"
+                       |#   pragma GCC diagnostic ignored "-Wshadow"
+                       |#   pragma GCC diagnostic ignored "-Wconversion"
+                       |#   pragma GCC diagnostic ignored "-Wunused-variable"
+                       |#endif
+                       |
+                       |#if ( defined WALBERLA_CXX_COMPILER_IS_INTEL )
+                       |#pragma warning push
+                       |#pragma warning( disable :  1599 )
+                       |#endif
+                       |
+                       |""".stripMargin
 
     writerHeader <<< s"namespace walberla {"
-    writerHeader <<< s"namespace ${namespace} { "
+    writerHeader <<< s"namespace $namespace { "
 
     // TODO ...
 
     /* functor */
-    writerHeader <<< s"void ${className}::operator()() {"
+    writerHeader <<< s"void $className::operator()() {"
     // ...
     for (stmt <- context.body)
       writerHeader <<< stmt.prettyprint
     writerHeader <<< "}"
     // ...
     writerHeader <<< "}\n}" // namespaces
+
+    /* pragmas */
+    writerHeader <<< """#if ( defined WALBERLA_CXX_COMPILER_IS_GNU ) || ( defined WALBERLA_CXX_COMPILER_IS_CLANG )
+                       |#   pragma GCC diagnostic pop
+                       |#endif
+                       |
+                       |#if ( defined WALBERLA_CXX_COMPILER_IS_INTEL )
+                       |#pragma warning pop
+                       |#endif
+                       |""".stripMargin
   }
 
 

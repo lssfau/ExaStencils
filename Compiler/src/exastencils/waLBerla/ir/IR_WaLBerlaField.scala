@@ -46,6 +46,9 @@ case class IR_WaLBerlaField(
     IR_Linearization.linearizeIndex(index, IR_ExpressionIndex((0 until math.min(layout.numDimsData, index.length())).map(layout.idxById(this, "TOT", _)).toArray))
   }
 
+  // TODO distinguish between CUDA GPU fields and CPU GhostLayerFields
+  def waLBerlaFieldType = "GhostLayerField"
+
   def numDimsGrid = domain.numDims
   def numDimsData = layout.numDimsData
 

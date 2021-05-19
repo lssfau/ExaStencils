@@ -32,7 +32,7 @@ object IR_WaLBerlaFunctions extends ObjectWithState {
 }
 
 case class IR_WaLBerlaFunctions() extends IR_FunctionCollection(IR_WaLBerlaFunctions.defBaseName,
-  ListBuffer(""), // external deps
+  ListBuffer(), // external deps
   ListBuffer(IR_GlobalCollection.defHeader, IR_WaLBerlaSweep.defHeader)) {
 
   if (Knowledge.mpi_enabled)
@@ -48,9 +48,9 @@ case class IR_WaLBerlaFunctions() extends IR_FunctionCollection(IR_WaLBerlaFunct
     if (Platform.simd_header != null) externalDependencies += Platform.simd_header
 
   override def printToFile() : Unit = {
-    super.printToFile()
-
-    if (IR_WaLBerlaUtil.startNode.isDefined)
+    if (IR_WaLBerlaUtil.startNode.isDefined) {
+      super.printToFile()
       IR_WaLBerlaSweep(IR_WaLBerlaSweepGenerationContext(IR_WaLBerlaUtil.startNode.get)).printToFile()
+    }
   }
 }
