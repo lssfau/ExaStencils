@@ -40,23 +40,23 @@ case class IR_WaLBerlaLoopOverPoints(
     IR_CollectFieldAccesses.applyStandalone(body)
     fieldAccesses ++= Duplicate(IR_CollectFieldAccesses.fieldAccesses).filter(IR_WaLBerlaFieldCollection.contains).groupBy(_.name).map(_._2.head)
 
-    // get field data from block
-    val blockDataIDs = fieldAccesses.map(f => getBlockDataID(f.name) : IR_Expression)
-    for (fAcc <- fieldAccesses) {
-      val fieldDt = WB_FieldDatatype(IR_WaLBerlaField(fAcc.field))
-      body.prepend(WB_IV_FieldData(IR_WaLBerlaField(fAcc.field), fAcc.slot, fAcc.fragIdx).declare(
-        Some(new IR_MemberFunctionCallArrow(iblock, s"getData< ${fieldDt.typeName} >", blockDataIDs, fieldDt))))
-    }
-
     // iterate over blocks from block storage
     def loopOverBlocks(body : IR_Statement*) = {
       def defIt = IR_VariableAccess("block", IR_SpecialDatatype("auto"))
 
+      // get field data from block
+      val getFields = fieldAccesses.map(fAcc => {
+        val wbField = IR_WaLBerlaField(fAcc.field)
+        val fieldDt = WB_FieldDatatype(wbField)
+        WB_IV_FieldData(wbField, fAcc.slot, fAcc.fragIdx).getData(
+          Some(new IR_MemberFunctionCallArrow(iblock, s"getData< ${fieldDt.typeName} >", ListBuffer(getBlockDataID(fAcc.name)), fieldDt)))
+      })
+
       new IR_ForLoop(
-        IR_VariableDeclaration(defIt, IR_MemberFunctionCallArrow(blockStoragePtr, "begin", defIt.datatype)),
-        IR_Neq(defIt, IR_MemberFunctionCallArrow(blockStoragePtr, "end", defIt.datatype)),
+        IR_VariableDeclaration(defIt, IR_MemberFunctionCallArrow(getBlocks, "begin", defIt.datatype)),
+        IR_Neq(defIt, IR_MemberFunctionCallArrow(getBlocks, "end", defIt.datatype)),
         IR_ExpressionStatement(IR_PreIncrement(defIt)),
-        body.to[ListBuffer],
+        getFields ++ body.to[ListBuffer],
         parallelization)
     }
 

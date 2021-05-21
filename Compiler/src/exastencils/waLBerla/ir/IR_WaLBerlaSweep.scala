@@ -16,8 +16,10 @@ import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes._
 
 
 object IR_WaLBerlaSweep {
-  def defHeader : String = IR_WaLBerlaFunctions.defBaseName + "_Sweep.h"
-  def defSource : String = IR_WaLBerlaFunctions.defBaseName + "_Sweep.cpp"
+  def headerName = "Sweep.h"
+  def sourceName = "Sweep.cpp"
+  def defHeader : String = IR_WaLBerlaFunctions.defBasePath + "_" + headerName
+  def defSource: String = IR_WaLBerlaFunctions.defBasePath + "_" + sourceName
 
   val iblock = IR_VariableAccess("block", WB_IBlock)
   val iblockPtr = IR_FunctionArgument(iblock.name, IR_SharedPointerDatatype(WB_IBlock))
@@ -26,6 +28,7 @@ object IR_WaLBerlaSweep {
   val blockStoragePtr = IR_VariableAccess(blockStorage.name, IR_SharedPointerDatatype(WB_StructuredBlockStorage))
 
   def getBlockDataID(name : String) = IR_VariableAccess(name + "_ID" + "_", WB_BlockDataID)
+  def getBlocks = IR_VariableAccess(blockStoragePtr.name + "_", blockStoragePtr.datatype)
 }
 
 case class IR_WaLBerlaSweep(
@@ -48,12 +51,12 @@ case class IR_WaLBerlaSweep(
   ctorParams ++= blockDataIDs.values
   ctorParams ++= context.parameters
 
-  // reference to block storage shared_ptr
-  val blockStorageRef = IR_VariableAccess(blockStoragePtr.name, IR_ConstReferenceDatatype(blockStoragePtr.datatype))
-  ctorParams += IR_FunctionArgument(blockStorageRef)
-
   // create member for each ctor param
   val members : ListBuffer[IR_VariableAccess] = ctorParams.map(param => IR_VariableAccess(param.name + "_", param.datatype))
+
+  // block storage shared_ptr
+  ctorParams += IR_FunctionArgument(IR_VariableAccess(blockStoragePtr.name, IR_ConstReferenceDatatype(blockStoragePtr.datatype)))
+  members += IR_VariableAccess(blockStoragePtr.name + "_", blockStoragePtr.datatype)
 
   def printHeader() : Unit = {
     val writerHeader = PrettyprintingManager.getPrinter(IR_WaLBerlaSweep.defHeader)

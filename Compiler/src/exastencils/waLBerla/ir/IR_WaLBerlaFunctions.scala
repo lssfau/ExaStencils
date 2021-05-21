@@ -13,8 +13,9 @@ import exastencils.parallelization.api.cuda.CUDA_KernelFunctions
 /// IR_WaLBerlaFunctions
 
 object IR_WaLBerlaFunctions extends ObjectWithState {
-  def defBaseName = "waLBerla/waLBerla"
-  def defHeader = defBaseName + ".h"
+  def defBase = "exa_waLBerla"
+  def defBasePath = s"$defBase/$defBase"
+  def defHeader = s"$defBasePath.h"
 
   // buffer looked up reference to reduce execution time
   var selfRef : Option[IR_WaLBerlaFunctions] = None
@@ -31,7 +32,7 @@ object IR_WaLBerlaFunctions extends ObjectWithState {
   }
 }
 
-case class IR_WaLBerlaFunctions() extends IR_FunctionCollection(IR_WaLBerlaFunctions.defBaseName,
+case class IR_WaLBerlaFunctions() extends IR_FunctionCollection(IR_WaLBerlaFunctions.defBasePath,
   ListBuffer(), // external deps
   ListBuffer(IR_GlobalCollection.defHeader, IR_WaLBerlaSweep.defHeader)) {
 

@@ -78,5 +78,5 @@ case class WB_IV_FieldData(
   override def resolveName() = field.name
     //resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, level.prettyprint, "")
 
-  def declare(defVal : Option[IR_Expression] = None) : IR_VariableDeclaration = IR_VariableDeclaration(datatype, resolveName(), defVal)
+  def getData(defVal : Option[IR_Expression] = None) : IR_VariableDeclaration = IR_VariableDeclaration(IR_PointerDatatype(datatype), resolveName(), defVal)
 }
