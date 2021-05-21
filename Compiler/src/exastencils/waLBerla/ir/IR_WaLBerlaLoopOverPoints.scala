@@ -17,7 +17,6 @@ import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.ir.IR_CollectFieldAccesses
 import exastencils.util.ir.IR_StackCollector
-import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes._
 import exastencils.waLBerla.ir.IR_WaLBerlaSweep._
 
 case class IR_WaLBerlaLoopOverPoints(
@@ -44,19 +43,11 @@ case class IR_WaLBerlaLoopOverPoints(
     def loopOverBlocks(body : IR_Statement*) = {
       def defIt = IR_VariableAccess("block", IR_SpecialDatatype("auto"))
 
-      // get field data from block
-      val getFields = fieldAccesses.map(fAcc => {
-        val wbField = IR_WaLBerlaField(fAcc.field)
-        val fieldDt = WB_FieldDatatype(wbField)
-        WB_IV_FieldData(wbField, fAcc.slot, fAcc.fragIdx).getData(
-          Some(new IR_MemberFunctionCallArrow(iblock, s"getData< ${fieldDt.typeName} >", ListBuffer(getBlockDataID(fAcc.name)), fieldDt)))
-      })
-
       new IR_ForLoop(
         IR_VariableDeclaration(defIt, IR_MemberFunctionCallArrow(getBlocks, "begin", defIt.datatype)),
         IR_Neq(defIt, IR_MemberFunctionCallArrow(getBlocks, "end", defIt.datatype)),
         IR_ExpressionStatement(IR_PreIncrement(defIt)),
-        getFields ++ body.to[ListBuffer],
+        IR_WaLBerlaUtil.getFields(fieldAccesses) ++ body.to[ListBuffer],
         parallelization)
     }
 

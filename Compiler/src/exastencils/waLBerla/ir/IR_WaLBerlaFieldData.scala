@@ -17,6 +17,7 @@ import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
+import exastencils.field.ir.IR_FieldAccess
 import exastencils.prettyprinting.PpStream
 
 abstract class WB_IV_AbstractFieldData extends IR_InternalVariable(true, false, true, true, false) {
@@ -65,6 +66,10 @@ abstract class WB_IV_AbstractFieldData extends IR_InternalVariable(true, false, 
     else
       IR_PointerDatatype(datatype)
   }
+}
+
+object WB_IV_FieldData {
+  def apply(fAcc : IR_FieldAccess) : WB_IV_FieldData = new WB_IV_FieldData( IR_WaLBerlaField(fAcc.target), fAcc.slot)
 }
 
 case class WB_IV_FieldData(
