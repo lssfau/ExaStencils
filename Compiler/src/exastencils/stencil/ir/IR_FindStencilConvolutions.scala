@@ -19,8 +19,10 @@
 package exastencils.stencil.ir
 
 import scala.collection.mutable.ListBuffer
+
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_FieldIteratorAccess
 import exastencils.baseExt.ir.{IR_FieldIteratorAccess, IR_MatrixAccess, IR_MatrixDatatype}
 import exastencils.core._
 import exastencils.datastructures.Transformation._
@@ -50,13 +52,6 @@ object IR_FindStencilConvolutions extends DefaultStrategy("Find and mark stencil
         case (left : IR_StencilFieldAccess, right : IR_FieldAccess) =>
           result += IR_StencilFieldConvolution(left, right)
           prev = null
-        case (left : IR_StencilAccess, right @ IR_VariableAccess(_, _ : IR_MatrixDatatype)) =>
-          result += IR_StencilVectorConvolution(left, right)
-          prev = null
-        case (left : IR_StencilAccess, right : IR_MatrixAccess) =>
-          result += IR_StencilVectorConvolution(left, right)
-          prev = null
-
         case _                                                      =>
           if (prev != null) result += prev
           prev = f

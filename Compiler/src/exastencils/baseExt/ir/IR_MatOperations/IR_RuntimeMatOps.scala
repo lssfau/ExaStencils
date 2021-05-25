@@ -414,6 +414,7 @@ object IR_GenerateBasicMatrixOperations {
 
 object IR_GenerateRuntimeInversion {
   val pointerArithmetic = "pointerArithmetic"
+  var schurInversionCounter = 0
 
   // generate code for direct inversion of small matrices
   def smallMatrixInversionAtSubMatrix(in : IR_Access, blocksize : Int, offsetRows : IR_Expression, offsetCols : IR_Expression, out : IR_Access) : IR_Scope = {
@@ -639,29 +640,29 @@ object IR_GenerateRuntimeInversion {
              with M of size (n + m) x (n + m) and S = D - C * A_inv * B
  */
 
-  // schur complement inversion generated inlined in scope with stack memory for helper arrayss
+  // schur complement inversion generated inlined in scope with stack memory for helper arrays
   def schurInlined(in : IR_Access, blockSize : Int, structureA : String, blockSizeA : Int, out : IR_Access) : IR_Scope = {
     var debug = false
     var func = IR_Scope(Nil)
     var inDt = in.datatype.asInstanceOf[IR_MatrixDatatype]
     var baseType = inDt.resolveBaseDatatype
-    var n = IR_VariableAccess("n", IR_IntegerDatatype)
-    var m = IR_VariableAccess("m", IR_IntegerDatatype)
+    var n = IR_VariableAccess(s"SInv_${schurInversionCounter}_n", IR_IntegerDatatype)
+    var m = IR_VariableAccess(s"SInv_${schurInversionCounter}_m", IR_IntegerDatatype)
     var n_asInt = blockSize
     var m_asInt = inDt.sizeM - blockSize
-    var A = IR_VariableAccess("A", IR_MatrixDatatype(baseType, n_asInt, n_asInt))
-    var A_inv = IR_VariableAccess("A_inv", IR_MatrixDatatype(baseType, n_asInt, n_asInt))
-    var B = IR_VariableAccess("B", IR_MatrixDatatype(baseType, n_asInt, m_asInt))
-    var C = IR_VariableAccess("C", IR_MatrixDatatype(baseType, m_asInt, n_asInt))
-    var D = IR_VariableAccess("D", IR_MatrixDatatype(baseType, m_asInt, m_asInt))
-    var S = IR_VariableAccess("S", IR_MatrixDatatype(baseType, m_asInt, m_asInt))
-    var S_inv = IR_VariableAccess("S_inv", IR_MatrixDatatype(baseType, m_asInt, m_asInt))
-    var CA_inv = IR_VariableAccess("CA_inv", IR_MatrixDatatype(baseType, m_asInt, n_asInt))
-    var CA_invB = IR_VariableAccess("CA_invB", IR_MatrixDatatype(baseType, m_asInt, m_asInt))
-    var A_invB = IR_VariableAccess("A_invB", IR_MatrixDatatype(baseType, n_asInt, m_asInt))
-    var A_invBS_inv = IR_VariableAccess("A_invBS_inv", IR_MatrixDatatype(baseType, n_asInt, m_asInt))
-    var S_invCA_inv = IR_VariableAccess("S_invCA_inv", IR_MatrixDatatype(baseType, m_asInt, n_asInt))
-    var A_invBS_invCA_inv = IR_VariableAccess("A_invBS_invCA_inv", IR_MatrixDatatype(baseType, n_asInt, n_asInt))
+    var A = IR_VariableAccess(s"SInv_${schurInversionCounter}_A", IR_MatrixDatatype(baseType, n_asInt, n_asInt))
+    var A_inv = IR_VariableAccess(s"SInv_${schurInversionCounter}_A_inv", IR_MatrixDatatype(baseType, n_asInt, n_asInt))
+    var B = IR_VariableAccess(s"SInv_${schurInversionCounter}_B", IR_MatrixDatatype(baseType, n_asInt, m_asInt))
+    var C = IR_VariableAccess(s"SInv_${schurInversionCounter}_C", IR_MatrixDatatype(baseType, m_asInt, n_asInt))
+    var D = IR_VariableAccess(s"SInv_${schurInversionCounter}_D", IR_MatrixDatatype(baseType, m_asInt, m_asInt))
+    var S = IR_VariableAccess(s"SInv_${schurInversionCounter}_S", IR_MatrixDatatype(baseType, m_asInt, m_asInt))
+    var S_inv = IR_VariableAccess(s"SInv_${schurInversionCounter}_S_inv", IR_MatrixDatatype(baseType, m_asInt, m_asInt))
+    var CA_inv = IR_VariableAccess(s"SInv_${schurInversionCounter}_CA_inv", IR_MatrixDatatype(baseType, m_asInt, n_asInt))
+    var CA_invB = IR_VariableAccess(s"SInv_${schurInversionCounter}_CA_invB", IR_MatrixDatatype(baseType, m_asInt, m_asInt))
+    var A_invB = IR_VariableAccess(s"SInv_${schurInversionCounter}_A_invB", IR_MatrixDatatype(baseType, n_asInt, m_asInt))
+    var A_invBS_inv = IR_VariableAccess(s"SInv_${schurInversionCounter}_A_invBS_inv", IR_MatrixDatatype(baseType, n_asInt, m_asInt))
+    var S_invCA_inv = IR_VariableAccess(s"SInv_${schurInversionCounter}_S_invCA_inv", IR_MatrixDatatype(baseType, m_asInt, n_asInt))
+    var A_invBS_invCA_inv = IR_VariableAccess(s"SInv_${schurInversionCounter}_A_invBS_invCA_inv", IR_MatrixDatatype(baseType, n_asInt, n_asInt))
 
     func.body += IR_VariableDeclaration(n, blockSize)
     func.body += IR_VariableDeclaration(m, inDt.sizeM - blockSize)
@@ -674,7 +675,7 @@ object IR_GenerateRuntimeInversion {
     func.body += IR_VariableDeclaration(A_inv)
     if (structureA == "blockdiagonal")
       func.body += IR_GenerateRuntimeInversion.blockdiagonalInlined(A, blockSizeA, A_inv)
-    else if (structureA == "biagonal")
+    else if (structureA == "diagonal")
       func.body += IR_GenerateRuntimeInversion.diagonalInlined(A, A_inv)
     else
       func.body += IR_GenerateRuntimeInversion.localLUPINV(A, n_asInt, 0, 0, A_inv)
@@ -739,7 +740,7 @@ object IR_GenerateRuntimeInversion {
 
     if (debug)
       func.body ++= IR_GenerateBasicMatrixOperations.printMatrix(out)
-
+    schurInversionCounter = schurInversionCounter + 1
     func
   }
 
@@ -760,6 +761,7 @@ object IR_GenerateRuntimeInversion {
       }
       stmts
     }
+
     def mkConstant(dt : IR_Datatype, v : Double) = dt match {
       case IR_RealDatatype    => IR_RealConstant(v)
       case IR_IntegerDatatype => IR_IntegerConstant(v.toInt)
@@ -861,18 +863,14 @@ object IR_GenerateRuntimeInversion {
       Logger.warn("inverting at runtime with shape=" + matrixShape)
 
     matrixShape match {
-      case "filled"        =>
-
+      case "filled" =>
         var stmts = ListBuffer[IR_Statement]()
-
         val N = insize._1
         if (insize._1 < 4) {
           stmts ++= smallMatrixInversionAtSubMatrix(in, N, 0, 0, out).body
         } else {
-
-
           stmts ++= localLUPINV(in, N, 0,0, out ).body
-          //stmts += runtimeInverse(in,out)
+          //stmts += runtimeInverse(in.asInstanceOf[IR_VariableAccess],out.asInstanceOf[IR_VariableAccess])
         }
         IR_Scope(stmts)
       case "diagonal"      => diagonalInlined(in, out)
