@@ -42,7 +42,7 @@ class L4_Lexer extends ExaLexer {
   reserved += ("Domain", "Layout", "Field", "Stencil", "StencilTemplate", "StencilField", "Set", "external", "from", "with", "tensN", "tens1", "tens2")
 
   // waLBerla keywords
-  reserved += ("waLBerla", "waLBerlaSwapPtr")
+  reserved += ("waLBerla", "waLBerlaSwapPtr", "blocks")
 
   // loop keywords
   reserved += ("repeat", "times", "count", "with", "contraction", "break")

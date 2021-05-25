@@ -40,6 +40,7 @@ import exastencils.parsers._
 import exastencils.solver.l4._
 import exastencils.util.l4.L4_OffsetAlias
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldDecl
+import exastencils.waLBerla.l4.L4_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.l4.L4_WaLBerlaSwapFieldPointers
 
 /// L4_Parser
@@ -227,6 +228,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| repeatWhile
       ||| loopOver
       ||| loopOverFragments
+      ||| loopOverBlocks
       ||| assignment
       ||| operatorassignment
       ||| locationize(functionCall ^^ { L4_ExpressionStatement(_) })
@@ -261,6 +263,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val breakStatement = locationize("break" ^^ (_ => L4_Break()))
 
   lazy val loopOverFragments = locationize(("loop" ~ "over" ~ "fragments") ~ ("with" ~> reductionClause).? ~ ("{" ~> statement.* <~ "}") ^^ { case _ ~ red ~ stmts => L4_LoopOverFragments(stmts, red) })
+  lazy val loopOverBlocks = locationize(("loop" ~ "over" ~ "blocks") ~ ("with" ~> reductionClause).? ~ ("{" ~> statement.* <~ "}") ^^ { case _ ~ red ~ stmts => L4_WaLBerlaLoopOverBlocks(stmts.to[ListBuffer], red) })
   //  lazy val loopOver = locationize(("loop" ~ "over" ~> genericAccess) ~ //fieldAccess
   //    ("only" ~> regionSpecification).? ~
   //    "sequentially".? ~ // FIXME: seq HACK

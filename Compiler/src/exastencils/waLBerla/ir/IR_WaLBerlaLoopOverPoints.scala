@@ -11,13 +11,10 @@ import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.StatementList
-import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.parallelization.ir.IR_ParallelizationInfo
-import exastencils.util.ir.IR_CollectFieldAccesses
 import exastencils.util.ir.IR_StackCollector
-import exastencils.waLBerla.ir.IR_WaLBerlaSweep._
 
 case class IR_WaLBerlaLoopOverPoints(
     var wbField : IR_WaLBerlaField,
@@ -33,24 +30,6 @@ case class IR_WaLBerlaLoopOverPoints(
 
 
   def expandSpecial(collector : IR_StackCollector) : Output[StatementList] = {
-
-    // collect fields accessed in loop
-    val fieldAccesses = ListBuffer[IR_FieldAccess]()
-    IR_CollectFieldAccesses.applyStandalone(body)
-    fieldAccesses ++= Duplicate(IR_CollectFieldAccesses.fieldAccesses).filter(IR_WaLBerlaFieldCollection.contains).groupBy(_.name).map(_._2.head)
-
-    // iterate over blocks from block storage
-    def loopOverBlocks(body : IR_Statement*) = {
-      def defIt = IR_VariableAccess("block", IR_SpecialDatatype("auto"))
-
-      new IR_ForLoop(
-        IR_VariableDeclaration(defIt, IR_MemberFunctionCallArrow(getBlocks, "begin", defIt.datatype)),
-        IR_Neq(defIt, IR_MemberFunctionCallArrow(getBlocks, "end", defIt.datatype)),
-        IR_ExpressionStatement(IR_PreIncrement(defIt)),
-        IR_WaLBerlaUtil.getFields(fieldAccesses) ++ body.to[ListBuffer],
-        parallelization)
-    }
-
     val insideFragLoop = collector.stack.exists(_.isInstanceOf[IR_LoopOverFragments])
     val innerLoop =
       if (Knowledge.experimental_splitLoopsForAsyncComm)
@@ -61,11 +40,13 @@ case class IR_WaLBerlaLoopOverPoints(
     if (insideFragLoop && innerLoop.parallelization.reduction.isDefined)
       innerLoop.parallelization.reduction.get.skipMpi = true
 
+    val loopOverFrags = ListBuffer(IR_WaLBerlaLoopOverBlocks(ListBuffer(innerLoop), Duplicate(parallelization)))
+
     if (Knowledge.experimental_splitLoopsForAsyncComm)
-      ListBuffer(loopOverBlocks(innerLoop))
+      loopOverFrags
     else {
       if (preComms.nonEmpty) Logger.warn("Found precomm")
-      preComms ++ ListBuffer(loopOverBlocks(innerLoop)) ++ postComms
+      preComms ++ loopOverFrags ++ postComms
     }
   }
 }

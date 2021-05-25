@@ -68,7 +68,7 @@ case class IR_WaLBerlaFieldAccess(
   }
 }
 
-object IR_ResolveWaLBerlaFieldAccess extends DefaultStrategy("Resolve FieldAccess nodes") {
+object IR_WaLBerlaResolveFieldAccess extends DefaultStrategy("Resolve FieldAccess nodes") {
   this += new Transformation("Resolve", {
     case access : IR_FieldAccess if IR_WaLBerlaFieldCollection.contains(access) =>
       IR_WaLBerlaFieldAccess(access).expandSpecial
