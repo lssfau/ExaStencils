@@ -2,7 +2,6 @@
 package exastencils.solver.ir
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.base
 import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_ConstIndex
@@ -32,11 +31,13 @@ import exastencils.baseExt.ir.IR_MatShape
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
 import exastencils.baseExt.ir.IR_UserFunctions
+import exastencils.baseExt.ir.IR_MatOperations.{IR_EvalMOpRuntimeExe, IR_GenerateRuntimeInversion}
 import exastencils.config.Knowledge
 import exastencils.core.NodeCounter
 import exastencils.datastructures.Transformation
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
+import isl.Val
 
 /// solve local linear system
 object IR_SolveMatrixSystem {
@@ -53,6 +54,8 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
   def expand() : Transformation.OutputType = {
 
     val AasExpr = retrieveMatExpr()
+    var AasAcc = IR_VariableAccess(s"local_A_${IR_SolveMatrixSystem.local_A_count}", IR_MatrixDatatype(AasExpr.innerDatatype.get, AasExpr.rows, AasExpr.columns))
+
 
     val msi : IR_MatShape = if (AasExpr.shape.isDefined) AasExpr.shape.get else shape.getOrElse(IR_MatShape("filled"))
     val (m, n) = AasExpr.datatype match {
@@ -76,6 +79,7 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
 
     if (Knowledge.experimental_matrixDebugConfig)
       Logger.warn(s"Solving linear system with the following configuration: ${ Knowledge.experimental_resolveLocalMatSys }, ${ msi.shape },  ${ m }, ${ n }")
+    val timeOfExe = IR_EvalMOpRuntimeExe("localsystem", m)
 
     // scalar system
     if (m == 1 && n == 1) {
@@ -83,40 +87,58 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
     } else {
       msi.shape match {
         case "diagonal" =>
+          if (Knowledge.experimental_matrixDebugConfig)
+            Logger.warn("Solving diagonal local system directly")
           var stmts = ListBuffer[IR_Statement]()
           for (i <- 0 until m) {
             stmts += IR_Assignment(IR_HighDimAccess(u, IR_ConstIndex(i, 0)), IR_Division(IR_HighDimAccess(f, IR_ConstIndex(i)), IR_HighDimAccess(A, IR_ConstIndex(i, i))))
           }
           stmts
 
-        // in case of schur: solve with A-Decomposition to helper matrices
-        // only for blocksize of D == 1
-        case "schur" if (m - msi.size("block") == 1) =>
-          val args = ListBuffer[IR_Expression](A) ++= msi.toExprList()
-          //Logger.warn("switching back to inversion")
-          //IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), args), f))
+        case "schur" =>
+          // certain schur shapes solvable by domain decomposition
+          if(m - msi.size("block") == 1) {
+            if (Knowledge.experimental_matrixDebugConfig)
+              Logger.warn("Solving local system by Schur domain decomposition ")
+            // in case of schur: solve with A-Decomposition to helper matrices
+            // only for blocksize of D == 1
+            IR_MatrixSolveOps.schurDomainDecomp(AasExpr, u, f, msi)
+          } else {
 
-          IR_MatrixSolveOps.schurDomainDecomp(AasExpr, u, f, msi)
-
+            if (Knowledge.experimental_matrixDebugConfig)
+              Logger.warn(s"Solving local system by Schur inversion at ${timeOfExe}")
+            // else use schur inversion to solve the system
+            var stmts = ListBuffer[IR_Statement]()
+            var AInv = IR_VariableAccess(s"local_AInv_${IR_SolveMatrixSystem.local_A_count}", IR_MatrixDatatype(AasExpr.innerDatatype.get, AasExpr.rows, AasExpr.columns))
+            IR_SolveMatrixSystem.local_A_count = IR_SolveMatrixSystem.local_A_count + 1
+            if(timeOfExe == "Runtime") {
+              stmts += IR_VariableDeclaration(AInv, IR_RealConstant(0))
+              stmts += IR_VariableDeclaration(AasAcc, AasExpr)
+              stmts += IR_GenerateRuntimeInversion.schurInlined(AasAcc,msi.size("block"),msi.shape("block"),msi.size("Ablock"),AInv)
+            } else {
+              stmts += IR_VariableDeclaration(AInv, IR_CompiletimeMatOps.schur(AasExpr, n-msi.size("block"), msi.size("block"), msi))
+            }
+            stmts += IR_Assignment(u, AInv*f)
+          }
         // blockdiagonal systems are solved by LU at runtime or compiletime
         case _ if (msi.shape == "blockdiagonal") =>
           val bsize = msi.size("block")
-          if (Knowledge.experimental_resolveLocalMatSys == "Runtime")
+          if (Knowledge.experimental_matrixDebugConfig)
+            Logger.warn(s"Solving blockdiagonal local system at ${timeOfExe}")
+          if (timeOfExe == "Runtime") {
             IR_MatrixSolveOps.genBlockdiagonal(AasExpr, u, f, msi, m, bsize)
-          else IR_MatrixSolveOps.blockdiagonal(AasExpr, u, f, msi, m, bsize)
+          } else {
+            IR_MatrixSolveOps.blockdiagonal(AasExpr, u, f, msi, m, bsize)
+          }
 
         case _ if (msi.shape == "QR") => {
+          if(Knowledge.experimental_matrixDebugConfig)
+            Logger.warn("Solving local system by QR Decomposition at Runtime")
           // QR decomp
           val QR = IR_MatrixSolveOps.QRDecomp(IR_MatNodeUtils.exprToMatExpr(AasExpr))
 
           // solve resulting systems: orthogonal by inversion, triangular by backward substitution
           val y = IR_CompiletimeMatOps.mult(IR_CompiletimeMatOps.transpose(QR._1), IR_MatNodeUtils.accessToMatExpr(f))
-
-          if (Knowledge.experimental_matrixDebugConfig) {
-            NodeCounter.countSubTree(QR._1, "Q", None, None)
-            NodeCounter.countSubTree(QR._2, "R", None, None)
-            NodeCounter.countSubTree(y, "y", None, None)
-          }
 
           // transfer annotations
           y.annotate("QRPivot", QR._2.popAnnotationAs("QRPivot"))
@@ -136,35 +158,34 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
             ))
         }
 
-        // solve by inverting A with given structure for Schur with size(D) > 1  or fallback due to impossible pivoting in LU
-        case _ if A.hasAnnotation("SolveMatSys:fallback_inverse") =>
-          if (msi.shape == "fallback_inverse") msi.shape = "cofactors"
-          val args = ListBuffer[IR_Expression](A) ++= msi.toExprList()
-          IR_Assignment(u, IR_Multiplication(IR_FunctionCall(IR_ExternalFunctionReference("inverse", A.datatype), args), f))
-
-        // solve with lu
+        // solve with lu at runtime or cofactor at compiletime
         case _ =>
-          if (Knowledge.experimental_matrixDebugConfig) {
-            Logger.warn(s"solving localMatSys with lu at ${ Knowledge.experimental_resolveLocalMatSys }")
-          }
 
-          if (Knowledge.experimental_resolveLocalMatSys == "Runtime") {
+          if (timeOfExe == "Runtime") {
+            if(Knowledge.experimental_matrixDebugConfig)
+              Logger.warn("Solving local system by LU Decomposition at Runtime")
             var stmts = ListBuffer[IR_Statement]()
-            var AasAcc = IR_VariableAccess(s"local_A_${IR_SolveMatrixSystem.local_A_count}", IR_MatrixDatatype(AasExpr.innerDatatype.get, AasExpr.rows, AasExpr.columns))
-            IR_SolveMatrixSystem.local_A_count = IR_SolveMatrixSystem.local_A_count + 1
             stmts += IR_VariableDeclaration(AasAcc, AasExpr)
+            IR_SolveMatrixSystem.local_A_count = IR_SolveMatrixSystem.local_A_count + 1
 
+            // inline LUSolve if CUDA is enabled to avoid separate compilation units
             if (!IR_UserFunctions.get.functions.exists(f => f.name == s"LUSolve_${ m }x${ m }")) {
-              IR_UserFunctions.get += IR_MatrixSolveOps.genLUSolveAsFunction(m)
+               IR_UserFunctions.get += IR_MatrixSolveOps.genLUSolveAsFunction(m)
             }
-            stmts += IR_FunctionCall(IR_PlainInternalFunctionReference(s"LUSolve_${ m }x${ m }", IR_UnitDatatype), ListBuffer[IR_Expression](AasAcc, f, u))
-         //   stmts ++= IR_MatrixSolveOps.genLUSolveInlined(AasAcc, m, f, u)
+            val solveStmt = IR_FunctionCall(IR_PlainInternalFunctionReference(s"LUSolve_${ m }x${ m }", IR_UnitDatatype), ListBuffer[IR_Expression](AasAcc, f, u))
+            solveStmt.annotate(IR_InlineMatSolveStmts.MAT_SOLVE_STMT, m)
+            stmts += solveStmt
+
           } else {
-            val LUP = IR_CompiletimeMatOps.LUDecomp(AasExpr)
-            val sol = IR_MatrixSolveOps.forwardBackwardSub(LUP._1, IR_MatNodeUtils.accessToMatExpr(f), LUP._2)
-            if (Knowledge.experimental_matrixDebugConfig)
-              NodeCounter.countSubTree(sol, "x_LU", None, None)
-            IR_Assignment(u, sol)
+            if(Knowledge.experimental_matrixDebugConfig)
+              Logger.warn("Solving local system by Cofactor inversion at Compiletime")
+            // obsolete
+            //val LUP = IR_CompiletimeMatOps.LUDecomp(AasExpr)
+            //val sol = IR_MatrixSolveOps.forwardBackwardSub(LUP._1, IR_MatNodeUtils.accessToMatExpr(f), LUP._2)
+            // solve system by inversion, but:
+            // at compiletime no pivoting possible, such that LU decomposition is unstable
+            // performance drawback only at compiletime
+            IR_Assignment(u, IR_CompiletimeMatOps.inverse(AasExpr,shape.getOrElse(IR_MatShape("filled")))*f)
           }
       }
     }
@@ -186,12 +207,7 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
         if (initOpt.isEmpty) {
           if (Knowledge.experimental_classifyLocMat || (shape.isDefined && shape.get.toClassify()))
             Logger.error("can not classify local matrix if system matrix is not constant!")
-          else if (Knowledge.experimental_resolveLocalMatSys == "compiletime") {
-            Logger.warn("Compiletime LU without effective pivoting will most likely fail, switching back to inversion with cofactors!")
-            val A = IR_MatNodeUtils.accessToMatExpr(va)
-            A.annotate("SolveMatSys:fallback_inverse")
-            A
-          } else {
+          else {
             IR_MatNodeUtils.accessToMatExpr(va)
           }
         } else {
