@@ -34,7 +34,7 @@ case class IR_WaLBerlaLoopOverPointsInOneFragment(
   def numDims = wbField.numDimsGrid
 
   def expandSpecial : Output[StatementList] = {
-    IR_LoopOverPointsInOneFragment(domain, wbField.field, region, startOffset, endOffset, increment, body, preComms, postComms, parallelization, condition).expandSpecial
+    IR_LoopOverPointsInOneFragment(domain, wbField, region, startOffset, endOffset, increment, body, preComms, postComms, parallelization, condition).expandSpecial
   }
 }
 

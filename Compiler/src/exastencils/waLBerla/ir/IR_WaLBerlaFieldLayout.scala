@@ -11,6 +11,8 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.field.ir.IR_FieldLayout
+import exastencils.field.ir.IR_FieldLayoutLike
+import exastencils.field.ir.IR_FieldLayoutPerDim
 import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.field.ir.IR_IV_IndexFromField
 import exastencils.grid.ir.IR_AtCellCenter
@@ -34,16 +36,16 @@ object IR_WaLBerlaFieldLayout extends ((String, Int, IR_Datatype, Int, Int, Stri
 }
 
 case class IR_WaLBerlaFieldLayout(
-    var name : String, // will be used to find the field
-    var level : Int, // the (geometric) level the layout is associated with
-    var datatype : IR_Datatype, // represents the (original) data type; may be multidimensional, i.e. vectors, matrices, etc.
-    var numDimsGrid : Int, // dimensionality of the associated grid; usually lesser than or equal to 3
-    var numDimsData : Int, // dimensionality of the stored data, greater equal numDimsGrid
+    var name : String,
+    var level : Int,
+    var datatype : IR_Datatype,
+    var numDimsGrid : Int,
+    var numDimsData : Int,
     var layoutName : String, // "xyzf" or "fzyx"
-    var referenceOffset : IR_ExpressionIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
-    var communicatesDuplicated : Boolean, // specifies if duplicated values need to be exchanged between processes
-    var communicatesGhosts : Boolean // specifies if ghost layer values need to be exchanged between processes
-) extends IR_LeveledKnowledgeObject {
+    var referenceOffset : IR_ExpressionIndex,
+    var communicatesDuplicated : Boolean,
+    var communicatesGhosts : Boolean
+) extends IR_LeveledKnowledgeObject with IR_FieldLayoutLike {
 
   override def createDuplicate() : IR_WaLBerlaFieldLayout = {
     IR_WaLBerlaFieldLayout.tupled(Duplicate(IR_WaLBerlaFieldLayout.unapply(this).get))
@@ -51,11 +53,13 @@ case class IR_WaLBerlaFieldLayout(
 
   def apply(dim : Int) = { } // TODO ?
 
-  def localization : IR_Localization = IR_AtCellCenter
+  var localization : IR_Localization = IR_AtCellCenter
 
-  def defIdxById(wbField : IR_WaLBerlaField, id : String, dim : Int) : IR_Expression = idxById(wbField, id, dim)
+  lazy val wbField : IR_WaLBerlaField = IR_WaLBerlaFieldCollection.getByLayoutIdentifierLevExp(name, level, suppressError = true).get
 
-  def idxById(wbField : IR_WaLBerlaField, id : String, dim : Int) : IR_Expression = {
+  def defIdxById(id : String, dim : Int) : IR_Expression = idxById(id, dim)
+
+  def idxById(id : String, dim : Int) : IR_Expression = {
 
     def callMemberFunc(name : String) = IR_MemberFunctionCallArrow(WB_IV_FieldData(wbField, IR_IV_ActiveSlot(wbField.field)), name, IR_IntegerDatatype)
     def callMemberFuncForDim(name : String, dim : Int) = {
@@ -127,6 +131,8 @@ case class IR_WaLBerlaFieldLayout(
 
     IR_SimplifyExpression.simplifyIntegralExpr(idx)
   }
+
+  override var layoutsPerDim : Array[IR_FieldLayoutPerDim] = _ // TODO
 }
 
 // Mainly for loops, field accesses already handled
@@ -138,7 +144,7 @@ object IR_WaLBerlaReplaceLayoutIVs extends DefaultStrategy("Replace layout IVs w
 
       // replace if field is found
       if (wbField.isDefined) {
-        wbField.get.layout.defIdxById(wbField.get, indexId, dim)
+        wbField.get.layout.defIdxById(indexId, dim)
       } else {
         iv
       }

@@ -30,7 +30,7 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.domain.ir._
-import exastencils.field.ir.IR_Field
+import exastencils.field.ir.IR_FieldLike
 import exastencils.grid.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
@@ -38,7 +38,7 @@ import exastencils.parallelization.ir._
 
 // FIXME: refactor: extract functionality, reduce complexity
 case class IR_LoopOverPointsInOneFragment(var domain : Int,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var region : Option[IR_RegionSpecification],
     var startOffset : IR_ExpressionIndex,
     var endOffset : IR_ExpressionIndex,

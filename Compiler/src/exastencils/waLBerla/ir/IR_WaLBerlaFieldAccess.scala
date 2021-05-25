@@ -50,7 +50,7 @@ case class IR_WaLBerlaFieldAccess(
           newIndex.indices.drop(field.numDimsGrid))
 
     // indices need to be flattened
-    val linearizedHigherDimIndex = if (field.numDimsData > field.numDimsGrid) {
+    val linearizedHigherDimIndex = if (field.layout.numDimsData > field.numDimsGrid) {
       field.gridDatatype match {
         case mat : IR_MatrixDatatype =>
           val matIndices = newIndex.indices.takeRight(2)

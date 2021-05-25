@@ -1,16 +1,12 @@
 package exastencils.waLBerla.ir
 
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExpressionIndex
-import exastencils.base.ir.IR_Index
-import exastencils.baseExt.ir.IR_Linearization
 import exastencils.baseExt.ir.IR_MatShape
 import exastencils.boundary.ir.IR_BoundaryCondition
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_Domain
 import exastencils.field.ir.IR_Field
+import exastencils.field.ir.IR_FieldLike
 import exastencils.knowledge.ir.IR_LeveledKnowledgeObject
-import exastencils.logger.Logger
 
 /// IR_WaLBerlaField
 
@@ -34,31 +30,13 @@ case class IR_WaLBerlaField(
     var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
     var boundary : IR_BoundaryCondition, // the boundary condition to be enforced when calling apply bc
     var matShape: Option[IR_MatShape]
-) extends IR_LeveledKnowledgeObject {
+) extends IR_LeveledKnowledgeObject with IR_FieldLike {
 
   override def createDuplicate() : IR_WaLBerlaField = {
     IR_WaLBerlaField.tupled(Duplicate(IR_WaLBerlaField.unapply(this).get))
   }
 
-  def linearizeIndex(index : IR_Index) : IR_Expression = {
-    if (layout.numDimsData != index.length())
-      Logger.warn(s"Index length mismatch for $name@$level: ${ index.length() }, should be ${layout.numDimsData}")
-    IR_Linearization.linearizeIndex(index, IR_ExpressionIndex((0 until math.min(layout.numDimsData, index.length())).map(layout.idxById(this, "TOT", _)).toArray))
-  }
-
   // TODO distinguish between CUDA GPU fields and CPU GhostLayerFields
   def waLBerlaFieldType = "GhostLayerField"
-
-  def numDimsGrid = domain.numDims
-  def numDimsData = layout.numDimsData
-
-  // shortcuts to layout options
-  def gridDatatype = layout.datatype
-  def resolveBaseDatatype = layout.datatype.resolveBaseDatatype
-  def resolveDeclType = layout.datatype.resolveDeclType
-  def localization = layout.localization
-  def referenceOffset = layout.referenceOffset
-  def communicatesDuplicated = layout.communicatesDuplicated
-  def communicatesGhosts = layout.communicatesGhosts
 }
 

@@ -24,23 +24,16 @@ import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_Domain
 import exastencils.knowledge.ir.IR_LeveledKnowledgeObject
 
-/// IR_Field
-
-case class IR_Field(
-    var name : String, // will be used to find the field
-    var level : Int, // the (geometric) level the field lives on
-    var index : Int, // (consecutive) index of the field, can be used as array subscript
-    var domain : IR_Domain, // the (sub)domain the field lives on
-    var codeName : String, // will be used in the generated source code
-    var layout : IR_FieldLayout, // represents the number of data points and their distribution in each dimension
-    var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
-    var boundary : IR_BoundaryCondition, // the boundary condition to be enforced when calling apply bc
-    var matShape: Option[IR_MatShape]
-) extends IR_LeveledKnowledgeObject {
-
-  override def createDuplicate() : IR_Field = {
-    IR_Field.tupled(Duplicate(IR_Field.unapply(this).get))
-  }
+trait IR_FieldLike {
+  def name : String // will be used to find the field
+  def level : Int // the (geometric) level the field lives on
+  def index : Int // (consecutive) index of the field, can be used as array subscript
+  def domain : IR_Domain // the (sub)domain the field lives on
+  def codeName : String // will be used in the generated source code
+  def layout : IR_FieldLayoutLike // represents the number of data points and their distribution in each dimension
+  def numSlots : Int // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
+  def boundary : IR_BoundaryCondition // the boundary condition to be enforced when calling apply bc
+  def matShape: Option[IR_MatShape]
 
   def numDimsGrid = domain.numDims
 
@@ -52,4 +45,23 @@ case class IR_Field(
   def referenceOffset = layout.referenceOffset
   def communicatesDuplicated = layout.communicatesDuplicated
   def communicatesGhosts = layout.communicatesGhosts
+}
+
+/// IR_Field
+
+case class IR_Field(
+    var name : String,
+    var level : Int,
+    var index : Int,
+    var domain : IR_Domain,
+    var codeName : String,
+    var layout : IR_FieldLayout,
+    var numSlots : Int,
+    var boundary : IR_BoundaryCondition,
+    var matShape: Option[IR_MatShape]
+) extends IR_LeveledKnowledgeObject with IR_FieldLike {
+
+  override def createDuplicate() : IR_Field = {
+    IR_Field.tupled(Duplicate(IR_Field.unapply(this).get))
+  }
 }

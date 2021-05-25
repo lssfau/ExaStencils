@@ -53,11 +53,10 @@ import exastencils.timing.ir._
 import exastencils.util._
 import exastencils.util.ir._
 import exastencils.visualization.ir._
-import exastencils.waLBerla.ir.IR_WaLBerlaResolveFieldAccess
 import exastencils.waLBerla.ir.IR_WaLBerlaFunctions
-import exastencils.waLBerla.ir.IR_WaLBerlaReplaceLayoutIVs
-import exastencils.waLBerla.ir.IR_WaLBerlaResolveLoopOverDimensions
+import exastencils.waLBerla.ir.IR_WaLBerlaResolveFieldAccess
 import exastencils.waLBerla.ir.IR_WaLBerlaResolveLoopOverBlocks
+import exastencils.waLBerla.ir.IR_WaLBerlaResolveLoopOverDimensions
 import exastencils.waLBerla.ir.IR_WaLBerlaResolveLoopOverPoints
 import exastencils.waLBerla.ir.IR_WaLBerlaResolveLoopOverPointsInOneFragment
 import exastencils.waLBerla.ir.IR_WaLBerlaUtil
@@ -296,7 +295,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_LayoutTansformation.apply()
 
-    IR_WaLBerlaReplaceLayoutIVs.apply()
+    //IR_WaLBerlaReplaceLayoutIVs.apply()
 
     // before converting kernel functions -> requires linearized accesses
     IR_LinearizeDirectFieldAccess.apply()
