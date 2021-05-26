@@ -15,7 +15,7 @@ import exastencils.waLBerla.ir.IR_WaLBerlaUtil._
 case class IR_WaLBerlaSweepGenerationContext(func : IR_LeveledFunction)  {
 
   var fields : ListBuffer[IR_WaLBerlaField] = IR_WaLBerlaFieldCollection.objects
-  val parameters : ListBuffer[IR_FunctionArgument] = func.parameters
+  val parameters : ListBuffer[IR_FunctionArgument] = IR_WaLBerlaCollection.get.variables.map(p => IR_FunctionArgument(p.name, p.datatype))
   val body : ListBuffer[IR_Statement] = func.body
 
   private def toBlockDataID(name : String) = IR_VariableAccess(name + "_ID", WB_BlockDataID)
@@ -26,13 +26,13 @@ case class IR_WaLBerlaSweepGenerationContext(func : IR_LeveledFunction)  {
   var ctorParams : ListBuffer[IR_FunctionArgument] = ListBuffer()
 
   // block data IDs and params of waLBerla function
-  ctorParams ++= blockDataIDs.values
   ctorParams ++= parameters
+  ctorParams ++= blockDataIDs.values
 
   // create member for each ctor param
-  val members : ListBuffer[IR_VariableAccess] = ctorParams.map(param => IR_VariableAccess(param.name + "_", param.datatype))
+  val members : ListBuffer[IR_VariableAccess] = ctorParams.map(param => IR_VariableAccess(getMemberName(param.name), param.datatype))
 
   // block storage shared_ptr
   ctorParams += IR_FunctionArgument(IR_VariableAccess(blockStoragePtr.name, IR_ConstReferenceDatatype(blockStoragePtr.datatype)))
-  members += IR_VariableAccess(blockStoragePtr.name + "_", blockStoragePtr.datatype)
+  members += IR_VariableAccess(getMemberName(blockStoragePtr.name), blockStoragePtr.datatype)
 }

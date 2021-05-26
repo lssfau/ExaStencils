@@ -43,6 +43,7 @@ import exastencils.prettyprinting.Indenter
 import exastencils.solver.l4._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util.l4._
+import exastencils.waLBerla.l4.L4_UnifyWaLBerlaVarsSections
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldCollection
 import exastencils.waLBerla.l4.L4_WaLBerlaResolveFieldAccesses
 import exastencils.waLBerla.l4.L4_WaLBerlaResolveLoopOverField
@@ -150,6 +151,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
       if (Settings.timeStrategies) StrategyTimer.stopTiming("Handling Layer 4")
 
       L4_UnifyGlobalSections.apply()
+      L4_UnifyWaLBerlaVarsSections.apply()
 
       // go to IR
 

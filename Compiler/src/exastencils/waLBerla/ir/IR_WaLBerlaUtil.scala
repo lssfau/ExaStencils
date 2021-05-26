@@ -27,8 +27,11 @@ object IR_WaLBerlaUtil extends DefaultStrategy("Get waLBerla sweep") {
   val blockStorage = IR_VariableAccess("blocks", WB_StructuredBlockStorage)
   val blockStoragePtr = IR_VariableAccess(blockStorage.name, IR_SharedPointerDatatype(WB_StructuredBlockStorage))
 
-  def getBlockDataID(name : String) = IR_VariableAccess(name + "_ID" + "_", WB_BlockDataID)
-  def getBlocks = IR_VariableAccess(blockStoragePtr.name + "_", blockStoragePtr.datatype)
+  def memberSuffix = "_gen"
+  def getMemberName(s : String) = s + memberSuffix
+
+  def getBlockDataID(name : String) = IR_VariableAccess(getMemberName(name + "_ID"), WB_BlockDataID)
+  def getBlocks = IR_VariableAccess(getMemberName(blockStoragePtr.name), blockStoragePtr.datatype)
 
   // get field data from block
   def getFields(accesses : ListBuffer[IR_FieldAccess]) = accesses.map(fAcc => {

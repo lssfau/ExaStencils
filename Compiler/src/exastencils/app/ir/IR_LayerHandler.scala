@@ -53,7 +53,7 @@ import exastencils.timing.ir._
 import exastencils.util._
 import exastencils.util.ir._
 import exastencils.visualization.ir._
-import exastencils.waLBerla.ir.IR_WaLBerlaFunctions
+import exastencils.waLBerla.ir.IR_WaLBerlaReplaceVariableAccesses
 import exastencils.waLBerla.ir.IR_WaLBerlaResolveFieldAccess
 import exastencils.waLBerla.ir.IR_WaLBerlaResolveLoopOverBlocks
 import exastencils.waLBerla.ir.IR_WaLBerlaResolveLoopOverDimensions
@@ -117,7 +117,6 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       // Util
       IR_Stopwatch(),
       IR_TimerFunctions(),
-      IR_WaLBerlaFunctions(),
       CImg() // TODO: only if required
     )
 
@@ -389,5 +388,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       IR_Fortranify.apply()
 
     IR_HACK_TypeAliases.apply()
+
+    IR_WaLBerlaReplaceVariableAccesses.apply()
   }
 }

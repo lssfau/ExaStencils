@@ -11,8 +11,8 @@ import exastencils.prettyprinting.PrettyprintingManager
 object IR_WaLBerlaSweep {
   def headerName = "Sweep.h"
   def sourceName = "Sweep.cpp"
-  def defHeader : String = IR_WaLBerlaFunctions.defBasePath + "_" + headerName
-  def defSource: String = IR_WaLBerlaFunctions.defBasePath + "_" + sourceName
+  def defHeader : String = IR_WaLBerlaCollection.defBasePath + "_" + headerName
+  def defSource: String = IR_WaLBerlaCollection.defBasePath + "_" + sourceName
 }
 
 case class IR_WaLBerlaSweep(
@@ -26,7 +26,7 @@ case class IR_WaLBerlaSweep(
     val writerHeader = PrettyprintingManager.getPrinter(IR_WaLBerlaSweep.defHeader)
 
     /* dependencies */
-    writerHeader.addInternalDependency(IR_WaLBerlaFunctions.defHeader)
+    writerHeader.addInternalDependency(IR_WaLBerlaCollection.defHeader)
     // headers from waLBerla
     if (Knowledge.cuda_enabled)
       // TODO inner/outer split ?
@@ -81,7 +81,7 @@ case class IR_WaLBerlaSweep(
 
     /* dependencies */
     writerHeader.addInternalDependency(IR_WaLBerlaSweep.defHeader)
-    writerHeader.addInternalDependency(IR_WaLBerlaFunctions.defHeader)
+    writerHeader.addInternalDependency(IR_WaLBerlaCollection.defHeader)
     // waLBerla headers
     writerHeader.addExternalDependency("core/DataTypes.h")
     writerHeader.addExternalDependency("core/Macros.h")

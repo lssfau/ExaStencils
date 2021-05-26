@@ -42,6 +42,7 @@ import exastencils.util.l4.L4_OffsetAlias
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldDecl
 import exastencils.waLBerla.l4.L4_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.l4.L4_WaLBerlaSwapFieldPointers
+import exastencils.waLBerla.l4.L4_WaLBerlaVarsSection
 
 /// L4_Parser
 
@@ -97,6 +98,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| stencilFromDefault
       ||| equationDeclaration
       ||| globals
+      ||| waLBerlaVars
       ||| layoutTrafos
       ||| function
       ||| functionTemplate
@@ -354,6 +356,12 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val globals = locationize(("Globals" ~> "{" ~> globalEntry.* <~ "}") ^^ { L4_GlobalSection(_) })
   lazy val globalEntry = locationize(valueDeclaration ||| variableDeclaration ||| expressionDeclaration)
+
+  // ######################################
+  // ##### WaLBerla Variables
+  // ######################################
+
+  lazy val waLBerlaVars = locationize(("WaLBerlaVars" ~> "{" ~> globalEntry.* <~ "}") ^^ { L4_WaLBerlaVarsSection(_) })
 
   // ######################################
   // ##### Layout Transformations
