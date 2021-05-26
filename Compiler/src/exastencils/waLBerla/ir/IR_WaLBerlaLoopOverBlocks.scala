@@ -22,9 +22,9 @@ import exastencils.field.ir.IR_FieldAccess
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.ir.IR_CollectFieldAccesses
-import exastencils.waLBerla.ir.IR_WaLBerlaSweep.getBlocks
+import exastencils.waLBerla.ir.IR_WaLBerlaUtil.getBlocks
 
-///
+/// IR_WaLBerlaLoopOverBlocks
 
 // iterates through process-local blocks
 case class IR_WaLBerlaLoopOverBlocks(

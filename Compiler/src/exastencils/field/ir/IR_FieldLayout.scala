@@ -28,15 +28,15 @@ import exastencils.knowledge.ir._
 import exastencils.logger.Logger
 
 trait IR_FieldLayoutLike {
-  var name : String // will be used to find the field
-  var level : Int // the (geometric) level the layout is associated with
-  var datatype : IR_Datatype // represents the (original) data type; may be multidimensional, i.e. vectors, matrices, etc.
-  var localization : IR_Localization // specifies where data is located
-  var layoutsPerDim : Array[IR_FieldLayoutPerDim] // represents the number of data points and their distribution in each dimension
-  var numDimsGrid : Int // dimensionality of the associated grid; usually lesser than or equal to 3
-  var referenceOffset : IR_ExpressionIndex // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
-  var communicatesDuplicated : Boolean // specifies if duplicated values need to be exchanged between processes
-  var communicatesGhosts : Boolean // specifies if ghost layer values need to be exchanged between processes
+  def name : String // will be used to find the field
+  def level : Int // the (geometric) level the layout is associated with
+  def datatype : IR_Datatype // represents the (original) data type; may be multidimensional, i.e. vectors, matrices, etc.
+  def localization : IR_Localization // specifies where data is located
+  def layoutsPerDim : Array[IR_FieldLayoutPerDim] // represents the number of data points and their distribution in each dimension
+  def numDimsGrid : Int // dimensionality of the associated grid; usually lesser than or equal to 3
+  def referenceOffset : IR_ExpressionIndex // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
+  def communicatesDuplicated : Boolean // specifies if duplicated values need to be exchanged between processes
+  def communicatesGhosts : Boolean // specifies if ghost layer values need to be exchanged between processes
 
   def defIdxById(id : String, dim : Int) : IR_Expression
   def idxById(id : String, dim : Int) : IR_Expression

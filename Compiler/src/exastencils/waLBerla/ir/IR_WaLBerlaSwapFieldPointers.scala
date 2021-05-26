@@ -15,7 +15,7 @@ import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.datastructures.Transformation.OutputType
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
-import exastencils.waLBerla.ir.IR_WaLBerlaSweep.getBlocks
+import exastencils.waLBerla.ir.IR_WaLBerlaUtil.getBlocks
 
 case class IR_WaLBerlaSwapFieldPointers(
     var srcAcc : IR_FieldAccess,

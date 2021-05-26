@@ -132,7 +132,7 @@ case class IR_WaLBerlaFieldLayout(
     IR_SimplifyExpression.simplifyIntegralExpr(idx)
   }
 
-  override var layoutsPerDim : Array[IR_FieldLayoutPerDim] = _ // TODO
+  def layoutsPerDim : Array[IR_FieldLayoutPerDim] = wbField.field.layout.layoutsPerDim // dummy impl, currently unused
 }
 
 // Mainly for loops, field accesses already handled
