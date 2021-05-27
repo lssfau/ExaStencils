@@ -24,12 +24,12 @@ object IR_WaLBerlaCollection extends ObjectWithState {
   // buffer looked up reference to reduce execution time
   var selfRef : Option[IR_WaLBerlaCollection] = None
 
-  override def clear() = {
+  override def clear() : Unit = {
     selfRef = None
   }
 
   // looks itself up starting from the current root
-  def get = {
+  def get : IR_WaLBerlaCollection = {
     if (selfRef.isEmpty)
       selfRef = StateManager.findFirst[IR_WaLBerlaCollection]()
     selfRef.get
@@ -38,7 +38,7 @@ object IR_WaLBerlaCollection extends ObjectWithState {
 
 case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclaration] = ListBuffer()) extends IR_FunctionCollection(IR_WaLBerlaCollection.defBasePath,
   ListBuffer(), // external deps
-  ListBuffer(IR_GlobalCollection.defHeader, IR_WaLBerlaSweep.defHeader)) {
+  ListBuffer(IR_GlobalCollection.defHeader)) {
 
   if (Knowledge.mpi_enabled)
     externalDependencies += "mpi.h"
@@ -53,16 +53,30 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
     if (Platform.simd_header != null) externalDependencies += Platform.simd_header
 
   override def printToFile() : Unit = {
-    if (IR_WaLBerlaUtil.startNode.isDefined) {
+    if (IR_WaLBerlaUtil.functorNodes.nonEmpty) {
+      val contexts = IR_WaLBerlaUtil.functorNodes.map(IR_WaLBerlaFunctorGenerationContext)
+
+      // append functor headers to internal deps
+      contexts.foreach(context => { internalDependencies += IR_WaLBerlaFunctor.defHeader(context.className) })
+
+      // print header for collection
       super.printToFile()
-      IR_WaLBerlaSweep(IR_WaLBerlaSweepGenerationContext(IR_WaLBerlaUtil.startNode.get)).printToFile()
+
+      // print functors
+      contexts.foreach(context => { IR_WaLBerlaFunctor(context).printToFile() })
     }
   }
 }
 
 object IR_WaLBerlaReplaceVariableAccesses extends DefaultStrategy("Find and append suffix") {
   this += Transformation("Replace", {
-    case acc : IR_VariableAccess if IR_WaLBerlaCollection.get.variables.contains(IR_VariableDeclaration(acc)) =>
-      IR_VariableAccess(IR_WaLBerlaUtil.getMemberName(acc.name), acc.datatype)
+    case acc : IR_VariableAccess =>
+      val isWaLBerlaVar = IR_WaLBerlaCollection.get.variables.contains(IR_VariableDeclaration(acc))
+      val isFunctorParam = IR_WaLBerlaUtil.functorNodes.exists(f => f.parameters.exists(p => p.name == acc.name && p.datatype == acc.datatype))
+
+      if ( isWaLBerlaVar || isFunctorParam )
+        IR_VariableAccess(IR_WaLBerlaUtil.getMemberName(acc.name), acc.datatype)
+      else
+        acc
   })
 }

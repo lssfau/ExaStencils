@@ -8,22 +8,19 @@ import exastencils.prettyprinting.FilePrettyPrintable
 import exastencils.prettyprinting.PrettyprintingManager
 
 
-object IR_WaLBerlaSweep {
-  def headerName = "Sweep.h"
-  def sourceName = "Sweep.cpp"
-  def defHeader : String = IR_WaLBerlaCollection.defBasePath + "_" + headerName
-  def defSource: String = IR_WaLBerlaCollection.defBasePath + "_" + sourceName
+object IR_WaLBerlaFunctor {
+  def defHeader(className : String) : String = IR_WaLBerlaCollection.defBasePath + "_" + className + ".h"
+  def defSource(className : String): String = IR_WaLBerlaCollection.defBasePath + "_" + className + ".cpp"
 }
 
-case class IR_WaLBerlaSweep(
-    private var context : IR_WaLBerlaSweepGenerationContext
+case class IR_WaLBerlaFunctor(
+    private var context : IR_WaLBerlaFunctorGenerationContext
 ) extends IR_Node with FilePrettyPrintable {
 
   val namespace = "exastencils"
-  val className = "Solver"
 
   def printHeader() : Unit = {
-    val writerHeader = PrettyprintingManager.getPrinter(IR_WaLBerlaSweep.defHeader)
+    val writerHeader = PrettyprintingManager.getPrinter(IR_WaLBerlaFunctor.defHeader(context.className))
 
     /* dependencies */
     writerHeader.addInternalDependency(IR_WaLBerlaCollection.defHeader)
@@ -46,13 +43,13 @@ case class IR_WaLBerlaSweep(
     /* class */
     writerHeader <<< s"namespace walberla {"
     writerHeader <<< s"namespace $namespace { "
-    writerHeader <<< s"class $className"
+    writerHeader <<< s"class ${context.className}"
     writerHeader <<< "{\npublic:"
 
     // TODO ...
 
     /* ctor */
-    writerHeader << s"\t$className ("
+    writerHeader << s"\t${context.className} ("
     for ((param, i) <- context.ctorParams.zipWithIndex) // param list
       writerHeader << param.prettyprint() + (if (i != context.ctorParams.size-1) ", " else "")
     writerHeader << s") ${if (context.members.nonEmpty) ":" else ""} "
@@ -61,7 +58,7 @@ case class IR_WaLBerlaSweep(
     writerHeader <<< "{};"
 
     /* functor */
-    writerHeader <<< "void operator()();"
+    writerHeader <<< "\tvoid operator()();"
 
     /* member */
     writerHeader <<< "private:"
@@ -77,10 +74,10 @@ case class IR_WaLBerlaSweep(
   }
 
   def printSource() : Unit = {
-    val writerHeader = PrettyprintingManager.getPrinter(IR_WaLBerlaSweep.defSource)
+    val writerHeader = PrettyprintingManager.getPrinter(IR_WaLBerlaFunctor.defSource(context.className))
 
     /* dependencies */
-    writerHeader.addInternalDependency(IR_WaLBerlaSweep.defHeader)
+    writerHeader.addInternalDependency(IR_WaLBerlaFunctor.defHeader(context.className))
     writerHeader.addInternalDependency(IR_WaLBerlaCollection.defHeader)
     // waLBerla headers
     writerHeader.addExternalDependency("core/DataTypes.h")
@@ -95,7 +92,7 @@ case class IR_WaLBerlaSweep(
     // TODO ...
 
     /* functor */
-    writerHeader <<< s"void $className::operator()() {"
+    writerHeader <<< s"void ${context.className}::operator()() {"
     // ...
     for (stmt <- context.body)
       writerHeader <<< stmt.prettyprint
@@ -109,7 +106,7 @@ case class IR_WaLBerlaSweep(
 
 
   override def printToFile() : Unit = {
-    if (IR_WaLBerlaUtil.startNode.isEmpty)
+    if (IR_WaLBerlaUtil.functorNodes.isEmpty)
       return
 
     printHeader()

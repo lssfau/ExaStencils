@@ -30,23 +30,26 @@ case class IR_WaLBerlaLoopOverPoints(
 
 
   def expandSpecial(collector : IR_StackCollector) : Output[StatementList] = {
-    val insideFragLoop = collector.stack.exists(_.isInstanceOf[IR_LoopOverFragments])
+    val insideBlockLoop = collector.stack.exists(_.isInstanceOf[IR_WaLBerlaLoopOverBlocks])
     val innerLoop =
       if (Knowledge.experimental_splitLoopsForAsyncComm)
         IR_WaLBerlaLoopOverPointsInOneFragment(wbField.domain.index, wbField, region, startOffset, endOffset, increment, body, preComms, postComms, Duplicate(parallelization), condition)
       else
         IR_WaLBerlaLoopOverPointsInOneFragment(wbField.domain.index, wbField, region, startOffset, endOffset, increment, body, ListBuffer(), ListBuffer(), Duplicate(parallelization), condition)
 
-    if (insideFragLoop && innerLoop.parallelization.reduction.isDefined)
+    if (insideBlockLoop && innerLoop.parallelization.reduction.isDefined)
       innerLoop.parallelization.reduction.get.skipMpi = true
 
-    val loopOverFrags = ListBuffer(IR_WaLBerlaLoopOverBlocks(ListBuffer(innerLoop), Duplicate(parallelization)))
+    val wrappedLoop = if (insideBlockLoop)
+      ListBuffer(innerLoop)
+    else
+      ListBuffer(IR_WaLBerlaLoopOverBlocks(ListBuffer(innerLoop), Duplicate(parallelization)))
 
     if (Knowledge.experimental_splitLoopsForAsyncComm)
-      loopOverFrags
+      wrappedLoop
     else {
       if (preComms.nonEmpty) Logger.warn("Found precomm")
-      preComms ++ loopOverFrags ++ postComms
+      preComms ++ wrappedLoop ++ postComms
     }
   }
 }

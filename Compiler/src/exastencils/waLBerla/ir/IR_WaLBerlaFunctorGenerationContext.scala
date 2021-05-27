@@ -12,15 +12,17 @@ import exastencils.waLBerla.ir.IR_WaLBerlaUtil._
 
 // store context
 
-case class IR_WaLBerlaSweepGenerationContext(func : IR_LeveledFunction)  {
+case class IR_WaLBerlaFunctorGenerationContext(var func : IR_LeveledFunction) {
 
-  var fields : ListBuffer[IR_WaLBerlaField] = IR_WaLBerlaFieldCollection.objects
-  val parameters : ListBuffer[IR_FunctionArgument] = IR_WaLBerlaCollection.get.variables.map(p => IR_FunctionArgument(p.name, p.datatype))
+  var fieldNames : ListBuffer[String] = IR_WaLBerlaUtil.functorAccessedFields.getOrElse(func.baseName, ListBuffer())
+  val parameters : ListBuffer[IR_FunctionArgument] = func.parameters
   val body : ListBuffer[IR_Statement] = func.body
+
+  def className : String = func.baseName.replaceFirst("walberla_", "")
 
   private def toBlockDataID(name : String) = IR_VariableAccess(name + "_ID", WB_BlockDataID)
 
-  def blockDataIDs : Map[String, IR_FunctionArgument] = fields.map(acc => acc.name -> IR_FunctionArgument(toBlockDataID(acc.name))).toMap
+  def blockDataIDs : Map[String, IR_FunctionArgument] = fieldNames.map(acc => acc -> IR_FunctionArgument(toBlockDataID(acc))).toMap
 
   // extract ctor params
   var ctorParams : ListBuffer[IR_FunctionArgument] = ListBuffer()

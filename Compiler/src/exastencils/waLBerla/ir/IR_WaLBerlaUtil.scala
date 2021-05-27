@@ -1,5 +1,6 @@
 package exastencils.waLBerla.ir
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Function
@@ -8,10 +9,11 @@ import exastencils.base.ir.IR_LeveledFunction
 import exastencils.base.ir.IR_MemberFunctionCallArrow
 import exastencils.base.ir.IR_SharedPointerDatatype
 import exastencils.base.ir.IR_VariableAccess
+import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.field.ir.IR_FieldAccess
-import exastencils.logger.Logger
+import exastencils.util.ir.IR_CollectFieldAccesses
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_BlockDataID
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_FieldDatatype
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_IBlock
@@ -19,7 +21,8 @@ import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_StructuredBlockStorage
 
 object IR_WaLBerlaUtil extends DefaultStrategy("Get waLBerla sweep") {
   def isWaLBerlaKernel(func : IR_Function) : Boolean = func.name.startsWith("walberla_")
-  var startNode : Option[IR_LeveledFunction] = None
+  var functorNodes : ListBuffer[IR_LeveledFunction] = ListBuffer() // TODO function -> waLBerla block
+  var functorAccessedFields : mutable.HashMap[String, ListBuffer[String]] = mutable.HashMap()
 
   val iblock = IR_VariableAccess("block", WB_IBlock)
   val iblockPtr = IR_FunctionArgument(iblock.name, IR_SharedPointerDatatype(WB_IBlock))
@@ -28,13 +31,13 @@ object IR_WaLBerlaUtil extends DefaultStrategy("Get waLBerla sweep") {
   val blockStoragePtr = IR_VariableAccess(blockStorage.name, IR_SharedPointerDatatype(WB_StructuredBlockStorage))
 
   def memberSuffix = "_gen"
-  def getMemberName(s : String) = s + memberSuffix
+  def getMemberName(s : String) : String = s + memberSuffix
 
   def getBlockDataID(name : String) = IR_VariableAccess(getMemberName(name + "_ID"), WB_BlockDataID)
   def getBlocks = IR_VariableAccess(getMemberName(blockStoragePtr.name), blockStoragePtr.datatype)
 
   // get field data from block
-  def getFields(accesses : ListBuffer[IR_FieldAccess]) = accesses.map(fAcc => {
+  def getFields(accesses : ListBuffer[IR_FieldAccess]) : ListBuffer[IR_VariableDeclaration] = accesses.map(fAcc => {
     val wbField = IR_WaLBerlaField(fAcc.field)
     val fieldDt = WB_FieldDatatype(wbField)
     WB_IV_FieldData(wbField, fAcc.slot, fAcc.fragIdx).getData(
@@ -42,11 +45,10 @@ object IR_WaLBerlaUtil extends DefaultStrategy("Get waLBerla sweep") {
   })
 
   this += Transformation("Get sweep node", {
-    case func : IR_LeveledFunction if isWaLBerlaKernel(func) =>
-      if (startNode.isEmpty)
-        startNode = Some(func)
-      else
-        Logger.error("Multiple waLBerla sweep candidates found.")
+    case func : IR_LeveledFunction if isWaLBerlaKernel(func) && !functorNodes.exists(f => f.baseName == func.baseName) =>
+      functorNodes += func
+      IR_CollectFieldAccesses.applyStandalone(func)
+      functorAccessedFields.update(func.baseName, IR_CollectFieldAccesses.fieldAccesses.filter(IR_WaLBerlaFieldCollection.contains).map(_.name))
 
       func
   })

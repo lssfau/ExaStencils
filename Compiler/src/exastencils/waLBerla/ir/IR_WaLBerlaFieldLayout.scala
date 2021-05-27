@@ -4,17 +4,13 @@ import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_MemberFunctionCallArrow
 import exastencils.core.Duplicate
-import exastencils.datastructures.DefaultStrategy
-import exastencils.datastructures.Transformation
 import exastencils.field.ir.IR_FieldLayout
 import exastencils.field.ir.IR_FieldLayoutLike
 import exastencils.field.ir.IR_FieldLayoutPerDim
 import exastencils.field.ir.IR_IV_ActiveSlot
-import exastencils.field.ir.IR_IV_IndexFromField
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.grid.ir.IR_Localization
 import exastencils.knowledge.ir.IR_LeveledKnowledgeObject
@@ -132,9 +128,11 @@ case class IR_WaLBerlaFieldLayout(
     IR_SimplifyExpression.simplifyIntegralExpr(idx)
   }
 
+  // TODO ?
   def layoutsPerDim : Array[IR_FieldLayoutPerDim] = wbField.field.layout.layoutsPerDim // dummy impl, currently unused
 }
 
+/*
 // Mainly for loops, field accesses already handled
 object IR_WaLBerlaReplaceLayoutIVs extends DefaultStrategy("Replace layout IVs with field member functions") {
   this += Transformation("Find and replace", {
@@ -150,3 +148,4 @@ object IR_WaLBerlaReplaceLayoutIVs extends DefaultStrategy("Replace layout IVs w
       }
   }, applyAtNode = IR_WaLBerlaUtil.startNode)
 }
+*/
