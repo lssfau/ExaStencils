@@ -4,21 +4,25 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ConstReferenceDatatype
 import exastencils.base.ir.IR_FunctionArgument
-import exastencils.base.ir.IR_LeveledFunction
-import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_BlockDataID
 import exastencils.waLBerla.ir.IR_WaLBerlaUtil._
 
 // store context
 
-case class IR_WaLBerlaFunctorGenerationContext(var func : IR_LeveledFunction) {
+object IR_WaLBerlaFunctorGenerationContext {
+  def apply(functor : IR_WaLBerlaFunctor) : IR_WaLBerlaFunctorGenerationContext = new IR_WaLBerlaFunctorGenerationContext(functor.name, functor.parameters)
+}
 
-  var fieldNames : ListBuffer[String] = IR_WaLBerlaUtil.functorAccessedFields.getOrElse(func.baseName, ListBuffer())
-  val parameters : ListBuffer[IR_FunctionArgument] = func.parameters
-  val body : ListBuffer[IR_Statement] = func.body
 
-  def className : String = func.baseName.replaceFirst("walberla_", "")
+case class IR_WaLBerlaFunctorGenerationContext(
+    var name : String,
+    var parameters : ListBuffer[IR_FunctionArgument]
+) {
+
+  var fieldNames : ListBuffer[String] = IR_WaLBerlaUtil.functorAccessedFields.getOrElse(name, ListBuffer()).sorted
+
+  def className : String = name.replaceFirst("walberla_", "")
 
   private def toBlockDataID(name : String) = IR_VariableAccess(name + "_ID", WB_BlockDataID)
 

@@ -3,9 +3,7 @@ package exastencils.waLBerla.ir
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Function
 import exastencils.base.ir.IR_FunctionArgument
-import exastencils.base.ir.IR_LeveledFunction
 import exastencils.base.ir.IR_MemberFunctionCallArrow
 import exastencils.base.ir.IR_SharedPointerDatatype
 import exastencils.base.ir.IR_VariableAccess
@@ -20,8 +18,8 @@ import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_IBlock
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_StructuredBlockStorage
 
 object IR_WaLBerlaUtil extends DefaultStrategy("Get waLBerla sweep") {
-  def isWaLBerlaKernel(func : IR_Function) : Boolean = func.name.startsWith("walberla_")
-  var functorNodes : ListBuffer[IR_LeveledFunction] = ListBuffer() // TODO function -> waLBerla block
+  //def isWaLBerlaKernel(func : IR_Function) : Boolean = func.name.startsWith("walberla_")
+  var functorNodes : ListBuffer[IR_WaLBerlaFunctor] = ListBuffer()
   var functorAccessedFields : mutable.HashMap[String, ListBuffer[String]] = mutable.HashMap()
 
   val iblock = IR_VariableAccess("block", WB_IBlock)
@@ -45,10 +43,10 @@ object IR_WaLBerlaUtil extends DefaultStrategy("Get waLBerla sweep") {
   })
 
   this += Transformation("Get sweep node", {
-    case func : IR_LeveledFunction if isWaLBerlaKernel(func) && !functorNodes.exists(f => f.baseName == func.baseName) =>
+    case func : IR_WaLBerlaFunctor if !functorNodes.exists(f => f.name == func.name) =>
       functorNodes += func
       IR_CollectFieldAccesses.applyStandalone(func)
-      functorAccessedFields.update(func.baseName, IR_CollectFieldAccesses.fieldAccesses.filter(IR_WaLBerlaFieldCollection.contains).map(_.name))
+      functorAccessedFields.update(func.name, IR_CollectFieldAccesses.fieldAccesses.filter(IR_WaLBerlaFieldCollection.contains).map(_.name))
 
       func
   })

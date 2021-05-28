@@ -1,10 +1,14 @@
 package exastencils.waLBerla.ir
 
-import exastencils.base.ir.IR_Node
+import scala.collection.mutable.ListBuffer
+
+import exastencils.base.ir.IR_FunctionArgument
+import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.config.Knowledge
 import exastencils.config.Platform
 import exastencils.prettyprinting.FilePrettyPrintable
+import exastencils.prettyprinting.PpStream
 import exastencils.prettyprinting.PrettyprintingManager
 
 
@@ -14,10 +18,14 @@ object IR_WaLBerlaFunctor {
 }
 
 case class IR_WaLBerlaFunctor(
-    private var context : IR_WaLBerlaFunctorGenerationContext
-) extends IR_Node with FilePrettyPrintable {
+    var name : String,
+    var parameters : ListBuffer[IR_FunctionArgument],
+    var body : ListBuffer[IR_Statement]
+) extends IR_Statement with FilePrettyPrintable {
 
   val namespace = "exastencils"
+
+  lazy val context = IR_WaLBerlaFunctorGenerationContext(this)
 
   def printHeader() : Unit = {
     val writerHeader = PrettyprintingManager.getPrinter(IR_WaLBerlaFunctor.defHeader(context.className))
@@ -94,7 +102,7 @@ case class IR_WaLBerlaFunctor(
     /* functor */
     writerHeader <<< s"void ${context.className}::operator()() {"
     // ...
-    for (stmt <- context.body)
+    for (stmt <- body)
       writerHeader <<< stmt.prettyprint
     writerHeader <<< "}"
     // ...
@@ -112,4 +120,6 @@ case class IR_WaLBerlaFunctor(
     printHeader()
     printSource()
   }
+
+  override def prettyprint(out : PpStream) : Unit = { } // do nothing
 }

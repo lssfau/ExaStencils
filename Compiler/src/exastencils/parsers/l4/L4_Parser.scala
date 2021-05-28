@@ -40,6 +40,7 @@ import exastencils.parsers._
 import exastencils.solver.l4._
 import exastencils.util.l4.L4_OffsetAlias
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldDecl
+import exastencils.waLBerla.l4.L4_WaLBerlaFunctor
 import exastencils.waLBerla.l4.L4_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.l4.L4_WaLBerlaSwapFieldPointers
 import exastencils.waLBerla.l4.L4_WaLBerlaVarsSection
@@ -245,6 +246,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| repeatWithStatement
       ||| solveLinearSystemStatement
       ||| waLBerlaSwapFieldPointers
+      ||| waLBerlaFunctor
     )
 
   lazy val statementInsideRepeat = statement ||| breakStatement
@@ -348,6 +350,10 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val waLBerlaSwapFieldPointers = locationize(("waLBerlaSwapPtr" ~ "(" ~> genericAccess) ~ ("," ~> genericAccess <~ ")") ^^ {
     case src ~ dst => L4_WaLBerlaSwapFieldPointers(src, dst)
+  })
+
+  lazy val waLBerlaFunctor = locationize(("waLBerla" ~ "Functor" ~> ident) ~ ("(" ~> repsep(functionArgument, ",").? <~ ")").? ~ ("{" ~> (statement.* <~ "}")) ^^ {
+    case id ~ args ~ stmts => L4_WaLBerlaFunctor(id, args.getOrElse(Some(List())).getOrElse(List()).to[ListBuffer], stmts.to[ListBuffer])
   })
 
   // ######################################
