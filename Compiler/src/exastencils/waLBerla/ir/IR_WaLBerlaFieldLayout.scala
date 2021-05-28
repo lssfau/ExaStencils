@@ -131,21 +131,3 @@ case class IR_WaLBerlaFieldLayout(
   // TODO ?
   def layoutsPerDim : Array[IR_FieldLayoutPerDim] = wbField.field.layout.layoutsPerDim // dummy impl, currently unused
 }
-
-/*
-// Mainly for loops, field accesses already handled
-object IR_WaLBerlaReplaceLayoutIVs extends DefaultStrategy("Replace layout IVs with field member functions") {
-  this += Transformation("Find and replace", {
-    case iv @ IR_IV_IndexFromField(layoutIdentifier, level, indexId, dim, fragmentIdx) =>
-      val l = level.asInstanceOf[IR_IntegerConstant].v.toInt
-      val wbField = IR_WaLBerlaFieldCollection.getByLayoutIdentifierLevExp(layoutIdentifier, l, suppressError = true)
-
-      // replace if field is found
-      if (wbField.isDefined) {
-        wbField.get.layout.defIdxById(indexId, dim)
-      } else {
-        iv
-      }
-  }, applyAtNode = IR_WaLBerlaUtil.startNode)
-}
-*/

@@ -74,18 +74,3 @@ object IR_WaLBerlaResolveFieldAccess extends DefaultStrategy("Resolve FieldAcces
       IR_WaLBerlaFieldAccess(access).expandSpecial
   })
 }
-
-
-// old stuff
-/*
-// WB_ReplaceFieldAccesses
-
-object WB_ReplaceFieldAccesses extends DefaultStrategy("Replace field accesses with WB ones") {
-  this += Transformation("Replace field accesses", {
-    case fAcc : IR_MultiDimFieldAccess   =>
-      //Logger.dbg("Multidim: " + fAcc.name)
-      val wbField = IR_WaLBerlaField(fAcc.field)
-      IR_WaLBerlaFieldAccess(wbField, fAcc.slot, fAcc.fragIdx, fAcc.index)
-  }, applyAtNode = IR_WaLBerlaUtil.startNode)
-}
-*/

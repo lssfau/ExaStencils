@@ -18,7 +18,6 @@ import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_IBlock
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_StructuredBlockStorage
 
 object IR_WaLBerlaUtil extends DefaultStrategy("Get waLBerla sweep") {
-  //def isWaLBerlaKernel(func : IR_Function) : Boolean = func.name.startsWith("walberla_")
   var functorNodes : ListBuffer[IR_WaLBerlaFunctor] = ListBuffer()
   var functorAccessedFields : mutable.HashMap[String, ListBuffer[String]] = mutable.HashMap()
 

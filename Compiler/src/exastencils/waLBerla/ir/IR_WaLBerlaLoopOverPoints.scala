@@ -65,31 +65,3 @@ object IR_WaLBerlaResolveLoopOverPoints extends DefaultStrategy("Resolve WB Loop
     case loop : IR_WaLBerlaLoopOverPoints => loop.expandSpecial(collector)
   })
 }
-
-
-// old stuff
-/*
-// WB_ReplaceLoopOverPoints
-
-object IR_WaLBerlaReplaceLoopOverFragments extends DefaultStrategy("Replace loops in WB kernel") {
-
-  this += datastructures.Transformation("Replace fragment loops", {
-    case IR_LoopOverFragments(bdy, parInfo)    =>
-      //Logger.dbg("IR_LoopOverFragments")
-      IR_WaLBerlaLoopOverFragments(bdy, parInfo).expandSpecial()
-    /*
-    case loop : IR_LoopOverPointsInOneFragment =>
-      Logger.dbg("IR_LoopOverPointsInOneFragment")
-      loop
-    case loop : IR_LoopOverPoints              =>
-      Logger.dbg("IR_LoopOverPoints")
-      loop
-    case loop : IR_LoopOverDimensions          =>
-      Logger.dbg("IR_LoopOverDimensions")
-      loop
-    case stmt : IR_Statement                   =>
-      stmt
-    */
-  }, applyAtNode = IR_WaLBerlaUtil.startNode)
-}
-*/
