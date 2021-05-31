@@ -42,25 +42,12 @@ case class L4_FieldLayoutOption(
   }
 }
 
-/// L4_FieldLayoutDecl
-
-object L4_FieldLayoutDecl {
-  def apply(name : String, levels : Option[L4_DeclarationLevelSpecification], datatype : L4_Datatype, localization : String, options : List[L4_FieldLayoutOption]) =
-    new L4_FieldLayoutDecl(name, levels, datatype, L4_Localization.resolve(localization), options.to[ListBuffer])
-}
-
-case class L4_FieldLayoutDecl(
-    var name : String,
-    var levels : Option[L4_DeclarationLevelSpecification],
-    var datatype : L4_Datatype,
-    var localization : L4_Localization,
-    var options : ListBuffer[L4_FieldLayoutOption]) extends L4_LeveledKnowledgeDecl {
-
-  override def prettyprint(out : PpStream) : Unit = {
-    out << "Layout " << name << "< " << datatype << ", " << localization << " >"
-    if (levels.isDefined) out << '@' << levels.get
-    out << " {\n" <<< (options, "\n") << "\n}"
-  }
+trait L4_FieldLayoutDeclLike {
+  def name : String
+  def levels : Option[L4_DeclarationLevelSpecification]
+  def datatype : L4_Datatype
+  def localization : L4_Localization
+  def options : ListBuffer[L4_FieldLayoutOption]
 
   def evalFieldLayoutValue(optionName : String) : L4_ConstIndex = {
     val option = options.find(_.name == optionName)
@@ -76,6 +63,27 @@ case class L4_FieldLayoutDecl(
       option.get.hasCommunication
     else
       L4_FieldLayout.getDefaultBoolean(optionName, localization)
+  }
+}
+
+/// L4_FieldLayoutDecl
+
+object L4_FieldLayoutDecl {
+  def apply(name : String, levels : Option[L4_DeclarationLevelSpecification], datatype : L4_Datatype, localization : String, options : List[L4_FieldLayoutOption]) =
+    new L4_FieldLayoutDecl(name, levels, datatype, L4_Localization.resolve(localization), options.to[ListBuffer])
+}
+
+case class L4_FieldLayoutDecl(
+    var name : String,
+    var levels : Option[L4_DeclarationLevelSpecification],
+    var datatype : L4_Datatype,
+    var localization : L4_Localization,
+    var options : ListBuffer[L4_FieldLayoutOption]) extends L4_LeveledKnowledgeDecl with L4_FieldLayoutDeclLike {
+
+  override def prettyprint(out : PpStream) : Unit = {
+    out << "Layout " << name << "< " << datatype << ", " << localization << " >"
+    if (levels.isDefined) out << '@' << levels.get
+    out << " {\n" <<< (options, "\n") << "\n}"
   }
 
   def composeLayout(level : Int) : L4_FieldLayout = {

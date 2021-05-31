@@ -12,7 +12,6 @@ import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
-import exastencils.datastructures.Transformation.OutputType
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.knowledge.ir.IR_LeveledKnowledgeAccess
 import exastencils.logger.Logger
@@ -24,14 +23,8 @@ trait IR_WaLBerlaFieldAccessLike extends IR_LeveledKnowledgeAccess {
   def target = field
 }
 
-object IR_WaLBerlaFieldAccess {
-  def apply(acc: IR_FieldAccess) : IR_WaLBerlaFieldAccess =
-    new IR_WaLBerlaFieldAccess(IR_WaLBerlaField(acc.field), acc.slot, acc.fragIdx, acc.index, acc.offset, acc.frozen, acc.matIndex)
-}
-
 case class IR_WaLBerlaFieldAccess(
     var field : IR_WaLBerlaField,
-    var slot : IR_Expression,
     var fragIdx : IR_Expression,
     var index : IR_ExpressionIndex,
     var offset : Option[IR_ConstIndex] = None,
@@ -41,7 +34,7 @@ case class IR_WaLBerlaFieldAccess(
 
   override def datatype = field.layout.datatype
 
-  def expandSpecial : OutputType = {
+  def expandSpecial = {
     // add zero entries for grid dims < 3
     var newIndex = Duplicate(index)
     newIndex = IR_ExpressionIndex(
@@ -64,13 +57,14 @@ case class IR_WaLBerlaFieldAccess(
     } else {
       newIndex
     }
-    IR_MemberFunctionCallArrow(WB_IV_FieldData(field, slot, fragIdx), "get", datatype, linearizedHigherDimIndex.indices : _*)
+    IR_MemberFunctionCallArrow(WB_IV_FieldData(field, fragIdx), "get", datatype, linearizedHigherDimIndex.indices : _*)
   }
 }
 
 object IR_WaLBerlaResolveFieldAccess extends DefaultStrategy("Resolve FieldAccess nodes") {
   this += new Transformation("Resolve", {
     case access : IR_FieldAccess if IR_WaLBerlaFieldCollection.contains(access) =>
-      IR_WaLBerlaFieldAccess(access).expandSpecial
+      val field = IR_WaLBerlaFieldCollection.getByIdentifier(access.name, access.level, suppressError = true).get
+      IR_WaLBerlaFieldAccess(field, access.fragIdx, access.index, access.offset, access.frozen, access.matIndex).expandSpecial
   })
 }

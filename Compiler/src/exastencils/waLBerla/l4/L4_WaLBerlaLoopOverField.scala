@@ -17,7 +17,6 @@ import exastencils.datastructures.Transformation
 import exastencils.field.l4.L4_FieldAccess
 import exastencils.field.l4.L4_FutureFieldAccess
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.ir.IR_WaLBerlaField
 import exastencils.waLBerla.ir.IR_WaLBerlaLoopOverPoints
 
 
@@ -35,16 +34,18 @@ case class L4_WaLBerlaLoopOverField(
     var postComms : ListBuffer[L4_Communicate]) extends L4_Statement {
 
   // reuse most of L4_LoopOverField impl
-  val loopOverField : IR_LoopOverPoints =
+  lazy val loopOverField : IR_LoopOverPoints =
     L4_LoopOverField(L4_FieldAccess(fieldAcc.target, fieldAcc.slot, fieldAcc.offset, fieldAcc.arrayIndex, fieldAcc.frozen, fieldAcc.matIndex)).progress
 
   override def prettyprint(out : PpStream) : Unit = {
     out << loopOverField.prettyprint()
   }
 
+  lazy val wbField = L4_WaLBerlaFieldCollection.getByFieldAccess(fieldAcc).get
+
   override def progress : IR_Statement = {
     val newloop = IR_WaLBerlaLoopOverPoints(
-      IR_WaLBerlaField(fieldAcc.target.getProgressedObj()),
+      wbField.progress(),
       if (region.isDefined) Some(region.get.progress) else None,
       loopOverField.startOffset,
       loopOverField.endOffset,
@@ -67,7 +68,7 @@ object L4_WaLBerlaResolveLoopOverField extends DefaultStrategy("Resolve LoopOver
     case L4_LoopOverField(fAcc : L4_FutureFieldAccess, region, seq, condition, start, end, incr, body, reduction, preComms, postComms) if L4_WaLBerlaFieldCollection.contains(fAcc) =>
       // resolve accesses to waLBerla fields
       val wbField = L4_WaLBerlaFieldCollection.getByFieldAccess(fAcc).get // get field from wb field collection
-      val newAcc = L4_FieldAccess(wbField.field, fAcc.slot, fAcc.offset, fAcc.arrayIndex, fAcc.frozen, fAcc.matIndex) // create 'regular' access for it
+      val newAcc = L4_FieldAccess(wbField.toField, fAcc.slot, fAcc.offset, fAcc.arrayIndex, fAcc.frozen, fAcc.matIndex) // create 'regular' access for it
 
       L4_WaLBerlaLoopOverField(newAcc, region, seq, condition, start, end, incr, body, reduction, preComms, postComms)
   })

@@ -40,6 +40,7 @@ import exastencils.parsers._
 import exastencils.solver.l4._
 import exastencils.util.l4.L4_OffsetAlias
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldDecl
+import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayoutDecl
 import exastencils.waLBerla.l4.L4_WaLBerlaFunctor
 import exastencils.waLBerla.l4.L4_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.l4.L4_WaLBerlaSwapFieldPointers
@@ -95,6 +96,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| stencilField
       ||| externalField
       ||| waLBerlaField
+      ||| waLBerlaFieldLayout
       ||| stencilDeclaration
       ||| stencilFromDefault
       ||| equationDeclaration
@@ -406,7 +408,12 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ levelDecl.? ~ matShapeOption.?
     ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level ~ shape => L4_BaseFieldDecl(id, level, domain, layout, boundary, slots.getOrElse(1), shape) })
 
-  lazy val waLBerlaField = locationize("waLBerla" ~> field ^^ (f => L4_WaLBerlaFieldDecl(f)))
+  lazy val waLBerlaField = locationize(("waLBerla" ~ "Field" ~> ident) ~ ("<" ~> ident <~ ">") ~ levelDecl.? ~ matShapeOption.? ^^ {
+    case id ~ layout ~ levels ~ shape => L4_WaLBerlaFieldDecl(id, levels, L4_UnresolvedAccess(layout), shape)
+  })
+
+  lazy val waLBerlaFieldLayout = locationize(("waLBerla" ~ "Layout" ~> ident) ~ ("<" ~> datatype <~ ",") ~ (stringLit <~ ">") ~ levelDecl.? ~ ("{" ~> repsep(layoutOption, ",".?) <~ "}")
+    ^^ { case id ~ dt ~ layoutLit ~ levels ~ opts => L4_WaLBerlaFieldLayoutDecl(id, levels, dt, layoutLit, opts.to[ListBuffer]) })
 
   lazy val fieldBoundary = (
     "Neumann" ~> ("(" ~> integerLit <~ ")").? ^^ { L4_NeumannBC(_) }

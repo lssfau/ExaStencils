@@ -45,6 +45,7 @@ import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util.l4._
 import exastencils.waLBerla.l4.L4_UnifyWaLBerlaVarsSections
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldCollection
+import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayoutCollection
 import exastencils.waLBerla.l4.L4_WaLBerlaResolveFieldAccesses
 import exastencils.waLBerla.l4.L4_WaLBerlaResolveLoopOverField
 
@@ -68,13 +69,14 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     // activate default knowledge collections
 
     L4_DomainCollection
+    L4_WaLBerlaFieldLayoutCollection
     L4_FieldLayoutCollection
+    L4_WaLBerlaFieldCollection
     L4_FieldCollection
     L4_StencilCollection
     L4_StencilFieldCollection
     L4_VirtualFieldCollection
     L4_ExternalFieldCollection
-    L4_WaLBerlaFieldCollection
     L4_EquationCollection
     L4_FieldCombinationCollection
 

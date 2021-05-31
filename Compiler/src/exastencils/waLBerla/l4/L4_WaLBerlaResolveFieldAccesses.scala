@@ -12,6 +12,6 @@ object L4_WaLBerlaResolveFieldAccesses extends DefaultStrategy("Resolve accesses
     case fAcc : L4_FutureFieldAccess if L4_WaLBerlaFieldCollection.contains(fAcc) =>
       val wbField = L4_WaLBerlaFieldCollection.getByFieldAccess(fAcc).get // get field from wb field collection
 
-      L4_FieldAccess(wbField.field, fAcc.slot, fAcc.offset, fAcc.arrayIndex, fAcc.frozen, fAcc.matIndex) // create 'regular' access for it
+      L4_FieldAccess(wbField.toField, fAcc.slot, fAcc.offset, fAcc.arrayIndex, fAcc.frozen, fAcc.matIndex) // create 'regular' access for it
   })
 }
