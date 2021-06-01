@@ -1,17 +1,7 @@
 package exastencils.waLBerla.ir
 
 import scala.collection.mutable.ListBuffer
-
-import exastencils.base.ir.IR_Assignment
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExpressionIndex
-import exastencils.base.ir.IR_ForLoop
-import exastencils.base.ir.IR_IfCondition
-import exastencils.base.ir.IR_Lower
-import exastencils.base.ir.IR_ScopedStatement
-import exastencils.base.ir.IR_SpecialExpandable
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_VariableDeclaration
+import exastencils.base.ir.{IR_Assignment, IR_Cast, IR_Expression, IR_ExpressionIndex, IR_ForLoop, IR_IfCondition, IR_Lower, IR_ScopedStatement, IR_SpecialExpandable, IR_Statement, IR_VariableDeclaration}
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
@@ -41,7 +31,7 @@ case class IR_WaLBerlaLoopOverDimensions(
       def it = IR_WaLBerlaFieldIteratorAccess(d)
       val decl = IR_VariableDeclaration(IR_WaLBerlaFieldIteratorAccess(d), indices.begin(d))
 
-      val cond = IR_Lower(it, indices.end(d))
+      val cond = IR_Lower(it, IR_Cast(it.datatype, indices.end(d)))
       val incr = IR_Assignment(it, stepSize(d), "+=")
       val loop = new IR_ForLoop(decl, cond, incr, wrappedBody, Duplicate(parallelization))
 
