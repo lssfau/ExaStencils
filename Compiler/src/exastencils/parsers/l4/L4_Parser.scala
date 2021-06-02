@@ -42,6 +42,7 @@ import exastencils.util.l4.L4_OffsetAlias
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldDecl
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayoutDecl
 import exastencils.waLBerla.l4.L4_WaLBerlaFunctor
+import exastencils.waLBerla.l4.L4_WaLBerlaFunctorDecl
 import exastencils.waLBerla.l4.L4_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.l4.L4_WaLBerlaSwapFieldPointers
 import exastencils.waLBerla.l4.L4_WaLBerlaVarsSection
@@ -106,6 +107,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| function
       ||| functionTemplate
       ||| functionInstantiation
+      ||| waLBerlaFunctorDecl
     ).* ^^ { L4_Root(_) }
 
   lazy val import_ = "import" ~> stringLit ^^ { parseFile }
@@ -218,6 +220,10 @@ object L4_Parser extends ExaParser with PackratParsers {
     ^^ { case id ~ templateArgs ~ functionArgs ~ retType ~ stmts => L4_FunctionTemplate(id, retType, templateArgs.getOrElse(List()), functionArgs.getOrElse(List()), stmts) })
   lazy val functionInstantiation = locationize(((("Inst" ||| "Instantiate") ~> ident) ~ ("<" ~> repsep(binaryexpression ||| booleanexpression, ",").? <~ ">") ~ ("as" ~> ident) ~ levelDecl.?)
     ^^ { case template ~ args ~ target ~ targetLvl => L4_FunctionInstantiation(template, args.getOrElse(List()), target, targetLvl) })
+
+  lazy val waLBerlaFunctorDecl = locationize(("waLBerla" ~ "Functor" ~> ident) ~ levelDecl.? ~ ("(" ~> repsep(functionArgument, ",").? <~ ")").? ~ ("{" ~> (statement.* <~ "}")) ^^ {
+    case id ~ levels ~ args ~ stmts => L4_WaLBerlaFunctorDecl(id, levels, args.getOrElse(Some(List())).getOrElse(List()).to[ListBuffer], stmts.to[ListBuffer])
+  })
 
   // ######################################
   // ##### Statements
@@ -355,7 +361,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   })
 
   lazy val waLBerlaFunctor = locationize(("waLBerla" ~ "Functor" ~> ident) ~ ("(" ~> repsep(functionArgument, ",").? <~ ")").? ~ ("{" ~> (statement.* <~ "}")) ^^ {
-    case id ~ args ~ stmts => L4_WaLBerlaFunctor(id, args.getOrElse(Some(List())).getOrElse(List()).to[ListBuffer], stmts.to[ListBuffer])
+    case id ~ args ~ stmts => L4_WaLBerlaFunctor(id, None, args.getOrElse(Some(List())).getOrElse(List()).to[ListBuffer], stmts.to[ListBuffer])
   })
 
   // ######################################
