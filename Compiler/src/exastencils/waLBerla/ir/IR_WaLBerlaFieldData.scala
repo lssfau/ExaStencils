@@ -19,7 +19,7 @@ import exastencils.prettyprinting.PpStream
 
 // TODO: potentially extend with slots
 
-abstract class WB_IV_AbstractFieldData extends IR_InternalVariable(true, false, true, true, false) {
+abstract class WB_IV_AbstractFieldData extends IR_InternalVariable(true, false, true, false, false) {
 
   import IR_WaLBerlaDatatypes._
 
@@ -48,7 +48,7 @@ abstract class WB_IV_AbstractFieldData extends IR_InternalVariable(true, false, 
   */
 
   override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
-    var access = super.resolveAccess(baseAccess, fragment, domain, field, level, neigh)
+    var access = super.resolveAccess(baseAccess, fragment, domain, field, IR_NullExpression, neigh)
     /*
     if (this.field.numSlots > 1)
       access = IR_ArrayAccess(access, slot)
@@ -76,6 +76,8 @@ object WB_IV_FieldData {
     val field = IR_WaLBerlaFieldCollection.getByIdentifier(fAcc.name, fAcc.level, suppressError = true).get
     new WB_IV_FieldData(field, fAcc.fragIdx)
   }
+
+  def apply(fAcc : IR_WaLBerlaFieldAccess) : WB_IV_FieldData = new WB_IV_FieldData(fAcc.target, fAcc.fragIdx)
 }
 
 case class WB_IV_FieldData(

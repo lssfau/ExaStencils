@@ -10,7 +10,6 @@ import exastencils.base.ir.IR_UnitDatatype
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.config.Knowledge
 import exastencils.config.Platform
-import exastencils.logger.Logger
 import exastencils.prettyprinting.FilePrettyPrintable
 import exastencils.prettyprinting.PpStream
 import exastencils.prettyprinting.PrettyprintingManager
@@ -128,7 +127,7 @@ case class IR_WaLBerlaFunctor(
     printSource()
   }
 
-  override def prettyprint(out : PpStream) : Unit = { Logger.warn("Should not be called for: " + name) } // do nothing
+  override def prettyprint(out : PpStream) : Unit = { } // do nothing
 
   override var datatype : IR_Datatype = IR_UnitDatatype
 }

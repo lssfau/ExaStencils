@@ -18,9 +18,14 @@ import exastencils.logger.Logger
 import exastencils.waLBerla.ir.IR_WaLBerlaUtil.getBlocks
 
 case class IR_WaLBerlaSwapFieldPointers(
-    var srcAcc : IR_FieldAccess,
-    var dstAcc : IR_FieldAccess
+    srcAcc : IR_FieldAccess,
+    dstAcc : IR_FieldAccess
 ) extends IR_Statement with IR_Expandable {
+
+  private def toWBAcc(wbf : IR_WaLBerlaField, fAcc : IR_FieldAccess) = IR_WaLBerlaFieldAccess(wbf, fAcc.fragIdx, fAcc.index, fAcc.offset, fAcc.frozen, fAcc.matIndex)
+
+  val wbSrc : IR_WaLBerlaFieldAccess = toWBAcc( IR_WaLBerlaFieldCollection.getByIdentifier(srcAcc.name, srcAcc.level, suppressError = true).get, srcAcc )
+  val wbDst : IR_WaLBerlaFieldAccess = toWBAcc( IR_WaLBerlaFieldCollection.getByIdentifier(dstAcc.name, dstAcc.level, suppressError = true).get, dstAcc )
 
   override def expand() : OutputType = {
     if ( !(IR_WaLBerlaFieldCollection.contains(srcAcc) && IR_WaLBerlaFieldCollection.contains(dstAcc)) )
@@ -33,6 +38,6 @@ case class IR_WaLBerlaSwapFieldPointers(
       IR_VariableDeclaration(defIt, IR_MemberFunctionCallArrow(getBlocks, "begin", defIt.datatype)),
       IR_Neq(defIt, IR_MemberFunctionCallArrow(getBlocks, "end", defIt.datatype)),
       IR_ExpressionStatement(IR_PreIncrement(defIt)),
-      IR_WaLBerlaUtil.getFields(ListBuffer(srcAcc, dstAcc)) :+ IR_ExpressionStatement(expr))
+      IR_WaLBerlaUtil.getFields(wbSrc, wbDst) :+ IR_ExpressionStatement(expr))
   }
 }

@@ -15,7 +15,6 @@ import exastencils.communication.l4.L4_Communicate
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.field.l4.L4_FieldAccess
-import exastencils.field.l4.L4_FutureFieldAccess
 import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.IR_WaLBerlaLoopOverPoints
 
@@ -65,7 +64,7 @@ case class L4_WaLBerlaLoopOverField(
 
 object L4_WaLBerlaResolveLoopOverField extends DefaultStrategy("Resolve LoopOverField for WB fields") {
   this += Transformation("Resolve", {
-    case L4_LoopOverField(fAcc : L4_FutureFieldAccess, region, seq, condition, start, end, incr, body, reduction, preComms, postComms) if L4_WaLBerlaFieldCollection.contains(fAcc) =>
+    case L4_LoopOverField(fAcc : L4_FieldAccess, region, seq, condition, start, end, incr, body, reduction, preComms, postComms) if L4_WaLBerlaFieldCollection.contains(fAcc) =>
       // resolve accesses to waLBerla fields
       val wbField = L4_WaLBerlaFieldCollection.getByFieldAccess(fAcc).get // get field from wb field collection
       val newAcc = L4_FieldAccess(wbField.toField, fAcc.slot, fAcc.offset, fAcc.arrayIndex, fAcc.frozen, fAcc.matIndex) // create 'regular' access for it

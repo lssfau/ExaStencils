@@ -18,10 +18,8 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.Output
-import exastencils.field.ir.IR_FieldAccess
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.parallelization.ir.IR_ParallelizationInfo
-import exastencils.util.ir.IR_CollectFieldAccesses
 import exastencils.waLBerla.ir.IR_WaLBerlaUtil.getBlocks
 
 /// IR_WaLBerlaLoopOverBlocks
@@ -38,15 +36,15 @@ case class IR_WaLBerlaLoopOverBlocks(
     def defIt = IR_VariableAccess("block", IR_SpecialDatatype("auto"))
 
     // collect fields accessed in loop
-    val fieldAccesses = ListBuffer[IR_FieldAccess]()
-    IR_CollectFieldAccesses.applyStandalone(body)
-    fieldAccesses ++= Duplicate(IR_CollectFieldAccesses.fieldAccesses).filter(IR_WaLBerlaFieldCollection.contains).groupBy(_.name).map(_._2.head)
+    var fieldAccesses = ListBuffer[IR_WaLBerlaFieldAccess]()
+    IR_CollectWaLBerlaFieldAccesses.applyStandalone(body)
+    fieldAccesses ++= Duplicate(IR_CollectWaLBerlaFieldAccesses.wbFieldAccesses).groupBy(_.name).map(_._2.head)
 
     new IR_ForLoop(
       IR_VariableDeclaration(defIt, IR_MemberFunctionCallArrow(getBlocks, "begin", defIt.datatype)),
       IR_Neq(defIt, IR_MemberFunctionCallArrow(getBlocks, "end", defIt.datatype)),
       IR_ExpressionStatement(IR_PreIncrement(defIt)),
-      IR_WaLBerlaUtil.getFields(fieldAccesses) ++ body,
+      IR_WaLBerlaUtil.getFields(fieldAccesses : _*) ++ body,
       parallelization)
   }
 }

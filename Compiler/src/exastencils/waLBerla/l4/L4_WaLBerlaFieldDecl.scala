@@ -2,6 +2,7 @@ package exastencils.waLBerla.l4
 
 import exastencils.base.l4.L4_Access
 import exastencils.base.l4.L4_DeclarationLevelSpecification
+import exastencils.base.l4.L4_LevelSpecification
 import exastencils.baseExt.l4.L4_MatShape
 import exastencils.field.l4.L4_FieldDecl
 import exastencils.prettyprinting.PpStream
@@ -24,13 +25,11 @@ case class L4_WaLBerlaFieldDecl(
     val index = L4_FieldDecl.runningIndex
     L4_FieldDecl.runningIndex += 1
 
-    L4_WaLBerlaFieldCollection.add(
-      L4_WaLBerlaField(
-        name,
-        levels.get.resolveLevel,
-        index,
-        fieldLayout.asInstanceOf[L4_WaLBerlaFieldLayoutAccess].target,
-        matShape
-      ))
+    val lvl = levels.get.resolveLevel
+    val maxLvl = L4_LevelSpecification.extractLevelListDefEmpty(levels).max
+
+    val wbField = L4_WaLBerlaField(name, levels.get.resolveLevel, index, fieldLayout.asInstanceOf[L4_WaLBerlaFieldLayoutAccess].target, matShape)
+
+    L4_WaLBerlaFieldCollection.add(wbField)
   }
 }

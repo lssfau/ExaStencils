@@ -46,8 +46,8 @@ import exastencils.util.l4._
 import exastencils.waLBerla.l4.L4_UnifyWaLBerlaVarsSections
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldCollection
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayoutCollection
-import exastencils.waLBerla.l4.L4_WaLBerlaResolveFieldAccesses
 import exastencils.waLBerla.l4.L4_WaLBerlaResolveLoopOverField
+import exastencils.waLBerla.l4.L4_WaLBerlaResolvePrintField
 
 /// L4_LayerHandler
 
@@ -246,7 +246,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
 
     // waLBerla field handling
     L4_WaLBerlaResolveLoopOverField.apply()
-    L4_WaLBerlaResolveFieldAccesses.apply()
+    L4_WaLBerlaResolvePrintField.apply()
 
     //L4_ProgressKnowledge.apply()
 

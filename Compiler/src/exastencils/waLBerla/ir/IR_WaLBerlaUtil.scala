@@ -10,7 +10,6 @@ import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
-import exastencils.field.ir.IR_FieldAccess
 import exastencils.util.ir.IR_CollectFieldAccesses
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_BlockDataID
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_FieldDatatype
@@ -34,9 +33,8 @@ object IR_WaLBerlaUtil extends DefaultStrategy("Get waLBerla sweep") {
   def getBlocks = IR_VariableAccess(getMemberName(blockStoragePtr.name), blockStoragePtr.datatype)
 
   // get field data from block
-  def getFields(accesses : ListBuffer[IR_FieldAccess]) : ListBuffer[IR_VariableDeclaration] = accesses.map(fAcc => {
-    val wbField = IR_WaLBerlaField(fAcc)
-    val fieldDt = WB_FieldDatatype(wbField)
+  def getFields(accesses : IR_WaLBerlaFieldAccess*) : ListBuffer[IR_VariableDeclaration] = accesses.to[mutable.ListBuffer].map(fAcc => {
+    val fieldDt = WB_FieldDatatype(fAcc.target)
     WB_IV_FieldData(fAcc).getData(
       Some(new IR_MemberFunctionCallArrow(iblock, s"getData< ${fieldDt.typeName} >", ListBuffer(getBlockDataID(fAcc.name)), fieldDt)))
   })

@@ -25,6 +25,7 @@ import exastencils.operator.l4._
 import exastencils.prettyprinting.PpStream
 import exastencils.solver.l4.L4_EquationCollection
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldCollection
+import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayoutCollection
 
 object L4_PrintKnowledgeDecl {
   def apply(out : PpStream) = {
@@ -36,6 +37,12 @@ object L4_PrintKnowledgeDecl {
 
     out << "// field layout declarations\n\n"
     L4_FieldLayoutCollection.objects.foreach { obj =>
+      obj.prettyprintDecl(out)
+      out << "\n\n"
+    }
+
+    out << "// waLBerla field layout declarations\n\n"
+    L4_WaLBerlaFieldLayoutCollection.objects.foreach { obj =>
       obj.prettyprintDecl(out)
       out << "\n\n"
     }

@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ConstReferenceDatatype
 import exastencils.base.ir.IR_FunctionArgument
+import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_BlockDataID
 import exastencils.waLBerla.ir.IR_WaLBerlaUtil._
@@ -11,16 +12,18 @@ import exastencils.waLBerla.ir.IR_WaLBerlaUtil._
 // store context
 
 object IR_WaLBerlaFunctorGenerationContext {
-  def apply(functor : IR_WaLBerlaFunctor) : IR_WaLBerlaFunctorGenerationContext = new IR_WaLBerlaFunctorGenerationContext(functor.name, functor.parameters)
+  def apply(functor : IR_WaLBerlaFunctor) : IR_WaLBerlaFunctorGenerationContext = new IR_WaLBerlaFunctorGenerationContext(functor.name, functor.parameters, functor.body)
 }
 
 
 case class IR_WaLBerlaFunctorGenerationContext(
     var name : String,
-    var parameters : ListBuffer[IR_FunctionArgument]
+    var parameters : ListBuffer[IR_FunctionArgument],
+    var body : ListBuffer[IR_Statement]
 ) {
 
-  var fieldNames : ListBuffer[String] = IR_WaLBerlaUtil.functorAccessedFields.getOrElse(name, ListBuffer()).sorted
+  IR_CollectWaLBerlaFieldAccesses.applyStandalone(body)
+  var fieldNames : ListBuffer[String] = IR_CollectWaLBerlaFieldAccesses.wbFieldAccesses.map(_.name) // IR_WaLBerlaUtil.functorAccessedFields.getOrElse(name, ListBuffer()).sorted
 
   def className : String = name.replaceFirst("walberla_", "")
 

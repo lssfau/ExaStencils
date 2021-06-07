@@ -24,6 +24,9 @@ object IR_WaLBerlaFieldCollection extends IR_LeveledKnowledgeCollection[IR_WaLBe
     }
   }
 
+  def contains(access : IR_WaLBerlaFieldAccess) : Boolean =
+    getByIdentifier(access.field.name, access.field.level, suppressError = true).isDefined
+
   def contains(access : IR_FieldAccess) : Boolean =
     getByIdentifier(access.field.name, access.field.level, suppressError = true).isDefined
 

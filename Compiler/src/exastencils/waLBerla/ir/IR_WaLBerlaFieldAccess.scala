@@ -5,9 +5,7 @@ import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_Index
-import exastencils.base.ir.IR_MemberFunctionCallArrow
 import exastencils.base.ir.IR_ScalarDatatype
-import exastencils.base.ir.IR_SpecialExpandable
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
@@ -15,6 +13,8 @@ import exastencils.datastructures.Transformation
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.knowledge.ir.IR_LeveledKnowledgeAccess
 import exastencils.logger.Logger
+import exastencils.prettyprinting.PpStream
+import exastencils.prettyprinting.PrettyPrintable
 
 /// IR_FieldAccessLike
 
@@ -30,17 +30,17 @@ case class IR_WaLBerlaFieldAccess(
     var offset : Option[IR_ConstIndex] = None,
     var frozen : Boolean = false,
     var matIndex : Option[Array[IR_Index]] = None
-) extends IR_WaLBerlaFieldAccessLike with IR_SpecialExpandable {
+) extends IR_WaLBerlaFieldAccessLike with PrettyPrintable {
 
   override def datatype = field.layout.datatype
 
-  def expandSpecial = {
+  def prettyprint(out : PpStream) = {
     // add zero entries for grid dims < 3
     var newIndex = Duplicate(index)
     newIndex = IR_ExpressionIndex(
-      newIndex.indices.take(field.numDimsGrid) ++
-        (0 until 3 - field.numDimsGrid).map(_ => 0 : IR_Expression) ++
-          newIndex.indices.drop(field.numDimsGrid))
+      index.indices.take(field.numDimsGrid) ++
+        Array.fill(3 - field.numDimsGrid)(0 : IR_Expression) ++
+        Duplicate(index).indices.drop(field.numDimsGrid))
 
     // indices need to be flattened
     val linearizedHigherDimIndex = if (field.layout.numDimsData > field.numDimsGrid) {
@@ -57,14 +57,14 @@ case class IR_WaLBerlaFieldAccess(
     } else {
       newIndex
     }
-    IR_MemberFunctionCallArrow(WB_IV_FieldData(field, fragIdx), "get", datatype, linearizedHigherDimIndex.indices : _*)
+    out << WB_IV_FieldData(field, fragIdx) << "->get(" <<< (linearizedHigherDimIndex.indices, ",") << ")"
   }
 }
 
-object IR_WaLBerlaResolveFieldAccess extends DefaultStrategy("Resolve FieldAccess nodes") {
+object IR_WaLBerlaResolveFieldAccess extends DefaultStrategy("Resolve FieldAccess nodes to waLBerla ones") {
   this += new Transformation("Resolve", {
     case access : IR_FieldAccess if IR_WaLBerlaFieldCollection.contains(access) =>
       val field = IR_WaLBerlaFieldCollection.getByIdentifier(access.name, access.level, suppressError = true).get
-      IR_WaLBerlaFieldAccess(field, access.fragIdx, access.index, access.offset, access.frozen, access.matIndex).expandSpecial
+      IR_WaLBerlaFieldAccess(field, access.fragIdx, access.index, access.offset, access.frozen, access.matIndex)
   })
 }

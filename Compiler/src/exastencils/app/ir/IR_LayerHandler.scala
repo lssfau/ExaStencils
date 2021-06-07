@@ -251,8 +251,8 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_MapStencilAssignments.apply()
 
-    IR_WaLBerlaResolveLoopOverBlocks.apply() // before IR_ResolveFieldAccess
     IR_WaLBerlaResolveFieldAccess.apply()
+    IR_WaLBerlaResolveLoopOverBlocks.apply() // after IR_WaLBerlaResolveFieldAccess
 
     IR_ResolveFieldAccess.apply()
 
@@ -296,8 +296,6 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     }
 
     IR_LayoutTansformation.apply()
-
-    //IR_WaLBerlaReplaceLayoutIVs.apply()
 
     // before converting kernel functions -> requires linearized accesses
     IR_LinearizeDirectFieldAccess.apply()
