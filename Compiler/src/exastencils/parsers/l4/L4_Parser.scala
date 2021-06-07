@@ -361,7 +361,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   })
 
   lazy val waLBerlaFunctor = locationize(("waLBerla" ~ "Functor" ~> ident) ~ ("(" ~> repsep(functionArgument, ",").? <~ ")").? ~ ("{" ~> (statement.* <~ "}")) ^^ {
-    case id ~ args ~ stmts => L4_WaLBerlaFunctor(id, None, args.getOrElse(Some(List())).getOrElse(List()).to[ListBuffer], stmts.to[ListBuffer])
+    case id ~ args ~ stmts => L4_WaLBerlaFunctor(id, None, None, args.getOrElse(Some(List())).getOrElse(List()).to[ListBuffer], stmts.to[ListBuffer])
   })
 
   // ######################################

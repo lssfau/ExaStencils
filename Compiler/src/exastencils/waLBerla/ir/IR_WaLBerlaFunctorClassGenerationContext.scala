@@ -11,23 +11,18 @@ import exastencils.waLBerla.ir.IR_WaLBerlaUtil._
 
 // store context
 
-object IR_WaLBerlaFunctorGenerationContext {
-  def apply(functor : IR_WaLBerlaFunctor) : IR_WaLBerlaFunctorGenerationContext = new IR_WaLBerlaFunctorGenerationContext(functor.name, functor.parameters, functor.body)
-
-  def blockStorageMember = IR_VariableAccess(getMemberName(blockStoragePtr.name), blockStoragePtr.datatype)
+object IR_WaLBerlaFunctorClassGenerationContext {
+  def apply(functorClass : IR_WaLBerlaFunctorClass) : IR_WaLBerlaFunctorClassGenerationContext =
+    new IR_WaLBerlaFunctorClassGenerationContext(functorClass.functors.map(_.parameters), functorClass.functors.map(_.body))
 }
 
-
-case class IR_WaLBerlaFunctorGenerationContext(
-    var name : String,
-    var parameters : ListBuffer[IR_FunctionArgument],
-    var body : ListBuffer[IR_Statement]
+case class IR_WaLBerlaFunctorClassGenerationContext(
+    var parameterLists : ListBuffer[ListBuffer[IR_FunctionArgument]],
+    var bodies : ListBuffer[ListBuffer[IR_Statement]]
 ) {
 
-  IR_CollectWaLBerlaFieldAccesses.applyStandalone(body)
+  IR_CollectWaLBerlaFieldAccesses.applyStandalone(bodies)
   var fieldNames : ListBuffer[String] = IR_CollectWaLBerlaFieldAccesses.wbFieldAccesses.map(_.name).sorted
-
-  def className : String = name.replaceFirst("walberla_", "")
 
   private def toBlockDataID(name : String) = IR_VariableAccess(name + "_ID", WB_BlockDataID)
 
@@ -37,7 +32,7 @@ case class IR_WaLBerlaFunctorGenerationContext(
   var ctorParams : ListBuffer[IR_FunctionArgument] = ListBuffer()
 
   // block data IDs and params of waLBerla function
-  ctorParams ++= parameters
+  ctorParams ++= parameterLists.flatten
   ctorParams ++= blockDataIDs.values
 
   // create member for each ctor param
@@ -45,5 +40,5 @@ case class IR_WaLBerlaFunctorGenerationContext(
 
   // block storage shared_ptr
   ctorParams += IR_FunctionArgument(IR_VariableAccess(blockStoragePtr.name, IR_ConstReferenceDatatype(blockStoragePtr.datatype)))
-  members += IR_WaLBerlaFunctorGenerationContext.blockStorageMember
+  members += IR_WaLBerlaUtil.blockStorageMember
 }

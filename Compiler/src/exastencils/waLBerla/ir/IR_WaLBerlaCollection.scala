@@ -55,8 +55,7 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   override def printToFile() : Unit = {
     if (IR_WaLBerlaUtil.functorNodes.nonEmpty) {
       // append functor headers to internal deps
-      val contexts = IR_WaLBerlaUtil.functorNodes.map(_.context)
-      contexts.foreach(context => { internalDependencies += IR_WaLBerlaFunctor.defHeader(context.className) })
+      IR_WaLBerlaUtil.functorNodes.foreach(f => { internalDependencies += IR_WaLBerlaFunctorClass.defHeader(f.name) })
 
       // print header for collection
       super.printToFile()

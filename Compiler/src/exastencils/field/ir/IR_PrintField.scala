@@ -33,7 +33,6 @@ import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir._
 import exastencils.waLBerla.ir.IR_WaLBerlaFieldCollection
-import exastencils.waLBerla.ir.IR_WaLBerlaFunctorGenerationContext
 import exastencils.waLBerla.ir.IR_WaLBerlaLoopOverDimensions
 import exastencils.waLBerla.ir.IR_WaLBerlaUtil
 
@@ -68,7 +67,7 @@ case class IR_PrintField(
     // TODO: add function to field (layout) to decide node/cell for given dim
     if (isWaLBerlaField) {
       val it = IR_LoopOverDimensions.defIt(numDimsGrid).indices.padTo(3, IR_IntegerConstant(0))
-      val blockforest = IR_WaLBerlaFunctorGenerationContext.blockStorageMember
+      val blockforest = IR_WaLBerlaUtil.blockStorageMember
       val iblock = IR_DerefAccess(IR_WaLBerlaUtil.iblock)
       val posVec = IR_MemberFunctionCallArrow(
         blockforest, "getBlockLocalCellCenter", IR_SpecialDatatype("Vector3< real_t >"), iblock, IR_MemberFunctionCallArrow(

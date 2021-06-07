@@ -2,16 +2,19 @@ package exastencils.waLBerla.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ExaRootNode
 import exastencils.base.ProgressLocation
 import exastencils.base.l4.L4_Datatype
 import exastencils.base.l4.L4_DeclarationLevelSpecification
 import exastencils.base.l4.L4_Function
 import exastencils.base.l4.L4_FunctionDeclLike
+import exastencils.base.l4.L4_LevelSpecification
 import exastencils.base.l4.L4_Statement
 import exastencils.base.l4.L4_UnitDatatype
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.ir.IR_WaLBerlaFunctor
+import exastencils.waLBerla.ir.IR_WaLBerlaLeveledFunctor
+import exastencils.waLBerla.ir.IR_WaLBerlaPlainFunctor
 
 case class L4_WaLBerlaFunctorDecl(
     var name : String,
@@ -33,12 +36,36 @@ case class L4_WaLBerlaFunctorDecl(
 
   override def datatype : L4_Datatype = L4_UnitDatatype
 
-  override def toFunction = L4_WaLBerlaFunctor(name, if (levels.isEmpty) None else Some(levels.get.resolveLevel), parameters, body)
+  override def toFunction = {
+    def maxFromLevSpec(lvls : Option[L4_LevelSpecification]) = L4_LevelSpecification.extractLevelListDefEmpty(lvls).max
+    var maxLevel = maxFromLevSpec(levels)
+
+    // TODO check cost of this step
+    var time = System.nanoTime()
+    if (levels.isDefined) {
+      ExaRootNode.l4_root.nodes.foreach {
+        case decl : L4_WaLBerlaFunctorDecl if decl.name == this.name =>
+          if (decl.levels.isDefined)
+            maxLevel = math.max(maxLevel, maxFromLevSpec(decl.levels))
+        case _ =>
+      }
+    }
+    time = (System.nanoTime() - time) / 100000
+    Logger.debug("transformationtimer;" + "L4FunctorToFunction" + ";" + "Get max level for functor decl" + ";" + time + "\\\\")
+
+    L4_WaLBerlaFunctor(name,
+      if (levels.isEmpty) None else Some(levels.get.resolveLevel),
+      if (levels.isEmpty) None else Some(maxLevel),
+      parameters,
+      body
+    )
+  }
 }
 
 case class L4_WaLBerlaFunctor(
     var name : String,
-    var level : Option[Int],
+    var level : Option[Int], // level of the functor, plain if undefined
+    var maxLevel : Option[Int],
     var parameters : ListBuffer[L4_Function.Argument],
     var body : ListBuffer[L4_Statement]
 ) extends L4_Function {
@@ -52,6 +79,11 @@ case class L4_WaLBerlaFunctor(
   }
 
   override def progress = ProgressLocation {
-    IR_WaLBerlaFunctor(name, level, parameters.map(_.progress), body.map(_.progress))
+    if (level.isDefined && maxLevel.isDefined)
+      IR_WaLBerlaLeveledFunctor(name, level.get, maxLevel.get, parameters.map(_.progress), body.map(_.progress))
+    else if (level.isEmpty && maxLevel.isEmpty)
+      IR_WaLBerlaPlainFunctor(name, parameters.map(_.progress), body.map(_.progress))
+    else
+      Logger.error("Invalid functor level and max level.")
   }
 }

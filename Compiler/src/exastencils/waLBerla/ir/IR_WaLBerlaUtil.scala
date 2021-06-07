@@ -25,6 +25,7 @@ object IR_WaLBerlaUtil extends DefaultStrategy("Get waLBerla sweep") {
 
   val blockStorage = IR_VariableAccess("blocks", WB_StructuredBlockStorage)
   val blockStoragePtr = IR_VariableAccess(blockStorage.name, IR_SharedPointerDatatype(WB_StructuredBlockStorage))
+  val blockStorageMember = IR_VariableAccess(getMemberName(blockStoragePtr.name), blockStoragePtr.datatype)
 
   def memberSuffix = "_gen"
   def getMemberName(s : String) : String = s + memberSuffix
