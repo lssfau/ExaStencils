@@ -1,8 +1,20 @@
 package exastencils.waLBerla.ir
 
 import scala.collection.mutable.ListBuffer
-import exastencils.base.ir.{IR_Assignment, IR_Cast, IR_Expression, IR_ExpressionIndex, IR_ForLoop, IR_IfCondition, IR_Lower, IR_ScopedStatement, IR_SpecialExpandable, IR_Statement, IR_VariableDeclaration}
+
+import exastencils.base.ir.IR_Assignment
+import exastencils.base.ir.IR_Cast
+import exastencils.base.ir.IR_Expression
+import exastencils.base.ir.IR_ExpressionIndex
+import exastencils.base.ir.IR_ForLoop
+import exastencils.base.ir.IR_IfCondition
+import exastencils.base.ir.IR_Lower
+import exastencils.base.ir.IR_ScopedStatement
+import exastencils.base.ir.IR_SpecialExpandable
+import exastencils.base.ir.IR_Statement
+import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
+import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
@@ -18,6 +30,10 @@ case class IR_WaLBerlaLoopOverDimensions(
     var condition : Option[IR_Expression] = None,
     var genOMPThreadLoop : Boolean = false
 ) extends IR_ScopedStatement with IR_SpecialExpandable with IR_HasParallelizationInfo {
+
+  if (stepSize == null) {
+    stepSize = IR_LoopOverDimensions(numDimensions, indices, body).stepSize
+  }
 
   // TODO optimizations as in IR_LoopOverDimensions
   def expandSpecial() : ListBuffer[IR_Statement] = {

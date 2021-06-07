@@ -13,6 +13,8 @@ import exastencils.waLBerla.ir.IR_WaLBerlaUtil._
 
 object IR_WaLBerlaFunctorGenerationContext {
   def apply(functor : IR_WaLBerlaFunctor) : IR_WaLBerlaFunctorGenerationContext = new IR_WaLBerlaFunctorGenerationContext(functor.name, functor.parameters, functor.body)
+
+  def blockStorageMember = IR_VariableAccess(getMemberName(blockStoragePtr.name), blockStoragePtr.datatype)
 }
 
 
@@ -23,7 +25,7 @@ case class IR_WaLBerlaFunctorGenerationContext(
 ) {
 
   IR_CollectWaLBerlaFieldAccesses.applyStandalone(body)
-  var fieldNames : ListBuffer[String] = IR_CollectWaLBerlaFieldAccesses.wbFieldAccesses.map(_.name) // IR_WaLBerlaUtil.functorAccessedFields.getOrElse(name, ListBuffer()).sorted
+  var fieldNames : ListBuffer[String] = IR_CollectWaLBerlaFieldAccesses.wbFieldAccesses.map(_.name).sorted
 
   def className : String = name.replaceFirst("walberla_", "")
 
@@ -43,5 +45,5 @@ case class IR_WaLBerlaFunctorGenerationContext(
 
   // block storage shared_ptr
   ctorParams += IR_FunctionArgument(IR_VariableAccess(blockStoragePtr.name, IR_ConstReferenceDatatype(blockStoragePtr.datatype)))
-  members += IR_VariableAccess(getMemberName(blockStoragePtr.name), blockStoragePtr.datatype)
+  members += IR_WaLBerlaFunctorGenerationContext.blockStorageMember
 }

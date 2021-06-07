@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_Index
 import exastencils.base.ir.IR_ScalarDatatype
+import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
@@ -21,6 +22,11 @@ import exastencils.prettyprinting.PrettyPrintable
 trait IR_WaLBerlaFieldAccessLike extends IR_LeveledKnowledgeAccess {
   def field : IR_WaLBerlaField
   def target = field
+}
+
+object IR_WaLBerlaFieldAccess {
+  def apply(field : IR_WaLBerlaField, index : IR_ExpressionIndex) : IR_WaLBerlaFieldAccess =
+    new IR_WaLBerlaFieldAccess(field, IR_LoopOverFragments.defIt, index)
 }
 
 case class IR_WaLBerlaFieldAccess(
