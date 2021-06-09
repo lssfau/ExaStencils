@@ -13,6 +13,7 @@ import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.parallelization.api.cuda.CUDA_KernelFunctions
+import exastencils.util.ir.IR_StackCollector
 
 /// IR_WaLBerlaFunctions
 
@@ -53,9 +54,9 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
     if (Platform.simd_header != null) externalDependencies += Platform.simd_header
 
   override def printToFile() : Unit = {
-    if (IR_WaLBerlaUtil.functorNodes.nonEmpty) {
-      // append functor headers to internal deps
-      IR_WaLBerlaUtil.functorNodes.foreach(f => { internalDependencies += IR_WaLBerlaFunctorClass.defHeader(f.name) })
+    if (IR_WaLBerlaUtil.waLBerlafunctionNodes.nonEmpty) {
+      // append function headers to internal deps
+      IR_WaLBerlaUtil.waLBerlafunctionNodes.foreach(f => { internalDependencies += IR_WaLBerlaFunctionTargets.defHeader(f.name) })
 
       // print header for collection
       super.printToFile()
@@ -64,13 +65,24 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
 }
 
 object IR_WaLBerlaReplaceVariableAccesses extends DefaultStrategy("Find and append suffix") {
+
+  var collector = new IR_StackCollector
+  this.register(collector)
+  this.onBefore = () => this.resetCollectors()
+
   this += Transformation("Replace", {
     case acc : IR_VariableAccess =>
       val isWaLBerlaVar = IR_WaLBerlaCollection.get.variables.contains(IR_VariableDeclaration(acc))
-      val isFunctorParam = IR_WaLBerlaUtil.functorNodes.exists(f => f.parameters.exists(p => p.name == acc.name && p.datatype == acc.datatype))
+      val isWaLBerlaFuncionParam = {
+        val enclosingWbFunc = collector.stack.collectFirst { case e : IR_WaLBerlaFunction => e }
+        if (enclosingWbFunc.isDefined)
+          enclosingWbFunc.get.parameters.exists(p => p.name == acc.name && p.datatype == acc.datatype)
+        else
+          false
+      }
 
-      if ( isWaLBerlaVar || isFunctorParam )
-        IR_VariableAccess(IR_WaLBerlaUtil.getMemberName(acc.name), acc.datatype)
+      if ( isWaLBerlaVar || isWaLBerlaFuncionParam )
+        IR_VariableAccess(IR_WaLBerlaUtil.getGeneratedName(acc.name), acc.datatype)
       else
         acc
   })

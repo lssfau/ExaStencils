@@ -5,7 +5,6 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ExaRootNode
 import exastencils.base.ir.IR_Node
-import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.config.Knowledge
 import exastencils.config.Platform
 import exastencils.datastructures.DefaultStrategy
@@ -15,26 +14,26 @@ import exastencils.logger.Logger
 import exastencils.prettyprinting.FilePrettyPrintable
 import exastencils.prettyprinting.PrettyprintingManager
 
-object IR_WaLBerlaFunctorClass {
+object IR_WaLBerlaFunctionTargets {
   def defHeader(className : String) : String = IR_WaLBerlaCollection.defBasePath + "_" + className + ".h"
   def defSource(className : String): String = IR_WaLBerlaCollection.defBasePath + "_" + className + ".cpp"
 }
 
-case class IR_WaLBerlaFunctorClass(
-    var functors : ListBuffer[IR_WaLBerlaFunctor]
+// TODO rename
+
+case class IR_WaLBerlaFunctionTargets(
+    var functions : ListBuffer[IR_WaLBerlaFunction]
 ) extends IR_Node with FilePrettyPrintable {
 
   val namespace = "exastencils"
 
-  val context = IR_WaLBerlaFunctorClassGenerationContext(this)
+  if (functions.map(_.name).toSet.size != 1)
+    Logger.error("IR_WaLBerlaFuncttionTarget: Function names should be identical.")
 
-  if (functors.map(_.name).toSet.size != 1)
-    Logger.error("IR_WaLBerlaFunctorClass: Functor names should be identical.")
-
-  def className = functors.head.name
+  def targetName = functions.head.name
 
   def printHeader() : Unit = {
-    val writerHeader = PrettyprintingManager.getPrinter(IR_WaLBerlaFunctorClass.defHeader(className))
+    val writerHeader = PrettyprintingManager.getPrinter(IR_WaLBerlaFunctionTargets.defHeader(targetName))
 
     /* dependencies */
     writerHeader.addInternalDependency(IR_WaLBerlaCollection.defHeader)
@@ -57,34 +56,10 @@ case class IR_WaLBerlaFunctorClass(
     /* class */
     writerHeader <<< s"namespace walberla {"
     writerHeader <<< s"namespace $namespace { "
-    writerHeader <<< s"class $className"
-    writerHeader <<< "{\npublic:"
 
-    // TODO ...
+    /* function */
+    functions foreach { f => writerHeader << f.prettyprint_decl() }
 
-    /* ctor */
-    writerHeader << s"\t$className ("
-    for ((param, i) <- context.ctorParams.zipWithIndex) // param list
-      writerHeader << param.prettyprint() + (if (i != context.ctorParams.size-1) ", " else "")
-    writerHeader << s") ${if (context.members.nonEmpty) ":" else ""} "
-    for ((member, i) <- context.members.zipWithIndex) // initializer list
-      writerHeader << member.prettyprint() + "(" + context.ctorParams(i).access.prettyprint() + ")" + (if (i != context.members.size-1) ", " else " ")
-    writerHeader <<< "{};"
-
-    /* functor */
-    writerHeader <<< "\tvoid operator()();"
-    functors foreach {
-      case f : IR_WaLBerlaLeveledFunctor if f.level != f.maxLevel => writerHeader <<< s"\tvoid ${f.funcName}();"
-      case _ =>
-    }
-
-    /* member */
-    writerHeader <<< "private:"
-    for (member <- context.members)
-      writerHeader <<< "\t" + IR_VariableDeclaration(member).prettyprint()
-
-
-    writerHeader <<< "};" // class
     writerHeader <<< "}\n}" // namespaces
 
     /* preprocessor directives */
@@ -92,10 +67,10 @@ case class IR_WaLBerlaFunctorClass(
   }
 
   def printSource() : Unit = {
-    val writerHeader = PrettyprintingManager.getPrinter(IR_WaLBerlaFunctorClass.defSource(className))
+    val writerHeader = PrettyprintingManager.getPrinter(IR_WaLBerlaFunctionTargets.defSource(targetName))
 
     /* dependencies */
-    writerHeader.addInternalDependency(IR_WaLBerlaFunctorClass.defHeader(className))
+    writerHeader.addInternalDependency(IR_WaLBerlaFunctionTargets.defHeader(targetName))
     writerHeader.addInternalDependency(IR_WaLBerlaCollection.defHeader)
     // waLBerla headers
     writerHeader.addExternalDependency("core/DataTypes.h")
@@ -107,12 +82,9 @@ case class IR_WaLBerlaFunctorClass(
     writerHeader <<< s"namespace walberla {"
     writerHeader <<< s"namespace $namespace { "
 
-    // TODO ...
+    /* function */
+    functions foreach { f => writerHeader << f.prettyprint() }
 
-    /* functor */
-    for (f <- functors)
-      writerHeader <<< f.prettyprint()
-    // ...
     writerHeader <<< "}\n}" // namespaces
 
     /* preprocessor directives */
@@ -120,7 +92,7 @@ case class IR_WaLBerlaFunctorClass(
   }
 
   override def printToFile() : Unit = {
-    if (IR_WaLBerlaUtil.functorNodes.isEmpty)
+    if (IR_WaLBerlaUtil.waLBerlafunctionNodes.isEmpty)
       return
 
     printHeader()
@@ -128,29 +100,29 @@ case class IR_WaLBerlaFunctorClass(
   }
 }
 
-object IR_WaLBerlaCreateFunctorClasses extends DefaultStrategy("Find functors and create classes for them") {
-  var plainFunctors : ListBuffer[IR_WaLBerlaPlainFunctor] = ListBuffer()
-  var leveledFunctors : mutable.HashMap[String, ListBuffer[IR_WaLBerlaFunctor]] = mutable.HashMap()
+object IR_WaLBerlaCreateFunctionTargets extends DefaultStrategy("Find functions and create targets for them") {
+  var plainFunctions : ListBuffer[IR_WaLBerlaPlainFunction] = ListBuffer()
+  var leveledFunctions : mutable.HashMap[String, ListBuffer[IR_WaLBerlaFunction]] = mutable.HashMap()
 
   override def apply(applyAtNode : Option[Node]) : Unit = {
-    plainFunctors = ListBuffer()
-    leveledFunctors = mutable.HashMap()
+    plainFunctions = ListBuffer()
+    leveledFunctions = mutable.HashMap()
 
     super.apply(applyAtNode)
 
-    val plainFuncClasses = plainFunctors.map(f => IR_WaLBerlaFunctorClass(ListBuffer(f)))
-    val levFuncClasses = leveledFunctors.values.map(f => IR_WaLBerlaFunctorClass(f))
+    val plainFuncClasses = plainFunctions.map(f => IR_WaLBerlaFunctionTargets(ListBuffer(f)))
+    val levFuncClasses = leveledFunctions.values.map(f => IR_WaLBerlaFunctionTargets(f))
 
     ExaRootNode.ir_root.nodes ++= plainFuncClasses
     ExaRootNode.ir_root.nodes ++= levFuncClasses
   }
 
   this += Transformation("Collect and consume", {
-    case f : IR_WaLBerlaLeveledFunctor =>
-      leveledFunctors.update(f.name, leveledFunctors.getOrElseUpdate(f.name, ListBuffer()) :+ f)
+    case f : IR_WaLBerlaLeveledFunction =>
+      leveledFunctions.update(f.name, leveledFunctions.getOrElseUpdate(f.name, ListBuffer()) :+ f)
       None
-    case f : IR_WaLBerlaPlainFunctor =>
-      plainFunctors += f
+    case f : IR_WaLBerlaPlainFunction   =>
+      plainFunctions += f
       None
   })
 }

@@ -41,8 +41,7 @@ import exastencils.solver.l4._
 import exastencils.util.l4.L4_OffsetAlias
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldDecl
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayoutDecl
-import exastencils.waLBerla.l4.L4_WaLBerlaFunctor
-import exastencils.waLBerla.l4.L4_WaLBerlaFunctorDecl
+import exastencils.waLBerla.l4.L4_WaLBerlaFunctionDecl
 import exastencils.waLBerla.l4.L4_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.l4.L4_WaLBerlaSwapFieldPointers
 import exastencils.waLBerla.l4.L4_WaLBerlaVarsSection
@@ -107,7 +106,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| function
       ||| functionTemplate
       ||| functionInstantiation
-      ||| waLBerlaFunctorDecl
+      ||| waLBerlaFunctionDecl
     ).* ^^ { L4_Root(_) }
 
   lazy val import_ = "import" ~> stringLit ^^ { parseFile }
@@ -221,8 +220,8 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val functionInstantiation = locationize(((("Inst" ||| "Instantiate") ~> ident) ~ ("<" ~> repsep(binaryexpression ||| booleanexpression, ",").? <~ ">") ~ ("as" ~> ident) ~ levelDecl.?)
     ^^ { case template ~ args ~ target ~ targetLvl => L4_FunctionInstantiation(template, args.getOrElse(List()), target, targetLvl) })
 
-  lazy val waLBerlaFunctorDecl = locationize(("waLBerla" ~ "Functor" ~> ident) ~ levelDecl.? ~ ("(" ~> repsep(functionArgument, ",").? <~ ")").? ~ ("{" ~> (statement.* <~ "}")) ^^ {
-    case id ~ levels ~ args ~ stmts => L4_WaLBerlaFunctorDecl(id, levels, args.getOrElse(Some(List())).getOrElse(List()).to[ListBuffer], stmts.to[ListBuffer])
+  lazy val waLBerlaFunctionDecl = locationize(("waLBerla" ~ "Function" ~> ident) ~ levelDecl.? ~ ("(" ~> repsep(functionArgument, ",").? <~ ")").? ~ (":" ~> returnDatatype).? ~ ("{" ~> (statement.* <~ "}")) ^^ {
+    case id ~ levels ~ args ~ dt ~ stmts => L4_WaLBerlaFunctionDecl(id, levels, dt.getOrElse(L4_UnitDatatype), args.getOrElse(Some(List())).getOrElse(List()).to[ListBuffer], stmts.to[ListBuffer])
   })
 
   // ######################################
@@ -254,7 +253,6 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| repeatWithStatement
       ||| solveLinearSystemStatement
       ||| waLBerlaSwapFieldPointers
-      ||| waLBerlaFunctor
     )
 
   lazy val statementInsideRepeat = statement ||| breakStatement
@@ -358,10 +356,6 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val waLBerlaSwapFieldPointers = locationize(("waLBerlaSwapPtr" ~ "(" ~> genericAccess) ~ ("," ~> genericAccess <~ ")") ^^ {
     case src ~ dst => L4_WaLBerlaSwapFieldPointers(src, dst)
-  })
-
-  lazy val waLBerlaFunctor = locationize(("waLBerla" ~ "Functor" ~> ident) ~ ("(" ~> repsep(functionArgument, ",").? <~ ")").? ~ ("{" ~> (statement.* <~ "}")) ^^ {
-    case id ~ args ~ stmts => L4_WaLBerlaFunctor(id, None, None, args.getOrElse(Some(List())).getOrElse(List()).to[ListBuffer], stmts.to[ListBuffer])
   })
 
   // ######################################

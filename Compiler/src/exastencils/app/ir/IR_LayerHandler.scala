@@ -53,7 +53,7 @@ import exastencils.timing.ir._
 import exastencils.util._
 import exastencils.util.ir._
 import exastencils.visualization.ir._
-import exastencils.waLBerla.ir.IR_WaLBerlaCreateFunctorClasses
+import exastencils.waLBerla.ir.IR_WaLBerlaCreateFunctionTargets
 import exastencils.waLBerla.ir.IR_WaLBerlaHandleInlining
 import exastencils.waLBerla.ir.IR_WaLBerlaReplaceVariableAccesses
 import exastencils.waLBerla.ir.IR_WaLBerlaResolveFieldAccess
@@ -391,7 +391,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_HACK_TypeAliases.apply()
 
-    IR_WaLBerlaCreateFunctorClasses.apply()
+    IR_WaLBerlaCreateFunctionTargets.apply()
     IR_WaLBerlaReplaceVariableAccesses.apply()
   }
 }

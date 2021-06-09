@@ -25,7 +25,7 @@ import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
 import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
 import exastencils.logger.Logger
-import exastencils.waLBerla.l4.L4_WaLBerlaFunctor
+import exastencils.waLBerla.l4.L4_WaLBerlaFunction
 
 /// L4_LevelCollector
 
@@ -50,21 +50,21 @@ class L4_LevelCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      case decl : L4_LeveledKnowledgeDecl                  => enterLevel(decl.levels)
-      case fct : L4_FunctionDecl                           => enterLevel(fct.levels)
-      case fct : L4_WaLBerlaFunctor if fct.level.isDefined => enterLevel(fct.level.get)
-      case fct : L4_LeveledFunction                        => enterLevel(fct.level)
-      case _                                               =>
+      case decl : L4_LeveledKnowledgeDecl                   => enterLevel(decl.levels)
+      case fct : L4_FunctionDecl                            => enterLevel(fct.levels)
+      case fct : L4_WaLBerlaFunction if fct.level.isDefined => enterLevel(fct.level.get)
+      case fct : L4_LeveledFunction                         => enterLevel(fct.level)
+      case _                                                =>
     }
   }
 
   override def leave(node : Node) : Unit = {
     node match {
-      case decl : L4_LeveledKnowledgeDecl                  => leaveLevel(decl.levels)
-      case fct : L4_FunctionDecl                           => leaveLevel(fct.levels)
-      case fct : L4_WaLBerlaFunctor if fct.level.isDefined => enterLevel(fct.level.get)
-      case fct : L4_LeveledFunction                        => leaveLevel(fct.level)
-      case _                                               =>
+      case decl : L4_LeveledKnowledgeDecl                   => leaveLevel(decl.levels)
+      case fct : L4_FunctionDecl                            => leaveLevel(fct.levels)
+      case fct : L4_WaLBerlaFunction if fct.level.isDefined => enterLevel(fct.level.get)
+      case fct : L4_LeveledFunction                         => leaveLevel(fct.level)
+      case _                                                =>
     }
   }
 
