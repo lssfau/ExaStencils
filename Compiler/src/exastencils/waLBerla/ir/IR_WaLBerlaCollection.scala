@@ -55,8 +55,8 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
 
   override def printToFile() : Unit = {
     if (IR_WaLBerlaUtil.waLBerlafunctionNodes.nonEmpty) {
-      // append function headers to internal deps
-      IR_WaLBerlaUtil.waLBerlafunctionNodes.foreach(f => { internalDependencies += IR_WaLBerlaFunctionTargets.defHeader(f.name) })
+      // append interface header to internal dependencies
+      internalDependencies += IR_WaLBerlaInterface.interfaceHeader
 
       // print header for collection
       super.printToFile()

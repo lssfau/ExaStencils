@@ -6,7 +6,9 @@ import exastencils.base.ProgressLocation
 import exastencils.base.l4.L4_Datatype
 import exastencils.base.l4.L4_DeclarationLevelSpecification
 import exastencils.base.l4.L4_Function
+import exastencils.base.l4.L4_FunctionCollector
 import exastencils.base.l4.L4_FunctionDeclLike
+import exastencils.base.l4.L4_LevelSpecification
 import exastencils.base.l4.L4_Statement
 import exastencils.base.l4.L4_UnitDatatype
 import exastencils.logger.Logger
@@ -35,23 +37,22 @@ case class L4_WaLBerlaFunctionDecl(
   override def progress = Logger.error(s"Trying to progress L4 waLBerla function decl $name; this is not supported")
 
   override def toFunction = {
-    /*
     def maxFromLevSpec(lvls : Option[L4_LevelSpecification]) = L4_LevelSpecification.extractLevelListDefEmpty(lvls).max
+    val level = if (levels.isEmpty) None else Some(levels.get.resolveLevel)
     var maxLevel = if (levels.isEmpty) None else Some(maxFromLevSpec(levels))
     if (levels.isDefined) {
       val foundFunctions = L4_FunctionCollector.leveledWaLBerlaFunctions.keys.filter(_._1 == name)
       if (foundFunctions.nonEmpty)
         maxLevel = Some(foundFunctions.maxBy(k => k._2)._2)
     }
-    */
-    L4_WaLBerlaFunction(name, if (levels.isEmpty) None else Some(levels.get.resolveLevel), datatype, parameters, body)
+    L4_WaLBerlaFunction(name, level, maxLevel, datatype, parameters, body)
   }
 }
 
 case class L4_WaLBerlaFunction(
     var name : String,
     var level : Option[Int], // level of the function, plain if undefined
-    //var maxLevel : Option[Int],
+    var maxLevel : Option[Int],
     var datatype: L4_Datatype,
     var parameters : ListBuffer[L4_Function.Argument],
     var body : ListBuffer[L4_Statement]
@@ -65,9 +66,11 @@ case class L4_WaLBerlaFunction(
   }
 
   override def progress = ProgressLocation {
-    if (level.isDefined)
-      IR_WaLBerlaLeveledFunction(name, level.get, datatype.progress, parameters.map(_.progress), body.map(_.progress))
-    else
+    if (level.isDefined && maxLevel.isDefined)
+      IR_WaLBerlaLeveledFunction(name, level.get, maxLevel.get, datatype.progress, parameters.map(_.progress), body.map(_.progress))
+    else if (level.isEmpty && maxLevel.isEmpty)
       IR_WaLBerlaPlainFunction(name, datatype.progress, parameters.map(_.progress), body.map(_.progress))
+    else
+      Logger.error("L4_WaLBerlaFunction: Undefined level specification.")
   }
 }
