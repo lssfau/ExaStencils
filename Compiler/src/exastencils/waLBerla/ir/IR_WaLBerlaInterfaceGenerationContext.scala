@@ -19,6 +19,8 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
 
   def blockDataIDs : Map[String, IR_FunctionArgument] = fieldNames.sorted.map(acc => acc -> IR_FunctionArgument(toBlockDataID(acc))).toMap
 
+  var lowerLevelFieldAccs : ListBuffer[IR_WaLBerlaFieldAccess] = IR_CollectWaLBerlaFieldAccesses.wbFieldAccesses.filter(f => f.level != f.field.maxLevel)
+
   // ctor params and members
   var ctorParams : ListBuffer[IR_FunctionArgument] = ListBuffer()
   var members : ListBuffer[IR_VariableAccess] = ListBuffer()
@@ -30,4 +32,6 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
   // block storage shared_ptr
   ctorParams += IR_FunctionArgument(IR_VariableAccess(blockStoragePtr.name, IR_ConstReferenceDatatype(blockStoragePtr.datatype)))
   members += IR_VariableAccess(getGeneratedName(blockStoragePtr.name), blockStoragePtr.datatype)
+
+  // pointers to lower-level fields
 }

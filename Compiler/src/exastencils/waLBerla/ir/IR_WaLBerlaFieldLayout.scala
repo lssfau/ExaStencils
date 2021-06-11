@@ -50,7 +50,7 @@ case class IR_WaLBerlaFieldLayout(
 
   def idxById(id : String, dim : Int) : IR_Expression = {
 
-    def callMemberFunc(name : String) = IR_MemberFunctionCallArrow(WB_IV_FieldData(wbField), name, IR_IntegerDatatype)
+    def callMemberFunc(name : String) = IR_MemberFunctionCallArrow(IR_IV_WaLBerlaFieldData(wbField), name, IR_IntegerDatatype)
     def callMemberFuncForDim(name : String, dim : Int) = {
       // TODO handling layout transformations ?
       var newLayout = Duplicate(layoutName)
@@ -61,7 +61,7 @@ case class IR_WaLBerlaFieldLayout(
       val prefix = dim match {
         case d if d < newLayout.length => newLayout.reverse(d) // rightmost is innermost dim
       }
-      IR_MemberFunctionCallArrow(WB_IV_FieldData(wbField), prefix+name, IR_IntegerDatatype)
+      IR_MemberFunctionCallArrow(IR_IV_WaLBerlaFieldData(wbField), prefix+name, IR_IntegerDatatype)
     }
 
     def numPadLayersLeft(dim : Int) = 0

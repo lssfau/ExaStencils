@@ -10,29 +10,44 @@ import exastencils.base.ir.IR_PointerDatatype
 import exastencils.base.ir.IR_SpecialDatatype
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableDeclaration
-import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.prettyprinting.PpStream
+import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_FieldDatatype
 
 // TODO: potentially extend with slots
 
-abstract class WB_IV_AbstractFieldData extends IR_InternalVariable(true, false, true, false, false) {
+object IR_IV_WaLBerlaFieldData {
+  def apply(fAcc : IR_FieldAccess) : IR_IV_WaLBerlaFieldData = {
+    val field = IR_WaLBerlaFieldCollection.getByIdentifier(fAcc.name, fAcc.level, suppressError = true).get
+    new IR_IV_WaLBerlaFieldData(field, fAcc.fragIdx)
+  }
 
-  import IR_WaLBerlaDatatypes._
+  def apply(fAcc : IR_WaLBerlaFieldAccess) : IR_IV_WaLBerlaFieldData = new IR_IV_WaLBerlaFieldData(fAcc.target, fAcc.fragIdx)
+}
 
-  var field : IR_WaLBerlaField
-  var fragmentIdx : IR_Expression
-  var level : IR_Expression
-  //var slot : IR_Expression
+case class IR_IV_WaLBerlaFieldData(
+    var field : IR_WaLBerlaField,
+    // var slot : IR_Expression,
+    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, true, false, false) {
 
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index, level, IR_NullExpression)
+  var level : IR_Expression = field.level
+
+  override def datatype : IR_SpecialDatatype = WB_FieldDatatype(field)
+
+  override def prettyprint(out : PpStream) : Unit =
+    out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index, level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
   override def resolveDefValue() = Some(0)
+
+  // don't use as global variables
+  override def getCtor() : Option[IR_Statement] = None
+  override def getDtor() : Option[IR_Statement] = None
+  override def registerIV(declarations : mutable.HashMap[String, IR_VariableDeclaration], ctors : mutable.HashMap[String, IR_Statement], dtors : mutable.HashMap[String, IR_Statement]) : Unit = {}
 
   /*
   override def wrapInLoops(body : IR_Statement) : IR_Statement = {
@@ -56,36 +71,14 @@ abstract class WB_IV_AbstractFieldData extends IR_InternalVariable(true, false, 
     access
   }
 
-  // don't use as global variables
-  override def getCtor() : Option[IR_Statement] = None
-  override def getDtor() : Option[IR_Statement] = None
-  override def registerIV(declarations : mutable.HashMap[String, IR_VariableDeclaration], ctors : mutable.HashMap[String, IR_Statement], dtors : mutable.HashMap[String, IR_Statement]) : Unit = {}
-
-  override def datatype : IR_SpecialDatatype = WB_FieldDatatype(field)
-
   override def resolveDatatype() : IR_Datatype = {
+    /*
     if (field.numSlots > 1)
       IR_ArrayDatatype(IR_PointerDatatype(datatype), field.numSlots)
     else
+    */
       IR_PointerDatatype(datatype)
   }
-}
-
-object WB_IV_FieldData {
-  def apply(fAcc : IR_FieldAccess) : WB_IV_FieldData = {
-    val field = IR_WaLBerlaFieldCollection.getByIdentifier(fAcc.name, fAcc.level, suppressError = true).get
-    new WB_IV_FieldData(field, fAcc.fragIdx)
-  }
-
-  def apply(fAcc : IR_WaLBerlaFieldAccess) : WB_IV_FieldData = new WB_IV_FieldData(fAcc.target, fAcc.fragIdx)
-}
-
-case class WB_IV_FieldData(
-    override var field : IR_WaLBerlaField,
-    //override var slot : IR_Expression,
-    override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends WB_IV_AbstractFieldData {
-
-  override var level : IR_Expression = field.level
 
   // TODO mapping naming conventions: wb <-> exa
   override def resolveName() : String = field.name

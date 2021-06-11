@@ -33,7 +33,7 @@ case class IR_WaLBerlaSwapFieldPointers(
 
     def defIt = IR_VariableAccess("block", IR_SpecialDatatype("auto"))
 
-    val expr = new IR_MemberFunctionCallArrow(WB_IV_FieldData(srcAcc), "swapDataPointers", ListBuffer(WB_IV_FieldData(dstAcc)))
+    val expr = new IR_MemberFunctionCallArrow(IR_IV_WaLBerlaFieldData(srcAcc), "swapDataPointers", ListBuffer(IR_IV_WaLBerlaFieldData(dstAcc)))
     new IR_ForLoop(
       IR_VariableDeclaration(defIt, IR_MemberFunctionCallArrow(getBlocks, "begin", defIt.datatype)),
       IR_Neq(defIt, IR_MemberFunctionCallArrow(getBlocks, "end", defIt.datatype)),

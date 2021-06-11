@@ -30,10 +30,10 @@ object IR_CollectWaLBerlaFieldAccesses extends DefaultStrategy("Collect waLBerla
     case fieldAccess : IR_WaLBerlaFieldAccess =>
       wbFieldAccesses += fieldAccess
       fieldAccess
-    case swap : IR_WaLBerlaSwapFieldPointers =>
+    case swap : IR_WaLBerlaSwapFieldPointers  =>
       wbFieldAccesses ++= List(swap.wbSrc, swap.wbDst)
       swap
-    case access : WB_IV_FieldData =>
+    case access : IR_IV_WaLBerlaFieldData     =>
       wbFieldAccesses += IR_WaLBerlaFieldAccess(access.field, access.fragmentIdx, IR_ExpressionIndex())
       access
   })

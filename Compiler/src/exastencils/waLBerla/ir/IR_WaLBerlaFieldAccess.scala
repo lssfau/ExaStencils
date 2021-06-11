@@ -63,7 +63,7 @@ case class IR_WaLBerlaFieldAccess(
     } else {
       newIndex
     }
-    out << WB_IV_FieldData(field, fragIdx) << "->get(" <<< (linearizedHigherDimIndex.indices, ",") << ")"
+    out << IR_IV_WaLBerlaFieldData(field, fragIdx) << "->get(" <<< (linearizedHigherDimIndex.indices, ",") << ")"
   }
 }
 

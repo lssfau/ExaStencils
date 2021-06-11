@@ -36,7 +36,7 @@ object IR_WaLBerlaUtil extends DefaultStrategy("Get waLBerla sweep") {
   // get field data from block
   def getFields(accesses : IR_WaLBerlaFieldAccess*) : ListBuffer[IR_VariableDeclaration] = accesses.to[mutable.ListBuffer].map(fAcc => {
     val fieldDt = WB_FieldDatatype(fAcc.target)
-    WB_IV_FieldData(fAcc).getData(
+    IR_IV_WaLBerlaFieldData(fAcc).getData(
       Some(new IR_MemberFunctionCallArrow(iblock, s"getData< ${fieldDt.typeName} >", ListBuffer(getBlockDataID(fAcc.name)), fieldDt)))
   })
 
