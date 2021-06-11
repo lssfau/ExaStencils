@@ -450,6 +450,8 @@ object Knowledge {
   var omp_nameCriticalSections : Boolean = false
   // [true|false] // if true fix the order of arithmetic reductions by replacing the builtin reduction clause with a custom version
   var omp_fixArithmeticReductionOrder : Boolean = false
+  // specifies scheduling strategy used for "parallel for"
+  var omp_scheduling : String = "static"
 
   /// --- MPI ---
 

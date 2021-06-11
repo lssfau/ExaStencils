@@ -69,8 +69,29 @@ case class OMP_ParallelFor(
     res
   }
 
+  // TODO move?
+  // TODO error checking might not be necessary
+  // mainly error checking. from spec @ v5.1
+  def schedule = {
+    val modifiers = List("monotonic", "nonmonotonic", "simd")
+    val kinds = List("static", "dynamic", "guided", "auto", "runtime")
+
+    // signature: schedule([modifier [, modifier]:]kind[, chunk_size])
+    val pattern = """(?:[A-Za-z]+\s*(?:,\s*[A-Za-z]+)?:)?\s*([A-Za-z]+)\s*(?:,\s*([0-9]+))?""".r
+    Knowledge.omp_scheduling match {
+      case pattern(kind) if kinds.contains(kind) =>
+      case pattern(kind, _) if kinds.contains(kind) =>
+      case pattern(mod, kind) if modifiers.contains(mod) && kinds.contains(kind) =>
+      case pattern(mod, kind, _) if modifiers.contains(mod) && kinds.contains(kind) =>
+      case pattern(mod, mod2, kind) if List(mod, mod2).forall(modifiers.contains) && kinds.contains(kind) =>
+      case pattern(mod, mod2, kind, _) if List(mod, mod2).forall(modifiers.contains) && kinds.contains(kind) =>
+      case _ => Logger.error("OMP_ParallelFor: Invalid Knowledge parameter: omp_scheduling = " + Knowledge.omp_scheduling)
+    }
+    Knowledge.omp_scheduling
+  }
+
   override def prettyprint(out : PpStream) : Unit = {
-    out << "#pragma omp parallel for schedule(static) num_threads(" << Knowledge.omp_numThreads << ')'
+    out << "#pragma omp parallel for schedule(" << schedule << ") num_threads(" << Knowledge.omp_numThreads << ')'
     if (additionalOMPClauses.nonEmpty)
       out << ' ' <<< (additionalOMPClauses, " ")
     if (collapse > 1 && Platform.omp_version >= 3 && Knowledge.omp_useCollapse)
