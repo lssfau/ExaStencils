@@ -529,6 +529,8 @@ object Knowledge {
 
   // [true|false] // specifies if comm ops (buffer copy, send/ recv, wait) should each be aggregated and handled in distinct fragment loops
   var comm_useFragmentLoopsForEachOp : Boolean = true
+  // [true|false] // TODO
+  var comm_parallelizeFragmentLoops : Boolean = false
   // [true|false] // specifies if local data exchanges are implemented using push (true) or pull (false) schemes
   var comm_pushLocalData : Boolean = false
   // [true|false] // specifies if local communication is synchronized using flags; usually not necessary unless communication in fragment loops is allowed
@@ -623,7 +625,6 @@ object Knowledge {
   var experimental_CTPivotElimination : Boolean = false
 
   var experimental_QRPivot : Boolean = false
-
 
   // tries to apply an inversion based on the Schur complement in local solve blocks
   var experimental_applySchurCompl : Boolean = false
