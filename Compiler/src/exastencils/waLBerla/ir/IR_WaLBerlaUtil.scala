@@ -40,6 +40,12 @@ object IR_WaLBerlaUtil extends DefaultStrategy("Get waLBerla sweep") {
       Some(new IR_MemberFunctionCallArrow(iblock, s"getData< ${fieldDt.typeName} >", ListBuffer(getBlockDataID(fAcc.name)), fieldDt)))
   })
 
+  def getFields(accesses : IR_WaLBerlaField*)(implicit d : DummyImplicit) : ListBuffer[IR_VariableDeclaration] = accesses.to[mutable.ListBuffer].map(field => {
+    val fieldDt = WB_FieldDatatype(field)
+    IR_IV_WaLBerlaFieldData(field).getData(
+      Some(new IR_MemberFunctionCallArrow(iblock, s"getData< ${fieldDt.typeName} >", ListBuffer(getBlockDataID(field.name)), fieldDt)))
+  })
+
   this += Transformation("Get sweep node", {
     case func : IR_WaLBerlaFunction if !waLBerlafunctionNodes.exists(f => f.name == func.name) =>
       waLBerlafunctionNodes += func

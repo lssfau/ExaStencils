@@ -21,8 +21,8 @@ import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_FieldDatatype
 
 object IR_IV_WaLBerlaFieldData {
   def apply(fAcc : IR_FieldAccess) : IR_IV_WaLBerlaFieldData = {
-    val field = IR_WaLBerlaFieldCollection.getByIdentifier(fAcc.name, fAcc.level, suppressError = true).get
-    new IR_IV_WaLBerlaFieldData(field, fAcc.fragIdx)
+    val wbfield = IR_WaLBerlaFieldCollection.getByIdentifier(fAcc.name, fAcc.level, suppressError = true).get
+    new IR_IV_WaLBerlaFieldData(wbfield, fAcc.fragIdx)
   }
 
   def apply(fAcc : IR_WaLBerlaFieldAccess) : IR_IV_WaLBerlaFieldData = new IR_IV_WaLBerlaFieldData(fAcc.target, fAcc.fragIdx)

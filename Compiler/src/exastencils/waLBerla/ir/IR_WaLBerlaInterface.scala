@@ -6,6 +6,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ExaRootNode
 import exastencils.base.ir.IR_Node
 import exastencils.base.ir.IR_VariableDeclaration
+import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.config.Knowledge
 import exastencils.config.Platform
 import exastencils.datastructures.DefaultStrategy
@@ -36,6 +37,7 @@ case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction])
     val writerHeader = PrettyprintingManager.getPrinter(defHeader(interfaceName))
 
     /* dependencies */
+    writerHeader.addInternalDependency(IR_UserFunctions.defHeader)
     writerHeader.addInternalDependency(IR_WaLBerlaCollection.defHeader)
     // headers from waLBerla
     if (Knowledge.cuda_enabled)
@@ -69,7 +71,12 @@ case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction])
     writerHeader << s") ${if (context.members.nonEmpty) ":" else ""} "
     for ((member, i) <- context.members.zipWithIndex) // initializer list
       writerHeader << member.prettyprint() + "(" + context.ctorParams(i).access.prettyprint() + ")" + (if (i != context.members.size-1) ", " else " ")
-    writerHeader <<< "{};"
+    writerHeader <<< "{"
+    for (stmt <- context.ctorBody) {
+      writerHeader << "\t"
+      writerHeader <<< stmt.prettyprint
+    }
+    writerHeader <<< "\t}"
 
     /* member */
     writerHeader <<< "private:"

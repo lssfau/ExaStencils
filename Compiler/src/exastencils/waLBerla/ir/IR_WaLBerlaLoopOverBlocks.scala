@@ -36,15 +36,15 @@ case class IR_WaLBerlaLoopOverBlocks(
     def defIt = IR_VariableAccess("block", IR_SpecialDatatype("auto"))
 
     // collect fields accessed in loop
-    var fieldAccesses = ListBuffer[IR_WaLBerlaFieldAccess]()
-    IR_CollectWaLBerlaFieldAccesses.applyStandalone(body)
-    fieldAccesses ++= Duplicate(IR_CollectWaLBerlaFieldAccesses.wbFieldAccesses).groupBy(_.name).map(_._2.head)
+    var fieldsAccessed = ListBuffer[IR_WaLBerlaField]()
+    IR_CollectAccessedWaLBerlaFields.applyStandalone(body)
+    fieldsAccessed ++= Duplicate(IR_CollectAccessedWaLBerlaFields.wbFieldAccesses).groupBy(_.name).map(_._2.head)
 
     new IR_ForLoop(
       IR_VariableDeclaration(defIt, IR_MemberFunctionCallArrow(getBlocks, "begin", defIt.datatype)),
       IR_Neq(defIt, IR_MemberFunctionCallArrow(getBlocks, "end", defIt.datatype)),
       IR_ExpressionStatement(IR_PreIncrement(defIt)),
-      IR_WaLBerlaUtil.getFields(fieldAccesses : _*) ++ body,
+      IR_WaLBerlaUtil.getFields(fieldsAccessed : _*) ++ body,
       parallelization)
   }
 }
