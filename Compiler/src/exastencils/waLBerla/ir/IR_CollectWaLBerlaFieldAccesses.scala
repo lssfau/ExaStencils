@@ -58,7 +58,7 @@ object IR_CollectAccessedLowerLevelWaLBerlaFields extends DefaultStrategy("Colle
   }
 
   this += new Transformation("Collect", {
-    case access : IR_IV_FieldData     =>
+    case access : IR_IV_FieldData if IR_WaLBerlaFieldCollection.exists(access.field.name) =>
       fieldAccesses += access.field
       access
   })
