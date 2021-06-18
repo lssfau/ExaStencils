@@ -62,7 +62,7 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
     val timeOfExe = IR_EvalMOpRuntimeExe("localsystem", m)
     if (Knowledge.experimental_matrixDebugConfig)
       Logger.warn(s"Solving linear system with the following configuration: ${ Knowledge.experimental_resolveLocalMatSys }, ${ msi.shape },  ${ m }, ${ n }")
-    val timeOfExe = IR_EvalMOpRuntimeExe("localsystem", m)
+
 
     // scalar system
     if (m == 1 && n == 1) {
