@@ -260,7 +260,7 @@ Function Application {
 	apply bc to Solution<0>@1
 	apply bc to Solution<1>@1
 	apply bc to Solution<0>@2
-	apply bc to Solution<1>]@2
+	apply bc to Solution<1>@2
 	apply bc to Solution<0>@3
 	apply bc to Solution<1>@3
 	apply bc to Solution<0>@4
