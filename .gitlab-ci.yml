@@ -27,6 +27,26 @@ build:generator:
         - sbt compile
         - sbt assembly
 
+test:Matrix_evalMatrixOpRuntimeExecution:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_evalMatrixOpRuntimeExecution ./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.knowledge "./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.exa4" ./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.RESULTS 1 1 Platform/random.platform output
+
 test:Matrix_determineMatrixStructures:
     stage: test
     dependencies:
@@ -426,6 +446,26 @@ test:Matrix_smallMatricesCompileTime:
         - mpirun --version
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_smallMatricesCompileTime ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.knowledge "./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.exa4" ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.RESULTS 1 1 Platform/random.platform output
+
+test:Matrix_LURunTime:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_LURunTime ./MatrixClassTests/invert/RunTime/LU/LU.knowledge "./MatrixClassTests/invert/RunTime/LU/LU.exa4" ./MatrixClassTests/invert/RunTime/LU/LU.RESULTS 1 1 Platform/random.platform output
 
 test:Matrix_SchurRunTime:
     stage: test
@@ -846,6 +886,26 @@ test:CommBasic_Strategy26Cell:
         - mpirun --version
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_Strategy26Cell CommBasic/Strategy26Cell.knowledge "CommBasic/Strategy26Cell.exa4" CommBasic/Strategy26Cell.results 27 2 Platform/random.platform output
+
+test:CommBasic_complexNumbers:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_complexNumbers CommBasic/ComplexNumbers.knowledge "CommBasic/ComplexNumbers.exa4" CommBasic/ComplexNumbers.results 9 2 Platform/random.platform output
 
 test:Seq_TestF_naive:
     stage: test
@@ -1465,26 +1525,6 @@ test:Par_TestF_vectSAl:
         - mpirun --version
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_TestF_vectSAl Opts/par__float_vectAl.knowledge "Opts/base_par_flt.exa4" Opts/par__float.results 8 4 Platform/random.platform output
-
-test:Par_TestF_vectSAlAl:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_TestF_vectSAlAl Opts/par__float_vectAlAl.knowledge "Opts/base_par_flt.exa4" Opts/par__float.results 8 4 Platform/random.platform output
 
 test:Par_Test_naive:
     stage: test
@@ -2248,6 +2288,46 @@ test:BC_3D_Periodic:
         - mpirun --version
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_3D_Periodic BC/3D_Periodic.knowledge "BC/3D_Periodic.exa4" BC/3D_Periodic.results 8 2 Platform/random.platform output
+
+test:BC_Matrix:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_Matrix BC/Matrix/BC_Matrix.knowledge "BC/Matrix/BC_Matrix.exa4" BC/Matrix/BC_Matrix.results 1 1 Platform/random.platform output
+
+test:BC_COMPLEX_NUMBERS:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_COMPLEX_NUMBERS BC/ComplexNumbers.knowledge "BC/ComplexNumbers.exa4" BC/ComplexNumbers.results 1 1 Platform/random.platform output
 
 test:Cell_2D_Basic:
     stage: test
