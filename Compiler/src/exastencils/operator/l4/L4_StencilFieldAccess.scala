@@ -32,7 +32,7 @@ import exastencils.prettyprinting.PpStream
 
 object L4_StencilFieldAccess {
   def apply(access : L4_FutureStencilFieldAccess) =
-    new L4_StencilFieldAccess(L4_StencilFieldCollection.getByIdentifier(access.name, access.level).get, access.slot, access.offset, access.dirAccess, access.arrayIndex)
+    new L4_StencilFieldAccess(L4_StencilFieldCollection.getByIdentifier(access.name, access.level).get, access.slot, access.offset, access.dirAccess, access.matIndex)
 }
 
 case class L4_StencilFieldAccess(
@@ -40,7 +40,7 @@ case class L4_StencilFieldAccess(
     var slot : L4_SlotSpecification,
     var offset : Option[L4_ConstIndex] = None,
     var dirAccess : Option[L4_ConstIndex] = None,
-    var arrayIndex : Option[Int] = None) extends L4_OperatorAccess with L4_CanBeOffset {
+    var matIndex : Option[L4_MatIndex] = None) extends L4_OperatorAccess with L4_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
     out << target.name
@@ -48,7 +48,7 @@ case class L4_StencilFieldAccess(
     out << '@' << target.level
     if (offset.isDefined) out << "@" << offset
     if (dirAccess.isDefined) out << ":" << dirAccess
-    if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
+    if (matIndex.isDefined) out << matIndex.get
   }
 
   def progressOffset(numDims : Int) = {
@@ -62,7 +62,6 @@ case class L4_StencilFieldAccess(
   }
 
   override def progress : IR_StencilFieldAccess = ProgressLocation {
-    if (arrayIndex.isDefined) Logger.warn("Unresolved arrayIndex")
     if (dirAccess.isDefined) Logger.warn("Unresolved dirAccess")
 
     val numDims = target.field.fieldLayout.numDimsGrid
@@ -88,15 +87,16 @@ object L4_ResolveStencilFieldAccesses extends DefaultStrategy("Resolve accesses 
 
 object L4_ResolveStencilFieldComponentAccesses extends DefaultStrategy("Resolve accesses to single components of stencil fields") {
   this += new Transformation("Resolve applicable accesses", {
-    case access : L4_StencilFieldAccess if access.arrayIndex.isDefined =>
+    case access : L4_StencilFieldAccess if access.matIndex.isDefined =>
       if (access.dirAccess.isDefined)
         Logger.warn(s"Access to stencil field ${ access.target.name } on level ${ access.target.level } has dirAccess and array subscript modifiers; " +
           "array index will be given precedence, dirAccess will be ignored")
 
-      L4_FieldAccess(access.target.field, access.slot, access.offset, access.arrayIndex)
+      L4_FieldAccess(access.target.field, access.slot, access.offset, false, access.matIndex)
 
     case access : L4_StencilFieldAccess if access.dirAccess.isDefined =>
-      L4_FieldAccess(access.target.field, access.slot, access.offset, access.target.stencil.findStencilEntryIndex(access.dirAccess.get))
+      val arrayIdx = access.target.stencil.findStencilEntryIndex(access.dirAccess.get)
+      L4_FieldAccess(access.target.field, access.slot, access.offset, false, if(arrayIdx.isDefined) Some(L4_MatIndex(Array(L4_ConstIndex(arrayIdx.get)))) else None)
   })
 }
 
@@ -104,8 +104,8 @@ object L4_ResolveStencilFieldComponentAccesses extends DefaultStrategy("Resolve 
 
 object L4_UnresolveStencilFieldAccesses extends DefaultStrategy("Revert stencil field accesses to unresolved accesses") {
   this += new Transformation("Replace", {
-    case L4_StencilFieldAccess(target, slot, offset, dirAccess, arrayIndex) =>
+    case L4_StencilFieldAccess(target, slot, offset, dirAccess, matIndex) =>
       val newSlot = if (L4_ActiveSlot == slot) None else Some(slot)
-      L4_UnresolvedAccess(target.name, Some(L4_SingleLevel(target.level)), newSlot, offset, dirAccess, arrayIndex, None)
+      L4_UnresolvedAccess(target.name, Some(L4_SingleLevel(target.level)), newSlot, offset, dirAccess, matIndex)
   })
 }

@@ -86,9 +86,9 @@ object L4_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
               if (newAccess.offset.isDefined) Logger.warn("Overriding offset on access in function instantiation")
               newAccess.offset = origAccess.offset
             }
-            if (origAccess.arrayIndex.isDefined) {
-              if (newAccess.arrayIndex.isDefined) Logger.warn("Overriding array index on access in function instantiation")
-              newAccess.arrayIndex = origAccess.arrayIndex
+            if (origAccess.matIndex.isDefined) {
+              if (newAccess.matIndex.isDefined) Logger.warn("Overriding array index on access in function instantiation")
+              newAccess.matIndex = origAccess.matIndex
             }
             if (origAccess.dirAccess.isDefined) {
               if (newAccess.dirAccess.isDefined) Logger.warn("Overriding direction access on access in function instantiation")
@@ -115,7 +115,7 @@ object L4_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
             }
 
             if (access.slot.isDefined) Logger.warn("Ignoring slot on access in function instantiation")
-            if (access.arrayIndex.isDefined) Logger.warn("Ignoring array index on access in function instantiation")
+            if (access.matIndex.isDefined) Logger.warn("Ignoring mat index on access in function instantiation")
             if (access.dirAccess.isDefined) Logger.warn("Ignoring direction access on access in function instantiation")
 
             newRef

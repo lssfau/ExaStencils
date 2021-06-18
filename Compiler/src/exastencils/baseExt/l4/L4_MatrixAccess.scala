@@ -77,10 +77,10 @@ object L4_PrepareMatrixAccesses extends DefaultStrategy("Prepare matrix accesses
       else {
         if (uacc.level.isDefined) Logger.warn("Discarding level on variable access to matrix variable")
         if (uacc.slot.isDefined) Logger.warn("Discarding slot on variable access to matrix variable")
-        if (uacc.arrayIndex.isDefined) Logger.warn("Discarding array index on variable access to matrix variable")
+        if (uacc.matIndex.isDefined) Logger.warn("Discarding mat index on variable access to matrix variable")
         if (uacc.offset.isDefined) Logger.warn("Discarding offset on variable access to matrix variable")
         if (uacc.dirAccess.isDefined) Logger.warn("Discarding dirAccess on variable access to matrix variable")
-        L4_MatrixAccess(L4_PlainVariableAccess(uacc.name, decl.get.datatype, false), uacc.matIndex.get(0), if (uacc.matIndex.get.length == 2) Some(uacc.matIndex.get(1)) else None)
+        L4_MatrixAccess(L4_PlainVariableAccess(uacc.name, decl.get.datatype, false), uacc.matIndex.get.y, uacc.matIndex.get.x)
       }
   })
 

@@ -31,23 +31,24 @@ import exastencils.prettyprinting.PpStream
 
 object L4_StencilAccess {
   def apply(access : L4_FutureStencilAccess) =
-    new L4_StencilAccess(L4_StencilCollection.getByIdentifier(access.name, access.level).get, access.offset, access.dirAccess, access.arrayIndex)
+    new L4_StencilAccess(L4_StencilCollection.getByIdentifier(access.name, access.level).get, access.offset, access.dirAccess, access.matIndex)
 }
 
 case class L4_StencilAccess(
     var target : L4_Stencil,
     var offset : Option[L4_ConstIndex] = None,
     var dirAccess : Option[L4_ConstIndex] = None,
-    var arrayIndex : Option[Int] = None) extends L4_OperatorAccess with L4_CanBeOffset {
+    var matIndex : Option[L4_MatIndex] = None) extends L4_OperatorAccess with L4_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
     out << target.name << '@' << target.level
     if (offset.isDefined) out << "@" << offset.get
     if (dirAccess.isDefined) out << ":" << dirAccess.get
+    if(matIndex.isDefined) out << matIndex.get
   }
 
   override def progress : IR_StencilAccess = ProgressLocation {
-    if (arrayIndex.isDefined) Logger.warn("Unresolved arrayIndex")
+    if (matIndex.isDefined) Logger.warn("Unresolved arrayIndex")
     if (dirAccess.isDefined) Logger.warn("Unresolved dirAccess")
 
     IR_StencilAccess(target.getProgressedObj(), L4_ProgressOption(offset)(_.progress))
@@ -60,12 +61,12 @@ case class L4_StencilAccess(
 
 object L4_ResolveStencilComponentAccesses extends DefaultStrategy("Resolve accesses to single components of stencils") {
   this += new Transformation("Resolve applicable accesses", {
-    case access : L4_StencilAccess if access.arrayIndex.isDefined =>
+    case access : L4_StencilAccess if access.matIndex.isDefined =>
       if (access.dirAccess.isDefined)
         Logger.warn(s"Access to stencil ${ access.target.name } on level ${ access.target.level } has dirAccess and array subscript modifiers; " +
           "array index will be given precedence, dirAccess will be ignored")
 
-      val coeff = L4_ExpressionStatement(Duplicate(access.target.entries(access.arrayIndex.get).coefficient))
+      val coeff = L4_ExpressionStatement(Duplicate(access.target.entries(access.matIndex.get.asInt).coefficient))
       if (access.offset.isDefined) {
         L4_OffsetAccesses.offset = access.offset.get
         L4_OffsetAccesses.applyStandalone(coeff)
@@ -96,7 +97,7 @@ object L4_ResolveStencilAccesses extends DefaultStrategy("Resolve accesses to st
 
 object L4_UnresolveStencilAccesses extends DefaultStrategy("Revert stencil accesses to unresolved accesses") {
   this += new Transformation("Replace", {
-    case L4_StencilAccess(target, offset, dirAccess, arrayIndex) =>
-      L4_UnresolvedAccess(target.name, Some(L4_SingleLevel(target.level)), None, offset, dirAccess, arrayIndex, None)
+    case L4_StencilAccess(target, offset, dirAccess, matIndex) =>
+      L4_UnresolvedAccess(target.name, Some(L4_SingleLevel(target.level)), None, offset, dirAccess, matIndex)
   })
 }

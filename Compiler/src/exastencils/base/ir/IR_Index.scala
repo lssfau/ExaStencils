@@ -93,6 +93,7 @@ case class IR_ExpressionIndex(var indices : Array[IR_Expression]) extends IR_Ind
     }))
   }
 
+
   override def equals(other : Any) : Boolean = {
     if (this eq other.asInstanceOf[AnyRef])
       return true
@@ -157,3 +158,40 @@ case class IR_RangeIndex(var indices : Array[IR_Range]) extends IR_Index  {
   override def prettyprint(out : PpStream) : Unit = Logger.error("internal node not resolved")
 }
 
+case class IR_MatIndex(indices : Array[IR_Index]) extends IR_Index {
+  def y : IR_Index = {
+
+    indices(0)
+  }
+
+  def x : Option[IR_Index] = {
+    if (indices.length == 1) None
+    else {
+
+      Some(indices(1))
+    }
+  }
+
+  def asInt : Int = {
+    indices(0) match {
+      case _ : IR_ExpressionIndex => Logger.error("Index is an expression!")
+      case cidx : IR_ConstIndex => cidx.indices(0)
+      case _ : IR_RangeIndex => Logger.error("Index is a range!")
+    }
+  }
+
+  override def length(): Int = indices.length
+
+  override def toExpressionIndex: IR_ExpressionIndex = ???
+
+  override def +(that: IR_Index): IR_Index = ???
+
+  override def -(that: IR_Index): IR_Index = ???
+
+  override def datatype: IR_Datatype = ???
+
+  override def prettyprint(out: PpStream): Unit = {
+    out << indices(0)
+    if(indices.length == 2) out << indices(1)
+  }
+}
