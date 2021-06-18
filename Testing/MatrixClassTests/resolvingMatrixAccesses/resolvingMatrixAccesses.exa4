@@ -34,6 +34,30 @@ Layout mat_layout3< Real, Node >@all {
   duplicateLayers = [0, 0]
   ghostLayers     = [0, 0]
 }
+Layout layout< RowVector< Double, 3>, Cell >@all {
+  duplicateLayers = [0, 0]
+  ghostLayers     = [1, 1]
+}
+
+Layout layout2< Matrix< Double, 3, 1>, Cell >@all {
+  duplicateLayers = [0, 0]
+  ghostLayers     = [1, 1]
+}
+
+
+// field declarations
+
+Field vec< global, layout, 0.0 >@all
+
+Field mat_field_4< global, layout2, 0.0 >@all
+
+
+Field mat_field_2< global, mat_layout2, 0.0 >@all
+
+Field mat_field_3< global, mat_layout3, 0.0 >@all
+
+Field mat_field< global, mat_layout, 0.0 >@all
+
 
 Function set_real_field@finest : Unit {
   loop over mat_field_3 {
@@ -66,11 +90,13 @@ Function set4_mat_field@finest : Unit {
 	mat_field[0:1][:] = 5
   }
 }
+
 Function set5_mat_field@finest : Unit {
   loop over mat_field {
-	mat_field[1:2][:] = comp_mat[1][0:2]
+	mat_field[1][:] = comp_mat[1][0:2]
   }
 }
+
 Function set6_mat_field@finest : Unit {
 	loop over mat_field_2 {
 		mat_field_2[0][:] = 5
@@ -79,13 +105,6 @@ Function set6_mat_field@finest : Unit {
 	}
 }
 
-
-
-Field mat_field_2< global, mat_layout2, 0.0 >@all
-
-Field mat_field_3< global, mat_layout3, 0.0 >@all
-
-Field mat_field< global, mat_layout, 0.0 >@all
 
 
 
@@ -130,13 +149,23 @@ Function compare_set7@finest : Unit {
   }
 }
 
+
+Globals {
+  Var colVecMat : Matrix <Real, 3, 1> = {{0.}, {1.}, {1337.}}
+  Var rowVecMat : Matrix <Real, 1, 3> = {0., 1., 1337.}
+
+  Var colVec : ColumnVector <Real, 3> = {{0.}, {1.}, {1337.}}
+  Var rowVec : RowVector <Real, 3> = {0., 1., 1337.}
+}
 /// main function
 
 Function Application ( ) : Unit {
+
 	Var mat : Matrix<Double, 2, 2> = {{1,2},{3,1}}
 	Var mat5 : Matrix<Double, 2, 2> = {{1,2},{3,1}}
 
 	Var idx : Int = 0
+
 	mat[0][0] = 2
 	compare(getElement(mat, 0, 0), 2, 0.0001)
 	Var tmp : Real = mat[idx][1]
@@ -193,15 +222,50 @@ Function Application ( ) : Unit {
 	set4_mat_field@finest()
 	compare_set4@finest()
 	print('stage 10 done')
-	
+
 	set5_mat_field@finest()
 	compare_set5@finest()
 	print('stage 11 done')
-		
+
 	set6_mat_field@finest()
 	compare_set6@finest()
 	print('stage 12 done')
-	
+
+    Var sol5_col : Matrix<Real, 3, 1> = {{4},{2},{1}}
+    Var sol5_row : Matrix<Real, 1, 3> = {{4,2,1}}
+    colVec[0] = 4
+    colVec[1] = 2
+    colVec[2] = 1
+
+    rowVec[0] = 4
+    rowVec[1] = 2
+    rowVec[2] = 1
+
+    colVecMat[0] = 4
+    colVecMat[1] = 2
+    colVecMat[2] = 1
+
+    rowVecMat[0] = 4
+    rowVecMat[1] = 2
+    rowVecMat[2] = 1
+
+    compare(sol5_col, colVec, 0.001)
+    compare(sol5_col, colVecMat, 0.001)
+    compare(sol5_row, rowVec, 0.001)
+    compare(sol5_row, rowVecMat, 0.001)
+	print('stage 13 done')
+
+	colVec[0:3] = 4
+    rowVec[0:3] = 4
+    colVecMat[0:3] = 4
+    rowVecMat[0:3] = 4
+    sol5_col = 4
+    sol5_row = 4
+    compare(sol5_col, colVec, 0.001)
+    compare(sol5_col, colVecMat, 0.001)
+    compare(sol5_row, rowVec, 0.001)
+    compare(sol5_row, rowVecMat, 0.001)
+    print('stage 14 done')
 
 }
 
