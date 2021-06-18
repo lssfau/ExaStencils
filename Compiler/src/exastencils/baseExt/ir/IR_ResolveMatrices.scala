@@ -68,7 +68,7 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
     ("get", IR_GetElement.apply),
     ("getElement", IR_GetElement.apply),
     ("toMatrix", IR_ToMatrix.apply),
-    ("fnorm", IR_FrobeniusNorm.apply)
+    ("norm", IR_FrobeniusNorm.apply)
   )
   val fctMapStmts = Map[String, ListBuffer[IR_Expression] => IR_Statement](
     ("set", IR_SetElement.apply),
@@ -574,6 +574,8 @@ object IR_LinearizeMatrices extends DefaultStrategy("linearize matrices") {
         case tdt2 : IR_TensorDatatype2 => (tdt2.dims, tdt2.dims)
         case mdt : IR_MatrixDatatype   => (mdt.sizeM, mdt.sizeN)
       }
+
+
 
       if (rows > 1 || cols > 1)
         IR_ArrayAccess(base, IR_IntegerConstant(cols) * idx.indices(0) + idx.indices(1))
