@@ -44,7 +44,7 @@ case class L4_StencilFieldAccess(
 
   override def prettyprint(out : PpStream) = {
     out << target.name
-    if (target.field.numSlots > 1) out << '[' << slot << ']'
+    if (target.field.numSlots > 1) out << '<' << slot << '>'
     out << '@' << target.level
     if (offset.isDefined) out << "@" << offset
     if (dirAccess.isDefined) out << ":" << dirAccess
