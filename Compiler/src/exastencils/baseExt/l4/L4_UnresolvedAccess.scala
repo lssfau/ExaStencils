@@ -30,7 +30,7 @@ import exastencils.prettyprinting.PpStream
 object L4_UnresolvedAccess {
   def apply(name : String) = new L4_UnresolvedAccess(name, None, None, None, None, None)
   def apply(name : String, level : Option[L4_AccessLevelSpecification]) = new L4_UnresolvedAccess(name, level, None, None, None, None)
-  def apply(name : String, level : Option[L4_AccessLevelSpecification], slot : Option[L4_SlotSpecification], offset : Option[L4_ConstIndex], dirAccess : Option[L4_ConstIndex], matIndex : Option[L4_MatIndex]) = new L4_UnresolvedAccess(name, level, None, offset, dirAccess, matIndex)
+  def apply(name : String, level : Option[L4_AccessLevelSpecification], slot : Option[L4_SlotSpecification], offset : Option[L4_ConstIndex], dirAccess : Option[L4_ConstIndex], matIndex : Option[L4_MatIndex]) = new L4_UnresolvedAccess(name, level, slot, offset, dirAccess, matIndex)
 }
 
 case class L4_UnresolvedAccess(
@@ -47,10 +47,11 @@ case class L4_UnresolvedAccess(
     if (slot.isDefined) out << '<' << slot.get << '>'
     if (level.isDefined) out << '@' << level.get
     if (offset.isDefined) out << '@' << offset.get
-    if (dirAccess.isDefined) out << ':' << dirAccess.get
     if(matIndex.isDefined) {
       out << matIndex.get
     }
+    if (dirAccess.isDefined) out << ':' << dirAccess.get
+
   }
 
   override def progress : IR_Expression = ProgressLocation {

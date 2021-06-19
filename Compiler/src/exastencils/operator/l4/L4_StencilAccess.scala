@@ -44,7 +44,7 @@ case class L4_StencilAccess(
     out << target.name << '@' << target.level
     if (offset.isDefined) out << "@" << offset.get
     if (dirAccess.isDefined) out << ":" << dirAccess.get
-    if(matIndex.isDefined) out << matIndex.get
+    //if(matIndex.isDefined) out << matIndex.get
   }
 
   override def progress : IR_StencilAccess = ProgressLocation {
