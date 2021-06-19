@@ -53,8 +53,7 @@ case class IR_LocalCommunicationFinish(
                 IR_IV_CommNeighNeighIdx(field.domain.index, neighbor._1.index)
               else
                 DefaultNeighbors.getOpposingNeigh(neighbor._1).index,
-              IR_IV_NeighborFragmentIdx(field.domain.index, neighbor._1.index))))))),
-      true)
+              IR_IV_NeighborFragmentIdx(field.domain.index, neighbor._1.index))))))))
   }
 
   override def expand() : Output[StatementList] = {
