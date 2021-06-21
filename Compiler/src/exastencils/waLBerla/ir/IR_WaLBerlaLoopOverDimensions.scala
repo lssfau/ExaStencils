@@ -10,10 +10,12 @@ import exastencils.base.ir.IR_ForLoop
 import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_Lower
 import exastencils.base.ir.IR_ScopedStatement
+import exastencils.base.ir.IR_SpecialDatatype
 import exastencils.base.ir.IR_SpecialExpandable
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
+import exastencils.baseExt.ir.IR_FieldIteratorAccess
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
@@ -48,8 +50,8 @@ case class IR_WaLBerlaLoopOverDimensions(
       wrappedBody = ListBuffer[IR_Statement](IR_IfCondition(condition.get, wrappedBody))
 
     for (d <- 0 until numDimensions) {
-      def it = IR_WaLBerlaFieldIteratorAccess(d)
-      val decl = IR_VariableDeclaration(IR_WaLBerlaFieldIteratorAccess(d), indices.begin(d))
+      def it = IR_FieldIteratorAccess(d)
+      val decl = IR_VariableDeclaration(IR_SpecialDatatype("cell_idx_t"), IR_FieldIteratorAccess(d).name, indices.begin(d))
 
       val cond = IR_Lower(it, IR_Cast(it.datatype, indices.end(d)))
       val incr = IR_Assignment(it, stepSize(d), "+=")

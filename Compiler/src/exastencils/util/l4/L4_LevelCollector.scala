@@ -52,8 +52,11 @@ class L4_LevelCollector extends Collector {
     node match {
       case decl : L4_LeveledKnowledgeDecl                   => enterLevel(decl.levels)
       case fct : L4_FunctionDecl                            => enterLevel(fct.levels)
-      case fct : L4_WaLBerlaFunction if fct.level.isDefined => enterLevel(fct.level.get)
       case fct : L4_LeveledFunction                         => enterLevel(fct.level)
+
+      // leveled waLBerla nodes
+      case fct : L4_WaLBerlaFunction if fct.level.isDefined => enterLevel(fct.level.get)
+
       case _                                                =>
     }
   }
@@ -62,8 +65,11 @@ class L4_LevelCollector extends Collector {
     node match {
       case decl : L4_LeveledKnowledgeDecl                   => leaveLevel(decl.levels)
       case fct : L4_FunctionDecl                            => leaveLevel(fct.levels)
-      case fct : L4_WaLBerlaFunction if fct.level.isDefined => enterLevel(fct.level.get)
       case fct : L4_LeveledFunction                         => leaveLevel(fct.level)
+
+      // leveled waLBerla nodes
+      case fct : L4_WaLBerlaFunction if fct.level.isDefined => leaveLevel(fct.level.get)
+
       case _                                                =>
     }
   }

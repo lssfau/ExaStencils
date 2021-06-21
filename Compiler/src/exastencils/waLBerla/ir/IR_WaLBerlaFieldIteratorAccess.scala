@@ -1,5 +1,5 @@
 package exastencils.waLBerla.ir
-
+/*
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_SpecialDatatype
@@ -33,3 +33,4 @@ class IR_WaLBerlaFieldIteratorAccess() extends IR_VariableAccess("i0", IR_Specia
     }
   }
 }
+*/
