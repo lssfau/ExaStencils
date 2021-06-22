@@ -143,7 +143,6 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
 
         // solve with lu at runtime or cofactor at compiletime
         case _ =>
-
           if (timeOfExe == "Runtime") {
             if(Knowledge.experimental_matrixDebugConfig)
               Logger.warn("Solving local system by LU Decomposition at Runtime")
@@ -152,14 +151,12 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
             IR_SolveMatrixSystem.local_A_count = IR_SolveMatrixSystem.local_A_count + 1
 
             // inline LUSolve if CUDA is enabled to avoid separate compilation units
-            if(Knowledge.cuda_enabled) {
-              stmts ++= IR_MatrixSolveOps.genLUSolveInlined(AasAcc, m, f, u)
-            } else {
-              if (!IR_UserFunctions.get.functions.exists(f => f.name == s"LUSolve_${ m }x${ m }")) {
-                IR_UserFunctions.get += IR_MatrixSolveOps.genLUSolveAsFunction(m)
-              }
-              stmts += IR_FunctionCall(IR_PlainInternalFunctionReference(s"LUSolve_${ m }x${ m }", IR_UnitDatatype), ListBuffer[IR_Expression](AasAcc, f, u))
+            if (!IR_UserFunctions.get.functions.exists(f => f.name == s"LUSolve_${ m }x${ m }")) {
+              IR_UserFunctions.get += IR_MatrixSolveOps.genLUSolveAsFunction(m)
             }
+            val solveStmt = IR_FunctionCall(IR_PlainInternalFunctionReference(s"LUSolve_${ m }x${ m }", IR_UnitDatatype), ListBuffer[IR_Expression](AasAcc, f, u))
+            solveStmt.annotate(IR_InlineMatSolveStmts.MAT_SOLVE_STMT, m)
+            stmts += solveStmt
           } else {
             if(Knowledge.experimental_matrixDebugConfig)
               Logger.warn("Solving local system by Cofactor inversion at Compiletime")
