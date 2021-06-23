@@ -2,7 +2,7 @@ package exastencils.waLBerla.l4
 
 import exastencils.base.l4.L4_Datatype
 import exastencils.baseExt.l4.L4_MatShape
-import exastencils.boundary.l4.L4_NoBC
+import exastencils.boundary.l4.L4_BoundaryCondition
 import exastencils.core.Duplicate
 import exastencils.domain.l4.L4_Domain
 import exastencils.domain.l4.L4_DomainCollection
@@ -18,6 +18,7 @@ case class L4_WaLBerlaField(
     var maxLevel : Int,
     var index : Int,
     var fieldLayout : L4_WaLBerlaFieldLayout,
+    var boundary : L4_BoundaryCondition,
     var matShape : Option[L4_MatShape] = None
 ) extends L4_LeveledKnowledgeObject[IR_WaLBerlaField] {
 
@@ -41,7 +42,9 @@ case class L4_WaLBerlaField(
     out << "@" << level
   }
 
-  def toField = L4_Field(name, level, index, domain, fieldLayout.toFieldLayout, numSlots, boundary = L4_NoBC, matShape)
+  def toField = L4_Field(name, level, index, domain, fieldLayout.toFieldLayout, numSlots, boundary, matShape)
 
-  override def progressImpl() = IR_WaLBerlaField(name, level, maxLevel, index, codeName, fieldLayout.getProgressedObj(), if(matShape.isDefined) Some(matShape.get.progress) else None)
+  override def progressImpl() =
+    IR_WaLBerlaField(name, level, maxLevel, index, codeName, fieldLayout.getProgressedObj(), boundary.progress,
+      if(matShape.isDefined) Some(matShape.get.progress) else None)
 }

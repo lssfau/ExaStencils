@@ -1,6 +1,7 @@
 package exastencils.waLBerla.ir
 
 import exastencils.baseExt.ir.IR_MatShape
+import exastencils.boundary.ir.IR_BoundaryCondition
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_Domain
 import exastencils.domain.ir.IR_DomainCollection
@@ -18,17 +19,18 @@ object IR_WaLBerlaField {
 }
 
 case class IR_WaLBerlaField(
-    var name : String, // will be used to find the field
-    var level : Int, // the (geometric) level the field lives on
+    var name : String,
+    var level : Int,
     var maxLevel : Int,
-    var index : Int, // (consecutive) index of the field, can be used as array subscript
-    var codeName : String, // will be used in the generated source code
-    var layout : IR_WaLBerlaFieldLayout, // represents the number of data points and their distribution in each dimension
+    var index : Int,
+    var codeName : String,
+    var layout : IR_WaLBerlaFieldLayout,
+    var boundary : IR_BoundaryCondition,
     var matShape: Option[IR_MatShape]
 ) extends IR_LeveledKnowledgeObject with IR_FieldLike {
 
   override def createDuplicate() : IR_WaLBerlaField = {
-    IR_WaLBerlaField(name, level, maxLevel, index, codeName, Duplicate(layout), Duplicate(matShape))
+    IR_WaLBerlaField(name, level, maxLevel, index, codeName, Duplicate(layout), Duplicate(boundary), Duplicate(matShape))
   }
 
   def domain : IR_Domain = IR_DomainCollection.getByIdentifier("global").get

@@ -37,7 +37,6 @@ trait IR_WaLBerlaFunction extends IR_Function with PrettyPrintable {
 case class IR_WaLBerlaLeveledFunction(
     var basename : String,
     var level : Int,
-    var maxLevel : Int,
     var datatype: IR_Datatype,
     var parameters : ListBuffer[IR_FunctionArgument],
     var body : ListBuffer[IR_Statement]) extends IR_WaLBerlaFunction {

@@ -3,7 +3,7 @@ package exastencils.waLBerla.ir
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerConstant
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.field.ir.IR_FieldAccessLike
 import exastencils.knowledge.ir.IR_LeveledKnowledgeCollection
 import exastencils.logger.Logger
 
@@ -27,7 +27,7 @@ object IR_WaLBerlaFieldCollection extends IR_LeveledKnowledgeCollection[IR_WaLBe
   def contains(access : IR_WaLBerlaFieldAccess) : Boolean =
     getByIdentifier(access.field.name, access.field.level, suppressError = true).isDefined
 
-  def contains(access : IR_FieldAccess) : Boolean =
+  def contains(access : IR_FieldAccessLike) : Boolean =
     getByIdentifier(access.field.name, access.field.level, suppressError = true).isDefined
 
   // special handling for leveled expressions

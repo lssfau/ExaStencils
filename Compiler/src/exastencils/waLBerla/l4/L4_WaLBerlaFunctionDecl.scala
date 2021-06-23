@@ -5,9 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.l4.L4_Datatype
 import exastencils.base.l4.L4_DeclarationLevelSpecification
 import exastencils.base.l4.L4_Function
-import exastencils.base.l4.L4_FunctionCollector
 import exastencils.base.l4.L4_FunctionDeclLike
-import exastencils.base.l4.L4_LevelSpecification
 import exastencils.base.l4.L4_Statement
 import exastencils.base.l4.L4_UnitDatatype
 import exastencils.logger.Logger
@@ -34,14 +32,7 @@ case class L4_WaLBerlaFunctionDecl(
   override def progress = Logger.error(s"Trying to progress L4 waLBerla function decl $name; this is not supported")
 
   override def toFunction = {
-    def maxFromLevSpec(lvls : Option[L4_LevelSpecification]) = L4_LevelSpecification.extractLevelListDefEmpty(lvls).max
     val level = if (levels.isEmpty) None else Some(levels.get.resolveLevel)
-    var maxLevel = if (levels.isEmpty) None else Some(maxFromLevSpec(levels))
-    if (levels.isDefined) {
-      val foundFunctions = L4_FunctionCollector.leveledWaLBerlaFunctions.keys.filter(_._1 == name)
-      if (foundFunctions.nonEmpty)
-        maxLevel = Some(foundFunctions.maxBy(k => k._2)._2)
-    }
-    L4_WaLBerlaFunction(name, level, maxLevel, datatype, parameters, body)
+    L4_WaLBerlaFunction(name, level, datatype, parameters, body)
   }
 }

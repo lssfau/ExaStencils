@@ -5,6 +5,8 @@ import exastencils.base.l4.L4_Access
 import exastencils.base.l4.L4_DeclarationLevelSpecification
 import exastencils.base.l4.L4_LevelSpecification
 import exastencils.baseExt.l4.L4_MatShape
+import exastencils.boundary.l4.L4_BoundaryCondition
+import exastencils.boundary.l4.L4_NoBC
 import exastencils.field.l4.L4_FieldCollection
 import exastencils.field.l4.L4_FieldDecl
 import exastencils.logger.Logger
@@ -14,12 +16,13 @@ case class L4_WaLBerlaFieldDecl(
     var name : String,
     var levels : Option[L4_DeclarationLevelSpecification],
     var fieldLayout : L4_Access,
+    var boundary : Option[L4_BoundaryCondition],
     var matShape : Option[L4_MatShape] = None
 ) extends L4_FieldDecl {
 
 
   override def prettyprint(out : PpStream) : Unit = {
-    out << "waLBerla Field " << name << "< " << fieldLayout.name << ">"
+    out << "waLBerla Field " << name << "< " << fieldLayout.name << "," << boundary.getOrElse(L4_NoBC) << ">"
     if (levels.isDefined) out << '@' << levels.get
     if (matShape.isDefined) out << matShape.get.toString()
   }
@@ -47,7 +50,7 @@ case class L4_WaLBerlaFieldDecl(
 
     if (maxLvl == -1) Logger.error("L4_WaLBerlaFieldDecl: Could not find max level")
 
-    val wbField = L4_WaLBerlaField(name, lvl, maxLvl, index, fieldLayout.asInstanceOf[L4_WaLBerlaFieldLayoutAccess].target, matShape)
+    val wbField = L4_WaLBerlaField(name, lvl, maxLvl, index, fieldLayout.asInstanceOf[L4_WaLBerlaFieldLayoutAccess].target, boundary.getOrElse(L4_NoBC), matShape)
     if (lvl != maxLvl) {
       L4_FieldCollection.add(wbField.toField)
     } else {

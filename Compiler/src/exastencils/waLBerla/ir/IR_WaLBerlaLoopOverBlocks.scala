@@ -40,6 +40,8 @@ case class IR_WaLBerlaLoopOverBlocks(
     IR_CollectAccessedWaLBerlaFields.applyStandalone(body)
     fieldsAccessed ++= Duplicate(IR_CollectAccessedWaLBerlaFields.wbFieldAccesses).groupBy(_.name).map(_._2.head)
 
+    // TODO for multiple waLBerla blocks and exa fragments: association between them
+
     new IR_ForLoop(
       IR_VariableDeclaration(defIt, IR_MemberFunctionCallArrow(getBlocks, "begin", defIt.datatype)),
       IR_Neq(defIt, IR_MemberFunctionCallArrow(getBlocks, "end", defIt.datatype)),

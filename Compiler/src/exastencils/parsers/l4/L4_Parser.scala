@@ -408,8 +408,8 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ levelDecl.? ~ matShapeOption.?
     ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level ~ shape => L4_BaseFieldDecl(id, level, domain, layout, boundary, slots.getOrElse(1), shape) })
 
-  lazy val waLBerlaField = locationize(("waLBerla" ~ "Field" ~> ident) ~ ("<" ~> ident <~ ">") ~ levelDecl.? ~ matShapeOption.? ^^ {
-    case id ~ layout ~ levels ~ shape => L4_WaLBerlaFieldDecl(id, levels, L4_UnresolvedAccess(layout), shape)
+  lazy val waLBerlaField = locationize(("waLBerla" ~ "Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> fieldBoundary).? ~ ">" ~ levelDecl.? ~ matShapeOption.? ^^ {
+    case id ~ layout ~ bc ~ _ ~ levels ~ shape => L4_WaLBerlaFieldDecl(id, levels, L4_UnresolvedAccess(layout), bc, shape)
   })
 
   lazy val waLBerlaFieldLayout = locationize(("waLBerla" ~ "Layout" ~> ident) ~ ("<" ~> datatype <~ ",") ~ (stringLit <~ ">") ~ levelDecl.? ~ ("{" ~> repsep(layoutOption, ",".?) <~ "}")
