@@ -20,13 +20,16 @@ package exastencils.field.l4
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.core.Duplicate
+import exastencils.waLBerla.l4.L4_WaLBerlaFieldCollection
+import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayout
+import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayoutCollection
 
 /// L4_DuplicateFieldLayoutsForFields
 
 object L4_DuplicateFieldLayoutsForFields {
   def apply() = {
     val newFieldLayouts = ListBuffer[L4_FieldLayout]()
+    val newWaLBerlaFieldLayouts = ListBuffer[L4_WaLBerlaFieldLayout]()
 
     for (field <- L4_FieldCollection.objects) {
       val fieldLayout = field.fieldLayout.createDuplicate()
@@ -35,7 +38,15 @@ object L4_DuplicateFieldLayoutsForFields {
       newFieldLayouts += fieldLayout
     }
 
+    for (field <- L4_WaLBerlaFieldCollection.objects) {
+      val fieldLayout = field.fieldLayout.createDuplicate()
+      fieldLayout.name += "_" + field.name
+      field.fieldLayout = fieldLayout
+      newWaLBerlaFieldLayouts += fieldLayout
+    }
+
     // update collection
     L4_FieldLayoutCollection.objects = newFieldLayouts
+    L4_WaLBerlaFieldLayoutCollection.objects = newWaLBerlaFieldLayouts
   }
 }

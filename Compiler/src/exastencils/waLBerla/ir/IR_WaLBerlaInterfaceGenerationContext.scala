@@ -1,5 +1,6 @@
 package exastencils.waLBerla.ir
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Cast
@@ -14,6 +15,7 @@ import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_UnitDatatype
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.config.Knowledge
+import exastencils.field.ir.IR_FieldLayoutLike
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_BlockDataID
@@ -24,7 +26,8 @@ import exastencils.waLBerla.ir.IR_WaLBerlaUtil._
 case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_WaLBerlaFunction]) {
 
   IR_CollectAccessedWaLBerlaFields.applyStandalone(functions)
-  var wbFieldNames : ListBuffer[String] = IR_CollectAccessedWaLBerlaFields.wbFieldAccesses.map(_.name)
+  var wbFieldAccesses = IR_CollectAccessedWaLBerlaFields.wbFieldAccesses
+  var wbFieldNames : ListBuffer[String] = wbFieldAccesses.map(_.name)
 
   IR_CollectAccessedLowerLevelWaLBerlaFields.applyStandalone(functions)
   var lowerLevelFieldAccs =
@@ -46,21 +49,43 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
   ctorParams += IR_FunctionArgument(IR_VariableAccess(blockStoragePtr.name, IR_ConstReferenceDatatype(blockStoragePtr.datatype)))
   members += IR_VariableAccess(getGeneratedName(blockStoragePtr.name), blockStoragePtr.datatype)
 
-  // init global layout variables for lower-level fields
+  // init global layout variables for waLBerla fields and their lower-level counterparts
   if (lowerLevelFieldAccs.nonEmpty && !Knowledge.data_genVariableFieldSizes)
     Logger.error("Knowledge flag \"data_genVariableFieldSizes\" must be enabled when multi-leveled waLBerla fields are present.")
+  private def newInnerSize(d: Int, origLayout : IR_FieldLayoutLike, lvlDiff : Int) = IR_Cast(IR_IntegerDatatype, IR_SimplifyExpression.simplifyIntegralExpr(
+    origLayout.defIdxById("IE", d) - origLayout.defIdxById("IB", d)) / Math.pow(2, lvlDiff).toInt)
   var ctorBody : ListBuffer[IR_Statement] = ListBuffer()
-  lowerLevelFieldAccs.foreach { field =>
-    val maxLvlField = IR_CollectAccessedWaLBerlaFields.wbFieldAccesses.find(f => f.name == field.name).get
-    val origLayout = maxLvlField.layout
-    val lvlDiff = maxLvlField.level - field.level
+  if (Knowledge.data_genVariableFieldSizes) {
+    var resizeForLevels : mutable.HashMap[IR_FieldLayoutLike, Int] = mutable.HashMap()
+    resizeForLevels ++= lowerLevelFieldAccs.collect { case f => (f.layout, f.level) }.groupBy(_._2).map(_._2.head)
+    resizeForLevels.put(wbFieldAccesses.head.layout, wbFieldAccesses.head.level)
 
-    def newInnerSize(d: Int) = IR_Cast(IR_IntegerDatatype, IR_SimplifyExpression.simplifyIntegralExpr(
-      origLayout.defIdxById("IE", d) - origLayout.defIdxById("IB", d)) / Math.pow(2, lvlDiff).toInt)
+    resizeForLevels foreach { layoutMap =>
+      val maxLevelField = wbFieldAccesses.find(f => layoutMap._1.name == f.layout.name).get
+      ctorBody += IR_FunctionCall(
+        IR_LeveledInternalFunctionReference("resizeAllInner", layoutMap._2, IR_UnitDatatype),
+        Knowledge.dimensions.map(dim => newInnerSize(dim, maxLevelField.layout, maxLevelField.level - layoutMap._2) : IR_Expression).to[ListBuffer]
+      )
+    }
+  }
+
+  /*
+  lowerLevelFieldAccs.foreach { field =>
+    val maxLvlField = wbFieldAccesses.find(f => f.name == field.name).get
+    val lvlDiff = maxLvlField.level - field.level
 
     // call already implemented resize function before setting up the buffers
     ctorBody += IR_FunctionCall(IR_LeveledInternalFunctionReference(s"resizeInner_${ field.layout.name }", field.level, IR_UnitDatatype),
-      Knowledge.dimensions.map(dim => newInnerSize(dim) : IR_Expression).to[ListBuffer])
+      Knowledge.dimensions.map(dim => newInnerSize(dim, maxLvlField.layout, lvlDiff) : IR_Expression).to[ListBuffer])
   }
+  if (Knowledge.data_genVariableFieldSizes) {
+    wbFieldAccesses.groupBy(f => f.name + f.level).map(_._2.head).to[ListBuffer].foreach { field =>
+      // same procedure for waLBerla fields
+      ctorBody += IR_FunctionCall(IR_LeveledInternalFunctionReference(s"resizeInner_${ field.layout.name }", field.level, IR_UnitDatatype),
+        Knowledge.dimensions.map(dim => newInnerSize(dim, field.layout, lvlDiff = 0) : IR_Expression).to[ListBuffer])
+    }
+  }
+  */
+
   ctorBody = ListBuffer(IR_WaLBerlaLoopOverBlocks(ctorBody).expandSpecial().inner : IR_Statement)
 }
