@@ -327,8 +327,6 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           }
         case fAcc : IR_DirectFieldAccess => // handled in IR_DirectFieldAccess depending on length of access index
           fAcc.datatype
-        case matAcc : IR_MatrixAccess    => // = transformed field accesses with existing matIndices
-          matAcc.datatype.resolveBaseDatatype
         case acc : IR_Access             =>
           Logger.error("EvaluateFieldAccess: Match error. Did not expect access: " + acc.name + " of type: " + acc.getClass)
       }
