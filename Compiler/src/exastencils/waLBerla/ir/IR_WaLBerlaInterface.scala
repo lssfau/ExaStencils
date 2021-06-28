@@ -29,8 +29,6 @@ case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction])
 
   val context = IR_WaLBerlaInterfaceGenerationContext(functions)
 
-  val namespace = "exastencils"
-
   // TODO init function for lower-level & exa-internal fields (and members for each encapsulated in context)
 
   def printHeader() : Unit = {
@@ -57,7 +55,7 @@ case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction])
 
     /* class */
     writerHeader <<< s"namespace walberla {"
-    writerHeader <<< s"namespace $namespace { "
+    writerHeader <<< s"namespace exastencils { "
     writerHeader <<< s"class $interfaceName {"
     writerHeader <<< "public:"
 
@@ -105,7 +103,7 @@ case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction])
       writerHeader <<< IR_WaLBerlaPreprocessorDirectives.sourceTop
 
       writerHeader <<< s"namespace walberla {"
-      writerHeader <<< s"namespace $namespace { "
+      writerHeader <<< s"namespace exastencils { "
 
       writerHeader << f.prettyprint()
 

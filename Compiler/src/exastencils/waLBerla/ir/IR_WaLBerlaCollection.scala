@@ -13,6 +13,7 @@ import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.parallelization.api.cuda.CUDA_KernelFunctions
+import exastencils.prettyprinting.PrettyprintingManager
 import exastencils.util.ir.IR_StackCollector
 
 /// IR_WaLBerlaFunctions
@@ -52,6 +53,43 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
 
   if (Knowledge.opt_vectorize)
     if (Platform.simd_header != null) externalDependencies += Platform.simd_header
+
+  override def printHeader() = {
+    val writer = PrettyprintingManager.getPrinter(s"$baseName.h")
+    for (inc <- internalDependencies)
+      writer.addInternalDependency(inc)
+    for (inc <- externalDependencies)
+      writer.addExternalDependency(inc)
+
+    writer <<< "namespace walberla {\nnamespace exastencils { "
+
+    // header only functions
+    for (func <- functions)
+      if (func.isHeaderOnly)
+        writer <<< func.prettyprint
+
+    // functions with separate definition
+    for (func <- functions)
+      if (!func.isHeaderOnly && !func.hasAnnotation("deviceOnly"))
+        writer << func.prettyprint_decl
+
+    writer <<< "}\n}"
+  }
+
+  override def printSources() = {
+    // will be overwritten for kernel functions
+    for (func <- functions)
+      if (!func.isHeaderOnly) {
+        val writer = PrettyprintingManager.getPrinter(s"${ baseName }_${ func.name }.cpp")
+        writer.addInternalDependency(s"$baseName.h")
+
+        writer <<< "namespace walberla {\nnamespace exastencils { "
+
+        writer <<< func.prettyprint
+
+        writer <<< "}\n}"
+      }
+  }
 
   override def printToFile() : Unit = {
     if (IR_WaLBerlaUtil.waLBerlafunctionNodes.nonEmpty) {

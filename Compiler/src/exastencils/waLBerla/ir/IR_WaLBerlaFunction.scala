@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_Function
 import exastencils.base.ir.IR_FunctionArgument
+import exastencils.base.ir.IR_FutureFunction
 import exastencils.base.ir.IR_Statement
 import exastencils.prettyprinting.PpStream
 import exastencils.prettyprinting.PrettyPrintable
@@ -49,3 +50,13 @@ case class IR_WaLBerlaPlainFunction(
     var datatype: IR_Datatype,
     var parameters : ListBuffer[IR_FunctionArgument],
     var body : ListBuffer[IR_Statement]) extends IR_WaLBerlaFunction
+
+
+trait IR_WaLBerlaFuturePlainFunction extends IR_FutureFunction {
+  override def generateFct() : IR_WaLBerlaPlainFunction
+}
+
+trait IR_WaLBerlaFutureLeveledFunction extends IR_FutureFunction {
+  def level : Int
+  override def generateFct() : IR_WaLBerlaLeveledFunction
+}
