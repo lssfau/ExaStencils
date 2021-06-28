@@ -316,7 +316,24 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
         }
       }
 
-      fieldAccesses.put(identifier, field.gridDatatype) // TODO: optimize for array fields / HODT
+      // honor component accesses for HODT
+      // TODO: more cases?
+      val accessedDt = access match {
+        case fAcc : IR_FieldAccess       => // determine dt dependent if component access or not
+          if (fAcc.matIndex.isDefined) {
+            field.resolveBaseDatatype
+          } else {
+            field.gridDatatype
+          }
+        case fAcc : IR_DirectFieldAccess => // handled in IR_DirectFieldAccess depending on length of access index
+          fAcc.datatype
+        case matAcc : IR_MatrixAccess    => // = transformed field accesses with existing matIndices
+          matAcc.datatype.resolveBaseDatatype
+        case acc : IR_Access             =>
+          Logger.error("EvaluateFieldAccess: Match error. Did not expect access: " + acc.name + " of type: " + acc.getClass)
+      }
+
+      fieldAccesses.put(identifier, accessedDt)
 
       // evaluate and store offset
       val offsetIndex = Duplicate(access.index)
