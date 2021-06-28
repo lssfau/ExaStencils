@@ -27,6 +27,7 @@ import exastencils.communication.NeighborInfo
 import exastencils.core.Duplicate
 import exastencils.field.ir.IR_Field
 import exastencils.grid.ir._
+import exastencils.waLBerla.ir.IR_WaLBerlaFieldCollection
 
 /// IR_ApplyBCFunction
 
@@ -44,7 +45,13 @@ case class IR_ApplyBCFunction(
 
   def numDimsGrid = field.layout.numDimsGrid
 
-  def resolveIndex(indexId : String, dim : Int) = field.layout.idxById(indexId, dim)
+  // TODO: temporary fix for wb fields. maybe handle in a strategy?
+  def resolveIndex(indexId : String, dim : Int) = {
+    if (IR_WaLBerlaFieldCollection.exists(field.name, field.level))
+      IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get.layout.idxById(indexId, dim)
+    else
+      field.layout.idxById(indexId, dim)
+  }
 
   def genIndicesBoundaryHandling(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)] = {
 
