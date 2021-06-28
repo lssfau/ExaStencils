@@ -26,6 +26,7 @@ import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.interfacing.ir.IR_ExternalFieldCollection
 import exastencils.prettyprinting._
+import exastencils.waLBerla.ir.IR_WaLBerlaFieldCollection
 
 /// IR_IV_IndexFromField
 
@@ -45,9 +46,13 @@ case class IR_IV_IndexFromField(var layoutIdentifier : String, var level : IR_Ex
     for (l <- Knowledge.minLevel to Knowledge.maxLevel) {
       level = l
       val field = IR_FieldCollection.getByLayoutIdentifier(layoutIdentifier, l, true)
+      val wbField = IR_WaLBerlaFieldCollection.getByLayoutIdentifierLevExp(layoutIdentifier, level, suppressError = true)
       if (field.isDefined) {
         statements += IR_Assignment(resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, layoutIdentifier, level, IR_NullExpression),
           field.get.layout.defIdxById(indexId, dim))
+      } else if (wbField.isDefined) {
+        statements += IR_Assignment(resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, layoutIdentifier, level, IR_NullExpression),
+          0)
       } else {
         // no field found -> try external fields
         val extField = IR_ExternalFieldCollection.getByLayoutIdentifier(layoutIdentifier, l, true)
