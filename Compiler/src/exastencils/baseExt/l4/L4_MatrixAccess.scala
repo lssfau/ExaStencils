@@ -72,6 +72,7 @@ object L4_PrepareMatrixAccesses extends DefaultStrategy("Prepare matrix accesses
 
   this += new Transformation("Prepare", {
     case uAcc : L4_UnresolvedAccess if uAcc.matIndex.isDefined =>
+      // get level from access or from scope
       val curLevel = if (uAcc.level.isDefined)
         Some(uAcc.level.get.resolveLevel) // specified access level has precedence over scope's level
       else if (lvlCollector.inLevelScope)
@@ -80,14 +81,15 @@ object L4_PrepareMatrixAccesses extends DefaultStrategy("Prepare matrix accesses
         None
 
       // lookup decl collector and field collection
-      val decl = if (curLevel.isDefined)
+      val optPlainDecl = declCollector.plainDeclarations.last.get(uAcc.name)
+      val isLeveled = optPlainDecl.isEmpty && curLevel.isDefined
+      val decl = if (optPlainDecl.isDefined) // plain variable -> no handling for leveled accesses
+        optPlainDecl
+      else if (isLeveled) // leveled variable -> lookup leveled decls
         declCollector.leveledDeclarations.last.get(uAcc.name, curLevel.get)
-      else
-        declCollector.plainDeclarations.last.get(uAcc.name)
-      val fieldFound = if (curLevel.isDefined)
-        L4_FieldCollection.exists(uAcc.name, curLevel.get)
-      else
-        L4_FieldCollection.exists(uAcc.name)
+      else // no var. decl found -> maybe a field?
+        None
+      val fieldFound = L4_FieldCollection.exists(uAcc.name)
 
       // check if uAcc was declared
       if (decl.isEmpty && !fieldFound)
@@ -104,7 +106,7 @@ object L4_PrepareMatrixAccesses extends DefaultStrategy("Prepare matrix accesses
         if (uAcc.arrayIndex.isDefined) Logger.warn("Discarding array index on variable access to matrix variable")
         if (uAcc.offset.isDefined) Logger.warn("Discarding offset on variable access to matrix variable")
         if (uAcc.dirAccess.isDefined) Logger.warn("Discarding dirAccess on variable access to matrix variable")
-        val acc = if (curLevel.isDefined)
+        val acc = if (isLeveled)
           L4_LeveledVariableAccess(uAcc.name, curLevel.get, decl.get.datatype, isConst = false)
         else
           L4_PlainVariableAccess(uAcc.name, decl.get.datatype, isConst = false)
