@@ -27,6 +27,7 @@ import exastencils.datastructures.Transformation
 import exastencils.field.l4.L4_FieldCollection
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
+import exastencils.util.l4.L4_LevelCollector
 import exastencils.util.l4.L4_VariableDeclarationCollector
 
 /// L4_MatrixAccess
@@ -64,23 +65,51 @@ object L4_PrepareMatrixAccesses extends DefaultStrategy("Prepare matrix accesses
   var declCollector = new L4_VariableDeclarationCollector
   this.register(declCollector)
 
+  var lvlCollector = new L4_LevelCollector
+  this.register(lvlCollector)
+
   this.onBefore = () => this.resetCollectors()
 
   this += new Transformation("Prepare", {
-    case uacc : L4_UnresolvedAccess if (uacc.matIndex.isDefined) =>
-      val decl = declCollector.plainDeclarations.last.get(uacc.name)
-      val fieldFound = L4_FieldCollection.exists(uacc.name)
-      if (decl.isEmpty && !fieldFound) Logger.error("Declaration for access not found")
-      else if (!decl.get.datatype.isInstanceOf[L4_MatrixDatatype]) Logger.error("Access with matIndex to non matrix variable")
-      // get mat field accesses in ir
-      if (fieldFound) uacc
+    case uAcc : L4_UnresolvedAccess if uAcc.matIndex.isDefined =>
+      val curLevel = if (uAcc.level.isDefined)
+        Some(uAcc.level.get.resolveLevel) // specified access level has precedence over scope's level
+      else if (lvlCollector.inLevelScope)
+        Some(lvlCollector.getCurrentLevel)
+      else
+        None
+
+      // lookup decl collector and field collection
+      val decl = if (curLevel.isDefined)
+        declCollector.leveledDeclarations.last.get(uAcc.name, curLevel.get)
+      else
+        declCollector.plainDeclarations.last.get(uAcc.name)
+      val fieldFound = if (curLevel.isDefined)
+        L4_FieldCollection.exists(uAcc.name, curLevel.get)
+      else
+        L4_FieldCollection.exists(uAcc.name)
+
+      // check if uAcc was declared
+      if (decl.isEmpty && !fieldFound)
+        Logger.error("Declaration for access not found")
+      else if (!decl.get.datatype.isInstanceOf[L4_MatrixDatatype])
+        Logger.error("Access with matIndex to non matrix variable")
+
+      if (fieldFound)
+        // get mat field accesses later in ir
+        uAcc
       else {
-        if (uacc.level.isDefined) Logger.warn("Discarding level on variable access to matrix variable")
-        if (uacc.slot.isDefined) Logger.warn("Discarding slot on variable access to matrix variable")
-        if (uacc.arrayIndex.isDefined) Logger.warn("Discarding array index on variable access to matrix variable")
-        if (uacc.offset.isDefined) Logger.warn("Discarding offset on variable access to matrix variable")
-        if (uacc.dirAccess.isDefined) Logger.warn("Discarding dirAccess on variable access to matrix variable")
-        L4_MatrixAccess(L4_PlainVariableAccess(uacc.name, decl.get.datatype, false), uacc.matIndex.get(0), if (uacc.matIndex.get.length == 2) Some(uacc.matIndex.get(1)) else None)
+        // matrix access w/o slot, arrayIndex, offset or direction
+        if (uAcc.slot.isDefined) Logger.warn("Discarding slot on variable access to matrix variable")
+        if (uAcc.arrayIndex.isDefined) Logger.warn("Discarding array index on variable access to matrix variable")
+        if (uAcc.offset.isDefined) Logger.warn("Discarding offset on variable access to matrix variable")
+        if (uAcc.dirAccess.isDefined) Logger.warn("Discarding dirAccess on variable access to matrix variable")
+        val acc = if (curLevel.isDefined)
+          L4_LeveledVariableAccess(uAcc.name, curLevel.get, decl.get.datatype, isConst = false)
+        else
+          L4_PlainVariableAccess(uAcc.name, decl.get.datatype, isConst = false)
+
+        L4_MatrixAccess(acc, uAcc.matIndex.get(0), if (uAcc.matIndex.get.length == 2) Some(uAcc.matIndex.get(1)) else None)
       }
   })
 
