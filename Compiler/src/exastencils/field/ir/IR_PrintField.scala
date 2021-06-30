@@ -32,9 +32,6 @@ import exastencils.grid.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir._
-import exastencils.waLBerla.ir.IR_WaLBerlaFieldCollection
-import exastencils.waLBerla.ir.IR_WaLBerlaLoopOverDimensions
-import exastencils.waLBerla.ir.IR_WaLBerlaUtil
 
 /// IR_PrintField
 
@@ -45,8 +42,6 @@ object IR_PrintField {
     "fieldPrintStream_%02d".format(counter)
   }
 }
-
-// TODO move waLBerla related stuff to dedicated PrintField for wb fields
 
 case class IR_PrintField(
     var filename : IR_Expression,
@@ -60,27 +55,13 @@ case class IR_PrintField(
   def numDimsGrid = field.layout.numDimsGrid
   def numDimsData = field.layout.numDimsData
 
-  def wbField = IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level, suppressError = true)
-  def isWaLBerlaField = wbField.isDefined
-
   def getPos(field : IR_Field, dim : Int) : IR_Expression = {
     // TODO: add function to field (layout) to decide node/cell for given dim
-    if (isWaLBerlaField) {
-      val it = IR_LoopOverDimensions.defIt(numDimsGrid).indices.padTo(3, IR_IntegerConstant(0))
-      val blockforest = IR_WaLBerlaUtil.blockStorageMember
-      val iblock = IR_DerefAccess(IR_WaLBerlaUtil.iblock)
-      val posVec = IR_MemberFunctionCallArrow(
-        blockforest, "getBlockLocalCellCenter", IR_SpecialDatatype("Vector3< real_t >"), iblock, IR_MemberFunctionCallArrow(
-          blockforest, "getBlockLocalCell", IR_SpecialDatatype("Cell"), iblock +: it : _*)
-      )
-      IR_ArrayAccess(posVec, dim)
-    } else {
-      field.localization match {
-        case IR_AtNode              => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
-        case IR_AtCellCenter        => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
-        case IR_AtFaceCenter(`dim`) => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
-        case IR_AtFaceCenter(_)     => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
-      }
+    field.localization match {
+      case IR_AtNode              => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
+      case IR_AtCellCenter        => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
+      case IR_AtFaceCenter(`dim`) => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
+      case IR_AtFaceCenter(_)     => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(numDimsGrid))
     }
   }
 
@@ -141,33 +122,22 @@ case class IR_PrintField(
     if (binary)
       openMode += " | std::ios::binary"
 
-    def dimLoop(stmts : IR_Statement*) = {
-      val realField = if (isWaLBerlaField) wbField.get else field
-      val idxRange = IR_ExpressionIndexRange(
-        IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => realField.layout.idxById(fieldBegin, dim) - Duplicate(realField.referenceOffset(dim)) : IR_Expression)),
-        IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => realField.layout.idxById(fieldEnd, dim) - Duplicate(realField.referenceOffset(dim)) : IR_Expression))
-      )
-
-      if (isWaLBerlaField)
-        IR_WaLBerlaLoopOverDimensions(numDimsGrid, idxRange, stmts.to[ListBuffer])
-      else
-        IR_LoopOverFragments(
-          IR_IfCondition(IR_IV_IsValidForDomain(realField.domain.index),
-            IR_LoopOverDimensions(numDimsGrid, idxRange, stmts.to[ListBuffer])))
-    }
-
     // TODO: less monolithic code
     var innerLoop = ListBuffer[IR_Statement](
       IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess(openMode, IR_UnknownDatatype)),
       fileHeader,
-      if (Knowledge.field_printFieldPrecision == -1)
+      if (Knowledge.field_printFieldPrecision == -1) {
         IR_Print(stream, "std::scientific")
-      else
-        IR_Print(stream, "std::scientific << std::setprecision(" + Knowledge.field_printFieldPrecision + ")"), //std::defaultfloat
-      dimLoop(
-        IR_IfCondition(condition,
-          IR_Print(stream, printComponents))
-      ),
+      } else {
+        IR_Print(stream, "std::scientific << std::setprecision(" + Knowledge.field_printFieldPrecision + ")")
+      },
+      IR_LoopOverFragments(
+        IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
+          IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
+            IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => field.layout.idxById(fieldBegin, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
+            IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => field.layout.idxById(fieldEnd, dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
+            IR_IfCondition(condition,
+              IR_Print(stream, printComponents))))),
       IR_MemberFunctionCall(stream, "close")
     )
 
