@@ -83,12 +83,15 @@ object L4_PrepareMatrixAccesses extends DefaultStrategy("Prepare matrix accesses
       // lookup decl collector and field collection
       val optPlainDecl = declCollector.plainDeclarations.last.get(uAcc.name)
       val isLeveled = optPlainDecl.isEmpty && curLevel.isDefined
-      val decl = if (optPlainDecl.isDefined) // plain variable -> no handling for leveled accesses
+      val decl = if (optPlainDecl.isDefined) { // plain variable -> no handling for leveled accesses
+        if (uAcc.level.isDefined)
+          Logger.warn("Plain variable \"" + uAcc.name + "\" is explicitly accessed on level: " + uAcc.level.get.resolveLevel)
         optPlainDecl
-      else if (isLeveled) // leveled variable -> lookup leveled decls
+      } else if (isLeveled) { // leveled variable -> lookup leveled decls
         declCollector.leveledDeclarations.last.get(uAcc.name, curLevel.get)
-      else // no var. decl found -> maybe a field?
+      } else { // no var. decl found -> maybe a field?
         None
+      }
       val fieldFound = L4_FieldCollection.exists(uAcc.name)
 
       // check if uAcc was declared
