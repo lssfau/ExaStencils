@@ -63,7 +63,7 @@ import exastencils.waLBerla.ir.IR_WaLBerlaResolveLoopOverDimensions
 import exastencils.waLBerla.ir.IR_WaLBerlaResolveLoopOverPoints
 import exastencils.waLBerla.ir.IR_WaLBerlaResolveLoopOverPointsInOneFragment
 import exastencils.waLBerla.ir.IR_WaLBerlaSetupCommunication
-import exastencils.waLBerla.ir.IR_WaLBerlaUtil
+import exastencils.waLBerla.ir.IR_WaLBerlaSetupFunctions
 
 /// IR_LayerHandler
 
@@ -133,8 +133,6 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_SetupCommunication.firstCall = true
     IR_SetupCommunication.apply()
     IR_WaLBerlaSetupCommunication.apply()
-
-    IR_WaLBerlaUtil.apply()
 
     IR_InferDiagAndInverseCallDataTypes.doUntilDone()
     IR_HandleMainApplication.apply()
@@ -404,6 +402,8 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_HACK_TypeAliases.apply()
 
+    // TODO combine IR_WaLBerlaSetupFunctions & IR_WaLBerlaCreateInterface?
+    IR_WaLBerlaSetupFunctions.apply()
     IR_WaLBerlaCreateInterface.apply()
     IR_WaLBerlaReplaceVariableAccesses.apply()
   }

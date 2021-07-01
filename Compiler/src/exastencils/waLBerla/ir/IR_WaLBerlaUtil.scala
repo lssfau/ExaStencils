@@ -8,17 +8,12 @@ import exastencils.base.ir.IR_MemberFunctionCallArrow
 import exastencils.base.ir.IR_SharedPointerDatatype
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
-import exastencils.datastructures.DefaultStrategy
-import exastencils.datastructures.Transformation
-import exastencils.util.ir.IR_CollectFieldAccesses
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_BlockDataID
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_FieldDatatype
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_IBlock
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_StructuredBlockStorage
 
-object IR_WaLBerlaUtil extends DefaultStrategy("Get waLBerla sweep") {
-  var waLBerlafunctionNodes : ListBuffer[IR_WaLBerlaFunction] = ListBuffer()
-  var waLBerlaFunctionAccessedFields : mutable.HashMap[String, ListBuffer[String]] = mutable.HashMap()
+object IR_WaLBerlaUtil {
 
   val iblock = IR_VariableAccess("block", WB_IBlock)
   val iblockPtr = IR_FunctionArgument(iblock.name, IR_SharedPointerDatatype(WB_IBlock))
@@ -44,14 +39,5 @@ object IR_WaLBerlaUtil extends DefaultStrategy("Get waLBerla sweep") {
     val fieldDt = WB_FieldDatatype(field)
     IR_IV_WaLBerlaFieldData(field).getData(
       Some(new IR_MemberFunctionCallArrow(iblock, s"getData< ${fieldDt.typeName} >", ListBuffer(getBlockDataID(field.name)), fieldDt)))
-  })
-
-  this += Transformation("Get sweep node", {
-    case func : IR_WaLBerlaFunction if !waLBerlafunctionNodes.exists(f => f.name == func.name) =>
-      waLBerlafunctionNodes += func
-      IR_CollectFieldAccesses.applyStandalone(func)
-      waLBerlaFunctionAccessedFields.update(func.name, IR_CollectFieldAccesses.fieldAccesses.filter(IR_WaLBerlaFieldCollection.contains).map(_.name))
-
-      func
   })
 }

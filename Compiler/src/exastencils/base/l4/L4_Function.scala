@@ -25,7 +25,6 @@ import exastencils.base.ir._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.prettyprinting._
-import exastencils.waLBerla.l4.L4_WaLBerlaFunction
 
 /// L4_Function
 
@@ -104,16 +103,11 @@ case class L4_LeveledFunction(
 object L4_FunctionCollector extends Collector {
   var plainFunctions = HashMap[String, L4_Datatype]()
   var leveledFunctions = HashMap[(String, Int), L4_Datatype]()
-  var plainWaLBerlaFunctions = HashMap[String, L4_Datatype]()
-  var leveledWaLBerlaFunctions = HashMap[(String, Int), L4_Datatype]()
 
   override def enter(node : Node) : Unit = {
     node match {
       case fct : L4_PlainFunction                          => plainFunctions += (fct.name -> fct.datatype)
       case fct : L4_LeveledFunction                        => leveledFunctions += ((fct.name, fct.level) -> fct.datatype)
-      case fct : L4_WaLBerlaFunction if fct.level.isEmpty  => plainWaLBerlaFunctions += (fct.name -> fct.datatype)
-      case fct : L4_WaLBerlaFunction if fct.level.nonEmpty => leveledWaLBerlaFunctions += ((fct.name, fct.level.get) -> fct.datatype)
-
       case _ =>
     }
   }
@@ -125,15 +119,12 @@ object L4_FunctionCollector extends Collector {
   override def reset() : Unit = {
     plainFunctions.clear()
     leveledFunctions.clear()
-    plainWaLBerlaFunctions.clear()
-    leveledWaLBerlaFunctions.clear()
   }
 
-  def exists(name : String) = plainFunctions.contains(name) || leveledFunctions.keys.exists(_._1 == name) ||
-    plainWaLBerlaFunctions.contains(name) || leveledWaLBerlaFunctions.keys.exists(_._1 == name)
-  def existsPlain(name : String) = plainFunctions.contains(name) || plainWaLBerlaFunctions.contains(name)
-  def existsLeveled(name : String, level : Int) = leveledFunctions.contains((name, level)) || leveledWaLBerlaFunctions.contains((name, level))
+  def exists(name : String) = plainFunctions.contains(name) || leveledFunctions.keys.exists(_._1 == name)
+  def existsPlain(name : String) = plainFunctions.contains(name)
+  def existsLeveled(name : String, level : Int) = leveledFunctions.contains((name, level))
 
-  def getDatatype(name : String) = if (plainWaLBerlaFunctions.contains(name)) plainWaLBerlaFunctions(name) else plainFunctions(name)
-  def getDatatype(name : String, level : Int) = if (leveledWaLBerlaFunctions.contains((name, level))) leveledWaLBerlaFunctions((name, level)) else leveledFunctions((name, level))
+  def getDatatype(name : String) = plainFunctions(name)
+  def getDatatype(name : String, level : Int) = leveledFunctions((name, level))
 }

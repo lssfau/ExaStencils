@@ -35,6 +35,7 @@ object IR_WaLBerlaSetupCommunication extends DefaultStrategy("Communication hand
   this += Transformation("Convert to waLBerla func", {
     case applyBC : IR_ApplyBCFunction if funcsToMove.contains(applyBC) =>
       val genFct = applyBC.generateFct()
-      IR_WaLBerlaLeveledFunction(applyBC.name, applyBC.level, genFct.datatype, genFct.parameters, genFct.body)
+      IR_WaLBerlaCollection.get.functions += IR_WaLBerlaLeveledFunction(applyBC.name, applyBC.level, genFct.datatype, genFct.parameters, genFct.body)
+      None
   })
 }

@@ -25,7 +25,9 @@ case class L4_WaLBerlaSwapFieldPointers(
     if ( !(L4_WaLBerlaFieldCollection.contains(src) && L4_WaLBerlaFieldCollection.contains(dst)) )
       Logger.error("\"waLBerlaSwapPtr\" accepts two waLBerla field accesses as arguments.")
 
-    IR_WaLBerlaSwapFieldPointers(src.progress, dst.progress)
+    IR_WaLBerlaSwapFieldPointers(
+      L4_WaLBerlaFieldCollection.getByFieldAccess(src).get.progress(),
+      L4_WaLBerlaFieldCollection.getByFieldAccess(dst).get.progress())
   }
 
   override def prettyprint(out : PpStream) : Unit =

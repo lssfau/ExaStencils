@@ -50,6 +50,7 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
   ctorParams += IR_FunctionArgument(IR_VariableAccess(blockStoragePtr.name, IR_ConstReferenceDatatype(blockStoragePtr.datatype)))
   members += IR_VariableAccess(getGeneratedName(blockStoragePtr.name), blockStoragePtr.datatype)
 
+  /* TODO: remove resize funcs */
   // init global layout variables for waLBerla fields and their lower-level counterparts
   if (lowerLevelFieldAccs.nonEmpty && !Knowledge.data_genVariableFieldSizes)
     Logger.error("Knowledge flag \"data_genVariableFieldSizes\" must be enabled when multi-leveled waLBerla fields are present.")

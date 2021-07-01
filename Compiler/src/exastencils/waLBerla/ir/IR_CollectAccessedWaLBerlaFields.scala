@@ -32,7 +32,7 @@ object IR_CollectAccessedWaLBerlaFields extends DefaultStrategy("Collect waLBerl
       wbFieldAccesses += fieldAccess.field
       fieldAccess
     case swap : IR_WaLBerlaSwapFieldPointers  =>
-      wbFieldAccesses ++= List(swap.wbSrc.field, swap.wbDst.field)
+      wbFieldAccesses ++= List(swap.src, swap.dst)
       swap
     case access : IR_IV_WaLBerlaFieldData     =>
       wbFieldAccesses += access.field

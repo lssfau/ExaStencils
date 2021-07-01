@@ -1,16 +1,14 @@
 package exastencils.waLBerla.ir
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ExaRootNode
 import exastencils.base.ir.IR_Node
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.config.Knowledge
 import exastencils.config.Platform
+import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
-import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
 import exastencils.prettyprinting.FilePrettyPrintable
 import exastencils.prettyprinting.PrettyprintingManager
@@ -115,33 +113,19 @@ case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction])
   }
 
   override def printToFile() : Unit = {
-    if (IR_WaLBerlaUtil.waLBerlafunctionNodes.isEmpty)
-      return
-
     printHeader()
     printSource()
   }
 }
 
 object IR_WaLBerlaCreateInterface extends DefaultStrategy("Find functions and create targets for them") {
-  var plainFunctions : ListBuffer[IR_WaLBerlaPlainFunction] = ListBuffer()
-  var leveledFunctions : mutable.HashMap[String, ListBuffer[IR_WaLBerlaLeveledFunction]] = mutable.HashMap()
+  this += Transformation("Transform WaLBerlaCollection functions to waLBerla interface functions", {
+    case collection : IR_WaLBerlaCollection =>
+      // transform collected wb functions into the wb <-> exa interface class
+      val wbFunctions = collection.functions.collect { case f : IR_WaLBerlaFunction => f }
+      collection.interfaceInstance = Some(IR_WaLBerlaInterface(Duplicate(wbFunctions)))
+      collection.functions = collection.functions diff wbFunctions
 
-  override def apply(applyAtNode : Option[Node]) : Unit = {
-    plainFunctions = ListBuffer()
-    leveledFunctions = mutable.HashMap()
-
-    super.apply(applyAtNode)
-
-    ExaRootNode.ir_root.nodes += IR_WaLBerlaInterface(plainFunctions ++ leveledFunctions.values.flatten)
-  }
-
-  this += Transformation("Collect and consume", {
-    case f : IR_WaLBerlaLeveledFunction =>
-      leveledFunctions.update(f.name, leveledFunctions.getOrElseUpdate(f.name, ListBuffer()) :+ f)
-      None
-    case f : IR_WaLBerlaPlainFunction   =>
-      plainFunctions += f
-      None
+      collection
   })
 }

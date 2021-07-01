@@ -25,7 +25,6 @@ import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
 import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
 import exastencils.logger.Logger
-import exastencils.waLBerla.l4.L4_WaLBerlaFunction
 
 /// L4_LevelCollector
 
@@ -53,10 +52,6 @@ class L4_LevelCollector extends Collector {
       case decl : L4_LeveledKnowledgeDecl                   => enterLevel(decl.levels)
       case fct : L4_FunctionDecl                            => enterLevel(fct.levels)
       case fct : L4_LeveledFunction                         => enterLevel(fct.level)
-
-      // leveled waLBerla nodes
-      case fct : L4_WaLBerlaFunction if fct.level.isDefined => enterLevel(fct.level.get)
-
       case _                                                =>
     }
   }
@@ -66,10 +61,6 @@ class L4_LevelCollector extends Collector {
       case decl : L4_LeveledKnowledgeDecl                   => leaveLevel(decl.levels)
       case fct : L4_FunctionDecl                            => leaveLevel(fct.levels)
       case fct : L4_LeveledFunction                         => leaveLevel(fct.level)
-
-      // leveled waLBerla nodes
-      case fct : L4_WaLBerlaFunction if fct.level.isDefined => leaveLevel(fct.level.get)
-
       case _                                                =>
     }
   }

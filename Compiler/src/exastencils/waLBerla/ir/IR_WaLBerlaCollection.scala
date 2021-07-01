@@ -16,7 +16,7 @@ import exastencils.parallelization.api.cuda.CUDA_KernelFunctions
 import exastencils.prettyprinting.PrettyprintingManager
 import exastencils.util.ir.IR_StackCollector
 
-/// IR_WaLBerlaFunctions
+/// IR_WaLBerlaCollection
 
 object IR_WaLBerlaCollection extends ObjectWithState {
   def defBase = "exa_waLBerla"
@@ -53,6 +53,8 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
 
   if (Knowledge.opt_vectorize)
     if (Platform.simd_header != null) externalDependencies += Platform.simd_header
+
+  var interfaceInstance : Option[IR_WaLBerlaInterface] = None
 
   override def printHeader() = {
     val writer = PrettyprintingManager.getPrinter(s"$baseName.h")
@@ -92,7 +94,7 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   }
 
   override def printToFile() : Unit = {
-    if (IR_WaLBerlaUtil.waLBerlafunctionNodes.nonEmpty) {
+    if (functions.nonEmpty || interfaceInstance.isDefined) {
       // append interface header to internal dependencies
       internalDependencies += IR_WaLBerlaInterface.interfaceHeader
 
