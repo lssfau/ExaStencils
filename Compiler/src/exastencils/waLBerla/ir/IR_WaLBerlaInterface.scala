@@ -27,8 +27,6 @@ case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction])
 
   val context = IR_WaLBerlaInterfaceGenerationContext(functions)
 
-  // TODO init function for lower-level & exa-internal fields (and members for each encapsulated in context)
-
   def printHeader() : Unit = {
     val writerHeader = PrettyprintingManager.getPrinter(defHeader(interfaceName))
 
@@ -122,7 +120,7 @@ object IR_WaLBerlaCreateInterface extends DefaultStrategy("Find functions and cr
   this += Transformation("Transform WaLBerlaCollection functions to waLBerla interface functions", {
     case collection : IR_WaLBerlaCollection =>
       // transform collected wb functions into the wb <-> exa interface class
-      val wbFunctions = collection.functions.collect { case f : IR_WaLBerlaFunction => f }
+      val wbFunctions = collection.functions.collect { case f : IR_WaLBerlaFunction if f.isInterfaceFunction => f }
       collection.interfaceInstance = Some(IR_WaLBerlaInterface(Duplicate(wbFunctions)))
       collection.functions = collection.functions diff wbFunctions
 

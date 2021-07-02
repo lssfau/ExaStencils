@@ -56,6 +56,16 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
 
   var interfaceInstance : Option[IR_WaLBerlaInterface] = None
 
+  // add future functions
+  functions += IR_InitBlockForest()
+  for (field <- IR_WaLBerlaFieldCollection.objects)
+    functions += IR_AddFieldToStorage(field)
+
+  def addExternalDependency(dependency : String) : Unit = {
+    if (!externalDependencies.contains(dependency))
+      externalDependencies += dependency
+  }
+
   override def printHeader() = {
     val writer = PrettyprintingManager.getPrinter(s"$baseName.h")
     for (inc <- internalDependencies)

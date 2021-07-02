@@ -28,11 +28,13 @@ trait IR_WaLBerlaFunction extends IR_Function with PrettyPrintable {
   var parameters : ListBuffer[IR_FunctionArgument]
   def body : ListBuffer[IR_Statement]
 
+  var isInterfaceFunction = true
+
   allowInlining = false
 
   override def prettyprint(out : PpStream) : Unit = {
     if (!functionQualifiers.isEmpty) out << functionQualifiers << ' '
-    out << datatype << ' ' << IR_WaLBerlaInterface.interfaceName << "::" << name << ' ' << '(' <<< (modifiedParameters, ", ") << ") {\n"
+    out << datatype << ' ' << (if (isInterfaceFunction) IR_WaLBerlaInterface.interfaceName + "::" else "") << name << ' ' << '(' <<< (modifiedParameters, ", ") << ") {\n"
     out <<< (body, "\n") << '\n'
     out << '}'
   }
