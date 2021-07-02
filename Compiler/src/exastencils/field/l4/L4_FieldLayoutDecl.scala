@@ -49,6 +49,8 @@ trait L4_FieldLayoutDeclLike {
   def localization : L4_Localization
   def options : ListBuffer[L4_FieldLayoutOption]
 
+  val numDimsGrid = Knowledge.dimensionality // TODO: adapt for edge data structures
+
   def evalFieldLayoutValue(optionName : String) : L4_ConstIndex = {
     val option = options.find(_.name == optionName)
     if (option.isDefined)
@@ -63,6 +65,38 @@ trait L4_FieldLayoutDeclLike {
       option.get.hasCommunication
     else
       L4_FieldLayout.getDefaultBoolean(optionName, localization)
+  }
+
+  // determine number of inner points
+  def evalFieldLayoutInnerPoints(level : Int, numDup : L4_ConstIndex, numGhost : L4_ConstIndex) : L4_ConstIndex = {
+    val providedInnerPoints = options.find(_.name == "innerPoints")
+    if (providedInnerPoints.isDefined) {
+      // user specified values are available -> use those
+      providedInnerPoints.get.value
+    } else {
+      // attempt automatic deduction - TODO: adapt for edge data structures
+      localization match {
+        case L4_AtNode       => L4_ConstIndex((0 until numDimsGrid).map(dim => ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)).toArray)
+        case L4_AtCellCenter => L4_ConstIndex((0 until numDimsGrid).map(dim => ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)).toArray)
+
+        case L4_AtFaceCenter(faceDim) => L4_ConstIndex((0 until numDimsGrid).map(dim =>
+          if (dim == faceDim)
+            ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)
+          else
+            ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)).toArray)
+
+        case L4_HACK_OtherLocalization("edge_node") => L4_ConstIndex((0 until numDimsGrid).map(dim =>
+          if (0 == dim)
+            ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)
+          else
+            0).toArray)
+        case L4_HACK_OtherLocalization("edge_cell") => L4_ConstIndex((0 until numDimsGrid).map(dim =>
+          if (0 == dim)
+            ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)
+          else
+            0).toArray)
+      }
+    }
   }
 }
 
@@ -87,41 +121,10 @@ case class L4_FieldLayoutDecl(
   }
 
   def composeLayout(level : Int) : L4_FieldLayout = {
-    val numDimsGrid = Knowledge.dimensionality // TODO: adapt for edge data structures
 
     val numGhost = evalFieldLayoutValue("ghostLayers")
     val numDup = evalFieldLayoutValue("duplicateLayers")
-
-    // determine number of inner points
-    val providedInnerPoints = options.find(_.name == "innerPoints")
-    val innerPoints : L4_ConstIndex =
-      if (providedInnerPoints.isDefined) {
-        // user specified values are available -> use those
-        providedInnerPoints.get.value
-      } else {
-        // attempt automatic deduction - TODO: adapt for edge data structures
-        localization match {
-          case L4_AtNode       => L4_ConstIndex((0 until numDimsGrid).map(dim => ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)).toArray)
-          case L4_AtCellCenter => L4_ConstIndex((0 until numDimsGrid).map(dim => ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)).toArray)
-
-          case L4_AtFaceCenter(faceDim) => L4_ConstIndex((0 until numDimsGrid).map(dim =>
-            if (dim == faceDim)
-              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)
-            else
-              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)).toArray)
-
-          case L4_HACK_OtherLocalization("edge_node") => L4_ConstIndex((0 until numDimsGrid).map(dim =>
-            if (0 == dim)
-              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)
-            else
-              0).toArray)
-          case L4_HACK_OtherLocalization("edge_cell") => L4_ConstIndex((0 until numDimsGrid).map(dim =>
-            if (0 == dim)
-              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)
-            else
-              0).toArray)
-        }
-      }
+    val innerPoints = evalFieldLayoutInnerPoints(level, numDup, numGhost)
 
     // compile final layout
     L4_FieldLayout(

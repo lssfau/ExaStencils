@@ -15,7 +15,6 @@ import exastencils.waLBerla.ir.IR_WaLBerlaField
 case class L4_WaLBerlaField(
     var name : String,
     var level : Int,
-    var maxLevel : Int,
     var index : Int,
     var fieldLayout : L4_WaLBerlaFieldLayout,
     var boundary : L4_BoundaryCondition,
@@ -45,6 +44,6 @@ case class L4_WaLBerlaField(
   def toField = L4_Field(name, level, index, domain, fieldLayout.toFieldLayout, numSlots, boundary, matShape)
 
   override def progressImpl() =
-    IR_WaLBerlaField(name, level, maxLevel, index, codeName, fieldLayout.getProgressedObj(), boundary.progress,
+    IR_WaLBerlaField(name, level, index, codeName, fieldLayout.getProgressedObj(), boundary.progress,
       if(matShape.isDefined) Some(matShape.get.progress) else None)
 }

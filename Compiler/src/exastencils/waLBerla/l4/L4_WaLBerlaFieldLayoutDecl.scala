@@ -2,10 +2,8 @@ package exastencils.waLBerla.l4
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.l4.L4_ConstIndex
 import exastencils.base.l4.L4_Datatype
 import exastencils.base.l4.L4_DeclarationLevelSpecification
-import exastencils.config.Knowledge
 import exastencils.field.l4.L4_FieldLayoutDeclLike
 import exastencils.field.l4.L4_FieldLayoutOption
 import exastencils.grid.l4.L4_AtCellCenter
@@ -30,17 +28,10 @@ case class L4_WaLBerlaFieldLayoutDecl(
   }
 
   def composeLayout(level : Int) : L4_WaLBerlaFieldLayout = {
-    def numDimsGrid = Knowledge.dimensionality
-
+    // eval options
     val numGhost = evalFieldLayoutValue("ghostLayers")
     val numDup = evalFieldLayoutValue("duplicateLayers")
-
-    // for lower level exa-internal counterparts
-    val innerPointsOpt = options.find(_.name == "innerPoints")
-    val innerPoints = if (innerPointsOpt.isDefined)
-      innerPointsOpt.get.value
-    else
-      L4_ConstIndex(Array.fill(numDimsGrid)(1))
+    val innerPoints = evalFieldLayoutInnerPoints(level, numDup, numGhost)
 
     // compile final layout
     L4_WaLBerlaFieldLayout(

@@ -6,11 +6,9 @@ import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_MemberFunctionCallArrow
-import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.field.ir.IR_FieldLayoutLike
 import exastencils.field.ir.IR_FieldLayoutPerDim
-import exastencils.field.ir.IR_IV_IndexFromField
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.grid.ir.IR_Localization
 import exastencils.knowledge.ir.IR_LeveledKnowledgeObject
@@ -48,13 +46,7 @@ case class IR_WaLBerlaFieldLayout(
 
   lazy val wbField : IR_WaLBerlaField = IR_WaLBerlaFieldCollection.getByLayoutIdentifierLevExp(name, level, suppressError = true).get
 
-  def idxById(id : String, dim : Int) : IR_Expression = {
-    if (Knowledge.data_genVariableFieldSizes && dim < Knowledge.dimensionality)
-      // TODO : total
-      IR_IV_IndexFromField(name, level, id, dim)
-    else
-      defIdxById(id, dim)
-  }
+  def idxById(id : String, dim : Int) : IR_Expression = defIdxById(id, dim)
 
   def defIdxById(id : String, dim : Int) : IR_Expression = {
 

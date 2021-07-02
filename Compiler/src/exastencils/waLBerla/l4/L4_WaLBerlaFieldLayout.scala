@@ -56,13 +56,6 @@ case class L4_WaLBerlaFieldLayout(
 
     // layouts per dim
     var layouts = Array[IR_FieldLayoutPerDim]()
-    if (ghostLayers.sum != 0 || duplicateLayers.sum != 0 || innerPoints.sum != numDimsGrid) {
-      // throw error if options were set for waLBerla fields
-      Logger.warn(
-        s"""Invalid ghost/duplicate/inner layer configuration for waLBerla field layouts. Only set these values for Exa-internal fields, i.e. for levels other than the maximum.
-          | Config is: ghost = ${ghostLayers.prettyprint()}, dup = ${duplicateLayers.prettyprint()}, inner = ${innerPoints.prettyprint()}
-          |""".stripMargin)
-    }
     layouts ++= (0 until numDimsGrid).map(dim => IR_FieldLayoutPerDim(0, ghostLayers(dim), duplicateLayers(dim), innerPoints(dim), duplicateLayers(dim), ghostLayers(dim), 0))
     if (numDimsData > numDimsGrid) layouts ++= progDatatype.getSizeArray.map(size => IR_FieldLayoutPerDim(0, 0, 0, size, 0, 0, 0))
 

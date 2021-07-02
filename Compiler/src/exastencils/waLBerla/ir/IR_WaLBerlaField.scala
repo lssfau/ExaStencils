@@ -21,7 +21,6 @@ object IR_WaLBerlaField {
 case class IR_WaLBerlaField(
     var name : String,
     var level : Int,
-    var maxLevel : Int,
     var index : Int,
     var codeName : String,
     var layout : IR_WaLBerlaFieldLayout,
@@ -30,7 +29,7 @@ case class IR_WaLBerlaField(
 ) extends IR_LeveledKnowledgeObject with IR_FieldLike {
 
   override def createDuplicate() : IR_WaLBerlaField = {
-    IR_WaLBerlaField(name, level, maxLevel, index, codeName, Duplicate(layout), Duplicate(boundary), Duplicate(matShape))
+    IR_WaLBerlaField(name, level, index, codeName, Duplicate(layout), Duplicate(boundary), Duplicate(matShape))
   }
 
   def domain : IR_Domain = IR_DomainCollection.getByIdentifier("global").get
