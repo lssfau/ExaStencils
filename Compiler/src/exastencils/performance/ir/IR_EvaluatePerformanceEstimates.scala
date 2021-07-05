@@ -317,21 +317,39 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
       }
 
       // honor component accesses for HODT
-      // TODO: more cases?
       val accessedDt = access match {
         case fAcc : IR_FieldAccess       => // determine dt dependent if component access or not
           if (fAcc.matIndex.isDefined) {
-            field.resolveBaseDatatype
+            // TODO test
+
+            // get number of elements accessed with matIndex
+            def evalSliceSize(right : Option[IR_Expression], defaultRight : Int, left : Option[IR_Expression], defaultLeft : Int) : Int =
+              IR_SimplifyExpression.evalIntegral(right.getOrElse(IR_IntegerConstant(defaultRight)) - left.getOrElse(IR_IntegerConstant(defaultLeft))).toInt
+
+            val numRowsAccessed = fAcc.matIndex.get(0) match {
+              case _ @ IR_RangeIndex(range) => evalSliceSize(range(0).end, fAcc.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, range(0).begin, 0)
+              case _                        => 1
+            }
+            val numColsAccessed = if (fAcc.matIndex.get.length == 2) {
+              fAcc.matIndex.get(1) match {
+                case _ @ IR_RangeIndex(range) => evalSliceSize(range(0).end, fAcc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN, range(0).begin, 0)
+                case _                        => 1
+              }
+            } else {
+              1
+            }
+
+            Array.fill(numRowsAccessed * numColsAccessed)(field.resolveBaseDatatype)
           } else {
-            field.gridDatatype
+            Array(field.gridDatatype)
           }
         case fAcc : IR_DirectFieldAccess => // handled in IR_DirectFieldAccess depending on length of access index
-          fAcc.datatype
+          Array(fAcc.datatype)
         case acc : IR_Access             =>
           Logger.error("EvaluateFieldAccess: Match error. Did not expect access: " + acc.name + " of type: " + acc.getClass)
       }
 
-      fieldAccesses.put(identifier, accessedDt)
+      accessedDt.foreach(dt => fieldAccesses.put(identifier, dt))
 
       // evaluate and store offset
       val offsetIndex = Duplicate(access.index)

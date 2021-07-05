@@ -31,11 +31,14 @@ import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.HelperNode
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
+import exastencils.domain.ir.IR_ReadLineFromFile
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.solver.ir.IR_MatrixSolveOps
 import exastencils.util.ir.IR_Print
+import exastencils.util.ir.IR_Read
+import exastencils.util.ir.IR_ReadStream
 
 /** Strategy: preparatory transformations to resolve matrices */
 object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
@@ -127,6 +130,7 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
       dest.expand(true, Some(src))
   })
 
+  // TODO refactor: this list can potentially get very lengthy
   this += new Transformation("Transform rval matrix accesses to slice nodes", {
     case stmt : IR_Assignment          =>
       TransformMatAccesses.applyStandalone(stmt)
@@ -146,6 +150,15 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
     case setElement : IR_SetElement    =>
       TransformMatAccesses.applyStandalone(setElement)
       setElement
+    case cond : IR_IfCondition         =>
+        TransformMatAccesses.applyStandalone(cond)
+        cond
+    case read : IR_ReadStream          =>
+      TransformMatAccesses.applyStandalone(read)
+      read
+    case read : IR_Read                =>
+      TransformMatAccesses.applyStandalone(read)
+      read
     /*case ls : IR_LoopOverDimensions =>
       TransformMatAccesses.applyStandalone(ls)
       ls*/
