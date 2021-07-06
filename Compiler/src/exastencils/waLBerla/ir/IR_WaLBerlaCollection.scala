@@ -2,11 +2,13 @@ package exastencils.waLBerla.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_FutureFunction
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.config.Knowledge
 import exastencils.config.Platform
+import exastencils.core.Duplicate
 import exastencils.core.ObjectWithState
 import exastencils.core.StateManager
 import exastencils.datastructures.DefaultStrategy
@@ -61,6 +63,9 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   for (field <- IR_WaLBerlaFieldCollection.objects)
     functions += IR_AddFieldToStorage(field)
 
+  // collect future funcion names
+  val futureFunctionIds : ListBuffer[String] = Duplicate(functions).collect { case f : IR_FutureFunction => f }.map(_.name)
+
   def addExternalDependency(dependency : String) : Unit = {
     if (!externalDependencies.contains(dependency))
       externalDependencies += dependency
@@ -104,7 +109,7 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   }
 
   override def printToFile() : Unit = {
-    if (functions.nonEmpty || interfaceInstance.isDefined) {
+    if (functions.exists(f => !futureFunctionIds.contains(f.name)) || interfaceInstance.isDefined) {
       // append interface header to internal dependencies
       internalDependencies += IR_WaLBerlaInterface.interfaceHeader
 

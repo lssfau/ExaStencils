@@ -28,8 +28,10 @@ case class IR_InitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
 
   def toUnsignedInt(value : Int) = IR_Cast(IR_SpecialDatatype("uint_t"), value)
 
-  def numCells(d : Int) = if (someWaLBerlaField.isDefined && d < numDims) someWaLBerlaField.get.layout.layoutsPerDim(d).numInnerLayers else 1 << level
-  def numCellsTotal(d : Int) = if (d < numDims) Knowledge.domain_rect_numFragsTotalAsVec(d) * Knowledge.domain_fragmentLengthAsVec(d) * numCells(d) else 1
+  def numCellsTotal(d : Int) = if (d < numDims) {
+    if (someWaLBerlaField.isDefined) someWaLBerlaField.get.layout.layoutsPerDim(d).numInnerLayers else Knowledge.domain_fragmentLengthAsVec(d) * (1 << level)
+  } else
+    1
   def cellWidth(d : Int) = if (d < numDims) (domainBounds.upper(d) - domainBounds.lower(d)) / numCellsTotal(d) else 0
 
   val wbBlocks = List(Knowledge.domain_rect_numFragsTotal_x, Knowledge.domain_rect_numFragsTotal_y, Knowledge.domain_rect_numFragsTotal_z).map(toUnsignedInt)
@@ -40,7 +42,7 @@ case class IR_InitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
     // error checks
     if (IR_WaLBerlaFieldCollection.objects.nonEmpty) {
       // assumes all top level fields have the same number of cells
-      if (IR_WaLBerlaFieldCollection.objects.filter(_.level == level).forall(f => (0 until numDims).map(d => f.layout.layoutsPerDim(d).numInnerLayers != numCells(d)).reduce(_ || _)))
+      if (IR_WaLBerlaFieldCollection.objects.filter(_.level == level).forall(f => (0 until numDims).map(d => f.layout.layoutsPerDim(d).numInnerLayers != numCellsTotal(d)).reduce(_ || _)))
         Logger.error("IR_InitBlockForest: Top-level waLBerla fields must have the same size.")
 
       // step size in each dimension must be identical
