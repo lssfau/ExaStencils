@@ -1,5 +1,6 @@
 package exastencils.waLBerla.ir
 
+import exastencils.base.ir.IR_Cast
 import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
@@ -12,7 +13,6 @@ import exastencils.field.ir.IR_FieldLayoutPerDim
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.grid.ir.IR_Localization
 import exastencils.knowledge.ir.IR_LeveledKnowledgeObject
-import exastencils.optimization.ir.IR_SimplifyExpression
 
 /// IR_WaLBerlaFieldLayout
 
@@ -65,17 +65,17 @@ case class IR_WaLBerlaFieldLayout(
     }
 
     def numPadLayersLeft(dim : Int) = 0
-    def numGhostLayersLeft(dim : Int) = callMemberFunc("nrOfGhostLayers")
+    def numGhostLayersLeft(dim : Int) = IR_Cast(IR_IntegerDatatype, callMemberFunc("nrOfGhostLayers"))
     def numDupLayersLeft(dim : Int) = 0 // cell-centered
     def numInnerLayers(dim : Int) = numInner(dim)
     def numDupLayersRight(dim : Int) = 0 // cell-centered
-    def numGhostLayersRight(dim : Int) = callMemberFunc("nrOfGhostLayers")
+    def numGhostLayersRight(dim : Int) = IR_Cast(IR_IntegerDatatype, callMemberFunc("nrOfGhostLayers"))
     def numPadLayersRight(dim : Int) = numPad(dim) // at the end of each coordinate
 
     def numDup(d : Int) = numDupLayersLeft(d) + numDupLayersRight(d)
     def numGhost(d : Int) = numGhostLayersLeft(d) + numGhostLayersRight(d)
-    def numInner(d : Int) = callMemberFuncForDim("Size", d)
-    def numPad(d : Int) = IR_SimplifyExpression.simplifyIntegralExpr(callMemberFuncForDim("AllocSize", d) - numInner(d) - numDup(d) - numGhost(d))
+    def numInner(d : Int) = IR_Cast(IR_IntegerDatatype, callMemberFuncForDim("Size", d))
+    def numPad(d : Int) = IR_Cast(IR_IntegerDatatype, callMemberFuncForDim("AllocSize", d)) - numInner(d) - numDup(d) - numGhost(d)
 
     def defIdxInnerBegin(dim : Int) = { 0 }
     def defIdxInnerEnd(dim : Int) = { defIdxInnerBegin(dim) + numInnerLayers(dim) }
@@ -98,9 +98,9 @@ case class IR_WaLBerlaFieldLayout(
     def defIdxPadRightBegin(dim : Int) = { defIdxGhostRightEnd(dim) }
     def defIdxPadRightEnd(dim : Int) = { defIdxPadRightBegin(dim) + numPadLayersRight(dim) }
 
-    def defTotal(dim : Int) = { callMemberFuncForDim("AllocSize", dim) }
+    def defTotal(dim : Int) = { IR_Cast(IR_IntegerDatatype, callMemberFuncForDim("AllocSize", dim)) }
 
-    val idx : IR_Expression = id match {
+    id match {
       case "PLB"                => defIdxPadLeftBegin(dim)
       case "PLE"                => defIdxPadLeftEnd(dim)
       case "GLB"                => defIdxGhostLeftBegin(dim)
@@ -117,7 +117,5 @@ case class IR_WaLBerlaFieldLayout(
       case "PRE"                => defIdxPadRightEnd(dim)
       case "TOT"                => defTotal(dim)
     }
-
-    IR_SimplifyExpression.simplifyIntegralExpr(idx)
   }
 }

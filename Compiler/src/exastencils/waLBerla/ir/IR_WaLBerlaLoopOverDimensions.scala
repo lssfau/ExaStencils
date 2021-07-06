@@ -8,6 +8,7 @@ import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_ForLoop
 import exastencils.base.ir.IR_IfCondition
+import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_Lower
 import exastencils.base.ir.IR_ScopedStatement
 import exastencils.base.ir.IR_SpecialDatatype
@@ -51,7 +52,7 @@ case class IR_WaLBerlaLoopOverDimensions(
 
     for (d <- 0 until numDimensions) {
       def it = IR_FieldIteratorAccess(d)
-      val decl = IR_VariableDeclaration(IR_SpecialDatatype("cell_idx_t"), IR_FieldIteratorAccess(d).name, indices.begin(d))
+      val decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FieldIteratorAccess(d).name, indices.begin(d))
 
       val cond = IR_Lower(it, IR_Cast(it.datatype, indices.end(d)))
       val incr = IR_Assignment(it, stepSize(d), "+=")
