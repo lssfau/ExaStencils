@@ -26,6 +26,7 @@ import exastencils.base.l4._
 import exastencils.core.Duplicate
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
+import exastencils.waLBerla.l4.L4_WaLBerlaLoopOverField
 
 /// L4_RepeatLoops
 
@@ -36,6 +37,12 @@ case class L4_RepeatLoops(var conditions : ListBuffer[L4_Expression], var stmts 
     val newStmts = Duplicate(stmts)
     newStmts.transform {
       case loop : L4_LoopOverField =>
+        if (loop.condition.isDefined)
+          loop.condition = Some(L4_AndAnd(loop.condition.get, color))
+        else
+          loop.condition = Some(color)
+        loop
+      case loop : L4_WaLBerlaLoopOverField =>
         if (loop.condition.isDefined)
           loop.condition = Some(L4_AndAnd(loop.condition.get, color))
         else
