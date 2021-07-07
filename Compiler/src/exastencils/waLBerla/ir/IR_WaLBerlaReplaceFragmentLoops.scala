@@ -1,7 +1,5 @@
 package exastencils.waLBerla.ir
 
-import scala.collection.mutable.ListBuffer
-
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.datastructures.Node
 import exastencils.datastructures.QuietDefaultStrategy
@@ -14,16 +12,27 @@ object IR_WaLBerlaReplaceFragmentLoops extends QuietDefaultStrategy("Replace fra
   this.register(collector)
   this.onBefore = () => this.resetCollectors()
 
-  var fragLoops : ListBuffer[IR_LoopOverFragments] = ListBuffer()
+  object IR_WaLBerlaFindAccessed extends QuietDefaultStrategy("Find accessed wb fields") {
+    var found = false
 
-  override def apply(applyAtNode : Option[Node]) : Unit = {
-    fragLoops.clear()
-    super.apply(applyAtNode)
-  }
+    override def apply(applyAtNode : Option[Node]) : Unit = {
+      found = false
+      super.apply(applyAtNode)
+    }
 
-  override def applyStandalone(node : Node) : Unit = {
-    fragLoops.clear()
-    super.applyStandalone(node)
+    override def applyStandalone(node : Node) : Unit = {
+      found = false
+      super.applyStandalone(node)
+    }
+
+    this += Transformation("Find", {
+      case fAcc : IR_FieldAccessLike if IR_WaLBerlaFieldCollection.contains(fAcc) =>
+        found = true
+        fAcc
+      case fAcc : IR_WaLBerlaFieldAccess if IR_WaLBerlaFieldCollection.contains(fAcc) =>
+        found = true
+        fAcc
+    })
   }
 
   this += Transformation("Omit fragment loops within block loops", {
@@ -31,14 +40,12 @@ object IR_WaLBerlaReplaceFragmentLoops extends QuietDefaultStrategy("Replace fra
       loopOverFrags.body
   })
 
-  this += Transformation("Collect", {
-    case fAcc : IR_FieldAccessLike if IR_WaLBerlaFieldCollection.contains(fAcc) =>
-      fragLoops ++= collector.stack.collect{ case a : IR_LoopOverFragments => a }
-      fAcc
-  })
-
   this += Transformation("Replace", {
-    case loopOverFrags : IR_LoopOverFragments if fragLoops.contains(loopOverFrags) =>
-      IR_WaLBerlaLoopOverBlocks(loopOverFrags.body, loopOverFrags.parallelization)
+    case loopOverFrags : IR_LoopOverFragments =>
+      IR_WaLBerlaFindAccessed.applyStandalone(loopOverFrags)
+      if (IR_WaLBerlaFindAccessed.found)
+        IR_WaLBerlaLoopOverBlocks(loopOverFrags.body, loopOverFrags.parallelization)
+      else
+        loopOverFrags
   })
 }
