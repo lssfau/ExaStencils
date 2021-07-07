@@ -30,8 +30,6 @@ trait IR_WaLBerlaFunction extends IR_Function with PrettyPrintable {
 
   var isInterfaceFunction = true
 
-  allowInlining = false
-
   override def prettyprint(out : PpStream) : Unit = {
     if (!functionQualifiers.isEmpty) out << functionQualifiers << ' '
     out << datatype << ' ' << (if (isInterfaceFunction) IR_WaLBerlaInterface.interfaceName + "::" else "") << name << ' ' << '(' <<< (modifiedParameters, ", ") << ") {\n"
@@ -127,19 +125,27 @@ object IR_WaLBerlaSetupFunctions extends DefaultStrategy("Transform functions ac
 
   this += Transformation("Replace candidates with wb functions", {
     case plain @ IR_PlainFunction(name, dt, param, body) if plainFunctions.contains(plain)                  =>
-      IR_WaLBerlaCollection.get.functions += IR_WaLBerlaPlainFunction(name, dt, param, body)
+      val func = IR_WaLBerlaPlainFunction(name, dt, param, body)
+      func.allowInlining = plain.allowInlining
+      IR_WaLBerlaCollection.get.functions += func
       None
     case leveled @ IR_LeveledFunction(baseName, lvl, dt, param, body) if leveledFunctions.contains(leveled) =>
-      IR_WaLBerlaCollection.get.functions += IR_WaLBerlaLeveledFunction(baseName, lvl, dt, param, body)
+      val func = IR_WaLBerlaLeveledFunction(baseName, lvl, dt, param, body)
+      func.allowInlining = leveled.allowInlining
+      IR_WaLBerlaCollection.get.functions += func
       None
   })
 }
 
 trait IR_WaLBerlaFuturePlainFunction extends IR_FutureFunction {
+  allowInlining = false
+
   override def generateFct() : IR_WaLBerlaPlainFunction
 }
 
 trait IR_WaLBerlaFutureLeveledFunction extends IR_FutureFunction {
+  allowInlining = false
+
   def level : Int
   override def generateFct() : IR_WaLBerlaLeveledFunction
 }

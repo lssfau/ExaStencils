@@ -68,7 +68,7 @@ case class L4_FunctionDecl(
     var allowInlining : Boolean = true) extends L4_FunctionDeclLike {
 
   override def prettyprint(out : PpStream) = {
-    out << "Function " << name
+    out << (if (!allowInlining) "noinline " else "") << "Function " << name
     if (levels.isDefined) out << '@' << levels.get
     if (parameters.nonEmpty) out << " ( " <<< (parameters, ", ") << " )"
     if (datatype != L4_UnitDatatype) out << " : " << datatype
@@ -79,9 +79,9 @@ case class L4_FunctionDecl(
 
   def toFunction = {
     if (levels.isEmpty)
-      L4_PlainFunction(name, datatype, parameters, body)
+      L4_PlainFunction(name, datatype, parameters, body, allowInlining)
     else
-      L4_LeveledFunction(name, levels.get.resolveLevel, datatype, parameters, body)
+      L4_LeveledFunction(name, levels.get.resolveLevel, datatype, parameters, body, allowInlining)
   }
 }
 
