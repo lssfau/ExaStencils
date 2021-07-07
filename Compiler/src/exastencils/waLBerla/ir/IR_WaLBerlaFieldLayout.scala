@@ -38,7 +38,7 @@ case class IR_WaLBerlaFieldLayout(
     IR_WaLBerlaFieldLayout.tupled(Duplicate(IR_WaLBerlaFieldLayout.unapply(this).get))
   }
 
-  var referenceOffset : IR_ExpressionIndex = IR_ExpressionIndex(Array.fill(layoutsPerDim.length)(0))
+  override def referenceOffset : IR_ExpressionIndex = IR_ExpressionIndex(Array.fill(layoutsPerDim.length)(0))
 
   def apply(dim : Int) = layoutsPerDim(dim)
 

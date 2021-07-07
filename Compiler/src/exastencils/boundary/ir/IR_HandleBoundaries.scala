@@ -33,12 +33,14 @@ import exastencils.field.ir._
 import exastencils.grid.ir._
 import exastencils.logger._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
+import exastencils.waLBerla.ir.IR_WaLBerlaFieldAccess
+import exastencils.waLBerla.ir.IR_WaLBerlaFieldCollection
 
 /// IR_HandleBoundaries
 
 // TODO: refactor
 case class IR_HandleBoundaries(
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var fragIdx : IR_Expression,
     var neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)]) extends IR_Statement with IR_Expandable {
@@ -83,31 +85,40 @@ case class IR_HandleBoundaries(
     def offsetIndex = IR_ExpressionIndex(neigh.dir ++ Array.fill(numDims - field.layout.numDimsGrid)(0))
     def offsetIndexWithTrafo(f : (Int => Int)) = IR_ExpressionIndex(neigh.dir.map(f) ++ Array.fill(numDims - field.layout.numDimsGrid)(0))
 
+    def accessField(slot : IR_Expression, fragIdx : IR_Expression, idx : IR_ExpressionIndex) = {
+      if (IR_WaLBerlaFieldCollection.exists(field.name, field.level))
+        IR_WaLBerlaFieldAccess(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get, idx)
+      else field match {
+        case f : IR_Field => IR_FieldAccess(f, slot, fragIdx, idx)
+        case _            => Logger.error("Unknown field type.")
+      }
+    }
+
     bc match {
       case IR_NeumannBC(order) =>
         // TODO: move this logic to the appropriate bc classes
 
         def forNode() = order match {
           case 1 =>
-            statements += IR_Assignment(IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index),
-              IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -i)))
+            statements += IR_Assignment(accessField(Duplicate(slot), Duplicate(fragIdx), index),
+              accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -i)))
 
           case 2 =>
-            statements += IR_Assignment(IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index),
-              ((4.0 / 3.0) * IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -i)))
-                + ((-1.0 / 3.0) * IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -2 * i))))
+            statements += IR_Assignment(accessField(Duplicate(slot), Duplicate(fragIdx), index),
+              ((4.0 / 3.0) * accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -i)))
+                + ((-1.0 / 3.0) * accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -2 * i))))
 
           case 3 => // TODO: do we want this? what do we do on the coarser levels?
-            statements += IR_Assignment(IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index),
-              ((3.0 * 6.0 / 11.0) * IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -1 * i)))
-                + ((-3.0 / 2.0 * 6.0 / 11.0) * IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -2 * i)))
-                + ((1.0 / 3.0 * 6.0 / 11.0) * IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -3 * i))))
+            statements += IR_Assignment(accessField(Duplicate(slot), Duplicate(fragIdx), index),
+              ((3.0 * 6.0 / 11.0) * accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -1 * i)))
+                + ((-3.0 / 2.0 * 6.0 / 11.0) * accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -2 * i)))
+                + ((1.0 / 3.0 * 6.0 / 11.0) * accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -3 * i))))
         }
 
         def forCell() = order match {
           case 1 =>
-            statements += IR_Assignment(IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndex),
-              IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index))
+            statements += IR_Assignment(accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndex),
+              accessField(Duplicate(slot), Duplicate(fragIdx), index))
         }
 
         field.layout.localization match {
@@ -118,11 +129,11 @@ case class IR_HandleBoundaries(
         }
 
       case IR_DirichletBC(boundaryExpr, order) =>
-        def forNode() = statements += IR_Assignment(IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index), boundaryExpr)
+        def forNode() = statements += IR_Assignment(accessField(Duplicate(slot), Duplicate(fragIdx), index), boundaryExpr)
 
         def forCell() = order match {
-          case 1 => statements += IR_Assignment(IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndex),
-            (2.0 * boundaryExpr) - IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index))
+          case 1 => statements += IR_Assignment(accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndex),
+            (2.0 * boundaryExpr) - accessField(Duplicate(slot), Duplicate(fragIdx), index))
           case 2 =>
             // determine weights for interpolation
             var w_0_5, w_1, w_2 : IR_Expression = 0
@@ -147,8 +158,8 @@ case class IR_HandleBoundaries(
               w_1 = ((x - x_0_5) * (x - x_2)) / ((x_1 - x_0_5) * (x_1 - x_2))
               w_2 = ((x - x_0_5) * (x - x_1)) / ((x_2 - x_0_5) * (x_2 - x_1))
             }
-            statements += IR_Assignment(IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndex),
-              w_0_5 * boundaryExpr + w_1 * IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index) + w_2 * IR_FieldAccess(field, Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -i)))
+            statements += IR_Assignment(accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndex),
+              w_0_5 * boundaryExpr + w_1 * accessField(Duplicate(slot), Duplicate(fragIdx), index) + w_2 * accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -i)))
         }
 
         field.layout.localization match {

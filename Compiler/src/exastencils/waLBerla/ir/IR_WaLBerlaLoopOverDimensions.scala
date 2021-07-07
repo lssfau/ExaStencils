@@ -11,7 +11,6 @@ import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_Lower
 import exastencils.base.ir.IR_ScopedStatement
-import exastencils.base.ir.IR_SpecialDatatype
 import exastencils.base.ir.IR_SpecialExpandable
 import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_VariableDeclaration

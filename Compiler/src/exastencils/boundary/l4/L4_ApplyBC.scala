@@ -25,6 +25,7 @@ import exastencils.field.l4.L4_FieldAccess
 import exastencils.logger.Logger
 import exastencils.operator.l4.L4_StencilFieldAccess
 import exastencils.prettyprinting.PpStream
+import exastencils.waLBerla.l4.L4_WaLBerlaFieldCollection
 
 /// L4_ApplyBC
 
@@ -37,7 +38,8 @@ case class L4_ApplyBC(var target : L4_Access) extends L4_Statement {
     target match {
       case f : L4_FieldAccess =>
         val prog = f.progress
-        IR_ApplyBC(prog.field, prog.slot)
+        val field = if (L4_WaLBerlaFieldCollection.contains(f)) L4_WaLBerlaFieldCollection.getByFieldAccess(f).get.progress() else f.progress.field
+        IR_ApplyBC(field, prog.slot)
 
       case sf : L4_StencilFieldAccess =>
         val progField = sf.target.getProgressedObj().field

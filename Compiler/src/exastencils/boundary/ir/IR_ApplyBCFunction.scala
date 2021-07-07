@@ -25,7 +25,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.core.Duplicate
-import exastencils.field.ir.IR_Field
+import exastencils.field.ir.IR_FieldLike
 import exastencils.grid.ir._
 import exastencils.waLBerla.ir.IR_WaLBerlaFieldCollection
 
@@ -33,7 +33,7 @@ import exastencils.waLBerla.ir.IR_WaLBerlaFieldCollection
 
 case class IR_ApplyBCFunction(
     var name : String,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var fragIdx : IR_Expression,
     var neighbors : ListBuffer[NeighborInfo],
@@ -45,7 +45,6 @@ case class IR_ApplyBCFunction(
 
   def numDimsGrid = field.layout.numDimsGrid
 
-  // TODO: temporary fix for wb fields. maybe handle in a strategy?
   def resolveIndex(indexId : String, dim : Int) = {
     if (IR_WaLBerlaFieldCollection.exists(field.name, field.level))
       IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get.layout.idxById(indexId, dim)
