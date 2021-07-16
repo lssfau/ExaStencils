@@ -29,7 +29,8 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
-import exastencils.optimization.ir._
+import exastencils.optimization.ir.EvaluationException
+import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.performance.PlatformUtils
 import exastencils.util.ir._
 
@@ -317,39 +318,43 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
       }
 
       // honor component accesses for HODT
-      val accessedDt = access match {
+      fieldAccesses.put(identifier, access match {
         case fAcc : IR_FieldAccess       => // determine dt dependent if component access or not
           if (fAcc.matIndex.isDefined) {
-            // TODO test
-
             // get number of elements accessed with matIndex
-            def evalSliceSize(right : Option[IR_Expression], defaultRight : Int, left : Option[IR_Expression], defaultLeft : Int) : Int =
-              IR_SimplifyExpression.evalIntegral(right.getOrElse(IR_IntegerConstant(defaultRight)) - left.getOrElse(IR_IntegerConstant(defaultLeft))).toInt
+            def getActualRange(left : Option[IR_Expression], defaultLeft : Int, right : Option[IR_Expression], defaultRight : Int) : (IR_Expression, IR_Expression) =
+              (left.getOrElse(IR_IntegerConstant(defaultLeft)), right.getOrElse(IR_IntegerConstant(defaultRight)))
+            def evalSliceSize(range : (IR_Expression, IR_Expression)) : Int =
+              IR_SimplifyExpression.evalIntegral(range._2 + IR_IntegerConstant(1) - range._1).toInt
+            def singleElementRange = (IR_IntegerConstant(0), IR_IntegerConstant(0))
 
             val numRowsAccessed = fAcc.matIndex.get(0) match {
-              case _ @ IR_RangeIndex(range) => evalSliceSize(range(0).end, fAcc.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, range(0).begin, 0)
-              case _                        => 1
+              case _ @ IR_RangeIndex(range) if fAcc.field.gridDatatype.isInstanceOf[IR_MatrixDatatype] =>
+                getActualRange(range(0).begin, 0, range(0).end, fAcc.field.gridDatatype.asInstanceOf[IR_MatrixDatatype].sizeM)
+              case _                                                                                   =>
+                singleElementRange
             }
+
             val numColsAccessed = if (fAcc.matIndex.get.length == 2) {
               fAcc.matIndex.get(1) match {
-                case _ @ IR_RangeIndex(range) => evalSliceSize(range(0).end, fAcc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN, range(0).begin, 0)
-                case _                        => 1
+                case _ @ IR_RangeIndex(range) if fAcc.field.gridDatatype.isInstanceOf[IR_MatrixDatatype] =>
+                  getActualRange(range(0).begin, 0, range(0).end, fAcc.field.gridDatatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+                case _                                                                                   =>
+                  singleElementRange
               }
             } else {
-              1
+              singleElementRange
             }
 
-            Array.fill(numRowsAccessed * numColsAccessed)(field.resolveBaseDatatype)
+            IR_MatrixDatatype(field.resolveBaseDatatype, evalSliceSize(numRowsAccessed), evalSliceSize(numColsAccessed))
           } else {
-            Array(field.gridDatatype)
+           field.gridDatatype
           }
         case fAcc : IR_DirectFieldAccess => // handled in IR_DirectFieldAccess depending on length of access index
-          Array(fAcc.datatype)
+          fAcc.datatype
         case acc : IR_Access             =>
-          Logger.error("EvaluateFieldAccess: Match error. Did not expect access: " + acc.name + " of type: " + acc.getClass)
-      }
-
-      accessedDt.foreach(dt => fieldAccesses.put(identifier, dt))
+          Logger.error("EvaluateFieldAccess: Match error. Did not expect access: " + acc.prettyprint())
+      })
 
       // evaluate and store offset
       val offsetIndex = Duplicate(access.index)

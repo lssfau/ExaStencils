@@ -130,7 +130,6 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
       dest.expand(true, Some(src))
   })
 
-  // TODO refactor: this list can potentially get very lengthy
   this += new Transformation("Transform rval matrix accesses to slice nodes", {
     case stmt : IR_Assignment          =>
       TransformMatAccesses.applyStandalone(stmt)
@@ -138,9 +137,6 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
     case stmt : IR_VariableDeclaration =>
       TransformMatAccesses.applyStandalone(stmt)
       stmt
-    case p : IR_Print                  =>
-      TransformMatAccesses.applyStandalone(p)
-      p
     case stmt : IR_ExpressionStatement =>
       TransformMatAccesses.applyStandalone(stmt)
       stmt
@@ -150,19 +146,11 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
     case setElement : IR_SetElement    =>
       TransformMatAccesses.applyStandalone(setElement)
       setElement
-    case cond : IR_IfCondition         =>
-        TransformMatAccesses.applyStandalone(cond)
-        cond
-    case read : IR_ReadStream          =>
-      TransformMatAccesses.applyStandalone(read)
-      read
-    case read : IR_Read                =>
-      TransformMatAccesses.applyStandalone(read)
-      read
-    /*case ls : IR_LoopOverDimensions =>
-      TransformMatAccesses.applyStandalone(ls)
-      ls*/
   })
+
+  // get remaining MatAccess nodes and transform to slice getter nodes
+  this ++= TransformMatAccesses.transformations
+
   /////////////////////////////////////////////
 
   ///////////////////////////////////////////// self assign
