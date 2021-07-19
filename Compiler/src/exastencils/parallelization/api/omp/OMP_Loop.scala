@@ -69,8 +69,6 @@ case class OMP_ParallelFor(
     res
   }
 
-  // TODO move?
-  // TODO error checking might not be necessary
   // mainly error checking. from spec @ v5.1
   def schedule = {
     val modifiers = List("monotonic", "nonmonotonic", "simd")
