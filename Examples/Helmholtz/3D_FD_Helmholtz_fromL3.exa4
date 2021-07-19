@@ -1,0 +1,23 @@
+Function Application {
+  // init
+  startTimer ( "setup" )
+  initGlobals ( )
+  initDomain ( )
+  initFieldsWithZero ( )
+  initGeometry ( )
+  InitFields ( )
+  apply bc to Solution@finest
+  stopTimer ( "setup" )
+
+  // solve
+  startTimer ( "solve" )
+  Solve@finest ( )
+  stopTimer ( "solve" )
+
+  // de-init
+  if ( !getKnowledge ( 'testing_enabled' ) ) {
+    printAllTimers ( )
+  }
+  destroyGlobals ( )
+}
+

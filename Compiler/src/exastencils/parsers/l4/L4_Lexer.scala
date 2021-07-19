@@ -58,6 +58,7 @@ class L4_Lexer extends ExaLexer {
     "Integer", "integer", "Int", "int",
     "Real", "real", "Float", "float", "Double", "double", "Dbl", "Flt",
     "Complex", "complex",
+    "j",
     "Boolean", "boolean", "Bool", "bool")
   reserved += ("Array", "Vector", "RowVector", "ColumnVector", "RVector", "CVector", "Matrix", "T", "Tensor", "Tensor2", "Tensor1", "TensorN")
   reserved += ("Vec2", "Vec3", "Vec4")

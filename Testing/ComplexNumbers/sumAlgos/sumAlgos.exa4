@@ -1,0 +1,38 @@
+
+Function Application ( ) : Unit {
+ 	initGlobals ( )
+  	initDomain ( )
+  	initFieldsWithZero ( )
+	// distributions to generate input data: very small numbers and e1 numbers in alternation
+	native('std::random_device rd_realdist')
+	native('std::mt19937 gen_realdist(rd_realdist())')
+	native('std::uniform_real_distribution<> realdist(0.0,1.0)')
+	native('std::random_device rd_berndist')
+	native('std::mt19937 gen_berndist(rd_berndist())')
+	native('std::bernoulli_distribution berndist(0.25)')
+	loop over f@finest {
+		f@finest = native('realdist(gen_realdist)') 
+		if(berndist(gen_berndist)) {
+			f@finest = f@finest * 1.0e-12
+		} else {
+			f@finest = f@finest * 1.0e+1
+		}
+		//print(f@finest)
+		//f@finest = 1.0
+	}	
+
+	// different summation algorithms
+	Var sum : Complex<Real> = defaultDot@finest()
+	Var sumKahan : Complex<Real> = kahanDot@finest()
+	Var sumNeumaier : Complex<Real> = neumaierDot@finest()
+	
+	/*if(abs((Re(sum) - Re(sumKahan))) > 0.0000005) {
+		print('results do not match')
+	}*/
+	native ( 'std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1)' )
+	print(Re(sum))
+	print(Re(sumKahan))
+	print(Re(sumNeumaier))
+	//print("stage 0 done")
+	
+}

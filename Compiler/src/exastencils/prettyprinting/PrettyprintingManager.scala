@@ -106,6 +106,14 @@ object PrettyprintingManager {
         if (Settings.additionalIncludes.nonEmpty)
           extendedContent.write('\n')
 
+        // add includes from Settings.additionalNamespaces
+        for (dep <- Settings.additionalNamespaces)
+          extendedContent.write("using namespace " + dep + ";\n")
+        if (Settings.additionalNamespaces.nonEmpty)
+          extendedContent.write('\n')
+
+
+
         // add includes for internal dependencies
         for (dep <- internalDependencies)
           extendedContent.write(generateInclude(dep.filename))

@@ -59,7 +59,7 @@ case class L4_FieldAccess(
   override def prettyprint(out : PpStream) = {
     if (frozen) out << "frozen ( "
     out << target.name
-    if (target.numSlots > 1) out << '[' << slot << ']'
+    if (target.numSlots > 1) out << '<' << slot << '>'
     out << '@' << target.level
     if (offset.isDefined) out << "@" << offset.get
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'

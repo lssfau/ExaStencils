@@ -1466,6 +1466,26 @@ test:Par_TestF_vectSAl:
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_TestF_vectSAl Opts/par__float_vectAl.knowledge "Opts/base_par_flt.exa4" Opts/par__float.results 8 4 Platform/random.platform output
 
+test:Par_TestF_vectSAlAl:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_TestF_vectSAlAl Opts/par__float_vectAlAl.knowledge "Opts/base_par_flt.exa4" Opts/par__float.results 8 4 Platform/random.platform output
+
 test:Par_Test_naive:
     stage: test
     dependencies:
@@ -1861,6 +1881,27 @@ test:PolyExpl_RBGS2Dcc_f0:
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f0 PolyExpl/2D_f0.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
+test:PolyExpl_RBGS2Dcc_f1:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+        - AVX
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f1 PolyExpl/2D_f1.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
+
 test:PolyExpl_RBGS2Dcc_f3:
     stage: test
     dependencies:
@@ -2207,26 +2248,6 @@ test:BC_3D_Periodic:
         - mpirun --version
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_3D_Periodic BC/3D_Periodic.knowledge "BC/3D_Periodic.exa4" BC/3D_Periodic.results 8 2 Platform/random.platform output
-
-test:BC_Matrix:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_Matrix BC/Matrix/BC_Matrix.knowledge "BC/Matrix/BC_Matrix.exa4" BC/Matrix/BC_Matrix.results 1 1 Platform/random.platform output
 
 test:Cell_2D_Basic:
     stage: test
@@ -2969,4 +2990,64 @@ test:CUDA_ExaFluids_Bingham:
         - ln -s /usr/local/cuda-10.1/targets/x86_64-linux/lib/libcudart.so /usr/lib
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_ExaFluids_Bingham CUDA/3D_ExaFluids_NN_CUDA.knowledge "CUDA/3D_ExaFluids_NN_CUDA.exa4" CUDA/3D_ExaFluids_NN_CUDA.results 1 10 Platform/chimaira-gpu.platform output
+
+test:COMPLEX_NUMBERS_BasicFunc:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib COMPLEX_NUMBERS_BasicFunc ComplexNumbers/BasicFunc/BasicFunc.knowledge "ComplexNumbers/BasicFunc/BasicFunc.exa3" ComplexNumbers/BasicFunc/BasicFunc.results 1 1 Platform/random.platform output
+
+test:COMPLEX_NUMBERS_Helmholtz:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib COMPLEX_NUMBERS_Helmholtz ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.knowledge "ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.exa4" ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.results 1 1 Platform/random.platform output
+
+test:COMPLEX_NUMBERS_Helmholtz_MPI:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib COMPLEX_NUMBERS_Helmholtz_MPI ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.knowledge "ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.exa4" ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.results 4 2 Platform/random.platform output
 

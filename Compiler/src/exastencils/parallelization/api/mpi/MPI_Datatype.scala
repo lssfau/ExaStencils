@@ -70,6 +70,17 @@ object MPI_DataType {
     // avoid nested data types for now
     numNonDummyDims <= 1
   }
+
+  // filter which mpi datatype send and receive buffers should have based on the field datatype
+  // currently implements only the special case of field<complex>, which leads to use of MPI_CXX_DOUBLE_COMPLEX
+  // (complex can be mapped to a built-in MPI datatype)
+  // (matrices are mapped to buffers of IR_RealDatatype)
+  def determineInnerMPIDatatype(field : IR_Field) : IR_Datatype = {
+    field.layout.datatype match {
+      case cd : IR_ComplexDatatype => IR_ComplexDatatype(IR_RealDatatype)
+      case _ => IR_RealDatatype
+    }
+  }
 }
 
 case class MPI_DataType(var field : IR_Field, var indexRange : IR_ExpressionIndexRange, var condition : Option[IR_Expression]) extends IR_Datatype {

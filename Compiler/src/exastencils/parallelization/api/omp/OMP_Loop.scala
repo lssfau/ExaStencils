@@ -24,7 +24,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.config._
-import exastencils.core.Duplicate
+import exastencils.core
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_Vectorization
@@ -98,7 +98,26 @@ object OMP_AddParallelSections extends DefaultStrategy("Handle potentially paral
       if (target.parallelization.privateVars.nonEmpty)
         additionalOMPClauses += OMP_Private(target.parallelization.privateVars.clone())
 
-      OMP_ParallelFor(target, additionalOMPClauses, target.parallelization.collapseDepth)
+      // add declared custom "+"-reduction for complex numbers
+      var red = target.parallelization.reduction
+      if(red.isDefined && red.get.target.datatype.isInstanceOf[IR_ComplexDatatype]) {
+        // add combiner to util functions
+        val dt = red.get.target.datatype
+        //if (!IR_UtilFunctions.get.functions.exists(f => f.name == "ComplexRedAdd")) {
+        //  IR_UtilFunctions.get += IR_ComplexOperations.generateOMPRedAdd(dt)
+        //}
+        ListBuffer[IR_Statement](
+          OMP_DeclareReduction(
+            "+",
+            ListBuffer[IR_Datatype](dt),
+            //IR_Assignment(IR_VariableAccess("omp_out", dt), IR_VariableAccess("omp_in",dt), "+="),
+            IR_Addition(IR_VariableAccess("omp_out", dt), IR_VariableAccess("omp_in",dt)),
+            IR_IntegerConstant(0)
+          ),
+          OMP_ParallelFor(target, additionalOMPClauses, target.parallelization.collapseDepth)
+        )
+      } else
+        OMP_ParallelFor(target, additionalOMPClauses, target.parallelization.collapseDepth)
   }, false) // switch off recursion due to wrapping mechanism
 }
 
@@ -150,17 +169,73 @@ object OMP_ResolveMinMaxReduction extends DefaultStrategy("Resolve omp min and m
         ompSection
       }
   }, false) // switch off recursion due to wrapping mechanism
-
-  object IR_ReplaceVariableAccessWoReduction extends QuietDefaultStrategy("Replace something with something else but skip reductions") {
-    var toReplace : String = ""
-    var replacement : Node = IR_VariableAccess("", IR_UnknownDatatype) // to be overwritten
-
-    this += new Transformation("Search and replace", {
-      // TODO: rely only on IR_VariableAccess => eliminate IR_StringLiteral occurrences
-      case red : IR_Reduction                                     => red
-      case IR_StringLiteral(s) if s == toReplace                  => Duplicate(replacement)
-      case access : IR_VariableAccess if access.name == toReplace => Duplicate(replacement)
-    }, false)
-  }
-
 }
+
+object OMP_FixArithmeticReductionOrder extends DefaultStrategy("Fix order of arithmetic omp reductions") {
+  this += new Transformation("Resolve", {
+    case ompSection : OMP_ParallelFor =>
+      var hasApplicableReduction = false
+      var prependStmts = ListBuffer[IR_Statement]()
+      var appendStmts = ListBuffer[IR_Statement]()
+
+      var toRemove = ListBuffer[OMP_Clause]()
+      ompSection.additionalOMPClauses.map {
+        case reduction : OMP_Reduction if "+" == reduction.op || "-" == reduction.op || "*" == reduction.op=>
+          hasApplicableReduction = true
+          toRemove += reduction
+
+          // resolve max reductions
+          val redOp = reduction.op
+          val redExpName = reduction.target.name
+          val redDatatype = reduction.target.datatype
+          def redExp = IR_VariableAccess(redExpName, redDatatype)
+          val redExpLocalName = redExpName + "_local"
+          def redExpLocal = IR_VariableAccess(redExpLocalName, redDatatype)
+
+          val decl = IR_VariableDeclaration(IR_ArrayDatatype(redDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
+          val init = (0 until Knowledge.omp_numThreads).map(fragIdx => redOp match {
+            case "+" => IR_Assignment(IR_ArrayAccess(redExpLocal, fragIdx), IR_RealConstant(0.0))
+            case "-" => IR_Assignment(IR_ArrayAccess(redExpLocal, fragIdx), IR_RealConstant(0.0))
+            case "*" => IR_Assignment(IR_ArrayAccess(redExpLocal, fragIdx), IR_RealConstant(1.0))
+          })
+          val redOperands = ListBuffer[IR_Expression](redExp) ++= (0 until Knowledge.omp_numThreads).map(fragIdx => IR_ArrayAccess(redExpLocal, fragIdx) : IR_Expression)
+          val red = IR_Assignment(redExp, redOp match {
+            case "+" => IR_Addition(redOperands)
+            case "-" => IR_Negation(IR_Addition(redOperands))
+            case "*" => IR_Multiplication(redOperands)
+          })
+
+          IR_ReplaceVariableAccessWoReduction.toReplace = redExp.prettyprint
+          IR_ReplaceVariableAccessWoReduction.replacement = IR_ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", IR_IntegerDatatype))
+          IR_ReplaceVariableAccessWoReduction.applyStandalone(IR_Scope(ompSection.loop.body))
+
+          prependStmts += decl
+          prependStmts ++= init
+          appendStmts += red
+
+        case _ =>
+      }
+
+      ompSection.additionalOMPClauses --= toRemove
+
+      if (hasApplicableReduction) {
+        ompSection.loop.body.prepend(IR_VariableDeclaration(IR_IntegerDatatype, "omp_tid", "omp_get_thread_num()"))
+        IR_Scope((prependStmts :+ ompSection) ++ appendStmts)
+      } else {
+        ompSection
+      }
+  }, false) // switch off recursion due to wrapping mechanism
+}
+
+object IR_ReplaceVariableAccessWoReduction extends QuietDefaultStrategy("Replace something with something else but skip reductions") {
+  var toReplace : String = ""
+  var replacement : Node = IR_VariableAccess("", IR_UnknownDatatype) // to be overwritten
+
+  this += new Transformation("Search and replace", {
+    // TODO: rely only on IR_VariableAccess => eliminate IR_StringLiteral occurrences
+    case red : IR_Reduction                                     => red
+    case IR_StringLiteral(s) if s == toReplace                  => core.Duplicate(replacement)
+    case access : IR_VariableAccess if access.name == toReplace => core.Duplicate(replacement)
+  }, false)
+}
+

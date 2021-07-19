@@ -24,6 +24,7 @@ import scala.util.parsing.input._
 
 import exastencils.base.ir.IR_StringConstant
 import exastencils.base.l4._
+import exastencils.baseExt.l4.L4_ComplexExpression
 import exastencils.baseExt.l4._
 import exastencils.boundary.l4._
 import exastencils.communication.l4._
@@ -203,7 +204,6 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val functionReference = locationize(ident ~ levelAccess.? ~ ("@" ~> constIndex).? ^^ { case id ~ level ~ offset => L4_UnresolvedFunctionReference(id, level, offset) })
   lazy val functionCall = locationize(functionReference ~ ("(" ~> repsep(binaryexpression ||| booleanexpression, ",").? <~ ")")
     ^^ { case id ~ args => L4_FunctionCall(id, args.getOrElse(List()).to[ListBuffer]) })
-  //  ||| locationize(("(" ~> repsep(binaryexpression ||| booleanexpression, ",").? <~ ")") ~ (("^"  ||| "**") ~> functionReference)) ^^ { case args ~ id => L4_FunctionCall(id, args.getOrElse(List()).to[ListBuffer]) })
 
   lazy val functionTemplate = locationize((("FuncTemplate" ||| "FunctionTemplate") ~> ident) ~ ("<" ~> repsep(ident, ",").? <~ ">") ~ ("(" ~> repsep(functionArgument, ",").? <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}"))
     ^^ { case id ~ templateArgs ~ functionArgs ~ retType ~ stmts => L4_FunctionTemplate(id, retType, templateArgs.getOrElse(List()), functionArgs.getOrElse(List()), stmts) })
@@ -333,8 +333,6 @@ object L4_Parser extends ExaParser with PackratParsers {
       Logger.error("color expression in 'color with' statement must be a modulo expression with a constant integral divisor" + exp.location.toAppendString)
   })
 
-  //TODO parse L4 local solve for matrices
-  // -> L4 SolveLinearSystem
   lazy val solveLinearSystemStatement = locationize(("solveMatSys") ~> (binaryexpression <~ ",") ~ (binaryexpression <~ ",") ~ binaryexpression ~ matShapeOption.? ^^ {
     case a ~ u ~ f ~ shape => L4_SolveMatrixSystem(a, u, f, shape)
   })
@@ -485,6 +483,8 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| functionCall
       ||| locationize("-" ~> genericAccess ^^ { L4_Negative(_) })
       ||| genericAccess
+      ||| complexExpression
+    //||| complexExpression2
     )
 
   lazy val numLit = locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) L4_IntegerConstant((s.getOrElse("") + n).toInt) else L4_RealConstant((s.getOrElse("") + n).toDouble) })
@@ -510,6 +510,22 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val tensorExpressionN = locationize(("tensN" ~ "{") ~> (integerLit <~ ";") ~ (integerLit <~ ";") ~ (repsep(tensorEntry, ",") <~ "}") ^^ { case dims ~ order ~ x => L4_TensorExpressionN(None, dims, order, x) })
 
   lazy val tensorEntry = locationize(("[" ~> repsep(integerLit, ",") <~ "]") ~ ((":=") ~> numLit) ^^ { case index ~ coeff => L4_TensorEntry(index, coeff) })
+
+  lazy val complexExpression = locationize(
+    /*
+    ("(" ~> term) ~ "+" ~ term <~ ("j" ~ ")")
+    ^^ { case real ~ _ ~ imag => L4_ComplexExpression(real, true, imag) } |||
+    ("(" ~> term) ~ "-" ~ term <~ ("j" ~ ")")
+      ^^ { case real ~ _ ~ imag => L4_ComplexExpression(real, false, imag) } |||
+
+     */
+    ("(" ~> term) ~ "+" ~ term <~ ("j" ~ ")")
+      ^^ { case real ~ _ ~ imag => L4_ComplexExpression(real, true, imag) } |||
+      ("(" ~> term) ~ "-" ~ term <~ ("j" ~ ")")
+        ^^ { case real ~ _ ~ imag => L4_ComplexExpression(real, false, imag) } |||
+
+      ("complex" ~ "(") ~> term ~ "+," ~ "-".? ~ term <~ ")"
+    ^^ { case real ~ _ ~ sign ~ imag => L4_ComplexExpression(real, if(sign.isDefined) false else true, imag) })
 
   lazy val booleanexpression : PackratParser[L4_Expression] = (
     locationize((booleanexpression ~ ("||" ||| "or") ~ booleanexpression1) ^^ { case ex1 ~ op ~ ex2 => L4_BinaryOperators.createExpression(op, ex1, ex2) })
@@ -554,7 +570,9 @@ object L4_Parser extends ExaParser with PackratParsers {
   // ##### L4_ExpressionDeclaration
   // ######################################
 
-  lazy val expressionDeclaration = locationize((("Expr" ||| "Expression") ~> ident) ~ levelDecl.? ~ ("=" ~> (binaryexpression ||| booleanexpression))
+  lazy val expressionDeclaration = locationize((("Expr" ||| "Expression") ~> ident) ~ levelDecl.? ~ ("=" ~> (binaryexpression ||| booleanexpression
+    //||| complexExpression
+    ))
     ^^ { case id ~ levels ~ exp => L4_ExpressionDeclaration(id, levels, exp) })
 
   // ######################################
@@ -627,5 +645,4 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val equationExpression = locationize((binaryexpression <~ "==") ~ binaryexpression ^^ { case lhs ~ rhs => L4_Equation(lhs, rhs) })
   lazy val equationDeclaration = locationize(("Equation" ~> ident) ~ levelDecl.? ~ ("{" ~> equationExpression <~ "}")
     ^^ { case id ~ levels ~ eq => L4_EquationDecl(id, levels, eq) })
-
 }

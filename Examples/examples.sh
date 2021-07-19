@@ -81,3 +81,6 @@ configList+="OpticalFlow/3D_FD_OptFlow_fromL4_Vec "
 
 configList+="LinearElasticity/2D_FD_LinearElasticity_fromL2 "
 
+# Helmholtz
+configList+="Helmholtz/2D_FD_Helmholtz_fromL3 "
+
