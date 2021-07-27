@@ -120,21 +120,21 @@ case class L4_ConstIndex(override var indices : Array[Int]) extends L4_Index wit
 
 /// L4_RangeIndex
 
-case class L4_Range(var begin : Option[L4_Expression], var end : Option[L4_Expression]) extends L4_Expression  {
+case class L4_Range(var begin : Option[L4_Expression], var end : Option[L4_Expression]) extends L4_Expression {
   if (begin.isEmpty && end.isEmpty) {
     Logger.warn("Empty L4_Range")
   }
 
   override def progress : IR_Range = {
     IR_Range(
-    if(begin.isDefined) Some(begin.get.progress) else None,
-    if(end.isDefined) Some(end.get.progress) else None
+      if (begin.isDefined) Some(begin.get.progress) else None,
+      if (end.isDefined) Some(end.get.progress) else None
     )
   }
   override def prettyprint(out : PpStream) : Unit = {
-    if(begin.isDefined) out << begin.get
+    if (begin.isDefined) out << begin.get
     out << ":"
-    if(end.isDefined) out << end.get
+    if (end.isDefined) out << end.get
   }
 }
 
@@ -147,7 +147,7 @@ case class L4_RangeIndex(override var indices : Array[L4_Range]) extends L4_Inde
     out << '['
     for (idx <- 0 until indices.length) {
       out << indices(idx)
-      if(idx != indices.length - 1)
+      if (idx != indices.length - 1)
         out << ","
     }
     out << "]"
@@ -159,7 +159,6 @@ case class L4_RangeIndex(override var indices : Array[L4_Range]) extends L4_Inde
   override def +(that : L4_Index) : L4_Index = ???
   override def -(that : L4_Index) : L4_Index = ???
 }
-
 
 case class L4_MatIndex(indices : Array[L4_Index]) extends L4_Index {
   def y : L4_Index = {
@@ -176,23 +175,23 @@ case class L4_MatIndex(indices : Array[L4_Index]) extends L4_Index {
   def asInt : Int = {
     indices(0) match {
       case _ : L4_ExpressionIndex => Logger.error("Index is an expression!")
-      case cidx : L4_ConstIndex => cidx.indices(0)
-      case _ : L4_RangeIndex => Logger.error("Index is a range!")
+      case cidx : L4_ConstIndex   => cidx.indices(0)
+      case _ : L4_RangeIndex      => Logger.error("Index is a range!")
     }
   }
 
-  override def progress: IR_MatIndex = IR_MatIndex(indices.map(idx => idx.progress))
+  override def progress : IR_MatIndex = IR_MatIndex(indices.map(idx => idx.progress))
 
-  override def length(): Int = indices.length
+  override def length() : Int = indices.length
 
-  override def toExpressionIndex: L4_ExpressionIndex = ???
+  override def toExpressionIndex : L4_ExpressionIndex = ???
 
-  override def +(that: L4_Index): L4_Index = ???
+  override def +(that : L4_Index) : L4_Index = ???
 
-  override def -(that: L4_Index): L4_Index = ???
+  override def -(that : L4_Index) : L4_Index = ???
 
-  override def prettyprint(out: PpStream): Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     indices(0).prettyprint(out)
-    if(indices.length == 2) indices(1).prettyprint(out)
+    if (indices.length == 2) indices(1).prettyprint(out)
   }
 }

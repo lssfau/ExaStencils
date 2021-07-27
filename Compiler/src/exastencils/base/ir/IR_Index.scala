@@ -93,7 +93,6 @@ case class IR_ExpressionIndex(var indices : Array[IR_Expression]) extends IR_Ind
     }))
   }
 
-
   override def equals(other : Any) : Boolean = {
     if (this eq other.asInstanceOf[AnyRef])
       return true
@@ -120,7 +119,6 @@ case class IR_ConstIndex(override var indices : Array[Int]) extends IR_Index wit
   override def datatype = /*FIXME*/ IR_UnitDatatype
   override def prettyprint(out : PpStream) = out << '[' << indices.mkString(", ") << ']'
 
-
   def +(that : IR_ConstIndex) = IR_ConstIndex(this, that, _ + _)
   override def +(that : IR_Index) = IR_ExpressionIndex(this.toExpressionIndex, that.toExpressionIndex, _ + _)
 
@@ -144,16 +142,15 @@ case class IR_Range(var begin : Option[IR_Expression], var end : Option[IR_Expre
   override def prettyprint(out : PpStream) : Unit = Logger.error("internal node not resolved")
 }
 
-
 object IR_RangeIndex {
   def apply(indices : IR_Range*) = new IR_RangeIndex(indices.toArray)
 }
 
-case class IR_RangeIndex(var indices : Array[IR_Range]) extends IR_Index  {
+case class IR_RangeIndex(var indices : Array[IR_Range]) extends IR_Index {
   override def length() : Int = indices.length
   override def toExpressionIndex : IR_ExpressionIndex = Logger.error("not implemented")
-  override def +(that : IR_Index) : IR_Index =  Logger.error("not implemented")
-  override def -(that : IR_Index) : IR_Index =  Logger.error("not implemented")
+  override def +(that : IR_Index) : IR_Index = Logger.error("not implemented")
+  override def -(that : IR_Index) : IR_Index = Logger.error("not implemented")
   override def datatype : IR_Datatype = Logger.error("not implemented")
   override def prettyprint(out : PpStream) : Unit = Logger.error("internal node not resolved")
 }
@@ -175,23 +172,23 @@ case class IR_MatIndex(indices : Array[IR_Index]) extends IR_Index {
   def asInt : Int = {
     indices(0) match {
       case _ : IR_ExpressionIndex => Logger.error("Index is an expression!")
-      case cidx : IR_ConstIndex => cidx.indices(0)
-      case _ : IR_RangeIndex => Logger.error("Index is a range!")
+      case cidx : IR_ConstIndex   => cidx.indices(0)
+      case _ : IR_RangeIndex      => Logger.error("Index is a range!")
     }
   }
 
-  override def length(): Int = indices.length
+  override def length() : Int = indices.length
 
-  override def toExpressionIndex: IR_ExpressionIndex = ???
+  override def toExpressionIndex : IR_ExpressionIndex = ???
 
-  override def +(that: IR_Index): IR_Index = ???
+  override def +(that : IR_Index) : IR_Index = ???
 
-  override def -(that: IR_Index): IR_Index = ???
+  override def -(that : IR_Index) : IR_Index = ???
 
-  override def datatype: IR_Datatype = ???
+  override def datatype : IR_Datatype = ???
 
-  override def prettyprint(out: PpStream): Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     out << indices(0)
-    if(indices.length == 2) out << indices(1)
+    if (indices.length == 2) out << indices(1)
   }
 }

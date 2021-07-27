@@ -113,7 +113,7 @@ object L4_PrepareMatrixAccesses extends DefaultStrategy("Prepare matrix accesses
         else
           L4_PlainVariableAccess(uAcc.name, decl.get.datatype, isConst = false)
 
-        L4_MatrixAccess(acc, uAcc.matIndex.get(0), if (uAcc.matIndex.get.length == 2) Some(uAcc.matIndex.get(1)) else None)
+        L4_MatrixAccess(acc, uAcc.matIndex.get.y, uAcc.matIndex.get.x)
       }
   })
 
