@@ -533,7 +533,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     connStmts += IR_VariableDeclaration(neighborFragID)
 
     connStmts += read_line
-    connStmts += IR_ReadStream(iss, ListBuffer(strBuf, IR_IV_FragmentId(IR_LoopOverFragments.defIt)))
+    connStmts += IR_Read(iss, strBuf, IR_IV_FragmentId(IR_LoopOverFragments.defIt))
 
     connStmts += IR_Assignment(IR_IV_CommunicationId(IR_LoopOverFragments.defIt), IR_LoopOverFragments.defIt)
 
@@ -545,12 +545,12 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       IR_PreIncrement(i),
       ListBuffer[IR_Statement](
         read_line,
-        IR_ReadStream(iss, ListBuffer(
+        IR_Read(iss,
           strBuf,
           IR_ArrayAccess(neighborBlockID, i),
           IR_ArrayAccess(neighborCommID, i),
           IR_ArrayAccess(neighborEdge, i),
-          IR_ArrayAccess(neighborFragID, i)))
+          IR_ArrayAccess(neighborFragID, i))
       ) ++ connectFragmentFromFile(neighborBlockID, neighborCommID, i)
     )
 
@@ -631,7 +631,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     nodeStmts += IR_LoopOverDimensions(numDims, indexRange,
       ListBuffer[IR_Statement](
         read_line,
-        IR_ReadStream(iss, ListBuffer(nodePositions(0), nodePositions(1)))
+        IR_Read(iss, nodePositions(0), nodePositions(1))
       ))
 
     loopOverNumFragments(nodeStmts)
@@ -670,7 +670,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
     body += read_line // jump over block_id
     body += read_line
-    body += IR_ReadStream(iss, ListBuffer(strBuf, IR_IV_Nfragments()))
+    body += IR_Read(iss, strBuf, IR_IV_Nfragments())
     body += read_line // jump over n_grid_nodes
 
     // read connectivity
