@@ -19,51 +19,47 @@ case class IR_VisItDestroy() extends IR_FuturePlainFunction {
     fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItCloseTraceFile"))
 
     // free coords array
-    for (coords_decl <- coords_arrays.distinct) {
+    for (coordsDecl <- coordsArrays.distinct) {
       for (dim <- 0 until Knowledge.dimensionality) {
-        val array_indices = ArrayBuffer[IR_Expression]()
-        if (Knowledge.dimensionality > 1) array_indices += IR_IntegerConstant(dim)
-        if (Knowledge.numLevels > 1) array_indices += IR_LoopOverLevels.defIt - Knowledge.minLevel
+        val arrayIndices = ArrayBuffer[IR_Expression]()
+        if (Knowledge.dimensionality > 1) arrayIndices += IR_IntegerConstant(dim)
+        if (Knowledge.numLevels > 1) arrayIndices += IR_LoopOverLevels.defIt - Knowledge.minLevel
 
         if (Knowledge.dimensionality > 1) {
-          val coords_access = if (array_indices.isEmpty) {
-            IR_VariableAccess(coords_decl)
-          } else if (array_indices.length == 1) {
-            IR_ArrayAccess(IR_VariableAccess(coords_decl), array_indices.head)
+          val coordsAccess = if (arrayIndices.isEmpty) {
+            IR_VariableAccess(coordsDecl)
+          } else if (arrayIndices.length == 1) {
+            IR_ArrayAccess(IR_VariableAccess(coordsDecl), arrayIndices.head)
           } else {
-            IR_MultiDimArrayAccess(IR_VariableAccess(coords_decl), IR_ExpressionIndex(array_indices.toArray))
+            IR_MultiDimArrayAccess(IR_VariableAccess(coordsDecl), IR_ExpressionIndex(arrayIndices.toArray))
           }
 
           fctBody += IR_LoopOverLevels(
             IR_IfCondition(
-              coords_access,
+              coordsAccess,
               ListBuffer[IR_Statement](
-                IR_ArrayFree(coords_access),
-                IR_Assignment(coords_access, IR_IntegerConstant(0))
-              )
-            )
+                IR_ArrayFree(coordsAccess),
+                IR_Assignment(coordsAccess, IR_IntegerConstant(0))))
           )
         }
 
         // free curve coords
         if (Knowledge.dimensionality < 3) {
-          val curveCoords_decl = IR_VariableDeclaration(coords_decl.datatype, "curve_" + coords_decl.name)
-          val curveCoords_access = if (array_indices.isEmpty) {
-            IR_VariableAccess(curveCoords_decl)
-          } else if (array_indices.length == 1) {
-            IR_ArrayAccess(IR_VariableAccess(curveCoords_decl), array_indices.head)
+          val curveCoordsDecl = IR_VariableDeclaration(coordsDecl.datatype, "curve_" + coordsDecl.name)
+          val curveCoordsAccess = if (arrayIndices.isEmpty) {
+            IR_VariableAccess(curveCoordsDecl)
+          } else if (arrayIndices.length == 1) {
+            IR_ArrayAccess(IR_VariableAccess(curveCoordsDecl), arrayIndices.head)
           } else {
-            IR_MultiDimArrayAccess(IR_VariableAccess(curveCoords_decl), IR_ExpressionIndex(array_indices.toArray))
+            IR_MultiDimArrayAccess(IR_VariableAccess(curveCoordsDecl), IR_ExpressionIndex(arrayIndices.toArray))
           }
 
           fctBody += IR_LoopOverLevels(
             IR_IfCondition(
-              curveCoords_access,
+              curveCoordsAccess,
               ListBuffer[IR_Statement](
-                IR_ArrayFree(curveCoords_access),
-                IR_Assignment(curveCoords_access, IR_IntegerConstant(0))
-              )
-            )
+                IR_ArrayFree(curveCoordsAccess),
+                IR_Assignment(curveCoordsAccess, IR_IntegerConstant(0))))
           )
         }
       }

@@ -58,21 +58,21 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       fctCollection
 
     case globalCollection : IR_GlobalCollection =>
-      globalCollection.variables += cur_level_decl
-      globalCollection.variables += visit_runMode_decl
-      globalCollection.variables += visit_updatePlots_decl
-      if (Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) globalCollection.variables += visit_scaleCurvemesh
+      globalCollection.variables += curLevelDecl
+      globalCollection.variables += runModeDecl
+      globalCollection.variables += updatePlotsDecl
+      if (Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) globalCollection.variables += scaleCurvemesh
 
       // coordinate arrays for 2 and 3 dim. rectilinear meshes
       if (Knowledge.dimensionality > 1) {
-        for (coords_decl <- coords_arrays.distinct) globalCollection.variables += coords_decl
+        for (coordsDecl <- coordsArrays.distinct) globalCollection.variables += coordsDecl
       }
       // coordinate arrays for 2 and 3 dim. curvilinear meshes(partially consisting of 1d or 2d variables)
       if (Knowledge.dimensionality < 3) {
-        for (curveCoords_decl <- curveCoords_arrays.distinct) globalCollection.variables += curveCoords_decl
+        for (curveCoordsDecl <- curveCoordsArrays.distinct) globalCollection.variables += curveCoordsDecl
       }
 
-      globalCollection.variables += commandNames_decl
+      globalCollection.variables += commandNamesDecl
 
       globalCollection
   })
