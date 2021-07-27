@@ -31,52 +31,52 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
   val visit_scaleCurvemesh = IR_VariableDeclaration(IR_RealDatatype, "scale", IR_RealConstant(1.0))
 
-  var innerDatatype: IR_Datatype = IR_PointerDatatype(IR_RealDatatype)
-  if(Knowledge.dimensionality > 1) innerDatatype = IR_ArrayDatatype(innerDatatype, Knowledge.dimensionality)
-  if(Knowledge.numLevels > 1) innerDatatype = IR_ArrayDatatype(innerDatatype, Knowledge.numLevels)
+  var innerDatatype : IR_Datatype = IR_PointerDatatype(IR_RealDatatype)
+  if (Knowledge.dimensionality > 1) innerDatatype = IR_ArrayDatatype(innerDatatype, Knowledge.dimensionality)
+  if (Knowledge.numLevels > 1) innerDatatype = IR_ArrayDatatype(innerDatatype, Knowledge.numLevels)
 
   // coordinate arrays to create the rectilinear mesh(coordsNode for node/cell variables, coordsFace for face centered variables)
-  val coordsNode_decl: IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "coordsNode")
-  val coordsZone_decl: IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "coordsZone")
-  val coordsFaceX_decl: IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "coordsFace_x")
-  val coordsFaceY_decl: IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "coordsFace_y")
-  val coordsFaceZ_decl: IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "coordsFace_z")
-  val coordsFaceAsVec: Array[IR_VariableDeclaration] = Array[IR_VariableDeclaration](coordsFaceX_decl, coordsFaceY_decl, coordsFaceZ_decl)
+  val coordsNode_decl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "coordsNode")
+  val coordsZone_decl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "coordsZone")
+  val coordsFaceX_decl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "coordsFace_x")
+  val coordsFaceY_decl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "coordsFace_y")
+  val coordsFaceZ_decl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "coordsFace_z")
+  val coordsFaceAsVec : Array[IR_VariableDeclaration] = Array[IR_VariableDeclaration](coordsFaceX_decl, coordsFaceY_decl, coordsFaceZ_decl)
 
   // coordinate arrays to create the 3d curvilinear mesh for 2d variables and 2d curvilinear variable consisting of 1d variables
   // requires special handling for cell-based variables since they are not placed on a mesh's zone anymore
-  val curveCoordsNode_decl: IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "curve_coordsNode")
-  val curveCoordsZone_decl: IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "curve_coordsZone")
-  val curveCoordsFaceX_decl: IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "curve_coordsFace_x")
-  val curveCoordsFaceY_decl: IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "curve_coordsFace_y")
-  val curveCoordsFaceZ_decl: IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "curve_coordsFace_z")
-  val curveCoordsFaceAsVec: Array[IR_VariableDeclaration] = Array[IR_VariableDeclaration](curveCoordsFaceX_decl, curveCoordsFaceY_decl, curveCoordsFaceZ_decl)
+  val curveCoordsNode_decl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "curve_coordsNode")
+  val curveCoordsZone_decl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "curve_coordsZone")
+  val curveCoordsFaceX_decl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "curve_coordsFace_x")
+  val curveCoordsFaceY_decl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "curve_coordsFace_y")
+  val curveCoordsFaceZ_decl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "curve_coordsFace_z")
+  val curveCoordsFaceAsVec : Array[IR_VariableDeclaration] = Array[IR_VariableDeclaration](curveCoordsFaceX_decl, curveCoordsFaceY_decl, curveCoordsFaceZ_decl)
 
-  val coords_arrays: ArrayBuffer[IR_VariableDeclaration] = ArrayBuffer[IR_VariableDeclaration]()
-  val isNodalInDim: ArrayBuffer[Array[Int]] = ArrayBuffer[Array[Int]]()
+  val coords_arrays : ArrayBuffer[IR_VariableDeclaration] = ArrayBuffer[IR_VariableDeclaration]()
+  val isNodalInDim : ArrayBuffer[Array[Int]] = ArrayBuffer[Array[Int]]()
 
-  val curveCoords_arrays: ArrayBuffer[IR_VariableDeclaration] = ArrayBuffer[IR_VariableDeclaration]()
-  val isNodalInDim_curve: ArrayBuffer[Array[Int]] = ArrayBuffer[Array[Int]]()
+  val curveCoords_arrays : ArrayBuffer[IR_VariableDeclaration] = ArrayBuffer[IR_VariableDeclaration]()
+  val isNodalInDim_curve : ArrayBuffer[Array[Int]] = ArrayBuffer[Array[Int]]()
 
   // get variable localizations for rectilinear and curvilinear meshes
-  for(field <- IR_FieldCollection.objects) {
+  for (field <- IR_FieldCollection.objects) {
     val loc_name = field.layout.localization.name
-    val faceCenter_dir = loc_name.charAt(loc_name.length-1).toInt - 'x'.toInt
-    if(loc_name == "Node" && !coords_arrays.contains(coordsNode_decl)) {
+    val faceCenter_dir = loc_name.charAt(loc_name.length - 1).toInt - 'x'.toInt
+    if (loc_name == "Node" && !coords_arrays.contains(coordsNode_decl)) {
       coords_arrays += coordsNode_decl
       isNodalInDim += Array.fill[Int](Knowledge.dimensionality)(1)
 
       curveCoords_arrays += curveCoordsNode_decl
       isNodalInDim_curve += Array.fill[Int](Knowledge.dimensionality)(1)
     }
-    if(loc_name == "Cell" && !coords_arrays.contains(coordsZone_decl)) {
+    if (loc_name == "Cell" && !coords_arrays.contains(coordsZone_decl)) {
       coords_arrays += coordsZone_decl
       isNodalInDim += Array.fill[Int](Knowledge.dimensionality)(1)
 
       curveCoords_arrays += curveCoordsZone_decl
       isNodalInDim_curve += Array.fill[Int](Knowledge.dimensionality)(0)
     }
-    if(loc_name.contains("Face") && !coords_arrays.contains(coordsFaceAsVec(faceCenter_dir))) {
+    if (loc_name.contains("Face") && !coords_arrays.contains(coordsFaceAsVec(faceCenter_dir))) {
       coords_arrays += coordsFaceAsVec(faceCenter_dir)
       isNodalInDim += Array.fill[Int](Knowledge.dimensionality)(0)
       isNodalInDim.last(faceCenter_dir) = 1
@@ -87,14 +87,14 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     }
   }
 
-  val commandNames_decl: IR_VariableDeclaration = if (Knowledge.numLevels > 1) {
+  val commandNames_decl : IR_VariableDeclaration = if (Knowledge.numLevels > 1) {
     IR_VariableDeclaration(IR_ArrayDatatype(IR_PointerDatatype(IR_CharDatatype), 6), "commandNames", Option[IR_Expression](IR_Native("{\"step\", \"stop\", \"run\", \"switchUpdates\", \"level down\", \"level up\" }")), isConst = true)
   } else {
     IR_VariableDeclaration(IR_ArrayDatatype(IR_PointerDatatype(IR_CharDatatype), 4), "commandNames", Option[IR_Expression](IR_Native("{\"step\", \"stop\", \"run\", \"switchUpdates\"}")), isConst = true)
   }
 
   // only gets generated when dimensionality is either 2 or 3
-  def setupFct_SimGetVariable(): IR_Function = {
+  def setupFct_SimGetVariable() : IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
     val h_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "h", IR_Native("VISIT_INVALID_HANDLE"))
 
@@ -107,33 +107,33 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       val numOuterLayersLeft = (0 until numDims).map(d => field.layout.defIdxDupLeftBegin(d) - field.layout.defIdxPadLeftBegin(d)).toArray
       val numOuterLayersRight = (0 until numDims).map(d => field.layout.defIdxPadRightEnd(d) - field.layout.defIdxDupRightEnd(d)).toArray
       val isNodalDim = (0 until numDims).map(d => numPointsDim_tmp(d) % 2)
-      val numPointsTotal_tmp = (0 until numDims).map(d => (Knowledge.domain_rect_numFragsPerBlockAsVec(d) * (numPointsDim_tmp(d)-isNodalDim(d))) + isNodalDim(d))
+      val numPointsTotal_tmp = (0 until numDims).map(d => (Knowledge.domain_rect_numFragsPerBlockAsVec(d) * (numPointsDim_tmp(d) - isNodalDim(d))) + isNodalDim(d))
 
       // determine if data must be copied or not
-      val dataIsCopied = if(numOuterLayersLeft.sum != 0 || numOuterLayersRight.sum != 0 || Knowledge.domain_numFragmentsPerBlock > 1) true else false
+      val dataIsCopied = if (numOuterLayersLeft.sum != 0 || numOuterLayersRight.sum != 0 || Knowledge.domain_numFragmentsPerBlock > 1) true else false
 
       val tmp_decl = IR_VariableDeclaration(IR_PointerDatatype(IR_RealDatatype), "tmp")
       // offset depending on number of ghost/pad layers
-      val offsetToInnerPoints = if(numDims == 2) {
+      val offsetToInnerPoints = if (numDims == 2) {
         numOuterLayersLeft(1) * numPointsDim_field(0) + numOuterLayersLeft(0)
       } else {
         numOuterLayersLeft(2) * numPointsDim_field(0) * numPointsDim_field(1) + numOuterLayersLeft(1) * numPointsDim_field(0) + numOuterLayersLeft(0)
       }
 
       // offset to the current fragment
-      val fragOffset = (0 until numDims).map(d => if(Knowledge.domain_rect_numFragsPerBlockAsVec(d) <= 1) IR_IntegerConstant(0)
-      else (numPointsDim_tmp(d)-isNodalDim(d)) * (IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(d))).toArray
+      val fragOffset = (0 until numDims).map(d => if (Knowledge.domain_rect_numFragsPerBlockAsVec(d) <= 1) IR_IntegerConstant(0)
+      else (numPointsDim_tmp(d) - isNodalDim(d)) * (IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(d))).toArray
 
       // indices for array access
-      val idxTmp = if(numDims == 2) {
-        numPointsTotal_tmp(0) * (IR_FieldIteratorAccess(1) + fragOffset(1))  + (IR_FieldIteratorAccess(0) + fragOffset(0))
+      val idxTmp = if (numDims == 2) {
+        numPointsTotal_tmp(0) * (IR_FieldIteratorAccess(1) + fragOffset(1)) + (IR_FieldIteratorAccess(0) + fragOffset(0))
       } else {
         numPointsTotal_tmp(0) * numPointsTotal_tmp(1) * (IR_FieldIteratorAccess(2) + fragOffset(2)) + // linearized z
           numPointsTotal_tmp(0) * (IR_FieldIteratorAccess(1) + fragOffset(1)) + // linearized y
           (IR_FieldIteratorAccess(0) + fragOffset(0)) // linearized x
       }
 
-      val idxField = if(numDims == 2) {
+      val idxField = if (numDims == 2) {
         numPointsDim_field(0) * IR_FieldIteratorAccess(1) + IR_FieldIteratorAccess(0)
       } else {
         numPointsDim_field(0) * numPointsDim_field(1) * IR_FieldIteratorAccess(2) +
@@ -144,24 +144,24 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       val arrayAccess = IR_ArrayAccess(IR_VariableAccess(tmp_decl), IR_ExpressionIndex(idxTmp))
 
       // direct access to field if data is not copied
-      val arrayAccessArg = if(!dataIsCopied) {
-        if(Knowledge.numLevels > 1) {
-          IR_ArrayAccess(IR_VariableAccess("fieldData_"+field.name, field.layout.datatype), field.level-Knowledge.minLevel)
+      val arrayAccessArg = if (!dataIsCopied) {
+        if (Knowledge.numLevels > 1) {
+          IR_ArrayAccess(IR_VariableAccess("fieldData_" + field.name, field.layout.datatype), field.level - Knowledge.minLevel)
         } else {
-          IR_VariableAccess("fieldData_"+field.name, field.layout.datatype)
+          IR_VariableAccess("fieldData_" + field.name, field.layout.datatype)
         }
       }
       else IR_VariableAccess(tmp_decl)
 
       // determine whether simulation or VisIt is responsible for freeing
-      val ownership = if(!dataIsCopied) {
+      val ownership = if (!dataIsCopied) {
         IR_Native("VISIT_OWNER_SIM")
       } else {
         IR_Native("VISIT_OWNER_VISIT")
       }
 
       // determine whether doubles or floats are sent
-      val funcRef = if(Knowledge.useDblPrecision) IR_ExternalFunctionReference("VisIt_VariableData_setDataD") else IR_ExternalFunctionReference("VisIt_VariableData_setDataF")
+      val funcRef = if (Knowledge.useDblPrecision) IR_ExternalFunctionReference("VisIt_VariableData_setDataD") else IR_ExternalFunctionReference("VisIt_VariableData_setDataF")
 
       val sendData = IR_IfCondition(
         IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(IR_VariableAccess(h_decl))) EqEq IR_Native("VISIT_OKAY"),
@@ -171,9 +171,9 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       )
 
       // no copy needed if offset == 0 and no multiple fragments
-      val loop_statement =  ListBuffer[IR_Statement]()
+      val loop_statement = ListBuffer[IR_Statement]()
 
-      if(!dataIsCopied) {
+      if (!dataIsCopied) {
         loop_statement += sendData
       } else {
         loop_statement += tmp_decl
@@ -192,7 +192,6 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
         )
         loop_statement += sendData
       }
-
 
       fctBody += IR_IfCondition(
         IR_AndAnd(
@@ -213,7 +212,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     )
   }
 
-  def setupFct_SimGetMesh(): IR_Function = {
+  def setupFct_SimGetMesh() : IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
     val h_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "h", IR_Native("VISIT_INVALID_HANDLE"))
     val handles_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_SpecialDatatype("visit_handle"), Knowledge.dimensionality), "handles")
@@ -221,7 +220,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     fctBody += h_decl
 
     // 1d case only produce a curvilinear mesh
-    if(Knowledge.dimensionality > 1) {
+    if (Knowledge.dimensionality > 1) {
       for (coords_decl <- coords_arrays) {
         val curCoords = coords_arrays.indexOf(coords_decl)
         for (level <- Knowledge.minLevel to Knowledge.maxLevel) {
@@ -243,7 +242,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
           }
 
           // determine whether doubles or floats are sent
-          val funcRef = if(Knowledge.useDblPrecision) IR_ExternalFunctionReference("VisIt_VariableData_setDataD") else IR_ExternalFunctionReference("VisIt_VariableData_setDataF")
+          val funcRef = if (Knowledge.useDblPrecision) IR_ExternalFunctionReference("VisIt_VariableData_setDataD") else IR_ExternalFunctionReference("VisIt_VariableData_setDataF")
 
           // pass pointers of coordinate arrays to handles
           for (dim <- 0 until Knowledge.dimensionality) {
@@ -280,32 +279,32 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       }
     }
     // curvilinear mesh construction for 1d and 2d problems
-    if(Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) {
+    if (Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) {
       for (field <- IR_FieldCollection.sortedObjects) {
         val numDims = field.layout.numDimsGrid
-        val handlesCurve_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_SpecialDatatype("visit_handle"), numDims+1), "handles")
+        val handlesCurve_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_SpecialDatatype("visit_handle"), numDims + 1), "handles")
         val numPointsDim_tmp = (0 until numDims).map(d => field.layout.defIdxDupRightEnd(d) - field.layout.defIdxDupLeftBegin(d)).toArray
         val numPointsDim_field = (0 until numDims).map(d => field.layout.defIdxPadRightEnd(0) - field.layout.defIdxPadLeftBegin(0))
         val numOuterLayersLeft = (0 until numDims).map(d => field.layout.defIdxDupLeftBegin(d) - field.layout.defIdxPadLeftBegin(d)).toArray
         val numOuterLayersRight = (0 until numDims).map(d => field.layout.defIdxPadRightEnd(d) - field.layout.defIdxDupRightEnd(d)).toArray
         val isNodalDim = (0 until numDims).map(d => numPointsDim_tmp(d) % 2)
-        val fragOffset = (0 until numDims).map(d => if(Knowledge.domain_rect_numFragsPerBlockAsVec(d) <= 1) IR_IntegerConstant(0)
-        else (numPointsDim_tmp(d)-isNodalDim(d)) * (IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(d)))
-        val numPointsTotal_tmp = (0 until numDims).map(d => Knowledge.domain_rect_numFragsPerBlockAsVec(d) * (numPointsDim_tmp(d)-isNodalDim(d)) + isNodalDim(d))
+        val fragOffset = (0 until numDims).map(d => if (Knowledge.domain_rect_numFragsPerBlockAsVec(d) <= 1) IR_IntegerConstant(0)
+        else (numPointsDim_tmp(d) - isNodalDim(d)) * (IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(d)))
+        val numPointsTotal_tmp = (0 until numDims).map(d => Knowledge.domain_rect_numFragsPerBlockAsVec(d) * (numPointsDim_tmp(d) - isNodalDim(d)) + isNodalDim(d))
 
         // determine if data must be copied or not
-        val dataIsCopied = if(numOuterLayersLeft.sum != 0 || numOuterLayersRight.sum != 0 || Knowledge.domain_numFragmentsPerBlock > 1) true else false
+        val dataIsCopied = if (numOuterLayersLeft.sum != 0 || numOuterLayersRight.sum != 0 || Knowledge.domain_numFragmentsPerBlock > 1) true else false
 
         val ifBody = ListBuffer[IR_Statement]()
         // dimensionality that must be passed -> for last dimension its 1 because we send 1 variable value per mesh point
-        val dims = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numDims+1), "dims")
+        val dims = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numDims + 1), "dims")
         ifBody += dims
-        for(dim <- 0 until numDims) {
+        for (dim <- 0 until numDims) {
           ifBody += IR_Assignment(IR_ArrayAccess(IR_VariableAccess(dims), dim), numPointsTotal_tmp(dim))
         }
         ifBody += IR_Assignment(IR_ArrayAccess(IR_VariableAccess(dims), numDims), 1)
 
-        val funcCall = if(numDims == 1) {
+        val funcCall = if (numDims == 1) {
           IR_FunctionCall(IR_ExternalFunctionReference("VisIt_CurvilinearMesh_setCoordsXY"), IR_VariableAccess(h_decl), IR_VariableAccess(dims), IR_ArrayAccess(IR_VariableAccess(handlesCurve_decl), 0), IR_ArrayAccess(IR_VariableAccess(handlesCurve_decl), 1))
         } else {
           IR_FunctionCall(IR_ExternalFunctionReference("VisIt_CurvilinearMesh_setCoordsXYZ"), IR_VariableAccess(h_decl), IR_VariableAccess(dims), IR_ArrayAccess(IR_VariableAccess(handlesCurve_decl), 0), IR_ArrayAccess(IR_VariableAccess(handlesCurve_decl), 1), IR_ArrayAccess(IR_VariableAccess(handlesCurve_decl), 2))
@@ -313,27 +312,27 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
         // allocate handles
         ifBody += handlesCurve_decl
-        for(dim <- 0 to numDims) {
+        for (dim <- 0 to numDims) {
           ifBody += IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(IR_ArrayAccess(IR_VariableAccess(handles_decl), dim)))
         }
 
         // pass pointers of coordinate arrays to handles
         val loc_name = field.layout.localization.name
-        val curveCoords_decl = if(loc_name == "Node") curveCoordsNode_decl else if(loc_name == "Cell") curveCoordsZone_decl else curveCoordsFaceAsVec(loc_name.charAt(loc_name.length-1).toInt - 'x'.toInt)
+        val curveCoords_decl = if (loc_name == "Node") curveCoordsNode_decl else if (loc_name == "Cell") curveCoordsZone_decl else curveCoordsFaceAsVec(loc_name.charAt(loc_name.length - 1).toInt - 'x'.toInt)
 
-        val idx_tmp = if(numDims == 1) {
+        val idx_tmp = if (numDims == 1) {
           IR_FieldIteratorAccess(0) + fragOffset(0)
         } else {
-          numPointsTotal_tmp(0) * (IR_FieldIteratorAccess(1)+fragOffset(1)) + IR_FieldIteratorAccess(0) + fragOffset(0)
+          numPointsTotal_tmp(0) * (IR_FieldIteratorAccess(1) + fragOffset(1)) + IR_FieldIteratorAccess(0) + fragOffset(0)
         }
 
-        val idx_field = if(numDims == 1) {
+        val idx_field = if (numDims == 1) {
           IR_FieldIteratorAccess(0)
         } else {
           numPointsDim_field(0) * IR_FieldIteratorAccess(1) + IR_FieldIteratorAccess(0)
         }
 
-        val offsetToInnerPoints = if(numDims == 1) {
+        val offsetToInnerPoints = if (numDims == 1) {
           numOuterLayersLeft(0)
         } else {
           numPointsDim_field(0) * numOuterLayersLeft(1) + numOuterLayersLeft(0)
@@ -359,22 +358,22 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
           )
         }
 
-        val variable_access = if(dataIsCopied) {
+        val variable_access = if (dataIsCopied) {
           IR_VariableAccess(tmp_decl)
         }
         else {
           // pass pointer of field if nothing was copied
-          if(Knowledge.numLevels > 1) {
-            IR_ArrayAccess(IR_VariableAccess("fieldData_"+field.name, field.layout.datatype), field.level-Knowledge.minLevel)
+          if (Knowledge.numLevels > 1) {
+            IR_ArrayAccess(IR_VariableAccess("fieldData_" + field.name, field.layout.datatype), field.level - Knowledge.minLevel)
           } else {
             IR_VariableAccess("fieldData_" + field.name, field.layout.datatype)
           }
         }
 
         // determine whether doubles or floats are sent
-        val funcRef = if(Knowledge.useDblPrecision) IR_ExternalFunctionReference("VisIt_VariableData_setDataD") else IR_ExternalFunctionReference("VisIt_VariableData_setDataF")
+        val funcRef = if (Knowledge.useDblPrecision) IR_ExternalFunctionReference("VisIt_VariableData_setDataD") else IR_ExternalFunctionReference("VisIt_VariableData_setDataF")
 
-        for(dim <- 0 until numDims) {
+        for (dim <- 0 until numDims) {
           val curveCoords_access = if (numDims == 1) {
             if (Knowledge.numLevels > 1) IR_ArrayAccess(IR_VariableAccess(curveCoords_decl), field.level - Knowledge.minLevel) else IR_VariableAccess(curveCoords_decl)
           } else {
@@ -396,7 +395,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
         }
 
         // determines whether simulation or VisIt is responsible for freeing
-        val ownership = if(dataIsCopied) {
+        val ownership = if (dataIsCopied) {
           IR_Native("VISIT_OWNER_VISIT")
         } else {
           IR_Native("VISIT_OWNER_SIM")
@@ -414,7 +413,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
         fctBody += IR_IfCondition(
           IR_AndAnd(
-            IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("name", IR_StringDatatype), IR_StringConstant("curv" + (numDims+1) + "d_" + field.name)) EqEq IR_IntegerConstant(0),
+            IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("name", IR_StringDatatype), IR_StringConstant("curv" + (numDims + 1) + "d_" + field.name)) EqEq IR_IntegerConstant(0),
             IR_VariableAccess(cur_level_decl) EqEq field.level
           ),
           ListBuffer[IR_Statement](
@@ -437,8 +436,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     )
   }
 
-
-  def setupFct_SimGetMetaData(): IR_Function = {
+  def setupFct_SimGetMetaData() : IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
     val ifBody = ListBuffer[IR_Statement]()
 
@@ -452,7 +450,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     ifBody += IR_FunctionCall(IR_ExternalFunctionReference("VisIt_SimulationMetaData_setMode"), IR_VariableAccess(md_decl), IR_VariableAccess(mode_decl))
     ifBody += IR_FunctionCall(IR_ExternalFunctionReference("VisIt_SimulationMetaData_setCycleTime"), IR_VariableAccess(md_decl), IR_VariableAccess(sim_cycle_decl), IR_VariableAccess(sim_time_decl))
 
-    if(Knowledge.dimensionality > 1) {
+    if (Knowledge.dimensionality > 1) {
       for (coords_decl <- coords_arrays) {
         val mmd_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "meshMetadata_" + coords_decl.name.drop(6), IR_Native("VISIT_INVALID_HANDLE"))
 
@@ -470,7 +468,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
         )
       }
     }
-    if(Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) {
+    if (Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) {
       // display one dimensional variables as a 2d curvilinear mesh consisting of the created coordinate array and the variable values
       // display two dimensional variables as a 3d curvilinear
       for (field <- IR_FieldCollection.sortedObjects) {
@@ -481,10 +479,10 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
           ifBody += IR_IfCondition(
             IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_alloc"), IR_AddressOf(IR_VariableAccess(mmd_decl))) EqEq IR_Native("VISIT_OKAY"),
             ListBuffer[IR_Statement](
-              IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setName"), IR_VariableAccess(mmd_decl), IR_StringConstant("curv" + (Knowledge.dimensionality+1) + "d_" + field.name)),
+              IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setName"), IR_VariableAccess(mmd_decl), IR_StringConstant("curv" + (Knowledge.dimensionality + 1) + "d_" + field.name)),
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setMeshType"), IR_VariableAccess(mmd_decl), IR_Native("VISIT_MESHTYPE_CURVILINEAR")),
-              IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setTopologicalDimension"), IR_VariableAccess(mmd_decl), Knowledge.dimensionality+1),
-              IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setSpatialDimension"), IR_VariableAccess(mmd_decl), Knowledge.dimensionality+1),
+              IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setTopologicalDimension"), IR_VariableAccess(mmd_decl), Knowledge.dimensionality + 1),
+              IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setSpatialDimension"), IR_VariableAccess(mmd_decl), Knowledge.dimensionality + 1),
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setNumDomains"), IR_VariableAccess(mmd_decl), Knowledge.domain_numBlocks),
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_SimulationMetaData_addMesh"), IR_VariableAccess(md_decl), IR_VariableAccess(mmd_decl))
             )
@@ -496,18 +494,18 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
     new_name_identifier = "" // reset
 
-    if(Knowledge.dimensionality > 1) {
+    if (Knowledge.dimensionality > 1) {
       // variable metadata
       for (field <- IR_FieldCollection.sortedObjects) {
         if (field.name != new_name_identifier) {
           val vmd_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "varMetadata_" + field.name, IR_Native("VISIT_INVALID_HANDLE"))
           val loc_name = field.layout.localization.name
-          val varCentering = if(loc_name == "Cell") {
+          val varCentering = if (loc_name == "Cell") {
             IR_Native("VISIT_VARCENTERING_ZONE")
           } else {
             IR_Native("VISIT_VARCENTERING_NODE")
           }
-          val meshname = if(loc_name == "Node") "Node" else if(loc_name == "Cell") "Zone" else "Face_" + loc_name.charAt(loc_name.length()-1)
+          val meshname = if (loc_name == "Node") "Node" else if (loc_name == "Cell") "Zone" else "Face_" + loc_name.charAt(loc_name.length() - 1)
           ifBody += vmd_decl
           ifBody += IR_IfCondition(
             IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableMetaData_alloc"), IR_AddressOf(IR_VariableAccess(vmd_decl))) EqEq IR_Native("VISIT_OKAY"),
@@ -557,11 +555,11 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
   }
 
   // implement functionality for the control buttons on the GUI
-  def setupFct_ControlCommandCallback(): IR_Function = {
+  def setupFct_ControlCommandCallback() : IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
 
     fctBody += IR_IfCondition(
-      IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("cmd",IR_ConstPointerDatatype(IR_CharDatatype)), IR_StringConstant("step")) EqEq IR_IntegerConstant(0),
+      IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("cmd", IR_ConstPointerDatatype(IR_CharDatatype)), IR_StringConstant("step")) EqEq IR_IntegerConstant(0),
       ListBuffer[IR_Statement](
         IR_FunctionCall(IR_LeveledInternalFunctionReference("simulate_timestep", Knowledge.maxLevel, IR_UnitDatatype)),
         IR_IfCondition(
@@ -579,21 +577,21 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       )
     )
     fctBody += IR_IfCondition(
-      IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("cmd",IR_ConstPointerDatatype(IR_CharDatatype)), IR_StringConstant("stop")) EqEq IR_IntegerConstant(0),
+      IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("cmd", IR_ConstPointerDatatype(IR_CharDatatype)), IR_StringConstant("stop")) EqEq IR_IntegerConstant(0),
       IR_Assignment(IR_VariableAccess(visit_runMode_decl), IR_BooleanConstant(false))
     )
     fctBody += IR_IfCondition(
-      IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("cmd",IR_ConstPointerDatatype(IR_CharDatatype)), IR_StringConstant("run")) EqEq IR_IntegerConstant(0),
+      IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("cmd", IR_ConstPointerDatatype(IR_CharDatatype)), IR_StringConstant("run")) EqEq IR_IntegerConstant(0),
       IR_Assignment(IR_VariableAccess(visit_runMode_decl), IR_BooleanConstant(true))
     )
     fctBody += IR_IfCondition(
-      IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("cmd",IR_ConstPointerDatatype(IR_CharDatatype)), IR_StringConstant("switchUpdates")) EqEq IR_IntegerConstant(0),
+      IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("cmd", IR_ConstPointerDatatype(IR_CharDatatype)), IR_StringConstant("switchUpdates")) EqEq IR_IntegerConstant(0),
       IR_Assignment(IR_VariableAccess(visit_updatePlots_decl), IR_Negation(IR_VariableAccess(visit_updatePlots_decl)))
     )
     // only register level switches when necessary
-    if(Knowledge.numLevels > 1) {
+    if (Knowledge.numLevels > 1) {
       fctBody += IR_IfCondition(
-        IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("cmd",IR_ConstPointerDatatype(IR_CharDatatype)), IR_StringConstant("level down")) EqEq IR_IntegerConstant(0),
+        IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("cmd", IR_ConstPointerDatatype(IR_CharDatatype)), IR_StringConstant("level down")) EqEq IR_IntegerConstant(0),
         ListBuffer[IR_Statement](
           IR_Assignment(IR_VariableAccess(cur_level_decl), IR_Maximum(IR_VariableAccess(cur_level_decl) - IR_IntegerConstant(1), Knowledge.minLevel)),
           IR_IfCondition(
@@ -606,7 +604,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
         )
       )
       fctBody += IR_IfCondition(
-        IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("cmd",IR_ConstPointerDatatype(IR_CharDatatype)), IR_StringConstant("level up")) EqEq  IR_IntegerConstant(0),
+        IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("cmd", IR_ConstPointerDatatype(IR_CharDatatype)), IR_StringConstant("level up")) EqEq IR_IntegerConstant(0),
         ListBuffer[IR_Statement](
           IR_Assignment(IR_VariableAccess(cur_level_decl), IR_Minimum(IR_VariableAccess(cur_level_decl) + IR_IntegerConstant(1), Knowledge.maxLevel)),
           IR_IfCondition(
@@ -628,18 +626,18 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     )
   }
 
-  def setupFct_visit_init(): IR_Function = {
+  def setupFct_visit_init() : IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
     val cwd_decl = IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "cwd", IR_Native("NULL"))
 
-    val getCWD = if(Platform.targetCompiler == "MSVC") {
+    val getCWD = if (Platform.targetCompiler == "MSVC") {
       IR_ExternalFunctionReference("_getcwd")
     } else {
       IR_ExternalFunctionReference("getcwd")
     }
 
     // allocate coordinate arrays
-    for(level <- Knowledge.minLevel to Knowledge.maxLevel) {
+    for (level <- Knowledge.minLevel to Knowledge.maxLevel) {
       for (coords_decl <- coords_arrays.distinct) {
         for (dim <- 0 until Knowledge.dimensionality) {
           val array_indices = ArrayBuffer[Int]()
@@ -656,13 +654,13 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
           else IR_MultiDimArrayAccess(IR_VariableAccess(coords_decl), IR_ExpressionIndex(array_indices.toArray))
 
           // regular coordinates for rect mesh, not used in 1d case
-          if(Knowledge.dimensionality > 1) {
+          if (Knowledge.dimensionality > 1) {
             fctBody += IR_ArrayAllocation(coords_access, IR_RealDatatype,
               (Knowledge.domain_fragmentLengthAsVec(dim) * Knowledge.domain_rect_numFragsPerBlockAsVec(dim) * (1 << level)) + isNodalInDim(curCoords)(dim))
           }
 
           // curve coordinates
-          if(Knowledge.dimensionality < 3) {
+          if (Knowledge.dimensionality < 3) {
             val curveCoords_decl = IR_VariableDeclaration(coords_decl.datatype, "curve_" + coords_decl.name)
             val curCoords_curve = curveCoords_arrays.indexOf(curveCoords_decl)
             val curveCoords_access = if (array_indices.isEmpty) {
@@ -673,14 +671,14 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
             }
             else IR_MultiDimArrayAccess(IR_VariableAccess(curveCoords_decl), IR_ExpressionIndex(array_indices.toArray))
 
-            if(Knowledge.dimensionality == 1) {
+            if (Knowledge.dimensionality == 1) {
               fctBody += IR_ArrayAllocation(
                 curveCoords_access, IR_RealDatatype,
                 (Knowledge.domain_fragmentLength_x * Knowledge.domain_rect_numFragsPerBlock_x * (1 << level)) + isNodalInDim_curve(curCoords_curve)(dim)
               )
             }
             // x and y coordinates for every point within the 2d domain
-            if(Knowledge.dimensionality == 2) {
+            if (Knowledge.dimensionality == 2) {
               fctBody += IR_ArrayAllocation(
                 curveCoords_access, IR_RealDatatype,
                 ((Knowledge.domain_fragmentLength_x * Knowledge.domain_rect_numFragsPerBlock_x * (1 << level)) + isNodalInDim_curve(curCoords_curve)(0)) *
@@ -694,15 +692,15 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
     // put Knowledge discr_h* (* = x/y/z) into one array
     val discr_perDim = Array.ofDim[Double](Knowledge.dimensionality, Knowledge.numLevels)
-    for(level <- Knowledge.minLevel to Knowledge.maxLevel) {
-      discr_perDim(0)(level-Knowledge.minLevel) = Knowledge.discr_hx(level-Knowledge.minLevel)
-      if(Knowledge.dimensionality > 1) discr_perDim(1)(level-Knowledge.minLevel) = Knowledge.discr_hy(level-Knowledge.minLevel)
-      if(Knowledge.dimensionality > 2) discr_perDim(2)(level-Knowledge.minLevel) = Knowledge.discr_hz(level-Knowledge.minLevel)
+    for (level <- Knowledge.minLevel to Knowledge.maxLevel) {
+      discr_perDim(0)(level - Knowledge.minLevel) = Knowledge.discr_hx(level - Knowledge.minLevel)
+      if (Knowledge.dimensionality > 1) discr_perDim(1)(level - Knowledge.minLevel) = Knowledge.discr_hy(level - Knowledge.minLevel)
+      if (Knowledge.dimensionality > 2) discr_perDim(2)(level - Knowledge.minLevel) = Knowledge.discr_hz(level - Knowledge.minLevel)
     }
 
-    for(level <- Knowledge.minLevel to Knowledge.maxLevel) {
-      for(coords_decl <- coords_arrays.distinct) {
-        val curveCoords_decl = IR_VariableDeclaration(coords_decl.datatype, "curve_"+coords_decl.name)
+    for (level <- Knowledge.minLevel to Knowledge.maxLevel) {
+      for (coords_decl <- coords_arrays.distinct) {
+        val curveCoords_decl = IR_VariableDeclaration(coords_decl.datatype, "curve_" + coords_decl.name)
         val curCoords = coords_arrays.indexOf(coords_decl)
         val curCoords_curve = curveCoords_arrays.indexOf(curveCoords_decl)
 
@@ -716,8 +714,8 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
         for (dim <- 0 until Knowledge.dimensionality) {
           // compute offset towards cell-center
-          val iterator = if(isNodalInDim(curCoords)(dim) != 1) IR_FieldIteratorAccess(0) + 0.5 else IR_FieldIteratorAccess(0)
-          val iterator_curve = if(isNodalInDim_curve(curCoords_curve)(dim) != 1) IR_FieldIteratorAccess(dim) + 0.5 else IR_FieldIteratorAccess(dim)
+          val iterator = if (isNodalInDim(curCoords)(dim) != 1) IR_FieldIteratorAccess(0) + 0.5 else IR_FieldIteratorAccess(0)
+          val iterator_curve = if (isNodalInDim_curve(curCoords_curve)(dim) != 1) IR_FieldIteratorAccess(dim) + 0.5 else IR_FieldIteratorAccess(dim)
 
           // compute offset towards point "i" on current block/fragment
           if (Knowledge.mpi_enabled || Knowledge.domain_numFragmentsPerBlock > 1) {
@@ -732,7 +730,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
         val forBody = ListBuffer[IR_Statement]()
         for (dim <- 0 until Knowledge.dimensionality) {
           // assign coordinate values, 1d cases only need curve coords
-          if(Knowledge.dimensionality > 1) {
+          if (Knowledge.dimensionality > 1) {
             val array_indices = ArrayBuffer[IR_Expression]()
             if (Knowledge.domain_numFragmentsPerBlock > 1) {
               array_indices += IR_FieldIteratorAccess(0) +
@@ -749,7 +747,6 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
               IR_MultiDimArrayAccess(IR_VariableAccess(coords_decl), IR_ExpressionIndex(array_indices.toArray))
             }
 
-
             forBody += IR_ForLoop(
               IR_VariableDeclaration(IR_FieldIteratorAccess(0), IR_IntegerConstant(0)), IR_FieldIteratorAccess(0) < numPointsDim(dim), IR_PreIncrement(IR_FieldIteratorAccess(0)),
               IR_Assignment(coords_access, stepSizeDim(dim))
@@ -757,22 +754,22 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
           }
 
           // curve coords for 1d and 2d problems
-          if(Knowledge.dimensionality < 3) {
+          if (Knowledge.dimensionality < 3) {
             // offset to the current fragment
-            val fragOffset = (0 until Knowledge.dimensionality).map(d => if(Knowledge.domain_rect_numFragsPerBlockAsVec(d) <= 1) IR_IntegerConstant(0)
-            else (numPointsDim_curve(d)-isNodalInDim_curve(curCoords_curve)(d)) * (IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(d))).toArray
+            val fragOffset = (0 until Knowledge.dimensionality).map(d => if (Knowledge.domain_rect_numFragsPerBlockAsVec(d) <= 1) IR_IntegerConstant(0)
+            else (numPointsDim_curve(d) - isNodalInDim_curve(curCoords_curve)(d)) * (IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(d))).toArray
 
             val arrayIndices_curve = ArrayBuffer[IR_Expression]()
-            if(Knowledge.domain_numFragmentsPerBlock > 1) {
-              if(Knowledge.dimensionality == 1) {
+            if (Knowledge.domain_numFragmentsPerBlock > 1) {
+              if (Knowledge.dimensionality == 1) {
                 arrayIndices_curve += IR_FieldIteratorAccess(0) + fragOffset(0)
-              } else{
+              } else {
                 arrayIndices_curve +=
                   (Knowledge.domain_rect_numFragsPerBlock_x * (numPointsDim_curve(0) - isNodalInDim_curve(curCoords_curve)(dim)) + isNodalInDim_curve(curCoords_curve)(dim)) * (IR_FieldIteratorAccess(1) + fragOffset(1)) +
                     (IR_FieldIteratorAccess(0) + fragOffset(0))
               }
             } else {
-              if(Knowledge.dimensionality == 1) {
+              if (Knowledge.dimensionality == 1) {
                 arrayIndices_curve += IR_FieldIteratorAccess(0)
               } else {
                 arrayIndices_curve += numPointsDim_curve(0) * IR_FieldIteratorAccess(1) + IR_FieldIteratorAccess(0)
@@ -788,7 +785,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
             }
 
             // assign curve coordinate values
-            if(Knowledge.dimensionality == 1) {
+            if (Knowledge.dimensionality == 1) {
               forBody += IR_ForLoop(
                 IR_VariableDeclaration(IR_FieldIteratorAccess(0), IR_IntegerConstant(0)), IR_FieldIteratorAccess(0) < numPointsDim_curve(0), IR_PreIncrement(IR_FieldIteratorAccess(0)),
                 IR_Assignment(curveCoords_access, stepSizeDim_curve(dim))
@@ -833,19 +830,19 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     )
 
     // name of the sim2 file
-    val sim_name = ListBuffer[String](Knowledge.dimensionality +"d_" +Knowledge.discr_type)
-    if(Knowledge.grid_isStaggered) sim_name +="staggered"
+    val sim_name = ListBuffer[String](Knowledge.dimensionality + "d_" + Knowledge.discr_type)
+    if (Knowledge.grid_isStaggered) sim_name += "staggered"
     sim_name += Knowledge.domain_numBlocks + "Blocks"
     sim_name += Knowledge.domain_numFragmentsPerBlock + "Frags"
 
     // mandatory functions for VisIt (setup environment variables, parallel initializations)
-    if(Knowledge.mpi_enabled) {
+    if (Knowledge.mpi_enabled) {
       fctBody += IR_VariableDeclaration(IR_ArrayDatatype(IR_CharDatatype, 1000), "fn")
       fctBody += IR_FunctionCall(IR_ExternalFunctionReference("sprintf"), IR_VariableAccess("fn", IR_ArrayDatatype(IR_CharDatatype, 1000)), IR_StringConstant("trace_%d.txt"), MPI_IV_MpiRank)
       fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItOpenTraceFile"), IR_VariableAccess("fn", IR_ArrayDatatype(IR_CharDatatype, 1000)))
 
       fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetBroadcastIntFunction"), IR_Native("visit_broadcast_int_callback"))
-      fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetBroadcastStringFunction"),  IR_Native("visit_broadcast_string_callback"))
+      fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetBroadcastStringFunction"), IR_Native("visit_broadcast_string_callback"))
 
       fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetParallel"), IR_BooleanConstant(true))
       fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetParallelRank"), MPI_IV_MpiRank)
@@ -889,19 +886,19 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     )
   }
 
-  def setupFct_visit_destroy(): IR_Function = {
+  def setupFct_visit_destroy() : IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
 
     fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItCloseTraceFile"))
 
     // free coords array
-    for(coords_decl <- coords_arrays.distinct) {
+    for (coords_decl <- coords_arrays.distinct) {
       for (dim <- 0 until Knowledge.dimensionality) {
         val array_indices = ArrayBuffer[IR_Expression]()
         if (Knowledge.dimensionality > 1) array_indices += IR_IntegerConstant(dim)
         if (Knowledge.numLevels > 1) array_indices += IR_LoopOverLevels.defIt - Knowledge.minLevel
 
-        if(Knowledge.dimensionality > 1) {
+        if (Knowledge.dimensionality > 1) {
           val coords_access = if (array_indices.isEmpty) {
             IR_VariableAccess(coords_decl)
           } else if (array_indices.length == 1) {
@@ -922,7 +919,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
         }
 
         // free curve coords
-        if(Knowledge.dimensionality < 3) {
+        if (Knowledge.dimensionality < 3) {
           val curveCoords_decl = IR_VariableDeclaration(coords_decl.datatype, "curve_" + coords_decl.name)
           val curveCoords_access = if (array_indices.isEmpty) {
             IR_VariableAccess(curveCoords_decl)
@@ -952,7 +949,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     )
   }
 
-  def setupFct_visit_mainloop(): IR_Function = {
+  def setupFct_visit_mainloop() : IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
     val whileBody = ListBuffer[IR_Statement]()
     val consoleInputBody = ListBuffer[IR_Statement]()
@@ -962,20 +959,20 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     val command_decl = IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "command", IR_Native("NULL"))
 
     val registerCallbackFcts = ListBuffer[IR_Statement]()
-    val procEngineCommandFct = if(Knowledge.mpi_enabled) {
+    val procEngineCommandFct = if (Knowledge.mpi_enabled) {
       IR_FunctionCall(IR_ExternalFunctionReference("ProcessVisItCommand"))
     } else {
       IR_FunctionCall(IR_ExternalFunctionReference("VisItProcessEngineCommand"))
     }
 
     // callback functions to register
-    if(Knowledge.mpi_enabled) {
+    if (Knowledge.mpi_enabled) {
       registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetSlaveProcessCallback"), IR_Native("slave_process_callback"))
       registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetGetDomainList"), IR_Native("SimGetDomainList"), IR_Native("nullptr"))
     }
     registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetGetMetaData"), IR_Native("SimGetMetaData"), IR_Native("nullptr"))
     registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetGetMesh"), IR_Native("SimGetMesh"), IR_Native("nullptr"))
-    if(Knowledge.dimensionality > 1) { // 1d variables are pictured as meshes
+    if (Knowledge.dimensionality > 1) { // 1d variables are pictured as meshes
       registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetGetVariable"), IR_Native("SimGetVariable"), IR_Native("nullptr"))
     }
 
@@ -988,13 +985,13 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     )
     whileBody += blocking_decl
 
-    val funcRef = if(Platform.targetCompiler == "MSVC") {
+    val funcRef = if (Platform.targetCompiler == "MSVC") {
       IR_ExternalFunctionReference("_fileno")
     } else {
       IR_ExternalFunctionReference("fileno")
     }
 
-    if(Knowledge.mpi_enabled) {
+    if (Knowledge.mpi_enabled) {
       whileBody += visit_input_decl
       whileBody += IR_IfCondition(
         MPI_IsRootProc.apply(),
@@ -1009,7 +1006,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     consoleInputBody += command_decl
     consoleInputBody += IR_ArrayAllocation(IR_VariableAccess(command_decl), IR_CharDatatype, IR_IntegerConstant(1000))
 
-    if(Knowledge.mpi_enabled) {
+    if (Knowledge.mpi_enabled) {
       consoleInputBody += IR_IfCondition(
         MPI_IsRootProc.apply(),
         IR_IfCondition(
@@ -1057,22 +1054,23 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       IR_Assignment(IR_VariableAccess(visit_updatePlots_decl), IR_Negation(IR_VariableAccess(visit_updatePlots_decl)))
     )
     // scaling: only used for curvilinear meshes
-    if(Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) {
+    if (Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) {
       val funcRef_scale = if (Knowledge.useDblPrecision) IR_ExternalFunctionReference("std::stod") else IR_ExternalFunctionReference("std::stof")
       consoleInputBody += IR_IfCondition(
         IR_FunctionCall(IR_ExternalFunctionReference("strstr"), IR_VariableAccess(command_decl), IR_StringConstant("scale=")) Neq IR_Native("NULL"),
-        IR_Native("""|try{
-                          |scale = std::stod(command+6);
-                          |} catch (const std::invalid_argument&) {
-                          |
-                          |} catch (const std::out_of_range&) {
-                          |
-                          |}
+        IR_Native(
+          """|try{
+             |scale = std::stod(command+6);
+             |} catch (const std::invalid_argument&) {
+             |
+             |} catch (const std::out_of_range&) {
+             |
+             |}
           """.stripMargin
         )
       )
     }
-    if(Knowledge.numLevels > 1) {
+    if (Knowledge.numLevels > 1) {
       consoleInputBody += IR_IfCondition(
         IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess(command_decl), IR_StringConstant("level down")) EqEq IR_IntegerConstant(0),
         ListBuffer[IR_Statement](
@@ -1157,7 +1155,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
   }
 
   // additional handling for parallel simulations because only root communicates with VisIt
-  def setupFct_ProcessVisItCommand(): IR_Function = {
+  def setupFct_ProcessVisItCommand() : IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
     val command_decl = IR_VariableDeclaration(IR_IntegerDatatype, "command")
 
@@ -1211,7 +1209,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
   // set number of domains per processor, mandatory
   // with 1 block per MPI Rank, a 1:1 ratio is used
-  def setupFct_SimGetDomainList(): IR_Function = {
+  def setupFct_SimGetDomainList() : IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
     val h_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "h", IR_Native("VISIT_INVALID_HANDLE"))
     val dl_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "domain_list", IR_Native("VISIT_INVALID_HANDLE"))
@@ -1239,7 +1237,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       fctBody)
   }
 
-  def setupFct_visit_broadcast_int_callback(): IR_Function = {
+  def setupFct_visit_broadcast_int_callback() : IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
 
     fctBody += IR_Return(IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_VariableAccess("value", IR_PointerDatatype(IR_IntegerDatatype)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_VariableAccess("sender", IR_IntegerDatatype), Knowledge.mpi_defaultCommunicator))
@@ -1252,7 +1250,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     )
   }
 
-  def setupFct_visit_broadcast_string_callback(): IR_Function = {
+  def setupFct_visit_broadcast_string_callback() : IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
 
     fctBody += IR_Return(IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_VariableAccess("str", IR_PointerDatatype(IR_CharDatatype)), IR_VariableAccess("len", IR_IntegerDatatype), IR_Native("MPI_CHAR"), IR_VariableAccess("sender", IR_IntegerDatatype), Knowledge.mpi_defaultCommunicator))
@@ -1266,7 +1264,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
   }
 
   // callback required to tell slave processes to execute command
-  def setupFct_slave_process_callback(): IR_Function = {
+  def setupFct_slave_process_callback() : IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
     val cmd_decl = IR_VariableDeclaration(IR_IntegerDatatype, "command", IR_IntegerConstant(0))
 
@@ -1282,7 +1280,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
   this += Transformation("..", {
     case fctCollection : IR_UserFunctions =>
-      if(Knowledge.dimensionality > 1) {
+      if (Knowledge.dimensionality > 1) {
         fctCollection += setupFct_SimGetVariable()
       }
       fctCollection += setupFct_SimGetMesh()
@@ -1292,7 +1290,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       fctCollection += setupFct_visit_destroy()
       fctCollection += setupFct_visit_mainloop()
 
-      if(Knowledge.mpi_enabled) {
+      if (Knowledge.mpi_enabled) {
         fctCollection += setupFct_ProcessVisItCommand()
         fctCollection += setupFct_SimGetDomainList()
         fctCollection += setupFct_visit_broadcast_int_callback()
@@ -1306,13 +1304,13 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       Settings.additionalLibs += "dl"
       fctCollection.externalDependencies += "string.h"
       fctCollection.externalDependencies += "stdlib.h"
-      if(Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) fctCollection.externalDependencies += "stdexcept"
-      if(Knowledge.mpi_enabled) {
+      if (Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) fctCollection.externalDependencies += "stdexcept"
+      if (Knowledge.mpi_enabled) {
         fctCollection.externalDependencies += "stdio.h"
       }
       fctCollection.externalDependencies += "VisItControlInterface_V2.h"
       fctCollection.externalDependencies += "VisItDataInterface_V2.h"
-      if(Platform.targetCompiler == "MSVC") {
+      if (Platform.targetCompiler == "MSVC") {
         fctCollection.externalDependencies += "direct.h"
       } else {
         fctCollection.externalDependencies += "unistd.h"
@@ -1320,18 +1318,18 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
       fctCollection
 
-    case globalCollection: IR_GlobalCollection =>
+    case globalCollection : IR_GlobalCollection =>
       globalCollection.variables += cur_level_decl
       globalCollection.variables += visit_runMode_decl
       globalCollection.variables += visit_updatePlots_decl
-      if(Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) globalCollection.variables += visit_scaleCurvemesh
+      if (Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) globalCollection.variables += visit_scaleCurvemesh
 
       // coordinate arrays for 2 and 3 dim. rectilinear meshes
-      if(Knowledge.dimensionality > 1) {
+      if (Knowledge.dimensionality > 1) {
         for (coords_decl <- coords_arrays.distinct) globalCollection.variables += coords_decl
       }
       // coordinate arrays for 2 and 3 dim. curvilinear meshes(partially consisting of 1d or 2d variables)
-      if(Knowledge.dimensionality < 3) {
+      if (Knowledge.dimensionality < 3) {
         for (curveCoords_decl <- curveCoords_arrays.distinct) globalCollection.variables += curveCoords_decl
       }
 
