@@ -49,10 +49,10 @@ case class IR_VisItBroadcastStringCallback() extends IR_VisItCommunication {
 case class IR_VisItSlaveProcessCallback() extends IR_VisItCommunication {
   override def generateFct() : IR_PlainFunction = {
     val fctBody = ListBuffer[IR_Statement]()
-    val cmd_decl = IR_VariableDeclaration(IR_IntegerDatatype, "command", IR_IntegerConstant(0))
+    val cmdDecl = IR_VariableDeclaration(IR_IntegerDatatype, "command", IR_IntegerConstant(0))
 
-    fctBody += cmd_decl
-    fctBody += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(IR_VariableAccess(cmd_decl)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
+    fctBody += cmdDecl
+    fctBody += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(IR_VariableAccess(cmdDecl)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
 
     IR_PlainFunction(
       name,

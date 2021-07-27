@@ -10,14 +10,13 @@ import exastencils.config._
 import exastencils.domain.ir._
 import exastencils.parallelization.api.mpi._
 
-
 case class IR_VisItInitialization() extends IR_FuturePlainFunction {
 
   import exastencils.visualization.ir.visit.IR_VisItUtil._
 
-  override def generateFct() : IR_PlainFunction =  {
+  override def generateFct() : IR_PlainFunction = {
     val fctBody = ListBuffer[IR_Statement]()
-    val cwd_decl = IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "cwd", nullptr)
+    val cwdDecl = IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "cwd", nullptr)
 
     val getCWD = if (Platform.targetCompiler == "MSVC") {
       IR_ExternalFunctionReference("_getcwd")
@@ -27,51 +26,49 @@ case class IR_VisItInitialization() extends IR_FuturePlainFunction {
 
     // allocate coordinate arrays
     for (level <- Knowledge.minLevel to Knowledge.maxLevel) {
-      for (coords_decl <- coords_arrays.distinct) {
+      for (coordsDecl <- coordsArrays.distinct) {
         for (dim <- 0 until Knowledge.dimensionality) {
-          val array_indices = ArrayBuffer[Int]()
-          if (Knowledge.dimensionality > 1) array_indices += dim
-          if (Knowledge.numLevels > 1) array_indices += level - Knowledge.minLevel
+          val arrayIndices = ArrayBuffer[Int]()
+          if (Knowledge.dimensionality > 1) arrayIndices += dim
+          if (Knowledge.numLevels > 1) arrayIndices += level - Knowledge.minLevel
 
-          val curCoords = coords_arrays.indexOf(coords_decl)
-          val coords_access = if (array_indices.isEmpty) {
-            IR_VariableAccess(coords_decl)
-          }
-          else if (array_indices.length == 1) {
-            IR_ArrayAccess(IR_VariableAccess(coords_decl), array_indices.head)
-          }
-          else IR_MultiDimArrayAccess(IR_VariableAccess(coords_decl), IR_ExpressionIndex(array_indices.toArray))
+          val curCoords = coordsArrays.indexOf(coordsDecl)
+          val coordsAccess = if (arrayIndices.isEmpty)
+            IR_VariableAccess(coordsDecl)
+          else if (arrayIndices.length == 1)
+            IR_ArrayAccess(IR_VariableAccess(coordsDecl), arrayIndices.head)
+          else
+            IR_MultiDimArrayAccess(IR_VariableAccess(coordsDecl), IR_ExpressionIndex(arrayIndices.toArray))
 
           // regular coordinates for rect mesh, not used in 1d case
           if (Knowledge.dimensionality > 1) {
-            fctBody += IR_ArrayAllocation(coords_access, IR_RealDatatype,
+            fctBody += IR_ArrayAllocation(coordsAccess, IR_RealDatatype,
               (Knowledge.domain_fragmentLengthAsVec(dim) * Knowledge.domain_rect_numFragsPerBlockAsVec(dim) * (1 << level)) + isNodalInDim(curCoords)(dim))
           }
 
           // curve coordinates
           if (Knowledge.dimensionality < 3) {
-            val curveCoords_decl = IR_VariableDeclaration(coords_decl.datatype, "curve_" + coords_decl.name)
-            val curCoords_curve = curveCoords_arrays.indexOf(curveCoords_decl)
-            val curveCoords_access = if (array_indices.isEmpty) {
-              IR_VariableAccess(curveCoords_decl)
-            }
-            else if (array_indices.length == 1) {
-              IR_ArrayAccess(IR_VariableAccess(curveCoords_decl), array_indices.head)
-            }
-            else IR_MultiDimArrayAccess(IR_VariableAccess(curveCoords_decl), IR_ExpressionIndex(array_indices.toArray))
+            val curveCoordsDecl = IR_VariableDeclaration(coordsDecl.datatype, "curve_" + coordsDecl.name)
+            val curCoordsCurve = curveCoordsArrays.indexOf(curveCoordsDecl)
+            val curveCoordsAccess = if (arrayIndices.isEmpty)
+              IR_VariableAccess(curveCoordsDecl)
+            else if (arrayIndices.length == 1)
+              IR_ArrayAccess(IR_VariableAccess(curveCoordsDecl), arrayIndices.head)
+            else
+              IR_MultiDimArrayAccess(IR_VariableAccess(curveCoordsDecl), IR_ExpressionIndex(arrayIndices.toArray))
 
             if (Knowledge.dimensionality == 1) {
               fctBody += IR_ArrayAllocation(
-                curveCoords_access, IR_RealDatatype,
-                (Knowledge.domain_fragmentLength_x * Knowledge.domain_rect_numFragsPerBlock_x * (1 << level)) + isNodalInDim_curve(curCoords_curve)(dim)
+                curveCoordsAccess, IR_RealDatatype,
+                (Knowledge.domain_fragmentLength_x * Knowledge.domain_rect_numFragsPerBlock_x * (1 << level)) + isNodalInDimCurve(curCoordsCurve)(dim)
               )
             }
             // x and y coordinates for every point within the 2d domain
             if (Knowledge.dimensionality == 2) {
               fctBody += IR_ArrayAllocation(
-                curveCoords_access, IR_RealDatatype,
-                ((Knowledge.domain_fragmentLength_x * Knowledge.domain_rect_numFragsPerBlock_x * (1 << level)) + isNodalInDim_curve(curCoords_curve)(0)) *
-                  ((Knowledge.domain_fragmentLength_y * Knowledge.domain_rect_numFragsPerBlock_y * (1 << level)) + isNodalInDim_curve(curCoords_curve)(1))
+                curveCoordsAccess, IR_RealDatatype,
+                ((Knowledge.domain_fragmentLength_x * Knowledge.domain_rect_numFragsPerBlock_x * (1 << level)) + isNodalInDimCurve(curCoordsCurve)(0)) *
+                  ((Knowledge.domain_fragmentLength_y * Knowledge.domain_rect_numFragsPerBlock_y * (1 << level)) + isNodalInDimCurve(curCoordsCurve)(1))
               )
             }
           }
@@ -80,39 +77,39 @@ case class IR_VisItInitialization() extends IR_FuturePlainFunction {
     }
 
     // put Knowledge discr_h* (* = x/y/z) into one array
-    val discr_perDim = Array.ofDim[Double](Knowledge.dimensionality, Knowledge.numLevels)
+    val discrPerDim = Array.ofDim[Double](Knowledge.dimensionality, Knowledge.numLevels)
     for (level <- Knowledge.minLevel to Knowledge.maxLevel) {
-      discr_perDim(0)(level - Knowledge.minLevel) = Knowledge.discr_hx(level - Knowledge.minLevel)
-      if (Knowledge.dimensionality > 1) discr_perDim(1)(level - Knowledge.minLevel) = Knowledge.discr_hy(level - Knowledge.minLevel)
-      if (Knowledge.dimensionality > 2) discr_perDim(2)(level - Knowledge.minLevel) = Knowledge.discr_hz(level - Knowledge.minLevel)
+      discrPerDim(0)(level - Knowledge.minLevel) = Knowledge.discr_hx(level - Knowledge.minLevel)
+      if (Knowledge.dimensionality > 1) discrPerDim(1)(level - Knowledge.minLevel) = Knowledge.discr_hy(level - Knowledge.minLevel)
+      if (Knowledge.dimensionality > 2) discrPerDim(2)(level - Knowledge.minLevel) = Knowledge.discr_hz(level - Knowledge.minLevel)
     }
 
     for (level <- Knowledge.minLevel to Knowledge.maxLevel) {
-      for (coords_decl <- coords_arrays.distinct) {
-        val curveCoords_decl = IR_VariableDeclaration(coords_decl.datatype, "curve_" + coords_decl.name)
-        val curCoords = coords_arrays.indexOf(coords_decl)
-        val curCoords_curve = curveCoords_arrays.indexOf(curveCoords_decl)
+      for (coordsDecl <- coordsArrays.distinct) {
+        val curveCoordsDecl = IR_VariableDeclaration(coordsDecl.datatype, "curve_" + coordsDecl.name)
+        val curCoords = coordsArrays.indexOf(coordsDecl)
+        val curCoordsCurve = curveCoordsArrays.indexOf(curveCoordsDecl)
 
         // get number of points per dimension
         val numPointsDim = (0 until Knowledge.dimensionality).map(d => Knowledge.domain_fragmentLengthAsVec(d) * (1 << level) + isNodalInDim(curCoords)(d))
-        val numPointsDim_curve = (0 until Knowledge.dimensionality).map(d => Knowledge.domain_fragmentLengthAsVec(d) * (1 << level) + isNodalInDim_curve(curCoords_curve)(d))
+        val numPointsDimCurve = (0 until Knowledge.dimensionality).map(d => Knowledge.domain_fragmentLengthAsVec(d) * (1 << level) + isNodalInDimCurve(curCoordsCurve)(d))
 
         // get current position of point "i" in the current block/fragment
         val stepSizeDim = Array.ofDim[IR_Expression](Knowledge.dimensionality)
-        val stepSizeDim_curve = Array.ofDim[IR_Expression](Knowledge.dimensionality) // adapt step size for initialization of curve coordinates
+        val stepSizeDimCurve = Array.ofDim[IR_Expression](Knowledge.dimensionality) // adapt step size for initialization of curve coordinates
 
         for (dim <- 0 until Knowledge.dimensionality) {
           // compute offset towards cell-center
           val iterator = if (isNodalInDim(curCoords)(dim) != 1) IR_FieldIteratorAccess(0) + 0.5 else IR_FieldIteratorAccess(0)
-          val iterator_curve = if (isNodalInDim_curve(curCoords_curve)(dim) != 1) IR_FieldIteratorAccess(dim) + 0.5 else IR_FieldIteratorAccess(dim)
+          val iteratorCurve = if (isNodalInDimCurve(curCoordsCurve)(dim) != 1) IR_FieldIteratorAccess(dim) + 0.5 else IR_FieldIteratorAccess(dim)
 
           // compute offset towards point "i" on current block/fragment
           if (Knowledge.mpi_enabled || Knowledge.domain_numFragmentsPerBlock > 1) {
-            stepSizeDim(dim) = IR_IV_FragmentPositionBegin(dim) + iterator * discr_perDim(dim)(level - Knowledge.minLevel)
-            stepSizeDim_curve(dim) = IR_IV_FragmentPositionBegin(dim) + iterator_curve * discr_perDim(dim)(level - Knowledge.minLevel)
+            stepSizeDim(dim) = IR_IV_FragmentPositionBegin(dim) + iterator * discrPerDim(dim)(level - Knowledge.minLevel)
+            stepSizeDimCurve(dim) = IR_IV_FragmentPositionBegin(dim) + iteratorCurve * discrPerDim(dim)(level - Knowledge.minLevel)
           } else {
-            stepSizeDim(dim) = iterator * discr_perDim(dim)(level - Knowledge.minLevel)
-            stepSizeDim_curve(dim) = iterator_curve * discr_perDim(dim)(level - Knowledge.minLevel)
+            stepSizeDim(dim) = iterator * discrPerDim(dim)(level - Knowledge.minLevel)
+            stepSizeDimCurve(dim) = iteratorCurve * discrPerDim(dim)(level - Knowledge.minLevel)
           }
         }
 
@@ -120,25 +117,25 @@ case class IR_VisItInitialization() extends IR_FuturePlainFunction {
         for (dim <- 0 until Knowledge.dimensionality) {
           // assign coordinate values, 1d cases only need curve coords
           if (Knowledge.dimensionality > 1) {
-            val array_indices = ArrayBuffer[IR_Expression]()
+            val arrayIndices = ArrayBuffer[IR_Expression]()
             if (Knowledge.domain_numFragmentsPerBlock > 1) {
-              array_indices += IR_FieldIteratorAccess(0) +
+              arrayIndices += IR_FieldIteratorAccess(0) +
                 (numPointsDim(dim) - isNodalInDim(curCoords)(dim)) * (IR_IV_FragmentIndex(dim) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(dim))
             } else {
-              array_indices += IR_FieldIteratorAccess(0)
+              arrayIndices += IR_FieldIteratorAccess(0)
             }
-            if (Knowledge.dimensionality > 1) array_indices += dim
-            if (Knowledge.numLevels > 1) array_indices += level - Knowledge.minLevel
+            if (Knowledge.dimensionality > 1) arrayIndices += dim
+            if (Knowledge.numLevels > 1) arrayIndices += level - Knowledge.minLevel
 
-            val coords_access = if (array_indices.length == 1) {
-              IR_ArrayAccess(IR_VariableAccess(coords_decl), array_indices.head)
+            val coordsAccess = if (arrayIndices.length == 1) {
+              IR_ArrayAccess(IR_VariableAccess(coordsDecl), arrayIndices.head)
             } else {
-              IR_MultiDimArrayAccess(IR_VariableAccess(coords_decl), IR_ExpressionIndex(array_indices.toArray))
+              IR_MultiDimArrayAccess(IR_VariableAccess(coordsDecl), IR_ExpressionIndex(arrayIndices.toArray))
             }
 
             forBody += IR_ForLoop(
               IR_VariableDeclaration(IR_FieldIteratorAccess(0), IR_IntegerConstant(0)), IR_FieldIteratorAccess(0) < numPointsDim(dim), IR_PreIncrement(IR_FieldIteratorAccess(0)),
-              IR_Assignment(coords_access, stepSizeDim(dim))
+              IR_Assignment(coordsAccess, stepSizeDim(dim))
             )
           }
 
@@ -146,45 +143,45 @@ case class IR_VisItInitialization() extends IR_FuturePlainFunction {
           if (Knowledge.dimensionality < 3) {
             // offset to the current fragment
             val fragOffset = (0 until Knowledge.dimensionality).map(d => if (Knowledge.domain_rect_numFragsPerBlockAsVec(d) <= 1) IR_IntegerConstant(0)
-            else (numPointsDim_curve(d) - isNodalInDim_curve(curCoords_curve)(d)) * (IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(d))).toArray
+            else (numPointsDimCurve(d) - isNodalInDimCurve(curCoordsCurve)(d)) * (IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(d))).toArray
 
-            val arrayIndices_curve = ArrayBuffer[IR_Expression]()
+            val arrayIndicesCurve = ArrayBuffer[IR_Expression]()
             if (Knowledge.domain_numFragmentsPerBlock > 1) {
               if (Knowledge.dimensionality == 1) {
-                arrayIndices_curve += IR_FieldIteratorAccess(0) + fragOffset(0)
+                arrayIndicesCurve += IR_FieldIteratorAccess(0) + fragOffset(0)
               } else {
-                arrayIndices_curve +=
-                  (Knowledge.domain_rect_numFragsPerBlock_x * (numPointsDim_curve(0) - isNodalInDim_curve(curCoords_curve)(dim)) + isNodalInDim_curve(curCoords_curve)(dim)) * (IR_FieldIteratorAccess(1) + fragOffset(1)) +
+                arrayIndicesCurve +=
+                  (Knowledge.domain_rect_numFragsPerBlock_x * (numPointsDimCurve(0) - isNodalInDimCurve(curCoordsCurve)(dim)) + isNodalInDimCurve(curCoordsCurve)(dim)) * (IR_FieldIteratorAccess(1) + fragOffset(1)) +
                     (IR_FieldIteratorAccess(0) + fragOffset(0))
               }
             } else {
               if (Knowledge.dimensionality == 1) {
-                arrayIndices_curve += IR_FieldIteratorAccess(0)
+                arrayIndicesCurve += IR_FieldIteratorAccess(0)
               } else {
-                arrayIndices_curve += numPointsDim_curve(0) * IR_FieldIteratorAccess(1) + IR_FieldIteratorAccess(0)
+                arrayIndicesCurve += numPointsDimCurve(0) * IR_FieldIteratorAccess(1) + IR_FieldIteratorAccess(0)
               }
             }
-            if (Knowledge.dimensionality > 1) arrayIndices_curve += dim
-            if (Knowledge.numLevels > 1) arrayIndices_curve += level - Knowledge.minLevel
+            if (Knowledge.dimensionality > 1) arrayIndicesCurve += dim
+            if (Knowledge.numLevels > 1) arrayIndicesCurve += level - Knowledge.minLevel
 
-            val curveCoords_access = if (arrayIndices_curve.length == 1) {
-              IR_ArrayAccess(IR_VariableAccess(curveCoords_decl), arrayIndices_curve.head)
+            val curveCoordsAccess = if (arrayIndicesCurve.length == 1) {
+              IR_ArrayAccess(IR_VariableAccess(curveCoordsDecl), arrayIndicesCurve.head)
             } else {
-              IR_MultiDimArrayAccess(IR_VariableAccess(curveCoords_decl), IR_ExpressionIndex(arrayIndices_curve.toArray))
+              IR_MultiDimArrayAccess(IR_VariableAccess(curveCoordsDecl), IR_ExpressionIndex(arrayIndicesCurve.toArray))
             }
 
             // assign curve coordinate values
             if (Knowledge.dimensionality == 1) {
               forBody += IR_ForLoop(
-                IR_VariableDeclaration(IR_FieldIteratorAccess(0), IR_IntegerConstant(0)), IR_FieldIteratorAccess(0) < numPointsDim_curve(0), IR_PreIncrement(IR_FieldIteratorAccess(0)),
-                IR_Assignment(curveCoords_access, stepSizeDim_curve(dim))
+                IR_VariableDeclaration(IR_FieldIteratorAccess(0), IR_IntegerConstant(0)), IR_FieldIteratorAccess(0) < numPointsDimCurve(0), IR_PreIncrement(IR_FieldIteratorAccess(0)),
+                IR_Assignment(curveCoordsAccess, numPointsDimCurve(dim))
               )
             } else {
               forBody += IR_ForLoop(
-                IR_VariableDeclaration(IR_FieldIteratorAccess(1), IR_IntegerConstant(0)), IR_FieldIteratorAccess(1) < numPointsDim_curve(1), IR_PreIncrement(IR_FieldIteratorAccess(1)),
+                IR_VariableDeclaration(IR_FieldIteratorAccess(1), IR_IntegerConstant(0)), IR_FieldIteratorAccess(1) < numPointsDimCurve(1), IR_PreIncrement(IR_FieldIteratorAccess(1)),
                 IR_ForLoop(
-                  IR_VariableDeclaration(IR_FieldIteratorAccess(0), IR_IntegerConstant(0)), IR_FieldIteratorAccess(0) < numPointsDim_curve(0), IR_PreIncrement(IR_FieldIteratorAccess(0)),
-                  IR_Assignment(curveCoords_access, stepSizeDim_curve(dim))
+                  IR_VariableDeclaration(IR_FieldIteratorAccess(0), IR_IntegerConstant(0)), IR_FieldIteratorAccess(0) < numPointsDimCurve(0), IR_PreIncrement(IR_FieldIteratorAccess(0)),
+                  IR_Assignment(curveCoordsAccess, numPointsDimCurve(dim))
                 )
               )
             }
@@ -198,31 +195,31 @@ case class IR_VisItInitialization() extends IR_FuturePlainFunction {
     }
 
     // set path(top level directory where visit is installed) to select a certain visit version
-    val str_decl = IR_VariableDeclaration(IR_StringDatatype, "str", IR_FunctionCall(IR_ExternalFunctionReference("std::getenv"), IR_StringConstant("VISIT_HOME")))
-    val path_decl = IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "path")
-    fctBody += str_decl
+    val strDecl = IR_VariableDeclaration(IR_StringDatatype, "str", IR_FunctionCall(IR_ExternalFunctionReference("std::getenv"), IR_StringConstant("VISIT_HOME")))
+    val pathDecl = IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "path")
+    fctBody += strDecl
     fctBody += IR_IfCondition(
-      IR_MemberFunctionCall(IR_VariableAccess(str_decl), "empty") Neq IR_BooleanConstant(true),
+      IR_MemberFunctionCall(IR_VariableAccess(strDecl), "empty") Neq IR_BooleanConstant(true),
       ListBuffer[IR_Statement](
-        path_decl,
-        IR_ArrayAllocation(IR_VariableAccess(path_decl), IR_CharDatatype, IR_MemberFunctionCall(IR_VariableAccess(str_decl), "size") + IR_IntegerConstant(1)),
+        pathDecl,
+        IR_ArrayAllocation(IR_VariableAccess(pathDecl), IR_CharDatatype, IR_MemberFunctionCall(IR_VariableAccess(strDecl), "size") + IR_IntegerConstant(1)),
         IR_FunctionCall(
           IR_ExternalFunctionReference("std::copy"),
-          IR_MemberFunctionCall(IR_VariableAccess(str_decl), "begin"),
-          IR_MemberFunctionCall(IR_VariableAccess(str_decl), "end"),
-          IR_VariableAccess(path_decl)
+          IR_MemberFunctionCall(IR_VariableAccess(strDecl), "begin"),
+          IR_MemberFunctionCall(IR_VariableAccess(strDecl), "end"),
+          IR_VariableAccess(pathDecl)
         ),
-        IR_Assignment(IR_ArrayAccess(IR_VariableAccess(path_decl), IR_MemberFunctionCall(IR_VariableAccess(str_decl), "size")), IR_Native("\'\\0\'")),
-        IR_FunctionCall(IR_ExternalFunctionReference("VisItSetDirectory"), IR_VariableAccess(path_decl)),
-        IR_ArrayFree(IR_VariableAccess(path_decl))
+        IR_Assignment(IR_ArrayAccess(IR_VariableAccess(pathDecl), IR_MemberFunctionCall(IR_VariableAccess(strDecl), "size")), IR_Native("\'\\0\'")),
+        IR_FunctionCall(IR_ExternalFunctionReference("VisItSetDirectory"), IR_VariableAccess(pathDecl)),
+        IR_ArrayFree(IR_VariableAccess(pathDecl))
       )
     )
 
     // name of the sim2 file
-    val sim_name = ListBuffer[String](Knowledge.dimensionality + "d_" + Knowledge.discr_type)
-    if (Knowledge.grid_isStaggered) sim_name += "staggered"
-    sim_name += Knowledge.domain_numBlocks + "Blocks"
-    sim_name += Knowledge.domain_numFragmentsPerBlock + "Frags"
+    val simName = ListBuffer[String](Knowledge.dimensionality + "d_" + Knowledge.discr_type)
+    if (Knowledge.grid_isStaggered) simName += "staggered"
+    simName += Knowledge.domain_numBlocks + "Blocks"
+    simName += Knowledge.domain_numFragmentsPerBlock + "Frags"
 
     // mandatory functions for VisIt (setup environment variables, parallel initializations)
     if (Knowledge.mpi_enabled) {
@@ -250,23 +247,23 @@ case class IR_VisItInitialization() extends IR_FuturePlainFunction {
       fctBody += IR_IfCondition(
         MPI_IsRootProc.apply(),
         ListBuffer[IR_Statement](
-          cwd_decl,
-          IR_ArrayAllocation(IR_VariableAccess(cwd_decl), IR_CharDatatype, IR_IntegerConstant(1000)),
-          IR_Assignment(IR_VariableAccess(cwd_decl), IR_FunctionCall(getCWD, IR_VariableAccess(cwd_decl), IR_IntegerConstant(1000))),
-          IR_FunctionCall(IR_ExternalFunctionReference("VisItInitializeSocketAndDumpSimFile"), IR_StringConstant(sim_name.head),
-            IR_StringConstant(sim_name.tail.mkString("_")), IR_VariableAccess(cwd_decl), nullptr, nullptr, nullptr),
-          IR_ArrayFree(IR_VariableAccess(cwd_decl))
+          cwdDecl,
+          IR_ArrayAllocation(IR_VariableAccess(cwdDecl), IR_CharDatatype, IR_IntegerConstant(1000)),
+          IR_Assignment(IR_VariableAccess(cwdDecl), IR_FunctionCall(getCWD, IR_VariableAccess(cwdDecl), IR_IntegerConstant(1000))),
+          IR_FunctionCall(IR_ExternalFunctionReference("VisItInitializeSocketAndDumpSimFile"), IR_StringConstant(simName.head),
+            IR_StringConstant(simName.tail.mkString("_")), IR_VariableAccess(cwdDecl), nullptr, nullptr, nullptr),
+          IR_ArrayFree(IR_VariableAccess(cwdDecl))
         )
       )
     } else {
       fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItOpenTraceFile"), IR_StringConstant("trace.txt"))
       fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetupEnvironment"))
-      fctBody += cwd_decl
-      fctBody += IR_ArrayAllocation(IR_VariableAccess(cwd_decl), IR_CharDatatype, IR_IntegerConstant(1000))
-      fctBody += IR_Assignment(IR_VariableAccess(cwd_decl), IR_FunctionCall(getCWD, IR_VariableAccess(cwd_decl), IR_IntegerConstant(1000)))
+      fctBody += cwdDecl
+      fctBody += IR_ArrayAllocation(IR_VariableAccess(cwdDecl), IR_CharDatatype, IR_IntegerConstant(1000))
+      fctBody += IR_Assignment(IR_VariableAccess(cwdDecl), IR_FunctionCall(getCWD, IR_VariableAccess(cwdDecl), IR_IntegerConstant(1000)))
       fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItInitializeSocketAndDumpSimFile"),
-        IR_StringConstant(sim_name.head), IR_StringConstant(sim_name.tail.mkString("_")), IR_VariableAccess(cwd_decl), nullptr, nullptr, nullptr)
-      fctBody += IR_ArrayFree(IR_VariableAccess(cwd_decl))
+        IR_StringConstant(simName.head), IR_StringConstant(simName.tail.mkString("_")), IR_VariableAccess(cwdDecl), nullptr, nullptr, nullptr)
+      fctBody += IR_ArrayFree(IR_VariableAccess(cwdDecl))
     }
 
     IR_PlainFunction(

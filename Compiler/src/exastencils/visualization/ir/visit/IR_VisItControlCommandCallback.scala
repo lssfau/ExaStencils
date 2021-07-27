@@ -24,55 +24,44 @@ case class IR_VisItControlCommandCallback() extends IR_FuturePlainFunction {
           IR_FunctionCall(IR_ExternalFunctionReference("VisItIsConnected")),
           ListBuffer[IR_Statement](
             IR_IfCondition(
-              IR_VariableAccess(visit_updatePlots_decl),
+              IR_VariableAccess(updatePlotsDecl),
               ListBuffer[IR_Statement](
                 IR_FunctionCall(IR_ExternalFunctionReference("VisItTimeStepChanged")),
-                IR_FunctionCall(IR_ExternalFunctionReference("VisItUpdatePlots"))
-              )
-            )
-          )
-        )
-      )
+                IR_FunctionCall(IR_ExternalFunctionReference("VisItUpdatePlots")))))))
     )
     fctBody += IR_IfCondition(
       IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("cmd", IR_ConstPointerDatatype(IR_CharDatatype)), IR_StringConstant("stop")) EqEq IR_IntegerConstant(0),
-      IR_Assignment(IR_VariableAccess(visit_runMode_decl), IR_BooleanConstant(false))
+      IR_Assignment(IR_VariableAccess(runModeDecl), IR_BooleanConstant(false))
     )
     fctBody += IR_IfCondition(
       IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("cmd", IR_ConstPointerDatatype(IR_CharDatatype)), IR_StringConstant("run")) EqEq IR_IntegerConstant(0),
-      IR_Assignment(IR_VariableAccess(visit_runMode_decl), IR_BooleanConstant(true))
+      IR_Assignment(IR_VariableAccess(runModeDecl), IR_BooleanConstant(true))
     )
     fctBody += IR_IfCondition(
       IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("cmd", IR_ConstPointerDatatype(IR_CharDatatype)), IR_StringConstant("switchUpdates")) EqEq IR_IntegerConstant(0),
-      IR_Assignment(IR_VariableAccess(visit_updatePlots_decl), IR_Negation(IR_VariableAccess(visit_updatePlots_decl)))
+      IR_Assignment(IR_VariableAccess(updatePlotsDecl), IR_Negation(IR_VariableAccess(updatePlotsDecl)))
     )
     // only register level switches when necessary
     if (Knowledge.numLevels > 1) {
       fctBody += IR_IfCondition(
         IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("cmd", IR_ConstPointerDatatype(IR_CharDatatype)), IR_StringConstant("level down")) EqEq IR_IntegerConstant(0),
         ListBuffer[IR_Statement](
-          IR_Assignment(IR_VariableAccess(cur_level_decl), IR_Maximum(IR_VariableAccess(cur_level_decl) - IR_IntegerConstant(1), Knowledge.minLevel)),
+          IR_Assignment(IR_VariableAccess(curLevelDecl), IR_Maximum(IR_VariableAccess(curLevelDecl) - IR_IntegerConstant(1), Knowledge.minLevel)),
           IR_IfCondition(
             IR_FunctionCall(IR_ExternalFunctionReference("VisItIsConnected")),
             ListBuffer[IR_Statement](
               IR_FunctionCall(IR_ExternalFunctionReference("VisItTimeStepChanged")),
-              IR_FunctionCall(IR_ExternalFunctionReference("VisItUpdatePlots"))
-            )
-          )
-        )
+              IR_FunctionCall(IR_ExternalFunctionReference("VisItUpdatePlots")))))
       )
       fctBody += IR_IfCondition(
         IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("cmd", IR_ConstPointerDatatype(IR_CharDatatype)), IR_StringConstant("level up")) EqEq IR_IntegerConstant(0),
         ListBuffer[IR_Statement](
-          IR_Assignment(IR_VariableAccess(cur_level_decl), IR_Minimum(IR_VariableAccess(cur_level_decl) + IR_IntegerConstant(1), Knowledge.maxLevel)),
+          IR_Assignment(IR_VariableAccess(curLevelDecl), IR_Minimum(IR_VariableAccess(curLevelDecl) + IR_IntegerConstant(1), Knowledge.maxLevel)),
           IR_IfCondition(
             IR_FunctionCall(IR_ExternalFunctionReference("VisItIsConnected")),
             ListBuffer[IR_Statement](
               IR_FunctionCall(IR_ExternalFunctionReference("VisItTimeStepChanged")),
-              IR_FunctionCall(IR_ExternalFunctionReference("VisItUpdatePlots"))
-            )
-          )
-        )
+              IR_FunctionCall(IR_ExternalFunctionReference("VisItUpdatePlots")))))
       )
     }
 
