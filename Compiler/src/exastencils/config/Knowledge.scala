@@ -655,9 +655,6 @@ object Knowledge {
 
   var experimental_grid_randomMaxOffset : Double = 0.1
 
-  /// student project - Richard / visit
-
-  // TODO
   var experimental_visit_enable : Boolean = false
 
   /// === constraints and resolutions ===
