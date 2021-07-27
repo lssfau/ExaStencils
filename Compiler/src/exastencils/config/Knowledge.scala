@@ -272,10 +272,10 @@ object Knowledge {
   var testing_enabled : Boolean = false
 
   // flag that can be used in ExaSlang to trigger printing the residual (has to be implemented manually)
-  var testing_printRes : Boolean = false
+  var testing_printRes : Boolean = true
 
   // flag that can be used in ExaSlang to trigger printing the error (has to be implemented manually)
-  var testing_printErr : Boolean = false
+  var testing_printErr : Boolean = true
 
   // maximum precision for printing values in testing environments (for printWithReducedPrec calls)
   var testing_maxPrecision : Int = 4
