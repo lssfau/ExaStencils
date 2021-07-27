@@ -14,21 +14,22 @@ case class IR_VisItProcessVisItCommand() extends IR_FuturePlainFunction {
 
   override def generateFct() : IR_PlainFunction =  {
     val fctBody = ListBuffer[IR_Statement]()
-    val commandDecl = IR_VariableDeclaration(IR_IntegerDatatype, "command")
 
-    fctBody += commandDecl
+    val command = IR_VariableAccess("command", IR_IntegerDatatype)
+
+    fctBody += IR_VariableDeclaration(command)
     fctBody += IR_IfCondition(
       MPI_IsRootProc.apply(),
       ListBuffer[IR_Statement](
         IR_IfCondition(
           IR_EqEq(IR_IntegerConstant(1), IR_FunctionCall(IR_ExternalFunctionReference("VisItProcessEngineCommand"))),
           ListBuffer[IR_Statement](
-            IR_Assignment(IR_VariableAccess(commandDecl), IR_IntegerConstant(1)),
-            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(IR_VariableAccess(commandDecl)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator),
+            IR_Assignment(command, IR_IntegerConstant(1)),
+            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(command), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator),
             IR_Return(IR_IntegerConstant(1))),
           ListBuffer[IR_Statement](
-            IR_Assignment(IR_VariableAccess(commandDecl), IR_IntegerConstant(0)),
-            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(IR_VariableAccess(commandDecl)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator),
+            IR_Assignment(command, IR_IntegerConstant(0)),
+            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(command), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator),
             IR_Return(IR_IntegerConstant(0)))
         )
       ),
@@ -36,15 +37,15 @@ case class IR_VisItProcessVisItCommand() extends IR_FuturePlainFunction {
         IR_WhileLoop(
           IR_IntegerConstant(1),
           ListBuffer[IR_Statement](
-            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(IR_VariableAccess(commandDecl)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator),
+            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(command), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator),
             IR_IfCondition(
-              IR_EqEq(IR_VariableAccess(commandDecl), IR_IntegerConstant(0)),
+              IR_EqEq(command, IR_IntegerConstant(0)),
               IR_FunctionCall(IR_ExternalFunctionReference("VisItProcessEngineCommand"))),
             IR_IfCondition(
-              IR_EqEq(IR_VariableAccess(commandDecl), IR_IntegerConstant(1)),
+              IR_EqEq(command, IR_IntegerConstant(1)),
               IR_Return(IR_IntegerConstant(1))),
             IR_IfCondition(
-              IR_EqEq(IR_VariableAccess(commandDecl), IR_IntegerConstant(2)),
+              IR_EqEq(command, IR_IntegerConstant(2)),
               IR_Return(IR_IntegerConstant(0))
             ))
         ),

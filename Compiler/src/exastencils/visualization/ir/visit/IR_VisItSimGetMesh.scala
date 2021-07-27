@@ -45,10 +45,10 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainFunction {
 
   override def generateFct() : IR_PlainFunction = {
     val fctBody = ListBuffer[IR_Statement]()
-    val hDecl = IR_VariableDeclaration(visitHandle, "h", visitInvalidHandle)
-    val handlesDecl = IR_VariableDeclaration(IR_ArrayDatatype(visitHandle, Knowledge.dimensionality), "handles")
+    val h = IR_VariableAccess("h", visitHandle)
+    val handles = IR_VariableAccess("handles", IR_ArrayDatatype(visitHandle, Knowledge.dimensionality))
 
-    fctBody += hDecl
+    fctBody += IR_VariableDeclaration(h, visitInvalidHandle)
 
     // 1d case only produce a curvilinear mesh
     if (Knowledge.dimensionality > 1) {
@@ -58,18 +58,18 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainFunction {
           val numPointsDim = (0 until Knowledge.dimensionality).map(d => Knowledge.domain_fragmentLengthAsVec(d) * Knowledge.domain_rect_numFragsPerBlockAsVec(d) * (1 << level) + isNodalInDim(curCoords)(d))
 
           // coordinate setter function depending on dimensionality
-          val handlesAccessDim = (0 until Knowledge.dimensionality).map(d => IR_ArrayAccess(IR_VariableAccess(handlesDecl), d)).toArray
+          val handlesAccessDim = (0 until Knowledge.dimensionality).map(d => IR_ArrayAccess(handles, d)).toArray
           val funcCall = if (Knowledge.dimensionality == 2) {
-            IR_FunctionCall(IR_ExternalFunctionReference("VisIt_RectilinearMesh_setCoordsXY"), IR_VariableAccess(hDecl), handlesAccessDim(0), handlesAccessDim(1))
+            IR_FunctionCall(IR_ExternalFunctionReference("VisIt_RectilinearMesh_setCoordsXY"), h, handlesAccessDim(0), handlesAccessDim(1))
           } else {
-            IR_FunctionCall(IR_ExternalFunctionReference("VisIt_RectilinearMesh_setCoordsXYZ"), IR_VariableAccess(hDecl), handlesAccessDim(0), handlesAccessDim(1), handlesAccessDim(2))
+            IR_FunctionCall(IR_ExternalFunctionReference("VisIt_RectilinearMesh_setCoordsXYZ"), h, handlesAccessDim(0), handlesAccessDim(1), handlesAccessDim(2))
           }
 
           val ifBody = ListBuffer[IR_Statement]()
           // allocate handles
-          ifBody += handlesDecl
+          ifBody += IR_VariableDeclaration(handles)
           for (dim <- 0 until Knowledge.dimensionality) {
-            ifBody += IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(IR_ArrayAccess(IR_VariableAccess(handlesDecl), dim)))
+            ifBody += IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(IR_ArrayAccess(handles, dim)))
           }
 
           // determine whether doubles or floats are sent
@@ -85,7 +85,7 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainFunction {
             }
 
             ifBody += IR_FunctionCall(funcRef,
-              IR_ArrayAccess(IR_VariableAccess(handlesDecl), dim),
+              IR_ArrayAccess(handles, dim),
               IR_Native("VISIT_OWNER_SIM"),
               IR_IntegerConstant(1),
               numPointsDim(dim),
@@ -97,11 +97,11 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainFunction {
           fctBody += IR_IfCondition(
             IR_AndAnd(
               IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("name", IR_StringDatatype), IR_StringConstant("rect" + Knowledge.dimensionality + "d_" + coordsDecl.name.drop(6))) EqEq IR_IntegerConstant(0),
-              IR_VariableAccess(curLevelDecl) EqEq level
+              curLevel EqEq level
             ),
             ListBuffer[IR_Statement](
               IR_IfCondition(
-                IR_FunctionCall(IR_ExternalFunctionReference("VisIt_RectilinearMesh_alloc"), IR_AddressOf(IR_VariableAccess(hDecl))) EqEq visitOkay,
+                IR_FunctionCall(IR_ExternalFunctionReference("VisIt_RectilinearMesh_alloc"), IR_AddressOf(h)) EqEq visitOkay,
                 ifBody))
           )
         }
@@ -112,7 +112,7 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainFunction {
     if (Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) {
       for (field <- IR_FieldCollection.sortedObjects) {
         val numDims = field.layout.numDimsGrid
-        val handlesCurveDecl = IR_VariableDeclaration(IR_ArrayDatatype(visitHandle, numDims + 1), "handles")
+        val handlesCurve = IR_VariableAccess("handles", IR_ArrayDatatype(visitHandle, numDims + 1))
         val numPointsDimTmp = (0 until numDims).map(d => field.layout.defIdxDupRightEnd(d) - field.layout.defIdxDupLeftBegin(d)).toArray
         val numPointsDimField = (0 until numDims).map(d => field.layout.defIdxPadRightEnd(0) - field.layout.defIdxPadLeftBegin(0))
         val numOuterLayersLeft = (0 until numDims).map(d => field.layout.defIdxDupLeftBegin(d) - field.layout.defIdxPadLeftBegin(d)).toArray
@@ -127,28 +127,32 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainFunction {
 
         val ifBody = ListBuffer[IR_Statement]()
         // dimensionality that must be passed -> for last dimension its 1 because we send 1 variable value per mesh point
-        val dims = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numDims + 1), "dims")
-        ifBody += dims
+        val dims = IR_VariableAccess("dims", IR_ArrayDatatype(IR_IntegerDatatype, numDims + 1))
+        ifBody += IR_VariableDeclaration(dims)
         for (dim <- 0 until numDims) {
-          ifBody += IR_Assignment(IR_ArrayAccess(IR_VariableAccess(dims), dim), numPointsTotalTmp(dim))
+          ifBody += IR_Assignment(IR_ArrayAccess(dims, dim), numPointsTotalTmp(dim))
         }
-        ifBody += IR_Assignment(IR_ArrayAccess(IR_VariableAccess(dims), numDims), 1)
+        ifBody += IR_Assignment(IR_ArrayAccess(dims, numDims), 1)
 
         val funcCall = if (numDims == 1) {
-          IR_FunctionCall(IR_ExternalFunctionReference("VisIt_CurvilinearMesh_setCoordsXY"), IR_VariableAccess(hDecl), IR_VariableAccess(dims), IR_ArrayAccess(IR_VariableAccess(handlesCurveDecl), 0), IR_ArrayAccess(IR_VariableAccess(handlesCurveDecl), 1))
+          IR_FunctionCall(IR_ExternalFunctionReference("VisIt_CurvilinearMesh_setCoordsXY"), h, dims, IR_ArrayAccess(handlesCurve, 0), IR_ArrayAccess(handlesCurve, 1))
         } else {
-          IR_FunctionCall(IR_ExternalFunctionReference("VisIt_CurvilinearMesh_setCoordsXYZ"), IR_VariableAccess(hDecl), IR_VariableAccess(dims), IR_ArrayAccess(IR_VariableAccess(handlesCurveDecl), 0), IR_ArrayAccess(IR_VariableAccess(handlesCurveDecl), 1), IR_ArrayAccess(IR_VariableAccess(handlesCurveDecl), 2))
+          IR_FunctionCall(IR_ExternalFunctionReference("VisIt_CurvilinearMesh_setCoordsXYZ"), h, dims, IR_ArrayAccess(handlesCurve, 0), IR_ArrayAccess(handlesCurve, 1), IR_ArrayAccess(handlesCurve, 2))
         }
 
         // allocate handles
-        ifBody += handlesCurveDecl
+        ifBody += IR_VariableDeclaration(handlesCurve)
         for (dim <- 0 to numDims) {
-          ifBody += IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(IR_ArrayAccess(IR_VariableAccess(handlesDecl), dim)))
+          ifBody += IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(IR_ArrayAccess(handles, dim)))
         }
 
         // pass pointers of coordinate arrays to handles
-        val locName = field.layout.localization.name
-        val curveCoordsDecl = if (locName == "Node") curveCoordsNodeDecl else if (locName == "Cell") curveCoordsZoneDecl else curveCoordsFaceAsVec(locName.charAt(locName.length - 1).toInt - 'x'.toInt)
+        val curveCoordsDecl = field.layout.localization match {
+          case IR_AtNode              => curveCoordsNodeDecl
+          case IR_AtCellCenter        => curveCoordsZoneDecl
+          case face : IR_AtFaceCenter => curveCoordsFaceAsVec(face.dim)
+        }
+        val curveCoords = IR_VariableAccess(curveCoordsDecl)
 
         val idxTmp = if (numDims == 1) {
           IR_FieldIteratorAccess(0) + fragOffset(0)
@@ -182,7 +186,7 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainFunction {
               IR_Assignment(
                 IR_ArrayAccess(IR_VariableAccess(tmpDecl), idxTmp),
                 // TODO: assumes slot = 0
-                IR_VariableAccess(scaleCurvemesh) * IR_LinearizedFieldAccess(field, slot = 0, IR_LoopOverFragments.defIt, idxField + offsetToInnerPoints)
+                scaleCurvemesh * IR_LinearizedFieldAccess(field, slot = 0, IR_LoopOverFragments.defIt, idxField + offsetToInnerPoints)
               )
             )
           )
@@ -190,37 +194,33 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainFunction {
 
         val variableAccess = if (dataIsCopied) {
           IR_VariableAccess(tmpDecl)
-        }
-        else {
+        } else {
           // pass pointer of field if nothing was copied
-          if (Knowledge.numLevels > 1) {
-            IR_ArrayAccess(IR_VariableAccess("fieldData_" + field.name, field.layout.datatype), field.level - Knowledge.minLevel)
-          } else {
-            IR_VariableAccess("fieldData_" + field.name, field.layout.datatype)
-          }
+          // TODO: assumes slot = 0
+          IR_IV_FieldData(field, slot = 0)
         }
 
         // determine whether doubles or floats are sent
         val funcRef = if (Knowledge.useDblPrecision) IR_ExternalFunctionReference("VisIt_VariableData_setDataD") else IR_ExternalFunctionReference("VisIt_VariableData_setDataF")
 
         for (dim <- 0 until numDims) {
-          val curveCoords_access = if (numDims == 1) {
-            if (Knowledge.numLevels > 1) IR_ArrayAccess(IR_VariableAccess(curveCoordsDecl), field.level - Knowledge.minLevel) else IR_VariableAccess(curveCoordsDecl)
+          val curveCoordsAccess = if (numDims == 1) {
+            if (Knowledge.numLevels > 1) IR_ArrayAccess(curveCoords, field.level - Knowledge.minLevel) else curveCoords
           } else {
             if (Knowledge.numLevels > 1) {
-              IR_MultiDimArrayAccess(IR_VariableAccess(curveCoordsDecl), IR_ExpressionIndex(Array[IR_Expression](dim, field.level - Knowledge.minLevel)))
+              IR_MultiDimArrayAccess(curveCoords, IR_ExpressionIndex(Array[IR_Expression](dim, field.level - Knowledge.minLevel)))
             } else {
-              IR_ArrayAccess(IR_VariableAccess(curveCoordsDecl), dim)
+              IR_ArrayAccess(curveCoords, dim)
             }
           }
 
           // pass coordinate array, simulation responsible for freeing memory
           ifBody += IR_FunctionCall(funcRef,
-            IR_ArrayAccess(IR_VariableAccess(handlesDecl), dim),
+            IR_ArrayAccess(handles, dim),
             IR_Native("VISIT_OWNER_SIM"),
             IR_IntegerConstant(1),
             numPointsTotalTmp.product,
-            curveCoords_access
+            curveCoordsAccess
           )
         }
 
@@ -229,7 +229,7 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainFunction {
 
         // pass tmp array or field
         ifBody += IR_FunctionCall(funcRef,
-          IR_ArrayAccess(IR_VariableAccess(handlesDecl), numDims),
+          IR_ArrayAccess(handles, numDims),
           ownership,
           IR_IntegerConstant(1),
           numPointsTotalTmp.product,
@@ -239,12 +239,12 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainFunction {
 
         fctBody += IR_IfCondition(
           IR_AndAnd(
-            IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("name", IR_StringDatatype), IR_StringConstant("curv" + (numDims + 1) + "d_" + field.name)) EqEq IR_IntegerConstant(0),
-            IR_VariableAccess(curLevelDecl) EqEq field.level
+            stringEquals(IR_VariableAccess("name", IR_StringDatatype), "curv" + (numDims + 1) + "d_" + field.name),
+            curLevel EqEq field.level
           ),
           ListBuffer[IR_Statement](
             IR_IfCondition(
-              IR_FunctionCall(IR_ExternalFunctionReference("VisIt_CurvilinearMesh_alloc"), IR_AddressOf(IR_VariableAccess(hDecl))) EqEq visitOkay,
+              IR_FunctionCall(IR_ExternalFunctionReference("VisIt_CurvilinearMesh_alloc"), IR_AddressOf(h)) EqEq visitOkay,
               ifBody
             )
           )
@@ -252,7 +252,7 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainFunction {
       }
     }
 
-    fctBody += IR_Return(IR_VariableAccess(hDecl))
+    fctBody += IR_Return(h)
 
     IR_PlainFunction(
       name,

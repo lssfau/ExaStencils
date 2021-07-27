@@ -17,22 +17,22 @@ case class IR_VisItSimGetDomainList() extends IR_FuturePlainFunction {
 
   override def generateFct() : IR_PlainFunction =  {
     val fctBody = ListBuffer[IR_Statement]()
-    val hDecl = IR_VariableDeclaration(visitHandle, "h", visitInvalidHandle)
-    val domainListDecl = IR_VariableDeclaration(visitHandle, "domain_list", visitInvalidHandle)
+    val h = IR_VariableAccess("h", visitHandle)
+    val domainList = IR_VariableAccess("domain_list", visitHandle)
 
-    fctBody += hDecl
-    fctBody += domainListDecl
+    fctBody += IR_VariableDeclaration(h, visitInvalidHandle)
+    fctBody += IR_VariableDeclaration(domainList, visitInvalidHandle)
 
     fctBody += IR_IfCondition(
       IR_AndAnd(
-        IR_EqEq(IR_FunctionCall(IR_ExternalFunctionReference("VisIt_DomainList_alloc"), IR_AddressOf(IR_VariableAccess(hDecl))), visitOkay),
-        IR_EqEq(IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(IR_VariableAccess(domainListDecl))), visitOkay)),
+        IR_EqEq(IR_FunctionCall(IR_ExternalFunctionReference("VisIt_DomainList_alloc"), IR_AddressOf(h)), visitOkay),
+        IR_EqEq(IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(domainList)), visitOkay)),
       ListBuffer[IR_Statement](
-        IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_setDataI"), IR_VariableAccess(domainListDecl), IR_Native("VISIT_OWNER_COPY"), IR_IntegerConstant(1), IR_IntegerConstant(1), IR_AddressOf(MPI_IV_MpiRank)),
-        IR_FunctionCall(IR_ExternalFunctionReference("VisIt_DomainList_setDomains"), IR_VariableAccess(hDecl), Knowledge.mpi_numThreads, IR_VariableAccess(domainListDecl)))
+        IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_setDataI"), domainList, IR_Native("VISIT_OWNER_COPY"), IR_IntegerConstant(1), IR_IntegerConstant(1), IR_AddressOf(MPI_IV_MpiRank)),
+        IR_FunctionCall(IR_ExternalFunctionReference("VisIt_DomainList_setDomains"), h, Knowledge.mpi_numThreads, domainList))
     )
 
-    fctBody += IR_Return(IR_VariableAccess(hDecl))
+    fctBody += IR_Return(h)
 
     IR_PlainFunction(
       name,

@@ -61,7 +61,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       globalCollection.variables += curLevelDecl
       globalCollection.variables += runModeDecl
       globalCollection.variables += updatePlotsDecl
-      if (Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) globalCollection.variables += scaleCurvemesh
+      if (Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) globalCollection.variables += scaleCurvemeshDecl
 
       // coordinate arrays for 2 and 3 dim. rectilinear meshes
       if (Knowledge.dimensionality > 1) {
