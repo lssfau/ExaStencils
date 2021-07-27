@@ -7,7 +7,7 @@ import exastencils.datastructures.{DefaultStrategy, QuietDefaultStrategy, Transf
 
 
 object IR_InlineMatSolveStmts extends QuietDefaultStrategy("Resolve IR_LocalSolve nodes") {
-  val MAT_SOLVE_STMT: String = MAT_SOLVE_STMT
+  val MAT_SOLVE_STMT: String = "MAT_SOLVE_STMT"
   this += new Transformation("Find calls to solve statements and inline the corresponding function", {
     case _@IR_ExpressionStatement(fc@IR_FunctionCall(_, args)) if fc.hasAnnotation(MAT_SOLVE_STMT) =>
       val m: Int = fc.removeAnnotation(MAT_SOLVE_STMT).get.asInstanceOf[Int]
