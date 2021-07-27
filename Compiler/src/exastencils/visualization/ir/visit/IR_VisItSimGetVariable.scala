@@ -19,9 +19,9 @@ case class IR_VisItSimGetVariable() extends IR_FuturePlainFunction {
 
   override def generateFct() : IR_PlainFunction = {
     val fctBody = ListBuffer[IR_Statement]()
-    val hDecl = IR_VariableDeclaration(visitHandle, "h", visitInvalidHandle)
+    val h = IR_VariableAccess("h", visitHandle)
 
-    fctBody += hDecl
+    fctBody += IR_VariableDeclaration(h, visitInvalidHandle)
 
     for (field <- IR_FieldCollection.sortedObjects) {
       val numDims = field.layout.numDimsGrid
@@ -68,14 +68,11 @@ case class IR_VisItSimGetVariable() extends IR_FuturePlainFunction {
 
       // direct access to field if data is not copied
       val arrayAccessArg = if (!dataIsCopied) {
-        if (Knowledge.numLevels > 1) {
-          IR_ArrayAccess(IR_VariableAccess("fieldData_" + field.name, field.layout.datatype), field.level - Knowledge.minLevel)
-        } else {
-          IR_VariableAccess("fieldData_" + field.name, field.layout.datatype)
-        }
-      }
-      else
+        // TODO: assumes slot = 0
+        IR_IV_FieldData(field, slot = 0)
+      } else {
         IR_VariableAccess(tmpDecl)
+      }
 
       // determine whether simulation or VisIt is responsible for freeing
       val ownership = if (!dataIsCopied) IR_Native("VISIT_OWNER_SIM") else IR_Native("VISIT_OWNER_VISIT")
@@ -84,8 +81,8 @@ case class IR_VisItSimGetVariable() extends IR_FuturePlainFunction {
       val funcRef = if (Knowledge.useDblPrecision) IR_ExternalFunctionReference("VisIt_VariableData_setDataD") else IR_ExternalFunctionReference("VisIt_VariableData_setDataF")
 
       val sendData = IR_IfCondition(
-        IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(IR_VariableAccess(hDecl))) EqEq visitOkay,
-        IR_FunctionCall(funcRef, IR_VariableAccess(hDecl),
+        IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(h)) EqEq visitOkay,
+        IR_FunctionCall(funcRef, h,
           ownership, IR_IntegerConstant(1), numPointsTotalTmp.product, arrayAccessArg)
       )
 
@@ -111,13 +108,13 @@ case class IR_VisItSimGetVariable() extends IR_FuturePlainFunction {
 
       fctBody += IR_IfCondition(
         IR_AndAnd(
-          IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("name", IR_StringDatatype), IR_StringConstant(field.name)) EqEq IR_IntegerConstant(0),
-          field.level EqEq IR_VariableAccess(curLevelDecl)),
+          stringEquals(IR_VariableAccess("name", IR_StringDatatype), field.name),
+          field.level EqEq curLevel),
         loopStatement
       )
     }
 
-    fctBody += IR_Return(IR_VariableAccess(hDecl))
+    fctBody += IR_Return(h)
 
     IR_PlainFunction(
       name,

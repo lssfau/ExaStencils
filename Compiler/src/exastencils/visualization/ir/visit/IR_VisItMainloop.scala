@@ -17,9 +17,9 @@ case class IR_VisItMainloop() extends IR_FuturePlainFunction {
     val whileBody = ListBuffer[IR_Statement]()
     val consoleInputBody = ListBuffer[IR_Statement]()
 
-    val blockingDecl = IR_VariableDeclaration(IR_BooleanDatatype, "blocking", IR_TernaryCondition(IR_VariableAccess(runModeDecl), IR_BooleanConstant(false), IR_BooleanConstant(true)))
-    val visitInputDecl = IR_VariableDeclaration(IR_IntegerDatatype, "visit_input")
-    val commandDecl = IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "command", nullptr)
+    val blocking = IR_VariableAccess("blocking", IR_BooleanDatatype)
+    val visitInput = IR_VariableAccess("visit_input", IR_IntegerDatatype)
+    val command = IR_VariableAccess("command", IR_PointerDatatype(IR_CharDatatype))
 
     val registerCallbackFcts = ListBuffer[IR_Statement]()
     val procEngineCommandFct = if (Knowledge.mpi_enabled) {
@@ -43,10 +43,10 @@ case class IR_VisItMainloop() extends IR_FuturePlainFunction {
 
     // body of the while loop containing the switch statement
     whileBody += IR_IfCondition(
-      IR_VariableAccess(simDoneDecl),
+      simDone,
       IR_Break()
     )
-    whileBody += blockingDecl
+    whileBody += IR_VariableDeclaration(blocking, IR_TernaryCondition(runMode, IR_BooleanConstant(false), IR_BooleanConstant(true)))
 
     val funcRef = if (Platform.targetCompiler == "MSVC") {
       IR_ExternalFunctionReference("_fileno")
@@ -55,70 +55,70 @@ case class IR_VisItMainloop() extends IR_FuturePlainFunction {
     }
 
     if (Knowledge.mpi_enabled) {
-      whileBody += visitInputDecl
+      whileBody += IR_VariableDeclaration(visitInput)
       whileBody += IR_IfCondition(
         MPI_IsRootProc.apply(),
-        IR_Assignment(IR_VariableAccess(visitInputDecl), IR_FunctionCall(IR_ExternalFunctionReference("VisItDetectInput"), IR_VariableAccess("blocking", IR_IntegerDatatype), IR_FunctionCall(funcRef, IR_Native("stdin"))))
+        IR_Assignment(visitInput, IR_FunctionCall(IR_ExternalFunctionReference("VisItDetectInput"), blocking, IR_FunctionCall(funcRef, IR_Native("stdin"))))
       )
-      whileBody += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(IR_VariableAccess(visitInputDecl)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
+      whileBody += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(visitInput), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
     } else {
-      whileBody += IR_VariableDeclaration(IR_IntegerDatatype, "visit_input", IR_FunctionCall(IR_ExternalFunctionReference("VisItDetectInput"), IR_VariableAccess("blocking", IR_IntegerDatatype), IR_FunctionCall(funcRef, IR_Native("stdin"))))
+      whileBody += IR_VariableDeclaration(IR_IntegerDatatype, "visit_input", IR_FunctionCall(IR_ExternalFunctionReference("VisItDetectInput"), blocking, IR_FunctionCall(funcRef, IR_Native("stdin"))))
     }
 
     // body of the third case of the switch statement
-    consoleInputBody += commandDecl
-    consoleInputBody += IR_ArrayAllocation(IR_VariableAccess(commandDecl), IR_CharDatatype, IR_IntegerConstant(1000))
+    consoleInputBody += IR_VariableDeclaration(command, nullptr)
+    consoleInputBody += IR_ArrayAllocation(command, IR_CharDatatype, IR_IntegerConstant(1000))
 
     if (Knowledge.mpi_enabled) {
       consoleInputBody += IR_IfCondition(
         MPI_IsRootProc.apply(),
         IR_IfCondition(
-          IR_FunctionCall(IR_ExternalFunctionReference("VisItReadConsole"), IR_IntegerConstant(1000), IR_VariableAccess(commandDecl)) Neq visitOkay,
+          IR_FunctionCall(IR_ExternalFunctionReference("VisItReadConsole"), IR_IntegerConstant(1000), command) Neq visitOkay,
           IR_Break()
         )
       )
-      consoleInputBody += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_VariableAccess(commandDecl), IR_IntegerConstant(1000), IR_Native("MPI_CHAR"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
+      consoleInputBody += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), command, IR_IntegerConstant(1000), IR_Native("MPI_CHAR"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
     } else {
       consoleInputBody += IR_IfCondition(
-        IR_FunctionCall(IR_ExternalFunctionReference("VisItReadConsole"), IR_IntegerConstant(1000), IR_VariableAccess(commandDecl)) Neq visitOkay,
+        IR_FunctionCall(IR_ExternalFunctionReference("VisItReadConsole"), IR_IntegerConstant(1000), command) Neq visitOkay,
         IR_Break()
       )
     }
 
     // process console inputs
     consoleInputBody += IR_IfCondition(
-      IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess(commandDecl), IR_StringConstant("step")) EqEq IR_IntegerConstant(0),
+      stringEquals(command, "step"),
       ListBuffer[IR_Statement](
         IR_FunctionCall(IR_LeveledInternalFunctionReference("simulate_timestep", Knowledge.maxLevel, IR_UnitDatatype)),
         IR_IfCondition(
           IR_FunctionCall(IR_ExternalFunctionReference("VisItIsConnected")),
           ListBuffer[IR_Statement](
             IR_IfCondition(
-              IR_VariableAccess(updatePlotsDecl),
+              updatePlots,
               ListBuffer[IR_Statement](
                 IR_FunctionCall(IR_ExternalFunctionReference("VisItTimeStepChanged")),
                 IR_FunctionCall(IR_ExternalFunctionReference("VisItUpdatePlots"))))))))
 
     consoleInputBody += IR_IfCondition(
-      IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess(commandDecl), IR_StringConstant("stop")) EqEq IR_IntegerConstant(0),
-      IR_Assignment(IR_VariableAccess(runModeDecl), IR_BooleanConstant(false))
+      stringEquals(command, "stop"),
+      IR_Assignment(runMode, IR_BooleanConstant(false))
     )
 
     consoleInputBody += IR_IfCondition(
-      IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess(commandDecl), IR_StringConstant("run")) EqEq IR_IntegerConstant(0),
-      IR_Assignment(IR_VariableAccess(runModeDecl), IR_BooleanConstant(true))
+      stringEquals(command, "run"),
+      IR_Assignment(runMode, IR_BooleanConstant(true))
     )
 
     consoleInputBody += IR_IfCondition(
-      IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess(commandDecl), IR_StringConstant("switchUpdates")) EqEq IR_IntegerConstant(0),
-      IR_Assignment(IR_VariableAccess(updatePlotsDecl), IR_Negation(IR_VariableAccess(updatePlotsDecl)))
+      stringEquals(command, "switchUpdates"),
+      IR_Assignment(updatePlots, IR_Negation(updatePlots))
     )
 
     // scaling: only used for curvilinear meshes
     if (Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) {
       val strToReal = if (Knowledge.useDblPrecision) IR_ExternalFunctionReference("std::stod") else IR_ExternalFunctionReference("std::stof")
       consoleInputBody += IR_IfCondition(
-        IR_FunctionCall(IR_ExternalFunctionReference("strstr"), IR_VariableAccess(commandDecl), IR_StringConstant("scale=")) Neq nullptr,
+        IR_FunctionCall(IR_ExternalFunctionReference("strstr"), command, IR_StringConstant("scale=")) Neq nullptr,
         IR_Native(
           s"""|try{
               |scale = $strToReal(command+6);
@@ -134,9 +134,9 @@ case class IR_VisItMainloop() extends IR_FuturePlainFunction {
 
     if (Knowledge.numLevels > 1) {
       consoleInputBody += IR_IfCondition(
-        IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess(commandDecl), IR_StringConstant("level down")) EqEq IR_IntegerConstant(0),
+        stringEquals(command, "level down"),
         ListBuffer[IR_Statement](
-          IR_Assignment(IR_VariableAccess(curLevelDecl), IR_Maximum(IR_VariableAccess(curLevelDecl) - IR_IntegerConstant(1), Knowledge.minLevel)),
+          IR_Assignment(curLevel, IR_Maximum(curLevel - IR_IntegerConstant(1), Knowledge.minLevel)),
           IR_IfCondition(
             IR_FunctionCall(IR_ExternalFunctionReference("VisItIsConnected")),
             ListBuffer[IR_Statement](
@@ -144,24 +144,24 @@ case class IR_VisItMainloop() extends IR_FuturePlainFunction {
               IR_FunctionCall(IR_ExternalFunctionReference("VisItUpdatePlots"))))))
 
       consoleInputBody += IR_IfCondition(
-        IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess(commandDecl), IR_StringConstant("level up")) EqEq IR_IntegerConstant(0),
+        stringEquals(command, "level up"),
         ListBuffer[IR_Statement](
-          IR_Assignment(IR_VariableAccess(curLevelDecl), IR_Minimum(IR_VariableAccess(curLevelDecl) + IR_IntegerConstant(1), Knowledge.maxLevel)),
+          IR_Assignment(curLevel, IR_Minimum(curLevel + IR_IntegerConstant(1), Knowledge.maxLevel)),
           IR_IfCondition(
             IR_FunctionCall(IR_ExternalFunctionReference("VisItIsConnected")),
             ListBuffer[IR_Statement](
               IR_FunctionCall(IR_ExternalFunctionReference("VisItTimeStepChanged")),
               IR_FunctionCall(IR_ExternalFunctionReference("VisItUpdatePlots"))))))
     }
-    consoleInputBody += IR_ArrayFree(IR_VariableAccess(commandDecl))
+    consoleInputBody += IR_ArrayFree(command)
 
     whileBody += IR_IfCondition(
-      IR_VariableAccess(visitInputDecl) < IR_IntegerConstant(0), // error, stop calling VisItDetectInput
+      visitInput < IR_IntegerConstant(0), // error, stop calling VisItDetectInput
       IR_Return()
     )
 
     whileBody += IR_IfCondition(
-      IR_VariableAccess(visitInputDecl) EqEq IR_IntegerConstant(0), // VisItDetectInput timed out
+      visitInput EqEq IR_IntegerConstant(0), // VisItDetectInput timed out
       ListBuffer[IR_Statement](
         IR_FunctionCall(IR_LeveledInternalFunctionReference("simulate_timestep", Knowledge.maxLevel, IR_UnitDatatype)),
         IR_IfCondition(
@@ -169,25 +169,25 @@ case class IR_VisItMainloop() extends IR_FuturePlainFunction {
           ListBuffer[IR_Statement](
             IR_FunctionCall(IR_ExternalFunctionReference("VisItTimeStepChanged")),
             IR_IfCondition(
-              IR_VariableAccess(updatePlotsDecl),
+              updatePlots,
               IR_FunctionCall(IR_ExternalFunctionReference("VisItUpdatePlots")))))))
 
-    whileBody += IR_IfCondition(IR_VariableAccess(visitInputDecl) EqEq IR_IntegerConstant(1), // inbound connection is being made
+    whileBody += IR_IfCondition(visitInput EqEq IR_IntegerConstant(1), // inbound connection is being made
       IR_IfCondition(
         IR_FunctionCall(IR_ExternalFunctionReference("VisItAttemptToCompleteConnection")),
         registerCallbackFcts,
         IR_Native("std::cout << \"Visit connection failed. Error message: \" << VisItGetLastError() << std::endl")))
 
     whileBody += IR_IfCondition(
-      IR_VariableAccess(visitInputDecl) EqEq IR_IntegerConstant(2), // viewer sent instructions
+      visitInput EqEq IR_IntegerConstant(2), // viewer sent instructions
       IR_IfCondition(
         procEngineCommandFct Neq IR_BooleanConstant(true),
         ListBuffer[IR_Statement](
           IR_FunctionCall(IR_ExternalFunctionReference("VisItDisconnect")),
-          IR_Assignment(IR_VariableAccess(runModeDecl), IR_BooleanConstant(true))))) // run after VisIt closes connection
+          IR_Assignment(runMode, IR_BooleanConstant(true))))) // run after VisIt closes connection
 
     whileBody += IR_IfCondition(
-      IR_VariableAccess(visitInputDecl) EqEq IR_IntegerConstant(3), // console input detected
+      visitInput EqEq IR_IntegerConstant(3), // console input detected
       consoleInputBody
     )
 

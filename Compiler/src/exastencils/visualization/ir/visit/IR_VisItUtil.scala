@@ -13,15 +13,25 @@ object IR_VisItUtil {
 
   // global declarations to make variable access easier
   val simDoneDecl = IR_VariableDeclaration(IR_BooleanDatatype, "sim_done", IR_BooleanConstant(false))
+  val simDone = IR_VariableAccess(simDoneDecl)
+
   val curLevelDecl = IR_VariableDeclaration(IR_IntegerDatatype, "cur_level", Knowledge.maxLevel)
+  val curLevel = IR_VariableAccess(curLevelDecl)
 
   val simTimeDecl = IR_VariableDeclaration(IR_DoubleDatatype, "sim_time", IR_DoubleConstant(0.0))
+  val simTime = IR_VariableAccess(simTimeDecl)
+
   val simCycleDecl = IR_VariableDeclaration(IR_IntegerDatatype, "sim_cycle", IR_IntegerConstant(0))
+  val simCycle = IR_VariableAccess(simCycleDecl)
 
   val runModeDecl = IR_VariableDeclaration(IR_BooleanDatatype, "visit_runMode", IR_BooleanConstant(false))
-  val updatePlotsDecl = IR_VariableDeclaration(IR_BooleanDatatype, "visit_updatePlots", IR_BooleanConstant(true))
+  val runMode = IR_VariableAccess(runModeDecl)
 
-  val scaleCurvemesh = IR_VariableDeclaration(IR_RealDatatype, "scale", IR_RealConstant(1.0))
+  val updatePlotsDecl = IR_VariableDeclaration(IR_BooleanDatatype, "visit_updatePlots", IR_BooleanConstant(true))
+  val updatePlots = IR_VariableAccess(updatePlotsDecl)
+
+  val scaleCurvemeshDecl = IR_VariableDeclaration(IR_RealDatatype, "scale", IR_RealConstant(1.0))
+  val scaleCurvemesh = IR_VariableAccess(scaleCurvemeshDecl)
 
   val isMultiLeveled = IR_FieldCollection.objects.map(_.level).distinct.size > 1
   val nullptr = IR_VariableAccess("nullptr", IR_UnknownDatatype)
@@ -65,4 +75,7 @@ object IR_VisItUtil {
 
   val curveCoordsArrays : ArrayBuffer[IR_VariableDeclaration] = ArrayBuffer[IR_VariableDeclaration]()
   val isNodalInDimCurve : ArrayBuffer[Array[Int]] = ArrayBuffer[Array[Int]]()
+
+  def stringEquals(value : IR_Expression, str : String) =
+    IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), value, IR_StringConstant(str)) EqEq IR_IntegerConstant(0)
 }

@@ -12,15 +12,19 @@ abstract class IR_VisItCommunication extends IR_FuturePlainFunction {
 }
 
 case class IR_VisItBroadcastIntCallback() extends IR_VisItCommunication {
+  val intValue = IR_FunctionArgument("value", IR_PointerDatatype(IR_IntegerDatatype))
+  val sender = IR_FunctionArgument("sender", IR_IntegerDatatype)
+
   override def generateFct() : IR_PlainFunction = {
     val fctBody = ListBuffer[IR_Statement]()
 
-    fctBody += IR_Return(IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_VariableAccess("value", IR_PointerDatatype(IR_IntegerDatatype)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_VariableAccess("sender", IR_IntegerDatatype), Knowledge.mpi_defaultCommunicator))
+    fctBody += IR_Return(IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"),
+      intValue.access, IR_IntegerConstant(1), IR_Native("MPI_INT"), sender.access, Knowledge.mpi_defaultCommunicator))
 
     IR_PlainFunction(
       name,
       IR_IntegerDatatype,
-      ListBuffer(IR_FunctionArgument("value", IR_PointerDatatype(IR_IntegerDatatype)), IR_FunctionArgument("sender", IR_IntegerDatatype)),
+      ListBuffer(intValue, sender),
       fctBody
     )
 
@@ -30,15 +34,20 @@ case class IR_VisItBroadcastIntCallback() extends IR_VisItCommunication {
 }
 
 case class IR_VisItBroadcastStringCallback() extends IR_VisItCommunication {
+  val str = IR_FunctionArgument("str", IR_PointerDatatype(IR_CharDatatype))
+  val len = IR_FunctionArgument("len", IR_IntegerDatatype)
+  val sender = IR_FunctionArgument("sender", IR_IntegerDatatype)
+
   override def generateFct() : IR_PlainFunction = {
     val fctBody = ListBuffer[IR_Statement]()
 
-    fctBody += IR_Return(IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_VariableAccess("str", IR_PointerDatatype(IR_CharDatatype)), IR_VariableAccess("len", IR_IntegerDatatype), IR_Native("MPI_CHAR"), IR_VariableAccess("sender", IR_IntegerDatatype), Knowledge.mpi_defaultCommunicator))
+    fctBody += IR_Return(IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"),
+      str.access, len.access, IR_Native("MPI_CHAR"), sender.access, Knowledge.mpi_defaultCommunicator))
 
     IR_PlainFunction(
       name,
       IR_IntegerDatatype,
-      ListBuffer(IR_FunctionArgument("str", IR_PointerDatatype(IR_CharDatatype)), IR_FunctionArgument("len", IR_IntegerDatatype), IR_FunctionArgument("sender", IR_IntegerDatatype)),
+      ListBuffer(str, len, sender),
       fctBody
     )
   }
@@ -52,7 +61,8 @@ case class IR_VisItSlaveProcessCallback() extends IR_VisItCommunication {
     val cmdDecl = IR_VariableDeclaration(IR_IntegerDatatype, "command", IR_IntegerConstant(0))
 
     fctBody += cmdDecl
-    fctBody += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(IR_VariableAccess(cmdDecl)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
+    fctBody += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"),
+      IR_AddressOf(IR_VariableAccess(cmdDecl)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
 
     IR_PlainFunction(
       name,
