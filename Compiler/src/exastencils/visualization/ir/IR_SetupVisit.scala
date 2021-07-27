@@ -1,21 +1,19 @@
-package exastencils.visualization
+package exastencils.visualization.ir
 
-import exastencils.base
+import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.ListBuffer
 
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import exastencils.base.ir.IR_ForLoop
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.config._
 import exastencils.datastructures._
+import exastencils.domain.ir._
+import exastencils.field.ir.IR_FieldCollection
 import exastencils.field.ir._
 import exastencils.globals.ir.IR_GlobalCollection
-import exastencils.hack.ir.HACK_IR_Native
-import exastencils.config._
-import exastencils.deprecated.ir.IR_FieldSelection
-import exastencils.field.ir.IR_FieldCollection
 import exastencils.parallelization.api.mpi._
-import exastencils.domain.ir._
 
 /// IR_SetupVisit
 
@@ -62,7 +60,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
   // get variable localizations for rectilinear and curvilinear meshes
   for(field <- IR_FieldCollection.objects) {
-    val loc_name = field.fieldLayout.localization.name
+    val loc_name = field.layout.localization.name
     val faceCenter_dir = loc_name.charAt(loc_name.length-1).toInt - 'x'.toInt
     if(loc_name == "Node" && !coords_arrays.contains(coordsNode_decl)) {
       coords_arrays += coordsNode_decl
@@ -90,24 +88,24 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
   }
 
   val commandNames_decl: IR_VariableDeclaration = if (Knowledge.numLevels > 1) {
-    IR_VariableDeclaration(IR_ArrayDatatype(IR_PointerDatatype(IR_CharDatatype), 6), "commandNames", Option[IR_Expression](HACK_IR_Native("{\"step\", \"stop\", \"run\", \"switchUpdates\", \"level down\", \"level up\" }")), isConst = true)
+    IR_VariableDeclaration(IR_ArrayDatatype(IR_PointerDatatype(IR_CharDatatype), 6), "commandNames", Option[IR_Expression](IR_Native("{\"step\", \"stop\", \"run\", \"switchUpdates\", \"level down\", \"level up\" }")), isConst = true)
   } else {
-    IR_VariableDeclaration(IR_ArrayDatatype(IR_PointerDatatype(IR_CharDatatype), 4), "commandNames", Option[IR_Expression](HACK_IR_Native("{\"step\", \"stop\", \"run\", \"switchUpdates\"}")), isConst = true)
+    IR_VariableDeclaration(IR_ArrayDatatype(IR_PointerDatatype(IR_CharDatatype), 4), "commandNames", Option[IR_Expression](IR_Native("{\"step\", \"stop\", \"run\", \"switchUpdates\"}")), isConst = true)
   }
 
   // only gets generated when dimensionality is either 2 or 3
   def setupFct_SimGetVariable(): IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
-    val h_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "h", HACK_IR_Native("VISIT_INVALID_HANDLE"))
+    val h_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "h", IR_Native("VISIT_INVALID_HANDLE"))
 
     fctBody += h_decl
 
     for (field <- IR_FieldCollection.sortedObjects) {
-      val numDims = field.fieldLayout.numDimsGrid
-      val numPointsDim_tmp = (0 until numDims).map(d => field.fieldLayout.defIdxDupRightEnd(d) - field.fieldLayout.defIdxDupLeftBegin(d)).toArray
-      val numPointsDim_field = (0 until numDims).map(d => field.fieldLayout.defIdxPadRightEnd(d) - field.fieldLayout.defIdxPadLeftBegin(d)).toArray
-      val numOuterLayersLeft = (0 until numDims).map(d => field.fieldLayout.defIdxDupLeftBegin(d) - field.fieldLayout.defIdxPadLeftBegin(d)).toArray
-      val numOuterLayersRight = (0 until numDims).map(d => field.fieldLayout.defIdxPadRightEnd(d) - field.fieldLayout.defIdxDupRightEnd(d)).toArray
+      val numDims = field.layout.numDimsGrid
+      val numPointsDim_tmp = (0 until numDims).map(d => field.layout.defIdxDupRightEnd(d) - field.layout.defIdxDupLeftBegin(d)).toArray
+      val numPointsDim_field = (0 until numDims).map(d => field.layout.defIdxPadRightEnd(d) - field.layout.defIdxPadLeftBegin(d)).toArray
+      val numOuterLayersLeft = (0 until numDims).map(d => field.layout.defIdxDupLeftBegin(d) - field.layout.defIdxPadLeftBegin(d)).toArray
+      val numOuterLayersRight = (0 until numDims).map(d => field.layout.defIdxPadRightEnd(d) - field.layout.defIdxDupRightEnd(d)).toArray
       val isNodalDim = (0 until numDims).map(d => numPointsDim_tmp(d) % 2)
       val numPointsTotal_tmp = (0 until numDims).map(d => (Knowledge.domain_rect_numFragsPerBlockAsVec(d) * (numPointsDim_tmp(d)-isNodalDim(d))) + isNodalDim(d))
 
@@ -148,25 +146,25 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       // direct access to field if data is not copied
       val arrayAccessArg = if(!dataIsCopied) {
         if(Knowledge.numLevels > 1) {
-          IR_ArrayAccess(IR_VariableAccess("fieldData_"+field.name, field.fieldLayout.datatype), field.level-Knowledge.minLevel)
+          IR_ArrayAccess(IR_VariableAccess("fieldData_"+field.name, field.layout.datatype), field.level-Knowledge.minLevel)
         } else {
-          IR_VariableAccess("fieldData_"+field.name, field.fieldLayout.datatype)
+          IR_VariableAccess("fieldData_"+field.name, field.layout.datatype)
         }
       }
       else IR_VariableAccess(tmp_decl)
 
       // determine whether simulation or VisIt is responsible for freeing
       val ownership = if(!dataIsCopied) {
-        HACK_IR_Native("VISIT_OWNER_SIM")
+        IR_Native("VISIT_OWNER_SIM")
       } else {
-        HACK_IR_Native("VISIT_OWNER_VISIT")
+        IR_Native("VISIT_OWNER_VISIT")
       }
 
       // determine whether doubles or floats are sent
       val funcRef = if(Knowledge.useDblPrecision) IR_ExternalFunctionReference("VisIt_VariableData_setDataD") else IR_ExternalFunctionReference("VisIt_VariableData_setDataF")
 
       val sendData = IR_IfCondition(
-        IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(IR_VariableAccess(h_decl))) EqEq HACK_IR_Native("VISIT_OKAY"),
+        IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(IR_VariableAccess(h_decl))) EqEq IR_Native("VISIT_OKAY"),
         IR_FunctionCall(funcRef, IR_VariableAccess(h_decl),
           ownership, IR_IntegerConstant(1), numPointsTotal_tmp.product, arrayAccessArg
         )
@@ -187,7 +185,8 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
           IR_LoopOverDimensions(numDims, IR_ExpressionIndexRange(IR_ExpressionIndex(Array.fill[Int](numDims)(0)), IR_ExpressionIndex(numPointsDim_tmp)),
             IR_Assignment( //copy values from field to tmp
               arrayAccess,
-              IR_LinearizedFieldAccess(IR_FieldSelection(field, field.level, 0), IR_ExpressionIndex(idxField + offsetToInnerPoints))
+              // TODO: assumes slot = 0
+              IR_LinearizedFieldAccess(field, slot = 0, IR_LoopOverFragments.defIt, IR_ExpressionIndex(idxField + offsetToInnerPoints))
             )
           )
         )
@@ -216,7 +215,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
   def setupFct_SimGetMesh(): IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
-    val h_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "h", HACK_IR_Native("VISIT_INVALID_HANDLE"))
+    val h_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "h", IR_Native("VISIT_INVALID_HANDLE"))
     val handles_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_SpecialDatatype("visit_handle"), Knowledge.dimensionality), "handles")
 
     fctBody += h_decl
@@ -257,7 +256,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
             ifBody += IR_FunctionCall(funcRef,
               IR_ArrayAccess(IR_VariableAccess(handles_decl), dim),
-              HACK_IR_Native("VISIT_OWNER_SIM"),
+              IR_Native("VISIT_OWNER_SIM"),
               IR_IntegerConstant(1),
               numPointsDim(dim),
               coords_access
@@ -272,7 +271,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
             ),
             ListBuffer[IR_Statement](
               IR_IfCondition(
-                IR_FunctionCall(IR_ExternalFunctionReference("VisIt_RectilinearMesh_alloc"), IR_AddressOf(IR_VariableAccess(h_decl))) EqEq HACK_IR_Native("VISIT_OKAY"),
+                IR_FunctionCall(IR_ExternalFunctionReference("VisIt_RectilinearMesh_alloc"), IR_AddressOf(IR_VariableAccess(h_decl))) EqEq IR_Native("VISIT_OKAY"),
                 ifBody
               )
             )
@@ -283,12 +282,12 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     // curvilinear mesh construction for 1d and 2d problems
     if(Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) {
       for (field <- IR_FieldCollection.sortedObjects) {
-        val numDims = field.fieldLayout.numDimsGrid
+        val numDims = field.layout.numDimsGrid
         val handlesCurve_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_SpecialDatatype("visit_handle"), numDims+1), "handles")
-        val numPointsDim_tmp = (0 until numDims).map(d => field.fieldLayout.defIdxDupRightEnd(d) - field.fieldLayout.defIdxDupLeftBegin(d)).toArray
-        val numPointsDim_field = (0 until numDims).map(d => field.fieldLayout.defIdxPadRightEnd(0) - field.fieldLayout.defIdxPadLeftBegin(0))
-        val numOuterLayersLeft = (0 until numDims).map(d => field.fieldLayout.defIdxDupLeftBegin(d) - field.fieldLayout.defIdxPadLeftBegin(d)).toArray
-        val numOuterLayersRight = (0 until numDims).map(d => field.fieldLayout.defIdxPadRightEnd(d) - field.fieldLayout.defIdxDupRightEnd(d)).toArray
+        val numPointsDim_tmp = (0 until numDims).map(d => field.layout.defIdxDupRightEnd(d) - field.layout.defIdxDupLeftBegin(d)).toArray
+        val numPointsDim_field = (0 until numDims).map(d => field.layout.defIdxPadRightEnd(0) - field.layout.defIdxPadLeftBegin(0))
+        val numOuterLayersLeft = (0 until numDims).map(d => field.layout.defIdxDupLeftBegin(d) - field.layout.defIdxPadLeftBegin(d)).toArray
+        val numOuterLayersRight = (0 until numDims).map(d => field.layout.defIdxPadRightEnd(d) - field.layout.defIdxDupRightEnd(d)).toArray
         val isNodalDim = (0 until numDims).map(d => numPointsDim_tmp(d) % 2)
         val fragOffset = (0 until numDims).map(d => if(Knowledge.domain_rect_numFragsPerBlockAsVec(d) <= 1) IR_IntegerConstant(0)
         else (numPointsDim_tmp(d)-isNodalDim(d)) * (IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(d)))
@@ -319,7 +318,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
         }
 
         // pass pointers of coordinate arrays to handles
-        val loc_name = field.fieldLayout.localization.name
+        val loc_name = field.layout.localization.name
         val curveCoords_decl = if(loc_name == "Node") curveCoordsNode_decl else if(loc_name == "Cell") curveCoordsZone_decl else curveCoordsFaceAsVec(loc_name.charAt(loc_name.length-1).toInt - 'x'.toInt)
 
         val idx_tmp = if(numDims == 1) {
@@ -342,7 +341,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
         // copy values to temporary memory (only when necessary)
         val tmp_decl = IR_VariableDeclaration(IR_PointerDatatype(IR_RealDatatype), "tmp")
-        if(dataIsCopied) {
+        if (dataIsCopied) {
           ifBody += tmp_decl
           ifBody += IR_Assignment(
             IR_VariableAccess(tmp_decl),
@@ -353,7 +352,8 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
             IR_LoopOverDimensions(numDims, IR_ExpressionIndexRange(IR_ExpressionIndex(Array.fill[Int](numDims)(0)), IR_ExpressionIndex(numPointsDim_tmp)),
               IR_Assignment(
                 IR_ArrayAccess(IR_VariableAccess(tmp_decl), idx_tmp),
-                IR_VariableAccess(visit_scaleCurvemesh)*IR_LinearizedFieldAccess(IR_FieldSelection(field, field.level, 0), idx_field + offsetToInnerPoints)
+                // TODO: assumes slot = 0
+                IR_VariableAccess(visit_scaleCurvemesh) * IR_LinearizedFieldAccess(field, slot = 0, IR_LoopOverFragments.defIt, idx_field + offsetToInnerPoints)
               )
             )
           )
@@ -365,9 +365,9 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
         else {
           // pass pointer of field if nothing was copied
           if(Knowledge.numLevels > 1) {
-            IR_ArrayAccess(IR_VariableAccess("fieldData_"+field.name, field.fieldLayout.datatype), field.level-Knowledge.minLevel)
+            IR_ArrayAccess(IR_VariableAccess("fieldData_"+field.name, field.layout.datatype), field.level-Knowledge.minLevel)
           } else {
-            IR_VariableAccess("fieldData_" + field.name, field.fieldLayout.datatype)
+            IR_VariableAccess("fieldData_" + field.name, field.layout.datatype)
           }
         }
 
@@ -388,7 +388,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
           // pass coordinate array, simulation responsible for freeing memory
           ifBody += IR_FunctionCall(funcRef,
             IR_ArrayAccess(IR_VariableAccess(handles_decl), dim),
-            HACK_IR_Native("VISIT_OWNER_SIM"),
+            IR_Native("VISIT_OWNER_SIM"),
             IR_IntegerConstant(1),
             numPointsTotal_tmp.product,
             curveCoords_access
@@ -397,9 +397,9 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
         // determines whether simulation or VisIt is responsible for freeing
         val ownership = if(dataIsCopied) {
-          HACK_IR_Native("VISIT_OWNER_VISIT")
+          IR_Native("VISIT_OWNER_VISIT")
         } else {
-          HACK_IR_Native("VISIT_OWNER_SIM")
+          IR_Native("VISIT_OWNER_SIM")
         }
 
         // pass tmp array or field
@@ -419,7 +419,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
           ),
           ListBuffer[IR_Statement](
             IR_IfCondition(
-              IR_FunctionCall(IR_ExternalFunctionReference("VisIt_CurvilinearMesh_alloc"), IR_AddressOf(IR_VariableAccess(h_decl))) EqEq HACK_IR_Native("VISIT_OKAY"),
+              IR_FunctionCall(IR_ExternalFunctionReference("VisIt_CurvilinearMesh_alloc"), IR_AddressOf(IR_VariableAccess(h_decl))) EqEq IR_Native("VISIT_OKAY"),
               ifBody
             )
           )
@@ -442,26 +442,26 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     val fctBody = ListBuffer[IR_Statement]()
     val ifBody = ListBuffer[IR_Statement]()
 
-    val md_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "metadata", HACK_IR_Native("VISIT_INVALID_HANDLE"))
+    val md_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "metadata", IR_Native("VISIT_INVALID_HANDLE"))
 
     var new_name_identifier = "" // detects new field name
 
     // simulation metadata(mode, time, cycle)
-    val mode_decl = IR_VariableDeclaration(IR_IntegerDatatype, "mode", IR_TernaryCondition(IR_VariableAccess(visit_runMode_decl), HACK_IR_Native("VISIT_SIMMODE_RUNNING"), HACK_IR_Native("VISIT_SIMMODE_STOPPED")))
+    val mode_decl = IR_VariableDeclaration(IR_IntegerDatatype, "mode", IR_TernaryCondition(IR_VariableAccess(visit_runMode_decl), IR_Native("VISIT_SIMMODE_RUNNING"), IR_Native("VISIT_SIMMODE_STOPPED")))
     ifBody += mode_decl
     ifBody += IR_FunctionCall(IR_ExternalFunctionReference("VisIt_SimulationMetaData_setMode"), IR_VariableAccess(md_decl), IR_VariableAccess(mode_decl))
     ifBody += IR_FunctionCall(IR_ExternalFunctionReference("VisIt_SimulationMetaData_setCycleTime"), IR_VariableAccess(md_decl), IR_VariableAccess(sim_cycle_decl), IR_VariableAccess(sim_time_decl))
 
     if(Knowledge.dimensionality > 1) {
       for (coords_decl <- coords_arrays) {
-        val mmd_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "meshMetadata_" + coords_decl.name.drop(6), HACK_IR_Native("VISIT_INVALID_HANDLE"))
+        val mmd_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "meshMetadata_" + coords_decl.name.drop(6), IR_Native("VISIT_INVALID_HANDLE"))
 
         ifBody += mmd_decl
         ifBody += IR_IfCondition(
-          IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_alloc"), IR_AddressOf(IR_VariableAccess(mmd_decl))) EqEq HACK_IR_Native("VISIT_OKAY"),
+          IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_alloc"), IR_AddressOf(IR_VariableAccess(mmd_decl))) EqEq IR_Native("VISIT_OKAY"),
           ListBuffer[IR_Statement](
             IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setName"), IR_VariableAccess(mmd_decl), IR_StringConstant("rect" + Knowledge.dimensionality + "d_" + coords_decl.name.drop(6))),
-            IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setMeshType"), IR_VariableAccess(mmd_decl), HACK_IR_Native("VISIT_MESHTYPE_RECTILINEAR")),
+            IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setMeshType"), IR_VariableAccess(mmd_decl), IR_Native("VISIT_MESHTYPE_RECTILINEAR")),
             IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setTopologicalDimension"), IR_VariableAccess(mmd_decl), Knowledge.dimensionality),
             IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setSpatialDimension"), IR_VariableAccess(mmd_decl), Knowledge.dimensionality),
             IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setNumDomains"), IR_VariableAccess(mmd_decl), Knowledge.domain_numBlocks),
@@ -475,14 +475,14 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       // display two dimensional variables as a 3d curvilinear
       for (field <- IR_FieldCollection.sortedObjects) {
         if (field.name != new_name_identifier) {
-          val mmd_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "meshMetadata_" + field.name, HACK_IR_Native("VISIT_INVALID_HANDLE"))
+          val mmd_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "meshMetadata_" + field.name, IR_Native("VISIT_INVALID_HANDLE"))
 
           ifBody += mmd_decl
           ifBody += IR_IfCondition(
-            IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_alloc"), IR_AddressOf(IR_VariableAccess(mmd_decl))) EqEq HACK_IR_Native("VISIT_OKAY"),
+            IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_alloc"), IR_AddressOf(IR_VariableAccess(mmd_decl))) EqEq IR_Native("VISIT_OKAY"),
             ListBuffer[IR_Statement](
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setName"), IR_VariableAccess(mmd_decl), IR_StringConstant("curv" + (Knowledge.dimensionality+1) + "d_" + field.name)),
-              IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setMeshType"), IR_VariableAccess(mmd_decl), HACK_IR_Native("VISIT_MESHTYPE_CURVILINEAR")),
+              IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setMeshType"), IR_VariableAccess(mmd_decl), IR_Native("VISIT_MESHTYPE_CURVILINEAR")),
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setTopologicalDimension"), IR_VariableAccess(mmd_decl), Knowledge.dimensionality+1),
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setSpatialDimension"), IR_VariableAccess(mmd_decl), Knowledge.dimensionality+1),
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setNumDomains"), IR_VariableAccess(mmd_decl), Knowledge.domain_numBlocks),
@@ -500,21 +500,21 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       // variable metadata
       for (field <- IR_FieldCollection.sortedObjects) {
         if (field.name != new_name_identifier) {
-          val vmd_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "varMetadata_" + field.name, HACK_IR_Native("VISIT_INVALID_HANDLE"))
-          val loc_name = field.fieldLayout.localization.name
+          val vmd_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "varMetadata_" + field.name, IR_Native("VISIT_INVALID_HANDLE"))
+          val loc_name = field.layout.localization.name
           val varCentering = if(loc_name == "Cell") {
-            HACK_IR_Native("VISIT_VARCENTERING_ZONE")
+            IR_Native("VISIT_VARCENTERING_ZONE")
           } else {
-            HACK_IR_Native("VISIT_VARCENTERING_NODE")
+            IR_Native("VISIT_VARCENTERING_NODE")
           }
           val meshname = if(loc_name == "Node") "Node" else if(loc_name == "Cell") "Zone" else "Face_" + loc_name.charAt(loc_name.length()-1)
           ifBody += vmd_decl
           ifBody += IR_IfCondition(
-            IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableMetaData_alloc"), IR_AddressOf(IR_VariableAccess(vmd_decl))) EqEq HACK_IR_Native("VISIT_OKAY"),
+            IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableMetaData_alloc"), IR_AddressOf(IR_VariableAccess(vmd_decl))) EqEq IR_Native("VISIT_OKAY"),
             ListBuffer[IR_Statement](
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableMetaData_setName"), IR_VariableAccess(vmd_decl), IR_StringConstant(field.name)),
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableMetaData_setMeshName"), IR_VariableAccess(vmd_decl), IR_StringConstant("rect" + Knowledge.dimensionality + "d_" + meshname)),
-              IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableMetaData_setType"), IR_VariableAccess(vmd_decl), HACK_IR_Native("VISIT_VARTYPE_SCALAR")),
+              IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableMetaData_setType"), IR_VariableAccess(vmd_decl), IR_Native("VISIT_VARTYPE_SCALAR")),
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableMetaData_setCentering"), IR_VariableAccess(vmd_decl), varCentering),
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_SimulationMetaData_addVariable"), IR_VariableAccess(md_decl), IR_VariableAccess(vmd_decl))
             )
@@ -525,13 +525,13 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     }
 
     // command metadata
-    val cmd_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "commandMetadata", HACK_IR_Native("VISIT_INVALID_HANDLE"))
+    val cmd_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "commandMetadata", IR_Native("VISIT_INVALID_HANDLE"))
     ifBody += IR_ForLoop(
       IR_VariableDeclaration(IR_FieldIteratorAccess(0), IR_IntegerConstant(0)), IR_FieldIteratorAccess(0) < commandNames_decl.datatype.resolveFlattendSize, IR_PostIncrement(IR_FieldIteratorAccess(0)),
       ListBuffer[IR_Statement](
         cmd_decl,
         IR_IfCondition(
-          IR_FunctionCall(IR_ExternalFunctionReference("VisIt_CommandMetaData_alloc"), IR_AddressOf(IR_VariableAccess(cmd_decl))) EqEq HACK_IR_Native("VISIT_OKAY"),
+          IR_FunctionCall(IR_ExternalFunctionReference("VisIt_CommandMetaData_alloc"), IR_AddressOf(IR_VariableAccess(cmd_decl))) EqEq IR_Native("VISIT_OKAY"),
           ListBuffer[IR_Statement](
             IR_FunctionCall(IR_ExternalFunctionReference("VisIt_CommandMetaData_setName"), IR_VariableAccess(cmd_decl), IR_ArrayAccess(IR_VariableAccess(commandNames_decl), IR_FieldIteratorAccess(0))),
             IR_FunctionCall(IR_ExternalFunctionReference("VisIt_SimulationMetaData_addGenericCommand"), IR_VariableAccess(md_decl), IR_VariableAccess(cmd_decl))
@@ -542,7 +542,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
     fctBody += md_decl
     fctBody += IR_IfCondition(
-      IR_FunctionCall(IR_ExternalFunctionReference("VisIt_SimulationMetaData_alloc"), IR_AddressOf(IR_VariableAccess(md_decl))) EqEq HACK_IR_Native("VISIT_OKAY"),
+      IR_FunctionCall(IR_ExternalFunctionReference("VisIt_SimulationMetaData_alloc"), IR_AddressOf(IR_VariableAccess(md_decl))) EqEq IR_Native("VISIT_OKAY"),
       ifBody
     )
 
@@ -630,7 +630,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
   def setupFct_visit_init(): IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
-    val cwd_decl = IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "cwd", HACK_IR_Native("NULL"))
+    val cwd_decl = IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "cwd", IR_Native("NULL"))
 
     val getCWD = if(Platform.targetCompiler == "MSVC") {
       IR_ExternalFunctionReference("_getcwd")
@@ -826,7 +826,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
           IR_MemberFunctionCall(IR_VariableAccess(str_decl), "end"),
           IR_VariableAccess(path_decl)
         ),
-        IR_Assignment(IR_ArrayAccess(IR_VariableAccess(path_decl), IR_MemberFunctionCall(IR_VariableAccess(str_decl), "size")), HACK_IR_Native("\'\\0\'")),
+        IR_Assignment(IR_ArrayAccess(IR_VariableAccess(path_decl), IR_MemberFunctionCall(IR_VariableAccess(str_decl), "size")), IR_Native("\'\\0\'")),
         IR_FunctionCall(IR_ExternalFunctionReference("VisItSetDirectory"), IR_VariableAccess(path_decl)),
         IR_ArrayFree(IR_VariableAccess(path_decl))
       )
@@ -844,20 +844,20 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       fctBody += IR_FunctionCall(IR_ExternalFunctionReference("sprintf"), IR_VariableAccess("fn", IR_ArrayDatatype(IR_CharDatatype, 1000)), IR_StringConstant("trace_%d.txt"), MPI_IV_MpiRank)
       fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItOpenTraceFile"), IR_VariableAccess("fn", IR_ArrayDatatype(IR_CharDatatype, 1000)))
 
-      fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetBroadcastIntFunction"), HACK_IR_Native("visit_broadcast_int_callback"))
-      fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetBroadcastStringFunction"),  HACK_IR_Native("visit_broadcast_string_callback"))
+      fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetBroadcastIntFunction"), IR_Native("visit_broadcast_int_callback"))
+      fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetBroadcastStringFunction"),  IR_Native("visit_broadcast_string_callback"))
 
       fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetParallel"), IR_BooleanConstant(true))
       fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetParallelRank"), MPI_IV_MpiRank)
 
-      fctBody += IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "env", HACK_IR_Native("NULL"))
+      fctBody += IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "env", IR_Native("NULL"))
       fctBody += IR_IfCondition(
         MPI_IsRootProc(),
         IR_Assignment(IR_VariableAccess(IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "env")), IR_FunctionCall(IR_ExternalFunctionReference("VisItGetEnvironment")))
       )
       fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetupEnvironment2"), IR_VariableAccess(IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "env")))
       fctBody += IR_IfCondition(
-        IR_VariableAccess(IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "env")) Neq HACK_IR_Native("NULL"),
+        IR_VariableAccess(IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "env")) Neq IR_Native("NULL"),
         IR_FunctionCall(IR_ExternalFunctionReference("free"), IR_VariableAccess(IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "env")))
       )
 
@@ -868,7 +868,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
           IR_ArrayAllocation(IR_VariableAccess(cwd_decl), IR_CharDatatype, IR_IntegerConstant(1000)),
           IR_Assignment(IR_VariableAccess(cwd_decl), IR_FunctionCall(getCWD, IR_VariableAccess(cwd_decl), IR_IntegerConstant(1000))),
           IR_FunctionCall(IR_ExternalFunctionReference("VisItInitializeSocketAndDumpSimFile"), IR_StringConstant(sim_name.head),
-            IR_StringConstant(sim_name.tail.mkString("_")), IR_VariableAccess(cwd_decl), HACK_IR_Native("NULL"), HACK_IR_Native("NULL"), HACK_IR_Native("NULL")),
+            IR_StringConstant(sim_name.tail.mkString("_")), IR_VariableAccess(cwd_decl), IR_Native("NULL"), IR_Native("NULL"), IR_Native("NULL")),
           IR_ArrayFree(IR_VariableAccess(cwd_decl))
         )
       )
@@ -878,7 +878,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       fctBody += cwd_decl
       fctBody += IR_ArrayAllocation(IR_VariableAccess(cwd_decl), IR_CharDatatype, IR_IntegerConstant(1000))
       fctBody += IR_Assignment(IR_VariableAccess(cwd_decl), IR_FunctionCall(getCWD, IR_VariableAccess(cwd_decl), IR_IntegerConstant(1000)))
-      fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItInitializeSocketAndDumpSimFile"), IR_StringConstant(sim_name.head), IR_StringConstant(sim_name.tail.mkString("_")), IR_VariableAccess(cwd_decl), HACK_IR_Native("NULL"), HACK_IR_Native("NULL"), HACK_IR_Native("NULL"))
+      fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItInitializeSocketAndDumpSimFile"), IR_StringConstant(sim_name.head), IR_StringConstant(sim_name.tail.mkString("_")), IR_VariableAccess(cwd_decl), IR_Native("NULL"), IR_Native("NULL"), IR_Native("NULL"))
       fctBody += IR_ArrayFree(IR_VariableAccess(cwd_decl))
     }
 
@@ -959,7 +959,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
     val blocking_decl = IR_VariableDeclaration(IR_BooleanDatatype, "blocking", IR_TernaryCondition(IR_VariableAccess(visit_runMode_decl), IR_BooleanConstant(false), IR_BooleanConstant(true)))
     val visit_input_decl = IR_VariableDeclaration(IR_IntegerDatatype, "visit_input")
-    val command_decl = IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "command", HACK_IR_Native("NULL"))
+    val command_decl = IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "command", IR_Native("NULL"))
 
     val registerCallbackFcts = ListBuffer[IR_Statement]()
     val procEngineCommandFct = if(Knowledge.mpi_enabled) {
@@ -970,16 +970,16 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
     // callback functions to register
     if(Knowledge.mpi_enabled) {
-      registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetSlaveProcessCallback"), HACK_IR_Native("slave_process_callback"))
-      registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetGetDomainList"), HACK_IR_Native("SimGetDomainList"), HACK_IR_Native("nullptr"))
+      registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetSlaveProcessCallback"), IR_Native("slave_process_callback"))
+      registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetGetDomainList"), IR_Native("SimGetDomainList"), IR_Native("nullptr"))
     }
-    registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetGetMetaData"), HACK_IR_Native("SimGetMetaData"), HACK_IR_Native("nullptr"))
-    registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetGetMesh"), HACK_IR_Native("SimGetMesh"), HACK_IR_Native("nullptr"))
+    registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetGetMetaData"), IR_Native("SimGetMetaData"), IR_Native("nullptr"))
+    registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetGetMesh"), IR_Native("SimGetMesh"), IR_Native("nullptr"))
     if(Knowledge.dimensionality > 1) { // 1d variables are pictured as meshes
-      registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetGetVariable"), HACK_IR_Native("SimGetVariable"), HACK_IR_Native("nullptr"))
+      registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetGetVariable"), IR_Native("SimGetVariable"), IR_Native("nullptr"))
     }
 
-    registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetCommandCallback"), HACK_IR_Native("ControlCommandCallback"), HACK_IR_Native("nullptr"))
+    registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetCommandCallback"), IR_Native("ControlCommandCallback"), IR_Native("nullptr"))
 
     // body of the while loop containing the switch statement
     whileBody += IR_IfCondition(
@@ -998,11 +998,11 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       whileBody += visit_input_decl
       whileBody += IR_IfCondition(
         MPI_IsRootProc.apply(),
-        IR_Assignment(IR_VariableAccess(visit_input_decl), IR_FunctionCall(IR_ExternalFunctionReference("VisItDetectInput"), IR_VariableAccess("blocking", IR_IntegerDatatype), IR_FunctionCall(funcRef, HACK_IR_Native("stdin"))))
+        IR_Assignment(IR_VariableAccess(visit_input_decl), IR_FunctionCall(IR_ExternalFunctionReference("VisItDetectInput"), IR_VariableAccess("blocking", IR_IntegerDatatype), IR_FunctionCall(funcRef, IR_Native("stdin"))))
       )
-      whileBody += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(IR_VariableAccess(visit_input_decl)), IR_IntegerConstant(1), HACK_IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
+      whileBody += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(IR_VariableAccess(visit_input_decl)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
     } else {
-      whileBody += IR_VariableDeclaration(IR_IntegerDatatype, "visit_input", IR_FunctionCall(IR_ExternalFunctionReference("VisItDetectInput"), IR_VariableAccess("blocking", IR_IntegerDatatype), IR_FunctionCall(funcRef, HACK_IR_Native("stdin"))))
+      whileBody += IR_VariableDeclaration(IR_IntegerDatatype, "visit_input", IR_FunctionCall(IR_ExternalFunctionReference("VisItDetectInput"), IR_VariableAccess("blocking", IR_IntegerDatatype), IR_FunctionCall(funcRef, IR_Native("stdin"))))
     }
 
     // body of the third case of the switch statement
@@ -1013,14 +1013,14 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       consoleInputBody += IR_IfCondition(
         MPI_IsRootProc.apply(),
         IR_IfCondition(
-          IR_FunctionCall(IR_ExternalFunctionReference("VisItReadConsole"), IR_IntegerConstant(1000), IR_VariableAccess(command_decl)) Neq HACK_IR_Native("VISIT_OKAY"),
+          IR_FunctionCall(IR_ExternalFunctionReference("VisItReadConsole"), IR_IntegerConstant(1000), IR_VariableAccess(command_decl)) Neq IR_Native("VISIT_OKAY"),
           IR_Break()
         )
       )
-      consoleInputBody += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_VariableAccess(command_decl), IR_IntegerConstant(1000), HACK_IR_Native("MPI_CHAR"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
+      consoleInputBody += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_VariableAccess(command_decl), IR_IntegerConstant(1000), IR_Native("MPI_CHAR"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
     } else {
       consoleInputBody += IR_IfCondition(
-        IR_FunctionCall(IR_ExternalFunctionReference("VisItReadConsole"), IR_IntegerConstant(1000), IR_VariableAccess(command_decl)) Neq HACK_IR_Native("VISIT_OKAY"),
+        IR_FunctionCall(IR_ExternalFunctionReference("VisItReadConsole"), IR_IntegerConstant(1000), IR_VariableAccess(command_decl)) Neq IR_Native("VISIT_OKAY"),
         IR_Break()
       )
     }
@@ -1060,8 +1060,8 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     if(Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) {
       val funcRef_scale = if (Knowledge.useDblPrecision) IR_ExternalFunctionReference("std::stod") else IR_ExternalFunctionReference("std::stof")
       consoleInputBody += IR_IfCondition(
-        IR_FunctionCall(IR_ExternalFunctionReference("strstr"), IR_VariableAccess(command_decl), IR_StringConstant("scale=")) Neq HACK_IR_Native("NULL"),
-        HACK_IR_Native("""|try{
+        IR_FunctionCall(IR_ExternalFunctionReference("strstr"), IR_VariableAccess(command_decl), IR_StringConstant("scale=")) Neq IR_Native("NULL"),
+        IR_Native("""|try{
                           |scale = std::stod(command+6);
                           |} catch (const std::invalid_argument&) {
                           |
@@ -1126,7 +1126,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       IR_IfCondition(
         IR_FunctionCall(IR_ExternalFunctionReference("VisItAttemptToCompleteConnection")),
         registerCallbackFcts,
-        HACK_IR_Native("std::cout << \"Visit connection failed. Error message: \" << VisItGetLastError() << std::endl")
+        IR_Native("std::cout << \"Visit connection failed. Error message: \" << VisItGetLastError() << std::endl")
       )
     )
     whileBody += IR_IfCondition(
@@ -1169,12 +1169,12 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
           IR_EqEq(IR_IntegerConstant(1), IR_FunctionCall(IR_ExternalFunctionReference("VisItProcessEngineCommand"))),
           ListBuffer[IR_Statement](
             IR_Assignment(IR_VariableAccess(command_decl), IR_IntegerConstant(1)),
-            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(IR_VariableAccess(command_decl)), IR_IntegerConstant(1), HACK_IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator),
+            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(IR_VariableAccess(command_decl)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator),
             IR_Return(IR_IntegerConstant(1))
           ),
           ListBuffer[IR_Statement](
             IR_Assignment(IR_VariableAccess(command_decl), IR_IntegerConstant(0)),
-            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(IR_VariableAccess(command_decl)), IR_IntegerConstant(1), HACK_IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator),
+            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(IR_VariableAccess(command_decl)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator),
             IR_Return(IR_IntegerConstant(0))
           )
         )
@@ -1183,7 +1183,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
         IR_WhileLoop(
           IR_IntegerConstant(1),
           ListBuffer[IR_Statement](
-            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(IR_VariableAccess(command_decl)), IR_IntegerConstant(1), HACK_IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator),
+            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(IR_VariableAccess(command_decl)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator),
             IR_IfCondition(
               IR_EqEq(IR_VariableAccess(command_decl), IR_IntegerConstant(0)),
               IR_FunctionCall(IR_ExternalFunctionReference("VisItProcessEngineCommand"))
@@ -1213,19 +1213,19 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
   // with 1 block per MPI Rank, a 1:1 ratio is used
   def setupFct_SimGetDomainList(): IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
-    val h_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "h", HACK_IR_Native("VISIT_INVALID_HANDLE"))
-    val dl_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "domain_list", HACK_IR_Native("VISIT_INVALID_HANDLE"))
+    val h_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "h", IR_Native("VISIT_INVALID_HANDLE"))
+    val dl_decl = IR_VariableDeclaration(IR_SpecialDatatype("visit_handle"), "domain_list", IR_Native("VISIT_INVALID_HANDLE"))
 
     fctBody += h_decl
     fctBody += dl_decl
 
     fctBody += IR_IfCondition(
       IR_AndAnd(
-        IR_EqEq(IR_FunctionCall(IR_ExternalFunctionReference("VisIt_DomainList_alloc"), IR_AddressOf(IR_VariableAccess(h_decl))), HACK_IR_Native("VISIT_OKAY")),
-        IR_EqEq(IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(IR_VariableAccess(dl_decl))), HACK_IR_Native("VISIT_OKAY"))
+        IR_EqEq(IR_FunctionCall(IR_ExternalFunctionReference("VisIt_DomainList_alloc"), IR_AddressOf(IR_VariableAccess(h_decl))), IR_Native("VISIT_OKAY")),
+        IR_EqEq(IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(IR_VariableAccess(dl_decl))), IR_Native("VISIT_OKAY"))
       ),
       ListBuffer[IR_Statement](
-        IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_setDataI"), IR_VariableAccess(dl_decl), HACK_IR_Native("VISIT_OWNER_COPY"), IR_IntegerConstant(1), IR_IntegerConstant(1), IR_AddressOf(MPI_IV_MpiRank)),
+        IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_setDataI"), IR_VariableAccess(dl_decl), IR_Native("VISIT_OWNER_COPY"), IR_IntegerConstant(1), IR_IntegerConstant(1), IR_AddressOf(MPI_IV_MpiRank)),
         IR_FunctionCall(IR_ExternalFunctionReference("VisIt_DomainList_setDomains"), IR_VariableAccess(h_decl), Knowledge.mpi_numThreads, IR_VariableAccess(dl_decl))
       )
     )
@@ -1242,7 +1242,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
   def setupFct_visit_broadcast_int_callback(): IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
 
-    fctBody += IR_Return(IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_VariableAccess("value", IR_PointerDatatype(IR_IntegerDatatype)), IR_IntegerConstant(1), HACK_IR_Native("MPI_INT"), IR_VariableAccess("sender", IR_IntegerDatatype), Knowledge.mpi_defaultCommunicator))
+    fctBody += IR_Return(IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_VariableAccess("value", IR_PointerDatatype(IR_IntegerDatatype)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_VariableAccess("sender", IR_IntegerDatatype), Knowledge.mpi_defaultCommunicator))
 
     IR_PlainFunction(
       "visit_broadcast_int_callback",
@@ -1255,7 +1255,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
   def setupFct_visit_broadcast_string_callback(): IR_Function = {
     val fctBody = ListBuffer[IR_Statement]()
 
-    fctBody += IR_Return(IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_VariableAccess("str", IR_PointerDatatype(IR_CharDatatype)), IR_VariableAccess("len", IR_IntegerDatatype), HACK_IR_Native("MPI_CHAR"), IR_VariableAccess("sender", IR_IntegerDatatype), Knowledge.mpi_defaultCommunicator))
+    fctBody += IR_Return(IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_VariableAccess("str", IR_PointerDatatype(IR_CharDatatype)), IR_VariableAccess("len", IR_IntegerDatatype), IR_Native("MPI_CHAR"), IR_VariableAccess("sender", IR_IntegerDatatype), Knowledge.mpi_defaultCommunicator))
 
     IR_PlainFunction(
       "visit_broadcast_string_callback",
@@ -1271,7 +1271,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     val cmd_decl = IR_VariableDeclaration(IR_IntegerDatatype, "command", IR_IntegerConstant(0))
 
     fctBody += cmd_decl
-    fctBody += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(IR_VariableAccess(cmd_decl)), IR_IntegerConstant(1), HACK_IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
+    fctBody += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(IR_VariableAccess(cmd_decl)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
 
     IR_PlainFunction(
       "slave_process_callback",
