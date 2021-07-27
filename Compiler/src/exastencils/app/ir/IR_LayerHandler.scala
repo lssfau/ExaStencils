@@ -53,6 +53,7 @@ import exastencils.timing.ir._
 import exastencils.util._
 import exastencils.util.ir._
 import exastencils.visualization.ir._
+import exastencils.visualization.ir.visit.IR_SetupVisit
 
 /// IR_LayerHandler
 

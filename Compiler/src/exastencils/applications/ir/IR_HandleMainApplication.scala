@@ -21,14 +21,16 @@ package exastencils.applications.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.{ IR_Native, _ }
+import exastencils.base.ir.IR_Native
+import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp.OMP_Parallel
-import exastencils.visualization.ir.IR_SetupVisit
+import exastencils.visualization.ir.visit.IR_VisItDestroy
+import exastencils.visualization.ir.visit.IR_VisItInitialization
 
 /// IR_HandleMainApplication
 
@@ -62,8 +64,8 @@ object IR_HandleMainApplication extends DefaultStrategy("HandleMainApplication")
       }
 
       if (Knowledge.experimental_visit_enable) {
-        func.body.prepend(IR_SetupVisit.setupFct_visit_init())
-        func.body.append(IR_SetupVisit.setupFct_visit_destroy())
+        func.body.prepend(IR_FunctionCall(IR_PlainInternalFunctionReference(IR_VisItInitialization().name, IR_UnitDatatype)))
+        func.body.append(IR_FunctionCall(IR_PlainInternalFunctionReference(IR_VisItDestroy().name, IR_UnitDatatype)))
       }
 
       func.body.append(IR_Return(0))
