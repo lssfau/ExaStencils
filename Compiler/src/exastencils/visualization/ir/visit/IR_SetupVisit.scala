@@ -3,19 +3,43 @@ package exastencils.visualization.ir.visit
 import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.datastructures._
+import exastencils.field.ir.IR_FieldCollection
 import exastencils.globals.ir.IR_GlobalCollection
+import exastencils.grid.ir._
+import exastencils.logger.Logger
 
 object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
   /* TODO:
-    * Warning for fields with manually set innerPoints != fragLength(d) * 2^level (+1)
     * Utilize virtual fields for node/cell positions
     * too many copies -> read docs for ghost layer mechanism from VisIt
     * assumes rectangular domains -> generally blockstructured grids not supported
     * interpolate face-centered variables to cell-centered
+    * only slot = 0 is considered
+    * Higher-order datatypes unsupported
   */
 
   import IR_VisItUtil._
+
+  override def apply(applyAtNode : Option[Node]) : Unit = {
+
+    // check if innerPoints were set manually in layout
+    for (field <- IR_FieldCollection.objects) {
+      for (d <- 0 until field.numDimsGrid) {
+        val numDupOrInner = field.layout.defIdxDupRightEnd(d) - field.layout.defIdxDupLeftBegin(d)
+        field.layout.localization match {
+          case IR_AtNode | IR_AtFaceCenter(`d`) =>
+            if (numDupOrInner != Knowledge.domain_fragmentLengthAsVec(d) * (1 << field.level) + 1)
+              Logger.error("VisIt interface currently only supports fields bound to a mesh with \"fragmentLength(d) * 2^level +1\" grid nodes.")
+          case IR_AtCellCenter | IR_AtFaceCenter(_) =>
+            if (numDupOrInner != Knowledge.domain_fragmentLengthAsVec(d) * (1 << field.level) + 0)
+              Logger.error("VisIt interface currently only supports fields bound to a mesh with \"fragmentLength(d) * 2^level +0\" cells.")
+        }
+      }
+    }
+
+    super.apply(applyAtNode)
+  }
 
   this += Transformation("..", {
     case fctCollection : IR_UserFunctions =>
@@ -66,7 +90,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
       if (Knowledge.dimensionality > 1) {
         for (coordsDecl <- coordsArrays.distinct) globalCollection.variables += coordsDecl
       }
-      // coordinate arrays for 2 and 3 dim. curvilinear meshes(partially consisting of 1d or 2d variables)
+      // coordinate arrays for 2 and 3 dim. curvilinear meshes (partially consisting of 1d or 2d variables)
       if (Knowledge.dimensionality < 3) {
         for (curveCoordsDecl <- curveCoordsArrays.distinct) globalCollection.variables += curveCoordsDecl
       }

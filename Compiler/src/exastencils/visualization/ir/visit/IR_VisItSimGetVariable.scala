@@ -36,12 +36,6 @@ case class IR_VisItSimGetVariable() extends IR_FuturePlainVisItFunction {
       val dataIsCopied = if (numOuterLayersLeft.sum != 0 || numOuterLayersRight.sum != 0 || Knowledge.domain_numFragmentsPerBlock > 1) true else false
 
       val tmpDecl = IR_VariableDeclaration(IR_PointerDatatype(IR_RealDatatype), "tmp")
-      // offset depending on number of ghost/pad layers
-      val offsetToInnerPoints = if (numDims == 2) {
-        numOuterLayersLeft(1) * numPointsDimField(0) + numOuterLayersLeft(0)
-      } else {
-        numOuterLayersLeft(2) * numPointsDimField(0) * numPointsDimField(1) + numOuterLayersLeft(1) * numPointsDimField(0) + numOuterLayersLeft(0)
-      }
 
       // offset to the current fragment
       val fragOffset = (0 until numDims).map(d => if (Knowledge.domain_rect_numFragsPerBlockAsVec(d) <= 1) IR_IntegerConstant(0)
@@ -54,13 +48,6 @@ case class IR_VisItSimGetVariable() extends IR_FuturePlainVisItFunction {
         numPointsTotalTmp(0) * numPointsTotalTmp(1) * (IR_FieldIteratorAccess(2) + fragOffset(2)) + // linearized z
           numPointsTotalTmp(0) * (IR_FieldIteratorAccess(1) + fragOffset(1)) + // linearized y
           (IR_FieldIteratorAccess(0) + fragOffset(0)) // linearized x
-      }
-
-      val idxField = if (numDims == 2) {
-        numPointsDimField(0) * IR_FieldIteratorAccess(1) + IR_FieldIteratorAccess(0)
-      } else {
-        numPointsDimField(0) * numPointsDimField(1) * IR_FieldIteratorAccess(2) +
-          numPointsDimField(0) * IR_FieldIteratorAccess(1) + IR_FieldIteratorAccess(0)
       }
 
       // array accesses depending on number of levels
@@ -78,11 +65,11 @@ case class IR_VisItSimGetVariable() extends IR_FuturePlainVisItFunction {
       val ownership = if (!dataIsCopied) IR_Native("VISIT_OWNER_SIM") else IR_Native("VISIT_OWNER_VISIT")
 
       // determine whether doubles or floats are sent
-      val funcRef = if (Knowledge.useDblPrecision) IR_ExternalFunctionReference("VisIt_VariableData_setDataD") else IR_ExternalFunctionReference("VisIt_VariableData_setDataF")
+      val setData = if (Knowledge.useDblPrecision) IR_ExternalFunctionReference("VisIt_VariableData_setDataD") else IR_ExternalFunctionReference("VisIt_VariableData_setDataF")
 
       val sendData = IR_IfCondition(
         IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(h)) EqEq visitOkay,
-        IR_FunctionCall(funcRef, h,
+        IR_FunctionCall(setData, h,
           ownership, IR_IntegerConstant(1), numPointsTotalTmp.product, arrayAccessArg)
       )
 
@@ -102,7 +89,7 @@ case class IR_VisItSimGetVariable() extends IR_FuturePlainVisItFunction {
             IR_Assignment( //copy values from field to tmp
               arrayAccess,
               // TODO: assumes slot = 0
-              IR_LinearizedFieldAccess(field, slot = 0, IR_LoopOverFragments.defIt, idxField + offsetToInnerPoints))))
+              IR_FieldAccess(field, slot = 0, IR_LoopOverFragments.defIt, IR_LoopOverDimensions.defIt(numDims)))))
         loopStatement += sendData
       }
 

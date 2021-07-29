@@ -99,7 +99,7 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainVisItFunction {
         val numPointsTotalTmp = (0 until numDims).map(d => Knowledge.domain_rect_numFragsPerBlockAsVec(d) * (numPointsDimTmp(d) - isNodalDim(d)) + isNodalDim(d))
 
         // determine if data must be copied or not
-        val dataIsCopied = if (numOuterLayersLeft.sum != 0 || numOuterLayersRight.sum != 0 || Knowledge.domain_numFragmentsPerBlock > 1) true else false
+        val dataIsCopied = numOuterLayersLeft.sum != 0 || numOuterLayersRight.sum != 0 || Knowledge.domain_numFragmentsPerBlock > 1
 
         val ifBody = ListBuffer[IR_Statement]()
         // dimensionality that must be passed -> for last dimension its 1 because we send 1 variable value per mesh point
@@ -130,23 +130,9 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainVisItFunction {
         }
         val curveCoords = IR_VariableAccess(curveCoordsDecl)
 
-        val idxTmp = if (numDims == 1) {
-          IR_FieldIteratorAccess(0) + fragOffset(0)
-        } else {
-          numPointsTotalTmp(0) * (IR_FieldIteratorAccess(1) + fragOffset(1)) + IR_FieldIteratorAccess(0) + fragOffset(0)
-        }
-
-        val idxField = if (numDims == 1) {
-          IR_FieldIteratorAccess(0)
-        } else {
-          numPointsDimField(0) * IR_FieldIteratorAccess(1) + IR_FieldIteratorAccess(0)
-        }
-
-        val offsetToInnerPoints = if (numDims == 1) {
-          numOuterLayersLeft(0)
-        } else {
-          numPointsDimField(0) * numOuterLayersLeft(1) + numOuterLayersLeft(0)
-        }
+        val idxTmp = (0 until numDims).map(d =>
+          (if (d > 1) numPointsTotalTmp.take(d - 1).product else 1) * (IR_FieldIteratorAccess(d) + fragOffset(d)) : IR_Expression
+        ).reduce(_ + _)
 
         // copy values to temporary memory (only when necessary)
         val tmpDecl = IR_VariableDeclaration(IR_PointerDatatype(IR_RealDatatype), "tmp")
@@ -162,7 +148,7 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainVisItFunction {
               IR_Assignment(
                 IR_ArrayAccess(IR_VariableAccess(tmpDecl), idxTmp),
                 // TODO: assumes slot = 0
-                scaleCurvemesh * IR_LinearizedFieldAccess(field, slot = 0, IR_LoopOverFragments.defIt, idxField + offsetToInnerPoints)
+                scaleCurvemesh * IR_FieldAccess(field, slot = 0, IR_LoopOverFragments.defIt, IR_LoopOverDimensions.defIt(numDims))
               )
             )
           )
@@ -177,7 +163,7 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainVisItFunction {
         }
 
         // determine whether doubles or floats are sent
-        val funcRef = if (Knowledge.useDblPrecision) IR_ExternalFunctionReference("VisIt_VariableData_setDataD") else IR_ExternalFunctionReference("VisIt_VariableData_setDataF")
+        val setData = if (Knowledge.useDblPrecision) IR_ExternalFunctionReference("VisIt_VariableData_setDataD") else IR_ExternalFunctionReference("VisIt_VariableData_setDataF")
 
         for (dim <- 0 until numDims) {
           val curveCoordsAccess = if (numDims == 1) {
@@ -191,7 +177,7 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainVisItFunction {
           }
 
           // pass coordinate array, simulation responsible for freeing memory
-          ifBody += IR_FunctionCall(funcRef,
+          ifBody += IR_FunctionCall(setData,
             IR_ArrayAccess(handles, dim),
             IR_Native("VISIT_OWNER_SIM"),
             IR_IntegerConstant(1),
@@ -201,10 +187,10 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainVisItFunction {
         }
 
         // determines whether simulation or VisIt is responsible for freeing
-        val ownership = if (dataIsCopied) IR_Native("VISIT_OWNER_VISIT") else IR_Native("VISIT_OWNER_SIM")
+        val ownership = IR_VariableAccess(if (dataIsCopied) "VISIT_OWNER_VISIT" else "VISIT_OWNER_SIM", IR_UnknownDatatype)
 
         // pass tmp array or field
-        ifBody += IR_FunctionCall(funcRef,
+        ifBody += IR_FunctionCall(setData,
           IR_ArrayAccess(handles, numDims),
           ownership,
           IR_IntegerConstant(1),

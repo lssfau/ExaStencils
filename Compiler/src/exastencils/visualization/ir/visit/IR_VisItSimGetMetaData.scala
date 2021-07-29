@@ -7,6 +7,9 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.field.ir._
+import exastencils.grid.ir.IR_AtCellCenter
+import exastencils.grid.ir.IR_AtFaceCenter
+import exastencils.grid.ir.IR_AtNode
 
 /// IR_VisItSimGetMetaData
 // metadata handling for VisIt couplings
@@ -23,12 +26,13 @@ case class IR_VisItSimGetMetaData() extends IR_FuturePlainVisItFunction {
 
     var new_name_identifier = "" // detects new field name
 
-    // simulation metadata(mode, time, cycle)
+    /* simulation metadata(mode, time, cycle) */
     val modeDecl = IR_VariableDeclaration(IR_IntegerDatatype, "mode", IR_TernaryCondition(runMode, IR_Native("VISIT_SIMMODE_RUNNING"), IR_Native("VISIT_SIMMODE_STOPPED")))
     ifBody += modeDecl
     ifBody += IR_FunctionCall(IR_ExternalFunctionReference("VisIt_SimulationMetaData_setMode"), md, IR_VariableAccess(modeDecl))
     ifBody += IR_FunctionCall(IR_ExternalFunctionReference("VisIt_SimulationMetaData_setCycleTime"), md, simCycle, simTime)
 
+    /* mesh metadata */
     if (Knowledge.dimensionality > 1) {
       for (coords_decl <- coordsArrays) {
         val mmd = IR_VariableAccess("meshMetadata_" + coords_decl.name.drop(6), visitHandle)
@@ -71,21 +75,22 @@ case class IR_VisItSimGetMetaData() extends IR_FuturePlainVisItFunction {
 
     new_name_identifier = "" // reset
 
+    /* variable metadata */
     if (Knowledge.dimensionality > 1) {
-      // variable metadata
       for (field <- IR_FieldCollection.sortedObjects) {
         if (field.name != new_name_identifier) {
           val vmd = IR_VariableAccess("varMetadata_" + field.name, visitHandle)
-          val locName = field.layout.localization.name
-          val varCentering = if (locName == "Cell") IR_Native("VISIT_VARCENTERING_ZONE") else IR_Native("VISIT_VARCENTERING_NODE")
-          val meshname = if (locName == "Node") "Node" else if (locName == "Cell") "Zone" else "Face_" + locName.charAt(locName.length() - 1)
+          val varCentering = field.layout.localization match {
+            case IR_AtNode | IR_AtFaceCenter(_) => IR_VariableAccess("VISIT_VARCENTERING_NODE", IR_UnknownDatatype)
+            case IR_AtCellCenter                => IR_VariableAccess("VISIT_VARCENTERING_ZONE", IR_UnknownDatatype)
+          }
 
           ifBody += IR_VariableDeclaration(vmd, visitInvalidHandle)
           ifBody += IR_IfCondition(
             IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableMetaData_alloc"), IR_AddressOf(vmd)) EqEq visitOkay,
             ListBuffer[IR_Statement](
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableMetaData_setName"), vmd, IR_StringConstant(field.name)),
-              IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableMetaData_setMeshName"), vmd, IR_StringConstant("rect" + Knowledge.dimensionality + "d_" + meshname)),
+              IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableMetaData_setMeshName"), vmd, IR_StringConstant("rect" + Knowledge.dimensionality + "d_" + field.layout.localization.name)),
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableMetaData_setType"), vmd, IR_Native("VISIT_VARTYPE_SCALAR")),
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableMetaData_setCentering"), vmd, varCentering),
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_SimulationMetaData_addVariable"), md, vmd))
