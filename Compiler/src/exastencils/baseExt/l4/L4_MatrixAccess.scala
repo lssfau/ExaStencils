@@ -106,7 +106,6 @@ object L4_PrepareMatrixAccesses extends DefaultStrategy("Prepare matrix accesses
       else {
         // matrix access w/o slot, arrayIndex, offset or direction
         if (uAcc.slot.isDefined) Logger.warn("Discarding slot on variable access to matrix variable")
-        if (uAcc.arrayIndex.isDefined) Logger.warn("Discarding array index on variable access to matrix variable")
         if (uAcc.offset.isDefined) Logger.warn("Discarding offset on variable access to matrix variable")
         if (uAcc.dirAccess.isDefined) Logger.warn("Discarding dirAccess on variable access to matrix variable")
         val acc = if (isLeveled)
@@ -114,7 +113,7 @@ object L4_PrepareMatrixAccesses extends DefaultStrategy("Prepare matrix accesses
         else
           L4_PlainVariableAccess(uAcc.name, decl.get.datatype, isConst = false)
 
-        L4_MatrixAccess(acc, uAcc.matIndex.get(0), if (uAcc.matIndex.get.length == 2) Some(uAcc.matIndex.get(1)) else None)
+        L4_MatrixAccess(acc, uAcc.matIndex.get.y, uAcc.matIndex.get.x)
       }
   })
 

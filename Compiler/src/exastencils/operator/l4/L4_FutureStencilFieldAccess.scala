@@ -35,7 +35,7 @@ case class L4_FutureStencilFieldAccess(
     var slot : L4_SlotSpecification,
     var offset : Option[L4_ConstIndex],
     var dirAccess : Option[L4_ConstIndex],
-    var arrayIndex : Option[Int] = None) extends L4_FutureKnowledgeAccess with L4_CanBeOffset {
+    var matIndex : Option[L4_MatIndex] = None) extends L4_FutureKnowledgeAccess with L4_CanBeOffset {
 
   override def prettyprint(out : PpStream) = out << name << '@' << level
   override def progress = Logger.error(s"Trying to progress future stencil field access to $name on level $level")
@@ -60,6 +60,6 @@ object L4_PrepareStencilFieldAccesses extends DefaultStrategy("Prepare accesses 
       if (!L4_StencilFieldCollection.existsDecl(access.name, lvl))
         Logger.warn(s"Trying to access ${ access.name } on invalid level $lvl")
 
-      L4_FutureStencilFieldAccess(access.name, lvl, access.slot.getOrElse(L4_ActiveSlot), access.offset, access.dirAccess, access.arrayIndex)
+      L4_FutureStencilFieldAccess(access.name, lvl, access.slot.getOrElse(L4_ActiveSlot), access.offset, access.dirAccess, access.matIndex)
   })
 }

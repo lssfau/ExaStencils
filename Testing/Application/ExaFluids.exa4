@@ -106,12 +106,12 @@ Field gamma < global, DefCellLayout, Neumann > @finest
 // stencils and stencils templates
 
 Stencil SevenPointStencil@all {
-	[ 0,  0,  0] =>  6.0
-	[-1,  0,  0] => -1.0
-	[ 1,  0,  0] => -1.0
-	[ 0, -1,  0] => -1.0
-	[ 0,  1,  0] => -1.0
-	[ 0,  0, -1] => -1.0
+	[ 0,  0,  0] =>  6.0,
+	[-1,  0,  0] => -1.0,
+	[ 1,  0,  0] => -1.0,
+	[ 0, -1,  0] => -1.0,
+	[ 0,  1,  0] => -1.0,
+	[ 0,  0, -1] => -1.0,
 	[ 0,  0,  1] => -1.0
 }
 

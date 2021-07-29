@@ -1,3 +1,4 @@
 dimensionality                = 2
-
+minLevel = 2
+maxLevel = 2
 mpi_enabled = false

@@ -33,6 +33,7 @@ import exastencils.datastructures.Transformation
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.globals.ir.IR_GlobalCollection
+import exastencils.logger.Logger
 import exastencils.solver.ir.IR_MatrixSolveOps
 import exastencils.util.ir.IR_Print
 
@@ -109,7 +110,7 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
   this += new Transformation("Wrap matAccesses around field accesses with defined matIndices", {
     case fa : IR_FieldAccess =>
       if (fa.matIndex.isDefined) {
-        val ma = IR_MatrixAccess(fa, fa.matIndex.get(0), if (fa.matIndex.get.length == 2) Some(fa.matIndex.get(1)) else None)
+        val ma = IR_MatrixAccess(fa, fa.matIndex.get.y, fa.matIndex.get.x)
         //fa.matIndex = None
         ma
       } else fa
@@ -575,9 +576,10 @@ object IR_LinearizeMatrices extends DefaultStrategy("linearize matrices") {
         case mdt : IR_MatrixDatatype   => (mdt.sizeM, mdt.sizeN)
       }
 
-
-
-      if (rows > 1 || cols > 1)
+      // exclude row vector case
+      if(cols > 1 && rows == 1) {
+        IR_ArrayAccess(base, idx.indices(1))
+      } else if (rows > 1 || cols > 1)
         IR_ArrayAccess(base, IR_IntegerConstant(cols) * idx.indices(0) + idx.indices(1))
       else
         base
