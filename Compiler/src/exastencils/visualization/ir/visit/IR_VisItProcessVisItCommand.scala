@@ -10,7 +10,7 @@ import exastencils.parallelization.api.mpi._
 /// IR_VisItProcessVisItCommand
 // additional handling for parallel simulations because only root communicates with VisIt
 
-case class IR_VisItProcessVisItCommand() extends IR_FuturePlainFunction {
+case class IR_VisItProcessVisItCommand() extends IR_FuturePlainVisItFunction {
 
   override def generateFct() : IR_PlainFunction =  {
     val fctBody = ListBuffer[IR_Statement]()
@@ -60,6 +60,4 @@ case class IR_VisItProcessVisItCommand() extends IR_FuturePlainFunction {
     )
   }
   override def name : String = "ProcessVisItCommand"
-  override def name_=(newName : String) : Unit = name = newName
-  override def prettyprint_decl() : String = prettyprint()
 }

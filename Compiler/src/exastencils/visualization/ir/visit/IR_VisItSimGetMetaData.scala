@@ -11,7 +11,7 @@ import exastencils.field.ir._
 /// IR_VisItSimGetMetaData
 // metadata handling for VisIt couplings
 
-case class IR_VisItSimGetMetaData() extends IR_FuturePlainFunction {
+case class IR_VisItSimGetMetaData() extends IR_FuturePlainVisItFunction {
 
   import exastencils.visualization.ir.visit.IR_VisItUtil._
 
@@ -125,6 +125,4 @@ case class IR_VisItSimGetMetaData() extends IR_FuturePlainFunction {
   }
 
   override def name : String = "SimGetMetaData"
-  override def name_=(newName : String) : Unit = name = newName
-  override def prettyprint_decl() : String = prettyprint()
 }

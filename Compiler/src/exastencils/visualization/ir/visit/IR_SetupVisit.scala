@@ -19,9 +19,8 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
   this += Transformation("..", {
     case fctCollection : IR_UserFunctions =>
-      if (Knowledge.dimensionality > 1) {
+      if (Knowledge.dimensionality > 1)
         fctCollection += IR_VisItSimGetVariable()
-      }
       fctCollection += IR_VisItSimGetMesh()
       fctCollection += IR_VisItSimGetMetaData()
       fctCollection += IR_VisItControlCommandCallback()

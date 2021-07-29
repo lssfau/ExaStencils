@@ -13,7 +13,7 @@ import exastencils.field.ir._
 // register variable for VisIt coupling
 // only gets generated when dimensionality is either 2 or 3
 
-case class IR_VisItSimGetVariable() extends IR_FuturePlainFunction {
+case class IR_VisItSimGetVariable() extends IR_FuturePlainVisItFunction {
 
   import exastencils.visualization.ir.visit.IR_VisItUtil._
 
@@ -64,7 +64,7 @@ case class IR_VisItSimGetVariable() extends IR_FuturePlainFunction {
       }
 
       // array accesses depending on number of levels
-      val arrayAccess = IR_ArrayAccess(IR_VariableAccess(tmpDecl), IR_ExpressionIndex(idxTmp))
+      val arrayAccess = IR_ArrayAccess(IR_VariableAccess(tmpDecl), idxTmp)
 
       // direct access to field if data is not copied
       val arrayAccessArg = if (!dataIsCopied) {
@@ -102,7 +102,7 @@ case class IR_VisItSimGetVariable() extends IR_FuturePlainFunction {
             IR_Assignment( //copy values from field to tmp
               arrayAccess,
               // TODO: assumes slot = 0
-              IR_LinearizedFieldAccess(field, slot = 0, IR_LoopOverFragments.defIt, IR_ExpressionIndex(idxField + offsetToInnerPoints)))))
+              IR_LinearizedFieldAccess(field, slot = 0, IR_LoopOverFragments.defIt, idxField + offsetToInnerPoints))))
         loopStatement += sendData
       }
 
@@ -124,8 +124,5 @@ case class IR_VisItSimGetVariable() extends IR_FuturePlainFunction {
     )
   }
 
-
   override def name : String = "SimGetVariable"
-  override def name_=(newName : String) : Unit = name = newName
-  override def prettyprint_decl() : String = prettyprint()
 }

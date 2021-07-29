@@ -11,7 +11,7 @@ import exastencils.parallelization.api.mpi._
 // set number of domains per processor, mandatory
 // with 1 block per MPI Rank, a 1:1 ratio is used
 
-case class IR_VisItSimGetDomainList() extends IR_FuturePlainFunction {
+case class IR_VisItSimGetDomainList() extends IR_FuturePlainVisItFunction {
 
   import exastencils.visualization.ir.visit.IR_VisItUtil._
 
@@ -43,6 +43,4 @@ case class IR_VisItSimGetDomainList() extends IR_FuturePlainFunction {
   }
 
   override def name : String = "SimGetDomainList"
-  override def name_=(newName : String) : Unit = name = newName
-  override def prettyprint_decl() : String = prettyprint()
 }

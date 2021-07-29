@@ -10,7 +10,7 @@ import exastencils.config._
 import exastencils.domain.ir._
 import exastencils.parallelization.api.mpi._
 
-case class IR_VisItInitialization() extends IR_FuturePlainFunction {
+case class IR_VisItInitialization() extends IR_FuturePlainVisItFunction {
 
   import exastencils.visualization.ir.visit.IR_VisItUtil._
 
@@ -278,6 +278,4 @@ case class IR_VisItInitialization() extends IR_FuturePlainFunction {
   }
 
   override def name : String = "visit_init"
-  override def name_=(newName : String) : Unit = name = newName
-  override def prettyprint_decl() : String = prettyprint()
 }

@@ -58,14 +58,14 @@ object IR_HandleMainApplication extends DefaultStrategy("HandleMainApplication")
         func.body.append(CUDA_Finalize)
       }
 
-      if (Knowledge.mpi_enabled) {
-        func.body.prepend(MPI_Init)
-        func.body.append(MPI_Finalize)
-      }
-
       if (Knowledge.experimental_visit_enable) {
         func.body.prepend(IR_FunctionCall(IR_PlainInternalFunctionReference(IR_VisItInitialization().name, IR_UnitDatatype)))
         func.body.append(IR_FunctionCall(IR_PlainInternalFunctionReference(IR_VisItDestroy().name, IR_UnitDatatype)))
+      }
+
+      if (Knowledge.mpi_enabled) {
+        func.body.prepend(MPI_Init)
+        func.body.append(MPI_Finalize)
       }
 
       func.body.append(IR_Return(0))

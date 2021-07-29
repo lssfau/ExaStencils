@@ -8,7 +8,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
 
-case class IR_VisItDestroy() extends IR_FuturePlainFunction {
+case class IR_VisItDestroy() extends IR_FuturePlainVisItFunction {
 
   import exastencils.visualization.ir.visit.IR_VisItUtil._
 
@@ -73,6 +73,4 @@ case class IR_VisItDestroy() extends IR_FuturePlainFunction {
   }
 
   override def name : String = "visit_destroy"
-  override def name_=(newName : String) : Unit = name = newName
-  override def prettyprint_decl() : String = prettyprint()
 }

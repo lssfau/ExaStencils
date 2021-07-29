@@ -6,12 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config._
 
-abstract class IR_VisItCommunication extends IR_FuturePlainFunction {
-  override def name_=(newName : String) : Unit = name = newName
-  override def prettyprint_decl() : String = prettyprint()
-}
-
-case class IR_VisItBroadcastIntCallback() extends IR_VisItCommunication {
+case class IR_VisItBroadcastIntCallback() extends IR_FuturePlainVisItFunction {
   val intValue = IR_FunctionArgument("value", IR_PointerDatatype(IR_IntegerDatatype))
   val sender = IR_FunctionArgument("sender", IR_IntegerDatatype)
 
@@ -33,7 +28,7 @@ case class IR_VisItBroadcastIntCallback() extends IR_VisItCommunication {
   override def name : String = "visit_broadcast_int_callback"
 }
 
-case class IR_VisItBroadcastStringCallback() extends IR_VisItCommunication {
+case class IR_VisItBroadcastStringCallback() extends IR_FuturePlainVisItFunction {
   val str = IR_FunctionArgument("str", IR_PointerDatatype(IR_CharDatatype))
   val len = IR_FunctionArgument("len", IR_IntegerDatatype)
   val sender = IR_FunctionArgument("sender", IR_IntegerDatatype)
@@ -55,7 +50,7 @@ case class IR_VisItBroadcastStringCallback() extends IR_VisItCommunication {
   override def name : String = "visit_broadcast_string_callback"
 }
 
-case class IR_VisItSlaveProcessCallback() extends IR_VisItCommunication {
+case class IR_VisItSlaveProcessCallback() extends IR_FuturePlainVisItFunction {
   override def generateFct() : IR_PlainFunction = {
     val fctBody = ListBuffer[IR_Statement]()
     val cmdDecl = IR_VariableDeclaration(IR_IntegerDatatype, "command", IR_IntegerConstant(0))

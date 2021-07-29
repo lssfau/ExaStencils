@@ -8,6 +8,9 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.field.ir.IR_FieldCollection
+import exastencils.grid.ir.IR_AtCellCenter
+import exastencils.grid.ir.IR_AtFaceCenter
+import exastencils.grid.ir.IR_AtNode
 
 object IR_VisItUtil {
 
@@ -33,7 +36,7 @@ object IR_VisItUtil {
   val scaleCurvemeshDecl = IR_VariableDeclaration(IR_RealDatatype, "scale", IR_RealConstant(1.0))
   val scaleCurvemesh = IR_VariableAccess(scaleCurvemeshDecl)
 
-  val isMultiLeveled = IR_FieldCollection.objects.map(_.level).distinct.size > 1
+  val isMultiLeveled = Knowledge.numLevels > 1 && IR_FieldCollection.objects.map(_.level).distinct.size > 1
   val nullptr = IR_VariableAccess("nullptr", IR_UnknownDatatype)
 
   val visitOkay = IR_VariableAccess("VISIT_OKAY", IR_UnknownDatatype)
@@ -76,6 +79,44 @@ object IR_VisItUtil {
   val curveCoordsArrays : ArrayBuffer[IR_VariableDeclaration] = ArrayBuffer[IR_VariableDeclaration]()
   val isNodalInDimCurve : ArrayBuffer[Array[Int]] = ArrayBuffer[Array[Int]]()
 
+  // get variable localizations for rectilinear and curvilinear meshes
+  for (field <- IR_FieldCollection.objects) {
+    field.layout.localization match {
+      case IR_AtNode              =>
+        if (!coordsArrays.contains(coordsNodeDecl)) {
+          coordsArrays += coordsNodeDecl
+          isNodalInDim += Array.fill[Int](Knowledge.dimensionality)(1)
+
+          curveCoordsArrays += curveCoordsNodeDecl
+          isNodalInDimCurve += Array.fill[Int](Knowledge.dimensionality)(1)
+        }
+      case IR_AtCellCenter        =>
+        if (!coordsArrays.contains(coordsZoneDecl)) {
+          coordsArrays += coordsZoneDecl
+          isNodalInDim += Array.fill[Int](Knowledge.dimensionality)(1)
+
+          curveCoordsArrays += curveCoordsZoneDecl
+          isNodalInDimCurve += Array.fill[Int](Knowledge.dimensionality)(0)
+        }
+      case face : IR_AtFaceCenter =>
+        if (!coordsArrays.contains(coordsFaceAsVec(face.dim))) {
+          coordsArrays += coordsFaceAsVec(face.dim)
+          isNodalInDim += Array.fill[Int](Knowledge.dimensionality)(0).updated(face.dim, 1)
+
+          curveCoordsArrays += curveCoordsFaceAsVec(face.dim)
+          isNodalInDimCurve += Array.fill[Int](Knowledge.dimensionality)(0).updated(face.dim, 1)
+        }
+    }
+  }
+
   def stringEquals(value : IR_Expression, str : String) =
     IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), value, IR_StringConstant(str)) EqEq IR_IntegerConstant(0)
+}
+
+trait IR_FuturePlainVisItFunction extends IR_FuturePlainFunction {
+
+  allowInlining = false
+
+  override def name_=(newName : String) : Unit = name = newName
+  override def prettyprint_decl() : String = prettyprint()
 }

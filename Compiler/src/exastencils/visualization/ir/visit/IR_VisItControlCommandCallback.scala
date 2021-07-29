@@ -9,14 +9,14 @@ import exastencils.config.Knowledge
 /// IR_VisItControlCommandCallback
 // implement functionality for the control buttons on the GUI
 
-case class IR_VisItControlCommandCallback() extends IR_FuturePlainFunction {
+case class IR_VisItControlCommandCallback() extends IR_FuturePlainVisItFunction {
 
   import exastencils.visualization.ir.visit.IR_VisItUtil._
 
   override def generateFct() : IR_PlainFunction = {
     val fctBody = ListBuffer[IR_Statement]()
 
-    val cmd = IR_VariableAccess("cmd", IR_ConstPointerDatatype(IR_CharDatatype))
+    val cmd = IR_VariableAccess("cmd", IR_SpecialDatatype("const char*"))
 
     fctBody += IR_IfCondition(
       stringEquals(cmd, "step"),
@@ -76,6 +76,4 @@ case class IR_VisItControlCommandCallback() extends IR_FuturePlainFunction {
   }
 
   override def name : String = "ControlCommandCallback"
-  override def name_=(newName : String) : Unit = name = newName
-  override def prettyprint_decl() : String = prettyprint()
 }

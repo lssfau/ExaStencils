@@ -15,33 +15,9 @@ import exastencils.grid.ir.IR_AtNode
 /// IR_VisItSimGetMesh
 // provide mesh for VisIt
 
-case class IR_VisItSimGetMesh() extends IR_FuturePlainFunction {
+case class IR_VisItSimGetMesh() extends IR_FuturePlainVisItFunction {
 
   import exastencils.visualization.ir.visit.IR_VisItUtil._
-
-  // get variable localizations for rectilinear and curvilinear meshes
-  for (field <- IR_FieldCollection.objects) {
-    field.layout.localization match {
-      case IR_AtNode if !coordsArrays.contains(coordsNodeDecl)                         =>
-        coordsArrays += coordsNodeDecl
-        isNodalInDim += Array.fill[Int](Knowledge.dimensionality)(1)
-
-        curveCoordsArrays += curveCoordsNodeDecl
-        isNodalInDimCurve += Array.fill[Int](Knowledge.dimensionality)(1)
-      case IR_AtCellCenter if !coordsArrays.contains(coordsZoneDecl)                   =>
-        coordsArrays += coordsZoneDecl
-        isNodalInDim += Array.fill[Int](Knowledge.dimensionality)(1)
-
-        curveCoordsArrays += curveCoordsZoneDecl
-        isNodalInDimCurve += Array.fill[Int](Knowledge.dimensionality)(0)
-      case face : IR_AtFaceCenter if !coordsArrays.contains(coordsFaceAsVec(face.dim)) =>
-        coordsArrays += coordsFaceAsVec(face.dim)
-        isNodalInDim += Array.fill[Int](Knowledge.dimensionality)(0).updated(face.dim, 1)
-
-        curveCoordsArrays += curveCoordsFaceAsVec(face.dim)
-        isNodalInDimCurve += Array.fill[Int](Knowledge.dimensionality)(0).updated(face.dim, 1)
-    }
-  }
 
   override def generateFct() : IR_PlainFunction = {
     val fctBody = ListBuffer[IR_Statement]()
@@ -263,6 +239,4 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainFunction {
   }
 
   override def name : String = "SimGetMesh"
-  override def name_=(newName : String) : Unit = name = newName
-  override def prettyprint_decl() : String = prettyprint()
 }

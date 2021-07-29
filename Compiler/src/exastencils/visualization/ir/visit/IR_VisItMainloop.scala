@@ -7,7 +7,7 @@ import exastencils.base.ir._
 import exastencils.config._
 import exastencils.parallelization.api.mpi._
 
-case class IR_VisItMainloop() extends IR_FuturePlainFunction {
+case class IR_VisItMainloop() extends IR_FuturePlainVisItFunction {
 
   import exastencils.visualization.ir.visit.IR_VisItUtil._
 
@@ -62,7 +62,7 @@ case class IR_VisItMainloop() extends IR_FuturePlainFunction {
       )
       whileBody += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(visitInput), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
     } else {
-      whileBody += IR_VariableDeclaration(IR_IntegerDatatype, "visit_input", IR_FunctionCall(IR_ExternalFunctionReference("VisItDetectInput"), blocking, IR_FunctionCall(funcRef, IR_Native("stdin"))))
+      whileBody += IR_VariableDeclaration(visitInput, IR_FunctionCall(IR_ExternalFunctionReference("VisItDetectInput"), blocking, IR_FunctionCall(funcRef, IR_Native("stdin"))))
     }
 
     // body of the third case of the switch statement
@@ -132,7 +132,7 @@ case class IR_VisItMainloop() extends IR_FuturePlainFunction {
       )
     }
 
-    if (Knowledge.numLevels > 1) {
+    if (isMultiLeveled) {
       consoleInputBody += IR_IfCondition(
         stringEquals(command, "level down"),
         ListBuffer[IR_Statement](
@@ -205,6 +205,4 @@ case class IR_VisItMainloop() extends IR_FuturePlainFunction {
 
   }
   override def name : String = "visit_mainloop"
-  override def name_=(newName : String) : Unit = name = newName
-  override def prettyprint_decl() : String = prettyprint()
 }
