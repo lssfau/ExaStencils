@@ -22,8 +22,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_MatNodes._
-import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
-import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateRuntimeInversion
+import exastencils.baseExt.ir.IR_MatOperations.{IR_EvalMOpRuntimeExe, IR_GenerateBasicMatrixOperations, IR_GenerateRuntimeInversion}
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.core.StateManager
@@ -69,7 +68,7 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
     ("get", IR_GetElement.apply),
     ("getElement", IR_GetElement.apply),
     ("toMatrix", IR_ToMatrix.apply),
-    ("fnorm", IR_FrobeniusNorm.apply)
+    ("norm", IR_FrobeniusNorm.apply)
   )
   val fctMapStmts = Map[String, ListBuffer[IR_Expression] => IR_Statement](
     ("set", IR_SetElement.apply),
@@ -305,6 +304,9 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
     case IR_ExpressionStatement(call @ IR_FunctionCall(_, args)) if (call.name == "classifyMatShape")                 =>
       val shape = IR_ClassifyMatShape(args(0).asInstanceOf[IR_MatrixExpression])
       IR_Print(IR_VariableAccess("std::cout", IR_StringDatatype), shape.toExprList() += IR_StringConstant("\\n"))
+    case IR_ExpressionStatement(call @ IR_FunctionCall(_, args)) if (call.name == "evalMOpRuntimeExe")                 =>
+      val m = IR_MatNodeUtils.exprToMatExpr(args(0))
+      IR_Print(IR_VariableAccess("std::cout", IR_StringDatatype), IR_StringConstant(IR_EvalMOpRuntimeExe("localsystem", m.rows, IR_CompiletimeMatOps.isConstMatrix(m))))
     case call @ IR_FunctionCall(_, args) if (call.name == "qrDecomp")                         =>
       val QR = IR_MatrixSolveOps.QRDecomp(IR_MatNodeUtils.exprToMatExpr(args(0)))
       QR._2
@@ -572,6 +574,8 @@ object IR_LinearizeMatrices extends DefaultStrategy("linearize matrices") {
         case tdt2 : IR_TensorDatatype2 => (tdt2.dims, tdt2.dims)
         case mdt : IR_MatrixDatatype   => (mdt.sizeM, mdt.sizeN)
       }
+
+
 
       if (rows > 1 || cols > 1)
         IR_ArrayAccess(base, IR_IntegerConstant(cols) * idx.indices(0) + idx.indices(1))

@@ -604,17 +604,18 @@ object Knowledge {
   // minimum width of inner dimension when splitting according to experimental_splitLoopsForAsyncComm; 0 to disable
   var experimental_splitLoops_minInnerWidth : Int = 4
 
-  var experimental_matrixDebugConfig : Boolean = true
+  var experimental_matrixDebugConfig : Boolean = false
+
   // when to resolve inverse call
   var experimental_resolveInverseFunctionCall : String = "Compiletime" // [Compiletime|Runtime] (with new strategies)
-  // save common submatrices in helper variables for compiletime schur inversion
-  var experimental_schurWithHelper : Boolean = false
-  // runtime inversion executes inplace on input matrix
-  var experimental_inplaceInversion : Boolean = false
-  // runtime determinant executes inplace on input matrix
-  var experimental_inplaceDeterminant : Boolean = false
   // resolve local mat sys at runtime or compiletime
   var experimental_resolveLocalMatSys : String = "Runtime"
+  // evaluate performance benefit of runtime execution for each local system/matrix to invert
+  // can override experimental_resolveInverseFunctionCall and experimental_resolveLocalMatSys
+  var experimental_evalMOpRuntimeExe : Boolean = false
+  var experimental_MOpRTExeThreshold : Int = 4
+
+  // local matrix classification related flags
   // classify structure of system matrix for solveLinearSystem statements
   var experimental_classifyLocMat : Boolean = false
   // if shape of system matrix is known for local solve statements
@@ -622,17 +623,23 @@ object Knowledge {
   var experimental_locMatBlocksize : Int = -1
   var experimental_locMatShapeA : String = ""
   var experimental_locMatBlocksizeA : Int = -1
+
+  // flags to set specifics of inversion/local linear system solution
+  // save common submatrices in helper variables for compiletime schur inversion
+  var experimental_schurWithHelper : Boolean = false
+  // runtime inversion executes inplace on input matrix
+  var experimental_inplaceInversion : Boolean = false
+  // runtime determinant executes inplace on input matrix
+  var experimental_inplaceDeterminant : Boolean = false
+  // tries to apply an inversion based on the Schur complement in local solve blocks
+  var experimental_applySchurCompl : Boolean = false
   // check if compiletime inversion might have become unstable at runtime by inspecting the pivot elements
   var experimental_CTPivoting : Boolean = true
   var experimental_checkCTPivots : Boolean = false
   var experimental_CTPivotTolerance : Double = 0.000001
   // optimization for LU-decomposition: elimination of often occuring subexpressions, which are the pivot elements in an LU-decomposition
   var experimental_CTPivotElimination : Boolean = false
-
   var experimental_QRPivot : Boolean = false
-
-  // tries to apply an inversion based on the Schur complement in local solve blocks
-  var experimental_applySchurCompl : Boolean = false
 
   // eliminate occurrences of cudaContext - required for PizDaint
   var experimental_eliminateCudaContext : Boolean = false

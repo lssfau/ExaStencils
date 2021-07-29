@@ -264,9 +264,6 @@ object IR_MatrixSolveOps {
       val Aii = IR_VariableAccess(s"MatSys_${ systemCounter }_A${ i }${ i }", IR_MatrixDatatype(IR_DoubleDatatype, bsize, bsize))
       val fi = IR_VariableAccess(s"MatSys_${ systemCounter }_f${ i }", IR_MatrixDatatype(IR_DoubleDatatype, bsize, 1))
       val ui = IR_VariableAccess(s"MatSys_${ systemCounter }_u${ i }", IR_MatrixDatatype(IR_DoubleDatatype, bsize, 1))
-      fi.annotate("noMatrixExpressionSetup")
-      ui.annotate("noMatrixExpressionSetup")
-      Aii.annotate("noMatrixExpressionSetup")
       Ablocks += Aii
       fblocks += fi
       ublocks += ui
@@ -279,8 +276,6 @@ object IR_MatrixSolveOps {
       end.annotate(IR_GenerateRuntimeInversion.pointerArithmetic)
       stmts += IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression](start, end, fi))
     }
-    f.annotate("noMatrixExpressionSetup")
-    u.annotate("noMatrixExpressionSetup")
 
     // produce a function call to LUSolve for all blocks
     for (i <- 0 until m / bsize) {
