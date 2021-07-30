@@ -1,0 +1,11 @@
+dimensionality                 = 3
+
+minLevel                       = 2
+maxLevel                       = 6
+
+discr_type                     = "FiniteDifferences"
+
+import '../lib/domain_fourPatches.knowledge'
+import '../lib/parallelization_fourMPI.knowledge'
+
+experimental_visit_enable 			= true
