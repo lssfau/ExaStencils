@@ -29,8 +29,6 @@ import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp.OMP_Parallel
-import exastencils.visualization.ir.visit.IR_VisItDestroy
-import exastencils.visualization.ir.visit.IR_VisItInitialization
 
 /// IR_HandleMainApplication
 
@@ -56,11 +54,6 @@ object IR_HandleMainApplication extends DefaultStrategy("HandleMainApplication")
       if (Knowledge.cuda_enabled) {
         func.body.prepend(CUDA_Init)
         func.body.append(CUDA_Finalize)
-      }
-
-      if (Knowledge.experimental_visit_enable) {
-        func.body.prepend(IR_FunctionCall(IR_PlainInternalFunctionReference(IR_VisItInitialization().name, IR_UnitDatatype)))
-        func.body.append(IR_FunctionCall(IR_PlainInternalFunctionReference(IR_VisItDestroy().name, IR_UnitDatatype)))
       }
 
       if (Knowledge.mpi_enabled) {
