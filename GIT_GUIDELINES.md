@@ -11,7 +11,7 @@
 ### Naming Conventions
 
 * Student theses or projects: `/student/xyz`
-* Developing branches, e.g. features or HiWi projects: `/devel/xyz`
+* Development branches, e.g. features or HiWi projects: `/devel/xyz`
 * Archive branches: `archive/xyz`
 
 ### General Conventions
