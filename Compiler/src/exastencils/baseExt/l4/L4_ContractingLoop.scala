@@ -31,7 +31,7 @@ import exastencils.prettyprinting._
 case class L4_ContractionSpecification(var posExt : L4_ConstIndex, var negExt : Option[L4_ConstIndex]) extends L4_Node with L4_Progressable with PrettyPrintable {
   override def prettyprint(out : PpStream) = {
     out << posExt
-    if (negExt.isDefined) out << ", " << negExt
+    if (negExt.isDefined) out << ", " << negExt.get
   }
 
   override def progress = ProgressLocation(IR_ContractionSpecification(posExt.progress, negExt.getOrElse(posExt).progress))
