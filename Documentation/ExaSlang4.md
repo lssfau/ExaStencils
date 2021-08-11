@@ -1840,7 +1840,7 @@ which allows a specialized solution technique.
 If `experimental_resolveInverseFunctionCall` is set to `Runtime`, the inversion will be executed at runtime of the generated application.
 If `experimental_resolveInverseFunctionCall` is set to `Compiletime`, the inversion will be executed at generation time with certain restrictions.
 
-### [ Solve locally ](#local-solve) extensions
+### Solve locally extensions
 #### System matrix shapes
 The shape of the systems set up by [ solve locally ](#local-solve) statements can also be used to speed up the solution:
 * If it is known, it can be communicated to the generator with the knowledge-attribute `experimental_locMatShape`.
