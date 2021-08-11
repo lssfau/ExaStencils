@@ -1076,7 +1076,7 @@ The actual type of access is deferred by the code generator. Depending on the ty
 
 *level*, if specified, must be a valid [access level](#access-level). It is only valid if *target* is leveled.
 
-*offset*, if specified, must be a valid [constant index](#constant-index). It is only valid if *target* is either a [field](@field-declaration), a [stencil](#stencils) or a [stencil field](#stencil-field). In this case, *target* is not evaluated at the current point of iteration, given by the surrounding [field loop](#field-loop), but at the current point plus the given *offset*.
+*offset*, if specified, must be a valid [constant index](#constant-index). It is only valid if *target* is either a [field](#field-declaration), a [stencil](#stencils) or a [stencil field](#stencil-field). In this case, *target* is not evaluated at the current point of iteration, given by the surrounding [field loop](#field-loop), but at the current point plus the given *offset*.
 
 *direction*, if specified, must be a valid [constant index](#constant-index). It is only valid if *target* is either a [stencil](#stencils) or a [stencil field](#stencil-field). In this case, *target* is evaluated in the given *direction*. This effectively means, that the entry of the *target* stencil (field) is selected that has the *direction* as offset. This selected entry is used instead of *target*.
 
@@ -1191,7 +1191,7 @@ loop over fragments
 
 *body* must be a list of suitable [statements](#inner-statements). May be empty.
 
-*body* usually contains at least one [field loop](#field-loop). [Communicate statements](#communicate-statement) and [apply bc statements](apply-bc-statement) inside fragment loops are supported.
+*body* usually contains at least one [field loop](#field-loop). [Communicate statements](#communicate-statement) and [apply bc statements](#apply-bc) inside fragment loops are supported.
 
 #### Example
 <pre>
