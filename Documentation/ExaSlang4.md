@@ -1793,10 +1793,10 @@ The following functions can be used to obtain or set a submatrix of a given matr
 
 Some examples:
 <pre>
-setSlice(quadMat,0,1,2,1,5) # quadMat = {{0., 1.}, {5., 5.}}
-Var row : Matrix&lt;Real, 1, 2 &gt; = getSlice(quadMat,0,1,1,2) # row = {{5., 5.}}
-Var col : Matrix&lt;Real, 2, 1 &gt; = quadMat[:][1] # col = {{1.},{5.}}
-rowVec[0:3] = 4. # colVec = {{4.},{4.},{4.}}
+setSlice(quadMat,0,1,2,1,5) // quadMat = {{0., 1.}, {5., 5.}}
+Var row : Matrix&lt;Real, 1, 2 &gt; = getSlice(quadMat,0,1,1,2) // row = {{5., 5.}}
+Var col : Matrix&lt;Real, 2, 1 &gt; = quadMat[:][1] // col = {{1.},{5.}}
+rowVec[0:3] = 4. // colVec = {{4.},{4.},{4.}}
 </pre>
 
 #### Built-in functions
@@ -1815,11 +1815,11 @@ Small linear systems can be solved directly at runtime or compiletime with the `
 Var A : Matrix&lt;Real, 3, 3&gt; = {{3,2,-1},{2,-2,4},{-1,0.5,-1}}
 Var f : Matrix&lt;Real, 3, 1&gt; = {{1},{-2},{0}}
 Var u : Matrix&lt;Real, 3, 1&gt;
-solveMatSys A,u,f # u = {{1}, {-2}, {-2}}
+solveMatSys A,u,f // u = {{1}, {-2}, {-2}}
 </pre>
 Additional information about the `shape` of a matrix can be added:
 <pre>
-solveMatSys A2,u2,f2 {shape=blockdiagonal,block=3} # A2 is a blockdiagonal matrix with blocks of size 3x3
+solveMatSys A2,u2,f2 {shape=blockdiagonal,block=3} // A2 is a blockdiagonal matrix with blocks of size 3x3
 </pre>
 The generator will then produce a routine that exploits the shape of the matrix.<br />
 Supported shapes are:
@@ -1832,7 +1832,7 @@ If `experimental_resolveLocalMatSys` is set to `Compiletime`, the system will be
 #### Inversion
 Matrices can be inverted by the `inverse()` function.
 <pre>
-Var mat_inverse : Matrix<Real, 7, 7>  = inverse(mat, "shape=schur", "block=6", "A=blockdiagonal", "Ablock=3")
+Var mat_inverse : Matrix&lt;Real, 7, 7&gt;  = inverse(mat, "shape=schur", "block=6", "A=blockdiagonal", "Ablock=3")
 </pre>
 Additional information about the shape of a matrix can be added as arguments.
 Next to `blockdiagonal` and `diagonal` matrices, also a `Schur-shape` (https://en.wikipedia.org/wiki/Schur_complement) can be specified,
