@@ -131,13 +131,18 @@ Generating single configurations is possible by executing the generator (Compile
 
 A detailed documentation is currently work in progress.
 
+## Contributing 
+
+We always welcome and appreciate contributions to ExaStencils.
+Before contributing, please refer to our [contributing guidelines](https://i10git.cs.fau.de/exastencils/exastencils/-/blob/master/CONTRIBUTING.md) first.
+
 ## Authors
 
-The main authors are Sebastian Kuckuk, Christian Schmitt and Stefan Kronawitter. We are thankful for the work of all [contributors](https://i10git.cs.fau.de/exastencils/release/blob/master/AUTHORS.txt).
+The main authors are Sebastian Kuckuk, Christian Schmitt and Stefan Kronawitter. We are thankful for the work of all [contributors](https://i10git.cs.fau.de/exastencils/exastencils/-/blob/master//AUTHORS.txt).
 
 ## License
 
-The ExaStencils code generation framework is licensed under [GPLv3](https://i10git.cs.fau.de/exastencils/release/blob/master/COPYING.txt).
+The ExaStencils code generation framework is licensed under [GPLv3](https://i10git.cs.fau.de/exastencils/exastencils/-/blob/master//COPYING.txt).
 
 ## Dependencies
 
