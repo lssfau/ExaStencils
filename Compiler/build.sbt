@@ -22,7 +22,7 @@ libraryDependencies += "org.objenesis" % "objenesis" % "3.1"
 lazy val downloadCImg = taskKey[Unit]("Download CImg header and store it in Compiler/res")
 
 downloadCImg := {
-  val sourceUrl = "https://framagit.org/dtschump/CImg/raw/master/CImg.h"
+  val sourceUrl = "https://raw.githubusercontent.com/dtschump/CImg/master/CImg.h"
   val targetFileName = "Compiler/res/CImg.h"
   val overwrite = true
 
