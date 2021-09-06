@@ -2,8 +2,6 @@ name: Build ExaStencils Code Generator
 
 on:
   push:
-    branches:
-      - master
   release:
     types:
       - created
