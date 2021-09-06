@@ -27,4 +27,5 @@ jobs:
       - name: Upload compiler artifact
         uses: actions/upload-artifact@v2.2.4
         with:
+          name: Compiler.jar
           path: Compiler/Compiler.jar
