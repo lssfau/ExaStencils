@@ -100,7 +100,7 @@ For CImg support, the corresponding CImg.h header file needs to be downloaded su
 * for IntelliJ users:
     * Run -> Run -> 0: Edit Configurations -> + -> sbtTask
     * Name: downloadCImg; Tasks: downloadCImg; Run
-* for all users: directly download the required file from [here](https://framagit.org/dtschump/CImg) and place it in Compiler/res/
+* for all users: directly download the required file from [here](https://github.com/dtschump/CImg) and place it in Compiler/res/
 Updating the file works the same way.
 
 ## First Steps
