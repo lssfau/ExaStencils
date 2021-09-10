@@ -14,7 +14,7 @@ RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian /" | tee /etc/apt/sourc
 RUN curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | apt-key add
 
 RUN apt-get update && apt-get install -y sbt && \
-  sbt sbtVersion
+  sbt -Dsbt.rootdir=true sbtVersion
 
 # likwid
 RUN wget http://ftp.fau.de/pub/likwid/likwid-4.3.4.tar.gz && \
