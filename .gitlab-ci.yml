@@ -5,7 +5,8 @@ generate-docker-image:
         - docker-docker
     script:
         - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-        - docker build . -f  dockerfiles/ubuntu-20.04-openjdk-11.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+        - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11 || true
+        - docker build --pull . -f  dockerfiles/ubuntu-20.04-openjdk-11.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
         - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
 
 build:generator:
