@@ -1,5 +1,5 @@
 generate-docker-image:
-    stage: build
+    stage: .pre
     image: docker:latest
     tags:
         - docker-docker
