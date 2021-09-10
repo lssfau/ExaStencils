@@ -6,7 +6,6 @@ ENV DEBIAN_FRONTEND="noninteractive" TZ="Europe/Berlin"
 # basic stuff
 RUN \
   apt-get update && apt-get install -y build-essential curl git openjdk-11-jdk python3 python3-pip openmpi-bin openmpi-common libopenmpi-dev libopenmpi3 ant mlocate time wget gfortran && \
-  sbt sbtVersion && \
   python3 -m pip install sympy numpy && \
 
 # prepare sbt
