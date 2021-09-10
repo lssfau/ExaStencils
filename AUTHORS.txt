@@ -27,5 +27,6 @@ Martin Zeus
 Max Gerecke
 Meike Blöcher
 Richard Angersbach
+Samuel Kemmler
 Sara Faghih-Naini
 Thomas Lang
