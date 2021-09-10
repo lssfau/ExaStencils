@@ -1,6 +1,7 @@
 FROM nvidia/cuda:11.4.1-devel-ubuntu20.04
 
 ARG SBT_VERSION=1.3.2
+ENV DEBIAN_FRONTEND="noninteractive" TZ="Europe/Berlin"
 
 RUN \
   apt-get update && apt-get install -y build-essential curl git openjdk-11-jdk python3 python3-pip openmpi-bin openmpi-common libopenmpi-dev libopenmpi3 ant mlocate time wget gfortran && \
