@@ -1,5 +1,6 @@
 generate-docker-image:
     stage: .pre
+    when: manual
     image: docker:latest
     tags:
         - docker-docker
@@ -11,8 +12,6 @@ generate-docker-image:
 
 build:generator:
     stage: build
-    dependencies:
-        - generate-docker-image
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
