@@ -3,7 +3,7 @@ FROM nvidia/cuda:11.4.1-devel-ubuntu20.04
 ARG SBT_VERSION=1.3.2
 
 RUN \
-  apt-get update && apt-get install -y build-essential curl git openjdk-11-jdk python3 python3-pip openmpi-bin openmpi-common libopenmpi-dev libopenmpi2 ant mlocate time wget gfortran && \
+  apt-get update && apt-get install -y build-essential curl git openjdk-11-jdk python3 python3-pip openmpi-bin openmpi-common libopenmpi-dev libopenmpi3 ant mlocate time wget gfortran && \
   curl -L -o sbt-$SBT_VERSION.deb https://dl.bintray.com/sbt/debian/sbt-$SBT_VERSION.deb && \
   dpkg -i sbt-$SBT_VERSION.deb && \
   rm sbt-$SBT_VERSION.deb && \
