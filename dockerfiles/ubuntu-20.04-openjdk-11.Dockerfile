@@ -1,7 +1,9 @@
 FROM nvidia/cuda:11.4.1-devel-ubuntu20.04
 
-ARG SBT_VERSION=1.3.2
 ENV DEBIAN_FRONTEND="noninteractive" TZ="Europe/Berlin"
+
+ARG SBT_VERSION=1.3.2
+ARG LIKWID_VERSION=5.2.0
 
 # basic stuff
 RUN \
@@ -17,9 +19,10 @@ RUN apt-get update && apt-get install -y sbt=$SBT_VERSION && \
   sbt -Dsbt.rootdir=true sbtVersion
 
 # likwid
-RUN wget http://ftp.fau.de/pub/likwid/likwid-4.3.4.tar.gz && \
-  tar -xf likwid-4.3.4.tar.gz && \
-  cd likwid-4.3.4 && \
+RUN \
+  wget http://ftp.fau.de/pub/likwid/likwid-$LIKWID_VERSION.tar.gz && \
+  tar -xf likwid-$LIKWID_VERSION.tar.gz && \
+  cd likwid-$LIKWID_VERSION && \
   sed -i 's/\/usr\/local/\/usr\/local\/likwid/g' config.mk && \
   make && \
   make install && \
