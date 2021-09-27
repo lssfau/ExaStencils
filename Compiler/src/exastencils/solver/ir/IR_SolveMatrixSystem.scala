@@ -4,22 +4,40 @@ package exastencils.solver.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base
-import exastencils.base.ir.{IR_Assignment, IR_ConstIndex, IR_Division, IR_Expression, IR_ExpressionIndex, IR_ExternalFunctionReference, IR_FunctionCall, IR_GreaterEqual, IR_HighDimAccess, IR_IntegerDatatype, IR_Lower, IR_Multiplication, IR_Number, IR_PlainInternalFunctionReference, IR_PreDecrement, IR_PreIncrement, IR_RealConstant, IR_RealDatatype, IR_Statement, IR_UnitDatatype, IR_VariableAccess, IR_VariableDeclaration}
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir.IR_Assignment
+import exastencils.base.ir.IR_ConstIndex
+import exastencils.base.ir.IR_Division
+import exastencils.base.ir.IR_Expression
+import exastencils.base.ir.IR_ExpressionIndex
+import exastencils.base.ir.IR_FunctionCall
+import exastencils.base.ir.IR_GreaterEqual
+import exastencils.base.ir.IR_HighDimAccess
+import exastencils.base.ir.IR_IntegerDatatype
+import exastencils.base.ir.IR_Lower
+import exastencils.base.ir.IR_Multiplication
+import exastencils.base.ir.IR_Number
+import exastencils.base.ir.IR_PlainInternalFunctionReference
+import exastencils.base.ir.IR_PreDecrement
+import exastencils.base.ir.IR_PreIncrement
+import exastencils.base.ir.IR_RealConstant
+import exastencils.base.ir.IR_Statement
+import exastencils.base.ir.IR_UnitDatatype
+import exastencils.base.ir.IR_VariableAccess
+import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_ClassifyMatShape
 import exastencils.baseExt.ir.IR_CompiletimeMatOps
 import exastencils.baseExt.ir.IR_MatNodeUtils
+import exastencils.baseExt.ir.IR_MatOperations.IR_EvalMOpRuntimeExe
+import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateRuntimeInversion
 import exastencils.baseExt.ir.IR_MatShape
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
 import exastencils.baseExt.ir.IR_UserFunctions
-import exastencils.baseExt.ir.IR_MatOperations.{IR_EvalMOpRuntimeExe, IR_GenerateRuntimeInversion}
 import exastencils.config.Knowledge
-import exastencils.core.NodeCounter
 import exastencils.datastructures.Transformation
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
-import isl.Val
 
 /// solve local linear system
 object IR_SolveMatrixSystem {
@@ -152,7 +170,7 @@ case class IR_SolveMatrixSystem(A : IR_Expression, u : IR_VariableAccess, f : IR
 
             // inline LUSolve if CUDA is enabled to avoid separate compilation units
             if (!IR_UserFunctions.get.functions.exists(f => f.name == s"LUSolve_${ m }x${ m }")) {
-              IR_UserFunctions.get += IR_MatrixSolveOps.genLUSolveAsFunction(m)
+              IR_UserFunctions.get += IR_MatrixSolveOps.genLUSolveAsFunction(m, AasExpr.innerDatatype.get)
             }
             val solveStmt = IR_FunctionCall(IR_PlainInternalFunctionReference(s"LUSolve_${ m }x${ m }", IR_UnitDatatype), ListBuffer[IR_Expression](AasAcc, f, u))
             solveStmt.annotate(IR_InlineMatSolveStmts.MAT_SOLVE_STMT, m)
