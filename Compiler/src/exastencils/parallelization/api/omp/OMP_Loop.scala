@@ -157,10 +157,9 @@ object OMP_ResolveMinMaxReduction extends DefaultStrategy("Resolve omp min and m
 
           // resolve max reductions
           val redOp = reduction.op
-          val redExpName = reduction.target.name
           val redDatatype = reduction.target.datatype
-          def redExp = IR_VariableAccess(redExpName, redDatatype)
-          val redExpLocalName = redExpName + "_red"
+          def redExp = reduction.target
+          val redExpLocalName = reduction.target.prettyprint.replaceAll("[\\[\\](){}]", "_") + "_red"
           def redExpLocal = IR_VariableAccess(redExpLocalName, redDatatype)
 
           val decl = IR_VariableDeclaration(IR_ArrayDatatype(redDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
@@ -205,10 +204,9 @@ object OMP_FixArithmeticReductionOrder extends DefaultStrategy("Fix order of ari
 
           // resolve max reductions
           val redOp = reduction.op
-          val redExpName = reduction.target.name
           val redDatatype = reduction.target.datatype
-          def redExp = IR_VariableAccess(redExpName, redDatatype)
-          val redExpLocalName = redExpName + "_local"
+          def redExp = reduction.target
+          val redExpLocalName = reduction.target.prettyprint.replaceAll("[\\[\\](){}]", "_") + "_local"
           def redExpLocal = IR_VariableAccess(redExpLocalName, redDatatype)
 
           val decl = IR_VariableDeclaration(IR_ArrayDatatype(redDatatype, Knowledge.omp_numThreads), redExpLocalName, None)

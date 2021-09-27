@@ -81,7 +81,7 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
         stride(i) = IR_IntegerConstant(s)
       }
 
-      CUDA_ReplaceReductionAssignments.redTarget = kernel.reduction.get.target.name
+      CUDA_ReplaceReductionAssignments.redTarget = Some(kernel.reduction.get.target)
       CUDA_ReplaceReductionAssignments.replacement = CUDA_ReductionDeviceDataAccess(CUDA_ReductionDeviceData(size), index, stride)
       CUDA_ReplaceReductionAssignments.applyStandalone(IR_Scope(kernel.body))
       kernel
@@ -90,11 +90,11 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
   /// CUDA_ReplaceReductionAssignments
 
   object CUDA_ReplaceReductionAssignments extends QuietDefaultStrategy("Replace assignments to reduction targets") {
-    var redTarget : String = ""
+    var redTarget : Option[IR_Access] = None
     var replacement : IR_Expression = IR_NullExpression
 
     this += new Transformation("Replace", {
-      case assignment @ IR_Assignment(IR_VariableAccess(vaName, _), _, _) if redTarget.equals(vaName) =>
+      case assignment @ IR_Assignment(access: IR_Access, _, _) if redTarget.isDefined && access.equals(redTarget.get) =>
         assignment.dest = Duplicate(replacement)
         // assignment.op = "=" // don't modify assignments - there could be inlined loops
         assignment

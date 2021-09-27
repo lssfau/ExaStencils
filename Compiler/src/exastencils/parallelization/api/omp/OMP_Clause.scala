@@ -34,7 +34,7 @@ object OMP_Reduction {
   def apply(red : IR_Reduction) = new OMP_Reduction(red.op, red.target)
 }
 
-case class OMP_Reduction(var op : String, var target : IR_VariableAccess) extends OMP_Clause {
+case class OMP_Reduction(var op : String, var target : IR_Access) extends OMP_Clause {
   override def prettyprint(out : PpStream) : Unit = out << "reduction(" << op << " : " << target << ')'
 }
 
