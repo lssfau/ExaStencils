@@ -116,7 +116,7 @@ case class IR_VisItMainloop() extends IR_FuturePlainVisItFunction {
 
     // scaling: only used for curvilinear meshes
     if (Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) {
-      val strToReal = if (Knowledge.useDblPrecision) IR_ExternalFunctionReference("std::stod") else IR_ExternalFunctionReference("std::stof")
+      val strToReal = if (Knowledge.useDblPrecision) "std::stod" else "std::stof"
       consoleInputBody += IR_IfCondition(
         IR_FunctionCall(IR_ExternalFunctionReference("strstr"), command, IR_StringConstant("scale=")) Neq nullptr,
         IR_Native(

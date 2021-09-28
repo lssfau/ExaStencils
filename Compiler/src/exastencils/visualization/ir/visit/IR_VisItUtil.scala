@@ -56,9 +56,11 @@ object IR_VisItUtil {
   if (Knowledge.dimensionality > 1) innerDatatype = IR_ArrayDatatype(innerDatatype, Knowledge.dimensionality)
   if (Knowledge.numLevels > 1) innerDatatype = IR_ArrayDatatype(innerDatatype, Knowledge.numLevels)
 
+  def localizationFromCoords(coords : String) = coords.drop(6) // drop "coords" at start
+
   // coordinate arrays to create the rectilinear mesh(coordsNode for node/cell variables, coordsFace for face centered variables)
   val coordsNodeDecl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "coordsNode")
-  val coordsZoneDecl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "coordsZone")
+  val coordsZoneDecl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "coordsCell")
   val coordsFaceXDecl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "coordsFace_x")
   val coordsFaceYDecl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "coordsFace_y")
   val coordsFaceZDecl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "coordsFace_z")
@@ -67,7 +69,7 @@ object IR_VisItUtil {
   // coordinate arrays to create the 3d curvilinear mesh for 2d variables and 2d curvilinear variable consisting of 1d variables
   // requires special handling for cell-based variables since they are not placed on a mesh's zone anymore
   val curveCoordsNodeDecl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "curve_coordsNode")
-  val curveCoordsZoneDecl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "curve_coordsZone")
+  val curveCoordsZoneDecl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "curve_coordsCell")
   val curveCoordsFaceXDecl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "curve_coordsFace_x")
   val curveCoordsFaceYDecl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "curve_coordsFace_y")
   val curveCoordsFaceZDecl : IR_VariableDeclaration = IR_VariableDeclaration(innerDatatype, "curve_coordsFace_z")

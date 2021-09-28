@@ -72,7 +72,7 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainVisItFunction {
 
           fctBody += IR_IfCondition(
             IR_AndAnd(
-              IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), IR_VariableAccess("name", IR_StringDatatype), IR_StringConstant("rect" + Knowledge.dimensionality + "d_" + coordsDecl.name.drop(6))) EqEq IR_IntegerConstant(0),
+              stringEquals(IR_VariableAccess("name", IR_StringDatatype), "rect" + Knowledge.dimensionality + "d_" + localizationFromCoords(coordsDecl.name)),
               curLevel EqEq level
             ),
             ListBuffer[IR_Statement](

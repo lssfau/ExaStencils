@@ -24,7 +24,7 @@ case class IR_VisItSimGetMetaData() extends IR_FuturePlainVisItFunction {
 
     val md = IR_VariableAccess("metadata", visitHandle)
 
-    var new_name_identifier = "" // detects new field name
+    var newNameIdentifier = "" // detects new field name
 
     /* simulation metadata(mode, time, cycle) */
     val modeDecl = IR_VariableDeclaration(IR_IntegerDatatype, "mode", IR_TernaryCondition(runMode, IR_Native("VISIT_SIMMODE_RUNNING"), IR_Native("VISIT_SIMMODE_STOPPED")))
@@ -34,14 +34,14 @@ case class IR_VisItSimGetMetaData() extends IR_FuturePlainVisItFunction {
 
     /* mesh metadata */
     if (Knowledge.dimensionality > 1) {
-      for (coords_decl <- coordsArrays) {
-        val mmd = IR_VariableAccess("meshMetadata_" + coords_decl.name.drop(6), visitHandle)
+      for (coordsDecl <- coordsArrays) {
+        val mmd = IR_VariableAccess("meshMetadata_" + localizationFromCoords(coordsDecl.name), visitHandle)
 
         ifBody += IR_VariableDeclaration(mmd, visitInvalidHandle)
         ifBody += IR_IfCondition(
           IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_alloc"), IR_AddressOf(mmd)) EqEq visitOkay,
           ListBuffer[IR_Statement](
-            IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setName"), mmd, IR_StringConstant("rect" + Knowledge.dimensionality + "d_" + coords_decl.name.drop(6))),
+            IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setName"), mmd, IR_StringConstant("rect" + Knowledge.dimensionality + "d_" + localizationFromCoords(coordsDecl.name))),
             IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setMeshType"), mmd, IR_Native("VISIT_MESHTYPE_RECTILINEAR")),
             IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setTopologicalDimension"), mmd, Knowledge.dimensionality),
             IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setSpatialDimension"), mmd, Knowledge.dimensionality),
@@ -54,7 +54,7 @@ case class IR_VisItSimGetMetaData() extends IR_FuturePlainVisItFunction {
       // display one dimensional variables as a 2d curvilinear mesh consisting of the created coordinate array and the variable values
       // display two dimensional variables as a 3d curvilinear
       for (field <- IR_FieldCollection.sortedObjects) {
-        if (field.name != new_name_identifier) {
+        if (field.name != newNameIdentifier) {
           val mmd = IR_VariableAccess("meshMetadata_" + field.name, visitHandle)
 
           ifBody += IR_VariableDeclaration(mmd, visitInvalidHandle)
@@ -68,17 +68,17 @@ case class IR_VisItSimGetMetaData() extends IR_FuturePlainVisItFunction {
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_MeshMetaData_setNumDomains"), mmd, Knowledge.domain_numBlocks),
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_SimulationMetaData_addMesh"), md, mmd))
           )
-          new_name_identifier = field.name
+          newNameIdentifier = field.name
         }
       }
     }
 
-    new_name_identifier = "" // reset
+    newNameIdentifier = "" // reset
 
     /* variable metadata */
     if (Knowledge.dimensionality > 1) {
       for (field <- IR_FieldCollection.sortedObjects) {
-        if (field.name != new_name_identifier) {
+        if (field.name != newNameIdentifier) {
           val vmd = IR_VariableAccess("varMetadata_" + field.name, visitHandle)
           val varCentering = field.layout.localization match {
             case IR_AtNode | IR_AtFaceCenter(_) => IR_VariableAccess("VISIT_VARCENTERING_NODE", IR_UnknownDatatype)
@@ -95,7 +95,7 @@ case class IR_VisItSimGetMetaData() extends IR_FuturePlainVisItFunction {
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableMetaData_setCentering"), vmd, varCentering),
               IR_FunctionCall(IR_ExternalFunctionReference("VisIt_SimulationMetaData_addVariable"), md, vmd))
           )
-          new_name_identifier = field.name
+          newNameIdentifier = field.name
         }
       }
     }
