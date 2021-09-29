@@ -1,0 +1,2 @@
+Passed stage 0: redTarget equals maxVal
+Passed stage 1: Reduced matrix entry equals the number of reductions times the original value of the entry

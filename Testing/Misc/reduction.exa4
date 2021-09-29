@@ -1,0 +1,50 @@
+Domain global< [0.0] to [1.0] >
+
+Layout CellMatrixWithComm< Matrix < Real, 3, 3>, Cell >@all {
+	ghostLayers = [1] with communication
+	duplicateLayers = [0]
+}
+
+Field mat< global, CellMatrixWithComm, 0.0 >@all
+
+Globals {
+    Val eps : Real = 0.0000001
+    Val maxVal  : Real = 10.
+    Val matrixEntry : Real = 2.
+}
+
+Function Application {
+	initGlobals (  )
+	initDomain (  )
+	initFieldsWithZero (  )
+
+    Var redTarget : Real = 0.0
+
+    loop over mat@finest with reduction (max: redTarget) {
+        if (i0 == 0) {
+            mat@finest[2][2] = maxVal
+        }
+        redTarget = mat@finest[2][2]
+    }
+
+    if (fabs(redTarget - maxVal) <= eps) {
+        print('Passed stage 0: redTarget equals maxVal')
+    } else {
+        print('Failed stage 0: redTarget=', redTarget, ', maxVal=', maxVal)
+    }
+
+
+    Var redTarget2 : Matrix<Real, 2, 2>
+    loop over mat@finest with reduction (+: redTarget2[0][0]) {
+        redTarget2[0][0] = matrixEntry
+    }
+
+    Expr numReds = getKnowledge ( 'domain_rect_numBlocks_x' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_x' )
+    if ( fabs(redTarget2[0][0] - numReds * matrixEntry ) <= eps) {
+        print('Passed stage 1: Reduced matrix entry equals the number of reductions times the original value of the entry')
+    } else {
+        print('Failed stage 1: Reduced matrix entry redTarget2[0][0]=', redTarget2[0][0], ', expected=', numReds * matrixEntry)
+    }
+
+	destroyGlobals (  )
+}
