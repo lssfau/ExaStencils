@@ -20,7 +20,6 @@ package exastencils.base.l4
 
 import exastencils.base.ProgressLocation
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_MatrixAccess
 import exastencils.baseExt.l4.L4_ComplexAccess
 import exastencils.baseExt.l4.L4_MatrixAccess
 import exastencils.baseExt.l4.L4_UnresolvedAccess
@@ -34,12 +33,16 @@ import exastencils.prettyprinting._
 case class L4_Reduction(var op : String, var target : L4_Access, targetType : L4_Datatype = L4_UnknownDatatype) extends L4_Node with L4_Progressable with PrettyPrintable {
   override def prettyprint(out : PpStream) = out << "reduction ( " << op << " : " << target << " )"
   // FIXME: IR_RealDatatype
-  override def progress = ProgressLocation(IR_Reduction(op,
-    target match {
+  override def progress = {
+    val targetInfo : (IR_Expression, String) = target match {
       case _ : L4_UnresolvedAccess => Logger.error("Performing reduction on unresolved access.")
       case _ : L4_ComplexAccess => Logger.error("Reductions for complex accesses are currently not implemented.")
-      case vAcc : L4_PlainVariableAccess => vAcc.progress
-      case vAcc : L4_LeveledVariableAccess => vAcc.progress
-      case mAcc : L4_MatrixAccess => mAcc.progress.asInstanceOf[IR_MatrixAccess]
-    }))
+      case L4_MatrixAccess(_, _ : L4_RangeIndex, _) | L4_MatrixAccess(_, _, Some(_ : L4_RangeIndex)) | L4_MatrixAccess(_, _, None) => Logger.error("Reductions for matrix slices are not supported.")
+      case vAcc : L4_PlainVariableAccess => (vAcc.progress, vAcc.name)
+      case vAcc : L4_LeveledVariableAccess => (vAcc.progress, vAcc.name)
+      case mAcc : L4_MatrixAccess => (mAcc.progress, mAcc.name + s"_${mAcc.idxy}_${mAcc.idxx.get}")
+    }
+
+    ProgressLocation(IR_Reduction(op, targetInfo._1, targetInfo._2))
+  }
 }

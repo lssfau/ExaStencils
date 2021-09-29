@@ -22,6 +22,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -100,8 +101,22 @@ object MPI_AddReductions extends DefaultStrategy("Add mpi reductions") {
       val reduction = loop.parallelization.reduction.get
       val stmts = ListBuffer[IR_Statement]()
       stmts += loop
-      if (!reduction.skipMpi)
-        stmts += MPI_AllReduce(IR_AddressOf(reduction.target), reduction.target.datatype, 1, reduction.op)
+      if (!reduction.skipMpi) {
+        val targetDt = reduction.target.datatype
+        val dt = if (targetDt.isInstanceOf[IR_MatrixDatatype]) {
+          reduction.target match {
+            case _ : IR_ArrayAccess =>
+              // (resolved) matrix element access: use base datatype
+              targetDt.resolveBaseDatatype
+            case acc =>
+              Logger.warn("Reduction target is of type IR_MatrixDatatype but something other than a single matrix element is targeted: " + acc)
+              targetDt
+          }
+        } else {
+          targetDt
+        }
+        stmts += MPI_AllReduce(IR_AddressOf(reduction.target), dt, 1, reduction.op)
+      }
       stmts
   }, false) // switch off recursion due to wrapping mechanism
 }

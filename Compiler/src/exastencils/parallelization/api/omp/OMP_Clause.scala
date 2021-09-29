@@ -31,10 +31,10 @@ abstract class OMP_Clause extends Node with PrettyPrintable
 /// OMP_Reduction
 
 object OMP_Reduction {
-  def apply(red : IR_Reduction) = new OMP_Reduction(red.op, red.target)
+  def apply(red : IR_Reduction) = new OMP_Reduction(red.op, red.target, red.targetName)
 }
 
-case class OMP_Reduction(var op : String, var target : IR_Access) extends OMP_Clause {
+case class OMP_Reduction(var op : String, var target : IR_Expression, var targetName : String) extends OMP_Clause {
   override def prettyprint(out : PpStream) : Unit = out << "reduction(" << op << " : " << target << ')'
 }
 
