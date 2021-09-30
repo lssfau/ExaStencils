@@ -190,32 +190,32 @@ Stencil A33@all{
 }
 
 Stencil B1@all{
-  [ 0,  0,  0] =>  ( vf_cellWidth_y * vf_cellWidth_z )
+  [ 0,  0,  0] =>  ( vf_cellWidth_y * vf_cellWidth_z ),
   [-1,  0,  0] => -( vf_cellWidth_y * vf_cellWidth_z )
 }
 
 Stencil B2@all{
-  [ 0,  0,  0] =>  ( vf_cellWidth_x * vf_cellWidth_z )
+  [ 0,  0,  0] =>  ( vf_cellWidth_x * vf_cellWidth_z ),
   [ 0, -1,  0] => -( vf_cellWidth_x * vf_cellWidth_z )
 }
 
 Stencil B3@all{
-  [ 0,  0,  0] =>  ( vf_cellWidth_x * vf_cellWidth_y )
+  [ 0,  0,  0] =>  ( vf_cellWidth_x * vf_cellWidth_y ),
   [ 0,  0, -1] => -( vf_cellWidth_x * vf_cellWidth_y )
 }
 
 Stencil C1@all{
-  [ 0,  0,  0] => -( vf_cellWidth_y * vf_cellWidth_z )
+  [ 0,  0,  0] => -( vf_cellWidth_y * vf_cellWidth_z ),
   [ 1,  0,  0] =>  ( vf_cellWidth_y * vf_cellWidth_z )
 }
 
 Stencil C2@all{
-  [ 0,  0,  0] => -( vf_cellWidth_x * vf_cellWidth_z )
+  [ 0,  0,  0] => -( vf_cellWidth_x * vf_cellWidth_z ),
   [ 0,  1,  0] =>  ( vf_cellWidth_x * vf_cellWidth_z )
 }
 
 Stencil C3@all{
-  [ 0,  0,  0] => -( vf_cellWidth_x * vf_cellWidth_y )
+  [ 0,  0,  0] => -( vf_cellWidth_x * vf_cellWidth_y ),
   [ 0,  0,  1] =>  ( vf_cellWidth_x * vf_cellWidth_y )
 }
 

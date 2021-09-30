@@ -133,22 +133,22 @@ Stencil A22@all{
 }
 
 Stencil B1@all{
-  [ 0,  0] =>  vf_gridWidth_y
+  [ 0,  0] =>  vf_gridWidth_y,
   [-1,  0] => -vf_gridWidth_y
 }
 
 Stencil B2@all{
-  [ 0,  0] =>  vf_gridWidth_x
+  [ 0,  0] =>  vf_gridWidth_x,
   [ 0, -1] => -vf_gridWidth_x
 }
 
 Stencil C1@all{
-  [ 0,  0] => -vf_gridWidth_y
+  [ 0,  0] => -vf_gridWidth_y,
   [ 1,  0] =>  vf_gridWidth_y
 }
 
 Stencil C2@all{
-  [ 0,  0] => -vf_gridWidth_x
+  [ 0,  0] => -vf_gridWidth_x,
   [ 0,  1] =>  vf_gridWidth_x
 }
 
