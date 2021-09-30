@@ -3157,7 +3157,7 @@ example:BiHarmonic:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.results
+        - touch ../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.results # TODO: temp empty file
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_BiHarmonic_fromL2 ../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.knowledge "../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa3;../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa2" "../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.results" 1 1 Platform/random.platform output
 
 example:2D_FD_Helmholtz_fromL3:
@@ -3177,7 +3177,7 @@ example:2D_FD_Helmholtz_fromL3:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.results
+        - touch ../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.results # TODO: temp empty file
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Helmholtz_fromL3 ../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.knowledge "../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa4" "../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.results" 1 1 Platform/random.platform output
 
 example:2D_FD_Helmholtz_MPI_fromL3.knowledge:
@@ -3197,7 +3197,7 @@ example:2D_FD_Helmholtz_MPI_fromL3.knowledge:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Helmholtz/2D_FD_Helmholtz_MPI_fromL3.results
+        - touch ../Examples/Helmholtz/2D_FD_Helmholtz_MPI_fromL3.results # TODO: temp empty file
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Helmholtz_MPI_fromL3 ../Examples/Helmholtz/2D_FD_Helmholtz_MPI_fromL3.knowledge "../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa4" "../Examples/Helmholtz/2D_FD_Helmholtz_MPI_fromL3.results" 4 1 Platform/random.platform output
 
 example:3D_FD_Helmholtz_fromL3:
@@ -3217,5 +3217,25 @@ example:3D_FD_Helmholtz_fromL3:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.results
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Helmholtz_fromL3 ../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.knowledge "../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa4" "../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.results" 4 1 Platform/random.platform output
+        - touch ../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Helmholtz_fromL3 ../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.knowledge "../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa4" "../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.results" 1 1 Platform/random.platform output
+
+example:2D_FD_LinearElasticity_fromL2:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_LinearElasticity_fromL2 ../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.knowledge "../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa2;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa3;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa4" "../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2" 1 1 Platform/random.platform output
