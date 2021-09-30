@@ -142,14 +142,13 @@ Stencil A11@all{
       + ( vf_stagCVWidth_x * vf_cellWidth_z ) / vf_stagCVWidth_y@[0, 0, 0]
       + ( vf_stagCVWidth_x * vf_cellWidth_z ) / vf_stagCVWidth_y@[0, 1, 0]
       + ( vf_stagCVWidth_x * vf_cellWidth_y ) / vf_stagCVWidth_z@[0, 0, 0]
-      + ( vf_stagCVWidth_x * vf_cellWidth_y ) / vf_stagCVWidth_z@[0, 0, 1]
-    )
+      + ( vf_stagCVWidth_x * vf_cellWidth_y ) / vf_stagCVWidth_z@[0, 0, 1]),
 
-  [-1,  0,  0] => -( vf_cellWidth_y   * vf_cellWidth_z ) / vf_cellWidth_x  @[0, 0, 0]
-  [ 1,  0,  0] => -( vf_cellWidth_y   * vf_cellWidth_z ) / vf_cellWidth_x  @[1, 0, 0]
-  [ 0, -1,  0] => -( vf_stagCVWidth_x * vf_cellWidth_z ) / vf_stagCVWidth_y@[0, 0, 0]
-  [ 0,  1,  0] => -( vf_stagCVWidth_x * vf_cellWidth_z ) / vf_stagCVWidth_y@[0, 1, 0]
-  [ 0,  0, -1] => -( vf_stagCVWidth_x * vf_cellWidth_y ) / vf_stagCVWidth_z@[0, 0, 0]
+  [-1,  0,  0] => -( vf_cellWidth_y   * vf_cellWidth_z ) / vf_cellWidth_x  @[0, 0, 0],
+  [ 1,  0,  0] => -( vf_cellWidth_y   * vf_cellWidth_z ) / vf_cellWidth_x  @[1, 0, 0],
+  [ 0, -1,  0] => -( vf_stagCVWidth_x * vf_cellWidth_z ) / vf_stagCVWidth_y@[0, 0, 0],
+  [ 0,  1,  0] => -( vf_stagCVWidth_x * vf_cellWidth_z ) / vf_stagCVWidth_y@[0, 1, 0],
+  [ 0,  0, -1] => -( vf_stagCVWidth_x * vf_cellWidth_y ) / vf_stagCVWidth_z@[0, 0, 0],
   [ 0,  0,  1] => -( vf_stagCVWidth_x * vf_cellWidth_y ) / vf_stagCVWidth_z@[0, 0, 1]
 }
 
@@ -160,14 +159,13 @@ Stencil A22@all{
       + ( vf_cellWidth_x   * vf_cellWidth_z   ) / vf_cellWidth_y  @[0, 0, 0]
       + ( vf_cellWidth_x   * vf_cellWidth_z   ) / vf_cellWidth_y  @[0, 1, 0]
       + ( vf_cellWidth_x   * vf_stagCVWidth_y ) / vf_stagCVWidth_z@[0, 0, 0]
-      + ( vf_cellWidth_x   * vf_stagCVWidth_y ) / vf_stagCVWidth_z@[0, 0, 1]
-    )
+      + ( vf_cellWidth_x   * vf_stagCVWidth_y ) / vf_stagCVWidth_z@[0, 0, 1]),
 
-  [-1,  0,  0] => -( vf_stagCVWidth_y * vf_cellWidth_z   ) / vf_stagCVWidth_x@[0, 0, 0]
-  [ 1,  0,  0] => -( vf_stagCVWidth_y * vf_cellWidth_z   ) / vf_stagCVWidth_x@[1, 0, 0]
-  [ 0, -1,  0] => -( vf_cellWidth_x   * vf_cellWidth_z   ) / vf_cellWidth_y  @[0, 0, 0]
-  [ 0,  1,  0] => -( vf_cellWidth_x   * vf_cellWidth_z   ) / vf_cellWidth_y  @[0, 1, 0]
-  [ 0,  0, -1] => -( vf_cellWidth_x   * vf_stagCVWidth_y ) / vf_stagCVWidth_z@[0, 0, 0]
+  [-1,  0,  0] => -( vf_stagCVWidth_y * vf_cellWidth_z   ) / vf_stagCVWidth_x@[0, 0, 0],
+  [ 1,  0,  0] => -( vf_stagCVWidth_y * vf_cellWidth_z   ) / vf_stagCVWidth_x@[1, 0, 0],
+  [ 0, -1,  0] => -( vf_cellWidth_x   * vf_cellWidth_z   ) / vf_cellWidth_y  @[0, 0, 0],
+  [ 0,  1,  0] => -( vf_cellWidth_x   * vf_cellWidth_z   ) / vf_cellWidth_y  @[0, 1, 0],
+  [ 0,  0, -1] => -( vf_cellWidth_x   * vf_stagCVWidth_y ) / vf_stagCVWidth_z@[0, 0, 0],
   [ 0,  0,  1] => -( vf_cellWidth_x   * vf_stagCVWidth_y ) / vf_stagCVWidth_z@[0, 0, 1]
 }
 
@@ -178,14 +176,13 @@ Stencil A33@all{
       + ( vf_cellWidth_x * vf_stagCVWidth_z ) / vf_stagCVWidth_y@[0, 0, 0]
       + ( vf_cellWidth_x * vf_stagCVWidth_z ) / vf_stagCVWidth_y@[0, 1, 0]
       + ( vf_cellWidth_x * vf_cellWidth_y   ) / vf_cellWidth_z  @[0, 0, 0]
-      + ( vf_cellWidth_x * vf_cellWidth_y   ) / vf_cellWidth_z  @[0, 0, 1]
-    )
+      + ( vf_cellWidth_x * vf_cellWidth_y   ) / vf_cellWidth_z  @[0, 0, 1]),
 
-  [-1,  0,  0] => -( vf_cellWidth_y * vf_stagCVWidth_z ) / vf_stagCVWidth_x@[0, 0, 0]
-  [ 1,  0,  0] => -( vf_cellWidth_y * vf_stagCVWidth_z ) / vf_stagCVWidth_x@[1, 0, 0]
-  [ 0, -1,  0] => -( vf_cellWidth_x * vf_stagCVWidth_z ) / vf_stagCVWidth_y@[0, 0, 0]
-  [ 0,  1,  0] => -( vf_cellWidth_x * vf_stagCVWidth_z ) / vf_stagCVWidth_y@[0, 1, 0]
-  [ 0,  0, -1] => -( vf_cellWidth_x * vf_cellWidth_y   ) / vf_cellWidth_z  @[0, 0, 0]
+  [-1,  0,  0] => -( vf_cellWidth_y * vf_stagCVWidth_z ) / vf_stagCVWidth_x@[0, 0, 0],
+  [ 1,  0,  0] => -( vf_cellWidth_y * vf_stagCVWidth_z ) / vf_stagCVWidth_x@[1, 0, 0],
+  [ 0, -1,  0] => -( vf_cellWidth_x * vf_stagCVWidth_z ) / vf_stagCVWidth_y@[0, 0, 0],
+  [ 0,  1,  0] => -( vf_cellWidth_x * vf_stagCVWidth_z ) / vf_stagCVWidth_y@[0, 1, 0],
+  [ 0,  0, -1] => -( vf_cellWidth_x * vf_cellWidth_y   ) / vf_cellWidth_z  @[0, 0, 0],
   [ 0,  0,  1] => -( vf_cellWidth_x * vf_cellWidth_y   ) / vf_cellWidth_z  @[0, 0, 1]
 }
 

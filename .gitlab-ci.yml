@@ -3393,6 +3393,7 @@ example:3D_FD_Poisson_fromL2:
         - python3 --version
         - mpirun --version
         - cd Testing
+        - mkdir -p lib/ && cp ../Examples/lib/solver_singleScalarEquation.exa3 lib/solver_singleScalarEquation.exa3
         - touch ../Examples/Poisson/3D_FD_Poisson_fromL2.results # TODO: temp empty file
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Poisson_fromL2 ../Examples/Poisson/3D_FD_Poisson_fromL2.knowledge "../Examples/Poisson/3D_FD_Poisson_fromL2.exa2;../Examples/Poisson/3D_FD_Poisson_fromL2.exa3" "../Examples/Poisson/3D_FD_Poisson_fromL2.results" 1 1 Platform/random.platform output
 
@@ -3433,6 +3434,7 @@ example:3D_FV_Poisson_fromL2:
         - python3 --version
         - mpirun --version
         - cd Testing
+        - mkdir -p lib/ && cp ../Examples/lib/solver_singleScalarEquation.exa3 lib/solver_singleScalarEquation.exa3
         - touch ../Examples/Poisson/3D_FV_Poisson_fromL2.results # TODO: temp empty file
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Poisson_fromL2 ../Examples/Poisson/3D_FV_Poisson_fromL2.knowledge "../Examples/Poisson/3D_FV_Poisson_fromL2.exa2;../Examples/Poisson/3D_FV_Poisson_fromL2.exa3" "../Examples/Poisson/3D_FV_Poisson_fromL2.results" 1 1 Platform/random.platform output
 
