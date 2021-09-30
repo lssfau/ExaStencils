@@ -2509,7 +2509,7 @@ test:Inlining:
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Inlining Misc/inlining.knowledge "Misc/inlining.exa4" Misc/inlining.results 8 4 Platform/random.platform output
 
-test:reduction:
+test:Reduction:
     stage: test
     dependencies:
         - build:generator
