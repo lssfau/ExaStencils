@@ -1,3 +1,11 @@
+stages:
+    - .pre
+    - build
+    - test
+    - example
+    - benchmark
+
+
 generate-docker-image:
     stage: .pre
     when: manual
