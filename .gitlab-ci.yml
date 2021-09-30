@@ -2513,7 +2513,7 @@ test:Reduction:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     artifacts:
         when: on_failure
         paths:
