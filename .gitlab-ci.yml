@@ -2800,146 +2800,6 @@ test:FAS_2D_Basic:
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib FAS_2D_Basic NonLinear/FAS_2D_Basic.knowledge "NonLinear/FAS_2D_Basic.exa4" NonLinear/FAS_2D_Basic.results 9 2 Platform/random.platform output
 
-test:2D_FD_Poisson_fromL1:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL1 Poisson/2D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL1.exa1" Poisson/2D_FD_Poisson_fromL1.results 4 4 Platform/random.platform output
-
-test:2D_FD_Poisson_fromL2:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL2 Poisson/2D_FD_Poisson_fromL2.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL2.exa2;../Examples/Poisson/2D_FD_Poisson_fromL2.exa3;../Examples/Poisson/2D_FD_Poisson_fromL2.exa4" Poisson/2D_FD_Poisson_fromL2.results 4 4 Platform/random.platform output
-
-test:2D_FD_Poisson_fromL3:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL3 Poisson/2D_FD_Poisson_fromL3.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL3.exa3;../Examples/Poisson/2D_FD_Poisson_fromL3.exa4" Poisson/2D_FD_Poisson_fromL3.results 4 4 Platform/random.platform output
-
-test:2D_FD_Poisson_fromL4:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL4 Poisson/2D_FD_Poisson_fromL4.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL4.exa4" Poisson/2D_FD_Poisson_fromL4.results 4 4 Platform/random.platform output
-
-test:2D_FV_Poisson_fromL2:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Poisson_fromL2 Poisson/2D_FV_Poisson_fromL2.knowledge "../Examples/Poisson/2D_FV_Poisson_fromL2.exa2;../Examples/Poisson/2D_FV_Poisson_fromL2.exa3;../Examples/Poisson/2D_FV_Poisson_fromL2.exa4" Poisson/2D_FV_Poisson_fromL2.results 4 4 Platform/random.platform output
-
-test:2D_FV_Poisson_fromL4:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Poisson_fromL4 Poisson/2D_FV_Poisson_fromL4.knowledge "../Examples/Poisson/2D_FV_Poisson_fromL4.exa4" Poisson/2D_FV_Poisson_fromL4.results 4 4 Platform/random.platform output
-
-test:2D_FE_Poisson_fromL2:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FE_Poisson_fromL2 Poisson/2D_FE_Poisson_fromL2.knowledge "../Examples/Poisson/2D_FE_Poisson_fromL2.exa2;../Examples/Poisson/2D_FE_Poisson_fromL2.exa3;../Examples/Poisson/2D_FE_Poisson_fromL2.exa4" Poisson/2D_FE_Poisson_fromL2.results 1 1 Platform/random.platform output
-
 test:CUDA_SISC_2D_ConstCoeff:
     stage: test
     dependencies:
@@ -3341,3 +3201,256 @@ example:3D_FD_OptFlow_fromL4_Vec:
         - cd Testing
         - touch ../Examples/OpticalFlow/3D_FD_OptFlow_fromL4_Vec.results # TODO: temp empty file
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_OptFlow_fromL4_Vec ../Examples/OpticalFlow/3D_FD_OptFlow_fromL4_Vec.knowledge "../Examples/OpticalFlow/3D_FD_OptFlow_fromL4_Vec.exa4" "../Examples/OpticalFlow/3D_FD_OptFlow_fromL4_Vec.results" 1 1 Platform/random.platform output
+
+example:1D_FD_Poisson_fromL1:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/Poisson/1D_FD_Poisson_fromL1.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 1D_FD_Poisson_fromL1 ../Examples/Poisson/1D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/1D_FD_Poisson_fromL1.exa1" "../Examples/Poisson/1D_FD_Poisson_fromL1.results" 1 1 Platform/random.platform output
+
+example:2D_FD_Poisson_fromL1:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL1 Poisson/2D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL1.exa1" Poisson/2D_FD_Poisson_fromL1.results 4 4 Platform/random.platform output
+
+example:2D_FD_Poisson_fromL2:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL2 Poisson/2D_FD_Poisson_fromL2.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL2.exa2;../Examples/Poisson/2D_FD_Poisson_fromL2.exa3;../Examples/Poisson/2D_FD_Poisson_fromL2.exa4" Poisson/2D_FD_Poisson_fromL2.results 4 4 Platform/random.platform output
+
+example:2D_FD_Poisson_fromL3:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL3 Poisson/2D_FD_Poisson_fromL3.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL3.exa3;../Examples/Poisson/2D_FD_Poisson_fromL3.exa4" Poisson/2D_FD_Poisson_fromL3.results 4 4 Platform/random.platform output
+
+example:2D_FD_Poisson_fromL4:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL4 Poisson/2D_FD_Poisson_fromL4.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL4.exa4" Poisson/2D_FD_Poisson_fromL4.results 4 4 Platform/random.platform output
+
+example:2D_FE_Poisson_fromL2:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FE_Poisson_fromL2 Poisson/2D_FE_Poisson_fromL2.knowledge "../Examples/Poisson/2D_FE_Poisson_fromL2.exa2;../Examples/Poisson/2D_FE_Poisson_fromL2.exa3;../Examples/Poisson/2D_FE_Poisson_fromL2.exa4" Poisson/2D_FE_Poisson_fromL2.results 1 1 Platform/random.platform output
+
+example:2D_FV_Poisson_fromL2:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Poisson_fromL2 Poisson/2D_FV_Poisson_fromL2.knowledge "../Examples/Poisson/2D_FV_Poisson_fromL2.exa2;../Examples/Poisson/2D_FV_Poisson_fromL2.exa3;../Examples/Poisson/2D_FV_Poisson_fromL2.exa4" Poisson/2D_FV_Poisson_fromL2.results 4 4 Platform/random.platform output
+
+example:2D_FV_Poisson_fromL4:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Poisson_fromL4 Poisson/2D_FV_Poisson_fromL4.knowledge "../Examples/Poisson/2D_FV_Poisson_fromL4.exa4" Poisson/2D_FV_Poisson_fromL4.results 4 4 Platform/random.platform output
+
+example:3D_FD_Poisson_fromL1:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/Poisson/3D_FD_Poisson_fromL1.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Poisson_fromL1 ../Examples/Poisson/3D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/3D_FD_Poisson_fromL1.exa1" "../Examples/Poisson/3D_FD_Poisson_fromL1.results" 1 1 Platform/random.platform output
+
+example:3D_FD_Poisson_fromL2:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/Poisson/3D_FD_Poisson_fromL2.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Poisson_fromL2 ../Examples/Poisson/3D_FD_Poisson_fromL2.knowledge "../Examples/Poisson/3D_FD_Poisson_fromL2.exa2;../Examples/Poisson/3D_FD_Poisson_fromL2.exa3" "../Examples/Poisson/3D_FD_Poisson_fromL2.results" 1 1 Platform/random.platform output
+
+example:3D_FD_Poisson_fromL4:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/Poisson/3D_FD_Poisson_fromL4.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Poisson_fromL4 ../Examples/Poisson/3D_FD_Poisson_fromL4.knowledge "../Examples/Poisson/3D_FD_Poisson_fromL4.exa4" "../Examples/Poisson/3D_FD_Poisson_fromL4.results" 1 1 Platform/random.platform output
+
+example:3D_FV_Poisson_fromL2:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/Poisson/3D_FV_Poisson_fromL2.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Poisson_fromL2 ../Examples/Poisson/3D_FV_Poisson_fromL2.knowledge "../Examples/Poisson/3D_FV_Poisson_fromL2.exa2;../Examples/Poisson/3D_FV_Poisson_fromL2.exa3" "../Examples/Poisson/3D_FV_Poisson_fromL2.results" 1 1 Platform/random.platform output
+
+example:3D_FV_Poisson_fromL4:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/Poisson/3D_FV_Poisson_fromL4.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Poisson_fromL4 ../Examples/Poisson/3D_FV_Poisson_fromL4.knowledge "../Examples/Poisson/3D_FV_Poisson_fromL4.exa4" "../Examples/Poisson/3D_FV_Poisson_fromL4.results" 1 1 Platform/random.platform output
