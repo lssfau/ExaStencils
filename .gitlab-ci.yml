@@ -5,6 +5,7 @@ stages:
     - example
     - benchmark
 
+# TODO: refactor duplicate code by using gitlabs extend, reference and other mechanisms
 
 generate-docker-image:
     stage: .pre
@@ -3714,3 +3715,5 @@ example:3D_FV_Stokes_fromL4:
         - cd Testing
         - touch ../Examples/Stokes/3D_FV_Stokes_fromL4.results # TODO: temp empty file
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Stokes_fromL4 ../Examples/Stokes/3D_FV_Stokes_fromL4.knowledge "../Examples/Stokes/3D_FV_Stokes_fromL4.exa4" "../Examples/Stokes/3D_FV_Stokes_fromL4.results" 1 1 Platform/random.platform output
+
+# TODO: similar to NS: adapt SWE example and add
