@@ -3957,4 +3957,22 @@ example:3D_FV_Stokes_fromL4:
         - touch ../Examples/Stokes/3D_FV_Stokes_fromL4.results # TODO: temp empty file
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Stokes_fromL4 ../Examples/Stokes/3D_FV_Stokes_fromL4.knowledge "../Examples/Stokes/3D_FV_Stokes_fromL4.exa4" "../Examples/Stokes/3D_FV_Stokes_fromL4.results" 1 1 Platform/random.platform output
 
-# TODO: similar to NS: adapt SWE example and add
+example:2D_FV_SWE:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/SWE/2D_FV_SWE.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_SWE ../Examples/SWE/2D_FV_SWE.knowledge "../Examples/SWE/2D_FV_SWE.exa2;../Examples/SWE/2D_FV_SWE.exa3;../Examples/SWE/2D_FV_SWE.exa4" "../Examples/SWE/2D_FV_SWE.results" 1 1 Platform/random.platform output

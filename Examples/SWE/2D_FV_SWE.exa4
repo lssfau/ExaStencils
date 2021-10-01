@@ -321,7 +321,7 @@ Function UpdateVis@finest {
 
     print ( 'hMin:', hMin, 'hMax:', hMax, 'uMax:', uMax, 'vMax:', vMax )
 
-    showMappedImageAndWaitWhen ( curTime < maxTime, uVis, vVis, hVis, velMag, bVis )
+    //showMappedImageAndWaitWhen ( curTime < maxTime, uVis, vVis, hVis, velMag, bVis )
   }
 }
 
