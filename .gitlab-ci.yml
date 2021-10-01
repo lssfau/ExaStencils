@@ -3018,8 +3018,7 @@ example:BiHarmonic:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_BiHarmonic_fromL2 ../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.knowledge "../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa3;../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa2" "../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_BiHarmonic_fromL2 ../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.knowledge "../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa3;../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa2" "" 1 1 Platform/random.platform output
 
 example:2D_FD_Helmholtz_fromL3:
     stage: example
@@ -3038,8 +3037,7 @@ example:2D_FD_Helmholtz_fromL3:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Helmholtz_fromL3 ../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.knowledge "../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa4" "../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Helmholtz_fromL3 ../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.knowledge "../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa4" "" 1 1 Platform/random.platform output
 
 example:2D_FD_Helmholtz_MPI_fromL3.knowledge:
     stage: example
@@ -3058,8 +3056,7 @@ example:2D_FD_Helmholtz_MPI_fromL3.knowledge:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Helmholtz/2D_FD_Helmholtz_MPI_fromL3.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Helmholtz_MPI_fromL3 ../Examples/Helmholtz/2D_FD_Helmholtz_MPI_fromL3.knowledge "../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa4" "../Examples/Helmholtz/2D_FD_Helmholtz_MPI_fromL3.results" 4 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Helmholtz_MPI_fromL3 ../Examples/Helmholtz/2D_FD_Helmholtz_MPI_fromL3.knowledge "../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa4" "" 4 1 Platform/random.platform output
 
 example:3D_FD_Helmholtz_fromL3:
     stage: example
@@ -3078,8 +3075,7 @@ example:3D_FD_Helmholtz_fromL3:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Helmholtz_fromL3 ../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.knowledge "../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa4" "../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Helmholtz_fromL3 ../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.knowledge "../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa4" "" 1 1 Platform/random.platform output
 
 example:2D_FD_LinearElasticity_fromL2:
     stage: example
@@ -3098,8 +3094,7 @@ example:2D_FD_LinearElasticity_fromL2:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_LinearElasticity_fromL2 ../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.knowledge "../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa2;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa3;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa4" "../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_LinearElasticity_fromL2 ../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.knowledge "../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa2;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa3;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa4" "" 1 1 Platform/random.platform output
 
 example:2D_FV_NavierStokes_localNewton:
     stage: example
@@ -3118,8 +3113,7 @@ example:2D_FV_NavierStokes_localNewton:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_localNewton ../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa4" "../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_localNewton ../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa4" "" 1 1 Platform/random.platform output
 
 example:2D_FV_NavierStokes_localPicard:
     stage: example
@@ -3138,8 +3132,7 @@ example:2D_FV_NavierStokes_localPicard:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_localPicard ../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.exa4" "../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_localPicard ../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.exa4" "" 1 1 Platform/random.platform output
 
 example:2D_FV_NavierStokes_Newton:
     stage: example
@@ -3158,8 +3151,7 @@ example:2D_FV_NavierStokes_Newton:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/NavierStokes/2D_FV_NavierStokes_Newton.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_Newton ../Examples/NavierStokes/2D_FV_NavierStokes_Newton.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_Newton.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_Newton.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_Newton.exa4" "../Examples/NavierStokes/2D_FV_NavierStokes_Newton.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_Newton ../Examples/NavierStokes/2D_FV_NavierStokes_Newton.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_Newton.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_Newton.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_Newton.exa4" "" 1 1 Platform/random.platform output
 
 example:2D_FV_NavierStokes_Picard:
     stage: example
@@ -3178,8 +3170,7 @@ example:2D_FV_NavierStokes_Picard:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/NavierStokes/2D_FV_NavierStokes_Picard.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_Picard ../Examples/NavierStokes/2D_FV_NavierStokes_Picard.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa4" "../Examples/NavierStokes/2D_FV_NavierStokes_Picard.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_Picard ../Examples/NavierStokes/2D_FV_NavierStokes_Picard.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa4" "" 1 1 Platform/random.platform output
 
 example:2D_FV_NonNewtonian_Newton:
     stage: example
@@ -3198,8 +3189,7 @@ example:2D_FV_NonNewtonian_Newton:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NonNewtonian_Newton ../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.knowledge "../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa2;../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa3;../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa4" "../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NonNewtonian_Newton ../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.knowledge "../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa2;../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa3;../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa4" "" 1 1 Platform/random.platform output
 
 example:2D_FV_NonNewtonian_Picard:
     stage: example
@@ -3218,8 +3208,7 @@ example:2D_FV_NonNewtonian_Picard:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NonNewtonian_Picard ../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.knowledge "../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa2;../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa3;../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa4" "../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NonNewtonian_Picard ../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.knowledge "../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa2;../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa3;../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa4" "" 1 1 Platform/random.platform output
 
 example:3D_FV_NavierStokes_localNewton:
     stage: example
@@ -3238,8 +3227,7 @@ example:3D_FV_NavierStokes_localNewton:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_localNewton ../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa4" "../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_localNewton ../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa4" "" 1 1 Platform/random.platform output
 
 example:3D_FV_NavierStokes_localPicard:
     stage: example
@@ -3258,8 +3246,7 @@ example:3D_FV_NavierStokes_localPicard:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_localPicard ../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.exa4" "../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_localPicard ../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.exa4" "" 1 1 Platform/random.platform output
 
 example:3D_FV_NavierStokes_Newton:
     stage: example
@@ -3278,8 +3265,7 @@ example:3D_FV_NavierStokes_Newton:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/NavierStokes/3D_FV_NavierStokes_Newton.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_Newton ../Examples/NavierStokes/3D_FV_NavierStokes_Newton.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_Newton.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_Newton.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_Newton.exa4" "../Examples/NavierStokes/3D_FV_NavierStokes_Newton.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_Newton ../Examples/NavierStokes/3D_FV_NavierStokes_Newton.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_Newton.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_Newton.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_Newton.exa4" "" 1 1 Platform/random.platform output
 
 example:3D_FV_NavierStokes_Picard:
     stage: example
@@ -3298,8 +3284,7 @@ example:3D_FV_NavierStokes_Picard:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/NavierStokes/3D_FV_NavierStokes_Picard.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_Picard ../Examples/NavierStokes/3D_FV_NavierStokes_Picard.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa4" "../Examples/NavierStokes/3D_FV_NavierStokes_Picard.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_Picard ../Examples/NavierStokes/3D_FV_NavierStokes_Picard.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa4" "" 1 1 Platform/random.platform output
 
 example:3D_FV_NonNewtonian_Newton:
     stage: example
@@ -3318,8 +3303,7 @@ example:3D_FV_NonNewtonian_Newton:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NonNewtonian_Newton ../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.knowledge "../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa2;../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa3;../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa4" "../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NonNewtonian_Newton ../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.knowledge "../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa2;../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa3;../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa4" "" 1 1 Platform/random.platform output
 
 example:3D_FV_NonNewtonian_Picard:
     stage: example
@@ -3338,8 +3322,7 @@ example:3D_FV_NonNewtonian_Picard:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NonNewtonian_Picard ../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.knowledge "../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.exa2;../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.exa3;../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.exa4" "../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NonNewtonian_Picard ../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.knowledge "../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.exa2;../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.exa3;../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.exa4" "" 1 1 Platform/random.platform output
 
 
 example:2D_FD_OptFlow_fromL2:
@@ -3359,8 +3342,7 @@ example:2D_FD_OptFlow_fromL2:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/OpticalFlow/2D_FD_OptFlow_fromL2.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_OptFlow_fromL2 ../Examples/OpticalFlow/2D_FD_OptFlow_fromL2.knowledge "../Examples/OpticalFlow/2D_FD_OptFlow_fromL2.exa2;../Examples/OpticalFlow/2D_FD_OptFlow_fromL2.exa3" "../Examples/OpticalFlow/2D_FD_OptFlow_fromL2.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_OptFlow_fromL2 ../Examples/OpticalFlow/2D_FD_OptFlow_fromL2.knowledge "../Examples/OpticalFlow/2D_FD_OptFlow_fromL2.exa2;../Examples/OpticalFlow/2D_FD_OptFlow_fromL2.exa3" "" 1 1 Platform/random.platform output
 
 example:2D_FD_OptFlow_fromL4:
     stage: example
@@ -3379,8 +3361,7 @@ example:2D_FD_OptFlow_fromL4:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/OpticalFlow/2D_FD_OptFlow_fromL4.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_OptFlow_fromL4 ../Examples/OpticalFlow/2D_FD_OptFlow_fromL4.knowledge "../Examples/OpticalFlow/2D_FD_OptFlow_fromL4.exa4" "../Examples/OpticalFlow/2D_FD_OptFlow_fromL4.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_OptFlow_fromL4 ../Examples/OpticalFlow/2D_FD_OptFlow_fromL4.knowledge "../Examples/OpticalFlow/2D_FD_OptFlow_fromL4.exa4" "" 1 1 Platform/random.platform output
 
 example:2D_FD_OptFlow_fromL4_Vec:
     stage: example
@@ -3399,8 +3380,7 @@ example:2D_FD_OptFlow_fromL4_Vec:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/OpticalFlow/2D_FD_OptFlow_fromL4_Vec.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_OptFlow_fromL4_Vec ../Examples/OpticalFlow/2D_FD_OptFlow_fromL4_Vec.knowledge "../Examples/OpticalFlow/2D_FD_OptFlow_fromL4_Vec.exa4" "../Examples/OpticalFlow/2D_FD_OptFlow_fromL4_Vec.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_OptFlow_fromL4_Vec ../Examples/OpticalFlow/2D_FD_OptFlow_fromL4_Vec.knowledge "../Examples/OpticalFlow/2D_FD_OptFlow_fromL4_Vec.exa4" "" 1 1 Platform/random.platform output
 
 example:3D_FD_OptFlow_fromL2:
     stage: example
@@ -3419,8 +3399,7 @@ example:3D_FD_OptFlow_fromL2:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/OpticalFlow/3D_FD_OptFlow_fromL2.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_OptFlow_fromL2 ../Examples/OpticalFlow/3D_FD_OptFlow_fromL2.knowledge "../Examples/OpticalFlow/3D_FD_OptFlow_fromL2.exa2;../Examples/OpticalFlow/3D_FD_OptFlow_fromL2.exa3" "../Examples/OpticalFlow/3D_FD_OptFlow_fromL2.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_OptFlow_fromL2 ../Examples/OpticalFlow/3D_FD_OptFlow_fromL2.knowledge "../Examples/OpticalFlow/3D_FD_OptFlow_fromL2.exa2;../Examples/OpticalFlow/3D_FD_OptFlow_fromL2.exa3" "" 1 1 Platform/random.platform output
 
 example:3D_FD_OptFlow_fromL4_Vec:
     stage: example
@@ -3439,8 +3418,7 @@ example:3D_FD_OptFlow_fromL4_Vec:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/OpticalFlow/3D_FD_OptFlow_fromL4_Vec.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_OptFlow_fromL4_Vec ../Examples/OpticalFlow/3D_FD_OptFlow_fromL4_Vec.knowledge "../Examples/OpticalFlow/3D_FD_OptFlow_fromL4_Vec.exa4" "../Examples/OpticalFlow/3D_FD_OptFlow_fromL4_Vec.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_OptFlow_fromL4_Vec ../Examples/OpticalFlow/3D_FD_OptFlow_fromL4_Vec.knowledge "../Examples/OpticalFlow/3D_FD_OptFlow_fromL4_Vec.exa4" "" 1 1 Platform/random.platform output
 
 example:1D_FD_Poisson_fromL1:
     stage: example
@@ -3459,8 +3437,7 @@ example:1D_FD_Poisson_fromL1:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Poisson/1D_FD_Poisson_fromL1.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 1D_FD_Poisson_fromL1 ../Examples/Poisson/1D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/1D_FD_Poisson_fromL1.exa1" "../Examples/Poisson/1D_FD_Poisson_fromL1.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 1D_FD_Poisson_fromL1 ../Examples/Poisson/1D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/1D_FD_Poisson_fromL1.exa1" "" 1 1 Platform/random.platform output
 
 example:2D_FD_Poisson_fromL1:
     stage: example
@@ -3612,8 +3589,7 @@ example:3D_FD_Poisson_fromL1:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Poisson/3D_FD_Poisson_fromL1.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Poisson_fromL1 ../Examples/Poisson/3D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/3D_FD_Poisson_fromL1.exa1" "../Examples/Poisson/3D_FD_Poisson_fromL1.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Poisson_fromL1 ../Examples/Poisson/3D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/3D_FD_Poisson_fromL1.exa1" "" 1 1 Platform/random.platform output
 
 example:3D_FD_Poisson_fromL2:
     stage: example
@@ -3633,8 +3609,7 @@ example:3D_FD_Poisson_fromL2:
         - mpirun --version
         - cd Testing
         - mkdir -p lib/ && cp ../Examples/lib/solver_singleScalarEquation.exa3 lib/solver_singleScalarEquation.exa3
-        - touch ../Examples/Poisson/3D_FD_Poisson_fromL2.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Poisson_fromL2 ../Examples/Poisson/3D_FD_Poisson_fromL2.knowledge "../Examples/Poisson/3D_FD_Poisson_fromL2.exa2;../Examples/Poisson/3D_FD_Poisson_fromL2.exa3" "../Examples/Poisson/3D_FD_Poisson_fromL2.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Poisson_fromL2 ../Examples/Poisson/3D_FD_Poisson_fromL2.knowledge "../Examples/Poisson/3D_FD_Poisson_fromL2.exa2;../Examples/Poisson/3D_FD_Poisson_fromL2.exa3" "" 1 1 Platform/random.platform output
 
 example:3D_FD_Poisson_fromL4:
     stage: example
@@ -3653,8 +3628,7 @@ example:3D_FD_Poisson_fromL4:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Poisson/3D_FD_Poisson_fromL4.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Poisson_fromL4 ../Examples/Poisson/3D_FD_Poisson_fromL4.knowledge "../Examples/Poisson/3D_FD_Poisson_fromL4.exa4" "../Examples/Poisson/3D_FD_Poisson_fromL4.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Poisson_fromL4 ../Examples/Poisson/3D_FD_Poisson_fromL4.knowledge "../Examples/Poisson/3D_FD_Poisson_fromL4.exa4" "" 1 1 Platform/random.platform output
 
 example:3D_FV_Poisson_fromL2:
     stage: example
@@ -3674,8 +3648,7 @@ example:3D_FV_Poisson_fromL2:
         - mpirun --version
         - cd Testing
         - mkdir -p lib/ && cp ../Examples/lib/solver_singleScalarEquation.exa3 lib/solver_singleScalarEquation.exa3
-        - touch ../Examples/Poisson/3D_FV_Poisson_fromL2.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Poisson_fromL2 ../Examples/Poisson/3D_FV_Poisson_fromL2.knowledge "../Examples/Poisson/3D_FV_Poisson_fromL2.exa2;../Examples/Poisson/3D_FV_Poisson_fromL2.exa3" "../Examples/Poisson/3D_FV_Poisson_fromL2.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Poisson_fromL2 ../Examples/Poisson/3D_FV_Poisson_fromL2.knowledge "../Examples/Poisson/3D_FV_Poisson_fromL2.exa2;../Examples/Poisson/3D_FV_Poisson_fromL2.exa3" "" 1 1 Platform/random.platform output
 
 example:3D_FV_Poisson_fromL4:
     stage: example
@@ -3694,8 +3667,7 @@ example:3D_FV_Poisson_fromL4:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Poisson/3D_FV_Poisson_fromL4.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Poisson_fromL4 ../Examples/Poisson/3D_FV_Poisson_fromL4.knowledge "../Examples/Poisson/3D_FV_Poisson_fromL4.exa4" "../Examples/Poisson/3D_FV_Poisson_fromL4.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Poisson_fromL4 ../Examples/Poisson/3D_FV_Poisson_fromL4.knowledge "../Examples/Poisson/3D_FV_Poisson_fromL4.exa4" "" 1 1 Platform/random.platform output
 
 example:1D_FD_Stokes_fromL1:
     stage: example
@@ -3714,8 +3686,7 @@ example:1D_FD_Stokes_fromL1:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Stokes/1D_FD_Stokes_fromL1.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 1D_FD_Stokes_fromL1 ../Examples/Stokes/1D_FD_Stokes_fromL1.knowledge "../Examples/Stokes/1D_FD_Stokes_fromL1.exa1" "../Examples/Stokes/1D_FD_Stokes_fromL1.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 1D_FD_Stokes_fromL1 ../Examples/Stokes/1D_FD_Stokes_fromL1.knowledge "../Examples/Stokes/1D_FD_Stokes_fromL1.exa1" "" 1 1 Platform/random.platform output
 
 example:2D_FD_Stokes_fromL1:
     stage: example
@@ -3734,8 +3705,7 @@ example:2D_FD_Stokes_fromL1:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Stokes/2D_FD_Stokes_fromL1.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Stokes_fromL1 ../Examples/Stokes/2D_FD_Stokes_fromL1.knowledge "../Examples/Stokes/2D_FD_Stokes_fromL1.exa1" "../Examples/Stokes/2D_FD_Stokes_fromL1.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Stokes_fromL1 ../Examples/Stokes/2D_FD_Stokes_fromL1.knowledge "../Examples/Stokes/2D_FD_Stokes_fromL1.exa1" "" 1 1 Platform/random.platform output
 
 example:2D_FD_Stokes_fromL2:
     stage: example
@@ -3754,8 +3724,7 @@ example:2D_FD_Stokes_fromL2:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Stokes/2D_FD_Stokes_fromL2.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Stokes_fromL2 ../Examples/Stokes/2D_FD_Stokes_fromL2.knowledge "../Examples/Stokes/2D_FD_Stokes_fromL2.exa2;../Examples/Stokes/2D_FD_Stokes_fromL2.exa3;../Examples/Stokes/2D_FD_Stokes_fromL2.exa4" "../Examples/Stokes/2D_FD_Stokes_fromL2.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Stokes_fromL2 ../Examples/Stokes/2D_FD_Stokes_fromL2.knowledge "../Examples/Stokes/2D_FD_Stokes_fromL2.exa2;../Examples/Stokes/2D_FD_Stokes_fromL2.exa3;../Examples/Stokes/2D_FD_Stokes_fromL2.exa4" "" 1 1 Platform/random.platform output
 
 example:2D_FD_Stokes_fromL4:
     stage: example
@@ -3774,8 +3743,7 @@ example:2D_FD_Stokes_fromL4:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Stokes/2D_FD_Stokes_fromL4.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Stokes_fromL4 ../Examples/Stokes/2D_FD_Stokes_fromL4.knowledge "../Examples/Stokes/2D_FD_Stokes_fromL4.exa4" "../Examples/Stokes/2D_FD_Stokes_fromL4.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Stokes_fromL4 ../Examples/Stokes/2D_FD_Stokes_fromL4.knowledge "../Examples/Stokes/2D_FD_Stokes_fromL4.exa4" "" 1 1 Platform/random.platform output
 
 example:2D_FD_Stokes_Lisa_fromL2:
     stage: example
@@ -3794,8 +3762,7 @@ example:2D_FD_Stokes_Lisa_fromL2:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Stokes/2D_FD_Stokes_Lisa_fromL2.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Stokes_Lisa_fromL2 ../Examples/Stokes/2D_FD_Stokes_Lisa_fromL2.knowledge "../Examples/Stokes/2D_FD_Stokes_Lisa_fromL2.exa2;../Examples/Stokes/2D_FD_Stokes_Lisa_fromL2.exa3;../Examples/Stokes/2D_FD_Stokes_Lisa_fromL2.exa4" "../Examples/Stokes/2D_FD_Stokes_Lisa_fromL2.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Stokes_Lisa_fromL2 ../Examples/Stokes/2D_FD_Stokes_Lisa_fromL2.knowledge "../Examples/Stokes/2D_FD_Stokes_Lisa_fromL2.exa2;../Examples/Stokes/2D_FD_Stokes_Lisa_fromL2.exa3;../Examples/Stokes/2D_FD_Stokes_Lisa_fromL2.exa4" "" 1 1 Platform/random.platform output
 
 example:2D_FE_Stokes_fromL2:
     stage: example
@@ -3814,8 +3781,7 @@ example:2D_FE_Stokes_fromL2:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Stokes/2D_FE_Stokes_fromL2.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FE_Stokes_fromL2 ../Examples/Stokes/2D_FE_Stokes_fromL2.knowledge "../Examples/Stokes/2D_FE_Stokes_fromL2.exa2;../Examples/Stokes/2D_FE_Stokes_fromL2.exa3;../Examples/Stokes/2D_FE_Stokes_fromL2.exa4" "../Examples/Stokes/2D_FE_Stokes_fromL2.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FE_Stokes_fromL2 ../Examples/Stokes/2D_FE_Stokes_fromL2.knowledge "../Examples/Stokes/2D_FE_Stokes_fromL2.exa2;../Examples/Stokes/2D_FE_Stokes_fromL2.exa3;../Examples/Stokes/2D_FE_Stokes_fromL2.exa4" "" 1 1 Platform/random.platform output
 
 example:2D_FV_Stokes_fromL2:
     stage: example
@@ -3834,8 +3800,7 @@ example:2D_FV_Stokes_fromL2:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Stokes/2D_FV_Stokes_fromL2.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Stokes_fromL2 ../Examples/Stokes/2D_FV_Stokes_fromL2.knowledge "../Examples/Stokes/2D_FV_Stokes_fromL2.exa2;../Examples/Stokes/2D_FV_Stokes_fromL2.exa3;../Examples/Stokes/2D_FV_Stokes_fromL2.exa4" "../Examples/Stokes/2D_FV_Stokes_fromL2.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Stokes_fromL2 ../Examples/Stokes/2D_FV_Stokes_fromL2.knowledge "../Examples/Stokes/2D_FV_Stokes_fromL2.exa2;../Examples/Stokes/2D_FV_Stokes_fromL2.exa3;../Examples/Stokes/2D_FV_Stokes_fromL2.exa4" "" 1 1 Platform/random.platform output
 
 example:2D_FV_Stokes_fromL4:
     stage: example
@@ -3854,8 +3819,7 @@ example:2D_FV_Stokes_fromL4:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Stokes/2D_FV_Stokes_fromL4.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Stokes_fromL4 ../Examples/Stokes/2D_FV_Stokes_fromL4.knowledge "../Examples/Stokes/2D_FV_Stokes_fromL4.exa4" "../Examples/Stokes/2D_FV_Stokes_fromL4.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Stokes_fromL4 ../Examples/Stokes/2D_FV_Stokes_fromL4.knowledge "../Examples/Stokes/2D_FV_Stokes_fromL4.exa4" "" 1 1 Platform/random.platform output
 
 example:3D_FD_Stokes_fromL1:
     stage: example
@@ -3874,8 +3838,7 @@ example:3D_FD_Stokes_fromL1:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Stokes/3D_FD_Stokes_fromL1.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Stokes_fromL1 ../Examples/Stokes/3D_FD_Stokes_fromL1.knowledge "../Examples/Stokes/3D_FD_Stokes_fromL1.exa1" "../Examples/Stokes/3D_FD_Stokes_fromL1.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Stokes_fromL1 ../Examples/Stokes/3D_FD_Stokes_fromL1.knowledge "../Examples/Stokes/3D_FD_Stokes_fromL1.exa1" "" 1 1 Platform/random.platform output
 
 example:3D_FD_Stokes_fromL2:
     stage: example
@@ -3894,8 +3857,7 @@ example:3D_FD_Stokes_fromL2:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Stokes/3D_FD_Stokes_fromL2.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Stokes_fromL2 ../Examples/Stokes/3D_FD_Stokes_fromL2.knowledge "../Examples/Stokes/3D_FD_Stokes_fromL2.exa2;../Examples/Stokes/3D_FD_Stokes_fromL2.exa3;../Examples/Stokes/3D_FD_Stokes_fromL2.exa4" "../Examples/Stokes/3D_FD_Stokes_fromL2.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Stokes_fromL2 ../Examples/Stokes/3D_FD_Stokes_fromL2.knowledge "../Examples/Stokes/3D_FD_Stokes_fromL2.exa2;../Examples/Stokes/3D_FD_Stokes_fromL2.exa3;../Examples/Stokes/3D_FD_Stokes_fromL2.exa4" "" 1 1 Platform/random.platform output
 
 example:3D_FD_Stokes_fromL4:
     stage: example
@@ -3914,8 +3876,7 @@ example:3D_FD_Stokes_fromL4:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Stokes/3D_FD_Stokes_fromL4.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Stokes_fromL4 ../Examples/Stokes/3D_FD_Stokes_fromL4.knowledge "../Examples/Stokes/3D_FD_Stokes_fromL4.exa4" "../Examples/Stokes/3D_FD_Stokes_fromL4.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Stokes_fromL4 ../Examples/Stokes/3D_FD_Stokes_fromL4.knowledge "../Examples/Stokes/3D_FD_Stokes_fromL4.exa4" "" 1 1 Platform/random.platform output
 
 example:3D_FV_Stokes_fromL2:
     stage: example
@@ -3934,8 +3895,7 @@ example:3D_FV_Stokes_fromL2:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Stokes/3D_FV_Stokes_fromL2.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Stokes_fromL2 ../Examples/Stokes/3D_FV_Stokes_fromL2.knowledge "../Examples/Stokes/3D_FV_Stokes_fromL2.exa2;../Examples/Stokes/3D_FV_Stokes_fromL2.exa3;../Examples/Stokes/3D_FV_Stokes_fromL2.exa4" "../Examples/Stokes/3D_FV_Stokes_fromL2.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Stokes_fromL2 ../Examples/Stokes/3D_FV_Stokes_fromL2.knowledge "../Examples/Stokes/3D_FV_Stokes_fromL2.exa2;../Examples/Stokes/3D_FV_Stokes_fromL2.exa3;../Examples/Stokes/3D_FV_Stokes_fromL2.exa4" "" 1 1 Platform/random.platform output
 
 example:3D_FV_Stokes_fromL4:
     stage: example
@@ -3954,8 +3914,7 @@ example:3D_FV_Stokes_fromL4:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/Stokes/3D_FV_Stokes_fromL4.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Stokes_fromL4 ../Examples/Stokes/3D_FV_Stokes_fromL4.knowledge "../Examples/Stokes/3D_FV_Stokes_fromL4.exa4" "../Examples/Stokes/3D_FV_Stokes_fromL4.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Stokes_fromL4 ../Examples/Stokes/3D_FV_Stokes_fromL4.knowledge "../Examples/Stokes/3D_FV_Stokes_fromL4.exa4" "" 1 1 Platform/random.platform output
 
 example:2D_FV_SWE:
     stage: example
@@ -3974,5 +3933,4 @@ example:2D_FV_SWE:
         - python3 --version
         - mpirun --version
         - cd Testing
-        - touch ../Examples/SWE/2D_FV_SWE.results # TODO: temp empty file
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_SWE ../Examples/SWE/2D_FV_SWE.knowledge "../Examples/SWE/2D_FV_SWE.exa2;../Examples/SWE/2D_FV_SWE.exa3;../Examples/SWE/2D_FV_SWE.exa4" "../Examples/SWE/2D_FV_SWE.results" 1 1 Platform/random.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_SWE ../Examples/SWE/2D_FV_SWE.knowledge "../Examples/SWE/2D_FV_SWE.exa2;../Examples/SWE/2D_FV_SWE.exa3;../Examples/SWE/2D_FV_SWE.exa4" "" 1 1 Platform/random.platform output
