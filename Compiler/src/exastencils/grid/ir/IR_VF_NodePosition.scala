@@ -111,10 +111,10 @@ case class IR_VF_NodePositionPerDim(
     else if (Knowledge.grid_isAxisAligned)
       IR_FieldAccess(associatedField, 0, IR_GridUtil.projectIdx(index, dim))
     else {
-      var matIndex : Array[IR_Index] = Array()
-      matIndex :+= IR_ConstIndex(dim)
-      matIndex :+= IR_ConstIndex(0)
-      IR_FieldAccess.applySpecial(IR_VF_NodePositionAsVec.find(level).associatedField, 0, index, Some(matIndex))
+      var indices : Array[IR_Index] = Array()
+      indices :+= IR_ConstIndex(dim)
+      indices :+= IR_ConstIndex(0)
+      IR_FieldAccess.applySpecial(IR_VF_NodePositionAsVec.find(level).associatedField, 0, index, Some(IR_MatIndex(indices)))
     }
   }
 

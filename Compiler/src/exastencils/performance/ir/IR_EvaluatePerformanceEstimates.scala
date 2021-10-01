@@ -321,6 +321,8 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
       fieldAccesses.put(identifier, access match {
         case fAcc : IR_FieldAccess       => // determine dt dependent if component access or not
           if (fAcc.matIndex.isDefined) {
+            val matIdx = fAcc.matIndex.get
+
             // get number of elements accessed with matIndex
             def getActualRange(left : Option[IR_Expression], defaultLeft : Int, right : Option[IR_Expression], defaultRight : Int) : (IR_Expression, IR_Expression) =
               (left.getOrElse(IR_IntegerConstant(defaultLeft)), right.getOrElse(IR_IntegerConstant(defaultRight)))
@@ -328,15 +330,15 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
               IR_SimplifyExpression.evalIntegral(range._2 + IR_IntegerConstant(1) - range._1).toInt
             def singleElementRange = (IR_IntegerConstant(0), IR_IntegerConstant(0))
 
-            val numRowsAccessed = fAcc.matIndex.get(0) match {
+            val numRowsAccessed = matIdx.y match {
               case _ @ IR_RangeIndex(range) if fAcc.field.gridDatatype.isInstanceOf[IR_MatrixDatatype] =>
                 getActualRange(range(0).begin, 0, range(0).end, fAcc.field.gridDatatype.asInstanceOf[IR_MatrixDatatype].sizeM)
               case _                                                                                   =>
                 singleElementRange
             }
 
-            val numColsAccessed = if (fAcc.matIndex.get.length == 2) {
-              fAcc.matIndex.get(1) match {
+            val numColsAccessed = if (matIdx.x.isDefined) {
+              matIdx.x.get match {
                 case _ @ IR_RangeIndex(range) if fAcc.field.gridDatatype.isInstanceOf[IR_MatrixDatatype] =>
                   getActualRange(range(0).begin, 0, range(0).end, fAcc.field.gridDatatype.asInstanceOf[IR_MatrixDatatype].sizeN)
                 case _                                                                                   =>

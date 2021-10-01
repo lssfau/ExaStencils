@@ -30,15 +30,11 @@ import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.HelperNode
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
-import exastencils.domain.ir.IR_ReadLineFromFile
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.globals.ir.IR_GlobalCollection
-import exastencils.logger.Logger
 import exastencils.solver.ir.IR_MatrixSolveOps
 import exastencils.util.ir.IR_Print
-import exastencils.util.ir.IR_Read
-import exastencils.util.ir.IR_ReadStream
 
 /** Strategy: preparatory transformations to resolve matrices */
 object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
