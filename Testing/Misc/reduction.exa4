@@ -9,7 +9,7 @@ Field mat< global, CellMatrixWithComm, 0.0 >@all
 
 Globals {
     Val eps : Real = 0.0000001
-    Val maxVal  : Real = 10.
+    Val maxVal  : Real = 1000.
     Val matrixEntry : Real = 2.
 }
 
@@ -44,6 +44,18 @@ Function Application {
         print('Passed stage 1: Reduced matrix entry equals the number of reductions times the original value of the entry')
     } else {
         print('Failed stage 1: Reduced matrix entry redTarget2[0][0]=', redTarget2[0][0], ', expected=', numReds * matrixEntry)
+    }
+
+    loop over mat@finest with reduction (max: redTarget2[0][0]) {
+        if (i0 == 0) {
+            redTarget2[0][0] = maxVal
+        }
+    }
+
+    if ( fabs(redTarget2[0][0] - maxVal ) <= eps) {
+        print('Passed stage 2: redTarget2[0][0] equals maxVal')
+    } else {
+        print('Failed stage 2: redTarget=', redTarget2[0][0], ', maxVal=', maxVal)
     }
 
 	destroyGlobals (  )
