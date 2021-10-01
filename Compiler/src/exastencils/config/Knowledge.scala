@@ -589,7 +589,13 @@ object Knowledge {
   var experimental_resolveUnreqFragmentLoops : Boolean = false
 
   // eliminates conditions of the form IR_IfCondition(IR_IntegerConstant(_), _, _)
-  var experimental_emliminateIntConditions : Boolean = false
+  var experimental_eliminateIntConditions : Boolean = false
+
+  // eliminate loops with empty body
+  var experimental_eliminateEmptyLoops : Boolean = true
+
+  // eliminate if stmts with empty bodies
+  var experimental_eliminateEmptyConditions : Boolean = true
 
   var experimental_allowCommInFragLoops : Boolean = false
 

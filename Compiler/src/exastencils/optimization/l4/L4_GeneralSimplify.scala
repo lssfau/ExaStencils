@@ -124,6 +124,9 @@ object L4_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     case l @ L4_ForLoop(_, _, ListBuffer(L4_Scope(body)))                =>
       l.body = body; l // preserve ForLoopStatement instance to ensure all traits are still present
 
+    case L4_ForLoop(_, _, stmts) if Knowledge.experimental_eliminateEmptyLoops && (stmts.isEmpty || stmts.forall(_ == L4_NullStatement)) => L4_NullStatement
+    case loop : L4_LoopOverField if Knowledge.experimental_eliminateEmptyLoops & (loop.body.isEmpty || loop.body.forall(_ == L4_NullStatement))  => L4_NullStatement
+
     case L4_EqEq(L4_IntegerConstant(left), L4_IntegerConstant(right))         => L4_BooleanConstant(left == right)
     case L4_Neq(L4_IntegerConstant(left), L4_IntegerConstant(right))          => L4_BooleanConstant(left != right)
     case L4_Lower(L4_IntegerConstant(left), L4_IntegerConstant(right))        => L4_BooleanConstant(left < right)
@@ -154,6 +157,8 @@ object L4_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     case L4_OrOr(L4_BooleanConstant(false), expr : L4_Expression) => expr
     case L4_OrOr(expr : L4_Expression, L4_BooleanConstant(false)) => expr
 
+    case L4_IfCondition(_, tBranch, fBranch) if Knowledge.experimental_eliminateEmptyConditions && tBranch.isEmpty && fBranch.isEmpty => L4_NullStatement
+
     case L4_IfCondition(L4_BooleanConstant(cond), tBranch, fBranch) =>
       if (cond) {
         if (tBranch.isEmpty) L4_NullStatement else tBranch
@@ -161,7 +166,7 @@ object L4_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
         if (fBranch.isEmpty) L4_NullStatement else fBranch
       }
 
-    case L4_IfCondition(L4_IntegerConstant(cond), tBranch, fBranch) if Knowledge.experimental_emliminateIntConditions =>
+    case L4_IfCondition(L4_IntegerConstant(cond), tBranch, fBranch) if Knowledge.experimental_eliminateIntConditions =>
       if (cond != 0) {
         if (tBranch.isEmpty) L4_NullStatement else tBranch
       } else {

@@ -139,6 +139,8 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     case l @ IR_LoopOverDimensions(_, _, ListBuffer(IR_Scope(body)), _, _, _, _) =>
       l.body = body; l // preserve original node instance to ensure all traits and annotations are still present
 
+    case IR_ForLoop(_, _, _, stmts, _) if Knowledge.experimental_eliminateEmptyLoops && (stmts.isEmpty || stmts.forall(_ == IR_NullStatement)) => IR_NullStatement
+
     // resolve compound assignments if lhs also occurs in rhs (to merge both)
     case ass @ IR_Assignment(dst, src, op) if List("+=", "-=", "*=", "/=").contains(op)
       && StateManager.findFirst({ n : IR_Expression => n == dst }, src).isDefined =>
@@ -182,6 +184,8 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     case IR_OrOr(IR_BooleanConstant(false), expr : IR_Expression) => expr
     case IR_OrOr(expr : IR_Expression, IR_BooleanConstant(false)) => expr
 
+    case IR_IfCondition(_, tBranch, fBranch) if Knowledge.experimental_eliminateEmptyConditions && tBranch.isEmpty && fBranch.isEmpty => IR_NullStatement
+
     case IR_IfCondition(IR_BooleanConstant(cond), tBranch, fBranch) =>
       if (cond) {
         if (tBranch.isEmpty) IR_NullStatement else tBranch
@@ -189,7 +193,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
         if (fBranch.isEmpty) IR_NullStatement else fBranch
       }
 
-    case IR_IfCondition(IR_IntegerConstant(cond), tBranch, fBranch) if Knowledge.experimental_emliminateIntConditions =>
+    case IR_IfCondition(IR_IntegerConstant(cond), tBranch, fBranch) if Knowledge.experimental_eliminateIntConditions =>
       if (cond != 0) {
         if (tBranch.isEmpty) IR_NullStatement else tBranch
       } else {
