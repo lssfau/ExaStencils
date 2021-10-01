@@ -33,20 +33,18 @@ case class L4_FutureFieldAccess(
     var level : Int,
     var slot : L4_SlotSpecification,
     var offset : Option[L4_ConstIndex] = None,
-    var arrayIndex : Option[Int] = None,
     var frozen : Boolean = false,
-    var matIndex : Option[Array[L4_Index]] = None
+    var matIndex : Option[L4_MatIndex] = None
 ) extends L4_FutureKnowledgeAccess with L4_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
     if (frozen) out << "frozen ( "
     out << name << slot << '@' << level
     if (offset.isDefined) out << '@' << offset
-    if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
-    if (frozen) out << " )"
     if(matIndex.isDefined) {
-      for(midx <- matIndex) out << midx
+      out << matIndex.get
     }
+    if (frozen) out << " )"
   }
 
   override def progress = Logger.error(s"Trying to progress future field access to $name on level $level")
@@ -73,7 +71,7 @@ object L4_PrepareFieldAccesses extends DefaultStrategy("Prepare accesses to fiel
       if (!L4_FieldCollection.existsDecl(access.name, lvl))
         Logger.warn(s"Trying to access ${ access.name } on invalid level $lvl")
 
-      L4_FutureFieldAccess(access.name, lvl, access.slot.getOrElse(L4_ActiveSlot), access.offset, access.arrayIndex, false, access.matIndex)
+      L4_FutureFieldAccess(access.name, lvl, access.slot.getOrElse(L4_ActiveSlot), access.offset, false, access.matIndex)
   })
 }
 

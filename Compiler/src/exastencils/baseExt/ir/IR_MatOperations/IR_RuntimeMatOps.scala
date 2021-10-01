@@ -61,12 +61,12 @@ object IR_GenerateBasicMatrixOperations {
     var stmts = ListBuffer[IR_Statement]()
     src match {
       case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) =>
-        stmts += IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression](va,(va + destSize._1 * destSize._2), (dest)))
-      case x @ IR_MatrixExpression(_, _,_, _)                      =>
+        stmts += IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression](va, (va + destSize._1 * destSize._2), (dest)))
+      case x @ IR_MatrixExpression(_, _, _, _)                   =>
         var tmpAccess = IR_VariableAccess("copyTmp_" + tmpCounter, src.datatype)
         tmpCounter += 1
         stmts += IR_VariableDeclaration(tmpAccess, src)
-        stmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression]((tmpAccess),(tmpAccess +  destSize._1 * destSize._2), dest)))
+        stmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression]((tmpAccess), (tmpAccess + destSize._1 * destSize._2), dest)))
       case _                                                     => Logger.error("unexpected datatype: " + src + ", expected matrix expression or access to matrix variable")
     }
   }
@@ -82,9 +82,9 @@ object IR_GenerateBasicMatrixOperations {
           }
           stmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference.printf, IR_StringConstant("\\n")))
         }
-      case va @ IR_VariableAccess(_,  _) =>
+      case va @ IR_VariableAccess(_, _)                          =>
         stmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference.printf, ListBuffer[IR_Expression](IR_StringConstant("%e "), va)))
-  }
+    }
     stmts
   }
 
@@ -119,7 +119,7 @@ object IR_GenerateBasicMatrixOperations {
           IR_ForLoop(IR_VariableDeclaration(_j, 0), IR_Lower(_j, sizeNLeft), IR_PreIncrement(_j), ListBuffer[IR_Statement](
             IR_IfCondition(IR_Greater(IR_FunctionCall(IR_ExternalFunctionReference.fabs, IR_Subtraction(IR_FunctionCall(IR_ExternalFunctionReference.fabs, IR_HighDimAccess(left, IR_ExpressionIndex(_i, _j))), IR_FunctionCall(IR_ExternalFunctionReference.fabs, IR_HighDimAccess(right, IR_ExpressionIndex(_i, _j))))), precision), ListBuffer[IR_Statement](
               IR_Print(outstream, ListBuffer[IR_Expression](IR_StringConstant("[Test] comparison failed at "), _i, IR_StringConstant(" "), _j, IR_StringConstant("\\n"), IR_HighDimAccess(left, IR_ExpressionIndex(_i, _j)), IR_StringConstant(" vs "), IR_HighDimAccess(right, IR_ExpressionIndex(_i, _j)), IR_StringConstant("\\n"))),
-              if(returnStmt) IR_Return(IR_IntegerConstant(-1)) else IR_NullStatement
+              if (returnStmt) IR_Return(IR_IntegerConstant(-1)) else IR_NullStatement
             ), ListBuffer[IR_Statement]())
           ))
         ))
@@ -127,7 +127,7 @@ object IR_GenerateBasicMatrixOperations {
         func.body += IR_IfCondition(IR_Greater(IR_FunctionCall(IR_ExternalFunctionReference.fabs, IR_Subtraction(left, right)), precision), ListBuffer[IR_Statement](
           IR_Print(outstream, ListBuffer[IR_Expression](IR_StringConstant("[Test] comparison failed: "), left, IR_StringConstant(" vs "), right, IR_StringConstant("\\n")))
         ))
-      case _ => Logger.error(s"unexpected combination: ${left.datatype}, ${right.datatype}")
+      case _                                                                                                                                                                    => Logger.error(s"unexpected combination: ${ left.datatype }, ${ right.datatype }")
     }
     func
   }
@@ -201,7 +201,7 @@ object IR_GenerateBasicMatrixOperations {
             ))
           ))
         ))
-      case _ => Logger.error("unexprected combination")
+      case _                                                    => Logger.error("unexprected combination")
     }
     func
   }
@@ -284,7 +284,7 @@ object IR_GenerateBasicMatrixOperations {
             IR_Assignment(IR_HighDimAccess(dest, IR_ExpressionIndex(i - offset_r, j - offset_c)), IR_HighDimAccess(source, IR_ExpressionIndex(i, j)))
           ))
         ))
-      case x @ IR_MatrixExpression(_, _, _,_)                      =>
+      case x @ IR_MatrixExpression(_, _, _, _)                   =>
         var decl = IR_VariableDeclaration(x.datatype, "copyTmp_" + tmpCounter, x)
         tmpCounter += 1
         stmts.body += decl
@@ -406,14 +406,15 @@ object IR_GenerateBasicMatrixOperations {
     var cout = IR_VariableAccess("std::cout", IR_StringDatatype)
     stmts += IR_VariableDeclaration(pivAcc, pivots)
     stmts += IR_ForLoop(IR_VariableDeclaration(i, 0), IR_Lower(i, pivots.columns), IR_PreIncrement(i), ListBuffer[IR_Statement](
-      IR_IfCondition(IR_Lower(IR_HighDimAccess(pivAcc, IR_ExpressionIndex(0,i)), Knowledge.experimental_CTPivotTolerance),ListBuffer[IR_Statement](IR_Print(cout,ListBuffer[IR_Expression](IR_StringConstant("Compiletime inversion may have become unstable, switch to runtime inversion!"))), IR_Return(-1)))
+      IR_IfCondition(IR_Lower(IR_HighDimAccess(pivAcc, IR_ExpressionIndex(0, i)), Knowledge.experimental_CTPivotTolerance), ListBuffer[IR_Statement](IR_Print(cout, ListBuffer[IR_Expression](IR_StringConstant("Compiletime inversion may have become unstable, switch to runtime inversion!"))), IR_Return(-1)))
     ))
-   stmts
+    stmts
   }
 }
 
 object IR_GenerateRuntimeInversion {
   val pointerArithmetic = "pointerArithmetic"
+  var schurInversionCounter = 0
 
   // generate code for direct inversion of small matrices
   def smallMatrixInversionAtSubMatrix(in : IR_Access, blocksize : Int, offsetRows : IR_Expression, offsetCols : IR_Expression, out : IR_Access) : IR_Scope = {
@@ -529,11 +530,11 @@ object IR_GenerateRuntimeInversion {
         IR_Assignment(IR_ArrayAccess(P, i), IR_ArrayAccess(P, imax)),
         IR_Assignment(IR_ArrayAccess(P, imax), tmp_idx),
         //IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::memcpy"), ListBuffer[IR_Expression](IR_AddressOf(IR_ArrayAccess(tmp_row, 0)), IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(i + offset_r, 0 + offset_c))), blocksize_asInt * IR_SizeOf(baseType)))),
-        IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression](IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(i + offset_r, 0 + offset_c))),IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(i + offset_r, 0 + offset_c))) + blocksize_asInt, tmp_row)),
+        IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression](IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(i + offset_r, 0 + offset_c))), IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(i + offset_r, 0 + offset_c))) + blocksize_asInt, tmp_row)),
         //IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::memcpy"), ListBuffer[IR_Expression](IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(i + offset_r, 0 + offset_c))), IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(imax + offset_r, 0 + offset_c))), blocksize_asInt * IR_SizeOf(baseType)))),
-        IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression](IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(imax + offset_r, 0 + offset_c))),IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(imax + offset_r, 0 + offset_c))) + blocksize_asInt, IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(i + offset_r, 0 + offset_c))))),
+        IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression](IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(imax + offset_r, 0 + offset_c))), IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(imax + offset_r, 0 + offset_c))) + blocksize_asInt, IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(i + offset_r, 0 + offset_c))))),
         //IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::memcpy"), ListBuffer[IR_Expression](IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(imax + offset_r, 0 + offset_c))), IR_AddressOf(IR_ArrayAccess(tmp_row, 0)), blocksize_asInt * IR_SizeOf(baseType)))),
-        IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression](IR_AddressOf(IR_ArrayAccess(tmp_row, 0)),IR_AddressOf(IR_ArrayAccess(tmp_row, 0)) + blocksize_asInt,IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(imax + offset_r, 0 + offset_c))))),
+        IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression](IR_AddressOf(IR_ArrayAccess(tmp_row, 0)), IR_AddressOf(IR_ArrayAccess(tmp_row, 0)) + blocksize_asInt, IR_AddressOf(IR_HighDimAccess(in, IR_ExpressionIndex(imax + offset_r, 0 + offset_c))))),
 
         IR_PostIncrement(IR_ArrayAccess(P, blocksize_asInt))
       )),
@@ -589,7 +590,7 @@ object IR_GenerateRuntimeInversion {
       func.body += IR_VariableDeclaration(inCopy)
 
       // addition must not be resolved in compiler
-      val in_end = IR_Addition(in, N*N)
+      val in_end = IR_Addition(in, N * N)
       in_end.annotate(pointerArithmetic)
       func.body += IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression]((in), in_end, inCopy))
 
@@ -639,29 +640,29 @@ object IR_GenerateRuntimeInversion {
              with M of size (n + m) x (n + m) and S = D - C * A_inv * B
  */
 
-  // schur complement inversion generated inlined in scope with stack memory for helper arrayss
+  // schur complement inversion generated inlined in scope with stack memory for helper arrays
   def schurInlined(in : IR_Access, blockSize : Int, structureA : String, blockSizeA : Int, out : IR_Access) : IR_Scope = {
     var debug = false
     var func = IR_Scope(Nil)
     var inDt = in.datatype.asInstanceOf[IR_MatrixDatatype]
     var baseType = inDt.resolveBaseDatatype
-    var n = IR_VariableAccess("n", IR_IntegerDatatype)
-    var m = IR_VariableAccess("m", IR_IntegerDatatype)
+    var n = IR_VariableAccess(s"SInv_${ schurInversionCounter }_n", IR_IntegerDatatype)
+    var m = IR_VariableAccess(s"SInv_${ schurInversionCounter }_m", IR_IntegerDatatype)
     var n_asInt = blockSize
     var m_asInt = inDt.sizeM - blockSize
-    var A = IR_VariableAccess("A", IR_MatrixDatatype(baseType, n_asInt, n_asInt))
-    var A_inv = IR_VariableAccess("A_inv", IR_MatrixDatatype(baseType, n_asInt, n_asInt))
-    var B = IR_VariableAccess("B", IR_MatrixDatatype(baseType, n_asInt, m_asInt))
-    var C = IR_VariableAccess("C", IR_MatrixDatatype(baseType, m_asInt, n_asInt))
-    var D = IR_VariableAccess("D", IR_MatrixDatatype(baseType, m_asInt, m_asInt))
-    var S = IR_VariableAccess("S", IR_MatrixDatatype(baseType, m_asInt, m_asInt))
-    var S_inv = IR_VariableAccess("S_inv", IR_MatrixDatatype(baseType, m_asInt, m_asInt))
-    var CA_inv = IR_VariableAccess("CA_inv", IR_MatrixDatatype(baseType, m_asInt, n_asInt))
-    var CA_invB = IR_VariableAccess("CA_invB", IR_MatrixDatatype(baseType, m_asInt, m_asInt))
-    var A_invB = IR_VariableAccess("A_invB", IR_MatrixDatatype(baseType, n_asInt, m_asInt))
-    var A_invBS_inv = IR_VariableAccess("A_invBS_inv", IR_MatrixDatatype(baseType, n_asInt, m_asInt))
-    var S_invCA_inv = IR_VariableAccess("S_invCA_inv", IR_MatrixDatatype(baseType, m_asInt, n_asInt))
-    var A_invBS_invCA_inv = IR_VariableAccess("A_invBS_invCA_inv", IR_MatrixDatatype(baseType, n_asInt, n_asInt))
+    var A = IR_VariableAccess(s"SInv_${ schurInversionCounter }_A", IR_MatrixDatatype(baseType, n_asInt, n_asInt))
+    var A_inv = IR_VariableAccess(s"SInv_${ schurInversionCounter }_A_inv", IR_MatrixDatatype(baseType, n_asInt, n_asInt))
+    var B = IR_VariableAccess(s"SInv_${ schurInversionCounter }_B", IR_MatrixDatatype(baseType, n_asInt, m_asInt))
+    var C = IR_VariableAccess(s"SInv_${ schurInversionCounter }_C", IR_MatrixDatatype(baseType, m_asInt, n_asInt))
+    var D = IR_VariableAccess(s"SInv_${ schurInversionCounter }_D", IR_MatrixDatatype(baseType, m_asInt, m_asInt))
+    var S = IR_VariableAccess(s"SInv_${ schurInversionCounter }_S", IR_MatrixDatatype(baseType, m_asInt, m_asInt))
+    var S_inv = IR_VariableAccess(s"SInv_${ schurInversionCounter }_S_inv", IR_MatrixDatatype(baseType, m_asInt, m_asInt))
+    var CA_inv = IR_VariableAccess(s"SInv_${ schurInversionCounter }_CA_inv", IR_MatrixDatatype(baseType, m_asInt, n_asInt))
+    var CA_invB = IR_VariableAccess(s"SInv_${ schurInversionCounter }_CA_invB", IR_MatrixDatatype(baseType, m_asInt, m_asInt))
+    var A_invB = IR_VariableAccess(s"SInv_${ schurInversionCounter }_A_invB", IR_MatrixDatatype(baseType, n_asInt, m_asInt))
+    var A_invBS_inv = IR_VariableAccess(s"SInv_${ schurInversionCounter }_A_invBS_inv", IR_MatrixDatatype(baseType, n_asInt, m_asInt))
+    var S_invCA_inv = IR_VariableAccess(s"SInv_${ schurInversionCounter }_S_invCA_inv", IR_MatrixDatatype(baseType, m_asInt, n_asInt))
+    var A_invBS_invCA_inv = IR_VariableAccess(s"SInv_${ schurInversionCounter }_A_invBS_invCA_inv", IR_MatrixDatatype(baseType, n_asInt, n_asInt))
 
     func.body += IR_VariableDeclaration(n, blockSize)
     func.body += IR_VariableDeclaration(m, inDt.sizeM - blockSize)
@@ -674,7 +675,7 @@ object IR_GenerateRuntimeInversion {
     func.body += IR_VariableDeclaration(A_inv)
     if (structureA == "blockdiagonal")
       func.body += IR_GenerateRuntimeInversion.blockdiagonalInlined(A, blockSizeA, A_inv)
-    else if (structureA == "biagonal")
+    else if (structureA == "diagonal")
       func.body += IR_GenerateRuntimeInversion.diagonalInlined(A, A_inv)
     else
       func.body += IR_GenerateRuntimeInversion.localLUPINV(A, n_asInt, 0, 0, A_inv)
@@ -739,7 +740,7 @@ object IR_GenerateRuntimeInversion {
 
     if (debug)
       func.body ++= IR_GenerateBasicMatrixOperations.printMatrix(out)
-
+    schurInversionCounter = schurInversionCounter + 1
     func
   }
 
@@ -760,6 +761,7 @@ object IR_GenerateRuntimeInversion {
       }
       stmts
     }
+
     def mkConstant(dt : IR_Datatype, v : Double) = dt match {
       case IR_RealDatatype    => IR_RealConstant(v)
       case IR_IntegerDatatype => IR_IntegerConstant(v.toInt)
@@ -771,7 +773,7 @@ object IR_GenerateRuntimeInversion {
     val N = inDt.sizeM
     val myType = inDt.resolveBaseDatatype
     val func = IR_Scope(Nil)
-    if(debug) {
+    if (debug) {
       func.body ++= printMatrix(in)
     }
     val myL = IR_VariableAccess("_L", IR_MatrixDatatype(myType, N, N))
@@ -857,33 +859,29 @@ object IR_GenerateRuntimeInversion {
     if (insize != outsize)
       Logger.error("matrix sizes of in and out do not match: " + insize + " vs " + outsize)
 
-    if(Knowledge.experimental_matrixDebugConfig)
+    if (Knowledge.experimental_matrixDebugConfig)
       Logger.warn("inverting at runtime with shape=" + matrixShape)
 
     matrixShape match {
       case "filled"        =>
-
         var stmts = ListBuffer[IR_Statement]()
-
         val N = insize._1
         if (insize._1 < 4) {
           stmts ++= smallMatrixInversionAtSubMatrix(in, N, 0, 0, out).body
         } else {
-
-
-          stmts ++= localLUPINV(in, N, 0,0, out ).body
-          //stmts += runtimeInverse(in,out)
+          stmts ++= localLUPINV(in, N, 0, 0, out).body
+          //stmts += runtimeInverse(in.asInstanceOf[IR_VariableAccess],out.asInstanceOf[IR_VariableAccess])
         }
         IR_Scope(stmts)
       case "diagonal"      => diagonalInlined(in, out)
       case "blockdiagonal" =>
         val blocksize : Int = msi.size("block")
-         blockdiagonalInlined(in, blocksize, out)
+        blockdiagonalInlined(in, blocksize, out)
       case "schur"         =>
         val blocksize : Int = msi.size("block")
         val matrixStructureA : String = msi.shape("A")
-        val blocksizeA : Int = if(matrixStructureA == "blockdiagonal") msi.size("Ablock") else -1
-          schurInlined(in, blocksize, matrixStructureA, blocksizeA, out)
+        val blocksizeA : Int = if (matrixStructureA == "blockdiagonal") msi.size("Ablock") else -1
+        schurInlined(in, blocksize, matrixStructureA, blocksizeA, out)
       case _               => Logger.error("runtime inversion: unknown runtimeInverse resolve: " + matrixShape)
     }
   }
@@ -943,8 +941,6 @@ object IR_GenerateRuntimeInversion {
     }
     IR_Scope(newstmts)
   }
-
-
 
   // generate code for direct inversion of small matrices
   def smallMatrixInversionAsFunction() : IR_PlainFunction = {

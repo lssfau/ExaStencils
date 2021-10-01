@@ -90,7 +90,7 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
     body += IR_WhileLoop(
       IR_FunctionCall(IR_ReadLineFromFile.name, file, iss),
       ListBuffer[IR_Statement](
-        IR_ReadStream(iss, ListBuffer(stationX, stationY)),
+        IR_Read(iss, stationX, stationY),
         IR_Assignment(IR_IV_Stations(nStations, 0), stationX),
         IR_Assignment(IR_IV_Stations(nStations, 1), stationY),
         IR_PreIncrement(nStations)

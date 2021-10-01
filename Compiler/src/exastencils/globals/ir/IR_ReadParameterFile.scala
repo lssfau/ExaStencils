@@ -28,7 +28,7 @@ import exastencils.datastructures._
 import exastencils.domain.ir.IR_ReadLineFromFile
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
-import exastencils.util.ir.IR_ReadStream
+import exastencils.util.ir.IR_Read
 
 /// IR_ReadParameterFile
 
@@ -43,7 +43,7 @@ case class IR_ReadParameterFile() extends IR_FuturePlainFunction {
 
     //val buf = IR_VariableAccess("buf", v.datatype)
     //body += IR_VariableDeclaration(buf)
-    body += IR_ReadStream(issVal, ListBuffer(IR_VariableAccess(v)))
+    body += IR_Read(issVal, IR_VariableAccess(v))
     //body += IR_Assignment(IR_VariableAccess(v), buf)
     body += IR_Continue()
   }
@@ -87,7 +87,7 @@ case class IR_ReadParameterFile() extends IR_FuturePlainFunction {
     body += IR_WhileLoop(
       IR_FunctionCall(IR_ReadLineFromFile.name, file, iss),
       ListBuffer[IR_Statement](
-        IR_ReadStream(iss, ListBuffer(paramName, paramVal)),
+        IR_Read(iss, paramName, paramVal),
         IR_ObjectInstantiation(issVal, paramVal)
       ) ++ globalParams.map(v => IR_IfCondition(IR_EqEq(paramName, IR_StringConstant(v.name)), overwriteParams(v)))
     )

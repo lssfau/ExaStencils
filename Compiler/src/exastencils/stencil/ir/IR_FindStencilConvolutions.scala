@@ -23,6 +23,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FieldIteratorAccess
+import exastencils.baseExt.ir.{IR_FieldIteratorAccess, IR_MatrixAccess, IR_MatrixDatatype}
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
