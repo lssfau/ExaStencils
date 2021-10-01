@@ -3101,7 +3101,246 @@ example:2D_FD_LinearElasticity_fromL2:
         - touch ../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.results # TODO: temp empty file
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_LinearElasticity_fromL2 ../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.knowledge "../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa2;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa3;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa4" "../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.results" 1 1 Platform/random.platform output
 
-# TODO: adapt Navier Stokes examples, e.g. turn off CImg/Vtk visualization, decrease number of time steps, etc.
+example:2D_FV_NavierStokes_localNewton:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_localNewton ../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa4" "../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.results" 1 1 Platform/random.platform output
+
+example:2D_FV_NavierStokes_localPicard:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_localPicard ../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.exa4" "../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.results" 1 1 Platform/random.platform output
+
+example:2D_FV_NavierStokes_Newton:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/NavierStokes/2D_FV_NavierStokes_Newton.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_Newton ../Examples/NavierStokes/2D_FV_NavierStokes_Newton.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_Newton.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_Newton.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_Newton.exa4" "../Examples/NavierStokes/2D_FV_NavierStokes_Newton.results" 1 1 Platform/random.platform output
+
+example:2D_FV_NavierStokes_Picard:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/NavierStokes/2D_FV_NavierStokes_Picard.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_Picard ../Examples/NavierStokes/2D_FV_NavierStokes_Picard.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa4" "../Examples/NavierStokes/2D_FV_NavierStokes_Picard.results" 1 1 Platform/random.platform output
+
+example:2D_FV_NonNewtonian_Newton:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NonNewtonian_Newton ../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.knowledge "../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa2;../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa3;../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa4" "../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.results" 1 1 Platform/random.platform output
+
+example:2D_FV_NonNewtonian_Picard:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NonNewtonian_Picard ../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.knowledge "../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa2;../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa3;../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa4" "../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.results" 1 1 Platform/random.platform output
+
+example:3D_FV_NavierStokes_localNewton:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_localNewton ../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa4" "../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.results" 1 1 Platform/random.platform output
+
+example:3D_FV_NavierStokes_localPicard:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_localPicard ../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.exa4" "../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.results" 1 1 Platform/random.platform output
+
+example:3D_FV_NavierStokes_Newton:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/NavierStokes/3D_FV_NavierStokes_Newton.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_Newton ../Examples/NavierStokes/3D_FV_NavierStokes_Newton.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_Newton.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_Newton.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_Newton.exa4" "../Examples/NavierStokes/3D_FV_NavierStokes_Newton.results" 1 1 Platform/random.platform output
+
+example:3D_FV_NavierStokes_Picard:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/NavierStokes/3D_FV_NavierStokes_Picard.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_Picard ../Examples/NavierStokes/3D_FV_NavierStokes_Picard.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa4" "../Examples/NavierStokes/3D_FV_NavierStokes_Picard.results" 1 1 Platform/random.platform output
+
+example:3D_FV_NonNewtonian_Newton:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NonNewtonian_Newton ../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.knowledge "../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa2;../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa3;../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa4" "../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.results" 1 1 Platform/random.platform output
+
+example:3D_FV_NonNewtonian_Picard:
+    stage: example
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - touch ../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.results # TODO: temp empty file
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NonNewtonian_Picard ../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.knowledge "../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.exa2;../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.exa3;../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.exa4" "../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.results" 1 1 Platform/random.platform output
+
 
 example:2D_FD_OptFlow_fromL2:
     stage: example
