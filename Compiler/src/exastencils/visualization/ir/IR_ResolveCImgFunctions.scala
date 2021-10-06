@@ -37,12 +37,16 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
         IR_NullStatement
       } else {
         val field = args.head.asInstanceOf[IR_FieldAccess]
-        val filename = args(1).asInstanceOf[IR_StringConstant].value
+        val filename = args(1)
 
         val stmts = ListBuffer[IR_Statement]()
 
         //stmts += IR_FunctionCall(IR_UserFunctionReference("cimg_library::CImg< double > imageIn")
-        stmts += IR_Native("cimg_library::CImg< double > imageIn ( \"" + filename + "\" )")
+        filename match {
+          case s : IR_StringConstant                                      => stmts += IR_Native("cimg_library::CImg< double > imageIn ( \"" + s.value + "\" )")
+          case va : IR_VariableAccess if va.datatype == IR_StringDatatype => stmts += IR_Native("cimg_library::CImg< double > imageIn ( " + va.name + ".c_str() )")
+          case _                                                          => Logger.error("Image name must either be a string variable or a string literal")
+        }
         // flip image for correct representation
         stmts += IR_MemberFunctionCall("imageIn", "mirror", IR_Native("'y'"))
 
