@@ -103,19 +103,22 @@ object MPI_AddReductions extends DefaultStrategy("Add mpi reductions") {
       stmts += loop
       if (!reduction.skipMpi) {
         val targetDt = reduction.target.datatype
-        val dt = if (targetDt.isInstanceOf[IR_MatrixDatatype]) {
-          reduction.target match {
-            case _ : IR_ArrayAccess =>
-              // (resolved) matrix element access: use base datatype
-              targetDt.resolveBaseDatatype
-            case acc =>
-              Logger.warn("Reduction target is of type IR_MatrixDatatype but something other than a single matrix element is targeted: " + acc)
-              targetDt
-          }
-        } else {
-          targetDt
+        val (acc, dt, count) = targetDt match {
+          case dt : IR_MatrixDatatype =>
+            reduction.target match {
+              case acc : IR_VariableAccess =>
+                // matrix variable access
+                (IR_ArrayAccess(acc, 0), targetDt.resolveBaseDatatype, dt.sizeM * dt.sizeN)
+              case acc : IR_ArrayAccess    =>
+                // (resolved) matrix element access: use base datatype
+                (acc, targetDt.resolveBaseDatatype, 1)
+              case acc                     =>
+                (acc, targetDt, 1)
+            }
+          case _                            =>
+            (reduction.target, targetDt, 1)
         }
-        stmts += MPI_AllReduce(IR_AddressOf(reduction.target), dt, 1, reduction.op)
+        stmts += MPI_AllReduce(IR_AddressOf(acc), dt, count, reduction.op)
       }
       stmts
   }, false) // switch off recursion due to wrapping mechanism

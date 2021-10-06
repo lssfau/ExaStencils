@@ -35,12 +35,18 @@ case class L4_Reduction(var op : String, var target : L4_Access, targetType : L4
   // FIXME: IR_RealDatatype
   override def progress = {
     val targetInfo : (IR_Expression, String) = target match {
-      case _ : L4_UnresolvedAccess => Logger.error("Performing reduction on unresolved access.")
-      case _ : L4_ComplexAccess => Logger.error("Reductions for complex accesses are currently not implemented.")
-      case L4_MatrixAccess(_, _ : L4_RangeIndex, _) | L4_MatrixAccess(_, _, Some(_ : L4_RangeIndex)) | L4_MatrixAccess(_, _, None) => Logger.error("Reductions for matrix slices are not supported.")
-      case vAcc : L4_PlainVariableAccess => (vAcc.progress, vAcc.name)
-      case vAcc : L4_LeveledVariableAccess => (vAcc.progress, vAcc.name)
-      case mAcc : L4_MatrixAccess => (mAcc.progress, mAcc.name + s"_${mAcc.idxy}_${mAcc.idxx.get}")
+      // error cases
+      case L4_MatrixAccess(_, _ : L4_RangeIndex | _ : L4_Range, _) |
+           L4_MatrixAccess(_, _, Some(_ : L4_RangeIndex | _ : L4_Range)) |
+           L4_MatrixAccess(_, _, None) => Logger.error("Reductions for matrix slices are not supported.")
+      case _ : L4_UnresolvedAccess     => Logger.error("Performing reduction on unresolved access.")
+      case _ : L4_ComplexAccess        => Logger.error("Reductions for complex accesses are currently not implemented.")
+
+      // special case: matrix access
+      case mAcc : L4_MatrixAccess      => (mAcc.progress, mAcc.name + s"_${ mAcc.idxy }_${ mAcc.idxx.get }")
+
+      // general case for variable accesses, etc.
+      case acc : L4_Access => (acc.progress, acc.name)
     }
 
     ProgressLocation(IR_Reduction(op, targetInfo._1, targetInfo._2))
