@@ -9,7 +9,8 @@ Field mat< global, CellMatrixWithComm, 0.0 >@all
 
 Globals {
     Val eps : Real = 0.0000001
-    Val maxVal  : Real = 1000.
+    Val maxVal : Real = 1000.
+    Val minVal : Real = 0.123
     Val matrixEntry : Real = 2.
 }
 
@@ -56,6 +57,25 @@ Function Application {
         print('Passed stage 2: redTarget2[0][0] equals maxVal')
     } else {
         print('Failed stage 2: redTarget=', redTarget2[0][0], ', maxVal=', maxVal)
+    }
+
+    Var redTarget3 : Matrix<Real, 5, 1> = {{maxVal}, {minVal}, {0}, {0}, {0}}
+
+    loop over mat@finest with reduction (+: redTarget3) {
+        if (sqrt(4) != 2) {
+            print('dummy line')
+        }
+    }
+
+    if (fabs(redTarget3[0][0] - numReds * maxVal <= eps) &&
+        fabs(redTarget3[1][0] - numReds * minVal <= eps) &&
+        fabs(redTarget3[2][0]) <= eps &&
+        fabs(redTarget3[3][0]) <= eps &&
+        fabs(redTarget3[4][0]) <= eps) {
+
+        print('Passed stage 3')
+    } else {
+        print('Failed stage 3')
     }
 
 	destroyGlobals (  )
