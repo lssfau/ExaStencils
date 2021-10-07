@@ -29,6 +29,8 @@ We recommend using IntelliJ IDEA (the community edition is fine). Downloads can 
 
 #### Setting up the IDE for Coding
 
+First, check that the Scala plugin is installed: File -> Settings -> Plugins
+
 If you plan to commit code please use our code style. It is located in /Documentation/IntelliJ/ExaStencils.xml and can be imported like this:
 *  File -> Settings -> Editor -> Code Style -> Scala -> Import Scheme (click small gear) -> IntelliJ IDEA code style XML
 *  locate /Documentation/IntelliJ/ExaStencils.xml
