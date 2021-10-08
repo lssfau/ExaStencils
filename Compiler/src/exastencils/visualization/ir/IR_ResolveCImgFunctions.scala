@@ -65,8 +65,8 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
       }
 
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("writeImage", _), args)) =>
-      if (args.size != 2 || !args.head.isInstanceOf[IR_FieldAccess]) {
-        Logger.warn("Malformed call to writeImage; usage: writeImage ( field, \"filename\" )")
+      if ((args.size != 2 && args.size != 3) || !args.head.isInstanceOf[IR_FieldAccess]) {
+        Logger.warn("Malformed call to writeImage; usage: writeImage ( field, \"filename\", Optional[channel] )")
         IR_NullStatement
       } else {
         val field = args.head.asInstanceOf[IR_FieldAccess]
@@ -74,12 +74,20 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
         val numPoints = (0 until fieldLayout.numDimsGrid).map(dim =>
           fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight)
         val filename = args(1) //.asInstanceOf[IR_StringConstant].value
+        var channel = 0l
+
+        if (args.size == 3) {
+          channel = args(2).asInstanceOf[IR_IntegerConstant].v
+          if (channel > 2) {
+            Logger.error("Channel must be <= 2")
+          }
+        }
 
         val stmts = ListBuffer[IR_Statement]()
 
         stmts += IR_Native("cimg_library::CImg< double > imageOut ( " + numPoints.mkString(", ") + " )")
         stmts += IR_LoopOverPoints(field.field,
-          IR_Assignment(IR_Native("*imageOut.data(i0,i1)"), field))
+          IR_Assignment(IR_Native("*imageOut.data(i0,i1,0," + channel + ")"), field))
 
         // flip image for correct representation
         stmts += IR_MemberFunctionCall("imageOut", "mirror", IR_Native("'y'"))
