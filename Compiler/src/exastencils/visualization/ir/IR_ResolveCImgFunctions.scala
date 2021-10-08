@@ -32,12 +32,20 @@ import exastencils.logger.Logger
 object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
   this += new Transformation("ResolveFunctionCalls", {
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("readImage", _), args)) =>
-      if (args.size != 2 || !args.head.isInstanceOf[IR_FieldAccess]) {
-        Logger.warn("Malformed call to readImage; usage: readImage ( field, \"filename\" )")
+      if ((args.size != 2 && args.size != 3) || !args.head.isInstanceOf[IR_FieldAccess]) {
+        Logger.warn("Malformed call to readImage; usage: readImage ( field, \"filename\", Optional[channel] )")
         IR_NullStatement
       } else {
         val field = args.head.asInstanceOf[IR_FieldAccess]
         val filename = args(1)
+        var channel = 0l
+
+        if (args.size == 3) {
+          channel = args(2).asInstanceOf[IR_IntegerConstant].v
+          if (channel > 2) {
+            Logger.error("Channel must be <= 2")
+          }
+        }
 
         val stmts = ListBuffer[IR_Statement]()
 
@@ -51,7 +59,7 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
         stmts += IR_MemberFunctionCall("imageIn", "mirror", IR_Native("'y'"))
 
         stmts += IR_LoopOverPoints(field.field,
-          IR_Assignment(field, IR_Native("*imageIn.data(i0,i1)")))
+          IR_Assignment(field, IR_Native("*imageIn.data(i0,i1,0," + channel + ")")))
 
         IR_Scope(stmts)
       }
