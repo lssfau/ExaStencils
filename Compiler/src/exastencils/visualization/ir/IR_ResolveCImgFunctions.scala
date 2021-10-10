@@ -33,7 +33,7 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
   this += new Transformation("ResolveFunctionCalls", {
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("readImage", _), args)) =>
       if ((args.size != 2 && args.size != 3) || !args.head.isInstanceOf[IR_FieldAccess]) {
-        Logger.warn("Malformed call to readImage; usage: readImage ( field, \"filename\", Optional[channel] )")
+        Logger.error("Malformed call to readImage; usage: readImage ( field, \"filename\", Optional[channel] )")
         IR_NullStatement
       } else {
         val field = args.head.asInstanceOf[IR_FieldAccess]
@@ -66,7 +66,7 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
 
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("writeImage", _), args)) =>
       if ((args.size != 2 && args.size != 3) || !args.head.isInstanceOf[IR_FieldAccess]) {
-        Logger.warn("Malformed call to writeImage; usage: writeImage ( field, \"filename\", Optional[channel] )")
+        Logger.error("Malformed call to writeImage; usage: writeImage ( field, \"filename\", Optional[channel] )")
         IR_NullStatement
       } else {
         val field = args.head.asInstanceOf[IR_FieldAccess]
@@ -103,7 +103,7 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
 
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("writeMappedImage", _), args)) =>
       if (args.size != 2 || !args.head.isInstanceOf[IR_FieldAccess]) {
-        Logger.warn("Malformed call to writeMappedImage; usage: writeMappedImage ( field, \"filename\" )")
+        Logger.error("Malformed call to writeMappedImage; usage: writeMappedImage ( field, \"filename\" )")
         IR_NullStatement
       } else {
         val field = args.head.asInstanceOf[IR_FieldAccess]
@@ -137,7 +137,7 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
 
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("showImage", _), args)) =>
       if (0 == args.size || !args.map(_.isInstanceOf[IR_FieldAccess]).reduce(_ && _)) {
-        Logger.warn("Malformed call to showImage; usage: showImage ( field.* )")
+        Logger.error("Malformed call to showImage; usage: showImage ( field.* )")
         IR_NullStatement
       } else {
         val fields = args.map(_.asInstanceOf[IR_FieldAccess])
@@ -169,7 +169,7 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
 
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("showMappedImage", _), args)) =>
       if (0 == args.size || !args.map(_.isInstanceOf[IR_FieldAccess]).reduce(_ && _)) {
-        Logger.warn("Malformed call to showImage; usage: showMappedImage ( field.* )")
+        Logger.error("Malformed call to showImage; usage: showMappedImage ( field.* )")
         IR_NullStatement
       } else {
         val fields = args.map(_.asInstanceOf[IR_FieldAccess])
@@ -206,7 +206,7 @@ object IR_ResolveCImgFunctions extends DefaultStrategy("ResolveCImgFunctions") {
 
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("showMappedImageAndWaitWhen", _), args)) =>
       if (args.size < 2 || !args.drop(1).map(_.isInstanceOf[IR_FieldAccess]).reduce(_ && _)) {
-        Logger.warn("Malformed call to showMappedImageAndWaitWhen; usage: showMappedImageAndWaitWhen ( condition, field.* )")
+        Logger.error("Malformed call to showMappedImageAndWaitWhen; usage: showMappedImageAndWaitWhen ( condition, field.* )")
         IR_NullStatement
       } else {
         val condition = args.head
