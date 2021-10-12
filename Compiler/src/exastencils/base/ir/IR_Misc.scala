@@ -59,3 +59,19 @@ case class IR_InitializerList(var arguments : ListBuffer[IR_Expression]) extends
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "{ " <<< (arguments, ", ") << " }"
 }
+
+/// IR_MemberInitializerList
+
+object IR_MemberInitializerList {
+  def apply(args : (IR_Access, IR_Expression)*) = new IR_MemberInitializerList(args.to[ListBuffer])
+}
+
+case class IR_MemberInitializerList(var arguments : ListBuffer[(IR_Access, IR_Expression)]) extends IR_Expression {
+  override def datatype = IR_UnitDatatype
+  override def prettyprint(out : PpStream) : Unit = {
+    if (arguments.nonEmpty)
+      out << ": "
+    for (((member, initVal), i) <- arguments.zipWithIndex)
+      out << member << "(" << initVal << ")" << (if (i != arguments.size - 1) ", " else " ")
+  }
+}

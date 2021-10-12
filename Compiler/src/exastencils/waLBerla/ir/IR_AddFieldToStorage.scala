@@ -16,7 +16,7 @@ import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_StringConstant
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.logger.Logger
-import exastencils.waLBerla.ir.IR_WaLBerlaUtil.blockStoragePtr
+import exastencils.waLBerla.ir.IR_WaLBerlaUtil.blockForestPtr
 
 case class IR_AddFieldToStorage(wbField : IR_WaLBerlaField) extends IR_WaLBerlaFutureLeveledFunction {
 
@@ -26,7 +26,7 @@ case class IR_AddFieldToStorage(wbField : IR_WaLBerlaField) extends IR_WaLBerlaF
 
   def level = wbField.level
   def datatype : IR_SpecialDatatype = IR_WaLBerlaDatatypes.WB_BlockDataID
-  def blocks = IR_FunctionArgument(IR_VariableAccess(blockStoragePtr.name, IR_ConstReferenceDatatype(blockStoragePtr.datatype)))
+  def blocks = IR_FunctionArgument(IR_VariableAccess(blockForestPtr.name, IR_ConstReferenceDatatype(blockForestPtr.datatype)))
   def initValue = IR_FunctionArgument("initVal", IR_RealDatatype) // TODO: maybe define on L4
   def layoutSpecifier = IR_VariableAccess(s"field::${wbField.layout.layoutName}", IR_IntegerDatatype)
   def numGhosts : Int = wbField.layout.layoutsPerDim(0).numGhostLayersLeft

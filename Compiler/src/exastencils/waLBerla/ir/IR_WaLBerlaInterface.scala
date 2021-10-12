@@ -40,7 +40,10 @@ case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction])
     else if (Platform.targetHardware == "CPU")
       writerHeader.addExternalDependency("field/GhostLayerField.h")
     writerHeader.addExternalDependency("core/DataTypes.h")
+    writerHeader.addExternalDependency("stencil/all.h")
+    writerHeader.addExternalDependency("blockforest/communication/UniformBufferedScheme.h")
     writerHeader.addExternalDependency("field/SwapableCompare.h")
+    writerHeader.addExternalDependency("field/communication/PackInfo.h")
     writerHeader.addExternalDependency("domain_decomposition/BlockDataID.h")
     writerHeader.addExternalDependency("domain_decomposition/IBlock.h")
     writerHeader.addExternalDependency("domain_decomposition/StructuredBlockStorage.h")
@@ -59,13 +62,10 @@ case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction])
     functions foreach { f => writerHeader << "\t" + f.prettyprint_decl() }
 
     /* ctor */
-    writerHeader << s"\t$interfaceName("
-    for ((param, i) <- context.ctorParams.zipWithIndex) // param list
-      writerHeader << param.prettyprint() + (if (i != context.ctorParams.size-1) ", " else "")
-    writerHeader << s") ${if (context.members.nonEmpty) ":" else ""} "
-    for ((member, i) <- context.members.zipWithIndex) // initializer list
-      writerHeader << member.prettyprint() + "(" + context.ctorParams(i).access.prettyprint() + ")" + (if (i != context.members.size-1) ", " else " ")
-    writerHeader <<< "{"
+    writerHeader << s"\t$interfaceName"
+    writerHeader << s"(${context.ctorParams.map(_.prettyprint()).mkString(", ")})"
+    writerHeader << context.ctorInitializerList.prettyprint
+    writerHeader <<< " {"
     for (stmt <- context.ctorBody) {
       writerHeader << "\t"
       writerHeader <<< stmt.prettyprint
