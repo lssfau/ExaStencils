@@ -7,7 +7,7 @@ ARG LIKWID_VERSION=5.2.0
 
 # basic stuff
 RUN \
-  apt-get update && apt-get install -y build-essential curl git openjdk-11-jdk python3 python3-pip openmpi-bin openmpi-common libopenmpi-dev libopenmpi3 ant mlocate time wget gfortran unzip && \
+  apt-get update && apt-get install -y build-essential curl git openjdk-11-jdk python3 python3-pip openmpi-bin openmpi-common libopenmpi-dev libopenmpi3 ant mlocate time wget gfortran unzip libmagickwand-dev && \
   python3 -m pip install sympy numpy torch Pillow gdown Wand
 
 # sbt
