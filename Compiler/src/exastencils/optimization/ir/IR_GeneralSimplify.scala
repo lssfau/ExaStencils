@@ -29,6 +29,8 @@ import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.logger.Logger
+import exastencils.util.ir.IR_MathFunctionReference
+import exastencils.util.ir.IR_MathFunctions
 import exastencils.util.ir.IR_ResultingDatatype
 
 /// IR_GeneralSimplify
@@ -150,6 +152,25 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       }
       ass.op = "="
       ass
+
+    // simplify math functions applied to constant fp values
+    case fctCall @ IR_FunctionCall(fct : IR_MathFunctionReference, args) =>
+      val constArgs : ListBuffer[Double] = ListBuffer()
+      var isEvaluatable = true
+      args.foreach(arg => {
+        try {
+          val c = IR_SimplifyExpression.evalFloating(arg)
+          constArgs += c
+        } catch {
+            case _ : EvaluationException =>
+              isEvaluatable = false
+        }
+      })
+      if (isEvaluatable)
+        IR_RealConstant(IR_MathFunctions.evaluateMathFunction(fct.name, constArgs))
+      else
+        fctCall
+
 
     // Simplify boolean expressions
     case IR_EqEq(IR_IntegerConstant(left), IR_IntegerConstant(right))         => IR_BooleanConstant(left == right)

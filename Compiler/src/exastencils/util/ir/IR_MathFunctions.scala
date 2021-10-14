@@ -46,6 +46,33 @@ object IR_MathFunctions {
 
     "fabs" -> (List(IR_RealDatatype) -> IR_RealDatatype))
 
+  def evaluateMathFunction(name : String, args : Seq[Double]) = name match {
+    case "exp" => math.exp(args(0))
+    case "exp2" => math.pow(2.0, args(0))
+    case "exp10" => math.pow(10.0, args(0))
+    case "log" => math.log(args(0))
+    case "log10" => math.log10(args(0))
+
+    case "ldexp" => args(0) * math.pow(2.0, args(1))
+
+    case "pow" => math.pow(args(0), args(1))
+    case "sqrt" => math.sqrt(args(0))
+
+    case "sin" => math.sin(args(0))
+    case "cos"  => math.cos(args(0))
+    case "tan" => math.tan(args(0))
+    case "asin" => math.asin(args(0))
+    case "acos" => math.acos(args(0))
+    case "atan" => math.atan(args(0))
+    case "sinh" => math.sinh(args(0))
+    case "cosh" => math.cosh(args(0))
+    case "tanh"  => math.tanh(args(0))
+
+    case "atan2" => math.atan2(args(0), args(1))
+
+    case "fabs" => math.abs(args(0))
+  }
+
   def getDatatype(fctName : String) = signatures(fctName)
   def exists(fctName : String) = signatures.contains(fctName)
 }
