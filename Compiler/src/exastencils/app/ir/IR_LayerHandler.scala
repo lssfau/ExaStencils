@@ -360,6 +360,8 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       IR_Expand.doUntilDone()
     IR_GeneralSimplify.doUntilDone()
 
+    IR_SimplifyMathFuncs.apply()
+
     exastencils.workaround.Compiler.apply()
 
     if (Knowledge.opt_maxInliningSize > 0)
