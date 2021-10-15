@@ -46,31 +46,42 @@ object IR_MathFunctions {
 
     "fabs" -> (List(IR_RealDatatype) -> IR_RealDatatype))
 
-  def evaluateMathFunction(name : String, args : Seq[Double]) = name match {
-    case "exp" => math.exp(args(0))
-    case "exp2" => math.pow(2.0, args(0))
-    case "exp10" => math.pow(10.0, args(0))
-    case "log" => math.log(args(0))
-    case "log10" => math.log10(args(0))
+  def isEvaluable(args : IR_Number*) : Boolean = {
+    args foreach (arg => arg.value match {
+      case _ : Float | _ : Double =>
+      case _                      =>
+        return false
+    })
+    true
+  }
 
-    case "ldexp" => args(0) * math.pow(2.0, args(1))
+  // TODO: find more generic math library
+  def evaluateMathFunction(name : String, arg : Double) = name match {
+    case "exp" => math.exp(arg)
+    case "exp2" => math.pow(2.0, arg)
+    case "exp10" => math.pow(10.0, arg)
+    case "log" => math.log(arg)
+    case "log10" => math.log10(arg)
 
-    case "pow" => math.pow(args(0), args(1))
-    case "sqrt" => math.sqrt(args(0))
+    case "sqrt" => math.sqrt(arg)
 
-    case "sin" => math.sin(args(0))
-    case "cos"  => math.cos(args(0))
-    case "tan" => math.tan(args(0))
-    case "asin" => math.asin(args(0))
-    case "acos" => math.acos(args(0))
-    case "atan" => math.atan(args(0))
-    case "sinh" => math.sinh(args(0))
-    case "cosh" => math.cosh(args(0))
-    case "tanh"  => math.tanh(args(0))
+    case "sin" => math.sin(arg)
+    case "cos"  => math.cos(arg)
+    case "tan" => math.tan(arg)
+    case "asin" => math.asin(arg)
+    case "acos" => math.acos(arg)
+    case "atan" => math.atan(arg)
+    case "sinh" => math.sinh(arg)
+    case "cosh" => math.cosh(arg)
+    case "tanh"  => math.tanh(arg)
 
-    case "atan2" => math.atan2(args(0), args(1))
+    case "fabs" => math.abs(arg)
+  }
 
-    case "fabs" => math.abs(args(0))
+  def evaluateMathFunction(name : String, arg1 : Double, arg2 : Double) = name match {
+    case "ldexp" => arg1 * math.pow(2.0, arg2)
+    case "pow" => math.pow(arg1, arg2)
+    case "atan2" => math.atan2(arg1, arg2)
   }
 
   def getDatatype(fctName : String) = signatures(fctName)
