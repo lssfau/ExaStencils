@@ -46,15 +46,6 @@ object IR_MathFunctions {
 
     "fabs" -> (List(IR_RealDatatype) -> IR_RealDatatype))
 
-  def isEvaluable(args : IR_Number*) : Boolean = {
-    args foreach (arg => arg.value match {
-      case _ : Float | _ : Double =>
-      case _                      =>
-        return false
-    })
-    true
-  }
-
   // TODO: find more generic math library
   def evaluateMathFunction(name : String, arg : Double) = name match {
     case "exp" => math.exp(arg)

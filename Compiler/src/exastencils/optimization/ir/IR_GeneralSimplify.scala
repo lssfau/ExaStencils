@@ -154,10 +154,10 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       ass
 
     // simplify math functions applied to constant fp values
-    case IR_FunctionCall(IR_MathFunctionReference(name, _), ListBuffer(arg1 : IR_Number)) if IR_MathFunctions.isEvaluable(arg1) =>
-      IR_RealConstant(IR_MathFunctions.evaluateMathFunction(name, arg1.value.asInstanceOf[Number].doubleValue()))
-    case IR_FunctionCall(IR_MathFunctionReference(name, _), ListBuffer(arg1 : IR_Number, arg2 : IR_Number)) if IR_MathFunctions.isEvaluable(arg1, arg2) =>
-      IR_RealConstant(IR_MathFunctions.evaluateMathFunction(name, arg1.value.asInstanceOf[Number].doubleValue(), arg2.value.asInstanceOf[Number].doubleValue()))
+    case IR_FunctionCall(IR_MathFunctionReference(name, _), ListBuffer(arg1 : IR_RealConstant)) =>
+      IR_RealConstant(IR_MathFunctions.evaluateMathFunction(name, arg1.value))
+    case IR_FunctionCall(IR_MathFunctionReference(name, _), ListBuffer(arg1 : IR_RealConstant, arg2 : IR_RealConstant)) =>
+      IR_RealConstant(IR_MathFunctions.evaluateMathFunction(name, arg1.value, arg2.value))
 
     // Simplify boolean expressions
     case IR_EqEq(IR_IntegerConstant(left), IR_IntegerConstant(right))         => IR_BooleanConstant(left == right)
