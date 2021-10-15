@@ -18,6 +18,8 @@
 
 package exastencils.util.ir
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.base.ir._
 import exastencils.prettyprinting.PpStream
 
@@ -47,32 +49,40 @@ object IR_MathFunctions {
     "fabs" -> (List(IR_RealDatatype) -> IR_RealDatatype))
 
   // TODO: find more generic math library
-  def evaluateMathFunction(name : String, arg : Double) = name match {
-    case "exp" => math.exp(arg)
-    case "exp2" => math.pow(2.0, arg)
-    case "exp10" => math.pow(10.0, arg)
-    case "log" => math.log(arg)
-    case "log10" => math.log10(arg)
+  def evaluateMathFunction(name : String, args : ListBuffer[IR_Number]) : Double = args.length match {
+    case 1 =>
+      val arg = args.head.value.asInstanceOf[Number].doubleValue()
 
-    case "sqrt" => math.sqrt(arg)
+      name match {
+        case "exp"   => math.exp(arg)
+        case "exp2"  => math.pow(2.0, arg)
+        case "exp10" => math.pow(10.0, arg)
+        case "log"   => math.log(arg)
+        case "log10" => math.log10(arg)
 
-    case "sin" => math.sin(arg)
-    case "cos"  => math.cos(arg)
-    case "tan" => math.tan(arg)
-    case "asin" => math.asin(arg)
-    case "acos" => math.acos(arg)
-    case "atan" => math.atan(arg)
-    case "sinh" => math.sinh(arg)
-    case "cosh" => math.cosh(arg)
-    case "tanh"  => math.tanh(arg)
+        case "sqrt" => math.sqrt(arg)
 
-    case "fabs" => math.abs(arg)
-  }
+        case "sin"  => math.sin(arg)
+        case "cos"  => math.cos(arg)
+        case "tan"  => math.tan(arg)
+        case "asin" => math.asin(arg)
+        case "acos" => math.acos(arg)
+        case "atan" => math.atan(arg)
+        case "sinh" => math.sinh(arg)
+        case "cosh" => math.cosh(arg)
+        case "tanh" => math.tanh(arg)
 
-  def evaluateMathFunction(name : String, arg1 : Double, arg2 : Double) = name match {
-    case "ldexp" => arg1 * math.pow(2.0, arg2)
-    case "pow" => math.pow(arg1, arg2)
-    case "atan2" => math.atan2(arg1, arg2)
+        case "fabs" => math.abs(arg)
+      }
+    case 2 =>
+      val arg1 = args.head.value.asInstanceOf[Number].doubleValue()
+      val arg2 = args(1).value.asInstanceOf[Number].doubleValue()
+
+      name match {
+        case "ldexp" => arg1 * math.pow(2.0, arg2)
+        case "pow"   => math.pow(arg1, arg2)
+        case "atan2" => math.atan2(arg1, arg2)
+      }
   }
 
   def getDatatype(fctName : String) = signatures(fctName)
