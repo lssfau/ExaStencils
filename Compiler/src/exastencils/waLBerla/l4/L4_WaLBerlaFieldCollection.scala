@@ -79,7 +79,7 @@ object L4_WaLBerlaPrepareFieldAccesses extends DefaultStrategy("Prepare accesses
       if (!L4_WaLBerlaFieldCollection.existsDecl(access.name, lvl))
         Logger.warn(s"Trying to access ${ access.name } on invalid level $lvl")
 
-      L4_FutureFieldAccess(access.name, lvl, access.slot.getOrElse(L4_ActiveSlot), access.offset, access.arrayIndex, false, access.matIndex)
+      L4_FutureFieldAccess(access.name, lvl, access.slot.getOrElse(L4_ActiveSlot), access.offset, frozen = false, access.matIndex)
   })
 }
 
@@ -90,6 +90,6 @@ object L4_WaLBerlaResolveFieldAccesses extends DefaultStrategy("Resolve accesses
     // check if declaration has already been processed and promote access if possible
     case fAcc : L4_FutureFieldAccess if L4_WaLBerlaFieldCollection.exists(fAcc.name, fAcc.level) =>
       val wbField = L4_WaLBerlaFieldCollection.getByFieldAccess(fAcc).get // get field from wb field collection
-      L4_FieldAccess(wbField.toField, fAcc.slot, fAcc.offset, fAcc.arrayIndex, fAcc.frozen, fAcc.matIndex) // create 'regular' access for it
+      L4_FieldAccess(wbField.toField, fAcc.slot, fAcc.offset, fAcc.frozen, fAcc.matIndex) // create 'regular' access for it
   })
 }

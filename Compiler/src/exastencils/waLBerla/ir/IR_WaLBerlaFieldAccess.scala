@@ -4,7 +4,7 @@ import exastencils.base.ir.IR_ConstIndex
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_Index
+import exastencils.base.ir.IR_MatIndex
 import exastencils.base.ir.IR_ScalarDatatype
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.baseExt.ir.IR_MatrixDatatype
@@ -35,7 +35,7 @@ case class IR_WaLBerlaFieldAccess(
     var index : IR_ExpressionIndex,
     var offset : Option[IR_ConstIndex] = None,
     var frozen : Boolean = false,
-    var matIndex : Option[Array[IR_Index]] = None
+    var matIndex : Option[IR_MatIndex] = None
 ) extends IR_WaLBerlaFieldAccessLike with PrettyPrintable {
 
   override def datatype = field.layout.datatype

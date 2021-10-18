@@ -34,7 +34,7 @@ case class L4_WaLBerlaLoopOverField(
 
   // reuse most of L4_LoopOverField impl
   lazy val loopOverField : IR_LoopOverPoints =
-    L4_LoopOverField(L4_FieldAccess(fieldAcc.target, fieldAcc.slot, fieldAcc.offset, fieldAcc.arrayIndex, fieldAcc.frozen, fieldAcc.matIndex)).progress
+    L4_LoopOverField(L4_FieldAccess(fieldAcc.target, fieldAcc.slot, fieldAcc.offset, fieldAcc.frozen, fieldAcc.matIndex)).progress
 
   override def prettyprint(out : PpStream) : Unit = {
     out << loopOverField.prettyprint()
@@ -67,7 +67,7 @@ object L4_WaLBerlaResolveLoopOverField extends DefaultStrategy("Resolve LoopOver
     case L4_LoopOverField(fAcc : L4_FieldAccess, region, seq, condition, start, end, incr, body, reduction, preComms, postComms) if L4_WaLBerlaFieldCollection.contains(fAcc) =>
       // resolve accesses to waLBerla fields
       val wbField = L4_WaLBerlaFieldCollection.getByFieldAccess(fAcc).get // get field from wb field collection
-      val newAcc = L4_FieldAccess(wbField.toField, fAcc.slot, fAcc.offset, fAcc.arrayIndex, fAcc.frozen, fAcc.matIndex) // create 'regular' access for it
+      val newAcc = L4_FieldAccess(wbField.toField, fAcc.slot, fAcc.offset, fAcc.frozen, fAcc.matIndex) // create 'regular' access for it
 
       L4_WaLBerlaLoopOverField(newAcc, region, seq, condition, start, end, incr, body, reduction, preComms, postComms)
   })
