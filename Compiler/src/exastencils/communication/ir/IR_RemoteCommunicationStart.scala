@@ -93,15 +93,15 @@ case class IR_RemoteCommunicationStart(
       ListBuffer[IR_Statement](
         if (start) wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-            neighbors.map(neigh => genCopy(neigh._1, neigh._2, true))), true)
+            neighbors.map(neigh => genCopy(neigh._1, neigh._2, true))))
         else IR_NullStatement,
         if (start) wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-            neighbors.map(neigh => genTransfer(neigh._1, neigh._2, true))), true)
+            neighbors.map(neigh => genTransfer(neigh._1, neigh._2, true))))
         else IR_NullStatement,
         if (end) wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-            neighbors.map(neigh => genWait(neigh._1))), true)
+            neighbors.map(neigh => genWait(neigh._1))))
         else IR_NullStatement)
     else
       ListBuffer(wrapFragLoop(
@@ -109,6 +109,6 @@ case class IR_RemoteCommunicationStart(
           wrapCond(neigh._1, ListBuffer(
             if (start) genCopy(neigh._1, neigh._2, false) else IR_NullStatement,
             if (start) genTransfer(neigh._1, neigh._2, false) else IR_NullStatement,
-            if (end) genWait(neigh._1) else IR_NullStatement)))), true))
+            if (end) genWait(neigh._1) else IR_NullStatement))))))
   }
 }

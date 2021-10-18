@@ -13,7 +13,7 @@ The source is available here: https://hackmd.io/_HIHDpfEQ5-JQKSCucw2Sg?both
 
 # ![ExaStencils](Documentation/logos/ExaStencilsLogo.png)
 
-The ExaStencils code generation framework processes input in its own multi-layered domain-specific language (DSL) to emit highly optimized and massively parallel geometric multigrid solvers for (block-)structured grids.
+The [ExaStencils](https://www.exastencils.fau.de/) code generation framework processes input in its own multi-layered domain-specific language (DSL) to emit highly optimized and massively parallel geometric multigrid solvers for (block-)structured grids.
 
 This repository holds the current release version of ExaStencils.
 
@@ -28,6 +28,8 @@ We recommend using IntelliJ IDEA (the community edition is fine). Downloads can 
 *Using an IDE is not required.* Instructions on how to do things without it can be found [here](#sbt).
 
 #### Setting up the IDE for Coding
+
+First, check that the Scala plugin is installed: File -> Settings -> Plugins
 
 If you plan to commit code please use our code style. It is located in /Documentation/IntelliJ/ExaStencils.xml and can be imported like this:
 *  File -> Settings -> Editor -> Code Style -> Scala -> Import Scheme (click small gear) -> IntelliJ IDEA code style XML
@@ -100,7 +102,7 @@ For CImg support, the corresponding CImg.h header file needs to be downloaded su
 * for IntelliJ users:
     * Run -> Run -> 0: Edit Configurations -> + -> sbtTask
     * Name: downloadCImg; Tasks: downloadCImg; Run
-* for all users: directly download the required file from [here](https://framagit.org/dtschump/CImg) and place it in Compiler/res/
+* for all users: directly download the required file from [here](https://github.com/dtschump/CImg) and place it in Compiler/res/
 Updating the file works the same way.
 
 ## First Steps
@@ -131,13 +133,18 @@ Generating single configurations is possible by executing the generator (Compile
 
 A detailed documentation is currently work in progress.
 
+## Contributing 
+
+We always welcome and appreciate contributions to ExaStencils.
+Before contributing, please refer to our [contributing guidelines](https://github.com/lssfau/ExaStencils/blob/master/CONTRIBUTING.md) first.
+
 ## Authors
 
-The main authors are Sebastian Kuckuk, Christian Schmitt and Stefan Kronawitter. We are thankful for the work of all [contributors](https://i10git.cs.fau.de/exastencils/release/blob/master/AUTHORS.txt).
+The main authors are Sebastian Kuckuk, Christian Schmitt and Stefan Kronawitter. We are thankful for the work of all [contributors](https://github.com/lssfau/ExaStencils/blob/master/AUTHORS.txt).
 
 ## License
 
-The ExaStencils code generation framework is licensed under [GPLv3](https://i10git.cs.fau.de/exastencils/release/blob/master/COPYING.txt).
+The ExaStencils code generation framework is licensed under [GPLv3](https://github.com/lssfau/ExaStencils/blob/master/COPYING.txt).
 
 ## Dependencies
 

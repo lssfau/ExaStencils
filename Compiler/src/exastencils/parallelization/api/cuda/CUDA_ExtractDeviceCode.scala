@@ -21,12 +21,12 @@ package exastencils.parallelization.api.cuda
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.optimization.ir.IR_SimplifyExpression
+import exastencils.solver.ir.IR_InlineMatSolveStmts
 import exastencils.util.ir.IR_FctNameCollector
 
 /// CUDA_ExtractHostAndDeviceCode
@@ -111,6 +111,9 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
 
       for (m <- loop.getAnnotation(IR_SimplifyExpression.EXTREMA_MAP))
         extremaMap = m.asInstanceOf[mutable.HashMap[String, (Long, Long)]]
+
+      // inline contained calls to solve functions to avoid separate compilation units
+      IR_InlineMatSolveStmts.applyStandalone(kernelBody)
 
       val kernel = CUDA_Kernel(
         kernelFunctions.getIdentifier(collector.getCurrentName),

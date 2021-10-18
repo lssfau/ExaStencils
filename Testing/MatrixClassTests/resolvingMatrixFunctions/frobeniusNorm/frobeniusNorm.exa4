@@ -13,11 +13,11 @@ Function Application ( ) : Unit {
 	Var m2 : Matrix<Double, 3, 2> = {{-3,2},{-1,4},{-5,1}}
 	Var prec : Double = 0.0001
 
-	Var m1_norm : Double = fnorm(m1)
+	Var m1_norm : Double = norm(m1)
 	compare(m1_norm, 5.4772, prec)
 	print('stage 0 done')
 
-	Var m2_norm : Double = fnorm(m2)
+	Var m2_norm : Double = norm(m2)
 	compare(m2_norm, 7.4833, prec)
 	print('stage 1 done')
 

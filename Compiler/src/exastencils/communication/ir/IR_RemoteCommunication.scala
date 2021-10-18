@@ -24,6 +24,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
+import exastencils.config.Knowledge
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_Field
 
@@ -43,12 +44,12 @@ abstract class IR_RemoteCommunication extends IR_Statement with IR_Expandable {
       body)
   }
 
-  def wrapFragLoop(toWrap : IR_Statement, parallel : Boolean) : IR_Statement = {
+  def wrapFragLoop(toWrap : IR_Statement) : IR_Statement = {
     if (insideFragLoop) {
       toWrap
     } else {
       val loop = IR_LoopOverFragments(toWrap)
-      loop.parallelization.potentiallyParallel = parallel
+      loop.parallelization.potentiallyParallel = Knowledge.comm_parallelizeFragmentLoops
       loop
     }
   }

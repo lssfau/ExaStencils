@@ -57,47 +57,47 @@ Stencil ProlongationCell from default prolongation on Cell with 'linear'
 
 // forward difference
 Stencil GradX@all {
-  [ 1,  0,  0] =>  1.0 / vf_gridWidth_x
+  [ 1,  0,  0] =>  1.0 / vf_gridWidth_x,
   [ 0,  0,  0] => -1.0 / vf_gridWidth_x
 }
 Stencil GradY@all {
-  [ 0,  1,  0] =>  1.0 / vf_gridWidth_y
+  [ 0,  1,  0] =>  1.0 / vf_gridWidth_y,
   [ 0,  0,  0] => -1.0 / vf_gridWidth_y
 }
 Stencil GradZ@all {
-  [ 0,  0,  1] =>  1.0 / vf_gridWidth_z
+  [ 0,  0,  1] =>  1.0 / vf_gridWidth_z,
   [ 0,  0,  0] => -1.0 / vf_gridWidth_z
 }
 
 // forward difference with averaging
 /*Stencil GradX@all {
-  [ 0,  0,  0] =>  0.25 / vf_gridWidth_x
-  [ 0, -1,  0] =>  0.25 / vf_gridWidth_x
-  [ 0,  0, -1] =>  0.25 / vf_gridWidth_x
-  [ 0, -1, -1] =>  0.25 / vf_gridWidth_x
-  [-1,  0,  0] => -0.25 / vf_gridWidth_x
-  [-1, -1,  0] => -0.25 / vf_gridWidth_x
-  [-1,  0, -1] => -0.25 / vf_gridWidth_x
+  [ 0,  0,  0] =>  0.25 / vf_gridWidth_x,
+  [ 0, -1,  0] =>  0.25 / vf_gridWidth_x,
+  [ 0,  0, -1] =>  0.25 / vf_gridWidth_x,
+  [ 0, -1, -1] =>  0.25 / vf_gridWidth_x,
+  [-1,  0,  0] => -0.25 / vf_gridWidth_x,
+  [-1, -1,  0] => -0.25 / vf_gridWidth_x,
+  [-1,  0, -1] => -0.25 / vf_gridWidth_x,
   [-1, -1, -1] => -0.25 / vf_gridWidth_x
 }
 Stencil GradY@all {
-  [ 0,  0,  0] =>  0.25 / vf_gridWidth_y
-  [-1,  0,  0] =>  0.25 / vf_gridWidth_y
-  [ 0,  0, -1] =>  0.25 / vf_gridWidth_y
-  [-1,  0, -1] =>  0.25 / vf_gridWidth_y
-  [ 0, -1,  0] => -0.25 / vf_gridWidth_y
-  [-1, -1,  0] => -0.25 / vf_gridWidth_y
-  [ 0, -1, -1] => -0.25 / vf_gridWidth_y
+  [ 0,  0,  0] =>  0.25 / vf_gridWidth_y,
+  [-1,  0,  0] =>  0.25 / vf_gridWidth_y,
+  [ 0,  0, -1] =>  0.25 / vf_gridWidth_y,
+  [-1,  0, -1] =>  0.25 / vf_gridWidth_y,
+  [ 0, -1,  0] => -0.25 / vf_gridWidth_y,
+  [-1, -1,  0] => -0.25 / vf_gridWidth_y,
+  [ 0, -1, -1] => -0.25 / vf_gridWidth_y,
   [-1, -1, -1] => -0.25 / vf_gridWidth_y
 }
 Stencil GradZ@all {
-  [ 0,  0,  0] =>  0.25 / vf_gridWidth_z
-  [-1,  0,  0] =>  0.25 / vf_gridWidth_z
-  [ 0, -1,  0] =>  0.25 / vf_gridWidth_z
-  [-1, -1,  0] =>  0.25 / vf_gridWidth_z
-  [ 0,  0, -1] => -0.25 / vf_gridWidth_z
-  [-1,  0, -1] => -0.25 / vf_gridWidth_z
-  [ 0, -1, -1] => -0.25 / vf_gridWidth_z
+  [ 0,  0,  0] =>  0.25 / vf_gridWidth_z,
+  [-1,  0,  0] =>  0.25 / vf_gridWidth_z,
+  [ 0, -1,  0] =>  0.25 / vf_gridWidth_z,
+  [-1, -1,  0] =>  0.25 / vf_gridWidth_z,
+  [ 0,  0, -1] => -0.25 / vf_gridWidth_z,
+  [-1,  0, -1] => -0.25 / vf_gridWidth_z,
+  [ 0, -1, -1] => -0.25 / vf_gridWidth_z,
   [-1, -1, -1] => -0.25 / vf_gridWidth_z
 }*/
 
@@ -105,32 +105,32 @@ Stencil Laplace@all {
   [ 0,  0,  0] => {
     { 2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) + 2.0 / ( vf_gridWidth_z ** 2 ), 0, 0 },
     { 0, 2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) + 2.0 / ( vf_gridWidth_z ** 2 ), 0 },
-    { 0, 0, 2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) + 2.0 / ( vf_gridWidth_z ** 2 ) } }
+    { 0, 0, 2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) + 2.0 / ( vf_gridWidth_z ** 2 ) } },
 
   [-1,  0,  0] => {
     { -1.0 / ( vf_gridWidth_x ** 2 ), 0, 0 },
     { 0, -1.0 / ( vf_gridWidth_x ** 2 ), 0 },
-    { 0, 0, -1.0 / ( vf_gridWidth_x ** 2 ) } }
+    { 0, 0, -1.0 / ( vf_gridWidth_x ** 2 ) } },
 
   [ 1,  0,  0] => {
     { -1.0 / ( vf_gridWidth_x ** 2 ), 0, 0 },
     { 0, -1.0 / ( vf_gridWidth_x ** 2 ), 0 },
-    { 0, 0, -1.0 / ( vf_gridWidth_x ** 2 ) } }
+    { 0, 0, -1.0 / ( vf_gridWidth_x ** 2 ) } },
 
   [ 0, -1,  0] => {
     { -1.0 / ( vf_gridWidth_y ** 2 ), 0, 0 },
     { 0, -1.0 / ( vf_gridWidth_y ** 2 ), 0 },
-    { 0, 0, -1.0 / ( vf_gridWidth_y ** 2 ) } }
+    { 0, 0, -1.0 / ( vf_gridWidth_y ** 2 ) } },
 
   [ 0,  1,  0] => {
     { -1.0 / ( vf_gridWidth_y ** 2 ), 0, 0 },
     { 0, -1.0 / ( vf_gridWidth_y ** 2 ), 0 },
-    { 0, 0, -1.0 / ( vf_gridWidth_y ** 2 ) } }
+    { 0, 0, -1.0 / ( vf_gridWidth_y ** 2 ) } },
 
   [ 0,  0, -1] => {
     { -1.0 / ( vf_gridWidth_z ** 2 ), 0, 0 },
     { 0, -1.0 / ( vf_gridWidth_z ** 2 ), 0 },
-    { 0, 0, -1.0 / ( vf_gridWidth_z ** 2 ) } }
+    { 0, 0, -1.0 / ( vf_gridWidth_z ** 2 ) } },
 
   [ 0,  0,  1] => {
     { -1.0 / ( vf_gridWidth_z ** 2 ), 0, 0 },

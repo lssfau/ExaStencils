@@ -238,10 +238,10 @@ case class IR_LocalSolve(
           .addInfo("block",Knowledge.experimental_locMatBlocksize)
           .addInfo("A",Knowledge.experimental_locMatShapeA)
           .addInfo("Ablock",Knowledge.experimental_locMatBlocksizeA)
-    }
-    else IR_MatShape("filled")
+    } else IR_MatShape("filled")
 
-    Logger.warn(s"Local matrices are of shape ${msi.shape}")
+    if(Knowledge.experimental_matrixDebugConfig)
+      Logger.warn(s"Local matrix is of shape ${msi.toStringList()}")
 
     // choose strategy used for inverting local matrix
     // inverse precalculated

@@ -46,8 +46,7 @@ case class IR_LocalCommunicationStart(
       neighbors.map(neighbor =>
         IR_IfCondition(IR_IV_NeighborIsValid(field.domain.index, neighbor._1.index)
           AndAnd IR_Negation(IR_IV_NeighborIsRemote(field.domain.index, neighbor._1.index)),
-          IR_Assignment(IR_IV_LocalCommReady(field, neighbor._1.index), IR_BooleanConstant(true)))),
-      true)
+          IR_Assignment(IR_IV_LocalCommReady(field, neighbor._1.index), IR_BooleanConstant(true)))))
   }
 
   override def expand() : Output[StatementList] = {
@@ -66,15 +65,13 @@ case class IR_LocalCommunicationStart(
       output += wrapFragLoop(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
           sendNeighbors.map(neigh =>
-            IR_LocalSend(field, Duplicate(slot), Duplicate(neigh._1), Duplicate(neigh._2), Duplicate(neigh._3), insideFragLoop, Duplicate(cond)) : IR_Statement)),
-        true)
+            IR_LocalSend(field, Duplicate(slot), Duplicate(neigh._1), Duplicate(neigh._2), Duplicate(neigh._3), insideFragLoop, Duplicate(cond)) : IR_Statement)))
     } else {
       // pull data for this fragment - otherwise
       output += wrapFragLoop(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
           recvNeighbors.map(neigh =>
-            IR_LocalRecv(field, Duplicate(slot), Duplicate(neigh._1), Duplicate(neigh._2), Duplicate(neigh._3), insideFragLoop, Duplicate(cond)) : IR_Statement)),
-        true)
+            IR_LocalRecv(field, Duplicate(slot), Duplicate(neigh._1), Duplicate(neigh._2), Duplicate(neigh._3), insideFragLoop, Duplicate(cond)) : IR_Statement)))
     }
 
     output

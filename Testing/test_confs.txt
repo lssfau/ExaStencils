@@ -26,6 +26,9 @@
 # MATRIX TESTS                                                                         #
 #################################################################################################
 
+# decision about runtime execution of solution of local systems and inversions depending on size/const entries
+Matrix_evalMatrixOpRuntimeExecution Main ./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.knowledge  ./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.exa4  ./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.RESULTS  1  1
+
 # classification of matrix shapes/structures
 Matrix_determineMatrixStructures  Main  ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.knowledge  ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.exa4  ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.RESULTS  1  1
 
@@ -63,6 +66,7 @@ Matrix_SchurWithHelpersCompileTime Main  ./MatrixClassTests/invert/CompileTime/S
 Matrix_smallMatricesCompileTime Main  ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.knowledge  ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.exa4  ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.RESULTS  1  1
 
 # inversion at runtime
+Matrix_LURunTime Main  ./MatrixClassTests/invert/RunTime/LU/LU.knowledge  ./MatrixClassTests/invert/RunTime/LU/LU.exa4  ./MatrixClassTests/invert/RunTime/LU/LU.RESULTS  1  1
 Matrix_SchurRunTime Main  ./MatrixClassTests/invert/RunTime/Schur/Schur.knowledge  ./MatrixClassTests/invert/RunTime/Schur/Schur.exa4  ./MatrixClassTests/invert/RunTime/Schur/Schur.RESULTS  1  1
 Matrix_DiagonalRunTime Main  ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.knowledge  ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.exa4  ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.RESULTS  1  1
 Matrix_BlockDiagonalRunTime Main  ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.knowledge  ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.exa4  ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.RESULTS  1  1

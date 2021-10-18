@@ -48,7 +48,7 @@ case class L3_FieldAccess(
 
   def getOffset = offset.getOrElse(L3_ConstIndex(Array.fill(target.numDimsGrid)(0)))
 
-  override def progress = ProgressLocation(L4_FieldAccess(target.getProgressedObj(), slot.progress, L3_ProgressOption(offset)(_.progress), None, frozen))
+  override def progress = ProgressLocation(L4_FieldAccess(target.getProgressedObj(), slot.progress, L3_ProgressOption(offset)(_.progress), frozen))
 }
 
 /// L3_ResolveFieldAccesses
