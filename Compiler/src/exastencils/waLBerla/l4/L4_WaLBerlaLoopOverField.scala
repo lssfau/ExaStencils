@@ -33,8 +33,11 @@ case class L4_WaLBerlaLoopOverField(
     var postComms : ListBuffer[L4_Communicate]) extends L4_Statement {
 
   // reuse most of L4_LoopOverField impl
-  lazy val loopOverField : IR_LoopOverPoints =
-    L4_LoopOverField(L4_FieldAccess(fieldAcc.target, fieldAcc.slot, fieldAcc.offset, fieldAcc.frozen, fieldAcc.matIndex)).progress
+  lazy val loopOverField : IR_LoopOverPoints = {
+    val tmp = L4_LoopOverField(L4_FieldAccess(fieldAcc.target, fieldAcc.slot, fieldAcc.offset, fieldAcc.frozen, fieldAcc.matIndex)).progress
+    tmp.parallelization.reduction = reduction.map(_.progress)
+    tmp
+  }
 
   override def prettyprint(out : PpStream) : Unit = {
     out << loopOverField.prettyprint()
