@@ -23,11 +23,6 @@ import scala.collection.mutable._
 import java.io.PrintWriter
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_MatNodes.IR_GetElement
-import exastencils.baseExt.ir.IR_MatNodes.IR_GetSliceCT
-import exastencils.baseExt.ir.IR_MatNodes.IR_RuntimeMNode
-import exastencils.baseExt.ir.IR_MatNodes.IR_SetElement
-import exastencils.baseExt.ir.IR_MatNodes.IR_SetSlice
 import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.core._
@@ -300,62 +295,31 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
     var multiDimOffsets = HashMap[String, ListBuffer[IR_ConstIndex]]()
     var inWriteOp = true
 
-    // cache access pattern for consecutive vector/matrix component accesses
-    var accessedMatrixEntries = HashMap[String, HashSet[(Long, Long)]]()
-
     override def reset() = {
       fieldAccesses.clear
       offsets.clear
       multiDimOffsets.clear
-      accessedMatrixEntries.clear
 
       super.reset()
     }
 
-    def mapIndexToOffsets(field : IR_Field, identifier : String, offsetIndex : IR_ExpressionIndex, len : Int) = {
-      // replace loop variables with 0
-      IR_ReplaceVariableAccess.replace = (0 until len).map(d => (IR_LoopOverDimensions.defItForDim(d).name, IR_IntegerConstant(0))).toMap
-      IR_ReplaceVariableAccess.applyStandalone(offsetIndex)
-
-      // evaluate offsets and store
-      var offset = 0L
-      var mdOffset = IR_ConstIndex()
-      try {
-        offset = IR_SimplifyExpression.evalIntegral(
-          IR_Linearization.linearizeIndex(offsetIndex,
-            IR_ExpressionIndex((0 until len).map(field.layout(_).total).toArray)))
-        mdOffset = offsetIndex.toConstIndex
-      } catch {
-        case _ : EvaluationException => Logger.warn("Could not evaluate offset for " + offsetIndex.prettyprint())
-      }
-
-      offsets.put(identifier, offsets.getOrElse(identifier, ListBuffer()) :+ offset)
-      multiDimOffsets.put(identifier, multiDimOffsets.getOrElse(identifier, ListBuffer()) :+ mdOffset)
-    }
-
-    def getIdentifier(field : IR_Field, slot : IR_Expression, isWrite : Boolean = inWriteOp) = {
+    def mapFieldAccess(access : IR_MultiDimFieldAccess) = {
+      val field = access.field
       var identifier = field.codeName
 
-      identifier = (if (isWrite) "write_" else "read_") + identifier
+      identifier = (if (inWriteOp) "write_" else "read_") + identifier
 
       if (field.numSlots > 1) {
-        slot match {
+        access.slot match {
           case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
           case IR_IntegerConstant(slot) => identifier += s"_s$slot"
-          case _                        => identifier += s"_s${ slot.prettyprint }"
+          case _                        => identifier += s"_s${ access.slot.prettyprint }"
         }
       }
 
-      identifier
-    }
-
-    def mapFieldAccess(access : IR_MultiDimFieldAccess) = {
-      val field = access.field
-      val identifier = getIdentifier(field, access.slot)
-
+      // honor component accesses for HODT
       fieldAccesses.put(identifier, access match {
-        case fAcc : IR_FieldAccess       =>
-          // determine dt dependent if component access or not
+        case fAcc : IR_FieldAccess       => // determine dt dependent if component access or not
           if (fAcc.matIndex.isDefined) {
             val matIdx = fAcc.matIndex.get
 
@@ -364,42 +328,24 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
               (left.getOrElse(IR_IntegerConstant(defaultLeft)), right.getOrElse(IR_IntegerConstant(defaultRight)))
             def evalSliceSize(range : (IR_Expression, IR_Expression)) : Int =
               IR_SimplifyExpression.evalIntegral(range._2 + IR_IntegerConstant(1) - range._1).toInt
+            def singleElementRange = (IR_IntegerConstant(0), IR_IntegerConstant(0))
 
             val numRowsAccessed = matIdx.y match {
-              // index range, e.g. [start:end]
               case _ @ IR_RangeIndex(range) if fAcc.field.gridDatatype.isInstanceOf[IR_MatrixDatatype] =>
                 getActualRange(range(0).begin, 0, range(0).end, fAcc.field.gridDatatype.asInstanceOf[IR_MatrixDatatype].sizeM)
-              // index, e.g. [0]
-              case idx : IR_Index if idx.length == 1 =>
-                val index = idx.toExpressionIndex.head
-                (index, index)
+              case _                                                                                   =>
+                singleElementRange
             }
 
             val numColsAccessed = if (matIdx.x.isDefined) {
               matIdx.x.get match {
                 case _ @ IR_RangeIndex(range) if fAcc.field.gridDatatype.isInstanceOf[IR_MatrixDatatype] =>
                   getActualRange(range(0).begin, 0, range(0).end, fAcc.field.gridDatatype.asInstanceOf[IR_MatrixDatatype].sizeN)
-                case idx : IR_Index if idx.length == 1                                                   =>
-                  val index = idx.toExpressionIndex.head
-                  (index, index)
+                case _                                                                                   =>
+                  singleElementRange
               }
             } else {
-              (IR_IntegerConstant(0), IR_IntegerConstant(0)) // no idx provided -> assumed to be vector component access
-            }
-
-            field.gridDatatype match {
-              case _ : IR_VectorDatatype | _ : IR_MatrixDatatype =>
-                val newAccesses = (0 until evalSliceSize(numRowsAccessed)).flatMap(r => {
-                  val row = IR_SimplifyExpression.evalIntegral(numRowsAccessed._1) + r
-
-                  (0 until evalSliceSize(numColsAccessed)).map(c => {
-                    val col = IR_SimplifyExpression.evalIntegral(numColsAccessed._1) + c
-
-                    (row, col)
-                  })
-                })
-
-                accessedMatrixEntries.put(identifier, accessedMatrixEntries.getOrElse(identifier, HashSet.empty) ++= newAccesses.toSet)
+              singleElementRange
             }
 
             IR_MatrixDatatype(field.resolveBaseDatatype, evalSliceSize(numRowsAccessed), evalSliceSize(numColsAccessed))
@@ -412,84 +358,24 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           Logger.error("EvaluateFieldAccess: Match error. Did not expect access: " + acc.prettyprint())
       })
 
-      mapIndexToOffsets(field, identifier, Duplicate(access.index), access.index.length)
-    }
+      // evaluate and store offset
+      val offsetIndex = Duplicate(access.index)
+      IR_ReplaceVariableAccess.replace = (0 until access.index.length).map(d => (IR_LoopOverDimensions.defItForDim(d).name, IR_IntegerConstant(0))).toMap
+      IR_ReplaceVariableAccess.applyStandalone(offsetIndex)
 
-    // matIndex not set for matrix functions -> need separate handling
-    def mapCompiletimeMatrixFunctions(matFunc : IR_Expression) {
-      matFunc match {
-        // get functions: only read access
-        case getElement @ IR_GetElement(ListBuffer(inMat : IR_MultiDimFieldAccess, idxy, idxx)) =>
-          val field = inMat.field
-          val identifier = getIdentifier(field, inMat.slot)
-
-          // TODO use idxy and idxx for caching
-
-          // determine dt for field access in getSlice
-          fieldAccesses.put(identifier, getElement.datatype)
-
-          mapIndexToOffsets(field, identifier, Duplicate(inMat.index), inMat.index.length)
-        case getSlice @ IR_GetSliceCT(inMat : IR_MultiDimFieldAccess, _) =>
-          val field = inMat.field
-          val identifier = getIdentifier(field, inMat.slot)
-
-          // TODO caching with offsets and strides
-
-          // determine dt for field access in getSlice
-          fieldAccesses.put(identifier, getSlice.datatype)
-
-          mapIndexToOffsets(field, identifier, Duplicate(inMat.index), inMat.index.length)
-
-        /*
-        // TODO move
-
-        // set functions: read and write access
-        case setElement @ IR_SetElement(ListBuffer(lhs : IR_MultiDimFieldAccess, idxy, idxx, rhs : IR_MultiDimFieldAccess)) =>
-          val lhsField = lhs.field
-          val lhsWriteIdentifier = getIdentifier(lhsField, lhs.slot, isWrite = true)
-          val lhsReadIdentifier = getIdentifier(lhsField, lhs.slot, isWrite = false)
-          val dt = setElement.datatype
-
-          // TODO use idxy and idxx for caching
-
-          if (IR_MatNodeUtils.isScalar(idxy) && IR_MatNodeUtils.isScalar(idxx)) {
-            // write and read allocate for lhs
-            fieldAccesses.put(lhsWriteIdentifier, dt)
-            fieldAccesses.put(lhsReadIdentifier, dt)
-
-            mapIndexToOffsets(lhsField, lhsWriteIdentifier, Duplicate(lhs.index), lhs.index.length)
-            mapIndexToOffsets(lhsField, lhsReadIdentifier, Duplicate(lhs.index), lhs.index.length)
-
-            // read rhs
-            inWriteOp = false
-            EvaluateFieldAccess.applyStandalone(IR_ExpressionStatement(rhs))
-          } else {
-            Logger.warn("Cannot determine field accesses for setSlice with runtime values.")
-          }
-
-        case IR_SetSlice(ListBuffer(matrix : IR_MultiDimFieldAccess, rowOffs, colOffs, nrows, ncols, newVal)) =>
-          if (IR_MatNodeUtils.isScalar(nrows) && IR_MatNodeUtils.isScalar(ncols)) {
-            val field = matrix.field
-            val identifier = getIdentifier(field, matrix.slot)
-            val rows = IR_SimplifyExpression.evalIntegral(nrows).toInt
-            val cols = IR_SimplifyExpression.evalIntegral(ncols).toInt
-
-            // TODO caching with offsets and strides
-
-            // TODO rhs is const/vAcc -> extra handling (const: no read for rhs)
-
-            // TODO: this is also an assignment -> put newVal as well
-            fieldAccesses.put(identifier, IR_MatrixDatatype(matrix.datatype.resolveBaseDatatype, rows, cols))
-
-            mapIndexToOffsets(field, identifier, Duplicate(matrix.index), matrix.index.length)
-          } else {
-            Logger.warn("Cannot determine field accesses for setSlice with runtime values.")
-          }
-
-        */
-        case _  =>
-          Logger.warn("Unsupported matrix function for performance estimation.")
+      var offset = 0L
+      var mdOffset = IR_ConstIndex()
+      try {
+        offset = IR_SimplifyExpression.evalIntegral(
+          IR_Linearization.linearizeIndex(offsetIndex,
+            IR_ExpressionIndex((0 until access.index.length).map(field.layout(_).total).toArray)))
+        mdOffset = offsetIndex.toConstIndex
+      } catch {
+        case _ : EvaluationException => Logger.warn("Could not evaluate offset for " + offsetIndex.prettyprint())
       }
+
+      offsets.put(identifier, offsets.getOrElse(identifier, ListBuffer()) :+ offset)
+      multiDimOffsets.put(identifier, multiDimOffsets.getOrElse(identifier, ListBuffer()) :+ mdOffset)
     }
 
     this += new Transformation("Searching", {
@@ -504,15 +390,6 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
       case access : IR_MultiDimFieldAccess =>
         mapFieldAccess(access)
         access
-      case setSlice: IR_SetSlice =>
-        // TODO
-        Logger.error("Found setSlice")
-      case setElem : IR_SetElement =>
-        // TODO
-        Logger.error("Found setElement")
-      case r : IR_RuntimeMNode if !r.resolveAtRuntime =>
-        mapCompiletimeMatrixFunctions(IR_ResolveMatFuncs.ctFctMap(r.name)(r))
-        r
     }, false)
   }
 
