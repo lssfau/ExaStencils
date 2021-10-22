@@ -28,11 +28,11 @@ case class IR_InitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
 
   def toUnsignedInt(value : Int) = IR_Cast(IR_SpecialDatatype("uint_t"), value)
 
-  def numCellsTotal(d : Int) = if (d < numDims) {
+  def numCellsBlock(d : Int) = if (d < numDims) {
     if (someWaLBerlaField.isDefined) someWaLBerlaField.get.layout.layoutsPerDim(d).numInnerLayers else Knowledge.domain_fragmentLengthAsVec(d) * (1 << level)
   } else
     1
-  def cellWidth(d : Int) = if (d < numDims) (domainBounds.upper(d) - domainBounds.lower(d)) / numCellsTotal(d) else 0
+  def cellWidth(d : Int) = if (d < numDims) (domainBounds.upper(d) - domainBounds.lower(d)) / (Knowledge.domain_rect_numFragsTotalAsVec(d) * numCellsBlock(d)) else 0
 
   val wbBlocks = List(Knowledge.domain_rect_numFragsTotal_x, Knowledge.domain_rect_numFragsTotal_y, Knowledge.domain_rect_numFragsTotal_z).map(toUnsignedInt)
   val numProcesses = List(Knowledge.domain_rect_numBlocks_x, Knowledge.domain_rect_numBlocks_y, Knowledge.domain_rect_numBlocks_z).map(toUnsignedInt)
@@ -42,7 +42,7 @@ case class IR_InitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
     // error checks
     if (IR_WaLBerlaFieldCollection.objects.nonEmpty) {
       // assumes all top level fields have the same number of cells
-      if (IR_WaLBerlaFieldCollection.objects.filter(_.level == level).forall(f => (0 until numDims).map(d => f.layout.layoutsPerDim(d).numInnerLayers != numCellsTotal(d)).reduce(_ || _)))
+      if (IR_WaLBerlaFieldCollection.objects.filter(_.level == level).forall(f => (0 until numDims).map(d => f.layout.layoutsPerDim(d).numInnerLayers != numCellsBlock(d)).reduce(_ || _)))
         Logger.error("IR_InitBlockForest: Top-level waLBerla fields must have the same size.")
 
       // step size in each dimension must be identical
@@ -58,7 +58,7 @@ case class IR_InitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
       new IR_FunctionCall(IR_ExternalFunctionReference("blockforest::createUniformBlockGrid"),
         ListBuffer(
           wbBlocks(0), wbBlocks(1), wbBlocks(2),
-          numCellsTotal(0), numCellsTotal(1), numCellsTotal(2),
+          numCellsBlock(0), numCellsBlock(1), numCellsBlock(2),
           cellWidth(0),
           numProcesses(0), numProcesses(1), numProcesses(2),
           periodicity(0), periodicity(1), periodicity(2))))
