@@ -18,15 +18,22 @@
 
 package exastencils.boundary.ir
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.boundary.l4._
+import exastencils.communication.NeighborInfo
+import exastencils.field.ir.IR_FieldLike
 import exastencils.field.l4._
 
 /// IR_FunctionBC
 
 // wraps a user-provided function implementing boundary handling
-case class IR_FunctionBC(var boundaryFunction : IR_FunctionCall) extends IR_BoundaryCondition {}
+case class IR_FunctionBC(var boundaryFunction : IR_FunctionCall) extends IR_BoundaryCondition {
+  override def generateFieldUpdatesNode(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, neigh : NeighborInfo) = ListBuffer()
+  override def generateFieldUpdatesCell(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, neigh : NeighborInfo) = ListBuffer()
+}
 
 /// L4_ResolveBoundaryHandlingFunctions
 

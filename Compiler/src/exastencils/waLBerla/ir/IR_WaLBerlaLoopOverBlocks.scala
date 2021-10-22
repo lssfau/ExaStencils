@@ -24,6 +24,10 @@ import exastencils.waLBerla.ir.IR_WaLBerlaUtil.getBlocks
 
 /// IR_WaLBerlaLoopOverBlocks
 
+object IR_WaLBerlaLoopOverBlocks {
+  def defIt = IR_VariableAccess("block", IR_SpecialDatatype("auto"))
+}
+
 // iterates through process-local blocks
 case class IR_WaLBerlaLoopOverBlocks(
     var body : ListBuffer[IR_Statement],
@@ -33,12 +37,12 @@ case class IR_WaLBerlaLoopOverBlocks(
     // TODO: separate omp and potentiallyParallel
     parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && parallelization.potentiallyParallel
 
-    def defIt = IR_VariableAccess("block", IR_SpecialDatatype("auto"))
-
     // collect fields accessed in loop
     var fieldsAccessed = ListBuffer[IR_WaLBerlaField]()
     IR_CollectAccessedWaLBerlaFields.applyStandalone(body)
     fieldsAccessed ++= Duplicate(IR_CollectAccessedWaLBerlaFields.wbFieldAccesses).groupBy(_.name).map(_._2.head)
+
+    import IR_WaLBerlaLoopOverBlocks._
 
     // TODO for multiple waLBerla blocks and exa fragments: association between them
 

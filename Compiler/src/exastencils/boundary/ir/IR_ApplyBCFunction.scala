@@ -25,9 +25,11 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.core.Duplicate
+import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldLike
 import exastencils.grid.ir._
-import exastencils.waLBerla.ir.IR_WaLBerlaFieldCollection
+import exastencils.waLBerla.ir.IR_WaLBerlaField
+import exastencils.waLBerla.ir.IR_WaLBerlaHandleBoundaries
 
 /// IR_ApplyBCFunction
 
@@ -45,12 +47,7 @@ case class IR_ApplyBCFunction(
 
   def numDimsGrid = field.layout.numDimsGrid
 
-  def resolveIndex(indexId : String, dim : Int) = {
-    if (IR_WaLBerlaFieldCollection.exists(field.name, field.level))
-      IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get.layout.idxById(indexId, dim)
-    else
-      field.layout.idxById(indexId, dim)
-  }
+  def resolveIndex(indexId : String, dim : Int) = field.layout.idxById(indexId, dim)
 
   def genIndicesBoundaryHandling(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)] = {
 
@@ -89,7 +86,10 @@ case class IR_ApplyBCFunction(
     var body = ListBuffer[IR_Statement]()
 
     val boundaryNeighs = neighbors.filter(neigh => 1 == neigh.dir.count(_ != 0)) // exactly one non-zero entry
-    body += IR_HandleBoundaries(field, Duplicate(slot), Duplicate(fragIdx), genIndicesBoundaryHandling(boundaryNeighs))
+    field match {
+      case exaField : IR_Field        => body += IR_HandleBoundaries(exaField, Duplicate(slot), Duplicate(fragIdx), genIndicesBoundaryHandling(boundaryNeighs))
+      case wbField : IR_WaLBerlaField => body += IR_WaLBerlaHandleBoundaries(wbField, Duplicate(slot), Duplicate(fragIdx), genIndicesBoundaryHandling(boundaryNeighs))
+    }
 
     body
   }

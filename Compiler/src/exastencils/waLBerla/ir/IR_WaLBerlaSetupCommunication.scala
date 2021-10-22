@@ -25,7 +25,7 @@ object IR_WaLBerlaSetupCommunication extends DefaultStrategy("Communication hand
     super.applyStandalone(node)
   }
 
-  this += Transformation("Determine apply bc funcs on waLBerla fields", {
+  this += Transformation("Determine apply bc funcs for waLBerla fields", {
     case commFuncs : IR_CommunicationFunctions =>
       commFuncs.functions foreach {
         case applyBC : IR_ApplyBCFunction if IR_WaLBerlaFieldCollection.exists(applyBC.field.name, applyBC.field.level) =>

@@ -24,31 +24,28 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
-import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.grid.ir._
-import exastencils.logger._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
-import exastencils.waLBerla.ir.IR_WaLBerlaFieldAccess
-import exastencils.waLBerla.ir.IR_WaLBerlaFieldCollection
 
 /// IR_HandleBoundaries
 
-// TODO: refactor
-case class IR_HandleBoundaries(
-    var field : IR_FieldLike,
-    var slot : IR_Expression,
-    var fragIdx : IR_Expression,
-    var neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)]) extends IR_Statement with IR_Expandable {
+abstract class IR_HandleBoundariesLike extends IR_Statement with IR_Expandable {
+
+  def field : IR_FieldLike
+  def slot : IR_Expression
+  def fragIdx : IR_Expression
+  def neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)]
 
   def numDims = field.layout.numDimsGrid
 
+  def constructLoops : IR_Statement
+
   def setupFieldUpdate(neigh : NeighborInfo) : ListBuffer[IR_Statement] = {
-    var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     // apply local trafo and replace boundaryCoord
     val strat = QuietDefaultStrategy("ResolveBoundaryCoordinates")
@@ -78,100 +75,25 @@ case class IR_HandleBoundaries(
     val bc = Duplicate(field.boundary)
     strat.applyStandalone(IR_Root(bc))
 
-    // FIXME: this works for now, but users may want to specify bc's per vector element
-    // FIXME: (update) adapt for numDimsGrid once new vector and matrix data types are fully integrated
-    val index = IR_LoopOverDimensions.defIt(numDims)
-
-    def offsetIndex = IR_ExpressionIndex(neigh.dir ++ Array.fill(numDims - field.layout.numDimsGrid)(0))
-    def offsetIndexWithTrafo(f : (Int => Int)) = IR_ExpressionIndex(neigh.dir.map(f) ++ Array.fill(numDims - field.layout.numDimsGrid)(0))
-
-    def accessField(slot : IR_Expression, fragIdx : IR_Expression, idx : IR_ExpressionIndex) = {
-      if (IR_WaLBerlaFieldCollection.exists(field.name, field.level))
-        IR_WaLBerlaFieldAccess(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get, idx)
-      else field match {
-        case f : IR_Field => IR_FieldAccess(f, slot, fragIdx, idx)
-        case _            => Logger.error("Unknown field type.")
-      }
-    }
-
-    bc match {
-      case IR_NeumannBC(order) =>
-        // TODO: move this logic to the appropriate bc classes
-
-        def forNode() = order match {
-          case 1 =>
-            statements += IR_Assignment(accessField(Duplicate(slot), Duplicate(fragIdx), index),
-              accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -i)))
-
-          case 2 =>
-            statements += IR_Assignment(accessField(Duplicate(slot), Duplicate(fragIdx), index),
-              ((4.0 / 3.0) * accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -i)))
-                + ((-1.0 / 3.0) * accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -2 * i))))
-
-          case 3 => // TODO: do we want this? what do we do on the coarser levels?
-            statements += IR_Assignment(accessField(Duplicate(slot), Duplicate(fragIdx), index),
-              ((3.0 * 6.0 / 11.0) * accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -1 * i)))
-                + ((-3.0 / 2.0 * 6.0 / 11.0) * accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -2 * i)))
-                + ((1.0 / 3.0 * 6.0 / 11.0) * accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -3 * i))))
-        }
-
-        def forCell() = order match {
-          case 1 =>
-            statements += IR_Assignment(accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndex),
-              accessField(Duplicate(slot), Duplicate(fragIdx), index))
-        }
-
-        field.layout.localization match {
-          case IR_AtNode                                           => forNode()
-          case IR_AtFaceCenter(faceDim) if 0 != neigh.dir(faceDim) => forNode()
-          case IR_AtCellCenter                                     => forCell()
-          case IR_AtFaceCenter(_)                                  => forCell()
-        }
-
-      case IR_DirichletBC(boundaryExpr, order) =>
-        def forNode() = statements += IR_Assignment(accessField(Duplicate(slot), Duplicate(fragIdx), index), boundaryExpr)
-
-        def forCell() = order match {
-          case 1 => statements += IR_Assignment(accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndex),
-            (2.0 * boundaryExpr) - accessField(Duplicate(slot), Duplicate(fragIdx), index))
-          case 2 =>
-            // determine weights for interpolation
-            var w_0_5, w_1, w_2 : IR_Expression = 0
-            if (Knowledge.grid_isUniform) {
-              w_0_5 = 8.0 / 3.0
-              w_1 = -2
-              w_2 = 1.0 / 3.0
-            } else {
-              // non-linear => use Lagrange polynomials
-              val nonZero = neigh.dir.zipWithIndex.filter(_._1 != 0)
-              if (nonZero.length != 1) Logger.error("Malformed neighbor index vector " + neigh.dir.mkString(", "))
-              val dim = nonZero(0)._2
-              def x = IR_VF_CellCenterPerDim.access(field.level, dim, index + offsetIndex)
-              def x_0_5 =
-                if (neigh.dir(dim) > 0)
-                  IR_VF_NodePositionPerDim.access(field.level, dim, index + offsetIndex)
-                else
-                  IR_VF_NodePositionPerDim.access(field.level, dim, index)
-              def x_1 = IR_VF_CellCenterPerDim.access(field.level, dim, index)
-              def x_2 = IR_VF_CellCenterPerDim.access(field.level, dim, index + offsetIndexWithTrafo(i => -i))
-              w_0_5 = ((x - x_1) * (x - x_2)) / ((x_0_5 - x_1) * (x_0_5 - x_2))
-              w_1 = ((x - x_0_5) * (x - x_2)) / ((x_1 - x_0_5) * (x_1 - x_2))
-              w_2 = ((x - x_0_5) * (x - x_1)) / ((x_2 - x_0_5) * (x_2 - x_1))
-            }
-            statements += IR_Assignment(accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndex),
-              w_0_5 * boundaryExpr + w_1 * accessField(Duplicate(slot), Duplicate(fragIdx), index) + w_2 * accessField(Duplicate(slot), Duplicate(fragIdx), index + offsetIndexWithTrafo(i => -i)))
-        }
-
-        field.layout.localization match {
-          case IR_AtNode                                           => forNode()
-          case IR_AtFaceCenter(faceDim) if 0 != neigh.dir(faceDim) => forNode()
-          case IR_AtCellCenter                                     => forCell()
-          case IR_AtFaceCenter(_)                                  => forCell()
-        }
-    }
-
-    statements
+    bc.setupFieldUpdate(field, slot, fragIdx, neigh)
   }
+
+
+  override def expand() : Output[IR_Statement] = {
+    field.boundary match {
+      case _ : IR_NeumannBC                => constructLoops
+      case _ : IR_DirichletBC              => constructLoops
+      case IR_FunctionBC(boundaryFunction) => boundaryFunction : IR_Statement
+      case IR_NoBC                         => IR_NullStatement
+    }
+  }
+}
+
+case class IR_HandleBoundaries(
+    var field : IR_Field,
+    var slot : IR_Expression,
+    var fragIdx : IR_Expression,
+    var neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)]) extends IR_HandleBoundariesLike {
 
   def constructLoops = {
     val layout = field.layout
@@ -186,19 +108,10 @@ case class IR_HandleBoundaries(
           val loopOverDims = new IR_LoopOverDimensions(
             numDims,
             adaptedIndexRange,
-            setupFieldUpdate(neigh._1))
+            field.boundary.setupFieldUpdate(field, slot, fragIdx, neigh._1))
           loopOverDims.parallelization.potentiallyParallel = true
           loopOverDims.polyOptLevel = 1
           IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(field.domain.index, neigh._1.index)), loopOverDims) : IR_Statement
         }))), IR_ParallelizationInfo(potentiallyParallel = true))
-  }
-
-  override def expand() : Output[IR_Statement] = {
-    field.boundary match {
-      case _ : IR_NeumannBC                => constructLoops
-      case _ : IR_DirichletBC              => constructLoops
-      case IR_FunctionBC(boundaryFunction) => boundaryFunction : IR_Statement
-      case IR_NoBC                         => IR_NullStatement
-    }
   }
 }
