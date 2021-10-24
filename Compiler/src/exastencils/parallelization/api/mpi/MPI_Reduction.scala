@@ -53,7 +53,7 @@ object MPI_Reduce {
 
 case class MPI_Reduce(var root : IR_Expression, var sendbuf : IR_Expression, var recvbuf : IR_Expression, var datatype : IR_Datatype, var count : IR_Expression, var op : IR_Expression) extends MPI_Statement {
   def reallyPrint(out : PpStream) : Unit = {
-    out << "MPI_Reduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", " << root << ", mpiCommunicator);"
+    out << "MPI_Reduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", " << root << ", " << MPI_IV_MpiComm << ");"
   }
 
   override def prettyprint(out : PpStream) : Unit = {
@@ -88,7 +88,7 @@ object MPI_AllReduce {
 
 case class MPI_AllReduce(var sendbuf : IR_Expression, var recvbuf : IR_Expression, var datatype : IR_Datatype, var count : IR_Expression, var op : IR_Expression) extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = {
-    out << "MPI_Allreduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", mpiCommunicator);"
+    out << "MPI_Allreduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", "  << MPI_IV_MpiComm << ");"
   }
 }
 
