@@ -39,7 +39,7 @@ import exastencils.waLBerla.ir.IR_WaLBerlaFieldCollection
 
 trait IR_BoundaryCondition extends IR_Node {
 
-  def setupFieldUpdate(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, neigh : NeighborInfo) : ListBuffer[IR_Statement] = {
+  def generateFieldUpdate(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, neigh : NeighborInfo) : ListBuffer[IR_Statement] = {
     field.layout.localization match {
       case IR_AtNode                                           => generateFieldUpdatesNode(field, slot, fragIdx, neigh)
       case IR_AtFaceCenter(faceDim) if 0 != neigh.dir(faceDim) => generateFieldUpdatesNode(field, slot, fragIdx, neigh)

@@ -48,7 +48,7 @@ case class IR_WaLBerlaHandleBoundaries(
           val loopOverDims = IR_LoopOverDimensions(
             numDims,
             adaptedIndexRange,
-            field.boundary.setupFieldUpdate(field, slot, fragIdx, neigh._1))
+            setupFieldUpdate(neigh._1))
           loopOverDims.parallelization.potentiallyParallel = true
           loopOverDims.polyOptLevel = 1
           IR_IfCondition(isAtDomainBorder(neigh._1.dir), loopOverDims) : IR_Statement

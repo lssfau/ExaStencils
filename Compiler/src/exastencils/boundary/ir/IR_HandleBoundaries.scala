@@ -75,7 +75,7 @@ abstract class IR_HandleBoundariesLike extends IR_Statement with IR_Expandable {
     val bc = Duplicate(field.boundary)
     strat.applyStandalone(IR_Root(bc))
 
-    bc.setupFieldUpdate(field, slot, fragIdx, neigh)
+    bc.generateFieldUpdate(field, slot, fragIdx, neigh)
   }
 
 
@@ -108,7 +108,7 @@ case class IR_HandleBoundaries(
           val loopOverDims = new IR_LoopOverDimensions(
             numDims,
             adaptedIndexRange,
-            field.boundary.setupFieldUpdate(field, slot, fragIdx, neigh._1))
+            setupFieldUpdate(neigh._1))
           loopOverDims.parallelization.potentiallyParallel = true
           loopOverDims.polyOptLevel = 1
           IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(field.domain.index, neigh._1.index)), loopOverDims) : IR_Statement
