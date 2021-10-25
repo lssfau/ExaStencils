@@ -31,9 +31,8 @@ object MPI_AddGlobals extends NoTraversalStrategy("Extend globals for MPI") {
 
     val initFunc = globals.functions.find(_.name == "initGlobals").get.asInstanceOf[IR_Function]
 
-    initFunc.body += MPI_IV_MpiComm.initialization
-    initFunc.body += MPI_IV_MpiRank.initialization
-    initFunc.body += MPI_IV_MpiSize.initialization
-    initFunc.body += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::srand"), MPI_IV_MpiRank))
+    initFunc.body ++= MPI_IV_MpiComm.initialization
+    initFunc.body ++= MPI_IV_MpiRank.initialization
+    initFunc.body ++= MPI_IV_MpiSize.initialization
   }
 }

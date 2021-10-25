@@ -18,6 +18,8 @@
 
 package exastencils.parallelization.api.mpi
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
@@ -27,7 +29,7 @@ abstract class MPI_IV extends IR_UnduplicatedVariable {
   // default value is not applicable since mpi iv will be initialized in a separate routine
   override def resolveDefValue() = None
 
-  def initialization : IR_Statement
+  def initialization : ListBuffer[IR_Statement]
 }
 
 /// IR_IV_MpiRank
@@ -38,7 +40,9 @@ case object MPI_IV_MpiRank extends MPI_IV {
   override def resolveName() = "mpiRank"
   override def resolveDatatype() = IR_IntegerDatatype
 
-  override def initialization : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_Comm_rank"), MPI_IV_MpiComm, IR_AddressOf(MPI_IV_MpiRank))
+  override def initialization : ListBuffer[IR_Statement] = ListBuffer(
+    IR_FunctionCall(IR_ExternalFunctionReference("MPI_Comm_rank"), MPI_IV_MpiComm, IR_AddressOf(MPI_IV_MpiRank)),
+    IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::srand"), MPI_IV_MpiRank)))
 }
 
 /// IR_IV_MpiSize
@@ -49,7 +53,8 @@ case object MPI_IV_MpiSize extends MPI_IV {
   override def resolveName() = "mpiSize"
   override def resolveDatatype() = IR_IntegerDatatype
 
-  override def initialization : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_Comm_size"), MPI_IV_MpiComm, IR_AddressOf(MPI_IV_MpiSize))
+  override def initialization : ListBuffer[IR_Statement] = ListBuffer(
+    IR_FunctionCall(IR_ExternalFunctionReference("MPI_Comm_size"), MPI_IV_MpiComm, IR_AddressOf(MPI_IV_MpiSize)))
 }
 
 /// IR_IV_MpiComm
@@ -60,7 +65,8 @@ case object MPI_IV_MpiComm extends MPI_IV {
   override def resolveName() = "mpiCommunicator"
   override def resolveDatatype() = IR_SpecialDatatype("MPI_Comm")
 
-  override def initialization : IR_Statement = IR_Assignment(MPI_IV_MpiComm, IR_VariableAccess(Knowledge.mpi_defaultCommunicator, MPI_IV_MpiComm.datatype))
+  override def initialization : ListBuffer[IR_Statement] = ListBuffer(
+    IR_Assignment(MPI_IV_MpiComm, IR_VariableAccess(Knowledge.mpi_defaultCommunicator, MPI_IV_MpiComm.datatype)))
 }
 
 /// MPI_IsRootProc
