@@ -137,15 +137,15 @@ object IR_WaLBerlaSetupFunctions extends DefaultStrategy("Transform functions ac
   })
 }
 
-trait IR_WaLBerlaFuturePlainFunction extends IR_FutureFunction {
+trait IR_WaLBerlaFutureFunction extends IR_FutureFunction {
   allowInlining = false
+}
 
+trait IR_WaLBerlaFuturePlainFunction extends IR_WaLBerlaFutureFunction {
   override def generateFct() : IR_WaLBerlaPlainFunction
 }
 
-trait IR_WaLBerlaFutureLeveledFunction extends IR_FutureFunction {
-  allowInlining = false
-
+trait IR_WaLBerlaFutureLeveledFunction extends IR_WaLBerlaFutureFunction {
   def level : Int
   override def generateFct() : IR_WaLBerlaLeveledFunction
 }
