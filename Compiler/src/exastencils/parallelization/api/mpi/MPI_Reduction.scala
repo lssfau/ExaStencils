@@ -56,11 +56,13 @@ case class MPI_Reduce(var root : IR_Expression, var sendbuf : IR_Expression, var
     out << "MPI_Reduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", " << root << ", " << MPI_IV_MpiComm << ");"
   }
 
+  private var isRoot = IR_EqEq(root, MPI_IV_MpiRank)
+
   override def prettyprint(out : PpStream) : Unit = {
     sendbuf match {
       // TODO: possible to extract to strategy/ specialized constructors?
       case IR_StringLiteral("MPI_IN_PLACE") => // special handling for MPI_IN_PLACE required
-        out << "if (" << IR_EqEq(root, MPI_IV_MpiRank) << ") {\n"
+        out << "if (" << isRoot << ") {\n"
         MPI_Reduce(root, sendbuf, recvbuf, datatype, count, op).reallyPrint(out) // MPI_IN_PLACE for root proc
         out << "\n} else {\n"
         MPI_Reduce(root, recvbuf, recvbuf, datatype, count, op).reallyPrint(out) // same behavior, different call required on all other procs -.-

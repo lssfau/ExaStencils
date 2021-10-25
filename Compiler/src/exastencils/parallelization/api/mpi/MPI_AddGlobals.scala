@@ -25,10 +25,6 @@ import exastencils.globals.ir.IR_GlobalCollection
 object MPI_AddGlobals extends NoTraversalStrategy("Extend globals for MPI") {
   override def doWork() : Unit = {
     val globals = IR_GlobalCollection.get
-
-    globals.variables += MPI_IV_MpiComm.getDeclaration()
-    globals.variables += MPI_IV_MpiSize.getDeclaration()
-
     val initFunc = globals.functions.find(_.name == "initGlobals").get.asInstanceOf[IR_Function]
 
     initFunc.body ++= MPI_IV_MpiComm.initialization
