@@ -44,8 +44,10 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   ListBuffer(), // external deps
   ListBuffer(IR_GlobalCollection.defHeader)) {
 
-  if (Knowledge.mpi_enabled)
+  if (Knowledge.mpi_enabled) {
     externalDependencies += "mpi.h"
+    externalDependencies += "core/mpi/MPIManager.h"
+  }
 
   if (Knowledge.omp_enabled)
     externalDependencies += "omp.h"
