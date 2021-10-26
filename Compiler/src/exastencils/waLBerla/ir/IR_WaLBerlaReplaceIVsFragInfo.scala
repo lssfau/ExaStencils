@@ -14,7 +14,8 @@ object IR_WaLBerlaReplaceIVsFragInfo extends DefaultStrategy("Replace accesses t
   this.onBefore = () => this.resetCollectors()
 
   def inWaLBerlaBlockLoop(collector : IR_StackCollector) =
-    collector.stack.exists(n => n.isInstanceOf[IR_WaLBerlaFunction] || n.isInstanceOf[IR_WaLBerlaFutureFunction])
+    collector.stack.exists(_.isInstanceOf[IR_WaLBerlaLoopOverBlocks]) &&
+      collector.stack.exists(n => n.isInstanceOf[IR_WaLBerlaFunction] || n.isInstanceOf[IR_WaLBerlaFutureFunction])
 
 
   def getAABB() = IR_MemberFunctionCallArrow(IR_WaLBerlaLoopOverBlocks.defIt, "getAABB", IR_SpecialDatatype("math::AABB"))
