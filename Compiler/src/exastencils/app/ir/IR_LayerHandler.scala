@@ -53,18 +53,7 @@ import exastencils.timing.ir._
 import exastencils.util._
 import exastencils.util.ir._
 import exastencils.visualization.ir._
-import exastencils.waLBerla.ir.IR_WaLBerlaCreateInterface
-import exastencils.waLBerla.ir.IR_WaLBerlaReplaceFragmentLoops
-import exastencils.waLBerla.ir.IR_WaLBerlaReplaceIVsFragInfo
-import exastencils.waLBerla.ir.IR_WaLBerlaReplaceIVsMPI
-import exastencils.waLBerla.ir.IR_WaLBerlaReplaceVariableAccesses
-import exastencils.waLBerla.ir.IR_WaLBerlaResolveFieldAccess
-import exastencils.waLBerla.ir.IR_WaLBerlaResolveLoopOverBlocks
-import exastencils.waLBerla.ir.IR_WaLBerlaResolveLoopOverDimensions
-import exastencils.waLBerla.ir.IR_WaLBerlaResolveLoopOverPoints
-import exastencils.waLBerla.ir.IR_WaLBerlaResolveLoopOverPointsInOneFragment
-import exastencils.waLBerla.ir.IR_WaLBerlaSetupCommunication
-import exastencils.waLBerla.ir.IR_WaLBerlaSetupFunctions
+import exastencils.waLBerla.ir._
 
 /// IR_LayerHandler
 
@@ -403,7 +392,6 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_WaLBerlaSetupFunctions.apply()
     IR_WaLBerlaCreateInterface.apply()
     IR_WaLBerlaReplaceIVsMPI.apply()
-    IR_WaLBerlaReplaceIVsFragInfo.apply()
     IR_WaLBerlaReplaceVariableAccesses.apply()
   }
 }
