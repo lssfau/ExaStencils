@@ -210,7 +210,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_ResolveComplexNumbers.apply()
 
-   IR_PreItMOps.apply()
+    IR_PreItMOps.apply()
     //IR_SetupMatrixExpressions.apply()
     var sthChanged = true
     while (sthChanged) {
