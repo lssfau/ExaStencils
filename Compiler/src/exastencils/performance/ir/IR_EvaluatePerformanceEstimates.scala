@@ -405,24 +405,23 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
       super.applyStandalone(node)
     }
 
-    // FIXME: incorporate number of operands
     this += new Transformation("Searching", {
-      case exp : IR_Addition       =>
+      case add : IR_Addition if add.summands.nonEmpty      =>
+        numAdd += add.summands.length - 1
+        add
+      case sub : IR_Subtraction                            =>
         numAdd += 1
-        exp
-      case exp : IR_Subtraction    =>
-        numAdd += 1
-        exp
-      case exp : IR_Multiplication =>
-        numMul += 1
-        exp
-      case exp : IR_Division       =>
-        exp.right match {
+        sub
+      case mul : IR_Multiplication if mul.factors.nonEmpty =>
+        numMul += mul.factors.length - 1
+        mul
+      case div : IR_Division                               =>
+        div.right match {
           case _ : IR_IntegerConstant => numMul += 0
           case _ : IR_RealConstant    => numMul += 1
           case _                      => numDiv += 1
         }
-        exp
+        div
     })
   }
 
