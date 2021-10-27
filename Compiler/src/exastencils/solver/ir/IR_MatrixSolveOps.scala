@@ -8,7 +8,7 @@ import exastencils.base.ir.IR_Addition
 import exastencils.base.ir.IR_ArrayAccess
 import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_ConstIndex
-import exastencils.base.ir.IR_DoubleDatatype
+import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_ExternalFunctionReference
@@ -237,14 +237,17 @@ object IR_MatrixSolveOps {
     stmts
   }
 
-  def genLUSolveAsFunction(m : Int) : IR_PlainFunction = {
-    val A = IR_VariableAccess("A", IR_MatrixDatatype(IR_DoubleDatatype, m, m))
-    val f = IR_VariableAccess("f", IR_MatrixDatatype(IR_DoubleDatatype, m, 1))
-    val u = IR_VariableAccess("u", IR_MatrixDatatype(IR_DoubleDatatype, m, 1))
+  def genLUSolveAsFunction(m : Int, baseDt: IR_Datatype) : IR_PlainFunction = {
+    if (!IR_UserFunctions.get.externalDependencies.contains("cmath"))
+      IR_UserFunctions.get.externalDependencies += "cmath"
+
+    val A = IR_VariableAccess("A", IR_MatrixDatatype(baseDt, m, m))
+    val f = IR_VariableAccess("f", IR_MatrixDatatype(baseDt, m, 1))
+    val u = IR_VariableAccess("u", IR_MatrixDatatype(baseDt, m, 1))
     var pfunc = IR_PlainFunction(s"LUSolve_${ m }x${ m }", IR_UnitDatatype, ListBuffer[IR_FunctionArgument](
-      IR_FunctionArgument("A", IR_ReferenceDatatype(IR_MatrixDatatype(IR_DoubleDatatype, m, m))),
-      IR_FunctionArgument("f", IR_ReferenceDatatype(IR_MatrixDatatype(IR_DoubleDatatype, m, 1))),
-      IR_FunctionArgument("u", IR_ReferenceDatatype(IR_MatrixDatatype(IR_DoubleDatatype, m, 1)))
+      IR_FunctionArgument("A", IR_ReferenceDatatype(IR_MatrixDatatype(baseDt, m, m))),
+      IR_FunctionArgument("f", IR_ReferenceDatatype(IR_MatrixDatatype(baseDt, m, 1))),
+      IR_FunctionArgument("u", IR_ReferenceDatatype(IR_MatrixDatatype(baseDt, m, 1)))
     ),
       genLUSolveInlined(A, m, f, u)
     )
@@ -252,18 +255,20 @@ object IR_MatrixSolveOps {
     pfunc
   }
 
-  def genBlockdiagonal(AasExpr : IR_MatrixExpression,u : IR_VariableAccess, f : IR_VariableAccess, msi : IR_MatShape, m : Int, bsize : Int) : ListBuffer[IR_Statement] = {
+  def genBlockdiagonal(AasExpr : IR_MatrixExpression, u : IR_VariableAccess, f : IR_VariableAccess, msi : IR_MatShape, m : Int, bsize : Int) : ListBuffer[IR_Statement] = {
     import exastencils.baseExt.ir.IR_CompiletimeMatOps.copySubMatrix
     val stmts = ListBuffer[IR_Statement]()
     val Ablocks = ListBuffer[IR_VariableAccess]()
     val ublocks = ListBuffer[IR_VariableAccess]()
     val fblocks = ListBuffer[IR_VariableAccess]()
 
+    val baseDt = AasExpr.innerDatatype.get
+
     // produce A blocks
     for (i <- 0 until m / bsize) {
-      val Aii = IR_VariableAccess(s"MatSys_${ systemCounter }_A${ i }${ i }", IR_MatrixDatatype(IR_DoubleDatatype, bsize, bsize))
-      val fi = IR_VariableAccess(s"MatSys_${ systemCounter }_f${ i }", IR_MatrixDatatype(IR_DoubleDatatype, bsize, 1))
-      val ui = IR_VariableAccess(s"MatSys_${ systemCounter }_u${ i }", IR_MatrixDatatype(IR_DoubleDatatype, bsize, 1))
+      val Aii = IR_VariableAccess(s"MatSys_${ systemCounter }_A${ i }${ i }", IR_MatrixDatatype(baseDt, bsize, bsize))
+      val fi = IR_VariableAccess(s"MatSys_${ systemCounter }_f${ i }", IR_MatrixDatatype(baseDt, bsize, 1))
+      val ui = IR_VariableAccess(s"MatSys_${ systemCounter }_u${ i }", IR_MatrixDatatype(baseDt, bsize, 1))
       Ablocks += Aii
       fblocks += fi
       ublocks += ui
@@ -282,7 +287,7 @@ object IR_MatrixSolveOps {
       stmts += IR_FunctionCall(IR_PlainInternalFunctionReference(s"LUSolve_${ bsize }x${ bsize }", IR_UnitDatatype), Ablocks(i), fblocks(i), ublocks(i))
     }
     if (!IR_UserFunctions.get.functions.exists(f => f.name == s"LUSolve_${ bsize }x${ bsize }")) {
-      IR_UserFunctions.get += genLUSolveAsFunction(bsize)
+      IR_UserFunctions.get += genLUSolveAsFunction(bsize, baseDt)
     }
 
     // write back to u
