@@ -236,7 +236,7 @@ object Platform {
           if (Knowledge.mpi_enabled) "mpixlcxx" else "xlc++"
         case "GCC"   =>
           if ("ARM" == targetHardware) {
-            "g++"
+            "arm-linux-gnueabihf-g++"
           } else if ("tsubame" == targetName.toLowerCase() || "tsubame3" == targetName.toLowerCase()) {
             // special override for Tsubame
             if (!Knowledge.mpi_enabled)
