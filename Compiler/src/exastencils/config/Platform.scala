@@ -76,7 +76,7 @@ object Platform {
       case "AVX" | "AVX2"    => 4 * double
       case "AVX512" | "IMCI" => 8 * double
       case "QPX"             => 4 // yes, it's always 4
-      case "NEON"            => 2 * double // TODO: check if double is supported
+      case "NEON"            => 2 * double
     }
   }
 

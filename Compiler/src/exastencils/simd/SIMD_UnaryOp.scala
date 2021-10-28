@@ -34,7 +34,7 @@ case class SIMD_Negate(var vect : IR_Expression) extends SIMD_Expression {
       case "AVX512"       => out << "_mm512_xor_p" << prec << '(' << vect << ", _mm512_set1_p" << prec << "(-0.0))"
       case "IMCI"         => out << "_mm512_sub_p" << prec << "((__m512" << ts << ") 0, " << vect << ")" // TODO: is there a more efficient version?
       case "QPX"          => out << "vec_neg(" << vect << ')'
-      case "NEON"         => out << "vnegq_f32(" << vect << ')'
+      case "NEON"         => out << "vnegq_" << (if (Knowledge.useDblPrecision) "f64" else "f32") << "(" << vect << ')'
     }
   }
 }
