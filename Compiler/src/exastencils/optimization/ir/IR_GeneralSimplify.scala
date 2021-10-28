@@ -184,7 +184,23 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     case IR_OrOr(IR_BooleanConstant(false), expr : IR_Expression) => expr
     case IR_OrOr(expr : IR_Expression, IR_BooleanConstant(false)) => expr
 
-    case IR_IfCondition(_, tBranch, fBranch) if Knowledge.experimental_eliminateEmptyConditions && tBranch.isEmpty && fBranch.isEmpty => IR_NullStatement
+    // both branches are either empty or only consist null stmts -> do not prettyprint condition at all
+    case IR_IfCondition(_, tBranch, fBranch) if Knowledge.experimental_eliminateEmptyConditions &&
+      (tBranch.isEmpty || tBranch.forall(_ == IR_NullStatement)) && (fBranch.isEmpty || fBranch.forall(_ == IR_NullStatement)) =>
+
+      IR_NullStatement
+
+    // fbranch only consists of null stmts -> do not prettyprint fbranch
+    case IR_IfCondition(cond, tBranch, fBranch) if Knowledge.experimental_eliminateEmptyConditions &&
+      (tBranch.nonEmpty && !tBranch.forall(_ == IR_NullStatement)) && (fBranch.nonEmpty && fBranch.forall(_ == IR_NullStatement)) =>
+
+      IR_IfCondition(cond, tBranch, ListBuffer[IR_Statement]())
+
+    // tbranch is empty or only consists of null stmts -> flip condition and do not prettyprint tbranch (before flip)
+    case IR_IfCondition(cond, tBranch, fBranch) if Knowledge.experimental_eliminateEmptyConditions &&
+      (tBranch.isEmpty || (tBranch.nonEmpty && tBranch.forall(_ == IR_NullStatement))) && (fBranch.nonEmpty && !fBranch.forall(_ == IR_NullStatement)) =>
+
+      IR_IfCondition(IR_Negation(cond), fBranch, ListBuffer[IR_Statement]())
 
     case IR_IfCondition(IR_BooleanConstant(cond), tBranch, fBranch) =>
       if (cond) {

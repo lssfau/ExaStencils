@@ -157,7 +157,23 @@ object L4_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     case L4_OrOr(L4_BooleanConstant(false), expr : L4_Expression) => expr
     case L4_OrOr(expr : L4_Expression, L4_BooleanConstant(false)) => expr
 
-    case L4_IfCondition(_, tBranch, fBranch) if Knowledge.experimental_eliminateEmptyConditions && tBranch.isEmpty && fBranch.isEmpty => L4_NullStatement
+    // both branches are either empty or only consist null stmts -> do not prettyprint condition at all
+    case L4_IfCondition(_, tBranch, fBranch) if Knowledge.experimental_eliminateEmptyConditions &&
+      (tBranch.isEmpty || tBranch.forall(_ == L4_NullStatement)) && (fBranch.isEmpty || fBranch.forall(_ == L4_NullStatement)) =>
+
+      L4_NullStatement
+
+    // fbranch only consists of null stmts -> do not prettyprint fbranch
+    case L4_IfCondition(cond, tBranch, fBranch) if Knowledge.experimental_eliminateEmptyConditions &&
+      (tBranch.nonEmpty && !tBranch.forall(_ == L4_NullStatement)) && (fBranch.nonEmpty && fBranch.forall(_ == L4_NullStatement)) =>
+
+      L4_IfCondition(cond, tBranch, ListBuffer[L4_Statement]())
+
+    // tbranch is empty or only consists of null stmts -> flip condition and do not prettyprint tbranch (before flip)
+    case L4_IfCondition(cond, tBranch, fBranch) if Knowledge.experimental_eliminateEmptyConditions &&
+      (tBranch.isEmpty || (tBranch.nonEmpty && tBranch.forall(_ == L4_NullStatement))) && (fBranch.nonEmpty && !fBranch.forall(_ == L4_NullStatement)) =>
+
+      L4_IfCondition(L4_Negation(cond), fBranch, ListBuffer[L4_Statement]())
 
     case L4_IfCondition(L4_BooleanConstant(cond), tBranch, fBranch) =>
       if (cond) {
