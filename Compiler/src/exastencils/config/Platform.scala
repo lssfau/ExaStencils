@@ -236,7 +236,7 @@ object Platform {
           if (Knowledge.mpi_enabled) "mpixlcxx" else "xlc++"
         case "GCC"   =>
           if ("ARM" == targetHardware) {
-            "arm-linux-gnueabihf-g++"
+            "g++"
           } else if ("tsubame" == targetName.toLowerCase() || "tsubame3" == targetName.toLowerCase()) {
             // special override for Tsubame
             if (!Knowledge.mpi_enabled)
@@ -314,7 +314,7 @@ object Platform {
         }
 
         if ("ARM" == targetHardware) {
-          flags += " -mcpu=cortex-a9 -mhard-float -funsafe-math-optimizations -static"
+          flags += " -funsafe-math-optimizations -static"
         }
 
       case "MSVC" => // nothing to do
@@ -377,7 +377,7 @@ object Platform {
         if (Knowledge.omp_enabled) flags += " -qsmp=omp"
 
       case "GCC" =>
-        if ("ARM" == targetHardware) flags += " -static"
+        //if ("ARM" == targetHardware) flags += " -static"
         if (Knowledge.omp_enabled) flags += " -fopenmp"
 
       case "MSVC" => // nothing to do
