@@ -236,7 +236,7 @@ object Platform {
           if (Knowledge.mpi_enabled) "mpixlcxx" else "xlc++"
         case "GCC"   =>
           if ("ARM" == targetHardware) {
-            "arm-linux-gnueabihf-g++"
+            "aarch64-linux-gnu-g++"
           } else if ("tsubame" == targetName.toLowerCase() || "tsubame3" == targetName.toLowerCase()) {
             // special override for Tsubame
             if (!Knowledge.mpi_enabled)
@@ -309,13 +309,12 @@ object Platform {
             case "AVX2"   => flags += " -mavx2 -mfma"
             case "AVX512" => flags += " -march=skylake-avx512"
             case "IMCI"   => Logger.error("GCC does not support IMCI")
-            case "NEON"   => flags += " -mfpu=neon"
+            case "NEON"   => // flags += " -mfpu=neon" // neon is implied when using aarch64 g++
           }
         }
 
-        if ("ARM" == targetHardware) {
-          flags += " -funsafe-math-optimizations -static"
-        }
+        if ("ARM" == targetHardware)
+          flags += " -funsafe-math-optimizations"
 
       case "MSVC" => // nothing to do
 
@@ -377,7 +376,6 @@ object Platform {
         if (Knowledge.omp_enabled) flags += " -qsmp=omp"
 
       case "GCC" =>
-        //if ("ARM" == targetHardware) flags += " -static"
         if (Knowledge.omp_enabled) flags += " -fopenmp"
 
       case "MSVC" => // nothing to do
