@@ -21,8 +21,8 @@ import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
 
 object IR_WaLBerlaUtil {
 
-  val iblock = IR_VariableAccess("block", WB_IBlock)
-  val iblockPtr = IR_FunctionArgument(iblock.name, IR_SharedPointerDatatype(WB_IBlock))
+  private val iblock = IR_VariableAccess("block", WB_IBlock)
+  private val iblockPtr = IR_FunctionArgument(iblock.name, IR_SharedPointerDatatype(WB_IBlock))
 
   val blockForest = IR_VariableAccess("blocks", WB_StructuredBlockForest)
   val blockForestPtr = IR_VariableAccess(blockForest.name, IR_SharedPointerDatatype(WB_StructuredBlockForest))
@@ -44,7 +44,7 @@ object IR_WaLBerlaUtil {
   def getGeneratedName(s : String) : String = s + memberSuffix
 
   def getBlockDataID(name : String) = IR_VariableAccess(getGeneratedName(name + "_ID"), WB_BlockDataID)
-  def getBlocks = IR_VariableAccess(getGeneratedName(blockForestPtr.name), blockForestPtr.datatype)
+  def getBlockForest = blockForestMember
 
   // get field data from block
   def getFields(accesses : IR_WaLBerlaFieldAccess*) : ListBuffer[IR_VariableDeclaration] = accesses.to[mutable.ListBuffer].map(fAcc => {

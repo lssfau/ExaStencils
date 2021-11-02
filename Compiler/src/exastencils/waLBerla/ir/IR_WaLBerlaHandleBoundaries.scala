@@ -29,7 +29,7 @@ case class IR_WaLBerlaHandleBoundaries(
         case "T" => "ZMax"
         case "B" => "ZMin"
       }
-      IR_MemberFunctionCallArrow(IR_WaLBerlaUtil.getBlocks, s"atDomain${borderName}Border", IR_BooleanDatatype, IR_DerefAccess(IR_WaLBerlaLoopOverBlocks.defIt))
+      IR_MemberFunctionCallArrow(IR_WaLBerlaUtil.getBlockForest, s"atDomain${borderName}Border", IR_BooleanDatatype, IR_DerefAccess(IR_WaLBerlaLoopOverBlocks.defIt))
     } else {
       Logger.error("Unsupported direction for \"isAtDomainBorder\"")
     }

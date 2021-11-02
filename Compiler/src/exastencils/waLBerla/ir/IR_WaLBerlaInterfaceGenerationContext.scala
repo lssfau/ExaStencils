@@ -22,9 +22,6 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
 
   private def toBlockDataID(name : String) = IR_VariableAccess(name + "_ID", WB_BlockDataID)
 
-  import IR_WaLBerlaUtil.blockForestPtr
-  import IR_WaLBerlaUtil.getGeneratedName
-
   def blockDataIDs : Map[String, IR_FunctionArgument] = wbFieldNames.sorted.map(acc => acc -> IR_FunctionArgument(toBlockDataID(acc))).toMap
 
   // ctor params and members
@@ -34,12 +31,13 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
 
   // block data IDs and params of waLBerla function
   ctorParams ++= blockDataIDs.values
-  members ++= blockDataIDs.values.map(arg => IR_VariableAccess(getGeneratedName(arg.name), arg.datatype))
+  members ++= blockDataIDs.values.map(arg => IR_VariableAccess(IR_WaLBerlaUtil.getGeneratedName(arg.name), arg.datatype))
 
   // block storage shared_ptr
-  private val blocks = IR_VariableAccess(blockForestPtr.name, IR_ConstReferenceDatatype(blockForestPtr.datatype))
+  private val blocks =
+    IR_VariableAccess(IR_WaLBerlaUtil.blockForestPtr.name, IR_ConstReferenceDatatype(IR_WaLBerlaUtil.blockForestPtr.datatype))
   ctorParams += IR_FunctionArgument(blocks)
-  members += IR_VariableAccess(getGeneratedName(blockForestPtr.name), blockForestPtr.datatype)
+  members += IR_WaLBerlaUtil.blockForestMember
 
   // bundle members and ctor params together to build a member init list for the ctor
   ctorInitializerList.arguments ++= members.zip(ctorParams.map(_.access))

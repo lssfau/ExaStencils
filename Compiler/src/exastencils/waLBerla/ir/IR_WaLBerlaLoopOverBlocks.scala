@@ -7,11 +7,8 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
-import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.domain.ir._
 import exastencils.parallelization.ir._
-import exastencils.util.ir.IR_StackCollector
-import exastencils.waLBerla.ir.IR_WaLBerlaUtil.getBlocks
+import exastencils.waLBerla.ir.IR_WaLBerlaUtil.getBlockForest
 
 /// IR_WaLBerlaLoopOverBlocks
 
@@ -38,8 +35,8 @@ case class IR_WaLBerlaLoopOverBlocks(
     // TODO for multiple waLBerla blocks and exa fragments: association between them
 
     new IR_ForLoop(
-      IR_VariableDeclaration(defIt, IR_MemberFunctionCallArrow(getBlocks, "begin", defIt.datatype)),
-      IR_Neq(defIt, IR_MemberFunctionCallArrow(getBlocks, "end", defIt.datatype)),
+      IR_VariableDeclaration(defIt, IR_MemberFunctionCallArrow(getBlockForest, "begin", defIt.datatype)),
+      IR_Neq(defIt, IR_MemberFunctionCallArrow(getBlockForest, "end", defIt.datatype)),
       IR_ExpressionStatement(IR_PreIncrement(defIt)),
       IR_WaLBerlaUtil.getFields(fieldsAccessed : _*) ++ body,
       parallelization)
@@ -47,43 +44,6 @@ case class IR_WaLBerlaLoopOverBlocks(
 }
 
 object IR_WaLBerlaResolveLoopOverBlocks extends DefaultStrategy("Resolve waLBerla LoopOverBlocks") {
-
-  // replace frag info ivs first
-  var collector = new IR_StackCollector
-  this.register(collector)
-  this.onBefore = () => this.resetCollectors()
-
-  def inWaLBerlaBlockLoop(collector : IR_StackCollector) =
-    collector.stack.exists(n => n.isInstanceOf[IR_WaLBerlaLoopOverBlocks]) &&
-      collector.stack.exists(n => n.isInstanceOf[IR_WaLBerlaFunction] || n.isInstanceOf[IR_WaLBerlaFutureFunction])
-
-  def getAABB() = IR_MemberFunctionCallArrow(IR_WaLBerlaLoopOverBlocks.defIt, "getAABB", IR_SpecialDatatype("math::AABB"))
-
-  this += Transformation("Replace frag info accesses with accesses to waLBerla block info", {
-
-    /* TODO
-    case iv : IR_IV_FragmentId if inWaLBerlaScope(collector)       => ...
-    case iv : IR_IV_FragmentIndex if inWaLBerlaScope(collector)    => ...
-    case iv : IR_IV_IsValidForDomain if inWaLBerlaScope(collector) => ...
-    */
-
-    // TODO: association frags with blocks
-
-    // TODO: fragment connection
-
-    case _ @ IR_IV_FragmentPosition(dim, fragmentIdx) if inWaLBerlaBlockLoop(collector) =>
-      val getCenter = IR_MemberFunctionCall(getAABB(), "center")
-
-      IR_ArrayAccess(getCenter, dim)
-
-    case _ @ IR_IV_FragmentPositionBegin(dim, fragmentIdx) if inWaLBerlaBlockLoop(collector) =>
-      IR_MemberFunctionCall(getAABB(), "min", dim)
-
-    case _ @ IR_IV_FragmentPositionEnd(dim, fragmentIdx) if inWaLBerlaBlockLoop(collector) =>
-      IR_MemberFunctionCall(getAABB(), "max", dim)
-  })
-
-  // resolve
   this += Transformation("Resolve", {
     case loop : IR_WaLBerlaLoopOverBlocks => loop.expandSpecial()
   })
