@@ -145,6 +145,8 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       IR_Expand.doUntilDone()
 
     IR_WaLBerlaReplaceFragmentLoops.apply() // after apply bc nodes were expanded
+    IR_WaLBerlaReplaceVirtualFieldAccesses.apply()
+    IR_WaLBerlaReplaceFragmentIVs.apply()
 
     // HACK: create discr_h* again if there are no multigrid level and the field size was defined explicitly
     //   currently this works only if all fields are equally sized
@@ -194,6 +196,9 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       IR_SetupVisit.apply()
 
     // resolve new virtual field accesses
+    IR_WaLBerlaReplaceFragmentLoops.apply()
+    IR_WaLBerlaReplaceVirtualFieldAccesses.apply()
+    IR_WaLBerlaReplaceFragmentIVs.apply()
     IR_ResolveIntegrateOnGrid.apply()
     IR_ResolveEvaluateOnGrid.apply()
     IR_ResolveVirtualFieldAccesses.apply()
@@ -392,6 +397,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_WaLBerlaSetupFunctions.apply()
     IR_WaLBerlaCreateInterface.apply()
     IR_WaLBerlaReplaceIVsMPI.apply()
+    IR_WaLBerlaReplaceFragmentIVs.apply()
     IR_WaLBerlaReplaceVariableAccesses.apply()
   }
 }
