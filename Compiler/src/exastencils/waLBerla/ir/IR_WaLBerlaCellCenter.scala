@@ -30,8 +30,8 @@ case class IR_WaLBerlaCellCenterPerDim(
   def aabbDatatype = IR_SpecialDatatype("math::AABB")
 
   def getCellAABB(idx : IR_ExpressionIndex) =
-    IR_MemberFunctionCallArrow(IR_WaLBerlaUtil.getBlockForest, "getCellAABB", aabbDatatype,
-      IR_FunctionCall(IR_ExternalFunctionReference("Cell"), idx.indices.padTo(3, 0 : IR_Expression) : _*))
+    IR_MemberFunctionCallArrow(IR_WaLBerlaUtil.getBlockForest, "getBlockLocalCellAABB", aabbDatatype,
+      IR_DerefAccess(IR_WaLBerlaLoopOverBlocks.defIt), IR_FunctionCall(IR_ExternalFunctionReference("Cell"), idx.indices.padTo(3, 0 : IR_Expression) : _*))
 
   override def resolve(index : IR_ExpressionIndex) = IR_ArrayAccess(IR_MemberFunctionCall(getCellAABB(index), "center"), dim)
 }
