@@ -1,15 +1,16 @@
 package exastencils.base.l4
 
 import exastencils.globals.ir.IR_AllocateDataFunction
+import exastencils.logger.Logger
 
 object L4_SpecialFunctionReferences {
 
-  def contains(funcName : String) = {
+  // regex definitions
+  val luSolve = "LUSolve_[0-9]+x[0-9]+".r
+  val setExt = "set([A-Za-z]+)".r
+  val getExt = "get([A-Za-z]+)".r
 
-    // regex defs
-    val luSolve = "LUSolve_[0-9]+x[0-9]+".r
-    val setExt = "set([A-Za-z]+)".r
-    val getExt = "get([A-Za-z]+)".r
+  def contains(funcName : String) = {
 
     var ret = true
     funcName match {
@@ -28,16 +29,17 @@ object L4_SpecialFunctionReferences {
       case s : String if s.startsWith("readField")           =>
       // print funcs
       case s : String if s == "gen_printVal" ||  s.startsWith("printVtk") || s.startsWith("printField") || s.startsWith("writeStations") =>
-      // ext fields
-      // TODO: does not work as ext field decls are not processed at this point
-      //case setExt(fieldName) if L4_ExternalFieldCollection.exists(fieldName) =>
-      //case getExt(fieldName) if L4_ExternalFieldCollection.exists(fieldName) =>
       // misc
       case s : String if s.startsWith("resizeAllInner") || s.startsWith("resizeInner") =>
+      // ext fields
+      case setExt(_) | getExt(_) =>
+        Logger.warn(s"Function name $funcName might coincide with a getter/setter function for an external field.")
+        ret = false
 
       case _ =>
         ret = false
     }
+
     ret
   }
 }
