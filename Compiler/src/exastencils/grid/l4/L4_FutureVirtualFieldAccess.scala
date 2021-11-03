@@ -32,12 +32,12 @@ case class L4_FutureVirtualFieldAccess(
     var name : String,
     var level : Int,
     var offset : Option[L4_ConstIndex] = None,
-    var arrayIndex : Option[Int] = None) extends L4_FutureKnowledgeAccess with L4_CanBeOffset {
+    var matIndex : Option[L4_MatIndex] = None) extends L4_FutureKnowledgeAccess with L4_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
     out << name << '@' << level
     if (offset.isDefined) out << '@' << offset.get
-    if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
+    if (matIndex.isDefined) out << matIndex.get
   }
 
   override def progress = Logger.error(s"Trying to progress future field access to $name on level $level")
@@ -65,6 +65,6 @@ object L4_PrepareVirtualFieldAccesses extends DefaultStrategy("Prepare accesses 
       if (access.dirAccess.isDefined) Logger.warn(s"Discarding meaningless direction access on ${ access.name } - was an offset access (@) intended?")
       if (access.slot.isDefined) Logger.warn(s"Discarding meaningless slot access on ${ access.name }")
 
-      L4_FutureVirtualFieldAccess(access.name, lvl, access.offset, access.arrayIndex)
+      L4_FutureVirtualFieldAccess(access.name, lvl, access.offset, access.matIndex)
   })
 }

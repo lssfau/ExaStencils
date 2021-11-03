@@ -23,10 +23,10 @@ Function InitTestcase@finest {
     loop over h {
       b = -10
 
-      h[next] = -b
+      h<next> = -b
 
-      hu[next] = 0.0
-      hv[next] = 0.0
+      hu<next> = 0.0
+      hv<next> = 0.0
     }
   } else if ( 1 == testcase ) {
     /// test case 1 - flat floor, circular dam break in the middle of the domain
@@ -39,13 +39,13 @@ Function InitTestcase@finest {
       b = -10
 
       if ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) < damRadius ) {
-        h[next] = -b + damHight
+        h<next> = -b + damHight
       } else {
-        h[next] = -b
+        h<next> = -b
       }
 
-      hu[next] = 0.0
-      hv[next] = 0.0
+      hu<next> = 0.0
+      hv<next> = 0.0
     }
   } else if ( 2 == testcase ) {
     /// test case 2 - circular elevation on the floor, flat water surface
@@ -62,10 +62,10 @@ Function InitTestcase@finest {
         b += elevationHight * sin ( PI * ( 0.5 + 0.5 * ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) / elevationRadius ) ) )
       }
 
-      h[next] = -b
+      h<next> = -b
 
-      hu[next] = 0.0
-      hv[next] = 0.0
+      hu<next> = 0.0
+      hv<next> = 0.0
     }
   } else if ( 3 == testcase ) {
     /// test case 3 - circular elevation on the floor, water surface elevated accordingly
@@ -77,14 +77,14 @@ Function InitTestcase@finest {
     loop over h {
       b = -10
 
-      h[next] = -b
+      h<next> = -b
 
       if ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) <= elevationRadius ) {
         b += elevationHight * sin ( PI * ( 0.5 + 0.5 * ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) / elevationRadius ) ) )
       }
 
-      hu[next] = 0.0
-      hv[next] = 0.0
+      hu<next> = 0.0
+      hv<next> = 0.0
     }
   }
 
@@ -162,9 +162,9 @@ Function Update@all {
       Expr hvc = Centering * hv
 
       solve locally {
-        h[next]  => dx * dy * ( h[next]  - hc  ) + dt * dy * 0.5 * ( F0@east - F0@west ) + dt * dx * 0.5 * ( G0@north - G0@south ) == S0
-        hu[next] => dx * dy * ( hu[next] - huc ) + dt * dy * 0.5 * ( F1@east - F1@west ) + dt * dx * 0.5 * ( G1@north - G1@south ) == dt * dy * 0.5 * ( S1@west  - S1@east  )
-        hv[next] => dx * dy * ( hv[next] - hvc ) + dt * dy * 0.5 * ( F2@east - F2@west ) + dt * dx * 0.5 * ( G2@north - G2@south ) == dt * dx * 0.5 * ( S2@north - S2@south )
+        h<next>  => dx * dy * ( h<next>  - hc  ) + dt * dy * 0.5 * ( F0@east - F0@west ) + dt * dx * 0.5 * ( G0@north - G0@south ) == S0
+        hu<next> => dx * dy * ( hu<next> - huc ) + dt * dy * 0.5 * ( F1@east - F1@west ) + dt * dx * 0.5 * ( G1@north - G1@south ) == dt * dy * 0.5 * ( S1@west  - S1@east  )
+        hv<next> => dx * dy * ( hv<next> - hvc ) + dt * dy * 0.5 * ( F2@east - F2@west ) + dt * dx * 0.5 * ( G2@north - G2@south ) == dt * dx * 0.5 * ( S2@north - S2@south )
       }
     }
   } else if ( 2 == version ) {
@@ -187,15 +187,15 @@ Function Update@all {
     Expr hvc = Centering * hv
 
     loop over h {
-      h[next]  = hc  - ( dt / dx ) * 0.5 * ( F0@east  - F0@west  ) - ( dt / dy ) * 0.5 * ( G0@north - G0@south )
+      h<next>  = hc  - ( dt / dx ) * 0.5 * ( F0@east  - F0@west  ) - ( dt / dy ) * 0.5 * ( G0@north - G0@south )
     }
 
     loop over hu {
-      hu[next] = huc + ( dt / dx ) * 0.5 * ( S1@east  - S1@west  ) - ( dt / dx ) * 0.5 * ( F1@east - F1@west ) - ( dt / dy ) * 0.5 * ( G1@north - G1@south )
+      hu<next> = huc + ( dt / dx ) * 0.5 * ( S1@east  - S1@west  ) - ( dt / dx ) * 0.5 * ( F1@east - F1@west ) - ( dt / dy ) * 0.5 * ( G1@north - G1@south )
     }
 
     loop over hu {
-      hv[next] = hvc + ( dt / dy ) * 0.5 * ( S2@north - S2@south ) - ( dt / dx ) * 0.5 * ( F2@east - F2@west ) - ( dt / dy ) * 0.5 * ( G2@north - G2@south )
+      hv<next> = hvc + ( dt / dy ) * 0.5 * ( S2@north - S2@south ) - ( dt / dx ) * 0.5 * ( F2@east - F2@west ) - ( dt / dy ) * 0.5 * ( G2@north - G2@south )
     }
   } else if ( 3 == version ) {
     /// version 3 - use vector data types
@@ -214,19 +214,19 @@ Function Update@all {
           ( S1@east - S1@west ) / dx + ( S2@north - S2@south ) / dy
         - ( F@east  - F@west  ) / dx - ( G@north  - G@south  ) / dy )
 
-      h[next]  = dot ( qNew, { 1, 0, 0 }T )
-      hu[next] = dot ( qNew, { 0, 1, 0 }T )
-      hv[next] = dot ( qNew, { 0, 0, 1 }T )
+      h<next>  = dot ( qNew, { 1, 0, 0 }T )
+      hu<next> = dot ( qNew, { 0, 1, 0 }T )
+      hv<next> = dot ( qNew, { 0, 0, 1 }T )
     }
   }
 
   if ( checkForNegativeH ) {
     loop over h {
-      if ( h[next] < 0.0 ) {
-        //print ( 'negative h at', i0, i1, h[next] )
-        h[next]  = 0
-        hu[next] = 0
-        hv[next] = 0
+      if ( h<next> < 0.0 ) {
+        //print ( 'negative h at', i0, i1, h<next> )
+        h<next>  = 0
+        hu<next> = 0
+        hv<next> = 0
       }
     }
   }

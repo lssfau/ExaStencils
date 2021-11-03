@@ -58,6 +58,6 @@ case class L3_UnresolvedAccess(
       L3_ProgressOption(slot)(_.progress),
       L3_ProgressOption(offset)(_.progress),
       L3_ProgressOption(dirAccess)(_.progress),
-      None, None)
+      None)
   }
 }

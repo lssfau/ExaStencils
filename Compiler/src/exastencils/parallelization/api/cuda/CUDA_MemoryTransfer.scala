@@ -20,8 +20,10 @@ package exastencils.parallelization.api.cuda
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.communication.ir._
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.field.ir._
@@ -39,7 +41,8 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData) extends CUDA_Hos
   override def expand() : Output[IR_IfCondition] = {
     val field = fieldData.field
     IR_IfCondition(
-      CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot)),
+      IR_AndAnd(!List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers),
+        CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot))),
       ListBuffer[IR_Statement](
         CUDA_Memcpy(
           IR_IV_FieldData(field, Duplicate(fieldData.slot)),
@@ -62,7 +65,8 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData) extends CUDA_H
   override def expand() : Output[IR_IfCondition] = {
     val field = fieldData.field
     IR_IfCondition(
-      CUDA_HostDataUpdated(field, Duplicate(fieldData.slot)),
+      IR_AndAnd(!List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers),
+        CUDA_HostDataUpdated(field, Duplicate(fieldData.slot))),
       ListBuffer[IR_Statement](
         CUDA_Memcpy(
           CUDA_FieldDeviceData(field, Duplicate(fieldData.slot)),
@@ -80,7 +84,8 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer) extends CUDA
   override def expand() : Output[IR_IfCondition] = {
     val field = buffer.field
     IR_IfCondition(
-      CUDA_DeviceBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx)),
+      IR_AndAnd(!List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers),
+        CUDA_DeviceBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx))),
       ListBuffer[IR_Statement](
         CUDA_Memcpy(
           Duplicate(buffer),
@@ -97,7 +102,8 @@ case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer) extends CU
   override def expand() : Output[IR_IfCondition] = {
     val field = buffer.field
     IR_IfCondition(
-      CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx)),
+      IR_AndAnd(!List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers),
+        CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx))),
       ListBuffer[IR_Statement](
         CUDA_Memcpy(
           CUDA_BufferDeviceData(field, buffer.direction, Duplicate(buffer.size), Duplicate(buffer.neighIdx)),

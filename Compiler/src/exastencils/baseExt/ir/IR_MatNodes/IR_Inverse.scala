@@ -1,7 +1,6 @@
 package exastencils.baseExt.ir.IR_MatNodes
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.base.ir.IR_Access
 import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_Expression
@@ -12,7 +11,7 @@ import exastencils.base.ir.IR_VariableAccess
 import exastencils.baseExt.ir.IR_ClassifyMatShape
 import exastencils.baseExt.ir.IR_CompiletimeMatOps
 import exastencils.baseExt.ir.IR_MatNodeUtils
-import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateRuntimeInversion
+import exastencils.baseExt.ir.IR_MatOperations.{IR_EvalMOpRuntimeExe, IR_GenerateRuntimeInversion}
 import exastencils.baseExt.ir.IR_MatShape
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.baseExt.ir.IR_MatrixExpression
@@ -34,12 +33,13 @@ object IR_IntermediateInv {
       structInfo : IR_MatShape,
       determineStructure : String
   ) = {
-    var argexpr = arg match {
+    val argexpr = arg match {
       case x : IR_MatrixExpression                               => x
       case va @ IR_VariableAccess(_, IR_MatrixDatatype(_, _, _)) => IR_MatNodeUtils.accessToMatExpr(va)
       case _                                                     => Logger.error(s"argument of unexpected type: ${ arg }")
     }
-    new IR_IntermediateInv(argexpr, structInfo, determineStructure, Knowledge.experimental_resolveInverseFunctionCall == "Runtime")
+
+    new IR_IntermediateInv(argexpr, structInfo, determineStructure, IR_EvalMOpRuntimeExe("inverse",argexpr.rows) == "Runtime")
   }
   def apply(args : ListBuffer[IR_Expression]) = {
 
@@ -47,12 +47,14 @@ object IR_IntermediateInv {
 
     // read args to argmap and produce matrix structure
     var msi = IR_MatShape(args)
+    var n : Int = 0
 
     val detShape = msi.shape("detShape")
     if (detShape == "compiletime") {
       Logger.warn("determining matrix structure for inversion at compiletime")
       msi = mat match {
-        case _ @ IR_VariableAccess(name, IR_MatrixDatatype(_, _, _)) =>
+        case _ @ IR_VariableAccess(name, IR_MatrixDatatype(_, rows, _)) =>
+          n = rows
           var initVal = IR_PreItMOps.variableCollector.getConstInitVal(name)
           if(!initVal.isDefined) Logger.error("could not retrieve const init value of matrix to classify")
           initVal.get match {
@@ -62,12 +64,14 @@ object IR_IntermediateInv {
           }
 
         case x : IR_MatrixExpression =>
+          n = x.rows
           IR_ClassifyMatShape(x)
         case _                       => Logger.error(s"unexpected argument ${ args(0) }, expected matrix as variable or anonymous value")
       }
     }
-    Logger.warn(s"Inverting with the following configuration: ${ Knowledge.experimental_resolveInverseFunctionCall }, " + msi.toStringList())
-    new IR_IntermediateInv(mat, msi, detShape, Knowledge.experimental_resolveInverseFunctionCall == "Runtime")
+    val timeOfExe = IR_EvalMOpRuntimeExe("inverse", n)
+    Logger.warn(s"Inverting with the following configuration: ${ timeOfExe }, " + msi.toStringList())
+    new IR_IntermediateInv(mat, msi, detShape, timeOfExe == "Runtime")
   }
 }
 
