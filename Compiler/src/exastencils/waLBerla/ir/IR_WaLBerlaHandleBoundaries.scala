@@ -8,6 +8,13 @@ import exastencils.baseExt.ir._
 import exastencils.boundary.ir.IR_HandleBoundariesLike
 import exastencils.communication.NeighborInfo
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
+import exastencils.datastructures.QuietDefaultStrategy
+import exastencils.datastructures.Transformation
+import exastencils.grid.ir.IR_AtCellCenter
+import exastencils.grid.ir.IR_GridUtil
+import exastencils.grid.ir.IR_VF_BoundaryPositionPerDim
+import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 
@@ -33,6 +40,38 @@ case class IR_WaLBerlaHandleBoundaries(
     } else {
       Logger.error("Unsupported direction for \"isAtDomainBorder\"")
     }
+  }
+
+  override def setupFieldUpdate(neigh : NeighborInfo) : ListBuffer[IR_Statement] = {
+    // apply local trafo and replace boundaryCoord
+    val strat = QuietDefaultStrategy("ResolveBoundaryCoordinates")
+    strat += new Transformation("SearchAndReplace", {
+      case IR_VirtualFieldAccess(IR_VF_BoundaryPositionPerDim(lvl, domain, dim), index, fragIdx) =>
+
+        def access(vf : IR_WaLBerlaVirtualFieldPerDim) = IR_VirtualFieldAccess(vf, index, fragIdx)
+
+        field.layout.localization match {
+          case IR_AtCellCenter =>
+            if (0 == neigh.dir(dim)) { // simple projection
+              access(IR_WaLBerlaCellCenterPerDim(lvl, domain, dim))
+            } else if (neigh.dir(dim) < 0) { // snap to left boundary
+              access(IR_WaLBerlaCellCenterPerDim(lvl, domain, dim)) - access(IR_WaLBerlaCellWidthPerDim(lvl, domain, dim)) / 2
+            } else { // snap to right boundary
+              val center = access(IR_WaLBerlaCellCenterPerDim(lvl, domain, dim))
+              val width = access(IR_WaLBerlaCellWidthPerDim(lvl, domain, dim))
+
+              center.index = IR_GridUtil.offsetIndex(center.index, 1, dim)
+              width.index = IR_GridUtil.offsetIndex(width.index, 1, dim)
+
+              access(IR_WaLBerlaCellCenterPerDim(lvl, domain, dim)) + access(IR_WaLBerlaCellWidthPerDim(lvl, domain, dim)) / 2
+            }
+        }
+    })
+
+    val bc = Duplicate(field.boundary)
+    strat.applyStandalone(IR_Root(bc))
+
+    bc.generateFieldUpdate(field, slot, fragIdx, neigh)
   }
 
   def constructLoops = {
