@@ -72,12 +72,30 @@ Function Application {
          fabs(redTarget3[3][0]) <= eps &&
          fabs(redTarget3[4][0]) <= eps ) {
 
-        print('Passed stage 3' )
+        print('Passed stage 3')
     } else {
 
         print('Failed stage 3: redTarget3[0][0]=', redTarget3[0][0], ', redTarget3[1][0]=', redTarget3[1][0],
             ', redTarget3[2][0]=', redTarget3[2][0], ', redTarget3[3][0]=', redTarget3[3][0],
             ', redTarget3[4][0]=', redTarget3[4][0])
+    }
+
+    Var redTarget4 : Matrix<Real, 2, 1> = {{maxVal}, {minVal}}
+    Expr numReds2 = getKnowledge ( 'domain_rect_numBlocks_x' ) // no reduction taking place on OpenMP site
+
+    loop over fragments with reduction (+: redTarget4) {
+        if (sqrt(4) != 2) {
+            print('dummy line')
+        }
+    }
+
+    if ( fabs(redTarget4[0][0] - numReds2 * maxVal) <= eps &&
+         fabs(redTarget4[1][0] - numReds2 * minVal) <= eps) {
+
+        print('Passed stage 4')
+    } else {
+
+        print('Failed stage 4: redTarget4[0][0]=', redTarget4[0][0], ', redTarget4[1][0]=', redTarget4[1][0])
     }
 
 	destroyGlobals (  )

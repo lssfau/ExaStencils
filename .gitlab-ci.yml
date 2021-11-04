@@ -2526,6 +2526,23 @@ test:Reduction:
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Reduction Misc/reduction.knowledge "Misc/reduction.exa4" Misc/reduction.results 2 2 Platform/random.platform output
 
+test:Reduction_OldOpenMP:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Reduction Misc/reduction.knowledge "Misc/reduction.exa4" Misc/reduction.results 2 2 Platform/gcc4.2_omp2.5.platform output
+
 test:FMG_2D_Polynomial:
     stage: test
     dependencies:
