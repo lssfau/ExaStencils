@@ -18,7 +18,7 @@ import exastencils.base.ir.IR_VariableAccess
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.IR_WaLBerlaUtil.blockForestPtr
 
-case class IR_AddFieldToStorage(wbField : IR_WaLBerlaField) extends IR_WaLBerlaFutureLeveledFunction {
+case class IR_WaLBerlaAddFieldToStorage(wbField : IR_WaLBerlaField) extends IR_WaLBerlaFutureLeveledFunction {
 
   /*  TODO: make use of alternative ctor with parameter for (e.g. leveled) waLBerla fields:
     const std::function< Vector3< uint_t > ( const shared_ptr< StructuredBlockStorage > &, IBlock * const ) >& calculateSize

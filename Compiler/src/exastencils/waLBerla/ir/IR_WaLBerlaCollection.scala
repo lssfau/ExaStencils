@@ -61,9 +61,9 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   var interfaceInstance : Option[IR_WaLBerlaInterface] = None
 
   // add future functions
-  functions += IR_InitBlockForest()
+  functions += IR_WaLBerlaInitBlockForest()
   for (field <- IR_WaLBerlaFieldCollection.objects)
-    functions += IR_AddFieldToStorage(field)
+    functions += IR_WaLBerlaAddFieldToStorage(field)
 
   // collect future funcion names
   val futureFunctionIds : ListBuffer[String] = Duplicate(functions).collect { case f : IR_FutureFunction => f }.map(_.name)

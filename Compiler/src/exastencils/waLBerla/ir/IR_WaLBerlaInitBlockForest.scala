@@ -16,7 +16,7 @@ import exastencils.domain.ir.IR_DomainFromAABB
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
 
-case class IR_InitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
+case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
   def domain = IR_DomainCollection.getByIdentifier("global").get
   def domainBounds = domain.asInstanceOf[IR_DomainFromAABB].aabb
   def datatype = IR_SharedPointerDatatype(WB_StructuredBlockForest)

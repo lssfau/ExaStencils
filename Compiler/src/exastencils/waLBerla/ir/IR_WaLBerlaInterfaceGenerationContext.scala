@@ -16,8 +16,8 @@ import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_BlockDataID
 
 case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_WaLBerlaFunction]) {
 
-  IR_CollectAccessedWaLBerlaFields.applyStandalone(functions)
-  var wbFieldAccesses = IR_CollectAccessedWaLBerlaFields.wbFieldAccesses
+  IR_WaLBerlaCollectAccessedFields.applyStandalone(functions)
+  var wbFieldAccesses = IR_WaLBerlaCollectAccessedFields.wbFieldAccesses
   var wbFieldNames : ListBuffer[String] = wbFieldAccesses.map(_.name)
 
   private def toBlockDataID(name : String) = IR_VariableAccess(name + "_ID", WB_BlockDataID)

@@ -27,8 +27,8 @@ case class IR_WaLBerlaLoopOverBlocks(
 
     // collect fields accessed in loop
     var fieldsAccessed = ListBuffer[IR_WaLBerlaField]()
-    IR_CollectAccessedWaLBerlaFields.applyStandalone(body)
-    fieldsAccessed ++= Duplicate(IR_CollectAccessedWaLBerlaFields.wbFieldAccesses).groupBy(_.name).map(_._2.head)
+    IR_WaLBerlaCollectAccessedFields.applyStandalone(body)
+    fieldsAccessed ++= Duplicate(IR_WaLBerlaCollectAccessedFields.wbFieldAccesses).groupBy(_.name).map(_._2.head)
 
     import IR_WaLBerlaLoopOverBlocks._
 

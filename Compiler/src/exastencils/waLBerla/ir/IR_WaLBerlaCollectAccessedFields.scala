@@ -8,7 +8,7 @@ import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
 
-object IR_CollectAccessedWaLBerlaFields extends DefaultStrategy("Collect waLBerla field accesses") {
+object IR_WaLBerlaCollectAccessedFields extends DefaultStrategy("Collect waLBerla field accesses") {
   var wbFieldAccesses : ListBuffer[IR_WaLBerlaField] = ListBuffer()
 
   override def apply(node : Option[Node] = None) = {
@@ -29,10 +29,10 @@ object IR_CollectAccessedWaLBerlaFields extends DefaultStrategy("Collect waLBerl
     case fieldAccess : IR_WaLBerlaFieldAccess =>
       wbFieldAccesses += fieldAccess.field
       fieldAccess
-    case swap : IR_WaLBerlaSwapFieldPointers  =>
+    case swap : IR_WaLBerlaSwapFieldPointers =>
       wbFieldAccesses ++= List(swap.src, swap.dst)
       swap
-    case access : IR_IV_WaLBerlaFieldData     =>
+    case access : IR_IV_WaLBerlaFieldData =>
       wbFieldAccesses += access.field
       access
   })
