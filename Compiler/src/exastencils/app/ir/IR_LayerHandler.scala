@@ -342,6 +342,10 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     if (Knowledge.omp_enabled) {
       OMP_AddParallelSections.apply()
 
+      // resolve handling for unsupported matrix reductions
+      if (Platform.omp_version < 4.5)
+        OMP_ResolveMatrixReduction.apply()
+
       // resolve min/max reductions for omp versions not supporting them inherently
       if (Platform.omp_version < 3.1)
         OMP_ResolveMinMaxReduction.apply()

@@ -32,6 +32,9 @@ import exastencils.prettyprinting._
 // FIXME: op as BinOp
 case class L4_Reduction(var op : String, var target : L4_Access, targetType : L4_Datatype = L4_UnknownDatatype) extends L4_Node with L4_Progressable with PrettyPrintable {
   override def prettyprint(out : PpStream) = out << "reduction ( " << op << " : " << target << " )"
+
+  private def removeBrackets(str : String) = str.replaceAll("[\\[\\](){}]", "")
+
   // FIXME: IR_RealDatatype
   override def progress = {
     val targetInfo : (IR_Expression, String) = target match {
@@ -43,12 +46,12 @@ case class L4_Reduction(var op : String, var target : L4_Access, targetType : L4
       case _ : L4_ComplexAccess        => Logger.error("Reductions for complex accesses are currently not implemented.")
 
       // special case: matrix access
-      case mAcc : L4_MatrixAccess      => (mAcc.progress, mAcc.name + s"_${ mAcc.idxy }_${ mAcc.idxx.get }")
+      case mAcc : L4_MatrixAccess      => (mAcc.progress, mAcc.name + s"_${ mAcc.idxy.prettyprint }_${ mAcc.idxx.get.prettyprint }")
 
       // general case for variable accesses, etc.
       case acc : L4_Access => (acc.progress, acc.name)
     }
 
-    ProgressLocation(IR_Reduction(op, targetInfo._1, targetInfo._2))
+    ProgressLocation(IR_Reduction(op, targetInfo._1, removeBrackets(targetInfo._2)))
   }
 }
