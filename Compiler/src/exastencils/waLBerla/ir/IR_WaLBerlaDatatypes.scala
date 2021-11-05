@@ -4,6 +4,7 @@ import exastencils.base.ir.IR_SpecialDatatype
 
 object IR_WaLBerlaDatatypes {
   def WB_IBlock = IR_SpecialDatatype("IBlock")
+  def WB_Block = IR_SpecialDatatype("Block")
   def WB_BlockDataID = IR_SpecialDatatype("BlockDataID")
   def WB_StructuredBlockStorage = IR_SpecialDatatype("StructuredBlockStorage")
   def WB_StructuredBlockForest = IR_SpecialDatatype("StructuredBlockForest")

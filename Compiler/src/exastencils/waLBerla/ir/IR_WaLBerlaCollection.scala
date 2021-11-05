@@ -62,6 +62,7 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
 
   // add future functions
   functions += IR_WaLBerlaInitBlockForest()
+  functions += IR_WaLBerlaInitStaticRectDomain()
   for (field <- IR_WaLBerlaFieldCollection.objects)
     functions += IR_WaLBerlaAddFieldToStorage(field)
 
