@@ -27,6 +27,7 @@ import exastencils.domain.ir.IR_DomainFunctions
 import exastencils.field.ir.IR_InitFieldsWithZero
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.parallelization.api.cuda.CUDA_KernelFunctions
+import exastencils.simd.SIMD_NeonDivision
 import exastencils.timing.ir.IR_TimerFunctions
 
 /// IR_UserFunctions
@@ -67,6 +68,8 @@ case class IR_UserFunctions() extends IR_FunctionCollection(IR_UserFunctions.def
     val header = Platform.simd_header
     if (header != null)
       externalDependencies += header
+    if (Platform.simd_instructionSet == "NEON")
+      functions += SIMD_NeonDivision
     val mathLibHeader = Platform.simd_mathLibHeader
     if (mathLibHeader != null)
       externalDependencies ++= mathLibHeader
