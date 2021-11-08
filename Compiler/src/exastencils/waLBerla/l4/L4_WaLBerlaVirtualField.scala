@@ -1,6 +1,7 @@
 package exastencils.waLBerla.l4
 
 import exastencils.base.l4._
+import exastencils.baseExt.l4.L4_LoopOverField
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.grid.l4._
@@ -35,28 +36,35 @@ trait L4_WaLBerlaVirtualFieldPerDim extends L4_VirtualFieldPerDim {
   override def resolve(index : L4_ExpressionIndex) : L4_Expression = Logger.error("Resolved unresolvable waLBerla vf")
 }
 
-object L4_WaLBerlaReplaceVirtualFieldAccesses extends DefaultStrategy("Replace vf accesses in wb scope with wb vf accesses") {
+object L4_WaLBerlaResolveVirtualFieldAccesses extends DefaultStrategy("Resolve vf accesses in wb scope") {
 
   var collector = new L4_StackCollector
   this.register(collector)
   this.onBefore = () => this.resetCollectors()
 
-  def inWaLBerlaBlockLoop(collector : L4_StackCollector) =
+  def inWaLBerlaBlockLoop(collector : L4_StackCollector, level : Int) =
     collector.stack.exists {
       case _ : L4_WaLBerlaLoopOverBlocks => true
-      case _ : L4_WaLBerlaLoopOverField  => true
+      case loop : L4_LoopOverField       => L4_WaLBerlaFieldCollection.existsDecl(loop.field.name, level)
       case _                             => false
     }
 
-  this += Transformation("..", {
-    case _ @ L4_VirtualFieldAccess(L4_VF_CellCenterPerDim(lvl, domain, dim), index, arrayIndex) if inWaLBerlaBlockLoop(collector) =>
-      new L4_VirtualFieldAccess(L4_WaLBerlaCellCenterPerDim(lvl, domain, dim), index, arrayIndex)
-    case _ @ L4_VirtualFieldAccess(L4_VF_CellCenterAsVec(lvl, domain), index, arrayIndex) if inWaLBerlaBlockLoop(collector)       =>
-      new L4_VirtualFieldAccess(L4_WaLBerlaCellCenterAsVec(lvl, domain), index, arrayIndex)
+  private def replaceVirtualFieldAccesses(vfAcc : L4_VirtualFieldAccess) = vfAcc match {
+      case L4_VirtualFieldAccess(L4_VF_CellCenterPerDim(lvl, domain, dim), index, arrayIndex) if inWaLBerlaBlockLoop(collector, lvl) =>
+        new L4_VirtualFieldAccess(L4_WaLBerlaCellCenterPerDim(lvl, domain, dim), index, arrayIndex)
+      case L4_VirtualFieldAccess(L4_VF_CellCenterAsVec(lvl, domain), index, arrayIndex) if inWaLBerlaBlockLoop(collector, lvl)       =>
+        new L4_VirtualFieldAccess(L4_WaLBerlaCellCenterAsVec(lvl, domain), index, arrayIndex)
 
-    case _ @ L4_VirtualFieldAccess(L4_VF_CellWidthPerDim(lvl, domain, dim), index, arrayIndex) if inWaLBerlaBlockLoop(collector) =>
-      new L4_VirtualFieldAccess(L4_WaLBerlaCellWidthPerDim(lvl, domain, dim), index, arrayIndex)
-    case _ @ L4_VirtualFieldAccess(L4_VF_CellWidthAsVec(lvl, domain), index, arrayIndex) if inWaLBerlaBlockLoop(collector)       =>
-      new L4_VirtualFieldAccess(L4_WaLBerlaCellWidthAsVec(lvl, domain), index, arrayIndex)
+      case L4_VirtualFieldAccess(L4_VF_CellWidthPerDim(lvl, domain, dim), index, arrayIndex) if inWaLBerlaBlockLoop(collector, lvl) =>
+        new L4_VirtualFieldAccess(L4_WaLBerlaCellWidthPerDim(lvl, domain, dim), index, arrayIndex)
+      case L4_VirtualFieldAccess(L4_VF_CellWidthAsVec(lvl, domain), index, arrayIndex) if inWaLBerlaBlockLoop(collector, lvl)       =>
+        new L4_VirtualFieldAccess(L4_WaLBerlaCellWidthAsVec(lvl, domain), index, arrayIndex)
+      case _ =>
+      vfAcc
+  }
+
+  this += Transformation("Resolve", {
+    case vfAcc : L4_FutureVirtualFieldAccess if inWaLBerlaBlockLoop(collector, vfAcc.level) => replaceVirtualFieldAccesses(vfAcc.toVirtualFieldAccess)
+    case vfAcc : L4_VirtualFieldAccess if inWaLBerlaBlockLoop(collector, vfAcc.level) => replaceVirtualFieldAccesses(vfAcc)
   })
 }

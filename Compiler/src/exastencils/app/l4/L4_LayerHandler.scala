@@ -46,8 +46,8 @@ import exastencils.util.l4._
 import exastencils.waLBerla.l4.L4_UnifyWaLBerlaVarsSections
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldCollection
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayoutCollection
-import exastencils.waLBerla.l4.L4_WaLBerlaReplaceVirtualFieldAccesses
 import exastencils.waLBerla.l4.L4_WaLBerlaResolveLoopOverField
+import exastencils.waLBerla.l4.L4_WaLBerlaResolveVirtualFieldAccesses
 
 /// L4_LayerHandler
 
@@ -193,6 +193,10 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
       do {
         matches = 0
         matches += L4_ProcessDeclarations.applyAndCountMatches()
+
+        // replace wb vf accesses before they are resolved
+        L4_WaLBerlaResolveVirtualFieldAccesses.apply()
+
         matches += L4_ResolveAccesses.applyAndCountMatches()
 
         if (Knowledge.experimental_l4_resolveVirtualFields) {
@@ -244,9 +248,8 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     // progress knowledge to IR
     L4_KnowledgeContainer.progress()
 
-    // waLBerla field handling
+    // waLBerla field loop handling
     L4_WaLBerlaResolveLoopOverField.apply()
-    L4_WaLBerlaReplaceVirtualFieldAccesses.apply()
 
     //L4_ProgressKnowledge.apply()
 
