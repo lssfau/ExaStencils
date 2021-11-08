@@ -33,7 +33,7 @@ object IR_WaLBerlaUtil {
   // TODO: this is only a temporary implementation (Q potentially too large, i.e. too many directions)
   def stencilTemplate(numDims : Int) = numDims match {
     case 2 => "stencil::D2Q9"
-    case 3 => "stencil::D2Q27"
+    case 3 => "stencil::D3Q27"
     case _ => Logger.error("No waLBerla stencil class available for dimension: " + numDims)
   }
   def commScheme(wbField : IR_WaLBerlaField) = IR_VariableAccess(getGeneratedName(s"commScheme_${wbField.codeName}"), WB_CommScheme(stencilTemplate(wbField.numDimsGrid)))
