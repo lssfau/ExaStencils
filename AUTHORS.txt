@@ -1,0 +1,32 @@
+Main authors
+====================
+
+Christian Schmitt
+Sebastian Kuckuk
+Stefan Kronawitter
+
+List of contributors
+====================
+
+Alexander Grebhahn
+Armin Größlinger
+Christoph Wollner
+Daniel Zint
+David Spitzberg
+Denis Ribica
+Ewald Flad
+Fabian Boehm
+Georg Altmann
+Hannah Rittich
+Harald Köstler
+Jonas Schmitt
+Lisa Claus
+Maik Haase
+Markus Obereisenbuchner
+Martin Zeus
+Max Gerecke
+Meike Blöcher
+Richard Angersbach
+Samuel Kemmler
+Sara Faghih-Naini
+Thomas Lang
