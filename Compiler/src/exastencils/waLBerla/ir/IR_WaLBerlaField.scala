@@ -24,16 +24,16 @@ case class IR_WaLBerlaField(
     var index : Int,
     var codeName : String,
     var layout : IR_WaLBerlaFieldLayout,
+    var numSlots : Int,
     var boundary : IR_BoundaryCondition,
     var matShape: Option[IR_MatShape]
 ) extends IR_LeveledKnowledgeObject with IR_FieldLike {
 
   override def createDuplicate() : IR_WaLBerlaField = {
-    IR_WaLBerlaField(name, level, index, codeName, Duplicate(layout), Duplicate(boundary), Duplicate(matShape))
+    IR_WaLBerlaField(name, level, index, codeName, Duplicate(layout), numSlots, Duplicate(boundary), Duplicate(matShape))
   }
 
   def domain : IR_Domain = IR_DomainCollection.getByIdentifier("global").get
-  var numSlots : Int = 1 // TODO: how to realize slots for waLBerla fields?
 
   // TODO distinguish between CUDA GPU fields and CPU GhostLayerFields
   def waLBerlaFieldType = "GhostLayerField"

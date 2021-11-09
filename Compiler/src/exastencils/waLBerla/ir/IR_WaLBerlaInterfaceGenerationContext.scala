@@ -2,14 +2,8 @@ package exastencils.waLBerla.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ConstReferenceDatatype
-import exastencils.base.ir.IR_ExpressionStatement
-import exastencils.base.ir.IR_FunctionArgument
-import exastencils.base.ir.IR_MemberFunctionCall
-import exastencils.base.ir.IR_MemberInitializerList
-import exastencils.base.ir.IR_NullStatement
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_VariableAccess
+import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_BlockDataID
 
 // store context
@@ -18,11 +12,16 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
 
   IR_WaLBerlaCollectAccessedFields.applyStandalone(functions)
   var wbFieldAccesses = IR_WaLBerlaCollectAccessedFields.wbFieldAccesses
-  var wbFieldNames : ListBuffer[String] = wbFieldAccesses.map(_.name)
 
-  private def toBlockDataID(name : String) = IR_VariableAccess(name + "_ID", WB_BlockDataID)
+  private def toBlockDataID(field : IR_WaLBerlaField, slot : Int) =
+    IR_VariableAccess(IR_WaLBerlaUtil.createBlockDataIdName(field, slot), WB_BlockDataID)
 
-  def blockDataIDs : Map[String, IR_FunctionArgument] = wbFieldNames.sorted.map(acc => acc -> IR_FunctionArgument(toBlockDataID(acc))).toMap
+  def blockDataIDs : Map[String, IR_FunctionArgument] = wbFieldAccesses.sortBy(_.name).flatMap(acc => {
+    (0 until acc.target.numSlots).map(slot => {
+      val blockDataId = toBlockDataID(acc.field, slot)
+      blockDataId.name -> IR_FunctionArgument(blockDataId)
+    })
+  }).toMap
 
   // ctor params and members
   var ctorParams : ListBuffer[IR_FunctionArgument] = ListBuffer()
@@ -44,10 +43,11 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
 
   // comm scheme for each field. packed with a uniform pack info
   if (true) { // TODO: only generate when necessary
-    for (field <- wbFieldAccesses.groupBy(_.name).map(_._2.head)) {
-      val commScheme = IR_WaLBerlaUtil.commScheme(field)
-      members += commScheme
-      ctorInitializerList.arguments += Tuple2(commScheme, blocks)
+    for (wbfAcc <- wbFieldAccesses.groupBy(_.name).map(_._2.head)) {
+
+      val commScheme = IR_WaLBerlaCommScheme(wbfAcc.field)
+      members += commScheme.baseAccess()
+      ctorInitializerList.arguments += commScheme.ctorInitializerList(blocks)
     }
   }
 
@@ -56,10 +56,12 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
 
   // add pack info for each comm scheme
   if (true) { // TODO: only generate when necessary
-    for (field <- wbFieldAccesses.groupBy(_.name).map(_._2.head)) {
-      val commScheme = IR_WaLBerlaUtil.commScheme(field)
-      ctorBody += IR_ExpressionStatement(IR_MemberFunctionCall(
-        commScheme, "addPackInfo", IR_WaLBerlaUtil.createUniformPackInfo(field, toBlockDataID(field.name))))
+    for (wbfAcc <- wbFieldAccesses.groupBy(_.name).map(_._2.head)) {
+      val wbField = wbfAcc.field
+      val commScheme = IR_WaLBerlaCommScheme(wbField)
+      ctorBody ++= (0 until commScheme.numSlots).map(slot =>
+        IR_ExpressionStatement(IR_MemberFunctionCall(commScheme.resolveAccess(slot),
+          "addPackInfo", IR_WaLBerlaUtil.createUniformPackInfo(wbField, IR_WaLBerlaUtil.getBlockDataID(wbField, slot)))))
     }
   }
 }

@@ -2,14 +2,9 @@ package exastencils.waLBerla.ir
 
 import scala.collection.mutable
 
-import exastencils.base.ir.IR_Datatype
-import exastencils.base.ir.IR_Expression
+import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_NullExpression
-import exastencils.base.ir.IR_PointerDatatype
-import exastencils.base.ir.IR_SpecialDatatype
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_VariableDeclaration
+import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
@@ -17,20 +12,18 @@ import exastencils.field.ir.IR_FieldAccess
 import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_FieldDatatype
 
-// TODO: potentially extend with slots
-
 object IR_IV_WaLBerlaFieldData {
   def apply(fAcc : IR_FieldAccess) : IR_IV_WaLBerlaFieldData = {
     val wbfield = IR_WaLBerlaFieldCollection.getByIdentifier(fAcc.name, fAcc.level, suppressError = true).get
-    new IR_IV_WaLBerlaFieldData(wbfield, fAcc.fragIdx)
+    new IR_IV_WaLBerlaFieldData(wbfield, fAcc.slot, fAcc.fragIdx)
   }
 
-  def apply(fAcc : IR_WaLBerlaFieldAccess) : IR_IV_WaLBerlaFieldData = new IR_IV_WaLBerlaFieldData(fAcc.target, fAcc.fragIdx)
+  def apply(fAcc : IR_WaLBerlaFieldAccess) : IR_IV_WaLBerlaFieldData = new IR_IV_WaLBerlaFieldData(fAcc.target, fAcc.slot, fAcc.fragIdx)
 }
 
 case class IR_IV_WaLBerlaFieldData(
     var field : IR_WaLBerlaField,
-    // var slot : IR_Expression,
+    var slot : IR_Expression,
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, true, false, false) {
 
   var level : IR_Expression = field.level
@@ -49,34 +42,17 @@ case class IR_IV_WaLBerlaFieldData(
   override def getDtor() : Option[IR_Statement] = None
   override def registerIV(declarations : mutable.HashMap[String, IR_VariableDeclaration], ctors : mutable.HashMap[String, IR_Statement], dtors : mutable.HashMap[String, IR_Statement]) : Unit = {}
 
-  /*
-  override def wrapInLoops(body : IR_Statement) : IR_Statement = {
-    var wrappedBody = body
-    if (field.numSlots > 1)
-      wrappedBody = IR_ForLoop(
-        IR_VariableDeclaration(IR_IntegerDatatype, "slot", 0),
-        IR_Lower("slot", field.numSlots),
-        IR_PreIncrement("slot"),
-        wrappedBody)
-    super.wrapInLoops(wrappedBody)
-  }
-  */
-
   override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
     var access = super.resolveAccess(baseAccess, fragment, domain, field, IR_NullExpression, neigh)
-    /*
     if (this.field.numSlots > 1)
       access = IR_ArrayAccess(access, slot)
-    */
     access
   }
 
   override def resolveDatatype() : IR_Datatype = {
-    /*
     if (field.numSlots > 1)
       IR_ArrayDatatype(IR_PointerDatatype(datatype), field.numSlots)
     else
-    */
       IR_PointerDatatype(datatype)
   }
 
@@ -84,5 +60,5 @@ case class IR_IV_WaLBerlaFieldData(
   override def resolveName() : String = field.name
     //resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, level.prettyprint, "")
 
-  def getData(defVal : Option[IR_Expression] = None) : IR_VariableDeclaration = IR_VariableDeclaration(IR_PointerDatatype(datatype), resolveName(), defVal)
+  def getData(defVal : Option[IR_Expression] = None) : IR_VariableDeclaration = IR_VariableDeclaration(resolveDatatype(), resolveName(), defVal)
 }

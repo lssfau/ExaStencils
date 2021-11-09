@@ -17,6 +17,7 @@ case class L4_WaLBerlaField(
     var level : Int,
     var index : Int,
     var fieldLayout : L4_WaLBerlaFieldLayout,
+    var numSlots : Int,
     var boundary : L4_BoundaryCondition,
     var matShape : Option[L4_MatShape] = None
 ) extends L4_LeveledKnowledgeObject[IR_WaLBerlaField] {
@@ -31,19 +32,19 @@ case class L4_WaLBerlaField(
   def domain : L4_Domain = L4_DomainCollection.getByIdentifier("global").get
   def codeName : String = name + "_" + level
   def numDimsGrid : Int = domain.numDims
-  def numSlots = 1
 
   override def prettyprintDecl(out : PpStream) : Unit = {
     out << "waLBerla Field " << name
     out << "< " << fieldLayout.name
     if (matShape.isDefined) out << ", " << matShape
     out << " >"
+    if (numSlots > 1) out << "[" << numSlots << "]"
     out << "@" << level
   }
 
   def toField = L4_Field(name, level, index, domain, fieldLayout.toFieldLayout, numSlots, boundary, matShape)
 
   override def progressImpl() =
-    IR_WaLBerlaField(name, level, index, codeName, fieldLayout.getProgressedObj(), boundary.progress,
+    IR_WaLBerlaField(name, level, index, codeName, fieldLayout.getProgressedObj(), numSlots, boundary.progress,
       if(matShape.isDefined) Some(matShape.get.progress) else None)
 }

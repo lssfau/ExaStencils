@@ -50,7 +50,7 @@ trait IR_BoundaryCondition extends IR_Node {
 
   def accessField(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, idx : IR_ExpressionIndex) = {
     if (IR_WaLBerlaFieldCollection.exists(field.name, field.level))
-      IR_WaLBerlaFieldAccess(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get, idx)
+      IR_WaLBerlaFieldAccess(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get, slot, idx)
     else field match {
       case f : IR_Field => IR_FieldAccess(f, slot, fragIdx, idx)
       case _            => Logger.error("Unknown field type.")

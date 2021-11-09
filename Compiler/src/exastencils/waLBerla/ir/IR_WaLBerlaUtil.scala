@@ -8,13 +8,13 @@ import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExternalFunctionReference
 import exastencils.base.ir.IR_FunctionArgument
 import exastencils.base.ir.IR_FunctionCall
+import exastencils.base.ir.IR_InitializerList
 import exastencils.base.ir.IR_MemberFunctionCallArrow
 import exastencils.base.ir.IR_SharedPointerDatatype
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_BlockDataID
-import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_CommScheme
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_FieldDatatype
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_IBlock
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
@@ -36,26 +36,32 @@ object IR_WaLBerlaUtil {
     case 3 => "stencil::D3Q27"
     case _ => Logger.error("No waLBerla stencil class available for dimension: " + numDims)
   }
-  def commScheme(wbField : IR_WaLBerlaField) = IR_VariableAccess(getGeneratedName(s"commScheme_${wbField.codeName}"), WB_CommScheme(stencilTemplate(wbField.numDimsGrid)))
   def createUniformPackInfo(wbField : IR_WaLBerlaField, fieldBlockDataID : IR_Access) =
     make_shared(s"field::communication::PackInfo< ${WB_FieldDatatype(wbField).prettyprint()} >", fieldBlockDataID)
 
   def memberSuffix = "_gen"
   def getGeneratedName(s : String) : String = s + memberSuffix
 
-  def getBlockDataID(name : String) = IR_VariableAccess(getGeneratedName(name + "_ID"), WB_BlockDataID)
+  def createBlockDataIdName(wbField : IR_WaLBerlaField, slot : Int) = wbField.name + "_ID" + (if (wbField.numSlots > 1) s"_$slot" else "")
+  def getBlockDataID(wbField : IR_WaLBerlaField, slot : Int) =
+    IR_VariableAccess(getGeneratedName(createBlockDataIdName(wbField, slot)), WB_BlockDataID)
   def getBlockForest = blockForestMember
 
   // get field data from block
-  def getFields(accesses : IR_WaLBerlaFieldAccess*) : ListBuffer[IR_VariableDeclaration] = accesses.to[mutable.ListBuffer].map(fAcc => {
-    val fieldDt = WB_FieldDatatype(fAcc.target)
-    IR_IV_WaLBerlaFieldData(fAcc).getData(
-      Some(new IR_MemberFunctionCallArrow(iblock, s"getData< ${fieldDt.typeName} >", ListBuffer(getBlockDataID(fAcc.name)), fieldDt)))
-  })
+  def getDataFromBlock(wbField : IR_WaLBerlaField, slot : Int) = {
+    val fieldDt = WB_FieldDatatype(wbField)
+    new IR_MemberFunctionCallArrow(iblock, s"getData< ${fieldDt.typeName} >", ListBuffer(getBlockDataID(wbField, slot)), fieldDt)
+  }
 
-  def getFields(accesses : IR_WaLBerlaField*)(implicit d : DummyImplicit) : ListBuffer[IR_VariableDeclaration] = accesses.to[mutable.ListBuffer].map(field => {
-    val fieldDt = WB_FieldDatatype(field)
-    IR_IV_WaLBerlaFieldData(field).getData(
-      Some(new IR_MemberFunctionCallArrow(iblock, s"getData< ${fieldDt.typeName} >", ListBuffer(getBlockDataID(field.name)), fieldDt)))
-  })
+  def getFields(accesses : IR_WaLBerlaFieldAccess*) : ListBuffer[IR_VariableDeclaration] = {
+    accesses.to[mutable.ListBuffer].map(fAcc => {
+      val wbField = fAcc.field
+      val defValue = if (wbField.numSlots > 1) {
+        IR_InitializerList( (0 until wbField.numSlots).map(slot => getDataFromBlock(wbField, slot)) : _* )
+      } else {
+        getDataFromBlock(wbField, 0)
+      }
+      IR_IV_WaLBerlaFieldData(fAcc).getData(Some(defValue))
+    })
+  }
 }

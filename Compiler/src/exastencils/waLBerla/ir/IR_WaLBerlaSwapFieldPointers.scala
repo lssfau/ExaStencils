@@ -7,18 +7,16 @@ import exastencils.prettyprinting.PpStream
 import exastencils.prettyprinting.PrettyPrintable
 
 case class IR_WaLBerlaSwapFieldPointers(
-    var src : IR_WaLBerlaField,
-    var dst : IR_WaLBerlaField
+    var src : IR_WaLBerlaFieldAccess,
+    var dst : IR_WaLBerlaFieldAccess,
 ) extends IR_Statement with PrettyPrintable {
 
-  private def toWbData(wbf : IR_WaLBerlaField) = IR_IV_WaLBerlaFieldData(wbf, IR_LoopOverFragments.defIt)
-  val srcData = toWbData(src)
-  val dstData = toWbData(dst)
+  private def toWbData(wbfAcc : IR_WaLBerlaFieldAccess) = IR_IV_WaLBerlaFieldData(wbfAcc.field, wbfAcc.slot, IR_LoopOverFragments.defIt)
 
   if (IR_WaLBerlaFieldCollection.getByIdentifier(src.name, src.level).isEmpty || IR_WaLBerlaFieldCollection.getByIdentifier(dst.name, dst.level).isEmpty)
     Logger.error("\"IR_WaLBerlaSwapFieldPointers\": Both fields must be waLBerla fields")
 
   override def prettyprint(out : PpStream) : Unit = {
-    out << srcData << "->swapDataPointers(" << dstData << ");"
+    out << toWbData(src) << "->swapDataPointers(" << toWbData(dst) << ");"
   }
 }

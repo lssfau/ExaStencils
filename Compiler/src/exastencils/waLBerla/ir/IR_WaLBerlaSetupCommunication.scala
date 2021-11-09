@@ -2,9 +2,7 @@ package exastencils.waLBerla.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ExpressionStatement
 import exastencils.base.ir.IR_FutureFunction
-import exastencils.base.ir.IR_MemberFunctionCall
 import exastencils.boundary.ir.IR_ApplyBCFunction
 import exastencils.communication.ir.IR_CommunicateFunction
 import exastencils.communication.ir.IR_CommunicationFunctions
@@ -48,9 +46,7 @@ object IR_WaLBerlaSetupCommunication extends DefaultStrategy("Communication hand
       // replace body of exa's communicate function with 'communicate()' member fct of waLBerla's comm scheme and inline
       val genFct = comm.generateFct()
       val field = comm.field
-      val body = IR_ExpressionStatement(IR_MemberFunctionCall(
-        IR_WaLBerlaUtil.commScheme(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get),
-        "communicate"))
+      val body = IR_WaLBerlaCommunicate(IR_WaLBerlaCommScheme(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get), comm.slot)
 
       IR_WaLBerlaCollection.get.functions += IR_WaLBerlaLeveledFunction(comm.name, comm.level, genFct.datatype, genFct.parameters, ListBuffer(body))
       None // consume

@@ -26,7 +26,7 @@ case class IR_WaLBerlaLoopOverBlocks(
     parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && parallelization.potentiallyParallel
 
     // collect fields accessed in loop
-    var fieldsAccessed = ListBuffer[IR_WaLBerlaField]()
+    var fieldsAccessed = ListBuffer[IR_WaLBerlaFieldAccess]()
     IR_WaLBerlaCollectAccessedFields.applyStandalone(body)
     fieldsAccessed ++= Duplicate(IR_WaLBerlaCollectAccessedFields.wbFieldAccesses).groupBy(_.name).map(_._2.head)
 

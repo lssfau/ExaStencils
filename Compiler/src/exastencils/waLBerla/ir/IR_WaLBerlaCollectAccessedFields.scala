@@ -4,12 +4,13 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Node
 import exastencils.base.ir.IR_Root
+import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
 
 object IR_WaLBerlaCollectAccessedFields extends DefaultStrategy("Collect waLBerla field accesses") {
-  var wbFieldAccesses : ListBuffer[IR_WaLBerlaField] = ListBuffer()
+  var wbFieldAccesses : ListBuffer[IR_WaLBerlaFieldAccess] = ListBuffer()
 
   override def apply(node : Option[Node] = None) = {
     wbFieldAccesses.clear
@@ -27,13 +28,13 @@ object IR_WaLBerlaCollectAccessedFields extends DefaultStrategy("Collect waLBerl
 
   this += new Transformation("Collect", {
     case fieldAccess : IR_WaLBerlaFieldAccess =>
-      wbFieldAccesses += fieldAccess.field
+      wbFieldAccesses += fieldAccess
       fieldAccess
     case swap : IR_WaLBerlaSwapFieldPointers =>
       wbFieldAccesses ++= List(swap.src, swap.dst)
       swap
     case access : IR_IV_WaLBerlaFieldData =>
-      wbFieldAccesses += access.field
+      wbFieldAccesses += IR_WaLBerlaFieldAccess(access.field, access.slot, IR_LoopOverDimensions.defIt(access.field.numDimsGrid))
       access
   })
 }

@@ -25,12 +25,13 @@ trait IR_WaLBerlaFieldAccessLike extends IR_LeveledKnowledgeAccess {
 }
 
 object IR_WaLBerlaFieldAccess {
-  def apply(field : IR_WaLBerlaField, index : IR_ExpressionIndex) : IR_WaLBerlaFieldAccess =
-    new IR_WaLBerlaFieldAccess(field, IR_LoopOverFragments.defIt, index)
+  def apply(field : IR_WaLBerlaField, slot : IR_Expression, index : IR_ExpressionIndex) : IR_WaLBerlaFieldAccess =
+    new IR_WaLBerlaFieldAccess(field, slot, IR_LoopOverFragments.defIt, index)
 }
 
 case class IR_WaLBerlaFieldAccess(
     var field : IR_WaLBerlaField,
+    var slot : IR_Expression,
     var fragIdx : IR_Expression,
     var index : IR_ExpressionIndex,
     var offset : Option[IR_ConstIndex] = None,
@@ -63,7 +64,7 @@ case class IR_WaLBerlaFieldAccess(
     } else {
       newIndex
     }
-    out << IR_IV_WaLBerlaFieldData(field, fragIdx) << "->get(" <<< (linearizedHigherDimIndex.indices, ",") << ")"
+    out << IR_IV_WaLBerlaFieldData(field, slot, fragIdx) << "->get(" <<< (linearizedHigherDimIndex.indices, ",") << ")"
   }
 }
 
@@ -71,6 +72,6 @@ object IR_WaLBerlaResolveFieldAccess extends DefaultStrategy("Resolve FieldAcces
   this += new Transformation("Resolve", {
     case access : IR_FieldAccess if IR_WaLBerlaFieldCollection.contains(access) =>
       val field = IR_WaLBerlaFieldCollection.getByIdentifier(access.name, access.level, suppressError = true).get
-      IR_WaLBerlaFieldAccess(field, access.fragIdx, access.index, access.offset, access.frozen, access.matIndex)
+      IR_WaLBerlaFieldAccess(field, access.slot, access.fragIdx, access.index, access.offset, access.frozen, access.matIndex)
   })
 }
