@@ -159,7 +159,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       val hostStmts = new ListBuffer[IR_Statement]()
       val deviceStmts = new ListBuffer[IR_Statement]()
       val fieldOffset = new mutable.HashMap[(String, Int), Int]()
-      val fields = new mutable.HashMap[(String, Int), IR_Field]()
+      val fields = new mutable.HashMap[(String, Int), IR_FieldLike]()
       var hostCondStmt : IR_IfCondition = null
       var deviceCondStmt : IR_IfCondition = null
 

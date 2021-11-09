@@ -90,7 +90,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
   }
 
   private type FieldKey = (String, Int)
-  private def FieldKey(field : IR_Field) : FieldKey = (field.name, field.level)
+  private def FieldKey(field : IR_FieldLike) : FieldKey = (field.name, field.level)
 
   private def updateSlots(stmts : ListBuffer[IR_Statement], fieldOffset : HashMap[FieldKey, Int]) : Unit = {
     object AdaptFieldSlots extends QuietDefaultStrategy("Adapt field slots") {
@@ -121,7 +121,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
     // unroll this loop and update the loop boundaries (saving communication requires a local copmutation of some ghost layers)
     val res = new ListBuffer[IR_Statement]()
     val fieldOffset = new HashMap[FieldKey, Int]()
-    val fields = new HashMap[FieldKey, IR_Field]()
+    val fields = new HashMap[FieldKey, IR_FieldLike]()
     var condStmt : IR_IfCondition = null
     val replIt = new QuietDefaultStrategy("replace Iterator") {
       var itVal : Long = 0

@@ -35,7 +35,7 @@ object L4_FieldAccess {
   def apply(access : L4_FutureFieldAccess) =
     new L4_FieldAccess(L4_FieldCollection.getByIdentifier(access.name, access.level).get, access.slot, access.offset,  access.frozen, access.matIndex)
 
-  def resolveSlot(field : IR_Field, slot : L4_SlotSpecification) = {
+  def resolveSlot(field : IR_FieldLike, slot : L4_SlotSpecification) = {
     if (1 == field.numSlots) IR_IntegerConstant(0)
     else slot match {
       case L4_ActiveSlot       => IR_SlotAccess(IR_IV_ActiveSlot(field), 0)

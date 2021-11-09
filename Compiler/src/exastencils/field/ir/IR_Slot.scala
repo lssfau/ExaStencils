@@ -30,7 +30,7 @@ import exastencils.util.ir.IR_StackCollector
 
 /// IR_IV_ActiveSlot
 
-case class IR_IV_ActiveSlot(var field : IR_Field, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, true, true, false) {
+case class IR_IV_ActiveSlot(var field : IR_FieldLike, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, true, true, false) {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index, field.level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
