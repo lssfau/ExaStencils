@@ -5,7 +5,16 @@ maxLevel                       = 6
 
 discr_type                     = "FiniteDifferences"
 
-import '../lib/domain_fourPatches.knowledge'
+
+domain_onlyRectangular         = true
+domain_rect_generate           = true
+domain_rect_numBlocks_x        = 2
+domain_rect_numBlocks_y        = 2
+domain_rect_numBlocks_z        = 1
+domain_rect_numFragsPerBlock_x = 2
+domain_rect_numFragsPerBlock_y = 4
+domain_rect_numFragsPerBlock_z = 1
+
 import '../lib/parallelization_fourMPI.knowledge'
 
 experimental_visit_enable 			= true
