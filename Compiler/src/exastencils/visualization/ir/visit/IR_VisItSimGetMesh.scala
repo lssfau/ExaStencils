@@ -8,14 +8,13 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_IV_FragmentIndex
 import exastencils.field.ir._
-import exastencils.grid.ir.IR_AtCellCenter
-import exastencils.grid.ir.IR_AtFaceCenter
-import exastencils.grid.ir.IR_AtNode
+import exastencils.grid.ir._
+import exastencils.visualization.ir.visit.IR_VisItGlobals._
 
 /// IR_VisItSimGetMesh
 // provide mesh for VisIt
 
-case class IR_VisItSimGetMesh() extends IR_FuturePlainVisItFunction {
+case class IR_VisItSimGetMesh() extends IR_VisItFuturePlainFunction {
 
   import exastencils.visualization.ir.visit.IR_VisItUtil._
 
@@ -27,11 +26,12 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainVisItFunction {
     fctBody += IR_VariableDeclaration(h, visitInvalidHandle)
 
     // 1d case only produce a curvilinear mesh
-    if (Knowledge.dimensionality > 1) {
-      for (coordsDecl <- coordsArrays) {
-        val curCoords = coordsArrays.indexOf(coordsDecl)
+    if (useRectMesh()) {
+      for (coords <- coordsArrays) {
+        val curCoords = coordsArrays.indexOf(coords)
         for (level <- Knowledge.minLevel to Knowledge.maxLevel) {
-          val numPointsDim = (0 until Knowledge.dimensionality).map(d => Knowledge.domain_fragmentLengthAsVec(d) * Knowledge.domain_rect_numFragsPerBlockAsVec(d) * (1 << level) + isNodalInDim(curCoords)(d))
+          val numPointsDim = (0 until Knowledge.dimensionality).map(d =>
+            Knowledge.domain_fragmentLengthAsVec(d) * Knowledge.domain_rect_numFragsPerBlockAsVec(d) * (1 << level) + isNodalInDim(curCoords)(d))
 
           // coordinate setter function depending on dimensionality
           val handlesAccessDim = (0 until Knowledge.dimensionality).map(d => IR_ArrayAccess(handles, d)).toArray
@@ -55,9 +55,9 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainVisItFunction {
           for (dim <- 0 until Knowledge.dimensionality) {
             // array access depending on number of levels
             val coordsAccess = if (Knowledge.numLevels > 1) {
-              IR_MultiDimArrayAccess(IR_VariableAccess(coordsDecl), IR_ExpressionIndex(Array[IR_Expression](dim, level - Knowledge.minLevel)))
+              IR_MultiDimArrayAccess(coords, IR_ExpressionIndex(Array[IR_Expression](dim, level - Knowledge.minLevel)))
             } else {
-              IR_ArrayAccess(IR_VariableAccess(coordsDecl), dim)
+              IR_ArrayAccess(coords, dim)
             }
 
             ifBody += IR_FunctionCall(funcRef,
@@ -72,7 +72,7 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainVisItFunction {
 
           fctBody += IR_IfCondition(
             IR_AndAnd(
-              stringEquals(IR_VariableAccess("name", IR_StringDatatype), "rect" + Knowledge.dimensionality + "d_" + localizationFromCoords(coordsDecl.name)),
+              stringEquals(IR_VariableAccess("name", IR_StringDatatype), meshname(coords)),
               curLevel EqEq level
             ),
             ListBuffer[IR_Statement](
@@ -85,12 +85,11 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainVisItFunction {
     }
 
     // curvilinear mesh construction for 1d and 2d problems
-    if (Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) {
+    if (useCurveMesh()) {
       for (field <- IR_FieldCollection.sortedObjects) {
         val numDims = field.layout.numDimsGrid
         val handlesCurve = IR_VariableAccess("handles", IR_ArrayDatatype(visitHandle, numDims + 1))
         val numPointsDimTmp = (0 until numDims).map(d => field.layout.defIdxDupRightEnd(d) - field.layout.defIdxDupLeftBegin(d)).toArray
-        val numPointsDimField = (0 until numDims).map(d => field.layout.defIdxPadRightEnd(0) - field.layout.defIdxPadLeftBegin(0))
         val numOuterLayersLeft = (0 until numDims).map(d => field.layout.defIdxDupLeftBegin(d) - field.layout.defIdxPadLeftBegin(d)).toArray
         val numOuterLayersRight = (0 until numDims).map(d => field.layout.defIdxPadRightEnd(d) - field.layout.defIdxDupRightEnd(d)).toArray
         val isNodalDim = (0 until numDims).map(d => numPointsDimTmp(d) % 2)
@@ -123,41 +122,33 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainVisItFunction {
         }
 
         // pass pointers of coordinate arrays to handles
-        val curveCoordsDecl = field.layout.localization match {
-          case IR_AtNode              => curveCoordsNodeDecl
-          case IR_AtCellCenter        => curveCoordsZoneDecl
+        val curveCoords = field.layout.localization match {
+          case IR_AtNode              => curveCoordsNode
+          case IR_AtCellCenter        => curveCoordsZone
           case face : IR_AtFaceCenter => curveCoordsFaceAsVec(face.dim)
         }
-        val curveCoords = IR_VariableAccess(curveCoordsDecl)
 
         val idxTmp = (0 until numDims).map(d =>
-          (if (d > 1) numPointsTotalTmp.take(d - 1).product else 1) * (IR_FieldIteratorAccess(d) + fragOffset(d)) : IR_Expression
-        ).reduce(_ + _)
+          (0 until d).map(numPointsTotalTmp).product * (IR_FieldIteratorAccess(d) + fragOffset(d)) : IR_Expression).reduce(_ + _)
 
         // copy values to temporary memory (only when necessary)
-        val tmpDecl = IR_VariableDeclaration(IR_PointerDatatype(IR_RealDatatype), "tmp")
+        val tmp = IR_VariableAccess("tmp", IR_PointerDatatype(IR_RealDatatype))
         if (dataIsCopied) {
-          ifBody += tmpDecl
-          ifBody += IR_Assignment(
-            IR_VariableAccess(tmpDecl),
-            IR_Cast(IR_PointerDatatype(IR_RealDatatype), IR_FunctionCall(IR_ExternalFunctionReference("malloc"), numPointsTotalTmp.product * IR_SizeOf(IR_RealDatatype)))
-          )
+          ifBody += IR_VariableDeclaration(tmp)
+          ifBody += IR_ArrayAllocation(tmp, IR_RealDatatype, numPointsTotalTmp.product)
 
           ifBody += IR_LoopOverFragments(
             IR_LoopOverDimensions(numDims, IR_ExpressionIndexRange(IR_ExpressionIndex(Array.fill[Int](numDims)(0)), IR_ExpressionIndex(numPointsDimTmp)),
               IR_Assignment(
-                IR_ArrayAccess(IR_VariableAccess(tmpDecl), idxTmp),
+                IR_ArrayAccess(tmp, idxTmp),
                 // TODO: assumes slot = 0
-                scaleCurvemesh * IR_FieldAccess(field, slot = 0, IR_LoopOverFragments.defIt, IR_LoopOverDimensions.defIt(numDims))
-              )
-            )
-          )
+                scaleCurvemesh * IR_FieldAccess(field, slot = 0, IR_LoopOverFragments.defIt, IR_LoopOverDimensions.defIt(numDims)))))
         }
 
         val variableAccess = if (dataIsCopied) {
-          IR_VariableAccess(tmpDecl)
+          tmp
         } else {
-          // pass pointer of field if nothing was copied
+          // pass pointer of field if nothing is copied
           // TODO: assumes slot = 0
           IR_IV_FieldData(field, slot = 0)
         }
@@ -201,7 +192,7 @@ case class IR_VisItSimGetMesh() extends IR_FuturePlainVisItFunction {
 
         fctBody += IR_IfCondition(
           IR_AndAnd(
-            stringEquals(IR_VariableAccess("name", IR_StringDatatype), "curv" + (numDims + 1) + "d_" + field.name),
+            stringEquals(IR_VariableAccess("name", IR_StringDatatype), curvname(numDims, field.name)),
             curLevel EqEq field.level
           ),
           ListBuffer[IR_Statement](

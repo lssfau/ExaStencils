@@ -5,11 +5,12 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config.Knowledge
+import exastencils.visualization.ir.visit.IR_VisItGlobals._
 
 /// IR_VisItControlCommandCallback
 // implement functionality for the control buttons on the GUI
 
-case class IR_VisItControlCommandCallback() extends IR_FuturePlainVisItFunction {
+case class IR_VisItControlCommandCallback() extends IR_VisItFuturePlainFunction {
 
   import exastencils.visualization.ir.visit.IR_VisItUtil._
 

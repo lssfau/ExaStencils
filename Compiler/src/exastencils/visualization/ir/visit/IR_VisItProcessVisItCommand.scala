@@ -10,7 +10,7 @@ import exastencils.parallelization.api.mpi._
 /// IR_VisItProcessVisItCommand
 // additional handling for parallel simulations because only root communicates with VisIt
 
-case class IR_VisItProcessVisItCommand() extends IR_FuturePlainVisItFunction {
+case class IR_VisItProcessVisItCommand() extends IR_VisItFuturePlainFunction {
 
   override def generateFct() : IR_PlainFunction =  {
     val fctBody = ListBuffer[IR_Statement]()
@@ -22,34 +22,34 @@ case class IR_VisItProcessVisItCommand() extends IR_FuturePlainVisItFunction {
       MPI_IsRootProc.apply(),
       ListBuffer[IR_Statement](
         IR_IfCondition(
-          IR_EqEq(IR_IntegerConstant(1), IR_FunctionCall(IR_ExternalFunctionReference("VisItProcessEngineCommand"))),
+          IR_EqEq(1, IR_FunctionCall(IR_ExternalFunctionReference("VisItProcessEngineCommand"))),
           ListBuffer[IR_Statement](
-            IR_Assignment(command, IR_IntegerConstant(1)),
-            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(command), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator),
-            IR_Return(IR_IntegerConstant(1))),
+            IR_Assignment(command, 1),
+            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(command), 1, IR_Native("MPI_INT"), 0, Knowledge.mpi_defaultCommunicator),
+            IR_Return(1)),
           ListBuffer[IR_Statement](
-            IR_Assignment(command, IR_IntegerConstant(0)),
-            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(command), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator),
-            IR_Return(IR_IntegerConstant(0)))
+            IR_Assignment(command, 0),
+            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(command), 1, IR_Native("MPI_INT"), 0, Knowledge.mpi_defaultCommunicator),
+            IR_Return(0))
         )
       ),
       ListBuffer[IR_Statement](
         IR_WhileLoop(
-          IR_IntegerConstant(1),
+          1,
           ListBuffer[IR_Statement](
-            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(command), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator),
+            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(command), 1, IR_Native("MPI_INT"), 0, Knowledge.mpi_defaultCommunicator),
             IR_IfCondition(
-              IR_EqEq(command, IR_IntegerConstant(0)),
+              IR_EqEq(command, 0),
               IR_FunctionCall(IR_ExternalFunctionReference("VisItProcessEngineCommand"))),
             IR_IfCondition(
-              IR_EqEq(command, IR_IntegerConstant(1)),
-              IR_Return(IR_IntegerConstant(1))),
+              IR_EqEq(command, 1),
+              IR_Return(1)),
             IR_IfCondition(
-              IR_EqEq(command, IR_IntegerConstant(2)),
-              IR_Return(IR_IntegerConstant(0))
+              IR_EqEq(command, 2),
+              IR_Return(0)
             ))
         ),
-        IR_Return(IR_IntegerConstant(1))
+        IR_Return(1)
       )
     )
 

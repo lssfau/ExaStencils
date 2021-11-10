@@ -1,5 +1,6 @@
 package exastencils.visualization.ir.visit
 
+import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.datastructures._
@@ -7,6 +8,7 @@ import exastencils.field.ir.IR_FieldCollection
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.grid.ir._
 import exastencils.logger.Logger
+import exastencils.visualization.ir.visit.IR_VisItGlobals._
 
 object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
@@ -14,7 +16,6 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     * Utilize virtual fields for node/cell positions
     * too many copies -> read docs for ghost layer mechanism from VisIt
     * assumes rectangular domains -> generally blockstructured grids not supported
-    * interpolate face-centered variables to cell-centered
     * only slot = 0 is considered
     * Higher-order datatypes unsupported
   */
@@ -41,7 +42,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     super.apply(applyAtNode)
   }
 
-  this += Transformation("..", {
+  this += Transformation("Add dependencies, new user functions and globals", {
     case fctCollection : IR_UserFunctions =>
       if (Knowledge.dimensionality > 1)
         fctCollection += IR_VisItSimGetVariable()
@@ -88,11 +89,11 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
       // coordinate arrays for 2 and 3 dim. rectilinear meshes
       if (Knowledge.dimensionality > 1) {
-        for (coordsDecl <- coordsArrays.distinct) globalCollection.variables += coordsDecl
+        for (coords <- coordsArrays.distinct) globalCollection.variables += IR_VariableDeclaration(coords)
       }
       // coordinate arrays for 2 and 3 dim. curvilinear meshes (partially consisting of 1d or 2d variables)
       if (Knowledge.dimensionality < 3) {
-        for (curveCoordsDecl <- curveCoordsArrays.distinct) globalCollection.variables += curveCoordsDecl
+        for (curveCoords <- curveCoordsArrays.distinct) globalCollection.variables += IR_VariableDeclaration(curveCoords)
       }
 
       globalCollection.variables += commandNamesDecl

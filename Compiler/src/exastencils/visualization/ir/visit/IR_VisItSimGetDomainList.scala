@@ -6,14 +6,14 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config._
 import exastencils.parallelization.api.mpi._
+import exastencils.visualization.ir.visit.IR_VisItGlobals._
+
 
 /// IR_VisItSimGetDomainList
 // set number of domains per processor, mandatory
 // with 1 block per MPI Rank, a 1:1 ratio is used
 
-case class IR_VisItSimGetDomainList() extends IR_FuturePlainVisItFunction {
-
-  import exastencils.visualization.ir.visit.IR_VisItUtil._
+case class IR_VisItSimGetDomainList() extends IR_VisItFuturePlainFunction {
 
   override def generateFct() : IR_PlainFunction =  {
     val fctBody = ListBuffer[IR_Statement]()

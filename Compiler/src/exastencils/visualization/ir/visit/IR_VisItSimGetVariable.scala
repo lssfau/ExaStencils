@@ -8,12 +8,15 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_IV_FragmentIndex
 import exastencils.field.ir._
+import exastencils.grid.ir._
+import exastencils.visualization.ir.visit.IR_VisItGlobals._
+
 
 /// IR_VisItSimGetVariable
 // register variable for VisIt coupling
 // only gets generated when dimensionality is either 2 or 3
 
-case class IR_VisItSimGetVariable() extends IR_FuturePlainVisItFunction {
+case class IR_VisItSimGetVariable() extends IR_VisItFuturePlainFunction {
 
   import exastencils.visualization.ir.visit.IR_VisItUtil._
 
@@ -25,8 +28,10 @@ case class IR_VisItSimGetVariable() extends IR_FuturePlainVisItFunction {
 
     for (field <- IR_FieldCollection.sortedObjects) {
       val numDims = field.layout.numDimsGrid
-      val numPointsDimTmp = (0 until numDims).map(d => field.layout.defIdxDupRightEnd(d) - field.layout.defIdxDupLeftBegin(d)).toArray
-      val numPointsDimField = (0 until numDims).map(d => field.layout.defIdxPadRightEnd(d) - field.layout.defIdxPadLeftBegin(d)).toArray
+      val numPointsDimTmp = (0 until numDims).map(d => field.localization match {
+        case IR_AtFaceCenter(`d`) => field.layout.defIdxDupRightEnd(d) - field.layout.defIdxDupLeftBegin(d) - 1 // interpolated
+        case _                    => field.layout.defIdxDupRightEnd(d) - field.layout.defIdxDupLeftBegin(d)
+      }).toArray
       val numOuterLayersLeft = (0 until numDims).map(d => field.layout.defIdxDupLeftBegin(d) - field.layout.defIdxPadLeftBegin(d)).toArray
       val numOuterLayersRight = (0 until numDims).map(d => field.layout.defIdxPadRightEnd(d) - field.layout.defIdxDupRightEnd(d)).toArray
       val isNodalDim = (0 until numDims).map(d => numPointsDimTmp(d) % 2)
@@ -35,30 +40,29 @@ case class IR_VisItSimGetVariable() extends IR_FuturePlainVisItFunction {
       // determine if data must be copied or not
       val dataIsCopied = if (numOuterLayersLeft.sum != 0 || numOuterLayersRight.sum != 0 || Knowledge.domain_numFragmentsPerBlock > 1) true else false
 
-      val tmpDecl = IR_VariableDeclaration(IR_PointerDatatype(IR_RealDatatype), "tmp")
+      val tmp = IR_VariableAccess("tmp", IR_PointerDatatype(IR_RealDatatype))
 
       // offset to the current fragment
-      val fragOffset = (0 until numDims).map(d => if (Knowledge.domain_rect_numFragsPerBlockAsVec(d) <= 1) IR_IntegerConstant(0)
-      else (numPointsDimTmp(d) - isNodalDim(d)) * (IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(d))).toArray
+      val fragOffset = (0 until numDims).map(d =>
+        if (Knowledge.domain_rect_numFragsPerBlockAsVec(d) <= 1)
+          IR_IntegerConstant(0)
+        else
+          (numPointsDimTmp(d) - isNodalDim(d)) * (IR_IV_FragmentIndex(d) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(d))).toArray
 
       // indices for array access
-      val idxTmp = if (numDims == 2) {
-        numPointsTotalTmp(0) * (IR_FieldIteratorAccess(1) + fragOffset(1)) + (IR_FieldIteratorAccess(0) + fragOffset(0))
-      } else {
-        numPointsTotalTmp(0) * numPointsTotalTmp(1) * (IR_FieldIteratorAccess(2) + fragOffset(2)) + // linearized z
-          numPointsTotalTmp(0) * (IR_FieldIteratorAccess(1) + fragOffset(1)) + // linearized y
-          (IR_FieldIteratorAccess(0) + fragOffset(0)) // linearized x
-      }
+      val idxTmp = (0 until numDims).map(dim => {
+        (IR_FieldIteratorAccess(dim) + fragOffset(dim)) * (0 until dim).map(numPointsTotalTmp).product : IR_Expression
+      }).reduce(_ + _)
 
       // array accesses depending on number of levels
-      val arrayAccess = IR_ArrayAccess(IR_VariableAccess(tmpDecl), idxTmp)
+      val arrayAccess = IR_ArrayAccess(tmp, idxTmp)
 
       // direct access to field if data is not copied
       val arrayAccessArg = if (!dataIsCopied) {
         // TODO: assumes slot = 0
         IR_IV_FieldData(field, slot = 0)
       } else {
-        IR_VariableAccess(tmpDecl)
+        tmp
       }
 
       // determine whether simulation or VisIt is responsible for freeing
@@ -79,17 +83,20 @@ case class IR_VisItSimGetVariable() extends IR_FuturePlainVisItFunction {
       if (!dataIsCopied) {
         loopStatement += sendData
       } else {
-        loopStatement += tmpDecl
-        loopStatement += IR_Assignment(
-          IR_VariableAccess(tmpDecl),
-          IR_Cast(IR_PointerDatatype(IR_RealDatatype), IR_FunctionCall(IR_ExternalFunctionReference("malloc"), numPointsTotalTmp.product * IR_SizeOf(IR_RealDatatype)))
-        )
+        loopStatement += IR_VariableDeclaration(tmp)
+        loopStatement += IR_ArrayAllocation(tmp, IR_RealDatatype, numPointsTotalTmp.product)
         loopStatement += IR_LoopOverFragments(
           IR_LoopOverDimensions(numDims, IR_ExpressionIndexRange(IR_ExpressionIndex(Array.fill[Int](numDims)(0)), IR_ExpressionIndex(numPointsDimTmp)),
             IR_Assignment( //copy values from field to tmp
               arrayAccess,
               // TODO: assumes slot = 0
-              IR_FieldAccess(field, slot = 0, IR_LoopOverFragments.defIt, IR_LoopOverDimensions.defIt(numDims)))))
+              field.localization match {
+                case IR_AtFaceCenter(dim) => // interpolate to cell centered var
+                  0.5 * (IR_FieldAccess(field, 0, IR_LoopOverDimensions.defIt(numDims))
+                    + IR_FieldAccess(field, 0, IR_LoopOverDimensions.defIt(numDims) + IR_ConstIndex(Array.fill(3)(0).updated(dim, 1))))
+                case _ =>
+                  IR_FieldAccess(field, slot = 0, IR_LoopOverFragments.defIt, IR_LoopOverDimensions.defIt(numDims))
+              })))
         loopStatement += sendData
       }
 

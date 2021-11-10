@@ -6,8 +6,10 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config._
 import exastencils.parallelization.api.mpi._
+import exastencils.visualization.ir.visit.IR_VisItGlobals._
 
-case class IR_VisItMainloop() extends IR_FuturePlainVisItFunction {
+
+case class IR_VisItMainloop() extends IR_VisItFuturePlainFunction {
 
   import exastencils.visualization.ir.visit.IR_VisItUtil._
 
