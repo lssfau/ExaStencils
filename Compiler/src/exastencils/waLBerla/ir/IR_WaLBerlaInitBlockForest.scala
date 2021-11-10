@@ -2,14 +2,8 @@ package exastencils.waLBerla.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Cast
-import exastencils.base.ir.IR_ExternalFunctionReference
-import exastencils.base.ir.IR_FunctionCall
+import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_Return
-import exastencils.base.ir.IR_SharedPointerDatatype
-import exastencils.base.ir.IR_SpecialDatatype
-import exastencils.base.ir.IR_Statement
 import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.domain.ir.IR_DomainFromAABB
@@ -23,20 +17,28 @@ case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
 
   def someWaLBerlaField = if (IR_WaLBerlaFieldCollection.objects.nonEmpty) Some(IR_WaLBerlaFieldCollection.objects.maxBy(_.level)) else None
 
+  val maxDims = 3
   val numDims  = Knowledge.dimensionality
   val level = if (someWaLBerlaField.isDefined) someWaLBerlaField.get.level else -1
 
   def toUnsignedInt(value : Int) = IR_Cast(IR_SpecialDatatype("uint_t"), value)
 
+  // dimensionality < 3 -> use one cell with random width for other dims
+  val arbitraryThickness = 0.01
+
   def numCellsBlock(d : Int) = if (d < numDims) {
     if (someWaLBerlaField.isDefined) someWaLBerlaField.get.layout.layoutsPerDim(d).numInnerLayers else Knowledge.domain_fragmentLengthAsVec(d) * (1 << level)
   } else
     1
-  def cellWidth(d : Int) = if (d < numDims) (domainBounds.upper(d) - domainBounds.lower(d)) / (Knowledge.domain_rect_numFragsTotalAsVec(d) * numCellsBlock(d)) else 0
+  def cellWidth(d : Int) = if (d < numDims) (domainBounds.upper(d) - domainBounds.lower(d)) / (Knowledge.domain_rect_numFragsTotalAsVec(d) * numCellsBlock(d)) else arbitraryThickness
 
   val wbBlocks = List(Knowledge.domain_rect_numFragsTotal_x, Knowledge.domain_rect_numFragsTotal_y, Knowledge.domain_rect_numFragsTotal_z).map(toUnsignedInt)
   val numProcesses = List(Knowledge.domain_rect_numBlocks_x, Knowledge.domain_rect_numBlocks_y, Knowledge.domain_rect_numBlocks_z).map(toUnsignedInt)
   val periodicity = List(Knowledge.domain_rect_periodic_x, Knowledge.domain_rect_periodic_y, Knowledge.domain_rect_periodic_z)
+
+  val aabbLower = (0 until maxDims).map(d => IR_RealConstant( if (d < numDims) domainBounds.lower(d) + 0.5 * cellWidth(d) else 0.0) )
+  val aabbUpper = (0 until maxDims).map(d => IR_RealConstant( if (d < numDims) domainBounds.upper(d) - 0.5 * cellWidth(d) else cellWidth(d)) )
+  val aabb = IR_VariableAccess("aabb", IR_SpecialDatatype("auto"))
 
   override def generateFct() : IR_WaLBerlaPlainFunction = {
     // error checks
@@ -45,21 +47,23 @@ case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
       if (IR_WaLBerlaFieldCollection.objects.filter(_.level == level).forall(f => (0 until numDims).map(d => f.layout.layoutsPerDim(d).numInnerLayers != numCellsBlock(d)).reduce(_ || _)))
         Logger.error("IR_InitBlockForest: Top-level waLBerla fields must have the same size.")
 
-      // step size in each dimension must be identical
-      if ((0 until numDims).map(cellWidth).distinct.length != 1)
-        Logger.error("Trying to call IR_InitBlockForest with different step sizes.")
+      if (numDims > maxDims) {
+        Logger.error("Invalid dimensionality for waLBerla coupling: " + numDims)
+      }
     }
 
     // add deps
     IR_WaLBerlaCollection.get.addExternalDependency("blockforest/Initialization.h")
+    IR_WaLBerlaCollection.get.addExternalDependency("core/math/AABB.h")
 
     var body : ListBuffer[IR_Statement] = ListBuffer()
+    body += IR_VariableDeclaration(aabb, IR_FunctionCall(IR_ExternalFunctionReference("math::aabb"), aabbLower ++ aabbUpper : _*))
     body += IR_Return(
       new IR_FunctionCall(IR_ExternalFunctionReference("blockforest::createUniformBlockGrid"),
         ListBuffer(
+          aabb,
           wbBlocks(0), wbBlocks(1), wbBlocks(2),
           numCellsBlock(0), numCellsBlock(1), numCellsBlock(2),
-          cellWidth(0),
           numProcesses(0), numProcesses(1), numProcesses(2),
           periodicity(0), periodicity(1), periodicity(2))))
 
