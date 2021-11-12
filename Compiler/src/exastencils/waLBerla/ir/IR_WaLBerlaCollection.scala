@@ -2,7 +2,6 @@ package exastencils.waLBerla.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_FutureFunction
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_FunctionCollection
@@ -83,8 +82,8 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
     functions += IR_WaLBerlaAddFieldToStorage(leveledFields)
   }
 
-  // collect future funcion names
-  val futureFunctionIds : ListBuffer[String] = Duplicate(functions).collect { case f : IR_FutureFunction => f }.map(_.name)
+  // collect future function names
+  val futureFunctionIds : ListBuffer[String] = Duplicate(functions).collect { case f : IR_WaLBerlaFutureFunction => f }.map(_.name)
 
   def addExternalDependency(dependency : String) : Unit = {
     if (!externalDependencies.contains(dependency))

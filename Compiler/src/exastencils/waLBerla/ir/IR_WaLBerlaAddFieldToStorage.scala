@@ -4,7 +4,6 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.logger.Logger
 
 case class IR_WaLBerlaAddFieldToStorage(wbFields : ListBuffer[IR_WaLBerlaField]) extends IR_WaLBerlaFuturePlainFunction {
 
@@ -29,9 +28,6 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : ListBuffer[IR_WaLBerlaField])
       else
         None
     }
-    def calcSizeFunction = IR_ExternalFunctionReference(
-      s"pde::VCycles< ${IR_WaLBerlaUtil.stencilTemplate(wbFields.head.numDimsGrid)} >::getSizeForLevel",
-    )
 
     val init = wbFields.sortBy(_.level).flatMap(leveledField => {
       (0 until leveledField.numSlots).map(slot =>
@@ -41,20 +37,16 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : ListBuffer[IR_WaLBerlaField])
     var body : ListBuffer[IR_Statement] = ListBuffer()
 
     if (calcSizeNeeded) {
-      val maxLevel = if (blockForest.maxLevelWaLBerlaField.isDefined) {
-        blockForest.maxLevelWaLBerlaField.get.level
-      } else {
-        Logger.error("AddFieldToStorage not applicable without waLBerla fields")
-      }
 
-      // add dependency
-      IR_WaLBerlaCollection.get.addExternalDependency("pde/iterations/VCycles.h")
 
       for (wbf <- wbFields.sortBy(_.level)) {
+        val func = IR_WaLBerlaGetSizeForLevel(wbf.level)
+        if (!IR_WaLBerlaCollection.get.functions.contains(func))
+          IR_WaLBerlaCollection.get.functions += func
+
         body += IR_VariableDeclaration(calcSize(wbf.level).get,
-          IR_FunctionCall(IR_ExternalFunctionReference("std::bind"), IR_AddressOf(IR_VariableAccess(calcSizeFunction.name, calcSizeFunction.returnType)),
-            maxLevel - wbf.level, // bind level
-            // use placeholders for
+          IR_FunctionCall(IR_ExternalFunctionReference("std::bind"), func.getReference,
+            // use placeholders for:
             IR_Native("std::placeholders::_1"), // blockstorage
             IR_Native("std::placeholders::_2") // iblock
           ))

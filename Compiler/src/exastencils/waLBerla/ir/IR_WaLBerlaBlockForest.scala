@@ -32,6 +32,10 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter {
     IR_MemberFunctionCallArrow(resolveAccess(), "getBlocks", IR_UnitDatatype, targetVector, /* level */ 0) // TODO: adjust when refinement is supported
   }
 
+  // cells
+  def getNumberOfCells(dim : Int, block: IR_WaLBerlaBlock) : IR_Expression =
+    IR_MemberFunctionCallArrow(resolveAccess(), s"getNumberOf${('X' + dim).toChar}Cells", IR_SpecialDatatype("uint_t"), IR_DerefAccess(block))
+
   // aabb
   def aabbDatatype = IR_SpecialDatatype("math::AABB")
 
