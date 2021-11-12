@@ -45,26 +45,43 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   ListBuffer(IR_GlobalCollection.defHeader)) {
 
   if (Knowledge.mpi_enabled) {
-    externalDependencies += "mpi.h"
-    externalDependencies += "core/mpi/MPIManager.h"
+    addExternalDependency("mpi.h")
+    addExternalDependency("core/mpi/MPIManager.h")
   }
 
+  if (Knowledge.cuda_enabled)
+    addExternalDependency("cuda/GPUField.h")
+  else if (Platform.targetHardware == "CPU")
+    addExternalDependency("field/GhostLayerField.h")
+  addExternalDependency("core/DataTypes.h")
+  addExternalDependency("stencil/all.h")
+  addExternalDependency("blockforest/communication/UniformBufferedScheme.h")
+  addExternalDependency("field/SwapableCompare.h")
+  addExternalDependency("core/cell/Cell.h")
+  addExternalDependency("field/communication/PackInfo.h")
+  addExternalDependency("domain_decomposition/BlockDataID.h")
+  addExternalDependency("domain_decomposition/IBlock.h")
+  addExternalDependency("domain_decomposition/StructuredBlockStorage.h")
+  addExternalDependency("set")
+
   if (Knowledge.omp_enabled)
-    externalDependencies += "omp.h"
+    addExternalDependency("omp.h")
 
   if (Knowledge.cuda_enabled)
     internalDependencies += CUDA_KernelFunctions.defHeader
 
   if (Knowledge.opt_vectorize)
-    if (Platform.simd_header != null) externalDependencies += Platform.simd_header
+    if (Platform.simd_header != null) addExternalDependency(Platform.simd_header)
 
   var interfaceInstance : Option[IR_WaLBerlaInterface] = None
 
   // add future functions
   functions += IR_WaLBerlaInitBlockForest()
   functions += IR_WaLBerlaInitStaticRectDomain()
-  for (field <- IR_WaLBerlaFieldCollection.objects)
-    functions += IR_WaLBerlaAddFieldToStorage(field)
+  for (field <- IR_WaLBerlaFieldCollection.objects.groupBy(_.name)) {
+    val leveledFields = field._2.groupBy(_.level).map(_._2.head).to[ListBuffer]
+    functions += IR_WaLBerlaAddFieldToStorage(leveledFields)
+  }
 
   // collect future funcion names
   val futureFunctionIds : ListBuffer[String] = Duplicate(functions).collect { case f : IR_FutureFunction => f }.map(_.name)
@@ -101,7 +118,7 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
     for (func <- functions)
       if (!func.isHeaderOnly) {
         val writer = PrettyprintingManager.getPrinter(s"${ baseName }_${ func.name }.cpp")
-        writer.addInternalDependency(s"$baseName.h")
+        writer.addInternalDependency(IR_WaLBerlaInterface.interfaceHeader)
 
         writer <<< "namespace walberla {\nnamespace exastencils { "
 
@@ -113,10 +130,6 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
 
   override def printToFile() : Unit = {
     if (functions.exists(f => !futureFunctionIds.contains(f.name)) || interfaceInstance.isDefined) {
-      // append interface header to internal dependencies
-      internalDependencies += IR_WaLBerlaInterface.interfaceHeader
-
-      // print header for collection
       super.printToFile()
     }
   }

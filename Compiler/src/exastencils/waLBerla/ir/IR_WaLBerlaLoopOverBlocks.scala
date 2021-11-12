@@ -3,17 +3,17 @@ package exastencils.waLBerla.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.parallelization.ir._
-import exastencils.waLBerla.ir.IR_WaLBerlaUtil.getBlockForest
 
 /// IR_WaLBerlaLoopOverBlocks
 
 object IR_WaLBerlaLoopOverBlocks {
-  def defIt = IR_VariableAccess("block", IR_SpecialDatatype("auto"))
+  def defIt = IR_WaLBerlaBlockForest().iterator
 }
 
 // iterates through process-local blocks
@@ -32,13 +32,15 @@ case class IR_WaLBerlaLoopOverBlocks(
 
     import IR_WaLBerlaLoopOverBlocks._
 
+    val blockForest = IR_WaLBerlaBlockForest()
+
     // TODO for multiple waLBerla blocks and exa fragments: association between them
 
     new IR_ForLoop(
-      IR_VariableDeclaration(defIt, IR_MemberFunctionCallArrow(getBlockForest, "begin", defIt.datatype)),
-      IR_Neq(defIt, IR_MemberFunctionCallArrow(getBlockForest, "end", defIt.datatype)),
-      IR_ExpressionStatement(IR_PreIncrement(defIt)),
-      IR_WaLBerlaUtil.getFields(fieldsAccessed : _*) ++ body,
+      IR_VariableDeclaration(defIt, blockForest.begin()),
+      IR_Neq(defIt, blockForest.end()),
+      IR_PreIncrement(defIt),
+      defIt.getFields(fieldsAccessed : _*) ++ body,
       parallelization)
   }
 }

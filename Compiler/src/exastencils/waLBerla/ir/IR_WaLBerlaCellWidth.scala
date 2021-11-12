@@ -24,13 +24,7 @@ case class IR_WaLBerlaCellWidthPerDim(
 
   override protected val vf = IR_VF_CellWidthPerDim(level, domain, dim)
 
-  def aabbDatatype = IR_SpecialDatatype("math::AABB")
-
-  def getCellAABB(idx : IR_ExpressionIndex) =
-    IR_MemberFunctionCallArrow(IR_WaLBerlaUtil.getBlockForest, "getBlockLocalCellAABB", aabbDatatype,
-      IR_DerefAccess(IR_WaLBerlaLoopOverBlocks.defIt), IR_FunctionCall(IR_ExternalFunctionReference("Cell"), idx.indices.padTo(3, 0 : IR_Expression) : _*))
-
   override def createDuplicate() = IR_WaLBerlaCellWidthPerDim(level, domain, dim)
 
-  override def resolve(index : IR_ExpressionIndex) = IR_MemberFunctionCall(getCellAABB(index), "size", dim)
+  override def resolve(index : IR_ExpressionIndex) = IR_MemberFunctionCall(IR_WaLBerlaBlockForest().getCellAABB(index), "size", dim)
 }

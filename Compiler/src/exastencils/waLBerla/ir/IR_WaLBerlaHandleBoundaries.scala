@@ -24,24 +24,6 @@ case class IR_WaLBerlaHandleBoundaries(
     var fragIdx : IR_Expression,
     var neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)]) extends IR_HandleBoundariesLike {
 
-
-  def isAtDomainBorder(dirArr : Array[Int]) = {
-    val dir = IR_WaLBerlaDirection.getDirnameFromArray(dirArr)
-    if (IR_WaLBerlaDirection.isAxisDirection(dir)) {
-      val borderName = IR_WaLBerlaDirection.stringFromDirection(dir) match {
-        case "N" => "YMax"
-        case "S" => "YMin"
-        case "E" => "XMax"
-        case "W" => "XMin"
-        case "T" => "ZMax"
-        case "B" => "ZMin"
-      }
-      IR_MemberFunctionCallArrow(IR_WaLBerlaUtil.getBlockForest, s"atDomain${borderName}Border", IR_BooleanDatatype, IR_DerefAccess(IR_WaLBerlaLoopOverBlocks.defIt))
-    } else {
-      Logger.error("Unsupported direction for \"isAtDomainBorder\"")
-    }
-  }
-
   override def setupFieldUpdate(neigh : NeighborInfo) : ListBuffer[IR_Statement] = {
     // apply local trafo and replace boundaryCoord
     val strat = QuietDefaultStrategy("ResolveBoundaryCoordinates")
@@ -90,7 +72,7 @@ case class IR_WaLBerlaHandleBoundaries(
             setupFieldUpdate(neigh._1))
           loopOverDims.parallelization.potentiallyParallel = true
           loopOverDims.polyOptLevel = 1
-          IR_IfCondition(isAtDomainBorder(neigh._1.dir), loopOverDims) : IR_Statement
+          IR_IfCondition(IR_WaLBerlaBlockForest().isAtDomainBorder(neigh._1.dir), loopOverDims) : IR_Statement
         }), IR_ParallelizationInfo(potentiallyParallel = true))
     } else {
       Logger.error("Unsupported")

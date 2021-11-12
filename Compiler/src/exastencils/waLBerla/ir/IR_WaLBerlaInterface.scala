@@ -2,16 +2,24 @@ package exastencils.waLBerla.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Node
-import exastencils.base.ir.IR_VariableDeclaration
+import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_UserFunctions
-import exastencils.config.Knowledge
-import exastencils.config.Platform
 import exastencils.core.Duplicate
-import exastencils.datastructures.DefaultStrategy
-import exastencils.datastructures.Transformation
-import exastencils.prettyprinting.FilePrettyPrintable
-import exastencils.prettyprinting.PrettyprintingManager
+import exastencils.datastructures._
+import exastencils.prettyprinting._
+
+trait IR_WaLBerlaInterfaceParameter extends IR_Access {
+  def name : String
+  def datatype : IR_Datatype
+
+  def resolveAccess() : IR_Access
+
+  def initializerListEntry : (IR_Access, IR_Expression) = (member, ctorParameter.access)
+  def ctorParameter : IR_FunctionArgument
+  def member : IR_VariableAccess
+
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess()
+}
 
 object IR_WaLBerlaInterface {
   def defHeader(className : String) : String = IR_WaLBerlaCollection.defBasePath + "_" + className + ".h"
@@ -33,22 +41,6 @@ case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction])
     /* dependencies */
     writerHeader.addInternalDependency(IR_UserFunctions.defHeader)
     writerHeader.addInternalDependency(IR_WaLBerlaCollection.defHeader)
-    // headers from waLBerla
-    if (Knowledge.cuda_enabled)
-    // TODO inner/outer split ?
-      writerHeader.addExternalDependency("cuda/GPUField.h")
-    else if (Platform.targetHardware == "CPU")
-      writerHeader.addExternalDependency("field/GhostLayerField.h")
-    writerHeader.addExternalDependency("core/DataTypes.h")
-    writerHeader.addExternalDependency("stencil/all.h")
-    writerHeader.addExternalDependency("blockforest/communication/UniformBufferedScheme.h")
-    writerHeader.addExternalDependency("field/SwapableCompare.h")
-    writerHeader.addExternalDependency("core/cell/Cell.h")
-    writerHeader.addExternalDependency("field/communication/PackInfo.h")
-    writerHeader.addExternalDependency("domain_decomposition/BlockDataID.h")
-    writerHeader.addExternalDependency("domain_decomposition/IBlock.h")
-    writerHeader.addExternalDependency("domain_decomposition/StructuredBlockStorage.h")
-    writerHeader.addExternalDependency("set")
 
     /* preprocessor directives */
     writerHeader <<< IR_WaLBerlaPreprocessorDirectives.headerTop
@@ -65,11 +57,11 @@ case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction])
     /* ctor */
     writerHeader << s"\t$interfaceName"
     writerHeader << s"(${context.ctorParams.map(_.prettyprint()).mkString(", ")})"
-    writerHeader << context.ctorInitializerList.prettyprint
+    writerHeader << context.ctorInitializerList.prettyprint()
     writerHeader <<< " {"
     for (stmt <- context.ctorBody) {
       writerHeader << "\t"
-      writerHeader <<< stmt.prettyprint
+      writerHeader <<< stmt.prettyprint()
     }
     writerHeader <<< "\t}"
 

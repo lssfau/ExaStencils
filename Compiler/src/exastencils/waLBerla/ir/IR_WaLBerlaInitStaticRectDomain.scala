@@ -31,12 +31,12 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
   def blocks = IR_VariableAccess("blocks_", IR_SpecialDatatype("std::vector< const Block* >"))
   def block = IR_ArrayAccess(blocks, IR_LoopOverFragments.defIt) // TODO: check if order of block <-> frag association is right
   def aabbDatatype = IR_SpecialDatatype("math::AABB")
-  def getBlockAABB(block : IR_Expression) = IR_MemberFunctionCallArrow(block, "getAABB", aabbDatatype)
+  def getBlockAABB() = IR_MemberFunctionCallArrow(block, "getAABB", aabbDatatype)
 
   def setupFragmentPosition() = {
     Knowledge.dimensions.map(dim =>
       IR_Assignment(IR_IV_FragmentPosition(dim),
-        IR_ArrayAccess(IR_MemberFunctionCall(getBlockAABB(block), "center"), dim)))
+        IR_ArrayAccess(IR_MemberFunctionCall(getBlockAABB(), "center"), dim)))
   }
 
   def setupFragmentId() = {
@@ -60,10 +60,10 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
   def setupFragmentPosBeginAndEnd() = {
     val begin = Knowledge.dimensions.map(dim =>
       IR_Assignment(IR_IV_FragmentPositionBegin(dim),
-        IR_MemberFunctionCall(getBlockAABB(block), "min", dim)))
+        IR_MemberFunctionCall(getBlockAABB(), "min", dim)))
     val end = Knowledge.dimensions.map(dim =>
       IR_Assignment(IR_IV_FragmentPositionEnd(dim),
-        IR_MemberFunctionCall(getBlockAABB(block), "max", dim)))
+        IR_MemberFunctionCall(getBlockAABB(), "max", dim)))
     begin ++ end
   }
 
@@ -101,7 +101,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
     fragStatements ++= setupFragmentPosBeginAndEnd()
 
     init += IR_VariableDeclaration(blocks)
-    init += IR_MemberFunctionCallArrow(IR_WaLBerlaUtil.getBlockForest, "getBlocks", IR_UnitDatatype, blocks, /* level */ 0) // TODO: adjust when refinement is supported
+    init += IR_WaLBerlaBlockForest().getBlocks(blocks)
     init += IR_LoopOverFragments(fragStatements, IR_ParallelizationInfo(potentiallyParallel = true))
 
     /* set fragment connection */

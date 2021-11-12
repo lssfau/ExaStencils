@@ -67,10 +67,13 @@ object IR_MemberInitializerList {
 }
 
 case class IR_MemberInitializerList(var arguments : ListBuffer[(IR_Access, IR_Expression)]) extends IR_Expression {
+  def addEntry(member : IR_Access, newVal : IR_Expression) = arguments += Tuple2(member, newVal)
+  def addEntry(newEntry : (IR_Access, IR_Expression)) = arguments += newEntry
+
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = {
     if (arguments.nonEmpty)
-      out << ": "
+      out << " : "
     for (((member, initVal), i) <- arguments.zipWithIndex) {
       initVal match {
         case _ : IR_InitializerList =>

@@ -15,7 +15,7 @@ case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
   def domainBounds = domain.asInstanceOf[IR_DomainFromAABB].aabb
   def datatype = IR_SharedPointerDatatype(WB_StructuredBlockForest)
 
-  def someWaLBerlaField = if (IR_WaLBerlaFieldCollection.objects.nonEmpty) Some(IR_WaLBerlaFieldCollection.objects.maxBy(_.level)) else None
+  def someWaLBerlaField = IR_WaLBerlaBlockForest().maxLevelWaLBerlaField
 
   val maxDims = 3
   val numDims  = Knowledge.dimensionality
@@ -54,10 +54,10 @@ case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
 
     // add deps
     IR_WaLBerlaCollection.get.addExternalDependency("blockforest/Initialization.h")
-    IR_WaLBerlaCollection.get.addExternalDependency("core/math/AABB.h")
+    IR_WaLBerlaCollection.get.addExternalDependency("core/math/all.h")
 
     var body : ListBuffer[IR_Statement] = ListBuffer()
-    body += IR_VariableDeclaration(aabb, IR_FunctionCall(IR_ExternalFunctionReference("math::aabb"), aabbLower ++ aabbUpper : _*))
+    body += IR_VariableDeclaration(aabb, IR_FunctionCall(IR_ExternalFunctionReference("math::AABB"), aabbLower ++ aabbUpper : _*))
     body += IR_Return(
       new IR_FunctionCall(IR_ExternalFunctionReference("blockforest::createUniformBlockGrid"),
         ListBuffer(

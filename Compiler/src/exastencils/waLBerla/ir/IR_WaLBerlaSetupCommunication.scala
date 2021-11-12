@@ -46,7 +46,7 @@ object IR_WaLBerlaSetupCommunication extends DefaultStrategy("Communication hand
       // replace body of exa's communicate function with 'communicate()' member fct of waLBerla's comm scheme and inline
       val genFct = comm.generateFct()
       val field = comm.field
-      val body = IR_WaLBerlaCommunicate(IR_WaLBerlaCommScheme(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get), comm.slot)
+      val body = IR_WaLBerlaCommScheme(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get, comm.slot).communicate
 
       IR_WaLBerlaCollection.get.functions += IR_WaLBerlaLeveledFunction(comm.name, comm.level, genFct.datatype, genFct.parameters, ListBuffer(body))
       None // consume

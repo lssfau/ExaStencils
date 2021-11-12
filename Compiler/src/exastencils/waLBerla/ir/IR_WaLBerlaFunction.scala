@@ -2,18 +2,7 @@ package exastencils.waLBerla.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Datatype
-import exastencils.base.ir.IR_Function
-import exastencils.base.ir.IR_FunctionArgument
-import exastencils.base.ir.IR_FunctionCall
-import exastencils.base.ir.IR_FutureFunction
-import exastencils.base.ir.IR_LeveledDslFunctionReference
-import exastencils.base.ir.IR_LeveledFunction
-import exastencils.base.ir.IR_Node
-import exastencils.base.ir.IR_PlainDslFunctionReference
-import exastencils.base.ir.IR_PlainFunction
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_VariableAccess
+import exastencils.base.ir._
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
@@ -97,9 +86,15 @@ object IR_WaLBerlaSetupFunctions extends DefaultStrategy("Transform functions ac
     case fAcc : IR_WaLBerlaFieldAccess                                          =>
       findEnclosingFunction(stackCollector.stack)
       fAcc
-    case vAcc : IR_VariableAccess if vAcc == IR_WaLBerlaUtil.getBlockForest =>
+    case acc : IR_Access if acc == IR_WaLBerlaBlockForest().resolveAccess() =>
       findEnclosingFunction(stackCollector.stack)
-      vAcc
+      acc
+    case loop : IR_WaLBerlaLoopOverBlocks =>
+      findEnclosingFunction(stackCollector.stack)
+      loop
+    case bf : IR_WaLBerlaBlockForest =>
+      findEnclosingFunction(stackCollector.stack)
+      bf
     case iv : IR_IV_WaLBerlaFieldData                                       =>
       findEnclosingFunction(stackCollector.stack)
       iv
