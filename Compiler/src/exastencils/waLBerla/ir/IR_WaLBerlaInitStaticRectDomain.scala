@@ -87,7 +87,9 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
       }).reduce(_ + _)
   }
 
-  override def generateFct() : IR_WaLBerlaPlainFunction = {
+  override def isInterfaceFunction : Boolean = true
+
+  override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
     var init = ListBuffer[IR_Statement]()
     var connect = ListBuffer[IR_Statement]()
 

@@ -15,7 +15,9 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
 
   def getReference = IR_AddressOf(IR_VariableAccess(name + "_" + level, returnType))
 
-  override def generateFct() : IR_WaLBerlaLeveledFunction = {
+  override def isInterfaceFunction : Boolean = false
+
+  override def generateWaLBerlaFct() : IR_WaLBerlaLeveledFunction = {
 
     val block = new IR_WaLBerlaBlock("block", IR_ConstPointerDatatype(WB_IBlock))
     val blockForest = IR_WaLBerlaBlockForest()
@@ -50,9 +52,7 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
 
     body += IR_Return(cells)
 
-    val func = IR_WaLBerlaLeveledFunction(name, level, returnType, params, body)
-    func.isInterfaceFunction = false
-    func
+    IR_WaLBerlaLeveledFunction(name, level, returnType, params, body)
   }
 
   override def name : String = "calculateSize"

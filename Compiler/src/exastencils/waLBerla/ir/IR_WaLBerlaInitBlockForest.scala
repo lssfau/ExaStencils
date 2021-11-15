@@ -40,7 +40,9 @@ case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
   val aabbUpper = (0 until maxDims).map(d => IR_RealConstant( if (d < numDims) domainBounds.upper(d) - 0.5 * cellWidth(d) else cellWidth(d)) )
   val aabb = IR_VariableAccess("aabb", IR_SpecialDatatype("auto"))
 
-  override def generateFct() : IR_WaLBerlaPlainFunction = {
+  override def isInterfaceFunction : Boolean = false
+
+  override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
     // error checks
     if (IR_WaLBerlaFieldCollection.objects.nonEmpty) {
       // assumes all top level fields have the same number of cells
@@ -67,9 +69,7 @@ case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
           numProcesses(0), numProcesses(1), numProcesses(2),
           periodicity(0), periodicity(1), periodicity(2))))
 
-    val func = IR_WaLBerlaPlainFunction(name, datatype, ListBuffer(), body)
-    func.isInterfaceFunction = false
-    func
+    IR_WaLBerlaPlainFunction(name, datatype, ListBuffer(), body)
   }
 
   override def prettyprint_decl() : String = prettyprint()

@@ -11,7 +11,9 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : ListBuffer[IR_WaLBerlaField])
   def blocks = blockForest.ctorParameter
   def initValue = IR_FunctionArgument("initVal", IR_RealDatatype)
 
-  override def generateFct() : IR_WaLBerlaPlainFunction = {
+  override def isInterfaceFunction : Boolean = false
+
+  override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
     // add deps
     IR_WaLBerlaCollection.get.addExternalDependency("field/Field.h")
     IR_WaLBerlaCollection.get.addExternalDependency("field/AddToStorage.h")
@@ -57,9 +59,7 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : ListBuffer[IR_WaLBerlaField])
 
     val returnType = IR_WaLBerlaBlockDataID(wbFields.head, slot = 0).datatype
 
-    val func = IR_WaLBerlaPlainFunction(name, returnType, params, body)
-    func.isInterfaceFunction = false
-    func
+    IR_WaLBerlaPlainFunction(name, returnType, params, body)
   }
 
   override def prettyprint_decl() : String = prettyprint()

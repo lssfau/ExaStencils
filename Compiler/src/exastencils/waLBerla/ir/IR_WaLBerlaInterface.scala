@@ -114,7 +114,7 @@ object IR_WaLBerlaCreateInterface extends DefaultStrategy("Find functions and cr
     case collection : IR_WaLBerlaCollection =>
       // transform collected wb functions into the wb <-> exa interface class
       val wbFunctions = collection.functions.collect { case f : IR_WaLBerlaFunction if f.isInterfaceFunction => f }
-      if (wbFunctions.nonEmpty) {
+      if (wbFunctions.exists(_.isUserFunction)) {
         collection.interfaceInstance = Some(IR_WaLBerlaInterface(Duplicate(wbFunctions)))
         collection.functions = collection.functions diff wbFunctions
       }
