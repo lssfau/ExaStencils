@@ -46,7 +46,7 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
       }
 
       for (d <- Knowledge.dimensions) {
-        body += IR_Assignment(IR_ArrayAccess(cells, d), IR_RightShift(IR_ArrayAccess(cells, d), lvlDiff -1))
+        body += IR_Assignment(IR_ArrayAccess(cells, d), IR_RightShift(IR_ArrayAccess(cells, d), lvlDiff))
       }
     }
 
