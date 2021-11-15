@@ -56,9 +56,7 @@ case class IR_IV_WaLBerlaFieldData(
       IR_PointerDatatype(datatype)
   }
 
-  // TODO mapping naming conventions: wb <-> exa
-  override def resolveName() : String = field.name
-    //resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, level.prettyprint, "")
+  override def resolveName() : String = field.codeName
 
   def getData(defVal : Option[IR_Expression] = None) : IR_VariableDeclaration = IR_VariableDeclaration(resolveDatatype(), resolveName(), defVal)
 }
