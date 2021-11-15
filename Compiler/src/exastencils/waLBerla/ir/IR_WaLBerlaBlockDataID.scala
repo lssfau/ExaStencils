@@ -29,7 +29,7 @@ case class IR_WaLBerlaBlockDataID(var wbField : IR_WaLBerlaField, var slot : IR_
     var access : IR_Access = member
 
     if (levels.size > 1)
-      access = IR_ArrayAccess(access, level)
+      access = IR_ArrayAccess(access, level - levels.min)
     if (numSlots > 1)
       access = IR_ArrayAccess(access, slot)
 
