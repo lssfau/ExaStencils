@@ -36,8 +36,8 @@ case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
   val numProcesses = List(Knowledge.domain_rect_numBlocks_x, Knowledge.domain_rect_numBlocks_y, Knowledge.domain_rect_numBlocks_z).map(toUnsignedInt)
   val periodicity = List(Knowledge.domain_rect_periodic_x, Knowledge.domain_rect_periodic_y, Knowledge.domain_rect_periodic_z)
 
-  val aabbLower = (0 until maxDims).map(d => IR_RealConstant( if (d < numDims) domainBounds.lower(d) + 0.5 * cellWidth(d) else 0.0) )
-  val aabbUpper = (0 until maxDims).map(d => IR_RealConstant( if (d < numDims) domainBounds.upper(d) - 0.5 * cellWidth(d) else cellWidth(d)) )
+  val aabbLower = (0 until maxDims).map(d => IR_RealConstant( if (d < numDims) domainBounds.lower(d) else 0.0) )
+  val aabbUpper = (0 until maxDims).map(d => IR_RealConstant( if (d < numDims) domainBounds.upper(d) else cellWidth(d)) )
   val aabb = IR_VariableAccess("aabb", IR_SpecialDatatype("auto"))
 
   override def isInterfaceFunction : Boolean = false
