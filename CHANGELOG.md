@@ -14,6 +14,5 @@ Initial release of ExaStencils
   - Flexible field selection for vtk output
 - Local solve function for systems of equations
 - Extended complex datatypes
-    
 
-
+## v2.0: TBA
