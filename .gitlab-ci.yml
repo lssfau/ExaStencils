@@ -102,26 +102,36 @@ build:generator:
 ##                                   ##
 #######################################
 
+
+###############################################
+# MATRIX TESTS                                #
+###############################################
+
+# decision about runtime execution of solution of local systems and inversions depending on size/const entries
 test:Matrix_evalMatrixOpRuntimeExecution:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_evalMatrixOpRuntimeExecution ./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.knowledge "./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.exa4" ./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.RESULTS 1 1 Platform/random.platform output
 
+# classification of matrix shapes/structures
 test:Matrix_determineMatrixStructures:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_determineMatrixStructures ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.knowledge "./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.exa4" ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.RESULTS 1 1 Platform/random.platform output
 
+# operations on fields with matrices as inner data type
 test:Matrix_matrixFields:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_matrixFields ./MatrixClassTests/matrixFields/matrixFields.knowledge "./MatrixClassTests/matrixFields/matrixFields.exa4" ./MatrixClassTests/matrixFields/matrixFields.RESULTS 1 1 Platform/random.platform output
 
+# shallow water equation in vector form
 test:Matrix_2D_FV_SWE:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_2D_FV_SWE ./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.knowledge "./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.exa4" ./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.RESULTS 1 1 Platform/random.platform output
 
+# built-in operations of matrices
 test:Matrix_slicing:
     extends: .test_template
     script:
@@ -157,11 +167,13 @@ test:Matrix_frobeniusNorm:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_frobeniusNorm ./MatrixClassTests/resolvingMatrixFunctions/frobeniusNorm/frobeniusNorm.knowledge "./MatrixClassTests/resolvingMatrixFunctions/frobeniusNorm/frobeniusNorm.exa4" ./MatrixClassTests/resolvingMatrixFunctions/frobeniusNorm/frobeniusNorm.RESULTS 1 1 Platform/random.platform output
 
+# slicing and access of matrices per bracket operator
 test:Matrix_resolvingMatrixAccesses:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_resolvingMatrixAccesses ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.knowledge "./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.exa4" ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.RESULTS 1 1 Platform/random.platform output
 
+# direct solution of small linear systems
 test:Matrix_SolveMatSysRunTime:
     extends: .test_template
     script:
@@ -172,11 +184,13 @@ test:Matrix_SolveMatSysCompileTime:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SolveMatSysCompileTime ./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.knowledge "./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.exa4" ./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.RESULTS 1 1 Platform/random.platform output
 
+# arithmetic operators
 test:Matrix_resolvingMatrixOperators:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_resolvingMatrixOperators ./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.knowledge "./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.exa4" ./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.RESULTS 1 1 Platform/random.platform output
 
+# inversion at compiletime
 test:Matrix_LUCompileTime:
     extends: .test_template
     script:
@@ -207,6 +221,7 @@ test:Matrix_smallMatricesCompileTime:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_smallMatricesCompileTime ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.knowledge "./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.exa4" ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.RESULTS 1 1 Platform/random.platform output
 
+# inversion at runtime
 test:Matrix_LURunTime:
     extends: .test_template
     script:
@@ -237,6 +252,7 @@ test:Matrix_SmallMatrixRunTime:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SmallMatrixRunTime ./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.knowledge "./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.exa4" ./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.RESULTS 1 1 Platform/random.platform output
 
+# Application
 test:Appl_ExaStokes_2D:
     extends: .test_template
     script:
@@ -277,6 +293,10 @@ test:Appl_OptFlow3D:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Appl_OptFlow3D Application/OpticalFlow3D.knowledge "Application/OpticalFlow3D.exa4" Application/OpticalFlow3D.results 1 10 Platform/random.platform output
 
+###############################################
+# BASIC COMMUNICATION TESTS                   #
+###############################################
+
 test:CommBasic_PureMPI:
     extends: .test_template
     script:
@@ -307,6 +327,7 @@ test:CommBasic_2D:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_2D CommBasic/2D.knowledge "CommBasic/2D.exa4" CommBasic/2D.results 9 2 Platform/random.platform output
 
+# cell based
 test:CommBasic_HybridCell:
     extends: .test_template
     script:
@@ -317,16 +338,28 @@ test:CommBasic_Strategy26Cell:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_Strategy26Cell CommBasic/Strategy26Cell.knowledge "CommBasic/Strategy26Cell.exa4" CommBasic/Strategy26Cell.results 27 2 Platform/random.platform output
 
+# complex numbers
 test:CommBasic_complexNumbers:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_complexNumbers CommBasic/ComplexNumbers.knowledge "CommBasic/ComplexNumbers.exa4" CommBasic/ComplexNumbers.results 9 2 Platform/random.platform output
+
+###############################################
+# OPTIMIZATION TESTS                          #
+###############################################
+
+# various tests of optimization strategies
+#  (run time for each is only a few seconds)
+
+### sequential version
+## single precision
 
 test:Seq_TestF_naive:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_naive Opts/seq__float_naive.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/random.platform output
 
+# SSE3
 test:Seq_TestF_vectS:
     extends: .test_template
     script:
@@ -342,6 +375,7 @@ test:Seq_TestF_vectSAlAl:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vectSAlAl Opts/seq__float_vectAlAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/random.platform output
 
+# AVX
 test:Seq_TestF_vect:
     extends: .test_template
     tags:
@@ -363,6 +397,7 @@ test:Seq_TestF_vectAlAl:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vectAlAl Opts/seq__float_vectAlAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx.platform output
 
+# AVX2
 test:Seq_TestF_vect2:
     extends: .test_template
     tags:
@@ -383,6 +418,8 @@ test:Seq_TestF_vect2AlAl:
         - AVX2
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vect2AlAl Opts/seq__float_vectAlAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx2.platform output
+
+## double precision
 
 test:Seq_Test_naive:
     extends: .test_template
@@ -419,6 +456,8 @@ test:Seq_Test_unrolli:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_unrolli Opts/seq_unrolli.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
+## SSE3
+
 test:Seq_Test_vectS:
     extends: .test_template
     script:
@@ -438,6 +477,8 @@ test:Seq_Test_allS:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_allS Opts/seq_all.knowledge "Opts/tempBlock.exa4" Opts/seq.results 1 1 Platform/random.platform output
+
+# AVX
 
 test:Seq_Test_vect:
     extends: .test_template
@@ -467,6 +508,8 @@ test:Seq_Test_all:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_all Opts/seq_all.knowledge "Opts/tempBlock.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
+# AVX2
+
 test:Seq_Test_vect2:
     extends: .test_template
     tags:
@@ -495,11 +538,15 @@ test:Seq_Test_all2:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_all2 Opts/seq_all.knowledge "Opts/tempBlock.exa4" Opts/seq.results 1 1 Platform/anyavx2.platform output
 
+### parallel version (2*2*2 MPI ranks each with 8 OMP threads)
+## single precision
+
 test:Par_TestF_naive:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_TestF_naive Opts/par__float_naive.knowledge "Opts/base_par_flt.exa4" Opts/par__float.results 8 4 Platform/random.platform output
 
+# SSE3
 test:Par_TestF_vectS:
     extends: .test_template
     script:
@@ -509,6 +556,13 @@ test:Par_TestF_vectSAl:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_TestF_vectSAl Opts/par__float_vectAl.knowledge "Opts/base_par_flt.exa4" Opts/par__float.results 8 4 Platform/random.platform output
+
+test:Par_TestF_vectSAlA1:
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_TestF_vectSAlA1 Opts/par__float_vectAlA1.knowledge "Opts/base_par_flt.exa4" Opts/par__float.results 8 4 Platform/random.platform output
+
+## double precision
 
 test:Par_Test_naive:
     extends: .test_template
@@ -545,6 +599,8 @@ test:Par_Test_unrolli:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_unrolli Opts/par_unrolli.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
 
+# SSE3
+
 test:Par_Test_vectS:
     extends: .test_template
     script:
@@ -565,6 +621,11 @@ test:Par_Test_allS:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_allS Opts/par_all.knowledge "Opts/tempBlock_par.exa4" Opts/par.results 8 4 Platform/random.platform output
 
+###############################################
+# POLYHEDRAL SEARCH SPACE EXPLORATION TESTS   #
+###############################################
+
+# Jacobi 2D constant coefficient 9-pt
 test:PolyExpl_Jac2Dccd_f0:
     extends: .test_template
     tags:
@@ -593,6 +654,7 @@ test:PolyExpl_Jac2Dccd_f6:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac2Dccd_f6 PolyExpl/2D_f6.knowledge "PolyExpl/Jac2Dccd.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
+# Jacobi 3D constant coefficient 7-pt
 test:PolyExpl_Jac3Dcc_f0:
     extends: .test_template
     tags:
@@ -628,6 +690,7 @@ test:PolyExpl_Jac3Dcc_f6:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac3Dcc_f6 PolyExpl/3D_f6.knowledge "PolyExpl/Jac3Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
+# RBGS 2D constant coefficient 5-pt
 test:PolyExpl_RBGS2Dcc_f0:
     extends: .test_template
     tags:
@@ -663,6 +726,7 @@ test:PolyExpl_RBGS2Dcc_f6:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f6 PolyExpl/2D_f6.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
+# RBGS 3D variable coefficient 7-pt
 test:PolyExpl_RBGS3Dvc_f0:
     extends: .test_template
     tags:
@@ -691,6 +755,11 @@ test:PolyExpl_RBGS3Dvc_f6:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS3Dvc_f6 PolyExpl/3D_f6.knowledge "PolyExpl/RBGS3Dvc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
+###############################################
+# SMOOTHER TESTS                              #
+###############################################
+
+# 27 OMP threads
 test:Smoothers_Jac:
     extends: .test_template
     script:
@@ -711,6 +780,11 @@ test:Smoothers_BS:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Smoothers_BS Smoothers/BS.knowledge "Smoothers/BS.exa4" Smoothers/BS.results 27 2 Platform/random.platform output
 
+###############################################
+# BOUNDARY CONDITION TESTS                    #
+###############################################
+
+# 2D
 test:BC_2D_Polynomial:
     extends: .test_template
     script:
@@ -726,6 +800,7 @@ test:BC_2D_Periodic:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_2D_Periodic BC/2D_Periodic.knowledge "BC/2D_Periodic.exa4" BC/2D_Periodic.results 4 2 Platform/random.platform output
 
+# 3D
 test:BC_3D_Polynomial:
     extends: .test_template
     script:
@@ -741,6 +816,7 @@ test:BC_3D_Periodic:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_3D_Periodic BC/3D_Periodic.knowledge "BC/3D_Periodic.exa4" BC/3D_Periodic.results 8 2 Platform/random.platform output
 
+# matrix fields
 test:BC_Matrix:
     extends: .test_template
     script:
@@ -751,6 +827,11 @@ test:BC_COMPLEX_NUMBERS:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_COMPLEX_NUMBERS BC/ComplexNumbers.knowledge "BC/ComplexNumbers.exa4" BC/ComplexNumbers.results 1 1 Platform/random.platform output
 
+###############################################
+# CELL BASED DISCR TESTS                      #
+###############################################
+
+# 2D
 test:Cell_2D_Basic:
     extends: .test_template
     script:
@@ -761,6 +842,7 @@ test:Cell_2D_Neumann:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Cell_2D_Neumann CellBased/2D_Neumann.knowledge "CellBased/2D_Neumann.exa4" CellBased/2D_Neumann.results 4 2 Platform/random.platform output
 
+# 3D
 test:Cell_3D_Basic:
     extends: .test_template
     script:
@@ -771,6 +853,11 @@ test:Cell_3D_Neumann:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Cell_3D_Neumann CellBased/3D_Neumann.knowledge "CellBased/3D_Neumann.exa4" CellBased/3D_Neumann.results 8 2 Platform/random.platform output
 
+###############################################
+# SISC PAPER TESTS                            #
+###############################################
+
+# 2D
 test:SISC_2D_ConstCoeff:
     extends: .test_template
     script:
@@ -781,6 +868,7 @@ test:SISC_2D_VarCoeff:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib SISC_2D_VarCoeff SISC/2D_VarCoeff.knowledge "SISC/2D_VarCoeff.exa4" SISC/2D_VarCoeff.results 4 4 Platform/random.platform output
 
+# 3D
 test:SISC_3D_ConstCoeff:
     extends: .test_template
     script:
@@ -791,10 +879,19 @@ test:SISC_3D_VarCoeff:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib SISC_3D_VarCoeff SISC/3D_VarCoeff.knowledge "SISC/3D_VarCoeff.exa4" SISC/3D_VarCoeff.results 8 4 Platform/random.platform output
 
+###############################################
+# MISC TESTS                                  #
+###############################################
+
+# execute Inlining only on chimaira, maybe this leads to more stable results
 test:Inlining:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Inlining Misc/inlining.knowledge "Misc/inlining.exa4" Misc/inlining.results 8 4 Platform/random.platform output
+
+###############################################
+# FMG TESTS                                   #
+###############################################
 
 test:FMG_2D_Polynomial:
     extends: .test_template
@@ -816,6 +913,11 @@ test:FMG_3D_VarCoeff:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib FMG_3D_VarCoeff FMG/3D_VarCoeff.knowledge "FMG/3D_VarCoeff.exa4" FMG/3D_VarCoeff.results 8 4 Platform/random.platform output
 
+###############################################
+# CSE TESTS                                   #
+###############################################
+
+# only conventional CSE
 test:Conv_CSE_SISC_2D_VarCoeff:
     extends: .test_template
     script:
@@ -826,6 +928,7 @@ test:Conv_CSE_SISC_3D_VarCoeff:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Conv_CSE_SISC_3D_VarCoeff CSE/3D_VarCoeff_conv.knowledge "SISC/3D_VarCoeff.exa4" SISC/3D_VarCoeff.results 8 4 Platform/random.platform output
 
+# only loop carried CSE
 test:LC_CSE_SISC_2D_VarCoeff:
     extends: .test_template
     script:
@@ -836,6 +939,7 @@ test:LC_CSE_SISC_3D_VarCoeff:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib LC_CSE_SISC_3D_VarCoeff CSE/3D_VarCoeff_lc.knowledge "SISC/3D_VarCoeff.exa4" SISC/3D_VarCoeff.results 8 4 Platform/random.platform output
 
+# both conventional and loop carried CSE (Both_CSE_SISC_2D_VarCoehas slightly different rf has slightly different results than the original code)
 test:Both_CSE_SISC_2D_VarCoeff:
     extends: .test_template
     script:
@@ -846,6 +950,11 @@ test:Both_CSE_SISC_3D_VarCoeff:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Both_CSE_SISC_3D_VarCoeff CSE/3D_VarCoeff_both.knowledge "SISC/3D_VarCoeff.exa4" SISC/3D_VarCoeff.results 8 4 Platform/random.platform output
 
+###############################################
+# LAYOUT TRANSFORMATION TESTS                 #
+###############################################
+
+# borrowed from OPTIMIZATION TESTS, shares results! (may be changed, when generated exa4 code changes)
 test:Layout_Seq_Test_naive:
     extends: .test_template
     tags:
@@ -860,16 +969,27 @@ test:Layout_Par_Test_all:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Layout_Par_Test_all LayoutTrafo/par_all.knowledge "LayoutTrafo/opts.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
 
+# borrowed from SMOOTHER TESTS, shares results! (may be changed, when generated exa4 code changes)
 test:Layout_Smoothers_RBGS:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Layout_Smoothers_RBGS LayoutTrafo/RBGS.knowledge "LayoutTrafo/rbgs.exa4" Smoothers/RBGS.results 27 2 Platform/random.platform output
 
+###############################################
+# NON-LINEAR TESTS                            #
+###############################################
+
+# 9 OMP threads
 test:FAS_2D_Basic:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib FAS_2D_Basic NonLinear/FAS_2D_Basic.knowledge "NonLinear/FAS_2D_Basic.exa4" NonLinear/FAS_2D_Basic.results 9 2 Platform/random.platform output
 
+###############################################
+# CUDA TESTS                                  #
+###############################################
+
+# 2D_VarCoeff has its own expected results due to rounding differences compared to original SISC version
 test:CUDA_SISC_2D_ConstCoeff:
     extends: .test_cuda_template
     script:
@@ -895,6 +1015,10 @@ test:CUDA_ExaFluids_Bingham:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_ExaFluids_Bingham CUDA/3D_ExaFluids_NN_CUDA.knowledge "CUDA/3D_ExaFluids_NN_CUDA.exa4" CUDA/3D_ExaFluids_NN_CUDA.results 1 10 Platform/chimaira-gpu.platform output
 
+###############################################
+# COMPLEX NUMBERS TESTS                       #
+###############################################
+
 test:COMPLEX_NUMBERS_BasicFunc:
     extends: .test_template
     script:
@@ -916,11 +1040,19 @@ test:COMPLEX_NUMBERS_Helmholtz_MPI:
 ##                                   ##
 #######################################
 
+###############################################
+# BiHarmonic Examples                         #
+###############################################
+
 example:BiHarmonic:
     stage: example
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_BiHarmonic_fromL2 ../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.knowledge "../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa3;../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa2" "" 1 1 Platform/random.platform output
+
+###############################################
+# HelmHoltz Examples                          #
+###############################################
 
 example:2D_FD_Helmholtz_fromL3:
     stage: example
@@ -940,11 +1072,19 @@ example:3D_FD_Helmholtz_fromL3:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Helmholtz_fromL3 ../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.knowledge "../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa4" "" 1 1 Platform/random.platform output
 
+###############################################
+# LinearElasticity Examples                   #
+###############################################
+
 example:2D_FD_LinearElasticity_fromL2:
     stage: example
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_LinearElasticity_fromL2 ../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.knowledge "../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa2;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa3;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa4" "" 1 1 Platform/random.platform output
+
+###############################################
+# NavierStokes Examples                       #
+###############################################
 
 example:2D_FV_NavierStokes_localNewton:
     stage: example
@@ -1019,6 +1159,10 @@ example:3D_FV_NonNewtonian_Picard:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NonNewtonian_Picard ../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.knowledge "../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.exa2;../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.exa3;../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.exa4" "" 1 1 Platform/random.platform output
 
 
+###############################################
+# OpticalFlow Examples                        #
+###############################################
+
 example:2D_FD_OptFlow_fromL2:
     stage: example
     extends: .test_template
@@ -1048,6 +1192,10 @@ example:3D_FD_OptFlow_fromL4_Vec:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_OptFlow_fromL4_Vec ../Examples/OpticalFlow/3D_FD_OptFlow_fromL4_Vec.knowledge "../Examples/OpticalFlow/3D_FD_OptFlow_fromL4_Vec.exa4" "" 1 1 Platform/random.platform output
+
+###############################################
+# Poisson Examples                            #
+###############################################
 
 example:1D_FD_Poisson_fromL1:
     stage: example
@@ -1129,6 +1277,10 @@ example:3D_FV_Poisson_fromL4:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Poisson_fromL4 ../Examples/Poisson/3D_FV_Poisson_fromL4.knowledge "../Examples/Poisson/3D_FV_Poisson_fromL4.exa4" "" 1 1 Platform/random.platform output
 
+###############################################
+# Stokes Examples                             #
+###############################################
+
 example:1D_FD_Stokes_fromL1:
     stage: example
     extends: .test_template
@@ -1206,6 +1358,10 @@ example:3D_FV_Stokes_fromL4:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Stokes_fromL4 ../Examples/Stokes/3D_FV_Stokes_fromL4.knowledge "../Examples/Stokes/3D_FV_Stokes_fromL4.exa4" "" 1 1 Platform/random.platform output
+
+###############################################
+# SWE Examples                                #
+###############################################
 
 example:2D_FV_SWE:
     stage: example
