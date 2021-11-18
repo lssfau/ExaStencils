@@ -22,26 +22,30 @@ stages:
         paths:
             - Testing/output/Debug/*
         expire_in: 1 weeks
-
     before_script:
         - java -version
         - python3 --version
         - mpirun --version
         - cd Testing
 
-.test_cuda_template:
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+.test_template_AVX:
+    extends: .test_template
+    tags:
+        - docker
+        - AVX
+
+.test_template_AVX2:
+    extends: .test_template
+    tags:
+        - docker
+        - AVX2
+
+.test_template_CUDA:
+    extends: .test_template
     tags:
         - docker
         - cuda
         - i10swarm5
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
     before_script:
         - java -version
         - python3 --version
@@ -377,82 +381,60 @@ test:Seq_TestF_vectSAlAl:
 
 # AVX
 test:Seq_TestF_vect:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vect Opts/seq__float_vect.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx.platform output
 
 test:Seq_TestF_vectAl:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vectAl Opts/seq__float_vectAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx.platform output
 
 test:Seq_TestF_vectAlAl:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vectAlAl Opts/seq__float_vectAlAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx.platform output
 
 # AVX2
 test:Seq_TestF_vect2:
-    extends: .test_template
-    tags:
-        - AVX2
+    extends: .test_template_AVX2
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vect2 Opts/seq__float_vect.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx2.platform output
 
 test:Seq_TestF_vect2Al:
-    extends: .test_template
-    tags:
-        - AVX2
+    extends: .test_template_AVX2
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vect2Al Opts/seq__float_vectAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx2.platform output
 
 test:Seq_TestF_vect2AlAl:
-    extends: .test_template
-    tags:
-        - AVX2
+    extends: .test_template_AVX2
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vect2AlAl Opts/seq__float_vectAlAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx2.platform output
 
 ## double precision
 
 test:Seq_Test_naive:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_naive Opts/seq_naive.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 test:Seq_Test_addrPre:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_addrPre Opts/seq_addrPre.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 test:Seq_Test_poly:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_poly Opts/seq_poly.knowledge "Opts/tempBlock.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 test:Seq_Test_unroll:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_unroll Opts/seq_unroll.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 test:Seq_Test_unrolli:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_unrolli Opts/seq_unrolli.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
@@ -481,60 +463,44 @@ test:Seq_Test_allS:
 # AVX
 
 test:Seq_Test_vect:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vect Opts/seq_vect.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 test:Seq_Test_vectAl:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vectAl Opts/seq_vectAl.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 test:Seq_Test_vectAlAl:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vectAlAl Opts/seq_vectAlAl.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 test:Seq_Test_all:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_all Opts/seq_all.knowledge "Opts/tempBlock.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 # AVX2
 
 test:Seq_Test_vect2:
-    extends: .test_template
-    tags:
-        - AVX2
+    extends: .test_template_AVX2
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vect2 Opts/seq_vect.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx2.platform output
 
 test:Seq_Test_vect2Al:
-    extends: .test_template
-    tags:
-        - AVX2
+    extends: .test_template_AVX2
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vect2Al Opts/seq_vectAl.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx2.platform output
 
 test:Seq_Test_vect2AlAl:
-    extends: .test_template
-    tags:
-        - AVX2
+    extends: .test_template_AVX2
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vect2AlAl Opts/seq_vectAlAl.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx2.platform output
 
 test:Seq_Test_all2:
-    extends: .test_template
-    tags:
-        - AVX2
+    extends: .test_template_AVX2
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_all2 Opts/seq_all.knowledge "Opts/tempBlock.exa4" Opts/seq.results 1 1 Platform/anyavx2.platform output
 
@@ -565,37 +531,27 @@ test:Par_TestF_vectSAlAl:
 ## double precision
 
 test:Par_Test_naive:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_naive Opts/par_naive.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
 
 test:Par_Test_addrPre:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_addrPre Opts/par_addrPre.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
 
 test:Par_Test_poly:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_poly Opts/par_poly.knowledge "Opts/tempBlock_par.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
 
 test:Par_Test_unroll:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_unroll Opts/par_unroll.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
 
 test:Par_Test_unrolli:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_unrolli Opts/par_unrolli.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
 
@@ -627,131 +583,95 @@ test:Par_Test_allS:
 
 # Jacobi 2D constant coefficient 9-pt
 test:PolyExpl_Jac2Dccd_f0:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac2Dccd_f0 PolyExpl/2D_f0.knowledge "PolyExpl/Jac2Dccd.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_Jac2Dccd_f2:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac2Dccd_f2 PolyExpl/2D_f2.knowledge "PolyExpl/Jac2Dccd.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_Jac2Dccd_f4:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac2Dccd_f4 PolyExpl/2D_f4.knowledge "PolyExpl/Jac2Dccd.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_Jac2Dccd_f6:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac2Dccd_f6 PolyExpl/2D_f6.knowledge "PolyExpl/Jac2Dccd.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 # Jacobi 3D constant coefficient 7-pt
 test:PolyExpl_Jac3Dcc_f0:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac3Dcc_f0 PolyExpl/3D_f0.knowledge "PolyExpl/Jac3Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_Jac3Dcc_f1:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac3Dcc_f1 PolyExpl/3D_f1.knowledge "PolyExpl/Jac3Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_Jac3Dcc_f3:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac3Dcc_f3 PolyExpl/3D_f3.knowledge "PolyExpl/Jac3Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_Jac3Dcc_f5:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac3Dcc_f5 PolyExpl/3D_f5.knowledge "PolyExpl/Jac3Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_Jac3Dcc_f6:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac3Dcc_f6 PolyExpl/3D_f6.knowledge "PolyExpl/Jac3Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 # RBGS 2D constant coefficient 5-pt
 test:PolyExpl_RBGS2Dcc_f0:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f0 PolyExpl/2D_f0.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_RBGS2Dcc_f1:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f1 PolyExpl/2D_f1.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_RBGS2Dcc_f3:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f3 PolyExpl/2D_f3.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_RBGS2Dcc_f5:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f5 PolyExpl/2D_f5.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_RBGS2Dcc_f6:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f6 PolyExpl/2D_f6.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 # RBGS 3D variable coefficient 7-pt
 test:PolyExpl_RBGS3Dvc_f0:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS3Dvc_f0 PolyExpl/3D_f0.knowledge "PolyExpl/RBGS3Dvc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_RBGS3Dvc_f2:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS3Dvc_f2 PolyExpl/3D_f2.knowledge "PolyExpl/RBGS3Dvc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_RBGS3Dvc_f4:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS3Dvc_f4 PolyExpl/3D_f4.knowledge "PolyExpl/RBGS3Dvc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_RBGS3Dvc_f6:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS3Dvc_f6 PolyExpl/3D_f6.knowledge "PolyExpl/RBGS3Dvc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
@@ -956,16 +876,12 @@ test:Both_CSE_SISC_3D_VarCoeff:
 
 # borrowed from OPTIMIZATION TESTS, shares results! (may be changed, when generated exa4 code changes)
 test:Layout_Seq_Test_naive:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Layout_Seq_Test_naive LayoutTrafo/seq_naive.knowledge "LayoutTrafo/opts.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 test:Layout_Par_Test_all:
-    extends: .test_template
-    tags:
-        - AVX
+    extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Layout_Par_Test_all LayoutTrafo/par_all.knowledge "LayoutTrafo/opts.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
 
@@ -991,27 +907,27 @@ test:FAS_2D_Basic:
 
 # 2D_VarCoeff has its own expected results due to rounding differences compared to original SISC version
 test:CUDA_SISC_2D_ConstCoeff:
-    extends: .test_cuda_template
+    extends: .test_template_CUDA
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_SISC_2D_ConstCoeff CUDA/2D_ConstCoeff.knowledge "CUDA/2D_ConstCoeff.exa4" SISC/2D_ConstCoeff.results 1 10 Platform/chimaira-gpu.platform output
 
 test:CUDA_SISC_2D_VarCoeff:
-    extends: .test_cuda_template
+    extends: .test_template_CUDA
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_SISC_2D_VarCoeff CUDA/2D_VarCoeff.knowledge "CUDA/2D_VarCoeff.exa4" CUDA/2D_VarCoeff.results 1 10 Platform/chimaira-gpu.platform output
 
 test:CUDA_SISC_3D_ConstCoeff:
-    extends: .test_cuda_template
+    extends: .test_template_CUDA
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_SISC_3D_ConstCoeff CUDA/3D_ConstCoeff.knowledge "CUDA/3D_ConstCoeff.exa4" SISC/3D_ConstCoeff.results 1 10 Platform/chimaira-gpu.platform output
 
 test:CUDA_SISC_3D_VarCoeff:
-    extends: .test_cuda_template
+    extends: .test_template_CUDA
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_SISC_3D_VarCoeff CUDA/3D_VarCoeff.knowledge "CUDA/3D_VarCoeff.exa4" SISC/3D_VarCoeff.results 1 10 Platform/chimaira-gpu.platform output
 
 test:CUDA_ExaFluids_Bingham:
-    extends: .test_cuda_template
+    extends: .test_template_CUDA
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_ExaFluids_Bingham CUDA/3D_ExaFluids_NN_CUDA.knowledge "CUDA/3D_ExaFluids_NN_CUDA.exa4" CUDA/3D_ExaFluids_NN_CUDA.results 1 10 Platform/chimaira-gpu.platform output
 
@@ -1041,7 +957,7 @@ test:COMPLEX_NUMBERS_Helmholtz_MPI:
 #######################################
 
 ###############################################
-# BiHarmonic Examples                         #
+# BiHarmonic EXAMPLES                         #
 ###############################################
 
 example:BiHarmonic:
@@ -1051,7 +967,7 @@ example:BiHarmonic:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_BiHarmonic_fromL2 ../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.knowledge "../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa3;../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa2" "" 1 1 Platform/random.platform output
 
 ###############################################
-# HelmHoltz Examples                          #
+# HelmHoltz EXAMPLES                          #
 ###############################################
 
 example:2D_FD_Helmholtz_fromL3:
@@ -1073,7 +989,7 @@ example:3D_FD_Helmholtz_fromL3:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Helmholtz_fromL3 ../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.knowledge "../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa4" "" 1 1 Platform/random.platform output
 
 ###############################################
-# LinearElasticity Examples                   #
+# LinearElasticity EXAMPLES                   #
 ###############################################
 
 example:2D_FD_LinearElasticity_fromL2:
@@ -1083,7 +999,7 @@ example:2D_FD_LinearElasticity_fromL2:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_LinearElasticity_fromL2 ../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.knowledge "../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa2;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa3;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa4" "" 1 1 Platform/random.platform output
 
 ###############################################
-# NavierStokes Examples                       #
+# NavierStokes EXAMPLES                       #
 ###############################################
 
 example:2D_FV_NavierStokes_localNewton:
@@ -1160,7 +1076,7 @@ example:3D_FV_NonNewtonian_Picard:
 
 
 ###############################################
-# OpticalFlow Examples                        #
+# OpticalFlow EXAMPLES                        #
 ###############################################
 
 example:2D_FD_OptFlow_fromL2:
@@ -1194,7 +1110,7 @@ example:3D_FD_OptFlow_fromL4_Vec:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_OptFlow_fromL4_Vec ../Examples/OpticalFlow/3D_FD_OptFlow_fromL4_Vec.knowledge "../Examples/OpticalFlow/3D_FD_OptFlow_fromL4_Vec.exa4" "" 1 1 Platform/random.platform output
 
 ###############################################
-# Poisson Examples                            #
+# Poisson EXAMPLES                            #
 ###############################################
 
 example:1D_FD_Poisson_fromL1:
@@ -1278,7 +1194,7 @@ example:3D_FV_Poisson_fromL4:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Poisson_fromL4 ../Examples/Poisson/3D_FV_Poisson_fromL4.knowledge "../Examples/Poisson/3D_FV_Poisson_fromL4.exa4" "" 1 1 Platform/random.platform output
 
 ###############################################
-# Stokes Examples                             #
+# Stokes EXAMPLES                             #
 ###############################################
 
 example:1D_FD_Stokes_fromL1:
@@ -1360,7 +1276,7 @@ example:3D_FV_Stokes_fromL4:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Stokes_fromL4 ../Examples/Stokes/3D_FV_Stokes_fromL4.knowledge "../Examples/Stokes/3D_FV_Stokes_fromL4.exa4" "" 1 1 Platform/random.platform output
 
 ###############################################
-# SWE Examples                                #
+# SWE EXAMPLES                                #
 ###############################################
 
 example:2D_FV_SWE:
