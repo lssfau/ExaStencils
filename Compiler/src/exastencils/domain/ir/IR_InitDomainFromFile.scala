@@ -491,16 +491,28 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
           // normal
           //IR_VariableDeclaration(nx, ty),
           //IR_VariableDeclaration(ny, IR_Negative(tx)),
-          IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 0), nodePosition(beginIdx, 0) + nxCornerBeg * neigh.dir.sum),
-          IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 1), nodePosition(beginIdx, 1) + nyCornerBeg * neigh.dir.sum),
+          if (neigh.index == 0  || neigh.index == 3)
+            IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 0), nodePosition(beginIdx, 0) + nxCornerBeg * neigh.dir.sum)
+          else
+            IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 0), nodePosition(beginIdx, 0) - nxCornerBeg * neigh.dir.sum),
+          if (neigh.index == 0  || neigh.index == 3)
+            IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 1), nodePosition(beginIdx, 1) + nyCornerBeg * neigh.dir.sum)
+          else
+            IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 1), nodePosition(beginIdx, 1) - nyCornerBeg * neigh.dir.sum),
           // end
           //IR_Assignment(tx, IR_FloatConstant(0.5) * (nodePosition(endIdx, 0) - nodePosition(prev(prev(endIdx)), 0))),
           //IR_Assignment(ty, IR_FloatConstant(0.5) * (nodePosition(endIdx, 1) - nodePosition(prev(prev(endIdx)), 1))),
           // normal
           //IR_Assignment(nx, ty),
           //IR_Assignment(ny, IR_Negative(tx)),
-          IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 0), nodePosition(endIdx, 0) + nxCornerEnd * neigh.dir.sum),
-          IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 1), nodePosition(endIdx, 1) + nyCornerEnd * neigh.dir.sum)
+          if (neigh.index == 0  || neigh.index == 3)
+            IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 0), nodePosition(endIdx, 0) + nxCornerEnd * neigh.dir.sum)
+          else
+            IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 0), nodePosition(endIdx, 0) - nxCornerEnd * neigh.dir.sum),
+          if (neigh.index == 0  || neigh.index == 3)
+            IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 1), nodePosition(endIdx, 1) + nyCornerEnd * neigh.dir.sum)
+          else
+            IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 1), nodePosition(endIdx, 1) - nyCornerEnd * neigh.dir.sum)
         ))
       )
 
