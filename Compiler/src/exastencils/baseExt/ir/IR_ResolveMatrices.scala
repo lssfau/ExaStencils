@@ -22,7 +22,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_MatNodes._
-import exastencils.baseExt.ir.IR_MatOperations.{IR_EvalMOpRuntimeExe, IR_GenerateBasicMatrixOperations, IR_GenerateRuntimeInversion}
+import exastencils.baseExt.ir.IR_MatOperations.{ IR_EvalMOpRuntimeExe, IR_GenerateBasicMatrixOperations, IR_GenerateRuntimeInversion }
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.core.StateManager
@@ -263,7 +263,7 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
     ("determinant", IR_DeterminantCT.applyWithCheck)
   )
 
-  /** Attribute: Map to convert intermediate matrix function nodes to resolvable compiletime nodes */
+  /** Attribute: Map to convert intermediate matrix function nodes to resolvable runtime nodes */
   val rtFctMap = Map[String, (IR_Access, IR_RuntimeMNode) => IR_Statement](
     ("inverse", IR_InverseRT.apply),
     ("getSlice", IR_GetSliceRT.apply),
