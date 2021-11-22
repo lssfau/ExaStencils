@@ -20,8 +20,11 @@ package exastencils.simd
 
 import exastencils.base.ir._
 import exastencils.config._
+import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_ResultingDatatype
+
+/// (scalar) arithmetic operations
 
 /// SIMD_Addition
 
@@ -133,4 +136,78 @@ case class SIMD_Maximum(var left : IR_Expression, var right : IR_Expression) ext
       out << '(' << left << ", " << right << ')'
     }
   }
+}
+
+/// logical comparison operations
+
+trait SIMD_Compare extends SIMD_Expression {
+  def left : IR_Expression
+  def right : IR_Expression
+  def op : String
+  override def datatype = SIMD_RealDatatype
+  override def prettyprint(out : PpStream) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
+    Platform.simd_instructionSet match {
+      case "SSE3"         => out << s"_mm_cmp${op}_p" << prec
+      case "AVX" | "AVX2" => out << s"_mm256_cmp${op}_p" << prec // TODO: wrong signature for both
+      case "AVX512"       => Logger.error("Currently unsupported")
+      case "IMCI"         => Logger.error("Currently unsupported")
+      case "NEON"         => Logger.error("Currently unsupported")
+      case "QPX"          => Logger.error("Currently unsupported")
+    }
+    out << '(' << left << ", " << right << ')'
+  }
+}
+
+case class SIMD_EqEq(var left : IR_Expression, var right : IR_Expression) extends SIMD_Compare {
+  override def op : String = "eq"
+}
+
+case class SIMD_Neq(var left : IR_Expression, var right : IR_Expression) extends SIMD_Compare {
+  override def op : String = "neq"
+}
+
+case class SIMD_Lower(var left : IR_Expression, var right : IR_Expression) extends SIMD_Compare {
+  override def op : String = "lt"
+}
+
+case class SIMD_Greater(var left : IR_Expression, var right : IR_Expression) extends SIMD_Compare {
+  override def op : String = "gt"
+}
+
+case class SIMD_LowerEqual(var left : IR_Expression, var right : IR_Expression) extends SIMD_Compare {
+  override def op : String = "le"
+}
+
+case class SIMD_GreaterEqual(var left : IR_Expression, var right : IR_Expression) extends SIMD_Compare {
+  override def op : String = "ge"
+}
+
+/// (scalar) logical operations
+
+trait SIMD_BitwiseOp extends SIMD_Expression {
+  def left : IR_Expression
+  def right : IR_Expression
+  def op : String
+  override def datatype = SIMD_RealDatatype
+  override def prettyprint(out : PpStream) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
+    Platform.simd_instructionSet match {
+      case "SSE3"         => out << s"_mm_${op}_p" << prec
+      case "AVX" | "AVX2" => out << s"_mm256_${op}_p" << prec
+      case "AVX512"       => Logger.error("Currently unsupported")
+      case "IMCI"         => Logger.error("Currently unsupported")
+      case "NEON"         => Logger.error("Currently unsupported")
+      case "QPX"          => Logger.error("Currently unsupported")
+    }
+    out << '(' << left << ", " << right << ')'
+  }
+}
+
+case class SIMD_BitwiseAnd(var left : IR_Expression, var right : IR_Expression) extends SIMD_BitwiseOp {
+  override def op : String = "and"
+}
+
+case class SIMD_BitwiseOr(var left : IR_Expression, var right : IR_Expression) extends SIMD_BitwiseOp {
+  override def op : String = "or"
 }
