@@ -289,7 +289,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     var alignmentExpr : IR_Expression = null
     val vs = Platform.simd_vectorSize
     if (Knowledge.data_alignFieldPointers) {
-      for (stmt <- body)
+      for (stmt <- body) {
         stmt match {
           case IR_Assignment(acc @ IR_ArrayAccess(_, index, true), _, _) =>
             val annot = acc.getAnnotation(IR_AddressPrecalculation.ORIG_IND_ANNOT)
@@ -322,6 +322,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
             alignmentExpr = ind
           case _                                                         =>
         }
+      }
 
       val indexExprs = new ListBuffer[HashMap[IR_Expression, Long]]()
       val collectIndexExprs = new QuietDefaultStrategy("Collect all array index expressions...")
@@ -350,9 +351,10 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
             max = (i, counts(i))
         ctx.setAlignedResidue(max._1)
 
-      } else
+      } else {
         for (ind <- indexExprs)
           ind.remove(IR_SimplifyExpression.constName)
+      }
 
       if (Knowledge.simd_avoidUnaligned) {
         // check if index expressions are "good", i.e., all (except the constant summand) have the same residue
@@ -525,6 +527,50 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         ctx.ignIncr = false
         val njuCond = IR_IfCondition(Duplicate(cond), trueBodyVec, falseBodyVec)
         ctx.addStmt(njuCond)
+
+      case _ @ IR_IfCondition(cond, trueBody, falseBody) =>
+
+        ctx.addStmt(IR_Comment("if (" + cond.prettyprint() + ")"))
+
+        // evaluate condition: declare mask and init
+        val (maskName, _) = ctx.getName(IR_VariableAccess("evalCond", SIMD_RealDatatype))
+        val mask = IR_VariableAccess(maskName, SIMD_RealDatatype)
+        ctx.addStmt(IR_VariableDeclaration(mask, vectorizeExpr(cond, ctx.setStore())))
+
+        // fetch assignments and introduce copy for each (potentially) updated lhs
+        val copies = HashMap[IR_Expression, IR_VariableAccess]()
+        def copyVec(body : ListBuffer[IR_Statement]) = {
+          body foreach {
+            case assign @ IR_Assignment(dst, _, op) =>
+              val (copyName, _) = ctx.getName(IR_VariableAccess("copyVec", SIMD_RealDatatype))
+              val copy = IR_VariableAccess(copyName, SIMD_RealDatatype)
+              copies.put(dst, copy) // TODO: multiple assignments to same dst in loop?
+
+              vectorizeStmt(IR_Assignment(copy, dst, op), ctx.setStore())
+          }
+        }
+        ctx.addStmt(IR_Comment("-- Copies --"))
+        copyVec(trueBody)
+        copyVec(falseBody)
+
+        // vectorize body: assignments must be blended with mask
+        def vectorize(body : ListBuffer[IR_Statement]) = {
+
+          // statements in body: special handling for assignments
+          body foreach {
+            case assign @ IR_Assignment(lhsSca, rhsSca, op) =>
+              ctx.addStmt(IR_Comment(assign.prettyprint()))
+              vectorizeStmt(IR_Assignment(lhsSca, SIMD_Blendv(copies(lhsSca), rhsSca, mask), op), ctx.setStore())
+            case stmt : IR_Statement =>
+              ctx.addStmt(IR_Comment(stmt.prettyprint()))
+              vectorizeStmt(stmt, ctx)
+          }
+        }
+
+        ctx.addStmt(IR_Comment("-- True branch --"))
+        vectorize(trueBody)
+        ctx.addStmt(IR_Comment("-- False branch --"))
+        vectorize(falseBody)
 
       case _ => throw new VectorizationException("cannot deal with " + stmt.getClass + "; " + stmt.prettyprint())
     }
@@ -704,6 +750,39 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         while (exprs.length > 1)
           exprs.enqueue(SIMD_Maximum(exprs.dequeue(), exprs.dequeue()))
         exprs.dequeue()
+
+      // logical comparison
+      case IR_EqEq(left, right) =>
+        SIMD_EqEq(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
+      case IR_Neq(left, right) =>
+        SIMD_Neq(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
+      case IR_Lower(left, right) =>
+        SIMD_Lower(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
+      case IR_Greater(left, right) =>
+        SIMD_Greater(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
+      case IR_LowerEqual(left, right) =>
+        SIMD_LowerEqual(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
+      case IR_GreaterEqual(left, right) =>
+        SIMD_GreaterEqual(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
+
+      // logical operations -> bitwise ops
+      case IR_AndAnd(left, right) =>
+        SIMD_BitwiseAnd(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
+      case IR_OrOr(left, right) =>
+        SIMD_BitwiseOr(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
+
+      // simd expressions
+      // use setStore to avoid declarations in pre loop stmts
+      case blend @ SIMD_Blend(a, b, immediate) =>
+        blend.a = vectorizeExpr(a, ctx)
+        blend.b = vectorizeExpr(b, ctx)
+        blend.immediateValue = vectorizeExpr(immediate, ctx.setStore())
+        blend
+      case blendv @ SIMD_Blendv(a, b, mask) =>
+        blendv.a = vectorizeExpr(a, ctx)
+        blendv.b = vectorizeExpr(b, ctx)
+        blendv.mask = vectorizeExpr(mask, ctx.setStore())
+        blendv
 
       // TODO: datatypes of function accesses relevant?
       case IR_FunctionCall(function, args) if SIMD_MathFunctions.isAllowed(function.name) =>
