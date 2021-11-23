@@ -20,6 +20,7 @@ package exastencils.simd
 
 import exastencils.base.ir._
 import exastencils.config._
+import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
 /// SIMD_Load
@@ -60,5 +61,23 @@ case class SIMD_Store(var mem : IR_Expression, var value : IR_Expression, var al
       case "QPX" => out << '(' << value << ", 0, " << mem << ");"
       case _     => out << '(' << mem << ", " << value << ");"
     }
+  }
+}
+
+/// SIMD_MaskStore
+
+case class SIMD_MaskStore(var mem : IR_Expression, var value : IR_Expression, var mask : IR_Expression, var aligned : Boolean) extends SIMD_Statement {
+  override def prettyprint(out : PpStream) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
+    val alig = if (aligned) "" else "u"
+    Platform.simd_instructionSet match {
+      case "SSE3"         => Logger.error("Unsupported instruction")
+      case "AVX" | "AVX2" => out << "_mm256_mask_store" << alig << "_p" << prec
+      case "AVX512"       => out << "_mm512_mask_store" << alig << "_p" << prec
+      case "IMCI"         => Logger.error("Unsupported instruction")
+      case "QPX"          => Logger.error("Unsupported instruction")
+      case "NEON"         => out << "vst1q_f32"
+    }
+    out << '(' << mem << ", " << mask << "," << value << ");"
   }
 }

@@ -22,6 +22,7 @@ import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer, Map, Queue }
 import scala.util.DynamicVariable
 
 import exastencils.base.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
@@ -142,6 +143,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     private var incrVectDeclared : Boolean = false
     private var alignedResidue : Long = -1
     private val nameTempl : String = "_vec%02d"
+    private var mask : Option[IR_Expression] = None
 
     // init
     pushScope()
@@ -212,6 +214,21 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     def setStore() : this.type = {
       isStore_ = true
       this
+    }
+
+    def setMask(mask : IR_Expression) : this.type = {
+      this.mask = Some(mask)
+      this
+    }
+
+    def popMask() = {
+      val m = Duplicate(mask)
+      this.mask = None
+      m
+    }
+
+    def isMasked() : Boolean = {
+      mask.isDefined
     }
 
     def isLoad() : Boolean = {
@@ -534,37 +551,31 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
         // evaluate condition: declare mask and init
         val (maskName, _) = ctx.getName(IR_VariableAccess("evalCond", SIMD_RealDatatype))
-        val mask = IR_VariableAccess(maskName, SIMD_RealDatatype)
-        ctx.addStmt(IR_VariableDeclaration(mask, vectorizeExpr(cond, ctx.setStore())))
-
-        // fetch assignments and introduce copy for each (potentially) updated lhs
-        val copies = HashMap[IR_Expression, IR_VariableAccess]()
-        def copyVec(body : ListBuffer[IR_Statement]) = {
-          body foreach {
-            case assign @ IR_Assignment(dst, _, op) =>
-              val (copyName, _) = ctx.getName(IR_VariableAccess("copyVec", SIMD_RealDatatype))
-              val copy = IR_VariableAccess(copyName, SIMD_RealDatatype)
-              copies.put(dst, copy) // TODO: multiple assignments to same dst in loop?
-
-              vectorizeStmt(IR_Assignment(copy, dst, op), ctx.setStore())
-          }
-        }
-        ctx.addStmt(IR_Comment("-- Copies --"))
-        copyVec(trueBody)
-        copyVec(falseBody)
+        val mask = IR_VariableAccess(maskName, SIMD_RealDatatype) // TOOD type
+        ctx.addStmt(IR_VariableDeclaration(mask, vectorizeExpr(cond, ctx.setStore()))) // TODO fill correctly
 
         // vectorize body: assignments must be blended with mask
         def vectorize(body : ListBuffer[IR_Statement]) = {
+          ctx.pushScope()
 
           // statements in body: special handling for assignments
           body foreach {
             case assign @ IR_Assignment(lhsSca, rhsSca, op) =>
               ctx.addStmt(IR_Comment(assign.prettyprint()))
-              vectorizeStmt(IR_Assignment(lhsSca, SIMD_Blendv(copies(lhsSca), rhsSca, mask), op), ctx.setStore())
+
+              Platform.simd_instructionSet match {
+                case "AVX" | "AVX2" | "AVX512" =>
+                  vectorizeStmt(IR_Assignment(lhsSca, rhsSca, op), ctx.setMask(vectorizeExpr(mask, ctx)).setStore())
+                case _ =>
+                  throw new VectorizationException("Masked store unimplemented for: " + Platform.simd_instructionSet)
+              }
             case stmt : IR_Statement =>
               ctx.addStmt(IR_Comment(stmt.prettyprint()))
               vectorizeStmt(stmt, ctx)
           }
+
+          val newBodyVec = ctx.popScope()
+          ctx.addStmt(IR_IfCondition(true, newBodyVec)) // TODO: adapt cond
         }
 
         ctx.addStmt(IR_Comment("-- True branch --"))
@@ -647,8 +658,11 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
               throw new VectorizationException("cannot vectorize store: array is not aligned, but unaligned accesses should be avoided")
             if (ctx.storesTmp != null)
               Logger.debug("[vect] Error? More than one store in a single statement?!")
-            ctx.storesTmp = SIMD_Store(IR_AddressOf(expr),
-              IR_VariableAccess(vecTmp, SIMD_RealDatatype), aligned)
+            if (ctx.isMasked()) {
+              ctx.storesTmp = SIMD_MaskStore(IR_AddressOf(expr), IR_VariableAccess(vecTmp, SIMD_RealDatatype), ctx.popMask().get, aligned)
+            } else {
+              ctx.storesTmp = SIMD_Store(IR_AddressOf(expr), IR_VariableAccess(vecTmp, SIMD_RealDatatype), aligned)
+            }
           }
         }
         // ---- special handling of loop-carried cse variables ----
@@ -770,19 +784,6 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         SIMD_BitwiseAnd(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
       case IR_OrOr(left, right) =>
         SIMD_BitwiseOr(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
-
-      // simd expressions
-      // use setStore to avoid declarations in pre loop stmts
-      case blend @ SIMD_Blend(a, b, immediate) =>
-        blend.a = vectorizeExpr(a, ctx)
-        blend.b = vectorizeExpr(b, ctx)
-        blend.immediateValue = vectorizeExpr(immediate, ctx.setStore())
-        blend
-      case blendv @ SIMD_Blendv(a, b, mask) =>
-        blendv.a = vectorizeExpr(a, ctx)
-        blendv.b = vectorizeExpr(b, ctx)
-        blendv.mask = vectorizeExpr(mask, ctx.setStore())
-        blendv
 
       // TODO: datatypes of function accesses relevant?
       case IR_FunctionCall(function, args) if SIMD_MathFunctions.isAllowed(function.name) =>
