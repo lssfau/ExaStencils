@@ -146,7 +146,7 @@ trait SIMD_Compare extends SIMD_Expression {
   def op : String
   def ordered : Boolean = true
   def signalling : Boolean = false
-  override def datatype = SIMD_RealDatatype
+  override def datatype = SIMD_MaskDatatype
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     val ord = if (ordered) "O" else "U"
@@ -154,15 +154,16 @@ trait SIMD_Compare extends SIMD_Expression {
     Platform.simd_instructionSet match {
       case "SSE3"         => out << s"_mm_cmp${op}_p" << prec
       case "AVX" | "AVX2" => out << s"_mm256_cmp_p" << prec
-      case "AVX512"       => Logger.error("Currently unsupported")
+      case "AVX512"       => out << s"_mm512_cmp_p" << prec << "_mask"
       case "IMCI"         => Logger.error("Currently unsupported")
       case "NEON"         => Logger.error("Currently unsupported")
       case "QPX"          => Logger.error("Currently unsupported")
     }
     out << '(' << left << ", " << right
     Platform.simd_instructionSet match {
-      case "AVX" | "AVX2" => // op as parameter
-        out << "," << "__CMP_" << op.toUpperCase << "_" << ord << signal
+      case "AVX" | "AVX2" | "AVX512" => // op as parameter
+        out << ", _CMP_" << op.toUpperCase << "_" << ord << signal
+      case _ =>
     }
     out << ')'
   }

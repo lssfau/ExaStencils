@@ -20,6 +20,7 @@ package exastencils.simd
 
 import exastencils.base.ir._
 import exastencils.config._
+import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
 trait SIMD_Datatype extends IR_Datatype {
@@ -49,6 +50,27 @@ case object SIMD_RealDatatype extends SIMD_Datatype {
       case "AVX512" | "IMCI" => out << "__m512" << suffix
       case "QPX"             => out << "vector4double" // no suffix
       case "NEON"            => out << "float32x4_t" // FIXME: only single precision until now
+    }
+  }
+
+  override def prettyprint_mpi = "INVALID DATATYPE: " + this.prettyprint()
+}
+
+// AVX512 comparison returns _mmask datatypes, SIMD_RealDatatypes for others
+
+case object SIMD_MaskDatatype extends SIMD_Datatype {
+  exastencils.core.Duplicate.registerConstant(this)
+
+  override def datatype : IR_ScalarDatatype = IR_RealDatatype
+
+  override def prettyprint(out : PpStream) : Unit = {
+    Platform.simd_instructionSet match {
+      case "SSE3" | "AVX" | "AVX2" => out << SIMD_RealDatatype.prettyprint()
+      case "AVX512"                => out << "__mmask" << Platform.simd_vectorSize
+      // TODO
+      case "IMCI"                  => Logger.error("Unsupported datatype")
+      case "QPX"                   => Logger.error("Unsupported datatype")
+      case "NEON"                  => Logger.error("Unsupported datatype")
     }
   }
 
