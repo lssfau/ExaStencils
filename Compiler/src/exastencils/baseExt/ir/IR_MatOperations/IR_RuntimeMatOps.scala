@@ -498,15 +498,21 @@ object IR_GenerateRuntimeInversion {
   def localLUDecomp(in : IR_Access, P : IR_VariableAccess, blocksize_asInt : Int, offset_r : IR_Expression, offset_c : IR_Expression) : ListBuffer[IR_Statement] = {
 
     val Tol = IR_RealConstant(0.000000000000001)
-    val baseType = in.datatype.resolveBaseDatatype
+    val innerDt = in.datatype match {
+      case IR_MatrixDatatype(complex : IR_ComplexDatatype, m, n) =>
+        complex
+      case dt =>
+        dt.resolveBaseDatatype
+    }
+    val absDt = in.datatype.resolveBaseDatatype
     val func = ListBuffer[IR_Statement]()
     val i = IR_VariableAccess("i", IR_IntegerDatatype)
     val j = IR_VariableAccess("j", IR_IntegerDatatype)
     val k = IR_VariableAccess("k", IR_IntegerDatatype)
     val imax = IR_VariableAccess("imax", IR_IntegerDatatype)
-    val maxA = IR_VariableAccess("maxA", baseType)
-    val absA = IR_VariableAccess("absA", baseType)
-    val tmp_row = IR_VariableAccess("tmp_row", IR_ArrayDatatype(baseType, blocksize_asInt))
+    val maxA = IR_VariableAccess("maxA", absDt)
+    val absA = IR_VariableAccess("absA", absDt)
+    val tmp_row = IR_VariableAccess("tmp_row", IR_ArrayDatatype(innerDt, blocksize_asInt))
     val tmp_idx = IR_VariableAccess("tmp_idx", IR_IntegerDatatype)
     var outstream = IR_VariableAccess("std::cout", IR_StringDatatype)
 
@@ -521,7 +527,7 @@ object IR_GenerateRuntimeInversion {
       IR_Assignment(maxA, IR_RealConstant(0)),
       IR_Assignment(imax, i),
       IR_ForLoop(IR_VariableDeclaration(k, i), IR_Lower(k, blocksize_asInt), IR_ExpressionStatement(IR_PreIncrement(k)), ListBuffer[IR_Statement](
-        IR_Assignment(absA, IR_FunctionCall(IR_ExternalFunctionReference.fabs, ListBuffer[IR_Expression](IR_HighDimAccess(in, IR_ExpressionIndex(k + offset_r, i + offset_c))))),
+        IR_Assignment(absA, IR_FunctionCall(IR_ExternalFunctionReference.abs(innerDt), ListBuffer[IR_Expression](IR_HighDimAccess(in, IR_ExpressionIndex(k + offset_r, i + offset_c))))),
         IR_IfCondition(IR_Greater(absA, maxA), ListBuffer[IR_Statement](IR_Assignment(maxA, absA), IR_Assignment(imax, k)), ListBuffer[IR_Statement]())
       )),
       //IR_IfCondition(IR_Lower(maxA, Tol), ListBuffer[IR_Statement](IR_Print(outstream, ListBuffer[IR_Expression](IR_StringConstant("[Warning] inverting potentially singular matrix\\n")))), ListBuffer[IR_Statement]()),
