@@ -26,6 +26,6 @@ import exastencils.prettyprinting.PpStream
 
 case class MPI_Bcast(var buffer : IR_Expression, var size : IR_Expression, var datatype : IR_Datatype, var root : IR_Expression) extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = {
-    out << "MPI_Bcast(" << buffer << ", " << size << ", " << datatype.prettyprint_mpi << ", " << root << ", mpiCommunicator);"
+    out << "MPI_Bcast(" << buffer << ", " << size << ", " << datatype.prettyprint_mpi << ", " << root << ", " << MPI_IV_MpiComm << ");"
   }
 }

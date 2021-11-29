@@ -2509,6 +2509,27 @@ test:Inlining:
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Inlining Misc/inlining.knowledge "Misc/inlining.exa4" Misc/inlining.results 8 4 Platform/random.platform output
 
+test:MathFunctionEvaluation:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib MathFunctionEvaluation Misc/MathFunctionEvaluation.knowledge "Misc/MathFunctionEvaluation.exa4" Misc/MathFunctionEvaluation.results 1 1 Platform/random.platform output
+
+
 test:Reduction:
     stage: test
     dependencies:

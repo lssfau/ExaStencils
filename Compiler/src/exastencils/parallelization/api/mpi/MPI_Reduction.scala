@@ -54,14 +54,16 @@ object MPI_Reduce {
 
 case class MPI_Reduce(var root : IR_Expression, var sendbuf : IR_Expression, var recvbuf : IR_Expression, var datatype : IR_Datatype, var count : IR_Expression, var op : IR_Expression) extends MPI_Statement {
   def reallyPrint(out : PpStream) : Unit = {
-    out << "MPI_Reduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", " << root << ", mpiCommunicator);"
+    out << "MPI_Reduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", " << root << ", " << MPI_IV_MpiComm << ");"
   }
+
+  private var isRoot = IR_EqEq(root, MPI_IV_MpiRank)
 
   override def prettyprint(out : PpStream) : Unit = {
     sendbuf match {
       // TODO: possible to extract to strategy/ specialized constructors?
       case IR_StringLiteral("MPI_IN_PLACE") => // special handling for MPI_IN_PLACE required
-        out << "if (" << IR_EqEq(root, MPI_IV_MpiRank) << ") {\n"
+        out << "if (" << isRoot << ") {\n"
         MPI_Reduce(root, sendbuf, recvbuf, datatype, count, op).reallyPrint(out) // MPI_IN_PLACE for root proc
         out << "\n} else {\n"
         MPI_Reduce(root, recvbuf, recvbuf, datatype, count, op).reallyPrint(out) // same behavior, different call required on all other procs -.-
@@ -89,7 +91,7 @@ object MPI_AllReduce {
 
 case class MPI_AllReduce(var sendbuf : IR_Expression, var recvbuf : IR_Expression, var datatype : IR_Datatype, var count : IR_Expression, var op : IR_Expression) extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = {
-    out << "MPI_Allreduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", mpiCommunicator);"
+    out << "MPI_Allreduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", "  << MPI_IV_MpiComm << ");"
   }
 }
 
