@@ -24,20 +24,15 @@ import scala.collection.mutable._
 import java.io.PrintWriter
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_MatNodes.IR_GetElement
-import exastencils.baseExt.ir.IR_MatNodes.IR_GetSliceCT
-import exastencils.baseExt.ir.IR_MatNodes.IR_ResolvableMNode
-import exastencils.baseExt.ir.IR_MatNodes.IR_RuntimeMNode
-import exastencils.baseExt.ir.IR_MatNodes.IR_SetElement
-import exastencils.baseExt.ir.IR_MatNodes.IR_SetSlice
+import exastencils.baseExt.ir.IR_MatNodes._
 import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.core._
+import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
-import exastencils.optimization.ir.EvaluationException
-import exastencils.optimization.ir.IR_SimplifyExpression
+import exastencils.optimization.ir._
 import exastencils.performance.PlatformUtils
 import exastencils.util.ir._
 
@@ -239,6 +234,10 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
 
           val estimatedTimeOps_host = cyclesPerIt * iterationsPerThread / PlatformUtils.cpu_opsPerThread
           val estimatedTimeOps_device = cyclesPerIt * iterationsPerMpi / PlatformUtils.gpu_opsPerMpi(maxIterations)
+
+//          stmts += IR_Comment(s"Estimated adds: ${ EvaluateForOps.numAdd }")
+//          stmts += IR_Comment(s"Estimated muls: ${ EvaluateForOps.numMul }")
+//          stmts += IR_Comment(s"Estimated divs: ${ EvaluateForOps.numDiv }")
 
           stmts += IR_Comment(s"Host time for computational ops: ${ estimatedTimeOps_host * 1000.0 } ms")
           stmts += IR_Comment(s"Device time for computational ops: ${ estimatedTimeOps_device * 1000.0 } ms")
@@ -461,7 +460,7 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           val identifier = getIdentifier(field, inMat.slot, isWrite = inWriteOp)
 
           updateForMatrixEntries(field, inMat.index, identifier, offsetRows, offsetCols, offsetRows + nrows, offsetCols + ncols, field.resolveBaseDatatype)
-        case m  =>
+        case m                                                                                                                       =>
           Logger.warn("Unsupported matrix function for performance estimation: " + m.getClass.getName)
       }
     }
@@ -513,15 +512,15 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
               case matExpr : IR_MatrixExpression if !IR_CompiletimeMatOps.isConstMatrix(matExpr) =>
                 inWriteOp = false
                 EvaluateFieldAccess.applyStandalone(IR_ExpressionStatement(newVal))
-              case expr : IR_Expression if !IR_CompiletimeMatOps.isConst(expr) =>
+              case expr : IR_Expression if !IR_CompiletimeMatOps.isConst(expr)                   =>
                 inWriteOp = false
                 EvaluateFieldAccess.applyStandalone(IR_ExpressionStatement(newVal))
-              case _ =>
+              case _                                                                             =>
             }
           } else {
             Logger.warn("Cannot determine field accesses for setSlice with runtime values.")
           }
-        case m =>
+        case m                                                                                                =>
           Logger.warn("Unsupported matrix function for performance estimation: " + m.getClass.getName)
       }
     }
@@ -553,34 +552,77 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
   }
 
   object EvaluateForOps extends QuietDefaultStrategy("Evaluating performance for numeric operations") {
-    var numAdd = 0
-    var numMul = 0
-    var numDiv = 0
+
+    class IR_ForOpsCollector extends Collector {
+      var numAdd = 0
+      var numMul = 0
+      var numDiv = 0
+
+      var inIndex = false
+
+      override def enter(node : Node) : Unit = {
+        node match {
+          case add : IR_Addition if add.summands.nonEmpty =>
+            if (!inIndex)
+              numAdd += add.summands.length - 1
+
+          case _ : IR_Subtraction =>
+            if (!inIndex)
+              numAdd += 1
+
+          case mul : IR_Multiplication if mul.factors.nonEmpty =>
+            if (!inIndex)
+              numMul += mul.factors.length - 1
+
+          case div : IR_Division =>
+            if (!inIndex)
+              div.right match {
+                case _ : IR_IntegerConstant => numMul += 0
+                case _ : IR_RealConstant    => numMul += 1
+                case _                      => numDiv += 1
+              }
+
+          case _ : IR_Index =>            // skip index calculations
+            inIndex = true
+
+          case _ =>
+        }
+      }
+
+      override def leave(node : Node) : Unit = {
+        node match {
+          case _ : IR_Index =>            // skip index calculations
+            inIndex = false
+
+          case _ =>
+        }
+      }
+
+      override def reset() : Unit = {
+        numAdd = 0
+        numMul = 0
+        numDiv = 0
+
+        inIndex = false
+      }
+    }
+
+    var collector = new IR_ForOpsCollector()
+    this.register(collector)
+
+    def numAdd = collector.numAdd
+    def numMul = collector.numMul
+    def numDiv = collector.numDiv
 
     override def applyStandalone(node : Node) : Unit = {
-      numAdd = 0
-      numMul = 0
-      numDiv = 0
-      super.applyStandalone(node)
+      collector.reset()
+
+      // skip loop sub-nodes that are not part of the body
+      node.asInstanceOf[IR_LoopOverDimensions].body.foreach(super.applyStandalone)
     }
 
     this += new Transformation("Searching", {
-      case add : IR_Addition if add.summands.nonEmpty      =>
-        numAdd += add.summands.length - 1
-        add
-      case sub : IR_Subtraction                            =>
-        numAdd += 1
-        sub
-      case mul : IR_Multiplication if mul.factors.nonEmpty =>
-        numMul += mul.factors.length - 1
-        mul
-      case div : IR_Division                               =>
-        div.right match {
-          case _ : IR_IntegerConstant => numMul += 0
-          case _ : IR_RealConstant    => numMul += 1
-          case _                      => numDiv += 1
-        }
-        div
+      case comment : IR_Comment => comment // TODO: should be an empty transformation
     })
   }
 
