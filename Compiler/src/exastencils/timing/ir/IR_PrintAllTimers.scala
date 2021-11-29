@@ -25,6 +25,7 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.core.StateManager
 import exastencils.parallelization.api.mpi.MPI_AllReduce
+import exastencils.parallelization.api.mpi.MPI_IV_MpiSize
 import exastencils.util.ir.IR_RawPrint
 
 /// IR_PrintAllTimers
@@ -42,7 +43,7 @@ case class IR_PrintAllTimers() extends IR_TimerFunction {
 
     if (Knowledge.mpi_enabled) {
       statements += MPI_AllReduce(IR_AddressOf(timerValue), timerValue.datatype, 1, "+")
-      statements += IR_Assignment(timerValue, "mpiSize", "/=")
+      statements += IR_Assignment(timerValue, MPI_IV_MpiSize, "/=")
     }
 
     statements += IR_RawPrint("\"Mean mean total time for Timer " + timer.name + ":\"", "timerValue")

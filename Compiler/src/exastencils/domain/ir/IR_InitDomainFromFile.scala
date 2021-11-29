@@ -31,6 +31,7 @@ import exastencils.field.ir._
 import exastencils.globals.ir.IR_AllocateDataFunction
 import exastencils.grid.ir._
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
+import exastencils.parallelization.api.mpi.MPI_IV_MpiSize
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.ir._
 
@@ -706,8 +707,8 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     var body = ListBuffer[IR_Statement]()
 
     if (Knowledge.mpi_enabled)
-      body += IR_Assert(IR_EqEq(s"mpiSize", Knowledge.domain_numBlocks),
-        ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.mpi_numThreads),
+      body += IR_Assert(IR_EqEq(MPI_IV_MpiSize, Knowledge.domain_numBlocks),
+        ListBuffer("\"Invalid number of MPI processes (\"", MPI_IV_MpiSize, "\") should be \"", Knowledge.mpi_numThreads),
         IR_FunctionCall("exit", 1))
 
     body += readGrid(Knowledge.maxLevel, true)
