@@ -569,10 +569,11 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           }
         }
 
+        def extractBitsMask(expr : IR_Expression) = IR_BitwiseAnd(expr, IR_Native(s"0b${List.fill(Platform.simd_vectorSize)("1").mkString}"))
         ctx.addStmt(IR_Comment("-- True branch --"))
-        vectorize(trueBody, SIMD_MoveMask(mask) > 0 : IR_Expression) // check if not all zeros
+        vectorize(trueBody, extractBitsMask(SIMD_MoveMask(mask)) > 0) // check if not all zeros
         ctx.addStmt(IR_Comment("-- False branch --"))
-        vectorize(falseBody, IR_BitwiseNot(SIMD_MoveMask(mask)) > 0) // check if not all ones
+        vectorize(falseBody, extractBitsMask(IR_BitwiseNot(SIMD_MoveMask(mask))) > 0) // check if not all ones
 
         ctx.addStmt(IR_Scope(ctx.popScope()))
 
