@@ -566,6 +566,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
               case assign @ IR_Assignment(lhsSca, rhsSca, op) =>
                 ctx.addStmt(IR_Comment(assign.prettyprint()))
                 vectorizeStmt(IR_Assignment(lhsSca, SIMD_Blendv(copies(lhsSca), rhsSca, mask), op), ctx)
+              case _ : IR_IfCondition                         =>
+                throw new VectorizationException("Cannot deal with nested conditions")
               case stmt : IR_Statement                        =>
                 ctx.addStmt(IR_Comment(stmt.prettyprint()))
                 vectorizeStmt(stmt, ctx)
