@@ -570,9 +570,9 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         }
 
         ctx.addStmt(IR_Comment("-- True branch --"))
-        vectorize(trueBody, SIMD_MoveMask(mask) Neq 0 : IR_Expression) // check if not all zeros
+        vectorize(trueBody, SIMD_MoveMask(mask) > 0 : IR_Expression) // check if not all zeros
         ctx.addStmt(IR_Comment("-- False branch --"))
-        vectorize(falseBody, IR_BitwiseNot(SIMD_MoveMask(mask)) Neq 0) // check if not all ones
+        vectorize(falseBody, IR_BitwiseNot(SIMD_MoveMask(mask)) > 0) // check if not all ones
 
         ctx.addStmt(IR_Scope(ctx.popScope()))
 
