@@ -535,7 +535,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         ctx.addStmt(IR_Comment("if (" + cond.prettyprint() + ")"))
 
         // evaluate condition: declare mask and init
-        val (maskName, _) = ctx.getName(IR_VariableAccess("condMask", SIMD_RealDatatype))
+        val (maskName, _) = ctx.getName(IR_VariableAccess("condMask", SIMD_MaskDatatype))
         val mask = IR_VariableAccess(maskName, SIMD_MaskDatatype)
         ctx.addStmt(IR_VariableDeclaration(mask, vectorizeExpr(cond, ctx)))
 
@@ -544,28 +544,18 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           if (body.nonEmpty) {
             ctx.pushScope()
 
-            // fetch assignments and introduce copy for each (potentially) updated lhs
-            val copies = HashMap[IR_Expression, IR_VariableAccess]()
-            def copyVec(stmts : ListBuffer[IR_Statement]) = {
-              stmts foreach {
-                case IR_Assignment(dst, _, op) =>
-                  val (copyName, _) = ctx.getName(IR_VariableAccess("copyVec", SIMD_RealDatatype))
-                  val copy = IR_VariableAccess(copyName, SIMD_RealDatatype)
-                  copies.put(dst, copy)
-
-                  vectorizeStmt(IR_Assignment(copy, dst, op), ctx)
-                case _ =>
-              }
-            }
-            ctx.addStmt(IR_Comment("-- Copies --"))
-            copyVec(trueBody)
-            copyVec(falseBody)
-
             // statements in body: special handling for assignments
             body foreach {
               case assign @ IR_Assignment(lhsSca, rhsSca, op) =>
                 ctx.addStmt(IR_Comment(assign.prettyprint()))
-                vectorizeStmt(IR_Assignment(lhsSca, SIMD_Blendv(copies(lhsSca), rhsSca, mask), op), ctx)
+
+                // introduce copy for each (potentially) updated lhs
+                ctx.addStmt(IR_Comment("Copy: " + lhsSca.prettyprint()))
+                val (copyName, _) = ctx.getName(IR_VariableAccess("copyVec", SIMD_RealDatatype))
+                val copy = IR_VariableAccess(copyName, SIMD_RealDatatype)
+                vectorizeStmt(IR_Assignment(copy, lhsSca, op), ctx)
+
+                vectorizeStmt(IR_Assignment(lhsSca, SIMD_Blendv(copy, rhsSca, mask), op), ctx)
               case _ : IR_IfCondition                         =>
                 throw new VectorizationException("Cannot deal with nested conditions")
               case stmt : IR_Statement                        =>
