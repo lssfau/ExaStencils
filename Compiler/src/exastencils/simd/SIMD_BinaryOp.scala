@@ -199,13 +199,13 @@ trait SIMD_BitwiseOp extends SIMD_Expression {
   def left : IR_Expression
   def right : IR_Expression
   def op : String
-  override def datatype = SIMD_RealDatatype
+  override def datatype = SIMD_MaskDatatype
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {
       case "SSE3"         => out << s"_mm_${op}_p" << prec
       case "AVX" | "AVX2" => out << s"_mm256_${op}_p" << prec
-      case "AVX512"       => Logger.error("Currently unsupported")
+      case "AVX512"       => out << s"_k${op}_mask" << Platform.simd_vectorSize
       case "IMCI"         => Logger.error("Currently unsupported")
       case "NEON"         => Logger.error("Currently unsupported")
       case "QPX"          => Logger.error("Currently unsupported")

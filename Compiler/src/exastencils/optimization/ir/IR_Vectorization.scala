@@ -537,7 +537,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         // evaluate condition: declare mask and init
         val (maskName, _) = ctx.getName(IR_VariableAccess("condMask", SIMD_MaskDatatype))
         val mask = IR_VariableAccess(maskName, SIMD_MaskDatatype)
-        ctx.addStmt(IR_VariableDeclaration(mask, vectorizeExpr(cond, ctx)))
+        ctx.addStmt(IR_VariableDeclaration(mask, vectorizeExpr(cond, ctx.setLoad())))
 
         // vectorize body: assignments must be blended with mask
         def vectorize(body : ListBuffer[IR_Statement], cond : IR_Expression) = {
@@ -677,8 +677,9 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
             if (!ctx.ignIncr)
               decl.initialValue = Some(SIMD_Addition(decl.initialValue.get, ctx.getIncrVector()))
             ctx.addStmt(decl)
-          } else
+          } else {
             ctx.addStmtPreLoop(decl, expr)
+          }
         }
         IR_VariableAccess(vecTmp, SIMD_RealDatatype)
 
