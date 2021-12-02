@@ -235,9 +235,9 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           val estimatedTimeOps_host = cyclesPerIt * iterationsPerThread / PlatformUtils.cpu_opsPerThread
           val estimatedTimeOps_device = cyclesPerIt * iterationsPerMpi / PlatformUtils.gpu_opsPerMpi(maxIterations)
 
-//          stmts += IR_Comment(s"Estimated adds: ${ EvaluateForOps.numAdd }")
-//          stmts += IR_Comment(s"Estimated muls: ${ EvaluateForOps.numMul }")
-//          stmts += IR_Comment(s"Estimated divs: ${ EvaluateForOps.numDiv }")
+          //stmts += IR_Comment(s"Estimated adds: ${ EvaluateForOps.numAdd }")
+          //stmts += IR_Comment(s"Estimated muls: ${ EvaluateForOps.numMul }")
+          //stmts += IR_Comment(s"Estimated divs: ${ EvaluateForOps.numDiv }")
 
           stmts += IR_Comment(s"Host time for computational ops: ${ estimatedTimeOps_host * 1000.0 } ms")
           stmts += IR_Comment(s"Device time for computational ops: ${ estimatedTimeOps_device * 1000.0 } ms")
@@ -399,6 +399,7 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
             // get number of elements accessed with matIndex
             def getActualRange(left : Option[IR_Expression], defaultLeft : Int, right : Option[IR_Expression], defaultRight : Int) : (IR_Expression, IR_Expression) =
               (left.getOrElse(IR_IntegerConstant(defaultLeft)), right.getOrElse(IR_IntegerConstant(defaultRight)))
+
             def singleElementRange = (IR_IntegerConstant(0), IR_IntegerConstant(0))
 
             val (startRow, endRow) = matIdx.y match {
@@ -582,7 +583,7 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
                 case _                      => numDiv += 1
               }
 
-          case _ : IR_Index =>            // skip index calculations
+          case _ : IR_Index => // skip index calculations
             inIndex = true
 
           case _ =>
@@ -591,7 +592,7 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
 
       override def leave(node : Node) : Unit = {
         node match {
-          case _ : IR_Index =>            // skip index calculations
+          case _ : IR_Index => // skip index calculations
             inIndex = false
 
           case _ =>
