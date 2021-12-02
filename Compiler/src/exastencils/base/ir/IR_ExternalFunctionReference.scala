@@ -25,6 +25,10 @@ import exastencils.prettyprinting.PpStream
 object IR_ExternalFunctionReference {
   def printf = new IR_ExternalFunctionReference("printf", IR_UnitDatatype)
   def fabs = new IR_ExternalFunctionReference("fabs", IR_RealDatatype)
+  def abs(dt : IR_Datatype) = dt match {
+    case IR_FloatDatatype | IR_DoubleDatatype | IR_RealDatatype => fabs
+    case _                                                      => new IR_ExternalFunctionReference("std::abs", dt)
+  }
 
   def apply(name : String) = new IR_ExternalFunctionReference(name, IR_UnknownDatatype)
 }

@@ -29,7 +29,7 @@ import exastencils.prettyprinting.PpStream
 /// MPI_Barrier
 case object MPI_Barrier extends MPI_Statement {
   exastencils.core.Duplicate.registerConstant(this)
-  override def prettyprint(out : PpStream) : Unit = out << "MPI_Barrier(mpiCommunicator);"
+  override def prettyprint(out : PpStream) : Unit = out << "MPI_Barrier(" << MPI_IV_MpiComm << ");"
 }
 
 /// MPI_Sequential
