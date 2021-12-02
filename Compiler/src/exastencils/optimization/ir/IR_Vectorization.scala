@@ -542,6 +542,19 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         // vectorize body: assignments must be blended with mask
         def vectorize(body : ListBuffer[IR_Statement], cond : IR_Expression) = {
           if (body.nonEmpty) {
+
+            // --- simply vectorized body: no handling for conditional updates  ---
+            def trueForAll = IR_EqEq(cond, bitExtraction)
+            ctx.pushScope()
+
+            body foreach { stmt : IR_Statement =>
+                ctx.addStmt(IR_Comment(stmt.prettyprint()))
+                vectorizeStmt(stmt, ctx)
+            }
+            val vecBody = ctx.popScope()
+
+            // --- blended updates: conditional updates via blending ---
+            def partiallyTrue = IR_Greater(cond, 0)
             ctx.pushScope()
 
             // statements in body: special handling for assignments
@@ -564,16 +577,20 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
               case _ =>
             }
 
-            val newBodyVec = ctx.popScope()
-            ctx.addStmt(IR_IfCondition(cond, newBodyVec)) // check if mask is non-zero, if yes then execute body
+            val vecBodyBlended = ctx.popScope()
+
+            ctx.addStmt(
+              IR_IfCondition(trueForAll, vecBody, // if condition true for all vector elements -> execute body without overhead
+                IR_IfCondition(partiallyTrue, vecBodyBlended))) // condition partially true -> execute body using blended updates
           }
         }
 
-        def extractBitsMask(expr : IR_Expression) = IR_BitwiseAnd(expr, IR_Native(s"0b${List.fill(Platform.simd_vectorSize)("1").mkString}"))
+        def bitExtraction = IR_Native(s"0b${List.fill(Platform.simd_vectorSize)("1").mkString}")
+        def extractBitsMask(expr : IR_Expression) = IR_BitwiseAnd(expr, bitExtraction)
         ctx.addStmt(IR_Comment("-- True branch --"))
-        vectorize(trueBody, extractBitsMask(SIMD_MoveMask(mask)) > 0) // check if not all zeros
+        vectorize(trueBody, extractBitsMask(SIMD_MoveMask(mask))) // check if not all zeros
         ctx.addStmt(IR_Comment("-- False branch --"))
-        vectorize(falseBody, extractBitsMask(IR_BitwiseNot(SIMD_MoveMask(mask))) > 0) // check if not all ones
+        vectorize(falseBody, extractBitsMask(IR_BitwiseNot(SIMD_MoveMask(mask)))) // check if not all ones
 
         ctx.addStmt(IR_Scope(ctx.popScope()))
 

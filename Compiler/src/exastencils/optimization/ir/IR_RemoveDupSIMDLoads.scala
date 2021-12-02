@@ -117,6 +117,8 @@ private[optimization] final class Analyze extends IR_StackCollector {
   private var upLoopVar : UpdateLoopVar = null
   private var hasOMPPragma : Boolean = false
 
+  def outSideCondition = !stack.exists(_.isInstanceOf[IR_IfCondition])
+
   override def enter(node : Node) : Unit = {
     super.enter(node)
     node match {
@@ -141,7 +143,7 @@ private[optimization] final class Analyze extends IR_StackCollector {
         }
 
       case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp,
-      Some(load @ SIMD_Load(IR_AddressOf(IR_ArrayAccess(base, index, _)), aligned)), _) =>
+      Some(load @ SIMD_Load(IR_AddressOf(IR_ArrayAccess(base, index, _)), aligned)), _) if outSideCondition =>
 
         val indSum : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(index)
         val other = loads.get((base, indSum))
@@ -173,7 +175,7 @@ private[optimization] final class Analyze extends IR_StackCollector {
           }
         }
 
-      case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, Some(load : SIMD_Scalar2Vector), _) if load1s != null =>
+      case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, Some(load : SIMD_Scalar2Vector), _) if load1s != null && outSideCondition =>
         val other = load1s.get(load)
         if (other.isDefined) {
           replaceAcc(vecTmp) = other.get._1.name
@@ -182,14 +184,14 @@ private[optimization] final class Analyze extends IR_StackCollector {
         } else
           load1s(load) = (decl, ArrayBuffer(stack)) // super.stack
 
-      case SIMD_Store(dest, _, _) =>
+      case SIMD_Store(dest, _, _) if outSideCondition =>
         val other = stores.get(dest)
         if (other.isDefined)
           other.get += stack // super.stack
         else
           stores(dest) = ArrayBuffer(stack) // super.stack
 
-      case vAcc @ IR_VariableAccess(vecTmp, SIMD_RealDatatype) if replaceAcc != null =>
+      case vAcc @ IR_VariableAccess(vecTmp, SIMD_RealDatatype) if replaceAcc != null && outSideCondition =>
         val nju = replaceAcc.get(vecTmp)
         if (nju.isDefined)
           vAcc.name = nju.get
@@ -201,7 +203,7 @@ private[optimization] final class Analyze extends IR_StackCollector {
   override def leave(node : Node) : Unit = {
     node match {
       // search for duplicate SIMD_ConcShift AFTER VariableAccesses in the subtree are replaced
-      case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, Some(cShift : SIMD_ConcShift), _) =>
+      case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, Some(cShift : SIMD_ConcShift), _) if outSideCondition =>
         val other = concShifts.get(cShift)
         if (other.isDefined) {
           replaceAcc(vecTmp) = other.get._1.name
