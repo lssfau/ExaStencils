@@ -4,7 +4,7 @@ import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_Expression
 import exastencils.config.Knowledge
 import exastencils.config.Platform
-import exastencils.logger.Logger
+import exastencils.optimization.ir.VectorizationException
 import exastencils.prettyprinting.PpStream
 
 
@@ -20,8 +20,8 @@ case class SIMD_Blendv(var a : IR_Expression, var b : IR_Expression, var mask : 
       // TODO: test
       case "NEON"         => out <<  "vbslq_f" << precBits << "(" << s"vcvt_f${precBits}_u$precBits($mask)" << ", " << a << ", " << b << ")" // convert mask before selection
       // TODO
-      case "IMCI"         => Logger.error("Currently unsupported")
-      case "QPX"          => Logger.error("Currently unsupported")
+      case "IMCI"         => new VectorizationException("SIMD_Blendv: Currently unsupported for " + Platform.simd_instructionSet)
+      case "QPX"          => new VectorizationException("SIMD_Blendv: Currently unsupported for " + Platform.simd_instructionSet)
     }
   }
 }

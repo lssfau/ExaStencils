@@ -20,7 +20,7 @@ package exastencils.simd
 
 import exastencils.base.ir._
 import exastencils.config._
-import exastencils.logger.Logger
+import exastencils.optimization.ir.VectorizationException
 import exastencils.prettyprinting.PpStream
 
 trait SIMD_Datatype extends IR_Datatype {
@@ -68,8 +68,8 @@ case object SIMD_MaskDatatype extends SIMD_Datatype {
       case "SSE3" | "AVX" | "AVX2" => out << SIMD_RealDatatype.prettyprint()
       case "AVX512"                => out << "__mmask" << Platform.simd_vectorSize
       case "NEON"                  => out << (if (Knowledge.useDblPrecision) "uint64x2_t" else "uint32x4_t")
-      case "IMCI"                  => Logger.error("Unsupported datatype")
-      case "QPX"                   => Logger.error("Unsupported datatype")
+      case "IMCI"                  => new VectorizationException("SIMD_MaskDatatype: Currently unsupported for " + Platform.simd_instructionSet)
+      case "QPX"                   => new VectorizationException("SIMD_MaskDatatype: Currently unsupported for " + Platform.simd_instructionSet)
     }
   }
 

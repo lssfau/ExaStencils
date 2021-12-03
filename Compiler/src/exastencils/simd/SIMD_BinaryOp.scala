@@ -20,7 +20,7 @@ package exastencils.simd
 
 import exastencils.base.ir._
 import exastencils.config._
-import exastencils.logger.Logger
+import exastencils.optimization.ir.VectorizationException
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_ResultingDatatype
 
@@ -158,8 +158,8 @@ trait SIMD_Compare extends SIMD_Expression {
       case "AVX512"       => out << s"_mm512_cmp_p" << prec << "_mask"
       case "NEON"         => out << s"vc${op}q_f$precBits"
       // TODO
-      case "IMCI"         => Logger.error("Currently unsupported")
-      case "QPX"          => Logger.error("Currently unsupported")
+      case "IMCI"         => new VectorizationException("SIMD_Compare: Currently unsupported for " + Platform.simd_instructionSet)
+      case "QPX"          => new VectorizationException("SIMD_Compare: Currently unsupported for " + Platform.simd_instructionSet)
     }
     out << '(' << left << ", " << right
     Platform.simd_instructionSet match {
@@ -209,8 +209,8 @@ trait SIMD_BitwiseOp extends SIMD_Expression {
       case "AVX" | "AVX2" => out << s"_mm256_${op}_p" << prec
       case "AVX512"       => out << s"_k${op}_mask" << Platform.simd_vectorSize
       // TODO
-      case "IMCI"         => Logger.error("Currently unsupported")
-      case "QPX"          => Logger.error("Currently unsupported")
+      case "IMCI"         => new VectorizationException("SIMD_BitwiseOp: Currently unsupported for " + Platform.simd_instructionSet)
+      case "QPX"          => new VectorizationException("SIMD_BitwiseOp: Currently unsupported for " + Platform.simd_instructionSet)
     }
     out << '(' << left << ", " << right << ')'
   }

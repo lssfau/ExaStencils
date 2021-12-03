@@ -20,7 +20,7 @@ package exastencils.simd
 
 import exastencils.base.ir._
 import exastencils.config._
-import exastencils.logger.Logger
+import exastencils.optimization.ir.VectorizationException
 import exastencils.prettyprinting.PpStream
 
 /// SIMD_Negate
@@ -62,8 +62,8 @@ case class SIMD_MoveMask(var mask : IR_Expression) extends SIMD_Expression {
         for (i <- 1 until Platform.simd_vectorSize)
           out << " | " << s"(vgetq_lane_u$prec($getSignBits, $i) << $i)"
       // TODO
-      case "IMCI"         => out << Logger.error("MoveMask not implemented for: " + Platform.simd_instructionSet)
-      case "QPX"          => out << Logger.error("MoveMask not implemented for: " + Platform.simd_instructionSet)
+      case "IMCI"         => new VectorizationException("SIMD_MoveMask: Currently unsupported for " + Platform.simd_instructionSet)
+      case "QPX"          => new VectorizationException("SIMD_MoveMask: Currently unsupported for " + Platform.simd_instructionSet)
     }
   }
 }
