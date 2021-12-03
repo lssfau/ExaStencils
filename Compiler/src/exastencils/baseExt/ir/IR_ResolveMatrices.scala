@@ -22,7 +22,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_MatNodes._
-import exastencils.baseExt.ir.IR_MatOperations.{IR_EvalMOpRuntimeExe, IR_GenerateBasicMatrixOperations, IR_GenerateRuntimeInversion}
+import exastencils.baseExt.ir.IR_MatOperations.{ IR_EvalMOpRuntimeExe, IR_GenerateBasicMatrixOperations, IR_GenerateRuntimeInversion }
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.core.StateManager
@@ -33,7 +33,6 @@ import exastencils.datastructures.Transformation
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.globals.ir.IR_GlobalCollection
-import exastencils.logger.Logger
 import exastencils.solver.ir.IR_MatrixSolveOps
 import exastencils.util.ir.IR_Print
 
@@ -134,9 +133,6 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
     case stmt : IR_VariableDeclaration =>
       TransformMatAccesses.applyStandalone(stmt)
       stmt
-    case p : IR_Print                  =>
-      TransformMatAccesses.applyStandalone(p)
-      p
     case stmt : IR_ExpressionStatement =>
       TransformMatAccesses.applyStandalone(stmt)
       stmt
@@ -146,10 +142,11 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
     case setElement : IR_SetElement    =>
       TransformMatAccesses.applyStandalone(setElement)
       setElement
-    /*case ls : IR_LoopOverDimensions =>
-      TransformMatAccesses.applyStandalone(ls)
-      ls*/
   })
+
+  // get remaining MatAccess nodes and transform to slice getter nodes
+  this ++= TransformMatAccesses.transformations
+
   /////////////////////////////////////////////
 
   ///////////////////////////////////////////// self assign
@@ -266,7 +263,7 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
     ("determinant", IR_DeterminantCT.applyWithCheck)
   )
 
-  /** Attribute: Map to convert intermediate matrix function nodes to resolvable compiletime nodes */
+  /** Attribute: Map to convert intermediate matrix function nodes to resolvable runtime nodes */
   val rtFctMap = Map[String, (IR_Access, IR_RuntimeMNode) => IR_Statement](
     ("inverse", IR_InverseRT.apply),
     ("getSlice", IR_GetSliceRT.apply),
