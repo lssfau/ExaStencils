@@ -204,7 +204,11 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_ResolveComplexNumbers.apply()
 
-   IR_PreItMOps.apply()
+    IR_PreItMOps.apply()
+
+    if (Knowledge.performance_addEstimation)
+      IR_AddPerformanceEstimates.apply() // after IR_PreItMOps, before resolve
+
     //IR_SetupMatrixExpressions.apply()
     var sthChanged = true
     while (sthChanged) {
@@ -221,9 +225,6 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_TypeInference.warnMissingDeclarations = false
     IR_TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
-
-    if (Knowledge.performance_addEstimation)
-      IR_AddPerformanceEstimates.apply()
 
     // Prepare all suitable LoopOverDimensions and ContractingLoops. This transformation is applied before resolving
     // ContractingLoops to guarantee that memory transfer statements appear only before and after a resolved
