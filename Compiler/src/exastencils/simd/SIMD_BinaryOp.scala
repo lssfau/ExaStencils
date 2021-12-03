@@ -149,14 +149,16 @@ trait SIMD_Compare extends SIMD_Expression {
   override def datatype = SIMD_MaskDatatype
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
+    val precBits = if (Knowledge.useDblPrecision) 64 else 32
     val ord = if (ordered) "O" else "U"
     val signal = if (signalling) "S" else "Q"
     Platform.simd_instructionSet match {
       case "SSE3"         => out << s"_mm_cmp${op}_p" << prec
       case "AVX" | "AVX2" => out << s"_mm256_cmp_p" << prec
       case "AVX512"       => out << s"_mm512_cmp_p" << prec << "_mask"
+      case "NEON"         => out << s"vc${op}q_f$precBits"
+      // TODO
       case "IMCI"         => Logger.error("Currently unsupported")
-      case "NEON"         => Logger.error("Currently unsupported")
       case "QPX"          => Logger.error("Currently unsupported")
     }
     out << '(' << left << ", " << right
@@ -206,8 +208,8 @@ trait SIMD_BitwiseOp extends SIMD_Expression {
       case "SSE3"         => out << s"_mm_${op}_p" << prec
       case "AVX" | "AVX2" => out << s"_mm256_${op}_p" << prec
       case "AVX512"       => out << s"_k${op}_mask" << Platform.simd_vectorSize
+      // TODO
       case "IMCI"         => Logger.error("Currently unsupported")
-      case "NEON"         => Logger.error("Currently unsupported")
       case "QPX"          => Logger.error("Currently unsupported")
     }
     out << '(' << left << ", " << right << ')'
@@ -216,8 +218,24 @@ trait SIMD_BitwiseOp extends SIMD_Expression {
 
 case class SIMD_BitwiseAnd(var left : IR_Expression, var right : IR_Expression) extends SIMD_BitwiseOp {
   override def op : String = "and"
+  override def prettyprint(out : PpStream) : Unit = {
+    if (Platform.simd_instructionSet == "NEON") {
+      val prec = if (Knowledge.useDblPrecision) 64 else 32
+      out << "vandq_u" << prec << "(" << left << ", " << right << ")"
+    } else {
+      super.prettyprint(out)
+    }
+  }
 }
 
 case class SIMD_BitwiseOr(var left : IR_Expression, var right : IR_Expression) extends SIMD_BitwiseOp {
   override def op : String = "or"
+  override def prettyprint(out : PpStream) : Unit = {
+    if (Platform.simd_instructionSet == "NEON") {
+      val prec = if (Knowledge.useDblPrecision) 64 else 32
+      out << "vorrq_u" << prec << "(" << left << ", " << right << ")"
+    } else {
+      super.prettyprint(out)
+    }
+  }
 }

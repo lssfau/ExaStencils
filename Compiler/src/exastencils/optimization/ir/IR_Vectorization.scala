@@ -21,8 +21,8 @@ package exastencils.optimization.ir
 import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer, Map, Queue }
 import scala.util.DynamicVariable
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
@@ -587,10 +587,12 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
         def bitExtraction = IR_Native(s"0b${List.fill(Platform.simd_vectorSize)("1").mkString}")
         def extractBitsMask(expr : IR_Expression) = IR_BitwiseAnd(expr, bitExtraction)
+        val moveMask = IR_VariableAccess("movemask", IR_IntegerDatatype)
+        ctx.addStmt(IR_VariableDeclaration(moveMask, SIMD_MoveMask(mask)))
         ctx.addStmt(IR_Comment("-- True branch --"))
-        vectorize(trueBody, extractBitsMask(SIMD_MoveMask(mask))) // check if not all zeros
+        vectorize(trueBody, extractBitsMask(moveMask)) // check if not all zeros
         ctx.addStmt(IR_Comment("-- False branch --"))
-        vectorize(falseBody, extractBitsMask(IR_BitwiseNot(SIMD_MoveMask(mask)))) // check if not all ones
+        vectorize(falseBody, extractBitsMask(IR_BitwiseNot(moveMask))) // check if not all ones
 
         ctx.addStmt(IR_Scope(ctx.popScope()))
 

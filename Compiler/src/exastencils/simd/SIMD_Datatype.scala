@@ -67,10 +67,9 @@ case object SIMD_MaskDatatype extends SIMD_Datatype {
     Platform.simd_instructionSet match {
       case "SSE3" | "AVX" | "AVX2" => out << SIMD_RealDatatype.prettyprint()
       case "AVX512"                => out << "__mmask" << Platform.simd_vectorSize
-      // TODO
+      case "NEON"                  => out << (if (Knowledge.useDblPrecision) "uint64x2_t" else "uint32x4_t")
       case "IMCI"                  => Logger.error("Unsupported datatype")
       case "QPX"                   => Logger.error("Unsupported datatype")
-      case "NEON"                  => Logger.error("Unsupported datatype")
     }
   }
 

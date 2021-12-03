@@ -49,10 +49,21 @@ case class SIMD_MoveMask(var mask : IR_Expression) extends SIMD_Expression {
       case "SSE3"         => out << "_mm_movemask_p" << prec <<"(" << mask << ")"
       case "AVX" | "AVX2" => out << "_mm256_movemask_p" << prec << "(" << mask << ")"
       case "AVX512"       => out << "_mm512_mask2int(" << mask << ")"
+      case "NEON"         =>
+        // TODO: test
+        val prec = if (Knowledge.useDblPrecision) 64 else 32
+
+        // shift such that only sign bits remain, bits that fall off a vector element boundary are discarded
+        val rightShift = prec - 1
+        val getSignBits = s"vshrq_n_u$prec($mask, $rightShift)"
+
+        // push sign values from lanes into registers and combine
+        out << s"vgetq_lane_u$prec($getSignBits, 0)"
+        for (i <- 1 until Platform.simd_vectorSize)
+          out << " | " << s"(vgetq_lane_u$prec($getSignBits, $i) << $i)"
       // TODO
       case "IMCI"         => out << Logger.error("MoveMask not implemented for: " + Platform.simd_instructionSet)
       case "QPX"          => out << Logger.error("MoveMask not implemented for: " + Platform.simd_instructionSet)
-      case "NEON"         => out << Logger.error("MoveMask not implemented for: " + Platform.simd_instructionSet)
     }
   }
 }
