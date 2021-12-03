@@ -55,7 +55,7 @@ case class SIMD_MoveMask(var mask : IR_Expression) extends SIMD_Expression {
 
         // shift such that only sign bits remain, bits that fall off a vector element boundary are discarded
         val rightShift = prec - 1
-        val getSignBits = s"vshrq_n_u$prec($mask, $rightShift)"
+        val getSignBits = s"vshrq_n_u$prec(${mask.prettyprint}, $rightShift)"
 
         // push sign values from lanes into registers and combine
         out << s"vgetq_lane_u$prec($getSignBits, 0)"
