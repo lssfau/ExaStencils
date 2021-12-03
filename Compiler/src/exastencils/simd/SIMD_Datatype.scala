@@ -49,7 +49,7 @@ case object SIMD_RealDatatype extends SIMD_Datatype {
       case "AVX" | "AVX2"    => out << "__m256" << suffix
       case "AVX512" | "IMCI" => out << "__m512" << suffix
       case "QPX"             => out << "vector4double" // no suffix
-      case "NEON"            => out << "float32x4_t" // FIXME: only single precision until now
+      case "NEON"            => out << (if (Knowledge.useDblPrecision) "float64x2_t" else "float32x4_t")
     }
   }
 

@@ -54,7 +54,7 @@ case class SIMD_Scalar2Vector(var scalar : IR_Expression) extends SIMD_Expressio
       case "AVX512"       => out << "_mm512_set1_p" << prec
       case "IMCI"         => out << "_mm512_set_1to" << Platform.simd_vectorSize << "_p" << prec
       case "QPX"          => out << "vec_splats"
-      case "NEON"         => out << "vdupq_n_f32"
+      case "NEON"         => out << "vdupq_n_" << (if (Knowledge.useDblPrecision) "f64" else "f32")
     }
     out << '(' << scalar << ')'
   }

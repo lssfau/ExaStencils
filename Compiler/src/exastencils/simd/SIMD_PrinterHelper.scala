@@ -62,14 +62,17 @@ private object SIMD_HorizontalPrinterHelper {
         out << ' ' << IR_RealDatatype << " _r = (" << IR_RealDatatype << ") vec_extract(vec_" << redName << "(_v, vec_sldw(_v, _v, 1)), 0);\n"
 
       case "NEON" =>
-        out << " float32x4_t _v = " << src << ";\n"
-        out << " float32x2_t _w = v" << redName << "_f32(vget_high_f32(_v), vget_low_f32(_v));\n"
-        out << " float _r = vget_lane_f32(_w,0);\n"
+        val datatype = (if (Knowledge.useDblPrecision) "float64x2_t" else "float32x4_t")
+        val prec = (if (Knowledge.useDblPrecision) "f64" else "f32")
+
+        out << " " << datatype << " _v = " << src << ";\n"
+        out << " " << datatype << " _w = v" << redName << "_" << prec << "(vget_high_" << prec << "(_v), vget_low_" << prec << "(_v));\n"
+        out << " float _r = vget_lane_" << prec << "(_w,0);\n"
         out << " _r " << assOp
         if (redFunc != null)
-          out << ' ' << redFunc << "(_r, vget_lane_f32(_w,1));\n"
+          out << ' ' << redFunc << "(_r, vget_lane_" << prec << "(_w,1));\n"
         else
-          out << " vget_lane_f32(_w,1);\n"
+          out << " vget_lane_" << prec << "(_w,1);\n"
     }
     out << dest << ' ' << assOp
     if (redFunc != null)
@@ -92,10 +95,11 @@ private object SIMD_FusedPrinterHelper {
       case "AVX512" | "IMCI" => out << "_mm512_fm" << addSub << "_p" << prec << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
       case "QPX"             => out << "vec_m" << addSub << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
       case "NEON"            =>
+        val prec_arm = (if (Knowledge.useDblPrecision) "f64" else "f32")
         if (addSub == "add")
-          out << "vmlaq_f32(" << summand << ", " << factor1 << ", " << factor2 << ')' // use unfused for compatibility with gcc 4.7 and older
+          out << "vmlaq_" << prec_arm << "(" << summand << ", " << factor1 << ", " << factor2 << ')' // use unfused for compatibility with gcc 4.7 and older
         else // vmlsq_f32(a,b,c) is a-b*c and not a*b-c; thanks ARM  -.-
-          out << "vnegq_f32(vmlsq_f32(" << summand << ", " << factor1 << ", " << factor2 << "))"
+          out << "vnegq_" << prec_arm << "(vmlsq_" << prec_arm << "(" << summand << ", " << factor1 << ", " << factor2 << "))"
     }
   }
 }
