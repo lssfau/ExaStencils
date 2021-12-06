@@ -574,6 +574,9 @@ test:Par_Test_vectSAlAl:
 
 test:Par_Test_allS:
     extends: .test_template
+    tags:
+        - docker
+        - i10swarm13
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_allS Opts/par_all.knowledge "Opts/tempBlock_par.exa4" Opts/par.results 8 4 Platform/random.platform output
 
