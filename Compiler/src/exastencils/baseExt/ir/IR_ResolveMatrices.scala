@@ -299,9 +299,6 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
     // debug
     case IR_ExpressionStatement(call @ IR_FunctionCall(_, args)) if (call.name == "compare")  =>
       IR_GenerateBasicMatrixOperations.compare(args(0), args(1), args(2), if (args.length == 4) false else true)
-    case call @ IR_FunctionCall(_, args) if (call.name == "simplifyNumExpr")                  =>
-      val v = IR_CompiletimeMatOps.simplifyNumExpr(args(0))
-      v
     case IR_ExpressionStatement(call @ IR_FunctionCall(_, args)) if (call.name == "classifyMatShape")                 =>
       val shape = IR_ClassifyMatShape(args(0).asInstanceOf[IR_MatrixExpression])
       IR_Print(IR_VariableAccess("std::cout", IR_StringDatatype), shape.toExprList() += IR_StringConstant("\\n"))
