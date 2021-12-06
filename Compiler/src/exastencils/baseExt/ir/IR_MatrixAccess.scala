@@ -47,18 +47,18 @@ case class IR_MatrixAccess(acc : IR_Access, idxy : IR_Index, idxx : Option[IR_In
   override def prettyprint(out : PpStream) : Unit = Logger.error("internal node not resolved!")
   def expand(lval : Boolean, rhsExpr : Option[IR_Expression]) : OutputType = {
     val indices_y : Array[IR_Expression] = idxy match {
-      case _ @ IR_ExpressionIndex(idxs) => idxs
-      case _ @ IR_ConstIndex(idxs)      => idxs.map(i => IR_IntegerConstant(i))
-      case _ @ IR_RangeIndex(range)     => Array[IR_Expression](range(0).begin.getOrElse(IR_IntegerConstant(0)), range(0).end.getOrElse(IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeM)))
+      case IR_ExpressionIndex(idxs) => idxs
+      case IR_ConstIndex(idxs)      => idxs.map(i => IR_IntegerConstant(i))
+      case IR_RangeIndex(range)     => Array[IR_Expression](range(0).begin.getOrElse(IR_IntegerConstant(0)), range(0).end.getOrElse(IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeM)))
     }
     val indices_x : Array[IR_Expression] = {
-      if(idxx.isDefined) {
+      if (idxx.isDefined) {
         idxx.get match {
-          case _@IR_ExpressionIndex(idxs) => idxs
-          case _@IR_ConstIndex(idxs) => idxs.map(i => IR_IntegerConstant(i))
-          case _@IR_RangeIndex(range) => Array[IR_Expression](range(0).begin.getOrElse(IR_IntegerConstant(0)), range(0).end.getOrElse(IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)))
+          case IR_ExpressionIndex(idxs) => idxs
+          case IR_ConstIndex(idxs) => idxs.map(i => IR_IntegerConstant(i))
+          case IR_RangeIndex(range) => Array[IR_Expression](range(0).begin.getOrElse(IR_IntegerConstant(0)), range(0).end.getOrElse(IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)))
         }
-      }else{
+      } else {
         Array[IR_Expression]()
       }
     }

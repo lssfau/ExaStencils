@@ -1,0 +1,60 @@
+// domain declarations
+
+Domain global< [ 0.0, 0.0 ] to [ 1.0, 1.0 ] >
+
+// field layout declarations
+
+Layout scalar< Double, Node >@all {
+  duplicateLayers = [1, 1]
+  ghostLayers     = [1, 1]
+}
+
+// field declarations
+
+Field Solution < global, scalar, None >@all
+
+// globals
+
+// stencil declarations
+
+// functions
+
+Function Application {
+
+    // sqrt(8.477105034722264E-5) evaluates to:
+    native ( "std::streamsize oldPrec = std::cout.precision()" )
+    native ( "std::cout.precision(10)" )
+    print ( sqrt(8.477105034722264E-5) )
+    native ( "std::cout.precision(oldPrec)" )
+
+    // ldexp(4., 1.) evaluates to:
+    print ( ldexp(4., 1.) )
+
+    // ldexp(4, 1.) evaluates to:
+    print ( ldexp(4, 1.) )
+
+    // exp(4.) evaluates to:
+    native ( "std::cout.precision(10)" )
+    print ( exp(4.) )
+    native ( "std::cout.precision(oldPrec)" )
+
+    // sqrt(4) evaluates to:
+    print ( sqrt(4) )
+
+    // sqrt(2) evaluates to:
+    native ( "std::cout.precision(10)" )
+    print ( sqrt(2) )
+    native ( "std::cout.precision(oldPrec)" )
+
+    Val abc : Real = 1337.0
+
+    // ldexp(4. + 10 + abc, 1.) evaluates to:
+    print ( ldexp(4. + 10 + abc, 1.) )
+
+    Var expression : Real = exp(2.0)
+
+    // ldexp(expression, 0) evaluates to:
+    native ( "std::cout.precision(10)" )
+    print ( ldexp(expression, 0) )
+    native ( "std::cout.precision(oldPrec)" )
+}
