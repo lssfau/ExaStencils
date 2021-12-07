@@ -47,7 +47,7 @@ object L4_WrapFieldFieldConvolutions extends DefaultStrategy("Wrap field-field-c
 
   def genDefaultConvLoop(tmpVar : (L4_VariableAccess, L4_FieldFieldConvolution)) : L4_LoopOverField = {
     val assignment = L4_Assignment(Duplicate(tmpVar._1), Duplicate(tmpVar._2), "+=", None)
-    val red = L4_Reduction("+", tmpVar._1.name, tmpVar._1.datatype)
+    val red = L4_Reduction("+", tmpVar._1, tmpVar._1.datatype)
     val commStmts = ListBuffer[L4_Communicate]() // can be extended if comm is required - dup maybe?
     val loop = L4_LoopOverField(tmpVar._2.lhs, assignment)
     loop.reduction = Some(red)
