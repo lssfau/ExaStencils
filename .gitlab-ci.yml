@@ -58,6 +58,23 @@ stages:
         - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
         - cd Testing
 
+.benchmark_template:
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker-benchmark
+    artifacts:
+        when: on_failure
+        paths:
+            - Benchmark/output/Debug/*
+        expire_in: 1 weeks
+    before_script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Benchmark
+
 #######################################
 ##                                   ##
 ##         Docker image              ##
