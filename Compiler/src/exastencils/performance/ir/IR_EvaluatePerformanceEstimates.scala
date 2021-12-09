@@ -134,24 +134,20 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
     }
 
     def dataPerIteration(fieldAccesses : HashMap[String, IR_Datatype], offsets : HashMap[String, ListBuffer[Long]]) : Int = {
-      // TODO: support distinct datatypes
-      if (fieldAccesses.values.map(_.typicalByteSize).toList.distinct.length > 1)
-        Logger.error("Unsupported: Not the same Datatype")
-
-      val dataTypeSize = fieldAccesses.values.head.typicalByteSize
+      val dataTypeSizes = fieldAccesses.map(entry => entry._1 -> entry._2.typicalByteSize)
 
       // assume perfect blocking if opt_loopBlocked is activated ...
       if (Knowledge.opt_loopBlocked)
-        return dataTypeSize * fieldAccesses.keys.size
+        return dataTypeSizes.values.sum
 
-      // ... otherwise determine the number of data that needs to be loaded/ stored taking cache sizes into account
-      val effCacheSize = Platform.hw_usableCache * PlatformUtils.cacheSizePerThread
+      // ... otherwise determine the number of data that needs to be loaded/stored taking cache sizes into account
+      val effCacheSize = (Platform.hw_usableCache * PlatformUtils.cacheSizePerThread).toInt
       val maxWindowCount : Int = offsets.map(_._2.length).sum
 
       for (windowCount <- 1 to maxWindowCount) {
-        val windowSize = effCacheSize / windowCount / dataTypeSize
+        val windowSizes = dataTypeSizes.map(entry => entry._1 -> effCacheSize / windowCount / entry._2)
         var empty : ListBuffer[Boolean] = ListBuffer.empty[Boolean]
-        var windowsUsed = 0
+        var windowsUsed = ListBuffer[Int]()
 
         fieldAccesses.keys.foreach(ident => {
           var sortedOffsets = offsets(ident).sorted.reverse
@@ -159,17 +155,17 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           var i = 1
           do {
             val maxOffset = sortedOffsets.head
-            sortedOffsets = sortedOffsets.drop(1).filter(offset => math.abs(maxOffset - offset) > windowSize)
-            windowsUsed += 1
+            sortedOffsets = sortedOffsets.drop(1).filter(offset => math.abs(maxOffset - offset) > windowSizes(ident))
+            windowsUsed += dataTypeSizes(ident)
             i += 1
           } while (i < length && i <= windowCount && sortedOffsets.nonEmpty)
           empty += sortedOffsets.isEmpty
 
         })
-        if (windowsUsed <= windowCount && !empty.contains(false))
-          return windowsUsed * dataTypeSize
+        if (windowsUsed.size <= windowCount && !empty.contains(false))
+          return windowsUsed.sum
       }
-      maxWindowCount * dataTypeSize
+      dataTypeSizes.map(entry => offsets(entry._1).length * entry._2).sum
     }
 
     def computeRelativeStencilOffsets(stencil : ListBuffer[Long]) : ListBuffer[Long] = {
