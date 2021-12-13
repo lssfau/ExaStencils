@@ -22,8 +22,82 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ProgressLocation
 import exastencils.base.ir._
+import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.core.Duplicate
+import exastencils.datastructures.DefaultStrategy
+import exastencils.datastructures.Transformation
+import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
+import exastencils.util.l4.L4_LevelCollector
+import exastencils.util.l4.L4_VariableDeclarationCollector
+
+/// L4_ResolveLoopVariables
+
+object L4_ResolveLoopVariables extends DefaultStrategy("Resolve variable accs in loop boundary decls") {
+
+  var declCollector = new L4_VariableDeclarationCollector
+  this.register(declCollector)
+
+  val levelCollector = new L4_LevelCollector
+  this.register(levelCollector)
+
+  this.onBefore = () => this.resetCollectors()
+
+  this += Transformation("Fetch decls", {
+    case acc : L4_Access =>
+      acc
+  })
+
+  this += Transformation("Resolve", {
+    case L4_ForLoop(number, iter, body) if iter.isDefined =>
+      val prependStmts = ListBuffer[L4_Statement]()
+      val resolvedIter = iter.get match {
+        case vAcc : L4_VariableAccess   =>
+          if (vAcc.datatype != L4_IntegerDatatype)
+            Logger.error("Loop variable for L4 for-loop must be of type integer")
+
+          vAcc
+        case uAcc : L4_UnresolvedAccess =>
+          val acc : L4_VariableAccess = {
+            // look up collector if variable has been declared
+            if (declCollector.exists(uAcc.name)) {
+              if (declCollector.existsPlain(uAcc.name)) {
+                val d = declCollector.getDeclaration(uAcc.name)
+                L4_PlainVariableAccess(d.name, d.datatype, d.isConst)
+              } else {
+                val lvl = {
+                  if (uAcc.level.isDefined) uAcc.level.get.resolveLevel
+                  else if (levelCollector.inLevelScope) levelCollector.getCurrentLevel
+                  else Logger.error(s"Missing level for calling of ${ uAcc.name }")
+                }
+
+                if (declCollector.existsLeveled(uAcc.name, lvl)) {
+                  val d = declCollector.getDeclaration(uAcc.name, lvl)
+                  L4_LeveledVariableAccess(d.name, lvl, d.datatype, d.isConst)
+                } else {
+                  Logger.error("Variable \"" + uAcc.name + "\" has not been declared for level: " + lvl)
+                }
+              }
+            } else {
+              // collector does not contain decl -> assume plain int variable
+              Logger.warn("Loop variable \"" + uAcc.name + "\" has not been declared. Thus, a plain int variable is assumed.")
+              val decl = L4_VariableDeclaration(uAcc.name, None, L4_IntegerDatatype, None, isConst = false)
+              prependStmts += decl
+              L4_PlainVariableAccess(decl.name, decl.datatype, decl.isConst)
+            }
+          }
+
+          if (acc.datatype != L4_IntegerDatatype)
+            Logger.error("Loop variable for L4 for-loop must be of type integer.")
+
+          acc
+        case _                          =>
+          Logger.error("Unsupported access type for l4 loop iterators.")
+      }
+
+      prependStmts :+ L4_ForLoop(number, Some(resolvedIter), body)
+  })
+}
 
 /// L4_ForLoop
 
@@ -44,11 +118,14 @@ case class L4_ForLoop(
   }
 
   override def progress : IR_Statement = ProgressLocation {
-    // FIXME: refactor -> access needs to be variable access, no StringLit, etc
     val (loopVar, begin) =
       if (iterator.isDefined) {
-        val lv = iterator.get.progress
-        (lv, IR_Assignment(lv, IR_IntegerConstant(0)))
+        val lv = iterator.get
+        val acc = lv match {
+          case vAcc : L4_VariableAccess => vAcc.progress
+          case _                        => Logger.error("Do not progress loop with unresolved loop variable access.")
+        }
+        (acc, IR_Assignment(acc, IR_IntegerConstant(0)))
       } else {
         val lv = "someRandomIndexVar" // FIXME: someRandomIndexVar
         (IR_VariableAccess(lv, IR_IntegerDatatype), IR_VariableDeclaration(IR_IntegerDatatype, lv, Some(IR_IntegerConstant(0))))
