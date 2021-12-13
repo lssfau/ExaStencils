@@ -32,6 +32,7 @@ import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
+import exastencils.optimization.ir.UnrollInnermost.UpdateLoopVarAndNames
 import exastencils.optimization.ir._
 import exastencils.performance.PlatformUtils
 import exastencils.util.ir._
@@ -425,7 +426,7 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           }
         case fAcc : IR_DirectFieldAccess =>
           // actual dt determined in IR_DirectFieldAccess depending on length of access index
-          // TODO: is caching applicable here? In 2D indices for matrices have form [i0, i1, i2, i3]
+          // TODO: is caching applicable here? In 2D, indices for matrices have form [i0, i1, i2, i3]
           updateOrPutAccessedDatatype(identifier, fAcc.datatype)
           mapIndexToOffsets(field, identifier, Duplicate(access.index), access.index.length)
         case acc : IR_Access             =>
@@ -523,6 +524,49 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
     }
 
     this += new Transformation("Searching", {
+      // inner loop -> unroll
+      case loop @ IR_ForLoop(loopStart, loopEnd, inc, body, _) =>
+        var prependStmts = ListBuffer[IR_Comment]()
+        try {
+          val (itVar, start, end, incr) = UnrollInnermost.extractBoundsAndIncrement(loopStart, loopEnd, inc)
+          val unrollFact = IR_SimplifyExpression.evalIntegral(end - start) / incr
+          val replaceStrat = new UpdateLoopVarAndNames(itVar)
+          val dups = new ListBuffer[IR_Statement]()
+          for (i <- 0L until unrollFact) {
+            val dup = Duplicate(body)
+
+            // replace with unrolled version
+            replaceStrat.offset = i * incr
+            replaceStrat.applyStandalone(dup)
+
+            // replace loop variable with 0 -> offset remains
+            IR_ReplaceVariableAccess.replace = List(itVar -> IR_IntegerConstant(0)).toMap
+            IR_ReplaceVariableAccess.applyStandalone(dup)
+
+            dups ++= dup.filter(s => !s.isInstanceOf[IR_Comment])
+          }
+
+          EvaluateFieldAccess.applyStandalone(dups)
+        } catch {
+          case EvaluationException(msg, _) =>
+            Logger.warn("Cannot evaluate loop bounds: " + msg)
+            prependStmts += IR_Comment(s"--- Loop with variable bounds is handled as loop doing one iteration. Remember to scale accordingly. ---")
+            EvaluateFieldAccess.applyStandalone(loop.body)
+          case UnrollException(msg) =>
+            Logger.warn("Cannot evaluate fields accessed in loop with variable bounds: " + msg)
+            loopStart match {
+              case IR_VariableDeclaration(_, runtimeVar, _, _) =>
+                prependStmts += IR_Comment(s"-- Loop with variable bounds is handled as loop doing one iteration. Remember to scale with '$runtimeVar'. --")
+              case _                                           =>
+                prependStmts += IR_Comment(s"-- Loop with variable bounds is handled as loop doing one iteration. Remember to scale accordingly. --")
+            }
+            EvaluateFieldAccess.applyStandalone(loop.body)
+        }
+        prependStmts :+ loop
+      case loop : IR_WhileLoop =>
+        IR_Comment(s"-- While loop is handled as loop doing one iteration. Remember to scale accordingly. --")
+        EvaluateFieldAccess.applyStandalone(loop.body)
+        loop
       case assign : IR_Assignment          =>
         inWriteOp = true
         EvaluateFieldAccess.applyStandalone(IR_ExpressionStatement(assign.dest))
