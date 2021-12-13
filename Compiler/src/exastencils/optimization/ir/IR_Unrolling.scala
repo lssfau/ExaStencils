@@ -210,8 +210,9 @@ object UnrollInnermost extends PartialFunction[Node, Transformation.OutputType] 
 
     val lower : IR_Expression =
       begin match {
-        case IR_VariableDeclaration(IR_IntegerDatatype, itVar2, Some(init), _) if itVar == itVar2 => init
-        case _                                                                                    => throw UnrollException("cannot interpret loop begin: " + begin.prettyprint())
+        case IR_VariableDeclaration(IR_IntegerDatatype, itVar2, Some(init), _) if itVar == itVar2       => init
+        case IR_Assignment(IR_VariableAccess(itVar2, IR_IntegerDatatype), init, "=") if itVar == itVar2 => init
+        case _                                                                                          => throw UnrollException("cannot interpret loop begin: " + begin.prettyprint())
       }
 
     val upperExcl : IR_Expression =
