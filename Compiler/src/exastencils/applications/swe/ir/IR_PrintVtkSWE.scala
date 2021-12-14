@@ -32,7 +32,7 @@ import exastencils.grid.ir.IR_AtNode
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_Print
-import exastencils.visualization.ir.IR_PrintVtkTriangles
+import exastencils.visualization.ir.vtk.IR_PrintVtkTriangles
 
 /// IR_PrintVtkSWE
 
