@@ -11,7 +11,6 @@ import exastencils.domain.ir._
 import exastencils.parallelization.api.mpi._
 import exastencils.visualization.ir.visit.IR_VisItGlobals._
 
-
 case class IR_VisItInitialization() extends IR_VisItFuturePlainFunction {
 
   import exastencils.visualization.ir.visit.IR_VisItUtil._
@@ -202,7 +201,7 @@ case class IR_VisItInitialization() extends IR_VisItFuturePlainFunction {
     }
 
     // set path(top level directory where visit is installed) to select a certain visit version
-    val strDecl = IR_VariableDeclaration(IR_StringDatatype, "str", IR_FunctionCall(IR_ExternalFunctionReference("std::getenv"), IR_StringConstant("VISIT_HOME")))
+    val strDecl = IR_VariableDeclaration(IR_StringDatatype, "str", callExtFunction("std::getenv", IR_StringConstant("VISIT_HOME")))
     val str = IR_VariableAccess(strDecl)
     val pathDecl = IR_VariableDeclaration(IR_PointerDatatype(IR_CharDatatype), "path")
     val path = IR_VariableAccess(pathDecl)
@@ -219,7 +218,7 @@ case class IR_VisItInitialization() extends IR_VisItFuturePlainFunction {
           path
         ),
         IR_Assignment(IR_ArrayAccess(path, IR_MemberFunctionCall(str, "size")), IR_Native("\'\\0\'")),
-        IR_FunctionCall(IR_ExternalFunctionReference("VisItSetDirectory"), path),
+        callExtFunction("VisItSetDirectory", path),
         IR_ArrayFree(path)
       )
     )
@@ -234,25 +233,25 @@ case class IR_VisItInitialization() extends IR_VisItFuturePlainFunction {
     if (Knowledge.mpi_enabled) {
       val fn = IR_VariableAccess("fn", IR_ArrayDatatype(IR_CharDatatype, 1000))
       fctBody += IR_VariableDeclaration(fn)
-      fctBody += IR_FunctionCall(IR_ExternalFunctionReference("sprintf"), fn, IR_StringConstant("trace_%d.txt"), MPI_IV_MpiRank)
-      fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItOpenTraceFile"), fn)
+      fctBody += callExtFunction("sprintf", fn, IR_StringConstant("trace_%d.txt"), MPI_IV_MpiRank)
+      fctBody += callExtFunction("VisItOpenTraceFile", fn)
 
-      fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetBroadcastIntFunction"), IR_VisItBroadcastIntCallback().name)
-      fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetBroadcastStringFunction"), IR_VisItBroadcastStringCallback().name)
+      fctBody += callExtFunction("VisItSetBroadcastIntFunction", IR_VisItBroadcastIntCallback().name)
+      fctBody += callExtFunction("VisItSetBroadcastStringFunction", IR_VisItBroadcastStringCallback().name)
 
-      fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetParallel"), IR_BooleanConstant(true))
-      fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetParallelRank"), MPI_IV_MpiRank)
+      fctBody += callExtFunction("VisItSetParallel", IR_BooleanConstant(true))
+      fctBody += callExtFunction("VisItSetParallelRank", MPI_IV_MpiRank)
 
       val env = IR_VariableAccess("env", IR_PointerDatatype(IR_CharDatatype))
       fctBody += IR_VariableDeclaration(env, nullptr)
       fctBody += IR_IfCondition(
         MPI_IsRootProc(),
-        IR_Assignment(env, IR_FunctionCall(IR_ExternalFunctionReference("VisItGetEnvironment")))
+        IR_Assignment(env, callExtFunction("VisItGetEnvironment"))
       )
-      fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetupEnvironment2"), env)
+      fctBody += callExtFunction("VisItSetupEnvironment2", env)
       fctBody += IR_IfCondition(
         env Neq nullptr,
-        IR_FunctionCall(IR_ExternalFunctionReference("free"), env)
+        callExtFunction("free", env)
       )
 
       fctBody += IR_IfCondition(
@@ -261,18 +260,18 @@ case class IR_VisItInitialization() extends IR_VisItFuturePlainFunction {
           IR_VariableDeclaration(cwd, nullptr),
           IR_ArrayAllocation(cwd, IR_CharDatatype, IR_IntegerConstant(1000)),
           IR_Assignment(cwd, IR_FunctionCall(getCWD, cwd, IR_IntegerConstant(1000))),
-          IR_FunctionCall(IR_ExternalFunctionReference("VisItInitializeSocketAndDumpSimFile"), IR_StringConstant(simName.head),
+          callExtFunction("VisItInitializeSocketAndDumpSimFile", IR_StringConstant(simName.head),
             IR_StringConstant(simName.tail.mkString("_")), cwd, nullptr, nullptr, nullptr),
           IR_ArrayFree(cwd)
         )
       )
     } else {
-      fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItOpenTraceFile"), IR_StringConstant("trace.txt"))
-      fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetupEnvironment"))
+      fctBody += callExtFunction("VisItOpenTraceFile", IR_StringConstant("trace.txt"))
+      fctBody += callExtFunction("VisItSetupEnvironment")
       fctBody += IR_VariableDeclaration(cwd, nullptr)
       fctBody += IR_ArrayAllocation(cwd, IR_CharDatatype, IR_IntegerConstant(1000))
       fctBody += IR_Assignment(cwd, IR_FunctionCall(getCWD, cwd, IR_IntegerConstant(1000)))
-      fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItInitializeSocketAndDumpSimFile"),
+      fctBody += callExtFunction("VisItInitializeSocketAndDumpSimFile",
         IR_StringConstant(simName.head), IR_StringConstant(simName.tail.mkString("_")), cwd, nullptr, nullptr, nullptr)
       fctBody += IR_ArrayFree(cwd)
     }

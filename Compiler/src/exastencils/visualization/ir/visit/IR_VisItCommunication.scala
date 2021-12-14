@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.visualization.ir.visit.IR_VisItUtil._
 import exastencils.config._
 
 case class IR_VisItBroadcastIntCallback() extends IR_VisItFuturePlainFunction {
@@ -13,7 +14,7 @@ case class IR_VisItBroadcastIntCallback() extends IR_VisItFuturePlainFunction {
   override def generateFct() : IR_PlainFunction = {
     val fctBody = ListBuffer[IR_Statement]()
 
-    fctBody += IR_Return(IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"),
+    fctBody += IR_Return(callExtFunction("MPI_Bcast",
       intValue.access, IR_IntegerConstant(1), IR_Native("MPI_INT"), sender.access, Knowledge.mpi_defaultCommunicator))
 
     IR_PlainFunction(
@@ -36,7 +37,7 @@ case class IR_VisItBroadcastStringCallback() extends IR_VisItFuturePlainFunction
   override def generateFct() : IR_PlainFunction = {
     val fctBody = ListBuffer[IR_Statement]()
 
-    fctBody += IR_Return(IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"),
+    fctBody += IR_Return(callExtFunction("MPI_Bcast",
       str.access, len.access, IR_Native("MPI_CHAR"), sender.access, Knowledge.mpi_defaultCommunicator))
 
     IR_PlainFunction(
@@ -56,7 +57,7 @@ case class IR_VisItSlaveProcessCallback() extends IR_VisItFuturePlainFunction {
     val cmdDecl = IR_VariableDeclaration(IR_IntegerDatatype, "command", IR_IntegerConstant(0))
 
     fctBody += cmdDecl
-    fctBody += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"),
+    fctBody += callExtFunction("MPI_Bcast",
       IR_AddressOf(IR_VariableAccess(cmdDecl)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
 
     IR_PlainFunction(

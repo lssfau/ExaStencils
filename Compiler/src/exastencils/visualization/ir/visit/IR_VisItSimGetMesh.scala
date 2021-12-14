@@ -36,20 +36,20 @@ case class IR_VisItSimGetMesh() extends IR_VisItFuturePlainFunction {
           // coordinate setter function depending on dimensionality
           val handlesAccessDim = (0 until Knowledge.dimensionality).map(d => IR_ArrayAccess(handles, d)).toArray
           val funcCall = if (Knowledge.dimensionality == 2) {
-            IR_FunctionCall(IR_ExternalFunctionReference("VisIt_RectilinearMesh_setCoordsXY"), h, handlesAccessDim(0), handlesAccessDim(1))
+            callExtFunction("VisIt_RectilinearMesh_setCoordsXY", h, handlesAccessDim(0), handlesAccessDim(1))
           } else {
-            IR_FunctionCall(IR_ExternalFunctionReference("VisIt_RectilinearMesh_setCoordsXYZ"), h, handlesAccessDim(0), handlesAccessDim(1), handlesAccessDim(2))
+            callExtFunction("VisIt_RectilinearMesh_setCoordsXYZ", h, handlesAccessDim(0), handlesAccessDim(1), handlesAccessDim(2))
           }
 
           val ifBody = ListBuffer[IR_Statement]()
           // allocate handles
           ifBody += IR_VariableDeclaration(handles)
           for (dim <- 0 until Knowledge.dimensionality) {
-            ifBody += IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(IR_ArrayAccess(handles, dim)))
+            ifBody += callExtFunction("VisIt_VariableData_alloc", IR_AddressOf(IR_ArrayAccess(handles, dim)))
           }
 
           // determine whether doubles or floats are sent
-          val funcRef = if (Knowledge.useDblPrecision) IR_ExternalFunctionReference("VisIt_VariableData_setDataD") else IR_ExternalFunctionReference("VisIt_VariableData_setDataF")
+          val funcRef = IR_ExternalFunctionReference("VisIt_VariableData_setData" + (if (Knowledge.useDblPrecision) "D" else "F"))
 
           // pass pointers of coordinate arrays to handles
           for (dim <- 0 until Knowledge.dimensionality) {
@@ -77,7 +77,7 @@ case class IR_VisItSimGetMesh() extends IR_VisItFuturePlainFunction {
             ),
             ListBuffer[IR_Statement](
               IR_IfCondition(
-                IR_FunctionCall(IR_ExternalFunctionReference("VisIt_RectilinearMesh_alloc"), IR_AddressOf(h)) EqEq visitOkay,
+                callExtFunction("VisIt_RectilinearMesh_alloc", IR_AddressOf(h)) EqEq visitOkay,
                 ifBody))
           )
         }
@@ -110,15 +110,15 @@ case class IR_VisItSimGetMesh() extends IR_VisItFuturePlainFunction {
         ifBody += IR_Assignment(IR_ArrayAccess(dims, numDims), 1)
 
         val funcCall = if (numDims == 1) {
-          IR_FunctionCall(IR_ExternalFunctionReference("VisIt_CurvilinearMesh_setCoordsXY"), h, dims, IR_ArrayAccess(handlesCurve, 0), IR_ArrayAccess(handlesCurve, 1))
+          callExtFunction("VisIt_CurvilinearMesh_setCoordsXY", h, dims, IR_ArrayAccess(handlesCurve, 0), IR_ArrayAccess(handlesCurve, 1))
         } else {
-          IR_FunctionCall(IR_ExternalFunctionReference("VisIt_CurvilinearMesh_setCoordsXYZ"), h, dims, IR_ArrayAccess(handlesCurve, 0), IR_ArrayAccess(handlesCurve, 1), IR_ArrayAccess(handlesCurve, 2))
+          callExtFunction("VisIt_CurvilinearMesh_setCoordsXYZ", h, dims, IR_ArrayAccess(handlesCurve, 0), IR_ArrayAccess(handlesCurve, 1), IR_ArrayAccess(handlesCurve, 2))
         }
 
         // allocate handles
         ifBody += IR_VariableDeclaration(handlesCurve)
         for (dim <- 0 to numDims) {
-          ifBody += IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(IR_ArrayAccess(handles, dim)))
+          ifBody += callExtFunction("VisIt_VariableData_alloc", IR_AddressOf(IR_ArrayAccess(handles, dim)))
         }
 
         // pass pointers of coordinate arrays to handles
@@ -197,7 +197,7 @@ case class IR_VisItSimGetMesh() extends IR_VisItFuturePlainFunction {
           ),
           ListBuffer[IR_Statement](
             IR_IfCondition(
-              IR_FunctionCall(IR_ExternalFunctionReference("VisIt_CurvilinearMesh_alloc"), IR_AddressOf(h)) EqEq visitOkay,
+              callExtFunction("VisIt_CurvilinearMesh_alloc", IR_AddressOf(h)) EqEq visitOkay,
               ifBody
             )
           )

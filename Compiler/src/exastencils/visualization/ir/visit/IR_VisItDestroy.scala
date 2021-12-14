@@ -16,7 +16,7 @@ case class IR_VisItDestroy() extends IR_VisItFuturePlainFunction {
 
     val fctBody = ListBuffer[IR_Statement]()
 
-    fctBody += IR_FunctionCall(IR_ExternalFunctionReference("VisItCloseTraceFile"))
+    fctBody += callExtFunction("VisItCloseTraceFile")
 
     // free coords array
     if (useRectMesh()) {

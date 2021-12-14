@@ -38,7 +38,7 @@ case class IR_VisItSimGetVariable() extends IR_VisItFuturePlainFunction {
       val numPointsTotalTmp = (0 until numDims).map(d => (Knowledge.domain_rect_numFragsPerBlockAsVec(d) * (numPointsDimTmp(d) - isNodalDim(d))) + isNodalDim(d))
 
       // determine if data must be copied or not
-      val dataIsCopied = if (numOuterLayersLeft.sum != 0 || numOuterLayersRight.sum != 0 || Knowledge.domain_numFragmentsPerBlock > 1) true else false
+      val dataIsCopied = numOuterLayersLeft.sum != 0 || numOuterLayersRight.sum != 0 || Knowledge.domain_numFragmentsPerBlock > 1
 
       val tmp = IR_VariableAccess("tmp", IR_PointerDatatype(IR_RealDatatype))
 
@@ -69,10 +69,10 @@ case class IR_VisItSimGetVariable() extends IR_VisItFuturePlainFunction {
       val ownership = if (!dataIsCopied) IR_Native("VISIT_OWNER_SIM") else IR_Native("VISIT_OWNER_VISIT")
 
       // determine whether doubles or floats are sent
-      val setData = if (Knowledge.useDblPrecision) IR_ExternalFunctionReference("VisIt_VariableData_setDataD") else IR_ExternalFunctionReference("VisIt_VariableData_setDataF")
+      val setData = IR_ExternalFunctionReference("VisIt_VariableData_setData" + (if (Knowledge.useDblPrecision) "D" else "F"))
 
       val sendData = IR_IfCondition(
-        IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(h)) EqEq visitOkay,
+        callExtFunction("VisIt_VariableData_alloc", IR_AddressOf(h)) EqEq visitOkay,
         IR_FunctionCall(setData, h,
           ownership, IR_IntegerConstant(1), numPointsTotalTmp.product, arrayAccessArg)
       )
@@ -94,7 +94,7 @@ case class IR_VisItSimGetVariable() extends IR_VisItFuturePlainFunction {
                 case IR_AtFaceCenter(dim) => // interpolate to cell centered var
                   0.5 * (IR_FieldAccess(field, 0, IR_LoopOverDimensions.defIt(numDims))
                     + IR_FieldAccess(field, 0, IR_LoopOverDimensions.defIt(numDims) + IR_ConstIndex(Array.fill(3)(0).updated(dim, 1))))
-                case _ =>
+                case _                    =>
                   IR_FieldAccess(field, slot = 0, IR_LoopOverFragments.defIt, IR_LoopOverDimensions.defIt(numDims))
               })))
         loopStatement += sendData

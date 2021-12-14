@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.config._
 import exastencils.parallelization.api.mpi._
 import exastencils.visualization.ir.visit.IR_VisItGlobals._
+import exastencils.visualization.ir.visit.IR_VisItUtil.callExtFunction
 
 
 /// IR_VisItSimGetDomainList
@@ -15,7 +16,7 @@ import exastencils.visualization.ir.visit.IR_VisItGlobals._
 
 case class IR_VisItSimGetDomainList() extends IR_VisItFuturePlainFunction {
 
-  override def generateFct() : IR_PlainFunction =  {
+  override def generateFct() : IR_PlainFunction = {
     val fctBody = ListBuffer[IR_Statement]()
     val h = IR_VariableAccess("h", visitHandle)
     val domainList = IR_VariableAccess("domain_list", visitHandle)
@@ -25,11 +26,11 @@ case class IR_VisItSimGetDomainList() extends IR_VisItFuturePlainFunction {
 
     fctBody += IR_IfCondition(
       IR_AndAnd(
-        IR_EqEq(IR_FunctionCall(IR_ExternalFunctionReference("VisIt_DomainList_alloc"), IR_AddressOf(h)), visitOkay),
-        IR_EqEq(IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_alloc"), IR_AddressOf(domainList)), visitOkay)),
+        IR_EqEq(callExtFunction("VisIt_DomainList_alloc", IR_AddressOf(h)), visitOkay),
+        IR_EqEq(callExtFunction("VisIt_VariableData_alloc", IR_AddressOf(domainList)), visitOkay)),
       ListBuffer[IR_Statement](
-        IR_FunctionCall(IR_ExternalFunctionReference("VisIt_VariableData_setDataI"), domainList, IR_Native("VISIT_OWNER_COPY"), IR_IntegerConstant(1), IR_IntegerConstant(1), IR_AddressOf(MPI_IV_MpiRank)),
-        IR_FunctionCall(IR_ExternalFunctionReference("VisIt_DomainList_setDomains"), h, Knowledge.mpi_numThreads, domainList))
+        callExtFunction("VisIt_VariableData_setDataI", domainList, IR_Native("VISIT_OWNER_COPY"), IR_IntegerConstant(1), IR_IntegerConstant(1), IR_AddressOf(MPI_IV_MpiRank)),
+        callExtFunction("VisIt_DomainList_setDomains", h, Knowledge.mpi_numThreads, domainList))
     )
 
     fctBody += IR_Return(h)

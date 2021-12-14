@@ -24,13 +24,13 @@ case class IR_VisItControlCommandCallback() extends IR_VisItFuturePlainFunction 
       ListBuffer[IR_Statement](
         IR_FunctionCall(IR_LeveledInternalFunctionReference("simulate_timestep", Knowledge.maxLevel, IR_UnitDatatype)),
         IR_IfCondition(
-          IR_FunctionCall(IR_ExternalFunctionReference("VisItIsConnected")),
+          callExtFunction("VisItIsConnected"),
           ListBuffer[IR_Statement](
             IR_IfCondition(
               updatePlots,
               ListBuffer[IR_Statement](
-                IR_FunctionCall(IR_ExternalFunctionReference("VisItTimeStepChanged")),
-                IR_FunctionCall(IR_ExternalFunctionReference("VisItUpdatePlots")))))))
+                callExtFunction("VisItTimeStepChanged"),
+                callExtFunction("VisItUpdatePlots"))))))
     )
     fctBody += IR_IfCondition(
       stringEquals(cmd, "stop"),
@@ -51,20 +51,20 @@ case class IR_VisItControlCommandCallback() extends IR_VisItFuturePlainFunction 
         ListBuffer[IR_Statement](
           IR_Assignment(curLevel, IR_Maximum(curLevel - IR_IntegerConstant(1), Knowledge.minLevel)),
           IR_IfCondition(
-            IR_FunctionCall(IR_ExternalFunctionReference("VisItIsConnected")),
+            callExtFunction("VisItIsConnected"),
             ListBuffer[IR_Statement](
-              IR_FunctionCall(IR_ExternalFunctionReference("VisItTimeStepChanged")),
-              IR_FunctionCall(IR_ExternalFunctionReference("VisItUpdatePlots")))))
+              callExtFunction("VisItTimeStepChanged"),
+              callExtFunction("VisItUpdatePlots"))))
       )
       fctBody += IR_IfCondition(
         stringEquals(cmd, "level up"),
         ListBuffer[IR_Statement](
           IR_Assignment(curLevel, IR_Minimum(curLevel + IR_IntegerConstant(1), Knowledge.maxLevel)),
           IR_IfCondition(
-            IR_FunctionCall(IR_ExternalFunctionReference("VisItIsConnected")),
+            callExtFunction("VisItIsConnected"),
             ListBuffer[IR_Statement](
-              IR_FunctionCall(IR_ExternalFunctionReference("VisItTimeStepChanged")),
-              IR_FunctionCall(IR_ExternalFunctionReference("VisItUpdatePlots")))))
+              callExtFunction("VisItTimeStepChanged"),
+              callExtFunction("VisItUpdatePlots"))))
       )
     }
 

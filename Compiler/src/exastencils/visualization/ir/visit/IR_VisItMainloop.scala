@@ -8,7 +8,6 @@ import exastencils.config._
 import exastencils.parallelization.api.mpi._
 import exastencils.visualization.ir.visit.IR_VisItGlobals._
 
-
 case class IR_VisItMainloop() extends IR_VisItFuturePlainFunction {
 
   import exastencils.visualization.ir.visit.IR_VisItUtil._
@@ -25,23 +24,23 @@ case class IR_VisItMainloop() extends IR_VisItFuturePlainFunction {
 
     val registerCallbackFcts = ListBuffer[IR_Statement]()
     val procEngineCommandFct = if (Knowledge.mpi_enabled) {
-      IR_FunctionCall(IR_ExternalFunctionReference("ProcessVisItCommand"))
+      callExtFunction("ProcessVisItCommand")
     } else {
-      IR_FunctionCall(IR_ExternalFunctionReference("VisItProcessEngineCommand"))
+      callExtFunction("VisItProcessEngineCommand")
     }
 
     // callback functions to register
     if (Knowledge.mpi_enabled) {
-      registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetSlaveProcessCallback"), IR_Native("slave_process_callback"))
-      registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetGetDomainList"), IR_Native("SimGetDomainList"), nullptr)
+      registerCallbackFcts += callExtFunction("VisItSetSlaveProcessCallback", IR_Native("slave_process_callback"))
+      registerCallbackFcts += callExtFunction("VisItSetGetDomainList", IR_Native("SimGetDomainList"), nullptr)
     }
-    registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetGetMetaData"), IR_Native("SimGetMetaData"), nullptr)
-    registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetGetMesh"), IR_Native("SimGetMesh"), nullptr)
+    registerCallbackFcts += callExtFunction("VisItSetGetMetaData", IR_Native("SimGetMetaData"), nullptr)
+    registerCallbackFcts += callExtFunction("VisItSetGetMesh", IR_Native("SimGetMesh"), nullptr)
     if (Knowledge.dimensionality > 1) { // 1d variables are pictured as meshes
-      registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetGetVariable"), IR_Native("SimGetVariable"), nullptr)
+      registerCallbackFcts += callExtFunction("VisItSetGetVariable", IR_Native("SimGetVariable"), nullptr)
     }
 
-    registerCallbackFcts += IR_FunctionCall(IR_ExternalFunctionReference("VisItSetCommandCallback"), IR_Native("ControlCommandCallback"), nullptr)
+    registerCallbackFcts += callExtFunction("VisItSetCommandCallback", IR_Native("ControlCommandCallback"), nullptr)
 
     // body of the while loop containing the switch statement
     whileBody += IR_IfCondition(
@@ -60,11 +59,11 @@ case class IR_VisItMainloop() extends IR_VisItFuturePlainFunction {
       whileBody += IR_VariableDeclaration(visitInput)
       whileBody += IR_IfCondition(
         MPI_IsRootProc.apply(),
-        IR_Assignment(visitInput, IR_FunctionCall(IR_ExternalFunctionReference("VisItDetectInput"), blocking, IR_FunctionCall(funcRef, IR_Native("stdin"))))
+        IR_Assignment(visitInput, callExtFunction("VisItDetectInput", blocking, IR_FunctionCall(funcRef, IR_Native("stdin"))))
       )
-      whileBody += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), IR_AddressOf(visitInput), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
+      whileBody += callExtFunction("MPI_Bcast", IR_AddressOf(visitInput), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
     } else {
-      whileBody += IR_VariableDeclaration(visitInput, IR_FunctionCall(IR_ExternalFunctionReference("VisItDetectInput"), blocking, IR_FunctionCall(funcRef, IR_Native("stdin"))))
+      whileBody += IR_VariableDeclaration(visitInput, callExtFunction("VisItDetectInput", blocking, IR_FunctionCall(funcRef, IR_Native("stdin"))))
     }
 
     // body of the third case of the switch statement
@@ -75,14 +74,14 @@ case class IR_VisItMainloop() extends IR_VisItFuturePlainFunction {
       consoleInputBody += IR_IfCondition(
         MPI_IsRootProc.apply(),
         IR_IfCondition(
-          IR_FunctionCall(IR_ExternalFunctionReference("VisItReadConsole"), IR_IntegerConstant(1000), command) Neq visitOkay,
+          callExtFunction("VisItReadConsole", IR_IntegerConstant(1000), command) Neq visitOkay,
           IR_Break()
         )
       )
-      consoleInputBody += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Bcast"), command, IR_IntegerConstant(1000), IR_Native("MPI_CHAR"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
+      consoleInputBody += callExtFunction("MPI_Bcast", command, IR_IntegerConstant(1000), IR_Native("MPI_CHAR"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
     } else {
       consoleInputBody += IR_IfCondition(
-        IR_FunctionCall(IR_ExternalFunctionReference("VisItReadConsole"), IR_IntegerConstant(1000), command) Neq visitOkay,
+        callExtFunction("VisItReadConsole", IR_IntegerConstant(1000), command) Neq visitOkay,
         IR_Break()
       )
     }
@@ -93,13 +92,13 @@ case class IR_VisItMainloop() extends IR_VisItFuturePlainFunction {
       ListBuffer[IR_Statement](
         IR_FunctionCall(IR_LeveledInternalFunctionReference("simulate_timestep", Knowledge.maxLevel, IR_UnitDatatype)),
         IR_IfCondition(
-          IR_FunctionCall(IR_ExternalFunctionReference("VisItIsConnected")),
+          callExtFunction("VisItIsConnected"),
           ListBuffer[IR_Statement](
             IR_IfCondition(
               updatePlots,
               ListBuffer[IR_Statement](
-                IR_FunctionCall(IR_ExternalFunctionReference("VisItTimeStepChanged")),
-                IR_FunctionCall(IR_ExternalFunctionReference("VisItUpdatePlots"))))))))
+                callExtFunction("VisItTimeStepChanged"),
+                callExtFunction("VisItUpdatePlots")))))))
 
     consoleInputBody += IR_IfCondition(
       stringEquals(command, "stop"),
@@ -120,7 +119,7 @@ case class IR_VisItMainloop() extends IR_VisItFuturePlainFunction {
     if (Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) {
       val strToReal = if (Knowledge.useDblPrecision) "std::stod" else "std::stof"
       consoleInputBody += IR_IfCondition(
-        IR_FunctionCall(IR_ExternalFunctionReference("strstr"), command, IR_StringConstant("scale=")) Neq nullptr,
+        callExtFunction("strstr", command, IR_StringConstant("scale=")) Neq nullptr,
         IR_Native(
           s"""|try{
               |scale = $strToReal(command+6);
@@ -140,20 +139,20 @@ case class IR_VisItMainloop() extends IR_VisItFuturePlainFunction {
         ListBuffer[IR_Statement](
           IR_Assignment(curLevel, IR_Maximum(curLevel - IR_IntegerConstant(1), Knowledge.minLevel)),
           IR_IfCondition(
-            IR_FunctionCall(IR_ExternalFunctionReference("VisItIsConnected")),
+            callExtFunction("VisItIsConnected"),
             ListBuffer[IR_Statement](
-              IR_FunctionCall(IR_ExternalFunctionReference("VisItTimeStepChanged")),
-              IR_FunctionCall(IR_ExternalFunctionReference("VisItUpdatePlots"))))))
+              callExtFunction("VisItTimeStepChanged"),
+              callExtFunction("VisItUpdatePlots")))))
 
       consoleInputBody += IR_IfCondition(
         stringEquals(command, "level up"),
         ListBuffer[IR_Statement](
           IR_Assignment(curLevel, IR_Minimum(curLevel + IR_IntegerConstant(1), Knowledge.maxLevel)),
           IR_IfCondition(
-            IR_FunctionCall(IR_ExternalFunctionReference("VisItIsConnected")),
+            callExtFunction("VisItIsConnected"),
             ListBuffer[IR_Statement](
-              IR_FunctionCall(IR_ExternalFunctionReference("VisItTimeStepChanged")),
-              IR_FunctionCall(IR_ExternalFunctionReference("VisItUpdatePlots"))))))
+              callExtFunction("VisItTimeStepChanged"),
+              callExtFunction("VisItUpdatePlots")))))
     }
     consoleInputBody += IR_ArrayFree(command)
 
@@ -167,16 +166,16 @@ case class IR_VisItMainloop() extends IR_VisItFuturePlainFunction {
       ListBuffer[IR_Statement](
         IR_FunctionCall(IR_LeveledInternalFunctionReference("simulate_timestep", Knowledge.maxLevel, IR_UnitDatatype)),
         IR_IfCondition(
-          IR_FunctionCall(IR_ExternalFunctionReference("VisItIsConnected")),
+          callExtFunction("VisItIsConnected"),
           ListBuffer[IR_Statement](
-            IR_FunctionCall(IR_ExternalFunctionReference("VisItTimeStepChanged")),
+            callExtFunction("VisItTimeStepChanged"),
             IR_IfCondition(
               updatePlots,
-              IR_FunctionCall(IR_ExternalFunctionReference("VisItUpdatePlots")))))))
+              callExtFunction("VisItUpdatePlots"))))))
 
     whileBody += IR_IfCondition(visitInput EqEq IR_IntegerConstant(1), // inbound connection is being made
       IR_IfCondition(
-        IR_FunctionCall(IR_ExternalFunctionReference("VisItAttemptToCompleteConnection")),
+        callExtFunction("VisItAttemptToCompleteConnection"),
         registerCallbackFcts,
         IR_Native("std::cout << \"Visit connection failed. Error message: \" << VisItGetLastError() << std::endl")))
 
@@ -185,7 +184,7 @@ case class IR_VisItMainloop() extends IR_VisItFuturePlainFunction {
       IR_IfCondition(
         procEngineCommandFct Neq IR_BooleanConstant(true),
         ListBuffer[IR_Statement](
-          IR_FunctionCall(IR_ExternalFunctionReference("VisItDisconnect")),
+          callExtFunction("VisItDisconnect"),
           IR_Assignment(runMode, IR_BooleanConstant(true))))) // run after VisIt closes connection
 
     whileBody += IR_IfCondition(
@@ -203,7 +202,6 @@ case class IR_VisItMainloop() extends IR_VisItFuturePlainFunction {
       IR_UnitDatatype,
       fctBody
     )
-
 
   }
   override def name : String = "visit_mainloop"

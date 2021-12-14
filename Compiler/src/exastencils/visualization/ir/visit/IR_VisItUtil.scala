@@ -20,8 +20,8 @@ object IR_VisItUtil {
   def stringEquals(value : IR_Expression, str : String) =
     IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), value, IR_StringConstant(str)) EqEq IR_IntegerConstant(0)
 
-  def meshname(coords : IR_VariableAccess) = s"rect${Knowledge.dimensionality}d_${coords.name}"
-  def meshname(field : IR_Field) = s"rect${Knowledge.dimensionality}d_${meshCoordsForLocalization(field.localization).name}"
+  def meshname(coords : IR_VariableAccess) = s"rect${ Knowledge.dimensionality }d_${ coords.name }"
+  def meshname(field : IR_Field) = s"rect${ Knowledge.dimensionality }d_${ meshCoordsForLocalization(field.localization).name }"
 
   def curvname(numDims : Int, fieldname : String) = "curv" + (numDims + 1) + "d_" + fieldname
 
@@ -29,6 +29,9 @@ object IR_VisItUtil {
     // TODO: adapt if multiple mesh coords exist
     case _ => meshCoords
   }
+
+  def callExtFunction(name : String, args : IR_Expression*) =
+    IR_FunctionCall(IR_ExternalFunctionReference(name), args : _*)
 
   /* mesh coords */
 
