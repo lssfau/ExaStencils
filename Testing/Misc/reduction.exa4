@@ -1,0 +1,102 @@
+Domain global< [0.0] to [1.0] >
+
+Layout CellMatrixWithComm< Matrix < Real, 3, 3>, Cell >@all {
+	ghostLayers = [1] with communication
+	duplicateLayers = [0]
+}
+
+Field mat< global, CellMatrixWithComm, 0.0 >@all
+
+Globals {
+    Val eps : Real = 0.0000001
+    Val maxVal : Real = 1000.
+    Val minVal : Real = 0.123
+    Val matrixEntry : Real = 2.
+}
+
+Function Application {
+	initGlobals (  )
+	initDomain (  )
+	initFieldsWithZero (  )
+
+    Var redTarget : Real = 0.0
+
+    loop over mat@finest with reduction (max: redTarget) {
+        if (i0 == 0) {
+            mat@finest[2][2] = maxVal
+        }
+        redTarget = mat@finest[2][2]
+    }
+
+    if ( fabs(redTarget - maxVal) <= eps ) {
+        print('Passed stage 0: redTarget equals maxVal')
+    } else {
+        print('Failed stage 0: redTarget=', redTarget, ', maxVal=', maxVal)
+    }
+
+
+    Var redTarget2 : Matrix<Real, 2, 2>
+    loop over mat@finest with reduction (+: redTarget2[0][0]) {
+        redTarget2[0][0] = matrixEntry
+    }
+
+    Expr numReds = getKnowledge ( 'domain_rect_numBlocks_x' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_x' )
+    if ( fabs(redTarget2[0][0] - numReds * matrixEntry ) <= eps) {
+        print('Passed stage 1: Reduced matrix entry equals the number of reductions times the original value of the entry')
+    } else {
+        print('Failed stage 1: Reduced matrix entry redTarget2[0][0]=', redTarget2[0][0], ', expected=', numReds * matrixEntry)
+    }
+
+    loop over fragments with reduction (max: redTarget2[0][0]) {
+        if (fragmentIdx == 0) {
+            redTarget2[0][0] = maxVal
+        }
+    }
+
+    if ( fabs(redTarget2[0][0] - maxVal) <= eps ) {
+        print('Passed stage 2: redTarget2[0][0] equals maxVal')
+    } else {
+        print('Failed stage 2: redTarget=', redTarget2[0][0], ', maxVal=', maxVal)
+    }
+
+    Var redTarget3 : Matrix<Real, 5, 1> = 0.
+
+    loop over fragments with reduction (+: redTarget3) {
+        redTarget3[0] = maxVal
+        redTarget3[1] = minVal
+    }
+
+    if ( fabs(redTarget3[0][0] - numReds * maxVal) <= eps &&
+         fabs(redTarget3[1][0] - numReds * minVal) <= eps &&
+         fabs(redTarget3[2][0]) <= eps &&
+         fabs(redTarget3[3][0]) <= eps &&
+         fabs(redTarget3[4][0]) <= eps ) {
+
+        print('Passed stage 3')
+    } else {
+
+        print('Failed stage 3: redTarget3[0][0]=', redTarget3[0][0], ', redTarget3[1][0]=', redTarget3[1][0],
+            ', redTarget3[2][0]=', redTarget3[2][0], ', redTarget3[3][0]=', redTarget3[3][0],
+            ', redTarget3[4][0]=', redTarget3[4][0])
+    }
+
+    Var redTarget4 : Matrix<Real, 2, 1> = {{maxVal}, {minVal}}
+    Expr numReds2 = getKnowledge ( 'domain_rect_numBlocks_x' ) // no reduction taking place on OpenMP site
+
+    loop over fragments with reduction (+: redTarget4) {
+        if (sqrt(4) != 2) {
+            print('dummy line')
+        }
+    }
+
+    if ( fabs(redTarget4[0][0] - numReds2 * maxVal) <= eps &&
+         fabs(redTarget4[1][0] - numReds2 * minVal) <= eps) {
+
+        print('Passed stage 4')
+    } else {
+
+        print('Failed stage 4: redTarget4[0][0]=', redTarget4[0][0], ', redTarget4[1][0]=', redTarget4[1][0])
+    }
+
+	destroyGlobals (  )
+}

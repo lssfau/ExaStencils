@@ -205,7 +205,11 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_ResolveComplexNumbers.apply()
 
-   IR_PreItMOps.apply()
+    IR_PreItMOps.apply()
+
+    if (Knowledge.performance_addEstimation)
+      IR_AddPerformanceEstimates.apply() // after IR_PreItMOps, before resolve
+
     //IR_SetupMatrixExpressions.apply()
     var sthChanged = true
     while (sthChanged) {
@@ -222,9 +226,6 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_TypeInference.warnMissingDeclarations = false
     IR_TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
-
-    if (Knowledge.performance_addEstimation)
-      IR_AddPerformanceEstimates.apply()
 
     // Prepare all suitable LoopOverDimensions and ContractingLoops. This transformation is applied before resolving
     // ContractingLoops to guarantee that memory transfer statements appear only before and after a resolved
@@ -342,6 +343,10 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     if (Knowledge.omp_enabled) {
       OMP_AddParallelSections.apply()
+
+      // resolve handling for unsupported matrix reductions
+      if (Platform.omp_version < 4.5)
+        OMP_ResolveMatrixReduction.apply()
 
       // resolve min/max reductions for omp versions not supporting them inherently
       if (Platform.omp_version < 3.1)
