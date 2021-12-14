@@ -442,6 +442,10 @@ test:Seq_Test_addrPre:
 
 test:Seq_Test_poly:
     extends: .test_template_AVX
+    tags:
+        - docker
+        - AVX
+        - i10swarm13
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_poly Opts/seq_poly.knowledge "Opts/tempBlock.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
