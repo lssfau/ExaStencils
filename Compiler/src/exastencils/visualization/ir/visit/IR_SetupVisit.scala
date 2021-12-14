@@ -16,7 +16,6 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
     * Utilize virtual fields for node/cell positions
     * too many copies -> read docs for ghost layer mechanism from VisIt
     * assumes rectangular domains -> generally blockstructured grids not supported
-    * only slot = 0 is considered
     * Higher-order datatypes unsupported
   */
 
@@ -83,6 +82,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
 
     case globalCollection : IR_GlobalCollection =>
       globalCollection.variables += curLevelDecl
+      globalCollection.variables += curSlotDecl
       globalCollection.variables += runModeDecl
       globalCollection.variables += updatePlotsDecl
       if (Knowledge.dimensionality == 1 || Knowledge.dimensionality == 2) globalCollection.variables += scaleCurvemeshDecl

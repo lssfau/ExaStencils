@@ -3,11 +3,13 @@ package exastencils.visualization.ir.visit
 import scala.collection.mutable.ArrayBuffer
 
 import exastencils.base.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldCollection
 import exastencils.grid.ir._
+import exastencils.visualization.ir.visit.IR_VisItGlobals.curSlot
 
 object IR_VisItUtil {
 
@@ -19,6 +21,11 @@ object IR_VisItUtil {
 
   def stringEquals(value : IR_Expression, str : String) =
     IR_FunctionCall(IR_ExternalFunctionReference("strcmp"), value, IR_StringConstant(str)) EqEq IR_IntegerConstant(0)
+
+  def modulo(x : IR_Expression, N : IR_Expression) = {
+    val remainder = x Mod N
+    IR_TernaryCondition(remainder < 0, remainder + N, remainder)
+  }
 
   def meshname(coords : IR_VariableAccess) = s"rect${ Knowledge.dimensionality }d_${ coords.name }"
   def meshname(field : IR_Field) = s"rect${ Knowledge.dimensionality }d_${ meshCoordsForLocalization(field.localization).name }"
@@ -38,6 +45,9 @@ object IR_VisItUtil {
 
   // determine whether doubles or floats are sent
   def setVariableDataFunc = IR_ExternalFunctionReference("VisIt_VariableData_setData" + (if (Knowledge.useDblPrecision) "D" else "F"))
+
+  // cap curSlot to max available slot
+  def getAndCapSlot(field : IR_Field) = IR_Maximum(curSlot, field.numSlots - 1)
 
   /* mesh coords */
 

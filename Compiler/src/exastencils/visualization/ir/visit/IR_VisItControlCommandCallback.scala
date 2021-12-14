@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config.Knowledge
+import exastencils.field.ir.IR_FieldCollection
 import exastencils.visualization.ir.visit.IR_VisItGlobals._
 
 /// IR_VisItControlCommandCallback
@@ -41,25 +42,28 @@ case class IR_VisItControlCommandCallback() extends IR_VisItFuturePlainFunction 
       IR_Assignment(runMode, IR_BooleanConstant(true))
     )
     fctBody += IR_IfCondition(
-      stringEquals(cmd, "switchUpdates"),
+      stringEquals(cmd, "toggle updates"),
       IR_Assignment(updatePlots, IR_Negation(updatePlots))
     )
     // only register level switches when necessary
-    if (Knowledge.numLevels > 1) {
+    if (isMultiLeveled) {
       fctBody += IR_IfCondition(
-        stringEquals(cmd, "level down"),
+        stringEquals(cmd, "toggle level"),
         ListBuffer[IR_Statement](
-          IR_Assignment(curLevel, IR_Maximum(curLevel - IR_IntegerConstant(1), Knowledge.minLevel)),
+          IR_Assignment(curLevel, modulo(curLevel - Knowledge.minLevel - 1, Knowledge.numLevels) + Knowledge.minLevel),
           IR_IfCondition(
             callExtFunction("VisItIsConnected"),
             ListBuffer[IR_Statement](
               callExtFunction("VisItTimeStepChanged"),
               callExtFunction("VisItUpdatePlots"))))
       )
+    }
+    // only register slot switch when necessary
+    if (isMultiSlotted) {
       fctBody += IR_IfCondition(
-        stringEquals(cmd, "level up"),
+        stringEquals(cmd, "toggle slot"),
         ListBuffer[IR_Statement](
-          IR_Assignment(curLevel, IR_Minimum(curLevel + IR_IntegerConstant(1), Knowledge.maxLevel)),
+          IR_Assignment(curSlot, (curSlot + 1) Mod IR_FieldCollection.objects.map(_.numSlots).max),
           IR_IfCondition(
             callExtFunction("VisItIsConnected"),
             ListBuffer[IR_Statement](

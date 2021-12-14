@@ -59,8 +59,7 @@ case class IR_VisItSimGetVariable() extends IR_VisItFuturePlainFunction {
 
       // direct access to field if data is not copied
       val arrayAccessArg = if (!dataIsCopied) {
-        // TODO: assumes slot = 0
-        IR_IV_FieldData(field, slot = 0)
+        IR_IV_FieldData(field, getAndCapSlot(field))
       } else {
         tmp
       }
@@ -83,13 +82,12 @@ case class IR_VisItSimGetVariable() extends IR_VisItFuturePlainFunction {
           IR_LoopOverDimensions(numDims, IR_ExpressionIndexRange(IR_ExpressionIndex(Array.fill[Int](numDims)(0)), IR_ExpressionIndex(numPointsDimTmp)),
             IR_Assignment( //copy values from field to tmp
               arrayAccess,
-              // TODO: assumes slot = 0
               field.localization match {
                 case IR_AtFaceCenter(dim) => // interpolate to cell centered var
-                  0.5 * (IR_FieldAccess(field, 0, IR_LoopOverDimensions.defIt(numDims))
-                    + IR_FieldAccess(field, 0, IR_LoopOverDimensions.defIt(numDims) + IR_ConstIndex(Array.fill(3)(0).updated(dim, 1))))
+                  0.5 * (IR_FieldAccess(field, getAndCapSlot(field), IR_LoopOverDimensions.defIt(numDims))
+                    + IR_FieldAccess(field, getAndCapSlot(field), IR_LoopOverDimensions.defIt(numDims) + IR_ConstIndex(Array.fill(3)(0).updated(dim, 1))))
                 case _                    =>
-                  IR_FieldAccess(field, slot = 0, IR_LoopOverFragments.defIt, IR_LoopOverDimensions.defIt(numDims))
+                  IR_FieldAccess(field, getAndCapSlot(field), IR_LoopOverFragments.defIt, IR_LoopOverDimensions.defIt(numDims))
               })))
         loopStatement += sendData
       }

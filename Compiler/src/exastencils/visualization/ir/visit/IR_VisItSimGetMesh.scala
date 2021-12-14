@@ -138,16 +138,14 @@ case class IR_VisItSimGetMesh() extends IR_VisItFuturePlainFunction {
             IR_LoopOverDimensions(numDims, IR_ExpressionIndexRange(IR_ExpressionIndex(Array.fill[Int](numDims)(0)), IR_ExpressionIndex(numPointsDimTmp)),
               IR_Assignment(
                 IR_ArrayAccess(tmp, idxTmp),
-                // TODO: assumes slot = 0
-                scaleCurvemesh * IR_FieldAccess(field, slot = 0, IR_LoopOverFragments.defIt, IR_LoopOverDimensions.defIt(numDims)))))
+                scaleCurvemesh * IR_FieldAccess(field, getAndCapSlot(field), IR_LoopOverFragments.defIt, IR_LoopOverDimensions.defIt(numDims)))))
         }
 
         val variableAccess = if (dataIsCopied) {
           tmp
         } else {
           // pass pointer of field if nothing is copied
-          // TODO: assumes slot = 0
-          IR_IV_FieldData(field, slot = 0)
+          IR_IV_FieldData(field, getAndCapSlot(field))
         }
 
         for (dim <- 0 until numDims) {

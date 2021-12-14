@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config._
+import exastencils.field.ir.IR_FieldCollection
 import exastencils.parallelization.api.mpi._
 import exastencils.visualization.ir.visit.IR_VisItGlobals._
 
@@ -111,7 +112,7 @@ case class IR_VisItMainloop() extends IR_VisItFuturePlainFunction {
     )
 
     consoleInputBody += IR_IfCondition(
-      stringEquals(command, "switchUpdates"),
+      stringEquals(command, "toggle updates"),
       IR_Assignment(updatePlots, IR_Negation(updatePlots))
     )
 
@@ -135,25 +136,28 @@ case class IR_VisItMainloop() extends IR_VisItFuturePlainFunction {
 
     if (isMultiLeveled) {
       consoleInputBody += IR_IfCondition(
-        stringEquals(command, "level down"),
+        stringEquals(command, "toggle level"),
         ListBuffer[IR_Statement](
-          IR_Assignment(curLevel, IR_Maximum(curLevel - IR_IntegerConstant(1), Knowledge.minLevel)),
-          IR_IfCondition(
-            callExtFunction("VisItIsConnected"),
-            ListBuffer[IR_Statement](
-              callExtFunction("VisItTimeStepChanged"),
-              callExtFunction("VisItUpdatePlots")))))
-
-      consoleInputBody += IR_IfCondition(
-        stringEquals(command, "level up"),
-        ListBuffer[IR_Statement](
-          IR_Assignment(curLevel, IR_Minimum(curLevel + IR_IntegerConstant(1), Knowledge.maxLevel)),
+          IR_Assignment(curLevel, modulo(curLevel - Knowledge.minLevel - 1, Knowledge.numLevels) + Knowledge.minLevel),
           IR_IfCondition(
             callExtFunction("VisItIsConnected"),
             ListBuffer[IR_Statement](
               callExtFunction("VisItTimeStepChanged"),
               callExtFunction("VisItUpdatePlots")))))
     }
+    if (isMultiSlotted) {
+      consoleInputBody += IR_IfCondition(
+        stringEquals(command, "toggle slot"),
+        ListBuffer[IR_Statement](
+          IR_Assignment(curSlot, (curSlot + 1) Mod IR_FieldCollection.objects.map(_.numSlots).max),
+          IR_IfCondition(
+            callExtFunction("VisItIsConnected"),
+            ListBuffer[IR_Statement](
+              callExtFunction("VisItTimeStepChanged"),
+              callExtFunction("VisItUpdatePlots"))))
+      )
+    }
+
     consoleInputBody += IR_ArrayFree(command)
 
     whileBody += IR_IfCondition(
