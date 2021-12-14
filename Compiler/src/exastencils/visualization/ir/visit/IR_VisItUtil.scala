@@ -33,6 +33,12 @@ object IR_VisItUtil {
   def callExtFunction(name : String, args : IR_Expression*) =
     IR_FunctionCall(IR_ExternalFunctionReference(name), args : _*)
 
+  // determine whether simulation or VisIt is responsible for freeing
+  def ownership(dataIsCopied : Boolean) = IR_VariableAccess("VISIT_OWNER_" + (if (dataIsCopied) "VISIT" else "SIM"), IR_UnknownDatatype)
+
+  // determine whether doubles or floats are sent
+  def setVariableDataFunc = IR_ExternalFunctionReference("VisIt_VariableData_setData" + (if (Knowledge.useDblPrecision) "D" else "F"))
+
   /* mesh coords */
 
   // determine data type of mesh coords array

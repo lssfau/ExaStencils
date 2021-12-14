@@ -48,9 +48,6 @@ case class IR_VisItSimGetMesh() extends IR_VisItFuturePlainFunction {
             ifBody += callExtFunction("VisIt_VariableData_alloc", IR_AddressOf(IR_ArrayAccess(handles, dim)))
           }
 
-          // determine whether doubles or floats are sent
-          val funcRef = IR_ExternalFunctionReference("VisIt_VariableData_setData" + (if (Knowledge.useDblPrecision) "D" else "F"))
-
           // pass pointers of coordinate arrays to handles
           for (dim <- 0 until Knowledge.dimensionality) {
             // array access depending on number of levels
@@ -60,7 +57,7 @@ case class IR_VisItSimGetMesh() extends IR_VisItFuturePlainFunction {
               IR_ArrayAccess(coords, dim)
             }
 
-            ifBody += IR_FunctionCall(funcRef,
+            ifBody += IR_FunctionCall(setVariableDataFunc,
               IR_ArrayAccess(handles, dim),
               IR_Native("VISIT_OWNER_SIM"),
               IR_IntegerConstant(1),
@@ -153,9 +150,6 @@ case class IR_VisItSimGetMesh() extends IR_VisItFuturePlainFunction {
           IR_IV_FieldData(field, slot = 0)
         }
 
-        // determine whether doubles or floats are sent
-        val setData = if (Knowledge.useDblPrecision) IR_ExternalFunctionReference("VisIt_VariableData_setDataD") else IR_ExternalFunctionReference("VisIt_VariableData_setDataF")
-
         for (dim <- 0 until numDims) {
           val curveCoordsAccess = if (numDims == 1) {
             if (Knowledge.numLevels > 1) IR_ArrayAccess(curveCoords, field.level - Knowledge.minLevel) else curveCoords
@@ -168,7 +162,7 @@ case class IR_VisItSimGetMesh() extends IR_VisItFuturePlainFunction {
           }
 
           // pass coordinate array, simulation responsible for freeing memory
-          ifBody += IR_FunctionCall(setData,
+          ifBody += IR_FunctionCall(setVariableDataFunc,
             IR_ArrayAccess(handles, dim),
             IR_Native("VISIT_OWNER_SIM"),
             IR_IntegerConstant(1),
@@ -177,13 +171,10 @@ case class IR_VisItSimGetMesh() extends IR_VisItFuturePlainFunction {
           )
         }
 
-        // determines whether simulation or VisIt is responsible for freeing
-        val ownership = IR_VariableAccess(if (dataIsCopied) "VISIT_OWNER_VISIT" else "VISIT_OWNER_SIM", IR_UnknownDatatype)
-
         // pass tmp array or field
-        ifBody += IR_FunctionCall(setData,
+        ifBody += IR_FunctionCall(setVariableDataFunc,
           IR_ArrayAccess(handles, numDims),
-          ownership,
+          ownership(dataIsCopied),
           IR_IntegerConstant(1),
           numPointsTotalTmp.product,
           variableAccess

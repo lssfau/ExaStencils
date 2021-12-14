@@ -65,16 +65,10 @@ case class IR_VisItSimGetVariable() extends IR_VisItFuturePlainFunction {
         tmp
       }
 
-      // determine whether simulation or VisIt is responsible for freeing
-      val ownership = if (!dataIsCopied) IR_Native("VISIT_OWNER_SIM") else IR_Native("VISIT_OWNER_VISIT")
-
-      // determine whether doubles or floats are sent
-      val setData = IR_ExternalFunctionReference("VisIt_VariableData_setData" + (if (Knowledge.useDblPrecision) "D" else "F"))
-
       val sendData = IR_IfCondition(
         callExtFunction("VisIt_VariableData_alloc", IR_AddressOf(h)) EqEq visitOkay,
-        IR_FunctionCall(setData, h,
-          ownership, IR_IntegerConstant(1), numPointsTotalTmp.product, arrayAccessArg)
+        IR_FunctionCall(setVariableDataFunc, h,
+          ownership(dataIsCopied), IR_IntegerConstant(1), numPointsTotalTmp.product, arrayAccessArg)
       )
 
       // no copy needed if offset == 0 and no multiple fragments
