@@ -23,6 +23,7 @@ import scala.util.parsing.combinator._
 import scala.util.parsing.input._
 
 import exastencils.base.l3._
+import exastencils.baseExt.l3.L3_ComplexExpression
 import exastencils.baseExt.l3._
 import exastencils.boundary.l3._
 import exastencils.domain.l3.L3_DomainFromAABBDecl
@@ -113,7 +114,7 @@ object L3_Parser extends ExaParser with PackratParsers {
     locationize((binaryexpression ~ ("+" ||| "-" ||| ".+" ||| ".-") ~ term) ^^ { case lhs ~ op ~ rhs => L3_BinaryOperators.createExpression(op, lhs, rhs) })
       ||| term)
 
-  lazy val term : PackratParser[L3_Expression] = (
+    lazy val term : PackratParser[L3_Expression] = (
     locationize((term ~ ("*" ||| "/" ||| "%" ||| ".*" ||| "./" ||| ".%") ~ term2) ^^ { case lhs ~ op ~ rhs => L3_BinaryOperators.createExpression(op, lhs, rhs) })
       ||| term2)
 
@@ -134,7 +135,17 @@ object L3_Parser extends ExaParser with PackratParsers {
       ||| locationize("-" ~> genericAccess ^^ { x => L3_UnaryOperators.createExpression("-", x) })
       ||| genericAccess
       ||| fieldIteratorAccess
-      ||| locationize(booleanLit ^^ { L3_BooleanConstant }))
+      ||| locationize(booleanLit ^^ { L3_BooleanConstant })
+      ||| complexExpression
+    )
+
+  lazy val complexExpression : PackratParser[L3_Expression] = locationize(
+    ("(" ~> term) ~ "+" ~ term <~ ("j" ~ ")")
+  ^^ { case  real ~ _ ~ imag => L3_ComplexExpression(real, true, imag)} |||
+  ("(" ~> term) ~ "-" ~ term <~ ("j" ~ ")")
+    ^^ { case  real ~ _ ~ imag => L3_ComplexExpression(real, false, imag)} |||
+  ("complex" ~ "(") ~> term ~ "," ~ "-".? ~ (term <~ ")")
+    ^^ { case  real ~ _ ~ sign ~ imag => L3_ComplexExpression(real, if(sign.isDefined) false else true, imag)})
 
   lazy val booleanexpression : PackratParser[L3_Expression] = (
     locationize((booleanexpression ~ ("||" ||| "or") ~ booleanexpression1) ^^ { case ex1 ~ op ~ ex2 => L3_BinaryOperators.createExpression(op, ex1, ex2) })
@@ -348,7 +359,10 @@ object L3_Parser extends ExaParser with PackratParsers {
   // ##### L3_ExpressionDeclaration
   // ######################################
 
-  lazy val expressionDeclaration = locationize((("Expr" ||| "Expression") ~> ident) ~ levelDecl.? ~ ("=" ~> (binaryexpression ||| booleanexpression))
+  //TODO parse complex expression
+  lazy val expressionDeclaration = locationize((("Expr" ||| "Expression") ~> ident) ~ levelDecl.? ~ ("=" ~> (binaryexpression ||| booleanexpression
+    //||| complexExpression
+    ))
     ^^ { case id ~ levels ~ exp => L3_ExpressionDeclaration(id, levels, exp) })
 
   // ######################################

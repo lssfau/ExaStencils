@@ -1076,7 +1076,7 @@ The actual type of access is deferred by the code generator. Depending on the ty
 
 *level*, if specified, must be a valid [access level](#access-level). It is only valid if *target* is leveled.
 
-*offset*, if specified, must be a valid [constant index](#constant-index). It is only valid if *target* is either a [field](@field-declaration), a [stencil](#stencils) or a [stencil field](#stencil-field). In this case, *target* is not evaluated at the current point of iteration, given by the surrounding [field loop](#field-loop), but at the current point plus the given *offset*.
+*offset*, if specified, must be a valid [constant index](#constant-index). It is only valid if *target* is either a [field](#field-declaration), a [stencil](#stencils) or a [stencil field](#stencil-field). In this case, *target* is not evaluated at the current point of iteration, given by the surrounding [field loop](#field-loop), but at the current point plus the given *offset*.
 
 *direction*, if specified, must be a valid [constant index](#constant-index). It is only valid if *target* is either a [stencil](#stencils) or a [stencil field](#stencil-field). In this case, *target* is evaluated in the given *direction*. This effectively means, that the entry of the *target* stencil (field) is selected that has the *direction* as offset. This selected entry is used instead of *target*.
 
@@ -1191,7 +1191,7 @@ loop over fragments
 
 *body* must be a list of suitable [statements](#inner-statements). May be empty.
 
-*body* usually contains at least one [field loop](#field-loop). [Communicate statements](#communicate-statement) and [apply bc statements](apply-bc-statement) inside fragment loops are supported.
+*body* usually contains at least one [field loop](#field-loop). [Communicate statements](#communicate-statement) and [apply bc statements](#apply-bc) inside fragment loops are supported.
 
 #### Example
 <pre>
@@ -1756,29 +1756,106 @@ Var v3 : ColumnVector&lt;Int, 3&gt; = {1, 2, 3}T
 ### Matrices
 Represents a two-dimensional number of scalar elements
 
-#### Syntax
+#### Declaration syntax
 <pre>
 {{<i>expression</i>, <i>expression</i>, ...  }, {<i>expression</i>, <i>expression</i>, ...  }, ... }
 </pre>
 
-#### Details
 At least one *expression* is required to construct a 1x1 matrix.
-#### Example
 <pre>
 Var m1 : Matrix&lt;Real, 2, 2&gt; = {{1, 2}, {3, 4}}
 Var m2 : Matrix&lt;Real, 2, 3&gt; = [1 2 3; 4 5 6]
 </pre>
-#### built-in functions
-* `inverse()` invert a matrix
-   Matrices up to 3x3 are inverted directly at generation time. For larger matrices, a strategy can be selected via the Knowledge parameter`experimental_resolveInverseFunctionCall`:
-   * *Cofactors*: Invert at generation-time using cofactors matrix
-   * *GaussJordan*: Invert at generation-time using the Gauss-Jordan algorithm
-   * *Runtime* Invert only at run-time of the program time
+
+#### Access
+Vectors and Matrices can be written to and read from via the `[]-operator`:
+<pre>
+Var quadMat : Matrix &lt;Real, 2, 23&gt; = {{0., 1.}, {1., 0.}}
+Var colVecMat : Matrix &lt;Real, 3, 13&gt; = {{0.}, {1.}, {1337.}}
+Var rowVec : RowVector &lt;Real, 33&gt; = {0., 1., 1337.}
+
+quadMat[0][1] = 3
+Var tmp : Real = colVecMat[0]
+rowVec[1] = 1
+</pre>
+
+#### Slicing
+The following functions can be used to obtain or set a submatrix of a given matrix:
+* `getElement(mat : Matrix<T>, j : Int, i : Int) : T`
+    returns the (j,i)th entry
+* `setElement(mat : Matrix<T>, j : Int, i : Int) : T`
+    sets the (j,i)th entry
+* `getSlice(mat : Matrix<T>, offsetRows : Int, offsetCols: Int, nRows : Int, nCols : Int) : Matrix<T>`
+    reads a submatrix of size (nRows x nCols) from position (offsetRows, offsetCols) in mat
+* `setSlice(mat : Matrix<T>, offsetRows : Int, offsetCols: Int, nRows : Int, nCols : Int, val : T) : Matrix<T>`
+    writes the value val to a submatrix of size (nRows x nCols) at position (offsetRows, offsetCols) in mat
+* slicing operations can also be executed via the `[]-operator` with index ranges or `:` for a complete dimension. <br/>
+
+Some examples:
+<pre>
+setSlice(quadMat,0,1,2,1,5) // quadMat = {{0., 1.}, {5., 5.}}
+Var row : Matrix&lt;Real, 1, 2 &gt; = getSlice(quadMat,0,1,1,2) // row = {{5., 5.}}
+Var col : Matrix&lt;Real, 2, 1 &gt; = quadMat[:][1] // col = {{1.},{5.}}
+rowVec[0:3] = 4. // colVec = {{4.},{4.},{4.}}
+</pre>
+
+#### Built-in functions
 * `transpose()` to transpose a matrix
 * `dot()` and `cross()` to calculate dot or cross product of two matrices
 * `det()` to calculate the determinant
+* `norm()` calculates the frobenius-norm of the matrix
+* `trace()` calculates the trace
+* `transpose()` transposes the matrix
 * supported operators for binary expression: `+`, `-`, `*`, `/`
 * supported element-wise operations: `.*`, `*./`, `.%` (modulo), `.^` (power)
+
+#### Direct solution of linear systems
+Small linear systems can be solved directly at runtime or compiletime with the `solveMatSys`-statement, which takes a system matrix, unknowns and a right-hand-side of fitting dimensions as arguments:
+<pre>
+Var A : Matrix&lt;Real, 3, 3&gt; = {{3,2,-1},{2,-2,4},{-1,0.5,-1}}
+Var f : Matrix&lt;Real, 3, 1&gt; = {{1},{-2},{0}}
+Var u : Matrix&lt;Real, 3, 1&gt;
+solveMatSys A,u,f // u = {{1}, {-2}, {-2}}
+</pre>
+Additional information about the `shape` of a matrix can be added:
+<pre>
+solveMatSys A2,u2,f2 {shape=blockdiagonal,block=3} // A2 is a blockdiagonal matrix with blocks of size 3x3
+</pre>
+The generator will then produce a routine that exploits the shape of the matrix.<br />
+Supported shapes are:
+* `blockdiagonal` with `block`=... (diagonal block size)
+* `diagonal`
+
+If `experimental_resolveLocalMatSys` is set to `Runtime`, the system will be solved at runtime of the generated application.
+If `experimental_resolveLocalMatSys` is set to `Compiletime`, the system will be solved at generation time with certain restrictions.
+
+#### Inversion
+Matrices can be inverted by the `inverse()` function.
+<pre>
+Var mat_inverse : Matrix&lt;Real, 7, 7&gt;  = inverse(mat, "shape=schur", "block=6", "A=blockdiagonal", "Ablock=3")
+</pre>
+Additional information about the shape of a matrix can be added as arguments.
+Next to `blockdiagonal` and `diagonal` matrices, also a `Schur-shape` (https://en.wikipedia.org/wiki/Schur_complement) can be specified,
+which allows a specialized solution technique.
+If `experimental_resolveInverseFunctionCall` is set to `Runtime`, the inversion will be executed at runtime of the generated application.
+If `experimental_resolveInverseFunctionCall` is set to `Compiletime`, the inversion will be executed at generation time with certain restrictions.
+
+### Solve locally extensions
+#### System matrix shapes
+The shape of the systems set up by [ solve locally ](#local-solve) statements can also be used to speed up the solution:
+* If it is known, it can be communicated to the generator with the knowledge-attribute `experimental_locMatShape`.
+(in case of a Schur or blockdiagonal shape, also the attributes `experimental_locMatBlocksize`, `experimental_locMatShapeA` and `experimental_locMatBlocksizeA` can be specified)
+* Another possible way is to provide the shape with the field declaration of the iterated field. Here, the same syntax as in section 'direct solution of linear systems' is used.
+
+#### Execution time
+* `experimental_resolveLocalMatSys` also determines execution time of solution of solve-locally-systems.
+* if `experimental_evalMOpRuntimeExe` is set, [ solve locally ](#local-solve)-systems will be solved depending on their size:
+    small systems are feasible for solution at compiletime in order to reduce the runtime of the generated application.
+    Larger systems can only be solved at runtime as they increase the compiletime extremely if executed at compiletime.
+
+#### Shape classification
+An automatic classification of the present shape with all block sizes in a solve-locally-system is done if the knowledge-attribute `experimental_classifyLocMat` is set to 'true'.
+    Currently, the three mentioned shapes diagonal, blockdiagonal and Schur are supported for automatic classification.
 
 ## I/O statements (Layer 4)
 
@@ -1794,7 +1871,7 @@ Currently, following (parallel) I/O approaches are supported:
 
 ### Data storage and retrieval
 
-For the storage of field data, following statements can be used. 
+For the storage of field data, following statements can be used.
 
 ```
 // Locking: Binary or ASCII

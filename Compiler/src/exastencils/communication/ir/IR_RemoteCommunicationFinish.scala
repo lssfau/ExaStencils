@@ -62,13 +62,13 @@ case class IR_RemoteCommunicationFinish(
       } else if (!Knowledge.data_genVariableFieldSizes && 1 == IR_SimplifyExpression.evalIntegral(cnt)) {
         val arrayAccess = IR_DirectFieldAccess(field, Duplicate(slot), Duplicate(indices.begin)).linearize.expand().inner
         val offsetAccess = IR_PointerOffset(arrayAccess.base, arrayAccess.index)
-        IR_RemoteRecv(field, Duplicate(slot), Duplicate(neighbor), offsetAccess, 1, IR_RealDatatype, concurrencyId)
+        IR_RemoteRecv(field, Duplicate(slot), Duplicate(neighbor), offsetAccess, 1, MPI_DataType.determineInnerMPIDatatype(field), concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(field, indices, condition)) {
         val arrayAccess = IR_DirectFieldAccess(field, Duplicate(slot), Duplicate(indices.begin)).linearize.expand().inner
         val offsetAccess = IR_PointerOffset(arrayAccess.base, arrayAccess.index)
         IR_RemoteRecv(field, Duplicate(slot), Duplicate(neighbor), offsetAccess, 1, MPI_DataType(field, Duplicate(indices), Duplicate(condition)), concurrencyId)
       } else {
-        IR_RemoteRecv(field, Duplicate(slot), Duplicate(neighbor), IR_IV_CommBuffer(field, s"Recv_${ concurrencyId }", Duplicate(maxCnt), neighbor.index), cnt, IR_RealDatatype, concurrencyId)
+        IR_RemoteRecv(field, Duplicate(slot), Duplicate(neighbor), IR_IV_CommBuffer(field, s"Recv_${ concurrencyId }", Duplicate(maxCnt), neighbor.index), cnt, MPI_DataType.determineInnerMPIDatatype(field), concurrencyId)
       }
     }
     if (addCondition) wrapCond(Duplicate(neighbor), ListBuffer[IR_Statement](body)) else body
@@ -90,15 +90,15 @@ case class IR_RemoteCommunicationFinish(
       ListBuffer[IR_Statement](
         if (start) wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-            neighbors.map(neigh => genTransfer(neigh._1, neigh._2, true))), true)
+            neighbors.map(neigh => genTransfer(neigh._1, neigh._2, true))))
         else IR_NullStatement,
         if (end) wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-            neighbors.map(neigh => genWait(neigh._1))), true) // TODO: omp parallel or too much overhead? remove inner critical?
+            neighbors.map(neigh => genWait(neigh._1)))) // TODO: omp parallel or too much overhead? remove inner critical?
         else IR_NullStatement,
         if (end) wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-            neighbors.map(neigh => genCopy(neigh._1, neigh._2, true))), true)
+            neighbors.map(neigh => genCopy(neigh._1, neigh._2, true))))
         else IR_NullStatement)
     else
       ListBuffer(wrapFragLoop(
@@ -106,6 +106,6 @@ case class IR_RemoteCommunicationFinish(
           wrapCond(neigh._1, ListBuffer(
             if (start) genTransfer(neigh._1, neigh._2, false) else IR_NullStatement,
             if (end) genWait(neigh._1) else IR_NullStatement,
-            if (end) genCopy(neigh._1, neigh._2, false) else IR_NullStatement)))), true))
+            if (end) genCopy(neigh._1, neigh._2, false) else IR_NullStatement))))))
   }
 }

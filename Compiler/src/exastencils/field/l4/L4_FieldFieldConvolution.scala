@@ -30,7 +30,7 @@ import exastencils.prettyprinting.PpStream
 
 /// L4_FieldFieldConvolution
 
-case class L4_FieldFieldConvolution(var lhs : L4_FieldAccess, var rhs : L4_FieldAccess) extends L4_Expression {
+case class L4_FieldFieldConvolution(var lhs : L4_FieldAccess, var rhs : L4_FieldAccess, var sumAlgo : Option[L4_StringConstant] = None) extends L4_Expression {
   override def prettyprint(out : PpStream) = out << lhs << " * " << rhs
   override def progress : IR_Expression = ???
 }
@@ -44,6 +44,16 @@ object L4_WrapFieldFieldConvolutions extends DefaultStrategy("Wrap field-field-c
       func.body = processStmtList(func.body)
       func
   })
+
+  def genDefaultConvLoop(tmpVar : (L4_VariableAccess, L4_FieldFieldConvolution)) : L4_LoopOverField = {
+    val assignment = L4_Assignment(Duplicate(tmpVar._1), Duplicate(tmpVar._2), "+=", None)
+    val red = L4_Reduction("+", tmpVar._1, tmpVar._1.datatype)
+    val commStmts = ListBuffer[L4_Communicate]() // can be extended if comm is required - dup maybe?
+    val loop = L4_LoopOverField(tmpVar._2.lhs, assignment)
+    loop.reduction = Some(red)
+    loop.preComms = commStmts
+    loop
+  }
 
   def processStmtList(statements : ListBuffer[L4_Statement]) : ListBuffer[L4_Statement] = {
     import L4_MapReductionVariable._
@@ -72,22 +82,19 @@ object L4_WrapFieldFieldConvolutions extends DefaultStrategy("Wrap field-field-c
             // add temporary variable
             for (tmpVar <- tmpVarMap.toList.sortBy(_._1.name)) {
               // FIXME: data type - tmpVar._2.lhs.resolveField.gridDatatype // FIXME: default value according to data type
-              newBody += L4_VariableDeclaration(tmpVar._1.name, None, L4_RealDatatype, Some(L4_RealConstant(0)), false)
+              //FIXME reduction variable always real
+              newBody += L4_VariableDeclaration(tmpVar._1.name, None, tmpVar._1.datatype, Some(L4_RealConstant(0)), false)
             }
 
             // add reduction loop
             // TODO: merge loops/ communications for identical fields
             // TODO: warp in fragment loops?
             for (tmpVar <- tmpVarMap.toList.sortBy(_._1.name)) {
-              val assignment = L4_Assignment(Duplicate(tmpVar._1), Duplicate(tmpVar._2), "+=", None)
-              val red = L4_Reduction("+", tmpVar._1.name)
-              val commStmts = ListBuffer[L4_Communicate]() // can be extended if comm is required - dup maybe?
-
-              val loop = L4_LoopOverField(tmpVar._2.lhs, assignment)
-              loop.reduction = Some(red)
-              loop.preComms = commStmts
-
-              newBody += loop
+              tmpVar._1.getAnnotationAs[String]("sumAlgo") match {
+                case "default" => newBody += genDefaultConvLoop(tmpVar)
+                case "kahan"   => newBody ++= L4_SummationAlgorithms.genKahanLoop(tmpVar)
+                case "neumaier" => newBody ++= L4_SummationAlgorithms.genNeumaierLoop(tmpVar)
+              }
             }
 
             // consume map entries
@@ -115,6 +122,11 @@ object L4_WrapFieldFieldConvolutions extends DefaultStrategy("Wrap field-field-c
         // TODO: incorporate rhs's dt as well
         val datatype = conv.lhs.target.datatype
         val tmpVar = L4_PlainVariableAccess(s"reductionVar_$tmpVarCounter", datatype, false)
+        if (conv.sumAlgo.isDefined)
+          tmpVar.annotate("sumAlgo", conv.sumAlgo.get.value)
+        else
+          tmpVar.annotate("sumAlgo", "default")
+
         tmpVarCounter += 1 // TODO: reset counter when leaving scope
 
         tmpVarMap += (tmpVar -> conv)
@@ -129,6 +141,6 @@ object L4_WrapFieldFieldConvolutions extends DefaultStrategy("Wrap field-field-c
 
 object L4_UnresolveFieldFieldConvolutions extends DefaultStrategy("Revert field field convolutions to plain multiplications") {
   this += new Transformation("Replace", {
-    case L4_FieldFieldConvolution(lhs, rhs) => L4_Multiplication(lhs, rhs)
+    case L4_FieldFieldConvolution(lhs, rhs, _) => L4_Multiplication(lhs, rhs)
   })
 }

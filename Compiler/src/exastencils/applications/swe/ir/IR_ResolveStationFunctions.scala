@@ -28,6 +28,18 @@ import exastencils.logger.Logger
 /// IR_ResolveStationFunctions
 
 object IR_ResolveStationFunctions extends DefaultStrategy("ResolveStationFunctions") {
+  var resolveId : Int = 0
+
+  override def apply(applyAtNode : Option[Node]) : Unit = {
+    resolveId = 0
+    super.apply(applyAtNode)
+  }
+
+  override def applyStandalone(node : Node) = {
+    resolveId = 0
+    super.applyStandalone(node)
+  }
+
   this += new Transformation("ResolveFunctionCalls", {
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("readStations", _), args)) =>
       if (args.size != 1
@@ -47,20 +59,16 @@ object IR_ResolveStationFunctions extends DefaultStrategy("ResolveStationFunctio
 
       IR_ExpressionStatement(IR_FunctionCall(IR_PlainInternalFunctionReference("readStations", IR_UnitDatatype), args))
 
-    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("writeStations", _), args)) =>
-      // TODO: optimize
-      val writeStationFctName = (0 until 1000).toArray.map(i => "writeStations" + i).find(name => !IR_GlobalCollection.get.functions.exists(_.name == name)) match {
-        case Some(v) => v
-        case None    => Logger.error("Too many writeStation calls. Cannot build more writeStation-functions.")
-      }
-
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference(IR_WriteStations.basename, _), args)) =>
+      val writeStation = IR_WriteStations(resolveId, args)
       IR_UserFunctions.get.internalDependencies += IR_GlobalCollection.defHeader
       IR_UserFunctions.get.internalDependencies = IR_UserFunctions.get.internalDependencies.distinct
-      IR_GlobalCollection.get.functions += IR_WriteStations(writeStationFctName, args)
+      IR_GlobalCollection.get.functions += writeStation
       IR_GlobalCollection.get.externalDependencies += "iostream"
       IR_GlobalCollection.get.externalDependencies += "cmath"
       IR_GlobalCollection.get.externalDependencies = IR_GlobalCollection.get.externalDependencies.distinct
 
-      IR_ExpressionStatement(IR_FunctionCall(IR_PlainInternalFunctionReference(writeStationFctName, IR_UnitDatatype), args.head))
+      resolveId += 1
+      IR_ExpressionStatement(IR_FunctionCall(IR_PlainInternalFunctionReference(writeStation.name, IR_UnitDatatype), args.head))
   })
 }

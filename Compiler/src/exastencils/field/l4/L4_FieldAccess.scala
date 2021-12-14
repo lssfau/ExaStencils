@@ -33,7 +33,7 @@ import exastencils.prettyprinting.PpStream
 
 object L4_FieldAccess {
   def apply(access : L4_FutureFieldAccess) =
-    new L4_FieldAccess(L4_FieldCollection.getByIdentifier(access.name, access.level).get, access.slot, access.offset, access.arrayIndex, access.frozen, access.matIndex)
+    new L4_FieldAccess(L4_FieldCollection.getByIdentifier(access.name, access.level).get, access.slot, access.offset,  access.frozen, access.matIndex)
 
   def resolveSlot(field : IR_Field, slot : L4_SlotSpecification) = {
     if (1 == field.numSlots) IR_IntegerConstant(0)
@@ -51,23 +51,20 @@ case class L4_FieldAccess(
     var target : L4_Field,
     var slot : L4_SlotSpecification,
     var offset : Option[L4_ConstIndex] = None,
-    var arrayIndex : Option[Int] = None,
     var frozen : Boolean = false,
-    var matIndex : Option[Array[L4_Index]] = None
+    var matIndex : Option[L4_MatIndex] = None
 ) extends L4_LeveledKnowledgeAccess with L4_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
     if (frozen) out << "frozen ( "
     out << target.name
-    if (target.numSlots > 1) out << '[' << slot << ']'
+    if (target.numSlots > 1) out << '<' << slot << '>'
     out << '@' << target.level
     if (offset.isDefined) out << "@" << offset.get
-    if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
-
-    if (frozen) out << " )"
     if(matIndex.isDefined) {
-      for(midx <- matIndex) out << midx
+      out << matIndex.get
     }
+    if (frozen) out << " )"
 
   }
 
@@ -79,16 +76,6 @@ case class L4_FieldAccess(
     val numDims = field.layout.numDimsGrid
     val index = IR_LoopOverDimensions.defIt(numDims)
 
-    if (arrayIndex.isDefined)
-      target.fieldLayout.datatype match {
-        case v : L4_VectorDatatype if v.isRow  =>
-          index.indices :+= IR_IntegerConstant(0)
-          index.indices :+= IR_IntegerConstant(arrayIndex.get)
-        case v : L4_VectorDatatype if !v.isRow =>
-          index.indices :+= IR_IntegerConstant(arrayIndex.get)
-          index.indices :+= IR_IntegerConstant(0)
-        case other                             => Logger.warn(s"Ignoring component access for unsupported datatype $other")
-      }
 
     val progOffset = if (offset.isDefined) {
       val progressedOffset = offset.get.progress
@@ -98,7 +85,7 @@ case class L4_FieldAccess(
       None
     }
 
-    IR_FieldAccess(field, L4_FieldAccess.resolveSlot(field, slot), index, progOffset, frozen, if(matIndex.isDefined) Some(matIndex.get.map(midx => midx.progress)) else None)
+    IR_FieldAccess(field, L4_FieldAccess.resolveSlot(field, slot), index, progOffset, frozen, if(matIndex.isDefined) Some(matIndex.get.progress) else None)
   }
 }
 
@@ -116,9 +103,9 @@ object L4_ResolveFieldAccesses extends DefaultStrategy("Resolve accesses to fiel
 
 object L4_UnresolveFieldAccesses extends DefaultStrategy("Revert field accesses to unresolved accesses") {
   this += new Transformation("Replace", {
-    case L4_FieldAccess(target, slot, offset, arrayIndex, frozen, matIndex) =>
+    case L4_FieldAccess(target, slot, offset, frozen, matIndex) =>
       val newSlot = if (L4_ActiveSlot == slot) None else Some(slot)
-      def ret = L4_UnresolvedAccess(target.name, Some(L4_SingleLevel(target.level)), newSlot, offset, None, arrayIndex, matIndex)
+      def ret = L4_UnresolvedAccess(target.name, Some(L4_SingleLevel(target.level)), newSlot, offset, None, matIndex)
       if (frozen)
         L4_FunctionCall(L4_UnresolvedFunctionReference("frozen", None, None), ret)
       else

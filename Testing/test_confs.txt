@@ -26,6 +26,9 @@
 # MATRIX TESTS                                                                         #
 #################################################################################################
 
+# decision about runtime execution of solution of local systems and inversions depending on size/const entries
+Matrix_evalMatrixOpRuntimeExecution Main ./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.knowledge  ./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.exa4  ./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.RESULTS  1  1
+
 # classification of matrix shapes/structures
 Matrix_determineMatrixStructures  Main  ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.knowledge  ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.exa4  ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.RESULTS  1  1
 
@@ -63,6 +66,7 @@ Matrix_SchurWithHelpersCompileTime Main  ./MatrixClassTests/invert/CompileTime/S
 Matrix_smallMatricesCompileTime Main  ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.knowledge  ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.exa4  ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.RESULTS  1  1
 
 # inversion at runtime
+Matrix_LURunTime Main  ./MatrixClassTests/invert/RunTime/LU/LU.knowledge  ./MatrixClassTests/invert/RunTime/LU/LU.exa4  ./MatrixClassTests/invert/RunTime/LU/LU.RESULTS  1  1
 Matrix_SchurRunTime Main  ./MatrixClassTests/invert/RunTime/Schur/Schur.knowledge  ./MatrixClassTests/invert/RunTime/Schur/Schur.exa4  ./MatrixClassTests/invert/RunTime/Schur/Schur.RESULTS  1  1
 Matrix_DiagonalRunTime Main  ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.knowledge  ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.exa4  ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.RESULTS  1  1
 Matrix_BlockDiagonalRunTime Main  ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.knowledge  ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.exa4  ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.RESULTS  1  1
@@ -100,6 +104,8 @@ CommBasic_2D              Main  CommBasic/2D.knowledge              CommBasic/2D
 # cell based
 CommBasic_HybridCell      Main  CommBasic/HybridCell.knowledge      CommBasic/HybridCell.exa4      CommBasic/HybridCell.results      27  2
 CommBasic_Strategy26Cell  Main  CommBasic/Strategy26Cell.knowledge  CommBasic/Strategy26Cell.exa4  CommBasic/Strategy26Cell.results  27  2
+# complex numbers
+CommBasic_complexNumbers Main CommBasic/ComplexNumbers.knowledge CommBasic/ComplexNumbers.exa4 CommBasic/ComplexNumbers.results 9 2
 
 #################################################################################################
 # OPTIMIZATION TESTS                                                                            #
@@ -173,7 +179,7 @@ PolyExpl_Jac2Dccd_f0  Main  PolyExpl/2D_f0.knowledge  PolyExpl/Jac2Dccd.exa4  Po
 PolyExpl_Jac2Dccd_f2  Main  PolyExpl/2D_f2.knowledge  PolyExpl/Jac2Dccd.exa4  PolyExpl/all.results  1  4  AVX
 PolyExpl_Jac2Dccd_f4  Main  PolyExpl/2D_f4.knowledge  PolyExpl/Jac2Dccd.exa4  PolyExpl/all.results  1  4  AVX
 PolyExpl_Jac2Dccd_f6  Main  PolyExpl/2D_f6.knowledge  PolyExpl/Jac2Dccd.exa4  PolyExpl/all.results  1  4  AVX
-## Jacobi 3D constant coefficient 7-pt
+# Jacobi 3D constant coefficient 7-pt
 PolyExpl_Jac3Dcc_f0   Main  PolyExpl/3D_f0.knowledge  PolyExpl/Jac3Dcc.exa4  PolyExpl/all.results   1  4  AVX
 PolyExpl_Jac3Dcc_f1   Main  PolyExpl/3D_f1.knowledge  PolyExpl/Jac3Dcc.exa4  PolyExpl/all.results   1  4  AVX
 PolyExpl_Jac3Dcc_f3   Main  PolyExpl/3D_f3.knowledge  PolyExpl/Jac3Dcc.exa4  PolyExpl/all.results   1  4  AVX
@@ -181,7 +187,7 @@ PolyExpl_Jac3Dcc_f5   Main  PolyExpl/3D_f5.knowledge  PolyExpl/Jac3Dcc.exa4  Pol
 PolyExpl_Jac3Dcc_f6   Main  PolyExpl/3D_f6.knowledge  PolyExpl/Jac3Dcc.exa4  PolyExpl/all.results   1  4  AVX
 # RBGS 2D constant coefficient 5-pt
 PolyExpl_RBGS2Dcc_f0  Main  PolyExpl/2D_f0.knowledge  PolyExpl/RBGS2Dcc.exa4  PolyExpl/all.results  1  4  AVX
-#PolyExpl_RBGS2Dcc_f1  Main  PolyExpl/2D_f1.knowledge  PolyExpl/RBGS2Dcc.exa4  PolyExpl/all.results  1  4  AVX
+PolyExpl_RBGS2Dcc_f1  Main  PolyExpl/2D_f1.knowledge  PolyExpl/RBGS2Dcc.exa4  PolyExpl/all.results  1  4  AVX
 PolyExpl_RBGS2Dcc_f3  Main  PolyExpl/2D_f3.knowledge  PolyExpl/RBGS2Dcc.exa4  PolyExpl/all.results  1  4  AVX
 PolyExpl_RBGS2Dcc_f5  Main  PolyExpl/2D_f5.knowledge  PolyExpl/RBGS2Dcc.exa4  PolyExpl/all.results  1  4  AVX
 PolyExpl_RBGS2Dcc_f6  Main  PolyExpl/2D_f6.knowledge  PolyExpl/RBGS2Dcc.exa4  PolyExpl/all.results  1  4  AVX
@@ -216,6 +222,8 @@ BC_3D_Periodic       Main  BC/3D_Periodic.knowledge       BC/3D_Periodic.exa4   
 # matrix fields
 BC_Matrix       Main  BC/Matrix/BC_Matrix.knowledge       BC/Matrix/BC_Matrix.exa4       BC/Matrix/BC_Matrix.results       1  1
 
+
+BC_COMPLEX_NUMBERS Main BC/ComplexNumbers.knowledge BC/ComplexNumbers.exa4 BC/ComplexNumbers.results 1 1
 
 #################################################################################################
 # CELL BASED DISCRETIZATION TESTS                                                               #
@@ -351,4 +359,13 @@ CUDA_ExaFluids_Bingham  Main CUDA/3D_ExaFluids_NN_CUDA.knowledge CUDA/3D_ExaFlui
 
 # Eigenvalues
 #Tensor2_eigenvalues  Main  TensorClass/Eigenvalues/Tensor2_eigenvalues.knowledge  TensorClass/Eigenvalues/Tensor2_eigenvalues.exa4  TensorClass/Eigenvalues/Tensor2_eigenvalues.results  1  8
+
+
+#################################################################################################
+# complex numbers TESTS                                                                         #
+#################################################################################################
+
+COMPLEX_NUMBERS_BasicFunc  Main  ComplexNumbers/BasicFunc/BasicFunc.knowledge  ComplexNumbers/BasicFunc/BasicFunc.exa3  ComplexNumbers/BasicFunc/BasicFunc.results  1  1
+COMPLEX_NUMBERS_Helmholtz  Main  ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.knowledge ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.exa4  ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.results  1  1
+COMPLEX_NUMBERS_Helmholtz_MPI  Main  ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.knowledge ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.exa4  ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.results  4  2
 

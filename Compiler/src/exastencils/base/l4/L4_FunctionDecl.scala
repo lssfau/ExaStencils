@@ -44,12 +44,15 @@ case class L4_FunctionDecl(
     var allowInlining : Boolean = true) extends L4_Statement {
 
   override def prettyprint(out : PpStream) = {
-    out << "Function " << name
+    out << (if (!allowInlining) "noinline " else "") << "Function " << name
     if (levels.isDefined) out << '@' << levels.get
     if (parameters.nonEmpty) out << " ( " <<< (parameters, ", ") << " )"
     if (datatype != L4_UnitDatatype) out << " : " << datatype
     out << " {\n" <<< (body, "\n") << "\n}"
   }
+
+  if (L4_SpecialFunctionReferences.contains(name))
+    Logger.error(s"Function name $name is already taken. Please use another function name.")
 
   override def progress = Logger.error(s"Trying to progress L4 function declaration for $name; this is not supported")
 
@@ -66,9 +69,9 @@ case class L4_FunctionDecl(
 
   def toFunction = {
     if (levels.isEmpty)
-      L4_PlainFunction(name, datatype, parameters, body)
+      L4_PlainFunction(name, datatype, parameters, body, allowInlining)
     else
-      L4_LeveledFunction(name, levels.get.resolveLevel, datatype, parameters, body)
+      L4_LeveledFunction(name, levels.get.resolveLevel, datatype, parameters, body, allowInlining)
   }
 }
 

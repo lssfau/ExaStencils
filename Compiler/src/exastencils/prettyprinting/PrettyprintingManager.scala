@@ -94,6 +94,11 @@ object PrettyprintingManager {
           extendedContent.write(s"#define $guard\n\n")
         }
 
+        if (Knowledge.library_CImg) {
+          extendedContent.write("#define cimg_use_jpeg\n")
+          extendedContent.write("#define cimg_use_png\n")
+        }
+
         // add includes for external dependencies
         for (dep <- externalDependencies())
           extendedContent.write(generateInclude(dep))
@@ -105,6 +110,14 @@ object PrettyprintingManager {
           extendedContent.write(generateInclude(dep))
         if (Settings.additionalIncludes.nonEmpty)
           extendedContent.write('\n')
+
+        // add includes from Settings.additionalNamespaces
+        for (dep <- Settings.additionalNamespaces)
+          extendedContent.write("using namespace " + dep + ";\n")
+        if (Settings.additionalNamespaces.nonEmpty)
+          extendedContent.write('\n')
+
+
 
         // add includes for internal dependencies
         for (dep <- internalDependencies)

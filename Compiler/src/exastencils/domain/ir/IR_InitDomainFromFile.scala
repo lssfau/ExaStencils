@@ -31,6 +31,7 @@ import exastencils.field.ir._
 import exastencils.globals.ir.IR_AllocateDataFunction
 import exastencils.grid.ir._
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
+import exastencils.parallelization.api.mpi.MPI_IV_MpiSize
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.ir._
 
@@ -533,7 +534,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     connStmts += IR_VariableDeclaration(neighborFragID)
 
     connStmts += read_line
-    connStmts += IR_ReadStream(iss, ListBuffer(strBuf, IR_IV_FragmentId(IR_LoopOverFragments.defIt)))
+    connStmts += IR_Read(iss, strBuf, IR_IV_FragmentId(IR_LoopOverFragments.defIt))
 
     connStmts += IR_Assignment(IR_IV_CommunicationId(IR_LoopOverFragments.defIt), IR_LoopOverFragments.defIt)
 
@@ -545,12 +546,12 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       IR_PreIncrement(i),
       ListBuffer[IR_Statement](
         read_line,
-        IR_ReadStream(iss, ListBuffer(
+        IR_Read(iss,
           strBuf,
           IR_ArrayAccess(neighborBlockID, i),
           IR_ArrayAccess(neighborCommID, i),
           IR_ArrayAccess(neighborEdge, i),
-          IR_ArrayAccess(neighborFragID, i)))
+          IR_ArrayAccess(neighborFragID, i))
       ) ++ connectFragmentFromFile(neighborBlockID, neighborCommID, i)
     )
 
@@ -631,7 +632,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     nodeStmts += IR_LoopOverDimensions(numDims, indexRange,
       ListBuffer[IR_Statement](
         read_line,
-        IR_ReadStream(iss, ListBuffer(nodePositions(0), nodePositions(1)))
+        IR_Read(iss, nodePositions(0), nodePositions(1))
       ))
 
     loopOverNumFragments(nodeStmts)
@@ -670,7 +671,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
     body += read_line // jump over block_id
     body += read_line
-    body += IR_ReadStream(iss, ListBuffer(strBuf, IR_IV_Nfragments()))
+    body += IR_Read(iss, strBuf, IR_IV_Nfragments())
     body += read_line // jump over n_grid_nodes
 
     // read connectivity
@@ -706,8 +707,8 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     var body = ListBuffer[IR_Statement]()
 
     if (Knowledge.mpi_enabled)
-      body += IR_Assert(IR_EqEq(s"mpiSize", Knowledge.domain_numBlocks),
-        ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.mpi_numThreads),
+      body += IR_Assert(IR_EqEq(MPI_IV_MpiSize, Knowledge.domain_numBlocks),
+        ListBuffer("\"Invalid number of MPI processes (\"", MPI_IV_MpiSize, "\") should be \"", Knowledge.mpi_numThreads),
         IR_FunctionCall("exit", 1))
 
     body += readGrid(Knowledge.maxLevel, true)

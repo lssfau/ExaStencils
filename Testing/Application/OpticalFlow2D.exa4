@@ -54,33 +54,33 @@ Stencil ProlongationCell from default prolongation on Cell with 'linear'
 
 // forward difference
 Stencil GradX@finest {
-  [ 1,  0] =>  1.0 / vf_gridWidth_x
+  [ 1,  0] =>  1.0 / vf_gridWidth_x,
   [ 0,  0] => -1.0 / vf_gridWidth_x
 }
 Stencil GradY@finest {
-  [ 0,  1] =>  1.0 / vf_gridWidth_y
+  [ 0,  1] =>  1.0 / vf_gridWidth_y,
   [ 0,  0] => -1.0 / vf_gridWidth_y
 }
 
 // forward difference with averaging
 /*Operator GradX from Stencil {
-  [ 1,  1] =>  0.5 / vf_gridWidth_x
-  [ 1,  0] =>  0.5 / vf_gridWidth_x
-  [ 0,  1] => -0.5 / vf_gridWidth_x
+  [ 1,  1] =>  0.5 / vf_gridWidth_x,
+  [ 1,  0] =>  0.5 / vf_gridWidth_x,
+  [ 0,  1] => -0.5 / vf_gridWidth_x,
   [ 0,  0] => -0.5 / vf_gridWidth_x
 }
 Operator GradY from Stencil {
-  [ 1,  1] =>  0.5 / vf_gridWidth_y
-  [ 0,  1] =>  0.5 / vf_gridWidth_y
-  [ 1,  0] => -0.5 / vf_gridWidth_y
+  [ 1,  1] =>  0.5 / vf_gridWidth_y,
+  [ 0,  1] =>  0.5 / vf_gridWidth_y,
+  [ 1,  0] => -0.5 / vf_gridWidth_y,
   [ 0,  0] => -0.5 / vf_gridWidth_y
 }*/
 
 Stencil Laplace@all {
-  [ 0,  0] => { { 2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ), 0 }, { 0, 2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) } }
-  [-1,  0] => { { -1.0 / ( vf_gridWidth_x ** 2 ), 0 }, { 0, -1.0 / ( vf_gridWidth_x ** 2 ) } }
-  [ 1,  0] => { { -1.0 / ( vf_gridWidth_x ** 2 ), 0 }, { 0, -1.0 / ( vf_gridWidth_x ** 2 ) } }
-  [ 0, -1] => { { -1.0 / ( vf_gridWidth_y ** 2 ), 0 }, { 0, -1.0 / ( vf_gridWidth_y ** 2 ) } }
+  [ 0,  0] => { { 2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ), 0 }, { 0, 2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) } },
+  [-1,  0] => { { -1.0 / ( vf_gridWidth_x ** 2 ), 0 }, { 0, -1.0 / ( vf_gridWidth_x ** 2 ) } },
+  [ 1,  0] => { { -1.0 / ( vf_gridWidth_x ** 2 ), 0 }, { 0, -1.0 / ( vf_gridWidth_x ** 2 ) } },
+  [ 0, -1] => { { -1.0 / ( vf_gridWidth_y ** 2 ), 0 }, { 0, -1.0 / ( vf_gridWidth_y ** 2 ) } },
   [ 0,  1] => { { -1.0 / ( vf_gridWidth_y ** 2 ), 0 }, { 0, -1.0 / ( vf_gridWidth_y ** 2 ) } }
 }
 

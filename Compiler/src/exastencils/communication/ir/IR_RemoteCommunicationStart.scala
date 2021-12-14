@@ -65,13 +65,13 @@ case class IR_RemoteCommunicationStart(
       } else if (!Knowledge.data_genVariableFieldSizes && (condition.isEmpty && 1 == IR_SimplifyExpression.evalIntegral(maxCnt))) {
         val arrayAccess = IR_DirectFieldAccess(field, Duplicate(slot), Duplicate(indices.begin)).linearize.expand().inner
         val offsetAccess = IR_PointerOffset(arrayAccess.base, arrayAccess.index)
-        IR_RemoteSend(field, Duplicate(slot), Duplicate(neighbor), offsetAccess, 1, IR_RealDatatype, concurrencyId)
+        IR_RemoteSend(field, Duplicate(slot), Duplicate(neighbor), offsetAccess, 1, MPI_DataType.determineInnerMPIDatatype(field), concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(field, indices, condition)) {
         val arrayAccess = IR_DirectFieldAccess(field, Duplicate(slot), Duplicate(indices.begin)).linearize.expand().inner
         val offsetAccess = IR_PointerOffset(arrayAccess.base, arrayAccess.index)
         IR_RemoteSend(field, Duplicate(slot), Duplicate(neighbor), offsetAccess, 1, MPI_DataType(field, Duplicate(indices), Duplicate(condition)), concurrencyId)
       } else {
-        IR_RemoteSend(field, Duplicate(slot), Duplicate(neighbor), IR_IV_CommBuffer(field, s"Send_${ concurrencyId }", Duplicate(maxCnt), neighbor.index), cnt, IR_RealDatatype, concurrencyId)
+        IR_RemoteSend(field, Duplicate(slot), Duplicate(neighbor), IR_IV_CommBuffer(field, s"Send_${ concurrencyId }", Duplicate(maxCnt), neighbor.index), cnt, MPI_DataType.determineInnerMPIDatatype(field), concurrencyId)
       }
     }
     if (addCondition) wrapCond(Duplicate(neighbor), ListBuffer[IR_Statement](body)) else body
@@ -93,15 +93,15 @@ case class IR_RemoteCommunicationStart(
       ListBuffer[IR_Statement](
         if (start) wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-            neighbors.map(neigh => genCopy(neigh._1, neigh._2, true))), true)
+            neighbors.map(neigh => genCopy(neigh._1, neigh._2, true))))
         else IR_NullStatement,
         if (start) wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-            neighbors.map(neigh => genTransfer(neigh._1, neigh._2, true))), true)
+            neighbors.map(neigh => genTransfer(neigh._1, neigh._2, true))))
         else IR_NullStatement,
         if (end) wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-            neighbors.map(neigh => genWait(neigh._1))), true)
+            neighbors.map(neigh => genWait(neigh._1))))
         else IR_NullStatement)
     else
       ListBuffer(wrapFragLoop(
@@ -109,6 +109,6 @@ case class IR_RemoteCommunicationStart(
           wrapCond(neigh._1, ListBuffer(
             if (start) genCopy(neigh._1, neigh._2, false) else IR_NullStatement,
             if (start) genTransfer(neigh._1, neigh._2, false) else IR_NullStatement,
-            if (end) genWait(neigh._1) else IR_NullStatement)))), true))
+            if (end) genWait(neigh._1) else IR_NullStatement))))))
   }
 }

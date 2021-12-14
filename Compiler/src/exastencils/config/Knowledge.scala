@@ -450,6 +450,10 @@ object Knowledge {
   var omp_minWorkItemsPerThread : Int = 400
   // specifies if unique (usually consecutively numbered) identifiers are to be generated for OMP critical sections => allows entering multiple, disctinct sections concurrently
   var omp_nameCriticalSections : Boolean = false
+  // [true|false] // if true fix the order of arithmetic reductions by replacing the builtin reduction clause with a custom version
+  var omp_fixArithmeticReductionOrder : Boolean = false
+  // specifies scheduling strategy used for "parallel for"
+  var omp_scheduling : String = "static"
 
   /// --- MPI ---
 
@@ -568,6 +572,9 @@ object Knowledge {
   var cuda_syncHostForWrites : Boolean = true
   // specifies if fields with (exclusive) write accesses should be synchronized before device kernel executions
   var cuda_syncDeviceForWrites : Boolean = true
+  // ["none"|"both"|"device_to_host"|"host_to_device"] eliminates host <-> device transfers.
+  var cuda_eliminate_memory_transfers = "none"
+  val cuda_memory_transfer_elimination_options = List("none", "both", "device_to_host", "host_to_device")
 
   // default block size in x dimension
   var cuda_blockSize_x : Long = if (dimensionality == 3) 32 else 128
@@ -613,6 +620,8 @@ object Knowledge {
 
   // [true|false] // specifies if comm ops (buffer copy, send/ recv, wait) should each be aggregated and handled in distinct fragment loops
   var comm_useFragmentLoopsForEachOp : Boolean = true
+  // [true|false] // TODO
+  var comm_parallelizeFragmentLoops : Boolean = false
   // [true|false] // specifies if local data exchanges are implemented using push (true) or pull (false) schemes
   var comm_pushLocalData : Boolean = false
   // [true|false] // specifies if local communication is synchronized using flags; usually not necessary unless communication in fragment loops is allowed
@@ -666,7 +675,13 @@ object Knowledge {
   var experimental_resolveUnreqFragmentLoops : Boolean = false
 
   // eliminates conditions of the form IR_IfCondition(IR_IntegerConstant(_), _, _)
-  var experimental_emliminateIntConditions : Boolean = false
+  var experimental_eliminateIntConditions : Boolean = false
+
+  // eliminate loops with empty body
+  var experimental_eliminateEmptyLoops : Boolean = true
+
+  // eliminate if stmts with empty bodies
+  var experimental_eliminateEmptyConditions : Boolean = true
 
   var experimental_allowCommInFragLoops : Boolean = false
 
@@ -681,17 +696,18 @@ object Knowledge {
   // minimum width of inner dimension when splitting according to experimental_splitLoopsForAsyncComm; 0 to disable
   var experimental_splitLoops_minInnerWidth : Int = 4
 
-  var experimental_matrixDebugConfig : Boolean = true
+  var experimental_matrixDebugConfig : Boolean = false
+
   // when to resolve inverse call
   var experimental_resolveInverseFunctionCall : String = "Compiletime" // [Compiletime|Runtime] (with new strategies)
-  // save common submatrices in helper variables for compiletime schur inversion
-  var experimental_schurWithHelper : Boolean = false
-  // runtime inversion executes inplace on input matrix
-  var experimental_inplaceInversion : Boolean = false
-  // runtime determinant executes inplace on input matrix
-  var experimental_inplaceDeterminant : Boolean = false
   // resolve local mat sys at runtime or compiletime
   var experimental_resolveLocalMatSys : String = "Runtime"
+  // evaluate performance benefit of runtime execution for each local system/matrix to invert
+  // can override experimental_resolveInverseFunctionCall and experimental_resolveLocalMatSys
+  var experimental_evalMOpRuntimeExe : Boolean = false
+  var experimental_MOpRTExeThreshold : Int = 4
+
+  // local matrix classification related flags
   // classify structure of system matrix for solveLinearSystem statements
   var experimental_classifyLocMat : Boolean = false
   // if shape of system matrix is known for local solve statements
@@ -699,18 +715,23 @@ object Knowledge {
   var experimental_locMatBlocksize : Int = -1
   var experimental_locMatShapeA : String = ""
   var experimental_locMatBlocksizeA : Int = -1
+
+  // flags to set specifics of inversion/local linear system solution
+  // save common submatrices in helper variables for compiletime schur inversion
+  var experimental_schurWithHelper : Boolean = false
+  // runtime inversion executes inplace on input matrix
+  var experimental_inplaceInversion : Boolean = false
+  // runtime determinant executes inplace on input matrix
+  var experimental_inplaceDeterminant : Boolean = false
+  // tries to apply an inversion based on the Schur complement in local solve blocks
+  var experimental_applySchurCompl : Boolean = false
   // check if compiletime inversion might have become unstable at runtime by inspecting the pivot elements
   var experimental_CTPivoting : Boolean = true
   var experimental_checkCTPivots : Boolean = false
   var experimental_CTPivotTolerance : Double = 0.000001
   // optimization for LU-decomposition: elimination of often occuring subexpressions, which are the pivot elements in an LU-decomposition
   var experimental_CTPivotElimination : Boolean = false
-
   var experimental_QRPivot : Boolean = false
-
-
-  // tries to apply an inversion based on the Schur complement in local solve blocks
-  var experimental_applySchurCompl : Boolean = false
 
   // eliminate occurrences of cudaContext - required for PizDaint
   var experimental_eliminateCudaContext : Boolean = false
@@ -838,6 +859,8 @@ object Knowledge {
 
     Constraints.condWarn(cuda_enabled && opt_conventionalCSE && !useDblPrecision, "Double precision should be used if CUDA is enabled and CSE should be applied!")
     Constraints.condEnsureValue(useDblPrecision, true, cuda_enabled && opt_conventionalCSE)
+
+    Constraints.condError(!cuda_memory_transfer_elimination_options.contains(cuda_eliminate_memory_transfers), "Invalid value for \"cuda_eliminate_memory_transfers\". Should be one of: " + cuda_memory_transfer_elimination_options.mkString(",") )
 
     Constraints.condWarn(experimental_splitLoopsForAsyncComm && !comm_onlyAxisNeighbors, s"Using asynchronous communication with comm_onlyAxisNeighbors leads to problems with stencils containing diagonal entries")
 

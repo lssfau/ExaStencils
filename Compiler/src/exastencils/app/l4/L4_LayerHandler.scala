@@ -131,7 +131,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     try {
       ExaRootNode.l4_root = L4_Parser.parse(oldL4Code, l4FileName)
     } catch {
-      case foo : Exception => Logger.error("second parse" + foo.getMessage)
+      case foo : Exception => Logger.error("second parse")
     }
     ExaRootNode.l4_root.flatten()
 

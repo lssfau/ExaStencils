@@ -1,18 +1,18 @@
 generate-docker-image:
-    stage: build
+    stage: .pre
     when: manual
     image: docker:latest
     tags:
         - docker-docker
     script:
         - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-        - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11 || true
-        - docker build --pull . -f  dockerfiles/ubuntu-18.04-openjdk-11.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
-        - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+        - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11 || true
+        - docker build --pull . -f  dockerfiles/ubuntu-20.04-openjdk-11.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+        - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
 
 build:generator:
     stage: build
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -27,11 +27,31 @@ build:generator:
         - sbt compile
         - sbt assembly
 
+test:Matrix_evalMatrixOpRuntimeExecution:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_evalMatrixOpRuntimeExecution ./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.knowledge "./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.exa4" ./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.RESULTS 1 1 Platform/random.platform output
+
 test:Matrix_determineMatrixStructures:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -51,7 +71,7 @@ test:Matrix_matrixFields:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -71,7 +91,7 @@ test:Matrix_2D_FV_SWE:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -91,7 +111,7 @@ test:Matrix_slicing:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -111,7 +131,7 @@ test:Matrix_chaines:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -131,7 +151,7 @@ test:Matrix_cross:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -151,7 +171,7 @@ test:Matrix_dot:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -171,7 +191,7 @@ test:Matrix_trace:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -191,7 +211,7 @@ test:Matrix_transpose:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -211,7 +231,7 @@ test:Matrix_frobeniusNorm:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -231,7 +251,7 @@ test:Matrix_resolvingMatrixAccesses:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -251,7 +271,7 @@ test:Matrix_SolveMatSysRunTime:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -271,7 +291,7 @@ test:Matrix_SolveMatSysCompileTime:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -291,7 +311,7 @@ test:Matrix_resolvingMatrixOperators:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -311,7 +331,7 @@ test:Matrix_LUCompileTime:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -331,7 +351,7 @@ test:Matrix_BlockDiagonalCompileTime:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -351,7 +371,7 @@ test:Matrix_DiagonalCompileTime:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -371,7 +391,7 @@ test:Matrix_SchurCompileTime:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -391,7 +411,7 @@ test:Matrix_SchurWithHelpersCompileTime:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -411,7 +431,7 @@ test:Matrix_smallMatricesCompileTime:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -427,11 +447,31 @@ test:Matrix_smallMatricesCompileTime:
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_smallMatricesCompileTime ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.knowledge "./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.exa4" ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.RESULTS 1 1 Platform/random.platform output
 
+test:Matrix_LURunTime:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_LURunTime ./MatrixClassTests/invert/RunTime/LU/LU.knowledge "./MatrixClassTests/invert/RunTime/LU/LU.exa4" ./MatrixClassTests/invert/RunTime/LU/LU.RESULTS 1 1 Platform/random.platform output
+
 test:Matrix_SchurRunTime:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -451,7 +491,7 @@ test:Matrix_DiagonalRunTime:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -471,7 +511,7 @@ test:Matrix_BlockDiagonalRunTime:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -491,7 +531,7 @@ test:Matrix_SchurLargeMatrixRunTime:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -511,7 +551,7 @@ test:Matrix_SmallMatrixRunTime:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -531,7 +571,7 @@ test:Appl_ExaStokes_2D:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -551,7 +591,7 @@ test:Appl_ExaStokes_3D:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -571,7 +611,7 @@ test:Appl_ExaFluids:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -591,7 +631,7 @@ test:Appl_ExaFluids_PowerLaw:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -611,7 +651,7 @@ test:Appl_ExaFluids_Bingham:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -631,7 +671,7 @@ test:Appl_ExaFluids_Par:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -651,7 +691,7 @@ test:Appl_OptFlow2D:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -671,7 +711,7 @@ test:Appl_OptFlow3D:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -691,7 +731,7 @@ test:CommBasic_PureMPI:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -711,7 +751,7 @@ test:CommBasic_PureOMP:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -731,7 +771,7 @@ test:CommBasic_Hybrid:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -751,7 +791,7 @@ test:CommBasic_Summarize:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -771,7 +811,7 @@ test:CommBasic_Strategy26:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -791,7 +831,7 @@ test:CommBasic_2D:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -811,7 +851,7 @@ test:CommBasic_HybridCell:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -831,7 +871,7 @@ test:CommBasic_Strategy26Cell:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -847,11 +887,31 @@ test:CommBasic_Strategy26Cell:
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_Strategy26Cell CommBasic/Strategy26Cell.knowledge "CommBasic/Strategy26Cell.exa4" CommBasic/Strategy26Cell.results 27 2 Platform/random.platform output
 
+test:CommBasic_complexNumbers:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_complexNumbers CommBasic/ComplexNumbers.knowledge "CommBasic/ComplexNumbers.exa4" CommBasic/ComplexNumbers.results 9 2 Platform/random.platform output
+
 test:Seq_TestF_naive:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -871,7 +931,7 @@ test:Seq_TestF_vectS:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -891,7 +951,7 @@ test:Seq_TestF_vectSAl:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -911,7 +971,7 @@ test:Seq_TestF_vectSAlAl:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -931,7 +991,7 @@ test:Seq_TestF_vect:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -952,7 +1012,7 @@ test:Seq_TestF_vectAl:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -973,7 +1033,7 @@ test:Seq_TestF_vectAlAl:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -994,7 +1054,7 @@ test:Seq_TestF_vect2:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX2
@@ -1015,7 +1075,7 @@ test:Seq_TestF_vect2Al:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX2
@@ -1036,7 +1096,7 @@ test:Seq_TestF_vect2AlAl:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX2
@@ -1057,7 +1117,7 @@ test:Seq_Test_naive:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1078,7 +1138,7 @@ test:Seq_Test_addrPre:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1099,7 +1159,7 @@ test:Seq_Test_poly:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1120,7 +1180,7 @@ test:Seq_Test_unroll:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1141,7 +1201,7 @@ test:Seq_Test_unrolli:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1162,7 +1222,7 @@ test:Seq_Test_vectS:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -1182,7 +1242,7 @@ test:Seq_Test_vectSAl:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -1202,7 +1262,7 @@ test:Seq_Test_vectSAlAl:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -1222,7 +1282,7 @@ test:Seq_Test_allS:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -1242,7 +1302,7 @@ test:Seq_Test_vect:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1263,7 +1323,7 @@ test:Seq_Test_vectAl:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1284,7 +1344,7 @@ test:Seq_Test_vectAlAl:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1305,7 +1365,7 @@ test:Seq_Test_all:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1326,7 +1386,7 @@ test:Seq_Test_vect2:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX2
@@ -1347,7 +1407,7 @@ test:Seq_Test_vect2Al:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX2
@@ -1368,7 +1428,7 @@ test:Seq_Test_vect2AlAl:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX2
@@ -1389,7 +1449,7 @@ test:Seq_Test_all2:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX2
@@ -1410,7 +1470,7 @@ test:Par_TestF_naive:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -1430,7 +1490,7 @@ test:Par_TestF_vectS:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -1450,7 +1510,7 @@ test:Par_TestF_vectSAl:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -1470,7 +1530,7 @@ test:Par_Test_naive:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1491,7 +1551,7 @@ test:Par_Test_addrPre:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1512,7 +1572,7 @@ test:Par_Test_poly:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1533,7 +1593,7 @@ test:Par_Test_unroll:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1554,7 +1614,7 @@ test:Par_Test_unrolli:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1575,7 +1635,7 @@ test:Par_Test_vectS:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -1595,7 +1655,7 @@ test:Par_Test_vectSAl:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -1615,7 +1675,7 @@ test:Par_Test_vectSAlAl:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -1635,7 +1695,7 @@ test:Par_Test_allS:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -1655,7 +1715,7 @@ test:PolyExpl_Jac2Dccd_f0:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1676,7 +1736,7 @@ test:PolyExpl_Jac2Dccd_f2:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1697,7 +1757,7 @@ test:PolyExpl_Jac2Dccd_f4:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1718,7 +1778,7 @@ test:PolyExpl_Jac2Dccd_f6:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1739,7 +1799,7 @@ test:PolyExpl_Jac3Dcc_f0:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1760,7 +1820,7 @@ test:PolyExpl_Jac3Dcc_f1:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1781,7 +1841,7 @@ test:PolyExpl_Jac3Dcc_f3:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1802,7 +1862,7 @@ test:PolyExpl_Jac3Dcc_f5:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1823,7 +1883,7 @@ test:PolyExpl_Jac3Dcc_f6:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1844,7 +1904,7 @@ test:PolyExpl_RBGS2Dcc_f0:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1861,11 +1921,32 @@ test:PolyExpl_RBGS2Dcc_f0:
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f0 PolyExpl/2D_f0.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
+test:PolyExpl_RBGS2Dcc_f1:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+        - AVX
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f1 PolyExpl/2D_f1.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
+
 test:PolyExpl_RBGS2Dcc_f3:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1886,7 +1967,7 @@ test:PolyExpl_RBGS2Dcc_f5:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1907,7 +1988,7 @@ test:PolyExpl_RBGS2Dcc_f6:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1928,7 +2009,7 @@ test:PolyExpl_RBGS3Dvc_f0:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1949,7 +2030,7 @@ test:PolyExpl_RBGS3Dvc_f2:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1970,7 +2051,7 @@ test:PolyExpl_RBGS3Dvc_f4:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -1991,7 +2072,7 @@ test:PolyExpl_RBGS3Dvc_f6:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -2012,7 +2093,7 @@ test:Smoothers_Jac:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2032,7 +2113,7 @@ test:Smoothers_GS:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2052,7 +2133,7 @@ test:Smoothers_RBGS:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2072,7 +2153,7 @@ test:Smoothers_BS:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2092,7 +2173,7 @@ test:BC_2D_Polynomial:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2112,7 +2193,7 @@ test:BC_2D_Trigonometric:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2132,7 +2213,7 @@ test:BC_2D_Periodic:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2152,7 +2233,7 @@ test:BC_3D_Polynomial:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2172,7 +2253,7 @@ test:BC_3D_Trigonometric:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2192,7 +2273,7 @@ test:BC_3D_Periodic:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2212,7 +2293,7 @@ test:BC_Matrix:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2228,11 +2309,31 @@ test:BC_Matrix:
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_Matrix BC/Matrix/BC_Matrix.knowledge "BC/Matrix/BC_Matrix.exa4" BC/Matrix/BC_Matrix.results 1 1 Platform/random.platform output
 
+test:BC_COMPLEX_NUMBERS:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_COMPLEX_NUMBERS BC/ComplexNumbers.knowledge "BC/ComplexNumbers.exa4" BC/ComplexNumbers.results 1 1 Platform/random.platform output
+
 test:Cell_2D_Basic:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2252,7 +2353,7 @@ test:Cell_2D_Neumann:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2272,7 +2373,7 @@ test:Cell_3D_Basic:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2292,7 +2393,7 @@ test:Cell_3D_Neumann:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2312,7 +2413,7 @@ test:SISC_2D_ConstCoeff:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2332,7 +2433,7 @@ test:SISC_2D_VarCoeff:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2352,7 +2453,7 @@ test:SISC_3D_ConstCoeff:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2372,7 +2473,7 @@ test:SISC_3D_VarCoeff:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2392,7 +2493,7 @@ test:Inlining:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2408,11 +2509,66 @@ test:Inlining:
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Inlining Misc/inlining.knowledge "Misc/inlining.exa4" Misc/inlining.results 8 4 Platform/random.platform output
 
+test:MathFunctionEvaluation:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib MathFunctionEvaluation Misc/MathFunctionEvaluation.knowledge "Misc/MathFunctionEvaluation.exa4" Misc/MathFunctionEvaluation.results 1 1 Platform/random.platform output
+
+
+test:Reduction:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Reduction Misc/reduction.knowledge "Misc/reduction.exa4" Misc/reduction.results 2 2 Platform/random.platform output
+
+test:Reduction_OldOpenMP:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Reduction Misc/reduction.knowledge "Misc/reduction.exa4" Misc/reduction.results 2 2 Platform/gcc4.2_omp2.5.platform output
+
 test:FMG_2D_Polynomial:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2432,7 +2588,7 @@ test:FMG_2D_ConstCoeff:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2452,7 +2608,7 @@ test:FMG_3D_Trigonometric:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2472,7 +2628,7 @@ test:FMG_3D_VarCoeff:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2492,7 +2648,7 @@ test:Conv_CSE_SISC_2D_VarCoeff:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2512,7 +2668,7 @@ test:Conv_CSE_SISC_3D_VarCoeff:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2532,7 +2688,7 @@ test:LC_CSE_SISC_2D_VarCoeff:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2552,7 +2708,7 @@ test:LC_CSE_SISC_3D_VarCoeff:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2572,7 +2728,7 @@ test:Both_CSE_SISC_2D_VarCoeff:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2592,7 +2748,7 @@ test:Both_CSE_SISC_3D_VarCoeff:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2612,7 +2768,7 @@ test:Layout_Seq_Test_naive:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -2633,7 +2789,7 @@ test:Layout_Par_Test_all:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
@@ -2654,7 +2810,7 @@ test:Layout_Smoothers_RBGS:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2674,7 +2830,7 @@ test:FAS_2D_Basic:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2694,7 +2850,7 @@ test:2D_FD_Poisson_fromL1:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2714,7 +2870,7 @@ test:2D_FD_Poisson_fromL2:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2734,7 +2890,7 @@ test:2D_FD_Poisson_fromL3:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2754,7 +2910,7 @@ test:2D_FD_Poisson_fromL4:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2774,7 +2930,7 @@ test:2D_FV_Poisson_fromL2:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2794,7 +2950,7 @@ test:2D_FV_Poisson_fromL4:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2814,7 +2970,7 @@ test:2D_FE_Poisson_fromL2:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -2834,7 +2990,7 @@ test:CUDA_SISC_2D_ConstCoeff:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - cuda
@@ -2853,8 +3009,8 @@ test:CUDA_SISC_2D_ConstCoeff:
         - updatedb
         - locate cuda.h
         - locate libcudart
-        - export CPATH=$CPATH:/usr/local/cuda-10.1/targets/x86_64-linux/include
-        - ln -s /usr/local/cuda-10.1/targets/x86_64-linux/lib/libcudart.so /usr/lib
+        - export CPATH=$CPATH:/usr/local/cuda-11.4/targets/x86_64-linux/include
+        - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_SISC_2D_ConstCoeff CUDA/2D_ConstCoeff.knowledge "CUDA/2D_ConstCoeff.exa4" SISC/2D_ConstCoeff.results 1 10 Platform/chimaira-gpu.platform output
 
@@ -2862,7 +3018,7 @@ test:CUDA_SISC_2D_VarCoeff:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - cuda
@@ -2881,8 +3037,8 @@ test:CUDA_SISC_2D_VarCoeff:
         - updatedb
         - locate cuda.h
         - locate libcudart
-        - export CPATH=$CPATH:/usr/local/cuda-10.1/targets/x86_64-linux/include
-        - ln -s /usr/local/cuda-10.1/targets/x86_64-linux/lib/libcudart.so /usr/lib
+        - export CPATH=$CPATH:/usr/local/cuda-11.4/targets/x86_64-linux/include
+        - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_SISC_2D_VarCoeff CUDA/2D_VarCoeff.knowledge "CUDA/2D_VarCoeff.exa4" CUDA/2D_VarCoeff.results 1 10 Platform/chimaira-gpu.platform output
 
@@ -2890,7 +3046,7 @@ test:CUDA_SISC_3D_ConstCoeff:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - cuda
@@ -2909,8 +3065,8 @@ test:CUDA_SISC_3D_ConstCoeff:
         - updatedb
         - locate cuda.h
         - locate libcudart
-        - export CPATH=$CPATH:/usr/local/cuda-10.1/targets/x86_64-linux/include
-        - ln -s /usr/local/cuda-10.1/targets/x86_64-linux/lib/libcudart.so /usr/lib
+        - export CPATH=$CPATH:/usr/local/cuda-11.4/targets/x86_64-linux/include
+        - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_SISC_3D_ConstCoeff CUDA/3D_ConstCoeff.knowledge "CUDA/3D_ConstCoeff.exa4" SISC/3D_ConstCoeff.results 1 10 Platform/chimaira-gpu.platform output
 
@@ -2918,7 +3074,7 @@ test:CUDA_SISC_3D_VarCoeff:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - cuda
@@ -2937,8 +3093,8 @@ test:CUDA_SISC_3D_VarCoeff:
         - updatedb
         - locate cuda.h
         - locate libcudart
-        - export CPATH=$CPATH:/usr/local/cuda-10.1/targets/x86_64-linux/include
-        - ln -s /usr/local/cuda-10.1/targets/x86_64-linux/lib/libcudart.so /usr/lib
+        - export CPATH=$CPATH:/usr/local/cuda-11.4/targets/x86_64-linux/include
+        - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_SISC_3D_VarCoeff CUDA/3D_VarCoeff.knowledge "CUDA/3D_VarCoeff.exa4" SISC/3D_VarCoeff.results 1 10 Platform/chimaira-gpu.platform output
 
@@ -2946,7 +3102,7 @@ test:CUDA_ExaFluids_Bingham:
     stage: test
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-18.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - cuda
@@ -2965,8 +3121,68 @@ test:CUDA_ExaFluids_Bingham:
         - updatedb
         - locate cuda.h
         - locate libcudart
-        - export CPATH=$CPATH:/usr/local/cuda-10.1/targets/x86_64-linux/include
-        - ln -s /usr/local/cuda-10.1/targets/x86_64-linux/lib/libcudart.so /usr/lib
+        - export CPATH=$CPATH:/usr/local/cuda-11.4/targets/x86_64-linux/include
+        - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_ExaFluids_Bingham CUDA/3D_ExaFluids_NN_CUDA.knowledge "CUDA/3D_ExaFluids_NN_CUDA.exa4" CUDA/3D_ExaFluids_NN_CUDA.results 1 10 Platform/chimaira-gpu.platform output
+
+test:COMPLEX_NUMBERS_BasicFunc:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib COMPLEX_NUMBERS_BasicFunc ComplexNumbers/BasicFunc/BasicFunc.knowledge "ComplexNumbers/BasicFunc/BasicFunc.exa3" ComplexNumbers/BasicFunc/BasicFunc.results 1 1 Platform/random.platform output
+
+test:COMPLEX_NUMBERS_Helmholtz:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib COMPLEX_NUMBERS_Helmholtz ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.knowledge "ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.exa4" ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.results 1 1 Platform/random.platform output
+
+test:COMPLEX_NUMBERS_Helmholtz_MPI:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib COMPLEX_NUMBERS_Helmholtz_MPI ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.knowledge "ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.exa4" ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.results 4 2 Platform/random.platform output
 

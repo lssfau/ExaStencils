@@ -178,6 +178,7 @@ object Settings {
   var pathsLib : ListBuffer[String] = ListBuffer()
 
   var additionalIncludes : ListBuffer[String] = ListBuffer()
+  var additionalNamespaces : ListBuffer[String] = ListBuffer()
   var additionalFiles : ListBuffer[String] = ListBuffer()
   var additionalLibs : ListBuffer[String] = ListBuffer()
 

@@ -62,7 +62,7 @@ object L4_PrepareEquationAccesses extends DefaultStrategy("Prepare accesses to e
 
       if (access.slot.isDefined) Logger.warn(s"Discarding meaningless slot access on ${ access.name }")
       if (access.dirAccess.isDefined) Logger.warn(s"Discarding meaningless direction access on ${ access.name }")
-      if (access.arrayIndex.isDefined) Logger.warn(s"Discarding meaningless array access on ${ access.name }")
+      if (access.matIndex.isDefined) Logger.warn(s"Discarding meaningless mat access on ${ access.name }")
 
       L4_FutureEquationAccess(access.name, lvl, access.offset)
   })

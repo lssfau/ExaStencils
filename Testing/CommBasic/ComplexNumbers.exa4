@@ -1,0 +1,276 @@
+// domain declarations
+
+// field layout declarations
+
+// field declarations
+
+// field combinations
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// equations declarations
+
+Domain global< [0.0, 0.0] to [1.0, 1.0] >
+
+Layout NoComm< Complex<Real>, Node >@all {
+	ghostLayers = [0, 0]
+	duplicateLayers = [1, 1]
+}
+
+Layout CommPartTempBlockable< Complex<Real>, Node >@all {
+	ghostLayers = [0, 0]
+	duplicateLayers = [1, 1]
+}
+
+Layout BasicComm< Complex<Real>, Node >@all {
+	ghostLayers = [1, 1] with communication
+	duplicateLayers = [1, 1] with communication
+}
+
+Layout CommFullTempBlockable< Complex<Real>, Node >@all {
+	ghostLayers = [1, 1] with communication
+	duplicateLayers = [1, 1] with communication
+}
+
+Field Solution< global, BasicComm, 0.0 >[2]@(coarsest to 0)
+
+Field Solution< global, CommFullTempBlockable, 0.0 >[2]@(1 to (finest - 1))
+
+Field Solution< global, CommFullTempBlockable, ( ( vf_boundaryCoord_x@current * vf_boundaryCoord_x@current ) - ( vf_boundaryCoord_y@current * vf_boundaryCoord_y@current ) ) >[2]@finest
+
+Field Residual< global, BasicComm, (0.0 + 0.0j) >@all
+
+Field RHS< global, NoComm, None >@(coarsest to 0)
+
+Field RHS< global, CommPartTempBlockable, None >@(1 to finest)
+
+Field VecP< global, BasicComm, (0.0 + 0.0j) >@coarsest
+
+Field VecGradP< global, NoComm, None >@coarsest
+
+Stencil Laplace@all{
+	[0, 0] => 4.0
+	[1, 0] => -1.0
+	[-1, 0] => -1.0
+	[0, 1] => -1.0
+	[0, -1] => -1.0
+}
+
+Stencil CorrectionStencil from default prolongation on Node with "linear"
+
+Stencil RestrictionStencil from default restriction on Node with "linear"
+
+
+
+Function VCycle@coarsest {
+	VCycle_0@current (  )
+}
+
+Function VCycle_0@coarsest {
+	UpResidual@current (  )
+	communicate Residual@current
+	Var res : Complex<Real> = NormResidual_0@current (  )
+	Var initialRes : Complex<Real> = res
+	loop over VecP@current {
+		VecP@current = Residual@current
+	}
+	Var cgSteps : Integer
+	repeat 512 times count cgSteps {
+		communicate VecP@current
+		loop over VecP@current {
+			VecGradP@current = ( Laplace@current * VecP@current )
+		}
+		Var alphaDenom : Complex<Real> = (0.0 + 0.0j)
+		loop over VecP@current where ( ( i0 > 0 ) && ( i1 > 0 ) ) with reduction ( + : alphaDenom ) {
+			alphaDenom += ( VecP@current * VecGradP@current )
+		}
+		Var alpha : Complex<Real> = ( ( res * res ) / alphaDenom )
+		loop over Solution@current {
+			Solution<active>@current += ( alpha * VecP@current )
+			Residual@current -= ( alpha * VecGradP@current )
+		}
+		Var nextRes : Complex<Real> = NormResidual_0@current (  )
+		if ( ( abs(nextRes) <= ( 0.001 * abs(initialRes) ) ) ) {
+			return
+		}
+		Var beta : Complex<Real> = ( ( nextRes * nextRes ) / ( res * res ) )
+		loop over VecP@current {
+			VecP@current = ( Residual@current + ( beta * VecP@current ) )
+		}
+		res = nextRes
+	}
+	print ( "Maximum number of cgs iterations (", 512, ") was exceeded" )
+}
+
+Function VCycle@((coarsest + 1) to finest) {
+	repeat 3 times {
+		Smoother@current (  )
+	}
+	UpResidual@current (  )
+	Restriction@current (  )
+	SetSolution@coarser ( (0.0 + 0.0j) )
+	VCycle@coarser (  )
+	Correction@current (  )
+	repeat 3 times {
+		Smoother@current (  )
+	}
+}
+
+Function Smoother@((coarsest + 1) to finest) {
+	communicate ghost of Solution<active>@current
+	loop over Solution@current {
+		Solution<next>@current = ( Solution<active>@current + ( ( ( 1.0 / diag ( Laplace@current ) ) * 0.8 ) * ( RHS@current - ( Laplace@current * Solution<active>@current ) ) ) )
+	}
+	advance Solution@current
+}
+
+Function UpResidual@all {
+	communicate Solution<active>@current
+	loop over Residual@current {
+		Residual@current = ( RHS@current - ( Laplace@current * Solution<active>@current ) )
+	}
+}
+
+Function NormResidual_0@(finest, coarsest) : Complex<Real> {
+	Var res : Complex<Real> = (0.0 + 0.0j)
+	loop over Residual@current where ( ( i0 > 0 ) && ( i1 > 0 ) ) with reduction ( + : res ) {
+		res += ( Residual@current * Residual@current )
+	}
+	return sqrt ( res )
+}
+
+Function Restriction@((coarsest + 1) to finest) {
+	communicate ghost of Residual@current
+	loop over RHS@coarser {
+		RHS@coarser = ( ( 4.0 * RestrictionStencil@current ) * Residual@current )
+	}
+}
+
+Function Correction@((coarsest + 1) to finest) {
+	communicate ghost of Solution<active>@coarser
+	loop over Solution@current {
+		Solution<active>@current += ( CorrectionStencil@current * Solution<active>@coarser )
+	}
+}
+
+Function SetSolution@all ( value : Complex<Real> ) {
+	loop over Solution@current {
+		Solution<active>@current = value
+	}
+}
+
+Function InitSolution {
+	loop over Solution@finest {
+		Solution<active>@finest = (0.0 + 0.0j)
+	}
+}
+
+Function InitRHS@finest {
+	loop over RHS@current {
+		RHS@current = (0.0 + 0.0j)
+	}
+}
+
+Function Solve {
+	UpResidual@finest (  )
+	Var resStart_0 : Complex<Real> = NormResidual_0@finest (  )
+	Var res_0 : Complex<Real> = resStart_0
+	Var resOld_0 : Complex<Real> = (0.0 + 0.0j)
+	if ( ( abs(resStart_0) <= 1.0E-12 ) ) {
+		print ( "EFFECTIVELY ZERO" )
+	} else {
+		if ( ( abs(resStart_0) <= 1.0E-11 ) ) {
+			native ( "std::streamsize oldPrec = std::cout.precision()" )
+			native ( "std::cout.precision(1)" )
+			print ( resStart_0 )
+			native ( "std::cout.precision(oldPrec)" )
+		} else {
+			if ( ( abs(resStart_0) <= 9.999999999999999E-11 ) ) {
+				native ( "std::streamsize oldPrec = std::cout.precision()" )
+				native ( "std::cout.precision(2)" )
+				print ( resStart_0 )
+				native ( "std::cout.precision(oldPrec)" )
+			} else {
+				if ( ( abs(resStart_0) <= 9.999999999999999E-10 ) ) {
+					native ( "std::streamsize oldPrec = std::cout.precision()" )
+					native ( "std::cout.precision(3)" )
+					print ( resStart_0 )
+					native ( "std::cout.precision(oldPrec)" )
+				} else {
+					native ( "std::streamsize oldPrec = std::cout.precision()" )
+					native ( "std::cout.precision(4)" )
+					print ( resStart_0 )
+					native ( "std::cout.precision(oldPrec)" )
+				}
+			}
+		}
+	}
+	Var numIt : Integer = 0
+	repeat until ( ( abs(res_0) < ( 1.0E-5 * abs(resStart_0) ) ) || ( numIt >= 100 ) ) {
+		numIt += 1
+		VCycle@finest (  )
+		UpResidual@finest (  )
+		resOld_0 = res_0
+		res_0 = NormResidual_0@finest (  )
+		if ( ( abs(res_0) <= 1.0E-12 ) ) {
+			print ( "EFFECTIVELY ZERO" )
+		} else {
+			if ( ( abs(res_0) <= 1.0E-11 ) ) {
+				native ( "std::streamsize oldPrec = std::cout.precision()" )
+				native ( "std::cout.precision(1)" )
+				print ( res_0 )
+				native ( "std::cout.precision(oldPrec)" )
+			} else {
+				if ( ( abs(res_0) <= 9.999999999999999E-11 ) ) {
+					native ( "std::streamsize oldPrec = std::cout.precision()" )
+					native ( "std::cout.precision(2)" )
+					print ( res_0 )
+					native ( "std::cout.precision(oldPrec)" )
+				} else {
+					if ( ( abs(res_0) <= 9.999999999999999E-10 ) ) {
+						native ( "std::streamsize oldPrec = std::cout.precision()" )
+						native ( "std::cout.precision(3)" )
+						print ( res_0 )
+						native ( "std::cout.precision(oldPrec)" )
+					} else {
+						native ( "std::streamsize oldPrec = std::cout.precision()" )
+						native ( "std::cout.precision(4)" )
+						print ( res_0 )
+						native ( "std::cout.precision(oldPrec)" )
+					}
+				}
+			}
+		}
+	}
+	print ( numIt )
+}
+
+Function Application {
+	initGlobals (  )
+	initDomain (  )
+	initFieldsWithZero (  )
+	InitRHS@finest (  )
+	InitSolution (  )
+	apply bc to Solution<0>@0
+	apply bc to Solution<1>@0
+	apply bc to Solution<0>@1
+	apply bc to Solution<1>@1
+	apply bc to Solution<0>@2
+	apply bc to Solution<1>@2
+	apply bc to Solution<0>@3
+	apply bc to Solution<1>@3
+	apply bc to Solution<0>@4
+	apply bc to Solution<1>@4
+	apply bc to Solution<0>@5
+	apply bc to Solution<1>@5
+	apply bc to Solution<0>@6
+	apply bc to Solution<1>@6
+	apply bc to VecP@coarsest
+	Solve (  )
+	destroyGlobals (  )
+}
+
