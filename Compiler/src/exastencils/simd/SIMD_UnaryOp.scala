@@ -50,7 +50,6 @@ case class SIMD_MoveMask(var mask : IR_Expression) extends SIMD_Expression {
       case "AVX" | "AVX2" => out << "_mm256_movemask_p" << prec << "(" << mask << ")"
       case "AVX512"       => out << "_mm512_mask2int(" << mask << ")"
       case "NEON"         =>
-        // TODO: test
         val prec = if (Knowledge.useDblPrecision) 64 else 32
 
         // shift such that only sign bits remain, bits that fall off a vector element boundary are discarded

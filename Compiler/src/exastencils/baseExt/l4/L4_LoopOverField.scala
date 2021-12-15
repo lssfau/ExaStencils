@@ -46,18 +46,19 @@ case class L4_RegionSpecification(var region : String, var dir : L4_ConstIndex, 
 
 object L4_LoopOverField {
   def apply(field : L4_Access, body : L4_Statement*) =
-    new L4_LoopOverField(field, None, false, None, None, None, None, body.to[ListBuffer], None, ListBuffer(), ListBuffer())
+    new L4_LoopOverField(field, None, false, false, None, None, None, None, body.to[ListBuffer], None, ListBuffer(), ListBuffer())
 
   def apply(field : L4_Access, body : ListBuffer[L4_Statement]) =
-    new L4_LoopOverField(field, None, false, None, None, None, None, body, None, ListBuffer(), ListBuffer())
+    new L4_LoopOverField(field, None, false, false, None, None, None, None, body, None, ListBuffer(), ListBuffer())
 
   def apply(field : L4_Access, modifiers : List[(String, Any)], body : List[L4_Statement]) = {
-    val loop = new L4_LoopOverField(field, None, false, None, None, None, None, body.to[ListBuffer], None, ListBuffer(), ListBuffer())
+    val loop = new L4_LoopOverField(field, None, false, false, None, None, None, None, body.to[ListBuffer], None, ListBuffer(), ListBuffer())
 
     // apply loop modifiers
     modifiers.foreach { case (modName, modVal) =>
       modName match {
         case "only"         => loop.region = Some(modVal.asInstanceOf[L4_RegionSpecification])
+        case "novect"       => loop.noVect = true
         case "sequentially" => loop.seq = true
         case "where"        => loop.condition = Some(modVal.asInstanceOf[L4_Expression])
         case "starting"     => loop.startOffset = Some(modVal.asInstanceOf[L4_ExpressionIndex])
@@ -72,10 +73,13 @@ object L4_LoopOverField {
     loop
   }
 
-  def apply(field : L4_Access, region : Option[L4_RegionSpecification], seq : Boolean, condition : Option[L4_Expression], startOffset : Option[L4_ExpressionIndex], endOffset : Option[L4_ExpressionIndex],
-      increment : Option[L4_ExpressionIndex], statements : List[L4_Statement], reduction : Option[L4_Reduction], preComms : List[L4_Communicate], postComms : List[L4_Communicate]) =
-    new L4_LoopOverField(field, region, seq, condition, startOffset, endOffset,
+  def apply(field : L4_Access, region : Option[L4_RegionSpecification], seq : Boolean, noVect : Boolean,
+      condition : Option[L4_Expression], startOffset : Option[L4_ExpressionIndex], endOffset : Option[L4_ExpressionIndex],
+      increment : Option[L4_ExpressionIndex], statements : List[L4_Statement], reduction : Option[L4_Reduction], preComms : List[L4_Communicate], postComms : List[L4_Communicate]) = {
+
+    new L4_LoopOverField(field, region, seq, noVect, condition, startOffset, endOffset,
       increment, statements.to[ListBuffer], reduction, preComms.to[ListBuffer], postComms.to[ListBuffer])
+  }
 }
 
 // TODO: refactor -> less options/knowledge in loop nodes
@@ -83,6 +87,7 @@ case class L4_LoopOverField(
     var field : L4_Access,
     var region : Option[L4_RegionSpecification],
     var seq : Boolean, // FIXME: seq HACK
+    var noVect : Boolean,
     var condition : Option[L4_Expression],
     var startOffset : Option[L4_ExpressionIndex],
     var endOffset : Option[L4_ExpressionIndex],
@@ -96,6 +101,7 @@ case class L4_LoopOverField(
     out << "loop over " << field << ' '
     if (region.isDefined) out << "only " << region.get << ' '
     if (seq) out << "sequentially "
+    if (noVect) out << "novect "
     if (condition.isDefined) out << "where " << condition.get << ' '
     if (startOffset.isDefined) out << "starting " << startOffset.get << ' '
     if (endOffset.isDefined) out << "ending " << endOffset.get << ' '
@@ -133,6 +139,7 @@ case class L4_LoopOverField(
     // TODO: introduce L4_ParallelizationInfo
     val parallelization = IR_ParallelizationInfo()
     parallelization.potentiallyParallel = !seq
+    parallelization.noVect = noVect
     parallelization.reduction = reduction.map(_.progress)
 
     val loop = IR_LoopOverPoints(resolvedField,

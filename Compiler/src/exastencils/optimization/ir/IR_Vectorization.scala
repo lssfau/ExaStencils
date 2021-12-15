@@ -65,7 +65,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     node match {
       case loop : IR_ForLoop =>
         loop.parallelization.isInnermost &&
-          (loop.parallelization.potentiallyParallel || loop.parallelization.isVectorizable) &&
+          (!loop.parallelization.noVect && (loop.parallelization.potentiallyParallel || loop.parallelization.isVectorizable)) &&
           !loop.hasAnnotation(IR_Vectorization.VECT_ANNOT)
       case _                 =>
         false
