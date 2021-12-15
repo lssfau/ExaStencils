@@ -572,20 +572,21 @@ case class CUDA_Kernel(var identifier : String,
     if (reduction.isDefined) {
       def bufSize = requiredThreadsPerDim.product
       def bufAccess = CUDA_ReductionDeviceData(bufSize)
-      body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.datatype)
+      def target = reduction.get.target
+      def actualDt = CUDA_Util.getReductionDatatype(target)
+      body += CUDA_Memset(bufAccess, 0, bufSize, actualDt)
       body += CUDA_FunctionCall(getKernelFctName, callArgs, numBlocksPerDim, numThreadsPerBlock)
-      body += IR_Return(Some(IR_FunctionCall(s"DefaultReductionKernel${ IR_BinaryOperators.opAsIdent(reduction.get.op) }_wrapper",
+      body += IR_Return(Some(IR_FunctionCall(CUDA_KernelFunctions.get.getRedKernelWrapperName(reduction.get.op, actualDt),
         ListBuffer[IR_Expression](bufAccess, bufSize))))
 
-      CUDA_KernelFunctions.get.requiredRedKernels += reduction.get.op // request reduction kernel and wrapper
+      CUDA_KernelFunctions.get.requiredRedKernels += Tuple2(reduction.get.op, target) // request reduction kernel and wrapper
     } else {
       body += CUDA_FunctionCall(getKernelFctName, callArgs, numBlocksPerDim, numThreadsPerBlock)
     }
 
     val returnDt = if (reduction.isDefined) {
-      val dt = reduction.get.target.datatype
-      dt match {
-        case scalar : IR_ScalarDatatype => scalar
+      CUDA_Util.getReductionDatatype(reduction.get.target) match {
+        case scalar : IR_ScalarDatatype          => scalar
         case hodt : IR_HigherDimensionalDatatype => IR_PointerDatatype(hodt.resolveBaseDatatype)
       }
     } else {
