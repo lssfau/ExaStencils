@@ -21,6 +21,7 @@ package exastencils.parallelization.api.cuda
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.config.Knowledge
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
@@ -93,6 +94,20 @@ object CUDA_Util {
     }
 
     (loopVariables, lowerBounds, upperBounds, stepSize)
+  }
+
+  def getReductionDatatype(target : IR_Expression) = target.datatype match {
+    case mat : IR_MatrixDatatype =>
+      target match {
+        case _ : IR_VariableAccess =>
+          // whole matrix
+          mat
+        case _ : IR_ArrayAccess =>
+          // matrix element
+          mat.resolveBaseDatatype
+      }
+    case dt : IR_ScalarDatatype =>
+      dt
   }
 
   def dimToMember(i : Int) : String = {
