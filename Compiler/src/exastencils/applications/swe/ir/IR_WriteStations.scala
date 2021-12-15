@@ -31,8 +31,13 @@ import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.logger.Logger
 import exastencils.util.ir.IR_Print
 
-case class IR_WriteStations(var fctName : String, var arguments : ListBuffer[IR_Expression]) extends IR_FuturePlainFunction {
-  override var name = fctName
+object IR_WriteStations {
+  val basename = "writeStations"
+  def getNewName(id : Int) = basename + id
+}
+
+case class IR_WriteStations(var resolveId : Int, var arguments : ListBuffer[IR_Expression]) extends IR_FuturePlainFunction {
+  override var name = IR_WriteStations.getNewName(resolveId)
   override def prettyprint_decl() = prettyprint
 
   def isInTriangle(xEval : IR_Expression, yEval : IR_Expression,

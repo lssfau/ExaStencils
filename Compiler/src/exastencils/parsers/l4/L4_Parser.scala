@@ -290,7 +290,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| precomm ^^ (p => ("precomm", p))
       ||| postcomm ^^ (p => ("postcomm", p))
     )
-  lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => L4_Reduction(op, s) })
+  lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> genericAccess <~ ")") ^^ { case op ~ acc => L4_Reduction(op, acc) })
   lazy val regionSpecification = locationize((("ghost" ||| "dup" ||| "inner") ~ constIndex ~ ("on" <~ "boundary").?) ^^ { case region ~ dir ~ bc => L4_RegionSpecification(region, dir, bc.isDefined) })
 
   lazy val assignment = locationize((genericAccess) ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })

@@ -34,6 +34,6 @@ case class MPI_Gather(var sendbuf : IR_Expression, var recvbuf : IR_Expression, 
     (out << "MPI_Gather("
       << sendbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", "
       << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", "
-      << 0 << ", mpiCommunicator);")
+      << 0 << ", " << MPI_IV_MpiComm << ");")
   }
 }

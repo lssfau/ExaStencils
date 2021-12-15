@@ -18,14 +18,17 @@
 
 package exastencils.performance.ir
 
+import scala.collection.mutable
 import scala.collection.mutable._
 
 import java.io.PrintWriter
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_MatNodes._
 import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.core._
+import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
@@ -131,6 +134,7 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
     }
 
     def dataPerIteration(fieldAccesses : HashMap[String, IR_Datatype], offsets : HashMap[String, ListBuffer[Long]]) : Int = {
+      // TODO: support distinct datatypes
       if (fieldAccesses.values.map(_.typicalByteSize).toList.distinct.length > 1)
         Logger.error("Unsupported: Not the same Datatype")
 
@@ -231,6 +235,10 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           val estimatedTimeOps_host = cyclesPerIt * iterationsPerThread / PlatformUtils.cpu_opsPerThread
           val estimatedTimeOps_device = cyclesPerIt * iterationsPerMpi / PlatformUtils.gpu_opsPerMpi(maxIterations)
 
+          //stmts += IR_Comment(s"Estimated adds: ${ EvaluateForOps.numAdd }")
+          //stmts += IR_Comment(s"Estimated muls: ${ EvaluateForOps.numMul }")
+          //stmts += IR_Comment(s"Estimated divs: ${ EvaluateForOps.numDiv }")
+
           stmts += IR_Comment(s"Host time for computational ops: ${ estimatedTimeOps_host * 1000.0 } ms")
           stmts += IR_Comment(s"Device time for computational ops: ${ estimatedTimeOps_device * 1000.0 } ms")
 
@@ -294,41 +302,63 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
     var multiDimOffsets = HashMap[String, ListBuffer[IR_ConstIndex]]()
     var inWriteOp = true
 
+    // cache access pattern for consecutive vector/matrix field accesses
+    var accessedMatrixEntries = HashMap[String, mutable.BitSet]()
+    def getMatrixCache(identifier : String) = accessedMatrixEntries.getOrElse(identifier, mutable.BitSet.empty)
+    def putMatrixCache(identifier : String, bs : mutable.BitSet) = accessedMatrixEntries.put(identifier, bs)
+    def updateOrPutAccessedDatatype(identifier : String, dt : IR_Datatype) =
+      if (fieldAccesses.contains(identifier)) fieldAccesses.update(identifier, dt) else fieldAccesses.put(identifier, dt)
+
+    def evalExpr(expr : IR_Expression) : Int = IR_SimplifyExpression.evalIntegral(expr).toInt
+
+    def updateForMatrixEntry(field : IR_Field, accessIndex : IR_ExpressionIndex, identifier : String, linearizedMatIndex : Int, baseDt : IR_Datatype) : Unit = {
+      // cache accessed entry
+      val bs = getMatrixCache(identifier)
+      bs += linearizedMatIndex
+      putMatrixCache(identifier, bs)
+
+      // update or put access with matrix dt
+      updateOrPutAccessedDatatype(identifier, IR_ArrayDatatype(baseDt, bs.size))
+      mapIndexToOffsets(field, identifier, Duplicate(accessIndex), accessIndex.length)
+    }
+
+    def updateForMatrixEntries(field : IR_Field, accessIndex : IR_ExpressionIndex, identifier : String, startRow : Int, startCol : Int, endRow : Int, endCol : Int, baseDt : IR_Datatype) : Unit = {
+      // cache accessed entries
+      val bs = getMatrixCache(identifier)
+      val numCols = field.gridDatatype.asInstanceOf[IR_MatrixDatatype].sizeN
+      for (row <- startRow until endRow) {
+        for (col <- startCol until endCol) {
+          bs += row * numCols + col
+        }
+      }
+      putMatrixCache(identifier, bs)
+
+      // update or put access with matrix dt
+      updateOrPutAccessedDatatype(identifier, IR_ArrayDatatype(baseDt, bs.size))
+      mapIndexToOffsets(field, identifier, Duplicate(accessIndex), accessIndex.length)
+    }
+
     override def reset() = {
       fieldAccesses.clear
       offsets.clear
       multiDimOffsets.clear
+      accessedMatrixEntries.clear()
 
       super.reset()
     }
 
-    def mapFieldAccess(access : IR_MultiDimFieldAccess) = {
-      val field = access.field
-      var identifier = field.codeName
-
-      identifier = (if (inWriteOp) "write_" else "read_") + identifier
-
-      if (field.numSlots > 1) {
-        access.slot match {
-          case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
-          case IR_IntegerConstant(slot) => identifier += s"_s$slot"
-          case _                        => identifier += s"_s${ access.slot.prettyprint }"
-        }
-      }
-
-      fieldAccesses.put(identifier, field.gridDatatype) // TODO: optimize for array fields / HODT
-
-      // evaluate and store offset
-      val offsetIndex = Duplicate(access.index)
-      IR_ReplaceVariableAccess.replace = (0 until access.index.length).map(d => (IR_LoopOverDimensions.defItForDim(d).name, IR_IntegerConstant(0))).toMap
+    def mapIndexToOffsets(field : IR_Field, identifier : String, offsetIndex : IR_ExpressionIndex, len : Int) = {
+      // replace loop variables with 0
+      IR_ReplaceVariableAccess.replace = (0 until len).map(d => (IR_LoopOverDimensions.defItForDim(d).name, IR_IntegerConstant(0))).toMap
       IR_ReplaceVariableAccess.applyStandalone(offsetIndex)
 
+      // evaluate offsets and store
       var offset = 0L
       var mdOffset = IR_ConstIndex()
       try {
         offset = IR_SimplifyExpression.evalIntegral(
           IR_Linearization.linearizeIndex(offsetIndex,
-            IR_ExpressionIndex((0 until access.index.length).map(field.layout(_).total).toArray)))
+            IR_ExpressionIndex((0 until len).map(field.layout(_).total).toArray)))
         mdOffset = offsetIndex.toConstIndex
       } catch {
         case _ : EvaluationException => Logger.warn("Could not evaluate offset for " + offsetIndex.prettyprint())
@@ -336,6 +366,164 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
 
       offsets.put(identifier, offsets.getOrElse(identifier, ListBuffer()) :+ offset)
       multiDimOffsets.put(identifier, multiDimOffsets.getOrElse(identifier, ListBuffer()) :+ mdOffset)
+    }
+
+    def getIdentifier(field : IR_Field, slot : IR_Expression, isWrite : Boolean) = {
+      var identifier = field.codeName
+
+      identifier = (if (isWrite) "write_" else "read_") + identifier
+
+      if (field.numSlots > 1) {
+        slot match {
+          case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
+          case IR_IntegerConstant(slot) => identifier += s"_s$slot"
+          case _                        => identifier += s"_s${ slot.prettyprint }"
+        }
+      }
+
+      identifier
+    }
+
+    def mapFieldAccess(access : IR_MultiDimFieldAccess) = {
+      val field = access.field
+      val identifier = getIdentifier(field, access.slot, inWriteOp)
+
+      // honor component accesses for HODT
+      access match {
+        case fAcc : IR_FieldAccess       =>
+          if (fAcc.matIndex.isDefined) {
+            // component access
+            val matIdx = fAcc.matIndex.get
+            val baseDt = field.resolveBaseDatatype
+
+            // get number of elements accessed with matIndex
+            def getActualRange(left : Option[IR_Expression], defaultLeft : Int, right : Option[IR_Expression], defaultRight : Int) : (IR_Expression, IR_Expression) =
+              (left.getOrElse(IR_IntegerConstant(defaultLeft)), right.getOrElse(IR_IntegerConstant(defaultRight)))
+
+            def singleElementRange = (IR_IntegerConstant(0), IR_IntegerConstant(0))
+
+            val (startRow, endRow) = matIdx.y match {
+              case _ @ IR_RangeIndex(range) if fAcc.field.gridDatatype.isInstanceOf[IR_MatrixDatatype] =>
+                getActualRange(range(0).begin, 0, range(0).end, fAcc.field.gridDatatype.asInstanceOf[IR_MatrixDatatype].sizeM)
+              case _                                                                                   =>
+                singleElementRange
+            }
+
+            val (startCol, endCol) = if (matIdx.x.isDefined) {
+              matIdx.x.get match {
+                case _ @ IR_RangeIndex(range) if fAcc.field.gridDatatype.isInstanceOf[IR_MatrixDatatype] =>
+                  getActualRange(range(0).begin, 0, range(0).end, fAcc.field.gridDatatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+                case _                                                                                   =>
+                  singleElementRange
+              }
+            } else {
+              singleElementRange
+            }
+
+            updateForMatrixEntries(field, access.index, identifier,
+              evalExpr(startRow), evalExpr(startCol), evalExpr(endRow), evalExpr(endCol), baseDt)
+          } else {
+            // no matIndex set -> put "whole" grid datatype
+            updateOrPutAccessedDatatype(identifier, field.gridDatatype)
+            mapIndexToOffsets(field, identifier, Duplicate(access.index), access.index.length)
+          }
+        case fAcc : IR_DirectFieldAccess =>
+          // actual dt determined in IR_DirectFieldAccess depending on length of access index
+          // TODO: is caching applicable here? In 2D indices for matrices have form [i0, i1, i2, i3]
+          updateOrPutAccessedDatatype(identifier, fAcc.datatype)
+          mapIndexToOffsets(field, identifier, Duplicate(access.index), access.index.length)
+        case acc : IR_Access             =>
+          Logger.error("EvaluateFieldAccess: Match error. Did not expect access: " + acc.prettyprint())
+      }
+    }
+
+    // matIndex not set for matrix functions -> need separate handling
+    def mapCompiletimeMatrixFctExpr(matFunc : IR_Expression) {
+      matFunc match {
+        // getElement
+        case IR_GetElement(ListBuffer(inMat : IR_MultiDimFieldAccess, idxy, idxx)) =>
+          val field = inMat.field
+          val identifier = getIdentifier(field, inMat.slot, isWrite = inWriteOp)
+
+          if (IR_CompiletimeMatOps.isConst(idxy) && IR_CompiletimeMatOps.isConst(idxx)) {
+            // lookup cache for entry and update if necessary
+            val matDims = inMat.field.gridDatatype.asInstanceOf[IR_MatrixDatatype]
+            val idx = List(idxx, idxy).map(IR_SimplifyExpression.evalIntegral(_).toInt)
+            val linearizedMatIdx = idx(0) + matDims.sizeN * idx(1)
+
+            updateForMatrixEntry(field, inMat.index, identifier, linearizedMatIdx, field.resolveBaseDatatype)
+          } else {
+            Logger.warn("Cannot determine field accesses for getElement with runtime values.")
+          }
+        // getSlice
+        case IR_GetSliceCT(inMat : IR_MultiDimFieldAccess, ListBuffer(offsetRows : Int, offsetCols : Int, nrows : Int, ncols : Int)) =>
+          val field = inMat.field
+          val identifier = getIdentifier(field, inMat.slot, isWrite = inWriteOp)
+
+          updateForMatrixEntries(field, inMat.index, identifier, offsetRows, offsetCols, offsetRows + nrows, offsetCols + ncols, field.resolveBaseDatatype)
+        case m                                                                                                                       =>
+          Logger.warn("Unsupported matrix function for performance estimation: " + m.getClass.getName)
+      }
+    }
+
+    def mapCompiletimeMatrixFctStmts(matFunc : IR_ResolvableMNode) {
+      matFunc match {
+        // setElement
+        case IR_SetElement(ListBuffer(lhs : IR_MultiDimFieldAccess, idxy, idxx, rhs)) =>
+
+          val lhsField = lhs.field
+          val lhsWriteIdentifier = getIdentifier(lhsField, lhs.slot, isWrite = true)
+          val lhsReadIdentifier = getIdentifier(lhsField, lhs.slot, isWrite = false)
+          val dt = lhsField.resolveBaseDatatype
+
+          if (IR_CompiletimeMatOps.isConst(idxy) && IR_CompiletimeMatOps.isConst(idxx)) {
+            val matDims = lhs.field.gridDatatype.asInstanceOf[IR_MatrixDatatype]
+            val idx = List(idxx, idxy).map(IR_SimplifyExpression.evalIntegral(_).toInt)
+            val linearizedMatIdx = idx(0) + matDims.sizeN * idx(1)
+
+            // write and read allocate for lhs
+            updateForMatrixEntry(lhsField, lhs.index, lhsWriteIdentifier, linearizedMatIdx, dt)
+            updateForMatrixEntry(lhsField, lhs.index, lhsReadIdentifier, linearizedMatIdx, dt)
+
+            // read rhs if not const
+            if (!IR_CompiletimeMatOps.isConst(rhs)) {
+              inWriteOp = false
+              EvaluateFieldAccess.applyStandalone(IR_ExpressionStatement(rhs))
+            }
+          } else {
+            Logger.warn("Cannot determine field accesses for setElement with runtime values.")
+          }
+
+        // setSlice
+        case IR_SetSlice(ListBuffer(matrix : IR_MultiDimFieldAccess, rowOffs, colOffs, nrows, ncols, newVal)) =>
+          if (IR_CompiletimeMatOps.isConst(nrows) && IR_CompiletimeMatOps.isConst(rowOffs) && IR_CompiletimeMatOps.isConst(ncols) && IR_CompiletimeMatOps.isConst(colOffs)) {
+
+            val field = matrix.field
+            val readIdentifier = getIdentifier(field, matrix.slot, isWrite = false)
+            val writeIdentifier = getIdentifier(field, matrix.slot, isWrite = true)
+            val (startRow, endRow) = (evalExpr(rowOffs), evalExpr(rowOffs + nrows))
+            val (startCol, endCol) = (evalExpr(colOffs), evalExpr(colOffs + ncols))
+
+            // honor read-allocate
+            updateForMatrixEntries(field, matrix.index, writeIdentifier, startRow, startCol, endRow, endCol, field.resolveBaseDatatype)
+            updateForMatrixEntries(field, matrix.index, readIdentifier, startRow, startCol, endRow, endCol, field.resolveBaseDatatype)
+
+            // read newval if not constant
+            newVal match {
+              case matExpr : IR_MatrixExpression if !IR_CompiletimeMatOps.isConstMatrix(matExpr) =>
+                inWriteOp = false
+                EvaluateFieldAccess.applyStandalone(IR_ExpressionStatement(newVal))
+              case expr : IR_Expression if !IR_CompiletimeMatOps.isConst(expr)                   =>
+                inWriteOp = false
+                EvaluateFieldAccess.applyStandalone(IR_ExpressionStatement(newVal))
+              case _                                                                             =>
+            }
+          } else {
+            Logger.warn("Cannot determine field accesses for setSlice with runtime values.")
+          }
+        case m                                                                                                =>
+          Logger.warn("Unsupported matrix function for performance estimation: " + m.getClass.getName)
+      }
     }
 
     this += new Transformation("Searching", {
@@ -350,39 +538,92 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
       case access : IR_MultiDimFieldAccess =>
         mapFieldAccess(access)
         access
+      // not to resolve at runtime
+      case r : IR_RuntimeMNode if !r.resolveAtRuntime =>
+        mapCompiletimeMatrixFctExpr(IR_ResolveMatFuncs.ctFctMap(r.name)(r))
+        r
+      case mn : IR_ResolvableMNode                    =>
+        mn match {
+          case _ : IR_Statement  => mapCompiletimeMatrixFctStmts(mn)
+          case _ : IR_Expression => mapCompiletimeMatrixFctExpr(mn.asInstanceOf[IR_Expression])
+        }
+        mn
+
     }, false)
   }
 
   object EvaluateForOps extends QuietDefaultStrategy("Evaluating performance for numeric operations") {
-    var numAdd = 0
-    var numMul = 0
-    var numDiv = 0
 
-    override def applyStandalone(node : Node) : Unit = {
-      numAdd = 0
-      numMul = 0
-      numDiv = 0
-      super.applyStandalone(node)
+    class IR_ForOpsCollector extends Collector {
+      var numAdd = 0
+      var numMul = 0
+      var numDiv = 0
+
+      var inIndex = false
+
+      override def enter(node : Node) : Unit = {
+        node match {
+          case add : IR_Addition if add.summands.nonEmpty =>
+            if (!inIndex)
+              numAdd += add.summands.length - 1
+
+          case _ : IR_Subtraction =>
+            if (!inIndex)
+              numAdd += 1
+
+          case mul : IR_Multiplication if mul.factors.nonEmpty =>
+            if (!inIndex)
+              numMul += mul.factors.length - 1
+
+          case div : IR_Division =>
+            if (!inIndex)
+              div.right match {
+                case _ : IR_IntegerConstant => numMul += 0
+                case _ : IR_RealConstant    => numMul += 1
+                case _                      => numDiv += 1
+              }
+
+          case _ : IR_Index => // skip index calculations
+            inIndex = true
+
+          case _ =>
+        }
+      }
+
+      override def leave(node : Node) : Unit = {
+        node match {
+          case _ : IR_Index => // skip index calculations
+            inIndex = false
+
+          case _ =>
+        }
+      }
+
+      override def reset() : Unit = {
+        numAdd = 0
+        numMul = 0
+        numDiv = 0
+
+        inIndex = false
+      }
     }
 
-    // FIXME: incorporate number of operands
+    var collector = new IR_ForOpsCollector()
+    this.register(collector)
+
+    def numAdd = collector.numAdd
+    def numMul = collector.numMul
+    def numDiv = collector.numDiv
+
+    override def applyStandalone(node : Node) : Unit = {
+      collector.reset()
+
+      // skip loop sub-nodes that are not part of the body
+      node.asInstanceOf[IR_LoopOverDimensions].body.foreach(super.applyStandalone)
+    }
+
     this += new Transformation("Searching", {
-      case exp : IR_Addition       =>
-        numAdd += 1
-        exp
-      case exp : IR_Subtraction    =>
-        numAdd += 1
-        exp
-      case exp : IR_Multiplication =>
-        numMul += 1
-        exp
-      case exp : IR_Division       =>
-        exp.right match {
-          case _ : IR_IntegerConstant => numMul += 0
-          case _ : IR_RealConstant    => numMul += 1
-          case _                      => numDiv += 1
-        }
-        exp
+      case comment : IR_Comment => comment // TODO: should be an empty transformation
     })
   }
 
