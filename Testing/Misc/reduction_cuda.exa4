@@ -1,0 +1,72 @@
+Domain global< [0.0] to [1.0] >
+
+Layout CellMatrixWithComm< Matrix < Real, 3, 3>, Cell >@all {
+	ghostLayers = [1] with communication
+	duplicateLayers = [0]
+}
+
+Field mat< global, CellMatrixWithComm, 0.0 >@all
+
+Globals {
+    Val eps : Real = 0.0000001
+    Val maxVal : Real = 1000.
+    Val minVal : Real = 0.123
+    Val matrixEntry : Real = 2.
+    Val someVal : Real = 1337.
+}
+
+Function Application {
+	initGlobals (  )
+	initDomain (  )
+	initFieldsWithZero (  )
+
+    Var redTarget : Matrix<Real, 2, 2> = 0.
+    loop over mat@finest with reduction (+: redTarget[0][0]) {
+        mat@finest[0][0] = matrixEntry
+        redTarget[0][0] = mat@finest[0][0]
+    }
+
+    // TODO check
+    Expr numReds = getKnowledge ( 'domain_rect_numBlocks_x' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_x' )
+    if ( fabs(redTarget[0][0] - numReds * matrixEntry ) <= eps ) {
+        print('Passed stage 1')
+    } else {
+        print('Failed stage 1: Reduced matrix entry redTarget[0][0]=', redTarget[0][0], ', expected=', numReds * matrixEntry)
+    }
+
+    loop over mat@finest with reduction (max: redTarget[0][1]) {
+        if (i0 == 0) {
+            redTarget[0][1] = maxVal
+            redTarget[1][0] = minVal
+        }
+        mat@finest[0][0] = matrixEntry
+        redTarget[0][0] = mat@finest[0][0]
+    }
+
+    if ( fabs( redTarget[0][1] - maxVal ) <= eps ) {
+        print('Passed stage 2')
+    } else {
+        print('Failed stage 2: redTarget[0][1]=', redTarget[0][1])
+    }
+
+    // TODO check
+    Var redTarget2 : Matrix<Real, 2, 1> = {{maxVal}, {minVal}}
+    Expr numReds2 = getKnowledge ( 'domain_rect_numBlocks_x' )
+
+    loop over mat@finest with reduction (+: redTarget2) {
+        if (sqrt(4) != 2) {
+            print('dummy line')
+        }
+    }
+
+    if ( fabs(redTarget2[0][0] - numReds2 * maxVal) <= eps &&
+         fabs(redTarget2[1][0] - numReds2 * minVal) <= eps) {
+
+        print('Passed stage 3')
+    } else {
+
+        print('Failed stage 3: redTarget2[0][0]=', redTarget2[0][0], ', redTarget2[1][0]=', redTarget2[1][0])
+    }
+
+	destroyGlobals (  )
+}

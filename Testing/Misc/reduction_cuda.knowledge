@@ -1,0 +1,33 @@
+testing_enabled       = true
+
+dimensionality             = 1
+
+minLevel					= 0
+maxLevel					= 0
+
+domain_onlyRectangular		= true
+domain_numBlocks			= 1
+domain_numFragmentsPerBlock	= 1
+domain_fragmentLength_x		= 1
+domain_fragmentLength_y		= 1
+domain_fragmentLength_z		= 1
+
+domain_rect_generate		= true
+domain_rect_numBlocks_x		= 1
+domain_rect_numBlocks_y		= 1
+domain_rect_numBlocks_z		= 1
+domain_rect_numFragsPerBlock_x	= 1
+domain_rect_numFragsPerBlock_y	= 1
+domain_rect_numFragsPerBlock_z	= 1
+
+omp_enabled					= true
+omp_numThreads				= 10
+
+mpi_enabled					= false
+mpi_numThreads				= 1
+
+omp_parallelizeLoopOverFragments	= true
+omp_parallelizeLoopOverDimensions	= false
+
+cuda_enabled			= true
+cuda_preferredExecution = "Device"

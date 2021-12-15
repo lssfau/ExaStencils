@@ -2547,6 +2547,35 @@ test:Reduction:
         - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Reduction Misc/reduction.knowledge "Misc/reduction.exa4" Misc/reduction.results 2 2 Platform/random.platform output
 
+test:Reduction_CUDA:
+    stage: test
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+        - cuda
+        - i10swarm5
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+
+    script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - nvcc --version
+        - updatedb
+        - locate cuda.h
+        - locate libcudart
+        - export CPATH=$CPATH:/usr/local/cuda-11.4/targets/x86_64-linux/include
+        - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
+        - cd Testing
+        # TODO uncomment
+        #- python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Reduction_CUDA Misc/reduction_cuda.knowledge "Misc/reduction_cuda.exa4" Misc/reduction_cuda.results 1 10 Platform/chimaira-gpu.platform output
+
 test:Reduction_OldOpenMP:
     stage: test
     dependencies:
