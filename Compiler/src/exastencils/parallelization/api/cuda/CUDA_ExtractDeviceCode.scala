@@ -23,6 +23,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.optimization.ir.IR_SimplifyExpression
@@ -130,13 +131,32 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       kernelFunctions.addKernel(Duplicate(kernel))
 
       // process return value of kernel wrapper call if reduction is required
+      val callKernel = IR_FunctionCall(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[IR_Expression]))
       if (loop.parallelization.reduction.isDefined) {
         val red = loop.parallelization.reduction.get
-        deviceStatements += IR_Assignment(red.target,
-          IR_BinaryOperators.createExpression(red.op, red.target,
-            IR_FunctionCall(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[IR_Expression]))))
+        red.target.datatype match {
+          case mat : IR_MatrixDatatype =>
+            red.target match {
+              case _ : IR_VariableAccess =>
+                // reduction of whole matrix
+                val i = IR_VariableAccess("_i", IR_IntegerDatatype)
+                val j = IR_VariableAccess("_j", IR_IntegerDatatype)
+                val idx = i * mat.sizeN + j
+                val dst = IR_ArrayAccess(red.target, idx)
+                val src = IR_ArrayAccess(callKernel, idx)
+                deviceStatements += IR_ForLoop(IR_VariableDeclaration(i, IR_IntegerConstant(0)), IR_Lower(i, mat.sizeM), IR_PreIncrement(i), ListBuffer[IR_Statement](
+                  IR_ForLoop(IR_VariableDeclaration(j, 0), IR_Lower(j, mat.sizeN), IR_PreIncrement(j), ListBuffer[IR_Statement](
+                    IR_Assignment(dst, IR_BinaryOperators.createExpression(red.op, dst, src))))))
+              case arrAcc : IR_ArrayAccess  =>
+                // reduction of matrix element
+                deviceStatements += IR_Assignment(red.target,
+                  IR_BinaryOperators.createExpression(red.op, red.target, IR_ArrayAccess(callKernel, arrAcc.index)))
+            }
+          case _ : IR_ScalarDatatype =>
+            deviceStatements += IR_Assignment(red.target, IR_BinaryOperators.createExpression(red.op, red.target, callKernel))
+        }
       } else {
-        deviceStatements += IR_FunctionCall(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[IR_Expression]))
+        deviceStatements += callKernel
       }
 
       deviceStatements

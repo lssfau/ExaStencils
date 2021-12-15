@@ -22,6 +22,7 @@ import scala.collection.mutable._
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_HigherDimensionalDatatype
 import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.communication.ir._
 import exastencils.config._
@@ -581,9 +582,19 @@ case class CUDA_Kernel(var identifier : String,
       body += CUDA_FunctionCall(getKernelFctName, callArgs, numBlocksPerDim, numThreadsPerBlock)
     }
 
+    val returnDt = if (reduction.isDefined) {
+      val dt = reduction.get.target.datatype
+      dt match {
+        case scalar : IR_ScalarDatatype => scalar
+        case hodt : IR_HigherDimensionalDatatype => IR_PointerDatatype(hodt.resolveBaseDatatype)
+      }
+    } else {
+      IR_UnitDatatype
+    }
+
     val fct = IR_PlainFunction( /* FIXME: IR_LeveledFunction? */
       getWrapperFctName,
-      if (reduction.isDefined) reduction.get.target.datatype else IR_UnitDatatype,
+      returnDt,
       Duplicate(passThroughArgs),
       body)
 
