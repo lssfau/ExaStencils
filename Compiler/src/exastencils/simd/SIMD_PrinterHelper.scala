@@ -64,12 +64,12 @@ private object SIMD_HorizontalPrinterHelper {
       case "NEON" =>
         if (Knowledge.useDblPrecision) {
           out << " float64x2_t _v = " << src << ";\n"
-          out << " double _r = vget_lane_f64(_v,0);\n"
+          out << " double _r = vgetq_lane_f64(_v,0);\n"
           out << " _r " << assOp
           if (redFunc != null)
-            out << ' ' << redFunc << "(_r, vget_lane_f64(_v,1));\n"
+            out << ' ' << redFunc << "(_r, vgetq_lane_f64(_v,1));\n"
           else
-            out << " vget_lane_f64(_v,1);\n"
+            out << " vgetq_lane_f64(_v,1);\n"
         } else {
           out << " float32x4_t _v = " << src << ";\n"
           out << " float32x2_t _w = v" << redName << "_f32(vget_high_f32(_v), vget_low_f32(_v));\n"
