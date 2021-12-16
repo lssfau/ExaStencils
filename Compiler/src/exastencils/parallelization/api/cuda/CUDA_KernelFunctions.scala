@@ -181,8 +181,9 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
     {
       def numElements = IR_FunctionArgument("numElements", IR_SpecialDatatype("size_t") /*FIXME*/)
       def halfStride = IR_VariableAccess("halfStride", IR_SpecialDatatype("size_t") /*FIXME*/)
+
       def data = IR_FunctionArgument("data", IR_PointerDatatype(reductionDt.resolveBaseDatatype))
-      def ret = IR_VariableAccess("ret", reductionDt)
+      var functionArgs = ListBuffer(data, IR_FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/))
 
       def blockSize = Knowledge.cuda_reductionBlockSize
 
@@ -202,22 +203,27 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
         IR_Assignment(halfStride, 2, "*="),
         loopBody)
 
-      fctBody += IR_VariableDeclaration(ret)
-      fctBody += CUDA_Memcpy(IR_AddressOf(ret), data.access, IR_SizeOf(reductionDt), "cudaMemcpyDeviceToHost")
+      // call default reduction kernel and return by value or copying to passed pointer
+      val returnDt = CUDA_Kernel.getReductionReturnDt(reductionDt)
+      returnDt match {
+        case IR_UnitDatatype =>
+          val matrixReductionTmp = IR_FunctionArgument("matrixReductionTmp", data.datatype)
+          functionArgs += matrixReductionTmp
+          fctBody += CUDA_Memcpy(matrixReductionTmp.access, data.access, IR_SizeOf(reductionDt), "cudaMemcpyDeviceToHost")
 
-      fctBody += IR_Return(Some(ret))
+        case _ =>
+          def ret = IR_VariableAccess("ret", reductionDt)
+          fctBody += IR_VariableDeclaration(ret)
+          fctBody += CUDA_Memcpy(IR_AddressOf(ret), data.access, IR_SizeOf(reductionDt), "cudaMemcpyDeviceToHost")
 
-      // return datatype of function
-      val returnDt = reductionDt match {
-        case sc : IR_ScalarDatatype              => sc
-        case hodt : IR_HigherDimensionalDatatype => IR_PointerDatatype(hodt.resolveBaseDatatype)
+          fctBody += IR_Return(Some(ret))
       }
 
       // compile final wrapper function
       val fct = IR_PlainFunction(/* FIXME: IR_LeveledFunction? */
         wrapperName,
         returnDt,
-        ListBuffer(data, IR_FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/)),
+        functionArgs,
         fctBody)
 
       fct.allowInlining = false

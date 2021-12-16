@@ -136,14 +136,28 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         val red = loop.parallelization.reduction.get
         CUDA_Util.getReductionDatatype(red.target) match {
           case mat : IR_MatrixDatatype =>
+            val baseDt = mat.resolveBaseDatatype
+            // declare and allocate tmp buffer for matrix reduction
+            val reductionTmp = IR_VariableAccess("reductionTmpMatrix", IR_PointerDatatype(baseDt))
+            deviceStatements += IR_VariableDeclaration(reductionTmp)
+            deviceStatements += IR_ArrayAllocation(reductionTmp, baseDt, mat.sizeN * mat.sizeM)
+
+            // call kernel and pass allocated tmp buffer by pointer
+            callKernel.arguments += reductionTmp
+            deviceStatements += callKernel
+
+            // update reduction target
             val i = IR_VariableAccess("_i", IR_IntegerDatatype)
             val j = IR_VariableAccess("_j", IR_IntegerDatatype)
             val idx = i * mat.sizeN + j
             val dst = IR_ArrayAccess(red.target, idx)
-            val src = IR_ArrayAccess(callKernel, idx)
+            val src = IR_ArrayAccess(reductionTmp, idx)
             deviceStatements += IR_ForLoop(IR_VariableDeclaration(i, IR_IntegerConstant(0)), IR_Lower(i, mat.sizeM), IR_PreIncrement(i), ListBuffer[IR_Statement](
               IR_ForLoop(IR_VariableDeclaration(j, 0), IR_Lower(j, mat.sizeN), IR_PreIncrement(j), ListBuffer[IR_Statement](
                 IR_Assignment(dst, IR_BinaryOperators.createExpression(red.op, dst, src))))))
+
+            // free allocated buffer
+            deviceStatements += IR_ArrayFree(reductionTmp)
           case _ : IR_ScalarDatatype   =>
             deviceStatements += IR_Assignment(red.target, IR_BinaryOperators.createExpression(red.op, red.target, callKernel))
         }
