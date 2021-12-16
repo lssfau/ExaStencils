@@ -62,17 +62,24 @@ private object SIMD_HorizontalPrinterHelper {
         out << ' ' << IR_RealDatatype << " _r = (" << IR_RealDatatype << ") vec_extract(vec_" << redName << "(_v, vec_sldw(_v, _v, 1)), 0);\n"
 
       case "NEON" =>
-        val datatype = (if (Knowledge.useDblPrecision) "float64x2_t" else "float32x4_t")
-        val prec = (if (Knowledge.useDblPrecision) "f64" else "f32")
-
-        out << " " << datatype << " _v = " << src << ";\n"
-        out << " " << datatype << " _w = v" << redName << "_" << prec << "(vget_high_" << prec << "(_v), vget_low_" << prec << "(_v));\n"
-        out << " float _r = vget_lane_" << prec << "(_w,0);\n"
-        out << " _r " << assOp
-        if (redFunc != null)
-          out << ' ' << redFunc << "(_r, vget_lane_" << prec << "(_w,1));\n"
-        else
-          out << " vget_lane_" << prec << "(_w,1);\n"
+        if (Knowledge.useDblPrecision) {
+          out << " float64x2_t _v = " << src << ";\n"
+          out << " double _r = vget_lane_f64(_v,0);\n"
+          out << " _r " << assOp
+          if (redFunc != null)
+            out << ' ' << redFunc << "(_r, vget_lane_f64(_v,1));\n"
+          else
+            out << " vget_lane_f64(_v,1);\n"
+        } else {
+          out << " float32x4_t _v = " << src << ";\n"
+          out << " float32x2_t _w = v" << redName << "_f32(vget_high_f32(_v), vget_low_f32(_v));\n"
+          out << " float _r = vget_lane_f32(_w,0);\n"
+          out << " _r " << assOp
+          if (redFunc != null)
+            out << ' ' << redFunc << "(_r, vget_lane_f32(_w,1));\n"
+          else
+            out << " vget_lane_f32(_w,1);\n"
+        }
     }
     out << dest << ' ' << assOp
     if (redFunc != null)
