@@ -1,0 +1,21 @@
+dimensionality                 = 2
+
+minLevel                       = 1
+maxLevel                       = 7
+
+discr_type                     = "FiniteVolumes"
+discr_defaultNeumannOrder      = 1
+discr_defaultDirichletOrder    = 2
+
+grid_isStaggered               = true
+
+experimental_applySchurCompl   = true
+
+// omp parallelization on exactly one fragment in one block
+import '../../../Examples/lib/domain_onePatch.knowledge'
+import '../../../Examples/lib/parallelization_pureOmp.knowledge'
+
+// adapt fragments for 9-way coloring (length should be divisible by 3)
+domain_fragmentLength_x         = 3
+domain_fragmentLength_y         = 3
+testing_enabled = true
