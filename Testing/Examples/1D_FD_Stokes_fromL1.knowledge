@@ -1,0 +1,20 @@
+dimensionality                 = 1
+
+minLevel                       = 5
+maxLevel                       = 15
+
+discr_type                     = "FiniteDifferences"
+discr_defaultNeumannOrder      = 1
+discr_defaultDirichletOrder    = 2
+
+grid_isStaggered               = true
+
+experimental_applySchurCompl   = true
+
+// omp parallelization on exactly one fragment in one block
+import '../../Examples/lib/domain_onePatch.knowledge'
+import '../../Examples/lib/parallelization_pureOmp.knowledge'
+
+// adapt fragments for 3-way coloring (length should be divisible by 3)
+domain_fragmentLength_x         = 3
+testing_enabled = true
