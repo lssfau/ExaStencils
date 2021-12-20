@@ -9,4 +9,4 @@ discr_type                     = "FiniteVolumes"
 import '../lib/domain_onePatch.knowledge'
 import '../lib/parallelization_pureOmp.knowledge'
 
-//library_CImg                   = true
+library_CImg                   = true

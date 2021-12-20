@@ -19,4 +19,4 @@ experimental_resolveInverseFunctionCall = "Runtime"
 import '../lib/domain_onePatch.knowledge'
 import '../lib/parallelization_pureOmp.knowledge'
 
-//library_CImg                  = true
+library_CImg                  = true
