@@ -18,8 +18,8 @@ Function Application ( ) : Unit {
   Var curIt : Int = 0
   Var curPrintIt : Int = 0
   repeat until ( curTime >= maxTime ) {
-    //vis@finest ( )
-    if ( curTime >= nextPrint ) {
+    vis@finest ( )
+    if ( !getKnowledge('testing_enabled') && curTime >= nextPrint ) {
       nextPrint += printInterval
       Var filename_vel : String
       //buildString ( filename_vel, "img/vel_", curPrintIt, ".png" )
@@ -56,7 +56,7 @@ Function Application ( ) : Unit {
   print ( 'Number of cycles:        ', totalNumCycles )
   print ( 'Number of time steps:    ', totalNumTimeSteps )
 
-  //vis@finest ( )
+  vis@finest ( )
 
   //printAllTimers ( )
   destroyGlobals ( )
@@ -328,9 +328,9 @@ Function updateVis@finest {
   }
 }
 
-/*
 Function vis@finest {
-  updateVis ( )
-  showMappedImageAndWaitWhen ( curTime < maxTime, velMag, phiVis )
+  if ( !getKnowledge('testing_enabled') ) {
+    updateVis ( )
+    showMappedImageAndWaitWhen ( curTime < maxTime, velMag, phiVis )
+  }
 }
-*/

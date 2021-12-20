@@ -259,7 +259,9 @@ Function Application ( ) : Unit {
   Solve@finest ( )
   stopTimer ( 'solve' )
 
-  UpdateVis@finest ( )
+  if ( !getKnowledge('testing_enabled') ) {
+    UpdateVis@finest ( )
+  }
 
   printAllTimers ( )
   destroyGlobals ( )
@@ -321,7 +323,7 @@ Function UpdateVis@finest {
 
     print ( 'hMin:', hMin, 'hMax:', hMax, 'uMax:', uMax, 'vMax:', vMax )
 
-    //showMappedImageAndWaitWhen ( curTime < maxTime, uVis, vVis, hVis, velMag, bVis )
+    showMappedImageAndWaitWhen ( curTime < maxTime, uVis, vVis, hVis, velMag, bVis )
   }
 }
 

@@ -5,7 +5,7 @@ Globals {
 
   Expr adaptDt       = true
   Expr printInterval = -1
-  Expr visInterval   = -1
+  Expr visInterval   = 10
 }
 
 
