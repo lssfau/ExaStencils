@@ -9,5 +9,4 @@ discr_type                     = "FiniteVolumes"
 import '../../../Examples/lib/domain_onePatch.knowledge'
 import '../../../Examples/lib/parallelization_pureOmp.knowledge'
 
-
 testing_enabled = true
