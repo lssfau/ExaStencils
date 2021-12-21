@@ -1,6 +1,9 @@
 Documentation
 ======================
 
+.. meta::
+    :google-site-verification: NGzWvuri9mOY_qonnQi2wT2Jn9RzIcp2XILN1n32_HU
+
 .. |exa| image:: _static/exastencils.png
 	:width: 50%
 
