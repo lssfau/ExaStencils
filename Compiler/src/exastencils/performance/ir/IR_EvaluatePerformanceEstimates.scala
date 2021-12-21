@@ -466,21 +466,27 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
     def mapCompiletimeMatrixFctStmts(matFunc : IR_ResolvableMNode) {
       matFunc match {
         // setElement
-        case IR_SetElement(ListBuffer(lhs : IR_MultiDimFieldAccess, idxy, idxx, rhs)) =>
-
-          val lhsField = lhs.field
-          val lhsWriteIdentifier = getIdentifier(lhsField, lhs.slot, isWrite = true)
-          val lhsReadIdentifier = getIdentifier(lhsField, lhs.slot, isWrite = false)
-          val dt = lhsField.resolveBaseDatatype
+        case IR_SetElement(ListBuffer(dst, idxy, idxx, rhs)) =>
 
           if (IR_CompiletimeMatOps.isConst(idxy) && IR_CompiletimeMatOps.isConst(idxx)) {
-            val matDims = lhs.field.gridDatatype.asInstanceOf[IR_MatrixDatatype]
-            val idx = List(idxx, idxy).map(IR_SimplifyExpression.evalIntegral(_).toInt)
-            val linearizedMatIdx = idx(0) + matDims.sizeN * idx(1)
 
-            // write and read allocate for lhs
-            updateForMatrixEntry(lhsField, lhs.index, lhsWriteIdentifier, linearizedMatIdx, dt)
-            updateForMatrixEntry(lhsField, lhs.index, lhsReadIdentifier, linearizedMatIdx, dt)
+            // update "fieldAccesses" if lhs is a field instance
+            dst match {
+              case lhs : IR_MultiDimFieldAccess =>
+                val lhsField = lhs.field
+                val lhsWriteIdentifier = getIdentifier(lhsField, lhs.slot, isWrite = true)
+                val lhsReadIdentifier = getIdentifier(lhsField, lhs.slot, isWrite = false)
+                val dt = lhsField.resolveBaseDatatype
+
+                val matDims = lhs.field.gridDatatype.asInstanceOf[IR_MatrixDatatype]
+                val idx = List(idxx, idxy).map(IR_SimplifyExpression.evalIntegral(_).toInt)
+                val linearizedMatIdx = idx(0) + matDims.sizeN * idx(1)
+
+                // write and read allocate for lhs
+                updateForMatrixEntry(lhsField, lhs.index, lhsWriteIdentifier, linearizedMatIdx, dt)
+                updateForMatrixEntry(lhsField, lhs.index, lhsReadIdentifier, linearizedMatIdx, dt)
+              case _                            =>
+            }
 
             // read rhs if not const
             if (!IR_CompiletimeMatOps.isConst(rhs)) {
@@ -492,18 +498,24 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           }
 
         // setSlice
-        case IR_SetSlice(ListBuffer(matrix : IR_MultiDimFieldAccess, rowOffs, colOffs, nrows, ncols, newVal)) =>
+        case IR_SetSlice(ListBuffer(dst, rowOffs, colOffs, nrows, ncols, newVal)) =>
+
           if (IR_CompiletimeMatOps.isConst(nrows) && IR_CompiletimeMatOps.isConst(rowOffs) && IR_CompiletimeMatOps.isConst(ncols) && IR_CompiletimeMatOps.isConst(colOffs)) {
 
-            val field = matrix.field
-            val readIdentifier = getIdentifier(field, matrix.slot, isWrite = false)
-            val writeIdentifier = getIdentifier(field, matrix.slot, isWrite = true)
-            val (startRow, endRow) = (evalExpr(rowOffs), evalExpr(rowOffs + nrows))
-            val (startCol, endCol) = (evalExpr(colOffs), evalExpr(colOffs + ncols))
+            // update "fieldAccesses" if lhs is a field instance
+            dst match {
+              case lhs : IR_MultiDimFieldAccess =>
+                val field = lhs.field
+                val readIdentifier = getIdentifier(field, lhs.slot, isWrite = false)
+                val writeIdentifier = getIdentifier(field, lhs.slot, isWrite = true)
+                val (startRow, endRow) = (evalExpr(rowOffs), evalExpr(rowOffs + nrows))
+                val (startCol, endCol) = (evalExpr(colOffs), evalExpr(colOffs + ncols))
 
-            // honor read-allocate
-            updateForMatrixEntries(field, matrix.index, writeIdentifier, startRow, startCol, endRow, endCol, field.resolveBaseDatatype)
-            updateForMatrixEntries(field, matrix.index, readIdentifier, startRow, startCol, endRow, endCol, field.resolveBaseDatatype)
+                // honor read-allocate
+                updateForMatrixEntries(field, lhs.index, writeIdentifier, startRow, startCol, endRow, endCol, field.resolveBaseDatatype)
+                updateForMatrixEntries(field, lhs.index, readIdentifier, startRow, startCol, endRow, endCol, field.resolveBaseDatatype)
+              case _                            =>
+            }
 
             // read newval if not constant
             newVal match {
@@ -518,7 +530,7 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           } else {
             Logger.warn("Cannot determine field accesses for setSlice with runtime values.")
           }
-        case m                                                                                                =>
+        case m                                                                    =>
           Logger.warn("Unsupported matrix function for performance estimation: " + m.getClass.getName)
       }
     }
@@ -552,7 +564,7 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
             Logger.warn("Cannot evaluate loop bounds: " + msg)
             prependStmts += IR_Comment(s"--- Loop with variable bounds is handled as loop doing one iteration. Remember to scale accordingly. ---")
             EvaluateFieldAccess.applyStandalone(loop.body)
-          case UnrollException(msg) =>
+          case UnrollException(msg)        =>
             Logger.warn("Cannot evaluate fields accessed in loop with variable bounds: " + msg)
             loopStart match {
               case IR_VariableDeclaration(_, runtimeVar, _, _) =>
@@ -563,11 +575,11 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
             EvaluateFieldAccess.applyStandalone(loop.body)
         }
         prependStmts :+ loop
-      case loop : IR_WhileLoop =>
+      case loop : IR_WhileLoop                                 =>
         IR_Comment(s"-- While loop is handled as loop doing one iteration. Remember to scale accordingly. --")
         EvaluateFieldAccess.applyStandalone(loop.body)
         loop
-      case assign : IR_Assignment          =>
+      case assign : IR_Assignment                              =>
         inWriteOp = true
         EvaluateFieldAccess.applyStandalone(IR_ExpressionStatement(assign.dest))
         inWriteOp = false
@@ -575,7 +587,7 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
         EvaluateFieldAccess.applyStandalone(IR_ExpressionStatement(assign.dest))
         EvaluateFieldAccess.applyStandalone(IR_ExpressionStatement(assign.src))
         assign
-      case access : IR_MultiDimFieldAccess =>
+      case access : IR_MultiDimFieldAccess                     =>
         mapFieldAccess(access)
         access
       // not to resolve at runtime
