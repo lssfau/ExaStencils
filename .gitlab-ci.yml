@@ -563,6 +563,10 @@ test:Par_Test_addrPre:
 
 test:Par_Test_poly:
     extends: .test_template_AVX
+    tags:
+        - docker
+        - AVX
+        - i10swarm13
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_poly Opts/par_poly.knowledge "Opts/tempBlock_par.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
 
