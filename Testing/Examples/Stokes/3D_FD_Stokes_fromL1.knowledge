@@ -19,4 +19,5 @@ import '../../../Examples/lib/parallelization_pureOmp.knowledge'
 domain_fragmentLength_x         = 3
 domain_fragmentLength_y         = 3
 domain_fragmentLength_z         = 3
+
 testing_enabled = true

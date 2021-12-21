@@ -17,4 +17,5 @@ import '../../../Examples/lib/parallelization_pureOmp.knowledge'
 
 // adapt fragments for 3-way coloring (length should be divisible by 3)
 domain_fragmentLength_x         = 3
+
 testing_enabled = true

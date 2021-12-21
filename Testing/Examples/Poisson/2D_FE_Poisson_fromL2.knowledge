@@ -16,4 +16,5 @@ import '../../../Examples/lib/domain_onePatch.knowledge'
 import '../../../Examples/lib/parallelization_serial.knowledge'
 
 experimental_resolveInverseFunctionCall = "Runtime"
+
 testing_enabled = true

@@ -9,4 +9,5 @@ discr_type                     = "FiniteDifferences"
 import '../../../Examples/lib/domain_fourPatches.knowledge'
 import '../../../Examples/lib/parallelization_fourMPI.knowledge'
 //omp_fixArithmeticReductionOrder = true
+
 testing_enabled = true
