@@ -45,11 +45,12 @@ object CUDA_LinearizeReductionDeviceDataAccess extends DefaultStrategy("Lineariz
 
 /// CUDA_ReductionDeviceData
 
-case class CUDA_ReductionDeviceData(var size : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, false) {
+case class CUDA_ReductionDeviceData(var numVals : IR_Expression, var targetDt : IR_Datatype, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, false) {
   override def prettyprint(out : PpStream) = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
+  def baseDt = targetDt.resolveBaseDatatype
 
-  override def resolveDatatype() = IR_PointerDatatype(IR_RealDatatype)
-  // TODO: extend for other types
+  override def resolveDatatype() = IR_PointerDatatype(baseDt)
+
   override def resolveName() : String = "reductionDeviceData" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
 
   override def getDtor() : Option[IR_Statement] = {
@@ -81,8 +82,10 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
         stride(i) = IR_IntegerConstant(s)
       }
 
+      val resultDt = CUDA_Util.getReductionDatatype(kernel.reduction.get.target)
+
       CUDA_ReplaceReductionAssignments.redTarget = kernel.reduction.get.target
-      CUDA_ReplaceReductionAssignments.replacement = CUDA_ReductionDeviceDataAccess(CUDA_ReductionDeviceData(size), index, stride)
+      CUDA_ReplaceReductionAssignments.replacement = CUDA_ReductionDeviceDataAccess(CUDA_ReductionDeviceData(size, resultDt), index, stride)
       CUDA_ReplaceReductionAssignments.applyStandalone(IR_Scope(kernel.body))
       kernel
   })

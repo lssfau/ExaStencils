@@ -591,26 +591,26 @@ case class CUDA_Kernel(var identifier : String,
     var body = ListBuffer[IR_Statement]()
 
     if (reduction.isDefined) {
+      def target = reduction.get.target
+      def resultDt = CUDA_Util.getReductionDatatype(target)
+      def baseDt = resultDt.resolveBaseDatatype
+
       def bufSize = requiredThreadsPerDim.product
-      def bufAccess = CUDA_ReductionDeviceData(bufSize)
+      def bufAccess = CUDA_ReductionDeviceData(bufSize, resultDt)
       var callArgsReduction = ListBuffer[IR_Expression](bufAccess, bufSize)
 
-      def target = reduction.get.target
-      def actualDt = CUDA_Util.getReductionDatatype(target)
-      def baseDt = actualDt.resolveBaseDatatype
-
-      body += CUDA_Memset(bufAccess, 0, bufSize, actualDt)
+      body += CUDA_Memset(bufAccess, 0, bufSize, resultDt)
       body += CUDA_FunctionCall(getKernelFctName, callArgs, numBlocksPerDim, numThreadsPerBlock)
 
       // return value via pointer arg
-      if (actualDt.isInstanceOf[IR_HigherDimensionalDatatype] && returnDt == IR_UnitDatatype) {
+      if (resultDt.isInstanceOf[IR_HigherDimensionalDatatype] && returnDt == IR_UnitDatatype) {
         val result = IR_FunctionArgument("reductionTmp", IR_PointerDatatype(baseDt))
         passThroughArgs += result
         callArgsReduction += result.access
       }
 
       // call default reduction kernel and potentially forward return value
-      val callDefaultReductionKernel = IR_FunctionCall(CUDA_KernelFunctions.get.getRedKernelWrapperName(reduction.get.op, actualDt),
+      val callDefaultReductionKernel = IR_FunctionCall(CUDA_KernelFunctions.get.getRedKernelWrapperName(reduction.get.op, resultDt),
         callArgsReduction)
       body += (returnDt match {
         case IR_UnitDatatype =>

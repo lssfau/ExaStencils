@@ -157,13 +157,14 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
 
     case buf : CUDA_ReductionDeviceData =>
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
+      val totalSize : IR_Expression = buf.numVals * buf.targetDt.getSizeArray.product
       if (Knowledge.data_genVariableFieldSizes) {
         if (deviceBufferSizes.contains(id))
-          deviceBufferSizes(id).asInstanceOf[IR_Maximum].args += Duplicate(buf.size)
+          deviceBufferSizes(id).asInstanceOf[IR_Maximum].args += Duplicate(totalSize)
         else
-          deviceBufferSizes += (id -> IR_Maximum(ListBuffer(Duplicate(buf.size))))
+          deviceBufferSizes += (id -> IR_Maximum(ListBuffer(Duplicate(totalSize))))
       } else {
-        val size = IR_SimplifyExpression.evalIntegral(buf.size)
+        val size = IR_SimplifyExpression.evalIntegral(totalSize)
         deviceBufferSizes += (id -> (size max deviceBufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
       }
       buf
@@ -214,7 +215,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       val size = deviceBufferSizes(id)
 
-      deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_Allocate(buf, size, IR_RealDatatype /*FIXME*/), IR_ParallelizationInfo(potentiallyParallel = true)))
+      deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_Allocate(buf, size, buf.field.resolveBaseDatatype), IR_ParallelizationInfo(potentiallyParallel = true)))
 
       buf
 
@@ -222,7 +223,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
       val size = deviceBufferSizes(id)
 
-      deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_Allocate(buf, size, IR_RealDatatype /*FIXME*/), IR_ParallelizationInfo(potentiallyParallel = true)))
+      deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_Allocate(buf, size, buf.baseDt), IR_ParallelizationInfo(potentiallyParallel = true)))
 
       buf
 
