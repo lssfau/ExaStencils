@@ -103,10 +103,10 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       // add kernel and kernel call
       val kernelFunctions = CUDA_KernelFunctions.get
 
-      // collect local variable accesses because these variables need to be passed to the kernel at call
-      CUDA_GatherVariableAccess.clear()
-      CUDA_GatherVariableAccess.applyStandalone(IR_Scope(loop))
-      val variableAccesses = CUDA_GatherVariableAccess.accesses.toSeq.sortBy(_._1).map(_._2).to[ListBuffer]
+      // collect local accesses because these variables need to be passed to the kernel at call
+      CUDA_GatherVariableAccesses.clear()
+      CUDA_GatherVariableAccesses.applyStandalone(IR_Scope(loop))
+      val accesses = CUDA_GatherVariableAccesses.accesses.toSeq.sortBy(_._1).to[ListBuffer]
 
       var extremaMap = mutable.HashMap[String, (Long, Long)]()
 
@@ -116,10 +116,17 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       // inline contained calls to solve functions to avoid separate compilation units
       IR_InlineMatSolveStmts.applyStandalone(kernelBody)
 
+      // replace array accesses with accesses to function arguments, ignore reduction variable
+      if (loop.parallelization.reduction.isDefined)
+        CUDA_ReplaceArrayAccesses.reductionVariable = Some(loop.parallelization.reduction.get.target)
+      else
+        CUDA_ReplaceArrayAccesses.reductionVariable = None
+      CUDA_ReplaceArrayAccesses.applyStandalone(kernelBody)
+
       val kernel = CUDA_Kernel(
         kernelFunctions.getIdentifier(collector.getCurrentName),
         parallelInnerLoops.length,
-        variableAccesses.map(s => IR_FunctionArgument(s.name, s.datatype)),
+        accesses.map { case (name, tup) => IR_FunctionArgument(name, tup._2) },
         Duplicate(loopVariables),
         Duplicate(lowerBounds),
         Duplicate(upperBounds),
@@ -131,7 +138,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       kernelFunctions.addKernel(Duplicate(kernel))
 
       // process return value of kernel wrapper call if reduction is required
-      val callKernel = IR_FunctionCall(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[IR_Expression]))
+      val callKernel = IR_FunctionCall(kernel.getWrapperFctName, accesses.map { case (_, tup) => tup._1 : IR_Expression })
       if (loop.parallelization.reduction.isDefined) {
         val red = loop.parallelization.reduction.get
         CUDA_Util.getReductionDatatype(red.target) match {
