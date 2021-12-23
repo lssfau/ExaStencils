@@ -118,9 +118,9 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
 
       // replace array accesses with accesses to function arguments, ignore reduction variable
       if (loop.parallelization.reduction.isDefined)
-        CUDA_ReplaceArrayAccesses.reductionVariable = Some(loop.parallelization.reduction.get.target)
+        CUDA_ReplaceArrayAccesses.reductionTarget = Some(loop.parallelization.reduction.get.target)
       else
-        CUDA_ReplaceArrayAccesses.reductionVariable = None
+        CUDA_ReplaceArrayAccesses.reductionTarget = None
       CUDA_ReplaceArrayAccesses.applyStandalone(kernelBody)
 
       val kernel = CUDA_Kernel(
