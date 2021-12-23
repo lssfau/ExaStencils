@@ -101,6 +101,13 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
         assignment.dest = Duplicate(replacement)
         // assignment.op = "=" // don't modify assignments - there could be inlined loops
         assignment
+
+      // special functions used for certain kinds of matrix assignments
+      case stmt @ IR_ExpressionStatement(IR_FunctionCall(ref @ IR_ExternalFunctionReference(name, IR_UnitDatatype), args @ ListBuffer(_, _, dest))) =>
+        if (CUDA_StdFunctionReplacements.stdFunctions.contains(name) && redTarget.equals(dest))
+          IR_ExpressionStatement(IR_FunctionCall(ref, args.dropRight(1) :+ IR_AddressOf(replacement))) // replace dest
+        else
+          stmt
     })
   }
 
