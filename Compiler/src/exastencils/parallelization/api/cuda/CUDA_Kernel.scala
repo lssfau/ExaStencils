@@ -585,8 +585,8 @@ case class CUDA_Kernel(var identifier : String,
     for (ivAccess <- ivAccesses)
       callArgs += Duplicate(ivAccess._2)
 
-    for (variableAccess <- passThroughArgs)
-      callArgs += variableAccess.access
+    for (arg <- passThroughArgs)
+      callArgs += arg.access
 
     var body = ListBuffer[IR_Statement]()
 
