@@ -25,6 +25,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
+import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
 /// CUDA_ReductionDeviceDataAccess
@@ -97,8 +98,21 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
     var replacement : IR_Expression = IR_NullExpression
 
     this += new Transformation("Replace", {
+      // replace directly if expr == redTarget
       case assignment @ IR_Assignment(expr, _, _) if redTarget.equals(expr) =>
         assignment.dest = Duplicate(replacement)
+        // assignment.op = "=" // don't modify assignments - there could be inlined loops
+        assignment
+
+      // array access of reduction target
+      case assignment @ IR_Assignment(_ @ IR_ArrayAccess(base : IR_VariableAccess, idx, _), _, _) if redTarget.equals(base) =>
+        val repl = Duplicate(replacement) match {
+          case red : CUDA_ReductionDeviceDataAccess =>
+            red.index(0) += idx
+            red
+          case _ => Logger.error("Invalid type for \"replacement\" of cuda reduction targets")
+        }
+        assignment.dest = repl
         // assignment.op = "=" // don't modify assignments - there could be inlined loops
         assignment
 
