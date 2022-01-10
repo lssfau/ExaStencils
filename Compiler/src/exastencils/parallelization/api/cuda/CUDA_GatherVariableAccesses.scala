@@ -22,6 +22,8 @@ import scala.collection.mutable
 
 import exastencils.base.ir._
 import exastencils.datastructures._
+import exastencils.optimization.ir.EvaluationException
+import exastencils.optimization.ir.IR_SimplifyExpression
 
 object CUDA_GatherVariableAccesses extends QuietDefaultStrategy("Gather local VariableAccess nodes") {
   var accesses = mutable.HashMap[String, (IR_Access, IR_Datatype)]()
@@ -30,6 +32,17 @@ object CUDA_GatherVariableAccesses extends QuietDefaultStrategy("Gather local Va
 
   def arrayAccessAsString(base : IR_VariableAccess, idx : IR_Expression) = base.name + idx.prettyprint()
   def containsArrayAccess(base : IR_VariableAccess, idx : IR_Expression) = accesses.contains(arrayAccessAsString(base, idx))
+
+  def isEvaluable(idx : IR_Expression) = {
+    var ret = true
+    try {
+      IR_SimplifyExpression.evalIntegral(idx)
+    } catch {
+      case _ : EvaluationException => ret = false
+      case _ : MatchError          => ret = false
+    }
+    ret
+  }
 
   def clear() = {
     accesses = mutable.HashMap[String, (IR_Access, IR_Datatype)]()
@@ -45,7 +58,10 @@ object CUDA_GatherVariableAccesses extends QuietDefaultStrategy("Gather local Va
 
     case arrAcc @ IR_ArrayAccess(base : IR_VariableAccess, idx, _) if !ignoredAccesses.contains(base.name) =>
       ignoredMatrixVariableAccesses += base.name
-      accesses.put(arrayAccessAsString(base, idx), (arrAcc, base.datatype.resolveBaseDatatype))
+
+      if (isEvaluable(idx))
+        accesses.put(arrayAccessAsString(base, idx), (arrAcc, base.datatype.resolveBaseDatatype))
+
       arrAcc
 
     case vAcc : IR_VariableAccess if !ignoredAccesses.contains(vAcc.name) && !ignoredMatrixVariableAccesses.contains(vAcc.name) =>
