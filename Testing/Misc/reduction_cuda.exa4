@@ -73,7 +73,7 @@ Function Application {
 
 	// 3.
 	loop over mat@finest with reduction(+: redTarget) {
-		redTarget[0][0] += d
+		redTarget[0][0] += a
 		redTarget[0][1] += b
 		redTarget[0][2] += c
 		redTarget[1][0] += d
