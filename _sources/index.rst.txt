@@ -23,3 +23,4 @@ In order to get started with ExaStencils, we recommend visiting our `user tutori
 	:hidden:
 
 	Homepage <https://www.exastencils.fau.de/>
+	GitHub repository <https://github.com/lssfau/ExaStencils>
