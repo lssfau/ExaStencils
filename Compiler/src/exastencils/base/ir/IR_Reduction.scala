@@ -21,4 +21,4 @@ package exastencils.base.ir
 /// IR_Reduction
 
 // FIXME: op as BinOp
-case class IR_Reduction(var op : String, var target : IR_VariableAccess, var skipMpi : Boolean = false) extends IR_Node
+case class IR_Reduction(var op : String, var target : IR_Expression, var targetName : String, var skipMpi : Boolean = false) extends IR_Node

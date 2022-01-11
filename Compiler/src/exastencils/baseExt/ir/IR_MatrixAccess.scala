@@ -44,48 +44,62 @@ object IR_MatrixAccess {
 
 case class IR_MatrixAccess(acc : IR_Access, idxy : IR_Index, idxx : Option[IR_Index]) extends IR_Access {
   override def datatype : IR_Datatype = acc.datatype
-  // override def prettyprint(out : PpStream) : Unit = Logger.error("internal node not resolved!")
-  override def prettyprint(out : PpStream) : Unit = out << "MatAcc(" << acc << ")"
+  override def prettyprint(out : PpStream) : Unit = Logger.error("internal node not resolved!")
   def expand(lval : Boolean, rhsExpr : Option[IR_Expression]) : OutputType = {
     val indices_y : Array[IR_Expression] = idxy match {
-      case _ @ IR_ExpressionIndex(idxs) => idxs
-      case _ @ IR_ConstIndex(idxs)      => idxs.map(i => IR_IntegerConstant(i))
-      case _ @ IR_RangeIndex(range)     => Array[IR_Expression](range(0).begin.getOrElse(IR_IntegerConstant(0)), range(0).end.getOrElse(IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeM)))
+      case IR_ExpressionIndex(idxs) => idxs
+      case IR_ConstIndex(idxs)      => idxs.map(i => IR_IntegerConstant(i))
+      case IR_RangeIndex(range)     => Array[IR_Expression](range(0).begin.getOrElse(IR_IntegerConstant(0)), range(0).end.getOrElse(IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeM)))
     }
-    val indices_x : Array[IR_Expression] =
-      idxx.get match {
-        case _ @ IR_ExpressionIndex(idxs) => idxs
-        case _ @ IR_ConstIndex(idxs)      => idxs.map(i => IR_IntegerConstant(i))
-        case _ @ IR_RangeIndex(range)                    => Array[IR_Expression](range(0).begin.getOrElse(IR_IntegerConstant(0)), range(0).end.getOrElse(IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)))
+    val indices_x : Array[IR_Expression] = {
+      if (idxx.isDefined) {
+        idxx.get match {
+          case IR_ExpressionIndex(idxs) => idxs
+          case IR_ConstIndex(idxs) => idxs.map(i => IR_IntegerConstant(i))
+          case IR_RangeIndex(range) => Array[IR_Expression](range(0).begin.getOrElse(IR_IntegerConstant(0)), range(0).end.getOrElse(IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)))
+        }
+      } else {
+        Array[IR_Expression]()
       }
+    }
 
     (indices_y.length, indices_x.length) match {
       case (1, 0) if (acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN == 1) =>
+        // col vector access: vector[idx]
         if (!lval)
           IR_GetElement(ListBuffer[IR_Expression](acc, indices_y(0), IR_IntegerConstant(0)))
         else IR_SetElement(ListBuffer[IR_Expression](acc, indices_y(0), IR_IntegerConstant(0), rhsExpr.get))
+      case (1, 0) if (acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeM == 1) =>
+        // row vector access: vector[idx]
+        if (!lval)
+          IR_GetElement(ListBuffer[IR_Expression](acc, IR_IntegerConstant(0), indices_y(0)))
+        else IR_SetElement(ListBuffer[IR_Expression](acc, IR_IntegerConstant(0), indices_y(0), rhsExpr.get))
       case (1, 0) =>
+        // row access: mat[idx] -> returns row
         if (!lval)
           IR_GetSlice(ListBuffer[IR_Expression](acc, indices_y(0), IR_IntegerConstant(0), IR_IntegerConstant(1), IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)))
         else IR_SetSlice(ListBuffer[IR_Expression](acc, indices_y(0), IR_IntegerConstant(0), IR_IntegerConstant(1), IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN), rhsExpr.get))
       case (2, 0) =>
+        // slice for vector or matrix: vec[start:end] returns subvector, mat[start:end] returns submatrix [start:end] x [0:sizeN]
         if (!lval) IR_GetSlice(ListBuffer[IR_Expression](acc, indices_y(0), IR_IntegerConstant(0), indices_y(1) - indices_y(0), IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)))
         else IR_SetSlice(ListBuffer[IR_Expression](acc, indices_y(0), IR_IntegerConstant(0), indices_y(1) - indices_y(0), IR_IntegerConstant(acc.datatype.asInstanceOf[IR_MatrixDatatype].sizeN), rhsExpr.get))
       case (1, 1) =>
+        // mat access: mat[idxY][idxX]
         if (!lval) IR_GetElement(ListBuffer[IR_Expression](acc, indices_y(0), indices_x(0)))
         else IR_SetElement(ListBuffer[IR_Expression](acc, indices_y(0), indices_x(0), rhsExpr.get))
       case (2, 1) =>
+        // mat column slice: mat[start:end][idxX]
         if (!lval) IR_GetSlice(ListBuffer[IR_Expression](acc, indices_y(0), indices_x(0), indices_y(1) - indices_y(0), IR_IntegerConstant(1)))
         else IR_SetSlice(ListBuffer[IR_Expression](acc, indices_y(0), indices_x(0), indices_y(1) - indices_y(0), IR_IntegerConstant(1), rhsExpr.get))
       case (1, 2) =>
+        // mat row slice: mat[idxY][start:end]
         if (!lval) IR_GetSlice(ListBuffer[IR_Expression](acc, indices_y(0), indices_x(0), IR_IntegerConstant(1), indices_x(1) - indices_x(0)))
         else IR_SetSlice(ListBuffer[IR_Expression](acc, indices_y(0), indices_x(0), IR_IntegerConstant(1), indices_x(1) - indices_x(0), rhsExpr.get))
       case (2, 2) =>
+        // mat mat slice: mat[start1:end1][start2:end2]
         if (!lval) IR_GetSlice(ListBuffer[IR_Expression](acc, indices_y(0), indices_x(0), indices_y(1) - indices_y(0), indices_x(1) - indices_x(0)))
         else IR_SetSlice(ListBuffer[IR_Expression](acc, indices_y(0), indices_x(0), indices_y(1) - indices_y(0), indices_x(1) - indices_x(0), rhsExpr.get))
       case _ => Logger.error(s"unexpected index combination: ${ indices_x.length }, ${ indices_y.length }")
     }
-
   }
-
 }

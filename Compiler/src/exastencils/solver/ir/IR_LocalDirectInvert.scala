@@ -100,7 +100,7 @@ object IR_LocalDirectInvert {
     }
 
     // compile matrix from single entries
-    def AMat = IR_MatrixExpression(Some(IR_MatrixDatatype(innerDt, unknowns.length, unknowns.length)),
+    def AMat = IR_MatrixExpression(Some(innerDt),
       unknowns.indices.map(i =>
         unknowns.indices.map(j =>
           AVals(i)(j) match {

@@ -101,7 +101,7 @@ object IR_LinearizeDirectFieldAccess extends DefaultStrategy("Linearize DirectFi
 object IR_FieldAccess {
   def apply(field : IR_Field, slot : IR_Expression, index : IR_ExpressionIndex) = new IR_FieldAccess(field, slot, IR_LoopOverFragments.defIt, index)
 
-  def applySpecial(field : IR_Field, slot : IR_Expression, index : IR_ExpressionIndex, matIndex : Option[Array[IR_Index]]): IR_FieldAccess = {
+  def applySpecial(field : IR_Field, slot : IR_Expression, index : IR_ExpressionIndex, matIndex : Option[IR_MatIndex]): IR_FieldAccess = {
     val fa = new IR_FieldAccess(field, slot, IR_LoopOverFragments.defIt, index)
     fa.matIndex = matIndex
     fa
@@ -113,7 +113,7 @@ object IR_FieldAccess {
   def apply(field : IR_Field, slot : IR_Expression, index : IR_ExpressionIndex, offset : Option[IR_ConstIndex], frozen : Boolean)
   = new IR_FieldAccess(field, slot, IR_LoopOverFragments.defIt, index, offset, frozen)
 
-  def apply(field : IR_Field, slot : IR_Expression, index : IR_ExpressionIndex, offset : Option[IR_ConstIndex], frozen : Boolean, matIndex : Option[Array[IR_Index]])
+  def apply(field : IR_Field, slot : IR_Expression, index : IR_ExpressionIndex, offset : Option[IR_ConstIndex], frozen : Boolean, matIndex : Option[IR_MatIndex])
   = new IR_FieldAccess(field, slot, IR_LoopOverFragments.defIt, index, offset, frozen, matIndex)
 }
 
@@ -124,7 +124,7 @@ case class IR_FieldAccess(
     var index : IR_ExpressionIndex,
     var offset : Option[IR_ConstIndex] = None,
     var frozen : Boolean = false,
-    var matIndex : Option[Array[IR_Index]] = None
+    var matIndex : Option[IR_MatIndex] = None
 ) extends IR_MultiDimFieldAccess with IR_CanBeOffset {
 
   override def datatype = {

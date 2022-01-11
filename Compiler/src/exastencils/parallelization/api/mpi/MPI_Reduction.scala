@@ -22,6 +22,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -53,14 +54,16 @@ object MPI_Reduce {
 
 case class MPI_Reduce(var root : IR_Expression, var sendbuf : IR_Expression, var recvbuf : IR_Expression, var datatype : IR_Datatype, var count : IR_Expression, var op : IR_Expression) extends MPI_Statement {
   def reallyPrint(out : PpStream) : Unit = {
-    out << "MPI_Reduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", " << root << ", mpiCommunicator);"
+    out << "MPI_Reduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", " << root << ", " << MPI_IV_MpiComm << ");"
   }
+
+  private var isRoot = IR_EqEq(root, MPI_IV_MpiRank)
 
   override def prettyprint(out : PpStream) : Unit = {
     sendbuf match {
       // TODO: possible to extract to strategy/ specialized constructors?
       case IR_StringLiteral("MPI_IN_PLACE") => // special handling for MPI_IN_PLACE required
-        out << "if (" << IR_EqEq(root, MPI_IV_MpiRank) << ") {\n"
+        out << "if (" << isRoot << ") {\n"
         MPI_Reduce(root, sendbuf, recvbuf, datatype, count, op).reallyPrint(out) // MPI_IN_PLACE for root proc
         out << "\n} else {\n"
         MPI_Reduce(root, recvbuf, recvbuf, datatype, count, op).reallyPrint(out) // same behavior, different call required on all other procs -.-
@@ -88,7 +91,7 @@ object MPI_AllReduce {
 
 case class MPI_AllReduce(var sendbuf : IR_Expression, var recvbuf : IR_Expression, var datatype : IR_Datatype, var count : IR_Expression, var op : IR_Expression) extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = {
-    out << "MPI_Allreduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", mpiCommunicator);"
+    out << "MPI_Allreduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", "  << MPI_IV_MpiComm << ");"
   }
 }
 
@@ -100,8 +103,25 @@ object MPI_AddReductions extends DefaultStrategy("Add mpi reductions") {
       val reduction = loop.parallelization.reduction.get
       val stmts = ListBuffer[IR_Statement]()
       stmts += loop
-      if (!reduction.skipMpi)
-        stmts += MPI_AllReduce(IR_AddressOf(reduction.target), reduction.target.datatype, 1, reduction.op)
+      if (!reduction.skipMpi) {
+        val targetDt = reduction.target.datatype
+        val (acc, dt, count) = targetDt match {
+          case dt : IR_MatrixDatatype =>
+            reduction.target match {
+              case acc : IR_VariableAccess =>
+                // matrix variable access
+                (IR_ArrayAccess(acc, 0), targetDt.resolveBaseDatatype, dt.sizeM * dt.sizeN)
+              case acc : IR_ArrayAccess    =>
+                // (resolved) matrix element access: use base datatype
+                (acc, targetDt.resolveBaseDatatype, 1)
+              case acc                     =>
+                (acc, targetDt, 1)
+            }
+          case _                            =>
+            (reduction.target, targetDt, 1)
+        }
+        stmts += MPI_AllReduce(IR_AddressOf(acc), dt, count, reduction.op)
+      }
       stmts
   }, false) // switch off recursion due to wrapping mechanism
 }

@@ -100,7 +100,7 @@ case class SIMD_ConcShift(var left : IR_VariableAccess, var right : IR_VariableA
         }
 
       case "QPX"  => out << "vec_sldw(" << left << ", " << right << ", " << offset << ")"
-      case "NEON" => out << "vextq_f32(" << left << ", " << right << ", " << offset << ")" // TODO: only single precision?
+      case "NEON" => out << "vextq_" << (if (Knowledge.useDblPrecision) "f64" else "f32") << "(" << left << ", " << right << ", " << offset << ")"
     }
   }
 }

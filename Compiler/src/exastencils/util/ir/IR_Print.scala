@@ -32,6 +32,8 @@ object IR_Print {
   def apply(stream : IR_VariableAccess, toPrint : IR_Expression*) = new IR_Print(stream, toPrint.to[ListBuffer])
 
   def endl : IR_Expression = IR_VariableAccess("std::endl", IR_StringDatatype)
+  def flush : IR_Expression = IR_VariableAccess("std::flush", IR_StringDatatype)
+  def newline : IR_Expression = IR_StringConstant("\\n")
 }
 
 case class IR_Print(var stream : IR_VariableAccess, var toPrint : ListBuffer[IR_Expression]) extends IR_Statement {

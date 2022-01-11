@@ -1,3 +1,4 @@
+
 //=============================================================================
 //
 //  This file is part of the ExaStencils code generation framework. ExaStencils
@@ -171,13 +172,13 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val algorithmicDatatype : Parser[L4_Datatype] = (
     ("Complex" ~ "<") ~> numericDatatype <~ ">" ^^ { x => L4_ComplexDatatype(x) }
-      ||| "Vector" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => L4_VectorDatatype(x, s) }
-      ||| ("RowVector" ||| "RVector") ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => L4_VectorDatatype(x, s, true) }
-      ||| ("ColumnVector" ||| "CVector") ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => L4_VectorDatatype(x, s, false) }
-      ||| numericDatatype ~ ("<" ~> integerLit <~ ">") ^^ { case x ~ s => L4_VectorDatatype(x, s) }
-      ||| "Vec2" ^^ { _ => L4_VectorDatatype(L4_RealDatatype, 2) }
-      ||| "Vec3" ^^ { _ => L4_VectorDatatype(L4_RealDatatype, 3) }
-      ||| "Vec4" ^^ { _ => L4_VectorDatatype(L4_RealDatatype, 4) }
+      ||| "Vector" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => L4_MatrixDatatype(x, s, 1) }
+      ||| ("RowVector" ||| "RVector") ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => L4_MatrixDatatype(x, 1, s) }
+      ||| ("ColumnVector" ||| "CVector") ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => L4_MatrixDatatype(x, s, 1) }
+      ||| numericDatatype ~ ("<" ~> integerLit <~ ">") ^^ { case x ~ s => L4_MatrixDatatype(x, s, 1) }
+      ||| "Vec2" ^^ { _ => L4_MatrixDatatype(L4_RealDatatype, 2, 1) }
+      ||| "Vec3" ^^ { _ => L4_MatrixDatatype(L4_RealDatatype, 3, 1) }
+      ||| "Vec4" ^^ { _ => L4_MatrixDatatype(L4_RealDatatype, 4, 1) }
       ||| "TensorN" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ dims ~ order => L4_TensorDatatypeN(x, dims, order) }
       ||| "Tensor1" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ dims => L4_TensorDatatype1(x, dims) }
       ||| "Tensor2" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ dims => L4_TensorDatatype2(x, dims) }
@@ -280,6 +281,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val loopModifier : Parser[(String, Any)] = (
     "only" ~> regionSpecification ^^ (p => ("only", p))
       ||| "sequentially" ^^ (_ => ("sequentially", true)) // FIXME: seq HACK
+      ||| "novect" ^^ (_ => ("novect", true))
       ||| "where" ~> booleanexpression ^^ (p => ("where", p))
       ||| "starting" ~> expressionIndex ^^ (p => ("starting", p))
       ||| "ending" ~> expressionIndex ^^ (p => ("ending", p))
@@ -288,7 +290,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| precomm ^^ (p => ("precomm", p))
       ||| postcomm ^^ (p => ("postcomm", p))
     )
-  lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => L4_Reduction(op, s) })
+  lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> genericAccess <~ ")") ^^ { case op ~ acc => L4_Reduction(op, acc) })
   lazy val regionSpecification = locationize((("ghost" ||| "dup" ||| "inner") ~ constIndex ~ ("on" <~ "boundary").?) ^^ { case region ~ dir ~ bc => L4_RegionSpecification(region, dir, bc.isDefined) })
 
   lazy val assignment = locationize((genericAccess) ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })
@@ -433,19 +435,19 @@ object L4_Parser extends ExaParser with PackratParsers {
 
 
     lazy val genericAccess = (
-      locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ ("[" ~> integerLit <~ "]").?
-        ^^ { case id ~ slot ~ level ~ offset ~ arrayIndex => L4_UnresolvedAccess(id, level, slot, offset, None, arrayIndex, None) }) |||
     locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).?  ~ matIndex.? ^^ {
         case id ~ slot ~ level ~ offset  ~ matIdx =>
-      L4_UnresolvedAccess(id, level, slot, offset, None, None, matIdx)})
+      L4_UnresolvedAccess(id, level, slot, offset, None, matIdx)})
       ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
-      ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None, None) })
+      ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None) })
     ) // component acccess mit spitzen klammern
 
 
-   lazy val matIndex = (index ||| rangeIndex1d) ~ (index ||| rangeIndex1d) ^^ {
-    case matIdxY ~ matIdxX =>
-         Array[L4_Index](matIdxY, matIdxX)
+   lazy val matIndex = (index ||| rangeIndex1d) ~ (index ||| rangeIndex1d).? ^^ {
+    case y ~ x =>
+      if(x.isDefined)
+         L4_MatIndex(Array[L4_Index](y, x.get))
+      else L4_MatIndex(Array[L4_Index](y))
   }
 
 

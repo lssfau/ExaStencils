@@ -48,7 +48,7 @@ case class L3_FutureFieldAccess(
     L4_FutureFieldAccess(name, level,
       slot.progress,
       L3_ProgressOption(offset)(_.progress),
-      None,
+
       frozen)
   }
 

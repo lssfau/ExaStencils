@@ -97,6 +97,10 @@ abstract class IR_PrintVtk extends IR_Statement with IR_Expandable {
   def stmtsForNodeData : ListBuffer[IR_Statement]
 
   override def expand() : Output[StatementList] = {
+
+    if (Knowledge.performance_addEstimation)
+      Logger.warn("Vtk output in combination with the \"performance_addEstimation\" flag is not supported yet.")
+
     if (!Settings.additionalIncludes.contains("fstream"))
       Settings.additionalIncludes += "fstream"
 
@@ -124,8 +128,8 @@ object IR_ResolveVtkPrinters extends DefaultStrategy("ResolveVtkPrinters") {
   this += new Transformation("ResolveFunctionCalls", {
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printVtkSWE", _), args)) =>
       args match {
-        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i)) => IR_PrintVtkSWE(s, i.toInt)
-        case _                                                    => Logger.error("Malformed call to printVtkSWE; usage: printVtkSWE ( \"filename\", level )")
+        case ListBuffer(s : IR_Expression, IR_IntegerConstant(i), fields @ _*) => IR_PrintVtkSWE(s, i.toInt, fields.to[ListBuffer])
+        case _                                                    => Logger.error("Malformed call to printVtkSWE; usage: printVtkSWE ( \"filename\", level, fields : FieldAccess* )")
       }
 
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printVtkNS", _), args)) =>
