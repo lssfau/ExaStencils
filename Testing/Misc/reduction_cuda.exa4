@@ -60,7 +60,7 @@ Function Application {
         fabs(redTarget[1][0] - n * d) <= eps &&
         fabs(redTarget[1][1] - n * e) <= eps &&
         fabs(redTarget[1][2] - n * f) <= eps &&
-		fabs(redTarget[2][0] - n * zero) <= eps && fabs(redTarget[2][1] - n * zero) <= eps && fabs(redTarget[2][2] - n * zero) ) {
+		fabs(redTarget[2][0] - n * zero) <= eps && fabs(redTarget[2][1] - n * zero) <= eps && fabs(redTarget[2][2] - n * zero) <= eps ) {
 		
 		print('Passed stage 1')
 		
@@ -86,7 +86,7 @@ Function Application {
         fabs(redTarget[1][0] - n * d) <= eps &&
         fabs(redTarget[1][1] - n * e) <= eps &&
         fabs(redTarget[1][2] - n * f) <= eps &&
-		fabs(redTarget[2][0] - n * zero) <= eps && fabs(redTarget[2][1] - n * zero) <= eps && fabs(redTarget[2][2] - n * zero) ) {
+		fabs(redTarget[2][0] - n * zero) <= eps && fabs(redTarget[2][1] - n * zero) <= eps && fabs(redTarget[2][2] - n * zero) <= eps ) {
 		
 		print('Passed stage 2')
 		
