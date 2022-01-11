@@ -79,3 +79,10 @@ case class IR_AddressOf(var left : IR_Expression) extends IR_Expression {
   override def datatype = left.datatype
   override def prettyprint(out : PpStream) : Unit = out << "(&(" << left << "))"
 }
+
+// bitwise operations
+
+case class IR_BitwiseNot(var left : IR_Expression) extends IR_Expression {
+  override def datatype = left.datatype
+  override def prettyprint(out : PpStream) : Unit = out << "(~(" << left << "))"
+}

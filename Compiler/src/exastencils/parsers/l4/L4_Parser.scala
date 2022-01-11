@@ -281,6 +281,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val loopModifier : Parser[(String, Any)] = (
     "only" ~> regionSpecification ^^ (p => ("only", p))
       ||| "sequentially" ^^ (_ => ("sequentially", true)) // FIXME: seq HACK
+      ||| "novect" ^^ (_ => ("novect", true))
       ||| "where" ~> booleanexpression ^^ (p => ("where", p))
       ||| "starting" ~> expressionIndex ^^ (p => ("starting", p))
       ||| "ending" ~> expressionIndex ^^ (p => ("ending", p))

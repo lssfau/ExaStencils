@@ -20,6 +20,7 @@ package exastencils.simd
 
 import exastencils.base.ir._
 import exastencils.config._
+import exastencils.optimization.ir.VectorizationException
 import exastencils.prettyprinting.PpStream
 
 trait SIMD_Datatype extends IR_Datatype {
@@ -48,7 +49,27 @@ case object SIMD_RealDatatype extends SIMD_Datatype {
       case "AVX" | "AVX2"    => out << "__m256" << suffix
       case "AVX512" | "IMCI" => out << "__m512" << suffix
       case "QPX"             => out << "vector4double" // no suffix
-      case "NEON"            => out << "float32x4_t" // FIXME: only single precision until now
+      case "NEON"            => out << (if (Knowledge.useDblPrecision) "float64x2_t" else "float32x4_t")
+    }
+  }
+
+  override def prettyprint_mpi = "INVALID DATATYPE: " + this.prettyprint()
+}
+
+// AVX512 comparison returns _mmask datatypes, SIMD_RealDatatypes for others
+
+case object SIMD_MaskDatatype extends SIMD_Datatype {
+  exastencils.core.Duplicate.registerConstant(this)
+
+  override def datatype : IR_ScalarDatatype = IR_RealDatatype
+
+  override def prettyprint(out : PpStream) : Unit = {
+    Platform.simd_instructionSet match {
+      case "SSE3" | "AVX" | "AVX2" => out << SIMD_RealDatatype.prettyprint()
+      case "AVX512"                => out << "__mmask" << Platform.simd_vectorSize
+      case "NEON"                  => out << (if (Knowledge.useDblPrecision) "uint64x2_t" else "uint32x4_t")
+      case "IMCI"                  => new VectorizationException("SIMD_MaskDatatype: Currently unsupported for " + Platform.simd_instructionSet)
+      case "QPX"                   => new VectorizationException("SIMD_MaskDatatype: Currently unsupported for " + Platform.simd_instructionSet)
     }
   }
 
