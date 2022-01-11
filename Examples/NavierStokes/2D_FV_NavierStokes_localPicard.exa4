@@ -18,7 +18,7 @@ Function Application ( ) : Unit {
   Var curPrintIt : Int = 0
   repeat until ( curTime >= maxTime ) {
     vis@finest ( )
-    if ( curTime >= nextPrint ) {
+    if ( !getKnowledge('testing_enabled') && curTime >= nextPrint ) {
       nextPrint += printInterval
       Var filename_vel : String
       buildString ( filename_vel, "data/output_", curPrintIt, ".vtk" )
@@ -94,7 +94,9 @@ Function updateVis@all {
 }
 
 Function vis@finest {
-  updateVis ( )
-  //showMappedImageAndWaitWhen ( curTime < maxTime, uVis, vVis, velMag )
-  showMappedImageAndWaitWhen ( curTime < maxTime, velMag )
+  if ( !getKnowledge('testing_enabled') ) {
+    updateVis ( )
+    //showMappedImageAndWaitWhen ( curTime < maxTime, uVis, vVis, velMag )
+    showMappedImageAndWaitWhen ( curTime < maxTime, velMag )
+  }
 }
