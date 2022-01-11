@@ -20,7 +20,6 @@ Function Application {
 	initDomain (  )
 	initFieldsWithZero (  )
 
-    // 0.
 	loop over mat@finest {
         mat@finest = matrixEntry
     }
@@ -28,7 +27,6 @@ Function Application {
     Var redTarget : Matrix < Real, 3, 3 > = 0.
     Var ones : Matrix < Real, 3, 3 > = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
 
-	// 1.
 	loop over mat@finest with reduction (+: redTarget[0][0]) {
         Var tmp : Matrix < Real, 3, 3 > = ones * mat@finest
         redTarget[0][0] += tmp[0][0] + tmp[1][1] + tmp[2][2]
@@ -51,7 +49,6 @@ Function Application {
 	Val f : Real = 2.
 	Val zero : Real = 0.
 
-	// 2.
 	loop over mat@finest with reduction(+: redTarget) {
 		redTarget += {{a, b, c}, {d, e, f}, {zero, zero, zero}}
 	}
@@ -68,10 +65,11 @@ Function Application {
 		print('Passed stage 1')
 		
 	} else {
-		print('Failed stage 1')
+		print('Failed stage 1. redTarget[0][0] = ', redTarget[0][0], '. redTarget[0][1] = ', redTarget[0][1], '. redTarget[0][2] = ', redTarget[0][2],
+                '. redTarget[1][0] = ', redTarget[1][0], '. redTarget[1][1] = ', redTarget[1][1], '. redTarget[1][2] = ', redTarget[1][2],
+                '. redTarget[2][0] = ', redTarget[2][0], '. redTarget[2][1] = ', redTarget[2][1], '. redTarget[2][2] = ', redTarget[2][2])
 	}
 
-	// 3.
 	loop over mat@finest with reduction(+: redTarget) {
 		redTarget[0][0] += a
 		redTarget[0][1] += b
@@ -93,8 +91,21 @@ Function Application {
 		print('Passed stage 2')
 		
 	} else {
-		print('Failed stage 2')
+		print('Failed stage 2. redTarget[0][0] = ', redTarget[0][0], '. redTarget[0][1] = ', redTarget[0][1], '. redTarget[0][2] = ', redTarget[0][2],
+                '. redTarget[1][0] = ', redTarget[1][0], '. redTarget[1][1] = ', redTarget[1][1], '. redTarget[1][2] = ', redTarget[1][2],
+                '. redTarget[2][0] = ', redTarget[2][0], '. redTarget[2][1] = ', redTarget[2][1], '. redTarget[2][2] = ', redTarget[2][2])
 	}
+
+    Var tmp : Real = 0.
+    loop over mat@finest with reduction (+: tmp) {
+        tmp += mat@finest[0][0] * mat@finest[0][0]
+    }
+
+    if (fabs(tmp - n * (matrixEntry**2)) <= eps) {
+        print('Passed stage 3')
+    } else {
+        print('Failed stage 3: tmp = ', tmp)
+    }
 
 	destroyGlobals (  )
 }
