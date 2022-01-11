@@ -151,8 +151,17 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
     bufferAccesses.clear()
 
     mpiStmt match {
-      case send : MPI_Send        => processRead(send.buffer)
-      case recv : MPI_Receive     => processWrite(recv.buffer)
+      case send : MPI_Send    => processRead(send.buffer)
+      case recv : MPI_Receive => processWrite(recv.buffer)
+
+      case bcast : MPI_Bcast =>
+        processRead(bcast.buffer)
+        processWrite(bcast.buffer)
+
+      case gather : MPI_Gather =>
+        processWrite(gather.recvbuf)
+        processRead(gather.sendbuf)
+
       case reduce : MPI_AllReduce =>
         processWrite(reduce.recvbuf)
         if (("MPI_IN_PLACE" : IR_Expression) == reduce.sendbuf)

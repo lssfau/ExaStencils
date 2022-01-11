@@ -1,0 +1,6 @@
+
+// omp parallelization on exactly one fragment in one block
+import '../../../Examples/lib/domain_onePatch.knowledge'
+import '../../../Examples/lib/parallelization_pureOmp.knowledge'
+
+testing_enabled = true

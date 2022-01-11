@@ -19,7 +19,7 @@ Function Application ( ) : Unit {
   Var curPrintIt : Int = 0
   repeat until ( curTime >= maxTime ) {
     vis@finest ( )
-    if ( curTime >= nextPrint ) {
+    if ( !getKnowledge('testing_enabled') && curTime >= nextPrint ) {
       nextPrint += printInterval
       Var filename_vel : String
       //buildString ( filename_vel, "img/vel_", curPrintIt, ".png" )
@@ -329,6 +329,8 @@ Function updateVis@finest {
 }
 
 Function vis@finest {
-  updateVis ( )
-  showMappedImageAndWaitWhen ( curTime < maxTime, velMag, phiVis )
+  if ( !getKnowledge('testing_enabled') ) {
+    updateVis ( )
+    showMappedImageAndWaitWhen ( curTime < maxTime, velMag, phiVis )
+  }
 }
