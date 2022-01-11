@@ -50,8 +50,13 @@ case class SIMD_Scalars2Vector(var name : String, var scalars : ListBuffer[IR_Ex
       case "NEON" =>
         out << ";\n"
         out << "{\n"
-        out << " float _a[4] = { " <<< (scalars, ", ") << " };\n"
-        out << ' ' << name << " = vld1q_f32(_a);\n"
+        if (Knowledge.useDblPrecision) {
+          out << " double _a[2] = { " <<< (scalars, ", ") << " };\n"
+          out << ' ' << name << " = vld1q_f64(_a);\n"
+        } else {
+          out << " float _a[4] = { " <<< (scalars, ", ") << " };\n"
+          out << ' ' << name << " = vld1q_f32(_a);\n"
+        }
         out << "}"
     }
   }
