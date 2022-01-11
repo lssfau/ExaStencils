@@ -48,7 +48,7 @@ object CUDA_ReplaceArrayAccesses extends QuietDefaultStrategy("Replace array acc
 
       IR_Assignment(dst, IR_BinaryOperators.createExpression(op.replace("=", ""), replacement, src))
 
-    case assign @ IR_Assignment(dst @ IR_ArrayAccess(_ : IR_VariableAccess, _, _), src, "=") if isReductionVariableAccess(dst) =>
+    case _ @ IR_Assignment(dst @ IR_ArrayAccess(_ : IR_VariableAccess, _, _), src, "=") if isReductionVariableAccess(dst) =>
 
       // allow reduction variable on rhs to be replaced
       src match {

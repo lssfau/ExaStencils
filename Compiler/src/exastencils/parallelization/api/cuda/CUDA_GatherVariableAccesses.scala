@@ -46,6 +46,8 @@ object CUDA_GatherVariableAccesses extends QuietDefaultStrategy("Gather local Va
 
   def clear() = {
     accesses = mutable.HashMap[String, (IR_Access, IR_Datatype)]()
+    ignoredMatrixVariableAccesses = mutable.SortedSet[String]()
+    ignoredAccesses = mutable.SortedSet[String]()
     ignoredAccesses += "std::cout"
     ignoredAccesses += "std::cerr"
     ignoredAccesses += "std::endl"
