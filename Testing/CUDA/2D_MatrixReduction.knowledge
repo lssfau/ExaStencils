@@ -2,29 +2,29 @@ testing_enabled       = true
 
 dimensionality             = 2
 
-minLevel					= 5
-maxLevel					= 5
+minLevel					= 3
+maxLevel					= 3
 
 domain_onlyRectangular		= true
-domain_numBlocks			= 1
-domain_numFragmentsPerBlock	= 1
+domain_numBlocks			= 4
+domain_numFragmentsPerBlock	= 10
 domain_fragmentLength_x		= 1
 domain_fragmentLength_y		= 1
 domain_fragmentLength_z		= 1
 
 domain_rect_generate		= true
-domain_rect_numBlocks_x		= 1
-domain_rect_numBlocks_y		= 1
+domain_rect_numBlocks_x		= 2
+domain_rect_numBlocks_y		= 2
 domain_rect_numBlocks_z		= 1
-domain_rect_numFragsPerBlock_x	= 1
-domain_rect_numFragsPerBlock_y	= 1
+domain_rect_numFragsPerBlock_x	= 5
+domain_rect_numFragsPerBlock_y	= 2
 domain_rect_numFragsPerBlock_z	= 1
 
 omp_enabled					= true
 omp_numThreads				= 10
 
-mpi_enabled					= false
-mpi_numThreads				= 1
+mpi_enabled					= true
+mpi_numThreads				= 4
 
 omp_parallelizeLoopOverFragments	= true
 omp_parallelizeLoopOverDimensions	= false
