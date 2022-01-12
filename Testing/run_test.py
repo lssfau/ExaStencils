@@ -87,12 +87,14 @@ def run_test(generator_path: str, problem_name: str, knowledge_path: str, exa_fi
     if not result.returncode == 0:
         print(result.stderr.decode('utf-8'))
         return result.returncode
-    else:
+    elif expected_results_path:
         result_str = result.stdout.decode('utf-8')
         if check_results(result_str, expected_results_path) is True:
             return result.returncode
         else:
             return -1
+    else:
+        return result.returncode
 
 
 def main():

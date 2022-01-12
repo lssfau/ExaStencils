@@ -239,6 +239,10 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           stmts += IR_Comment(s"Host time for computational ops: ${ estimatedTimeOps_host * 1000.0 } ms")
           stmts += IR_Comment(s"Device time for computational ops: ${ estimatedTimeOps_device * 1000.0 } ms")
 
+          stmts += IR_Comment(s"Additions: ${ EvaluateForOps.numAdd }")
+          stmts += IR_Comment(s"Multiplications: ${ EvaluateForOps.numMul}")
+          stmts += IR_Comment(s"Divisions: ${ EvaluateForOps.numDiv}")
+
           // roofline
           val totalEstimate = IR_PerformanceEstimate(Math.max(estimatedTimeOps_host, optimisticTimeMem_host), Math.max(estimatedTimeOps_device, optimisticTimeMem_device))
           totalEstimate.device += Platform.sw_cuda_kernelCallOverhead
