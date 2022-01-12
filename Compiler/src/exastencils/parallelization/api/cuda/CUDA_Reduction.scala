@@ -46,7 +46,7 @@ object CUDA_LinearizeReductionDeviceDataAccess extends DefaultStrategy("Lineariz
 
 /// CUDA_ReductionDeviceData
 
-case class CUDA_ReductionDeviceData(var size : IR_Expression, var targetDt : IR_Datatype, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, false) {
+case class CUDA_ReductionDeviceData(var numPoints : IR_Expression, var targetDt : IR_Datatype, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, false) {
   override def prettyprint(out : PpStream) = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
   def baseDt = targetDt.resolveBaseDatatype
 
@@ -71,11 +71,11 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
     case kernel : CUDA_Kernel if kernel.reduction.isDefined =>
       val target = kernel.reduction.get.target
       val resultDt = CUDA_Util.getReductionDatatype(target)
-      val strideHodt = resultDt.getSizeArray.product
+      val strideReturnDt = resultDt.getSizeArray.product
 
       // update assignments according to reduction clauses
       val index = IR_ExpressionIndex((0 until kernel.parallelDims).map(dim =>
-        strideHodt * IR_VariableAccess(CUDA_Kernel.KernelVariablePrefix + CUDA_Kernel.KernelGlobalIndexPrefix + dim, IR_IntegerDatatype)
+        strideReturnDt * IR_VariableAccess(CUDA_Kernel.KernelVariablePrefix + CUDA_Kernel.KernelGlobalIndexPrefix + dim, IR_IntegerDatatype)
           - IR_IntegerConstant(kernel.minIndices(dim)) : IR_Expression).toArray)
 
       val size = IR_IntegerConstant(1)
