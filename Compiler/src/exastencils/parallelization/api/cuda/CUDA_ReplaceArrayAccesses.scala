@@ -59,8 +59,8 @@ object CUDA_ReplaceArrayAccesses extends QuietDefaultStrategy("Replace array acc
           val replacement = IR_VariableAccess(name, acc._2)
 
           IR_Assignment(dst, replacement)
+        // traverse tree and replace
         case _  : IR_Expression =>
-          // traverse tree and replace
           val tmp = Duplicate(reductionTarget.get)
           reductionTarget = None
           CUDA_ReplaceReductionVariableAccesses.applyStandalone(src)

@@ -46,7 +46,7 @@ object CUDA_LinearizeReductionDeviceDataAccess extends DefaultStrategy("Lineariz
 
 /// CUDA_ReductionDeviceData
 
-case class CUDA_ReductionDeviceData(var numVals : IR_Expression, var targetDt : IR_Datatype, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, false) {
+case class CUDA_ReductionDeviceData(var size : IR_Expression, var targetDt : IR_Datatype, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, false) {
   override def prettyprint(out : PpStream) = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
   def baseDt = targetDt.resolveBaseDatatype
 
@@ -69,9 +69,13 @@ case class CUDA_ReductionDeviceData(var numVals : IR_Expression, var targetDt : 
 object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in device kernels") {
   this += new Transformation("Process kernel nodes", {
     case kernel : CUDA_Kernel if kernel.reduction.isDefined =>
+      val target = kernel.reduction.get.target
+      val resultDt = CUDA_Util.getReductionDatatype(target)
+      val strideHodt = resultDt.getSizeArray.product
+
       // update assignments according to reduction clauses
       val index = IR_ExpressionIndex((0 until kernel.parallelDims).map(dim =>
-        IR_VariableAccess(CUDA_Kernel.KernelVariablePrefix + CUDA_Kernel.KernelGlobalIndexPrefix + dim, IR_IntegerDatatype)
+        strideHodt * IR_VariableAccess(CUDA_Kernel.KernelVariablePrefix + CUDA_Kernel.KernelGlobalIndexPrefix + dim, IR_IntegerDatatype)
           - IR_IntegerConstant(kernel.minIndices(dim)) : IR_Expression).toArray)
 
       val size = IR_IntegerConstant(1)
@@ -83,9 +87,7 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
         stride(i) = IR_IntegerConstant(s)
       }
 
-      val resultDt = CUDA_Util.getReductionDatatype(kernel.reduction.get.target)
-
-      CUDA_ReplaceReductionAssignments.redTarget = kernel.reduction.get.target
+      CUDA_ReplaceReductionAssignments.redTarget = target
       CUDA_ReplaceReductionAssignments.replacement = CUDA_ReductionDeviceDataAccess(CUDA_ReductionDeviceData(size, resultDt), index, stride)
       CUDA_ReplaceReductionAssignments.applyStandalone(IR_Scope(kernel.body))
       kernel
