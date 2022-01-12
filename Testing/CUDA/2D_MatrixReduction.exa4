@@ -8,11 +8,11 @@ Layout CellMatrixWithComm< Matrix < Real, 3, 3>, Cell >@all {
 Field mat< global, CellMatrixWithComm, 0.0 >@all
 
 Globals {
-    Val eps : Real = 0.0000001
-    Val maxVal : Real = 1000.
-    Val minVal : Real = 0.123
-    Val matrixEntry : Real = 2.
-    Val someVal : Real = 1337.
+	Val eps : Real = 0.0000001
+	Val maxVal : Real = 1000.
+	Val minVal : Real = 0.123
+	Val matrixEntry : Real = 2.
+	Val someVal : Real = 1337.
 }
 
 Function Application {
@@ -21,24 +21,24 @@ Function Application {
 	initFieldsWithZero (  )
 
 	loop over mat@finest {
-        mat@finest = matrixEntry
-    }
+		mat@finest = matrixEntry
+	}
 
-    Var redTarget : Matrix < Real, 3, 3 > = 0.
-    Var ones : Matrix < Real, 3, 3 > = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
+	Var redTarget : Matrix < Real, 3, 3 > = 0.
+	Var ones : Matrix < Real, 3, 3 > = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
 
 	loop over mat@finest with reduction (+: redTarget[0][0]) {
-        Var tmp : Matrix < Real, 3, 3 > = ones * mat@finest
-        redTarget[0][0] += tmp[0][0] + tmp[1][1] + tmp[2][2]
-    }
+		Var tmp : Matrix < Real, 3, 3 > = ones * mat@finest
+		redTarget[0][0] += tmp[0][0] + tmp[1][1] + tmp[2][2]
+	}
 	
 	Val expected : Real = ((2 ** levels@finest ( )) ** getKnowledge ( 'dimensionality' )) * matrixEntry * 3
 	
 	if ( fabs(redTarget[0][0] - expected) <= eps ) {
-        print('Passed stage 0: redTarget equals expected result')
-    } else {
-        print('Failed stage 0: redTarget=', redTarget[0][0], ', expected=', expected)
-    }
+		print('Passed stage 0: redTarget equals expected result')
+	} else {
+		print('Failed stage 0: redTarget=', redTarget[0][0], ', expected=', expected)
+	}
 
 	Val a : Real = 1.
 	Val b : Real = 13.
@@ -48,7 +48,7 @@ Function Application {
 	Val f : Real = 2.
 	Val zero : Real = 0.
 
-    redTarget = 0.
+	redTarget = 0.
 	loop over mat@finest with reduction(+: redTarget) {
 		redTarget += {{a, b, c}, {d, e, f}, {zero, zero, zero}}
 	}
@@ -57,17 +57,17 @@ Function Application {
 	if (fabs(redTarget[0][0] - n * a) <= eps &&
 		fabs(redTarget[0][1] - n * b) <= eps &&
 		fabs(redTarget[0][2] - n * c) <= eps &&
-        fabs(redTarget[1][0] - n * d) <= eps &&
-        fabs(redTarget[1][1] - n * e) <= eps &&
-        fabs(redTarget[1][2] - n * f) <= eps &&
+		fabs(redTarget[1][0] - n * d) <= eps &&
+		fabs(redTarget[1][1] - n * e) <= eps &&
+		fabs(redTarget[1][2] - n * f) <= eps &&
 		fabs(redTarget[2][0] - n * zero) <= eps && fabs(redTarget[2][1] - n * zero) <= eps && fabs(redTarget[2][2] - n * zero) <= eps ) {
 		
 		print('Passed stage 1')
 		
 	} else {
 		print('Failed stage 1. redTarget[0][0] = ', redTarget[0][0], '. redTarget[0][1] = ', redTarget[0][1], '. redTarget[0][2] = ', redTarget[0][2],
-                '. redTarget[1][0] = ', redTarget[1][0], '. redTarget[1][1] = ', redTarget[1][1], '. redTarget[1][2] = ', redTarget[1][2],
-                '. redTarget[2][0] = ', redTarget[2][0], '. redTarget[2][1] = ', redTarget[2][1], '. redTarget[2][2] = ', redTarget[2][2])
+			'. redTarget[1][0] = ', redTarget[1][0], '. redTarget[1][1] = ', redTarget[1][1], '. redTarget[1][2] = ', redTarget[1][2],
+			'. redTarget[2][0] = ', redTarget[2][0], '. redTarget[2][1] = ', redTarget[2][1], '. redTarget[2][2] = ', redTarget[2][2])
 	}
 
 	redTarget = 0.
@@ -84,29 +84,29 @@ Function Application {
 	if (fabs(redTarget[0][0] - n * a) <= eps &&
 		fabs(redTarget[0][1] - n * b) <= eps &&
 		fabs(redTarget[0][2] - n * c) <= eps &&
-        fabs(redTarget[1][0] - n * d) <= eps &&
-        fabs(redTarget[1][1] - n * e) <= eps &&
-        fabs(redTarget[1][2] - n * f) <= eps &&
+		fabs(redTarget[1][0] - n * d) <= eps &&
+		fabs(redTarget[1][1] - n * e) <= eps &&
+		fabs(redTarget[1][2] - n * f) <= eps &&
 		fabs(redTarget[2][0] - n * zero) <= eps && fabs(redTarget[2][1] - n * zero) <= eps && fabs(redTarget[2][2] - n * zero) <= eps ) {
 		
 		print('Passed stage 2')
 		
 	} else {
 		print('Failed stage 2. redTarget[0][0] = ', redTarget[0][0], '. redTarget[0][1] = ', redTarget[0][1], '. redTarget[0][2] = ', redTarget[0][2],
-                '. redTarget[1][0] = ', redTarget[1][0], '. redTarget[1][1] = ', redTarget[1][1], '. redTarget[1][2] = ', redTarget[1][2],
-                '. redTarget[2][0] = ', redTarget[2][0], '. redTarget[2][1] = ', redTarget[2][1], '. redTarget[2][2] = ', redTarget[2][2])
+			'. redTarget[1][0] = ', redTarget[1][0], '. redTarget[1][1] = ', redTarget[1][1], '. redTarget[1][2] = ', redTarget[1][2],
+			'. redTarget[2][0] = ', redTarget[2][0], '. redTarget[2][1] = ', redTarget[2][1], '. redTarget[2][2] = ', redTarget[2][2])
 	}
 
-    Var tmp : Real = 0.
-    loop over mat@finest with reduction (+: tmp) {
-        tmp += mat@finest[0][0] * mat@finest[0][0]
-    }
+	Var tmp : Real = 0.
+	loop over mat@finest with reduction (+: tmp) {
+		tmp += mat@finest[0][0] * mat@finest[0][0]
+	}
 
-    if (fabs(tmp - n * (matrixEntry**2)) <= eps) {
-        print('Passed stage 3')
-    } else {
-        print('Failed stage 3: tmp = ', tmp)
-    }
+	if (fabs(tmp - n * (matrixEntry**2)) <= eps) {
+		print('Passed stage 3')
+	} else {
+		print('Failed stage 3: tmp = ', tmp)
+	}
 
 	destroyGlobals (  )
 }
