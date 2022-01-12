@@ -32,7 +32,7 @@ Function Application {
         redTarget[0][0] += tmp[0][0] + tmp[1][1] + tmp[2][2]
     }
 	
-	Val expected : Real = ((2 ** levels@finest ( )) * matrixEntry * 3) ** getKnowledge ( 'dimensionality' )
+	Val expected : Real = ((2 ** levels@finest ( )) ** getKnowledge ( 'dimensionality' )) * matrixEntry * 3
 	
 	if ( fabs(redTarget[0][0] - expected) <= eps ) {
         print('Passed stage 0: redTarget equals expected result')
@@ -40,7 +40,6 @@ Function Application {
         print('Failed stage 0: redTarget=', redTarget[0][0], ', expected=', expected)
     }
 
-	redTarget = 0.
 	Val a : Real = 1.
 	Val b : Real = 13.
 	Val c : Real = -1.
@@ -49,6 +48,7 @@ Function Application {
 	Val f : Real = 2.
 	Val zero : Real = 0.
 
+    redTarget = 0.
 	loop over mat@finest with reduction(+: redTarget) {
 		redTarget += {{a, b, c}, {d, e, f}, {zero, zero, zero}}
 	}
@@ -70,6 +70,7 @@ Function Application {
                 '. redTarget[2][0] = ', redTarget[2][0], '. redTarget[2][1] = ', redTarget[2][1], '. redTarget[2][2] = ', redTarget[2][2])
 	}
 
+	redTarget = 0.
 	loop over mat@finest with reduction(+: redTarget) {
 		redTarget[0][0] += a
 		redTarget[0][1] += b
