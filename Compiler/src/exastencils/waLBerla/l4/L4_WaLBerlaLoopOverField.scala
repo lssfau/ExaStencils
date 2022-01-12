@@ -21,8 +21,10 @@ import exastencils.waLBerla.ir.IR_WaLBerlaLoopOverPoints
 
 case class L4_WaLBerlaLoopOverField(
     var fieldAcc : L4_FieldAccess,
+    // TODO: pack into loop modifier construct
     var region : Option[L4_RegionSpecification],
     var seq : Boolean, // FIXME: seq HACK
+    var noVect : Boolean,
     var condition : Option[L4_Expression],
     var startOffset : Option[L4_ExpressionIndex],
     var endOffset : Option[L4_ExpressionIndex],
@@ -67,11 +69,11 @@ case class L4_WaLBerlaLoopOverField(
 
 object L4_WaLBerlaResolveLoopOverField extends DefaultStrategy("Resolve LoopOverField for WB fields") {
   this += Transformation("Resolve", {
-    case L4_LoopOverField(fAcc : L4_FieldAccess, region, seq, condition, start, end, incr, body, reduction, preComms, postComms) if L4_WaLBerlaFieldCollection.contains(fAcc) =>
+    case L4_LoopOverField(fAcc : L4_FieldAccess, region, seq, noVect, condition, start, end, incr, body, reduction, preComms, postComms) if L4_WaLBerlaFieldCollection.contains(fAcc) =>
       // resolve accesses to waLBerla fields
       val wbField = L4_WaLBerlaFieldCollection.getByFieldAccess(fAcc).get // get field from wb field collection
       val newAcc = L4_FieldAccess(wbField.toField, fAcc.slot, fAcc.offset, fAcc.frozen, fAcc.matIndex) // create 'regular' access for it
 
-      L4_WaLBerlaLoopOverField(newAcc, region, seq, condition, start, end, incr, body, reduction, preComms, postComms)
+      L4_WaLBerlaLoopOverField(newAcc, region, seq, noVect, condition, start, end, incr, body, reduction, preComms, postComms)
   })
 }
