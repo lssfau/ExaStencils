@@ -105,6 +105,8 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
 
       // collect local accesses because these variables need to be passed to the kernel at call
       CUDA_GatherVariableAccesses.clear()
+      if (loop.parallelization.reduction.isDefined)
+        CUDA_GatherVariableAccesses.reductionTarget = Some(loop.parallelization.reduction.get.target)
       CUDA_GatherVariableAccesses.applyStandalone(IR_Scope(loop))
       val accesses = CUDA_GatherVariableAccesses.accesses.toSeq.sortBy(_._1).to[ListBuffer]
 

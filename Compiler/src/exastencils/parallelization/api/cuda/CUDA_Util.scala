@@ -96,6 +96,7 @@ object CUDA_Util {
     (loopVariables, lowerBounds, upperBounds, stepSize)
   }
 
+  // get actual datatype of reduction target
   def getReductionDatatype(target : IR_Expression) = target.datatype match {
     case mat : IR_MatrixDatatype =>
       target match {
@@ -108,6 +109,17 @@ object CUDA_Util {
       }
     case dt : IR_ScalarDatatype =>
       dt
+  }
+
+  // checks if args is the reduction target
+  def isReductionTarget(target : Option[IR_Expression], expr : IR_Expression) = target.isDefined && target.get == expr
+
+  // checks if arg is the reduction target itself or an indexed access to it
+  def isReductionVariableAccess(target : Option[IR_Expression], arrAcc : IR_ArrayAccess) = {
+    arrAcc.base match {
+      case vAcc : IR_VariableAccess => isReductionTarget(target, vAcc) || isReductionTarget(target, arrAcc)
+      case _                        => false
+    }
   }
 
   def dimToMember(i : Int) : String = {

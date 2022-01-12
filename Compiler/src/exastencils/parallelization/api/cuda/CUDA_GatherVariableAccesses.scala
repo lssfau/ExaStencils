@@ -21,11 +21,16 @@ package exastencils.parallelization.api.cuda
 import scala.collection.mutable
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.optimization.ir.EvaluationException
 import exastencils.optimization.ir.IR_SimplifyExpression
+import exastencils.parallelization.api.cuda.CUDA_Util._
 
 object CUDA_GatherVariableAccesses extends QuietDefaultStrategy("Gather local VariableAccess nodes") {
+  var reductionTarget : Option[IR_Expression] = None
+
   var accesses = mutable.HashMap[String, (IR_Access, IR_Datatype)]()
   var ignoredAccesses = mutable.SortedSet[String]()
   var ignoredMatrixVariableAccesses = mutable.SortedSet[String]()
@@ -44,7 +49,10 @@ object CUDA_GatherVariableAccesses extends QuietDefaultStrategy("Gather local Va
     ret
   }
 
+  val fragIdx = IR_LoopOverFragments.defIt
+
   def clear() = {
+    reductionTarget = None
     accesses = mutable.HashMap[String, (IR_Access, IR_Datatype)]()
     ignoredMatrixVariableAccesses = mutable.SortedSet[String]()
     ignoredAccesses = mutable.SortedSet[String]()
@@ -64,10 +72,19 @@ object CUDA_GatherVariableAccesses extends QuietDefaultStrategy("Gather local Va
       if (isEvaluable(idx))
         accesses.put(arrayAccessAsString(base, idx), (arrAcc, base.datatype.resolveBaseDatatype))
 
+      // it can happen that no fragmentIdx is accessed in a loop, but the resulting CudaReductionBuffer requires it
+      if (Knowledge.domain_numFragmentsPerBlock > 1 && isReductionVariableAccess(reductionTarget, arrAcc))
+        accesses.put(fragIdx.name, (fragIdx, fragIdx.datatype))
+
       arrAcc
 
     case vAcc : IR_VariableAccess if !ignoredAccesses.contains(vAcc.name) && !ignoredMatrixVariableAccesses.contains(vAcc.name) =>
       accesses.put(vAcc.name, (vAcc, vAcc.datatype))
       vAcc
+
+    // same phenomenon: fragmentIdx is required by CudaReductionBuffer, but not present in loop body
+    case expr : IR_Expression if Knowledge.domain_numFragmentsPerBlock > 1 && isReductionTarget(reductionTarget, expr) =>
+      accesses.put(fragIdx.name, (fragIdx, fragIdx.datatype))
+      expr
   })
 }
