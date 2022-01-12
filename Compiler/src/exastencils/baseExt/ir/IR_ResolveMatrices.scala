@@ -22,7 +22,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_MatNodes._
-import exastencils.baseExt.ir.IR_MatOperations.{IR_EvalMOpRuntimeExe, IR_GenerateBasicMatrixOperations, IR_GenerateRuntimeInversion}
+import exastencils.baseExt.ir.IR_MatOperations.{ IR_EvalMOpRuntimeExe, IR_GenerateBasicMatrixOperations, IR_GenerateRuntimeInversion }
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.core.StateManager
@@ -171,29 +171,29 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
       } else {
         stmt
       }
-      /*
-    case stmt @ IR_Assignment(dest : IR_FieldAccess, src, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype])    =>
-      // resolve M = M * M into tmp = M * M; M = tmp
-      var selfassign = false
-      StateManager.findAll[IR_Multiplication](HelperNode(src)).foreach(mult =>
-        if (mult.factors.exists(p => p.isInstanceOf[IR_FieldAccess] && p.asInstanceOf[IR_FieldAccess].name == dest.name))
-          selfassign = true
-      )
+    /*
+  case stmt @ IR_Assignment(dest : IR_FieldAccess, src, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype])    =>
+    // resolve M = M * M into tmp = M * M; M = tmp
+    var selfassign = false
+    StateManager.findAll[IR_Multiplication](HelperNode(src)).foreach(mult =>
+      if (mult.factors.exists(p => p.isInstanceOf[IR_FieldAccess] && p.asInstanceOf[IR_FieldAccess].name == dest.name))
+        selfassign = true
+    )
 
-      if (selfassign) {
-        var newStmts = ListBuffer[IR_Statement]()
-        val decl = IR_VariableDeclaration(dest.datatype, "selfassignTmp_" + tmpCounter, src)
-        newStmts += decl
-        stmt.src = IR_VariableAccess(decl)
-        newStmts += stmt
-        newStmts += IR_Assignment(dest, IR_VariableAccess(decl))
-        tmpCounter += 1
-        newStmts
-      } else {
-        stmt
-      }
+    if (selfassign) {
+      var newStmts = ListBuffer[IR_Statement]()
+      val decl = IR_VariableDeclaration(dest.datatype, "selfassignTmp_" + tmpCounter, src)
+      newStmts += decl
+      stmt.src = IR_VariableAccess(decl)
+      newStmts += stmt
+      newStmts += IR_Assignment(dest, IR_VariableAccess(decl))
+      tmpCounter += 1
+      newStmts
+    } else {
+      stmt
+    }
 
-       */
+     */
   })
   //////////////////////////////////////////////
 
@@ -294,24 +294,24 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
 
 
     // debug
-    case IR_ExpressionStatement(call @ IR_FunctionCall(_, args)) if (call.name == "compare")  =>
+    case IR_ExpressionStatement(call @ IR_FunctionCall(_, args)) if (call.name == "compare")           =>
       IR_GenerateBasicMatrixOperations.compare(args(0), args(1), args(2), if (args.length == 4) false else true)
-    case call @ IR_FunctionCall(_, args) if (call.name == "simplifyNumExpr")                  =>
+    case call @ IR_FunctionCall(_, args) if (call.name == "simplifyNumExpr")                           =>
       val v = IR_CompiletimeMatOps.simplifyNumExpr(args(0))
       v
-    case IR_ExpressionStatement(call @ IR_FunctionCall(_, args)) if (call.name == "classifyMatShape")                 =>
+    case IR_ExpressionStatement(call @ IR_FunctionCall(_, args)) if (call.name == "classifyMatShape")  =>
       val shape = IR_ClassifyMatShape(args(0).asInstanceOf[IR_MatrixExpression])
       IR_Print(IR_VariableAccess("std::cout", IR_StringDatatype), shape.toExprList() += IR_StringConstant("\\n"))
-    case IR_ExpressionStatement(call @ IR_FunctionCall(_, args)) if (call.name == "evalMOpRuntimeExe")                 =>
+    case IR_ExpressionStatement(call @ IR_FunctionCall(_, args)) if (call.name == "evalMOpRuntimeExe") =>
       val m = IR_MatNodeUtils.exprToMatExpr(args(0))
       IR_Print(IR_VariableAccess("std::cout", IR_StringDatatype), IR_StringConstant(IR_EvalMOpRuntimeExe("localsystem", m.rows, IR_CompiletimeMatOps.isConstMatrix(m))))
-    case call @ IR_FunctionCall(_, args) if (call.name == "qrDecomp")                         =>
+    case call @ IR_FunctionCall(_, args) if (call.name == "qrDecomp")                                  =>
       val QR = IR_MatrixSolveOps.QRDecomp(IR_MatNodeUtils.exprToMatExpr(args(0)))
       QR._2
-    case call @ IR_FunctionCall(_, args) if (call.name == "luDecomp")                         =>
+    case call @ IR_FunctionCall(_, args) if (call.name == "luDecomp")                                  =>
       val LU = IR_CompiletimeMatOps.LUDecomp(IR_MatNodeUtils.exprToMatExpr(args(0)))
       LU._1
-    case IR_ExpressionStatement(call @ IR_FunctionCall(_, args)) if (call.name == "mirrorLU") =>
+    case IR_ExpressionStatement(call @ IR_FunctionCall(_, args)) if (call.name == "mirrorLU")          =>
       val input = IR_MatNodeUtils.exprToMatExpr(args(0))
       val LU = IR_CompiletimeMatOps.mirrorLU(input)
       LU
@@ -540,12 +540,12 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
 /** Strategy: linearize matrix expressions */
 object IR_LinearizeMatrices extends DefaultStrategy("linearize matrices") {
   this += Transformation("Linearize", {
- /*
-    case IR_HighDimAccess(base, idx : IR_ExpressionIndex) if base.hasAnnotation(IR_PreItMOps.exprLinearization) =>
-      IR_ArrayAccess(base, base.popAnnotationAs[IR_Expression](IR_PreItMOps.exprLinearization) * idx.indices(0) + idx.indices(1))
-    case IR_HighDimAccess(base, idx : IR_ConstIndex) if base.hasAnnotation(IR_PreItMOps.exprLinearization)      =>
-      IR_ArrayAccess(base, base.popAnnotationAs[IR_Expression](IR_PreItMOps.exprLinearization) * IR_IntegerConstant(idx.indices(0)) + IR_IntegerConstant(idx.indices(1)))
-*/
+    /*
+       case IR_HighDimAccess(base, idx : IR_ExpressionIndex) if base.hasAnnotation(IR_PreItMOps.exprLinearization) =>
+         IR_ArrayAccess(base, base.popAnnotationAs[IR_Expression](IR_PreItMOps.exprLinearization) * idx.indices(0) + idx.indices(1))
+       case IR_HighDimAccess(base, idx : IR_ConstIndex) if base.hasAnnotation(IR_PreItMOps.exprLinearization)      =>
+         IR_ArrayAccess(base, base.popAnnotationAs[IR_Expression](IR_PreItMOps.exprLinearization) * IR_IntegerConstant(idx.indices(0)) + IR_IntegerConstant(idx.indices(1)))
+   */
     case IR_HighDimAccess(base, _) if (!base.datatype.isInstanceOf[IR_MatrixDatatype] && !base.datatype.isInstanceOf[IR_TensorDatatype]) => base
 
     case IR_HighDimAccess(base : IR_MultiDimFieldAccess, idx : IR_Index) =>
@@ -574,7 +574,7 @@ object IR_LinearizeMatrices extends DefaultStrategy("linearize matrices") {
       }
 
       // exclude row vector case
-      if(cols > 1 && rows == 1) {
+      if (cols > 1 && rows == 1) {
         IR_ArrayAccess(base, idx.indices(1))
       } else if (rows > 1 || cols > 1)
         IR_ArrayAccess(base, IR_IntegerConstant(cols) * idx.indices(0) + idx.indices(1))

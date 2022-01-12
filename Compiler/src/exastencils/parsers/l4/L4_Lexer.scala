@@ -49,6 +49,7 @@ class L4_Lexer extends ExaLexer {
   reserved += ("loop", "until", "while", "over", "fragments", "only", "on", "boundary", "where", "starting", "ending", "stepping", "reduction")
   reserved += ("dup", "ghost", "inner")
   reserved += "sequentially" // FIXME: seq HACK
+  reserved += "novect"
   reserved += ("precomm", "postcomm") // temporary loop annotation
   reserved += ("color", "repeat", "with")
 

@@ -94,6 +94,11 @@ object PrettyprintingManager {
           extendedContent.write(s"#define $guard\n\n")
         }
 
+        if (Knowledge.library_CImg) {
+          extendedContent.write("#define cimg_use_jpeg\n")
+          extendedContent.write("#define cimg_use_png\n")
+        }
+
         // add includes for external dependencies
         for (dep <- externalDependencies())
           extendedContent.write(generateInclude(dep))

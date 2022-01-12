@@ -75,6 +75,9 @@ case class L4_FunctionDecl(
     out << " {\n" <<< (body, "\n") << "\n}"
   }
 
+  if (L4_SpecialFunctionReferences.contains(name))
+    Logger.error(s"Function name $name is already taken. Please use another function name.")
+
   override def progress = Logger.error(s"Trying to progress L4 function declaration for $name; this is not supported")
 
   def toFunction = {

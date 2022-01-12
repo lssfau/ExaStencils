@@ -99,7 +99,7 @@ case object IR_BooleanDatatype extends IR_ScalarDatatype {
   exastencils.core.Duplicate.registerConstant(this)
 
   override def prettyprint(out : PpStream) : Unit = out << "bool"
-  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+  override def prettyprint_mpi = "MPI_C_BOOL"
 
   override def typicalByteSize = 1
 }
@@ -197,7 +197,7 @@ case class IR_ComplexDatatype(datatype : IR_Datatype) extends IR_Datatype {
     Settings.additionalNamespaces += "std::complex_literals"
 
   override def prettyprint(out : PpStream) : Unit = out << "std::complex<" << datatype << '>'
-  override def prettyprint_mpi = "MPI_CXX_DOUBLE_COMPLEX"//s"INVALID DATATYPE: " + this.prettyprint()
+  override def prettyprint_mpi = "MPI_CXX_DOUBLE_COMPLEX" //s"INVALID DATATYPE: " + this.prettyprint()
   override def toString() : String = "std::complex<" + datatype + '>'
 
   // TODO: treat like a vec2 or like a struct?
