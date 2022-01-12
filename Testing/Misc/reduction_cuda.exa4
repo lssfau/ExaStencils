@@ -1,8 +1,8 @@
-Domain global< [0.0] to [1.0] >
+Domain global< [0.0, 0.0] to [1.0, 1.0] >
 
 Layout CellMatrixWithComm< Matrix < Real, 3, 3>, Cell >@all {
-	ghostLayers = [1] with communication
-	duplicateLayers = [0]
+	ghostLayers = [1, 1] with communication
+	duplicateLayers = [0, 0]
 }
 
 Field mat< global, CellMatrixWithComm, 0.0 >@all
@@ -32,7 +32,7 @@ Function Application {
         redTarget[0][0] += tmp[0][0] + tmp[1][1] + tmp[2][2]
     }
 	
-	Val expected : Real = (2 ** levels@finest ( )) * matrixEntry * 3
+	Val expected : Real = ((2 ** levels@finest ( )) * matrixEntry * 3) ** getKnowledge ( 'dimensionality' )
 	
 	if ( fabs(redTarget[0][0] - expected) <= eps ) {
         print('Passed stage 0: redTarget equals expected result')
@@ -53,7 +53,7 @@ Function Application {
 		redTarget += {{a, b, c}, {d, e, f}, {zero, zero, zero}}
 	}
 	
-	Val n : Real = (2 ** levels@finest ( ))
+	Val n : Real = (2 ** levels@finest ( )) ** getKnowledge ( 'dimensionality' )
 	if (fabs(redTarget[0][0] - n * a) <= eps &&
 		fabs(redTarget[0][1] - n * b) <= eps &&
 		fabs(redTarget[0][2] - n * c) <= eps &&

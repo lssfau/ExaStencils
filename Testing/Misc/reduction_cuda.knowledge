@@ -1,6 +1,6 @@
 testing_enabled       = true
 
-dimensionality             = 1
+dimensionality             = 2
 
 minLevel					= 5
 maxLevel					= 5
