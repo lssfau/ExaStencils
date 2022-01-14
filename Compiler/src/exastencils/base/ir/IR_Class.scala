@@ -120,3 +120,16 @@ case class IR_Constructor(
     out << "}\n"
   }
 }
+
+/// IR_Destructor
+
+case class IR_Destructor(
+    var name : String,
+    var body : ListBuffer[IR_Statement]) extends IR_Node with PrettyPrintable {
+
+  override def prettyprint(out : PpStream) : Unit = {
+    out << "~" << name << " ( ) {"
+    out <<< (body, "\n") << '\n'
+    out << "}\n"
+  }
+}
