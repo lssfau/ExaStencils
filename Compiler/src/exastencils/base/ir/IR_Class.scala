@@ -21,6 +21,7 @@ package exastencils.base.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.prettyprinting.PpStream
+import exastencils.prettyprinting.PrettyPrintable
 
 /// IR_ObjectInstantiation
 
@@ -75,4 +76,47 @@ case class IR_MemberFunctionCallArrow(
 ) extends IR_Expression {
 
   override def prettyprint(out : PpStream) : Unit = out << objectName << "->" << name << '(' <<< (arguments, ", ") << ')'
+}
+
+/// IR_MemberInitializerList
+
+object IR_MemberInitializerList {
+  def apply(args : (IR_Access, IR_Expression)*) = new IR_MemberInitializerList(args.to[ListBuffer])
+}
+
+case class IR_MemberInitializerList(var arguments : ListBuffer[(IR_Access, IR_Expression)]) extends IR_Expression {
+  def addEntry(member : IR_Access, newVal : IR_Expression) = arguments += Tuple2(member, newVal)
+  def addEntry(newEntry : (IR_Access, IR_Expression)) = arguments += newEntry
+
+  override def datatype = IR_UnitDatatype
+  override def prettyprint(out : PpStream) : Unit = {
+    if (arguments.nonEmpty)
+      out << " : "
+    for (((member, initVal), i) <- arguments.zipWithIndex) {
+      initVal match {
+        case _ : IR_InitializerList =>
+          out << member << initVal << (if (i != arguments.size - 1) ", " else " ")
+        case _ =>
+          out << member << "(" << initVal << ")" << (if (i != arguments.size - 1) ", " else " ")
+      }
+    }
+  }
+}
+
+/// IR_Constructor
+
+case class IR_Constructor(
+    var name : String,
+    var params : ListBuffer[IR_FunctionArgument],
+    var initializerList: IR_MemberInitializerList,
+    var body : ListBuffer[IR_Statement]) extends IR_Node with PrettyPrintable {
+
+  override def prettyprint(out : PpStream) : Unit = {
+    out << name
+    out << "(" <<< (params, ", ") << ")"
+    out << initializerList
+    out << " {"
+    out <<< (body, "\n") << '\n'
+    out << "}\n"
+  }
 }
