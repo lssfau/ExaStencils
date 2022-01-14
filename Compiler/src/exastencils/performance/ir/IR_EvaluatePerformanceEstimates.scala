@@ -212,7 +212,12 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
 
           EvaluateFieldAccess.reset()
           EvaluateFieldAccess.applyStandalone(loop)
-          EvaluateForOps.applyStandalone(loop)
+
+          // apply arithmetic simplifications locally before counting ops
+          val localLoop = Duplicate(loop)
+          IR_SimplifyFloatExpressions.applyStandalone(localLoop)
+          IR_GeneralSimplify.doUntilDoneStandalone(localLoop)
+          EvaluateForOps.applyStandalone(localLoop)
 
           stmts += IR_Comment(s"Accesses: ${ EvaluateFieldAccess.fieldAccesses.keys.mkString(", ") }")
 
