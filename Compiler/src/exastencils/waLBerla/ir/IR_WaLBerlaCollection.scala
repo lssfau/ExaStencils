@@ -2,16 +2,11 @@ package exastencils.waLBerla.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_VariableAccess
-import exastencils.base.ir.IR_VariableDeclaration
-import exastencils.baseExt.ir.IR_FunctionCollection
-import exastencils.config.Knowledge
-import exastencils.config.Platform
-import exastencils.core.Duplicate
-import exastencils.core.ObjectWithState
-import exastencils.core.StateManager
-import exastencils.datastructures.DefaultStrategy
-import exastencils.datastructures.Transformation
+import exastencils.base.ir._
+import exastencils.baseExt.ir._
+import exastencils.config._
+import exastencils.core._
+import exastencils.datastructures._
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.parallelization.api.cuda.CUDA_KernelFunctions
 import exastencils.prettyprinting.PrettyprintingManager
@@ -75,8 +70,8 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   var interfaceInstance : Option[IR_WaLBerlaInterface] = None
 
   // add future functions
-  functions += IR_WaLBerlaInitBlockForest()
-  functions += IR_WaLBerlaInitStaticRectDomain()
+  functions ++= IR_WaLBerlaInitFunctionCollection.functions
+  functions ++= IR_WaLBerlaDeInitFunctionCollection.functions
   for (field <- IR_WaLBerlaFieldCollection.objects.groupBy(_.name)) {
     val leveledFields = field._2.groupBy(_.level).map(_._2.head).to[ListBuffer]
     functions += IR_WaLBerlaAddFieldToStorage(leveledFields)

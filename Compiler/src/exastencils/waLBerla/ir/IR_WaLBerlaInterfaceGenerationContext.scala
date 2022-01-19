@@ -4,19 +4,13 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.waLBerla.ir.IR_WaLBerlaUtil.make_unique
 
 // store context
 
 case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_WaLBerlaFunction]) {
 
-  IR_WaLBerlaCollectAccessedFields.applyStandalone(functions)
-  val wbFieldAccesses = IR_WaLBerlaCollectAccessedFields.wbFieldAccesses
-  val uniqueWbFields = wbFieldAccesses.groupBy(_.name).map(_._2.head.field).to[ListBuffer] // find unique wb fields
+  val uniqueWbFields = IR_WaLBerlaFieldCollection.objects.groupBy(_.name).map(_._2.head).to[ListBuffer] // find unique wb fields
     .sortBy(_.name)
-  val uniqueWbFieldsPerLevel = wbFieldAccesses.groupBy(_.field.codeName).map(_._2.head.field).to[ListBuffer] // find unique wb fields per level
-    .sortBy(_.level).sortBy(_.name)
-
 
   // ctor params and members
   var ctorParams : ListBuffer[IR_FunctionArgument] = ListBuffer()
@@ -36,7 +30,7 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
   ctorInitializerList.addEntry(blockForest.initializerListEntry)
 
   // comm scheme for each field. packed with a uniform pack info
-  if (true) { // TODO: only generate when necessary
+  if (IR_WaLBerlaUtil.initCommSchemes) {
     for (wbf <- uniqueWbFields) {
       val commScheme = IR_WaLBerlaCommScheme(wbf, slot = 0)
       members += commScheme.baseAccess()
@@ -46,24 +40,13 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
   // ctor body
   var ctorBody : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
 
-  // add pack info for each comm scheme
-  if (true) { // TODO: only generate when necessary
-    // init comm scheme array
-    for (wbf <- uniqueWbFieldsPerLevel) {
-      val slotIt = IR_VariableAccess("slotIt", IR_IntegerDatatype)
-      val commScheme  = IR_WaLBerlaCommScheme(wbf, slotIt)
+  // initialization in ctor body
+  IR_WaLBerlaInitFunctionCollection.functions foreach(f =>
+    ctorBody += IR_FunctionCall(IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype)))
 
-      ctorBody += IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
-        IR_Assignment(commScheme.resolveAccess(), make_unique(commScheme.basetype.resolveBaseDatatype.prettyprint, blockForest)))
-    }
+  // dtor body
+  var dtorBody : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
 
-    // add pack info
-    for (wbf <- uniqueWbFieldsPerLevel) {
-      val slotIt = IR_VariableAccess("slotIt", IR_IntegerDatatype)
-      val commScheme  = IR_WaLBerlaCommScheme(wbf, slotIt)
-
-      ctorBody += IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
-        commScheme.addPackInfo() : IR_Statement)
-    }
-  }
+  IR_WaLBerlaDeInitFunctionCollection.functions foreach(f =>
+    dtorBody += IR_FunctionCall(IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype)))
 }

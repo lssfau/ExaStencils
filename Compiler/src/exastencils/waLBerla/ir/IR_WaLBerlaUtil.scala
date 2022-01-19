@@ -17,6 +17,8 @@ object IR_WaLBerlaUtil {
     case _ => Logger.error("No waLBerla stencil class available for dimension: " + numDims)
   }
 
+  def initCommSchemes = true // TODO: adapt condition
+
   def memberSuffix = "_gen"
   def getGeneratedName(s : String) : String = s + memberSuffix
 }

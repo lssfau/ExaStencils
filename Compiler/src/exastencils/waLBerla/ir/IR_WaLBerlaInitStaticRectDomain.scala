@@ -14,12 +14,16 @@ import exastencils.parallelization.ir.IR_ParallelizationInfo
 
 // TODO refactor
 
+object IR_WaLBerlaInitStaticRectDomain {
+  var fctName : String = "initStaticRectDomain"
+}
+
 case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunction {
 
   // TODO: only meant for static and regular domain partitioning
   // TODO: assumes totalNumFrags = totalNumWbBlocks
 
-  override def name : String = "initStaticRectDomain"
+  override def name : String = IR_WaLBerlaInitStaticRectDomain.fctName
   override def name_=(newName : String) : Unit = name = newName
   override def prettyprint_decl() : String = prettyprint
 
