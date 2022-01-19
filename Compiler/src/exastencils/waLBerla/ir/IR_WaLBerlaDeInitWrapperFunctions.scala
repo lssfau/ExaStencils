@@ -44,7 +44,7 @@ private case class IR_WaLBerlaDeResizeBuffersWrapper() extends IR_WaLBerlaDeInit
     if (IR_FieldCollection.objects.nonEmpty && Knowledge.data_genVariableFieldSizes) {
       for (lvl <- IR_FieldCollection.objects.groupBy(_.level).keys)
         body += IR_FunctionCall(IR_LeveledInternalFunctionReference("resizeAllInner", lvl, IR_UnitDatatype),
-          (0 until Knowledge.dimensionality).map(blockForest.getNumberOfCells).to[ListBuffer])
+          (0 until Knowledge.dimensionality).map(d => blockForest.getNumberOfCells(d) / Math.pow(2, Knowledge.maxLevel - lvl).toInt : IR_Expression).to[ListBuffer])
     }
 
     IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(), body)
