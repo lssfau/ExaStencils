@@ -319,7 +319,7 @@ object Platform {
       case "MSVC" => // nothing to do
 
       case "ICC" =>
-        flags += " -O3 -std=c++11"
+        flags += " -O3 -fno-alias -std=c++11"
 
         if (Knowledge.omp_enabled) {
           if (targetCompilerVersion >= 15)
