@@ -974,10 +974,10 @@ test:CUDA_ExaFluids_Bingham:
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_ExaFluids_Bingham CUDA/3D_ExaFluids_NN_CUDA.knowledge "CUDA/3D_ExaFluids_NN_CUDA.exa4" CUDA/3D_ExaFluids_NN_CUDA.results 1 10 Platform/chimaira-gpu.platform output
 
-test:MatrixReduction_CUDA:
+test:CUDA_2D_MatrixReduction:
     extends: .test_template_CUDA
     script:
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib MatrixReduction_CUDA CUDA/2D_MatrixReduction.knowledge "CUDA/2D_MatrixReduction.exa4" CUDA/2D_MatrixReduction.results 4 10 Platform/chimaira-gpu.platform output
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_2D_MatrixReduction CUDA/2D_MatrixReduction.knowledge "CUDA/2D_MatrixReduction.exa4" CUDA/2D_MatrixReduction.results 4 10 Platform/chimaira-gpu.platform output
 
 
 ###############################################
