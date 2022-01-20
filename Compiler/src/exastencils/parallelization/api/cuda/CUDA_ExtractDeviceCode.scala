@@ -168,6 +168,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         deviceArrayCopies foreach { case (k, dstArr) =>
           val (srcArr, srcDt) = accessesCopiedToDevice.find(_._1 == k).get._2
           deviceStatements += IR_VariableDeclaration(dstArr)
+          deviceStatements += CUDA_Allocate(dstArr, srcDt.getSizeArray.product, srcDt.resolveBaseDatatype)
           deviceStatements += CUDA_Memcpy(dstArr, srcArr, srcDt.typicalByteSize, "cudaMemcpyHostToDevice")
         }
       }
