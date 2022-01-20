@@ -24,19 +24,46 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.datastructures._
+import exastencils.logger.Logger
 import exastencils.optimization.ir.EvaluationException
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.api.cuda.CUDA_Util._
 
 object CUDA_GatherVariableAccesses extends QuietDefaultStrategy("Gather local VariableAccess nodes") {
   var reductionTarget : Option[IR_Expression] = None
+  var kernelCount : Int = 0
 
-  var accesses = mutable.HashMap[String, (IR_Access, IR_Datatype)]()
+  var evaluableAccesses = mutable.HashMap[String, (IR_Access, IR_Datatype)]()
+  var nonEvaluableAccesses = mutable.HashMap[String, (IR_VariableAccess, IR_Datatype)]()
   var ignoredAccesses = mutable.SortedSet[String]()
-  var ignoredMatrixVariableAccesses = mutable.SortedSet[String]()
+  var ignoredArrayVariableAccesses = mutable.SortedSet[String]()
 
-  def arrayAccessAsString(base : IR_VariableAccess, idx : IR_Expression) = base.name + idx.prettyprint()
-  def containsArrayAccess(base : IR_VariableAccess, idx : IR_Expression) = accesses.contains(arrayAccessAsString(base, idx))
+  def basePrefix(base : IR_VariableAccess) = base.name
+  // regular, evaluable indexed array accesses
+  def arrayAccessAsString(base : IR_VariableAccess, idx : IR_Expression) = basePrefix(base) + idx.prettyprint()
+  def containsArrayAccess(base : IR_VariableAccess, idx : IR_Expression) = evaluableAccesses.contains(arrayAccessAsString(base, idx))
+  // array variable accesses in case that a kernel is passed whole array as argument (for non-evaluable indices)
+  def arrayVariableAccessAsString(base : IR_VariableAccess) = s"${basePrefix(base)}_deviceCopy_$kernelCount"
+  def containsArrayVariableAccess(base : IR_VariableAccess) = nonEvaluableAccesses.contains(arrayVariableAccessAsString(base))
+
+  def isReplaceable(base : IR_VariableAccess, idx : IR_Expression) =
+    containsArrayAccess(base, idx) || containsArrayVariableAccess(base)
+
+  def replaceAccess(base : IR_VariableAccess, idx : IR_Expression) : Option[IR_Expression] = {
+    if (isReplaceable(base, idx)) {
+      if (containsArrayAccess(base, idx)) {
+        val name = arrayAccessAsString(base, idx)
+        Some(IR_VariableAccess(name, evaluableAccesses(name)._2))
+      } else if (containsArrayVariableAccess(base)) {
+        val name = arrayVariableAccessAsString(base)
+        Some(IR_ArrayAccess(IR_VariableAccess(name, base.datatype), idx))
+      } else {
+        Logger.error("Error while gathering variables for CUDA kernels")
+      }
+    } else {
+      None
+    }
+  }
 
   def isEvaluable(idx : IR_Expression) = {
     var ret = true
@@ -53,8 +80,9 @@ object CUDA_GatherVariableAccesses extends QuietDefaultStrategy("Gather local Va
 
   def clear() = {
     reductionTarget = None
-    accesses = mutable.HashMap[String, (IR_Access, IR_Datatype)]()
-    ignoredMatrixVariableAccesses = mutable.SortedSet[String]()
+    evaluableAccesses = mutable.HashMap[String, (IR_Access, IR_Datatype)]()
+    nonEvaluableAccesses = mutable.HashMap[String, (IR_VariableAccess, IR_Datatype)]()
+    ignoredArrayVariableAccesses = mutable.SortedSet[String]()
     ignoredAccesses = mutable.SortedSet[String]()
     ignoredAccesses += "std::cout"
     ignoredAccesses += "std::cerr"
@@ -67,24 +95,35 @@ object CUDA_GatherVariableAccesses extends QuietDefaultStrategy("Gather local Va
       decl
 
     case arrAcc @ IR_ArrayAccess(base : IR_VariableAccess, idx, _) if !ignoredAccesses.contains(base.name) =>
-      ignoredMatrixVariableAccesses += base.name
+      ignoredArrayVariableAccesses += base.name
 
-      if (isEvaluable(idx))
-        accesses.put(arrayAccessAsString(base, idx), (arrAcc, base.datatype.resolveBaseDatatype))
+      if (isEvaluable(idx)) {
+        // single, evaluable array accesses -> count "base[idx]" as variable access
+        evaluableAccesses.put(arrayAccessAsString(base, idx), (arrAcc, base.datatype.resolveBaseDatatype))
+      } else {
+        // we found a non-evaluable index -> remove previous evaluable accesses
+        evaluableAccesses.foreach {
+          case (k, _) if k.startsWith(basePrefix(base)) && k.length > basePrefix(base).length => evaluableAccesses.remove(k)
+          case _ =>
+        }
+
+        // copy "base" to device data and pass device pointer to the kernel -> count as single variable access to "base"
+        nonEvaluableAccesses.put(arrayVariableAccessAsString(base), (base, base.datatype))
+      }
 
       // it can happen that no fragmentIdx is accessed in a loop, but the resulting CudaReductionBuffer requires it
       if (Knowledge.domain_numFragmentsPerBlock > 1 && isReductionVariableAccess(reductionTarget, arrAcc))
-        accesses.put(fragIdx.name, (fragIdx, fragIdx.datatype))
+        evaluableAccesses.put(fragIdx.name, (fragIdx, fragIdx.datatype))
 
       arrAcc
 
-    case vAcc : IR_VariableAccess if !ignoredAccesses.contains(vAcc.name) && !ignoredMatrixVariableAccesses.contains(vAcc.name) =>
-      accesses.put(vAcc.name, (vAcc, vAcc.datatype))
+    case vAcc : IR_VariableAccess if !ignoredAccesses.contains(vAcc.name) && !ignoredArrayVariableAccesses.contains(vAcc.name) =>
+      evaluableAccesses.put(vAcc.name, (vAcc, vAcc.datatype))
       vAcc
 
     // same phenomenon: fragmentIdx is required by CudaReductionBuffer, but not present in loop body
     case expr : IR_Expression if Knowledge.domain_numFragmentsPerBlock > 1 && isReductionTarget(reductionTarget, expr) =>
-      accesses.put(fragIdx.name, (fragIdx, fragIdx.datatype))
+      evaluableAccesses.put(fragIdx.name, (fragIdx, fragIdx.datatype))
       expr
   })
 }

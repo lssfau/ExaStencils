@@ -103,12 +103,35 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       // add kernel and kernel call
       val kernelFunctions = CUDA_KernelFunctions.get
 
+      val kernelCount = kernelFunctions.counterMap.getOrElse(collector.getCurrentName, -1) + 1
+
       // collect local accesses because these variables need to be passed to the kernel at call
       CUDA_GatherVariableAccesses.clear()
+      CUDA_GatherVariableAccesses.kernelCount = kernelCount
       if (loop.parallelization.reduction.isDefined)
         CUDA_GatherVariableAccesses.reductionTarget = Some(loop.parallelization.reduction.get.target)
       CUDA_GatherVariableAccesses.applyStandalone(IR_Scope(loop))
-      val accesses = CUDA_GatherVariableAccesses.accesses.toSeq.sortBy(_._1).to[ListBuffer]
+      val accesses = CUDA_GatherVariableAccesses.evaluableAccesses.toSeq.sortBy(_._1).to[ListBuffer]
+      val accessesCopiedToDevice = CUDA_GatherVariableAccesses.nonEvaluableAccesses.toSeq.sortBy(_._1).to[ListBuffer]
+
+      // add non-evaluable accesses in form of pointers to device copies
+      val deviceArrayCopies = accessesCopiedToDevice.map {
+        case (k,v) =>
+          val copyName = CUDA_GatherVariableAccesses.arrayVariableAccessAsString(v._1)
+          val copyDt = IR_PointerDatatype(v._2.resolveBaseDatatype)
+
+          (k, IR_VariableAccess(copyName, copyDt))
+      }.toMap
+
+      // parameters of the kernel
+      val params = ListBuffer[IR_FunctionArgument]()
+      params ++= accesses.map { case (name, tup) => IR_FunctionArgument(name, tup._2) }
+      params ++= deviceArrayCopies.values.map(IR_FunctionArgument(_))
+
+      // args passed to kernel
+      val args = ListBuffer[IR_Expression]()
+      args ++= accesses.map { case (_, tup) => tup._1 : IR_Expression }
+      args ++= deviceArrayCopies.values
 
       var extremaMap = mutable.HashMap[String, (Long, Long)]()
 
@@ -119,6 +142,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       IR_InlineMatSolveStmts.applyStandalone(kernelBody)
 
       // replace array accesses with accesses to function arguments, ignore reduction variable
+      CUDA_ReplaceArrayAccesses.kernelCount = kernelCount
       if (loop.parallelization.reduction.isDefined)
         CUDA_ReplaceArrayAccesses.reductionTarget = Some(loop.parallelization.reduction.get.target)
       else
@@ -128,7 +152,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       val kernel = CUDA_Kernel(
         kernelFunctions.getIdentifier(collector.getCurrentName),
         parallelInnerLoops.length,
-        accesses.map { case (name, tup) => IR_FunctionArgument(name, tup._2) },
+        params,
         Duplicate(loopVariables),
         Duplicate(lowerBounds),
         Duplicate(upperBounds),
@@ -139,8 +163,17 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
 
       kernelFunctions.addKernel(Duplicate(kernel))
 
+      // copy array variables from host to device if necessary
+      if (deviceArrayCopies.nonEmpty) {
+        deviceArrayCopies foreach { case (k, dstArr) =>
+          val (srcArr, srcDt) = accessesCopiedToDevice.find(_._1 == k).get._2
+          deviceStatements += IR_VariableDeclaration(dstArr)
+          deviceStatements += CUDA_Memcpy(dstArr, srcArr, srcDt.typicalByteSize, "cudaMemcpyHostToDevice")
+        }
+      }
+
       // process return value of kernel wrapper call if reduction is required
-      val callKernel = IR_FunctionCall(kernel.getWrapperFctName, accesses.map { case (_, tup) => tup._1 : IR_Expression })
+      val callKernel = IR_FunctionCall(kernel.getWrapperFctName, args)
       if (loop.parallelization.reduction.isDefined) {
         val red = loop.parallelization.reduction.get
         CUDA_Util.getReductionDatatype(red.target) match {
@@ -173,6 +206,10 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       } else {
         deviceStatements += callKernel
       }
+
+      // destroy device copies
+      if (deviceArrayCopies.nonEmpty)
+        deviceStatements ++= deviceArrayCopies.keys.map(CUDA_Free(_))
 
       deviceStatements
   }, false)
