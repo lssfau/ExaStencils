@@ -11,13 +11,14 @@ import exastencils.globals.ir._
 object IR_WaLBerlaInitFunctionCollection {
   var functions : ListBuffer[IR_FunctionLike] = ListBuffer()
 
+  functions += IR_WaLBerlaInitGlobalsWrapper()
   functions += IR_WaLBerlaInitBlockForest()
   functions += IR_WaLBerlaDeResizeBuffersWrapper()
   functions += IR_WaLBerlaInitStaticRectDomain()
   if (IR_WaLBerlaUtil.initCommSchemes)
     functions += IR_WaLBerlaInitCommSchemes()
 
-  functions += IR_WaLBerlaDeInitWrapperBuffers()
+  functions += IR_WaLBerlaInitBuffersWrapper()
 }
 
 object IR_WaLBerlaDeInitFunctionCollection {
@@ -25,6 +26,8 @@ object IR_WaLBerlaDeInitFunctionCollection {
 
   functions += IR_WaLBerlaDeDestroyBuffersWrapper()
 }
+
+// TODO: initGeometry
 
 sealed trait IR_WaLBerlaDeInitWrapperFunction extends IR_WaLBerlaFuturePlainFunction {
   override def isInterfaceFunction : Boolean = true
@@ -52,7 +55,16 @@ private case class IR_WaLBerlaDeResizeBuffersWrapper() extends IR_WaLBerlaDeInit
 }
 
 // wrappers for exa (de-)init functions
-private case class IR_WaLBerlaDeInitWrapperBuffers() extends IR_WaLBerlaDeInitWrapperFunction {
+
+private case class IR_WaLBerlaInitGlobalsWrapper() extends IR_WaLBerlaDeInitWrapperFunction {
+  override def name : String = "initExaGlobals"
+
+  override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction =
+    IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(),
+      ListBuffer[IR_Statement](IR_FunctionCall("initGlobals")))
+}
+
+private case class IR_WaLBerlaInitBuffersWrapper() extends IR_WaLBerlaDeInitWrapperFunction {
   override def name : String = "setupExaBuffers"
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {

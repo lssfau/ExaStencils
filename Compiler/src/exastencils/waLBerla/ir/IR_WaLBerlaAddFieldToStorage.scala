@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 
-case class IR_WaLBerlaAddFieldToStorage(wbFields : ListBuffer[IR_WaLBerlaField]) extends IR_WaLBerlaFuturePlainFunction {
+case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR_WaLBerlaFuturePlainFunction {
 
   def blockForest = IR_WaLBerlaBlockForest()
   def blocks = blockForest.ctorParameter

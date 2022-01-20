@@ -54,15 +54,20 @@ case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction])
     /* member functions */
     functions foreach { f => writerHeader << "\t" + f.prettyprint_decl() }
 
-    /* ctor */
-    writerHeader << IR_Constructor(interfaceName, context.ctorParams, context.ctorInitializerList, context.ctorBody).prettyprint()
+    /* ctors */
+    for (ctor <- context.constructors)
+      writerHeader << ctor.prettyprint()
 
-    /* dtor */
-    writerHeader << IR_Destructor(interfaceName, context.dtorBody).prettyprint()
+    /* dtors */
+    for (dtor <- context.destructors)
+      writerHeader << dtor.prettyprint()
 
-    /* member */
+    /* members */
+    writerHeader <<< "public:"
+    for (member <- context.publicMembers)
+      writerHeader <<< "\t" + IR_VariableDeclaration(member).prettyprint()
     writerHeader <<< "private:"
-    for (member <- context.members)
+    for (member <- context.privateMembers)
       writerHeader <<< "\t" + IR_VariableDeclaration(member).prettyprint()
 
     writerHeader <<< "};" // end class

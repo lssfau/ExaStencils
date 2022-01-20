@@ -74,7 +74,7 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   functions ++= IR_WaLBerlaDeInitFunctionCollection.functions
   for (field <- IR_WaLBerlaFieldCollection.objects.groupBy(_.name)) {
     val leveledFields = field._2.groupBy(_.level).map(_._2.head).to[ListBuffer]
-    functions += IR_WaLBerlaAddFieldToStorage(leveledFields)
+    functions += IR_WaLBerlaAddFieldToStorage(leveledFields : _*)
   }
 
   // collect future function names
