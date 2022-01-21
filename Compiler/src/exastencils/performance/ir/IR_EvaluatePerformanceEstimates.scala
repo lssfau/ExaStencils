@@ -585,8 +585,8 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
         }
         prependStmts :+ loop
       case loop : IR_WhileLoop                                 =>
-        IR_Comment(s"-- While loop is handled as loop doing one iteration. Remember to scale accordingly. --")
         EvaluateFieldAccess.applyStandalone(loop.body)
+        loop.body.prepend(IR_Comment(s"-- While loop is handled as loop doing one iteration. Remember to scale accordingly. --"))
         loop
       case assign : IR_Assignment                              =>
         inWriteOp = true
