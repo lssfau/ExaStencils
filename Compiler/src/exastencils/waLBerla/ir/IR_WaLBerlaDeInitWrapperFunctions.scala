@@ -13,6 +13,10 @@ object IR_WaLBerlaInitFunctionCollection {
 
   functions += IR_WaLBerlaInitGlobalsWrapper()
   functions += IR_WaLBerlaInitBlockForest()
+  for (field <- IR_WaLBerlaFieldCollection.objects.groupBy(_.name)) {
+    val leveledFields = field._2.groupBy(_.level).map(_._2.head).to[ListBuffer]
+    functions += IR_WaLBerlaAddFieldToStorage(leveledFields : _*)
+  }
   functions += IR_WaLBerlaDeResizeBuffersWrapper()
   functions += IR_WaLBerlaInitStaticRectDomain()
   if (IR_WaLBerlaUtil.initCommSchemes)

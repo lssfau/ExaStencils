@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.core.Duplicate
 
 // store context
 
@@ -35,7 +36,30 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
   var constructors : ListBuffer[IR_Constructor] = ListBuffer()
   var destructors : ListBuffer[IR_Destructor] = ListBuffer()
 
-  // ctor #1: user passes blockDataIDs, blockforest
+  // prevent duplicate/unnecessary calls
+  var initFunctions : ListBuffer[IR_PlainInternalFunctionReference] = Duplicate(IR_WaLBerlaInitFunctionCollection.functions)
+    .map(f => IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype))
+
+  // ctor #1: empty parameter & initializer list, execute static convenience functions to obtain blockDataIDs and blockForest
+  {
+    // body
+    val ctorBody : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
+
+    // assign members to return values of init functions
+    ctorBody += IR_Assignment(blockForest.member, IR_FunctionCall(IR_WaLBerlaInitBlockForest().name))
+    initFunctions = initFunctions.filterNot(f => f.name == IR_WaLBerlaInitBlockForest().name)
+    for (dataId <- blockDataIDs) {
+      ctorBody += IR_Assignment(dataId.member, IR_FunctionCall(IR_WaLBerlaAddFieldToStorage(dataId.wbField).name, blockForest, 0.0))
+      initFunctions = initFunctions.filterNot(f => f.name == IR_WaLBerlaAddFieldToStorage(dataId.wbField).name)
+    }
+
+    // initialization in ctor body
+    initFunctions foreach (f => ctorBody += IR_FunctionCall(f))
+
+    constructors += IR_Constructor(IR_WaLBerlaInterface.interfaceName, ListBuffer(), IR_MemberInitializerList(), ctorBody)
+  }
+
+  // ctor #2: user passes blockDataIDs, blockforest
   {
     // params
     var ctorParams : ListBuffer[IR_FunctionArgument] = ListBuffer()
@@ -52,26 +76,9 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
     val ctorBody : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
 
     // initialization in ctor body
-    IR_WaLBerlaInitFunctionCollection.functions foreach (f =>
-      ctorBody += IR_FunctionCall(IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype)))
+    initFunctions foreach (f => ctorBody += IR_FunctionCall(f))
 
     constructors += IR_Constructor(IR_WaLBerlaInterface.interfaceName, ctorParams, ctorInitializerList, ctorBody)
-  }
-
-  // ctor #2: empty parameter & initializer list, execute static convenience functions to obtain blockDataIDs and blockForest
-  {
-    // body
-    val ctorBody : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
-
-    ctorBody += IR_FunctionCall(IR_WaLBerlaInitBlockForest().name)
-    for (dataId <- blockDataIDs)
-      ctorBody += IR_FunctionCall(IR_WaLBerlaAddFieldToStorage(dataId.wbField).name, blockForest, 0.0)
-
-    // initialization in ctor body
-    IR_WaLBerlaInitFunctionCollection.functions foreach (f =>
-      ctorBody += IR_FunctionCall(IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype)))
-
-    constructors += IR_Constructor(IR_WaLBerlaInterface.interfaceName, ListBuffer(), IR_MemberInitializerList(), ctorBody)
   }
 
   // dtor body
