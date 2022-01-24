@@ -43,11 +43,21 @@ case class L4_PrintField(
     var mpiioRepresentation : Option[L4_StringConstant] = None) extends L4_Statement {
 
   override def prettyprint(out : PpStream) = {
-    // TODO
-    out << "print ( "
-    out << filename << ", " << field
-    if (condition.isDefined) out << ", " << condition.get
-    out << " )"
+    ioInterface match {
+      case _ @ L4_StringConstant("lock") =>
+        out << "printField_lock ( " << filename << ", " << field << ", " << includeGhostLayers << ", " << binaryOutput
+        if (condition.isDefined) out << ", " << condition.get
+        if (separator.isDefined) out << ", " << separator.get
+        out << " )"
+      case _ @ L4_StringConstant("fpp") =>
+        out << "printField_fpp ( " << filename << ", " << field << ", " << binaryOutput << " )"
+      case _ @ L4_StringConstant(str @ "hdf5" | "mpiio" | "nc") =>
+        out << s"printField_$str ( " << filename << ", " << field << ", " << canonicalOrder << " )"
+      case _ @ L4_StringConstant("sion") =>
+        out << "printField_sion ( " << filename << ", " << field << ", " << includeGhostLayers
+        if (condition.isDefined) out << ", " << condition.get
+        out << " )"
+    }
   }
 
   override def progress = {
@@ -179,7 +189,9 @@ object L4_ResolvePrintFieldFunctions extends DefaultStrategy("Resolve print fiel
           case _                                                                           =>
             Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
         }
-        case "sion"  => args match {
+        case "sion"  =>
+          Logger.warn("printField_sion is merely an alias for writeField_sion")
+          args match {
           case ListBuffer(fn, field : L4_FieldAccess)                                       => // option 1: filename, field
             L4_WriteField(fn, field, ioInterface = ifaceSelection)
           case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)       => // option 2: filename, field, inclGhost

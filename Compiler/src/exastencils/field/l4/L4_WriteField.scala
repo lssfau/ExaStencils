@@ -42,11 +42,23 @@ case class L4_WriteField(
     var mpiioRepresentation : Option[L4_StringConstant] = None) extends L4_Statement {
 
   override def prettyprint(out : PpStream) = {
-    // TODO
-    out << "write ( "
-    out << filename << ", " << field
-    if (condition.isDefined) out << ", " << condition.get
-    out << " )"
+    ioInterface match {
+      case _ @ L4_StringConstant(str @ "lock" | "fpp") =>
+        out << s"writeField_$str ( " << filename << ", " << field << ", " << includeGhostLayers << ", " << binaryOutput
+        if (condition.isDefined) out << ", " << condition.get
+        if (separator.isDefined) out << ", " << separator.get
+        out << " )"
+      case _ @ L4_StringConstant("mpiio") =>
+        out << "writeField_mpiio ( " << filename << ", " << field << ", " << includeGhostLayers << ", " << canonicalOrder
+        if (mpiioRepresentation.isDefined) out << ", " << mpiioRepresentation.get
+        out << " )"
+      case _ @ L4_StringConstant(str @ "hdf5" | "nc") =>
+        out << s"writeField_$str ( " << filename << ", " << dataset.get << ", " << field << ", " << includeGhostLayers << ", " << canonicalOrder << " )"
+      case _ @ L4_StringConstant("sion") =>
+        out << "writeField_sion ( " << filename << ", " << field << ", " << includeGhostLayers
+        if (condition.isDefined) out << ", " << condition.get
+        out << " )"
+    }
   }
 
   override def progress = {

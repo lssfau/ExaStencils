@@ -42,14 +42,23 @@ case class L4_ReadField(
     var mpiioRepresentation : Option[L4_StringConstant] = None) extends L4_Statement {
 
   override def prettyprint(out : PpStream) = {
-    // TODO
-    if (includeGhostLayers)
-      out << "readFieldWithGhost ( "
-    else
-      out << "readField ( "
-    out << filename << ", " << field
-    if (condition.isDefined) out << ", " << condition.get
-    out << " )"
+    ioInterface match {
+      case _ @ L4_StringConstant(str @ "lock" | "fpp") =>
+        out << s"readField_$str ( " << filename << ", " << field << ", " << includeGhostLayers << ", " << binaryInput
+        if (condition.isDefined) out << ", " << condition.get
+        if (separator.isDefined) out << ", " << separator.get
+        out << " )"
+      case _ @ L4_StringConstant("mpiio") =>
+        out << "readField_mpiio ( " << filename << ", " << field << ", " << includeGhostLayers << ", " << canonicalOrder
+        if (mpiioRepresentation.isDefined) out << ", " << mpiioRepresentation.get
+        out << " )"
+      case _ @ L4_StringConstant(str @ "hdf5" | "nc") =>
+        out << s"readField_$str ( " << filename << ", " << dataset.get << ", " << field << ", " << includeGhostLayers << ", " << canonicalOrder << " )"
+      case _ @ L4_StringConstant("sion") =>
+        out << "readField_sion ( " << filename << ", " << field << ", " << includeGhostLayers
+        if (condition.isDefined) out << ", " << condition.get
+        out << " )"
+    }
   }
   override def progress = {
     val progField = field.progress
