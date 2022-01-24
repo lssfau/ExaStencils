@@ -137,7 +137,7 @@ Function UpResidual@all {
 
 Function NormResidual_0@(finest, coarsest) : Real {
 	Var res : Real = 0
-	loop over Residual@current where ( ( ( i0 > 0 ) && ( i1 > 0 ) ) && ( i2 > 0 ) ) with reduction ( + : res ) {
+	loop over Residual@current novect where ( ( ( i0 > 0 ) && ( i1 > 0 ) ) && ( i2 > 0 ) ) with reduction ( + : res ) {
 		res += ( Residual@current * Residual@current )
 	}
 	return sqrt ( res )

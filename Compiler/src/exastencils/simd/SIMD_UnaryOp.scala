@@ -18,8 +18,9 @@
 
 package exastencils.simd
 
-import exastencils.base.ir.IR_Expression
+import exastencils.base.ir._
 import exastencils.config._
+import exastencils.optimization.ir.VectorizationException
 import exastencils.prettyprinting.PpStream
 
 /// SIMD_Negate
@@ -34,7 +35,34 @@ case class SIMD_Negate(var vect : IR_Expression) extends SIMD_Expression {
       case "AVX512"       => out << "_mm512_xor_p" << prec << '(' << vect << ", _mm512_set1_p" << prec << "(-0.0))"
       case "IMCI"         => out << "_mm512_sub_p" << prec << "((__m512" << ts << ") 0, " << vect << ")" // TODO: is there a more efficient version?
       case "QPX"          => out << "vec_neg(" << vect << ')'
-      case "NEON"         => out << "vnegq_f32(" << vect << ')'
+      case "NEON"         => out << "vnegq_" << (if (Knowledge.useDblPrecision) "f64" else "f32") << "(" << vect << ')'
+    }
+  }
+}
+
+case class SIMD_MoveMask(var mask : IR_Expression) extends SIMD_Expression {
+  override def datatype : IR_Datatype = IR_IntegerDatatype
+
+  override def prettyprint(out : PpStream) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
+    Platform.simd_instructionSet match {
+      case "SSE3"         => out << "_mm_movemask_p" << prec <<"(" << mask << ")"
+      case "AVX" | "AVX2" => out << "_mm256_movemask_p" << prec << "(" << mask << ")"
+      case "AVX512"       => out << "_mm512_mask2int(" << mask << ")"
+      case "NEON"         =>
+        val prec = if (Knowledge.useDblPrecision) 64 else 32
+
+        // shift such that only sign bits remain, bits that fall off a vector element boundary are discarded
+        val rightShift = prec - 1
+        val getSignBits = s"vshrq_n_u$prec(${mask.prettyprint}, $rightShift)"
+
+        // push sign values from lanes into registers and combine
+        out << s"vgetq_lane_u$prec($getSignBits, 0)"
+        for (i <- 1 until Platform.simd_vectorSize)
+          out << " | " << s"(vgetq_lane_u$prec($getSignBits, $i) << $i)"
+      // TODO
+      case "IMCI"         => new VectorizationException("SIMD_MoveMask: Currently unsupported for " + Platform.simd_instructionSet)
+      case "QPX"          => new VectorizationException("SIMD_MoveMask: Currently unsupported for " + Platform.simd_instructionSet)
     }
   }
 }
