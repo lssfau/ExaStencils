@@ -43,7 +43,7 @@ case class L4_WriteField(
 
   override def prettyprint(out : PpStream) = {
     ioInterface match {
-      case _ @ L4_StringConstant(str @ "lock" | "fpp") =>
+      case _ @ L4_StringConstant(str) if str == "lock" || str == "fpp" =>
         out << s"writeField_$str ( " << filename << ", " << field << ", " << includeGhostLayers << ", " << binaryOutput
         if (condition.isDefined) out << ", " << condition.get
         if (separator.isDefined) out << ", " << separator.get
@@ -52,7 +52,7 @@ case class L4_WriteField(
         out << "writeField_mpiio ( " << filename << ", " << field << ", " << includeGhostLayers << ", " << canonicalOrder
         if (mpiioRepresentation.isDefined) out << ", " << mpiioRepresentation.get
         out << " )"
-      case _ @ L4_StringConstant(str @ "hdf5" | "nc") =>
+      case _ @ L4_StringConstant(str) if str == "hdf5" || str == "nc" =>
         out << s"writeField_$str ( " << filename << ", " << dataset.get << ", " << field << ", " << includeGhostLayers << ", " << canonicalOrder << " )"
       case _ @ L4_StringConstant("sion") =>
         out << "writeField_sion ( " << filename << ", " << field << ", " << includeGhostLayers

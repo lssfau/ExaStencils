@@ -51,7 +51,7 @@ case class L4_PrintField(
         out << " )"
       case _ @ L4_StringConstant("fpp") =>
         out << "printField_fpp ( " << filename << ", " << field << ", " << binaryOutput << " )"
-      case _ @ L4_StringConstant(str @ "hdf5" | "mpiio" | "nc") =>
+      case _ @ L4_StringConstant(str) if List("hdf5", "mpiio", "nc").contains(str) =>
         out << s"printField_$str ( " << filename << ", " << field << ", " << canonicalOrder << " )"
       case _ @ L4_StringConstant("sion") =>
         out << "printField_sion ( " << filename << ", " << field << ", " << includeGhostLayers
