@@ -36,7 +36,7 @@ case class SIMD_Load(var mem : IR_Expression, val aligned : Boolean) extends SIM
       case "AVX512"       => out << "_mm512_load" << alig << "_p" << prec << '('
       case "IMCI"         => if (aligned) out << "_mm512_load_p" << prec << '(' else throw new InternalError("IMCI does not support unaligned loads")
       case "QPX"          => if (aligned) out << "vec_lda(0," else throw new InternalError("QPX does not support unaligned loads")
-      case "NEON"         => out << "vld1q_f32(" // TODO: only unaligned?
+      case "NEON"         => out << "vld1q_" << (if (Knowledge.useDblPrecision) "f64" else "f32") << "(" // TODO: only unaligned?
     }
     out << mem << ')'
   }
@@ -54,7 +54,7 @@ case class SIMD_Store(var mem : IR_Expression, var value : IR_Expression, var al
       case "AVX512"       => out << "_mm512_store" << alig << "_p" << prec
       case "IMCI"         => out << (if (aligned) "_mm512_store_p" + prec else "\n --- NOT VALID ; unaligned store for QPX: \n")
       case "QPX"          => out << (if (aligned) "vec_sta" else "\n --- NOT VALID ; unaligned store for QPX: \n")
-      case "NEON"         => out << "vst1q_f32"
+      case "NEON"         => out << "vst1q_" << (if (Knowledge.useDblPrecision) "f64" else "f32")
     }
     Platform.simd_instructionSet match {
       case "QPX" => out << '(' << value << ", 0, " << mem << ");"

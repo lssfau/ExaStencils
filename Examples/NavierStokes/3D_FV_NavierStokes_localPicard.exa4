@@ -17,7 +17,7 @@ Function Application ( ) : Unit {
   Var curIt : Int = 0
   Var curPrintIt : Int = 0
   repeat until ( curTime >= maxTime ) {
-    if ( curTime >= nextPrint ) {
+    if ( !getKnowledge('testing_enabled') && curTime >= nextPrint ) {
       nextPrint += printInterval
       Var filename_vel : String
 

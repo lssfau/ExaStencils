@@ -1,3 +1,86 @@
+stages:
+    - .pre
+    - build
+    - test
+    - example
+    - benchmark
+
+#######################################
+##                                   ##
+##         Templates                 ##
+##                                   ##
+#######################################
+
+.test_template:
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+        expire_in: 1 weeks
+    before_script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Testing
+
+.test_template_AVX:
+    extends: .test_template
+    tags:
+        - docker
+        - AVX
+
+.test_template_AVX2:
+    extends: .test_template
+    tags:
+        - docker
+        - AVX2
+
+.test_template_CUDA:
+    extends: .test_template
+    tags:
+        - docker
+        - cuda
+        - i10swarm5
+    before_script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - nvcc --version
+        - updatedb
+        - locate cuda.h
+        - locate libcudart
+        - export CPATH=$CPATH:/usr/local/cuda-11.4/targets/x86_64-linux/include
+        - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
+        - cd Testing
+
+.benchmark_template:
+    dependencies:
+        - build:generator
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    tags:
+        - docker-benchmark
+    artifacts:
+        when: on_failure
+        paths:
+            - Benchmark/output/Debug/*
+        expire_in: 1 weeks
+    before_script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Benchmark
+
+#######################################
+##                                   ##
+##         Docker image              ##
+##                                   ##
+#######################################
+
 generate-docker-image:
     stage: .pre
     when: manual
@@ -10,6 +93,12 @@ generate-docker-image:
         - docker build --pull . -f  dockerfiles/ubuntu-20.04-openjdk-11.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
         - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
 
+#######################################
+##                                   ##
+##         Generator                 ##
+##                                   ##
+#######################################
+
 build:generator:
     stage: build
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
@@ -20,6 +109,7 @@ build:generator:
             - Compiler/Compiler.jar
             - Compiler/lib
             - Examples
+            - Benchmark
             - Testing
         expire_in: 1 weeks
     script:
@@ -27,3162 +117,1221 @@ build:generator:
         - sbt compile
         - sbt assembly
 
-test:Matrix_evalMatrixOpRuntimeExecution:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+#######################################
+##                                   ##
+##         Tests                     ##
+##                                   ##
+#######################################
 
+
+###############################################
+# MATRIX TESTS                                #
+###############################################
+
+# decision about runtime execution of solution of local systems and inversions depending on size/const entries
+test:Matrix_evalMatrixOpRuntimeExecution:
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_evalMatrixOpRuntimeExecution ./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.knowledge "./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.exa4" ./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.RESULTS 1 1 Platform/random.platform output
 
+# classification of matrix shapes/structures
 test:Matrix_determineMatrixStructures:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_determineMatrixStructures ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.knowledge "./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.exa4" ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.RESULTS 1 1 Platform/random.platform output
 
+# operations on fields with matrices as inner data type
 test:Matrix_matrixFields:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_matrixFields ./MatrixClassTests/matrixFields/matrixFields.knowledge "./MatrixClassTests/matrixFields/matrixFields.exa4" ./MatrixClassTests/matrixFields/matrixFields.RESULTS 1 1 Platform/random.platform output
 
+# shallow water equation in vector form
 test:Matrix_2D_FV_SWE:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_2D_FV_SWE ./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.knowledge "./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.exa4" ./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.RESULTS 1 1 Platform/random.platform output
 
+# built-in operations of matrices
 test:Matrix_slicing:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_slicing ./MatrixClassTests/resolvingMatrixFunctions/slicing/slicing.knowledge "./MatrixClassTests/resolvingMatrixFunctions/slicing/slicing.exa4" ./MatrixClassTests/resolvingMatrixFunctions/slicing/slicing.RESULTS 1 1 Platform/random.platform output
 
 test:Matrix_chaines:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_chaines ./MatrixClassTests/resolvingMatrixFunctions/chaines/chaines.knowledge "./MatrixClassTests/resolvingMatrixFunctions/chaines/chaines.exa4" ./MatrixClassTests/resolvingMatrixFunctions/chaines/chaines.RESULTS 1 1 Platform/random.platform output
 
 test:Matrix_cross:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_cross ./MatrixClassTests/resolvingMatrixFunctions/cross/cross.knowledge "./MatrixClassTests/resolvingMatrixFunctions/cross/cross.exa4" ./MatrixClassTests/resolvingMatrixFunctions/cross/cross.RESULTS 1 1 Platform/random.platform output
 
 test:Matrix_dot:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_dot ./MatrixClassTests/resolvingMatrixFunctions/dot/dot.knowledge "./MatrixClassTests/resolvingMatrixFunctions/dot/dot.exa4" ./MatrixClassTests/resolvingMatrixFunctions/dot/dot.RESULTS 1 1 Platform/random.platform output
 
 test:Matrix_trace:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_trace ./MatrixClassTests/resolvingMatrixFunctions/trace/trace.knowledge "./MatrixClassTests/resolvingMatrixFunctions/trace/trace.exa4" ./MatrixClassTests/resolvingMatrixFunctions/trace/trace.RESULTS 1 1 Platform/random.platform output
 
 test:Matrix_transpose:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_transpose ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.knowledge "./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.exa4" ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.RESULTS 1 1 Platform/random.platform output
 
 test:Matrix_frobeniusNorm:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_frobeniusNorm ./MatrixClassTests/resolvingMatrixFunctions/frobeniusNorm/frobeniusNorm.knowledge "./MatrixClassTests/resolvingMatrixFunctions/frobeniusNorm/frobeniusNorm.exa4" ./MatrixClassTests/resolvingMatrixFunctions/frobeniusNorm/frobeniusNorm.RESULTS 1 1 Platform/random.platform output
 
+# slicing and access of matrices per bracket operator
 test:Matrix_resolvingMatrixAccesses:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_resolvingMatrixAccesses ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.knowledge "./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.exa4" ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.RESULTS 1 1 Platform/random.platform output
 
+# direct solution of small linear systems
 test:Matrix_SolveMatSysRunTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SolveMatSysRunTime ./MatrixClassTests/SolveMatSys/SolveMatSysRunTime/SolveMatSysRunTime.knowledge "./MatrixClassTests/SolveMatSys/SolveMatSysRunTime/SolveMatSysRunTime.exa4" ./MatrixClassTests/SolveMatSys/SolveMatSysRunTime/SolveMatSysRunTime.RESULTS 1 1 Platform/random.platform output
 
 test:Matrix_SolveMatSysCompileTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SolveMatSysCompileTime ./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.knowledge "./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.exa4" ./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.RESULTS 1 1 Platform/random.platform output
 
+# arithmetic operators
 test:Matrix_resolvingMatrixOperators:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_resolvingMatrixOperators ./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.knowledge "./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.exa4" ./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.RESULTS 1 1 Platform/random.platform output
 
+# inversion at compiletime
 test:Matrix_LUCompileTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_LUCompileTime ./MatrixClassTests/invert/CompileTime/LU/LU.knowledge "./MatrixClassTests/invert/CompileTime/LU/LU.exa4" ./MatrixClassTests/invert/CompileTime/LU/LU.RESULTS 1 1 Platform/random.platform output
 
 test:Matrix_BlockDiagonalCompileTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_BlockDiagonalCompileTime ./MatrixClassTests/invert/CompileTime/BlockDiagonal/BlockDiagonal.knowledge "./MatrixClassTests/invert/CompileTime/BlockDiagonal/BlockDiagonal.exa4" ./MatrixClassTests/invert/CompileTime/BlockDiagonal/BlockDiagonal.RESULTS 1 1 Platform/random.platform output
 
 test:Matrix_DiagonalCompileTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_DiagonalCompileTime ./MatrixClassTests/invert/CompileTime/Diagonal/Diagonal.knowledge "./MatrixClassTests/invert/CompileTime/Diagonal/Diagonal.exa4" ./MatrixClassTests/invert/CompileTime/Diagonal/Diagonal.RESULTS 1 1 Platform/random.platform output
 
 test:Matrix_SchurCompileTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SchurCompileTime ./MatrixClassTests/invert/CompileTime/Schur/Schur.knowledge "./MatrixClassTests/invert/CompileTime/Schur/Schur.exa4" ./MatrixClassTests/invert/CompileTime/Schur/Schur.RESULTS 1 1 Platform/random.platform output
 
 test:Matrix_SchurWithHelpersCompileTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SchurWithHelpersCompileTime ./MatrixClassTests/invert/CompileTime/SchurWithHelpers/SchurWithHelpers.knowledge "./MatrixClassTests/invert/CompileTime/SchurWithHelpers/SchurWithHelpers.exa4" ./MatrixClassTests/invert/CompileTime/SchurWithHelpers/SchurWithHelpers.RESULTS 1 1 Platform/random.platform output
 
 test:Matrix_smallMatricesCompileTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_smallMatricesCompileTime ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.knowledge "./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.exa4" ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.RESULTS 1 1 Platform/random.platform output
 
+# inversion at runtime
 test:Matrix_LURunTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_LURunTime ./MatrixClassTests/invert/RunTime/LU/LU.knowledge "./MatrixClassTests/invert/RunTime/LU/LU.exa4" ./MatrixClassTests/invert/RunTime/LU/LU.RESULTS 1 1 Platform/random.platform output
 
 test:Matrix_SchurRunTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SchurRunTime ./MatrixClassTests/invert/RunTime/Schur/Schur.knowledge "./MatrixClassTests/invert/RunTime/Schur/Schur.exa4" ./MatrixClassTests/invert/RunTime/Schur/Schur.RESULTS 1 1 Platform/random.platform output
 
 test:Matrix_DiagonalRunTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_DiagonalRunTime ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.knowledge "./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.exa4" ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.RESULTS 1 1 Platform/random.platform output
 
 test:Matrix_BlockDiagonalRunTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_BlockDiagonalRunTime ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.knowledge "./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.exa4" ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.RESULTS 1 1 Platform/random.platform output
 
 test:Matrix_SchurLargeMatrixRunTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SchurLargeMatrixRunTime ./MatrixClassTests/invert/RunTime/SchurLargeMatrix/SchurLargeMatrix.knowledge "./MatrixClassTests/invert/RunTime/SchurLargeMatrix/SchurLargeMatrix.exa4" ./MatrixClassTests/invert/RunTime/SchurLargeMatrix/SchurLargeMatrix.RESULTS 1 1 Platform/random.platform output
 
 test:Matrix_SmallMatrixRunTime:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SmallMatrixRunTime ./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.knowledge "./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.exa4" ./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.RESULTS 1 1 Platform/random.platform output
 
+# Application
 test:Appl_ExaStokes_2D:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Appl_ExaStokes_2D Application/ExaStokes_2D.knowledge "Application/ExaStokes_2D.exa4" Application/ExaStokes_2D.results 1 10 Platform/random.platform output
 
 test:Appl_ExaStokes_3D:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Appl_ExaStokes_3D Application/ExaStokes_3D.knowledge "Application/ExaStokes_3D.exa4" Application/ExaStokes_3D.results 1 10 Platform/random.platform output
 
 test:Appl_ExaFluids:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Appl_ExaFluids Application/ExaFluids.knowledge "Application/ExaFluids.exa4" Application/ExaFluids.results 1 10 Platform/random.platform output
 
 test:Appl_ExaFluids_PowerLaw:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Appl_ExaFluids_PowerLaw Application/ExaFluids.knowledge "Application/ExaFluids_PowerLaw.exa4" Application/ExaFluids_PowerLaw.results 1 10 Platform/random.platform output
 
 test:Appl_ExaFluids_Bingham:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Appl_ExaFluids_Bingham Application/ExaFluids.knowledge "Application/ExaFluids_Bingham.exa4" Application/ExaFluids_Bingham.results 1 10 Platform/random.platform output
 
 test:Appl_ExaFluids_Par:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Appl_ExaFluids_Par Application/ExaFluids_Parallel.knowledge "Application/ExaFluids.exa4" Application/ExaFluids_Parallel.results 4 2 Platform/random.platform output
 
 test:Appl_OptFlow2D:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Appl_OptFlow2D Application/OpticalFlow2D.knowledge "Application/OpticalFlow2D.exa4" Application/OpticalFlow2D.results 1 10 Platform/random.platform output
 
 test:Appl_OptFlow3D:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Appl_OptFlow3D Application/OpticalFlow3D.knowledge "Application/OpticalFlow3D.exa4" Application/OpticalFlow3D.results 1 10 Platform/random.platform output
 
-test:CommBasic_PureMPI:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+###############################################
+# BASIC COMMUNICATION TESTS                   #
+###############################################
 
+test:CommBasic_PureMPI:
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_PureMPI CommBasic/PureMPI.knowledge "CommBasic/PureMPI.exa4" CommBasic/PureMPI.results 27 1 Platform/random.platform output
 
 test:CommBasic_PureOMP:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_PureOMP CommBasic/PureOMP.knowledge "CommBasic/PureOMP.exa4" CommBasic/PureOMP.results 1 10 Platform/random.platform output
 
 test:CommBasic_Hybrid:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_Hybrid CommBasic/Hybrid.knowledge "CommBasic/Hybrid.exa4" CommBasic/Hybrid.results 27 2 Platform/random.platform output
 
 test:CommBasic_Summarize:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_Summarize CommBasic/Summarize.knowledge "CommBasic/Summarize.exa4" CommBasic/Summarize.results 27 2 Platform/random.platform output
 
 test:CommBasic_Strategy26:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_Strategy26 CommBasic/Strategy26.knowledge "CommBasic/Strategy26.exa4" CommBasic/Strategy26.results 27 2 Platform/random.platform output
 
 test:CommBasic_2D:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_2D CommBasic/2D.knowledge "CommBasic/2D.exa4" CommBasic/2D.results 9 2 Platform/random.platform output
 
+# cell based
 test:CommBasic_HybridCell:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_HybridCell CommBasic/HybridCell.knowledge "CommBasic/HybridCell.exa4" CommBasic/HybridCell.results 27 2 Platform/random.platform output
 
 test:CommBasic_Strategy26Cell:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_Strategy26Cell CommBasic/Strategy26Cell.knowledge "CommBasic/Strategy26Cell.exa4" CommBasic/Strategy26Cell.results 27 2 Platform/random.platform output
 
+# complex numbers
 test:CommBasic_complexNumbers:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_complexNumbers CommBasic/ComplexNumbers.knowledge "CommBasic/ComplexNumbers.exa4" CommBasic/ComplexNumbers.results 9 2 Platform/random.platform output
 
-test:Seq_TestF_naive:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+###############################################
+# OPTIMIZATION TESTS                          #
+###############################################
 
+# various tests of optimization strategies
+#  (run time for each is only a few seconds)
+
+### sequential version
+## single precision
+
+test:Seq_TestF_naive:
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_naive Opts/seq__float_naive.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/random.platform output
 
+# SSE3
 test:Seq_TestF_vectS:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vectS Opts/seq__float_vect.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/random.platform output
 
 test:Seq_TestF_vectSAl:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vectSAl Opts/seq__float_vectAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/random.platform output
 
 test:Seq_TestF_vectSAlAl:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vectSAlAl Opts/seq__float_vectAlAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/random.platform output
 
+# AVX
 test:Seq_TestF_vect:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vect Opts/seq__float_vect.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx.platform output
 
 test:Seq_TestF_vectAl:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vectAl Opts/seq__float_vectAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx.platform output
 
 test:Seq_TestF_vectAlAl:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vectAlAl Opts/seq__float_vectAlAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx.platform output
 
+# AVX2
 test:Seq_TestF_vect2:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX2
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX2
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vect2 Opts/seq__float_vect.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx2.platform output
 
 test:Seq_TestF_vect2Al:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX2
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX2
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vect2Al Opts/seq__float_vectAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx2.platform output
 
 test:Seq_TestF_vect2AlAl:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX2
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX2
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vect2AlAl Opts/seq__float_vectAlAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx2.platform output
 
-test:Seq_Test_naive:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+## double precision
 
+test:Seq_Test_naive:
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_naive Opts/seq_naive.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 test:Seq_Test_addrPre:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_addrPre Opts/seq_addrPre.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 test:Seq_Test_poly:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    extends: .test_template_AVX
     tags:
         - docker
         - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+        - i10swarm13
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_poly Opts/seq_poly.knowledge "Opts/tempBlock.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 test:Seq_Test_unroll:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_unroll Opts/seq_unroll.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 test:Seq_Test_unrolli:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_unrolli Opts/seq_unrolli.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
-test:Seq_Test_vectS:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+## SSE3
 
+test:Seq_Test_vectS:
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vectS Opts/seq_vect.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/random.platform output
 
 test:Seq_Test_vectSAl:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vectSAl Opts/seq_vectAl.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/random.platform output
 
 test:Seq_Test_vectSAlAl:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vectSAlAl Opts/seq_vectAlAl.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/random.platform output
 
 test:Seq_Test_allS:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_allS Opts/seq_all.knowledge "Opts/tempBlock.exa4" Opts/seq.results 1 1 Platform/random.platform output
 
-test:Seq_Test_vect:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+# AVX
 
+test:Seq_Test_vect:
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vect Opts/seq_vect.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 test:Seq_Test_vectAl:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vectAl Opts/seq_vectAl.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 test:Seq_Test_vectAlAl:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vectAlAl Opts/seq_vectAlAl.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 test:Seq_Test_all:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_all Opts/seq_all.knowledge "Opts/tempBlock.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
-test:Seq_Test_vect2:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX2
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+# AVX2
 
+test:Seq_Test_vect2:
+    extends: .test_template_AVX2
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vect2 Opts/seq_vect.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx2.platform output
 
 test:Seq_Test_vect2Al:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX2
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX2
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vect2Al Opts/seq_vectAl.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx2.platform output
 
 test:Seq_Test_vect2AlAl:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX2
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX2
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vect2AlAl Opts/seq_vectAlAl.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx2.platform output
 
 test:Seq_Test_all2:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX2
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX2
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_all2 Opts/seq_all.knowledge "Opts/tempBlock.exa4" Opts/seq.results 1 1 Platform/anyavx2.platform output
 
-test:Par_TestF_naive:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+### parallel version (2*2*2 MPI ranks each with 8 OMP threads)
+## single precision
 
+test:Par_TestF_naive:
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_TestF_naive Opts/par__float_naive.knowledge "Opts/base_par_flt.exa4" Opts/par__float.results 8 4 Platform/random.platform output
 
+# SSE3
 test:Par_TestF_vectS:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_TestF_vectS Opts/par__float_vect.knowledge "Opts/base_par_flt.exa4" Opts/par__float.results 8 4 Platform/random.platform output
 
 test:Par_TestF_vectSAl:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_TestF_vectSAl Opts/par__float_vectAl.knowledge "Opts/base_par_flt.exa4" Opts/par__float.results 8 4 Platform/random.platform output
 
-test:Par_Test_naive:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+test:Par_TestF_vectSAlAl:
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_TestF_vectSAlAl Opts/par__float_vectAlAl.knowledge "Opts/base_par_flt.exa4" Opts/par__float.results 8 4 Platform/random.platform output
+
+## double precision
+
+test:Par_Test_naive:
+    extends: .test_template_AVX
+    script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_naive Opts/par_naive.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
 
 test:Par_Test_addrPre:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_addrPre Opts/par_addrPre.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
 
 test:Par_Test_poly:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    extends: .test_template_AVX
     tags:
         - docker
         - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+        - i10swarm13
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_poly Opts/par_poly.knowledge "Opts/tempBlock_par.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
 
 test:Par_Test_unroll:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_unroll Opts/par_unroll.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
 
 test:Par_Test_unrolli:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_unrolli Opts/par_unrolli.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
 
-test:Par_Test_vectS:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+# SSE3
 
+test:Par_Test_vectS:
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_vectS Opts/par_vect.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/random.platform output
 
 test:Par_Test_vectSAl:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_vectSAl Opts/par_vectAl.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/random.platform output
 
 test:Par_Test_vectSAlAl:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_vectSAlAl Opts/par_vectAlAl.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/random.platform output
 
 test:Par_Test_allS:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    extends: .test_template
     tags:
         - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+        - i10swarm13
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_allS Opts/par_all.knowledge "Opts/tempBlock_par.exa4" Opts/par.results 8 4 Platform/random.platform output
 
-test:PolyExpl_Jac2Dccd_f0:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+###############################################
+# POLYHEDRAL SEARCH SPACE EXPLORATION TESTS   #
+###############################################
 
+# Jacobi 2D constant coefficient 9-pt
+test:PolyExpl_Jac2Dccd_f0:
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac2Dccd_f0 PolyExpl/2D_f0.knowledge "PolyExpl/Jac2Dccd.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_Jac2Dccd_f2:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac2Dccd_f2 PolyExpl/2D_f2.knowledge "PolyExpl/Jac2Dccd.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_Jac2Dccd_f4:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac2Dccd_f4 PolyExpl/2D_f4.knowledge "PolyExpl/Jac2Dccd.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_Jac2Dccd_f6:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac2Dccd_f6 PolyExpl/2D_f6.knowledge "PolyExpl/Jac2Dccd.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
+# Jacobi 3D constant coefficient 7-pt
 test:PolyExpl_Jac3Dcc_f0:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac3Dcc_f0 PolyExpl/3D_f0.knowledge "PolyExpl/Jac3Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_Jac3Dcc_f1:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac3Dcc_f1 PolyExpl/3D_f1.knowledge "PolyExpl/Jac3Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_Jac3Dcc_f3:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac3Dcc_f3 PolyExpl/3D_f3.knowledge "PolyExpl/Jac3Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_Jac3Dcc_f5:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac3Dcc_f5 PolyExpl/3D_f5.knowledge "PolyExpl/Jac3Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_Jac3Dcc_f6:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac3Dcc_f6 PolyExpl/3D_f6.knowledge "PolyExpl/Jac3Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
+# RBGS 2D constant coefficient 5-pt
 test:PolyExpl_RBGS2Dcc_f0:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f0 PolyExpl/2D_f0.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_RBGS2Dcc_f1:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f1 PolyExpl/2D_f1.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_RBGS2Dcc_f3:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f3 PolyExpl/2D_f3.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_RBGS2Dcc_f5:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f5 PolyExpl/2D_f5.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_RBGS2Dcc_f6:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f6 PolyExpl/2D_f6.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
+# RBGS 3D variable coefficient 7-pt
 test:PolyExpl_RBGS3Dvc_f0:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS3Dvc_f0 PolyExpl/3D_f0.knowledge "PolyExpl/RBGS3Dvc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_RBGS3Dvc_f2:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS3Dvc_f2 PolyExpl/3D_f2.knowledge "PolyExpl/RBGS3Dvc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_RBGS3Dvc_f4:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS3Dvc_f4 PolyExpl/3D_f4.knowledge "PolyExpl/RBGS3Dvc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 test:PolyExpl_RBGS3Dvc_f6:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS3Dvc_f6 PolyExpl/3D_f6.knowledge "PolyExpl/RBGS3Dvc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
-test:Smoothers_Jac:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+###############################################
+# SMOOTHER TESTS                              #
+###############################################
 
+# 27 OMP threads
+test:Smoothers_Jac:
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Smoothers_Jac Smoothers/Jac.knowledge "Smoothers/Jac.exa4" Smoothers/Jac.results 27 2 Platform/random.platform output
 
 test:Smoothers_GS:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Smoothers_GS Smoothers/GS.knowledge "Smoothers/GS.exa4" Smoothers/GS.results 27 2 Platform/random.platform output
 
 test:Smoothers_RBGS:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Smoothers_RBGS Smoothers/RBGS.knowledge "Smoothers/RBGS.exa4" Smoothers/RBGS.results 27 2 Platform/random.platform output
 
 test:Smoothers_BS:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Smoothers_BS Smoothers/BS.knowledge "Smoothers/BS.exa4" Smoothers/BS.results 27 2 Platform/random.platform output
 
-test:BC_2D_Polynomial:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+###############################################
+# BOUNDARY CONDITION TESTS                    #
+###############################################
 
+# 2D
+test:BC_2D_Polynomial:
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_2D_Polynomial BC/2D_Polynomial.knowledge "BC/2D_Polynomial.exa4" BC/2D_Polynomial.results 4 2 Platform/random.platform output
 
 test:BC_2D_Trigonometric:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_2D_Trigonometric BC/2D_Trigonometric.knowledge "BC/2D_Trigonometric.exa4" BC/2D_Trigonometric.results 4 2 Platform/random.platform output
 
 test:BC_2D_Periodic:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_2D_Periodic BC/2D_Periodic.knowledge "BC/2D_Periodic.exa4" BC/2D_Periodic.results 4 2 Platform/random.platform output
 
+# 3D
 test:BC_3D_Polynomial:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_3D_Polynomial BC/3D_Polynomial.knowledge "BC/3D_Polynomial.exa4" BC/3D_Polynomial.results 8 2 Platform/random.platform output
 
 test:BC_3D_Trigonometric:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_3D_Trigonometric BC/3D_Trigonometric.knowledge "BC/3D_Trigonometric.exa4" BC/3D_Trigonometric.results 8 2 Platform/random.platform output
 
 test:BC_3D_Periodic:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_3D_Periodic BC/3D_Periodic.knowledge "BC/3D_Periodic.exa4" BC/3D_Periodic.results 8 2 Platform/random.platform output
 
+# matrix fields
 test:BC_Matrix:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_Matrix BC/Matrix/BC_Matrix.knowledge "BC/Matrix/BC_Matrix.exa4" BC/Matrix/BC_Matrix.results 1 1 Platform/random.platform output
 
 test:BC_COMPLEX_NUMBERS:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_COMPLEX_NUMBERS BC/ComplexNumbers.knowledge "BC/ComplexNumbers.exa4" BC/ComplexNumbers.results 1 1 Platform/random.platform output
 
-test:Cell_2D_Basic:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+###############################################
+# CELL BASED DISCR TESTS                      #
+###############################################
 
+# 2D
+test:Cell_2D_Basic:
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Cell_2D_Basic CellBased/2D_Basic.knowledge "CellBased/2D_Basic.exa4" CellBased/2D_Basic.results 4 2 Platform/random.platform output
 
 test:Cell_2D_Neumann:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Cell_2D_Neumann CellBased/2D_Neumann.knowledge "CellBased/2D_Neumann.exa4" CellBased/2D_Neumann.results 4 2 Platform/random.platform output
 
+# 3D
 test:Cell_3D_Basic:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Cell_3D_Basic CellBased/3D_Basic.knowledge "CellBased/3D_Basic.exa4" CellBased/3D_Basic.results 8 2 Platform/random.platform output
 
 test:Cell_3D_Neumann:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Cell_3D_Neumann CellBased/3D_Neumann.knowledge "CellBased/3D_Neumann.exa4" CellBased/3D_Neumann.results 8 2 Platform/random.platform output
 
-test:SISC_2D_ConstCoeff:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+###############################################
+# SISC PAPER TESTS                            #
+###############################################
 
+# 2D
+test:SISC_2D_ConstCoeff:
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib SISC_2D_ConstCoeff SISC/2D_ConstCoeff.knowledge "SISC/2D_ConstCoeff.exa4" SISC/2D_ConstCoeff.results 4 4 Platform/random.platform output
 
 test:SISC_2D_VarCoeff:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib SISC_2D_VarCoeff SISC/2D_VarCoeff.knowledge "SISC/2D_VarCoeff.exa4" SISC/2D_VarCoeff.results 4 4 Platform/random.platform output
 
+# 3D
 test:SISC_3D_ConstCoeff:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib SISC_3D_ConstCoeff SISC/3D_ConstCoeff.knowledge "SISC/3D_ConstCoeff.exa4" SISC/3D_ConstCoeff.results 8 4 Platform/random.platform output
 
 test:SISC_3D_VarCoeff:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib SISC_3D_VarCoeff SISC/3D_VarCoeff.knowledge "SISC/3D_VarCoeff.exa4" SISC/3D_VarCoeff.results 8 4 Platform/random.platform output
 
-test:Inlining:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+###############################################
+# MISC TESTS                                  #
+###############################################
 
+# execute Inlining only on chimaira, maybe this leads to more stable results
+test:Inlining:
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Inlining Misc/inlining.knowledge "Misc/inlining.exa4" Misc/inlining.results 8 4 Platform/random.platform output
 
 test:MathFunctionEvaluation:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib MathFunctionEvaluation Misc/MathFunctionEvaluation.knowledge "Misc/MathFunctionEvaluation.exa4" Misc/MathFunctionEvaluation.results 1 1 Platform/random.platform output
 
-
 test:Reduction:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Reduction Misc/reduction.knowledge "Misc/reduction.exa4" Misc/reduction.results 2 2 Platform/random.platform output
 
 test:Reduction_OldOpenMP:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Reduction Misc/reduction.knowledge "Misc/reduction.exa4" Misc/reduction.results 2 2 Platform/gcc4.2_omp2.5.platform output
 
-test:FMG_2D_Polynomial:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+###############################################
+# FMG TESTS                                   #
+###############################################
 
+test:FMG_2D_Polynomial:
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib FMG_2D_Polynomial FMG/2D_Polynomial.knowledge "FMG/2D_Polynomial.exa4" FMG/2D_Polynomial.results 4 2 Platform/random.platform output
 
 test:FMG_2D_ConstCoeff:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib FMG_2D_ConstCoeff FMG/2D_ConstCoeff.knowledge "FMG/2D_ConstCoeff.exa4" FMG/2D_ConstCoeff.results 4 4 Platform/random.platform output
 
 test:FMG_3D_Trigonometric:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib FMG_3D_Trigonometric FMG/3D_Trigonometric.knowledge "FMG/3D_Trigonometric.exa4" FMG/3D_Trigonometric.results 8 2 Platform/random.platform output
 
 test:FMG_3D_VarCoeff:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib FMG_3D_VarCoeff FMG/3D_VarCoeff.knowledge "FMG/3D_VarCoeff.exa4" FMG/3D_VarCoeff.results 8 4 Platform/random.platform output
 
-test:Conv_CSE_SISC_2D_VarCoeff:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+###############################################
+# CSE TESTS                                   #
+###############################################
 
+# only conventional CSE
+test:Conv_CSE_SISC_2D_VarCoeff:
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Conv_CSE_SISC_2D_VarCoeff CSE/2D_VarCoeff_conv.knowledge "SISC/2D_VarCoeff.exa4" SISC/2D_VarCoeff.results 4 4 Platform/random.platform output
 
 test:Conv_CSE_SISC_3D_VarCoeff:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Conv_CSE_SISC_3D_VarCoeff CSE/3D_VarCoeff_conv.knowledge "SISC/3D_VarCoeff.exa4" SISC/3D_VarCoeff.results 8 4 Platform/random.platform output
 
+# only loop carried CSE
 test:LC_CSE_SISC_2D_VarCoeff:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib LC_CSE_SISC_2D_VarCoeff CSE/2D_VarCoeff_lc.knowledge "SISC/2D_VarCoeff.exa4" SISC/2D_VarCoeff.results 4 4 Platform/random.platform output
 
 test:LC_CSE_SISC_3D_VarCoeff:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib LC_CSE_SISC_3D_VarCoeff CSE/3D_VarCoeff_lc.knowledge "SISC/3D_VarCoeff.exa4" SISC/3D_VarCoeff.results 8 4 Platform/random.platform output
 
+# both conventional and loop carried CSE (Both_CSE_SISC_2D_VarCoehas slightly different rf has slightly different results than the original code)
 test:Both_CSE_SISC_2D_VarCoeff:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Both_CSE_SISC_2D_VarCoeff CSE/2D_VarCoeff_both.knowledge "SISC/2D_VarCoeff.exa4" CSE/2D_VarCoeff.results 4 4 Platform/random.platform output
 
 test:Both_CSE_SISC_3D_VarCoeff:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Both_CSE_SISC_3D_VarCoeff CSE/3D_VarCoeff_both.knowledge "SISC/3D_VarCoeff.exa4" SISC/3D_VarCoeff.results 8 4 Platform/random.platform output
 
-test:Layout_Seq_Test_naive:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+###############################################
+# LAYOUT TRANSFORMATION TESTS                 #
+###############################################
 
+# borrowed from OPTIMIZATION TESTS, shares results! (may be changed, when generated exa4 code changes)
+test:Layout_Seq_Test_naive:
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Layout_Seq_Test_naive LayoutTrafo/seq_naive.knowledge "LayoutTrafo/opts.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 test:Layout_Par_Test_all:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - AVX
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_AVX
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Layout_Par_Test_all LayoutTrafo/par_all.knowledge "LayoutTrafo/opts.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
 
+# borrowed from SMOOTHER TESTS, shares results! (may be changed, when generated exa4 code changes)
 test:Layout_Smoothers_RBGS:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Layout_Smoothers_RBGS LayoutTrafo/RBGS.knowledge "LayoutTrafo/rbgs.exa4" Smoothers/RBGS.results 27 2 Platform/random.platform output
 
-test:FAS_2D_Basic:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+###############################################
+# NON-LINEAR TESTS                            #
+###############################################
 
+# 9 OMP threads
+test:FAS_2D_Basic:
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib FAS_2D_Basic NonLinear/FAS_2D_Basic.knowledge "NonLinear/FAS_2D_Basic.exa4" NonLinear/FAS_2D_Basic.results 9 2 Platform/random.platform output
 
-test:2D_FD_Poisson_fromL1:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+###############################################
+# CUDA TESTS                                  #
+###############################################
 
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL1 Poisson/2D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL1.exa1" Poisson/2D_FD_Poisson_fromL1.results 4 4 Platform/random.platform output
-
-test:2D_FD_Poisson_fromL2:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL2 Poisson/2D_FD_Poisson_fromL2.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL2.exa2;../Examples/Poisson/2D_FD_Poisson_fromL2.exa3;../Examples/Poisson/2D_FD_Poisson_fromL2.exa4" Poisson/2D_FD_Poisson_fromL2.results 4 4 Platform/random.platform output
-
-test:2D_FD_Poisson_fromL3:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL3 Poisson/2D_FD_Poisson_fromL3.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL3.exa3;../Examples/Poisson/2D_FD_Poisson_fromL3.exa4" Poisson/2D_FD_Poisson_fromL3.results 4 4 Platform/random.platform output
-
-test:2D_FD_Poisson_fromL4:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL4 Poisson/2D_FD_Poisson_fromL4.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL4.exa4" Poisson/2D_FD_Poisson_fromL4.results 4 4 Platform/random.platform output
-
-test:2D_FV_Poisson_fromL2:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Poisson_fromL2 Poisson/2D_FV_Poisson_fromL2.knowledge "../Examples/Poisson/2D_FV_Poisson_fromL2.exa2;../Examples/Poisson/2D_FV_Poisson_fromL2.exa3;../Examples/Poisson/2D_FV_Poisson_fromL2.exa4" Poisson/2D_FV_Poisson_fromL2.results 4 4 Platform/random.platform output
-
-test:2D_FV_Poisson_fromL4:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Poisson_fromL4 Poisson/2D_FV_Poisson_fromL4.knowledge "../Examples/Poisson/2D_FV_Poisson_fromL4.exa4" Poisson/2D_FV_Poisson_fromL4.results 4 4 Platform/random.platform output
-
-test:2D_FE_Poisson_fromL2:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
-    script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FE_Poisson_fromL2 Poisson/2D_FE_Poisson_fromL2.knowledge "../Examples/Poisson/2D_FE_Poisson_fromL2.exa2;../Examples/Poisson/2D_FE_Poisson_fromL2.exa3;../Examples/Poisson/2D_FE_Poisson_fromL2.exa4" Poisson/2D_FE_Poisson_fromL2.results 1 1 Platform/random.platform output
-
+# 2D_VarCoeff has its own expected results due to rounding differences compared to original SISC version
 test:CUDA_SISC_2D_ConstCoeff:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - cuda
-        - i10swarm5
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_CUDA
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - nvcc --version
-        - updatedb
-        - locate cuda.h
-        - locate libcudart
-        - export CPATH=$CPATH:/usr/local/cuda-11.4/targets/x86_64-linux/include
-        - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_SISC_2D_ConstCoeff CUDA/2D_ConstCoeff.knowledge "CUDA/2D_ConstCoeff.exa4" SISC/2D_ConstCoeff.results 1 10 Platform/chimaira-gpu.platform output
 
 test:CUDA_SISC_2D_VarCoeff:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - cuda
-        - i10swarm5
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_CUDA
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - nvcc --version
-        - updatedb
-        - locate cuda.h
-        - locate libcudart
-        - export CPATH=$CPATH:/usr/local/cuda-11.4/targets/x86_64-linux/include
-        - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_SISC_2D_VarCoeff CUDA/2D_VarCoeff.knowledge "CUDA/2D_VarCoeff.exa4" CUDA/2D_VarCoeff.results 1 10 Platform/chimaira-gpu.platform output
 
 test:CUDA_SISC_3D_ConstCoeff:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - cuda
-        - i10swarm5
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_CUDA
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - nvcc --version
-        - updatedb
-        - locate cuda.h
-        - locate libcudart
-        - export CPATH=$CPATH:/usr/local/cuda-11.4/targets/x86_64-linux/include
-        - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_SISC_3D_ConstCoeff CUDA/3D_ConstCoeff.knowledge "CUDA/3D_ConstCoeff.exa4" SISC/3D_ConstCoeff.results 1 10 Platform/chimaira-gpu.platform output
 
 test:CUDA_SISC_3D_VarCoeff:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - cuda
-        - i10swarm5
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_CUDA
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - nvcc --version
-        - updatedb
-        - locate cuda.h
-        - locate libcudart
-        - export CPATH=$CPATH:/usr/local/cuda-11.4/targets/x86_64-linux/include
-        - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_SISC_3D_VarCoeff CUDA/3D_VarCoeff.knowledge "CUDA/3D_VarCoeff.exa4" SISC/3D_VarCoeff.results 1 10 Platform/chimaira-gpu.platform output
 
 test:CUDA_ExaFluids_Bingham:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-        - cuda
-        - i10swarm5
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template_CUDA
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - nvcc --version
-        - updatedb
-        - locate cuda.h
-        - locate libcudart
-        - export CPATH=$CPATH:/usr/local/cuda-11.4/targets/x86_64-linux/include
-        - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_ExaFluids_Bingham CUDA/3D_ExaFluids_NN_CUDA.knowledge "CUDA/3D_ExaFluids_NN_CUDA.exa4" CUDA/3D_ExaFluids_NN_CUDA.results 1 10 Platform/chimaira-gpu.platform output
 
-test:COMPLEX_NUMBERS_BasicFunc:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
+###############################################
+# COMPLEX NUMBERS TESTS                       #
+###############################################
 
+test:COMPLEX_NUMBERS_BasicFunc:
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib COMPLEX_NUMBERS_BasicFunc ComplexNumbers/BasicFunc/BasicFunc.knowledge "ComplexNumbers/BasicFunc/BasicFunc.exa3" ComplexNumbers/BasicFunc/BasicFunc.results 1 1 Platform/random.platform output
 
 test:COMPLEX_NUMBERS_Helmholtz:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib COMPLEX_NUMBERS_Helmholtz ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.knowledge "ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.exa4" ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.results 1 1 Platform/random.platform output
 
 test:COMPLEX_NUMBERS_Helmholtz_MPI:
-    stage: test
-    dependencies:
-        - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-    tags:
-        - docker
-    artifacts:
-        when: on_failure
-        paths:
-            - Testing/output/Debug/*
-        expire_in: 1 weeks
-
+    extends: .test_template
     script:
-        - java -version
-        - python3 --version
-        - mpirun --version
-        - cd Testing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib COMPLEX_NUMBERS_Helmholtz_MPI ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.knowledge "ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.exa4" ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.results 4 2 Platform/random.platform output
 
+#######################################
+##                                   ##
+##         Examples                  ##
+##                                   ##
+#######################################
+
+###############################################
+# BiHarmonic EXAMPLES                         #
+###############################################
+
+example:BiHarmonic:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_BiHarmonic_fromL2 Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.knowledge "../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa3;../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa2" "" 1 1 Platform/random.platform output
+
+###############################################
+# HelmHoltz EXAMPLES                          #
+###############################################
+
+example:2D_FD_Helmholtz_fromL3:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Helmholtz_fromL3 Examples/Helmholtz/2D_FD_Helmholtz_fromL3.knowledge "../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa4" "" 1 1 Platform/random.platform output
+
+example:2D_FD_Helmholtz_MPI_fromL3.knowledge:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Helmholtz_MPI_fromL3 Examples/Helmholtz/2D_FD_Helmholtz_MPI_fromL3.knowledge "../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa4" "" 4 1 Platform/random.platform output
+
+example:3D_FD_Helmholtz_fromL3:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Helmholtz_fromL3 Examples/Helmholtz/3D_FD_Helmholtz_fromL3.knowledge "../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa4" "" 1 1 Platform/random.platform output
+
+###############################################
+# LinearElasticity EXAMPLES                   #
+###############################################
+
+example:2D_FD_LinearElasticity_fromL2:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_LinearElasticity_fromL2 Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.knowledge "../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa2;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa3;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa4" "" 1 1 Platform/random.platform output
+
+###############################################
+# NavierStokes EXAMPLES                       #
+###############################################
+
+example:2D_FV_NavierStokes_localNewton:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_localNewton Examples/NavierStokes/2D_FV_NavierStokes_localNewton.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa4" "" 1 1 Platform/random.platform output
+
+example:2D_FV_NavierStokes_localPicard:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_localPicard Examples/NavierStokes/2D_FV_NavierStokes_localPicard.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.exa4" "" 1 1 Platform/random.platform output
+
+example:2D_FV_NavierStokes_Newton:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_Newton Examples/NavierStokes/2D_FV_NavierStokes_Newton.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_Newton.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_Newton.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_Newton.exa4" "" 1 1 Platform/random.platform output
+
+example:2D_FV_NavierStokes_Picard:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_Picard Examples/NavierStokes/2D_FV_NavierStokes_Picard.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa4" "" 1 1 Platform/random.platform output
+
+example:2D_FV_NonNewtonian_Newton:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NonNewtonian_Newton Examples/NavierStokes/2D_FV_NonNewtonian_Newton.knowledge "../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa2;../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa3;../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa4" "" 1 1 Platform/random.platform output
+
+example:2D_FV_NonNewtonian_Picard:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NonNewtonian_Picard Examples/NavierStokes/2D_FV_NonNewtonian_Picard.knowledge "../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa2;../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa3;../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa4" "" 1 1 Platform/random.platform output
+
+example:3D_FV_NavierStokes_localNewton:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_localNewton Examples/NavierStokes/3D_FV_NavierStokes_localNewton.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa4" "" 1 1 Platform/random.platform output
+
+example:3D_FV_NavierStokes_localPicard:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_localPicard Examples/NavierStokes/3D_FV_NavierStokes_localPicard.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.exa4" "" 1 1 Platform/random.platform output
+
+example:3D_FV_NavierStokes_Newton:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_Newton Examples/NavierStokes/3D_FV_NavierStokes_Newton.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_Newton.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_Newton.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_Newton.exa4" "" 1 1 Platform/random.platform output
+
+example:3D_FV_NavierStokes_Picard:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_Picard Examples/NavierStokes/3D_FV_NavierStokes_Picard.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa4" "" 1 1 Platform/random.platform output
+
+example:3D_FV_NonNewtonian_Newton:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NonNewtonian_Newton Examples/NavierStokes/3D_FV_NonNewtonian_Newton.knowledge "../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa2;../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa3;../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa4" "" 1 1 Platform/random.platform output
+
+example:3D_FV_NonNewtonian_Picard:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NonNewtonian_Picard Examples/NavierStokes/3D_FV_NonNewtonian_Picard.knowledge "../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.exa2;../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.exa3;../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.exa4" "" 1 1 Platform/random.platform output
+
+
+###############################################
+# OpticalFlow EXAMPLES                        #
+###############################################
+
+example:2D_FD_OptFlow_fromL2:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_OptFlow_fromL2 Examples/OpticalFlow/2D_FD_OptFlow_fromL2.knowledge "../Examples/OpticalFlow/2D_FD_OptFlow_fromL2.exa2;../Examples/OpticalFlow/2D_FD_OptFlow_fromL2.exa3" "" 1 1 Platform/random.platform output
+
+example:2D_FD_OptFlow_fromL4:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_OptFlow_fromL4 Examples/OpticalFlow/2D_FD_OptFlow_fromL4.knowledge "../Examples/OpticalFlow/2D_FD_OptFlow_fromL4.exa4" "" 1 1 Platform/random.platform output
+
+example:2D_FD_OptFlow_fromL4_Vec:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_OptFlow_fromL4_Vec Examples/OpticalFlow/2D_FD_OptFlow_fromL4_Vec.knowledge "../Examples/OpticalFlow/2D_FD_OptFlow_fromL4_Vec.exa4" "" 1 1 Platform/random.platform output
+
+example:3D_FD_OptFlow_fromL2:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_OptFlow_fromL2 Examples/OpticalFlow/3D_FD_OptFlow_fromL2.knowledge "../Examples/OpticalFlow/3D_FD_OptFlow_fromL2.exa2;../Examples/OpticalFlow/3D_FD_OptFlow_fromL2.exa3" "" 1 1 Platform/random.platform output
+
+example:3D_FD_OptFlow_fromL4_Vec:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_OptFlow_fromL4_Vec Examples/OpticalFlow/3D_FD_OptFlow_fromL4_Vec.knowledge "../Examples/OpticalFlow/3D_FD_OptFlow_fromL4_Vec.exa4" "" 1 1 Platform/random.platform output
+
+###############################################
+# Poisson EXAMPLES                            #
+###############################################
+
+example:1D_FD_Poisson_fromL1:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 1D_FD_Poisson_fromL1 Examples/Poisson/1D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/1D_FD_Poisson_fromL1.exa1" "" 1 1 Platform/random.platform output
+
+example:2D_FD_Poisson_fromL1:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL1 Poisson/2D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL1.exa1" Poisson/2D_FD_Poisson_fromL1.results 4 4 Platform/random.platform output
+
+example:2D_FD_Poisson_fromL2:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL2 Poisson/2D_FD_Poisson_fromL2.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL2.exa2;../Examples/Poisson/2D_FD_Poisson_fromL2.exa3;../Examples/Poisson/2D_FD_Poisson_fromL2.exa4" Poisson/2D_FD_Poisson_fromL2.results 4 4 Platform/random.platform output
+
+example:2D_FD_Poisson_fromL3:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL3 Poisson/2D_FD_Poisson_fromL3.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL3.exa3;../Examples/Poisson/2D_FD_Poisson_fromL3.exa4" Poisson/2D_FD_Poisson_fromL3.results 4 4 Platform/random.platform output
+
+example:2D_FD_Poisson_fromL4:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL4 Poisson/2D_FD_Poisson_fromL4.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL4.exa4" Poisson/2D_FD_Poisson_fromL4.results 4 4 Platform/random.platform output
+
+example:2D_FE_Poisson_fromL2:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FE_Poisson_fromL2 Poisson/2D_FE_Poisson_fromL2.knowledge "../Examples/Poisson/2D_FE_Poisson_fromL2.exa2;../Examples/Poisson/2D_FE_Poisson_fromL2.exa3;../Examples/Poisson/2D_FE_Poisson_fromL2.exa4" Poisson/2D_FE_Poisson_fromL2.results 1 1 Platform/random.platform output
+
+example:2D_FV_Poisson_fromL2:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Poisson_fromL2 Poisson/2D_FV_Poisson_fromL2.knowledge "../Examples/Poisson/2D_FV_Poisson_fromL2.exa2;../Examples/Poisson/2D_FV_Poisson_fromL2.exa3;../Examples/Poisson/2D_FV_Poisson_fromL2.exa4" Poisson/2D_FV_Poisson_fromL2.results 4 4 Platform/random.platform output
+
+example:2D_FV_Poisson_fromL4:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Poisson_fromL4 Poisson/2D_FV_Poisson_fromL4.knowledge "../Examples/Poisson/2D_FV_Poisson_fromL4.exa4" Poisson/2D_FV_Poisson_fromL4.results 4 4 Platform/random.platform output
+
+example:3D_FD_Poisson_fromL1:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Poisson_fromL1 Examples/Poisson/3D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/3D_FD_Poisson_fromL1.exa1" "" 1 1 Platform/random.platform output
+
+example:3D_FD_Poisson_fromL2:
+    stage: example
+    extends: .test_template
+    script:
+        - mkdir -p lib/ && cp ../Examples/lib/solver_singleScalarEquation.exa3 lib/solver_singleScalarEquation.exa3
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Poisson_fromL2 Examples/Poisson/3D_FD_Poisson_fromL2.knowledge "../Examples/Poisson/3D_FD_Poisson_fromL2.exa2;../Examples/Poisson/3D_FD_Poisson_fromL2.exa3" "" 1 1 Platform/random.platform output
+
+example:3D_FD_Poisson_fromL4:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Poisson_fromL4 Examples/Poisson/3D_FD_Poisson_fromL4.knowledge "../Examples/Poisson/3D_FD_Poisson_fromL4.exa4" "" 1 1 Platform/random.platform output
+
+example:3D_FV_Poisson_fromL2:
+    stage: example
+    extends: .test_template
+    script:
+        - mkdir -p lib/ && cp ../Examples/lib/solver_singleScalarEquation.exa3 lib/solver_singleScalarEquation.exa3
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Poisson_fromL2 Examples/Poisson/3D_FV_Poisson_fromL2.knowledge "../Examples/Poisson/3D_FV_Poisson_fromL2.exa2;../Examples/Poisson/3D_FV_Poisson_fromL2.exa3" "" 1 1 Platform/random.platform output
+
+example:3D_FV_Poisson_fromL4:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Poisson_fromL4 Examples/Poisson/3D_FV_Poisson_fromL4.knowledge "../Examples/Poisson/3D_FV_Poisson_fromL4.exa4" "" 1 1 Platform/random.platform output
+
+###############################################
+# Stokes EXAMPLES                             #
+###############################################
+
+example:1D_FD_Stokes_fromL1:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 1D_FD_Stokes_fromL1 Examples/Stokes/1D_FD_Stokes_fromL1.knowledge "../Examples/Stokes/1D_FD_Stokes_fromL1.exa1" "" 1 1 Platform/random.platform output
+
+example:2D_FD_Stokes_fromL1:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Stokes_fromL1 Examples/Stokes/2D_FD_Stokes_fromL1.knowledge "../Examples/Stokes/2D_FD_Stokes_fromL1.exa1" "" 1 1 Platform/random.platform output
+
+example:2D_FD_Stokes_fromL2:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Stokes_fromL2 Examples/Stokes/2D_FD_Stokes_fromL2.knowledge "../Examples/Stokes/2D_FD_Stokes_fromL2.exa2;../Examples/Stokes/2D_FD_Stokes_fromL2.exa3;../Examples/Stokes/2D_FD_Stokes_fromL2.exa4" "" 1 1 Platform/random.platform output
+
+example:2D_FD_Stokes_fromL4:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Stokes_fromL4 Examples/Stokes/2D_FD_Stokes_fromL4.knowledge "../Examples/Stokes/2D_FD_Stokes_fromL4.exa4" "" 1 1 Platform/random.platform output
+
+example:2D_FD_Stokes_Lisa_fromL2:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Stokes_Lisa_fromL2 Examples/Stokes/2D_FD_Stokes_Lisa_fromL2.knowledge "../Examples/Stokes/2D_FD_Stokes_Lisa_fromL2.exa2;../Examples/Stokes/2D_FD_Stokes_Lisa_fromL2.exa3;../Examples/Stokes/2D_FD_Stokes_Lisa_fromL2.exa4" "" 1 1 Platform/random.platform output
+
+example:2D_FE_Stokes_fromL2:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FE_Stokes_fromL2 Examples/Stokes/2D_FE_Stokes_fromL2.knowledge "../Examples/Stokes/2D_FE_Stokes_fromL2.exa2;../Examples/Stokes/2D_FE_Stokes_fromL2.exa3;../Examples/Stokes/2D_FE_Stokes_fromL2.exa4" "" 1 1 Platform/random.platform output
+
+example:2D_FV_Stokes_fromL2:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Stokes_fromL2 Examples/Stokes/2D_FV_Stokes_fromL2.knowledge "../Examples/Stokes/2D_FV_Stokes_fromL2.exa2;../Examples/Stokes/2D_FV_Stokes_fromL2.exa3;../Examples/Stokes/2D_FV_Stokes_fromL2.exa4" "" 1 1 Platform/random.platform output
+
+example:2D_FV_Stokes_fromL4:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Stokes_fromL4 Examples/Stokes/2D_FV_Stokes_fromL4.knowledge "../Examples/Stokes/2D_FV_Stokes_fromL4.exa4" "" 1 1 Platform/random.platform output
+
+example:3D_FD_Stokes_fromL1:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Stokes_fromL1 Examples/Stokes/3D_FD_Stokes_fromL1.knowledge "../Examples/Stokes/3D_FD_Stokes_fromL1.exa1" "" 1 1 Platform/random.platform output
+
+example:3D_FD_Stokes_fromL2:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Stokes_fromL2 Examples/Stokes/3D_FD_Stokes_fromL2.knowledge "../Examples/Stokes/3D_FD_Stokes_fromL2.exa2;../Examples/Stokes/3D_FD_Stokes_fromL2.exa3;../Examples/Stokes/3D_FD_Stokes_fromL2.exa4" "" 1 1 Platform/random.platform output
+
+example:3D_FD_Stokes_fromL4:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Stokes_fromL4 Examples/Stokes/3D_FD_Stokes_fromL4.knowledge "../Examples/Stokes/3D_FD_Stokes_fromL4.exa4" "" 1 1 Platform/random.platform output
+
+example:3D_FV_Stokes_fromL2:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Stokes_fromL2 Examples/Stokes/3D_FV_Stokes_fromL2.knowledge "../Examples/Stokes/3D_FV_Stokes_fromL2.exa2;../Examples/Stokes/3D_FV_Stokes_fromL2.exa3;../Examples/Stokes/3D_FV_Stokes_fromL2.exa4" "" 1 1 Platform/random.platform output
+
+example:3D_FV_Stokes_fromL4:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Stokes_fromL4 Examples/Stokes/3D_FV_Stokes_fromL4.knowledge "../Examples/Stokes/3D_FV_Stokes_fromL4.exa4" "" 1 1 Platform/random.platform output
+
+###############################################
+# SWE EXAMPLES                                #
+###############################################
+
+example:2D_FV_SWE:
+    stage: example
+    extends: .test_template
+    script:
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_SWE Examples/SWE/2D_FV_SWE.knowledge "../Examples/SWE/2D_FV_SWE.exa2;../Examples/SWE/2D_FV_SWE.exa3;../Examples/SWE/2D_FV_SWE.exa4" "" 1 1 Platform/random.platform output
+
+#######################################
+##                                   ##
+##         Benchmarks                ##
+##                                   ##
+#######################################
+
+# TODO

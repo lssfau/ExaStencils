@@ -167,32 +167,32 @@ Stencil A33@all{
 }
 
 Stencil B1@all{
-  [ 0,  0,  0] =>  1.0 / vf_gridWidth_x
+  [ 0,  0,  0] =>  1.0 / vf_gridWidth_x,
   [-1,  0,  0] => -1.0 / vf_gridWidth_x
 }
 
 Stencil B2@all{
-  [ 0,  0,  0] =>  1.0 / vf_gridWidth_y
+  [ 0,  0,  0] =>  1.0 / vf_gridWidth_y,
   [ 0, -1,  0] => -1.0 / vf_gridWidth_y
 }
 
 Stencil B3@all{
-  [ 0,  0,  0] =>  1.0 / vf_gridWidth_z
+  [ 0,  0,  0] =>  1.0 / vf_gridWidth_z,
   [ 0,  0, -1] => -1.0 / vf_gridWidth_z
 }
 
 Stencil C1@all{
-  [ 0,  0,  0] => -1.0 / vf_gridWidth_x
+  [ 0,  0,  0] => -1.0 / vf_gridWidth_x,
   [ 1,  0,  0] =>  1.0 / vf_gridWidth_x
 }
 
 Stencil C2@all{
-  [ 0,  0,  0] => -1.0 / vf_gridWidth_y
+  [ 0,  0,  0] => -1.0 / vf_gridWidth_y,
   [ 0,  1,  0] =>  1.0 / vf_gridWidth_y
 }
 
 Stencil C3@all{
-  [ 0,  0,  0] => -1.0 / vf_gridWidth_z
+  [ 0,  0,  0] => -1.0 / vf_gridWidth_z,
   [ 0,  0,  1] =>  1.0 / vf_gridWidth_z
 }
 
