@@ -18,7 +18,7 @@ case class IR_FileAccess_SIONlib(
     var filename : IR_Expression,
     var dataBuffers : ListBuffer[IR_DataBuffer],
     var writeAccess : Boolean,
-    var condition: IR_Expression,
+    var condition : IR_Expression,
     var appendedMode : Boolean = false) extends IR_FileAccess("sion") with IR_Iostream {
 
   // datatypes
@@ -148,10 +148,13 @@ case class IR_FileAccess_SIONlib(
   def loopBodyFileAccess(bufIdx : Int) : ListBuffer[IR_Statement] = {
     val stmts : ListBuffer[IR_Statement] = ListBuffer()
     val buf = dataBuffers(bufIdx)
+
     def loopOverDimsBuf(body : IR_Statement*) = buf.loopOverDims(condition, body : _*)
+
     val byteswapNeeded = IR_FunctionCall(IR_ExternalFunctionReference("sion_endianness_swap_needed"), fileId)
 
     val trackValuesAccessed = Knowledge.parIO_generateDebugStatements && bytesAccessedKnownApriori
+
     def assignValuesAccessed(toAssign : IR_Expression) : IR_Statement = if (trackValuesAccessed)
       IR_Assignment(valuesAccessed, toAssign, "+=")
     else
@@ -162,10 +165,9 @@ case class IR_FileAccess_SIONlib(
     val useAnsiC = !Knowledge.parIO_streams_useIntermediateBuffer || (!writeAccess && !bytesAccessedKnownApriori)
     val funcName = if (writeAccess)
       if (useAnsiC) "fwrite" else "sion_fwrite"
-    else
-      if (useAnsiC) "fread" else "sion_fread"
+    else if (useAnsiC) "fread" else "sion_fread"
 
-    val tmpBuf = IR_VariableAccess("buffer", IR_SpecialDatatype(s"std::vector<${buf.datatype.resolveBaseDatatype.prettyprint}>"))
+    val tmpBuf = IR_VariableAccess("buffer", IR_SpecialDatatype(s"std::vector<${ buf.datatype.resolveBaseDatatype.prettyprint }>"))
     val tmpBufPtr = IR_AddressOf(IR_ArrayAccess(tmpBuf, 0))
     if (!useAnsiC) {
       stmts += IR_IfCondition(IR_Negation(isAccessForWholeBlockAllowed(buf, bytesAccessedKnownApriori)),
@@ -244,7 +246,7 @@ case class IR_FileAccess_SIONlib(
           IR_VariableAccess("std::cout", IR_UnknownDatatype),
           IR_StringConstant("Rank: "), MPI_IV_MpiRank, IR_StringConstant(". "),
           IR_VariableAccess("__FILE__", IR_UnknownDatatype), IR_StringConstant(": Error at line: "), IR_VariableAccess("__LINE__", IR_UnknownDatatype),
-          IR_StringConstant(s". Number of ${if (useAnsiC) "elements" else "bytes"} ${if (writeAccess) "written" else "read"}="), valuesAccessed, IR_StringConstant(" differ from : "), compareTo, IR_Print.endl))
+          IR_StringConstant(s". Number of ${ if (useAnsiC) "elements" else "bytes" } ${ if (writeAccess) "written" else "read" }="), valuesAccessed, IR_StringConstant(" differ from : "), compareTo, IR_Print.endl))
       stmts += IR_Assignment(valuesAccessed, 0) // reset count
     }
 
@@ -258,15 +260,15 @@ case class IR_FileAccess_SIONlib(
   override def write(bufIdx : Int) : ListBuffer[IR_Statement] = {
     // in debug mode: ensure there is enough space, but this is normally not necessary since the chunk sizes are set accordingly
     val ensureSpace = if (Knowledge.parIO_generateDebugStatements)
-        IR_FunctionCall(IR_ExternalFunctionReference("sion_ensure_free_space"), fileId, numBytesLocal(bufIdx))
-      else
-        IR_BooleanConstant(true)
+      IR_FunctionCall(IR_ExternalFunctionReference("sion_ensure_free_space"), fileId, numBytesLocal(bufIdx))
+    else
+      IR_BooleanConstant(true)
 
     ListBuffer(
       accessFileWithGranularity(bufIdx,
-      ListBuffer(
-        IR_IfCondition(ensureSpace,
-        loopBodyFileAccess(bufIdx)))))
+        ListBuffer(
+          IR_IfCondition(ensureSpace,
+            loopBodyFileAccess(bufIdx)))))
   }
 
   override def cleanupAccess() : ListBuffer[IR_Statement] = if (Knowledge.mpi_enabled) {
@@ -284,11 +286,11 @@ case class IR_FileAccess_SIONlib(
   }
 
   // use "sionconfig" script (comes with sionlib installation) to select appropriate compile flags
-  val selectLibsCmd : String = "sionconfig --libs --cxx " + (if(Knowledge.mpi_enabled) "--mpi" else "--ser")
-  val selectCflagsCmd : String = "sionconfig --cflags --cxx " + (if(Knowledge.mpi_enabled) "--mpi" else "--ser")
+  val selectLibsCmd : String = "sionconfig --libs --cxx " + (if (Knowledge.mpi_enabled) "--mpi" else "--ser")
+  val selectCflagsCmd : String = "sionconfig --cflags --cxx " + (if (Knowledge.mpi_enabled) "--mpi" else "--ser")
   val selectLibs : String = selectLibsCmd.!!
   val selectCflags : String = selectCflagsCmd.!!
-  if(!Settings.makefile_additionalCFlags.contains(selectCflags))
+  if (!Settings.makefile_additionalCFlags.contains(selectCflags))
     Settings.makefile_additionalCFlags += selectCflags
 
   override def includes : ListBuffer[String] = ListBuffer("sion.h", "unistd.h", "stdio.h", "stdlib.h") ++

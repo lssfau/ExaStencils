@@ -98,7 +98,7 @@ case class IR_PrintXdmfSWE(
     val stmts : ListBuffer[IR_Statement] = ListBuffer()
 
     // buffers for nodal fields (e.g. bath)
-    nodalFieldBuffersHdf5.map { case(name, tmpBuf) =>
+    nodalFieldBuffersHdf5.map { case (name, tmpBuf) =>
       val indexRangeCells = IR_ExpressionIndexRange(
         IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.layout.idxById("IB", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression)),
         IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => etaDiscLower0.layout.idxById("IE", dim) - Duplicate(etaDiscLower0.referenceOffset(dim)) : IR_Expression)))
@@ -115,7 +115,7 @@ case class IR_PrintXdmfSWE(
               (0 until numAccessesPerCell).to[ListBuffer].map(idx => {
                 IR_Assignment(
                   tmpBuf.at(offset + idx),
-                  IR_FieldAccess(nodalFields(name), IR_IV_ActiveSlot(nodalFields(name)), IR_LoopOverDimensions.defIt(numDimsGrid) + nodeOffsets(idx)))  : IR_Statement
+                  IR_FieldAccess(nodalFields(name), IR_IV_ActiveSlot(nodalFields(name)), IR_LoopOverDimensions.defIt(numDimsGrid) + nodeOffsets(idx))) : IR_Statement
               })))))
     }
 
@@ -161,7 +161,6 @@ case class IR_PrintXdmfSWE(
     })
     statements += printXdmfElement(stream, closeGeometry)
 
-
     writeXdmfElemOrReferenceConstants(stream, statements, elemToRef = "Geometry")
   }
 
@@ -179,7 +178,7 @@ case class IR_PrintXdmfSWE(
             (0 until numDimsGrid).map(dim =>
               IR_Print(stream,
                 indentData +:
-                  connectivityForCell(global = false).slice(3*dim, 3*(dim+1)).flatMap(List(_, separator)).dropRight(1) :+
+                  connectivityForCell(global = false).slice(3 * dim, 3 * (dim + 1)).flatMap(List(_, separator)).dropRight(1) :+
                   IR_Print.newline) : IR_Statement
             ).to[ListBuffer])),
         IR_Print(stream, IR_Print.flush))
@@ -230,7 +229,7 @@ case class IR_PrintXdmfSWE(
       }
       statements += printXdmfElement(stream, closeAttribute)
 
-      writeXdmfElemOrReferenceConstants(stream, statements, elemToRef = s"Attribute[${fid+1}]",
+      writeXdmfElemOrReferenceConstants(stream, statements, elemToRef = s"Attribute[${ fid + 1 }]",
         altCondition = Some(IR_ConstantsWrittenToFile().isEmpty OrOr fname != "bath"))
     }
   }
@@ -275,7 +274,7 @@ case class IR_PrintXdmfSWE(
     var constants : ListBuffer[IR_DataBuffer] = ListBuffer()
     if (enforceCopiesHdf5 || gridPositionsCopied) {
       // special case for non-reduced SWE with hdf5 or no associated field for vf -> copy positions to buffer
-      constants ++= nodePositionsBuf.zipWithIndex.map { case(tmpBuf, idx) => IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetCoords(idx))) }
+      constants ++= nodePositionsBuf.zipWithIndex.map { case (tmpBuf, idx) => IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(someCellField), None, Some(datasetCoords(idx))) }
     } else {
       // use vf's associated field directly
       constants ++= nodePosVecAsDataBuffers(accessIndices, Some(datasetCoords.map(s => s : IR_Expression)))

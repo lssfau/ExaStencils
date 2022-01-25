@@ -29,14 +29,14 @@ trait IR_PrintVisualizationTriangles extends IR_PrintVisualization {
 
   // offsets for vertex positions: (Lower0, Lower1, Lower2, Upper0, Upper1, Upper2)
   def nodePositionOffsets : Array[Int] = if (Knowledge.swe_nodalReductionPrint) {
-    Array(0, 1, numCells_x+1, (numCells_x+1)+1, numCells_x+1, 1) // we're not writing 6 vertices per cell in this case
+    Array(0, 1, numCells_x + 1, (numCells_x + 1) + 1, numCells_x + 1, 1) // we're not writing 6 vertices per cell in this case
   } else {
     Array(0, 1, 2, 3, 4, 5)
   }
 
   def connectivityForCell(global : Boolean = true) : ListBuffer[IR_Expression] = {
     val offsetLoopOverDim = if (Knowledge.swe_nodalReductionPrint) {
-      IR_LoopOverDimensions.defItForDim(0) + IR_LoopOverDimensions.defItForDim(1) * (numCells_x+1)
+      IR_LoopOverDimensions.defItForDim(0) + IR_LoopOverDimensions.defItForDim(1) * (numCells_x + 1)
     } else {
       6 * (IR_LoopOverDimensions.defItForDim(0) + IR_LoopOverDimensions.defItForDim(1) * numCells_x)
     }

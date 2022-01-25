@@ -24,7 +24,7 @@ trait IR_PrintFieldsAsciiSWE extends IR_PrintVisualizationSWE {
       IR_IfCondition(IR_IV_IsValidForDomain(etaDiscLower0.domain.index),
         loopBody
       ),
-    IR_Print(stream, IR_Print.flush))
+      IR_Print(stream, IR_Print.flush))
   )
 
   def addNodePrint(name : String, cellPrint : ListBuffer[IR_Expression], optStream : Option[IR_VariableAccess] = None) : ListBuffer[IR_Statement] = {
@@ -50,7 +50,7 @@ trait IR_PrintFieldsAsciiSWE extends IR_PrintVisualizationSWE {
     addNodePrint(nodeField.name, {
       var nodePrint = ListBuffer[IR_Expression]()
       nodeOffsets.foreach { offset =>
-        if(indentation.isDefined)
+        if (indentation.isDefined)
           nodePrint += indentation.get
         nodePrint += IR_FieldAccess(nodeField, IR_IV_ActiveSlot(nodeField), IR_LoopOverDimensions.defIt(numDimsGrid) + offset)
         nodePrint += IR_Print.newline
@@ -64,13 +64,13 @@ trait IR_PrintFieldsAsciiSWE extends IR_PrintVisualizationSWE {
       Logger.error("Wrong usage for \"printDiscField\" in \"IR_PrintFieldsAsciiSWE\". Parameter \"discField\" should have length: 6.")
     }
 
-    if(Knowledge.swe_nodalReductionPrint) {
+    if (Knowledge.swe_nodalReductionPrint) {
       addReducedNodePrint(getBasenameDiscField(discField), discField, stream, indentation)
     } else {
       addNodePrint(getBasenameDiscField(discField), {
         var nodePrint = ListBuffer[IR_Expression]()
         discField.foreach { field =>
-          if(indentation.isDefined)
+          if (indentation.isDefined)
             nodePrint += indentation.get
           nodePrint += IR_FieldAccess(field, IR_IV_ActiveSlot(field), IR_LoopOverDimensions.defIt(numDimsGrid))
           nodePrint += IR_Print.newline

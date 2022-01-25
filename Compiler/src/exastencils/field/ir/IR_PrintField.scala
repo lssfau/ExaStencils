@@ -64,6 +64,7 @@ case class IR_PrintField(
         case IR_AtFaceCenter(_)     => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(field.layout.numDimsGrid))
       }
     }
+
     // print coords for CSV files (Paraview)
     val csvFormat = !useBinary && Knowledge.experimental_generateParaviewFiles
     val altSep = if (csvFormat) IR_StringConstant(",") else separator // use alternative sep if paraview file
@@ -77,7 +78,7 @@ case class IR_PrintField(
     val fileHeader : ListBuffer[IR_Statement] = {
       var ret : ListBuffer[IR_Statement] = ListBuffer()
       var tmp : ListBuffer[IR_Statement] = ListBuffer()
-      val openMode = if(Knowledge.mpi_enabled)
+      val openMode = if (Knowledge.mpi_enabled)
         IR_VariableAccess("std::ios::app", IR_UnknownDatatype) // file was already created by root process
       else
         IR_VariableAccess("std::ios::trunc", IR_UnknownDatatype) // create new file
@@ -85,8 +86,11 @@ case class IR_PrintField(
       // write header at the beginning of the file with root
       if (csvFormat) {
         val streamName = IR_FieldIO.getNewStreamName()
+
         def streamType = IR_SpecialDatatype("std::ofstream")
+
         def stream = IR_VariableAccess(streamName, streamType)
+
         tmp += IR_ObjectInstantiation(streamType, streamName, filename, openMode)
         tmp += IR_Print(stream, "\"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\"", IR_Print.endl)
         tmp += IR_MemberFunctionCall(stream, "close")

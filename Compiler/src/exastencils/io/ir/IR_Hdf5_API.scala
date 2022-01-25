@@ -21,21 +21,21 @@ trait IR_Hdf5_API {
   // from: https://support.hdfgroup.org/HDF5/doc1.6/UG/11_Datatypes.html
   def h5Datatype(datatype : IR_Datatype) : IR_VariableAccess = {
     val dt = datatype.resolveBaseDatatype.prettyprint match {
-      case "char" => "H5T_NATIVE_CHAR"
-      case "signed char" => "H5T_NATIVE_SCHAR"
-      case "unsigned char" => "H5T_NATIVE_UCHAR"
-      case "short" => "H5T_NATIVE_SHORT"
-      case "unsigned short" => "H5T_NATIVE_USHORT"
-      case "int" => "H5T_NATIVE_INT"
+      case "char"                      => "H5T_NATIVE_CHAR"
+      case "signed char"               => "H5T_NATIVE_SCHAR"
+      case "unsigned char"             => "H5T_NATIVE_UCHAR"
+      case "short"                     => "H5T_NATIVE_SHORT"
+      case "unsigned short"            => "H5T_NATIVE_USHORT"
+      case "int"                       => "H5T_NATIVE_INT"
       case "unsigned" | "unsigned int" => "H5T_NATIVE_UINT"
-      case "long" => "H5T_NATIVE_LONG"
-      case "unsigned long" => "H5T_NATIVE_ULONG"
-      case "long long" => "H5T_NATIVE_LLONG"
-      case "unsigned long long" => "H5T_NATIVE_ULLONG"
-      case "float" => "H5T_NATIVE_FLOAT"
-      case "double" => "H5T_NATIVE_DOUBLE"
-      case "long double" => "H5T_NATIVE_LDOUBLE"
-      case _ => Logger.error("Unsupported datatype when using HDF5: " + datatype.resolveBaseDatatype.prettyprint)
+      case "long"                      => "H5T_NATIVE_LONG"
+      case "unsigned long"             => "H5T_NATIVE_ULONG"
+      case "long long"                 => "H5T_NATIVE_LLONG"
+      case "unsigned long long"        => "H5T_NATIVE_ULLONG"
+      case "float"                     => "H5T_NATIVE_FLOAT"
+      case "double"                    => "H5T_NATIVE_DOUBLE"
+      case "long double"               => "H5T_NATIVE_LDOUBLE"
+      case _                           => Logger.error("Unsupported datatype when using HDF5: " + datatype.resolveBaseDatatype.prettyprint)
     }
     IR_VariableAccess(dt, IR_UnknownDatatype)
   }
@@ -138,10 +138,10 @@ trait IR_Hdf5_API {
   def H5Dopen2(setId : IR_VariableAccess, locId : IR_VariableAccess, name : IR_Expression, propertyListDatasetAccess : IR_VariableAccess) : ListBuffer[IR_Statement] =
     callH5Function(setId, "H5Dopen2", locId, name, propertyListDatasetAccess)
 
-  def H5Dread(err : IR_VariableAccess, setId : IR_VariableAccess, datatype: IR_Datatype, memspaceId : IR_VariableAccess, dataspaceId : IR_VariableAccess, transferList : IR_VariableAccess, bufPtr : IR_AddressOf) : ListBuffer[IR_Statement] =
+  def H5Dread(err : IR_VariableAccess, setId : IR_VariableAccess, datatype : IR_Datatype, memspaceId : IR_VariableAccess, dataspaceId : IR_VariableAccess, transferList : IR_VariableAccess, bufPtr : IR_AddressOf) : ListBuffer[IR_Statement] =
     callH5Function(err, "H5Dread", setId, h5Datatype(datatype), memspaceId, dataspaceId, transferList, bufPtr)
 
-  def H5Dwrite(err : IR_VariableAccess, setId : IR_VariableAccess, datatype: IR_Datatype, memspaceId : IR_VariableAccess, dataspaceId : IR_VariableAccess, transferList : IR_VariableAccess, bufPtr : IR_AddressOf) : ListBuffer[IR_Statement] =
+  def H5Dwrite(err : IR_VariableAccess, setId : IR_VariableAccess, datatype : IR_Datatype, memspaceId : IR_VariableAccess, dataspaceId : IR_VariableAccess, transferList : IR_VariableAccess, bufPtr : IR_AddressOf) : ListBuffer[IR_Statement] =
     callH5Function(err, "H5Dwrite", setId, h5Datatype(datatype), memspaceId, dataspaceId, transferList, bufPtr)
 
   def H5Dget_space(spaceId : IR_VariableAccess, setId : IR_VariableAccess) : ListBuffer[IR_Statement] =

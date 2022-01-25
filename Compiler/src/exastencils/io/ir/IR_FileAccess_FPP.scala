@@ -35,10 +35,10 @@ case class IR_FileAccess_FPP(
 
   override def validateParams() : Unit = {
     separator match {
-      case s : IR_StringConstant => if(s.value.length > 1) {
+      case s : IR_StringConstant => if (s.value.length > 1) {
         Logger.error("Parameter \"separator\" has the wrong length. Should be a single character.")
       }
-      case _ =>
+      case _                     =>
         Logger.error("Parameter \"separator\" has wrong datatype. Should be a string constant.")
     }
   }
@@ -59,7 +59,7 @@ case class IR_FileAccess_FPP(
       case filenameStrConst : IR_StringConstant =>
         val str : String = filenameStrConst.value
         val strSplit = ListBuffer(str.split("\\$blockId") : _ *)
-        if(!str.contains("$blockId")) {
+        if (!str.contains("$blockId")) {
           Logger.error("Error when accessing a file with file-per-process: Parameter \"filename\" must contain substring: \"$blockId\".")
         }
 

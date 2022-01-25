@@ -43,7 +43,8 @@ trait IR_Iostream {
       condition : IR_Expression) : IR_ScopedStatement = {
 
     val bytesAccessedKnownApriori = condition == IR_BooleanConstant(true) // if there is no condition -> required number of accessed bytes are known
-    val tmpBuf = IR_VariableAccess("buffer", IR_SpecialDatatype(s"std::vector<${buf.datatype.resolveBaseDatatype.prettyprint}>"))
+    val tmpBuf = IR_VariableAccess("buffer", IR_SpecialDatatype(s"std::vector<${ buf.datatype.resolveBaseDatatype.prettyprint }>"))
+
     def loopOverDimsBuf(body : IR_Statement*) = buf.loopOverDims(condition, body : _*)
 
     new IR_IfCondition(isAccessForWholeBlockAllowed(buf, bytesAccessedKnownApriori),
@@ -90,7 +91,8 @@ trait IR_Iostream {
       condition : IR_Expression) : IR_ScopedStatement = {
 
     val bytesAccessedKnownApriori = condition == IR_BooleanConstant(true) // if there is no condition -> required number of accessed bytes are known
-    val tmpBuf = IR_VariableAccess("buffer", IR_SpecialDatatype(s"std::vector<${buf.datatype.resolveBaseDatatype.prettyprint}>"))
+    val tmpBuf = IR_VariableAccess("buffer", IR_SpecialDatatype(s"std::vector<${ buf.datatype.resolveBaseDatatype.prettyprint }>"))
+
     def loopOverDimsBuf(body : IR_Statement*) = buf.loopOverDims(condition, body : _*)
 
     new IR_IfCondition(isAccessForWholeBlockAllowed(buf, bytesAccessedKnownApriori),

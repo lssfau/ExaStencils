@@ -38,7 +38,7 @@ case class IR_FileAccess_Locking(
       case s : IR_StringConstant => if (s.value.length > 1) {
         Logger.error("Parameter \"separator\" has the wrong length. Should be a single character.")
       }
-      case _ =>
+      case _                     =>
         Logger.error("Parameter \"separator\" has wrong datatype. Should be a string constant.")
     }
   }
@@ -49,7 +49,9 @@ case class IR_FileAccess_Locking(
     // for parallel programs: create file on root process before writing via locking
     if (writeAccess && Knowledge.mpi_enabled && !appendedMode) {
       val streamNameCreate = IR_FieldIO.getNewStreamName()
+
       def streamTypeCreate = IR_SpecialDatatype("std::ofstream")
+
       def streamCreate = IR_VariableAccess(streamNameCreate, streamType)
 
       statements += IR_IfCondition(MPI_IsRootProc(),

@@ -72,9 +72,9 @@ case class IR_PrintNetCDF(
   // the CF conventions do not provide means to join datasets in order to interleave the component values (3 scalars -> 1 vector [z,y,x,3])
   // but can be re-constructed in visualization tools like Paraview (see "Calculator" tool) at the cost of user interaction
   def dataBuffersField : ListBuffer[IR_DataBuffer] = field.gridDatatype match {
-    case _ : IR_ScalarDatatype   => ListBuffer(IR_DataBuffer(field, slot, includeGhostLayers, None, Some(IR_StringConstant(s"${field.name}")), canonicalFileLayout))
+    case _ : IR_ScalarDatatype   => ListBuffer(IR_DataBuffer(field, slot, includeGhostLayers, None, Some(IR_StringConstant(s"${ field.name }")), canonicalFileLayout))
     case mat : IR_MatrixDatatype => (0 until mat.sizeM).to[ListBuffer].flatMap(r => (0 until mat.sizeN).map(c =>
-      IR_DataBuffer(field, None, Some(IR_StringConstant(field.name + s"_${r}_$c")), r, c, canonicalFileLayout)))
+      IR_DataBuffer(field, None, Some(IR_StringConstant(field.name + s"_${ r }_$c")), r, c, canonicalFileLayout)))
   }
 
   def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = dataBuffersField
@@ -114,9 +114,12 @@ case class IR_PrintNetCDF(
     val buffers = dataBuffers(constsIncluded)
 
     // variable and dimension names
-    def createDimName(d : Int) = IR_StringConstant(('X'+(numDimsGrid-1-d)).toChar.toString)
+    def createDimName(d : Int) = IR_StringConstant(('X' + (numDimsGrid - 1 - d)).toChar.toString)
+
     def timeName = IR_StringConstant("time")
+
     def dimName(d : Int) = createDimName(d)
+
     def varNamePos(d : Int) = dimName(d) // must be identical with dimension name
 
     val varIdPosArray = (0 until numDimsGrid).map(d => IR_VariableAccess(IR_FileAccess.declareVariable(varNamePos(d).value), IR_IntegerDatatype))
@@ -203,7 +206,7 @@ case class IR_PrintNetCDF(
               IR_ForLoop(IR_VariableDeclaration(it, 0), IR_Lower(it, np), IR_PreIncrement(it),
                 IR_Assignment(IR_ArrayAccess(tmpBuf, it), getPos(field.localization, level, d))) +:
               IR_VariableDeclaration(globalStart, IR_IV_FragmentIndex(d) * np) +:
-              ncmpi_put_vara_type_all(dtBuf, ncFile, varIdPosArray(numDimsGrid-1 - d), IR_AddressOf(globalStart), IR_AddressOf(count), IR_AddressOf(IR_ArrayAccess(tmpBuf, 0))) :+
+              ncmpi_put_vara_type_all(dtBuf, ncFile, varIdPosArray(numDimsGrid - 1 - d), IR_AddressOf(globalStart), IR_AddressOf(count), IR_AddressOf(IR_ArrayAccess(tmpBuf, 0))) :+
               IR_ArrayFree(tmpBuf)
           )
         }
@@ -235,7 +238,7 @@ case class IR_PrintNetCDF(
             val addr = IR_AddressOf(IR_FieldAccess(vf, slot, new IR_ExpressionIndex(vf.referenceOffset.map(i => IR_Negative(i)).toArray)))
             stmts += IR_LoopOverFragments(
               IR_VariableDeclaration(globalStart, IR_IV_FragmentIndex(d) * np) +:
-                ncmpi_put_vara_all(ncFile, varIdPosArray(numDimsGrid-1 - d), IR_AddressOf(globalStart), IR_AddressOf(count), addr, 1, localView.getAccess))
+                ncmpi_put_vara_all(ncFile, varIdPosArray(numDimsGrid - 1 - d), IR_AddressOf(globalStart), IR_AddressOf(count), addr, 1, localView.getAccess))
           } else {
             // use plain vara, start at ref offset in memory
             val addr = IR_AddressOf(IR_FieldAccess(vf, slot, IR_ExpressionIndex(0)))
@@ -264,7 +267,7 @@ case class IR_PrintNetCDF(
       val localView = MPI_View(IR_VariableAccess(lTotal), IR_VariableAccess(lCount), IR_VariableAccess(lStart),
         numDims, createViewPerFragment = false, isLocal = true, buf, "localSubarray")
       if (Knowledge.mpi_enabled && MPI_View.addView(localView))
-          stmts ++= ListBuffer(lTotal, lCount, lStart, localView.createDatatype) // decl extents and create dt
+        stmts ++= ListBuffer(lTotal, lCount, lStart, localView.createDatatype) // decl extents and create dt
 
       // use dims already provided by I/O handler
       val globalStart = handler.globalStart(bufIdx)

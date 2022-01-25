@@ -17,7 +17,7 @@ import exastencils.grid.ir.IR_Localization
 
 case class IR_IV_TemporaryBuffer(
     var baseDatatype : IR_Datatype,
-    var localization: IR_Localization,
+    var localization : IR_Localization,
     var name : String,
     var domainIdx : Int,
     dimsPerFrag : ListBuffer[IR_Expression]
@@ -50,7 +50,7 @@ case class IR_IV_TemporaryBuffer(
       IR_ArrayAccess(
         access,
         linearizedIdx)
-    case _ =>
+    case _              =>
       IR_ArrayAccess(access, index)
   }
 

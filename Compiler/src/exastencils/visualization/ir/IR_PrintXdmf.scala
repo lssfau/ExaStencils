@@ -34,7 +34,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   def ioInterface : String = ioMethod match {
     case s : IR_StringConstant if supportedInterfaces.contains(s.value) =>
       s.value
-    case _ =>
+    case _                                                              =>
       Logger.error("Wrong I/O interface passed to \"printXdmf\". Options are: " + supportedInterfaces.mkString("\"", "\", \"", "\""))
   }
 
@@ -49,7 +49,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
         IR_FileAccess_FPP(fn, dataBuffers(constsIncluded), useBinary = binaryFpp, writeAccess = true, separator, condition = true, optPrintComponents = None)
       case "hdf5"  =>
         IR_FileAccess_HDF5(fn, dataBuffers(constsIncluded), writeAccess = true, initFragInfo = false, zlibCompressionLevel = 0)
-      case _ =>
+      case _       =>
         Logger.error("Wrong I/O interface passed to \"printXdmf\". Options are: " + supportedInterfaces.mkString("\"", "\", \"", "\""))
     }
   }
@@ -61,8 +61,8 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   }
 
   // overloaded helper methods to write xdmf elements
-  def printXdmfElement(stream : IR_VariableAccess, str : String*): IR_Statement = IR_Print(stream, str.map(s => IR_StringConstant(s)).to[ListBuffer] :+ IR_Print.newline)
-  def printXdmfElement(stream : IR_VariableAccess, expr : IR_Expression*)(implicit d: DummyImplicit) : IR_Statement = IR_Print(stream, expr.to[ListBuffer] :+ IR_Print.newline)
+  def printXdmfElement(stream : IR_VariableAccess, str : String*) : IR_Statement = IR_Print(stream, str.map(s => IR_StringConstant(s)).to[ListBuffer] :+ IR_Print.newline)
+  def printXdmfElement(stream : IR_VariableAccess, expr : IR_Expression*)(implicit d : DummyImplicit) : IR_Statement = IR_Print(stream, expr.to[ListBuffer] :+ IR_Print.newline)
 
   // xml elements used in xdmf
   def xmlHeader = "<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>"
@@ -88,8 +88,8 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   }
 
   def centeringType(localization : IR_Localization) : String = localization match {
-    case IR_AtNode          => "Node"
-    case IR_AtCellCenter    => "Cell"
+    case IR_AtNode       => "Node"
+    case IR_AtCellCenter => "Cell"
     // according to the docs ("https://www.xdmf.org/index.php/XDMF_Model_and_Format"), face centered variables are supported but do not map well for vis. systems (e.g. ParaView)
     case IR_AtFaceCenter(_) => "Cell" // values are interpolated
     case _                  => Logger.error("Unsupported localization for IR_PrintXdmf!")
@@ -167,18 +167,18 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
   }
 
   // close xdmf elements
-  def closeXdmf      = "</Xdmf>"
-  def closeDomain    = "\t</Domain>"
-  def closeGrid      = "\t\t</Grid>"
-  def closeGeometry  = "\t\t\t</Geometry>"
-  def closeTopology  = "\t\t\t</Topology>"
+  def closeXdmf = "</Xdmf>"
+  def closeDomain = "\t</Domain>"
+  def closeGrid = "\t\t</Grid>"
+  def closeGeometry = "\t\t\t</Geometry>"
+  def closeTopology = "\t\t\t</Topology>"
   def closeAttribute = "\t\t\t</Attribute>"
-  def closeDataItem  = "\t\t\t\t</DataItem>"
+  def closeDataItem = "\t\t\t\t</DataItem>"
 
   // helpers to construct filenames
   def buildFilenamePiece(noPath : Boolean, rank : IR_Expression) : IR_BuildString = IR_BuildString(filenamePieceFpp.name,
     ListBuffer(basename(noPath), IR_StringConstant("_rank"), rank, if (binaryFpp) IR_StringConstant(".bin") else ext))
-  def buildFilenameData(noPath : Boolean)  : IR_Expression = basename(noPath, Some(IR_StringConstant(fmt match {
+  def buildFilenameData(noPath : Boolean) : IR_Expression = basename(noPath, Some(IR_StringConstant(fmt match {
     case "Binary" => ".bin"
     case "HDF"    => ".h5"
     case "XML"    => ".xmf"
@@ -230,7 +230,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
 
     // open file and write header
     val stream = newStream
-    if(ioInterface == "fpp") {
+    if (ioInterface == "fpp") {
       // build filename for each rank
       val buildStr = IR_VariableAccess(filenamePieceFpp.name, IR_StringDatatype)
       statements += IR_VariableDeclaration(buildStr)
@@ -376,7 +376,7 @@ abstract class IR_PrintXdmf(ioMethod : IR_Expression, binaryFpp : Boolean) exten
     if (Knowledge.parIO_vis_constantDataReduction) {
       filename match {
         case _ : IR_StringConstant => Logger.warn("Constants are reduced but filename is constant; Do not use \"printField\" in a loop with this parameter combination, otherwise the reduction will go wrong.")
-        case _ =>
+        case _                     =>
       }
     }
 

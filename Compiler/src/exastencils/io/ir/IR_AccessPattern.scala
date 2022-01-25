@@ -67,7 +67,7 @@ case class IR_SWEAccessPattern(
   def transformDataExtents(dims : ListBuffer[IR_Expression], localization : IR_Localization, orderKJI : Boolean) : ListBuffer[IR_Expression] = {
     // 6 accesses per grid cell instead of 1 access per grid node
     val numDims = Knowledge.dimensionality
-    val nodalToZonal = (if (orderKJI) dims.reverse else dims).zipWithIndex.map { case (dim, idx) => if (idx < numDims) dim-1 else dim }
+    val nodalToZonal = (if (orderKJI) dims.reverse else dims).zipWithIndex.map { case (dim, idx) => if (idx < numDims) dim - 1 else dim }
     val newDims = IR_IntegerConstant(numAccesses) +: nodalToZonal
     if (orderKJI) newDims.reverse else newDims
   }

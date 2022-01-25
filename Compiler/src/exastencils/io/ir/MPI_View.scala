@@ -27,7 +27,7 @@ object MPI_View {
       ret = false
     } else {
       container.append(view)
-      lookup = container.length-1
+      lookup = container.length - 1
     }
     lut.append(lookup)
 
@@ -113,7 +113,7 @@ case class MPI_View(
     if (createViewPerFragment) IR_LoopOverFragments(setDefValue) else setDefValue
   }
 
-  def commitDatatype(access : IR_Access = getAccess) : IR_Statement =  IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_commit"), IR_AddressOf(access))
+  def commitDatatype(access : IR_Access = getAccess) : IR_Statement = IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_commit"), IR_AddressOf(access))
 
   def createDatatype : IR_Statement = {
     if (buffer.accessPattern.accessIndices.isDefined) {
@@ -166,7 +166,7 @@ case class MPI_View(
       for (d <- 0 until numDimsGrid) {
         val oldDatatype = nestedDatatypes.last
         val hvector = IR_VariableAccess("hvector_dim" + d, MPI_Datatype)
-        val newDatatype = if (d != numDimsGrid -1) {
+        val newDatatype = if (d != numDimsGrid - 1) {
           stmts += IR_VariableDeclaration(hvector, MPI_DATATYPE_NULL)
           hvector
         } else {
@@ -183,12 +183,12 @@ case class MPI_View(
       IR_IfCondition(getAccess EqEq MPI_DATATYPE_NULL, stmts)
     } else {
       // create global subarray with modified dimensions (nodal -> zonal with 6 accesses each)
-      val dimsGlobal  = accessPattern.transformDataExtents(buffer.globalDimsKJI, buffer.localization, orderKJI = true)
+      val dimsGlobal = accessPattern.transformDataExtents(buffer.globalDimsKJI, buffer.localization, orderKJI = true)
       val countGlobal = IR_IntegerConstant(1) +: dimsGlobal.drop(1) // TotalNumFrags -> 1 Fragment per write
       val fragOffset = IR_IV_FragmentOffset(buffer.domainIdx) + IR_TernaryCondition(IR_IV_IsValidForDomain(buffer.domainIdx), IR_LoopOverFragments.defIt, 0) // dummy: set to "0" for "invalid" frags
       val startGlobal = fragOffset +: dimsGlobal.drop(1).map(_ => IR_IntegerConstant(0)) // start at global "valid" fragment
       val newDims = dimsGlobal.length
-      val globalDims  = IR_VariableAccess("globalDims", IR_ArrayDatatype(IR_IntegerDatatype, newDims))
+      val globalDims = IR_VariableAccess("globalDims", IR_ArrayDatatype(IR_IntegerDatatype, newDims))
       val globalCount = IR_VariableAccess("globalCount", IR_ArrayDatatype(IR_IntegerDatatype, newDims))
       val globalStart = IR_VariableAccess("globalStart", IR_ArrayDatatype(IR_IntegerDatatype, newDims))
 

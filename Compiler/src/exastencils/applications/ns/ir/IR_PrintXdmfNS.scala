@@ -103,8 +103,8 @@ case class IR_PrintXdmfNS(
       statements += printXdmfElement(stream, openDataItem(someCellField.resolveBaseDatatype, dimsFieldData +: dimsCellData :+ dimFrags(global), getSeekp(global)) : _*)
       val printValsOrRefFile = if (fmt == "XML") {
         fname match {
-          case "vel"   => printVel(Some(stream), Some(indentData))
-          case "p"     => printP(Some(stream), Some(indentData))
+          case "vel" => printVel(Some(stream), Some(indentData))
+          case "p"   => printP(Some(stream), Some(indentData))
         }
       } else {
         ListBuffer(printFilename(stream, datasetFields(fid)))
@@ -118,9 +118,12 @@ case class IR_PrintXdmfNS(
   }
 
   override def dataBuffersConst : ListBuffer[IR_DataBuffer] = {
-    nodePositionsBuf.zipWithIndex.map { case (buf, idx) =>
-      IR_DataBuffer(buf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetCoords(idx)))) } :+
-      IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetConnectivity)))
+    val nodePos = nodePositionsBuf.zipWithIndex.map { case (buf, idx) =>
+      IR_DataBuffer(buf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetCoords(idx))))
+    }
+    val con = IR_DataBuffer(connectivityBuf, IR_IV_ActiveSlot(p), None, Some(IR_StringConstant(datasetConnectivity)))
+
+    nodePos :+ con
   }
 
   override def dataBuffers(constsIncluded : Boolean) : ListBuffer[IR_DataBuffer] = {

@@ -12,7 +12,6 @@ import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.parallelization.api.mpi.MPI_AllReduce
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 
-
 object IR_IV_FragmentInfo {
   var firstCall = true
 
@@ -52,7 +51,7 @@ object IR_IV_FragmentInfo {
                 IR_IV_NumValidFragsPerBlock(domainIdx), 1, mpiInt, mpiComm
               )
             }
-          case _ =>
+          case _                                                      =>
         }
       }
 
@@ -73,7 +72,7 @@ object IR_IV_FragmentInfo {
   }
 }
 
-case class IR_IV_TotalNumFrags(var domain : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(false, true, false, false, false)  {
+case class IR_IV_TotalNumFrags(var domain : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(false, true, false, false, false) {
   override def resolveName() : String = "totalNumFrags" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", "")
   override def resolveDatatype() : IR_Datatype = IR_IntegerDatatype
   override def resolveDefValue() : Option[IR_Expression] = Some(Knowledge.domain_numFragmentsTotal)
@@ -97,7 +96,7 @@ case class IR_IV_NumValidFragsPerBlock(var domain : IR_Expression, var fragmentI
   def resolveAccess(index : IR_Expression) : IR_Expression = IR_ArrayAccess(this, index)
 }
 
-case class IR_IV_NumValidFrags(var domain : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(false, true, false, false, false)  {
+case class IR_IV_NumValidFrags(var domain : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(false, true, false, false, false) {
   override def resolveName() : String = "numValidFrags" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", "")
   override def resolveDatatype() : IR_Datatype = IR_IntegerDatatype
   override def resolveDefValue() : Option[IR_Expression] = Some(Knowledge.domain_numFragmentsPerBlock)

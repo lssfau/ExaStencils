@@ -44,10 +44,10 @@ case class IR_PrintExodusNNF(
       IR_DataBuffer(tmpBuf, IR_IV_ActiveSlot(u), None, Some(datasetFields(d)))
     }.to[ListBuffer]
     fields += IR_DataBuffer(p, IR_IV_ActiveSlot(p), includeGhosts = false, None, Some(datasetFields(numDimsGrid)), canonicalOrder = false)
-    fields += IR_DataBuffer(rho, IR_IV_ActiveSlot(rho), includeGhosts = false, None, Some(datasetFields(numDimsGrid+1)), canonicalOrder = false)
-    fields += IR_DataBuffer(mue, IR_IV_ActiveSlot(mue), includeGhosts = false, None, Some(datasetFields(numDimsGrid+2)), canonicalOrder = false)
-    fields += IR_DataBuffer(gamma, IR_IV_ActiveSlot(gamma), includeGhosts = false, None, Some(datasetFields(numDimsGrid+3)), canonicalOrder = false)
-    fields += IR_DataBuffer(phi, IR_IV_ActiveSlot(phi), includeGhosts = false, None, Some(datasetFields(numDimsGrid+4)), canonicalOrder = false)
+    fields += IR_DataBuffer(rho, IR_IV_ActiveSlot(rho), includeGhosts = false, None, Some(datasetFields(numDimsGrid + 1)), canonicalOrder = false)
+    fields += IR_DataBuffer(mue, IR_IV_ActiveSlot(mue), includeGhosts = false, None, Some(datasetFields(numDimsGrid + 2)), canonicalOrder = false)
+    fields += IR_DataBuffer(gamma, IR_IV_ActiveSlot(gamma), includeGhosts = false, None, Some(datasetFields(numDimsGrid + 3)), canonicalOrder = false)
+    fields += IR_DataBuffer(phi, IR_IV_ActiveSlot(phi), includeGhosts = false, None, Some(datasetFields(numDimsGrid + 4)), canonicalOrder = false)
 
     if (constsIncluded) dataBuffersConstant ++ fields else fields
   }

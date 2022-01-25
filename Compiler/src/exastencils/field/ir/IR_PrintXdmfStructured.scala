@@ -17,7 +17,6 @@ import exastencils.parallelization.api.mpi.MPI_Gather
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_PrintXdmf
 
-
 abstract class IR_PrintXdmfStructured(
     ioMethod : IR_Expression,
     binaryFpp : Boolean
@@ -49,7 +48,7 @@ abstract class IR_PrintXdmfStructured(
   override def numCellsPerFrag : IR_Expression = numCells_x * numCells_y * numCells_z
   val staggerDim : Int = field.localization match {
     case IR_AtFaceCenter(dim) => dim
-    case _ => -1
+    case _                    => -1
   }
   val tmpBufStag : Option[IR_IV_TemporaryBuffer] = if (staggerDim >= 0) {
     val dims = ListBuffer[IR_Expression](numCells_x, numCells_y, numCells_z).take(numDimsGrid)
@@ -81,7 +80,7 @@ abstract class IR_PrintXdmfStructured(
     statements += IR_VariableDeclaration(IR_IntegerDatatype, varname)
     statements += loopOverRanks(
       IR_IfCondition(curRank > 0,
-        IR_Assignment(varname, IR_IV_NumValidFragsPerBlock(domainIndex).resolveAccess(curRank-1), "+="),
+        IR_Assignment(varname, IR_IV_NumValidFragsPerBlock(domainIndex).resolveAccess(curRank - 1), "+="),
         IR_Assignment(varname, 0)),
       IR_Assignment(IR_IV_FragmentOffsetPerBlock().resolveAccess(curRank), varname)
     )
@@ -120,6 +119,7 @@ abstract class IR_PrintXdmfStructured(
     stmts += tmpBufDest.allocateMemory
 
     val indexStagDim = IR_ConstIndex(Array.fill(numDimsGrid)(0).updated(staggerDim, 1))
+
     def mean = 0.5 * (IR_FieldAccess(field, IR_IV_ActiveSlot(field), IR_LoopOverDimensions.defIt(numDimsGrid))
       + IR_FieldAccess(field, IR_IV_ActiveSlot(field), IR_LoopOverDimensions.defIt(numDimsGrid) + indexStagDim))
 
@@ -190,7 +190,7 @@ abstract class IR_PrintXdmfStructured(
     // this kind of loop is only used for "global" files in case of uniform meshes
     // since the handling is fundamentally different from other xdmf writers
 
-    def loopOverFrags(statements: ListBuffer[IR_Statement]) = if (fmt == "XML") {
+    def loopOverFrags(statements : ListBuffer[IR_Statement]) = if (fmt == "XML") {
       IR_LoopOverFragments(IR_IfCondition(IR_IV_IsValidForDomain(domainIndex), statements))
     } else {
       IR_ForLoop(
@@ -200,13 +200,14 @@ abstract class IR_PrintXdmfStructured(
         statements : _*
       )
     }
+
     val printSubdomains = loopOverFrags(
-        ListBuffer[IR_Statement](
-          printXdmfElement(stream, openGrid(gridName, "Uniform") : _*)) ++
-          writeXdmfGeometry(stream, global) ++
-          writeXdmfTopology(stream, global) ++
-          writeXdmfAttributes(stream, global) :+
-          printXdmfElement(stream, closeGrid))
+      ListBuffer[IR_Statement](
+        printXdmfElement(stream, openGrid(gridName, "Uniform") : _*)) ++
+        writeXdmfGeometry(stream, global) ++
+        writeXdmfTopology(stream, global) ++
+        writeXdmfAttributes(stream, global) :+
+        printXdmfElement(stream, closeGrid))
 
     if (!binaryFpp) {
       // write grids for each fragment
@@ -253,7 +254,7 @@ abstract class IR_PrintXdmfStructured(
 
     // introduce "Function DataItem" to combine (join) components of non-scalar datatypes
     if (joinDataItems) {
-      val function = "JOIN(" + (0 until arrayIndexRange).map("$"+_).mkString(",") + ")"
+      val function = "JOIN(" + (0 until arrayIndexRange).map("$" + _).mkString(",") + ")"
       statements += printXdmfElement(stream, openDataItemFunction(dimsHigherDimDatatype, function) : _*)
     }
 
@@ -394,7 +395,7 @@ object IR_PrintXdmfStructured {
               IR_AddressOf(IR_IV_FragmentPosBeginPerBlock(dim).resolveAccess(0, 0)),
               IR_RealDatatype,
               Knowledge.domain_numFragmentsPerBlock))
-        case _                            =>
+        case _                                                      =>
       }
 
       if (firstCall)

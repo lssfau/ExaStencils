@@ -95,7 +95,7 @@ case class IR_FileAccess_HDF5(
   val locationId : IR_VariableAccess = fileId
   val groups : ListBuffer[String] = dataBuffers.flatMap(buf => {
     val absPath = buf.datasetName.asInstanceOf[IR_StringConstant].value
-    (if (absPath.startsWith("/")) absPath else "/" + absPath).tail.split("/").scanLeft(""){_ + "/" + _}.tail.dropRight(1)
+    (if (absPath.startsWith("/")) absPath else "/" + absPath).tail.split("/").scanLeft("") { _ + "/" + _ }.tail.dropRight(1)
   }).distinct
 
   // handling of groups within the file
@@ -180,7 +180,7 @@ case class IR_FileAccess_HDF5(
     statements ++= H5Pcreate(fcpl, IR_VariableAccess("H5P_FILE_CREATE", IR_UnknownDatatype))
     if (Knowledge.hdf5_use_chunking) {
       val ik = IR_SimplifyExpression.simplifyIntegralExpr(
-        dataBuffers.map(buf => if(buf.isTemporaryBuffer) IR_IntegerConstant(Knowledge.mpi_numThreads) else IR_IV_TotalNumFrags(domainIdx)).reduce(_ + _) / 2
+        dataBuffers.map(buf => if (buf.isTemporaryBuffer) IR_IntegerConstant(Knowledge.mpi_numThreads) else IR_IV_TotalNumFrags(domainIdx)).reduce(_ + _) / 2
       )
       statements += IR_IfCondition(ik > 1 AndAnd ik < 65536, // cannot exceed limit: https://support.hdfgroup.org/HDF5/doc/RM/RM_H5P.html#Property-SetIstoreK
         H5Pset_istore_k(err, fcpl, ik))
@@ -253,7 +253,7 @@ case class IR_FileAccess_HDF5(
 
     // close data- and memspaces
     if (Knowledge.parIO_useCollectiveIO)
-     statements ++= H5Sclose(err, emptyDataspace)
+      statements ++= H5Sclose(err, emptyDataspace)
     for (space <- dataspaces.values ++ memspaces.values)
       statements ++= H5Sclose(err, space)
 
@@ -290,7 +290,7 @@ case class IR_FileAccess_HDF5(
 
     // set global starting index for block and select hyperslab in global domain
     val setOffsetBlock = IR_LoopOverBlocks(buffer.startIndexGlobalKJI.indices.map(d =>
-        IR_Assignment(IR_ArrayAccess(globalStart(bufIdx), d), buffer.startIndexGlobalKJI(d)) : IR_Statement).to[ListBuffer])
+      IR_Assignment(IR_ArrayAccess(globalStart(bufIdx), d), buffer.startIndexGlobalKJI(d)) : IR_Statement).to[ListBuffer])
     val selectHyperslab = H5Sselect_hyperslab(err, dataspace(bufIdx), IR_VariableAccess("H5S_SELECT_SET", IR_UnknownDatatype), globalStart(bufIdx), stride(bufIdx), count(bufIdx))
 
     IR_LoopOverBlocks(IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),

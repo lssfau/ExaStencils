@@ -40,13 +40,13 @@ object IR_DataBuffer {
     val lookup = baseDt.prettyprint + declName + (if (dims.isDefined) dims.get.hashCode() else 0).toString
     // cast dims when used in initializer list, otherwise "Wnarrowing" warning
     val castDims = (dims getOrElse Nil) map {
-      case vAcc : IR_VariableAccess if vAcc.datatype != baseDt => IR_Cast(baseDt, vAcc)
+      case vAcc : IR_VariableAccess if vAcc.datatype != baseDt        => IR_Cast(baseDt, vAcc)
       case iv : IR_InternalVariable if iv.resolveDatatype() != baseDt => IR_Cast(baseDt, iv)
-      case expr : IR_Expression => expr
+      case expr : IR_Expression                                       => expr
     }
     dimensionalityMap.getOrElseUpdate(
       lookup,
-      IR_VariableDeclaration(dt, IR_FileAccess.declareVariable(declName), if(dims.isDefined) Some(IR_InitializerList(castDims : _*)) else None)) // dims already specified in KJI order
+      IR_VariableDeclaration(dt, IR_FileAccess.declareVariable(declName), if (dims.isDefined) Some(IR_InitializerList(castDims : _*)) else None)) // dims already specified in KJI order
   }
   def resetDimensionalityMap() : Unit = dimensionalityMap.clear()
 
@@ -86,7 +86,7 @@ object IR_DataBuffer {
   //    - treat position vector (defined as IR_MatrixDatatype(IR_RealDatatype, numDims, 1) ) as "numDims" separate fields
   def apply(
       matField : IR_Field,
-      accessIndices: Option[ListBuffer[IR_Index]],
+      accessIndices : Option[ListBuffer[IR_Index]],
       dataset : Option[IR_Expression],
       indexRow : IR_Expression,
       indexCol : IR_Expression,
@@ -217,7 +217,7 @@ case class IR_DataBuffer(
   def innerDimsLocal : ListBuffer[IR_Expression] = numDimsDataRange.map(d => endIndices(d) - beginIndices(d) : IR_Expression).to[ListBuffer]
   def innerDimsLocalKJI : ListBuffer[IR_Expression] = innerDimsLocal.reverse
 
-  def startIndexLocal: ListBuffer[IR_Expression] = numDimsDataRange.map(d => beginIndices(d)).to[ListBuffer]
+  def startIndexLocal : ListBuffer[IR_Expression] = numDimsDataRange.map(d => beginIndices(d)).to[ListBuffer]
   def startIndexLocalKJI : ListBuffer[IR_Expression] = startIndexLocal.reverse
 
   def totalDimsLocalKJI : ListBuffer[IR_Expression] = totalDimsLocal.reverse
@@ -225,7 +225,7 @@ case class IR_DataBuffer(
   def globalDims : ListBuffer[IR_Expression] = {
     if (canonicalOrder) {
       numDimsDataRange.map(d => innerDimsLocal(d) *
-      (if (d < Knowledge.dimensionality) Knowledge.domain_rect_numFragsTotalAsVec(d) else 1) : IR_Expression).to[ListBuffer]
+        (if (d < Knowledge.dimensionality) Knowledge.domain_rect_numFragsTotalAsVec(d) else 1) : IR_Expression).to[ListBuffer]
     } else {
       // buffer contains data for the whole block -> fragment count already contained in dimensionalities (index "0" in KJI order)
       (if (accessBlockwise) innerDimsLocal.dropRight(1) else innerDimsLocal) :+
@@ -275,7 +275,6 @@ case class IR_DataBuffer(
     .map(d => innerDimsLocalKJI(d) EqEq totalDimsLocalKJI(d))
     .fold(IR_BooleanConstant(true))((a, b) => a AndAnd b)
 
-
   /* helper function to get access indices for multidim. datatypes */
   def getIndicesMultiDimDatatypes : Array[IR_Index] = {
     if (numDimsData > numDimsGrid) {
@@ -320,7 +319,7 @@ case class IR_DataBuffer(
   private val innerDimsBlockKJI = if (accessBlockwise) innerDimsLocalKJI else IR_IV_NumValidFrags(domainIdx) +: innerDimsLocalKJI
   private val typicalByteSize = datatype.resolveBaseDatatype.typicalByteSize
   private def getTransformedExtents(dims : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = accessPattern.transformDataExtents(dims, localization, orderKJI = true)
-  def typicalByteSizeFrag : IR_Expression = getTransformedExtents(innerDimsFragKJI).reduce(_ * _)* typicalByteSize
+  def typicalByteSizeFrag : IR_Expression = getTransformedExtents(innerDimsFragKJI).reduce(_ * _) * typicalByteSize
   def typicalByteSizeBlock : IR_Expression = getTransformedExtents(innerDimsBlockKJI).reduce(_ * _) * typicalByteSize
   def typicalByteSizeLocal : IR_Expression = getTransformedExtents(innerDimsLocalKJI).reduce(_ * _) * typicalByteSize
   def typicalByteSizeGlobal : IR_Expression = getTransformedExtents(globalDimsKJI).reduce(_ * _) * typicalByteSize

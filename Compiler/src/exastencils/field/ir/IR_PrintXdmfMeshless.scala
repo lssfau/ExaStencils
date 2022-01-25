@@ -113,7 +113,7 @@ case class IR_PrintXdmfMeshless(
   override def writeXdmfGeometry(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    statements += printXdmfElement(stream, openGeometry((0 until numDimsGrid).map(d => ('X'+d).toChar.toString).mkString("_"))) // positions are not interleaved
+    statements += printXdmfElement(stream, openGeometry((0 until numDimsGrid).map(d => ('X' + d).toChar.toString).mkString("_"))) // positions are not interleaved
     for (d <- 0 until field.numDimsGrid) {
       val buf = dataBuffersVertexPos(d)
       val numVertices = IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, buf.innerDimsLocal, dimFrags(global), orderKJI = false)

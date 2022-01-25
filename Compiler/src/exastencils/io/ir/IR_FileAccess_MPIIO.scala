@@ -81,15 +81,15 @@ case class IR_FileAccess_MPIIO(
     if (globalView(bufIdx).createViewPerFragment) {
       IR_LoopOverFragments(
         checkSupportedRepr(setView) :+ // setView is a collective function
-        IR_IfCondition(cond,
-          accessStmts))
+          IR_IfCondition(cond,
+            accessStmts))
     } else {
       IR_IfCondition(true,
         checkSupportedRepr(setView) :+
-        IR_LoopOverFragments(
-          IR_IfCondition(cond,
-            accessStmts
-          )))
+          IR_LoopOverFragments(
+            IR_IfCondition(cond,
+              accessStmts
+            )))
     }
   }
 
@@ -152,7 +152,7 @@ case class IR_FileAccess_MPIIO(
       // local view (mainly to omit ghost layers) used by each fragment
       val localView = MPI_View(localDims(bufIdx), count(bufIdx), localStart(bufIdx),
         buf.datasetDimsLocal, createViewPerFragment = false, isLocal = true, buf, "localSubarray")
-      if(MPI_View.addView(localView)) {
+      if (MPI_View.addView(localView)) {
         statements += localView.createDatatype
       }
     }

@@ -86,8 +86,8 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   val wordSizeCPU_decl = IR_VariableDeclaration(IR_IntegerDatatype, "wordSizeCPU", IR_SizeOf(IR_RealDatatype))
   val wordSizeIO_decl = IR_VariableDeclaration(IR_IntegerDatatype, "wordSizeIO", IR_SizeOf(IR_RealDatatype)) // no conversion
   // truth table indicates whether a variable is written for the elements in a block, creates netCDF variables for each enabled entry at once
-  val truthTable_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numElemBlocks*numVariables), "truthTable",
-    IR_InitializerList(Array.fill(numElemBlocks*numVariables)(IR_IntegerConstant(1)) : _*))
+  val truthTable_decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_IntegerDatatype, numElemBlocks * numVariables), "truthTable",
+    IR_InitializerList(Array.fill(numElemBlocks * numVariables)(IR_IntegerConstant(1)) : _*))
 
   val declarations : ListBuffer[IR_VariableDeclaration] = ListBuffer(
     exoErr_decl, exoId_decl, coordNames_decl, fieldNames_decl, wordSizeCPU_decl, wordSizeIO_decl, truthTable_decl
@@ -153,7 +153,7 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   def ex_put_variable_names() : ListBuffer[IR_Statement] =
     callExodusFunction("ex_put_variable_names", exoId, variableEntityType, numVariables, IR_Cast(IR_PointerDatatype(IR_PointerDatatype(IR_CharDatatype)), fieldNames))
   def ex_put_coord(pointers : ListBuffer[IR_Expression]) : ListBuffer[IR_Statement] =
-    callExodusFunction("ex_put_coord", exoId +: pointers.padTo(3, nullptr) :_*)
+    callExodusFunction("ex_put_coord", exoId +: pointers.padTo(3, nullptr) : _*)
   def ex_put_time : ListBuffer[IR_Statement] =
     callExodusFunction("ex_put_time", exoId, IR_IV_TimeIdxRecords(), IR_AddressOf(IR_IV_TimeValRecords()))
   def ex_put_conn(ptr : IR_Expression) : ListBuffer[IR_Statement] =
@@ -175,7 +175,8 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
         if (!Knowledge.parIO_vis_constantDataReduction)
           (bufIdx, false)
         else
-          (bufIdx, !dataBuffersConstant.map(_.name).contains(buf.name)) } : _*)
+          (bufIdx, !dataBuffersConstant.map(_.name).contains(buf.name))
+      } : _*)
     }
 
     fn match {
@@ -271,7 +272,7 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
         buf.getBaseAddress
       }
 
-      val isCoordBuffer = dataBuffersNodePos.zipWithIndex.collectFirst { case(coordBuf, bufIdx) if coordBuf.datasetName == buf.datasetName => bufIdx}
+      val isCoordBuffer = dataBuffersNodePos.zipWithIndex.collectFirst { case (coordBuf, bufIdx) if coordBuf.datasetName == buf.datasetName => bufIdx }
       val isConnectivityBuffer = buf.datasetName == dataBufferConnectivity.datasetName
 
       if (isCoordBuffer.isDefined) {
@@ -295,7 +296,6 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     stmts
   }
 
-
   // dims of datasets created by Exodus are flattened (contain only the "inner" points/cells/...) and require special handling
   def writeDataParallel(constsIncluded : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
@@ -304,17 +304,22 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
 
     /* declare flattened dims of the datasets */
     val fragOffset = IR_IV_FragmentOffset(domainIndex) + IR_LoopOverFragments.defIt
+
     def declareDims(numDims : Int, name : String, localization : IR_Localization, optDims : Option[ListBuffer[IR_Expression]] = None) = {
       val dt = IR_ArrayDatatype(ioHanderNc.datatypeDimArray, numDims)
       val decl = IR_DataBuffer.declareDimensionality(dt, name, localization, optDims)
       if (flatDimDecls.add(decl)) statements += decl
       decl
     }
+
     // node positions: 1 spatial dim = number of nodes
     def countNodePos(numFragsPerWrite : IR_Expression) = declareDims(1, "countNodePos", IR_AtNode, Some(ListBuffer(numFragsPerWrite * numPointsPerFrag)))
+
     lazy val startNodePos = declareDims(1, "startNodePos", IR_AtNode) -> ListBuffer[IR_Expression](fragOffset * numPointsPerFrag)
+
     // connectivity: 2 spatial dims = (number of elements, nodes per element)
     def countConnectivity(numFragsPerWrite : IR_Expression) = declareDims(2, "countConnectivity", IR_AtCellCenter, Some(ListBuffer(numFragsPerWrite * numCellsPerFrag, nodesPerElement)))
+
     lazy val startConnectivity = declareDims(2, "startConnectivity", IR_AtCellCenter) -> ListBuffer[IR_Expression](fragOffset * numCellsPerFrag, 0)
 
     // set global start index for each process, handle "invalid" fragments and write data
@@ -327,7 +332,9 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
           case EX_ELEM_BLOCK => numCellsPerFrag
           case _             => Logger.error("Unknown entity type used for field data in \"IR_PrintExodus\":" + variableEntityType.name)
         }
+
         def countFieldData(numFragsPerWrite : IR_Expression) = declareDims(2, "countFieldData", buf.localization, Some(ListBuffer(1, numFragsPerWrite * spatialDimField)))
+
         val startFieldData = declareDims(2, "startFieldData", buf.localization) -> ListBuffer[IR_Expression](IR_IV_TimeIdxRecords(), fragOffset * spatialDimField)
 
         // associate flattened dims with buffers depending on the buffers characteristics
@@ -407,7 +414,7 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     if (Knowledge.parIO_vis_constantDataReduction) {
       filename match {
         case _ : IR_StringConstant => Logger.warn("Constants are reduced but filename is constant; Do not use \"printField\" in a loop with this parameter combination, otherwise the reduction will go wrong.")
-        case _ =>
+        case _                     =>
       }
     }
 

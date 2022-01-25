@@ -63,14 +63,14 @@ case class IR_FileAccess_PnetCDF(
   val ncFile_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("ncFile"))
   val varIdTime_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("varIdTime"))
   val varIdBuffer_decl : Array[IR_VariableDeclaration] = dataBuffers.map(buf =>
-    IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("varId_"+buf.name))).toArray
+    IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("varId_" + buf.name))).toArray
 
   // decls for data extents
   val ptrDatatype : IR_SpecialDatatype = if (Knowledge.mpi_enabled) MPI_Offset else IR_SpecialDatatype("ptrdiff_t") // serial API uses "ptrdiff_t" for "imap" and "stride" parameters
   override def stride_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) =>
     buf.declareDimensionality("stride", ptrDatatype,
-       handleTimeDimension(timeValue = 1, bufIdx, // prepend one more entry for unlimited "time" dimension
-         dims = IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, buf.strideKJI, fragmentDim = 1)))
+      handleTimeDimension(timeValue = 1, bufIdx, // prepend one more entry for unlimited "time" dimension
+        dims = IR_DataBuffer.handleFragmentDimension(buf.canonicalOrder, buf.accessBlockwise, buf.strideKJI, fragmentDim = 1)))
   }
   override def count_decl : ListBuffer[IR_VariableDeclaration] = dataBuffers.zipWithIndex.map { case (buf, bufIdx) =>
     buf.declareDimensionality("count", datatypeDimArray,
@@ -134,7 +134,7 @@ case class IR_FileAccess_PnetCDF(
     } else {
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(buffer.domainIdx),
-            setOffsetFrag ++ accessStmts
+          setOffsetFrag ++ accessStmts
         )
       )
     }
@@ -401,8 +401,8 @@ case class IR_FileAccess_PnetCDF(
   override def closeFile() : ListBuffer[IR_Statement] = ncmpi_close(ncFile)
 
   // headers, paths and libs
-  override def includes : ListBuffer[String] = ListBuffer(if(Knowledge.mpi_enabled) "pnetcdf.h" else "netcdf.h")
-  override def libraries : ListBuffer[String] = ListBuffer(if(Knowledge.mpi_enabled) "pnetcdf" else "netcdf")
+  override def includes : ListBuffer[String] = ListBuffer(if (Knowledge.mpi_enabled) "pnetcdf.h" else "netcdf.h")
+  override def libraries : ListBuffer[String] = ListBuffer(if (Knowledge.mpi_enabled) "pnetcdf" else "netcdf")
   override def pathsInc : ListBuffer[String] = ListBuffer("$(PNETCDF_HOME)/include")
   override def pathsLib : ListBuffer[String] = ListBuffer("$(PNETCDF_HOME)/lib")
 
@@ -415,7 +415,7 @@ case class IR_FileAccess_PnetCDF(
         Logger.error("Parameter \"canonicalOrder\" should only be used with collective I/O.")
     }
 
-    if(!Knowledge.mpi_enabled) {
+    if (!Knowledge.mpi_enabled) {
       Knowledge.parIO_useCollectiveIO = false // no collective I/O handling for serial programs
     }
   }

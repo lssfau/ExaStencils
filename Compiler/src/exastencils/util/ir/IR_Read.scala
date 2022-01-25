@@ -63,6 +63,6 @@ case class IR_ReadBlockBinary(var stream : IR_VariableAccess, var address : IR_E
   override def vAccStream : IR_VariableAccess = stream
   override def exprToRead : ListBuffer[IR_Expression] = ListBuffer(address)
   override def prettyprint(out : PpStream) = {
-      out << IR_MemberFunctionCall(stream, "read", IR_Cast(IR_PointerDatatype(IR_CharDatatype), address), byteSize) << ";\n"
+    out << IR_MemberFunctionCall(stream, "read", IR_Cast(IR_PointerDatatype(IR_CharDatatype), address), byteSize) << ";\n"
   }
 }

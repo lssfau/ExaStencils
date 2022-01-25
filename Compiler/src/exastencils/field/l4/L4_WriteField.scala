@@ -37,7 +37,7 @@ case class L4_WriteField(
     var canonicalOrder : Boolean = false,
     var binaryOutput : Boolean = false,
     var separator : Option[L4_Expression] = None,
-    var condition: Option[L4_Expression] = None,
+    var condition : Option[L4_Expression] = None,
     var dataset : Option[L4_Expression] = None,
     var mpiioRepresentation : Option[L4_StringConstant] = None) extends L4_Statement {
 
@@ -48,13 +48,13 @@ case class L4_WriteField(
         if (condition.isDefined) out << ", " << condition.get
         if (separator.isDefined) out << ", " << separator.get
         out << " )"
-      case _ @ L4_StringConstant("mpiio") =>
+      case _ @ L4_StringConstant("mpiio")                              =>
         out << "writeField_mpiio ( " << filename << ", " << field << ", " << includeGhostLayers << ", " << canonicalOrder
         if (mpiioRepresentation.isDefined) out << ", " << mpiioRepresentation.get
         out << " )"
-      case _ @ L4_StringConstant(str) if str == "hdf5" || str == "nc" =>
+      case _ @ L4_StringConstant(str) if str == "hdf5" || str == "nc"  =>
         out << s"writeField_$str ( " << filename << ", " << dataset.get << ", " << field << ", " << includeGhostLayers << ", " << canonicalOrder << " )"
-      case _ @ L4_StringConstant("sion") =>
+      case _ @ L4_StringConstant("sion")                               =>
         out << "writeField_sion ( " << filename << ", " << field << ", " << includeGhostLayers
         if (condition.isDefined) out << ", " << condition.get
         out << " )"
@@ -123,26 +123,26 @@ object L4_ResolveWriteFieldFunctions extends DefaultStrategy("Resolve write fiel
             L4_WriteField(filename, field, ioInterface = L4_StringConstant("lock"), includeGhostLayers = includeGhosts)
           case ListBuffer(filename, field : L4_FieldAccess, condition) => // option 3: filename, field and condition
             L4_WriteField(filename, field, ioInterface = L4_StringConstant("lock"), includeGhostLayers = includeGhosts, condition = Some(condition))
-          case _ =>
+          case _                                                       =>
             Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
         }
         // new function calls with explicit I/O interface selection in the function name.
         case "lock" | "fpp" => args match {
-          case ListBuffer(fn, field : L4_FieldAccess)                                                                           => // option 1: filename, field
+          case ListBuffer(fn, field : L4_FieldAccess)                                                                         => // option 1: filename, field
             L4_WriteField(fn, field, ioInterface = ifaceSelection)
-          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)                                           => // option 2: filename, field, inclGhost
+          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)                                         => // option 2: filename, field, inclGhost
             L4_WriteField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value)
-          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, useBin : L4_BooleanConstant)              => // option 3: filename, field, inclGhost, useBin
+          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, useBin : L4_BooleanConstant)            => // option 3: filename, field, inclGhost, useBin
             L4_WriteField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, binaryOutput = useBin.value)
-          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, useBin : L4_BooleanConstant, cond)        => // option 4: filename, field, inclGhost, useBin, cond
+          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, useBin : L4_BooleanConstant, cond)      => // option 4: filename, field, inclGhost, useBin, cond
             L4_WriteField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, binaryOutput = useBin.value, condition = Some(cond))
-          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, useBin : L4_BooleanConstant, cond, sep)   => // option 5: filename, field, inclGhost, useBin, cond, sep
-            if(useBin.value) Logger.error("Invalid parameter combination in \"readField\": binaryMode = true and separator set.")
+          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, useBin : L4_BooleanConstant, cond, sep) => // option 5: filename, field, inclGhost, useBin, cond, sep
+            if (useBin.value) Logger.error("Invalid parameter combination in \"readField\": binaryMode = true and separator set.")
             L4_WriteField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, binaryOutput = useBin.value, condition = Some(cond), separator = Some(sep))
-          case _ =>
+          case _                                                                                                              =>
             Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
         }
-        case "mpiio" => args match {
+        case "mpiio"        => args match {
           case ListBuffer(fn, field : L4_FieldAccess)                                                                                                => // option 1: filename, field
             L4_WriteField(fn, field, ioInterface = ifaceSelection)
           case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)                                                                => // option 2: filename, field, inclGhost
@@ -155,7 +155,7 @@ object L4_ResolveWriteFieldFunctions extends DefaultStrategy("Resolve write fiel
           case _                                                                                                                                     =>
             Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
         }
-        case "hdf5" => args match {
+        case "hdf5"         => args match {
           case ListBuffer(fn, datasetPath, field : L4_FieldAccess)                                                                      => // option 1: filename, /path/to/dataset, field
             L4_WriteField(fn, field, ioInterface = ifaceSelection, dataset = Some(datasetPath))
           case ListBuffer(fn, datasetPath, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)                                      => // option 2: filename, /path/to/dataset, field, inclGhost
@@ -165,7 +165,7 @@ object L4_ResolveWriteFieldFunctions extends DefaultStrategy("Resolve write fiel
           case _                                                                                                                        =>
             Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
         }
-        case "nc" => args match {
+        case "nc"           => args match {
           case ListBuffer(fn, datasetName, field : L4_FieldAccess)                                                                      => // option 1: filename, datasetName, field
             L4_WriteField(fn, field, ioInterface = ifaceSelection, dataset = Some(datasetName))
           case ListBuffer(fn, datasetName, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)                                      => // option 2: filename, datasetName, field, inclGhost
@@ -175,17 +175,17 @@ object L4_ResolveWriteFieldFunctions extends DefaultStrategy("Resolve write fiel
           case _                                                                                                                        =>
             Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
         }
-        case "sion" => args match {
+        case "sion"         => args match {
           case ListBuffer(fn, field : L4_FieldAccess)                                       => // option 1: filename, field
             L4_WriteField(fn, field, ioInterface = ifaceSelection)
           case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)       => // option 2: filename, field, inclGhost
             L4_WriteField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value)
           case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, cond) => // option 3: filename, field, inclGhost, cond
             L4_WriteField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, condition = Some(cond))
-          case _ =>
+          case _                                                                            =>
             Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
         }
-        case _ =>
+        case _              =>
           Logger.error("Ignoring call to " + fctName + " with unsupported I/O interface: " + ifaceSelection)
           L4_NullStatement
       }

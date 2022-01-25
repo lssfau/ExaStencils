@@ -49,7 +49,7 @@ trait IR_PrintVisualization {
 
   def ext : IR_Expression = filename match {
     case sc : IR_StringConstant                                         => IR_StringConstant(extRegex.r findFirstIn sc.value getOrElse "")
-    case vAcc : IR_VariableAccess if vAcc.datatype == IR_StringDatatype => IR_MemberFunctionCall(vAcc, "substr", lastIdxSubst(vAcc,"\".\""))
+    case vAcc : IR_VariableAccess if vAcc.datatype == IR_StringDatatype => IR_MemberFunctionCall(vAcc, "substr", lastIdxSubst(vAcc, "\".\""))
     case _                                                              => Logger.error("Parameter \"filename\" is not a string.")
   }
 
@@ -59,23 +59,23 @@ trait IR_PrintVisualization {
 
   // generates the basename either as StringConstant or as expressions which extract the basename in the target code (via "substr")
   def basename(noPath : Boolean, appStr : Option[IR_StringConstant] = None) : IR_Expression = filename match {
-    case sc : IR_StringConstant                                          =>
-      val bnConst = if(noPath) {
+    case sc : IR_StringConstant                                         =>
+      val bnConst = if (noPath) {
         sc.value.substring(sc.value.lastIndexOf(File.separator) + 1).replaceFirst(extRegex, "")
       } else {
         sc.value.replaceFirst(extRegex, "")
       }
-      if(appStr.isDefined) IR_StringConstant(bnConst + appStr.get.value) else IR_StringConstant(bnConst)
+      if (appStr.isDefined) IR_StringConstant(bnConst + appStr.get.value) else IR_StringConstant(bnConst)
     case vAcc : IR_VariableAccess if vAcc.datatype == IR_StringDatatype =>
-      val bnExpr = if(noPath) {
+      val bnExpr = if (noPath) {
         IR_MemberFunctionCall(
           IR_MemberFunctionCall(vAcc, "substr", 0, lastIdxSubst(vAcc, "\".\"")), // remove extension
           "substr", lastIdxSubst(vAcc, "\"\\\\/\"") + 1) // remove path
       } else {
         IR_MemberFunctionCall(vAcc, "substr", 0, lastIdxSubst(vAcc, "\".\""))
       }
-      if(appStr.isDefined) bnExpr + appStr.get else bnExpr
-    case _ =>
+      if (appStr.isDefined) bnExpr + appStr.get else bnExpr
+    case _                                                              =>
       Logger.error("Parameter \"filename\" is not a string.")
   }
 
@@ -99,7 +99,7 @@ trait IR_PrintVisualization {
   def connectivityForCell(global : Boolean = true) : ListBuffer[IR_Expression] // contains expressions to describe a mesh's connectivity list (e.g. 4 expressions for a quad)
 
   def dimsConnectivityFrag : ListBuffer[IR_IntegerConstant] = ListBuffer(connectivityForCell().length, numCells_x, numCells_y, numCells_z)
-  def dimsPositionsFrag    : ListBuffer[IR_Expression] = (loopOverNodes().indices.end - loopOverNodes().indices.begin).indices.to[ListBuffer] // number of node positions stored per fragment, e.g. for non-reduced SWE: 6 * numCells_x * numCells_y
+  def dimsPositionsFrag : ListBuffer[IR_Expression] = (loopOverNodes().indices.end - loopOverNodes().indices.begin).indices.to[ListBuffer] // number of node positions stored per fragment, e.g. for non-reduced SWE: 6 * numCells_x * numCells_y
 
   def numCellsPerFrag : IR_Expression
   def numPointsPerFrag : IR_Expression = dimsPositionsFrag.reduce(_ * _)
@@ -126,7 +126,7 @@ trait IR_PrintVisualization {
       val r = componentIndex / mat.sizeN
       val c = componentIndex % mat.sizeN
       startIdx :+ IR_IntegerConstant(r) :+ IR_IntegerConstant(c)
-    case _ : IR_VectorDatatype =>
+    case _ : IR_VectorDatatype   =>
       startIdx :+ IR_IntegerConstant(componentIndex)
     case _ : IR_ScalarDatatype   =>
       startIdx
@@ -138,7 +138,7 @@ trait IR_PrintVisualization {
   /* temp. buffer (for node pos./connectivity/...) helpers */
 
   // get the coordinates for a certain grid localization
-  def getPos(localization : IR_Localization, level: Int, dim : Int, index : IR_ExpressionIndex = IR_LoopOverDimensions.defIt(numDimsGrid)) : IR_Expression = {
+  def getPos(localization : IR_Localization, level : Int, dim : Int, index : IR_ExpressionIndex = IR_LoopOverDimensions.defIt(numDimsGrid)) : IR_Expression = {
     localization match {
       case IR_AtNode              => IR_VF_NodePositionPerDim.access(level, dim, index)
       case IR_AtCellCenter        => IR_VF_CellCenterPerDim.access(level, dim, index)
@@ -176,8 +176,8 @@ trait IR_PrintVisualization {
 
     stmts += IR_IfCondition(IR_ConstantsWrittenToFile().isEmpty,
       IR_LoopOverFragments(
-      IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
-        loopOverCells(initBuffer))))
+        IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
+          loopOverCells(initBuffer))))
 
     stmts
   }
@@ -212,7 +212,7 @@ trait IR_PrintVisualization {
   def setupCellCenters(copyNodePositions : Boolean = gridPositionsCopied) : ListBuffer[IR_Statement] =
     (0 until numDimsGrid).flatMap(initCellCenterBuf(_, copyNodePositions)).to[ListBuffer]
 
-  def getFaceDir(localization: IR_Localization) : Int = {
+  def getFaceDir(localization : IR_Localization) : Int = {
     (0 until numDimsGrid).collectFirst { case d if IR_AtFaceCenter(d) == localization => d } getOrElse -1
   }
 

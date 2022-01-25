@@ -40,7 +40,7 @@ case class IR_PrintXdmfNonUniform_AA(
   override def writeXdmfGeometry(stream : IR_VariableAccess, global : Boolean) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    statements += printXdmfElement(stream, openGeometry((0 until numDimsGrid).map(d => 'V'+('x'+d).toChar.toString).mkString)) // positions are not interleaved
+    statements += printXdmfElement(stream, openGeometry((0 until numDimsGrid).map(d => 'V' + ('x' + d).toChar.toString).mkString)) // positions are not interleaved
     for (d <- 0 until field.numDimsGrid) {
       val buf = dataBuffersNodePos(d)
       val offsetDataBuffer = getSeekp(global)

@@ -25,7 +25,7 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
   def numCells_z = 1
   def numCellsPerFrag : IR_Expression = 2 * numCells_x * numCells_y * numCells_z
 
-  override def dimsPositionsFrag : ListBuffer[IR_Expression] = if (Knowledge.swe_nodalReductionPrint) ListBuffer(numCells_x+1, numCells_y+1) else ListBuffer(6, numCells_x, numCells_y)
+  override def dimsPositionsFrag : ListBuffer[IR_Expression] = if (Knowledge.swe_nodalReductionPrint) ListBuffer(numCells_x + 1, numCells_y + 1) else ListBuffer(6, numCells_x, numCells_y)
 
   // passed as arguments to function
   def discFieldCollection : ListBuffer[ListBuffer[IR_Field]]
@@ -46,7 +46,7 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
   def fieldnames : ListBuffer[String] = fields.keys.to[ListBuffer]
   def numFields : Int = fieldnames.length
 
-  def nodePosVecAsDataBuffers(accessIndices: Option[ListBuffer[IR_Index]], datasets: Option[ListBuffer[IR_Expression]]) : ListBuffer[IR_DataBuffer] = {
+  def nodePosVecAsDataBuffers(accessIndices : Option[ListBuffer[IR_Index]], datasets : Option[ListBuffer[IR_Expression]]) : ListBuffer[IR_DataBuffer] = {
     (0 until numDimsGrid).map(dim =>
       IR_DataBuffer(IR_VF_NodePositionAsVec.find(level).associatedField, accessIndices, if (datasets.isDefined) Some(datasets.get(dim)) else None, dim, 0, canonicalFileLayout)
     ).to[ListBuffer]
@@ -92,7 +92,7 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
             (0 until numAccessesPerCell).to[ListBuffer].map(idx => {
               IR_Assignment(
                 tmpBuf.at(offset + idx),
-                IR_FieldAccess(discFields(tmpBuf.name)(idx), IR_IV_ActiveSlot(someCellField), IR_LoopOverDimensions.defIt(numDimsGrid)))  : IR_Statement
+                IR_FieldAccess(discFields(tmpBuf.name)(idx), IR_IV_ActiveSlot(someCellField), IR_LoopOverDimensions.defIt(numDimsGrid))) : IR_Statement
             }))))
     }
 
@@ -125,7 +125,7 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
     // compute averages and store into buffer before writing
     var stmtsFragLoop : ListBuffer[IR_Statement] = ListBuffer()
     discFieldsReduced.values.foreach { tmpBuf =>
-      stmtsFragLoop += IR_Comment(s"\n Nodal data reduction for ${tmpBuf.name} \n")
+      stmtsFragLoop += IR_Comment(s"\n Nodal data reduction for ${ tmpBuf.name } \n")
       stmtsFragLoop ++= reducedCellPrint(IR_VariableAccess(tmpBuf.name, tmpBuf.resolveDatatype()), discFields(tmpBuf.name))
     }
 
@@ -156,7 +156,7 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
     def storeOperation(toStore : IR_Expression, idx : IR_ExpressionIndex) : IR_Statement = buf.datatype match {
       case IR_SpecialDatatype("std::ofstream") => IR_Print(buf,
         (if (indentation.isDefined) indentation.get :: Nil else Nil) :+ toStore :+ IR_Print.newline : _*)
-      case IR_PointerDatatype(_) => IR_Assignment(IR_ArrayAccess(buf, numPointsPerFrag * IR_LoopOverFragments.defIt + getIdxNodalLoop(idx)), toStore)
+      case IR_PointerDatatype(_)               => IR_Assignment(IR_ArrayAccess(buf, numPointsPerFrag * IR_LoopOverFragments.defIt + getIdxNodalLoop(idx)), toStore)
     }
 
     def constructLoopForDim(dim : Int, offStart : Int, offEnd : Int, loopStmts : IR_Statement*) = IR_ForLoop(
@@ -169,7 +169,7 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
 
     // expression indices for the edges
     val baseIdx_edgeLower = IR_ExpressionIndex(IR_LoopOverDimensions.defItForDim(0), 0)
-    val baseIdx_edgeLeft  = IR_ExpressionIndex(0, IR_LoopOverDimensions.defItForDim(1))
+    val baseIdx_edgeLeft = IR_ExpressionIndex(0, IR_LoopOverDimensions.defItForDim(1))
     val baseIdx_edgeRight = IR_ExpressionIndex(someCellField.layout.layoutsPerDim(0).numInnerLayers, IR_LoopOverDimensions.defItForDim(1))
     val baseIdx_edgeUpper = IR_ExpressionIndex(IR_LoopOverDimensions.defItForDim(0), someCellField.layout.layoutsPerDim(1).numInnerLayers)
 

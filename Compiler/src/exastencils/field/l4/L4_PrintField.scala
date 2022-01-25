@@ -44,16 +44,16 @@ case class L4_PrintField(
 
   override def prettyprint(out : PpStream) = {
     ioInterface match {
-      case _ @ L4_StringConstant("lock") =>
+      case _ @ L4_StringConstant("lock")                                           =>
         out << "printField_lock ( " << filename << ", " << field << ", " << includeGhostLayers << ", " << binaryOutput
         if (condition.isDefined) out << ", " << condition.get
         if (separator.isDefined) out << ", " << separator.get
         out << " )"
-      case _ @ L4_StringConstant("fpp") =>
+      case _ @ L4_StringConstant("fpp")                                            =>
         out << "printField_fpp ( " << filename << ", " << field << ", " << binaryOutput << " )"
       case _ @ L4_StringConstant(str) if List("hdf5", "mpiio", "nc").contains(str) =>
         out << s"printField_$str ( " << filename << ", " << field << ", " << canonicalOrder << " )"
-      case _ @ L4_StringConstant("sion") =>
+      case _ @ L4_StringConstant("sion")                                           =>
         out << "printField_sion ( " << filename << ", " << field << ", " << includeGhostLayers
         if (condition.isDefined) out << ", " << condition.get
         out << " )"
@@ -119,8 +119,8 @@ object L4_ResolvePrintFieldFunctions extends DefaultStrategy("Resolve print fiel
       // determines if plain field values are written to file (WriteField) or field values including a visualization format (PrintField)
       @deprecated
       def wrapStmtCtorOnlyValues(fn : L4_Expression, fieldAcc : L4_FieldAccess, includeGhost : Boolean, useBin : Boolean, cond : Option[L4_Expression] = None) = {
-        val sep = L4_StringConstant(if(Knowledge.experimental_generateParaviewFiles) "," else " ")
-        if(onlyValues)
+        val sep = L4_StringConstant(if (Knowledge.experimental_generateParaviewFiles) "," else " ")
+        if (onlyValues)
           L4_WriteField(fn, fieldAcc, ioInterface = L4_StringConstant("lock"), includeGhostLayers = includeGhosts, binaryOutput = useBin, condition = cond)
         else
           L4_PrintField(fn, fieldAcc, ioInterface = L4_StringConstant("lock"), includeGhostLayers = includeGhosts, binaryOutput = useBin, separator = Some(sep), condition = cond)
@@ -192,15 +192,15 @@ object L4_ResolvePrintFieldFunctions extends DefaultStrategy("Resolve print fiel
         case "sion"  =>
           Logger.warn("printField_sion is merely an alias for writeField_sion")
           args match {
-          case ListBuffer(fn, field : L4_FieldAccess)                                       => // option 1: filename, field
-            L4_WriteField(fn, field, ioInterface = ifaceSelection)
-          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)       => // option 2: filename, field, inclGhost
-            L4_WriteField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value)
-          case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, cond) => // option 3: filename, field, inclGhost, cond
-            L4_WriteField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, condition = Some(cond))
-          case _                                                                            =>
-            Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
-        }
+            case ListBuffer(fn, field : L4_FieldAccess)                                       => // option 1: filename, field
+              L4_WriteField(fn, field, ioInterface = ifaceSelection)
+            case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant)       => // option 2: filename, field, inclGhost
+              L4_WriteField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value)
+            case ListBuffer(fn, field : L4_FieldAccess, inclGhost : L4_BooleanConstant, cond) => // option 3: filename, field, inclGhost, cond
+              L4_WriteField(fn, field, ioInterface = ifaceSelection, includeGhostLayers = inclGhost.value, condition = Some(cond))
+            case _                                                                            =>
+              Logger.error("Ignoring call to " + fctName + " with unsupported arguments: " + args.mkString(", "))
+          }
         case _       =>
           Logger.error("Ignoring call to " + fctName + " with unsupported I/O interface: " + ifaceSelection)
           L4_NullStatement

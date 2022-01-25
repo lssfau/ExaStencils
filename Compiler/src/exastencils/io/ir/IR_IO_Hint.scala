@@ -31,6 +31,7 @@ abstract class IR_IO_Hint extends IR_UnduplicatedVariable {
   // set key-value pair for hints
   def setInfo(key : String, value : String) : IR_Statement = {
     def toStrConst(str : String) = IR_Cast(IR_PointerDatatype(IR_CharDatatype), IR_StringConstant(str))
+
     val functionCall = IR_FunctionCall(IR_ExternalFunctionReference("MPI_Info_set"), resolveAccess(), toStrConst(key), toStrConst(value))
     if (Knowledge.parIO_generateDebugStatements)
       IR_IfCondition(functionCall Neq IR_VariableAccess("MPI_SUCCESS", IR_UnknownDatatype),
@@ -41,6 +42,7 @@ abstract class IR_IO_Hint extends IR_UnduplicatedVariable {
 
   def setHints() : ListBuffer[IR_Statement] = {
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
+
     def checkForAutomatic(flag : String) = flag != "automatic" && (flag == "enable" || flag == "disable")
 
     if (!IR_IO_Hint.infoSet) {
@@ -103,12 +105,13 @@ case class PnetCDF_Info() extends IR_IO_Hint {
       innerStmts += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Info_dup"), IR_VariableAccess(name, resolveDatatype()), IR_AddressOf(resolveAccess()))
 
       def handleAlignments(input : Int) = if (input == -1 && Knowledge.stripe_size != 0) Knowledge.stripe_size else input
+
       if (Knowledge.nc_header_align_size != 1)
-        innerStmts += setInfo("nc_header_align_size", s"${handleAlignments(Knowledge.nc_header_align_size)}")
+        innerStmts += setInfo("nc_header_align_size", s"${ handleAlignments(Knowledge.nc_header_align_size) }")
       if (Knowledge.nc_var_align_size != 1)
-        innerStmts += setInfo("nc_var_align_size", s"${handleAlignments(Knowledge.nc_var_align_size)}")
+        innerStmts += setInfo("nc_var_align_size", s"${ handleAlignments(Knowledge.nc_var_align_size) }")
       if (Knowledge.nc_record_align_size != 1)
-        innerStmts += setInfo("nc_record_align_size", s"${handleAlignments(Knowledge.nc_record_align_size)}")
+        innerStmts += setInfo("nc_record_align_size", s"${ handleAlignments(Knowledge.nc_record_align_size) }")
 
       IR_IO_Hint.infoSetNc = true
       stmts += IR_IfCondition(resolveAccess() EqEq resolveDefValue().get, innerStmts)

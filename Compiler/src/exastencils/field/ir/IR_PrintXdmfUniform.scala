@@ -48,7 +48,7 @@ case class IR_PrintXdmfUniform(
       - when specifying the origin/spacing for a CoRectMesh, the order of these values depends on the vis. tool
       - https://gitlab.kitware.com/paraview/paraview/-/issues/13274 and https://gitlab.kitware.com/vtk/vtk/-/issues/17886
     */
-    def handleOrderCoRectMesh(seq: Seq[IR_Expression]) : ListBuffer[IR_Expression] = (if (Knowledge.parIO_vis_generateVisItFiles) seq.reverse else seq).to[ListBuffer]
+    def handleOrderCoRectMesh(seq : Seq[IR_Expression]) : ListBuffer[IR_Expression] = (if (Knowledge.parIO_vis_generateVisItFiles) seq.reverse else seq).to[ListBuffer]
 
     val origin = handleOrderCoRectMesh((0 until numDimsGrid).map(dim =>
       if (fmt != "XML") {
@@ -57,7 +57,7 @@ case class IR_PrintXdmfUniform(
         IR_IV_FragmentPositionBegin(dim) : IR_Expression
       })
     )
-    statements += printXdmfElement(stream, openGeometry("Origin_" + (0 until numDimsGrid).map(d => "D" + ('x'+d).toChar.toString).mkString("")))
+    statements += printXdmfElement(stream, openGeometry("Origin_" + (0 until numDimsGrid).map(d => "D" + ('x' + d).toChar.toString).mkString("")))
     statements += printXdmfElement(stream, openDataItem(IR_RealDatatype, dims = ListBuffer(numDimsGrid), name = "origin", altFmt = Some("XML")) : _*)
     statements += IR_Print(stream, indentData +: separateSequenceAndFilter(origin) :+ IR_Print.newline)
     statements += printXdmfElement(stream, closeDataItem)

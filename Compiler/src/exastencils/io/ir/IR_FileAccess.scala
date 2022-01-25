@@ -25,9 +25,9 @@ object IR_FileAccess {
 
   // prohibit redeclaration of variables for sequences of I/O statements in the same scope
   private val declMap : mutable.HashMap[String, Int] = mutable.HashMap()
-  def declareVariable(s: String) : String = {
+  def declareVariable(s : String) : String = {
     val counter = declMap.getOrElseUpdate(s, 0)
-    declMap.update(s, counter+1)
+    declMap.update(s, counter + 1)
     s + "_%02d".format(counter)
   }
 }
@@ -41,7 +41,7 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
     case "mpiio" => IR_IntegerDatatype
     case "nc"    => MPI_Offset
     case "hdf5"  => IR_SpecialDatatype("hsize_t")
-    case _ =>
+    case _       =>
       Logger.warn("IR_FileAccess: Unknown I/O interface used for \"datatypeDimArray\"")
       IR_UnknownDatatype
   }
@@ -107,7 +107,7 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
   def createOrOpenFile() : ListBuffer[IR_Statement]
   def setupAccess() : ListBuffer[IR_Statement]
   def fileAccess(bufIdx : Int) : ListBuffer[IR_Statement] = {
-    if(writeAccess) {
+    if (writeAccess) {
       write(bufIdx)
     } else {
       read(bufIdx)
