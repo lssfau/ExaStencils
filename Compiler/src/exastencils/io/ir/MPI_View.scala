@@ -51,28 +51,6 @@ object MPI_View {
     }
     lut.append(lookup)
 
-    /*
-    if (!view.isLocal) {
-      var lookup = globalViews.indexOf(view)
-      if (lookup != -1) {
-        ret = false
-      } else {
-        globalViews.append(view)
-        lookup = globalViews.length-1
-      }
-      lookupTableGlobal.append(lookup)
-    } else {
-      var lookup = localViews.indexOf(view)
-      if (lookup != -1) {
-        ret = false
-      } else {
-        localViews.append(view)
-        lookup = localViews.length-1
-      }
-      lookupTableLocal.append(lookup)
-    }
-    */
-
     // add to globals if a new view instance is required, otherwise reuse already created instances
     if (ret) {
       val globalCollection = IR_GlobalCollection.get
