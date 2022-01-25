@@ -105,53 +105,6 @@ object IR_CompiletimeMatOps {
 
   def isConstMatrix(me : IR_MatrixExpression) : Boolean = me.expressions.forall(e => isConst(e))
 
-  def isRConst(e : IR_Expression) : Boolean = e.isInstanceOf[IR_RealConstant] || isInstanceOf[IR_IntegerConstant] || isInstanceOf[IR_DoubleConstant]
-
-  def simplifyNumExpr(expr : IR_Expression) : IR_Expression = expr match {
-    case rc : IR_RealConstant                                => rc
-    case dc : IR_DoubleConstant                              => dc
-    case va : IR_VariableAccess                              => va
-    case IR_Division(l, r)                                   =>
-      val leval = simplifyNumExpr(l)
-      val reval = simplifyNumExpr(r)
-      (isRConst(leval), isRConst(reval)) match {
-        case (true, false)  => IR_Division(leval, reval)
-        case (false, true)  => IR_Division(leval, reval)
-        case (false, false) => IR_Division(leval, reval)
-        case (true, true)   => leval.asInstanceOf[IR_RealConstant].value / reval.asInstanceOf[IR_RealConstant].value
-      }
-    case IR_Subtraction(l, r)                                =>
-      val leval = simplifyNumExpr(l)
-      val reval = simplifyNumExpr(r)
-      (isRConst(leval), isRConst(reval)) match {
-        case (true, false)  => IR_Subtraction(leval, reval)
-        case (false, true)  => IR_Subtraction(leval, reval)
-        case (false, false) => IR_Subtraction(leval, reval)
-        case (true, true)   => leval.asInstanceOf[IR_RealConstant].value - reval.asInstanceOf[IR_RealConstant].value
-      }
-    case IR_Multiplication(facs : ListBuffer[IR_Expression]) =>
-      val facseval = facs.map(f => simplifyNumExpr(f))
-      var rval = 1.0
-      var accs = ListBuffer[IR_Expression]()
-      facseval.map(f => if (isRConst(f)) rval = rval * f.asInstanceOf[IR_RealConstant].v else accs += f)
-      if (accs.nonEmpty) {
-        accs += IR_RealConstant(rval)
-        IR_Multiplication(accs)
-      } else IR_RealConstant(rval)
-    case IR_Addition(sums : ListBuffer[IR_Expression])       =>
-      val sumseval = sums.map(f => simplifyNumExpr(f))
-      var rval = 0.0
-      var accs = ListBuffer[IR_Expression]()
-      sumseval.map(f => if (isRConst(f)) rval = rval + f.asInstanceOf[IR_RealConstant].v else accs += f)
-      if (accs.nonEmpty) {
-        accs += IR_RealConstant(rval)
-        IR_Addition(accs)
-      } else IR_RealConstant(rval)
-
-    case _ =>
-      throw EvaluationException("unknown expression type for evaluation: " + expr.getClass)
-  }
-
   /** Method: return the size of a however typed matrix
     *
     * @param in : IR_Expression, matrix to get the size of
@@ -1177,7 +1130,6 @@ object IR_CompiletimeMatOps {
     * @param m    : Int, size of A matrix in schur block representation of that
     * @param n    : Int, size of D matrix in schur block representation of that
     * @param msi  : IR_MatrixShape, shape object, contains information about the shape of that
-    * @param out  : IR_MatrixExpression, result of inversion
     * @return result of inversion
     *
     **/
