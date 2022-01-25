@@ -25,11 +25,11 @@ import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.grid.ir.IR_AtNode
-import exastencils.io.ir.IR_AccessPattern
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.io.ir.IR_IV_NumValidFragsPerBlock
 import exastencils.io.ir.IR_IV_TemporaryBuffer
+import exastencils.io.ir.IR_RegularAccessPattern
 import exastencils.logger.Logger
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_PrintXdmf
@@ -276,7 +276,7 @@ case class IR_PrintXdmfSWE(
           numDimsGrid = field.layout.numDimsGrid,
           numDimsData = field.layout.numDimsData,
           domainIdx = field.domain.index,
-          accessPattern = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(field, slot, idx.toExpressionIndex)),
+          accessPattern = IR_RegularAccessPattern((idx : IR_Index) => IR_FieldAccess(field, slot, idx.toExpressionIndex)),
           datasetName = datasetFields(getBasenameDiscField(discField))(fid),
           name = field.name,
           canonicalStorageLayout = false,

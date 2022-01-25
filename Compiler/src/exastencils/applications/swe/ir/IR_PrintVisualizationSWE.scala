@@ -32,9 +32,10 @@ import exastencils.field.ir.IR_FieldCollection
 import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.grid.ir.IR_AtNode
 import exastencils.grid.ir.IR_VF_NodePositionAsVec
-import exastencils.io.ir.IR_AccessPattern
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_TemporaryBuffer
+import exastencils.io.ir.IR_RegularAccessPattern
+import exastencils.io.ir.IR_SWEAccessPattern
 import exastencils.logger.Logger
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_PrintVisualizationTriangles
@@ -122,12 +123,15 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
   }
 
   // access pattern dependent on reduction mode for blockstructured meshes
-  def accessIndices : Option[ListBuffer[IR_Index]]= if (Knowledge.swe_nodalReductionPrint)
+  def accessIndices : Option[ListBuffer[IR_Index]] = if (Knowledge.swe_nodalReductionPrint)
     None
   else
     Some(nodeOffsets.map(_.toExpressionIndex))
 
-  def nodalAccess(field : IR_Field) = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(field, IR_IV_ActiveSlot(field), idx.toExpressionIndex), accessIndices)
+  def nodalAccess(field : IR_Field) = if (Knowledge.swe_nodalReductionPrint)
+    IR_RegularAccessPattern((idx : IR_Index) => IR_FieldAccess(field, IR_IV_ActiveSlot(field), idx.toExpressionIndex))
+  else
+    IR_SWEAccessPattern((idx : IR_Index) => IR_FieldAccess(field, IR_IV_ActiveSlot(field), idx.toExpressionIndex), accessIndices)
 
   // glue logic for disc fields to be mapped to data buffers
   def discFieldsToDatabuffers(discField : ListBuffer[IR_Field]) : ListBuffer[IR_DataBuffer] = ???

@@ -34,7 +34,7 @@ trait IR_Iostream {
     conditionSpecified AndAnd // condition specified?
       buf.accessWithoutExclusion AndAnd // is any layer excluded (e.g. ghost)?
       !(buf.numDimsData > buf.numDimsGrid) AndAnd // do we write a higher dim. datatype?
-      !buf.accessPattern.isAccessPatternSWE // compatible with access pattern?
+      !buf.accessPattern.isInstanceOf[IR_SWEAccessPattern] // compatible with access pattern?
   }
 
   def printBufferAscii(

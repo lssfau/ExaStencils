@@ -93,7 +93,7 @@ object IR_DataBuffer {
       numDimsData = field.layout.numDimsData,
       domainIdx = field.domain.index,
       name = field.name,
-      accessPattern = pattern getOrElse IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(field, Duplicate(slot), idx.toExpressionIndex)),
+      accessPattern = pattern getOrElse IR_RegularAccessPattern((idx : IR_Index) => IR_FieldAccess(field, Duplicate(slot), idx.toExpressionIndex)),
       datasetName = dataset getOrElse IR_NullExpression,
       canonicalStorageLayout = canonicalOrder,
       accessBlockwise = false,
@@ -113,9 +113,17 @@ object IR_DataBuffer {
       indexCol : IR_Expression,
       canonicalOrder : Boolean) : IR_DataBuffer = {
 
-    def highDimIndex(idx : IR_Index) = IR_ExpressionIndex(idx.toExpressionIndex.indices :+ indexRow :+ indexCol) // access component
+    // access component
+    def highDimIndex(idx : IR_Index) = IR_ExpressionIndex(idx.toExpressionIndex.indices :+ indexRow :+ indexCol)
+
+    val slot = 0
+    val pattern = if (accessIndices.isDefined && accessIndices.get.size == 6)
+      IR_SWEAccessPattern((idx : IR_Index) => IR_FieldAccess(matField, slot, highDimIndex(idx)), accessIndices)
+    else
+      IR_RegularAccessPattern((idx : IR_Index) => IR_FieldAccess(matField, slot, highDimIndex(idx)))
+
     new IR_DataBuffer(
-      slot = 0,
+      slot = slot,
       datatype = matField.resolveBaseDatatype, // vec -> numDims * scalar
       localization = matField.localization,
       referenceOffset = IR_ExpressionIndex(matField.referenceOffset.indices.slice(0, matField.layout.numDimsGrid)),
@@ -126,7 +134,7 @@ object IR_DataBuffer {
       numDimsData = matField.layout.numDimsGrid,
       domainIdx = matField.domain.index,
       name = matField.name,
-      accessPattern = IR_AccessPattern((idx : IR_Index) => IR_FieldAccess(matField, 0, highDimIndex(idx)), accessIndices),
+      accessPattern = pattern,
       datasetName = dataset getOrElse IR_NullExpression,
       canonicalStorageLayout = canonicalOrder,
       accessBlockwise = false,
@@ -153,7 +161,7 @@ object IR_DataBuffer {
       numDimsData = tmpBuf.numDims,
       domainIdx = tmpBuf.domainIdx,
       name = tmpBuf.name,
-      accessPattern = pattern getOrElse IR_AccessPattern((idx : IR_Index) => tmpBuf.at(idx)),
+      accessPattern = pattern getOrElse IR_RegularAccessPattern((idx : IR_Index) => tmpBuf.at(idx)),
       datasetName = dataset getOrElse IR_NullExpression,
       canonicalStorageLayout = false,
       accessBlockwise = true, // currently only implemented as block-wise to reduce number of file accesses
