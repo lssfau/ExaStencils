@@ -17,4 +17,4 @@ domain_rect_numFragsPerBlock_z = 1
 
 import '../lib/parallelization_fourMPI.knowledge'
 
-experimental_visit_enable 			= true
+visit_enable 			= true

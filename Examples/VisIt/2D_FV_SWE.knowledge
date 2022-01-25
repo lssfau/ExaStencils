@@ -9,4 +9,4 @@ discr_type                     = "FiniteVolumes"
 import '../lib/domain_onePatch.knowledge'
 import '../lib/parallelization_pureOmp.knowledge'
 
-experimental_visit_enable                   = true
+visit_enable                   = true

@@ -15,7 +15,7 @@ object IR_VisItUtil {
 
   /* helper functions */
 
-  def useCurveMesh() = Knowledge.dimensionality < 3
+  def useCurveMesh() = (Knowledge.experimental_visit_addCurveMesh && Knowledge.dimensionality == 2) || Knowledge.dimensionality == 1
 
   def useRectMesh() = Knowledge.dimensionality > 1
 

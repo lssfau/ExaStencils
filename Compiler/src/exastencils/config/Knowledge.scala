@@ -668,7 +668,10 @@ object Knowledge {
 
   var experimental_grid_randomMaxOffset : Double = 0.1
 
-  var experimental_visit_enable : Boolean = false
+  // in-situ visualization with VisIt
+  var visit_enable : Boolean = false
+  var experimental_visit_addCurveMesh : Boolean = false
+
 
   /// === constraints and resolutions ===
   def update() : Unit = {

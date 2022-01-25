@@ -171,7 +171,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     // simplify indices modified just now, otherwise equality checks will not work later on
     IR_GeneralSimplify.apply()
 
-    if (Knowledge.experimental_visit_enable)
+    if (Knowledge.visit_enable)
       IR_SetupVisit.apply()
 
     var convChanged = false
