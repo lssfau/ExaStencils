@@ -89,7 +89,6 @@ case class IR_PrintField(
         def stream = IR_VariableAccess(streamName, streamType)
         tmp += IR_ObjectInstantiation(streamType, streamName, filename, openMode)
         tmp += IR_Print(stream, "\"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\"", IR_Print.endl)
-        //tmp += IR_Print(stream, s"""\"${ (0 until field.numDimsGrid).map(d => ('x' + d).toChar.toString).mkString(",") },""" + arrayIndexRange.map(index => s"s$index").mkString(",") + "\"", IR_Print.endl)
         tmp += IR_MemberFunctionCall(stream, "close")
         if (Knowledge.mpi_enabled)
           ret += IR_IfCondition(MPI_IsRootProc(), tmp)

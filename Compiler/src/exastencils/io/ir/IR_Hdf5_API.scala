@@ -35,12 +35,6 @@ trait IR_Hdf5_API {
       case "float" => "H5T_NATIVE_FLOAT"
       case "double" => "H5T_NATIVE_DOUBLE"
       case "long double" => "H5T_NATIVE_LDOUBLE"
-      /*
-      case "hsize_t" => "H5T_NATIVE_HSIZE"
-      case "hssize_t" => "H5T_NATIVE_HSSIZE"
-      case "herr_t" => "H5T_NATIVE_HERR"
-      case "hbool_t" => "H5T_NATIVE_HBOOL"
-      */
       case _ => Logger.error("Unsupported datatype when using HDF5: " + datatype.resolveBaseDatatype.prettyprint)
     }
     IR_VariableAccess(dt, IR_UnknownDatatype)

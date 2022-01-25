@@ -73,7 +73,7 @@ abstract class IR_FieldIO extends IR_Statement with IR_Expandable {
       case "sion"  =>
         IR_FileAccess_SIONlib(filename, ListBuffer(fieldAsDataBuffer), doWrite, condition)
       case _       =>
-        Logger.error("Ignoring call to " + (if (doWrite) {if (onlyVals) "writeField" else "printField"} else "readField") + " using unsupported I/O interface: " + ioInterface)
+        Logger.error("Ignoring call to " + (if (doWrite) { if (onlyVals) "writeField" else "printField" } else "readField") + " using unsupported I/O interface: " + ioInterface)
     }
   }
 }
