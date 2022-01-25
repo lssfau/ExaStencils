@@ -2,29 +2,9 @@ package exastencils.io.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Access
-import exastencils.base.ir.IR_AddressOf
-import exastencils.base.ir.IR_ArrayAccess
-import exastencils.base.ir.IR_Assignment
-import exastencils.base.ir.IR_Datatype
-import exastencils.base.ir.IR_ExpressionIndex
-import exastencils.base.ir.IR_ExternalFunctionReference
-import exastencils.base.ir.IR_Function
-import exastencils.base.ir.IR_FunctionCall
-import exastencils.base.ir.IR_IfCondition
+import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_InitializerList
-import exastencils.base.ir.IR_IntegerConstant
-import exastencils.base.ir.IR_IntegerDatatype
-import exastencils.base.ir.IR_SpecialDatatype
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_TernaryCondition
-import exastencils.base.ir.IR_UnknownDatatype
-import exastencils.base.ir.IR_VariableAccess
-import exastencils.base.ir.IR_VariableDeclaration
-import exastencils.baseExt.ir.IR_ArrayDatatype
-import exastencils.baseExt.ir.IR_ExpressionIndexRange
-import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.globals.ir.IR_GlobalCollection

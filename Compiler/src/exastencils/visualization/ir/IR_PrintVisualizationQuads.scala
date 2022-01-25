@@ -2,12 +2,9 @@ package exastencils.visualization.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ConstIndex
-import exastencils.base.ir.IR_Expression
+import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_IntegerConstant
-import exastencils.baseExt.ir.IR_LoopOverDimensions
-import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.baseExt.ir._
 import exastencils.logger.Logger
 
 trait IR_PrintVisualizationQuads extends IR_PrintVisualization {

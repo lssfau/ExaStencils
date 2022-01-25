@@ -1,55 +1,17 @@
 package exastencils.field.ir
+
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir
-import exastencils.base.ir.IR_AddressOf
-import exastencils.base.ir.IR_ArrayAccess
-import exastencils.base.ir.IR_ArrayAllocation
-import exastencils.base.ir.IR_ArrayFree
-import exastencils.base.ir.IR_Assignment
-import exastencils.base.ir.IR_ConstIndex
-import exastencils.base.ir.IR_DoubleDatatype
-import exastencils.base.ir.IR_Expandable
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExpressionIndex
-import exastencils.base.ir.IR_ExternalFunctionReference
-import exastencils.base.ir.IR_ForLoop
-import exastencils.base.ir.IR_FunctionCall
-import exastencils.base.ir.IR_IfCondition
+import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_InitializerList
-import exastencils.base.ir.IR_IntegerDatatype
-import exastencils.base.ir.IR_Lower
-import exastencils.base.ir.IR_PointerDatatype
-import exastencils.base.ir.IR_PreIncrement
-import exastencils.base.ir.IR_RealDatatype
-import exastencils.base.ir.IR_ScalarDatatype
-import exastencils.base.ir.IR_SpecialDatatype
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_StringConstant
-import exastencils.base.ir.IR_UnknownDatatype
-import exastencils.base.ir.IR_VariableAccess
-import exastencils.base.ir.IR_VariableDeclaration
-import exastencils.baseExt.ir.IR_ArrayDatatype
-import exastencils.baseExt.ir.IR_LoopOverDimensions
-import exastencils.baseExt.ir.IR_LoopOverFragments
-import exastencils.baseExt.ir.IR_MatrixDatatype
+import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.config.Settings
 import exastencils.datastructures.Transformation.OutputType
 import exastencils.domain.ir.IR_IV_FragmentIndex
-import exastencils.grid.ir.IR_AtCellCenter
-import exastencils.grid.ir.IR_AtFaceCenter
-import exastencils.grid.ir.IR_AtNode
-import exastencils.grid.ir.IR_VF_NodePositionPerDim
-import exastencils.io.ir.IR_DataBuffer
-import exastencils.io.ir.IR_FileAccess
-import exastencils.io.ir.IR_FileAccess_PnetCDF
-import exastencils.io.ir.IR_IV_TimeIndexRecordVariables
-import exastencils.io.ir.IR_IV_TimeValueRecordVariables
-import exastencils.io.ir.IR_PnetCDF_API
-import exastencils.io.ir.MPI_View
+import exastencils.grid.ir._
+import exastencils.io.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_IsRootProc
 import exastencils.visualization.ir.IR_PrintVisualization
@@ -270,7 +232,7 @@ case class IR_PrintNetCDF(
             stmts += localView.createDatatype
 
             // use flexible API
-            val addr = IR_AddressOf(IR_FieldAccess(vf, slot, new IR_ExpressionIndex(vf.referenceOffset.map(i => ir.IR_Negative(i)).toArray)))
+            val addr = IR_AddressOf(IR_FieldAccess(vf, slot, new IR_ExpressionIndex(vf.referenceOffset.map(i => IR_Negative(i)).toArray)))
             stmts += IR_LoopOverFragments(
               IR_VariableDeclaration(globalStart, IR_IV_FragmentIndex(d) * np) +:
                 ncmpi_put_vara_all(ncFile, varIdPosArray(numDimsGrid-1 - d), IR_AddressOf(globalStart), IR_AddressOf(count), addr, 1, localView.getAccess))

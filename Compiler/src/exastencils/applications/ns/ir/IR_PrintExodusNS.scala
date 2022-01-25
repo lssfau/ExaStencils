@@ -2,10 +2,8 @@ package exastencils.applications.ns.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Expression
+import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_VariableAccess
 import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_FragmentInfo

@@ -2,14 +2,8 @@ package exastencils.field.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ConstIndex
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExpressionIndex
+import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_RealDatatype
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_StringConstant
-import exastencils.base.ir.IR_VariableAccess
 import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_IV_FragmentPositionBegin
 import exastencils.grid.ir.IR_VF_CellWidthPerDim

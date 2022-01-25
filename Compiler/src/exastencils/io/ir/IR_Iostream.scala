@@ -2,28 +2,11 @@ package exastencils.io.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_AddressOf
-import exastencils.base.ir.IR_ArrayAccess
-import exastencils.base.ir.IR_Assignment
-import exastencils.base.ir.IR_BooleanConstant
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExpressionIndex
-import exastencils.base.ir.IR_IfCondition
+import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_MemberFunctionCall
-import exastencils.base.ir.IR_ScopedStatement
-import exastencils.base.ir.IR_SpecialDatatype
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_VariableAccess
-import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.config.Knowledge
-import exastencils.util.ir.IR_Print
-import exastencils.util.ir.IR_PrintBinary
-import exastencils.util.ir.IR_PrintBlockBinary
-import exastencils.util.ir.IR_Read
-import exastencils.util.ir.IR_ReadBinary
-import exastencils.util.ir.IR_ReadBlockBinary
+import exastencils.util.ir._
 
 /// IR_FileAccess_Iostream
 // helper functions for I/O operations using C++ STL I/O streams

@@ -2,27 +2,9 @@ package exastencils.io.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_AddressOf
-import exastencils.base.ir.IR_ArrayAccess
-import exastencils.base.ir.IR_Assignment
-import exastencils.base.ir.IR_Datatype
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExternalFunctionReference
-import exastencils.base.ir.IR_ForLoop
-import exastencils.base.ir.IR_FunctionCall
-import exastencils.base.ir.IR_IfCondition
+import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_IntegerDatatype
-import exastencils.base.ir.IR_Lower
-import exastencils.base.ir.IR_PlainFunction
-import exastencils.base.ir.IR_PreIncrement
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_UnknownDatatype
-import exastencils.base.ir.IR_VariableAccess
-import exastencils.base.ir.IR_VariableDeclaration
-import exastencils.baseExt.ir.IR_ArrayDatatype
-import exastencils.baseExt.ir.IR_InternalVariable
-import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core.StateManager
 import exastencils.domain.ir.IR_DomainFunctions

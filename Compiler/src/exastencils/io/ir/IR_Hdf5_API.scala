@@ -2,22 +2,12 @@ package exastencils.io.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_AddressOf
-import exastencils.base.ir.IR_Assignment
-import exastencils.base.ir.IR_Datatype
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExternalFunctionReference
-import exastencils.base.ir.IR_FunctionCall
-import exastencils.base.ir.IR_IfCondition
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_StringConstant
-import exastencils.base.ir.IR_UnknownDatatype
-import exastencils.base.ir.IR_VariableAccess
+import exastencils.base.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.config.Knowledge
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_Print
-import exastencils.base.ir.IR_ImplicitConversion._
 
 /// IR_Hdf5_API
 // provides the most important datatypes and functions of the HDF5 API (for serial and parallel applications)

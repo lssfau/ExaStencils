@@ -2,56 +2,19 @@ package exastencils.visualization.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ArrayFree
-import exastencils.base.ir.IR_Assignment
-import exastencils.base.ir.IR_CharDatatype
-import exastencils.base.ir.IR_Datatype
-import exastencils.base.ir.IR_DoubleDatatype
-import exastencils.base.ir.IR_Expandable
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExternalFunctionReference
-import exastencils.base.ir.IR_FloatDatatype
-import exastencils.base.ir.IR_ForLoop
-import exastencils.base.ir.IR_FunctionCall
-import exastencils.base.ir.IR_IfCondition
+import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_IntegerConstant
-import exastencils.base.ir.IR_IntegerDatatype
-import exastencils.base.ir.IR_Lower
-import exastencils.base.ir.IR_MemberFunctionCall
-import exastencils.base.ir.IR_ObjectInstantiation
-import exastencils.base.ir.IR_PreIncrement
-import exastencils.base.ir.IR_RealDatatype
-import exastencils.base.ir.IR_ScalarDatatype
-import exastencils.base.ir.IR_SpecialDatatype
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_StringConstant
-import exastencils.base.ir.IR_StringDatatype
-import exastencils.base.ir.IR_TernaryCondition
-import exastencils.base.ir.IR_VariableAccess
-import exastencils.base.ir.IR_VariableDeclaration
-import exastencils.baseExt.ir.IR_MatrixDatatype
-import exastencils.baseExt.ir.IR_VectorDatatype
-import exastencils.config.Knowledge
-import exastencils.config.Settings
+import exastencils.baseExt.ir._
+import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.OutputType
 import exastencils.globals.ir.IR_GlobalCollection
-import exastencils.grid.ir.IR_AtCellCenter
-import exastencils.grid.ir.IR_AtFaceCenter
-import exastencils.grid.ir.IR_AtNode
-import exastencils.grid.ir.IR_Localization
-import exastencils.io.ir.IR_DataBuffer
-import exastencils.io.ir.IR_FileAccess
-import exastencils.io.ir.IR_FileAccess_FPP
-import exastencils.io.ir.IR_FileAccess_HDF5
-import exastencils.io.ir.IR_FileAccess_MPIIO
+import exastencils.grid.ir._
+import exastencils.io.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
-import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
-import exastencils.parallelization.api.mpi.MPI_IsRootProc
-import exastencils.util.ir.IR_BuildString
-import exastencils.util.ir.IR_Print
+import exastencils.parallelization.api.mpi._
+import exastencils.util.ir._
 
 // IR_PrintXdmf: Visualization interface using the eXtensible Data Model and Format (Xdmf)
 // to be used in combination with parallel I/O methods: MPI I/O, HDF5, file-per-process

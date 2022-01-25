@@ -2,24 +2,12 @@ package exastencils.applications.ns.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Assignment
-import exastencils.base.ir.IR_ConstIndex
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExpressionIndex
-import exastencils.base.ir.IR_IfCondition
+import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_IntegerConstant
-import exastencils.base.ir.IR_Multiplication
-import exastencils.base.ir.IR_Statement
-import exastencils.baseExt.ir.IR_ExpressionIndexRange
-import exastencils.baseExt.ir.IR_LoopOverDimensions
-import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.baseExt.ir._
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_IsValidForDomain
-import exastencils.field.ir.IR_Field
-import exastencils.field.ir.IR_FieldAccess
-import exastencils.field.ir.IR_FieldCollection
-import exastencils.field.ir.IR_IV_ActiveSlot
+import exastencils.field.ir._
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.io.ir.IR_IV_TemporaryBuffer
 import exastencils.visualization.ir.IR_PrintVisualizationQuads
@@ -48,7 +36,7 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads{
 
   def someCellField : IR_Field = p
 
-  def velAsVec : Array[IR_Expression] = Array(meanU, meanV) ++ (if (numDimsGrid > 2) Some(meanW) else None)
+  def velAsVec : Array[IR_Expression] = Array[IR_Expression](meanU, meanV) ++ (if (numDimsGrid > 2) Some(meanW) else None)
 
   def meanU : IR_Multiplication = 0.5 * (IR_FieldAccess(u, IR_IV_ActiveSlot(u), IR_LoopOverDimensions.defIt(numDimsGrid))
     + IR_FieldAccess(u, IR_IV_ActiveSlot(u), IR_LoopOverDimensions.defIt(numDimsGrid) + IR_ConstIndex(1, 0, 0)))

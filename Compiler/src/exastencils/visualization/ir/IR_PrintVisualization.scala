@@ -3,46 +3,16 @@ package exastencils.visualization.ir
 import scala.collection.mutable.ListBuffer
 import scala.reflect.io.File
 
-import exastencils.base.ir.IR_Assignment
-import exastencils.base.ir.IR_ConstIndex
-import exastencils.base.ir.IR_Datatype
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExpressionIndex
-import exastencils.base.ir.IR_IfCondition
+import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_IntegerConstant
-import exastencils.base.ir.IR_IntegerDatatype
-import exastencils.base.ir.IR_MemberFunctionCall
-import exastencils.base.ir.IR_Multiplication
-import exastencils.base.ir.IR_NullStatement
-import exastencils.base.ir.IR_RealDatatype
-import exastencils.base.ir.IR_ScalarDatatype
-import exastencils.base.ir.IR_SpecialDatatype
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_StringConstant
-import exastencils.base.ir.IR_StringDatatype
-import exastencils.base.ir.IR_VariableAccess
-import exastencils.baseExt.ir.IR_ExpressionIndexRange
-import exastencils.baseExt.ir.IR_LoopOverDimensions
-import exastencils.baseExt.ir.IR_LoopOverFragments
-import exastencils.baseExt.ir.IR_MatrixDatatype
-import exastencils.baseExt.ir.IR_UnduplicatedVariable
-import exastencils.baseExt.ir.IR_VectorDatatype
+import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldIO
-import exastencils.grid.ir.IR_AtCellCenter
-import exastencils.grid.ir.IR_AtFaceCenter
-import exastencils.grid.ir.IR_AtNode
-import exastencils.grid.ir.IR_Localization
-import exastencils.grid.ir.IR_VF_CellCenterPerDim
-import exastencils.grid.ir.IR_VF_NodePositionPerDim
-import exastencils.io.ir.IR_IV_FragmentOffset
-import exastencils.io.ir.IR_IV_NumValidFrags
-import exastencils.io.ir.IR_IV_TemporaryBuffer
-import exastencils.io.ir.IR_IV_TotalNumFrags
+import exastencils.grid.ir._
+import exastencils.io.ir._
 import exastencils.logger.Logger
 
 // determines whether constants were already written to file or not
@@ -188,7 +158,7 @@ trait IR_PrintVisualization {
       initBuffer)
   }
 
-  def connectivityBuf = IR_IV_TemporaryBuffer(IR_IntegerDatatype, IR_AtCellCenter, "connectivity", domainIndex, ListBuffer() ++ dimsConnectivityFrag)
+  def connectivityBuf = IR_IV_TemporaryBuffer(IR_IntegerDatatype, IR_AtCellCenter, "connectivity", domainIndex, ListBuffer[IR_Expression]() ++ dimsConnectivityFrag)
 
   // allocates and initializes buffer with connectivity info. this buffer is then passed to the I/O library
   def setupConnectivity(global : Boolean) : ListBuffer[IR_Statement] = {

@@ -4,7 +4,6 @@ import scala.collection.mutable.ListBuffer
 import scala.sys.process._
 
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments

@@ -2,25 +2,14 @@ package exastencils.applications.ns.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExpressionIndex
-import exastencils.base.ir.IR_IfCondition
+import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_IntegerConstant
-import exastencils.base.ir.IR_IntegerDatatype
-import exastencils.base.ir.IR_RealDatatype
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_StringConstant
-import exastencils.base.ir.IR_VariableAccess
-import exastencils.baseExt.ir.IR_ExpressionIndexRange
-import exastencils.baseExt.ir.IR_LoopOverDimensions
-import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.baseExt.ir._
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.grid.ir.IR_AtNode
-import exastencils.io.ir.IR_DataBuffer
-import exastencils.io.ir.IR_IV_FragmentInfo
+import exastencils.io.ir._
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.IR_PrintXdmf
 

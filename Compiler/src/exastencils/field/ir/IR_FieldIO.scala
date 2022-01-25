@@ -2,21 +2,10 @@ package exastencils.field.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Expandable
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_NullExpression
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_StringConstant
+import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.io.ir.IR_DataBuffer
-import exastencils.io.ir.IR_FileAccess
-import exastencils.io.ir.IR_FileAccess_FPP
-import exastencils.io.ir.IR_FileAccess_HDF5
-import exastencils.io.ir.IR_FileAccess_Locking
-import exastencils.io.ir.IR_FileAccess_MPIIO
-import exastencils.io.ir.IR_FileAccess_PnetCDF
-import exastencils.io.ir.IR_FileAccess_SIONlib
+import exastencils.io.ir._
 import exastencils.logger.Logger
 import exastencils.visualization.ir.IR_ResolveVisualizationPrinters
 

@@ -2,21 +2,8 @@ package exastencils.io.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_AddressOf
-import exastencils.base.ir.IR_Cast
-import exastencils.base.ir.IR_CharDatatype
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExternalFunctionReference
-import exastencils.base.ir.IR_FunctionCall
-import exastencils.base.ir.IR_IfCondition
+import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_Neq
-import exastencils.base.ir.IR_PointerDatatype
-import exastencils.base.ir.IR_SpecialDatatype
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_StringConstant
-import exastencils.base.ir.IR_UnknownDatatype
-import exastencils.base.ir.IR_VariableAccess
 import exastencils.baseExt.ir.IR_UnduplicatedVariable
 import exastencils.config.Knowledge
 import exastencils.util.ir.IR_Print

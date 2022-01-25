@@ -25,11 +25,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.config._
 import exastencils.datastructures.Transformation.OutputType
-import exastencils.grid.ir.IR_AtCellCenter
-import exastencils.grid.ir.IR_AtFaceCenter
-import exastencils.grid.ir.IR_AtNode
-import exastencils.grid.ir.IR_VF_CellCenterPerDim
-import exastencils.grid.ir.IR_VF_NodePositionPerDim
+import exastencils.grid.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_Print

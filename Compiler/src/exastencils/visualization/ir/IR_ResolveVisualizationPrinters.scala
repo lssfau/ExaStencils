@@ -3,22 +3,9 @@ package exastencils.visualization.ir
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-import exastencils.applications.ns.ir.IR_PrintExodusNNF
-import exastencils.applications.ns.ir.IR_PrintExodusNS
-import exastencils.applications.ns.ir.IR_PrintVtkNNF
-import exastencils.applications.ns.ir.IR_PrintVtkNS
-import exastencils.applications.ns.ir.IR_PrintXdmfNNF
-import exastencils.applications.ns.ir.IR_PrintXdmfNS
-import exastencils.applications.swe.ir.IR_PrintExodusSWE
-import exastencils.applications.swe.ir.IR_PrintVtkSWE
-import exastencils.applications.swe.ir.IR_PrintXdmfSWE
-import exastencils.base.ir.IR_BooleanConstant
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExpressionStatement
-import exastencils.base.ir.IR_FunctionCall
-import exastencils.base.ir.IR_IntegerConstant
-import exastencils.base.ir.IR_StringConstant
-import exastencils.base.ir.IR_UnresolvedFunctionReference
+import exastencils.applications.ns.ir._
+import exastencils.applications.swe.ir._
+import exastencils.base.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation

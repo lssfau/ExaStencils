@@ -2,14 +2,8 @@ package exastencils.field.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ConstIndex
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_IfCondition
+import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_IntegerConstant
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_StringConstant
-import exastencils.base.ir.IR_VariableAccess
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.ir.IR_AtNode
 import exastencils.grid.ir.IR_VF_NodePositionAsVec
