@@ -1,9 +1,9 @@
-package exastencils.visualization.ir
+package exastencils.visualization.ir.xdmf
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
@@ -15,6 +15,7 @@ import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir._
+import exastencils.visualization.ir.IR_PrintVisualization
 
 // IR_PrintXdmf: Visualization interface using the eXtensible Data Model and Format (Xdmf)
 // to be used in combination with parallel I/O methods: MPI I/O, HDF5, file-per-process

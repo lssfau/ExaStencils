@@ -11,7 +11,7 @@ import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.grid.ir.IR_AtNode
 import exastencils.io.ir._
 import exastencils.util.ir.IR_Print
-import exastencils.visualization.ir.IR_PrintXdmf
+import exastencils.visualization.ir.xdmf.IR_PrintXdmf
 
 /// IR_PrintXdmfNS
 // 2D or 3D

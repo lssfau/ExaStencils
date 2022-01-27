@@ -12,7 +12,7 @@ import exastencils.grid.ir.IR_AtNode
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.util.ir.IR_Print
-import exastencils.visualization.ir.IR_PrintXdmf
+import exastencils.visualization.ir.xdmf.IR_PrintXdmf
 
 /// IR_PrintXdmfNNF
 // 2D or 3D

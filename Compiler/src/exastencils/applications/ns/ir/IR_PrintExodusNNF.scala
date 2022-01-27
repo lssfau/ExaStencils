@@ -7,13 +7,14 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_FragmentInfo
-import exastencils.visualization.ir.IR_PrintExodus
+import exastencils.visualization.ir.netCDF.IR_PrintExodus
 
 
 /// IR_PrintExodusNNF
 // 2D or 3D
 // for a fixed number of fragments per block
 
+@deprecated
 case class IR_PrintExodusNNF(
     var filename : IR_Expression,
     level : Int,

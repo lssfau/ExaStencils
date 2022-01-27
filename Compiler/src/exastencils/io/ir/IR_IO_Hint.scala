@@ -87,6 +87,7 @@ abstract class IR_IO_Hint extends IR_UnduplicatedVariable {
 case class MPI_Info() extends IR_IO_Hint
 
 // PnetCDF hints: use extra hint object
+@deprecated
 case class PnetCDF_Info() extends IR_IO_Hint {
   override def resolveName() : String = "infoNc"
 

@@ -1,10 +1,10 @@
-package exastencils.visualization.ir
+package exastencils.visualization.ir.netCDF
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
@@ -15,12 +15,14 @@ import exastencils.io.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_Print
+import exastencils.visualization.ir.IR_PrintVisualization
 
 // IR_PrintExodus: Visualization interface using the ExodusII finite element data model
 // does not use all features of the exodusII library, but uses it only to provide the necessary meta data for visualization
 // to be used in combination with PnetCDF in order to write the data to be visualized
 // to be implemented as specific printer in exastencils.application.ir
 
+@deprecated
 abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_PrintVisualization {
 
   // to be implemented in application.ir
@@ -401,6 +403,9 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   }
 
   override def expand() : OutputType = {
+
+    Logger.warn("Exodus visualization is deprecated. Please use the Vtk or Xdmf formats instead.")
+
     // dependencies for ExodusII library
     if (!Settings.additionalIncludes.contains("exodusII.h"))
       Settings.additionalIncludes += "exodusII.h"

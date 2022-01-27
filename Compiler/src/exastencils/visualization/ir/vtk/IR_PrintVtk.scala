@@ -16,7 +16,7 @@
 //
 //=============================================================================
 
-package exastencils.visualization.ir
+package exastencils.visualization.ir.vtk
 
 import scala.collection.mutable.ListBuffer
 
@@ -29,6 +29,7 @@ import exastencils.datastructures.ir.StatementList
 import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_Print
+import exastencils.visualization.ir.IR_PrintVisualization
 
 /// IR_PrintVtk
 // to be implemented as specific printer in exastencils.application.ir

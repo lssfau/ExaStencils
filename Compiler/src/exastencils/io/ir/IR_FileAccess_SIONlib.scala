@@ -10,10 +10,12 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.config.Settings
 import exastencils.domain.ir.IR_IV_IsValidForDomain
+import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_Print
 
+@deprecated
 case class IR_FileAccess_SIONlib(
     var filename : IR_Expression,
     var dataBuffers : ListBuffer[IR_DataBuffer],
@@ -299,4 +301,8 @@ case class IR_FileAccess_SIONlib(
   override def libraries : ListBuffer[String] = ListBuffer[String]() ++ selectLibs.split(" ").filter(f => f.startsWith("-l")).map(l => l.replace("-l", "").filter(_ >= ' '))
   override def pathsInc : ListBuffer[String] = super.pathsInc
   override def pathsLib : ListBuffer[String] = ListBuffer[String]() ++ selectLibs.split(" ").filter(f => f.startsWith("-L")).map(l => l.replace("-L", "").filter(_ >= ' '))
+
+  override def validateParams() : Unit = {
+    Logger.warn("SIONLib interface is deprecated. Please use the C++ iostream (FPP/locking), MPI-I/O or HDF5 interfaces.")
+  }
 }

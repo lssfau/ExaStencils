@@ -12,6 +12,7 @@ import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_IsRootProc
 
+@deprecated
 case class IR_FileAccess_PnetCDF(
     var filename : IR_Expression,
     var dataBuffers : ListBuffer[IR_DataBuffer],
@@ -407,6 +408,8 @@ case class IR_FileAccess_PnetCDF(
   override def pathsLib : ListBuffer[String] = ListBuffer("$(PNETCDF_HOME)/lib")
 
   override def validateParams() : Unit = {
+    Logger.warn("PnetCDF interface is deprecated. Please use the C++ iostream (FPP/locking), MPI-I/O or HDF5 interfaces.")
+
     for (buf <- dataBuffers) {
       if (buf.datasetName == IR_NullExpression)
         Logger.error("Parameter \"dataset\" was not specified.")

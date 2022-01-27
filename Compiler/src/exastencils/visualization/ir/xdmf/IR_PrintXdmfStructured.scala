@@ -1,21 +1,21 @@
-package exastencils.field.ir
+package exastencils.visualization.ir.xdmf
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.core.StateManager
 import exastencils.domain.ir._
+import exastencils.field.ir._
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.grid.ir.IR_AtFaceCenter
 import exastencils.io.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_Gather
 import exastencils.util.ir.IR_Print
-import exastencils.visualization.ir.IR_PrintXdmf
 
 abstract class IR_PrintXdmfStructured(
     ioMethod : IR_Expression,

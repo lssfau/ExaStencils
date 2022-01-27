@@ -30,6 +30,7 @@ case class IR_IV_TimeValueRecordVariables(id : Int) extends IR_UnduplicatedVaria
 /// IR_PnetCDF_API
 // provides the most important datatypes and functions of the PnetCDF (parallel) and NetCDF (serial) API
 
+@deprecated
 trait IR_PnetCDF_API {
   val err_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("err"))
   val err = IR_VariableAccess(err_decl)
