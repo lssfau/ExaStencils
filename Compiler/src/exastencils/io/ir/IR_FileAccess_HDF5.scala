@@ -3,12 +3,11 @@ package exastencils.io.ir
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
-import exastencils.config.Platform
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
@@ -414,7 +413,7 @@ case class IR_FileAccess_HDF5(
   // when hdf5 is installed with --enable-parallel flag, the "hdf5.h" header requires "mpi.h" -> serial programs unfortunately require MPI headers and libs, too
   // alternative solution: install an additional, serial version of hdf5
   if (!Knowledge.mpi_enabled) {
-    Platform.targetCompilerBinary = "mpicxx" // TODO: handle dependency
+    setTargetCompilerToMpiWrapper()
   }
 
   override def includes : ListBuffer[String] = ListBuffer("hdf5.h")

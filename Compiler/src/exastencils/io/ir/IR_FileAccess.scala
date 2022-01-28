@@ -7,6 +7,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
+import exastencils.config.Platform
 import exastencils.config.Settings
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.StatementList
@@ -159,6 +160,12 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
   // core methods for file access
   def read(bufIdx : Int) : ListBuffer[IR_Statement]
   def write(bufIdx : Int) : ListBuffer[IR_Statement]
+
+  def setTargetCompilerToMpiWrapper() : Unit = {
+    Knowledge.mpi_enabled = true
+    Platform.targetCompilerBinary = Platform.resolveCompiler
+    Knowledge.mpi_enabled = false
+  }
 
   // add new headers, paths and libs
   def handleDependencies() : Unit = {

@@ -399,7 +399,7 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   // when exodus is installed with "MPI=ON" flag, the "exodusII.h" header requires "mpi.h" -> serial programs unfortunately require MPI headers and libs, too
   // alternative solution: install pure serial version additionally
   if (!Knowledge.mpi_enabled) {
-    Platform.targetCompilerBinary = "mpicxx" // TODO: handle dependency
+    ioHandler(constsIncluded = false, filename).setTargetCompilerToMpiWrapper()
   }
 
   override def expand() : OutputType = {

@@ -1,7 +1,6 @@
 package exastencils.io.ir
 
 import scala.collection.mutable.ListBuffer
-import scala.sys.process._
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
@@ -14,6 +13,17 @@ import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_Print
+
+object IR_FileAccess_SIONlib {
+  // use "sionconfig" script (comes with sionlib installation) to select appropriate compile flags
+  private var selectLdLibs : String = ""
+  private val selectCflags : String = s"`sionconfig --cflags --cxx ${ if (Knowledge.mpi_enabled) "--mpi" else "--ser" }`"
+
+  private def setLdLibs() : Unit =
+    selectLdLibs = s"`sionconfig --libs --cxx ${ if (Knowledge.mpi_enabled) "--mpi" else "--ser" }`"
+
+  def resolveLdLibs() : String = selectLdLibs
+}
 
 @deprecated
 case class IR_FileAccess_SIONlib(
@@ -287,20 +297,14 @@ case class IR_FileAccess_SIONlib(
     ListBuffer(IR_FunctionCall(IR_ExternalFunctionReference(funcName), fileId))
   }
 
-  // use "sionconfig" script (comes with sionlib installation) to select appropriate compile flags
-  val selectLibsCmd : String = "sionconfig --libs --cxx " + (if (Knowledge.mpi_enabled) "--mpi" else "--ser")
-  val selectCflagsCmd : String = "sionconfig --cflags --cxx " + (if (Knowledge.mpi_enabled) "--mpi" else "--ser")
-  val selectLibs : String = selectLibsCmd.!!
-  val selectCflags : String = selectCflagsCmd.!!
-  if (!Settings.makefile_additionalCFlags.contains(selectCflags))
-    Settings.makefile_additionalCFlags += selectCflags
+  // resolve makefile flags
+  if (!Settings.makefile_additionalCFlags.contains(IR_FileAccess_SIONlib.selectCflags))
+    Settings.makefile_additionalCFlags += IR_FileAccess_SIONlib.selectCflags
+  IR_FileAccess_SIONlib.setLdLibs()
 
   override def includes : ListBuffer[String] = ListBuffer("sion.h", "unistd.h", "stdio.h", "stdlib.h") ++
     (if (!Knowledge.mpi_enabled) Some("string.h") else None) ++
     (if (Knowledge.parIO_streams_useIntermediateBuffer) Some("vector") else None)
-  override def libraries : ListBuffer[String] = ListBuffer[String]() ++ selectLibs.split(" ").filter(f => f.startsWith("-l")).map(l => l.replace("-l", "").filter(_ >= ' '))
-  override def pathsInc : ListBuffer[String] = super.pathsInc
-  override def pathsLib : ListBuffer[String] = ListBuffer[String]() ++ selectLibs.split(" ").filter(f => f.startsWith("-L")).map(l => l.replace("-L", "").filter(_ >= ' '))
 
   override def validateParams() : Unit = {
     Logger.warn("SIONLib interface is deprecated. Please use the C++ iostream (FPP/locking), MPI-I/O or HDF5 interfaces.")
