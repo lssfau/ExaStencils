@@ -81,93 +81,93 @@ Function Application {
        
   if (lockingIO) {
     startTimer ("Lock: writeField")
-    writeField_lock ("data/src_lock.txt", src@finest, useGhost, !useBin, condition, separator)
+    writeField_lock ("data/3D_Scalar_CheckEquality_ReadAfterWrite/src_lock.txt", src@finest, useGhost, !useBin, condition, separator)
     stopTimer ("Lock: writeField")
 
     startTimer ("Lock: readField")
-    readField_lock ("data/src_lock.txt", dest@finest, useGhost, !useBin, condition, separator)
+    readField_lock ("data/3D_Scalar_CheckEquality_ReadAfterWrite/src_lock.txt", dest@finest, useGhost, !useBin, condition, separator)
     stopTimer ("Lock: readField")
 
     checkEquality@finest ( )
     print ( 'Passed lock test' )
 
     // write csv for paraview
-    printField_lock ("data/src_vis.csv", src@finest, useGhost, !useBin, condition, separator)
+    //printField_lock ("data/3D_Scalar_CheckEquality_ReadAfterWrite/src_vis.csv", src@finest, useGhost, !useBin, condition, separator)
   }
   
   if (fppIO) {
       startTimer ("FPP: writeField")
-      writeField_fpp ("data/src_fpp_$blockId.bin", src@finest, useGhost, useBin, condition)
+      writeField_fpp ("data/3D_Scalar_CheckEquality_ReadAfterWrite/src_fpp_$blockId.bin", src@finest, useGhost, useBin, condition)
       stopTimer ("FPP: writeField")
 
       startTimer ("FPP: readField")
-      readField_fpp ("data/src_fpp_$blockId.bin", dest@finest, useGhost, useBin, condition)
+      readField_fpp ("data/3D_Scalar_CheckEquality_ReadAfterWrite/src_fpp_$blockId.bin", dest@finest, useGhost, useBin, condition)
       stopTimer ("FPP: readField")
       
       checkEquality@finest ( )
       print ( 'Passed fpp test' )
       
       // write xdmf files for paraview/visit
-      printField_fpp ("data/src_vis_fpp_bin.xmf", src@finest, useBin)
-      printField_fpp ("data/src_vis_fpp.xmf", src@finest)
+      //printField_fpp ("data/3D_Scalar_CheckEquality_ReadAfterWrite/src_vis_fpp_bin.xmf", src@finest, useBin)
+      //printField_fpp ("data/3D_Scalar_CheckEquality_ReadAfterWrite/src_vis_fpp.xmf", src@finest)
   }
   
   if (hdfIO) {
     startTimer ("HDF5: writeField")
-    writeField_hdf5 ("data/src.h5", "/test/abs/path/src", src@finest)
+    writeField_hdf5 ("data/3D_Scalar_CheckEquality_ReadAfterWrite/src.h5", "/test/abs/path/src", src@finest)
     stopTimer ("HDF5: writeField")
 
     startTimer ("HDF5: readField")
-    readField_hdf5 ("data/src.h5", "/test/abs/path/src", dest@finest)
+    readField_hdf5 ("data/3D_Scalar_CheckEquality_ReadAfterWrite/src.h5", "/test/abs/path/src", dest@finest)
     stopTimer ("HDF5: readField")
 
     checkEquality@finest ( )
     print ( 'Passed hdf5 test' )
 
     // write xdmf file for paraview/visit
-    printField_hdf5 ("data/src_vis_h5.xmf", src@finest, useCanonicalLayout)
+    //printField_hdf5 ("data/3D_Scalar_CheckEquality_ReadAfterWrite/src_vis_h5.xmf", src@finest, useCanonicalLayout)
   }
   
   if (mpiIO) {
     startTimer ("MPIIO: writeField")
-    writeField_mpiio ("data/src.bin", src@finest)
+    writeField_mpiio ("data/3D_Scalar_CheckEquality_ReadAfterWrite/src.bin", src@finest)
     stopTimer ("MPIIO: writeField")
 
     startTimer ("MPIIO: readField")
-    readField_mpiio ("data/src.bin", dest@finest)
+    readField_mpiio ("data/3D_Scalar_CheckEquality_ReadAfterWrite/src.bin", dest@finest)
     stopTimer ("MPIIO: readField")
 
     checkEquality@finest ( )
     print ( 'Passed MPI I/O test' )
 
     // write xdmf file for paraview/visit
-    printField_mpiio ("data/src_vis_mpiio.xmf", src@finest, !useCanonicalLayout)
+    //printField_mpiio ("data/3D_Scalar_CheckEquality_ReadAfterWrite/src_vis_mpiio.xmf", src@finest, !useCanonicalLayout)
   }
   
   if (ncIO) {
     startTimer ("PnetCDF: writeField")
-    writeField_nc ("data/src.nc", "field_src", src@finest, useGhost)
+    writeField_nc ("data/3D_Scalar_CheckEquality_ReadAfterWrite/src.nc", "field_src", src@finest, useGhost)
     stopTimer ("PnetCDF: writeField")
 
     startTimer ("PnetCDF: readField")
-    readField_nc ("data/src.nc", "field_src", dest@finest, useGhost)
+    readField_nc ("data/3D_Scalar_CheckEquality_ReadAfterWrite/src.nc", "field_src", dest@finest, useGhost)
     stopTimer ("PnetCDF: readField")
 
     checkEquality@finest ( )
     print ( 'Passed nc test' )
 
     // write nc file for paraview/visit
-    printField_nc ("data/src_vis.nc", src@finest, useCanonicalLayout)
+    //printField_nc ("data/3D_Scalar_CheckEquality_ReadAfterWrite/src_vis.nc", src@finest, useCanonicalLayout)
   }
    
   
   if(sionIO) {
     startTimer ("SionLib: writeField")
-    writeField_sion ("data/src.sion", src@finest, !useGhost, condition)
+    writeField_sion ("data/3D_Scalar_CheckEquality_ReadAfterWrite/src.sion", src@finest, !useGhost, condition)
     stopTimer ("SionLib: writeField")
 
     startTimer ("SionLib: readField")
-    readField_sion ("data/src.sion", dest@finest, !useGhost, condition)
+    readField_sion ("data/3D_Scalar_CheckEquality_ReadAfterWrite/src.sion", dest@finest, !useGhost, condition)
     stopTimer ("SionLib: readField")
 
     checkEquality@finest ( )

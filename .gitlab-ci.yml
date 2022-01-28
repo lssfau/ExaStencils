@@ -14,7 +14,6 @@ stages:
 .test_template:
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -30,18 +29,21 @@ stages:
 
 .test_template_AVX:
     extends: .test_template
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
 
 .test_template_AVX2:
     extends: .test_template
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX2
 
 .test_template_CUDA:
     extends: .test_template
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - cuda
@@ -57,6 +59,24 @@ stages:
         - export CPATH=$CPATH:/usr/local/cuda-11.4/targets/x86_64-linux/include
         - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
         - cd Testing
+
+.test_template_IO:
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11-par-io
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+            - Testing/output/data/*
+        expire_in: 1 weeks
+    before_script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - sionversion
+        - h5pcc -showconfig
+        - pnetcdf-config --all
+        - cd Testing
+
 
 .benchmark_template:
     dependencies:
@@ -325,6 +345,47 @@ test:Appl_OptFlow3D:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Appl_OptFlow3D Application/OpticalFlow3D.knowledge "Application/OpticalFlow3D.exa4" Application/OpticalFlow3D.results 1 10 Platform/random.platform output
+
+###############################################
+# (PARALLEL) I/O TESTS                        #
+###############################################
+
+test:2D_Scalar_CheckEquality_ReadAfterWrite:
+    extends: .test_template_IO
+    script:
+        - mkdir -p data/2D_Scalar_CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_Scalar_CheckEquality_ReadAfterWrite IOTest/2D_Scalar_CheckEquality_ReadAfterWrite.knowledge "IOTest/2D_Scalar_CheckEquality_ReadAfterWrite.exa4" "" 2 1 Platform/random.platform output
+
+test:2D_Vector_CheckEquality_ReadAfterWrite:
+    extends: .test_template_IO
+    script:
+        - mkdir -p data/2D_Vector_CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_Vector_CheckEquality_ReadAfterWrite IOTest/2D_Vector_CheckEquality_ReadAfterWrite.knowledge "IOTest/2D_Vector_CheckEquality_ReadAfterWrite.exa4" "" 4 1 Platform/random.platform output
+
+test:3D_Matrix_CheckEquality_ReadAfterWrite:
+    extends: .test_template_IO
+    script:
+        - mkdir -p data/3D_Matrix_CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_Matrix_CheckEquality_ReadAfterWrite IOTest/3D_Matrix_CheckEquality_ReadAfterWrite.knowledge "IOTest/3D_Matrix_CheckEquality_ReadAfterWrite.exa4" "" 4 1 Platform/random.platform output
+
+test:3D_Scalar_CheckEquality_ReadAfterWrite:
+    extends: .test_template_IO
+    script:
+        - mkdir -p data/3D_Scalar_CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_Scalar_CheckEquality_ReadAfterWrite IOTest/3D_Scalar_CheckEquality_ReadAfterWrite.knowledge "IOTest/3D_Scalar_CheckEquality_ReadAfterWrite.exa4" "" 8 1 Platform/random.platform output
+
+test:3D_Vector_CheckEquality_ReadAfterWrite:
+    extends: .test_template_IO
+    script:
+        - mkdir -p data/3D_Vector_CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_Vector_CheckEquality_ReadAfterWrite IOTest/3D_Vector_CheckEquality_ReadAfterWrite.knowledge "IOTest/3D_Vector_CheckEquality_ReadAfterWrite.exa4" "" 4 1 Platform/random.platform output
+
+test:CheckEquality_ReadAfterWrite:
+    extends: .test_template_IO
+    script:
+        - mkdir -p data/CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CheckEquality_ReadAfterWrite IOTest/CheckEquality_ReadAfterWrite.knowledge "IOTest/CheckEquality_ReadAfterWrite.exa4" "" 8 1 Platform/random.platform output
+
 
 ###############################################
 # BASIC COMMUNICATION TESTS                   #
