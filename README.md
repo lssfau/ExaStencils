@@ -170,7 +170,7 @@ To build and install SIONlib version 1.7.6, following lines can be used:
 curl "http://apps.fz-juelich.de/jsc/sionlib/download.php?version=1.7.6" -o sionlib.tar.gz
 tar xvf sionlib.tar.gz
 cd sionlib
-./configure --prefix=$HOME/sionlib --disable-fortran
+./configure --prefix=$HOME/sionlib --disable-fortran --mpi=openmpi
 cd build-linux-gomp-openmpi
 
 make
