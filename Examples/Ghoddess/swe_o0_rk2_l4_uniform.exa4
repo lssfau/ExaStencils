@@ -321,16 +321,6 @@ printExodusSWE ( filename_vtk, levels@current ( ),
 stopTimer ( 'exodus' )
 */
 
-// sion writer for performance comparison
-startTimer ( 'sion' )
-buildString ( filename_vtk, "data/swe_o0_rk2_l4_uniform_-_", print_count, ".sion" )
-printSionSWE( filename_vtk, levels@current (),
-    bath@current, 
-    etaDiscLower0@current, etaDiscLower1@current, etaDiscLower2@current, etaDiscUpper0@current, etaDiscUpper1@current, etaDiscUpper2@current,
-    uDiscLower0@current, uDiscLower1@current, uDiscLower2@current, uDiscUpper0@current, uDiscUpper1@current, uDiscUpper2@current
-)
-stopTimer ( 'sion' )
-
 /* uniform visualization */
 
 Val useGhost : Boolean = true

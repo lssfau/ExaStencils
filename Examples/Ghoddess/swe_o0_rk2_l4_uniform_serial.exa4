@@ -291,6 +291,7 @@ printXdmfSWE_hdf5 ( filename_vtk, levels@current ( ),
 )
 stopTimer ( 'xdmf h5' )
 
+/*
 startTimer ( 'exodus' )
 // constant data reduction on
 printExodusSWE ( "data/swe_o0_rk2_l4_uniform.e", levels@current ( ),
@@ -300,7 +301,6 @@ printExodusSWE ( "data/swe_o0_rk2_l4_uniform.e", levels@current ( ),
 )
 stopTimer ( 'exodus' )
 
-/*
 // constant data reduction off
 startTimer ( 'exodus' )
 buildString ( filename_vtk, "data/swe_o0_rk2_l4_uniform_-_", print_count, ".e" )
@@ -311,16 +311,6 @@ printExodusSWE ( filename_vtk, levels@current ( ),
 )
 stopTimer ( 'exodus' )
 */
-
-// sion writer for performance comparison
-startTimer ( 'sion' )
-buildString ( filename_vtk, "data/swe_o0_rk2_l4_uniform_-_", print_count, ".sion" )
-printSionSWE( filename_vtk, levels@current (),
-    bath@current,
-    etaDiscLower0@current, etaDiscLower1@current, etaDiscLower2@current, etaDiscUpper0@current, etaDiscUpper1@current, etaDiscUpper2@current,
-    uDiscLower0@current, uDiscLower1@current, uDiscLower2@current, uDiscUpper0@current, uDiscUpper1@current, uDiscUpper2@current
-)
-stopTimer ( 'sion' )
 
 /* uniform visualization */
 
@@ -355,7 +345,7 @@ stopTimer ( 'printField_hdf5: bath' )
 
 // constant data reduction on
 startTimer ( 'printField_nc: bath' )
-printField_nc ( "data/bath.nc", bath@finest, useCanonicalLayout )
+//printField_nc ( "data/bath.nc", bath@finest, useCanonicalLayout )
 stopTimer ( 'printField_nc: bath' )
 
 /*

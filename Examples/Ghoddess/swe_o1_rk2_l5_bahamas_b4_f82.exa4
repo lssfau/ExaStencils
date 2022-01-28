@@ -775,15 +775,6 @@ printExodusSWE( filename_vtk, levels@current ( ),
 )
 */
 
-startTimer ( 'sion' )
-buildString ( filename_vtk, "data/swe_o1_rk2_l5_bahamas_b4_f82_-_", print_count, ".sion" )
-printSionSWE( filename_vtk, levels@current (),
-    bath@current, 
-    etaDiscLower0@current, etaDiscLower1@current, etaDiscLower2@current, etaDiscUpper0@current, etaDiscUpper1@current, etaDiscUpper2@current,
-    uDiscLower0@current, uDiscLower1@current, uDiscLower2@current, uDiscUpper0@current, uDiscUpper1@current, uDiscUpper2@current
-)
-stopTimer ( 'sion' )
-
 stopTimer ( 'printVis' )
 
 }
