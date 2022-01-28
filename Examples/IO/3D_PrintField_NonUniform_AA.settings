@@ -1,8 +1,8 @@
 user                = "Guest"
 
-configName          = "2D_Test_PrintField_NonUniform_AA"
+configName          = "3D_PrintField_NonUniform_AA"
 
-basePathPrefix      = "./IOTest/"
+basePathPrefix      = "./IO/"
 
 l4file              = "$configName$.exa4"
 debugL4File         = "../Debug/$configName$_debug.exa4"
