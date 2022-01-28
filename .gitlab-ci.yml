@@ -12,6 +12,7 @@ stages:
 #######################################
 
 .test_template:
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     dependencies:
         - build:generator
     tags:
@@ -29,21 +30,18 @@ stages:
 
 .test_template_AVX:
     extends: .test_template
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX
 
 .test_template_AVX2:
     extends: .test_template
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - AVX2
 
 .test_template_CUDA:
     extends: .test_template
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
         - cuda
@@ -61,6 +59,7 @@ stages:
         - cd Testing
 
 .test_template_IO:
+    extends: .test_template
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11-par-io
     artifacts:
         when: on_failure
