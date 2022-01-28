@@ -8,10 +8,18 @@ discr_type                     = "FiniteDifferences"
 experimental_generateParaviewFiles = true
 //parIO_vis_generateVisItFiles = true
 
-// four blocks (2, 2, 1), 1 frag per block
-import '../lib/domain_fourPatches.knowledge'
-import '../lib/parallelization_fourMPI.knowledge'
+domain_onlyRectangular         = true
+domain_rect_generate           = true
+domain_rect_numBlocks_x        = 2
+domain_rect_numBlocks_y        = 2
+domain_rect_numBlocks_z        = 1
+domain_rect_numFragsPerBlock_x = 1
+domain_rect_numFragsPerBlock_y = 1
+domain_rect_numFragsPerBlock_z = 1
 
-// one block, four frags. serial code
-//import '../lib/domain_fourFrags.knowledge'
-//import '../lib/parallelization_serial.knowledge'
+omp_enabled                       = false
+omp_numThreads                    = 1
+mpi_enabled                       = true
+mpi_numThreads                    = 4
+omp_parallelizeLoopOverFragments  = false
+omp_parallelizeLoopOverDimensions = false
