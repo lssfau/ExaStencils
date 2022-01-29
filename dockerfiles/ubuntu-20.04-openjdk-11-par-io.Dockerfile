@@ -24,7 +24,6 @@ RUN curl "http://apps.fz-juelich.de/jsc/sionlib/download.php?version=1.7.6" -o s
     LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SION_HOME/lib ; export LD_LIBRARY_PATH
 
 # pnetcdf
-
 RUN wget http://cucis.ece.northwestern.edu/projects/PnetCDF/Release/pnetcdf-1.12.1.tar.gz && \
     tar xvf pnetcdf-1.12.1.tar.gz && \
     cd pnetcdf-1.12.1 && \
