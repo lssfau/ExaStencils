@@ -71,9 +71,7 @@ stages:
         - java -version
         - python3 --version
         - mpirun --version
-        - echo $PATH
-        - echo $LD_LIBRARY_PATH
-        #- sionversion
+        - sionversion
         - h5pcc -showconfig
         - pnetcdf-config --all
         - cd Testing
