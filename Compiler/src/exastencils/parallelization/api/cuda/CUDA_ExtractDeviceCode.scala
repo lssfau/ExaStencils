@@ -21,14 +21,18 @@ package exastencils.parallelization.api.cuda
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_MatrixDatatype
+import exastencils.baseExt.ir._
+import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.optimization.ir.IR_SimplifyExpression
+import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.solver.ir.IR_InlineMatSolveStmts
 import exastencils.util.ir.IR_FctNameCollector
+import exastencils.util.ir.IR_StackCollector
 
 /// CUDA_ExtractHostAndDeviceCode
 
@@ -36,9 +40,14 @@ import exastencils.util.ir.IR_FctNameCollector
   * This transformation is used to convert annotated code into CUDA kernel code.
   */
 object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUDA loop in kernel code") {
-  val collector = new IR_FctNameCollector
-  this.register(collector)
+  val fctNameCollector = new IR_FctNameCollector
+  val stackCollector = new IR_StackCollector
+  this.register(fctNameCollector)
+  this.register(stackCollector)
   this.onBefore = () => this.resetCollectors()
+
+  var enclosingFragmentLoops : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, IR_Reduction] = mutable.HashMap()
+
 
   /**
     * Collect all loops in the band.
@@ -74,6 +83,30 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
     }
   }
 
+  this += Transformation("Find reductions with enclosing fragment loops", {
+    case loop : IR_ForLoop if loop.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) &&
+      loop.getAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION).contains(CUDA_Util.CUDA_BAND_START) =>
+
+      val enclosing = stackCollector.stack.collectFirst {
+        case fragLoop : IR_LoopOverFragments => fragLoop
+        case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name => fragLoop
+      }
+
+      if (enclosing.isDefined && !(Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments) && loop.parallelization.reduction.isDefined)
+        enclosingFragmentLoops += (enclosing.get -> loop.parallelization.reduction.get)
+
+      loop
+  }, false)
+
+  // enclosed by a fragment loop -> create fragment-local copies of the initial value
+  // and perform reduction after frag loop
+  this += Transformation("Modify enclosing fragment loops", {
+    case fragLoop : IR_LoopOverFragments if enclosingFragmentLoops.contains(fragLoop) =>
+      CUDA_HandleFragmentLoopsWithReduction(fragLoop, enclosingFragmentLoops(fragLoop))
+    case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if enclosingFragmentLoops.contains(fragLoop) && name == IR_LoopOverFragments.defIt.name =>
+      CUDA_HandleFragmentLoopsWithReduction(fragLoop, enclosingFragmentLoops(fragLoop))
+  }, false)
+
   this += new Transformation("Processing ForLoopStatement nodes", {
     case loop : IR_ForLoop if loop.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) &&
       loop.getAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION).contains(CUDA_Util.CUDA_BAND_START) =>
@@ -103,7 +136,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       // add kernel and kernel call
       val kernelFunctions = CUDA_KernelFunctions.get
 
-      val kernelCount = kernelFunctions.counterMap.getOrElse(collector.getCurrentName, -1) + 1
+      val kernelCount = kernelFunctions.counterMap.getOrElse(fctNameCollector.getCurrentName, -1) + 1
 
       // collect local accesses because these variables need to be passed to the kernel at call
       CUDA_GatherVariableAccesses.clear()
@@ -150,7 +183,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       CUDA_ReplaceArrayAccesses.applyStandalone(kernelBody)
 
       val kernel = CUDA_Kernel(
-        kernelFunctions.getIdentifier(collector.getCurrentName),
+        kernelFunctions.getIdentifier(fctNameCollector.getCurrentName),
         parallelInnerLoops.length,
         params,
         Duplicate(loopVariables),
@@ -176,8 +209,11 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       // process return value of kernel wrapper call if reduction is required
       val callKernel = IR_FunctionCall(kernel.getWrapperFctName, args)
       if (loop.parallelization.reduction.isDefined) {
-        val red = loop.parallelization.reduction.get
-        CUDA_Util.getReductionDatatype(red.target) match {
+        val red = Duplicate(loop.parallelization.reduction.get)
+        val redTarget = Duplicate(red.target)
+        val reductionDt = CUDA_Util.getReductionDatatype(redTarget)
+
+        reductionDt match {
           case mat : IR_MatrixDatatype =>
             val baseDt = mat.resolveBaseDatatype
             // declare and allocate tmp buffer for matrix reduction
