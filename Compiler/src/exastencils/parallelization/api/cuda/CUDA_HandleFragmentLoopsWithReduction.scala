@@ -77,7 +77,7 @@ case class CUDA_HandleFragmentLoopsWithReduction(
     case _ : IR_ScalarDatatype =>
       IR_Assignment(currCopy, redTarget)
     case hodt : IR_HigherDimensionalDatatype =>
-      matrixAssignment("std::copy", currCopy, redTarget, hodt.getSizeArray.product)
+      matrixAssignment("std::copy", redTarget, currCopy, hodt.getSizeArray.product)
   }
 
   def initCopies() = ListBuffer(
