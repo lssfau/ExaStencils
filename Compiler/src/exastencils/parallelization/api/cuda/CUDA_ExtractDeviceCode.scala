@@ -92,7 +92,8 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name => fragLoop
       }
 
-      if (enclosing.isDefined && !(Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments) && loop.parallelization.reduction.isDefined)
+      val fragLoopIsSerial = !Knowledge.omp_enabled || (Knowledge.omp_enabled && !Knowledge.omp_parallelizeLoopOverFragments)
+      if (enclosing.isDefined && fragLoopIsSerial && loop.parallelization.reduction.isDefined)
         enclosingFragmentLoops += (enclosing.get -> loop.parallelization.reduction.get)
 
       loop
