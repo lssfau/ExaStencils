@@ -175,6 +175,11 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         CUDA_GatherVariableAccesses.applyStandalone(IR_Scope(decl))
         CUDA_GatherVariableAccesses.applyStandalone(IR_Scope(initLocalTarget))
 
+        // replace array accesses with accesses to function arguments
+        CUDA_ReplaceNonReductionVarArrayAccesses.reductionTarget = None // actually allow reduction var to be replaced here
+        CUDA_ReplaceNonReductionVarArrayAccesses.applyStandalone(IR_Scope(decl))
+        CUDA_ReplaceNonReductionVarArrayAccesses.applyStandalone(IR_Scope(initLocalTarget))
+
         kernelBody.prepend(initLocalTarget : _*)
         kernelBody.prepend(decl)
       }
@@ -210,12 +215,13 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       // inline contained calls to solve functions to avoid separate compilation units
       IR_InlineMatSolveStmts.applyStandalone(IR_Scope(kernelBody))
 
-      // replace array accesses with accesses to function arguments, ignore reduction variable
+      // replace array accesses with accesses to function arguments
+      // reduction var is not replaced, but later in IR_HandleReductions
       if (reduction.isDefined)
-        CUDA_ReplaceArrayAccesses.reductionTarget = Some(reduction.get.target)
+        CUDA_ReplaceNonReductionVarArrayAccesses.reductionTarget = Some(reduction.get.target)
       else
-        CUDA_ReplaceArrayAccesses.reductionTarget = None
-      CUDA_ReplaceArrayAccesses.applyStandalone(IR_Scope(kernelBody))
+        CUDA_ReplaceNonReductionVarArrayAccesses.reductionTarget = None
+      CUDA_ReplaceNonReductionVarArrayAccesses.applyStandalone(IR_Scope(kernelBody))
 
       val kernel = CUDA_Kernel(
         kernelCount,

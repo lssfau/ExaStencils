@@ -120,15 +120,33 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
     var redTarget : IR_Expression = IR_NullExpression
     var replacement : IR_Expression = IR_NullExpression
 
+    private object CUDA_ReplaceReductionAccessesRhs extends QuietDefaultStrategy("..") {
+      this += new Transformation("Replace", {
+        case expr : IR_Expression if expr == redTarget =>
+          Duplicate(replacement)
+      })
+    }
+
     this += new Transformation("Replace", {
-      // replace directly if expr == redTarget
+
+      // -- special cases arising from initialising localTarget = redTarget -> we do not replace here, if:  --
+      // lhs == replacement
+      case assignment @ IR_Assignment(lhs, _, _) if replacement.equals(lhs) =>
+        assignment
+
+      // lhs[idx] == replacement[idx]
+      case assignment @ IR_Assignment(_ @ IR_ArrayAccess(base : IR_VariableAccess, _, _), _, _) if replacement.equals(base) =>
+        assignment
+
+      // -- replace, if: --
+      // expr == redTarget
       case assignment @ IR_Assignment(expr, _, _) if redTarget.equals(expr) =>
-        assignment.dest = Duplicate(replacement)
-        // assignment.op = "=" // don't modify assignments - there could be inlined loops
+        CUDA_ReplaceReductionAccessesRhs.applyStandalone(assignment)
         assignment
 
       // array access of reduction target
       case assignment @ IR_Assignment(_ @ IR_ArrayAccess(base : IR_VariableAccess, idx, _), _, _) if redTarget.equals(base) =>
+        CUDA_ReplaceReductionAccessesRhs.applyStandalone(assignment)
         val repl = replacement.datatype match {
           case _ : IR_HigherDimensionalDatatype =>
             IR_ArrayAccess(replacement, idx)
@@ -140,19 +158,17 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
 
       // special functions used for certain kinds of matrix assignments
       case stmt @ IR_ExpressionStatement(IR_FunctionCall(ref @ IR_ExternalFunctionReference(name, IR_UnitDatatype), args @ ListBuffer(_, _, dest))) =>
-        if (CUDA_StdFunctionReplacements.stdFunctions.contains(name) && redTarget.equals(dest))
+        if (CUDA_StdFunctionReplacements.stdFunctions.contains(name) && redTarget.equals(dest)) {
+          CUDA_ReplaceReductionAccessesRhs.applyStandalone(args)
           IR_ExpressionStatement(IR_FunctionCall(ref, args.dropRight(1) :+ Duplicate(replacement))) // replace dest
-        else
+        } else
           stmt
 
-      // -- special cases arising from initialising localTarget = redTarget -> we do not replace here --
-      // replace rhs if lhs == replacement
-      case assignment @ IR_Assignment(lhs, _, _) if replacement.equals(lhs) =>
-        assignment
-
-      // replace rhs if lhs[idx] == replacement[idx]
-      case assignment @ IR_Assignment(_ @ IR_ArrayAccess(base : IR_VariableAccess, _, _), _, _) if replacement.equals(base) =>
-        assignment
+      // special case: unresolved matrix expressions
+      case e : IR_MatrixExpression =>
+        // traverse tree and replace
+        CUDA_ReplaceReductionAccessesRhs.applyStandalone(e)
+        e
     })
   }
 
