@@ -57,7 +57,9 @@ object CUDA_Kernel {
 }
 
 // TODO: refactor -> less (convoluted) code
-case class CUDA_Kernel(var identifier : String,
+case class CUDA_Kernel(
+    var kernelCount : Int,
+    var identifier : String,
     var parallelDims : Int,
     var passThroughArgs : ListBuffer[IR_FunctionArgument],
     var loopVariables : ListBuffer[String],
@@ -66,6 +68,7 @@ case class CUDA_Kernel(var identifier : String,
     var stepSize : ListBuffer[IR_Expression],
     var body : ListBuffer[IR_Statement],
     var reduction : Option[IR_Reduction] = None,
+    var localReductionTarget : Option[IR_Expression] = None,
     var loopVariableExtrema : Map[String, (Long, Long)] = Map[String, (Long, Long)]()) extends Node {
 
   import CUDA_Kernel._

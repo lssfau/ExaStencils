@@ -24,10 +24,12 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures._
+import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.solver.ir.IR_InlineMatSolveStmts
@@ -47,7 +49,6 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
   this.onBefore = () => this.resetCollectors()
 
   var enclosingFragmentLoops : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, IR_Reduction] = mutable.HashMap()
-
 
   /**
     * Collect all loops in the band.
@@ -88,7 +89,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       loop.getAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION).contains(CUDA_Util.CUDA_BAND_START) =>
 
       val enclosing = stackCollector.stack.collectFirst {
-        case fragLoop : IR_LoopOverFragments => fragLoop
+        case fragLoop : IR_LoopOverFragments                                                                                     => fragLoop
         case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name => fragLoop
       }
 
@@ -102,7 +103,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
   // enclosed by a fragment loop -> create fragment-local copies of the initial value
   // and perform reduction after frag loop
   this += Transformation("Modify enclosing fragment loops", {
-    case fragLoop : IR_LoopOverFragments if enclosingFragmentLoops.contains(fragLoop) =>
+    case fragLoop : IR_LoopOverFragments if enclosingFragmentLoops.contains(fragLoop)                                                                                     =>
       CUDA_HandleFragmentLoopsWithReduction(fragLoop, enclosingFragmentLoops(fragLoop))
     case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if enclosingFragmentLoops.contains(fragLoop) && name == IR_LoopOverFragments.defIt.name =>
       CUDA_HandleFragmentLoopsWithReduction(fragLoop, enclosingFragmentLoops(fragLoop))
@@ -139,18 +140,52 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
 
       val kernelCount = kernelFunctions.counterMap.getOrElse(fctNameCollector.getCurrentName, -1) + 1
 
-      // collect local accesses because these variables need to be passed to the kernel at call
+      val reduction = loop.parallelization.reduction
+
+      // local variable for kernels with reductions
+      val localTarget = if (reduction.isDefined)
+        Some(IR_VariableAccess(reduction.get.targetName + "_local_" + kernelCount, CUDA_Util.getReductionDatatype(reduction.get.target)))
+      else
+        None
+
+      // collect local accesses because their variables need to be passed to the kernel when calling
       CUDA_GatherVariableAccesses.clear()
       CUDA_GatherVariableAccesses.kernelCount = kernelCount
-      if (loop.parallelization.reduction.isDefined)
-        CUDA_GatherVariableAccesses.reductionTarget = Some(loop.parallelization.reduction.get.target)
+      if (reduction.isDefined)
+        CUDA_GatherVariableAccesses.reductionTarget = Some(reduction.get.target)
       CUDA_GatherVariableAccesses.applyStandalone(IR_Scope(loop))
+
+      // declare and init local reduction target
+      if (localTarget.isDefined) {
+        val decl = IR_VariableDeclaration(localTarget.get)
+        val initLocalTarget = CUDA_Util.getReductionDatatype(reduction.get.target) match {
+          case _ : IR_ScalarDatatype   =>
+            ListBuffer[IR_Statement](IR_Assignment(localTarget.get, reduction.get.target))
+          case mat : IR_MatrixDatatype =>
+            reduction.get.target match {
+              case vAcc : IR_VariableAccess =>
+                IR_GenerateBasicMatrixOperations.loopSetSubmatrixMatPointer(
+                  vAcc, localTarget.get, mat.sizeN, mat.sizeM, mat.sizeN, 0, 0).body
+              case expr                     =>
+                Logger.error("Cannot set submatrix for expression: " + expr)
+            }
+        }
+
+        // also detect accesses coming from the init of the local target
+        CUDA_GatherVariableAccesses.applyStandalone(IR_Scope(decl))
+        CUDA_GatherVariableAccesses.applyStandalone(IR_Scope(initLocalTarget))
+
+        kernelBody.prepend(initLocalTarget : _*)
+        kernelBody.prepend(decl)
+      }
+
+      // access collections
       val accesses = CUDA_GatherVariableAccesses.evaluableAccesses.toSeq.sortBy(_._1).to[ListBuffer]
       val accessesCopiedToDevice = CUDA_GatherVariableAccesses.nonEvaluableAccesses.toSeq.sortBy(_._1).to[ListBuffer]
 
       // add non-evaluable accesses in form of pointers to device copies
       val deviceArrayCopies = accessesCopiedToDevice.map {
-        case (k,v) =>
+        case (k, v) =>
           val copyName = CUDA_GatherVariableAccesses.arrayVariableAccessAsString(v._1)
           val copyDt = IR_PointerDatatype(v._2.resolveBaseDatatype)
 
@@ -176,14 +211,14 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       IR_InlineMatSolveStmts.applyStandalone(kernelBody)
 
       // replace array accesses with accesses to function arguments, ignore reduction variable
-      CUDA_ReplaceArrayAccesses.kernelCount = kernelCount
-      if (loop.parallelization.reduction.isDefined)
-        CUDA_ReplaceArrayAccesses.reductionTarget = Some(loop.parallelization.reduction.get.target)
+      if (reduction.isDefined)
+        CUDA_ReplaceArrayAccesses.reductionTarget = Some(reduction.get.target)
       else
         CUDA_ReplaceArrayAccesses.reductionTarget = None
       CUDA_ReplaceArrayAccesses.applyStandalone(kernelBody)
 
       val kernel = CUDA_Kernel(
+        kernelCount,
         kernelFunctions.getIdentifier(fctNameCollector.getCurrentName),
         parallelInnerLoops.length,
         params,
@@ -192,7 +227,8 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         Duplicate(upperBounds),
         Duplicate(stepSize),
         Duplicate(kernelBody),
-        Duplicate(loop.parallelization.reduction),
+        Duplicate(reduction),
+        Duplicate(localTarget),
         Duplicate(extremaMap))
 
       kernelFunctions.addKernel(Duplicate(kernel))
@@ -209,8 +245,8 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
 
       // process return value of kernel wrapper call if reduction is required
       val callKernel = IR_FunctionCall(kernel.getWrapperFctName, args)
-      if (loop.parallelization.reduction.isDefined) {
-        val red = Duplicate(loop.parallelization.reduction.get)
+      if (reduction.isDefined) {
+        val red = Duplicate(reduction.get)
         val redTarget = Duplicate(red.target)
         val reductionDt = CUDA_Util.getReductionDatatype(redTarget)
 
@@ -227,14 +263,8 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
             deviceStatements += callKernel
 
             // update reduction target
-            val i = IR_VariableAccess("_i", IR_IntegerDatatype)
-            val j = IR_VariableAccess("_j", IR_IntegerDatatype)
-            val idx = i * mat.sizeN + j
-            val dst = IR_ArrayAccess(red.target, idx)
-            val src = IR_ArrayAccess(reductionTmp, idx)
-            deviceStatements += IR_ForLoop(IR_VariableDeclaration(i, IR_IntegerConstant(0)), IR_Lower(i, mat.sizeM), IR_PreIncrement(i), ListBuffer[IR_Statement](
-              IR_ForLoop(IR_VariableDeclaration(j, 0), IR_Lower(j, mat.sizeN), IR_PreIncrement(j), ListBuffer[IR_Statement](
-                IR_Assignment(dst, IR_BinaryOperators.createExpression(red.op, dst, src))))))
+            deviceStatements += IR_GenerateBasicMatrixOperations.loopCompoundAssignSubmatrixPointer(
+              red.target, mat.sizeN, reductionTmp, 0, 0, mat.sizeM, mat.sizeN, red.op)
 
             // free allocated buffer
             deviceStatements += IR_ArrayFree(reductionTmp)

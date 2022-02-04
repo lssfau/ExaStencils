@@ -69,7 +69,7 @@ case class CUDA_ReductionDeviceData(var numPoints : IR_Expression, var targetDt 
 object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in device kernels") {
   this += new Transformation("Process kernel nodes", {
     case kernel : CUDA_Kernel if kernel.reduction.isDefined =>
-      val target = kernel.reduction.get.target
+      val target = Duplicate(kernel.reduction.get.target)
       val resultDt = CUDA_Util.getReductionDatatype(target)
       val strideReturnDt = resultDt.getSizeArray.product
 
@@ -87,9 +87,30 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
         stride(i) = IR_IntegerConstant(s)
       }
 
+      // update local target
       CUDA_ReplaceReductionAssignments.redTarget = target
-      CUDA_ReplaceReductionAssignments.replacement = CUDA_ReductionDeviceDataAccess(CUDA_ReductionDeviceData(size, resultDt), index, stride)
+      CUDA_ReplaceReductionAssignments.replacement = kernel.localReductionTarget.get
       CUDA_ReplaceReductionAssignments.applyStandalone(IR_Scope(kernel.body))
+
+      // set element in global reduction buffer to local result
+      val dst = CUDA_ReductionDeviceDataAccess(CUDA_ReductionDeviceData(size, resultDt), index, stride)
+      val setReductionBuffer = resultDt match {
+        case _ : IR_ScalarDatatype   =>
+          IR_Assignment(dst, kernel.localReductionTarget.get)
+        case mat : IR_MatrixDatatype =>
+          val i = IR_VariableAccess("_i", IR_IntegerDatatype)
+          val j = IR_VariableAccess("_j", IR_IntegerDatatype)
+          val idx = i * mat.sizeN + j
+          dst.index(0) += idx // offset reduction buffer to current mat index
+
+          IR_ForLoop(IR_VariableDeclaration(i, IR_IntegerConstant(0)), IR_Lower(i, mat.sizeM), IR_PreIncrement(i), ListBuffer[IR_Statement](
+            IR_ForLoop(IR_VariableDeclaration(j, 0), IR_Lower(j, mat.sizeN), IR_PreIncrement(j), ListBuffer[IR_Statement](
+              IR_Assignment(dst, IR_ArrayAccess(kernel.localReductionTarget.get, idx))))))
+      }
+
+      // assemble new body
+      kernel.body += setReductionBuffer
+
       kernel
   })
 
@@ -101,27 +122,20 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
 
     this += new Transformation("Replace", {
       // replace directly if expr == redTarget
-      case assignment @ IR_Assignment(expr, _, _) if redTarget.equals(expr) =>
-        assignment.dest = Duplicate(replacement)
-        // assignment.op = "=" // don't modify assignments - there could be inlined loops
-        assignment
+      case expr : IR_Expression if expr == redTarget =>
+        Duplicate(replacement)
 
       // array access of reduction target
-      case assignment @ IR_Assignment(_ @ IR_ArrayAccess(base : IR_VariableAccess, idx, _), _, _) if redTarget.equals(base) =>
-        val repl = Duplicate(replacement) match {
-          case red : CUDA_ReductionDeviceDataAccess =>
-            red.index(0) += idx
-            red
-          case _ => Logger.error("Invalid type for \"replacement\" of cuda reduction targets")
+      case IR_ArrayAccess(base : IR_VariableAccess, idx, _) if redTarget.equals(base) =>
+        replacement.datatype match {
+          case _ : IR_HigherDimensionalDatatype => IR_ArrayAccess(Duplicate(replacement), idx)
+          case _                                => Logger.error("Invalid type for \"replacement\" of cuda reduction targets")
         }
-        assignment.dest = repl
-        // assignment.op = "=" // don't modify assignments - there could be inlined loops
-        assignment
 
       // special functions used for certain kinds of matrix assignments
       case stmt @ IR_ExpressionStatement(IR_FunctionCall(ref @ IR_ExternalFunctionReference(name, IR_UnitDatatype), args @ ListBuffer(_, _, dest))) =>
         if (CUDA_StdFunctionReplacements.stdFunctions.contains(name) && redTarget.equals(dest))
-          IR_ExpressionStatement(IR_FunctionCall(ref, args.dropRight(1) :+ IR_AddressOf(replacement))) // replace dest
+          IR_ExpressionStatement(IR_FunctionCall(ref, args.dropRight(1) :+ Duplicate(replacement))) // replace dest
         else
           stmt
     })

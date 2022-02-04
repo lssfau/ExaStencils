@@ -11,7 +11,6 @@ import exastencils.parallelization.api.cuda.CUDA_Util._
 object CUDA_ReplaceArrayAccesses extends QuietDefaultStrategy("Replace array accesses in kernel") {
 
   var reductionTarget : Option[IR_Expression] = None
-  var kernelCount : Int = 0
 
   private val compoundAssignmentOps = List("+=", "-=", "*=", "/=")
 
@@ -52,7 +51,7 @@ object CUDA_ReplaceArrayAccesses extends QuietDefaultStrategy("Replace array acc
           // allow replacement of reduction variables on rhs
           val tmp = Duplicate(reductionTarget.get)
           reductionTarget = None
-          CUDA_ReplaceNonReductionVariableAccesses.applyStandalone(src)
+          CUDA_ReplaceNonReductionVariableAccesses.applyStandalone(IR_ExpressionStatement(src))
           reductionTarget = Some(tmp)
 
           IR_Assignment(dst, src)
@@ -60,13 +59,13 @@ object CUDA_ReplaceArrayAccesses extends QuietDefaultStrategy("Replace array acc
     /* lhs is not the reduction variable:
       -> no special handling needed
       -> simply replace accesses on rhs */
-    case assign @ IR_Assignment(dst, src, _) =>
+    case assign : IR_Assignment =>
       var tmp : Option[IR_Expression] = None
       if (reductionTarget.isDefined)
         tmp = Some(Duplicate(reductionTarget.get))
       reductionTarget = None
 
-      CUDA_ReplaceNonReductionVariableAccesses.applyStandalone(src)
+      CUDA_ReplaceNonReductionVariableAccesses.applyStandalone(IR_ExpressionStatement(assign.src))
 
       reductionTarget = tmp
 
