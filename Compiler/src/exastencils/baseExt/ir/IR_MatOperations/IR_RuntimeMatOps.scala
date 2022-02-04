@@ -311,7 +311,7 @@ object IR_GenerateBasicMatrixOperations {
   }
 
   // copy a submatrix of n_rows x n_cols to 'copy' from position 'offset_r', 'offset_c' in 'source' with size 'sourcesize'
-  def loopCompoundAssignSubmatrixPointer(source : IR_Expression, sourcesize : IR_Expression, dest : IR_VariableAccess, offset_r : IR_Expression, offset_c : IR_Expression, n_rows : IR_Expression, n_cols : IR_Expression, op : String) : IR_Scope = {
+  def loopCompoundAssignSubmatrixPointer(source : IR_Expression, sourcesize : IR_Expression, dest : IR_Expression, offset_r : IR_Expression, offset_c : IR_Expression, n_rows : IR_Expression, n_cols : IR_Expression, op : String) : IR_Scope = {
     var stmts = IR_Scope(Nil)
     var i = IR_VariableAccess("i", IR_IntegerDatatype)
     var j = IR_VariableAccess("j", IR_IntegerDatatype)

@@ -264,7 +264,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
 
             // update reduction target
             deviceStatements += IR_GenerateBasicMatrixOperations.loopCompoundAssignSubmatrixPointer(
-              red.target, mat.sizeN, reductionTmp, 0, 0, mat.sizeM, mat.sizeN, red.op)
+              reductionTmp, mat.sizeN, red.target, 0, 0, mat.sizeM, mat.sizeN, red.op)
 
             // free allocated buffer
             deviceStatements += IR_ArrayFree(reductionTmp)
