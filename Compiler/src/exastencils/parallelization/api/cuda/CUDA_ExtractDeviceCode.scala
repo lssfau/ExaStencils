@@ -157,8 +157,8 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
 
       // declare and init local reduction target
       if (localTarget.isDefined) {
-        val decl = IR_VariableDeclaration(localTarget.get)
-        val initLocalTarget = CUDA_Util.getReductionDatatype(reduction.get.target) match {
+        var decl = IR_VariableDeclaration(localTarget.get)
+        var initLocalTarget = CUDA_Util.getReductionDatatype(reduction.get.target) match {
           case _ : IR_ScalarDatatype   =>
             ListBuffer[IR_Statement](IR_Assignment(localTarget.get, reduction.get.target))
           case mat : IR_MatrixDatatype =>
@@ -208,14 +208,14 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         extremaMap = m.asInstanceOf[mutable.HashMap[String, (Long, Long)]]
 
       // inline contained calls to solve functions to avoid separate compilation units
-      IR_InlineMatSolveStmts.applyStandalone(kernelBody)
+      IR_InlineMatSolveStmts.applyStandalone(IR_Scope(kernelBody))
 
       // replace array accesses with accesses to function arguments, ignore reduction variable
       if (reduction.isDefined)
         CUDA_ReplaceArrayAccesses.reductionTarget = Some(reduction.get.target)
       else
         CUDA_ReplaceArrayAccesses.reductionTarget = None
-      CUDA_ReplaceArrayAccesses.applyStandalone(kernelBody)
+      CUDA_ReplaceArrayAccesses.applyStandalone(IR_Scope(kernelBody))
 
       val kernel = CUDA_Kernel(
         kernelCount,

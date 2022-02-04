@@ -63,10 +63,9 @@ object CUDA_ReplaceArrayAccesses extends QuietDefaultStrategy("Replace array acc
       var tmp : Option[IR_Expression] = None
       if (reductionTarget.isDefined)
         tmp = Some(Duplicate(reductionTarget.get))
+
       reductionTarget = None
-
-      CUDA_ReplaceNonReductionVariableAccesses.applyStandalone(IR_ExpressionStatement(assign.src))
-
+      CUDA_ReplaceNonReductionVariableAccesses.applyStandalone(assign)
       reductionTarget = tmp
 
       assign

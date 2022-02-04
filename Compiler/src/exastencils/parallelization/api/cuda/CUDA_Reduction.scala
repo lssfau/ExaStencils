@@ -122,15 +122,21 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
 
     this += new Transformation("Replace", {
       // replace directly if expr == redTarget
-      case expr : IR_Expression if expr == redTarget =>
-        Duplicate(replacement)
+      case assignment @ IR_Assignment(expr, _, _) if redTarget.equals(expr) =>
+        assignment.dest = Duplicate(replacement)
+        // assignment.op = "=" // don't modify assignments - there could be inlined loops
+        assignment
 
       // array access of reduction target
-      case IR_ArrayAccess(base : IR_VariableAccess, idx, _) if redTarget.equals(base) =>
-        replacement.datatype match {
-          case _ : IR_HigherDimensionalDatatype => IR_ArrayAccess(Duplicate(replacement), idx)
+      case assignment @ IR_Assignment(_ @ IR_ArrayAccess(base : IR_VariableAccess, idx, _), _, _) if redTarget.equals(base) =>
+        val repl = replacement.datatype match {
+          case _ : IR_HigherDimensionalDatatype =>
+            IR_ArrayAccess(replacement, idx)
           case _                                => Logger.error("Invalid type for \"replacement\" of cuda reduction targets")
         }
+        assignment.dest = repl
+        // assignment.op = "=" // don't modify assignments - there could be inlined loops
+        assignment
 
       // special functions used for certain kinds of matrix assignments
       case stmt @ IR_ExpressionStatement(IR_FunctionCall(ref @ IR_ExternalFunctionReference(name, IR_UnitDatatype), args @ ListBuffer(_, _, dest))) =>
@@ -138,6 +144,15 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
           IR_ExpressionStatement(IR_FunctionCall(ref, args.dropRight(1) :+ Duplicate(replacement))) // replace dest
         else
           stmt
+
+      // -- special cases arising from initialising localTarget = redTarget -> we do not replace here --
+      // replace rhs if lhs == replacement
+      case assignment @ IR_Assignment(lhs, _, _) if replacement.equals(lhs) =>
+        assignment
+
+      // replace rhs if lhs[idx] == replacement[idx]
+      case assignment @ IR_Assignment(_ @ IR_ArrayAccess(base : IR_VariableAccess, _, _), _, _) if replacement.equals(base) =>
+        assignment
     })
   }
 
