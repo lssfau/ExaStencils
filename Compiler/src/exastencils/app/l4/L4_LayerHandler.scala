@@ -73,6 +73,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     L4_EquationCollection
     L4_FieldCombinationCollection
 
+
     L4_PrepareAccesses.strategies += L4_PrepareMatrixAccesses
   }
 
@@ -100,7 +101,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     }
 
     //try {
-    ExaRootNode.mergeL4(L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node)))
+      ExaRootNode.mergeL4(L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node)))
     //} catch {
     //  case foo : Exception => Logger.error("first parse")
     //}
@@ -218,9 +219,9 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
         L4_DuplicateFieldLayoutsForFields.apply()
 
       // after L4_ResolveFieldAccesses
-      L4_ResolveWriteFieldFunctions.apply()
       L4_ResolveReadFieldFunctions.apply()
       L4_ResolvePrintFieldFunctions.apply()
+      L4_ResolveWriteFieldFunctions.apply()
 
       L4_ResolveBoundaryHandlingFunctions.apply()
 
