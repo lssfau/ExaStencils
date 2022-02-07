@@ -416,6 +416,9 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     if (!Settings.pathsLib.contains("$(EXODUS_HOME)/lib"))
       Settings.pathsLib += "$(EXODUS_HOME)/lib"
 
+    // check if cell field conforms grid dimensions
+    conformsGridDimensions(someCellField)
+
     if (Knowledge.parIO_vis_constantDataReduction) {
       filename match {
         case _ : IR_StringConstant => Logger.warn("Constants are reduced but filename is constant; Do not use \"printField\" in a loop with this parameter combination, otherwise the reduction will go wrong.")

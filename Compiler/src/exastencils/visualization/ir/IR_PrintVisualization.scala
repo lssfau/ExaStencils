@@ -79,6 +79,28 @@ trait IR_PrintVisualization {
       Logger.error("Parameter \"filename\" is not a string.")
   }
 
+  def conformsGridDimensions(field : IR_Field) = {
+    def numDup(dim : Int) = field.layout.layoutsPerDim(dim).numDupLayersLeft + field.layout.layoutsPerDim(dim).numDupLayersRight
+    def numInner(dim : Int) = field.layout.layoutsPerDim(dim).numInnerLayers
+    def throwError() = Logger.error(s"Field ${field.codeName} cannot be visualized since its number of inner points does not conform the number of grid points")
+
+    field.localization match {
+      case IR_AtNode       =>
+        (0 until numDimsGrid).foreach(dim => if (numInner(dim) != ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - numDup(dim)) throwError())
+      case IR_AtCellCenter =>
+        (0 until numDimsGrid).foreach(dim => if (numInner(dim) != ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - numDup(dim)) throwError())
+      case IR_AtFaceCenter(faceDim) =>
+        (0 until numDimsGrid).foreach(dim =>
+          if (dim == faceDim && numInner(dim) != ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - numDup(dim)) {
+            throwError()
+          } else if (numInner(dim) != ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - numDup(dim)) {
+            throwError()
+          })
+      case _                        =>
+        Logger.error("Unsupported localization for visualization: " + field.localization.name)
+    }
+  }
+
   /* attributes to be implemented in application.ir or field.ir */
 
   def filename : IR_Expression

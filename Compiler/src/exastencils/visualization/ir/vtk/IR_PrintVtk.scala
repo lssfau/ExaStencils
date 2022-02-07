@@ -82,6 +82,9 @@ abstract class IR_PrintVtk extends IR_PrintVisualization with IR_Statement with 
     if (!Settings.additionalIncludes.contains("fstream"))
       Settings.additionalIncludes += "fstream"
 
+    // check if cell field conforms grid dims
+    conformsGridDimensions(someCellField)
+
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     statements ++= stmtsForPreparation

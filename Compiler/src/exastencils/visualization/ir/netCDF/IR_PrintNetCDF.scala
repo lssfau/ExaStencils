@@ -45,6 +45,7 @@ case class IR_PrintNetCDF(
     Logger.error("Non-uniform && non-AA grids are unsupported.")
   if (field.localization != IR_AtNode)
     Logger.warn("NetCDF visualization expects data to be nodal: Cell- and face-centered variables are output as nodal at their corresponding discr. points.")
+  conformsGridDimensions(field) // check if cell field conforms grid dimensions
 
   override def ioInterface : String = "nc"
 

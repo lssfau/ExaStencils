@@ -37,6 +37,7 @@ abstract class IR_PrintXdmfStructured(
   if (numDimsGrid < 2) {
     Logger.error("IR_PrintXdmfStructured is only usable for 2D/3D cases.")
   }
+  conformsGridDimensions(field) // check if cell field conforms grid dimensions
 
   // append statements for preparation (i.e. gather fragment info on root) to domain function
   IR_PrintXdmfStructured.gatherFragInfoRoot(fmt)

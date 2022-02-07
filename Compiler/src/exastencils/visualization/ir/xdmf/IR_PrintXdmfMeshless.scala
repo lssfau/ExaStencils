@@ -37,6 +37,7 @@ case class IR_PrintXdmfMeshless(
   if (numDimsGrid < 2) {
     Logger.error("IR_PrintXdmfMeshless is only usable for 2D/3D cases.")
   }
+  conformsGridDimensions(field) // check if cell field conforms grid dimensions
 
   // we always have the association: vertex position <-> field data. values do not need to be output canonically
   override def canonicalFileLayout : Boolean = false

@@ -24,6 +24,9 @@ case class IR_PrintXdmfNS(
     binaryFpp : Boolean,
     var resolveId : Int) extends IR_PrintXdmf(ioMethod, binaryFpp) with IR_PrintVisualizationNS with IR_PrintFieldAsciiNS {
 
+  // check if cell field conforms grid dims
+  conformsGridDimensions(someCellField)
+
   def fieldnames : ListBuffer[String] = ListBuffer("vel", "p")
 
   // dataset names for hdf5

@@ -30,6 +30,9 @@ case class IR_PrintXdmfSWE(
     var discFieldCollection : ListBuffer[ListBuffer[IR_Field]]
 ) extends IR_PrintXdmf(ioMethod, binaryFpp) with IR_PrintVisualizationSWE with IR_PrintFieldsAsciiSWE {
 
+  // check if cell field conforms grid dims
+  conformsGridDimensions(someCellField)
+
   // dataset names for hdf5
   def datasetCoords : ListBuffer[IR_StringConstant] = ListBuffer(IR_StringConstant("/constants/X"), IR_StringConstant("/constants/Y"))
   def datasetConnectivity : IR_StringConstant = IR_StringConstant("/constants/Connectivity")
