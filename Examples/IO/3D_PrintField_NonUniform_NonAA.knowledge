@@ -15,10 +15,6 @@ experimental_grid_randomMaxOffset = 0.2
 
 experimental_generateParaviewFiles = true
 
-// four blocks (2, 2, 1), 2 frags per block in x direction
-//import '../lib/domain_eightPatches.knowledge'
-//import '../lib/parallelization_fourMPI.knowledge'
-
-// one block, four frags. serial code
-import '../lib/domain_fourFrags.knowledge'
-import '../lib/parallelization_serial.knowledge'
+// four blocks (2, 2, 1), four MPI processes
+import '../lib/domain_fourPatches.knowledge'
+import '../lib/parallelization_fourMPI.knowledge'
