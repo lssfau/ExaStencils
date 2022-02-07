@@ -93,7 +93,7 @@ trait IR_PrintVisualization {
         (0 until numDimsGrid).foreach(dim =>
           if (dim == faceDim && numInner(dim) != ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - numDup(dim)) {
             throwError()
-          } else if (numInner(dim) != ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - numDup(dim)) {
+          } else if (dim != faceDim && numInner(dim) != ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - numDup(dim)) {
             throwError()
           })
       case _                        =>
