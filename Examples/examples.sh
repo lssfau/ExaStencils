@@ -59,25 +59,11 @@ configList=""
 
 #configList+="SWE/2D_FV_SWE "
 
-# Ghoddess
-
-configList+="Ghoddess/swe_o0_rk2_l4_uniform "
-configList+="Ghoddess/swe_o0_rk2_l4_uniform_serial "
-configList+="Ghoddess/swe_o1_rk2_l5_bahamas_b4_f82 "
-
-# IO TEST: Non-Uniform
-configList+="IOTest/2D_Test_PrintField_NonUniform_NonAA "
-configList+="IOTest/2D_Test_PrintField_NonUniform_AA "
-configList+="IOTest/3D_Test_PrintField_NonUniform_NonAA "
-configList+="IOTest/3D_Test_PrintField_NonUniform_AA "
-
-# IO TEST: Uniform
-configList+="IOTest/2D_Scalar_CheckEquality_ReadAfterWrite "
-configList+="IOTest/2D_Vector_CheckEquality_ReadAfterWrite "
-configList+="IOTest/3D_Matrix_CheckEquality_ReadAfterWrite "
-configList+="IOTest/3D_Scalar_CheckEquality_ReadAfterWrite "
-configList+="IOTest/3D_Vector_CheckEquality_ReadAfterWrite "
-configList+="IOTest/CheckEquality_ReadAfterWrite "
+# IO: Non-Uniform field visualization
+configList+="IO/2D_PrintField_NonUniform_NonAA "
+configList+="IO/2D_PrintField_NonUniform_AA "
+configList+="IO/3D_PrintField_NonUniform_NonAA "
+configList+="IO/3D_PrintField_NonUniform_AA "
 
 # NavierStokes
 
