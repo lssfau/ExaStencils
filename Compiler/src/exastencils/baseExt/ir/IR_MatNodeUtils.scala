@@ -6,6 +6,8 @@ import exastencils.base.ir.IR_Access
 import exastencils.base.ir.IR_Addition
 import exastencils.base.ir.IR_ArrayAccess
 import exastencils.base.ir.IR_Assignment
+import exastencils.base.ir.IR_ComplexDatatype
+import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_Division
 import exastencils.base.ir.IR_DoubleConstant
 import exastencils.base.ir.IR_DoubleDatatype
@@ -265,6 +267,15 @@ object IR_MatNodeUtils {
       case n : IR_Number           => IR_MatrixExpression(IR_MatrixDatatype(n.datatype, 1, 1), ListBuffer[IR_Expression](n))
       case x : IR_MatrixExpression => x
       case _                       => Logger.error(s"unexpected type: ${ src }")
+    }
+  }
+
+  def innerDt(datatype : IR_Datatype) : IR_Datatype = {
+    datatype match {
+      case IR_MatrixDatatype(complex : IR_ComplexDatatype, m, n) =>
+        complex
+      case dt =>
+        dt.resolveBaseDatatype
     }
   }
 
