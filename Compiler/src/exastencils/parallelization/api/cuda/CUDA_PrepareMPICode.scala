@@ -31,6 +31,7 @@ import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
+import exastencils.timing.ir.IR_TimerFunctions
 import exastencils.util.ir.IR_FctNameCollector
 
 /// CUDA_PrepareMPICode
@@ -257,10 +258,14 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
   this += new Transformation("Process MPI statements", {
     case mpiStmt : MPI_Statement =>
-      val skip = mpiStmt match {
+      var skip = mpiStmt match {
         case MPI_Init | MPI_Finalize | MPI_Barrier => true
         case _                                     => false
       }
+
+      // skip timer functions
+      if (IR_TimerFunctions.functions.contains(collector.getCurrentName))
+        skip = true
 
       if (skip) {
         mpiStmt

@@ -24,6 +24,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.core._
 import exastencils.globals.ir.IR_GlobalCollection
+import exastencils.timing.l4.L4_TimerFunctions
 
 /// IR_TimerFunction
 
@@ -51,6 +52,8 @@ object IR_TimerFunctions extends ObjectWithState {
       selfRef = StateManager.findFirst[IR_GlobalCollection]()
     selfRef.get
   }
+
+  val functions = L4_TimerFunctions.functions
 }
 
 case class IR_TimerFunctions() extends IR_FunctionCollection(IR_TimerFunctions.defBaseName,
