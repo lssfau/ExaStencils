@@ -13,9 +13,13 @@ The source is available here: https://hackmd.io/_HIHDpfEQ5-JQKSCucw2Sg?both
 
 # ![ExaStencils](Documentation/logos/ExaStencilsLogo.png)
 
-The [ExaStencils](https://www.exastencils.fau.de/) code generation framework processes input in its own multi-layered domain-specific language (DSL) to emit highly optimized and massively parallel geometric multigrid solvers for (block-)structured grids.
+The ExaStencils code generation framework processes input in its own multi-layered domain-specific language (DSL) to emit highly optimized and massively parallel geometric multigrid solvers for (block-)structured grids.
 
-This repository holds the current release version of ExaStencils.
+This repository holds the current version of ExaStencils.
+
+Project information and documentation are available via the official homepage: https://www.exastencils.fau.de/. 
+
+The source code is accessible from GitLab (https://i10git.cs.fau.de/exastencils/release/) and GitHub (https://github.com/lssfau/ExaStencils/).
 
 ## Setup
 
@@ -104,6 +108,103 @@ For CImg support, the corresponding CImg.h header file needs to be downloaded su
     * Name: downloadCImg; Tasks: downloadCImg; Run
 * for all users: directly download the required file from [here](https://github.com/dtschump/CImg) and place it in Compiler/res/
 Updating the file works the same way.
+  
+### VisIt support
+
+In order to make use of VisIt's in-situ visualization capabilities, it is recommended to build VisIt from scratch. The sources can be downloaded from [GitHub](https://github.com/visit-dav/visit/releases/)
+
+1. Download the VisIt build script (version 3.1.4)
+
+```
+wget https://github.com/visit-dav/visit/releases/download/v3.1.4/build_visit3_1_4
+chmod +x build_visit3_1_4
+```
+
+2. Build 3rd party libraries
+
+> The available libraries and options for building VisIt can be displayed via `./build_visit3_1_4 --help`. \
+> You can print the relevant environment variables via `./build_visit3_1_4 --print-vars`. \
+> At first, we only build the missing 3rd party packages. You can find one of the faster (and parallel) builds below. \
+> Still, this can still take ~4 hours. \
+> The building process can be completed faster via the `--makeflags -j4` option. \
+> Note that VisIt is not built yet (`--no-visit` option). \
+> Remember to replace `<INSTALL_DIR_PATH>` with, e.g., `/usr/local/visit`.
+
+```
+env PAR_COMPILER=mpicc ./build_visit3_1_4 --no-visit --mesagl --openssl --zlib --parallel --no-thirdparty --cmake --vtk --qt --qwt --python --silo --hdf5 --szip --llvm --prefix <INSTALL_DIR_PATH>
+```
+
+During this process, you might need to install one of the following dependencies:
+
+```
+sudo apt install mesa-common-dev
+sudo apt-get install libxext-dev
+sudo apt-get install libdrm-dev libxxf86vm-dev libxt-dev xutils-dev flex bison xcb libx11-xcb-dev libxcb-glx0 libxcb-glx0-dev xorg-dev libxcb-dri2-0-dev libxcb-xfixes0-dev
+```
+
+After that, the third-party cmake settings can be found in `./<hostname>.cmake`
+
+3. Download VisIt
+
+```
+wget https://github.com/visit-dav/visit/releases/download/v3.1.4/visit3.1.4.tar.gz
+tar -xzf visit3.1.4.tar.gz
+```
+
+4. Configure VisIt
+
+```
+cp <hostname>.cmake visit3.1.4/src/config-site/
+cd visit3.1.4/src
+../../cmake-3.9.3/bin/ccmake .
+```
+
+> then press 'c' to configure\
+> check `VISIT_PARALLEL=ON`\
+> press 'c' until 'g' is available\
+> press 'g' to generate Makefile
+
+5. Build and install VisIt
+
+Finally, we can compile, package and install VisIt
+
+```
+# build
+make -j 8
+
+# package and install (needs sudo privileges)
+# e.g. ARCH = linux-x86_64
+make package
+wget https://github.com/visit-dav/visit/releases/download/v3.1.4/visit-install3_1_4
+chmod +x visit-install3_1_4
+visit-install3_1_4 3.1.4 <ARCH> <INSTALL_DIR_PATH>
+```
+
+6. Set environment variables
+
+```
+export VISIT_HOME='<INSTALL_DIR_PATH>'
+export PATH=$VISIT_HOME/bin:$VISIT_HOME/current/bin:$PATH
+export SIMV2DIR=$VISIT_HOME/current/linux-x86_64/libsim/V2
+export LD_LIBRARY_PATH=$SIMV2DIR/lib:$VISIT_HOME/current/linux-x86_64/lib/mesagl:$VISIT_HOME/current/linux-x86_64/lib:"${LD_LIBRARY_PATH}"
+```
+
+7. Run VisIt
+
+```
+# serial
+visit
+# parallel
+visit -np <num processors>
+```
+
+For more input options, call `visit --help` or `visit -fullhelp`
+
+
+More details for building or installing VisIt can be found here:
+* https://trac.version.fz-juelich.de/vis/wiki/VisIt/build_x86
+* https://www.visitusers.org/index.php?title=Build_visit_overview
+* http://www.visitusers.org/index.php?title=ParallelPorting#Compiling_VisIt_to_run_in_parallel
 
 ### Parallel I/O Libraries
 
