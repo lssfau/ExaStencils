@@ -13,9 +13,13 @@ The source is available here: https://hackmd.io/_HIHDpfEQ5-JQKSCucw2Sg?both
 
 # ![ExaStencils](Documentation/logos/ExaStencilsLogo.png)
 
-The [ExaStencils](https://www.exastencils.fau.de/) code generation framework processes input in its own multi-layered domain-specific language (DSL) to emit highly optimized and massively parallel geometric multigrid solvers for (block-)structured grids.
+The ExaStencils code generation framework processes input in its own multi-layered domain-specific language (DSL) to emit highly optimized and massively parallel geometric multigrid solvers for (block-)structured grids.
 
-This repository holds the current release version of ExaStencils.
+This repository holds the current version of ExaStencils.
+
+Project information and documentation are available via the official homepage: https://www.exastencils.fau.de/. 
+
+The source code is accessible from GitLab (https://i10git.cs.fau.de/exastencils/release/) and GitHub (https://github.com/lssfau/ExaStencils/).
 
 ## Setup
 
