@@ -31,8 +31,6 @@ object CUDA_AddGlobals extends NoTraversalStrategy("Extend globals for CUDA") {
   override def doWork() : Unit = {
     val globals = IR_GlobalCollection.get
 
-    if (!Knowledge.experimental_eliminateCudaContext)
-      globals.variables += IR_VariableDeclaration("CUcontext", "cudaContext")
     globals.variables += IR_VariableDeclaration("CUdevice", "cudaDevice")
 
     val initFunc = globals.functions.find(_.name == "initGlobals").get.asInstanceOf[IR_Function]
@@ -52,10 +50,6 @@ object CUDA_AddGlobals extends NoTraversalStrategy("Extend globals for CUDA") {
         s"cudaGetDeviceProperties(&devProp, ${ Knowledge.cuda_deviceId })",
         IR_RawPrint("\"Using CUDA device \"", Knowledge.cuda_deviceId, "\": \"", "devProp.name", "std::endl"))
     }
-
-    // create context
-    if (!Knowledge.experimental_eliminateCudaContext)
-      initFunc.body += "cuCtxCreate(&cudaContext, 0, cudaDevice)"
 
     // set L1 cache and shared memory configuration for this device
     if (Knowledge.cuda_useSharedMemory)
