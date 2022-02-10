@@ -45,10 +45,18 @@ case class CUDA_Allocate(var pointer : IR_Expression, var numElements : IR_Expre
 
 case class CUDA_AllocateHost(var pointer : IR_Expression, var numElements : IR_Expression, var datatype : IR_Datatype) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
-    CUDA_CheckError(
-      IR_FunctionCall(IR_ExternalFunctionReference("cudaMallocHost"),
-        IR_Cast(IR_PointerDatatype(IR_PointerDatatype(IR_UnitDatatype)), IR_AddressOf(pointer)),
-        numElements * IR_SizeOf(datatype)))
+    if (Knowledge.cuda_useZeroCopy) {
+      CUDA_CheckError(
+        IR_FunctionCall(IR_ExternalFunctionReference("cudaHostAlloc"),
+          IR_Cast(IR_PointerDatatype(IR_PointerDatatype(IR_UnitDatatype)), IR_AddressOf(pointer)),
+          numElements * IR_SizeOf(datatype),
+          "cudaHostAllocMapped"))
+    } else {
+      CUDA_CheckError(
+        IR_FunctionCall(IR_ExternalFunctionReference("cudaMallocHost"),
+          IR_Cast(IR_PointerDatatype(IR_PointerDatatype(IR_UnitDatatype)), IR_AddressOf(pointer)),
+          numElements * IR_SizeOf(datatype)))
+    }
   }
 }
 
