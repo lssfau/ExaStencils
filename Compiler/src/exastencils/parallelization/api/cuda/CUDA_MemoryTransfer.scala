@@ -34,7 +34,7 @@ object CUDA_TransferUtil {
   def genTransfer(hostData : IR_InternalVariable, deviceData : IR_InternalVariable, sizeInBytes : IR_Expression, direction : String) : CUDA_HostStatement = {
     if (Knowledge.cuda_useManagedMemory) {
       CUDA_MemPrefetch(hostData, sizeInBytes, direction match {
-        case "H2D" => "0" // TODO: multiple devices
+        case "H2D" => Knowledge.cuda_deviceId
         case "D2H" => "cudaCpuDeviceId"
       })
     } else {
