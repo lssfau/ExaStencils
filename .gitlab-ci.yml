@@ -21,6 +21,7 @@ stages:
         when: on_failure
         paths:
             - Testing/output/Debug/*
+            - Testing/output/generated/*
         expire_in: 1 weeks
     before_script:
         - java -version
@@ -68,6 +69,7 @@ stages:
         when: on_failure
         paths:
             - Benchmark/output/Debug/*
+            - Benchmark/output/generated/*
         expire_in: 1 weeks
     before_script:
         - java -version
