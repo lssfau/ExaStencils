@@ -794,37 +794,28 @@ test:FMG:
 # CSE TESTS                                   #
 ###############################################
 
-# only conventional CSE
-test:Conv_CSE_SISC_2D_VarCoeff:
+test:ConventionalCSE:
     extends: .test_template
     script:
+        # Conv_CSE_SISC_2D_VarCoeff
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Conv_CSE_SISC_2D_VarCoeff CSE/2D_VarCoeff_conv.knowledge "SISC/2D_VarCoeff.exa4" SISC/2D_VarCoeff.results 4 4 Platform/random.platform output
-
-test:Conv_CSE_SISC_3D_VarCoeff:
-    extends: .test_template
-    script:
+        # 3D_VarCoeff_conv
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Conv_CSE_SISC_3D_VarCoeff CSE/3D_VarCoeff_conv.knowledge "SISC/3D_VarCoeff.exa4" SISC/3D_VarCoeff.results 8 4 Platform/random.platform output
 
-# only loop carried CSE
-test:LC_CSE_SISC_2D_VarCoeff:
+test:LoopCarriedCSE:
     extends: .test_template
     script:
+        # LC_CSE_SISC_2D_VarCoeff
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib LC_CSE_SISC_2D_VarCoeff CSE/2D_VarCoeff_lc.knowledge "SISC/2D_VarCoeff.exa4" SISC/2D_VarCoeff.results 4 4 Platform/random.platform output
-
-test:LC_CSE_SISC_3D_VarCoeff:
-    extends: .test_template
-    script:
+        # LC_CSE_SISC_3D_VarCoeff
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib LC_CSE_SISC_3D_VarCoeff CSE/3D_VarCoeff_lc.knowledge "SISC/3D_VarCoeff.exa4" SISC/3D_VarCoeff.results 8 4 Platform/random.platform output
 
-# both conventional and loop carried CSE (Both_CSE_SISC_2D_VarCoehas slightly different rf has slightly different results than the original code)
-test:Both_CSE_SISC_2D_VarCoeff:
+test:BothCSE:
     extends: .test_template
     script:
+        # Both_CSE_SISC_2D_VarCoeff
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Both_CSE_SISC_2D_VarCoeff CSE/2D_VarCoeff_both.knowledge "SISC/2D_VarCoeff.exa4" CSE/2D_VarCoeff.results 4 4 Platform/random.platform output
-
-test:Both_CSE_SISC_3D_VarCoeff:
-    extends: .test_template
-    script:
+        # Both_CSE_SISC_3D_VarCoeff
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Both_CSE_SISC_3D_VarCoeff CSE/3D_VarCoeff_both.knowledge "SISC/3D_VarCoeff.exa4" SISC/3D_VarCoeff.results 8 4 Platform/random.platform output
 
 ###############################################
