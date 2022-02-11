@@ -822,21 +822,13 @@ test:BothCSE:
 # LAYOUT TRANSFORMATION TESTS                 #
 ###############################################
 
-# borrowed from OPTIMIZATION TESTS, shares results! (may be changed, when generated exa4 code changes)
-test:Layout_Seq_Test_naive:
+test:LayoutTrafos:
     extends: .test_template_AVX
     script:
+        # borrowed from OPTIMIZATION TESTS, shares results! (may be changed, when generated exa4 code changes)
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Layout_Seq_Test_naive LayoutTrafo/seq_naive.knowledge "LayoutTrafo/opts.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
-
-test:Layout_Par_Test_all:
-    extends: .test_template_AVX
-    script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Layout_Par_Test_all LayoutTrafo/par_all.knowledge "LayoutTrafo/opts.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
-
-# borrowed from SMOOTHER TESTS, shares results! (may be changed, when generated exa4 code changes)
-test:Layout_Smoothers_RBGS:
-    extends: .test_template
-    script:
+        # borrowed from SMOOTHER TESTS, shares results! (may be changed, when generated exa4 code changes)
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Layout_Smoothers_RBGS LayoutTrafo/RBGS.knowledge "LayoutTrafo/rbgs.exa4" Smoothers/RBGS.results 27 2 Platform/random.platform output
 
 ###############################################
