@@ -721,26 +721,20 @@ test:BCs_Special:
 # CELL BASED DISCR TESTS                      #
 ###############################################
 
-# 2D
-test:Cell_2D_Basic:
+test:CellBased_2D:
     extends: .test_template
     script:
+        # Cell_2D_Basic
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Cell_2D_Basic CellBased/2D_Basic.knowledge "CellBased/2D_Basic.exa4" CellBased/2D_Basic.results 4 2 Platform/random.platform output
-
-test:Cell_2D_Neumann:
-    extends: .test_template
-    script:
+        # Cell_2D_Neumann
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Cell_2D_Neumann CellBased/2D_Neumann.knowledge "CellBased/2D_Neumann.exa4" CellBased/2D_Neumann.results 4 2 Platform/random.platform output
 
-# 3D
-test:Cell_3D_Basic:
+test:CellBased_3D:
     extends: .test_template
     script:
+        # Cell_3D_Basic
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Cell_3D_Basic CellBased/3D_Basic.knowledge "CellBased/3D_Basic.exa4" CellBased/3D_Basic.results 8 2 Platform/random.platform output
-
-test:Cell_3D_Neumann:
-    extends: .test_template
-    script:
+        # Cell_3D_Neumann
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Cell_3D_Neumann CellBased/3D_Neumann.knowledge "CellBased/3D_Neumann.exa4" CellBased/3D_Neumann.results 8 2 Platform/random.platform output
 
 ###############################################
