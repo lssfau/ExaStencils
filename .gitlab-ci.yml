@@ -287,234 +287,166 @@ test:Communication:
 ### sequential version
 ## single precision
 
-test:Seq_TestF_naive:
+test:Optimization_Seq_SinglePrec_Naive:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_naive Opts/seq__float_naive.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/random.platform output
 
 # SSE3
-test:Seq_TestF_vectS:
+test:Optimization_Seq_SinglePrec_SSE3:
     extends: .test_template
     script:
+        # Seq_TestF_vectS
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vectS Opts/seq__float_vect.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/random.platform output
-
-test:Seq_TestF_vectSAl:
-    extends: .test_template
-    script:
+        # Seq_TestF_vectSAl
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vectSAl Opts/seq__float_vectAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/random.platform output
-
-test:Seq_TestF_vectSAlAl:
-    extends: .test_template
-    script:
+        # Seq_TestF_vectSAlAl
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vectSAlAl Opts/seq__float_vectAlAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/random.platform output
 
 # AVX
-test:Seq_TestF_vect:
+test:Optimization_Seq_SinglePrec_AVX:
     extends: .test_template_AVX
     script:
+        # Seq_TestF_vect
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vect Opts/seq__float_vect.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx.platform output
-
-test:Seq_TestF_vectAl:
-    extends: .test_template_AVX
-    script:
+        # Seq_TestF_vectAl
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vectAl Opts/seq__float_vectAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx.platform output
-
-test:Seq_TestF_vectAlAl:
-    extends: .test_template_AVX
-    script:
+        # Seq_TestF_vectAlAl
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vectAlAl Opts/seq__float_vectAlAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx.platform output
 
 # AVX2
-test:Seq_TestF_vect2:
+test:Optimization_Seq_SinglePrec_AVX2:
     extends: .test_template_AVX2
     script:
+        # Seq_TestF_vect2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vect2 Opts/seq__float_vect.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx2.platform output
-
-test:Seq_TestF_vect2Al:
-    extends: .test_template_AVX2
-    script:
+        # Seq_TestF_vect2Al
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vect2Al Opts/seq__float_vectAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx2.platform output
-
-test:Seq_TestF_vect2AlAl:
-    extends: .test_template_AVX2
-    script:
+        # Seq_TestF_vect2AlAl
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_TestF_vect2AlAl Opts/seq__float_vectAlAl.knowledge "Opts/base_flt.exa4" Opts/seq__float.results 1 1 Platform/anyavx2.platform output
 
 ## double precision
 
-test:Seq_Test_naive:
+test:Optimization_Seq_DoublePrec_Naive:
     extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_naive Opts/seq_naive.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
-test:Seq_Test_addrPre:
-    extends: .test_template_AVX
-    script:
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_addrPre Opts/seq_addrPre.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
-
-test:Seq_Test_poly:
+test:Optimization_Seq_DoublePrec_Opti:
     extends: .test_template_AVX
     tags:
         - docker
         - AVX
         - i10swarm13
     script:
+        # Seq_Test_addrPre
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_addrPre Opts/seq_addrPre.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
+        # Seq_Test_poly
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_poly Opts/seq_poly.knowledge "Opts/tempBlock.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
-
-test:Seq_Test_unroll:
-    extends: .test_template_AVX
-    script:
+        # Seq_Test_unroll
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_unroll Opts/seq_unroll.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
-
-test:Seq_Test_unrolli:
-    extends: .test_template_AVX
-    script:
+        # Seq_Test_unrolli
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_unrolli Opts/seq_unrolli.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 ## SSE3
 
-test:Seq_Test_vectS:
+test:Optimization_Seq_DoublePrec_SSE3:
     extends: .test_template
     script:
+        # Seq_Test_vectS
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vectS Opts/seq_vect.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/random.platform output
-
-test:Seq_Test_vectSAl:
-    extends: .test_template
-    script:
+        # Seq_Test_vectSAl
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vectSAl Opts/seq_vectAl.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/random.platform output
-
-test:Seq_Test_vectSAlAl:
-    extends: .test_template
-    script:
+        # Seq_Test_vectSAlAl
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vectSAlAl Opts/seq_vectAlAl.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/random.platform output
-
-test:Seq_Test_allS:
-    extends: .test_template
-    script:
+        # Seq_Test_allS
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_allS Opts/seq_all.knowledge "Opts/tempBlock.exa4" Opts/seq.results 1 1 Platform/random.platform output
 
 # AVX
 
-test:Seq_Test_vect:
+test:Optimization_Seq_DoublePrec_AVX:
     extends: .test_template_AVX
     script:
+        # Seq_Test_vect
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vect Opts/seq_vect.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
-
-test:Seq_Test_vectAl:
-    extends: .test_template_AVX
-    script:
+        # Seq_Test_vectAl
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vectAl Opts/seq_vectAl.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
-
-test:Seq_Test_vectAlAl:
-    extends: .test_template_AVX
-    script:
+        # Seq_Test_vectAlAl
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vectAlAl Opts/seq_vectAlAl.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
-
-test:Seq_Test_all:
-    extends: .test_template_AVX
-    script:
+        # Seq_Test_all
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_all Opts/seq_all.knowledge "Opts/tempBlock.exa4" Opts/seq.results 1 1 Platform/anyavx.platform output
 
 # AVX2
 
-test:Seq_Test_vect2:
+test:Optimization_Seq_DoublePrec_AVX2:
     extends: .test_template_AVX2
     script:
+        # Seq_Test_vect2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vect2 Opts/seq_vect.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx2.platform output
-
-test:Seq_Test_vect2Al:
-    extends: .test_template_AVX2
-    script:
+        # Seq_Test_vect2Al
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vect2Al Opts/seq_vectAl.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx2.platform output
-
-test:Seq_Test_vect2AlAl:
-    extends: .test_template_AVX2
-    script:
+        # Seq_Test_vect2AlAl
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_vect2AlAl Opts/seq_vectAlAl.knowledge "Opts/base.exa4" Opts/seq.results 1 1 Platform/anyavx2.platform output
-
-test:Seq_Test_all2:
-    extends: .test_template_AVX2
-    script:
+        # Seq_Test_all2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Seq_Test_all2 Opts/seq_all.knowledge "Opts/tempBlock.exa4" Opts/seq.results 1 1 Platform/anyavx2.platform output
 
 ### parallel version (2*2*2 MPI ranks each with 8 OMP threads)
 ## single precision
 
-test:Par_TestF_naive:
+test:Optimization_Par_SinglePrec_Naive:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_TestF_naive Opts/par__float_naive.knowledge "Opts/base_par_flt.exa4" Opts/par__float.results 8 4 Platform/random.platform output
 
 # SSE3
-test:Par_TestF_vectS:
+test:Optimization_Par_SinglePrec_SSE3:
     extends: .test_template
     script:
+        # Par_TestF_vectS
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_TestF_vectS Opts/par__float_vect.knowledge "Opts/base_par_flt.exa4" Opts/par__float.results 8 4 Platform/random.platform output
-
-test:Par_TestF_vectSAl:
-    extends: .test_template
-    script:
+        # Par_TestF_vectSAl
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_TestF_vectSAl Opts/par__float_vectAl.knowledge "Opts/base_par_flt.exa4" Opts/par__float.results 8 4 Platform/random.platform output
-
-test:Par_TestF_vectSAlAl:
-    extends: .test_template
-    script:
+        # Par_TestF_vectSAlAl
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_TestF_vectSAlAl Opts/par__float_vectAlAl.knowledge "Opts/base_par_flt.exa4" Opts/par__float.results 8 4 Platform/random.platform output
 
 ## double precision
 
-test:Par_Test_naive:
+test:Optimization_Par_DoublePrec_Naive:
     extends: .test_template_AVX
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_naive Opts/par_naive.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
 
-test:Par_Test_addrPre:
-    extends: .test_template_AVX
-    script:
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_addrPre Opts/par_addrPre.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
-
-test:Par_Test_poly:
+test:Optimization_Par_DoublePrec_Opti:
     extends: .test_template_AVX
     tags:
         - docker
         - AVX
         - i10swarm13
     script:
+        # Par_Test_addrPre
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_addrPre Opts/par_addrPre.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
+        # Par_Test_poly
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_poly Opts/par_poly.knowledge "Opts/tempBlock_par.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
-
-test:Par_Test_unroll:
-    extends: .test_template_AVX
-    script:
+        # Par_Test_unroll
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_unroll Opts/par_unroll.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
-
-test:Par_Test_unrolli:
-    extends: .test_template_AVX
-    script:
+        # Par_Test_unrolli
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_unrolli Opts/par_unrolli.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/anyavx.platform output
 
 # SSE3
 
-test:Par_Test_vectS:
-    extends: .test_template
-    script:
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_vectS Opts/par_vect.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/random.platform output
-
-test:Par_Test_vectSAl:
-    extends: .test_template
-    script:
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_vectSAl Opts/par_vectAl.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/random.platform output
-
-test:Par_Test_vectSAlAl:
-    extends: .test_template
-    script:
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_vectSAlAl Opts/par_vectAlAl.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/random.platform output
-
-test:Par_Test_allS:
+test:Optimization_Par_DoublePrec_SSE3:
     extends: .test_template
     tags:
         - docker
         - i10swarm13
     script:
+        # Par_Test_vectS
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_vectS Opts/par_vect.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/random.platform output
+        # Par_Test_vectSAl
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_vectSAl Opts/par_vectAl.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/random.platform output
+        # Par_Test_vectSAlAl
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_vectSAlAl Opts/par_vectAlAl.knowledge "Opts/base_par.exa4" Opts/par.results 8 4 Platform/random.platform output
+        # Par_Test_allS
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Par_Test_allS Opts/par_all.knowledge "Opts/tempBlock_par.exa4" Opts/par.results 8 4 Platform/random.platform output
 
 ###############################################
