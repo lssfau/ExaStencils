@@ -687,46 +687,34 @@ test:Smoothers:
 ###############################################
 
 # 2D
-test:BC_2D_Polynomial:
+test:BCs_2D:
     extends: .test_template
     script:
+        # BC_2D_Polynomial
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_2D_Polynomial BC/2D_Polynomial.knowledge "BC/2D_Polynomial.exa4" BC/2D_Polynomial.results 4 2 Platform/random.platform output
-
-test:BC_2D_Trigonometric:
-    extends: .test_template
-    script:
+        # BC_2D_Trigonometric
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_2D_Trigonometric BC/2D_Trigonometric.knowledge "BC/2D_Trigonometric.exa4" BC/2D_Trigonometric.results 4 2 Platform/random.platform output
-
-test:BC_2D_Periodic:
-    extends: .test_template
-    script:
+        # BC_2D_Periodic
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_2D_Periodic BC/2D_Periodic.knowledge "BC/2D_Periodic.exa4" BC/2D_Periodic.results 4 2 Platform/random.platform output
 
 # 3D
-test:BC_3D_Polynomial:
+test:BCs_3D:
     extends: .test_template
     script:
+        # BC_3D_Polynomial
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_3D_Polynomial BC/3D_Polynomial.knowledge "BC/3D_Polynomial.exa4" BC/3D_Polynomial.results 8 2 Platform/random.platform output
-
-test:BC_3D_Trigonometric:
-    extends: .test_template
-    script:
+        # BC_3D_Trigonometric
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_3D_Trigonometric BC/3D_Trigonometric.knowledge "BC/3D_Trigonometric.exa4" BC/3D_Trigonometric.results 8 2 Platform/random.platform output
-
-test:BC_3D_Periodic:
-    extends: .test_template
-    script:
+        # BC_3D_Periodic
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_3D_Periodic BC/3D_Periodic.knowledge "BC/3D_Periodic.exa4" BC/3D_Periodic.results 8 2 Platform/random.platform output
 
-# matrix fields
-test:BC_Matrix:
+# special cases
+test:BCs_Special:
     extends: .test_template
     script:
+        # BC_Matrix
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_Matrix BC/Matrix/BC_Matrix.knowledge "BC/Matrix/BC_Matrix.exa4" BC/Matrix/BC_Matrix.results 1 1 Platform/random.platform output
-
-test:BC_COMPLEX_NUMBERS:
-    extends: .test_template
-    script:
+        # BC_COMPLEX_NUMBERS
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib BC_COMPLEX_NUMBERS BC/ComplexNumbers.knowledge "BC/ComplexNumbers.exa4" BC/ComplexNumbers.results 1 1 Platform/random.platform output
 
 ###############################################
