@@ -610,97 +610,59 @@ test:Par_Test_allS:
 ###############################################
 
 # Jacobi 2D constant coefficient 9-pt
-test:PolyExpl_Jac2Dccd_f0:
+test:PolyExpl_Jacobi_ConstCoeff_9pt_2D:
     extends: .test_template_AVX
     script:
+        # PolyExpl_Jac2Dccd_f0
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac2Dccd_f0 PolyExpl/2D_f0.knowledge "PolyExpl/Jac2Dccd.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
-
-test:PolyExpl_Jac2Dccd_f2:
-    extends: .test_template_AVX
-    script:
+        # PolyExpl_Jac2Dccd_f2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac2Dccd_f2 PolyExpl/2D_f2.knowledge "PolyExpl/Jac2Dccd.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
-
-test:PolyExpl_Jac2Dccd_f4:
-    extends: .test_template_AVX
-    script:
+        # PolyExpl_Jac2Dccd_f4
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac2Dccd_f4 PolyExpl/2D_f4.knowledge "PolyExpl/Jac2Dccd.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
-
-test:PolyExpl_Jac2Dccd_f6:
-    extends: .test_template_AVX
-    script:
+        # PolyExpl_Jac2Dccd_f6
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac2Dccd_f6 PolyExpl/2D_f6.knowledge "PolyExpl/Jac2Dccd.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 # Jacobi 3D constant coefficient 7-pt
-test:PolyExpl_Jac3Dcc_f0:
+test:PolyExpl_Jacobi_ConstCoeff_7pt_3D:
     extends: .test_template_AVX
     script:
+        # PolyExpl_Jac3Dcc_f0
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac3Dcc_f0 PolyExpl/3D_f0.knowledge "PolyExpl/Jac3Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
-
-test:PolyExpl_Jac3Dcc_f1:
-    extends: .test_template_AVX
-    script:
+        # PolyExpl_Jac3Dcc_f1
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac3Dcc_f1 PolyExpl/3D_f1.knowledge "PolyExpl/Jac3Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
-
-test:PolyExpl_Jac3Dcc_f3:
-    extends: .test_template_AVX
-    script:
+        # PolyExpl_Jac3Dcc_f3
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac3Dcc_f3 PolyExpl/3D_f3.knowledge "PolyExpl/Jac3Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
-
-test:PolyExpl_Jac3Dcc_f5:
-    extends: .test_template_AVX
-    script:
+        # PolyExpl_Jac3Dcc_f5
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac3Dcc_f5 PolyExpl/3D_f5.knowledge "PolyExpl/Jac3Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
-
-test:PolyExpl_Jac3Dcc_f6:
-    extends: .test_template_AVX
-    script:
+        # PolyExpl_Jac3Dcc_f6
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_Jac3Dcc_f6 PolyExpl/3D_f6.knowledge "PolyExpl/Jac3Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 # RBGS 2D constant coefficient 5-pt
-test:PolyExpl_RBGS2Dcc_f0:
+test:PolyExpl_RBGS_ConstCoeff_5pt_2D:
     extends: .test_template_AVX
     script:
+        # PolyExpl_RBGS2Dcc_f0
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f0 PolyExpl/2D_f0.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
-
-test:PolyExpl_RBGS2Dcc_f1:
-    extends: .test_template_AVX
-    script:
+        # PolyExpl_RBGS2Dcc_f1
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f1 PolyExpl/2D_f1.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
-
-test:PolyExpl_RBGS2Dcc_f3:
-    extends: .test_template_AVX
-    script:
+        # PolyExpl_RBGS2Dcc_f3
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f3 PolyExpl/2D_f3.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
-
-test:PolyExpl_RBGS2Dcc_f5:
-    extends: .test_template_AVX
-    script:
+        # PolyExpl_RBGS2Dcc_f5
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f5 PolyExpl/2D_f5.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
-
-test:PolyExpl_RBGS2Dcc_f6:
-    extends: .test_template_AVX
-    script:
+        # PolyExpl_RBGS2Dcc_f6
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS2Dcc_f6 PolyExpl/2D_f6.knowledge "PolyExpl/RBGS2Dcc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 # RBGS 3D variable coefficient 7-pt
-test:PolyExpl_RBGS3Dvc_f0:
+test:PolyExpl_RBGS_VarCoeff_7pt_3D:
     extends: .test_template_AVX
     script:
+        # PolyExpl_RBGS3Dvc_f0
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS3Dvc_f0 PolyExpl/3D_f0.knowledge "PolyExpl/RBGS3Dvc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
-
-test:PolyExpl_RBGS3Dvc_f2:
-    extends: .test_template_AVX
-    script:
+        # PolyExpl_RBGS3Dvc_f2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS3Dvc_f2 PolyExpl/3D_f2.knowledge "PolyExpl/RBGS3Dvc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
-
-test:PolyExpl_RBGS3Dvc_f4:
-    extends: .test_template_AVX
-    script:
+        # PolyExpl_RBGS3Dvc_f4
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS3Dvc_f4 PolyExpl/3D_f4.knowledge "PolyExpl/RBGS3Dvc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
-
-test:PolyExpl_RBGS3Dvc_f6:
-    extends: .test_template_AVX
-    script:
+        # PolyExpl_RBGS3Dvc_f6
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib PolyExpl_RBGS3Dvc_f6 PolyExpl/3D_f6.knowledge "PolyExpl/RBGS3Dvc.exa4" PolyExpl/all.results 1 4 Platform/anyavx.platform output
 
 ###############################################
