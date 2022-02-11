@@ -1090,7 +1090,7 @@ example:StokesExamples_3D:
 # SWE EXAMPLES                                #
 ###############################################
 
-example:2D_FV_SWE:
+example:ShallowWaterExamples_2D:
     stage: example
     extends: .test_template
     script:
