@@ -760,25 +760,17 @@ test:SISC_2D_ConstCoeff:
 ###############################################
 
 # execute Inlining only on chimaira, maybe this leads to more stable results
-test:Inlining:
+test:MISC:
     extends: .test_template
     script:
+        # Inlining
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Inlining Misc/inlining.knowledge "Misc/inlining.exa4" Misc/inlining.results 8 4 Platform/random.platform output
-
-test:MathFunctionEvaluation:
-    extends: .test_template
-    script:
+        # MathFunctionEvaluation
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib MathFunctionEvaluation Misc/MathFunctionEvaluation.knowledge "Misc/MathFunctionEvaluation.exa4" Misc/MathFunctionEvaluation.results 1 1 Platform/random.platform output
-
-test:Reduction:
-    extends: .test_template
-    script:
+        # Reduction
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Reduction Misc/reduction.knowledge "Misc/reduction.exa4" Misc/reduction.results 2 2 Platform/random.platform output
-
-test:Reduction_OldOpenMP:
-    extends: .test_template
-    script:
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Reduction Misc/reduction.knowledge "Misc/reduction.exa4" Misc/reduction.results 2 2 Platform/gcc4.2_omp2.5.platform output
+        # ReductionOldOpenMP
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib ReductionOldOpenMP Misc/reduction.knowledge "Misc/reduction.exa4" Misc/reduction.results 2 2 Platform/gcc4.2_omp2.5.platform output
 
 ###############################################
 # FMG TESTS                                   #
