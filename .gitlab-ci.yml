@@ -255,51 +255,26 @@ test:Appl_OptFlow3D:
 # BASIC COMMUNICATION TESTS                   #
 ###############################################
 
-test:CommBasic_PureMPI:
+test:Communication:
     extends: .test_template
     script:
+        # CommBasic_PureMPI
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_PureMPI CommBasic/PureMPI.knowledge "CommBasic/PureMPI.exa4" CommBasic/PureMPI.results 27 1 Platform/random.platform output
-
-test:CommBasic_PureOMP:
-    extends: .test_template
-    script:
+        # CommBasic_PureOMP
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_PureOMP CommBasic/PureOMP.knowledge "CommBasic/PureOMP.exa4" CommBasic/PureOMP.results 1 10 Platform/random.platform output
-
-test:CommBasic_Hybrid:
-    extends: .test_template
-    script:
+        # CommBasic_Hybrid
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_Hybrid CommBasic/Hybrid.knowledge "CommBasic/Hybrid.exa4" CommBasic/Hybrid.results 27 2 Platform/random.platform output
-
-test:CommBasic_Summarize:
-    extends: .test_template
-    script:
+        # CommBasic_Summarize
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_Summarize CommBasic/Summarize.knowledge "CommBasic/Summarize.exa4" CommBasic/Summarize.results 27 2 Platform/random.platform output
-
-test:CommBasic_Strategy26:
-    extends: .test_template
-    script:
+        # CommBasic_Strategy26
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_Strategy26 CommBasic/Strategy26.knowledge "CommBasic/Strategy26.exa4" CommBasic/Strategy26.results 27 2 Platform/random.platform output
-
-test:CommBasic_2D:
-    extends: .test_template
-    script:
+        # CommBasic_2D
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_2D CommBasic/2D.knowledge "CommBasic/2D.exa4" CommBasic/2D.results 9 2 Platform/random.platform output
-
-# cell based
-test:CommBasic_HybridCell:
-    extends: .test_template
-    script:
+        # CommBasic_HybridCell
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_HybridCell CommBasic/HybridCell.knowledge "CommBasic/HybridCell.exa4" CommBasic/HybridCell.results 27 2 Platform/random.platform output
-
-test:CommBasic_Strategy26Cell:
-    extends: .test_template
-    script:
+        # CommBasic_Strategy26Cell
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_Strategy26Cell CommBasic/Strategy26Cell.knowledge "CommBasic/Strategy26Cell.exa4" CommBasic/Strategy26Cell.results 27 2 Platform/random.platform output
-
-# complex numbers
-test:CommBasic_complexNumbers:
-    extends: .test_template
-    script:
+        # CommBasic_complexNumbers
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CommBasic_complexNumbers CommBasic/ComplexNumbers.knowledge "CommBasic/ComplexNumbers.exa4" CommBasic/ComplexNumbers.results 9 2 Platform/random.platform output
 
 ###############################################
