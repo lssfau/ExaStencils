@@ -741,15 +741,17 @@ test:CellBased_3D:
 # SISC PAPER TESTS                            #
 ###############################################
 
-test:SISC_2D_ConstCoeff:
+test:SISC_2D:
     extends: .test_template
     script:
-        - echo '2D tests'
         # SISC_2D_ConstCoeff
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib SISC_2D_ConstCoeff SISC/2D_ConstCoeff.knowledge "SISC/2D_ConstCoeff.exa4" SISC/2D_ConstCoeff.results 4 4 Platform/random.platform output
         # SISC_2D_VarCoeff
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib SISC_2D_VarCoeff SISC/2D_VarCoeff.knowledge "SISC/2D_VarCoeff.exa4" SISC/2D_VarCoeff.results 4 4 Platform/random.platform output
-        - echo '3D tests'
+
+test:SISC_3D:
+    extends: .test_template
+    script:
         # SISC_3D_ConstCoeff
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib SISC_3D_ConstCoeff SISC/3D_ConstCoeff.knowledge "SISC/3D_ConstCoeff.exa4" SISC/3D_ConstCoeff.results 8 4 Platform/random.platform output
         # SISC_3D_VarCoeff
