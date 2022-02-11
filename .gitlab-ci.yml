@@ -883,10 +883,11 @@ test:ComplexNumbers:
 # BiHarmonic EXAMPLES                         #
 ###############################################
 
-example:BiHarmonic:
+example:BiHarmonicExamples_2D:
     stage: example
     extends: .test_template
     script:
+        # 2D_FD_BiHarmonic_fromL2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_BiHarmonic_fromL2 Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.knowledge "../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa3;../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa2" "" 1 1 Platform/random.platform output
 
 ###############################################
