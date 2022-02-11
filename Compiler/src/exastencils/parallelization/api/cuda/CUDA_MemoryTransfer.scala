@@ -38,10 +38,10 @@ object CUDA_TransferUtil {
         case "D2H" => "cudaCpuDeviceId"
       })
     } else {
-      CUDA_Memcpy(deviceData, hostData, sizeInBytes, direction match {
-        case "H2D" => "cudaMemcpyHostToDevice"
-        case "D2H" => "cudaMemcpyDeviceToHost"
-      })
+      direction match {
+        case "H2D" => CUDA_Memcpy(deviceData, hostData, sizeInBytes, "cudaMemcpyHostToDevice")
+        case "D2H" => CUDA_Memcpy(hostData, deviceData, sizeInBytes, "cudaMemcpyDeviceToHost")
+      }
     }
   }
 }
