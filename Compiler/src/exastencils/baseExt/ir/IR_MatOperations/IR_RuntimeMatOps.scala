@@ -311,6 +311,20 @@ object IR_GenerateBasicMatrixOperations {
     stmts
   }
 
+  // copy a submatrix of n_rows x n_cols to 'copy' from position 'offset_r', 'offset_c' in 'source' with size 'sourcesize'
+  def loopCompoundAssignSubmatrixPointer(source : IR_Expression, sourcesize : IR_Expression, dest : IR_Expression, offset_r : IR_Expression, offset_c : IR_Expression, n_rows : IR_Expression, n_cols : IR_Expression, op : String) : IR_Scope = {
+    var stmts = IR_Scope(Nil)
+    var i = IR_VariableAccess("i", IR_IntegerDatatype)
+    var j = IR_VariableAccess("j", IR_IntegerDatatype)
+    stmts.body += IR_ForLoop(IR_VariableDeclaration(i, offset_r), IR_Lower(i, n_rows + offset_r), IR_PreIncrement(i), ListBuffer[IR_Statement](
+      IR_ForLoop(IR_VariableDeclaration(j, offset_c), IR_Lower(j, offset_c + n_cols), IR_PreIncrement(j), ListBuffer[IR_Statement](
+        IR_Assignment(IR_ArrayAccess(dest, (i - offset_r) * n_cols + j - offset_c),
+          IR_BinaryOperators.createExpression(op, IR_ArrayAccess(dest, (i - offset_r) * n_cols + j - offset_c), IR_ArrayAccess(source, i * sourcesize + j)))
+      ))
+    ))
+    stmts
+  }
+
   // write a submatrix 'source' of n_rows x n_cols to 'destination' at position 'offset_r', 'offset_c'
   def loopSetSubmatrixMat(source : IR_Expression, destination : IR_Expression, rows_source : IR_Expression, cols_source : IR_Expression, offset_r : IR_Expression, offset_c : IR_Expression) : IR_Scope = {
     if (!isScalar(offset_r) || !isScalar(offset_c))
