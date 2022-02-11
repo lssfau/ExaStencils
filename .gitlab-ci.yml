@@ -670,24 +670,16 @@ test:PolyExpl_RBGS_VarCoeff_7pt_3D:
 ###############################################
 
 # 27 OMP threads
-test:Smoothers_Jac:
+test:Smoothers:
     extends: .test_template
     script:
+        # Smoothers_Jac
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Smoothers_Jac Smoothers/Jac.knowledge "Smoothers/Jac.exa4" Smoothers/Jac.results 27 2 Platform/random.platform output
-
-test:Smoothers_GS:
-    extends: .test_template
-    script:
+        # Smoothers_GS
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Smoothers_GS Smoothers/GS.knowledge "Smoothers/GS.exa4" Smoothers/GS.results 27 2 Platform/random.platform output
-
-test:Smoothers_RBGS:
-    extends: .test_template
-    script:
+        # Smoothers_RBGS
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Smoothers_RBGS Smoothers/RBGS.knowledge "Smoothers/RBGS.exa4" Smoothers/RBGS.results 27 2 Platform/random.platform output
-
-test:Smoothers_BS:
-    extends: .test_template
-    script:
+        # Smoothers_BS
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Smoothers_BS Smoothers/BS.knowledge "Smoothers/BS.exa4" Smoothers/BS.results 27 2 Platform/random.platform output
 
 ###############################################
