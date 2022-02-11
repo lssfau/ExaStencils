@@ -914,10 +914,11 @@ example:HelmHoltzExamples_3D:
 # LinearElasticity EXAMPLES                   #
 ###############################################
 
-example:2D_FD_LinearElasticity_fromL2:
+example:LinearElasticityExamples_2D:
     stage: example
     extends: .test_template
     script:
+        # 2D_FD_LinearElasticity_fromL2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_LinearElasticity_fromL2 Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.knowledge "../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa2;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa3;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa4" "" 1 1 Platform/random.platform output
 
 ###############################################
