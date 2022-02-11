@@ -998,84 +998,47 @@ example:OptFlowExamples_3D:
 # Poisson EXAMPLES                            #
 ###############################################
 
-example:1D_FD_Poisson_fromL1:
+example:PoissonExamples_1D:
     stage: example
     extends: .test_template
     script:
+        # 1D_FD_Poisson_fromL1
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 1D_FD_Poisson_fromL1 Examples/Poisson/1D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/1D_FD_Poisson_fromL1.exa1" "" 1 1 Platform/random.platform output
 
-example:2D_FD_Poisson_fromL1:
+example:PoissonExamples_2D:
     stage: example
     extends: .test_template
     script:
+        # 2D_FD_Poisson_fromL1
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL1 Poisson/2D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL1.exa1" Poisson/2D_FD_Poisson_fromL1.results 4 4 Platform/random.platform output
-
-example:2D_FD_Poisson_fromL2:
-    stage: example
-    extends: .test_template
-    script:
+        # 2D_FD_Poisson_fromL2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL2 Poisson/2D_FD_Poisson_fromL2.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL2.exa2;../Examples/Poisson/2D_FD_Poisson_fromL2.exa3;../Examples/Poisson/2D_FD_Poisson_fromL2.exa4" Poisson/2D_FD_Poisson_fromL2.results 4 4 Platform/random.platform output
-
-example:2D_FD_Poisson_fromL3:
-    stage: example
-    extends: .test_template
-    script:
+        # 2D_FD_Poisson_fromL3
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL3 Poisson/2D_FD_Poisson_fromL3.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL3.exa3;../Examples/Poisson/2D_FD_Poisson_fromL3.exa4" Poisson/2D_FD_Poisson_fromL3.results 4 4 Platform/random.platform output
-
-example:2D_FD_Poisson_fromL4:
-    stage: example
-    extends: .test_template
-    script:
+        # 2D_FD_Poisson_fromL4
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL4 Poisson/2D_FD_Poisson_fromL4.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL4.exa4" Poisson/2D_FD_Poisson_fromL4.results 4 4 Platform/random.platform output
-
-example:2D_FE_Poisson_fromL2:
-    stage: example
-    extends: .test_template
-    script:
+        # 2D_FE_Poisson_fromL2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FE_Poisson_fromL2 Poisson/2D_FE_Poisson_fromL2.knowledge "../Examples/Poisson/2D_FE_Poisson_fromL2.exa2;../Examples/Poisson/2D_FE_Poisson_fromL2.exa3;../Examples/Poisson/2D_FE_Poisson_fromL2.exa4" Poisson/2D_FE_Poisson_fromL2.results 1 1 Platform/random.platform output
-
-example:2D_FV_Poisson_fromL2:
-    stage: example
-    extends: .test_template
-    script:
+        # 2D_FV_Poisson_fromL2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Poisson_fromL2 Poisson/2D_FV_Poisson_fromL2.knowledge "../Examples/Poisson/2D_FV_Poisson_fromL2.exa2;../Examples/Poisson/2D_FV_Poisson_fromL2.exa3;../Examples/Poisson/2D_FV_Poisson_fromL2.exa4" Poisson/2D_FV_Poisson_fromL2.results 4 4 Platform/random.platform output
-
-example:2D_FV_Poisson_fromL4:
-    stage: example
-    extends: .test_template
-    script:
+        # 2D_FV_Poisson_fromL4
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Poisson_fromL4 Poisson/2D_FV_Poisson_fromL4.knowledge "../Examples/Poisson/2D_FV_Poisson_fromL4.exa4" Poisson/2D_FV_Poisson_fromL4.results 4 4 Platform/random.platform output
 
-example:3D_FD_Poisson_fromL1:
+example:PoissonExamples_3D:
     stage: example
     extends: .test_template
     script:
+        # 3D_FD_Poisson_fromL1
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Poisson_fromL1 Examples/Poisson/3D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/3D_FD_Poisson_fromL1.exa1" "" 1 1 Platform/random.platform output
-
-example:3D_FD_Poisson_fromL2:
-    stage: example
-    extends: .test_template
-    script:
         - mkdir -p lib/ && cp ../Examples/lib/solver_singleScalarEquation.exa3 lib/solver_singleScalarEquation.exa3
+        # 3D_FD_Poisson_fromL2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Poisson_fromL2 Examples/Poisson/3D_FD_Poisson_fromL2.knowledge "../Examples/Poisson/3D_FD_Poisson_fromL2.exa2;../Examples/Poisson/3D_FD_Poisson_fromL2.exa3" "" 1 1 Platform/random.platform output
-
-example:3D_FD_Poisson_fromL4:
-    stage: example
-    extends: .test_template
-    script:
+        # 3D_FD_Poisson_fromL4
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Poisson_fromL4 Examples/Poisson/3D_FD_Poisson_fromL4.knowledge "../Examples/Poisson/3D_FD_Poisson_fromL4.exa4" "" 1 1 Platform/random.platform output
-
-example:3D_FV_Poisson_fromL2:
-    stage: example
-    extends: .test_template
-    script:
         - mkdir -p lib/ && cp ../Examples/lib/solver_singleScalarEquation.exa3 lib/solver_singleScalarEquation.exa3
+        # 3D_FV_Poisson_fromL2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Poisson_fromL2 Examples/Poisson/3D_FV_Poisson_fromL2.knowledge "../Examples/Poisson/3D_FV_Poisson_fromL2.exa2;../Examples/Poisson/3D_FV_Poisson_fromL2.exa3" "" 1 1 Platform/random.platform output
-
-example:3D_FV_Poisson_fromL4:
-    stage: example
-    extends: .test_template
-    script:
+        # 3D_FV_Poisson_fromL4
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_Poisson_fromL4 Examples/Poisson/3D_FV_Poisson_fromL4.knowledge "../Examples/Poisson/3D_FV_Poisson_fromL4.exa4" "" 1 1 Platform/random.platform output
 
 ###############################################
