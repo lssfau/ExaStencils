@@ -863,19 +863,14 @@ test:CUDA:
 # COMPLEX NUMBERS TESTS                       #
 ###############################################
 
-test:COMPLEX_NUMBERS_BasicFunc:
+test:ComplexNumbers:
     extends: .test_template
     script:
+        # COMPLEX_NUMBERS_BasicFunc
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib COMPLEX_NUMBERS_BasicFunc ComplexNumbers/BasicFunc/BasicFunc.knowledge "ComplexNumbers/BasicFunc/BasicFunc.exa3" ComplexNumbers/BasicFunc/BasicFunc.results 1 1 Platform/random.platform output
-
-test:COMPLEX_NUMBERS_Helmholtz:
-    extends: .test_template
-    script:
+        # COMPLEX_NUMBERS_Helmholtz
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib COMPLEX_NUMBERS_Helmholtz ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.knowledge "ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.exa4" ComplexNumbers/2D_FD_Helmholtz_fromL3/2D_FD_Helmholtz_fromL3.results 1 1 Platform/random.platform output
-
-test:COMPLEX_NUMBERS_Helmholtz_MPI:
-    extends: .test_template
-    script:
+        # COMPLEX_NUMBERS_Helmholtz_MPI
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib COMPLEX_NUMBERS_Helmholtz_MPI ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.knowledge "ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.exa4" ComplexNumbers/2D_FD_Helmholtz_fromL3_MPI/2D_FD_Helmholtz_fromL3_MPI.results 4 2 Platform/random.platform output
 
 #######################################
