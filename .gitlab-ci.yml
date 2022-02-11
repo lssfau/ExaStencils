@@ -776,24 +776,16 @@ test:MISC:
 # FMG TESTS                                   #
 ###############################################
 
-test:FMG_2D_Polynomial:
+test:FMG:
     extends: .test_template
     script:
+        # FMG_2D_Polynomial
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib FMG_2D_Polynomial FMG/2D_Polynomial.knowledge "FMG/2D_Polynomial.exa4" FMG/2D_Polynomial.results 4 2 Platform/random.platform output
-
-test:FMG_2D_ConstCoeff:
-    extends: .test_template
-    script:
+        # 2D_ConstCoeff
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib FMG_2D_ConstCoeff FMG/2D_ConstCoeff.knowledge "FMG/2D_ConstCoeff.exa4" FMG/2D_ConstCoeff.results 4 4 Platform/random.platform output
-
-test:FMG_3D_Trigonometric:
-    extends: .test_template
-    script:
+        # FMG_3D_Trigonometric
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib FMG_3D_Trigonometric FMG/3D_Trigonometric.knowledge "FMG/3D_Trigonometric.exa4" FMG/3D_Trigonometric.results 8 2 Platform/random.platform output
-
-test:FMG_3D_VarCoeff:
-    extends: .test_template
-    script:
+        # FMG_3D_VarCoeff
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib FMG_3D_VarCoeff FMG/3D_VarCoeff.knowledge "FMG/3D_VarCoeff.exa4" FMG/3D_VarCoeff.results 8 4 Platform/random.platform output
 
 ###############################################
