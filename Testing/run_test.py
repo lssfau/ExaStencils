@@ -63,7 +63,6 @@ def run_test(generator_path: str, problem_name: str, knowledge_path: str, exa_fi
     if not os.path.exists(output_path):
         os.makedirs(output_path)
     generate_settings_file(problem_name, output_path, exa_file_names)
-    print("# Running test for problem: " + problem_name)
     for name in exa_file_names:
         for i in range(1, 5):
             if f'.exa{i}' in name:
@@ -91,10 +90,12 @@ def run_test(generator_path: str, problem_name: str, knowledge_path: str, exa_fi
     elif expected_results_path:
         result_str = result.stdout.decode('utf-8')
         if check_results(result_str, expected_results_path) is True:
+            print(f"Test for problem \"{problem_name}\" finished successfully.")
             return result.returncode
         else:
             return -1
     else:
+        print(f"Test for problem \"{problem_name}\" finished successfully.")
         return result.returncode
 
 
