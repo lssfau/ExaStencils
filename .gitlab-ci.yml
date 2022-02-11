@@ -128,149 +128,86 @@ build:generator:
 # MATRIX TESTS                                #
 ###############################################
 
-# decision about runtime execution of solution of local systems and inversions depending on size/const entries
-test:Matrix_evalMatrixOpRuntimeExecution:
+test:MatrixMisc:
     extends: .test_template
     script:
+        # Matrix_evalMatrixOpRuntimeExecution: decision about runtime execution of solution of local systems and inversions depending on size/const entries
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_evalMatrixOpRuntimeExecution ./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.knowledge "./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.exa4" ./MatrixClassTests/evalMOpRuntimeExe/evalMOpRuntimeExe.RESULTS 1 1 Platform/random.platform output
-
-# classification of matrix shapes/structures
-test:Matrix_determineMatrixStructures:
-    extends: .test_template
-    script:
+        # Matrix_determineMatrixStructures: classification of matrix shapes/structures
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_determineMatrixStructures ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.knowledge "./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.exa4" ./MatrixClassTests/determineMatrixStructures/determineMatrixStructures.RESULTS 1 1 Platform/random.platform output
-
-# operations on fields with matrices as inner data type
-test:Matrix_matrixFields:
-    extends: .test_template
-    script:
+        # Matrix_matrixFields: operations on fields with matrices as inner data type
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_matrixFields ./MatrixClassTests/matrixFields/matrixFields.knowledge "./MatrixClassTests/matrixFields/matrixFields.exa4" ./MatrixClassTests/matrixFields/matrixFields.RESULTS 1 1 Platform/random.platform output
-
-# shallow water equation in vector form
-test:Matrix_2D_FV_SWE:
-    extends: .test_template
-    script:
+        # Matrix_2D_FV_SWE: shallow water equation in vector form
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_2D_FV_SWE ./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.knowledge "./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.exa4" ./MatrixClassTests/2D_FV_SWE/2D_FV_SWE.RESULTS 1 1 Platform/random.platform output
 
 # built-in operations of matrices
-test:Matrix_slicing:
+test:MatrixOperations:
     extends: .test_template
     script:
+        # Matrix_slicing
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_slicing ./MatrixClassTests/resolvingMatrixFunctions/slicing/slicing.knowledge "./MatrixClassTests/resolvingMatrixFunctions/slicing/slicing.exa4" ./MatrixClassTests/resolvingMatrixFunctions/slicing/slicing.RESULTS 1 1 Platform/random.platform output
-
-test:Matrix_chaines:
-    extends: .test_template
-    script:
+        # Matrix_chaines
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_chaines ./MatrixClassTests/resolvingMatrixFunctions/chaines/chaines.knowledge "./MatrixClassTests/resolvingMatrixFunctions/chaines/chaines.exa4" ./MatrixClassTests/resolvingMatrixFunctions/chaines/chaines.RESULTS 1 1 Platform/random.platform output
-
-test:Matrix_cross:
-    extends: .test_template
-    script:
+        # Matrix_cross
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_cross ./MatrixClassTests/resolvingMatrixFunctions/cross/cross.knowledge "./MatrixClassTests/resolvingMatrixFunctions/cross/cross.exa4" ./MatrixClassTests/resolvingMatrixFunctions/cross/cross.RESULTS 1 1 Platform/random.platform output
-
-test:Matrix_dot:
-    extends: .test_template
-    script:
+        # Matrix_dot
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_dot ./MatrixClassTests/resolvingMatrixFunctions/dot/dot.knowledge "./MatrixClassTests/resolvingMatrixFunctions/dot/dot.exa4" ./MatrixClassTests/resolvingMatrixFunctions/dot/dot.RESULTS 1 1 Platform/random.platform output
-
-test:Matrix_trace:
-    extends: .test_template
-    script:
+        # Matrix_trace
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_trace ./MatrixClassTests/resolvingMatrixFunctions/trace/trace.knowledge "./MatrixClassTests/resolvingMatrixFunctions/trace/trace.exa4" ./MatrixClassTests/resolvingMatrixFunctions/trace/trace.RESULTS 1 1 Platform/random.platform output
-
-test:Matrix_transpose:
-    extends: .test_template
-    script:
+        # Matrix_transpose
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_transpose ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.knowledge "./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.exa4" ./MatrixClassTests/resolvingMatrixFunctions/transpose/transpose.RESULTS 1 1 Platform/random.platform output
-
-test:Matrix_frobeniusNorm:
-    extends: .test_template
-    script:
+        # Matrix_frobeniusNorm
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_frobeniusNorm ./MatrixClassTests/resolvingMatrixFunctions/frobeniusNorm/frobeniusNorm.knowledge "./MatrixClassTests/resolvingMatrixFunctions/frobeniusNorm/frobeniusNorm.exa4" ./MatrixClassTests/resolvingMatrixFunctions/frobeniusNorm/frobeniusNorm.RESULTS 1 1 Platform/random.platform output
 
-# slicing and access of matrices per bracket operator
-test:Matrix_resolvingMatrixAccesses:
-    extends: .test_template
-    script:
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_resolvingMatrixAccesses ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.knowledge "./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.exa4" ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.RESULTS 1 1 Platform/random.platform output
-
 # direct solution of small linear systems
-test:Matrix_SolveMatSysRunTime:
+test:MatrixSolve:
     extends: .test_template
     script:
+        # Matrix_SolveMatSysRunTime
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SolveMatSysRunTime ./MatrixClassTests/SolveMatSys/SolveMatSysRunTime/SolveMatSysRunTime.knowledge "./MatrixClassTests/SolveMatSys/SolveMatSysRunTime/SolveMatSysRunTime.exa4" ./MatrixClassTests/SolveMatSys/SolveMatSysRunTime/SolveMatSysRunTime.RESULTS 1 1 Platform/random.platform output
-
-test:Matrix_SolveMatSysCompileTime:
-    extends: .test_template
-    script:
+        # Matrix_SolveMatSysCompileTime
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SolveMatSysCompileTime ./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.knowledge "./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.exa4" ./MatrixClassTests/SolveMatSys/SolveMatSysCompileTime/SolveMatSysCompileTime.RESULTS 1 1 Platform/random.platform output
 
-# arithmetic operators
-test:Matrix_resolvingMatrixOperators:
+test:MatrixResolve:
     extends: .test_template
     script:
+        # Matrix_resolvingMatrixAccesses: slicing and access of matrices per bracket operator
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_resolvingMatrixAccesses ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.knowledge "./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.exa4" ./MatrixClassTests/resolvingMatrixAccesses/resolvingMatrixAccesses.RESULTS 1 1 Platform/random.platform output
+        # Matrix_resolvingMatrixOperators: arithmetic operators
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_resolvingMatrixOperators ./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.knowledge "./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.exa4" ./MatrixClassTests/resolvingMatrixOperators/resolvingMatrixOperators.RESULTS 1 1 Platform/random.platform output
 
 # inversion at compiletime
-test:Matrix_LUCompileTime:
+test:MatrixInversionCompileTime:
     extends: .test_template
     script:
+        # Matrix_LUCompileTime
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_LUCompileTime ./MatrixClassTests/invert/CompileTime/LU/LU.knowledge "./MatrixClassTests/invert/CompileTime/LU/LU.exa4" ./MatrixClassTests/invert/CompileTime/LU/LU.RESULTS 1 1 Platform/random.platform output
-
-test:Matrix_BlockDiagonalCompileTime:
-    extends: .test_template
-    script:
+        # Matrix_BlockDiagonalCompileTime
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_BlockDiagonalCompileTime ./MatrixClassTests/invert/CompileTime/BlockDiagonal/BlockDiagonal.knowledge "./MatrixClassTests/invert/CompileTime/BlockDiagonal/BlockDiagonal.exa4" ./MatrixClassTests/invert/CompileTime/BlockDiagonal/BlockDiagonal.RESULTS 1 1 Platform/random.platform output
-
-test:Matrix_DiagonalCompileTime:
-    extends: .test_template
-    script:
+        # Matrix_DiagonalCompileTime
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_DiagonalCompileTime ./MatrixClassTests/invert/CompileTime/Diagonal/Diagonal.knowledge "./MatrixClassTests/invert/CompileTime/Diagonal/Diagonal.exa4" ./MatrixClassTests/invert/CompileTime/Diagonal/Diagonal.RESULTS 1 1 Platform/random.platform output
-
-test:Matrix_SchurCompileTime:
-    extends: .test_template
-    script:
+        # Matrix_SchurCompileTime
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SchurCompileTime ./MatrixClassTests/invert/CompileTime/Schur/Schur.knowledge "./MatrixClassTests/invert/CompileTime/Schur/Schur.exa4" ./MatrixClassTests/invert/CompileTime/Schur/Schur.RESULTS 1 1 Platform/random.platform output
-
-test:Matrix_SchurWithHelpersCompileTime:
-    extends: .test_template
-    script:
+        # Matrix_SchurWithHelpersCompileTime
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SchurWithHelpersCompileTime ./MatrixClassTests/invert/CompileTime/SchurWithHelpers/SchurWithHelpers.knowledge "./MatrixClassTests/invert/CompileTime/SchurWithHelpers/SchurWithHelpers.exa4" ./MatrixClassTests/invert/CompileTime/SchurWithHelpers/SchurWithHelpers.RESULTS 1 1 Platform/random.platform output
-
-test:Matrix_smallMatricesCompileTime:
-    extends: .test_template
-    script:
+        # Matrix_smallMatricesCompileTime
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_smallMatricesCompileTime ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.knowledge "./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.exa4" ./MatrixClassTests/invert/CompileTime/smallMatrices/smallMatrices.RESULTS 1 1 Platform/random.platform output
 
 # inversion at runtime
-test:Matrix_LURunTime:
+test:MatrixInversionRunTime:
     extends: .test_template
     script:
+        # Matrix_LURunTime
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_LURunTime ./MatrixClassTests/invert/RunTime/LU/LU.knowledge "./MatrixClassTests/invert/RunTime/LU/LU.exa4" ./MatrixClassTests/invert/RunTime/LU/LU.RESULTS 1 1 Platform/random.platform output
-
-test:Matrix_SchurRunTime:
-    extends: .test_template
-    script:
+        # Matrix_SchurRunTime
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SchurRunTime ./MatrixClassTests/invert/RunTime/Schur/Schur.knowledge "./MatrixClassTests/invert/RunTime/Schur/Schur.exa4" ./MatrixClassTests/invert/RunTime/Schur/Schur.RESULTS 1 1 Platform/random.platform output
-
-test:Matrix_DiagonalRunTime:
-    extends: .test_template
-    script:
+        # Matrix_DiagonalRunTime
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_DiagonalRunTime ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.knowledge "./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.exa4" ./MatrixClassTests/invert/RunTime/Diagonal/Diagonal.RESULTS 1 1 Platform/random.platform output
-
-test:Matrix_BlockDiagonalRunTime:
-    extends: .test_template
-    script:
+        # Matrix_BlockDiagonalRunTime
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_BlockDiagonalRunTime ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.knowledge "./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.exa4" ./MatrixClassTests/invert/RunTime/BlockDiagonal/BlockDiagonal.RESULTS 1 1 Platform/random.platform output
-
-test:Matrix_SchurLargeMatrixRunTime:
-    extends: .test_template
-    script:
+        # Matrix_SchurLargeMatrixRunTime
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SchurLargeMatrixRunTime ./MatrixClassTests/invert/RunTime/SchurLargeMatrix/SchurLargeMatrix.knowledge "./MatrixClassTests/invert/RunTime/SchurLargeMatrix/SchurLargeMatrix.exa4" ./MatrixClassTests/invert/RunTime/SchurLargeMatrix/SchurLargeMatrix.RESULTS 1 1 Platform/random.platform output
-
-test:Matrix_SmallMatrixRunTime:
-    extends: .test_template
-    script:
+        # Matrix_SmallMatrixRunTime
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Matrix_SmallMatrixRunTime ./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.knowledge "./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.exa4" ./MatrixClassTests/invert/RunTime/SmallMatrix/SmallMatrix.RESULTS 1 1 Platform/random.platform output
 
 # Application
