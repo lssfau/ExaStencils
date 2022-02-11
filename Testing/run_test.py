@@ -63,6 +63,7 @@ def run_test(generator_path: str, problem_name: str, knowledge_path: str, exa_fi
     if not os.path.exists(output_path):
         os.makedirs(output_path)
     generate_settings_file(problem_name, output_path, exa_file_names)
+    print("# Running test for problem: " + problem_name)
     for name in exa_file_names:
         for i in range(1, 5):
             if f'.exa{i}' in name:
