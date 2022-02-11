@@ -2,8 +2,8 @@ testing_enabled       = true
 
 dimensionality             = 1
 
-minLevel					= 0
-maxLevel					= 0
+minLevel					= 3
+maxLevel					= 3
 
 domain_onlyRectangular		= true
 domain_numBlocks			= 2
