@@ -29,6 +29,7 @@ import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.Output
 import exastencils.field.ir._
+import exastencils.prettyprinting.PpStream
 
 /// CUDA_Allocate
 
@@ -151,6 +152,30 @@ case class CUDA_BufferDeviceData(override var field : IR_Field, override var dir
           CUDA_Free(access),
           IR_Assignment(access, 0)))))
   }
+}
+
+/// CUDA_MatrixDeviceCopy
+
+case class CUDA_MatrixDeviceCopy(var name : String, var baseDt : IR_Datatype, var size : IR_Expression) extends IR_UnduplicatedVariable {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess()
+  def resolveAccess() : IR_VariableAccess = IR_VariableAccess(resolveName(), resolveDatatype())
+  override def resolveName() : String = name + resolvePostfix("", "", "", "", "")
+  override def resolveDatatype() : IR_Datatype = IR_PointerDatatype(baseDt)
+
+  override def getCtor() : Option[IR_Statement] = Some(CUDA_Allocate(resolveName(), size, baseDt))
+  override def getDtor() : Option[IR_Statement] = Some(IR_IfCondition(resolveName(), CUDA_Free(resolveName())))
+}
+
+/// CUDA_BufferMatrixReductionResult
+
+case class CUDA_BufferMatrixReductionResult(var name : String, var baseDt : IR_Datatype, var size : IR_Expression) extends IR_UnduplicatedVariable {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess()
+  def resolveAccess() : IR_VariableAccess = IR_VariableAccess(resolveName(), resolveDatatype())
+  override def resolveName() : String = name + resolvePostfix("", "", "", "", "")
+  override def resolveDatatype() : IR_Datatype = IR_PointerDatatype(baseDt)
+
+  override def getCtor() : Option[IR_Statement] = Some(IR_ArrayAllocation(resolveName(), baseDt, size))
+  override def getDtor() : Option[IR_Statement] = Some(IR_IfCondition(resolveName(), IR_ArrayFree(resolveName())))
 }
 
 /// CUDA_AdaptDeviceAccessesForMM

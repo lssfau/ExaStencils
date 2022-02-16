@@ -159,6 +159,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
 
       // collect local accesses because their variables need to be passed to the kernel when calling
       CUDA_GatherVariableAccesses.clear()
+      CUDA_GatherVariableAccesses.fctName = fctNameCollector.getCurrentName
       CUDA_GatherVariableAccesses.kernelCount = kernelCount
       if (reduction.isDefined)
         CUDA_GatherVariableAccesses.reductionTarget = redTarget
@@ -201,15 +202,16 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       val deviceArrayCopies = accessesCopiedToDevice.map {
         case (k, v) =>
           val copyName = CUDA_GatherVariableAccesses.arrayVariableAccessAsString(v._1)
-          val copyDt = IR_PointerDatatype(v._2.resolveBaseDatatype)
+          val copyBaseDt = v._2.resolveBaseDatatype
+          val size = v._2.getSizeArray.product
 
-          (k, IR_VariableAccess(copyName, copyDt))
+          (k, CUDA_MatrixDeviceCopy(copyName, copyBaseDt, size))
       }.toMap
 
       // parameters of the kernel
       val params = ListBuffer[IR_FunctionArgument]()
       params ++= accesses.map { case (name, tup) => IR_FunctionArgument(name, tup._2) }
-      params ++= deviceArrayCopies.values.map(IR_FunctionArgument(_))
+      params ++= deviceArrayCopies.values.map(cpy => IR_FunctionArgument(cpy.resolveAccess()))
 
       // args passed to kernel
       val args = ListBuffer[IR_Expression]()
@@ -260,8 +262,6 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       if (deviceArrayCopies.nonEmpty) {
         deviceArrayCopies foreach { case (k, dstArr) =>
           val (srcArr, srcDt) = accessesCopiedToDevice.find(_._1 == k).get._2
-          deviceStatements += IR_VariableDeclaration(dstArr)
-          deviceStatements += CUDA_Allocate(dstArr, srcDt.getSizeArray.product, srcDt.resolveBaseDatatype)
           deviceStatements += CUDA_Memcpy(dstArr, srcArr, srcDt.typicalByteSize, "cudaMemcpyHostToDevice")
         }
       }
@@ -277,9 +277,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
           case mat : IR_MatrixDatatype =>
             val baseDt = mat.resolveBaseDatatype
             // declare and allocate tmp buffer for matrix reduction
-            val reductionTmp = IR_VariableAccess("reductionTmpMatrix", IR_PointerDatatype(baseDt))
-            deviceStatements += IR_VariableDeclaration(reductionTmp)
-            deviceStatements += IR_ArrayAllocation(reductionTmp, baseDt, mat.sizeN * mat.sizeM)
+            val reductionTmp = CUDA_BufferMatrixReductionResult(s"${fctNameCollector.getCurrentName}_${kernelCount}_reductionTmpMatrix", baseDt, mat.sizeN * mat.sizeM)
 
             // call kernel and pass allocated tmp buffer by pointer
             callKernel.arguments += reductionTmp
@@ -289,18 +287,12 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
             deviceStatements += IR_GenerateBasicMatrixOperations.loopCompoundAssignSubmatrixPointer(
               reductionTmp, mat.sizeN, red.target, 0, 0, mat.sizeM, mat.sizeN, red.op)
 
-            // free allocated buffer
-            deviceStatements += IR_ArrayFree(reductionTmp)
           case _ : IR_ScalarDatatype   =>
             deviceStatements += IR_Assignment(red.target, IR_BinaryOperators.createExpression(red.op, red.target, callKernel))
         }
       } else {
         deviceStatements += callKernel
       }
-
-      // destroy device copies
-      if (deviceArrayCopies.nonEmpty)
-        deviceStatements ++= deviceArrayCopies.keys.map(CUDA_Free(_))
 
       deviceStatements
   }, false)
