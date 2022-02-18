@@ -19,19 +19,22 @@ Function Application {
 	initDomain (  )
 	initFieldsWithZero (  )
 
+	loop over mat@finest {
+	    mat@finest = matrixEntry
+	}
+
     Var redTarget : Real = 0.0
 
-    loop over mat@finest with reduction (max: redTarget) {
-        if (i0 == 0) {
-            mat@finest[2][2] = maxVal
-        }
-        redTarget = mat@finest[2][2]
+    loop over mat@finest with reduction (+: redTarget) {
+        redTarget += mat@finest[2][2]
     }
 
-    if ( fabs(redTarget - maxVal) <= eps ) {
-        print('Passed stage 0: redTarget equals maxVal')
+    Expr numReds = getKnowledge ( 'domain_rect_numBlocks_x' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_x' )
+    Val expected : Real = numReds * (2 ** levels@finest ( )) * matrixEntry
+    if ( fabs(redTarget - expected) <= eps ) {
+        print('Passed stage 0: redTarget equals expected result')
     } else {
-        print('Failed stage 0: redTarget=', redTarget, ', maxVal=', maxVal)
+        print('Failed stage 0: redTarget=', redTarget, ', expected=', expected)
     }
 
 
@@ -40,7 +43,6 @@ Function Application {
         redTarget2[0][0] = matrixEntry
     }
 
-    Expr numReds = getKnowledge ( 'domain_rect_numBlocks_x' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_x' )
     if ( fabs(redTarget2[0][0] - numReds * matrixEntry ) <= eps) {
         print('Passed stage 1: Reduced matrix entry equals the number of reductions times the original value of the entry')
     } else {
