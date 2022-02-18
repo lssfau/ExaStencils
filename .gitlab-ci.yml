@@ -288,39 +288,29 @@ test:Appl_OptFlow3D:
 # (PARALLEL) I/O TESTS                        #
 ###############################################
 
-test:2D_Scalar_CheckEquality_ReadAfterWrite:
+test:ParIO_CheckEquality_2D:
     extends: .test_template_IO
     script:
+        # 2D_Scalar_CheckEquality_ReadAfterWrite
         - mkdir -p data/2D_Scalar_CheckEquality_ReadAfterWrite
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_Scalar_CheckEquality_ReadAfterWrite IOTest/2D_Scalar_CheckEquality_ReadAfterWrite.knowledge "IOTest/2D_Scalar_CheckEquality_ReadAfterWrite.exa4" "" 2 1 Platform/random.platform output
-
-test:2D_Vector_CheckEquality_ReadAfterWrite:
-    extends: .test_template_IO
-    script:
+        # 2D_Vector_CheckEquality_ReadAfterWrite
         - mkdir -p data/2D_Vector_CheckEquality_ReadAfterWrite
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_Vector_CheckEquality_ReadAfterWrite IOTest/2D_Vector_CheckEquality_ReadAfterWrite.knowledge "IOTest/2D_Vector_CheckEquality_ReadAfterWrite.exa4" "" 4 1 Platform/random.platform output
 
-test:3D_Matrix_CheckEquality_ReadAfterWrite:
+test:ParIO_CheckEquality_3D:
     extends: .test_template_IO
     script:
+        # 3D_Matrix_CheckEquality_ReadAfterWrite
         - mkdir -p data/3D_Matrix_CheckEquality_ReadAfterWrite
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_Matrix_CheckEquality_ReadAfterWrite IOTest/3D_Matrix_CheckEquality_ReadAfterWrite.knowledge "IOTest/3D_Matrix_CheckEquality_ReadAfterWrite.exa4" "" 4 1 Platform/random.platform output
-
-test:3D_Scalar_CheckEquality_ReadAfterWrite:
-    extends: .test_template_IO
-    script:
+        # 3D_Scalar_CheckEquality_ReadAfterWrite
         - mkdir -p data/3D_Scalar_CheckEquality_ReadAfterWrite
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_Scalar_CheckEquality_ReadAfterWrite IOTest/3D_Scalar_CheckEquality_ReadAfterWrite.knowledge "IOTest/3D_Scalar_CheckEquality_ReadAfterWrite.exa4" "" 8 1 Platform/random.platform output
-
-test:3D_Vector_CheckEquality_ReadAfterWrite:
-    extends: .test_template_IO
-    script:
+        # 3D_Vector_CheckEquality_ReadAfterWrite
         - mkdir -p data/3D_Vector_CheckEquality_ReadAfterWrite
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_Vector_CheckEquality_ReadAfterWrite IOTest/3D_Vector_CheckEquality_ReadAfterWrite.knowledge "IOTest/3D_Vector_CheckEquality_ReadAfterWrite.exa4" "" 4 1 Platform/random.platform output
-
-test:CheckEquality_ReadAfterWrite:
-    extends: .test_template_IO
-    script:
+        # CheckEquality_ReadAfterWrite
         - mkdir -p data/CheckEquality_ReadAfterWrite
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CheckEquality_ReadAfterWrite IOTest/CheckEquality_ReadAfterWrite.knowledge "IOTest/CheckEquality_ReadAfterWrite.exa4" "" 8 1 Platform/random.platform output
 
