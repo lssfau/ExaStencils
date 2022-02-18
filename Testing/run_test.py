@@ -90,10 +90,12 @@ def run_test(generator_path: str, problem_name: str, knowledge_path: str, exa_fi
     elif expected_results_path:
         result_str = result.stdout.decode('utf-8')
         if check_results(result_str, expected_results_path) is True:
+            print(f"Test for problem \"{problem_name}\" finished successfully.")
             return result.returncode
         else:
             return -1
     else:
+        print(f"Test for problem \"{problem_name}\" finished successfully.")
         return result.returncode
 
 
