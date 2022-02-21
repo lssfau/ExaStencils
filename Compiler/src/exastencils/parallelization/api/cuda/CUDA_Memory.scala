@@ -162,17 +162,34 @@ object CUDA_AdaptDeviceAccessesForMM extends DefaultStrategy("Adapt allocations 
 /// CUDA_AdaptAllocations
 
 object CUDA_AdaptAllocations extends DefaultStrategy("Adapt allocations and de-allocations on host and device") {
+  var fieldHostAllocations = ListBuffer[IR_Field]()
+  var bufferHostAllocations = ListBuffer[IR_Field]()
+
+  this.onBefore = () => {
+    fieldHostAllocations.clear()
+    bufferHostAllocations.clear()
+  }
+
+  this += new Transformation("Scanning host allocations", {
+    case alloc @ IR_ArrayAllocation(pointer : IR_IV_FieldData, _, _)  =>
+      fieldHostAllocations += pointer.field
+      alloc
+    case alloc @ IR_ArrayAllocation(pointer : IR_IV_CommBuffer, _, _) =>
+      fieldHostAllocations += pointer.field
+      alloc
+  })
+
   this += new Transformation("Adapting", {
-    case alloc @ CUDA_Allocate(fieldData : CUDA_FieldDeviceData, _, _) if Knowledge.cuda_useZeroCopy =>
+    case alloc @ CUDA_Allocate(fieldData : CUDA_FieldDeviceData, _, _) if Knowledge.cuda_useZeroCopy && fieldHostAllocations.contains(fieldData.field) =>
       CUDA_GetDevPointer(alloc.pointer, IR_IV_FieldData(fieldData.field, fieldData.slot, fieldData.fragmentIdx))
 
-    case alloc @ CUDA_Allocate(bufferData : CUDA_BufferDeviceData, _, _) if Knowledge.cuda_useZeroCopy =>
+    case alloc @ CUDA_Allocate(bufferData : CUDA_BufferDeviceData, _, _) if Knowledge.cuda_useZeroCopy && bufferHostAllocations.contains(bufferData.field) =>
       CUDA_GetDevPointer(alloc.pointer, IR_IV_CommBuffer(bufferData.field, bufferData.direction, bufferData.size, bufferData.neighIdx, bufferData.fragmentIdx))
 
-    case CUDA_Free(_ : CUDA_FieldDeviceData) if Knowledge.cuda_useZeroCopy =>
+    case CUDA_Free(fieldData : CUDA_FieldDeviceData) if Knowledge.cuda_useZeroCopy && fieldHostAllocations.contains(fieldData.field) =>
       IR_NullStatement
 
-    case CUDA_Free(_ : CUDA_BufferDeviceData) if Knowledge.cuda_useZeroCopy =>
+    case CUDA_Free(bufferData : CUDA_BufferDeviceData) if Knowledge.cuda_useZeroCopy && bufferHostAllocations.contains(bufferData.field) =>
       IR_NullStatement
   })
 
