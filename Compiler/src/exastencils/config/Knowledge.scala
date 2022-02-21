@@ -785,6 +785,8 @@ object Knowledge {
     Constraints.condEnsureValue(cuda_usePinnedHostMemory, true, cuda_useZeroCopy)
     Constraints.condError(cuda_useManagedMemory && cuda_usePinnedHostMemory, "cuda_useManagedMemory and cuda_usePinnedHostMemory are mutually exclusive")
     Constraints.condError(cuda_useManagedMemory && cuda_useZeroCopy, "cuda_useManagedMemory and cuda_usePinnedHostMemory are mutually exclusive")
+    Constraints.condEnsureValue(data_alignFieldPointers, false, cuda_useManagedMemory || cuda_usePinnedHostMemory)
+    Constraints.condEnsureValue(data_alignTmpBufferPointers, false, cuda_useManagedMemory || cuda_usePinnedHostMemory)
 
     Constraints.condWarn(experimental_splitLoopsForAsyncComm && !comm_onlyAxisNeighbors, s"Using asynchronous communication with comm_onlyAxisNeighbors leads to problems with stencils containing diagonal entries")
 
