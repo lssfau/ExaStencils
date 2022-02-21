@@ -31,12 +31,15 @@ import exastencils.field.ir._
 /// CUDA_TransferUtil
 
 object CUDA_TransferUtil {
-  def genTransfer(hostData : IR_InternalVariable, deviceData : IR_InternalVariable, sizeInBytes : IR_Expression, direction : String) : CUDA_HostStatement = {
+  def genTransfer(hostData : IR_InternalVariable, deviceData : IR_InternalVariable, sizeInBytes : IR_Expression, direction : String) : IR_Statement = {
     if (Knowledge.cuda_useManagedMemory) {
-      CUDA_MemPrefetch(hostData, sizeInBytes, direction match {
-        case "H2D" => Knowledge.cuda_deviceId
-        case "D2H" => "cudaCpuDeviceId"
-      })
+      if (Knowledge.cuda_genAsyncPrefetch)
+        CUDA_MemPrefetch(hostData, sizeInBytes, direction match {
+          case "H2D" => Knowledge.cuda_deviceId
+          case "D2H" => "cudaCpuDeviceId"
+        })
+      else
+        IR_NullStatement
     } else {
       direction match {
         case "H2D" => CUDA_Memcpy(deviceData, hostData, sizeInBytes, "cudaMemcpyHostToDevice")

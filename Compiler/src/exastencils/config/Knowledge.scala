@@ -522,6 +522,9 @@ object Knowledge {
   // replace device variants of field data and buffers with device pointers derived from host counter-parts
   var cuda_useZeroCopy : Boolean = false
 
+  // only relevant if cuda_useManagedMemory == true; replace cuda memcpy with asynchronous prefetches
+  var cuda_genAsyncPrefetch : Boolean = true
+
   // if true, the first dimension of the block size is enlarged if the kernel dimensionality is lower than the global dimensionality
   var cuda_foldBlockSizeForRedDimensionality : Boolean = true
 
@@ -675,7 +678,6 @@ object Knowledge {
   // in-situ visualization with VisIt
   var visit_enable : Boolean = false
   var experimental_visit_addCurveMesh : Boolean = false
-
 
   /// === constraints and resolutions ===
   def update() : Unit = {
