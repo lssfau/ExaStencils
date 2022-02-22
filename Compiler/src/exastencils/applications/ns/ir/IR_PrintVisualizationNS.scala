@@ -10,7 +10,7 @@ import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir._
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.io.ir.IR_IV_TemporaryBuffer
-import exastencils.visualization.ir.IR_PrintVisualizationQuads
+import exastencils.visualization.ir.postprocessing.IR_PrintVisualizationQuads
 
 trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads {
   def numDimsGrid : Int = p.numDimsGrid

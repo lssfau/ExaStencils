@@ -25,7 +25,7 @@ import exastencils.base.ir._
 import exastencils.core.Duplicate
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_Print
-import exastencils.visualization.ir.vtk.IR_PrintVtkQuads
+import exastencils.visualization.ir.postprocessing.vtk.IR_PrintVtkQuads
 
 /// IR_PrintVtkNS
 

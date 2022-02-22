@@ -52,9 +52,9 @@ import exastencils.stencil.ir._
 import exastencils.timing.ir._
 import exastencils.util._
 import exastencils.util.ir._
-import exastencils.visualization.ir.IR_ResolveVisualizationPrinters
-import exastencils.visualization.ir.cimg.IR_ResolveCImgFunctions
-import exastencils.visualization.ir.visit.IR_SetupVisit
+import exastencils.visualization.ir.interactive.cimg.IR_ResolveCImgFunctions
+import exastencils.visualization.ir.interactive.visit.IR_SetupVisit
+import exastencils.visualization.ir.postprocessing.IR_ResolveVisualizationPrinters
 
 /// IR_LayerHandler
 

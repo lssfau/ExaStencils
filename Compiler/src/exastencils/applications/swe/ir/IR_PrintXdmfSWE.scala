@@ -14,7 +14,7 @@ import exastencils.grid.ir.IR_AtNode
 import exastencils.io.ir._
 import exastencils.logger.Logger
 import exastencils.util.ir.IR_Print
-import exastencils.visualization.ir.xdmf.IR_PrintXdmf
+import exastencils.visualization.ir.postprocessing.xdmf.IR_PrintXdmf
 
 /// IR_PrintXdmfSWE
 // 2D only

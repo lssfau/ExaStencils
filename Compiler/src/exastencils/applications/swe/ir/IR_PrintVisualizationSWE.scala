@@ -15,7 +15,7 @@ import exastencils.grid.ir.IR_VF_NodePositionAsVec
 import exastencils.io.ir._
 import exastencils.logger.Logger
 import exastencils.util.ir.IR_Print
-import exastencils.visualization.ir.IR_PrintVisualizationTriangles
+import exastencils.visualization.ir.postprocessing.IR_PrintVisualizationTriangles
 
 trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
   def numDimsGrid = 2

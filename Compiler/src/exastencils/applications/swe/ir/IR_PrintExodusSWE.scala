@@ -10,7 +10,7 @@ import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.io.ir.IR_DataBuffer
 import exastencils.io.ir.IR_IV_FragmentInfo
 import exastencils.logger.Logger
-import exastencils.visualization.ir.netCDF.IR_PrintExodus
+import exastencils.visualization.ir.postprocessing.netCDF.IR_PrintExodus
 
 /// IR_PrintExodusSWE
 // 2D only

@@ -7,7 +7,7 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.io.ir._
 import exastencils.logger.Logger
-import exastencils.visualization.ir.IR_ResolveVisualizationPrinters
+import exastencils.visualization.ir.postprocessing.IR_ResolveVisualizationPrinters
 
 /// IR_FieldIO
 

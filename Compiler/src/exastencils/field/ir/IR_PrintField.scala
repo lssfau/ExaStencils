@@ -29,8 +29,8 @@ import exastencils.grid.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_Print
-import exastencils.visualization.ir.netCDF.IR_PrintNetCDF
-import exastencils.visualization.ir.xdmf._
+import exastencils.visualization.ir.postprocessing.netCDF.IR_PrintNetCDF
+import exastencils.visualization.ir.postprocessing.xdmf._
 
 /// IR_PrintField
 
