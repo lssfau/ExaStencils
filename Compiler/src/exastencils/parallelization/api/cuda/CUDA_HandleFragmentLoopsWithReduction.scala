@@ -38,7 +38,7 @@ case class CUDA_HandleFragmentLoopsWithReduction(
 
   val iter = IR_LoopOverFragments.defIt
 
-  val redTarget = reduction.target
+  val redTarget = Duplicate(reduction.target)
   val reductionDt = CUDA_Util.getReductionDatatype(redTarget)
 
   val counter = CUDA_HandleFragmentLoopsWithReduction.getReductionCounter(reduction.targetName)
@@ -80,11 +80,19 @@ case class CUDA_HandleFragmentLoopsWithReduction(
       matrixAssignment("std::copy", redTarget, currCopy, hodt.getSizeArray.product)
   }
 
-  def initCopies() = ListBuffer(
-    IR_VariableDeclaration(copies), // declare copies
-    IR_LoopOverFragments( // init copies
-      copyReductionTarget()),
-    resetReductionTarget()) // reset initial value as it is already in the copies
+  def initCopies() =  {
+    val declCopies = IR_VariableDeclaration(copies)
+    val initCopies = IR_LoopOverFragments(
+      copyReductionTarget())
+    val resetRedTarget = resetReductionTarget() // reset initial value as it is already in the copies
+
+    initCopies.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION)
+
+    ListBuffer(
+      declCopies,
+      initCopies,
+      resetRedTarget)
+  }
 
   def finalizeReduction(body : ListBuffer[IR_Statement]) = {
     // finalize reduction
