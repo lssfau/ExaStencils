@@ -83,10 +83,10 @@ case class CUDA_HandleFragmentLoopsWithReduction(
   def initCopies() =  {
     val declCopies = IR_VariableDeclaration(copies)
     val initCopies = IR_LoopOverFragments(
-      copyReductionTarget())
+      copyReductionTarget()).expandSpecial().inner
     val resetRedTarget = resetReductionTarget() // reset initial value as it is already in the copies
 
-    initCopies.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION)
+    initCopies.parallelization.noVect = true
 
     ListBuffer(
       declCopies,
