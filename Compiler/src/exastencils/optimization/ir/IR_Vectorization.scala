@@ -45,7 +45,7 @@ final class VectorizationException(val msg : String) extends Exception(msg)
 
 private object VectorizeInnermost extends PartialFunction[Node, Transformation.OutputType] {
 
-  private val DEBUG : Boolean = false
+  private val DEBUG : Boolean = true
 
   private val skipFunction = new DynamicVariable[Boolean](false)
 
@@ -53,9 +53,15 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     // do not vectorize device code!
     val cuAnn = CUDA_Util.CUDA_LOOP_ANNOTATION
     node match {
-      case n if n.hasAnnotation(cuAnn) => skipFunction.value = true
-      case _ : CUDA_Kernel             => skipFunction.value = true
-      case _ : IR_FunctionLike         => skipFunction.value = false
+      case n if n.hasAnnotation(cuAnn) =>
+        Logger.warn("Found stmt to skip vect for: " + n.asInstanceOf[IR_Statement].prettyprint())
+        skipFunction.value = true
+      case k : CUDA_Kernel             =>
+        Logger.warn("Found kernel to skip vect for: " + k.getWrapperFctName)
+        skipFunction.value = true
+      case f : IR_FunctionLike         =>
+        Logger.warn("Found function to skip vect for: " + f.name)
+        skipFunction.value = false
       case _                           => // no change in skipFunction
     }
     if (skipFunction.value)
@@ -79,6 +85,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       case ex : VectorizationException =>
         if (DEBUG) {
           val msg : String = "[vect]  unable to vectorize loop: " + ex.msg + "  (line " + ex.getStackTrace()(0).getLineNumber + ')'
+          Logger.warn(msg)
           println(msg) // print directly, logger may be silenced by any surrounding strategy
           return List(IR_Comment(msg), node)
         }
@@ -169,11 +176,13 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     }
 
     def pushScope() : Unit = {
+      Logger.warn("PUSH")
       temporaryMappingStack += Map[IR_Expression, String]()
       vectStmtsStack += new ListBuffer[IR_Statement]()
     }
 
     def popScope() : ListBuffer[IR_Statement] = {
+      Logger.warn("POP")
       temporaryMappingStack.remove(temporaryMappingStack.length - 1)
       vectStmtsStack.remove(vectStmtsStack.length - 1)
     }
@@ -182,12 +191,15 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       var i = temporaryMappingStack.length - 1
       while (i >= 0) {
         val nameOpt : Option[String] = temporaryMappingStack(i).get(expr)
-        if (nameOpt.isDefined)
+        if (nameOpt.isDefined) {
+          Logger.warn("Found name opt: " + nameOpt.get)
           return (nameOpt.get, false)
+        }
         i -= 1
       }
       varID += 1
       val name : String = nameTempl.format(varID)
+      Logger.warn("Create tmp vec with name: " + name + " for expr: " + expr.prettyprint())
       temporaryMappingStack.last.update(expr, name)
       (name, true)
     }
@@ -455,6 +467,9 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
   }
 
   private def vectorizeStmt(stmt : IR_Statement, ctx : LoopCtx) : Unit = {
+
+    Logger.warn("Vectorizing statement: " + stmt.prettyprint())
+
     stmt match {
       case IR_NullStatement => // SIMD_NullStatement? no way...
 
@@ -473,7 +488,9 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         IR_GeneralSimplify.doUntilDoneStandalone(srcWrap)
         IR_GeneralSimplify.doUntilDoneStandalone(lhsSca) // simplify lhsSca too, to ensure identical array accesses have the same AST structure
         // create rhs before lhs to ensure all loads are created
+        Logger.warn("Vectorize rhs")
         val rhsVec = vectorizeExpr(srcWrap.expression, ctx.setLoad())
+        Logger.warn("Vectorize lhs")
         val lhsVec = vectorizeExpr(lhsSca, ctx.setStore())
         // ---- special handling of loop-carried cse variables ----
         lhsSca match {
@@ -601,6 +618,9 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
   }
 
   private def vectorizeExpr(expr : IR_Expression, ctx : LoopCtx) : IR_Expression = {
+
+    Logger.warn("Vectorizing expression: " + expr.prettyprint() + " of type: " + expr.getClass.toString)
+
     expr match {
       // TODO: do not vectorize if base is not aligned?
       case IR_ArrayAccess(base, index, alignedBase) =>
