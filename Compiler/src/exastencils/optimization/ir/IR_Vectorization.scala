@@ -262,7 +262,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     val ctx = new LoopCtx(itVar, incr)
     var postLoopStmt : IR_Statement = null
     if (reduction.isDefined) {
-      val target = reduction.get.target
+      val target = Duplicate(reduction.get.target)
       val operator = reduction.get.op
 
       val (vecTmp : String, true) = ctx.getName(target)

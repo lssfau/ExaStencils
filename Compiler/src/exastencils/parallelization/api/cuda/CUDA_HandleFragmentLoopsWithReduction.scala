@@ -38,17 +38,18 @@ case class CUDA_HandleFragmentLoopsWithReduction(
 
   val iter = IR_LoopOverFragments.defIt
 
-  val redTarget = Duplicate(reduction.target)
+  val red = Duplicate(reduction)
+  val redTarget = Duplicate(red.target)
   val reductionDt = CUDA_Util.getReductionDatatype(redTarget)
 
-  val counter = CUDA_HandleFragmentLoopsWithReduction.getReductionCounter(reduction.targetName)
+  val counter = CUDA_HandleFragmentLoopsWithReduction.getReductionCounter(red.targetName)
 
   val copies = {
     val innerDt = reductionDt match {
       case scalar : IR_ScalarDatatype => scalar
       case hodt : IR_HigherDimensionalDatatype => IR_ArrayDatatype(hodt.resolveBaseDatatype, hodt.getSizeArray.product)
     }
-    IR_VariableAccess(reduction.targetName + "_" + counter, IR_ArrayDatatype(innerDt, Knowledge.domain_numFragmentsPerBlock))
+    IR_VariableAccess(red.targetName + "_fragCpy" + counter, IR_ArrayDatatype(innerDt, Knowledge.domain_numFragmentsPerBlock))
   }
   val currCopy = IR_ArrayAccess(copies, iter)
 
@@ -107,10 +108,10 @@ case class CUDA_HandleFragmentLoopsWithReduction(
         val src = IR_ArrayAccess(currCopy, idx)
         IR_ForLoop(IR_VariableDeclaration(i, IR_IntegerConstant(0)), IR_Lower(i, mat.sizeM), IR_PreIncrement(i), ListBuffer[IR_Statement](
           IR_ForLoop(IR_VariableDeclaration(j, 0), IR_Lower(j, mat.sizeN), IR_PreIncrement(j), ListBuffer[IR_Statement](
-            IR_Assignment(dst, IR_BinaryOperators.createExpression(reduction.op, dst, src))))))
+            IR_Assignment(dst, IR_BinaryOperators.createExpression(red.op, dst, src))))))
 
       case _ : IR_ScalarDatatype =>
-        IR_Assignment(redTarget, IR_BinaryOperators.createExpression(reduction.op, redTarget, currCopy))
+        IR_Assignment(redTarget, IR_BinaryOperators.createExpression(red.op, redTarget, currCopy))
     }
 
     body :+ assign
@@ -118,21 +119,21 @@ case class CUDA_HandleFragmentLoopsWithReduction(
 
   def replaceAccesses(body : ListBuffer[IR_Statement]) = {
     // replace occurrences
-    CUDA_ReplaceReductionAccesses.redTarget = redTarget
-    CUDA_ReplaceReductionAccesses.replacement = currCopy
+    CUDA_ReplaceReductionAccesses.redTarget = Duplicate(redTarget)
+    CUDA_ReplaceReductionAccesses.replacement = Duplicate(currCopy)
     CUDA_ReplaceReductionAccesses.applyStandalone(IR_Scope(body))
   }
 
   def addHandling(loop : IR_ForLoop) = {
     replaceAccesses(loop.body)
     loop.body = finalizeReduction(loop.body)
-    initCopies() :+ loop
+    initCopies() :+ Duplicate(loop)
   }
 
   def addHandling(loop : IR_LoopOverFragments) = {
     replaceAccesses(loop.body)
     loop.body = finalizeReduction(loop.body)
-    initCopies() :+ loop
+    initCopies() :+ Duplicate(loop)
   }
 
   override def expand() : OutputType = {
