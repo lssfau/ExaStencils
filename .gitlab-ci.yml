@@ -294,6 +294,9 @@ test:ParIO_CheckEquality_2D:
         # 2D_Scalar_CheckEquality_ReadAfterWrite
         - mkdir -p data/2D_Scalar_CheckEquality_ReadAfterWrite
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_Scalar_CheckEquality_ReadAfterWrite IOTest/2D_Scalar_CheckEquality_ReadAfterWrite.knowledge "IOTest/2D_Scalar_CheckEquality_ReadAfterWrite.exa4" "" 2 1 Platform/random.platform output
+        # 2D_LayoutTrafo_CheckEquality_ReadAfterWrite
+        - mkdir -p data/2D_LayoutTrafo_CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_LayoutTrafo_CheckEquality_ReadAfterWrite IOTest/2D_LayoutTrafo_CheckEquality_ReadAfterWrite.knowledge "IOTest/2D_LayoutTrafo_CheckEquality_ReadAfterWrite.exa4" "" 2 1 Platform/random.platform output
         # 2D_Vector_CheckEquality_ReadAfterWrite
         - mkdir -p data/2D_Vector_CheckEquality_ReadAfterWrite
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_Vector_CheckEquality_ReadAfterWrite IOTest/2D_Vector_CheckEquality_ReadAfterWrite.knowledge "IOTest/2D_Vector_CheckEquality_ReadAfterWrite.exa4" "" 4 1 Platform/random.platform output
