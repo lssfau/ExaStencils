@@ -12,6 +12,8 @@ import exastencils.domain.ir.IR_IV_FragmentIndex
 import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid.ir.IR_Localization
+import exastencils.layoutTransformation.ir.IR_GenericTransform
+import exastencils.layoutTransformation.ir.IR_LayoutTransformationCollection
 import exastencils.logger.Logger
 
 object IR_DataBuffer {
@@ -31,6 +33,11 @@ object IR_DataBuffer {
       dims
     }
   }
+
+  // determines if field layout was transformed
+  def inLayoutTransformationCollection(field: IR_Field) = IR_LayoutTransformationCollection.get.trafoStmts
+    .collect { case stmt : IR_GenericTransform => stmt } // only consider generic transformations
+    .exists(_.fields.exists { case (name, lvl) => name == field.name && lvl == field.level }) // check if any trafo contains field
 
   // reduce the number of duplicate declarations in the target code for identical dimensionalities
   private val dimensionalityMap : mutable.HashMap[String, IR_VariableDeclaration] = mutable.HashMap()
@@ -75,6 +82,7 @@ object IR_DataBuffer {
       accessPattern = pattern getOrElse IR_RegularAccessPattern((idx : IR_Index) => IR_FieldAccess(field, Duplicate(slot), idx.toExpressionIndex)),
       datasetName = dataset getOrElse IR_NullExpression,
       canonicalStorageLayout = canonicalOrder,
+      fieldLayoutTransformed = inLayoutTransformationCollection(field),
       accessBlockwise = false,
       isTemporaryBuffer = false
     )
@@ -116,6 +124,7 @@ object IR_DataBuffer {
       accessPattern = pattern,
       datasetName = dataset getOrElse IR_NullExpression,
       canonicalStorageLayout = canonicalOrder,
+      fieldLayoutTransformed = inLayoutTransformationCollection(matField),
       accessBlockwise = false,
       isTemporaryBuffer = false
     )
@@ -143,6 +152,7 @@ object IR_DataBuffer {
       accessPattern = pattern getOrElse IR_RegularAccessPattern((idx : IR_Index) => tmpBuf.at(idx)),
       datasetName = dataset getOrElse IR_NullExpression,
       canonicalStorageLayout = false,
+      fieldLayoutTransformed = false,
       accessBlockwise = true, // currently only implemented as block-wise to reduce number of file accesses
       isTemporaryBuffer = true
     )
@@ -167,6 +177,7 @@ case class IR_DataBuffer(
     var domainIdx : Int, // ID of the (sub)domain the buffer lives on
     var name : String, // name of the buffer
     var datasetName : IR_Expression, // dataset name to be used in netCDF/HDF5 files
+    var fieldLayoutTransformed : Boolean, // field layout transformed
     var canonicalStorageLayout : Boolean, // describes the data layout in the file
     var accessBlockwise : Boolean, // specifies if the data is stored per fragment (field) or block (temp. buffers)
     var isTemporaryBuffer : Boolean // specified if underlying buffer is a temp. buffer (can be used to implement temp. buffers where data is stored per fragment in the future)

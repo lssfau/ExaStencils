@@ -238,7 +238,7 @@ case class IR_PrintXdmfSWE(
   }
 
   override def discFieldsToDatabuffers(discField : ListBuffer[IR_Field]) : ListBuffer[IR_DataBuffer] = {
-    // source for data buffer is dependent on reduction mode: temp buffer or field
+    // source for data buffer is dependent of reduction mode: temp buffer or field
     val fieldname = getBasenameDiscField(discField)
     val dataset = datasetFields(fieldname).head
     if (Knowledge.swe_nodalReductionPrint) {
@@ -263,6 +263,7 @@ case class IR_PrintXdmfSWE(
           accessPattern = IR_RegularAccessPattern((idx : IR_Index) => IR_FieldAccess(field, slot, idx.toExpressionIndex)),
           datasetName = datasetFields(getBasenameDiscField(discField))(fid),
           name = field.name,
+          fieldLayoutTransformed = IR_DataBuffer.inLayoutTransformationCollection(field),
           canonicalStorageLayout = false,
           accessBlockwise = false,
           isTemporaryBuffer = false
