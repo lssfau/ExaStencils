@@ -59,8 +59,9 @@ case class CUDA_HandleFragmentLoopsWithReduction(
     var replacement : IR_Expression = IR_NullExpression
 
     this += new Transformation("Replace", {
+      case red : IR_Reduction => red
       case expr : IR_Expression if expr == redTarget => Duplicate(replacement)
-    })
+    }, recursive = false)
   }
 
   def matrixAssignment(stdFunc : String, dst : IR_Expression, src : IR_Expression, size : Int) =
