@@ -9,6 +9,7 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.config.Platform
 import exastencils.config.Settings
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.StatementList
 import exastencils.logger.Logger
@@ -47,6 +48,38 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
       IR_UnknownDatatype
   }
   def mpiDatatypeBuffer(buf : IR_DataBuffer) = IR_VariableAccess(buf.datatype.resolveBaseDatatype.prettyprint_mpi, IR_UnknownDatatype)
+
+  // handling for field layout transformations
+  var allocateCopiesLayoutTrafos : ListBuffer[IR_Statement] = ListBuffer[IR_Statement]()
+  var handleLayoutTrafos : ListBuffer[IR_Statement] = ListBuffer[IR_Statement]()
+  dataBuffers.zipWithIndex.foreach { case (dataBuffer, bufIdx) =>
+    // create copy for layout trafos if not stream-based IO
+    if (!isInstanceOf[IR_Iostream] && dataBuffer.layoutTransformationTarget.isDefined) {
+      // replace databuffer in array with copy
+      val buf = Duplicate(dataBuffer)
+      val copy = IR_IV_TemporaryBuffer(buf.datatype.resolveBaseDatatype, buf.localization, buf.name + "_copy_layout_trafo",
+        buf.domainIdx, buf.accessBlockwise, buf.innerDimsLocal)
+      val pattern = buf.accessPattern match {
+        case _ : IR_RegularAccessPattern => IR_RegularAccessPattern(IR_AccessTempBufferFunction(copy))
+        case swe : IR_SWEAccessPattern   => IR_SWEAccessPattern(IR_AccessTempBufferFunction(copy), swe.accessIndices)
+      }
+      val copyBuf = IR_DataBuffer(copy, buf.slot, Some(pattern), Some(buf.datasetName), buf.canonicalOrder)
+
+      // fill copy with values from original buffer
+      val indices = copyBuf.getIndicesMultiDimDatatypes
+      allocateCopiesLayoutTrafos += copy.allocateMemory
+      handleLayoutTrafos += IR_LoopOverFragments(
+        copyBuf.loopOverDims(true,
+          indices.map(idx =>
+            if (writeAccess)
+              IR_Assignment(copyBuf.getAccess(idx), buf.getAccess(idx))
+            else
+              IR_Assignment(buf.getAccess(idx), copyBuf.getAccess(idx))
+          ) : _*))
+
+      dataBuffers(bufIdx) = copyBuf // replace buffer
+    }
+  }
 
   // to be implemented by all subclasses
   def dataBuffers : ListBuffer[IR_DataBuffer]
@@ -202,6 +235,13 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
       stmts ++= cleanupAccess()
       stmts ++= closeFile()
     }
+
+    // handling for fields with transformed layout
+    if (writeAccess) // copy-in/out
+      stmts.prepend(handleLayoutTrafos : _*)
+    else
+      stmts.append(handleLayoutTrafos : _*)
+    stmts.prepend(allocateCopiesLayoutTrafos : _*) // alloc copies
 
     // reset lookup tables
     IR_DataBuffer.resetDimensionalityMap()
