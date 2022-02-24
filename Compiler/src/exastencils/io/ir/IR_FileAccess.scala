@@ -57,7 +57,7 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
     if (!isInstanceOf[IR_Iostream] && dataBuffer.layoutTransformationTarget.isDefined) {
       // replace databuffer in array with copy
       val buf = Duplicate(dataBuffer)
-      val copy = IR_IV_TemporaryBuffer(buf.datatype.resolveBaseDatatype, buf.localization, buf.name + "_copy_layout_trafo",
+      val copy = IR_IV_TemporaryBuffer(buf.datatype.resolveBaseDatatype, buf.localization, IR_FileAccess.declareVariable(buf.name + "_copy_layout_trafo"),
         buf.domainIdx, buf.accessBlockwise, buf.innerDimsLocal)
       val pattern = buf.accessPattern match {
         case _ : IR_RegularAccessPattern => IR_RegularAccessPattern(IR_AccessTempBufferFunction(copy))
