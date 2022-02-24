@@ -89,9 +89,9 @@ Function Application {
   // toggle I/O modes here
   Val lockingIO : Bool = true
   Val fppIO     : Bool = true
-  Val hdfIO     : Bool = false
-  Val mpiIO     : Bool = false
-  Val ncIO      : Bool = false
+  Val hdfIO     : Bool = true
+  Val mpiIO     : Bool = true
+  Val ncIO      : Bool = true
   Val sionIO    : Bool = true
 
   if (lockingIO) {
@@ -122,11 +122,11 @@ Function Application {
 
   if (hdfIO) {
     startTimer ("HDF5: writeField")
-    // writeField_hdf5 ("data/2D_LayoutTrafo_CheckEquality_ReadAfterWrite/src.h5", "/test/abs/path/src", src@finest)
+    writeField_hdf5 ("data/2D_LayoutTrafo_CheckEquality_ReadAfterWrite/src.h5", "/test/abs/path/src", src@finest)
     stopTimer ("HDF5: writeField")
 
     startTimer ("HDF5: readField")
-    // readField_hdf5 ("data/2D_LayoutTrafo_CheckEquality_ReadAfterWrite/src.h5", "/test/abs/path/src", dest@finest)
+    readField_hdf5 ("data/2D_LayoutTrafo_CheckEquality_ReadAfterWrite/src.h5", "/test/abs/path/src", dest@finest)
     stopTimer ("HDF5: readField")
 
     checkEquality@finest ()
@@ -136,11 +136,11 @@ Function Application {
   if (mpiIO) {
     Val repr : String = "native"
     startTimer ("MPIIO: writeField")
-    // writeField_mpiio ("data/2D_LayoutTrafo_CheckEquality_ReadAfterWrite/src.bin", src@finest, !useGhost, !useCanonicalLayout, repr)
+    writeField_mpiio ("data/2D_LayoutTrafo_CheckEquality_ReadAfterWrite/src.bin", src@finest, !useGhost, !useCanonicalLayout, repr)
     stopTimer ("MPIIO: writeField")
 
     startTimer ("MPIIO: readField")
-    // readField_mpiio ("data/2D_LayoutTrafo_CheckEquality_ReadAfterWrite/src.bin", dest@finest, !useGhost, !useCanonicalLayout, repr)
+    readField_mpiio ("data/2D_LayoutTrafo_CheckEquality_ReadAfterWrite/src.bin", dest@finest, !useGhost, !useCanonicalLayout, repr)
     stopTimer ("MPIIO: readField")
 
     checkEquality@finest ()
@@ -149,11 +149,11 @@ Function Application {
 
   if (ncIO) {
     startTimer ("PnetCDF: writeField")
-    // writeField_nc ("data/2D_LayoutTrafo_CheckEquality_ReadAfterWrite/src.nc", "field_src", src@finest, useGhost, !useCanonicalLayout)
+    writeField_nc ("data/2D_LayoutTrafo_CheckEquality_ReadAfterWrite/src.nc", "field_src", src@finest, useGhost, !useCanonicalLayout)
     stopTimer ("PnetCDF: writeField")
 
     startTimer ("PnetCDF: readField")
-    // readField_nc ("data/2D_LayoutTrafo_CheckEquality_ReadAfterWrite/src.nc", "field_src", dest@finest, useGhost, !useCanonicalLayout)
+    readField_nc ("data/2D_LayoutTrafo_CheckEquality_ReadAfterWrite/src.nc", "field_src", dest@finest, useGhost, !useCanonicalLayout)
     stopTimer ("PnetCDF: readField")
 
     checkEquality@finest ()
