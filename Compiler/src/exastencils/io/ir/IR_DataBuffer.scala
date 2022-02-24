@@ -135,7 +135,8 @@ object IR_DataBuffer {
       tmpBuf : IR_IV_TemporaryBuffer,
       slot : IR_Expression,
       pattern : Option[IR_AccessPattern],
-      dataset : Option[IR_Expression]) : IR_DataBuffer = {
+      dataset : Option[IR_Expression],
+      canonicalOrder : Boolean = false) : IR_DataBuffer = {
 
     new IR_DataBuffer(
       slot = slot,
@@ -151,9 +152,9 @@ object IR_DataBuffer {
       name = tmpBuf.name,
       accessPattern = pattern getOrElse IR_RegularAccessPattern(IR_AccessTempBufferFunction(tmpBuf)),
       datasetName = dataset getOrElse IR_NullExpression,
-      canonicalStorageLayout = false,
+      canonicalStorageLayout = canonicalOrder,
       layoutTransformationTarget = None,
-      accessBlockwise = true, // currently only implemented as block-wise to reduce number of file accesses
+      accessBlockwise = tmpBuf.blockwise,
       isTemporaryBuffer = true
     )
   }
