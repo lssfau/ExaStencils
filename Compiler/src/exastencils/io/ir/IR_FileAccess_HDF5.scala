@@ -179,7 +179,7 @@ case class IR_FileAccess_HDF5(
     statements ++= H5Pcreate(fcpl, IR_VariableAccess("H5P_FILE_CREATE", IR_UnknownDatatype))
     if (Knowledge.hdf5_use_chunking) {
       val ik = IR_SimplifyExpression.simplifyIntegralExpr(
-        dataBuffers.map(buf => if (buf.isTemporaryBuffer) IR_IntegerConstant(Knowledge.mpi_numThreads) else IR_IV_TotalNumFrags(domainIdx)).reduce(_ + _) / 2
+        dataBuffers.map(buf => if (buf.accessBlockwise) IR_IntegerConstant(Knowledge.mpi_numThreads) else IR_IV_TotalNumFrags(domainIdx)).reduce(_ + _) / 2
       )
       statements += IR_IfCondition(ik > 1 AndAnd ik < 65536, // cannot exceed limit: https://support.hdfgroup.org/HDF5/doc/RM/RM_H5P.html#Property-SetIstoreK
         H5Pset_istore_k(err, fcpl, ik))

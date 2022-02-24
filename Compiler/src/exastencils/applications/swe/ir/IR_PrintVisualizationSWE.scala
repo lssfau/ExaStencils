@@ -36,7 +36,7 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
   def discFields : ListMap[String, ListBuffer[IR_Field]] = ListMap(
     discFieldCollection.map(discField => getBasenameDiscField(discField) -> discField) : _*)
   def discFieldsReduced : ListMap[String, IR_IV_TemporaryBuffer] = discFields.map { discField =>
-    discField._1 -> IR_IV_TemporaryBuffer(discField._2.head.resolveBaseDatatype, IR_AtNode, discField._1, domainIndex, dimsPositionsFrag)
+    discField._1 -> IR_IV_TemporaryBuffer(discField._2.head.resolveBaseDatatype, IR_AtNode, discField._1, domainIndex, blockwise = true, dimsPositionsFrag)
   }
 
   def etaDiscLower0 : IR_Field = IR_FieldCollection.getByIdentifier("etaDiscLower0", level).get
@@ -70,7 +70,7 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
     - can be enabled for comparison in Xdmf printers via "swe_interleaveDiscComponentsPrint" flag
   */
   def discFieldBuffers : ListMap[String, IR_IV_TemporaryBuffer] = discFields.map { discField =>
-    discField._1 -> IR_IV_TemporaryBuffer(discField._2.head.resolveBaseDatatype, IR_AtNode, discField._1, domainIndex, dimsPositionsFrag)
+    discField._1 -> IR_IV_TemporaryBuffer(discField._2.head.resolveBaseDatatype, IR_AtNode, discField._1, domainIndex, blockwise = true, dimsPositionsFrag)
   }
 
   def setupNonReducedDiscData() : ListBuffer[IR_Statement] = {
@@ -91,7 +91,7 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
           IR_LoopOverDimensions(numDimsGrid, indexRangeCells,
             (0 until numAccessesPerCell).to[ListBuffer].map(idx => {
               IR_Assignment(
-                tmpBuf.at(offset + idx),
+                IR_IV_TemporaryBuffer.accessArray(tmpBuf, offset + idx),
                 IR_FieldAccess(discFields(tmpBuf.name)(idx), IR_IV_ActiveSlot(someCellField), IR_LoopOverDimensions.defIt(numDimsGrid))) : IR_Statement
             }))))
     }
@@ -106,9 +106,9 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
     Some(nodeOffsets.map(_.toExpressionIndex))
 
   def nodalAccess(field : IR_Field) = if (Knowledge.swe_nodalReductionPrint)
-    IR_RegularAccessPattern((idx : IR_Index) => IR_FieldAccess(field, IR_IV_ActiveSlot(field), idx.toExpressionIndex))
+    IR_RegularAccessPattern(IR_AccessFieldFunction(field, IR_IV_ActiveSlot(field)))
   else
-    IR_SWEAccessPattern((idx : IR_Index) => IR_FieldAccess(field, IR_IV_ActiveSlot(field), idx.toExpressionIndex), accessIndices)
+    IR_SWEAccessPattern(IR_AccessFieldFunction(field, IR_IV_ActiveSlot(field)), accessIndices)
 
   // glue logic for disc fields to be mapped to data buffers
   def discFieldsToDatabuffers(discField : ListBuffer[IR_Field]) : ListBuffer[IR_DataBuffer] = ???

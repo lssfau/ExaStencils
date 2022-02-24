@@ -180,7 +180,8 @@ trait IR_PrintVisualization {
       initBuffer)
   }
 
-  def connectivityBuf = IR_IV_TemporaryBuffer(IR_IntegerDatatype, IR_AtCellCenter, "connectivity", domainIndex, ListBuffer[IR_Expression]() ++ dimsConnectivityFrag)
+  def connectivityBuf = IR_IV_TemporaryBuffer(IR_IntegerDatatype, IR_AtCellCenter, "connectivity",
+    domainIndex, blockwise = true, ListBuffer[IR_Expression]() ++ dimsConnectivityFrag)
 
   // allocates and initializes buffer with connectivity info. this buffer is then passed to the I/O library
   def setupConnectivity(global : Boolean) : ListBuffer[IR_Statement] = {
@@ -192,7 +193,7 @@ trait IR_PrintVisualization {
     val initBuffer : ListBuffer[IR_Statement] = connectivityForCell().indices.map(d => {
       val linearizedLoopIdx = loopOverCells().indices.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
       IR_Assignment(
-        connectivityBuf.at(IR_LoopOverFragments.defIt * sizeConnectionFrag + connectivityForCell().length * linearizedLoopIdx + d),
+        IR_IV_TemporaryBuffer.accessArray(connectivityBuf, IR_LoopOverFragments.defIt * sizeConnectionFrag + connectivityForCell().length * linearizedLoopIdx + d),
         connectivityForCell(global)(d)) : IR_Statement
     }).to[ListBuffer]
 
@@ -207,7 +208,8 @@ trait IR_PrintVisualization {
   val gridPositionsCopied : Boolean = Knowledge.grid_isAxisAligned || Knowledge.grid_isUniform // otherwise we directly use a vf's associated field
   def cellCentersBuf : ListBuffer[IR_IV_TemporaryBuffer] = (0 until numDimsGrid).to[ListBuffer].map { d =>
     val dims = (loopOverCells().indices.end - loopOverCells().indices.begin).indices.to[ListBuffer]
-    IR_IV_TemporaryBuffer(IR_RealDatatype, IR_AtCellCenter, "cellCenter" + ('X' + d).toChar.toString, domainIndex, dims)
+    IR_IV_TemporaryBuffer(IR_RealDatatype, IR_AtCellCenter, "cellCenter" + ('X' + d).toChar.toString,
+      domainIndex, blockwise = true, dims)
   }
 
   // on some occasions, the virtual field can be directly passed to the library. this buffer is then passed to the I/O library
@@ -218,7 +220,7 @@ trait IR_PrintVisualization {
     val dims = (indexRange.end - indexRange.begin).indices.to[ListBuffer]
     val linearizedLoopIdx = indexRange.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
     val init = IR_Assignment(
-      cellCentersBuf(dim).at(IR_LoopOverFragments.defIt * dims.reduce(_ * _) + linearizedLoopIdx),
+      IR_IV_TemporaryBuffer.accessArray(cellCentersBuf(dim), IR_LoopOverFragments.defIt * dims.reduce(_ * _) + linearizedLoopIdx),
       getPos(IR_AtCellCenter, level, dim))
 
     // declare, allocate and init temp. buffer with cell centers
@@ -243,7 +245,8 @@ trait IR_PrintVisualization {
     indexRange.end(faceDir) += 1
     val dims = (indexRange.end - indexRange.begin).indices.to[ListBuffer]
 
-    (0 until numDimsGrid).map(d => IR_IV_TemporaryBuffer(IR_RealDatatype, IR_AtFaceCenter(faceDir), "facePos" + ('X' + d).toChar.toString, domainIndex, dims)).to[ListBuffer]
+    (0 until numDimsGrid).map(d => IR_IV_TemporaryBuffer(IR_RealDatatype, IR_AtFaceCenter(faceDir), "facePos" + ('X' + d).toChar.toString,
+      domainIndex, blockwise = true, dims)).to[ListBuffer]
   }
 
   def initFacePosBuf(faceDir : Int)(dim : Int) : ListBuffer[IR_Statement] = {
@@ -261,7 +264,7 @@ trait IR_PrintVisualization {
             IR_LoopOverDimensions(numDimsGrid,
               indexRange,
               IR_Assignment(
-                facePositionsBuf(faceDir)(dim).at(IR_LoopOverFragments.defIt * dims.reduce(_ * _) + linearizedLoopIdx),
+                IR_IV_TemporaryBuffer.accessArray(facePositionsBuf(faceDir)(dim), IR_LoopOverFragments.defIt * dims.reduce(_ * _) + linearizedLoopIdx),
                 getPos(IR_AtFaceCenter(faceDir), level, dim)))))))
   }
 
@@ -269,7 +272,8 @@ trait IR_PrintVisualization {
   def setupFacePositions(faceDir : Int) : ListBuffer[IR_Statement] = (0 until numDimsGrid).flatMap(initFacePosBuf(faceDir)).to[ListBuffer]
 
   def nodePositionsBuf : ListBuffer[IR_IV_TemporaryBuffer] = (0 until numDimsGrid).to[ListBuffer].map { d =>
-    IR_IV_TemporaryBuffer(IR_RealDatatype, IR_AtNode, "nodePosition" + ('X' + d).toChar.toString, domainIndex, dimsPositionsFrag)
+    IR_IV_TemporaryBuffer(IR_RealDatatype, IR_AtNode, "nodePosition" + ('X' + d).toChar.toString,
+      domainIndex, blockwise = true, dimsPositionsFrag)
   }
 
   def initNodePosBuf(dim : Int, copyNodePositions : Boolean = gridPositionsCopied) : ListBuffer[IR_Statement] = if (!copyNodePositions) {
@@ -281,7 +285,7 @@ trait IR_PrintVisualization {
     val initBuffer : ListBuffer[IR_Statement] = (0 until numAccPerCell).map(n => {
       val linearizedLoopIdx = loopOverDims(isNodalLoop).indices.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
       IR_Assignment(
-        nodePositionsBuf(dim).at(IR_LoopOverFragments.defIt * numPointsPerFrag + numAccPerCell * linearizedLoopIdx + n),
+        IR_IV_TemporaryBuffer.accessArray(nodePositionsBuf(dim), IR_LoopOverFragments.defIt * numPointsPerFrag + numAccPerCell * linearizedLoopIdx + n),
         getPos(IR_AtNode, level, dim, IR_LoopOverDimensions.defIt(numDimsGrid) + nodeOffsets(n))) : IR_Statement
     }).to[ListBuffer]
 

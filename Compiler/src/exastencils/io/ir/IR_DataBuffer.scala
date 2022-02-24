@@ -3,14 +3,13 @@ package exastencils.io.ir
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_FragmentIndex
 import exastencils.field.ir.IR_Field
-import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid.ir.IR_Localization
 import exastencils.layoutTransformation.ir.IR_GenericTransform
 import exastencils.layoutTransformation.ir.IR_LayoutTransformationCollection
@@ -35,7 +34,7 @@ object IR_DataBuffer {
   }
 
   // determines if field layout was transformed
-  def inLayoutTransformationCollection(field: IR_Field) = IR_LayoutTransformationCollection.getOpt.isDefined &&
+  def inLayoutTransformationCollection(field: IR_Field) : Boolean = IR_LayoutTransformationCollection.getOpt.isDefined &&
     IR_LayoutTransformationCollection.getOpt.get.trafoStmts
       .collect { case stmt : IR_GenericTransform => stmt } // only consider generic transformations
       .exists(_.fields.exists { case (name, lvl) => name == field.name && lvl == field.level }) // check if any trafo contains field
@@ -79,8 +78,8 @@ object IR_DataBuffer {
       numDimsGrid = field.layout.numDimsGrid,
       numDimsData = field.layout.numDimsData,
       domainIdx = field.domain.index,
-      name = field.name,
-      accessPattern = pattern getOrElse IR_RegularAccessPattern((idx : IR_Index) => IR_FieldAccess(field, Duplicate(slot), idx.toExpressionIndex)),
+      name = field.codeName,
+      accessPattern = pattern getOrElse IR_RegularAccessPattern(IR_AccessFieldFunction(field, Duplicate(slot))),
       datasetName = dataset getOrElse IR_NullExpression,
       canonicalStorageLayout = canonicalOrder,
       fieldLayoutTransformed = inLayoutTransformationCollection(field),
@@ -102,13 +101,13 @@ object IR_DataBuffer {
       canonicalOrder : Boolean) : IR_DataBuffer = {
 
     // access component
-    def highDimIndex(idx : IR_Index) = IR_ExpressionIndex(idx.toExpressionIndex.indices :+ indexRow :+ indexCol)
+    val componentIndex = Some(IR_ExpressionIndex(indexRow, indexCol))
 
     val slot = 0
     val pattern = if (accessIndices.isDefined && accessIndices.get.size == 6)
-      IR_SWEAccessPattern((idx : IR_Index) => IR_FieldAccess(matField, slot, highDimIndex(idx)), accessIndices)
+      IR_SWEAccessPattern(IR_AccessFieldFunction(matField, slot, componentIndex), accessIndices)
     else
-      IR_RegularAccessPattern((idx : IR_Index) => IR_FieldAccess(matField, slot, highDimIndex(idx)))
+      IR_RegularAccessPattern(IR_AccessFieldFunction(matField, slot, componentIndex))
 
     new IR_DataBuffer(
       slot = slot,
@@ -121,7 +120,7 @@ object IR_DataBuffer {
       numDimsGrid = matField.layout.numDimsGrid,
       numDimsData = matField.layout.numDimsGrid,
       domainIdx = matField.domain.index,
-      name = matField.name,
+      name = matField.codeName,
       accessPattern = pattern,
       datasetName = dataset getOrElse IR_NullExpression,
       canonicalStorageLayout = canonicalOrder,
@@ -150,7 +149,7 @@ object IR_DataBuffer {
       numDimsData = tmpBuf.numDims,
       domainIdx = tmpBuf.domainIdx,
       name = tmpBuf.name,
-      accessPattern = pattern getOrElse IR_RegularAccessPattern((idx : IR_Index) => tmpBuf.at(idx)),
+      accessPattern = pattern getOrElse IR_RegularAccessPattern(IR_AccessTempBufferFunction(tmpBuf)),
       datasetName = dataset getOrElse IR_NullExpression,
       canonicalStorageLayout = false,
       fieldLayoutTransformed = false,
@@ -180,8 +179,8 @@ case class IR_DataBuffer(
     var datasetName : IR_Expression, // dataset name to be used in netCDF/HDF5 files
     var fieldLayoutTransformed : Boolean, // field layout transformed
     var canonicalStorageLayout : Boolean, // describes the data layout in the file
-    var accessBlockwise : Boolean, // specifies if the data is stored per fragment (field) or block (temp. buffers)
-    var isTemporaryBuffer : Boolean // specified if underlying buffer is a temp. buffer (can be used to implement temp. buffers where data is stored per fragment in the future)
+    var accessBlockwise : Boolean, // specifies if the data is stored per fragment (field/temp. buffers) or block (temp. buffers)
+    var isTemporaryBuffer : Boolean // specified if underlying buffer is a temp. buffer
 ) {
 
   /* In this implementation, two data layouts are supported:

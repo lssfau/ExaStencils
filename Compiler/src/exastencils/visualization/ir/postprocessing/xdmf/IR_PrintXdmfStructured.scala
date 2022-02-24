@@ -53,7 +53,7 @@ abstract class IR_PrintXdmfStructured(
   }
   val tmpBufStag : Option[IR_IV_TemporaryBuffer] = if (staggerDim >= 0) {
     val dims = ListBuffer[IR_Expression](numCells_x, numCells_y, numCells_z).take(numDimsGrid)
-    Some(IR_IV_TemporaryBuffer(field.resolveBaseDatatype, IR_AtCellCenter, "tmp_" + field.name, domainIndex, dims))
+    Some(IR_IV_TemporaryBuffer(field.resolveBaseDatatype, IR_AtCellCenter, "tmp_" + field.name, domainIndex, blockwise = true, dims))
   } else {
     None
   }
@@ -133,7 +133,7 @@ abstract class IR_PrintXdmfStructured(
       IR_IfCondition(IR_IV_IsValidForDomain(dataBuffer.domainIdx),
         IR_LoopOverDimensions(numDimsGrid, idxRange,
           IR_Assignment(
-            tmpBufDest.at(IR_LoopOverFragments.defIt * numCellsPerFrag + linearizedIdx),
+            IR_IV_TemporaryBuffer.accessArray(tmpBufDest, IR_LoopOverFragments.defIt * numCellsPerFrag + linearizedIdx),
             mean))))
 
     stmts

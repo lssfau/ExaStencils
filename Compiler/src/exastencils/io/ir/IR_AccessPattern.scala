@@ -6,8 +6,25 @@ import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
+import exastencils.field.ir.IR_Field
+import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid.ir.IR_Localization
 import exastencils.logger.Logger
+
+abstract class IR_AccessFunction extends IR_Node {
+  def get(idx : IR_Index) : IR_Access
+}
+
+case class IR_AccessFieldFunction(var field : IR_Field, var slot : IR_Expression, var hodtComponentIndex : Option[IR_Index] = None) extends IR_AccessFunction {
+  override def get(idx : IR_Index) : IR_Access = {
+    val index = if (hodtComponentIndex.isDefined) idx + hodtComponentIndex.get else idx
+    IR_FieldAccess(field, slot, index.toExpressionIndex)
+  }
+}
+
+case class IR_AccessTempBufferFunction(var tempBuffer : IR_IV_TemporaryBuffer) extends IR_AccessFunction {
+  override def get(idx : IR_Index) = IR_IV_TemporaryBuffer.accessArray(tempBuffer, idx)
+}
 
 /// IR_AccessPattern
 // consists of callback function and members to describe different access patterns
@@ -16,12 +33,12 @@ import exastencils.logger.Logger
 
 abstract class IR_AccessPattern extends IR_Node {
 
-  def accessCallbackFuntion : IR_Index => IR_Access // callback function to be registered and used by IR_DataBuffer wrapper
+  def accessFunction : IR_AccessFunction // callback function to be registered and used by IR_DataBuffer wrapper
   def accessIndices : Option[ListBuffer[IR_Index]] // contains N indices to be accessed for each grid element (e.g. nodes/cells/...)
 
   def numAccesses : Int = if (accessIndices.isDefined) accessIndices.get.length else 1
 
-  def callAccessFunction(index : IR_Index) : IR_Access = accessCallbackFuntion(index)
+  def callAccessFunction(index : IR_Index) : IR_Access = accessFunction.get(index)
 
   // get list of accesses for each index defined by the pattern
   def accessesForPattern(indices : IR_Index*) : ListBuffer[ListBuffer[IR_Access]]
@@ -34,8 +51,7 @@ abstract class IR_AccessPattern extends IR_Node {
 }
 
 // regular access pattern. no special treatment required
-case class IR_RegularAccessPattern(
-    var accessCallbackFuntion : IR_Index => IR_Access) extends IR_AccessPattern {
+case class IR_RegularAccessPattern(var accessFunction : IR_AccessFunction) extends IR_AccessPattern {
 
   override def accessIndices : Option[ListBuffer[IR_Index]] = None
 
@@ -52,7 +68,7 @@ case class IR_RegularAccessPattern(
 // special access pattern for nodal fields in SWE (e.g. node positions and bath) applications
 // 6 elements are accesses per grid cell
 case class IR_SWEAccessPattern(
-    var accessCallbackFuntion : IR_Index => IR_Access,
+    var accessFunction : IR_AccessFunction,
     var accessIndices : Option[ListBuffer[IR_Index]]) extends IR_AccessPattern {
 
   if (accessIndices.isEmpty || (accessIndices.isDefined && accessIndices.get.size != 6))

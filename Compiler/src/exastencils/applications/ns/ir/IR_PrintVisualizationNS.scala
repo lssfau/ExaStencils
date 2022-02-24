@@ -49,11 +49,12 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads {
 
   // for exodusII: velocity vector must be provided as separate components
   def velocityComponentX = IR_IV_TemporaryBuffer(u.resolveBaseDatatype, IR_AtCellCenter, "velX", domainIndex,
-    ListBuffer(numCells_x, numCells_y, numCells_z))
+    blockwise = true, ListBuffer(numCells_x, numCells_y, numCells_z))
   def velocityComponentY = IR_IV_TemporaryBuffer(v.resolveBaseDatatype, IR_AtCellCenter, "velY", domainIndex,
-    ListBuffer(numCells_x, numCells_y, numCells_z))
+    blockwise = true, ListBuffer(numCells_x, numCells_y, numCells_z))
   def velocityComponentZ : Option[IR_IV_TemporaryBuffer] = if (numDimsGrid > 2)
-    Some(IR_IV_TemporaryBuffer(w.resolveBaseDatatype, IR_AtCellCenter, "velZ", domainIndex, ListBuffer(numCells_x, numCells_y, numCells_z)))
+    Some(IR_IV_TemporaryBuffer(w.resolveBaseDatatype, IR_AtCellCenter, "velZ", domainIndex,
+      blockwise = true, ListBuffer(numCells_x, numCells_y, numCells_z)))
   else
     None
 
@@ -75,7 +76,7 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads {
         IR_IfCondition(IR_IV_IsValidForDomain(p.domain.index),
           IR_LoopOverDimensions(numDimsGrid, idxRange,
             IR_Assignment(
-              vel.at(IR_LoopOverFragments.defIt * numCellsPerFrag + linearizedIdx),
+              IR_IV_TemporaryBuffer.accessArray(vel, IR_LoopOverFragments.defIt * numCellsPerFrag + linearizedIdx),
               velAsVec(dir)))))
     }
 
@@ -83,7 +84,7 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads {
   }
 
   def velocityBuf = IR_IV_TemporaryBuffer(u.resolveBaseDatatype, IR_AtCellCenter, "vel", domainIndex,
-    ListBuffer(IR_IntegerConstant(numDimsGrid), numCells_x, numCells_y, numCells_z))
+    blockwise = true, ListBuffer(IR_IntegerConstant(numDimsGrid), numCells_x, numCells_y, numCells_z))
 
   def setupVelocityBuf : ListBuffer[IR_Statement] = {
     // init buffer with values of vector field
@@ -98,7 +99,7 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads {
     val initBuffer : ListBuffer[IR_Statement] = (0 until numDimsGrid).map(d => {
       val linearizedIdx = idxRange.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
       IR_Assignment(
-        velocityBuf.at(IR_LoopOverFragments.defIt * numCellsPerFrag * numDimsGrid + numDimsGrid * linearizedIdx + d),
+        IR_IV_TemporaryBuffer.accessArray(velocityBuf, IR_LoopOverFragments.defIt * numCellsPerFrag * numDimsGrid + numDimsGrid * linearizedIdx + d),
         velAsVec(d)) : IR_Statement
     }).to[ListBuffer]
 

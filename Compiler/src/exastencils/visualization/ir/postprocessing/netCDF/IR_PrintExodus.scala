@@ -255,7 +255,7 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
         val indexRangeTransformed = buf.accessPattern.transformExpressionIndexRange(indexRange.begin, indexRange.end)
 
         val dims = buf.accessPattern.transformDataExtents((indexRange.end - indexRange.begin).indices.to[ListBuffer], buf.localization, orderKJI = false)
-        val tmp = IR_IV_TemporaryBuffer(buf.datatype.resolveBaseDatatype, buf.localization, "tmp" + buf.name, buf.domainIdx, dims)
+        val tmp = IR_IV_TemporaryBuffer(buf.datatype.resolveBaseDatatype, buf.localization, "tmp" + buf.name, buf.domainIdx, blockwise = true, dims)
         val accesses = buf.accessPattern.accessIndices getOrElse ListBuffer(IR_ConstIndex(Array.fill(buf.numDimsData)(0)))
         val numAccesses = buf.accessPattern.numAccesses
         val offset = IR_LoopOverFragments.defIt * dims.reduce(_ * _) + numAccesses * indexRangeTransformed.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
@@ -266,10 +266,11 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
             IR_LoopOverDimensions(numDimsGrid, indexRangeTransformed,
               (0 until numAccesses).to[ListBuffer].map(idx => {
                 IR_Assignment(
-                  tmp.at(offset + idx), buf.getAccess(IR_LoopOverDimensions.defIt(numDimsGrid) + accesses(idx))) : IR_Statement
+                  IR_IV_TemporaryBuffer.accessArray(tmp, offset + idx),
+                  buf.getAccess(IR_LoopOverDimensions.defIt(numDimsGrid) + accesses(idx))) : IR_Statement
               }))))
 
-        IR_AddressOf(tmp.at(0))
+        IR_AddressOf(IR_IV_TemporaryBuffer.accessArray(tmp, 0))
       } else {
         buf.getBaseAddress
       }

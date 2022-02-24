@@ -94,7 +94,7 @@ case class IR_PrintXdmfSWE(
   */
   val enforceCopiesHdf5 : Boolean = ioInterface == "hdf5" && !Knowledge.swe_nodalReductionPrint
   def nodalFieldBuffersHdf5 : ListMap[String, IR_IV_TemporaryBuffer] = ListMap(nodalFields.toSeq.map { nodeFieldMap =>
-    nodeFieldMap._1 -> IR_IV_TemporaryBuffer(nodeFieldMap._2.resolveBaseDatatype, IR_AtNode, nodeFieldMap._1, domainIndex, dimsPositionsFrag)
+    nodeFieldMap._1 -> IR_IV_TemporaryBuffer(nodeFieldMap._2.resolveBaseDatatype, IR_AtNode, nodeFieldMap._1, domainIndex, blockwise = true, dimsPositionsFrag)
   } : _*)
 
   def setupNodalFieldsHdf5 : ListBuffer[IR_Statement] = {
@@ -117,7 +117,7 @@ case class IR_PrintXdmfSWE(
             IR_LoopOverDimensions(numDimsGrid, indexRangeCells,
               (0 until numAccessesPerCell).to[ListBuffer].map(idx => {
                 IR_Assignment(
-                  tmpBuf.at(offset + idx),
+                  IR_IV_TemporaryBuffer.accessArray(tmpBuf, offset + idx),
                   IR_FieldAccess(nodalFields(name), IR_IV_ActiveSlot(nodalFields(name)), IR_LoopOverDimensions.defIt(numDimsGrid) + nodeOffsets(idx))) : IR_Statement
               })))))
     }
@@ -260,9 +260,9 @@ case class IR_PrintXdmfSWE(
           numDimsGrid = field.layout.numDimsGrid,
           numDimsData = field.layout.numDimsData,
           domainIdx = field.domain.index,
-          accessPattern = IR_RegularAccessPattern((idx : IR_Index) => IR_FieldAccess(field, slot, idx.toExpressionIndex)),
+          accessPattern = IR_RegularAccessPattern(IR_AccessFieldFunction(field, slot)),
           datasetName = datasetFields(getBasenameDiscField(discField))(fid),
-          name = field.name,
+          name = field.codeName,
           fieldLayoutTransformed = IR_DataBuffer.inLayoutTransformationCollection(field),
           canonicalStorageLayout = false,
           accessBlockwise = false,
