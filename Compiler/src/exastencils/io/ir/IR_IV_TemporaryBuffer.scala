@@ -18,7 +18,12 @@ import exastencils.grid.ir.IR_Localization
 
 object IR_IV_TemporaryBuffer {
   def accessArray(tempBuf : IR_IV_TemporaryBuffer, idx : IR_Expression) = {
-    IR_ArrayAccess(tempBuf, tempBuf.linearizedIndex(idx))
+    // TODO: should be done automatically
+    var base : IR_Expression = tempBuf
+    if (!tempBuf.blockwise)
+      base = IR_ArrayAccess(tempBuf, IR_LoopOverFragments.defIt)
+
+    IR_ArrayAccess(base, tempBuf.linearizedIndex(idx))
   }
 }
 
@@ -46,8 +51,10 @@ case class IR_IV_TemporaryBuffer(
   def endIndices : ListBuffer[IR_Expression] = dimsLocal
   def totalDimsLocal : ListBuffer[IR_Expression] = dimsLocal
 
-  def resolveAccess() : IR_Expression = resolveAccess(resolveName(),
-    if (!blockwise) IR_LoopOverFragments.defIt else IR_NullExpression, domainIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression)
+  def resolveAccess() : IR_Expression = {
+    super.resolveAccess(resolveName(), if (!blockwise) IR_LoopOverFragments.defIt else IR_NullExpression,
+      domainIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression)
+  }
 
   def linearizedIndex(index : IR_Expression) = index match {
     case idx : IR_Index =>
