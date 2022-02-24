@@ -155,7 +155,7 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
     IR_VariableDeclaration(IR_LoopOverFragments.defIt, 0),
     IR_Lower(IR_LoopOverFragments.defIt, 1),
     IR_PreIncrement(IR_LoopOverFragments.defIt),
-    stmts.to[ListBuffer])
+    IR_Comment("Loop over blocks") +: stmts.to[ListBuffer])
 
   // core methods for file access
   def read(bufIdx : Int) : ListBuffer[IR_Statement]
