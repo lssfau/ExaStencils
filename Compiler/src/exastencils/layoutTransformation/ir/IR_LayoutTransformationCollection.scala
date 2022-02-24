@@ -32,10 +32,10 @@ object IR_LayoutTransformationCollection extends ObjectWithState {
   override def clear() = { selfRef = None }
 
   // looks itself up starting from the current root
-  def get = {
+  def getOpt = {
     if (selfRef.isEmpty)
       selfRef = StateManager.findFirst[IR_LayoutTransformationCollection]()
-    selfRef.get
+    selfRef
   }
 }
 

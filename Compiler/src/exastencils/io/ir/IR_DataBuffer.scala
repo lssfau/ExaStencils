@@ -35,9 +35,10 @@ object IR_DataBuffer {
   }
 
   // determines if field layout was transformed
-  def inLayoutTransformationCollection(field: IR_Field) = IR_LayoutTransformationCollection.get.trafoStmts
-    .collect { case stmt : IR_GenericTransform => stmt } // only consider generic transformations
-    .exists(_.fields.exists { case (name, lvl) => name == field.name && lvl == field.level }) // check if any trafo contains field
+  def inLayoutTransformationCollection(field: IR_Field) = IR_LayoutTransformationCollection.getOpt.isDefined &&
+    IR_LayoutTransformationCollection.getOpt.get.trafoStmts
+      .collect { case stmt : IR_GenericTransform => stmt } // only consider generic transformations
+      .exists(_.fields.exists { case (name, lvl) => name == field.name && lvl == field.level }) // check if any trafo contains field
 
   // reduce the number of duplicate declarations in the target code for identical dimensionalities
   private val dimensionalityMap : mutable.HashMap[String, IR_VariableDeclaration] = mutable.HashMap()
