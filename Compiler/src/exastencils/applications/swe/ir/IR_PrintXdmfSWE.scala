@@ -263,7 +263,7 @@ case class IR_PrintXdmfSWE(
           accessPattern = IR_RegularAccessPattern(IR_AccessFieldFunction(field, slot)),
           datasetName = datasetFields(getBasenameDiscField(discField))(fid),
           name = field.codeName,
-          fieldLayoutTransformed = IR_DataBuffer.inLayoutTransformationCollection(field),
+          layoutTransformationTarget = Some(field).filter(IR_DataBuffer.inLayoutTransformationCollection),
           canonicalStorageLayout = false,
           accessBlockwise = false,
           isTemporaryBuffer = false

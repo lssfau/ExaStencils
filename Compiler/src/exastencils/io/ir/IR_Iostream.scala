@@ -15,7 +15,7 @@ trait IR_Iostream {
 
   def isAccessForWholeBlockAllowed(buf : IR_DataBuffer, conditionSpecified : Boolean) : IR_Expression = {
     conditionSpecified AndAnd // condition specified?
-      !buf.fieldLayoutTransformed AndAnd // was field layout transformed?
+      buf.layoutTransformationTarget.isEmpty AndAnd // was field's layout transformed?
       buf.accessWithoutExclusion AndAnd // is any layer excluded (e.g. ghost)?
       !(buf.numDimsData > buf.numDimsGrid) AndAnd // do we write a higher dim. datatype?
       !buf.accessPattern.isInstanceOf[IR_SWEAccessPattern] // compatible with access pattern?

@@ -82,7 +82,7 @@ object IR_DataBuffer {
       accessPattern = pattern getOrElse IR_RegularAccessPattern(IR_AccessFieldFunction(field, Duplicate(slot))),
       datasetName = dataset getOrElse IR_NullExpression,
       canonicalStorageLayout = canonicalOrder,
-      fieldLayoutTransformed = inLayoutTransformationCollection(field),
+      layoutTransformationTarget = Some(field).filter(inLayoutTransformationCollection),
       accessBlockwise = false,
       isTemporaryBuffer = false
     )
@@ -124,7 +124,7 @@ object IR_DataBuffer {
       accessPattern = pattern,
       datasetName = dataset getOrElse IR_NullExpression,
       canonicalStorageLayout = canonicalOrder,
-      fieldLayoutTransformed = inLayoutTransformationCollection(matField),
+      layoutTransformationTarget = Some(matField).filter(inLayoutTransformationCollection),
       accessBlockwise = false,
       isTemporaryBuffer = false
     )
@@ -152,7 +152,7 @@ object IR_DataBuffer {
       accessPattern = pattern getOrElse IR_RegularAccessPattern(IR_AccessTempBufferFunction(tmpBuf)),
       datasetName = dataset getOrElse IR_NullExpression,
       canonicalStorageLayout = false,
-      fieldLayoutTransformed = false,
+      layoutTransformationTarget = None,
       accessBlockwise = true, // currently only implemented as block-wise to reduce number of file accesses
       isTemporaryBuffer = true
     )
@@ -177,7 +177,7 @@ case class IR_DataBuffer(
     var domainIdx : Int, // ID of the (sub)domain the buffer lives on
     var name : String, // name of the buffer
     var datasetName : IR_Expression, // dataset name to be used in netCDF/HDF5 files
-    var fieldLayoutTransformed : Boolean, // field layout transformed
+    var layoutTransformationTarget : Option[IR_Field], // original field with layout transform
     var canonicalStorageLayout : Boolean, // describes the data layout in the file
     var accessBlockwise : Boolean, // specifies if the data is stored per fragment (field/temp. buffers) or block (temp. buffers)
     var isTemporaryBuffer : Boolean // specified if underlying buffer is a temp. buffer
