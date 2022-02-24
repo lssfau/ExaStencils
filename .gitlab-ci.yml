@@ -66,7 +66,8 @@ stages:
         when: on_failure
         paths:
             - Testing/output/Debug/*
-            - Testing/output/data/*
+            - Testing/output/generated/*
+            - Testing/data/*
         expire_in: 1 weeks
     before_script:
         - java -version
