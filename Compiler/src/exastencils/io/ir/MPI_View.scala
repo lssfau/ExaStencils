@@ -173,7 +173,7 @@ case class MPI_View(
           getAccess
         }
         // create new datatype from old and free old afterwards
-        stmts += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_hvector"), cellCountFrag(d), blocklength, stride(d), oldDatatype, IR_AddressOf(newDatatype))
+        stmts += IR_FunctionCall(IR_ExternalFunctionReference("MPI_Type_create_hvector"), cellCountFrag(d), blocklength, stride(d), oldDatatype, IR_AddressOf(newDatatype))
         stmts += commitDatatype(newDatatype)
         stmts += freeDatatype(oldDatatype)
 
