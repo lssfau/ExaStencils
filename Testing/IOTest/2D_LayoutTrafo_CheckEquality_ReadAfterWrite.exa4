@@ -11,8 +11,8 @@ Layout NodeWithComm < Real, Node >@all {
 
 // field layout transformations
 LayoutTransformations {
-  transform src@finest with [x, y] => [x/2, y, (x+y)%2]
-  transform dest@finest with [x, y] => [x/2, y, (x+y)%2]
+  transform src@finest with [x, y] => [x/2, y/2, (x+y)%2]
+  transform dest@finest with [x, y] => [x/2, y/2, (x+y)%2]
 }
 
 // field declarations
