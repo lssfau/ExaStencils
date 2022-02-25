@@ -87,8 +87,6 @@ case class CUDA_HandleFragmentLoopsWithReduction(
       copyReductionTarget()).expandSpecial().inner
     val resetRedTarget = resetReductionTarget() // reset initial value as it is already in the copies
 
-    initCopies.parallelization.noVect = true
-
     ListBuffer(
       declCopies,
       initCopies,

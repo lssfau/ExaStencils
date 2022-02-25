@@ -79,6 +79,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       case ex : VectorizationException =>
         if (DEBUG) {
           val msg : String = "[vect]  unable to vectorize loop: " + ex.msg + "  (line " + ex.getStackTrace()(0).getLineNumber + ')'
+          Logger.warn(msg)
           println(msg) // print directly, logger may be silenced by any surrounding strategy
           return List(IR_Comment(msg), node)
         }
@@ -143,6 +144,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     private var incrVectDeclared : Boolean = false
     private var alignedResidue : Long = -1
     private val nameTempl : String = "_vec%02d"
+
+    private var reductionVarArrayAccesses : Option[IR_ArrayAccess] = None
 
     // init
     pushScope()
@@ -241,6 +244,14 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     def getAlignedResidue() : Long = {
       alignedResidue
     }
+
+    def setReductionArrayAccess(arrAcc : IR_ArrayAccess) = {
+      reductionVarArrayAccesses = Some(arrAcc)
+    }
+
+    def getReductionArrayAccess() = {
+      reductionVarArrayAccesses
+    }
   }
 
   private def containsVarAcc(node : IR_Node, varName : String) : Boolean = {
@@ -264,6 +275,10 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     if (reduction.isDefined) {
       val target = Duplicate(reduction.get.target)
       val operator = reduction.get.op
+      target match {
+        case arrAcc : IR_ArrayAccess => ctx.setReductionArrayAccess(arrAcc)
+        case _ =>
+      }
 
       val (vecTmp : String, true) = ctx.getName(target)
       val identityElem : IR_Expression =
@@ -602,6 +617,11 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
   private def vectorizeExpr(expr : IR_Expression, ctx : LoopCtx) : IR_Expression = {
     expr match {
+      case arrAcc : IR_ArrayAccess if ctx.getReductionArrayAccess().contains(arrAcc) =>
+        // vec was already added to ctx and declared
+        val (vecTmp : String, false) = ctx.getName(expr)
+        IR_VariableAccess(vecTmp, SIMD_RealDatatype)
+
       // TODO: do not vectorize if base is not aligned?
       case IR_ArrayAccess(base, index, alignedBase) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
