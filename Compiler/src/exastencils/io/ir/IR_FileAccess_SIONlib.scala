@@ -11,6 +11,7 @@ import exastencils.config.Settings
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
+import exastencils.parallelization.api.mpi.MPI_IV_MpiComm
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_Print
 
@@ -52,7 +53,7 @@ case class IR_FileAccess_SIONlib(
   val fileId_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("fileId"))
   val numTasks_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("numTasks"), nTasks)
   val numPhysFiles_decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_FileAccess.declareVariable("nFiles"), nPhysFiles)
-  val localCommunicator_decl = IR_VariableDeclaration(MPI_Comm, IR_FileAccess.declareVariable("lComm"), mpiCommunicator)
+  val localCommunicator_decl = IR_VariableDeclaration(MPI_Comm, IR_FileAccess.declareVariable("lComm"), MPI_IV_MpiComm)
   val fsBlockSize_decl = IR_VariableDeclaration(sion_int32, IR_FileAccess.declareVariable("fsBlockSize"), IR_IntegerConstant(-1)) // -1: automatically determine file system block size
   val bytesAccessed_decl = IR_VariableDeclaration(IR_SpecialDatatype("size_t"), IR_FileAccess.declareVariable("bytes" + (if (writeAccess) "Written" else "Read")), 0)
   val chunkSizes_decl : IR_VariableDeclaration = if (Knowledge.mpi_enabled) {
@@ -111,7 +112,7 @@ case class IR_FileAccess_SIONlib(
       statements += IR_Assignment(fileId,
         IR_FunctionCall(
           IR_ExternalFunctionReference("sion_paropen_mpi"),
-          filenameAsCString, fileMode, IR_AddressOf(numPhysFiles), mpiCommunicator, IR_AddressOf(localCommunicator),
+          filenameAsCString, fileMode, IR_AddressOf(numPhysFiles), MPI_IV_MpiComm, IR_AddressOf(localCommunicator),
           IR_AddressOf(chunkSizes), IR_AddressOf(fsBlockSize), IR_AddressOf(globalRanks), IR_AddressOf(filePtr), IR_AddressOf(newPhysFilenames)
         )
       )

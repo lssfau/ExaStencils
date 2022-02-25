@@ -26,11 +26,11 @@ case class IR_VisItProcessVisItCommand() extends IR_VisItFuturePlainFunction {
           IR_EqEq(1, callExtFunction("VisItProcessEngineCommand")),
           ListBuffer[IR_Statement](
             IR_Assignment(command, 1),
-            callExtFunction("MPI_Bcast", IR_AddressOf(command), 1, IR_Native("MPI_INT"), 0, Knowledge.mpi_defaultCommunicator),
+            callExtFunction("MPI_Bcast", IR_AddressOf(command), 1, IR_Native("MPI_INT"), 0, MPI_IV_MpiComm),
             IR_Return(1)),
           ListBuffer[IR_Statement](
             IR_Assignment(command, 0),
-            callExtFunction("MPI_Bcast", IR_AddressOf(command), 1, IR_Native("MPI_INT"), 0, Knowledge.mpi_defaultCommunicator),
+            callExtFunction("MPI_Bcast", IR_AddressOf(command), 1, IR_Native("MPI_INT"), 0, MPI_IV_MpiComm),
             IR_Return(0))
         )
       ),
@@ -38,7 +38,7 @@ case class IR_VisItProcessVisItCommand() extends IR_VisItFuturePlainFunction {
         IR_WhileLoop(
           1,
           ListBuffer[IR_Statement](
-            callExtFunction("MPI_Bcast", IR_AddressOf(command), 1, IR_Native("MPI_INT"), 0, Knowledge.mpi_defaultCommunicator),
+            callExtFunction("MPI_Bcast", IR_AddressOf(command), 1, IR_Native("MPI_INT"), 0, MPI_IV_MpiComm),
             IR_IfCondition(
               IR_EqEq(command, 0),
               callExtFunction("VisItProcessEngineCommand")),

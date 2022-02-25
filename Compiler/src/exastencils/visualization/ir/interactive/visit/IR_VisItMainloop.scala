@@ -61,7 +61,7 @@ case class IR_VisItMainloop() extends IR_VisItFuturePlainFunction {
         MPI_IsRootProc.apply(),
         IR_Assignment(visitInput, callExtFunction("VisItDetectInput", blocking, IR_FunctionCall(funcRef, IR_Native("stdin"))))
       )
-      whileBody += callExtFunction("MPI_Bcast", IR_AddressOf(visitInput), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
+      whileBody += callExtFunction("MPI_Bcast", IR_AddressOf(visitInput), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), MPI_IV_MpiComm)
     } else {
       whileBody += IR_VariableDeclaration(visitInput, callExtFunction("VisItDetectInput", blocking, IR_FunctionCall(funcRef, IR_Native("stdin"))))
     }
@@ -78,7 +78,7 @@ case class IR_VisItMainloop() extends IR_VisItFuturePlainFunction {
           IR_Break()
         )
       )
-      consoleInputBody += callExtFunction("MPI_Bcast", command, IR_IntegerConstant(1000), IR_Native("MPI_CHAR"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
+      consoleInputBody += callExtFunction("MPI_Bcast", command, IR_IntegerConstant(1000), IR_Native("MPI_CHAR"), IR_IntegerConstant(0), MPI_IV_MpiComm)
     } else {
       consoleInputBody += IR_IfCondition(
         callExtFunction("VisItReadConsole", IR_IntegerConstant(1000), command) Neq visitOkay,

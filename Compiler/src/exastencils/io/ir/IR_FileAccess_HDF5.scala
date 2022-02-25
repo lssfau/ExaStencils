@@ -11,6 +11,7 @@ import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
+import exastencils.parallelization.api.mpi.MPI_IV_MpiComm
 import exastencils.util.ir.IR_Print
 
 case class IR_FileAccess_HDF5(
@@ -158,7 +159,7 @@ case class IR_FileAccess_HDF5(
         ListBuffer[IR_Statement](
           IR_Print(IR_VariableAccess("std::cerr", IR_UnknownDatatype), IR_StringConstant("zlib not available for en- and decoding"), IR_Print.endl),
           if (Knowledge.mpi_enabled)
-            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Abort"), mpiCommunicator, IR_IntegerConstant(1))
+            IR_FunctionCall(IR_ExternalFunctionReference("MPI_Abort"), MPI_IV_MpiComm, IR_IntegerConstant(1))
           else
             IR_FunctionCall(IR_ExternalFunctionReference("exit"), IR_IntegerConstant(1))
         ))
@@ -168,7 +169,7 @@ case class IR_FileAccess_HDF5(
     statements ++= H5Pcreate(fapl, IR_VariableAccess("H5P_FILE_ACCESS", IR_UnknownDatatype))
     if (Knowledge.mpi_enabled) {
       statements ++= info.setHints()
-      statements ++= H5Pset_fapl_mpio(err, fapl, mpiCommunicator, info)
+      statements ++= H5Pset_fapl_mpio(err, fapl, MPI_IV_MpiComm, info)
     }
 
     // set alignment if knowledge flag does not have default value (this option is mainly meant for MPI parallel applications)

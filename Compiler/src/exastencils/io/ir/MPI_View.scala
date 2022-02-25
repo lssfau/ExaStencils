@@ -54,7 +54,7 @@ object MPI_View {
   }
 }
 
-/// IR_MPI_View
+/// MPI_View
 // describes the data layout in memory and/or in file via MPI derived datatypes
 
 case class MPI_View(

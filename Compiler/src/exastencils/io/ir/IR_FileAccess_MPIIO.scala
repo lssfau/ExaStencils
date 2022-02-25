@@ -8,6 +8,7 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.logger.Logger
+import exastencils.parallelization.api.mpi.MPI_IV_MpiComm
 import exastencils.util.ir.IR_Print
 
 /// IR_FileAccess_MPIIO
@@ -58,7 +59,7 @@ case class IR_FileAccess_MPIIO(
       IR_IfCondition(ierrName EqEq "MPI_ERR_UNSUPPORTED_DATAREP",
         ListBuffer[IR_Statement](
           IR_Print(IR_VariableAccess("std::cerr", IR_UnknownDatatype), IR_StringConstant("Unsupported data representation when using MPI-I/O"), IR_Print.endl),
-          IR_FunctionCall(IR_ExternalFunctionReference("MPI_Abort"), mpiCommunicator, IR_IntegerConstant(1))
+          IR_FunctionCall(IR_ExternalFunctionReference("MPI_Abort"), MPI_IV_MpiComm, IR_IntegerConstant(1))
         )
       )
     )
@@ -121,7 +122,7 @@ case class IR_FileAccess_MPIIO(
 
     // open file
     statements += IR_FunctionCall(IR_ExternalFunctionReference("MPI_File_open"),
-      mpiCommunicator, IR_Cast(IR_PointerDatatype(IR_CharDatatype), filenameAsCString), fileMode, info, IR_AddressOf(fileHandle))
+      MPI_IV_MpiComm, IR_Cast(IR_PointerDatatype(IR_CharDatatype), filenameAsCString), fileMode, info, IR_AddressOf(fileHandle))
 
     statements
   }

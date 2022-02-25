@@ -119,10 +119,10 @@ trait IR_PnetCDF_API {
     callNcFunction("nc_open", datatype = None, filename, mode, IR_AddressOf(fileId))
 
   /* parallel functions */
-  def ncmpi_create(comm : IR_VariableAccess, filename : IR_Expression, mode : IR_VariableAccess, info : IR_Expression, fileId : IR_VariableAccess) : ListBuffer[IR_Statement] =
+  def ncmpi_create(comm : IR_Expression, filename : IR_Expression, mode : IR_VariableAccess, info : IR_Expression, fileId : IR_VariableAccess) : ListBuffer[IR_Statement] =
     callNcFunction("ncmpi_create", datatype = None, comm, filename, mode, info, IR_AddressOf(fileId))
 
-  def ncmpi_open(comm : IR_VariableAccess, filename : IR_Expression, mode : IR_VariableAccess, info : IR_Expression, fileId : IR_VariableAccess) : ListBuffer[IR_Statement] =
+  def ncmpi_open(comm : IR_Expression, filename : IR_Expression, mode : IR_VariableAccess, info : IR_Expression, fileId : IR_VariableAccess) : ListBuffer[IR_Statement] =
     callNcFunction("ncmpi_open", datatype = None, comm, filename, mode, info, IR_AddressOf(fileId))
 
   def ncmpi_def_dim(fileId : IR_VariableAccess, name : IR_Expression, dimLength : IR_Expression, dimIdPtr : IR_Expression) : ListBuffer[IR_Statement] =

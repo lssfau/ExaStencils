@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.visualization.ir.interactive.visit.IR_VisItUtil._
 import exastencils.config._
+import exastencils.parallelization.api.mpi.MPI_IV_MpiComm
 
 case class IR_VisItBroadcastIntCallback() extends IR_VisItFuturePlainFunction {
   val intValue = IR_FunctionArgument("value", IR_PointerDatatype(IR_IntegerDatatype))
@@ -15,7 +16,7 @@ case class IR_VisItBroadcastIntCallback() extends IR_VisItFuturePlainFunction {
     val fctBody = ListBuffer[IR_Statement]()
 
     fctBody += IR_Return(callExtFunction("MPI_Bcast",
-      intValue.access, IR_IntegerConstant(1), IR_Native("MPI_INT"), sender.access, Knowledge.mpi_defaultCommunicator))
+      intValue.access, IR_IntegerConstant(1), IR_Native("MPI_INT"), sender.access, MPI_IV_MpiComm))
 
     IR_PlainFunction(
       name,
@@ -38,7 +39,7 @@ case class IR_VisItBroadcastStringCallback() extends IR_VisItFuturePlainFunction
     val fctBody = ListBuffer[IR_Statement]()
 
     fctBody += IR_Return(callExtFunction("MPI_Bcast",
-      str.access, len.access, IR_Native("MPI_CHAR"), sender.access, Knowledge.mpi_defaultCommunicator))
+      str.access, len.access, IR_Native("MPI_CHAR"), sender.access, MPI_IV_MpiComm))
 
     IR_PlainFunction(
       name,
@@ -58,7 +59,7 @@ case class IR_VisItSlaveProcessCallback() extends IR_VisItFuturePlainFunction {
 
     fctBody += cmdDecl
     fctBody += callExtFunction("MPI_Bcast",
-      IR_AddressOf(IR_VariableAccess(cmdDecl)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), Knowledge.mpi_defaultCommunicator)
+      IR_AddressOf(IR_VariableAccess(cmdDecl)), IR_IntegerConstant(1), IR_Native("MPI_INT"), IR_IntegerConstant(0), MPI_IV_MpiComm)
 
     IR_PlainFunction(
       name,

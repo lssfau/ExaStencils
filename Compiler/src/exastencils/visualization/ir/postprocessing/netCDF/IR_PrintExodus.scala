@@ -13,6 +13,7 @@ import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.ir._
 import exastencils.io.ir._
 import exastencils.logger.Logger
+import exastencils.parallelization.api.mpi.MPI_IV_MpiComm
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.util.ir.IR_Print
 import exastencils.visualization.ir.postprocessing.IR_PrintVisualization
@@ -105,7 +106,6 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
   val wordSizeCPU = IR_VariableAccess(wordSizeCPU_decl)
   val wordSizeIO = IR_VariableAccess(wordSizeIO_decl)
   val truthTable = IR_VariableAccess(truthTable_decl)
-  val mpiCommunicator = IR_VariableAccess("mpiCommunicator", IR_UnknownDatatype)
   val openMode = IR_VariableAccess("EX_CLOBBER | EX_LARGE_MODEL", IR_UnknownDatatype)
 
   // helper functions
@@ -138,7 +138,7 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     IR_Assignment(exoId, IR_FunctionCall(IR_ExternalFunctionReference("ex_open"), IR_FileAccess.filenameAsCString(filename), "EX_WRITE", IR_AddressOf(wordSizeCPU), IR_AddressOf(wordSizeIO), IR_AddressOf("version")))
   )
   def ex_create_par() : ListBuffer[IR_Statement] = ListBuffer(
-    IR_Assignment(exoId, IR_FunctionCall(IR_ExternalFunctionReference("ex_create_par"), IR_FileAccess.filenameAsCString(filename), openMode, IR_AddressOf(wordSizeCPU), IR_AddressOf(wordSizeIO), mpiCommunicator, info)))
+    IR_Assignment(exoId, IR_FunctionCall(IR_ExternalFunctionReference("ex_create_par"), IR_FileAccess.filenameAsCString(filename), openMode, IR_AddressOf(wordSizeCPU), IR_AddressOf(wordSizeIO), MPI_IV_MpiComm, info)))
   def ex_put_init() : ListBuffer[IR_Statement] =
     callExodusFunction("ex_put_init", exoId, IR_CStringConstant("title"), numDimsGrid, numNodes, numElem, numElemBlocks, numNodeSets, numSideSets)
   def ex_put_block() : ListBuffer[IR_Statement] =

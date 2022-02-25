@@ -10,6 +10,7 @@ import exastencils.core.StateManager
 import exastencils.domain.ir.IR_DomainFunctions
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.parallelization.api.mpi.MPI_AllReduce
+import exastencils.parallelization.api.mpi.MPI_IV_MpiComm
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 
 object IR_IV_FragmentInfo {
@@ -30,7 +31,6 @@ object IR_IV_FragmentInfo {
       if (firstCall) {
         // communicate once at startup
         val mpiInt = IR_VariableAccess(IR_IntegerDatatype.prettyprint_mpi, IR_UnknownDatatype)
-        val mpiComm = IR_VariableAccess("mpiCommunicator", IR_UnknownDatatype)
         StateManager.findFirst[IR_DomainFunctions]().get.functions foreach {
           case func : IR_PlainFunction if func.name == "initGeometry" =>
             firstCall = false
@@ -48,7 +48,7 @@ object IR_IV_FragmentInfo {
               func.body += IR_FunctionCall(
                 IR_ExternalFunctionReference("MPI_Allgather"),
                 IR_AddressOf(IR_IV_NumValidFrags(domainIdx)), 1, mpiInt,
-                IR_IV_NumValidFragsPerBlock(domainIdx), 1, mpiInt, mpiComm
+                IR_IV_NumValidFragsPerBlock(domainIdx), 1, mpiInt, MPI_IV_MpiComm
               )
             }
           case _                                                      =>

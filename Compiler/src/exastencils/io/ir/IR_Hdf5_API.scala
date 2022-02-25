@@ -92,7 +92,7 @@ trait IR_Hdf5_API {
   def H5Pset_mdc_config(err : IR_VariableAccess, fileId : IR_VariableAccess, configPtr : IR_AddressOf) : ListBuffer[IR_Statement] =
     callH5Function(err, "H5Pset_mdc_config", fileId, configPtr)
 
-  def H5Pset_fapl_mpio(err : IR_VariableAccess, propertyList : IR_VariableAccess, comm : IR_VariableAccess, info : IR_Expression) : ListBuffer[IR_Statement] =
+  def H5Pset_fapl_mpio(err : IR_VariableAccess, propertyList : IR_VariableAccess, comm : IR_Expression, info : IR_Expression) : ListBuffer[IR_Statement] =
     callH5Function(err, "H5Pset_fapl_mpio", propertyList, comm, info)
 
   def H5Pset_dxpl_mpio(err : IR_VariableAccess, transferList : IR_VariableAccess, ioMode : IR_VariableAccess) : ListBuffer[IR_Statement] =

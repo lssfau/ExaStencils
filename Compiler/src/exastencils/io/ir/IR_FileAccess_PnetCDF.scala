@@ -10,6 +10,7 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.logger.Logger
+import exastencils.parallelization.api.mpi.MPI_IV_MpiComm
 import exastencils.parallelization.api.mpi.MPI_IsRootProc
 
 @deprecated
@@ -168,14 +169,14 @@ case class IR_FileAccess_PnetCDF(
     if (writeAccess && !appendedMode) {
       if (Knowledge.mpi_enabled) {
         statements ++= info.setHints()
-        statements ++= ncmpi_create(mpiCommunicator, filenameAsCString, fileMode, info, ncFile)
+        statements ++= ncmpi_create(MPI_IV_MpiComm, filenameAsCString, fileMode, info, ncFile)
       } else {
         statements ++= nc_create(filenameAsCString, fileMode, ncFile)
       }
     } else {
       if (Knowledge.mpi_enabled) {
         statements ++= info.setHints()
-        statements ++= ncmpi_open(mpiCommunicator, filenameAsCString, fileMode, info, ncFile)
+        statements ++= ncmpi_open(MPI_IV_MpiComm, filenameAsCString, fileMode, info, ncFile)
       } else {
         statements ++= nc_open(filenameAsCString, fileMode, ncFile)
       }

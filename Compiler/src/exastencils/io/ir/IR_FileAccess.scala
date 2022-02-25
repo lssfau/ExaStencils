@@ -121,7 +121,6 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
   }).distinct.to[ListBuffer]
 
   /* commonly used variable accesses */
-  val mpiCommunicator = IR_VariableAccess("mpiCommunicator", IR_UnknownDatatype)
   def stride(bufIdx : Int) = IR_VariableAccess(stride_decl(bufIdx))
   def count(bufIdx : Int) = IR_VariableAccess(count_decl(bufIdx))
   def localDims(bufIdx : Int) = IR_VariableAccess(localDims_decl(bufIdx))
