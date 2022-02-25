@@ -17,7 +17,10 @@ abstract class IR_AccessFunction extends IR_Node {
 
 case class IR_AccessFieldFunction(var field : IR_Field, var slot : IR_Expression, var hodtComponentIndex : Option[IR_Index] = None) extends IR_AccessFunction {
   override def get(idx : IR_Index) : IR_Access = {
-    val index = if (hodtComponentIndex.isDefined) idx + hodtComponentIndex.get else idx
+    val index = if (hodtComponentIndex.isDefined)
+      IR_ExpressionIndex(idx.toExpressionIndex.indices ++ hodtComponentIndex.get.toExpressionIndex.indices)
+    else
+      idx
     IR_FieldAccess(field, slot, index.toExpressionIndex)
   }
 }
