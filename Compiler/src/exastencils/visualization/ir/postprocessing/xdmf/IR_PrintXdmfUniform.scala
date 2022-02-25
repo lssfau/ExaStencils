@@ -31,7 +31,7 @@ case class IR_PrintXdmfUniform(
     var dataset : IR_Expression,
     var binaryFpp : Boolean,
     var canonicalFileLayout : Boolean,
-    var resolveId : Int) extends IR_PrintXdmfStructured(ioMethod, binaryFpp) {
+    var resolveId : Int) extends IR_PrintXdmfStructured(ioMethod) {
 
   override def numDimsGrid : Int = field.layout.numDimsGrid
   override def numFields : Int = 1

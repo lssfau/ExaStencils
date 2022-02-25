@@ -24,7 +24,7 @@ case class IR_PrintXdmfMeshless(
     var includeGhostLayers : Boolean,
     var dataset : IR_Expression,
     var binaryFpp : Boolean,
-    var resolveId : Int) extends IR_PrintXdmf(ioMethod, binaryFpp) {
+    var resolveId : Int) extends IR_PrintXdmf(ioMethod) {
 
   def datasetCoords : ListBuffer[IR_Expression] = (0 until numDimsGrid).map(d => IR_StringConstant("/constants/" + ('X' + d).toChar.toString) : IR_Expression).to[ListBuffer]
 

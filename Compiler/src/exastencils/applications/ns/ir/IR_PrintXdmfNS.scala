@@ -21,8 +21,8 @@ case class IR_PrintXdmfNS(
     var filename : IR_Expression,
     level : Int,
     ioMethod : IR_Expression,
-    binaryFpp : Boolean,
-    var resolveId : Int) extends IR_PrintXdmf(ioMethod, binaryFpp) with IR_PrintVisualizationNS with IR_PrintFieldAsciiNS {
+    var binaryFpp : Boolean,
+    var resolveId : Int) extends IR_PrintXdmf(ioMethod) with IR_PrintVisualizationNS with IR_PrintFieldAsciiNS {
 
   // check if cell field conforms grid dims
   conformsGridDimensions(someCellField)

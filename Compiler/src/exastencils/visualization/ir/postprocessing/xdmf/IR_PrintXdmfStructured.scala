@@ -17,10 +17,7 @@ import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_Gather
 import exastencils.util.ir.IR_Print
 
-abstract class IR_PrintXdmfStructured(
-    ioMethod : IR_Expression,
-    binaryFpp : Boolean
-) extends IR_PrintXdmf(ioMethod, binaryFpp) {
+abstract class IR_PrintXdmfStructured(ioMethod : IR_Expression) extends IR_PrintXdmf(ioMethod) {
 
   var filename : IR_Expression
   var field : IR_Field

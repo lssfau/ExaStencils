@@ -20,7 +20,7 @@ case class IR_PrintXdmfNonUniform_NonAA(
     var dataset : IR_Expression,
     var binaryFpp : Boolean,
     var canonicalFileLayout : Boolean,
-    var resolveId : Int) extends IR_PrintXdmfStructured(ioMethod, binaryFpp) {
+    var resolveId : Int) extends IR_PrintXdmfStructured(ioMethod) {
 
   def datasetCoords : ListBuffer[IR_Expression] = (0 until numDimsGrid).map(d => IR_StringConstant("/constants/" + ('X' + d).toChar.toString) : IR_Expression).to[ListBuffer]
 

@@ -24,11 +24,11 @@ case class IR_PrintXdmfSWE(
     var filename : IR_Expression,
     level : Int,
     ioMethod : IR_Expression,
-    binaryFpp : Boolean,
+    var binaryFpp : Boolean,
     var resolveId : Int,
     var nodalFieldCollection : ListBuffer[IR_Field],
     var discFieldCollection : ListBuffer[ListBuffer[IR_Field]]
-) extends IR_PrintXdmf(ioMethod, binaryFpp) with IR_PrintVisualizationSWE with IR_PrintFieldsAsciiSWE {
+) extends IR_PrintXdmf(ioMethod) with IR_PrintVisualizationSWE with IR_PrintFieldsAsciiSWE {
 
   // check if cell field conforms grid dims
   conformsGridDimensions(someCellField)
