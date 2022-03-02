@@ -114,7 +114,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       loop.getAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION).contains(CUDA_Util.CUDA_BAND_START) =>
 
       // remove the annotation first to guarantee single application of this transformation.
-      loop.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION)
+      loop.removeAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION)
 
       val parallelLoops = (x : IR_ForLoop) => {
         x.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) &&
