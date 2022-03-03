@@ -88,8 +88,8 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
       }
 
       // update local target
-      CUDA_ReplaceReductionAssignments.redTarget = target
-      CUDA_ReplaceReductionAssignments.replacement = kernel.localReductionTarget.get
+      CUDA_ReplaceReductionAssignments.redTarget = Duplicate(target)
+      CUDA_ReplaceReductionAssignments.replacement = Duplicate(kernel.localReductionTarget.get)
       CUDA_ReplaceReductionAssignments.applyStandalone(IR_Scope(kernel.body))
 
       // set element in global reduction buffer to local result
