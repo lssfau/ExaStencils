@@ -32,6 +32,7 @@ import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
+import exastencils.optimization.ir.UnrollInnermost.UpdateLoopVarAndNames
 import exastencils.optimization.ir._
 import exastencils.performance.PlatformUtils
 import exastencils.util.ir._
@@ -134,24 +135,20 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
     }
 
     def dataPerIteration(fieldAccesses : HashMap[String, IR_Datatype], offsets : HashMap[String, ListBuffer[Long]]) : Int = {
-      // TODO: support distinct datatypes
-      if (fieldAccesses.values.map(_.typicalByteSize).toList.distinct.length > 1)
-        Logger.error("Unsupported: Not the same Datatype")
-
-      val dataTypeSize = fieldAccesses.values.head.typicalByteSize
+      val dataTypeSizes = fieldAccesses.map(entry => entry._1 -> entry._2.typicalByteSize)
 
       // assume perfect blocking if opt_loopBlocked is activated ...
       if (Knowledge.opt_loopBlocked)
-        return dataTypeSize * fieldAccesses.keys.size
+        return dataTypeSizes.values.sum
 
-      // ... otherwise determine the number of data that needs to be loaded/ stored taking cache sizes into account
-      val effCacheSize = Platform.hw_usableCache * PlatformUtils.cacheSizePerThread
+      // ... otherwise determine the number of data that needs to be loaded/stored taking cache sizes into account
+      val effCacheSize = (Platform.hw_usableCache * PlatformUtils.cacheSizePerThread).toInt
       val maxWindowCount : Int = offsets.map(_._2.length).sum
 
       for (windowCount <- 1 to maxWindowCount) {
-        val windowSize = effCacheSize / windowCount / dataTypeSize
+        val windowSizes = dataTypeSizes.map(entry => entry._1 -> effCacheSize / windowCount / entry._2)
         var empty : ListBuffer[Boolean] = ListBuffer.empty[Boolean]
-        var windowsUsed = 0
+        var windowsUsed = ListBuffer[Int]()
 
         fieldAccesses.keys.foreach(ident => {
           var sortedOffsets = offsets(ident).sorted.reverse
@@ -159,17 +156,17 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           var i = 1
           do {
             val maxOffset = sortedOffsets.head
-            sortedOffsets = sortedOffsets.drop(1).filter(offset => math.abs(maxOffset - offset) > windowSize)
-            windowsUsed += 1
+            sortedOffsets = sortedOffsets.drop(1).filter(offset => math.abs(maxOffset - offset) > windowSizes(ident))
+            windowsUsed += dataTypeSizes(ident)
             i += 1
           } while (i < length && i <= windowCount && sortedOffsets.nonEmpty)
           empty += sortedOffsets.isEmpty
 
         })
-        if (windowsUsed <= windowCount && !empty.contains(false))
-          return windowsUsed * dataTypeSize
+        if (windowsUsed.size <= windowCount && !empty.contains(false))
+          return windowsUsed.sum
       }
-      maxWindowCount * dataTypeSize
+      dataTypeSizes.map(entry => offsets(entry._1).length * entry._2).sum
     }
 
     def computeRelativeStencilOffsets(stencil : ListBuffer[Long]) : ListBuffer[Long] = {
@@ -215,7 +212,12 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
 
           EvaluateFieldAccess.reset()
           EvaluateFieldAccess.applyStandalone(loop)
-          EvaluateForOps.applyStandalone(loop)
+
+          // apply arithmetic simplifications locally before counting ops
+          val localLoop = Duplicate(loop)
+          IR_SimplifyFloatExpressions.applyStandalone(localLoop)
+          IR_GeneralSimplify.doUntilDoneStandalone(localLoop)
+          EvaluateForOps.applyStandalone(localLoop)
 
           stmts += IR_Comment(s"Accesses: ${ EvaluateFieldAccess.fieldAccesses.keys.mkString(", ") }")
 
@@ -433,7 +435,7 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           }
         case fAcc : IR_DirectFieldAccess =>
           // actual dt determined in IR_DirectFieldAccess depending on length of access index
-          // TODO: is caching applicable here? In 2D indices for matrices have form [i0, i1, i2, i3]
+          // TODO: is caching applicable here? In 2D, indices for matrices have form [i0, i1, i2, i3]
           updateOrPutAccessedDatatype(identifier, fAcc.datatype)
           mapIndexToOffsets(field, identifier, Duplicate(access.index), access.index.length)
         case acc : IR_Access             =>
@@ -473,21 +475,27 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
     def mapCompiletimeMatrixFctStmts(matFunc : IR_ResolvableMNode) {
       matFunc match {
         // setElement
-        case IR_SetElement(ListBuffer(lhs : IR_MultiDimFieldAccess, idxy, idxx, rhs)) =>
-
-          val lhsField = lhs.field
-          val lhsWriteIdentifier = getIdentifier(lhsField, lhs.slot, isWrite = true)
-          val lhsReadIdentifier = getIdentifier(lhsField, lhs.slot, isWrite = false)
-          val dt = lhsField.resolveBaseDatatype
+        case IR_SetElement(ListBuffer(dst, idxy, idxx, rhs)) =>
 
           if (IR_CompiletimeMatOps.isConst(idxy) && IR_CompiletimeMatOps.isConst(idxx)) {
-            val matDims = lhs.field.gridDatatype.asInstanceOf[IR_MatrixDatatype]
-            val idx = List(idxx, idxy).map(IR_SimplifyExpression.evalIntegral(_).toInt)
-            val linearizedMatIdx = idx(0) + matDims.sizeN * idx(1)
 
-            // write and read allocate for lhs
-            updateForMatrixEntry(lhsField, lhs.index, lhsWriteIdentifier, linearizedMatIdx, dt)
-            updateForMatrixEntry(lhsField, lhs.index, lhsReadIdentifier, linearizedMatIdx, dt)
+            // update "fieldAccesses" if lhs is a field instance
+            dst match {
+              case lhs : IR_MultiDimFieldAccess =>
+                val lhsField = lhs.field
+                val lhsWriteIdentifier = getIdentifier(lhsField, lhs.slot, isWrite = true)
+                val lhsReadIdentifier = getIdentifier(lhsField, lhs.slot, isWrite = false)
+                val dt = lhsField.resolveBaseDatatype
+
+                val matDims = lhs.field.gridDatatype.asInstanceOf[IR_MatrixDatatype]
+                val idx = List(idxx, idxy).map(IR_SimplifyExpression.evalIntegral(_).toInt)
+                val linearizedMatIdx = idx(0) + matDims.sizeN * idx(1)
+
+                // write and read allocate for lhs
+                updateForMatrixEntry(lhsField, lhs.index, lhsWriteIdentifier, linearizedMatIdx, dt)
+                updateForMatrixEntry(lhsField, lhs.index, lhsReadIdentifier, linearizedMatIdx, dt)
+              case _                            =>
+            }
 
             // read rhs if not const
             if (!IR_CompiletimeMatOps.isConst(rhs)) {
@@ -499,18 +507,24 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           }
 
         // setSlice
-        case IR_SetSlice(ListBuffer(matrix : IR_MultiDimFieldAccess, rowOffs, colOffs, nrows, ncols, newVal)) =>
+        case IR_SetSlice(ListBuffer(dst, rowOffs, colOffs, nrows, ncols, newVal)) =>
+
           if (IR_CompiletimeMatOps.isConst(nrows) && IR_CompiletimeMatOps.isConst(rowOffs) && IR_CompiletimeMatOps.isConst(ncols) && IR_CompiletimeMatOps.isConst(colOffs)) {
 
-            val field = matrix.field
-            val readIdentifier = getIdentifier(field, matrix.slot, isWrite = false)
-            val writeIdentifier = getIdentifier(field, matrix.slot, isWrite = true)
-            val (startRow, endRow) = (evalExpr(rowOffs), evalExpr(rowOffs + nrows))
-            val (startCol, endCol) = (evalExpr(colOffs), evalExpr(colOffs + ncols))
+            // update "fieldAccesses" if lhs is a field instance
+            dst match {
+              case lhs : IR_MultiDimFieldAccess =>
+                val field = lhs.field
+                val readIdentifier = getIdentifier(field, lhs.slot, isWrite = false)
+                val writeIdentifier = getIdentifier(field, lhs.slot, isWrite = true)
+                val (startRow, endRow) = (evalExpr(rowOffs), evalExpr(rowOffs + nrows))
+                val (startCol, endCol) = (evalExpr(colOffs), evalExpr(colOffs + ncols))
 
-            // honor read-allocate
-            updateForMatrixEntries(field, matrix.index, writeIdentifier, startRow, startCol, endRow, endCol, field.resolveBaseDatatype)
-            updateForMatrixEntries(field, matrix.index, readIdentifier, startRow, startCol, endRow, endCol, field.resolveBaseDatatype)
+                // honor read-allocate
+                updateForMatrixEntries(field, lhs.index, writeIdentifier, startRow, startCol, endRow, endCol, field.resolveBaseDatatype)
+                updateForMatrixEntries(field, lhs.index, readIdentifier, startRow, startCol, endRow, endCol, field.resolveBaseDatatype)
+              case _                            =>
+            }
 
             // read newval if not constant
             newVal match {
@@ -525,13 +539,56 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           } else {
             Logger.warn("Cannot determine field accesses for setSlice with runtime values.")
           }
-        case m                                                                                                =>
+        case m                                                                    =>
           Logger.warn("Unsupported matrix function for performance estimation: " + m.getClass.getName)
       }
     }
 
     this += new Transformation("Searching", {
-      case assign : IR_Assignment          =>
+      // inner loop -> unroll
+      case loop @ IR_ForLoop(loopStart, loopEnd, inc, body, _) =>
+        var prependStmts = ListBuffer[IR_Comment]()
+        try {
+          val (itVar, start, end, incr) = UnrollInnermost.extractBoundsAndIncrement(loopStart, loopEnd, inc)
+          val unrollFact = IR_SimplifyExpression.evalIntegral(end - start) / incr
+          val replaceStrat = new UpdateLoopVarAndNames(itVar)
+          val dups = new ListBuffer[IR_Statement]()
+          for (i <- 0L until unrollFact) {
+            val dup = Duplicate(body)
+
+            // replace with unrolled version
+            replaceStrat.offset = i * incr
+            replaceStrat.applyStandalone(dup)
+
+            // replace loop variable with 0 -> offset remains
+            IR_ReplaceVariableAccess.replace = List(itVar -> IR_IntegerConstant(0)).toMap
+            IR_ReplaceVariableAccess.applyStandalone(dup)
+
+            dups ++= dup.filter(s => !s.isInstanceOf[IR_Comment])
+          }
+
+          EvaluateFieldAccess.applyStandalone(dups)
+        } catch {
+          case EvaluationException(msg, _) =>
+            Logger.warn("Cannot evaluate loop bounds: " + msg)
+            prependStmts += IR_Comment(s"--- Loop with variable bounds is handled as loop doing one iteration. Remember to scale accordingly. ---")
+            EvaluateFieldAccess.applyStandalone(loop.body)
+          case UnrollException(msg)        =>
+            Logger.warn("Cannot evaluate fields accessed in loop with variable bounds: " + msg)
+            loopStart match {
+              case IR_VariableDeclaration(_, runtimeVar, _, _) =>
+                prependStmts += IR_Comment(s"-- Loop with variable bounds is handled as loop doing one iteration. Remember to scale with '$runtimeVar'. --")
+              case _                                           =>
+                prependStmts += IR_Comment(s"-- Loop with variable bounds is handled as loop doing one iteration. Remember to scale accordingly. --")
+            }
+            EvaluateFieldAccess.applyStandalone(loop.body)
+        }
+        prependStmts :+ loop
+      case loop : IR_WhileLoop                                 =>
+        EvaluateFieldAccess.applyStandalone(loop.body)
+        loop.body.prepend(IR_Comment(s"-- While loop is handled as loop doing one iteration. Remember to scale accordingly. --"))
+        loop
+      case assign : IR_Assignment                              =>
         inWriteOp = true
         EvaluateFieldAccess.applyStandalone(IR_ExpressionStatement(assign.dest))
         inWriteOp = false
@@ -539,7 +596,7 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
         EvaluateFieldAccess.applyStandalone(IR_ExpressionStatement(assign.dest))
         EvaluateFieldAccess.applyStandalone(IR_ExpressionStatement(assign.src))
         assign
-      case access : IR_MultiDimFieldAccess =>
+      case access : IR_MultiDimFieldAccess                     =>
         mapFieldAccess(access)
         access
       // not to resolve at runtime

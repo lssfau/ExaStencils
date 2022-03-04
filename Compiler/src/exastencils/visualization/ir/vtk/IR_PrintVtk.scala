@@ -98,9 +98,6 @@ abstract class IR_PrintVtk extends IR_Statement with IR_Expandable {
 
   override def expand() : Output[StatementList] = {
 
-    if (Knowledge.performance_addEstimation)
-      Logger.warn("Vtk output in combination with the \"performance_addEstimation\" flag is not supported yet.")
-
     if (!Settings.additionalIncludes.contains("fstream"))
       Settings.additionalIncludes += "fstream"
 
