@@ -443,10 +443,11 @@ object IR_SetupNodePositions {
 
       if (level == Knowledge.maxLevel) {
         // on finest level: add random offset
-        val innerLoop = IR_LoopOverPoints(field, IR_CompoundAssignment(Duplicate(baseAccess), IR_FunctionCall("randn"), IR_BinaryOperators.Addition))
+        val innerLoop = IR_LoopOverPoints(field, IR_Assignment(Duplicate(baseAccess), IR_FunctionCall("randn"), "+="))
         innerLoop.parallelization.potentiallyParallel = false
         stmts += innerLoop
-        stmts += IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("all", None, None)), None)
+        if (dim == numDims - 1)
+          stmts += IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("all", None, None)), None)
       } else {
         val finerField = IR_VF_NodePositionAsVec.find(level + 1).associatedField
         val finerIndex = IR_LoopOverDimensions.defIt(numDims)
