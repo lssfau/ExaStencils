@@ -76,7 +76,7 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads {
         IR_IfCondition(IR_IV_IsValidForDomain(p.domain.index),
           IR_LoopOverDimensions(numDimsGrid, idxRange,
             IR_Assignment(
-              IR_IV_TemporaryBuffer.accessArray(vel, IR_LoopOverFragments.defIt * numCellsPerFrag + linearizedIdx),
+              IR_ArrayAccess(vel, IR_LoopOverFragments.defIt * numCellsPerFrag + linearizedIdx),
               velAsVec(dir)))))
     }
 
@@ -99,7 +99,7 @@ trait IR_PrintVisualizationNS extends IR_PrintVisualizationQuads {
     val initBuffer : ListBuffer[IR_Statement] = (0 until numDimsGrid).map(d => {
       val linearizedIdx = idxRange.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
       IR_Assignment(
-        IR_IV_TemporaryBuffer.accessArray(velocityBuf, IR_LoopOverFragments.defIt * numCellsPerFrag * numDimsGrid + numDimsGrid * linearizedIdx + d),
+        IR_ArrayAccess(velocityBuf, IR_LoopOverFragments.defIt * numCellsPerFrag * numDimsGrid + numDimsGrid * linearizedIdx + d),
         velAsVec(d)) : IR_Statement
     }).to[ListBuffer]
 

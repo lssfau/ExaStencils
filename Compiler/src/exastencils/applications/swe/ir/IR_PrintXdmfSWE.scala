@@ -117,7 +117,7 @@ case class IR_PrintXdmfSWE(
             IR_LoopOverDimensions(numDimsGrid, indexRangeCells,
               (0 until numAccessesPerCell).to[ListBuffer].map(idx => {
                 IR_Assignment(
-                  IR_IV_TemporaryBuffer.accessArray(tmpBuf, offset + idx),
+                  IR_ArrayAccess(tmpBuf, offset + idx),
                   IR_FieldAccess(nodalFields(name), IR_IV_ActiveSlot(nodalFields(name)), IR_LoopOverDimensions.defIt(numDimsGrid) + nodeOffsets(idx))) : IR_Statement
               })))))
     }

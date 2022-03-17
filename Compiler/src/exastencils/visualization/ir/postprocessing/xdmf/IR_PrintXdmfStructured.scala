@@ -129,7 +129,7 @@ abstract class IR_PrintXdmfStructured(ioMethod : IR_Expression) extends IR_Print
       IR_IfCondition(IR_IV_IsValidForDomain(dataBuffer.domainIdx),
         IR_LoopOverDimensions(numDimsGrid, idxRange,
           IR_Assignment(
-            IR_IV_TemporaryBuffer.accessArray(tmpBufDest, fragOff + linearizedIdx),
+            IR_ArrayAccess(tmpBufDest, fragOff + linearizedIdx),
             mean))))
 
     stmts

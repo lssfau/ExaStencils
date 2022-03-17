@@ -91,7 +91,7 @@ trait IR_PrintVisualizationSWE extends IR_PrintVisualizationTriangles {
           IR_LoopOverDimensions(numDimsGrid, indexRangeCells,
             (0 until numAccessesPerCell).to[ListBuffer].map(idx => {
               IR_Assignment(
-                IR_IV_TemporaryBuffer.accessArray(tmpBuf, offset + idx),
+                IR_ArrayAccess(tmpBuf, offset + idx),
                 IR_FieldAccess(discFields(tmpBuf.name)(idx), IR_IV_ActiveSlot(someCellField), IR_LoopOverDimensions.defIt(numDimsGrid))) : IR_Statement
             }))))
     }

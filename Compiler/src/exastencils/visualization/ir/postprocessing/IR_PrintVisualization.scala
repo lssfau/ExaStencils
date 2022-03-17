@@ -193,7 +193,7 @@ trait IR_PrintVisualization {
     val initBuffer : ListBuffer[IR_Statement] = connectivityForCell().indices.map(d => {
       val linearizedLoopIdx = loopOverCells().indices.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
       IR_Assignment(
-        IR_IV_TemporaryBuffer.accessArray(connectivityBuf, IR_LoopOverFragments.defIt * sizeConnectionFrag + connectivityForCell().length * linearizedLoopIdx + d),
+        IR_ArrayAccess(connectivityBuf, IR_LoopOverFragments.defIt * sizeConnectionFrag + connectivityForCell().length * linearizedLoopIdx + d),
         connectivityForCell(global)(d)) : IR_Statement
     }).to[ListBuffer]
 
@@ -220,7 +220,7 @@ trait IR_PrintVisualization {
     val dims = (indexRange.end - indexRange.begin).indices.to[ListBuffer]
     val linearizedLoopIdx = indexRange.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
     val init = IR_Assignment(
-      IR_IV_TemporaryBuffer.accessArray(cellCentersBuf(dim), IR_LoopOverFragments.defIt * dims.reduce(_ * _) + linearizedLoopIdx),
+      IR_ArrayAccess(cellCentersBuf(dim), IR_LoopOverFragments.defIt * dims.reduce(_ * _) + linearizedLoopIdx),
       getPos(IR_AtCellCenter, level, dim))
 
     // declare, allocate and init temp. buffer with cell centers
@@ -264,7 +264,7 @@ trait IR_PrintVisualization {
             IR_LoopOverDimensions(numDimsGrid,
               indexRange,
               IR_Assignment(
-                IR_IV_TemporaryBuffer.accessArray(facePositionsBuf(faceDir)(dim), IR_LoopOverFragments.defIt * dims.reduce(_ * _) + linearizedLoopIdx),
+                IR_ArrayAccess(facePositionsBuf(faceDir)(dim), IR_LoopOverFragments.defIt * dims.reduce(_ * _) + linearizedLoopIdx),
                 getPos(IR_AtFaceCenter(faceDir), level, dim)))))))
   }
 
@@ -285,7 +285,7 @@ trait IR_PrintVisualization {
     val initBuffer : ListBuffer[IR_Statement] = (0 until numAccPerCell).map(n => {
       val linearizedLoopIdx = loopOverDims(isNodalLoop).indices.linearizeIndex(IR_LoopOverDimensions.defIt(numDimsGrid))
       IR_Assignment(
-        IR_IV_TemporaryBuffer.accessArray(nodePositionsBuf(dim), IR_LoopOverFragments.defIt * numPointsPerFrag + numAccPerCell * linearizedLoopIdx + n),
+        IR_ArrayAccess(nodePositionsBuf(dim), IR_LoopOverFragments.defIt * numPointsPerFrag + numAccPerCell * linearizedLoopIdx + n),
         getPos(IR_AtNode, level, dim, IR_LoopOverDimensions.defIt(numDimsGrid) + nodeOffsets(n))) : IR_Statement
     }).to[ListBuffer]
 

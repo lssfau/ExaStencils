@@ -266,11 +266,11 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
             IR_LoopOverDimensions(numDimsGrid, indexRangeTransformed,
               (0 until numAccesses).to[ListBuffer].map(idx => {
                 IR_Assignment(
-                  IR_IV_TemporaryBuffer.accessArray(tmp, offset + idx),
+                  IR_ArrayAccess(tmp, offset + idx),
                   buf.getAccess(IR_LoopOverDimensions.defIt(numDimsGrid) + accesses(idx))) : IR_Statement
               }))))
 
-        IR_AddressOf(IR_IV_TemporaryBuffer.accessArray(tmp, 0))
+        IR_AddressOf(IR_ArrayAccess(tmp, 0))
       } else {
         buf.getBaseAddress
       }

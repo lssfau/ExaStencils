@@ -26,7 +26,7 @@ case class IR_AccessFieldFunction(var field : IR_Field, var slot : IR_Expression
 }
 
 case class IR_AccessTempBufferFunction(var tempBuffer : IR_IV_TemporaryBuffer) extends IR_AccessFunction {
-  override def get(idx : IR_Index) = IR_IV_TemporaryBuffer.accessArray(tempBuffer, idx)
+  override def get(idx : IR_Index) = IR_ArrayAccess(tempBuffer, tempBuffer.linearizedIndex(idx))
 }
 
 /// IR_AccessPattern

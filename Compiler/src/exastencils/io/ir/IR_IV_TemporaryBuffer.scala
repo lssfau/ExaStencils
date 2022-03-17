@@ -8,6 +8,7 @@ import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.grid.ir.IR_Localization
+import exastencils.prettyprinting.PpStream
 
 /// IR_IV_TemporaryBuffer
 // represents a temporary buffer where data is stored (fragment-wise) before writing it to file
@@ -16,17 +17,6 @@ import exastencils.grid.ir.IR_Localization
 //   - only contains data of interest
 //   - does not have layers to be excluded (e.g. pad/ghost/...)
 
-object IR_IV_TemporaryBuffer {
-  def accessArray(tempBuf : IR_IV_TemporaryBuffer, idx : IR_Expression) = {
-    // TODO: should be done automatically
-    var base : IR_Expression = tempBuf
-    if (!tempBuf.blockwise)
-      base = IR_ArrayAccess(tempBuf, IR_LoopOverFragments.defIt)
-
-    IR_ArrayAccess(base, tempBuf.linearizedIndex(idx))
-  }
-}
-
 case class IR_IV_TemporaryBuffer(
     var baseDatatype : IR_Datatype,
     var localization : IR_Localization,
@@ -34,7 +24,9 @@ case class IR_IV_TemporaryBuffer(
     var domainIdx : Int,
     var blockwise : Boolean,
     dimsPerFrag : ListBuffer[IR_Expression],
-) extends IR_InternalVariable(!blockwise, true, false, false, false) with IR_Access {
+) extends IR_InternalVariable(!blockwise, true, false, false, false) {
+
+  override def prettyprint(out : PpStream) : Unit = out << this.resolveAccess()
 
   override def resolveName() : String = name + resolvePostfix("", domainIdx.prettyprint, "", "", "")
   override def resolveDatatype() : IR_Datatype = IR_PointerDatatype(baseDatatype)
