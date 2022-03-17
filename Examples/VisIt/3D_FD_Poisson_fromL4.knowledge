@@ -1,0 +1,20 @@
+dimensionality                 = 3
+
+minLevel                       = 2
+maxLevel                       = 6
+
+discr_type                     = "FiniteDifferences"
+
+
+domain_onlyRectangular         = true
+domain_rect_generate           = true
+domain_rect_numBlocks_x        = 2
+domain_rect_numBlocks_y        = 2
+domain_rect_numBlocks_z        = 1
+domain_rect_numFragsPerBlock_x = 2
+domain_rect_numFragsPerBlock_y = 4
+domain_rect_numFragsPerBlock_z = 1
+
+import '../lib/parallelization_fourMPI.knowledge'
+
+visit_enable 			= true

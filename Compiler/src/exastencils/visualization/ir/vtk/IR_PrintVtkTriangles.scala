@@ -16,12 +16,13 @@
 //
 //=============================================================================
 
-package exastencils.visualization.ir
+package exastencils.visualization.ir.vtk
 
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.{ IR_Expression, _ }
+import exastencils.base.ir.IR_Expression
+import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate

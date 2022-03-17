@@ -1,0 +1,86 @@
+Globals {
+  Var sim_done : Boolean = false
+  Var sim_time : Real = 0.0
+  Var sim_cycle : Int = 0
+  Var maxTime : Real = 1.0e+2
+  Var dt      : Real = 1.0e-5
+
+  Expr adaptDt       = true
+  Expr printInterval = -1
+  Expr visInterval   = 10
+}
+
+
+
+Field uVis from hu
+Field vVis from hv
+Field velMag from h
+Field hVis from h
+Field bVis from b
+
+
+
+Function simulate_timestep@finest {
+  if(sim_time < maxTime) {
+    if ( 0 == sim_cycle % 1000 ) {
+      print ( sim_time, '/', maxTime, 'dt = ', dt )
+      printMinMax@finest ( )
+    }
+
+    if ( visInterval > 0 and 0 == sim_cycle % visInterval ) {
+      UpdateVis@finest ( )
+    }
+
+    if ( printInterval > 0 and 0 == sim_cycle % printInterval ) {
+      PrintFields ( sim_cycle / printInterval )
+    }
+
+    startTimer ( 'timeloop' )
+
+    if ( adaptDt ) {
+      UpdateTimestepSize@finest ( )
+    }
+
+    Update ( )
+
+    AdvanceTimestep ( )
+    sim_time += dt
+    sim_cycle += 1
+
+    stopTimer ( 'timeloop' )
+
+    if ( 0 == sim_cycle % 1000 ) {
+      Val numCells_x : Real = getKnowledge ( 'domain_rect_numBlocks_x' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_x' ) * getKnowledge ( 'domain_fragmentLength_x' ) * ( 2 ** levels@finest ( ) )
+      Val numCells_y : Real = getKnowledge ( 'domain_rect_numBlocks_y' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_y' ) * getKnowledge ( 'domain_fragmentLength_y' ) * ( 2 ** levels@finest ( ) )
+      Val numCells   : Real = numCells_x * numCells_y
+      Val timeSpent  : Real = getTotalTime ( 'timeloop' ) / 1000
+      //print ( sim_cycle, 'iterations took', timeSpent, 's' )
+      //print ( '#cells:', numCells )
+      print ( 'MLUpS:', 1e-6 * numCells * sim_cycle / timeSpent )
+    }
+  } else {
+    sim_done = true
+  }
+
+  print ( 'Total number of iterations:', sim_cycle )
+}
+
+Function PrintFields@finest ( index : Int ) {
+  if ( printInterval > 0 ) { // removes function body if not required
+    uVis = hu / h
+    vVis = hv / h
+
+    Var filename_u : String
+    buildString ( filename_u, "u_", index, ".csv" )
+    Var filename_v : String
+    buildString ( filename_v, "v_", index, ".csv" )
+    Var filename_h : String
+    buildString ( filename_h, "h_", index, ".csv" )
+
+    printField ( filename_u, vVis@current )
+    printField ( filename_v, uVis@current )
+    printField ( filename_h, h@current )
+  }
+}
+
+
