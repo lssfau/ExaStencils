@@ -29,6 +29,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.domain.ir._
 import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.grid.ir._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 

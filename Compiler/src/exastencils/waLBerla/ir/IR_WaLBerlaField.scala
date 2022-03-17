@@ -2,16 +2,15 @@ package exastencils.waLBerla.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_MatShape
 import exastencils.boundary.ir.IR_BoundaryCondition
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_Domain
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.field.ir.IR_FieldAccess
-import exastencils.field.ir.IR_FieldLike
-import exastencils.knowledge.ir.IR_LeveledKnowledgeObject
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.logger.Logger
 
 /// IR_WaLBerlaField
@@ -32,7 +31,7 @@ case class IR_WaLBerlaField(
     var numSlots : Int,
     var boundary : IR_BoundaryCondition,
     var matShape: Option[IR_MatShape]
-) extends IR_LeveledKnowledgeObject with IR_FieldLike {
+) extends IR_FieldLike {
 
   override def createDuplicate() : IR_WaLBerlaField = {
     IR_WaLBerlaField(name, level, index, codeName, Duplicate(layout), numSlots, Duplicate(boundary), Duplicate(matShape))

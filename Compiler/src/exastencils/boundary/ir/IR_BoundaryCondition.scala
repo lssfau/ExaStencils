@@ -27,7 +27,7 @@ import exastencils.base.ir.IR_Statement
 import exastencils.communication.NeighborInfo
 import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_FieldAccess
-import exastencils.field.ir.IR_FieldLike
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.grid.ir.IR_AtFaceCenter
 import exastencils.grid.ir.IR_AtNode
@@ -49,6 +49,7 @@ trait IR_BoundaryCondition extends IR_Node {
   }
 
   def accessField(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, idx : IR_ExpressionIndex) = {
+    // TODO refactor
     if (IR_WaLBerlaFieldCollection.exists(field.name, field.level))
       IR_WaLBerlaFieldAccess(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get, slot, idx)
     else field match {

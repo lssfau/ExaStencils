@@ -25,7 +25,7 @@ import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.config.Knowledge
 import exastencils.core._
-import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_FieldLike
 
 /// IR_NeumannBC
 

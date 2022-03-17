@@ -26,7 +26,7 @@ import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.config.Knowledge
 import exastencils.core._
-import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.grid.ir._
 import exastencils.logger.Logger
 

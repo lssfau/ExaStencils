@@ -26,7 +26,7 @@ import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.core.Duplicate
 import exastencils.field.ir.IR_Field
-import exastencils.field.ir.IR_FieldLike
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.grid.ir._
 import exastencils.waLBerla.ir.IR_WaLBerlaField
 import exastencils.waLBerla.ir.IR_WaLBerlaHandleBoundaries

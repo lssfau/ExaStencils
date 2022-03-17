@@ -8,8 +8,8 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_MemberFunctionCallArrow
 import exastencils.core.Duplicate
-import exastencils.field.ir.IR_FieldLayoutLike
 import exastencils.field.ir.IR_FieldLayoutPerDim
+import exastencils.fieldlike.ir.IR_FieldLayoutLike
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.grid.ir.IR_Localization
 import exastencils.knowledge.ir.IR_LeveledKnowledgeObject

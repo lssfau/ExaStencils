@@ -24,8 +24,8 @@ import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.boundary.l4._
 import exastencils.communication.NeighborInfo
-import exastencils.field.ir.IR_FieldLike
 import exastencils.field.l4._
+import exastencils.fieldlike.ir.IR_FieldLike
 
 /// IR_FunctionBC
 

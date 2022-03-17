@@ -28,6 +28,7 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.domain.ir._
 import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 

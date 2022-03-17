@@ -12,16 +12,16 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.field.ir.IR_FieldAccess
-import exastencils.knowledge.ir.IR_LeveledKnowledgeAccess
+import exastencils.fieldlike.ir.IR_FieldLikeAccessLike
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.prettyprinting.PrettyPrintable
 
 /// IR_FieldAccessLike
 
-trait IR_WaLBerlaFieldAccessLike extends IR_LeveledKnowledgeAccess {
+trait IR_WaLBerlaFieldAccessLike extends IR_FieldLikeAccessLike {
   def field : IR_WaLBerlaField
-  def target = field
+  override def target : IR_WaLBerlaField = field
 }
 
 object IR_WaLBerlaFieldAccess {

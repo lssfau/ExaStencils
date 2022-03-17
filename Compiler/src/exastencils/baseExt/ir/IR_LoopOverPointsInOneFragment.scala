@@ -30,7 +30,7 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.domain.ir._
-import exastencils.field.ir.IR_FieldLike
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.grid.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir._

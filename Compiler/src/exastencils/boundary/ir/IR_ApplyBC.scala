@@ -19,7 +19,7 @@
 package exastencils.boundary.ir
 
 import exastencils.base.ir._
-import exastencils.field.ir.IR_FieldLike
+import exastencils.fieldlike.ir.IR_FieldLike
 
 /// IR_ApplyBC
 

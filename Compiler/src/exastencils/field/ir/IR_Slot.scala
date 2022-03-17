@@ -23,6 +23,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream

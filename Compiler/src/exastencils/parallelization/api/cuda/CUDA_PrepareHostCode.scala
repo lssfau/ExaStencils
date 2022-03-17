@@ -28,6 +28,7 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.logger.Logger
 import exastencils.util.NoDuplicateWrapper
 import exastencils.util.ir.IR_FctNameCollector

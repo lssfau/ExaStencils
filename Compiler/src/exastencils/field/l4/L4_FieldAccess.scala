@@ -25,6 +25,7 @@ import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.l4._
 import exastencils.datastructures._
 import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.knowledge.l4._
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
