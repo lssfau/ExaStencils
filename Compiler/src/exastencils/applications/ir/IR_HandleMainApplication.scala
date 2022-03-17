@@ -21,7 +21,8 @@ package exastencils.applications.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.{ IR_Native, _ }
+import exastencils.base.ir.IR_Native
+import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.logger.Logger

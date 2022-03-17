@@ -52,7 +52,9 @@ import exastencils.stencil.ir._
 import exastencils.timing.ir._
 import exastencils.util._
 import exastencils.util.ir._
-import exastencils.visualization.ir._
+import exastencils.visualization.ir.cimg.IR_ResolveCImgFunctions
+import exastencils.visualization.ir.visit.IR_SetupVisit
+import exastencils.visualization.ir.vtk.IR_ResolveVtkPrinters
 import exastencils.waLBerla.ir._
 
 /// IR_LayerHandler
@@ -176,6 +178,9 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     // simplify indices modified just now, otherwise equality checks will not work later on
     IR_GeneralSimplify.apply()
 
+    if (Knowledge.visit_enable)
+      IR_SetupVisit.apply()
+
     var convChanged = false
     do {
       IR_FindStencilConvolutions.changed = false
@@ -191,9 +196,6 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     } while (convChanged)
 
     IR_ResolveStencilFunction.apply()
-
-    if (Knowledge.experimental_visit_enable)
-      IR_SetupVisit.apply()
 
     // resolve new virtual field accesses
     IR_WaLBerlaReplaceFragmentLoops.apply()

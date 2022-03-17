@@ -29,7 +29,7 @@ import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir._
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_Print
-import exastencils.visualization.ir.IR_PrintVtkQuads
+import exastencils.visualization.ir.vtk.IR_PrintVtkQuads
 
 /// IR_PrintVtkNS
 

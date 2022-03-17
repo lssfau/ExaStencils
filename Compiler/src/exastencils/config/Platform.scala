@@ -284,6 +284,13 @@ object Platform {
     targetCudaCompiler match {
       case "NVCC" =>
         flags += s" -std=c++11 -O3 -DNDEBUG -lineinfo -arch=sm_${ Platform.hw_cuda_capability }${ Platform.hw_cuda_capabilityMinor }"
+
+        // cannot find mpi.h from Globals/Globals.h when compiling with nvcc otherwise
+        if (Knowledge.mpi_enabled) {
+          val mpiWrapperFlags = s"$$(shell $resolveCompiler --showme:compile | sed 's/-pthread//g')"
+          if (!Settings.makefile_additionalCudaFlags.contains(mpiWrapperFlags))
+            Settings.makefile_additionalCudaFlags += mpiWrapperFlags
+        }
     }
 
     flags
@@ -319,7 +326,7 @@ object Platform {
       case "MSVC" => // nothing to do
 
       case "ICC" =>
-        flags += " -O3 -std=c++11"
+        flags += " -O3 -fno-alias -std=c++11"
 
         if (Knowledge.omp_enabled) {
           if (targetCompilerVersion >= 15)
