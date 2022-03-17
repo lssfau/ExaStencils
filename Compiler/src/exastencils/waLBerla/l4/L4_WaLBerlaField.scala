@@ -7,10 +7,11 @@ import exastencils.core.Duplicate
 import exastencils.domain.l4.L4_Domain
 import exastencils.domain.l4.L4_DomainCollection
 import exastencils.field.l4.L4_Field
+import exastencils.fieldlike.l4.L4_FieldLike
 import exastencils.grid.l4.L4_Localization
-import exastencils.knowledge.l4.L4_LeveledKnowledgeObject
 import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.IR_WaLBerlaField
+import exastencils.waLBerla.ir.IR_WaLBerlaFieldLayout
 
 case class L4_WaLBerlaField(
     var name : String,
@@ -20,7 +21,7 @@ case class L4_WaLBerlaField(
     var numSlots : Int,
     var boundary : L4_BoundaryCondition,
     var matShape : Option[L4_MatShape] = None
-) extends L4_LeveledKnowledgeObject[IR_WaLBerlaField] {
+) extends L4_FieldLike[IR_WaLBerlaField, IR_WaLBerlaFieldLayout] {
 
   override def createDuplicate() : L4_WaLBerlaField = {
     L4_WaLBerlaField.tupled(Duplicate(L4_WaLBerlaField.unapply(this).get))

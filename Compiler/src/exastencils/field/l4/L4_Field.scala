@@ -23,21 +23,22 @@ import exastencils.boundary.l4.L4_BoundaryCondition
 import exastencils.core.Duplicate
 import exastencils.domain.l4.L4_Domain
 import exastencils.field.ir.IR_Field
-import exastencils.knowledge.l4.L4_LeveledKnowledgeObject
+import exastencils.field.ir.IR_FieldLayout
+import exastencils.fieldlike.l4.L4_FieldLike
 import exastencils.prettyprinting._
 
 /// L4_Field
 
 case class L4_Field(
-    var name : String, // will be used to find the field
-    var level : Int, // the level the field lives on
+    var name : String,
+    var level : Int,
     var index : Int,
     var domain : L4_Domain,
     var fieldLayout : L4_FieldLayout,
     var numSlots : Int,
     var boundary : L4_BoundaryCondition,
     var matShape : Option[L4_MatShape] = None
-) extends L4_LeveledKnowledgeObject[IR_Field] {
+) extends L4_FieldLike[IR_Field, IR_FieldLayout] {
 
   override def createDuplicate() : L4_Field = {
     L4_Field.tupled(Duplicate(L4_Field.unapply(this).get))

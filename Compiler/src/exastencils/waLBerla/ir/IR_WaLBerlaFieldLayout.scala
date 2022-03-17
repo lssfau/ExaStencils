@@ -12,7 +12,6 @@ import exastencils.field.ir.IR_FieldLayoutPerDim
 import exastencils.fieldlike.ir.IR_FieldLayoutLike
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.grid.ir.IR_Localization
-import exastencils.knowledge.ir.IR_LeveledKnowledgeObject
 
 /// IR_WaLBerlaFieldLayout
 
@@ -32,7 +31,7 @@ case class IR_WaLBerlaFieldLayout(
     var layoutName : String, // "xyzf" or "fzyx"
     var communicatesDuplicated : Boolean,
     var communicatesGhosts : Boolean
-) extends IR_LeveledKnowledgeObject with IR_FieldLayoutLike {
+) extends IR_FieldLayoutLike {
 
   override def createDuplicate() : IR_WaLBerlaFieldLayout = {
     IR_WaLBerlaFieldLayout.tupled(Duplicate(IR_WaLBerlaFieldLayout.unapply(this).get))

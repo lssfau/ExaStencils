@@ -4,11 +4,12 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_Linearization
 import exastencils.field.ir.IR_FieldLayoutPerDim
 import exastencils.grid.ir.IR_Localization
+import exastencils.knowledge.ir.IR_LeveledKnowledgeObject
 import exastencils.logger.Logger
 
 /// IR_FieldLayoutLike
 
-trait IR_FieldLayoutLike {
+trait IR_FieldLayoutLike extends IR_LeveledKnowledgeObject {
   def name : String // will be used to find the field
   def level : Int // the (geometric) level the layout is associated with
   def datatype : IR_Datatype // represents the (original) data type; may be multidimensional, i.e. vectors, matrices, etc.

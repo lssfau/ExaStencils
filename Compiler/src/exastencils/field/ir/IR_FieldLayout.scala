@@ -24,7 +24,6 @@ import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.fieldlike.ir.IR_FieldLayoutLike
 import exastencils.grid.ir.IR_Localization
-import exastencils.knowledge.ir._
 
 /// IR_FieldLayout
 
@@ -38,7 +37,7 @@ case class IR_FieldLayout(
     var referenceOffset : IR_ExpressionIndex,
     var communicatesDuplicated : Boolean,
     var communicatesGhosts : Boolean
-) extends IR_LeveledKnowledgeObject with IR_FieldLayoutLike {
+) extends IR_FieldLayoutLike {
 
   override def createDuplicate() : IR_FieldLayout = {
     IR_FieldLayout.tupled(Duplicate(IR_FieldLayout.unapply(this).get))

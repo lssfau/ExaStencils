@@ -5,9 +5,9 @@ import exastencils.base.l4.L4_Datatype
 import exastencils.core.Duplicate
 import exastencils.field.ir.IR_FieldLayoutPerDim
 import exastencils.field.l4.L4_FieldLayout
+import exastencils.fieldlike.l4.L4_FieldLayoutLike
 import exastencils.grid.l4.L4_AtCellCenter
 import exastencils.grid.l4.L4_Localization
-import exastencils.knowledge.l4.L4_LeveledKnowledgeObject
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.IR_WaLBerlaFieldLayout
@@ -23,7 +23,7 @@ case class L4_WaLBerlaFieldLayout(
     var duplicateLayers : L4_ConstIndex,
     var communicatesDuplicated : Boolean,
     var innerPoints : L4_ConstIndex
-) extends L4_LeveledKnowledgeObject[IR_WaLBerlaFieldLayout] {
+) extends L4_FieldLayoutLike[IR_WaLBerlaFieldLayout] {
 
   def localization : L4_Localization = L4_AtCellCenter
 

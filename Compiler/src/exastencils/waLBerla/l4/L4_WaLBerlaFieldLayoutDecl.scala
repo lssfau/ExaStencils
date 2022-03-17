@@ -4,8 +4,8 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4.L4_Datatype
 import exastencils.base.l4.L4_DeclarationLevelSpecification
-import exastencils.field.l4.L4_FieldLayoutDeclLike
 import exastencils.field.l4.L4_FieldLayoutOption
+import exastencils.fieldlike.l4.L4_FieldLayoutDeclLike
 import exastencils.grid.l4.L4_AtCellCenter
 import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
 import exastencils.logger.Logger

@@ -23,8 +23,8 @@ import exastencils.base.l4._
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.field.ir._
+import exastencils.fieldlike.l4.L4_FieldLayoutLike
 import exastencils.grid.l4._
-import exastencils.knowledge.l4.L4_LeveledKnowledgeObject
 import exastencils.prettyprinting._
 
 object L4_FieldLayout {
@@ -76,7 +76,7 @@ case class L4_FieldLayout(
     var communicatesGhosts : Boolean,
     var duplicateLayers : L4_ConstIndex,
     var communicatesDuplicated : Boolean,
-    var innerPoints : L4_ConstIndex) extends L4_LeveledKnowledgeObject[IR_FieldLayout] {
+    var innerPoints : L4_ConstIndex) extends L4_FieldLayoutLike[IR_FieldLayout] {
 
   override def createDuplicate() : L4_FieldLayout = {
     L4_FieldLayout(name, level, numDimsGrid, Duplicate(datatype), Duplicate(localization), Duplicate(ghostLayers),
