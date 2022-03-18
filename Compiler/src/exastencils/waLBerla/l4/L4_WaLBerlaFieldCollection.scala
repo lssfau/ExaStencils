@@ -1,6 +1,5 @@
 package exastencils.waLBerla.l4
 
-import exastencils.base.l4.L4_MayBlockResolution
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
@@ -37,26 +36,6 @@ object L4_WaLBerlaFieldCollection extends L4_LeveledKnowledgeCollection[L4_WaLBe
 
   override def name = "L4_WaLBerlaFieldCollection"
   override def progress() : Unit = objects.foreach(obj => IR_WaLBerlaFieldCollection.add(obj.progress()))
-}
-
-/// L4_WaLBerlaPrepareFieldDeclarations
-
-object L4_WaLBerlaPrepareFieldDeclarations extends DefaultStrategy("Prepare knowledge for waLBerla L4 fields") {
-  this += Transformation("Process new fields", {
-    case decl : L4_WaLBerlaFieldDecl =>
-      L4_WaLBerlaFieldCollection.addDeclared(decl.name, decl.levels)
-      decl // preserve declaration statement
-  })
-}
-
-/// L4_WaLBerlaProcessFieldDeclarations
-
-object L4_WaLBerlaProcessFieldDeclarations extends DefaultStrategy("Integrate L4 waLBerla field declarations with knowledge") {
-  this += Transformation("Process field declarations", {
-    case decl : L4_WaLBerlaFieldDecl if L4_MayBlockResolution.isDone(decl) =>
-      decl.addToKnowledge()
-      None // consume declaration statement
-  })
 }
 
 /// L4_WaLBerlaPrepareFieldAccesses

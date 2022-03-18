@@ -40,7 +40,7 @@ import exastencils.operator.l4._
 import exastencils.parsers._
 import exastencils.solver.l4._
 import exastencils.util.l4.L4_OffsetAlias
-import exastencils.waLBerla.l4.L4_WaLBerlaFieldDecl
+import exastencils.waLBerla.l4.L4_WaLBerlaBaseFieldDecl
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayoutDecl
 import exastencils.waLBerla.l4.L4_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.l4.L4_WaLBerlaSwapFieldPointers
@@ -405,7 +405,7 @@ object L4_Parser extends ExaParser with PackratParsers {
     ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level ~ shape => L4_BaseFieldDecl(id, level, domain, layout, boundary, slots.getOrElse(1), shape) })
 
   lazy val waLBerlaField = locationize(("waLBerla" ~ "Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> fieldBoundary).? ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ levelDecl.? ~ matShapeOption.? ^^ {
-    case id ~ layout ~ bc ~ _ ~ slots ~ levels ~ shape => L4_WaLBerlaFieldDecl(id, levels, L4_UnresolvedAccess(layout), bc, slots.getOrElse(1), shape)
+    case id ~ layout ~ bc ~ _ ~ slots ~ levels ~ shape => L4_WaLBerlaBaseFieldDecl(id, levels, L4_UnresolvedAccess(layout), bc, slots.getOrElse(1), shape)
   })
 
   lazy val waLBerlaFieldLayout = locationize(("waLBerla" ~ "Layout" ~> ident) ~ ("<" ~> datatype <~ ",") ~ (stringLit <~ ">") ~ levelDecl.? ~ ("{" ~> repsep(layoutOption, ",".?) <~ "}")

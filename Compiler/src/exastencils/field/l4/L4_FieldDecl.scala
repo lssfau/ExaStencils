@@ -20,7 +20,7 @@ package exastencils.field.l4
 
 import exastencils.base.l4.L4_MayBlockResolution
 import exastencils.datastructures._
-import exastencils.knowledge.l4._
+import exastencils.fieldlike.l4.L4_FieldDeclLike
 import exastencils.logger._
 
 /// L4_FieldDecl
@@ -29,9 +29,8 @@ object L4_FieldDecl {
   var runningIndex = 0
 }
 
-abstract class L4_FieldDecl extends L4_LeveledKnowledgeDecl {
+abstract class L4_FieldDecl extends L4_FieldDeclLike {
   override def progress = Logger.error(s"Trying to progress l4 field declaration for field $name; this is not supported")
-  def addToKnowledge() : Unit
 }
 
 /// L4_PrepareFieldDeclaration

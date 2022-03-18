@@ -1,35 +1,31 @@
 package exastencils.waLBerla.l4
 
-import exastencils.base.l4.L4_Access
-import exastencils.base.l4.L4_DeclarationLevelSpecification
-import exastencils.baseExt.l4.L4_MatShape
-import exastencils.boundary.l4.L4_BoundaryCondition
-import exastencils.boundary.l4.L4_NoBC
-import exastencils.field.l4.L4_FieldDecl
-import exastencils.prettyprinting.PpStream
+import exastencils.base.l4.L4_MayBlockResolution
+import exastencils.datastructures.DefaultStrategy
+import exastencils.datastructures.Transformation
+import exastencils.fieldlike.l4.L4_FieldDeclLike
+import exastencils.logger.Logger
 
-case class L4_WaLBerlaFieldDecl(
-    var name : String,
-    var levels : Option[L4_DeclarationLevelSpecification],
-    var fieldLayout : L4_Access,
-    var boundary : Option[L4_BoundaryCondition],
-    var numSlots : Int,
-    var matShape : Option[L4_MatShape] = None
-) extends L4_FieldDecl {
+abstract class L4_WaLBerlaFieldDecl extends L4_FieldDeclLike {
+  override def progress = Logger.error(s"Trying to progress l4 field declaration for field $name; this is not supported")
+}
 
+/// L4_WaLBerlaPrepareFieldDeclarations
 
-  override def prettyprint(out : PpStream) : Unit = {
-    out << "waLBerla Field " << name << "< " << fieldLayout.name << "," << boundary.getOrElse(L4_NoBC) << ">"
-    if (numSlots > 1) out << '[' << numSlots << ']'
-    if (levels.isDefined) out << '@' << levels.get
-    if (matShape.isDefined) out << matShape.get.toString()
-  }
+object L4_WaLBerlaPrepareFieldDeclarations extends DefaultStrategy("Prepare knowledge for waLBerla L4 fields") {
+  this += Transformation("Process new fields", {
+    case decl : L4_WaLBerlaFieldDecl =>
+      L4_WaLBerlaFieldCollection.addDeclared(decl.name, decl.levels)
+      decl // preserve declaration statement
+  })
+}
 
-  override def addToKnowledge() : Unit = {
-    val index = L4_FieldDecl.runningIndex
-    L4_FieldDecl.runningIndex += 1
+/// L4_WaLBerlaProcessFieldDeclarations
 
-    val wbField = L4_WaLBerlaField(name, levels.get.resolveLevel, index, fieldLayout.asInstanceOf[L4_WaLBerlaFieldLayoutAccess].target, numSlots, boundary.getOrElse(L4_NoBC), matShape)
-    L4_WaLBerlaFieldCollection.add(wbField)
-  }
+object L4_WaLBerlaProcessFieldDeclarations extends DefaultStrategy("Integrate L4 waLBerla field declarations with knowledge") {
+  this += Transformation("Process field declarations", {
+    case decl : L4_WaLBerlaFieldDecl if L4_MayBlockResolution.isDone(decl) =>
+      decl.addToKnowledge()
+      None // consume declaration statement
+  })
 }
