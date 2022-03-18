@@ -8,11 +8,21 @@ import exastencils.field.l4.L4_ActiveSlot
 import exastencils.field.l4.L4_FieldAccess
 import exastencils.field.l4.L4_FutureFieldAccess
 import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.knowledge.l4.L4_KnowledgeContainer._
 import exastencils.knowledge.l4.L4_LeveledKnowledgeCollection
 import exastencils.logger.Logger
 import exastencils.util.l4.L4_LevelCollector
 
 trait L4_FieldLikeCollection[L4_Type <: L4_FieldLike[IR_Type, _], IR_Type <: IR_FieldLike] extends L4_LeveledKnowledgeCollection[L4_Type, IR_Type] {
+
+  L4_PrepareDeclarations.strategies += L4_PrepareFieldDeclarations
+  L4_ProcessDeclarations.strategies += L4_ProcessFieldDeclarations
+
+  L4_PrepareAccesses.strategies += L4_PrepareFieldAccesses
+  L4_ResolveAccesses.strategies += L4_ResolveFieldAccesses
+
+  def contains(access : L4_FutureFieldAccess) : Boolean = getByFieldAccess(access).isDefined
+  def contains(access : L4_FieldAccess) : Boolean = getByFieldAccess(access).isDefined
 
   def getByFieldAccess(access : L4_FutureFieldAccess) : Option[L4_Type] = getByIdentifier(access.name, access.level, suppressError = true)
   def getByFieldAccess(access : L4_FieldAccess) : Option[L4_Type] = getByIdentifier(access.name, access.level, suppressError = true)
