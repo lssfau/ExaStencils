@@ -31,7 +31,7 @@ object L4_ProcessKnowledgeDeclarations {
     L4_ProcessFieldLayoutDeclarations.apply()
 
     // may require: Domain, FieldLayout
-    L4_ProcessFieldDeclarations.apply()
+    L4_FieldCollection.L4_ProcessFieldDeclarations.apply() // TODO other collections?
 
     // may require: Field
     L4_ProcessExternalFieldDeclarations.apply()

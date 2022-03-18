@@ -90,16 +90,6 @@ case class L4_FieldAccess(
   }
 }
 
-/// L4_ResolveFieldAccesses
-
-object L4_ResolveFieldAccesses extends DefaultStrategy("Resolve accesses to fields") {
-  this += new Transformation("Resolve applicable future accesses", {
-    // check if declaration has already been processed and promote access if possible
-    case access : L4_FutureFieldAccess if L4_FieldCollection.exists(access.name, access.level) =>
-      access.toFieldAccess
-  })
-}
-
 /// L4_UnresolveFieldAccesses
 
 object L4_UnresolveFieldAccesses extends DefaultStrategy("Revert field accesses to unresolved accesses") {

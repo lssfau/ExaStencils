@@ -72,4 +72,6 @@ case class L4_Field(
       if(matShape.isDefined) Some(matShape.get.progress) else None
     )
   }
+
+  override def toField : L4_Field = this
 }
