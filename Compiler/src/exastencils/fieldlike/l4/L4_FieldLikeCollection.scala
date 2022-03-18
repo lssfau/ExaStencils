@@ -1,19 +1,21 @@
 package exastencils.fieldlike.l4
 
+import scala.reflect.runtime.universe._
+
 import exastencils.base.l4.L4_MayBlockResolution
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
-import exastencils.field.l4.L4_ActiveSlot
-import exastencils.field.l4.L4_FieldAccess
-import exastencils.field.l4.L4_FutureFieldAccess
+import exastencils.field.l4._
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.knowledge.l4.L4_KnowledgeContainer._
 import exastencils.knowledge.l4.L4_LeveledKnowledgeCollection
 import exastencils.logger.Logger
 import exastencils.util.l4.L4_LevelCollector
+import exastencils.waLBerla.l4.L4_WaLBerlaFieldCollection
+import exastencils.waLBerla.l4.L4_WaLBerlaFieldDecl
 
-trait L4_FieldLikeCollection[L4_Type <: L4_FieldLike[IR_Type, _], IR_Type <: IR_FieldLike] extends L4_LeveledKnowledgeCollection[L4_Type, IR_Type] {
+abstract class L4_FieldLikeCollection[L4_Type <: L4_FieldLike[IR_Type, _] : TypeTag, IR_Type <: IR_FieldLike] extends L4_LeveledKnowledgeCollection[L4_Type, IR_Type] {
 
   L4_PrepareDeclarations.strategies += L4_PrepareFieldDeclarations
   L4_ProcessDeclarations.strategies += L4_ProcessFieldDeclarations
@@ -27,11 +29,16 @@ trait L4_FieldLikeCollection[L4_Type <: L4_FieldLike[IR_Type, _], IR_Type <: IR_
   def getByFieldAccess(access : L4_FutureFieldAccess) : Option[L4_Type] = getByIdentifier(access.name, access.level, suppressError = true)
   def getByFieldAccess(access : L4_FieldAccess) : Option[L4_Type] = getByIdentifier(access.name, access.level, suppressError = true)
 
+  // TODO: make strategies more generic
+
   /// L4_PrepareFieldDeclaration
 
   object L4_PrepareFieldDeclarations extends DefaultStrategy("Prepare knowledge for L4 fields") {
     this += Transformation("Process new fields", {
-      case decl : L4_FieldDeclLike[L4_Type] =>
+      case decl : L4_FieldDecl if L4_FieldLikeCollection.this == L4_FieldCollection =>
+        addDeclared(decl.name, decl.levels)
+        decl // preserve declaration statement
+      case decl : L4_WaLBerlaFieldDecl if L4_FieldLikeCollection.this == L4_WaLBerlaFieldCollection =>
         addDeclared(decl.name, decl.levels)
         decl // preserve declaration statement
     })
@@ -41,7 +48,10 @@ trait L4_FieldLikeCollection[L4_Type <: L4_FieldLike[IR_Type, _], IR_Type <: IR_
 
   object L4_ProcessFieldDeclarations extends DefaultStrategy("Integrate L4 field declarations with knowledge") {
     this += Transformation("Process field declarations", {
-      case decl : L4_FieldDeclLike[L4_Type] if L4_MayBlockResolution.isDone(decl) =>
+      case decl : L4_FieldDecl if L4_FieldLikeCollection.this == L4_FieldCollection && L4_MayBlockResolution.isDone(decl) =>
+        decl.addToKnowledge()
+        None // consume declaration statement
+      case decl : L4_WaLBerlaFieldDecl if L4_FieldLikeCollection.this == L4_WaLBerlaFieldCollection && L4_MayBlockResolution.isDone(decl) =>
         decl.addToKnowledge()
         None // consume declaration statement
     })
