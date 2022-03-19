@@ -24,6 +24,7 @@ import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.field.ir._
 import exastencils.fieldlike.l4.L4_FieldLayoutLike
+import exastencils.fieldlike.l4.L4_FieldLayoutLikeAccess
 import exastencils.grid.l4._
 import exastencils.prettyprinting._
 
@@ -128,4 +129,6 @@ case class L4_FieldLayout(
 
     ret
   }
+
+  override def toLayoutAccess : L4_FieldLayoutLikeAccess[IR_FieldLayout] = L4_FieldLayoutAccess(this)
 }

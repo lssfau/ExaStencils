@@ -7,13 +7,16 @@ import exastencils.config.Knowledge
 import exastencils.field.l4.L4_FieldLayout
 import exastencils.field.l4.L4_FieldLayoutOption
 import exastencils.grid.l4._
+import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
 
-trait L4_FieldLayoutDeclLike {
+trait L4_FieldLayoutDeclLike[L4_LayoutType <: L4_FieldLayoutLike[_]] extends L4_LeveledKnowledgeDecl {
   def name : String
   def levels : Option[L4_DeclarationLevelSpecification]
   def datatype : L4_Datatype
   def localization : L4_Localization
   def options : ListBuffer[L4_FieldLayoutOption]
+
+  def composeLayout(level : Int) : L4_LayoutType
 
   val numDimsGrid = Knowledge.dimensionality // TODO: adapt for edge data structures
 

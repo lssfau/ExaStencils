@@ -7,7 +7,6 @@ import exastencils.base.l4.L4_DeclarationLevelSpecification
 import exastencils.field.l4.L4_FieldLayoutOption
 import exastencils.fieldlike.l4.L4_FieldLayoutDeclLike
 import exastencils.grid.l4.L4_AtCellCenter
-import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
@@ -17,7 +16,7 @@ case class L4_WaLBerlaFieldLayoutDecl(
     var datatype : L4_Datatype,
     var waLBerlaLayout : String,
     var options : ListBuffer[L4_FieldLayoutOption]
-) extends L4_LeveledKnowledgeDecl with L4_FieldLayoutDeclLike {
+) extends L4_FieldLayoutDeclLike[L4_WaLBerlaFieldLayout] {
 
   def localization = L4_AtCellCenter
 

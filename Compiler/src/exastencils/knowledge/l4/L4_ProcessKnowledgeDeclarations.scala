@@ -28,7 +28,7 @@ object L4_ProcessKnowledgeDeclarations {
     L4_ProcessStencilDeclarations.apply()
 
     // may require:
-    L4_ProcessFieldLayoutDeclarations.apply()
+    L4_FieldLayoutCollection.L4_ProcessFieldLayoutDeclarations.apply()
 
     // may require: Domain, FieldLayout
     L4_FieldCollection.L4_ProcessFieldDeclarations.apply() // TODO other collections?

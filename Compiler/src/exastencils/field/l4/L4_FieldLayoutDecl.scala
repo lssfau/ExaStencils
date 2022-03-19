@@ -21,10 +21,8 @@ package exastencils.field.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
-import exastencils.datastructures._
 import exastencils.fieldlike.l4.L4_FieldLayoutDeclLike
 import exastencils.grid.l4._
-import exastencils.knowledge.l4._
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
@@ -54,7 +52,7 @@ case class L4_FieldLayoutDecl(
     var levels : Option[L4_DeclarationLevelSpecification],
     var datatype : L4_Datatype,
     var localization : L4_Localization,
-    var options : ListBuffer[L4_FieldLayoutOption]) extends L4_LeveledKnowledgeDecl with L4_FieldLayoutDeclLike {
+    var options : ListBuffer[L4_FieldLayoutOption]) extends L4_FieldLayoutDeclLike[L4_FieldLayout] {
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "Layout " << name << "< " << datatype << ", " << localization << " >"
@@ -85,24 +83,4 @@ case class L4_FieldLayoutDecl(
   }
 
   override def progress = Logger.error(s"Trying to progress l4 field layout declaration for $name; this is not supported")
-}
-
-/// L4_PrepareFieldLayoutDeclaration
-
-object L4_PrepareFieldLayoutDeclarations extends DefaultStrategy("Prepare knowledge for L4 field layouts") {
-  this += Transformation("Process new field layouts", {
-    case decl : L4_FieldLayoutDecl =>
-      L4_FieldLayoutCollection.addDeclared(decl.name, decl.levels)
-      decl // preserve declaration statement
-  })
-}
-
-/// L4_ProcessFieldLayoutDeclarations
-
-object L4_ProcessFieldLayoutDeclarations extends DefaultStrategy("Integrate L4 field layout declarations with knowledge") {
-  this += Transformation("Process field layout declarations", {
-    case decl : L4_FieldLayoutDecl if L4_MayBlockResolution.isDone(decl) =>
-      decl.addToKnowledge()
-      None // consume declaration statement
-  })
 }

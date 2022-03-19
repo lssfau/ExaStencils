@@ -17,4 +17,6 @@ trait L4_FieldLayoutLike[IR_FieldLayoutAbstraction <: IR_FieldLayoutLike] extend
     def duplicateLayers : L4_ConstIndex
     def communicatesDuplicated : Boolean
     def innerPoints : L4_ConstIndex
+
+    def toLayoutAccess : L4_FieldLayoutLikeAccess[IR_FieldLayoutAbstraction]
 }
