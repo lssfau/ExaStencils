@@ -60,7 +60,7 @@ object L3_FieldCollection extends L3_LeveledKnowledgeCollection[L3_Field, L4_Fie
       val genLayout = L4_FieldLayout(
         layout._1._1, // name
         layout._1._2, // level
-        1, // FIXME: numDimsGrid
+        Knowledge.dimensionality, // dims
         layout._2._1.progress, // datatype
         layout._2._2.progress, // localization
         L4_FieldLayout.default_ghostLayers(layout._2._2.progress), // to be determined later
