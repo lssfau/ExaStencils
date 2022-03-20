@@ -23,6 +23,8 @@ trait L3_FieldLike[L4_FieldAbstraction <: L4_FieldLike[_, _]] extends L3_Leveled
   var initial : Option[L3_Expression]
   var boundary : L3_BoundaryCondition
 
+  def fieldLayoutName : String
+
   def codeName : String = name + "_" + level
   def numDimsGrid : Int = domain.numDims
 
