@@ -22,7 +22,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
-import exastencils.fieldlike.ir.IR_FieldLayoutLike
+import exastencils.fieldlike.ir.IR_FieldLikeLayout
 import exastencils.grid.ir.IR_Localization
 
 /// IR_FieldLayout
@@ -37,7 +37,7 @@ case class IR_FieldLayout(
     var referenceOffset : IR_ExpressionIndex,
     var communicatesDuplicated : Boolean,
     var communicatesGhosts : Boolean
-) extends IR_FieldLayoutLike {
+) extends IR_FieldLikeLayout {
 
   override def createDuplicate() : IR_FieldLayout = {
     IR_FieldLayout.tupled(Duplicate(IR_FieldLayout.unapply(this).get))

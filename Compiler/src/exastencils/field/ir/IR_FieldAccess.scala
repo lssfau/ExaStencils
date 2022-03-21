@@ -26,13 +26,13 @@ import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.fieldlike.ir.IR_FieldLikeAccessLike
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.polyhedron.IR_PolyArrayAccessLike
 
 /// IR_FieldAccessLike
 
-trait IR_FieldAccessLike extends IR_FieldLikeAccessLike {
+trait IR_FieldAccessLike extends IR_FieldLikeAccess {
   def field : IR_Field
   override def target : IR_Field = field
 }

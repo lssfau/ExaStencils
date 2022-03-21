@@ -9,7 +9,7 @@ import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.base.ir.IR_MemberFunctionCallArrow
 import exastencils.core.Duplicate
 import exastencils.field.ir.IR_FieldLayoutPerDim
-import exastencils.fieldlike.ir.IR_FieldLayoutLike
+import exastencils.fieldlike.ir.IR_FieldLikeLayout
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.grid.ir.IR_Localization
 
@@ -31,7 +31,7 @@ case class IR_WaLBerlaFieldLayout(
     var layoutName : String, // "xyzf" or "fzyx"
     var communicatesDuplicated : Boolean,
     var communicatesGhosts : Boolean
-) extends IR_FieldLayoutLike {
+) extends IR_FieldLikeLayout {
 
   override def createDuplicate() : IR_WaLBerlaFieldLayout = {
     IR_WaLBerlaFieldLayout.tupled(Duplicate(IR_WaLBerlaFieldLayout.unapply(this).get))

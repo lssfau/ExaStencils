@@ -5,8 +5,8 @@ import exastencils.base.l4.L4_Datatype
 import exastencils.core.Duplicate
 import exastencils.field.ir.IR_FieldLayoutPerDim
 import exastencils.field.l4.L4_FieldLayout
-import exastencils.fieldlike.l4.L4_FieldLayoutLike
-import exastencils.fieldlike.l4.L4_FieldLayoutLikeAccess
+import exastencils.fieldlike.l4.L4_FieldLikeLayout
+import exastencils.fieldlike.l4.L4_FieldLikeLayoutAccess
 import exastencils.grid.l4.L4_AtCellCenter
 import exastencils.grid.l4.L4_Localization
 import exastencils.logger.Logger
@@ -24,7 +24,7 @@ case class L4_WaLBerlaFieldLayout(
     var duplicateLayers : L4_ConstIndex,
     var communicatesDuplicated : Boolean,
     var innerPoints : L4_ConstIndex
-) extends L4_FieldLayoutLike[IR_WaLBerlaFieldLayout] {
+) extends L4_FieldLikeLayout[IR_WaLBerlaFieldLayout] {
 
   def localization : L4_Localization = L4_AtCellCenter
 
@@ -63,5 +63,5 @@ case class L4_WaLBerlaFieldLayout(
     IR_WaLBerlaFieldLayout(name, level, numDimsGrid, numDimsData, progDatatype, layouts, waLBerlaLayout, communicatesDuplicated, communicatesGhosts)
   }
 
-  override def toLayoutAccess : L4_FieldLayoutLikeAccess[IR_WaLBerlaFieldLayout] = L4_WaLBerlaFieldLayoutAccess(this)
+  override def toLayoutAccess : L4_FieldLikeLayoutAccess[IR_WaLBerlaFieldLayout] = L4_WaLBerlaFieldLayoutAccess(this)
 }

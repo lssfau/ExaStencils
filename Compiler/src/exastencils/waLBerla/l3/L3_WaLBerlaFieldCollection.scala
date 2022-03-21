@@ -6,7 +6,7 @@ import exastencils.base.l3.L3_Datatype
 import exastencils.base.l4.L4_ConstIndex
 import exastencils.config.Knowledge
 import exastencils.fieldlike.l3.L3_FieldLikeCollection
-import exastencils.fieldlike.l4.L4_FieldLayoutLike
+import exastencils.fieldlike.l4.L4_FieldLikeLayout
 import exastencils.grid.l3.L3_Localization
 import exastencils.knowledge.l3._
 import exastencils.waLBerla.l4.L4_WaLBerlaField
@@ -43,9 +43,9 @@ object L3_WaLBerlaFieldCollection extends L3_FieldLikeCollection[L3_WaLBerlaFiel
         Knowledge.dimensionality, // dims
         layout._2._1.progress, // datatype
         "fzyx", // waLBerla layout
-        L4_FieldLayoutLike.default_ghostLayers(layout._2._2.progress), // to be determined later
+        L4_FieldLikeLayout.default_ghostLayers(layout._2._2.progress), // to be determined later
         false,
-        L4_FieldLayoutLike.default_duplicateLayers(layout._2._2.progress),
+        L4_FieldLikeLayout.default_duplicateLayers(layout._2._2.progress),
         false,
         defIndex)
 

@@ -19,12 +19,12 @@
 package exastencils.field.l4
 
 import exastencils.field.ir._
-import exastencils.fieldlike.l4.L4_FieldLayoutLikeCollection
+import exastencils.fieldlike.l4.L4_FieldLikeLayoutCollection
 import exastencils.knowledge.l4._
 
 /// L4_FieldLayoutCollection
 
-object L4_FieldLayoutCollection extends L4_FieldLayoutLikeCollection[L4_FieldLayout, IR_FieldLayout] {
+object L4_FieldLayoutCollection extends L4_FieldLikeLayoutCollection[L4_FieldLayout, IR_FieldLayout] {
   exastencils.core.Duplicate.registerConstant(this)
 
   L4_KnowledgeContainer.register(this)

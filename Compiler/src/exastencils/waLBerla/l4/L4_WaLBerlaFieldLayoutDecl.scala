@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.l4.L4_Datatype
 import exastencils.base.l4.L4_DeclarationLevelSpecification
 import exastencils.field.l4.L4_FieldLayoutOption
-import exastencils.fieldlike.l4.L4_FieldLayoutDeclLike
+import exastencils.fieldlike.l4.L4_FieldLikeLayoutDecl
 import exastencils.grid.l4.L4_AtCellCenter
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -16,7 +16,7 @@ case class L4_WaLBerlaFieldLayoutDecl(
     var datatype : L4_Datatype,
     var waLBerlaLayout : String,
     var options : ListBuffer[L4_FieldLayoutOption]
-) extends L4_FieldLayoutDeclLike[L4_WaLBerlaFieldLayout] {
+) extends L4_FieldLikeLayoutDecl[L4_WaLBerlaFieldLayout] {
 
   def localization = L4_AtCellCenter
 

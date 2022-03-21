@@ -8,7 +8,7 @@ import exastencils.field.l4.L4_FieldLayoutOption
 import exastencils.grid.l4._
 import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
 
-trait L4_FieldLayoutDeclLike[L4_LayoutType <: L4_FieldLayoutLike[_]] extends L4_LeveledKnowledgeDecl {
+trait L4_FieldLikeLayoutDecl[L4_LayoutType <: L4_FieldLikeLayout[_]] extends L4_LeveledKnowledgeDecl {
   def name : String
   def levels : Option[L4_DeclarationLevelSpecification]
   def datatype : L4_Datatype
@@ -24,7 +24,7 @@ trait L4_FieldLayoutDeclLike[L4_LayoutType <: L4_FieldLayoutLike[_]] extends L4_
     if (option.isDefined)
       option.get.value
     else
-      L4_FieldLayoutLike.getDefaultValue(optionName, localization)
+      L4_FieldLikeLayout.getDefaultValue(optionName, localization)
   }
 
   def evalFieldLayoutBoolean(optionName : String) : Boolean = {
@@ -32,7 +32,7 @@ trait L4_FieldLayoutDeclLike[L4_LayoutType <: L4_FieldLayoutLike[_]] extends L4_
     if (option.isDefined)
       option.get.hasCommunication
     else
-      L4_FieldLayoutLike.getDefaultBoolean(optionName, localization)
+      L4_FieldLikeLayout.getDefaultBoolean(optionName, localization)
   }
 
   // determine number of inner points

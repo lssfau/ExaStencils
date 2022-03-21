@@ -12,7 +12,7 @@ trait IR_FieldLike extends IR_LeveledKnowledgeObject {
   def index : Int // (consecutive) index of the field, can be used as array subscript
   def domain : IR_Domain // the (sub)domain the field lives on
   def codeName : String // will be used in the generated source code
-  def layout : IR_FieldLayoutLike // represents the number of data points and their distribution in each dimension
+  def layout : IR_FieldLikeLayout // represents the number of data points and their distribution in each dimension
   def numSlots : Int // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
   def boundary : IR_BoundaryCondition // the boundary condition to be enforced when calling apply bc
 

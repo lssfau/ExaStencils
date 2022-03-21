@@ -3,12 +3,12 @@ package exastencils.fieldlike.l4
 import exastencils.base.l4.L4_ConstIndex
 import exastencils.base.l4.L4_Datatype
 import exastencils.config.Knowledge
-import exastencils.fieldlike.ir.IR_FieldLayoutLike
+import exastencils.fieldlike.ir.IR_FieldLikeLayout
 import exastencils.grid.l4._
 import exastencils.knowledge.l4.L4_LeveledKnowledgeObject
 
 
-object L4_FieldLayoutLike {
+object L4_FieldLikeLayout {
     def default_ghostLayers(localization : L4_Localization) : L4_ConstIndex = {
         L4_ConstIndex(Array.fill(Knowledge.dimensionality)(0))
     }
@@ -47,7 +47,7 @@ object L4_FieldLayoutLike {
     }
 }
 
-trait L4_FieldLayoutLike[IR_FieldLayoutAbstraction <: IR_FieldLayoutLike] extends L4_LeveledKnowledgeObject[IR_FieldLayoutAbstraction] {
+trait L4_FieldLikeLayout[IR_FieldLayoutAbstraction <: IR_FieldLikeLayout] extends L4_LeveledKnowledgeObject[IR_FieldLayoutAbstraction] {
     def name : String // will be used to find the layout
     def level : Int // the level the field lives on
     def numDimsGrid : Int // the number of dimensions of the grid
@@ -59,5 +59,5 @@ trait L4_FieldLayoutLike[IR_FieldLayoutAbstraction <: IR_FieldLayoutLike] extend
     def communicatesDuplicated : Boolean
     def innerPoints : L4_ConstIndex
 
-    def toLayoutAccess : L4_FieldLayoutLikeAccess[IR_FieldLayoutAbstraction]
+    def toLayoutAccess : L4_FieldLikeLayoutAccess[IR_FieldLayoutAbstraction]
 }

@@ -9,7 +9,7 @@ import exastencils.logger.Logger
 
 /// IR_FieldLayoutLike
 
-trait IR_FieldLayoutLike extends IR_LeveledKnowledgeObject {
+trait IR_FieldLikeLayout extends IR_LeveledKnowledgeObject {
   def name : String // will be used to find the field
   def level : Int // the (geometric) level the layout is associated with
   def datatype : IR_Datatype // represents the (original) data type; may be multidimensional, i.e. vectors, matrices, etc.

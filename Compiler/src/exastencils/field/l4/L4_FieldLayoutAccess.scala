@@ -22,7 +22,7 @@ import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldLayout
-import exastencils.fieldlike.l4.L4_FieldLayoutLikeAccess
+import exastencils.fieldlike.l4.L4_FieldLikeLayoutAccess
 
 /// L4_FieldLayoutAccess
 
@@ -31,7 +31,7 @@ object L4_FieldLayoutAccess {
     new L4_FieldLayoutAccess(L4_FieldLayoutCollection.getByIdentifier(access.name, access.level).get)
 }
 
-case class L4_FieldLayoutAccess(var target : L4_FieldLayout) extends L4_FieldLayoutLikeAccess[IR_FieldLayout]
+case class L4_FieldLayoutAccess(var target : L4_FieldLayout) extends L4_FieldLikeLayoutAccess[IR_FieldLayout]
 
 /// L4_UnresolveFieldLayoutAccesses
 

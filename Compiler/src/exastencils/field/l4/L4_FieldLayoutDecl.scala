@@ -21,7 +21,7 @@ package exastencils.field.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
-import exastencils.fieldlike.l4.L4_FieldLayoutDeclLike
+import exastencils.fieldlike.l4.L4_FieldLikeLayoutDecl
 import exastencils.grid.l4._
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
@@ -52,7 +52,7 @@ case class L4_FieldLayoutDecl(
     var levels : Option[L4_DeclarationLevelSpecification],
     var datatype : L4_Datatype,
     var localization : L4_Localization,
-    var options : ListBuffer[L4_FieldLayoutOption]) extends L4_FieldLayoutDeclLike[L4_FieldLayout] {
+    var options : ListBuffer[L4_FieldLayoutOption]) extends L4_FieldLikeLayoutDecl[L4_FieldLayout] {
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "Layout " << name << "< " << datatype << ", " << localization << " >"
