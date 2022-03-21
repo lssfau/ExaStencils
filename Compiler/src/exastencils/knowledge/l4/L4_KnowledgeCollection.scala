@@ -78,8 +78,15 @@ abstract class L4_LeveledKnowledgeCollection[L4_Type <: L4_LeveledKnowledgeObjec
   def exists(identifier : String) = { objects.exists(_.name == identifier) }
   def exists(identifier : String, level : Int) = { objects.exists(f => f.name == identifier && f.level == level) }
 
-  def existsDecl(identifier : String) = { declared.exists(_.name == identifier) }
-  def existsDecl(identifier : String, level : Int) = { declared.exists(f => f.name == identifier && f.level == level) }
+  def existsDecl(identifier : String) : Boolean = { declared.exists(_.name == identifier) }
+  def existsDecl(identifier : String, level : Int) : Boolean = { declared.exists(f => f.name == identifier && f.level == level) }
+  def existsDecl(identifier : String, level : Option[L4_LevelSpecification]) : Boolean = {
+    if (level.isEmpty) Logger.error(s"Missing level specification for $identifier")
+    level.get match {
+      case L4_SingleLevel(lvl) => existsDecl(identifier, lvl)
+      case other               => Logger.error(s"Unsupported level specification for $identifier: ${ other.prettyprint() }")
+    }
+  }
 
   def getByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[L4_Type] = {
     val ret = objects.find(f => f.name == identifier && f.level == level)
@@ -104,12 +111,12 @@ abstract class L4_LeveledKnowledgeCollection[L4_Type <: L4_LeveledKnowledgeObjec
     objects += newObj
   }
 
-  def addDeclared(name : String, level : Int) : Unit = { declared += NameAndLevel(name, level) }
-  def addDeclared(name : String, level : Option[L4_LevelSpecification]) : Unit = {
-    if (level.isEmpty) Logger.error(s"Missing level specification for $name")
+  def addDeclared(identifier : String, level : Int) : Unit = { declared += NameAndLevel(identifier, level) }
+  def addDeclared(identifier : String, level : Option[L4_LevelSpecification]) : Unit = {
+    if (level.isEmpty) Logger.error(s"Missing level specification for $identifier")
     level.get match {
-      case L4_SingleLevel(lvl) => addDeclared(name, lvl)
-      case other               => Logger.error(s"Unsupported level specification for $name: ${ other.prettyprint() }")
+      case L4_SingleLevel(lvl) => addDeclared(identifier, lvl)
+      case other               => Logger.error(s"Unsupported level specification for $identifier: ${ other.prettyprint() }")
     }
   }
 
