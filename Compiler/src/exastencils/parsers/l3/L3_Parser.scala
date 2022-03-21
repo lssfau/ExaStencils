@@ -491,7 +491,7 @@ object L3_Parser extends ExaParser with PackratParsers {
   // ##### L3_WaLBerlaFieldDecl
   // ######################################
 
-  lazy val waLBerlaFieldDeclaration = waLBerlaBaseFieldDeclaration ||| waLBerlaBoundaryFieldDeclaration ||| waLBerlaBoundaryFieldFromOther
+  lazy val waLBerlaFieldDeclaration = waLBerlaBaseFieldDeclaration ||| waLBerlaBoundaryFieldDeclaration ||| waLBerlaFieldFromOther
 
   lazy val waLBerlaBaseFieldDeclaration = locationize(("waLBerla" ~ "Field" ~> ident) ~ levelDecl.? ~ ("with" ~> datatype).? ~ (integerLit <~ "times").? ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
     ^^ { case id ~ levels ~ datatype ~ numSlots ~ initial => L3_WaLBerlaBaseFieldDecl(id, levels, datatype, numSlots, initial) })
@@ -499,7 +499,7 @@ object L3_Parser extends ExaParser with PackratParsers {
   lazy val waLBerlaBoundaryFieldDeclaration = locationize("waLBerla" ~> boundaryFieldDeclaration
     ^^ ( bcFieldDecl => L3_WaLBerlaBoundaryFieldDecl(bcFieldDecl.name, bcFieldDecl.levels, bcFieldDecl.boundary)))
 
-  lazy val waLBerlaBoundaryFieldFromOther = locationize("waLBerla" ~> fieldFromOther
+  lazy val waLBerlaFieldFromOther = locationize("waLBerla" ~> fieldFromOther
     ^^ ( fieldFromOtherDecl => L3_WaLBerlaFieldFromOther(fieldFromOtherDecl.name, fieldFromOtherDecl.levels, fieldFromOtherDecl.src) ))
 
   // ######################################
