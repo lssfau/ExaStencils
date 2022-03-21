@@ -58,6 +58,12 @@ abstract class L3_FieldLikeCollection[L3_Type <: L3_FieldLike[L4_Type] : TypeTag
       case decl : L3_FieldLikeDecl[_] if existsDecl(decl.name, decl.levels) && L3_MayBlockResolution.isDone(decl) =>
         decl.addToKnowledge()
         None // consume declaration statement
+      case decl : L3_FieldLikeFromOther[_] if L3_MayBlockResolution.isDone(decl) =>
+        if (existsDecl(decl.src.name, decl.levels))
+          decl.addToKnowledge()
+        else
+          Logger.error(s"Trying to progress l3 field declaration for undeclared field ${decl.src.name}")
+        None // consume declaration statement
     })
   }
 

@@ -44,6 +44,12 @@ abstract class L2_FieldLikeCollection[L2_Type <: L2_FieldLike[L3_Type] : TypeTag
       case decl : L2_FieldLikeDecl[_] if existsDecl(decl.name, decl.levels) && L2_MayBlockResolution.isDone(decl) =>
         decl.addToKnowledge()
         None // consume declaration statement
+      case decl : L2_FieldLikeFromOther[_] if L2_MayBlockResolution.isDone(decl) =>
+        if (existsDecl(decl.src.name, decl.levels))
+          decl.addToKnowledge()
+        else
+          Logger.error(s"Trying to progress l2 field declaration for undeclared field ${decl.src.name}")
+        None // consume declaration statement
     })
   }
 
