@@ -9,7 +9,7 @@ case class L3_WaLBerlaBoundaryFieldDecl(
   var name : String,
   var levels : Option[L3_LevelSpecification],
   var boundary : L3_BoundaryCondition
-) extends L3_FieldLikeOnBoundaryDecl[L3_WaLBerlaField] {
+) extends L3_FieldLikeOnBoundaryDecl {
 
   override def prettyprint(out : PpStream) = {
     out << "waLBerla Field " << name

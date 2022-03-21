@@ -28,7 +28,7 @@ import exastencils.prettyprinting._
 case class L3_BoundaryFieldDecl(
     var name : String,
     var levels : Option[L3_LevelSpecification],
-    var boundary : L3_BoundaryCondition) extends L3_FieldLikeOnBoundaryDecl[L3_Field] {
+    var boundary : L3_BoundaryCondition) extends L3_FieldLikeOnBoundaryDecl {
 
   override def prettyprint(out : PpStream) = {
     out << "Field " << name
