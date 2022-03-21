@@ -70,4 +70,6 @@ case class L3_Field(
       numSlots,
       boundary.progress)
   }
+
+  override def toField : L3_Field = this
 }

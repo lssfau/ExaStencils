@@ -34,7 +34,7 @@ object L3_FieldAccess {
 }
 
 case class L3_FieldAccess(
-    var target : L3_Field,
+    var target : L3_Field, // TODO: abstract class
     var slot : L3_SlotSpecification,
     var offset : Option[L3_ConstIndex] = None,
     var frozen : Boolean = false) extends L3_LeveledKnowledgeAccess with L3_CanBeOffset {

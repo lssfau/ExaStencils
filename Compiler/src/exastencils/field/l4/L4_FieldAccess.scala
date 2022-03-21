@@ -49,7 +49,7 @@ object L4_FieldAccess {
 }
 
 case class L4_FieldAccess(
-    var target : L4_Field,
+    var target : L4_Field, // TODO: abstract class
     var slot : L4_SlotSpecification,
     var offset : Option[L4_ConstIndex] = None,
     var frozen : Boolean = false,

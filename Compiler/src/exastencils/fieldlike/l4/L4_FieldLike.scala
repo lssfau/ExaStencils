@@ -18,5 +18,5 @@ trait L4_FieldLike[IR_FieldAbstraction <: IR_FieldLike, IR_FieldLayoutAbstractio
   def boundary : L4_BoundaryCondition
   def matShape : Option[L4_MatShape]
 
-  def toField : L4_Field
+  def toField : L4_Field // TODO: remove
 }
