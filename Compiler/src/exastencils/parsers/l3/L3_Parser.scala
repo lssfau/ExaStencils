@@ -34,9 +34,7 @@ import exastencils.operator.l3._
 import exastencils.parsers._
 import exastencils.solver.l3._
 import exastencils.util.l3.L3_OffsetAlias
-import exastencils.waLBerla.l3.L3_WaLBerlaBaseFieldDecl
-import exastencils.waLBerla.l3.L3_WaLBerlaBoundaryFieldDecl
-import exastencils.waLBerla.l3.L3_WaLBerlaFieldFromOther
+import exastencils.waLBerla.l3._
 
 object L3_Parser extends ExaParser with PackratParsers {
   override val lexical : ExaLexer = L3_Lexer
