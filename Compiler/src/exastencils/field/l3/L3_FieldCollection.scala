@@ -25,6 +25,7 @@ import exastencils.base.l3._
 import exastencils.base.l4.L4_ConstIndex
 import exastencils.config.Knowledge
 import exastencils.field.l4._
+import exastencils.fieldlike.l4.L4_FieldLayoutLike
 import exastencils.grid.l3.L3_Localization
 import exastencils.knowledge.l3.L3_KnowledgeContainer._
 import exastencils.knowledge.l3._
@@ -63,9 +64,9 @@ object L3_FieldCollection extends L3_LeveledKnowledgeCollection[L3_Field, L4_Fie
         Knowledge.dimensionality, // dims
         layout._2._1.progress, // datatype
         layout._2._2.progress, // localization
-        L4_FieldLayout.default_ghostLayers(layout._2._2.progress), // to be determined later
+        L4_FieldLayoutLike.default_ghostLayers(layout._2._2.progress), // to be determined later
         false,
-        L4_FieldLayout.default_duplicateLayers(layout._2._2.progress),
+        L4_FieldLayoutLike.default_duplicateLayers(layout._2._2.progress),
         false,
         defIndex)
 

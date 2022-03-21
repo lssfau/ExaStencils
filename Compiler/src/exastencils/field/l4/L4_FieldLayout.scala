@@ -20,52 +20,12 @@ package exastencils.field.l4
 
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.l4._
-import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.field.ir._
 import exastencils.fieldlike.l4.L4_FieldLayoutLike
 import exastencils.fieldlike.l4.L4_FieldLayoutLikeAccess
 import exastencils.grid.l4._
 import exastencils.prettyprinting._
-
-object L4_FieldLayout {
-  def default_ghostLayers(localization : L4_Localization) : L4_ConstIndex = {
-    L4_ConstIndex(Array.fill(Knowledge.dimensionality)(0))
-  }
-
-  def default_duplicateLayers(localization : L4_Localization) : L4_ConstIndex = {
-    localization match {
-      case L4_AtNode       => L4_ConstIndex(Array.fill(Knowledge.dimensionality)(1))
-      case L4_AtCellCenter => L4_ConstIndex(Array.fill(Knowledge.dimensionality)(0))
-
-      case L4_AtFaceCenter(faceDim) =>
-        val numLayers = L4_ConstIndex(Array.fill(Knowledge.dimensionality)(0))
-        numLayers(faceDim) = 1
-        numLayers
-
-      case L4_HACK_OtherLocalization("edge_node") =>
-        val numLayers = L4_ConstIndex(Array.fill(Knowledge.dimensionality)(0))
-        numLayers(0) = 1
-        numLayers
-
-      case L4_HACK_OtherLocalization("edge_cell") => L4_ConstIndex(Array.fill(Knowledge.dimensionality)(0))
-    }
-  }
-
-  def getDefaultValue(optionName : String, localization : L4_Localization) : L4_ConstIndex = {
-    optionName match {
-      case "ghostLayers"     => default_ghostLayers(localization)
-      case "duplicateLayers" => default_duplicateLayers(localization)
-    }
-  }
-
-  def getDefaultBoolean(optionName : String, localization : L4_Localization) : Boolean = {
-    optionName match {
-      case "ghostLayers"     => false // no communication by default
-      case "duplicateLayers" => false // no communication by default
-    }
-  }
-}
 
 case class L4_FieldLayout(
     var name : String, // will be used to find the layout
