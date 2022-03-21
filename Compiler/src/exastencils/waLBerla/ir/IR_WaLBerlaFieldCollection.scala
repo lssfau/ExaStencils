@@ -4,17 +4,17 @@ import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerConstant
 import exastencils.field.ir.IR_FieldAccessLike
-import exastencils.knowledge.ir.IR_LeveledKnowledgeCollection
+import exastencils.fieldlike.ir.IR_FieldLikeCollection
 import exastencils.logger.Logger
 
-object IR_WaLBerlaFieldCollection extends IR_LeveledKnowledgeCollection[IR_WaLBerlaField] {
+object IR_WaLBerlaFieldCollection extends IR_FieldLikeCollection[IR_WaLBerlaField] {
   exastencils.core.Duplicate.registerConstant(this)
 
-  def getByIdentifierLevExp(
+  private def getByCallbackLevExp(
       identifier : String,
       level : IR_Expression,
-      suppressError : Boolean = false,
-      getById : (String, IR_Expression, Boolean) => Option[IR_WaLBerlaField]) : Option[IR_WaLBerlaField] = {
+      getById : (String, IR_Expression, Boolean) => Option[IR_WaLBerlaField],
+      suppressError : Boolean = false) : Option[IR_WaLBerlaField] = {
 
     level match {
       case IR_IntegerConstant(constLevel) => getById(identifier, constLevel, suppressError)
@@ -35,8 +35,6 @@ object IR_WaLBerlaFieldCollection extends IR_LeveledKnowledgeCollection[IR_WaLBe
     def getByLayoutId(identifier : String, level : IR_Expression, suppressError : Boolean = false) : Option[IR_WaLBerlaField] =
       objects.find(field => field.layout.name == identifier && IR_IntegerConstant(field.level) == level)
 
-    getByIdentifierLevExp(identifier, level, suppressError, getByLayoutId)
+    getByCallbackLevExp(identifier, level, getByLayoutId, suppressError)
   }
-
-  def remove(oldObj : IR_WaLBerlaField) : Unit = objects -= oldObj
 }
