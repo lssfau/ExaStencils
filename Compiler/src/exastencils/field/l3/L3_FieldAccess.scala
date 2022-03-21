@@ -20,7 +20,6 @@ package exastencils.field.l3
 
 import exastencils.base.ProgressLocation
 import exastencils.base.l3._
-import exastencils.datastructures._
 import exastencils.field.l4._
 import exastencils.knowledge.l3._
 import exastencils.prettyprinting.PpStream
@@ -49,14 +48,4 @@ case class L3_FieldAccess(
   def getOffset = offset.getOrElse(L3_ConstIndex(Array.fill(target.numDimsGrid)(0)))
 
   override def progress = ProgressLocation(L4_FieldAccess(target.getProgressedObj(), slot.progress, L3_ProgressOption(offset)(_.progress), frozen))
-}
-
-/// L3_ResolveFieldAccesses
-
-object L3_ResolveFieldAccesses extends DefaultStrategy("Resolve accesses to fields") {
-  this += new Transformation("Resolve applicable future accesses", {
-    // check if declaration has already been processed and promote access if possible
-    case access : L3_FutureFieldAccess if L3_FieldCollection.exists(access.name, access.level) =>
-      access.toFieldAccess
-  })
 }

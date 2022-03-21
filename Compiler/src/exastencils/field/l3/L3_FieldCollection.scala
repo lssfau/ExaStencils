@@ -20,28 +20,21 @@ package exastencils.field.l3
 
 import scala.collection.mutable._
 
-import exastencils.base.ExaRootNode
 import exastencils.base.l3._
 import exastencils.base.l4.L4_ConstIndex
 import exastencils.config.Knowledge
 import exastencils.field.l4._
+import exastencils.fieldlike.l3.L3_FieldLikeCollection
 import exastencils.fieldlike.l4.L4_FieldLayoutLike
 import exastencils.grid.l3.L3_Localization
-import exastencils.knowledge.l3.L3_KnowledgeContainer._
 import exastencils.knowledge.l3._
 
 /// L3_FieldCollection
 
-object L3_FieldCollection extends L3_LeveledKnowledgeCollection[L3_Field, L4_Field] {
+object L3_FieldCollection extends L3_FieldLikeCollection[L3_Field, L4_Field] {
   exastencils.core.Duplicate.registerConstant(this)
 
   L3_KnowledgeContainer.register(this)
-
-  L3_PrepareDeclarations.strategies += L3_PrepareFieldDeclarations
-  L3_ProcessDeclarations.strategies += L3_ProcessFieldDeclarations
-
-  L3_PrepareAccesses.strategies += L3_PrepareFieldAccesses
-  L3_ResolveAccesses.strategies += L3_ResolveFieldAccesses
 
   override def name = "L3_FieldCollection"
   override def progress() = {
@@ -73,14 +66,5 @@ object L3_FieldCollection extends L3_LeveledKnowledgeCollection[L3_Field, L4_Fie
       // register layout
       L4_FieldLayoutCollection.add(genLayout)
     }
-  }
-
-  def addInitFieldsFunction() = {
-    val initStmts = ListBuffer[L3_Statement]()
-    for (field <- objects)
-      if (field.initial.isDefined) // TODO: honor slots
-        initStmts += L3_Assignment(L3_FieldAccess(field), field.initial.get)
-    val fct = L3_PlainFunction("InitFields", L3_UnitDatatype, ListBuffer(), initStmts)
-    ExaRootNode.l3_root.nodes += fct
   }
 }
