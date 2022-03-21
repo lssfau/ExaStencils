@@ -1,10 +1,11 @@
 package exastencils.waLBerla.l3
 
-import exastencils.base.l3.L3_Access
-import exastencils.base.l3.L3_LevelSpecification
+import exastencils.base.l3._
 import exastencils.field.l3.L3_FieldAccess
 import exastencils.fieldlike.l3.L3_FieldLikeFromOther
 import exastencils.prettyprinting.PpStream
+
+/// L3_WaLBerlaFieldFromOther
 
 case class L3_WaLBerlaFieldFromOther(var name : String, var levels : Option[L3_LevelSpecification], var src : L3_Access) extends L3_FieldLikeFromOther[L3_WaLBerlaField] {
 

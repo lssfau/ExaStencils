@@ -4,6 +4,8 @@ import exastencils.base.l3._
 import exastencils.boundary.l3.L3_NoBC
 import exastencils.prettyprinting.PpStream
 
+/// L3_WaLBerlaBaseFieldDecl
+
 object L3_WaLBerlaBaseFieldDecl {
   def apply(identifier : String, levels : Option[L3_LevelSpecification], datatype : Option[L3_Datatype], numSlots : Option[Int], initial : Option[L3_Expression]) : L3_WaLBerlaBaseFieldDecl =
     L3_WaLBerlaBaseFieldDecl(identifier, levels, datatype.getOrElse(L3_RealDatatype), numSlots, initial)

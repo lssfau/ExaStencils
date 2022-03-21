@@ -5,6 +5,8 @@ import exastencils.boundary.l3.L3_BoundaryCondition
 import exastencils.fieldlike.l3.L3_FieldLikeOnBoundaryDecl
 import exastencils.prettyprinting.PpStream
 
+/// L3_WaLBerlaBoundaryFieldDecl
+
 case class L3_WaLBerlaBoundaryFieldDecl(
   var name : String,
   var levels : Option[L3_LevelSpecification],
