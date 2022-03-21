@@ -71,4 +71,6 @@ case class L2_Field(
       L2_ProgressOption(initial)(_.progress),
       boundary.progress)
   }
+
+  override def toField : L2_Field = this
 }
