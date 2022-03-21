@@ -26,6 +26,7 @@ import exastencils.config._
 import exastencils.datastructures.StrategyTimer
 import exastencils.domain.l3.L3_DomainCollection
 import exastencils.field.l3._
+import exastencils.fieldlike.l3.L3_ProcessBoundaryDeclarations
 import exastencils.grid.l3._
 import exastencils.knowledge.l3.L3_KnowledgeContainer._
 import exastencils.knowledge.l3._
