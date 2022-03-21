@@ -20,12 +20,12 @@ package exastencils.field.l3
 
 import exastencils.base.l3.L3_MayBlockResolution
 import exastencils.datastructures._
-import exastencils.knowledge.l3._
+import exastencils.fieldlike.l3.L3_FieldDeclLike
 import exastencils.logger._
 
 /// L3_FieldDecl
 
-abstract class L3_FieldDecl extends L3_LeveledKnowledgeDecl {
+abstract class L3_FieldDecl extends L3_FieldDeclLike[L3_Field] {
   override def progress = Logger.error(s"Trying to progress l3 field declaration for field $name; this is not supported")
   def addToKnowledge() : Unit
 }
