@@ -19,17 +19,19 @@
 package exastencils.field.l3
 
 import exastencils.base.l3._
-import exastencils.core.Duplicate
+import exastencils.fieldlike.l3.L3_FieldLikeFromOther
 import exastencils.prettyprinting._
 
 /// L3_FieldFromOther
 
-case class L3_FieldFromOther(var name : String, var levels : Option[L3_LevelSpecification], var src : L3_Access) extends L3_FieldDecl {
+case class L3_FieldFromOther(var name : String, var levels : Option[L3_LevelSpecification], var src : L3_Access) extends L3_FieldLikeFromOther[L3_Field] {
+
   override def prettyprint(out : PpStream) = {
     out << "Field" << ' ' << name
     if (levels.isDefined) out << '@' << levels.get
     out << " from" << ' ' << src
   }
+
   override def addToKnowledge() : Unit = {
     val destField = src.asInstanceOf[L3_FieldAccess].target.createDuplicate()
     destField.name = name
