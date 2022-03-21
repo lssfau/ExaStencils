@@ -26,10 +26,9 @@ abstract class L4_FieldLikeLayoutCollection[L4_Type <: L4_FieldLikeLayout[IR_Typ
   L4_PrepareAccesses.strategies += L4_PrepareFieldLayoutAccesses
   L4_ResolveAccesses.strategies += L4_ResolveFieldLayoutAccesses
 
-  // TODO: make strategies more generic
-
   /// L4_PrepareFieldLayoutDeclaration
 
+  // TODO: make strategy more generic
   object L4_PrepareFieldLayoutDeclarations extends DefaultStrategy("Prepare knowledge for L4 field layouts") {
     this += Transformation("Process new field layouts", {
       case decl : L4_FieldLayoutDecl if L4_FieldLikeLayoutCollection.this == L4_FieldLayoutCollection                 =>
@@ -45,10 +44,7 @@ abstract class L4_FieldLikeLayoutCollection[L4_Type <: L4_FieldLikeLayout[IR_Typ
 
   object L4_ProcessFieldLayoutDeclarations extends DefaultStrategy("Integrate L4 field layout declarations with knowledge") {
     this += Transformation("Process field layout declarations", {
-      case decl : L4_FieldLayoutDecl if L4_FieldLikeLayoutCollection.this == L4_FieldLayoutCollection && L4_MayBlockResolution.isDone(decl)                 =>
-        decl.addToKnowledge()
-        None // consume declaration statement
-      case decl : L4_WaLBerlaFieldLayoutDecl if L4_FieldLikeLayoutCollection.this == L4_WaLBerlaFieldLayoutCollection && L4_MayBlockResolution.isDone(decl) =>
+      case decl : L4_FieldLikeLayoutDecl[_] if existsDecl(decl.name, decl.levels) && L4_MayBlockResolution.isDone(decl)                 =>
         decl.addToKnowledge()
         None // consume declaration statement
     })
