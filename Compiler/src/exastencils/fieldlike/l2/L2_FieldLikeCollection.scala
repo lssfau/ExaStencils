@@ -41,7 +41,7 @@ abstract class L2_FieldLikeCollection[L2_Type <: L2_FieldLike[L3_Type] : TypeTag
 
   object L2_ProcessFieldDeclarations extends DefaultStrategy("Integrate L2 field declarations with knowledge") {
     this += Transformation("Process field declarations", {
-      case decl : L2_FieldDecl if existsDecl(decl.name, decl.levels) && L2_MayBlockResolution.isDone(decl) =>
+      case decl : L2_FieldLikeDecl[_] if existsDecl(decl.name, decl.levels) && L2_MayBlockResolution.isDone(decl) =>
         decl.addToKnowledge()
         None // consume declaration statement
     })

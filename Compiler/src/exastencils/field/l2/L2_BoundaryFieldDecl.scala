@@ -20,7 +20,6 @@ package exastencils.field.l2
 
 import exastencils.base.l2._
 import exastencils.boundary.l2._
-import exastencils.datastructures._
 import exastencils.fieldlike.l2.L2_FieldLikeOnBoundaryDecl
 import exastencils.prettyprinting._
 
@@ -41,14 +40,4 @@ case class L2_BoundaryFieldDecl(
     val fieldToAdapt = L2_FieldCollection.getByIdentifier(name, L2_LevelSpecification.asSingleLevel(levels)).get
     fieldToAdapt.boundary = boundary
   }
-}
-
-/// L2_ProcessBoundaryDeclarations
-
-object L2_ProcessBoundaryDeclarations extends DefaultStrategy("Integrate L2 boundary declarations with knowledge") {
-  this += Transformation("Adapt bc's of new fields", {
-    case decl : L2_BoundaryFieldDecl if L2_MayBlockResolution.isDone(decl) =>
-      decl.addToKnowledge()
-      None // consume declaration statement
-  })
 }
