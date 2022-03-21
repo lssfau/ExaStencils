@@ -35,6 +35,7 @@ import exastencils.parsers.l3._
 import exastencils.prettyprinting.Indenter
 import exastencils.solver.l3._
 import exastencils.util.l3._
+import exastencils.waLBerla.l3.L3_WaLBerlaFieldCollection
 
 /// L3_LayerHandler
 
@@ -56,6 +57,7 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
     // activate default knowledge collections
 
     L3_DomainCollection
+    L3_WaLBerlaFieldCollection
     L3_FieldCollection
     L3_StencilCollection
     L3_StencilFieldCollection

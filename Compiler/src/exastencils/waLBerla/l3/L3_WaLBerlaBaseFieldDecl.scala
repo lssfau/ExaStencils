@@ -2,9 +2,6 @@ package exastencils.waLBerla.l3
 
 import exastencils.base.l3._
 import exastencils.boundary.l3.L3_NoBC
-import exastencils.domain.l3.L3_Domain
-import exastencils.domain.l3.L3_DomainCollection
-import exastencils.grid.l3._
 import exastencils.prettyprinting.PpStream
 
 object L3_WaLBerlaBaseFieldDecl {
@@ -20,10 +17,6 @@ case class L3_WaLBerlaBaseFieldDecl(
     var numSlots : Option[Int],
     var initial : Option[L3_Expression]
 ) extends L3_WaLBerlaFieldDecl {
-
-  var localization : L3_Localization = L3_AtCellCenter
-
-  var domain : L3_Domain = L3_DomainCollection.getByIdentifier("global").get
 
   override def prettyprint(out : PpStream) = {
     out << "waLBerla Field " << name
