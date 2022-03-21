@@ -5,8 +5,10 @@ import exastencils.base.l3.L3_Expression
 import exastencils.boundary.l3.L3_BoundaryCondition
 import exastencils.core.Duplicate
 import exastencils.domain.l3.L3_Domain
+import exastencils.domain.l3.L3_DomainCollection
 import exastencils.field.l3.L3_Field
 import exastencils.fieldlike.l3.L3_FieldLike
+import exastencils.grid.l3.L3_AtCellCenter
 import exastencils.grid.l3.L3_Localization
 import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.l4.L4_WaLBerlaField
@@ -15,16 +17,18 @@ import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayoutCollection
 case class L3_WaLBerlaField(
     var name : String,
     var level : Int,
-    var domain : L3_Domain,
     var datatype : L3_Datatype,
-    var localization : L3_Localization,
     var numSlots : Int,
     var initial : Option[L3_Expression],
     var boundary : L3_BoundaryCondition
 ) extends L3_FieldLike[L4_WaLBerlaField] {
 
+  var localization : L3_Localization = L3_AtCellCenter
+
+  var domain : L3_Domain = L3_DomainCollection.getByIdentifier("global").get
+
   override def createDuplicate() : L3_WaLBerlaField = {
-    L3_WaLBerlaField(name, level, Duplicate(domain), Duplicate(datatype), Duplicate(localization), numSlots, Duplicate(initial), Duplicate(boundary))
+    L3_WaLBerlaField(name, level, Duplicate(datatype), numSlots, Duplicate(initial), Duplicate(boundary))
   }
 
   override def prettyprintDecl(out : PpStream) : Unit = {
