@@ -34,6 +34,7 @@ import exastencils.parsers.l2._
 import exastencils.prettyprinting.Indenter
 import exastencils.solver.l2._
 import exastencils.util.l2._
+import exastencils.waLBerla.l2.L2_WaLBerlaFieldCollection
 
 /// L2_LayerHandler
 
@@ -55,6 +56,7 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
     // activate default knowledge collections
 
     L2_DomainCollection
+    L2_WaLBerlaFieldCollection
     L2_FieldCollection
     L2_StencilCollection
     L2_StencilFieldCollection
