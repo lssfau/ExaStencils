@@ -29,9 +29,10 @@ abstract class L4_FieldLikeCollection[L4_Type <: L4_FieldLike[IR_Type, _] : Type
   def getByFieldAccess(access : L4_FutureFieldAccess) : Option[L4_Type] = getByIdentifier(access.name, access.level, suppressError = true)
   def getByFieldAccess(access : L4_FieldAccess) : Option[L4_Type] = getByIdentifier(access.name, access.level, suppressError = true)
 
+  // TODO: make strategies more generic
+
   /// L4_PrepareFieldDeclaration
 
-  // TODO: make strategy more generic
   object L4_PrepareFieldDeclarations extends DefaultStrategy("Prepare knowledge for L4 fields") {
     this += Transformation("Process new fields", {
       case decl : L4_FieldDecl if L4_FieldLikeCollection.this == L4_FieldCollection =>
@@ -47,7 +48,10 @@ abstract class L4_FieldLikeCollection[L4_Type <: L4_FieldLike[IR_Type, _] : Type
 
   object L4_ProcessFieldDeclarations extends DefaultStrategy("Integrate L4 field declarations with knowledge") {
     this += Transformation("Process field declarations", {
-      case decl : L4_FieldLikeDecl[_] if existsDecl(decl.name, decl.levels) && L4_MayBlockResolution.isDone(decl) =>
+      case decl : L4_FieldDecl if L4_FieldLikeCollection.this == L4_FieldCollection && L4_MayBlockResolution.isDone(decl) =>
+        decl.addToKnowledge()
+        None // consume declaration statement
+      case decl : L4_WaLBerlaFieldDecl if L4_FieldLikeCollection.this == L4_WaLBerlaFieldCollection && L4_MayBlockResolution.isDone(decl) =>
         decl.addToKnowledge()
         None // consume declaration statement
     })

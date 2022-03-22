@@ -19,12 +19,11 @@
 package exastencils.field.l3
 
 import exastencils.base.l3._
-import exastencils.fieldlike.l3.L3_FieldLikeFromOther
 import exastencils.prettyprinting._
 
 /// L3_FieldFromOther
 
-case class L3_FieldFromOther(var name : String, var levels : Option[L3_LevelSpecification], var src : L3_Access) extends L3_FieldLikeFromOther[L3_Field] {
+case class L3_FieldFromOther(var name : String, var levels : Option[L3_LevelSpecification], var src : L3_Access) extends L3_FieldDecl {
 
   override def prettyprint(out : PpStream) = {
     out << "Field" << ' ' << name

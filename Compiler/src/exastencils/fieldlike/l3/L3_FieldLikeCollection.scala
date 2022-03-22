@@ -37,9 +37,10 @@ abstract class L3_FieldLikeCollection[L3_Type <: L3_FieldLike[L4_Type] : TypeTag
     ExaRootNode.l3_root.nodes += fct
   }
 
+  // TODO: make strategies more generic
+
   /// L3_PrepareFieldDeclarations
 
-  // TODO: make strategy more generic
   object L3_PrepareFieldDeclarations extends DefaultStrategy("Prepare knowledge for L3 fields") {
     this += Transformation("Process new fields", {
       case decl : L3_FieldDecl if L3_FieldLikeCollection.this == L3_FieldCollection =>
@@ -55,14 +56,11 @@ abstract class L3_FieldLikeCollection[L3_Type <: L3_FieldLike[L4_Type] : TypeTag
 
   object L3_ProcessFieldDeclarations extends DefaultStrategy("Integrate L3 field declarations with knowledge") {
     this += Transformation("Process field declarations", {
-      case decl : L3_FieldLikeDecl[_] if existsDecl(decl.name, decl.levels) && L3_MayBlockResolution.isDone(decl) =>
+      case decl : L3_FieldDecl if L3_FieldLikeCollection.this == L3_FieldCollection && L3_MayBlockResolution.isDone(decl) =>
         decl.addToKnowledge()
         None // consume declaration statement
-      case decl : L3_FieldLikeFromOther[_] if L3_MayBlockResolution.isDone(decl) =>
-        if (existsDecl(decl.src.name, decl.levels))
-          decl.addToKnowledge()
-        else
-          Logger.error(s"Trying to progress l3 field declaration for undeclared field ${decl.src.name}")
+      case decl : L3_WaLBerlaFieldDecl if L3_FieldLikeCollection.this == L3_WaLBerlaFieldCollection && L3_MayBlockResolution.isDone(decl) =>
+        decl.addToKnowledge()
         None // consume declaration statement
     })
   }
