@@ -23,9 +23,10 @@ abstract class L2_FieldLikeCollection[L2_Type <: L2_FieldLike[L3_Type] : TypeTag
   L2_PrepareAccesses.strategies += L2_PrepareFieldAccesses
   L2_ResolveAccesses.strategies += L2_ResolveFieldAccesses
 
+  // TODO: make strategies more generic
+
   /// L2_PrepareFieldDeclaration
 
-  // TODO: make strategy more generic
   object L2_PrepareFieldDeclarations extends DefaultStrategy("Prepare knowledge for L2 fields") {
     this += Transformation("Process new fields", {
       case decl : L2_FieldDecl if L2_FieldLikeCollection.this == L2_FieldCollection =>
@@ -41,14 +42,11 @@ abstract class L2_FieldLikeCollection[L2_Type <: L2_FieldLike[L3_Type] : TypeTag
 
   object L2_ProcessFieldDeclarations extends DefaultStrategy("Integrate L2 field declarations with knowledge") {
     this += Transformation("Process field declarations", {
-      case decl : L2_FieldLikeDecl[_] if existsDecl(decl.name, decl.levels) && L2_MayBlockResolution.isDone(decl) =>
+      case decl : L2_FieldDecl if L2_FieldLikeCollection.this == L2_FieldCollection && L2_MayBlockResolution.isDone(decl) =>
         decl.addToKnowledge()
         None // consume declaration statement
-      case decl : L2_FieldLikeFromOther[_] if L2_MayBlockResolution.isDone(decl) =>
-        if (existsDecl(decl.src.name, decl.levels))
-          decl.addToKnowledge()
-        else
-          Logger.error(s"Trying to progress l2 field declaration for undeclared field ${decl.src.name}")
+      case decl : L2_WaLBerlaFieldDecl if L2_FieldLikeCollection.this == L2_WaLBerlaFieldCollection && L2_MayBlockResolution.isDone(decl) =>
+        decl.addToKnowledge()
         None // consume declaration statement
     })
   }
