@@ -593,12 +593,12 @@ case class CUDA_Kernel(
     var body = ListBuffer[IR_Statement]()
 
     if (reduction.isDefined) {
-      def target = reduction.get.target
-      def resultDt = CUDA_Util.getReductionDatatype(target)
-      def baseDt = resultDt.resolveBaseDatatype
+      val target = Duplicate(reduction.get.target)
+      val resultDt = CUDA_Util.getReductionDatatype(target)
+      val baseDt = resultDt.resolveBaseDatatype
 
-      def bufSize = requiredThreadsPerDim.product
-      def bufAccess = CUDA_ReductionDeviceData(bufSize, resultDt)
+      val bufSize = requiredThreadsPerDim.product
+      val bufAccess = CUDA_ReductionDeviceData(bufSize, resultDt)
       var callArgsReduction = ListBuffer[IR_Expression](bufAccess, bufSize)
 
       body += CUDA_Memset(bufAccess, 0, bufSize, resultDt)
@@ -622,7 +622,7 @@ case class CUDA_Kernel(
           IR_Return(Some(callDefaultReductionKernel))
       })
 
-      CUDA_KernelFunctions.get.requiredRedKernels += Tuple2(reduction.get.op, target) // request reduction kernel and wrapper
+      CUDA_KernelFunctions.get.requiredRedKernels += Tuple2(reduction.get.op, Duplicate(target)) // request reduction kernel and wrapper
     } else {
       body += CUDA_FunctionCall(getKernelFctName, callArgs,
         CUDA_ExecutionConfiguration(numBlocksPerDim, numThreadsPerBlock))

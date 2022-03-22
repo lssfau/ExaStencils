@@ -52,6 +52,7 @@ stages:
         - python3 --version
         - mpirun --version
         - nvcc --version
+        - nvidia-smi
         - updatedb
         - locate cuda.h
         - locate libcudart

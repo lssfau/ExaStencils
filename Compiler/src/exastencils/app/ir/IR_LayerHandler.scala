@@ -325,9 +325,17 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     if (Knowledge.data_genVariableFieldSizes)
       IR_GenerateIndexManipFcts.apply()
 
+    // adapt accesses to device data in case of managed memory
+    if (Knowledge.cuda_enabled && Knowledge.cuda_useManagedMemory)
+      CUDA_AdaptDeviceAccessesForMM.apply()
+
     IR_AddInternalVariables.apply()
     // resolve possibly newly added constant IVs
     IR_ResolveConstIVs.apply()
+
+    // adapt allocations and de-allocations before expanding
+    if (Knowledge.cuda_enabled)
+      CUDA_AdaptAllocations.apply()
 
     if (Knowledge.useFasterExpand)
       IR_ExpandInOnePass.apply()

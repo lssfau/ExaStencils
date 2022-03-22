@@ -515,6 +515,16 @@ object Knowledge {
   // apply spatial blocking with read-only cache
   var cuda_spatialBlockingWithROC : Boolean = false
 
+  // use pinned memory to allocate host field data and buffers
+  var cuda_usePinnedHostMemory : Boolean = true
+  // use managed memory instead of host and device variants for field data and buffers
+  var cuda_useManagedMemory : Boolean = false
+  // replace device variants of field data and buffers with device pointers derived from host counter-parts
+  var cuda_useZeroCopy : Boolean = false
+
+  // only relevant if cuda_useManagedMemory == true; replace cuda memcpy with asynchronous prefetches
+  var cuda_genAsyncPrefetch : Boolean = true
+
   // if true, the first dimension of the block size is enlarged if the kernel dimensionality is lower than the global dimensionality
   var cuda_foldBlockSizeForRedDimensionality : Boolean = true
 
@@ -647,9 +657,6 @@ object Knowledge {
   var experimental_CTPivotElimination : Boolean = false
   var experimental_QRPivot : Boolean = false
 
-  // eliminate occurrences of cudaContext - required for PizDaint
-  var experimental_eliminateCudaContext : Boolean = false
-
   // generate cuda kernels independently of them being parallel or not
   var experimental_cuda_generateKernelForNonParallel : Boolean = false
 
@@ -671,7 +678,6 @@ object Knowledge {
   // in-situ visualization with VisIt
   var visit_enable : Boolean = false
   var experimental_visit_addCurveMesh : Boolean = false
-
 
   /// === constraints and resolutions ===
   def update() : Unit = {
@@ -774,7 +780,13 @@ object Knowledge {
     Constraints.condWarn(cuda_enabled && opt_conventionalCSE && !useDblPrecision, "Double precision should be used if CUDA is enabled and CSE should be applied!")
     Constraints.condEnsureValue(useDblPrecision, true, cuda_enabled && opt_conventionalCSE)
 
-    Constraints.condError(!cuda_memory_transfer_elimination_options.contains(cuda_eliminate_memory_transfers), "Invalid value for \"cuda_eliminate_memory_transfers\". Should be one of: " + cuda_memory_transfer_elimination_options.mkString(",") )
+    Constraints.condError(!cuda_memory_transfer_elimination_options.contains(cuda_eliminate_memory_transfers), "Invalid value for \"cuda_eliminate_memory_transfers\". Should be one of: " + cuda_memory_transfer_elimination_options.mkString(","))
+
+    Constraints.condEnsureValue(cuda_usePinnedHostMemory, true, cuda_useZeroCopy)
+    Constraints.condError(cuda_useManagedMemory && cuda_usePinnedHostMemory, "cuda_useManagedMemory and cuda_usePinnedHostMemory are mutually exclusive")
+    Constraints.condError(cuda_useManagedMemory && cuda_useZeroCopy, "cuda_useManagedMemory and cuda_usePinnedHostMemory are mutually exclusive")
+    Constraints.condEnsureValue(data_alignFieldPointers, false, cuda_useManagedMemory || cuda_usePinnedHostMemory)
+    Constraints.condEnsureValue(data_alignTmpBufferPointers, false, cuda_useManagedMemory || cuda_usePinnedHostMemory)
 
     Constraints.condWarn(experimental_splitLoopsForAsyncComm && !comm_onlyAxisNeighbors, s"Using asynchronous communication with comm_onlyAxisNeighbors leads to problems with stencils containing diagonal entries")
 

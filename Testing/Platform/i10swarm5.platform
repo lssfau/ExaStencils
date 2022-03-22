@@ -1,0 +1,23 @@
+targetOS                   = "Linux"
+targetCompiler             = "GCC"
+targetCompilerVersion      = 8
+targetCompilerVersionMinor = 3
+targetHardware             = "CPU"
+simd_instructionSet        = "AVX2"
+
+hw_cpu_name                = "Intel Core i7-8700K"
+hw_cpu_numCoresPerCPU      = 6
+hw_cpu_numCPUs             = 1
+hw_cpu_bandwidth           = 41600000000.0 // = 41.6 GB/s
+hw_cpu_frequency           = 37000000000.0 // = 3.7 GHz
+hw_64bit                   = true
+hw_cacheLineSize           = 512 // in B
+
+hw_gpu_name                = "NVIDIA QUADRO P2000"
+hw_gpu_numDevices          = 1
+hw_gpu_bandwidth           = 312900000000.0 // = 312.9 GB/s
+hw_gpu_frequency           = 1480000000000.0 // = 1480 MHz
+hw_gpu_numCores            = 1024
+hw_cuda_capability         = 6
+hw_cuda_capabilityMinor    = 1
+hw_gpu_gpuDirectAvailable  = false
