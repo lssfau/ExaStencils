@@ -47,7 +47,7 @@ abstract class CUDA_Stream(
 
 /// CUDA_ComputeStream
 
-case class CUDA_ComputeStream(fragmentIdx : IR_Expression) extends CUDA_Stream(true, false) {
+case class CUDA_ComputeStream(fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends CUDA_Stream(true, false) {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
 
   override def resolveName() = s"cudaComputeStream" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
@@ -55,7 +55,7 @@ case class CUDA_ComputeStream(fragmentIdx : IR_Expression) extends CUDA_Stream(t
 
 /// CUDA_CommStream
 
-case class CUDA_CommStream(fragmentIdx : IR_Expression, neighborIdx : IR_Expression) extends CUDA_Stream(true, true) {
+case class CUDA_CommStream(neighborIdx : IR_Expression, fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends CUDA_Stream(true, true) {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, neighborIdx)
 
   override def resolveName() = s"cudaCommStream" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", neighborIdx.prettyprint)

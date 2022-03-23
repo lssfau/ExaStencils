@@ -195,7 +195,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
       loopBody += IR_VariableDeclaration(blocks, (numElements.access + (blockSize * 2 * halfStride - 1)) / (blockSize * 2 * halfStride))
       //loopBody += IR_IfCondition(IR_EqEq(0, blocks), IR_Assignment(blocks, 1)) // blocks cannot become 0 if numElements is positive
       loopBody += CUDA_FunctionCall(kernelName, ListBuffer[IR_Expression](data.access, numElements.access, halfStride),
-        CUDA_ExecutionConfiguration(Array[IR_Expression](blocks), Array[IR_Expression](blockSize)))
+        CUDA_ExecutionConfiguration(Array[IR_Expression](blocks), Array[IR_Expression](blockSize), CUDA_ComputeStream()))
 
       fctBody += IR_ForLoop(
         IR_VariableDeclaration(halfStride, 1),
