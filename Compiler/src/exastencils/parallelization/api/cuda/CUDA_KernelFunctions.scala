@@ -65,7 +65,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
 
   var kernelCollection = ListBuffer[CUDA_Kernel]()
   var generatedRedKernels = mutable.HashSet[String]()
-  var requiredRedKernels = mutable.HashSet[(String, IR_Expression)]()
+  var requiredRedKernels = mutable.HashSet[(String, IR_Expression, CUDA_Stream)]()
   var counterMap = mutable.HashMap[String, Int]()
 
   def getRedKernelName(op : String, dt : IR_Datatype) =
@@ -92,7 +92,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
     kernelCollection.clear // consume processed kernels
 
     // take care of reductions
-    for ((op, target) <- requiredRedKernels) addDefaultReductionKernel(op, target)
+    for ((op, target, stream) <- requiredRedKernels) addDefaultReductionKernel(op, target, stream)
     requiredRedKernels.clear // consume reduction requests
   }
 
@@ -108,7 +108,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
     }
   }
 
-  def addDefaultReductionKernel(op : String, target : IR_Expression) : Unit = {
+  def addDefaultReductionKernel(op : String, target : IR_Expression, stream : CUDA_Stream) : Unit = {
     val reductionDt = CUDA_Util.getReductionDatatype(target)
     val kernelName = getRedKernelName(op, reductionDt)
     val wrapperName = getRedKernelWrapperName(op, reductionDt)
@@ -181,10 +181,11 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
     {
       def numElements = IR_FunctionArgument("numElements", IR_SpecialDatatype("size_t") /*FIXME*/)
       def halfStride = IR_VariableAccess("halfStride", IR_SpecialDatatype("size_t") /*FIXME*/)
-      def stream = IR_FunctionArgument("stream", IR_SpecialDatatype("cudaStream_t"))
 
       def data = IR_FunctionArgument("data", IR_PointerDatatype(reductionDt.resolveBaseDatatype))
-      var functionArgs = ListBuffer(data, numElements, stream)
+      var functionArgs = ListBuffer(data, numElements)
+      if (Knowledge.domain_numFragmentsPerBlock > 1)
+        functionArgs += IR_FunctionArgument(IR_LoopOverFragments.defIt)
 
       def blockSize = Knowledge.cuda_reductionBlockSize
 
@@ -192,7 +193,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
 
       // compile args
       def blocks = IR_VariableAccess("blocks", IR_SpecialDatatype("size_t"))
-      val execCfg = CUDA_ExecutionConfiguration(Array[IR_Expression](blocks), Array[IR_Expression](blockSize), stream.access)
+      val execCfg = CUDA_ExecutionConfiguration(Array[IR_Expression](blocks), Array[IR_Expression](blockSize), stream)
       val kernelCallArgs = ListBuffer[IR_Expression](data.access, numElements.access, halfStride)
 
       // compile loop body

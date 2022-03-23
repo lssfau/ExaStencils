@@ -19,7 +19,6 @@ abstract class CUDA_Stream(
 ) extends IR_InternalVariable(perFragment, false, false, false, perNeighbor) {
 
   override def resolveDatatype() : IR_Datatype = IR_SpecialDatatype("cudaStream_t")
-  override def resolveDefValue() : Option[IR_Expression] = Some(0)
 
   def useNonDefaultStreams = Knowledge.domain_numFragmentsPerBlock > 1
 

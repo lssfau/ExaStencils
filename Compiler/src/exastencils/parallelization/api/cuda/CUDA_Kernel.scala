@@ -24,6 +24,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_HigherDimensionalDatatype
 import exastencils.baseExt.ir.IR_InternalVariable
+import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.core._
@@ -602,7 +603,9 @@ case class CUDA_Kernel(
 
       val bufSize = requiredThreadsPerDim.product
       val bufAccess = CUDA_ReductionDeviceData(bufSize, resultDt)
-      var callArgsReduction = ListBuffer[IR_Expression](bufAccess, bufSize, execCfg.stream)
+      var callArgsReduction = ListBuffer[IR_Expression](bufAccess, bufSize)
+      if (Knowledge.domain_numFragmentsPerBlock > 1)
+        callArgsReduction += IR_LoopOverFragments.defIt
 
       body += CUDA_Memset(bufAccess, 0, bufSize, resultDt)
       body += CUDA_FunctionCall(getKernelFctName, callArgs, execCfg)
@@ -624,7 +627,7 @@ case class CUDA_Kernel(
           IR_Return(Some(callDefaultReductionKernel))
       })
 
-      CUDA_KernelFunctions.get.requiredRedKernels += Tuple2(reduction.get.op, Duplicate(target)) // request reduction kernel and wrapper
+      CUDA_KernelFunctions.get.requiredRedKernels += Tuple3(reduction.get.op, Duplicate(target), Duplicate(execCfg.stream)) // request reduction kernel and wrapper
     } else {
       body += CUDA_FunctionCall(getKernelFctName, callArgs, execCfg)
     }
