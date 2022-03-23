@@ -8,6 +8,7 @@ import exastencils.baseExt.ir.IR_LoopOverFields
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.baseExt.ir.IR_LoopOverLevels
 import exastencils.baseExt.ir.IR_LoopOverNeighbors
+import exastencils.config.Knowledge
 import exastencils.prettyprinting.PpStream
 
 /// CUDA_Stream
@@ -18,17 +19,30 @@ abstract class CUDA_Stream(
 ) extends IR_InternalVariable(perFragment, false, false, false, perNeighbor) {
 
   override def resolveDatatype() : IR_Datatype = IR_SpecialDatatype("cudaStream_t")
+  override def resolveDefValue() : Option[IR_Expression] = Some(0)
 
-  override def getCtor() : Option[IR_Statement] = Some(
-    wrapInLoops(
-      IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamCreate"),
-        IR_AddressOf(
-          resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)))))
+  def useNonDefaultStreams = Knowledge.domain_numFragmentsPerBlock > 1
 
-  override def getDtor() : Option[IR_Statement] = Some(
-    wrapInLoops(
-      IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamDestroy"),
-        resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt))))
+  override def getCtor() : Option[IR_Statement] = {
+    if (useNonDefaultStreams) {
+      Some(wrapInLoops(
+          IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamCreate"),
+            IR_AddressOf(
+              resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)))))
+    } else {
+      None
+    }
+  }
+
+  override def getDtor() : Option[IR_Statement] = {
+    if (useNonDefaultStreams) {
+      Some(wrapInLoops(
+          IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamDestroy"),
+            resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt))))
+    } else {
+      None
+    }
+  }
 }
 
 /// CUDA_ComputeStream
