@@ -26,7 +26,6 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
 import exastencils.baseExt.ir._
-import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.logger.Logger
@@ -48,7 +47,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
   this.register(stackCollector)
   this.onBefore = () => this.resetCollectors()
 
-  var enclosingFragmentLoops : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, IR_Reduction] = mutable.HashMap()
+  var enclosingFragmentLoops : mutable.HashSet[IR_ScopedStatement with IR_HasParallelizationInfo] = mutable.HashSet()
 
   /**
     * Collect all loops in the band.
@@ -93,9 +92,8 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name => fragLoop
       }
 
-      val fragLoopIsSerial = !Knowledge.omp_enabled || (Knowledge.omp_enabled && !Knowledge.omp_parallelizeLoopOverFragments)
-      if (enclosing.isDefined && fragLoopIsSerial && loop.parallelization.reduction.isDefined)
-        enclosingFragmentLoops += (enclosing.get -> loop.parallelization.reduction.get)
+      if (enclosing.isDefined)
+        enclosingFragmentLoops += enclosing.get
 
       loop
   }, false)
@@ -103,10 +101,8 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
   // enclosed by a fragment loop -> create fragment-local copies of the initial value
   // and perform reduction after frag loop
   this += Transformation("Modify enclosing fragment loops", {
-    case fragLoop : IR_LoopOverFragments if enclosingFragmentLoops.contains(fragLoop)                                                                                     =>
-      CUDA_HandleFragmentLoopsWithReduction(fragLoop, enclosingFragmentLoops(fragLoop))
-    case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if enclosingFragmentLoops.contains(fragLoop) && name == IR_LoopOverFragments.defIt.name =>
-      CUDA_HandleFragmentLoopsWithReduction(fragLoop, enclosingFragmentLoops(fragLoop))
+    case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingFragmentLoops.contains(fragLoop)                                                                                     =>
+      CUDA_HandleFragmentLoops(fragLoop)
   }, false)
 
   this += new Transformation("Processing ForLoopStatement nodes", {
