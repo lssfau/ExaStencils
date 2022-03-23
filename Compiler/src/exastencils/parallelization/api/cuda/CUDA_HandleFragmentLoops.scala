@@ -110,8 +110,7 @@ case class CUDA_HandleFragmentLoops(
 
   def addHandling(kernelFragLoop : IR_ScopedStatement with IR_HasParallelizationInfo) : ListBuffer[IR_Statement] = {
     var stmts = ListBuffer[IR_Statement]()
-    // TODO: use IR_LoopOverFragments(CUDA_StreamSynchronize(CUDA_ComputeStream(iter))) later
-    val synchroFragLoop = IR_LoopOverFragments()
+    val synchroFragLoop = IR_LoopOverFragments(CUDA_StreamSynchronize(CUDA_ComputeStream(iter)))
 
     val loopTuple = kernelFragLoop match {
       case loop : IR_LoopOverFragments => Some((loop, loop.body))
