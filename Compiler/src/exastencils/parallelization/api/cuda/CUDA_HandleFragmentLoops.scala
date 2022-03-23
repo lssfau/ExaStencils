@@ -131,6 +131,10 @@ case class CUDA_HandleFragmentLoops(
       val red = Duplicate(loop.parallelization.reduction.get)
       val redTarget = Duplicate(red.target)
 
+      // move reduction towards "synchroFragLoop"
+      loop.parallelization.reduction = None
+      synchroFragLoop.parallelization.reduction = Some(red)
+
       val counter = CUDA_HandleFragmentLoops.getReductionCounter(red.targetName)
 
       val copies = {
