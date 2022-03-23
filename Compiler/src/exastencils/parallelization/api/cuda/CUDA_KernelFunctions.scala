@@ -181,21 +181,25 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
     {
       def numElements = IR_FunctionArgument("numElements", IR_SpecialDatatype("size_t") /*FIXME*/)
       def halfStride = IR_VariableAccess("halfStride", IR_SpecialDatatype("size_t") /*FIXME*/)
+      def stream = IR_FunctionArgument("stream", IR_SpecialDatatype("cudaStream_t"))
 
       def data = IR_FunctionArgument("data", IR_PointerDatatype(reductionDt.resolveBaseDatatype))
-      var functionArgs = ListBuffer(data, IR_FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/))
+      var functionArgs = ListBuffer(data, numElements, stream)
 
       def blockSize = Knowledge.cuda_reductionBlockSize
 
       var fctBody = ListBuffer[IR_Statement]()
 
-      // compile loop body
+      // compile args
       def blocks = IR_VariableAccess("blocks", IR_SpecialDatatype("size_t"))
+      val execCfg = CUDA_ExecutionConfiguration(Array[IR_Expression](blocks), Array[IR_Expression](blockSize), stream.access)
+      val kernelCallArgs = ListBuffer[IR_Expression](data.access, numElements.access, halfStride)
+
+      // compile loop body
       var loopBody = ListBuffer[IR_Statement]()
       loopBody += IR_VariableDeclaration(blocks, (numElements.access + (blockSize * 2 * halfStride - 1)) / (blockSize * 2 * halfStride))
       //loopBody += IR_IfCondition(IR_EqEq(0, blocks), IR_Assignment(blocks, 1)) // blocks cannot become 0 if numElements is positive
-      loopBody += CUDA_FunctionCall(kernelName, ListBuffer[IR_Expression](data.access, numElements.access, halfStride),
-        CUDA_ExecutionConfiguration(Array[IR_Expression](blocks), Array[IR_Expression](blockSize), CUDA_ComputeStream()))
+      loopBody += CUDA_FunctionCall(kernelName, kernelCallArgs, execCfg)
 
       fctBody += IR_ForLoop(
         IR_VariableDeclaration(halfStride, 1),
