@@ -35,7 +35,7 @@ case class CUDA_ExecutionConfiguration(
     else
       out << s"dim3(" <<< (numBlocks.take(numDims), ", ") << "), " << s"dim3(" <<< (numThreads.take(numDims), ", ") << ")"
 
-    if (sharedMemPerBlock != CUDA_ExecutionConfiguration.defaultSharedMemPerBlock)
+    if (sharedMemPerBlock != CUDA_ExecutionConfiguration.defaultSharedMemPerBlock || stream.useNonDefaultStreams)
       out << ", " << sharedMemPerBlock
 
     if (stream.useNonDefaultStreams)
