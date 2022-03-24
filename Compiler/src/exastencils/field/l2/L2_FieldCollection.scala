@@ -20,6 +20,7 @@ package exastencils.field.l2
 
 import exastencils.field.l3._
 import exastencils.fieldlike.l2.L2_FieldLikeCollection
+import exastencils.fieldlike.l2.L2_FieldLikeCollections
 import exastencils.knowledge.l2._
 
 /// L2_FieldCollection
@@ -27,6 +28,7 @@ import exastencils.knowledge.l2._
 object L2_FieldCollection extends L2_FieldLikeCollection[L2_Field, L3_Field] {
   exastencils.core.Duplicate.registerConstant(this)
 
+  L2_FieldLikeCollections.register(this)
   L2_KnowledgeContainer.register(this)
 
   override def name = "L2_FieldCollection"

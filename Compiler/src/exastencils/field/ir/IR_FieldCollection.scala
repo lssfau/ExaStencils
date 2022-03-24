@@ -19,7 +19,10 @@
 package exastencils.field.ir
 
 import exastencils.fieldlike.ir.IR_FieldLikeCollection
+import exastencils.fieldlike.ir.IR_FieldLikeCollections
 
 object IR_FieldCollection extends IR_FieldLikeCollection[IR_Field] {
+
+  IR_FieldLikeCollections.register(this)
   exastencils.core.Duplicate.registerConstant(this)
 }

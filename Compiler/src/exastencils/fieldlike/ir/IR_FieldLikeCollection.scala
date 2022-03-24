@@ -1,10 +1,20 @@
 package exastencils.fieldlike.ir
 
+import scala.collection.mutable.ListBuffer
 import scala.reflect.runtime.universe._
+
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_IntegerConstant
 import exastencils.knowledge.ir.IR_LeveledKnowledgeCollection
 import exastencils.logger.Logger
+
+object IR_FieldLikeCollections {
+  val collections = ListBuffer[IR_FieldLikeCollection[_]]()
+
+  def register(collection : IR_FieldLikeCollection[_]) = collections += collection
+
+  def clear() = collections.foreach(_.clear())
+}
 
 class IR_FieldLikeCollection[IR_FieldAbstraction <: IR_FieldLike : TypeTag] extends IR_LeveledKnowledgeCollection[IR_FieldAbstraction] {
 

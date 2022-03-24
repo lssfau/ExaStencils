@@ -17,6 +17,14 @@ import exastencils.util.l3.L3_LevelCollector
 import exastencils.waLBerla.l3.L3_WaLBerlaFieldCollection
 import exastencils.waLBerla.l3.L3_WaLBerlaFieldDecl
 
+object L3_FieldLikeCollections {
+  val collections = ListBuffer[L3_FieldLikeCollection[_, _]]()
+
+  def register(collection : L3_FieldLikeCollection[_, _]) = collections += collection
+
+  def clear() = collections.foreach(_.clear())
+}
+
 abstract class L3_FieldLikeCollection[L3_Type <: L3_FieldLike[L4_Type] : TypeTag, L4_Type <: L4_FieldLike[_, _]] extends L3_LeveledKnowledgeCollection[L3_Type, L4_Type] {
 
   L3_PrepareDeclarations.strategies += L3_PrepareFieldDeclarations

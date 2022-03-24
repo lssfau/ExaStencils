@@ -6,6 +6,7 @@ import exastencils.base.l3.L3_Datatype
 import exastencils.base.l4.L4_ConstIndex
 import exastencils.config.Knowledge
 import exastencils.fieldlike.l3.L3_FieldLikeCollection
+import exastencils.fieldlike.l3.L3_FieldLikeCollections
 import exastencils.fieldlike.l4.L4_FieldLikeLayout
 import exastencils.grid.l3.L3_Localization
 import exastencils.knowledge.l3._
@@ -20,6 +21,7 @@ import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayoutCollection
 object L3_WaLBerlaFieldCollection extends L3_FieldLikeCollection[L3_WaLBerlaField, L4_WaLBerlaField] {
   exastencils.core.Duplicate.registerConstant(this)
 
+  L3_FieldLikeCollections.register(this)
   L3_KnowledgeContainer.register(this)
 
   override def name = "L3_WaLBerlaFieldCollection"

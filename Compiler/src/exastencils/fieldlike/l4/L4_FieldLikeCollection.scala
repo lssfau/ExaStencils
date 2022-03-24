@@ -1,5 +1,6 @@
 package exastencils.fieldlike.l4
 
+import scala.collection.mutable.ListBuffer
 import scala.reflect.runtime.universe._
 
 import exastencils.base.l4.L4_MayBlockResolution
@@ -14,6 +15,14 @@ import exastencils.logger.Logger
 import exastencils.util.l4.L4_LevelCollector
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldCollection
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldDecl
+
+object L4_FieldLikeCollections {
+  val collections = ListBuffer[L4_FieldLikeCollection[_, _]]()
+
+  def register(collection : L4_FieldLikeCollection[_, _]) = collections += collection
+
+  def clear() = collections.foreach(_.clear())
+}
 
 abstract class L4_FieldLikeCollection[L4_Type <: L4_FieldLike[IR_Type, _] : TypeTag, IR_Type <: IR_FieldLike] extends L4_LeveledKnowledgeCollection[L4_Type, IR_Type] {
 

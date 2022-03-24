@@ -26,6 +26,7 @@ import exastencils.config._
 import exastencils.datastructures.StrategyTimer
 import exastencils.domain.l2._
 import exastencils.field.l2._
+import exastencils.fieldlike.l2.L2_FieldLikeCollections
 import exastencils.fieldlike.l2.L2_ProcessBoundaryDeclarations
 import exastencils.grid.l2._
 import exastencils.knowledge.l2.L2_KnowledgeContainer._
@@ -68,6 +69,7 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
 
   override def shutdown() : Unit = {
     L2_KnowledgeContainer.clear()
+    L2_FieldLikeCollections.clear()
   }
 
   override def print() : Unit = {

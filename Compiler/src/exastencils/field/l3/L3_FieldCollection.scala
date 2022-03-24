@@ -25,6 +25,7 @@ import exastencils.base.l4.L4_ConstIndex
 import exastencils.config.Knowledge
 import exastencils.field.l4._
 import exastencils.fieldlike.l3.L3_FieldLikeCollection
+import exastencils.fieldlike.l3.L3_FieldLikeCollections
 import exastencils.fieldlike.l4.L4_FieldLikeLayout
 import exastencils.grid.l3.L3_Localization
 import exastencils.knowledge.l3._
@@ -34,6 +35,7 @@ import exastencils.knowledge.l3._
 object L3_FieldCollection extends L3_FieldLikeCollection[L3_Field, L4_Field] {
   exastencils.core.Duplicate.registerConstant(this)
 
+  L3_FieldLikeCollections.register(this)
   L3_KnowledgeContainer.register(this)
 
   override def name = "L3_FieldCollection"

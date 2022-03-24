@@ -34,6 +34,7 @@ import exastencils.config._
 import exastencils.domain.ir._
 import exastencils.experimental.ir.IR_ResolveGismoFunctions
 import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_FieldLikeCollections
 import exastencils.globals.ir._
 import exastencils.grid.ir._
 import exastencils.interfacing.ir._
@@ -80,6 +81,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
   override def shutdown() : Unit = {
     // TODO: use KnowledgeContainer structure; remove IR_ClearKnowledge
     IR_ClearKnowledge.apply()
+    IR_FieldLikeCollections.clear()
   }
 
   override def print() : Unit = {

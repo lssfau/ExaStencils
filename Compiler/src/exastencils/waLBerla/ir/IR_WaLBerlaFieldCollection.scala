@@ -5,9 +5,12 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_IntegerConstant
 import exastencils.field.ir.IR_FieldAccessLike
 import exastencils.fieldlike.ir.IR_FieldLikeCollection
+import exastencils.fieldlike.ir.IR_FieldLikeCollections
 import exastencils.logger.Logger
 
 object IR_WaLBerlaFieldCollection extends IR_FieldLikeCollection[IR_WaLBerlaField] {
+
+  IR_FieldLikeCollections.register(this)
   exastencils.core.Duplicate.registerConstant(this)
 
   private def getByCallbackLevExp(
