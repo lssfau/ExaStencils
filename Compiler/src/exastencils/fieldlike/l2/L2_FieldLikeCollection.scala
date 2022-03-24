@@ -59,14 +59,14 @@ abstract class L2_FieldLikeCollection[L2_Type <: L2_FieldLike[L3_Type] : TypeTag
     this.onBefore = () => this.resetCollectors()
 
     this += new Transformation("Resolve applicable unresolved accesses", {
-      case access : L2_UnresolvedAccess if L2_FieldCollection.existsDecl(access.name) =>
+      case access : L2_UnresolvedAccess if existsDecl(access.name) =>
         val lvl = {
           if (access.level.isDefined) access.level.get.resolveLevel
           else if (collector.inLevelScope) collector.getCurrentLevel
           else Logger.error(s"Missing level for access to field ${ access.name }")
         }
 
-        if (!L2_FieldCollection.existsDecl(access.name, lvl))
+        if (!existsDecl(access.name, lvl))
           Logger.warn(s"Trying to access ${ access.name } on invalid level $lvl")
 
         if (access.slot.isDefined) Logger.warn(s"Discarding meaningless slot access on ${ access.name }")
