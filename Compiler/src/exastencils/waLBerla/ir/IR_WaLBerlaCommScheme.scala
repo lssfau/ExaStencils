@@ -17,7 +17,7 @@ case class IR_WaLBerlaCommScheme(var wbField : IR_WaLBerlaField, var slot : IR_E
   val numSlots = wbField.numSlots
   val levels = blockDataID.levels
 
-  def basetype = IR_UniquePointerDatatype(WB_CommScheme(stencilTemplate(wbField.numDimsGrid)))
+  def basetype = IR_UniquePointerDatatype(WB_CommScheme)
   def datatype : IR_Datatype = {
     var dt : IR_Datatype = basetype
 

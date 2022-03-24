@@ -7,6 +7,7 @@ import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.prettyprinting._
+import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes._
 
 trait IR_WaLBerlaInterfaceParameter extends IR_Access {
   def name : String
@@ -23,7 +24,7 @@ trait IR_WaLBerlaInterfaceParameter extends IR_Access {
 
 object IR_WaLBerlaInterface {
   def defHeader(className : String) : String = IR_WaLBerlaCollection.defBasePath + "_" + className + ".h"
-  def defSource(className : String): String = IR_WaLBerlaCollection.defBasePath + "_" + className + ".cpp"
+  def defSource(className : String): String = IR_WaLBerlaCollection.defBasePath + "_" + className + ".impl.h"
 
   def interfaceHeader = defHeader(interfaceName)
   def interfaceName = "ExaInterface"
@@ -48,6 +49,7 @@ case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction])
     /* class */
     writerHeader <<< s"namespace walberla {"
     writerHeader <<< s"namespace exastencils { "
+    writerHeader <<< s"template< typename $WB_StencilTemplate >"
     writerHeader <<< s"class $interfaceName {"
     writerHeader <<< "public:"
 
@@ -72,6 +74,9 @@ case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction])
 
     writerHeader <<< "};" // end class
     writerHeader <<< "}\n}" // end namespaces
+
+    /* include template function impls */
+    functions foreach { f => writerHeader << "#include \"" + defSource(f.name) + "\"\n" }
 
     /* preprocessor directives */
     writerHeader <<< IR_WaLBerlaPreprocessorDirectives.headerBottom

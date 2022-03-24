@@ -10,6 +10,7 @@ import exastencils.field.ir.IR_FieldAccessLike
 import exastencils.prettyprinting.PpStream
 import exastencils.prettyprinting.PrettyPrintable
 import exastencils.util.ir.IR_StackCollector
+import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes._
 
 
 trait IR_WaLBerlaFunction extends IR_Function with PrettyPrintable {
@@ -22,7 +23,8 @@ trait IR_WaLBerlaFunction extends IR_Function with PrettyPrintable {
 
   override def prettyprint(out : PpStream) : Unit = {
     if (!functionQualifiers.isEmpty) out << functionQualifiers << ' '
-    out << datatype << ' ' << (if (isInterfaceFunction) IR_WaLBerlaInterface.interfaceName + "::" else "") << name << ' ' << '(' <<< (modifiedParameters, ", ") << ") {\n"
+    if (isInterfaceFunction) out << s"template< typename $WB_StencilTemplate >\n"
+    out << datatype << ' ' << (if (isInterfaceFunction) IR_WaLBerlaInterface.interfaceName + s"<$WB_StencilTemplate>" + "::" else "") << name << ' ' << '(' <<< (modifiedParameters, ", ") << ") {\n"
     out <<< (body, "\n") << '\n'
     out << '}'
   }

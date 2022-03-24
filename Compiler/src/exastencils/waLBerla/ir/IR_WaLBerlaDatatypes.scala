@@ -9,7 +9,9 @@ object IR_WaLBerlaDatatypes {
   def WB_StructuredBlockStorage = IR_SpecialDatatype("StructuredBlockStorage")
   def WB_StructuredBlockForest = IR_SpecialDatatype("StructuredBlockForest")
 
-  def WB_CommScheme(wbStencil : String) = IR_SpecialDatatype(s"blockforest::communication::UniformBufferedScheme<${wbStencil}>")
+  def WB_CommScheme = IR_SpecialDatatype(s"blockforest::communication::UniformBufferedScheme<$WB_StencilTemplate>")
+
+  def WB_StencilTemplate = "Stencil_T"
 
   def WB_FieldDatatype(field : IR_WaLBerlaField) =
     IR_SpecialDatatype(s"${field.waLBerlaFieldType} < ${field.resolveBaseDatatype.prettyprint}, ${field.gridDatatype.resolveFlattendSize} >")
