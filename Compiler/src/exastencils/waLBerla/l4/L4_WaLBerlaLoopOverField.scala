@@ -18,6 +18,7 @@ import exastencils.field.l4.L4_FieldAccess
 import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.IR_WaLBerlaLoopOverPoints
 
+// TODO: refactor L4_LoopOverField and following progressions so these kinds of (duplicate) classes become obsolete
 
 case class L4_WaLBerlaLoopOverField(
     var fieldAcc : L4_FieldAccess,
@@ -36,8 +37,9 @@ case class L4_WaLBerlaLoopOverField(
 
   // reuse most of L4_LoopOverField impl
   lazy val loopOverField : IR_LoopOverPoints = {
-    val tmp = L4_LoopOverField(L4_FieldAccess(fieldAcc.target, fieldAcc.slot, fieldAcc.offset, fieldAcc.frozen, fieldAcc.matIndex)).progress
-    tmp.parallelization.reduction = reduction.map(_.progress)
+    val tmp = L4_LoopOverField(fieldAcc, region, seq, noVect, condition, startOffset, endOffset,
+      increment, body, reduction, preComms, postComms).progress
+
     tmp
   }
 
