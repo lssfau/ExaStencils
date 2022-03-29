@@ -68,6 +68,7 @@ case class CUDA_Kernel(
     var upperBounds : ListBuffer[IR_Expression],
     var stepSize : ListBuffer[IR_Expression],
     var body : ListBuffer[IR_Statement],
+    var stream : CUDA_Stream,
     var reduction : Option[IR_Reduction] = None,
     var localReductionTarget : Option[IR_Expression] = None,
     var loopVariableExtrema : Map[String, (Long, Long)] = Map[String, (Long, Long)]()) extends Node {
@@ -591,8 +592,8 @@ case class CUDA_Kernel(
     for (arg <- passThroughArgs)
       callArgs += arg.access
 
-    val execCfg = new CUDA_ExecutionConfiguration(numBlocksPerDim.map(n => n : IR_Expression),
-      numThreadsPerBlock.map(n => n : IR_Expression), CUDA_ComputeStream())
+    // execution config
+    val execCfg = new CUDA_ExecutionConfiguration(numBlocksPerDim.map(n => n : IR_Expression), numThreadsPerBlock.map(n => n : IR_Expression), stream)
 
     var body = ListBuffer[IR_Statement]()
 

@@ -13,6 +13,7 @@ import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.OutputType
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
+import exastencils.util.ir.IR_CommunicationKernelCollector
 
 /// CUDA_HandleFragmentLoops
 // - for multi-fragment kernel calls
@@ -32,7 +33,8 @@ object CUDA_HandleFragmentLoops {
 }
 
 case class CUDA_HandleFragmentLoops(
-    var fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo
+    var fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo,
+    var stream : CUDA_Stream
 ) extends IR_Statement with IR_Expandable {
 
   val iter = IR_LoopOverFragments.defIt
@@ -110,7 +112,7 @@ case class CUDA_HandleFragmentLoops(
 
   def addHandling(kernelFragLoop : IR_ScopedStatement with IR_HasParallelizationInfo) : ListBuffer[IR_Statement] = {
     var stmts = ListBuffer[IR_Statement]()
-    val synchroFragLoop = IR_LoopOverFragments(CUDA_StreamSynchronize(CUDA_ComputeStream(iter)))
+    val synchroFragLoop = IR_LoopOverFragments(CUDA_StreamSynchronize(stream))
 
     val loopTuple = kernelFragLoop match {
       case loop : IR_LoopOverFragments => Some((loop, loop.body))

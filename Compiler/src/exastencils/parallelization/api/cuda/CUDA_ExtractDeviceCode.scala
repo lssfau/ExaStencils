@@ -23,6 +23,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir.IR_ScopedStatement
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
 import exastencils.baseExt.ir._
@@ -32,6 +33,7 @@ import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.solver.ir.IR_InlineMatSolveStmts
+import exastencils.util.ir.IR_CommunicationKernelCollector
 import exastencils.util.ir.IR_FctNameCollector
 import exastencils.util.ir.IR_StackCollector
 
@@ -43,8 +45,10 @@ import exastencils.util.ir.IR_StackCollector
 object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUDA loop in kernel code") {
   val fctNameCollector = new IR_FctNameCollector
   val stackCollector = new IR_StackCollector
+  val commKernelCollector = new IR_CommunicationKernelCollector
   this.register(fctNameCollector)
   this.register(stackCollector)
+  this.register(commKernelCollector)
   this.onBefore = () => this.resetCollectors()
 
   var enclosingFragmentLoops : mutable.HashSet[IR_ScopedStatement with IR_HasParallelizationInfo] = mutable.HashSet()
@@ -101,8 +105,13 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
   // enclosed by a fragment loop -> create fragment-local copies of the initial value
   // and perform reduction after frag loop
   this += Transformation("Modify enclosing fragment loops", {
-    case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingFragmentLoops.contains(fragLoop)                                                                                     =>
-      CUDA_HandleFragmentLoops(fragLoop)
+    case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingFragmentLoops.contains(fragLoop) =>
+      val stream = if (commKernelCollector.getNeighbor(fragLoop).isDefined)
+        CUDA_CommStream(commKernelCollector.getNeighbor(fragLoop).get)
+      else
+        CUDA_ComputeStream()
+
+      CUDA_HandleFragmentLoops(fragLoop, Duplicate(stream))
   }, false)
 
   this += new Transformation("Processing ForLoopStatement nodes", {
@@ -223,6 +232,13 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         CUDA_ReplaceNonReductionVarArrayAccesses.reductionTarget = None
       CUDA_ReplaceNonReductionVarArrayAccesses.applyStandalone(IR_Scope(kernelBody))
 
+      val emclosingFragLoop = stackCollector.stack.collectFirst { case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingFragmentLoops.contains(fragLoop) => fragLoop }
+      val neighCommKernel = if (emclosingFragLoop.isDefined)
+        commKernelCollector.getNeighbor(emclosingFragLoop.get)
+      else
+        None
+      val stream = if (neighCommKernel.isDefined) CUDA_CommStream(Duplicate(neighCommKernel.get)) else CUDA_ComputeStream()
+
       val kernel = CUDA_Kernel(
         kernelCount,
         kernelFunctions.getIdentifier(fctNameCollector.getCurrentName),
@@ -233,6 +249,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         Duplicate(upperBounds),
         Duplicate(stepSize),
         Duplicate(kernelBody),
+        Duplicate(stream),
         Duplicate(reduction),
         Duplicate(localTarget),
         Duplicate(extremaMap))
