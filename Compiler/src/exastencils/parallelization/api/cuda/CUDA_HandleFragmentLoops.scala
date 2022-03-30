@@ -13,7 +13,6 @@ import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.OutputType
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
-import exastencils.util.ir.IR_CommunicationKernelCollector
 
 /// CUDA_HandleFragmentLoops
 // - for multi-fragment kernel calls
@@ -112,7 +111,21 @@ case class CUDA_HandleFragmentLoops(
 
   def addHandling(kernelFragLoop : IR_ScopedStatement with IR_HasParallelizationInfo) : ListBuffer[IR_Statement] = {
     var stmts = ListBuffer[IR_Statement]()
-    val synchroFragLoop = IR_LoopOverFragments(CUDA_StreamSynchronize(stream))
+
+    // sync before kernel calls in separate frag loop
+    val syncBeforeStmt = stream match {
+      case comm : CUDA_CommStream if Knowledge.cuda_syncStreamsBeforeCommunicationKernelCalls => CUDA_StreamSynchronize(comm)
+      case _ => IR_NullStatement
+    }
+    val syncBeforeFragLoop = IR_LoopOverFragments(syncBeforeStmt)
+
+    // sync after kernel calls in separate frag loop
+    val syncAfterStmt = stream match {
+      case comp : CUDA_ComputeStream if Knowledge.cuda_syncStreamsAfterComputeKernelCalls => CUDA_StreamSynchronize(comp)
+      case comm : CUDA_CommStream if Knowledge.cuda_syncStreamsAfterCommunicationKernelCalls => CUDA_StreamSynchronize(comm)
+      case _ => IR_NullStatement
+    }
+    val syncAfterFragLoop = IR_LoopOverFragments(syncAfterStmt)
 
     val loopTuple = kernelFragLoop match {
       case loop : IR_LoopOverFragments => Some((loop, loop.body))
@@ -134,7 +147,7 @@ case class CUDA_HandleFragmentLoops(
 
       // move reduction towards "synchroFragLoop"
       loop.parallelization.reduction = None
-      synchroFragLoop.parallelization.reduction = Some(red)
+      syncAfterFragLoop.parallelization.reduction = Some(red)
 
       val counter = CUDA_HandleFragmentLoops.getReductionCounter(red.targetName)
 
@@ -148,11 +161,12 @@ case class CUDA_HandleFragmentLoops(
 
       stmts ++= initCopies(copies, redTarget) // init frag copies
       replaceAccesses(redTarget, copies, body) // replace accesses to frag copies
-      synchroFragLoop.body += finalizeReduction(red.op, redTarget, copies) // accumulate frag copies at end
+      syncAfterFragLoop.body += finalizeReduction(red.op, redTarget, copies) // accumulate frag copies at end
     }
 
+    stmts += syncBeforeFragLoop // add stream synchro loop before kernel calls
     stmts += Duplicate(loop)
-    stmts += synchroFragLoop // add stream synchro loop
+    stmts += syncAfterFragLoop // add stream synchro loop after kernel calls
 
     stmts
   }

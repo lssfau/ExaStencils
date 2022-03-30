@@ -480,8 +480,16 @@ object Knowledge {
   var cuda_preferredExecution : String = "Performance"
   // specifies a condition to be used to branch for CPU (true) or GPU (false) execution; only used if cuda_preferredExecution == Condition
   var cuda_executionCondition : String = "true"
+  // specifies if CUDA streams are used
+  var cuda_useStreams : Boolean = true
   // specifies if CUDA devices are to be synchronized after each (device) kernel call -> recommended to debug, required for reasonable performance measurements
-  var cuda_syncDeviceAfterKernelCalls : Boolean = true
+  var cuda_syncDeviceAfterKernelCalls : Boolean = false
+  // specifies if CUDA streams are to be synchronized after each compute kernel call
+  var cuda_syncStreamsAfterComputeKernelCalls : Boolean = true
+  // specifies if CUDA streams are to be synchronized before each communication kernel call
+  var cuda_syncStreamsBeforeCommunicationKernelCalls : Boolean = true
+  // specifies if CUDA streams are to be synchronized after each communication kernel call
+  var cuda_syncStreamsAfterCommunicationKernelCalls : Boolean = true
   // specifies if fields with (exclusive) write accesses should be synchronized before host kernel executions
   var cuda_syncHostForWrites : Boolean = true
   // specifies if fields with (exclusive) write accesses should be synchronized before device kernel executions
@@ -765,6 +773,9 @@ object Knowledge {
 
     Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
     Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
+
+    Constraints.condError(cuda_enabled && !cuda_useStreams && (cuda_syncStreamsBeforeCommunicationKernelCalls || cuda_syncStreamsAfterCommunicationKernelCalls || cuda_syncStreamsAfterComputeKernelCalls), "Trying to sync cuda streams without having cuda streams enabled. Enable via \"cuda_useStreams = true\"")
+    Constraints.condError(cuda_enabled && cuda_useStreams && cuda_syncDeviceAfterKernelCalls, "Trying to sync cuda device with \"cuda_streams\" being enabled. Please refer to the flags: \"cuda_syncStreamsBeforeCommunicationKernelCalls\", \"cuda_syncStreamsAfterCommunicationKernelCalls\", \"cuda_syncStreamsAfterComputeKernelCalls\"")
 
     Constraints.condWarn(cuda_useSharedMemory && cuda_favorL1CacheOverSharedMemory, "If CUDA shared memory usage is enabled, it is not very useful to favor L1 cache over shared memory storage!")
     Constraints.condWarn(cuda_spatialBlockingWithSmem && !cuda_useSharedMemory, "Spatial blocking with shared memory can only be used if shared memory usage is enabled!")
