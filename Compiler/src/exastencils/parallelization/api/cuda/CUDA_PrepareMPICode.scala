@@ -32,14 +32,19 @@ import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.timing.ir.IR_TimerFunctions
-import exastencils.util.ir.IR_FctNameCollector
+import exastencils.util.ir._
 
 /// CUDA_PrepareMPICode
 
 object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
   "and annotating for later kernel transformation") {
-  val collector = new IR_FctNameCollector
-  this.register(collector)
+
+  val stackCollector = new IR_StackCollector
+  val commKernelCollector = new IR_CommunicationKernelCollector
+  val fctNameCollector = new IR_FctNameCollector
+  this.register(fctNameCollector)
+  this.register(stackCollector)
+  this.register(commKernelCollector)
   this.onBefore = () => this.resetCollectors()
 
   var fieldAccesses = HashMap[String, IR_IV_FieldData]()
@@ -180,8 +185,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
     // host sync stmts
 
-    for (access <- fieldAccesses.toSeq.sortBy(_._1)
-         ) {
+    for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val field = access._2
 
       // add data sync statements
@@ -264,12 +268,23 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
       }
 
       // skip timer functions
-      if (IR_TimerFunctions.functions.contains(collector.getCurrentName))
+      if (IR_TimerFunctions.functions.contains(fctNameCollector.getCurrentName))
         skip = true
 
       if (skip) {
         mpiStmt
       } else {
+        // determine stream
+        val enclosingFragLoop = stackCollector.stack.collectFirst {
+          case fragLoop : IR_LoopOverFragments                                                                                     => fragLoop
+          case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name => fragLoop
+        }
+        val neighCommKernel = if (enclosingFragLoop.isDefined)
+          commKernelCollector.getNeighbor(enclosingFragLoop.get)
+        else
+          None
+        val stream = if (neighCommKernel.isDefined) CUDA_CommStream(Duplicate(neighCommKernel.get)) else CUDA_ComputeStream()
+
         val hostStmts = ListBuffer[IR_Statement]()
         val deviceStmts = ListBuffer[IR_Statement]()
 

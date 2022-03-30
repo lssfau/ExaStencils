@@ -30,7 +30,7 @@ import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.util.NoDuplicateWrapper
-import exastencils.util.ir.IR_FctNameCollector
+import exastencils.util.ir._
 
 /// CUDA_PrepareHostCode
 
@@ -40,8 +40,12 @@ import exastencils.util.ir.IR_FctNameCollector
   */
 object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
   "and annotating for later kernel transformation") {
-  val collector = new IR_FctNameCollector
-  this.register(collector)
+  val fctNameCollector = new IR_FctNameCollector
+  val stackCollector = new IR_StackCollector
+  val commKernelCollector = new IR_CommunicationKernelCollector
+  this.register(fctNameCollector)
+  this.register(stackCollector)
+  this.register(commKernelCollector)
   this.onBefore = () => this.resetCollectors()
 
   def syncBeforeHost(access : String, others : Iterable[String]) = {
@@ -183,6 +187,17 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       // use the host for dealing with the two exceptional cases
       val isParallel = containedLoop.parallelization.potentiallyParallel // filter some generate loops?
 
+      // determine stream
+      val enclosingFragLoop = stackCollector.stack.collectFirst {
+        case fragLoop : IR_LoopOverFragments                                                                                     => fragLoop
+        case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name => fragLoop
+      }
+      val neighCommKernel = if (enclosingFragLoop.isDefined)
+        commKernelCollector.getNeighbor(enclosingFragLoop.get)
+      else
+        None
+      val stream = if (neighCommKernel.isDefined) CUDA_CommStream(Duplicate(neighCommKernel.get)) else CUDA_ComputeStream()
+
       // calculate memory transfer statements for host and device
       val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(containedLoop.body, isParallel)
 
@@ -266,6 +281,17 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       // 2. this loop has no parallel potential
       // use the host for dealing with the two exceptional cases
       val isParallel = loop.parallelization.potentiallyParallel // filter some generate loops?
+
+      // determine stream
+      val enclosingFragLoop = stackCollector.stack.collectFirst {
+        case fragLoop : IR_LoopOverFragments                                                                                     => fragLoop
+        case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name => fragLoop
+      }
+      val neighCommKernel = if (enclosingFragLoop.isDefined)
+        commKernelCollector.getNeighbor(enclosingFragLoop.get)
+      else
+        None
+      val stream = if (neighCommKernel.isDefined) CUDA_CommStream(Duplicate(neighCommKernel.get)) else CUDA_ComputeStream()
 
       // calculate memory transfer statements for host and device
       val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop.body, isParallel)
