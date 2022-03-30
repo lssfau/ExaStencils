@@ -87,7 +87,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
     }
   }
 
-  this += Transformation("Find reductions with enclosing fragment loops", {
+  this += Transformation("Find enclosing fragment loops", {
     case loop : IR_ForLoop if loop.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) &&
       loop.getAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION).contains(CUDA_Util.CUDA_BAND_START) =>
 
@@ -262,7 +262,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       if (deviceArrayCopies.nonEmpty) {
         deviceArrayCopies foreach { case (k, dstArr) =>
           val (srcArr, srcDt) = accessesCopiedToDevice.find(_._1 == k).get._2
-          deviceStatements += CUDA_Memcpy(dstArr, srcArr, srcDt.typicalByteSize, "cudaMemcpyHostToDevice")
+          deviceStatements += CUDA_TransferUtil.genTransfer(srcArr, dstArr, srcDt.typicalByteSize, "H2D", stream)
         }
       }
 
