@@ -92,14 +92,14 @@ case class CUDA_Memcpy(var dest : IR_Expression, var src : IR_Expression, var si
 
 /// CUDA_MemcpyAsync
 
-case class CUDA_MemcpyAsync(var dest : IR_Expression, var src : IR_Expression, var sizeInBytes : IR_Expression, var direction : String, stream : IR_Expression = 0) extends CUDA_HostStatement with IR_Expandable {
-  override def expand() = CUDA_CheckError(IR_FunctionCall(IR_ExternalFunctionReference("cudaMemcpyAsync"), dest, src, sizeInBytes, direction, stream))
+case class CUDA_MemcpyAsync(var dest : IR_Expression, var src : IR_Expression, var sizeInBytes : IR_Expression, var direction : String, var stream : Option[CUDA_Stream] = None) extends CUDA_HostStatement with IR_Expandable {
+  override def expand() = CUDA_CheckError(IR_FunctionCall(IR_ExternalFunctionReference("cudaMemcpyAsync"), ListBuffer[IR_Expression](dest, src, sizeInBytes, direction) ++ stream))
 }
 
 /// CUDA_MemPrefetch
 
-case class CUDA_MemPrefetch(var pointer : IR_Expression, var sizeInBytes : IR_Expression, var target : String) extends CUDA_HostStatement with IR_Expandable {
-  override def expand() = CUDA_CheckError(IR_FunctionCall(IR_ExternalFunctionReference("cudaMemPrefetchAsync "), pointer, sizeInBytes, target))
+case class CUDA_MemPrefetch(var pointer : IR_Expression, var sizeInBytes : IR_Expression, var target : String, var stream : Option[CUDA_Stream] = None) extends CUDA_HostStatement with IR_Expandable {
+  override def expand() = CUDA_CheckError(IR_FunctionCall(IR_ExternalFunctionReference("cudaMemPrefetchAsync"), ListBuffer[IR_Expression](pointer, sizeInBytes, target) ++ stream))
 }
 
 /// CUDA_Memset

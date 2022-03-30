@@ -148,7 +148,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
     }
   }
 
-  def getHostDeviceSyncStmts(mpiStmt : MPI_Statement) = {
+  def getHostDeviceSyncStmts(mpiStmt : MPI_Statement, stream : CUDA_Stream) = {
     val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     // don't filter here - memory transfer code is still required
@@ -190,7 +190,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
       // add data sync statements
       if (syncBeforeHost(access._1, fieldAccesses.keys))
-        beforeHost += CUDA_UpdateHostData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
+        beforeHost += CUDA_UpdateHostData(Duplicate(access._2), stream).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written fields
       if (syncAfterHost(access._1, fieldAccesses.keys))
@@ -202,7 +202,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
       // add buffer sync statements
       if (syncBeforeHost(access._1, bufferAccesses.keys))
-        beforeHost += CUDA_UpdateHostBufferData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
+        beforeHost += CUDA_UpdateHostBufferData(Duplicate(access._2), stream).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written buffers
       if (syncAfterHost(access._1, bufferAccesses.keys))
@@ -221,7 +221,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
       // add data sync statements
       if (syncBeforeDevice(access._1, fieldAccesses.keys)
       )
-        beforeDevice += CUDA_UpdateDeviceData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
+        beforeDevice += CUDA_UpdateDeviceData(Duplicate(access._2), stream).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written fields
       if (syncAfterDevice(access._1, fieldAccesses.keys)
@@ -234,7 +234,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
       // add data sync statements
       if (syncBeforeDevice(access._1, bufferAccesses.keys))
-        beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
+        beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(access._2), stream).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written fields
       if (syncAfterDevice(access._1, bufferAccesses.keys))
@@ -288,7 +288,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
         val hostStmts = ListBuffer[IR_Statement]()
         val deviceStmts = ListBuffer[IR_Statement]()
 
-        val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(mpiStmt)
+        val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(mpiStmt, stream)
 
         hostStmts ++= beforeHost
         deviceStmts ++= beforeDevice

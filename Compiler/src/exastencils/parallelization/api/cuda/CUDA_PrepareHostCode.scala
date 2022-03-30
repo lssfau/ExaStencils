@@ -74,7 +74,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     access.startsWith("write")
   }
 
-  def getHostDeviceSyncStmts(body : ListBuffer[IR_Statement], isParallel : Boolean) = {
+  def getHostDeviceSyncStmts(body : ListBuffer[IR_Statement], isParallel : Boolean, stream : CUDA_Stream) = {
     val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     // don't filter here - memory transfer code is still required
@@ -94,7 +94,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     for (access <- gatherFields.fieldAccesses.toSeq.sortBy(_._1)) {
       // add data sync statements
       if (syncBeforeHost(access._1, gatherFields.fieldAccesses.keys))
-        beforeHost += CUDA_UpdateHostData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
+        beforeHost += CUDA_UpdateHostData(Duplicate(access._2), stream).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written fields
       if (syncAfterHost(access._1, gatherFields.fieldAccesses.keys))
@@ -106,7 +106,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
       // add buffer sync statements
       if (syncBeforeHost(access._1, gatherBuffers.bufferAccesses.keys))
-        beforeHost += CUDA_UpdateHostBufferData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
+        beforeHost += CUDA_UpdateHostBufferData(Duplicate(access._2), stream).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written buffers
       if (syncAfterHost(access._1, gatherBuffers.bufferAccesses.keys))
@@ -122,7 +122,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       for (access <- gatherFields.fieldAccesses.toSeq.sortBy(_._1)) {
         // add data sync statements
         if (syncBeforeDevice(access._1, gatherFields.fieldAccesses.keys))
-          beforeDevice += CUDA_UpdateDeviceData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
+          beforeDevice += CUDA_UpdateDeviceData(Duplicate(access._2), stream).expand().inner // expand here to avoid global expand afterwards
 
         // update flags for written fields
         if (syncAfterDevice(access._1, gatherFields.fieldAccesses.keys))
@@ -134,7 +134,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
         // add data sync statements
         if (syncBeforeDevice(access._1, gatherBuffers.bufferAccesses.keys))
-          beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
+          beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(access._2), stream).expand().inner // expand here to avoid global expand afterwards
 
         // update flags for written fields
         if (syncAfterDevice(access._1, gatherBuffers.bufferAccesses.keys))
@@ -199,7 +199,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       val stream = if (neighCommKernel.isDefined) CUDA_CommStream(Duplicate(neighCommKernel.get)) else CUDA_ComputeStream()
 
       // calculate memory transfer statements for host and device
-      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(containedLoop.body, isParallel)
+      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(containedLoop.body, isParallel, stream)
 
       hostStmts ++= beforeHost
       deviceStmts ++= beforeDevice
@@ -294,7 +294,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       val stream = if (neighCommKernel.isDefined) CUDA_CommStream(Duplicate(neighCommKernel.get)) else CUDA_ComputeStream()
 
       // calculate memory transfer statements for host and device
-      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop.body, isParallel)
+      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop.body, isParallel, stream)
 
       hostStmts ++= beforeHost
       deviceStmts ++= beforeDevice
