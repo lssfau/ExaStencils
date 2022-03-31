@@ -234,12 +234,13 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         CUDA_ReplaceNonReductionVarArrayAccesses.reductionTarget = None
       CUDA_ReplaceNonReductionVarArrayAccesses.applyStandalone(IR_Scope(kernelBody))
 
+      // get enclosing frag loop
       val enclosingFragLoop = stackCollector.stack.collectFirst { case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingFragmentLoops.contains(fragLoop) => fragLoop }
       if (enclosingFragLoop.isEmpty)
         Logger.error("Extracted device code must be enclosed by a fragment loop")
 
-      val neighCommKernel = commKernelCollector.getNeighbor(enclosingFragLoop.get)
-      val stream = if (neighCommKernel.isDefined) CUDA_CommunicateStream(Duplicate(neighCommKernel.get)) else CUDA_ComputeStream()
+      // determine stream
+      val stream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
 
       val kernel = CUDA_Kernel(
         kernelCount,

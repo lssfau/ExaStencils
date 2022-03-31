@@ -188,15 +188,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       val isParallel = containedLoop.parallelization.potentiallyParallel // filter some generate loops?
 
       // determine stream
-      val enclosingFragLoop = stackCollector.stack.collectFirst {
-        case fragLoop : IR_LoopOverFragments                                                                                     => fragLoop
-        case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name => fragLoop
-      }
-      val neighCommKernel = if (enclosingFragLoop.isDefined)
-        commKernelCollector.getNeighbor(enclosingFragLoop.get)
-      else
-        None
-      val stream = if (neighCommKernel.isDefined) CUDA_CommunicateStream(Duplicate(neighCommKernel.get)) else CUDA_ComputeStream()
+      val stream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
 
       // calculate memory transfer statements for host and device
       val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(containedLoop.body, isParallel, stream)
@@ -283,15 +275,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       val isParallel = loop.parallelization.potentiallyParallel // filter some generate loops?
 
       // determine stream
-      val enclosingFragLoop = stackCollector.stack.collectFirst {
-        case fragLoop : IR_LoopOverFragments                                                                                     => fragLoop
-        case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name => fragLoop
-      }
-      val neighCommKernel = if (enclosingFragLoop.isDefined)
-        commKernelCollector.getNeighbor(enclosingFragLoop.get)
-      else
-        None
-      val stream = if (neighCommKernel.isDefined) CUDA_CommunicateStream(Duplicate(neighCommKernel.get)) else CUDA_ComputeStream()
+      val stream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
 
       // calculate memory transfer statements for host and device
       val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop.body, isParallel, stream)

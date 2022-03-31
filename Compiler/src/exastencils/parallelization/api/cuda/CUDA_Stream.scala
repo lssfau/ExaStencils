@@ -12,11 +12,32 @@ import exastencils.baseExt.ir.IR_LoopOverLevels
 import exastencils.baseExt.ir.IR_LoopOverNeighbors
 import exastencils.communication.DefaultNeighbors
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_NeighborIsValid
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
+import exastencils.util.ir.IR_CommunicationKernelCollector
+import exastencils.util.ir.IR_StackCollector
 
 /// CUDA_Stream
+
+object CUDA_Stream {
+  def getStream(stackCollector: IR_StackCollector, communicateKernelCollector : IR_CommunicationKernelCollector) : CUDA_Stream = {
+    val enclosingFragLoop = stackCollector.stack.collectFirst {
+      case fragLoop : IR_LoopOverFragments                                                                                     => fragLoop
+      case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name => fragLoop
+    }
+    if (enclosingFragLoop.isEmpty)
+      Logger.error("Extracted device code must be enclosed by a fragment loop")
+
+    val neighCommKernel = communicateKernelCollector.getNeighbor(enclosingFragLoop.get)
+
+    if (neighCommKernel.isDefined)
+      CUDA_CommunicateStream(Duplicate(neighCommKernel.get))
+    else
+      CUDA_ComputeStream()
+  }
+}
 
 abstract class CUDA_Stream(
     var perFragment : Boolean,
