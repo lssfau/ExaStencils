@@ -484,19 +484,23 @@ object Knowledge {
   var cuda_useStreams : Boolean = true
   // specifies if CUDA devices are to be synchronized after each (device) kernel call -> recommended to debug, required for reasonable performance measurements
   var cuda_syncDeviceAfterKernelCalls : Boolean = false
+  // specifies if CUDA streams are to be synchronized before each compute kernel call
+  var cuda_syncStreamsBeforeComputeKernelCalls : String = "none"
   // specifies if CUDA streams are to be synchronized after each compute kernel call
-  var cuda_syncComputeStreamsAfterKernelCalls : Boolean = true
+  var cuda_syncStreamsAfterComputeKernelCalls : String = "comp"
   // specifies if CUDA streams are to be synchronized before each communication kernel call
-  var cuda_syncCommunicationStreamsBeforeKernelCalls : Boolean = true
+  var cuda_syncStreamsBeforeCommunicateKernelCalls : String = "none"
   // specifies if CUDA streams are to be synchronized after each communication kernel call
-  var cuda_syncCommunicationStreamsAfterKernelCalls : Boolean = true
+  var cuda_syncStreamsAfterCommunicateKernelCalls : String = "comm"
+  // stream synchronization options
+  val cuda_syncStreamsOptions : List[String] = List("comm", "comp", "none", "all")
   // specifies if fields with (exclusive) write accesses should be synchronized before host kernel executions
   var cuda_syncHostForWrites : Boolean = true
   // specifies if fields with (exclusive) write accesses should be synchronized before device kernel executions
   var cuda_syncDeviceForWrites : Boolean = true
   // ["none"|"both"|"device_to_host"|"host_to_device"] eliminates host <-> device transfers.
   var cuda_eliminate_memory_transfers = "none"
-  val cuda_memory_transfer_elimination_options = List("none", "both", "device_to_host", "host_to_device")
+  val cuda_memory_transfer_elimination_options : List[String] = List("none", "both", "device_to_host", "host_to_device")
 
   // default block size in x dimension
   var cuda_blockSize_x : Long = if (dimensionality == 3) 32 else 128
@@ -774,7 +778,10 @@ object Knowledge {
     Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
     Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
 
-    Constraints.condError(cuda_enabled && !cuda_useStreams && (cuda_syncCommunicationStreamsBeforeKernelCalls || cuda_syncCommunicationStreamsAfterKernelCalls || cuda_syncComputeStreamsAfterKernelCalls), "Trying to sync cuda streams without having cuda streams enabled. Enable via \"cuda_useStreams = true\"")
+    Constraints.condError(cuda_enabled && !cuda_useStreams && (cuda_syncStreamsBeforeCommunicateKernelCalls != "none" || cuda_syncStreamsAfterCommunicateKernelCalls != "none"
+      || cuda_syncStreamsBeforeComputeKernelCalls != "none" || cuda_syncStreamsAfterComputeKernelCalls != "none"), "Trying to sync cuda streams without having cuda streams enabled. Enable via \"cuda_useStreams = true\"")
+    Constraints.condError(cuda_enabled && cuda_useStreams && (!cuda_syncStreamsOptions.contains(cuda_syncStreamsBeforeCommunicateKernelCalls) || !cuda_syncStreamsOptions.contains(cuda_syncStreamsAfterCommunicateKernelCalls)
+      || !cuda_syncStreamsOptions.contains(cuda_syncStreamsBeforeComputeKernelCalls) || !cuda_syncStreamsOptions.contains(cuda_syncStreamsAfterComputeKernelCalls)), "Invalid stream sync option. Should be one of: " + cuda_syncStreamsOptions.mkString(","))
     Constraints.condError(cuda_enabled && cuda_useStreams && cuda_syncDeviceAfterKernelCalls, "Trying to sync cuda device with \"cuda_streams\" being enabled. Please refer to the flags: \"cuda_syncStreamsBeforeCommunicationKernelCalls\", \"cuda_syncStreamsAfterCommunicationKernelCalls\", \"cuda_syncStreamsAfterComputeKernelCalls\"")
 
     Constraints.condWarn(cuda_useSharedMemory && cuda_favorL1CacheOverSharedMemory, "If CUDA shared memory usage is enabled, it is not very useful to favor L1 cache over shared memory storage!")

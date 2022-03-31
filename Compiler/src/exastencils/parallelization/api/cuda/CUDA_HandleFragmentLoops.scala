@@ -112,20 +112,9 @@ case class CUDA_HandleFragmentLoops(
   def addHandling(kernelFragLoop : IR_ScopedStatement with IR_HasParallelizationInfo) : ListBuffer[IR_Statement] = {
     var stmts = ListBuffer[IR_Statement]()
 
-    // sync before kernel calls in separate frag loop
-    val syncBeforeStmt = stream match {
-      case comm : CUDA_CommunicateStream if Knowledge.cuda_syncCommunicationStreamsBeforeKernelCalls => CUDA_StreamSynchronize(comm)
-      case _                                                                                         => IR_NullStatement
-    }
-    val syncBeforeFragLoop = IR_LoopOverFragments(CUDA_StreamSynchronize(CUDA_ComputeStream()), syncBeforeStmt) // also sync compute streams before comm
-
-    // sync after kernel calls in separate frag loop
-    val syncAfterStmt = stream match {
-      case comp : CUDA_ComputeStream if Knowledge.cuda_syncComputeStreamsAfterKernelCalls           => CUDA_StreamSynchronize(comp)
-      case comm : CUDA_CommunicateStream if Knowledge.cuda_syncCommunicationStreamsAfterKernelCalls => CUDA_StreamSynchronize(comm)
-      case _                                                                                        => IR_NullStatement
-    }
-    val syncAfterFragLoop = IR_LoopOverFragments(syncAfterStmt)
+    // sync before/after kernel calls in separate frag loop
+    val syncBeforeFragLoop = IR_LoopOverFragments(CUDA_StreamSynchronize.genSynchronize(stream, before = true))
+    val syncAfterFragLoop = IR_LoopOverFragments(CUDA_StreamSynchronize.genSynchronize(stream, before = false))
 
     val loopTuple = kernelFragLoop match {
       case loop : IR_LoopOverFragments => Some((loop, loop.body))
