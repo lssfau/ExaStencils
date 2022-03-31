@@ -235,10 +235,10 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       CUDA_ReplaceNonReductionVarArrayAccesses.applyStandalone(IR_Scope(kernelBody))
 
       val enclosingFragLoop = stackCollector.stack.collectFirst { case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingFragmentLoops.contains(fragLoop) => fragLoop }
-      val neighCommKernel = if (enclosingFragLoop.isDefined)
-        commKernelCollector.getNeighbor(enclosingFragLoop.get)
-      else
-        None
+      if (enclosingFragLoop.isEmpty)
+        Logger.error("Extracted device code must be enclosed by a fragment loop")
+
+      val neighCommKernel = commKernelCollector.getNeighbor(enclosingFragLoop.get)
       val stream = if (neighCommKernel.isDefined) CUDA_CommunicateStream(Duplicate(neighCommKernel.get)) else CUDA_ComputeStream()
 
       val kernel = CUDA_Kernel(
@@ -271,25 +271,15 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       if (reduction.isDefined) {
         val red = Duplicate(reduction.get)
         val redTarget = Duplicate(red.target)
-        val reductionDt = CUDA_Util.getReductionDatatype(redTarget)
 
-        reductionDt match {
-          case mat : IR_MatrixDatatype =>
-            val baseDt = mat.resolveBaseDatatype
-            // declare and allocate tmp buffer for matrix reduction
-            val reductionTmp = CUDA_ReductionResultBuffer(s"${fctNameCollector.getCurrentName}_${kernelCount}_reductionTmpMatrix", baseDt, mat.sizeN * mat.sizeM)
+        // tmp buffer for reduction result (host). already set up in CUDA_HandleFragmentLoops
+        val reductionTmp = enclosingFragLoop.get.popAnnotationAs[Option[CUDA_ReductionResultBuffer]](CUDA_Util.CUDA_REDUCTION_RESULT_BUF)
+        if(reductionTmp.isEmpty)
+          Logger.error("Temporary reduction result buffer has not been set up.")
 
-            // call kernel and pass allocated tmp buffer by pointer
-            callKernel.arguments += reductionTmp
-            deviceStatements += callKernel
-
-            // update reduction target
-            deviceStatements += IR_GenerateBasicMatrixOperations.loopCompoundAssignSubmatrixPointer(
-              reductionTmp, mat.sizeN, red.target, 0, 0, mat.sizeM, mat.sizeN, red.op)
-
-          case _ : IR_ScalarDatatype   =>
-            deviceStatements += IR_Assignment(red.target, IR_BinaryOperators.createExpression(red.op, red.target, callKernel))
-        }
+        // call kernel and pass allocated tmp buffer by pointer
+        callKernel.arguments += reductionTmp.get
+        deviceStatements += callKernel
       } else {
         deviceStatements += callKernel
       }
