@@ -211,7 +211,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       // parameters of the kernel
       val params = ListBuffer[IR_FunctionArgument]()
       params ++= accesses.map { case (name, tup) => IR_FunctionArgument(name, tup._2) }
-      params ++= deviceArrayCopies.values.map(cpy => IR_FunctionArgument(cpy.resolveAccess()))
+      params ++= deviceArrayCopies.values.map(cpy => cpy.asFuncArg())
 
       // args passed to kernel
       val args = ListBuffer[IR_Expression]()

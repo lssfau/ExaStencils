@@ -156,26 +156,39 @@ case class CUDA_BufferDeviceData(override var field : IR_Field, override var dir
 
 /// CUDA_MatrixDeviceCopy
 
-case class CUDA_MatrixDeviceCopy(var name : String, var baseDt : IR_Datatype, var size : IR_Expression) extends IR_UnduplicatedVariable {
+case class CUDA_MatrixDeviceCopy(
+    var name : String,
+    var baseDt : IR_Datatype,
+    var size : IR_Expression,
+    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
+) extends IR_InternalVariable(true, false, false, false, false) {
+
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess()
-  def resolveAccess() : IR_VariableAccess = IR_VariableAccess(resolveName(), resolveDatatype())
+  def asFuncArg() = IR_FunctionArgument(resolveName(), resolveDatatype())
+  def resolveAccess() = super.resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
   override def resolveName() : String = name + resolvePostfix("", "", "", "", "")
   override def resolveDatatype() : IR_Datatype = IR_PointerDatatype(baseDt)
 
-  override def getCtor() : Option[IR_Statement] = Some(CUDA_Allocate(resolveName(), size, baseDt))
-  override def getDtor() : Option[IR_Statement] = Some(IR_IfCondition(resolveName(), CUDA_Free(resolveName())))
+  override def getCtor() : Option[IR_Statement] = Some(wrapInLoops(CUDA_Allocate(resolveAccess(), size, baseDt)))
+  override def getDtor() : Option[IR_Statement] = Some(wrapInLoops(IR_IfCondition(resolveAccess(), CUDA_Free(resolveAccess()))))
 }
 
 /// CUDA_BufferMatrixReductionResult
 
-case class CUDA_BufferMatrixReductionResult(var name : String, var baseDt : IR_Datatype, var size : IR_Expression) extends IR_UnduplicatedVariable {
+case class CUDA_BufferMatrixReductionResult(
+    var name : String,
+    var baseDt : IR_Datatype,
+    var size : IR_Expression,
+    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
+) extends IR_InternalVariable(true, false, false, false, false) {
+
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess()
-  def resolveAccess() : IR_VariableAccess = IR_VariableAccess(resolveName(), resolveDatatype())
+  def resolveAccess() = super.resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
   override def resolveName() : String = name + resolvePostfix("", "", "", "", "")
   override def resolveDatatype() : IR_Datatype = IR_PointerDatatype(baseDt)
 
-  override def getCtor() : Option[IR_Statement] = Some(IR_ArrayAllocation(resolveName(), baseDt, size))
-  override def getDtor() : Option[IR_Statement] = Some(IR_IfCondition(resolveName(), IR_ArrayFree(resolveName())))
+  override def getCtor() : Option[IR_Statement] = Some(wrapInLoops(IR_ArrayAllocation(resolveAccess(), baseDt, size)))
+  override def getDtor() : Option[IR_Statement] = Some(wrapInLoops(IR_IfCondition(resolveAccess(), IR_ArrayFree(resolveAccess()))))
 }
 
 /// CUDA_AdaptDeviceAccessesForMM
