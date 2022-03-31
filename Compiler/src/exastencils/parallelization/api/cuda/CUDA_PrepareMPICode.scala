@@ -283,7 +283,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
           commKernelCollector.getNeighbor(enclosingFragLoop.get)
         else
           None
-        val stream = if (neighCommKernel.isDefined) CUDA_CommStream(Duplicate(neighCommKernel.get)) else CUDA_ComputeStream()
+        val stream = if (neighCommKernel.isDefined) CUDA_CommunicateStream(Duplicate(neighCommKernel.get)) else CUDA_ComputeStream()
 
         val hostStmts = ListBuffer[IR_Statement]()
         val deviceStmts = ListBuffer[IR_Statement]()
