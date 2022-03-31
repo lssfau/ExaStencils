@@ -66,7 +66,7 @@ abstract class IR_PrintVtkQuads extends IR_PrintVtk {
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DRE", dim) + 1 - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
             pointPrint)),
-        IR_Print.flush),
+        IR_Print(stream, IR_Print.flush)),
       IR_MemberFunctionCall(stream, "close"))
 
     genStmtBlock(initPoints)
@@ -128,7 +128,7 @@ abstract class IR_PrintVtkQuads extends IR_PrintVtk {
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
             cellPrint)),
-        IR_Print.flush),
+        IR_Print(stream, IR_Print.flush)),
       IR_MemberFunctionCall(stream, "close"))
 
     genStmtBlock(initCells)

@@ -83,7 +83,7 @@ case class IR_PrintVtkNNF(var filename : IR_Expression, level : Int) extends IR_
               IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DLB", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression)),
               IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => p.layout.idxById("DRE", dim) - Duplicate(p.referenceOffset(dim)) : IR_Expression))),
               print)),
-          IR_Print.flush),
+          IR_Print(stream, IR_Print.flush)),
         IR_MemberFunctionCall(stream, "close"))
 
       stmts ++= genStmtBlock(initCells)
