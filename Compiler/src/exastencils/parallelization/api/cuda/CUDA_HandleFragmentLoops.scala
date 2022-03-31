@@ -117,7 +117,7 @@ case class CUDA_HandleFragmentLoops(
       case comm : CUDA_CommunicateStream if Knowledge.cuda_syncCommunicationStreamsBeforeKernelCalls => CUDA_StreamSynchronize(comm)
       case _                                                                                         => IR_NullStatement
     }
-    val syncBeforeFragLoop = IR_LoopOverFragments(syncBeforeStmt)
+    val syncBeforeFragLoop = IR_LoopOverFragments(CUDA_StreamSynchronize(CUDA_ComputeStream()), syncBeforeStmt) // also sync compute streams before comm
 
     // sync after kernel calls in separate frag loop
     val syncAfterStmt = stream match {
