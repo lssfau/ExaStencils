@@ -214,12 +214,12 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
         case IR_UnitDatatype =>
           val matrixReductionTmp = IR_FunctionArgument("matrixReductionTmp", data.datatype)
           functionArgs += matrixReductionTmp
-          fctBody += CUDA_TransferUtil.genTransfer(matrixReductionTmp.access, data.access, IR_SizeOf(reductionDt), "D2H", stream, asyncPossible = false)
+          fctBody += CUDA_TransferUtil.genTransfer(matrixReductionTmp.access, data.access, IR_SizeOf(reductionDt), "D2H", stream)
 
         case _ =>
           def ret = IR_VariableAccess("ret", reductionDt)
           fctBody += IR_VariableDeclaration(ret)
-          fctBody += CUDA_TransferUtil.genTransfer(IR_AddressOf(ret), data.access, IR_SizeOf(reductionDt), "D2H", stream, asyncPossible = false)
+          fctBody += CUDA_TransferUtil.genTransfer(IR_AddressOf(ret), data.access, IR_SizeOf(reductionDt), "D2H", stream)
 
           fctBody += IR_Return(Some(ret))
       }

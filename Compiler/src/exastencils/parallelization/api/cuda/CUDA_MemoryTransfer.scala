@@ -30,7 +30,7 @@ import exastencils.field.ir._
 /// CUDA_TransferUtil
 
 object CUDA_TransferUtil {
-  def genTransfer(hostData : IR_Expression, deviceData : IR_Expression, sizeInBytes : IR_Expression, direction : String, stream : CUDA_Stream, asyncPossible : Boolean = true) : IR_Statement = {
+  def genTransfer(hostData : IR_Expression, deviceData : IR_Expression, sizeInBytes : IR_Expression, direction : String, stream : CUDA_Stream) : IR_Statement = {
     if (Knowledge.cuda_useManagedMemory) {
       if (Knowledge.cuda_genAsyncPrefetch)
         CUDA_MemPrefetch(hostData, sizeInBytes, direction match {
@@ -43,12 +43,12 @@ object CUDA_TransferUtil {
     } else {
       direction match {
         case "H2D" =>
-          if (Knowledge.cuda_useStreams && asyncPossible)
+          if (Knowledge.cuda_useStreams)
             CUDA_MemcpyAsync(deviceData, hostData, sizeInBytes, "cudaMemcpyHostToDevice", Some(stream))
           else
             CUDA_Memcpy(deviceData, hostData, sizeInBytes, "cudaMemcpyHostToDevice")
         case "D2H" =>
-          if (Knowledge.cuda_useStreams && asyncPossible)
+          if (Knowledge.cuda_useStreams)
             CUDA_MemcpyAsync(hostData, deviceData, sizeInBytes, "cudaMemcpyDeviceToHost", Some(stream))
           else
             CUDA_Memcpy(hostData, deviceData, sizeInBytes, "cudaMemcpyDeviceToHost")
