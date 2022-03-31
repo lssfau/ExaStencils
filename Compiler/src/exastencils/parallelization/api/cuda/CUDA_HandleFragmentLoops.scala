@@ -56,7 +56,6 @@ case class CUDA_HandleFragmentLoops(
   } else {
     None
   }
-
   fragLoop.annotate(CUDA_Util.CUDA_REDUCTION_RESULT_BUF, reductionTmp)
 
   // replace occurrences with copy

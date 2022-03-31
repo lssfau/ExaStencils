@@ -236,8 +236,6 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
 
       // get enclosing frag loop
       val enclosingFragLoop = stackCollector.stack.collectFirst { case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingFragmentLoops.contains(fragLoop) => fragLoop }
-      if (enclosingFragLoop.isEmpty)
-        Logger.error("Extracted device code must be enclosed by a fragment loop")
 
       // determine stream
       val stream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
@@ -270,20 +268,23 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       // process return value of kernel wrapper call if reduction is required
       val callKernel = IR_FunctionCall(kernel.getWrapperFctName, args)
       if (reduction.isDefined) {
-        val red = Duplicate(reduction.get)
-        val redTarget = Duplicate(red.target)
-
         // tmp buffer for reduction result (host). already set up in CUDA_HandleFragmentLoops
-        val reductionTmp = enclosingFragLoop.get.popAnnotationAs[Option[CUDA_ReductionResultBuffer]](CUDA_Util.CUDA_REDUCTION_RESULT_BUF)
-        if(reductionTmp.isEmpty)
-          Logger.error("Temporary reduction result buffer has not been set up.")
+        val reductionTmp = if (enclosingFragLoop.isDefined) {
+          val tmpBuf = enclosingFragLoop.get.popAnnotationAs[Option[CUDA_ReductionResultBuffer]](CUDA_Util.CUDA_REDUCTION_RESULT_BUF)
+          if(tmpBuf.isEmpty)
+            Logger.error("Temporary reduction result buffer has not been set up.")
+
+          tmpBuf
+        } else {
+          None
+        }
 
         // call kernel and pass allocated tmp buffer by pointer
-        callKernel.arguments += reductionTmp.get
-        deviceStatements += callKernel
-      } else {
-        deviceStatements += callKernel
+        callKernel.arguments ++= reductionTmp
       }
+
+      // kernel call
+      deviceStatements += callKernel
 
       deviceStatements
   }, false)

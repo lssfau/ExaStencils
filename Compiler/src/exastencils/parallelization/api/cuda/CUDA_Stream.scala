@@ -27,10 +27,11 @@ object CUDA_Stream {
       case fragLoop : IR_LoopOverFragments                                                                                     => fragLoop
       case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name => fragLoop
     }
-    if (enclosingFragLoop.isEmpty)
-      Logger.error("Extracted device code must be enclosed by a fragment loop")
 
-    val neighCommKernel = communicateKernelCollector.getNeighbor(enclosingFragLoop.get)
+    val neighCommKernel = if (enclosingFragLoop.isDefined)
+      communicateKernelCollector.getNeighbor(enclosingFragLoop.get)
+    else
+      None
 
     if (neighCommKernel.isDefined)
       CUDA_CommunicateStream(Duplicate(neighCommKernel.get))
