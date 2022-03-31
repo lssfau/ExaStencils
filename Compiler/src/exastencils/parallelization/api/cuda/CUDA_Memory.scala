@@ -175,7 +175,7 @@ case class CUDA_MatrixDeviceCopy(
 
 /// CUDA_BufferMatrixReductionResult
 
-case class CUDA_BufferMatrixReductionResult(
+case class CUDA_ReductionResultBuffer(
     var name : String,
     var baseDt : IR_Datatype,
     var size : IR_Expression,

@@ -277,7 +277,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
           case mat : IR_MatrixDatatype =>
             val baseDt = mat.resolveBaseDatatype
             // declare and allocate tmp buffer for matrix reduction
-            val reductionTmp = CUDA_BufferMatrixReductionResult(s"${fctNameCollector.getCurrentName}_${kernelCount}_reductionTmpMatrix", baseDt, mat.sizeN * mat.sizeM)
+            val reductionTmp = CUDA_ReductionResultBuffer(s"${fctNameCollector.getCurrentName}_${kernelCount}_reductionTmpMatrix", baseDt, mat.sizeN * mat.sizeM)
 
             // call kernel and pass allocated tmp buffer by pointer
             callKernel.arguments += reductionTmp
