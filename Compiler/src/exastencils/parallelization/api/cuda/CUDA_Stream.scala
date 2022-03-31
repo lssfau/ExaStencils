@@ -97,7 +97,7 @@ object CUDA_StreamSynchronize {
       case "comp" | "all" => // computation
         stmts += syncComputation
       case "comm" | "all" => // communication
-        stmts += syncCommunication
+        stmts ++= syncCommunication
       case _              =>
     }
 
