@@ -447,7 +447,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       }
 
       // tangent
-      def tx = 0.5 * (nodePosition(next(boundaryIdx), 0) - nodePosition(prev(boundaryIdx), 0))
+      def tx = IR_FloatConstant(0.5) * (nodePosition(next(boundaryIdx), 0) - nodePosition(prev(boundaryIdx), 0))
       def ty = IR_FloatConstant(0.5) * (nodePosition(next(boundaryIdx), 1) - nodePosition(prev(boundaryIdx), 1))
       // normal
       def nx = ty
@@ -492,13 +492,13 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
           //IR_VariableDeclaration(nx, ty),
           //IR_VariableDeclaration(ny, IR_Negative(tx)),
           if (neigh.index == 0  || neigh.index == 3)
-            IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 0), nodePosition(beginIdx, 0) + nxCornerBeg * neigh.dir.sum)
+            IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 0), nodePosition(beginIdx, 0) - nxCornerBeg )
           else
-            IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 0), nodePosition(beginIdx, 0) - nxCornerBeg * neigh.dir.sum),
+            IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 0), nodePosition(beginIdx, 0) + nxCornerBeg ),
           if (neigh.index == 0  || neigh.index == 3)
-            IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 1), nodePosition(beginIdx, 1) + nyCornerBeg * neigh.dir.sum)
+            IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 1), nodePosition(beginIdx, 1) - nyCornerBeg )
           else
-            IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 1), nodePosition(beginIdx, 1) - nyCornerBeg * neigh.dir.sum),
+            IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 1), nodePosition(beginIdx, 1) + nyCornerBeg ),
           // end
           //IR_Assignment(tx, IR_FloatConstant(0.5) * (nodePosition(endIdx, 0) - nodePosition(prev(prev(endIdx)), 0))),
           //IR_Assignment(ty, IR_FloatConstant(0.5) * (nodePosition(endIdx, 1) - nodePosition(prev(prev(endIdx)), 1))),
@@ -506,13 +506,13 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
           //IR_Assignment(nx, ty),
           //IR_Assignment(ny, IR_Negative(tx)),
           if (neigh.index == 0  || neigh.index == 3)
-            IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 0), nodePosition(endIdx, 0) + nxCornerEnd * neigh.dir.sum)
+            IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 0), nodePosition(endIdx, 0) - nxCornerEnd )
           else
-            IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 0), nodePosition(endIdx, 0) - nxCornerEnd * neigh.dir.sum),
+            IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 0), nodePosition(endIdx, 0) + nxCornerEnd ),
           if (neigh.index == 0  || neigh.index == 3)
-            IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 1), nodePosition(endIdx, 1) + nyCornerEnd * neigh.dir.sum)
+            IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 1), nodePosition(endIdx, 1) - nyCornerEnd )
           else
-            IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 1), nodePosition(endIdx, 1) - nyCornerEnd * neigh.dir.sum)
+            IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 1), nodePosition(endIdx, 1) + nyCornerEnd )
         ))
       )
 
