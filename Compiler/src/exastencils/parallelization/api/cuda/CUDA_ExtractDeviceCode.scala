@@ -235,10 +235,11 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       CUDA_ReplaceNonReductionVarArrayAccesses.applyStandalone(IR_Scope(kernelBody))
 
       // get enclosing frag loop
-      val enclosingFragLoop = stackCollector.stack.collectFirst { case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingFragmentLoops.contains(fragLoop) => fragLoop }
+      val enclosingFragLoop = stackCollector.stack.collectFirst {
+        case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingFragmentLoops.contains(fragLoop) => fragLoop }
 
       // determine stream
-      val stream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
+      val stream = loop.popAnnotationAs[CUDA_Stream](CUDA_Util.CUDA_STREAM)
 
       val kernel = CUDA_Kernel(
         kernelCount,
