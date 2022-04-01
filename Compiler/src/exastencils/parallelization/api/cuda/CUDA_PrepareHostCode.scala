@@ -116,7 +116,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     // device sync stmts
 
     if (isParallel) {
-        afterDevice += CUDA_Synchronize.genSynchronize(stream, before = false)
+        afterDevice ++= CUDA_Synchronize.genSynchronize(stream, before = false)
 
       for (access <- gatherFields.fieldAccesses.toSeq.sortBy(_._1)) {
         // add data sync statements

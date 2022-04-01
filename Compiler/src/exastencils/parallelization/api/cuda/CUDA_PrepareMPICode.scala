@@ -211,7 +211,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
     // device sync stmts
 
-    afterDevice += CUDA_Synchronize.genSynchronize(stream, before = false)
+    afterDevice ++= CUDA_Synchronize.genSynchronize(stream, before = false)
 
     for (access <- fieldAccesses.toSeq.sortBy(_._1)
          ) {
