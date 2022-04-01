@@ -213,8 +213,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
     afterDevice ++= CUDA_Synchronize.genSynchronize(stream, before = false)
 
-    for (access <- fieldAccesses.toSeq.sortBy(_._1)
-         ) {
+    for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val field = access._2
 
       // add data sync statements
