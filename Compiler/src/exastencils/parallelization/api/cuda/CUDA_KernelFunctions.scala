@@ -49,7 +49,7 @@ object CUDA_KernelFunctions extends ObjectWithState {
 }
 
 case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunctions.defBaseName,
-  ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
+  ListBuffer("cmath", "algorithm", "limits"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
   ListBuffer(IR_GlobalCollection.defHeader)) {
 
   externalDependencies += "iostream" // required for error messages

@@ -79,26 +79,31 @@ case class CUDA_HandleFragmentLoops(
       matrixAssignment("std::fill", redTarget, 0.0, hodt.getSizeArray.product)
   }
 
-  def copyReductionTarget(redTarget : IR_Expression, copies : IR_VariableAccess) = reductionDt(redTarget) match {
-    case _ : IR_ScalarDatatype               =>
-      IR_Assignment(currCopy(copies), redTarget)
-    case hodt : IR_HigherDimensionalDatatype =>
-      matrixAssignment("std::copy", redTarget, currCopy(copies), hodt.getSizeArray.product)
+  def copyReductionTarget(redTarget : IR_Expression, op : String, copies : IR_VariableAccess) = {
+    val tpe = redTarget.datatype.resolveBaseDatatype.prettyprint()
+    val initVal : IR_Expression = op match {
+      case "+" | "-" => 0
+      case "*" => 1
+      case "max" => IR_FunctionCall(s"std::numeric_limits<$tpe>::min")
+      case "min" => IR_FunctionCall(s"std::numeric_limits<$tpe>::max")
+    }
+
+    reductionDt(redTarget) match {
+      case _ : IR_ScalarDatatype               =>
+        IR_Assignment(currCopy(copies), initVal)
+      case hodt : IR_HigherDimensionalDatatype =>
+        matrixAssignment("std::fill", currCopy(copies), initVal, hodt.getSizeArray.product)
+    }
   }
 
-  def initCopies(copies : IR_VariableAccess, redTarget : IR_Expression) = {
+  def initCopies(redTarget : IR_Expression, op : String, copies : IR_VariableAccess) = {
     val declCopies = IR_VariableDeclaration(copies)
-    val initCopies = IR_LoopOverFragments(
-      copyReductionTarget(redTarget, copies)).expandSpecial().inner
-    val resetRedTarget = resetReductionTarget(redTarget) // reset initial value as it is already in the copies
+    val initCopies = IR_LoopOverFragments(copyReductionTarget(redTarget, op, copies)).expandSpecial().inner
 
-    ListBuffer(
-      declCopies,
-      initCopies,
-      resetRedTarget)
+    ListBuffer(declCopies, initCopies)
   }
 
-  def finalizeReduction(op : String, redTarget : IR_Expression, copies : IR_VariableAccess, reductionTmp : CUDA_ReductionResultBuffer) : IR_Statement = {
+  def finalizeReduction(op : String, redTarget : IR_Expression, reductionTmp : CUDA_ReductionResultBuffer) : IR_Statement = {
     // finalize reduction
     val assign = reductionDt(redTarget) match {
       case mat : IR_MatrixDatatype =>
@@ -108,14 +113,14 @@ case class CUDA_HandleFragmentLoops(
         val j = IR_VariableAccess("_j", IR_IntegerDatatype)
         val idx = i * mat.sizeN + j
         val dst = IR_ArrayAccess(redTarget, idx)
-        val src = IR_BinaryOperators.createExpression(op, IR_ArrayAccess(currCopy(copies), idx), IR_ArrayAccess(reductionTmp, idx))
+        val src = IR_ArrayAccess(reductionTmp, idx) // array returned
         IR_ForLoop(IR_VariableDeclaration(i, IR_IntegerConstant(0)), IR_Lower(i, mat.sizeM), IR_PreIncrement(i), ListBuffer[IR_Statement](
           IR_ForLoop(IR_VariableDeclaration(j, 0), IR_Lower(j, mat.sizeN), IR_PreIncrement(j), ListBuffer[IR_Statement](
             IR_Assignment(dst, IR_BinaryOperators.createExpression(op, dst, src))))))
 
       case _ : IR_ScalarDatatype =>
         val dst = redTarget
-        val src = IR_BinaryOperators.createExpression(op, currCopy(copies), IR_ArrayAccess(reductionTmp, 0)) // single value returned
+        val src = IR_ArrayAccess(reductionTmp, 0) // single value returned
         IR_Assignment(redTarget, IR_BinaryOperators.createExpression(op, dst, src))
     }
 
@@ -168,9 +173,9 @@ case class CUDA_HandleFragmentLoops(
         IR_VariableAccess(red.targetName + "_fragCpy" + counter, IR_ArrayDatatype(innerDt, Knowledge.domain_numFragmentsPerBlock))
       }
 
-      stmts ++= initCopies(copies, redTarget) // init frag copies
+      stmts ++= initCopies(redTarget, red.op, copies) // init frag copies
       replaceAccesses(redTarget, copies, body) // replace accesses to frag copies
-      syncAfterFragLoop.body += finalizeReduction(red.op, redTarget, copies, reductionTmp.get) // accumulate frag copies at end
+      syncAfterFragLoop.body += finalizeReduction(red.op, redTarget, reductionTmp.get) // accumulate frag copies at end
     }
 
     stmts += syncBeforeFragLoop // add stream synchro loop before kernel calls
