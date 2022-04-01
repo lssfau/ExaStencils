@@ -37,18 +37,18 @@ object CUDA_TransferUtil {
           case "H2D" => Knowledge.cuda_deviceId
           case "D2H" => "cudaCpuDeviceId"
         },
-        if (Knowledge.cuda_useStreams) Some(stream) else None)
+        if (stream.useNonDefaultStreams) Some(stream) else None)
       else
         IR_NullStatement
     } else {
       direction match {
         case "H2D" =>
-          if (Knowledge.cuda_useStreams)
+          if (stream.useNonDefaultStreams)
             CUDA_MemcpyAsync(deviceData, hostData, sizeInBytes, "cudaMemcpyHostToDevice", Some(stream))
           else
             CUDA_Memcpy(deviceData, hostData, sizeInBytes, "cudaMemcpyHostToDevice")
         case "D2H" =>
-          if (Knowledge.cuda_useStreams)
+          if (stream.useNonDefaultStreams)
             CUDA_MemcpyAsync(hostData, deviceData, sizeInBytes, "cudaMemcpyDeviceToHost", Some(stream))
           else
             CUDA_Memcpy(hostData, deviceData, sizeInBytes, "cudaMemcpyDeviceToHost")
