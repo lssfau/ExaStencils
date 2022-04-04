@@ -27,11 +27,8 @@ import exastencils.base.ir.IR_ScopedStatement
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
 import exastencils.baseExt.ir._
-import exastencils.communication.DefaultNeighbors
-import exastencils.communication.ir.IR_CommunicationFunctions
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.domain.ir.IR_IV_NeighborIsValid
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
@@ -54,7 +51,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
   this.register(commKernelCollector)
   this.onBefore = () => this.resetCollectors()
 
-  var enclosingFragmentLoops : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, CUDA_Stream] = mutable.HashMap()
+  var enclosingFragmentLoops : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, List[CUDA_Stream]] = mutable.HashMap()
 
   /**
     * Collect all loops in the band.
@@ -101,59 +98,38 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
 
       if (enclosing.isDefined) {
         val stream = loop.getAnnotation(CUDA_Util.CUDA_STREAM).get.asInstanceOf[CUDA_Stream]
-        enclosingFragmentLoops += (enclosing.get -> stream)
+
+        val list = enclosingFragmentLoops.getOrElse(enclosing.get, Nil) :+ stream
+        enclosingFragmentLoops.update(enclosing.get, list.distinct)
       }
 
       loop
   }, false)
 
-  // enclosed by applyBC function -> synchro
-  this += Transformation("Modify enclosing apply bc funcs", {
-    case applyBC: IR_LeveledFunction if applyBC.name.startsWith("applyBCs") &&
-      IR_CommunicationFunctions.get.functions.contains(applyBC) && applyBC.body.nonEmpty =>
-
-      // add synchro
-      var beforeStmts = ListBuffer[IR_Statement]()
-      var afterStmts = ListBuffer[IR_Statement]()
-      DefaultNeighbors.neighbors.map(_.index).foreach(neigh => {
-        val stream = CUDA_CommunicateStream(neigh)
-        val syncBeforeFragLoop = CUDA_Synchronize.genStreamSynchronize(stream, before = true)
-        val syncAfterFragLoop = CUDA_Synchronize.genStreamSynchronize(stream, before = false)
-
-        beforeStmts += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh)), syncBeforeFragLoop)
-        afterStmts += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh)), syncAfterFragLoop)
-      })
-      applyBC.body.prepend(IR_LoopOverFragments(beforeStmts))
-      applyBC.body.append(IR_LoopOverFragments(afterStmts))
-
-      // already considered as handled -> remove from "enclosingFragmentLoops" to prevent duplicate handling
-      object RemoveFromEnclosingFragLoopHandling extends QuietDefaultStrategy("Remove from enclosing frag loop handling") {
-        this += Transformation("Remove", {
-          case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo =>
-            if (enclosingFragmentLoops.contains(fragLoop))
-              enclosingFragmentLoops -= fragLoop
-
-            fragLoop.parallelization.canRunInCommunicateStreams = true
-
-            fragLoop
-        })
+  // enclosed by apply bc or comm function -> synchro
+  this += Transformation("Modify enclosing comm funcs", {
+    case expr : IR_Expression if commKernelCollector.isNeighborIdx(expr) =>
+      val commFragLoop = stackCollector.stack.collectFirst {
+        case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo => fragLoop }
+      if (commFragLoop.isDefined) {
+        val list = enclosingFragmentLoops.getOrElse(commFragLoop.get, Nil) :+ CUDA_CommunicateStream(expr)
+        enclosingFragmentLoops.update(commFragLoop.get, list.distinct)
       }
-      RemoveFromEnclosingFragLoopHandling.applyStandalone(applyBC.body)
 
-      applyBC
+      expr
   }, false)
 
   // enclosed by a fragment loop -> create fragment-local copies of the initial value
   // and perform reduction after frag loop
   this += Transformation("Modify enclosing fragment loops", {
     case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingFragmentLoops.contains(fragLoop) =>
-      val stream = enclosingFragmentLoops(fragLoop)
-      stream match {
+      val streams = enclosingFragmentLoops(fragLoop)
+      streams foreach {
         case _ : CUDA_ComputeStream => fragLoop.parallelization.canRunInComputeStreams = true
         case _ : CUDA_CommunicateStream => fragLoop.parallelization.canRunInCommunicateStreams = true
       }
 
-      CUDA_HandleFragmentLoops(fragLoop, Duplicate(stream))
+      CUDA_HandleFragmentLoops(fragLoop, Duplicate(streams).to[ListBuffer])
   }, false)
 
   this += new Transformation("Processing ForLoopStatement nodes", {

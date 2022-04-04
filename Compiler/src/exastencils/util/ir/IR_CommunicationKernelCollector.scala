@@ -23,6 +23,7 @@ class IR_CommunicationKernelCollector extends Collector {
       None
   }
 
+  def isNeighborIdx(expr : IR_Expression) = communicationInFragmentLoop.values.toSeq.contains(expr)
   def isEmpty : Boolean = { communicationInFragmentLoop.isEmpty }
   private def head : IR_ScopedStatement with IR_HasParallelizationInfo = { fragmentLoopStack.head }
 

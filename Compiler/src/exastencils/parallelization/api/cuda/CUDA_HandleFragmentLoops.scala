@@ -33,7 +33,7 @@ object CUDA_HandleFragmentLoops {
 
 case class CUDA_HandleFragmentLoops(
     var fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo,
-    var stream : CUDA_Stream
+    var streams : ListBuffer[CUDA_Stream]
 ) extends IR_Statement with IR_Expandable {
 
   val iter = IR_LoopOverFragments.defIt
@@ -139,8 +139,8 @@ case class CUDA_HandleFragmentLoops(
     var stmts = ListBuffer[IR_Statement]()
 
     // sync before/after kernel calls in separate frag loop
-    val syncBeforeFragLoop = IR_LoopOverFragments(CUDA_Synchronize.genStreamSynchronize(stream, before = true))
-    val syncAfterFragLoop = IR_LoopOverFragments(CUDA_Synchronize.genStreamSynchronize(stream, before = false))
+    val syncBeforeFragLoop = IR_LoopOverFragments(streams.flatMap(stream => CUDA_Synchronize.genStreamSynchronize(stream, before = true)))
+    val syncAfterFragLoop = IR_LoopOverFragments(streams.flatMap(stream => CUDA_Synchronize.genStreamSynchronize(stream, before = false)))
 
     val loopTuple = fragLoop match {
       case loop : IR_LoopOverFragments                                                               => Some((loop, loop.body))
