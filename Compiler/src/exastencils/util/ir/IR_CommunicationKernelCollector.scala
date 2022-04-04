@@ -37,11 +37,11 @@ class IR_CommunicationKernelCollector extends Collector {
       // TODO: extend this list in case that other conditions are used in communication/boundary handling
 
       // communication
-      case _ @ IR_IfCondition(neigh : IR_IV_NeighborIsValid, _, _) =>
+      case _ @ IR_IfCondition(neigh : IR_IV_NeighborIsValid, _, _) if fragmentLoopStack != Nil =>
         communicationInFragmentLoop += (head -> neigh.neighIdx)
 
       // boundary handling
-      case _ @ IR_IfCondition(IR_Negation(neigh : IR_IV_NeighborIsValid), _, _) =>
+      case _ @ IR_IfCondition(IR_Negation(neigh : IR_IV_NeighborIsValid), _, _) if fragmentLoopStack != Nil =>
         communicationInFragmentLoop += (head -> neigh.neighIdx)
 
       case _ =>
