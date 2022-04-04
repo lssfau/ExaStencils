@@ -19,7 +19,9 @@ object CUDA_Synchronize {
     // generate synchronization
     if (stream.useNonDefaultStreams) {
       // synchronize non-default streams
-      val syncCommunication = DefaultNeighbors.neighbors.map(_.index).map(neigh =>
+      val syncStream = CUDA_StreamSynchronize(stream)
+
+      val syncAllCommunication = DefaultNeighbors.neighbors.map(_.index).map(neigh =>
         IR_IfCondition(IR_IV_NeighborIsValid(0, neigh), CUDA_StreamSynchronize(CUDA_CommunicateStream(neigh))))
 
       val syncComputation = CUDA_StreamSynchronize(CUDA_ComputeStream())
@@ -42,9 +44,19 @@ object CUDA_Synchronize {
 
       flag match {
         case "comp" | "all" => // computation
-          stmts += syncComputation
+          stream match {
+            case _ : CUDA_ComputeStream     =>
+              stmts += syncStream
+            case comm : CUDA_CommunicateStream if comm.neighborIdx == IR_IntegerConstant(DefaultNeighbors.neighbors.last.index) =>
+              stmts += syncComputation
+          }
         case "comm" | "all" => // communication
-          stmts ++= syncCommunication
+          stream match {
+            case _ : CUDA_ComputeStream     =>
+              stmts ++= syncAllCommunication
+            case _ : CUDA_CommunicateStream =>
+              stmts += syncStream
+          }
         case _              =>
       }
     } else if (Knowledge.cuda_syncDeviceAfterKernelCalls) {
