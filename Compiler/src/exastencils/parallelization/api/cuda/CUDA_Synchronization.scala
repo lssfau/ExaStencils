@@ -13,7 +13,7 @@ import exastencils.prettyprinting.PpStream
 /// CUDA_Synchronize
 
 object CUDA_Synchronize {
-  def genSynchronize(stream : CUDA_Stream, before : Boolean) : ListBuffer[IR_Statement] = {
+  def genStreamSynchronize(stream : CUDA_Stream, before : Boolean) : ListBuffer[IR_Statement] = {
     var stmts = ListBuffer[IR_Statement]()
 
     // generate synchronization
@@ -59,9 +59,6 @@ object CUDA_Synchronize {
           }
         case _              =>
       }
-    } else if (Knowledge.cuda_syncDeviceAfterKernelCalls) {
-      // no streams employed -> sync device
-      stmts += CUDA_DeviceSynchronize()
     }
 
     stmts
