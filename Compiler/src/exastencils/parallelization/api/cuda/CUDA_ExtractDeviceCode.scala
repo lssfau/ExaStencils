@@ -51,7 +51,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
   this.register(commKernelCollector)
   this.onBefore = () => this.resetCollectors()
 
-  var enclosingFragmentLoops : mutable.HashSet[IR_ScopedStatement with IR_HasParallelizationInfo] = mutable.HashSet()
+  var enclosingFragmentLoops : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, CUDA_Stream] = mutable.HashMap()
 
   /**
     * Collect all loops in the band.
@@ -96,8 +96,10 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name => fragLoop
       }
 
-      if (enclosing.isDefined)
-        enclosingFragmentLoops += enclosing.get
+      if (enclosing.isDefined) {
+        val stream = loop.getAnnotation(CUDA_Util.CUDA_STREAM).get.asInstanceOf[CUDA_Stream]
+        enclosingFragmentLoops += (enclosing.get -> stream)
+      }
 
       loop
   }, false)
@@ -106,10 +108,11 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
   // and perform reduction after frag loop
   this += Transformation("Modify enclosing fragment loops", {
     case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingFragmentLoops.contains(fragLoop) =>
-      val stream = if (commKernelCollector.getNeighbor(fragLoop).isDefined)
-        CUDA_CommunicateStream(commKernelCollector.getNeighbor(fragLoop).get)
-      else
-        CUDA_ComputeStream()
+      val stream = enclosingFragmentLoops(fragLoop)
+      stream match {
+        case _ : CUDA_ComputeStream => fragLoop.parallelization.canRunInComputeStreams = true
+        case _ : CUDA_CommunicateStream => fragLoop.parallelization.canRunInCommunicateStreams = true
+      }
 
       CUDA_HandleFragmentLoops(fragLoop, Duplicate(stream))
   }, false)
@@ -236,7 +239,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
 
       // get enclosing frag loop
       val enclosingFragLoop = stackCollector.stack.collectFirst {
-        case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingFragmentLoops.contains(fragLoop) => fragLoop }
+        case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo => fragLoop }
 
       // determine stream
       val stream = loop.popAnnotationAs[CUDA_Stream](CUDA_Util.CUDA_STREAM)
