@@ -27,8 +27,11 @@ import exastencils.base.ir.IR_ScopedStatement
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
 import exastencils.baseExt.ir._
+import exastencils.communication.DefaultNeighbors
+import exastencils.communication.ir.IR_CommunicationFunctions
 import exastencils.core._
 import exastencils.datastructures._
+import exastencils.domain.ir.IR_IV_NeighborIsValid
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
@@ -115,6 +118,24 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       }
 
       CUDA_HandleFragmentLoops(fragLoop, Duplicate(stream))
+  }, false)
+
+  // enclosed by applyBC function -> synchro#
+  this += Transformation("Modify enclosing apply bc funcs", {
+    case applyBC: IR_LeveledFunction if applyBC.name.startsWith("applyBCs") && IR_CommunicationFunctions.get.functions.contains(applyBC) =>
+      DefaultNeighbors.neighbors.map(_.index).foreach(neigh => {
+        val stream = CUDA_CommunicateStream(neigh)
+        val syncBeforeFragLoop = IR_LoopOverFragments(CUDA_Synchronize.genSynchronize(stream, before = true))
+        val syncAfterFragLoop = IR_LoopOverFragments(CUDA_Synchronize.genSynchronize(stream, before = false))
+
+        syncBeforeFragLoop.parallelization.canRunInCommunicateStreams = true
+        syncAfterFragLoop.parallelization.canRunInCommunicateStreams = true
+
+        applyBC.body.prepend(IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh)), syncBeforeFragLoop))
+        applyBC.body.append(IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh)), syncAfterFragLoop))
+      })
+
+      applyBC
   }, false)
 
   this += new Transformation("Processing ForLoopStatement nodes", {
