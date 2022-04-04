@@ -107,6 +107,42 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       loop
   }, false)
 
+  // enclosed by applyBC function -> synchro
+  this += Transformation("Modify enclosing apply bc funcs", {
+    case applyBC: IR_LeveledFunction if applyBC.name.startsWith("applyBCs") &&
+      IR_CommunicationFunctions.get.functions.contains(applyBC) && applyBC.body.nonEmpty =>
+
+      // add synchro
+      var beforeStmts = ListBuffer[IR_Statement]()
+      var afterStmts = ListBuffer[IR_Statement]()
+      DefaultNeighbors.neighbors.map(_.index).foreach(neigh => {
+        val stream = CUDA_CommunicateStream(neigh)
+        val syncBeforeFragLoop = CUDA_Synchronize.genStreamSynchronize(stream, before = true)
+        val syncAfterFragLoop = CUDA_Synchronize.genStreamSynchronize(stream, before = false)
+
+        beforeStmts += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh)), syncBeforeFragLoop)
+        afterStmts += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh)), syncAfterFragLoop)
+      })
+      applyBC.body.prepend(IR_LoopOverFragments(beforeStmts))
+      applyBC.body.append(IR_LoopOverFragments(afterStmts))
+
+      // already considered as handled -> remove from "enclosingFragmentLoops" to prevent duplicate handling
+      object RemoveFromEnclosingFragLoopHandling extends QuietDefaultStrategy("Remove from enclosing frag loop handling") {
+        this += Transformation("Remove", {
+          case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo =>
+            if (enclosingFragmentLoops.contains(fragLoop))
+              enclosingFragmentLoops -= fragLoop
+
+            fragLoop.parallelization.canRunInCommunicateStreams = true
+
+            fragLoop
+        })
+      }
+      RemoveFromEnclosingFragLoopHandling.applyStandalone(applyBC.body)
+
+      applyBC
+  }, false)
+
   // enclosed by a fragment loop -> create fragment-local copies of the initial value
   // and perform reduction after frag loop
   this += Transformation("Modify enclosing fragment loops", {
@@ -118,24 +154,6 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       }
 
       CUDA_HandleFragmentLoops(fragLoop, Duplicate(stream))
-  }, false)
-
-  // enclosed by applyBC function -> synchro#
-  this += Transformation("Modify enclosing apply bc funcs", {
-    case applyBC: IR_LeveledFunction if applyBC.name.startsWith("applyBCs") && IR_CommunicationFunctions.get.functions.contains(applyBC) =>
-      DefaultNeighbors.neighbors.map(_.index).foreach(neigh => {
-        val stream = CUDA_CommunicateStream(neigh)
-        val syncBeforeFragLoop = IR_LoopOverFragments(CUDA_Synchronize.genSynchronize(stream, before = true))
-        val syncAfterFragLoop = IR_LoopOverFragments(CUDA_Synchronize.genSynchronize(stream, before = false))
-
-        syncBeforeFragLoop.parallelization.canRunInCommunicateStreams = true
-        syncAfterFragLoop.parallelization.canRunInCommunicateStreams = true
-
-        applyBC.body.prepend(IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh)), syncBeforeFragLoop))
-        applyBC.body.append(IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh)), syncAfterFragLoop))
-      })
-
-      applyBC
   }, false)
 
   this += new Transformation("Processing ForLoopStatement nodes", {
