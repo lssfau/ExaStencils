@@ -39,7 +39,6 @@ object CUDA_Util {
   val CUDA_BODY_DECL = "CUDABodyDeclarations"
   val CUDA_BRANCH_CONDITION = "CUDABranchCond"
   val CUDA_REDUCTION_RESULT_BUF = "CUDAReductionResultBuf"
-  val CUDA_STREAM = "CUDAStream"
 
   /**
     * Check if the loop meets some basic conditions for transforming a ForLoopStatement into CUDA code.

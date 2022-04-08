@@ -97,7 +97,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       }
 
       if (enclosing.isDefined) {
-        val stream = loop.getAnnotation(CUDA_Util.CUDA_STREAM).get.asInstanceOf[CUDA_Stream]
+        val stream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
 
         val list = enclosingFragmentLoops.getOrElse(enclosing.get, Nil) :+ stream
         enclosingFragmentLoops.update(enclosing.get, list.distinct)
@@ -257,7 +257,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo => fragLoop }
 
       // determine stream
-      val stream = loop.popAnnotationAs[CUDA_Stream](CUDA_Util.CUDA_STREAM)
+      val stream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
 
       val kernel = CUDA_Kernel(
         kernelCount,

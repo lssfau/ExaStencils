@@ -232,7 +232,6 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
                   if (isParallel) {
                     val njuCuda = Duplicate(nju)
                     njuCuda.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, condWrapper)
-                    njuCuda.annotate(CUDA_Util.CUDA_STREAM, stream)
                     deviceCondStmt.trueBody += njuCuda
                   }
                   expand += 1
@@ -246,7 +245,6 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
               if (isParallel) {
                 val loopCuda = Duplicate(loop)
                 loopCuda.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, condWrapper)
-                loopCuda.annotate(CUDA_Util.CUDA_STREAM, stream)
                 deviceStmts += loopCuda
               }
               expand += 1
@@ -290,7 +288,6 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       if (isParallel) {
         val loopCuda = Duplicate(loop)
         loopCuda.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, condWrapper)
-        loopCuda.annotate(CUDA_Util.CUDA_STREAM, stream)
         loopCuda.polyOptLevel = math.min(2, loopCuda.polyOptLevel) // do not perform a tiling!
         //loopCuda.polyOptLevel = 0 // is there a way to create only perfectly nested loops using the isl? (check with correction code) - should be fixed now
         deviceStmts += loopCuda
