@@ -40,6 +40,12 @@ case class CUDA_HandleFragmentLoops(
   def currCopy(copies : IR_VariableAccess) = IR_ArrayAccess(copies, iter)
   def reductionDt(redTarget : IR_Expression) = CUDA_Util.getReductionDatatype(redTarget)
 
+  // set parallelization info
+  streams foreach {
+    case _ : CUDA_ComputeStream => fragLoop.parallelization.canRunInComputeStreams = true
+    case _ : CUDA_CommunicateStream => fragLoop.parallelization.canRunInCommunicateStreams = true
+  }
+
   // tmp buffer for reduction result (host)
   val reductionTmp = if (fragLoop.parallelization.reduction.isDefined) {
     val red = Duplicate(fragLoop.parallelization.reduction.get)

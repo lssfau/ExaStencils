@@ -52,6 +52,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
   this.onBefore = () => this.resetCollectors()
 
   var enclosingFragmentLoops : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, List[CUDA_Stream]] = mutable.HashMap()
+  var enclosingCommFragmentLoops : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, List[CUDA_Stream]] = mutable.HashMap()
 
   /**
     * Collect all loops in the band.
@@ -112,8 +113,8 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       val commFragLoop = stackCollector.stack.collectFirst {
         case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo => fragLoop }
       if (commFragLoop.isDefined) {
-        val list = enclosingFragmentLoops.getOrElse(commFragLoop.get, Nil) :+ CUDA_CommunicateStream(expr)
-        enclosingFragmentLoops.update(commFragLoop.get, list.distinct)
+        val list = enclosingCommFragmentLoops.getOrElse(commFragLoop.get, Nil) :+ CUDA_CommunicateStream(expr)
+        enclosingCommFragmentLoops.update(commFragLoop.get, list.distinct)
       }
 
       expr
@@ -123,13 +124,9 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
   // and perform reduction after frag loop
   this += Transformation("Modify enclosing fragment loops", {
     case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingFragmentLoops.contains(fragLoop) =>
-      val streams = enclosingFragmentLoops(fragLoop)
-      streams foreach {
-        case _ : CUDA_ComputeStream => fragLoop.parallelization.canRunInComputeStreams = true
-        case _ : CUDA_CommunicateStream => fragLoop.parallelization.canRunInCommunicateStreams = true
-      }
-
-      CUDA_HandleFragmentLoops(fragLoop, Duplicate(streams).to[ListBuffer])
+      CUDA_HandleFragmentLoops(fragLoop, Duplicate(enclosingFragmentLoops(fragLoop)).to[ListBuffer])
+    case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingCommFragmentLoops.contains(fragLoop) =>
+      CUDA_HandleFragmentLoops(fragLoop, Duplicate(enclosingCommFragmentLoops(fragLoop)).to[ListBuffer])
   }, false)
 
   this += new Transformation("Processing ForLoopStatement nodes", {
