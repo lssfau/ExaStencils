@@ -58,7 +58,7 @@ case class CUDA_HandleFragmentLoops(
   }
   fragLoop.annotate(CUDA_Util.CUDA_REDUCTION_RESULT_BUF, reductionTmp)
 
-  // replace occurrences with copy
+  // replace occurrences of reduction target with its copy
   private object CUDA_ReplaceReductionAccesses extends QuietDefaultStrategy("Replace accesses to reduction targets") {
     var redTarget : IR_Expression = IR_NullExpression
     var replacement : IR_Expression = IR_NullExpression
@@ -152,6 +152,7 @@ case class CUDA_HandleFragmentLoops(
     if (loopTuple.isEmpty)
       return ListBuffer(fragLoop)
 
+    // fetch (resolved) frag loop (=> scoped stmt with ParallelizationInfo) and its body
     val loop = loopTuple.get._1
     val body = loopTuple.get._2
 
@@ -161,6 +162,7 @@ case class CUDA_HandleFragmentLoops(
       val redTarget = Duplicate(red.target)
 
       // move reduction towards "synchroFragLoop"
+      // -> OpenMP/MPI reduction occurs after accumulation in "synchroFragLoop"
       loop.parallelization.reduction = None
       syncAfterFragLoop.parallelization.reduction = Some(red)
 
