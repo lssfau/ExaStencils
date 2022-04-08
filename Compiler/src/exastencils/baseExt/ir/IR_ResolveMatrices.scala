@@ -276,8 +276,12 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
     */
 
   this += new Transformation("Insert resolvables and resolve", {
-    case decl @ IR_VariableDeclaration(_, _, Some(r : IR_RuntimeMNode), _) if r.resolveAtRuntime =>
-      IR_MatNodeUtils.splitDeclaration(decl)
+    case decl @ IR_VariableDeclaration(dt, _, Some(r : IR_RuntimeMNode), _) if r.resolveAtRuntime =>
+      if(dt.isInstanceOf[IR_MatrixDatatype]) {
+        IR_MatNodeUtils.splitDeclaration(decl, true)
+      } else {
+        IR_MatNodeUtils.splitDeclaration(decl)
+      }
 
     // not to resolve at runtime
     case r : IR_RuntimeMNode if !r.resolveAtRuntime   =>
