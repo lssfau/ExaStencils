@@ -24,10 +24,12 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_Native
 import exastencils.base.ir._
 import exastencils.config.Knowledge
+import exastencils.core.StateManager
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp.OMP_Parallel
+import exastencils.timing.ir.IR_CollectTimers
 
 /// IR_HandleMainApplication
 
@@ -45,6 +47,12 @@ object IR_HandleMainApplication extends DefaultStrategy("HandleMainApplication")
       func.allowInlining = false
 
       if ("likwid" == Knowledge.benchmark_backend) {
+        // register timers
+        IR_CollectTimers.applyStandalone(StateManager.root)
+        IR_CollectTimers.timers foreach { timer =>
+          func.body.prepend(IR_Native(s"LIKWID_MARKER_REGISTER(\"${timer._1}\")"))
+        }
+
         func.body.prepend(OMP_Parallel(ListBuffer(IR_Native("LIKWID_MARKER_THREADINIT"))))
         func.body.prepend(IR_Native("LIKWID_MARKER_INIT"))
         func.body.append(IR_Native("LIKWID_MARKER_CLOSE"))
