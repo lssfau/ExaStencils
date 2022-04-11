@@ -29,7 +29,7 @@ import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp.OMP_Parallel
-import exastencils.timing.ir.IR_CollectTimers
+import exastencils.timing.ir.IR_CollectUnresolvedTimers
 
 /// IR_HandleMainApplication
 
@@ -48,10 +48,9 @@ object IR_HandleMainApplication extends DefaultStrategy("HandleMainApplication")
 
       if ("likwid" == Knowledge.benchmark_backend) {
         // register timers
-        IR_CollectTimers.applyStandalone(StateManager.root)
-        IR_CollectTimers.timers foreach { timer =>
-          func.body.prepend(IR_Native(s"LIKWID_MARKER_REGISTER(\"${timer._1}\")"))
-        }
+        IR_CollectUnresolvedTimers.applyStandalone(StateManager.root)
+        IR_CollectUnresolvedTimers.timers foreach (name =>
+          func.body.prepend(IR_Native("LIKWID_MARKER_REGISTER(\"" + name + "\")")))
 
         func.body.prepend(OMP_Parallel(ListBuffer(IR_Native("LIKWID_MARKER_THREADINIT"))))
         func.body.prepend(IR_Native("LIKWID_MARKER_INIT"))
