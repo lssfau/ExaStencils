@@ -20,18 +20,22 @@ package exastencils.util.ir
 
 import exastencils.base.ir._
 import exastencils.config.Knowledge
-import exastencils.datastructures._
+import exastencils.datastructures.DefaultStrategy
+import exastencils.datastructures.Transformation
 import exastencils.logger.Logger
 
 /// IR_ResolveBenchmarkFunctions
 
 object IR_ResolveBenchmarkFunctions extends DefaultStrategy("ResolveBenchmarkFunctions") {
+  def startFunction = "benchmarkStart"
+  def stopFunction = "benchmarkStop"
+
   this += new Transformation("ResolveFunctionCalls", {
-    case IR_ExpressionStatement(f @ IR_FunctionCall(IR_UnresolvedFunctionReference("benchmarkStart", _), args)) =>
+    case IR_ExpressionStatement(f @ IR_FunctionCall(IR_UnresolvedFunctionReference(startFunction, _), args)) =>
       Knowledge.benchmark_backend match {
         case "likwid" =>
           if (1 != args.length || args.head.datatype != IR_StringDatatype)
-            Logger.error("benchmarkStart takes a single argument of type String for benchmark_backend 'likwid'")
+            Logger.error(s"$startFunction takes a single argument of type String for benchmark_backend 'likwid'")
 
           f.function.name = "LIKWID_MARKER_START"
           IR_ExpressionStatement(f)
@@ -39,11 +43,11 @@ object IR_ResolveBenchmarkFunctions extends DefaultStrategy("ResolveBenchmarkFun
         case _ => IR_NullStatement
       }
 
-    case IR_ExpressionStatement(f @ IR_FunctionCall(IR_UnresolvedFunctionReference("benchmarkStop", _), args)) =>
+    case IR_ExpressionStatement(f @ IR_FunctionCall(IR_UnresolvedFunctionReference(stopFunction, _), args)) =>
       Knowledge.benchmark_backend match {
         case "likwid" =>
           if (1 != args.length || args.head.datatype != IR_StringDatatype)
-            Logger.error("benchmarkStop takes a single argument of type String for benchmark_backend 'likwid'")
+            Logger.error(s"$stopFunction takes a single argument of type String for benchmark_backend 'likwid'")
 
           f.function.name = "LIKWID_MARKER_STOP"
           IR_ExpressionStatement(f)
