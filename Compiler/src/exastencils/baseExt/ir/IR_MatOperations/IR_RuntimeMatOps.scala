@@ -118,7 +118,7 @@ object IR_GenerateBasicMatrixOperations {
         var _j = IR_VariableAccess("_j", IR_IntegerDatatype)
         func.body += IR_ForLoop(IR_VariableDeclaration(_i, IR_IntegerConstant(0)), IR_Lower(_i, sizeMLeft), IR_PreIncrement(_i), ListBuffer[IR_Statement](
           IR_ForLoop(IR_VariableDeclaration(_j, 0), IR_Lower(_j, sizeNLeft), IR_PreIncrement(_j), ListBuffer[IR_Statement](
-            IR_IfCondition(IR_Greater(IR_FunctionCall(IR_ExternalFunctionReference.fabs, IR_Subtraction(IR_FunctionCall(IR_ExternalFunctionReference.fabs, IR_HighDimAccess(left, IR_ExpressionIndex(_i, _j))), IR_FunctionCall(IR_ExternalFunctionReference.fabs, IR_HighDimAccess(right, IR_ExpressionIndex(_i, _j))))), precision), ListBuffer[IR_Statement](
+            IR_IfCondition(IR_Greater(IR_FunctionCall(IR_ExternalFunctionReference.fabs, IR_Subtraction(IR_HighDimAccess(left, IR_ExpressionIndex(_i, _j)), IR_HighDimAccess(right, IR_ExpressionIndex(_i, _j)))), precision), ListBuffer[IR_Statement](
               IR_Print(outstream, ListBuffer[IR_Expression](IR_StringConstant("[Test] comparison failed at "), _i, IR_StringConstant(" "), _j, IR_StringConstant("\\n"), IR_HighDimAccess(left, IR_ExpressionIndex(_i, _j)), IR_StringConstant(" vs "), IR_HighDimAccess(right, IR_ExpressionIndex(_i, _j)), IR_StringConstant("\\n"))),
               if (returnStmt) IR_Return(IR_IntegerConstant(-1)) else IR_NullStatement
             ), ListBuffer[IR_Statement]())
@@ -692,9 +692,9 @@ object IR_GenerateRuntimeInversion {
     // copy A and invert
     //TODO use algorithm that exploits structure -> receive matrix structure information from classifier -> e.g. blockdiagonal
     // blocksize of the diagonal blocks of A if A is a blockdiagonal matrix -> later this information comes from the classifyer?
-    func.body += IR_VariableDeclaration(A)
+    func.body += IR_VariableDeclaration(A, IR_IntegerConstant(0))
     func.body += IR_GenerateBasicMatrixOperations.loopCopySubmatrix(in, A, 0, 0, n, n)
-    func.body += IR_VariableDeclaration(A_inv)
+    func.body += IR_VariableDeclaration(A_inv,IR_IntegerConstant(0))
     if (structureA == "blockdiagonal")
       func.body += IR_GenerateRuntimeInversion.blockdiagonalInlined(A, blockSizeA, A_inv)
     else if (structureA == "diagonal")
@@ -706,33 +706,33 @@ object IR_GenerateRuntimeInversion {
       func.body ++= IR_GenerateBasicMatrixOperations.printMatrix(A_inv)
 
     // copy B
-    func.body += IR_VariableDeclaration(B)
+    func.body += IR_VariableDeclaration(B, IR_IntegerConstant(0))
     func.body += IR_GenerateBasicMatrixOperations.loopCopySubmatrix(in, B, 0, n, n, m)
 
     // copy C
-    func.body += IR_VariableDeclaration(C)
+    func.body += IR_VariableDeclaration(C, IR_IntegerConstant(0))
     func.body += IR_GenerateBasicMatrixOperations.loopCopySubmatrix(in, C, n, 0, m, n)
 
     // copy D
-    func.body += IR_VariableDeclaration(D)
+    func.body += IR_VariableDeclaration(D, IR_IntegerConstant(0))
     func.body += IR_GenerateBasicMatrixOperations.loopCopySubmatrix(in, D, n, n, m, m)
 
     // calculate S
-    func.body += IR_VariableDeclaration(S)
-    func.body += IR_VariableDeclaration(CA_inv)
+    func.body += IR_VariableDeclaration(S, IR_IntegerConstant(0))
+    func.body += IR_VariableDeclaration(CA_inv,IR_IntegerConstant(0))
     func.body += IR_GenerateBasicMatrixOperations.multAtSubmatrix(C, A_inv, CA_inv, m, n, n, 0, 0)
-    func.body += IR_VariableDeclaration(CA_invB)
+    func.body += IR_VariableDeclaration(CA_invB,IR_IntegerConstant(0))
     func.body += IR_GenerateBasicMatrixOperations.multAtSubmatrix(CA_inv, B, CA_invB, m, m, n, 0, 0)
     func.body += IR_GenerateBasicMatrixOperations.subAtSubmatrix(D, CA_invB, S, m, m, m, 0, 0)
 
     // calculate S_inv
-    func.body += IR_VariableDeclaration(S_inv)
+    func.body += IR_VariableDeclaration(S_inv,IR_IntegerConstant(0))
     func.body += IR_GenerateRuntimeInversion.inverse(S, S_inv, IR_MatShape("filled"))
 
     // calculate upper right result block
-    func.body += IR_VariableDeclaration(A_invB)
+    func.body += IR_VariableDeclaration(A_invB,IR_IntegerConstant(0))
     func.body += IR_GenerateBasicMatrixOperations.multAtSubmatrix(A_inv, B, A_invB, n, m, n, 0, 0)
-    func.body += IR_VariableDeclaration(A_invBS_inv)
+    func.body += IR_VariableDeclaration(A_invBS_inv,IR_IntegerConstant(0))
     func.body += IR_GenerateBasicMatrixOperations.multAtSubmatrix(A_invB, S_inv, A_invBS_inv, n, m, m, 0, 0)
     func.body += IR_GenerateBasicMatrixOperations.negAtSubmatrix(A_invBS_inv, out, n + m, n, m, 0, n_asInt)
 
@@ -745,7 +745,7 @@ object IR_GenerateRuntimeInversion {
       func.body ++= IR_GenerateBasicMatrixOperations.printMatrix(S_inv)
 
     // calculate lower left result block
-    func.body += IR_VariableDeclaration(S_invCA_inv)
+    func.body += IR_VariableDeclaration(S_invCA_inv,IR_IntegerConstant(0))
     func.body += IR_GenerateBasicMatrixOperations.multAtSubmatrix(S_inv, CA_inv, S_invCA_inv, m, n, m, 0, 0)
     func.body += IR_GenerateBasicMatrixOperations.negAtSubmatrix(S_invCA_inv, out, m + n, m, n, n_asInt, 0)
 
@@ -753,7 +753,7 @@ object IR_GenerateRuntimeInversion {
       func.body ++= IR_GenerateBasicMatrixOperations.printMatrix(S_invCA_inv)
 
     // calculate upper left result block
-    func.body += IR_VariableDeclaration(A_invBS_invCA_inv)
+    func.body += IR_VariableDeclaration(A_invBS_invCA_inv,IR_IntegerConstant(0))
     func.body += IR_GenerateBasicMatrixOperations.multAtSubmatrix(A_invB, S_invCA_inv, A_invBS_invCA_inv, n, n, m, 0, 0)
     func.body += IR_GenerateBasicMatrixOperations.addAtSubmatrix(A_inv, A_invBS_invCA_inv, out, n + m, n, n, 0, 0)
 

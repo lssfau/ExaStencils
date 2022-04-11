@@ -23,6 +23,7 @@ import scala.collection.mutable._
 import exastencils.base.ir._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
+import exastencils.domain.ir.IR_IV_NeighborFragmentIdx
 import exastencils.field.ir._
 import exastencils.logger.Logger
 
@@ -83,6 +84,12 @@ class CUDA_GatherFieldAccess extends Collector {
             case IR_IntegerConstant(slot) => identifier += s"_s$slot"
             case other                    => identifier += s"_s${ other.prettyprint }"
           }
+        }
+
+        // also consider neighbor fragment accesses
+        access.fragIdx match {
+          case neigh : IR_IV_NeighborFragmentIdx => identifier += s"_n${ neigh.neighIdx }"
+          case _                                 =>
         }
 
         if (isRead)
