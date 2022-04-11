@@ -48,9 +48,11 @@ object IR_HandleMainApplication extends DefaultStrategy("HandleMainApplication")
 
       if ("likwid" == Knowledge.benchmark_backend) {
         // register timers
-        IR_CollectUnresolvedTimers.applyStandalone(StateManager.root)
-        IR_CollectUnresolvedTimers.timers foreach (name =>
-          func.body.prepend(IR_Native("LIKWID_MARKER_REGISTER(\"" + name + "\")")))
+        if (Knowledge.timer_addBenchmarkMarkers) {
+          IR_CollectUnresolvedTimers.applyStandalone(StateManager.root)
+          IR_CollectUnresolvedTimers.timers foreach (name =>
+            func.body.prepend(IR_Native("LIKWID_MARKER_REGISTER(\"" + name + "\")")))
+        }
 
         func.body.prepend(OMP_Parallel(ListBuffer(IR_Native("LIKWID_MARKER_THREADINIT"))))
         func.body.prepend(IR_Native("LIKWID_MARKER_INIT"))
