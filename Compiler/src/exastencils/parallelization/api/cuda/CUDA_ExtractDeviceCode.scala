@@ -114,7 +114,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       loop.getAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION).contains(CUDA_Util.CUDA_BAND_START) =>
 
       // remove the annotation first to guarantee single application of this transformation.
-      loop.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION)
+      loop.removeAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION)
 
       val parallelLoops = (x : IR_ForLoop) => {
         x.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) &&
@@ -140,11 +140,15 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
 
       val kernelCount = kernelFunctions.counterMap.getOrElse(fctNameCollector.getCurrentName, -1) + 1
 
-      val reduction = loop.parallelization.reduction
+      val reduction = Duplicate(loop.parallelization.reduction)
+      val redTarget = if (reduction.isDefined)
+        Some(Duplicate(reduction.get.target))
+      else
+        None
 
       // local variable for kernels with reductions
       val localTarget = if (reduction.isDefined)
-        Some(IR_VariableAccess(reduction.get.targetName + "_local_" + kernelCount, CUDA_Util.getReductionDatatype(reduction.get.target)))
+        Some(IR_VariableAccess(reduction.get.targetName + "_local_" + kernelCount, CUDA_Util.getReductionDatatype(redTarget.get)))
       else
         None
 
@@ -152,17 +156,17 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       CUDA_GatherVariableAccesses.clear()
       CUDA_GatherVariableAccesses.kernelCount = kernelCount
       if (reduction.isDefined)
-        CUDA_GatherVariableAccesses.reductionTarget = Some(reduction.get.target)
+        CUDA_GatherVariableAccesses.reductionTarget = redTarget
       CUDA_GatherVariableAccesses.applyStandalone(IR_Scope(loop))
 
       // declare and init local reduction target
       if (localTarget.isDefined) {
         var decl = IR_VariableDeclaration(localTarget.get)
-        var initLocalTarget = CUDA_Util.getReductionDatatype(reduction.get.target) match {
+        var initLocalTarget = CUDA_Util.getReductionDatatype(redTarget.get) match {
           case _ : IR_ScalarDatatype   =>
-            ListBuffer[IR_Statement](IR_Assignment(localTarget.get, reduction.get.target))
+            ListBuffer[IR_Statement](IR_Assignment(localTarget.get, redTarget.get))
           case mat : IR_MatrixDatatype =>
-            reduction.get.target match {
+            redTarget.get match {
               case vAcc : IR_VariableAccess =>
                 IR_GenerateBasicMatrixOperations.loopSetSubmatrixMatPointer(
                   vAcc, localTarget.get, mat.sizeN, mat.sizeM, mat.sizeN, 0, 0).body
@@ -218,7 +222,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       // replace array accesses with accesses to function arguments
       // reduction var is not replaced, but later in IR_HandleReductions
       if (reduction.isDefined)
-        CUDA_ReplaceNonReductionVarArrayAccesses.reductionTarget = Some(reduction.get.target)
+        CUDA_ReplaceNonReductionVarArrayAccesses.reductionTarget = redTarget
       else
         CUDA_ReplaceNonReductionVarArrayAccesses.reductionTarget = None
       CUDA_ReplaceNonReductionVarArrayAccesses.applyStandalone(IR_Scope(kernelBody))
