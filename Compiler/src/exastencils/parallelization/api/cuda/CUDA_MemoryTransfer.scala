@@ -66,7 +66,7 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData) extends CUDA_Hos
     val field = fieldData.field
 
     IR_IfCondition(
-      CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot)),
+      CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), fieldData.fragmentIdx),
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
           IR_IV_FieldData(field, Duplicate(fieldData.slot)),
@@ -92,7 +92,7 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData) extends CUDA_H
     val field = fieldData.field
 
     IR_IfCondition(
-      CUDA_HostDataUpdated(field, Duplicate(fieldData.slot)),
+      CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), fieldData.fragmentIdx),
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
           IR_IV_FieldData(field, Duplicate(fieldData.slot)),
