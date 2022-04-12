@@ -41,7 +41,7 @@ object IR_ResolveBenchmarkFunctions extends DefaultStrategy("ResolveBenchmarkFun
   }
 
   this += Transformation("Add markers for timers", {
-    case stmt @ IR_ExpressionStatement(fctCall @ IR_FunctionCall(function : IR_TimerFunctionReference, args)) if List("startTimer", "stopTimer").contains(function.name) =>
+    case stmt @ IR_ExpressionStatement(_ @ IR_FunctionCall(function : IR_TimerFunctionReference, args)) if List("startTimer", "stopTimer").contains(function.name) =>
       if (Knowledge.timer_addBenchmarkMarkers) {
         function.name match {
           case "startTimer" =>
@@ -54,7 +54,7 @@ object IR_ResolveBenchmarkFunctions extends DefaultStrategy("ResolveBenchmarkFun
               stmt)
         }
       } else {
-        fctCall
+        stmt
       }
   })
 
