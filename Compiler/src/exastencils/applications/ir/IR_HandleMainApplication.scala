@@ -46,15 +46,27 @@ object IR_HandleMainApplication extends DefaultStrategy("HandleMainApplication")
       func.allowFortranInterface = false
       func.allowInlining = false
 
+      def wrapAroundParallelRegion(body : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
+        if (Knowledge.omp_enabled)
+          ListBuffer(OMP_Parallel(body))
+        else
+          body
+      }
+
       if ("likwid" == Knowledge.benchmark_backend) {
         // register timers
         if (Knowledge.timer_addBenchmarkMarkers) {
+          var registerMarkers = ListBuffer[IR_Statement]()
+
           IR_CollectUnresolvedTimers.applyStandalone(StateManager.root)
-          IR_CollectUnresolvedTimers.timers foreach (name =>
-            func.body.prepend(IR_Native("LIKWID_MARKER_REGISTER(\"" + name + "\")")))
+          IR_CollectUnresolvedTimers.timers foreach { name =>
+            registerMarkers += IR_Native("LIKWID_MARKER_REGISTER(\"" + name + "\")")
+          }
+
+          func.body.prependAll(wrapAroundParallelRegion(registerMarkers))
         }
 
-        func.body.prepend(OMP_Parallel(ListBuffer(IR_Native("LIKWID_MARKER_THREADINIT"))))
+        func.body.prependAll(wrapAroundParallelRegion(ListBuffer[IR_Statement](IR_Native("LIKWID_MARKER_THREADINIT"))))
         func.body.prepend(IR_Native("LIKWID_MARKER_INIT"))
         func.body.append(IR_Native("LIKWID_MARKER_CLOSE"))
       }
