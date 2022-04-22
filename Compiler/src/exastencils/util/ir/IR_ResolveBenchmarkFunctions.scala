@@ -46,8 +46,8 @@ object IR_ResolveBenchmarkFunctions extends DefaultStrategy("ResolveBenchmarkFun
         function.name match {
           case "startTimer" =>
             ListBuffer(
-              IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference(startFunction, IR_UnitDatatype), args)),
-              stmt)
+              stmt,
+              IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference(startFunction, IR_UnitDatatype), args)))
           case "stopTimer"  =>
             ListBuffer(
               IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference(stopFunction, IR_UnitDatatype), args)),
