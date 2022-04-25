@@ -25,6 +25,7 @@ import exastencils.config.Knowledge
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.logger.Logger
+import exastencils.parallelization.api.omp.OMP_Parallel
 import exastencils.timing.ir.IR_TimerFunctionReference
 
 /// IR_ResolveBenchmarkFunctions
@@ -69,7 +70,12 @@ object IR_ResolveBenchmarkFunctions extends DefaultStrategy("ResolveBenchmarkFun
 
           // change function name
           f.function.name = "LIKWID_MARKER_START"
-          IR_ExpressionStatement(f)
+          val funcCall = IR_ExpressionStatement(f)
+
+          if (Knowledge.omp_enabled)
+            OMP_Parallel(ListBuffer(funcCall))
+          else
+            funcCall
 
         case _ => IR_NullStatement
       }
@@ -84,7 +90,12 @@ object IR_ResolveBenchmarkFunctions extends DefaultStrategy("ResolveBenchmarkFun
 
           // change function name
           f.function.name = "LIKWID_MARKER_STOP"
-          IR_ExpressionStatement(f)
+          val funcCall = IR_ExpressionStatement(f)
+
+          if (Knowledge.omp_enabled)
+            OMP_Parallel(ListBuffer(funcCall))
+          else
+            funcCall
 
         case _ => IR_NullStatement
       }
