@@ -93,15 +93,15 @@ def generate_settings_file(exa_problem_path: str, output_path: str):
             if f'.exa{i}' in name:
                 tmp += f'l{i}file\t = "{exa_problem_name}.exa{i}"\n'
 
-    tmp += f'debugL1File\t= "{get_debug_base_path(exa_problem_path)}_debug.exa1"\n'
-    tmp += f'debugL2File\t= "{get_debug_base_path(exa_problem_path)}_debug.exa2"\n'
-    tmp += f'debugL3File\t= "{get_debug_base_path(exa_problem_path)}_debug.exa3"\n'
-    tmp += f'debugL4File\t= "{get_debug_base_path(exa_problem_path)}_debug.exa4"\n\n'
-    tmp += f'htmlLogFile\t= "{get_debug_base_path(exa_problem_path)}_log.html"\n\n'
+    tmp += f'debugL1File\t= "{output_path_relative}/{get_debug_base_path(exa_problem_path)}_debug.exa1"\n'
+    tmp += f'debugL2File\t= "{output_path_relative}/{get_debug_base_path(exa_problem_path)}_debug.exa2"\n'
+    tmp += f'debugL3File\t= "{output_path_relative}/{get_debug_base_path(exa_problem_path)}_debug.exa3"\n'
+    tmp += f'debugL4File\t= "{output_path_relative}/{get_debug_base_path(exa_problem_path)}_debug.exa4"\n\n'
+    tmp += f'htmlLogFile\t= "{output_path_relative}/{get_debug_base_path(exa_problem_path)}_log.html"\n\n'
     tmp += f'outputPath\t= "{output_path_relative}/generated/{exa_problem_name}"\n\n'
     tmp += f'produceHtmlLog\t= true\n'
     tmp += f'timeStrategies\t= true\n\n'
-    # tmp += f'buildfileGenerators\t= {{"MakefileGenerator"}}\n'
+    tmp += f'buildfileGenerators\t= {{"MakefileGenerator"}}\n'
 
     settings_path = f'{exa_problem_path}/{exa_problem_name}.settings'
     with open(settings_path, "w") as file:
