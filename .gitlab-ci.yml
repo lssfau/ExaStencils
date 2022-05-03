@@ -60,6 +60,10 @@ stages:
         - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
         - cd Testing
 
+.example_template:
+    extends: .test_template
+    stage: example
+
 .benchmark_template:
     dependencies:
         - build:generator
@@ -737,8 +741,7 @@ test:ComplexNumbers:
 ###############################################
 
 example:BiHarmonicExamples_2D:
-    stage: example
-    extends: .test_template
+    extends: .example_template
     script:
         # 2D_FD_BiHarmonic_fromL2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_BiHarmonic_fromL2 Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.knowledge "../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa3;../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa2" "" 1 1 Platform/random.platform output
@@ -748,8 +751,7 @@ example:BiHarmonicExamples_2D:
 ###############################################
 
 example:HelmHoltzExamples_2D:
-    stage: example
-    extends: .test_template
+    extends: .example_template
     script:
         # 2D_FD_Helmholtz_fromL3
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Helmholtz_fromL3 Examples/Helmholtz/2D_FD_Helmholtz_fromL3.knowledge "../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa4" "" 1 1 Platform/random.platform output
@@ -757,8 +759,7 @@ example:HelmHoltzExamples_2D:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Helmholtz_MPI_fromL3 Examples/Helmholtz/2D_FD_Helmholtz_MPI_fromL3.knowledge "../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa4" "" 4 1 Platform/random.platform output
 
 example:HelmHoltzExamples_3D:
-    stage: example
-    extends: .test_template
+    extends: .example_template
     script:
         # 3D_FD_Helmholtz_fromL3
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Helmholtz_fromL3 Examples/Helmholtz/3D_FD_Helmholtz_fromL3.knowledge "../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa4" "" 1 1 Platform/random.platform output
@@ -768,8 +769,7 @@ example:HelmHoltzExamples_3D:
 ###############################################
 
 example:LinearElasticityExamples_2D:
-    stage: example
-    extends: .test_template
+    extends: .example_template
     script:
         # 2D_FD_LinearElasticity_fromL2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_LinearElasticity_fromL2 Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.knowledge "../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa2;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa3;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa4" "" 1 1 Platform/random.platform output
@@ -779,8 +779,7 @@ example:LinearElasticityExamples_2D:
 ###############################################
 
 example:NavierStokesExamples_2D:
-    stage: example
-    extends: .test_template
+    extends: .example_template
     script:
         # 2D_FV_NavierStokes_localNewton
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_localNewton Examples/NavierStokes/2D_FV_NavierStokes_localNewton.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa4" "" 1 1 Platform/random.platform output
@@ -792,8 +791,7 @@ example:NavierStokesExamples_2D:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_Picard Examples/NavierStokes/2D_FV_NavierStokes_Picard.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa4" "" 1 1 Platform/random.platform output
 
 example:NonNewtonianExamples_2D:
-    stage: example
-    extends: .test_template
+    extends: .example_template
     script:
         # 2D_FV_NonNewtonian_Newton
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NonNewtonian_Newton Examples/NavierStokes/2D_FV_NonNewtonian_Newton.knowledge "../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa2;../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa3;../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa4" "" 1 1 Platform/random.platform output
@@ -801,8 +799,7 @@ example:NonNewtonianExamples_2D:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NonNewtonian_Picard Examples/NavierStokes/2D_FV_NonNewtonian_Picard.knowledge "../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa2;../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa3;../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa4" "" 1 1 Platform/random.platform output
 
 example:NavierStokesExamples_3D:
-    stage: example
-    extends: .test_template
+    extends: .example_template
     script:
         # 3D_FV_NavierStokes_localNewton
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_localNewton Examples/NavierStokes/3D_FV_NavierStokes_localNewton.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa4" "" 1 1 Platform/random.platform output
@@ -814,8 +811,7 @@ example:NavierStokesExamples_3D:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_Picard Examples/NavierStokes/3D_FV_NavierStokes_Picard.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa4" "" 1 1 Platform/random.platform output
 
 example:NonNewtonianExamples_3D:
-    stage: example
-    extends: .test_template
+    extends: .example_template
     script:
         # 3D_FV_NonNewtonian_Newton
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NonNewtonian_Newton Examples/NavierStokes/3D_FV_NonNewtonian_Newton.knowledge "../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa2;../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa3;../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa4" "" 1 1 Platform/random.platform output
@@ -828,8 +824,7 @@ example:NonNewtonianExamples_3D:
 ###############################################
 
 example:OptFlowExamples_2D:
-    stage: example
-    extends: .test_template
+    extends: .example_template
     script:
         # 2D_FD_OptFlow_fromL2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_OptFlow_fromL2 Examples/OpticalFlow/2D_FD_OptFlow_fromL2.knowledge "../Examples/OpticalFlow/2D_FD_OptFlow_fromL2.exa2;../Examples/OpticalFlow/2D_FD_OptFlow_fromL2.exa3" "" 1 1 Platform/random.platform output
@@ -839,8 +834,7 @@ example:OptFlowExamples_2D:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_OptFlow_fromL4_Vec Examples/OpticalFlow/2D_FD_OptFlow_fromL4_Vec.knowledge "../Examples/OpticalFlow/2D_FD_OptFlow_fromL4_Vec.exa4" "" 1 1 Platform/random.platform output
 
 example:OptFlowExamples_3D:
-    stage: example
-    extends: .test_template
+    extends: .example_template
     script:
         # 3D_FD_OptFlow_fromL2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_OptFlow_fromL2 Examples/OpticalFlow/3D_FD_OptFlow_fromL2.knowledge "../Examples/OpticalFlow/3D_FD_OptFlow_fromL2.exa2;../Examples/OpticalFlow/3D_FD_OptFlow_fromL2.exa3" "" 1 1 Platform/random.platform output
@@ -852,15 +846,13 @@ example:OptFlowExamples_3D:
 ###############################################
 
 example:PoissonExamples_1D:
-    stage: example
-    extends: .test_template
+    extends: .example_template
     script:
         # 1D_FD_Poisson_fromL1
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 1D_FD_Poisson_fromL1 Examples/Poisson/1D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/1D_FD_Poisson_fromL1.exa1" "" 1 1 Platform/random.platform output
 
 example:PoissonExamples_2D:
-    stage: example
-    extends: .test_template
+    extends: .example_template
     script:
         # 2D_FD_Poisson_fromL1
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL1 Poisson/2D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL1.exa1" Poisson/2D_FD_Poisson_fromL1.results 4 4 Platform/random.platform output
@@ -878,8 +870,7 @@ example:PoissonExamples_2D:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Poisson_fromL4 Poisson/2D_FV_Poisson_fromL4.knowledge "../Examples/Poisson/2D_FV_Poisson_fromL4.exa4" Poisson/2D_FV_Poisson_fromL4.results 4 4 Platform/random.platform output
 
 example:PoissonExamples_3D:
-    stage: example
-    extends: .test_template
+    extends: .example_template
     script:
         # 3D_FD_Poisson_fromL1
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Poisson_fromL1 Examples/Poisson/3D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/3D_FD_Poisson_fromL1.exa1" "" 1 1 Platform/random.platform output
@@ -899,15 +890,13 @@ example:PoissonExamples_3D:
 ###############################################
 
 example:StokesExamples_1D:
-    stage: example
-    extends: .test_template
+    extends: .example_template
     script:
         # 1D_FD_Stokes_fromL1
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 1D_FD_Stokes_fromL1 Examples/Stokes/1D_FD_Stokes_fromL1.knowledge "../Examples/Stokes/1D_FD_Stokes_fromL1.exa1" "" 1 1 Platform/random.platform output
 
 example:StokesExamples_2D:
-    stage: example
-    extends: .test_template
+    extends: .example_template
     script:
         # 2D_FD_Stokes_fromL1
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Stokes_fromL1 Examples/Stokes/2D_FD_Stokes_fromL1.knowledge "../Examples/Stokes/2D_FD_Stokes_fromL1.exa1" "" 1 1 Platform/random.platform output
@@ -925,8 +914,7 @@ example:StokesExamples_2D:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Stokes_fromL4 Examples/Stokes/2D_FV_Stokes_fromL4.knowledge "../Examples/Stokes/2D_FV_Stokes_fromL4.exa4" "" 1 1 Platform/random.platform output
 
 example:StokesExamples_3D:
-    stage: example
-    extends: .test_template
+    extends: .example_template
     script:
         # 3D_FD_Stokes_fromL1
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Stokes_fromL1 Examples/Stokes/3D_FD_Stokes_fromL1.knowledge "../Examples/Stokes/3D_FD_Stokes_fromL1.exa1" "" 1 1 Platform/random.platform output
@@ -944,8 +932,7 @@ example:StokesExamples_3D:
 ###############################################
 
 example:ShallowWaterExamples_2D:
-    stage: example
-    extends: .test_template
+    extends: .example_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_SWE Examples/SWE/2D_FV_SWE.knowledge "../Examples/SWE/2D_FV_SWE.exa2;../Examples/SWE/2D_FV_SWE.exa3;../Examples/SWE/2D_FV_SWE.exa4" "" 1 1 Platform/random.platform output
 
