@@ -178,11 +178,6 @@ def main():
     # knowledge file assumed to be in the same source directory as the "*.exa?" files with same base name
     knowledge_path = remove_extension(get_exa_files(args.exa_problem_path)[0]) + '.knowledge'
 
-    # debug path
-    debug_path = os.path.join(args.exa_problem_path, "Debug")
-    if not os.path.exists(debug_path):
-        os.mkdir(debug_path)
-
     # generate target code
     generate_code(args.generator_path, args.generator_lib_path, settings_path, knowledge_path, args.platform_path)
 
