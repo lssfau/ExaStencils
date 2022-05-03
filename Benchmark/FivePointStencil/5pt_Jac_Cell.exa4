@@ -50,6 +50,7 @@ Stencil Laplace@finest {
 
 // dirichlet BCs. velocity != 0 on the top
 Function applyBC_solution@finest ( ) : Unit {
+    startTimer ( 'applyBC' )
   	loop over Solution<active>@current only ghost [-1,  0] on boundary {
   		Solution<active>@current = 0. - Solution<active>@current@[0, 1]
   	}
@@ -62,6 +63,7 @@ Function applyBC_solution@finest ( ) : Unit {
   	loop over Solution<active>@current only ghost [ 0,  1] on boundary {
         Solution<active>@current = ( sin ( 2. * PI * vf_nodePosition_x) * sinh( 2. * PI ) ) - Solution<active>@current@[0, -1]
     }
+    stopTimer ( 'applyBC' )
 }
 
 Function InitRHS@finest {
@@ -78,7 +80,9 @@ Function InitSolution {
 
 Function UpResidual@finest {
 	apply bc to Solution<active>@current
+	startTimer ( 'communication' )
 	communicate Solution<active>@current
+	stopTimer ( 'communication' )
 	loop over Residual@current {
 		Residual@current = ( RHS@current - ( Laplace@current * Solution<active>@current ) )
 	}
@@ -94,10 +98,15 @@ Function NormResidual@finest : Real {
 
 Function Smoother@finest : Unit {
     apply bc to Solution<active>@current
+    startTimer ( 'communication' )
     communicate ghost of Solution<active>@current
+    stopTimer ( 'communication' )
+
+    startTimer ( 'kernel' )
     loop over Solution@current {
         Solution<next>@current = ( Solution<active>@current + ( ( ( 1.0 / diag ( Laplace@current ) ) * 0.8 ) * ( RHS@current - ( Laplace@current * Solution<active>@current ) ) ) )
     }
+    stopTimer ( 'kernel' )
     advance Solution@current
 }
 
@@ -118,12 +127,19 @@ Function Solve {
 }
 
 Function Application {
+    startTimer ( 'setup' )
 	initGlobals (  )
 	initDomain (  )
 	initFieldsWithZero (  )
 	InitRHS@finest (  )
 	InitSolution (  )
 	apply bc to Solution<active>@finest
+	stopTimer ( 'setup' )
+
+	startTimer ( 'solve' )
 	Solve (  )
+	stopTimer ( 'solve' )
+
+	printAllTimers (  )
 	destroyGlobals (  )
 }
