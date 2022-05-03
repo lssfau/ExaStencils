@@ -947,4 +947,4 @@ benchmark:5pt_Jac_2D:
     stage: benchmark
     extends: .benchmark_template
     script:
-        - python run_benchmark.py ../Compiler/Compiler.jar ../Compiler/lib FivePointStencil output ../Testing/Platform/anyavx2.platform 4
+        - python3 run_benchmark.py ../Compiler/Compiler.jar ../Compiler/lib FivePointStencil output ../Testing/Platform/anyavx2.platform 4
