@@ -306,13 +306,18 @@ case class IR_DataBuffer(
   }
 
   def loopOverDims(condition : IR_Expression, accessStatements : IR_Statement*) : IR_LoopOverDimensions = {
-    IR_LoopOverDimensions(numDimsGrid,
+    val loopOverDims = IR_LoopOverDimensions(numDimsGrid,
       accessPattern.transformExpressionIndexRange(
         IR_ExpressionIndex(numDimsGridRange.map(dim => beginIndices(dim) - Duplicate(referenceOffset(dim)) : IR_Expression).toArray),
         IR_ExpressionIndex(numDimsGridRange.map(dim => endIndices(dim) - Duplicate(referenceOffset(dim)) : IR_Expression).toArray)
       ),
       IR_IfCondition(condition,
         accessStatements.to[ListBuffer]))
+
+    loopOverDims.parallelization.noVect = true
+    loopOverDims.parallelization.potentiallyParallel = false
+
+    loopOverDims
   }
 
   /*
