@@ -24,7 +24,7 @@ Field dest< global, NodeWithComm, None >@all
 
 Function compareFields@all ( ) : Int {
   // check for equality
-  loop over dest {
+  loop over dest sequentially {
     Var diff : Real = fabs(dest - src)
     if( diff > 0.001 ) {
       print("fields are not equal! src=", src, " dest=", dest)

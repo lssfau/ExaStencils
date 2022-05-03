@@ -17,10 +17,17 @@ domain_rect_numFragsPerBlock_x = 1
 domain_rect_numFragsPerBlock_y = 1
 domain_rect_numFragsPerBlock_z = 1
 
-omp_enabled                       = false
-omp_numThreads                    = 1
+omp_enabled                       = true
+omp_numThreads                    = 2
 mpi_enabled                       = true
 mpi_numThreads                    = 4
-omp_parallelizeLoopOverFragments  = false
+omp_parallelizeLoopOverFragments  = true
 omp_parallelizeLoopOverDimensions = false
+
+poly_optLevel_fine			= 3
+opt_useAddressPrecalc		= true
+opt_vectorize				= true
+opt_unroll					= 2
+opt_conventionalCSE         = true
+opt_loopCarriedCSE          = true
 

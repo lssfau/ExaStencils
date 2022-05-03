@@ -24,7 +24,7 @@ Field destMat < global, CellMatWithComm, None >@all
 
 Function compareFields@finest ( ) : Int {
   // check for equality
-  loop over destMat {
+  loop over destMat sequentially {
     compare(srcMat, destMat, 0.001)
   }
 

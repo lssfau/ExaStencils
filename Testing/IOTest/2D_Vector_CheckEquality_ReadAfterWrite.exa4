@@ -24,7 +24,7 @@ Field destVec < global, CellVecWithComm, None >@all
 
 Function compareFields@finest ( ) : Int {
   // check for equality
-  loop over destVec {
+  loop over destVec sequentially {
     compare(srcVec, destVec, 0.001)
   }
 
