@@ -1,0 +1,129 @@
+// domain declarations
+
+Domain global< [ 0.0, 0.0 ] to [ 2.0, 1.0 ] >
+
+// globals
+
+Globals {
+    // ...
+}
+
+// field layout declarations
+
+Layout NoComm< Real, Cell >@all {
+	ghostLayers = [0, 0]
+	duplicateLayers = [0, 0]
+}
+
+Layout CommPartTempBlockable< Real, Cell >@all {
+	ghostLayers = [0, 0]
+	duplicateLayers = [0, 0]
+}
+
+Layout BasicComm< Real, Cell >@all {
+	ghostLayers = [1, 1] with communication
+	duplicateLayers = [0, 0] with communication
+}
+
+Layout CommFullTempBlockable< Real, Cell >@all {
+	ghostLayers = [1, 1] with communication
+	duplicateLayers = [0, 0] with communication
+}
+
+// field declarations
+
+Field Solution< global, CommFullTempBlockable, applyBC_solution ( ) >[2]@finest
+Field RHS< global, CommPartTempBlockable, None >@finest
+Field Residual< global, BasicComm, 0.0 >@finest
+
+// stencil declarations
+
+Stencil Laplace@finest {
+    [0, 0] => ( ( 2.0 / ( vf_cellWidth_x@current * vf_cellWidth_x@current ) ) + ( 2.0 / ( vf_cellWidth_y@current * vf_cellWidth_y@current ) ) )
+	[1, 0] => ( -1.0 / ( vf_cellWidth_x@current * vf_cellWidth_x@current ) )
+	[-1, 0] => ( -1.0 / ( vf_cellWidth_x@current * vf_cellWidth_x@current ) )
+	[0, 1] => ( -1.0 / ( vf_cellWidth_y@current * vf_cellWidth_y@current ) )
+	[0, -1] => ( -1.0 / ( vf_cellWidth_y@current * vf_cellWidth_y@current ) )
+}
+
+// functions
+
+// dirichlet BCs. velocity != 0 on the top
+Function applyBC_solution@finest ( ) : Unit {
+  	loop over Solution<active>@current only ghost [-1,  0] on boundary {
+  		Solution<active>@current = 0. - Solution<active>@current@[0, 1]
+  	}
+  	loop over Solution<active>@current only ghost [ 1,  0] on boundary {
+  		Solution<active>@current = 0. - Solution<active>@current@[0, -1]
+  	}
+  	loop over Solution<active>@current only ghost [ 0, -1] on boundary {
+        Solution<active>@current = 0. - Solution<active>@current@[0, 1]
+    }
+  	loop over Solution<active>@current only ghost [ 0,  1] on boundary {
+        Solution<active>@current = ( sin ( 2. * PI * vf_nodePosition_x) * sinh( 2. * PI ) ) - Solution<active>@current@[0, -1]
+    }
+}
+
+Function InitRHS@finest {
+	loop over RHS@current {
+		RHS@current = 4. * PI * PI * sin(2. * PI * vf_cellCenter_x) * sinh ( 2. * PI * vf_cellCenter_y )
+	}
+}
+
+Function InitSolution {
+	loop over Solution@finest {
+		Solution<active>@finest = 0
+	}
+}
+
+Function UpResidual@finest {
+	apply bc to Solution<active>@current
+	communicate Solution<active>@current
+	loop over Residual@current {
+		Residual@current = ( RHS@current - ( Laplace@current * Solution<active>@current ) )
+	}
+}
+
+Function NormResidual@finest : Real {
+	Var res : Real = 0
+	loop over Residual@current with reduction ( + : res ) {
+		res += ( Residual@current * Residual@current )
+	}
+	return sqrt ( res )
+}
+
+Function Smoother@finest : Unit {
+    apply bc to Solution<active>@current
+    communicate ghost of Solution<active>@current
+    loop over Solution@current {
+        Solution<next>@current = ( Solution<active>@current + ( ( ( 1.0 / diag ( Laplace@current ) ) * 0.8 ) * ( RHS@current - ( Laplace@current * Solution<active>@current ) ) ) )
+    }
+    advance Solution@current
+}
+
+Function Solve {
+	UpResidual@finest (  )
+	Var resStart : Real = NormResidual@finest (  )
+	Var res : Real = resStart
+	Var resOld : Real = 0
+
+	Var numIt : Integer = 0
+	repeat until ( ( res < ( 1.0E-5 * resStart ) ) || ( numIt >= 100 ) ) {
+		numIt += 1
+        Smoother@finest ( )
+		UpResidual@finest (  )
+		resOld = res
+		res = NormResidual@finest (  )
+	}
+}
+
+Function Application {
+	initGlobals (  )
+	initDomain (  )
+	initFieldsWithZero (  )
+	InitRHS@finest (  )
+	InitSolution (  )
+	apply bc to Solution<active>@finest
+	Solve (  )
+	destroyGlobals (  )
+}
