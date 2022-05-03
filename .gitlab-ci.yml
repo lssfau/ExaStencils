@@ -70,6 +70,7 @@ stages:
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker-benchmark
+        - i10swarm14
     artifacts:
         when: on_failure
         paths:
@@ -942,4 +943,8 @@ example:ShallowWaterExamples_2D:
 ##                                   ##
 #######################################
 
-# TODO
+benchmark:5pt_Jac_2D:
+    stage: benchmark
+    extends: .benchmark_template
+    script:
+        - python run_benchmark.py ../Compiler/Compiler.jar ../Compiler/lib FivePointStencil output ../Testing/Platform/anyavx2.platform 4
