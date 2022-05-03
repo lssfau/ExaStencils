@@ -26,6 +26,7 @@ import exastencils.datastructures._
 import exastencils.domain.ir.IR_IV_NeighborFragmentIdx
 import exastencils.field.ir._
 import exastencils.logger.Logger
+import exastencils.util.ir.IR_Read
 
 class CUDA_GatherFieldAccess extends Collector {
 
@@ -65,6 +66,28 @@ class CUDA_GatherFieldAccess extends Collector {
 
     }
 
+    def getFieldIdentifier(access : IR_MultiDimFieldAccess) = {
+      val field = access.field
+      var identifier = field.codeName
+
+      // TODO: array fields
+      if (field.numSlots > 1) {
+        access.slot match {
+          case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
+          case IR_IntegerConstant(slot) => identifier += s"_s$slot"
+          case other                    => identifier += s"_s${ other.prettyprint }"
+        }
+      }
+
+      // also consider neighbor fragment accesses
+      access.fragIdx match {
+        case neigh : IR_IV_NeighborFragmentIdx => identifier += s"_n${ neigh.neighIdx }"
+        case _                                 =>
+      }
+
+      identifier
+    }
+
     node match {
       case assign : IR_Assignment =>
         assign.op match {
@@ -73,24 +96,15 @@ class CUDA_GatherFieldAccess extends Collector {
         }
         assign.src.annotate(Access.ANNOT, Access.READ)
 
+      case read : IR_Read =>
+        read.toRead foreach {
+          case expr : IR_Expression =>
+            expr.annotate(Access.ANNOT, Access.WRITE)
+          case _ =>
+        }
+
       case access : IR_MultiDimFieldAccess =>
-        val field = access.field
-        var identifier = field.codeName
-
-        // TODO: array fields
-        if (field.numSlots > 1) {
-          access.slot match {
-            case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
-            case IR_IntegerConstant(slot) => identifier += s"_s$slot"
-            case other                    => identifier += s"_s${ other.prettyprint }"
-          }
-        }
-
-        // also consider neighbor fragment accesses
-        access.fragIdx match {
-          case neigh : IR_IV_NeighborFragmentIdx => identifier += s"_n${ neigh.neighIdx }"
-          case _                                 =>
-        }
+        val identifier = getFieldIdentifier(access)
 
         if (isRead)
           fieldAccesses.put("read_" + identifier, access)
