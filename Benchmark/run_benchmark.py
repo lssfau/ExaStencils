@@ -80,7 +80,7 @@ def generate_settings_file(exa_problem_path: str, output_path: str):
     tmp = f'user\t= "Guest"\n\n'
 
     exa_files = get_exa_files(exa_problem_path)
-    problem_name = get_problem_name_from_path(exa_problem_path)
+    exa_problem_name = get_problem_name_from_path(exa_problem_path)
     output_path_relative = os.path.relpath(output_path, exa_problem_path)
 
     if len(exa_files) < 1:
@@ -91,19 +91,19 @@ def generate_settings_file(exa_problem_path: str, output_path: str):
     for name in exa_files:
         for i in range(1, 5):
             if f'.exa{i}' in name:
-                tmp += f'l{i}file\t = "{problem_name}.exa{i}"\n'
+                tmp += f'l{i}file\t = "{exa_problem_name}.exa{i}"\n'
 
     tmp += f'debugL1File\t= "{get_debug_base_path(exa_problem_path)}_debug.exa1"\n'
     tmp += f'debugL2File\t= "{get_debug_base_path(exa_problem_path)}_debug.exa2"\n'
     tmp += f'debugL3File\t= "{get_debug_base_path(exa_problem_path)}_debug.exa3"\n'
     tmp += f'debugL4File\t= "{get_debug_base_path(exa_problem_path)}_debug.exa4"\n\n'
     tmp += f'htmlLogFile\t= "{get_debug_base_path(exa_problem_path)}_log.html"\n\n'
-    tmp += f'outputPath\t= "{output_path_relative}"\n\n'
+    tmp += f'outputPath\t= "{output_path_relative}/generated/{exa_problem_name}"\n\n'
     tmp += f'produceHtmlLog\t= true\n'
     tmp += f'timeStrategies\t= true\n\n'
     # tmp += f'buildfileGenerators\t= {{"MakefileGenerator"}}\n'
 
-    settings_path = f'{exa_problem_path}/{problem_name}.settings'
+    settings_path = f'{exa_problem_path}/{exa_problem_name}.settings'
     with open(settings_path, "w") as file:
         print(tmp, file=file)
 
@@ -121,19 +121,6 @@ def generate_code(generator_path: str, generator_lib_path: str, settings_path: s
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
-# --- conditionally generate ".settings" file --- #
-def get_settings(exa_problem_path: str, output_path: str):
-    settings = [n for n in fnmatch.filter(os.listdir(exa_problem_path), "*.settings") if
-                os.path.isfile(os.path.join(exa_problem_path, n))]
-    if len(settings) == 1:
-        return os.path.join(exa_problem_path, settings[0])
-    elif len(settings) > 1:
-        print("Multiple setting files found: " + ", ".join(settings))
-        return -1
-    else:
-        return generate_settings_file(exa_problem_path, output_path)
-
-
 # --- copy files from src to dst --- #
 def copy_files(src, dst):
     try:
@@ -143,6 +130,28 @@ def copy_files(src, dst):
             shutil.copy(src, dst)
         else:
             raise
+
+
+#####################
+# - run functions - #
+#####################
+
+@check_err
+@timer
+def compile_benchmark(exa_problem_name: str, output_path: str):
+    return subprocess.run(['make', '-j', '-s', '-C', f'{output_path}/generated/{exa_problem_name}'],
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+
+@check_err
+@timer
+def run_benchmark(exa_problem_name: str, nprocs: int, output_path: str):
+    return subprocess.run(
+        [f'mpirun', '--allow-run-as-root', '--oversubscribe', '--mca', 'btl_base_warn_component_unused', '0',
+         f'-np', f'{nprocs}',
+         f'{output_path}/generated/{exa_problem_name}/exastencils'],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
 
 ############
 # - main - #
@@ -154,29 +163,35 @@ def main():
     parser = argparse.ArgumentParser(description='Generate Code from ExaSlang and run')
     parser.add_argument('generator_path', type=str, help='Path to the ExaStencils compiler')
     parser.add_argument('generator_lib_path', type=str, help='Path to the libraries required by the compiler')
-    parser.add_argument('exa_source_path', type=str, help='Path to the ExaSlang problem specification')
+    parser.add_argument('exa_problem_path', type=str, help='Path to the ExaSlang problem specification')
     parser.add_argument('output_path', type=str, help='Path to ExaStencils output directory')
     parser.add_argument('platform_path', type=str, help='Path to the platform description')
+    parser.add_argument('np', type=int, help='Number of MPI processes')
     args = parser.parse_args()
 
     # print arguments
     print(f"Executing: python3 runBenchmark.py {' '.join(f'{k}={v}' for k, v in vars(args).items())}")
 
     # get settings
-    settings_path = get_settings(args.exa_source_path, args.output_path)
-    if settings_path == -1:
-        sys.exit(settings_path)
+    settings_path = generate_settings_file(args.exa_problem_path, args.output_path)
 
     # knowledge file assumed to be in the same source directory as the "*.exa?" files with same base name
-    knowledge_path = remove_extension(get_exa_files(args.exa_source_path)[0]) + '.knowledge'
+    knowledge_path = remove_extension(get_exa_files(args.exa_problem_path)[0]) + '.knowledge'
 
     # debug path
-    debug_path = os.path.join(args.exa_source_path, "Debug")
+    debug_path = os.path.join(args.exa_problem_path, "Debug")
     if not os.path.exists(debug_path):
         os.mkdir(debug_path)
 
-    # call compiler
+    # generate target code
     generate_code(args.generator_path, args.generator_lib_path, settings_path, knowledge_path, args.platform_path)
+
+    # compile target code
+    exa_problem_name = get_problem_name_from_path(args.exa_problem_path)
+    compile_benchmark(exa_problem_name, args.output_path)
+
+    # run target code
+    run_benchmark(exa_problem_name, args.np, args.output_path)
 
 
 if __name__ == "__main__":
