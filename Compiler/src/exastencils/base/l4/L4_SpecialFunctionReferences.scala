@@ -20,6 +20,8 @@ object L4_SpecialFunctionReferences {
       case "waitForFlag" | "waitForMPIReq" | "commFragOrderInternal" =>
       // timer funcs
       case "stopTimer" | "startTimer" | "reduceTimers" | "printAllTimers" | "printAllTimersToFile" | "getTotalTime" | "getMeanTime" | "getLastTime" =>
+      // util funcs
+      case "benchmarkStart" | "benchmarkStop" | "clearCharacteristics" | "logCharacteristics" | "printJSON" | "printWithReducedPrec" =>
       // matrix funcs
       case "smallMatrixInversion" | "inv_diagonal" | "inv_schur" | "inv_filled" | "inv_blockdiagonal" | "isOfStructure" | luSolve() =>
       // cuda special funcs
