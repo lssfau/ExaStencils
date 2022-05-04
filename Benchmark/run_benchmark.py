@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import re
 import os
 import subprocess
 import functools
@@ -145,12 +146,53 @@ def compile_benchmark(exa_problem_name: str, output_path: str):
 
 @check_err
 @timer
-def run_benchmark(exa_problem_name: str, nprocs: int, output_path: str):
-    return subprocess.run(
-        [f'mpirun', '--allow-run-as-root', '--oversubscribe', '--mca', 'btl_base_warn_component_unused', '0',
-         f'-np', f'{nprocs}',
+def run_benchmark(exa_problem_name: str, nprocs: int, output_path: str, result_file_path: str):
+    # run code
+    result = subprocess.run(
+        ['mpirun', '--allow-run-as-root', '--oversubscribe', '--mca', 'btl_base_warn_component_unused', '0',
+         '-np', f'{nprocs}',
          f'{output_path}/generated/{exa_problem_name}/exastencils'],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # write stdout results to file
+    result_str = result.stdout.decode('utf-8')
+    with open(result_file_path, "w+") as result_file:
+        result_file.write(result_str)
+
+    return result
+
+
+######################
+# - JSON functions - #
+######################
+
+def reformat_to_json(result_file: str, problem_name: str):
+    tts = dict()
+
+    with open(result_file) as f:
+        for s in f.readlines():
+            # TODO: adapt to our needs
+            m = re.search(r'\[0\]\s*(\w*)\s*\|[\s\d\.\%]*\|\s*([\d\.]*)', s)
+
+            if m is not None:
+                tts[m.group(1)] = float(m.group(2))
+
+
+    json_body = [
+        {
+            'measurement': problem_name,
+            'tags': {
+                'host': os.uname()[1],
+                #'image': os.environ["DOCKER_IMAGE_NAME"],
+            },
+            'time': int(time.time()),
+            'fields': tts
+        }
+    ]
+
+    print(tts)
+
+    return json_body
 
 
 ############
@@ -186,7 +228,11 @@ def main():
     compile_benchmark(exa_problem_name, args.output_path)
 
     # run target code
-    run_benchmark(exa_problem_name, args.np, args.output_path)
+    result_file = f'{args.output_path}/generated/{exa_problem_name}.txt'
+    run_benchmark(exa_problem_name, args.np, args.output_path, result_file)
+
+    # reformat standard output to JSON
+    json_body = reformat_to_json(result_file, exa_problem_name)
 
 
 if __name__ == "__main__":
