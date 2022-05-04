@@ -133,6 +133,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_ResolveStationFunctions.apply()
     IR_ResolveCImgFunctions.apply()
     IR_ResolveCharacteristicsFunctions.apply()
+    IR_ResolveJSONFunctions.apply()
     IR_ResolveBenchmarkFunctions.apply()
     IR_ResolveGismoFunctions.apply()
     IR_ResolveVtkPrinters.apply()
