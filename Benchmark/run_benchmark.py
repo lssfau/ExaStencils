@@ -10,6 +10,7 @@ import fnmatch
 import argparse
 import shutil
 import errno
+from upload_grafana import *
 
 
 ##################
@@ -233,6 +234,9 @@ def main():
 
     # reformat standard output to JSON
     json_body = reformat_to_json(result_file, exa_problem_name)
+
+    # upload to grafana
+    #up = UploadGrafana(json_body)
 
 
 if __name__ == "__main__":
