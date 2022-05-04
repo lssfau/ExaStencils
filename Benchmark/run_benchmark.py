@@ -10,7 +10,7 @@ import fnmatch
 import argparse
 import shutil
 import errno
-from upload_grafana import *
+#from upload_grafana import *
 
 
 ##################
