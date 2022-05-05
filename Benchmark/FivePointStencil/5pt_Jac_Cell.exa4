@@ -117,6 +117,7 @@ Function Solve {
 	Var resOld : Real = 0
 
 	Var numIt : Integer = 0
+	startTimer ( 'solve' )
 	repeat until ( ( res < ( 1.0E-5 * resStart ) ) || ( numIt >= 100 ) ) {
 		numIt += 1
         Smoother@finest ( )
@@ -124,6 +125,7 @@ Function Solve {
 		resOld = res
 		res = NormResidual@finest (  )
 	}
+	stopTimer ( 'solve' )
 }
 
 Function Application {
@@ -135,10 +137,17 @@ Function Application {
 	InitSolution (  )
 	apply bc to Solution<active>@finest
 	stopTimer ( 'setup' )
-
-	startTimer ( 'solve' )
 	Solve (  )
-	stopTimer ( 'solve' )
+
+    // json
+	printJSON ("results.json",
+	    'timePerSolve', getMeanTime ( 'solve' ),
+	    'timePerKernel', getMeanTime ( 'kernel' ),
+	    'timePerCommunication', getMeanTime ( 'communication' ),
+	    'totalSetupTime', getTotalTime ( 'setup' ),
+	    'totalApplyBCTime', getTotalTime ( 'applyBC' )
+	)
+
 
 	printAllTimers (  )
 	destroyGlobals (  )
