@@ -12,6 +12,7 @@ import shutil
 import errno
 import json
 from upload_grafana import *
+from decorate_json import *
 
 
 ##################
@@ -205,11 +206,13 @@ def main():
     run_benchmark(exa_problem_name, args.np, args.output_path, stdout_file)
 
     # upload to grafana
+    platform_name = os.path.splitext(os.path.basename(args.platform_path))[0]
     json_file = f'{args.output_path}/generated/{exa_problem_name}/results.json'
     if os.path.exists(f'{args.output_path}/generated/{exa_problem_name}/results.json'):
         f = open(json_file)
         json_body = json.load(f)
-        up = UploadGrafana(json_body)
+        print(json_body)
+        up = UploadGrafana(decorate_json(json_body, args.np, platform_name))
 
 
 if __name__ == "__main__":
