@@ -211,8 +211,7 @@ def main():
     if os.path.exists(f'{args.output_path}/generated/{exa_problem_name}/results.json'):
         f = open(json_file)
         json_body = json.load(f)
-        print(json_body)
-        up = UploadGrafana(decorate_json(json_body, args.np, platform_name))
+        up = UploadGrafana(decorate_json(json_body, exa_problem_name, args.np, platform_name))
 
 
 if __name__ == "__main__":
