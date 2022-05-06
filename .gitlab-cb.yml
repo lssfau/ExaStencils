@@ -75,7 +75,7 @@ build:generator:
     tags:
         - testcluster
     variables:
-        SLURM_TIMELIMIT: 10
+        NO_SLURM_SUBMIT: 1
     artifacts:
         paths:
             - Compiler/Compiler.jar
