@@ -22,7 +22,6 @@ stages:
             - Benchmark/output/generated/*
         expire_in: 1 weeks
     before_script:
-        - source ~/.bashrc
         - module load python/3.8-anaconda
         - |
             for PACKAGE in PYTHON_PACKAGES
