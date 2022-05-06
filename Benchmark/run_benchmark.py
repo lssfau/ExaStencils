@@ -13,6 +13,7 @@ import errno
 import json
 from upload_grafana import *
 from decorate_json import *
+from likwid_pinning import *
 
 
 ##################
@@ -149,15 +150,13 @@ def compile_benchmark(exa_problem_name: str, output_path: str):
 
 @check_err
 @timer
-def run_benchmark(exa_problem_name: str, nprocs: int, output_path: str, stdout_file_path: str):
+def run_benchmark(exa_problem_name: str, output_path: str, stdout_file_path: str,
+                  config: ConfigFromKnowledge):
     cwd = os.getcwd()
     os.chdir(f'{output_path}/generated/{exa_problem_name}')
 
-    # run code
-    result = subprocess.run(
-        ['mpirun', '--allow-run-as-root', '--oversubscribe', '--mca', 'btl_base_warn_component_unused', '0',
-         '-np', f'{nprocs}', 'exastencils'],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # run code with likwid pinning
+    result = subprocess.run(print_job(config), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # write stdout results to file
     stdout_str = result.stdout.decode('utf-8')
@@ -182,7 +181,6 @@ def main():
     parser.add_argument('exa_problem_path', type=str, help='Path to the ExaSlang problem specification')
     parser.add_argument('output_path', type=str, help='Path to ExaStencils output directory')
     parser.add_argument('platform_path', type=str, help='Path to the platform description')
-    parser.add_argument('np', type=int, help='Number of MPI processes')
     args = parser.parse_args()
 
     # print arguments
@@ -201,17 +199,20 @@ def main():
     exa_problem_name = get_problem_name_from_path(args.exa_problem_path)
     compile_benchmark(exa_problem_name, args.output_path)
 
+    # parse knowledge and platform file
+    config = ConfigFromKnowledge(exa_problem_name, knowledge_path, args.platform_path)
+    print(config.__dict__)
+
     # run target code
     stdout_file = f'{exa_problem_name}.txt'
-    run_benchmark(exa_problem_name, args.np, args.output_path, stdout_file)
+    run_benchmark(exa_problem_name, args.output_path, stdout_file, config)
 
     # upload to grafana
-    platform_name = os.path.splitext(os.path.basename(args.platform_path))[0]
     json_file = f'{args.output_path}/generated/{exa_problem_name}/results.json'
     if os.path.exists(f'{args.output_path}/generated/{exa_problem_name}/results.json'):
         f = open(json_file)
         json_body = json.load(f)
-        up = UploadGrafana(decorate_json(json_body, exa_problem_name, args.np, platform_name))
+        up = UploadGrafana(decorate_json(json_body, config))
 
 
 if __name__ == "__main__":

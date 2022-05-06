@@ -1,16 +1,17 @@
 import numpy as np
+from config_from_knowledge import *
 
 
 def get_omp_exp(config: ConfigFromKnowledge, nthreads: int, cpu_id_start: int):
-    if cpu_id_start < config.cores_per_socket:
+    if cpu_id_start < config.cores_per_cpu:
         socket_id = 0
     else:
         socket_id = 1
     cpu_id_end = cpu_id_start + nthreads - 1
-    if cpu_id_end > config.cores_per_socket - 1 and socket_id == 0:
-        pinning_expression = f"S{socket_id}:{cpu_id_start}-{config.cores_per_socket - 1}"
+    if cpu_id_end > config.cores_per_cpu - 1 and socket_id == 0:
+        pinning_expression = f"S{socket_id}:{cpu_id_start}-{config.cores_per_cpu - 1}"
         socket_id = 1
-        cpu_id_start = config.cores_per_socket
+        cpu_id_start = config.cores_per_cpu
         pinning_expression = pinning_expression + f"@S{socket_id}:{cpu_id_start}-{cpu_id_end}"
     else:
         if config.start_2nd_socked_with_0:
@@ -39,7 +40,7 @@ def print_job(config: ConfigFromKnowledge):
     if config.omp_num_threads > 1:
         if config.omp_pinning_layout == "distribute":
             pin_S0 = get_omp_exp(config, int(np.ceil(config.omp_num_threads / 2)), 0)
-            pin_S1 = get_omp_exp(config, int(np.floor(config.omp_num_threads / 2)), config.cores_per_socket)
+            pin_S1 = get_omp_exp(config, int(np.floor(config.omp_num_threads / 2)), config.cores_per_cpu)
             omp_pinning = f"{pin_S0}@{pin_S1}"
         elif config.omp_pinning_layout == "compact":
             omp_pinning = get_omp_exp(config, config.omp_num_threads, 0)
@@ -57,14 +58,14 @@ def print_job(config: ConfigFromKnowledge):
             else:
                 return "srun", "likwid-pin", "-c", f"{omp_pinning}", "-s", "0x3", "./exastencils"
     # with MPI
-    else:
+    elif config.n_blocks > 1:
         # omp pinning
         if "node" == config.mpi_pinning_domain:
             omp_pinning = get_omp_pinning(config, config.omp_num_threads, ntasks_per_node, 0)
         elif "socket" == config.mpi_pinning_domain:
             pin_S0 = get_omp_pinning(config, config.omp_num_threads, int(np.ceil(ntasks_per_node / 2)), 0)
             pin_S1 = get_omp_pinning(config, config.omp_num_threads, int(np.floor(ntasks_per_node / 2)),
-                                     config.cores_per_socket)
+                                     config.cores_per_cpu)
             omp_pinning = f"{pin_S0}_{pin_S1}"
         ntasks_per_node_ = f"N:{ntasks_per_node}"
         if not config.use_cuda:
