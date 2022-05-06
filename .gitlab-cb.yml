@@ -22,12 +22,15 @@ stages:
             - Benchmark/output/generated/*
         expire_in: 1 weeks
     before_script:
+        - JAVA_HOME=$HOME/jdk-11.0.14 ; export JAVA_HOME
+        - SBT_HOME=$HOME/sbt ; export SBT_HOME
+        - PATH=$JAVA_HOME/bin:$SBT_HOME/bin:$PATH ; export PATH
         - module load python/3.8-anaconda
         - |
-            for PACKAGE in PYTHON_PACKAGES
-              do
+            for PACKAGE in $PYTHON_PACKAGES
+            do
                 python3 pip install --user $PACKAGE
-              done
+            done
         - module load openmpi/4.1.1-gcc
         - module load likwid/5.2.1
         - sbt sbtVersion
@@ -37,10 +40,10 @@ stages:
         - cd Benchmark
     after_script:
         - |
-            for PACKAGE in PYTHON_PACKAGES
-              do
+            for PACKAGE in $PYTHON_PACKAGES
+            do
                 python3 pip uninstall $PACKAGE # cleanup
-              done
+            done
 
 .benchmark_template_CUDA:
     extends: .benchmark_template
@@ -74,8 +77,6 @@ build:generator:
     stage: build
     tags:
         - testcluster
-    variables:
-        NO_SLURM_SUBMIT: 1
     artifacts:
         paths:
             - Compiler/Compiler.jar
