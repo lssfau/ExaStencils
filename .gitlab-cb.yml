@@ -1,0 +1,100 @@
+stages:
+    - build
+    - benchmark
+
+#######################################
+##                                   ##
+##         Templates                 ##
+##                                   ##
+#######################################
+
+.benchmark_template:
+    dependencies:
+        - build:generator
+    tags:
+        - testcluster
+    variables:
+        - PYTHON_PACKAGES: sympy numpy influxdb GitPython
+    artifacts:
+        when: on_failure
+        paths:
+            - Benchmark/output/Debug/*
+            - Benchmark/output/generated/*
+        expire_in: 1 weeks
+    before_script:
+        - module load python/3.8-anaconda
+        - |
+            for PACKAGE in PYTHON_PACKAGES
+              do
+                python3 pip install --user $PACKAGE
+              done
+        - module load openmpi/4.1.1-gcc
+        - module load likwid/5.2.1
+        - sbt sbtVersion
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - cd Benchmark
+    after_script:
+        - |
+            for PACKAGE in PYTHON_PACKAGES
+              do
+                python3 pip uninstall $PACKAGE # cleanup
+              done
+
+.benchmark_template_CUDA:
+    extends: .benchmark_template
+    before_script:
+        - module load cuda/11.4
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - nvcc --version
+        - nvidia-smi
+        - updatedb
+        - cd Testing
+
+.benchmark_template_broadep2:
+    extends: .benchmark_template
+    variables:
+        SLURM_NODELIST: broadep2
+
+.benchmark_template_medusa:
+    extends: .benchmark_template
+    variables:
+        SLURM_NODELIST: medusa
+
+#######################################
+##                                   ##
+##         Generator                 ##
+##                                   ##
+#######################################
+
+build:generator:
+    stage: build
+    tags:
+        - testcluster
+    variables:
+        SLURM_TIMELIMIT: 10
+    artifacts:
+        paths:
+            - Compiler/Compiler.jar
+            - Compiler/lib
+            - Benchmark
+        expire_in: 1 weeks
+    script:
+        - java -version
+        - sbt compile
+        - sbt assembly
+
+#######################################
+##                                   ##
+##         Benchmarks                ##
+##                                   ##
+#######################################
+
+benchmark:5pt_Jac_2D:
+    stage: benchmark
+    extends: .benchmark_template_broadep2
+    script:
+        - python3 run_benchmark.py ../Compiler/Compiler.jar ../Compiler/lib FivePointStencil output ../Testing/Platform/anyavx2.platform 4
