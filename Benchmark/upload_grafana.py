@@ -16,6 +16,6 @@ class UploadGrafana:
             raise exc_info[0].with_traceback(exc_info[1], exc_info[2])
 
         self.client = InfluxDBClient('i10web.informatik.uni-erlangen.de', 8086,
-                                     'ExaStencils', self.write_user_pw, 'ExaStencils')
+                                     'exastencils', self.write_user_pw, 'exastencils')
 
         self.client.write_points(json_body, time_precision='s')
