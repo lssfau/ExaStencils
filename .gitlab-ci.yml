@@ -943,6 +943,20 @@ example:ShallowWaterExamples_2D:
 ##                                   ##
 #######################################
 
+benchmark:test:
+    stage: benchmark
+    extends: .benchmark_template
+    script:
+        - echo $PATH
+        - echo $LD_LIBRARY_PATH
+        - echo $LIKWID_INCLUDE
+        - echo $LIKWID_LIB
+        - which likwid-perfctr
+        - whereis likwid-perfctr
+        - which likwid-mpirun
+        - whereis likwid-mpirun
+        - likwid-mpirun -np 1 echo hi
+
 benchmark:5pt_Jac_2D:
     stage: benchmark
     extends: .benchmark_template
