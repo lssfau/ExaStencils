@@ -12,9 +12,11 @@ class ConfigFromKnowledge:
         self.n_blocks = 1
         self.n_nodes = 1
         self.omp_num_threads = 1
+        self.omp_enabled = False
         self.omp_pinning_layout = "compact"
         self.run_local = True
         self.use_cuda = False
+        self.mpi_enabled = False
         self.mpi_pinning_domain = "socket"
         self.mpi_num_processes = 1
         self.simd_instructionSet = ""
@@ -42,6 +44,10 @@ class ConfigFromKnowledge:
                         self.mpi_num_processes = int(value)
                     elif key == "omp_numThreads":
                         self.omp_num_threads = int(value)
+                    elif key == "mpi_enabled":
+                        self.mpi_enabled = json.loads(value.lower())
+                    elif key == "omp_enabled":
+                        self.omp_enabled = json.loads(value.lower())
                     elif key == "cuda_enabled":
                         self.use_cuda = json.loads(value.lower())
 

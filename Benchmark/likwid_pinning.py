@@ -57,7 +57,10 @@ def print_job(config: ConfigFromKnowledge):
                 return "srun", "likwid-pin", "-c", f"{omp_pinning}", "./exastencils"
             else:
                 return "srun", "likwid-pin", "-c", f"{omp_pinning}", "-s", "0x3", "./exastencils"
-    # with MPI
+    # pure MPI, no OpenMP
+    elif config.n_blocks > 1 and (config.omp_num_threads == 1 or config.omp_enabled == False) and config.use_cuda == False:
+        return "env", "OMPI_MCA_hwloc_base_binding_policy=none", "likwid-mpirun", "-d", "-np", f"{config.mpi_num_processes}", "-s", "0x3", "./exastencils"
+    # hybrid
     elif config.n_blocks > 1:
         # omp pinning
         if "node" == config.mpi_pinning_domain:
