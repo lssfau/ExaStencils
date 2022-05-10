@@ -45,8 +45,8 @@ stages:
             - Benchmark/output/Debug/*
             - Benchmark/output/generated/*
         expire_in: 1 weeks
-        - cd Benchmark
     before_script:
+        - cd Benchmark
         - !reference [.module_tree, before_script]
     after_script:
         - !reference [.module_tree, after_script]
