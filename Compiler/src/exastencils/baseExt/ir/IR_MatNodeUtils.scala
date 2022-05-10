@@ -212,11 +212,15 @@ object IR_MatNodeUtils {
   /** Method: split a declaration with init to declaration and assignment with init
     *
     * @param decl : IR_VariableDeclaration, declaration to be split
-    * @return list containing variable declaration without init and assignment of that variable with init expresion
+    * @return list containing variable declaration without init and assignment of that variable with init expression
     * */
-  def splitDeclaration(decl : IR_VariableDeclaration) : ListBuffer[IR_Statement] = {
+  def splitDeclaration(decl : IR_VariableDeclaration, zeroInit : Boolean = false) : ListBuffer[IR_Statement] = {
     val newStmts = ListBuffer[IR_Statement]()
-    newStmts += IR_VariableDeclaration(decl.datatype, decl.name, None)
+    if(zeroInit) {
+      newStmts += IR_VariableDeclaration(decl.datatype, decl.name, IR_IntegerConstant(0))
+    } else {
+      newStmts += IR_VariableDeclaration(decl.datatype, decl.name, None)
+    }
     newStmts += IR_Assignment(IR_VariableAccess(decl), decl.initialValue.getOrElse(IR_NullExpression))
     newStmts
   }

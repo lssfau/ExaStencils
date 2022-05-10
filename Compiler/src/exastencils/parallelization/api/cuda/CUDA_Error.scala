@@ -48,16 +48,16 @@ case class CUDA_CheckError(var exp : IR_Expression) extends CUDA_HostStatement w
     def print = IR_RawPrint("\"CUDA error in file (\"", "__FILE__", "\"), line (\"", "__LINE__", "\"): \"", status,
       "\" -> \"", IR_FunctionCall(IR_ExternalFunctionReference("cudaGetErrorString"), status), "std::endl")
 
+    def printAndExit : ListBuffer[IR_Statement] = ListBuffer(print, IR_FunctionCall(IR_ExternalFunctionReference("exit"), 1))
+
     ListBuffer(
       IR_VariableDeclaration(status, exp),
       IR_IfCondition("cudaSuccess" Neq status,
-        print,
+        printAndExit,
         ListBuffer(
           IR_Assignment(status, IR_FunctionCall(IR_ExternalFunctionReference("cudaGetLastError"))),
           IR_IfCondition("cudaSuccess" Neq status,
-            ListBuffer[IR_Statement](
-              print,
-              IR_FunctionCall(IR_ExternalFunctionReference("exit"), 1))
+            printAndExit
           ))))
   }
 }
