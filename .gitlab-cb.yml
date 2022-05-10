@@ -8,19 +8,9 @@ stages:
 ##                                   ##
 #######################################
 
-.benchmark_template:
-    dependencies:
-        - build:generator
-    tags:
-        - testcluster
+.module_tree:
     variables:
         - PYTHON_PACKAGES: sympy numpy influxdb GitPython
-    artifacts:
-        when: on_failure
-        paths:
-            - Benchmark/output/Debug/*
-            - Benchmark/output/generated/*
-        expire_in: 1 weeks
     before_script:
         - JAVA_HOME=$HOME/jdk-11.0.14 ; export JAVA_HOME
         - SBT_HOME=$HOME/sbt ; export SBT_HOME
@@ -37,13 +27,29 @@ stages:
         - java -version
         - python3 --version
         - mpirun --version
-        - cd Benchmark
     after_script:
         - |
             for PACKAGE in $PYTHON_PACKAGES
             do
                 python3 pip uninstall $PACKAGE # cleanup
             done
+
+.benchmark_template:
+    dependencies:
+        - build:generator
+    tags:
+        - testcluster
+    artifacts:
+        when: on_failure
+        paths:
+            - Benchmark/output/Debug/*
+            - Benchmark/output/generated/*
+        expire_in: 1 weeks
+        - cd Benchmark
+    before_script:
+        - !reference [.module_tree, before_script]
+    after_script:
+        - !reference [.module_tree, after_script]
 
 .benchmark_template_CUDA:
     extends: .benchmark_template
@@ -83,8 +89,11 @@ build:generator:
             - Compiler/lib
             - Benchmark
         expire_in: 1 weeks
+    before_script:
+        - !reference [ .module_tree, before_script ]
+    after_script:
+        - !reference [ .module_tree, after_script ]
     script:
-        - java -version
         - sbt compile
         - sbt assembly
 
