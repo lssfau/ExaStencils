@@ -31,4 +31,7 @@ RUN \
   export PATH="/usr/local/likwid/bin/:${PATH}" && \
   export PATH="/usr/local/likwid/sbin/:${PATH}" && \
   export LIKWID_INCLUDE="-I/usr/local/likwid/include" && \
-  export LIKWID_LIB="-L/usr/local/likwid/lib"
+  export LIKWID_LIB="-L/usr/local/likwid/lib" && \
+  echo $PATH && \
+  echo $LIKWID_INCLUDE && \
+  echo $LIKWID_LIB
