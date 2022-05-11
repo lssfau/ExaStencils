@@ -24,10 +24,6 @@ stages:
             done
         - module load openmpi/4.1.1-gcc
         - module load likwid/5.2.1
-        - sbt sbtVersion
-        - java -version
-        - python3 --version
-        - mpirun --version
     after_script:
         - |
             for PACKAGE in $PYTHON_PACKAGES
@@ -49,16 +45,15 @@ stages:
     before_script:
         - cd Benchmark
         - !reference [.module_tree, before_script]
+        - mpirun --version
     after_script:
         - !reference [.module_tree, after_script]
 
 .benchmark_template_CUDA:
     extends: .benchmark_template
     before_script:
+        - !reference [.benchmark_template, before_script]
         - module load cuda/11.4
-        - java -version
-        - python3 --version
-        - mpirun --version
         - nvcc --version
         - nvidia-smi
         - updatedb
@@ -77,10 +72,12 @@ build:generator:
         paths:
             - Compiler/Compiler.jar
             - Compiler/lib
-            - Benchmark
         expire_in: 1 weeks
     before_script:
         - !reference [ .module_tree, before_script ]
+        - sbt sbtVersion
+        - java -version
+        - python3 --version
     after_script:
         - !reference [ .module_tree, after_script ]
     script:
