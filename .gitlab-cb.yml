@@ -42,12 +42,12 @@ stages:
             - Benchmark/output/generated/*
         expire_in: 1 weeks
     variables:
-        - NO_SLURM_SUBMIT: 1
-        - COMPILER_PATH: "../Compiler/Compiler.jar"
-        - COMPILER_LIB_PATH: "../Compiler/lib"
-        - EXA_PROBLEM_PATH: ""
-        - OUTPUT_PATH: "output"
-        - PLATFORM_PATH: "Platform/rome1.platform"
+        NO_SLURM_SUBMIT: 1
+        COMPILER_PATH: "../Compiler/Compiler.jar"
+        COMPILER_LIB_PATH: "../Compiler/lib"
+        EXA_PROBLEM_PATH: "TO_BE_REPLACED"
+        OUTPUT_PATH: "output"
+        PLATFORM_PATH: "Platform/rome1.platform"
     before_script:
         - cd Benchmark
         - !reference [.module_tree, before_script]
@@ -107,4 +107,4 @@ benchmark:5pt_Jac_2D:
     stage: benchmark
     extends: .benchmark_template
     variables:
-        - EXA_PROBLEM_PATH: "FivePointStencil"
+        EXA_PROBLEM_PATH: "FivePointStencil"
