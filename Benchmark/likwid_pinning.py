@@ -34,7 +34,7 @@ def get_omp_pinning(config: ConfigFromKnowledge, nthreads_per_task: int, ntasks:
     return pinning
 
 
-def print_job(config: ConfigFromKnowledge):
+def likwid_pin(config: ConfigFromKnowledge):
     ntasks_per_node = config.n_blocks // config.n_nodes
     omp_pinning = "S0:0"
     if config.omp_num_threads > 1:

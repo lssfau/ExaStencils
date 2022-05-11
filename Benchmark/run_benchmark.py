@@ -149,14 +149,27 @@ def compile_benchmark(exa_problem_name: str, output_path: str):
 
 
 @check_err
+def slurm_alloc(config: ConfigFromKnowledge):
+    assert (config.n_nodes == 1, "Only single-node jobs are currently allowed on the testcluster")
+
+    return subprocess.run(["salloc", f"--nodes={config.n_nodes}", f"--nodelist={config.host_name}", "--export=NONE"],
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+
+@check_err
 @timer
 def run_benchmark(exa_problem_name: str, output_path: str, stdout_file_path: str,
-                  config: ConfigFromKnowledge):
+                  config: ConfigFromKnowledge, testcluster_run: bool):
     cwd = os.getcwd()
     os.chdir(f'{output_path}/generated/{exa_problem_name}')
 
     # run code with likwid pinning
-    result = subprocess.run(print_job(config), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if testcluster_run:
+        slurm_alloc(config)
+        subprocess.run(["export", "SLURM_MPI_TYPE=pmi2"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(["unset", "SLURM_EXPORT_ENV"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    result = subprocess.run(likwid_pin(config), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # write stdout results to file
     stdout_str = result.stdout.decode('utf-8')
@@ -205,7 +218,8 @@ def main():
 
     # run target code
     stdout_file = f'{exa_problem_name}.txt'
-    run_benchmark(exa_problem_name, args.output_path, stdout_file, config)
+    testcluster_run = True
+    run_benchmark(exa_problem_name, args.output_path, stdout_file, config, testcluster_run)
 
     # upload to grafana
     json_file = f'{args.output_path}/generated/{exa_problem_name}/results.json'

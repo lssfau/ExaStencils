@@ -11,6 +11,7 @@ stages:
 .module_tree:
     variables:
         - PYTHON_PACKAGES: sympy numpy influxdb GitPython
+        - NO_SLURM_SUBMIT: 1
     before_script:
         - JAVA_HOME=$HOME/jdk-11.0.14 ; export JAVA_HOME
         - SBT_HOME=$HOME/sbt ; export SBT_HOME
@@ -61,17 +62,6 @@ stages:
         - nvcc --version
         - nvidia-smi
         - updatedb
-        - cd Testing
-
-.benchmark_template_broadep2:
-    extends: .benchmark_template
-    variables:
-        SLURM_NODELIST: broadep2
-
-.benchmark_template_medusa:
-    extends: .benchmark_template
-    variables:
-        SLURM_NODELIST: medusa
 
 #######################################
 ##                                   ##
@@ -105,6 +95,6 @@ build:generator:
 
 benchmark:5pt_Jac_2D:
     stage: benchmark
-    extends: .benchmark_template_broadep2
+    extends: .benchmark_template
     script:
-        - python3 run_benchmark.py ../Compiler/Compiler.jar ../Compiler/lib FivePointStencil output ../Testing/Platform/anyavx2.platform
+        - python3 run_benchmark.py ../Compiler/Compiler.jar ../Compiler/lib FivePointStencil output Platform/rome1.platform
