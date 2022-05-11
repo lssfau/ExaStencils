@@ -27,8 +27,8 @@ RUN \
   sed -i 's/\/usr\/local/\/usr\/local\/likwid/g' config.mk && \
   make && \
   make install && \
-  cd .. && \
-  export PATH="/usr/local/likwid/bin/:${PATH}" && \
-  export PATH="/usr/local/likwid/sbin/:${PATH}" && \
-  export LIKWID_INCLUDE="-I/usr/local/likwid/include" && \
-  export LIKWID_LIB="-L/usr/local/likwid/lib"
+  cd ..
+ENV PATH "/usr/local/likwid/bin/:${PATH}"
+ENV PATH "/usr/local/likwid/sbin/:${PATH}"
+ENV LIKWID_INCLUDE "-I/usr/local/likwid/include"
+ENV LIKWID_LIB "-L/usr/local/likwid/lib"
