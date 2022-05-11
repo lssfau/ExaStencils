@@ -9,12 +9,12 @@ from generation_helpers import *
 
 @check_err
 def slurm_alloc(config: ConfigFromKnowledge):
-    assert (config.n_nodes == 1, "Only single-node jobs are currently allowed on the testcluster")
+    assert config.n_nodes == 1, "Only single-node jobs are currently allowed on the testcluster"
 
     result = subprocess.run(["salloc", f"--nodes={config.n_nodes}", f"--nodelist={config.host_name}", "--export=NONE"],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    subprocess.run(["export", "SLURM_MPI_TYPE=pmi2"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    subprocess.run(["unset", "SLURM_EXPORT_ENV"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    #subprocess.run(["export", "SLURM_MPI_TYPE=pmi2"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    #subprocess.run(["unset", "SLURM_EXPORT_ENV"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     return result
 
