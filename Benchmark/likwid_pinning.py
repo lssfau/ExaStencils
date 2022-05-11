@@ -2,6 +2,11 @@ import numpy as np
 from config_from_knowledge import *
 
 
+#####################
+# - pin functions - #
+#####################
+
+
 def get_omp_exp(config: ConfigFromKnowledge, nthreads: int, cpu_id_start: int):
     if cpu_id_start < config.cores_per_cpu:
         socket_id = 0
@@ -49,17 +54,18 @@ def likwid_pin(config: ConfigFromKnowledge):
     if config.n_blocks == 1:
         if config.run_local:
             if not config.use_cuda:
-                return "likwid-pin", "-c", f"{omp_pinning}", "./exastencils"
+                return ["likwid-pin", "-c", f"{omp_pinning}", "./exastencils"]
             else:
-                return "likwid-pin", "-c", f"{omp_pinning}", "-s", "0x3", "./exastencils"
+                return ["likwid-pin", "-c", f"{omp_pinning}", "-s", "0x3", "./exastencils"]
         else:
             if not config.use_cuda:
-                return "srun", "likwid-pin", "-c", f"{omp_pinning}", "./exastencils"
+                return ["srun", "likwid-pin", "-c", f"{omp_pinning}", "./exastencils"]
             else:
-                return "srun", "likwid-pin", "-c", f"{omp_pinning}", "-s", "0x3", "./exastencils"
+                return ["srun", "likwid-pin", "-c", f"{omp_pinning}", "-s", "0x3", "./exastencils"]
     # pure MPI, no OpenMP
-    elif config.n_blocks > 1 and (config.omp_num_threads == 1 or config.omp_enabled == False) and config.use_cuda == False:
-        return "env", "OMPI_MCA_hwloc_base_binding_policy=none", "likwid-mpirun", "-d", "-np", f"{config.mpi_num_processes}", "-s", "0x3", "./exastencils"
+    elif config.n_blocks > 1 and (config.omp_num_threads == 1 or config.omp_enabled is False) and config.use_cuda is False:
+        return ["env", "OMPI_MCA_hwloc_base_binding_policy=none", "likwid-mpirun", "-d", "-np",
+                f"{config.mpi_num_processes}", "-s", "0x3", "./exastencils"]
     # hybrid
     elif config.n_blocks > 1:
         # omp pinning
@@ -72,6 +78,10 @@ def likwid_pin(config: ConfigFromKnowledge):
             omp_pinning = f"{pin_S0}_{pin_S1}"
         ntasks_per_node_ = f"N:{ntasks_per_node}"
         if not config.use_cuda:
-            return "env", f"OMP_NUM_THREADS={config.omp_num_threads}", "env", "OMPI_MCA_hwloc_base_binding_policy=none", "likwid-mpirun", "--mpiopts \"\"", "-d", "-np", f"{config.mpi_num_processes}", "-nperdomain", f"{ntasks_per_node_}", "-pin", f"{omp_pinning}", f"{config.omp_num_threads}", "-s", "0x3", "./exastencils"
+            return ["env", f"OMP_NUM_THREADS={config.omp_num_threads}", "env", "OMPI_MCA_hwloc_base_binding_policy=none",
+                    "likwid-mpirun", "--mpiopts \"\"", "-d", "-np", f"{config.mpi_num_processes}", "-nperdomain",
+                    f"{ntasks_per_node_}", "-pin", f"{omp_pinning}", f"{config.omp_num_threads}", "-s", "0x3", "./exastencils"]
         else:
-            return "env", f"OMP_NUM_THREADS={config.omp_num_threads}", "env", "OMPI_MCA_hwloc_base_binding_policy=none", "likwid-mpirun", "--mpiopts \"\"", "-d", "-np", f"{config.mpi_num_processes}", "-nperdomain", f"{ntasks_per_node_}", "-pin", f"{omp_pinning}", f"{config.omp_num_threads}", "-s", "0x7", "./exastencils"
+            return ["env", f"OMP_NUM_THREADS={config.omp_num_threads}", "env", "OMPI_MCA_hwloc_base_binding_policy=none",
+                    "likwid-mpirun", "--mpiopts \"\"", "-d", "-np", f"{config.mpi_num_processes}", "-nperdomain",
+                    f"{ntasks_per_node_}", "-pin", f"{omp_pinning}", f"{config.omp_num_threads}", "-s", "0x7", "./exastencils"]

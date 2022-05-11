@@ -11,7 +11,6 @@ stages:
 .module_tree:
     variables:
         - PYTHON_PACKAGES: sympy numpy influxdb GitPython
-        - NO_SLURM_SUBMIT: 1
     before_script:
         - JAVA_HOME=$HOME/jdk-11.0.14 ; export JAVA_HOME
         - SBT_HOME=$HOME/sbt ; export SBT_HOME
@@ -42,21 +41,33 @@ stages:
             - Benchmark/output/Debug/*
             - Benchmark/output/generated/*
         expire_in: 1 weeks
+    variables:
+        - NO_SLURM_SUBMIT: 1
+        - COMPILER_PATH: "../Compiler/Compiler.jar"
+        - COMPILER_LIB_PATH: "../Compiler/lib"
+        - EXA_PROBLEM_PATH: ""
+        - OUTPUT_PATH: "output"
+        - PLATFORM_PATH: "Platform/rome1.platform"
     before_script:
         - cd Benchmark
         - !reference [.module_tree, before_script]
+    script:
+        - python3 slurm_alloc.py $EXA_PROBLEM_PATH $PLATFORM_PATH
         - mpirun --version
+        - python3 run_benchmark.py $COMPILER_PATH $COMPILER_LIB_PATH $EXA_PROBLEM_PATH $OUTPUT_PATH $PLATFORM_PATH
     after_script:
         - !reference [.module_tree, after_script]
 
 .benchmark_template_CUDA:
     extends: .benchmark_template
-    before_script:
-        - !reference [.benchmark_template, before_script]
+    script:
+        - python3 slurm_alloc.py $EXA_PROBLEM_PATH $PLATFORM_PATH
+        - mpirun --version
         - module load cuda/11.4
         - nvcc --version
         - nvidia-smi
         - updatedb
+        - python3 run_benchmark.py $COMPILER_PATH $COMPILER_LIB_PATH $EXA_PROBLEM_PATH $OUTPUT_PATH $PLATFORM_PATH
 
 #######################################
 ##                                   ##
@@ -73,16 +84,18 @@ build:generator:
             - Compiler/Compiler.jar
             - Compiler/lib
         expire_in: 1 weeks
+    variables:
+        NO_SLURM_SUBMIT: 1
     before_script:
         - !reference [ .module_tree, before_script ]
         - sbt sbtVersion
         - java -version
         - python3 --version
-    after_script:
-        - !reference [ .module_tree, after_script ]
     script:
         - sbt compile
         - sbt assembly
+    after_script:
+        - !reference [ .module_tree, after_script ]
 
 #######################################
 ##                                   ##
@@ -93,5 +106,5 @@ build:generator:
 benchmark:5pt_Jac_2D:
     stage: benchmark
     extends: .benchmark_template
-    script:
-        - python3 run_benchmark.py ../Compiler/Compiler.jar ../Compiler/lib FivePointStencil output Platform/rome1.platform
+    variables:
+        - EXA_PROBLEM_PATH: "FivePointStencil"

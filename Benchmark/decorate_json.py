@@ -2,6 +2,10 @@ from git import Repo
 import json
 from config_from_knowledge import *
 
+######################
+# - json functions - #
+######################
+
 
 def decorate_json(json_body: dict, config: ConfigFromKnowledge):
 
@@ -9,8 +13,7 @@ def decorate_json(json_body: dict, config: ConfigFromKnowledge):
     repo = Repo(search_parent_directories=True)
     commit = repo.head.commit
 
-    new_body = {'measurement': config.problem_name}
-    new_body['tags'] = {}
+    new_body = {'measurement': config.problem_name, 'tags': {}}
     new_body['tags']['host'] = config.host_name
     new_body['tags']['gpu'] = config.gpu_name
     new_body['tags']['cpu'] = config.cpu_name

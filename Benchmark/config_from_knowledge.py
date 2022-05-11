@@ -2,6 +2,10 @@ import numpy as np
 import os
 import json
 
+####################
+# - config class - #
+####################
+
 
 class ConfigFromKnowledge:
 
@@ -35,8 +39,6 @@ class ConfigFromKnowledge:
                 if len(line.strip()) != 0:
                     key = line.split('=')[0].strip()
                     value = line.split('=')[1].strip()
-
-                    print(line)
 
                     if key == "domain_numBlocks":
                         self.n_blocks = int(value)

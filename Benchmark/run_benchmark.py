@@ -12,6 +12,7 @@ import shutil
 import errno
 import json
 from upload_grafana import *
+from generation_helpers import *
 from decorate_json import *
 from likwid_pinning import *
 
@@ -48,73 +49,6 @@ def check_err(func):
     return wrapper_check_err
 
 
-############################
-# - generation functions - #
-############################
-
-# --- create name of problem from directory name --- #
-def get_problem_name_from_path(exa_problem_path: str):
-    base = get_exa_files(exa_problem_path)[0]
-    return os.path.basename(remove_extension(base))
-
-
-# --- create path for debug files --- #
-def get_debug_base_path(exa_problem_path: str):
-    return f"./Debug/{get_problem_name_from_path(exa_problem_path)}"
-
-
-# --- remove file extension from path --- #
-def remove_extension(path: str):
-    return os.path.splitext(path)[0]
-
-
-# --- get all "*.exa?" --- #
-@functools.lru_cache(maxsize=None)
-def get_exa_files(exa_problem_path: str):
-    exa_files = []
-    for file in fnmatch.filter(os.listdir(exa_problem_path), "*.exa?"):
-        full_path = os.path.join(exa_problem_path, file)
-        if os.path.isfile(full_path):
-            exa_files = exa_files + [full_path]
-
-    return exa_files
-
-
-# --- generate ".settings" file for a directory with ExaSlang files --- #
-def generate_settings_file(exa_problem_path: str, output_path: str):
-    tmp = f'user\t= "Guest"\n\n'
-
-    exa_files = get_exa_files(exa_problem_path)
-    exa_problem_name = get_problem_name_from_path(exa_problem_path)
-    output_path_relative = os.path.relpath(output_path, exa_problem_path)
-
-    if len(exa_files) < 1:
-        print("No ExaSlang files found in directory: " + exa_problem_path)
-        return -1
-
-    tmp += f'basePathPrefix\t= "{exa_problem_path}"\n\n'
-    for name in exa_files:
-        for i in range(1, 5):
-            if f'.exa{i}' in name:
-                tmp += f'l{i}file\t = "{exa_problem_name}.exa{i}"\n'
-
-    tmp += f'debugL1File\t= "{output_path_relative}/{get_debug_base_path(exa_problem_path)}_debug.exa1"\n'
-    tmp += f'debugL2File\t= "{output_path_relative}/{get_debug_base_path(exa_problem_path)}_debug.exa2"\n'
-    tmp += f'debugL3File\t= "{output_path_relative}/{get_debug_base_path(exa_problem_path)}_debug.exa3"\n'
-    tmp += f'debugL4File\t= "{output_path_relative}/{get_debug_base_path(exa_problem_path)}_debug.exa4"\n\n'
-    tmp += f'htmlLogFile\t= "{output_path_relative}/{get_debug_base_path(exa_problem_path)}_log.html"\n\n'
-    tmp += f'outputPath\t= "{output_path_relative}/generated/{exa_problem_name}"\n\n'
-    tmp += f'produceHtmlLog\t= true\n'
-    tmp += f'timeStrategies\t= true\n\n'
-    tmp += f'buildfileGenerators\t= {{"MakefileGenerator"}}\n'
-
-    settings_path = f'{exa_problem_path}/{exa_problem_name}.settings'
-    with open(settings_path, "w") as file:
-        print(tmp, file=file)
-
-    return settings_path
-
-
 # --- generate target code from ExaSlang specification with compiler --- #
 @check_err
 @timer
@@ -149,26 +83,13 @@ def compile_benchmark(exa_problem_name: str, output_path: str):
 
 
 @check_err
-def slurm_alloc(config: ConfigFromKnowledge):
-    assert (config.n_nodes == 1, "Only single-node jobs are currently allowed on the testcluster")
-
-    return subprocess.run(["salloc", f"--nodes={config.n_nodes}", f"--nodelist={config.host_name}", "--export=NONE"],
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-
-@check_err
 @timer
 def run_benchmark(exa_problem_name: str, output_path: str, stdout_file_path: str,
-                  config: ConfigFromKnowledge, testcluster_run: bool):
+                  config: ConfigFromKnowledge):
     cwd = os.getcwd()
     os.chdir(f'{output_path}/generated/{exa_problem_name}')
 
     # run code with likwid pinning
-    if testcluster_run:
-        slurm_alloc(config)
-        subprocess.run(["export", "SLURM_MPI_TYPE=pmi2"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        subprocess.run(["unset", "SLURM_EXPORT_ENV"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
     result = subprocess.run(likwid_pin(config), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # write stdout results to file
@@ -197,7 +118,7 @@ def main():
     args = parser.parse_args()
 
     # print arguments
-    print(f"Executing: python3 runBenchmark.py {' '.join(f'{k}={v}' for k, v in vars(args).items())}")
+    print(f"Executing: python3 run_benchmark.py {' '.join(f'{k}={v}' for k, v in vars(args).items())}")
 
     # get settings
     settings_path = generate_settings_file(args.exa_problem_path, args.output_path)
@@ -214,12 +135,10 @@ def main():
 
     # parse knowledge and platform file
     config = ConfigFromKnowledge(exa_problem_name, knowledge_path, args.platform_path)
-    print(config.__dict__)
 
     # run target code
     stdout_file = f'{exa_problem_name}.txt'
-    testcluster_run = True
-    run_benchmark(exa_problem_name, args.output_path, stdout_file, config, testcluster_run)
+    run_benchmark(exa_problem_name, args.output_path, stdout_file, config)
 
     # upload to grafana
     json_file = f'{args.output_path}/generated/{exa_problem_name}/results.json'
