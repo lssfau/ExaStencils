@@ -581,7 +581,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
                 ctx.addStmt(IR_Comment("Copy: " + lhsSca.prettyprint()))
                 val (copyName, _) = ctx.getName(IR_VariableAccess("copyVec", SIMD_RealDatatype))
                 val copy = IR_VariableAccess(copyName, SIMD_RealDatatype)
-                vectorizeStmt(IR_Assignment(copy, lhsSca, op), ctx)
+                vectorizeStmt(IR_Assignment(copy, lhsSca), ctx)
 
                 vectorizeStmt(IR_Assignment(lhsSca, SIMD_Blendv(copy, rhsSca, mask), op), ctx)
               case _ : IR_IfCondition                         =>
