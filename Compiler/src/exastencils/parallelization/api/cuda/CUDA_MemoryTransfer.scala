@@ -66,14 +66,14 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData) extends CUDA_Hos
     val field = fieldData.field
 
     IR_IfCondition(
-      CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), fieldData.fragmentIdx),
+      CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
-          IR_IV_FieldData(field, Duplicate(fieldData.slot)),
-          CUDA_FieldDeviceData(field, Duplicate(fieldData.slot)),
+          IR_IV_FieldData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
+          CUDA_FieldDeviceData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
           (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _) * IR_SizeOf(field.resolveBaseDatatype),
           "D2H"),
-        IR_Assignment(CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot)), IR_BooleanConstant(false))))
+        IR_Assignment(CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)), IR_BooleanConstant(false))))
   }
 }
 
@@ -92,14 +92,14 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData) extends CUDA_H
     val field = fieldData.field
 
     IR_IfCondition(
-      CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), fieldData.fragmentIdx),
+      CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
-          IR_IV_FieldData(field, Duplicate(fieldData.slot)),
-          CUDA_FieldDeviceData(field, Duplicate(fieldData.slot)),
+          IR_IV_FieldData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
+          CUDA_FieldDeviceData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
           (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _) * IR_SizeOf(field.resolveBaseDatatype),
           "H2D"),
-        IR_Assignment(CUDA_HostDataUpdated(field, Duplicate(fieldData.slot)), IR_BooleanConstant(false))))
+        IR_Assignment(CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)), IR_BooleanConstant(false))))
   }
 }
 
