@@ -88,7 +88,8 @@ def run_benchmark(exa_problem_name: str, output_path: str, config: ConfigFromKno
     cwd = os.getcwd()
     print("cwd: " + cwd)
 
-    os.chdir(f'{output_path}/generated/{exa_problem_name}')
+    os.chdir(f'${cwd}/{output_path}/generated/{exa_problem_name}')
+    print("cwd: " + os.getcwd())
 
     # run code with likwid pinning
     result = subprocess.run(likwid_pin(config), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -97,6 +98,7 @@ def run_benchmark(exa_problem_name: str, output_path: str, config: ConfigFromKno
     print(result.stdout.decode('utf-8'))
 
     os.chdir(cwd)
+    print("cwd: " + os.getcwd())
 
     return result
 
@@ -139,13 +141,13 @@ def main():
     run_benchmark(exa_problem_name, args.output_path, config)
 
     # upload to grafana
-    json_file = f'{args.output_path}/generated/{exa_problem_name}/results.json'
-    if os.path.exists(f'{args.output_path}/generated/{exa_problem_name}/results.json'):
+    json_file = f'{os.getcwd()}/{args.output_path}/generated/{exa_problem_name}/results.json'
+    if os.path.exists(json_file):
         f = open(json_file)
         json_body = json.load(f)
         up = UploadGrafana(decorate_json(json_body, config))
     else:
-        print('No JSON file found. Grafana upload failed.')
+        print('Grafana upload failed. No JSON file found: ' + json_file)
 
 
 if __name__ == "__main__":
