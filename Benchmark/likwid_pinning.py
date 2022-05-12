@@ -79,9 +79,9 @@ def likwid_pin(config: ConfigFromKnowledge):
         ntasks_per_node_ = f"N:{ntasks_per_node}"
         if not config.use_cuda:
             return ["env", f"OMP_NUM_THREADS={config.omp_num_threads}", "env", "OMPI_MCA_hwloc_base_binding_policy=none",
-                    "likwid-mpirun", "--mpiopts \"\"", "-d", "-np", f"{config.mpi_num_processes}", "-nperdomain",
+                    "likwid-mpirun", "-d", "-np", f"{config.mpi_num_processes}", "-nperdomain",
                     f"{ntasks_per_node_}", "-pin", f"{omp_pinning}", f"{config.omp_num_threads}", "-s", "0x3", "./exastencils"]
         else:
             return ["env", f"OMP_NUM_THREADS={config.omp_num_threads}", "env", "OMPI_MCA_hwloc_base_binding_policy=none",
-                    "likwid-mpirun", "--mpiopts \"\"", "-d", "-np", f"{config.mpi_num_processes}", "-nperdomain",
+                    "likwid-mpirun", "-d", "-np", f"{config.mpi_num_processes}", "-nperdomain",
                     f"{ntasks_per_node_}", "-pin", f"{omp_pinning}", f"{config.omp_num_threads}", "-s", "0x7", "./exastencils"]

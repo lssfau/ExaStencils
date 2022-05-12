@@ -86,19 +86,14 @@ def compile_benchmark(exa_problem_name: str, output_path: str):
 @timer
 def run_benchmark(exa_problem_name: str, output_path: str, config: ConfigFromKnowledge):
     cwd = os.getcwd()
-    print("cwd: " + cwd)
-
     os.chdir(f'{cwd}/{output_path}/generated/{exa_problem_name}')
-    print("cwd: " + os.getcwd())
 
     # run code with likwid pinning
     result = subprocess.run(likwid_pin(config), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # print stdout
-    print(result.stdout.decode('utf-8'))
-
+    print(result.stderr.decode('utf-8'))
     os.chdir(cwd)
-    print("cwd: " + os.getcwd())
 
     return result
 
