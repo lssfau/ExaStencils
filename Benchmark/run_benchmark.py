@@ -88,7 +88,7 @@ def run_benchmark(exa_problem_name: str, output_path: str, config: ConfigFromKno
     cwd = os.getcwd()
     print("cwd: " + cwd)
 
-    os.chdir(f'${cwd}/{output_path}/generated/{exa_problem_name}')
+    os.chdir(f'{cwd}/{output_path}/generated/{exa_problem_name}')
     print("cwd: " + os.getcwd())
 
     # run code with likwid pinning
