@@ -217,7 +217,8 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         extremaMap = m.asInstanceOf[mutable.HashMap[String, (Long, Long)]]
 
       // inline contained calls to solve functions to avoid separate compilation units
-      IR_InlineMatSolveStmts.applyStandalone(IR_Scope(kernelBody))
+      var scope = IR_Scope(kernelBody)
+      IR_InlineMatSolveStmts.applyStandalone(scope)
 
       // replace array accesses with accesses to function arguments
       // reduction var is not replaced, but later in IR_HandleReductions
@@ -225,7 +226,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         CUDA_ReplaceNonReductionVarArrayAccesses.reductionTarget = redTarget
       else
         CUDA_ReplaceNonReductionVarArrayAccesses.reductionTarget = None
-      CUDA_ReplaceNonReductionVarArrayAccesses.applyStandalone(IR_Scope(kernelBody))
+      CUDA_ReplaceNonReductionVarArrayAccesses.applyStandalone(scope)
 
       val kernel = CUDA_Kernel(
         kernelCount,
@@ -236,7 +237,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         Duplicate(lowerBounds),
         Duplicate(upperBounds),
         Duplicate(stepSize),
-        Duplicate(kernelBody),
+        Duplicate(scope.body),
         Duplicate(reduction),
         Duplicate(localTarget),
         Duplicate(extremaMap))
