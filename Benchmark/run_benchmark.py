@@ -146,6 +146,8 @@ def main():
         f = open(json_file)
         json_body = json.load(f)
         up = UploadGrafana(decorate_json(json_body, config))
+    else:
+        print('No JSON file found. Grafana upload failed.')
 
 
 if __name__ == "__main__":
