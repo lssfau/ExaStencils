@@ -12,6 +12,8 @@ include: 'Benchmark/.benchmark_templates.yml'
 #######################################
 
 .job_gen_template:
+    dependencies:
+        - build:generator
     stage: job_gen
     tags:
         - testcluster
@@ -28,6 +30,8 @@ include: 'Benchmark/.benchmark_templates.yml'
         EXA_PROBLEM_PATH: "TO_BE_REPLACED"
 
 .job_pipe_template:
+    dependencies:
+        - build:generator
     stage: benchmark
     trigger:
         include:
