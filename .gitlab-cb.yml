@@ -36,6 +36,7 @@ stages:
     tags:
         - testcluster
     script:
+        - chmod +x Benchmark/generate_jobs_for_hosts.sh
         - Benchmark/generate_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH > $EXA_PROBLEM_NAME-pipe.yml
     artifacts:
         paths:
