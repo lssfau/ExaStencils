@@ -1,0 +1,142 @@
+// domain declarations
+
+Domain global< [0.0, 0.0, 0.0] to [1.0, 1.0, 1.0] >
+
+// field layout declarations
+
+Layout FaceScalarWithComm < Real, Face_z > @all {
+  duplicateLayers = [0, 0, 0] with communication
+  ghostLayers     = [1, 1, 1] with communication
+}
+
+Layout CellScalarWithComm < Real, Cell > @all {
+  duplicateLayers = [0, 0, 0] with communication
+  ghostLayers     = [1, 1, 1] with communication
+}
+
+// field declarations
+
+Field srcFace < global, FaceScalarWithComm, -1.0 >@all
+
+Field srcCell < global, CellScalarWithComm, None >@all
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// functions
+
+Function initSRC@finest {
+  loop over srcFace @ current {
+    srcFace = vf_nodePos_x**2
+  }
+  
+  loop over srcCell @ current {
+    srcCell = vf_nodePos_y + vf_nodePos_z
+  }
+}
+
+Function Application {
+  // init
+  startTimer ( "setup" )
+  initGlobals ( )
+  initDomain ( )
+  initFieldsWithZero ( )
+  initGeometry ( )
+  initSRC@finest ( )
+  stopTimer ( "setup" )
+  
+  // arguments
+  Val useGhost : Bool = true
+  Val useBin : Bool = true
+  Val useCanonicalLayout : Bool = true
+  Val condition : Bool = sqrt(4) == 2 
+  Val separator : String = ","
+    
+  // toggle I/O modes here
+  Val lockingIO : Bool = true
+  Val fppIO     : Bool = true
+  Val hdfIO     : Bool = true
+  Val mpiIO     : Bool = false // enable if MPI parallel
+  Val ncIO      : Bool = false
+       
+  if (lockingIO) {
+    // write raw binary file
+    startTimer ("Locking: printField(srcCell) binary")
+    printField_lock ("data/srcCell.bin", srcCell@finest, !useGhost, useBin, condition)
+    stopTimer ("Locking: printField(srcCell) binary")
+    
+    startTimer ("Locking: printField(srcFace) binary")
+    printField_lock ("data/srcFace.bin", srcFace@finest, !useGhost, useBin, condition)
+    stopTimer ("Locking: printField(srcFace) binary")
+  
+    // write csv for paraview
+    startTimer ("Locking: printField(srcCell) ascii")
+    printField_lock ("data/srcCell_vis.csv", srcCell@finest, !useGhost, !useBin, condition, separator)
+    stopTimer ("Locking: printField(srcCell) ascii")
+    
+    startTimer ("Locking: printField(srcFace) ascii")
+    printField_lock ("data/srcFace_vis.csv", srcFace@finest, !useGhost, !useBin, condition, separator)
+    stopTimer ("Locking: printField(srcFace) ascii")
+    
+  }
+  
+  if (fppIO) {
+    // write xdmf files for paraview/visit
+    startTimer ("Fpp: printField(srcCell) binary")
+    printField_fpp ("data/srcCell_vis_fpp_bin.xmf", srcCell@finest, useBin)
+    stopTimer ("Fpp: printField(srcCell) binary")
+      
+    startTimer ("Fpp: printField(srcCell) ascii")
+    printField_fpp ("data/srcCell_vis_fpp.xmf", srcCell@finest, !useBin)
+    stopTimer ("Fpp: printField(srcCell) ascii")
+    
+    startTimer ("Fpp: printField(srcFace) binary")
+    printField_fpp ("data/srcFace_vis_fpp_bin.xmf", srcFace@finest, useBin)
+    stopTimer ("Fpp: printField(srcFace) binary")
+      
+    startTimer ("Fpp: printField(srcFace) ascii")
+    printField_fpp ("data/srcFace_vis_fpp.xmf", srcFace@finest, !useBin)
+    stopTimer ("Fpp: printField(srcFace) ascii")
+  }
+  
+  if (hdfIO) {
+    // write xdmf files for paraview/visit
+    startTimer ("HDF5: printField(srcCell)") 
+    printField_hdf5 ("data/srcCell_vis_h5.xmf", srcCell@finest, !useCanonicalLayout)
+    stopTimer ("HDF5: printField(srcCell)")
+    
+    startTimer ("HDF5: printField(srcFace)") 
+    printField_hdf5 ("data/srcFace_vis_h5.xmf", srcFace@finest, !useCanonicalLayout)
+    stopTimer ("HDF5: printField(srcFace)")
+  }
+  
+  if (mpiIO) {
+    // write xdmf files for paraview/visit
+    startTimer ("MPI-I/O: printField(srcCell)") 
+    printField_mpiio ("data/srcCell_vis_mpiio.xmf", srcCell@finest, useCanonicalLayout)
+    stopTimer ("MPI-I/O: printField(srcCell)")
+    
+    startTimer ("MPI-I/O: printField(srcFace)") 
+    printField_mpiio ("data/srcFace_vis_mpiio.xmf", srcFace@finest, useCanonicalLayout)
+    stopTimer ("MPI-I/O: printField(srcFace)")
+  }
+
+  /*
+  if (ncIO) {
+    startTimer ("PnetCDF: printField(srcCell)") 
+    printField_nc ("data/srcCell_vis.nc", srcCell@finest, !useCanonicalLayout)
+    stopTimer ("PnetCDF: printField(srcCell)")
+    
+    startTimer ("PnetCDF: printField(srcFace)") 
+    printField_nc ("data/srcFace_vis.nc", srcFace@finest, !useCanonicalLayout)
+    stopTimer ("PnetCDF: printField(srcFace)") 
+  }
+  */
+   
+  // de-init
+  printAllTimers ( )
+  destroyGlobals ( )
+}

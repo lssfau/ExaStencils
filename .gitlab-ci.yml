@@ -12,9 +12,9 @@ stages:
 #######################################
 
 .test_template:
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -60,9 +60,25 @@ stages:
         - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
         - cd Testing
 
-.example_template:
+.test_template_IO:
     extends: .test_template
-    stage: example
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11-par-io
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+            - Testing/output/generated/*
+            - Testing/data/*
+        expire_in: 1 weeks
+    before_script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - sionversion
+        - h5pcc -showconfig
+        - pnetcdf-config --all
+        - cd Testing
+
 
 .benchmark_template:
     dependencies:
@@ -70,7 +86,6 @@ stages:
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker-benchmark
-        - i10swarm14
     artifacts:
         when: on_failure
         paths:
@@ -89,7 +104,7 @@ stages:
 ##                                   ##
 #######################################
 
-generate-docker-image:
+generate-docker-image-base:
     stage: .pre
     when: manual
     image: docker:latest
@@ -100,6 +115,18 @@ generate-docker-image:
         - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11 || true
         - docker build --pull . -f  dockerfiles/ubuntu-20.04-openjdk-11.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
         - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+
+generate-docker-image-pario:
+    stage: .pre
+    when: manual
+    image: docker:latest
+    tags:
+        - docker-docker
+    script:
+        - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+        - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11-par-io || true
+        - docker build --pull . -f  dockerfiles/ubuntu-20.04-openjdk-11-par-io.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11-par-io
+        - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11-par-io
 
 #######################################
 ##                                   ##
@@ -258,6 +285,46 @@ test:Appl_OptFlow3D:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Appl_OptFlow3D Application/OpticalFlow3D.knowledge "Application/OpticalFlow3D.exa4" Application/OpticalFlow3D.results 1 10 Platform/random.platform output
+
+###############################################
+# (PARALLEL) I/O TESTS                        #
+###############################################
+
+test:ParIO_CheckEquality_2D:
+    extends: .test_template_IO
+    tags:
+        - docker
+        - AVX2
+    script:
+        # 2D_Scalar_CheckEquality_ReadAfterWrite
+        - mkdir -p data/2D_Scalar_CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_Scalar_CheckEquality_ReadAfterWrite IOTest/2D_Scalar_CheckEquality_ReadAfterWrite.knowledge "IOTest/2D_Scalar_CheckEquality_ReadAfterWrite.exa4" "" 2 1 Platform/anyavx2.platform output
+        # 2D_LayoutTrafo_CheckEquality_ReadAfterWrite
+        - mkdir -p data/2D_LayoutTrafo_CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_LayoutTrafo_CheckEquality_ReadAfterWrite IOTest/2D_LayoutTrafo_CheckEquality_ReadAfterWrite.knowledge "IOTest/2D_LayoutTrafo_CheckEquality_ReadAfterWrite.exa4" "" 2 1 Platform/anyavx2.platform output
+        # 2D_Vector_CheckEquality_ReadAfterWrite
+        - mkdir -p data/2D_Vector_CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_Vector_CheckEquality_ReadAfterWrite IOTest/2D_Vector_CheckEquality_ReadAfterWrite.knowledge "IOTest/2D_Vector_CheckEquality_ReadAfterWrite.exa4" "" 4 1 Platform/anyavx2.platform output
+
+test:ParIO_CheckEquality_3D:
+    extends: .test_template_IO
+    tags:
+        - docker
+        - AVX2
+    script:
+        # 3D_Matrix_CheckEquality_ReadAfterWrite
+        - mkdir -p data/3D_Matrix_CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_Matrix_CheckEquality_ReadAfterWrite IOTest/3D_Matrix_CheckEquality_ReadAfterWrite.knowledge "IOTest/3D_Matrix_CheckEquality_ReadAfterWrite.exa4" "" 4 1 Platform/anyavx2.platform output
+        # 3D_Scalar_CheckEquality_ReadAfterWrite
+        - mkdir -p data/3D_Scalar_CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_Scalar_CheckEquality_ReadAfterWrite IOTest/3D_Scalar_CheckEquality_ReadAfterWrite.knowledge "IOTest/3D_Scalar_CheckEquality_ReadAfterWrite.exa4" "" 8 1 Platform/anyavx2.platform output
+        # 3D_Vector_CheckEquality_ReadAfterWrite
+        - mkdir -p data/3D_Vector_CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_Vector_CheckEquality_ReadAfterWrite IOTest/3D_Vector_CheckEquality_ReadAfterWrite.knowledge "IOTest/3D_Vector_CheckEquality_ReadAfterWrite.exa4" "" 4 1 Platform/anyavx2.platform output
+        # CheckEquality_ReadAfterWrite
+        - mkdir -p data/CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CheckEquality_ReadAfterWrite IOTest/CheckEquality_ReadAfterWrite.knowledge "IOTest/CheckEquality_ReadAfterWrite.exa4" "" 8 1 Platform/anyavx2.platform output
+
 
 ###############################################
 # BASIC COMMUNICATION TESTS                   #
@@ -742,7 +809,8 @@ test:ComplexNumbers:
 ###############################################
 
 example:BiHarmonicExamples_2D:
-    extends: .example_template
+    stage: example
+    extends: .test_template
     script:
         # 2D_FD_BiHarmonic_fromL2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_BiHarmonic_fromL2 Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.knowledge "../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa3;../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa2" "" 1 1 Platform/random.platform output
@@ -752,7 +820,8 @@ example:BiHarmonicExamples_2D:
 ###############################################
 
 example:HelmHoltzExamples_2D:
-    extends: .example_template
+    stage: example
+    extends: .test_template
     script:
         # 2D_FD_Helmholtz_fromL3
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Helmholtz_fromL3 Examples/Helmholtz/2D_FD_Helmholtz_fromL3.knowledge "../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa4" "" 1 1 Platform/random.platform output
@@ -760,7 +829,8 @@ example:HelmHoltzExamples_2D:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Helmholtz_MPI_fromL3 Examples/Helmholtz/2D_FD_Helmholtz_MPI_fromL3.knowledge "../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa4" "" 4 1 Platform/random.platform output
 
 example:HelmHoltzExamples_3D:
-    extends: .example_template
+    stage: example
+    extends: .test_template
     script:
         # 3D_FD_Helmholtz_fromL3
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Helmholtz_fromL3 Examples/Helmholtz/3D_FD_Helmholtz_fromL3.knowledge "../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa3;../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa4" "" 1 1 Platform/random.platform output
@@ -770,7 +840,8 @@ example:HelmHoltzExamples_3D:
 ###############################################
 
 example:LinearElasticityExamples_2D:
-    extends: .example_template
+    stage: example
+    extends: .test_template
     script:
         # 2D_FD_LinearElasticity_fromL2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_LinearElasticity_fromL2 Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.knowledge "../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa2;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa3;../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa4" "" 1 1 Platform/random.platform output
@@ -780,7 +851,8 @@ example:LinearElasticityExamples_2D:
 ###############################################
 
 example:NavierStokesExamples_2D:
-    extends: .example_template
+    stage: example
+    extends: .test_template
     script:
         # 2D_FV_NavierStokes_localNewton
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_localNewton Examples/NavierStokes/2D_FV_NavierStokes_localNewton.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa4" "" 1 1 Platform/random.platform output
@@ -792,7 +864,8 @@ example:NavierStokesExamples_2D:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NavierStokes_Picard Examples/NavierStokes/2D_FV_NavierStokes_Picard.knowledge "../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa2;../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa3;../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa4" "" 1 1 Platform/random.platform output
 
 example:NonNewtonianExamples_2D:
-    extends: .example_template
+    stage: example
+    extends: .test_template
     script:
         # 2D_FV_NonNewtonian_Newton
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NonNewtonian_Newton Examples/NavierStokes/2D_FV_NonNewtonian_Newton.knowledge "../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa2;../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa3;../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa4" "" 1 1 Platform/random.platform output
@@ -800,7 +873,8 @@ example:NonNewtonianExamples_2D:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_NonNewtonian_Picard Examples/NavierStokes/2D_FV_NonNewtonian_Picard.knowledge "../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa2;../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa3;../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa4" "" 1 1 Platform/random.platform output
 
 example:NavierStokesExamples_3D:
-    extends: .example_template
+    stage: example
+    extends: .test_template
     script:
         # 3D_FV_NavierStokes_localNewton
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_localNewton Examples/NavierStokes/3D_FV_NavierStokes_localNewton.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa4" "" 1 1 Platform/random.platform output
@@ -812,7 +886,8 @@ example:NavierStokesExamples_3D:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NavierStokes_Picard Examples/NavierStokes/3D_FV_NavierStokes_Picard.knowledge "../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa2;../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa3;../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa4" "" 1 1 Platform/random.platform output
 
 example:NonNewtonianExamples_3D:
-    extends: .example_template
+    stage: example
+    extends: .test_template
     script:
         # 3D_FV_NonNewtonian_Newton
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FV_NonNewtonian_Newton Examples/NavierStokes/3D_FV_NonNewtonian_Newton.knowledge "../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa2;../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa3;../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa4" "" 1 1 Platform/random.platform output
@@ -825,7 +900,8 @@ example:NonNewtonianExamples_3D:
 ###############################################
 
 example:OptFlowExamples_2D:
-    extends: .example_template
+    stage: example
+    extends: .test_template
     script:
         # 2D_FD_OptFlow_fromL2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_OptFlow_fromL2 Examples/OpticalFlow/2D_FD_OptFlow_fromL2.knowledge "../Examples/OpticalFlow/2D_FD_OptFlow_fromL2.exa2;../Examples/OpticalFlow/2D_FD_OptFlow_fromL2.exa3" "" 1 1 Platform/random.platform output
@@ -835,7 +911,8 @@ example:OptFlowExamples_2D:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_OptFlow_fromL4_Vec Examples/OpticalFlow/2D_FD_OptFlow_fromL4_Vec.knowledge "../Examples/OpticalFlow/2D_FD_OptFlow_fromL4_Vec.exa4" "" 1 1 Platform/random.platform output
 
 example:OptFlowExamples_3D:
-    extends: .example_template
+    stage: example
+    extends: .test_template
     script:
         # 3D_FD_OptFlow_fromL2
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_OptFlow_fromL2 Examples/OpticalFlow/3D_FD_OptFlow_fromL2.knowledge "../Examples/OpticalFlow/3D_FD_OptFlow_fromL2.exa2;../Examples/OpticalFlow/3D_FD_OptFlow_fromL2.exa3" "" 1 1 Platform/random.platform output
@@ -847,13 +924,15 @@ example:OptFlowExamples_3D:
 ###############################################
 
 example:PoissonExamples_1D:
-    extends: .example_template
+    stage: example
+    extends: .test_template
     script:
         # 1D_FD_Poisson_fromL1
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 1D_FD_Poisson_fromL1 Examples/Poisson/1D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/1D_FD_Poisson_fromL1.exa1" "" 1 1 Platform/random.platform output
 
 example:PoissonExamples_2D:
-    extends: .example_template
+    stage: example
+    extends: .test_template
     script:
         # 2D_FD_Poisson_fromL1
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Poisson_fromL1 Poisson/2D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/2D_FD_Poisson_fromL1.exa1" Poisson/2D_FD_Poisson_fromL1.results 4 4 Platform/random.platform output
@@ -871,7 +950,8 @@ example:PoissonExamples_2D:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Poisson_fromL4 Poisson/2D_FV_Poisson_fromL4.knowledge "../Examples/Poisson/2D_FV_Poisson_fromL4.exa4" Poisson/2D_FV_Poisson_fromL4.results 4 4 Platform/random.platform output
 
 example:PoissonExamples_3D:
-    extends: .example_template
+    stage: example
+    extends: .test_template
     script:
         # 3D_FD_Poisson_fromL1
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Poisson_fromL1 Examples/Poisson/3D_FD_Poisson_fromL1.knowledge "../Examples/Poisson/3D_FD_Poisson_fromL1.exa1" "" 1 1 Platform/random.platform output
@@ -891,13 +971,15 @@ example:PoissonExamples_3D:
 ###############################################
 
 example:StokesExamples_1D:
-    extends: .example_template
+    stage: example
+    extends: .test_template
     script:
         # 1D_FD_Stokes_fromL1
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 1D_FD_Stokes_fromL1 Examples/Stokes/1D_FD_Stokes_fromL1.knowledge "../Examples/Stokes/1D_FD_Stokes_fromL1.exa1" "" 1 1 Platform/random.platform output
 
 example:StokesExamples_2D:
-    extends: .example_template
+    stage: example
+    extends: .test_template
     script:
         # 2D_FD_Stokes_fromL1
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FD_Stokes_fromL1 Examples/Stokes/2D_FD_Stokes_fromL1.knowledge "../Examples/Stokes/2D_FD_Stokes_fromL1.exa1" "" 1 1 Platform/random.platform output
@@ -915,7 +997,8 @@ example:StokesExamples_2D:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_Stokes_fromL4 Examples/Stokes/2D_FV_Stokes_fromL4.knowledge "../Examples/Stokes/2D_FV_Stokes_fromL4.exa4" "" 1 1 Platform/random.platform output
 
 example:StokesExamples_3D:
-    extends: .example_template
+    stage: example
+    extends: .test_template
     script:
         # 3D_FD_Stokes_fromL1
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_FD_Stokes_fromL1 Examples/Stokes/3D_FD_Stokes_fromL1.knowledge "../Examples/Stokes/3D_FD_Stokes_fromL1.exa1" "" 1 1 Platform/random.platform output
@@ -933,6 +1016,15 @@ example:StokesExamples_3D:
 ###############################################
 
 example:ShallowWaterExamples_2D:
-    extends: .example_template
+    stage: example
+    extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_SWE Examples/SWE/2D_FV_SWE.knowledge "../Examples/SWE/2D_FV_SWE.exa2;../Examples/SWE/2D_FV_SWE.exa3;../Examples/SWE/2D_FV_SWE.exa4" "" 1 1 Platform/random.platform output
+
+#######################################
+##                                   ##
+##         Benchmarks                ##
+##                                   ##
+#######################################
+
+# TODO
