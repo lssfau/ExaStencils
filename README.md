@@ -206,6 +206,101 @@ More details for building or installing VisIt can be found here:
 * https://www.visitusers.org/index.php?title=Build_visit_overview
 * http://www.visitusers.org/index.php?title=ParallelPorting#Compiling_VisIt_to_run_in_parallel
 
+### Parallel I/O Libraries
+
+Currently, following libraries for parallel I/O are supported in ExaStencils:
+* MPI I/O
+* HDF-5
+* PNetCDF (+ ExodusII)
+* SionLib
+
+MPI I/O is part of MPI-2 standard and is already installed on most HPC systems. However, the other I/O libraries need to be installed first. Installation guides for each dependency are listed below.
+
+### HDF5
+To build and install HDF5 version 1.12.0, the following lines can be used:
+```
+wget https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.12/hdf5-1.12.0/src/hdf5-1.12.0.tar.gz
+tar xvf hdf5-1.12.0.tar.gz
+cd hdf5-1.12.0
+CC=/path/to/bin/mpicc ./configure --enable-parallel --prefix=$HOME/hdf5
+
+make
+make install
+```
+Other versions can be downloaded [here](https://portal.hdfgroup.org/display/support/Downloads) and further installation guidelines can be found [here](https://support.hdfgroup.org/ftp/HDF5/current18/src/unpacked/release_docs/).
+
+### PnetCDF
+
+To build and install PnetCDF version 1.12.1, the following lines can be used:
+```
+wget http://cucis.ece.northwestern.edu/projects/PnetCDF/Release/pnetcdf-1.12.1.tar.gz
+tar xvf pnetcdf-1.12.1.tar.gz
+cd pnetcdf-1.12.1
+CC=/path/to/bin/mpicc ./configure --prefix=$HOME/PnetCDF # setting MPICC or using --with-mpi option didnt work
+
+make -j 8
+make install
+```
+Other versions can be downloaded [here](http://cucis.ece.northwestern.edu/projects/PnetCDF/download.html) and further installation guidelines can be found [here](https://svn.mcs.anl.gov/repos/parallel-netcdf/trunk/INSTALL).
+
+### ExodusII
+
+To build and install the current version of the ExodusII library, the following lines can be used:
+```
+git clone https://github.com/gsjaardema/seacas.git
+cd seacas && export ACCESS=`pwd`
+
+MPI=ON ./install-tpl.sh
+cd $ACCESS
+mkdir build
+cd build
+
+INSTALL_PATH=$HOME/seacas FORTRAN=OFF ../cmake-exodus
+make && make install
+
+# in case of error: installing following dependencies might help
+sudo apt-get install libtool m4 automake
+sudo apt-get install libopenmpi-dev
+```
+Further installation guides and older versions can be found [here](https://github.com/gsjaardema/seacas).
+
+### SIONlib
+
+To build and install SIONlib version 1.7.6, following lines can be used:
+```
+curl "http://apps.fz-juelich.de/jsc/sionlib/download.php?version=1.7.6" -o sionlib.tar.gz
+tar xvf sionlib.tar.gz
+cd sionlib
+./configure --prefix=$HOME/sionlib --disable-fortran --mpi=openmpi
+cd build-linux-gomp-openmpi
+
+make
+make install
+```
+Other versions can be downloaded [here](https://www.fz-juelich.de/ias/jsc/EN/Expertise/Support/Software/SIONlib/sionlib-download_node.html;jsessionid=8FC564790A3592233CB1ECA4D4F981FF) and further installation guidelines can be found [here](https://apps.fz-juelich.de/jsc/sionlib/docu/1.7.6/installation_page.html).
+
+### Environment
+
+For the generated Makefiles, following environment variables need to be defined depending on the utilized I/O libraries: `HDF5_HOME`, `PNETCDF_HOME`, `SION_HOME` and `EXODUS_HOME`
+```
+# define home directories for new dependencies
+BASEDIR=$HOME
+HDF5_HOME=$BASEDIR/hdf5 ; export HDF5_HOME
+PNETCDF_HOME=$BASEDIR/PnetCDF ; export PNETCDF_HOME
+SION_HOME=$BASEDIR/sionlib ; export SION_HOME
+EXODUS_HOME=$BASEDIR/seacas; export EXODUS_HOME
+
+# path
+PATH=$HDF5_HOME/bin:$PATH ; export PATH
+PATH=$PNETCDF_HOME/bin:$PATH ; export PATH
+PATH=$SION_HOME/bin:$PATH ; export PATH
+PATH=$EXODUS_HOME/bin:$PATH; export PATH
+
+# ld_library_path
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HDF5_HOME/lib:$PNETCDF_HOME/lib:$EXODUS_HOME/lib ; export LD_LIBRARY_PATH
+```
+
+
 ## First Steps
 
 ### Examples

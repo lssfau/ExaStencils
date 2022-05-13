@@ -1857,4 +1857,80 @@ The shape of the systems set up by [ solve locally ](#local-solve) statements ca
 An automatic classification of the present shape with all block sizes in a solve-locally-system is done if the knowledge-attribute `experimental_classifyLocMat` is set to 'true'.
     Currently, the three mentioned shapes diagonal, blockdiagonal and Schur are supported for automatic classification.
 
+## I/O statements (Layer 4)
 
+Currently, following (parallel) I/O approaches are supported:
+
+* Single-shared file: Shared file where each process accesses different regions within a shared file.
+  * Locking: MPI processes share a common file but there is only one active writer/reader process. Uses the C++ standard I/O library for ASCII or binary in-/output.
+  * MPI I/O: MPI processes access different file regions concurrently. Binary format for in-/output.
+  * (P)HDF5: MPI processes access different file regions concurrently. HDF5 format (binary incl. meta-data) for in-/output.
+  * (P)netCDF: MPI processes access different file regions concurrently. NetCDF format (binary incl. meta-data) for in-/output.
+  * SionLib: MPI processes access different file regions concurrently. SIONlib format (binary incl. meta-data) for in-/output.
+* File-per-process: Each MPI process is assigned an unshared file. Uses the C++ standard I/O library for ASCII or binary in-/output.
+
+### Data storage and retrieval
+
+For the storage of field data, following statements can be used.
+
+```
+// Locking: Binary or ASCII
+writeField_lock ( filename: Expression, field: FieldAccess,
+    includeGhost: Boolean = false, useBinary: Boolean = false,
+    condition: Expression = true, separator: Expression = " " )
+// File-per-process: Binary or ASCII
+writeField_fpp ( filename: Expression, field: FieldAccess,
+    includeGhost: Boolean = false, useBinary: Boolean = false,
+    condition: Expression = true, separator: Expression = " " )
+// MPI-I/O: only for MPI parallel applications. Binary
+writeField_mpiio ( filename: Expression, field: FieldAccess,
+    includeGhost: Boolean = false, canonicalOrder: Boolean = false, repr: String = "native" )
+// (P)HDF5
+writeField_hdf5 ( filename: Expression, datasetPath: Expression, field: FieldAccess,
+    includeGhost: Boolean = false, canonicalOrder: Boolean = false )
+// (P)netCDF
+writeField_nc ( filename: Expression, varName: Expression, field: FieldAccess,
+    includeGhost: Boolean = false, canonicalOrder: Boolean = false )
+// SIONlib: serial and parallel
+writeField_sion ( filename: Expression, field: FieldAccess,
+    includeGhost: Boolean = false, condition: Expression = true )
+```
+
+Likewise, data can be retrieved via `readField_xyz` with identical function signature.
+
+### Visualization
+
+For visualization, two different types of statements can be used:
+* For specific kinds of application (SWE, NS, NNF): Print multiple fields on an unstructured mesh.
+```
+// VTK printers: locking (ASCII). Extension: ".vtk"
+printVtkSWE(filename: Expression, level: Int, fields : FieldAccess*)
+printVtkNS (filename: Expression, level: Int)
+printVtkNNF(filename: Expression, level: Int)
+// XDMF printers: file-per-process (binary or ASCII). Extension: ".xmf"
+printXdmfSWE_fpp(filename: Expression, level: Int, useBinary: Boolean, fields: FieldAccess*)
+printXdmfNS_fpp (filename: Expression, level: Int, useBinary: Boolean)
+printXdmfNNF_fpp(filename: Expression, level: Int, useBinary: Boolean)
+// XDMF printers: single-shared file with either: xyz = mpiio or hdf5
+printXdmfSWE_xyz(filename: Expression, level: Int, fields: FieldAccess*)
+printXdmfNS_xyz (filename: Expression, level: Int)
+printXdmfNNF_xyz(filename: Expression, level: Int)
+// ExodusII printers: single-shared file with PnetCDF. Extension: ".e"
+printExodusSWE(filename: Expression, level: Int, fields: FieldAccess*)
+printExodusNS (filename: Expression, level: Int)
+printExodusNNF(filename: Expression, level: Int)
+```
+
+* For any kind of application: Print one field on a (block-)structured mesh.
+
+```
+// CSV printer: locking (ASCII). Extension: ".csv"
+printField_lock (filename: Expression, fieldAccess: FieldAccess, inclGhost: Boolean = false,
+    useBin: Boolean = false, cond: Expression = true, separator: Expression = " ")
+// XDMF printers: file-per-process (binary or ASCII). Extension: ".xmf"
+printField_fpp (filename: Expression, field: FieldAccess, useBinary : Boolean = false)
+// XDMF printers: single-shared file with either: xyz = mpiio or hdf5
+printField_xyz (filename: Expression, field: FieldAccess, canonicalLayout: Boolean = false)
+// netCDF printer. Extension: ".nc"
+printField_nc (filename: Expression, field: FieldAccess, canonicalLayout: Boolean = false)
+```
