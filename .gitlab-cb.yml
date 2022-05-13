@@ -1,5 +1,6 @@
 stages:
     - build
+    - job_gen
     - benchmark
 
 #######################################
@@ -29,6 +30,34 @@ stages:
             do
                 python3 pip uninstall $PACKAGE # cleanup
             done
+
+.job_gen_template:
+    stage: job_gen
+    tags:
+        - testcluster
+    script:
+        - Benchmark/generate_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH > $EXA_PROBLEM_NAME-pipe.yml
+    artifacts:
+        paths:
+            - $EXA_PROBLEM_NAME-pipe.yml
+        expire_in: 1 weeks
+    variables:
+        NO_SLURM_SUBMIT: 1
+        EXA_PROBLEM_NAME: "TO_BE_REPLACED"
+        EXA_PROBLEM_PATH: "TO_BE_REPLACED"
+
+.job_pipe_template:
+    stage: benchmark
+    trigger:
+        include:
+            artifact: $EXA_PROBLEM_NAME-pipe.yml
+            job: job_gen:$EXA_PROBLEM_NAME
+        strategy: depend
+    variables:
+        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
+        EXA_PROBLEM_NAME: "TO_BE_REPLACED"
+        EXA_PROBLEM_PATH: "TO_BE_REPLACED"
+
 
 .benchmark_template:
     dependencies:
@@ -99,12 +128,24 @@ build:generator:
 
 #######################################
 ##                                   ##
-##         Benchmarks                ##
+##       Benchmark Generation        ##
+##                                   ##
+#######################################
+
+job_gen:5pt_Jac_2D:
+    extends: .job_gen_template
+    variables:
+        EXA_PROBLEM_NAME: "5pt_Jac_2D"
+        EXA_PROBLEM_PATH: "FivePointStencil"
+
+#######################################
+##                                   ##
+##       Benchmark Execution         ##
 ##                                   ##
 #######################################
 
 benchmark:5pt_Jac_2D:
-    stage: benchmark
-    extends: .benchmark_template
+    extends: .job_pipe_template
     variables:
+        EXA_PROBLEM_NAME: "5pt_Jac_2D"
         EXA_PROBLEM_PATH: "FivePointStencil"
