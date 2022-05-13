@@ -6,11 +6,15 @@ fi
 
 HOSTLIST=$(sinfo -h --partition=work -o "%n" | grep rome1) # TODO remove grep
 for HOST in ${HOSTLIST}; do
+  echo "stages:"
+  echo "    - benchmark"
+  echo ""
   echo "$(<Benchmark/.benchmark_templates.yml)"
+  echo ""
   echo "benchmark-$1-$HOST:"
-  echo -e "\tstage: benchmark"
-  echo -e "\textends: .benchmark_template"
-  echo -e "\tvariables:"
-  echo -e "\t\tEXA_PROBLEM_PATH: "$2""
+  echo -e "    stage: benchmark"
+  echo -e "    extends: .benchmark_template"
+  echo -e "    variables:"
+  echo -e "        EXA_PROBLEM_PATH: "$2""
   echo
 done
