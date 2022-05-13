@@ -21,6 +21,7 @@ package exastencils.prettyprinting
 import scala.collection.mutable.ListBuffer
 
 import exastencils.config._
+import exastencils.io.ir.IR_FileAccess_SIONlib
 import exastencils.util.CImg
 
 object MakefileGenerator extends BuildfileGenerator {
@@ -67,6 +68,7 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< mkStringTrimFlat(
       "LDLIBS =",
       CImg.resolveLdLibs(),
+      IR_FileAccess_SIONlib.resolveLdLibs(),
       Settings.additionalLibs.map(lib => s"-l$lib")
     )
     printer <<< ""

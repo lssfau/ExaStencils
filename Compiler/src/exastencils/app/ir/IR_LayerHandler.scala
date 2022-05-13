@@ -52,9 +52,9 @@ import exastencils.stencil.ir._
 import exastencils.timing.ir._
 import exastencils.util._
 import exastencils.util.ir._
-import exastencils.visualization.ir.cimg.IR_ResolveCImgFunctions
-import exastencils.visualization.ir.visit.IR_SetupVisit
-import exastencils.visualization.ir.vtk.IR_ResolveVtkPrinters
+import exastencils.visualization.ir.interactive.cimg.IR_ResolveCImgFunctions
+import exastencils.visualization.ir.interactive.visit.IR_SetupVisit
+import exastencils.visualization.ir.postprocessing.IR_ResolveVisualizationPrinters
 
 /// IR_LayerHandler
 
@@ -136,7 +136,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_ResolveJSONFunctions.apply()
     IR_ResolveBenchmarkFunctions.apply()
     IR_ResolveGismoFunctions.apply()
-    IR_ResolveVtkPrinters.apply()
+    IR_ResolveVisualizationPrinters.apply()
     IR_ResolvePrintWithReducedPrec.apply()
     IR_AdaptTimerFunctions.apply()
 
