@@ -5,46 +5,46 @@
 #######################################
 
 .module_tree_build:
-  variables:
-    - PYTHON_PACKAGES: sympy numpy influxdb GitPython
-  before_script:
-    - JAVA_HOME=$HOME/jdk-11.0.14 ; export JAVA_HOME
-    - SBT_HOME=$HOME/sbt ; export SBT_HOME
-    - PATH=$JAVA_HOME/bin:$SBT_HOME/bin:$PATH ; export PATH
-    - module load python/3.8-anaconda
-    - |
-      for PACKAGE in $PYTHON_PACKAGES
-      do
-          python3 pip install --user $PACKAGE
-      done
-  after_script:
-    - |
-      for PACKAGE in $PYTHON_PACKAGES
-      do
-          python3 pip uninstall $PACKAGE # cleanup
-      done
+    variables:
+        -   PYTHON_PACKAGES: sympy numpy influxdb GitPython
+    before_script:
+        - JAVA_HOME=$HOME/jdk-11.0.14 ; export JAVA_HOME
+        - SBT_HOME=$HOME/sbt ; export SBT_HOME
+        - PATH=$JAVA_HOME/bin:$SBT_HOME/bin:$PATH ; export PATH
+        - module load python/3.8-anaconda
+        - |
+            for PACKAGE in $PYTHON_PACKAGES
+            do
+                python3 pip install --user $PACKAGE
+            done
+    after_script:
+        - |
+            for PACKAGE in $PYTHON_PACKAGES
+            do
+                python3 pip uninstall $PACKAGE # cleanup
+            done
 
 .benchmark_template:
-  tags:
-    - testcluster
-  artifacts:
-    when: on_failure
-    paths:
-      - Benchmark/output/Debug/*
-      - Benchmark/output/generated/*
-    expire_in: 1 weeks
-  variables:
-    NO_SLURM_SUBMIT: 1
-    COMPILER_PATH: "../Compiler/Compiler.jar"
-    COMPILER_LIB_PATH: "../Compiler/lib"
-    EXA_PROBLEM_PATH: "TO_BE_REPLACED"
-    OUTPUT_PATH: "output"
-    PLATFORM_PATH: "Platform/rome1.platform"
-  before_script:
-    - cd Benchmark
-    - !reference [.module_tree_build, before_script]
-  script:
-    - python3 slurm_alloc.py $EXA_PROBLEM_PATH $PLATFORM_PATH
-    - python3 run_benchmark.py $COMPILER_PATH $COMPILER_LIB_PATH $EXA_PROBLEM_PATH $OUTPUT_PATH $PLATFORM_PATH
-  after_script:
-    - !reference [.module_tree_build, after_script]
+    tags:
+        - testcluster
+    artifacts:
+        when: on_failure
+        paths:
+            - Benchmark/output/Debug/*
+            - Benchmark/output/generated/*
+        expire_in: 1 weeks
+    variables:
+        NO_SLURM_SUBMIT: 1
+        COMPILER_PATH: "../Compiler/Compiler.jar"
+        COMPILER_LIB_PATH: "../Compiler/lib"
+        EXA_PROBLEM_PATH: "TO_BE_REPLACED"
+        OUTPUT_PATH: "output"
+        PLATFORM_PATH: "Platform/rome1.platform"
+    before_script:
+        - cd Benchmark
+        - !reference [ .module_tree_build, before_script ]
+    script:
+        - python3 slurm_alloc.py $EXA_PROBLEM_PATH $PLATFORM_PATH
+        - python3 run_benchmark.py $COMPILER_PATH $COMPILER_LIB_PATH $EXA_PROBLEM_PATH $OUTPUT_PATH $PLATFORM_PATH
+    after_script:
+        - !reference [ .module_tree_build, after_script ]
