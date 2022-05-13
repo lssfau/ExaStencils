@@ -1,0 +1,19 @@
+dimensionality                 = 3
+
+minLevel                       = 2
+maxLevel                       = 2
+
+discr_type                     = "FiniteDifferences"
+
+domain_onlyRectangular         = true
+domain_rect_generate           = true
+grid_isUniform                 = false
+grid_isStaggered               = false
+grid_isAxisAligned             = true
+grid_spacingModel              = "linearFct"
+
+experimental_generateParaviewFiles = true
+
+// four blocks (2, 2, 1), four MPI processes
+import '../lib/domain_fourPatches.knowledge'
+import '../lib/parallelization_fourMPI.knowledge'

@@ -1,0 +1,32 @@
+dimensionality                 = 3
+
+minLevel                       = 3
+maxLevel                       = 3
+
+discr_type                     = "FiniteDifferences"
+
+experimental_generateParaviewFiles = true
+//parIO_vis_generateVisItFiles = true
+
+domain_onlyRectangular         = true
+domain_rect_generate           = true
+domain_rect_numBlocks_x        = 2
+domain_rect_numBlocks_y        = 2
+domain_rect_numBlocks_z        = 1
+domain_rect_numFragsPerBlock_x = 1
+domain_rect_numFragsPerBlock_y = 1
+domain_rect_numFragsPerBlock_z = 1
+
+omp_enabled                       = true
+omp_numThreads                    = 10
+mpi_enabled                       = true
+mpi_numThreads                    = 4
+omp_parallelizeLoopOverFragments  = false
+omp_parallelizeLoopOverDimensions = true
+
+poly_optLevel_fine			= 3
+opt_useAddressPrecalc		= true
+opt_vectorize				= true
+opt_unroll					= 4
+opt_conventionalCSE         = true
+opt_loopCarriedCSE          = false
