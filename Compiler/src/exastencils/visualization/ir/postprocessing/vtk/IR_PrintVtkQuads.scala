@@ -16,28 +16,23 @@
 //
 //=============================================================================
 
-package exastencils.visualization.ir
+package exastencils.visualization.ir.postprocessing.vtk
 
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_Print
+import exastencils.visualization.ir.postprocessing.IR_PrintVisualizationQuads
 
 /// IR_PrintVtkQuads
-// 2D or 3D
-// for a fixed number of fragments per block
 
-abstract class IR_PrintVtkQuads extends IR_PrintVtk {
-  def numCells : IR_Expression = numCells_x * numCells_y * numCells_z * numFrags
-
-  override def stmtsForPreparation : ListBuffer[IR_Statement] = { ListBuffer() }
+abstract class IR_PrintVtkQuads extends IR_PrintVtk with IR_PrintVisualizationQuads {
 
   override def stmtsForMeshVertices : ListBuffer[IR_Statement] = {
     val stream = newStream
@@ -53,7 +48,7 @@ abstract class IR_PrintVtkQuads extends IR_PrintVtk {
         nodePrint += separator
       }
       nodePrint = nodePrint.dropRight(1)
-      nodePrint += IR_Print.endl
+      nodePrint += IR_Print.newline
       IR_Print(stream, nodePrint)
     }
 
@@ -61,11 +56,12 @@ abstract class IR_PrintVtkQuads extends IR_PrintVtk {
       IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess("std::ios::app", IR_UnknownDatatype)),
       IR_Print(stream, "std::scientific"), //std::defaultfloat
       IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
+        IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
           IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DRE", dim) + 1 - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
-            pointPrint))),
+            pointPrint)),
+        IR_Print(stream, IR_Print.flush)),
       IR_MemberFunctionCall(stream, "close"))
 
     genStmtBlock(initPoints)
@@ -75,40 +71,20 @@ abstract class IR_PrintVtkQuads extends IR_PrintVtk {
     val stream = newStream
 
     val cellPrint = {
-      val offset = (MPI_IV_MpiRank * Knowledge.domain_numFragmentsPerBlock + IR_LoopOverFragments.defIt) * numPointsPerFrag
 
       var cellPrint = ListBuffer[IR_Expression]()
+      connectivityForCell().foreach(conn => {
+        cellPrint += separator
+        cellPrint += conn
+      })
+
       numDimsGrid match {
         case 2 =>
-          cellPrint += 4
-          cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1)
-          cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1)
-          cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1)
-          cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1)
-          cellPrint += IR_Print.endl
+          cellPrint.prepend(4)
+          cellPrint.append(IR_Print.newline)
         case 3 =>
-          cellPrint += 8
-          cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 0) * (numCells_x + 1) * (numCells_y + 1)
-          cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 0) * (numCells_x + 1) * (numCells_y + 1)
-          cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 0) * (numCells_x + 1) * (numCells_y + 1)
-          cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 0) * (numCells_x + 1) * (numCells_y + 1)
-          cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 1) * (numCells_x + 1) * (numCells_y + 1)
-          cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 0) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 1) * (numCells_x + 1) * (numCells_y + 1)
-          cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 1 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 1) * (numCells_x + 1) * (numCells_y + 1)
-          cellPrint += separator
-          cellPrint += offset + IR_LoopOverDimensions.defItForDim(0) + 0 + (IR_LoopOverDimensions.defItForDim(1) + 1) * (numCells_x + 1) + (IR_LoopOverDimensions.defItForDim(2) + 1) * (numCells_x + 1) * (numCells_y + 1)
-          cellPrint += IR_Print.endl
+          cellPrint.prepend(8)
+          cellPrint.append(IR_Print.newline)
       }
 
       IR_Print(stream, cellPrint)
@@ -122,11 +98,12 @@ abstract class IR_PrintVtkQuads extends IR_PrintVtk {
       },
       //IR_Print(stream, "std::scientific"), //std::defaultfloat
       IR_LoopOverFragments(
-        IR_IfCondition(IR_IV_IsValidForDomain(someCellField.domain.index),
+        IR_IfCondition(IR_IV_IsValidForDomain(domainIndex),
           IR_LoopOverDimensions(numDimsGrid, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DLB", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsGrid).toArray.map(dim => someCellField.layout.idxById("DRE", dim) - Duplicate(someCellField.referenceOffset(dim)) : IR_Expression))),
-            cellPrint))),
+            cellPrint)),
+        IR_Print(stream, IR_Print.flush)),
       IR_MemberFunctionCall(stream, "close"))
 
     genStmtBlock(initCells)

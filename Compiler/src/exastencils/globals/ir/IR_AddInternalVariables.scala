@@ -157,13 +157,14 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
 
     case buf : CUDA_ReductionDeviceData =>
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
+      val totalSize : IR_Expression = buf.numPoints * buf.targetDt.getSizeArray.product
       if (Knowledge.data_genVariableFieldSizes) {
         if (deviceBufferSizes.contains(id))
-          deviceBufferSizes(id).asInstanceOf[IR_Maximum].args += Duplicate(buf.size)
+          deviceBufferSizes(id).asInstanceOf[IR_Maximum].args += Duplicate(totalSize)
         else
-          deviceBufferSizes += (id -> IR_Maximum(ListBuffer(Duplicate(buf.size))))
+          deviceBufferSizes += (id -> IR_Maximum(ListBuffer(Duplicate(totalSize))))
       } else {
-        val size = IR_SimplifyExpression.evalIntegral(buf.size)
+        val size = IR_SimplifyExpression.evalIntegral(totalSize)
         deviceBufferSizes += (id -> (size max deviceBufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
       }
       buf
@@ -202,7 +203,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
         bufferAllocs += (id -> IR_LoopOverFragments(
           IR_ArrayAllocation(
             buf,
-            if(buf.field.layout.datatype.isInstanceOf[IR_ComplexDatatype]) buf.field.layout.datatype
+            if (buf.field.layout.datatype.isInstanceOf[IR_ComplexDatatype]) buf.field.layout.datatype
             else IR_RealDatatype,
             size
           ), IR_ParallelizationInfo(potentiallyParallel = true)))
@@ -214,7 +215,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       val size = deviceBufferSizes(id)
 
-      deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_Allocate(buf, size, IR_RealDatatype /*FIXME*/), IR_ParallelizationInfo(potentiallyParallel = true)))
+      deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_Allocate(buf, size, buf.field.resolveBaseDatatype), IR_ParallelizationInfo(potentiallyParallel = true)))
 
       buf
 
@@ -222,7 +223,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
       val size = deviceBufferSizes(id)
 
-      deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_Allocate(buf, size, IR_RealDatatype /*FIXME*/), IR_ParallelizationInfo(potentiallyParallel = true)))
+      deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_Allocate(buf, size, buf.baseDt), IR_ParallelizationInfo(potentiallyParallel = true)))
 
       buf
 
@@ -258,9 +259,11 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
           func.body += genericAlloc._2
 
       for (deviceAlloc <- deviceFieldAllocs.toSeq.sortBy(_._1) ++ deviceBufferAllocs.toSeq.sortBy(_._1))
-        if ("Condition" == Knowledge.cuda_preferredExecution)
-          func.body += IR_IfCondition(IR_Negation(Knowledge.cuda_executionCondition), deviceAlloc._2)
-        else if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
+        if ("Condition" == Knowledge.cuda_preferredExecution) {
+          val loop = deviceAlloc._2.asInstanceOf[IR_LoopOverFragments]
+          loop.body = ListBuffer(IR_IfCondition(IR_Negation(Knowledge.cuda_executionCondition), loop.body))
+          func.body += loop
+        } else if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
           func.body += IR_Scope(deviceAlloc._2)
         else
           func.body += deviceAlloc._2

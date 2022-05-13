@@ -16,31 +16,30 @@
 //
 //=============================================================================
 
-package exastencils.parallelization.api.cuda
+package exastencils.field.ir
 
-import scala.collection.mutable
-
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.datastructures._
+import exastencils.datastructures.Transformation.OutputType
 
-object CUDA_GatherVariableAccess extends QuietDefaultStrategy("Gather local VariableAccess nodes") {
-  var accesses = mutable.HashMap[String, IR_VariableAccess]()
-  var ignoredAccesses = mutable.SortedSet[String]()
+/// IR_WriteField
 
-  def clear() = {
-    accesses = mutable.HashMap[String, IR_VariableAccess]()
-    ignoredAccesses += "std::cout"
-    ignoredAccesses += "std::cerr"
-    ignoredAccesses += "std::endl"
-  }
+case class IR_WriteField(
+    var filename : IR_Expression,
+    var field : IR_Field,
+    var slot : IR_Expression,
+    var ioInterface : IR_Expression,
+    var includeGhostLayers : Boolean,
+    var canonicalFileLayout : Boolean = false,
+    var useBinary : Boolean = false,
+    var separator : IR_Expression = IR_StringConstant(" "),
+    var condition : IR_Expression = true,
+    var dataset : IR_Expression = IR_NullExpression,
+    var mpiioRepresentation : IR_StringConstant = IR_StringConstant("native")
+) extends IR_FieldIO {
 
-  this += new Transformation("Searching", {
-    case decl : IR_VariableDeclaration =>
-      ignoredAccesses += decl.name
-      decl
+  def doWrite = true
+  def onlyVals = true
 
-    case access : IR_VariableAccess if !ignoredAccesses.contains(access.name) =>
-      accesses.put(access.name, access)
-      access
-  })
+  override def expand() : OutputType = generateFileAccess()
 }

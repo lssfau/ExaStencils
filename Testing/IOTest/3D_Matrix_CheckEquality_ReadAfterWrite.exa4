@@ -1,0 +1,164 @@
+// domain declarations
+
+Domain global< [0.0, 0.0, 0.0] to [1.0, 1.0, 1.0] >
+
+// field layout declarations
+
+Layout CellMatWithComm < Matrix < Real, 3, 5 > , Cell >@all {
+  duplicateLayers = [1, 1, 1] with communication
+  ghostLayers     = [1, 1, 1] with communication
+}
+
+// field declarations
+
+Field srcMat < global, CellMatWithComm, None >@all
+Field destMat < global, CellMatWithComm, None >@all
+
+// external field declarations
+
+// stencil declarations
+
+// stencil field declarations
+
+// functions
+
+Function compareFields@finest ( ) : Int {
+  // check for equality
+  loop over destMat sequentially {
+    compare(srcMat, destMat, 0.001)
+  }
+
+  // reset dest
+  loop over destMat {
+    destMat = -1.0
+  }
+    
+  return 0
+}
+
+Function initSRC@finest {
+  loop over srcMat {
+    srcMat = vf_nodePos_x**2 - vf_nodePos_y**2 - vf_nodePos_z**2
+  }
+}
+
+Function checkEquality@finest ( ) : Unit {
+  Val ret : Int = compareFields@finest ( )
+  if( ret == -1 ) {
+    exit(1)
+  }
+}
+
+Function Application {
+  // init
+  startTimer ( "setup" )
+  initGlobals ( )
+  initDomain ( )
+  initFieldsWithZero ( )
+  initGeometry ( )
+  initSRC@finest ( )
+  stopTimer ( "setup" )
+  
+  Val useGhost : Bool = true
+  Val canonical : Bool = true
+  Val useBin : Bool = true
+  Val condition : Bool = true
+  Val separator : String = ","
+  
+  // toggle I/O modes here
+  Val lockingIO : Bool = true
+  Val fppIO     : Bool = true
+  Val hdfIO     : Bool = true
+  Val mpiIO     : Bool = true
+  Val ncIO      : Bool = true
+  Val sionIO    : Bool = true
+       
+  if (lockingIO) {
+    startTimer ("Lock: writeField")
+    //writeField_lock ("data/3D_Matrix_CheckEquality_ReadAfterWrite/src_lock.txt", srcMat@finest, !useGhost, !useBin, condition, separator)
+    writeField_lock ("data/3D_Matrix_CheckEquality_ReadAfterWrite/src_lock.txt", srcMat@finest, useGhost, useBin)
+    stopTimer ("Lock: writeField")
+
+    startTimer ("Lock: readField")
+    //readField_lock ("data/3D_Matrix_CheckEquality_ReadAfterWrite/src_lock.txt", destMat@finest, !useGhost, !useBin, condition, separator)
+    readField_lock ("data/3D_Matrix_CheckEquality_ReadAfterWrite/src_lock.txt", destMat@finest, useGhost, useBin)
+    stopTimer ("Lock: readField")
+
+    checkEquality@finest ( )
+    print ( 'Passed lock test' )
+
+    // write csv for paraview
+    // printField_lock ("data/3D_Matrix_CheckEquality_ReadAfterWrite/src_vis.csv", srcMat@finest, useGhost, !useBin, condition, separator)
+  }
+  
+  if (fppIO) {
+      startTimer ("FPP: writeField")
+      writeField_fpp ("data/3D_Matrix_CheckEquality_ReadAfterWrite/src_fpp_$blockId.bin", srcMat@finest, useGhost, useBin, condition)
+      stopTimer ("FPP: writeField")
+
+      startTimer ("FPP: readField")
+      readField_fpp ("data/3D_Matrix_CheckEquality_ReadAfterWrite/src_fpp_$blockId.bin", destMat@finest, useGhost, useBin, condition)
+      stopTimer ("FPP: readField")
+      
+      checkEquality@finest ( )
+      print ( 'Passed fpp test' )
+  }
+  
+  if (hdfIO) {
+    startTimer ("HDF5: writeField")
+    writeField_hdf5 ("data/3D_Matrix_CheckEquality_ReadAfterWrite/src.h5", "/src", srcMat@finest, useGhost, canonical)
+    stopTimer ("HDF5: writeField")
+
+    startTimer ("HDF5: readField")
+    readField_hdf5 ("data/3D_Matrix_CheckEquality_ReadAfterWrite/src.h5", "/src", destMat@finest, useGhost, canonical)
+    stopTimer ("HDF5: readField")
+
+    checkEquality@finest ( )
+    print ( 'Passed hdf5 test' )
+  }
+  
+  if (mpiIO) {
+    startTimer ("MPIIO: writeField")
+    writeField_mpiio ("data/3D_Matrix_CheckEquality_ReadAfterWrite/src.bin", srcMat@finest)
+    stopTimer ("MPIIO: writeField")
+
+    startTimer ("MPIIO: readField")
+    readField_mpiio ("data/3D_Matrix_CheckEquality_ReadAfterWrite/src.bin", destMat@finest)
+    stopTimer ("MPIIO: readField")
+
+    checkEquality@finest ( )
+    print ( 'Passed MPI I/O test' )
+  }
+  
+  if (ncIO) {
+    startTimer ("PnetCDF: writeField")
+    writeField_nc ("data/3D_Matrix_CheckEquality_ReadAfterWrite/src.nc", "field_src", srcMat@finest, useGhost)
+    stopTimer ("PnetCDF: writeField")
+
+    startTimer ("PnetCDF: readField")
+    readField_nc ("data/3D_Matrix_CheckEquality_ReadAfterWrite/src.nc", "field_src", destMat@finest, useGhost)
+    stopTimer ("PnetCDF: readField")
+
+    checkEquality@finest ( )
+    print ( 'Passed nc test' )
+  }
+   
+  
+  if(sionIO) {
+    startTimer ("SionLib: writeField")
+    writeField_sion ("data/3D_Matrix_CheckEquality_ReadAfterWrite/src.sion", srcMat@finest, !useGhost, condition)
+    stopTimer ("SionLib: writeField")
+
+    startTimer ("SionLib: readField")
+    readField_sion ("data/3D_Matrix_CheckEquality_ReadAfterWrite/src.sion", destMat@finest, !useGhost, condition)
+    stopTimer ("SionLib: readField")
+
+    checkEquality@finest ( )
+    print ( 'Passed sion test' )
+  }
+  
+  
+  // de-init
+  printAllTimers ( )
+  destroyGlobals ( )
+}

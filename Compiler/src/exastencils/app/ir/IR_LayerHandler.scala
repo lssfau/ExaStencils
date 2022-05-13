@@ -52,7 +52,9 @@ import exastencils.stencil.ir._
 import exastencils.timing.ir._
 import exastencils.util._
 import exastencils.util.ir._
-import exastencils.visualization.ir._
+import exastencils.visualization.ir.interactive.cimg.IR_ResolveCImgFunctions
+import exastencils.visualization.ir.interactive.visit.IR_SetupVisit
+import exastencils.visualization.ir.postprocessing.IR_ResolveVisualizationPrinters
 
 /// IR_LayerHandler
 
@@ -133,7 +135,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_ResolveCharacteristicsFunctions.apply()
     IR_ResolveBenchmarkFunctions.apply()
     IR_ResolveGismoFunctions.apply()
-    IR_ResolveVtkPrinters.apply()
+    IR_ResolveVisualizationPrinters.apply()
     IR_ResolvePrintWithReducedPrec.apply()
     IR_AdaptTimerFunctions.apply()
 
@@ -169,6 +171,9 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     // simplify indices modified just now, otherwise equality checks will not work later on
     IR_GeneralSimplify.apply()
 
+    if (Knowledge.visit_enable)
+      IR_SetupVisit.apply()
+
     var convChanged = false
     do {
       IR_FindStencilConvolutions.changed = false
@@ -184,9 +189,6 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     } while (convChanged)
 
     IR_ResolveStencilFunction.apply()
-
-    if (Knowledge.experimental_visit_enable)
-      IR_SetupVisit.apply()
 
     // resolve new virtual field accesses
     IR_ResolveIntegrateOnGrid.apply()
@@ -323,9 +325,17 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     if (Knowledge.data_genVariableFieldSizes)
       IR_GenerateIndexManipFcts.apply()
 
+    // adapt accesses to device data in case of managed memory
+    if (Knowledge.cuda_enabled && Knowledge.cuda_useManagedMemory)
+      CUDA_AdaptDeviceAccessesForMM.apply()
+
     IR_AddInternalVariables.apply()
     // resolve possibly newly added constant IVs
     IR_ResolveConstIVs.apply()
+
+    // adapt allocations and de-allocations before expanding
+    if (Knowledge.cuda_enabled)
+      CUDA_AdaptAllocations.apply()
 
     if (Knowledge.useFasterExpand)
       IR_ExpandInOnePass.apply()

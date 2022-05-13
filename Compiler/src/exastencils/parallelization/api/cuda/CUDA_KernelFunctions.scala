@@ -64,8 +64,15 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
   }
 
   var kernelCollection = ListBuffer[CUDA_Kernel]()
-  var requiredRedKernels = mutable.HashSet[String]()
+  var generatedRedKernels = mutable.HashSet[String]()
+  var requiredRedKernels = mutable.HashSet[(String, IR_Expression)]()
   var counterMap = mutable.HashMap[String, Int]()
+
+  def getRedKernelName(op : String, dt : IR_Datatype) =
+    "DefaultReductionKernel" + IR_BinaryOperators.opAsIdent(op) + (if (dt.isInstanceOf[IR_MatrixDatatype]) dt.prettyprint else "")
+
+  def getRedKernelWrapperName(op : String, dt : IR_Datatype) =
+    getRedKernelName(op, dt) + "_wrapper"
 
   def getIdentifier(fctName : String) : String = {
     val cnt = counterMap.getOrElse(fctName, -1) + 1
@@ -85,7 +92,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
     kernelCollection.clear // consume processed kernels
 
     // take care of reductions
-    for (op <- requiredRedKernels) addDefaultReductionKernel(op)
+    for ((op, target) <- requiredRedKernels) addDefaultReductionKernel(op, target)
     requiredRedKernels.clear // consume reduction requests
   }
 
@@ -101,14 +108,20 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
     }
   }
 
-  def addDefaultReductionKernel(op : String) = {
-    val opAsIdent = IR_BinaryOperators.opAsIdent(op)
-    val kernelName = "DefaultReductionKernel" + opAsIdent
-    val wrapperName = kernelName + "_wrapper"
+  def addDefaultReductionKernel(op : String, target : IR_Expression) : Unit = {
+    val reductionDt = CUDA_Util.getReductionDatatype(target)
+    val kernelName = getRedKernelName(op, reductionDt)
+    val wrapperName = getRedKernelWrapperName(op, reductionDt)
+
+    // early exit if already generated
+    if (generatedRedKernels.contains(kernelName))
+      return
+    else
+      generatedRedKernels += kernelName
 
     // kernel function
     {
-      def data = IR_FunctionArgument("data", IR_PointerDatatype(IR_RealDatatype))
+      def data = IR_FunctionArgument("data", IR_PointerDatatype(reductionDt.resolveBaseDatatype))
       def numElements = IR_FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/)
       def halfStride = IR_FunctionArgument("halfStride", IR_IntegerDatatype /*FIXME: size_t*/)
       def it = Duplicate(IR_LoopOverDimensions.defItForDim(0))
@@ -128,10 +141,29 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
         IR_OrOr(IR_Lower(it, 0), IR_GreaterEqual(it, numElements.access)),
         IR_Return())
 
+      val assign : IR_Statement = reductionDt match {
+        case mat : IR_MatrixDatatype =>
+            // reduction of whole matrix
+            val i = IR_VariableAccess("_i", IR_IntegerDatatype)
+            val j = IR_VariableAccess("_j", IR_IntegerDatatype)
+            val matSize = mat.sizeN * mat.sizeM
+            val matIdx = i * mat.sizeN + j
+            val dst = IR_ArrayAccess(data.access, matSize * it + matIdx)
+            val src = IR_ArrayAccess(data.access, matSize * it + matSize * halfStride.access + matIdx)
+            IR_ForLoop(IR_VariableDeclaration(i, IR_IntegerConstant(0)), IR_Lower(i, mat.sizeM), IR_PreIncrement(i), ListBuffer[IR_Statement](
+              IR_ForLoop(IR_VariableDeclaration(j, 0), IR_Lower(j, mat.sizeN), IR_PreIncrement(j), ListBuffer[IR_Statement](
+                IR_Assignment(dst, IR_BinaryOperators.createExpression(op, dst, src))))))
+        case _ =>
+          // matrix element or scalar quantity
+          val dst = IR_ArrayAccess(data.access, it)
+          val src = IR_ArrayAccess(data.access, it + halfStride.access)
+          IR_Assignment(dst, IR_BinaryOperators.createExpression(op, dst, src))
+      }
+
       // add values with stride
       fctBody += IR_IfCondition(
         IR_Lower(it + halfStride.access, numElements.access),
-        IR_Assignment(IR_ArrayAccess(data.access, it), IR_BinaryOperators.createExpression(op, IR_ArrayAccess(data.access, it), IR_ArrayAccess(data.access, it + halfStride.access))))
+        assign)
 
       // compile final kernel function
       val fct = IR_PlainFunction(/* FIXME: IR_LeveledFunction? */ kernelName, IR_UnitDatatype, ListBuffer(data, numElements, halfStride), fctBody)
@@ -149,8 +181,9 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
     {
       def numElements = IR_FunctionArgument("numElements", IR_SpecialDatatype("size_t") /*FIXME*/)
       def halfStride = IR_VariableAccess("halfStride", IR_SpecialDatatype("size_t") /*FIXME*/)
-      def data = IR_FunctionArgument("data", IR_PointerDatatype(IR_RealDatatype))
-      def ret = IR_VariableAccess("ret", IR_RealDatatype)
+
+      def data = IR_FunctionArgument("data", IR_PointerDatatype(reductionDt.resolveBaseDatatype))
+      var functionArgs = ListBuffer(data, IR_FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/))
 
       def blockSize = Knowledge.cuda_reductionBlockSize
 
@@ -170,16 +203,27 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
         IR_Assignment(halfStride, 2, "*="),
         loopBody)
 
-      fctBody += IR_VariableDeclaration(ret)
-      fctBody += CUDA_Memcpy(IR_AddressOf(ret), data.access, IR_SizeOf(IR_RealDatatype), "cudaMemcpyDeviceToHost")
+      // call default reduction kernel and return by value or copying to passed pointer
+      val returnDt = CUDA_Kernel.getReductionReturnDt(reductionDt)
+      returnDt match {
+        case IR_UnitDatatype =>
+          val matrixReductionTmp = IR_FunctionArgument("matrixReductionTmp", data.datatype)
+          functionArgs += matrixReductionTmp
+          fctBody += CUDA_Memcpy(matrixReductionTmp.access, data.access, IR_SizeOf(reductionDt), "cudaMemcpyDeviceToHost")
 
-      fctBody += IR_Return(Some(ret))
+        case _ =>
+          def ret = IR_VariableAccess("ret", reductionDt)
+          fctBody += IR_VariableDeclaration(ret)
+          fctBody += CUDA_Memcpy(IR_AddressOf(ret), data.access, IR_SizeOf(reductionDt), "cudaMemcpyDeviceToHost")
+
+          fctBody += IR_Return(Some(ret))
+      }
 
       // compile final wrapper function
       val fct = IR_PlainFunction(/* FIXME: IR_LeveledFunction? */
         wrapperName,
-        IR_RealDatatype, // TODO: support other types
-        ListBuffer(data, IR_FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/)),
+        returnDt,
+        functionArgs,
         fctBody)
 
       fct.allowInlining = false

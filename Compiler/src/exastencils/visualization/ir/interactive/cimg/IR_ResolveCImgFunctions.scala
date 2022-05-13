@@ -16,7 +16,7 @@
 //
 //=============================================================================
 
-package exastencils.visualization.ir
+package exastencils.visualization.ir.interactive.cimg
 
 import scala.collection.mutable.ListBuffer
 

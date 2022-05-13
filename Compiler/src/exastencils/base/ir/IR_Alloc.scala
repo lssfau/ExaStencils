@@ -38,7 +38,7 @@ case class IR_ArrayAllocation(var name : IR_Expression, // no string - could be 
 
 case class IR_ScalarAllocation(var name : IR_Expression, // no string - could be an IV
     var datatype : IR_Datatype,
-    ) extends IR_Statement {
+) extends IR_Statement {
   //override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << name << " = " << "new" << ' ' << datatype << ";"
 }
@@ -48,7 +48,6 @@ case class IR_ScalarAllocation(var name : IR_Expression, // no string - could be
 case class IR_ArrayFree(var pointer : IR_Expression) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "delete[] " << pointer << ";"
 }
-
 
 /// IR_ScalarFree
 case class IR_ScalarFree(var pointer : IR_Expression) extends IR_Statement {

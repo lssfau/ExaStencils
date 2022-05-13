@@ -25,6 +25,7 @@ import exastencils.base.ir._
 import exastencils.config._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
+import exastencils.domain.ir.IR_IV_NeighborFragmentIdx
 import exastencils.field.ir._
 import exastencils.optimization.ir.IR_SimplifyExpression
 
@@ -47,6 +48,12 @@ object CUDA_GatherFieldAccessLike extends QuietDefaultStrategy("Gather local Fie
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
         case _                        => identifier += s"_s${ access.slot.prettyprint }"
       }
+    }
+
+    // also consider neighbor fragment accesses
+    access.fragIdx match {
+      case neigh : IR_IV_NeighborFragmentIdx => identifier += s"_n${ neigh.neighIdx }"
+      case _                                 =>
     }
 
     identifier

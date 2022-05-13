@@ -95,14 +95,14 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
   ////////////////////////////////////////////////////////////////// combined ops
 
   this += new Transformation("Split combined operators", {
-    case IR_Assignment(dest, src, "+=") =>
-      IR_Assignment(dest, IR_Addition(dest, src))
-    case IR_Assignment(dest, src, "*=") =>
-      IR_Assignment(dest, IR_Multiplication(ListBuffer[IR_Expression](dest, src)))
-    case IR_Assignment(dest, src, "-=") =>
-      IR_Assignment(dest, IR_Subtraction(dest, src))
-    case IR_Assignment(dest, src, "/=") =>
-      IR_Assignment(dest, IR_Division(dest, src))
+    case IR_Assignment(dest, src, "+=") if dest.datatype.isInstanceOf[IR_HigherDimensionalDatatype] =>
+      IR_Assignment(Duplicate(dest), IR_Addition(dest, src))
+    case IR_Assignment(dest, src, "*=") if dest.datatype.isInstanceOf[IR_HigherDimensionalDatatype] =>
+      IR_Assignment(Duplicate(dest), IR_Multiplication(ListBuffer[IR_Expression](dest, src)))
+    case IR_Assignment(dest, src, "-=") if dest.datatype.isInstanceOf[IR_HigherDimensionalDatatype] =>
+      IR_Assignment(Duplicate(dest), IR_Subtraction(dest, src))
+    case IR_Assignment(dest, src, "/=") if dest.datatype.isInstanceOf[IR_HigherDimensionalDatatype] =>
+      IR_Assignment(Duplicate(dest), IR_Division(dest, src))
   }, false)
   /////////////////////////////////////////////
 
@@ -276,8 +276,12 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
     */
 
   this += new Transformation("Insert resolvables and resolve", {
-    case decl @ IR_VariableDeclaration(_, _, Some(r : IR_RuntimeMNode), _) if r.resolveAtRuntime =>
-      IR_MatNodeUtils.splitDeclaration(decl)
+    case decl @ IR_VariableDeclaration(dt, _, Some(r : IR_RuntimeMNode), _) if r.resolveAtRuntime =>
+      if(dt.isInstanceOf[IR_MatrixDatatype]) {
+        IR_MatNodeUtils.splitDeclaration(decl, true)
+      } else {
+        IR_MatNodeUtils.splitDeclaration(decl)
+      }
 
     // not to resolve at runtime
     case r : IR_RuntimeMNode if !r.resolveAtRuntime   =>
