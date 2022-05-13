@@ -2,8 +2,7 @@
 
 import subprocess
 import argparse
-from likwid_pinning import *
-from module_tree_run import *
+from run_benchmark import *
 from generation_helpers import *
 
 
@@ -13,13 +12,6 @@ def slurm_alloc(config: ConfigFromKnowledge):
 
     result = subprocess.run(["salloc", f"--nodes={config.n_nodes}", f"--nodelist={config.host_name}"],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    # load slurm modules
-    load_mpi_module()
-    load_likwid_module()
-
-    if config.use_cuda:
-        load_cuda_module()
 
     return result
 
