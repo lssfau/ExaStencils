@@ -6,6 +6,7 @@ fi
 
 HOSTLIST=$(sinfo -h --partition=work -o "%n" | grep rome1) # TODO remove grep
 for HOST in ${HOSTLIST}; do
+  echo "include: 'Benchmark/.benchmark_templates.yml'"
   echo "benchmark-$1-$HOST:"
   echo -e "\tstage: benchmark"
   echo -e "\textends: .benchmark_template"
