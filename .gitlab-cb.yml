@@ -29,7 +29,7 @@ include: 'Benchmark/.benchmark_templates.yml'
                 python3 run_benchmark.py $COMPILER_PATH $COMPILER_LIB_PATH $EXA_PROBLEM_PATH $OUTPUT_PATH $pf --generate
             done
         - chmod +x generate_bench_jobs_for_hosts.sh
-        - generate_bench_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH > $EXA_PROBLEM_NAME-pipe.yml
+        - ./generate_bench_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH > $EXA_PROBLEM_NAME-pipe.yml
     after_script:
         - !reference [ .module_tree_build, after_script ]
     artifacts:
@@ -72,7 +72,7 @@ pf_gen:gen_pf_job:
         - cd Benchmark
     script:
         - chmod +x generate_pf_jobs_for_hosts.sh
-        - generate_pf_jobs_for_hosts.sh > gen-platform-pipe.yml
+        - ./generate_pf_jobs_for_hosts.sh > gen-platform-pipe.yml
     artifacts:
         paths:
             - gen-platform-pipe.yml
