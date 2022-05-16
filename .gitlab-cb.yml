@@ -1,9 +1,9 @@
 stages:
-    - .pre
     - pf_gen
+    - pf_pipe
     - build
-    - job_gen
-    - benchmark
+    - bench_gen
+    - bench_pipe
 
 include: 'Benchmark/.benchmark_templates.yml'
 
@@ -75,16 +75,16 @@ pf_gen:gen_pf_job:
         - ./generate_pf_jobs_for_hosts.sh > gen-platform-pipe.yml
     artifacts:
         paths:
-            - gen-platform-pipe.yml
+            - Benchmark/gen-platform-pipe.yml
         expire_in: 1 weeks
     variables:
         NO_SLURM_SUBMIT: 1
 
-pf_gen:pipe_pf_job:
-    stage: pf_gen
+pf_pipe:pipe_pf_job:
+    stage: pf_pipe
     trigger:
         include:
-            artifact: gen-platform-pipe.yml
+            artifact: Benchmark/gen-platform-pipe.yml
             job: pf_gen:gen_pf_job
         strategy: depend
     needs:

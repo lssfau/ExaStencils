@@ -37,7 +37,6 @@
     - updatedb
 
 .pfgen_template:
-    stage: .pre
     tags:
         - testcluster
     artifacts:
@@ -57,7 +56,7 @@
     after_script:
         - !reference [ .module_tree_build, after_script ]
 
-.benchmark_template:
+.bench_pipe_template:
     tags:
         - testcluster
     artifacts:
