@@ -58,6 +58,6 @@
     script:
         - python3 slurm_alloc.py $EXA_PROBLEM_PATH $PLATFORM_PATH
         - *module_load_run
-        - python3 run_benchmark.py $COMPILER_PATH $COMPILER_LIB_PATH $EXA_PROBLEM_PATH $OUTPUT_PATH $PLATFORM_PATH
+        - python3 run_benchmark.py $COMPILER_PATH $COMPILER_LIB_PATH $EXA_PROBLEM_PATH $OUTPUT_PATH $PLATFORM_PATH --compile --run
     after_script:
         - !reference [ .module_tree_build, after_script ]

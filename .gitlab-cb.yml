@@ -18,14 +18,22 @@ include: 'Benchmark/.benchmark_templates.yml'
     tags:
         - testcluster
     script:
+        - |
+            for pf in /Platform/*.platform
+            do
+                python3 run_benchmark.py $COMPILER_PATH $COMPILER_LIB_PATH $EXA_PROBLEM_PATH $OUTPUT_PATH $pf --generate
+            done
         - chmod +x Benchmark/generate_jobs_for_hosts.sh
         - Benchmark/generate_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH > $EXA_PROBLEM_NAME-pipe.yml
     artifacts:
         paths:
             - $EXA_PROBLEM_NAME-pipe.yml
+            - $OUTPUT_PATH/generated
         expire_in: 1 weeks
     variables:
         NO_SLURM_SUBMIT: 1
+        COMPILER_PATH: "../Compiler/Compiler.jar"
+        COMPILER_LIB_PATH: "../Compiler/lib"
         EXA_PROBLEM_NAME: "TO_BE_REPLACED"
         EXA_PROBLEM_PATH: "TO_BE_REPLACED"
 
@@ -36,6 +44,8 @@ include: 'Benchmark/.benchmark_templates.yml'
             artifact: $EXA_PROBLEM_NAME-pipe.yml
             job: job_gen:$EXA_PROBLEM_NAME
         strategy: depend
+    needs:
+        pipeline: $PARENT_PIPELINE_ID
     variables:
         PARENT_PIPELINE_ID: $CI_PIPELINE_ID
         EXA_PROBLEM_NAME: "TO_BE_REPLACED"
