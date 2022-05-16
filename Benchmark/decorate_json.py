@@ -12,6 +12,7 @@ def decorate_json(json_body: dict, config: ConfigFromKnowledge):
     # git annotations
     repo = Repo(search_parent_directories=True)
     commit = repo.head.commit
+    branch = repo.active_branch
 
     new_body = {'measurement': config.problem_name, 'tags': {}}
     new_body['tags']['host'] = config.host_name
@@ -24,6 +25,7 @@ def decorate_json(json_body: dict, config: ConfigFromKnowledge):
     new_body['tags']['numBlocks'] = config.n_blocks
     new_body['tags']['simd'] = config.simd_instructionSet
     new_body['tags']['commit'] = commit.hexsha
+    new_body['tags']['branch'] = branch.name
     new_body['fields'] = json_body
 
     # must be list of dicts
