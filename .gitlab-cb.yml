@@ -1,4 +1,5 @@
 stages:
+    - .pre
     - build
     - job_gen
     - benchmark
@@ -23,8 +24,8 @@ include: 'Benchmark/.benchmark_templates.yml'
             do
                 python3 run_benchmark.py $COMPILER_PATH $COMPILER_LIB_PATH $EXA_PROBLEM_PATH $OUTPUT_PATH $pf --generate
             done
-        - chmod +x Benchmark/generate_jobs_for_hosts.sh
-        - Benchmark/generate_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH > $EXA_PROBLEM_NAME-pipe.yml
+        - chmod +x Benchmark/generate_bench_jobs_for_hosts.sh
+        - Benchmark/generate_bench_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH > $EXA_PROBLEM_NAME-pipe.yml
     artifacts:
         paths:
             - $EXA_PROBLEM_NAME-pipe.yml
@@ -56,6 +57,20 @@ include: 'Benchmark/.benchmark_templates.yml'
 ##         Generator                 ##
 ##                                   ##
 #######################################
+
+.pre:generate_pfs:
+    stage: .pre
+    tags:
+        - testcluster
+    artifacts:
+        - Benchmark/Platform
+    variables:
+        NO_SLURM_SUBMIT: 1
+    before_script:
+        - !reference [ .module_tree_build, before_script ]
+        - python3 --version
+    after_script:
+        - !reference [ .module_tree_build, after_script ]
 
 build:generator:
     stage: build
