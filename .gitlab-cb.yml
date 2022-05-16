@@ -68,6 +68,8 @@ pf_gen:gen_pf_job:
     stage: pf_gen
     tags:
         - testcluster
+    before_script:
+        - cd Benchmark
     script:
         - chmod +x generate_pf_jobs_for_hosts.sh
         - generate_pf_jobs_for_hosts.sh > gen-platform-pipe.yml
