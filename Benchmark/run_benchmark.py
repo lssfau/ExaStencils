@@ -77,16 +77,16 @@ def copy_files(src, dst):
 
 @check_err
 @timer
-def compile_benchmark(exa_problem_name: str, output_path: str):
-    return subprocess.run(['make', '-j', '-s', '-C', f'{output_path}/generated/{exa_problem_name}'],
+def compile_benchmark(target_code_path: str):
+    return subprocess.run(['make', '-j', '-s', '-C', target_code_path],
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 @check_err
 @timer
-def run_benchmark(exa_problem_name: str, output_path: str, config: ConfigFromKnowledge):
+def run_benchmark(target_code_path: str, config: ConfigFromKnowledge):
     cwd = os.getcwd()
-    os.chdir(f'{cwd}/{output_path}/generated/{exa_problem_name}')
+    os.chdir(target_code_path)
 
     # run code with likwid pinning
     result = subprocess.run(likwid_pin(config), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -111,38 +111,51 @@ def main():
     parser.add_argument('exa_problem_path', type=str, help='Path to the ExaSlang problem specification')
     parser.add_argument('output_path', type=str, help='Path to ExaStencils output directory')
     parser.add_argument('platform_path', type=str, help='Path to the platform description')
+    parser.add_argument('--generate', action='store_true', help='Generate target code from ExaSlang')
+    parser.add_argument('--compile', action='store_true', help='Compile generated target code')
+    parser.add_argument('--run', action='store_true', help='Run generated target code')
+    parser.add_argument('--all', action='store_true', help='Generate, compile and run target code')
     args = parser.parse_args()
 
     # print arguments
     print(f"Executing: python3 run_benchmark.py {' '.join(f'{k}={v}' for k, v in vars(args).items())}")
+    generate = args.generate or args.all
+    compile = args.compile or args.all
+    run = args.run or args.all
 
-    # get settings
-    settings_path = generate_settings_file(args.exa_problem_path, args.output_path)
+    exa_problem_name = get_problem_name_from_path(args.exa_problem_path)
+    platform_suffix = os.path.basename(remove_extension(args.platform_path))
+    target_code_path = f"{args.output_path}/generated/{exa_problem_name}_{platform_suffix}"
 
     # knowledge file assumed to be in the same source directory as the "*.exa?" files with same base name
     knowledge_path = remove_extension(get_exa_files(args.exa_problem_path)[0]) + '.knowledge'
 
-    # generate target code
-    generate_code(args.generator_path, args.generator_lib_path, settings_path, knowledge_path, args.platform_path)
+    if generate:
+        # get settings
+        settings_path = generate_settings_file(args.exa_problem_path, args.output_path, target_code_path)
 
-    # compile target code
-    exa_problem_name = get_problem_name_from_path(args.exa_problem_path)
-    compile_benchmark(exa_problem_name, args.output_path)
+        # generate target code
+        generate_code(args.generator_path, args.generator_lib_path, settings_path, knowledge_path, args.platform_path)
 
-    # parse knowledge and platform file
-    config = ConfigFromKnowledge(exa_problem_name, knowledge_path, args.platform_path)
+    if compile:
+        # compile target code
+        compile_benchmark(target_code_path)
 
-    # run target code
-    run_benchmark(exa_problem_name, args.output_path, config)
+    if run:
+        # parse knowledge and platform file
+        config = ConfigFromKnowledge(exa_problem_name, knowledge_path, args.platform_path)
 
-    # upload to grafana
-    json_file = f'{os.getcwd()}/{args.output_path}/generated/{exa_problem_name}/results.json'
-    if os.path.exists(json_file):
-        f = open(json_file)
-        json_body = json.load(f)
-        up = UploadGrafana(decorate_json(json_body, config))
-    else:
-        print('Grafana upload failed. No JSON file found: ' + json_file)
+        # run target code
+        run_benchmark(target_code_path, config)
+
+        # upload to grafana
+        json_file = f'{target_code_path}/results.json'
+        if os.path.exists(json_file):
+            f = open(json_file)
+            json_body = json.load(f)
+            up = UploadGrafana(decorate_json(json_body, config))
+        else:
+            print('Grafana upload failed. No JSON file found: ' + json_file)
 
 
 if __name__ == "__main__":

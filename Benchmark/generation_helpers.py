@@ -38,12 +38,13 @@ def get_exa_files(exa_problem_path: str):
 
 
 # --- generate ".settings" file for a directory with ExaSlang files --- #
-def generate_settings_file(exa_problem_path: str, output_path: str):
+def generate_settings_file(exa_problem_path: str, output_path: str, target_code_path: str):
     tmp = f'user\t= "Guest"\n\n'
 
     exa_files = get_exa_files(exa_problem_path)
     exa_problem_name = get_problem_name_from_path(exa_problem_path)
     output_path_relative = os.path.relpath(output_path, exa_problem_path)
+    target_code_path_relative = os.path.relpath(target_code_path, exa_problem_path)
 
     if len(exa_files) < 1:
         print("No ExaSlang files found in directory: " + exa_problem_path)
@@ -60,7 +61,7 @@ def generate_settings_file(exa_problem_path: str, output_path: str):
     tmp += f'debugL3File\t= "{output_path_relative}/{get_debug_base_path(exa_problem_path)}_debug.exa3"\n'
     tmp += f'debugL4File\t= "{output_path_relative}/{get_debug_base_path(exa_problem_path)}_debug.exa4"\n\n'
     tmp += f'htmlLogFile\t= "{output_path_relative}/{get_debug_base_path(exa_problem_path)}_log.html"\n\n'
-    tmp += f'outputPath\t= "{output_path_relative}/generated/{exa_problem_name}"\n\n'
+    tmp += f'outputPath\t= "{target_code_path_relative}"\n\n'
     tmp += f'produceHtmlLog\t= true\n'
     tmp += f'timeStrategies\t= true\n\n'
     tmp += f'buildfileGenerators\t= {{"MakefileGenerator"}}\n'
