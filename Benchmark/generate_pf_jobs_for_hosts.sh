@@ -5,7 +5,7 @@ for HOST in ${HOSTLIST}; do
   echo "stages:"
   echo "    - pf_gen"
   echo ""
-  echo "$(<Benchmark/.benchmark_templates.yml)"
+  echo "$(<.benchmark_templates.yml)"
   echo ""
   echo "pf-gen-$HOST:"
   echo -e "    stage: pf_gen"

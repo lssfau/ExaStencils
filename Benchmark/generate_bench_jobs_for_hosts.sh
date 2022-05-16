@@ -9,7 +9,7 @@ for HOST in ${HOSTLIST}; do
   echo "stages:"
   echo "    - benchmark"
   echo ""
-  echo "$(<Benchmark/.benchmark_templates.yml)"
+  echo "$(<.benchmark_templates.yml)"
   echo ""
   echo "benchmark-$1-$HOST:"
   echo -e "    stage: benchmark"

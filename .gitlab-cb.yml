@@ -85,7 +85,7 @@ pf_gen:pipe_pf_job:
     trigger:
         include:
             artifact: gen-platform-pipe.yml
-            job: .pre:gen_pf_job
+            job: pf_gen:gen_pf_job
         strategy: depend
     needs:
         pipeline: $PARENT_PIPELINE_ID
