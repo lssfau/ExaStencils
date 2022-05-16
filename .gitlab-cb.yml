@@ -19,13 +19,14 @@ include: 'Benchmark/.benchmark_templates.yml'
     tags:
         - testcluster
     script:
+        - cd Benchmark
         - |
             for pf in /Platform/*.platform
             do
                 python3 run_benchmark.py $COMPILER_PATH $COMPILER_LIB_PATH $EXA_PROBLEM_PATH $OUTPUT_PATH $pf --generate
             done
-        - chmod +x Benchmark/generate_bench_jobs_for_hosts.sh
-        - Benchmark/generate_bench_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH > $EXA_PROBLEM_NAME-pipe.yml
+        - chmod +x generate_bench_jobs_for_hosts.sh
+        - generate_bench_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH > $EXA_PROBLEM_NAME-pipe.yml
     artifacts:
         paths:
             - $EXA_PROBLEM_NAME-pipe.yml
