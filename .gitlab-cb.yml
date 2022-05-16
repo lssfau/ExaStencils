@@ -64,7 +64,7 @@ include: 'Benchmark/.benchmark_templates.yml'
 ##                                   ##
 #######################################
 
-.pre:gen_pf_job:
+pf_gen:gen_pf_job:
     stage: pf_gen
     tags:
         - testcluster
@@ -78,7 +78,7 @@ include: 'Benchmark/.benchmark_templates.yml'
     variables:
         NO_SLURM_SUBMIT: 1
 
-.pre:pipe_pf_job:
+pf_gen:pipe_pf_job:
     stage: pf_gen
     trigger:
         include:
