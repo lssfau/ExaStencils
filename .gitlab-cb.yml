@@ -19,8 +19,10 @@ include: 'Benchmark/.benchmark_templates.yml'
     stage: job_gen
     tags:
         - testcluster
-    script:
+    before_script:
         - cd Benchmark
+        - !reference [ .module_tree_build, before_script ]
+    script:
         - |
             for pf in /Platform/*.platform
             do
@@ -28,6 +30,8 @@ include: 'Benchmark/.benchmark_templates.yml'
             done
         - chmod +x generate_bench_jobs_for_hosts.sh
         - generate_bench_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH > $EXA_PROBLEM_NAME-pipe.yml
+    after_script:
+        - !reference [ .module_tree_build, after_script ]
     artifacts:
         paths:
             - $EXA_PROBLEM_NAME-pipe.yml
@@ -61,7 +65,7 @@ include: 'Benchmark/.benchmark_templates.yml'
 #######################################
 
 .pre:gen_pf_job:
-    stage: .pre
+    stage: pf_gen
     tags:
         - testcluster
     script:
@@ -75,7 +79,7 @@ include: 'Benchmark/.benchmark_templates.yml'
         NO_SLURM_SUBMIT: 1
 
 .pre:pipe_pf_job:
-    stage: .pre
+    stage: pf_gen
     trigger:
         include:
             artifact: gen-platform-pipe.yml
