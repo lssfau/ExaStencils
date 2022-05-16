@@ -36,6 +36,27 @@
     - nvidia-smi
     - updatedb
 
+.pfgen_template:
+    stage: .pre
+    tags:
+        - testcluster
+    artifacts:
+        when: always
+        paths:
+            - Benchmark/Platform/$HOSTNAME.platform
+        expire_in: 1 weeks
+    variables:
+        NO_SLURM_SUBMIT: 1
+        HOSTNAME: "TO_BE_REPLACED"
+    before_script:
+        - cd Benchmark
+        - !reference [ .module_tree_build, before_script ]
+    script:
+        - salloc --nodes=1 --nodelist=$HOSTNAME
+        - python3 ../pfgen/src/pfgen.py > Platform/$HOSTNAME.platform
+    after_script:
+        - !reference [ .module_tree_build, after_script ]
+
 .benchmark_template:
     tags:
         - testcluster

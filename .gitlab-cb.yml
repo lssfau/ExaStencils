@@ -1,5 +1,6 @@
 stages:
     - .pre
+    - pf_gen
     - build
     - job_gen
     - benchmark
@@ -55,23 +56,41 @@ include: 'Benchmark/.benchmark_templates.yml'
 
 #######################################
 ##                                   ##
-##         Generator                 ##
+##       Platform Generation         ##
 ##                                   ##
 #######################################
 
-.pre:generate_pfs:
+.pre:gen_pf_job:
     stage: .pre
     tags:
         - testcluster
+    script:
+        - chmod +x generate_pf_jobs_for_hosts.sh
+        - generate_pf_jobs_for_hosts.sh > gen-platform-pipe.yml
     artifacts:
-        - Benchmark/Platform
+        paths:
+            - gen-platform-pipe.yml
+        expire_in: 1 weeks
     variables:
         NO_SLURM_SUBMIT: 1
-    before_script:
-        - !reference [ .module_tree_build, before_script ]
-        - python3 --version
-    after_script:
-        - !reference [ .module_tree_build, after_script ]
+
+.pre:pipe_pf_job:
+    stage: .pre
+    trigger:
+        include:
+            artifact: gen-platform-pipe.yml
+            job: .pre:gen_pf_job
+        strategy: depend
+    needs:
+        pipeline: $PARENT_PIPELINE_ID
+    variables:
+        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
+
+#######################################
+##                                   ##
+##         Generator                 ##
+##                                   ##
+#######################################
 
 build:generator:
     stage: build
