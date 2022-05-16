@@ -126,7 +126,7 @@ build:generator:
 ##                                   ##
 #######################################
 
-job_gen:5pt_Jac_2D:
+bench_gen:5pt_Jac_2D:
     extends: .gen_bench_job_template
     variables:
         EXA_PROBLEM_NAME: "5pt_Jac_2D"
@@ -138,7 +138,7 @@ job_gen:5pt_Jac_2D:
 ##                                   ##
 #######################################
 
-benchmark:5pt_Jac_2D:
+bench_pipe:5pt_Jac_2D:
     extends: .pipe_bench_job_template
     variables:
         EXA_PROBLEM_NAME: "5pt_Jac_2D"
