@@ -71,7 +71,6 @@ pf_gen:gen_pf_job:
     before_script:
         - cd Benchmark
     script:
-        - mkdir -p Platform
         - chmod +x generate_pf_jobs_for_hosts.sh
         - ./generate_pf_jobs_for_hosts.sh > gen-platform-pipe.yml
     artifacts:

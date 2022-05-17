@@ -52,8 +52,7 @@
         - !reference [ .module_tree_build, before_script ]
     script:
         - salloc --nodes=1 --nodelist=$HOSTNAME
-        - ls
-        - ls -al Platform
+        - mkdir -p Platform
         - python3 ../pfgen/src/pfgen.py > Platform/$HOSTNAME.platform
     after_script:
         - !reference [ .module_tree_build, after_script ]
