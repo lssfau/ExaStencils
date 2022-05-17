@@ -16,7 +16,7 @@ include: 'Benchmark/.benchmark_templates.yml'
 .gen_bench_job_template:
     dependencies:
         - build:generator
-    stage: job_gen
+    stage: bench_gen
     tags:
         - testcluster
     before_script:
