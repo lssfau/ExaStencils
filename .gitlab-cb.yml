@@ -45,7 +45,7 @@ include: 'Benchmark/.benchmark_templates.yml'
         EXA_PROBLEM_PATH: "TO_BE_REPLACED"
 
 .pipe_bench_job_template:
-    stage: benchmark
+    stage: bench_pipe
     trigger:
         include:
             artifact: $EXA_PROBLEM_NAME-pipe.yml
