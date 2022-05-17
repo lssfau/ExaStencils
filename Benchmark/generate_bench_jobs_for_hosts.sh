@@ -4,7 +4,7 @@ if [ $# -ne 2 ]; then
   echo "Wrong number of arguments. Should be ./<script_name>.sh <EXA_PROBLEM_NAME> <EXA_PROBLEM_PATH>"
 fi
 
-HOSTLIST=$(sinfo -h --partition=work -o "%n")
+HOSTLIST=$(sinfo -t idle -h --partition=work -o "%n")
 for HOST in ${HOSTLIST}; do
   echo "stages:"
   echo "    - bench_pipe"

@@ -1,6 +1,6 @@
 #!/bin/bash -l
 
-HOSTLIST=$(sinfo -h --partition=work -o "%n")
+HOSTLIST=$(sinfo -t idle -h --partition=work -o "%n")
 for HOST in ${HOSTLIST}; do
   echo "stages:"
   echo "    - pf_pipe"
