@@ -50,8 +50,9 @@
         - cd pfgen
     script:
         - !reference [ .module_tree_build, before_script ]
+        - *module_load_run
         - mkdir -p ../Benchmark/Platform
-        - python3 -m pfgen --log=debug > ../Benchmark/Platform/$SLURM_NODELIST.platform
+        - python3 -m pfgen > ../Benchmark/Platform/$SLURM_NODELIST.platform
         - cd ..
     after_script:
         - !reference [ .module_tree_build, after_script ]
