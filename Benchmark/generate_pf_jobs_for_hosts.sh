@@ -11,6 +11,6 @@ for HOST in ${HOSTLIST}; do
   echo -e "    stage: pf_pipe"
   echo -e "    extends: .pfgen_template"
   echo -e "    variables:"
-  echo -e "        HOSTNAME: \"$HOST\""
+  echo -e "        SLURM_NODELIST: \"$HOST\""
   echo
 done

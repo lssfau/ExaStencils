@@ -42,18 +42,16 @@
     artifacts:
         when: always
         paths:
-            - Benchmark/Platform/$HOSTNAME.platform
+            - Benchmark/Platform/$SLURM_NODELIST.platform
         expire_in: 1 weeks
     variables:
-        NO_SLURM_SUBMIT: 1
-        HOSTNAME: "TO_BE_REPLACED"
+        SLURM_NODELIST: "TO_BE_REPLACED"
     before_script:
         - cd pfgen
     script:
-        - salloc --nodes=1 --nodelist=$HOSTNAME
         - !reference [ .module_tree_build, before_script ]
         - mkdir -p ../Benchmark/Platform
-        - python3 -m pfgen --log=debug > ../Benchmark/Platform/$HOSTNAME.platform
+        - python3 -m pfgen --log=debug > ../Benchmark/Platform/$SLURM_NODELIST.platform
         - cd ..
     after_script:
         - !reference [ .module_tree_build, after_script ]
