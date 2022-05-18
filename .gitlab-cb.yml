@@ -27,7 +27,7 @@ include: 'Benchmark/.benchmark_templates.yml'
         - !reference [ .module_tree_build, before_script ]
     script:
         - |
-            for pf in /Platform/*.platform
+            for pf in Platform/*.platform
             do
                 python3 run_benchmark.py $COMPILER_PATH $COMPILER_LIB_PATH $EXA_PROBLEM_PATH $OUTPUT_PATH $pf --generate
             done
