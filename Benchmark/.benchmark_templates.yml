@@ -24,13 +24,15 @@
                 python3 -m pip uninstall $PACKAGE # cleanup
             done
 
-.module_tree_run: &module_load_run
+.module_mpi: &module_load_mpi
     - module load openmpi/4.1.1-gcc
     - mpirun --version
+
+.module_likwid: &module_load_likwid
     - module load likwid/5.2.1
     - likwid-features --version
 
-.module_tree_run_cuda: &module_load_run_cuda
+.module_cuda: &module_load_cuda
     - module load module load cuda/11.4
     - nvcc --version
     - nvidia-smi
@@ -50,7 +52,7 @@
         - cd pfgen
     script:
         - !reference [ .module_tree_build, before_script ]
-        - *module_load_run
+        - *module_load_likwid
         - mkdir -p ../Benchmark/Platform
         - python3 -m pfgen > ../Benchmark/Platform/$SLURM_NODELIST.platform
         - cd ..
@@ -77,7 +79,8 @@
         - !reference [ .module_tree_build, before_script ]
     script:
         - python3 slurm_alloc.py $EXA_PROBLEM_PATH $PLATFORM_PATH
-        - *module_load_run
+        - *module_load_mpi
+        - *module_load_likwid
         - HOSTNAME=$(hostname)
         - python3 run_benchmark.py $COMPILER_PATH $COMPILER_LIB_PATH $EXA_PROBLEM_PATH $OUTPUT_PATH Platform/$HOSTNAME.platform --compile --run
     after_script:
