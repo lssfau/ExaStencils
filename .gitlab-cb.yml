@@ -91,11 +91,6 @@ pf_pipe:pipe_pf_job:
             artifact: Benchmark/gen-platform-pipe.yml
             job: pf_gen:gen_pf_job
         strategy: depend
-    artifacts:
-        when: always
-        paths:
-            - Benchmark/Platform
-        expire_in: 1 weeks
     needs:
         pipeline: $PARENT_PIPELINE_ID
     variables:
