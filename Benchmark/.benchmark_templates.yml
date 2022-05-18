@@ -49,9 +49,9 @@
         HOSTNAME: "TO_BE_REPLACED"
     before_script:
         - cd Benchmark
-        - !reference [ .module_tree_build, before_script ]
     script:
         - salloc --nodes=1 --nodelist=$HOSTNAME
+        - !reference [ .module_tree_build, before_script ]
         - mkdir -p Platform
         - python3 ../pfgen/src/pfgen.py > Platform/$HOSTNAME.platform
     after_script:
