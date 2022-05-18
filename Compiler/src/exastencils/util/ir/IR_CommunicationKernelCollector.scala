@@ -4,6 +4,7 @@ import scala.collection.mutable
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.core.StateManager
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
 import exastencils.domain.ir.IR_IV_NeighborIsValid
@@ -37,13 +38,11 @@ class IR_CommunicationKernelCollector extends Collector {
 
       // TODO: extend this list in case that other conditions are used in communication/boundary handling
 
-      // communication
-      case _ @ IR_IfCondition(neigh : IR_IV_NeighborIsValid, _, _) if fragmentLoopStack != Nil =>
-        communicationInFragmentLoop += (head -> neigh.neighIdx)
-
-      // boundary handling
-      case _ @ IR_IfCondition(IR_Negation(neigh : IR_IV_NeighborIsValid), _, _) if fragmentLoopStack != Nil =>
-        communicationInFragmentLoop += (head -> neigh.neighIdx)
+      // communication/boundary handling
+      case cond : IR_IfCondition if fragmentLoopStack != Nil =>
+        val neigh = StateManager.findFirst[IR_IV_NeighborIsValid](cond)
+        if (neigh.isDefined)
+          communicationInFragmentLoop += (head -> neigh.get.neighIdx)
 
       case _ =>
     }
