@@ -75,6 +75,7 @@ object CUDA_Stream {
               stmts += syncStream
             case comm : CUDA_CommunicateStream if comm.neighborIdx == IR_IntegerConstant(DefaultNeighbors.neighbors.last.index) =>
               stmts += syncComputation
+            case _ =>
           }
         case "comm" | "all" => // communication
           stream match {
@@ -82,6 +83,7 @@ object CUDA_Stream {
               stmts ++= syncAllCommunication
             case _ : CUDA_CommunicateStream =>
               stmts += syncStream
+            case _ =>
           }
         case _              =>
       }
