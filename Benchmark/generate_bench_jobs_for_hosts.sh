@@ -6,7 +6,7 @@ fi
 
 HOSTLIST=$(sinfo -t idle -h --partition=work -o "%n")
 for HOST in ${HOSTLIST}; do
-  if [[ "$HOST" != "aurora1" || "$HOST" != "warmup" ]]; then
+  if [[ "$HOST" != "aurora1" && "$HOST" != "warmup" ]]; then
     echo "stages:"
     echo "    - bench_pipe"
     echo ""
