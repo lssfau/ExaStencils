@@ -68,12 +68,13 @@ object CUDA_Stream {
           Logger.error("Unknown CUDA stream instance passed to CUDA_StreamSynchronize")
       }
 
+      val compSyncRefNeighIdx = if (before) 0 else DefaultNeighbors.neighbors.last.index // neighborIdx to consider for comp sync
       flag match {
         case "comp" | "all" => // computation
           stream match {
             case _ : CUDA_ComputeStream     =>
               stmts += syncStream
-            case comm : CUDA_CommunicateStream if comm.neighborIdx == IR_IntegerConstant(DefaultNeighbors.neighbors.last.index) =>
+            case comm : CUDA_CommunicateStream if comm.neighborIdx == IR_IntegerConstant(compSyncRefNeighIdx) =>
               stmts += syncComputation
             case _ =>
           }
