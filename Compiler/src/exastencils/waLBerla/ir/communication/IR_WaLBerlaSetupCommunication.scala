@@ -1,4 +1,4 @@
-package exastencils.waLBerla.ir
+package exastencils.waLBerla.ir.communication
 
 import scala.collection.mutable.ListBuffer
 
@@ -9,7 +9,8 @@ import exastencils.communication.ir.IR_CommunicationFunctions
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
-import exastencils.waLBerla.ir.field._
+import exastencils.waLBerla.ir.IR_WaLBerlaLeveledFunction
+import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaCollection
 
 object IR_WaLBerlaSetupCommunication extends DefaultStrategy("Communication handling for waLBerla fields") {

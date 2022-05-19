@@ -58,6 +58,7 @@ import exastencils.visualization.ir.visit.IR_SetupVisit
 import exastencils.visualization.ir.vtk.IR_ResolveVtkPrinters
 import exastencils.waLBerla.ir._
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaResolveLoopOverBlocks
+import exastencils.waLBerla.ir.communication._
 import exastencils.waLBerla.ir.field.IR_WaLBerlaResolveFieldAccess
 import exastencils.waLBerla.ir.grid._
 
