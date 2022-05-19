@@ -11,7 +11,7 @@ import exastencils.fieldlike.l2.L2_FieldLike
 import exastencils.grid.l2.L2_AtCellCenter
 import exastencils.grid.l2.L2_Localization
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.l3.L3_WaLBerlaField
+import exastencils.waLBerla.l3.field._
 
 case class L2_WaLBerlaField(
     var name : String,

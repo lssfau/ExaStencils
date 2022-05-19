@@ -36,7 +36,7 @@ import exastencils.parsers.l3._
 import exastencils.prettyprinting.Indenter
 import exastencils.solver.l3._
 import exastencils.util.l3._
-import exastencils.waLBerla.l3.L3_WaLBerlaFieldCollection
+import exastencils.waLBerla.l3.field._
 
 /// L3_LayerHandler
 

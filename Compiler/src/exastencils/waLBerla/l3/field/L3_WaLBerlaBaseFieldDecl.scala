@@ -1,4 +1,4 @@
-package exastencils.waLBerla.l3
+package exastencils.waLBerla.l3.field
 
 import exastencils.base.l3._
 import exastencils.boundary.l3.L3_NoBC

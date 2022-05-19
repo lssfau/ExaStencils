@@ -1,16 +1,18 @@
-package exastencils.waLBerla.l3
+package exastencils.waLBerla.l3.field
 
-import exastencils.base.l3._
+import exastencils.base.l3.L3_Datatype
+import exastencils.base.l3.L3_Expression
 import exastencils.boundary.l3.L3_BoundaryCondition
 import exastencils.core.Duplicate
-import exastencils.domain.l3._
+import exastencils.domain.l3.L3_Domain
+import exastencils.domain.l3.L3_DomainCollection
 import exastencils.field.l3.L3_Field
 import exastencils.fieldlike.l3.L3_FieldLike
-import exastencils.grid.l3._
+import exastencils.grid.l3.L3_AtCellCenter
+import exastencils.grid.l3.L3_Localization
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.l4.field._
-
-/// L3_WaLBerlaField
+import exastencils.waLBerla.l4.field.L4_WaLBerlaField
+import exastencils.waLBerla.l4.field.L4_WaLBerlaFieldLayoutCollection
 
 case class L3_WaLBerlaField(
     var name : String,
@@ -44,6 +46,6 @@ case class L3_WaLBerlaField(
       numSlots,
       boundary.progress)
   }
-  
+
   override def toField : L3_Field = L3_Field(name, level, domain, datatype, localization, numSlots, initial, boundary)
 }
