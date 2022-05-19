@@ -17,6 +17,7 @@ for HOST in ${HOSTLIST}; do
     echo -e "    extends: .bench_pipe_template"
     echo -e "    variables:"
     echo -e "        EXA_PROBLEM_PATH: "$2""
+    echo -e "        HOSTNAME: "$HOST""
     echo
   fi
 done
