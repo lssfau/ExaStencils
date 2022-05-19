@@ -4,10 +4,9 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.waLBerla.ir.IR_WaLBerlaFuturePlainFunction
-import exastencils.waLBerla.ir.IR_WaLBerlaPlainFunction
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.field._
+import exastencils.waLBerla.ir.interfacing._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil._
 
 object IR_WaLBerlaInitCommSchemes {

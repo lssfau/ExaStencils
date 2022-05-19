@@ -3,9 +3,9 @@ package exastencils.waLBerla.ir.blockforest
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_StdArrayDatatype
-import exastencils.waLBerla.ir.IR_WaLBerlaInterfaceParameter
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
+import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceParameter
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_BlockDataID
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil.getGeneratedName
 

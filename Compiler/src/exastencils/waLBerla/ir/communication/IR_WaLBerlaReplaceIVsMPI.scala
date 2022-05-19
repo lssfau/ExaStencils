@@ -5,8 +5,7 @@ import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_StackCollector
-import exastencils.waLBerla.ir.IR_WaLBerlaFunction
-import exastencils.waLBerla.ir.IR_WaLBerlaFutureFunction
+import exastencils.waLBerla.ir.interfacing._
 
 object IR_WaLBerlaReplaceIVsMPI extends DefaultStrategy("Replace exa's mpi data structures with the ones from waLBerla") {
 

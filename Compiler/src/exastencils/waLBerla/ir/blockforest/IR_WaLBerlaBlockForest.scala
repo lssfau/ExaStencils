@@ -3,8 +3,8 @@ package exastencils.waLBerla.ir.blockforest
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.logger.Logger
-import exastencils.waLBerla.ir.IR_WaLBerlaInterfaceParameter
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
+import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceParameter
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDirection
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil

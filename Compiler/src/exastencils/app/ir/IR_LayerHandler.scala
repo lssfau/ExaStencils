@@ -61,6 +61,7 @@ import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaResolveLoopOverBlocks
 import exastencils.waLBerla.ir.communication._
 import exastencils.waLBerla.ir.field.IR_WaLBerlaResolveFieldAccess
 import exastencils.waLBerla.ir.grid._
+import exastencils.waLBerla.ir.interfacing._
 
 /// IR_LayerHandler
 

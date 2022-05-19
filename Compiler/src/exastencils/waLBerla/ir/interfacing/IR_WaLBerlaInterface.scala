@@ -1,4 +1,4 @@
-package exastencils.waLBerla.ir
+package exastencils.waLBerla.ir.interfacing
 
 import scala.collection.mutable.ListBuffer
 

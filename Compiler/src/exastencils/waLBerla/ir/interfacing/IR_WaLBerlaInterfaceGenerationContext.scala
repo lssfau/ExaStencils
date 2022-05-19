@@ -1,16 +1,14 @@
-package exastencils.waLBerla.ir
+package exastencils.waLBerla.ir.interfacing
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.core.Duplicate
 import exastencils.waLBerla.ir.blockforest._
-import exastencils.waLBerla.ir.communication.IR_WaLBerlaCommScheme
+import exastencils.waLBerla.ir.communication._
 import exastencils.waLBerla.ir.field._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
-
-// store context
 
 case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_WaLBerlaFunction]) {
 

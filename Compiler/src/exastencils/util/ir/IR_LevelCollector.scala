@@ -25,7 +25,7 @@ import exastencils.baseExt.ir._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
 import exastencils.logger.Logger
-import exastencils.waLBerla.ir.IR_WaLBerlaLeveledFunction
+import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaLeveledFunction
 
 /// IR_LevelCollector
 
