@@ -28,7 +28,6 @@ import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.domain.ir._
-import exastencils.field.ir._
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.grid.ir._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
@@ -91,7 +90,7 @@ abstract class IR_HandleBoundariesLike extends IR_Statement with IR_Expandable {
 }
 
 case class IR_HandleBoundaries(
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var fragIdx : IR_Expression,
     var neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)]) extends IR_HandleBoundariesLike {

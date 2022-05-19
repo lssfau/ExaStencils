@@ -25,11 +25,8 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.core.Duplicate
-import exastencils.field.ir.IR_Field
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.grid.ir._
-import exastencils.waLBerla.ir.IR_WaLBerlaHandleBoundaries
-import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 
 /// IR_ApplyBCFunction
 
@@ -86,10 +83,7 @@ case class IR_ApplyBCFunction(
     var body = ListBuffer[IR_Statement]()
 
     val boundaryNeighs = neighbors.filter(neigh => 1 == neigh.dir.count(_ != 0)) // exactly one non-zero entry
-    field match {
-      case exaField : IR_Field        => body += IR_HandleBoundaries(exaField, Duplicate(slot), Duplicate(fragIdx), genIndicesBoundaryHandling(boundaryNeighs))
-      case wbField : IR_WaLBerlaField => body += IR_WaLBerlaHandleBoundaries(wbField, Duplicate(slot), Duplicate(fragIdx), genIndicesBoundaryHandling(boundaryNeighs))
-    }
+    body += IR_HandleBoundaries(field, Duplicate(slot), Duplicate(fragIdx), genIndicesBoundaryHandling(boundaryNeighs))
 
     body
   }
