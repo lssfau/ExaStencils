@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes._
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes._
 import exastencils.waLBerla.ir.field._
 
 class IR_WaLBerlaBlock(name : String, dt : IR_Datatype) extends IR_VariableAccess(name, dt) {

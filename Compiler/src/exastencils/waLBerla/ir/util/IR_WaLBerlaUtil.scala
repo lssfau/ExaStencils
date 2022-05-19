@@ -1,6 +1,8 @@
-package exastencils.waLBerla.ir
+package exastencils.waLBerla.ir.util
 
-import exastencils.base.ir._
+import exastencils.base.ir.IR_Expression
+import exastencils.base.ir.IR_ExternalFunctionReference
+import exastencils.base.ir.IR_FunctionCall
 
 object IR_WaLBerlaUtil {
 

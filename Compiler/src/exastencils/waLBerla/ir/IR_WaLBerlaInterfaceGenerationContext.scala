@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.core.Duplicate
 import exastencils.waLBerla.ir.field._
+import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
 // store context
 

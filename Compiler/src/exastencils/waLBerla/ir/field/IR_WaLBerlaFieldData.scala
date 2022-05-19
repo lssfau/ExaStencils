@@ -8,7 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_FieldDatatype
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_FieldDatatype
 
 object IR_IV_WaLBerlaFieldData {
   def apply(fAcc : IR_FieldAccess) : IR_IV_WaLBerlaFieldData = {

@@ -7,7 +7,8 @@ import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.prettyprinting._
-import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes._
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes._
+import exastencils.waLBerla.ir.util.IR_WaLBerlaPreprocessorDirectives
 
 trait IR_WaLBerlaInterfaceParameter extends IR_Access {
   def name : String

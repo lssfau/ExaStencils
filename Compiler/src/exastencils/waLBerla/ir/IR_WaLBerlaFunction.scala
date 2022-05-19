@@ -10,8 +10,9 @@ import exastencils.field.ir.IR_FieldAccessLike
 import exastencils.prettyprinting.PpStream
 import exastencils.prettyprinting.PrettyPrintable
 import exastencils.util.ir.IR_StackCollector
-import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes._
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes._
 import exastencils.waLBerla.ir.field._
+import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
 
 trait IR_WaLBerlaFunction extends IR_Function with PrettyPrintable {

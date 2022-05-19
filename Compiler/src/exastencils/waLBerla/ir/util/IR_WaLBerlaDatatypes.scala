@@ -1,7 +1,7 @@
-package exastencils.waLBerla.ir
+package exastencils.waLBerla.ir.util
 
 import exastencils.base.ir.IR_SpecialDatatype
-import exastencils.waLBerla.ir.field._
+import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 
 object IR_WaLBerlaDatatypes {
   def WB_IBlock = IR_SpecialDatatype("IBlock")
@@ -15,5 +15,5 @@ object IR_WaLBerlaDatatypes {
   def WB_StencilTemplate = "Stencil_T"
 
   def WB_FieldDatatype(field : IR_WaLBerlaField) =
-    IR_SpecialDatatype(s"${field.waLBerlaFieldType} < ${field.resolveBaseDatatype.prettyprint}, ${field.gridDatatype.resolveFlattendSize} >")
+    IR_SpecialDatatype(s"${ field.waLBerlaFieldType } < ${ field.resolveBaseDatatype.prettyprint }, ${ field.gridDatatype.resolveFlattendSize } >")
 }

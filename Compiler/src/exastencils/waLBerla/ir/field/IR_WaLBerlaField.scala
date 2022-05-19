@@ -12,7 +12,7 @@ import exastencils.domain.ir.IR_DomainCollection
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.logger.Logger
-import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes
 
 /// IR_WaLBerlaField
 

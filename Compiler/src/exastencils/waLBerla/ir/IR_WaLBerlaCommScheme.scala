@@ -4,8 +4,8 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_StdArrayDatatype
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes._
-import exastencils.waLBerla.ir.IR_WaLBerlaUtil._
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes._
+import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil._
 import exastencils.waLBerla.ir.field._
 
 

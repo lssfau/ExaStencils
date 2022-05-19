@@ -6,8 +6,8 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.logger.Logger
-import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_IBlock
-import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_StructuredBlockStorage
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_IBlock
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_StructuredBlockStorage
 
 case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFutureLeveledFunction {
 
