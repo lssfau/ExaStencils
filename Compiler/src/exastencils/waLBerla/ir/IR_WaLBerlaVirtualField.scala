@@ -41,9 +41,6 @@ object IR_WaLBerlaReplaceVirtualFieldAccesses extends DefaultStrategy("Replace v
   def inWaLBerlaBlockLoop(collector : IR_StackCollector) =
     collector.stack.exists {
       case _ : IR_WaLBerlaLoopOverBlocks              => true
-      case _ : IR_WaLBerlaLoopOverPoints              => true
-      case _ : IR_WaLBerlaLoopOverPointsInOneFragment => true
-      case _ : IR_WaLBerlaLoopOverDimensions          => true
       case _                                          => false
     }
 

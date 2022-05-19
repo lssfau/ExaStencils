@@ -47,7 +47,6 @@ import exastencils.util.l4._
 import exastencils.waLBerla.l4.L4_UnifyWaLBerlaVarsSections
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldCollection
 import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayoutCollection
-import exastencils.waLBerla.l4.L4_WaLBerlaResolveLoopOverField
 import exastencils.waLBerla.l4.L4_WaLBerlaResolveVirtualFieldAccesses
 
 /// L4_LayerHandler
@@ -249,9 +248,6 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
 
     // progress knowledge to IR
     L4_KnowledgeContainer.progress()
-
-    // waLBerla field loop handling
-    L4_WaLBerlaResolveLoopOverField.apply()
 
     //L4_ProgressKnowledge.apply()
 
