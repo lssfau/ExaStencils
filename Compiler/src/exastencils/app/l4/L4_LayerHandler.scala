@@ -45,8 +45,8 @@ import exastencils.solver.l4._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util.l4._
 import exastencils.waLBerla.l4.L4_UnifyWaLBerlaVarsSections
-import exastencils.waLBerla.l4.L4_WaLBerlaResolveVirtualFieldAccesses
 import exastencils.waLBerla.l4.field._
+import exastencils.waLBerla.l4.grid._
 
 /// L4_LayerHandler
 
