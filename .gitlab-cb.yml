@@ -2,9 +2,8 @@ variables:
     GIT_SUBMODULE_STRATEGY: recursive
 
 stages:
-    - pf_gen
-    - pf_pipe
     - build
+    - pf_gen
     - bench_gen
     - bench_pipe
 
@@ -60,6 +59,34 @@ include: 'Benchmark/.benchmark_templates.yml'
         PARENT_PIPELINE_ID: $CI_PIPELINE_ID
         EXA_PROBLEM_NAME: "TO_BE_REPLACED"
         EXA_PROBLEM_PATH: "TO_BE_REPLACED"
+
+#######################################
+##                                   ##
+##         Generator                 ##
+##                                   ##
+#######################################
+
+build:generator:
+    stage: build
+    tags:
+        - testcluster
+    artifacts:
+        paths:
+            - Compiler/Compiler.jar
+            - Compiler/lib
+        expire_in: 1 weeks
+    variables:
+        NO_SLURM_SUBMIT: 1
+    before_script:
+        - !reference [ .module_tree_build, before_script ]
+        - sbt sbtVersion
+        - java -version
+        - python3 --version
+    script:
+        - sbt compile
+        - sbt assembly
+    after_script:
+        - !reference [ .module_tree_build, after_script ]
 
 #######################################
 ##                                   ##
@@ -150,34 +177,6 @@ pf_gen:skylakesp2:
     stage: pf_gen
     variables:
         SLURM_NODELIST: "skylakesp2"
-
-#######################################
-##                                   ##
-##         Generator                 ##
-##                                   ##
-#######################################
-
-build:generator:
-    stage: build
-    tags:
-        - testcluster
-    artifacts:
-        paths:
-            - Compiler/Compiler.jar
-            - Compiler/lib
-        expire_in: 1 weeks
-    variables:
-        NO_SLURM_SUBMIT: 1
-    before_script:
-        - !reference [ .module_tree_build, before_script ]
-        - sbt sbtVersion
-        - java -version
-        - python3 --version
-    script:
-        - sbt compile
-        - sbt assembly
-    after_script:
-        - !reference [ .module_tree_build, after_script ]
 
 #######################################
 ##                                   ##
