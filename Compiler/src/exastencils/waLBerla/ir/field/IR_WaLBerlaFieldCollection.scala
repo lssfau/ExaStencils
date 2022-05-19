@@ -1,8 +1,7 @@
-package exastencils.waLBerla.ir
+package exastencils.waLBerla.ir.field
 
-import exastencils.base.ir.IR_Expression
+import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_IntegerConstant
 import exastencils.field.ir.IR_FieldAccessLike
 import exastencils.fieldlike.ir.IR_FieldLikeCollection
 import exastencils.fieldlike.ir.IR_FieldLikeCollections

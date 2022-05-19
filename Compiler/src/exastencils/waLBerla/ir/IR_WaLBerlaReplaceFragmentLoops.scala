@@ -6,6 +6,7 @@ import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.field.ir.IR_FieldAccessLike
 import exastencils.util.ir.IR_StackCollector
+import exastencils.waLBerla.ir.field._
 
 object IR_WaLBerlaReplaceFragmentLoops extends QuietDefaultStrategy("Replace fragment loops over waLBerla fields") {
   var collector = new IR_StackCollector

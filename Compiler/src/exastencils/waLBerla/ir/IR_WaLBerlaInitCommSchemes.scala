@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.waLBerla.ir.IR_WaLBerlaUtil._
+import exastencils.waLBerla.ir.field._
 
 object IR_WaLBerlaInitCommSchemes {
   var fctName : String = "initCommSchemes"

@@ -11,12 +11,10 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
-import exastencils.grid.ir.IR_AtCellCenter
-import exastencils.grid.ir.IR_GridUtil
-import exastencils.grid.ir.IR_VF_BoundaryPositionPerDim
-import exastencils.grid.ir.IR_VirtualFieldAccess
+import exastencils.grid.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_ParallelizationInfo
+import exastencils.waLBerla.ir.field._
 
 case class IR_WaLBerlaHandleBoundaries(
     var field : IR_WaLBerlaField,

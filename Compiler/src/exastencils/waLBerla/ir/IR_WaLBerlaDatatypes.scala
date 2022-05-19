@@ -1,6 +1,7 @@
 package exastencils.waLBerla.ir
 
 import exastencils.base.ir.IR_SpecialDatatype
+import exastencils.waLBerla.ir.field._
 
 object IR_WaLBerlaDatatypes {
   def WB_IBlock = IR_SpecialDatatype("IBlock")

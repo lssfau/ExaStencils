@@ -9,6 +9,7 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.parallelization.ir._
+import exastencils.waLBerla.ir.field._
 
 /// IR_WaLBerlaLoopOverBlocks
 

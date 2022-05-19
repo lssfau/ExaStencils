@@ -1,25 +1,12 @@
-package exastencils.waLBerla.ir
+package exastencils.waLBerla.ir.field
 
-import exastencils.base.ir.IR_Cast
-import exastencils.base.ir.IR_Datatype
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExpressionIndex
+import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.IR_IntegerDatatype
-import exastencils.base.ir.IR_MemberFunctionCallArrow
 import exastencils.core.Duplicate
 import exastencils.field.ir.IR_FieldLayoutPerDim
 import exastencils.fieldlike.ir.IR_FieldLikeLayout
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.grid.ir.IR_Localization
-
-/// IR_WaLBerlaFieldLayout
-
-/*
-waLBerla Layouts:
-  - fzyx: Value-sorted data layout (f should be outermost loop)
-  - zyxf: Cell-sorted data layout, (f should be innermost loop)
-*/
 
 case class IR_WaLBerlaFieldLayout(
     var name : String,
@@ -51,6 +38,7 @@ case class IR_WaLBerlaFieldLayout(
 
     // layouts are identical for each slot: use "0" as default
     def callMemberFunc(name : String) = IR_MemberFunctionCallArrow(IR_IV_WaLBerlaFieldData(wbField, 0), name, IR_IntegerDatatype)
+
     def callMemberFuncForDim(name : String, dim : Int) = {
       // TODO handling layout transformations ?
       var newLayout = Duplicate(layoutName)
@@ -61,41 +49,57 @@ case class IR_WaLBerlaFieldLayout(
       val prefix = dim match {
         case d if d < newLayout.length => newLayout.reverse(d) // rightmost is innermost dim
       }
-      IR_MemberFunctionCallArrow(IR_IV_WaLBerlaFieldData(wbField, 0), prefix+name, IR_IntegerDatatype)
+      IR_MemberFunctionCallArrow(IR_IV_WaLBerlaFieldData(wbField, 0), prefix + name, IR_IntegerDatatype)
     }
 
     def numPadLayersLeft(dim : Int) = 0
+
     def numGhostLayersLeft(dim : Int) = IR_Cast(IR_IntegerDatatype, callMemberFunc("nrOfGhostLayers"))
+
     def numDupLayersLeft(dim : Int) = 0 // cell-centered
+
     def numInnerLayers(dim : Int) = numInner(dim)
+
     def numDupLayersRight(dim : Int) = 0 // cell-centered
+
     def numGhostLayersRight(dim : Int) = IR_Cast(IR_IntegerDatatype, callMemberFunc("nrOfGhostLayers"))
+
     def numPadLayersRight(dim : Int) = numPad(dim) // at the end of each coordinate
 
     def numDup(d : Int) = numDupLayersLeft(d) + numDupLayersRight(d)
+
     def numGhost(d : Int) = numGhostLayersLeft(d) + numGhostLayersRight(d)
+
     def numInner(d : Int) = IR_Cast(IR_IntegerDatatype, callMemberFuncForDim("Size", d))
+
     def numPad(d : Int) = IR_Cast(IR_IntegerDatatype, callMemberFuncForDim("AllocSize", d)) - numInner(d) - numDup(d) - numGhost(d)
 
     def defIdxInnerBegin(dim : Int) = { 0 }
+
     def defIdxInnerEnd(dim : Int) = { defIdxInnerBegin(dim) + numInnerLayers(dim) }
 
     def defIdxDupLeftEnd(dim : Int) = { defIdxInnerBegin(dim) }
+
     def defIdxDupLeftBegin(dim : Int) = { defIdxInnerBegin(dim) - numDupLayersLeft(dim) }
 
     def defIdxGhostLeftEnd(dim : Int) = { defIdxDupLeftBegin(dim) }
+
     def defIdxGhostLeftBegin(dim : Int) = { defIdxDupLeftBegin(dim) - numGhostLayersLeft(dim) }
 
     def defIdxPadLeftBegin(dim : Int) = { defIdxDupLeftBegin(dim) - numGhostLayersLeft(dim) - numPadLayersLeft(dim) }
+
     def defIdxPadLeftEnd(dim : Int) = { defIdxPadLeftBegin(dim) + numPadLayersLeft(dim) }
 
     def defIdxDupRightBegin(dim : Int) = { defIdxInnerEnd(dim) }
+
     def defIdxDupRightEnd(dim : Int) = { defIdxDupRightBegin(dim) + numDupLayersRight(dim) }
 
     def defIdxGhostRightBegin(dim : Int) = { defIdxDupRightEnd(dim) }
+
     def defIdxGhostRightEnd(dim : Int) = { defIdxGhostRightBegin(dim) + numGhostLayersRight(dim) }
 
     def defIdxPadRightBegin(dim : Int) = { defIdxGhostRightEnd(dim) }
+
     def defIdxPadRightEnd(dim : Int) = { defIdxPadRightBegin(dim) + numPadLayersRight(dim) }
 
     def defTotal(dim : Int) = { IR_Cast(IR_IntegerDatatype, callMemberFuncForDim("AllocSize", dim)) }

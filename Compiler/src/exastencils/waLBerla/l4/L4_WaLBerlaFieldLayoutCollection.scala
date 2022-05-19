@@ -3,8 +3,7 @@ package exastencils.waLBerla.l4
 import exastencils.fieldlike.l4.L4_FieldLikeLayoutAccess
 import exastencils.fieldlike.l4.L4_FieldLikeLayoutCollection
 import exastencils.knowledge.l4.L4_KnowledgeContainer
-import exastencils.waLBerla.ir.IR_WaLBerlaFieldLayout
-import exastencils.waLBerla.ir.IR_WaLBerlaFieldLayoutCollection
+import exastencils.waLBerla.ir.field._
 
 /// L4_WaLBerlaFieldLayoutCollection
 

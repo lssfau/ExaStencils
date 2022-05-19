@@ -57,6 +57,7 @@ import exastencils.visualization.ir.cimg.IR_ResolveCImgFunctions
 import exastencils.visualization.ir.visit.IR_SetupVisit
 import exastencils.visualization.ir.vtk.IR_ResolveVtkPrinters
 import exastencils.waLBerla.ir._
+import exastencils.waLBerla.ir.field.IR_WaLBerlaResolveFieldAccess
 
 /// IR_LayerHandler
 

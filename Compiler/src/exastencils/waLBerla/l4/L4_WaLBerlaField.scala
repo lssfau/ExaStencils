@@ -8,8 +8,7 @@ import exastencils.domain.l4.L4_DomainCollection
 import exastencils.field.l4.L4_Field
 import exastencils.fieldlike.l4.L4_FieldLike
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.ir.IR_WaLBerlaField
-import exastencils.waLBerla.ir.IR_WaLBerlaFieldLayout
+import exastencils.waLBerla.ir.field._
 
 case class L4_WaLBerlaField(
     var name : String,

@@ -6,6 +6,7 @@ import exastencils.baseExt.ir.IR_StdArrayDatatype
 import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes._
 import exastencils.waLBerla.ir.IR_WaLBerlaUtil._
+import exastencils.waLBerla.ir.field._
 
 
 case class IR_WaLBerlaCommScheme(var wbField : IR_WaLBerlaField, var slot : IR_Expression) extends IR_Access {

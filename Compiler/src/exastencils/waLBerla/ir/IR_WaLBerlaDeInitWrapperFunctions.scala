@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.field.ir._
 import exastencils.globals.ir._
+import exastencils.waLBerla.ir.field._
 
 object IR_WaLBerlaInitFunctionCollection {
   var functions : ListBuffer[IR_FunctionLike] = ListBuffer()

@@ -1,12 +1,10 @@
-package exastencils.waLBerla.ir
+package exastencils.waLBerla.ir.field
 
 import scala.collection.mutable
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.baseExt.ir.IR_ArrayDatatype
-import exastencils.baseExt.ir.IR_InternalVariable
-import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.base.ir._
+import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.prettyprinting.PpStream

@@ -32,8 +32,8 @@ import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.grid.ir.IR_AtFaceCenter
 import exastencils.grid.ir.IR_AtNode
 import exastencils.logger.Logger
-import exastencils.waLBerla.ir.IR_WaLBerlaFieldAccess
-import exastencils.waLBerla.ir.IR_WaLBerlaFieldCollection
+import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldAccess
+import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 
 /// IR_BoundaryCondition
 

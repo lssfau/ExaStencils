@@ -9,6 +9,7 @@ import exastencils.domain.ir.IR_DomainCollection
 import exastencils.domain.ir.IR_DomainFromAABB
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
+import exastencils.waLBerla.ir.field._
 
 case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
   def domain = IR_DomainCollection.getByIdentifier("global").get

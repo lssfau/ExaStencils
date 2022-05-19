@@ -11,7 +11,7 @@ import exastencils.grid.l4.L4_AtCellCenter
 import exastencils.grid.l4.L4_Localization
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.ir.IR_WaLBerlaFieldLayout
+import exastencils.waLBerla.ir.field._
 
 case class L4_WaLBerlaFieldLayout(
     var name : String, // will be used to find the layout

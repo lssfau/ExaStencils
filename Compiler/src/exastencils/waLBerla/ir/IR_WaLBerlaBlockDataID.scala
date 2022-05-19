@@ -5,6 +5,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_StdArrayDatatype
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_BlockDataID
 import exastencils.waLBerla.ir.IR_WaLBerlaUtil.getGeneratedName
+import exastencils.waLBerla.ir.field._
 
 case class IR_WaLBerlaBlockDataID(var wbField : IR_WaLBerlaField, var slot : IR_Expression) extends IR_WaLBerlaInterfaceParameter {
 

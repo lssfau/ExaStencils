@@ -1,4 +1,4 @@
-package exastencils.waLBerla.ir
+package exastencils.waLBerla.ir.field
 
 import exastencils.base.ir.IR_Statement
 import exastencils.baseExt.ir.IR_LoopOverFragments

@@ -9,6 +9,7 @@ import exastencils.communication.ir.IR_CommunicationFunctions
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
+import exastencils.waLBerla.ir.field._
 
 object IR_WaLBerlaSetupCommunication extends DefaultStrategy("Communication handling for waLBerla fields") {
   var funcsToMove : ListBuffer[IR_FutureFunction] = ListBuffer()

@@ -1,9 +1,10 @@
-package exastencils.waLBerla.ir
+package exastencils.waLBerla.ir.field
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.waLBerla.ir._
 
 case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR_WaLBerlaFuturePlainFunction {
 
@@ -24,6 +25,7 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR
 
     // calc size function for leveled wb fields
     def calcSizeNeeded = wbFields.size > 1
+
     def calcSize(level : Int) = {
       if (calcSizeNeeded)
         Some(IR_VariableAccess(s"calcSize_$level", "auto"))
@@ -40,7 +42,6 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR
 
     if (calcSizeNeeded) {
 
-
       for (wbf <- wbFields.sortBy(_.level)) {
         val func = IR_WaLBerlaGetSizeForLevel(wbf.level)
         if (!IR_WaLBerlaCollection.get.functions.contains(func))
@@ -55,7 +56,7 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR
       }
     }
 
-    body += IR_Return(IR_InitializerList(init :_*))
+    body += IR_Return(IR_InitializerList(init : _*))
 
     val returnType = IR_WaLBerlaBlockDataID(wbFields.head, slot = 0).datatype
 
@@ -63,6 +64,6 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR
   }
 
   override def prettyprint_decl() : String = prettyprint()
-  override def name : String = s"addToStorage_${wbFields.head.name}"
+  override def name : String = s"addToStorage_${ wbFields.head.name }"
   override def name_=(newName : String) : Unit = name = newName
 }

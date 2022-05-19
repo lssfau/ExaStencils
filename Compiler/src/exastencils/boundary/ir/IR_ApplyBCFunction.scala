@@ -28,8 +28,8 @@ import exastencils.core.Duplicate
 import exastencils.field.ir.IR_Field
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.grid.ir._
-import exastencils.waLBerla.ir.IR_WaLBerlaField
 import exastencils.waLBerla.ir.IR_WaLBerlaHandleBoundaries
+import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 
 /// IR_ApplyBCFunction
 

@@ -4,6 +4,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
+import exastencils.waLBerla.ir.field._
 
 case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter {
 

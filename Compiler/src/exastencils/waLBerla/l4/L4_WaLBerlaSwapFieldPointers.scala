@@ -7,8 +7,7 @@ import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.field.l4.L4_FieldAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.ir.IR_WaLBerlaFieldAccess
-import exastencils.waLBerla.ir.IR_WaLBerlaSwapFieldPointers
+import exastencils.waLBerla.ir.field._
 
 case class L4_WaLBerlaSwapFieldPointers(
     var srcAcc : L4_Access,

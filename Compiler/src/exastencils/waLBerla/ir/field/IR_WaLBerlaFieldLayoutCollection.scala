@@ -1,4 +1,4 @@
-package exastencils.waLBerla.ir
+package exastencils.waLBerla.ir.field
 
 import exastencils.knowledge.ir.IR_LeveledKnowledgeCollection
 
