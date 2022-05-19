@@ -55,8 +55,8 @@
         - *module_load_likwid
         - mkdir -p ../Benchmark/Platform
         - python3 -m pfgen > ../Benchmark/Platform/$SLURM_NODELIST.platform
-        - cd ..
     after_script:
+        - cd ..
         - !reference [ .module_tree_build, after_script ]
 
 .bench_pipe_template:

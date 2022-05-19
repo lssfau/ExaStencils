@@ -19,7 +19,6 @@ include: 'Benchmark/.benchmark_templates.yml'
 .gen_bench_job_template:
     dependencies:
         - build:generator
-        - pf_pipe:pipe_pf_job
     stage: bench_gen
     tags:
         - testcluster
@@ -68,33 +67,89 @@ include: 'Benchmark/.benchmark_templates.yml'
 ##                                   ##
 #######################################
 
-pf_gen:gen_pf_job:
+pf_gen:broadep2:
+    extends: .pfgen_template
     stage: pf_gen
-    tags:
-        - testcluster
-    before_script:
-        - cd Benchmark
-    script:
-        - chmod +x generate_pf_jobs_for_hosts.sh
-        - ./generate_pf_jobs_for_hosts.sh > gen-platform-pipe.yml
-    artifacts:
-        paths:
-            - Benchmark/gen-platform-pipe.yml
-        expire_in: 1 weeks
     variables:
-        NO_SLURM_SUBMIT: 1
+        SLURM_NODELIST: "broadep2"
 
-pf_pipe:pipe_pf_job:
-    stage: pf_pipe
-    trigger:
-        include:
-            artifact: Benchmark/gen-platform-pipe.yml
-            job: pf_gen:gen_pf_job
-        strategy: depend
-    needs:
-        pipeline: $PARENT_PIPELINE_ID
+pf_gen:hasep1:
+    extends: .pfgen_template
+    stage: pf_gen
     variables:
-        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
+        SLURM_NODELIST: "hasep1"
+
+pf_gen:interlagos1:
+    extends: .pfgen_template
+    stage: pf_gen
+    variables:
+        SLURM_NODELIST: "interlagos1"
+
+pf_gen:ivyep1:
+    extends: .pfgen_template
+    stage: pf_gen
+    variables:
+        SLURM_NODELIST: "ivyep1"
+
+pf_gen:casclakesp2:
+    extends: .pfgen_template
+    stage: pf_gen
+    variables:
+        SLURM_NODELIST: "casclakesp2"
+
+pf_gen:icx36:
+    extends: .pfgen_template
+    stage: pf_gen
+    variables:
+        SLURM_NODELIST: "icx36"
+
+pf_gen:medusa:
+    extends: .pfgen_template
+    stage: pf_gen
+    variables:
+        SLURM_NODELIST: "medusa"
+
+pf_gen:milan1:
+    extends: .pfgen_template
+    stage: pf_gen
+    variables:
+        SLURM_NODELIST: "milan1"
+
+pf_gen:naples1:
+    extends: .pfgen_template
+    stage: pf_gen
+    variables:
+        SLURM_NODELIST: "naples1"
+
+pf_gen:optane1:
+    extends: .pfgen_template
+    stage: pf_gen
+    variables:
+        SLURM_NODELIST: "optane1"
+
+pf_gen:phinally:
+    extends: .pfgen_template
+    stage: pf_gen
+    variables:
+        SLURM_NODELIST: "phinally"
+
+pf_gen:rome1:
+    extends: .pfgen_template
+    stage: pf_gen
+    variables:
+        SLURM_NODELIST: "rome1"
+
+pf_gen:rome2:
+    extends: .pfgen_template
+    stage: pf_gen
+    variables:
+        SLURM_NODELIST: "rome2"
+
+pf_gen:skylakesp2:
+    extends: .pfgen_template
+    stage: pf_gen
+    variables:
+        SLURM_NODELIST: "skylakesp2"
 
 #######################################
 ##                                   ##
