@@ -19,4 +19,10 @@ trait L4_FieldLike[IR_FieldAbstraction <: IR_FieldLike, IR_FieldLayoutAbstractio
   def matShape : Option[L4_MatShape]
 
   def toField : L4_Field // TODO: remove
+
+  def datatype = fieldLayout.datatype
+  def localization = fieldLayout.localization
+
+  def codeName = name + "_" + level
+  def numDimsGrid = domain.numDims
 }

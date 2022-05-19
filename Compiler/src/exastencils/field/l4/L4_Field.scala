@@ -44,9 +44,6 @@ case class L4_Field(
     L4_Field.tupled(Duplicate(L4_Field.unapply(this).get))
   }
 
-  def datatype = fieldLayout.datatype
-  def localization = fieldLayout.localization
-
   override def prettyprintDecl(out : PpStream) = {
     out << "Field " << name
     out << "< " << domain.name << ", " << fieldLayout.name << ", " << boundary
@@ -55,9 +52,6 @@ case class L4_Field(
     if (numSlots > 1) out << "[" << numSlots << "]"
     out << "@" << level
   }
-
-  def codeName = name + "_" + level
-  def numDimsGrid = domain.numDims
 
   override def progressImpl() = {
     IR_Field(

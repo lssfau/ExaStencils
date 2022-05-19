@@ -1,6 +1,5 @@
 package exastencils.waLBerla.l4
 
-import exastencils.base.l4.L4_Datatype
 import exastencils.baseExt.l4.L4_MatShape
 import exastencils.boundary.l4.L4_BoundaryCondition
 import exastencils.core.Duplicate
@@ -8,7 +7,6 @@ import exastencils.domain.l4.L4_Domain
 import exastencils.domain.l4.L4_DomainCollection
 import exastencils.field.l4.L4_Field
 import exastencils.fieldlike.l4.L4_FieldLike
-import exastencils.grid.l4.L4_Localization
 import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.IR_WaLBerlaField
 import exastencils.waLBerla.ir.IR_WaLBerlaFieldLayout
@@ -27,12 +25,7 @@ case class L4_WaLBerlaField(
     L4_WaLBerlaField.tupled(Duplicate(L4_WaLBerlaField.unapply(this).get))
   }
 
-  def datatype : L4_Datatype = fieldLayout.datatype
-  def localization : L4_Localization = fieldLayout.localization
-
   def domain : L4_Domain = L4_DomainCollection.getByIdentifier("global").get
-  def codeName : String = name + "_" + level
-  def numDimsGrid : Int = domain.numDims
 
   override def prettyprintDecl(out : PpStream) : Unit = {
     out << "waLBerla Field " << name
