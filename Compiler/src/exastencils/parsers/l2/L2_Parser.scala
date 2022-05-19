@@ -33,6 +33,7 @@ import exastencils.parsers._
 import exastencils.solver.l2._
 import exastencils.util.l2.L2_OffsetAlias
 import exastencils.waLBerla.l2._
+import exastencils.waLBerla.l2.field._
 
 object L2_Parser extends ExaParser with PackratParsers {
   override val lexical : ExaLexer = L2_Lexer

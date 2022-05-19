@@ -1,12 +1,10 @@
-package exastencils.waLBerla.l2
+package exastencils.waLBerla.l2.field
 
-import exastencils.fieldlike.l2._
+import exastencils.fieldlike.l2.L2_FieldLikeCollection
+import exastencils.fieldlike.l2.L2_FieldLikeCollections
 import exastencils.knowledge.l2.L2_KnowledgeContainer
 import exastencils.waLBerla.l3.L3_WaLBerlaField
 import exastencils.waLBerla.l3.L3_WaLBerlaFieldCollection
-
-
-/// L2_WaLBerlaFieldCollection
 
 object L2_WaLBerlaFieldCollection extends L2_FieldLikeCollection[L2_WaLBerlaField, L3_WaLBerlaField] {
   exastencils.core.Duplicate.registerConstant(this)

@@ -36,7 +36,7 @@ import exastencils.parsers.l2._
 import exastencils.prettyprinting.Indenter
 import exastencils.solver.l2._
 import exastencils.util.l2._
-import exastencils.waLBerla.l2.L2_WaLBerlaFieldCollection
+import exastencils.waLBerla.l2.field.L2_WaLBerlaFieldCollection
 
 /// L2_LayerHandler
 

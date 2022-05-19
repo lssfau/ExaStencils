@@ -1,4 +1,4 @@
-package exastencils.waLBerla.l2
+package exastencils.waLBerla.l2.field
 
 import exastencils.fieldlike.l2.L2_FieldLikeDecl
 import exastencils.logger.Logger
