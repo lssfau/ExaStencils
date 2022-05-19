@@ -10,10 +10,7 @@ import exastencils.fieldlike.l3.L3_FieldLikeCollections
 import exastencils.fieldlike.l4.L4_FieldLikeLayout
 import exastencils.grid.l3.L3_Localization
 import exastencils.knowledge.l3._
-import exastencils.waLBerla.l4.L4_WaLBerlaField
-import exastencils.waLBerla.l4.L4_WaLBerlaFieldCollection
-import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayout
-import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayoutCollection
+import exastencils.waLBerla.l4.field._
 
 
 /// L3_WaLBerlaFieldCollection

@@ -1,4 +1,4 @@
-package exastencils.waLBerla.l4
+package exastencils.waLBerla.l4.field
 
 import exastencils.baseExt.l4.L4_MatShape
 import exastencils.boundary.l4.L4_BoundaryCondition
@@ -8,7 +8,8 @@ import exastencils.domain.l4.L4_DomainCollection
 import exastencils.field.l4.L4_Field
 import exastencils.fieldlike.l4.L4_FieldLike
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.ir.field._
+import exastencils.waLBerla.ir.field.IR_WaLBerlaField
+import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldLayout
 
 case class L4_WaLBerlaField(
     var name : String,
@@ -39,5 +40,5 @@ case class L4_WaLBerlaField(
 
   override def progressImpl() =
     IR_WaLBerlaField(name, level, index, codeName, fieldLayout.getProgressedObj(), numSlots, boundary.progress,
-      if(matShape.isDefined) Some(matShape.get.progress) else None)
+      if (matShape.isDefined) Some(matShape.get.progress) else None)
 }

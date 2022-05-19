@@ -8,7 +8,7 @@ import exastencils.field.l3.L3_Field
 import exastencils.fieldlike.l3.L3_FieldLike
 import exastencils.grid.l3._
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.l4._
+import exastencils.waLBerla.l4.field._
 
 /// L3_WaLBerlaField
 

@@ -15,8 +15,7 @@ import exastencils.knowledge.l4.L4_KnowledgeContainer.L4_ResolveAccesses
 import exastencils.knowledge.l4.L4_LeveledKnowledgeCollection
 import exastencils.logger.Logger
 import exastencils.util.l4.L4_LevelCollector
-import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayoutCollection
-import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayoutDecl
+import exastencils.waLBerla.l4.field._
 
 abstract class L4_FieldLikeLayoutCollection[L4_Type <: L4_FieldLikeLayout[IR_Type] : TypeTag, IR_Type <: IR_FieldLikeLayout] extends L4_LeveledKnowledgeCollection[L4_Type, IR_Type] {
 

@@ -7,6 +7,7 @@ import exastencils.datastructures.Transformation
 import exastencils.grid.l4._
 import exastencils.logger.Logger
 import exastencils.util.l4.L4_StackCollector
+import exastencils.waLBerla.l4.field.L4_WaLBerlaFieldCollection
 
 trait L4_WaLBerlaVirtualFieldWithVec extends L4_VirtualFieldWithVec {
 

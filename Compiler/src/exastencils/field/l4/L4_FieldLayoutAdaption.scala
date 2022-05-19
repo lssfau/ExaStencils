@@ -20,9 +20,7 @@ package exastencils.field.l4
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.waLBerla.l4.L4_WaLBerlaFieldCollection
-import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayout
-import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayoutCollection
+import exastencils.waLBerla.l4.field._
 
 /// L4_DuplicateFieldLayoutsForFields
 

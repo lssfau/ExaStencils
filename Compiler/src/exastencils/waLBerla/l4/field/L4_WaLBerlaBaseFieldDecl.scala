@@ -1,4 +1,4 @@
-package exastencils.waLBerla.l4
+package exastencils.waLBerla.l4.field
 
 import exastencils.base.l4.L4_Access
 import exastencils.base.l4.L4_DeclarationLevelSpecification
@@ -7,7 +7,6 @@ import exastencils.boundary.l4.L4_BoundaryCondition
 import exastencils.boundary.l4.L4_NoBC
 import exastencils.field.l4.L4_FieldDecl
 import exastencils.prettyprinting.PpStream
-
 
 case class L4_WaLBerlaBaseFieldDecl(
     var name : String,

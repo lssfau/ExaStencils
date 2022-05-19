@@ -1,4 +1,4 @@
-package exastencils.waLBerla.l4
+package exastencils.waLBerla.l4.field
 
 import exastencils.base.l4.L4_ConstIndex
 import exastencils.base.l4.L4_Datatype
@@ -11,7 +11,7 @@ import exastencils.grid.l4.L4_AtCellCenter
 import exastencils.grid.l4.L4_Localization
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.ir.field._
+import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldLayout
 
 case class L4_WaLBerlaFieldLayout(
     var name : String, // will be used to find the layout

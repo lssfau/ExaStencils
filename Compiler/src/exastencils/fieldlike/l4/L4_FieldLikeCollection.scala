@@ -13,8 +13,7 @@ import exastencils.knowledge.l4.L4_KnowledgeContainer._
 import exastencils.knowledge.l4.L4_LeveledKnowledgeCollection
 import exastencils.logger.Logger
 import exastencils.util.l4.L4_LevelCollector
-import exastencils.waLBerla.l4.L4_WaLBerlaFieldCollection
-import exastencils.waLBerla.l4.L4_WaLBerlaFieldDecl
+import exastencils.waLBerla.l4.field._
 
 object L4_FieldLikeCollections {
   val collections = ListBuffer[L4_FieldLikeCollection[_, _]]()

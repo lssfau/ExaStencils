@@ -40,11 +40,9 @@ import exastencils.operator.l4._
 import exastencils.parsers._
 import exastencils.solver.l4._
 import exastencils.util.l4.L4_OffsetAlias
-import exastencils.waLBerla.l4.L4_WaLBerlaBaseFieldDecl
-import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayoutDecl
 import exastencils.waLBerla.l4.L4_WaLBerlaLoopOverBlocks
-import exastencils.waLBerla.l4.L4_WaLBerlaSwapFieldPointers
 import exastencils.waLBerla.l4.L4_WaLBerlaVarsSection
+import exastencils.waLBerla.l4.field._
 
 /// L4_Parser
 

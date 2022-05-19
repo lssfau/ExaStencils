@@ -24,8 +24,7 @@ import exastencils.interfacing.l4.L4_ExternalFieldCollection
 import exastencils.operator.l4._
 import exastencils.prettyprinting.PpStream
 import exastencils.solver.l4.L4_EquationCollection
-import exastencils.waLBerla.l4.L4_WaLBerlaFieldCollection
-import exastencils.waLBerla.l4.L4_WaLBerlaFieldLayoutCollection
+import exastencils.waLBerla.l4.field._
 
 object L4_PrintKnowledgeDecl {
   def apply(out : PpStream) = {

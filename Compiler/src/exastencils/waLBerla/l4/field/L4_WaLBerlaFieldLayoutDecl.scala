@@ -1,4 +1,4 @@
-package exastencils.waLBerla.l4
+package exastencils.waLBerla.l4.field
 
 import scala.collection.mutable.ListBuffer
 
@@ -21,7 +21,7 @@ case class L4_WaLBerlaFieldLayoutDecl(
   def localization = L4_AtCellCenter
 
   override def prettyprint(out : PpStream) : Unit = {
-    out << "waLBerla Layout "  << name << " < "  << datatype << ", \"" << waLBerlaLayout << "\" > "
+    out << "waLBerla Layout " << name << " < " << datatype << ", \"" << waLBerlaLayout << "\" > "
     if (levels.isDefined) out << '@' << levels.get
     out << " {\n" <<< (options, "\n") << "\n}"
   }

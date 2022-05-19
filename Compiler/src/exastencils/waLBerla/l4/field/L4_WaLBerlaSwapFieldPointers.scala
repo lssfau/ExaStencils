@@ -1,4 +1,4 @@
-package exastencils.waLBerla.l4
+package exastencils.waLBerla.l4.field
 
 import exastencils.base.ir.IR_Statement
 import exastencils.base.l4.L4_Access
@@ -7,7 +7,8 @@ import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.field.l4.L4_FieldAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.ir.field._
+import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldAccess
+import exastencils.waLBerla.ir.field.IR_WaLBerlaSwapFieldPointers
 
 case class L4_WaLBerlaSwapFieldPointers(
     var srcAcc : L4_Access,
@@ -23,7 +24,7 @@ case class L4_WaLBerlaSwapFieldPointers(
 
     val src = resolveAccess(srcAcc)
     val dst = resolveAccess(dstAcc)
-    if ( !(L4_WaLBerlaFieldCollection.contains(src) && L4_WaLBerlaFieldCollection.contains(dst)) )
+    if (!(L4_WaLBerlaFieldCollection.contains(src) && L4_WaLBerlaFieldCollection.contains(dst)))
       Logger.error("\"waLBerlaSwapPtr\" accepts two waLBerla field accesses as arguments.")
 
     val wbSrc = L4_WaLBerlaFieldCollection.getByFieldAccess(src).get.progress()

@@ -21,7 +21,7 @@ package exastencils.knowledge.l4
 import exastencils.field.l4._
 import exastencils.interfacing.l4.L4_ExternalFieldCollection
 import exastencils.operator.l4._
-import exastencils.waLBerla.l4.L4_WaLBerlaFieldCollection
+import exastencils.waLBerla.l4.field._
 
 object L4_ProgressKnowledge {
   def apply() = {

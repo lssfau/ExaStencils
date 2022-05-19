@@ -25,7 +25,7 @@ import exastencils.field.l4.L4_FieldAccess
 import exastencils.logger.Logger
 import exastencils.operator.l4.L4_StencilFieldAccess
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.l4.L4_WaLBerlaFieldCollection
+import exastencils.waLBerla.l4.field.L4_WaLBerlaFieldCollection
 
 /// L4_ApplyBC
 
