@@ -5,6 +5,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.domain.ir.IR_Domain
 import exastencils.grid.ir.IR_VF_CellWidthAsVec
 import exastencils.grid.ir.IR_VF_CellWidthPerDim
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 
 case class IR_WaLBerlaCellWidthAsVec(
     var level : Int,

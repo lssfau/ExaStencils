@@ -7,7 +7,7 @@ import exastencils.base.l4.L4_Reduction
 import exastencils.base.l4.L4_Statement
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.ir.IR_WaLBerlaLoopOverBlocks
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
 
 case class L4_WaLBerlaLoopOverBlocks(
     var body : ListBuffer[L4_Statement],

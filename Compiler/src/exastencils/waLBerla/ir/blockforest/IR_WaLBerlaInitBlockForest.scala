@@ -1,4 +1,4 @@
-package exastencils.waLBerla.ir
+package exastencils.waLBerla.ir.blockforest
 
 import scala.collection.mutable.ListBuffer
 
@@ -8,8 +8,11 @@ import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.domain.ir.IR_DomainFromAABB
 import exastencils.logger.Logger
+import exastencils.waLBerla.ir.IR_WaLBerlaCollection
+import exastencils.waLBerla.ir.IR_WaLBerlaFuturePlainFunction
+import exastencils.waLBerla.ir.IR_WaLBerlaPlainFunction
+import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
-import exastencils.waLBerla.ir.field._
 
 case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
   def domain = IR_DomainCollection.getByIdentifier("global").get
@@ -19,7 +22,7 @@ case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
   def someWaLBerlaField = IR_WaLBerlaBlockForest().maxLevelWaLBerlaField
 
   val maxDims = 3
-  val numDims  = Knowledge.dimensionality
+  val numDims = Knowledge.dimensionality
   val level = if (someWaLBerlaField.isDefined) someWaLBerlaField.get.level else -1
 
   def toUnsignedInt(value : Int) = IR_Cast(IR_SpecialDatatype("uint_t"), value)
@@ -37,8 +40,8 @@ case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
   val numProcesses = List(Knowledge.domain_rect_numBlocks_x, Knowledge.domain_rect_numBlocks_y, Knowledge.domain_rect_numBlocks_z).map(toUnsignedInt)
   val periodicity = List(Knowledge.domain_rect_periodic_x, Knowledge.domain_rect_periodic_y, Knowledge.domain_rect_periodic_z)
 
-  val aabbLower = (0 until maxDims).map(d => IR_RealConstant( if (d < numDims) domainBounds.lower(d) else 0.0) )
-  val aabbUpper = (0 until maxDims).map(d => IR_RealConstant( if (d < numDims) domainBounds.upper(d) else cellWidth(d)) )
+  val aabbLower = (0 until maxDims).map(d => IR_RealConstant(if (d < numDims) domainBounds.lower(d) else 0.0))
+  val aabbUpper = (0 until maxDims).map(d => IR_RealConstant(if (d < numDims) domainBounds.upper(d) else cellWidth(d)))
   val aabb = IR_VariableAccess("aabb", IR_SpecialDatatype("auto"))
 
   override def isInterfaceFunction : Boolean = false

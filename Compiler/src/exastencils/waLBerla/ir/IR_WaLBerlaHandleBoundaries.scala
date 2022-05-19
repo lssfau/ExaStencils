@@ -14,6 +14,8 @@ import exastencils.datastructures.Transformation
 import exastencils.grid.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_ParallelizationInfo
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.ir.field._
 
 case class IR_WaLBerlaHandleBoundaries(

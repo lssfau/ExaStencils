@@ -5,6 +5,7 @@ import exastencils.base.ir._
 import exastencils.domain.ir._
 import exastencils.grid.ir._
 import exastencils.knowledge.ir.IR_KnowledgeObject
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 
 
 case class IR_WaLBerlaCellCenterAsVec(

@@ -7,6 +7,8 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.field.ir._
 import exastencils.globals.ir._
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaInitBlockForest
 import exastencils.waLBerla.ir.field._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 

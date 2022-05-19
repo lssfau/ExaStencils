@@ -11,6 +11,7 @@ import exastencils.config.Knowledge
 import exastencils.domain.ir._
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 
 // TODO refactor
 

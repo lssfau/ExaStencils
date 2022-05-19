@@ -6,6 +6,7 @@ import exastencils.datastructures.Transformation
 import exastencils.domain.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.util.ir.IR_StackCollector
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
 
 object IR_WaLBerlaReplaceFragmentIVs extends DefaultStrategy("Replace frag info accesses with accesses to waLBerla block info") {
 

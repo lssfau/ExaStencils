@@ -1,9 +1,9 @@
-package exastencils.waLBerla.ir
+package exastencils.waLBerla.ir.blockforest
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output

@@ -6,6 +6,7 @@ import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.grid.ir._
 import exastencils.util.ir.IR_StackCollector
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
 
 
 trait IR_WaLBerlaVirtualFieldWithVec extends IR_VirtualFieldWithVec {
