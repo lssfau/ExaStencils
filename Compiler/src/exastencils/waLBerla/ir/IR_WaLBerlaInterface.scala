@@ -7,6 +7,7 @@ import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.prettyprinting._
+import exastencils.waLBerla.ir.grid.IR_WaLBerlaCollection
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaPreprocessorDirectives
 

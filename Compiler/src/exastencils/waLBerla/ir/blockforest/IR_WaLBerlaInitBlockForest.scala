@@ -8,10 +8,10 @@ import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.domain.ir.IR_DomainFromAABB
 import exastencils.logger.Logger
-import exastencils.waLBerla.ir.IR_WaLBerlaCollection
 import exastencils.waLBerla.ir.IR_WaLBerlaFuturePlainFunction
 import exastencils.waLBerla.ir.IR_WaLBerlaPlainFunction
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
+import exastencils.waLBerla.ir.grid.IR_WaLBerlaCollection
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
 
 case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {

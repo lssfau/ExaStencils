@@ -2,8 +2,7 @@ package exastencils.waLBerla.l4
 
 import exastencils.domain.l4._
 import exastencils.grid.l4._
-import exastencils.waLBerla.ir.IR_WaLBerlaCellCenterAsVec
-import exastencils.waLBerla.ir.IR_WaLBerlaCellCenterPerDim
+import exastencils.waLBerla.ir.grid._
 
 case class L4_WaLBerlaCellCenterAsVec(
     var level : Int,

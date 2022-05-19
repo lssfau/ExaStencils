@@ -1,4 +1,4 @@
-package exastencils.waLBerla.ir
+package exastencils.waLBerla.ir.grid
 
 import scala.collection.mutable.ListBuffer
 
@@ -11,6 +11,7 @@ import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.parallelization.api.cuda.CUDA_KernelFunctions
 import exastencils.prettyprinting.PrettyprintingManager
 import exastencils.util.ir.IR_StackCollector
+import exastencils.waLBerla.ir._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
 /// IR_WaLBerlaCollection

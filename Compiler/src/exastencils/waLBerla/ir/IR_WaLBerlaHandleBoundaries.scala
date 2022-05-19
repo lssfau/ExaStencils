@@ -17,6 +17,7 @@ import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.ir.field._
+import exastencils.waLBerla.ir.grid._
 
 case class IR_WaLBerlaHandleBoundaries(
     var field : IR_WaLBerlaField,

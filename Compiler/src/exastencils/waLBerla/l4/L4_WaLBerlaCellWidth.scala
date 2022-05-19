@@ -3,8 +3,7 @@ package exastencils.waLBerla.l4
 import exastencils.domain.l4.L4_Domain
 import exastencils.grid.l4.L4_VF_CellWidthAsVec
 import exastencils.grid.l4.L4_VF_CellWidthPerDim
-import exastencils.waLBerla.ir.IR_WaLBerlaCellWidthAsVec
-import exastencils.waLBerla.ir.IR_WaLBerlaCellWidthPerDim
+import exastencils.waLBerla.ir.grid._
 
 case class L4_WaLBerlaCellWidthAsVec(
     var level : Int,

@@ -14,7 +14,7 @@ import exastencils.datastructures.Transformation
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.prettyprinting.PrettyPrintable
-import exastencils.waLBerla.ir.IR_WaLBerlaCollection
+import exastencils.waLBerla.ir.grid.IR_WaLBerlaCollection
 
 /// L4_WaLBerlaVarsSection
 
