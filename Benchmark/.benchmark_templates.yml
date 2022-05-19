@@ -48,7 +48,7 @@
         expire_in: 1 weeks
     variables:
         SLURM_NODELIST: "TO_BE_REPLACED"
-        SLURM_TIMELIMIT: "15"
+        SLURM_TIMELIMIT: 15
     allow_failure: true
     before_script:
         - cd pfgen
