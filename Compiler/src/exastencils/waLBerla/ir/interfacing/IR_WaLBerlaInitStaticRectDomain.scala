@@ -108,17 +108,21 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
     fragStatements += setupFragmentId()
     fragStatements ++= setupFragmentPosBeginAndEnd()
 
-    if (Knowledge.waLBerla_createCartComm) {
-      init += IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "resetMPI", IR_UnitDatatype)
-      init += IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "createCartesianComm",
-        ListBuffer[IR_Expression](
-          Knowledge.domain_rect_numBlocks_x, Knowledge.domain_rect_numBlocks_y, Knowledge.domain_rect_numBlocks_z, // number of processes
-          Knowledge.domain_rect_periodic_x, Knowledge.domain_rect_periodic_y, Knowledge.domain_rect_periodic_z), // periodicity
-        IR_UnitDatatype)
+    if (Knowledge.mpi_enabled) {
+      if (Knowledge.waLBerla_createCartComm) {
+        init += IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "resetMPI", IR_UnitDatatype)
+        init += IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "createCartesianComm",
+          ListBuffer[IR_Expression](
+            Knowledge.domain_rect_numBlocks_x, Knowledge.domain_rect_numBlocks_y, Knowledge.domain_rect_numBlocks_z, // number of processes
+            Knowledge.domain_rect_periodic_x, Knowledge.domain_rect_periodic_y, Knowledge.domain_rect_periodic_z), // periodicity
+          IR_UnitDatatype)
+      }
+
+      // assign exas MPI comm IV to waLBerla's communicator
+      init += IR_Assignment(MPI_IV_MpiComm,
+        IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "comm", MPI_IV_MpiComm.datatype))
     }
 
-    init += IR_Assignment(MPI_IV_MpiComm,
-      IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "comm", MPI_IV_MpiComm.datatype))
     init += IR_VariableDeclaration(blocks)
     init += IR_WaLBerlaBlockForest().getBlocks(blocks)
     init += IR_LoopOverFragments(fragStatements, IR_ParallelizationInfo(potentiallyParallel = true))
