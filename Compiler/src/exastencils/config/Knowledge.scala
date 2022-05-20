@@ -470,6 +470,11 @@ object Knowledge {
   // [true|false] // specifies if MPI_Test (true) or MPI_Wait (false) is to be used when waiting for async communication
   var mpi_useBusyWait : Boolean = false
 
+  /// --- waLBerla ---
+
+  // [true|false]
+  var waLBerla_createCartComm : Boolean = false
+
   /// --- CUDA ---
 
   // [true|false]

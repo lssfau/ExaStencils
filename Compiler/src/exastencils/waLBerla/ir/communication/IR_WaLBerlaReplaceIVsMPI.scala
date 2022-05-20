@@ -17,13 +17,9 @@ object IR_WaLBerlaReplaceIVsMPI extends DefaultStrategy("Replace exa's mpi data 
     collector.stack.exists(n => n.isInstanceOf[IR_WaLBerlaFunction] || n.isInstanceOf[IR_WaLBerlaFutureFunction])
 
   this += Transformation("Utilize waLBerla's MPI comm datastructures", {
-    case iv : MPI_IV if inWaLBerlaScope(collector) =>
-      val funcName = iv match {
-        case MPI_IV_MpiRank => "rank"
-        case MPI_IV_MpiSize => "numProcesses"
-        case MPI_IV_MpiComm => "comm"
-      }
-
-      IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), funcName, iv.datatype)
+    case iv : MPI_IV if iv == MPI_IV_MpiRank && inWaLBerlaScope(collector) =>
+      IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "rank", iv.datatype)
+    case iv : MPI_IV if iv == MPI_IV_MpiSize && inWaLBerlaScope(collector) =>
+      IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "numProcesses", iv.datatype)
   })
 }
