@@ -42,7 +42,7 @@ class IR_LevelCollector extends Collector {
       case loop : IR_LoopOverPointsInOneFragment => enterLevel(loop.field.level)
 
       // leveled waLBerla nodes
-      case fct : IR_WaLBerlaLeveledFunction              => enterLevel(fct.level)
+      case fct : IR_WaLBerlaLeveledFunction => enterLevel(fct.level)
 
       case _ =>
     }
@@ -55,9 +55,9 @@ class IR_LevelCollector extends Collector {
       case loop : IR_LoopOverPointsInOneFragment => leaveLevel(loop.field.level)
 
       // leveled waLBerla nodes
-      case fct : IR_WaLBerlaLeveledFunction              => leaveLevel(fct.level)
+      case fct : IR_WaLBerlaLeveledFunction => leaveLevel(fct.level)
 
-      case _                                     =>
+      case _ =>
     }
   }
 
