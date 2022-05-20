@@ -47,7 +47,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
   def setupFragmentId() = {
     IR_Assignment(IR_IV_FragmentId(),
       Knowledge.dimensions.map(dim => {
-        val revertedDims = (Knowledge.dimensionality-1) - dim until 0 by -1
+        val revertedDims = (Knowledge.dimensionality-1) until dim by -1
         IR_ToInt((IR_IV_FragmentPosition(dim) - globalSize.lower(dim)) / fragWidth(dim)) *
           (if (revertedDims.isEmpty) 1 else revertedDims.map(Knowledge.domain_rect_numFragsTotalAsVec(_)).product) : IR_Expression
       }).reduce(_ + _))
@@ -56,7 +56,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
   def setupCommId() = {
     IR_Assignment(IR_IV_CommunicationId(),
       Knowledge.dimensions.map(dim => {
-        val revertedDims = (Knowledge.dimensionality-1) - dim until 0 by -1
+        val revertedDims = (Knowledge.dimensionality-1) until dim by -1
         (IR_ToInt((IR_IV_FragmentPosition(dim) - globalSize.lower(dim)) / fragWidth(dim)) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(dim)) *
           (if (revertedDims.isEmpty) 1 else revertedDims.map(Knowledge.domain_rect_numFragsPerBlockAsVec(_)).product) : IR_Expression
       }).reduce(_ + _))
@@ -78,7 +78,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
     IR_TernaryCondition(IR_Negation(IR_ConnectFragments().isPointInsideDomain(position, domain)),
       s"MPI_PROC_NULL",
       Knowledge.dimensions.map(dim => {
-        val revertedDims = (Knowledge.dimensionality-1) - dim until 0 by -1
+        val revertedDims = (Knowledge.dimensionality-1) until dim by -1
         IR_ToInt(((position(dim) - globalSize.lower(dim)) / fragWidth(dim)) / Knowledge.domain_rect_numFragsPerBlockAsVec(dim)) *
           (if (revertedDims.isEmpty) 1 else revertedDims.map(Knowledge.domain_rect_numBlocksAsVec(_)).product) : IR_Expression
       }).reduce(_ + _))
@@ -86,7 +86,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
 
   def localFragmentIdxForPoint(position : (Int => IR_Expression)) = {
       Knowledge.dimensions.map(dim => {
-        val revertedDims = (Knowledge.dimensionality-1) - dim until 0 by -1
+        val revertedDims = (Knowledge.dimensionality-1) until dim by -1
         (IR_ToInt((position(dim) - globalSize.lower(dim)) / fragWidth(dim)) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(dim)) *
           (if (revertedDims.isEmpty) 1 else revertedDims.map(Knowledge.domain_rect_numFragsPerBlockAsVec(_)).product) : IR_Expression
       }).reduce(_ + _)
