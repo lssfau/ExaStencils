@@ -177,6 +177,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_ResolveEvaluateOnGrid.apply()
     IR_ResolveVirtualFieldAccesses.apply()
 
+    IR_WaLBerlaResolveLoopOverPoints.apply()
     IR_ResolveLoopOverPoints.apply()
     IR_ResolveIntergridIndices.apply()
     IR_ApplyOffsetToFieldAccess.apply()
@@ -215,6 +216,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_ResolveComplexAccess.apply() //TODO: brauche ich für den Complex Access
 
+    IR_WaLBerlaResolveLoopOverPointsInOneFragment.apply()
     IR_ResolveLoopOverPointsInOneFragment.apply()
 
     IR_ResolveLocalSolve.apply()
@@ -291,6 +293,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
       IR_PolyOpt.apply()
+    IR_WaLBerlaResolveLoopOverDimensions.apply()
     IR_ResolveLoopOverDimensions.apply()
 
     IR_TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary

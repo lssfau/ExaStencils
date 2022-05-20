@@ -28,7 +28,6 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.field.ir.IR_Field
-import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.logger.Logger
 import exastencils.parallelization.ir._
 import exastencils.util.ir.IR_StackCollector
@@ -50,7 +49,7 @@ object IR_LoopOverPoints {
 }
 
 case class IR_LoopOverPoints(
-    var field : IR_FieldLike,
+    var field : IR_Field,
     var region : Option[IR_RegionSpecification],
     var startOffset : IR_ExpressionIndex,
     var endOffset : IR_ExpressionIndex,
