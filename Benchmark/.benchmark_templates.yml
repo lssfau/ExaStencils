@@ -68,6 +68,7 @@
         - python3 slurm_alloc.py $EXA_PROBLEM_PATH Platform/$HOSTNAME.platform
         - *module_load_mpi
         - *module_load_likwid
+        - ls -al
         - python3 run_benchmark.py $COMPILER_PATH $COMPILER_LIB_PATH $EXA_PROBLEM_PATH $OUTPUT_PATH Platform/$HOSTNAME.platform --compile --run
     after_script:
         - !reference [ .module_tree_build, after_script ]
