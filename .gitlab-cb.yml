@@ -19,7 +19,7 @@ include: 'Benchmark/.benchmark_templates.yml'
     dependencies:
         - build:generator
         - pf_gen:broadep2
-        - pf_gen:hasep
+        - pf_gen:hasep1
         - pf_gen:interlagos1
         - pf_gen:ivyep1
         - pf_gen:casclakesp2
@@ -28,6 +28,7 @@ include: 'Benchmark/.benchmark_templates.yml'
         - pf_gen:milan1
         - pf_gen:naples1
         - pf_gen:optane1
+        - pf_gen:phinally
         - pf_gen:rome1
         - pf_gen:rome2
         - pf_gen:skylakesp2
