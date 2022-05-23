@@ -30,7 +30,6 @@ include: 'Benchmark/.benchmark_templates.yml'
         - |
             for pf in Platform/*.platform
             do
-                echo $pf
                 python3 run_benchmark.py $COMPILER_PATH $COMPILER_LIB_PATH $EXA_PROBLEM_PATH $OUTPUT_PATH $pf --generate
             done
         - chmod +x generate_bench_jobs_for_hosts.sh
@@ -48,6 +47,7 @@ include: 'Benchmark/.benchmark_templates.yml'
         COMPILER_LIB_PATH: "../Compiler/lib"
         EXA_PROBLEM_NAME: "TO_BE_REPLACED"
         EXA_PROBLEM_PATH: "TO_BE_REPLACED"
+        OUTPUT_PATH: "output"
 
 .pipe_bench_job_template:
     stage: bench_pipe
