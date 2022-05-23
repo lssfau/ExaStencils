@@ -57,8 +57,6 @@ include: 'Benchmark/.benchmark_templates.yml'
             artifact: Benchmark/$EXA_PROBLEM_NAME-pipe.yml
             job: bench_gen:$EXA_PROBLEM_NAME
         strategy: depend
-    needs:
-        pipeline: $PARENT_PIPELINE_ID
     variables:
         PARENT_PIPELINE_ID: $CI_PIPELINE_ID
         EXA_PROBLEM_NAME: "TO_BE_REPLACED"

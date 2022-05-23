@@ -41,18 +41,20 @@
 .bench_pipe_template:
     tags:
         - testcluster
-    artifacts:
-        when: on_failure
-        paths:
-            - Benchmark/output/Debug/*
-            - Benchmark/output/generated/*
-        expire_in: 1 weeks
+    #artifacts:
+    #    when: on_failure
+    #    paths:
+    #        - Benchmark/output/Debug/*
+    #        - Benchmark/output/generated/*
+    #    expire_in: 1 weeks
     variables:
         NO_SLURM_SUBMIT: 1
         COMPILER_PATH: "../Compiler/Compiler.jar"
         COMPILER_LIB_PATH: "../Compiler/lib"
         EXA_PROBLEM_PATH: "TO_BE_REPLACED"
         OUTPUT_PATH: "output"
+    needs:
+        pipeline: $PARENT_PIPELINE_ID
     before_script:
         - cd Benchmark
         - !reference [ .module_tree_build, before_script ]
