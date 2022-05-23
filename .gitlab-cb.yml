@@ -18,6 +18,19 @@ include: 'Benchmark/.benchmark_templates.yml'
 .gen_bench_job_template:
     dependencies:
         - build:generator
+        - pf_gen:broadep2
+        - pf_gen:hasep
+        - pf_gen:interlagos1
+        - pf_gen:ivyep1
+        - pf_gen:casclakesp2
+        - pf_gen:icx36
+        - pf_gen:medusa
+        - pf_gen:milan1
+        - pf_gen:naples1
+        - pf_gen:optane1
+        - pf_gen:rome1
+        - pf_gen:rome2
+        - pf_gen:skylakesp2
     stage: bench_gen
     tags:
         - testcluster
