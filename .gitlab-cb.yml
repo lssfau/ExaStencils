@@ -38,8 +38,9 @@ include: 'Benchmark/.benchmark_templates.yml'
         - !reference [ .module_tree_build, after_script ]
     artifacts:
         paths:
-            - $EXA_PROBLEM_NAME-pipe.yml
-            - $OUTPUT_PATH/generated
+            - Benchmark/$EXA_PROBLEM_NAME-pipe.yml
+            - Benchmark/$OUTPUT_PATH/Debug/*
+            - Benchmark/$OUTPUT_PATH/generated/*
         expire_in: 1 weeks
     variables:
         NO_SLURM_SUBMIT: 1
@@ -53,7 +54,7 @@ include: 'Benchmark/.benchmark_templates.yml'
     stage: bench_pipe
     trigger:
         include:
-            artifact: $EXA_PROBLEM_NAME-pipe.yml
+            artifact: Benchmark/$EXA_PROBLEM_NAME-pipe.yml
             job: bench_gen:$EXA_PROBLEM_NAME
         strategy: depend
     needs:
