@@ -42,7 +42,7 @@
     tags:
         - testcluster
     variables:
-        NO_SLURM_SUBMIT: 1
+        SLURM_NODELIST: "TO_BE_REPLACED"
         COMPILER_PATH: "../Compiler/Compiler.jar"
         COMPILER_LIB_PATH: "../Compiler/lib"
         EXA_PROBLEM_PATH: "TO_BE_REPLACED"
@@ -61,7 +61,6 @@
                 echo "Skipping host without corresponding platform file"
                 exit 0
             fi
-        - python3 slurm_alloc.py $EXA_PROBLEM_PATH Platform/$HOSTNAME.platform
         - echo $(hostname)
         - *module_load_mpi
         - *module_load_likwid
