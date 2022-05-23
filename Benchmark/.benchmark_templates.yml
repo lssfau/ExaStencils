@@ -38,29 +38,6 @@
     - nvidia-smi
     - updatedb
 
-#.pfgen_template:
-#    tags:
-#        - testcluster
-#    artifacts:
-#        when: always
-#        paths:
-#            - Benchmark/Platform/$SLURM_NODELIST.platform
-#        expire_in: 1 weeks
-#    variables:
-#        SLURM_NODELIST: "TO_BE_REPLACED"
-#        SLURM_TIMELIMIT: 15
-#    allow_failure: true
-#    before_script:
-#        - cd pfgen
-#    script:
-#        - !reference [ .module_tree_build, before_script ]
-#        - *module_load_likwid
-#        - mkdir -p ../Benchmark/Platform
-#        - python3 -m pfgen > ../Benchmark/Platform/$SLURM_NODELIST.platform
-#    after_script:
-#        - cd ..
-#        - !reference [ .module_tree_build, after_script ]
-
 .bench_pipe_template:
     tags:
         - testcluster
