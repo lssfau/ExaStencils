@@ -54,7 +54,7 @@ include: 'Benchmark/.benchmark_templates.yml'
     trigger:
         include:
             artifact: $EXA_PROBLEM_NAME-pipe.yml
-            job: job_gen:$EXA_PROBLEM_NAME
+            job: bench_gen:$EXA_PROBLEM_NAME
         strategy: depend
     needs:
         pipeline: $PARENT_PIPELINE_ID
