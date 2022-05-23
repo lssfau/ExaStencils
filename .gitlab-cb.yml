@@ -18,26 +18,13 @@ include: 'Benchmark/.benchmark_templates.yml'
 .gen_bench_job_template:
     dependencies:
         - build:generator
-        - pf_gen:broadep2
-        - pf_gen:hasep1
-        - pf_gen:interlagos1
-        - pf_gen:ivyep1
-        - pf_gen:casclakesp2
-        - pf_gen:icx36
-        - pf_gen:medusa
-        - pf_gen:milan1
-        - pf_gen:naples1
-        - pf_gen:optane1
-        - pf_gen:phinally
-        - pf_gen:rome1
-        - pf_gen:rome2
-        - pf_gen:skylakesp2
     stage: bench_gen
     tags:
         - testcluster
     before_script:
         - cd Benchmark
         - !reference [ .module_tree_build, before_script ]
+        - curl --location --output artifacts.zip "https://gitlab.rrze.fau.de/exastencils/pfgen/-/jobs/artifacts/master/download?job=collect-artifacts
     script:
         - |
             for pf in Platform/*.platform
