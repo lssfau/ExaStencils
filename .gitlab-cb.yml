@@ -30,6 +30,7 @@ include: 'Benchmark/.benchmark_templates.yml'
         - |
             for pf in Platform/*.platform
             do
+                echo $pf
                 python3 run_benchmark.py $COMPILER_PATH $COMPILER_LIB_PATH $EXA_PROBLEM_PATH $OUTPUT_PATH $pf --generate
             done
         - chmod +x generate_bench_jobs_for_hosts.sh
