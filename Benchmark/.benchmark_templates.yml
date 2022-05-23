@@ -41,25 +41,19 @@
 .bench_pipe_template:
     tags:
         - testcluster
-    #artifacts:
-    #    when: on_failure
-    #    paths:
-    #        - Benchmark/output/Debug/*
-    #        - Benchmark/output/generated/*
-    #    expire_in: 1 weeks
     variables:
         NO_SLURM_SUBMIT: 1
         COMPILER_PATH: "../Compiler/Compiler.jar"
         COMPILER_LIB_PATH: "../Compiler/lib"
         EXA_PROBLEM_PATH: "TO_BE_REPLACED"
         OUTPUT_PATH: "output"
-    needs:
-        pipeline: $PARENT_PIPELINE_ID
     before_script:
         - cd Benchmark
         - !reference [ .module_tree_build, before_script ]
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
+        - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2FExaStencils/jobs/artifacts/$CI_COMMIT_REF_NAME/download?job=bench_gen:$EXA_PROBLEM_NAME" --output output.zip'
         - unzip artifacts.zip -d Platform
+        - unzip output.zip -d output
     script:
         - |
             if [[ ! -f "Platform/$HOSTNAME.platform" ]]; then
