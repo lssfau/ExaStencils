@@ -20,16 +20,16 @@ case class IR_WaLBerlaLoopOverDimensions(
     var genOMPThreadLoop : Boolean = false
 ) extends IR_ScopedStatement with IR_SpecialExpandable with IR_HasParallelizationInfo {
 
-  val loopOverDims = IR_LoopOverDimensions(numDimensions, indices, body)
-
-  if (stepSize == null) {
-    stepSize = loopOverDims.stepSize
-  } else {
-    indices.end = loopOverDims.indices.end
-  }
-
   // TODO optimizations as in IR_LoopOverDimensions
   def expandSpecial() : ListBuffer[IR_Statement] = {
+    var loopOverDims = IR_LoopOverDimensions(numDimensions, indices, body)
+
+    if (stepSize == null) {
+      stepSize = loopOverDims.stepSize
+    } else {
+      indices.end = loopOverDims.indices.end
+    }
+
     var wrappedBody : ListBuffer[IR_Statement] = body
 
     // add internal condition (e.g. RB)
