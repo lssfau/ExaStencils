@@ -24,7 +24,8 @@ include: 'Benchmark/.benchmark_templates.yml'
     before_script:
         - cd Benchmark
         - !reference [ .module_tree_build, before_script ]
-        - curl --location --output artifacts.zip "https://gitlab.rrze.fau.de/exastencils/pfgen/-/jobs/artifacts/master/download?job=collect-artifacts
+        - curl -L --header "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip
+        - unzip artifacts.zip -d Platform
     script:
         - |
             for pf in Platform/*.platform
@@ -95,89 +96,89 @@ build:generator:
 ##                                   ##
 #######################################
 
-pf_gen:broadep2:
-    extends: .pfgen_template
-    stage: pf_gen
-    variables:
-        SLURM_NODELIST: "broadep2"
-
-pf_gen:hasep1:
-    extends: .pfgen_template
-    stage: pf_gen
-    variables:
-        SLURM_NODELIST: "hasep1"
-
-pf_gen:interlagos1:
-    extends: .pfgen_template
-    stage: pf_gen
-    variables:
-        SLURM_NODELIST: "interlagos1"
-
-pf_gen:ivyep1:
-    extends: .pfgen_template
-    stage: pf_gen
-    variables:
-        SLURM_NODELIST: "ivyep1"
-
-pf_gen:casclakesp2:
-    extends: .pfgen_template
-    stage: pf_gen
-    variables:
-        SLURM_NODELIST: "casclakesp2"
-
-pf_gen:icx36:
-    extends: .pfgen_template
-    stage: pf_gen
-    variables:
-        SLURM_NODELIST: "icx36"
-
-pf_gen:medusa:
-    extends: .pfgen_template
-    stage: pf_gen
-    variables:
-        SLURM_NODELIST: "medusa"
-
-pf_gen:milan1:
-    extends: .pfgen_template
-    stage: pf_gen
-    variables:
-        SLURM_NODELIST: "milan1"
-
-pf_gen:naples1:
-    extends: .pfgen_template
-    stage: pf_gen
-    variables:
-        SLURM_NODELIST: "naples1"
-
-pf_gen:optane1:
-    extends: .pfgen_template
-    stage: pf_gen
-    variables:
-        SLURM_NODELIST: "optane1"
-
-pf_gen:phinally:
-    extends: .pfgen_template
-    stage: pf_gen
-    variables:
-        SLURM_NODELIST: "phinally"
-
-pf_gen:rome1:
-    extends: .pfgen_template
-    stage: pf_gen
-    variables:
-        SLURM_NODELIST: "rome1"
-
-pf_gen:rome2:
-    extends: .pfgen_template
-    stage: pf_gen
-    variables:
-        SLURM_NODELIST: "rome2"
-
-pf_gen:skylakesp2:
-    extends: .pfgen_template
-    stage: pf_gen
-    variables:
-        SLURM_NODELIST: "skylakesp2"
+#pf_gen:broadep2:
+#    extends: .pfgen_template
+#    stage: pf_gen
+#    variables:
+#        SLURM_NODELIST: "broadep2"
+#
+#pf_gen:hasep1:
+#    extends: .pfgen_template
+#    stage: pf_gen
+#    variables:
+#        SLURM_NODELIST: "hasep1"
+#
+#pf_gen:interlagos1:
+#    extends: .pfgen_template
+#    stage: pf_gen
+#    variables:
+#        SLURM_NODELIST: "interlagos1"
+#
+#pf_gen:ivyep1:
+#    extends: .pfgen_template
+#    stage: pf_gen
+#    variables:
+#        SLURM_NODELIST: "ivyep1"
+#
+#pf_gen:casclakesp2:
+#    extends: .pfgen_template
+#    stage: pf_gen
+#    variables:
+#        SLURM_NODELIST: "casclakesp2"
+#
+#pf_gen:icx36:
+#    extends: .pfgen_template
+#    stage: pf_gen
+#    variables:
+#        SLURM_NODELIST: "icx36"
+#
+#pf_gen:medusa:
+#    extends: .pfgen_template
+#    stage: pf_gen
+#    variables:
+#        SLURM_NODELIST: "medusa"
+#
+#pf_gen:milan1:
+#    extends: .pfgen_template
+#    stage: pf_gen
+#    variables:
+#        SLURM_NODELIST: "milan1"
+#
+#pf_gen:naples1:
+#    extends: .pfgen_template
+#    stage: pf_gen
+#    variables:
+#        SLURM_NODELIST: "naples1"
+#
+#pf_gen:optane1:
+#    extends: .pfgen_template
+#    stage: pf_gen
+#    variables:
+#        SLURM_NODELIST: "optane1"
+#
+#pf_gen:phinally:
+#    extends: .pfgen_template
+#    stage: pf_gen
+#    variables:
+#        SLURM_NODELIST: "phinally"
+#
+#pf_gen:rome1:
+#    extends: .pfgen_template
+#    stage: pf_gen
+#    variables:
+#        SLURM_NODELIST: "rome1"
+#
+#pf_gen:rome2:
+#    extends: .pfgen_template
+#    stage: pf_gen
+#    variables:
+#        SLURM_NODELIST: "rome2"
+#
+#pf_gen:skylakesp2:
+#    extends: .pfgen_template
+#    stage: pf_gen
+#    variables:
+#        SLURM_NODELIST: "skylakesp2"
 
 #######################################
 ##                                   ##
