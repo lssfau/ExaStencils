@@ -54,7 +54,7 @@
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2FExaStencils/jobs/artifacts/$CI_COMMIT_REF_NAME/download?job=bench_gen:$EXA_PROBLEM_NAME" --output output.zip'
         - python3 unzip.py artifacts.zip Platform
         - python3 unzip.py output.zip output
-        - mv Benchmark/output/ .
+        - mv output/Benchmark/output/ .
     script:
         - |
             if [[ ! -f "Platform/$HOSTNAME.platform" ]]; then

@@ -25,7 +25,7 @@ include: 'Benchmark/.benchmark_templates.yml'
         - cd Benchmark
         - !reference [ .module_tree_build, before_script ]
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
-        - unzip artifacts.zip -d Platform
+        - python3 unzip.py artifacts.zip Platform
     script:
         - |
             for pf in Platform/*.platform
