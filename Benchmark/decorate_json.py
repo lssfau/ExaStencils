@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from git import Repo
 import json
 from config_from_knowledge import *
