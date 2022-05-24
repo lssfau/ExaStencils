@@ -6,11 +6,11 @@ minLevel					= 0
 maxLevel					= 8
 
 domain_onlyRectangular		= true
-domain_numBlocks			= 1
+domain_numBlocks			= 2
 domain_numFragmentsPerBlock	= 4
 
 domain_rect_generate			= true
-domain_rect_numBlocks_x			= 1
+domain_rect_numBlocks_x			= 2
 domain_rect_numBlocks_y			= 1
 domain_rect_numBlocks_z			= 1
 domain_rect_numFragsPerBlock_x	= 2
