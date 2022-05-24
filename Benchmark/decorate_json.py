@@ -24,7 +24,7 @@ def decorate_json(json_body: dict, config: ConfigFromKnowledge):
     new_body['tags']['numNodes'] = config.n_nodes
     new_body['tags']['numBlocks'] = config.n_blocks
     new_body['tags']['simd'] = config.simd_instructionSet
-    new_body['tags']['commit'] = commit.hexsha
+    new_body['tags']['commit'] = commit
     new_body['tags']['ref'] = ref
     new_body['fields'] = json_body
 
