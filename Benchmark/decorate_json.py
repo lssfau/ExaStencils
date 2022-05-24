@@ -13,7 +13,7 @@ def decorate_json(json_body: dict, config: ConfigFromKnowledge):
     repo = Repo(search_parent_directories=True)
     commit = repo.head.commit
     try:
-        branch = repo.active_branch
+        branch = repo.active_branch.name
     except:
         branch = 'DETACHED_' + repo.head.object.hexsha
 
@@ -28,7 +28,7 @@ def decorate_json(json_body: dict, config: ConfigFromKnowledge):
     new_body['tags']['numBlocks'] = config.n_blocks
     new_body['tags']['simd'] = config.simd_instructionSet
     new_body['tags']['commit'] = commit.hexsha
-    new_body['tags']['branch'] = branch.name
+    new_body['tags']['branch'] = branch
     new_body['fields'] = json_body
 
     # must be list of dicts
