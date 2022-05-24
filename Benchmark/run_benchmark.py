@@ -89,7 +89,11 @@ def run_benchmark(target_code_path: str, config: ConfigFromKnowledge):
     os.chdir(target_code_path)
 
     # run code with likwid pinning
-    result = subprocess.run(likwid_pin(config), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    #result = subprocess.run(likwid_pin(config), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    result = subprocess.run(
+        [f'mpirun', '--allow-run-as-root', '--oversubscribe', '--mca', 'btl_base_warn_component_unused', '0',
+         f'-np', f'{config.mpi_num_processes}', 'exastencils'],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # print stdout
     print(result.stderr.decode('utf-8'))
