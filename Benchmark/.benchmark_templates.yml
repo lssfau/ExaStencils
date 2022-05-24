@@ -62,7 +62,7 @@
                 exit 0
             fi
         - echo $(hostname)
-        - *module_load_mpi
+        #- *module_load_mpi
         - *module_load_likwid
         - python3 run_benchmark.py $COMPILER_PATH $COMPILER_LIB_PATH $EXA_PROBLEM_PATH $OUTPUT_PATH Platform/$HOSTNAME.platform --compile --run
     after_script:
