@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
-from git import Repo
-import json
+import os
 from config_from_knowledge import *
 
 
@@ -12,12 +11,8 @@ from config_from_knowledge import *
 
 def decorate_json(json_body: dict, config: ConfigFromKnowledge):
     # git annotations
-    repo = Repo(search_parent_directories=True)
-    commit = repo.head.commit
-    try:
-        branch = repo.active_branch.name
-    except:
-        branch = 'DETACHED_' + repo.head.object.hexsha
+    ref = os.environ.get("CI_COMMIT_REF_NAME")
+    commit = os.environ.get("CI_COMMIT_SHA")
 
     new_body = {'measurement': config.problem_name, 'tags': {}}
     new_body['tags']['host'] = config.host_name
@@ -30,7 +25,7 @@ def decorate_json(json_body: dict, config: ConfigFromKnowledge):
     new_body['tags']['numBlocks'] = config.n_blocks
     new_body['tags']['simd'] = config.simd_instructionSet
     new_body['tags']['commit'] = commit.hexsha
-    new_body['tags']['branch'] = branch
+    new_body['tags']['ref'] = ref
     new_body['fields'] = json_body
 
     # must be list of dicts

@@ -3,7 +3,6 @@ variables:
 
 stages:
     - build
-    - pf_gen
     - bench_gen
     - bench_pipe
 
