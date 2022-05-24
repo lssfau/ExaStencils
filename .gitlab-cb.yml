@@ -27,6 +27,7 @@ include: 'Benchmark/.benchmark_templates.yml'
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
         - python3 unzip.py artifacts.zip Platform
     script:
+        - rm -rf $OUTPUT_PATH
         - |
             for pf in Platform/*.platform
             do
@@ -39,8 +40,6 @@ include: 'Benchmark/.benchmark_templates.yml'
     artifacts:
         paths:
             - Benchmark/$EXA_PROBLEM_NAME-pipe.yml
-            - Benchmark/$OUTPUT_PATH/Debug/*
-            - Benchmark/$OUTPUT_PATH/generated/*
         expire_in: 1 weeks
     variables:
         NO_SLURM_SUBMIT: 1
@@ -48,7 +47,7 @@ include: 'Benchmark/.benchmark_templates.yml'
         COMPILER_LIB_PATH: "../Compiler/lib"
         EXA_PROBLEM_NAME: "TO_BE_REPLACED"
         EXA_PROBLEM_PATH: "TO_BE_REPLACED"
-        OUTPUT_PATH: "output"
+        OUTPUT_PATH: "~/tmp_output"
 
 .pipe_bench_job_template:
     stage: bench_pipe

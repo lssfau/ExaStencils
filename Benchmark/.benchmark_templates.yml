@@ -46,14 +46,12 @@
         COMPILER_PATH: "../Compiler/Compiler.jar"
         COMPILER_LIB_PATH: "../Compiler/lib"
         EXA_PROBLEM_PATH: "TO_BE_REPLACED"
-        OUTPUT_PATH: "output"
+        OUTPUT_PATH: "~/tmp_output"
     before_script:
         - cd Benchmark
         - !reference [ .module_tree_build, before_script ]
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
-        - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2FExaStencils/jobs/artifacts/$CI_COMMIT_REF_NAME/download?job=bench_gen:$EXA_PROBLEM_NAME&job_token=$CI_JOB_TOKEN" --output output.zip'
         - python3 unzip.py artifacts.zip Platform
-        - python3 unzip.py output.zip tmp_output
         - mv tmp_output/Benchmark/output/ .
     script:
         - |
