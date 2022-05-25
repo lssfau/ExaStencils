@@ -290,8 +290,10 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_SimplifyModulo.apply()
 
-    if (Knowledge.cuda_enabled)
+    if (Knowledge.cuda_enabled) {
       CUDA_KernelFunctions.get.convertToFunctions()
+      CUDA_ReplaceStdFunctionCalls.apply(Some(CUDA_KernelFunctions.get))
+    }
 
     IR_SimplifyIndexExpressions.apply()
 
