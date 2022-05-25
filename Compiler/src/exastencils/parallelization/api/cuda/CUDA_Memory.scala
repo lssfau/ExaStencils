@@ -169,12 +169,22 @@ case class CUDA_MatrixDeviceCopy(
   override def resolveName() : String = name + resolvePostfix("", "", "", "", "")
   override def resolveDatatype() : IR_Datatype = IR_PointerDatatype(baseDt)
 
-  override def getCtor() : Option[IR_Statement] = Some(wrapInLoops(CUDA_Allocate(resolveAccess(), size, baseDt)))
-  override def getDtor() : Option[IR_Statement] = Some(wrapInLoops(IR_IfCondition(resolveAccess(), CUDA_Free(resolveAccess()))))
+  override def getCtor() : Option[IR_Statement] = Some(wrapInLoops(
+    if (Knowledge.cuda_useManagedMemory)
+      IR_ArrayAllocation(resolveAccess(), baseDt, size)
+    else
+      CUDA_Allocate(resolveAccess(), size, baseDt)))
+
+  override def getDtor() : Option[IR_Statement] = Some(wrapInLoops(IR_IfCondition(resolveAccess(),
+    if (Knowledge.cuda_useManagedMemory)
+      IR_ArrayFree(resolveAccess())
+    else
+      CUDA_Free(resolveAccess()))))
 }
 
 /// CUDA_BufferMatrixReductionResult
 
+// TODO: temporary solution until the reductions are optimized
 case class CUDA_ReductionResultBuffer(
     var name : String,
     var baseDt : IR_Datatype,

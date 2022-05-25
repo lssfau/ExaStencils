@@ -27,6 +27,7 @@ import exastencils.base.ir.IR_ScopedStatement
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
 import exastencils.baseExt.ir._
+import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.logger.Logger
@@ -275,10 +276,18 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       kernelFunctions.addKernel(Duplicate(kernel))
 
       // copy array variables from host to device if necessary
+      // TODO: temporary solution until the reductions are optimized
       if (deviceArrayCopies.nonEmpty) {
         deviceArrayCopies foreach { case (k, dstArr) =>
           val (srcArr, srcDt) = accessesCopiedToDevice.find(_._1 == k).get._2
-          deviceStatements += CUDA_TransferUtil.genTransfer(srcArr, dstArr, srcDt.typicalByteSize, "H2D", stream)
+          if (Knowledge.cuda_useManagedMemory) {
+            // H-H copy, possibly prefetch
+            deviceStatements += IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype),
+              ListBuffer[IR_Expression](srcArr, srcArr + srcDt.typicalByteSize, dstArr))
+            deviceStatements += CUDA_TransferUtil.genTransfer(dstArr, dstArr, srcDt.typicalByteSize, "H2D", stream)
+          } else {
+            deviceStatements += CUDA_TransferUtil.genTransfer(srcArr, dstArr, srcDt.typicalByteSize, "H2D", stream)
+          }
         }
       }
 
