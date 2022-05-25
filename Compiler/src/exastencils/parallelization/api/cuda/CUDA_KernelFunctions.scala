@@ -211,6 +211,11 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
       // call default reduction kernel and return by copying to passed (host) pointer
       val matrixReductionTmp = IR_FunctionArgument("matrixReductionTmp", data.datatype)
       functionArgs += matrixReductionTmp
+      if (Knowledge.cuda_useManagedMemory) {
+        // D-D copy to reduction buffer
+        fctBody += IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression](data.access,
+          data.access + IR_SizeOf(reductionDt), matrixReductionTmp.access))
+      }
       fctBody += CUDA_TransferUtil.genTransfer(matrixReductionTmp.access, data.access, IR_SizeOf(reductionDt), "D2H", stream)
 
       // compile final wrapper function
