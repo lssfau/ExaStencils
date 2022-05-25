@@ -213,8 +213,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
       functionArgs += matrixReductionTmp
       if (Knowledge.cuda_useManagedMemory) {
         // D-D copy to reduction buffer
-        fctBody += IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype), ListBuffer[IR_Expression](data.access,
-          data.access + IR_SizeOf(reductionDt), matrixReductionTmp.access))
+        fctBody += CUDA_Memcpy(matrixReductionTmp.access, data.access, IR_SizeOf(reductionDt), "cudaMemcpyDeviceToDevice")
       }
       fctBody += CUDA_TransferUtil.genTransfer(matrixReductionTmp.access, data.access, IR_SizeOf(reductionDt), "D2H", stream)
 
