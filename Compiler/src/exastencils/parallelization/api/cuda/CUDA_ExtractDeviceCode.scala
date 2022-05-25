@@ -27,6 +27,7 @@ import exastencils.base.ir.IR_ScopedStatement
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateBasicMatrixOperations
 import exastencils.baseExt.ir._
+import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.logger.Logger
@@ -231,7 +232,6 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       // args passed to kernel
       val args = ListBuffer[IR_Expression]()
       args ++= accesses.map { case (_, tup) => tup._1 : IR_Expression }
-      args ++= deviceArrayCopies.values
 
       var extremaMap = mutable.HashMap[String, (Long, Long)]()
 
@@ -276,6 +276,14 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
 
       // copy array variables from host to device if necessary
       if (deviceArrayCopies.nonEmpty) {
+        if (Knowledge.cuda_useManagedMemory) {
+          // use managed memory pointers directly
+          args ++= accessesCopiedToDevice.map { case (k, v) => v._1 }
+        } else {
+          // use explicit device copies
+          args ++= deviceArrayCopies.values
+        }
+
         deviceArrayCopies foreach { case (k, dstArr) =>
           val (srcArr, srcDt) = accessesCopiedToDevice.find(_._1 == k).get._2
           deviceStatements += CUDA_TransferUtil.genTransfer(srcArr, dstArr, srcDt.typicalByteSize, "H2D", stream)
