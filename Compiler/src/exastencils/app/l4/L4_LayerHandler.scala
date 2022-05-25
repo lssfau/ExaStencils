@@ -234,6 +234,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
       // after L4_ResolveFieldAccesses
       L4_ResolveReadFieldFunctions.apply()
       L4_ResolvePrintFieldFunctions.apply()
+      L4_ResolveWriteFieldFunctions.apply()
 
       L4_ResolveBoundaryHandlingFunctions.apply()
 
