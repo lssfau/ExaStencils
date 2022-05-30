@@ -15,7 +15,7 @@ trait L4_FieldLike[IR_FieldAbstraction <: IR_FieldLike, IR_FieldLayoutAbstractio
   def domain : L4_Domain
   def fieldLayout : L4_FieldLikeLayout[IR_FieldLayoutAbstraction]
   def numSlots : Int
-  def boundary : L4_BoundaryCondition
+  var boundary : L4_BoundaryCondition
   def matShape : Option[L4_MatShape]
 
   def toField : L4_Field // TODO: remove

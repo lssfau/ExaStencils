@@ -24,8 +24,8 @@ import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.boundary.l4._
 import exastencils.communication.NeighborInfo
-import exastencils.field.l4._
 import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.l4.L4_FieldLikeCollections
 
 /// IR_FunctionBC
 
@@ -40,12 +40,14 @@ case class IR_FunctionBC(var boundaryFunction : IR_FunctionCall) extends IR_Boun
 object L4_ResolveBoundaryHandlingFunctions {
   // extends DefaultStrategy("Resolve boundary handling functions") {
   def apply() = {
-    for (field <- L4_FieldCollection.objects) {
-      field.boundary match {
-        case L4_DirichletBC(fctCall : L4_FunctionCall, _) =>
-          if (fctCall.function.asInstanceOf[L4_FunctionReference].returnType == L4_UnitDatatype)
-            field.boundary = L4_FunctionBC(fctCall)
-        case _                                            =>
+    for (collection <- L4_FieldLikeCollections.collections) {
+      for (field <- collection.objects) {
+        field.boundary match {
+          case L4_DirichletBC(fctCall : L4_FunctionCall, _) =>
+            if (fctCall.function.asInstanceOf[L4_FunctionReference].returnType == L4_UnitDatatype)
+              field.boundary = L4_FunctionBC(fctCall)
+          case _                                            =>
+        }
       }
     }
   }
