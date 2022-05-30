@@ -60,7 +60,9 @@ object CUDA_Util {
   def verifyCudaLoopParallel(loop : IR_ForLoop) : Boolean = {
     loop.inc.isInstanceOf[IR_Assignment] && loop.inc.asInstanceOf[IR_Assignment].src.isInstanceOf[IR_IntegerConstant] && (
       if (Knowledge.experimental_cuda_generateKernelForNonParallel) true
-      else loop.isInstanceOf[IR_HasParallelizationInfo] && loop.asInstanceOf[IR_HasParallelizationInfo].parallelization.potentiallyParallel)
+      else loop.isInstanceOf[IR_HasParallelizationInfo]
+        && loop.asInstanceOf[IR_HasParallelizationInfo].parallelization.potentiallyParallel
+        && loop.asInstanceOf[IR_HasParallelizationInfo].parallelization.gpuParallelizable )
   }
 
   /**

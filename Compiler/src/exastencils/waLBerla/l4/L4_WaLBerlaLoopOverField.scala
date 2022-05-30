@@ -58,6 +58,7 @@ case class L4_WaLBerlaLoopOverField(
       loopOverField.parallelization,
       L4_ProgressOption(condition)(_.progress))
 
+    newloop.parallelization.gpuParallelizable = false // TODO: remove when wb loops are ready for GPU exec
     newloop.annotate("l4_fromDSL") // experimental annotation -> if successful and performance impacts are ok annotate all l4 statements
     newloop
   }
