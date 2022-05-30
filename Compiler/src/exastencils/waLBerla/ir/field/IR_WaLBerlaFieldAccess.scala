@@ -1,7 +1,7 @@
 package exastencils.waLBerla.ir.field
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.core.Duplicate
@@ -10,6 +10,7 @@ import exastencils.datastructures.Transformation
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
+import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.prettyprinting.PpStream
 import exastencils.prettyprinting.PrettyPrintable
 
@@ -60,6 +61,7 @@ case class IR_WaLBerlaFieldAccess(
     } else {
       newIndex
     }
+    IR_GeneralSimplify.doUntilDoneStandalone(linearizedHigherDimIndex)
     out << IR_IV_WaLBerlaFieldData(field, slot, fragIdx) << "->get(" <<< (linearizedHigherDimIndex.indices, ",") << ")"
   }
 }
