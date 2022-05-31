@@ -109,6 +109,7 @@ case class IR_HandleBoundaries(
             numDims,
             adaptedIndexRange,
             setupFieldUpdate(neigh._1))
+          loopOverDims.parallelization.gpuParallelizable = field.gpuCompatible
           loopOverDims.parallelization.potentiallyParallel = true
           loopOverDims.polyOptLevel = 1
           IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(field.domain.index, neigh._1.index)), loopOverDims) : IR_Statement
