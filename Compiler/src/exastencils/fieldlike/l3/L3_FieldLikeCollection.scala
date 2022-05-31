@@ -17,9 +17,9 @@ import exastencils.util.l3.L3_LevelCollector
 import exastencils.waLBerla.l3.field._
 
 object L3_FieldLikeCollections {
-  val collections = ListBuffer[L3_FieldLikeCollection[_, _]]()
+  val collections = ListBuffer[L3_FieldLikeCollection[_ <: L3_FieldLike[_], _ <: L4_FieldLike[_, _]]]()
 
-  def register(collection : L3_FieldLikeCollection[_, _]) = collections += collection
+  def register(collection : L3_FieldLikeCollection[_ <: L3_FieldLike[_], _ <: L4_FieldLike[_, _]]) = collections += collection
 
   def clear() = collections.foreach(_.clear())
 }

@@ -9,9 +9,9 @@ import exastencils.knowledge.ir.IR_LeveledKnowledgeCollection
 import exastencils.logger.Logger
 
 object IR_FieldLikeCollections {
-  val collections = ListBuffer[IR_FieldLikeCollection[_]]()
+  val collections = ListBuffer[IR_FieldLikeCollection[_ <: IR_FieldLike]]()
 
-  def register(collection : IR_FieldLikeCollection[_]) = collections += collection
+  def register(collection : IR_FieldLikeCollection[_ <: IR_FieldLike]) = collections += collection
 
   def clear() = collections.foreach(_.clear())
 }
