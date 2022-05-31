@@ -3,7 +3,6 @@ package exastencils.waLBerla.ir.communication
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_FutureFunction
-import exastencils.boundary.ir.IR_ApplyBCFunction
 import exastencils.communication.ir.IR_CommunicateFunction
 import exastencils.communication.ir.IR_CommunicationFunctions
 import exastencils.datastructures.DefaultStrategy
@@ -26,11 +25,9 @@ object IR_WaLBerlaSetupCommunication extends DefaultStrategy("Communication hand
     super.applyStandalone(node)
   }
 
-  this += Transformation("Determine apply bc funcs for waLBerla fields", {
+  this += Transformation("Determine communicate funcs for waLBerla fields", {
     case commFuncs : IR_CommunicationFunctions =>
       commFuncs.functions foreach {
-        case applyBC : IR_ApplyBCFunction if IR_WaLBerlaFieldCollection.exists(applyBC.field.name, applyBC.field.level) =>
-          funcsToMove += applyBC
         case comm : IR_CommunicateFunction if IR_WaLBerlaFieldCollection.exists(comm.field.name, comm.field.level)      =>
           funcsToMove += comm
         case _                                                                                                          =>
@@ -40,11 +37,6 @@ object IR_WaLBerlaSetupCommunication extends DefaultStrategy("Communication hand
   })
 
   this += Transformation("Convert to waLBerla func", {
-    case applyBC : IR_ApplyBCFunction if funcsToMove.contains(applyBC) =>
-      val genFct = applyBC.generateFct()
-      IR_WaLBerlaCollection.get.functions += IR_WaLBerlaLeveledFunction(applyBC.name, applyBC.level, genFct.datatype, genFct.parameters, genFct.body)
-      None // consume
-
     case comm : IR_CommunicateFunction if funcsToMove.contains(comm) =>
       // replace body of exa's communicate function with 'communicate()' member fct of waLBerla's comm scheme and inline
       val genFct = comm.generateFct()
