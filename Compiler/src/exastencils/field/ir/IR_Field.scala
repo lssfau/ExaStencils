@@ -41,4 +41,6 @@ case class IR_Field(
   override def createDuplicate() : IR_Field = {
     IR_Field.tupled(Duplicate(IR_Field.unapply(this).get))
   }
+
+  override def gpuCompatible : Boolean = true
 }

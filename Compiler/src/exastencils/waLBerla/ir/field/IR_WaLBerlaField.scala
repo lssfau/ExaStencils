@@ -63,4 +63,6 @@ case class IR_WaLBerlaField(
 
   // TODO distinguish between CUDA GPU fields and CPU GhostLayerFields
   def waLBerlaFieldType = "GhostLayerField"
+
+  override def gpuCompatible : Boolean = false
 }

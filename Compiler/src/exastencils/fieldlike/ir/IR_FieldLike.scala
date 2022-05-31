@@ -18,6 +18,8 @@ trait IR_FieldLike extends IR_LeveledKnowledgeObject {
 
   def numDimsGrid = domain.numDims
 
+  def gpuCompatible : Boolean
+
   // shortcuts to layout options
   def gridDatatype = layout.datatype
   def resolveBaseDatatype = layout.datatype.resolveBaseDatatype
