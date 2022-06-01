@@ -2,6 +2,7 @@
 
 import os
 import json
+from generation_helpers import *
 
 
 ####################
@@ -11,9 +12,11 @@ import json
 
 class ConfigFromKnowledge:
 
-    def parse_knowledge(self, knowledge_file_path):
+    def parse_knowledge(self, knowledge_file_path: str):
         with open(knowledge_file_path) as knowledge_file:
-            for line in knowledge_file:
+            text = "".join([l for l in knowledge_file])
+            lines = strip_comments(text).splitlines()
+            for line in lines:
                 # parse imported file
                 if line.startswith("import"):
                     # get path of imported file
@@ -31,8 +34,14 @@ class ConfigFromKnowledge:
                 else:
                     self.parse_line_knowledge(line)
 
-    def parse_line_knowledge(self, line):
-        line = line.partition('//')[0]  # take everything before comment
+    def parse_platform(self, platform_file_path: str):
+        with open(platform_file_path) as platform_file:
+            text = "".join([l for l in platform_file])
+            lines = strip_comments(text).splitlines()
+            for line in lines:
+                self.parse_line_platform(line)
+
+    def parse_line_knowledge(self, line: str):
         if len(line.strip()) != 0:
             key = line.split('=')[0].strip()
             value = line.split('=')[1].strip()
@@ -50,8 +59,7 @@ class ConfigFromKnowledge:
             elif key == "cuda_enabled":
                 self.use_cuda = json.loads(value.lower())
 
-    def parse_line_platform(self, line):
-        line = line.partition('//')[0]  # take everything before comment
+    def parse_line_platform(self, line: str):
         if len(line.strip()) != 0:
             key = line.split('=')[0].strip()
             value = line.split('=')[1].strip()
@@ -98,6 +106,4 @@ class ConfigFromKnowledge:
         self.parse_knowledge(knowledge_file_path)
 
         # fetch info from .platform file
-        with open(platform_file_path) as platform_file:
-            for line in platform_file:
-                self.parse_line_platform(line)
+        self.parse_platform(platform_file_path)

@@ -50,6 +50,21 @@ def copy_files(src, dst):
             raise
 
 
+# --- strip C/C++ like comments from string --- #
+def strip_comments(file_contents: str):
+    def replacer(match):
+        s = match.group(0)
+        if s.startswith('/'):
+            return " "  # note: a space and not an empty string
+        else:
+            return s
+
+    pattern = re.compile(
+        r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
+        re.DOTALL | re.MULTILINE
+    )
+    return re.sub(pattern, replacer, file_contents)
+
 # --- get path of generated target code --- #
 def get_target_code_path(output_path: str, problem_name: str, platform_suffix: str):
     return f"{output_path}/generated/{problem_name}_{platform_suffix}"
