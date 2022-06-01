@@ -23,8 +23,8 @@ def main():
     parser.add_argument('problem_name', type=str, help='Name of the problem. Used as directory name for the generated code')
     parser.add_argument('exa_problem_path', type=str, help='Path to the ExaSlang problem specification')
     parser.add_argument('exaslang_files', type=str, help='Comma-separated ExaSlang path assumed to be in \"exa_problem_path\"')
-    parser.add_argument('platform_path', type=str, help='Path to the platform description')
     parser.add_argument('knowledge_file', type=str, help='Knowledge path assumed to be in \"exa_problem_path\"')
+    parser.add_argument('platform_path', type=str, help='Path to the platform description')
     parser.add_argument('output_path', type=str, help='Path to output directory')
     parser.add_argument('--json_influx_file', type=str, default=default_args['json_influx_file'],
                         help='JSON filename output by target code and used as input for the InfluxDB upload')

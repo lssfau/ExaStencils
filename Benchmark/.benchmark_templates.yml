@@ -62,6 +62,6 @@
         - echo $(hostname)
         #- *module_load_mpi
         - *module_load_likwid
-        - python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" Platform/$HOSTNAME.platform $KNOWLEDGE_FILE $OUTPUT_PATH --compile --run
+        - python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" $KNOWLEDGE_FILE Platform/$HOSTNAME.platform $OUTPUT_PATH --compile --run
     after_script:
         - !reference [ .module_tree_build, after_script ]
