@@ -145,6 +145,9 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     else
       IR_Expand.doUntilDone()
 
+    if (Knowledge.experimental_compactBufferAllocation)
+      IR_AdaptAllocateDataFunction.apply()
+
     // HACK: create discr_h* again if there are no multigrid level and the field size was defined explicitly
     //   currently this works only if all fields are equally sized
     if (Knowledge.domain_rect_generate && Knowledge.maxLevel <= 0) {
