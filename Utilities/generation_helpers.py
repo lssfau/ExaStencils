@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import re
 import functools
 import fnmatch
 import shutil
@@ -17,13 +18,23 @@ def remove_extension(path: str):
     return os.path.splitext(path)[0]
 
 
-# --- get all "*.exa?" --- #
+# --- get all "*.exa?" files --- #
 @functools.lru_cache(maxsize=None)
 def get_exa_file_paths(exa_problem_path: str, exa_files: List[str]):
     collected_files = []
-    for file in fnmatch.filter(os.listdir(exa_problem_path), "*.exa?"):
-        if file in exa_files:
-            collected_files = collected_files + [get_file_in_problem_path(exa_problem_path, file)]
+
+    # iterate over specified exaslang paths (potentially with regex)
+    for exa_file in exa_files:
+        # go to exaslang path (relative from exa_problem_path)
+        exa_file_path = os.path.join(exa_problem_path, os.path.dirname(exa_file))
+
+        # match for all "*.exa?" occurrences in exaslang path
+        for file in fnmatch.filter(os.listdir(exa_file_path), "*.exa?"):
+            basename_exa_file = os.path.basename(exa_file)
+            # check if matched file corresponds to specified exaslang file (potentially with regex)
+            if re.match(basename_exa_file, file) or basename_exa_file == file:
+                path_found_file = os.path.join(os.path.dirname(exa_file), file)
+                collected_files = collected_files + [path_found_file]
 
     return collected_files
 

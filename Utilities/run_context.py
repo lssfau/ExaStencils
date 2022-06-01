@@ -33,7 +33,8 @@ class RunContext:
         self.run = getattr(args, "run", False) or all
 
         # get list of exaslang source paths
-        self.exa_files = args.exaslang_files.split(',')
+        exa_files = tuple(args.exaslang_files.split(';'))
+        self.exa_files = get_exa_file_paths(self.exa_problem_path, exa_files)
 
         # get path to knowledge file
         self.knowledge_path = get_file_in_problem_path(self.exa_problem_path, self.knowledge_filename)
