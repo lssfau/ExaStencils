@@ -60,6 +60,10 @@ def main():
     # set run options
     ctx = RunContext(args)
 
+    # Fix for strange behavior of PolyExpl tests
+    if "PolyExpl" in ctx.problem_name:
+        ctx.target_code_path += "00000"
+
     # generate target code
     generate_code(ctx)
 
