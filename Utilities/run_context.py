@@ -27,9 +27,10 @@ class RunContext:
         self.overwrite_settings = getattr(args, "overwrite_settings", default_args['overwrite_settings'])
 
         # set run options
-        self.generate = args.generate or args.all
-        self.compile = args.compile or args.all
-        self.run = args.generate or args.all
+        all = getattr(args, "all", False)
+        self.generate = getattr(args, "generate", False) or all
+        self.compile = getattr(args, "compile", False) or all
+        self.run = getattr(args, "run", False) or all
 
         # get list of exaslang source paths
         self.exa_files = args.exaslang_files.split(',')

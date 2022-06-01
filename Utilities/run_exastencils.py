@@ -63,11 +63,11 @@ def run_code(ctx: RunContext, config: ConfigFromKnowledge, use_likwid_pin: bool 
 def main():
     # parse args
     parser = argparse.ArgumentParser(description='Generate Code from ExaSlang and run')
+    parser.add_argument('problem_name', type=str, help='Name of the problem. Used as directory name for the generated code')
     parser.add_argument('exa_problem_path', type=str, help='Path to the ExaSlang problem specification')
     parser.add_argument('exaslang_files', type=str, help='Comma-separated ExaSlang path assumed to be in \"exa_problem_path\"')
     parser.add_argument('platform_path', type=str, help='Path to the platform description')
     parser.add_argument('knowledge_file', type=str, help='Knowledge path assumed to be in \"exa_problem_path\"')
-    parser.add_argument('problem_name', type=str, help='Name of the problem. Used as directory name for the generated code')
     parser.add_argument('output_path', type=str, help='Path to output directory')
     parser.add_argument('--settings_file', type=str, default=default_args['settings_file'],
                         help='Settings path assumed to be in \"exa_problem_path\". Generated otherwise')

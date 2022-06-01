@@ -32,6 +32,6 @@ def check_err(func):
         if not result.returncode == 0:
             print(result.stderr.decode('utf-8'))
             sys.exit(result)
-        return result.returncode
+        return result
 
     return wrapper_check_err
