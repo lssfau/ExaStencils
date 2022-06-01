@@ -1020,11 +1020,3 @@ example:ShallowWaterExamples_2D:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_FV_SWE Examples/SWE/2D_FV_SWE.knowledge "../Examples/SWE/2D_FV_SWE.exa2;../Examples/SWE/2D_FV_SWE.exa3;../Examples/SWE/2D_FV_SWE.exa4" "" 1 1 Platform/random.platform output
-
-#######################################
-##                                   ##
-##         Benchmarks                ##
-##                                   ##
-#######################################
-
-# TODO
