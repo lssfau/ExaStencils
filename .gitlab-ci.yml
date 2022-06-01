@@ -209,7 +209,7 @@ test:MatrixResolve:
         # Matrix_resolvingMatrixAccesses: slicing and access of matrices per bracket operator
         - python3 run_test.py Matrix_resolvingMatrixAccesses MatrixClassTests/resolvingMatrixAccesses resolvingMatrixAccesses.knowledge "resolvingMatrixAccesses.exa4" resolvingMatrixAccesses.RESULTS Platform/random.platform output
         # Matrix_resolvingMatrixOperators: arithmetic operators
-        - python3 run_test.py Matrix_resolvingMatrixOperators MatrixClassTests/resolvingMatrixOperators resolvingMatrixOperators.knowledge "resolvingMatrixOperators.exa4"resolvingMatrixOperators.RESULTS Platform/random.platform output
+        - python3 run_test.py Matrix_resolvingMatrixOperators MatrixClassTests/resolvingMatrixOperators resolvingMatrixOperators.knowledge "resolvingMatrixOperators.exa4" resolvingMatrixOperators.RESULTS Platform/random.platform output
 
 # inversion at compiletime
 test:MatrixInversionCompileTime:
@@ -569,7 +569,7 @@ test:PolyExpl_RBGS_VarCoeff_7pt_3D:
     extends: .test_template_AVX
     script:
         # PolyExpl_RBGS3Dvc_f0
-        - python3 run_test.py PolyExpl_RBGS3Dvc_f0 PolyExpl 3D_f0.knowledge "PolyExpl/RBGS3Dvc.exa4" PolyExpl/all.results Platform/anyavx.platform output
+        - python3 run_test.py PolyExpl_RBGS3Dvc_f0 PolyExpl 3D_f0.knowledge "RBGS3Dvc.exa4" all.results Platform/anyavx.platform output
         # PolyExpl_RBGS3Dvc_f2
         - python3 run_test.py PolyExpl_RBGS3Dvc_f2 PolyExpl 3D_f2.knowledge "RBGS3Dvc.exa4" all.results Platform/anyavx.platform output
         # PolyExpl_RBGS3Dvc_f4
@@ -694,7 +694,7 @@ test:FMG:
     extends: .test_template
     script:
         # FMG_2D_Polynomial
-        - python3 run_test.py FMG_2D_Polynomial FMG 2D_Polynomial.knowledge "2D_Polynomial.exa4" FMG/2D_Polynomial.results Platform/random.platform output
+        - python3 run_test.py FMG_2D_Polynomial FMG 2D_Polynomial.knowledge "2D_Polynomial.exa4" 2D_Polynomial.results Platform/random.platform output
         # 2D_ConstCoeff
         - python3 run_test.py FMG_2D_ConstCoeff FMG 2D_ConstCoeff.knowledge "2D_ConstCoeff.exa4" 2D_ConstCoeff.results Platform/random.platform output
         # FMG_3D_Trigonometric
