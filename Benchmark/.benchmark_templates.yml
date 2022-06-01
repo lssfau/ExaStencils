@@ -43,9 +43,10 @@
         - testcluster
     variables:
         SLURM_NODELIST: "TO_BE_REPLACED"
-        COMPILER_PATH: "../Compiler/Compiler.jar"
-        COMPILER_LIB_PATH: "../Compiler/lib"
+        EXA_PROBLEM_NAME: "TO_BE_REPLACED"
         EXA_PROBLEM_PATH: "TO_BE_REPLACED"
+        EXASLANG_FILES: "TO_BE_REPLACED"
+        KNOWLEDGE_FILE: "TO_BE_REPLACED"
         OUTPUT_PATH: "output"
     before_script:
         - cd Benchmark
@@ -61,6 +62,6 @@
         - echo $(hostname)
         #- *module_load_mpi
         - *module_load_likwid
-        - python3 run_benchmark.py $COMPILER_PATH $COMPILER_LIB_PATH $EXA_PROBLEM_PATH $OUTPUT_PATH Platform/$HOSTNAME.platform --compile --run
+        - python3 run_benchmark.py $EXA_PROBLEM_PATH "$EXASLANG_FILES" Platform/$HOSTNAME.platform $KNOWLEDGE_FILE $EXA_PROBLEM_NAME $OUTPUT_PATH --compile --run
     after_script:
         - !reference [ .module_tree_build, after_script ]

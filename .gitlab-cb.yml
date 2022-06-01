@@ -29,7 +29,7 @@ include: 'Benchmark/.benchmark_templates.yml'
         - |
             for pf in Platform/*.platform
             do
-                python3 run_benchmark.py $COMPILER_PATH $COMPILER_LIB_PATH $EXA_PROBLEM_PATH $OUTPUT_PATH $pf --generate
+                python3 run_benchmark.py $EXA_PROBLEM_PATH "$EXASLANG_FILES" $pf $KNOWLEDGE_FILE $EXA_PROBLEM_NAME $OUTPUT_PATH --generate
             done
         - chmod +x generate_bench_jobs_for_hosts.sh
         - ./generate_bench_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH > $EXA_PROBLEM_NAME-pipe.yml
@@ -43,10 +43,10 @@ include: 'Benchmark/.benchmark_templates.yml'
         expire_in: 1 weeks
     variables:
         NO_SLURM_SUBMIT: 1
-        COMPILER_PATH: "../Compiler/Compiler.jar"
-        COMPILER_LIB_PATH: "../Compiler/lib"
         EXA_PROBLEM_NAME: "TO_BE_REPLACED"
         EXA_PROBLEM_PATH: "TO_BE_REPLACED"
+        EXASLANG_FILES: "TO_BE_REPLACED"
+        KNOWLEDGE_FILE: "TO_BE_REPLACED"
         OUTPUT_PATH: "output"
         PARENT_PIPELINE_ID: $CI_PIPELINE_ID
 
@@ -101,6 +101,8 @@ bench_gen:5pt_Jac_2D:
     variables:
         EXA_PROBLEM_NAME: "5pt_Jac_2D"
         EXA_PROBLEM_PATH: "FivePointStencil"
+        EXASLANG_FILES: "5pt_Jac_Cell.exa4"
+        KNOWLEDGE_FILE: "5pt_Jac_Cell.knowledge"
 
 #######################################
 ##                                   ##
@@ -113,3 +115,5 @@ bench_pipe:5pt_Jac_2D:
     variables:
         EXA_PROBLEM_NAME: "5pt_Jac_2D"
         EXA_PROBLEM_PATH: "FivePointStencil"
+        EXASLANG_FILES: "5pt_Jac_Cell.exa4"
+        KNOWLEDGE_FILE: "5pt_Jac_Cell.knowledge"
