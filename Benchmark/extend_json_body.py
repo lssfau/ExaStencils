@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 import os
+
+import sys
+sys.path.append("../Utilities")
 from config_from_knowledge import *
 
 
