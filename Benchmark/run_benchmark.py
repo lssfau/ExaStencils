@@ -30,6 +30,7 @@ def main():
                         help='JSON filename output by target code and used as input for the InfluxDB upload')
     parser.add_argument('--overwrite_settings', action='store_true', default=default_args['overwrite_settings'],
                         help='Generate target code from ExaSlang')
+    parser.add_argument('--overwrite_settings', type=bool, default=True, help='Overwrite settings files')
     parser.add_argument('--generate', action='store_true', help='Generate target code from ExaSlang')
     parser.add_argument('--compile', action='store_true', help='Compile generated target code')
     parser.add_argument('--run', action='store_true', help='Run generated target code')
