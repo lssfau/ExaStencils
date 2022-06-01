@@ -133,6 +133,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_ResolveStationFunctions.apply()
     IR_ResolveCImgFunctions.apply()
     IR_ResolveCharacteristicsFunctions.apply()
+    IR_ResolveJSONFunctions.apply()
     IR_ResolveBenchmarkFunctions.apply()
     IR_ResolveGismoFunctions.apply()
     IR_ResolveVisualizationPrinters.apply()
@@ -143,6 +144,9 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       IR_ExpandInOnePass.apply()
     else
       IR_Expand.doUntilDone()
+
+    if (Knowledge.experimental_compactBufferAllocation)
+      IR_AdaptAllocateDataFunction.apply()
 
     // HACK: create discr_h* again if there are no multigrid level and the field size was defined explicitly
     //   currently this works only if all fields are equally sized

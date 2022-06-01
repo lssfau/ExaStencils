@@ -672,6 +672,10 @@ object Knowledge {
 
   /// experimental features
 
+  // compact buffer allocation
+  var experimental_compactBufferAllocation : Boolean = false
+  var experimental_compactBufferAllocationSize : Int = 0 // 0: automatic, else: user-defined
+
   // generates call stacks for all employed timers
   var experimental_disableIterationOffsets : Boolean = false
   var experimental_bc_checkOnlyMainAxis : Boolean = true
