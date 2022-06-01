@@ -17,7 +17,8 @@ class ConfigFromKnowledge:
                 # parse imported file
                 if line.startswith("import"):
                     # get path of imported file
-                    import_path = line.split()[1].replace("\'", "").strip()
+                    import_path = line.split()[1].replace("\'", "")
+                    import_path = import_path.replace("\"", "").strip()
                     if not os.path.isabs(import_path):
                         import_path = os.path.join(os.path.dirname(knowledge_file_path), import_path)
 
