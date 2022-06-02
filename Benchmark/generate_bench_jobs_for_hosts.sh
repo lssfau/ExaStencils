@@ -18,6 +18,7 @@ for HOST in ${HOSTLIST}; do
     echo -e "    variables:"
     echo -e "        EXA_PROBLEM_PATH: "$2""
     echo -e "        SLURM_NODELIST: "$HOST""
+    echo -e "        SLURM_CPU_FREQ_REQ: high"
     echo -e "    needs:"
     echo -e "        - pipeline: \"$PARENT_PIPELINE_ID\""
     echo -e "          job: bench_gen:$1"
