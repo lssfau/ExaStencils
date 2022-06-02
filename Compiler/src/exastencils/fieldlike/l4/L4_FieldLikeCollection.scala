@@ -18,7 +18,11 @@ import exastencils.waLBerla.l4.field._
 object L4_FieldLikeCollections {
   val collections = ListBuffer[L4_FieldLikeCollection[_ <: L4_FieldLike[_, _], _ <: IR_FieldLike]]()
 
-  def register(collection : L4_FieldLikeCollection[_ <: L4_FieldLike[_, _], _ <: IR_FieldLike]) = collections += collection
+  def register(collection : L4_FieldLikeCollection[_ <: L4_FieldLike[_, _], _ <: IR_FieldLike]) =
+    collections += collection
+
+  def getByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) =
+    collections.collectFirst { case coll => coll.getByIdentifier(identifier, level, suppressError) }
 
   def clear() = collections.foreach(_.clear())
 }

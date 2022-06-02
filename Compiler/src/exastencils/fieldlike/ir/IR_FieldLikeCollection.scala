@@ -11,7 +11,11 @@ import exastencils.logger.Logger
 object IR_FieldLikeCollections {
   val collections = ListBuffer[IR_FieldLikeCollection[_ <: IR_FieldLike]]()
 
-  def register(collection : IR_FieldLikeCollection[_ <: IR_FieldLike]) = collections += collection
+  def register(collection : IR_FieldLikeCollection[_ <: IR_FieldLike]) =
+    collections += collection
+
+  def getByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) =
+    collections.collectFirst { case coll => coll.getByIdentifier(identifier, level, suppressError) }
 
   def clear() = collections.foreach(_.clear())
 }
