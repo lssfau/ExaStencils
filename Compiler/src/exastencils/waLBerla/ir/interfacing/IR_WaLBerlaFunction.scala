@@ -6,7 +6,7 @@ import exastencils.base.ir._
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
-import exastencils.field.ir.IR_FieldAccessLike
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.prettyprinting.PpStream
 import exastencils.prettyprinting.PrettyPrintable
 import exastencils.util.ir.IR_StackCollector
@@ -88,7 +88,7 @@ object IR_WaLBerlaSetupFunctions extends DefaultStrategy("Transform functions ac
 
   // candidates are functions accessing waLBerla data structures
   this += Transformation("Find candidate functions", {
-    case fAcc : IR_FieldAccessLike if IR_WaLBerlaFieldCollection.contains(fAcc) =>
+    case fAcc : IR_FieldLikeAccess if IR_WaLBerlaFieldCollection.contains(fAcc) =>
       findEnclosingFunction(stackCollector.stack)
       fAcc
     case fAcc : IR_WaLBerlaFieldAccess                                          =>

@@ -14,7 +14,7 @@ import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.prettyprinting.PpStream
 import exastencils.prettyprinting.PrettyPrintable
 
-/// IR_FieldAccessLike
+/// IR_WaLBerlaFieldAccessLike
 
 trait IR_WaLBerlaFieldAccessLike extends IR_FieldLikeAccess {
   def field : IR_WaLBerlaField

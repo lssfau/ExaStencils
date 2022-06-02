@@ -30,16 +30,9 @@ import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.polyhedron.IR_PolyArrayAccessLike
 
-/// IR_FieldAccessLike
-
-trait IR_FieldAccessLike extends IR_FieldLikeAccess {
-  def field : IR_Field
-  override def target : IR_Field = field
-}
-
 /// IR_MultiDimFieldAccess
 
-trait IR_MultiDimFieldAccess extends IR_FieldAccessLike with IR_SpecialExpandable {
+trait IR_MultiDimFieldAccess extends IR_FieldLikeAccess with IR_SpecialExpandable {
   def slot : IR_Expression
   def fragIdx : IR_Expression
 
@@ -188,7 +181,7 @@ case class IR_LinearizedFieldAccess(
     var field : IR_Field,
     var slot : IR_Expression,
     var fragIdx : IR_Expression,
-    var index : IR_Expression) extends IR_FieldAccessLike with IR_Expandable {
+    var index : IR_Expression) extends IR_FieldLikeAccess with IR_Expandable {
   override def datatype = field.layout.datatype
 
   override def expand() = {

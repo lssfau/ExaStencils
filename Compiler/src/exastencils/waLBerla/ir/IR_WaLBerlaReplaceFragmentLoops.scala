@@ -4,7 +4,7 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.datastructures.Node
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
-import exastencils.field.ir.IR_FieldAccessLike
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.util.ir.IR_StackCollector
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.ir.field._
@@ -28,7 +28,7 @@ object IR_WaLBerlaReplaceFragmentLoops extends QuietDefaultStrategy("Replace fra
     }
 
     this += Transformation("Find", {
-      case fAcc : IR_FieldAccessLike if IR_WaLBerlaFieldCollection.contains(fAcc) =>
+      case fAcc : IR_FieldLikeAccess if IR_WaLBerlaFieldCollection.contains(fAcc) =>
         found = true
         fAcc
       case fAcc : IR_WaLBerlaFieldAccess if IR_WaLBerlaFieldCollection.contains(fAcc) =>
