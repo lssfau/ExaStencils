@@ -928,19 +928,19 @@ example:PoissonExamples_2D:
     extends: .test_template
     script:
         # 2D_FD_Poisson_fromL1
-        - python3 run_test.py 2D_FD_Poisson_fromL1 Poisson 2D_FD_Poisson_fromL1.knowledge "../../../Examples/Poisson/2D_FD_Poisson_fromL1.exa1" 2D_FD_Poisson_fromL1.results Platform/random.platform output
+        - python3 run_test.py 2D_FD_Poisson_fromL1 Poisson 2D_FD_Poisson_fromL1.knowledge "../../Examples/Poisson/2D_FD_Poisson_fromL1.exa1" 2D_FD_Poisson_fromL1.results Platform/random.platform output
         # 2D_FD_Poisson_fromL2
-        - python3 run_test.py 2D_FD_Poisson_fromL2 Poisson 2D_FD_Poisson_fromL2.knowledge "../../../Examples/Poisson/2D_FD_Poisson_fromL2.exa[1-4]" 2D_FD_Poisson_fromL2.results Platform/random.platform output
+        - python3 run_test.py 2D_FD_Poisson_fromL2 Poisson 2D_FD_Poisson_fromL2.knowledge "../../Examples/Poisson/2D_FD_Poisson_fromL2.exa[1-4]" 2D_FD_Poisson_fromL2.results Platform/random.platform output
         # 2D_FD_Poisson_fromL3
-        - python3 run_test.py 2D_FD_Poisson_fromL3 Poisson 2D_FD_Poisson_fromL3.knowledge "../../../Examples/Poisson/2D_FD_Poisson_fromL3.exa[1-4]" 2D_FD_Poisson_fromL3.results Platform/random.platform output
+        - python3 run_test.py 2D_FD_Poisson_fromL3 Poisson 2D_FD_Poisson_fromL3.knowledge "../../Examples/Poisson/2D_FD_Poisson_fromL3.exa[1-4]" 2D_FD_Poisson_fromL3.results Platform/random.platform output
         # 2D_FD_Poisson_fromL4
-        - python3 run_test.py 2D_FD_Poisson_fromL4 Poisson 2D_FD_Poisson_fromL4.knowledge "../../../Examples/Poisson/2D_FD_Poisson_fromL4.exa4" 2D_FD_Poisson_fromL4.results Platform/random.platform output
+        - python3 run_test.py 2D_FD_Poisson_fromL4 Poisson 2D_FD_Poisson_fromL4.knowledge "../../Examples/Poisson/2D_FD_Poisson_fromL4.exa4" 2D_FD_Poisson_fromL4.results Platform/random.platform output
         # 2D_FE_Poisson_fromL2
-        - python3 run_test.py 2D_FE_Poisson_fromL2 Poisson 2D_FE_Poisson_fromL2.knowledge "../../../Examples/Poisson/2D_FE_Poisson_fromL2.exa[1-4]" 2D_FE_Poisson_fromL2.results Platform/random.platform output
+        - python3 run_test.py 2D_FE_Poisson_fromL2 Poisson 2D_FE_Poisson_fromL2.knowledge "../../Examples/Poisson/2D_FE_Poisson_fromL2.exa[1-4]" 2D_FE_Poisson_fromL2.results Platform/random.platform output
         # 2D_FV_Poisson_fromL2
-        - python3 run_test.py 2D_FV_Poisson_fromL2 Poisson 2D_FV_Poisson_fromL2.knowledge "../../../Examples/Poisson/2D_FV_Poisson_fromL2.exa[1-4]" 2D_FV_Poisson_fromL2.results Platform/random.platform output
+        - python3 run_test.py 2D_FV_Poisson_fromL2 Poisson 2D_FV_Poisson_fromL2.knowledge "../../Examples/Poisson/2D_FV_Poisson_fromL2.exa[1-4]" 2D_FV_Poisson_fromL2.results Platform/random.platform output
         # 2D_FV_Poisson_fromL4
-        - python3 run_test.py 2D_FV_Poisson_fromL4 Poisson 2D_FV_Poisson_fromL4.knowledge "../../../Examples/Poisson/2D_FV_Poisson_fromL4.exa4" 2D_FV_Poisson_fromL4.results Platform/random.platform output
+        - python3 run_test.py 2D_FV_Poisson_fromL4 Poisson 2D_FV_Poisson_fromL4.knowledge "../../Examples/Poisson/2D_FV_Poisson_fromL4.exa4" 2D_FV_Poisson_fromL4.results Platform/random.platform output
 
 example:PoissonExamples_3D:
     stage: example
