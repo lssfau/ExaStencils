@@ -22,7 +22,7 @@ object L4_FieldLikeCollections {
     collections += collection
 
   def getByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) =
-    collections.collectFirst { case coll => coll.getByIdentifier(identifier, level, suppressError) }
+    collections.collectFirst { case coll if coll.exists(identifier, level) => coll.getByIdentifier(identifier, level).get }
 
   def clear() = collections.foreach(_.clear())
 }
