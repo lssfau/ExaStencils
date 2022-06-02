@@ -38,6 +38,54 @@
     - nvidia-smi
     - updatedb
 
+.gen_bench_job_template:
+    dependencies:
+        - build:generator
+    stage: bench_gen
+    tags:
+        - testcluster
+    before_script:
+        - cd Benchmark
+        - !reference [ .module_tree_build, before_script ]
+        - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
+        - python3 unzip.py artifacts.zip Platform
+    script:
+        - |
+            for pf in Platform/*.platform
+            do
+                python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" $KNOWLEDGE_FILE $pf $OUTPUT_PATH --generate
+            done
+        - chmod +x generate_bench_jobs_for_hosts.sh
+        - ./generate_bench_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH > $EXA_PROBLEM_NAME-pipe.yml
+    after_script:
+        - !reference [ .module_tree_build, after_script ]
+    artifacts:
+        paths:
+            - Benchmark/$EXA_PROBLEM_NAME-pipe.yml
+            - Benchmark/$OUTPUT_PATH/Debug/*
+            - Benchmark/$OUTPUT_PATH/generated/*
+        expire_in: 1 weeks
+    variables:
+        NO_SLURM_SUBMIT: 1
+        EXA_PROBLEM_NAME: "TO_BE_REPLACED"
+        EXA_PROBLEM_PATH: "TO_BE_REPLACED"
+        EXASLANG_FILES: "TO_BE_REPLACED"
+        KNOWLEDGE_FILE: "TO_BE_REPLACED"
+        OUTPUT_PATH: "output"
+        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
+
+.pipe_bench_job_template:
+    stage: bench_pipe
+    trigger:
+        include:
+            artifact: Benchmark/$EXA_PROBLEM_NAME-pipe.yml
+            job: bench_gen:$EXA_PROBLEM_NAME
+        strategy: depend
+    variables:
+        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
+        EXA_PROBLEM_NAME: "TO_BE_REPLACED"
+        EXA_PROBLEM_PATH: "TO_BE_REPLACED"
+
 .bench_pipe_template:
     tags:
         - testcluster
