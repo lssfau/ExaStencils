@@ -14,13 +14,6 @@ import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.prettyprinting.PpStream
 import exastencils.prettyprinting.PrettyPrintable
 
-/// IR_WaLBerlaFieldAccessLike
-
-trait IR_WaLBerlaFieldAccessLike extends IR_FieldLikeAccess {
-  def field : IR_WaLBerlaField
-  override def target : IR_WaLBerlaField = field
-}
-
 object IR_WaLBerlaFieldAccess {
   def apply(field : IR_WaLBerlaField, slot : IR_Expression, index : IR_ExpressionIndex) : IR_WaLBerlaFieldAccess =
     new IR_WaLBerlaFieldAccess(field, slot, IR_LoopOverFragments.defIt, index)
@@ -34,7 +27,7 @@ case class IR_WaLBerlaFieldAccess(
     var offset : Option[IR_ConstIndex] = None,
     var frozen : Boolean = false,
     var matIndex : Option[IR_MatIndex] = None
-) extends IR_WaLBerlaFieldAccessLike with PrettyPrintable {
+) extends IR_FieldLikeAccess with PrettyPrintable {
 
   override def datatype = field.layout.datatype
 
