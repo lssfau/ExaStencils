@@ -21,8 +21,13 @@ object L2_FieldLikeCollections {
   def register(collection : L2_FieldLikeCollection[_ <: L2_FieldLike[_], _ <: L3_FieldLike[_]]) =
     collections += collection
 
-  def getByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) =
-    collections.collectFirst { case coll if coll.exists(identifier, level) => coll.getByIdentifier(identifier, level, suppressError).get }
+  def getByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[L2_FieldLike[_]] = {
+    for (coll <- collections) {
+      if (coll.exists(identifier, level))
+        return Some(coll.getByIdentifier(identifier, level, suppressError).get)
+    }
+    None
+  }
 
   def clear() = collections.foreach(_.clear())
 }

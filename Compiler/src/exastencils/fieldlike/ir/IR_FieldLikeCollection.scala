@@ -14,8 +14,13 @@ object IR_FieldLikeCollections {
   def register(collection : IR_FieldLikeCollection[_ <: IR_FieldLike]) =
     collections += collection
 
-  def getByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) =
-    collections.collectFirst { case coll if coll.exists(identifier, level) => coll.getByIdentifier(identifier, level, suppressError).get }
+  def getByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[IR_FieldLike] = {
+    for (coll <- collections) {
+      if (coll.exists(identifier, level))
+        return Some(coll.getByIdentifier(identifier, level, suppressError).get)
+    }
+    None
+  }
 
   def clear() = collections.foreach(_.clear())
 }
