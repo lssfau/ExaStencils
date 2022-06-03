@@ -33,7 +33,7 @@
     - likwid-features --version
 
 .module_cuda: &module_load_cuda
-    - module load module load cuda/11.4
+    - module load cuda/11.0
     - nvcc --version
     - nvidia-smi
     - updatedb
