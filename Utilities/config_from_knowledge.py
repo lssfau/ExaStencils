@@ -12,8 +12,8 @@ from generation_helpers import *
 
 class ConfigFromKnowledge:
 
-    def parse_knowledge(self, knowledge_file_path: str):
-        with open(knowledge_file_path) as knowledge_file:
+    def parse_file(self, file_path: str, is_knowledge: bool):
+        with open(file_path) as knowledge_file:
             text = "".join([l for l in knowledge_file])
             lines = strip_comments(text).splitlines()
             for line in lines:
@@ -23,23 +23,20 @@ class ConfigFromKnowledge:
                     import_path = line.split()[1].replace("\'", "")
                     import_path = import_path.replace("\"", "").strip()
                     if not os.path.isabs(import_path):
-                        import_path = os.path.join(os.path.dirname(knowledge_file_path), import_path)
+                        import_path = os.path.join(os.path.dirname(file_path), import_path)
 
                     # check if file exists
                     if not os.path.isfile(import_path):
-                        raise ValueError(f"Knowledge file {import_path} included in {knowledge_file_path} does not exist")
+                        raise ValueError(f"File {import_path} included in parsed file {file_path} does not exist")
 
                     # parse imported file
-                    self.parse_knowledge(import_path)
+                    self.parse_file(import_path, is_knowledge)
                 else:
-                    self.parse_line_knowledge(line)
-
-    def parse_platform(self, platform_file_path: str):
-        with open(platform_file_path) as platform_file:
-            text = "".join([l for l in platform_file])
-            lines = strip_comments(text).splitlines()
-            for line in lines:
-                self.parse_line_platform(line)
+                    # parse line
+                    if is_knowledge:
+                        self.parse_line_knowledge(line)
+                    else:
+                        self.parse_line_platform(line)
 
     def parse_line_knowledge(self, line: str):
         if len(line.strip()) != 0:
@@ -103,7 +100,7 @@ class ConfigFromKnowledge:
         self.host_name = os.path.splitext(os.path.basename(platform_file_path))[0]
 
         # fetch info from .knowledge file
-        self.parse_knowledge(knowledge_file_path)
+        self.parse_file(knowledge_file_path, is_knowledge=True)
 
         # fetch info from .platform file
-        self.parse_platform(platform_file_path)
+        self.parse_file(platform_file_path, is_knowledge=False)
