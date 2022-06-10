@@ -46,6 +46,7 @@ case class L4_WaLBerlaFieldLayout(
     out << "}"
   }
 
+  // TODO: remove
   def toFieldLayout = L4_FieldLayout(name, level, numDimsGrid, datatype, localization, ghostLayers, communicatesGhosts, duplicateLayers, communicatesDuplicated, innerPoints)
 
   override def progressImpl() : IR_WaLBerlaFieldLayout = {
