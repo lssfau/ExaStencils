@@ -20,6 +20,8 @@ trait L4_FieldLike[IR_FieldAbstraction <: IR_FieldLike, IR_FieldLayoutAbstractio
 
   def toField : L4_Field // TODO: remove
 
+  var gpuCompatible : Boolean
+
   def datatype = fieldLayout.datatype
   def localization = fieldLayout.localization
 

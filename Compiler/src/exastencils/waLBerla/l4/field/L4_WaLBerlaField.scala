@@ -18,7 +18,8 @@ case class L4_WaLBerlaField(
     var fieldLayout : L4_WaLBerlaFieldLayout,
     var numSlots : Int,
     var boundary : L4_BoundaryCondition,
-    var matShape : Option[L4_MatShape] = None
+    var matShape : Option[L4_MatShape] = None,
+    var gpuCompatible : Boolean = false
 ) extends L4_FieldLike[IR_WaLBerlaField, IR_WaLBerlaFieldLayout] {
 
   override def createDuplicate() : L4_WaLBerlaField = {
@@ -36,9 +37,17 @@ case class L4_WaLBerlaField(
     out << "@" << level
   }
 
-  def toField = L4_Field(name, level, index, domain, fieldLayout.toFieldLayout, numSlots, boundary, matShape)
+  def toField = L4_Field(name, level, index, domain, fieldLayout.toFieldLayout, numSlots, boundary, matShape, gpuCompatible = false)
 
   override def progressImpl() =
-    IR_WaLBerlaField(name, level, index, codeName, fieldLayout.getProgressedObj(), numSlots, boundary.progress,
-      if (matShape.isDefined) Some(matShape.get.progress) else None)
+    IR_WaLBerlaField(
+      name,
+      level,
+      index,
+      codeName,
+      fieldLayout.getProgressedObj(),
+      numSlots,
+      boundary.progress,
+      if (matShape.isDefined) Some(matShape.get.progress) else None,
+      gpuCompatible)
 }

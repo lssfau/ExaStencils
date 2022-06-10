@@ -31,7 +31,8 @@ case class IR_WaLBerlaField(
     var layout : IR_WaLBerlaFieldLayout,
     var numSlots : Int,
     var boundary : IR_BoundaryCondition,
-    var matShape: Option[IR_MatShape]
+    var matShape: Option[IR_MatShape],
+    var gpuCompatible : Boolean = false
 ) extends IR_FieldLike {
 
   override def createDuplicate() : IR_WaLBerlaField = {
@@ -63,6 +64,4 @@ case class IR_WaLBerlaField(
 
   // TODO distinguish between CUDA GPU fields and CPU GhostLayerFields
   def waLBerlaFieldType = "GhostLayerField"
-
-  override def gpuCompatible : Boolean = false
 }

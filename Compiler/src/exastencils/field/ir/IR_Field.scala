@@ -35,12 +35,11 @@ case class IR_Field(
     var layout : IR_FieldLayout,
     var numSlots : Int,
     var boundary : IR_BoundaryCondition,
-    var matShape: Option[IR_MatShape]
+    var matShape: Option[IR_MatShape],
+    var gpuCompatible : Boolean = true
 ) extends IR_FieldLike {
 
   override def createDuplicate() : IR_Field = {
     IR_Field.tupled(Duplicate(IR_Field.unapply(this).get))
   }
-
-  override def gpuCompatible : Boolean = true
 }

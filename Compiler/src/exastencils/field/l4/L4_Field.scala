@@ -37,7 +37,8 @@ case class L4_Field(
     var fieldLayout : L4_FieldLayout,
     var numSlots : Int,
     var boundary : L4_BoundaryCondition,
-    var matShape : Option[L4_MatShape] = None
+    var matShape : Option[L4_MatShape] = None,
+    var gpuCompatible : Boolean = true
 ) extends L4_FieldLike[IR_Field, IR_FieldLayout] {
 
   override def createDuplicate() : L4_Field = {
@@ -63,7 +64,8 @@ case class L4_Field(
       fieldLayout.getProgressedObj(),
       numSlots,
       boundary.progress,
-      if(matShape.isDefined) Some(matShape.get.progress) else None
+      if(matShape.isDefined) Some(matShape.get.progress) else None,
+      gpuCompatible
     )
   }
 
