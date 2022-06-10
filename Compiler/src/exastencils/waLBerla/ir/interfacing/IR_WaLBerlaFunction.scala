@@ -45,20 +45,20 @@ trait IR_WaLBerlaFunction extends IR_Function with PrettyPrintable {
 }
 
 case class IR_WaLBerlaLeveledFunction(
-    var basename : String,
+    var baseName : String,
     var level : Int,
     var datatype: IR_Datatype,
     var parameters : ListBuffer[IR_FunctionArgument],
-    var body : ListBuffer[IR_Statement]) extends IR_WaLBerlaFunction {
+    var body : ListBuffer[IR_Statement]) extends IR_WaLBerlaFunction with IR_LeveledFunctionLike {
 
-  override var name : String = basename + '_' + level
+  override var name : String = baseName + '_' + level
 }
 
 case class IR_WaLBerlaPlainFunction(
     var name : String,
     var datatype: IR_Datatype,
     var parameters : ListBuffer[IR_FunctionArgument],
-    var body : ListBuffer[IR_Statement]) extends IR_WaLBerlaFunction
+    var body : ListBuffer[IR_Statement]) extends IR_WaLBerlaFunction with IR_PlainFunctionLike
 
 
 object IR_WaLBerlaSetupFunctions extends DefaultStrategy("Transform functions accessing wb data structures to wb functions.") {
