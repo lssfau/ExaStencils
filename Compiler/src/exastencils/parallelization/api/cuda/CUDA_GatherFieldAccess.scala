@@ -103,7 +103,7 @@ class CUDA_GatherFieldAccess extends Collector {
           case _ =>
         }
 
-      case access : IR_MultiDimFieldAccess =>
+      case access : IR_MultiDimFieldAccess if access.field.gpuCompatible =>
         val identifier = getFieldIdentifier(access)
 
         if (isRead)
