@@ -25,9 +25,6 @@ import exastencils.baseExt.ir._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
 import exastencils.logger.Logger
-import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaLeveledFunction
-import exastencils.waLBerla.ir.IR_WaLBerlaLoopOverPoints
-import exastencils.waLBerla.ir.IR_WaLBerlaLoopOverPointsInOneFragment
 
 /// IR_LevelCollector
 
@@ -43,11 +40,6 @@ class IR_LevelCollector extends Collector {
       case loop : IR_LoopOverPoints              => enterLevel(loop.field.level)
       case loop : IR_LoopOverPointsInOneFragment => enterLevel(loop.field.level)
 
-      // leveled waLBerla nodes
-      case fct : IR_WaLBerlaLeveledFunction              => enterLevel(fct.level)
-      case loop : IR_WaLBerlaLoopOverPoints              => enterLevel(loop.wbField.level)
-      case loop : IR_WaLBerlaLoopOverPointsInOneFragment => enterLevel(loop.wbField.level)
-
       case _ =>
     }
   }
@@ -58,12 +50,7 @@ class IR_LevelCollector extends Collector {
       case loop : IR_LoopOverPoints              => leaveLevel(loop.field.level)
       case loop : IR_LoopOverPointsInOneFragment => leaveLevel(loop.field.level)
 
-      // leveled waLBerla nodes
-      case fct : IR_WaLBerlaLeveledFunction              => leaveLevel(fct.level)
-      case loop : IR_WaLBerlaLoopOverPoints              => leaveLevel(loop.wbField.level)
-      case loop : IR_WaLBerlaLoopOverPointsInOneFragment => leaveLevel(loop.wbField.level)
-
-      case _                                     =>
+      case _ =>
     }
   }
 

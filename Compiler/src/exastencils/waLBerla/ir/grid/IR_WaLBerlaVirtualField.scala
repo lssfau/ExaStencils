@@ -6,7 +6,6 @@ import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.grid.ir._
 import exastencils.util.ir.IR_StackCollector
-import exastencils.waLBerla.ir._
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
 
 
@@ -43,9 +42,6 @@ object IR_WaLBerlaReplaceVirtualFieldAccesses extends DefaultStrategy("Replace v
   def inWaLBerlaBlockLoop(collector : IR_StackCollector) =
     collector.stack.exists {
       case _ : IR_WaLBerlaLoopOverBlocks              => true
-      case _ : IR_WaLBerlaLoopOverPoints              => true
-      case _ : IR_WaLBerlaLoopOverPointsInOneFragment => true
-      case _ : IR_WaLBerlaLoopOverDimensions          => true
       case _                                          => false
     }
 

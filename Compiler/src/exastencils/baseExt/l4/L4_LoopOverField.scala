@@ -141,6 +141,7 @@ case class L4_LoopOverField(
     parallelization.potentiallyParallel = !seq
     parallelization.noVect = noVect
     parallelization.reduction = reduction.map(_.progress)
+    parallelization.gpuParallelizable = resolvedField.gpuCompatible
 
     val loop = IR_LoopOverPoints(resolvedField,
       if (region.isDefined) Some(region.get.progress) else None,
