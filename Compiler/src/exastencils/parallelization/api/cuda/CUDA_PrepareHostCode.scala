@@ -257,7 +257,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
       res
 
-    case loop : IR_LoopOverDimensions =>
+    case loop : IR_LoopOverDimensions if loop.parallelization.gpuParallelizable =>
       val hostStmts = ListBuffer[IR_Statement]()
       val deviceStmts = ListBuffer[IR_Statement]()
 
