@@ -55,7 +55,7 @@ case class CUDA_EventRecord(event : CUDA_Event, stream : CUDA_Stream) extends IR
 case class CUDA_WaitEvent(event : CUDA_Event, stream : CUDA_Stream) extends IR_Statement with IR_Expandable {
   override def expand() : OutputType = {
     if (stream.useNonDefaultStreams)
-      IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamWaitEvent"), stream, stream)
+      IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamWaitEvent"), stream, event)
     else
       IR_NullStatement
   }
