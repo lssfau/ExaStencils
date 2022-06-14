@@ -183,15 +183,21 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
           processRead(reduce.sendbuf)
     }
 
+    // determine execution ( = comm/comp ) stream
+    val executionStream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
+
     // host sync stmts
 
     for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldData = access._2
-      val stream = CUDA_TransferStream(fieldData.field, fieldData.fragmentIdx)
+      val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragmentIdx)
 
       // add data sync statements
       if (syncBeforeHost(access._1, fieldAccesses.keys))
-        beforeHost += CUDA_UpdateHostData(Duplicate(fieldData), stream).expand().inner // expand here to avoid global expand afterwards
+        beforeHost += CUDA_UpdateHostData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
+
+      // wait for pending transfer events
+      beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, fieldData.fragmentIdx), executionStream)
 
       // update flags for written fields
       if (syncAfterHost(access._1, fieldAccesses.keys))
@@ -200,11 +206,14 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
     for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
       val buffer = access._2
-      val stream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
+      val transferStream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
 
       // add buffer sync statements
       if (syncBeforeHost(access._1, bufferAccesses.keys))
-        beforeHost += CUDA_UpdateHostBufferData(Duplicate(buffer), stream).expand().inner // expand here to avoid global expand afterwards
+        beforeHost += CUDA_UpdateHostBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
+
+      // wait for pending transfer events
+      beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, buffer.fragmentIdx), executionStream)
 
       // update flags for written buffers
       if (syncAfterHost(access._1, bufferAccesses.keys))
@@ -218,11 +227,14 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
     for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldData = access._2
-      val stream = CUDA_TransferStream(fieldData.field, fieldData.fragmentIdx)
+      val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragmentIdx)
 
       // add data sync statements
       if (syncBeforeDevice(access._1, fieldAccesses.keys))
-        beforeDevice += CUDA_UpdateDeviceData(Duplicate(fieldData), stream).expand().inner // expand here to avoid global expand afterwards
+        beforeDevice += CUDA_UpdateDeviceData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
+
+      // wait for pending transfer events
+      beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, fieldData.fragmentIdx), executionStream)
 
       // update flags for written fields
       if (syncAfterDevice(access._1, fieldAccesses.keys))
@@ -231,11 +243,14 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
     for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
       val buffer = access._2
-      val stream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
+      val transferStream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
 
       // add data sync statements
       if (syncBeforeDevice(access._1, bufferAccesses.keys))
-        beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(buffer), stream).expand().inner // expand here to avoid global expand afterwards
+        beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
+
+      // wait for pending transfer events
+      beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, buffer.fragmentIdx), executionStream)
 
       // update flags for written fields
       if (syncAfterDevice(access._1, bufferAccesses.keys))

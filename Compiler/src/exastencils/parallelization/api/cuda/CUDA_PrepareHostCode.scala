@@ -89,15 +89,21 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     this.unregister(gatherBuffers)
     Logger.popLevel()
 
+    // determine execution ( = comm/comp ) stream
+    val executionStream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
+
     // host sync stmts
 
     for (access <- gatherFields.fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldData = access._2
-      val stream = CUDA_TransferStream(fieldData.field, fieldData.fragIdx)
+      val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragIdx)
 
       // add data sync statements
       if (syncBeforeHost(access._1, gatherFields.fieldAccesses.keys))
-        beforeHost += CUDA_UpdateHostData(Duplicate(fieldData), stream).expand().inner // expand here to avoid global expand afterwards
+        beforeHost += CUDA_UpdateHostData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
+
+      // wait for pending transfer events
+      beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, fieldData.fragIdx), executionStream)
 
       // update flags for written fields
       if (syncAfterHost(access._1, gatherFields.fieldAccesses.keys))
@@ -106,11 +112,14 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
     for (access <- gatherBuffers.bufferAccesses.toSeq.sortBy(_._1)) {
       val buffer = access._2
-      val stream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
+      val transferStream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
 
       // add buffer sync statements
       if (syncBeforeHost(access._1, gatherBuffers.bufferAccesses.keys))
-        beforeHost += CUDA_UpdateHostBufferData(Duplicate(buffer), stream).expand().inner // expand here to avoid global expand afterwards
+        beforeHost += CUDA_UpdateHostBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
+
+      // wait for pending transfer events
+      beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, buffer.fragmentIdx), executionStream)
 
       // update flags for written buffers
       if (syncAfterHost(access._1, gatherBuffers.bufferAccesses.keys))
@@ -125,11 +134,14 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
       for (access <- gatherFields.fieldAccesses.toSeq.sortBy(_._1)) {
         val fieldData = access._2
-        val stream = CUDA_TransferStream(fieldData.field, fieldData.fragIdx)
+        val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragIdx)
 
         // add data sync statements
         if (syncBeforeDevice(access._1, gatherFields.fieldAccesses.keys))
-          beforeDevice += CUDA_UpdateDeviceData(Duplicate(fieldData), stream).expand().inner // expand here to avoid global expand afterwards
+          beforeDevice += CUDA_UpdateDeviceData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
+
+        // wait for pending transfer events
+        beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, fieldData.fragIdx), executionStream)
 
         // update flags for written fields
         if (syncAfterDevice(access._1, gatherFields.fieldAccesses.keys))
@@ -138,11 +150,14 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
       for (access <- gatherBuffers.bufferAccesses.toSeq.sortBy(_._1)) {
         val buffer = access._2
-        val stream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
+        val transferStream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
 
         // add data sync statements
         if (syncBeforeDevice(access._1, gatherBuffers.bufferAccesses.keys))
-          beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(buffer), stream).expand().inner // expand here to avoid global expand afterwards
+          beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
+
+        // wait for pending transfer events
+        beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, buffer.fragmentIdx), executionStream)
 
         // update flags for written fields
         if (syncAfterDevice(access._1, gatherBuffers.bufferAccesses.keys))
