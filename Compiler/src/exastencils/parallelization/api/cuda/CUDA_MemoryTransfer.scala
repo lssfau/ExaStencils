@@ -61,11 +61,11 @@ object CUDA_TransferUtil {
 /// CUDA_UpdateHostData
 
 object CUDA_UpdateHostData {
-  def apply(access : IR_MultiDimFieldAccess, stream : CUDA_Stream) =
+  def apply(access : IR_MultiDimFieldAccess, stream : CUDA_TransferStream) =
     new CUDA_UpdateHostData(IR_IV_FieldData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx)), stream)
 }
 
-case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData, stream : CUDA_Stream) extends CUDA_HostStatement with IR_Expandable {
+case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   // TODO: allow targeting of specific index ranges
 
   override def expand() : Output[IR_Statement] = {
@@ -90,11 +90,11 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData, stream : CUDA_St
 /// CUDA_UpdateDeviceData
 
 object CUDA_UpdateDeviceData {
-  def apply(access : IR_MultiDimFieldAccess, stream : CUDA_Stream) =
+  def apply(access : IR_MultiDimFieldAccess, stream : CUDA_TransferStream) =
     new CUDA_UpdateDeviceData(IR_IV_FieldData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx)), stream)
 }
 
-case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_Stream) extends CUDA_HostStatement with IR_Expandable {
+case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
       return IR_NullStatement
@@ -116,7 +116,7 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_
 
 /// CUDA_UpdateHostBufferData
 
-case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUDA_Stream) extends CUDA_HostStatement with IR_Expandable {
+case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
       return IR_NullStatement
@@ -138,7 +138,7 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUD
 
 /// CUDA_UpdateDeviceData
 
-case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer, stream : CUDA_Stream) extends CUDA_HostStatement with IR_Expandable {
+case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
       return IR_NullStatement
