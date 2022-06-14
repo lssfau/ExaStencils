@@ -74,7 +74,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     access.startsWith("write")
   }
 
-  def getHostDeviceSyncStmts(body : ListBuffer[IR_Statement], isParallel : Boolean, stream : CUDA_Stream) = {
+  def getHostDeviceSyncStmts(body : ListBuffer[IR_Statement], isParallel : Boolean) = {
     val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     // don't filter here - memory transfer code is still required
@@ -92,21 +92,25 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     // host sync stmts
 
     for (access <- gatherFields.fieldAccesses.toSeq.sortBy(_._1)) {
+      val fieldData = access._2
+      val stream = CUDA_TransferStream(fieldData.field, fieldData.fragIdx)
+
       // add data sync statements
       if (syncBeforeHost(access._1, gatherFields.fieldAccesses.keys))
-        beforeHost += CUDA_UpdateHostData(Duplicate(access._2), stream).expand().inner // expand here to avoid global expand afterwards
+        beforeHost += CUDA_UpdateHostData(Duplicate(fieldData), stream).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written fields
       if (syncAfterHost(access._1, gatherFields.fieldAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostDataUpdated(access._2.field, Duplicate(access._2.slot)), IR_BooleanConstant(true))
+        afterHost += IR_Assignment(CUDA_HostDataUpdated(fieldData.field, Duplicate(fieldData.slot)), IR_BooleanConstant(true))
     }
 
     for (access <- gatherBuffers.bufferAccesses.toSeq.sortBy(_._1)) {
       val buffer = access._2
+      val stream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
 
       // add buffer sync statements
       if (syncBeforeHost(access._1, gatherBuffers.bufferAccesses.keys))
-        beforeHost += CUDA_UpdateHostBufferData(Duplicate(access._2), stream).expand().inner // expand here to avoid global expand afterwards
+        beforeHost += CUDA_UpdateHostBufferData(Duplicate(buffer), stream).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written buffers
       if (syncAfterHost(access._1, gatherBuffers.bufferAccesses.keys))
@@ -120,21 +124,25 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
         afterDevice += CUDA_DeviceSynchronize()
 
       for (access <- gatherFields.fieldAccesses.toSeq.sortBy(_._1)) {
+        val fieldData = access._2
+        val stream = CUDA_TransferStream(fieldData.field, fieldData.fragIdx)
+
         // add data sync statements
         if (syncBeforeDevice(access._1, gatherFields.fieldAccesses.keys))
-          beforeDevice += CUDA_UpdateDeviceData(Duplicate(access._2), stream).expand().inner // expand here to avoid global expand afterwards
+          beforeDevice += CUDA_UpdateDeviceData(Duplicate(fieldData), stream).expand().inner // expand here to avoid global expand afterwards
 
         // update flags for written fields
         if (syncAfterDevice(access._1, gatherFields.fieldAccesses.keys))
-          afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(access._2.field, Duplicate(access._2.slot)), IR_BooleanConstant(true))
+          afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(fieldData.field, Duplicate(fieldData.slot)), IR_BooleanConstant(true))
       }
 
       for (access <- gatherBuffers.bufferAccesses.toSeq.sortBy(_._1)) {
         val buffer = access._2
+        val stream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
 
         // add data sync statements
         if (syncBeforeDevice(access._1, gatherBuffers.bufferAccesses.keys))
-          beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(access._2), stream).expand().inner // expand here to avoid global expand afterwards
+          beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(buffer), stream).expand().inner // expand here to avoid global expand afterwards
 
         // update flags for written fields
         if (syncAfterDevice(access._1, gatherBuffers.bufferAccesses.keys))
@@ -187,11 +195,8 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       // use the host for dealing with the two exceptional cases
       val isParallel = containedLoop.parallelization.potentiallyParallel // filter some generate loops?
 
-      // determine stream
-      val stream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
-
       // calculate memory transfer statements for host and device
-      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(containedLoop.body, isParallel, stream)
+      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(containedLoop.body, isParallel)
 
       hostStmts ++= beforeHost
       deviceStmts ++= beforeDevice
@@ -274,11 +279,8 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       // use the host for dealing with the two exceptional cases
       val isParallel = loop.parallelization.potentiallyParallel // filter some generate loops?
 
-      // determine stream
-      val stream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
-
       // calculate memory transfer statements for host and device
-      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop.body, isParallel, stream)
+      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop.body, isParallel)
 
       hostStmts ++= beforeHost
       deviceStmts ++= beforeDevice
