@@ -22,6 +22,7 @@ import exastencils.util.ir.IR_StackCollector
 /// CUDA_Stream
 
 object CUDA_Stream {
+  // get stream used for comm/comp kernels
   def getStream(stackCollector: IR_StackCollector, communicateKernelCollector : IR_CommunicationKernelCollector) : CUDA_Stream = {
     val enclosingFragLoop = stackCollector.stack.collectFirst {
       case fragLoop : IR_LoopOverFragments                                                                                     => fragLoop
@@ -37,6 +38,14 @@ object CUDA_Stream {
       CUDA_CommunicateStream(Duplicate(neighCommKernel.get))
     else
       CUDA_ComputeStream()
+  }
+
+  // get stream used for memory transfer
+  def getTransferStream(stackCollector : IR_StackCollector, communicateKernelCollector : IR_CommunicationKernelCollector) : CUDA_Stream = {
+    getStream(stackCollector, communicateKernelCollector) match {
+      case comm : CUDA_CommunicateStream => CUDA_TransferStream(comm.neighborIdx, comm.fragmentIdx)
+      case comp : CUDA_ComputeStream     => comp
+    }
   }
 
   def genSynchronize(stream : CUDA_Stream, before : Boolean) : ListBuffer[IR_Statement] = {
@@ -145,4 +154,15 @@ case class CUDA_CommunicateStream(neighborIdx : IR_Expression, fragmentIdx : IR_
   override def useNonDefaultStreams : Boolean = Knowledge.cuda_useStreams
 
   override def resolveName() = s"cudaCommStream" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", neighborIdx.prettyprint)
+}
+
+/// CUDA_TransferStream
+
+case class CUDA_TransferStream(neighborIdx : IR_Expression, fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends CUDA_Stream(true, true) {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, neighborIdx)
+
+  // use streams for asynchronous memory transfers
+  override def useNonDefaultStreams : Boolean = Knowledge.cuda_useStreams
+
+  override def resolveName() = s"transferStream" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", neighborIdx.prettyprint)
 }
