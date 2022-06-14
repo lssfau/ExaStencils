@@ -6,6 +6,7 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.OutputType
 import exastencils.field.ir.IR_Field
+import exastencils.prettyprinting.PpStream
 
 /// CUDA_Event
 
@@ -37,6 +38,11 @@ case class CUDA_PendingStreamTransfers(
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt)
   extends CUDA_Event(true, false, true, false, false) {
 
+  override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
+
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression,
+    if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, IR_NullExpression, IR_NullExpression)
+
   override def resolveName() : String = "pendingStreamTransferEvent" +
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, "", "")
 
@@ -46,16 +52,19 @@ case class CUDA_PendingStreamTransfers(
 case class CUDA_EventRecord(event : CUDA_Event, stream : CUDA_Stream) extends IR_Statement with IR_Expandable {
   override def expand() : OutputType = {
     if (stream.useNonDefaultStreams)
-      IR_FunctionCall(IR_ExternalFunctionReference("cudaEventRecord"), IR_AddressOf(event), stream)
+      IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("cudaEventRecord"), event, stream))
     else
       IR_NullStatement
   }
 }
 
 case class CUDA_WaitEvent(event : CUDA_Event, stream : CUDA_Stream) extends IR_Statement with IR_Expandable {
+
+  def flags = 0
+
   override def expand() : OutputType = {
     if (stream.useNonDefaultStreams)
-      IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamWaitEvent"), stream, event)
+      IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamWaitEvent"), stream, event, flags))
     else
       IR_NullStatement
   }

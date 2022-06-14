@@ -153,6 +153,9 @@ case class CUDA_CommunicateStream(neighborIdx : IR_Expression, fragmentIdx : IR_
 /// CUDA_TransferStream
 
 case class CUDA_TransferStream(field: IR_Field, fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends CUDA_Stream(true, true, false) {
+
+  override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
+
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx,
     if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, IR_NullExpression, IR_NullExpression, IR_NullExpression)
 
