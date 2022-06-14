@@ -209,8 +209,13 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
         loopBody)
 
       // call default reduction kernel and return by copying to passed (host) pointer
+      // TODO: temporary solution until the reductions are optimized
       val matrixReductionTmp = IR_FunctionArgument("matrixReductionTmp", data.datatype)
       functionArgs += matrixReductionTmp
+      if (Knowledge.cuda_useManagedMemory) {
+        // D-D copy to reduction buffer
+        fctBody += CUDA_Memcpy(matrixReductionTmp.access, data.access, IR_SizeOf(reductionDt), "cudaMemcpyDeviceToDevice")
+      }
       fctBody += CUDA_TransferUtil.genTransfer(matrixReductionTmp.access, data.access, IR_SizeOf(reductionDt), "D2H", stream)
 
       // compile final wrapper function

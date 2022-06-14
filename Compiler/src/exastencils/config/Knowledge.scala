@@ -778,6 +778,10 @@ object Knowledge {
     Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
     Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
 
+    Constraints.condEnsureValue(cuda_syncStreamsBeforeComputeKernelCalls, "none", !cuda_useStreams, "Disable stream sync when CUDA streams are disabled.")
+    Constraints.condEnsureValue(cuda_syncStreamsAfterComputeKernelCalls, "none", !cuda_useStreams, "Disable stream sync when CUDA streams are disabled.")
+    Constraints.condEnsureValue(cuda_syncStreamsBeforeCommunicateKernelCalls, "none", !cuda_useStreams, "Disable stream sync when CUDA streams are disabled.")
+    Constraints.condEnsureValue(cuda_syncStreamsAfterCommunicateKernelCalls, "none", !cuda_useStreams, "Disable stream sync when CUDA streams are disabled.")
     Constraints.condError(cuda_enabled && !cuda_useStreams && (cuda_syncStreamsBeforeCommunicateKernelCalls != "none" || cuda_syncStreamsAfterCommunicateKernelCalls != "none"
       || cuda_syncStreamsBeforeComputeKernelCalls != "none" || cuda_syncStreamsAfterComputeKernelCalls != "none"), "Trying to sync cuda streams without having cuda streams enabled. Enable via \"cuda_useStreams = true\"")
     Constraints.condError(cuda_enabled && cuda_useStreams && (!cuda_syncStreamsOptions.contains(cuda_syncStreamsBeforeCommunicateKernelCalls) || !cuda_syncStreamsOptions.contains(cuda_syncStreamsAfterCommunicateKernelCalls)

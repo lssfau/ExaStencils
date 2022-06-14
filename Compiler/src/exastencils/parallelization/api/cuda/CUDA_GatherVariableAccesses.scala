@@ -39,12 +39,12 @@ object CUDA_GatherVariableAccesses extends QuietDefaultStrategy("Gather local Va
   var ignoredAccesses = mutable.SortedSet[String]()
   var ignoredArrayVariableAccesses = mutable.SortedSet[String]()
 
-  def basePrefix(base : IR_VariableAccess) = base.name
+  def basePrefix(base : IR_VariableAccess) = s"${fctName}_${base.name}"
   // regular, evaluable indexed array accesses
-  def arrayAccessAsString(base : IR_VariableAccess, idx : IR_Expression) = s"${fctName}_${basePrefix(base)}_kernelarg_${idx.prettyprint()}"
+  def arrayAccessAsString(base : IR_VariableAccess, idx : IR_Expression) = s"${basePrefix(base)}_kernelarg_${idx.prettyprint()}"
   def containsArrayAccess(base : IR_VariableAccess, idx : IR_Expression) = evaluableAccesses.contains(arrayAccessAsString(base, idx))
   // array variable accesses in case that a kernel is passed whole array as argument (for non-evaluable indices)
-  def arrayVariableAccessAsString(base : IR_VariableAccess) = s"${fctName}_${basePrefix(base)}_deviceCopy_$kernelCount"
+  def arrayVariableAccessAsString(base : IR_VariableAccess) = s"${basePrefix(base)}_deviceCopy_$kernelCount"
   def containsArrayVariableAccess(base : IR_VariableAccess) = nonEvaluableAccesses.contains(arrayVariableAccessAsString(base))
 
   def isReplaceable(base : IR_VariableAccess, idx : IR_Expression) =
