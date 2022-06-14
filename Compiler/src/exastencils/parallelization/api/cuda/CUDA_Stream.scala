@@ -14,6 +14,7 @@ import exastencils.communication.DefaultNeighbors
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_NeighborIsValid
+import exastencils.field.ir.IR_Field
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_CommunicationKernelCollector
@@ -38,14 +39,6 @@ object CUDA_Stream {
       CUDA_CommunicateStream(Duplicate(neighCommKernel.get))
     else
       CUDA_ComputeStream()
-  }
-
-  // get stream used for memory transfer
-  def getTransferStream(stackCollector : IR_StackCollector, communicateKernelCollector : IR_CommunicationKernelCollector) : CUDA_Stream = {
-    getStream(stackCollector, communicateKernelCollector) match {
-      case comm : CUDA_CommunicateStream => CUDA_TransferStream(comm.neighborIdx, comm.fragmentIdx)
-      case comp : CUDA_ComputeStream     => comp
-    }
   }
 
   def genSynchronize(stream : CUDA_Stream, before : Boolean) : ListBuffer[IR_Statement] = {
@@ -105,8 +98,9 @@ object CUDA_Stream {
 
 abstract class CUDA_Stream(
     var perFragment : Boolean,
+    var perField : Boolean,
     var perNeighbor : Boolean,
-) extends IR_InternalVariable(perFragment, false, false, false, perNeighbor) {
+) extends IR_InternalVariable(perFragment, false, perField, false, perNeighbor) {
 
   override def resolveDatatype() : IR_Datatype = IR_SpecialDatatype("cudaStream_t")
 
@@ -136,7 +130,7 @@ abstract class CUDA_Stream(
 
 /// CUDA_ComputeStream
 
-case class CUDA_ComputeStream(fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends CUDA_Stream(true, false) {
+case class CUDA_ComputeStream(fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends CUDA_Stream(true, false, false) {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
 
   // use streams for fragment loops
@@ -147,7 +141,7 @@ case class CUDA_ComputeStream(fragmentIdx : IR_Expression = IR_LoopOverFragments
 
 /// CUDA_CommunicateStream
 
-case class CUDA_CommunicateStream(neighborIdx : IR_Expression, fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends CUDA_Stream(true, true) {
+case class CUDA_CommunicateStream(neighborIdx : IR_Expression, fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends CUDA_Stream(true, false,true) {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, neighborIdx)
 
   // use streams for comm/boundary handling
@@ -158,11 +152,13 @@ case class CUDA_CommunicateStream(neighborIdx : IR_Expression, fragmentIdx : IR_
 
 /// CUDA_TransferStream
 
-case class CUDA_TransferStream(neighborIdx : IR_Expression, fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends CUDA_Stream(true, true) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, neighborIdx)
+case class CUDA_TransferStream(field: IR_Field, fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends CUDA_Stream(true, true, false) {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx,
+    if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, IR_NullExpression, IR_NullExpression, IR_NullExpression)
 
   // use streams for asynchronous memory transfers
   override def useNonDefaultStreams : Boolean = Knowledge.cuda_useStreams
 
-  override def resolveName() = s"transferStream" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", neighborIdx.prettyprint)
+  override def resolveName() = s"transferStream" + resolvePostfix(fragmentIdx.prettyprint, "",
+    if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, "", "")
 }
