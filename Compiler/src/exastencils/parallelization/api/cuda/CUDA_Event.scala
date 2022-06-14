@@ -5,6 +5,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.field.ir.IR_Field
+import exastencils.prettyprinting.PpStream
 
 /// CUDA_Event
 
@@ -40,4 +41,12 @@ case class CUDA_PendingStreamTransfers(
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, "", "")
 
   override def resolveDatatype() : IR_Datatype = IR_SpecialDatatype("cudaEvent_t")
+}
+
+case class CUDA_EventRecord(event : CUDA_Event, stream : CUDA_Stream) extends IR_Statement {
+  override def prettyprint(out : PpStream) : Unit = out << "cudaEventRecord(" << IR_AddressOf(event) << ", " << stream << ")"
+}
+
+case class CUDA_WaitEvent(event : CUDA_Event, stream : CUDA_Stream) extends IR_Statement {
+  override def prettyprint(out : PpStream) : Unit = out << "cudaStreamWaitEvent(" << stream << ", " << event << ")"
 }
