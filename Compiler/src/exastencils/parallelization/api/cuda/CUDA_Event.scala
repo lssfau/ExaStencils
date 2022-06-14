@@ -1,11 +1,11 @@
 package exastencils.parallelization.api.cuda
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
+import exastencils.datastructures.Transformation.OutputType
 import exastencils.field.ir.IR_Field
-import exastencils.prettyprinting.PpStream
 
 /// CUDA_Event
 
@@ -43,10 +43,20 @@ case class CUDA_PendingStreamTransfers(
   override def resolveDatatype() : IR_Datatype = IR_SpecialDatatype("cudaEvent_t")
 }
 
-case class CUDA_EventRecord(event : CUDA_Event, stream : CUDA_Stream) extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "cudaEventRecord(" << IR_AddressOf(event) << ", " << stream << ")"
+case class CUDA_EventRecord(event : CUDA_Event, stream : CUDA_Stream) extends IR_Statement with IR_Expandable {
+  override def expand() : OutputType = {
+    if (stream.useNonDefaultStreams)
+      IR_FunctionCall(IR_ExternalFunctionReference("cudaEventRecord"), IR_AddressOf(event), stream)
+    else
+      IR_NullStatement
+  }
 }
 
-case class CUDA_WaitEvent(event : CUDA_Event, stream : CUDA_Stream) extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "cudaStreamWaitEvent(" << stream << ", " << event << ")"
+case class CUDA_WaitEvent(event : CUDA_Event, stream : CUDA_Stream) extends IR_Statement with IR_Expandable {
+  override def expand() : OutputType = {
+    if (stream.useNonDefaultStreams)
+      IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamWaitEvent"), stream, stream)
+    else
+      IR_NullStatement
+  }
 }
