@@ -19,7 +19,8 @@
 package exastencils.parallelization.api.cuda
 
 import scala.collection.mutable.ListBuffer
-import scala.collection.{ Iterable, mutable }
+import scala.collection.Iterable
+import scala.collection.mutable
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
@@ -30,8 +31,10 @@ import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.logger.Logger
+import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.util.NoDuplicateWrapper
 import exastencils.util.ir.IR_FctNameCollector
+import exastencils.util.ir.IR_StackCollector
 
 /// CUDA_PrepareHostCode
 
@@ -41,8 +44,10 @@ import exastencils.util.ir.IR_FctNameCollector
   */
 object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
   "and annotating for later kernel transformation") {
-  val collector = new IR_FctNameCollector
-  this.register(collector)
+  val fctNameCollector = new IR_FctNameCollector
+  val stackCollector = new IR_StackCollector
+  this.register(fctNameCollector)
+  this.register(stackCollector)
   this.onBefore = () => this.resetCollectors()
 
   def syncBeforeHost(access : String, others : Iterable[String]) = {
@@ -257,7 +262,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
       res
 
-    case loop : IR_LoopOverDimensions if loop.parallelization.gpuParallelizable =>
+    case loop : IR_LoopOverDimensions =>
       val hostStmts = ListBuffer[IR_Statement]()
       val deviceStmts = ListBuffer[IR_Statement]()
 
@@ -265,8 +270,11 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       // Exceptions:
       // 1. this loop is a special one and cannot be optimized in polyhedral model
       // 2. this loop has no parallel potential
+      // 3. this loop (or an enclosing one) is not gpu-parallelizable
       // use the host for dealing with the two exceptional cases
-      val isParallel = loop.parallelization.potentiallyParallel // filter some generate loops?
+      var isParallel = loop.parallelization.potentiallyParallel && loop.parallelization.gpuParallelizable // filter some generate loops
+      isParallel &= !stackCollector.stack.exists(n =>
+        n.isInstanceOf[IR_HasParallelizationInfo] && !n.asInstanceOf[IR_HasParallelizationInfo].parallelization.gpuParallelizable)
 
       // calculate memory transfer statements for host and device
       val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop.body, isParallel)

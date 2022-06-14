@@ -22,6 +22,9 @@ case class IR_WaLBerlaLoopOverBlocks(
     var body : ListBuffer[IR_Statement],
     var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_ScopedStatement with IR_SpecialExpandable with IR_HasParallelizationInfo {
 
+  // waLBerla block loops are not gpu-parallelizable atm
+  parallelization.gpuParallelizable = false
+
   def expandSpecial() : Output[IR_ForLoop] = {
     // TODO: separate omp and potentiallyParallel
     parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && parallelization.potentiallyParallel
