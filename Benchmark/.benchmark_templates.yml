@@ -36,7 +36,6 @@
     - module load cuda/11.0
     - nvcc --version
     - nvidia-smi
-    - updatedb
 
 .cuda_job_template:
     dependencies:
