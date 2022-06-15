@@ -72,4 +72,4 @@ bench_pipe:5pt_Jac_2D_CUDA:
         EXA_PROBLEM_PATH: "FivePointStencil"
         EXASLANG_FILES: "5pt_Jac_Cell.exa4"
         KNOWLEDGE_FILE: "5pt_Jac_Cell_CUDA.knowledge"
-        PLATFORM_FILE: "medusa_rtx6000.platform"
+        PLATFORM_FILE: "Platform/medusa_rtx6000.platform"
