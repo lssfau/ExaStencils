@@ -38,6 +38,36 @@
     - nvidia-smi
     - updatedb
 
+.cuda_job_template:
+    dependencies:
+        - build:generator
+    stage: bench_pipe
+    tags:
+        - testcluster
+    before_script:
+        - cd Benchmark
+        - !reference [ .module_tree_build, before_script ]
+        - #- *module_load_mpi
+        - *module_load_likwid
+        - *module_load_cuda
+    script:
+        - python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" $KNOWLEDGE_FILE $PLATFORM_FILE $OUTPUT_PATH --all
+    after_script:
+        - !reference [ .module_tree_build, after_script ]
+    artifacts:
+        paths:
+            - Benchmark/$OUTPUT_PATH/Debug/*
+            - Benchmark/$OUTPUT_PATH/generated/*
+        expire_in: 1 weeks
+    variables:
+        SLURM_NODELIST: "TO_BE_REPLACED"
+        EXA_PROBLEM_NAME: "TO_BE_REPLACED"
+        EXA_PROBLEM_PATH: "TO_BE_REPLACED"
+        EXASLANG_FILES: "TO_BE_REPLACED"
+        KNOWLEDGE_FILE: "TO_BE_REPLACED"
+        PLATFORM_FILE: "TO_BE_REPLACED"
+        OUTPUT_PATH: "output"
+
 .gen_bench_job_template:
     dependencies:
         - build:generator
