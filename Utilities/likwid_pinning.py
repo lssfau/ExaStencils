@@ -58,15 +58,15 @@ def likwid_pin(config: ConfigFromKnowledge):
             if not config.use_cuda:
                 return ["likwid-pin", "-c", f"{omp_pinning}", "./exastencils"]
             else:
-                return ["likwid-pin", "-c", f"{omp_pinning}", "./exastencils"]
+                return ["likwid-pin", "-c", f"{omp_pinning}", "-s", "0x3", "./exastencils"]
         else:
             if not config.use_cuda:
                 return ["srun", "likwid-pin", "-c", f"{omp_pinning}", "./exastencils"]
             else:
-                return ["srun", "likwid-pin", "-c", f"{omp_pinning}", "./exastencils"]
+                return ["srun", "likwid-pin", "-c", f"{omp_pinning}", "-s", "0x3", "./exastencils"]
     # pure MPI, no OpenMP
     elif config.n_blocks > 1 and (config.omp_num_threads == 1 or config.omp_enabled is False) and config.use_cuda is False:
-        return ["env", "OMPI_MCA_hwloc_base_binding_policy=none", "likwid-mpirun", "-d", "-np",
+        return ["env", "OMPI_MCA_hwloc_base_binding_policy=none", "likwid-mpirun", "-d", "-np", "-s", "0x3",
                 f"{config.mpi_num_processes}", "./exastencils"]
     # hybrid
     elif config.n_blocks > 1:
@@ -82,8 +82,10 @@ def likwid_pin(config: ConfigFromKnowledge):
         if not config.use_cuda:
             return ["env", f"OMP_NUM_THREADS={config.omp_num_threads}", "env", "OMPI_MCA_hwloc_base_binding_policy=none",
                     "likwid-mpirun", "-d", "-np", f"{config.mpi_num_processes}", "-nperdomain",
-                    f"{ntasks_per_node_}", "-pin", f"{omp_pinning}", f"{config.omp_num_threads}", "./exastencils"]
+                    f"{ntasks_per_node_}", "-pin", f"{omp_pinning}", f"{config.omp_num_threads}",
+                    "-s", "0x3", "./exastencils"]
         else:
             return ["env", f"OMP_NUM_THREADS={config.omp_num_threads}", "env", "OMPI_MCA_hwloc_base_binding_policy=none",
                     "likwid-mpirun", "-d", "-np", f"{config.mpi_num_processes}", "-nperdomain",
-                    f"{ntasks_per_node_}", "-pin", f"{omp_pinning}", f"{config.omp_num_threads}", "./exastencils"]
+                    f"{ntasks_per_node_}", "-pin", f"{omp_pinning}", f"{config.omp_num_threads}",
+                    "-s", "0x7", "./exastencils"]
