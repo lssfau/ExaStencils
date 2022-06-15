@@ -47,8 +47,6 @@ bench_gen:5pt_Jac_2D:
     variables:
         EXA_PROBLEM_NAME: "5pt_Jac_2D"
         EXA_PROBLEM_PATH: "FivePointStencil"
-        EXASLANG_FILES: "5pt_Jac_Cell.exa4"
-        KNOWLEDGE_FILE: "5pt_Jac_Cell.knowledge"
 
 #######################################
 ##                                   ##
