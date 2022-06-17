@@ -46,6 +46,7 @@
     before_script:
         - cd Benchmark
         - !reference [ .module_tree_build, before_script ]
+        - echo $(hostname)
         #- *module_load_mpi
         - *module_load_likwid
         - *module_load_cuda
