@@ -107,9 +107,7 @@
     stage: bench_pipe
     trigger:
         include:
-            artifact:
-                - Benchmark/$EXA_PROBLEM_NAME-pipe.yml
-                - Compiler/Compiler.jar
+            artifact: Benchmark/$EXA_PROBLEM_NAME-pipe.yml
             job: bench_gen:$EXA_PROBLEM_NAME
         strategy: depend
     variables:
