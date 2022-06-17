@@ -37,7 +37,7 @@
     - nvcc --version
     - nvidia-smi
     - locate cuda.h
-    - export CPATH=$CPATH:/usr/local/cuda-11.0/targets/x86_64-linux/include/cuda.h
+    - export CPATH=$CPATH:/usr/local/cuda-11.0/targets/x86_64-linux/include
 
 .cuda_job_template:
     dependencies:
