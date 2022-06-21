@@ -46,6 +46,8 @@
     before_script:
         - cd Benchmark
         - !reference [ .module_tree_build, before_script ]
+        - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
+        - python3 unzip.py artifacts.zip Platform
         #- *module_load_mpi
         - *module_load_likwid
         - *module_load_cuda
