@@ -80,8 +80,11 @@ private case class IR_WaLBerlaInitBuffersWrapper() extends IR_WaLBerlaDeInitWrap
     var body = ListBuffer[IR_Statement]()
 
     body += IR_FunctionCall(IR_AllocateDataFunction.fctName)
-    if (IR_FieldCollection.objects.nonEmpty && Knowledge.data_initAllFieldsWithZero)
-      body += IR_FunctionCall(IR_InitFieldsWithZero().name)
+    if (IR_FieldCollection.objects.nonEmpty) {
+      if (Knowledge.data_initAllFieldsWithZero)
+        body += IR_FunctionCall(IR_InitFieldsWithZero().name)
+      body += IR_FunctionCall("InitFields")
+    }
 
     IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(), body)
   }
