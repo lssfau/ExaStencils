@@ -73,9 +73,18 @@ class ConfigFromKnowledge:
                 self.cores_per_cpu = int(value)
             elif key == "hw_cpu_numCPUs":
                 self.num_cpus = int(value)
+            elif key == "targetCompiler":
+                self.targetCompiler = value
+            elif key == "targetCompilerVersion":
+                self.targetCompilerVersion = value
+            elif key == "targetCompilerVersionMinor":
+                self.targetCompilerVersionMinor = value
 
     def __init__(self, problem_name: str, knowledge_file_path: str, platform_file_path: str):
 
+        self.targetCompiler = ""
+        self.targetCompilerVersion = ""
+        self.targetCompilerVersionMinor = ""
         self.cores_per_cpu = 1
         self.start_2nd_socked_with_0 = True
         self.n_blocks = 1

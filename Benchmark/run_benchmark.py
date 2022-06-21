@@ -38,6 +38,11 @@ def main():
     # print arguments
     print(f"Executing: python3 run_benchmark.py {' '.join(f'{k}={v}' for k, v in vars(args).items())}")
 
+    # skip if platform file does not exist
+    if not os.path.isfile(args.platform_path):
+        print("Skipping host without corresponding platform file: " + args.platform_path)
+        return
+
     # set run options
     ctx = RunContext(args)
 

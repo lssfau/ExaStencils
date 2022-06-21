@@ -140,11 +140,6 @@
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
         - python3 unzip.py artifacts.zip Platform
     script:
-        - |
-            if [[ ! -f "Platform/$HOSTNAME.platform" ]]; then
-                echo "Skipping host without corresponding platform file"
-                exit 0
-            fi
         - echo $(hostname)
         #- *module_load_mpi
         - *module_load_likwid
