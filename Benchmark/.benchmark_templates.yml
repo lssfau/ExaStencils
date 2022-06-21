@@ -36,6 +36,12 @@
     - module load cuda/11.0
     - nvcc --version
     - nvidia-smi
+    - locate cuda.h
+    - locate libcudart
+    - export CPATH=$CPATH:/usr/local/cuda-11.0/targets/x86_64-linux/include
+    - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+    - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-11.0/targets/x86_64-linux/lib
+    - echo $LD_LIBRARY_PATH
 
 .cuda_job_template:
     dependencies:
@@ -48,6 +54,7 @@
         - !reference [ .module_tree_build, before_script ]
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
         - python3 unzip.py artifacts.zip Platform
+        - echo $(hostname)
         #- *module_load_mpi
         - *module_load_likwid
         - *module_load_cuda
@@ -78,7 +85,14 @@
     before_script:
         - cd Benchmark
         - !reference [ .module_tree_build, before_script ]
+        - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
+        - python3 unzip.py artifacts.zip Platform
     script:
+        - |
+            for pf in Platform/*.platform
+            do
+                python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" $KNOWLEDGE_FILE $pf $OUTPUT_PATH --generate
+            done
         - chmod +x generate_bench_jobs_for_hosts.sh
         - ./generate_bench_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH > $EXA_PROBLEM_NAME-pipe.yml
     after_script:
@@ -86,11 +100,16 @@
     artifacts:
         paths:
             - Benchmark/$EXA_PROBLEM_NAME-pipe.yml
+            - Benchmark/$OUTPUT_PATH/Debug/*
+            - Benchmark/$OUTPUT_PATH/generated/*
         expire_in: 1 weeks
     variables:
         NO_SLURM_SUBMIT: 1
         EXA_PROBLEM_NAME: "TO_BE_REPLACED"
         EXA_PROBLEM_PATH: "TO_BE_REPLACED"
+        EXASLANG_FILES: "TO_BE_REPLACED"
+        KNOWLEDGE_FILE: "TO_BE_REPLACED"
+        OUTPUT_PATH: "output"
         PARENT_PIPELINE_ID: $CI_PIPELINE_ID
 
 .pipe_bench_job_template:
@@ -129,6 +148,6 @@
         - echo $(hostname)
         #- *module_load_mpi
         - *module_load_likwid
-        - python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" $KNOWLEDGE_FILE Platform/$HOSTNAME.platform $OUTPUT_PATH --all
+        - python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" $KNOWLEDGE_FILE Platform/$HOSTNAME.platform $OUTPUT_PATH --compile --run
     after_script:
         - !reference [ .module_tree_build, after_script ]
