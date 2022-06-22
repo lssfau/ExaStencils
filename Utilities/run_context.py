@@ -44,6 +44,10 @@ class RunContext:
         self.platform_suffix = os.path.basename(remove_extension(self.platform_path))
         self.target_code_path = get_target_code_path(self.output_path, self.problem_name, self.platform_suffix)
 
+        # parse knowledge and platform file
+        self.config = ConfigFromKnowledge(self.problem_name, self.knowledge_path, self.platform_path)
+
+        # get/generate settings file
         if not self.settings_file:
             # settings file automatically generated
             self.settings_path = generate_settings_file(self.exa_files, self.exa_problem_path, self.problem_name,
@@ -51,6 +55,3 @@ class RunContext:
         else:
             # settings file specified by user
             self.settings_path = get_file_in_problem_path(self.exa_problem_path, self.settings_file)
-
-        # parse knowledge and platform file
-        self.config = ConfigFromKnowledge(self.problem_name, self.knowledge_path, self.platform_path)
