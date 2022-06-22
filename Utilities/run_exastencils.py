@@ -34,19 +34,19 @@ def compile_code(ctx: RunContext):
 # --- run target code --- #
 @check_err
 @timer
-def run_code(ctx: RunContext, config: ConfigFromKnowledge, use_likwid_pin: bool = False):
+def run_code(ctx: RunContext, use_likwid_pin: bool = False):
     cwd = os.getcwd()
     os.chdir(ctx.target_code_path)
 
     if use_likwid_pin:
         # run code with likwid pinning
-        pinned_exec = likwid_pin(config)
+        pinned_exec = likwid_pin(ctx.config)
         print(pinned_exec)
         result = subprocess.run(pinned_exec, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     else:
         # run with mpirun
         result = subprocess.run([f'mpirun', '--allow-run-as-root', '--oversubscribe', '--mca', 'btl_base_warn_component_unused', '0',
-                                 f'-np', f'{config.mpi_num_processes}', 'exastencils'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                 f'-np', f'{ctx.config.mpi_num_processes}', 'exastencils'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # print stdout
     print(result.stderr.decode('utf-8'))
@@ -98,11 +98,8 @@ def main():
         compile_code(ctx)
 
     if ctx.run:
-        # parse knowledge and platform file
-        config = ConfigFromKnowledge(ctx.problem_name, ctx.knowledge_path, ctx.platform_path)
-
         # run target code
-        run_code(ctx, config)
+        run_code(ctx)
 
 
 if __name__ == "__main__":

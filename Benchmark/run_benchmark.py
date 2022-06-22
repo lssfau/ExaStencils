@@ -55,18 +55,15 @@ def main():
         compile_code(ctx)
 
     if ctx.run:
-        # parse knowledge and platform file
-        config = ConfigFromKnowledge(ctx.problem_name, ctx.knowledge_path, ctx.platform_path)
-
         # run target code
-        run_code(ctx, config, use_likwid_pin=True)
+        run_code(ctx, use_likwid_pin=True)
 
         # upload to grafana
         json_file = f'{ctx.target_code_path}/{args.json_influx_file}'
         if os.path.exists(json_file):
             f = open(json_file)
             json_body = json.load(f)
-            up = UploadGrafana(decorate_json(json_body, config))
+            up = UploadGrafana(decorate_json(json_body, ctx.config))
         else:
             print('Grafana upload failed. No JSON file found: ' + json_file)
 

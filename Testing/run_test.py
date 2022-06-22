@@ -70,14 +70,11 @@ def main():
     # compile target code
     compile_code(ctx)
 
-    # parse knowledge and platform file
-    config = ConfigFromKnowledge(ctx.problem_name, ctx.knowledge_path, ctx.platform_path)
-
     # mkdir "data" dir for IOTests
     os.makedirs(os.path.join(ctx.target_code_path, "data"), exist_ok=True)
 
     # run target code
-    result = run_code(ctx, config)
+    result = run_code(ctx)
 
     # compare with expecred results
     if args.expected_results:

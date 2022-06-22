@@ -2,6 +2,7 @@
 
 import os
 from generation_helpers import *
+from config_from_knowledge import *
 
 default_args = {
     'settings_file': '',
@@ -50,3 +51,6 @@ class RunContext:
         else:
             # settings file specified by user
             self.settings_path = get_file_in_problem_path(self.exa_problem_path, self.settings_file)
+
+        # parse knowledge and platform file
+        self.config = ConfigFromKnowledge(self.problem_name, self.knowledge_path, self.platform_path)
