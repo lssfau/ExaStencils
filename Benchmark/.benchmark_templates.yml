@@ -24,7 +24,15 @@
                 python3 -m pip uninstall $PACKAGE # cleanup
             done
 
-.module_mpi: &module_load_mpi
+.module_gcc: &module_load_gcc
+    - module load gcc/9.2.0-aisu47
+    - gcc --version
+
+.module_icc: &module_load_icc
+    - module load intel64/19.1up02
+    - icc -v
+
+.module_openmpi: &module_load_openmpi
     - module load openmpi/4.1.1-gcc
     - mpirun --version
 
@@ -55,7 +63,9 @@
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
         - python3 unzip.py artifacts.zip Platform
         - echo $(hostname)
-        #- *module_load_mpi
+        - *module_load_gcc
+        - *module_load_icc
+        #- *module_load_openmpi
         - *module_load_likwid
         - *module_load_cuda
     script:
@@ -141,11 +151,13 @@
         - python3 unzip.py artifacts.zip Platform
     script:
         - echo $(hostname)
-        #- *module_load_mpi
+        - *module_load_gcc
+        - *module_load_icc
+        #- *module_load_openmpi
         - *module_load_likwid
+        - gccVersion=$(gcc --version | grep ^gcc | sed 's/^.* //g' | cut -d "." -f 1-2 | tr -d '.')
+        - iccVersion=$(echo "$(icc -v 2>&1)" | sed -e "s/^icc version //" | cut -d " " -f 1 | cut -d "." -f 1-2 | tr -d '.')
         - |
-            gccVersion=$(gcc --version | grep ^gcc | sed 's/^.* //g' | cut -d "." -f 1-2 | tr -d '.')
-            iccVersion=$(echo "$(icc -v 2>&1)" | sed -e "s/^icc version //" | cut -d " " -f 1 | cut -d "." -f 1-2 | tr -d '.')
             for compilerSuffix in "GCC$gccVersion" "ICC$iccVersion";
             do
                 pf="Platform/$(hostname)_$compilerSuffix.platform"
