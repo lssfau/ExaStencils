@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.config.Knowledge
 import exastencils.field.ir._
 import exastencils.globals.ir._
@@ -83,7 +84,8 @@ private case class IR_WaLBerlaInitBuffersWrapper() extends IR_WaLBerlaDeInitWrap
     if (IR_FieldCollection.objects.nonEmpty) {
       if (Knowledge.data_initAllFieldsWithZero)
         body += IR_FunctionCall(IR_InitFieldsWithZero().name)
-      body += IR_FunctionCall("InitFields")
+      if (IR_UserFunctions.get.functions.exists(_.name == "InitFields"))
+        body += IR_FunctionCall("InitFields")
     }
 
     IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(), body)
