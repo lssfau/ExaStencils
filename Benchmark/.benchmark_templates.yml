@@ -146,7 +146,7 @@
         - |
             gccVersion=$(gcc --version | grep ^gcc | sed 's/^.* //g' | cut -d "." -f 1-2 | tr -d '.')
             iccVersion=$(echo "$(icc -v 2>&1)" | sed -e "s/^icc version //" | cut -d " " -f 1 | cut -d "." -f 1-2 | tr -d '.')
-            for compilerSuffix in { "GCC$gccVersion", "ICC$iccVersion" };
+            for compilerSuffix in "GCC$gccVersion" "ICC$iccVersion";
             do
                 python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" $KNOWLEDGE_FILE Platform/$HOSTNAME_$compilerSuffix.platform $OUTPUT_PATH --compile --run
             done
