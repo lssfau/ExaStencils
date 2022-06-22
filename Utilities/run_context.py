@@ -51,7 +51,7 @@ class RunContext:
         if not self.settings_file:
             # settings file automatically generated
             self.settings_path = generate_settings_file(self.exa_files, self.exa_problem_path, self.problem_name,
-                                                        self.output_path, self.target_code_path, self.overwrite_settings)
+                                                        self.output_path, self.target_code_path, self.overwrite_settings, self.config.use_cuda)
         else:
             # settings file specified by user
             self.settings_path = get_file_in_problem_path(self.exa_problem_path, self.settings_file)
