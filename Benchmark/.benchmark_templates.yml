@@ -51,6 +51,10 @@
     - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-11.0/targets/x86_64-linux/lib
     - echo $LD_LIBRARY_PATH
 
+.compiler_versions: &get_compiler_versions
+    - gccVersion=$(gcc --version | grep ^gcc | sed 's/^.* //g' | cut -d "." -f 1-2 | tr -d '.')
+    - iccVersion=$(echo "$(icc -v 2>&1)" | sed -e "s/^icc version //" | cut -d " " -f 1 | cut -d "." -f 1-2 | tr -d '.')
+
 .cuda_job_template:
     dependencies:
         - build:generator
@@ -156,8 +160,7 @@
         - *module_load_icc
         #- *module_load_openmpi
         - *module_load_likwid
-        - gccVersion=$(gcc --version | grep ^gcc | sed 's/^.* //g' | cut -d "." -f 1-2 | tr -d '.')
-        - iccVersion=$(echo "$(icc -v 2>&1)" | sed -e "s/^icc version //" | cut -d " " -f 1 | cut -d "." -f 1-2 | tr -d '.')
+        - *get_compiler_versions
         - |
             for compilerSuffix in "GCC$gccVersion" "ICC$iccVersion";
             do
