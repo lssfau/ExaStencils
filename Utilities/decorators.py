@@ -30,7 +30,10 @@ def check_err(func):
     def wrapper_check_err(*args, **kwargs):
         result = func(*args, **kwargs)
         if not result.returncode == 0:
+            print("---- STDERR: ----")
             print(result.stderr.decode('utf-8'))
+            print("---- STDOUT: ----")
+            print(result.stdout.decode('utf-8'))
             sys.exit(result)
         return result
 
