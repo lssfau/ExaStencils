@@ -73,6 +73,7 @@
     after_script:
         - !reference [ .module_tree_build, after_script ]
     artifacts:
+        when: on_failure
         paths:
             - Benchmark/$OUTPUT_PATH/Debug/*
             - Benchmark/$OUTPUT_PATH/generated/*
@@ -108,7 +109,6 @@
     after_script:
         - !reference [ .module_tree_build, after_script ]
     artifacts:
-        when: on_failure
         paths:
             - Benchmark/$EXA_PROBLEM_NAME-pipe.yml
             - Benchmark/$OUTPUT_PATH/Debug/*
