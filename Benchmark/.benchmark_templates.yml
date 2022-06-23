@@ -41,7 +41,7 @@
     - likwid-features --version
 
 .module_cuda: &module_load_cuda
-    - module load cuda/11.7
+    - module load cuda
     - nvcc --version
     - nvidia-smi
     - locate cuda.h
