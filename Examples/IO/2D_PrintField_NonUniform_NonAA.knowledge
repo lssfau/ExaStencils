@@ -1,0 +1,32 @@
+dimensionality                 = 2
+
+minLevel                       = 2
+maxLevel                       = 2
+
+discr_type                     = "FiniteDifferences"
+
+domain_onlyRectangular         = true
+domain_rect_generate           = true
+grid_isUniform                 = false
+grid_isStaggered               = false
+grid_isAxisAligned             = false
+grid_spacingModel              = "random"
+experimental_grid_randomMaxOffset = 0.2
+
+experimental_generateParaviewFiles = true
+
+domain_onlyRectangular         = true
+domain_rect_generate           = true
+domain_rect_numBlocks_x        = 2
+domain_rect_numBlocks_y        = 1
+domain_rect_numBlocks_z        = 1
+domain_rect_numFragsPerBlock_x = 1
+domain_rect_numFragsPerBlock_y = 2
+domain_rect_numFragsPerBlock_z = 1
+
+omp_enabled                       = false
+omp_numThreads                    = 1
+mpi_enabled                       = true
+mpi_numThreads                    = 2
+omp_parallelizeLoopOverFragments  = false
+omp_parallelizeLoopOverDimensions = false

@@ -21,5 +21,22 @@ package exastencils.layoutTransformation.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Node
+import exastencils.core.ObjectWithState
+import exastencils.core.StateManager
+
+object IR_LayoutTransformationCollection extends ObjectWithState {
+
+  // buffer looked up reference to reduce execution time
+  var selfRef : Option[IR_LayoutTransformationCollection] = None
+
+  override def clear() = { selfRef = None }
+
+  // looks itself up starting from the current root
+  def getOpt = {
+    if (selfRef.isEmpty)
+      selfRef = StateManager.findFirst[IR_LayoutTransformationCollection]()
+    selfRef
+  }
+}
 
 case class IR_LayoutTransformationCollection(var trafoStmts : ListBuffer[IR_LayoutTransformStatement]) extends IR_Node

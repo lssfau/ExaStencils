@@ -12,9 +12,9 @@ stages:
 #######################################
 
 .test_template:
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -60,6 +60,26 @@ stages:
         - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
         - cd Testing
 
+.test_template_IO:
+    extends: .test_template
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11-par-io
+    artifacts:
+        when: on_failure
+        paths:
+            - Testing/output/Debug/*
+            - Testing/output/generated/*
+            - Testing/data/*
+        expire_in: 1 weeks
+    before_script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - sionversion
+        - h5pcc -showconfig
+        - pnetcdf-config --all
+        - cd Testing
+
+
 .benchmark_template:
     dependencies:
         - build:generator
@@ -84,7 +104,7 @@ stages:
 ##                                   ##
 #######################################
 
-generate-docker-image:
+generate-docker-image-base:
     stage: .pre
     when: manual
     image: docker:latest
@@ -95,6 +115,18 @@ generate-docker-image:
         - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11 || true
         - docker build --pull . -f  dockerfiles/ubuntu-20.04-openjdk-11.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
         - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+
+generate-docker-image-pario:
+    stage: .pre
+    when: manual
+    image: docker:latest
+    tags:
+        - docker-docker
+    script:
+        - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+        - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11-par-io || true
+        - docker build --pull . -f  dockerfiles/ubuntu-20.04-openjdk-11-par-io.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11-par-io
+        - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11-par-io
 
 #######################################
 ##                                   ##
@@ -253,6 +285,46 @@ test:Appl_OptFlow3D:
     extends: .test_template
     script:
         - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib Appl_OptFlow3D Application/OpticalFlow3D.knowledge "Application/OpticalFlow3D.exa4" Application/OpticalFlow3D.results 1 10 Platform/random.platform output
+
+###############################################
+# (PARALLEL) I/O TESTS                        #
+###############################################
+
+test:ParIO_CheckEquality_2D:
+    extends: .test_template_IO
+    tags:
+        - docker
+        - AVX2
+    script:
+        # 2D_Scalar_CheckEquality_ReadAfterWrite
+        - mkdir -p data/2D_Scalar_CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_Scalar_CheckEquality_ReadAfterWrite IOTest/2D_Scalar_CheckEquality_ReadAfterWrite.knowledge "IOTest/2D_Scalar_CheckEquality_ReadAfterWrite.exa4" "" 2 1 Platform/anyavx2.platform output
+        # 2D_LayoutTrafo_CheckEquality_ReadAfterWrite
+        - mkdir -p data/2D_LayoutTrafo_CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_LayoutTrafo_CheckEquality_ReadAfterWrite IOTest/2D_LayoutTrafo_CheckEquality_ReadAfterWrite.knowledge "IOTest/2D_LayoutTrafo_CheckEquality_ReadAfterWrite.exa4" "" 2 1 Platform/anyavx2.platform output
+        # 2D_Vector_CheckEquality_ReadAfterWrite
+        - mkdir -p data/2D_Vector_CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 2D_Vector_CheckEquality_ReadAfterWrite IOTest/2D_Vector_CheckEquality_ReadAfterWrite.knowledge "IOTest/2D_Vector_CheckEquality_ReadAfterWrite.exa4" "" 4 1 Platform/anyavx2.platform output
+
+test:ParIO_CheckEquality_3D:
+    extends: .test_template_IO
+    tags:
+        - docker
+        - AVX2
+    script:
+        # 3D_Matrix_CheckEquality_ReadAfterWrite
+        - mkdir -p data/3D_Matrix_CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_Matrix_CheckEquality_ReadAfterWrite IOTest/3D_Matrix_CheckEquality_ReadAfterWrite.knowledge "IOTest/3D_Matrix_CheckEquality_ReadAfterWrite.exa4" "" 4 1 Platform/anyavx2.platform output
+        # 3D_Scalar_CheckEquality_ReadAfterWrite
+        - mkdir -p data/3D_Scalar_CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_Scalar_CheckEquality_ReadAfterWrite IOTest/3D_Scalar_CheckEquality_ReadAfterWrite.knowledge "IOTest/3D_Scalar_CheckEquality_ReadAfterWrite.exa4" "" 8 1 Platform/anyavx2.platform output
+        # 3D_Vector_CheckEquality_ReadAfterWrite
+        - mkdir -p data/3D_Vector_CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib 3D_Vector_CheckEquality_ReadAfterWrite IOTest/3D_Vector_CheckEquality_ReadAfterWrite.knowledge "IOTest/3D_Vector_CheckEquality_ReadAfterWrite.exa4" "" 4 1 Platform/anyavx2.platform output
+        # CheckEquality_ReadAfterWrite
+        - mkdir -p data/CheckEquality_ReadAfterWrite
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CheckEquality_ReadAfterWrite IOTest/CheckEquality_ReadAfterWrite.knowledge "IOTest/CheckEquality_ReadAfterWrite.exa4" "" 8 1 Platform/anyavx2.platform output
+
 
 ###############################################
 # BASIC COMMUNICATION TESTS                   #
