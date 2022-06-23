@@ -52,16 +52,16 @@ Stencil Laplace@finest {
 Function applyBC_solution@finest ( ) : Unit {
     startTimer ( 'applyBC' )
   	loop over Solution<active>@current only ghost [-1,  0] on boundary {
-  		Solution<active>@current = 0. - Solution<active>@current@[0, 1]
+  		Solution<active>@current = 0. - Solution<active>@current@[ 1,  0]
   	}
   	loop over Solution<active>@current only ghost [ 1,  0] on boundary {
-  		Solution<active>@current = 0. - Solution<active>@current@[0, -1]
+  		Solution<active>@current = 0. - Solution<active>@current@[-1,  0]
   	}
   	loop over Solution<active>@current only ghost [ 0, -1] on boundary {
-        Solution<active>@current = 0. - Solution<active>@current@[0, 1]
+        Solution<active>@current = 0. - Solution<active>@current@[ 0,  1]
     }
   	loop over Solution<active>@current only ghost [ 0,  1] on boundary {
-        Solution<active>@current = ( sin ( 2. * PI * vf_nodePosition_x) * sinh( 2. * PI ) ) - Solution<active>@current@[0, -1]
+        Solution<active>@current = ( sin ( 2. * PI * vf_nodePosition_x) * sinh( 2. * PI ) ) - Solution<active>@current@[ 0, -1]
     }
     stopTimer ( 'applyBC' )
 }
