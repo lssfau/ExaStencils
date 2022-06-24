@@ -127,7 +127,7 @@ case class CUDA_HandleFragmentLoops(
 
       case _ : IR_ScalarDatatype => // single value returned
         val dst = redTarget
-        val src = if (reductionResult.datatype.resolveBaseDatatype.isInstanceOf[IR_PointerDatatype])
+        val src = if (reductionResult.datatype.isInstanceOf[IR_PointerDatatype])
           IR_ArrayAccess(reductionResult, 0)
         else
           reductionResult
