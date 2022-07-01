@@ -24,6 +24,7 @@ import scala.collection.mutable._
 import java.io.PrintWriter
 
 import exastencils.base.ir._
+import exastencils.base.l4.L4_SpecialFunctionReferences
 import exastencils.baseExt.ir.IR_MatNodes._
 import exastencils.baseExt.ir._
 import exastencils.config._
@@ -609,6 +610,13 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           case _ : IR_Expression => mapCompiletimeMatrixFctExpr(mn.asInstanceOf[IR_Expression])
         }
         mn
+      case fctCall @ IR_FunctionCall(IR_PlainInternalFunctionReference(name, _), ListBuffer()) if L4_SpecialFunctionReferences.luSolve.pattern.matcher(name).matches() =>
+        val (m, n) = name match { case L4_SpecialFunctionReferences.luSolve(x, y) => (x, y) }
+        // FIXME
+        ListBuffer(
+          IR_Comment(s"Performance of function $name cannot be evaluated correctly at the moment"),
+          fctCall
+        )
 
     }, false)
   }
