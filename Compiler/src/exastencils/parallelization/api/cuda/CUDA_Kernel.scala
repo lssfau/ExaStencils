@@ -338,7 +338,12 @@ case class CUDA_Kernel(
         requiredThreadsPerDim = (0 until executionDim).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
       }
 
-      numThreadsPerBlock = Knowledge.cuda_blockSizeAsVec.take(executionDim)
+      val cudaBlocksizes = Knowledge.cuda_blockSizeAsVec.take(executionDim)
+      if (requiredThreadsPerDim.product > Knowledge.cuda_minimalBlockSize) {
+        numThreadsPerBlock = cudaBlocksizes.zipWithIndex.map { case (blockSize, idx) => scala.math.min(blockSize, requiredThreadsPerDim(idx)) }
+      } else {
+        numThreadsPerBlock = cudaBlocksizes
+      }
 
       // adapt thread count for reduced dimensions
       if (Knowledge.cuda_foldBlockSizeForRedDimensionality)
