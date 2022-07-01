@@ -107,7 +107,7 @@ object MakefileGenerator extends BuildfileGenerator {
 
     if (Settings.makefile_makeLibs) {
       printer <<< mkStringTrimFlat("lib${BINARY}.a:", "${ALL_OBJ}")
-      printer <<< "\t" + mkStringTrimFlat("ar -cvr ${BINARY}.a", "${ALL_OBJ}", "${LDLIBS}")
+      printer <<< "\t" + mkStringTrimFlat("ar -cvr lib${BINARY}.a", "${ALL_OBJ}", "${LDLIBS}")
       printer <<< ""
     }
     printer <<< ""
