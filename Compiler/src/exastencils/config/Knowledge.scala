@@ -582,6 +582,8 @@ object Knowledge {
   var cuda_blockSize_y : Long = 4
   // default block size in z dimension
   var cuda_blockSize_z : Long = 4
+  // minimal block size (product), default is regular warp size (32)
+  var cuda_minimalBlockSize : Long = 32
 
   // the product of the block sizes per dimension, i.e. the total block size
   def cuda_blockSizeTotal : Long = cuda_blockSize_x * cuda_blockSize_y * cuda_blockSize_z
