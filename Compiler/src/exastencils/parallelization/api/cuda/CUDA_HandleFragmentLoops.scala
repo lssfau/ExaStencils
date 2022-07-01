@@ -135,9 +135,13 @@ case class CUDA_HandleFragmentLoops(
     }
 
     // accumulate fragment copies into reduction variable
-    IR_IfCondition(Knowledge.cuda_executionCondition,
-      getAssign(currCopy(copies)),
-      getAssign(reductionTmp))
+    if (Knowledge.cuda_preferredExecution == "Condition") {
+      IR_IfCondition(Knowledge.cuda_executionCondition,
+        getAssign(currCopy(copies)),
+        getAssign(reductionTmp))
+    } else {
+      getAssign(reductionTmp)
+    }
   }
 
   def replaceAccesses(redTarget : IR_Expression, copies : IR_VariableAccess, body : ListBuffer[IR_Statement]) : Unit = {
