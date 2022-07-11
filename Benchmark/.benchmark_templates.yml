@@ -25,13 +25,12 @@
             done
 
 .module_gcc: &module_load_gcc
-    #- module load gcc/9.2.0-aisu47
+    - module load gcc/10.2.0
     - gcc --version
 
 .module_icc: &module_load_icc
-    #- module load intel64/19.1up02
-    #- icc -v
-    - module avail # dummy line
+    - module load intel/2020.2
+    - icc -v
 
 .module_openmpi: &module_load_openmpi
     - module load openmpi/4.1.1-gcc
