@@ -211,6 +211,8 @@ object Platform {
   var hw_cuda_sharedMemory : Int = 49152
   // cache size in byte
   var hw_cuda_cacheMemory : Int = 16384
+  // default warp size (32)
+  var hw_cuda_warpSize : Long = 32
 
   // 3 seems to be max; checked for versions up to 5.3
   def hw_cuda_maxNumDimsBlock : Int = if (hw_cuda_capability < 2) 2 else 3
