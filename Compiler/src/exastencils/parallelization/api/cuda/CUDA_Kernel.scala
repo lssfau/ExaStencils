@@ -347,15 +347,17 @@ case class CUDA_Kernel(
 
       def warpSizePadFeasible(blockSizes : Array[Long]) = blockSizes(0) % Platform.hw_cuda_warpSize >= Platform.hw_cuda_warpSize / 2
 
+      // use user-defined block sizes as initial config
+      numThreadsPerBlock = Knowledge.cuda_blockSizeAsVec.take(executionDim)
+
       // intersect iteration space with cuda block sizes
-      var threadsPerBlockIntersection = Knowledge.cuda_blockSizeAsVec
       var blockSizesDetermined = false
       while (!blockSizesDetermined) {
-        threadsPerBlockIntersection = getIntersectionWithIterationSpace(threadsPerBlockIntersection)
-        if (threadsPerBlockIntersection.product >= Knowledge.cuda_minimalBlockSize) {
+        numThreadsPerBlock = getIntersectionWithIterationSpace(numThreadsPerBlock)
+        if (numThreadsPerBlock.product >= Knowledge.cuda_minimalBlockSize) {
           // greater than min block size -> use intersection but make sure that block sizes are multiple of warp size -> pad innermost dim (if feasible)
-          if (!divisibleByWarpSize(threadsPerBlockIntersection) && warpSizePadFeasible(threadsPerBlockIntersection))
-            threadsPerBlockIntersection(0) = roundUp(threadsPerBlockIntersection(0), Platform.hw_cuda_warpSize)
+          if (!divisibleByWarpSize(numThreadsPerBlock) && warpSizePadFeasible(numThreadsPerBlock))
+            numThreadsPerBlock(0) = roundUp(numThreadsPerBlock(0), Platform.hw_cuda_warpSize)
           blockSizesDetermined = true
         } else {
           // smaller than min block size
@@ -363,17 +365,16 @@ case class CUDA_Kernel(
             // iteration space smaller than minimal block size product -> prevent spawning many idle threads
             blockSizesDetermined = true
           } else {
-            val incr = if (divisibleByWarpSize(threadsPerBlockIntersection)) Platform.hw_cuda_warpSize else 0
-            threadsPerBlockIntersection(0) = roundUp(threadsPerBlockIntersection(0) + incr, Platform.hw_cuda_warpSize)
+            val incr = if (divisibleByWarpSize(numThreadsPerBlock)) Platform.hw_cuda_warpSize else 0
+            numThreadsPerBlock(0) = roundUp(numThreadsPerBlock(0) + incr, Platform.hw_cuda_warpSize)
           }
         }
       }
-      numThreadsPerBlock = threadsPerBlockIntersection.take(executionDim)
 
       // adapt thread count for reduced dimensions
       if (Knowledge.cuda_foldBlockSizeForRedDimensionality)
         for (d <- executionDim until Knowledge.dimensionality)
-          numThreadsPerBlock(0) *= threadsPerBlockIntersection(d)
+          numThreadsPerBlock(0) *= Knowledge.cuda_blockSizeAsVec(d)
 
       numBlocksPerDim = (0 until executionDim).map(dim => {
         val inc = stepSize(dim) match {
