@@ -30,7 +30,7 @@
 
 .module_icc: &module_load_icc
     - module load intel/2020.2
-    - icc -v
+    - icc --version
 
 .module_openmpi: &module_load_openmpi
     - module load openmpi/4.1.1-gcc
@@ -53,7 +53,7 @@
 
 .compiler_versions: &get_compiler_versions
     - gccVersion=$(gcc --version | grep ^gcc | sed 's/^.* //g' | cut -d "." -f 1-2 | tr -d '.')
-    - iccVersion=$(echo "$(icc -v 2>&1)" | sed -e "s/^icc version //" | cut -d " " -f 1 | cut -d "." -f 1-2 | tr -d '.')
+    - iccVersion=$(echo "$(icc --version 2>&1)" | sed -e "s/^icc (ICC) //" | cut -d " " -f 1 | cut -d "." -f 1-2 | tr -d '.' | head -n 1)
 
 .cuda_job_template:
     dependencies:
