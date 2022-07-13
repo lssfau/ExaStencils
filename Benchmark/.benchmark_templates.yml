@@ -25,7 +25,7 @@
             done
 
 .module_gcc: &module_load_gcc
-    - module load gcc/10.2.0
+    #- module load gcc/10.2.0
     - gcc --version
 
 .module_icc: &module_load_icc
