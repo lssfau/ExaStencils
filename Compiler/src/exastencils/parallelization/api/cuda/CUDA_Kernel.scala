@@ -351,24 +351,15 @@ case class CUDA_Kernel(
       numThreadsPerBlock = Knowledge.cuda_blockSizeAsVec.take(executionDim)
 
       // intersect iteration space with cuda block sizes
-      var blockSizesDetermined = false
-      while (!blockSizesDetermined) {
-        numThreadsPerBlock = getIntersectionWithIterationSpace(numThreadsPerBlock)
-        if (numThreadsPerBlock.product >= Knowledge.cuda_minimalBlockSize) {
-          // greater than min block size -> use intersection but make sure that block sizes are multiple of warp size -> pad innermost dim (if feasible)
-          if (!divisibleByWarpSize(numThreadsPerBlock) && warpSizePadFeasible(numThreadsPerBlock))
-            numThreadsPerBlock(0) = roundUp(numThreadsPerBlock(0), Platform.hw_cuda_warpSize)
-          blockSizesDetermined = true
-        } else {
-          // smaller than min block size
-          if (requiredThreadsPerDim.product < Knowledge.cuda_minimalBlockSize) {
-            // iteration space smaller than minimal block size product -> prevent spawning many idle threads
-            blockSizesDetermined = true
-          } else {
-            val incr = if (divisibleByWarpSize(numThreadsPerBlock)) Platform.hw_cuda_warpSize else 0
-            numThreadsPerBlock(0) = roundUp(numThreadsPerBlock(0) + incr, Platform.hw_cuda_warpSize)
-          }
-        }
+      numThreadsPerBlock = getIntersectionWithIterationSpace(numThreadsPerBlock)
+      if (numThreadsPerBlock.product >= Knowledge.cuda_minimalBlockSize) {
+        // greater than min block size -> use intersection but make sure that block sizes are multiple of warp size -> pad innermost dim (if feasible)
+        if (!divisibleByWarpSize(numThreadsPerBlock) && warpSizePadFeasible(numThreadsPerBlock))
+          numThreadsPerBlock(0) = roundUp(numThreadsPerBlock(0), Platform.hw_cuda_warpSize)
+      } else if (requiredThreadsPerDim.product >= Knowledge.cuda_minimalBlockSize) { // prevent spawning many idle threads
+        // smaller than min block size -> pad again
+        if (warpSizePadFeasible(numThreadsPerBlock))
+          numThreadsPerBlock(0) = roundUp(numThreadsPerBlock(0), Platform.hw_cuda_warpSize)
       }
 
       // adapt thread count for reduced dimensions
