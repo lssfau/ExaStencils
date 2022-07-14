@@ -38,7 +38,7 @@ abstract class CUDA_Event(
 case class CUDA_PendingStreamTransfers(
     var field : IR_Field,
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt)
-  extends CUDA_Event(true, false, true, false, false) {
+  extends CUDA_Event(true, false, true, true, false) {
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
@@ -46,7 +46,7 @@ case class CUDA_PendingStreamTransfers(
     if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, IR_NullExpression, IR_NullExpression)
 
   override def resolveName() : String = "pendingStreamTransferEvent" +
-    resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, "", "")
+    resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, field.level.toString, "")
 
   override def resolveDatatype() : IR_Datatype = IR_SpecialDatatype("cudaEvent_t")
 }
