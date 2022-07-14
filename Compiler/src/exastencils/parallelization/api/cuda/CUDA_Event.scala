@@ -43,7 +43,7 @@ case class CUDA_PendingStreamTransfers(
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression,
-    if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, IR_NullExpression, IR_NullExpression)
+    if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, field.level.toString, IR_NullExpression)
 
   override def resolveName() : String = "pendingStreamTransferEvent" +
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, field.level.toString, "")
