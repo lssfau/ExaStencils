@@ -18,6 +18,8 @@ abstract class CUDA_Event(
     canBePerNeighbor : Boolean
 ) extends IR_InternalVariable(canBePerFragment, canBePerDomain, canBePerField, canBePerLevel, canBePerNeighbor) {
 
+  def synchronizationNecessary = Knowledge.cuda_useStreams
+
   override def getCtor() : Option[IR_Statement] = {
     Some(wrapInLoops(
       IR_FunctionCall(IR_ExternalFunctionReference("cudaEventCreateWithFlags"),
@@ -51,7 +53,7 @@ case class CUDA_PendingStreamTransfers(
 
 case class CUDA_EventRecord(event : CUDA_Event, stream : CUDA_Stream) extends IR_Statement with IR_Expandable {
   override def expand() : OutputType = {
-    if (stream.useNonDefaultStreams)
+    if (event.synchronizationNecessary)
       IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("cudaEventRecord"), event, stream))
     else
       IR_NullStatement
@@ -63,7 +65,7 @@ case class CUDA_WaitEvent(event : CUDA_Event, stream : CUDA_Stream) extends IR_S
   def flags = 0
 
   override def expand() : OutputType = {
-    if (stream.useNonDefaultStreams)
+    if (event.synchronizationNecessary)
       IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamWaitEvent"), stream, event, flags))
     else
       IR_NullStatement
