@@ -65,9 +65,13 @@ case class CUDA_WaitEvent(event : CUDA_Event, stream : CUDA_Stream) extends IR_S
   def flags = 0
 
   override def expand() : OutputType = {
-    if (event.synchronizationNecessary)
-      IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamWaitEvent"), stream, event, flags))
-    else
+    if (event.synchronizationNecessary) {
+      stream match {
+        case _ : CUDA_DefaultStream => IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("cudaEventSynchronize"), event))
+        case _                      => IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamWaitEvent"), stream, event, flags))
+      }
+    } else {
       IR_NullStatement
+    }
   }
 }
