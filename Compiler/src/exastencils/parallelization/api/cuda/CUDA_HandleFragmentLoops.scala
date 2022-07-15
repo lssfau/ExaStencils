@@ -44,6 +44,7 @@ case class CUDA_HandleFragmentLoops(
   streams foreach {
     case _ : CUDA_ComputeStream => fragLoop.parallelization.canRunInComputeStreams = true
     case _ : CUDA_CommunicateStream => fragLoop.parallelization.canRunInCommunicateStreams = true
+    case _ =>
   }
 
   // tmp buffer for reduction result (host)
