@@ -610,13 +610,11 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           case _ : IR_Expression => mapCompiletimeMatrixFctExpr(mn.asInstanceOf[IR_Expression])
         }
         mn
-      case fctCall @ IR_FunctionCall(IR_PlainInternalFunctionReference(name, _), ListBuffer()) if L4_SpecialFunctionReferences.luSolve.pattern.matcher(name).matches() =>
-        val (m, n) = name match { case L4_SpecialFunctionReferences.luSolve(x, y) => (x, y) }
+      case fctCall : IR_FunctionCall if L4_SpecialFunctionReferences.luSolve.pattern.matcher(fctCall.name).matches() =>
+        val (m, n) = fctCall.name match { case L4_SpecialFunctionReferences.luSolve(x, y) => (x, y) }
+
         // FIXME
-        ListBuffer(
-          IR_Comment(s"Performance of function $name cannot be evaluated correctly at the moment"),
-          fctCall
-        )
+        fctCall
 
     }, false)
   }
