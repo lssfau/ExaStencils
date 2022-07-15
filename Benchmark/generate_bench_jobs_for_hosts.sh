@@ -4,7 +4,8 @@ if [ $# -ne 2 ]; then
   echo "Wrong number of arguments. Should be ./<script_name>.sh <EXA_PROBLEM_NAME> <EXA_PROBLEM_PATH>"
 fi
 
-HOSTLIST=$(sinfo -t idle -h --partition=work -o "%n")
+# get idle hosts (and filter out drained hosts)
+HOSTLIST=$(echo "$(sinfo -t idle -h --partition=work -o "%n"; sinfo -t drain -h -o "%n")" | sort | uniq -u)
 for HOST in ${HOSTLIST}; do
   if [[ "$HOST" != "aurora1" && "$HOST" != "warmup" ]]; then
     echo "stages:"
