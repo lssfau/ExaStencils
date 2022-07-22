@@ -213,7 +213,8 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
         beforeHost += CUDA_UpdateHostBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
 
       // wait for pending transfer events
-      beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, buffer.fragmentIdx), executionStream, "D2H")
+      if (syncBeforeHost(access._1, bufferAccesses.keys))
+        beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, buffer.fragmentIdx), executionStream, "D2H")
 
       // update flags for written buffers
       if (syncAfterHost(access._1, bufferAccesses.keys))

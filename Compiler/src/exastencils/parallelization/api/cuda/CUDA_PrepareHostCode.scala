@@ -103,7 +103,8 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
         beforeHost += CUDA_UpdateHostData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
 
       // wait for pending transfer events
-      beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, fieldData.fragIdx), executionStream, "D2H")
+      if (syncBeforeHost(access._1, gatherFields.fieldAccesses.keys))
+        beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, fieldData.fragIdx), executionStream, "D2H")
 
       // update flags for written fields
       if (syncAfterHost(access._1, gatherFields.fieldAccesses.keys))
@@ -119,7 +120,8 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
         beforeHost += CUDA_UpdateHostBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
 
       // wait for pending transfer events
-      beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, buffer.fragmentIdx), executionStream, "D2H")
+      if (syncBeforeHost(access._1, gatherBuffers.bufferAccesses.keys))
+        beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, buffer.fragmentIdx), executionStream, "D2H")
 
       // update flags for written buffers
       if (syncAfterHost(access._1, gatherBuffers.bufferAccesses.keys))
@@ -141,7 +143,8 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
           beforeDevice += CUDA_UpdateDeviceData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
 
         // wait for pending transfer events
-        beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, fieldData.fragIdx), executionStream, "H2D")
+        if (syncBeforeDevice(access._1, gatherFields.fieldAccesses.keys))
+          beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, fieldData.fragIdx), executionStream, "H2D")
 
         // update flags for written fields
         if (syncAfterDevice(access._1, gatherFields.fieldAccesses.keys))
@@ -157,7 +160,8 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
           beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
 
         // wait for pending transfer events
-        beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, buffer.fragmentIdx), executionStream, "H2D")
+        if (syncBeforeDevice(access._1, gatherBuffers.bufferAccesses.keys))
+          beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, buffer.fragmentIdx), executionStream, "H2D")
 
         // update flags for written fields
         if (syncAfterDevice(access._1, gatherBuffers.bufferAccesses.keys))
