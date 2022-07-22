@@ -341,25 +341,44 @@ case class CUDA_Kernel(
       def getIntersectionWithIterationSpace(blockSizes : Array[Long]) =
         blockSizes.zipWithIndex.map { case (blockSize, idx) => scala.math.min(blockSize, requiredThreadsPerDim(idx)) }
 
-      def roundUp(value : Long, multiple : Long) = ((value + multiple - 1) / multiple) * multiple
+      // use user-defined block sizes as initial config and intersect iteration space with cuda block sizes
+      var blockSizes = getIntersectionWithIterationSpace(Knowledge.cuda_blockSizeAsVec.take(executionDim))
+      if (blockSizes.product >= Knowledge.cuda_minimalBlockSize) {
+        // case 1: greater than min block size -> use intersection
+        // TODO: handle cases where block size is not a multiple of warp size? -> if 0 != prod(trimmed) % warp -> handling
+        numThreadsPerBlock = blockSizes.map(identity)
+      }
 
-      def divisibleByWarpSize(blockSizes : Array[Long]) = blockSizes.product % Platform.hw_cuda_warpSize == 0
+      var prevTrimSize = 0L
+      var done = false
+      while (blockSizes.product != prevTrimSize && !done) {
+        prevTrimSize = blockSizes.product
 
-      def warpSizePadFeasible(blockSizes : Array[Long]) = blockSizes(0) % Platform.hw_cuda_warpSize >= Platform.hw_cuda_warpSize / 2
+        // case 2: intersected block is equivalent to iter space -> return
+        if (blockSizes.zip(requiredThreadsPerDim.take(executionDim)).forall(tup => tup._1 == tup._2)) {
+          numThreadsPerBlock = blockSizes.map(identity)
+          done = true
+        } else {
+          // double block size in each dimension until block is large enough (or case 2 triggers)
+          val resizeOrder = if (executionDim == 3) List(0, 2, 1) else 0 until executionDim
+          for (d <- resizeOrder) {
+            // resize
+            blockSizes(d) *= 2
 
-      // use user-defined block sizes as initial config
-      numThreadsPerBlock = Knowledge.cuda_blockSizeAsVec.take(executionDim)
+            // optional: trim innermost dim to multiples of warp size
+            if (d == 0 && blockSizes(d) > Platform.hw_cuda_warpSize && blockSizes(d) % Platform.hw_cuda_warpSize != 0)
+              blockSizes(d) = blockSizes(d) - (blockSizes(d) % Platform.hw_cuda_warpSize) // subtract remainder
 
-      // intersect iteration space with cuda block sizes
-      numThreadsPerBlock = getIntersectionWithIterationSpace(numThreadsPerBlock)
-      if (numThreadsPerBlock.product >= Knowledge.cuda_minimalBlockSize) {
-        // greater than min block size -> use intersection but make sure that block sizes are multiple of warp size -> pad innermost dim (if feasible)
-        if (!divisibleByWarpSize(numThreadsPerBlock) && warpSizePadFeasible(numThreadsPerBlock))
-          numThreadsPerBlock(0) = roundUp(numThreadsPerBlock(0), Platform.hw_cuda_warpSize)
-      } else if (requiredThreadsPerDim.product >= Knowledge.cuda_minimalBlockSize) { // prevent spawning many idle threads
-        // smaller than min block size -> pad again
-        if (warpSizePadFeasible(numThreadsPerBlock))
-          numThreadsPerBlock(0) = roundUp(numThreadsPerBlock(0), Platform.hw_cuda_warpSize)
+            // intersect again
+            blockSizes = getIntersectionWithIterationSpace(blockSizes.map(identity))
+
+            // case 3: intersected block is large enough
+            if (blockSizes.product >= Knowledge.cuda_minimalBlockSize) {
+              numThreadsPerBlock = blockSizes.map(identity)
+              done = true
+            }
+          }
+        }
       }
 
       // adapt thread count for reduced dimensions
