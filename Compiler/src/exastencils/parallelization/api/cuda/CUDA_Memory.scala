@@ -192,13 +192,13 @@ case class CUDA_ReductionResultBuffer(
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
 ) extends IR_InternalVariable(true, false, false, false, false) {
 
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess()
-  def resolveAccess() = super.resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
+  override def prettyprint(out : PpStream) : Unit = out << getAccess()
+  def getAccess() = resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
   override def resolveName() : String = name + resolvePostfix("", "", "", "", "")
   override def resolveDatatype() : IR_Datatype = IR_PointerDatatype(baseDt)
 
-  override def getCtor() : Option[IR_Statement] = Some(wrapInLoops(IR_ArrayAllocation(resolveAccess(), baseDt, size)))
-  override def getDtor() : Option[IR_Statement] = Some(wrapInLoops(IR_IfCondition(resolveAccess(), IR_ArrayFree(resolveAccess()))))
+  override def getCtor() : Option[IR_Statement] = Some(wrapInLoops(IR_ArrayAllocation(getAccess(), baseDt, size)))
+  override def getDtor() : Option[IR_Statement] = Some(wrapInLoops(IR_IfCondition(getAccess(), IR_ArrayFree(getAccess()))))
 }
 
 /// CUDA_AdaptDeviceAccessesForMM

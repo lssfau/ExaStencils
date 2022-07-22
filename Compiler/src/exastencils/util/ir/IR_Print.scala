@@ -26,18 +26,52 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.parallelization.api.mpi.MPI_IsRootProc
 import exastencils.prettyprinting.PpStream
 
+trait PrintStream extends IR_Statement {
+  def vAccStream : IR_VariableAccess
+  def exprToPrint : ListBuffer[IR_Expression]
+}
+
 /// IR_Print
 
 object IR_Print {
   def apply(stream : IR_VariableAccess, toPrint : IR_Expression*) = new IR_Print(stream, toPrint.to[ListBuffer])
 
-  def endl : IR_Expression = IR_VariableAccess("std::endl", IR_StringDatatype)
-  def flush : IR_Expression = IR_VariableAccess("std::flush", IR_StringDatatype)
   def newline : IR_Expression = IR_StringConstant("\\n")
+  def flush : IR_Expression = IR_VariableAccess("std::flush", IR_StringDatatype)
+  def endl : IR_Expression = IR_VariableAccess("std::endl", IR_StringDatatype)
 }
 
-case class IR_Print(var stream : IR_VariableAccess, var toPrint : ListBuffer[IR_Expression]) extends IR_Statement {
+case class IR_Print(var stream : IR_VariableAccess, var toPrint : ListBuffer[IR_Expression]) extends PrintStream {
+  override def vAccStream : IR_VariableAccess = stream
+  override def exprToPrint : ListBuffer[IR_Expression] = toPrint
   override def prettyprint(out : PpStream) = out << stream << " << " <<< (toPrint, " << ") << ';'
+}
+
+/// IR_PrintBinary
+
+object IR_PrintBinary {
+  def apply(stream : IR_VariableAccess, toPrint : IR_Access*) = new IR_PrintBinary(stream, toPrint.to[ListBuffer])
+}
+
+case class IR_PrintBinary(var stream : IR_VariableAccess, var toPrint : ListBuffer[IR_Access]) extends PrintStream {
+  override def vAccStream : IR_VariableAccess = stream
+  override def exprToPrint : ListBuffer[IR_Expression] = toPrint.asInstanceOf[ListBuffer[IR_Expression]]
+  override def prettyprint(out : PpStream) = {
+    toPrint.zipWithIndex.foreach { case (acc, idx) =>
+      out << IR_MemberFunctionCall(stream, "write", IR_Cast(IR_PointerDatatype(IR_CharDatatype), IR_AddressOf(acc)), IR_IntegerConstant(acc.datatype.resolveBaseDatatype.typicalByteSize))
+      out << ";" << (if (idx == toPrint.length - 1) "" else "\n")
+    }
+  }
+}
+
+/// IR_PrintBlockBinary
+
+case class IR_PrintBlockBinary(var stream : IR_VariableAccess, var address : IR_Expression, var byteSize : IR_Expression) extends PrintStream {
+  override def vAccStream : IR_VariableAccess = stream
+  override def exprToPrint : ListBuffer[IR_Expression] = ListBuffer(address)
+  override def prettyprint(out : PpStream) = {
+    out << IR_MemberFunctionCall(stream, "write", IR_Cast(IR_PointerDatatype(IR_CharDatatype), address), byteSize) << ";\n"
+  }
 }
 
 /// IR_RawPrint
