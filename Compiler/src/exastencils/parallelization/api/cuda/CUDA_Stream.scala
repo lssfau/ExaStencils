@@ -35,15 +35,10 @@ object CUDA_Stream {
     else
       None
 
-    val stream = if (neighCommKernel.isDefined)
+    if (neighCommKernel.isDefined)
       CUDA_CommunicateStream(Duplicate(neighCommKernel.get))
     else
       CUDA_ComputeStream()
-
-    if (!stream.useNonDefaultStreams)
-      CUDA_DefaultStream()
-    else
-      stream
   }
 
   def genSynchronize(stream : CUDA_Stream, before : Boolean) : ListBuffer[IR_Statement] = {
@@ -133,26 +128,13 @@ abstract class CUDA_Stream(
   }
 }
 
-/// CUDA_DefaultStream
-
-case class CUDA_DefaultStream() extends CUDA_Stream(false, false, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
-
-  override def useNonDefaultStreams : Boolean = false
-
-  override def resolveName() : String = "defaultStream"
-
-  override def getCtor() : Option[IR_Statement] = None
-  override def getDtor() : Option[IR_Statement] = None
-}
-
 /// CUDA_ComputeStream
 
 case class CUDA_ComputeStream(fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends CUDA_Stream(true, false, false) {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
 
   // use streams for fragment loops
-  override def useNonDefaultStreams : Boolean = Knowledge.cuda_useStreams && Knowledge.domain_numFragmentsPerBlock > 1
+  override def useNonDefaultStreams : Boolean = Knowledge.cuda_useStreams
 
   override def resolveName() = s"cudaComputeStream" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
 }

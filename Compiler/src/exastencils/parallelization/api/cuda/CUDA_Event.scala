@@ -6,6 +6,7 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.OutputType
 import exastencils.field.ir.IR_Field
+import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
 /// CUDA_Event
@@ -60,15 +61,16 @@ case class CUDA_EventRecord(event : CUDA_Event, stream : CUDA_Stream) extends IR
   }
 }
 
-case class CUDA_WaitEvent(event : CUDA_Event, stream : CUDA_Stream) extends IR_Statement with IR_Expandable {
+case class CUDA_WaitEvent(event : CUDA_Event, stream : CUDA_Stream, direction : String) extends IR_Statement with IR_Expandable {
 
   def flags = 0
 
   override def expand() : OutputType = {
     if (event.synchronizationNecessary) {
-      stream match {
-        case _ : CUDA_DefaultStream => IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("cudaEventSynchronize"), event))
-        case _                      => IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamWaitEvent"), stream, event, flags))
+      direction match {
+        case "D2H" => IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("cudaEventSynchronize"), event))
+        case "H2D" => IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamWaitEvent"), stream, event, flags))
+        case _     => Logger.error("Unknown transfer direction: " + direction)
       }
     } else {
       IR_NullStatement
