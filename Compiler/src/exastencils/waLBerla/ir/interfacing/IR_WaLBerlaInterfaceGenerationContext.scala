@@ -25,7 +25,7 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
 
   // block storage shared_ptr
   val blockForest = IR_WaLBerlaBlockForest()
-  publicMembers += blockForest.member
+  privateMembers += blockForest.member
 
   // comm scheme for each field. packed with a uniform pack info
   if (IR_WaLBerlaUtil.initCommSchemes) {
