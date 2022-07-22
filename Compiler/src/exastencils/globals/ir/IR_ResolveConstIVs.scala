@@ -59,7 +59,7 @@ object IR_ResolveConstIVs extends DefaultStrategy("Resolve constant internal var
           IR_NullStatement
         case neigh : IR_IV_NeighborIsValid                  =>
             val optimize = collector.stack.exists {
-              case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if fragLoop.parallelization.canRunInCommunicateStreams => true
+              case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if !fragLoop.parallelization.canRunInCommunicateStreams => true
               case _ => false
             }
 
