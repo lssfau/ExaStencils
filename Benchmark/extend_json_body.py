@@ -18,7 +18,7 @@ def decorate_json(json_body: dict, config: ConfigFromKnowledge):
     commit = os.environ.get("CI_COMMIT_SHA")
 
     # convert values to float to prevent field type conflicts
-    json_body = [dict([k, float(v)] for k, v in json_body.items())]
+    json_body = dict([k, float(v)] for k, v in json_body.items())
 
     new_body = {'measurement': config.problem_name, 'tags': {}}
     new_body['tags']['host'] = config.host_name
