@@ -74,7 +74,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     access.startsWith("write")
   }
 
-  def getHostDeviceSyncStmts(body : ListBuffer[IR_Statement], isParallel : Boolean) = {
+  def getHostDeviceSyncStmts(body : ListBuffer[IR_Statement], isParallel : Boolean, executionStream: CUDA_Stream) = {
     val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     // don't filter here - memory transfer code is still required
@@ -88,9 +88,6 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     this.execute(new Transformation("Gather local buffer access nodes", PartialFunction.empty), Some(IR_Scope(body)))
     this.unregister(gatherBuffers)
     Logger.popLevel()
-
-    // determine execution ( = comm/comp ) stream
-    val executionStream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
 
     // host sync stmts
 
@@ -214,8 +211,11 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       // use the host for dealing with the two exceptional cases
       val isParallel = containedLoop.parallelization.potentiallyParallel // filter some generate loops?
 
+      // determine execution ( = comm/comp ) stream
+      val executionStream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
+
       // calculate memory transfer statements for host and device
-      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(containedLoop.body, isParallel)
+      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(containedLoop.body, isParallel, executionStream)
 
       hostStmts ++= beforeHost
       deviceStmts ++= beforeDevice
@@ -298,8 +298,11 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       // use the host for dealing with the two exceptional cases
       val isParallel = loop.parallelization.potentiallyParallel // filter some generate loops?
 
+      // determine execution ( = comm/comp ) stream
+      val executionStream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
+
       // calculate memory transfer statements for host and device
-      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop.body, isParallel)
+      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop.body, isParallel, executionStream)
 
       hostStmts ++= beforeHost
       deviceStmts ++= beforeDevice
