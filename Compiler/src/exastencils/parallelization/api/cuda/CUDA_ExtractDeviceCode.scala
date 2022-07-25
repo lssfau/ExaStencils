@@ -257,9 +257,14 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       val enclosingFragLoop = stackCollector.stack.collectFirst {
         case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo => fragLoop }
 
-      // fetch stream from annotated loop (IR_LoopOverDimensions)
-      val stream = if (loop.hasAnnotation(CUDA_Util.CUDA_EXECUTION_STREAM)) {
-        loop.popAnnotationAs[CUDA_Stream](CUDA_Util.CUDA_EXECUTION_STREAM)
+      // fetch stream from annotated inner/outer loop
+      val annotOuterLoop = stackCollector.stack.collectFirst {
+        case l : IR_ScopedStatement with IR_HasParallelizationInfo if l.hasAnnotation(CUDA_Util.CUDA_EXECUTION_STREAM) => l }
+      val annotInnerLoop = collectLoopsInKernel(loop, (x : IR_ForLoop) => x.hasAnnotation(CUDA_Util.CUDA_EXECUTION_STREAM)).head
+      val stream = if (annotOuterLoop.isDefined) {
+        annotOuterLoop.get.popAnnotationAs[CUDA_Stream](CUDA_Util.CUDA_EXECUTION_STREAM)
+      } else if (annotInnerLoop.hasAnnotation(CUDA_Util.CUDA_EXECUTION_STREAM)) {
+        annotInnerLoop.popAnnotationAs[CUDA_Stream](CUDA_Util.CUDA_EXECUTION_STREAM)
       } else {
         Logger.error("Could not determine stream when extracting device code")
       }
