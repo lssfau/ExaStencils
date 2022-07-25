@@ -38,6 +38,7 @@ object CUDA_Util {
   val CUDA_INNER = "CUDAInner"
   val CUDA_BODY_DECL = "CUDABodyDeclarations"
   val CUDA_BRANCH_CONDITION = "CUDABranchCond"
+  val CUDA_EXECUTION_STREAM = "CUDAExecutionStream"
   val CUDA_REDUCTION_RESULT_BUF = "CUDAReductionResultBuf"
 
   /**

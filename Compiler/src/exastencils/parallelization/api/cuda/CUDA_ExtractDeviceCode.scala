@@ -98,11 +98,13 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name => fragLoop
       }
 
-      if (enclosing.isDefined) {
-        val stream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
+      // add execution stream to stream list of enclosing fragment loop
+      val list = enclosingFragmentLoops.getOrElse(enclosing.get, Nil)
+      if (loop.hasAnnotation(CUDA_Util.CUDA_EXECUTION_STREAM)) {
+        val stream = loop.getAnnotationAs[CUDA_Stream](CUDA_Util.CUDA_EXECUTION_STREAM)
 
-        val list = enclosingFragmentLoops.getOrElse(enclosing.get, Nil) :+ stream
-        enclosingFragmentLoops.update(enclosing.get, list.distinct)
+        if (enclosing.isDefined)
+          enclosingFragmentLoops.update(enclosing.get, (list :+ stream).distinct)
       }
 
       loop
@@ -255,8 +257,12 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       val enclosingFragLoop = stackCollector.stack.collectFirst {
         case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo => fragLoop }
 
-      // determine stream
-      val stream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
+      // fetch stream from annotated loop (IR_LoopOverDimensions)
+      val stream = if (loop.hasAnnotation(CUDA_Util.CUDA_EXECUTION_STREAM)) {
+        loop.popAnnotationAs[CUDA_Stream](CUDA_Util.CUDA_EXECUTION_STREAM)
+      } else {
+        Logger.error("Could not determine stream when extracting device code")
+      }
 
       val kernel = CUDA_Kernel(
         kernelCount,
