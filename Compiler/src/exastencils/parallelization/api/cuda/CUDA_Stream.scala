@@ -109,9 +109,10 @@ abstract class CUDA_Stream(
   override def getCtor() : Option[IR_Statement] = {
     if (useNonDefaultStreams) {
       Some(wrapInLoops(
-        IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamCreate"),
-          IR_AddressOf(
-            resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)))))
+        CUDA_CheckError(
+          IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamCreate"),
+            IR_AddressOf(
+              resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt))))))
     } else {
       None
     }
@@ -120,8 +121,9 @@ abstract class CUDA_Stream(
   override def getDtor() : Option[IR_Statement] = {
     if (useNonDefaultStreams) {
       Some(wrapInLoops(
-        IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamDestroy"),
-          resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt))))
+        CUDA_CheckError(
+            IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamDestroy"),
+              resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)))))
     } else {
       None
     }

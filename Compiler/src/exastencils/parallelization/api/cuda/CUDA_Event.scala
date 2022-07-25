@@ -23,16 +23,18 @@ abstract class CUDA_Event(
 
   override def getCtor() : Option[IR_Statement] = {
     Some(wrapInLoops(
-      IR_FunctionCall(IR_ExternalFunctionReference("cudaEventCreateWithFlags"),
-        IR_AddressOf(
-          resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)),
-        IR_VariableAccess("cudaEventDisableTiming", IR_UnknownDatatype))))
+      CUDA_CheckError(
+        IR_FunctionCall(IR_ExternalFunctionReference("cudaEventCreateWithFlags"),
+          IR_AddressOf(
+            resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)),
+          IR_VariableAccess("cudaEventDisableTiming", IR_UnknownDatatype)))))
   }
 
   override def getDtor() : Option[IR_Statement] = {
     Some(wrapInLoops(
-      IR_FunctionCall(IR_ExternalFunctionReference("cudaEventDestroy"),
-        resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt))))
+      CUDA_CheckError(
+        IR_FunctionCall(IR_ExternalFunctionReference("cudaEventDestroy"),
+          resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)))))
   }
 }
 
@@ -55,7 +57,7 @@ case class CUDA_PendingStreamTransfers(
 case class CUDA_EventRecord(event : CUDA_Event, stream : CUDA_Stream) extends IR_Statement with IR_Expandable {
   override def expand() : OutputType = {
     if (event.synchronizationNecessary)
-      IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("cudaEventRecord"), event, stream))
+      CUDA_CheckError(IR_FunctionCall(IR_ExternalFunctionReference("cudaEventRecord"), event, stream))
     else
       IR_NullStatement
   }
@@ -68,8 +70,8 @@ case class CUDA_WaitEvent(event : CUDA_Event, stream : CUDA_Stream, direction : 
   override def expand() : OutputType = {
     if (event.synchronizationNecessary) {
       direction match {
-        case "D2H" => IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("cudaEventSynchronize"), event))
-        case "H2D" => IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamWaitEvent"), stream, event, flags))
+        case "D2H" => CUDA_CheckError(IR_FunctionCall(IR_ExternalFunctionReference("cudaEventSynchronize"), event))
+        case "H2D" => CUDA_CheckError(IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamWaitEvent"), stream, event, flags))
         case _     => Logger.error("Unknown transfer direction: " + direction)
       }
     } else {
