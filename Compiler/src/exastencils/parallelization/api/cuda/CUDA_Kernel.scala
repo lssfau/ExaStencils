@@ -343,14 +343,15 @@ case class CUDA_Kernel(
 
       // use user-defined block sizes as initial config and intersect iteration space with cuda block sizes
       var blockSizes = getIntersectionWithIterationSpace(Knowledge.cuda_blockSizeAsVec.take(executionDim))
+      var done = false
       if (blockSizes.product >= Knowledge.cuda_minimalBlockSize) {
         // case 1: greater than min block size -> use intersection
         // TODO: handle cases where block size is not a multiple of warp size? -> if 0 != prod(trimmed) % warp -> handling
         numThreadsPerBlock = blockSizes.map(identity)
+        done = true
       }
 
       var prevTrimSize = 0L
-      var done = false
       while (blockSizes.product != prevTrimSize && !done) {
         prevTrimSize = blockSizes.product
 
