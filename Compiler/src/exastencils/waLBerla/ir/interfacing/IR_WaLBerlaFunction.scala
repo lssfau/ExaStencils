@@ -13,7 +13,6 @@ import exastencils.util.ir.IR_StackCollector
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.ir.field._
-import exastencils.waLBerla.ir.grid.IR_WaLBerlaCollection
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 

@@ -2,12 +2,11 @@ package exastencils.waLBerla.ir.field
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.waLBerla.ir._
+import exastencils.base.ir._
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
-import exastencils.waLBerla.ir.grid.IR_WaLBerlaCollection
+import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaCollection
 import exastencils.waLBerla.ir.interfacing._
 
 case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR_WaLBerlaFuturePlainFunction {
