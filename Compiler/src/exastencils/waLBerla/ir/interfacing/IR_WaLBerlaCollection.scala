@@ -18,7 +18,7 @@ import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 object IR_WaLBerlaCollection extends ObjectWithState {
   def defBase = "exa_coupling"
   def defBasePath = s"$defBase/"
-  def defHeader = s"$defBasePath.h"
+  def defHeader = s"$defBasePath/all.h"
 
   // buffer looked up reference to reduce execution time
   var selfRef : Option[IR_WaLBerlaCollection] = None
