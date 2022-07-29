@@ -16,7 +16,7 @@ import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 /// IR_WaLBerlaCollection
 
 object IR_WaLBerlaCollection extends ObjectWithState {
-  def defBase = "exa_waLBerla"
+  def defBase = "exa_coupling"
   def defBasePath = s"$defBase/$defBase"
   def defHeader = s"$defBasePath.h"
 
