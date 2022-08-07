@@ -18,6 +18,8 @@
 
 package exastencils.field.l3
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.base.l3._
 import exastencils.core._
 import exastencils.datastructures._
@@ -45,12 +47,18 @@ object L3_IntroduceSlots extends DefaultStrategy("Add slots to fields and field 
       access
 
     case solve : L3_LocalSolve if solve.jacobiType =>
-      // update slot number of a fields involved
+      var ret = ListBuffer[L3_Statement](solve)
+
+      // update slot number of a fields involved and add advance statements
       for (access <- solve.unknowns.map(_.asInstanceOf[L3_FieldAccess])) {
         access.target.numSlots = math.max(access.target.numSlots, math.abs(2))
       }
 
-      solve
+      for (access <- solve.unknowns.map(_.asInstanceOf[L3_FieldAccess]).groupBy(_.target.codeName).map(_._2.head)) {
+        ret += L3_AdvanceSlot(access)
+      }
+
+      ret
 
     // check assignments to fields as well
     case assignment @ L3_Assignment(lhs : L3_FieldAccess, rhs, _, cond) =>
