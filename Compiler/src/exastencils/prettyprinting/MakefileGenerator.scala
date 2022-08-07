@@ -89,7 +89,7 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< ".PHONY: all"
     val allTarget = ListBuffer("all:", "${BINARY}")
     if (Settings.makefile_makeLibs)
-      allTarget += "${BINARY}.a"
+      allTarget += "lib${BINARY}.a"
     printer <<< mkStringTrimFlat(allTarget)
     printer <<< ""
 
@@ -97,7 +97,7 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< "clean:"
     val cleanTargetCmd = ListBuffer("rm -f", "${BINARY}", "${ALL_OBJ}")
     if (Settings.makefile_makeLibs)
-      cleanTargetCmd += "${BINARY}.a"
+      cleanTargetCmd += "lib${BINARY}.a"
     printer <<< "\t" + mkStringTrimFlat(cleanTargetCmd)
     printer <<< ""
 
@@ -106,8 +106,8 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< ""
 
     if (Settings.makefile_makeLibs) {
-      printer <<< mkStringTrimFlat("${BINARY}.a:", "${ALL_OBJ}")
-      printer <<< "\t" + mkStringTrimFlat("ar -cvr ${BINARY}.a", "${ALL_OBJ}", "${LDLIBS}")
+      printer <<< mkStringTrimFlat("lib${BINARY}.a:", "${ALL_OBJ}")
+      printer <<< "\t" + mkStringTrimFlat("ar -cvr lib${BINARY}.a", "${ALL_OBJ}", "${LDLIBS}")
       printer <<< ""
     }
     printer <<< ""
