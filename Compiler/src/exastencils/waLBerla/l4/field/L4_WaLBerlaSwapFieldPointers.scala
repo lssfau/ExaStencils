@@ -32,7 +32,7 @@ case class L4_WaLBerlaSwapFieldPointers(
 
     IR_WaLBerlaSwapFieldPointers(
       IR_WaLBerlaFieldAccess(wbSrc, L4_FieldAccess.resolveSlot(wbSrc, src.slot), IR_LoopOverDimensions.defIt(wbSrc.numDimsGrid)),
-      IR_WaLBerlaFieldAccess(wbDst, L4_FieldAccess.resolveSlot(wbDst, src.slot), IR_LoopOverDimensions.defIt(wbDst.numDimsGrid)))
+      IR_WaLBerlaFieldAccess(wbDst, L4_FieldAccess.resolveSlot(wbDst, dst.slot), IR_LoopOverDimensions.defIt(wbDst.numDimsGrid)))
   }
 
   override def prettyprint(out : PpStream) : Unit =
