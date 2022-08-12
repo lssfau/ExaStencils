@@ -626,6 +626,9 @@ object Knowledge {
   // if true, the first dimension of the block size is enlarged if the kernel dimensionality is lower than the global dimensionality
   var cuda_foldBlockSizeForRedDimensionality : Boolean = true
 
+  // if true, error checks for cuda API calls are omitted
+  var cuda_omitErrorChecks : Boolean = false
+
   /// --- general parallelization ---
 
   // specifies if DefaultNeighbors is set up with only axis neighbors (4 in 2D and 6 in 3D) or diagonal neighbors as well
