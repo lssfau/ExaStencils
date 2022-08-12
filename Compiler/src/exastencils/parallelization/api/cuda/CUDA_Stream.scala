@@ -50,7 +50,7 @@ object CUDA_Stream {
       val syncStream = CUDA_StreamSynchronize(stream)
 
       val syncAllCommunication = DefaultNeighbors.neighbors.map(_.index).map(neigh =>
-        IR_IfCondition(IR_IV_NeighborIsValid(0, neigh), CUDA_StreamSynchronize(CUDA_CommunicateStream(neigh))))
+        CUDA_StreamSynchronize(CUDA_CommunicateStream(neigh)))
 
       val syncComputation = CUDA_StreamSynchronize(CUDA_ComputeStream())
 
