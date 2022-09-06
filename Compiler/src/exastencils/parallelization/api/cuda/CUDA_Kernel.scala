@@ -385,7 +385,7 @@ case class CUDA_Kernel(
       // check if block sizes are within hardware capabilities
       for (d <- resizeOrder) {
         while (blockSizes(d) >= Platform.hw_cuda_maxBlockSizes(d))
-          blockSizes(d) /= 2
+          blockSizes(d) = math.min(blockSizes(d), Platform.hw_cuda_maxBlockSizes(d))
       }
       while (blockSizes.product >= Platform.hw_cuda_maxNumThreads) {
         var shrink = true
