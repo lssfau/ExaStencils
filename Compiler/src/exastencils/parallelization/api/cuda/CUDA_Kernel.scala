@@ -352,6 +352,7 @@ case class CUDA_Kernel(
       }
 
       var prevTrimSize = 0L
+      val resizeOrder = if (executionDim == 3) List(0, 2, 1) else 0 until executionDim
       while (blockSizes.product != prevTrimSize && !done) {
         prevTrimSize = blockSizes.product
 
@@ -361,7 +362,6 @@ case class CUDA_Kernel(
           done = true
         } else {
           // double block size in each dimension until block is large enough (or case 2 triggers)
-          val resizeOrder = if (executionDim == 3) List(0, 2, 1) else 0 until executionDim
           for (d <- resizeOrder) {
             // resize
             blockSizes(d) *= 2
@@ -381,6 +381,25 @@ case class CUDA_Kernel(
           }
         }
       }
+
+      // check if block sizes are within hardware capabilities
+      for (d <- resizeOrder) {
+        while (blockSizes(d) >= Platform.hw_cuda_maxBlockSizes(d))
+          blockSizes(d) /= 2
+      }
+      while (blockSizes.product >= Platform.hw_cuda_maxNumThreads) {
+        var shrink = true
+        var d = 0
+        while (shrink && d < resizeOrder.length) {
+          blockSizes(resizeOrder(d)) /= 2
+
+          if (blockSizes.product < Platform.hw_cuda_maxNumThreads)
+            shrink = false
+
+          d = d + 1
+        }
+      }
+
 
       // adapt thread count for reduced dimensions
       if (Knowledge.cuda_foldBlockSizeForRedDimensionality)
