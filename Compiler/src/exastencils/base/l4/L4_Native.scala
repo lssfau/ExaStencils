@@ -29,7 +29,7 @@ import exastencils.prettyprinting.PpStream
 /// L4_Native
 
 case class L4_Native(nativeCode : String) extends L4_Expression {
-  override def prettyprint(out : PpStream) = out << "native ( " << nativeCode << " )"
+  override def prettyprint(out : PpStream) = out << "native ( " << s"'$nativeCode'"  << " )"
   override def progress = ProgressLocation(IR_Native(nativeCode))
 }
 
