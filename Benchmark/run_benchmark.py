@@ -90,9 +90,9 @@ def main():
         new_args = copy.deepcopy(args)
         par_knowledge_path = f"{remove_extension(ctx_base.knowledge_path)}_OMP.knowledge"
         shutil.copyfile(ctx_base.knowledge_path, par_knowledge_path)
-        with open(par_knowledge_path, 'a+') as new_knowledge:
-            new_knowledge.append(f"omp_enabled = true")
-            new_knowledge.append(f"omp_numThreads = {ctx_base.config.cores_per_cpu}")
+        with open(par_knowledge_path, 'a') as new_knowledge:
+            new_knowledge.write(f"omp_enabled = true")
+            new_knowledge.write(f"omp_numThreads = {ctx_base.config.cores_per_cpu}")
         new_args.knowledge_file = os.path.basename(par_knowledge_path)
 
         # generate code to new location
