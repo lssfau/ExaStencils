@@ -5,8 +5,6 @@ import argparse
 import json
 import copy
 import shutil
-from generation_helpers import *
-from run_context import *
 from upload_grafana import *
 from extend_json_body import *
 
@@ -14,6 +12,8 @@ import sys
 
 sys.path.append("../Utilities")
 from run_exastencils import *
+from generation_helpers import *
+from run_context import *
 
 
 # generate, compile, run and upload
