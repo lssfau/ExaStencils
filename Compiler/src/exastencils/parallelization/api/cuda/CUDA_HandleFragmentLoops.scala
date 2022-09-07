@@ -177,7 +177,8 @@ case class CUDA_HandleFragmentLoops(
       syncAfterFragLoop.parallelization.reduction = Some(red)
 
       // force comp stream sync if comp kernels are not synced explicitly
-      if (syncAfterFragLoop.body.isEmpty || syncAfterFragLoop.body.forall(_ == IR_NullStatement))
+      val syncsComp = syncAfterFragLoop.body.exists { case streamSync : CUDA_StreamSynchronize if streamSync.stream.isInstanceOf[CUDA_ComputeStream] => true }
+      if (!syncsComp)
         syncAfterFragLoop.body += CUDA_Stream.genCompSync()
 
       val counter = CUDA_HandleFragmentLoops.getReductionCounter(red.targetName)
