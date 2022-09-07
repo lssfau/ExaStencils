@@ -88,8 +88,8 @@ def main():
     if not ctx_base.config.use_cuda:
         # set run options: enable OpenMP with "numCoresPerCPU" threads
         new_args = copy.deepcopy(args)
-        par_knowledge_path = f"{remove_extension(args.knowledge_file)}_OMP.knowledge"
-        shutil.copyfile(args.knowledge_file, par_knowledge_path)
+        par_knowledge_path = f"{remove_extension(ctx_base.knowledge_path)}_OMP.knowledge"
+        shutil.copyfile(ctx_base.knowledge_path, par_knowledge_path)
         with open(par_knowledge_path, 'a+') as new_knowledge:
             new_knowledge.append(f"omp_enabled = true")
             new_knowledge.append(f"omp_numThreads = {ctx_base.config.cores_per_cpu}")
@@ -100,7 +100,7 @@ def main():
         new_args.output_path += "_OMP"
 
         # create adapted run context
-        ctx_parallel = RunContext(args)
+        ctx_parallel = RunContext(new_args)
         json_file = f'{ctx_parallel.target_code_path}/{args.json_influx_file}'
 
         # run pipeline
