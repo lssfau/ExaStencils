@@ -93,7 +93,7 @@ def main():
         with open(par_knowledge_path, 'a+') as new_knowledge:
             new_knowledge.append(f"omp_enabled = true")
             new_knowledge.append(f"omp_numThreads = {ctx_base.config.cores_per_cpu}")
-        new_args.knowledge_file = par_knowledge_path
+        new_args.knowledge_file = os.path.basename(par_knowledge_path)
 
         # generate code to new location
         new_args.problem_name += "_OMP"
