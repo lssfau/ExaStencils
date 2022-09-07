@@ -13,7 +13,6 @@ import exastencils.baseExt.ir.IR_LoopOverNeighbors
 import exastencils.communication.DefaultNeighbors
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.domain.ir.IR_IV_NeighborIsValid
 import exastencils.field.ir.IR_Field
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -41,6 +40,11 @@ object CUDA_Stream {
       CUDA_ComputeStream()
   }
 
+  def genCommSync() : ListBuffer[CUDA_StreamSynchronize] = DefaultNeighbors.neighbors.map(_.index).map(neigh =>
+    CUDA_StreamSynchronize(CUDA_CommunicateStream(neigh)))
+
+  def genCompSync() : CUDA_StreamSynchronize = CUDA_StreamSynchronize(CUDA_ComputeStream())
+
   def genSynchronize(stream : CUDA_Stream, before : Boolean) : ListBuffer[IR_Statement] = {
     var stmts = ListBuffer[IR_Statement]()
 
@@ -48,11 +52,6 @@ object CUDA_Stream {
     if (stream.useNonDefaultStreams) {
       // synchronize non-default streams
       val syncStream = CUDA_StreamSynchronize(stream)
-
-      val syncAllCommunication = DefaultNeighbors.neighbors.map(_.index).map(neigh =>
-        CUDA_StreamSynchronize(CUDA_CommunicateStream(neigh)))
-
-      val syncComputation = CUDA_StreamSynchronize(CUDA_ComputeStream())
 
       // before kernel
       val flag = stream match {
@@ -77,13 +76,13 @@ object CUDA_Stream {
             case _ : CUDA_ComputeStream     =>
               stmts += syncStream
             case comm : CUDA_CommunicateStream if comm.neighborIdx == IR_IntegerConstant(compSyncRefNeighIdx) =>
-              stmts += syncComputation
+              stmts += genCompSync()
             case _ =>
           }
         case "comm" | "all" => // communication
           stream match {
             case _ : CUDA_ComputeStream     =>
-              stmts ++= syncAllCommunication
+              stmts ++= genCommSync()
             case _ : CUDA_CommunicateStream =>
               stmts += syncStream
             case _ =>
