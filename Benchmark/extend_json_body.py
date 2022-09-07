@@ -27,7 +27,9 @@ def decorate_json(json_body: dict, config: ConfigFromKnowledge):
     new_body['tags']['targetCompiler'] = config.targetCompiler + config.targetCompilerVersion + config.targetCompilerVersionMinor
     new_body['tags']['cuda_enabled'] = config.use_cuda
     new_body['tags']['mpi_numThreads'] = config.mpi_num_processes
+    new_body['tags']['mpi_enabled'] = config.mpi_enabled
     new_body['tags']['omp_numThreads'] = config.omp_num_threads
+    new_body['tags']['omp_enabled'] = config.omp_enabled
     new_body['tags']['numNodes'] = config.n_nodes
     new_body['tags']['numBlocks'] = config.n_blocks
     new_body['tags']['simd'] = config.simd_instructionSet
