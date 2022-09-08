@@ -189,8 +189,9 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
     // - host sync stmts -
 
     // sync kernel streams before issuing transfers
-    beforeHost += CUDA_Stream.genCompSync()
-    beforeHost ++= CUDA_Stream.genCommSync()
+    val issuedSyncs = CUDA_Stream.genSynchronize(executionStream, before = true)
+    val requiredSyncs = CUDA_Stream.genCompSync() +: CUDA_Stream.genCommSync()
+    beforeHost ++= requiredSyncs.filterNot(issuedSyncs.contains(_))
 
     for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldData = access._2
