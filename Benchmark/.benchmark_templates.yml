@@ -115,7 +115,7 @@
     artifacts:
         when: always
         paths:
-            - Benchmark/$EXA_PROBLEM_PATH/*.settings
+            - Benchmark/$EXA_PROBLEM_PATH*/*
             - Benchmark/$EXA_PROBLEM_NAME-pipe.yml
             - Benchmark/$OUTPUT_PATH/Debug/*
             - Benchmark/$OUTPUT_PATH/generated/*
