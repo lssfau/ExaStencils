@@ -121,8 +121,6 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     if (Knowledge.l4_genSoA2AoSTransformation)
       L4_AddSoAtoAoSTransformation.apply()
 
-    L4_ResolveNativeFunctions.apply()
-
     print()
     val oldL4Code = ExaRootNode.l4_root.prettyprint()
 
