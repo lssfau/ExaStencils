@@ -370,6 +370,9 @@ case class CUDA_Kernel(
             if (d == 0 && blockSizes(d) > Platform.hw_cuda_warpSize && blockSizes(d) % Platform.hw_cuda_warpSize != 0)
               blockSizes(d) = blockSizes(d) - (blockSizes(d) % Platform.hw_cuda_warpSize) // subtract remainder
 
+            // check if block sizes are within hardware capabilities
+            blockSizes(d) = math.min(blockSizes(d), Platform.hw_cuda_maxBlockSizes(d))
+
             // intersect again
             blockSizes = getIntersectionWithIterationSpace(blockSizes.map(identity))
 
@@ -382,16 +385,14 @@ case class CUDA_Kernel(
         }
       }
 
-      // check if block sizes are within hardware capabilities
-      for (d <- resizeOrder) {
-        while (blockSizes(d) >= Platform.hw_cuda_maxBlockSizes(d))
-          blockSizes(d) = math.min(blockSizes(d), Platform.hw_cuda_maxBlockSizes(d))
-      }
+      // shrink if max number of threads is exceeded
       while (blockSizes.product >= Platform.hw_cuda_maxNumThreads) {
         var shrink = true
         var d = 0
         while (shrink && d < resizeOrder.length) {
-          blockSizes(resizeOrder(d)) /= 2
+          val idx = resizeOrder.reverse(d)
+          blockSizes(idx) /= 2
+          blockSizes(idx) = math.max(1, blockSizes(idx))
 
           if (blockSizes.product < Platform.hw_cuda_maxNumThreads)
             shrink = false

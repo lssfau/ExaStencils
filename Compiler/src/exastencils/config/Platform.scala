@@ -219,7 +219,7 @@ object Platform {
   var hw_cuda_maxBlockSize_x : Long = 1024
   var hw_cuda_maxBlockSize_y : Long = 1024
   var hw_cuda_maxBlockSize_z : Long = 64
-  var hw_cuda_maxBlockSizes : Array[Long] = Array(hw_cuda_maxBlockSize_x, hw_cuda_maxBlockSize_y, hw_cuda_maxBlockSize_z)
+  def hw_cuda_maxBlockSizes : Array[Long] = Array(hw_cuda_maxBlockSize_x, hw_cuda_maxBlockSize_y, hw_cuda_maxBlockSize_z)
 
   // 3 seems to be max; checked for versions up to 5.3
   def hw_cuda_maxNumDimsBlock : Int = if (hw_cuda_capability < 2) 2 else 3
