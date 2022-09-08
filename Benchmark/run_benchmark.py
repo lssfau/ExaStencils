@@ -97,8 +97,8 @@ def main():
             copy_files(args.exa_problem_path, new_args.exa_problem_path)
             with open(f"{new_args.exa_problem_path}/{new_args.knowledge_file}", 'a') as new_knowledge:
                 # enable OpenMP with "numCoresPerCPU" threads
-                new_knowledge.write(f"omp_enabled = true")
-                new_knowledge.write(f"omp_numThreads = {ctx_base.config.cores_per_cpu}")
+                new_knowledge.write(f"\nomp_enabled = true")
+                new_knowledge.write(f"\nomp_numThreads = {ctx_base.config.cores_per_cpu}")
 
         # create adapted run context
         ctx_omp = RunContext(new_args)
