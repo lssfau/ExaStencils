@@ -65,6 +65,7 @@
     tags:
         - testcluster
     before_script:
+        - *build_generator
         - cd Benchmark
         - !reference [ .module_tree_build, before_script ]
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
@@ -75,7 +76,6 @@
         #- *module_load_openmpi
         - *module_load_likwid
         - *module_load_cuda
-        - *build_generator
     script:
         - python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" $KNOWLEDGE_FILE $PLATFORM_FILE $OUTPUT_PATH --use_likwid_pin=True --all
     after_script:
@@ -145,6 +145,7 @@
         KNOWLEDGE_FILE: "TO_BE_REPLACED"
         OUTPUT_PATH: "output"
     before_script:
+        - *build_generator
         - cd Benchmark
         - !reference [ .module_tree_build, before_script ]
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
@@ -156,7 +157,6 @@
         #- *module_load_openmpi
         - *module_load_likwid
         - *get_compiler_versions
-        - *build_generator
         - |
             for compilerSuffix in "GCC$gccVersion" "ICC$iccVersion";
             do
