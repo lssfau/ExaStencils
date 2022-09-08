@@ -93,9 +93,9 @@ def main():
         new_args.problem_name += "_OMP"
 
         # copy exaslang sources to new directory and adapt knowledge file
-        if os.path.exists(new_args.exa_problem_path):
-            shutil.rmtree(new_args.exa_problem_path)
         if new_args.generate:
+            if os.path.exists(new_args.exa_problem_path):
+                shutil.rmtree(new_args.exa_problem_path)
             copy_files(args.exa_problem_path, new_args.exa_problem_path)
             with open(f"{new_args.exa_problem_path}/{new_args.knowledge_file}", 'a') as new_knowledge:
                 # enable OpenMP with "numCoresPerCPU" threads
