@@ -85,26 +85,27 @@ def main():
     # OpenMP parallel config #
     ##########################
 
+    # for CPU applications: rerun pipeline with adapted input args
     if not ctx_base.config.use_cuda:
-        # set run options: enable OpenMP with "numCoresPerCPU" threads
+        # copy and adapt input args
         new_args = copy.deepcopy(args)
-        par_knowledge_path = f"{remove_extension(ctx_base.knowledge_path)}_OMP.knowledge"
-        shutil.copyfile(ctx_base.knowledge_path, par_knowledge_path)
-        with open(par_knowledge_path, 'a') as new_knowledge:
-            new_knowledge.write(f"omp_enabled = true")
-            new_knowledge.write(f"omp_numThreads = {ctx_base.config.cores_per_cpu}")
-        new_args.knowledge_file = os.path.basename(par_knowledge_path)
-
-        # generate code to new location
+        new_args.exa_problem_path = f"{args.exa_problem_path}_OMP"
         new_args.problem_name += "_OMP"
-        new_args.output_path += "_OMP"
+
+        # copy exaslang sources to new directory and adapt knowledge file
+        if new_args.generate:
+            copy_files(args.exa_problem_path, new_args.exa_problem_path)
+            with open(f"{new_args.exa_problem_path}/{new_args.knowledge_file}", 'a') as new_knowledge:
+                # enable OpenMP with "numCoresPerCPU" threads
+                new_knowledge.write(f"omp_enabled = true")
+                new_knowledge.write(f"omp_numThreads = {ctx_base.config.cores_per_cpu}")
 
         # create adapted run context
-        ctx_parallel = RunContext(new_args)
-        json_file = f'{ctx_parallel.target_code_path}/{args.json_influx_file}'
+        ctx_omp = RunContext(new_args)
+        json_file = f'{ctx_omp.target_code_path}/{new_args.json_influx_file}'
 
         # run pipeline
-        run_pipeline(ctx_parallel, json_file)
+        run_pipeline(ctx_omp, json_file)
 
 
 if __name__ == "__main__":
