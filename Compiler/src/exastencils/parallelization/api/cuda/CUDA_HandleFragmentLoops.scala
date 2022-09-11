@@ -11,6 +11,7 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.OutputType
+import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda.CUDA_HandleFragmentLoops.getReductionCounter
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 
@@ -34,7 +35,7 @@ object CUDA_HandleFragmentLoops {
 case class CUDA_HandleFragmentLoops(
     var fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo,
     var streams : ListBuffer[CUDA_Stream]
-) extends IR_Statement with IR_Expandable {
+) extends IR_Statement with IR_Expandable with CUDA_PrepareBufferSync {
 
   val iter = IR_LoopOverFragments.defIt
   def currCopy(copies : IR_VariableAccess) = IR_ArrayAccess(copies, iter)
@@ -145,6 +146,98 @@ case class CUDA_HandleFragmentLoops(
     CUDA_ReplaceReductionAccesses.applyStandalone(IR_Scope(body))
   }
 
+  def syncUpdatedBuffers(body : ListBuffer[IR_Statement]) = {
+    val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
+    val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
+
+    /// CUDA_ExtractFields/Buffers
+    // TODO: simplify code
+    object CUDA_ExtractFields extends QuietDefaultStrategy("Extract") {
+      val gatherFields = new CUDA_GatherFieldAccess()
+      this.register(gatherFields)
+      this.onBefore = () => this.resetCollectors()
+      this += Transformation("Collect accessed fields in loop body", { case node => node })
+    }
+    object CUDA_ExtractBuffers extends QuietDefaultStrategy("Extract") {
+      val gatherBuffers = new CUDA_GatherBufferAccess()
+      this.register(gatherBuffers)
+      this.onBefore = () => this.resetCollectors()
+      this += Transformation("Collect accessed buffers in loop body", { case node => node })
+    }
+
+    // collect accessed buffers
+    CUDA_ExtractBuffers.applyStandalone(IR_Scope(body))
+    CUDA_ExtractFields.applyStandalone(IR_Scope(body))
+    var fieldAccesses = CUDA_ExtractFields.gatherFields.fieldAccesses
+    var bufferAccesses = CUDA_ExtractBuffers.gatherBuffers.bufferAccesses
+
+    Logger.warn(fieldAccesses.map(_._2.name).mkString(","))
+    Logger.warn(bufferAccesses.map(_._2.resolveName()).mkString(","))
+
+    // - host sync stmts -
+
+    // sync kernel streams before issuing transfers
+    val issuedSyncs = streams.flatMap(stream => CUDA_Stream.genSynchronize(stream, before = true))
+    val requiredSyncs = CUDA_Stream.genCompSync() +: CUDA_Stream.genCommSync()
+    beforeHost ++= requiredSyncs.filterNot(issuedSyncs.contains(_))
+
+    for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
+      val fieldData = access._2
+      val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragIdx)
+
+      // add data sync statements
+      if (syncBeforeHost(access._1, fieldAccesses.keys))
+        beforeHost += CUDA_UpdateHostData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
+
+      // update flags for written fields
+      if (syncAfterHost(access._1, fieldAccesses.keys))
+        afterHost += IR_Assignment(CUDA_HostDataUpdated(fieldData.field, fieldData.slot), IR_BooleanConstant(true))
+    }
+
+    for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
+      val buffer = access._2
+      val transferStream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
+
+      // add buffer sync statements
+      if (syncBeforeHost(access._1, bufferAccesses.keys))
+        beforeHost += CUDA_UpdateHostBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
+
+      // update flags for written buffers
+      if (syncAfterHost(access._1, bufferAccesses.keys))
+        afterHost += IR_Assignment(CUDA_HostBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(true))
+    }
+
+    // - device sync stmts -
+
+    for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
+      val fieldData = access._2
+      val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragIdx)
+
+      // add data sync statements
+      if (syncBeforeDevice(access._1, fieldAccesses.keys))
+        beforeDevice += CUDA_UpdateDeviceData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
+
+      // update flags for written fields
+      if (syncAfterDevice(access._1, fieldAccesses.keys))
+        afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(fieldData.field, Duplicate(fieldData.slot)), IR_BooleanConstant(true))
+    }
+
+    for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
+      val buffer = access._2
+      val transferStream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
+
+      // add data sync statements
+      if (syncBeforeDevice(access._1, bufferAccesses.keys))
+        beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
+
+      // update flags for written fields
+      if (syncAfterDevice(access._1, bufferAccesses.keys))
+        afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(true))
+    }
+
+    (beforeHost, afterHost, beforeDevice, afterDevice)
+  }
+
   override def expand() : OutputType = {
     var stmts = ListBuffer[IR_Statement]()
 
@@ -195,8 +288,35 @@ case class CUDA_HandleFragmentLoops(
       syncAfterFragLoop.body += finalizeReduction(red.op, redTarget, reductionTmp.get, copies) // accumulate frag copies at end
     }
 
+    // get syncs for updated buffers on device/host
+    val (beforeHost, afterHost, beforeDevice, afterDevice) = syncUpdatedBuffers(body)
+
+    // compile switch for cpu/gpu exec
+    def getBranchHostDevice(hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
+      val defaultChoice : IR_Expression = Knowledge.cuda_preferredExecution match {
+        case "Host"        => 1 // CPU by default
+        case "Device"      => 0 // GPU by default
+        case "Performance" =>
+          // decide according to performance estimates. if estimates not found -> cpu
+          val dimLoop = body.collectFirst { case l : IR_LoopOverDimensions => l }
+          if (dimLoop.isDefined) {
+            val hostTime = dimLoop.get.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double]
+            val deviceTime = dimLoop.get.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]
+
+            if (hostTime <= deviceTime) 1 else 0
+          } else {
+            1
+          }
+        case "Condition"   => Knowledge.cuda_executionCondition
+      }
+
+      ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))
+    }
+
     stmts += syncBeforeFragLoop // add stream synchro loop before kernel calls
+    stmts += IR_LoopOverFragments(getBranchHostDevice(beforeHost, beforeDevice))
     stmts += Duplicate(loop)
+    stmts += IR_LoopOverFragments(getBranchHostDevice(afterHost, afterDevice))
     stmts += syncAfterFragLoop // add stream synchro loop after kernel calls
 
     stmts

@@ -18,7 +18,6 @@
 
 package exastencils.parallelization.api.cuda
 
-import scala.collection.Iterable
 import scala.collection.mutable._
 
 import exastencils.base.ir.IR_ImplicitConversion._
@@ -37,7 +36,7 @@ import exastencils.util.ir._
 /// CUDA_PrepareMPICode
 
 object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
-  "and annotating for later kernel transformation") {
+  "and annotating for later kernel transformation") with CUDA_PrepareBufferSync {
 
   val stackCollector = new IR_StackCollector
   val commKernelCollector = new IR_CommunicationKernelCollector
@@ -49,32 +48,6 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
   var fieldAccesses = HashMap[String, IR_IV_FieldData]()
   var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
-
-  def syncBeforeHost(access : String, others : Iterable[String]) = {
-    var sync = true
-    if (access.startsWith("write") && !Knowledge.cuda_syncHostForWrites)
-      sync = false // skip write accesses if demanded
-    if (access.startsWith("write") && others.exists(_ == "read" + access.substring("write".length)))
-      sync = false // skip write access for read/write accesses
-    sync
-  }
-
-  def syncAfterHost(access : String, others : Iterable[String]) = {
-    access.startsWith("write")
-  }
-
-  def syncBeforeDevice(access : String, others : Iterable[String]) = {
-    var sync = true
-    if (access.startsWith("write") && !Knowledge.cuda_syncDeviceForWrites)
-      sync = false // skip write accesses if demanded
-    if (access.startsWith("write") && others.exists(_ == "read" + access.substring("write".length)))
-      sync = false // skip write access for read/write accesses
-    sync
-  }
-
-  def syncAfterDevice(access : String, others : Iterable[String]) = {
-    access.startsWith("write")
-  }
 
   def mapFieldAccess(access : IR_MultiDimFieldAccess, inWriteOp : Boolean) = {
     val field = access.field
@@ -188,37 +161,6 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
     // - host sync stmts -
 
-    // sync kernel streams before issuing transfers
-    val issuedSyncs = CUDA_Stream.genSynchronize(executionStream, before = true)
-    val requiredSyncs = CUDA_Stream.genCompSync() +: CUDA_Stream.genCommSync()
-    beforeHost ++= requiredSyncs.filterNot(issuedSyncs.contains(_))
-
-    for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
-      val fieldData = access._2
-      val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragmentIdx)
-
-      // add data sync statements
-      if (syncBeforeHost(access._1, fieldAccesses.keys))
-        beforeHost += CUDA_UpdateHostData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
-
-      // update flags for written fields
-      if (syncAfterHost(access._1, fieldAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostDataUpdated(fieldData.field, fieldData.slot), IR_BooleanConstant(true))
-    }
-
-    for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
-      val buffer = access._2
-      val transferStream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
-
-      // add buffer sync statements
-      if (syncBeforeHost(access._1, bufferAccesses.keys))
-        beforeHost += CUDA_UpdateHostBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
-
-      // update flags for written buffers
-      if (syncAfterHost(access._1, bufferAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(true))
-    }
-
     // wait for pending transfer events
     for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldData = access._2
@@ -235,32 +177,6 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
     if (Knowledge.cuda_syncDeviceAfterKernelCalls)
       afterDevice += CUDA_DeviceSynchronize()
-
-    for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
-      val fieldData = access._2
-      val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragmentIdx)
-
-      // add data sync statements
-      if (syncBeforeDevice(access._1, fieldAccesses.keys))
-        beforeDevice += CUDA_UpdateDeviceData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
-
-      // update flags for written fields
-      if (syncAfterDevice(access._1, fieldAccesses.keys))
-        afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(fieldData.field, fieldData.slot), IR_BooleanConstant(true))
-    }
-
-    for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
-      val buffer = access._2
-      val transferStream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
-
-      // add data sync statements
-      if (syncBeforeDevice(access._1, bufferAccesses.keys))
-        beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
-
-      // update flags for written fields
-      if (syncAfterDevice(access._1, bufferAccesses.keys))
-        afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(true))
-    }
 
     // wait for pending transfer events
     for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
