@@ -6,11 +6,15 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.communication.ir.IR_IV_CommBuffer
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.OutputType
+import exastencils.field.ir.IR_FieldAccessLike
+import exastencils.field.ir.IR_IV_FieldData
+import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda.CUDA_HandleFragmentLoops.getReductionCounter
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
@@ -34,7 +38,9 @@ object CUDA_HandleFragmentLoops {
 
 case class CUDA_HandleFragmentLoops(
     var fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo,
-    var streams : ListBuffer[CUDA_Stream]
+    var streams : ListBuffer[CUDA_Stream],
+    var fieldAccesses : mutable.HashMap[String, IR_IV_FieldData],
+    var bufferAccesses : mutable.HashMap[String, IR_IV_CommBuffer]
 ) extends IR_Statement with IR_Expandable with CUDA_PrepareBufferSync {
 
   val iter = IR_LoopOverFragments.defIt
@@ -146,33 +152,9 @@ case class CUDA_HandleFragmentLoops(
     CUDA_ReplaceReductionAccesses.applyStandalone(IR_Scope(body))
   }
 
-  def syncUpdatedBuffers(body : ListBuffer[IR_Statement]) = {
+  def syncUpdatedBuffers() = {
     val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
-
-    /// CUDA_ExtractFields/Buffers
-    // TODO: simplify code
-    object CUDA_ExtractFields extends QuietDefaultStrategy("Extract") {
-      val gatherFields = new CUDA_GatherFieldAccess()
-      this.register(gatherFields)
-      this.onBefore = () => this.resetCollectors()
-      this += Transformation("Collect accessed fields in loop body", { case node => node })
-    }
-    object CUDA_ExtractBuffers extends QuietDefaultStrategy("Extract") {
-      val gatherBuffers = new CUDA_GatherBufferAccess()
-      this.register(gatherBuffers)
-      this.onBefore = () => this.resetCollectors()
-      this += Transformation("Collect accessed buffers in loop body", { case node => node })
-    }
-
-    // collect accessed buffers
-    CUDA_ExtractBuffers.applyStandalone(IR_Scope(body))
-    CUDA_ExtractFields.applyStandalone(IR_Scope(body))
-    var fieldAccesses = CUDA_ExtractFields.gatherFields.fieldAccesses
-    var bufferAccesses = CUDA_ExtractBuffers.gatherBuffers.bufferAccesses
-
-    Logger.warn(fieldAccesses.map(_._2.name).mkString(","))
-    Logger.warn(bufferAccesses.map(_._2.resolveName()).mkString(","))
 
     // - host sync stmts -
 
@@ -183,7 +165,7 @@ case class CUDA_HandleFragmentLoops(
 
     for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldData = access._2
-      val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragIdx)
+      val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragmentIdx)
 
       // add data sync statements
       if (syncBeforeHost(access._1, fieldAccesses.keys))
@@ -211,7 +193,7 @@ case class CUDA_HandleFragmentLoops(
 
     for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldData = access._2
-      val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragIdx)
+      val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragmentIdx)
 
       // add data sync statements
       if (syncBeforeDevice(access._1, fieldAccesses.keys))
@@ -289,7 +271,7 @@ case class CUDA_HandleFragmentLoops(
     }
 
     // get syncs for updated buffers on device/host
-    val (beforeHost, afterHost, beforeDevice, afterDevice) = syncUpdatedBuffers(body)
+    val (beforeHost, afterHost, beforeDevice, afterDevice) = syncUpdatedBuffers()
 
     // compile switch for cpu/gpu exec
     def getBranchHostDevice(hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {

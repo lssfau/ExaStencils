@@ -30,6 +30,7 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures._
+import exastencils.field.ir.IR_IV_FieldData
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
@@ -123,13 +124,36 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       expr
   }, false)
 
+  /// CUDA_ExtractFields/Buffers
+  object CUDA_ExtractFields extends QuietDefaultStrategy("Extract") {
+    val gatherFields = new CUDA_GatherFieldAccess()
+    this.register(gatherFields)
+    this.onBefore = () => this.resetCollectors()
+    this += Transformation("Collect accessed fields in loop body", { case node => node })
+  }
+  object CUDA_ExtractBuffers extends QuietDefaultStrategy("Extract") {
+    val gatherBuffers = new CUDA_GatherBufferAccess()
+    this.register(gatherBuffers)
+    this.onBefore = () => this.resetCollectors()
+    this += Transformation("Collect accessed buffers in loop body", { case node => node })
+  }
+
   // enclosed by a fragment loop -> create fragment-local copies of the initial value
   // and perform reduction after frag loop
   this += Transformation("Modify enclosing fragment loops", {
     case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingFragmentLoops.contains(fragLoop) =>
-      CUDA_HandleFragmentLoops(fragLoop, Duplicate(enclosingFragmentLoops(fragLoop)).to[ListBuffer])
+      /// collect accessed buffers
+      CUDA_ExtractBuffers.applyStandalone(IR_Scope(fragLoop))
+      CUDA_ExtractFields.applyStandalone(IR_Scope(fragLoop))
+      CUDA_HandleFragmentLoops(fragLoop, Duplicate(enclosingFragmentLoops(fragLoop)).to[ListBuffer],
+        Duplicate(CUDA_ExtractFields.gatherFields.fieldAccesses.map(entry => (entry._1, IR_IV_FieldData(entry._2.field, entry._2.slot, entry._2.fragIdx)))),
+        Duplicate(CUDA_ExtractBuffers.gatherBuffers.bufferAccesses))
     case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingCommFragmentLoops.contains(fragLoop) =>
-      CUDA_HandleFragmentLoops(fragLoop, Duplicate(enclosingCommFragmentLoops(fragLoop)).to[ListBuffer])
+      CUDA_ExtractBuffers.applyStandalone(IR_Scope(fragLoop))
+      CUDA_ExtractFields.applyStandalone(IR_Scope(fragLoop))
+      CUDA_HandleFragmentLoops(fragLoop, Duplicate(enclosingCommFragmentLoops(fragLoop)).to[ListBuffer],
+        Duplicate(CUDA_ExtractFields.gatherFields.fieldAccesses.map(entry => (entry._1, IR_IV_FieldData(entry._2.field, entry._2.slot, entry._2.fragIdx)))),
+        Duplicate(CUDA_ExtractBuffers.gatherBuffers.bufferAccesses))
   }, false)
 
   this += new Transformation("Processing ForLoopStatement nodes", {
