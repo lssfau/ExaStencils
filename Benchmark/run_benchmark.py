@@ -92,7 +92,7 @@ def main():
         new_args = copy.deepcopy(args)
         new_args.exa_problem_path = f"{args.exa_problem_path}_{suffix}"
         new_args.problem_name += f"_{suffix}"
-        new_args.knowledge_file += f"_{suffix}"
+        new_args.knowledge_file = f"{os.path.basename(remove_extension(new_args.knowledge_file))}_{suffix}.knowledge"
 
         # copy exaslang sources to new directory and adapt knowledge file
         if new_args.generate and not os.path.exists(new_args.exa_problem_path):
