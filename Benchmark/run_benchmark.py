@@ -92,13 +92,14 @@ def main():
         new_args = copy.deepcopy(args)
         new_args.exa_problem_path = f"{args.exa_problem_path}_{suffix}"
         new_args.problem_name += f"_{suffix}"
-        new_args.knowledge_file = f"{os.path.basename(remove_extension(new_args.knowledge_file))}_{suffix}.knowledge"
+        new_args.knowledge_file = f"{os.path.basename(remove_extension(args.knowledge_file))}_{suffix}.knowledge"
 
         # copy exaslang sources to new directory and adapt knowledge file
         if new_args.generate and not os.path.exists(new_args.exa_problem_path):
             copy_files(args.exa_problem_path, new_args.exa_problem_path)
             with open(f"{new_args.exa_problem_path}/{new_args.knowledge_file}", 'a') as new_knowledge:
                 # enable OpenMP with "numCoresPerCPU" threads
+                new_knowledge.write(f"\nimport '{args.knowledge_file}'")
                 new_knowledge.write(f"\nomp_enabled = true")
                 new_knowledge.write(f"\nomp_numThreads = {ctx_base.config.cores_per_cpu}")
 
