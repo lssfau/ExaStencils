@@ -12,10 +12,7 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.OutputType
-import exastencils.field.ir.IR_FieldAccessLike
 import exastencils.field.ir.IR_IV_FieldData
-import exastencils.field.ir.IR_MultiDimFieldAccess
-import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda.CUDA_HandleFragmentLoops.getReductionCounter
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 
@@ -276,8 +273,8 @@ case class CUDA_HandleFragmentLoops(
     // compile switch for cpu/gpu exec
     def getBranchHostDevice(hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
       val defaultChoice : IR_Expression = Knowledge.cuda_preferredExecution match {
-        case "Host"        => 1 // CPU by default
-        case "Device"      => 0 // GPU by default
+        case "Host"        => IR_BooleanConstant(true) // CPU by default
+        case "Device"      => IR_BooleanConstant(false) // GPU by default
         case "Performance" =>
           // decide according to performance estimates. if estimates not found -> cpu
           val dimLoop = body.collectFirst { case l : IR_LoopOverDimensions => l }
@@ -285,9 +282,9 @@ case class CUDA_HandleFragmentLoops(
             val hostTime = dimLoop.get.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double]
             val deviceTime = dimLoop.get.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]
 
-            if (hostTime <= deviceTime) 1 else 0
+            if (hostTime <= deviceTime) IR_BooleanConstant(true) else IR_BooleanConstant(false)
           } else {
-            1
+            IR_BooleanConstant(true)
           }
         case "Condition"   => Knowledge.cuda_executionCondition
       }
