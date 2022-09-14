@@ -346,7 +346,6 @@ case class CUDA_Kernel(
       var done = false
       if (blockSizes.product >= Knowledge.cuda_minimalBlockSize) {
         // case 1: greater than min block size -> use intersection
-        // TODO: handle cases where block size is not a multiple of warp size? -> if 0 != prod(trimmed) % warp -> handling
         numThreadsPerBlock = blockSizes.map(identity)
         done = true
       }
