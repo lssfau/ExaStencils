@@ -88,15 +88,15 @@ def main():
     # for CPU applications: rerun pipeline with adapted input args
     if not ctx_base.config.use_cuda:
         # copy and adapt input args
-        suffix = f"OMP_{ctx_base.platform_suffix}"
+        suffix = "OMP"
+        platform_suffix = ctx_base.platform_suffix
+        knowledge_base = os.path.basename(remove_extension(args.knowledge_file))
         new_args = copy.deepcopy(args)
-        new_args.exa_problem_path = f"{args.exa_problem_path}_{suffix}"
         new_args.problem_name += f"_{suffix}"
-        new_args.knowledge_file = f"{os.path.basename(remove_extension(args.knowledge_file))}_{suffix}.knowledge"
+        new_args.knowledge_file = f"{knowledge_base}_{suffix}_{platform_suffix}.knowledge"
 
         # copy exaslang sources to new directory and adapt knowledge file
-        if new_args.generate and not os.path.exists(new_args.exa_problem_path):
-            copy_files(args.exa_problem_path, new_args.exa_problem_path)
+        if new_args.generate:
             with open(f"{new_args.exa_problem_path}/{new_args.knowledge_file}", 'a') as new_knowledge:
                 # enable OpenMP with "numCoresPerCPU" threads
                 new_knowledge.write(f"\nimport '{args.knowledge_file}'")
