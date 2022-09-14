@@ -18,6 +18,7 @@
 
 package exastencils.parallelization.api.cuda
 
+import scala.collection.mutable
 import scala.collection.mutable._
 
 import exastencils.base.ir.IR_ImplicitConversion._
@@ -30,6 +31,7 @@ import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
+import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.timing.ir.IR_TimerFunctions
 import exastencils.util.ir._
 
@@ -48,6 +50,8 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
   var fieldAccesses = HashMap[String, IR_IV_FieldData]()
   var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
+
+  var fragLoopsWithHandling : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, CUDA_HandleFragmentLoops] = mutable.HashMap()
 
   def mapFieldAccess(access : IR_MultiDimFieldAccess, inWriteOp : Boolean) = {
     val field = access.field
@@ -159,6 +163,24 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
     // determine execution ( = comm/comp ) stream
     val executionStream = CUDA_Stream.getStream(fragLoopCollector, commKernelCollector)
 
+    // collect elements accessed in enclosing fragment loop and create handler
+    val enclosingFragLoop = fragLoopCollector.getEnclosingFragmentLoop()
+    if (enclosingFragLoop.isDefined) {
+      val emptyFragloopHandler = CUDA_HandleFragmentLoops(enclosingFragLoop.get, ListBuffer(), mutable.HashMap(), mutable.HashMap())
+      val fragloopHandler = fragLoopsWithHandling.getOrElse(enclosingFragLoop.get, emptyFragloopHandler)
+
+      // add accessed streams
+      if (!fragloopHandler.streams.contains(executionStream))
+        fragloopHandler.streams += executionStream
+
+      // add accessed buffers/fields
+      fragloopHandler.fieldAccesses ++= fieldAccesses.map { case (str, fAcc) => str -> IR_IV_FieldData(fAcc.field, fAcc.slot, fAcc.fragmentIdx) }
+        .filterNot(acc => fragloopHandler.fieldAccesses.contains(acc._1))
+      fragloopHandler.bufferAccesses ++= bufferAccesses.filterNot(acc => fragloopHandler.bufferAccesses.contains(acc._1))
+
+      fragLoopsWithHandling.update(enclosingFragLoop.get, fragloopHandler)
+    }
+
     // - host sync stmts -
 
     // wait for pending transfer events
@@ -265,5 +287,13 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
         ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))
       }
+  }, false)
+
+  // replace orig enclosing fragment loop with handled fragment loop structure
+  this += new Transformation("Create overlapping fragment loop structure", {
+    case loop : IR_LoopOverFragments if fragLoopsWithHandling.contains(loop)                                                                                     =>
+      fragLoopsWithHandling(loop)
+    case loop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name && fragLoopsWithHandling.contains(loop) =>
+      fragLoopsWithHandling(loop)
   }, false)
 }

@@ -276,6 +276,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     // Apply CUDA kernel extraction after polyhedral optimizations to work on optimized ForLoopStatements
     if (Knowledge.cuda_enabled) {
+      CUDA_HandleFragmentLoops.apply()
       CUDA_AnnotateLoop.apply()
       CUDA_ExtractHostAndDeviceCode.apply()
       CUDA_AdaptKernelDimensionality.apply()

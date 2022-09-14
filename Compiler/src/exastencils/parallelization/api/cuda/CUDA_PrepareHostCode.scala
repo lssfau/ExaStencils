@@ -29,6 +29,7 @@ import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
+import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.util.NoDuplicateWrapper
 import exastencils.util.ir._
 
@@ -48,6 +49,8 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
   this.register(commKernelCollector)
   this.onBefore = () => this.resetCollectors()
 
+  var fragLoopsWithHandling : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, CUDA_HandleFragmentLoops] = mutable.HashMap()
+
   def getHostDeviceSyncStmts(body : ListBuffer[IR_Statement], isParallel : Boolean, executionStream: CUDA_Stream) = {
     val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
@@ -62,6 +65,24 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     this.execute(new Transformation("Gather local buffer access nodes", PartialFunction.empty), Some(IR_Scope(body)))
     this.unregister(gatherBuffers)
     Logger.popLevel()
+
+    // collect elements accessed in enclosing fragment loop and create handler
+    val enclosingFragLoop = fragLoopCollector.getEnclosingFragmentLoop()
+    if (enclosingFragLoop.isDefined) {
+      val emptyFragloopHandler = CUDA_HandleFragmentLoops(enclosingFragLoop.get, ListBuffer(), mutable.HashMap(), mutable.HashMap())
+      val fragloopHandler = fragLoopsWithHandling.getOrElse(enclosingFragLoop.get, emptyFragloopHandler)
+
+      // add accessed streams
+      if (!fragloopHandler.streams.contains(executionStream))
+        fragloopHandler.streams += executionStream
+
+      // add accessed buffers/fields
+      fragloopHandler.fieldAccesses ++= gatherFields.fieldAccesses.map { case (str, fAcc) => str -> IR_IV_FieldData(fAcc.field, fAcc.slot, fAcc.fragIdx) }
+        .filterNot(acc => fragloopHandler.fieldAccesses.contains(acc._1))
+      fragloopHandler.bufferAccesses ++= gatherBuffers.bufferAccesses.filterNot(acc => fragloopHandler.bufferAccesses.contains(acc._1))
+
+      fragLoopsWithHandling.update(enclosingFragLoop.get, fragloopHandler)
+    }
 
     // - host sync stmts -
 
@@ -255,5 +276,13 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       // lists are already added to branch
 
       if (isParallel) getBranch(condWrapper, loop, hostStmts, deviceStmts) else hostStmts
+  }, false)
+
+  // replace orig enclosing fragment loop with handled fragment loop structure
+  this += new Transformation("Create overlapping fragment loop structure", {
+    case loop : IR_LoopOverFragments if fragLoopsWithHandling.contains(loop)                                                                                     =>
+      fragLoopsWithHandling(loop)
+    case loop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name && fragLoopsWithHandling.contains(loop) =>
+      fragLoopsWithHandling(loop)
   }, false)
 }

@@ -9,6 +9,7 @@ import exastencils.baseExt.ir._
 import exastencils.communication.ir.IR_IV_CommBuffer
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
+import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.OutputType
@@ -22,7 +23,7 @@ import exastencils.parallelization.ir.IR_HasParallelizationInfo
 // - uses CUDA stream for each fragment
 // - additional fragment loop added for stream synchronization and reduction result accumulation
 
-object CUDA_HandleFragmentLoops {
+object CUDA_HandleFragmentLoops extends DefaultStrategy("Handle synchronization and reductions in CUDA parallel fragment loops") {
 
   private var reductionCounters : mutable.HashMap[String, Int] = mutable.HashMap()
 
@@ -31,6 +32,10 @@ object CUDA_HandleFragmentLoops {
     reductionCounters(targetName) += 1
     c
   }
+
+  this += Transformation("Expand CUDA_HandleFragmentLoops nodes", {
+    case handle : CUDA_HandleFragmentLoops => handle.expandSpecial()
+  })
 }
 
 case class CUDA_HandleFragmentLoops(
@@ -38,7 +43,7 @@ case class CUDA_HandleFragmentLoops(
     var streams : ListBuffer[CUDA_Stream],
     var fieldAccesses : mutable.HashMap[String, IR_IV_FieldData],
     var bufferAccesses : mutable.HashMap[String, IR_IV_CommBuffer]
-) extends IR_Statement with IR_Expandable with CUDA_PrepareBufferSync {
+) extends IR_Statement with IR_SpecialExpandable with CUDA_PrepareBufferSync {
 
   val iter = IR_LoopOverFragments.defIt
   def currCopy(copies : IR_VariableAccess) = IR_ArrayAccess(copies, iter)
@@ -217,7 +222,7 @@ case class CUDA_HandleFragmentLoops(
     (beforeHost, afterHost, beforeDevice, afterDevice)
   }
 
-  override def expand() : OutputType = {
+  def expandSpecial() : OutputType = {
     var stmts = ListBuffer[IR_Statement]()
 
     // sync before/after kernel calls in separate frag loop
@@ -254,13 +259,7 @@ case class CUDA_HandleFragmentLoops(
         syncAfterFragLoop.body += CUDA_Stream.genCompSync()
 
       val counter = CUDA_HandleFragmentLoops.getReductionCounter(red.targetName)
-      val copies = {
-        val innerDt = reductionDt(redTarget) match {
-          case scalar : IR_ScalarDatatype          => scalar
-          case hodt : IR_HigherDimensionalDatatype => IR_ArrayDatatype(hodt.resolveBaseDatatype, hodt.getSizeArray.product)
-        }
-        IR_VariableAccess(red.targetName + "_fragCpy" + counter, IR_ArrayDatatype(innerDt, Knowledge.domain_numFragmentsPerBlock))
-      }
+      val copies = IR_VariableAccess(red.targetName + "_fragCpy" + counter, IR_ArrayDatatype(reductionDt(redTarget), Knowledge.domain_numFragmentsPerBlock))
 
       stmts ++= initCopies(redTarget, red.op, copies) // init frag copies
       replaceAccesses(redTarget, copies, body) // replace accesses to frag copies

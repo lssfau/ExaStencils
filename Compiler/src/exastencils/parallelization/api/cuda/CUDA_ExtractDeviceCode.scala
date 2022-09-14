@@ -30,7 +30,6 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.field.ir.IR_IV_FieldData
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
@@ -55,9 +54,6 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
   this.register(fragLoopCollector)
   this.register(commKernelCollector)
   this.onBefore = () => this.resetCollectors()
-
-  var enclosingFragmentLoops : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, List[CUDA_Stream]] = mutable.HashMap()
-  var enclosingCommFragmentLoops : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, List[CUDA_Stream]] = mutable.HashMap()
 
   /**
     * Collect all loops in the band.
@@ -92,67 +88,6 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       pruneKernelBody(body.head.asInstanceOf[IR_ForLoop].body, surplus.tail)
     }
   }
-
-  this += Transformation("Find enclosing fragment loops", {
-    case loop : IR_ForLoop if loop.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) &&
-      loop.getAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION).contains(CUDA_Util.CUDA_BAND_START) =>
-
-      val enclosing = fragLoopCollector.getEnclosingFragmentLoop()
-
-      // add execution stream to stream list of enclosing fragment loop
-      val list = enclosingFragmentLoops.getOrElse(enclosing.get, Nil)
-      if (loop.hasAnnotation(CUDA_Util.CUDA_EXECUTION_STREAM)) {
-        val stream = loop.getAnnotationAs[CUDA_Stream](CUDA_Util.CUDA_EXECUTION_STREAM)
-
-        if (enclosing.isDefined)
-          enclosingFragmentLoops.update(enclosing.get, (list :+ stream).distinct)
-      }
-
-      loop
-  }, false)
-
-  // enclosed by apply bc or comm function -> synchro
-  this += Transformation("Modify enclosing comm funcs", {
-    case expr : IR_Expression if commKernelCollector.isNeighborIdx(expr) =>
-      val commFragLoop = fragLoopCollector.getEnclosingFragmentLoop()
-      if (commFragLoop.isDefined) {
-        val list = enclosingCommFragmentLoops.getOrElse(commFragLoop.get, Nil) :+ CUDA_CommunicateStream(expr)
-        enclosingCommFragmentLoops.update(commFragLoop.get, list.distinct)
-      }
-
-      expr
-  }, false)
-
-  /// CUDA_ExtractFields/Buffers: gather accessed fields/buffers for later handling of transfers
-  object CUDA_ExtractFields extends QuietDefaultStrategy("Extract") {
-    val gatherFields = new CUDA_GatherFieldAccess()
-    this.register(gatherFields)
-    this.onBefore = () => this.resetCollectors()
-    this += Transformation("Collect accessed fields in loop body", { case node => node })
-  }
-  object CUDA_ExtractBuffers extends QuietDefaultStrategy("Extract") {
-    val gatherBuffers = new CUDA_GatherBufferAccess()
-    this.register(gatherBuffers)
-    this.onBefore = () => this.resetCollectors()
-    this += Transformation("Collect accessed buffers in loop body", { case node => node })
-  }
-
-  // enclosed by a fragment loop -> create fragment-local copies of the initial value
-  // and perform reduction after frag loop
-  this += Transformation("Modify enclosing fragment loops", {
-    case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingFragmentLoops.contains(fragLoop) =>
-      CUDA_ExtractBuffers.applyStandalone(IR_Scope(fragLoop))
-      CUDA_ExtractFields.applyStandalone(IR_Scope(fragLoop))
-      CUDA_HandleFragmentLoops(fragLoop, Duplicate(enclosingFragmentLoops(fragLoop)).to[ListBuffer],
-        Duplicate(CUDA_ExtractFields.gatherFields.fieldAccesses.map(entry => (entry._1, IR_IV_FieldData(entry._2.field, entry._2.slot, entry._2.fragIdx)))),
-        Duplicate(CUDA_ExtractBuffers.gatherBuffers.bufferAccesses))
-    case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingCommFragmentLoops.contains(fragLoop) =>
-      CUDA_ExtractBuffers.applyStandalone(IR_Scope(fragLoop))
-      CUDA_ExtractFields.applyStandalone(IR_Scope(fragLoop))
-      CUDA_HandleFragmentLoops(fragLoop, Duplicate(enclosingCommFragmentLoops(fragLoop)).to[ListBuffer],
-        Duplicate(CUDA_ExtractFields.gatherFields.fieldAccesses.map(entry => (entry._1, IR_IV_FieldData(entry._2.field, entry._2.slot, entry._2.fragIdx)))),
-        Duplicate(CUDA_ExtractBuffers.gatherBuffers.bufferAccesses))
-  }, false)
 
   this += new Transformation("Processing ForLoopStatement nodes", {
     case loop : IR_ForLoop if loop.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) &&

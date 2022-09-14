@@ -21,6 +21,7 @@ package exastencils.parallelization.api.cuda
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.config.Knowledge
 import exastencils.logger.Logger
@@ -109,10 +110,19 @@ object CUDA_Util {
           // matrix element
           mat.resolveBaseDatatype
       }
+    case arr : IR_ArrayDatatype =>
+      target match {
+        case _ : IR_VariableAccess =>
+          // whole arr
+          arr
+        case _ : IR_ArrayAccess =>
+          // arr element
+          arr.resolveBaseDatatype
+      }
     case dt : IR_ScalarDatatype =>
       dt
     case dt : IR_Datatype =>
-      Logger.error("Unsupported reduction datatype: " + dt.prettyprint())
+      Logger.error("Unsupported reduction datatype: " + dt.prettyprint() + ". Target = " + target.prettyprint())
   }
 
   // checks if args is the reduction target
