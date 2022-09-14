@@ -38,11 +38,11 @@ import exastencils.util.ir._
 object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
   "and annotating for later kernel transformation") with CUDA_PrepareBufferSync {
 
-  val stackCollector = new IR_StackCollector
+  val fragLoopCollector = new IR_FragmentLoopCollector
   val commKernelCollector = new IR_CommunicationKernelCollector
   val fctNameCollector = new IR_FctNameCollector
   this.register(fctNameCollector)
-  this.register(stackCollector)
+  this.register(fragLoopCollector)
   this.register(commKernelCollector)
   this.onBefore = () => this.resetCollectors()
 
@@ -157,7 +157,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
     }
 
     // determine execution ( = comm/comp ) stream
-    val executionStream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
+    val executionStream = CUDA_Stream.getStream(fragLoopCollector, commKernelCollector)
 
     // - host sync stmts -
 

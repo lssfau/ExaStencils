@@ -17,17 +17,14 @@ import exastencils.field.ir.IR_Field
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_CommunicationKernelCollector
-import exastencils.util.ir.IR_StackCollector
+import exastencils.util.ir.IR_FragmentLoopCollector
 
 /// CUDA_Stream
 
 object CUDA_Stream {
   // get stream used for comm/comp kernels
-  def getStream(stackCollector: IR_StackCollector, communicateKernelCollector : IR_CommunicationKernelCollector) : CUDA_Stream = {
-    val enclosingFragLoop = stackCollector.stack.collectFirst {
-      case fragLoop : IR_LoopOverFragments                                                                                     => fragLoop
-      case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name => fragLoop
-    }
+  def getStream(fragLoopCollector: IR_FragmentLoopCollector, communicateKernelCollector : IR_CommunicationKernelCollector) : CUDA_Stream = {
+    val enclosingFragLoop = fragLoopCollector.getEnclosingFragmentLoop()
 
     val neighCommKernel = if (enclosingFragLoop.isDefined)
       communicateKernelCollector.getNeighbor(enclosingFragLoop.get)

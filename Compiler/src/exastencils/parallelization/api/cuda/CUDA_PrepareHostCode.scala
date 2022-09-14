@@ -41,10 +41,10 @@ import exastencils.util.ir._
 object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
   "and annotating for later kernel transformation") with CUDA_PrepareBufferSync {
   val fctNameCollector = new IR_FctNameCollector
-  val stackCollector = new IR_StackCollector
+  val fragLoopCollector = new IR_FragmentLoopCollector
   val commKernelCollector = new IR_CommunicationKernelCollector
   this.register(fctNameCollector)
-  this.register(stackCollector)
+  this.register(fragLoopCollector)
   this.register(commKernelCollector)
   this.onBefore = () => this.resetCollectors()
 
@@ -142,7 +142,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       val isParallel = containedLoop.parallelization.potentiallyParallel // filter some generate loops?
 
       // determine execution ( = comm/comp ) stream
-      val executionStream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
+      val executionStream = CUDA_Stream.getStream(fragLoopCollector, commKernelCollector)
 
       // calculate memory transfer statements for host and device
       val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(containedLoop.body, isParallel, executionStream)
@@ -231,7 +231,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       val isParallel = loop.parallelization.potentiallyParallel // filter some generate loops?
 
       // determine execution ( = comm/comp ) stream
-      val executionStream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
+      val executionStream = CUDA_Stream.getStream(fragLoopCollector, commKernelCollector)
 
       // calculate memory transfer statements for host and device
       val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop.body, isParallel, executionStream)
