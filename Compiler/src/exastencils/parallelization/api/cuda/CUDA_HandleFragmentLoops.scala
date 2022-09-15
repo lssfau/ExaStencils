@@ -38,12 +38,19 @@ object CUDA_HandleFragmentLoops extends DefaultStrategy("Handle synchronization 
   })
 }
 
-case class CUDA_HandleFragmentLoops(
-    var fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo,
+case class CUDA_AccessedElementsInFragmentLoop(
     var streams : ListBuffer[CUDA_Stream],
     var fieldAccesses : mutable.HashMap[String, IR_IV_FieldData],
-    var bufferAccesses : mutable.HashMap[String, IR_IV_CommBuffer]
+    var bufferAccesses : mutable.HashMap[String, IR_IV_CommBuffer])
+
+case class CUDA_HandleFragmentLoops(
+    var fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo,
+    var accessedElements : CUDA_AccessedElementsInFragmentLoop
 ) extends IR_Statement with IR_SpecialExpandable with CUDA_PrepareBufferSync {
+
+  var streams = accessedElements.streams
+  var fieldAccesses = accessedElements.fieldAccesses
+  var bufferAccesses = accessedElements.bufferAccesses
 
   val iter = IR_LoopOverFragments.defIt
   def currCopy(copies : IR_VariableAccess) = IR_ArrayAccess(copies, iter)
@@ -81,6 +88,7 @@ case class CUDA_HandleFragmentLoops(
     IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference(stdFunc, IR_UnitDatatype),
       ListBuffer[IR_Expression](Duplicate(dst), Duplicate(dst) + IR_IntegerConstant(size), src)))
 
+  // TODO: unused
   def resetReductionTarget(redTarget : IR_Expression) = reductionDt(redTarget) match {
     case _ : IR_ScalarDatatype               =>
       IR_Assignment(redTarget, 0)
@@ -106,7 +114,13 @@ case class CUDA_HandleFragmentLoops(
   }
 
   def initCopies(redTarget : IR_Expression, op : String, copies : IR_VariableAccess) = {
-    val declCopies = IR_VariableDeclaration(copies)
+    // TODO: should be handled in prettyprinter
+    val declCopies = copies.datatype match {
+      case _ @ IR_ArrayDatatype(mat : IR_MatrixDatatype, numElements) =>
+        IR_VariableDeclaration(IR_ArrayDatatype(IR_ArrayDatatype(mat.resolveBaseDatatype, mat.sizeN * mat.sizeM), numElements), copies.name)
+      case _ : IR_Datatype =>
+        IR_VariableDeclaration(copies)
+    }
     val initCopies = IR_LoopOverFragments(copyReductionTarget(redTarget, op, copies)).expandSpecial().inner
 
     ListBuffer(declCopies, initCopies)

@@ -38,7 +38,7 @@ import exastencils.util.ir._
 /// CUDA_PrepareMPICode
 
 object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
-  "and annotating for later kernel transformation") with CUDA_PrepareBufferSync {
+  "and annotating for later kernel transformation") with CUDA_PrepareFragmentLoops {
 
   val fragLoopCollector = new IR_FragmentLoopCollector
   val commKernelCollector = new IR_CommunicationKernelCollector
@@ -51,7 +51,41 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
   var fieldAccesses = HashMap[String, IR_IV_FieldData]()
   var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
 
-  var fragLoopsWithHandling : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, CUDA_HandleFragmentLoops] = mutable.HashMap()
+  var accessedElementsFragLoop : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, CUDA_AccessedElementsInFragmentLoop] = mutable.HashMap()
+
+  override def collectAccessedBuffers(stmt : IR_Statement*) = {
+    // don't filter here - memory transfer code is still required
+    fieldAccesses.clear()
+    bufferAccesses.clear()
+
+    stmt match {
+      case send : MPI_Send    => processRead(send.buffer)
+      case recv : MPI_Receive => processWrite(recv.buffer)
+
+      case bcast : MPI_Bcast =>
+        processRead(bcast.buffer)
+        processWrite(bcast.buffer)
+
+      case gather : MPI_Gather =>
+        processWrite(gather.recvbuf)
+        processRead(gather.sendbuf)
+
+      case reduce : MPI_AllReduce =>
+        processWrite(reduce.recvbuf)
+        if (("MPI_IN_PLACE" : IR_Expression) == reduce.sendbuf)
+          processRead(reduce.recvbuf)
+        else
+          processRead(reduce.sendbuf)
+
+      case reduce : MPI_Reduce =>
+        processWrite(reduce.recvbuf)
+        if (("MPI_IN_PLACE" : IR_Expression) == reduce.sendbuf)
+          processRead(reduce.recvbuf)
+        else
+          processRead(reduce.sendbuf)
+      case _ =>
+    }
+  }
 
   def mapFieldAccess(access : IR_MultiDimFieldAccess, inWriteOp : Boolean) = {
     val field = access.field
@@ -128,89 +162,23 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
   def getHostDeviceSyncStmts(mpiStmt : MPI_Statement) = {
     val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
-    // don't filter here - memory transfer code is still required
 
-    fieldAccesses.clear()
-    bufferAccesses.clear()
-
-    mpiStmt match {
-      case send : MPI_Send    => processRead(send.buffer)
-      case recv : MPI_Receive => processWrite(recv.buffer)
-
-      case bcast : MPI_Bcast =>
-        processRead(bcast.buffer)
-        processWrite(bcast.buffer)
-
-      case gather : MPI_Gather =>
-        processWrite(gather.recvbuf)
-        processRead(gather.sendbuf)
-
-      case reduce : MPI_AllReduce =>
-        processWrite(reduce.recvbuf)
-        if (("MPI_IN_PLACE" : IR_Expression) == reduce.sendbuf)
-          processRead(reduce.recvbuf)
-        else
-          processRead(reduce.sendbuf)
-
-      case reduce : MPI_Reduce =>
-        processWrite(reduce.recvbuf)
-        if (("MPI_IN_PLACE" : IR_Expression) == reduce.sendbuf)
-          processRead(reduce.recvbuf)
-        else
-          processRead(reduce.sendbuf)
-    }
+    // get accessed buffers
+    collectAccessedBuffers(mpiStmt)
 
     // determine execution ( = comm/comp ) stream
     val executionStream = CUDA_Stream.getStream(fragLoopCollector, commKernelCollector)
 
-    // collect elements accessed in enclosing fragment loop and create handler
-    val enclosingFragLoop = fragLoopCollector.getEnclosingFragmentLoop()
-    if (enclosingFragLoop.isDefined) {
-      val emptyFragloopHandler = CUDA_HandleFragmentLoops(enclosingFragLoop.get, ListBuffer(), mutable.HashMap(), mutable.HashMap())
-      val fragloopHandler = fragLoopsWithHandling.getOrElse(enclosingFragLoop.get, emptyFragloopHandler)
+    // host sync stmts
 
-      // add accessed streams
-      if (!fragloopHandler.streams.contains(executionStream))
-        fragloopHandler.streams += executionStream
+    beforeHost ++= syncEventsBeforeHost(executionStream)
 
-      // add accessed buffers/fields
-      fragloopHandler.fieldAccesses ++= fieldAccesses.map { case (str, fAcc) => str -> IR_IV_FieldData(fAcc.field, fAcc.slot, fAcc.fragmentIdx) }
-        .filterNot(acc => fragloopHandler.fieldAccesses.contains(acc._1))
-      fragloopHandler.bufferAccesses ++= bufferAccesses.filterNot(acc => fragloopHandler.bufferAccesses.contains(acc._1))
-
-      fragLoopsWithHandling.update(enclosingFragLoop.get, fragloopHandler)
-    }
-
-    // - host sync stmts -
-
-    // wait for pending transfer events
-    for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
-      val fieldData = access._2
-      if (syncBeforeHost(access._1, fieldAccesses.keys))
-        beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, fieldData.fragmentIdx), executionStream, "D2H")
-    }
-    for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
-      val buffer = access._2
-      if (syncBeforeHost(access._1, bufferAccesses.keys))
-        beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, buffer.fragmentIdx), executionStream, "D2H")
-    }
-
-    // - device sync stmts -
+    // device sync stmts
 
     if (Knowledge.cuda_syncDeviceAfterKernelCalls)
       afterDevice += CUDA_DeviceSynchronize()
 
-    // wait for pending transfer events
-    for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
-      val fieldData = access._2
-      if (syncBeforeDevice(access._1, fieldAccesses.keys))
-        beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, fieldData.fragmentIdx), executionStream, "H2D")
-    }
-    for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
-      val buffer = access._2
-      if (syncBeforeDevice(access._1, bufferAccesses.keys))
-        beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, buffer.fragmentIdx), executionStream, "H2D")
-    }
+    beforeDevice ++= syncEventsBeforeDevice(executionStream)
 
     (beforeHost, afterHost, beforeDevice, afterDevice)
   }
@@ -230,6 +198,21 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
       ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))
     }
   }
+
+  // collect accessed elements for fragment loops with ContractingLoop and LoopOverDimensions nodes
+  this += new Transformation("Collect accessed elements for fragment loop handling", {
+    case mpiStmt : MPI_Statement      =>
+      collectAccessedElementsFragmentLoop(ListBuffer(mpiStmt), fragLoopCollector, commKernelCollector)
+      mpiStmt
+  }, false)
+
+  // replace orig enclosing fragment loop with handled fragment loop structure
+  this += new Transformation("Create overlapping fragment loop structure", {
+    case loop : IR_LoopOverFragments                                                                                     =>
+      createFragLoopHandler(loop)
+    case loop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name =>
+      createFragLoopHandler(loop)
+  }, false)
 
   this += new Transformation("Process MPI statements", {
     case mpiStmt : MPI_Statement =>
@@ -287,13 +270,5 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
         ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))
       }
-  }, false)
-
-  // replace orig enclosing fragment loop with handled fragment loop structure
-  this += new Transformation("Create overlapping fragment loop structure", {
-    case loop : IR_LoopOverFragments if fragLoopsWithHandling.contains(loop)                                                                                     =>
-      fragLoopsWithHandling(loop)
-    case loop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name && fragLoopsWithHandling.contains(loop) =>
-      fragLoopsWithHandling(loop)
   }, false)
 }
