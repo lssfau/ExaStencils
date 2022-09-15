@@ -14,7 +14,6 @@ import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.communication.ir.IR_IV_CommBuffer
 import exastencils.core.Duplicate
 import exastencils.field.ir.IR_IV_FieldData
-import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.util.ir.IR_CommunicationKernelCollector
 import exastencils.util.ir.IR_FragmentLoopCollector
@@ -28,7 +27,6 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync {
 
   def createFragLoopHandler(loop : IR_ScopedStatement with IR_HasParallelizationInfo) = {
     if (accessedElementsFragLoop.contains(loop)) {
-      Logger.warn("Found fragment loop to adapt")
       val accessedElements = accessedElementsFragLoop(loop)
       CUDA_HandleFragmentLoops(loop, Duplicate(accessedElements))
     } else {
