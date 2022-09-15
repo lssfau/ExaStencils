@@ -10,6 +10,7 @@ import exastencils.baseExt.ir.IR_LoopOverFields
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.baseExt.ir.IR_LoopOverLevels
 import exastencils.baseExt.ir.IR_LoopOverNeighbors
+import exastencils.baseExt.ir.IR_UnduplicatedVariable
 import exastencils.communication.DefaultNeighbors
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
@@ -91,6 +92,14 @@ object CUDA_Stream {
       }
     }
 
+    // omit unnecessary synchronizes if stream mode did not change after last kernel call
+    if (before)
+      stmts = ListBuffer(IR_IfCondition(IR_Negation(CUDA_StreamMode.isCurrentStreamMode(stream)), stmts))
+
+    // reset flag to current stream mode
+    if (!before)
+      stmts += IR_Assignment(CUDA_CurrentStreamMode(), CUDA_StreamMode.streamToMode(stream))
+
     stmts
   }
 }
@@ -127,6 +136,42 @@ abstract class CUDA_Stream(
       None
     }
   }
+}
+
+/// CUDA_StreamMode
+
+object CUDA_StreamMode {
+  def streamToMode(stream : CUDA_Stream) = stream match {
+    case _ : CUDA_ComputeStream     => CUDA_ComputeStreamMode()
+    case _ : CUDA_CommunicateStream => CUDA_CommunicateStreamMode()
+    case _                          => CUDA_DummyStreamMode()
+  }
+
+  // guard for equal stream modes
+  def isCurrentStreamMode(stream : CUDA_Stream) : IR_Expression = streamToMode(stream) EqEq CUDA_CurrentStreamMode()
+}
+
+abstract class CUDA_StreamMode(name : String) extends IR_UnduplicatedVariable {
+  override def resolveName() : String = name
+  override def resolveDatatype() : IR_Datatype = IR_IntegerDatatype
+}
+
+// introduce IV to keep track over the current stream mode
+case class CUDA_CurrentStreamMode() extends CUDA_StreamMode("currStreamMode") {
+  override def resolveDefValue() : Option[IR_Expression] = CUDA_DummyStreamMode().resolveDefValue()
+}
+
+// IVs for enum-like representation
+sealed case class CUDA_ComputeStreamMode() extends CUDA_StreamMode("compStreamMode") {
+  override def resolveDefValue() : Option[IR_Expression] = Some(1)
+}
+
+sealed case class CUDA_CommunicateStreamMode() extends CUDA_StreamMode("commStreamMode") {
+  override def resolveDefValue() : Option[IR_Expression] = Some(2)
+}
+
+sealed case class CUDA_DummyStreamMode() extends CUDA_StreamMode("dummyStreamMode") {
+  override def resolveDefValue() : Option[IR_Expression] = Some(3)
 }
 
 /// CUDA_ComputeStream
