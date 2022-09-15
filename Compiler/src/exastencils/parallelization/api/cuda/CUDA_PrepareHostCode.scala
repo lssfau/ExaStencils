@@ -85,7 +85,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
     // host sync stmts
 
-    beforeDevice ++= syncEventsBeforeHost(executionStream)
+    beforeHost ++= syncEventsBeforeHost(executionStream)
 
     // device sync stmts
 
