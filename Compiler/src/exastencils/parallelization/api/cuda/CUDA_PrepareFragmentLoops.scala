@@ -3,8 +3,14 @@ package exastencils.parallelization.api.cuda
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_Comment
+import exastencils.base.ir.IR_ExpressionIndex
+import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ScopedStatement
 import exastencils.base.ir.IR_Statement
+import exastencils.baseExt.ir.IR_ContractingLoop
+import exastencils.baseExt.ir.IR_ExpressionIndexRange
+import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.communication.ir.IR_IV_CommBuffer
 import exastencils.core.Duplicate
 import exastencils.field.ir.IR_IV_FieldData
@@ -30,17 +36,40 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync {
     }
   }
 
+  // every LoopOverDimensions statement is potentially worse to transform in CUDA code
+  // Exceptions:
+  // 1. this loop is a special one and cannot be optimized in polyhedral model
+  // 2. this loop has no parallel potential
+  // use the host for dealing with the two exceptional cases
+  def isLoopParallel(loop : IR_LoopOverDimensions) = {
+    loop.parallelization.potentiallyParallel // filter some generate loops?
+  }
+
+  def findContainedLoopOverDims(cl : IR_ContractingLoop) = cl.body.find(s =>
+    s.isInstanceOf[IR_IfCondition] || s.isInstanceOf[IR_LoopOverDimensions]) match {
+    case Some(IR_IfCondition(cond, trueBody : ListBuffer[IR_Statement], ListBuffer())) =>
+      val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[IR_Comment])
+      bodyWithoutComments match {
+        case ListBuffer(loop : IR_LoopOverDimensions) => loop
+        case _                                        => IR_LoopOverDimensions(0, IR_ExpressionIndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
+      }
+    case Some(loop : IR_LoopOverDimensions)                                            =>
+      loop
+    case None                                                                          => IR_LoopOverDimensions(0, IR_ExpressionIndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
+  }
+
   def collectAccessedBuffers(stmts : IR_Statement*) : Unit = {}
 
   def collectAccessedElementsFragmentLoop(
       body : ListBuffer[IR_Statement],
-      fragLoopCollector: IR_FragmentLoopCollector,
-      commKernelCollector : IR_CommunicationKernelCollector) = {
+      fragLoopCollector : IR_FragmentLoopCollector,
+      commKernelCollector : IR_CommunicationKernelCollector,
+      isParallel : Boolean) = {
 
     // collect elements accessed in enclosing fragment loop and create handler
     val enclosingFragLoop = fragLoopCollector.getEnclosingFragmentLoop()
     if (enclosingFragLoop.isDefined) {
-      val emptyElements = CUDA_AccessedElementsInFragmentLoop(ListBuffer(), mutable.HashMap(), mutable.HashMap())
+      val emptyElements = CUDA_AccessedElementsInFragmentLoop(ListBuffer(), mutable.HashMap(), mutable.HashMap(), isLoopParallel = false)
       val elements = accessedElementsFragLoop.getOrElse(enclosingFragLoop.get, emptyElements)
 
       // get accessed buffers
@@ -56,6 +85,9 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync {
       // add accessed buffers/fields
       elements.fieldAccesses ++= Duplicate(fieldAccesses.map { case (str, fAcc) => str -> IR_IV_FieldData(fAcc.field, fAcc.slot, fAcc.fragmentIdx) })
       elements.bufferAccesses ++= Duplicate(bufferAccesses)
+
+      // check if loop is parallel
+      elements.isLoopParallel = isParallel
 
       accessedElementsFragLoop.update(enclosingFragLoop.get, elements)
     }

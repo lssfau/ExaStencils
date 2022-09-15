@@ -202,7 +202,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
   // collect accessed elements for fragment loops with ContractingLoop and LoopOverDimensions nodes
   this += new Transformation("Collect accessed elements for fragment loop handling", {
     case mpiStmt : MPI_Statement      =>
-      collectAccessedElementsFragmentLoop(ListBuffer(mpiStmt), fragLoopCollector, commKernelCollector)
+      collectAccessedElementsFragmentLoop(ListBuffer(mpiStmt), fragLoopCollector, commKernelCollector, isParallel = true)
       mpiStmt
   }, false)
 

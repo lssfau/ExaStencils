@@ -115,10 +115,13 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
   // collect accessed elements for fragment loops with ContractingLoop and LoopOverDimensions nodes
   this += new Transformation("Collect accessed elements for fragment loop handling", {
     case cl : IR_ContractingLoop      =>
-      collectAccessedElementsFragmentLoop(cl.body, fragLoopCollector, commKernelCollector)
+      // get LoopOverDims instance in contracting loop and check if parallel
+      val containedLoop = findContainedLoopOverDims(cl)
+      val isParallel = isLoopParallel(containedLoop)
+      collectAccessedElementsFragmentLoop(cl.body, fragLoopCollector, commKernelCollector, isParallel)
       cl
     case loop : IR_LoopOverDimensions =>
-      collectAccessedElementsFragmentLoop(loop.body, fragLoopCollector, commKernelCollector)
+      collectAccessedElementsFragmentLoop(loop.body, fragLoopCollector, commKernelCollector, isLoopParallel(loop))
       loop
   }, false)
 
@@ -139,25 +142,11 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       var hostCondStmt : IR_IfCondition = null
       var deviceCondStmt : IR_IfCondition = null
 
-      val containedLoop = cl.body.find(s =>
-        s.isInstanceOf[IR_IfCondition] || s.isInstanceOf[IR_LoopOverDimensions]) match {
-        case Some(IR_IfCondition(cond, trueBody : ListBuffer[IR_Statement], ListBuffer())) =>
-          val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[IR_Comment])
-          bodyWithoutComments match {
-            case ListBuffer(loop : IR_LoopOverDimensions) => loop
-            case _                                        => IR_LoopOverDimensions(0, IR_ExpressionIndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
-          }
-        case Some(loop : IR_LoopOverDimensions)                                            =>
-          loop
-        case None                                                                          => IR_LoopOverDimensions(0, IR_ExpressionIndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
-      }
+      // get LoopOverDims instance in contracting loop
+      val containedLoop = findContainedLoopOverDims(cl)
 
-      // every LoopOverDimensions statement is potentially worse to transform in CUDA code
-      // Exceptions:
-      // 1. this loop is a special one and cannot be optimized in polyhedral model
-      // 2. this loop has no parallel potential
-      // use the host for dealing with the two exceptional cases
-      val isParallel = containedLoop.parallelization.potentiallyParallel // filter some generate loops?
+      // check if LoopOverDims is parallel
+      val isParallel = isLoopParallel(containedLoop)
 
       // determine execution ( = comm/comp ) stream
       val executionStream = CUDA_Stream.getStream(fragLoopCollector, commKernelCollector)
@@ -241,12 +230,8 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       val hostStmts = ListBuffer[IR_Statement]()
       val deviceStmts = ListBuffer[IR_Statement]()
 
-      // every LoopOverDimensions statement is potentially worth to transform in CUDA code
-      // Exceptions:
-      // 1. this loop is a special one and cannot be optimized in polyhedral model
-      // 2. this loop has no parallel potential
-      // use the host for dealing with the two exceptional cases
-      val isParallel = loop.parallelization.potentiallyParallel // filter some generate loops?
+      // check if LoopOverDims is parallel
+      val isParallel = isLoopParallel(loop)
 
       // determine execution ( = comm/comp ) stream
       val executionStream = CUDA_Stream.getStream(fragLoopCollector, commKernelCollector)
