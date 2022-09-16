@@ -61,13 +61,12 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync {
   def collectAccessedElementsFragmentLoop(
       body : ListBuffer[IR_Statement],
       fragLoopCollector : IR_FragmentLoopCollector,
-      commKernelCollector : IR_CommunicationKernelCollector,
-      isParallel : Boolean) = {
+      commKernelCollector : IR_CommunicationKernelCollector) = {
 
     // collect elements accessed in enclosing fragment loop and create handler
     val enclosingFragLoop = fragLoopCollector.getEnclosingFragmentLoop()
     if (enclosingFragLoop.isDefined) {
-      val emptyElements = CUDA_AccessedElementsInFragmentLoop(ListBuffer(), mutable.HashMap(), mutable.HashMap(), isLoopParallel = false)
+      val emptyElements = CUDA_AccessedElementsInFragmentLoop(ListBuffer(), mutable.HashMap(), mutable.HashMap())
       val elements = accessedElementsFragLoop.getOrElse(enclosingFragLoop.get, emptyElements)
 
       // get accessed buffers
@@ -83,9 +82,6 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync {
       // add accessed buffers/fields
       elements.fieldAccesses ++= Duplicate(fieldAccesses.map { case (str, fAcc) => str -> IR_IV_FieldData(fAcc.field, fAcc.slot, fAcc.fragmentIdx) })
       elements.bufferAccesses ++= Duplicate(bufferAccesses)
-
-      // check if loop is parallel
-      elements.isLoopParallel = isParallel
 
       accessedElementsFragLoop.update(enclosingFragLoop.get, elements)
     }

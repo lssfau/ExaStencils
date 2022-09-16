@@ -41,8 +41,7 @@ object CUDA_HandleFragmentLoops extends DefaultStrategy("Handle synchronization 
 case class CUDA_AccessedElementsInFragmentLoop(
     var streams : ListBuffer[CUDA_Stream],
     var fieldAccesses : mutable.HashMap[String, IR_IV_FieldData],
-    var bufferAccesses : mutable.HashMap[String, IR_IV_CommBuffer],
-    var isLoopParallel : Boolean)
+    var bufferAccesses : mutable.HashMap[String, IR_IV_CommBuffer])
 
 case class CUDA_HandleFragmentLoops(
     var fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo,
@@ -52,7 +51,6 @@ case class CUDA_HandleFragmentLoops(
   var streams = accessedElements.streams
   var fieldAccesses = accessedElements.fieldAccesses
   var bufferAccesses = accessedElements.bufferAccesses
-  var isParallel = accessedElements.isLoopParallel
 
   val iter = IR_LoopOverFragments.defIt
   def currCopy(copies : IR_VariableAccess) = IR_ArrayAccess(copies, iter)
@@ -209,31 +207,29 @@ case class CUDA_HandleFragmentLoops(
 
     // - device sync stmts -
 
-    if (isParallel) {
-      for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
-        val fieldData = access._2
-        val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragmentIdx)
+    for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
+      val fieldData = access._2
+      val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragmentIdx)
 
-        // add data sync statements
-        if (syncBeforeDevice(access._1, fieldAccesses.keys))
-          beforeDevice += CUDA_UpdateDeviceData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
+      // add data sync statements
+      if (syncBeforeDevice(access._1, fieldAccesses.keys))
+        beforeDevice += CUDA_UpdateDeviceData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
 
-        // update flags for written fields
-        if (syncAfterDevice(access._1, fieldAccesses.keys))
-          afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(fieldData.field, Duplicate(fieldData.slot)), IR_BooleanConstant(true))
-      }
-      for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
-        val buffer = access._2
-        val transferStream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
+      // update flags for written fields
+      if (syncAfterDevice(access._1, fieldAccesses.keys))
+        afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(fieldData.field, Duplicate(fieldData.slot)), IR_BooleanConstant(true))
+    }
+    for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
+      val buffer = access._2
+      val transferStream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
 
-        // add data sync statements
-        if (syncBeforeDevice(access._1, bufferAccesses.keys))
-          beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
+      // add data sync statements
+      if (syncBeforeDevice(access._1, bufferAccesses.keys))
+        beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
 
-        // update flags for written fields
-        if (syncAfterDevice(access._1, bufferAccesses.keys))
-          afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(true))
-      }
+      // update flags for written fields
+      if (syncAfterDevice(access._1, bufferAccesses.keys))
+        afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(true))
     }
 
     (beforeHost, afterHost, beforeDevice, afterDevice)
