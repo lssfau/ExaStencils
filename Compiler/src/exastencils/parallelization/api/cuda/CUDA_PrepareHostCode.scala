@@ -115,10 +115,13 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
   // collect accessed elements for fragment loops with ContractingLoop and LoopOverDimensions nodes
   this += new Transformation("Collect accessed elements for fragment loop handling", {
     case cl : IR_ContractingLoop      =>
-      collectAccessedElementsFragmentLoop(cl.body, fragLoopCollector, commKernelCollector)
+      // get LoopOverDims instance in contracting loop and check if parallel
+      val containedLoop = findContainedLoopOverDims(cl)
+      val isParallel = isLoopParallel(containedLoop)
+      collectAccessedElementsFragmentLoop(cl.body, fragLoopCollector, commKernelCollector, isParallel)
       cl
     case loop : IR_LoopOverDimensions =>
-      collectAccessedElementsFragmentLoop(loop.body, fragLoopCollector, commKernelCollector)
+      collectAccessedElementsFragmentLoop(loop.body, fragLoopCollector, commKernelCollector, isLoopParallel(loop))
       loop
   }, false)
 
