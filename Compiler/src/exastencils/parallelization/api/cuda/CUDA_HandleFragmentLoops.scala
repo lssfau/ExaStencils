@@ -305,7 +305,10 @@ case class CUDA_HandleFragmentLoops(
         case "Condition"   => Knowledge.cuda_executionCondition
       }
 
-      ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))
+      if (isParallel)
+        ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))
+      else
+        hostStmts
     }
 
     stmts += syncBeforeFragLoop // add stream synchro loop before kernel calls
