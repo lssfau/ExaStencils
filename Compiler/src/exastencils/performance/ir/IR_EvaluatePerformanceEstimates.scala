@@ -83,6 +83,43 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
     outputStream.close()
   }
 
+  // special handling for LUSolve functions
+  this += new Transformation("Processing special functions", {
+    case fct : IR_Function if !completeFunctions.contains(fct.name) && IR_CollectFunctionStatements.internalFunctions.contains(fct.name)
+      && L4_SpecialFunctionReferences.luSolve.pattern.matcher(fct.name).matches() =>
+
+      // get dimensions and check if quadratic
+      val (m, n) = fct.name match { case L4_SpecialFunctionReferences.luSolve(x, y) => (x.toInt, y.toInt) }
+      if (m != n)
+        Logger.error("Performance evaluation of LUSolve only available for quadratic matrices")
+
+      // determine estimated time for operations
+      val ops = (2.0 / 3.0 * math.pow(m, 3) + 2.0 * math.pow(m, 2)).toInt // from Boehm_BT_2020 p. 48
+
+      // loops are not parallelized
+      val estimatedTimeOps_host = ops / Platform.hw_cpu_frequency
+      val estimatedTimeOps_device = ops / Platform.hw_gpu_frequency
+
+      // add performance estimations for called functions
+      val totalEstimate = IR_PerformanceEstimate(estimatedTimeOps_host, estimatedTimeOps_device)
+      totalEstimate.device += Platform.sw_cuda_kernelCallOverhead
+      val func = IR_UserFunctions.get.functions.find(_.name == fct.name)
+      if (func.isDefined && func.get.isInstanceOf[IR_Function]) {
+        val f = func.get.asInstanceOf[IR_Function]
+        f.body.prepend(IR_Comment(s"Estimated floating point operations: $ops"))
+
+        f.annotate("perf_timeEstimate_host", totalEstimate.host)
+        f.annotate("perf_timeEstimate_device", totalEstimate.device)
+
+        f.body.prepend(
+          IR_Comment(s"Estimated host time for function: ${ estimatedTimeOps_host * 1000.0 } ms"),
+          IR_Comment(s"Estimated device time for function: ${ estimatedTimeOps_device * 1000.0 } ms"))
+
+        completeFunctions.put(fct.name, totalEstimate)
+      }
+      fct
+  })
+
   this += new Transformation("Processing function statements", {
     case fct : IR_Function if !completeFunctions.contains(fct.name) && IR_CollectFunctionStatements.internalFunctions.contains(fct.name) =>
       // process function body
@@ -106,6 +143,37 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
 
   // encapsulated strategies
 
+  // extract estimated times for special functions (e.g. LUSolve)
+  object HandleSpecialFunctionCalls extends QuietDefaultStrategy("Handle special func calls") {
+    // time per function call (host/device)
+    var add_estimatedTime_host : Double = 0.0
+    var add_estimatedTime_device : Double = 0.0
+
+    override def applyStandalone[T](nodes : mutable.Buffer[T]) : Unit = {
+      add_estimatedTime_host = 0.0
+      add_estimatedTime_device = 0.0
+      super.applyStandalone(nodes)
+    }
+
+    this += Transformation("Accumulate estimations", {
+      case fctCall @ IR_ExpressionStatement(IR_FunctionCall(fct, _)) if L4_SpecialFunctionReferences.luSolve.pattern.matcher(fct.name).matches() =>
+        val stmts : ListBuffer[IR_Statement] = ListBuffer()
+        val estimatedTime = IR_EvaluatePerformanceEstimates.completeFunctions(fct.name)
+
+        fctCall.annotate("perf_timeEstimate_host", estimatedTime.host)
+        fctCall.annotate("perf_timeEstimate_device", estimatedTime.device)
+
+        stmts += IR_Comment(s"Estimated host time for function: ${ estimatedTime.host * 1000.0 } ms")
+        stmts += IR_Comment(s"Estimated device time for function: ${ estimatedTime.device * 1000.0 } ms")
+
+        add_estimatedTime_host += estimatedTime.host
+        add_estimatedTime_device += estimatedTime.device
+
+        stmts :+ fctCall
+    })
+  }
+
+  // evaluate performance of a function's sub-AST
   object EvaluateSubAST extends QuietDefaultStrategy("Estimating performance for sub-ASTs") {
     // TODO:  loops with conditions, reductions
     //        while loops
@@ -184,15 +252,15 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
     }
 
     this += new Transformation("Progressing key statements", {
-      case fct : IR_FunctionCall =>
+      case fctCall : IR_FunctionCall =>
 
-        if (!IR_CollectFunctionStatements.internalFunctions.contains(fct.name))
+        if (!IR_CollectFunctionStatements.internalFunctions.contains(fctCall.name))
           () // external functions -> no estimate
-        else if (IR_EvaluatePerformanceEstimates.completeFunctions.contains(fct.name))
-          addTimeToStack(IR_EvaluatePerformanceEstimates.completeFunctions(fct.name))
+        else if (IR_EvaluatePerformanceEstimates.completeFunctions.contains(fctCall.name))
+          addTimeToStack(IR_EvaluatePerformanceEstimates.completeFunctions(fctCall.name))
         else
           unknownFunctionCalls = true
-        fct
+        fctCall
 
       case loop : IR_LoopOverDimensions =>
 
@@ -238,26 +306,18 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           val estimatedTimeOps_host = cyclesPerIt * iterationsPerThread / PlatformUtils.cpu_opsPerThread
           val estimatedTimeOps_device = cyclesPerIt * iterationsPerMpi / PlatformUtils.gpu_opsPerMpi(maxIterations)
 
-          //stmts += IR_Comment(s"Estimated adds: ${ EvaluateForOps.numAdd }")
-          //stmts += IR_Comment(s"Estimated muls: ${ EvaluateForOps.numMul }")
-          //stmts += IR_Comment(s"Estimated divs: ${ EvaluateForOps.numDiv }")
-
           stmts += IR_Comment(s"Host time for computational ops: ${ estimatedTimeOps_host * 1000.0 } ms")
           stmts += IR_Comment(s"Device time for computational ops: ${ estimatedTimeOps_device * 1000.0 } ms")
 
           stmts += IR_Comment(s"Additions: ${ EvaluateForOps.numAdd }")
-          stmts += IR_Comment(s"Multiplications: ${ EvaluateForOps.numMul}")
-          stmts += IR_Comment(s"Divisions: ${ EvaluateForOps.numDiv}")
+          stmts += IR_Comment(s"Multiplications: ${ EvaluateForOps.numMul }")
+          stmts += IR_Comment(s"Divisions: ${ EvaluateForOps.numDiv }")
 
           // roofline
           val totalEstimate = IR_PerformanceEstimate(Math.max(estimatedTimeOps_host, optimisticTimeMem_host), Math.max(estimatedTimeOps_device, optimisticTimeMem_device))
           totalEstimate.device += Platform.sw_cuda_kernelCallOverhead
 
           stmts += IR_Comment(s"Assumed kernel call overhead: ${ Platform.sw_cuda_kernelCallOverhead * 1000.0 } ms")
-
-          loop.annotate("perf_timeEstimate_host", totalEstimate.host)
-          loop.annotate("perf_timeEstimate_device", totalEstimate.device)
-          addTimeToStack(totalEstimate)
 
           // use information gathered so far to add blocking if enabled
           if (Knowledge.opt_loopBlocked) {
@@ -266,6 +326,22 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
 
             stmts += IR_Comment(s"Loop blocking factors: ${ blockingFactors.mkString(", ") }")
           }
+
+          // fetch estimations for special function calls in loop and add to current estimation results
+          HandleSpecialFunctionCalls.applyStandalone(IR_Scope(loop.body))
+          val estimatedTimeSpecial_host = HandleSpecialFunctionCalls.add_estimatedTime_host * iterationsPerThread
+          val estimatedTimeSpecial_device = HandleSpecialFunctionCalls.add_estimatedTime_device * iterationsPerMpi
+
+          totalEstimate.host += estimatedTimeSpecial_host
+          totalEstimate.device += estimatedTimeSpecial_device
+
+          stmts += IR_Comment(s"Host time for special functions: ${ estimatedTimeSpecial_host * 1000.0 } ms")
+          stmts += IR_Comment(s"Device time for computational ops: ${ estimatedTimeSpecial_device * 1000.0 } ms")
+
+          // add final estimation to stack
+          loop.annotate("perf_timeEstimate_host", totalEstimate.host)
+          loop.annotate("perf_timeEstimate_device", totalEstimate.device)
+          addTimeToStack(totalEstimate)
 
           stmts :+ loop
         }
@@ -309,6 +385,15 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
     var multiDimOffsets = HashMap[String, ListBuffer[IR_ConstIndex]]()
     var inWriteOp = true
 
+    override def reset() = {
+      fieldAccesses.clear
+      offsets.clear
+      multiDimOffsets.clear
+      accessedMatrixEntries.clear()
+
+      super.reset()
+    }
+
     // cache access pattern for consecutive vector/matrix field accesses
     var accessedMatrixEntries = HashMap[String, mutable.BitSet]()
     def getMatrixCache(identifier : String) = accessedMatrixEntries.getOrElse(identifier, mutable.BitSet.empty)
@@ -343,15 +428,6 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
       // update or put access with matrix dt
       updateOrPutAccessedDatatype(identifier, IR_ArrayDatatype(baseDt, bs.size))
       mapIndexToOffsets(field, identifier, Duplicate(accessIndex), accessIndex.length)
-    }
-
-    override def reset() = {
-      fieldAccesses.clear
-      offsets.clear
-      multiDimOffsets.clear
-      accessedMatrixEntries.clear()
-
-      super.reset()
     }
 
     def mapIndexToOffsets(field : IR_Field, identifier : String, offsetIndex : IR_ExpressionIndex, len : Int) = {
@@ -610,12 +686,6 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
           case _ : IR_Expression => mapCompiletimeMatrixFctExpr(mn.asInstanceOf[IR_Expression])
         }
         mn
-      case fctCall : IR_FunctionCall if L4_SpecialFunctionReferences.luSolve.pattern.matcher(fctCall.name).matches() =>
-        val (m, n) = fctCall.name match { case L4_SpecialFunctionReferences.luSolve(x, y) => (x, y) }
-
-        // FIXME
-        fctCall
-
     }, false)
   }
 
