@@ -90,14 +90,6 @@ case class CUDA_HandleFragmentLoops(
     IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference(stdFunc, IR_UnitDatatype),
       ListBuffer[IR_Expression](Duplicate(dst), Duplicate(dst) + IR_IntegerConstant(size), src)))
 
-  // TODO: unused
-  def resetReductionTarget(redTarget : IR_Expression) = reductionDt(redTarget) match {
-    case _ : IR_ScalarDatatype               =>
-      IR_Assignment(redTarget, 0)
-    case hodt : IR_HigherDimensionalDatatype =>
-      matrixAssignment("std::fill", redTarget, 0.0, hodt.getSizeArray.product)
-  }
-
   def copyReductionTarget(redTarget : IR_Expression, op : String, copies : IR_VariableAccess) = {
     val tpe = redTarget.datatype.resolveBaseDatatype.prettyprint()
     val initVal : IR_Expression = op match {
