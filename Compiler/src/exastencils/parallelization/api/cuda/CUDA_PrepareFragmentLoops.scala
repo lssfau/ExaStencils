@@ -81,8 +81,8 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync {
         elements.streams += executionStream
 
       // add accessed buffers/fields
-      elements.fieldAccesses ++= Duplicate(fieldAccesses.map { case (str, fAcc) => str -> IR_IV_FieldData(fAcc.field, fAcc.slot, fAcc.fragmentIdx) })
-      elements.bufferAccesses ++= Duplicate(bufferAccesses)
+      elements.fieldAccesses ++= fieldAccesses.map { case (str, fAcc) => str -> IR_IV_FieldData(fAcc.field, Duplicate(fAcc.slot), Duplicate(fAcc.fragmentIdx)) }
+      elements.bufferAccesses ++= bufferAccesses.map(Duplicate(_))
 
       // check if loop is parallel
       elements.isLoopParallel = isParallel
@@ -98,12 +98,12 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync {
     for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldData = access._2
       if (syncBeforeHost(access._1, fieldAccesses.keys))
-        beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, fieldData.fragmentIdx), stream, "D2H")
+        beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, Duplicate(fieldData.fragmentIdx)), stream, "D2H")
     }
     for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
       val buffer = access._2
       if (syncBeforeHost(access._1, bufferAccesses.keys))
-        beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, buffer.fragmentIdx), stream, "D2H")
+        beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, Duplicate(buffer.fragmentIdx)), stream, "D2H")
     }
 
     beforeHost
@@ -116,12 +116,12 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync {
     for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldData = access._2
       if (syncBeforeDevice(access._1, fieldAccesses.keys))
-        beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, fieldData.fragmentIdx), stream, "H2D")
+        beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, Duplicate(fieldData.fragmentIdx)), stream, "H2D")
     }
     for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
       val buffer = access._2
       if (syncBeforeDevice(access._1, bufferAccesses.keys))
-        beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, buffer.fragmentIdx), stream, "H2D")
+        beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, Duplicate(buffer.fragmentIdx)), stream, "H2D")
     }
 
     beforeDevice

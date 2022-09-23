@@ -175,7 +175,7 @@ case class CUDA_HandleFragmentLoops(
 
     for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldData = access._2
-      val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragmentIdx)
+      val transferStream = CUDA_TransferStream(fieldData.field, Duplicate(fieldData.fragmentIdx))
 
       // add data sync statements
       if (syncBeforeHost(access._1, fieldAccesses.keys))
@@ -183,12 +183,12 @@ case class CUDA_HandleFragmentLoops(
 
       // update flags for written fields
       if (syncAfterHost(access._1, fieldAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostDataUpdated(fieldData.field, Duplicate(fieldData.slot)), IR_BooleanConstant(true))
+        afterHost += IR_Assignment(CUDA_HostDataUpdated(fieldData.field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)), IR_BooleanConstant(true))
     }
 
     for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
       val buffer = access._2
-      val transferStream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
+      val transferStream = CUDA_TransferStream(buffer.field, Duplicate(buffer.fragmentIdx))
 
       // add buffer sync statements
       if (syncBeforeHost(access._1, bufferAccesses.keys))
@@ -196,7 +196,7 @@ case class CUDA_HandleFragmentLoops(
 
       // update flags for written buffers
       if (syncAfterHost(access._1, bufferAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(true))
+        afterHost += IR_Assignment(CUDA_HostBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx), Duplicate(buffer.fragmentIdx)), IR_BooleanConstant(true))
     }
 
     // - device sync stmts -
@@ -204,7 +204,7 @@ case class CUDA_HandleFragmentLoops(
     if (isParallel) {
       for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
         val fieldData = access._2
-        val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragmentIdx)
+        val transferStream = CUDA_TransferStream(fieldData.field, Duplicate(fieldData.fragmentIdx))
 
         // add data sync statements
         if (syncBeforeDevice(access._1, fieldAccesses.keys))
@@ -212,11 +212,11 @@ case class CUDA_HandleFragmentLoops(
 
         // update flags for written fields
         if (syncAfterDevice(access._1, fieldAccesses.keys))
-          afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(fieldData.field, Duplicate(fieldData.slot)), IR_BooleanConstant(true))
+          afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(fieldData.field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)), IR_BooleanConstant(true))
       }
       for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
         val buffer = access._2
-        val transferStream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
+        val transferStream = CUDA_TransferStream(buffer.field, Duplicate(buffer.fragmentIdx))
 
         // add data sync statements
         if (syncBeforeDevice(access._1, bufferAccesses.keys))
@@ -224,7 +224,7 @@ case class CUDA_HandleFragmentLoops(
 
         // update flags for written fields
         if (syncAfterDevice(access._1, bufferAccesses.keys))
-          afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(true))
+          afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx), Duplicate(buffer.fragmentIdx)), IR_BooleanConstant(true))
       }
     }
 
