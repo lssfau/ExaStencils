@@ -879,8 +879,7 @@ object Knowledge {
       || cuda_syncStreamsBeforeComputeKernelCalls != "none" || cuda_syncStreamsAfterComputeKernelCalls != "none"), "Trying to sync cuda streams without having cuda streams enabled. Enable via \"cuda_useStreams = true\"")
     Constraints.condError(cuda_enabled && cuda_useStreams && (!cuda_syncStreamsOptions.contains(cuda_syncStreamsBeforeCommunicateKernelCalls) || !cuda_syncStreamsOptions.contains(cuda_syncStreamsAfterCommunicateKernelCalls)
       || !cuda_syncStreamsOptions.contains(cuda_syncStreamsBeforeComputeKernelCalls) || !cuda_syncStreamsOptions.contains(cuda_syncStreamsAfterComputeKernelCalls)), "Invalid stream sync option. Should be one of: " + cuda_syncStreamsOptions.mkString(","))
-    Constraints.condError(cuda_enabled && cuda_useStreams && cuda_syncDeviceAfterKernelCalls, "Trying to sync cuda device with \"cuda_streams\" being enabled. Please refer to the flags: \"cuda_syncStreamsBeforeCommunicationKernelCalls\", \"cuda_syncStreamsAfterCommunicationKernelCalls\", \"cuda_syncStreamsAfterComputeKernelCalls\"")
-    Constraints.condEnsureValue(cuda_syncDeviceAfterKernelCalls, true, !cuda_useStreams, "Synchronize device when CUDA streams are disabled.")
+    Constraints.condError(cuda_enabled && cuda_useStreams && cuda_syncDeviceAfterKernelCalls, "Trying to sync cuda device with \"cuda_streams\" being enabled. Please refer to the flags: \"cuda_syncStreamsBeforeCommunicationKernelCalls\", \"cuda_syncStreamsAfterCommunicationKernelCalls\", \"cuda_syncStreamsBeforeComputeKernelCalls\", \"cuda_syncStreamsAfterComputeKernelCalls\"")
 
     Constraints.condWarn(cuda_useSharedMemory && cuda_favorL1CacheOverSharedMemory, "If CUDA shared memory usage is enabled, it is not very useful to favor L1 cache over shared memory storage!")
     Constraints.condWarn(cuda_spatialBlockingWithSmem && !cuda_useSharedMemory, "Spatial blocking with shared memory can only be used if shared memory usage is enabled!")
