@@ -175,7 +175,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
     // device sync stmts
 
-    if (Knowledge.cuda_syncDeviceAfterKernelCalls)
+    if (!Knowledge.cuda_useStreams && !Knowledge.cuda_omitSyncDeviceAfterKernelCalls)
       afterDevice += CUDA_DeviceSynchronize()
 
     beforeDevice ++= syncEventsBeforeDevice(executionStream)
