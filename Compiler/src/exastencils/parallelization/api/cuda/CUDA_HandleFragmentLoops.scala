@@ -171,7 +171,8 @@ case class CUDA_HandleFragmentLoops(
     // sync kernel streams before issuing transfers
     val issuedSyncs = streams.flatMap(stream => CUDA_Stream.genSynchronize(stream, before = true))
     val requiredSyncs = CUDA_Stream.genCompSync() +: CUDA_Stream.genCommSync()
-    beforeHost ++= requiredSyncs.filterNot(issuedSyncs.contains(_))
+    if (streams.exists(_.useNonDefaultStreams))
+      beforeHost ++= requiredSyncs.filterNot(issuedSyncs.contains(_))
 
     for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldData = access._2
