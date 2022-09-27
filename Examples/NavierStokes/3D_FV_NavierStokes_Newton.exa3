@@ -109,7 +109,7 @@ Function ResNorm@(coarsest and finest) : Real {
 Function Smoother@(all but coarsest) {
   repeat 3 times {
     color with {
-      ( ( i0 + i1 ) % 2 ),
+      ( ( i0 + i1 + i2 ) % 2 ),
       solve locally at p relax vankaRelax {
         u@[0, 0, 0] => A11@[0, 0, 0] * u@[0, 0, 0] + A12@[0, 0, 0] * v@[0, 0, 0] + A13@[0, 0, 0] * w@[0, 0, 0] + B1@[0, 0, 0] * p@[0, 0, 0] == rhs_u@[0, 0, 0] + rhsNewton_u@[0, 0, 0]
         u@[1, 0, 0] => A11@[1, 0, 0] * u@[1, 0, 0] + A12@[1, 0, 0] * v@[1, 0, 0] + A13@[1, 0, 0] * w@[1, 0, 0] + B1@[1, 0, 0] * p@[1, 0, 0] == rhs_u@[1, 0, 0] + rhsNewton_u@[1, 0, 0]

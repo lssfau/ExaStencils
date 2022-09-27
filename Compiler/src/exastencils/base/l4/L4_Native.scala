@@ -29,7 +29,9 @@ import exastencils.prettyprinting.PpStream
 /// L4_Native
 
 case class L4_Native(nativeCode : String) extends L4_Expression {
-  override def prettyprint(out : PpStream) = out << "native ( " << nativeCode << " )"
+  // swap quotation characters for second parse
+  def q = if (nativeCode.contains("\"")) "\'" else "\""
+  override def prettyprint(out : PpStream) = out << s"native(${q + nativeCode + q})"
   override def progress = ProgressLocation(IR_Native(nativeCode))
 }
 
