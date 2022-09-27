@@ -3,14 +3,8 @@ package exastencils.parallelization.api.cuda
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Comment
-import exastencils.base.ir.IR_ExpressionIndex
-import exastencils.base.ir.IR_IfCondition
-import exastencils.base.ir.IR_ScopedStatement
-import exastencils.base.ir.IR_Statement
-import exastencils.baseExt.ir.IR_ContractingLoop
-import exastencils.baseExt.ir.IR_ExpressionIndexRange
-import exastencils.baseExt.ir.IR_LoopOverDimensions
+import exastencils.base.ir._
+import exastencils.baseExt.ir._
 import exastencils.communication.ir.IR_IV_CommBuffer
 import exastencils.core.Duplicate
 import exastencils.field.ir.IR_IV_FieldData
@@ -94,16 +88,24 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync {
   def syncEventsBeforeHost(stream : CUDA_Stream) = {
     var beforeHost : ListBuffer[IR_Statement] = ListBuffer()
 
-    // wait for pending transfer events
+    // wait for pending transfer events if dirty flag is set and then reset flag
     for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldData = access._2
-      if (syncBeforeHost(access._1, fieldAccesses.keys))
-        beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, Duplicate(fieldData.fragmentIdx)), stream, "D2H")
+      if (syncBeforeHost(access._1, fieldAccesses.keys)) {
+        val dirtyFlag = CUDA_DeviceDataUpdated(fieldData.field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx))
+        beforeHost += IR_IfCondition(dirtyFlag,
+          CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, Duplicate(fieldData.fragmentIdx)), stream, "D2H"),
+          IR_Assignment(dirtyFlag, IR_BooleanConstant(false)))
+      }
     }
     for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
       val buffer = access._2
-      if (syncBeforeHost(access._1, bufferAccesses.keys))
-        beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, Duplicate(buffer.fragmentIdx)), stream, "D2H")
+      if (syncBeforeHost(access._1, bufferAccesses.keys)) {
+        val dirtyFlag = CUDA_DeviceBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx))
+        beforeHost += IR_IfCondition(dirtyFlag,
+          CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, Duplicate(buffer.fragmentIdx)), stream, "D2H"),
+          IR_Assignment(dirtyFlag, IR_BooleanConstant(false)))
+      }
     }
 
     beforeHost
@@ -112,16 +114,24 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync {
   def syncEventsBeforeDevice(stream : CUDA_Stream) = {
     var beforeDevice : ListBuffer[IR_Statement] = ListBuffer()
 
-    // wait for pending transfer events
+    // wait for pending transfer events if dirty flag is set and then reset flag
     for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldData = access._2
-      if (syncBeforeDevice(access._1, fieldAccesses.keys))
-        beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, Duplicate(fieldData.fragmentIdx)), stream, "H2D")
+      if (syncBeforeDevice(access._1, fieldAccesses.keys)) {
+        val dirtyFlag = CUDA_HostDataUpdated(fieldData.field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx))
+        beforeDevice += IR_IfCondition(dirtyFlag,
+          CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, Duplicate(fieldData.fragmentIdx)), stream, "H2D"),
+          IR_Assignment(dirtyFlag, IR_BooleanConstant(false)))
+      }
     }
     for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
       val buffer = access._2
-      if (syncBeforeDevice(access._1, bufferAccesses.keys))
-        beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, Duplicate(buffer.fragmentIdx)), stream, "H2D")
+      if (syncBeforeDevice(access._1, bufferAccesses.keys)) {
+        val dirtyFlag = CUDA_HostBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx))
+        beforeDevice += IR_IfCondition(dirtyFlag,
+          CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, Duplicate(buffer.fragmentIdx)), stream, "H2D"),
+          IR_Assignment(dirtyFlag, IR_BooleanConstant(false)))
+      }
     }
 
     beforeDevice
