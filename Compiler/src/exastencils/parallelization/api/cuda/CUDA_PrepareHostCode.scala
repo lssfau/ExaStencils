@@ -95,7 +95,8 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     // sync kernel streams before issuing transfers
     val issuedSyncs = CUDA_Stream.genSynchronize(executionStream, before = true)
     val requiredSyncs = CUDA_Stream.genCompSync() +: CUDA_Stream.genCommSync()
-    beforeHost ++= requiredSyncs.filterNot(issuedSyncs.contains(_))
+    if (executionStream.useNonDefaultStreams)
+      beforeHost ++= requiredSyncs.filterNot(issuedSyncs.contains(_))
 
     for (access <- gatherFields.fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldData = access._2
@@ -138,7 +139,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     // - device sync stmts -
 
     if (isParallel) {
-      if (Knowledge.cuda_syncDeviceAfterKernelCalls)
+      if (!Knowledge.cuda_useStreams && !Knowledge.cuda_omitSyncDeviceAfterKernelCalls)
         afterDevice += CUDA_DeviceSynchronize()
 
       for (access <- gatherFields.fieldAccesses.toSeq.sortBy(_._1)) {
