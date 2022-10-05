@@ -781,7 +781,21 @@ test:CUDA:
 test:CUDA_2D_MatrixReduction:
     extends: .test_template_CUDA
     script:
-        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_2D_MatrixReduction CUDA/2D_MatrixReduction.knowledge "CUDA/2D_MatrixReduction.exa4" CUDA/2D_MatrixReduction.results 4 1 Platform/chimaira-gpu.platform output
+        # base variant
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_2D_MatrixReduction_Base CUDA/2D_MatrixReduction.knowledge "CUDA/2D_MatrixReduction.exa4" CUDA/2D_MatrixReduction.results 4 1 Platform/chimaira-gpu.platform output
+        # managed memory variant
+        - cp CUDA/2D_MatrixReduction.knowledge CUDA/2D_MatrixReduction_MM.knowledge
+        - echo -e "\ncuda_useManagedMemory = true" >> CUDA/2D_MatrixReduction_MM.knowledge
+        - echo -e "\ncuda_usePinnedHostMemory = false" >> CUDA/2D_MatrixReduction_MM.knowledge
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_2D_MatrixReduction_MM CUDA/2D_MatrixReduction_MM.knowledge "CUDA/2D_MatrixReduction.exa4" CUDA/2D_MatrixReduction.results 4 1 Platform/chimaira-gpu.platform output
+        # no stream variant
+        - cp CUDA/2D_MatrixReduction.knowledge CUDA/2D_MatrixReduction_NoStream.knowledge
+        - echo -e "\ncuda_useStreams = false" >> CUDA/2D_MatrixReduction_NoStream.knowledge
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_2D_MatrixReduction_NoStream CUDA/2D_MatrixReduction_NoStream.knowledge "CUDA/2D_MatrixReduction.exa4" CUDA/2D_MatrixReduction.results 4 1 Platform/chimaira-gpu.platform output
+        # managed memory && no stream variant
+        - cp CUDA/2D_MatrixReduction_MM.knowledge CUDA/2D_MatrixReduction_MM_NoStream.knowledge
+        - echo -e "\ncuda_useStreams = false" >> CUDA/2D_MatrixReduction_MM_NoStream.knowledge
+        - python3 run_test.py ../Compiler/Compiler.jar:../Compiler/lib CUDA_2D_MatrixReduction_MM_NoStream CUDA/2D_MatrixReduction_MM_NoStream.knowledge "CUDA/2D_MatrixReduction.exa4" CUDA/2D_MatrixReduction.results 4 1 Platform/chimaira-gpu.platform output
 
 
 ###############################################

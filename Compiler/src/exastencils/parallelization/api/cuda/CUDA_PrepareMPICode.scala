@@ -32,14 +32,19 @@ import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.timing.ir.IR_TimerFunctions
-import exastencils.util.ir.IR_FctNameCollector
+import exastencils.util.ir._
 
 /// CUDA_PrepareMPICode
 
 object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
   "and annotating for later kernel transformation") {
-  val collector = new IR_FctNameCollector
-  this.register(collector)
+
+  val stackCollector = new IR_StackCollector
+  val commKernelCollector = new IR_CommunicationKernelCollector
+  val fctNameCollector = new IR_FctNameCollector
+  this.register(fctNameCollector)
+  this.register(stackCollector)
+  this.register(commKernelCollector)
   this.onBefore = () => this.resetCollectors()
 
   var fieldAccesses = HashMap[String, IR_IV_FieldData]()
@@ -143,7 +148,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
     }
   }
 
-  def getHostDeviceSyncStmts(mpiStmt : MPI_Statement) = {
+  def getHostDeviceSyncStmts(mpiStmt : MPI_Statement, stream : CUDA_Stream) = {
     val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     // don't filter here - memory transfer code is still required
@@ -180,13 +185,12 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
     // host sync stmts
 
-    for (access <- fieldAccesses.toSeq.sortBy(_._1)
-         ) {
+    for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val field = access._2
 
       // add data sync statements
       if (syncBeforeHost(access._1, fieldAccesses.keys))
-        beforeHost += CUDA_UpdateHostData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
+        beforeHost += CUDA_UpdateHostData(Duplicate(access._2), stream).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written fields
       if (syncAfterHost(access._1, fieldAccesses.keys))
@@ -198,7 +202,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
       // add buffer sync statements
       if (syncBeforeHost(access._1, bufferAccesses.keys))
-        beforeHost += CUDA_UpdateHostBufferData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
+        beforeHost += CUDA_UpdateHostBufferData(Duplicate(access._2), stream).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written buffers
       if (syncAfterHost(access._1, bufferAccesses.keys))
@@ -210,14 +214,13 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
     if (Knowledge.cuda_syncDeviceAfterKernelCalls)
       afterDevice += CUDA_DeviceSynchronize()
 
-    for (access <- fieldAccesses.toSeq.sortBy(_._1)
-         ) {
+    for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val field = access._2
 
       // add data sync statements
       if (syncBeforeDevice(access._1, fieldAccesses.keys)
       )
-        beforeDevice += CUDA_UpdateDeviceData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
+        beforeDevice += CUDA_UpdateDeviceData(Duplicate(access._2), stream).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written fields
       if (syncAfterDevice(access._1, fieldAccesses.keys)
@@ -230,7 +233,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
       // add data sync statements
       if (syncBeforeDevice(access._1, bufferAccesses.keys))
-        beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
+        beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(access._2), stream).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written fields
       if (syncAfterDevice(access._1, bufferAccesses.keys))
@@ -264,16 +267,19 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
       }
 
       // skip timer functions
-      if (IR_TimerFunctions.functions.contains(collector.getCurrentName))
+      if (IR_TimerFunctions.functions.contains(fctNameCollector.getCurrentName))
         skip = true
 
       if (skip) {
         mpiStmt
       } else {
+        // determine stream
+        val stream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
+
         val hostStmts = ListBuffer[IR_Statement]()
         val deviceStmts = ListBuffer[IR_Statement]()
 
-        val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(mpiStmt)
+        val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(mpiStmt, stream)
 
         hostStmts ++= beforeHost
         deviceStmts ++= beforeDevice
