@@ -209,7 +209,15 @@ object IR_SimplifyExpression {
         res = new mutable.HashMap[IR_Expression, Long]()
         res(m) = 1L
 
+      case m : IR_MemberFunctionCallWithDt =>
+        res = new mutable.HashMap[IR_Expression, Long]()
+        res(m) = 1L
+
       case m : IR_MemberFunctionCallArrow =>
+        res = new mutable.HashMap[IR_Expression, Long]()
+        res(m) = 1L
+
+      case m : IR_MemberFunctionCallArrowWithDt =>
         res = new mutable.HashMap[IR_Expression, Long]()
         res(m) = 1L
 

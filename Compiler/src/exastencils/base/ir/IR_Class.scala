@@ -56,19 +56,52 @@ object IR_MemberFunctionCall {
     new IR_MemberFunctionCall(objectName, name, args.to[ListBuffer])
 }
 
-case class IR_MemberFunctionCall(var objectName : IR_Expression, var name : String, var arguments : ListBuffer[IR_Expression]) extends IR_Expression {
+case class IR_MemberFunctionCall(
+    var objectName : IR_Expression,
+    var name : String,
+    var arguments : ListBuffer[IR_Expression]
+) extends IR_Expression {
 
-  // FIXME: datatype
-  override def datatype = IR_UnitDatatype
+  override def datatype : IR_Datatype = IR_UnitDatatype
+  override def prettyprint(out : PpStream) : Unit = out << objectName << '.' << name << '(' <<< (arguments, ", ") << ')'
+}
+
+object IR_MemberFunctionCallWithDt {
+  def apply(objectName : IR_Expression, name : String, dt : IR_Datatype, args : IR_Expression*) =
+    new IR_MemberFunctionCallWithDt(objectName, name, args.to[ListBuffer], dt)
+}
+
+case class IR_MemberFunctionCallWithDt(
+    var objectName : IR_Expression,
+    var name : String,
+    var arguments : ListBuffer[IR_Expression],
+    var datatype : IR_Datatype = IR_UnitDatatype
+) extends IR_Expression {
+
   override def prettyprint(out : PpStream) : Unit = out << objectName << '.' << name << '(' <<< (arguments, ", ") << ')'
 }
 
 object IR_MemberFunctionCallArrow {
-  def apply(objectName : IR_Expression, name : String, dt : IR_Datatype, args : IR_Expression*) =
-    new IR_MemberFunctionCallArrow(objectName, name, args.to[ListBuffer], dt)
+  def apply(objectName : IR_Expression, name : String, args : IR_Expression*) =
+    new IR_MemberFunctionCallArrow(objectName, name, args.to[ListBuffer])
 }
 
 case class IR_MemberFunctionCallArrow(
+    var objectName : IR_Expression,
+    var name : String,
+    var arguments : ListBuffer[IR_Expression],
+) extends IR_Expression {
+
+  override def datatype : IR_Datatype = IR_UnitDatatype
+  override def prettyprint(out : PpStream) : Unit = out << objectName << "->" << name << '(' <<< (arguments, ", ") << ')'
+}
+
+object IR_MemberFunctionCallArrowWithDt {
+  def apply(objectName : IR_Expression, name : String, dt : IR_Datatype, args : IR_Expression*) =
+    new IR_MemberFunctionCallArrowWithDt(objectName, name, args.to[ListBuffer], dt)
+}
+
+case class IR_MemberFunctionCallArrowWithDt(
     var objectName : IR_Expression,
     var name : String,
     var arguments : ListBuffer[IR_Expression],
