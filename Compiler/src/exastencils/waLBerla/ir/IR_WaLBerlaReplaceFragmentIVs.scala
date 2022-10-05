@@ -1,12 +1,12 @@
 package exastencils.waLBerla.ir
 
-import exastencils.base.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.domain.ir._
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.util.ir.IR_StackCollector
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
+import exastencils.waLBerla.ir.grid.IR_WaLBerlaBlockAABB
 
 object IR_WaLBerlaReplaceFragmentIVs extends DefaultStrategy("Replace frag info accesses with accesses to waLBerla block info") {
 
@@ -22,9 +22,8 @@ object IR_WaLBerlaReplaceFragmentIVs extends DefaultStrategy("Replace frag info 
       case _                                          => false
     }
 
-  def aabbDatatype = IR_SpecialDatatype("math::AABB")
 
-  def getBlockAABB() = IR_MemberFunctionCallArrow(block, "getAABB", aabbDatatype)
+  def getBlockAABB = IR_WaLBerlaBlockAABB(block)
 
   this += Transformation("Replace", {
 
@@ -38,13 +37,10 @@ object IR_WaLBerlaReplaceFragmentIVs extends DefaultStrategy("Replace frag info 
 
     // TODO: fragment connection
 
-    case iv @ IR_IV_FragmentPosition(dim, fragmentIdx) if inWaLBerlaBlockLoop(collector) =>
-      IR_ArrayAccess(IR_MemberFunctionCall(getBlockAABB(), "center"), dim)
+    case _ @ IR_IV_FragmentPosition(dim, _) if inWaLBerlaBlockLoop(collector) => getBlockAABB.center(dim)
 
-    case iv @ IR_IV_FragmentPositionBegin(dim, fragmentIdx) if inWaLBerlaBlockLoop(collector) =>
-      IR_MemberFunctionCall(getBlockAABB(), "min", dim)
+    case _ @ IR_IV_FragmentPositionBegin(dim, _) if inWaLBerlaBlockLoop(collector) => getBlockAABB.min(dim)
 
-    case iv @ IR_IV_FragmentPositionEnd(dim, fragmentIdx) if inWaLBerlaBlockLoop(collector)  =>
-      IR_MemberFunctionCall(getBlockAABB(), "max", dim)
+    case _ @ IR_IV_FragmentPositionEnd(dim, _) if inWaLBerlaBlockLoop(collector)  => getBlockAABB.max(dim)
   })
 }

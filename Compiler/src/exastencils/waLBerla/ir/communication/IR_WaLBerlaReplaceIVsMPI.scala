@@ -18,8 +18,8 @@ object IR_WaLBerlaReplaceIVsMPI extends DefaultStrategy("Replace exa's mpi data 
 
   this += Transformation("Utilize waLBerla's MPI comm datastructures", {
     case iv : MPI_IV if iv == MPI_IV_MpiRank && inWaLBerlaScope(collector) =>
-      IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "rank", iv.datatype)
+      IR_MemberFunctionCallArrowWithDt(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "rank", iv.datatype)
     case iv : MPI_IV if iv == MPI_IV_MpiSize && inWaLBerlaScope(collector) =>
-      IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "numProcesses", iv.datatype)
+      IR_MemberFunctionCallArrowWithDt(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "numProcesses", iv.datatype)
   })
 }

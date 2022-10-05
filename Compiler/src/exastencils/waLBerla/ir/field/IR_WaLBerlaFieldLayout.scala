@@ -37,7 +37,7 @@ case class IR_WaLBerlaFieldLayout(
   def defIdxById(id : String, dim : Int) : IR_Expression = {
 
     // layouts are identical for each slot: use "0" as default
-    def callMemberFunc(name : String) = IR_MemberFunctionCallArrow(IR_IV_WaLBerlaFieldData(wbField, 0), name, IR_IntegerDatatype)
+    def callMemberFunc(name : String) = IR_MemberFunctionCallArrowWithDt(IR_IV_WaLBerlaFieldData(wbField, 0), name, IR_IntegerDatatype)
 
     def callMemberFuncForDim(name : String, dim : Int) = {
       // TODO handling layout transformations ?
@@ -49,7 +49,7 @@ case class IR_WaLBerlaFieldLayout(
       val prefix = dim match {
         case d if d < newLayout.length => newLayout.reverse(d) // rightmost is innermost dim
       }
-      IR_MemberFunctionCallArrow(IR_IV_WaLBerlaFieldData(wbField, 0), prefix + name, IR_IntegerDatatype)
+      IR_MemberFunctionCallArrowWithDt(IR_IV_WaLBerlaFieldData(wbField, 0), prefix + name, IR_IntegerDatatype)
     }
 
     def numPadLayersLeft(dim : Int) = 0

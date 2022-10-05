@@ -1,9 +1,10 @@
 package exastencils.waLBerla.ir.blockforest
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
+import exastencils.waLBerla.ir.grid.IR_WaLBerlaCellAABB
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceParameter
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDirection
@@ -28,27 +29,23 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter {
 
   // iterators
   def iterator = new IR_WaLBerlaBlock("block", IR_SpecialDatatype("auto"))
-  def begin() = IR_MemberFunctionCallArrow(resolveAccess(), "begin", datatype)
-  def end() = IR_MemberFunctionCallArrow(resolveAccess(), "end", datatype)
+  def begin() = IR_MemberFunctionCallArrowWithDt(resolveAccess(), "begin", datatype)
+  def end() = IR_MemberFunctionCallArrowWithDt(resolveAccess(), "end", datatype)
 
   // blocks
   def getBlocks(targetVector : IR_VariableAccess) = {
-    IR_MemberFunctionCallArrow(resolveAccess(), "getBlocks", IR_UnitDatatype, targetVector, /* level */ 0) // TODO: adjust when refinement is supported
+    IR_MemberFunctionCallArrow(resolveAccess(), "getBlocks", targetVector, /* level */ 0) // TODO: adjust when refinement is supported
   }
 
   // cells
   def getNumberOfCells(dim : Int) : IR_Expression =
-    IR_MemberFunctionCallArrow(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", IR_SpecialDatatype("uint_t"))
+    IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", IR_SpecialDatatype("uint_t"))
 
   def getNumberOfCells(dim : Int, block : IR_WaLBerlaBlock) : IR_Expression =
-    IR_MemberFunctionCallArrow(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", IR_SpecialDatatype("uint_t"), IR_DerefAccess(block))
+    IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", IR_SpecialDatatype("uint_t"), IR_DerefAccess(block))
 
   // aabb
-  def aabbDatatype = IR_SpecialDatatype("math::AABB")
-
-  def getCellAABB(idx : IR_ExpressionIndex) =
-    IR_MemberFunctionCallArrow(resolveAccess(), "getBlockLocalCellAABB", aabbDatatype,
-      IR_DerefAccess(IR_WaLBerlaLoopOverBlocks.defIt), IR_FunctionCall(IR_ExternalFunctionReference("Cell"), idx.indices.padTo(3, 0 : IR_Expression) : _*))
+  def getCellAABB(idx : IR_ExpressionIndex) = IR_WaLBerlaCellAABB(this, idx)
 
   // domain border
   def isAtDomainBorder(dirArr : Array[Int]) = {
@@ -62,7 +59,7 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter {
         case "T" => "ZMax"
         case "B" => "ZMin"
       }
-      IR_MemberFunctionCallArrow(resolveAccess(), s"atDomain${ borderName }Border", IR_BooleanDatatype, IR_DerefAccess(IR_WaLBerlaLoopOverBlocks.defIt))
+      IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"atDomain${ borderName }Border", IR_BooleanDatatype, IR_DerefAccess(IR_WaLBerlaLoopOverBlocks.defIt))
     } else {
       Logger.error("Unsupported direction for \"isAtDomainBorder\"")
     }

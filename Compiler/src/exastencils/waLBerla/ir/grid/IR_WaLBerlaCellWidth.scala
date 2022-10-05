@@ -27,5 +27,5 @@ case class IR_WaLBerlaCellWidthPerDim(
 
   override def createDuplicate() = IR_WaLBerlaCellWidthPerDim(level, domain, dim)
 
-  override def resolve(index : IR_ExpressionIndex) = IR_MemberFunctionCall(IR_WaLBerlaBlockForest().getCellAABB(index), "size", dim)
+  override def resolve(index : IR_ExpressionIndex) = IR_WaLBerlaBlockForest().getCellAABB(index).size(dim)
 }

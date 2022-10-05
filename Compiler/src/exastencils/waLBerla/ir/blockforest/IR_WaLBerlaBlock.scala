@@ -13,7 +13,7 @@ class IR_WaLBerlaBlock(name : String, dt : IR_Datatype) extends IR_VariableAcces
   // get field data from block
   def getDataFromBlock(wbField : IR_WaLBerlaField, slot : Int) = {
     val fieldDt = WB_FieldDatatype(wbField)
-    new IR_MemberFunctionCallArrow(this, s"getData< ${fieldDt.typeName} >", ListBuffer(IR_WaLBerlaBlockDataID(wbField, slot)), fieldDt)
+    new IR_MemberFunctionCallArrowWithDt(this, s"getData< ${fieldDt.typeName} >", ListBuffer(IR_WaLBerlaBlockDataID(wbField, slot)), fieldDt)
   }
 
   def getFields(accesses : IR_WaLBerlaFieldAccess*) : ListBuffer[IR_VariableDeclaration] = {
@@ -27,7 +27,4 @@ class IR_WaLBerlaBlock(name : String, dt : IR_Datatype) extends IR_VariableAcces
       IR_IV_WaLBerlaFieldData(fAcc).getData(Some(defValue))
     })
   }
-
-  def aabbDatatype = IR_SpecialDatatype("math::AABB")
-  def getBlockAABB() = IR_MemberFunctionCallArrow(this, "getAABB", aabbDatatype)
 }

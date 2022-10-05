@@ -28,5 +28,5 @@ case class IR_WaLBerlaCellCenterPerDim(
 
   override def createDuplicate() : IR_KnowledgeObject = IR_WaLBerlaCellCenterPerDim(level, domain, dim)
 
-  override def resolve(index : IR_ExpressionIndex) = IR_ArrayAccess(IR_MemberFunctionCall(IR_WaLBerlaBlockForest().getCellAABB(index), "center"), dim)
+  override def resolve(index : IR_ExpressionIndex) = IR_WaLBerlaBlockForest().getCellAABB(index).center(dim)
 }

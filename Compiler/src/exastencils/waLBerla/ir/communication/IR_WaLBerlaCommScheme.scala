@@ -33,7 +33,7 @@ case class IR_WaLBerlaCommScheme(var wbField : IR_WaLBerlaField, var slot : IR_E
     dt
   }
 
-  def addPackInfo() = IR_MemberFunctionCallArrow(resolveAccess(), "addPackInfo", IR_UnitDatatype, createUniformPackInfo())
+  def addPackInfo() = IR_MemberFunctionCallArrow(resolveAccess(), "addPackInfo", createUniformPackInfo())
 
   def createUniformPackInfo() =
     make_shared(s"field::communication::PackInfo< ${ WB_FieldDatatype(wbField).prettyprint() } >", blockDataID)
@@ -53,7 +53,7 @@ case class IR_WaLBerlaCommScheme(var wbField : IR_WaLBerlaField, var slot : IR_E
     access
   }
 
-  def communicate : IR_Statement = IR_MemberFunctionCallArrow(resolveAccess(), "communicate", IR_UnitDatatype)
+  def communicate : IR_Statement = IR_MemberFunctionCallArrow(resolveAccess(), "communicate")
 
   override def prettyprint(out : PpStream) : Unit = out << baseAccess()
 }

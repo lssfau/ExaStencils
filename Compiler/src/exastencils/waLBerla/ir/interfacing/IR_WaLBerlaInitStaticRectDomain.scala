@@ -12,7 +12,9 @@ import exastencils.domain.ir._
 import exastencils.parallelization.api.mpi.MPI_IV_MpiComm
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlock
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
+import exastencils.waLBerla.ir.grid.IR_WaLBerlaBlockAABB
 
 // TODO refactor
 
@@ -35,14 +37,13 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
   // fragment info
 
   def blocks = IR_VariableAccess("blocks_", IR_SpecialDatatype("std::vector< const Block* >"))
-  def block = IR_ArrayAccess(blocks, IR_LoopOverFragments.defIt) // TODO: check if order of block <-> frag association is right
-  def aabbDatatype = IR_SpecialDatatype("math::AABB")
-  def getBlockAABB() = IR_MemberFunctionCallArrow(block, "getAABB", aabbDatatype)
+  def block = new IR_WaLBerlaBlock("block_", IR_SpecialDatatype("auto"))
+  def getBlockAABB = IR_WaLBerlaBlockAABB(block)
 
   def setupFragmentPosition() = {
     Knowledge.dimensions.map(dim =>
       IR_Assignment(IR_IV_FragmentPosition(dim),
-        IR_ArrayAccess(IR_MemberFunctionCall(getBlockAABB(), "center"), dim)))
+        getBlockAABB.center(dim)))
   }
 
   def setupFragmentId() = {
@@ -66,10 +67,10 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
   def setupFragmentPosBeginAndEnd() = {
     val begin = Knowledge.dimensions.map(dim =>
       IR_Assignment(IR_IV_FragmentPositionBegin(dim),
-        IR_MemberFunctionCall(getBlockAABB(), "min", dim)))
+        getBlockAABB.min(dim)))
     val end = Knowledge.dimensions.map(dim =>
       IR_Assignment(IR_IV_FragmentPositionEnd(dim),
-        IR_MemberFunctionCall(getBlockAABB(), "max", dim)))
+        getBlockAABB.max(dim)))
     begin ++ end
   }
 
@@ -102,6 +103,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
     /* set basic fragment info */
     var fragStatements = ListBuffer[IR_Statement]()
 
+    fragStatements += IR_VariableDeclaration(block, IR_ArrayAccess(blocks, IR_LoopOverFragments.defIt)) // TODO: check if order of block <-> frag association is right
     fragStatements ++= setupFragmentPosition()
     fragStatements ++= IR_InitGeneratedDomain().setupFragmentIndex()
     fragStatements += setupCommId()
@@ -110,17 +112,16 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
 
     if (Knowledge.mpi_enabled) {
       if (Knowledge.waLBerla_createCartComm) {
-        init += IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "resetMPI", IR_UnitDatatype)
+        init += IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "resetMPI")
         init += IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "createCartesianComm",
           ListBuffer[IR_Expression](
             Knowledge.domain_rect_numBlocks_x, Knowledge.domain_rect_numBlocks_y, Knowledge.domain_rect_numBlocks_z, // number of processes
-            Knowledge.domain_rect_periodic_x, Knowledge.domain_rect_periodic_y, Knowledge.domain_rect_periodic_z), // periodicity
-          IR_UnitDatatype)
+            Knowledge.domain_rect_periodic_x, Knowledge.domain_rect_periodic_y, Knowledge.domain_rect_periodic_z)) // periodicity
       }
 
       // assign exas MPI comm IV to waLBerla's communicator
       init += IR_Assignment(MPI_IV_MpiComm,
-        IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "comm", MPI_IV_MpiComm.datatype))
+        IR_MemberFunctionCallArrowWithDt(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "comm", MPI_IV_MpiComm.datatype))
     }
 
     init += IR_VariableDeclaration(blocks)
