@@ -318,7 +318,68 @@ case class CUDA_Kernel(
         requiredThreadsPerDim = (0 until executionDim).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
       }
 
-      numThreadsPerBlock = Knowledge.cuda_blockSizeAsVec.take(executionDim)
+      def getIntersectionWithIterationSpace(blockSizes : Array[Long]) =
+        blockSizes.zipWithIndex.map { case (blockSize, idx) => scala.math.min(blockSize, requiredThreadsPerDim(idx)) }
+
+      // use user-defined block sizes as initial config and intersect iteration space with cuda block sizes
+      var blockSizes = getIntersectionWithIterationSpace(Knowledge.cuda_blockSizeAsVec.take(executionDim))
+      var done = false
+      if (blockSizes.product >= Knowledge.cuda_minimalBlockSize) {
+        // case 1: greater than min block size -> use intersection
+        numThreadsPerBlock = blockSizes.map(identity)
+        done = true
+      }
+
+      var prevTrimSize = 0L
+      val resizeOrder = if (executionDim == 3) List(0, 2, 1) else 0 until executionDim
+      while (blockSizes.product != prevTrimSize && !done) {
+        prevTrimSize = blockSizes.product
+
+        // case 2: intersected block is equivalent to iter space -> return
+        if (blockSizes.zip(requiredThreadsPerDim.take(executionDim)).forall(tup => tup._1 == tup._2)) {
+          numThreadsPerBlock = blockSizes.map(identity)
+          done = true
+        } else {
+          // double block size in each dimension until block is large enough (or case 2 triggers)
+          for (d <- resizeOrder) {
+            // resize
+            blockSizes(d) *= 2
+
+            // optional: trim innermost dim to multiples of warp size
+            if (d == 0 && blockSizes(d) > Platform.hw_cuda_warpSize && blockSizes(d) % Platform.hw_cuda_warpSize != 0)
+              blockSizes(d) = blockSizes(d) - (blockSizes(d) % Platform.hw_cuda_warpSize) // subtract remainder
+
+            // check if block sizes are within hardware capabilities
+            blockSizes(d) = math.min(blockSizes(d), Platform.hw_cuda_maxBlockSizes(d))
+
+            // intersect again
+            blockSizes = getIntersectionWithIterationSpace(blockSizes.map(identity))
+
+            // case 3: intersected block is large enough
+            if (blockSizes.product >= Knowledge.cuda_minimalBlockSize) {
+              numThreadsPerBlock = blockSizes.map(identity)
+              done = true
+            }
+          }
+        }
+      }
+
+      // shrink if max number of threads is exceeded
+      while (blockSizes.product >= Platform.hw_cuda_maxNumThreads) {
+        var shrink = true
+        var d = 0
+        while (shrink && d < resizeOrder.length) {
+          val idx = resizeOrder.reverse(d)
+          blockSizes(idx) /= 2
+          blockSizes(idx) = math.max(1, blockSizes(idx))
+
+          if (blockSizes.product < Platform.hw_cuda_maxNumThreads)
+            shrink = false
+
+          d = d + 1
+        }
+      }
+
 
       // adapt thread count for reduced dimensions
       if (Knowledge.cuda_foldBlockSizeForRedDimensionality)

@@ -110,9 +110,9 @@ object IR_Unrolling extends DefaultStrategy("Loop unrolling") {
   this += new Transformation("optimize", UnrollInnermost, isParallel = true)
 }
 
-private final case class UnrollException(msg : String) extends Exception(msg)
+final case class UnrollException(msg : String) extends Exception(msg)
 
-private final object UnrollInnermost extends PartialFunction[Node, Transformation.OutputType] {
+object UnrollInnermost extends PartialFunction[Node, Transformation.OutputType] {
 
   private final val DEBUG : Boolean = false
   private final val SKIP_ANNOT : String = "URSkip"
@@ -186,7 +186,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
       IR_Scope(res)
   }
 
-  private[optimization] def extractBoundsAndIncrement(begin : IR_Statement, end : IR_Expression, inc : IR_Statement) : (String, IR_Expression, IR_Expression, Long) = {
+  def extractBoundsAndIncrement(begin : IR_Statement, end : IR_Expression, inc : IR_Statement) : (String, IR_Expression, IR_Expression, Long) = {
 
     val (itVar, stride) = inc match {
       case IR_ExpressionStatement(IR_PreIncrement(IR_VariableAccess(itVar, IR_IntegerDatatype)))       => (itVar, 1L)
@@ -210,8 +210,9 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
 
     val lower : IR_Expression =
       begin match {
-        case IR_VariableDeclaration(IR_IntegerDatatype, itVar2, Some(init), _) if itVar == itVar2 => init
-        case _                                                                                    => throw UnrollException("cannot interpret loop begin: " + begin.prettyprint())
+        case IR_VariableDeclaration(IR_IntegerDatatype, itVar2, Some(init), _) if itVar == itVar2       => init
+        case IR_Assignment(IR_VariableAccess(itVar2, IR_IntegerDatatype), init, "=") if itVar == itVar2 => init
+        case _                                                                                          => throw UnrollException("cannot interpret loop begin: " + begin.prettyprint())
       }
 
     val upperExcl : IR_Expression =
@@ -256,7 +257,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     njuBody
   }
 
-  private[optimization] class UpdateLoopVarAndNames(itVar : String)
+  class UpdateLoopVarAndNames(itVar : String)
     extends QuietDefaultStrategy("Add loop var offset, rename declarations, and/or add annotation") {
 
     private final val SKIP_ANNOT = "UpLVSkip"
