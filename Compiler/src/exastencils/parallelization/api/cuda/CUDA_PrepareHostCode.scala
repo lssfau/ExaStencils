@@ -18,18 +18,20 @@
 
 package exastencils.parallelization.api.cuda
 
-import scala.collection.mutable.ListBuffer
-import scala.collection.Iterable
 import scala.collection.mutable
+import scala.collection.mutable.HashMap
+import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.communication.ir.IR_IV_CommBuffer
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
+import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.util.NoDuplicateWrapper
 import exastencils.util.ir._
 
@@ -40,146 +42,59 @@ import exastencils.util.ir._
   * Additionally required statements for memory transfer are added.
   */
 object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
-  "and annotating for later kernel transformation") {
+  "and annotating for later kernel transformation") with CUDA_PrepareFragmentLoops {
   val fctNameCollector = new IR_FctNameCollector
-  val stackCollector = new IR_StackCollector
+  val fragLoopCollector = new IR_FragmentLoopCollector
   val commKernelCollector = new IR_CommunicationKernelCollector
   this.register(fctNameCollector)
-  this.register(stackCollector)
+  this.register(fragLoopCollector)
   this.register(commKernelCollector)
   this.onBefore = () => this.resetCollectors()
 
-  def syncBeforeHost(access : String, others : Iterable[String]) = {
-    var sync = true
-    if (access.startsWith("write") && !Knowledge.cuda_syncHostForWrites)
-      sync = false // skip write accesses if demanded
-    if (access.startsWith("write") && others.exists(_ == "read" + access.substring("write".length)))
-      sync = false // skip write access for read/write accesses
-    sync
-  }
+  var fieldAccesses = HashMap[String, IR_IV_FieldData]()
+  var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
 
-  def syncAfterHost(access : String, others : Iterable[String]) = {
-    access.startsWith("write")
-  }
+  var accessedElementsFragLoop : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, CUDA_AccessedElementsInFragmentLoop] = mutable.HashMap()
 
-  def syncBeforeDevice(access : String, others : Iterable[String]) = {
-    var sync = true
-    if (access.startsWith("write") && !Knowledge.cuda_syncDeviceForWrites)
-      sync = false // skip write accesses if demanded
-    if (access.startsWith("write") && others.exists(_ == "read" + access.substring("write".length)))
-      sync = false // skip write access for read/write accesses
-    sync
-  }
+  override def collectAccessedBuffers(stmts : IR_Statement*) : Unit = {
+    fieldAccesses.clear()
+    bufferAccesses.clear()
 
-  def syncAfterDevice(access : String, others : Iterable[String]) = {
-    access.startsWith("write")
+    // don't filter here - memory transfer code is still required
+    Logger.pushLevel(Logger.WARNING)
+    val gatherFields = new CUDA_GatherFieldAccess()
+    this.register(gatherFields)
+    this.execute(new Transformation("Gather local FieldAccess nodes", PartialFunction.empty), Some(IR_Scope(stmts : _*)))
+    this.unregister(gatherFields)
+    val gatherBuffers = new CUDA_GatherBufferAccess()
+    this.register(gatherBuffers)
+    this.execute(new Transformation("Gather local buffer access nodes", PartialFunction.empty), Some(IR_Scope(stmts : _*)))
+    this.unregister(gatherBuffers)
+    Logger.popLevel()
+
+    fieldAccesses ++= gatherFields.fieldAccesses.map { case (str, acc) => str -> IR_IV_FieldData(acc.field, acc.slot, acc.fragIdx) }
+    bufferAccesses ++= gatherBuffers.bufferAccesses
   }
 
   def getHostDeviceSyncStmts(body : ListBuffer[IR_Statement], isParallel : Boolean, executionStream: CUDA_Stream) = {
     val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
-    // don't filter here - memory transfer code is still required
-    Logger.pushLevel(Logger.WARNING)
-    val gatherFields = new CUDA_GatherFieldAccess()
-    this.register(gatherFields)
-    this.execute(new Transformation("Gather local FieldAccess nodes", PartialFunction.empty), Some(IR_Scope(body)))
-    this.unregister(gatherFields)
-    val gatherBuffers = new CUDA_GatherBufferAccess()
-    this.register(gatherBuffers)
-    this.execute(new Transformation("Gather local buffer access nodes", PartialFunction.empty), Some(IR_Scope(body)))
-    this.unregister(gatherBuffers)
-    Logger.popLevel()
 
-    // - host sync stmts -
+    // get accessed buffers
+    collectAccessedBuffers(body : _*)
 
-    // sync kernel streams before issuing transfers
-    val issuedSyncs = CUDA_Stream.genSynchronize(executionStream, before = true)
-    val requiredSyncs = CUDA_Stream.genCompSync() +: CUDA_Stream.genCommSync()
-    if (executionStream.useNonDefaultStreams)
-      beforeHost ++= requiredSyncs.filterNot(issuedSyncs.contains(_))
+    // host sync stmts
 
-    for (access <- gatherFields.fieldAccesses.toSeq.sortBy(_._1)) {
-      val fieldData = access._2
-      val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragIdx)
+    beforeHost ++= syncEventsBeforeHost(executionStream)
 
-      // add data sync statements
-      if (syncBeforeHost(access._1, gatherFields.fieldAccesses.keys))
-        beforeHost += CUDA_UpdateHostData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
-
-      // update flags for written fields
-      if (syncAfterHost(access._1, gatherFields.fieldAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostDataUpdated(fieldData.field, Duplicate(fieldData.slot)), IR_BooleanConstant(true))
-    }
-
-    for (access <- gatherBuffers.bufferAccesses.toSeq.sortBy(_._1)) {
-      val buffer = access._2
-      val transferStream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
-
-      // add buffer sync statements
-      if (syncBeforeHost(access._1, gatherBuffers.bufferAccesses.keys))
-        beforeHost += CUDA_UpdateHostBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
-
-      // update flags for written buffers
-      if (syncAfterHost(access._1, gatherBuffers.bufferAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(true))
-    }
-
-    // wait for pending transfer events
-    for (access <- gatherFields.fieldAccesses.toSeq.sortBy(_._1)) {
-      val fieldData = access._2
-      if (syncBeforeHost(access._1, gatherFields.fieldAccesses.keys))
-        beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, fieldData.fragIdx), executionStream, "D2H")
-    }
-    for (access <- gatherBuffers.bufferAccesses.toSeq.sortBy(_._1)) {
-      val buffer = access._2
-      if (syncBeforeHost(access._1, gatherBuffers.bufferAccesses.keys))
-        beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, buffer.fragmentIdx), executionStream, "D2H")
-    }
-
-    // - device sync stmts -
+    // device sync stmts
 
     if (isParallel) {
       if (!Knowledge.cuda_useStreams && !Knowledge.cuda_omitSyncDeviceAfterKernelCalls)
         afterDevice += CUDA_DeviceSynchronize()
-
-      for (access <- gatherFields.fieldAccesses.toSeq.sortBy(_._1)) {
-        val fieldData = access._2
-        val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragIdx)
-
-        // add data sync statements
-        if (syncBeforeDevice(access._1, gatherFields.fieldAccesses.keys))
-          beforeDevice += CUDA_UpdateDeviceData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
-
-        // update flags for written fields
-        if (syncAfterDevice(access._1, gatherFields.fieldAccesses.keys))
-          afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(fieldData.field, Duplicate(fieldData.slot)), IR_BooleanConstant(true))
-      }
-
-      for (access <- gatherBuffers.bufferAccesses.toSeq.sortBy(_._1)) {
-        val buffer = access._2
-        val transferStream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
-
-        // add data sync statements
-        if (syncBeforeDevice(access._1, gatherBuffers.bufferAccesses.keys))
-          beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
-
-        // update flags for written fields
-        if (syncAfterDevice(access._1, gatherBuffers.bufferAccesses.keys))
-          afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(true))
-      }
     }
 
-    // wait for pending transfer events
-    for (access <- gatherFields.fieldAccesses.toSeq.sortBy(_._1)) {
-      val fieldData = access._2
-      if (syncBeforeDevice(access._1, gatherFields.fieldAccesses.keys))
-        beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, fieldData.fragIdx), executionStream, "H2D")
-    }
-    for (access <- gatherBuffers.bufferAccesses.toSeq.sortBy(_._1)) {
-      val buffer = access._2
-      if (syncBeforeDevice(access._1, gatherBuffers.bufferAccesses.keys))
-        beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, buffer.fragmentIdx), executionStream, "H2D")
-    }
+    beforeDevice ++= syncEventsBeforeDevice(executionStream)
 
     (beforeHost, afterHost, beforeDevice, afterDevice)
   }
@@ -197,6 +112,27 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     ListBuffer[IR_Statement](branch)
   }
 
+  // collect accessed elements for fragment loops with ContractingLoop and LoopOverDimensions nodes
+  this += new Transformation("Collect accessed elements for fragment loop handling", {
+    case cl : IR_ContractingLoop      =>
+      // get LoopOverDims instance in contracting loop and check if parallel
+      val containedLoop = findContainedLoopOverDims(cl)
+      val isParallel = isLoopParallel(containedLoop)
+      collectAccessedElementsFragmentLoop(cl.body, fragLoopCollector, commKernelCollector, isParallel)
+      cl
+    case loop : IR_LoopOverDimensions =>
+      collectAccessedElementsFragmentLoop(loop.body, fragLoopCollector, commKernelCollector, isLoopParallel(loop))
+      loop
+  }, false)
+
+  // replace orig enclosing fragment loop with handled fragment loop structure
+  this += new Transformation("Create overlapping fragment loop structure", {
+    case loop : IR_LoopOverFragments                                                                                     =>
+      createFragLoopHandler(loop)
+    case loop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name =>
+      createFragLoopHandler(loop)
+  }, false)
+
   this += new Transformation("Process ContractingLoop and LoopOverDimensions nodes", {
     case cl : IR_ContractingLoop =>
       val hostStmts = new ListBuffer[IR_Statement]()
@@ -206,28 +142,14 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       var hostCondStmt : IR_IfCondition = null
       var deviceCondStmt : IR_IfCondition = null
 
-      val containedLoop = cl.body.find(s =>
-        s.isInstanceOf[IR_IfCondition] || s.isInstanceOf[IR_LoopOverDimensions]) match {
-        case Some(IR_IfCondition(cond, trueBody : ListBuffer[IR_Statement], ListBuffer())) =>
-          val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[IR_Comment])
-          bodyWithoutComments match {
-            case ListBuffer(loop : IR_LoopOverDimensions) => loop
-            case _                                        => IR_LoopOverDimensions(0, IR_ExpressionIndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
-          }
-        case Some(loop : IR_LoopOverDimensions)                                            =>
-          loop
-        case None                                                                          => IR_LoopOverDimensions(0, IR_ExpressionIndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
-      }
+      // get LoopOverDims instance in contracting loop
+      val containedLoop = findContainedLoopOverDims(cl)
 
-      // every LoopOverDimensions statement is potentially worse to transform in CUDA code
-      // Exceptions:
-      // 1. this loop is a special one and cannot be optimized in polyhedral model
-      // 2. this loop has no parallel potential
-      // use the host for dealing with the two exceptional cases
-      val isParallel = containedLoop.parallelization.potentiallyParallel // filter some generate loops?
+      // check if LoopOverDims is parallel
+      val isParallel = isLoopParallel(containedLoop)
 
       // determine execution ( = comm/comp ) stream
-      val executionStream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
+      val executionStream = CUDA_Stream.getStream(fragLoopCollector, commKernelCollector)
 
       // calculate memory transfer statements for host and device
       val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(containedLoop.body, isParallel, executionStream)
@@ -308,15 +230,11 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       val hostStmts = ListBuffer[IR_Statement]()
       val deviceStmts = ListBuffer[IR_Statement]()
 
-      // every LoopOverDimensions statement is potentially worth to transform in CUDA code
-      // Exceptions:
-      // 1. this loop is a special one and cannot be optimized in polyhedral model
-      // 2. this loop has no parallel potential
-      // use the host for dealing with the two exceptional cases
-      val isParallel = loop.parallelization.potentiallyParallel // filter some generate loops?
+      // check if LoopOverDims is parallel
+      val isParallel = isLoopParallel(loop)
 
       // determine execution ( = comm/comp ) stream
-      val executionStream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
+      val executionStream = CUDA_Stream.getStream(fragLoopCollector, commKernelCollector)
 
       // calculate memory transfer statements for host and device
       val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop.body, isParallel, executionStream)

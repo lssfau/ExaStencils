@@ -83,8 +83,7 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData, stream : CUDA_Tr
           (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _) * IR_SizeOf(field.resolveBaseDatatype),
           "D2H",
           stream),
-        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, fieldData.fragmentIdx), stream),
-        IR_Assignment(CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)), IR_BooleanConstant(false))))
+        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, fieldData.fragmentIdx), stream)))
   }
 }
 
@@ -111,8 +110,7 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_
           (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _) * IR_SizeOf(field.resolveBaseDatatype),
           "H2D",
           stream),
-        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, fieldData.fragmentIdx), stream),
-        IR_Assignment(CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)), IR_BooleanConstant(false))))
+        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, fieldData.fragmentIdx), stream)))
   }
 }
 
@@ -134,8 +132,7 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUD
           Duplicate(buffer.size) * IR_SizeOf(field.resolveBaseDatatype),
           "D2H",
           stream),
-        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, buffer.fragmentIdx), stream),
-        IR_Assignment(CUDA_DeviceBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(false))))
+        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, buffer.fragmentIdx), stream)))
   }
 }
 
@@ -157,7 +154,6 @@ case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer, stream : C
           Duplicate(buffer.size) * IR_SizeOf(field.resolveBaseDatatype),
           "H2D",
           stream),
-        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, buffer.fragmentIdx), stream),
-        IR_Assignment(CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(false))))
+        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, buffer.fragmentIdx), stream)))
   }
 }

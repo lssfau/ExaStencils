@@ -112,7 +112,7 @@ object CUDA_Util {
     case dt : IR_ScalarDatatype =>
       dt
     case dt : IR_Datatype =>
-      Logger.error("Unsupported reduction datatype: " + dt.prettyprint())
+      Logger.error("Unsupported reduction datatype: " + dt.prettyprint() + ". Target = " + target.prettyprint())
   }
 
   // checks if args is the reduction target

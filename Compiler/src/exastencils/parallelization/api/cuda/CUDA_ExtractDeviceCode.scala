@@ -36,6 +36,7 @@ import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.solver.ir.IR_InlineMatSolveStmts
 import exastencils.util.ir.IR_CommunicationKernelCollector
 import exastencils.util.ir.IR_FctNameCollector
+import exastencils.util.ir.IR_FragmentLoopCollector
 import exastencils.util.ir.IR_StackCollector
 
 /// CUDA_ExtractHostAndDeviceCode
@@ -46,14 +47,13 @@ import exastencils.util.ir.IR_StackCollector
 object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUDA loop in kernel code") {
   val fctNameCollector = new IR_FctNameCollector
   val stackCollector = new IR_StackCollector
+  val fragLoopCollector = new IR_FragmentLoopCollector
   val commKernelCollector = new IR_CommunicationKernelCollector
   this.register(fctNameCollector)
   this.register(stackCollector)
+  this.register(fragLoopCollector)
   this.register(commKernelCollector)
   this.onBefore = () => this.resetCollectors()
-
-  var enclosingFragmentLoops : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, List[CUDA_Stream]] = mutable.HashMap()
-  var enclosingCommFragmentLoops : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, List[CUDA_Stream]] = mutable.HashMap()
 
   /**
     * Collect all loops in the band.
@@ -88,49 +88,6 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       pruneKernelBody(body.head.asInstanceOf[IR_ForLoop].body, surplus.tail)
     }
   }
-
-  this += Transformation("Find enclosing fragment loops", {
-    case loop : IR_ForLoop if loop.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) &&
-      loop.getAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION).contains(CUDA_Util.CUDA_BAND_START) =>
-
-      val enclosing = stackCollector.stack.collectFirst {
-        case fragLoop : IR_LoopOverFragments                                                                                     => fragLoop
-        case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name => fragLoop
-      }
-
-      // add execution stream to stream list of enclosing fragment loop
-      val list = enclosingFragmentLoops.getOrElse(enclosing.get, Nil)
-      if (loop.hasAnnotation(CUDA_Util.CUDA_EXECUTION_STREAM)) {
-        val stream = loop.getAnnotationAs[CUDA_Stream](CUDA_Util.CUDA_EXECUTION_STREAM)
-
-        if (enclosing.isDefined)
-          enclosingFragmentLoops.update(enclosing.get, (list :+ stream).distinct)
-      }
-
-      loop
-  }, false)
-
-  // enclosed by apply bc or comm function -> synchro
-  this += Transformation("Modify enclosing comm funcs", {
-    case expr : IR_Expression if commKernelCollector.isNeighborIdx(expr) =>
-      val commFragLoop = stackCollector.stack.collectFirst {
-        case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo => fragLoop }
-      if (commFragLoop.isDefined) {
-        val list = enclosingCommFragmentLoops.getOrElse(commFragLoop.get, Nil) :+ CUDA_CommunicateStream(expr)
-        enclosingCommFragmentLoops.update(commFragLoop.get, list.distinct)
-      }
-
-      expr
-  }, false)
-
-  // enclosed by a fragment loop -> create fragment-local copies of the initial value
-  // and perform reduction after frag loop
-  this += Transformation("Modify enclosing fragment loops", {
-    case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingFragmentLoops.contains(fragLoop) =>
-      CUDA_HandleFragmentLoops(fragLoop, Duplicate(enclosingFragmentLoops(fragLoop)).to[ListBuffer])
-    case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if enclosingCommFragmentLoops.contains(fragLoop) =>
-      CUDA_HandleFragmentLoops(fragLoop, Duplicate(enclosingCommFragmentLoops(fragLoop)).to[ListBuffer])
-  }, false)
 
   this += new Transformation("Processing ForLoopStatement nodes", {
     case loop : IR_ForLoop if loop.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) &&
@@ -254,8 +211,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       CUDA_ReplaceNonReductionVarArrayAccesses.applyStandalone(scope)
 
       // get enclosing frag loop
-      val enclosingFragLoop = stackCollector.stack.collectFirst {
-        case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo => fragLoop }
+      val enclosingFragLoop = fragLoopCollector.getEnclosingFragmentLoop()
 
       // fetch stream from annotated inner/outer loop
       val annotOuterLoop = stackCollector.stack.collectFirst {

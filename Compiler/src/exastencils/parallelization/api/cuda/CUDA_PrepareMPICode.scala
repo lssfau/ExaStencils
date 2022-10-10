@@ -18,7 +18,7 @@
 
 package exastencils.parallelization.api.cuda
 
-import scala.collection.Iterable
+import scala.collection.mutable
 import scala.collection.mutable._
 
 import exastencils.base.ir.IR_ImplicitConversion._
@@ -31,49 +31,60 @@ import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
+import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.timing.ir.IR_TimerFunctions
 import exastencils.util.ir._
 
 /// CUDA_PrepareMPICode
 
 object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
-  "and annotating for later kernel transformation") {
+  "and annotating for later kernel transformation") with CUDA_PrepareFragmentLoops {
 
-  val stackCollector = new IR_StackCollector
+  val fragLoopCollector = new IR_FragmentLoopCollector
   val commKernelCollector = new IR_CommunicationKernelCollector
   val fctNameCollector = new IR_FctNameCollector
   this.register(fctNameCollector)
-  this.register(stackCollector)
+  this.register(fragLoopCollector)
   this.register(commKernelCollector)
   this.onBefore = () => this.resetCollectors()
 
   var fieldAccesses = HashMap[String, IR_IV_FieldData]()
   var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
 
-  def syncBeforeHost(access : String, others : Iterable[String]) = {
-    var sync = true
-    if (access.startsWith("write") && !Knowledge.cuda_syncHostForWrites)
-      sync = false // skip write accesses if demanded
-    if (access.startsWith("write") && others.exists(_ == "read" + access.substring("write".length)))
-      sync = false // skip write access for read/write accesses
-    sync
-  }
+  var accessedElementsFragLoop : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, CUDA_AccessedElementsInFragmentLoop] = mutable.HashMap()
 
-  def syncAfterHost(access : String, others : Iterable[String]) = {
-    access.startsWith("write")
-  }
+  override def collectAccessedBuffers(stmt : IR_Statement*) = {
+    // don't filter here - memory transfer code is still required
+    fieldAccesses.clear()
+    bufferAccesses.clear()
 
-  def syncBeforeDevice(access : String, others : Iterable[String]) = {
-    var sync = true
-    if (access.startsWith("write") && !Knowledge.cuda_syncDeviceForWrites)
-      sync = false // skip write accesses if demanded
-    if (access.startsWith("write") && others.exists(_ == "read" + access.substring("write".length)))
-      sync = false // skip write access for read/write accesses
-    sync
-  }
+    stmt match {
+      case send : MPI_Send    => processRead(send.buffer)
+      case recv : MPI_Receive => processWrite(recv.buffer)
 
-  def syncAfterDevice(access : String, others : Iterable[String]) = {
-    access.startsWith("write")
+      case bcast : MPI_Bcast =>
+        processRead(bcast.buffer)
+        processWrite(bcast.buffer)
+
+      case gather : MPI_Gather =>
+        processWrite(gather.recvbuf)
+        processRead(gather.sendbuf)
+
+      case reduce : MPI_AllReduce =>
+        processWrite(reduce.recvbuf)
+        if (("MPI_IN_PLACE" : IR_Expression) == reduce.sendbuf)
+          processRead(reduce.recvbuf)
+        else
+          processRead(reduce.sendbuf)
+
+      case reduce : MPI_Reduce =>
+        processWrite(reduce.recvbuf)
+        if (("MPI_IN_PLACE" : IR_Expression) == reduce.sendbuf)
+          processRead(reduce.recvbuf)
+        else
+          processRead(reduce.sendbuf)
+      case _ =>
+    }
   }
 
   def mapFieldAccess(access : IR_MultiDimFieldAccess, inWriteOp : Boolean) = {
@@ -151,129 +162,23 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
   def getHostDeviceSyncStmts(mpiStmt : MPI_Statement) = {
     val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
-    // don't filter here - memory transfer code is still required
 
-    fieldAccesses.clear()
-    bufferAccesses.clear()
-
-    mpiStmt match {
-      case send : MPI_Send    => processRead(send.buffer)
-      case recv : MPI_Receive => processWrite(recv.buffer)
-
-      case bcast : MPI_Bcast =>
-        processRead(bcast.buffer)
-        processWrite(bcast.buffer)
-
-      case gather : MPI_Gather =>
-        processWrite(gather.recvbuf)
-        processRead(gather.sendbuf)
-
-      case reduce : MPI_AllReduce =>
-        processWrite(reduce.recvbuf)
-        if (("MPI_IN_PLACE" : IR_Expression) == reduce.sendbuf)
-          processRead(reduce.recvbuf)
-        else
-          processRead(reduce.sendbuf)
-
-      case reduce : MPI_Reduce =>
-        processWrite(reduce.recvbuf)
-        if (("MPI_IN_PLACE" : IR_Expression) == reduce.sendbuf)
-          processRead(reduce.recvbuf)
-        else
-          processRead(reduce.sendbuf)
-    }
+    // get accessed buffers
+    collectAccessedBuffers(mpiStmt)
 
     // determine execution ( = comm/comp ) stream
-    val executionStream = CUDA_Stream.getStream(stackCollector, commKernelCollector)
+    val executionStream = CUDA_Stream.getStream(fragLoopCollector, commKernelCollector)
 
-    // - host sync stmts -
+    // host sync stmts
 
-    // sync kernel streams before issuing transfers
-    val issuedSyncs = CUDA_Stream.genSynchronize(executionStream, before = true)
-    val requiredSyncs = CUDA_Stream.genCompSync() +: CUDA_Stream.genCommSync()
-    if (executionStream.useNonDefaultStreams)
-      beforeHost ++= requiredSyncs.filterNot(issuedSyncs.contains(_))
+    beforeHost ++= syncEventsBeforeHost(executionStream)
 
-    for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
-      val fieldData = access._2
-      val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragmentIdx)
-
-      // add data sync statements
-      if (syncBeforeHost(access._1, fieldAccesses.keys))
-        beforeHost += CUDA_UpdateHostData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
-
-      // update flags for written fields
-      if (syncAfterHost(access._1, fieldAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostDataUpdated(fieldData.field, fieldData.slot), IR_BooleanConstant(true))
-    }
-
-    for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
-      val buffer = access._2
-      val transferStream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
-
-      // add buffer sync statements
-      if (syncBeforeHost(access._1, bufferAccesses.keys))
-        beforeHost += CUDA_UpdateHostBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
-
-      // update flags for written buffers
-      if (syncAfterHost(access._1, bufferAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(true))
-    }
-
-    // wait for pending transfer events
-    for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
-      val fieldData = access._2
-      if (syncBeforeHost(access._1, fieldAccesses.keys))
-        beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, fieldData.fragmentIdx), executionStream, "D2H")
-    }
-    for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
-      val buffer = access._2
-      if (syncBeforeHost(access._1, bufferAccesses.keys))
-        beforeHost += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, buffer.fragmentIdx), executionStream, "D2H")
-    }
-
-    // - device sync stmts -
+    // device sync stmts
 
     if (!Knowledge.cuda_useStreams && !Knowledge.cuda_omitSyncDeviceAfterKernelCalls)
       afterDevice += CUDA_DeviceSynchronize()
 
-    for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
-      val fieldData = access._2
-      val transferStream = CUDA_TransferStream(fieldData.field, fieldData.fragmentIdx)
-
-      // add data sync statements
-      if (syncBeforeDevice(access._1, fieldAccesses.keys))
-        beforeDevice += CUDA_UpdateDeviceData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
-
-      // update flags for written fields
-      if (syncAfterDevice(access._1, fieldAccesses.keys))
-        afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(fieldData.field, fieldData.slot), IR_BooleanConstant(true))
-    }
-
-    for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
-      val buffer = access._2
-      val transferStream = CUDA_TransferStream(buffer.field, buffer.fragmentIdx)
-
-      // add data sync statements
-      if (syncBeforeDevice(access._1, bufferAccesses.keys))
-        beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
-
-      // update flags for written fields
-      if (syncAfterDevice(access._1, bufferAccesses.keys))
-        afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(true))
-    }
-
-    // wait for pending transfer events
-    for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
-      val fieldData = access._2
-      if (syncBeforeDevice(access._1, fieldAccesses.keys))
-        beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, fieldData.fragmentIdx), executionStream, "H2D")
-    }
-    for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
-      val buffer = access._2
-      if (syncBeforeDevice(access._1, bufferAccesses.keys))
-        beforeDevice += CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, buffer.fragmentIdx), executionStream, "H2D")
-    }
+    beforeDevice ++= syncEventsBeforeDevice(executionStream)
 
     (beforeHost, afterHost, beforeDevice, afterDevice)
   }
@@ -293,6 +198,21 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
       ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))
     }
   }
+
+  // collect accessed elements for fragment loops with ContractingLoop and LoopOverDimensions nodes
+  this += new Transformation("Collect accessed elements for fragment loop handling", {
+    case mpiStmt : MPI_Statement      =>
+      collectAccessedElementsFragmentLoop(ListBuffer(mpiStmt), fragLoopCollector, commKernelCollector, isParallel = true)
+      mpiStmt
+  }, false)
+
+  // replace orig enclosing fragment loop with handled fragment loop structure
+  this += new Transformation("Create overlapping fragment loop structure", {
+    case loop : IR_LoopOverFragments                                                                                     =>
+      createFragLoopHandler(loop)
+    case loop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name =>
+      createFragLoopHandler(loop)
+  }, false)
 
   this += new Transformation("Process MPI statements", {
     case mpiStmt : MPI_Statement =>
