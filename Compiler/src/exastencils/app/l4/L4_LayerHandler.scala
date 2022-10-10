@@ -195,7 +195,8 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
         matches += L4_ProcessDeclarations.applyAndCountMatches()
 
         // replace wb vf accesses before they are resolved
-        L4_WaLBerlaResolveVirtualFieldAccesses.apply()
+        if (!Knowledge.waLBerla_useGridFromExa)
+          L4_WaLBerlaResolveVirtualFieldAccesses.apply()
 
         matches += L4_ResolveAccesses.applyAndCountMatches()
 

@@ -477,6 +477,9 @@ object Knowledge {
   // [true|false]
   var waLBerla_createCartComm : Boolean = false
 
+  // [true|false]
+  var waLBerla_useGridFromExa : Boolean = false
+
   // --- Parallel I/O ---
 
   // -- General parameters --
