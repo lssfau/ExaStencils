@@ -32,8 +32,6 @@ import exastencils.base.ir._
   * @param collapseDepth              specifies how many nested loops can be parallelized
   * @param privateVars                variables for which each thread should have a private storage
   * @param reduction                  identifies a reduction, if some
-  * @param canRunInComputeStreams     specifies if the loop can be executed with compute streams
-  * @param canRunInCommunicateStreams specifies if the loop can be executed with communication streams
   */
 case class IR_ParallelizationInfo(
     var potentiallyParallel : Boolean = false,
@@ -43,9 +41,7 @@ case class IR_ParallelizationInfo(
     var collapseDepth : Int = 1,
     var privateVars : ListBuffer[IR_VariableAccess] = ListBuffer(),
     var reduction : Option[IR_Reduction] = None,
-    var parallelizationReasonable : Boolean = true,
-    var canRunInComputeStreams : Boolean = false,
-    var canRunInCommunicateStreams : Boolean = false
+    var parallelizationReasonable : Boolean = true
 
 ) extends IR_Node {}
 
