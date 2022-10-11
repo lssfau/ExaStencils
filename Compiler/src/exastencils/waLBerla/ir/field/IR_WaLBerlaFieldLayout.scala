@@ -24,6 +24,7 @@ case class IR_WaLBerlaFieldLayout(
     IR_WaLBerlaFieldLayout.tupled(Duplicate(IR_WaLBerlaFieldLayout.unapply(this).get))
   }
 
+  // already handled by waLBerla's accessors
   override def referenceOffset : IR_ExpressionIndex = IR_ExpressionIndex(Array.fill(layoutsPerDim.length)(0))
 
   def apply(dim : Int) = layoutsPerDim(dim)
@@ -54,7 +55,7 @@ case class IR_WaLBerlaFieldLayout(
 
     def numPadLayersLeft(dim : Int) = 0
 
-    def numGhostLayersLeft(dim : Int) = IR_Cast(IR_IntegerDatatype, callMemberFunc("nrOfGhostLayers"))
+    def numGhostLayersLeft(dim : Int) = callMemberFunc("nrOfGhostLayers")
 
     def numDupLayersLeft(dim : Int) = 0 // cell-centered
 
@@ -62,7 +63,7 @@ case class IR_WaLBerlaFieldLayout(
 
     def numDupLayersRight(dim : Int) = 0 // cell-centered
 
-    def numGhostLayersRight(dim : Int) = IR_Cast(IR_IntegerDatatype, callMemberFunc("nrOfGhostLayers"))
+    def numGhostLayersRight(dim : Int) = callMemberFunc("nrOfGhostLayers")
 
     def numPadLayersRight(dim : Int) = numPad(dim) // at the end of each coordinate
 
@@ -70,9 +71,9 @@ case class IR_WaLBerlaFieldLayout(
 
     def numGhost(d : Int) = numGhostLayersLeft(d) + numGhostLayersRight(d)
 
-    def numInner(d : Int) = IR_Cast(IR_IntegerDatatype, callMemberFuncForDim("Size", d))
+    def numInner(d : Int) = callMemberFuncForDim("Size", d)
 
-    def numPad(d : Int) = IR_Cast(IR_IntegerDatatype, callMemberFuncForDim("AllocSize", d)) - numInner(d) - numDup(d) - numGhost(d)
+    def numPad(d : Int) = callMemberFuncForDim("AllocSize", d) - numInner(d) - numDup(d) - numGhost(d)
 
     def defIdxInnerBegin(dim : Int) = { 0 }
 
@@ -102,7 +103,7 @@ case class IR_WaLBerlaFieldLayout(
 
     def defIdxPadRightEnd(dim : Int) = { defIdxPadRightBegin(dim) + numPadLayersRight(dim) }
 
-    def defTotal(dim : Int) = { IR_Cast(IR_IntegerDatatype, callMemberFuncForDim("AllocSize", dim)) }
+    def defTotal(dim : Int) = { callMemberFuncForDim("AllocSize", dim) }
 
     id match {
       case "PLB"                => defIdxPadLeftBegin(dim)

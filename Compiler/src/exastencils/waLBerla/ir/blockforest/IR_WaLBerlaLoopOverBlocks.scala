@@ -1,5 +1,6 @@
 package exastencils.waLBerla.ir.blockforest
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
@@ -36,6 +37,14 @@ case class IR_WaLBerlaLoopOverBlocks(
 
     import IR_WaLBerlaLoopOverBlocks._
 
+    def getWaLBerlaFieldData(accesses : IR_WaLBerlaFieldAccess*) : ListBuffer[IR_VariableDeclaration] = {
+      accesses.to[mutable.ListBuffer].flatMap(fAcc => {
+        ListBuffer(
+          IR_IV_WaLBerlaFieldData(fAcc).getDeclaration(),
+          IR_IV_WaLBerlaFieldDataAt(fAcc).getDeclaration())
+      })
+    }
+
     val blockForest = IR_WaLBerlaBlockForest()
 
     // TODO for multiple waLBerla blocks and exa fragments: association between them
@@ -44,7 +53,7 @@ case class IR_WaLBerlaLoopOverBlocks(
       IR_VariableDeclaration(defIt, blockForest.begin()),
       IR_Neq(defIt, blockForest.end()),
       IR_PreIncrement(defIt),
-      defIt.getFields(fieldsAccessed : _*) ++ body,
+      getWaLBerlaFieldData(fieldsAccessed : _*) ++ body,
       parallelization)
   }
 }

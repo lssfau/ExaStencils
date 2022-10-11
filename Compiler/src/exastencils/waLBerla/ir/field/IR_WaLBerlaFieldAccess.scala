@@ -1,18 +1,13 @@
 package exastencils.waLBerla.ir.field
 
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverFragments
-import exastencils.baseExt.ir.IR_MatrixDatatype
-import exastencils.core.Duplicate
+import exastencils.config.Knowledge
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.fieldlike.ir.IR_FieldLikeAccess
-import exastencils.logger.Logger
-import exastencils.optimization.ir.IR_GeneralSimplify
-import exastencils.prettyprinting.PpStream
-import exastencils.prettyprinting.PrettyPrintable
+import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
 /// IR_FieldAccessLike
 
@@ -34,35 +29,15 @@ case class IR_WaLBerlaFieldAccess(
     var offset : Option[IR_ConstIndex] = None,
     var frozen : Boolean = false,
     var matIndex : Option[IR_MatIndex] = None
-) extends IR_WaLBerlaFieldAccessLike with PrettyPrintable {
+) extends IR_WaLBerlaFieldAccessLike with IR_Expandable {
 
   override def datatype = field.layout.datatype
 
-  def prettyprint(out : PpStream) = {
-    // add zero entries for grid dims < 3
-    var newIndex = Duplicate(index)
-    newIndex = IR_ExpressionIndex(
-      index.indices.take(field.numDimsGrid) ++
-        Array.fill(3 - field.numDimsGrid)(0 : IR_Expression) ++
-        Duplicate(index).indices.drop(field.numDimsGrid))
-
-    // indices need to be flattened
-    val linearizedHigherDimIndex = if (field.layout.numDimsData > field.numDimsGrid) {
-      field.gridDatatype match {
-        case mat : IR_MatrixDatatype =>
-          val matIndices = newIndex.indices.takeRight(2)
-          IR_ExpressionIndex( newIndex.indices.dropRight(2) :+ (matIndices(1) + matIndices(0) * mat.sizeN ) )
-        case _ : IR_ScalarDatatype   =>
-          newIndex
-        // TODO: other datatypes
-        case _                       =>
-          Logger.error("Unsupported higher dimensional datatype.")
-      }
-    } else {
-      newIndex
-    }
-    IR_GeneralSimplify.doUntilDoneStandalone(linearizedHigherDimIndex)
-    out << IR_IV_WaLBerlaFieldData(field, slot, fragIdx) << "->get(" <<< (linearizedHigherDimIndex.indices, ",") << ")"
+  def expand() = {
+    IR_ArrayAccess(
+      IR_IV_WaLBerlaFieldDataAt(field, slot, fragIdx),
+      field.layout.linearizeIndex(IR_WaLBerlaUtil.adaptIndexForAccessors(index, field.gridDatatype, field.numDimsGrid, field.layout.numDimsData)),
+      Knowledge.data_alignFieldPointers)
   }
 }
 

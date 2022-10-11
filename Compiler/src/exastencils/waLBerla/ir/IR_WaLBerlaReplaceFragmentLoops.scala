@@ -34,6 +34,12 @@ object IR_WaLBerlaReplaceFragmentLoops extends QuietDefaultStrategy("Replace fra
       case fAcc : IR_WaLBerlaFieldAccess if IR_WaLBerlaFieldCollection.contains(fAcc) =>
         found = true
         fAcc
+      case fAcc : IR_IV_WaLBerlaFieldData =>
+        found = true
+        fAcc
+      case fAcc : IR_IV_WaLBerlaFieldDataAt =>
+        found = true
+        fAcc
     })
   }
 
