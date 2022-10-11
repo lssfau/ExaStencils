@@ -24,7 +24,9 @@ class IR_WaLBerlaBlock(name : String, dt : IR_Datatype) extends IR_VariableAcces
       } else {
         getDataFromBlock(wbField, 0)
       }
-      IR_IV_WaLBerlaFieldData(fAcc).getData(Some(defValue))
+
+      val wbFieldData = IR_IV_WaLBerlaFieldData(fAcc)
+      IR_VariableDeclaration(wbFieldData.resolveDatatype(), wbFieldData.resolveName(), Some(defValue))
     })
   }
 }
