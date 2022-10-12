@@ -14,5 +14,5 @@ case class IR_WaLBerlaSwapFieldPointers(
   if (IR_WaLBerlaFieldCollection.getByIdentifier(src.name, src.level).isEmpty || IR_WaLBerlaFieldCollection.getByIdentifier(dst.name, dst.level).isEmpty)
     Logger.error("\"IR_WaLBerlaSwapFieldPointers\": Both fields must be waLBerla fields")
 
-  override def expand() = IR_MemberFunctionCallArrow(toWbData(src), "swapDataPointers", toWbData(dst))
+  override def expand() = IR_ExpressionStatement(IR_MemberFunctionCallArrow(toWbData(src), "swapDataPointers", toWbData(dst)))
 }
