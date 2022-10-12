@@ -6,12 +6,14 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.core.Duplicate
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks.defIt
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_FieldDatatype
+import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
 object IR_IV_WaLBerlaFieldData {
   def apply(fAcc : IR_FieldAccess) : IR_IV_WaLBerlaFieldData = {
@@ -89,9 +91,16 @@ case class IR_IV_WaLBerlaFieldDataAt(
 
   override def getDeclaration() : IR_VariableDeclaration = {
 
-    // dataAt requires 4 arguments: x, y, z, f
-    def getFieldDataPtr(slotIt : IR_Expression) =
-      IR_IV_WaLBerlaFieldData(field, slotIt, fragmentIdx).getDataAt(IR_ExpressionIndex(Array.fill(4)(0))) // get ptr to first inner iteration point
+    def getFieldDataPtr(slotIt : IR_Expression) = {
+      // index handling for waLBerla accessors
+      val index = Duplicate(field.layout.referenceOffset)
+      val newIndex = IR_WaLBerlaUtil.adaptIndexForAccessors(index, field.gridDatatype, field.numDimsGrid, field.layout.numDimsData)
+
+      // dataAt requires 4 arguments: x, y, z, f
+      newIndex.indices = Duplicate(newIndex.indices).padTo(4, 0 : IR_Expression)
+
+      IR_IV_WaLBerlaFieldData(field, slotIt, fragmentIdx).getDataAt(newIndex) // get ptr to first inner iteration point
+    }
 
     val getSlottedFieldPtrs = if (field.numSlots > 1) {
       IR_InitializerList((0 until field.numSlots).map(s => getFieldDataPtr(s)) : _*)
