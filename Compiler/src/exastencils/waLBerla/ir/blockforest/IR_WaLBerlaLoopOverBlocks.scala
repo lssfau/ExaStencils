@@ -37,11 +37,12 @@ case class IR_WaLBerlaLoopOverBlocks(
 
     import IR_WaLBerlaLoopOverBlocks._
 
-    def getWaLBerlaFieldData(accesses : IR_WaLBerlaFieldAccess*) : ListBuffer[IR_VariableDeclaration] = {
+    def getWaLBerlaFieldData(accesses : IR_WaLBerlaFieldAccess*) : ListBuffer[IR_Statement] = {
       accesses.to[mutable.ListBuffer].flatMap(fAcc => {
         ListBuffer(
           IR_IV_WaLBerlaFieldData(fAcc).getDeclaration(),
-          IR_IV_WaLBerlaFieldDataAt(fAcc).getDeclaration())
+          IR_IfCondition(Knowledge.waLBerla_useInternalMemoryPointers,
+            IR_IV_WaLBerlaFieldDataAt(fAcc).getDeclaration()))
       })
     }
 

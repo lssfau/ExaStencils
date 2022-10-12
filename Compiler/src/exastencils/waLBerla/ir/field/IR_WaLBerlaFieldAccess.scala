@@ -34,10 +34,16 @@ case class IR_WaLBerlaFieldAccess(
   override def datatype = field.layout.datatype
 
   def expand() = {
-    IR_ArrayAccess(
-      IR_IV_WaLBerlaFieldDataAt(field, slot, fragIdx),
-      field.layout.linearizeIndex(IR_WaLBerlaUtil.adaptIndexForAccessors(index, field.gridDatatype, field.numDimsGrid, field.layout.numDimsData)),
-      Knowledge.data_alignFieldPointers)
+
+    if (Knowledge.waLBerla_useInternalMemoryPointers) {
+      IR_ArrayAccess(
+        IR_IV_WaLBerlaFieldDataAt(field, slot, fragIdx),
+        field.layout.linearizeIndex(IR_WaLBerlaUtil.adaptIndexForAccessors(index, field.gridDatatype, field.numDimsGrid, field.layout.numDimsData)),
+        Knowledge.data_alignFieldPointers)
+    } else {
+      val newIdx = IR_WaLBerlaUtil.adaptIndexForAccessors(index, field.gridDatatype, field.numDimsGrid, field.layout.numDimsData)
+      IR_MemberFunctionCallArrow(IR_IV_WaLBerlaFieldData(field, slot, fragIdx), "get", newIdx.indices : _*)
+    }
   }
 }
 

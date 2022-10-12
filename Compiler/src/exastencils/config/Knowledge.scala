@@ -480,6 +480,10 @@ object Knowledge {
   // [true|false]
   var waLBerla_useGridFromExa : Boolean = false
 
+  // [true|false]: use internal waLBerla memory pointers for array accesses instead of using the get(x, y, z, f) accessors
+  // enables optimizations (address precalc, vect, ...) when enabled
+  var waLBerla_useInternalMemoryPointers : Boolean = true
+
   // --- Parallel I/O ---
 
   // -- General parameters --
