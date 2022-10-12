@@ -25,7 +25,6 @@ import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.domain.ir._
 import exastencils.parallelization.api.omp.OMP_WaitForFlag
-import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.util.ir.IR_StackCollector
 
 /// IR_ResolveConstIVs
@@ -55,18 +54,8 @@ object IR_ResolveConstIVs extends DefaultStrategy("Resolve constant internal var
 
     if (Knowledge.domain_numFragmentsTotal <= 1 && !Knowledge.domain_rect_hasPeriodicity) {
       this.execute(new Transformation("Resolve NeighborIsValid", {
-        case IR_Assignment(_ : IR_IV_NeighborIsValid, _, _) =>
-          IR_NullStatement
-        case neigh : IR_IV_NeighborIsValid                  =>
-            val optimize = collector.stack.exists {
-              case fragLoop : IR_ScopedStatement with IR_HasParallelizationInfo if fragLoop.parallelization.canRunInCommunicateStreams => true
-              case _ => false
-            }
-
-            if (optimize)
-              IR_BooleanConstant(false)
-            else
-              neigh
+        case IR_Assignment(_ : IR_IV_NeighborIsValid, _, _) => IR_NullStatement
+        case _ : IR_IV_NeighborIsValid                      => IR_BooleanConstant(false)
       }))
     } else if (Knowledge.domain_rect_generate) {
       for (dim <- 0 until Knowledge.dimensionality)

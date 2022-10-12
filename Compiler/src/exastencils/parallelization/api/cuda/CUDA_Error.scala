@@ -22,6 +22,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.config.Knowledge
 import exastencils.core.ObjectWithState
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.StatementList
@@ -50,14 +51,18 @@ case class CUDA_CheckError(var exp : IR_Expression) extends CUDA_HostStatement w
 
     def printAndExit : ListBuffer[IR_Statement] = ListBuffer(print, IR_FunctionCall(IR_ExternalFunctionReference("exit"), 1))
 
-    ListBuffer(
-      IR_VariableDeclaration(status, exp),
-      IR_IfCondition("cudaSuccess" Neq status,
-        printAndExit,
-        ListBuffer(
-          IR_Assignment(status, IR_FunctionCall(IR_ExternalFunctionReference("cudaGetLastError"))),
-          IR_IfCondition("cudaSuccess" Neq status,
-            printAndExit
-          ))))
+    if (Knowledge.cuda_omitErrorChecks) {
+      ListBuffer[IR_Statement](exp)
+    } else {
+      ListBuffer(
+        IR_VariableDeclaration(status, exp),
+        IR_IfCondition("cudaSuccess" Neq status,
+          printAndExit,
+          ListBuffer(
+            IR_Assignment(status, IR_FunctionCall(IR_ExternalFunctionReference("cudaGetLastError"))),
+            IR_IfCondition("cudaSuccess" Neq status,
+              printAndExit
+            ))))
+    }
   }
 }

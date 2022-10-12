@@ -279,6 +279,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       CUDA_AnnotateLoop.apply()
       CUDA_ExtractHostAndDeviceCode.apply()
       CUDA_AdaptKernelDimensionality.apply()
+      CUDA_HandleFragmentLoops.apply()
       CUDA_HandleReductions.apply()
       CUDA_ReplaceStdFunctionCalls.apply(Some(CUDA_KernelFunctions.get))
     }
