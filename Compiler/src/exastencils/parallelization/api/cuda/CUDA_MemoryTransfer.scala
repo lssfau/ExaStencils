@@ -61,11 +61,11 @@ object CUDA_TransferUtil {
 /// CUDA_UpdateHostData
 
 object CUDA_UpdateHostData {
-  def apply(access : IR_MultiDimFieldAccess, stream : CUDA_Stream) =
+  def apply(access : IR_MultiDimFieldAccess, stream : CUDA_TransferStream) =
     new CUDA_UpdateHostData(IR_IV_FieldData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx)), stream)
 }
 
-case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData, stream : CUDA_Stream) extends CUDA_HostStatement with IR_Expandable {
+case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   // TODO: allow targeting of specific index ranges
 
   override def expand() : Output[IR_Statement] = {
@@ -83,18 +83,18 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData, stream : CUDA_St
           (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _) * IR_SizeOf(field.resolveBaseDatatype),
           "D2H",
           stream),
-        IR_Assignment(CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)), IR_BooleanConstant(false))))
+        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, fieldData.fragmentIdx), stream)))
   }
 }
 
 /// CUDA_UpdateDeviceData
 
 object CUDA_UpdateDeviceData {
-  def apply(access : IR_MultiDimFieldAccess, stream : CUDA_Stream) =
+  def apply(access : IR_MultiDimFieldAccess, stream : CUDA_TransferStream) =
     new CUDA_UpdateDeviceData(IR_IV_FieldData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx)), stream)
 }
 
-case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_Stream) extends CUDA_HostStatement with IR_Expandable {
+case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
       return IR_NullStatement
@@ -110,13 +110,13 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_
           (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _) * IR_SizeOf(field.resolveBaseDatatype),
           "H2D",
           stream),
-        IR_Assignment(CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)), IR_BooleanConstant(false))))
+        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, fieldData.fragmentIdx), stream)))
   }
 }
 
 /// CUDA_UpdateHostBufferData
 
-case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUDA_Stream) extends CUDA_HostStatement with IR_Expandable {
+case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
       return IR_NullStatement
@@ -132,13 +132,13 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUD
           Duplicate(buffer.size) * IR_SizeOf(field.resolveBaseDatatype),
           "D2H",
           stream),
-        IR_Assignment(CUDA_DeviceBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(false))))
+        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, buffer.fragmentIdx), stream)))
   }
 }
 
 /// CUDA_UpdateDeviceData
 
-case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer, stream : CUDA_Stream) extends CUDA_HostStatement with IR_Expandable {
+case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
       return IR_NullStatement
@@ -154,6 +154,6 @@ case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer, stream : C
           Duplicate(buffer.size) * IR_SizeOf(field.resolveBaseDatatype),
           "H2D",
           stream),
-        IR_Assignment(CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(false))))
+        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, buffer.fragmentIdx), stream)))
   }
 }
