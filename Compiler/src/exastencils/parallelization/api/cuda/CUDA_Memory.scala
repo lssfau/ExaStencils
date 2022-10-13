@@ -229,7 +229,7 @@ object CUDA_AdaptAllocations extends DefaultStrategy("Adapt allocations and de-a
       fieldHostAllocations += pointer.field
       alloc
     case alloc @ IR_ArrayAllocation(pointer : IR_IV_CommBuffer, _, _) =>
-      fieldHostAllocations += pointer.field
+      bufferHostAllocations += pointer.field
       alloc
   })
 
