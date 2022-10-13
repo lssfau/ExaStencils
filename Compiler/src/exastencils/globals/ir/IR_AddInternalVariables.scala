@@ -48,9 +48,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
 
   var deviceBufferSizes : HashMap[String, IR_Expression] = HashMap()
   var deviceBufferAllocs : HashMap[String, IR_Statement] = HashMap()
-  var deviceBufferDeallocs : HashMap[String, IR_Statement] = HashMap()
   var deviceFieldAllocs : HashMap[String, IR_Statement] = HashMap()
-  var deviceFieldDeallocs : HashMap[String, IR_Statement] = HashMap()
 
   var counter : Int = 0
 
@@ -134,40 +132,26 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       cleanedField.fragmentIdx = IR_LoopOverFragments.defIt
 
       val numDataPoints : IR_Expression = (0 until field.field.layout.numDimsData).map(dim => field.field.layout.idxById("TOT", dim)).reduceLeft(_ * _)
-      var allocStatements : ListBuffer[IR_Statement] = ListBuffer()
-      var freeStatements : ListBuffer[IR_Statement] = ListBuffer()
+      var statements : ListBuffer[IR_Statement] = ListBuffer()
 
       val newFieldData = Duplicate(cleanedField)
       newFieldData.slot = if (field.field.numSlots > 1) "slot" else 0
 
-      var innerAllocStmts = ListBuffer[IR_Statement](
+      var innerStmts = ListBuffer[IR_Statement](
         CUDA_Allocate(newFieldData, numDataPoints, field.field.resolveBaseDatatype))
-      var innerFreeStmts = ListBuffer[IR_Statement](
-        CUDA_Free(newFieldData))
 
-      if (field.field.numSlots > 1) {
-        def wrapInSlotLoop(innerStmts : ListBuffer[IR_Statement]) = {
-          new IR_ForLoop(
-            IR_VariableDeclaration(IR_IntegerDatatype, "slot", 0),
-            IR_Lower("slot", field.field.numSlots),
-            IR_PreIncrement("slot"),
-            innerStmts)
-        }
+      if (field.field.numSlots > 1)
+        statements += new IR_ForLoop(
+          IR_VariableDeclaration(IR_IntegerDatatype, "slot", 0),
+          IR_Lower("slot", field.field.numSlots),
+          IR_PreIncrement("slot"),
+          innerStmts)
+      else
+        statements ++= innerStmts
 
-        allocStatements += wrapInSlotLoop(innerAllocStmts)
-        freeStatements += wrapInSlotLoop(innerFreeStmts)
-      } else {
-        allocStatements ++= innerAllocStmts
-        freeStatements ++= innerFreeStmts
-      }
-
-      def getMapEntry(innerStmts : ListBuffer[IR_Statement]) =
-        cleanedField.prettyprint() -> IR_LoopOverFragments(
-          IR_IfCondition(IR_IV_IsValidForDomain(field.field.domain.index), innerStmts),
-          IR_ParallelizationInfo(potentiallyParallel = true))
-
-      deviceFieldAllocs += getMapEntry(allocStatements)
-      deviceFieldDeallocs += getMapEntry(freeStatements)
+      deviceFieldAllocs += (cleanedField.prettyprint() -> IR_LoopOverFragments(
+        IR_IfCondition(IR_IV_IsValidForDomain(field.field.domain.index), statements),
+        IR_ParallelizationInfo(potentiallyParallel = true)))
 
       field
 
@@ -232,7 +216,6 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       val size = deviceBufferSizes(id)
 
       deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_Allocate(buf, size, buf.field.resolveBaseDatatype), IR_ParallelizationInfo(potentiallyParallel = true)))
-      deviceBufferDeallocs += (id -> IR_LoopOverFragments(CUDA_Free(buf), IR_ParallelizationInfo(potentiallyParallel = true)))
 
       buf
 
@@ -306,9 +289,9 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       func
     case func : IR_Function if "destroyGlobals" == func.name =>
       if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
-        func.body ++= (deviceFieldDeallocs ++ deviceBufferDeallocs ++ dtorMap).toSeq.sortBy(_._1).map(s => IR_Scope(s._2))
+        func.body ++= dtorMap.toSeq.sortBy(_._1).map(s => IR_Scope(s._2))
       else
-        func.body ++= (deviceFieldDeallocs ++ deviceBufferDeallocs ++ dtorMap).toSeq.sortBy(_._1).map(_._2)
+        func.body ++= dtorMap.toSeq.sortBy(_._1).map(_._2)
       func
   })
 }
