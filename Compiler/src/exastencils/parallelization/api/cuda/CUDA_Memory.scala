@@ -126,7 +126,7 @@ case class CUDA_FieldDeviceData(override var field : IR_Field, override var slot
   override def getDtor() : Option[IR_Statement] = {
     val origSlot = slot
     slot = "slot"
-    val access = resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
+    def access = this
 
     val ret = Some(wrapInLoops(
       IR_IfCondition(access,
@@ -144,7 +144,7 @@ case class CUDA_BufferDeviceData(override var field : IR_Field, override var dir
   override def resolveName() = s"bufferDevice_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
 
   override def getDtor() : Option[IR_Statement] = {
-    def access = resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
+    def access = this
 
     Some(wrapInLoops(
       IR_IfCondition(access,
