@@ -122,36 +122,12 @@ case class CUDA_FieldDeviceData(override var field : IR_Field, override var slot
 
   override def resolveName() = (if (1 == field.numSlots) s"fieldDeviceData" else "slottedFieldDeviceData") +
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, level.prettyprint, "")
-
-  override def getDtor() : Option[IR_Statement] = {
-    val origSlot = slot
-    slot = "slot"
-    val access = resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
-
-    val ret = Some(wrapInLoops(
-      IR_IfCondition(access,
-        ListBuffer(
-          CUDA_Free(access),
-          IR_Assignment(access, 0)))))
-    slot = origSlot
-    ret
-  }
 }
 
 /// CUDA_BufferDeviceData
 
 case class CUDA_BufferDeviceData(override var field : IR_Field, override var direction : String, override var size : IR_Expression, override var neighIdx : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractCommBuffer {
   override def resolveName() = s"bufferDevice_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
-
-  override def getDtor() : Option[IR_Statement] = {
-    def access = resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
-
-    Some(wrapInLoops(
-      IR_IfCondition(access,
-        ListBuffer[IR_Statement](
-          CUDA_Free(access),
-          IR_Assignment(access, 0)))))
-  }
 }
 
 /// CUDA_MatrixDeviceCopy
@@ -229,7 +205,7 @@ object CUDA_AdaptAllocations extends DefaultStrategy("Adapt allocations and de-a
       fieldHostAllocations += pointer.field
       alloc
     case alloc @ IR_ArrayAllocation(pointer : IR_IV_CommBuffer, _, _) =>
-      fieldHostAllocations += pointer.field
+      bufferHostAllocations += pointer.field
       alloc
   })
 
