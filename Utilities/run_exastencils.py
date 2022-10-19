@@ -34,21 +34,26 @@ def compile_code(ctx: RunContext):
 # --- run target code --- #
 @check_err
 @timer
-def run_code(ctx: RunContext, use_likwid_pin: bool = False):
+def run_code(ctx: RunContext):
     cwd = os.getcwd()
     os.chdir(ctx.target_code_path)
 
-    if use_likwid_pin:
+    if ctx.use_likwid_pin:
         # run code with likwid pinning
-        pinned_exec = likwid_pin(ctx.config)
+        pinned_exec = likwid_pin(ctx.config, ctx.use_likwid_perfctr)
         print(pinned_exec)
         result = subprocess.run(pinned_exec, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     else:
         # run with mpirun
-        result = subprocess.run([f'mpirun', '--allow-run-as-root', '--oversubscribe', '--mca', 'btl_base_warn_component_unused', '0',
-                                 f'-np', f'{ctx.config.mpi_num_processes}', 'exastencils'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        bin = ['./exastencils']
+        if ctx.use_likwid_perfctr:
+            bin = ['likwid-perfctr', '-g', 'Exa'] + bin
+        mpi_run = [f'mpirun', '--allow-run-as-root', '--oversubscribe', '--mca', 'btl_base_warn_component_unused', '0',
+                    f'-np', f'{ctx.config.mpi_num_processes}'] + bin
+        print(mpi_run)
+        result = subprocess.run(mpi_run, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    # print stdout
+    # print stderr
     print(result.stderr.decode('utf-8'))
     os.chdir(cwd)
 
@@ -77,6 +82,7 @@ def main():
                         help='Path to the libraries required by the compiler')
     parser.add_argument('--overwrite_settings', action='store_true', default=default_args['overwrite_settings'],
                         help='Generate target code from ExaSlang')
+    parser.add_argument('--use_likwid_pin', type=bool, default=False, help='Use "likwid-pin" for code execution')
     parser.add_argument('--generate', action='store_true', help='Generate target code from ExaSlang')
     parser.add_argument('--compile', action='store_true', help='Compile generated target code')
     parser.add_argument('--run', action='store_true', help='Run generated target code')

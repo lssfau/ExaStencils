@@ -167,7 +167,7 @@
             for compilerSuffix in "GCC$gccVersion" "ICC$iccVersion";
             do
                 pf="Platform/$(hostname)_$compilerSuffix.platform"
-                python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" $KNOWLEDGE_FILE $pf $OUTPUT_PATH --compile --run
+                python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" $KNOWLEDGE_FILE $pf $OUTPUT_PATH --use_likwid_pin=True --compile --run
             done
     after_script:
         - !reference [ .module_tree_build, after_script ]

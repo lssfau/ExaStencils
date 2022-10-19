@@ -11,6 +11,19 @@ from config_from_knowledge import *
 # - json functions - #
 ######################
 
+def parse_likwid_perfctr_output(pipe, json_body):
+    for line in pipe.decode('utf-8').splitlines():
+        print(line)
+        m = re.search(r'FLOPS Total\s*|\s*(\d*(\.\d*)?)', line)
+        if m is not None and m.group(1) != "":
+            json_body["GFLOP"] = float(m.group(1)) / 10 ** 9
+
+        m = re.search(r'Memory data volume \[GBytes]\s*|\s*(\d*(\.\d*)?)', line)
+        if m is not None and m.group(1) != "":
+            json_body["GB_MEM"] = float(m.group(1))
+
+    return json_body
+
 
 def decorate_json(json_body: dict, config: ConfigFromKnowledge):
     # git annotations

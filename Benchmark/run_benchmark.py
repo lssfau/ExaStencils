@@ -28,12 +28,16 @@ def run_pipeline(ctx: RunContext, json_file: str):
 
     if ctx.run:
         # run target code
-        run_code(ctx, use_likwid_pin=True)
+        result = run_code(ctx)
 
-        # upload to grafana
+        # extend json body and upload to grafana
         if os.path.exists(json_file):
             f = open(json_file)
             json_body = json.load(f)
+
+            if ctx.use_likwid and ctx.use_likwid_perfctr:
+                json_body = parse_likwid_perfctr_output(result.stdout, json_body)
+
             up = UploadGrafana(decorate_json(json_body, ctx.config))
         else:
             print('Grafana upload failed. No JSON file found: ' + json_file)
@@ -47,15 +51,21 @@ def run_pipeline(ctx: RunContext, json_file: str):
 def main():
     # parse args
     parser = argparse.ArgumentParser(description='Generate Benchmark from ExaSlang and run')
-    parser.add_argument('problem_name', type=str, help='Name of the problem. Used as directory name for the generated code')
+    parser.add_argument('problem_name', type=str,
+                        help='Name of the problem. Used as directory name for the generated code')
     parser.add_argument('exa_problem_path', type=str, help='Path to the ExaSlang problem specification')
-    parser.add_argument('exaslang_files', type=str, help='Comma-separated ExaSlang path assumed to be in \"exa_problem_path\"')
+    parser.add_argument('exaslang_files', type=str,
+                        help='Comma-separated ExaSlang path assumed to be in \"exa_problem_path\"')
     parser.add_argument('knowledge_file', type=str, help='Knowledge path assumed to be in \"exa_problem_path\"')
     parser.add_argument('platform_path', type=str, help='Path to the platform description')
     parser.add_argument('output_path', type=str, help='Path to output directory')
     parser.add_argument('--json_influx_file', type=str, default=default_args['json_influx_file'],
                         help='JSON filename output by target code and used as input for the InfluxDB upload')
-    parser.add_argument('--overwrite_settings', action='store_true', default=True, help='Generate target code from ExaSlang')
+    parser.add_argument('--overwrite_settings', action='store_true', default=True,
+                        help='Generate target code from ExaSlang')
+    parser.add_argument('--use_likwid', type=bool, default=True, help='Use likwid for benchmarks')
+    parser.add_argument('--use_likwid_perfctr', type=bool, default=True, help='Activate performance counters of likwid')
+    parser.add_argument('--use_likwid_pin', type=bool, default=False, help='Use "likwid-pin" for code execution')
     parser.add_argument('--generate', action='store_true', help='Generate target code from ExaSlang')
     parser.add_argument('--compile', action='store_true', help='Compile generated target code')
     parser.add_argument('--run', action='store_true', help='Run generated target code')

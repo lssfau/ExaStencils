@@ -27,6 +27,13 @@ class RunContext:
         self.generator_lib_path = getattr(args, "generator_lib_path", default_args['generator_lib_path'])
         self.overwrite_settings = getattr(args, "overwrite_settings", default_args['overwrite_settings'])
 
+        # libs
+        self.use_likwid = getattr(args, "use_likwid", False)
+        self.use_likwid_perfctr = getattr(args, "use_likwid_perfctr", False)
+        self.use_likwid_pin = getattr(args, "use_likwid_pin", False)
+        if not self.use_likwid and self.use_likwid_perfctr:
+            raise ValueError('use_likwid_perfctr is only available in conjunction with use_likwid.')
+
         # set run options
         all = getattr(args, "all", False)
         self.generate = getattr(args, "generate", False) or all
@@ -51,7 +58,8 @@ class RunContext:
         if not self.settings_file:
             # settings file automatically generated
             self.settings_path = generate_settings_file(self.exa_files, self.exa_problem_path, self.problem_name,
-                                                        self.output_path, self.target_code_path, self.overwrite_settings, self.config.use_cuda)
+                                                        self.output_path, self.target_code_path, self.overwrite_settings,
+                                                        self.config.use_cuda, self.use_likwid, self.use_likwid_perfctr)
         else:
             # settings file specified by user
             self.settings_path = get_file_in_problem_path(self.exa_problem_path, self.settings_file)
