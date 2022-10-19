@@ -117,7 +117,6 @@ Function Solve {
 	Var resOld : Real = 0
 
 	Var numIt : Integer = 0
-	startTimer ( 'solve' )
 	repeat until ( ( res < ( 1.0E-5 * resStart ) ) || ( numIt >= 100 ) ) {
 		numIt += 1
         Smoother@finest ( )
@@ -125,10 +124,13 @@ Function Solve {
 		resOld = res
 		res = NormResidual@finest (  )
 	}
-	stopTimer ( 'solve' )
 }
 
 Function Application {
+    native("LIKWID_MARKER_INIT")
+    Var markerName : String = "solvePhase"
+    native("LIKWID_MARKER_REGISTER(markerName.c_str())")
+
     startTimer ( 'setup' )
 	initGlobals (  )
 	initDomain (  )
@@ -137,7 +139,12 @@ Function Application {
 	InitSolution (  )
 	apply bc to Solution<active>@finest
 	stopTimer ( 'setup' )
+
+    startTimer ( 'solve' )
+	native("LIKWID_MARKER_START(markerName.c_str())")
 	Solve (  )
+	native("LIKWID_MARKER_STOP(markerName.c_str())")
+    stopTimer ( 'solve' )
 
     // json
 	printJSON ("results.json",
@@ -148,7 +155,8 @@ Function Application {
 	    'totalApplyBCTime', getTotalTime ( 'applyBC' )
 	)
 
-
 	printAllTimers (  )
 	destroyGlobals (  )
+
+    native("LIKWID_MARKER_CLOSE")
 }
