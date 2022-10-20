@@ -42,6 +42,8 @@ build:generator:
 ##                                   ##
 #######################################
 
+# 5-pt stencil
+
 bench_gen:5pt_Jac_2D:
     extends: .gen_bench_job_template
     variables:
@@ -49,6 +51,16 @@ bench_gen:5pt_Jac_2D:
         EXA_PROBLEM_PATH: "FivePointStencil"
         EXASLANG_FILES: "5pt_Jac_Cell.exa4"
         KNOWLEDGE_FILE: "5pt_Jac_Cell.knowledge"
+
+# 3D FD Poisson
+
+bench_gen:3D_FD_Poisson:
+    extends: .gen_bench_job_template
+    variables:
+        EXA_PROBLEM_NAME: "3D_FD_Poisson"
+        EXA_PROBLEM_PATH: "Poisson3D"
+        EXASLANG_FILES: "3D_FD_Poisson_fromL4.exa4"
+        KNOWLEDGE_FILE: "3D_FD_Poisson_fromL4.knowledge"
 
 #######################################
 ##                                   ##
