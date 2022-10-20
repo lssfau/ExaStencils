@@ -9,6 +9,16 @@ PROBLEM_PATH=$2
 EXASLANG=$3
 KNOWLEDGE=$4
 
+echo "stages:"
+echo "    - build"
+echo "    - stage_gen"
+echo "    - stage_pipe"
+echo "    - bench_gen"
+echo "    - bench_pipe"
+echo ""
+echo "$(<.benchmark_templates.yml)"
+echo ""
+
 #######################################
 ##                                   ##
 ##       Benchmark Generation        ##
