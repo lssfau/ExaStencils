@@ -26,12 +26,16 @@ echo ""
 #######################################
 
 echo -e "bench_gen:$PROBLEM_NAME:"
+echo -e "    stage: bench_gen"
 echo -e "    extends: .gen_bench_job_template"
 echo -e "    variables:"
 echo -e "        EXA_PROBLEM_NAME: \"$PROBLEM_NAME\""
 echo -e "        EXA_PROBLEM_PATH: \"$PROBLEM_PATH\""
 echo -e "        EXASLANG_FILES: \"$EXASLANG\""
 echo -e "        KNOWLEDGE_FILE: \"$KNOWLEDGE\""
+echo -e "    needs:"
+echo -e "        - pipeline: \"$PARENT_PIPELINE_ID\""
+echo -e "          job: stage_gen:$PROBLEM_NAME"
 echo
 
 #######################################
@@ -41,15 +45,20 @@ echo
 #######################################
 
 echo -e "bench_pipe:$PROBLEM_NAME:"
+echo -e "    stage: bench_pipe"
 echo -e "    extends: .pipe_bench_job_template"
 echo -e "    variables:"
 echo -e "        EXA_PROBLEM_NAME: \"$PROBLEM_NAME\""
 echo -e "        EXA_PROBLEM_PATH: \"$PROBLEM_PATH\""
 echo -e "        EXASLANG_FILES: \"$EXASLANG\""
 echo -e "        KNOWLEDGE_FILE: \"$KNOWLEDGE\""
+echo -e "    needs:"
+echo -e "        - pipeline: \"$PARENT_PIPELINE_ID\""
+echo -e "          job: stage_gen:$PROBLEM_NAME"
 echo
 
 echo -e "bench_pipe:${PROBLEM_NAME}_CUDA:"
+echo -e "    stage: bench_pipe"
 echo -e "    extends: .cuda_job_template"
 echo -e "    variables:"
 echo -e "        SLURM_NODELIST: \"medusa\""
@@ -58,4 +67,7 @@ echo -e "        EXA_PROBLEM_PATH: \"$PROBLEM_PATH\""
 echo -e "        EXASLANG_FILES: \"$EXASLANG\""
 echo -e "        KNOWLEDGE_FILE: \"$KNOWLEDGE\""
 echo -e "        PLATFORM_FILE: \"Platform/medusa_QuadroRTX6000.platform\""
+echo -e "    needs:"
+echo -e "        - pipeline: \"$PARENT_PIPELINE_ID\""
+echo -e "          job: stage_gen:$PROBLEM_NAME"
 echo
