@@ -3,6 +3,8 @@ variables:
 
 stages:
     - build
+    - stage_gen
+    - stage_pipe
     - bench_gen
     - bench_pipe
 
@@ -36,16 +38,16 @@ build:generator:
     after_script:
         - !reference [ .module_tree_build, after_script ]
 
-#######################################
-##                                   ##
-##       Benchmark Generation        ##
-##                                   ##
-#######################################
+###################################
+##                               ##
+##       Stage Generation        ##
+##                               ##
+###################################
 
 # 5-pt stencil
 
-bench_gen:5pt_Jac_2D:
-    extends: .gen_bench_job_template
+stage_gen:5pt_Jac_2D:
+    extends: .gen_stages_template
     variables:
         EXA_PROBLEM_NAME: "5pt_Jac_2D"
         EXA_PROBLEM_PATH: "FivePointStencil"
@@ -54,56 +56,30 @@ bench_gen:5pt_Jac_2D:
 
 # 3D FD Poisson
 
-bench_gen:3D_FD_Poisson:
-    extends: .gen_bench_job_template
+stage_gen:3D_FD_Poisson:
+    extends: .gen_stages_template
     variables:
         EXA_PROBLEM_NAME: "3D_FD_Poisson"
         EXA_PROBLEM_PATH: "Poisson3D"
         EXASLANG_FILES: "3D_FD_Poisson_fromL4.exa4"
         KNOWLEDGE_FILE: "3D_FD_Poisson_fromL4.knowledge"
 
-#######################################
-##                                   ##
-##       Benchmark Execution         ##
-##                                   ##
-#######################################
+###################################
+##                               ##
+##       Stage Execution         ##
+##                               ##
+###################################
 
 # 5-pt stencil
 
-bench_pipe:5pt_Jac_2D:
-    extends: .pipe_bench_job_template
+stage_pipe:5pt_Jac_2D:
+    extends: .pipe_stage_job_template
     variables:
         EXA_PROBLEM_NAME: "5pt_Jac_2D"
-        EXA_PROBLEM_PATH: "FivePointStencil"
-        EXASLANG_FILES: "5pt_Jac_Cell.exa4"
-        KNOWLEDGE_FILE: "5pt_Jac_Cell.knowledge"
-
-bench_pipe:5pt_Jac_2D_CUDA:
-    extends: .cuda_job_template
-    variables:
-        SLURM_NODELIST: "medusa"
-        EXA_PROBLEM_NAME: "5pt_Jac_2D_CUDA"
-        EXA_PROBLEM_PATH: "FivePointStencil"
-        EXASLANG_FILES: "5pt_Jac_Cell.exa4"
-        KNOWLEDGE_FILE: "5pt_Jac_Cell_CUDA.knowledge"
-        PLATFORM_FILE: "Platform/medusa_QuadroRTX6000.platform"
 
 # 3D FD Poisson
 
-bench_pipe:3D_FD_Poisson:
-    extends: .pipe_bench_job_template
+stage_pipe:3D_FD_Poisson:
+    extends: .pipe_stage_job_template
     variables:
-        EXA_PROBLEM_NAME: "3D_FD_Poisson"
-        EXA_PROBLEM_PATH: "Poisson3D"
-        EXASLANG_FILES: "3D_FD_Poisson_fromL4.exa4"
-        KNOWLEDGE_FILE: "3D_FD_Poisson_fromL4.knowledge"
-
-bench_pipe:3D_FD_Poisson_CUDA:
-    extends: .cuda_job_template
-    variables:
-        SLURM_NODELIST: "medusa"
-        EXA_PROBLEM_NAME: "3D_FD_Poisson_CUDA"
-        EXA_PROBLEM_PATH: "Poisson3D"
-        EXASLANG_FILES: "3D_FD_Poisson_fromL4.exa4"
-        KNOWLEDGE_FILE: "3D_FD_Poisson_fromL4_CUDA.knowledge"
-        PLATFORM_FILE: "Platform/medusa_QuadroRTX6000.platform"
+        EXA_PROBLEM_NAME: "3D_FD_Poisson""
