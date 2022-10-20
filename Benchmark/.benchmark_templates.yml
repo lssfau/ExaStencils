@@ -92,44 +92,6 @@
         PLATFORM_FILE: "TO_BE_REPLACED"
         OUTPUT_PATH: "output"
 
-.gen_stages_template:
-    dependencies:
-        - build:generator
-    stage: stage_gen
-    tags:
-        - testcluster
-    before_script:
-        - cd Benchmark
-        - !reference [ .module_tree_build, before_script ]
-    script:
-        - chmod +x generate_pipeline_stages.sh
-        - ./generate_pipeline_stages.sh "$EXA_PROBLEM_NAME" "$EXA_PROBLEM_PATH" "$EXASLANG_FILES" "$KNOWLEDGE_FILE" > $EXA_PROBLEM_NAME-stages.yml
-    after_script:
-        - !reference [ .module_tree_build, after_script ]
-    artifacts:
-        when: always
-        paths:
-            - Benchmark/$EXA_PROBLEM_NAME-stages.yml
-    variables:
-        NO_SLURM_SUBMIT: 1
-        EXA_PROBLEM_NAME: "TO_BE_REPLACED"
-        EXA_PROBLEM_PATH: "TO_BE_REPLACED"
-        EXASLANG_FILES: "TO_BE_REPLACED"
-        KNOWLEDGE_FILE: "TO_BE_REPLACED"
-        PARENT_PARENT_PIPELINE_ID: $CI_PIPELINE_ID
-
-.pipe_stage_job_template:
-    stage: stage_pipe
-    trigger:
-        include:
-            artifact: Benchmark/$EXA_PROBLEM_NAME-stages.yml
-            job: stage_gen:$EXA_PROBLEM_NAME
-        strategy: depend
-    variables:
-        NO_SLURM_SUBMIT: 1
-        PARENT_PARENT_PIPELINE_ID: $CI_PIPELINE_ID
-        EXA_PROBLEM_NAME: "TO_BE_REPLACED"
-
 .gen_bench_job_template:
     dependencies:
         - build:generator
