@@ -34,7 +34,7 @@ echo -e "        EXA_PROBLEM_PATH: \"$PROBLEM_PATH\""
 echo -e "        EXASLANG_FILES: \"$EXASLANG\""
 echo -e "        KNOWLEDGE_FILE: \"$KNOWLEDGE\""
 echo -e "    needs:"
-echo -e "        - pipeline: \"$PARENT_PIPELINE_ID\""
+echo -e "        - pipeline: \"$PARENT_PARENT_PIPELINE_ID\""
 echo -e "          job: stage_gen:$PROBLEM_NAME"
 echo
 
@@ -53,7 +53,7 @@ echo -e "        EXA_PROBLEM_PATH: \"$PROBLEM_PATH\""
 echo -e "        EXASLANG_FILES: \"$EXASLANG\""
 echo -e "        KNOWLEDGE_FILE: \"$KNOWLEDGE\""
 echo -e "    needs:"
-echo -e "        - pipeline: \"$PARENT_PIPELINE_ID\""
+echo -e "        - pipeline: \"$PARENT_PARENT_PIPELINE_ID\""
 echo -e "          job: stage_gen:$PROBLEM_NAME"
 echo
 
@@ -68,6 +68,6 @@ echo -e "        EXASLANG_FILES: \"$EXASLANG\""
 echo -e "        KNOWLEDGE_FILE: \"$KNOWLEDGE\""
 echo -e "        PLATFORM_FILE: \"Platform/medusa_QuadroRTX6000.platform\""
 echo -e "    needs:"
-echo -e "        - pipeline: \"$PARENT_PIPELINE_ID\""
+echo -e "        - pipeline: \"$PARENT_PARENT_PIPELINE_ID\""
 echo -e "          job: stage_gen:$PROBLEM_NAME"
 echo

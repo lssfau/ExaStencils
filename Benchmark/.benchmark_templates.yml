@@ -116,7 +116,7 @@
         EXA_PROBLEM_PATH: "TO_BE_REPLACED"
         EXASLANG_FILES: "TO_BE_REPLACED"
         KNOWLEDGE_FILE: "TO_BE_REPLACED"
-        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
+        PARENT_PARENT_PIPELINE_ID: $CI_PIPELINE_ID
 
 .pipe_stage_job_template:
     stage: stage_pipe
@@ -127,7 +127,7 @@
         strategy: depend
     variables:
         NO_SLURM_SUBMIT: 1
-        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
+        PARENT_PARENT_PIPELINE_ID: $CI_PIPELINE_ID
         EXA_PROBLEM_NAME: "TO_BE_REPLACED"
 
 .gen_bench_job_template:
