@@ -84,6 +84,7 @@
         expire_in: 1 weeks
     variables:
         SLURM_NODELIST: "TO_BE_REPLACED"
+        SLURM_CONSTRAINT: "hwperf"
         EXA_PROBLEM_NAME: "TO_BE_REPLACED"
         EXA_PROBLEM_PATH: "TO_BE_REPLACED"
         EXASLANG_FILES: "TO_BE_REPLACED"
@@ -146,6 +147,7 @@
         - testcluster
     variables:
         SLURM_NODELIST: "TO_BE_REPLACED"
+        SLURM_CONSTRAINT: "hwperf"
         EXA_PROBLEM_NAME: "TO_BE_REPLACED"
         EXA_PROBLEM_PATH: "TO_BE_REPLACED"
         EXASLANG_FILES: "TO_BE_REPLACED"
