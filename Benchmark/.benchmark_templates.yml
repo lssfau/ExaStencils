@@ -101,6 +101,7 @@
     before_script:
         - cd Benchmark
         - !reference [ .module_tree_build, before_script ]
+    script:
         - chmod +x generate_pipeline_stages.sh
         - ./generate_pipeline_stages.sh "$EXA_PROBLEM_NAME" "$EXA_PROBLEM_PATH" "$EXASLANG_FILES" "$KNOWLEDGE_FILE" > $EXA_PROBLEM_NAME-stages.yml
     after_script:

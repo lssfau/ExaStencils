@@ -82,4 +82,4 @@ stage_pipe:5pt_Jac_2D:
 stage_pipe:3D_FD_Poisson:
     extends: .pipe_stage_job_template
     variables:
-        EXA_PROBLEM_NAME: "3D_FD_Poisson""
+        EXA_PROBLEM_NAME: "3D_FD_Poisson"
