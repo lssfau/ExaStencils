@@ -446,7 +446,7 @@ object IR_SetupNodePositions {
         val innerLoop = IR_LoopOverPoints(field, IR_CompoundAssignment(Duplicate(baseAccess), IR_FunctionCall("randn"), IR_BinaryOperators.Addition))
         innerLoop.parallelization.potentiallyParallel = false
         stmts += innerLoop
-        stmts += IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("all", None, None)), None)
+        stmts += IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("all", None, None)), None, "")
       } else {
         val finerField = IR_VF_NodePositionAsVec.find(level + 1).associatedField
         val finerIndex = IR_LoopOverDimensions.defIt(numDims)
@@ -534,6 +534,6 @@ object IR_SetupNodePositions {
         innerLoop,
         leftBoundaryUpdate,
         rightBoundaryUpdate)),
-      IR_Communicate(coarseField, 0, "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None))
+      IR_Communicate(coarseField, 0, "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None, ""))
   }
 }
