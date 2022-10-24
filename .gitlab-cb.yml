@@ -31,7 +31,6 @@ build:generator:
         - java -version
         - python3 --version
     script:
-        - sbt compile
         - sbt assembly
     after_script:
         - !reference [ .module_tree_build, after_script ]
