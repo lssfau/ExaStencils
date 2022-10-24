@@ -101,14 +101,7 @@
     before_script:
         - cd Benchmark
         - !reference [ .module_tree_build, before_script ]
-        - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
-        - python3 unzip.py artifacts.zip Platform
     script:
-        - |
-            for pf in Platform/*.platform
-            do
-                python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" $KNOWLEDGE_FILE $pf $OUTPUT_PATH --generate
-            done
         - chmod +x generate_bench_jobs_for_hosts.sh
         - ./generate_bench_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH > $EXA_PROBLEM_NAME-pipe.yml
     after_script:
@@ -116,11 +109,7 @@
     artifacts:
         when: always
         paths:
-            - Benchmark/$EXA_PROBLEM_PATH*/*
             - Benchmark/$EXA_PROBLEM_NAME-pipe.yml
-            - Benchmark/$OUTPUT_PATH/Debug/*
-            - Benchmark/$OUTPUT_PATH/generated/*
-        expire_in: 1 weeks
     variables:
         NO_SLURM_SUBMIT: 1
         EXA_PROBLEM_NAME: "TO_BE_REPLACED"
@@ -169,7 +158,7 @@
             for compilerSuffix in "GCC$gccVersion" "ICC$iccVersion";
             do
                 pf="Platform/$(hostname)_$compilerSuffix.platform"
-                python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" $KNOWLEDGE_FILE $pf $OUTPUT_PATH --use_likwid_pin=True --compile --run
+                python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" $KNOWLEDGE_FILE $pf $OUTPUT_PATH --use_likwid_pin=True --all
             done
     after_script:
         - !reference [ .module_tree_build, after_script ]
