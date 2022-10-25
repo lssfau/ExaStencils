@@ -61,8 +61,6 @@
     - iccVersion=$(echo "$(icc --version 2>&1)" | sed -e "s/^icc (ICC) //" | cut -d " " -f 1 | cut -d "." -f 1-2 | tr -d '.' | head -n 1)
 
 .cuda_job_template:
-    dependencies:
-        - build:generator
     stage: bench_pipe
     tags:
         - testcluster
@@ -99,8 +97,6 @@
         OUTPUT_PATH: "output"
 
 .gen_bench_job_template:
-    dependencies:
-        - build:generator
     stage: bench_gen
     tags:
         - testcluster
