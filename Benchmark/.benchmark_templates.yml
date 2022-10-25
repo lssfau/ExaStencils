@@ -24,6 +24,11 @@
                 python3 -m pip uninstall $PACKAGE # cleanup
             done
 
+.build_generator: &build_generator
+    - sbt sbtVersion
+    - java -version
+    - sbt assembly
+
 .module_gcc: &module_load_gcc
     #- module load gcc/10.2.0
     - gcc --version
@@ -72,6 +77,7 @@
         #- *module_load_openmpi
         - *module_load_likwid
         - *module_load_cuda
+        - *build_generator
     script:
         - python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" $KNOWLEDGE_FILE $PLATFORM_FILE $OUTPUT_PATH --use_likwid_pin=True --all
     after_script:
@@ -154,6 +160,7 @@
         #- *module_load_openmpi
         - *module_load_likwid
         - *get_compiler_versions
+        - *build_generator
         - |
             for compilerSuffix in "GCC$gccVersion" "ICC$iccVersion";
             do

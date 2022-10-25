@@ -10,33 +10,6 @@ include: 'Benchmark/.benchmark_templates.yml'
 
 #######################################
 ##                                   ##
-##         Generator                 ##
-##                                   ##
-#######################################
-
-build:generator:
-    stage: build
-    tags:
-        - testcluster
-    artifacts:
-        paths:
-            - Compiler/Compiler.jar
-            - Compiler/lib
-        expire_in: 1 weeks
-    variables:
-        NO_SLURM_SUBMIT: 1
-    before_script:
-        - !reference [ .module_tree_build, before_script ]
-        - sbt sbtVersion
-        - java -version
-        - python3 --version
-    script:
-        - sbt assembly
-    after_script:
-        - !reference [ .module_tree_build, after_script ]
-
-#######################################
-##                                   ##
 ##       Benchmark Generation        ##
 ##                                   ##
 #######################################
