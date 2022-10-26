@@ -120,8 +120,23 @@ case class CUDA_HandleFragmentLoops(
     ListBuffer(declCopies, initCopies)
   }
 
+  // compile switch for cpu/gpu exec
+  def getBranchHostDevice(hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement], fasterHostExecution: Boolean) : ListBuffer[IR_Statement] = {
+    val defaultChoice : IR_Expression = Knowledge.cuda_preferredExecution match {
+      case "Host"        => IR_BooleanConstant(true) // CPU by default
+      case "Device"      => IR_BooleanConstant(false) // GPU by default
+      case "Performance" => IR_BooleanConstant(fasterHostExecution)
+      case "Condition"   => Knowledge.cuda_executionCondition
+    }
+
+    if (isParallel)
+      ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))
+    else
+      hostStmts
+  }
+
   // finalize reduction
-  def finalizeReduction(op : String, redTarget : IR_Expression, reductionTmp : CUDA_ReductionResultBuffer, copies : IR_VariableAccess) : IR_Statement = {
+  def finalizeReduction(op : String, redTarget : IR_Expression, reductionTmp : CUDA_ReductionResultBuffer, copies : IR_VariableAccess, fasterHostExecution: Boolean) : ListBuffer[IR_Statement] = {
 
     // update reduction target
     def getAssign(reductionResult : IR_Expression) = reductionDt(redTarget) match {
@@ -146,13 +161,10 @@ case class CUDA_HandleFragmentLoops(
     }
 
     // accumulate fragment copies into reduction variable
-    if (Knowledge.cuda_preferredExecution == "Condition") {
-      IR_IfCondition(Knowledge.cuda_executionCondition,
-        getAssign(currCopy(copies)),
-        getAssign(reductionTmp))
-    } else {
-      getAssign(reductionTmp)
-    }
+    getBranchHostDevice(
+      ListBuffer(getAssign(currCopy(copies))),
+      ListBuffer(getAssign(reductionTmp)),
+      fasterHostExecution)
   }
 
   def replaceAccesses(redTarget : IR_Expression, copies : IR_VariableAccess, body : ListBuffer[IR_Statement]) : Unit = {
@@ -253,6 +265,17 @@ case class CUDA_HandleFragmentLoops(
     val loop = loopTuple.get._1
     val body = loopTuple.get._2
 
+    // decide execution target according to performance estimates. if estimates not found -> cpu
+    val dimLoop = body.collectFirst { case l : IR_LoopOverDimensions => l }
+    val fasterHostExecution = if (dimLoop.isDefined) {
+      val hostTime = dimLoop.get.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double]
+      val deviceTime = dimLoop.get.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]
+
+      hostTime <= deviceTime
+    } else {
+      true
+    }
+
     // handle reductions
     if (loop.parallelization.reduction.isDefined) {
       val red = Duplicate(loop.parallelization.reduction.get)
@@ -276,41 +299,16 @@ case class CUDA_HandleFragmentLoops(
 
       stmts ++= initCopies(redTarget, red.op, copies) // init frag copies
       replaceAccesses(redTarget, copies, body) // replace accesses to frag copies
-      syncAfterFragLoop.body += finalizeReduction(red.op, redTarget, reductionTmp.get, copies) // accumulate frag copies at end
+      syncAfterFragLoop.body ++= finalizeReduction(red.op, redTarget, reductionTmp.get, copies, fasterHostExecution) // accumulate frag copies at end
     }
 
     // get syncs for updated buffers on device/host
     val (beforeHost, afterHost, beforeDevice, afterDevice) = syncUpdatedBuffers()
 
-    // compile switch for cpu/gpu exec
-    def getBranchHostDevice(hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
-      val defaultChoice : IR_Expression = Knowledge.cuda_preferredExecution match {
-        case "Host"        => IR_BooleanConstant(true) // CPU by default
-        case "Device"      => IR_BooleanConstant(false) // GPU by default
-        case "Performance" =>
-          // decide according to performance estimates. if estimates not found -> cpu
-          val dimLoop = body.collectFirst { case l : IR_LoopOverDimensions => l }
-          if (dimLoop.isDefined) {
-            val hostTime = dimLoop.get.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double]
-            val deviceTime = dimLoop.get.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]
-
-            if (hostTime <= deviceTime) IR_BooleanConstant(true) else IR_BooleanConstant(false)
-          } else {
-            IR_BooleanConstant(true)
-          }
-        case "Condition"   => Knowledge.cuda_executionCondition
-      }
-
-      if (isParallel)
-        ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))
-      else
-        hostStmts
-    }
-
     stmts += syncBeforeFragLoop // add stream synchro loop before kernel calls
-    stmts += IR_LoopOverFragments(getBranchHostDevice(beforeHost, beforeDevice))
+    stmts += IR_LoopOverFragments(getBranchHostDevice(beforeHost, beforeDevice, fasterHostExecution))
     stmts += Duplicate(loop)
-    stmts += IR_LoopOverFragments(getBranchHostDevice(afterHost, afterDevice))
+    stmts += IR_LoopOverFragments(getBranchHostDevice(afterHost, afterDevice, fasterHostExecution))
     stmts += syncAfterFragLoop // add stream synchro loop after kernel calls
 
     stmts
