@@ -112,6 +112,7 @@
         when: always
         paths:
             - Benchmark/$EXA_PROBLEM_NAME-pipe.yml
+        expire_in: 1 weeks
     variables:
         NO_SLURM_SUBMIT: 1
         EXA_PROBLEM_NAME: "TO_BE_REPLACED"
