@@ -22,7 +22,6 @@ import scala.collection.mutable
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.ir.IR_IV_CommBuffer
@@ -115,18 +114,13 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     (beforeHost, afterHost, beforeDevice, afterDevice)
   }
 
-  def getBranch(condWrapper : NoDuplicateWrapper[IR_Expression], loop : IR_LoopOverDimensions, hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
-    condWrapper.value = Knowledge.cuda_preferredExecution match {
-      case "Host"        => IR_BooleanConstant(true) // CPU by default
-      case "Device"      => IR_BooleanConstant(false) // GPU by default
-      case "Performance" => IR_BooleanConstant(loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] <= loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) // decide according to performance estimates
-      case "Condition"   => Knowledge.cuda_executionCondition
-    }
-    // set dummy first to prevent IR_GeneralSimplify from removing the branch statement until the condition is final
-    val branch = IR_IfCondition(IR_VariableAccess("replaceIn_CUDA_AnnotateLoops", IR_BooleanDatatype), hostStmts, deviceStmts)
-    branch.annotate(CUDA_Util.CUDA_BRANCH_CONDITION, condWrapper)
-    ListBuffer[IR_Statement](branch)
-  }
+  // extract estimated times for host/device from performance evaluation strategy (zero if estimation doesn't exist)
+  def getTimeEstimation(loop: IR_LoopOverDimensions, host: Boolean) =
+    loop.getAnnotation(if (host) "perf_timeEstimate_host" else "perf_timeEstimate_device").getOrElse(0.0).asInstanceOf[Double]
+
+  // use condWrapper to prevent automatic removal of branching from simplification strategies
+  def branchingWrapper(condWrapper : NoDuplicateWrapper[IR_Expression], loop : IR_LoopOverDimensions, hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) =
+    getHostDeviceBranchingCondWrapper(condWrapper, hostStmts, deviceStmts, getTimeEstimation(loop, host = true) <= getTimeEstimation(loop, host = false))
 
   // collect accessed elements for fragment loops with ContractingLoop and LoopOverDimensions nodes
   this += new Transformation("Collect accessed elements for fragment loop handling", {
@@ -134,10 +128,12 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       // get LoopOverDims instance in contracting loop and check if parallel
       val containedLoop = findContainedLoopOverDims(cl)
       val isParallel = isLoopParallel(containedLoop)
-      collectAccessedElementsFragmentLoop(cl.body, fragLoopCollector, commKernelCollector, isParallel)
+      collectAccessedElementsFragmentLoop(cl.body, fragLoopCollector, commKernelCollector,
+        isParallel, fromMPIStatement = false, getTimeEstimation(containedLoop, host = true), getTimeEstimation(containedLoop, host = false))
       cl
     case loop : IR_LoopOverDimensions =>
-      collectAccessedElementsFragmentLoop(loop.body, fragLoopCollector, commKernelCollector, isLoopParallel(loop))
+      collectAccessedElementsFragmentLoop(loop.body, fragLoopCollector, commKernelCollector,
+        isLoopParallel(loop), fromMPIStatement = false, getTimeEstimation(loop, host = true), getTimeEstimation(loop, host = false))
       loop
   }, false)
 
@@ -233,7 +229,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       deviceStmts ++= afterDevice
       // lists are already added to branch
 
-      val res = if (isParallel) getBranch(condWrapper, containedLoop, hostStmts, deviceStmts) else hostStmts
+      val res = if (isParallel) branchingWrapper(condWrapper, containedLoop, hostStmts, deviceStmts) else hostStmts
 
       for ((fKey, offset) <- fieldOffset) {
         val field = fields(fKey)
@@ -273,6 +269,6 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       deviceStmts ++= afterDevice
       // lists are already added to branch
 
-      if (isParallel) getBranch(condWrapper, loop, hostStmts, deviceStmts) else hostStmts
+      if (isParallel) branchingWrapper(condWrapper, loop, hostStmts, deviceStmts) else hostStmts
   }, false)
 }

@@ -12,7 +12,7 @@ import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.util.ir.IR_CommunicationKernelCollector
 import exastencils.util.ir.IR_FragmentLoopCollector
 
-trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync {
+trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync with CUDA_ExecutionBranching {
 
   def fieldAccesses : mutable.Map[String, IR_IV_FieldData]
   def bufferAccesses : mutable.Map[String, IR_IV_CommBuffer]
@@ -56,12 +56,16 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync {
       body : ListBuffer[IR_Statement],
       fragLoopCollector : IR_FragmentLoopCollector,
       commKernelCollector : IR_CommunicationKernelCollector,
-      isParallel : Boolean) = {
+      isParallel : Boolean,
+      fromMPIStatement : Boolean,
+      estimatedHostTime : Double,
+      estimatedDeviceTime : Double) = {
 
     // collect elements accessed in enclosing fragment loop and create handler
     val enclosingFragLoop = fragLoopCollector.getEnclosingFragmentLoop()
     if (enclosingFragLoop.isDefined) {
-      val emptyElements = CUDA_AccessedElementsInFragmentLoop(ListBuffer(), mutable.HashMap(), mutable.HashMap(), isLoopParallel = false)
+      val emptyElements = CUDA_AccessedElementsInFragmentLoop(ListBuffer(), mutable.HashMap(), mutable.HashMap(),
+        isLoopParallel = false, fromMPIStatement = false, 0.0, 0.0)
       val elements = accessedElementsFragLoop.getOrElse(enclosingFragLoop.get, emptyElements)
 
       // get accessed buffers
@@ -80,6 +84,13 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync {
 
       // check if loop is parallel
       elements.isLoopParallel = isParallel
+
+      // check if accessed elements origin from mpi statement
+      elements.fromMPIStatement = fromMPIStatement
+
+      // add timings
+      elements.estimatedHostTime = estimatedHostTime
+      elements.estimatedDeviceTime = estimatedDeviceTime
 
       accessedElementsFragLoop.update(enclosingFragLoop.get, elements)
     }

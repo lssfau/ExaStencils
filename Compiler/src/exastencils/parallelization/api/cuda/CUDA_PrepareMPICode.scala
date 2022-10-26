@@ -183,26 +183,11 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
     (beforeHost, afterHost, beforeDevice, afterDevice)
   }
 
-  def addHostDeviceBranching(hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement], loop : IR_LoopOverDimensions, earlyExit : Boolean) : ListBuffer[IR_Statement] = {
-    if (earlyExit) {
-      hostStmts
-    } else {
-      /// compile final switch
-      val defaultChoice : IR_Expression = Knowledge.cuda_preferredExecution match {
-        case "Host"        => 1 // CPU by default
-        case "Device"      => 0 // GPU by default
-        case "Performance" => if (loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] > loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) 0 else 1 // decide according to performance estimates
-        case "Condition"   => Knowledge.cuda_executionCondition
-      }
-
-      ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))
-    }
-  }
-
   // collect accessed elements for fragment loops with ContractingLoop and LoopOverDimensions nodes
   this += new Transformation("Collect accessed elements for fragment loop handling", {
     case mpiStmt : MPI_Statement      =>
-      collectAccessedElementsFragmentLoop(ListBuffer(mpiStmt), fragLoopCollector, commKernelCollector, isParallel = true)
+      collectAccessedElementsFragmentLoop(ListBuffer(mpiStmt), fragLoopCollector, commKernelCollector,
+        isParallel = true, fromMPIStatement = true, estimatedHostTime = 0.0, estimatedDeviceTime = 0.0)
       mpiStmt
   }, false)
 
@@ -260,15 +245,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
         deviceStmts ++= afterDevice
 
         /// compile final switch
-        val defaultChoice : IR_Expression = Knowledge.cuda_preferredExecution match {
-          case _ if !Platform.hw_gpu_gpuDirectAvailable => 1 // if GPUDirect is not available default to CPU
-          case "Host"                                   => 1 // CPU by default
-          case "Device"                                 => 0 // GPU by default
-          case "Performance"                            => 1 // FIXME: Knowledge flag
-          case "Condition"                              => Knowledge.cuda_executionCondition
-        }
-
-        ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))
+        getHostDeviceBranchingMPI(hostStmts, deviceStmts)
       }
   }, false)
 }
