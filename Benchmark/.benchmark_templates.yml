@@ -65,9 +65,9 @@
     tags:
         - testcluster
     before_script:
+        - !reference [ .module_tree_build, before_script ]
         - *build_generator
         - cd Benchmark
-        - !reference [ .module_tree_build, before_script ]
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
         - python3 unzip.py artifacts.zip Platform
         - echo $(hostname)
@@ -146,9 +146,9 @@
         KNOWLEDGE_FILE: "TO_BE_REPLACED"
         OUTPUT_PATH: "output"
     before_script:
+        - !reference [ .module_tree_build, before_script ]
         - *build_generator
         - cd Benchmark
-        - !reference [ .module_tree_build, before_script ]
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
         - python3 unzip.py artifacts.zip Platform
     script:
