@@ -291,7 +291,7 @@ case class CUDA_HandleFragmentLoops(
 
       // assign orig reduction target to result in cpu/gpu fragment copy
       val (assignToHostBuffer, assignToDeviceBuffer) = updateReductionTarget(red.op, redTarget, reductionTmp.get, copies) // accumulate frag copies at end
-      branchingWrapper(assignToHostBuffer, assignToDeviceBuffer)
+      syncAfterFragLoop.body ++= branchingWrapper(assignToHostBuffer, assignToDeviceBuffer)
     }
 
     // get syncs for updated buffers on device/host
