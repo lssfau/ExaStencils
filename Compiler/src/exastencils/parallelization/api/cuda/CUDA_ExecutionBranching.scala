@@ -10,7 +10,7 @@ import exastencils.util.NoDuplicateWrapper
 
 // compile switch for cpu/gpu exec
 trait CUDA_ExecutionBranching {
-  def getHostDeviceBranchingMPI(hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) = {
+  def getHostDeviceBranchingMPI(hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
     val defaultChoice : IR_Expression = Knowledge.cuda_preferredExecution match {
       case _ if !Platform.hw_gpu_gpuDirectAvailable => 1 // if GPUDirect is not available default to CPU
       case "Host"                                   => 1 // CPU by default
@@ -22,7 +22,7 @@ trait CUDA_ExecutionBranching {
     ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))
   }
 
-  def getHostDeviceBranching(hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement], estimatedFasterHostExec : Boolean) = {
+  def getHostDeviceBranching(hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement], estimatedFasterHostExec : Boolean) : ListBuffer[IR_Statement] = {
     // get execution choice
     val defaultChoice = getDefaultChoice(estimatedFasterHostExec)
 

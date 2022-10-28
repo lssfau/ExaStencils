@@ -262,7 +262,7 @@ case class CUDA_HandleFragmentLoops(
       if (fromMPIStatement)
         getHostDeviceBranchingMPI(hostStmts, deviceStmts)
       else
-        getHostDeviceBranching(hostStmts, deviceStmts, fasterHostExecEstimation)
+        if (isParallel) getHostDeviceBranching(hostStmts, deviceStmts, fasterHostExecEstimation) else hostStmts
     }
 
     // handle reductions
