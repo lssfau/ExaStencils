@@ -102,45 +102,52 @@ case class IR_LocalSolve(
         // split into known and unknown
         var localFactors = ListBuffer[IR_Expression]()
         var localUnknowns = ListBuffer[IR_FieldAccess]()
-        for (ex <- mult.factors) {
+        var localSwitchSign = switchSign
+
+        def handleFactor(ex : IR_Expression) {
           ex match {
             case const : IR_Expression if !IR_ContainsUnknownAccesses.hasSome(IR_ExpressionStatement(const)) =>
               // generic expression not relying on field accesses to unknown values => handle as const
               localFactors += const
 
-            case access : IR_FieldAccess                         =>
+            case access : IR_FieldAccess =>
               if (matchUnknowns(access) < 0)
                 localFactors += access
-              else localUnknowns += access
+              else
+                localUnknowns += access
+
+            case neg : IR_Negative =>
+              localSwitchSign = !localSwitchSign
+              handleFactor(neg.left)
+
             case e @ IR_Division(access : IR_FieldAccess, right) =>
               if (!IR_ContainsUnknownAccesses.hasSome(IR_ExpressionStatement(right))) {
                 localUnknowns += access
                 localFactors += IR_Division(1, right)
               } else {
                 Logger.error(s"Nested division expressions are currently unsupported: $e")
-                localFactors += e
               }
-            case e : IR_Multiplication                           =>
-              Logger.error(s"Nested multiplication expressions are currently unsupported: $e")
-              localFactors += e
-            case e : IR_Addition                                 =>
-              Logger.error(s"Nested addition expressions are currently unsupported: $e")
-              localFactors += e
-            case e : IR_Subtraction                              =>
-              Logger.error(s"Nested subtraction expressions are currently unsupported: $e")
-              localFactors += e
-            case e : IR_Expression                               =>
-              Logger.error(s"Unknown, currently unsupported nested expression found: $e")
-              localFactors += e
+
+            case e : IR_Multiplication =>
+              for (ex <- mult.factors)
+                handleFactor(ex)
+
+            case e : IR_Addition    => Logger.error(s"Nested addition expressions are currently unsupported: $e")
+            case e : IR_Subtraction => Logger.error(s"Nested subtraction expressions are currently unsupported: $e")
+            case e : IR_Expression  => Logger.error(s"Unknown, currently unsupported nested expression found: $e")
           }
         }
+
+        for (ex <- mult.factors)
+          handleFactor(ex)
+
         if (localUnknowns.size > 1)
           Logger.error("Non-linear equations are currently unsupported")
         if (localUnknowns.isEmpty) // no unknowns -> add to rhs
-          fVals(pos).summands += (if (switchSign) mult else IR_Negative(mult))
+          fVals(pos).summands += (if (localSwitchSign) mult else IR_Negative(mult))
         else // unknowns detected -> add to matrix
           AVals(pos)(matchUnknowns(localUnknowns.head)).summands += (
-            if (switchSign)
+            if (localSwitchSign)
               IR_Negative(IR_Multiplication(localFactors))
             else
               IR_Multiplication(localFactors))
