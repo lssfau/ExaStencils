@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 
 # utility script to generate pipeline stages for CB
 

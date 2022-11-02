@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 
 if [ $# -ne 2 ]; then
   echo "Wrong number of arguments. Should be ./<script_name>.sh <EXA_PROBLEM_NAME> <EXA_PROBLEM_PATH>"
