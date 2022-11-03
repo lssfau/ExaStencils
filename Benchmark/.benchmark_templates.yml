@@ -6,7 +6,7 @@
 
 .module_tree_build:
     variables:
-        - PYTHON_PACKAGES: sympy numpy influxdb machinestate
+        - PYTHON_PACKAGES: sympy numpy influxdb machinestate argparse
     before_script:
         - JAVA_HOME=$HOME/jdk-11.0.14 ; export JAVA_HOME
         - SBT_HOME=$HOME/sbt ; export SBT_HOME
@@ -83,7 +83,7 @@
         - echo $KNOWLEDGE_FILE
         - echo $PLATFORM_FILE
         - echo $OUTPUT_PATH
-        - python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" $KNOWLEDGE_FILE $PLATFORM_FILE $OUTPUT_PATH --all
+        - python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" $KNOWLEDGE_FILE $PLATFORM_FILE $OUTPUT_PATH --use_likwid_pin --all
     after_script:
         - !reference [ .module_tree_build, after_script ]
     artifacts:
@@ -174,7 +174,7 @@
                 echo $KNOWLEDGE_FILE
                 echo $pf
                 echo $OUTPUT_PATH
-                python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" $KNOWLEDGE_FILE $pf $OUTPUT_PATH --all
+                python3 run_benchmark.py $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH "$EXASLANG_FILES" $KNOWLEDGE_FILE $pf $OUTPUT_PATH --use_likwid_pin --all
             done
     after_script:
         - !reference [ .module_tree_build, after_script ]

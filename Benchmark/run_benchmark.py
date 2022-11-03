@@ -65,7 +65,7 @@ def main():
                         help='Generate target code from ExaSlang')
     parser.add_argument('--use_likwid', type=bool, default=True, help='Use likwid for benchmarks')
     parser.add_argument('--use_likwid_perfctr', type=bool, default=True, help='Activate performance counters of likwid')
-    parser.add_argument('--use_likwid_pin', type=bool, default=False, help='Use "likwid-pin" for code execution')
+    parser.add_argument('--use_likwid_pin', default=False, action='store_true', help='Use "likwid-pin" for code execution')
     parser.add_argument('--generate', action='store_true', help='Generate target code from ExaSlang')
     parser.add_argument('--compile', action='store_true', help='Compile generated target code')
     parser.add_argument('--run', action='store_true', help='Run generated target code')
