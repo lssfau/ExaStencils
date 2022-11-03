@@ -43,8 +43,8 @@ object CUDA_Stream {
 
   def genCompSync() : CUDA_StreamSynchronize = CUDA_StreamSynchronize(CUDA_ComputeStream())
 
-  def genSynchronize(stream : CUDA_Stream, before : Boolean) : ListBuffer[IR_Statement] = {
-    var stmts = ListBuffer[IR_Statement]()
+  def genSynchronize(stream : CUDA_Stream, before : Boolean) : ListBuffer[CUDA_StreamSynchronize] = {
+    var stmts = ListBuffer[CUDA_StreamSynchronize]()
 
     // generate stream synchronization
     if (stream.useNonDefaultStreams) {
@@ -88,14 +88,6 @@ object CUDA_Stream {
         case _              =>
       }
     }
-
-    // omit unnecessary synchronizes if stream mode did not change after last kernel call
-    if (before)
-      stmts = ListBuffer(IR_IfCondition(IR_Negation(CUDA_StreamMode.isCurrentStreamMode(stream)), stmts))
-
-    // reset flag to current stream mode
-    if (!before)
-      stmts += IR_Assignment(CUDA_CurrentStreamMode(), CUDA_StreamMode.streamToMode(stream))
 
     stmts
   }
@@ -146,6 +138,7 @@ object CUDA_StreamMode {
 
   // guard for equal stream modes
   def isCurrentStreamMode(stream : CUDA_Stream) : IR_Expression = streamToMode(stream) EqEq CUDA_CurrentStreamMode()
+  def isCurrentStreamMode(mode : CUDA_StreamMode) : IR_Expression = mode EqEq CUDA_CurrentStreamMode()
 }
 
 abstract class CUDA_StreamMode(name : String) extends IR_UnduplicatedVariable {

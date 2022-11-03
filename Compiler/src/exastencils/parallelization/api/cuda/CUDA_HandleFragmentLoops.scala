@@ -14,6 +14,7 @@ import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.OutputType
 import exastencils.field.ir.IR_IV_FieldData
+import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda.CUDA_HandleFragmentLoops.getReductionCounter
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 
@@ -166,17 +167,55 @@ case class CUDA_HandleFragmentLoops(
     CUDA_ReplaceReductionAccesses.applyStandalone(IR_Scope(body))
   }
 
-  def syncUpdatedBuffers() = {
+  // branching with cond wrapper not required as they are already resolved
+  def branchingWrapper(hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) = {
+    if (fromMPIStatement)
+      getHostDeviceBranchingMPI(hostStmts, deviceStmts)
+    else
+      if (isParallel) getHostDeviceBranching(hostStmts, deviceStmts, fasterHostExecEstimation) else hostStmts
+  }
+
+  // adapt stream synchronization depending on CPU/GPU execution
+  def handleStreamModes(syncBeforeFragLoop : ListBuffer[CUDA_StreamSynchronize], syncAfterFragLoop : ListBuffer[CUDA_StreamSynchronize]) = {
+    var (hostSyncFragLoopBefore, hostSyncFragLoopAfter) = (ListBuffer[IR_Statement](syncBeforeFragLoop : _*), ListBuffer[IR_Statement](syncAfterFragLoop : _*))
+    var (deviceSyncFragLoopBefore, deviceSyncFragLoopAfter) = (ListBuffer[IR_Statement](syncBeforeFragLoop : _*), ListBuffer[IR_Statement](syncAfterFragLoop : _*))
+
+    /* - host stream sync - */
+
+    // cpu execution: set stream mode to dummy value
+    hostSyncFragLoopAfter += IR_Assignment(CUDA_CurrentStreamMode(), CUDA_DummyStreamMode())
+
+    /* - device stream sync - */
+
+    val newModes = streams.map(s => CUDA_StreamMode.streamToMode(s))
+    val newMode = newModes.head // assume equal mode within fragment loop, otherwise throw error
+    val distinctModes = newModes.distinct.size != 1
+
+    // check if no distinct stream modes are employed in kernel
+    if (!distinctModes) {
+      // wrap with guard for (conditional) syncing: only if stream mode has switched
+      deviceSyncFragLoopBefore = ListBuffer(IR_IfCondition(IR_Negation(CUDA_StreamMode.isCurrentStreamMode(newMode)), deviceSyncFragLoopBefore))
+      // update stream mode after exec
+      deviceSyncFragLoopAfter += IR_Assignment(CUDA_CurrentStreamMode(), newMode)
+    } else {
+      // no unique stream mode employed -> undefined behavior
+      Logger.error("Distinct stream modes employed within a kernel. This results in undefined behavior.")
+    }
+
+    (IR_LoopOverFragments(branchingWrapper(hostSyncFragLoopBefore, deviceSyncFragLoopBefore)),
+      IR_LoopOverFragments(branchingWrapper(hostSyncFragLoopAfter, deviceSyncFragLoopAfter)))
+  }
+
+  def syncUpdatedBuffers(issuedSyncs : ListBuffer[CUDA_StreamSynchronize]) = {
     val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
 
     // - host sync stmts -
 
-    // sync kernel streams before issuing transfers
-    val issuedSyncs = streams.flatMap(stream => CUDA_Stream.genSynchronize(stream, before = true))
+    // sync streams before issuing transfers
     val requiredSyncs = CUDA_Stream.genCompSync() +: CUDA_Stream.genCommSync()
     if (streams.exists(_.useNonDefaultStreams))
-      beforeHost ++= requiredSyncs.filterNot(issuedSyncs.contains(_))
+      beforeHost ++= requiredSyncs.filterNot(issuedSyncs.contains(_)) // get remaining sync statements
 
     for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldData = access._2
@@ -240,8 +279,9 @@ case class CUDA_HandleFragmentLoops(
     var stmts = ListBuffer[IR_Statement]()
 
     // sync before/after kernel calls in separate frag loop
-    val syncBeforeFragLoop = IR_LoopOverFragments(streams.flatMap(stream => CUDA_Stream.genSynchronize(stream, before = true)))
-    val syncAfterFragLoop = IR_LoopOverFragments(streams.flatMap(stream => CUDA_Stream.genSynchronize(stream, before = false)))
+    val issuedStreamSyncsBefore = streams.flatMap(stream => CUDA_Stream.genSynchronize(stream, before = true))
+    val issuedStreamSyncsAfter = streams.flatMap(stream => CUDA_Stream.genSynchronize(stream, before = false))
+    val (syncBeforeFragLoop, syncAfterFragLoop) = handleStreamModes(issuedStreamSyncsBefore, issuedStreamSyncsAfter)
 
     val loopTuple = fragLoop match {
       case loop : IR_LoopOverFragments                                                               => Some((loop, loop.body))
@@ -257,14 +297,6 @@ case class CUDA_HandleFragmentLoops(
     val loop = loopTuple.get._1
     val body = loopTuple.get._2
 
-    // branching with cond wrapper not required as they are already resolved
-    def branchingWrapper(hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) = {
-      if (fromMPIStatement)
-        getHostDeviceBranchingMPI(hostStmts, deviceStmts)
-      else
-        if (isParallel) getHostDeviceBranching(hostStmts, deviceStmts, fasterHostExecEstimation) else hostStmts
-    }
-
     // handle reductions
     if (loop.parallelization.reduction.isDefined) {
       val red = Duplicate(loop.parallelization.reduction.get)
@@ -276,7 +308,7 @@ case class CUDA_HandleFragmentLoops(
       syncAfterFragLoop.parallelization.reduction = Some(red)
 
       // force comp stream sync if comp kernels are not synced explicitly
-      val syncsComp = syncAfterFragLoop.body.exists {
+      val syncsComp = issuedStreamSyncsAfter.exists {
         case streamSync : CUDA_StreamSynchronize if streamSync.stream.isInstanceOf[CUDA_ComputeStream] => true
         case _ => false
       }
@@ -295,7 +327,7 @@ case class CUDA_HandleFragmentLoops(
     }
 
     // get syncs for updated buffers on device/host
-    val (beforeHost, afterHost, beforeDevice, afterDevice) = syncUpdatedBuffers()
+    val (beforeHost, afterHost, beforeDevice, afterDevice) = syncUpdatedBuffers(issuedStreamSyncsBefore)
 
     stmts += syncBeforeFragLoop // add stream synchro loop before kernel calls
     stmts += IR_LoopOverFragments(branchingWrapper(beforeHost, beforeDevice))
