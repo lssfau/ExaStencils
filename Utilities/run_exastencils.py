@@ -49,7 +49,8 @@ def run_code(ctx: RunContext):
         bin = ['./exastencils']
         if ctx.use_likwid_perfctr:
             bin = ['likwid-perfctr', '-g', 'Exa'] + bin
-        mpi_run = [f'mpirun', '--allow-run-as-root', '--oversubscribe', '--mca', 'btl_base_warn_component_unused', '0',
+        exec_as_root = ['--allow-run-as-root'] if ctx.mpi_run_as_root else []
+        mpi_run = [f'mpirun'] + exec_as_root + ['--oversubscribe', '--mca', 'btl_base_warn_component_unused', '0',
                     f'-np', f'{ctx.config.mpi_num_processes}'] + bin
         print(mpi_run)
         result = subprocess.run(mpi_run, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -91,6 +92,8 @@ def main():
                         help='Activate performance counters of likwid')
     parser.add_argument('--use_likwid_pin', default=False, action='store_true',
                         help='Use "likwid-pin" for code execution')
+    parser.add_argument('--mpi_run_as_root', default=False, action='store_true',
+                        help='Use "--mpi_run_as_root" option for mpirun')
     parser.add_argument('--generate', action='store_true', help='Generate target code from ExaSlang')
     parser.add_argument('--compile', action='store_true', help='Compile generated target code')
     parser.add_argument('--run', action='store_true', help='Run generated target code')

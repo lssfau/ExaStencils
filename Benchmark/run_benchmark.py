@@ -70,6 +70,8 @@ def main():
                         help='Activate performance counters of likwid')
     parser.add_argument('--use_likwid_pin', default=False, action='store_true',
                         help='Use "likwid-pin" for code execution')
+    parser.add_argument('--mpi_run_as_root', default=False, action='store_true',
+                        help='Use "--mpi_run_as_root" option for mpirun')
     parser.add_argument('--json_influx_file', type=str, default=default_args['json_influx_file'],
                         help='JSON filename output by target code and used as input for the InfluxDB upload')
     parser.add_argument('--generate', action='store_true', help='Generate target code from ExaSlang')

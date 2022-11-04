@@ -20,11 +20,16 @@ class RunContext:
         self.overwrite_settings = getattr(args, "overwrite_settings", default_args['overwrite_settings'])
 
         # libs
+
+        ## likwid
         self.use_likwid = getattr(args, "use_likwid", False)
         self.use_likwid_perfctr = getattr(args, "use_likwid_perfctr", False)
         self.use_likwid_pin = getattr(args, "use_likwid_pin", False)
         if not self.use_likwid and self.use_likwid_perfctr:
             raise ValueError('use_likwid_perfctr is only available in conjunction with use_likwid.')
+
+        ## mpi
+        self.mpi_run_as_root = getattr(args, "mpi_run_as_root", False)
 
         # set run options
         all = getattr(args, "all", False)

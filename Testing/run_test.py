@@ -54,6 +54,10 @@ def main():
     parser.add_argument('output_path', type=str, help='Path to output directory')
     parser.add_argument('--overwrite_settings', type=str_to_bool, nargs='?', const=True, default=True,
                         help='Generate target code from ExaSlang')
+    parser.add_argument('--mpi_run_as_root', default=True,
+                        help='Use "--mpi_run_as_root" option for mpirun')
+    parser.add_argument('--no_mpi_run_as_root', dest='mpi_run_as_root', action='store_false',
+                        help='Omit "--mpi_run_as_root" option for mpirun')
     args = parser.parse_args()
 
     # print arguments
