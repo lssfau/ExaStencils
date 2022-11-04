@@ -50,6 +50,8 @@ def run_pipeline(ctx: RunContext, json_file: str):
 
 
 def main():
+    print("Trigger benchmark execution via python...")
+
     # parse args
     parser = argparse.ArgumentParser(description='Generate Benchmark from ExaSlang and run')
     parser.add_argument('problem_name', type=str,
