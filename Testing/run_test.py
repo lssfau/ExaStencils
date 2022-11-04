@@ -6,6 +6,7 @@ import sys
 sys.path.append("../Utilities")
 from run_exastencils import *
 from generation_helpers import *
+from argparse_helpers import *
 
 
 def check_results(result_str: str, expected_results_path: str):
@@ -51,7 +52,8 @@ def main():
     parser.add_argument('expected_results', type=str, help='Path to file with expected results. Assumed to be in \"exa_problem_path\"')
     parser.add_argument('platform_path', type=str, help='Path to the platform description')
     parser.add_argument('output_path', type=str, help='Path to output directory')
-    parser.add_argument('--overwrite_settings', type=bool, default=True, help='Overwrite settings files')
+    parser.add_argument('--overwrite_settings', type=str_to_bool, nargs='?', const=True, default=True,
+                        help='Generate target code from ExaSlang')
     args = parser.parse_args()
 
     # print arguments

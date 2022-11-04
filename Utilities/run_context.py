@@ -2,16 +2,8 @@
 
 import os
 from generation_helpers import *
+from argparse_helpers import *
 from config_from_knowledge import *
-
-default_args = {
-    'settings_file': '',
-    'generator_path': '../Compiler/Compiler.jar',
-    'generator_lib_path': '../Compiler/lib',
-    'overwrite_settings': False,
-    'json_influx_file': 'results.json'
-}
-
 
 class RunContext:
     def __init__(self, args):

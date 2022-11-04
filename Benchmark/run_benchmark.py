@@ -13,6 +13,7 @@ import sys
 sys.path.append("../Utilities")
 from run_exastencils import *
 from generation_helpers import *
+from argparse_helpers import *
 from run_context import *
 
 
@@ -59,13 +60,16 @@ def main():
     parser.add_argument('knowledge_file', type=str, help='Knowledge path assumed to be in \"exa_problem_path\"')
     parser.add_argument('platform_path', type=str, help='Path to the platform description')
     parser.add_argument('output_path', type=str, help='Path to output directory')
+    parser.add_argument('--overwrite_settings', type=str_to_bool, nargs='?', const=True, default=True,
+                        help='Generate target code from ExaSlang')
+    parser.add_argument('--use_likwid', default=False, action='store_true',
+                        help='Use likwid for benchmarks')
+    parser.add_argument('--use_likwid_perfctr', default=False, action='store_true',
+                        help='Activate performance counters of likwid')
+    parser.add_argument('--use_likwid_pin', default=False, action='store_true',
+                        help='Use "likwid-pin" for code execution')
     parser.add_argument('--json_influx_file', type=str, default=default_args['json_influx_file'],
                         help='JSON filename output by target code and used as input for the InfluxDB upload')
-    parser.add_argument('--overwrite_settings', action='store_true', default=True,
-                        help='Generate target code from ExaSlang')
-    parser.add_argument('--use_likwid', type=bool, default=True, help='Use likwid for benchmarks')
-    parser.add_argument('--use_likwid_perfctr', type=bool, default=True, help='Activate performance counters of likwid')
-    parser.add_argument('--use_likwid_pin', default=False, action='store_true', help='Use "likwid-pin" for code execution')
     parser.add_argument('--generate', action='store_true', help='Generate target code from ExaSlang')
     parser.add_argument('--compile', action='store_true', help='Compile generated target code')
     parser.add_argument('--run', action='store_true', help='Run generated target code')

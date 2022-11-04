@@ -6,6 +6,7 @@ import argparse
 from run_context import *
 from decorators import *
 from likwid_pinning import *
+from argparse_helpers import *
 
 
 #################################
@@ -68,9 +69,11 @@ def run_code(ctx: RunContext):
 def main():
     # parse args
     parser = argparse.ArgumentParser(description='Generate Code from ExaSlang and run')
-    parser.add_argument('problem_name', type=str, help='Name of the problem. Used as directory name for the generated code')
+    parser.add_argument('problem_name', type=str,
+                        help='Name of the problem. Used as directory name for the generated code')
     parser.add_argument('exa_problem_path', type=str, help='Path to the ExaSlang problem specification')
-    parser.add_argument('exaslang_files', type=str, help='Comma-separated ExaSlang path assumed to be in \"exa_problem_path\"')
+    parser.add_argument('exaslang_files', type=str,
+                        help='Comma-separated ExaSlang path assumed to be in \"exa_problem_path\"')
     parser.add_argument('knowledge_file', type=str, help='Knowledge path assumed to be in \"exa_problem_path\"')
     parser.add_argument('platform_path', type=str, help='Path to the platform description')
     parser.add_argument('output_path', type=str, help='Path to output directory')
@@ -80,9 +83,14 @@ def main():
                         help='Path to the ExaStencils compiler')
     parser.add_argument('--generator_lib_path', type=str, default=default_args['generator_lib_path'],
                         help='Path to the libraries required by the compiler')
-    parser.add_argument('--overwrite_settings', action='store_true', default=default_args['overwrite_settings'],
+    parser.add_argument('--overwrite_settings', type=str_to_bool, nargs='?', const=True, default=False,
                         help='Generate target code from ExaSlang')
-    parser.add_argument('--use_likwid_pin', type=bool, default=False, help='Use "likwid-pin" for code execution')
+    parser.add_argument('--use_likwid', default=False, action='store_true',
+                        help='Use likwid for benchmarks')
+    parser.add_argument('--use_likwid_perfctr', default=False, action='store_true',
+                        help='Activate performance counters of likwid')
+    parser.add_argument('--use_likwid_pin', default=False, action='store_true',
+                        help='Use "likwid-pin" for code execution')
     parser.add_argument('--generate', action='store_true', help='Generate target code from ExaSlang')
     parser.add_argument('--compile', action='store_true', help='Compile generated target code')
     parser.add_argument('--run', action='store_true', help='Run generated target code')
