@@ -937,7 +937,7 @@ object Knowledge {
     Constraints.condEnsureValue(timer_type, "WIN_TIME", "UNIX_TIME" == timer_type && "MSVC" == Platform.targetCompiler, "UNIX_TIME is not supported for windows systems")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == Platform.targetCompiler, "IBM XL does currently not support std::chrono")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == Platform.targetCompiler, "IBM BG does currently not support std::chrono")
-    Constraints.condError(timer_syncDevice && !cuda_enabled, "Flag \"timer_syncDevice\" can only be used when \"cuda_enabled\" is enabled.")
+    Constraints.condEnsureValue(timer_syncDevice, false, !cuda_enabled, "Disabling flag \"timer_syncDevice\". Requires \"cuda_enabled\" to be enabled.")
 
     // benchmarking and performance estimation
 
