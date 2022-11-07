@@ -48,7 +48,7 @@ def run_code(ctx: RunContext):
         # run with mpirun
         bin = ['./exastencils']
         if ctx.use_likwid_perfctr:
-            bin = ['likwid-perfctr', '-g', 'Exa'] + bin
+            bin = ['likwid-perfctr', '-g', 'FLOPS_DP'] + bin
         exec_as_root = ['--allow-run-as-root'] if ctx.mpi_run_as_root else []
         mpi_run = [f'mpirun'] + exec_as_root + ['--oversubscribe', '--mca', 'btl_base_warn_component_unused', '0',
                     f'-np', f'{ctx.config.mpi_num_processes}'] + bin
