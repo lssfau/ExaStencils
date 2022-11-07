@@ -52,8 +52,10 @@ def run_code(ctx: RunContext):
         exec_as_root = ['--allow-run-as-root'] if ctx.mpi_run_as_root else []
         mpi_run = [f'mpirun'] + exec_as_root + ['--oversubscribe', '--mca', 'btl_base_warn_component_unused', '0',
                     f'-np', f'{ctx.config.mpi_num_processes}'] + bin
-        print(mpi_run)
-        result = subprocess.run(mpi_run, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if ctx.config.mpi_enabled:
+            bin = mpi_run
+        print(bin)
+        result = subprocess.run(bin, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # print stderr
     print(result.stderr.decode('utf-8'))
