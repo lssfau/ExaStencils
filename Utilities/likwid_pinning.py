@@ -57,7 +57,7 @@ def likwid_pin(config: ConfigFromKnowledge, use_likwid_perfctr: bool):
 
     # no MPI, pure OpenMP
     if config.n_blocks == 1:
-        likwid_bin = ["likwid-perfctr", "-C", f"{omp_pinning}"] + likwid_perfctr_args if use_likwid_perfctr else ["likwid-pin"]
+        likwid_bin = ["likwid-perfctr"] + likwid_perfctr_args if use_likwid_perfctr else ["likwid-pin"]
         if config.run_local:
             if not config.use_cuda:
                 return likwid_bin + ["-c", f"{omp_pinning}"] + bin
