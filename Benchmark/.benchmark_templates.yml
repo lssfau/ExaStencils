@@ -83,7 +83,7 @@
         - echo $KNOWLEDGE_FILE
         - echo $PLATFORM_FILE
         - echo $OUTPUT_PATH
-        - python3 -u run_benchmark.py "$EXA_PROBLEM_NAME" "$EXA_PROBLEM_PATH" "$EXASLANG_FILES" "$KNOWLEDGE_FILE" "$PLATFORM_FILE" "$OUTPUT_PATH" "--use_likwid" "--use_likwid_perfctr" "--use_likwid_pin" "--all"
+        - python3 -u run_benchmark.py "$EXA_PROBLEM_NAME" "$EXA_PROBLEM_PATH" "$EXASLANG_FILES" "$KNOWLEDGE_FILE" "$PLATFORM_FILE" "$OUTPUT_PATH" "--use_likwid" "--use_likwid_perfctr" "--all"
     after_script:
         - !reference [ .module_tree_build, after_script ]
     artifacts:
@@ -174,7 +174,7 @@
                 echo $KNOWLEDGE_FILE
                 echo $pf
                 echo $OUTPUT_PATH
-                python3 -u run_benchmark.py "$EXA_PROBLEM_NAME" "$EXA_PROBLEM_PATH" "$EXASLANG_FILES" "$KNOWLEDGE_FILE" "$pf" "$OUTPUT_PATH" "--use_likwid" "--use_likwid_perfctr" "--use_likwid_pin" "--all"
+                python3 -u run_benchmark.py "$EXA_PROBLEM_NAME" "$EXA_PROBLEM_PATH" "$EXASLANG_FILES" "$KNOWLEDGE_FILE" "$pf" "$OUTPUT_PATH" "--use_likwid" "--use_likwid_perfctr" "--all"
             done
     after_script:
         - !reference [ .module_tree_build, after_script ]
