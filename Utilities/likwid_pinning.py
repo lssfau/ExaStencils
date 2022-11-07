@@ -53,7 +53,7 @@ def likwid_pin(config: ConfigFromKnowledge, use_likwid_perfctr: bool):
             omp_pinning = get_omp_exp(config, config.omp_num_threads, 0)
 
     bin = ["./exastencils"]
-    likwid_perfctr_args = ["-g", "FLOPS_DP", "-m"] if use_likwid_perfctr else []
+    likwid_perfctr_args = ["-m", "-g", "FLOPS_DP"] if use_likwid_perfctr else []
 
     # no MPI, pure OpenMP
     if config.n_blocks == 1:
