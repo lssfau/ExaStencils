@@ -114,7 +114,7 @@ def main():
         new_args.knowledge_file = f"{knowledge_base}_{suffix}_{platform_suffix}.knowledge"
 
         # copy exaslang sources to new directory and adapt knowledge file
-        if new_args.generate:
+        if new_args.generate or new_args.all:
             with open(f"{new_args.exa_problem_path}/{new_args.knowledge_file}", 'a') as new_knowledge:
                 # enable OpenMP with "numCoresPerCPU" threads
                 new_knowledge.write(f"\nimport '{args.knowledge_file}'")
