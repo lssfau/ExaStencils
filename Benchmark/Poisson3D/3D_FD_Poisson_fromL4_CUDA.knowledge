@@ -3,7 +3,7 @@ testing_enabled       = true
 dimensionality				= 3
 
 minLevel					= 2
-maxLevel					= 10
+maxLevel					= 9
 
 domain_onlyRectangular		= true
 domain_numBlocks			= 1
@@ -27,12 +27,12 @@ mpi_useCustomDatatypes		= true
 poly_optLevel_fine			= 3
 opt_useAddressPrecalc		= true
 opt_vectorize				= true
-opt_unroll					= 2
 
 opt_conventionalCSE         = true
 opt_loopCarriedCSE          = true
 
 cuda_enabled                   = true
-cuda_blockSize_x = 16
-cuda_blockSize_y = 16
+cuda_blockSize_x = 8
+cuda_blockSize_y = 8
+cuda_blockSize_z = 8
 cuda_preferredExecution        = 'Device'
