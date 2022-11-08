@@ -1,5 +1,7 @@
 package exastencils.waLBerla.ir.blockforest
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_StdArrayDatatype
@@ -24,9 +26,9 @@ case class IR_WaLBerlaBlockDataID(var wbField : IR_WaLBerlaField, var slot : IR_
     dt
   }
 
-  var level = wbField.level
-  val numSlots = wbField.numSlots
-  val levels = IR_WaLBerlaFieldCollection.getAllByIdentifier(wbField.name).map(_.level)
+  var level : IR_Expression = wbField.level
+  val numSlots : Int = wbField.numSlots
+  val levels : ListBuffer[Int] = IR_WaLBerlaFieldCollection.getAllByIdentifier(wbField.name).map(_.level)
 
   override def resolveAccess() = {
     var access : IR_Access = member
