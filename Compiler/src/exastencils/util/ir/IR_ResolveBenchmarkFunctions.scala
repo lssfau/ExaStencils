@@ -35,7 +35,6 @@ object IR_ResolveBenchmarkFunctions extends DefaultStrategy("ResolveBenchmarkFun
   def stopFunction = "benchmarkStop"
 
   private def handleArgs(args : ListBuffer[IR_Expression]) : ListBuffer[IR_Expression] = args.map {
-    case vAcc : IR_VariableAccess     => IR_StringConstant(vAcc.name)
     case strConst : IR_StringConstant => strConst
     case strLit : IR_StringLiteral    => IR_StringConstant(strLit.value)
     case arg                          => Logger.error("Unknown argument type for benchmark function: " + arg.prettyprint)

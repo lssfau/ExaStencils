@@ -29,7 +29,7 @@ import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp.OMP_Parallel
-import exastencils.timing.ir.IR_CollectUnresolvedTimers
+import exastencils.timing.ir.IR_CollectUnresolvedBenchmarkFunctions
 
 /// IR_HandleMainApplication
 
@@ -55,16 +55,12 @@ object IR_HandleMainApplication extends DefaultStrategy("HandleMainApplication")
 
       if ("likwid" == Knowledge.benchmark_backend) {
         // register timers
-        if (Knowledge.timer_addBenchmarkMarkers) {
-          var registerMarkers = ListBuffer[IR_Statement]()
-
-          IR_CollectUnresolvedTimers.applyStandalone(StateManager.root)
-          IR_CollectUnresolvedTimers.timers foreach { name =>
-            registerMarkers += IR_Native("LIKWID_MARKER_REGISTER(\"" + name + "\")")
-          }
-
-          func.body.prependAll(wrapAroundParallelRegion(registerMarkers))
+        var registerMarkers = ListBuffer[IR_Statement]()
+        IR_CollectUnresolvedBenchmarkFunctions.applyStandalone(StateManager.root)
+        IR_CollectUnresolvedBenchmarkFunctions.benchmarkNames foreach { name =>
+          registerMarkers += IR_Native("LIKWID_MARKER_REGISTER(\"" + name + "\")")
         }
+        func.body.prependAll(wrapAroundParallelRegion(registerMarkers))
 
         func.body.prependAll(wrapAroundParallelRegion(ListBuffer[IR_Statement](IR_Native("LIKWID_MARKER_THREADINIT"))))
         func.body.prepend(IR_Native("LIKWID_MARKER_INIT"))
