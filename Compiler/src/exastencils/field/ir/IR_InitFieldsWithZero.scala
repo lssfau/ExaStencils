@@ -52,6 +52,9 @@ case class IR_InitFieldsWithZero() extends IR_FuturePlainFunction {
       loopOverDims.parallelization.potentiallyParallel = true
       loopOverDims.polyOptLevel = 1
 
+      // parallelize only field dimensions (< Knowledge.dimensionality) and not matrix dimensions (important for the NUMA-aware initialization of matrix-fields)
+      loopOverDims.parDims.retain(p => p < Knowledge.dimensionality)
+
       val wrapped = IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index), loopOverDims),
         IR_ParallelizationInfo(potentiallyParallel = true))

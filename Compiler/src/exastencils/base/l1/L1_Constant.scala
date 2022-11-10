@@ -43,7 +43,9 @@ case class L1_StringLiteral(var value : String) extends L1_ConstantExpression {
 /// L1_StringConstant
 
 case class L1_StringConstant(var value : String) extends L1_ConstantExpression {
-  override def prettyprint(out : PpStream) : Unit = out << '"' << value << '"'
+  // swap quotation characters for second parse
+  def q = if (value.contains("\"")) "\'" else "\""
+  override def prettyprint(out : PpStream) : Unit = out << q << value << q
   override def progress = ProgressLocation(L2_StringConstant(value))
 }
 
