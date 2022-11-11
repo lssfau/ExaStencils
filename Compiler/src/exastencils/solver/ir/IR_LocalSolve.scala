@@ -28,6 +28,8 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldAccess
+import exastencils.field.ir.IR_IV_ActiveSlot
+import exastencils.field.ir.IR_SlotAccess
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
 
@@ -49,9 +51,20 @@ case class IR_LocalSolve(
     if (other.frozen)
       return -1 // skip frozen fields
 
-    for (i <- unknowns.indices)
-      if (other.field.codeName == unknowns(i).field.codeName && other.index == unknowns(i).index)
+    for (i <- unknowns.indices) {
+      val sameSlot = if (other.field.numSlots == 1 && unknowns(i).field.numSlots == 1) {
+        true
+      } else {
+        (other.slot, unknowns(i).slot) match {
+          case (IR_SlotAccess(IR_IV_ActiveSlot(_, fragIdx0), o0), IR_SlotAccess(IR_IV_ActiveSlot(_, fragIdx1), o1)) => fragIdx0 == fragIdx1 && o0 == o1
+          case (IR_IntegerConstant(s0), IR_IntegerConstant(s1))                                                       => s0 == s1
+          case _                                                                                                      => false
+        }
+      }
+
+      if (other.field.codeName == unknowns(i).field.codeName && other.index == unknowns(i).index && sameSlot)
         return i // match
+    }
 
     -1 // no match => constant value
   }
