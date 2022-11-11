@@ -239,6 +239,7 @@ object Settings {
     Knowledge.benchmark_backend match {
       case "likwid" =>
         if (!additionalIncludes.contains("likwid.h")) additionalIncludes += "likwid.h"
+        if (!additionalIncludes.contains("likwid-marker.h")) additionalIncludes += "likwid-marker.h"
         if (!additionalLibs.contains("likwid")) additionalLibs += "likwid"
         if (!additionalDefines.contains("LIKWID_PERFMON")) additionalDefines += "LIKWID_PERFMON"
       case _ =>

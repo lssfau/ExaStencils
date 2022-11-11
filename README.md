@@ -11,7 +11,7 @@ The source is available here: https://hackmd.io/_HIHDpfEQ5-JQKSCucw2Sg?both
 
 
 
-# ![ExaStencils](Documentation/logos/ExaStencilsLogo.png)
+# ![ExaStencils](Misc/logos/ExaStencilsLogo.png)
 
 The ExaStencils code generation framework processes input in its own multi-layered domain-specific language (DSL) to emit highly optimized and massively parallel geometric multigrid solvers for (block-)structured grids.
 
@@ -35,9 +35,9 @@ We recommend using IntelliJ IDEA (the community edition is fine). Downloads can 
 
 First, check that the Scala plugin is installed: File -> Settings -> Plugins
 
-If you plan to commit code please use our code style. It is located in /Documentation/IntelliJ/ExaStencils.xml and can be imported like this:
+If you plan to commit code please use our code style. It is located in /Misc/IntelliJ/ExaStencils.xml and can be imported like this:
 *  File -> Settings -> Editor -> Code Style -> Scala -> Import Scheme (click small gear) -> IntelliJ IDEA code style XML
-*  locate /Documentation/IntelliJ/ExaStencils.xml
+*  locate /Misc/IntelliJ/ExaStencils.xml
 *  ok
 
 If you are used to another IDE, e.g. Eclipse, setting the keymap to an according style may be helpful:
@@ -108,6 +108,11 @@ For CImg support, the corresponding CImg.h header file needs to be downloaded su
     * Name: downloadCImg; Tasks: downloadCImg; Run
 * for all users: directly download the required file from [here](https://github.com/dtschump/CImg) and place it in Compiler/res/
 Updating the file works the same way.
+
+CImg itself requires libjpeg and libpng support which can be installed (linux or wsl) via
+```
+sudo apt update && sudo apt install libjpeg-dev libpng-dev
+```
   
 ### VisIt support
 
@@ -327,7 +332,7 @@ Generating single configurations is possible by executing the generator (Compile
 
 ## Documentation
 
-A detailed documentation is currently work in progress.
+A detailed documentation is currently work in progress. You can find the most recent version of our ExaSlang4 user documentation [here](https://www.exastencils.fau.de/sphinx/documentation/user/ExaSlang4.html).
 
 ## Contributing 
 

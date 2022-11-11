@@ -297,6 +297,9 @@ object Knowledge {
   var timer_printTimersToFileForEachRank : Boolean = false
   // prints separate timer values for each rank -> requires some additional memory for the gather op
 
+  // add benchmarking markers for each timer
+  var timer_addBenchmarkMarkers : Boolean = false
+
   // library/tool to use for benchmarking
   // may be one of the following: 'None', 'likwid'
   var benchmark_backend = "None"
@@ -582,6 +585,8 @@ object Knowledge {
   var cuda_blockSize_y : Long = 4
   // default block size in z dimension
   var cuda_blockSize_z : Long = 4
+  // minimal block size (product), default is regular warp size (32)
+  var cuda_minimalBlockSize : Long = 32
 
   // the product of the block sizes per dimension, i.e. the total block size
   def cuda_blockSizeTotal : Long = cuda_blockSize_x * cuda_blockSize_y * cuda_blockSize_z
@@ -852,6 +857,7 @@ object Knowledge {
 
     Constraints.condEnsureValue(cuda_blockSize_y, 1, cuda_enabled && domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
     Constraints.condEnsureValue(cuda_blockSize_z, 1, cuda_enabled && domain_rect_generate && dimensionality < 3, "experimental_cuda_blockSize_z must be set to 1 for problems with a dimensionality smaller 3")
+    Constraints.condError(cuda_minimalBlockSize <= 0, "cuda_minimalBlockSize must be > 0")
 
     Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
     Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
@@ -910,6 +916,7 @@ object Knowledge {
     // benchmarking and performance estimation
 
     Constraints.condWarn(!List("None", "likwid").contains(benchmark_backend), "Unknown value for benchmark_backend")
+    Constraints.condWarn(benchmark_backend == "None" && timer_addBenchmarkMarkers, "Enabled timer_addBenchmarkMarkers without having set benchmark_backend")
     Constraints.condError(benchmark_backend == "likwid" && Platform.targetOS != "Linux", "likwid is currently only available for Linux")
 
     Constraints.condEnsureValue(performance_addEstimation, true, performance_printEstimation, "printing performance estimations requires actually estimating them")

@@ -171,6 +171,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
 
       L4_InlineDeclaredExpressions.apply()
       L4_PrepareAccesses.apply()
+      L4_ResolveLoopVariables.apply()
       L4_ResolveVariableAccesses.apply()
 
       L4_ResolveSpecialConstants.apply()

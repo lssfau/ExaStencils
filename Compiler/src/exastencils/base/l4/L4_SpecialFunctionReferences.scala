@@ -6,7 +6,7 @@ import exastencils.logger.Logger
 object L4_SpecialFunctionReferences {
 
   // regex definitions
-  val luSolve = "LUSolve_[0-9]+x[0-9]+".r
+  val luSolve = "LUSolve_([0-9]+)x([0-9]+)".r
   val setExt = "set([A-Za-z]+)".r
   val getExt = "get([A-Za-z]+)".r
 
@@ -23,7 +23,7 @@ object L4_SpecialFunctionReferences {
       // util funcs
       case "benchmarkStart" | "benchmarkStop" | "clearCharacteristics" | "logCharacteristics" | "printJSON" | "printWithReducedPrec" =>
       // matrix funcs
-      case "smallMatrixInversion" | "inv_diagonal" | "inv_schur" | "inv_filled" | "inv_blockdiagonal" | "isOfStructure" | luSolve() =>
+      case "smallMatrixInversion" | "inv_diagonal" | "inv_schur" | "inv_filled" | "inv_blockdiagonal" | "isOfStructure" | luSolve(_, _) =>
       // cuda special funcs
       case "cuda_std_fill" | "cuda_std_copy" | "cuda_std_swap" =>
       // read input funcs
