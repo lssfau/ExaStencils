@@ -32,6 +32,8 @@ opt_unroll					= 2
 opt_conventionalCSE         = true
 opt_loopCarriedCSE          = true
 
+benchmark_backend = "likwid"
+
 cuda_enabled                   = true
 cuda_blockSize_x = 16
 cuda_blockSize_y = 16

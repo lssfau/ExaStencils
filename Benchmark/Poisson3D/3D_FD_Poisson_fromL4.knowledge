@@ -30,3 +30,5 @@ opt_vectorize				= true
 
 opt_conventionalCSE         = true
 opt_loopCarriedCSE          = true
+
+benchmark_backend = "likwid"

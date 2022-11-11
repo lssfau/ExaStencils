@@ -249,10 +249,6 @@ Function mgCycle@(all but coarsest) {
 }
 
 Function Application {
-  native("LIKWID_MARKER_INIT")
-  Var markerName : String = "solvePhase"
-  native("LIKWID_MARKER_REGISTER(markerName.c_str())")
-
   // init
   startTimer ( "setup" )
   initGlobals ( )
@@ -264,9 +260,9 @@ Function Application {
 
   // solve
   startTimer ( "solve" )
-  native("LIKWID_MARKER_START(markerName.c_str())")
+  benchmarkStart ( "solvePhase" )
   Solve@finest ( )
-  native("LIKWID_MARKER_STOP(markerName.c_str())")
+  benchmarkStop ( "solvePhase" )
   stopTimer ( "solve" )
 
   // de-init
@@ -278,6 +274,4 @@ Function Application {
     'timePerSolve', getMeanTime ( 'solve' ),
     'totalSetupTime', getTotalTime ( 'setup' )
   )
-
-  native("LIKWID_MARKER_CLOSE")
 }

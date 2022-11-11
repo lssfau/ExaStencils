@@ -127,10 +127,6 @@ Function Solve {
 }
 
 Function Application {
-    native("LIKWID_MARKER_INIT")
-    Var markerName : String = "solvePhase"
-    native("LIKWID_MARKER_REGISTER(markerName.c_str())")
-
     startTimer ( 'setup' )
 	initGlobals (  )
 	initDomain (  )
@@ -141,9 +137,9 @@ Function Application {
 	stopTimer ( 'setup' )
 
     startTimer ( 'solve' )
-	native("LIKWID_MARKER_START(markerName.c_str())")
+    benchmarkStart ( "solvePhase" )
 	Solve (  )
-	native("LIKWID_MARKER_STOP(markerName.c_str())")
+	benchmarkStop ( "solvePhase" )
     stopTimer ( 'solve' )
 
     // json
@@ -157,6 +153,4 @@ Function Application {
 
 	printAllTimers (  )
 	destroyGlobals (  )
-
-    native("LIKWID_MARKER_CLOSE")
 }
