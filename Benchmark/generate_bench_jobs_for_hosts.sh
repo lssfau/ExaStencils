@@ -7,7 +7,7 @@ fi
 # get idle hosts (and filter out drained hosts)
 HOSTLIST=$(echo "$(sinfo -t idle -h --partition=work -o "%n"; sinfo -t drain -h -o "%n")" | sort | uniq -u)
 for HOST in ${HOSTLIST}; do
-  if [[ "$HOST" != "aurora1" && "$HOST" != "warmup" ]]; then
+  if [[ "$HOST" != "aurora1" && "$HOST" != "warmup" && "$HOST" != "applem1studio" ]]; then
     echo "stages:"
     echo "    - bench_pipe"
     echo ""
