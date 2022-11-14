@@ -8,7 +8,7 @@ generate solver for u in uEquation and v in vEquation and w in wEquation and p i
   solver_smoother_numPre        = 3
   solver_smoother_numPost       = 3
   solver_smoother_damping       = 1
-  solver_smoother_coloring      = "red-black" // "9-way"
+  solver_smoother_coloring      = "red-black" // "27-way"
 
   solver_cgs                    = "BiCGStab"
   solver_cgs_maxNumIts          = 12800

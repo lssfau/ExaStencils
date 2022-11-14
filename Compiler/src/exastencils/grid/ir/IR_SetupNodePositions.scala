@@ -434,28 +434,37 @@ object IR_SetupNodePositions {
     }
 
     // apply modification of positions
-    for (dim <- 0 until numDims) {
-      // look up field and compile access to base element
-      val field = IR_VF_NodePositionAsVec.find(level).associatedField
+    // look up field and compile access to base element
+    val field = IR_VF_NodePositionAsVec.find(level).associatedField
+
+    def baseAccess(f : IR_Field, dim : Int) = {
       val baseIndex = IR_LoopOverDimensions.defIt(numDims)
       baseIndex.indices ++= Array[IR_Expression](dim, 0)
-      val baseAccess = IR_FieldAccess(field, 0, baseIndex)
+      IR_FieldAccess(f, 0, baseIndex)
+    }
 
-      if (level == Knowledge.maxLevel) {
-        // on finest level: add random offset
-        val innerLoop = IR_LoopOverPoints(field, IR_CompoundAssignment(Duplicate(baseAccess), IR_FunctionCall("randn"), IR_BinaryOperators.Addition))
-        innerLoop.parallelization.potentiallyParallel = false
-        stmts += innerLoop
-        stmts += IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("all", None, None)), None, "")
-      } else {
-        val finerField = IR_VF_NodePositionAsVec.find(level + 1).associatedField
-        val finerIndex = IR_LoopOverDimensions.defIt(numDims)
-        finerIndex.indices ++= Array[IR_Expression](dim, 0)
-        val finerAccess = IR_FieldAccess(finerField, 0, finerIndex)
+    if (level == Knowledge.maxLevel) {
+      // on finest level: add random offset
+      var fieldLoopStmts = ListBuffer[IR_Statement]()
+      for (dim <- 0 until numDims)
+        fieldLoopStmts += IR_Assignment(baseAccess(field, dim), IR_FunctionCall("randn"), "+=")
 
-        // on all levels but the finest: inject positions from finer level
-        stmts += IR_LoopOverPoints(field, IR_Assignment(Duplicate(baseAccess), finerAccess))
-      }
+      // create fused field loop with updates for all dims
+      val innerLoop = IR_LoopOverPoints(field, fieldLoopStmts)
+      innerLoop.parallelization.potentiallyParallel = false
+      stmts += innerLoop
+
+      // communication
+      stmts += IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("all", None, None)), None,  "")
+    } else {
+      val finerField = IR_VF_NodePositionAsVec.find(level + 1).associatedField
+
+      // on all levels but the finest: inject positions from finer level
+      var fieldLoopStmts = ListBuffer[IR_Statement]()
+      for (dim <- 0 until numDims)
+        fieldLoopStmts += IR_Assignment(baseAccess(field, dim), baseAccess(finerField, dim))
+
+      stmts += IR_LoopOverPoints(field, fieldLoopStmts)
     }
 
     stmts
