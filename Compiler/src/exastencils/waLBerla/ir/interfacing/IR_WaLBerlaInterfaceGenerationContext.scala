@@ -61,7 +61,7 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
 
     if (Knowledge.cuda_enabled) {
       for ((dataIDCPU, dataIDGPU) <- blockDataIDs) {
-        ctorBody += IR_Assignment(dataIDGPU.member, IR_FunctionCall(IR_WaLBerlaAddGPUFieldToStorage(dataIDGPU.wbField).name, blockForest, dataIDCPU))
+        ctorBody += IR_Assignment(dataIDGPU.member, IR_FunctionCall(IR_WaLBerlaAddGPUFieldToStorage(dataIDGPU.wbField).name, blockForest, dataIDCPU.member))
         initFunctions = initFunctions.filterNot(f => f.name == IR_WaLBerlaAddGPUFieldToStorage(dataIDGPU.wbField).name)
       }
     }
