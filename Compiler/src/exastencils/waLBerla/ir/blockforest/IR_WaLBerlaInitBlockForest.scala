@@ -22,7 +22,7 @@ case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
 
   val maxDims = 3
   val numDims = Knowledge.dimensionality
-  val level = if (someWaLBerlaField.isDefined) someWaLBerlaField.get.level else -1
+  val level = if (someWaLBerlaField.isDefined) someWaLBerlaField.get.level else Knowledge.maxLevel
 
   def toUnsignedInt(value : Int) = IR_Cast(IR_SpecialDatatype("uint_t"), value)
 
