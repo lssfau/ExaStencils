@@ -12,6 +12,7 @@ import exastencils.domain.ir.IR_DomainCollection
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.logger.Logger
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes
 
 /// IR_WaLBerlaField
@@ -60,8 +61,18 @@ case class IR_WaLBerlaField(
     IR_FunctionCall(IR_ExternalFunctionReference(funcRefName), args)
   }
 
-  def domain : IR_Domain = IR_DomainCollection.getByIdentifier("global").get
+  def addToStorageGPU(blockForestAcc : IR_VariableAccess, slot : Int, cpuFieldID : IR_WaLBerlaBlockDataID) = {
+    val funcRefName = s"cuda::addGPUFieldToStorage<${ IR_WaLBerlaDatatypes.WB_FieldDatatype(this).prettyprint() }>"
 
-  // TODO distinguish between CUDA GPU fields and CPU GhostLayerFields
-  def waLBerlaFieldType = "GhostLayerField"
+    val args = ListBuffer[IR_Expression](
+      blockForestAcc,
+      cpuFieldID,
+      IR_StringConstant(stringIdentifier(slot)),
+      IR_BooleanConstant(true) // pitched memory
+    )
+
+    IR_FunctionCall(IR_ExternalFunctionReference(funcRefName), args)
+  }
+
+  def domain : IR_Domain = IR_DomainCollection.getByIdentifier("global").get
 }

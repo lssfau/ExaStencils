@@ -14,6 +14,9 @@ object IR_WaLBerlaDatatypes {
 
   def WB_StencilTemplate = "Stencil_T"
 
-  def WB_FieldDatatype(field : IR_WaLBerlaField) =
-    IR_SpecialDatatype(s"${ field.waLBerlaFieldType } < ${ field.resolveBaseDatatype.prettyprint }, ${ field.gridDatatype.resolveFlattendSize } >")
+  def WB_FieldDatatype(field : IR_WaLBerlaField, onGPU : Boolean = false) =
+    if (onGPU)
+      IR_SpecialDatatype(s"cuda::GPUField< real_t >")
+    else
+      IR_SpecialDatatype(s"${ "GhostLayerField" } < ${ field.resolveBaseDatatype.prettyprint }, ${ field.gridDatatype.resolveFlattendSize } >")
 }

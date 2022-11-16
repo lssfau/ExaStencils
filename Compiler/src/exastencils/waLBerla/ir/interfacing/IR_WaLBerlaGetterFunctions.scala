@@ -40,10 +40,16 @@ case class IR_WaLBerlaGetBlockDataID(field : IR_WaLBerlaField) extends IR_WaLBer
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
     val lvl = IR_FunctionArgument("lvl", IR_IntegerDatatype)
     val slot = IR_FunctionArgument("slot", IR_IntegerDatatype)
+    val onGPU = IR_FunctionArgument("onGPU", IR_BooleanDatatype)
     val blockDataId = IR_WaLBerlaBlockDataID(field, Duplicate(slot.access))
+    val blockDataIdGPU = IR_WaLBerlaBlockDataID(field, Duplicate(slot.access), onGPU = true)
     blockDataId.level = Duplicate(lvl.access)
 
-    IR_WaLBerlaPlainFunction(name, WB_BlockDataID, ListBuffer(lvl, slot), ListBuffer(IR_Return(blockDataId)))
+    IR_WaLBerlaPlainFunction(name, WB_BlockDataID, ListBuffer(lvl, slot, onGPU),
+      ListBuffer(
+        IR_IfCondition(onGPU.access,
+        IR_Return(blockDataIdGPU),
+        IR_Return(blockDataId))))
   }
   override def name : String = s"getBlockDataID_${field.name}"
 }

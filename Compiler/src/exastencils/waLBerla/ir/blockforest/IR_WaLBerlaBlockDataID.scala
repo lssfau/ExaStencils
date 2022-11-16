@@ -11,9 +11,9 @@ import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceParameter
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_BlockDataID
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil.getGeneratedName
 
-case class IR_WaLBerlaBlockDataID(var wbField : IR_WaLBerlaField, var slot : IR_Expression) extends IR_WaLBerlaInterfaceParameter {
+case class IR_WaLBerlaBlockDataID(var wbField : IR_WaLBerlaField, var slot : IR_Expression, var onGPU : Boolean = false) extends IR_WaLBerlaInterfaceParameter {
 
-  def name = wbField.name + "_ID"
+  def name = wbField.name + "_ID" + (if (onGPU) "_GPU" else "")
 
   override def datatype : IR_Datatype = {
     var dt : IR_Datatype = WB_BlockDataID

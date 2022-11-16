@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.logger.Logger
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaCollection
@@ -14,6 +15,9 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR
   def blockForest = IR_WaLBerlaBlockForest()
   def blocks = blockForest.ctorParameter
   def initValue = IR_FunctionArgument("initVal", IR_RealDatatype)
+
+  if (!wbFields.forall(_.name == wbFields.head.name))
+    Logger.error("\"IR_WaLBerlaAddGPUFieldToStorage\" used incorrectly. Assumes fields with identical name but potentially different slots and levels.")
 
   override def isInterfaceFunction : Boolean = false
 
