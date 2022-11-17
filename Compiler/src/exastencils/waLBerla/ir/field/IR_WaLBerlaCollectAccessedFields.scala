@@ -27,13 +27,13 @@ object IR_WaLBerlaCollectAccessedFields extends DefaultStrategy("Collect waLBerl
     case fieldAccess : IR_WaLBerlaFieldAccess =>
       wbFieldAccesses += fieldAccess
       fieldAccess
-    case swap : IR_WaLBerlaSwapFieldPointers  =>
+    case swap : IR_WaLBerlaSwapFieldPointers =>
       wbFieldAccesses ++= List(swap.src, swap.dst)
       swap
-    case access : IR_IV_WaLBerlaFieldData     =>
+    case access : IR_IV_WaLBerlaGetFieldData =>
       wbFieldAccesses += IR_WaLBerlaFieldAccess(access.field, access.slot, IR_LoopOverDimensions.defIt(access.field.numDimsGrid))
       access
-    case access : IR_IV_WaLBerlaFieldDataAt   =>
+    case access : IR_IV_WaLBerlaFieldDataAt  =>
       wbFieldAccesses += IR_WaLBerlaFieldAccess(access.field, access.slot, IR_LoopOverDimensions.defIt(access.field.numDimsGrid))
       access
   })

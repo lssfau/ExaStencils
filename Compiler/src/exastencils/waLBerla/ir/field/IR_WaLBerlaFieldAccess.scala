@@ -42,7 +42,7 @@ case class IR_WaLBerlaFieldAccess(
         Knowledge.data_alignFieldPointers)
     } else {
       val newIdx = IR_WaLBerlaUtil.adaptIndexForAccessors(index, field.gridDatatype, field.numDimsGrid, field.layout.numDimsData)
-      IR_MemberFunctionCallArrow(IR_IV_WaLBerlaFieldData(field, slot, fragIdx), "get", newIdx.indices : _*)
+      IR_MemberFunctionCallArrow(IR_IV_WaLBerlaGetFieldData(field, slot, fragIdx), "get", newIdx.indices : _*)
     }
   }
 }

@@ -40,7 +40,7 @@ case class IR_WaLBerlaLoopOverBlocks(
     def getWaLBerlaFieldData(accesses : IR_WaLBerlaFieldAccess*) : ListBuffer[IR_Statement] = {
       accesses.to[mutable.ListBuffer].flatMap(fAcc => {
         ListBuffer(
-          IR_IV_WaLBerlaFieldData(fAcc).getDeclaration(),
+          IR_IV_WaLBerlaGetFieldData(fAcc).getDeclaration(),
           IR_IfCondition(Knowledge.waLBerla_useInternalMemoryPointers,
             IR_IV_WaLBerlaFieldDataAt(fAcc).getDeclaration()))
       })
