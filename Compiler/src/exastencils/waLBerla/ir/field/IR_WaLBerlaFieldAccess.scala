@@ -21,6 +21,8 @@ object IR_WaLBerlaFieldAccess {
     new IR_WaLBerlaFieldAccess(field, slot, IR_LoopOverFragments.defIt, index)
 }
 
+// TODO: sth analogous to IR_DirectFieldAccess and IR_LinearizedFieldAccess (generic) for CUDA strategies
+
 case class IR_WaLBerlaFieldAccess(
     var field : IR_WaLBerlaField,
     var slot : IR_Expression,
@@ -38,7 +40,7 @@ case class IR_WaLBerlaFieldAccess(
     if (Knowledge.waLBerla_useInternalMemoryPointers) {
       IR_ArrayAccess(
         IR_IV_WaLBerlaFieldDataAt(field, slot, fragIdx),
-        field.layout.linearizeIndex(IR_WaLBerlaUtil.adaptIndexForAccessors(index, field.gridDatatype, field.numDimsGrid, field.layout.numDimsData)),
+        field.layout.linearizeIndex(IR_WaLBerlaUtil.adaptIndexForAccessors(index + field.referenceOffset, field.gridDatatype, field.numDimsGrid, field.layout.numDimsData)),
         Knowledge.data_alignFieldPointers)
     } else {
       val newIdx = IR_WaLBerlaUtil.adaptIndexForAccessors(index, field.gridDatatype, field.numDimsGrid, field.layout.numDimsData)

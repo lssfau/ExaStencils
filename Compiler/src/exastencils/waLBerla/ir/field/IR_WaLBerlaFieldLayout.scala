@@ -16,6 +16,8 @@ case class IR_WaLBerlaFieldLayout(
     var level : Int,
     var numDimsGrid : Int,
     var numDimsData : Int,
+    var useFixedLayoutSizes : Boolean,
+    var referenceOffset : IR_ExpressionIndex,
     var datatype : IR_Datatype,
     var layoutsPerDim : Array[IR_FieldLayoutPerDim],
     var layoutName : String, // "xyzf" or "fzyx"
@@ -26,9 +28,6 @@ case class IR_WaLBerlaFieldLayout(
   override def createDuplicate() : IR_WaLBerlaFieldLayout = {
     IR_WaLBerlaFieldLayout.tupled(Duplicate(IR_WaLBerlaFieldLayout.unapply(this).get))
   }
-
-  // already handled by waLBerla's accessors
-  override def referenceOffset : IR_ExpressionIndex = IR_ExpressionIndex(Array.fill(layoutsPerDim.length)(0))
 
   def apply(dim : Int) = layoutsPerDim(dim)
 
@@ -74,9 +73,16 @@ case class IR_WaLBerlaFieldLayout(
 
   private def numPad(d : Int) = IR_Cast(IR_IntegerDatatype, callMemberFuncForDim("AllocSize", d) - numInner(d) - numDup(d) - numGhost(d))
 
-  private val regularLayout = IR_FieldLayout(name, level, datatype, localization, layoutsPerDim, numDimsGrid, referenceOffset, communicatesDuplicated, communicatesGhosts)
+  // TODO: copied from IR_FieldLayout
+  def updateDefReferenceOffset() = {
+    // TODO: this should work for now but may be adapted in the future
+    referenceOffset = IR_ExpressionIndex(Array.fill(layoutsPerDim.length)(0))
+    for (dim <- 0 until layoutsPerDim.length)
+      referenceOffset(dim) = IR_IntegerConstant(layoutsPerDim(dim).numPadLayersLeft + layoutsPerDim(dim).numGhostLayersLeft)
+  }
 
-  def useFixedLayoutSizes = Knowledge.waLBerla_useGridFromExa && layoutName == "fzyx"
+  // fixed iteration spaces handled by a regular exastencils field layout proxy
+  private val regularLayout = IR_FieldLayout(name, level, datatype, localization, layoutsPerDim, numDimsGrid, referenceOffset, communicatesDuplicated, communicatesGhosts)
 
   // TODO: macro impl would be cleaner
   def defIdxInnerBegin(dim : Int) : IR_Expression = if (useFixedLayoutSizes) { regularLayout.defIdxInnerBegin(dim) } else { 0 }

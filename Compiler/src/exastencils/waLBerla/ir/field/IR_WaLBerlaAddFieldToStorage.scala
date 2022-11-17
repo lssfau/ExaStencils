@@ -26,15 +26,8 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR
     params += blocks
     params += initValue
 
-    // calc size function for leveled wb fields
-    def calcSizeNeeded = wbFields.size > 1
-
-    def calcSize(level : Int) = {
-      if (calcSizeNeeded)
-        Some(IR_VariableAccess(s"calcSize_$level", "auto"))
-      else
-        None
-    }
+    // calc size function for wb fields
+    def calcSize(level : Int) = IR_VariableAccess(s"calcSize_$level", "auto")
 
     val init = wbFields.sortBy(_.level).flatMap(leveledField => {
       (0 until leveledField.numSlots).map(slot =>
@@ -43,20 +36,18 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR
 
     var body : ListBuffer[IR_Statement] = ListBuffer()
 
-    if (calcSizeNeeded) {
+    // set up calcSize function
+    for (wbf <- wbFields.sortBy(_.level)) {
+      val func = IR_WaLBerlaGetSizeForLevel(wbf.level)
+      if (!IR_WaLBerlaCollection.get.functions.contains(func))
+        IR_WaLBerlaCollection.get.functions += func
 
-      for (wbf <- wbFields.sortBy(_.level)) {
-        val func = IR_WaLBerlaGetSizeForLevel(wbf.level)
-        if (!IR_WaLBerlaCollection.get.functions.contains(func))
-          IR_WaLBerlaCollection.get.functions += func
-
-        body += IR_VariableDeclaration(calcSize(wbf.level).get,
-          IR_FunctionCall(IR_ExternalFunctionReference("std::bind"), func.getReference,
-            // use placeholders for:
-            IR_Native("std::placeholders::_1"), // blockstorage
-            IR_Native("std::placeholders::_2") // iblock
-          ))
-      }
+      body += IR_VariableDeclaration(calcSize(wbf.level),
+        IR_FunctionCall(IR_ExternalFunctionReference("std::bind"), func.getReference,
+          // use placeholders for:
+          IR_Native("std::placeholders::_1"), // blockstorage
+          IR_Native("std::placeholders::_2") // iblock
+        ))
     }
 
     body += IR_Return(IR_InitializerList(init : _*))
