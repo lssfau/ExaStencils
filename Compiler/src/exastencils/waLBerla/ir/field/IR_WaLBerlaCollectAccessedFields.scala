@@ -33,5 +33,8 @@ object IR_WaLBerlaCollectAccessedFields extends DefaultStrategy("Collect waLBerl
     case access : IR_IV_WaLBerlaFieldData     =>
       wbFieldAccesses += IR_WaLBerlaFieldAccess(access.field, access.slot, IR_LoopOverDimensions.defIt(access.field.numDimsGrid))
       access
+    case access : IR_IV_WaLBerlaFieldDataAt   =>
+      wbFieldAccesses += IR_WaLBerlaFieldAccess(access.field, access.slot, IR_LoopOverDimensions.defIt(access.field.numDimsGrid))
+      access
   })
 }
