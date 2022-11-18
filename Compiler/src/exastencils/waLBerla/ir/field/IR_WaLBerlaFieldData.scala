@@ -15,16 +15,16 @@ import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks.defIt
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_FieldDatatype
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
-object IR_IV_WaLBerlaFieldData {
-  def apply(fAcc : IR_FieldAccess) : IR_IV_WaLBerlaFieldData = {
+object IR_IV_WaLBerlaGetFieldData {
+  def apply(fAcc : IR_FieldAccess) : IR_IV_WaLBerlaGetFieldData = {
     val wbfield = IR_WaLBerlaFieldCollection.getByIdentifier(fAcc.name, fAcc.level, suppressError = true).get
-    new IR_IV_WaLBerlaFieldData(wbfield, fAcc.slot, fAcc.fragIdx)
+    new IR_IV_WaLBerlaGetFieldData(wbfield, fAcc.slot, fAcc.fragIdx)
   }
 
-  def apply(fAcc : IR_WaLBerlaFieldAccess) : IR_IV_WaLBerlaFieldData = new IR_IV_WaLBerlaFieldData(fAcc.target, fAcc.slot, fAcc.fragIdx)
+  def apply(fAcc : IR_WaLBerlaFieldAccess) : IR_IV_WaLBerlaGetFieldData = new IR_IV_WaLBerlaGetFieldData(fAcc.target, fAcc.slot, fAcc.fragIdx)
 }
 
-case class IR_IV_WaLBerlaFieldData(
+case class IR_IV_WaLBerlaGetFieldData(
     var field : IR_WaLBerlaField,
     var slot : IR_Expression,
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractFieldLikeData(true, false, true, false, false) {
@@ -62,7 +62,13 @@ case class IR_IV_WaLBerlaFieldData(
     IR_VariableDeclaration(resolveDatatype(), resolveName(), Some(getSlottedFieldData))
   }
 
+  def getData() = {
+    // get field pointer without offset
+    new IR_MemberFunctionCallArrowWithDt(this, "data", ListBuffer())
+  }
+
   def getDataAt(index : IR_Index) = {
+    // get field pointer at first inner iteration point at "referenceOffset"
     if (index.length() != 4)
       Logger.warn("waLBerla's \"dataAt\" function expects four arguments: x, y, z, f")
 
@@ -92,14 +98,23 @@ case class IR_IV_WaLBerlaFieldDataAt(
   override def getDeclaration() : IR_VariableDeclaration = {
 
     def getFieldDataPtr(slotIt : IR_Expression) = {
-      // index handling for waLBerla accessors
-      val index = Duplicate(field.layout.referenceOffset)
-      val newIndex = IR_WaLBerlaUtil.adaptIndexForAccessors(index, field.gridDatatype, field.numDimsGrid, field.layout.numDimsData)
+      if (field.layout.useFixedLayoutSizes) {
+        // get ptr without offset -> referenceOffset handled by ExaStencils
+        IR_IV_WaLBerlaGetFieldData(field, slotIt, fragmentIdx).getData()
+      } else {
+        // dataAt(0, 0, 0, 0) already points to first inner iteration point at "referenceOffset" -> referenceOffset not handled by ExaStencils
+        if (field.layout.referenceOffset.forall(_ != IR_IntegerConstant(0)))
+          Logger.error("IR_IV_WaLBerlaFieldDataAt assumes a referenceOffset of zero")
 
-      // dataAt requires 4 arguments: x, y, z, f
-      newIndex.indices = Duplicate(newIndex.indices).padTo(4, 0 : IR_Expression)
+        // index handling for waLBerla accessors
+        val index = Duplicate(field.layout.referenceOffset)
+        val newIndex = IR_WaLBerlaUtil.adaptIndexForAccessors(index, field.gridDatatype, field.numDimsGrid, field.layout.numDimsData)
 
-      IR_IV_WaLBerlaFieldData(field, slotIt, fragmentIdx).getDataAt(newIndex) // get ptr to first inner iteration point
+        // dataAt requires 4 arguments: x, y, z, f
+        newIndex.indices = Duplicate(newIndex.indices).padTo(4, 0 : IR_Expression)
+
+        IR_IV_WaLBerlaGetFieldData(field, slotIt, fragmentIdx).getDataAt(newIndex)
+      }
     }
 
     val getSlottedFieldPtrs = if (field.numSlots > 1) {

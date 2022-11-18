@@ -24,6 +24,8 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
+import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.ir.IR_FieldLikeCollections
 import exastencils.interfacing.ir.IR_ExternalFieldCollection
 import exastencils.prettyprinting._
 
@@ -44,7 +46,8 @@ case class IR_IV_IndexFromField(var layoutIdentifier : String, var level : IR_Ex
     val oldLev = level
     for (l <- Knowledge.minLevel to Knowledge.maxLevel) {
       level = l
-      val field = IR_FieldCollection.getByLayoutIdentifier(layoutIdentifier, l, true)
+      val field = IR_FieldLikeCollections.collections.map(coll =>
+        coll.getByLayoutIdentifier(layoutIdentifier, l, true)).collectFirst { case fl : Option[IR_FieldLike] if fl.isDefined => fl.get }
       if (field.isDefined) {
         statements += IR_Assignment(resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, layoutIdentifier, level, IR_NullExpression),
           field.get.layout.defIdxById(indexId, dim))

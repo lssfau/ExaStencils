@@ -42,21 +42,34 @@ case class IR_WaLBerlaField(
 
   def stringIdentifier(slot : Int) = codeName + s"_s$slot"
 
-  def addToStorage(blockForestAcc : IR_VariableAccess, slot : Int, initVal : IR_FunctionArgument, calculateSize : Option[IR_VariableAccess]) = {
+  def addToStorage(blockForestAcc : IR_VariableAccess, slot : Int, initVal : IR_FunctionArgument, calculateSize : IR_VariableAccess) = {
 
-    val funcRefName = s"field::addToStorage<${ IR_WaLBerlaDatatypes.WB_FieldDatatype(this).prettyprint() }>"
+    val wbFieldTemplate = IR_WaLBerlaDatatypes.WB_FieldDatatype(this).prettyprint()
+    val fieldBaseType = gridDatatype.resolveBaseDatatype.prettyprint()
+    val funcRefName = s"field::addToStorage< $wbFieldTemplate >"
 
     val numGhosts = layout.layoutsPerDim(0).numGhostLayersLeft
     if (layout.layoutsPerDim.forall(layoutPerDim => layoutPerDim.numGhostLayersLeft != numGhosts || layoutPerDim.numGhostLayersRight != numGhosts))
       Logger.error("IR_AddFieldToStorage: Number of ghost layers (left & right) must be identical for all dimensions.")
 
     val args = ListBuffer[IR_Expression]()
-    args += blockForestAcc
-    args += IR_StringConstant(stringIdentifier(slot))
-    args ++= calculateSize
-    args += IR_Cast(IR_SpecialDatatype("real_t"), initVal.access)
-    args += IR_VariableAccess(s"field::${layout.layoutName}", IR_IntegerDatatype)
-    args += IR_Cast(IR_SpecialDatatype("uint_t"), numGhosts)
+    args += blockForestAcc                                                                            // blockstorage
+    args += IR_StringConstant(stringIdentifier(slot))                                                 // identifier
+    args += calculateSize                                                                             // calculateSize
+    args += IR_Cast(IR_SpecialDatatype("real_t"), initVal.access)                                     // initValue
+    args += IR_VariableAccess(s"field::${layout.layoutName}", IR_IntegerDatatype)                     // layout
+    args += IR_Cast(IR_SpecialDatatype("uint_t"), numGhosts)                                          // nrOfGhostLayers
+
+    // use constructor with StdFieldAlloc allocator to avoid inconsistencies between waLBerla's automatic padding and exa's padding
+    if (layout.useFixedLayoutSizes) {
+      // TODO: StdFieldAlloc does not use padding, but we cannot use fixed layout sizes otherwise
+      //  -> maybe generate own allocator class with fixed size padding?
+      args += IR_BooleanConstant(false)                                                                // alwaysInitialize
+      args += IR_Native(s"std::function< void ( $wbFieldTemplate * field, IBlock * const block ) >()") // initFunction
+      args += IR_Native("Set<SUID>::emptySet()")                                                       // requiredSelectors
+      args += IR_Native("Set<SUID>::emptySet()")                                                       // incompatibleSelectors
+      args += IR_Native(s"make_shared < field::StdFieldAlloc< $fieldBaseType > >()")                   // alloc
+    }
 
     IR_FunctionCall(IR_ExternalFunctionReference(funcRefName), args)
   }

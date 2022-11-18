@@ -477,12 +477,15 @@ object Knowledge {
   // [true|false]
   var waLBerla_createCartComm : Boolean = false
 
-  // [true|false]
+  // [true|false]: use grid from exastencils directly, including virtual fields
   var waLBerla_useGridFromExa : Boolean = false
 
   // [true|false]: use internal waLBerla memory pointers for array accesses instead of using the get(x, y, z, f) accessors
   // enables optimizations (address precalc, vect, ...) when enabled
   var waLBerla_useInternalMemoryPointers : Boolean = true
+
+  // [true|false]: enforce generation of interface class, regardless if waLBerla data structures are used or not
+  var waLBerla_generateInterface : Boolean = false
 
   // --- Parallel I/O ---
 

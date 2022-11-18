@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_UserFunctions
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.prettyprinting._
@@ -121,7 +122,7 @@ object IR_WaLBerlaCreateInterface extends DefaultStrategy("Find functions and cr
     case collection : IR_WaLBerlaCollection =>
       // transform collected wb functions into the wb <-> exa interface class
       val wbFunctions = collection.functions.collect { case f : IR_WaLBerlaFunction if f.isInterfaceFunction => f }
-      if (wbFunctions.exists(_.isUserFunction) || IR_WaLBerlaFieldCollection.objects.nonEmpty) {
+      if (Knowledge.waLBerla_generateInterface || wbFunctions.exists(_.isUserFunction) || IR_WaLBerlaFieldCollection.objects.nonEmpty) {
         collection.interfaceInstance = Some(IR_WaLBerlaInterface(Duplicate(wbFunctions)))
         collection.functions = collection.functions diff wbFunctions
       }
