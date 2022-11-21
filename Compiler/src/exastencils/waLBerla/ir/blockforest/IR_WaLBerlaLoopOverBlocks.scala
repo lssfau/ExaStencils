@@ -31,13 +31,13 @@ case class IR_WaLBerlaLoopOverBlocks(
     parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && parallelization.potentiallyParallel
 
     // collect fields accessed per level in loop
-    var fieldsAccessed = ListBuffer[IR_WaLBerlaFieldAccess]()
+    var fieldsAccessed = ListBuffer[IR_MultiDimWaLBerlaFieldAccess]()
     IR_WaLBerlaCollectAccessedFields.applyStandalone(body)
     fieldsAccessed ++= Duplicate(IR_WaLBerlaCollectAccessedFields.wbFieldAccesses).groupBy(_.name).flatMap(_._2.groupBy(_.level).map(_._2.head))
 
     import IR_WaLBerlaLoopOverBlocks._
 
-    def getWaLBerlaFieldData(accesses : IR_WaLBerlaFieldAccess*) : ListBuffer[IR_Statement] = {
+    def getWaLBerlaFieldData(accesses : IR_MultiDimWaLBerlaFieldAccess*) : ListBuffer[IR_Statement] = {
       accesses.to[mutable.ListBuffer].flatMap(fAcc => {
         ListBuffer(
           IR_IV_WaLBerlaGetFieldData(fAcc).getDeclaration(),
