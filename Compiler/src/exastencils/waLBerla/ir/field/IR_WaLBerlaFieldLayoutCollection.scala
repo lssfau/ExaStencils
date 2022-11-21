@@ -1,7 +1,12 @@
 package exastencils.waLBerla.ir.field
 
-import exastencils.knowledge.ir.IR_LeveledKnowledgeCollection
+import exastencils.fieldlike.ir.IR_FieldLikeLayoutCollection
+import exastencils.fieldlike.ir.IR_FieldLikeLayoutCollections
 
-object IR_WaLBerlaFieldLayoutCollection extends IR_LeveledKnowledgeCollection[IR_WaLBerlaFieldLayout] {
+/// IR_WaLBerlaFieldLayoutCollection
+
+object IR_WaLBerlaFieldLayoutCollection extends IR_FieldLikeLayoutCollection {
+
+  IR_FieldLikeLayoutCollections.register(this)
   exastencils.core.Duplicate.registerConstant(this)
 }
