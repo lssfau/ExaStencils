@@ -654,6 +654,9 @@ object Knowledge {
   // [true|false] // specifies if local communication is synchronized using flags; usually not necessary unless communication in fragment loops is allowed
   var comm_disableLocalCommSync = true
 
+  // [true|false] // specifies if communication buffers are packed compactly; implies serial packing; implies unsuitability for GPU execution; if false all possible data is transferred
+  var comm_compactPackingForConditions = true
+
   // TODO: check in how far the following parameters can be adapted by the SPL
   // specifies if communication variables that could be fragment specific are handled separately
   var comm_sepDataByFragment : Boolean = true
