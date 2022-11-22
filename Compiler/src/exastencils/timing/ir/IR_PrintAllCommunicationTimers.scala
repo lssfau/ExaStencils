@@ -49,6 +49,8 @@ case class IR_PrintAllCommunicationTimers() extends IR_TimerFunction {
       body += genPrintTimerCode(timer)
     }
 
+    body += IR_RawPrint("\"Mean mean total time for all communication :\"", commTimeAccum)
+
     val fct = IR_PlainFunction(name, IR_UnitDatatype, body)
     fct.allowFortranInterface = false
     fct
