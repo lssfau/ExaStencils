@@ -294,6 +294,9 @@ object Knowledge {
   // synchronizes all mpi ranks when a (potentially nested) timer is started for the first time or stopped for the last time
   var timer_syncMpi : Boolean = false
 
+  // [true|false]: measure time spent in all communication function and print summary in main application
+  var timer_measureCommunicationTime : Boolean = false
+
   var timer_printTimersToFileForEachRank : Boolean = false
   // prints separate timer values for each rank -> requires some additional memory for the gather op
 
