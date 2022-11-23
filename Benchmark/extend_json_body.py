@@ -22,7 +22,7 @@ def parse_likwid_perfctr_output(pipe, json_body):
         if m is not None and m.group(1) != "":
             json_body["GBs_MEM"] = float(m.group(1))
 
-        m = re.search(r'Clock \[MHz].*\|\s*(\d*(\.\d*)?)\s*\|\n', line)
+        m = re.search(r'Clock \[MHz\].*\|\s*(\d*(\.\d*)?)\s*\|', line)
         if m is not None and m.group(1) != "":
             json_body["MHz_Clock"] = float(m.group(1))
 
