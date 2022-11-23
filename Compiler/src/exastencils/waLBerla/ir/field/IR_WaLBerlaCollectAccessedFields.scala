@@ -7,7 +7,7 @@ import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.datastructures._
 
 object IR_WaLBerlaCollectAccessedFields extends DefaultStrategy("Collect waLBerla field accesses") {
-  var wbFieldAccesses : ListBuffer[IR_WaLBerlaFieldAccess] = ListBuffer()
+  var wbFieldAccesses : ListBuffer[IR_MultiDimWaLBerlaFieldAccess] = ListBuffer()
 
   override def apply(node : Option[Node] = None) = {
     wbFieldAccesses.clear
@@ -25,6 +25,9 @@ object IR_WaLBerlaCollectAccessedFields extends DefaultStrategy("Collect waLBerl
 
   this += new Transformation("Collect", {
     case fieldAccess : IR_WaLBerlaFieldAccess =>
+      wbFieldAccesses += fieldAccess
+      fieldAccess
+    case fieldAccess : IR_DirectWaLBerlaFieldAccess =>
       wbFieldAccesses += fieldAccess
       fieldAccess
     case swap : IR_WaLBerlaSwapFieldPointers =>

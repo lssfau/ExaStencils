@@ -294,6 +294,9 @@ object Knowledge {
   // synchronizes all mpi ranks when a (potentially nested) timer is started for the first time or stopped for the last time
   var timer_syncMpi : Boolean = false
 
+  // [true|false]: measure time spent in all communication function and print summary in main application
+  var timer_measureCommunicationTime : Boolean = false
+
   var timer_printTimersToFileForEachRank : Boolean = false
   // prints separate timer values for each rank -> requires some additional memory for the gather op
 
@@ -653,6 +656,9 @@ object Knowledge {
   var comm_pushLocalData : Boolean = false
   // [true|false] // specifies if local communication is synchronized using flags; usually not necessary unless communication in fragment loops is allowed
   var comm_disableLocalCommSync = true
+
+  // [true|false] // specifies if communication buffers are packed compactly; implies serial packing; implies unsuitability for GPU execution; if false all possible data is transferred
+  var comm_compactPackingForConditions = true
 
   // TODO: check in how far the following parameters can be adapted by the SPL
   // specifies if communication variables that could be fragment specific are handled separately

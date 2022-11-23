@@ -32,6 +32,7 @@ import exastencils.field.ir.IR_SlotAccess
 import exastencils.logger._
 import exastencils.parallelization.api.mpi.MPI_WaitForRequest
 import exastencils.parallelization.api.omp.OMP_WaitForFlag
+import exastencils.timing.ir._
 import exastencils.util.ir.IR_StackCollector
 
 /// IR_SetupCommunication
@@ -65,6 +66,19 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
     super.apply(node)
 
     firstCall = false
+  }
+
+  def getTimer(functionName : String) = {
+    // add timing to comm statement
+    var timer : Option[IR_IV_Timer] = None
+    if (Knowledge.timer_measureCommunicationTime) {
+      val t = IR_IV_Timer(functionName)
+      t.annotate(CommTimerAnnot.COMM_TIMER)
+
+      timer = Some(t)
+    }
+
+    timer
   }
 
   this += new Transformation("Adding and linking communication functions", {
@@ -150,7 +164,8 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
           commDup, dupBegin, dupEnd,
           commGhost, ghostBegin, ghostEnd,
           insideFragLoop,
-          cond, direction)
+          cond, direction,
+          getTimer(functionName))
       }
 
       communicateStatement.slot match {
@@ -179,7 +194,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
 
       if (!addedFunctions.contains(NameAndLevel(functionName, level))) {
         addedFunctions += NameAndLevel(functionName, level)
-        commFunctions += IR_ApplyBCFunction(functionName, applyBCsStatement.field, "slot", IR_LoopOverFragments.defIt, DefaultNeighbors.neighbors, insideFragLoop)
+        commFunctions += IR_ApplyBCFunction(functionName, applyBCsStatement.field, "slot", IR_LoopOverFragments.defIt, DefaultNeighbors.neighbors, insideFragLoop, getTimer(functionName))
       }
 
       applyBCsStatement.slot match {

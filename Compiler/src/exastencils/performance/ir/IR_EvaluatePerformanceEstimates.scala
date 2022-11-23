@@ -204,6 +204,10 @@ object IR_EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating perfo
     }
 
     def dataPerIteration(fieldAccesses : HashMap[String, IR_Datatype], offsets : HashMap[String, ListBuffer[Long]]) : Int = {
+      // early exit
+      if (fieldAccesses.isEmpty)
+        return 0
+
       val dataTypeSizes = fieldAccesses.map(entry => entry._1 -> entry._2.typicalByteSize)
 
       // assume perfect blocking if opt_loopBlocked is activated ...

@@ -30,7 +30,7 @@ import exastencils.config._
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.domain.ir._
-import exastencils.field.ir.IR_DirectFieldAccess
+import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.polyhedron.IR_PolyArrayAccessLike
@@ -583,7 +583,7 @@ private class CollectBaseCSes(curFunc : String) extends IR_StackCollector {
         commonSubs(vAcc) = null
       case IR_Assignment(IR_ArrayAccess(iv : IR_InternalVariable, _, _), _, _) =>
         commonSubs(iv) = null
-      case IR_Assignment(dfa : IR_DirectFieldAccess, _, _)                     =>
+      case IR_Assignment(dfa : IR_DirectFieldLikeAccess, _, _)                 =>
         commonSubs(dfa) = null
       case IR_Assignment(tba : IR_TempBufferAccess, _, _)                      =>
         commonSubs(tba) = null
@@ -597,7 +597,7 @@ private class CollectBaseCSes(curFunc : String) extends IR_StackCollector {
            | _ : IR_IV_FragmentPositionEnd
            | _ : IR_StringLiteral
            | _ : IR_ArrayAccess
-           | _ : IR_DirectFieldAccess
+           | _ : IR_DirectFieldLikeAccess
            | _ : IR_TempBufferAccess
            | _ : IR_LoopCarriedCSBufferAccess
            | _ : IR_InternalVariable //

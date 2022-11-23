@@ -2,12 +2,16 @@ package exastencils.waLBerla.ir.communication
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_FunctionCall
 import exastencils.base.ir.IR_FutureFunction
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.communication.ir.IR_CommunicateFunction
 import exastencils.communication.ir.IR_CommunicationFunctions
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
+import exastencils.timing.ir.IR_StartTimer
+import exastencils.timing.ir.IR_StopTimer
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaCollection
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaLeveledFunction
@@ -41,9 +45,14 @@ object IR_WaLBerlaSetupCommunication extends DefaultStrategy("Communication hand
       // replace body of exa's communicate function with 'communicate()' member fct of waLBerla's comm scheme and inline
       val genFct = comm.generateFct()
       val field = comm.field
-      val body = IR_WaLBerlaCommScheme(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get, comm.slot).communicate
+      val body = ListBuffer(IR_WaLBerlaCommScheme(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get, comm.slot).communicate)
 
-      IR_WaLBerlaCollection.get.functions += IR_WaLBerlaLeveledFunction(comm.name, comm.level, genFct.datatype, genFct.parameters, ListBuffer(body))
+      if (comm.timer.isDefined) {
+        body.prepend(IR_FunctionCall(IR_StartTimer().name, comm.timer.get))
+        body.append(IR_FunctionCall(IR_StopTimer().name, comm.timer.get))
+      }
+
+      IR_WaLBerlaCollection.get.functions += IR_WaLBerlaLeveledFunction(comm.name, comm.level, genFct.datatype, genFct.parameters, body)
       None // consume
   })
 }

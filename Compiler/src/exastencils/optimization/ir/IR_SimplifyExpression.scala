@@ -28,7 +28,7 @@ import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.domain.ir._
-import exastencils.field.ir._
+import exastencils.fieldlike.ir._
 import exastencils.interfacing.ir._
 import exastencils.logger._
 import exastencils.util.MathHelper
@@ -548,13 +548,13 @@ object IR_SimplifyExpression {
         a.index = IR_SimplifyExpression.simplifyIntegralExpr(a.index)
         a
 
-      case d : IR_DirectFieldAccess =>
+      case d : IR_DirectFieldLikeAccess =>
         for (i <- 0 until 4)
           if (d.index(i) != IR_NullExpression)
             d.index(i) = IR_SimplifyExpression.simplifyIntegralExpr(d.index(i))
         d
 
-      case f : IR_FieldAccess =>
+      case f : IR_FieldLikeAccess =>
         for (i <- 0 until 4)
           if (f.index(i) != IR_NullExpression)
             f.index(i) = IR_SimplifyExpression.simplifyIntegralExpr(f.index(i))
@@ -623,7 +623,7 @@ object IR_SimplifyExpression {
         res = new HashMap[IR_Expression, Double]()
         res(mAcc) = 1d
 
-      case fAcc : IR_MultiDimFieldAccess =>
+      case fAcc : IR_MultiDimFieldLikeAccess =>
         res = new HashMap[IR_Expression, Double]()
         res(fAcc) = 1d
 

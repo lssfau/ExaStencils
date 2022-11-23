@@ -21,6 +21,8 @@ object IR_IV_WaLBerlaGetFieldData {
     new IR_IV_WaLBerlaGetFieldData(wbfield, fAcc.slot, fAcc.fragIdx)
   }
 
+  def apply(fAcc : IR_MultiDimWaLBerlaFieldAccess) : IR_IV_WaLBerlaGetFieldData = new IR_IV_WaLBerlaGetFieldData(fAcc.field, fAcc.slot, fAcc.fragIdx)
+
   def apply(fAcc : IR_WaLBerlaFieldAccess) : IR_IV_WaLBerlaGetFieldData = new IR_IV_WaLBerlaGetFieldData(fAcc.target, fAcc.slot, fAcc.fragIdx)
 }
 
@@ -77,6 +79,8 @@ case class IR_IV_WaLBerlaGetFieldData(
 }
 
 object IR_IV_WaLBerlaFieldDataAt {
+  def apply(fAcc : IR_MultiDimWaLBerlaFieldAccess) : IR_IV_WaLBerlaFieldDataAt = new IR_IV_WaLBerlaFieldDataAt(fAcc.target, fAcc.slot, fAcc.fragIdx)
+
   def apply(fAcc : IR_WaLBerlaFieldAccess) : IR_IV_WaLBerlaFieldDataAt = new IR_IV_WaLBerlaFieldDataAt(fAcc.target, fAcc.slot, fAcc.fragIdx)
 }
 

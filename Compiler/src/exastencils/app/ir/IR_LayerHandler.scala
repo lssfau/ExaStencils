@@ -34,7 +34,7 @@ import exastencils.config._
 import exastencils.domain.ir._
 import exastencils.experimental.ir.IR_ResolveGismoFunctions
 import exastencils.field.ir._
-import exastencils.fieldlike.ir.IR_FieldLikeCollections
+import exastencils.fieldlike.ir._
 import exastencils.globals.ir._
 import exastencils.grid.ir._
 import exastencils.interfacing.ir._
@@ -185,7 +185,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_ResolveLoopOverPoints.apply()
     IR_ResolveIntergridIndices.apply()
-    IR_ApplyOffsetToFieldAccess.apply()
+    IR_ApplyOffsetToFieldLikeAccess.apply()
     IR_ApplyOffsetToStencilFieldAccess.apply()
     // simplify indices modified just now, otherwise equality checks will not work later on
     IR_GeneralSimplify.apply()
@@ -218,7 +218,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_ResolveIntegrateOnGrid.apply()
     IR_ResolveEvaluateOnGrid.apply()
     IR_ResolveVirtualFieldAccesses.apply()
-    IR_ApplyOffsetToFieldAccess.apply()
+    IR_ApplyOffsetToFieldLikeAccess.apply()
     IR_ApplyOffsetToStencilFieldAccess.apply()
 
     IR_ResolveComplexAccess.apply() //TODO: brauche ich für den Complex Access
@@ -315,7 +315,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_LayoutTansformation.apply()
 
     // before converting kernel functions -> requires linearized accesses
-    IR_LinearizeDirectFieldAccess.apply()
+    IR_LinearizeDirectFieldLikeAccess.apply()
     IR_LinearizeExternalFieldAccess.apply()
     IR_LinearizeTempBufferAccess.apply()
     CUDA_LinearizeReductionDeviceDataAccess.apply()
