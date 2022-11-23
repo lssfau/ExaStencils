@@ -7,21 +7,22 @@ import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
-import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_CommScheme
-import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_FieldDatatype
-import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil.getGeneratedName
-import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil.make_shared
 
-case class IR_WaLBerlaCommScheme(var wbField : IR_WaLBerlaField, var slot : IR_Expression) extends IR_Access {
+trait IR_WaLBerlaCommScheme extends IR_Access{
+  def wbField : IR_WaLBerlaField
+  def slot : IR_Expression
 
-  private val blockDataID = IR_WaLBerlaBlockDataID(wbField, slot)
-  private val blockForest = IR_WaLBerlaBlockForest()
+  def blockDataID : IR_WaLBerlaBlockDataID
+  def blockForest : IR_WaLBerlaBlockForest
+  def name : String
 
-  var level = wbField.level
-  val numSlots = wbField.numSlots
-  val levels = blockDataID.levels
+  def baseAccess() = IR_VariableAccess(name, datatype)
 
-  def basetype = IR_UniquePointerDatatype(WB_CommScheme)
+  def level = wbField.level
+  def numSlots = wbField.numSlots
+  def levels = blockDataID.levels
+
+  def basetype : IR_Datatype
   def datatype : IR_Datatype = {
     var dt : IR_Datatype = basetype
 
@@ -33,14 +34,9 @@ case class IR_WaLBerlaCommScheme(var wbField : IR_WaLBerlaField, var slot : IR_E
     dt
   }
 
+  def createUniformPackInfo() : IR_Expression
+
   def addPackInfo() = IR_MemberFunctionCallArrow(resolveAccess(), "addPackInfo", createUniformPackInfo())
-
-  def createUniformPackInfo() =
-    make_shared(s"field::communication::PackInfo< ${ WB_FieldDatatype(wbField).prettyprint() } >", blockDataID)
-
-  def baseAccess() = IR_VariableAccess(name, datatype)
-
-  def name = getGeneratedName(s"commScheme_${ wbField.name }")
 
   def resolveAccess() = {
     var access : IR_Access = baseAccess()

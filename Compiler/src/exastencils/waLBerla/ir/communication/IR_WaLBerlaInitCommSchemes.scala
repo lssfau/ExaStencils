@@ -4,7 +4,9 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.config.Knowledge
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
+import exastencils.waLBerla.ir.cuda.IR_WaLBerlaGPUCommScheme
 import exastencils.waLBerla.ir.field._
 import exastencils.waLBerla.ir.interfacing._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil._
@@ -31,19 +33,29 @@ case class IR_WaLBerlaInitCommSchemes() extends IR_WaLBerlaFuturePlainFunction {
     // init comm scheme array
     for (wbf <- wbFieldsPerLevel) {
       val slotIt = IR_VariableAccess("slotIt", IR_IntegerDatatype)
-      val commScheme  = IR_WaLBerlaCommScheme(wbf, slotIt)
+      val commSchemes : ListBuffer[IR_WaLBerlaCommScheme] = ListBuffer(IR_WaLBerlaCPUCommScheme(wbf, slotIt))
 
-      body += IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
-        IR_Assignment(commScheme.resolveAccess(), make_unique(commScheme.basetype.resolveBaseDatatype.prettyprint, blockForest)))
+      if (Knowledge.cuda_enabled)
+        commSchemes += IR_WaLBerlaGPUCommScheme(wbf, slot = 0)
+
+      for (commScheme <- commSchemes) {
+        body += IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
+          IR_Assignment(commScheme.resolveAccess(), make_unique(commScheme.basetype.resolveBaseDatatype.prettyprint, blockForest)))
+      }
     }
 
     // add pack info
     for (wbf <- wbFieldsPerLevel) {
       val slotIt = IR_VariableAccess("slotIt", IR_IntegerDatatype)
-      val commScheme  = IR_WaLBerlaCommScheme(wbf, slotIt)
+      val commSchemes : ListBuffer[IR_WaLBerlaCommScheme] = ListBuffer(IR_WaLBerlaCPUCommScheme(wbf, slotIt))
 
-      body += IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
-        commScheme.addPackInfo() : IR_Statement)
+      if (Knowledge.cuda_enabled)
+        commSchemes += IR_WaLBerlaGPUCommScheme(wbf, slot = 0)
+
+      for (commScheme <- commSchemes) {
+        body += IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
+          commScheme.addPackInfo() : IR_Statement)
+      }
     }
 
     IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(), body)
