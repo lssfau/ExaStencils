@@ -24,6 +24,12 @@ case class IR_WaLBerlaInitCommSchemes() extends IR_WaLBerlaFuturePlainFunction {
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
 
+    // add deps
+    if (Knowledge.cuda_enabled) {
+      IR_WaLBerlaCollection.get.addExternalDependency("cuda/communication/GPUPackInfo.h")
+      IR_WaLBerlaCollection.get.addExternalDependency("cuda/communication/UniformGPUScheme.h")
+    }
+
     val blockForest = IR_WaLBerlaBlockForest()
     val wbFieldsPerLevel = IR_WaLBerlaFieldCollection.objects.groupBy(_.codeName).map(_._2.head).to[ListBuffer] // find unique wb fields per level
       .sortBy(_.level).sortBy(_.name)
