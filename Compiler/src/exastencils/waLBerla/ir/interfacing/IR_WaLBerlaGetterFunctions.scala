@@ -3,6 +3,7 @@ package exastencils.waLBerla.ir.interfacing
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
@@ -45,11 +46,16 @@ case class IR_WaLBerlaGetBlockDataID(field : IR_WaLBerlaField) extends IR_WaLBer
     val blockDataIdGPU = IR_WaLBerlaBlockDataID(field, Duplicate(slot.access), onGPU = true)
     blockDataId.level = Duplicate(lvl.access)
 
-    IR_WaLBerlaPlainFunction(name, WB_BlockDataID, ListBuffer(lvl, slot, onGPU),
+    val body : ListBuffer[IR_Statement] = if (Knowledge.cuda_enabled) {
       ListBuffer(
         IR_IfCondition(onGPU.access,
-        IR_Return(blockDataIdGPU),
-        IR_Return(blockDataId))))
+          IR_Return(blockDataIdGPU),
+          IR_Return(blockDataId)))
+    } else {
+      ListBuffer(IR_Return(blockDataId))
+    }
+
+    IR_WaLBerlaPlainFunction(name, WB_BlockDataID, ListBuffer(lvl, slot, onGPU), body)
   }
   override def name : String = s"getBlockDataID_${field.name}"
 }
