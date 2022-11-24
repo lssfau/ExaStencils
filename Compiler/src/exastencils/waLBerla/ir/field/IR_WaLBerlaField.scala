@@ -75,7 +75,7 @@ case class IR_WaLBerlaField(
   }
 
   def addToStorageGPU(blockForestAcc : IR_VariableAccess, slot : Int, cpuFieldID : IR_WaLBerlaBlockDataID) = {
-    val funcRefName = s"cuda::addGPUFieldToStorage<${ IR_WaLBerlaDatatypes.WB_FieldDatatype(this).prettyprint() }>"
+    val funcRefName = s"cuda::addGPUFieldToStorage<${ IR_WaLBerlaDatatypes.WB_FieldDatatype(this, onGPU = true).prettyprint() }>"
 
     val args = ListBuffer[IR_Expression](
       blockForestAcc,
