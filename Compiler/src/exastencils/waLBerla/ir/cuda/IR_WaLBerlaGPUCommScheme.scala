@@ -17,12 +17,12 @@ case class IR_WaLBerlaGPUCommScheme(var wbField : IR_WaLBerlaField, var slot : I
   def basetype = IR_UniquePointerDatatype(WB_CommScheme(onGPU = true))
 
   def createUniformPackInfo() =
-    make_shared(s"cuda::communication::GPUPackInfo< ${ WB_FieldDatatype(wbField, onGPU = true).prettyprint() } >", blockDataID)
+    make_shared(s"cuda::communication::MemcpyPackInfo< ${ WB_FieldDatatype(wbField, onGPU = true).prettyprint() } >", blockDataID)
 
   def name = getGeneratedName(s"gpuCommScheme_${ wbField.name }")
 
   override def prettyprint(out : PpStream) : Unit = out << baseAccess()
 
-  val blockDataID = IR_WaLBerlaBlockDataID(wbField, slot)
+  val blockDataID = IR_WaLBerlaBlockDataID(wbField, slot, onGPU = true)
   val blockForest = IR_WaLBerlaBlockForest()
 }

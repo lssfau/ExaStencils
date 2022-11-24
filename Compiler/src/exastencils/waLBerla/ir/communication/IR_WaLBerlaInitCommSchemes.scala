@@ -27,6 +27,7 @@ case class IR_WaLBerlaInitCommSchemes() extends IR_WaLBerlaFuturePlainFunction {
     // add deps
     if (Knowledge.cuda_enabled) {
       IR_WaLBerlaCollection.get.addExternalDependency("cuda/communication/GPUPackInfo.h")
+      IR_WaLBerlaCollection.get.addExternalDependency("cuda/communication/MemcpyPackInfo.h")
       IR_WaLBerlaCollection.get.addExternalDependency("cuda/communication/UniformGPUScheme.h")
     }
 
