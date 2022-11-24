@@ -29,6 +29,8 @@ import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
+import exastencils.fieldlike.ir.IR_MultiDimFieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.timing.ir.IR_TimerFunctions
@@ -42,7 +44,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
   this.register(collector)
   this.onBefore = () => this.resetCollectors()
 
-  var fieldAccesses = HashMap[String, IR_IV_FieldData]()
+  var fieldAccesses = HashMap[String, IR_IV_AbstractFieldLikeData]()
   var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
 
   def syncBeforeHost(access : String, others : Iterable[String]) = {
@@ -71,7 +73,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
     access.startsWith("write")
   }
 
-  def mapFieldAccess(access : IR_MultiDimFieldAccess, inWriteOp : Boolean) = {
+  def mapFieldAccess(access : IR_MultiDimFieldLikeAccess, inWriteOp : Boolean) = {
     val field = access.field
     var identifier = field.codeName
 
@@ -86,11 +88,11 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
       }
     }
 
-    val fieldData = IR_IV_FieldData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx))
+    val fieldData = IR_IV_AbstractFieldLikeData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx))
     fieldAccesses.put(identifier, fieldData)
   }
 
-  def mapFieldPtrAccess(fieldData : IR_IV_FieldData, inWriteOp : Boolean) {
+  def mapFieldPtrAccess(fieldData : IR_IV_AbstractFieldLikeData, inWriteOp : Boolean) {
     val field = fieldData.field
     var identifier = field.codeName
 
@@ -117,7 +119,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
   def processRead(expr : IR_Expression) {
     expr match {
-      case access : IR_MultiDimFieldAccess => mapFieldAccess(access, false)
+      case access : IR_MultiDimFieldLikeAccess => mapFieldAccess(access, false)
       case field : IR_IV_FieldData         => mapFieldPtrAccess(field, false)
       case buffer : IR_IV_CommBuffer       => mapBuffer(buffer, false)
       case IR_PointerOffset(base, _)       => processRead(base)
@@ -131,8 +133,8 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
   def processWrite(expr : IR_Expression) {
     expr match {
-      case access : IR_MultiDimFieldAccess => mapFieldAccess(access, true)
-      case field : IR_IV_FieldData         => mapFieldPtrAccess(field, true)
+      case access : IR_MultiDimFieldLikeAccess => mapFieldAccess(access, true)
+      case field : IR_IV_AbstractFieldLikeData => mapFieldPtrAccess(field, true)
       case buffer : IR_IV_CommBuffer       => mapBuffer(buffer, true)
       case IR_PointerOffset(base, _)       => processWrite(base)
 

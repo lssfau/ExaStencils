@@ -33,7 +33,7 @@ case class IR_WaLBerlaField(
     var numSlots : Int,
     var boundary : IR_BoundaryCondition,
     var matShape: Option[IR_MatShape],
-    var gpuCompatible : Boolean = false
+    var gpuCompatible : Boolean = true
 ) extends IR_FieldLike {
 
   override def createDuplicate() : IR_WaLBerlaField = {

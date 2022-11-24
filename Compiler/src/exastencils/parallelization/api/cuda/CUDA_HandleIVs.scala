@@ -25,7 +25,9 @@ import exastencils.base.ir.IR_VariableAccess
 import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.communication.ir.IR_IV_CommBuffer
 import exastencils.datastructures._
+import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.field.ir.IR_SlotAccess
+import exastencils.logger.Logger
 
 /// CUDA_GatherIVs
 
@@ -53,6 +55,7 @@ object CUDA_ReplaceIVs extends QuietDefaultStrategy("Replace local InternalVaria
       // skip due to separate handling
       iv
 
+    // TODO: debug
     case slot : IR_SlotAccess =>
       val ivAccess = ivAccesses.find(_._2 == slot.slot).get
       IR_VariableAccess(ivAccess._1, ivAccess._2.resolveDatatype()) + slot.offset

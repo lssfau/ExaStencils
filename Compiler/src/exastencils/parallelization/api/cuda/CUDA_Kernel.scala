@@ -29,6 +29,8 @@ import exastencils.config._
 import exastencils.core._
 import exastencils.datastructures.Node
 import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
+import exastencils.fieldlike.ir.IR_MultiDimFieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 
@@ -81,9 +83,9 @@ case class CUDA_Kernel(
   // properties required for shared memory analysis and shared memory allocation
   var fieldNames = ListBuffer[String]()
   var fieldBaseIndex = HashMap[String, IR_ExpressionIndex]()
-  var fieldForSharedMemory = HashMap[String, IR_DirectFieldAccess]()
+  var fieldForSharedMemory = HashMap[String, IR_DirectFieldLikeAccess]()
   var fieldOffset = HashMap[String, IR_ExpressionIndex]()
-  var fieldAccessesForSharedMemory = HashMap[String, List[IR_MultiDimFieldAccess]]()
+  var fieldAccessesForSharedMemory = HashMap[String, List[IR_MultiDimFieldLikeAccess]]()
   var leftDeviations = HashMap[String, Array[Long]]()
   var leftDeviation = HashMap[String, Long]()
   var rightDeviations = HashMap[String, Array[Long]]()
@@ -215,7 +217,7 @@ case class CUDA_Kernel(
 
       // 2.4 consider this field for shared memory if all conditions are met
       if (!writtenFields.contains(name) && fieldAccesses.size > 1 && requiredMemoryInByte < availableSharedMemory && (leftDeviationFromBaseIndex.head > 0 || rightDeviationFromBaseIndex.head > 0)) {
-        val access = IR_DirectFieldAccess(fieldAccesses.head.field, Duplicate(fieldAccesses.head.slot), IR_ExpressionIndex(baseIndex))
+        val access = IR_DirectFieldLikeAccess(fieldAccesses.head.field, Duplicate(fieldAccesses.head.slot), IR_ExpressionIndex(baseIndex))
         access.allowLinearization = false
         fieldNames += name
         fieldBaseIndex(name) = IR_ExpressionIndex(baseIndex)
@@ -487,9 +489,9 @@ case class CUDA_Kernel(
             statements += IR_VariableDeclaration(fieldDatatype(field), "behind" + x, 0)
           })
           (1L to rightDeviation(field)).foreach(x => {
-            statements += IR_VariableDeclaration(fieldDatatype(field), "infront" + x, IR_DirectFieldAccess(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot), spatialBaseIndex + IR_ExpressionIndex(Array[Long](0, 0, x))).linearize)
+            statements += IR_VariableDeclaration(fieldDatatype(field), "infront" + x, IR_DirectFieldLikeAccess(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot), spatialBaseIndex + IR_ExpressionIndex(Array[Long](0, 0, x))).linearize)
           })
-          statements += IR_VariableDeclaration(fieldDatatype(field), "current", IR_DirectFieldAccess(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot), spatialBaseIndex).linearize)
+          statements += IR_VariableDeclaration(fieldDatatype(field), "current", IR_DirectFieldLikeAccess(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot), spatialBaseIndex).linearize)
 
           // 5. Add statements for loop body in kernel (z-Dim)
           // 5.1 advance the slice (move the thread front)
@@ -502,13 +504,13 @@ case class CUDA_Kernel(
             sharedMemoryStatements += IR_Assignment(IR_VariableAccess("infront" + x, fieldDatatype(field)), IR_VariableAccess("infront" + (x + 1), fieldDatatype(field)))
           })
 
-          sharedMemoryStatements += IR_Assignment(IR_VariableAccess("infront" + rightDeviation(field), fieldDatatype(field)), IR_DirectFieldAccess(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot), fieldBaseIndex(field) + IR_ExpressionIndex(Array[Long](0, 0, 1))).linearize)
+          sharedMemoryStatements += IR_Assignment(IR_VariableAccess("infront" + rightDeviation(field), fieldDatatype(field)), IR_DirectFieldLikeAccess(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot), fieldBaseIndex(field) + IR_ExpressionIndex(Array[Long](0, 0, 1))).linearize)
 
           // 5.2 load from global memory into shared memory
           sharedMemoryStatements += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localThreadId(field).take(executionDim).reverse, sharedArrayStrides), current)
         } else {
           // 6. Load from global memory into shared memory
-          sharedMemoryStatements += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localThreadId(field).reverse, sharedArrayStrides), IR_DirectFieldAccess(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot), fieldForSharedMemory(field).index).linearize)
+          sharedMemoryStatements += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localThreadId(field).reverse, sharedArrayStrides), IR_DirectFieldLikeAccess(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot), fieldForSharedMemory(field).index).linearize)
         }
 
         // 7. Add load operations as ConditionStatement to avoid index out of bounds exceptions in global memory
@@ -537,7 +539,7 @@ case class CUDA_Kernel(
             val globalLeftIndex = IR_ExpressionIndex(Duplicate(globalThreadId)) + fieldOffset(field)
             globalLeftIndex(dim) = IR_Subtraction(globalLeftIndex(dim), x)
 
-            conditionBody += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localLeftIndex.reverse, sharedArrayStrides), IR_DirectFieldAccess(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot), globalLeftIndex).linearize)
+            conditionBody += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localLeftIndex.reverse, sharedArrayStrides), IR_DirectFieldLikeAccess(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot), globalLeftIndex).linearize)
           })
           (0L until rightDeviations(field)(dim)).foreach(x => {
             val localRightIndex = Duplicate(localThreadId(field))
@@ -545,7 +547,7 @@ case class CUDA_Kernel(
             val globalRightIndex = IR_ExpressionIndex(Duplicate(globalThreadId)) + fieldOffset(field)
             globalRightIndex(dim) = IR_Addition(IR_Addition(globalRightIndex(dim), localFieldOffset), x)
 
-            conditionBody += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localRightIndex.reverse, sharedArrayStrides), IR_DirectFieldAccess(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot), globalRightIndex).linearize)
+            conditionBody += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localRightIndex.reverse, sharedArrayStrides), IR_DirectFieldLikeAccess(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot), globalRightIndex).linearize)
           })
 
           IR_IfCondition(condition, conditionBody)
@@ -600,7 +602,7 @@ case class CUDA_Kernel(
 
     CUDA_ReplaceLinearizedBufferAccess.applyStandalone(IR_Scope(body))
 
-    CUDA_ReplaceIVs.ivAccesses = ivAccesses
+    CUDA_ReplaceIVs.ivAccesses = Duplicate(ivAccesses)
     CUDA_ReplaceIVs.applyStandalone(IR_Scope(body))
     CUDA_ReplaceLoopVariables.loopVariables = loopVariables.drop(nrInnerSeqDims)
     CUDA_ReplaceLoopVariables.applyStandalone(IR_Scope(body))

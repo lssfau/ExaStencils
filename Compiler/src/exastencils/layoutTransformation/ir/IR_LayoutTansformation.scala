@@ -18,7 +18,8 @@
 
 package exastencils.layoutTransformation.ir
 
-import scala.collection.mutable.{ ArrayBuffer, HashMap }
+import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.HashMap
 
 import java.util.IdentityHashMap
 
@@ -272,7 +273,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
             processDFA(dfa, transformations, processedLayouts, colCondColl)
           }
           dfa
-        case node : IR_IV_AbstractCommBuffer   =>
+        case node : IR_IV_AbstractCommBuffer    =>
           for ((newField, _) <- Option(fieldReplace.get(node.field)))
             node.field = newField
           node

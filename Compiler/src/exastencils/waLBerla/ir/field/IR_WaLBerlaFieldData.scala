@@ -19,6 +19,12 @@ import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
 /// IR_IV_AbstractWaLBerlaFieldData
 
+abstract class IR_IV_AbstractWaLBerlaFieldData extends IR_IV_AbstractFieldLikeData(true, false, true, true, false) {
+  var field : IR_WaLBerlaField
+}
+
+/// IR_IV_GetWaLBerlaFieldFromScope
+
 sealed trait IR_IV_GetWaLBerlaFieldFromScope extends IR_InternalVariable {
   // don't use as global variables
   override def getCtor() : Option[IR_Statement] = None
@@ -97,7 +103,7 @@ case class IR_IV_WaLBerlaFieldData(
     var field : IR_WaLBerlaField,
     var slot : IR_Expression,
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
-) extends IR_IV_AbstractFieldLikeData(true, false, true, false, false) with IR_IV_GetWaLBerlaFieldFromScope  {
+) extends IR_IV_AbstractWaLBerlaFieldData with IR_IV_GetWaLBerlaFieldFromScope  {
 
   override var level : IR_Expression = field.level
 

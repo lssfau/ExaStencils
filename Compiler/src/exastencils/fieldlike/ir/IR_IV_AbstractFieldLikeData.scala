@@ -4,7 +4,23 @@ import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
+import exastencils.field.ir.IR_Field
+import exastencils.field.ir.IR_IV_FieldData
+import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
+import exastencils.waLBerla.ir.field.IR_IV_WaLBerlaFieldData
+import exastencils.waLBerla.ir.field.IR_WaLBerlaField
+
+// TODO: avoid this
+object IR_IV_AbstractFieldLikeData {
+  def apply(field : IR_FieldLike, slot : IR_Expression, fragmentIdx : IR_Expression) = field match {
+    case f : IR_Field           => IR_IV_FieldData(f, slot, fragmentIdx)
+    case wbf : IR_WaLBerlaField => IR_IV_WaLBerlaFieldData(wbf, slot, fragmentIdx)
+    case _                      => Logger.error("Unknown field type used for fetching field data")
+  }
+}
+
+// TODO: try to remove "IR_IV_FieldData" occurrences
 
 abstract class IR_IV_AbstractFieldLikeData(
     canBePerFragment : Boolean,

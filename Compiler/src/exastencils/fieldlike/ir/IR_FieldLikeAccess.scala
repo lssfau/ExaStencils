@@ -7,10 +7,14 @@ import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
+import exastencils.field.ir.IR_DirectFieldAccess
+import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_SlotAccess
 import exastencils.knowledge.ir.IR_LeveledKnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.polyhedron.IR_PolyArrayAccessLike
+import exastencils.waLBerla.ir.field.IR_DirectWaLBerlaFieldAccess
+import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 
 /// IR_FieldLikeAccess
 
@@ -87,6 +91,23 @@ object IR_ApplyOffsetToFieldLikeAccess extends DefaultStrategy("Apply offsets to
 
 /// IR_DirectFieldLikeAccess
 
+// TODO: avoid this
+object IR_DirectFieldLikeAccess {
+  def apply(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, index : IR_ExpressionIndex) = field match {
+    case f : IR_Field           => IR_DirectFieldAccess(f, slot, fragIdx, index)
+    case wbf : IR_WaLBerlaField => IR_DirectWaLBerlaFieldAccess(wbf, slot, fragIdx, index)
+    case _                      => Logger.error("Unknown field type used for direct field access")
+  }
+
+  def apply(field : IR_FieldLike, slot : IR_Expression, index : IR_ExpressionIndex) = field match {
+    case f : IR_Field           => IR_DirectFieldAccess(f, slot, index)
+    case wbf : IR_WaLBerlaField => IR_DirectWaLBerlaFieldAccess(wbf, slot, index)
+    case _                      => Logger.error("Unknown field type used for direct field access")
+  }
+}
+
+// TODO: try to remove "IR_DirectFieldAccess" occurrences
+
 trait IR_DirectFieldLikeAccess extends IR_MultiDimFieldLikeAccess with IR_PolyArrayAccessLike {
   def field : IR_FieldLike
   def slot : IR_Expression
@@ -132,6 +153,8 @@ object IR_LinearizeDirectFieldLikeAccess extends DefaultStrategy("Linearize Dire
 }
 
 /// IR_LinearizedFieldLikeAccess
+
+// TODO: try to remove "IR_LinearizedFieldAccess" occurrences
 
 trait IR_LinearizedFieldLikeAccess extends IR_FieldLikeAccessLike with IR_Expandable {
   def field : IR_FieldLike

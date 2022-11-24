@@ -23,6 +23,10 @@ trait IR_MultiDimWaLBerlaFieldAccess extends IR_WaLBerlaFieldAccessLike with IR_
 
 /// IR_DirectWaLBerlaFieldAccess
 
+object IR_DirectWaLBerlaFieldAccess {
+  def apply(field : IR_WaLBerlaField, slot : IR_Expression, index : IR_ExpressionIndex) = new IR_DirectWaLBerlaFieldAccess(field, slot, IR_LoopOverFragments.defIt, index)
+}
+
 case class IR_DirectWaLBerlaFieldAccess(
     var field : IR_WaLBerlaField,
     var slot : IR_Expression,

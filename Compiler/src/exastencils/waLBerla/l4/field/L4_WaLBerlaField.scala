@@ -19,7 +19,7 @@ case class L4_WaLBerlaField(
     var numSlots : Int,
     var boundary : L4_BoundaryCondition,
     var matShape : Option[L4_MatShape] = None,
-    var gpuCompatible : Boolean = false
+    var gpuCompatible : Boolean = true
 ) extends L4_FieldLike[IR_WaLBerlaField, IR_WaLBerlaFieldLayout] {
 
   override def createDuplicate() : L4_WaLBerlaField = {
