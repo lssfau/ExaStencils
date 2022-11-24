@@ -9,7 +9,7 @@ case class IR_WaLBerlaSwapFieldPointers(
     var dst : IR_WaLBerlaFieldAccess,
 ) extends IR_Statement with IR_Expandable {
 
-  private def toWbData(wbfAcc : IR_WaLBerlaFieldAccess) = IR_IV_WaLBerlaGetFieldData(wbfAcc.field, wbfAcc.slot, IR_LoopOverFragments.defIt)
+  private def toWbData(wbfAcc : IR_WaLBerlaFieldAccess) = IR_IV_WaLBerlaGetField(wbfAcc.field, wbfAcc.slot, IR_LoopOverFragments.defIt)
 
   if (IR_WaLBerlaFieldCollection.getByIdentifier(src.name, src.level).isEmpty || IR_WaLBerlaFieldCollection.getByIdentifier(dst.name, dst.level).isEmpty)
     Logger.error("\"IR_WaLBerlaSwapFieldPointers\": Both fields must be waLBerla fields")

@@ -55,10 +55,12 @@ case class IR_WaLBerlaFieldAccess(
     applyUnresolvedOffset()
 
     if (Knowledge.waLBerla_useInternalMemoryPointers) {
+      // access via raw memory pointer
       IR_DirectWaLBerlaFieldAccess(field, slot, fragIdx, index + field.referenceOffset)
     } else {
+      // single-element access via get(x, y, z, f) access
       val newIdx = IR_WaLBerlaUtil.adaptIndexForAccessors(index, field.gridDatatype, field.numDimsGrid, field.layout.numDimsData)
-      IR_MemberFunctionCallArrow(IR_IV_WaLBerlaGetFieldData(field, slot, fragIdx), "get", newIdx.indices : _*)
+      IR_MemberFunctionCallArrow(IR_IV_WaLBerlaGetField(field, slot, fragIdx), "get", newIdx.indices : _*)
     }
   }
 }
@@ -73,7 +75,7 @@ case class IR_LinearizedWaLBerlaFieldAccess(
 
   override def expand() : OutputType = {
     IR_ArrayAccess(
-      IR_IV_WaLBerlaFieldDataAt(field, slot, fragIdx),
+      IR_IV_WaLBerlaFieldData(field, slot, fragIdx),
       index,
       Knowledge.data_alignFieldPointers)
   }

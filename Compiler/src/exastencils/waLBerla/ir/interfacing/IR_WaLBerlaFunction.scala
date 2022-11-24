@@ -16,7 +16,6 @@ import exastencils.waLBerla.ir.field._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
-
 trait IR_WaLBerlaFunction extends IR_Function with PrettyPrintable {
   def name : String
   var parameters : ListBuffer[IR_FunctionArgument]
@@ -46,7 +45,7 @@ trait IR_WaLBerlaFunction extends IR_Function with PrettyPrintable {
 case class IR_WaLBerlaLeveledFunction(
     var baseName : String,
     var level : Int,
-    var datatype: IR_Datatype,
+    var datatype : IR_Datatype,
     var parameters : ListBuffer[IR_FunctionArgument],
     var body : ListBuffer[IR_Statement]) extends IR_WaLBerlaFunction with IR_LeveledFunctionLike {
 
@@ -55,10 +54,9 @@ case class IR_WaLBerlaLeveledFunction(
 
 case class IR_WaLBerlaPlainFunction(
     var name : String,
-    var datatype: IR_Datatype,
+    var datatype : IR_Datatype,
     var parameters : ListBuffer[IR_FunctionArgument],
     var body : ListBuffer[IR_Statement]) extends IR_WaLBerlaFunction with IR_PlainFunctionLike
-
 
 object IR_WaLBerlaSetupFunctions extends DefaultStrategy("Transform functions accessing wb data structures to wb functions.") {
   var stackCollector = new IR_StackCollector
@@ -93,16 +91,19 @@ object IR_WaLBerlaSetupFunctions extends DefaultStrategy("Transform functions ac
     case fAcc : IR_WaLBerlaFieldAccess                                          =>
       findEnclosingFunction(stackCollector.stack)
       fAcc
-    case acc : IR_Access if acc == IR_WaLBerlaBlockForest().resolveAccess() =>
+    case acc : IR_Access if acc == IR_WaLBerlaBlockForest().resolveAccess()     =>
       findEnclosingFunction(stackCollector.stack)
       acc
-    case loop : IR_WaLBerlaLoopOverBlocks =>
+    case loop : IR_WaLBerlaLoopOverBlocks                                       =>
       findEnclosingFunction(stackCollector.stack)
       loop
-    case bf : IR_WaLBerlaBlockForest     =>
+    case bf : IR_WaLBerlaBlockForest                                            =>
       findEnclosingFunction(stackCollector.stack)
       bf
-    case iv : IR_IV_WaLBerlaGetFieldData =>
+    case iv : IR_IV_WaLBerlaGetField                                            =>
+      findEnclosingFunction(stackCollector.stack)
+      iv
+    case iv : IR_IV_WaLBerlaFieldData                                           =>
       findEnclosingFunction(stackCollector.stack)
       iv
   })

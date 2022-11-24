@@ -28,16 +28,16 @@ object IR_WaLBerlaReplaceFragmentLoops extends QuietDefaultStrategy("Replace fra
     }
 
     this += Transformation("Find", {
-      case fAcc : IR_FieldAccessLike if IR_WaLBerlaFieldCollection.contains(fAcc) =>
+      case fAcc : IR_FieldAccessLike if IR_WaLBerlaFieldCollection.contains(fAcc)     =>
         found = true
         fAcc
       case fAcc : IR_WaLBerlaFieldAccess if IR_WaLBerlaFieldCollection.contains(fAcc) =>
         found = true
         fAcc
-      case fAcc : IR_IV_WaLBerlaGetFieldData                                          =>
+      case fAcc : IR_IV_WaLBerlaGetField                                              =>
         found = true
         fAcc
-      case fAcc : IR_IV_WaLBerlaFieldDataAt                                           =>
+      case fAcc : IR_IV_WaLBerlaFieldData                                             =>
         found = true
         fAcc
     })
