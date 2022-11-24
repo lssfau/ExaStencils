@@ -23,11 +23,11 @@ mpi_numThreads				= 1
 omp_parallelizeLoopOverFragments	= false
 omp_parallelizeLoopOverDimensions	= true
 
-mpi_useCustomDatatypes		= true
+//mpi_useCustomDatatypes		= true
 poly_optLevel_fine			= 3
 opt_useAddressPrecalc		= true
 opt_vectorize				= true
-opt_unroll					= 2
+//opt_unroll					= 2
 
 opt_conventionalCSE         = true
 opt_loopCarriedCSE          = true
