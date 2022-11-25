@@ -30,6 +30,7 @@ import exastencils.core._
 import exastencils.datastructures.Node
 import exastencils.field.ir._
 import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
+import exastencils.fieldlike.ir.IR_LinearizedFieldLikeAccess
 import exastencils.fieldlike.ir.IR_MultiDimFieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
@@ -94,8 +95,8 @@ case class CUDA_Kernel(
   var fieldDatatype = HashMap[String, IR_Datatype]()
 
   var evaluatedAccesses = false
-  var linearizedFieldAccesses = HashMap[String, IR_LinearizedFieldAccess]()
-  var writtenFieldAccesses = HashMap[String, IR_LinearizedFieldAccess]()
+  var linearizedFieldAccesses = HashMap[String, IR_LinearizedFieldLikeAccess]()
+  var writtenFieldAccesses = HashMap[String, IR_LinearizedFieldLikeAccess]()
   var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
   var ivAccesses = HashMap[String, IR_InternalVariable]()
 

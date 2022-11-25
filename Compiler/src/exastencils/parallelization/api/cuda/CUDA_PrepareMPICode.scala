@@ -29,6 +29,7 @@ import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
 import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 import exastencils.fieldlike.ir.IR_MultiDimFieldLikeAccess
 import exastencils.logger.Logger
@@ -282,7 +283,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
         object CUDA_ReplaceAccessesInDeviceSpecMPI extends QuietDefaultStrategy("Replace accesses to fields and buffers to prepare device variants of MPI calls") {
           this += new Transformation("Search", {
-            case access : IR_DirectFieldAccess =>
+            case access : IR_DirectFieldLikeAccess =>
               val linearized = access.linearize
               val devField = CUDA_FieldDeviceData(linearized.field, Duplicate(linearized.slot), Duplicate(linearized.fragIdx))
               IR_ArrayAccess(devField, linearized.index)
