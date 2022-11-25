@@ -54,8 +54,6 @@ object CUDA_ReplaceIVs extends QuietDefaultStrategy("Replace local InternalVaria
     case iv : IR_IV_CommBuffer =>
       // skip due to separate handling
       iv
-
-    // TODO: debug
     case slot : IR_SlotAccess =>
       val ivAccess = ivAccesses.find(_._2 == slot.slot).get
       IR_VariableAccess(ivAccess._1, ivAccess._2.resolveDatatype()) + slot.offset
