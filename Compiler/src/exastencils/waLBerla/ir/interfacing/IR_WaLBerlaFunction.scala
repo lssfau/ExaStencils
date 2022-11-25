@@ -3,6 +3,7 @@ package exastencils.waLBerla.ir.interfacing
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.config.Knowledge
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
@@ -75,7 +76,7 @@ object IR_WaLBerlaSetupFunctions extends DefaultStrategy("Transform functions ac
 
   def findEnclosingFunction(stack : List[IR_Node]) : Unit = {
     // don't transform generated CUDA kernel functions
-    val enclosingFunction = stack.collectFirst { case f : IR_Function if !CUDA_KernelFunctions.get.functions.contains(f) => f }
+    val enclosingFunction = stack.collectFirst { case f : IR_Function if Knowledge.cuda_enabled && !CUDA_KernelFunctions.get.functions.contains(f) => f }
     if (enclosingFunction.isDefined) {
       enclosingFunction.get match {
         case plain : IR_PlainFunction     => plainFunctions += plain
