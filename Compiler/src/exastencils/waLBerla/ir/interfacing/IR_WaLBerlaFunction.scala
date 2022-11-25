@@ -7,6 +7,7 @@ import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
 import exastencils.field.ir.IR_FieldAccessLike
+import exastencils.parallelization.api.cuda.CUDA_KernelFunctions
 import exastencils.prettyprinting.PpStream
 import exastencils.prettyprinting.PrettyPrintable
 import exastencils.util.ir.IR_StackCollector
@@ -73,7 +74,8 @@ object IR_WaLBerlaSetupFunctions extends DefaultStrategy("Transform functions ac
   }
 
   def findEnclosingFunction(stack : List[IR_Node]) : Unit = {
-    val enclosingFunction = stack.collectFirst { case f : IR_Function => f }
+    // don't transform generated CUDA kernel functions
+    val enclosingFunction = stack.collectFirst { case f : IR_Function if !CUDA_KernelFunctions.get.functions.contains(f) => f }
     if (enclosingFunction.isDefined) {
       enclosingFunction.get match {
         case plain : IR_PlainFunction     => plainFunctions += plain
