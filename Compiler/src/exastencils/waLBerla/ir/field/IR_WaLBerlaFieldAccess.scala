@@ -3,10 +3,14 @@ package exastencils.waLBerla.ir.field
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.OutputType
 import exastencils.field.ir.IR_FieldAccess
+import exastencils.field.ir.IR_FieldCollection
+import exastencils.field.ir.IR_IV_ActiveSlot
+import exastencils.field.ir.IR_SlotAccess
 import exastencils.fieldlike.ir._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
@@ -91,7 +95,12 @@ object IR_WaLBerlaResolveFieldAccess extends DefaultStrategy("Resolve FieldAcces
   this += new Transformation("Resolve", {
     case access : IR_FieldAccess if IR_WaLBerlaFieldCollection.contains(access) =>
       val field = IR_WaLBerlaFieldCollection.getByIdentifier(access.name, access.level, suppressError = true).get
-      IR_WaLBerlaFieldAccess(field, access.slot, access.fragIdx, access.index, access.offset, access.frozen, access.matIndex).expandSpecial()
+      val newSlot = access.slot match {
+        case _ @ IR_SlotAccess(_ @ IR_IV_ActiveSlot(_, frag), off) => IR_SlotAccess(IR_IV_ActiveSlot(field, frag), off)
+        case slot                                                  => slot
+      }
+      IR_WaLBerlaFieldAccess(field, newSlot, Duplicate(access.fragIdx), Duplicate(access.index), Duplicate(access.offset),
+        Duplicate(access.frozen), Duplicate(access.matIndex)).expandSpecial()
 
     case access : IR_WaLBerlaFieldAccess => access.expandSpecial()
   })
