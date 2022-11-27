@@ -17,6 +17,7 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
   def getReference = IR_AddressOf(IR_VariableAccess(name + "_" + level, returnType))
 
   override def isInterfaceFunction : Boolean = false
+  override def inlineImplementation : Boolean = false
 
   override def generateWaLBerlaFct() : IR_WaLBerlaLeveledFunction = {
 
@@ -27,7 +28,7 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
     val maxLevel = if (blockForest.maxLevelWaLBerlaField.isDefined) {
       blockForest.maxLevelWaLBerlaField.get.level
     } else {
-      Logger.error("AddFieldToStorage not applicable without waLBerla fields")
+      Knowledge.maxLevel
     }
 
     var params : ListBuffer[IR_FunctionArgument] = ListBuffer()

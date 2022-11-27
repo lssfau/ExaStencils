@@ -44,6 +44,7 @@ case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
   val aabb = IR_VariableAccess("aabb", IR_SpecialDatatype("auto"))
 
   override def isInterfaceFunction : Boolean = false
+  override def inlineImplementation : Boolean = false
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
     // error checks

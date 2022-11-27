@@ -19,6 +19,7 @@ case class IR_WaLBerlaInitCommSchemes() extends IR_WaLBerlaFuturePlainFunction {
   override def prettyprint_decl() : String = prettyprint
 
   override def isInterfaceFunction : Boolean = true
+  override def inlineImplementation : Boolean = true
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
 

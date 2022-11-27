@@ -7,6 +7,7 @@ import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
+import exastencils.logger.Logger
 import exastencils.prettyprinting._
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes._
@@ -36,6 +37,9 @@ object IR_WaLBerlaInterface {
 case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction]) extends IR_Node with FilePrettyPrintable {
 
   import IR_WaLBerlaInterface._
+
+  if (!functions.forall(_.inlineImplementation))
+    Logger.warn("All interface function implementations are (implicitly) expected to be inlined.")
 
   val context = IR_WaLBerlaInterfaceGenerationContext(functions)
 
