@@ -76,7 +76,8 @@ object IR_WaLBerlaSetupFunctions extends DefaultStrategy("Transform functions ac
 
   def findEnclosingFunction(stack : List[IR_Node]) : Unit = {
     // don't transform generated CUDA kernel functions
-    val enclosingFunction = stack.collectFirst { case f : IR_Function if Knowledge.cuda_enabled && !CUDA_KernelFunctions.get.functions.contains(f) => f }
+    def isKernelFunction(f : IR_Function) = Knowledge.cuda_enabled && CUDA_KernelFunctions.get.functions.contains(f)
+    val enclosingFunction = stack.collectFirst { case f : IR_Function if !isKernelFunction(f) => f }
     if (enclosingFunction.isDefined) {
       enclosingFunction.get match {
         case plain : IR_PlainFunction     => plainFunctions += plain
