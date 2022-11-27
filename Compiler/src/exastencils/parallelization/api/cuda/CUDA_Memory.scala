@@ -28,7 +28,7 @@ import exastencils.config.Knowledge
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.Output
-import exastencils.field.ir._
+import exastencils.field.ir.IR_Field
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 
@@ -164,8 +164,8 @@ object CUDA_AdaptDeviceAccessesForMM extends DefaultStrategy("Adapt allocations 
 /// CUDA_AdaptAllocations
 
 object CUDA_AdaptAllocations extends DefaultStrategy("Adapt allocations and de-allocations on host and device") {
-  var fieldHostAllocations = ListBuffer[IR_Field]()
-  var bufferHostAllocations = ListBuffer[IR_Field]()
+  var fieldHostAllocations = ListBuffer[IR_FieldLike]()
+  var bufferHostAllocations = ListBuffer[IR_FieldLike]()
 
   this.onBefore = () => {
     fieldHostAllocations.clear()
@@ -173,7 +173,7 @@ object CUDA_AdaptAllocations extends DefaultStrategy("Adapt allocations and de-a
   }
 
   this += new Transformation("Scanning host allocations", {
-    case alloc @ IR_ArrayAllocation(pointer : IR_IV_FieldData, _, _)  =>
+    case alloc @ IR_ArrayAllocation(pointer : IR_IV_AbstractFieldLikeData, _, _)  =>
       fieldHostAllocations += pointer.field
       alloc
     case alloc @ IR_ArrayAllocation(pointer : IR_IV_CommBuffer, _, _) =>
