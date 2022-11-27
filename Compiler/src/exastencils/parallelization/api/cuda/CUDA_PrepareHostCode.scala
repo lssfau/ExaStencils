@@ -272,11 +272,12 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       // 2. this loop has no parallel potential
       // 3. this loop (or an enclosing one) is not gpu-parallelizable
       // use the host for dealing with the two exceptional cases
-      var isParallel = loop.parallelization.potentiallyParallel && loop.parallelization.gpuParallelizable // filter some generate loops
-      isParallel &= !stackCollector.stack.exists {
-        case n : IR_HasParallelizationInfo => !n.parallelization.gpuParallelizable
-        case _                             => false
-      }
+      val isParallel = loop.parallelization.potentiallyParallel && // filter some generate loops
+        loop.parallelization.gpuParallelizable &&
+        !stackCollector.stack.exists {
+          case n : IR_HasParallelizationInfo => !n.parallelization.gpuParallelizable
+          case _                             => false
+        }
 
       // calculate memory transfer statements for host and device
       val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop.body, isParallel)
