@@ -140,9 +140,13 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   }
 
   override def printToFile() : Unit = {
-    if (functions.exists(f => !futureFunctionIds.contains(f.name)) || interfaceInstance.isDefined) {
-      super.printToFile()
+    val foundUserFunction = functions exists {
+      case f : IR_LeveledFunctionLike => !futureFunctionIds.contains(f.baseName)
+      case f : IR_PlainFunctionLike => !futureFunctionIds.contains(f.name)
     }
+
+    if (foundUserFunction || interfaceInstance.isDefined)
+      super.printToFile()
   }
 }
 

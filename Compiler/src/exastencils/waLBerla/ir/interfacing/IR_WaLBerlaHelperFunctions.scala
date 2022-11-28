@@ -22,6 +22,8 @@ object IR_WaLBerlaHelperFunctionCollection {
     functions += IR_WaLBerlaGetBlockDataID(field)
   }
 
+  for (lvl <- Knowledge.levels)
+    functions += IR_WaLBerlaGetSizeForLevel(lvl)
   functions += IR_WaLBerlaAddFieldToStorageWrapper()
 }
 
