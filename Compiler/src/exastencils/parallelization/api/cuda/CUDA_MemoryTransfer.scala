@@ -73,7 +73,7 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData, stream : CUDA_Tr
     val isDirty = CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx))
 
     if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
-      return IR_IfCondition(IR_AndAnd(isDirty, CUDA_CurrentExecutionMode() Neq CUDA_CPUExecutionMode()),
+      return IR_IfCondition(IR_AndAnd(CUDA_CurrentExecutionMode() Neq CUDA_CPUExecutionMode(), isDirty),
         ListBuffer[IR_Statement](
           CUDA_DeviceSynchronize(),
           IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_CPUExecutionMode())))
@@ -103,7 +103,7 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_
     val isDirty = CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx))
 
     if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
-      return IR_IfCondition(IR_AndAnd(isDirty, CUDA_CurrentExecutionMode() Neq CUDA_GPUExecutionMode()),
+      return IR_IfCondition(IR_AndAnd(CUDA_CurrentExecutionMode() Neq CUDA_GPUExecutionMode(), isDirty),
         ListBuffer[IR_Statement](
           CUDA_DeviceSynchronize(),
           IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_GPUExecutionMode())))
@@ -128,7 +128,7 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUD
     val isDirty = CUDA_DeviceBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx))
 
     if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
-      return IR_IfCondition(IR_AndAnd(isDirty, CUDA_CurrentExecutionMode() Neq CUDA_CPUExecutionMode()),
+      return IR_IfCondition(IR_AndAnd(CUDA_CurrentExecutionMode() Neq CUDA_CPUExecutionMode(), isDirty),
         ListBuffer[IR_Statement](
           CUDA_DeviceSynchronize(),
           IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_CPUExecutionMode())))
@@ -153,7 +153,7 @@ case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer, stream : C
     val isDirty = CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx))
 
     if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
-      return IR_IfCondition(IR_AndAnd(isDirty, CUDA_CurrentExecutionMode() Neq CUDA_GPUExecutionMode()),
+      return IR_IfCondition(IR_AndAnd(CUDA_CurrentExecutionMode() Neq CUDA_GPUExecutionMode(), isDirty),
         ListBuffer[IR_Statement](
           CUDA_DeviceSynchronize(),
           IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_GPUExecutionMode())))
