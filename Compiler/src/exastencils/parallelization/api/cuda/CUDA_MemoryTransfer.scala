@@ -69,13 +69,16 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData, stream : CUDA_Tr
   // TODO: allow targeting of specific index ranges
 
   override def expand() : Output[IR_Statement] = {
-    if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
-      return IR_NullStatement
-
     val field = fieldData.field
+    val isDirty = CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx))
 
-    IR_IfCondition(
-      CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
+    if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
+      return IR_IfCondition(IR_AndAnd(isDirty, CUDA_CurrentExecutionMode() Neq CUDA_CPUExecutionMode()),
+        ListBuffer[IR_Statement](
+          CUDA_DeviceSynchronize(),
+          IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_CPUExecutionMode())))
+
+    IR_IfCondition(isDirty,
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
           IR_IV_FieldData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
@@ -96,13 +99,16 @@ object CUDA_UpdateDeviceData {
 
 case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
-    if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
-      return IR_NullStatement
-
     val field = fieldData.field
+    val isDirty = CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx))
 
-    IR_IfCondition(
-      CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
+    if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
+      return IR_IfCondition(IR_AndAnd(isDirty, CUDA_CurrentExecutionMode() Neq CUDA_GPUExecutionMode()),
+        ListBuffer[IR_Statement](
+          CUDA_DeviceSynchronize(),
+          IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_GPUExecutionMode())))
+
+    IR_IfCondition(isDirty,
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
           IR_IV_FieldData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
@@ -118,13 +124,16 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_
 
 case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
-    if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
-      return IR_NullStatement
-
     val field = buffer.field
+    val isDirty = CUDA_DeviceBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx))
 
-    IR_IfCondition(
-      CUDA_DeviceBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx)),
+    if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
+      return IR_IfCondition(IR_AndAnd(isDirty, CUDA_CurrentExecutionMode() Neq CUDA_CPUExecutionMode()),
+        ListBuffer[IR_Statement](
+          CUDA_DeviceSynchronize(),
+          IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_CPUExecutionMode())))
+
+    IR_IfCondition(isDirty,
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
           Duplicate(buffer),
@@ -140,13 +149,16 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUD
 
 case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
-    if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
-      return IR_NullStatement
-
     val field = buffer.field
+    val isDirty = CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx))
 
-    IR_IfCondition(
-      CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx)),
+    if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
+      return IR_IfCondition(IR_AndAnd(isDirty, CUDA_CurrentExecutionMode() Neq CUDA_GPUExecutionMode()),
+        ListBuffer[IR_Statement](
+          CUDA_DeviceSynchronize(),
+          IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_GPUExecutionMode())))
+
+    IR_IfCondition(isDirty,
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
           Duplicate(buffer),
