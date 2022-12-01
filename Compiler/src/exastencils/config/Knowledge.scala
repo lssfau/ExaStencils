@@ -291,6 +291,9 @@ object Knowledge {
   // may be one of the following: 'Chrono', 'QPC', 'WIN_TIME', 'UNIX_TIME', 'MPI_TIME', 'RDSC', 'WINDOWS_RDSC'
   var timer_type : String = "Chrono"
 
+  // synchronizes device before starting/stopping a timer for more accurate measurements
+  var timer_syncDevice : Boolean = true
+
   // synchronizes all mpi ranks when a (potentially nested) timer is started for the first time or stopped for the last time
   var timer_syncMpi : Boolean = false
 
@@ -934,6 +937,7 @@ object Knowledge {
     Constraints.condEnsureValue(timer_type, "WIN_TIME", "UNIX_TIME" == timer_type && "MSVC" == Platform.targetCompiler, "UNIX_TIME is not supported for windows systems")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == Platform.targetCompiler, "IBM XL does currently not support std::chrono")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == Platform.targetCompiler, "IBM BG does currently not support std::chrono")
+    Constraints.condEnsureValue(timer_syncDevice, false, !cuda_enabled, "Disabling flag \"timer_syncDevice\". Requires \"cuda_enabled\" to be enabled.")
 
     // benchmarking and performance estimation
 
