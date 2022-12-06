@@ -39,13 +39,15 @@ case class IR_WaLBerlaInitCommSchemes() extends IR_WaLBerlaFuturePlainFunction {
     }
 
     // add pack info
+    var addPackInfo = ListBuffer[IR_Statement]()
     for (wbf <- wbFieldsPerLevel) {
       val slotIt = IR_VariableAccess("slotIt", IR_IntegerDatatype)
       val commScheme  = IR_WaLBerlaCommScheme(wbf, slotIt)
 
-      body += IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
+      addPackInfo += IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
         commScheme.addPackInfo() : IR_Statement)
     }
+    body += IR_IfCondition(blockForest.getNumberOfBlocks() > 1, addPackInfo)
 
     IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(), body)
   }
