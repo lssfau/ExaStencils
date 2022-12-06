@@ -51,7 +51,7 @@ case class IR_WaLBerlaInitCommSchemes() extends IR_WaLBerlaFuturePlainFunction {
     body += (if (Knowledge.waLBerla_useGridFromExa)
       IR_IfCondition(Knowledge.domain_numFragmentsTotal > 1, addPackInfo)
     else
-      IR_IfCondition(blockForest.getNumberOfBlocks() > 1, addPackInfo))
+      IR_IfCondition(blockForest.getNumberOfAllRootBlocks() > 1, addPackInfo))
 
     IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(), body)
   }

@@ -59,7 +59,7 @@ case class IR_WaLBerlaCommScheme(var wbField : IR_WaLBerlaField, var slot : IR_E
     if (Knowledge.waLBerla_useGridFromExa)
       IR_IfCondition(Knowledge.domain_numFragmentsTotal > 1, comm)
     else
-      IR_IfCondition(blockForest.getNumberOfBlocks() > 1, comm)
+      IR_IfCondition(blockForest.getNumberOfAllRootBlocks() > 1, comm)
   }
 
   override def prettyprint(out : PpStream) : Unit = out << baseAccess()
