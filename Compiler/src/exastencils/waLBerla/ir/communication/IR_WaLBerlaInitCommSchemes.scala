@@ -31,12 +31,15 @@ case class IR_WaLBerlaInitCommSchemes() extends IR_WaLBerlaFuturePlainFunction {
     var body = ListBuffer[IR_Statement]()
 
     // init comm scheme array
+    var ctr = 0
     for (wbf <- wbFieldsPerLevel) {
-      val slotIt = IR_VariableAccess("slotIt", IR_IntegerDatatype)
-      val commScheme  = IR_WaLBerlaCommScheme(wbf, slotIt)
+      for (s <- 0 until wbf.numSlots) {
+        val commScheme = IR_WaLBerlaCommScheme(wbf, s)
+        val tag = "waLBerla".chars().sum() + ctr // increment default tag value per created comm scheme
 
-      body += IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
-        IR_Assignment(commScheme.resolveAccess(), make_unique(commScheme.basetype.resolveBaseDatatype.prettyprint, blockForest)))
+        body += IR_Assignment(commScheme.resolveAccess(), make_unique(commScheme.basetype.resolveBaseDatatype.prettyprint, blockForest, tag))
+        ctr += 1
+      }
     }
 
     // add pack info
