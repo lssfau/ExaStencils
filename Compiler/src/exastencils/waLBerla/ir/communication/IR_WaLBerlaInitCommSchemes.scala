@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.config.Knowledge
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.field._
 import exastencils.waLBerla.ir.interfacing._
@@ -47,7 +48,10 @@ case class IR_WaLBerlaInitCommSchemes() extends IR_WaLBerlaFuturePlainFunction {
       addPackInfo += IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
         commScheme.addPackInfo() : IR_Statement)
     }
-    body += IR_IfCondition(blockForest.getNumberOfBlocks() > 1, addPackInfo)
+    body += (if (Knowledge.waLBerla_useGridFromExa)
+      IR_IfCondition(Knowledge.domain_numFragmentsTotal > 1, addPackInfo)
+    else
+      IR_IfCondition(blockForest.getNumberOfBlocks() > 1, addPackInfo))
 
     IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(), body)
   }

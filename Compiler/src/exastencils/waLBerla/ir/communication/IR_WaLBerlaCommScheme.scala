@@ -3,6 +3,7 @@ package exastencils.waLBerla.ir.communication
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_StdArrayDatatype
+import exastencils.config.Knowledge
 import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
@@ -53,7 +54,13 @@ case class IR_WaLBerlaCommScheme(var wbField : IR_WaLBerlaField, var slot : IR_E
     access
   }
 
-  def communicate : IR_Statement = IR_MemberFunctionCallArrow(resolveAccess(), "communicate")
+  def communicate : IR_Statement = {
+    val comm = IR_MemberFunctionCallArrow(resolveAccess(), "communicate")
+    if (Knowledge.waLBerla_useGridFromExa)
+      IR_IfCondition(Knowledge.domain_numFragmentsTotal > 1, comm)
+    else
+      IR_IfCondition(blockForest.getNumberOfBlocks() > 1, comm)
+  }
 
   override def prettyprint(out : PpStream) : Unit = out << baseAccess()
 }
