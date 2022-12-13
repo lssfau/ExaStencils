@@ -86,14 +86,6 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
     beforeHost ++= syncEventsBeforeHost(executionStream)
 
-    // trigger synchronize if memory transfers are eliminated and the execution mode is switched
-    if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers)) {
-      beforeHost += IR_IfCondition(CUDA_CurrentExecutionMode() Neq CUDA_CPUExecutionMode(),
-        ListBuffer[IR_Statement](
-          CUDA_DeviceSynchronize(),
-          IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_CPUExecutionMode())))
-    }
-
     // device sync stmts
 
     if (isParallel) {
@@ -102,14 +94,6 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     }
 
     beforeDevice ++= syncEventsBeforeDevice(executionStream)
-
-    // trigger synchronize if memory transfers are eliminated and the execution mode is switched
-    if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers)) {
-      beforeDevice += IR_IfCondition(CUDA_CurrentExecutionMode() Neq CUDA_GPUExecutionMode(),
-        ListBuffer[IR_Statement](
-          CUDA_DeviceSynchronize(),
-          IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_GPUExecutionMode())))
-    }
 
     (beforeHost, afterHost, beforeDevice, afterDevice)
   }
