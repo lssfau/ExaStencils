@@ -180,26 +180,28 @@ case class CUDA_HandleFragmentLoops(
     var (hostSyncFragLoopBefore, hostSyncFragLoopAfter) = (ListBuffer[IR_Statement](syncBeforeFragLoop : _*), ListBuffer[IR_Statement](syncAfterFragLoop : _*))
     var (deviceSyncFragLoopBefore, deviceSyncFragLoopAfter) = (ListBuffer[IR_Statement](syncBeforeFragLoop : _*), ListBuffer[IR_Statement](syncAfterFragLoop : _*))
 
-    /* - host stream sync - */
+    if (Knowledge.cuda_useStreams) {
+      /* - host stream sync - */
 
-    // cpu execution: set stream mode to dummy value
-    hostSyncFragLoopAfter += IR_Assignment(CUDA_CurrentStreamMode(), CUDA_DummyStreamMode())
+      // cpu execution: set stream mode to dummy value
+      hostSyncFragLoopAfter += IR_Assignment(CUDA_CurrentStreamMode(), CUDA_DummyStreamMode())
 
-    /* - device stream sync - */
+      /* - device stream sync - */
 
-    val newModes = streams.map(s => CUDA_StreamMode.streamToMode(s))
-    val newMode = newModes.head // assume equal mode within fragment loop, otherwise throw error
-    val distinctModes = newModes.distinct.size != 1
+      val newModes = streams.map(s => CUDA_StreamMode.streamToMode(s))
+      val newMode = newModes.head // assume equal mode within fragment loop, otherwise throw error
+      val distinctModes = newModes.distinct.size != 1
 
-    // check if no distinct stream modes are employed in kernel
-    if (!distinctModes) {
-      // wrap with guard for (conditional) syncing: only if stream mode has switched
-      deviceSyncFragLoopBefore = ListBuffer(IR_IfCondition(IR_Negation(CUDA_StreamMode.isCurrentStreamMode(newMode)), deviceSyncFragLoopBefore))
-      // update stream mode after exec
-      deviceSyncFragLoopAfter += IR_Assignment(CUDA_CurrentStreamMode(), newMode)
-    } else {
-      // no unique stream mode employed -> undefined behavior
-      Logger.error("Distinct stream modes employed within a kernel. This results in undefined behavior.")
+      // check if no distinct stream modes are employed in kernel
+      if (!distinctModes) {
+        // wrap with guard for (conditional) syncing: only if stream mode has switched
+        deviceSyncFragLoopBefore = ListBuffer(IR_IfCondition(IR_Negation(CUDA_StreamMode.isCurrentStreamMode(newMode)), deviceSyncFragLoopBefore))
+        // update stream mode after exec
+        deviceSyncFragLoopAfter += IR_Assignment(CUDA_CurrentStreamMode(), newMode)
+      } else {
+        // no unique stream mode employed -> undefined behavior
+        Logger.error("Distinct stream modes employed within a kernel. This results in undefined behavior.")
+      }
     }
 
     (IR_LoopOverFragments(branchingWrapper(hostSyncFragLoopBefore, deviceSyncFragLoopBefore)),
