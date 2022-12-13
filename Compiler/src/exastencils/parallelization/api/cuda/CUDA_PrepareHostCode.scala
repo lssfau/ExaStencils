@@ -86,14 +86,18 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
     beforeHost ++= syncEventsBeforeHost(executionStream)
 
+    afterHost += IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_CPUExecutionMode())
+
     // device sync stmts
+
+    beforeDevice ++= syncEventsBeforeDevice(executionStream)
 
     if (isParallel) {
       if (!Knowledge.cuda_useStreams && !Knowledge.cuda_omitSyncDeviceAfterKernelCalls)
         afterDevice += CUDA_DeviceSynchronize()
     }
 
-    beforeDevice ++= syncEventsBeforeDevice(executionStream)
+    afterDevice += IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_GPUExecutionMode())
 
     (beforeHost, afterHost, beforeDevice, afterDevice)
   }
