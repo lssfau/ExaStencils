@@ -37,7 +37,7 @@ case class L4_WaLBerlaField(
     out << "@" << level
   }
 
-  def toField = L4_Field(name, level, index, domain, fieldLayout.toFieldLayout, numSlots, boundary, matShape, gpuCompatible = false)
+  def toField = L4_Field(name, level, index, domain, fieldLayout.toFieldLayout, numSlots, boundary, matShape)
 
   override def progressImpl() =
     IR_WaLBerlaField(
