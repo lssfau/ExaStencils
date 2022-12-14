@@ -121,7 +121,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
   def processRead(expr : IR_Expression) {
     expr match {
       case access : IR_MultiDimFieldLikeAccess => mapFieldAccess(access, false)
-      case field : IR_IV_FieldData         => mapFieldPtrAccess(field, false)
+      case field : IR_IV_AbstractFieldLikeData => mapFieldPtrAccess(field, false)
       case buffer : IR_IV_CommBuffer       => mapBuffer(buffer, false)
       case IR_PointerOffset(base, _)       => processRead(base)
 
@@ -288,7 +288,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
               val devField = CUDA_FieldDeviceData(linearized.field, Duplicate(linearized.slot), Duplicate(linearized.fragIdx))
               IR_ArrayAccess(devField, linearized.index)
 
-            case fieldData : IR_IV_FieldData =>
+            case fieldData : IR_IV_AbstractFieldLikeData =>
               CUDA_FieldDeviceData(fieldData.field, fieldData.slot, fieldData.fragmentIdx)
 
             case buffer : IR_IV_CommBuffer =>

@@ -4,7 +4,7 @@ import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir._
 
-// TODO: try to remove "IR_IV_FieldLikeFlag" occurrences
+// TODO: try to remove "IR_IV_FieldFlag" occurrences
 
 abstract class IR_IV_FieldLikeFlag extends IR_InternalVariable(true, false, true, true, false) {
   var field : IR_FieldLike
