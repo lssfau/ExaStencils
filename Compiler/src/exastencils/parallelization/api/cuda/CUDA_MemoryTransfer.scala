@@ -74,7 +74,9 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData, stream : CUDA_Tr
 
     if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
       return IR_IfCondition(IR_AndAnd(CUDA_CurrentExecutionMode() Neq CUDA_CPUExecutionMode(), isDirty),
-        ListBuffer[IR_Statement](CUDA_DeviceSynchronize()))
+        ListBuffer[IR_Statement](
+          CUDA_DeviceSynchronize(),
+          IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_CPUExecutionMode())))
 
     IR_IfCondition(isDirty,
       ListBuffer[IR_Statement](
@@ -102,7 +104,9 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_
 
     if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
       return IR_IfCondition(IR_AndAnd(CUDA_CurrentExecutionMode() Neq CUDA_GPUExecutionMode(), isDirty),
-        ListBuffer[IR_Statement](CUDA_DeviceSynchronize()))
+        ListBuffer[IR_Statement](
+          CUDA_DeviceSynchronize(),
+          IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_GPUExecutionMode())))
 
     IR_IfCondition(isDirty,
       ListBuffer[IR_Statement](
@@ -125,7 +129,9 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUD
 
     if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
       return IR_IfCondition(IR_AndAnd(CUDA_CurrentExecutionMode() Neq CUDA_CPUExecutionMode(), isDirty),
-        ListBuffer[IR_Statement](CUDA_DeviceSynchronize()))
+        ListBuffer[IR_Statement](
+          CUDA_DeviceSynchronize(),
+          IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_CPUExecutionMode())))
 
     IR_IfCondition(isDirty,
       ListBuffer[IR_Statement](
@@ -148,7 +154,9 @@ case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer, stream : C
 
     if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
       return IR_IfCondition(IR_AndAnd(CUDA_CurrentExecutionMode() Neq CUDA_GPUExecutionMode(), isDirty),
-        ListBuffer[IR_Statement](CUDA_DeviceSynchronize()))
+        ListBuffer[IR_Statement](
+          CUDA_DeviceSynchronize(),
+          IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_GPUExecutionMode())))
 
     IR_IfCondition(isDirty,
       ListBuffer[IR_Statement](
