@@ -21,6 +21,8 @@ package exastencils.parallelization.api.cuda
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.baseExt.ir.IR_UnduplicatedVariable
 import exastencils.communication.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
@@ -58,6 +60,13 @@ object CUDA_TransferUtil {
   }
 }
 
+case class CUDA_IssuedSyncForEliminatedTransfer() extends IR_UnduplicatedVariable {
+  override def resolveName() : String = "issuedSyncForElimTransfer"
+  override def resolveDatatype() : IR_Datatype = IR_BooleanDatatype
+
+  override def resolveDefValue() : Option[IR_Expression] = Some(false)
+}
+
 /// CUDA_UpdateHostData
 
 object CUDA_UpdateHostData {
@@ -73,10 +82,10 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData, stream : CUDA_Tr
     val isDirty = CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx))
 
     if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
-      return IR_IfCondition(IR_AndAnd(CUDA_CurrentExecutionMode() Neq CUDA_CPUExecutionMode(), isDirty),
+      return IR_IfCondition(IR_AndAnd(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()), isDirty),
         ListBuffer[IR_Statement](
           CUDA_DeviceSynchronize(),
-          IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_CPUExecutionMode())))
+          IR_Assignment(CUDA_IssuedSyncForEliminatedTransfer(), true)))
 
     IR_IfCondition(isDirty,
       ListBuffer[IR_Statement](
@@ -103,10 +112,10 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_
     val isDirty = CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx))
 
     if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
-      return IR_IfCondition(IR_AndAnd(CUDA_CurrentExecutionMode() Neq CUDA_GPUExecutionMode(), isDirty),
+      return IR_IfCondition(IR_AndAnd(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()), isDirty),
         ListBuffer[IR_Statement](
           CUDA_DeviceSynchronize(),
-          IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_GPUExecutionMode())))
+          IR_Assignment(CUDA_IssuedSyncForEliminatedTransfer(), true)))
 
     IR_IfCondition(isDirty,
       ListBuffer[IR_Statement](
@@ -128,10 +137,10 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUD
     val isDirty = CUDA_DeviceBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx))
 
     if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
-      return IR_IfCondition(IR_AndAnd(CUDA_CurrentExecutionMode() Neq CUDA_CPUExecutionMode(), isDirty),
+      return IR_IfCondition(IR_AndAnd(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()), isDirty),
         ListBuffer[IR_Statement](
           CUDA_DeviceSynchronize(),
-          IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_CPUExecutionMode())))
+          IR_Assignment(CUDA_IssuedSyncForEliminatedTransfer(), true)))
 
     IR_IfCondition(isDirty,
       ListBuffer[IR_Statement](
@@ -153,10 +162,10 @@ case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer, stream : C
     val isDirty = CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx))
 
     if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
-      return IR_IfCondition(IR_AndAnd(CUDA_CurrentExecutionMode() Neq CUDA_GPUExecutionMode(), isDirty),
+      return IR_IfCondition(IR_AndAnd(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()), isDirty),
         ListBuffer[IR_Statement](
           CUDA_DeviceSynchronize(),
-          IR_Assignment(CUDA_CurrentExecutionMode(), CUDA_GPUExecutionMode())))
+          IR_Assignment(CUDA_IssuedSyncForEliminatedTransfer(), true)))
 
     IR_IfCondition(isDirty,
       ListBuffer[IR_Statement](

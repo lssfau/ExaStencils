@@ -331,6 +331,21 @@ case class CUDA_HandleFragmentLoops(
     // get syncs for updated buffers on device/host
     val (beforeHost, afterHost, beforeDevice, afterDevice) = syncUpdatedBuffers(issuedStreamSyncsBefore)
 
+    // detect changes in execution mode
+    def handleExecutionModeChange(mode : CUDA_ExecutionMode) = ListBuffer[IR_Statement](
+      IR_IfCondition(CUDA_CurrentExecutionMode() Neq mode,
+        ListBuffer[IR_Statement](
+          if (Knowledge.cuda_useZeroCopy || Knowledge.cuda_eliminate_memory_transfers != "none")
+            IR_Assignment(CUDA_IssuedSyncForEliminatedTransfer(), false) // reset flag when switching modes
+          else
+            IR_NullStatement,
+          IR_Assignment(CUDA_CurrentExecutionMode(), mode) // update mode
+        )
+      )
+    )
+    stmts ++= branchingWrapper(handleExecutionModeChange(CUDA_CPUExecutionMode()), handleExecutionModeChange(CUDA_GPUExecutionMode()))
+
+    // assemble fragment loops
     stmts += syncBeforeFragLoop // add stream synchro loop before kernel calls
     stmts += IR_LoopOverFragments(branchingWrapper(beforeHost, beforeDevice))
     stmts += Duplicate(loop)
