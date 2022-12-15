@@ -27,6 +27,7 @@ import exastencils.config.Knowledge
 import exastencils.core.StateManager
 import exastencils.datastructures._
 import exastencils.field.l4._
+import exastencils.fieldlike.l4.L4_FutureFieldLikeAccess
 
 /// L4_AddDefaultApplication
 
@@ -62,7 +63,7 @@ object L4_AddDefaultApplication extends NoTraversalStrategy("AddDefaultApplicati
 
     if (Knowledge.l4_defAppl_FieldToPrint.nonEmpty) {
       stmts += fctCall("printField", ListBuffer(
-        L4_FutureFieldAccess(Knowledge.l4_defAppl_FieldToPrint, Knowledge.maxLevel, L4_ActiveSlot)))
+        L4_FutureFieldLikeAccess(Knowledge.l4_defAppl_FieldToPrint, Knowledge.maxLevel, L4_ActiveSlot)))
     }
 
     // de-init

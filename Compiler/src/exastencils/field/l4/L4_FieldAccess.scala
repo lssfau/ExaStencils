@@ -26,6 +26,7 @@ import exastencils.baseExt.l4._
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.l4.L4_FutureFieldLikeAccess
 import exastencils.knowledge.l4._
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -33,8 +34,8 @@ import exastencils.prettyprinting.PpStream
 /// L4_FieldAccess
 
 object L4_FieldAccess {
-  def apply(access : L4_FutureFieldAccess) =
-    new L4_FieldAccess(L4_FieldCollection.getByIdentifier(access.name, access.level).get, access.slot, access.offset,  access.frozen, access.matIndex)
+  def apply(access : L4_FutureFieldLikeAccess) =
+    new L4_FieldAccess(L4_FieldCollection.getByIdentifier(access.name, access.level).get, access.slot, access.offset, access.frozen, access.matIndex)
 
   def resolveSlot(field : IR_FieldLike, slot : L4_SlotSpecification) = {
     if (1 == field.numSlots) IR_IntegerConstant(0)

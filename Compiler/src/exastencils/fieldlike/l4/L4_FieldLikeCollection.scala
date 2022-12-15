@@ -40,10 +40,10 @@ abstract class L4_FieldLikeCollection[L4_Type <: L4_FieldLike[IR_Type, _] : Type
   L4_PrepareAccesses.strategies += L4_PrepareFieldAccesses
   L4_ResolveAccesses.strategies += L4_ResolveFieldAccesses
 
-  def contains(access : L4_FutureFieldAccess) : Boolean = getByFieldAccess(access).isDefined
+  def contains(access : L4_FutureFieldLikeAccess) : Boolean = getByFieldAccess(access).isDefined
   def contains(access : L4_FieldAccess) : Boolean = getByFieldAccess(access).isDefined
 
-  def getByFieldAccess(access : L4_FutureFieldAccess) : Option[L4_Type] = getByIdentifier(access.name, access.level, suppressError = true)
+  def getByFieldAccess(access : L4_FutureFieldLikeAccess) : Option[L4_Type] = getByIdentifier(access.name, access.level, suppressError = true)
   def getByFieldAccess(access : L4_FieldAccess) : Option[L4_Type] = getByIdentifier(access.name, access.level, suppressError = true)
 
   // TODO: make strategies more generic
@@ -94,7 +94,7 @@ abstract class L4_FieldLikeCollection[L4_Type <: L4_FieldLike[IR_Type, _] : Type
         if (!existsDecl(access.name, lvl))
           Logger.warn(s"Trying to access ${ access.name } on invalid level $lvl")
 
-        L4_FutureFieldAccess(access.name, lvl, access.slot.getOrElse(L4_ActiveSlot), access.offset, false, access.matIndex)
+        L4_FutureFieldLikeAccess(access.name, lvl, access.slot.getOrElse(L4_ActiveSlot), access.offset, false, access.matIndex)
     })
   }
 
@@ -103,7 +103,7 @@ abstract class L4_FieldLikeCollection[L4_Type <: L4_FieldLike[IR_Type, _] : Type
   object L4_ResolveFieldAccesses extends DefaultStrategy("Resolve accesses to fields") {
     this += new Transformation("Resolve applicable future accesses", {
       // check if declaration has already been processed and promote access if possible
-      case access : L4_FutureFieldAccess if exists(access.name, access.level) =>
+      case access : L4_FutureFieldLikeAccess if exists(access.name, access.level) =>
         val field = getByFieldAccess(access).get // get field from field collection
         L4_FieldAccess(field.toField, access.slot, access.offset, access.frozen, access.matIndex) // create 'regular' access for it
     })

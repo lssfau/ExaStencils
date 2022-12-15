@@ -31,6 +31,7 @@ import exastencils.domain.l4.L4_DomainCollection
 import exastencils.field.ir.IR_AddPaddingToFieldLayouts
 import exastencils.field.l4._
 import exastencils.fieldlike.l4.L4_FieldLikeCollections
+import exastencils.fieldlike.l4.L4_ResolveFrozenFields
 import exastencils.grid.l4._
 import exastencils.interfacing.l4.L4_ExternalFieldCollection
 import exastencils.knowledge.l4.L4_KnowledgeContainer._
