@@ -29,14 +29,15 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.domain.ir._
-import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.ir.IR_PotentiallyCritical
 
 /// IR_RemoteRecv
 
 case class IR_RemoteRecv(
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var neighbor : NeighborInfo,
     var dest : IR_Expression,
@@ -62,7 +63,7 @@ case class IR_RemoteRecv(
 /// IR_CopyFromRecvBuffer
 
 case class IR_CopyFromRecvBuffer(
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var neighbor : NeighborInfo,
     var indices : IR_ExpressionIndexRange,
@@ -80,7 +81,7 @@ case class IR_CopyFromRecvBuffer(
 
       val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
-      val fieldAccess = IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
+      val fieldAccess = IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
 
       ret += IR_Assignment(it, 0)
       ret += IR_LoopOverDimensions(numDims, indices, IR_IfCondition(
@@ -92,7 +93,7 @@ case class IR_CopyFromRecvBuffer(
         IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
         IR_ExpressionIndex(indices.end, indices.begin, _ - _))
 
-      def fieldAccess = IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
+      def fieldAccess = IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
 
       if (Knowledge.comm_enableCommTransformations) {
         val trafoId = IR_IV_CommTrafoId(field.domain.index, neighbor.index)

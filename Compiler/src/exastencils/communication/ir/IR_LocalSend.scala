@@ -27,13 +27,14 @@ import exastencils.communication._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.domain.ir._
-import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.parallelization.api.omp.OMP_WaitForFlag
 
 /// IR_LocalSend
 
 case class IR_LocalSend(
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var neighbor : NeighborInfo,
     var dest : IR_ExpressionIndexRange,
@@ -45,9 +46,9 @@ case class IR_LocalSend(
 
   override def expand() : Output[IR_Statement] = {
     var innerStmt : IR_Statement = IR_Assignment(
-      IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index), IR_ExpressionIndex(
+      IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index), IR_ExpressionIndex(
         IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)),
-      IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims)))
+      IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims)))
 
     if (condition.isDefined)
       innerStmt = IR_IfCondition(condition.get, innerStmt)

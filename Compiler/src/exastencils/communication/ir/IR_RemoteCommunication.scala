@@ -26,12 +26,12 @@ import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.config.Knowledge
 import exastencils.domain.ir._
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 
 /// IR_RemoteCommunication
 
 abstract class IR_RemoteCommunication extends IR_Statement with IR_Expandable {
-  def field : IR_Field
+  def field : IR_FieldLike
   def neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)]
 
   def insideFragLoop : Boolean

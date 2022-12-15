@@ -29,8 +29,6 @@ case class IR_WaLBerlaFieldLayout(
     IR_WaLBerlaFieldLayout.tupled(Duplicate(IR_WaLBerlaFieldLayout.unapply(this).get))
   }
 
-  def apply(dim : Int) = layoutsPerDim(dim)
-
   var localization : IR_Localization = IR_AtCellCenter
 
   lazy val wbField : IR_WaLBerlaField = IR_WaLBerlaFieldCollection.getByLayoutIdentifierLevExp(name, level, suppressError = true).get

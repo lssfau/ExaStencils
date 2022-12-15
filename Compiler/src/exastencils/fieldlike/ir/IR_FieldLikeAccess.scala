@@ -8,6 +8,7 @@ import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
+import exastencils.datastructures.Transformation.Output
 import exastencils.field.ir.IR_SlotAccess
 import exastencils.knowledge.ir.IR_LeveledKnowledgeAccess
 import exastencils.logger.Logger
@@ -38,7 +39,7 @@ object IR_FieldLikeAccess {
       offset : Option[IR_ConstIndex] = None, frozen : Boolean = false, matIndex : Option[IR_MatIndex] = None) = field.getFieldAccess(slot, fragIdx, index, offset, frozen, matIndex)
 }
 
-trait IR_FieldLikeAccess extends IR_MultiDimFieldLikeAccess with IR_CanBeOffset {
+trait IR_FieldLikeAccess extends IR_MultiDimFieldLikeAccess with IR_CanBeOffset with IR_SpecialExpandable {
   def field : IR_FieldLike
   def slot : IR_Expression
   def fragIdx : IR_Expression
@@ -77,6 +78,16 @@ trait IR_FieldLikeAccess extends IR_MultiDimFieldLikeAccess with IR_CanBeOffset 
     dupIndex.indices = dupIndex.indices.zipWithIndex.map { case (e, i) => e - IR_FieldIteratorAccess(i) }
     dupIndex.toConstIndex
   }
+
+  def expandSpecial() : IR_Expression
+}
+
+/// IR_FieldLikeAccess
+
+object IR_ResolveFieldLikeAccess extends DefaultStrategy("Resolve FieldAccess nodes") {
+  this += new Transformation("Resolve", {
+    case access : IR_FieldLikeAccess => access.expandSpecial()
+  })
 }
 
 /// IR_ApplyOffsetToFieldLikeAccess
@@ -160,4 +171,6 @@ trait IR_LinearizedFieldLikeAccess extends IR_FieldLikeAccessLike with IR_Expand
   var index : IR_Expression
 
   override def datatype = field.layout.datatype
+
+  def expand() : Output[IR_ArrayAccess]
 }

@@ -59,7 +59,6 @@ import exastencils.visualization.ir.postprocessing.IR_ResolveVisualizationPrinte
 import exastencils.waLBerla.ir._
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaResolveLoopOverBlocks
 import exastencils.waLBerla.ir.communication._
-import exastencils.waLBerla.ir.field.IR_WaLBerlaResolveFieldAccess
 import exastencils.waLBerla.ir.grid._
 import exastencils.waLBerla.ir.interfacing._
 
@@ -268,10 +267,9 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_MapStencilAssignments.apply()
 
-    IR_WaLBerlaResolveFieldAccess.apply()
-    IR_WaLBerlaResolveLoopOverBlocks.apply() // after IR_WaLBerlaResolveFieldAccess
+    IR_WaLBerlaResolveLoopOverBlocks.apply()
 
-    IR_ResolveFieldAccess.apply()
+    IR_ResolveFieldLikeAccess.apply()
 
     if (Knowledge.useFasterExpand)
       IR_ExpandInOnePass.apply()
