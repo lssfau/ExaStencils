@@ -3,18 +3,15 @@ package exastencils.fieldlike.ir
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FieldIteratorAccess
+import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
-import exastencils.field.ir.IR_DirectFieldAccess
-import exastencils.field.ir.IR_Field
 import exastencils.field.ir.IR_SlotAccess
 import exastencils.knowledge.ir.IR_LeveledKnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.polyhedron.IR_PolyArrayAccessLike
-import exastencils.waLBerla.ir.field.IR_DirectWaLBerlaFieldAccess
-import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 
 /// IR_FieldLikeAccess
 
@@ -35,6 +32,11 @@ trait IR_MultiDimFieldLikeAccess extends IR_FieldLikeAccessLike with IR_SpecialE
 }
 
 /// IR_FieldLikeAccess
+
+object IR_FieldLikeAccess {
+  def apply(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, index : IR_ExpressionIndex,
+      offset : Option[IR_ConstIndex] = None, frozen : Boolean = false, matIndex : Option[IR_MatIndex] = None) = field.getFieldAccess(slot, fragIdx, index, offset, frozen, matIndex)
+}
 
 trait IR_FieldLikeAccess extends IR_MultiDimFieldLikeAccess with IR_CanBeOffset {
   def field : IR_FieldLike
@@ -91,19 +93,10 @@ object IR_ApplyOffsetToFieldLikeAccess extends DefaultStrategy("Apply offsets to
 
 /// IR_DirectFieldLikeAccess
 
-// TODO: avoid this
 object IR_DirectFieldLikeAccess {
-  def apply(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, index : IR_ExpressionIndex) = field match {
-    case f : IR_Field           => IR_DirectFieldAccess(f, slot, fragIdx, index)
-    case wbf : IR_WaLBerlaField => IR_DirectWaLBerlaFieldAccess(wbf, slot, fragIdx, index)
-    case _                      => Logger.error("Unknown field type used for direct field access")
-  }
+  def apply(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, index : IR_ExpressionIndex) = field.getDirectFieldAccess(slot, fragIdx, index)
 
-  def apply(field : IR_FieldLike, slot : IR_Expression, index : IR_ExpressionIndex) = field match {
-    case f : IR_Field           => IR_DirectFieldAccess(f, slot, index)
-    case wbf : IR_WaLBerlaField => IR_DirectWaLBerlaFieldAccess(wbf, slot, index)
-    case _                      => Logger.error("Unknown field type used for direct field access")
-  }
+  def apply(field : IR_FieldLike, slot : IR_Expression, index : IR_ExpressionIndex) = field.getDirectFieldAccess(slot, IR_LoopOverFragments.defIt, index)
 }
 
 // TODO: try to remove "IR_DirectFieldAccess" occurrences
@@ -153,6 +146,10 @@ object IR_LinearizeDirectFieldLikeAccess extends DefaultStrategy("Linearize Dire
 }
 
 /// IR_LinearizedFieldLikeAccess
+
+object IR_LinearizedFieldLikeAccess {
+  def apply(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, index : IR_Expression) = field.getLinearizedFieldAccess(slot, fragIdx, index)
+}
 
 // TODO: try to remove "IR_LinearizedFieldAccess" occurrences
 

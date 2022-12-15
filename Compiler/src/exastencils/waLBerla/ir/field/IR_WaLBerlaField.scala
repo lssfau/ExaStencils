@@ -10,7 +10,11 @@ import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_Domain
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.field.ir.IR_FieldAccess
+import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
 import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
+import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
+import exastencils.fieldlike.ir.IR_LinearizedFieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes
@@ -88,4 +92,20 @@ case class IR_WaLBerlaField(
   }
 
   def domain : IR_Domain = IR_DomainCollection.getByIdentifier("global").get
+
+  override def getFieldAccess(slot : IR_Expression, fragIdx : IR_Expression, index : IR_ExpressionIndex, offset : Option[IR_ConstIndex], frozen : Boolean, matIndex : Option[IR_MatIndex]) : IR_FieldLikeAccess = {
+    IR_WaLBerlaFieldAccess(this, slot, fragIdx, index, offset, frozen, matIndex)
+  }
+
+  override def getDirectFieldAccess(slot : IR_Expression, fragIdx : IR_Expression, index : IR_ExpressionIndex) : IR_DirectFieldLikeAccess = {
+    IR_DirectWaLBerlaFieldAccess(this, slot, fragIdx, index)
+  }
+
+  override def getLinearizedFieldAccess(slot : IR_Expression, fragIdx : IR_Expression, index : IR_Expression) : IR_LinearizedFieldLikeAccess = {
+    IR_LinearizedWaLBerlaFieldAccess(this, slot, fragIdx, index)
+  }
+
+  override def getFieldData(slot : IR_Expression, fragIdx : IR_Expression) : IR_IV_AbstractFieldLikeData = {
+    IR_IV_WaLBerlaFieldData(this, slot, fragIdx)
+  }
 }
