@@ -21,7 +21,7 @@ package exastencils.field.l3
 import exastencils.base.ProgressLocation
 import exastencils.base.l3._
 import exastencils.datastructures._
-import exastencils.fieldlike.l4.L4_FutureFieldLikeAccess
+import exastencils.field.l4._
 import exastencils.knowledge.l3.L3_FutureKnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -43,7 +43,7 @@ case class L3_FutureFieldAccess(
 
   override def progress = ProgressLocation {
     Logger.warn(s"Trying to progress future field access to $name on level $level")
-    L4_FutureFieldLikeAccess(name, level,
+    L4_FutureFieldAccess(name, level,
       slot.progress,
       L3_ProgressOption(offset)(_.progress),
 
