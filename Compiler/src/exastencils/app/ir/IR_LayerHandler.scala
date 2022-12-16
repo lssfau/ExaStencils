@@ -59,6 +59,7 @@ import exastencils.visualization.ir.postprocessing.IR_ResolveVisualizationPrinte
 import exastencils.waLBerla.ir._
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaResolveLoopOverBlocks
 import exastencils.waLBerla.ir.communication._
+import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaAdaptKernels
 import exastencils.waLBerla.ir.field.IR_WaLBerlaResolveFieldAccess
 import exastencils.waLBerla.ir.grid._
 import exastencils.waLBerla.ir.interfacing._
@@ -325,6 +326,10 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     if (Knowledge.cuda_enabled)
       CUDA_KernelFunctions.get.convertToFunctions()
+
+    if (Knowledge.cuda_enabled && Knowledge.waLBerla_useGridFromExa) {
+      CUDA_WaLBerlaAdaptKernels.apply()
+    }
 
     IR_SimplifyIndexExpressions.apply()
 
