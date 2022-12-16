@@ -12,7 +12,7 @@ import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_FieldDatatype
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil.getGeneratedName
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil.make_shared
 
-case class IR_WaLBerlaGPUCommScheme(var wbField : IR_WaLBerlaField, var slot : IR_Expression) extends IR_WaLBerlaCommScheme {
+case class CUDA_WaLBerlaGPUCommScheme(var wbField : IR_WaLBerlaField, var slot : IR_Expression) extends IR_WaLBerlaCommScheme {
 
   def basetype = IR_UniquePointerDatatype(WB_CommScheme(onGPU = true))
 

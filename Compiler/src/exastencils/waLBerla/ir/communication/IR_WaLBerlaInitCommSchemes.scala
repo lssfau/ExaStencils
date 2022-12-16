@@ -6,7 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
-import exastencils.waLBerla.ir.cuda.IR_WaLBerlaGPUCommScheme
+import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaGPUCommScheme
 import exastencils.waLBerla.ir.field._
 import exastencils.waLBerla.ir.interfacing._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil._
@@ -43,7 +43,7 @@ case class IR_WaLBerlaInitCommSchemes() extends IR_WaLBerlaFuturePlainFunction {
       val commSchemes : ListBuffer[IR_WaLBerlaCommScheme] = ListBuffer(IR_WaLBerlaCPUCommScheme(wbf, slotIt))
 
       if (Knowledge.cuda_enabled)
-        commSchemes += IR_WaLBerlaGPUCommScheme(wbf, slot = 0)
+        commSchemes += CUDA_WaLBerlaGPUCommScheme(wbf, slot = 0)
 
       for (commScheme <- commSchemes) {
         body += IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
@@ -57,7 +57,7 @@ case class IR_WaLBerlaInitCommSchemes() extends IR_WaLBerlaFuturePlainFunction {
       val commSchemes : ListBuffer[IR_WaLBerlaCommScheme] = ListBuffer(IR_WaLBerlaCPUCommScheme(wbf, slotIt))
 
       if (Knowledge.cuda_enabled)
-        commSchemes += IR_WaLBerlaGPUCommScheme(wbf, slot = 0)
+        commSchemes += CUDA_WaLBerlaGPUCommScheme(wbf, slot = 0)
 
       for (commScheme <- commSchemes) {
         body += IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
