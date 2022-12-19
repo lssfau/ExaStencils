@@ -68,15 +68,18 @@ object CUDA_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kern
       val wbFieldData : ListBuffer[IR_IV_AbstractFieldLikeData] = kernelCall.arguments.collect {
         case fieldData : IR_IV_AbstractFieldLikeData if IR_WaLBerlaFieldCollection.exists(fieldData.field.name, fieldData.field.level) => fieldData
       }
-      adaptedKernelCalls += kernelCall
 
-      // extend wrapper parameters
-      val wbFieldDataParams = wbFieldData.map(fieldData => getFunctionArgForWaLBerlaField(getWaLBerlaField(fieldData), fieldData.slot))
-      func.parameters ++= wbFieldDataParams
-      func.parameters = func.parameters.filterNot(isFragmentIdxParameter)
+      if (wbFieldData.nonEmpty) {
+        adaptedKernelCalls += kernelCall
 
-      // save employed wb field data for further processing
-      waLBerlaFieldPointersForKernel += (func.name -> wbFieldData.map(fieldData => IR_IV_WaLBerlaFieldData(getWaLBerlaField(fieldData), fieldData.slot, fieldData.fragmentIdx)))
+        // extend wrapper parameters
+        val wbFieldDataParams = wbFieldData.map(fieldData => getFunctionArgForWaLBerlaField(getWaLBerlaField(fieldData), fieldData.slot))
+        func.parameters ++= wbFieldDataParams
+        func.parameters = func.parameters.filterNot(isFragmentIdxParameter)
+
+        // save employed wb field data for further processing
+        waLBerlaFieldPointersForKernel += (func.name -> wbFieldData.map(fieldData => IR_IV_WaLBerlaFieldData(getWaLBerlaField(fieldData), fieldData.slot, fieldData.fragmentIdx)))
+      }
 
       func
   })
@@ -105,8 +108,10 @@ object CUDA_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kern
       val newArgs = Duplicate(fc.arguments)
         .filterNot(isFragmentIdxArgument) // omit fragmentIdx arg
         .map { // re-map pointers to waLBerla data
-          case deviceData : CUDA_FieldDeviceData => getFunctionArgForWaLBerlaField(getWaLBerlaField(deviceData), deviceData.slot).access
-          case arg                               => arg
+          case deviceData : CUDA_FieldDeviceData if IR_WaLBerlaFieldCollection.exists(deviceData.field.name, deviceData.field.level) =>
+            getFunctionArgForWaLBerlaField(getWaLBerlaField(deviceData), deviceData.slot).access
+          case arg                                                                                                                   =>
+            arg
         }
       fc.arguments = newArgs
 
