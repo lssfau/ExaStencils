@@ -28,7 +28,7 @@ case class IR_WaLBerlaBlockDataID(var wbField : IR_WaLBerlaField, var slot : IR_
 
   var level : IR_Expression = wbField.level
   val numSlots : Int = wbField.numSlots
-  val levels : ListBuffer[Int] = IR_WaLBerlaFieldCollection.getAllByIdentifier(wbField.name).map(_.level)
+  val levels : ListBuffer[Int] = IR_WaLBerlaFieldCollection.getAllByIdentifier(wbField.name, suppressError = true).map(_.level)
 
   override def resolveAccess() = {
     var access : IR_Access = member

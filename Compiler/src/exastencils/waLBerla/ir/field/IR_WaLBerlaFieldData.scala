@@ -21,7 +21,7 @@ import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
 /// IR_IV_AbstractWaLBerlaFieldData
 
-abstract class IR_IV_AbstractWaLBerlaFieldData extends IR_IV_AbstractFieldLikeData(true, false, true, true, false) {
+abstract class IR_IV_AbstractWaLBerlaFieldData extends IR_IV_AbstractFieldLikeData(true, false, true, false, false) {
   var field : IR_WaLBerlaField
 }
 
