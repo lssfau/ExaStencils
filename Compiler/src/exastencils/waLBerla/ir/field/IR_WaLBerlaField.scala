@@ -1,16 +1,16 @@
 package exastencils.waLBerla.ir.field
 
+import scala.collection.mutable.ListBuffer
+
+import exastencils.base.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_MatShape
 import exastencils.boundary.ir.IR_BoundaryCondition
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_Domain
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.field.ir.IR_FieldAccess
-import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
-import exastencils.fieldlike.ir.IR_FieldLike
-import exastencils.fieldlike.ir.IR_FieldLikeAccess
-import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
-import exastencils.fieldlike.ir.IR_LinearizedFieldLikeAccess
+import exastencils.fieldlike.ir._
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes

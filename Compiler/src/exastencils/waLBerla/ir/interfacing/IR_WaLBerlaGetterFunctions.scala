@@ -21,23 +21,18 @@ object IR_WaLBerlaGetterFunctionCollection {
   }
 }
 
-case class IR_WaLBerlaGetBlockForest() extends IR_WaLBerlaFuturePlainFunction {
-  override def isInterfaceFunction : Boolean = true
-  override def name_=(newName : String) : Unit = name = newName
-  override def prettyprint_decl() : String = prettyprint
-
+case class IR_WaLBerlaGetBlockForest() extends IR_WaLBerlaWrapperFunction {
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
     val blockForest = IR_WaLBerlaBlockForest()
     IR_WaLBerlaPlainFunction(name, blockForest.datatype, ListBuffer(), ListBuffer(IR_Return(blockForest)))
   }
   override def name : String = "getBlockForest"
+
+  override def isInterfaceFunction : Boolean = true
+  override def inlineImplementation : Boolean = true
 }
 
-case class IR_WaLBerlaGetBlockDataID(field : IR_WaLBerlaField) extends IR_WaLBerlaFuturePlainFunction {
-  override def isInterfaceFunction : Boolean = true
-  override def name_=(newName : String) : Unit = name = newName
-  override def prettyprint_decl() : String = prettyprint
-
+case class IR_WaLBerlaGetBlockDataID(field : IR_WaLBerlaField) extends IR_WaLBerlaWrapperFunction {
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
     val lvl = IR_FunctionArgument("lvl", IR_IntegerDatatype)
     val slot = IR_FunctionArgument("slot", IR_IntegerDatatype)
@@ -57,5 +52,8 @@ case class IR_WaLBerlaGetBlockDataID(field : IR_WaLBerlaField) extends IR_WaLBer
 
     IR_WaLBerlaPlainFunction(name, WB_BlockDataID, ListBuffer(lvl, slot, onGPU), body)
   }
+
   override def name : String = s"getBlockDataID_${field.name}"
+  override def isInterfaceFunction : Boolean = true
+  override def inlineImplementation : Boolean = true
 }

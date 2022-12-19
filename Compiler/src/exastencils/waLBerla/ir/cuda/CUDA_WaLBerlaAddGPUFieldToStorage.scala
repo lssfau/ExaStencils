@@ -21,6 +21,7 @@ case class CUDA_WaLBerlaAddGPUFieldToStorage(wbFields : IR_WaLBerlaField*) exten
     Logger.error("\"IR_WaLBerlaAddGPUFieldToStorage\" used incorrectly. Assumes fields with identical name but potentially different slots and levels.")
 
   override def isInterfaceFunction : Boolean = false
+  override def inlineImplementation : Boolean = false
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
     // add deps
