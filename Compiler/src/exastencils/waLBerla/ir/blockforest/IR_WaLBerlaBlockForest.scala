@@ -37,6 +37,10 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter {
     IR_MemberFunctionCallArrow(resolveAccess(), "getBlocks", targetVector, /* level */ 0) // TODO: adjust when refinement is supported
   }
 
+  def getNumberOfRootBlocks(d : Int) = IR_MemberFunctionCallArrow(resolveAccess(), "getSize", d)
+
+  def getNumberOfAllRootBlocks() : IR_Expression = (0 until 3).map(d => getNumberOfRootBlocks(d) : IR_Expression).reduce(_ * _)
+
   // cells
   def getNumberOfCells(dim : Int) : IR_Expression =
     IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", IR_SpecialDatatype("uint_t"))

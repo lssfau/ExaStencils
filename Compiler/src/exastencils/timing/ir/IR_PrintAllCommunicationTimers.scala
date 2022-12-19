@@ -10,7 +10,10 @@ import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_RawPrint
 
 object CommTimerAnnot extends Enumeration {
-  val COMM_TIMER = "commTimer"
+  type Access = Value
+  final val ANNOT : String = "CommTimer"
+  final val COMM, APPLYBC = Value
+
   exastencils.core.Duplicate.registerConstant(this)
 }
 
@@ -19,9 +22,11 @@ case class IR_PrintAllCommunicationTimers() extends IR_TimerFunction {
   override def prettyprint_decl() : String = prettyprint
 
   private val commTimeAccum = IR_VariableAccess("totalCommTime", IR_DoubleDatatype)
+  private val applyBCTimeAccum = IR_VariableAccess("totalApplyBCTime", IR_DoubleDatatype)
 
-  def genPrintTimerCode(timer : IR_IV_Timer) : IR_Statement = {
+  def genPrintTimerCode(timer : IR_IV_Timer, annot : CommTimerAnnot.Access) : IR_Statement = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
+    def accum = if (annot == CommTimerAnnot.COMM) commTimeAccum else applyBCTimeAccum
 
     val timeToPrint = "getTotalTime"
     def timerValue = IR_VariableAccess("timerValue", IR_DoubleDatatype)
@@ -33,7 +38,7 @@ case class IR_PrintAllCommunicationTimers() extends IR_TimerFunction {
     }
 
     statements += IR_RawPrint("\"Mean mean total time for Timer " + timer.name + ":\"", timerValue)
-    statements += IR_Assignment(commTimeAccum, timerValue, "+=")
+    statements += IR_Assignment(accum, timerValue, "+=")
 
     IR_Scope(statements)
   }
@@ -44,12 +49,15 @@ case class IR_PrintAllCommunicationTimers() extends IR_TimerFunction {
 
     val body = ListBuffer[IR_Statement]()
     body += IR_VariableDeclaration(commTimeAccum, 0.0)
-    timers.values.filter(_.hasAnnotation(CommTimerAnnot.COMM_TIMER)).toList.sortBy(_.name).foreach { timer =>
-      timer.removeAnnotation(CommTimerAnnot.COMM_TIMER)
-      body += genPrintTimerCode(timer)
+    body += IR_VariableDeclaration(applyBCTimeAccum, 0.0)
+    timers.values.filter(_.hasAnnotation(CommTimerAnnot.ANNOT)).toList.sortBy(_.name).foreach { timer =>
+      val annot = timer.popAnnotationAs[CommTimerAnnot.Access](CommTimerAnnot.ANNOT)
+      body += genPrintTimerCode(timer, annot)
     }
 
     body += IR_RawPrint("\"Mean mean total time for all communication :\"", commTimeAccum)
+    body += IR_RawPrint("\"Mean mean total time for all applyBC :\"", applyBCTimeAccum)
+    body += IR_RawPrint("\"Mean mean total time for all communication + applyBC :\"", commTimeAccum + applyBCTimeAccum)
 
     val fct = IR_PlainFunction(name, IR_UnitDatatype, body)
     fct.allowFortranInterface = false

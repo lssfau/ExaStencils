@@ -73,7 +73,7 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   // add future functions
   functions ++= IR_WaLBerlaInitFunctionCollection.functions
   functions ++= IR_WaLBerlaDeInitFunctionCollection.functions
-  functions ++= IR_WaLBerlaGetterFunctionCollection.functions
+  functions ++= IR_WaLBerlaHelperFunctionCollection.functions
 
   // collect future function names
   val futureFunctionIds : ListBuffer[String] = Duplicate(functions).collect { case f : IR_WaLBerlaFutureFunction => f }.map(_.name)
@@ -103,11 +103,30 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
         writer << func.prettyprint_decl
 
     writer <<< "}\n}"
+
+    // handle inlined implementations
+    for (func <- functions.filter(_.isInstanceOf[IR_WaLBerlaFunction])) {
+      if (func.asInstanceOf[IR_WaLBerlaFunction].inlineImplementation && !func.isHeaderOnly) {
+        val source = s"${ baseName }_${ func.name }.impl.h"
+        val writerImpl = PrettyprintingManager.getPrinter(source)
+
+        writer << "#include \"" + source + "\"\n"
+
+        writerImpl <<< "namespace walberla {\nnamespace exastencils { "
+        writerImpl <<< func.prettyprint
+        writerImpl <<< "}\n}"
+      }
+    }
   }
 
   override def printSources() = {
-    // will be overwritten for kernel functions
-    for (func <- functions)
+    // filter out already handled inline implementations
+    val separatedFuncImpls = functions.filter {
+      case f : IR_WaLBerlaFunction => !f.inlineImplementation
+      case _                       => true
+    }
+
+    for (func <- separatedFuncImpls)
       if (!func.isHeaderOnly) {
         val writer = PrettyprintingManager.getPrinter(s"${ baseName }_${ func.name }.cpp")
         writer.addInternalDependency(IR_WaLBerlaInterface.interfaceHeader)
@@ -121,9 +140,13 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   }
 
   override def printToFile() : Unit = {
-    if (functions.exists(f => !futureFunctionIds.contains(f.name)) || interfaceInstance.isDefined) {
-      super.printToFile()
+    val foundUserFunction = functions exists {
+      case f : IR_LeveledFunctionLike => !futureFunctionIds.contains(f.baseName)
+      case f : IR_PlainFunctionLike => !futureFunctionIds.contains(f.name)
     }
+
+    if (foundUserFunction || interfaceInstance.isDefined)
+      super.printToFile()
   }
 }
 

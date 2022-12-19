@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaGPUCommScheme
+import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaGPUCommScheme
 import exastencils.waLBerla.ir.field._
 import exastencils.waLBerla.ir.interfacing._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil._
@@ -21,6 +22,7 @@ case class IR_WaLBerlaInitCommSchemes() extends IR_WaLBerlaFuturePlainFunction {
   override def prettyprint_decl() : String = prettyprint
 
   override def isInterfaceFunction : Boolean = true
+  override def inlineImplementation : Boolean = true
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
 
@@ -38,32 +40,40 @@ case class IR_WaLBerlaInitCommSchemes() extends IR_WaLBerlaFuturePlainFunction {
     var body = ListBuffer[IR_Statement]()
 
     // init comm scheme array
+    var ctr = 0
     for (wbf <- wbFieldsPerLevel) {
-      val slotIt = IR_VariableAccess("slotIt", IR_IntegerDatatype)
-      val commSchemes : ListBuffer[IR_WaLBerlaCommScheme] = ListBuffer(IR_WaLBerlaCPUCommScheme(wbf, slotIt))
+      for (s <- 0 until wbf.numSlots) {
+        val commSchemes : ListBuffer[IR_WaLBerlaCommScheme] = ListBuffer(IR_WaLBerlaCPUCommScheme(wbf, s))
+        val tag = "waLBerla".chars().sum() + ctr // increment default tag value per created comm scheme
 
-      if (Knowledge.cuda_enabled)
-        commSchemes += CUDA_WaLBerlaGPUCommScheme(wbf, slot = 0)
+        if (Knowledge.cuda_enabled)
+          commSchemes += CUDA_WaLBerlaGPUCommScheme(wbf, s)
 
-      for (commScheme <- commSchemes) {
-        body += IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
-          IR_Assignment(commScheme.resolveAccess(), make_unique(commScheme.basetype.resolveBaseDatatype.prettyprint, blockForest)))
+        for (commScheme <- commSchemes) {
+          body += IR_Assignment(commScheme.resolveAccess(), make_unique(commScheme.basetype.resolveBaseDatatype.prettyprint, blockForest, tag))
+          ctr += 1
+        }
       }
     }
 
     // add pack info
+    var addPackInfo = ListBuffer[IR_Statement]()
     for (wbf <- wbFieldsPerLevel) {
       val slotIt = IR_VariableAccess("slotIt", IR_IntegerDatatype)
       val commSchemes : ListBuffer[IR_WaLBerlaCommScheme] = ListBuffer(IR_WaLBerlaCPUCommScheme(wbf, slotIt))
 
       if (Knowledge.cuda_enabled)
-        commSchemes += CUDA_WaLBerlaGPUCommScheme(wbf, slot = 0)
+        commSchemes += CUDA_WaLBerlaGPUCommScheme(wbf, slotIt)
 
       for (commScheme <- commSchemes) {
-        body += IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
+        addPackInfo += IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
           commScheme.addPackInfo() : IR_Statement)
       }
     }
+    body += (if (Knowledge.waLBerla_useGridFromExa)
+      IR_IfCondition(Knowledge.domain_numFragmentsTotal > 1, addPackInfo)
+    else
+      IR_IfCondition(blockForest.getNumberOfAllRootBlocks() > 1, addPackInfo))
 
     IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(), body)
   }

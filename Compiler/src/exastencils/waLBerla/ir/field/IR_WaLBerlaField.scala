@@ -1,9 +1,5 @@
 package exastencils.waLBerla.ir.field
 
-import scala.collection.mutable.ListBuffer
-
-import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_MatShape
 import exastencils.boundary.ir.IR_BoundaryCondition
 import exastencils.core.Duplicate

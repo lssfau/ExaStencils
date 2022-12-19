@@ -68,12 +68,12 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
     firstCall = false
   }
 
-  def getTimer(functionName : String) = {
+  def getTimer(functionName : String, isBoundaryHandling : Boolean) = {
     // add timing to comm statement
     var timer : Option[IR_IV_Timer] = None
     if (Knowledge.timer_measureCommunicationTime) {
       val t = IR_IV_Timer(functionName)
-      t.annotate(CommTimerAnnot.COMM_TIMER)
+      t.annotate(CommTimerAnnot.ANNOT, if (isBoundaryHandling) CommTimerAnnot.APPLYBC else CommTimerAnnot.COMM)
 
       timer = Some(t)
     }
@@ -165,7 +165,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
           commGhost, ghostBegin, ghostEnd,
           insideFragLoop,
           cond, direction,
-          getTimer(functionName))
+          getTimer(functionName, isBoundaryHandling = false))
       }
 
       communicateStatement.slot match {
@@ -194,7 +194,8 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
 
       if (!addedFunctions.contains(NameAndLevel(functionName, level))) {
         addedFunctions += NameAndLevel(functionName, level)
-        commFunctions += IR_ApplyBCFunction(functionName, applyBCsStatement.field, "slot", IR_LoopOverFragments.defIt, DefaultNeighbors.neighbors, insideFragLoop, getTimer(functionName))
+        commFunctions += IR_ApplyBCFunction(functionName, applyBCsStatement.field, "slot", IR_LoopOverFragments.defIt,
+          DefaultNeighbors.neighbors, insideFragLoop, getTimer(functionName, isBoundaryHandling = true))
       }
 
       applyBCsStatement.slot match {

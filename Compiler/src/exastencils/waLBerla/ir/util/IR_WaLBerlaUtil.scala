@@ -9,10 +9,10 @@ import exastencils.optimization.ir.IR_GeneralSimplify
 
 object IR_WaLBerlaUtil {
 
-  def make_shared(templateDt : String, arg : IR_Expression) =
-    IR_FunctionCall(IR_ExternalFunctionReference(s"std::make_shared< $templateDt >"), arg)
-  def make_unique(templateDt : String, arg : IR_Expression) =
-    IR_FunctionCall(IR_ExternalFunctionReference(s"std::make_unique< $templateDt >"), arg)
+  def make_shared(templateDt : String, args : IR_Expression*) =
+    IR_FunctionCall(IR_ExternalFunctionReference(s"std::make_shared< $templateDt >"), args : _*)
+  def make_unique(templateDt : String, args : IR_Expression*) =
+    IR_FunctionCall(IR_ExternalFunctionReference(s"std::make_unique< $templateDt >"), args : _*)
 
   def initCommSchemes = true // TODO: adapt condition
 

@@ -23,6 +23,7 @@ trait IR_WaLBerlaFunction extends IR_Function with PrettyPrintable {
   var parameters : ListBuffer[IR_FunctionArgument]
   def body : ListBuffer[IR_Statement]
 
+  var inlineImplementation = false
   var isInterfaceFunction = true
   var isUserFunction = true
 
@@ -148,6 +149,7 @@ trait IR_WaLBerlaFutureFunction extends IR_FutureFunction {
   allowInlining = false
 
   def isInterfaceFunction : Boolean
+  def inlineImplementation : Boolean
 }
 
 trait IR_WaLBerlaFuturePlainFunction extends IR_WaLBerlaFutureFunction {
@@ -157,6 +159,7 @@ trait IR_WaLBerlaFuturePlainFunction extends IR_WaLBerlaFutureFunction {
     val f = generateWaLBerlaFct()
     f.isUserFunction = false
     f.isInterfaceFunction = isInterfaceFunction
+    f.inlineImplementation = inlineImplementation
     f
   }
 }
@@ -170,6 +173,7 @@ trait IR_WaLBerlaFutureLeveledFunction extends IR_WaLBerlaFutureFunction {
     val f = generateWaLBerlaFct()
     f.isUserFunction = false
     f.isInterfaceFunction = isInterfaceFunction
+    f.inlineImplementation = inlineImplementation
     f
   }
 }
