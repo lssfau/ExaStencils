@@ -11,7 +11,9 @@ import exastencils.core.Duplicate
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 import exastencils.logger.Logger
+import exastencils.parallelization.api.cuda.CUDA_Util
 import exastencils.prettyprinting.PpStream
+import exastencils.util.NoDuplicateWrapper
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks.defIt
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_FieldDatatype
@@ -30,6 +32,8 @@ sealed trait IR_IV_GetWaLBerlaFieldFromScope extends IR_InternalVariable {
   override def getCtor() : Option[IR_Statement] = None
   override def getDtor() : Option[IR_Statement] = None
   override def registerIV(declarations : mutable.HashMap[String, IR_VariableDeclaration], ctors : mutable.HashMap[String, IR_Statement], dtors : mutable.HashMap[String, IR_Statement]) : Unit = {}
+
+  def getDeclarationBlockLoop(executionChoice : NoDuplicateWrapper[IR_Expression]) : ListBuffer[IR_Statement]
 }
 
 /// IR_IV_WaLBerlaGetField
@@ -70,17 +74,31 @@ case class IR_IV_WaLBerlaGetField(
 
   override def resolveName() : String = field.codeName
 
-  override def getDeclaration() : IR_VariableDeclaration = {
+  override def getDeclarationBlockLoop(executionChoice : NoDuplicateWrapper[IR_Expression]) : ListBuffer[IR_Statement] = {
 
-    def getFieldData(slotIt : IR_Expression) = defIt.getData(IR_WaLBerlaBlockDataID(field, slotIt))
+    def getFieldData(slotIt : IR_Expression, onGPU : Boolean) = defIt.getData(IR_WaLBerlaBlockDataID(field, slotIt, onGPU))
 
-    val getSlottedFieldData = if (field.numSlots > 1) {
-      IR_InitializerList((0 until field.numSlots).map(s => getFieldData(s)) : _*)
+    val acc = IR_VariableAccess(resolveName(), resolveDatatype())
+
+    def getSlottedFieldData(onGPU : Boolean) : ListBuffer[IR_Statement] = if (field.numSlots > 1) {
+      (0 until field.numSlots).map(s => IR_Assignment(IR_ArrayAccess(acc, s), getFieldData(s, onGPU)) : IR_Statement).to[ListBuffer]
     } else {
-      getFieldData(0)
+      ListBuffer[IR_Statement](IR_Assignment(acc, getFieldData(0, onGPU)))
     }
 
-    IR_VariableDeclaration(resolveDatatype(), resolveName(), Some(getSlottedFieldData))
+    if (Knowledge.cuda_enabled) {
+      val branch = IR_IfCondition(IR_VariableAccess("replaceIn_CUDA_AnnotateLoops", IR_BooleanDatatype),
+        getSlottedFieldData(false),
+        getSlottedFieldData(true))
+      branch.annotate(CUDA_Util.CUDA_BRANCH_CONDITION, executionChoice)
+      ListBuffer[IR_Statement](branch)
+
+      ListBuffer[IR_Statement](
+        IR_VariableDeclaration(acc),
+        branch)
+    } else {
+      IR_VariableDeclaration(acc) +: getSlottedFieldData(false)
+    }
   }
 
   override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
@@ -103,16 +121,16 @@ case class IR_IV_WaLBerlaFieldData(
     var field : IR_WaLBerlaField,
     var slot : IR_Expression,
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
-) extends IR_IV_AbstractWaLBerlaFieldData with IR_IV_GetWaLBerlaFieldFromScope  {
+) extends IR_IV_AbstractWaLBerlaFieldData with IR_IV_GetWaLBerlaFieldFromScope {
 
   override var level : IR_Expression = field.level
 
-  override def resolveName() : String = s"data_${field.codeName}_"
+  override def resolveName() : String = s"data_${ field.codeName }_"
 
-  override def getDeclaration() : IR_VariableDeclaration = {
+  override def getDeclarationBlockLoop(executionChoice : NoDuplicateWrapper[IR_Expression]) : ListBuffer[IR_Statement] = {
 
     def getFieldDataPtr(slotIt : IR_Expression) = {
-      val fieldFromBlock = new IR_IV_WaLBerlaGetField(field, slot, fragmentIdx)
+      val fieldFromBlock = new IR_IV_WaLBerlaGetField(field, slotIt, fragmentIdx)
 
       if (field.layout.useFixedLayoutSizes) {
         // get ptr without offset -> referenceOffset handled by ExaStencils
@@ -143,6 +161,6 @@ case class IR_IV_WaLBerlaFieldData(
       getFieldDataPtr(0)
     }
 
-    IR_VariableDeclaration(resolveDatatype(), resolveName(), Some(getSlottedFieldPtrs))
+    ListBuffer[IR_Statement](IR_VariableDeclaration(resolveDatatype(), resolveName(), Some(getSlottedFieldPtrs)))
   }
 }
