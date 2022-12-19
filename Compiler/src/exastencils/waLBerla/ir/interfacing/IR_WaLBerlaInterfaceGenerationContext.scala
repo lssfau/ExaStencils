@@ -23,7 +23,7 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
   var privateMembers : ListBuffer[IR_VariableAccess] = ListBuffer()
 
   // block data IDs and params of waLBerla function
-  val blockDataIDs = uniqueWbFields.map(wbf => IR_WaLBerlaBlockDataID(wbf, slot = 0) -> IR_WaLBerlaBlockDataID(wbf, slot = 0, onGPU = true))
+  val blockDataIDs = uniqueWbFields.map(wbf => IR_WaLBerlaBlockDataID(wbf, slot = 0, onGPU = false) -> IR_WaLBerlaBlockDataID(wbf, slot = 0, onGPU = true))
   publicMembers ++= blockDataIDs.map(_._1.member)
   if (Knowledge.cuda_enabled)
     publicMembers ++= blockDataIDs.map(_._2.member)

@@ -56,7 +56,7 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR
 
     body += IR_Return(IR_InitializerList(init : _*))
 
-    val returnType = IR_WaLBerlaBlockDataID(wbFields.head, slot = 0).datatype
+    val returnType = IR_WaLBerlaBlockDataID(wbFields.head, slot = 0, onGPU = false).datatype
 
     IR_WaLBerlaPlainFunction(name, returnType, params, body)
   }

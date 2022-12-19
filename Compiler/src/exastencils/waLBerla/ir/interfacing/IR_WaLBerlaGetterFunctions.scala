@@ -42,7 +42,7 @@ case class IR_WaLBerlaGetBlockDataID(field : IR_WaLBerlaField) extends IR_WaLBer
     val lvl = IR_FunctionArgument("lvl", IR_IntegerDatatype)
     val slot = IR_FunctionArgument("slot", IR_IntegerDatatype)
     val onGPU = IR_FunctionArgument("onGPU", IR_BooleanDatatype)
-    val blockDataId = IR_WaLBerlaBlockDataID(field, Duplicate(slot.access))
+    val blockDataId = IR_WaLBerlaBlockDataID(field, Duplicate(slot.access), onGPU = false)
     val blockDataIdGPU = IR_WaLBerlaBlockDataID(field, Duplicate(slot.access), onGPU = true)
     blockDataId.level = Duplicate(lvl.access)
 

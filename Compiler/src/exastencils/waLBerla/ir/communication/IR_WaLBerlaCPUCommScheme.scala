@@ -21,6 +21,6 @@ case class IR_WaLBerlaCPUCommScheme(var wbField : IR_WaLBerlaField, var slot : I
 
   override def prettyprint(out : PpStream) : Unit = out << baseAccess()
 
-  val blockDataID = IR_WaLBerlaBlockDataID(wbField, slot)
+  val blockDataID = IR_WaLBerlaBlockDataID(wbField, slot, onGPU = false)
   val blockForest = IR_WaLBerlaBlockForest()
 }

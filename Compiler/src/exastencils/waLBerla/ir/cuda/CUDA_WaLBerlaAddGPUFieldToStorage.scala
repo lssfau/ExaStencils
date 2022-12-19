@@ -27,7 +27,7 @@ case class CUDA_WaLBerlaAddGPUFieldToStorage(wbFields : IR_WaLBerlaField*) exten
     IR_WaLBerlaCollection.get.addExternalDependency("cuda/AddGPUFieldToStorage.h")
     IR_WaLBerlaCollection.get.addExternalDependency("cuda/FieldCopy.h")
 
-    var cpuBlockDataIDParam = IR_WaLBerlaBlockDataID(wbFields.head, slot = 0)
+    var cpuBlockDataIDParam = IR_WaLBerlaBlockDataID(wbFields.head, slot = 0, onGPU = false)
 
     var params : ListBuffer[IR_FunctionArgument] = ListBuffer()
     params += blocks
@@ -35,7 +35,7 @@ case class CUDA_WaLBerlaAddGPUFieldToStorage(wbFields : IR_WaLBerlaField*) exten
 
     val init = wbFields.sortBy(_.level).flatMap(leveledField => {
       (0 until leveledField.numSlots).map(slot =>
-        leveledField.addToStorageGPU(blocks.access, slot, IR_WaLBerlaBlockDataID(leveledField, slot)))
+        leveledField.addToStorageGPU(blocks.access, slot, IR_WaLBerlaBlockDataID(leveledField, slot, onGPU = false)))
     })
 
     var body : ListBuffer[IR_Statement] = ListBuffer()

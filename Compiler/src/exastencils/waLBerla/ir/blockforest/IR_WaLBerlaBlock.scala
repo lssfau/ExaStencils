@@ -11,6 +11,6 @@ class IR_WaLBerlaBlock(name : String, dt : IR_Datatype) extends IR_VariableAcces
   def getData(blockID : IR_WaLBerlaBlockDataID) = {
     val wbField = blockID.wbField
     val fieldDt = WB_FieldDatatype(wbField)
-    new IR_MemberFunctionCallArrowWithDt(this, s"getData< ${ fieldDt.typeName } >", ListBuffer(IR_WaLBerlaBlockDataID(wbField, blockID.slot)), fieldDt)
+    new IR_MemberFunctionCallArrowWithDt(this, s"getData< ${ fieldDt.typeName } >", ListBuffer(blockID), fieldDt)
   }
 }
