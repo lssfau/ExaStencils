@@ -70,6 +70,7 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_AbstractFieldLikeData) exte
       CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
+          // TODO: more clear separation between host and device field data
           IR_IV_AbstractFieldLikeData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
           CUDA_FieldDeviceData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
           (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _) * IR_SizeOf(field.resolveBaseDatatype),
@@ -96,6 +97,7 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_AbstractFieldLikeData) ex
       CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
+          // TODO: more clear separation between host and device field data
           IR_IV_AbstractFieldLikeData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
           CUDA_FieldDeviceData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
           (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _) * IR_SizeOf(field.resolveBaseDatatype),
