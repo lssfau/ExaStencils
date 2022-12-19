@@ -86,6 +86,7 @@ case class IR_IV_WaLBerlaGetField(
       ListBuffer[IR_Statement](IR_Assignment(acc, getFieldData(0, onGPU)))
     }
 
+    // TODO: separate CUDA handling?
     if (Knowledge.cuda_enabled) {
       val branch = IR_IfCondition(IR_VariableAccess("replaceIn_CUDA_AnnotateLoops", IR_BooleanDatatype),
         getSlottedFieldData(false),
