@@ -152,7 +152,7 @@ case class IR_IV_WaLBerlaFieldData(
         if (newIndex.length != 4)
           Logger.warn("waLBerla's \"dataAt\" function expects four arguments: x, y, z, f")
 
-        new IR_MemberFunctionCallArrowWithDt(fieldFromBlock, "dataAt", index.toExpressionIndex.indices.to[ListBuffer])
+        new IR_MemberFunctionCallArrowWithDt(fieldFromBlock, "dataAt", newIndex.toExpressionIndex.indices.to[ListBuffer])
       }
     }
 
