@@ -8,10 +8,10 @@ import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.OutputType
 import exastencils.field.ir.IR_FieldAccess
-import exastencils.field.ir.IR_FieldCollection
 import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.field.ir.IR_SlotAccess
 import exastencils.fieldlike.ir._
+import exastencils.logger.Logger
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
 /// IR_FieldAccessLike
@@ -66,9 +66,12 @@ case class IR_WaLBerlaFieldAccess(
       // access via raw memory pointer
       IR_DirectWaLBerlaFieldAccess(field, slot, fragIdx, index + field.referenceOffset)
     } else {
+      if (Knowledge.cuda_enabled)
+        Logger.error("Single element accesses field->get(x,y,z,f) not combinable with CUDA. Enable \"waLBerla_useInternalMemoryPointers\" instead.")
+
       // single-element access via get(x, y, z, f) access
       val newIdx = IR_WaLBerlaUtil.adaptIndexForAccessors(index, field.gridDatatype, field.numDimsGrid, field.layout.numDimsData)
-      IR_MemberFunctionCallArrow(IR_IV_WaLBerlaGetField(field, slot, fragIdx), "get", newIdx.indices : _*)
+      IR_MemberFunctionCallArrow(IR_IV_WaLBerlaGetField(field, slot, onGPU = false, fragIdx), "get", newIdx.indices : _*)
     }
   }
 }

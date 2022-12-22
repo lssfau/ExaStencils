@@ -42,9 +42,12 @@ case class IR_WaLBerlaField(
 
   def stringIdentifier(slot : Int) = codeName + s"_s$slot"
 
-  def addToStorage(blockForestAcc : IR_VariableAccess, slot : Int, initVal : IR_FunctionArgument, calculateSize : IR_VariableAccess) = {
+  // functions to add fields to block storage.
+  // cpu fields are allocated per level and slot using waLBerla's allocation
+  // gpu fields are merely memcpy'd from host to device
+  def addToStorageCPU(blockForestAcc : IR_VariableAccess, slot : Int, initVal : IR_FunctionArgument, calculateSize : IR_VariableAccess) = {
 
-    val wbFieldTemplate = IR_WaLBerlaDatatypes.WB_FieldDatatype(this).prettyprint()
+    val wbFieldTemplate = IR_WaLBerlaDatatypes.WB_FieldDatatype(this, onGPU = false).prettyprint()
     val fieldBaseType = gridDatatype.resolveBaseDatatype.prettyprint()
     val funcRefName = s"field::addToStorage< $wbFieldTemplate >"
 
@@ -75,7 +78,7 @@ case class IR_WaLBerlaField(
   }
 
   def addToStorageGPU(blockForestAcc : IR_VariableAccess, slot : Int, cpuFieldID : IR_WaLBerlaBlockDataID) = {
-    val funcRefName = s"cuda::addGPUFieldToStorage<${ IR_WaLBerlaDatatypes.WB_FieldDatatype(this).prettyprint() }>"
+    val funcRefName = s"cuda::addGPUFieldToStorage<${ IR_WaLBerlaDatatypes.WB_FieldDatatype(this, onGPU = false).prettyprint() }>"
 
     val args = ListBuffer[IR_Expression](
       blockForestAcc,

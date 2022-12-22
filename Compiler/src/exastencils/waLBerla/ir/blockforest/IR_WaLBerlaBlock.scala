@@ -10,7 +10,7 @@ class IR_WaLBerlaBlock(name : String, dt : IR_Datatype) extends IR_VariableAcces
   // get field data from block
   def getData(blockID : IR_WaLBerlaBlockDataID) = {
     val wbField = blockID.wbField
-    val fieldDt = WB_FieldDatatype(wbField)
+    val fieldDt = WB_FieldDatatype(wbField, blockID.onGPU)
     new IR_MemberFunctionCallArrowWithDt(this, s"getData< ${ fieldDt.typeName } >", ListBuffer(blockID), fieldDt)
   }
 }

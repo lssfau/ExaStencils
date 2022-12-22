@@ -35,8 +35,11 @@ case class IR_WaLBerlaFieldLayout(
 
   lazy val wbField : IR_WaLBerlaField = IR_WaLBerlaFieldCollection.getByLayoutIdentifierLevExp(name, level, suppressError = true).get
 
+  // layout assumed to be equal for slotted and CPU/GPU variants
+  private def getField = IR_IV_WaLBerlaGetField(wbField, 0, onGPU = false)
+
   // layouts are identical for each slot: use "0" as default
-  private def callMemberFunc(name : String) = IR_MemberFunctionCallArrowWithDt(IR_IV_WaLBerlaGetField(wbField, 0), name, IR_IntegerDatatype)
+  private def callMemberFunc(name : String) = IR_MemberFunctionCallArrowWithDt(getField, name, IR_IntegerDatatype)
 
   private def callMemberFuncForDim(name : String, dim : Int) = {
     // TODO handling layout transformations ?
@@ -48,7 +51,7 @@ case class IR_WaLBerlaFieldLayout(
     val prefix = dim match {
       case d if d < newLayout.length => newLayout.reverse(d) // rightmost is innermost dim
     }
-    IR_MemberFunctionCallArrowWithDt(IR_IV_WaLBerlaGetField(wbField, 0), prefix + name, IR_IntegerDatatype)
+    IR_MemberFunctionCallArrowWithDt(getField, prefix + name, IR_IntegerDatatype)
   }
 
   private def numPadLayersLeft(dim : Int) : IR_Expression = 0

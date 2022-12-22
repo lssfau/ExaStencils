@@ -34,7 +34,7 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR
       if (layout.layoutsPerDim.forall(layoutPerDim => layoutPerDim.numGhostLayersLeft != numGhosts || layoutPerDim.numGhostLayersRight != numGhosts))
         Logger.error("IR_AddFieldToStorage: Number of ghost layers (left & right) must be identical for all dimensions.")
 
-      val wbFieldTemplate = IR_WaLBerlaDatatypes.WB_FieldDatatype(leveledField).prettyprint()
+      val wbFieldTemplate = IR_WaLBerlaDatatypes.WB_FieldDatatype(leveledField, onGPU = false).prettyprint()
 
       (0 until leveledField.numSlots).map(slot =>
         IR_FunctionCall(s"${IR_WaLBerlaAddFieldToStorageWrapper().name} < $wbFieldTemplate >",

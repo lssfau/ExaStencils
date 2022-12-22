@@ -5,13 +5,13 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.parallelization.ir._
 import exastencils.util.NoDuplicateWrapper
+import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaCondWrapper
 import exastencils.waLBerla.ir.field._
 
 /// IR_WaLBerlaLoopOverBlocks
@@ -39,50 +39,13 @@ case class IR_WaLBerlaLoopOverBlocks(
 
     import IR_WaLBerlaLoopOverBlocks._
 
-    // TODO: separate CUDA handling into specialized strategy
-    object FindLoopOverDimensions extends QuietDefaultStrategy("Find loop over dimensions") {
-      var loopOverDims : Option[IR_LoopOverDimensions] = None
-
-      override def applyStandalone(node : Node) : Unit = {
-        loopOverDims = None
-        super.applyStandalone(node)
-      }
-
-      this += Transformation("..", {
-        case loopOverDimensions : IR_LoopOverDimensions =>
-          loopOverDims = Some(loopOverDimensions)
-          loopOverDimensions
-      })
-    }
-
-    val condWrapper = NoDuplicateWrapper[IR_Expression](null)
-    if (Knowledge.cuda_enabled) {
-      condWrapper.value = Knowledge.cuda_preferredExecution match {
-        case "Host"        => // CPU by default
-          IR_BooleanConstant(true)
-        case "Device"      => // GPU by default
-          IR_BooleanConstant(false)
-        case "Performance" => // decide according to performance estimates
-          FindLoopOverDimensions.applyStandalone(IR_Scope(body))
-
-          if (FindLoopOverDimensions.loopOverDims.isDefined) {
-            val loop = FindLoopOverDimensions.loopOverDims.get
-            IR_BooleanConstant(loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] <= loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double])
-          } else {
-            IR_BooleanConstant(true)
-          }
-        case "Condition"   =>
-          Knowledge.cuda_executionCondition
-      }
-    } else {
-      condWrapper.value = IR_BooleanConstant(true) // CPU by default
-    }
-
+    val condWrapper = CUDA_WaLBerlaCondWrapper.getNoDuplicateWrapper(IR_Scope(body))
+    val cpuExecution = NoDuplicateWrapper[IR_Expression](IR_BooleanConstant(true))
     def getWaLBerlaFieldData(accesses : IR_MultiDimWaLBerlaFieldAccess*) : ListBuffer[IR_Statement] = {
       accesses.to[mutable.ListBuffer].flatMap(fAcc => {
-          IR_IV_WaLBerlaGetField(fAcc).getDeclarationBlockLoop(condWrapper) :+
-          IR_IfCondition(Knowledge.waLBerla_useInternalMemoryPointers,
-            IR_IV_WaLBerlaFieldData(fAcc).getDeclarationBlockLoop(condWrapper))
+        IR_IfCondition(Knowledge.waLBerla_useInternalMemoryPointers,
+          IR_IV_WaLBerlaFieldData(fAcc).getDeclarationBlockLoop(condWrapper)) +:
+        IR_IV_WaLBerlaGetField(fAcc.field, fAcc.slot, onGPU = false, fAcc.fragIdx).getDeclarationBlockLoop(cpuExecution)
       })
     }
 

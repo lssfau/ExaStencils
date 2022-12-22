@@ -8,7 +8,6 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.field.ir.IR_FieldAccess
 import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda.CUDA_Util
@@ -38,20 +37,12 @@ sealed trait IR_IV_GetWaLBerlaFieldFromScope extends IR_InternalVariable {
 
 /// IR_IV_WaLBerlaGetField
 
-object IR_IV_WaLBerlaGetField {
-  def apply(fAcc : IR_FieldAccess) : IR_IV_WaLBerlaGetField = {
-    val wbfield = IR_WaLBerlaFieldCollection.getByIdentifier(fAcc.name, fAcc.level, suppressError = true).get
-    new IR_IV_WaLBerlaGetField(wbfield, fAcc.slot, fAcc.fragIdx)
-  }
-
-  def apply(fAcc : IR_MultiDimWaLBerlaFieldAccess) : IR_IV_WaLBerlaGetField = new IR_IV_WaLBerlaGetField(fAcc.field, fAcc.slot, fAcc.fragIdx)
-
-  def apply(fAcc : IR_WaLBerlaFieldAccess) : IR_IV_WaLBerlaGetField = new IR_IV_WaLBerlaGetField(fAcc.target, fAcc.slot, fAcc.fragIdx)
-}
+// TODO: rewrite declare functions for IR_IV_WaLBerlaGetField & IR_IV_WaLBerlaFieldData
 
 case class IR_IV_WaLBerlaGetField(
     var field : IR_WaLBerlaField,
     var slot : IR_Expression,
+    var onGPU : Boolean,
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
 ) extends IR_InternalVariable(true, false, true, false, false) with IR_IV_GetWaLBerlaFieldFromScope {
 
@@ -59,7 +50,7 @@ case class IR_IV_WaLBerlaGetField(
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
-  override def datatype : IR_SpecialDatatype = WB_FieldDatatype(field)
+  override def datatype : IR_SpecialDatatype = WB_FieldDatatype(field, onGPU)
 
   override def resolveDatatype() : IR_Datatype = {
     if (field.numSlots > 1)
@@ -74,18 +65,20 @@ case class IR_IV_WaLBerlaGetField(
 
   override def resolveName() : String = field.codeName
 
+  private val acc = IR_VariableAccess(resolveName(), resolveDatatype())
+
+  private def getSlottedFieldData(onGPU : Boolean) : ListBuffer[IR_Statement] = if (field.numSlots > 1)
+    (0 until field.numSlots).map(s => IR_Assignment(IR_ArrayAccess(acc, s), getFieldData(s, onGPU)) : IR_Statement).to[ListBuffer]
+  else
+    ListBuffer[IR_Statement](IR_Assignment(acc, getFieldData(0, onGPU)))
+
+  private def getFieldData(slotIt : IR_Expression, onGPU : Boolean) = defIt.getData(IR_WaLBerlaBlockDataID(field, slotIt, onGPU))
+
+  def getDeclarationBlockLoop() : ListBuffer[IR_Statement] = {
+    IR_VariableDeclaration(acc) +: getSlottedFieldData(onGPU)
+  }
+
   override def getDeclarationBlockLoop(executionChoice : NoDuplicateWrapper[IR_Expression]) : ListBuffer[IR_Statement] = {
-
-    def getFieldData(slotIt : IR_Expression, onGPU : Boolean) = defIt.getData(IR_WaLBerlaBlockDataID(field, slotIt, onGPU))
-
-    val acc = IR_VariableAccess(resolveName(), resolveDatatype())
-
-    def getSlottedFieldData(onGPU : Boolean) : ListBuffer[IR_Statement] = if (field.numSlots > 1) {
-      (0 until field.numSlots).map(s => IR_Assignment(IR_ArrayAccess(acc, s), getFieldData(s, onGPU)) : IR_Statement).to[ListBuffer]
-    } else {
-      ListBuffer[IR_Statement](IR_Assignment(acc, getFieldData(0, onGPU)))
-    }
-
     // TODO: separate CUDA handling?
     if (Knowledge.cuda_enabled) {
       val branch = IR_IfCondition(IR_VariableAccess("replaceIn_CUDA_AnnotateLoops", IR_BooleanDatatype),
@@ -130,12 +123,16 @@ case class IR_IV_WaLBerlaFieldData(
 
   override def getDeclarationBlockLoop(executionChoice : NoDuplicateWrapper[IR_Expression]) : ListBuffer[IR_Statement] = {
 
-    def getFieldDataPtr(slotIt : IR_Expression) = {
-      val fieldFromBlock = new IR_IV_WaLBerlaGetField(field, slotIt, fragmentIdx)
+    def getFieldDataPtr(slotIt : IR_Expression, onGPU : Boolean) = {
+      val fieldFromBlock = IR_IV_WaLBerlaGetField(field, slotIt, onGPU, fragmentIdx)
 
       if (field.layout.useFixedLayoutSizes) {
         // get ptr without offset -> referenceOffset handled by ExaStencils
-        new IR_MemberFunctionCallArrowWithDt(fieldFromBlock, "data", ListBuffer())
+        val ptr = new IR_MemberFunctionCallArrowWithDt(fieldFromBlock, "data", ListBuffer())
+        if (onGPU)
+          IR_Cast(IR_PointerDatatype(field.resolveBaseDatatype), ptr) // "data" function of GPU fields returns pitched void*
+        else
+          ptr
       } else {
         // dataAt(0, 0, 0, 0) already points to first inner iteration point at "referenceOffset" -> referenceOffset not handled by ExaStencils
         if (field.layout.referenceOffset.forall(_ != IR_IntegerConstant(0)))
@@ -156,12 +153,29 @@ case class IR_IV_WaLBerlaFieldData(
       }
     }
 
-    val getSlottedFieldPtrs = if (field.numSlots > 1) {
-      IR_InitializerList((0 until field.numSlots).map(s => getFieldDataPtr(s)) : _*)
-    } else {
-      getFieldDataPtr(0)
-    }
+    val acc = IR_VariableAccess(resolveName(), resolveDatatype())
+    def getSlottedFieldPtrs(onGPU : Boolean) = if (field.numSlots > 1)
+      (0 until field.numSlots).map(s => IR_Assignment(IR_ArrayAccess(acc, s), getFieldDataPtr(s, onGPU)) : IR_Statement).to[ListBuffer]
+    else
+      ListBuffer[IR_Statement](IR_Assignment(acc, getFieldDataPtr(0, onGPU)))
 
-    ListBuffer[IR_Statement](IR_VariableDeclaration(resolveDatatype(), resolveName(), Some(getSlottedFieldPtrs)))
+    def getField(onGPU : Boolean) = IR_IV_WaLBerlaGetField(field, slot, onGPU, fragmentIdx).getDeclarationBlockLoop()
+
+    // TODO: hacky
+    if (Knowledge.cuda_enabled) {
+      val branch = IR_IfCondition(IR_VariableAccess("replaceIn_CUDA_AnnotateLoops", IR_BooleanDatatype),
+        IR_IfCondition(1, getField(false) ++ getSlottedFieldPtrs(false)),
+        IR_IfCondition(1, IR_Scope(getField(true) ++ getSlottedFieldPtrs(true))))
+      branch.annotate(CUDA_Util.CUDA_BRANCH_CONDITION, executionChoice)
+      ListBuffer[IR_Statement](branch)
+
+      ListBuffer[IR_Statement](
+        IR_VariableDeclaration(acc),
+        branch)
+    } else {
+      ListBuffer[IR_Statement](
+        IR_VariableDeclaration(acc),
+        IR_IfCondition(1, IR_Scope(getField(false) ++ getSlottedFieldPtrs(false))))
+    }
   }
 }
