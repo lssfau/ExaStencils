@@ -66,7 +66,9 @@
             echo "Previous command was successful with exit code $exit_code"
             clock=$(eval "$GET_CLOCK_CMD")
             echo "Setting freq to base extracted from $METHOD"
-            likwid-setFrequencies -f $(bc <<<"scale=2; $clock / $CONVERT_FACTOR")
+            targetFreq=$(bc <<<"scale=2; $clock / $CONVERT_FACTOR")
+            likwid-setFrequencies -f $targetFreq || exit_code=$?
+            echo "likwid-setFrequencies -f $targetFreq exited with code $exit_code"
         fi
 
 .set_base_clock: &set_base_clock
