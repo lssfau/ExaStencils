@@ -56,10 +56,16 @@
     - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-11.7/targets/x86_64-linux/lib
     - echo $LD_LIBRARY_PATH
 
+.check_error_code: &check_error_code
+    - if [ $exit_code -ne 0 ]; then echo "Previous command failed"; fi;
+
 .set_base_clock: &set_base_clock
-    - clock=$(likwid-powermeter -i | grep "Base clock:" | awk '{print $3}') # in MHz
-    - base_freq=$(cat /sys/devices/system/cpu/cpu0/cpufreq/base_frequency 2>/dev/null) # in KHz
-    - bios_limit=$(cat /sys/devices/system/cpu/cpu0/cpufreq/bios_limit 2>/dev/null) # in KHz
+    - clock=$(likwid-powermeter -i | grep "Base clock:" | awk '{print $3}') || exit_code=$? # in MHz
+    - *check_error_code
+    - base_freq=$(cat /sys/devices/system/cpu/cpu0/cpufreq/base_frequency 2>/dev/null) || exit_code=$? # in KHz
+    - *check_error_code
+    - bios_limit=$(cat /sys/devices/system/cpu/cpu0/cpufreq/bios_limit 2>/dev/null) || exit_code=$? # in KHz
+    - *check_error_code
     - |
         if [ -z "$clock" ];
         then
