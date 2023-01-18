@@ -56,49 +56,44 @@
     - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-11.7/targets/x86_64-linux/lib
     - echo $LD_LIBRARY_PATH
 
-.set_cpu_freq:
-    before_script:
-        - echo "Execute command $GET_CLOCK_CMD with method $METHOD and convert factor $CONVERT_FACTOR"
-        - eval "$GET_CLOCK_CMD" || exit_code=$?
-        - |
-            if [[ $exit_code -ne 0 ]]; then
-                echo "Previous command failed"
-            else
-                echo "Previous command was successful with exit code $exit_code"
-                clock=$(eval "$GET_CLOCK_CMD")
-                echo "Setting freq to base extracted from $METHOD"
-                likwid-setFrequencies -f $(bc <<<"scale=2; $clock / $CONVERT_FACTOR")
-            fi
-    variables:
-        - GET_CLOCK_CMD: "TO_BE_REPLACED"
-        - CONVERT_FACTOR: 1.00
-        - METHOD: "TO_BE_REPLACED"
+.set_cpu_freq: &set_cpu_freq
+    - echo "Execute command $GET_CLOCK_CMD with method $METHOD and convert factor $CONVERT_FACTOR"
+    - eval "$GET_CLOCK_CMD" || exit_code=$?
+    - |
+        if [[ $exit_code -ne 0 ]]; then
+            echo "Previous command failed"
+        else
+            echo "Previous command was successful with exit code $exit_code"
+            clock=$(eval "$GET_CLOCK_CMD")
+            echo "Setting freq to base extracted from $METHOD"
+            likwid-setFrequencies -f $(bc <<<"scale=2; $clock / $CONVERT_FACTOR")
+        fi
 
-.likwid_powermeter:
-    extends: .set_cpu_freq
+.likwid_powermeter: &likwid_powermeter
+    - *set_cpu_freq
     variables:
         - GET_CLOCK_CMD: "likwid-powermeter -i | grep \"Base clock:\" | grep -Eo '[+-]?[0-9]+([.][0-9]+)?'" # in MHz
         - CONVERT_FACTOR: 1000.00 # MHz to GHz
         - METHOD: "likwid-powermeter"
 
-.base_frequency:
-    extends: .set_cpu_freq
+.base_frequency: &base_frequency
+    - *set_cpu_freq
     variables:
         - GET_CLOCK_CMD: "cat /sys/devices/system/cpu/cpu0/cpufreq/base_frequency 2>/dev/null" # in KHz
         - CONVERT_FACTOR: 1000000.00 # KHz to GHz
         - METHOD: "base_frequency file"
 
-.bios_limit:
-    extends: .set_cpu_freq
+.bios_limit: &bios_limit
+    - *set_cpu_freq
     variables:
         - GET_CLOCK_CMD: "cat /sys/devices/system/cpu/cpu0/cpufreq/bios_limit 2>/dev/null" # in KHz
         - CONVERT_FACTOR: 1000000.00 # KHz to GHz
         - METHOD: "bios_limit file"
 
 .set_base_clock: &set_base_clock
-    - !reference [ .bios_limit, before_script ]
-    - !reference [ .base_frequency, before_script ]
-    - !reference [ .likwid_powermeter, before_script ]
+    - *bios_limit
+    - *base_frequency
+    - *likwid_powermeter
     - likwid-setFrequencies -p # show freq
 
 .compiler_versions: &get_compiler_versions
