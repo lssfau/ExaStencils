@@ -94,9 +94,9 @@
         - METHOD: "\"bios_limit file\""
 
 .set_base_clock: &set_base_clock
-    - *bios_limit
-    - *base_frequency
-    - *likwid_powermeter
+    - !reference [ .bios_limit, before_script ]
+    - !reference [ .base_frequency, before_script ]
+    - !reference [ .likwid_powermeter, before_script ]
     - likwid-setFrequencies -p # show freq
 
 .compiler_versions: &get_compiler_versions
