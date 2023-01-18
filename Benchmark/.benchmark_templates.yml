@@ -60,7 +60,7 @@
     before_script:
         - eval "$GET_CLOCK_CMD" || exit_code=$?
         - |
-            if [ $exit_code -ne 0 ]; then
+            if [[ $exit_code -ne 0 ]]; then
                 echo "Previous command failed"
             else
                 echo "Setting freq to base extracted from $METHOD"
