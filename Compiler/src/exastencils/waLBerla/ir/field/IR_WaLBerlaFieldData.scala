@@ -129,8 +129,8 @@ case class IR_IV_WaLBerlaFieldData(
       if (field.layout.useFixedLayoutSizes) {
         // get ptr without offset -> referenceOffset handled by ExaStencils
         val ptr = new IR_MemberFunctionCallArrowWithDt(fieldFromBlock, "data", ListBuffer())
-        if (onGPU)
-          IR_Cast(IR_PointerDatatype(field.resolveBaseDatatype), ptr) // "data" function of GPU fields returns pitched void*
+        if (onGPU) // TODO: offset for pitched pointers?
+          IR_Cast(IR_PointerDatatype(field.resolveBaseDatatype), ptr) // "data" function of GPU fields returns void*
         else
           ptr
       } else {

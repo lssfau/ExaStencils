@@ -6,6 +6,7 @@ import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_MatShape
 import exastencils.boundary.ir.IR_BoundaryCondition
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_Domain
 import exastencils.domain.ir.IR_DomainCollection
@@ -80,11 +81,17 @@ case class IR_WaLBerlaField(
   def addToStorageGPU(blockForestAcc : IR_VariableAccess, slot : Int, cpuFieldID : IR_WaLBerlaBlockDataID) = {
     val funcRefName = s"cuda::addGPUFieldToStorage<${ IR_WaLBerlaDatatypes.WB_FieldDatatype(this, onGPU = false).prettyprint() }>"
 
+    // TODO: mapping pitched <-> non-pitched fields? maybe possible with help of IVs
+    val usePitchedMemory = if (Knowledge.waLBerla_useGridFromExa)
+      false // exa fields do not employ pitched memory -> can lead to inconsistent indexing
+    else
+      true
+
     val args = ListBuffer[IR_Expression](
       blockForestAcc,
       cpuFieldID,
       IR_StringConstant(stringIdentifier(slot)),
-      IR_BooleanConstant(true) // pitched memory
+      IR_BooleanConstant(usePitchedMemory)
     )
 
     IR_FunctionCall(IR_ExternalFunctionReference(funcRefName), args)
