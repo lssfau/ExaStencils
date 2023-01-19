@@ -5,8 +5,8 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config.Knowledge
+import exastencils.config.Platform
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
-import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaGPUCommScheme
 import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaGPUCommScheme
 import exastencils.waLBerla.ir.field._
 import exastencils.waLBerla.ir.interfacing._
@@ -50,7 +50,13 @@ case class IR_WaLBerlaInitCommSchemes() extends IR_WaLBerlaFuturePlainFunction {
           commSchemes += CUDA_WaLBerlaGPUCommScheme(wbf, s)
 
         for (commScheme <- commSchemes) {
-          body += IR_Assignment(commScheme.resolveAccess(), make_unique(commScheme.basetype.resolveBaseDatatype.prettyprint, blockForest, tag))
+          // ctors for CPU/GPU comm schemes have slightly different signature
+          val args : List[IR_Expression] = if (commScheme.isInstanceOf[CUDA_WaLBerlaGPUCommScheme])
+            List(blockForest, IR_BooleanConstant(Platform.hw_gpu_gpuDirectAvailable), tag) // GPU params
+          else
+            List(blockForest, tag) // CPU params
+
+          body += IR_Assignment(commScheme.resolveAccess(), make_unique(commScheme.basetype.resolveBaseDatatype.prettyprint, args : _*))
           ctr += 1
         }
       }
