@@ -41,7 +41,8 @@ case class IR_WaLBerlaInitCommSchemes() extends IR_WaLBerlaFuturePlainFunction {
 
     // init comm scheme array
     var ctr = 0
-    var maxSlots = wbFieldsPerLevel.map(_.numSlots).max
+    val slotsPerField = wbFieldsPerLevel.map(_.numSlots)
+    val maxSlots = if (slotsPerField.nonEmpty) slotsPerField.max else 1
     for (wbf <- wbFieldsPerLevel) {
       for (s <- 0 until wbf.numSlots) {
         val commSchemes : ListBuffer[IR_WaLBerlaCommScheme] = ListBuffer(IR_WaLBerlaCPUCommScheme(wbf, s))
