@@ -41,10 +41,12 @@ case class IR_WaLBerlaInitCommSchemes() extends IR_WaLBerlaFuturePlainFunction {
 
     // init comm scheme array
     var ctr = 0
+    var maxSlots = wbFieldsPerLevel.map(_.numSlots).max
     for (wbf <- wbFieldsPerLevel) {
       for (s <- 0 until wbf.numSlots) {
         val commSchemes : ListBuffer[IR_WaLBerlaCommScheme] = ListBuffer(IR_WaLBerlaCPUCommScheme(wbf, s))
-        val tag = "waLBerla".chars().sum() + ctr // increment default tag value per created comm scheme
+        val tagCPU = "waLBerla".chars().sum() + ctr // increment default tag value per created comm scheme
+        val tagGPU = "waLBerla_on_gpu".chars().sum() + wbFieldsPerLevel.size * maxSlots + ctr
 
         if (Knowledge.cuda_enabled)
           commSchemes += CUDA_WaLBerlaGPUCommScheme(wbf, s)
@@ -52,9 +54,9 @@ case class IR_WaLBerlaInitCommSchemes() extends IR_WaLBerlaFuturePlainFunction {
         for (commScheme <- commSchemes) {
           // ctors for CPU/GPU comm schemes have slightly different signature
           val args : List[IR_Expression] = if (commScheme.isInstanceOf[CUDA_WaLBerlaGPUCommScheme])
-            List(blockForest, IR_BooleanConstant(Platform.hw_gpu_gpuDirectAvailable), tag) // GPU params
+            List(blockForest, IR_BooleanConstant(Platform.hw_gpu_gpuDirectAvailable), tagGPU) // GPU params
           else
-            List(blockForest, tag) // CPU params
+            List(blockForest, tagCPU) // CPU params
 
           body += IR_Assignment(commScheme.resolveAccess(), make_unique(commScheme.basetype.resolveBaseDatatype.prettyprint, args : _*))
           ctr += 1
