@@ -3,6 +3,7 @@ package exastencils.waLBerla.ir.interfacing
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
@@ -15,6 +16,9 @@ object IR_WaLBerlaGetterFunctionCollection {
   var functions : ListBuffer[IR_FunctionLike] = ListBuffer()
 
   functions += IR_WaLBerlaGetBlockForest()
+  functions += IR_WaLBerlaGetMaxLevel()
+  functions += IR_WaLBerlaGetMinLevel()
+  functions += IR_WaLBerlaGetNumLevels()
 
   for (field <- IR_WaLBerlaFieldCollection.objects.groupBy(_.name).map(_._2.head)) {
     functions += IR_WaLBerlaGetBlockDataID(field)
@@ -27,6 +31,36 @@ case class IR_WaLBerlaGetBlockForest() extends IR_WaLBerlaWrapperFunction {
     IR_WaLBerlaPlainFunction(name, blockForest.datatype, ListBuffer(), ListBuffer(IR_Return(blockForest)))
   }
   override def name : String = "getBlockForest"
+
+  override def isInterfaceFunction : Boolean = true
+  override def inlineImplementation : Boolean = true
+}
+
+case class IR_WaLBerlaGetMaxLevel() extends IR_WaLBerlaWrapperFunction {
+  override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
+    IR_WaLBerlaPlainFunction(name, IR_IntegerDatatype, ListBuffer(), ListBuffer(IR_Return(Knowledge.maxLevel)))
+  }
+  override def name : String = "getMaxMGLevel"
+
+  override def isInterfaceFunction : Boolean = true
+  override def inlineImplementation : Boolean = true
+}
+
+case class IR_WaLBerlaGetMinLevel() extends IR_WaLBerlaWrapperFunction {
+  override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
+    IR_WaLBerlaPlainFunction(name, IR_IntegerDatatype, ListBuffer(), ListBuffer(IR_Return(Knowledge.minLevel)))
+  }
+  override def name : String = "getMinMGLevel"
+
+  override def isInterfaceFunction : Boolean = true
+  override def inlineImplementation : Boolean = true
+}
+
+case class IR_WaLBerlaGetNumLevels() extends IR_WaLBerlaWrapperFunction {
+  override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
+    IR_WaLBerlaPlainFunction(name, IR_IntegerDatatype, ListBuffer(), ListBuffer(IR_Return(Knowledge.maxLevel - Knowledge.minLevel + 1)))
+  }
+  override def name : String = "getNumberOfMGLevels"
 
   override def isInterfaceFunction : Boolean = true
   override def inlineImplementation : Boolean = true
