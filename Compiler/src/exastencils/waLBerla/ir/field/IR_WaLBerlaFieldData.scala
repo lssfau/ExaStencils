@@ -32,7 +32,7 @@ sealed trait IR_IV_GetWaLBerlaFieldFromScope extends IR_InternalVariable {
   override def getDtor() : Option[IR_Statement] = None
   override def registerIV(declarations : mutable.HashMap[String, IR_VariableDeclaration], ctors : mutable.HashMap[String, IR_Statement], dtors : mutable.HashMap[String, IR_Statement]) : Unit = {}
 
-  def getDeclarationBlockLoop(executionChoice : NoDuplicateWrapper[IR_Expression], potentiallyParallel : Boolean) : ListBuffer[IR_Statement]
+  def getDeclarationBlockLoop(executionChoice : NoDuplicateWrapper[IR_Expression]) : ListBuffer[IR_Statement]
 }
 
 /// IR_IV_WaLBerlaGetField
@@ -78,9 +78,9 @@ case class IR_IV_WaLBerlaGetField(
     IR_VariableDeclaration(acc) +: getSlottedFieldData(onGPU)
   }
 
-  override def getDeclarationBlockLoop(executionChoice : NoDuplicateWrapper[IR_Expression], potentiallyParallel : Boolean) : ListBuffer[IR_Statement] = {
+  override def getDeclarationBlockLoop(executionChoice : NoDuplicateWrapper[IR_Expression]) : ListBuffer[IR_Statement] = {
     // TODO: separate CUDA handling?
-    if (Knowledge.cuda_enabled && potentiallyParallel) {
+    if (Knowledge.cuda_enabled) {
       val branch = IR_IfCondition(IR_VariableAccess("replaceIn_CUDA_AnnotateLoops", IR_BooleanDatatype),
         getSlottedFieldData(false),
         getSlottedFieldData(true))
@@ -121,7 +121,7 @@ case class IR_IV_WaLBerlaFieldData(
 
   override def resolveName() : String = s"data_${ field.codeName }_"
 
-  override def getDeclarationBlockLoop(executionChoice : NoDuplicateWrapper[IR_Expression], potentiallyParallel : Boolean) : ListBuffer[IR_Statement] = {
+  override def getDeclarationBlockLoop(executionChoice : NoDuplicateWrapper[IR_Expression]) : ListBuffer[IR_Statement] = {
 
     def getFieldDataPtr(slotIt : IR_Expression, onGPU : Boolean) = {
       val fieldFromBlock = IR_IV_WaLBerlaGetField(field, slotIt, onGPU, fragmentIdx)
@@ -162,7 +162,7 @@ case class IR_IV_WaLBerlaFieldData(
     def getField(onGPU : Boolean) = IR_IV_WaLBerlaGetField(field, slot, onGPU, fragmentIdx).getDeclarationBlockLoop()
 
     // TODO: hacky
-    if (Knowledge.cuda_enabled && potentiallyParallel) {
+    if (Knowledge.cuda_enabled) {
       val branch = IR_IfCondition(IR_VariableAccess("replaceIn_CUDA_AnnotateLoops", IR_BooleanDatatype),
         IR_IfCondition(1, getField(false) ++ getSlottedFieldPtrs(false)),
         IR_IfCondition(1, IR_Scope(getField(true) ++ getSlottedFieldPtrs(true))))
