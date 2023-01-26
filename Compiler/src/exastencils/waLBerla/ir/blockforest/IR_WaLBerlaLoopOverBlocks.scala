@@ -29,8 +29,10 @@ case class IR_WaLBerlaLoopOverBlocks(
   parallelization.gpuParallelizable = true
 
   def expandSpecial() : Output[IR_ForLoop] = {
+    val potentiallyParallel = Duplicate(parallelization.potentiallyParallel)
+
     // TODO: separate omp and potentiallyParallel
-    parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && parallelization.potentiallyParallel
+    parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && potentiallyParallel
 
     // collect fields accessed per level in loop
     var fieldsAccessed = ListBuffer[IR_MultiDimWaLBerlaFieldAccess]()
@@ -39,7 +41,7 @@ case class IR_WaLBerlaLoopOverBlocks(
 
     import IR_WaLBerlaLoopOverBlocks._
 
-    val condWrapper = CUDA_WaLBerlaCondWrapper.getNoDuplicateWrapper(IR_Scope(body), parallelization.potentiallyParallel)
+    val condWrapper = CUDA_WaLBerlaCondWrapper.getNoDuplicateWrapper(IR_Scope(body), potentiallyParallel)
     val cpuExecution = NoDuplicateWrapper[IR_Expression](IR_BooleanConstant(true))
     def getWaLBerlaFieldData(accesses : IR_MultiDimWaLBerlaFieldAccess*) : ListBuffer[IR_Statement] = {
       accesses.to[mutable.ListBuffer].flatMap(fAcc => {
