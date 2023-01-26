@@ -25,9 +25,9 @@ object FindLoopOverDimensions extends QuietDefaultStrategy("Find loop over dimen
 }
 
 object CUDA_WaLBerlaCondWrapper {
-  def getNoDuplicateWrapper(stmt : IR_Statement) : NoDuplicateWrapper[IR_Expression] = {
+  def getNoDuplicateWrapper(stmt : IR_Statement, potentiallyParallel : Boolean) : NoDuplicateWrapper[IR_Expression] = {
     val condWrapper = NoDuplicateWrapper[IR_Expression](null)
-    if (Knowledge.cuda_enabled) {
+    if (Knowledge.cuda_enabled && potentiallyParallel) {
       condWrapper.value = Knowledge.cuda_preferredExecution match {
         case "Host"        => // CPU by default
           IR_BooleanConstant(true)

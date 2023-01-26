@@ -39,7 +39,7 @@ case class IR_WaLBerlaLoopOverBlocks(
 
     import IR_WaLBerlaLoopOverBlocks._
 
-    val condWrapper = CUDA_WaLBerlaCondWrapper.getNoDuplicateWrapper(IR_Scope(body))
+    val condWrapper = CUDA_WaLBerlaCondWrapper.getNoDuplicateWrapper(IR_Scope(body), parallelization.potentiallyParallel)
     val cpuExecution = NoDuplicateWrapper[IR_Expression](IR_BooleanConstant(true))
     def getWaLBerlaFieldData(accesses : IR_MultiDimWaLBerlaFieldAccess*) : ListBuffer[IR_Statement] = {
       accesses.to[mutable.ListBuffer].flatMap(fAcc => {
