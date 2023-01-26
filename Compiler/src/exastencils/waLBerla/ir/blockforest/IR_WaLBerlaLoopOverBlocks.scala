@@ -41,11 +41,14 @@ case class IR_WaLBerlaLoopOverBlocks(
 
     val condWrapper = CUDA_WaLBerlaCondWrapper.getNoDuplicateWrapper(IR_Scope(body))
     val cpuExecution = NoDuplicateWrapper[IR_Expression](IR_BooleanConstant(true))
+    def isParallel = parallelization.potentiallyParallel
     def getWaLBerlaFieldData(accesses : IR_MultiDimWaLBerlaFieldAccess*) : ListBuffer[IR_Statement] = {
       accesses.to[mutable.ListBuffer].flatMap(fAcc => {
+        // fetch internal memory pointer
         IR_IfCondition(Knowledge.waLBerla_useInternalMemoryPointers,
-          IR_IV_WaLBerlaFieldData(fAcc).getDeclarationBlockLoop(condWrapper)) +:
-        IR_IV_WaLBerlaGetField(fAcc.field, fAcc.slot, onGPU = false, fAcc.fragIdx).getDeclarationBlockLoop(cpuExecution)
+          IR_IV_WaLBerlaFieldData(fAcc).getDeclarationBlockLoop(condWrapper, isParallel)) +:
+        // fet waLBerla field instance on CPU (e.g. for fetching layout information)
+        IR_IV_WaLBerlaGetField(fAcc.field, fAcc.slot, onGPU = false, fAcc.fragIdx).getDeclarationBlockLoop(cpuExecution, isParallel)
       })
     }
 
