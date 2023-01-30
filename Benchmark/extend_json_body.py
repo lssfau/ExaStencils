@@ -25,6 +25,7 @@ def parse_likwid_perfctr_output(pipe, json_body):
         m = re.search(r'Clock \[MHz\].*\|\s*(\d*(\.\d*)?)\s*\|', line)
         if m is not None and m.group(1) != "":
             json_body["MHz_Clock"] = float(m.group(1))
+            print(f"Determined MHz_Clock: {m.group(1)}")
 
     return json_body
 
