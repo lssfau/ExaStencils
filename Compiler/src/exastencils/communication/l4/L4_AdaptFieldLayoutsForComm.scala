@@ -22,13 +22,14 @@ import scala.collection.mutable._
 
 import exastencils.base.l4._
 import exastencils.boundary.l4._
-import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.field.l4._
 import exastencils.grid.l4._
 import exastencils.logger.Logger
 
 /// L4_AdaptFieldLayoutsForComm
+
+// TODO: Use FieldLikeCollections instead or FieldCollection
 
 object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts to take communication patterns into account") {
   var collector = new L4_FieldAccessRangeCollector()

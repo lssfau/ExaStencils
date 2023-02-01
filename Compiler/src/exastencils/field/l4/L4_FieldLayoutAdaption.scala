@@ -24,6 +24,8 @@ import exastencils.waLBerla.l4.field._
 
 /// L4_DuplicateFieldLayoutsForFields
 
+// TODO: Use FieldLikeCollections instead or FieldCollection
+
 object L4_DuplicateFieldLayoutsForFields {
   def apply() = {
     val newFieldLayouts = ListBuffer[L4_FieldLayout]()
