@@ -21,6 +21,8 @@ package exastencils.field.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
+import exastencils.field.ir.IR_FieldLayout
+import exastencils.fieldlike.l4.L4_FieldLikeLayoutCollection
 import exastencils.fieldlike.l4.L4_FieldLikeLayoutDecl
 import exastencils.grid.l4._
 import exastencils.logger.Logger
@@ -52,7 +54,7 @@ case class L4_FieldLayoutDecl(
     var levels : Option[L4_DeclarationLevelSpecification],
     var datatype : L4_Datatype,
     var localization : L4_Localization,
-    var options : ListBuffer[L4_FieldLayoutOption]) extends L4_FieldLikeLayoutDecl[L4_FieldLayout] {
+    var options : ListBuffer[L4_FieldLayoutOption]) extends L4_FieldLikeLayoutDecl[L4_FieldLayout, IR_FieldLayout] {
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "Layout " << name << "< " << datatype << ", " << localization << " >"
@@ -83,4 +85,6 @@ case class L4_FieldLayoutDecl(
   }
 
   override def progress = Logger.error(s"Trying to progress l4 field layout declaration for $name; this is not supported")
+
+  override def associatedCollection : L4_FieldLikeLayoutCollection[L4_FieldLayout, IR_FieldLayout] = L4_FieldLayoutCollection
 }
