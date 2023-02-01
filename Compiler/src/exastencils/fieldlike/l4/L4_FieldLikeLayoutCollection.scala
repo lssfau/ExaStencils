@@ -1,5 +1,6 @@
 package exastencils.fieldlike.l4
 
+import scala.collection.mutable.ListBuffer
 import scala.reflect.runtime.universe._
 
 import exastencils.base.l4._
@@ -16,6 +17,23 @@ import exastencils.knowledge.l4.L4_LeveledKnowledgeCollection
 import exastencils.logger.Logger
 import exastencils.util.l4.L4_LevelCollector
 import exastencils.waLBerla.l4.field._
+
+object L4_FieldLikeLayoutCollections {
+  val collections = ListBuffer[L4_FieldLikeLayoutCollection[_ <: L4_FieldLikeLayout[_], _ <: IR_FieldLikeLayout]]()
+
+  def register(collection : L4_FieldLikeLayoutCollection[_ <: L4_FieldLikeLayout[_], _ <: IR_FieldLikeLayout]) =
+    collections += collection
+
+  def getByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[L4_FieldLikeLayout[_]] = {
+    for (coll <- collections) {
+      if (coll.exists(identifier, level))
+        return Some(coll.getByIdentifier(identifier, level, suppressError).get)
+    }
+    None
+  }
+
+  def clear() = collections.foreach(_.clear())
+}
 
 abstract class L4_FieldLikeLayoutCollection[L4_Type <: L4_FieldLikeLayout[IR_Type] : TypeTag, IR_Type <: IR_FieldLikeLayout] extends L4_LeveledKnowledgeCollection[L4_Type, IR_Type] {
 
