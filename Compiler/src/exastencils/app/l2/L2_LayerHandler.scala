@@ -36,6 +36,7 @@ import exastencils.parsers.l2._
 import exastencils.prettyprinting.Indenter
 import exastencils.solver.l2._
 import exastencils.util.l2._
+import exastencils.waLBerla.l2.field.L2_WaLBerlaFieldCollection
 
 /// L2_LayerHandler
 
@@ -57,8 +58,9 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
     // activate default knowledge collections
 
     L2_DomainCollection
-    for (fieldCollection <- L2_FieldLikeCollections.collections)
-      fieldCollection
+    // TODO: can we make the field collection instantiation generic?
+    L2_WaLBerlaFieldCollection
+    L2_FieldCollection
     L2_StencilCollection
     L2_StencilFieldCollection
     L2_VirtualFieldCollection
