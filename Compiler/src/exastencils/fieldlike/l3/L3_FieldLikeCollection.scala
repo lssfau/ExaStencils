@@ -14,7 +14,6 @@ import exastencils.knowledge.l3.L3_KnowledgeContainer._
 import exastencils.knowledge.l3.L3_LeveledKnowledgeCollection
 import exastencils.logger.Logger
 import exastencils.util.l3.L3_LevelCollector
-import exastencils.waLBerla.l3.field._
 
 object L3_FieldLikeCollections {
   val collections = ListBuffer[L3_FieldLikeCollection[_ <: L3_FieldLike[_], _ <: L4_FieldLike[_, _]]]()
@@ -53,16 +52,11 @@ abstract class L3_FieldLikeCollection[L3_Type <: L3_FieldLike[L4_Type] : TypeTag
     ExaRootNode.l3_root.nodes += fct
   }
 
-  // TODO: make strategies more generic
-
   /// L3_PrepareFieldDeclarations
 
   object L3_PrepareFieldDeclarations extends DefaultStrategy("Prepare knowledge for L3 fields") {
     this += Transformation("Process new fields", {
-      case decl : L3_FieldDecl if L3_FieldLikeCollection.this == L3_FieldCollection =>
-        addDeclared(decl.name, decl.levels)
-        decl // preserve declaration statement
-      case decl : L3_WaLBerlaFieldDecl if L3_FieldLikeCollection.this == L3_WaLBerlaFieldCollection =>
+      case decl : L3_FieldLikeDecl[_, _] if L3_FieldLikeCollection.this == decl.associatedCollection =>
         addDeclared(decl.name, decl.levels)
         decl // preserve declaration statement
     })
@@ -72,10 +66,7 @@ abstract class L3_FieldLikeCollection[L3_Type <: L3_FieldLike[L4_Type] : TypeTag
 
   object L3_ProcessFieldDeclarations extends DefaultStrategy("Integrate L3 field declarations with knowledge") {
     this += Transformation("Process field declarations", {
-      case decl : L3_FieldDecl if L3_FieldLikeCollection.this == L3_FieldCollection && L3_MayBlockResolution.isDone(decl) =>
-        decl.addToKnowledge()
-        None // consume declaration statement
-      case decl : L3_WaLBerlaFieldDecl if L3_FieldLikeCollection.this == L3_WaLBerlaFieldCollection && L3_MayBlockResolution.isDone(decl) =>
+      case decl : L3_FieldLikeDecl[_, _] if L3_FieldLikeCollection.this == decl.associatedCollection && L3_MayBlockResolution.isDone(decl) =>
         decl.addToKnowledge()
         None // consume declaration statement
     })

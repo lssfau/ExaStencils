@@ -13,7 +13,6 @@ import exastencils.knowledge.l2.L2_KnowledgeContainer._
 import exastencils.knowledge.l2.L2_LeveledKnowledgeCollection
 import exastencils.logger.Logger
 import exastencils.util.l2.L2_LevelCollector
-import exastencils.waLBerla.l2.field._
 
 object L2_FieldLikeCollections {
   val collections = ListBuffer[L2_FieldLikeCollection[_ <: L2_FieldLike[_], _ <: L3_FieldLike[_]]]()
@@ -40,16 +39,11 @@ abstract class L2_FieldLikeCollection[L2_Type <: L2_FieldLike[L3_Type] : TypeTag
   L2_PrepareAccesses.strategies += L2_PrepareFieldAccesses
   L2_ResolveAccesses.strategies += L2_ResolveFieldAccesses
 
-  // TODO: make strategies more generic
-
   /// L2_PrepareFieldDeclaration
 
   object L2_PrepareFieldDeclarations extends DefaultStrategy("Prepare knowledge for L2 fields") {
     this += Transformation("Process new fields", {
-      case decl : L2_FieldDecl if L2_FieldLikeCollection.this == L2_FieldCollection =>
-        addDeclared(decl.name, decl.levels)
-        decl // preserve declaration statement
-      case decl : L2_WaLBerlaFieldDecl if L2_FieldLikeCollection.this == L2_WaLBerlaFieldCollection =>
+      case decl : L2_FieldLikeDecl[_, _] if L2_FieldLikeCollection.this == decl.associatedCollection =>
         addDeclared(decl.name, decl.levels)
         decl // preserve declaration statement
     })
@@ -59,10 +53,7 @@ abstract class L2_FieldLikeCollection[L2_Type <: L2_FieldLike[L3_Type] : TypeTag
 
   object L2_ProcessFieldDeclarations extends DefaultStrategy("Integrate L2 field declarations with knowledge") {
     this += Transformation("Process field declarations", {
-      case decl : L2_FieldDecl if L2_FieldLikeCollection.this == L2_FieldCollection && L2_MayBlockResolution.isDone(decl) =>
-        decl.addToKnowledge()
-        None // consume declaration statement
-      case decl : L2_WaLBerlaFieldDecl if L2_FieldLikeCollection.this == L2_WaLBerlaFieldCollection && L2_MayBlockResolution.isDone(decl) =>
+      case decl : L2_FieldLikeDecl[_, _] if L2_FieldLikeCollection.this == decl.associatedCollection && L2_MayBlockResolution.isDone(decl) =>
         decl.addToKnowledge()
         None // consume declaration statement
     })
