@@ -24,7 +24,7 @@ import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_MatrixAccess
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
-import exastencils.field.l4.L4_FieldCollection
+import exastencils.fieldlike.l4.L4_FieldLikeCollections
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.util.l4.L4_LevelCollector
@@ -92,7 +92,7 @@ object L4_PrepareMatrixAccesses extends DefaultStrategy("Prepare matrix accesses
       } else { // no var. decl found -> maybe a field?
         None
       }
-      val fieldFound = L4_FieldCollection.exists(uAcc.name)
+      val fieldFound = L4_FieldLikeCollections.collections.exists(_.exists(uAcc.name))
 
       // check if uAcc was declared
       if (decl.isEmpty && !fieldFound)

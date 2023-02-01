@@ -29,9 +29,10 @@ import exastencils.config._
 import exastencils.datastructures.StrategyTimer
 import exastencils.domain.l4.L4_DomainCollection
 import exastencils.field.ir.IR_AddPaddingToFieldLayouts
+import exastencils.field.l4.L4_ResolveFrozenFields
 import exastencils.field.l4._
 import exastencils.fieldlike.l4.L4_FieldLikeCollections
-import exastencils.field.l4.L4_ResolveFrozenFields
+import exastencils.fieldlike.l4.L4_FieldLikeLayoutCollections
 import exastencils.fieldlike.l4.L4_UnresolveFieldLikeAccesses
 import exastencils.grid.l4._
 import exastencils.interfacing.l4.L4_ExternalFieldCollection
@@ -47,7 +48,6 @@ import exastencils.solver.l4._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util.l4._
 import exastencils.waLBerla.l4.L4_UnifyWaLBerlaVarsSections
-import exastencils.waLBerla.l4.field._
 import exastencils.waLBerla.l4.grid._
 
 /// L4_LayerHandler
@@ -70,10 +70,10 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     // activate default knowledge collections
 
     L4_DomainCollection
-    L4_WaLBerlaFieldLayoutCollection
-    L4_FieldLayoutCollection
-    L4_WaLBerlaFieldCollection
-    L4_FieldCollection
+    for (fieldLayoutCollection <- L4_FieldLikeLayoutCollections.collections)
+      fieldLayoutCollection
+    for (fieldCollection <- L4_FieldLikeCollections.collections)
+      fieldCollection
     L4_StencilCollection
     L4_StencilFieldCollection
     L4_VirtualFieldCollection

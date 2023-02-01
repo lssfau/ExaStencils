@@ -13,7 +13,6 @@ import exastencils.knowledge.l4.L4_KnowledgeContainer._
 import exastencils.knowledge.l4.L4_LeveledKnowledgeCollection
 import exastencils.logger.Logger
 import exastencils.util.l4.L4_LevelCollector
-import exastencils.waLBerla.l4.field._
 
 object L4_FieldLikeCollections {
   val collections = ListBuffer[L4_FieldLikeCollection[_ <: L4_FieldLike[_, _], _ <: IR_FieldLike]]()
@@ -45,8 +44,6 @@ abstract class L4_FieldLikeCollection[L4_Type <: L4_FieldLike[IR_Type, _] : Type
 
   def getByFieldAccess(access : L4_FutureFieldAccess) : Option[L4_Type] = getByIdentifier(access.name, access.level, suppressError = true)
   def getByFieldAccess(access : L4_FieldLikeAccess) : Option[L4_Type] = getByIdentifier(access.name, access.level, suppressError = true)
-
-  // TODO: make strategies more generic
 
   /// L4_PrepareFieldDeclaration
 
