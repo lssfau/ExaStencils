@@ -9,6 +9,7 @@ import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.field.ir.IR_SlotAccess
 import exastencils.field.l4.L4_ActiveSlot
 import exastencils.field.l4.L4_ConstantSlot
+import exastencils.field.l4.L4_FutureFieldAccess
 import exastencils.field.l4.L4_NextSlot
 import exastencils.field.l4.L4_PreviousSlot
 import exastencils.field.l4.L4_SlotSpecification
@@ -19,7 +20,7 @@ import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
 object L4_FieldLikeAccess {
-  def apply(access : L4_FutureFieldLikeAccess) = {
+  def apply(access : L4_FutureFieldAccess) = {
     val target = L4_FieldLikeCollections.getByIdentifier(access.name, access.level).get
     target.getFieldAccess(access.slot, access.offset, access.frozen, access.matIndex)
   }
