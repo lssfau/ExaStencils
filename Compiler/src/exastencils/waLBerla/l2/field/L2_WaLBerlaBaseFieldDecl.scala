@@ -2,7 +2,9 @@ package exastencils.waLBerla.l2.field
 
 import exastencils.base.l2._
 import exastencils.boundary.l2.L2_NoBC
+import exastencils.fieldlike.l2.L2_FieldLikeCollection
 import exastencils.prettyprinting.PpStream
+import exastencils.waLBerla.l3.field.L3_WaLBerlaField
 
 /// L2_WaLBerlaBaseFieldDecl
 
@@ -37,4 +39,6 @@ case class L2_WaLBerlaBaseFieldDecl(
         initial,
         L2_NoBC))
   }
+
+  override def associatedCollection : L2_FieldLikeCollection[L2_WaLBerlaField, L3_WaLBerlaField] = L2_WaLBerlaFieldCollection
 }
