@@ -3,13 +3,6 @@ package exastencils.waLBerla.ir.field
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
-import exastencils.core.Duplicate
-import exastencils.datastructures.DefaultStrategy
-import exastencils.datastructures.Transformation
-import exastencils.datastructures.Transformation.OutputType
-import exastencils.field.ir.IR_FieldAccess
-import exastencils.field.ir.IR_IV_ActiveSlot
-import exastencils.field.ir.IR_SlotAccess
 import exastencils.fieldlike.ir._
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
@@ -23,7 +16,7 @@ trait IR_WaLBerlaFieldAccessLike extends IR_FieldLikeAccessLike {
 
 /// IR_MultiDimFieldAccess
 
-trait IR_MultiDimWaLBerlaFieldAccess extends IR_WaLBerlaFieldAccessLike with IR_MultiDimFieldLikeAccess with IR_SpecialExpandable
+trait IR_MultiDimWaLBerlaFieldAccess extends IR_WaLBerlaFieldAccessLike with IR_MultiDimFieldLikeAccess
 
 /// IR_DirectWaLBerlaFieldAccess
 
@@ -84,7 +77,7 @@ case class IR_LinearizedWaLBerlaFieldAccess(
     var fragIdx : IR_Expression,
     var index : IR_Expression) extends IR_WaLBerlaFieldAccessLike with IR_LinearizedFieldLikeAccess {
 
-  override def expand() : OutputType = {
+  override def expand() = {
     IR_ArrayAccess(
       IR_IV_WaLBerlaFieldData(field, slot, fragIdx),
       index,
@@ -92,6 +85,7 @@ case class IR_LinearizedWaLBerlaFieldAccess(
   }
 }
 
+/*
 /// IR_WaLBerlaResolveFieldAccess
 
 object IR_WaLBerlaResolveFieldAccess extends DefaultStrategy("Resolve FieldAccess nodes to waLBerla ones") {
@@ -108,3 +102,4 @@ object IR_WaLBerlaResolveFieldAccess extends DefaultStrategy("Resolve FieldAcces
     case access : IR_WaLBerlaFieldAccess => access.expandSpecial()
   })
 }
+*/

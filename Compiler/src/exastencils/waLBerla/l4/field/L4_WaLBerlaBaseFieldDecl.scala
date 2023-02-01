@@ -6,7 +6,9 @@ import exastencils.baseExt.l4.L4_MatShape
 import exastencils.boundary.l4.L4_BoundaryCondition
 import exastencils.boundary.l4.L4_NoBC
 import exastencils.field.l4.L4_FieldDecl
+import exastencils.fieldlike.l4.L4_FieldLikeCollection
 import exastencils.prettyprinting.PpStream
+import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 
 case class L4_WaLBerlaBaseFieldDecl(
     var name : String,
@@ -31,4 +33,6 @@ case class L4_WaLBerlaBaseFieldDecl(
     val wbField = L4_WaLBerlaField(name, levels.get.resolveLevel, index, fieldLayout.asInstanceOf[L4_WaLBerlaFieldLayoutAccess].target, numSlots, boundary.getOrElse(L4_NoBC), matShape)
     L4_WaLBerlaFieldCollection.add(wbField)
   }
+
+  override def associatedCollection : L4_FieldLikeCollection[L4_WaLBerlaField, IR_WaLBerlaField] = L4_WaLBerlaFieldCollection
 }

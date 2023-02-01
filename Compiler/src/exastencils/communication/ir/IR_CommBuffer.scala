@@ -24,13 +24,13 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.prettyprinting.PpStream
 
 /// IR_IV_AbstractCommBuffer
 
 abstract class IR_IV_AbstractCommBuffer extends IR_IV_CommVariable {
-  var field : IR_Field
+  var field : IR_FieldLike
   var direction : String
   var size : IR_Expression
   var neighIdx : IR_Expression
@@ -57,14 +57,14 @@ abstract class IR_IV_AbstractCommBuffer extends IR_IV_CommVariable {
 
 /// IR_IV_CommBufferBasePtr
 
-case class IR_IV_CommBufferBasePtr(override var field : IR_Field, override var direction : String, override var size : IR_Expression, override var neighIdx : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractCommBuffer {
+case class IR_IV_CommBufferBasePtr(override var field : IR_FieldLike, override var direction : String, override var size : IR_Expression, override var neighIdx : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractCommBuffer {
   override def resolveName() = s"buffer_$direction" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint) + "_base"
 
 }
 
 /// IR_IV_CommBuffer
 
-case class IR_IV_CommBuffer(override var field : IR_Field, override var direction : String, override var size : IR_Expression, override var neighIdx : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractCommBuffer {
+case class IR_IV_CommBuffer(override var field : IR_FieldLike, override var direction : String, override var size : IR_Expression, override var neighIdx : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractCommBuffer {
   def basePtr = IR_IV_CommBufferBasePtr(field, direction, size, neighIdx, fragmentIdx)
 
   override def resolveName() = s"buffer_$direction" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
@@ -91,7 +91,7 @@ case class IR_IV_CommBuffer(override var field : IR_Field, override var directio
 
 /// IR_IV_CommBufferIterator
 
-case class IR_IV_CommBufferIterator(var field : IR_Field, var direction : String, var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable {
+case class IR_IV_CommBufferIterator(var field : IR_FieldLike, var direction : String, var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName() = s"tmpBufferIndex_$direction" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)

@@ -27,7 +27,7 @@ import exastencils.communication.NeighborInfo
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.domain.ir._
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.logger.Logger
 import exastencils.timing.ir._
 
@@ -38,7 +38,7 @@ import exastencils.timing.ir._
 case class IR_CommunicateFunction(
     var name : String,
     var level : Int,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var neighbors : ListBuffer[NeighborInfo],
     var begin : Boolean, var finish : Boolean,

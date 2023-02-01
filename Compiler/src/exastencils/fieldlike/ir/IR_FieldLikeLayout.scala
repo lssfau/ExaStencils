@@ -28,6 +28,10 @@ trait IR_FieldLikeLayout extends IR_LeveledKnowledgeObject {
   // dimensionality of the stored data; numDimsGrid for scalar fields, numDimsGrid + 1 for vector fields, numDimsGrid + 2 for matrix fields, etc.
   def numDimsData : Int
 
+  def apply(dim : Int) = layoutsPerDim(dim)
+
+  def defTotal(dim : Int) : IR_Expression
+
   def linearizeIndex(index : IR_Index) : IR_Expression = {
     if (numDimsData != index.length())
       Logger.warn(s"Index length mismatch for $name@$level: ${ index.length() }, should be $numDimsData")

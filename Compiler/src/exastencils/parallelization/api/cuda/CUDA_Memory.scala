@@ -28,7 +28,6 @@ import exastencils.config.Knowledge
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.Output
-import exastencils.field.ir.IR_Field
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 
@@ -135,7 +134,7 @@ case class CUDA_FieldDeviceData(var field : IR_FieldLike, var slot : IR_Expressi
 
 /// CUDA_BufferDeviceData
 
-case class CUDA_BufferDeviceData(var field : IR_Field, var direction : String, var size : IR_Expression, var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractCommBuffer {
+case class CUDA_BufferDeviceData(var field : IR_FieldLike, var direction : String, var size : IR_Expression, var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractCommBuffer {
   override def resolveName() = s"bufferDevice_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
 
   override def getDtor() : Option[IR_Statement] = {
