@@ -31,6 +31,7 @@ import exastencils.core.Duplicate
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_FieldLikeLayout
 import exastencils.interfacing.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
@@ -107,7 +108,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     trafoMaff
   }
 
-  private def adaptLayout(layout : IR_FieldLayout, trafo : isl.MultiAff, fieldID : (String, Int)) : Unit = {
+  private def adaptLayout(layout : IR_FieldLikeLayout, trafo : isl.MultiAff, fieldID : (String, Int)) : Unit = {
     val ensure : (Boolean, => String) => Unit = { (b, msg) =>
       if (!b)
         Logger.error(msg)
@@ -117,10 +118,10 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     var domain = isl.Set.universe(isl.Space.setAlloc(Isl.ctx, 0, dim))
     for (i <- 0 until dim) {
       val total : Long =
-        layout.layoutsPerDim(i).total match {
-          case IR_IntegerConstant(c) if layout.defTotal(i) == c => c
-          case _                                                =>
-            Logger.error(s"Cannot extract size of dimension $i, skipping access")
+        (layout.layoutsPerDim(i).total, layout.defTotal(i)) match {
+          case (IR_IntegerConstant(c), IR_IntegerConstant(v)) if c == v => c
+          case _                                                        =>
+            Logger.error(s"Cannot extract size of dimension $i, expression is ${ layout.layoutsPerDim(i).total } and layout is ${ layout.defTotal(i) }. Skipping access")
         }
       domain = domain.lowerBoundVal(T_SET, i, 0L)
       domain = domain.upperBoundVal(T_SET, i, total - 1)
