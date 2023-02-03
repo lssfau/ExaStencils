@@ -4,6 +4,7 @@ import exastencils.base.ir.IR_ConstIndex
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_MatIndex
+import exastencils.baseExt.ir.IR_MatShape
 import exastencils.boundary.ir.IR_BoundaryCondition
 import exastencils.domain.ir.IR_Domain
 import exastencils.knowledge.ir.IR_LeveledKnowledgeObject
@@ -20,6 +21,7 @@ trait IR_FieldLike extends IR_LeveledKnowledgeObject {
   def numSlots : Int // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
   def boundary : IR_BoundaryCondition // the boundary condition to be enforced when calling apply bc
 
+  def matShape : Option[IR_MatShape]
   def numDimsGrid = domain.numDims
 
   def gpuCompatible : Boolean
