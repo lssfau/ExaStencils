@@ -41,7 +41,7 @@ object IR_FieldLikeAccess {
 
 trait IR_FieldLikeAccess extends IR_MultiDimFieldLikeAccess with IR_CanBeOffset with IR_SpecialExpandable {
   def field : IR_FieldLike
-  def slot : IR_Expression
+  var slot : IR_Expression
   def fragIdx : IR_Expression
   def index : IR_ExpressionIndex
   def frozen : Boolean
@@ -114,7 +114,7 @@ object IR_DirectFieldLikeAccess {
 
 trait IR_DirectFieldLikeAccess extends IR_MultiDimFieldLikeAccess with IR_PolyArrayAccessLike {
   def field : IR_FieldLike
-  def slot : IR_Expression
+  var slot : IR_Expression
   def fragIdx : IR_Expression
   def index : IR_ExpressionIndex
 
