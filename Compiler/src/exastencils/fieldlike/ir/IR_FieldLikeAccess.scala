@@ -35,8 +35,27 @@ trait IR_MultiDimFieldLikeAccess extends IR_FieldLikeAccessLike with IR_SpecialE
 /// IR_FieldLikeAccess
 
 object IR_FieldLikeAccess {
+  def apply(field : IR_FieldLike, slot : IR_Expression, index : IR_ExpressionIndex) =
+    field.getFieldAccess(slot, IR_LoopOverFragments.defIt, index)
+
   def apply(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, index : IR_ExpressionIndex,
-      offset : Option[IR_ConstIndex] = None, frozen : Boolean = false, matIndex : Option[IR_MatIndex] = None) = field.getFieldAccess(slot, fragIdx, index, offset, frozen, matIndex)
+      offset : Option[IR_ConstIndex] = None, frozen : Boolean = false, matIndex : Option[IR_MatIndex] = None) =
+    field.getFieldAccess(slot, fragIdx, index, offset, frozen, matIndex)
+
+  def applySpecial(field : IR_FieldLike, slot : IR_Expression, index : IR_ExpressionIndex, matIndex : Option[IR_MatIndex]): IR_FieldLikeAccess = {
+    val fa = field.getFieldAccess(slot, IR_LoopOverFragments.defIt, index)
+    fa.matIndex = matIndex
+    fa
+  }
+
+  def apply(field : IR_FieldLike, slot : IR_Expression, index : IR_ExpressionIndex, offset : Option[IR_ConstIndex]) =
+    field.getFieldAccess(slot, IR_LoopOverFragments.defIt, index, offset)
+
+  def apply(field : IR_FieldLike, slot : IR_Expression, index : IR_ExpressionIndex, offset : Option[IR_ConstIndex], frozen : Boolean) =
+    field.getFieldAccess(slot, IR_LoopOverFragments.defIt, index, offset, frozen)
+
+  def apply(field : IR_FieldLike, slot : IR_Expression, index : IR_ExpressionIndex, offset : Option[IR_ConstIndex], frozen : Boolean, matIndex : Option[IR_MatIndex]) =
+    field.getFieldAccess(slot, IR_LoopOverFragments.defIt, index, offset, frozen, matIndex)
 }
 
 trait IR_FieldLikeAccess extends IR_MultiDimFieldLikeAccess with IR_CanBeOffset with IR_SpecialExpandable {
@@ -45,7 +64,7 @@ trait IR_FieldLikeAccess extends IR_MultiDimFieldLikeAccess with IR_CanBeOffset 
   def fragIdx : IR_Expression
   def index : IR_ExpressionIndex
   def frozen : Boolean
-  def matIndex : Option[IR_MatIndex]
+  var matIndex : Option[IR_MatIndex]
 
   override def datatype = {
     val layout = field.layout
