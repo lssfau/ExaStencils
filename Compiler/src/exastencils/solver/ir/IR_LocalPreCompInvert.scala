@@ -24,7 +24,8 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core.Duplicate
-import exastencils.field.ir._
+import exastencils.field.ir.IR_SlotAccess
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 
 /// IR_LocalPreCompInvert
 
@@ -32,13 +33,13 @@ object IR_LocalPreCompInvert {
   def vecComponentAccess(vec : IR_VariableAccess, i0 : Int) = IR_HighDimAccess(vec, IR_ConstIndex(i0))
   def matComponentAccess(mat : IR_VariableAccess, i0 : Int, i1 : Int) = IR_HighDimAccess(mat, IR_ConstIndex(i0, i1))
 
-  def apply(AInv : IR_VariableAccess, fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
+  def apply(AInv : IR_VariableAccess, fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldLikeAccess],
       jacobiType : Boolean, relax : Option[IR_Expression]) = {
 
     invert(AInv, fVals, unknowns, jacobiType, relax)
   }
 
-  def invert(AInv : IR_VariableAccess, fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
+  def invert(AInv : IR_VariableAccess, fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldLikeAccess],
       jacobiType : Boolean, relax : Option[IR_Expression]) : ListBuffer[IR_Statement] = {
 
     def isNonZeroEntry(ex : IR_Expression) = {
