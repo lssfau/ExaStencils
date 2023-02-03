@@ -3,10 +3,8 @@ package exastencils.waLBerla.l4.field
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.l4.L4_ConstIndex
 import exastencils.base.l4.L4_Datatype
-import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.field.ir.IR_FieldLayoutPerDim
-import exastencils.field.l4.L4_FieldLayout
 import exastencils.fieldlike.l4.L4_FieldLikeLayout
 import exastencils.fieldlike.l4.L4_FieldLikeLayoutAccess
 import exastencils.grid.l4.L4_AtCellCenter
@@ -48,9 +46,6 @@ case class L4_WaLBerlaFieldLayout(
     out << "}"
   }
 
-  // TODO: remove
-  def toFieldLayout = L4_FieldLayout(name, level, numDimsGrid, datatype, localization, ghostLayers, communicatesGhosts, duplicateLayers, communicatesDuplicated, innerPoints)
-
   override def progressImpl() : IR_WaLBerlaFieldLayout = {
     // use data type after progressing due to possible vec-mat-promotion
     val progDatatype = datatype.progress
@@ -63,17 +58,15 @@ case class L4_WaLBerlaFieldLayout(
     layouts ++= (0 until numDimsGrid).map(dim => IR_FieldLayoutPerDim(0, ghostLayers(dim), duplicateLayers(dim), innerPoints(dim), duplicateLayers(dim), ghostLayers(dim), 0))
     if (numDimsData > numDimsGrid) layouts ++= progDatatype.getSizeArray.map(size => IR_FieldLayoutPerDim(0, 0, 0, size, 0, 0, 0))
 
-    val useFixedLayoutSizes = Knowledge.waLBerla_useGridFromExa && waLBerlaLayout == "fzyx"
-
     val dummyRefOffset = IR_ExpressionIndex(Array.fill(numDimsData)(0))
 
-    val ret = IR_WaLBerlaFieldLayout(name, level, numDimsGrid, numDimsData, useFixedLayoutSizes, dummyRefOffset,
+    val ret = IR_WaLBerlaFieldLayout(name, level, numDimsGrid, numDimsData, dummyRefOffset,
       progDatatype, layouts, waLBerlaLayout, communicatesDuplicated, communicatesGhosts)
 
     // there are two different approaches to handle the "referenceOffset" to the first inner iteration point:
     // 1. by using iteration spaces from waLBerla -> "referenceOffset" is set to zero and is automatically handled by waLBerla's accessors
     // 2. by using fixed iteration spaces from exastencils -> "referenceOffset" deduced from specified layouts per dim and handled by a proxy "IR_FieldLayout" instance
-    if (useFixedLayoutSizes)
+    if (ret.useFixedLayoutSizes)
       ret.updateDefReferenceOffset()
 
     ret
