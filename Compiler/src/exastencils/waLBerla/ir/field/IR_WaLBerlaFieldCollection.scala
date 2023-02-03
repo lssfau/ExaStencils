@@ -3,6 +3,7 @@ package exastencils.waLBerla.ir.field
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.field.ir.IR_FieldAccessLike
+import exastencils.fieldlike.ir.IR_FieldLikeAccessLike
 import exastencils.fieldlike.ir.IR_FieldLikeCollection
 import exastencils.fieldlike.ir.IR_FieldLikeCollections
 import exastencils.logger.Logger
@@ -30,6 +31,9 @@ object IR_WaLBerlaFieldCollection extends IR_FieldLikeCollection[IR_WaLBerlaFiel
     getByIdentifier(access.field.name, access.field.level, suppressError = true).isDefined
 
   def contains(access : IR_FieldAccessLike) : Boolean =
+    getByIdentifier(access.field.name, access.field.level, suppressError = true).isDefined
+
+  def contains(access : IR_FieldLikeAccessLike) : Boolean =
     getByIdentifier(access.field.name, access.field.level, suppressError = true).isDefined
 
   // special handling for leveled expressions
