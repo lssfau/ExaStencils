@@ -23,7 +23,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.operator.ir.IR_StencilFieldAccess
 import exastencils.optimization.ir.IR_SimplifyExpression
@@ -48,7 +48,7 @@ object IR_ResolveIntergridIndices extends DefaultStrategy("Resolve indices in op
   this += new Transformation("ModifyIndices", {
     case fct: IR_FunctionCall if "changeLvlAndIndices" == fct.name =>
       // extract information from special function call
-      val fieldAccess = fct.arguments(0).asInstanceOf[IR_FieldAccess]
+      val fieldAccess = fct.arguments(0).asInstanceOf[IR_FieldLikeAccess]
       Logger.warn("Performing index adaptation for " + fieldAccess.field.codeName)
 
       // adapt per dimension / (n+1)d is reserved
@@ -66,13 +66,13 @@ object IR_ResolveIntergridIndices extends DefaultStrategy("Resolve indices in op
 
       fieldAccess
 
-    case access: IR_FieldAccess if inLevelScope && IR_SimplifyExpression.evalIntegral(access.level) < curLevel =>
+    case access: IR_FieldLikeAccess if inLevelScope && IR_SimplifyExpression.evalIntegral(access.level) < curLevel =>
       val fieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         fieldAccess.index(i) = fieldAccess.index(i) / 2
       fieldAccess
 
-    case access: IR_FieldAccess if inLevelScope && IR_SimplifyExpression.evalIntegral(access.level) > curLevel =>
+    case access: IR_FieldLikeAccess if inLevelScope && IR_SimplifyExpression.evalIntegral(access.level) > curLevel =>
       val fieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         fieldAccess.index(i) = 2 * fieldAccess.index(i)
