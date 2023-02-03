@@ -74,14 +74,6 @@ case class IR_WaLBerlaFieldLayout(
 
   private def numPad(d : Int) = IR_Cast(IR_IntegerDatatype, callMemberFuncForDim("AllocSize", d) - numInner(d) - numDup(d) - numGhost(d))
 
-  // TODO: copied from IR_FieldLayout
-  def updateDefReferenceOffset() = {
-    // TODO: this should work for now but may be adapted in the future
-    referenceOffset = IR_ExpressionIndex(Array.fill(layoutsPerDim.length)(0))
-    for (dim <- 0 until layoutsPerDim.length)
-      referenceOffset(dim) = IR_IntegerConstant(layoutsPerDim(dim).numPadLayersLeft + layoutsPerDim(dim).numGhostLayersLeft)
-  }
-
   // fixed iteration spaces handled by a regular exastencils field layout proxy
   private val regularLayout = IR_FieldLayout(name, level, datatype, localization, layoutsPerDim, numDimsGrid, referenceOffset, communicatesDuplicated, communicatesGhosts)
 

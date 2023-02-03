@@ -23,7 +23,12 @@ trait IR_FieldLikeLayout extends IR_LeveledKnowledgeObject {
   def defIdxById(id : String, dim : Int) : IR_Expression
   def idxById(id : String, dim : Int) : IR_Expression
 
-  def updateDefReferenceOffset() : Unit
+  def updateDefReferenceOffset() = {
+    // TODO: this should work for now but may be adapted in the future
+    referenceOffset = IR_ExpressionIndex(Array.fill(layoutsPerDim.length)(0))
+    for (dim <- 0 until layoutsPerDim.length)
+      referenceOffset(dim) = IR_IntegerConstant(layoutsPerDim(dim).numPadLayersLeft + layoutsPerDim(dim).numGhostLayersLeft)
+  }
 
   // dimensionality of the stored data; numDimsGrid for scalar fields, numDimsGrid + 1 for vector fields, numDimsGrid + 2 for matrix fields, etc.
   def numDimsData : Int
