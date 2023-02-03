@@ -13,7 +13,6 @@ import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaInitBlockForest
 import exastencils.waLBerla.ir.communication.IR_WaLBerlaInitCommSchemes
 import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaAddGPUFieldToStorage
 import exastencils.waLBerla.ir.field._
-import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
 object IR_WaLBerlaInitFunctionCollection {
   var functions : ListBuffer[IR_FunctionLike] = ListBuffer()
@@ -29,7 +28,7 @@ object IR_WaLBerlaInitFunctionCollection {
   }
   functions += IR_WaLBerlaDeResizeBuffersWrapper()
   functions += IR_WaLBerlaInitStaticRectDomain()
-  if (IR_WaLBerlaUtil.initCommSchemes)
+  if (Knowledge.waLBerla_generateCommSchemes)
     functions += IR_WaLBerlaInitCommSchemes()
 
   functions += IR_WaLBerlaInitBuffersWrapper()
