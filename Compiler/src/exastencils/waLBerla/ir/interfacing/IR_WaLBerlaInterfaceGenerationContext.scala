@@ -33,7 +33,7 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
   privateMembers += blockForest.member
 
   // comm scheme for each field. packed with a uniform pack info
-  if (IR_WaLBerlaUtil.initCommSchemes) {
+  if (Knowledge.waLBerla_generateCommSchemes) {
     for (wbf <- uniqueWbFields) {
       val commSchemes : ListBuffer[IR_WaLBerlaCommScheme] = ListBuffer(IR_WaLBerlaCPUCommScheme(wbf, slot = 0))
       if (Knowledge.cuda_enabled)
