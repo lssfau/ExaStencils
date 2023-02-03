@@ -118,7 +118,7 @@ case class IR_StencilFieldStencilConvolution(var left : IR_StencilFieldAccess, v
 //        IR_ReplaceIndexOccurrences.replacement = rightOffset
 //        IR_ReplaceIndexOccurrences.doUntilDoneStandalone(combOff)
 //
-//        var combCoeff : IR_Expression = re.coefficient * IR_FieldAccess(fieldSel, stencilFieldIdx)
+//        var combCoeff : IR_Expression = re.coefficient * IR_FieldLikeAccess(fieldSel, stencilFieldIdx)
 //        IR_GeneralSimplify.doUntilDoneStandalone(combOff)
 //        IR_GeneralSimplify.doUntilDoneStandalone(combCoeff)
 //        val addToEntry = entries.find(e => e.offset match {
