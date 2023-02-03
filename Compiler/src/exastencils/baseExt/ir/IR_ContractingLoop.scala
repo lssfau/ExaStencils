@@ -102,6 +102,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
           fa.slot match {
             case _ @ IR_SlotAccess(slot, offset) =>
               fa.slot = IR_SlotAccess(slot, offset + fieldOffset.getOrElse(FieldKey(fa.field), 0))
+            case _                               =>
           }
           fa
 
@@ -109,6 +110,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
           fa.slot match {
             case _ @ IR_SlotAccess(slot, offset) =>
               fa.slot = IR_SlotAccess(slot, offset + fieldOffset.getOrElse(FieldKey(fa.field), 0))
+            case _                               =>
           }
           fa
       })
