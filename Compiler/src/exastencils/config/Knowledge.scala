@@ -962,5 +962,9 @@ object Knowledge {
     // experimental
     Constraints.condEnsureValue(experimental_trimBoundsForReductionLoops, false, data_genVariableFieldSizes, "experimental_trimBoundsForReductionLoops is currently not compatible with data_genVariableFieldSizes")
     Constraints.condEnsureValue(experimental_useStefanOffsets, false, domain_numFragmentsTotal > 1, "experimental_useStefanOffsets requires a single fragment")
+
+    // waLBerla
+    Constraints.condEnsureValue(waLBerla_useGridFromExa, true, !waLBerla_generateCommSchemes, "When waLBerla communication schemes are not generated, fixed field layouts (waLBerla_useGridFromExa = true) are required.")
+    Constraints.condEnsureValue(waLBerla_useGridFromExa, true, cuda_enabled && waLBerla_generateInterface, "CUDA support for waLBerla codegen is only applicable with fixed field layouts (waLBerla_useGridFromExa = true).")
   }
 }
