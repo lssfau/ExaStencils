@@ -15,6 +15,7 @@ import exastencils.field.l4.L4_PreviousSlot
 import exastencils.field.l4.L4_SlotSpecification
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.fieldlike.ir.IR_FieldLikeAccess
+import exastencils.fieldlike.ir.IR_FieldLikeLayout
 import exastencils.knowledge.l4.L4_LeveledKnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -41,7 +42,7 @@ object L4_FieldLikeAccess {
 }
 
 trait L4_FieldLikeAccess extends L4_LeveledKnowledgeAccess with L4_CanBeOffset {
-  def target : L4_FieldLike[_, _]
+  def target : L4_FieldLike[_ <: IR_FieldLike, _ <: IR_FieldLikeLayout]
   def slot : L4_SlotSpecification
   def offset : Option[L4_ConstIndex]
   def frozen : Boolean
