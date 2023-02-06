@@ -10,7 +10,7 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 import exastencils.logger.Logger
-import exastencils.parallelization.api.cuda.CUDA_Util
+import exastencils.parallelization.api.cuda.CUDA_PrepareHostCode.annotateBranch
 import exastencils.prettyprinting.PpStream
 import exastencils.util.NoDuplicateWrapper
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
@@ -80,18 +80,15 @@ case class IR_IV_WaLBerlaGetField(
 
   override def getDeclarationBlockLoop(executionChoice : NoDuplicateWrapper[IR_Expression]) : ListBuffer[IR_Statement] = {
     // TODO: separate CUDA handling?
-    if (Knowledge.cuda_enabled) {
-      val branch = IR_IfCondition(IR_VariableAccess("replaceIn_CUDA_AnnotateLoops", IR_BooleanDatatype),
-        getSlottedFieldData(false),
-        getSlottedFieldData(true))
-      branch.annotate(CUDA_Util.CUDA_BRANCH_CONDITION, executionChoice)
-      ListBuffer[IR_Statement](branch)
 
-      ListBuffer[IR_Statement](
-        IR_VariableDeclaration(acc),
-        branch)
+    // get waLBerla field data datastructure on host/device
+    val getDataHost = getSlottedFieldData(false)
+    val getDataDevice = getSlottedFieldData(true)
+
+    if (Knowledge.cuda_enabled) {
+      IR_VariableDeclaration(acc) +: annotateBranch(executionChoice, getDataHost, getDataDevice)
     } else {
-      IR_VariableDeclaration(acc) +: getSlottedFieldData(false)
+      IR_VariableDeclaration(acc) +: getDataHost
     }
   }
 
@@ -161,21 +158,22 @@ case class IR_IV_WaLBerlaFieldData(
 
     def getField(onGPU : Boolean) = IR_IV_WaLBerlaGetField(field, slot, onGPU, fragmentIdx).getDeclarationBlockLoop()
 
-    // TODO: hacky
-    if (Knowledge.cuda_enabled) {
-      val branch = IR_IfCondition(IR_VariableAccess("replaceIn_CUDA_AnnotateLoops", IR_BooleanDatatype),
-        IR_IfCondition(1, getField(false) ++ getSlottedFieldPtrs(false)),
-        IR_IfCondition(1, IR_Scope(getField(true) ++ getSlottedFieldPtrs(true))))
-      branch.annotate(CUDA_Util.CUDA_BRANCH_CONDITION, executionChoice)
-      ListBuffer[IR_Statement](branch)
+    // get waLBerla field data datastructure on host/device
+    val getFieldDataHost = getField(false)
+    val getFieldDataDevice = getField(true)
 
-      ListBuffer[IR_Statement](
-        IR_VariableDeclaration(acc),
-        branch)
-    } else {
-      ListBuffer[IR_Statement](
-        IR_VariableDeclaration(acc),
-        IR_IfCondition(1, IR_Scope(getField(false) ++ getSlottedFieldPtrs(false))))
-    }
+    // get pointer to internal memory pointers
+    val getFieldPtrHost = getSlottedFieldPtrs(false)
+    val getFieldPtrDevice = getSlottedFieldPtrs(true)
+
+    // TODO: hacky
+    // "scoped" host/device statements
+    val hostCode = ListBuffer[IR_Statement](IR_IfCondition(1, getFieldDataHost ++ getFieldPtrHost))
+    val deviceCode = ListBuffer[IR_Statement](IR_IfCondition(1, getFieldDataDevice ++ getFieldPtrDevice))
+
+    if (Knowledge.cuda_enabled)
+      IR_VariableDeclaration(acc) +: annotateBranch(executionChoice, hostCode, deviceCode)
+    else
+        IR_VariableDeclaration(acc) +: hostCode
   }
 }

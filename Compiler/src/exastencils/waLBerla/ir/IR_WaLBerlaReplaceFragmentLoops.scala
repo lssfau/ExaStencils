@@ -43,11 +43,6 @@ object IR_WaLBerlaReplaceFragmentLoops extends QuietDefaultStrategy("Replace fra
     })
   }
 
-  this += Transformation("Omit fragment loops within block loops", {
-    case loopOverFrags : IR_LoopOverFragments if collector.stack.exists(_.isInstanceOf[IR_WaLBerlaLoopOverBlocks]) =>
-      loopOverFrags.body
-  })
-
   this += Transformation("Replace", {
     case loopOverFrags : IR_LoopOverFragments =>
       IR_WaLBerlaFindAccessed.applyStandalone(loopOverFrags)

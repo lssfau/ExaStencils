@@ -148,17 +148,26 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     (beforeHost, afterHost, beforeDevice, afterDevice)
   }
 
-  def getBranch(condWrapper : NoDuplicateWrapper[IR_Expression], loop : IR_LoopOverDimensions, hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
-    condWrapper.value = Knowledge.cuda_preferredExecution match {
-      case "Host"        => IR_BooleanConstant(true) // CPU by default
-      case "Device"      => IR_BooleanConstant(false) // GPU by default
-      case "Performance" => IR_BooleanConstant(loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] <= loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) // decide according to performance estimates
-      case "Condition"   => Knowledge.cuda_executionCondition
-    }
-    // set dummy first to prevent IR_GeneralSimplify from removing the branch statement until the condition is final
+  def getCondWrapperValue(loop : IR_LoopOverDimensions) : IR_Expression = Knowledge.cuda_preferredExecution match {
+    case "Host"        => IR_BooleanConstant(true) // CPU by default
+    case "Device"      => IR_BooleanConstant(false) // GPU by default
+    case "Performance" => IR_BooleanConstant(loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] <= loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) // decide according to performance estimates
+    case "Condition"   => Knowledge.cuda_executionCondition
+    case _             => Logger.error("Unknown value for 'cuda_preferredExecution' knowledge flag")
+  }
+
+  // set dummy first to prevent IR_GeneralSimplify from removing the branch statement until the condition is final
+  def annotateBranch(condWrapper : NoDuplicateWrapper[IR_Expression], hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
     val branch = IR_IfCondition(IR_VariableAccess("replaceIn_CUDA_AnnotateLoops", IR_BooleanDatatype), hostStmts, deviceStmts)
     branch.annotate(CUDA_Util.CUDA_BRANCH_CONDITION, condWrapper)
     ListBuffer[IR_Statement](branch)
+  }
+
+  def getBranch(condWrapper : NoDuplicateWrapper[IR_Expression], loop : IR_LoopOverDimensions, hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
+    // set (previously empty) cond wrapper value to execution condition configuration
+    condWrapper.value = getCondWrapperValue(loop)
+    // create branching with execution condition and annotate branch for further processing
+    annotateBranch(condWrapper, hostStmts, deviceStmts)
   }
 
   this += new Transformation("Process ContractingLoop and LoopOverDimensions nodes", {
