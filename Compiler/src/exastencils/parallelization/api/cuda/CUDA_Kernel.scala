@@ -28,7 +28,6 @@ import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.core._
 import exastencils.datastructures.Node
-import exastencils.field.ir._
 import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
 import exastencils.fieldlike.ir.IR_LinearizedFieldLikeAccess
 import exastencils.fieldlike.ir.IR_MultiDimFieldLikeAccess

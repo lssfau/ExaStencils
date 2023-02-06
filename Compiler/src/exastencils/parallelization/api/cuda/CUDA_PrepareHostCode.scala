@@ -28,7 +28,8 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.field.ir._
+import exastencils.field.ir.IR_AdvanceSlot
+import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_HasParallelizationInfo

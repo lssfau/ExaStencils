@@ -28,7 +28,7 @@ import exastencils.communication.ir.IR_IV_CommBuffer
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.field.ir._
+import exastencils.field.ir.IR_SlotAccess
 import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
 import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 import exastencils.fieldlike.ir.IR_MultiDimFieldLikeAccess

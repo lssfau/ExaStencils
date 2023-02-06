@@ -24,7 +24,7 @@ import exastencils.base.ir._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.domain.ir.IR_IV_NeighborFragmentIdx
-import exastencils.field.ir._
+import exastencils.field.ir.IR_SlotAccess
 import exastencils.fieldlike.ir.IR_MultiDimFieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.util.ir.IR_Read
