@@ -432,7 +432,6 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     // TODO combine IR_WaLBerlaSetupFunctions & IR_WaLBerlaCreateInterface?
     IR_WaLBerlaSetupFunctions.apply()
     IR_WaLBerlaCreateInterface.apply()
-    IR_WaLBerlaReplaceIVsMPI.apply()
     if (!Knowledge.waLBerla_useGridFromExa)
       IR_WaLBerlaReplaceFragmentIVs.apply()
     IR_WaLBerlaReplaceVariableAccesses.apply()
