@@ -44,7 +44,7 @@ object L4_FieldLikeAccess {
 trait L4_FieldLikeAccess extends L4_LeveledKnowledgeAccess with L4_CanBeOffset {
   def target : L4_FieldLike[_ <: IR_FieldLike, _ <: IR_FieldLikeLayout]
   def slot : L4_SlotSpecification
-  def offset : Option[L4_ConstIndex]
+  var offset : Option[L4_ConstIndex]
   def frozen : Boolean
   def matIndex : Option[L4_MatIndex]
 

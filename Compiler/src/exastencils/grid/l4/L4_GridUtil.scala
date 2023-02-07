@@ -21,7 +21,7 @@ package exastencils.grid.l4
 import exastencils.base.l4.L4_ImplicitConversion._
 import exastencils.base.l4._
 import exastencils.core._
-import exastencils.field.l4.L4_FieldAccess
+import exastencils.fieldlike.l4.L4_FieldLikeAccess
 import exastencils.logger.Logger
 
 object L4_GridUtil {
@@ -39,7 +39,7 @@ object L4_GridUtil {
     modIndex
   }
 
-  def offsetAccess(fieldAccess : L4_FieldAccess, offset : Int, dim : Int) : L4_FieldAccess = {
+  def offsetAccess(fieldAccess : L4_FieldLikeAccess, offset : Int, dim : Int) : L4_FieldLikeAccess = {
     val modAccess = Duplicate(fieldAccess)
     if (modAccess.offset.isEmpty)
       modAccess.offset = Some(L4_ConstIndex(Array.fill(fieldAccess.target.numDimsGrid)(0)))
