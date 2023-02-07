@@ -56,7 +56,7 @@ case class IR_WaLBerlaLoopOverBlocks(
     FindLoopOverDimensions.applyStandalone(IR_Scope(body))
     val optLoopOverDims = FindLoopOverDimensions.loopOverDims
     val cpuExecution = NoDuplicateWrapper[IR_Expression](IR_BooleanConstant(true))
-    val condWrapper = if (optLoopOverDims.isDefined && optLoopOverDims.get.parallelization.potentiallyParallel)
+    val condWrapper = if (Knowledge.cuda_enabled && optLoopOverDims.isDefined && optLoopOverDims.get.parallelization.potentiallyParallel)
       NoDuplicateWrapper[IR_Expression](getCondWrapperValue(optLoopOverDims.get))
     else
       cpuExecution

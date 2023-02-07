@@ -151,7 +151,12 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
   def getCondWrapperValue(loop : IR_LoopOverDimensions) : IR_Expression = Knowledge.cuda_preferredExecution match {
     case "Host"        => IR_BooleanConstant(true) // CPU by default
     case "Device"      => IR_BooleanConstant(false) // GPU by default
-    case "Performance" => IR_BooleanConstant(loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] <= loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) // decide according to performance estimates
+    case "Performance" =>
+      // decide according to performance estimates -> cpu if no estimates exist
+      val estimatedHost = loop.getAnnotation("perf_timeEstimate_host").getOrElse(0.0).asInstanceOf[Double]
+      val estimatedDevice = loop.getAnnotation("perf_timeEstimate_device").getOrElse(Double.MaxValue).asInstanceOf[Double]
+
+      IR_BooleanConstant(estimatedHost <= estimatedDevice)
     case "Condition"   => Knowledge.cuda_executionCondition
     case _             => Logger.error("Unknown value for 'cuda_preferredExecution' knowledge flag")
   }
