@@ -75,7 +75,7 @@ case class L4_EvaluateOnGrid(
   def fieldAccess() : L4_FieldLikeAccess = {
     expression match {
       case fieldAccess : L4_FieldLikeAccess => fieldAccess
-      case other                        => Logger.error(s"$other in evaluate is not of type L4_FieldAccess")
+      case other                        => Logger.error(s"$other in evaluate is not of type L4_FieldLikeAccess")
     }
   }
 

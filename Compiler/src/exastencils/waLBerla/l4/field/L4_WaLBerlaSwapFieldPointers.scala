@@ -4,7 +4,6 @@ import exastencils.base.ir.IR_Statement
 import exastencils.base.l4.L4_Access
 import exastencils.base.l4.L4_Statement
 import exastencils.baseExt.ir.IR_LoopOverDimensions
-import exastencils.field.l4.L4_FieldAccess
 import exastencils.fieldlike.l4.L4_FieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
