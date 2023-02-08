@@ -966,5 +966,6 @@ object Knowledge {
     // waLBerla
     Constraints.condEnsureValue(waLBerla_useGridFromExa, true, !waLBerla_generateCommSchemes, "When waLBerla communication schemes are not generated, fixed field layouts (waLBerla_useGridFromExa = true) are required.")
     Constraints.condEnsureValue(waLBerla_useGridFromExa, true, cuda_enabled && waLBerla_generateInterface, "CUDA support for waLBerla codegen is only applicable with fixed field layouts (waLBerla_useGridFromExa = true).")
+    Constraints.condEnsureValue(waLBerla_generateCommSchemes, true, data_genVariableFieldSizes && waLBerla_generateInterface, "waLBerla Fields with variable field sizes currently require the usage of waLBerla comm schemes.")
   }
 }
