@@ -1,11 +1,10 @@
 package exastencils.fieldlike.ir
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_Linearization
 import exastencils.config.Knowledge
 import exastencils.field.ir.IR_FieldLayoutPerDim
-import exastencils.field.ir.IR_IV_IndexFromField
 import exastencils.grid.ir.IR_Localization
 import exastencils.knowledge.ir.IR_LeveledKnowledgeObject
 import exastencils.logger.Logger
@@ -32,19 +31,16 @@ trait IR_FieldLikeLayout extends IR_LeveledKnowledgeObject {
 
   def defIdxByIdFixed(id : String, dim : Int) : Int
   def defIdxByIdExpr(id : String, dim : Int) : IR_Expression
-  def defIdxById(id : String, dim : Int) : IR_Expression = if (useFixedLayoutSizes) defIdxByIdFixed(id, dim) else defIdxByIdExpr(id, dim)
+  def defIdxById(id : String, dim : Int) : IR_Expression = if (!useFixedLayoutSizes && dim < Knowledge.dimensionality)
+    defIdxByIdExpr(id, dim)
+  else
+    defIdxByIdFixed(id, dim)
 
   def defTotalFixed(dim : Int) : Int
   def defTotalExpr(dim : Int) : IR_Expression
   def defTotal(dim : Int) : IR_Expression = if (useFixedLayoutSizes) defTotalFixed(dim) else defTotalExpr(dim)
 
-  def idxById(id : String, dim : Int) : IR_Expression = {
-    if (!useFixedLayoutSizes && dim < Knowledge.dimensionality)
-    // TODO : total
-      IR_IV_IndexFromField(name, level, id, dim)
-    else
-      defIdxById(id, dim)
-  }
+  def idxById(id : String, dim : Int) : IR_Expression = defIdxById(id, dim)
 
   def updateDefReferenceOffset() = {
     // TODO: this should work for now but may be adapted in the future
