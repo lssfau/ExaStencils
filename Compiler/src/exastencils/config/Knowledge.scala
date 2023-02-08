@@ -490,7 +490,8 @@ object Knowledge {
   // enables optimizations (address precalc, vect, ...) when enabled
   var waLBerla_useInternalMemoryPointers : Boolean = true
 
-  // [true|false]: enforce generation of interface class, regardless if waLBerla data structures are used or not
+  // [true|false]: enforce generation of interface class
+  // needs to be enabled if waLBerla data structures are used
   var waLBerla_generateInterface : Boolean = false
 
   // --- Parallel I/O ---
