@@ -3,6 +3,7 @@ package exastencils.waLBerla.l4.field
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.l4.L4_ConstIndex
 import exastencils.base.l4.L4_Datatype
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.field.ir.IR_FieldLayoutPerDim
 import exastencils.fieldlike.l4.L4_FieldLikeLayout
@@ -59,6 +60,12 @@ case class L4_WaLBerlaFieldLayout(
     if (numDimsData > numDimsGrid) layouts ++= progDatatype.getSizeArray.map(size => IR_FieldLayoutPerDim(0, 0, 0, size, 0, 0, 0))
 
     val dummyRefOffset = IR_ExpressionIndex(Array.fill(numDimsData)(0))
+
+    if (waLBerlaLayout == "xyzf") {
+      Logger.warn("waLBerla fields with 'xyzf' layout are currently only available as variable-sized.")
+      if (!Knowledge.waLBerla_generateCommSchemes)
+        Logger.error("Variable-sized waLBerla fields can currently only be used with generated waLBerla communication schemes.")
+    }
 
     val ret = IR_WaLBerlaFieldLayout(name, level, numDimsGrid, numDimsData, dummyRefOffset,
       progDatatype, layouts, waLBerlaLayout, communicatesDuplicated, communicatesGhosts)
