@@ -481,7 +481,7 @@ object Knowledge {
   var waLBerla_createCartComm : Boolean = false
 
   // [true|false]: generate comm schemes for waLBerla or use our internal communication
-  var waLBerla_generateCommSchemes : Boolean = true
+  var waLBerla_generateCommSchemes : Boolean = false
 
   // [true|false]: use grid from exastencils directly, including virtual fields
   var waLBerla_useGridFromExa : Boolean = false
