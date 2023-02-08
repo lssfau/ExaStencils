@@ -63,6 +63,7 @@ object IR_SetupStagCellWidth {
         IR_LoopOverDimensions.defItForDim(dim)
       else
         IR_VariableAccess(s"global_i$dim", IR_IntegerDatatype)
+
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
@@ -128,6 +129,6 @@ object IR_SetupStagCellWidth {
         innerLoop,
         leftBoundaryUpdate,
         rightBoundaryUpdate)),
-      IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None))
+      IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None, ""))
   }
 }

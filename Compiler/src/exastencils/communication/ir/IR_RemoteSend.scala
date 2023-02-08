@@ -24,6 +24,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication._
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
@@ -65,7 +66,7 @@ case class IR_CopyToSendBuffer(
   override def expand() : Output[StatementList] = {
     var ret = ListBuffer[IR_Statement]()
 
-    if (condition.isDefined) {
+    if (condition.isDefined && Knowledge.comm_compactPackingForConditions) {
       // switch to iterator based copy operation if condition is defined -> number of elements and index mapping is unknown
       def it = IR_IV_CommBufferIterator(field, s"Send_${ concurrencyId }", neighbor.index)
 
