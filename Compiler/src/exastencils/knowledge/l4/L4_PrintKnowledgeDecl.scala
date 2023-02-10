@@ -20,11 +20,12 @@ package exastencils.knowledge.l4
 
 import exastencils.domain.l4.L4_DomainCollection
 import exastencils.field.l4._
+import exastencils.fieldlike.l4.L4_FieldLikeCollections
+import exastencils.fieldlike.l4.L4_FieldLikeLayoutCollections
 import exastencils.interfacing.l4.L4_ExternalFieldCollection
 import exastencils.operator.l4._
 import exastencils.prettyprinting.PpStream
 import exastencils.solver.l4.L4_EquationCollection
-import exastencils.waLBerla.l4.field._
 
 object L4_PrintKnowledgeDecl {
   def apply(out : PpStream) = {
@@ -35,21 +36,19 @@ object L4_PrintKnowledgeDecl {
     }
 
     out << "// field layout declarations\n\n"
-    L4_FieldLayoutCollection.objects.foreach { obj =>
-      obj.prettyprintDecl(out)
-      out << "\n\n"
-    }
-
-    out << "// waLBerla field layout declarations\n\n"
-    L4_WaLBerlaFieldLayoutCollection.objects.foreach { obj =>
-      obj.prettyprintDecl(out)
-      out << "\n\n"
+    for (layoutCollection <- L4_FieldLikeLayoutCollections.collections) {
+      layoutCollection.objects.foreach { obj =>
+        obj.prettyprintDecl(out)
+        out << "\n\n"
+      }
     }
 
     out << "// field declarations\n\n"
-    L4_FieldCollection.objects.foreach { obj =>
-      obj.prettyprintDecl(out)
-      out << "\n\n"
+    for (fieldCollection <- L4_FieldLikeCollections.collections) {
+      fieldCollection.objects.foreach { obj =>
+        obj.prettyprintDecl(out)
+        out << "\n\n"
+      }
     }
 
     out << "// field combinations\n\n"
@@ -60,12 +59,6 @@ object L4_PrintKnowledgeDecl {
 
     out << "// external field declarations\n\n"
     L4_ExternalFieldCollection.objects.foreach { obj =>
-      obj.prettyprintDecl(out)
-      out << "\n\n"
-    }
-
-    out << "// waLBerla field declarations\n\n"
-    L4_WaLBerlaFieldCollection.objects.foreach { obj =>
       obj.prettyprintDecl(out)
       out << "\n\n"
     }

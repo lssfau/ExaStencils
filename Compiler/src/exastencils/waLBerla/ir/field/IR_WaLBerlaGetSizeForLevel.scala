@@ -5,7 +5,6 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config.Knowledge
-import exastencils.logger.Logger
 import exastencils.waLBerla.ir.blockforest._
 import exastencils.waLBerla.ir.interfacing._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes._
@@ -17,6 +16,7 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
   def getReference = IR_AddressOf(IR_VariableAccess(name + "_" + level, returnType))
 
   override def isInterfaceFunction : Boolean = false
+  override def inlineImplementation : Boolean = false
 
   override def generateWaLBerlaFct() : IR_WaLBerlaLeveledFunction = {
 
@@ -27,7 +27,7 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
     val maxLevel = if (blockForest.maxLevelWaLBerlaField.isDefined) {
       blockForest.maxLevelWaLBerlaField.get.level
     } else {
-      Logger.error("AddFieldToStorage not applicable without waLBerla fields")
+      Knowledge.maxLevel
     }
 
     var params : ListBuffer[IR_FunctionArgument] = ListBuffer()
@@ -42,12 +42,14 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
       val lvlDiff = maxLevel - level
 
       for (d <- Knowledge.dimensions) {
-        body += IR_Assert(IR_ArrayAccess(cells, d) Mod (2 Pow lvlDiff) EqEq 0,
+        body += IR_Assert(IR_ArrayAccess(cells, d) Mod (2 Pow math.abs(lvlDiff)) EqEq 0,
           ListBuffer(IR_StringConstant("Coarsening with factors other than two")), IR_FunctionCall("exit", 1))
       }
 
       for (d <- Knowledge.dimensions) {
-        body += IR_Assignment(IR_ArrayAccess(cells, d), IR_RightShift(IR_ArrayAccess(cells, d), lvlDiff))
+        body += IR_Assignment(IR_ArrayAccess(cells, d),
+          if (lvlDiff > 0) IR_RightShift(IR_ArrayAccess(cells, d), lvlDiff)
+          else IR_LeftShift(IR_ArrayAccess(cells, d), lvlDiff))
       }
     }
 

@@ -21,6 +21,8 @@ package exastencils.field.l3
 import exastencils.base.l3._
 import exastencils.boundary.l3.L3_NoBC
 import exastencils.domain.l3._
+import exastencils.field.l4.L4_Field
+import exastencils.fieldlike.l3.L3_FieldLikeCollection
 import exastencils.grid.l3.L3_Localization
 import exastencils.prettyprinting._
 
@@ -60,4 +62,6 @@ case class L3_BaseFieldDecl(
         initial,
         L3_NoBC))
   }
+
+  override def associatedCollection : L3_FieldLikeCollection[L3_Field, L4_Field] = L3_FieldCollection
 }

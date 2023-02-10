@@ -12,7 +12,7 @@ import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
 import exastencils.timing.ir.IR_StartTimer
 import exastencils.timing.ir.IR_StopTimer
-import exastencils.waLBerla.ir.cuda.IR_WaLBerlaGPUCommScheme
+import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaGPUCommScheme
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaCollection
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaLeveledFunction
@@ -46,7 +46,7 @@ object IR_WaLBerlaSetupCommunication extends DefaultStrategy("Communication hand
       // replace body of exa's communicate function with 'communicate()' member fct of waLBerla's comm scheme and inline
       val genFct = comm.generateFct()
       val field = comm.field
-      val commSchemeGPU = IR_WaLBerlaGPUCommScheme(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get, comm.slot)
+      val commSchemeGPU = CUDA_WaLBerlaGPUCommScheme(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get, comm.slot)
       val commSchemeCPU = IR_WaLBerlaCPUCommScheme(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get, comm.slot)
 
       val cond : IR_Expression = Knowledge.cuda_preferredExecution match {

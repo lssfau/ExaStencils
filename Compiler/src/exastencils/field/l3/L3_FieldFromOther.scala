@@ -19,6 +19,8 @@
 package exastencils.field.l3
 
 import exastencils.base.l3._
+import exastencils.field.l4.L4_Field
+import exastencils.fieldlike.l3.L3_FieldLikeCollection
 import exastencils.prettyprinting._
 
 /// L3_FieldFromOther
@@ -36,4 +38,6 @@ case class L3_FieldFromOther(var name : String, var levels : Option[L3_LevelSpec
     destField.name = name
     L3_FieldCollection.add(destField)
   }
+
+  override def associatedCollection : L3_FieldLikeCollection[L3_Field, L4_Field] = L3_FieldCollection
 }

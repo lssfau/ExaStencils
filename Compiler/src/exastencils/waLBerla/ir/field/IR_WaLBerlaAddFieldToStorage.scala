@@ -7,8 +7,8 @@ import exastencils.base.ir._
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
-import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaCollection
 import exastencils.waLBerla.ir.interfacing._
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes
 
 case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR_WaLBerlaFuturePlainFunction {
 
@@ -20,43 +20,39 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR
     Logger.error("\"IR_WaLBerlaAddGPUFieldToStorage\" used incorrectly. Assumes fields with identical name but potentially different slots and levels.")
 
   override def isInterfaceFunction : Boolean = false
+  override def inlineImplementation : Boolean = false
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
-    // add deps
-    IR_WaLBerlaCollection.get.addExternalDependency("field/Field.h")
-    IR_WaLBerlaCollection.get.addExternalDependency("field/AddToStorage.h")
-
     var params : ListBuffer[IR_FunctionArgument] = ListBuffer()
     params += blocks
     params += initValue
 
-    // calc size function for wb fields
-    def calcSize(level : Int) = IR_VariableAccess(s"calcSize_$level", "auto")
-
     val init = wbFields.sortBy(_.level).flatMap(leveledField => {
+      def layout = leveledField.layout
+
+      val numGhosts = layout.layoutsPerDim(0).numGhostLayersLeft
+      if (layout.layoutsPerDim.forall(layoutPerDim => layoutPerDim.numGhostLayersLeft != numGhosts || layoutPerDim.numGhostLayersRight != numGhosts))
+        Logger.error("IR_AddFieldToStorage: Number of ghost layers (left & right) must be identical for all dimensions.")
+
+      val wbFieldTemplate = IR_WaLBerlaDatatypes.WB_FieldDatatype(leveledField, onGPU = false).prettyprint()
+
       (0 until leveledField.numSlots).map(slot =>
-        leveledField.addToStorage(blocks.access, slot, initValue, calcSize(leveledField.level)))
+        IR_FunctionCall(s"${IR_WaLBerlaAddFieldToStorageWrapper().name} < $wbFieldTemplate >",
+          blocks.access,
+          IR_StringConstant(leveledField.stringIdentifier(slot)),
+          leveledField.level,
+          initValue.access,
+          IR_VariableAccess(s"field::${ layout.layoutName }", IR_IntegerDatatype),
+          numGhosts,
+          leveledField.layout.useFixedLayoutSizes // TODO: StdFieldAlloc does not use padding, but we cannot use fixed layout sizes otherwise
+        ))
     })
 
     var body : ListBuffer[IR_Statement] = ListBuffer()
 
-    // set up calcSize function
-    for (wbf <- wbFields.sortBy(_.level)) {
-      val func = IR_WaLBerlaGetSizeForLevel(wbf.level)
-      if (!IR_WaLBerlaCollection.get.functions.contains(func))
-        IR_WaLBerlaCollection.get.functions += func
-
-      body += IR_VariableDeclaration(calcSize(wbf.level),
-        IR_FunctionCall(IR_ExternalFunctionReference("std::bind"), func.getReference,
-          // use placeholders for:
-          IR_Native("std::placeholders::_1"), // blockstorage
-          IR_Native("std::placeholders::_2") // iblock
-        ))
-    }
-
     body += IR_Return(IR_InitializerList(init : _*))
 
-    val returnType = IR_WaLBerlaBlockDataID(wbFields.head, slot = 0).datatype
+    val returnType = IR_WaLBerlaBlockDataID(wbFields.head, slot = 0, onGPU = false).datatype
 
     IR_WaLBerlaPlainFunction(name, returnType, params, body)
   }

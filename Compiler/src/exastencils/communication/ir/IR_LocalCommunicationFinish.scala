@@ -28,13 +28,13 @@ import exastencils.config._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.domain.ir._
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.parallelization.api.omp.OMP_WaitForFlag
 
 /// IR_LocalCommunicationFinish
 
 case class IR_LocalCommunicationFinish(
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var sendNeighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)],
     var recvNeighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)],

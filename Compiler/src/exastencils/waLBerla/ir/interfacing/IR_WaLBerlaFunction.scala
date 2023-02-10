@@ -3,10 +3,12 @@ package exastencils.waLBerla.ir.interfacing
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.config.Knowledge
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
 import exastencils.field.ir.IR_FieldAccessLike
+import exastencils.parallelization.api.cuda.CUDA_KernelFunctions
 import exastencils.prettyprinting.PpStream
 import exastencils.prettyprinting.PrettyPrintable
 import exastencils.util.ir.IR_StackCollector
@@ -21,6 +23,7 @@ trait IR_WaLBerlaFunction extends IR_Function with PrettyPrintable {
   var parameters : ListBuffer[IR_FunctionArgument]
   def body : ListBuffer[IR_Statement]
 
+  var inlineImplementation = false
   var isInterfaceFunction = true
   var isUserFunction = true
 
@@ -73,7 +76,9 @@ object IR_WaLBerlaSetupFunctions extends DefaultStrategy("Transform functions ac
   }
 
   def findEnclosingFunction(stack : List[IR_Node]) : Unit = {
-    val enclosingFunction = stack.collectFirst { case f : IR_Function => f }
+    // don't transform generated CUDA kernel functions
+    def isKernelFunction(f : IR_Function) = Knowledge.cuda_enabled && CUDA_KernelFunctions.get.functions.contains(f)
+    val enclosingFunction = stack.collectFirst { case f : IR_Function if !isKernelFunction(f) => f }
     if (enclosingFunction.isDefined) {
       enclosingFunction.get match {
         case plain : IR_PlainFunction     => plainFunctions += plain
@@ -144,6 +149,7 @@ trait IR_WaLBerlaFutureFunction extends IR_FutureFunction {
   allowInlining = false
 
   def isInterfaceFunction : Boolean
+  def inlineImplementation : Boolean
 }
 
 trait IR_WaLBerlaFuturePlainFunction extends IR_WaLBerlaFutureFunction {
@@ -153,6 +159,7 @@ trait IR_WaLBerlaFuturePlainFunction extends IR_WaLBerlaFutureFunction {
     val f = generateWaLBerlaFct()
     f.isUserFunction = false
     f.isInterfaceFunction = isInterfaceFunction
+    f.inlineImplementation = inlineImplementation
     f
   }
 }
@@ -166,6 +173,7 @@ trait IR_WaLBerlaFutureLeveledFunction extends IR_WaLBerlaFutureFunction {
     val f = generateWaLBerlaFct()
     f.isUserFunction = false
     f.isInterfaceFunction = isInterfaceFunction
+    f.inlineImplementation = inlineImplementation
     f
   }
 }

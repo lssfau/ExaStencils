@@ -27,18 +27,19 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.domain.ir.IR_IV_NeighborFragmentIdx
 import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_MultiDimFieldLikeAccess
 import exastencils.optimization.ir.IR_SimplifyExpression
 
 /// CUDA_GatherFieldAccessLike
 
 object CUDA_GatherFieldAccessLike extends QuietDefaultStrategy("Gather local FieldAccessLike nodes for shared memory") {
   var loopVariables = ListBuffer[String]()
-  var fieldAccesses = new mutable.HashMap[String, List[IR_MultiDimFieldAccess]].withDefaultValue(Nil)
+  var fieldAccesses = new mutable.HashMap[String, List[IR_MultiDimFieldLikeAccess]].withDefaultValue(Nil)
   var fieldIndicesConstantPart = new mutable.HashMap[String, List[Array[Long]]].withDefaultValue(Nil)
   var maximalFieldDim = Platform.hw_cuda_maxNumDimsBlock
   var writtenFields = ListBuffer[String]()
 
-  def extractFieldIdentifier(access : IR_MultiDimFieldAccess) = {
+  def extractFieldIdentifier(access : IR_MultiDimFieldLikeAccess) = {
     val field = access.field
     var identifier = field.codeName
 
@@ -60,10 +61,10 @@ object CUDA_GatherFieldAccessLike extends QuietDefaultStrategy("Gather local Fie
   }
 
   this += new Transformation("Searching", {
-    case stmt @ IR_Assignment(access : IR_MultiDimFieldAccess, _, _)                           =>
+    case stmt @ IR_Assignment(access : IR_MultiDimFieldLikeAccess, _, _)                           =>
       writtenFields += extractFieldIdentifier(access)
       stmt
-    case access : IR_MultiDimFieldAccess if access.field.layout.numDimsData <= maximalFieldDim =>
+    case access : IR_MultiDimFieldLikeAccess if access.field.layout.numDimsData <= maximalFieldDim =>
       val field = access.field
       val identifier = extractFieldIdentifier(access)
 
@@ -107,7 +108,7 @@ object CUDA_ReplaceFieldAccessLike extends QuietDefaultStrategy("Replace local F
   var baseIndex = IR_ExpressionIndex()
   var applySpatialBlocking = false
 
-  def extractIdentifier(access : IR_MultiDimFieldAccess) = {
+  def extractIdentifier(access : IR_MultiDimFieldLikeAccess) = {
     val field = access.field
     var identifier = field.codeName
 
@@ -124,7 +125,7 @@ object CUDA_ReplaceFieldAccessLike extends QuietDefaultStrategy("Replace local F
   }
 
   this += new Transformation("Searching", {
-    case access : IR_MultiDimFieldAccess if fieldToOffset == extractIdentifier(access) =>
+    case access : IR_MultiDimFieldLikeAccess if fieldToOffset == extractIdentifier(access) =>
       val identifier = extractIdentifier(access)
       val deviation = (IR_ExpressionIndex(access.getAnnotation(CUDA_Kernel.ConstantIndexPart).get.asInstanceOf[Array[Long]]) - fieldOffset).indices
 

@@ -18,7 +18,8 @@
 
 package exastencils.knowledge.l4
 
-import exastencils.field.l4._
+import exastencils.fieldlike.l4.L4_FieldLikeCollections
+import exastencils.fieldlike.l4.L4_FieldLikeLayoutCollections
 import exastencils.interfacing.l4.L4_ProcessExternalFieldDeclarations
 import exastencils.operator.l4._
 
@@ -28,10 +29,12 @@ object L4_ProcessKnowledgeDeclarations {
     L4_ProcessStencilDeclarations.apply()
 
     // may require:
-    L4_FieldLayoutCollection.L4_ProcessFieldLayoutDeclarations.apply()
+    for (layoutCollection <- L4_FieldLikeLayoutCollections.collections)
+      layoutCollection.L4_ProcessFieldLayoutDeclarations.apply()
 
     // may require: Domain, FieldLayout
-    L4_FieldCollection.L4_ProcessFieldDeclarations.apply() // TODO other collections?
+    for (fieldCollection <- L4_FieldLikeCollections.collections)
+      fieldCollection.L4_ProcessFieldLikeDeclarations.apply()
 
     // may require: Field
     L4_ProcessExternalFieldDeclarations.apply()

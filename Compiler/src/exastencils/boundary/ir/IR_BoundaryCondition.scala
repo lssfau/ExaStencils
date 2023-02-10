@@ -25,15 +25,11 @@ import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_Node
 import exastencils.base.ir.IR_Statement
 import exastencils.communication.NeighborInfo
-import exastencils.field.ir.IR_Field
-import exastencils.field.ir.IR_FieldAccess
 import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.grid.ir.IR_AtFaceCenter
 import exastencils.grid.ir.IR_AtNode
-import exastencils.logger.Logger
-import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldAccess
-import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 
 /// IR_BoundaryCondition
 
@@ -48,15 +44,7 @@ trait IR_BoundaryCondition extends IR_Node {
     }
   }
 
-  def accessField(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, idx : IR_ExpressionIndex) = {
-    // TODO refactor
-    if (IR_WaLBerlaFieldCollection.exists(field.name, field.level))
-      IR_WaLBerlaFieldAccess(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get, slot, idx)
-    else field match {
-      case f : IR_Field => IR_FieldAccess(f, slot, fragIdx, idx)
-      case _            => Logger.error("Unknown field type.")
-    }
-  }
+  def accessField(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, idx : IR_ExpressionIndex) = IR_FieldLikeAccess(field, slot, fragIdx, idx)
 
   def generateFieldUpdatesNode(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, neigh : NeighborInfo) : ListBuffer[IR_Statement]
   def generateFieldUpdatesCell(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, neigh : NeighborInfo) : ListBuffer[IR_Statement]

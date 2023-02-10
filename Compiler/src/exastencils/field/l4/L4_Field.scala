@@ -18,6 +18,7 @@
 
 package exastencils.field.l4
 
+import exastencils.base.l4._
 import exastencils.baseExt.l4.L4_MatShape
 import exastencils.boundary.l4.L4_BoundaryCondition
 import exastencils.core.Duplicate
@@ -69,5 +70,6 @@ case class L4_Field(
     )
   }
 
-  override def toField : L4_Field = this
+  override def getFieldAccess(slot : L4_SlotSpecification, offset : Option[L4_ConstIndex], frozen : Boolean, matIndex : Option[L4_MatIndex]) : L4_FieldAccess =
+    L4_FieldAccess(this, slot, offset,frozen, matIndex)
 }

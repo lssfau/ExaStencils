@@ -10,7 +10,7 @@ object IR_WaLBerlaDatatypes {
   def WB_StructuredBlockStorage = IR_SpecialDatatype("StructuredBlockStorage")
   def WB_StructuredBlockForest = IR_SpecialDatatype("StructuredBlockForest")
 
-  def WB_CommScheme(onGPU : Boolean = false) =
+  def WB_CommScheme(onGPU : Boolean) =
     if (onGPU)
       IR_SpecialDatatype(s"cuda::communication::UniformGPUScheme< $WB_StencilTemplate >")
     else
@@ -18,7 +18,7 @@ object IR_WaLBerlaDatatypes {
 
   def WB_StencilTemplate = "Stencil_T"
 
-  def WB_FieldDatatype(field : IR_WaLBerlaField, onGPU : Boolean = false) =
+  def WB_FieldDatatype(field : IR_WaLBerlaField, onGPU : Boolean) =
     if (onGPU)
       IR_SpecialDatatype(s"cuda::GPUField< real_t >")
     else

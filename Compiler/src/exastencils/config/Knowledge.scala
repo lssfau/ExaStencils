@@ -480,6 +480,9 @@ object Knowledge {
   // [true|false]
   var waLBerla_createCartComm : Boolean = false
 
+  // [true|false]: generate comm schemes for waLBerla or use our internal communication
+  var waLBerla_generateCommSchemes : Boolean = false
+
   // [true|false]: use grid from exastencils directly, including virtual fields
   var waLBerla_useGridFromExa : Boolean = false
 
@@ -487,7 +490,8 @@ object Knowledge {
   // enables optimizations (address precalc, vect, ...) when enabled
   var waLBerla_useInternalMemoryPointers : Boolean = true
 
-  // [true|false]: enforce generation of interface class, regardless if waLBerla data structures are used or not
+  // [true|false]: enforce generation of interface class
+  // needs to be enabled if waLBerla data structures are used
   var waLBerla_generateInterface : Boolean = false
 
   // --- Parallel I/O ---
@@ -959,5 +963,10 @@ object Knowledge {
     // experimental
     Constraints.condEnsureValue(experimental_trimBoundsForReductionLoops, false, data_genVariableFieldSizes, "experimental_trimBoundsForReductionLoops is currently not compatible with data_genVariableFieldSizes")
     Constraints.condEnsureValue(experimental_useStefanOffsets, false, domain_numFragmentsTotal > 1, "experimental_useStefanOffsets requires a single fragment")
+
+    // waLBerla
+    Constraints.condEnsureValue(waLBerla_useGridFromExa, true, !waLBerla_generateCommSchemes, "When waLBerla communication schemes are not generated, fixed field layouts (waLBerla_useGridFromExa = true) are required.")
+    Constraints.condEnsureValue(waLBerla_useGridFromExa, true, cuda_enabled && waLBerla_generateInterface, "CUDA support for waLBerla codegen is only applicable with fixed field layouts (waLBerla_useGridFromExa = true).")
+    Constraints.condEnsureValue(waLBerla_generateCommSchemes, true, data_genVariableFieldSizes && waLBerla_generateInterface, "waLBerla Fields with variable field sizes currently require the usage of waLBerla comm schemes.")
   }
 }

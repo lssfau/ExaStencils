@@ -28,7 +28,8 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.field.ir._
+import exastencils.field.ir.IR_AdvanceSlot
+import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
@@ -147,17 +148,31 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     (beforeHost, afterHost, beforeDevice, afterDevice)
   }
 
-  def getBranch(condWrapper : NoDuplicateWrapper[IR_Expression], loop : IR_LoopOverDimensions, hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
-    condWrapper.value = Knowledge.cuda_preferredExecution match {
-      case "Host"        => IR_BooleanConstant(true) // CPU by default
-      case "Device"      => IR_BooleanConstant(false) // GPU by default
-      case "Performance" => IR_BooleanConstant(loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] <= loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) // decide according to performance estimates
-      case "Condition"   => Knowledge.cuda_executionCondition
-    }
-    // set dummy first to prevent IR_GeneralSimplify from removing the branch statement until the condition is final
+  def getCondWrapperValue(loop : IR_LoopOverDimensions) : IR_Expression = Knowledge.cuda_preferredExecution match {
+    case "Host"        => IR_BooleanConstant(true) // CPU by default
+    case "Device"      => IR_BooleanConstant(false) // GPU by default
+    case "Performance" =>
+      // decide according to performance estimates -> cpu if no estimates exist
+      val estimatedHost = loop.getAnnotation("perf_timeEstimate_host").getOrElse(0.0).asInstanceOf[Double]
+      val estimatedDevice = loop.getAnnotation("perf_timeEstimate_device").getOrElse(Double.MaxValue).asInstanceOf[Double]
+
+      IR_BooleanConstant(estimatedHost <= estimatedDevice)
+    case "Condition"   => Knowledge.cuda_executionCondition
+    case _             => Logger.error("Unknown value for 'cuda_preferredExecution' knowledge flag")
+  }
+
+  // set dummy first to prevent IR_GeneralSimplify from removing the branch statement until the condition is final
+  def annotateBranch(condWrapper : NoDuplicateWrapper[IR_Expression], hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
     val branch = IR_IfCondition(IR_VariableAccess("replaceIn_CUDA_AnnotateLoops", IR_BooleanDatatype), hostStmts, deviceStmts)
     branch.annotate(CUDA_Util.CUDA_BRANCH_CONDITION, condWrapper)
     ListBuffer[IR_Statement](branch)
+  }
+
+  def getBranch(condWrapper : NoDuplicateWrapper[IR_Expression], loop : IR_LoopOverDimensions, hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
+    // set (previously empty) cond wrapper value to execution condition configuration
+    condWrapper.value = getCondWrapperValue(loop)
+    // create branching with execution condition and annotate branch for further processing
+    annotateBranch(condWrapper, hostStmts, deviceStmts)
   }
 
   this += new Transformation("Process ContractingLoop and LoopOverDimensions nodes", {
@@ -272,9 +287,12 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       // 2. this loop has no parallel potential
       // 3. this loop (or an enclosing one) is not gpu-parallelizable
       // use the host for dealing with the two exceptional cases
-      var isParallel = loop.parallelization.potentiallyParallel && loop.parallelization.gpuParallelizable // filter some generate loops
-      isParallel &= !stackCollector.stack.exists(n =>
-        n.isInstanceOf[IR_HasParallelizationInfo] && !n.asInstanceOf[IR_HasParallelizationInfo].parallelization.gpuParallelizable)
+      val isParallel = loop.parallelization.potentiallyParallel && // filter some generate loops
+        loop.parallelization.gpuParallelizable &&
+        !stackCollector.stack.exists {
+          case n : IR_HasParallelizationInfo => !n.parallelization.gpuParallelizable
+          case _                             => false
+        }
 
       // calculate memory transfer statements for host and device
       val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop.body, isParallel)

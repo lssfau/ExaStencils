@@ -28,7 +28,8 @@ import exastencils.config.Knowledge
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.Output
-import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 
 /// CUDA_Allocate
 
@@ -110,7 +111,7 @@ case class CUDA_GetDevPointer(var devicePtr : IR_Expression, var hostPtr : IR_Ex
 
 /// CUDA_FieldDeviceData
 
-case class CUDA_FieldDeviceData(override var field : IR_Field, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractFieldData {
+case class CUDA_FieldDeviceData(var field : IR_FieldLike, var slot : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractFieldLikeData(true, false, true, true, false) {
   override var level : IR_Expression = field.level
 
   override def resolveName() = (if (1 == field.numSlots) s"fieldDeviceData" else "slottedFieldDeviceData") +
@@ -133,7 +134,7 @@ case class CUDA_FieldDeviceData(override var field : IR_Field, override var slot
 
 /// CUDA_BufferDeviceData
 
-case class CUDA_BufferDeviceData(override var field : IR_Field, override var direction : String, override var size : IR_Expression, override var neighIdx : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractCommBuffer {
+case class CUDA_BufferDeviceData(var field : IR_FieldLike, var direction : String, var size : IR_Expression, var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractCommBuffer {
   override def resolveName() = s"bufferDevice_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
 
   override def getDtor() : Option[IR_Statement] = {
@@ -152,7 +153,7 @@ case class CUDA_BufferDeviceData(override var field : IR_Field, override var dir
 object CUDA_AdaptDeviceAccessesForMM extends DefaultStrategy("Adapt allocations and de-allocations on host and device") {
   this += new Transformation("Adapting", {
     case cudaVariant : CUDA_FieldDeviceData if Knowledge.cuda_useManagedMemory =>
-      IR_IV_FieldData(cudaVariant.field, cudaVariant.slot, cudaVariant.fragmentIdx)
+      IR_IV_AbstractFieldLikeData(cudaVariant.field, cudaVariant.slot, cudaVariant.fragmentIdx)
 
     case cudaVariant : CUDA_BufferDeviceData if Knowledge.cuda_useManagedMemory =>
       IR_IV_CommBuffer(cudaVariant.field, cudaVariant.direction, cudaVariant.size, cudaVariant.neighIdx, cudaVariant.fragmentIdx)
@@ -162,8 +163,8 @@ object CUDA_AdaptDeviceAccessesForMM extends DefaultStrategy("Adapt allocations 
 /// CUDA_AdaptAllocations
 
 object CUDA_AdaptAllocations extends DefaultStrategy("Adapt allocations and de-allocations on host and device") {
-  var fieldHostAllocations = ListBuffer[IR_Field]()
-  var bufferHostAllocations = ListBuffer[IR_Field]()
+  var fieldHostAllocations = ListBuffer[IR_FieldLike]()
+  var bufferHostAllocations = ListBuffer[IR_FieldLike]()
 
   this.onBefore = () => {
     fieldHostAllocations.clear()
@@ -171,7 +172,7 @@ object CUDA_AdaptAllocations extends DefaultStrategy("Adapt allocations and de-a
   }
 
   this += new Transformation("Scanning host allocations", {
-    case alloc @ IR_ArrayAllocation(pointer : IR_IV_FieldData, _, _)  =>
+    case alloc @ IR_ArrayAllocation(pointer : IR_IV_AbstractFieldLikeData, _, _)  =>
       fieldHostAllocations += pointer.field
       alloc
     case alloc @ IR_ArrayAllocation(pointer : IR_IV_CommBuffer, _, _) =>
@@ -181,7 +182,7 @@ object CUDA_AdaptAllocations extends DefaultStrategy("Adapt allocations and de-a
 
   this += new Transformation("Adapting", {
     case alloc @ CUDA_Allocate(fieldData : CUDA_FieldDeviceData, _, _) if Knowledge.cuda_useZeroCopy && fieldHostAllocations.contains(fieldData.field) =>
-      CUDA_GetDevPointer(alloc.pointer, IR_IV_FieldData(fieldData.field, fieldData.slot, fieldData.fragmentIdx))
+      CUDA_GetDevPointer(alloc.pointer, IR_IV_AbstractFieldLikeData(fieldData.field, fieldData.slot, fieldData.fragmentIdx))
 
     case alloc @ CUDA_Allocate(bufferData : CUDA_BufferDeviceData, _, _) if Knowledge.cuda_useZeroCopy && bufferHostAllocations.contains(bufferData.field) =>
       CUDA_GetDevPointer(alloc.pointer, IR_IV_CommBuffer(bufferData.field, bufferData.direction, bufferData.size, bufferData.neighIdx, bufferData.fragmentIdx))

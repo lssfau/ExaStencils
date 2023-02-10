@@ -19,6 +19,7 @@
 package exastencils.field.l4
 
 import exastencils.field.ir._
+import exastencils.fieldlike.l4.L4_FieldLike
 import exastencils.knowledge.l4.L4_KnowledgeContainer.L4_ProcessDeclarations
 import exastencils.knowledge.l4._
 
@@ -34,9 +35,9 @@ object L4_FieldCombinationCollection extends L4_LeveledKnowledgeCollection[L4_Fi
   override def name = "L4_FieldCombinationCollection"
   override def progress() = objects.foreach(obj => IR_FieldCombinationCollection.add(obj.progress()))
 
-  def existsInCombination(field : L4_Field) = { objects.exists(_.fields.contains(field)) }
-  def existsInCombination(field : L4_Field, combType : String) = { objects.exists(c => combType == c.combinationType && c.fields.contains(field)) }
+  def existsInCombination(field : L4_FieldLike[_, _]) = { objects.exists(_.fields.contains(field)) }
+  def existsInCombination(field : L4_FieldLike[_, _], combType : String) = { objects.exists(c => combType == c.combinationType && c.fields.contains(field)) }
 
-  def getByFieldInCombination(field : L4_Field) = { objects.filter(_.fields.contains(field)) }
-  def getByFieldInCombination(field : L4_Field, combType : String) = { objects.filter(c => combType == c.combinationType && c.fields.contains(field)) }
+  def getByFieldInCombination(field : L4_FieldLike[_, _]) = { objects.filter(_.fields.contains(field)) }
+  def getByFieldInCombination(field : L4_FieldLike[_, _], combType : String) = { objects.filter(c => combType == c.combinationType && c.fields.contains(field)) }
 }

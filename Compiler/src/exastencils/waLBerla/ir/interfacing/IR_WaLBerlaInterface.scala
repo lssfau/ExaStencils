@@ -7,6 +7,7 @@ import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
+import exastencils.logger.Logger
 import exastencils.prettyprinting._
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes._
@@ -36,6 +37,9 @@ object IR_WaLBerlaInterface {
 case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction]) extends IR_Node with FilePrettyPrintable {
 
   import IR_WaLBerlaInterface._
+
+  if (!functions.forall(_.inlineImplementation))
+    Logger.warn("All interface function implementations are (implicitly) expected to be inlined.")
 
   val context = IR_WaLBerlaInterfaceGenerationContext(functions)
 
@@ -122,7 +126,14 @@ object IR_WaLBerlaCreateInterface extends DefaultStrategy("Find functions and cr
     case collection : IR_WaLBerlaCollection =>
       // transform collected wb functions into the wb <-> exa interface class
       val wbFunctions = collection.functions.collect { case f : IR_WaLBerlaFunction if f.isInterfaceFunction => f }
-      if (Knowledge.waLBerla_generateInterface || wbFunctions.exists(_.isUserFunction) || IR_WaLBerlaFieldCollection.objects.nonEmpty) {
+      val waLBerlaUsed = wbFunctions.exists(_.isUserFunction) || IR_WaLBerlaFieldCollection.objects.nonEmpty
+
+      // check if knowledge flag is set when waLBerla data structures are used
+      if (waLBerlaUsed && !Knowledge.waLBerla_generateInterface)
+        Logger.error("Knowledge flag 'waLBerla_generateInterface' must be enabled when using waLBerla data structures")
+
+      // create interface object
+      if (Knowledge.waLBerla_generateInterface) {
         collection.interfaceInstance = Some(IR_WaLBerlaInterface(Duplicate(wbFunctions)))
         collection.functions = collection.functions diff wbFunctions
       }

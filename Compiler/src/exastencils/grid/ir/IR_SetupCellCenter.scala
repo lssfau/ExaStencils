@@ -26,7 +26,7 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.domain.ir._
-import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
 
 /// IR_SetupCellCenter
@@ -40,10 +40,10 @@ object IR_SetupCellCenter {
 
     val field = IR_VF_CellCenterAsVec.find(level).associatedField
     val baseIndex = IR_LoopOverDimensions.defIt(numDims)
-    val baseAccess = IR_FieldAccess(field, 0, baseIndex)
+    val baseAccess = IR_FieldLikeAccess(field, 0, baseIndex)
 
     val npField = IR_VF_NodePositionAsVec.find(level).associatedField
-    var interpolateExps = ListBuffer(IR_FieldAccess(npField, 0, baseIndex))
+    var interpolateExps = ListBuffer(IR_FieldLikeAccess(npField, 0, baseIndex))
     var factor = 1.0
     for (dim <- Knowledge.dimensions) {
       interpolateExps = interpolateExps.flatMap(fieldAccess =>

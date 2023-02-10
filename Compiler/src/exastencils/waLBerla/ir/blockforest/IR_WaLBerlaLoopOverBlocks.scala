@@ -5,12 +5,30 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
+import exastencils.parallelization.api.cuda.CUDA_PrepareHostCode.getCondWrapperValue
 import exastencils.parallelization.ir._
+import exastencils.util.NoDuplicateWrapper
 import exastencils.waLBerla.ir.field._
+
+object FindLoopOverDimensions extends QuietDefaultStrategy("Find loop over dimensions") {
+  var loopOverDims : Option[IR_LoopOverDimensions] = None
+
+  override def applyStandalone(node : Node) : Unit = {
+    loopOverDims = None
+    super.applyStandalone(node)
+  }
+
+  this += Transformation("..", {
+    case loopOverDimensions : IR_LoopOverDimensions =>
+      loopOverDims = Some(loopOverDimensions)
+      loopOverDimensions
+  })
+}
 
 /// IR_WaLBerlaLoopOverBlocks
 
@@ -23,9 +41,6 @@ case class IR_WaLBerlaLoopOverBlocks(
     var body : ListBuffer[IR_Statement],
     var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_ScopedStatement with IR_SpecialExpandable with IR_HasParallelizationInfo {
 
-  // waLBerla block loops are not gpu-parallelizable atm
-  parallelization.gpuParallelizable = false
-
   def expandSpecial() : Output[IR_ForLoop] = {
     // TODO: separate omp and potentiallyParallel
     parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && parallelization.potentiallyParallel
@@ -37,12 +52,21 @@ case class IR_WaLBerlaLoopOverBlocks(
 
     import IR_WaLBerlaLoopOverBlocks._
 
+    // find out if block loop contains loop over dimensions and if it is executed (in parallel) on CPU/GPU
+    FindLoopOverDimensions.applyStandalone(IR_Scope(body))
+    val optLoopOverDims = FindLoopOverDimensions.loopOverDims
+    val cpuExecution = NoDuplicateWrapper[IR_Expression](IR_BooleanConstant(true))
+    val condWrapper = if (Knowledge.cuda_enabled && optLoopOverDims.isDefined && optLoopOverDims.get.parallelization.potentiallyParallel)
+      NoDuplicateWrapper[IR_Expression](getCondWrapperValue(optLoopOverDims.get))
+    else
+      cpuExecution
+
+    // get data pointer to CPU/GPU memory and (additionally) fetch CPU field instance (used e.g. for variable-sized layouts)
     def getWaLBerlaFieldData(accesses : IR_MultiDimWaLBerlaFieldAccess*) : ListBuffer[IR_Statement] = {
       accesses.to[mutable.ListBuffer].flatMap(fAcc => {
-        ListBuffer(
-          IR_IV_WaLBerlaGetField(fAcc).getDeclaration(),
-          IR_IfCondition(Knowledge.waLBerla_useInternalMemoryPointers,
-            IR_IV_WaLBerlaFieldData(fAcc).getDeclaration()))
+        IR_IfCondition(Knowledge.waLBerla_useInternalMemoryPointers,
+          IR_IV_WaLBerlaFieldData(fAcc).getDeclarationBlockLoop(condWrapper)) +:
+        IR_IV_WaLBerlaGetField(fAcc.field, fAcc.slot, onGPU = false, fAcc.fragIdx).getDeclarationBlockLoop(cpuExecution)
       })
     }
 

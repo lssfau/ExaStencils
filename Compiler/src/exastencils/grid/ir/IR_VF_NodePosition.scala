@@ -25,7 +25,8 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.domain.ir._
-import exastencils.field.ir._
+import exastencils.field.ir.IR_FieldCollection
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
 
 /// IR_VF_NodePositionAsVec
@@ -109,12 +110,12 @@ case class IR_VF_NodePositionPerDim(
     if (Knowledge.grid_isUniform)
       index(dim) * IR_VF_CellWidthPerDim.access(level, dim, Duplicate(index)) + IR_IV_FragmentPositionBegin(dim)
     else if (Knowledge.grid_isAxisAligned)
-      IR_FieldAccess(associatedField, 0, IR_GridUtil.projectIdx(index, dim))
+      IR_FieldLikeAccess(associatedField, 0, IR_GridUtil.projectIdx(index, dim))
     else {
       var indices : Array[IR_Index] = Array()
       indices :+= IR_ConstIndex(dim)
       indices :+= IR_ConstIndex(0)
-      IR_FieldAccess.applySpecial(IR_VF_NodePositionAsVec.find(level).associatedField, 0, index, Some(IR_MatIndex(indices)))
+      IR_FieldLikeAccess.applySpecial(IR_VF_NodePositionAsVec.find(level).associatedField, 0, index, Some(IR_MatIndex(indices)))
     }
   }
 

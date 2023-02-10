@@ -52,25 +52,25 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
       layout.localization match {
         case IR_AtNode =>
           for (dim <- 0 until numDimensions) {
-            minIndex(dim) = math.max(minIndex(dim), layout.defIdxInnerBegin(dim) - refOffset(dim) - offset(dim))
-            maxIndex(dim) = math.min(maxIndex(dim), layout.defIdxInnerEnd(dim) - refOffset(dim) - offset(dim))
+            minIndex(dim) = math.max(minIndex(dim), layout.defIdxByIdFixed("IB", dim) - refOffset(dim) - offset(dim))
+            maxIndex(dim) = math.min(maxIndex(dim), layout.defIdxByIdFixed("IE", dim) - refOffset(dim) - offset(dim))
           }
 
         case IR_AtFaceCenter(fDim) =>
           for (dim <- 0 until numDimensions) {
             if (dim == fDim) {
-              minIndex(dim) = math.max(minIndex(dim), layout.defIdxInnerBegin(dim) - refOffset(dim) - offset(dim))
-              maxIndex(dim) = math.min(maxIndex(dim), layout.defIdxInnerEnd(dim) - refOffset(dim) - offset(dim))
+              minIndex(dim) = math.max(minIndex(dim), layout.defIdxByIdFixed("IB", dim) - refOffset(dim) - offset(dim))
+              maxIndex(dim) = math.min(maxIndex(dim), layout.defIdxByIdFixed("IE", dim) - refOffset(dim) - offset(dim))
             } else {
-              minIndex(dim) = math.max(minIndex(dim), layout.defIdxDupLeftBegin(dim) - refOffset(dim) - offset(dim))
-              maxIndex(dim) = math.min(maxIndex(dim), layout.defIdxDupRightEnd(dim) - refOffset(dim) - offset(dim))
+              minIndex(dim) = math.max(minIndex(dim), layout.defIdxByIdFixed("DLB", dim) - refOffset(dim) - offset(dim))
+              maxIndex(dim) = math.min(maxIndex(dim), layout.defIdxByIdFixed("DRE", dim) - refOffset(dim) - offset(dim))
             }
           }
 
         case IR_AtCellCenter =>
           for (dim <- 0 until numDimensions) {
-            minIndex(dim) = math.max(minIndex(dim), layout.defIdxDupLeftBegin(dim) - refOffset(dim) - offset(dim))
-            maxIndex(dim) = math.min(maxIndex(dim), layout.defIdxDupRightEnd(dim) - refOffset(dim) - offset(dim))
+            minIndex(dim) = math.max(minIndex(dim), layout.defIdxByIdFixed("DLB", dim) - refOffset(dim) - offset(dim))
+            maxIndex(dim) = math.min(maxIndex(dim), layout.defIdxByIdFixed("DRE", dim) - refOffset(dim) - offset(dim))
           }
       }
     })

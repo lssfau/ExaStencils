@@ -1,5 +1,6 @@
 package exastencils.fieldlike.l4
 
+import scala.collection.mutable.ListBuffer
 import scala.reflect.runtime.universe._
 
 import exastencils.base.l4._
@@ -15,7 +16,23 @@ import exastencils.knowledge.l4.L4_KnowledgeContainer.L4_ResolveAccesses
 import exastencils.knowledge.l4.L4_LeveledKnowledgeCollection
 import exastencils.logger.Logger
 import exastencils.util.l4.L4_LevelCollector
-import exastencils.waLBerla.l4.field._
+
+object L4_FieldLikeLayoutCollections {
+  val collections = ListBuffer[L4_FieldLikeLayoutCollection[_ <: L4_FieldLikeLayout[_], _ <: IR_FieldLikeLayout]]()
+
+  def register(collection : L4_FieldLikeLayoutCollection[_ <: L4_FieldLikeLayout[_], _ <: IR_FieldLikeLayout]) =
+    collections += collection
+
+  def getByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[L4_FieldLikeLayout[_]] = {
+    for (coll <- collections) {
+      if (coll.exists(identifier, level))
+        return Some(coll.getByIdentifier(identifier, level, suppressError).get)
+    }
+    None
+  }
+
+  def clear() = collections.foreach(_.clear())
+}
 
 abstract class L4_FieldLikeLayoutCollection[L4_Type <: L4_FieldLikeLayout[IR_Type] : TypeTag, IR_Type <: IR_FieldLikeLayout] extends L4_LeveledKnowledgeCollection[L4_Type, IR_Type] {
 
@@ -25,16 +42,11 @@ abstract class L4_FieldLikeLayoutCollection[L4_Type <: L4_FieldLikeLayout[IR_Typ
   L4_PrepareAccesses.strategies += L4_PrepareFieldLayoutAccesses
   L4_ResolveAccesses.strategies += L4_ResolveFieldLayoutAccesses
 
-  // TODO: make strategies more generic
-
   /// L4_PrepareFieldLayoutDeclaration
 
   object L4_PrepareFieldLayoutDeclarations extends DefaultStrategy("Prepare knowledge for L4 field layouts") {
     this += Transformation("Process new field layouts", {
-      case decl : L4_FieldLayoutDecl if L4_FieldLikeLayoutCollection.this == L4_FieldLayoutCollection                 =>
-        addDeclared(decl.name, decl.levels)
-        decl // preserve declaration statement
-      case decl : L4_WaLBerlaFieldLayoutDecl if L4_FieldLikeLayoutCollection.this == L4_WaLBerlaFieldLayoutCollection =>
+      case decl : L4_FieldLikeLayoutDecl[_, _] if L4_FieldLikeLayoutCollection.this == decl.associatedCollection =>
         addDeclared(decl.name, decl.levels)
         decl // preserve declaration statement
     })
@@ -44,10 +56,7 @@ abstract class L4_FieldLikeLayoutCollection[L4_Type <: L4_FieldLikeLayout[IR_Typ
 
   object L4_ProcessFieldLayoutDeclarations extends DefaultStrategy("Integrate L4 field layout declarations with knowledge") {
     this += Transformation("Process field layout declarations", {
-      case decl : L4_FieldLayoutDecl if L4_FieldLikeLayoutCollection.this == L4_FieldLayoutCollection && L4_MayBlockResolution.isDone(decl)                 =>
-        decl.addToKnowledge()
-        None // consume declaration statement
-      case decl : L4_WaLBerlaFieldLayoutDecl if L4_FieldLikeLayoutCollection.this == L4_WaLBerlaFieldLayoutCollection && L4_MayBlockResolution.isDone(decl) =>
+      case decl : L4_FieldLikeLayoutDecl[_, _] if L4_FieldLikeLayoutCollection.this == decl.associatedCollection && L4_MayBlockResolution.isDone(decl)                 =>
         decl.addToKnowledge()
         None // consume declaration statement
     })

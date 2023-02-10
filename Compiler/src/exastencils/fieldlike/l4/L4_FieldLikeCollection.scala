@@ -13,7 +13,6 @@ import exastencils.knowledge.l4.L4_KnowledgeContainer._
 import exastencils.knowledge.l4.L4_LeveledKnowledgeCollection
 import exastencils.logger.Logger
 import exastencils.util.l4.L4_LevelCollector
-import exastencils.waLBerla.l4.field._
 
 object L4_FieldLikeCollections {
   val collections = ListBuffer[L4_FieldLikeCollection[_ <: L4_FieldLike[_, _], _ <: IR_FieldLike]]()
@@ -34,28 +33,23 @@ object L4_FieldLikeCollections {
 
 abstract class L4_FieldLikeCollection[L4_Type <: L4_FieldLike[IR_Type, _] : TypeTag, IR_Type <: IR_FieldLike] extends L4_LeveledKnowledgeCollection[L4_Type, IR_Type] {
 
-  L4_PrepareDeclarations.strategies += L4_PrepareFieldDeclarations
-  L4_ProcessDeclarations.strategies += L4_ProcessFieldDeclarations
+  L4_PrepareDeclarations.strategies += L4_PrepareFieldLikeDeclarations
+  L4_ProcessDeclarations.strategies += L4_ProcessFieldLikeDeclarations
 
-  L4_PrepareAccesses.strategies += L4_PrepareFieldAccesses
-  L4_ResolveAccesses.strategies += L4_ResolveFieldAccesses
+  L4_PrepareAccesses.strategies += L4_PrepareFieldLikeAccesses
+  L4_ResolveAccesses.strategies += L4_ResolveFieldLikeAccesses
 
   def contains(access : L4_FutureFieldAccess) : Boolean = getByFieldAccess(access).isDefined
-  def contains(access : L4_FieldAccess) : Boolean = getByFieldAccess(access).isDefined
+  def contains(access : L4_FieldLikeAccess) : Boolean = getByFieldAccess(access).isDefined
 
   def getByFieldAccess(access : L4_FutureFieldAccess) : Option[L4_Type] = getByIdentifier(access.name, access.level, suppressError = true)
-  def getByFieldAccess(access : L4_FieldAccess) : Option[L4_Type] = getByIdentifier(access.name, access.level, suppressError = true)
-
-  // TODO: make strategies more generic
+  def getByFieldAccess(access : L4_FieldLikeAccess) : Option[L4_Type] = getByIdentifier(access.name, access.level, suppressError = true)
 
   /// L4_PrepareFieldDeclaration
 
-  object L4_PrepareFieldDeclarations extends DefaultStrategy("Prepare knowledge for L4 fields") {
+  object L4_PrepareFieldLikeDeclarations extends DefaultStrategy("Prepare knowledge for L4 fields") {
     this += Transformation("Process new fields", {
-      case decl : L4_FieldDecl if L4_FieldLikeCollection.this == L4_FieldCollection =>
-        addDeclared(decl.name, decl.levels)
-        decl // preserve declaration statement
-      case decl : L4_WaLBerlaFieldDecl if L4_FieldLikeCollection.this == L4_WaLBerlaFieldCollection =>
+      case decl : L4_FieldLikeDecl[_, _] if L4_FieldLikeCollection.this == decl.associatedCollection =>
         addDeclared(decl.name, decl.levels)
         decl // preserve declaration statement
     })
@@ -63,12 +57,9 @@ abstract class L4_FieldLikeCollection[L4_Type <: L4_FieldLike[IR_Type, _] : Type
 
   /// L4_ProcessFieldDeclarations
 
-  object L4_ProcessFieldDeclarations extends DefaultStrategy("Integrate L4 field declarations with knowledge") {
+  object L4_ProcessFieldLikeDeclarations extends DefaultStrategy("Integrate L4 field declarations with knowledge") {
     this += Transformation("Process field declarations", {
-      case decl : L4_FieldDecl if L4_FieldLikeCollection.this == L4_FieldCollection && L4_MayBlockResolution.isDone(decl) =>
-        decl.addToKnowledge()
-        None // consume declaration statement
-      case decl : L4_WaLBerlaFieldDecl if L4_FieldLikeCollection.this == L4_WaLBerlaFieldCollection && L4_MayBlockResolution.isDone(decl) =>
+      case decl : L4_FieldLikeDecl[_, _] if L4_FieldLikeCollection.this == decl.associatedCollection && L4_MayBlockResolution.isDone(decl) =>
         decl.addToKnowledge()
         None // consume declaration statement
     })
@@ -76,7 +67,7 @@ abstract class L4_FieldLikeCollection[L4_Type <: L4_FieldLike[IR_Type, _] : Type
 
   /// L4_PrepareFieldAccesses
 
-  object L4_PrepareFieldAccesses extends DefaultStrategy("Prepare accesses to fields") {
+  object L4_PrepareFieldLikeAccesses extends DefaultStrategy("Prepare accesses to fields") {
     val collector = new L4_LevelCollector
     this.register(collector)
     this.onBefore = () => this.resetCollectors()
@@ -100,12 +91,12 @@ abstract class L4_FieldLikeCollection[L4_Type <: L4_FieldLike[IR_Type, _] : Type
 
   /// L4_ResolveFieldAccesses
 
-  object L4_ResolveFieldAccesses extends DefaultStrategy("Resolve accesses to fields") {
+  object L4_ResolveFieldLikeAccesses extends DefaultStrategy("Resolve accesses to fields") {
     this += new Transformation("Resolve applicable future accesses", {
       // check if declaration has already been processed and promote access if possible
       case access : L4_FutureFieldAccess if exists(access.name, access.level) =>
         val field = getByFieldAccess(access).get // get field from field collection
-        L4_FieldAccess(field.toField, access.slot, access.offset, access.frozen, access.matIndex) // create 'regular' access for it
+        L4_FieldLikeAccess(field, access.slot, access.offset, access.frozen, access.matIndex)
     })
   }
 }

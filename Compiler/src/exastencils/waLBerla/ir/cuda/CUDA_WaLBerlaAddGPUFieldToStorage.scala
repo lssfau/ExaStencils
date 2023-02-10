@@ -12,7 +12,7 @@ import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaCollection
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaFuturePlainFunction
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaPlainFunction
 
-case class IR_WaLBerlaAddGPUFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR_WaLBerlaFuturePlainFunction {
+case class CUDA_WaLBerlaAddGPUFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR_WaLBerlaFuturePlainFunction {
 
   def blockForest = IR_WaLBerlaBlockForest()
   def blocks = blockForest.ctorParameter
@@ -21,13 +21,14 @@ case class IR_WaLBerlaAddGPUFieldToStorage(wbFields : IR_WaLBerlaField*) extends
     Logger.error("\"IR_WaLBerlaAddGPUFieldToStorage\" used incorrectly. Assumes fields with identical name but potentially different slots and levels.")
 
   override def isInterfaceFunction : Boolean = false
+  override def inlineImplementation : Boolean = false
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
     // add deps
     IR_WaLBerlaCollection.get.addExternalDependency("cuda/AddGPUFieldToStorage.h")
     IR_WaLBerlaCollection.get.addExternalDependency("cuda/FieldCopy.h")
 
-    var cpuBlockDataIDParam = IR_WaLBerlaBlockDataID(wbFields.head, slot = 0)
+    var cpuBlockDataIDParam = IR_WaLBerlaBlockDataID(wbFields.head, slot = 0, onGPU = false)
 
     var params : ListBuffer[IR_FunctionArgument] = ListBuffer()
     params += blocks
@@ -35,7 +36,7 @@ case class IR_WaLBerlaAddGPUFieldToStorage(wbFields : IR_WaLBerlaField*) extends
 
     val init = wbFields.sortBy(_.level).flatMap(leveledField => {
       (0 until leveledField.numSlots).map(slot =>
-        leveledField.addToStorageGPU(blocks.access, slot, IR_WaLBerlaBlockDataID(leveledField, slot)))
+        leveledField.addToStorageGPU(blocks.access, slot, IR_WaLBerlaBlockDataID(leveledField, slot, onGPU = false)))
     })
 
     var body : ListBuffer[IR_Statement] = ListBuffer()

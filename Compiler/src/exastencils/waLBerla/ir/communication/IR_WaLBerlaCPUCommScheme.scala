@@ -12,15 +12,15 @@ import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil.make_shared
 
 case class IR_WaLBerlaCPUCommScheme(var wbField : IR_WaLBerlaField, var slot : IR_Expression) extends IR_WaLBerlaCommScheme {
 
-  def basetype = IR_UniquePointerDatatype(WB_CommScheme())
+  def basetype = IR_UniquePointerDatatype(WB_CommScheme(onGPU = false))
 
   def createUniformPackInfo() =
-    make_shared(s"field::communication::PackInfo< ${ WB_FieldDatatype(wbField).prettyprint() } >", blockDataID)
+    make_shared(s"field::communication::PackInfo< ${ WB_FieldDatatype(wbField, onGPU = false).prettyprint() } >", blockDataID)
 
   def name = getGeneratedName(s"cpuCommScheme_${ wbField.name }")
 
   override def prettyprint(out : PpStream) : Unit = out << baseAccess()
 
-  val blockDataID = IR_WaLBerlaBlockDataID(wbField, slot)
+  val blockDataID = IR_WaLBerlaBlockDataID(wbField, slot, onGPU = false)
   val blockForest = IR_WaLBerlaBlockForest()
 }

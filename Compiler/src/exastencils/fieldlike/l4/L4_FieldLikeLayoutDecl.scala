@@ -5,10 +5,11 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.l4._
 import exastencils.config.Knowledge
 import exastencils.field.l4.L4_FieldLayoutOption
+import exastencils.fieldlike.ir.IR_FieldLikeLayout
 import exastencils.grid.l4._
 import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
 
-trait L4_FieldLikeLayoutDecl[L4_LayoutType <: L4_FieldLikeLayout[_]] extends L4_LeveledKnowledgeDecl {
+trait L4_FieldLikeLayoutDecl[L4_LayoutType <: L4_FieldLikeLayout[IR_LayoutType], IR_LayoutType <: IR_FieldLikeLayout] extends L4_LeveledKnowledgeDecl {
   def name : String
   def levels : Option[L4_DeclarationLevelSpecification]
   def datatype : L4_Datatype
@@ -18,6 +19,8 @@ trait L4_FieldLikeLayoutDecl[L4_LayoutType <: L4_FieldLikeLayout[_]] extends L4_
   def composeLayout(level : Int) : L4_LayoutType
 
   val numDimsGrid = Knowledge.dimensionality // TODO: adapt for edge data structures
+
+  def associatedCollection : L4_FieldLikeLayoutCollection[L4_LayoutType, IR_LayoutType]
 
   def evalFieldLayoutValue(optionName : String) : L4_ConstIndex = {
     val option = options.find(_.name == optionName)

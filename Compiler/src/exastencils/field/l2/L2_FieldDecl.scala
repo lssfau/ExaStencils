@@ -18,12 +18,13 @@
 
 package exastencils.field.l2
 
+import exastencils.field.l3.L3_Field
 import exastencils.fieldlike.l2.L2_FieldLikeDecl
 import exastencils.logger._
 
 /// L2_FieldDecl
 
-abstract class L2_FieldDecl extends L2_FieldLikeDecl[L2_Field] {
+abstract class L2_FieldDecl extends L2_FieldLikeDecl[L2_Field, L3_Field] {
   override def progress = Logger.error(s"Trying to progress L2 field declaration for field $name; this is not supported")
   def addToKnowledge() : Unit
 }

@@ -2,15 +2,16 @@ package exastencils.waLBerla.ir.field
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_MatShape
 import exastencils.boundary.ir.IR_BoundaryCondition
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_Domain
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.field.ir.IR_FieldAccess
-import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.ir._
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes
@@ -33,7 +34,7 @@ case class IR_WaLBerlaField(
     var numSlots : Int,
     var boundary : IR_BoundaryCondition,
     var matShape: Option[IR_MatShape],
-    var gpuCompatible : Boolean = false
+    var gpuCompatible : Boolean = true
 ) extends IR_FieldLike {
 
   override def createDuplicate() : IR_WaLBerlaField = {
@@ -42,9 +43,12 @@ case class IR_WaLBerlaField(
 
   def stringIdentifier(slot : Int) = codeName + s"_s$slot"
 
-  def addToStorage(blockForestAcc : IR_VariableAccess, slot : Int, initVal : IR_FunctionArgument, calculateSize : IR_VariableAccess) = {
+  // functions to add fields to block storage.
+  // cpu fields are allocated per level and slot using waLBerla's allocation
+  // gpu fields are merely memcpy'd from host to device
+  def addToStorageCPU(blockForestAcc : IR_VariableAccess, slot : Int, initVal : IR_FunctionArgument, calculateSize : IR_VariableAccess) = {
 
-    val wbFieldTemplate = IR_WaLBerlaDatatypes.WB_FieldDatatype(this).prettyprint()
+    val wbFieldTemplate = IR_WaLBerlaDatatypes.WB_FieldDatatype(this, onGPU = false).prettyprint()
     val fieldBaseType = gridDatatype.resolveBaseDatatype.prettyprint()
     val funcRefName = s"field::addToStorage< $wbFieldTemplate >"
 
@@ -75,17 +79,39 @@ case class IR_WaLBerlaField(
   }
 
   def addToStorageGPU(blockForestAcc : IR_VariableAccess, slot : Int, cpuFieldID : IR_WaLBerlaBlockDataID) = {
-    val funcRefName = s"cuda::addGPUFieldToStorage<${ IR_WaLBerlaDatatypes.WB_FieldDatatype(this).prettyprint() }>"
+    val funcRefName = s"cuda::addGPUFieldToStorage<${ IR_WaLBerlaDatatypes.WB_FieldDatatype(this, onGPU = false).prettyprint() }>"
+
+    // TODO: mapping pitched <-> non-pitched fields? maybe possible with help of IVs
+    val usePitchedMemory = if (Knowledge.waLBerla_useGridFromExa)
+      false // exa fields do not employ pitched memory -> can lead to inconsistent indexing
+    else
+      true
 
     val args = ListBuffer[IR_Expression](
       blockForestAcc,
       cpuFieldID,
       IR_StringConstant(stringIdentifier(slot)),
-      IR_BooleanConstant(true) // pitched memory
+      IR_BooleanConstant(usePitchedMemory)
     )
 
     IR_FunctionCall(IR_ExternalFunctionReference(funcRefName), args)
   }
 
   def domain : IR_Domain = IR_DomainCollection.getByIdentifier("global").get
+
+  override def getFieldAccess(slot : IR_Expression, fragIdx : IR_Expression, index : IR_ExpressionIndex, offset : Option[IR_ConstIndex], frozen : Boolean, matIndex : Option[IR_MatIndex]) : IR_FieldLikeAccess = {
+    IR_WaLBerlaFieldAccess(this, slot, fragIdx, index, offset, frozen, matIndex)
+  }
+
+  override def getDirectFieldAccess(slot : IR_Expression, fragIdx : IR_Expression, index : IR_ExpressionIndex) : IR_DirectFieldLikeAccess = {
+    IR_DirectWaLBerlaFieldAccess(this, slot, fragIdx, index)
+  }
+
+  override def getLinearizedFieldAccess(slot : IR_Expression, fragIdx : IR_Expression, index : IR_Expression) : IR_LinearizedFieldLikeAccess = {
+    IR_LinearizedWaLBerlaFieldAccess(this, slot, fragIdx, index)
+  }
+
+  override def getFieldData(slot : IR_Expression, fragIdx : IR_Expression) : IR_IV_AbstractFieldLikeData = {
+    IR_IV_WaLBerlaFieldData(this, slot, fragIdx)
+  }
 }

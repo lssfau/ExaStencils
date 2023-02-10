@@ -8,8 +8,8 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.waLBerla.ir.blockforest._
 import exastencils.waLBerla.ir.communication._
-import exastencils.waLBerla.ir.cuda.IR_WaLBerlaAddGPUFieldToStorage
-import exastencils.waLBerla.ir.cuda.IR_WaLBerlaGPUCommScheme
+import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaAddGPUFieldToStorage
+import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaGPUCommScheme
 import exastencils.waLBerla.ir.field._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
@@ -23,7 +23,7 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
   var privateMembers : ListBuffer[IR_VariableAccess] = ListBuffer()
 
   // block data IDs and params of waLBerla function
-  val blockDataIDs = uniqueWbFields.map(wbf => IR_WaLBerlaBlockDataID(wbf, slot = 0) -> IR_WaLBerlaBlockDataID(wbf, slot = 0, onGPU = true))
+  val blockDataIDs = uniqueWbFields.map(wbf => IR_WaLBerlaBlockDataID(wbf, slot = 0, onGPU = false) -> IR_WaLBerlaBlockDataID(wbf, slot = 0, onGPU = true))
   publicMembers ++= blockDataIDs.map(_._1.member)
   if (Knowledge.cuda_enabled)
     publicMembers ++= blockDataIDs.map(_._2.member)
@@ -33,11 +33,11 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
   privateMembers += blockForest.member
 
   // comm scheme for each field. packed with a uniform pack info
-  if (IR_WaLBerlaUtil.initCommSchemes) {
+  if (Knowledge.waLBerla_generateCommSchemes) {
     for (wbf <- uniqueWbFields) {
       val commSchemes : ListBuffer[IR_WaLBerlaCommScheme] = ListBuffer(IR_WaLBerlaCPUCommScheme(wbf, slot = 0))
       if (Knowledge.cuda_enabled)
-        commSchemes += IR_WaLBerlaGPUCommScheme(wbf, slot = 0)
+        commSchemes += CUDA_WaLBerlaGPUCommScheme(wbf, slot = 0)
 
       privateMembers ++= commSchemes.map(_.baseAccess())
     }
@@ -65,8 +65,8 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
 
     if (Knowledge.cuda_enabled) {
       for ((dataIDCPU, dataIDGPU) <- blockDataIDs) {
-        ctorBody += IR_Assignment(dataIDGPU.member, IR_FunctionCall(IR_WaLBerlaAddGPUFieldToStorage(dataIDGPU.wbField).name, blockForest, dataIDCPU.member))
-        initFunctions = initFunctions.filterNot(f => f.name == IR_WaLBerlaAddGPUFieldToStorage(dataIDGPU.wbField).name)
+        ctorBody += IR_Assignment(dataIDGPU.member, IR_FunctionCall(CUDA_WaLBerlaAddGPUFieldToStorage(dataIDGPU.wbField).name, blockForest, dataIDCPU.member))
+        initFunctions = initFunctions.filterNot(f => f.name == CUDA_WaLBerlaAddGPUFieldToStorage(dataIDGPU.wbField).name)
       }
     }
 

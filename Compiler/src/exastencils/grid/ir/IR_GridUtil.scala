@@ -21,7 +21,7 @@ package exastencils.grid.ir
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.core._
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
 
 object IR_GridUtil {
@@ -39,13 +39,13 @@ object IR_GridUtil {
     modIndex
   }
 
-  def offsetAccess(fieldAccess : IR_FieldAccess, offset : Int, dim : Int) : IR_FieldAccess = {
+  def offsetAccess(fieldAccess : IR_FieldLikeAccess, offset : Int, dim : Int) : IR_FieldLikeAccess = {
     val modAccess = Duplicate(fieldAccess)
     modAccess.index(dim) += offset
     modAccess
   }
 
-  def offsetAccess(fieldAccess : IR_FieldAccess, offset : IR_Expression, dim : Int) : IR_FieldAccess = {
+  def offsetAccess(fieldAccess : IR_FieldLikeAccess, offset : IR_Expression, dim : Int) : IR_FieldLikeAccess = {
     val modAccess = Duplicate(fieldAccess)
     modAccess.index(dim) += offset
     modAccess

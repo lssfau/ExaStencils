@@ -21,6 +21,7 @@ package exastencils.field.l2
 import exastencils.base.ProgressLocation
 import exastencils.base.l2._
 import exastencils.field.l3._
+import exastencils.fieldlike.l2.L2_FieldLikeCollections
 import exastencils.knowledge.l2._
 import exastencils.prettyprinting.PpStream
 
@@ -28,7 +29,7 @@ import exastencils.prettyprinting.PpStream
 
 object L2_FieldAccess {
   def apply(access : L2_FutureFieldAccess) =
-    new L2_FieldAccess(L2_FieldCollection.getByIdentifier(access.name, access.level).get, access.offset, access.frozen)
+    new L2_FieldAccess(L2_FieldLikeCollections.getByIdentifier(access.name, access.level).get.toField, access.offset, access.frozen)
 }
 
 case class L2_FieldAccess(

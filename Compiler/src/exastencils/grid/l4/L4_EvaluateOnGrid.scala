@@ -27,7 +27,7 @@ import exastencils.baseExt.l4.L4_FieldIteratorAccess
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.field.l4.L4_FieldAccess
+import exastencils.fieldlike.l4.L4_FieldLikeAccess
 import exastencils.grid.ir._
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -72,10 +72,10 @@ case class L4_EvaluateOnGrid(
   def stagDim = L4_GridUtil.faceToDims(name.replace("evalAt", ""))._1
   def faceDim = L4_GridUtil.faceToDims(name.replace("evalAt", ""))._2
 
-  def fieldAccess() : L4_FieldAccess = {
+  def fieldAccess() : L4_FieldLikeAccess = {
     expression match {
-      case fieldAccess : L4_FieldAccess => fieldAccess
-      case other                        => Logger.error(s"$other in evaluate is not of type L4_FieldAccess")
+      case fieldAccess : L4_FieldLikeAccess => fieldAccess
+      case other                        => Logger.error(s"$other in evaluate is not of type L4_FieldLikeAccess")
     }
   }
 
@@ -97,14 +97,14 @@ case class L4_EvaluateOnGrid(
 
   def resolve() = {
     expression match {
-      case fieldAccess : L4_FieldAccess  => resolveForFieldAccess(fieldAccess, interpolation)
+      case fieldAccess : L4_FieldLikeAccess  => resolveForFieldAccess(fieldAccess, interpolation)
       case const : L4_ConstantExpression => const // no interpolation needed
       case variable : L4_VariableAccess  => variable // no interpolation needed
       case other                         => Logger.error(s"Evaluation is not supported yet for $other")
     }
   }
 
-  def resolveForFieldAccess(fieldAccess : L4_FieldAccess, interpolation : String) : L4_Expression = {
+  def resolveForFieldAccess(fieldAccess : L4_FieldLikeAccess, interpolation : String) : L4_Expression = {
     val field = fieldAccess.target
     val (stagDim, faceDim) = L4_GridUtil.faceToDims(name.replace("evalAt", ""))
 

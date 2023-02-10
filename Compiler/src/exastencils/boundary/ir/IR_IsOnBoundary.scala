@@ -29,11 +29,12 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.domain.ir.IR_IV_NeighborIsValid
-import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
+import exastencils.fieldlike.ir.IR_FieldLike
 
 /// IR_IsOnBoundary
 
-case class IR_IsOnBoundary(var field : IR_Field, var index : IR_ExpressionIndex) extends IR_Expression with IR_Expandable {
+case class IR_IsOnBoundary(var field : IR_FieldLike, var index : IR_ExpressionIndex) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
 
   override def expand() : Output[IR_Expression] = {
@@ -50,7 +51,7 @@ case class IR_IsOnBoundary(var field : IR_Field, var index : IR_ExpressionIndex)
 
 /// IR_IsOnSpecBoundary
 
-case class IR_IsOnSpecBoundary(var field : IR_Field, var neigh : NeighborInfo, var index : IR_ExpressionIndex) extends IR_Expression with IR_Expandable {
+case class IR_IsOnSpecBoundary(var field : IR_FieldLike, var neigh : NeighborInfo, var index : IR_ExpressionIndex) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
 
   override def expand() : Output[IR_Expression] = {
@@ -72,7 +73,7 @@ case class IR_IsOnSpecBoundary(var field : IR_Field, var neigh : NeighborInfo, v
 /// IR_IsValidComputationPoint
 
 // checks for IR_IsOnBoundary as well as if outside inner/dup layers on fragment transitions
-case class IR_IsValidComputationPoint(var field : IR_Field, var index : IR_ExpressionIndex) extends IR_Expression with IR_Expandable {
+case class IR_IsValidComputationPoint(var field : IR_FieldLike, var index : IR_ExpressionIndex) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
 
   override def expand() : Output[IR_Expression] = {
@@ -99,7 +100,7 @@ case class IR_IsValidComputationPoint(var field : IR_Field, var index : IR_Expre
 /// IR_ResolveBoundaryFunctions
 
 object IR_ResolveBoundaryFunctions extends DefaultStrategy("ResolveBoundaryFunctions") {
-  def getIndex(fieldAccess : IR_FieldAccess) = {
+  def getIndex(fieldAccess : IR_FieldLikeAccess) = {
     val index = fieldAccess.index
     if (fieldAccess.offset.isDefined)
       for (i <- 0 until Math.min(fieldAccess.index.length, fieldAccess.offset.get.length))
@@ -109,31 +110,31 @@ object IR_ResolveBoundaryFunctions extends DefaultStrategy("ResolveBoundaryFunct
 
   this += new Transformation("ResolveFunctionCalls", {
     case IR_FunctionCall(IR_UnresolvedFunctionReference("isOnBoundaryOf", _), args) =>
-      val fieldAccess = args.head.asInstanceOf[IR_FieldAccess]
+      val fieldAccess = args.head.asInstanceOf[IR_FieldLikeAccess]
       IR_IsOnBoundary(fieldAccess.field, getIndex(fieldAccess))
 
     case IR_FunctionCall(IR_UnresolvedFunctionReference("isOnEastBoundaryOf", _), args) =>
-      val fieldAccess = args.head.asInstanceOf[IR_FieldAccess]
+      val fieldAccess = args.head.asInstanceOf[IR_FieldLikeAccess]
       IR_IsOnSpecBoundary(fieldAccess.field, DefaultNeighbors.getNeigh(Array(1, 0, 0)), getIndex(fieldAccess))
 
     case IR_FunctionCall(IR_UnresolvedFunctionReference("isOnWestBoundaryOf", _), args) =>
-      val fieldAccess = args.head.asInstanceOf[IR_FieldAccess]
+      val fieldAccess = args.head.asInstanceOf[IR_FieldLikeAccess]
       IR_IsOnSpecBoundary(fieldAccess.field, DefaultNeighbors.getNeigh(Array(-1, 0, 0)), getIndex(fieldAccess))
 
     case IR_FunctionCall(IR_UnresolvedFunctionReference("isOnNorthBoundaryOf", _), args) =>
-      val fieldAccess = args.head.asInstanceOf[IR_FieldAccess]
+      val fieldAccess = args.head.asInstanceOf[IR_FieldLikeAccess]
       IR_IsOnSpecBoundary(fieldAccess.field, DefaultNeighbors.getNeigh(Array(0, 1, 0)), getIndex(fieldAccess))
 
     case IR_FunctionCall(IR_UnresolvedFunctionReference("isOnSouthBoundaryOf", _), args) =>
-      val fieldAccess = args.head.asInstanceOf[IR_FieldAccess]
+      val fieldAccess = args.head.asInstanceOf[IR_FieldLikeAccess]
       IR_IsOnSpecBoundary(fieldAccess.field, DefaultNeighbors.getNeigh(Array(0, -1, 0)), getIndex(fieldAccess))
 
     case IR_FunctionCall(IR_UnresolvedFunctionReference("isOnTopBoundaryOf", _), args) =>
-      val fieldAccess = args.head.asInstanceOf[IR_FieldAccess]
+      val fieldAccess = args.head.asInstanceOf[IR_FieldLikeAccess]
       IR_IsOnSpecBoundary(fieldAccess.field, DefaultNeighbors.getNeigh(Array(0, 0, 1)), getIndex(fieldAccess))
 
     case IR_FunctionCall(IR_UnresolvedFunctionReference("isOnBottomBoundaryOf", _), args) =>
-      val fieldAccess = args.head.asInstanceOf[IR_FieldAccess]
+      val fieldAccess = args.head.asInstanceOf[IR_FieldLikeAccess]
       IR_IsOnSpecBoundary(fieldAccess.field, DefaultNeighbors.getNeigh(Array(0, 0, -1)), getIndex(fieldAccess))
 
     case IR_FunctionCall(IR_UnresolvedFunctionReference("getNeighFragEdge", _), args) =>

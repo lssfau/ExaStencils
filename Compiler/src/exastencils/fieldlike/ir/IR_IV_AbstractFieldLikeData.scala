@@ -1,10 +1,16 @@
 package exastencils.fieldlike.ir
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.prettyprinting.PpStream
+
+object IR_IV_AbstractFieldLikeData {
+  def apply(field : IR_FieldLike, slot : IR_Expression, fragmentIdx : IR_Expression) = field.getFieldData(slot, fragmentIdx)
+}
+
+// TODO: try to remove "IR_IV_FieldData" occurrences
 
 abstract class IR_IV_AbstractFieldLikeData(
     canBePerFragment : Boolean,

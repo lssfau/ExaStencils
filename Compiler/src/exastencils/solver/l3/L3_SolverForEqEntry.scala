@@ -31,6 +31,8 @@ import exastencils.prettyprinting._
 
 /// L3_SolverForEqEntry
 
+// TODO: Use FieldLikeCollections instead or FieldCollection
+
 case class L3_SolverForEqEntry(solName : String, eqName : String) extends L3_Node with PrettyPrintable {
   var rhsPerLevel = HashMap[Int, L3_Field]()
   var resPerLevel = HashMap[Int, L3_Field]()
