@@ -173,6 +173,8 @@ object Knowledge {
 
   /// swe special flags
   var swe_stationsMax = 10
+  var swe_nodalReductionPrint : Boolean = false
+  var swe_interleaveDiscComponentsPrint : Boolean = false
 
   /// === Layer 3 ===
 
@@ -470,6 +472,90 @@ object Knowledge {
   // [true|false] // specifies if MPI_Test (true) or MPI_Wait (false) is to be used when waiting for async communication
   var mpi_useBusyWait : Boolean = false
 
+  // --- Parallel I/O ---
+
+  // -- General parameters --
+
+  // [true|false] // allows generation of debugging statements when using parallel I/O libraries
+  var parIO_generateDebugStatements : Boolean = false
+
+  // [true|false] // decides whether collective or individual I/O is used when using parallel I/O libraries
+  var parIO_useCollectiveIO : Boolean = true
+
+  // -- Tuning parameters --
+
+  // - MPI hints -
+
+  // 0 = off or externally defined, else = user-defined
+  var stripe_count : Int = 0 // number for OSTs
+  var stripe_size : Int = 0 // number of bytes written to one OST
+
+  // Data sieving
+  // "automatic" = default, "enable", "disable" otherwise
+  var romio_ds_read : String = "automatic"
+  var romio_ds_write : String = "automatic"
+
+  // Collective buffering
+  // 0 = default, -1 = number of OSTs, else = user-defined
+  var cb_nodes : Int = 0
+
+  // 0 = default (4194304 = 4 MB), else = user-defined
+  var cb_buffer_size : Int = 0
+
+  // "automatic" = default, "enable", "disable" otherwise
+  var romio_cb_read : String = "automatic"
+  var romio_cb_write : String = "automatic"
+
+  // - HDF5 params -
+
+  // use chunking when storing datasets. size is automatically set to the extents of a fragment/block
+  var hdf5_use_chunking : Boolean = false
+
+  // use zlib compression when writing a dataset. compression rate in range [0,9]. 0 = no compression
+  var hdf5_write_zlib_compression_level : Int = 0
+
+  // [true|false] // automatic meta-data evictions. careful: if the application crashes before meta-data is flushed to file, the file is unusable
+  var hdf5_auto_metadata_flush : Boolean = true
+
+  // (threshold, alignment) of HDF5 objects in bytes. default = (1, 1), for parallel I/O best choice is the block- or stripe-size
+  var hdf5_object_alignment_threshold : Int = 1
+  var hdf5_object_alignment_size : Int = 1 // auto = -1
+
+  // - PnetCDF params -
+  // alignment of the header. 1 = default, -1 = auto, else = user-defined
+  var nc_header_align_size : Int = 1
+
+  // alignment of fixed-size arrays. 1 = default, -1 = auto, else = user-defined
+  var nc_var_align_size : Int = 1
+
+  // alignment of record variable section. 1 = default, -1 = auto, else = user-defined
+  var nc_record_align_size : Int = 1
+
+  // - Stream-based I/O -
+  // manual buffering to reduce library/function calls to ANSI C/C++ STL streams(binary). only has an effect for buffers which cannot be written at once (e.g. condition or ghost layers/... excluded)
+  var parIO_streams_useIntermediateBuffer : Boolean = false
+
+  // - SION params -
+  // set size of internal ANSI C buffer, -1 = use system default (mostly fs blocksize)
+  var sion_setvbuf_size : Int = -1
+
+  // set number of underlying physical files
+  var sion_phys_files : Int = 1
+
+  // enable byte-wise swapping when reading sion files (only swaps when necessary)
+  var sion_ensure_byteswap_read : Boolean = false
+
+  // -- Visualization with Xdmf/Exodus --
+
+  // [true|false] // print mesh in form of a point cloud
+  var parIO_vis_forceMeshlessVisualization : Boolean = false
+
+  // [true|false] // prevents duplication of constant data when printing Xdmf or Exodus files
+  var parIO_vis_constantDataReduction : Boolean = true
+
+  // [true|false] // specifies whether ParaView or VisIt files are printed. Distinction only relevant for IR_PrintXdmfUniform
+  var parIO_vis_generateVisItFiles : Boolean = false
+
   /// --- CUDA ---
 
   // [true|false]
@@ -496,6 +582,8 @@ object Knowledge {
   var cuda_blockSize_y : Long = 4
   // default block size in z dimension
   var cuda_blockSize_z : Long = 4
+  // minimal block size (product), default is regular warp size (32)
+  var cuda_minimalBlockSize : Long = 32
 
   // the product of the block sizes per dimension, i.e. the total block size
   def cuda_blockSizeTotal : Long = cuda_blockSize_x * cuda_blockSize_y * cuda_blockSize_z
@@ -514,6 +602,16 @@ object Knowledge {
   var cuda_favorL1CacheOverSharedMemory : Boolean = false
   // apply spatial blocking with read-only cache
   var cuda_spatialBlockingWithROC : Boolean = false
+
+  // use pinned memory to allocate host field data and buffers
+  var cuda_usePinnedHostMemory : Boolean = true
+  // use managed memory instead of host and device variants for field data and buffers
+  var cuda_useManagedMemory : Boolean = false
+  // replace device variants of field data and buffers with device pointers derived from host counter-parts
+  var cuda_useZeroCopy : Boolean = false
+
+  // only relevant if cuda_useManagedMemory == true; replace cuda memcpy with asynchronous prefetches
+  var cuda_genAsyncPrefetch : Boolean = true
 
   // if true, the first dimension of the block size is enlarged if the kernel dimensionality is lower than the global dimensionality
   var cuda_foldBlockSizeForRedDimensionality : Boolean = true
@@ -540,6 +638,9 @@ object Knowledge {
   var comm_pushLocalData : Boolean = false
   // [true|false] // specifies if local communication is synchronized using flags; usually not necessary unless communication in fragment loops is allowed
   var comm_disableLocalCommSync = true
+
+  // [true|false] // specifies if communication buffers are packed compactly; implies serial packing; implies unsuitability for GPU execution; if false all possible data is transferred
+  var comm_compactPackingForConditions = true
 
   // TODO: check in how far the following parameters can be adapted by the SPL
   // specifies if communication variables that could be fragment specific are handled separately
@@ -575,6 +676,10 @@ object Knowledge {
   /// --- temporary flags ---
 
   /// experimental features
+
+  // compact buffer allocation
+  var experimental_compactBufferAllocation : Boolean = false
+  var experimental_compactBufferAllocationSize : Int = 0 // 0: automatic, else: user-defined
 
   // generates call stacks for all employed timers
   var experimental_disableIterationOffsets : Boolean = false
@@ -647,9 +752,6 @@ object Knowledge {
   var experimental_CTPivotElimination : Boolean = false
   var experimental_QRPivot : Boolean = false
 
-  // eliminate occurrences of cudaContext - required for PizDaint
-  var experimental_eliminateCudaContext : Boolean = false
-
   // generate cuda kernels independently of them being parallel or not
   var experimental_cuda_generateKernelForNonParallel : Boolean = false
 
@@ -668,10 +770,9 @@ object Knowledge {
 
   var experimental_grid_randomMaxOffset : Double = 0.1
 
-  /// student project - Richard / visit
-
-  // TODO
-  var experimental_visit_enable : Boolean = false
+  // in-situ visualization with VisIt
+  var visit_enable : Boolean = false
+  var experimental_visit_addCurveMesh : Boolean = false
 
   /// === constraints and resolutions ===
   def update() : Unit = {
@@ -756,6 +857,7 @@ object Knowledge {
 
     Constraints.condEnsureValue(cuda_blockSize_y, 1, cuda_enabled && domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
     Constraints.condEnsureValue(cuda_blockSize_z, 1, cuda_enabled && domain_rect_generate && dimensionality < 3, "experimental_cuda_blockSize_z must be set to 1 for problems with a dimensionality smaller 3")
+    Constraints.condError(cuda_minimalBlockSize <= 0, "cuda_minimalBlockSize must be > 0")
 
     Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
     Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
@@ -774,7 +876,13 @@ object Knowledge {
     Constraints.condWarn(cuda_enabled && opt_conventionalCSE && !useDblPrecision, "Double precision should be used if CUDA is enabled and CSE should be applied!")
     Constraints.condEnsureValue(useDblPrecision, true, cuda_enabled && opt_conventionalCSE)
 
-    Constraints.condError(!cuda_memory_transfer_elimination_options.contains(cuda_eliminate_memory_transfers), "Invalid value for \"cuda_eliminate_memory_transfers\". Should be one of: " + cuda_memory_transfer_elimination_options.mkString(",") )
+    Constraints.condError(!cuda_memory_transfer_elimination_options.contains(cuda_eliminate_memory_transfers), "Invalid value for \"cuda_eliminate_memory_transfers\". Should be one of: " + cuda_memory_transfer_elimination_options.mkString(","))
+
+    Constraints.condEnsureValue(cuda_usePinnedHostMemory, true, cuda_useZeroCopy)
+    Constraints.condError(cuda_useManagedMemory && cuda_usePinnedHostMemory, "cuda_useManagedMemory and cuda_usePinnedHostMemory are mutually exclusive")
+    Constraints.condError(cuda_useManagedMemory && cuda_useZeroCopy, "cuda_useManagedMemory and cuda_usePinnedHostMemory are mutually exclusive")
+    Constraints.condEnsureValue(data_alignFieldPointers, false, cuda_useManagedMemory || cuda_usePinnedHostMemory)
+    Constraints.condEnsureValue(data_alignTmpBufferPointers, false, cuda_useManagedMemory || cuda_usePinnedHostMemory)
 
     Constraints.condWarn(experimental_splitLoopsForAsyncComm && !comm_onlyAxisNeighbors, s"Using asynchronous communication with comm_onlyAxisNeighbors leads to problems with stencils containing diagonal entries")
 
@@ -813,6 +921,22 @@ object Knowledge {
     Constraints.condEnsureValue(performance_addEstimation, true, performance_printEstimation, "printing performance estimations requires actually estimating them")
     Constraints.condEnsureValue(performance_addEstimation, true, opt_loopBlocked, "loop blocking requires setting up a performance model")
     Constraints.condEnsureValue(poly_optLevel_fine, 3, opt_loopBlocked, "loop blocking requires poly_optLevel_fine 3")
+
+    // MPI I/O
+    Constraints.condError(cb_nodes == -1 && stripe_count < 1, "When setting the number of collective buffering nodes automatically to the number of OSTs, lustre_stripe_count must be >= 1.")
+    Constraints.condError(cb_nodes == -1 && stripe_count > mpi_numThreads, "Setting the number of cb_nodes greater than the number of MPI threads. Adjust the lustre_stripe_count flag.")
+    Constraints.condError(cb_nodes > mpi_numThreads, "Setting the number of cb_nodes greater than the number of MPI threads.")
+
+    // hdf5
+    Constraints.condError(!hdf5_use_chunking && hdf5_write_zlib_compression_level > 0, "HDF5: chunking must be enabled for writing compressed datasets.")
+    Constraints.condError(hdf5_write_zlib_compression_level > 0 && Knowledge.mpi_enabled && !Knowledge.parIO_useCollectiveIO, "HDF5: zlib compression requires collective I/O.")
+    Constraints.condWarn(hdf5_write_zlib_compression_level > 0 && Knowledge.mpi_enabled, "HDF5: zlib compression may not be functional for parallel writes in all HDF5 versions.")
+
+    // sion
+    Constraints.condError(sion_phys_files > mpi_numThreads, "Number of physical files in a sionlib container must be smaller than the number of MPI threads.")
+
+    // swe
+    Constraints.condError(swe_interleaveDiscComponentsPrint && swe_nodalReductionPrint, "Cannot interleave disc components if they are reduced!")
 
     // experimental
     Constraints.condEnsureValue(experimental_trimBoundsForReductionLoops, false, data_genVariableFieldSizes, "experimental_trimBoundsForReductionLoops is currently not compatible with data_genVariableFieldSizes")

@@ -281,6 +281,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val loopModifier : Parser[(String, Any)] = (
     "only" ~> regionSpecification ^^ (p => ("only", p))
       ||| "sequentially" ^^ (_ => ("sequentially", true)) // FIXME: seq HACK
+      ||| "novect" ^^ (_ => ("novect", true))
       ||| "where" ~> booleanexpression ^^ (p => ("where", p))
       ||| "starting" ~> expressionIndex ^^ (p => ("starting", p))
       ||| "ending" ~> expressionIndex ^^ (p => ("ending", p))
@@ -289,7 +290,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| precomm ^^ (p => ("precomm", p))
       ||| postcomm ^^ (p => ("postcomm", p))
     )
-  lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => L4_Reduction(op, s) })
+  lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> genericAccess <~ ")") ^^ { case op ~ acc => L4_Reduction(op, acc) })
   lazy val regionSpecification = locationize((("ghost" ||| "dup" ||| "inner") ~ constIndex ~ ("on" <~ "boundary").?) ^^ { case region ~ dir ~ bc => L4_RegionSpecification(region, dir, bc.isDefined) })
 
   lazy val assignment = locationize((genericAccess) ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })
@@ -305,14 +306,14 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val applyBCsStatement = locationize(("apply" ~ "bc" ~ "to") ~> genericAccess //fieldAccess
     ^^ (field => L4_ApplyBC(field)))
   lazy val communicateStatement = locationize((("begin" ||| "finish").? <~ ("communicate" ||| "communicating")) ~ communicateTarget.* ~ ("of".? ~> genericAccess) //fieldAccess
-    ~ ("where" ~> booleanexpression).?
-    ^^ { case op ~ targets ~ field ~ cond => L4_Communicate(field, op.getOrElse("both"), targets, cond) })
+    ~ ("where" ~> booleanexpression).? ~ ("upstream" ||| "downstream").?
+    ^^ { case op ~ targets ~ field ~ cond ~ direction => L4_Communicate(field, op.getOrElse("both"), targets, cond, direction) })
   lazy val communicateTarget = locationize(("all" ||| "dup" ||| "ghost") ~ constIndex.? ~ ("to" ~> constIndex).? // inclusive indices
     ^^ { case target ~ start ~ end => L4_CommunicateTarget(target, start, end) })
-  lazy val precomm = locationize("precomm" ~> ("begin" ||| "finish").? ~ communicateTarget.* ~ ("of".? ~> genericAccess) ~ ("where" ~> booleanexpression).?
-    ^^ { case op ~ targets ~ field ~ cond => L4_Communicate(field, op.getOrElse("both"), targets, cond) })
-  lazy val postcomm = locationize("postcomm" ~> ("begin" ||| "finish").? ~ communicateTarget.* ~ ("of".? ~> genericAccess) ~ ("where" ~> booleanexpression).?
-    ^^ { case op ~ targets ~ field ~ cond => L4_Communicate(field, op.getOrElse("both"), targets, cond) })
+  lazy val precomm = locationize("precomm" ~> ("begin" ||| "finish").? ~ communicateTarget.* ~ ("of".? ~> genericAccess) ~ ("where" ~> booleanexpression).? ~ ("upstream" ||| "downstream").?
+    ^^ { case op ~ targets ~ field ~ cond ~ direction => L4_Communicate(field, op.getOrElse("both"), targets, cond, direction) })
+  lazy val postcomm = locationize("postcomm" ~> ("begin" ||| "finish").? ~ communicateTarget.* ~ ("of".? ~> genericAccess) ~ ("where" ~> booleanexpression).? ~ ("upstream" ||| "downstream").?
+    ^^ { case op ~ targets ~ field ~ cond ~ direction => L4_Communicate(field, op.getOrElse("both"), targets, cond, direction) })
 
   lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ (exp => L4_Return(exp)))
 
@@ -432,20 +433,19 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val leveledAccess = locationize(ident ~ levelAccess
     ^^ { case id ~ level => L4_UnresolvedAccess(id, Some(level)) })
 
-
-    lazy val genericAccess = (
-    locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).?  ~ matIndex.? ^^ {
-        case id ~ slot ~ level ~ offset  ~ matIdx =>
-      L4_UnresolvedAccess(id, level, slot, offset, None, matIdx)})
+  lazy val genericAccess = (
+    locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ matIndex.? ^^ {
+      case id ~ slot ~ level ~ offset ~ matIdx =>
+        L4_UnresolvedAccess(id, level, slot, offset, None, matIdx)
+    })
       ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
       ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None) })
     ) // component acccess mit spitzen klammern
 
-
-   lazy val matIndex = (index ||| rangeIndex1d) ~ (index ||| rangeIndex1d).? ^^ {
+  lazy val matIndex = (index ||| rangeIndex1d) ~ (index ||| rangeIndex1d).? ^^ {
     case y ~ x =>
-      if(x.isDefined)
-         L4_MatIndex(Array[L4_Index](y, x.get))
+      if (x.isDefined)
+        L4_MatIndex(Array[L4_Index](y, x.get))
       else L4_MatIndex(Array[L4_Index](y))
   }
 
@@ -526,7 +526,7 @@ object L4_Parser extends ExaParser with PackratParsers {
         ^^ { case real ~ _ ~ imag => L4_ComplexExpression(real, false, imag) } |||
 
       ("complex" ~ "(") ~> term ~ "+," ~ "-".? ~ term <~ ")"
-    ^^ { case real ~ _ ~ sign ~ imag => L4_ComplexExpression(real, if(sign.isDefined) false else true, imag) })
+        ^^ { case real ~ _ ~ sign ~ imag => L4_ComplexExpression(real, if (sign.isDefined) false else true, imag) })
 
   lazy val booleanexpression : PackratParser[L4_Expression] = (
     locationize((booleanexpression ~ ("||" ||| "or") ~ booleanexpression1) ^^ { case ex1 ~ op ~ ex2 => L4_BinaryOperators.createExpression(op, ex1, ex2) })
@@ -625,7 +625,7 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val stencilEntries = (
     (stencilEntry <~ ",").* ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
-  ||| stencilEntry.*)
+      ||| stencilEntry.*)
 
   lazy val stencilEntry = (
     locationize((constIndex ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L4_StencilOffsetEntry(offset, coeff) })

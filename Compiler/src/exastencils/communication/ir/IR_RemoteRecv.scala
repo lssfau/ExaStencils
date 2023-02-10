@@ -74,7 +74,7 @@ case class IR_CopyFromRecvBuffer(
   override def expand() : Output[StatementList] = {
     var ret = ListBuffer[IR_Statement]()
 
-    if (condition.isDefined) {
+    if (condition.isDefined && Knowledge.comm_compactPackingForConditions) {
       // switch to iterator based copy operation if condition is defined -> number of elements and index mapping is unknown
       def it = IR_IV_CommBufferIterator(field, s"Recv_${ concurrencyId }", neighbor.index)
 
@@ -108,7 +108,9 @@ case class IR_CopyFromRecvBuffer(
           case (trafo, i) => IR_Case(i, ListBuffer[IR_Statement](loop(trafo)))
         })
       } else {
-        val loop = new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(fieldAccess, tmpBufAccess)))
+        val ass : IR_Statement = IR_Assignment(fieldAccess, tmpBufAccess)
+
+        val loop = new IR_LoopOverDimensions(numDims, indices, ListBuffer(ass), condition = condition)
         loop.polyOptLevel = 1
         loop.parallelization.potentiallyParallel = true
         ret += loop

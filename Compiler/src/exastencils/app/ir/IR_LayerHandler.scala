@@ -52,7 +52,9 @@ import exastencils.stencil.ir._
 import exastencils.timing.ir._
 import exastencils.util._
 import exastencils.util.ir._
-import exastencils.visualization.ir._
+import exastencils.visualization.ir.interactive.cimg.IR_ResolveCImgFunctions
+import exastencils.visualization.ir.interactive.visit.IR_SetupVisit
+import exastencils.visualization.ir.postprocessing.IR_ResolveVisualizationPrinters
 
 /// IR_LayerHandler
 
@@ -131,9 +133,10 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_ResolveStationFunctions.apply()
     IR_ResolveCImgFunctions.apply()
     IR_ResolveCharacteristicsFunctions.apply()
+    IR_ResolveJSONFunctions.apply()
     IR_ResolveBenchmarkFunctions.apply()
     IR_ResolveGismoFunctions.apply()
-    IR_ResolveVtkPrinters.apply()
+    IR_ResolveVisualizationPrinters.apply()
     IR_ResolvePrintWithReducedPrec.apply()
     IR_AdaptTimerFunctions.apply()
 
@@ -141,6 +144,9 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       IR_ExpandInOnePass.apply()
     else
       IR_Expand.doUntilDone()
+
+    if (Knowledge.experimental_compactBufferAllocation)
+      IR_AdaptAllocateDataFunction.apply()
 
     // HACK: create discr_h* again if there are no multigrid level and the field size was defined explicitly
     //   currently this works only if all fields are equally sized
@@ -169,6 +175,9 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     // simplify indices modified just now, otherwise equality checks will not work later on
     IR_GeneralSimplify.apply()
 
+    if (Knowledge.visit_enable)
+      IR_SetupVisit.apply()
+
     var convChanged = false
     do {
       IR_FindStencilConvolutions.changed = false
@@ -184,9 +193,6 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     } while (convChanged)
 
     IR_ResolveStencilFunction.apply()
-
-    if (Knowledge.experimental_visit_enable)
-      IR_SetupVisit.apply()
 
     // resolve new virtual field accesses
     IR_ResolveIntegrateOnGrid.apply()
@@ -204,7 +210,11 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_ResolveComplexNumbers.apply()
 
-   IR_PreItMOps.apply()
+    IR_PreItMOps.apply()
+
+    if (Knowledge.performance_addEstimation)
+      IR_AddPerformanceEstimates.apply() // after IR_PreItMOps, before resolve
+
     //IR_SetupMatrixExpressions.apply()
     var sthChanged = true
     while (sthChanged) {
@@ -221,9 +231,6 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     IR_TypeInference.warnMissingDeclarations = false
     IR_TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
-
-    if (Knowledge.performance_addEstimation)
-      IR_AddPerformanceEstimates.apply()
 
     // Prepare all suitable LoopOverDimensions and ContractingLoops. This transformation is applied before resolving
     // ContractingLoops to guarantee that memory transfer statements appear only before and after a resolved
@@ -322,9 +329,17 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     if (Knowledge.data_genVariableFieldSizes)
       IR_GenerateIndexManipFcts.apply()
 
+    // adapt accesses to device data in case of managed memory
+    if (Knowledge.cuda_enabled && Knowledge.cuda_useManagedMemory)
+      CUDA_AdaptDeviceAccessesForMM.apply()
+
     IR_AddInternalVariables.apply()
     // resolve possibly newly added constant IVs
     IR_ResolveConstIVs.apply()
+
+    // adapt allocations and de-allocations before expanding
+    if (Knowledge.cuda_enabled)
+      CUDA_AdaptAllocations.apply()
 
     if (Knowledge.useFasterExpand)
       IR_ExpandInOnePass.apply()
@@ -341,6 +356,10 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     if (Knowledge.omp_enabled) {
       OMP_AddParallelSections.apply()
+
+      // resolve handling for unsupported matrix reductions
+      if (Platform.omp_version < 4.5)
+        OMP_ResolveMatrixReduction.apply()
 
       // resolve min/max reductions for omp versions not supporting them inherently
       if (Platform.omp_version < 3.1)

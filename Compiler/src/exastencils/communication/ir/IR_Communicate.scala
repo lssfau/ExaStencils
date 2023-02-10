@@ -34,7 +34,8 @@ case class IR_Communicate(
     var slot : IR_Expression,
     var op : String,
     var targets : ListBuffer[IR_CommunicateTarget],
-    var condition : Option[IR_Expression]) extends IR_Statement with IR_SpecialExpandable {
+    var condition : Option[IR_Expression],
+    var direction : String) extends IR_Statement with IR_SpecialExpandable {
 
   // shift all index accesses in condition as later functions will generate direct field accesses and according loop bounds
   // TODO: extract to separate transformation

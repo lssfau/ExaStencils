@@ -59,6 +59,12 @@ configList+="OpticalFlow/3D_FD_OptFlow_fromL4_Vec "
 
 #configList+="SWE/2D_FV_SWE "
 
+# IO: Non-Uniform field visualization
+configList+="IO/2D_PrintField_NonUniform_NonAA "
+configList+="IO/2D_PrintField_NonUniform_AA "
+configList+="IO/3D_PrintField_NonUniform_NonAA "
+configList+="IO/3D_PrintField_NonUniform_AA "
+
 # NavierStokes
 
 #configList+="NavierStokes/2D_FV_NavierStokes_Picard "
@@ -83,4 +89,10 @@ configList+="LinearElasticity/2D_FD_LinearElasticity_fromL2 "
 
 # Helmholtz
 configList+="Helmholtz/2D_FD_Helmholtz_fromL3 "
+
+# VisIt
+configList+="VisIt/3D_FD_Poisson_fromL4 "
+configList+="VisIt/2D_FV_SWE "
+configList+="VisIt/2D_FD_Stokes_fromL4 "
+configList+="VisIt/3D_FD_Stokes_fromL4 "
 

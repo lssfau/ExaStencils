@@ -22,6 +22,7 @@ import scala.collection.mutable._
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.config._
 import exastencils.datastructures._
 import exastencils.util.ir.IR_Print
 
@@ -67,7 +68,7 @@ object CUDA_StdFunctionReplacements {
     name match {
       case "cuda_std_fill" =>
         // std::fill(first, last, value)
-        val dt = IR_DoubleDatatype
+        val dt = if (Knowledge.useDblPrecision) IR_DoubleDatatype else IR_FloatDatatype
         def first = IR_VariableAccess("first", IR_PointerDatatype(dt))
         def last = IR_VariableAccess("last", IR_PointerDatatype(dt))
         def value = IR_VariableAccess("value", dt)
@@ -79,7 +80,7 @@ object CUDA_StdFunctionReplacements {
 
       case "cuda_std_copy" =>
         // std::copy(first, last, d_first)
-        val dt = IR_DoubleDatatype
+        val dt = if (Knowledge.useDblPrecision) IR_DoubleDatatype else IR_FloatDatatype
         def first = IR_VariableAccess("first", IR_PointerDatatype(dt))
         def last = IR_VariableAccess("last", IR_PointerDatatype(dt))
         def d_first = IR_VariableAccess("d_first", IR_PointerDatatype(dt))

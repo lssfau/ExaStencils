@@ -28,7 +28,17 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures._
+import exastencils.io.ir.IR_IV_FragmentOffset
+import exastencils.io.ir.IR_IV_NumValidFrags
+import exastencils.io.ir.IR_IV_NumValidFragsPerBlock
+import exastencils.io.ir.IR_IV_TotalNumFrags
+import exastencils.io.ir.IR_IV_FragmentOffset
+import exastencils.io.ir.IR_IV_NumValidFrags
+import exastencils.io.ir.IR_IV_NumValidFragsPerBlock
+import exastencils.io.ir.IR_IV_TotalNumFrags
 import exastencils.logger.Logger
+import exastencils.util.ir.IR_MathFunctionReference
+import exastencils.util.ir.IR_MathFunctions
 import exastencils.util.ir.IR_ResultingDatatype
 
 /// IR_GeneralSimplify
@@ -153,6 +163,10 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       ass.op = "="
       ass
 
+    // simplify math functions applied to constant fp values
+    case IR_FunctionCall(IR_MathFunctionReference(name, _), args) if args.forall(_.isInstanceOf[IR_Number]) =>
+      IR_RealConstant(IR_MathFunctions.evaluateMathFunction(name, args.map(_.asInstanceOf[IR_Number])))
+
     // Simplify boolean expressions
     case IR_EqEq(IR_IntegerConstant(left), IR_IntegerConstant(right))         => IR_BooleanConstant(left == right)
     case IR_Neq(IR_IntegerConstant(left), IR_IntegerConstant(right))          => IR_BooleanConstant(left != right)
@@ -184,6 +198,13 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     case IR_OrOr(IR_BooleanConstant(false), expr : IR_Expression) => expr
     case IR_OrOr(expr : IR_Expression, IR_BooleanConstant(false)) => expr
 
+    // TODO: move
+    case IR_EqEq(IR_IV_TotalNumFrags(d1, f1), IR_IV_TotalNumFrags(d2, f2))                 => (d1 EqEq d2) AndAnd (f1 EqEq f2)
+    case IR_EqEq(IR_IV_NumValidFragsPerBlock(d1, f1), IR_IV_NumValidFragsPerBlock(d2, f2)) => (d1 EqEq d2) AndAnd (f1 EqEq f2)
+    case IR_EqEq(IR_IV_NumValidFrags(d1, f1), IR_IV_NumValidFrags(d2, f2))                 => (d1 EqEq d2) AndAnd (f1 EqEq f2)
+    case IR_EqEq(IR_IV_FragmentOffset(d1, f1), IR_IV_FragmentOffset(d2, f2))               => (d1 EqEq d2) AndAnd (f1 EqEq f2)
+    case IR_EqEq(IR_VariableAccess("fragmentIdx", _), IR_VariableAccess("fragmentIdx", _)) => IR_BooleanConstant(true)
+
     // both branches are either empty or only consist null stmts -> do not prettyprint condition at all
     case IR_IfCondition(_, tBranch, fBranch) if Knowledge.experimental_eliminateEmptyConditions &&
       (tBranch.isEmpty || tBranch.forall(_ == IR_NullStatement)) && (fBranch.isEmpty || fBranch.forall(_ == IR_NullStatement)) =>
@@ -208,6 +229,8 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       } else {
         if (fBranch.isEmpty) IR_NullStatement else fBranch
       }
+
+    case IR_TernaryCondition(IR_BooleanConstant(cond), tBranch, fBranch) => if (cond) tBranch else fBranch
 
     case IR_IfCondition(IR_IntegerConstant(cond), tBranch, fBranch) if Knowledge.experimental_eliminateIntConditions =>
       if (cond != 0) {

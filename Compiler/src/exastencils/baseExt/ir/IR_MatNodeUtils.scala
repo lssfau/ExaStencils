@@ -6,6 +6,8 @@ import exastencils.base.ir.IR_Access
 import exastencils.base.ir.IR_Addition
 import exastencils.base.ir.IR_ArrayAccess
 import exastencils.base.ir.IR_Assignment
+import exastencils.base.ir.IR_ComplexDatatype
+import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_Division
 import exastencils.base.ir.IR_DoubleConstant
 import exastencils.base.ir.IR_DoubleDatatype
@@ -210,11 +212,15 @@ object IR_MatNodeUtils {
   /** Method: split a declaration with init to declaration and assignment with init
     *
     * @param decl : IR_VariableDeclaration, declaration to be split
-    * @return list containing variable declaration without init and assignment of that variable with init expresion
+    * @return list containing variable declaration without init and assignment of that variable with init expression
     * */
-  def splitDeclaration(decl : IR_VariableDeclaration) : ListBuffer[IR_Statement] = {
+  def splitDeclaration(decl : IR_VariableDeclaration, zeroInit : Boolean = false) : ListBuffer[IR_Statement] = {
     val newStmts = ListBuffer[IR_Statement]()
-    newStmts += IR_VariableDeclaration(decl.datatype, decl.name, None)
+    if(zeroInit) {
+      newStmts += IR_VariableDeclaration(decl.datatype, decl.name, IR_IntegerConstant(0))
+    } else {
+      newStmts += IR_VariableDeclaration(decl.datatype, decl.name, None)
+    }
     newStmts += IR_Assignment(IR_VariableAccess(decl), decl.initialValue.getOrElse(IR_NullExpression))
     newStmts
   }
@@ -265,6 +271,15 @@ object IR_MatNodeUtils {
       case n : IR_Number           => IR_MatrixExpression(IR_MatrixDatatype(n.datatype, 1, 1), ListBuffer[IR_Expression](n))
       case x : IR_MatrixExpression => x
       case _                       => Logger.error(s"unexpected type: ${ src }")
+    }
+  }
+
+  def innerDt(datatype : IR_Datatype) : IR_Datatype = {
+    datatype match {
+      case IR_MatrixDatatype(complex : IR_ComplexDatatype, m, n) =>
+        complex
+      case dt =>
+        dt.resolveBaseDatatype
     }
   }
 

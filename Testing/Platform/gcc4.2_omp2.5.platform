@@ -1,0 +1,21 @@
+targetOS                   = "Linux"
+targetCompiler             = "GCC"
+targetCompilerVersion      = 4
+targetCompilerVersionMinor = 2
+targetHardware             = "CPU"
+simd_instructionSet        = "SSE3"
+
+hw_cpu_name                = "AnyCPU"
+hw_cpu_numCoresPerCPU      = 4
+hw_cpu_numCPUs             = 1
+hw_cpu_bandwidth           = 25600000000.0 // = 23.8 GB/s = 2 * 200 * 1000^2 * 8 * 8 B/s
+hw_cpu_frequency           = 20000000000.0 // = 2.0 GHz
+hw_64bit                   = true
+hw_cacheLineSize           = 512 // in B
+hw_gpu_name                = "NoGPU"
+hw_gpu_numDevices          = 0
+hw_gpu_bandwidth           = 0 // in B/s
+hw_gpu_frequency           = 0 // in Hz
+hw_gpu_numCores            = 0
+hw_cuda_capability         = 0
+hw_cuda_capabilityMinor    = 0

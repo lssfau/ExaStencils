@@ -31,6 +31,7 @@ import exastencils.field.ir._
 import exastencils.globals.ir.IR_AllocateDataFunction
 import exastencils.grid.ir._
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
+import exastencils.parallelization.api.mpi.MPI_IV_MpiSize
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.ir._
 
@@ -446,21 +447,31 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       }
 
       // tangent
-      def tx = 0.5 * (nodePosition(next(boundaryIdx), 0) - nodePosition(prev(boundaryIdx), 0))
+      def tx = IR_FloatConstant(0.5) * (nodePosition(next(boundaryIdx), 0) - nodePosition(prev(boundaryIdx), 0))
+
       def ty = IR_FloatConstant(0.5) * (nodePosition(next(boundaryIdx), 1) - nodePosition(prev(boundaryIdx), 1))
+
       // normal
       def nx = ty
+
       def ny = IR_Negative(tx)
+
       // corners
       def txCornerBeg = IR_FloatConstant(0.5) * (nodePosition(next(next(beginIdx)), 0) - nodePosition(beginIdx, 0))
-      def tyCornerBeg = IR_FloatConstant(0.5) * (nodePosition(next(next(beginIdx)), 1) - nodePosition(beginIdx, 1))
-      def nxCornerBeg = tyCornerBeg
-      def nyCornerBeg = IR_Negative(txCornerBeg)
-      def txCornerEnd = IR_FloatConstant(0.5) * (nodePosition(endIdx, 0) - nodePosition(prev(prev(endIdx)), 0))
-      def tyCornerEnd = IR_FloatConstant(0.5) * (nodePosition(endIdx, 1) - nodePosition(prev(prev(endIdx)), 1))
-      def nxCornerEnd = tyCornerEnd
-      def nyCornerEnd = IR_Negative(txCornerEnd)
 
+      def tyCornerBeg = IR_FloatConstant(0.5) * (nodePosition(next(next(beginIdx)), 1) - nodePosition(beginIdx, 1))
+
+      def nxCornerBeg = tyCornerBeg
+
+      def nyCornerBeg = IR_Negative(txCornerBeg)
+
+      def txCornerEnd = IR_FloatConstant(0.5) * (nodePosition(endIdx, 0) - nodePosition(prev(prev(endIdx)), 0))
+
+      def tyCornerEnd = IR_FloatConstant(0.5) * (nodePosition(endIdx, 1) - nodePosition(prev(prev(endIdx)), 1))
+
+      def nxCornerEnd = tyCornerEnd
+
+      def nyCornerEnd = IR_Negative(txCornerEnd)
 
       body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh.index)), ListBuffer[IR_Statement](
         IR_Comment(neigh.index.toString()),
@@ -490,16 +501,28 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
           // normal
           //IR_VariableDeclaration(nx, ty),
           //IR_VariableDeclaration(ny, IR_Negative(tx)),
-          IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 0), nodePosition(beginIdx, 0) + nxCornerBeg * neigh.dir.sum),
-          IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 1), nodePosition(beginIdx, 1) + nyCornerBeg * neigh.dir.sum),
+          if (neigh.index == 0  || neigh.index == 3)
+            IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 0), nodePosition(beginIdx, 0) - nxCornerBeg )
+          else
+            IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 0), nodePosition(beginIdx, 0) + nxCornerBeg ),
+          if (neigh.index == 0  || neigh.index == 3)
+            IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 1), nodePosition(beginIdx, 1) - nyCornerBeg )
+          else
+            IR_Assignment(nodePosition(indexNeigh(beginIdx, neigh), 1), nodePosition(beginIdx, 1) + nyCornerBeg ),
           // end
           //IR_Assignment(tx, IR_FloatConstant(0.5) * (nodePosition(endIdx, 0) - nodePosition(prev(prev(endIdx)), 0))),
           //IR_Assignment(ty, IR_FloatConstant(0.5) * (nodePosition(endIdx, 1) - nodePosition(prev(prev(endIdx)), 1))),
           // normal
           //IR_Assignment(nx, ty),
           //IR_Assignment(ny, IR_Negative(tx)),
-          IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 0), nodePosition(endIdx, 0) + nxCornerEnd * neigh.dir.sum),
-          IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 1), nodePosition(endIdx, 1) + nyCornerEnd * neigh.dir.sum)
+          if (neigh.index == 0  || neigh.index == 3)
+            IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 0), nodePosition(endIdx, 0) - nxCornerEnd )
+          else
+            IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 0), nodePosition(endIdx, 0) + nxCornerEnd ),
+          if (neigh.index == 0  || neigh.index == 3)
+            IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 1), nodePosition(endIdx, 1) - nyCornerEnd )
+          else
+            IR_Assignment(nodePosition(indexNeigh(endIdx, neigh), 1), nodePosition(endIdx, 1) + nyCornerEnd )
         ))
       )
 
@@ -691,7 +714,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     body += IR_MemberFunctionCall(file, "close")
 
     // communicate (updated interior ghost layers)
-    body += IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None)
+    body += IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None, "")
     // deal with ghost layers on boundary
     //body += loopOverNumFragments(fillBoundaryGhostLayers(field))
     body += loopOverNumFragments(fillBoundaryGhostLayers2(field))
@@ -706,8 +729,8 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     var body = ListBuffer[IR_Statement]()
 
     if (Knowledge.mpi_enabled)
-      body += IR_Assert(IR_EqEq(s"mpiSize", Knowledge.domain_numBlocks),
-        ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.mpi_numThreads),
+      body += IR_Assert(IR_EqEq(MPI_IV_MpiSize, Knowledge.domain_numBlocks),
+        ListBuffer("\"Invalid number of MPI processes (\"", MPI_IV_MpiSize, "\") should be \"", Knowledge.mpi_numThreads),
         IR_FunctionCall("exit", 1))
 
     body += readGrid(Knowledge.maxLevel, true)

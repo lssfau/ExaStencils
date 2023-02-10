@@ -21,7 +21,11 @@ package exastencils.globals.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.communication.NeighborInfo
+import exastencils.config.Knowledge
+import exastencils.datastructures.DefaultStrategy
+import exastencils.datastructures.Transformation
 import exastencils.field.ir._
 
 /// IR_AllocateDataFunction
@@ -29,6 +33,26 @@ import exastencils.field.ir._
 object IR_AllocateDataFunction {
   val fctName = "setupBuffers"
 }
+
+object IR_AdaptAllocateDataFunction extends DefaultStrategy("Enable closely spaced allocations") {
+  this += Transformation("Add workaround", {
+    case func : IR_Function if func.name == IR_AllocateDataFunction.fctName =>
+      if (!IR_GlobalCollection.get.externalDependencies.contains("malloc.h"))
+        IR_GlobalCollection.get.externalDependencies += "malloc.h"
+
+      val maxFieldSize = IR_FieldCollection.objects.map(field => (0 until field.layout.numDimsData).map(d =>
+        field.layout.defTotal(d)).product * field.resolveBaseDatatype.typicalByteSize).max
+      val allocSize = if (Knowledge.experimental_compactBufferAllocationSize > 0)
+        Knowledge.experimental_compactBufferAllocationSize
+      else
+        math.ceil(maxFieldSize / 1024.0).toInt * 1024
+
+      func.body.prepend(IR_FunctionCall(IR_ExternalFunctionReference("mallopt"), "M_MMAP_THRESHOLD", allocSize))
+
+      func
+  })
+}
+
 
 // TODO: split to separate functions for (host) fields, communication buffers and device data
 case class IR_AllocateDataFunction(

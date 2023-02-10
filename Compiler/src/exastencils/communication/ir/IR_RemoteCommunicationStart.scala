@@ -56,7 +56,7 @@ case class IR_RemoteCommunicationStart(
   override def genTransfer(neighbor : NeighborInfo, indices : IR_ExpressionIndexRange, addCondition : Boolean) : IR_Statement = {
     val body = {
       val maxCnt = Duplicate(indices).getTotalSize
-      val cnt = if (condition.isDefined)
+      val cnt = if (condition.isDefined && Knowledge.comm_compactPackingForConditions)
         IR_IV_CommBufferIterator(field, s"Send_${ concurrencyId }", neighbor.index)
       else
         maxCnt

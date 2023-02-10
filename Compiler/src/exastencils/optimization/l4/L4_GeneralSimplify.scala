@@ -125,7 +125,7 @@ object L4_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       l.body = body; l // preserve ForLoopStatement instance to ensure all traits are still present
 
     case L4_ForLoop(_, _, stmts) if Knowledge.experimental_eliminateEmptyLoops && (stmts.isEmpty || stmts.forall(_ == L4_NullStatement)) => L4_NullStatement
-    case loop : L4_LoopOverField if Knowledge.experimental_eliminateEmptyLoops & (loop.body.isEmpty || loop.body.forall(_ == L4_NullStatement))  => L4_NullStatement
+    case loop : L4_LoopOverField if Knowledge.experimental_eliminateEmptyLoops && (loop.body.isEmpty || loop.body.forall(_ == L4_NullStatement))  => L4_NullStatement
 
     case L4_EqEq(L4_IntegerConstant(left), L4_IntegerConstant(right))         => L4_BooleanConstant(left == right)
     case L4_Neq(L4_IntegerConstant(left), L4_IntegerConstant(right))          => L4_BooleanConstant(left != right)

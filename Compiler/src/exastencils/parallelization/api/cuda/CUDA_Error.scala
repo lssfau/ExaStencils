@@ -42,12 +42,22 @@ case class CUDA_CheckError(var exp : IR_Expression) extends CUDA_HostStatement w
   override def expand() : Output[StatementList] = {
     val statusName = s"cudaStatus_$counter"
     counter += 1
+
     def status = IR_VariableAccess(statusName, IR_SpecialDatatype("cudaError_t"))
+
+    def print = IR_RawPrint("\"CUDA error in file (\"", "__FILE__", "\"), line (\"", "__LINE__", "\"): \"", status,
+      "\" -> \"", IR_FunctionCall(IR_ExternalFunctionReference("cudaGetErrorString"), status), "std::endl")
+
+    def printAndExit : ListBuffer[IR_Statement] = ListBuffer(print, IR_FunctionCall(IR_ExternalFunctionReference("exit"), 1))
 
     ListBuffer(
       IR_VariableDeclaration(status, exp),
       IR_IfCondition("cudaSuccess" Neq status,
-        IR_RawPrint("\"CUDA error in file (\"", "__FILE__", "\"), line (\"", "__LINE__", "\"): \"", status,
-          "\" -> \"", IR_FunctionCall("cudaGetErrorString", status), "std::endl")))
+        printAndExit,
+        ListBuffer(
+          IR_Assignment(status, IR_FunctionCall(IR_ExternalFunctionReference("cudaGetLastError"))),
+          IR_IfCondition("cudaSuccess" Neq status,
+            printAndExit
+          ))))
   }
 }

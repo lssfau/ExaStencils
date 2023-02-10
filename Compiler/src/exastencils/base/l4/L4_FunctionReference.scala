@@ -60,7 +60,8 @@ case class L4_UnresolvedFunctionReference(
   }
 
   override def progress : IR_FunctionReference = ProgressLocation {
-    Logger.warn(s"Progressing unresolved function reference on L4: $name" + (if (level.isDefined) s"@${ level.get.prettyprint() }" else ""))
+    if (!L4_SpecialFunctionReferences.contains(name))
+      Logger.warn(s"Progressing unresolved function reference on L4: $name" + (if (level.isDefined) s"@${ level.get.prettyprint() }" else ""))
     if (offset.isDefined) Logger.warn(s"  and ignoring offset ${ offset.get.prettyprint() }")
     IR_UnresolvedFunctionReference(prettyprint(), IR_UnknownDatatype)
   }

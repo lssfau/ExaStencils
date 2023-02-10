@@ -21,6 +21,7 @@ package exastencils.prettyprinting
 import scala.collection.mutable.ListBuffer
 
 import exastencils.config._
+import exastencils.io.ir.IR_FileAccess_SIONlib
 import exastencils.util.CImg
 
 object MakefileGenerator extends BuildfileGenerator {
@@ -67,6 +68,7 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< mkStringTrimFlat(
       "LDLIBS =",
       CImg.resolveLdLibs(),
+      IR_FileAccess_SIONlib.resolveLdLibs(),
       Settings.additionalLibs.map(lib => s"-l$lib")
     )
     printer <<< ""
@@ -87,7 +89,7 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< ".PHONY: all"
     val allTarget = ListBuffer("all:", "${BINARY}")
     if (Settings.makefile_makeLibs)
-      allTarget += "${BINARY}.a"
+      allTarget += "lib${BINARY}.a"
     printer <<< mkStringTrimFlat(allTarget)
     printer <<< ""
 
@@ -95,7 +97,7 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< "clean:"
     val cleanTargetCmd = ListBuffer("rm -f", "${BINARY}", "${ALL_OBJ}")
     if (Settings.makefile_makeLibs)
-      cleanTargetCmd += "${BINARY}.a"
+      cleanTargetCmd += "lib${BINARY}.a"
     printer <<< "\t" + mkStringTrimFlat(cleanTargetCmd)
     printer <<< ""
 
@@ -104,8 +106,8 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< ""
 
     if (Settings.makefile_makeLibs) {
-      printer <<< mkStringTrimFlat("${BINARY}.a:", "${ALL_OBJ}")
-      printer <<< "\t" + mkStringTrimFlat("ar -cvr ${BINARY}.a", "${ALL_OBJ}", "${LDLIBS}")
+      printer <<< mkStringTrimFlat("lib${BINARY}.a:", "${ALL_OBJ}")
+      printer <<< "\t" + mkStringTrimFlat("ar -cvr lib${BINARY}.a", "${ALL_OBJ}", "${LDLIBS}")
       printer <<< ""
     }
     printer <<< ""

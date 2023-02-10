@@ -27,6 +27,7 @@ import exastencils.communication.ir.IR_IV_CommunicationId
 import exastencils.config.Knowledge
 import exastencils.globals.ir.IR_AllocateDataFunction
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
+import exastencils.parallelization.api.mpi.MPI_IV_MpiSize
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 
 case class IR_InitGeneratedDomain() extends IR_FuturePlainFunction {
@@ -79,8 +80,8 @@ case class IR_InitGeneratedDomain() extends IR_FuturePlainFunction {
 
     // TODO: move to main application
     if (Knowledge.mpi_enabled)
-      body += IR_Assert(IR_EqEq(s"mpiSize", Knowledge.domain_numBlocks),
-        ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.mpi_numThreads),
+      body += IR_Assert(IR_EqEq(MPI_IV_MpiSize, Knowledge.domain_numBlocks),
+        ListBuffer("\"Invalid number of MPI processes (\"", MPI_IV_MpiSize, "\") should be \"", Knowledge.mpi_numThreads),
         IR_FunctionCall("exit", 1))
 
     // compose fragment loop setting basic fragment information

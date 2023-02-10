@@ -1,0 +1,27 @@
+testing_enabled       = true
+
+dimensionality             = 1
+
+minLevel					= 3
+maxLevel					= 3
+
+domain_onlyRectangular		= true
+domain_numBlocks			= 2
+domain_numFragmentsPerBlock	= 2
+
+domain_rect_generate			= true
+domain_rect_numBlocks_x			= 2
+domain_rect_numBlocks_y			= 1
+domain_rect_numBlocks_z			= 1
+domain_rect_numFragsPerBlock_x	= 2
+domain_rect_numFragsPerBlock_y	= 1
+domain_rect_numFragsPerBlock_z	= 1
+
+omp_enabled					= true
+omp_numThreads				= 2
+
+mpi_enabled					= true
+mpi_numThreads				= 2
+
+omp_parallelizeLoopOverFragments	= true
+omp_parallelizeLoopOverDimensions	= false

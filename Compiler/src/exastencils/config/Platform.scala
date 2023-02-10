@@ -76,7 +76,7 @@ object Platform {
       case "AVX" | "AVX2"    => 4 * double
       case "AVX512" | "IMCI" => 8 * double
       case "QPX"             => 4 // yes, it's always 4
-      case "NEON"            => 2 * double // TODO: check if double is supported
+      case "NEON"            => 2 * double
     }
   }
 
@@ -211,6 +211,15 @@ object Platform {
   var hw_cuda_sharedMemory : Int = 49152
   // cache size in byte
   var hw_cuda_cacheMemory : Int = 16384
+  // default warp size (32)
+  var hw_cuda_warpSize : Long = 32
+  // max number of threads
+  var hw_cuda_maxNumThreads : Long = 1024
+  // max block size per dim
+  var hw_cuda_maxBlockSize_x : Long = 1024
+  var hw_cuda_maxBlockSize_y : Long = 1024
+  var hw_cuda_maxBlockSize_z : Long = 64
+  def hw_cuda_maxBlockSizes : Array[Long] = Array(hw_cuda_maxBlockSize_x, hw_cuda_maxBlockSize_y, hw_cuda_maxBlockSize_z)
 
   // 3 seems to be max; checked for versions up to 5.3
   def hw_cuda_maxNumDimsBlock : Int = if (hw_cuda_capability < 2) 2 else 3
@@ -236,7 +245,7 @@ object Platform {
           if (Knowledge.mpi_enabled) "mpixlcxx" else "xlc++"
         case "GCC"   =>
           if ("ARM" == targetHardware) {
-            "arm-linux-gnueabihf-g++"
+            "aarch64-linux-gnu-g++"
           } else if ("tsubame" == targetName.toLowerCase() || "tsubame3" == targetName.toLowerCase()) {
             // special override for Tsubame
             if (!Knowledge.mpi_enabled)
@@ -284,6 +293,13 @@ object Platform {
     targetCudaCompiler match {
       case "NVCC" =>
         flags += s" -std=c++11 -O3 -DNDEBUG -lineinfo -arch=sm_${ Platform.hw_cuda_capability }${ Platform.hw_cuda_capabilityMinor }"
+
+        // cannot find mpi.h from Globals/Globals.h when compiling with nvcc otherwise
+        if (Knowledge.mpi_enabled) {
+          val mpiWrapperFlags = s"$$(shell $resolveCompiler --showme:compile | sed 's/-pthread//g')"
+          if (!Settings.makefile_additionalCudaFlags.contains(mpiWrapperFlags))
+            Settings.makefile_additionalCudaFlags += mpiWrapperFlags
+        }
     }
 
     flags
@@ -309,18 +325,17 @@ object Platform {
             case "AVX2"   => flags += " -mavx2 -mfma"
             case "AVX512" => flags += " -march=skylake-avx512"
             case "IMCI"   => Logger.error("GCC does not support IMCI")
-            case "NEON"   => flags += " -mfpu=neon"
+            case "NEON"   => // flags += " -mfpu=neon" // neon is implied when using aarch64 g++
           }
         }
 
-        if ("ARM" == targetHardware) {
-          flags += " -mcpu=cortex-a9 -mhard-float -funsafe-math-optimizations -static"
-        }
+        if ("ARM" == targetHardware)
+          flags += " -funsafe-math-optimizations"
 
       case "MSVC" => // nothing to do
 
       case "ICC" =>
-        flags += " -O3 -std=c++11"
+        flags += " -O3 -fno-alias -std=c++11"
 
         if (Knowledge.omp_enabled) {
           if (targetCompilerVersion >= 15)
@@ -377,7 +392,6 @@ object Platform {
         if (Knowledge.omp_enabled) flags += " -qsmp=omp"
 
       case "GCC" =>
-        if ("ARM" == targetHardware) flags += " -static"
         if (Knowledge.omp_enabled) flags += " -fopenmp"
 
       case "MSVC" => // nothing to do

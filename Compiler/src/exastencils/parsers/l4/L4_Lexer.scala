@@ -23,8 +23,8 @@ import exastencils.parsers.ExaLexer
 /// L4_Lexer
 
 /**
-  * Defines a basic standard lexical parser for Layer 4
-  */
+ * Defines a basic standard lexical parser for Layer 4
+ */
 class L4_Lexer extends ExaLexer {
   // general delimiters
   delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "^", "**", "%", ".+", ".-", ".*", "./", ".**", ".%", "!", "+=", "-=", "*=", "/=", "|", "[", "]", ",", ";", "<", ">", "<=", ">=", "@", "=>", "!=", "==", "&&", "||", ":=")
@@ -46,6 +46,7 @@ class L4_Lexer extends ExaLexer {
   reserved += ("loop", "until", "while", "over", "fragments", "only", "on", "boundary", "where", "starting", "ending", "stepping", "reduction")
   reserved += ("dup", "ghost", "inner")
   reserved += "sequentially" // FIXME: seq HACK
+  reserved += "novect"
   reserved += ("precomm", "postcomm") // temporary loop annotation
   reserved += ("color", "repeat", "with")
 
@@ -74,7 +75,7 @@ class L4_Lexer extends ExaLexer {
     "Node", "Cell", "node", "cell",
     "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z",
     "Edge_Cell", "edge_cell", "Edge_Node", "edge_node",
-    "MatrixShape","Diagonal","Blockdiagonal","Schur"
+    "MatrixShape", "Diagonal", "Blockdiagonal", "Schur"
   )
 
   reserved += "FieldCombination"
@@ -83,7 +84,7 @@ class L4_Lexer extends ExaLexer {
   reserved += ("apply", "bc", "to", "Neumann")
 
   // communication keywords
-  reserved += ("begin", "finish", "communicate", "communicating", "dup", "ghost", "of")
+  reserved += ("begin", "finish", "communicate", "communicating", "dup", "ghost", "of", "upstream", "downstream")
 
   // slot keywords
   reserved += ("advance", "active", "activeSlot", "currentSlot", "next", "nextSlot", "previous", "previousSlot")
