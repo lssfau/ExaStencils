@@ -10,9 +10,11 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
+import exastencils.parallelization.api.cuda.CUDA_PrepareHostCode.annotateBranch
 import exastencils.parallelization.api.cuda.CUDA_PrepareHostCode.getCondWrapperValue
 import exastencils.parallelization.ir._
 import exastencils.util.NoDuplicateWrapper
+import exastencils.waLBerla.ir.field.IR_MultiDimWaLBerlaFieldAccess
 import exastencils.waLBerla.ir.field._
 
 object FindLoopOverDimensions extends QuietDefaultStrategy("Find loop over dimensions") {
@@ -61,12 +63,28 @@ case class IR_WaLBerlaLoopOverBlocks(
     else
       cpuExecution
 
+    def getField(fAcc : IR_MultiDimWaLBerlaFieldAccess, onGPU : Boolean) = IR_IV_WaLBerlaGetField(fAcc.field, fAcc.slot, onGPU, fAcc.fragIdx)
+
+    def getFieldPointer(fAcc : IR_MultiDimWaLBerlaFieldAccess) = IR_IV_WaLBerlaFieldData(fAcc.field, fAcc.slot, fAcc.fragIdx)
+
     // get data pointer to CPU/GPU memory and (additionally) fetch CPU field instance (used e.g. for variable-sized layouts)
     def getWaLBerlaFieldData(accesses : IR_MultiDimWaLBerlaFieldAccess*) : ListBuffer[IR_Statement] = {
       accesses.to[mutable.ListBuffer].flatMap(fAcc => {
-        IR_IfCondition(Knowledge.waLBerla_useInternalMemoryPointers,
-          IR_IV_WaLBerlaFieldData(fAcc).getDeclarationBlockLoop(condWrapper)) +:
-        IR_IV_WaLBerlaGetField(fAcc.field, fAcc.slot, onGPU = false, fAcc.fragIdx).getDeclarationBlockLoop(cpuExecution)
+        val cpuField = getField(fAcc, onGPU = false)
+        val gpuField = getField(fAcc, onGPU = true)
+        val fieldPointer = getFieldPointer(fAcc)
+
+        val stmts = ListBuffer[IR_Statement]()
+        // declare field instances
+        stmts += cpuField.getDeclaration()
+        if (Knowledge.cuda_enabled)
+          stmts += gpuField.getDeclaration()
+        // init field instances conditionally
+        stmts ++= annotateBranch(condWrapper, cpuField.initInBlockLoop(), gpuField.initInBlockLoop())
+
+        // declare field data pointer
+        stmts += fieldPointer.getDeclaration()
+        stmts ++= annotateBranch(condWrapper, fieldPointer.initInBlockLoop(onGPU = false), fieldPointer.initInBlockLoop(onGPU = true))
       })
     }
 

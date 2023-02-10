@@ -10,9 +10,7 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 import exastencils.logger.Logger
-import exastencils.parallelization.api.cuda.CUDA_PrepareHostCode.annotateBranch
 import exastencils.prettyprinting.PpStream
-import exastencils.util.NoDuplicateWrapper
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks.defIt
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_FieldDatatype
@@ -31,13 +29,9 @@ sealed trait IR_IV_GetWaLBerlaFieldFromScope extends IR_InternalVariable {
   override def getCtor() : Option[IR_Statement] = None
   override def getDtor() : Option[IR_Statement] = None
   override def registerIV(declarations : mutable.HashMap[String, IR_VariableDeclaration], ctors : mutable.HashMap[String, IR_Statement], dtors : mutable.HashMap[String, IR_Statement]) : Unit = {}
-
-  def getDeclarationBlockLoop(executionChoice : NoDuplicateWrapper[IR_Expression]) : ListBuffer[IR_Statement]
 }
 
 /// IR_IV_WaLBerlaGetField
-
-// TODO: rewrite declare functions for IR_IV_WaLBerlaGetField & IR_IV_WaLBerlaFieldData
 
 case class IR_IV_WaLBerlaGetField(
     var field : IR_WaLBerlaField,
@@ -59,38 +53,24 @@ case class IR_IV_WaLBerlaGetField(
       IR_PointerDatatype(datatype)
   }
 
+  override def getDeclaration() = IR_VariableDeclaration(acc)
+
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index, level, IR_NullExpression)
 
   override def resolveDefValue() = Some(0)
 
-  override def resolveName() : String = field.codeName
+  override def resolveName() : String = field.codeName + (if (onGPU) "_onGPU" else "")
 
   private val acc = IR_VariableAccess(resolveName(), resolveDatatype())
 
-  private def getSlottedFieldData(onGPU : Boolean) : ListBuffer[IR_Statement] = if (field.numSlots > 1)
-    (0 until field.numSlots).map(s => IR_Assignment(IR_ArrayAccess(acc, s), getFieldData(s, onGPU)) : IR_Statement).to[ListBuffer]
+  private def getSlottedFieldData() : ListBuffer[IR_Statement] = if (field.numSlots > 1)
+    (0 until field.numSlots).map(s => IR_Assignment(IR_ArrayAccess(acc, s), getFieldData(s)) : IR_Statement).to[ListBuffer]
   else
-    ListBuffer[IR_Statement](IR_Assignment(acc, getFieldData(0, onGPU)))
+    ListBuffer[IR_Statement](IR_Assignment(acc, getFieldData(0)))
 
-  private def getFieldData(slotIt : IR_Expression, onGPU : Boolean) = defIt.getData(IR_WaLBerlaBlockDataID(field, slotIt, onGPU))
+  private def getFieldData(slotIt : IR_Expression) = defIt.getData(IR_WaLBerlaBlockDataID(field, slotIt, onGPU))
 
-  def getDeclarationBlockLoop() : ListBuffer[IR_Statement] = {
-    IR_VariableDeclaration(acc) +: getSlottedFieldData(onGPU)
-  }
-
-  override def getDeclarationBlockLoop(executionChoice : NoDuplicateWrapper[IR_Expression]) : ListBuffer[IR_Statement] = {
-    // TODO: separate CUDA handling?
-
-    // get waLBerla field data datastructure on host/device
-    val getDataHost = getSlottedFieldData(false)
-    val getDataDevice = getSlottedFieldData(true)
-
-    if (Knowledge.cuda_enabled) {
-      IR_VariableDeclaration(acc) +: annotateBranch(executionChoice, getDataHost, getDataDevice)
-    } else {
-      IR_VariableDeclaration(acc) +: getDataHost
-    }
-  }
+  def initInBlockLoop() : ListBuffer[IR_Statement] = getSlottedFieldData()
 
   override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
     var access = super.resolveAccess(baseAccess, fragment, domain, field, level, neigh)
@@ -118,9 +98,13 @@ case class IR_IV_WaLBerlaFieldData(
 
   override def resolveName() : String = s"data_${ field.codeName }_"
 
-  override def getDeclarationBlockLoop(executionChoice : NoDuplicateWrapper[IR_Expression]) : ListBuffer[IR_Statement] = {
+  private val acc = IR_VariableAccess(resolveName(), resolveDatatype())
 
-    def getFieldDataPtr(slotIt : IR_Expression, onGPU : Boolean) = {
+  override def getDeclaration() = IR_VariableDeclaration(acc)
+
+  // CPU/GPU execution information not incorporated in class -> we need to make sure it is initialized in the correct mode (see IR_WaLBerlaLoopOverBlocks
+  def initInBlockLoop(onGPU : Boolean) : ListBuffer[IR_Statement] = {
+    def getFieldDataPtr(slotIt : IR_Expression) = {
       val fieldFromBlock = IR_IV_WaLBerlaGetField(field, slotIt, onGPU, fragmentIdx)
 
       if (field.layout.useFixedLayoutSizes) {
@@ -150,30 +134,11 @@ case class IR_IV_WaLBerlaFieldData(
       }
     }
 
-    val acc = IR_VariableAccess(resolveName(), resolveDatatype())
-    def getSlottedFieldPtrs(onGPU : Boolean) = if (field.numSlots > 1)
-      (0 until field.numSlots).map(s => IR_Assignment(IR_ArrayAccess(acc, s), getFieldDataPtr(s, onGPU)) : IR_Statement).to[ListBuffer]
+    def getSlottedFieldPtrs() = if (field.numSlots > 1)
+      (0 until field.numSlots).map(s => IR_Assignment(IR_ArrayAccess(acc, s), getFieldDataPtr(s)) : IR_Statement).to[ListBuffer]
     else
-      ListBuffer[IR_Statement](IR_Assignment(acc, getFieldDataPtr(0, onGPU)))
+      ListBuffer[IR_Statement](IR_Assignment(acc, getFieldDataPtr(0)))
 
-    def getField(onGPU : Boolean) = IR_IV_WaLBerlaGetField(field, slot, onGPU, fragmentIdx).getDeclarationBlockLoop()
-
-    // get waLBerla field data datastructure on host/device
-    val getFieldDataHost = getField(false)
-    val getFieldDataDevice = getField(true)
-
-    // get pointer to internal memory pointers
-    val getFieldPtrHost = getSlottedFieldPtrs(false)
-    val getFieldPtrDevice = getSlottedFieldPtrs(true)
-
-    // TODO: hacky
-    // "scoped" host/device statements
-    val hostCode = ListBuffer[IR_Statement](IR_IfCondition(1, getFieldDataHost ++ getFieldPtrHost))
-    val deviceCode = ListBuffer[IR_Statement](IR_IfCondition(1, getFieldDataDevice ++ getFieldPtrDevice))
-
-    if (Knowledge.cuda_enabled)
-      IR_VariableDeclaration(acc) +: annotateBranch(executionChoice, hostCode, deviceCode)
-    else
-        IR_VariableDeclaration(acc) +: hostCode
+    getSlottedFieldPtrs()
   }
 }
