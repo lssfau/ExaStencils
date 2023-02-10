@@ -80,11 +80,17 @@ case class IR_WaLBerlaLoopOverBlocks(
         if (Knowledge.cuda_enabled)
           stmts += gpuField.getDeclaration()
         // init field instances conditionally
-        stmts ++= annotateBranch(condWrapper, cpuField.initInBlockLoop(), gpuField.initInBlockLoop())
+        if (Knowledge.cuda_enabled)
+          stmts ++= annotateBranch(condWrapper, cpuField.initInBlockLoop(), gpuField.initInBlockLoop())
+        else
+          stmts ++= cpuField.initInBlockLoop()
 
         // declare field data pointer
         stmts += fieldPointer.getDeclaration()
-        stmts ++= annotateBranch(condWrapper, fieldPointer.initInBlockLoop(onGPU = false), fieldPointer.initInBlockLoop(onGPU = true))
+        if (Knowledge.cuda_enabled)
+          stmts ++= annotateBranch(condWrapper, fieldPointer.initInBlockLoop(onGPU = false), fieldPointer.initInBlockLoop(onGPU = true))
+        else
+          stmts ++= fieldPointer.initInBlockLoop(onGPU = false)
       })
     }
 
