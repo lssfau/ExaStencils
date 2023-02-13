@@ -18,6 +18,7 @@
 
 package exastencils.field.l4
 
+import exastencils.field.ir.IR_Field
 import exastencils.fieldlike.l4.L4_FieldLikeDecl
 import exastencils.logger._
 
@@ -27,6 +28,6 @@ object L4_FieldDecl {
   var runningIndex = 0
 }
 
-abstract class L4_FieldDecl extends L4_FieldLikeDecl[L4_Field] {
+abstract class L4_FieldDecl extends L4_FieldLikeDecl[L4_Field, IR_Field] {
   override def progress = Logger.error(s"Trying to progress l4 field declaration for field $name; this is not supported")
 }

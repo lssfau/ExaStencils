@@ -28,7 +28,7 @@ import exastencils.communication.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.domain.ir._
-import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
 
 /// IR_SetupStagCellWidth
@@ -53,9 +53,9 @@ object IR_SetupStagCellWidth {
     // look up field and compile access to base element
     val baseIndex = IR_LoopOverDimensions.defIt(numDims)
     val field = IR_VF_StagCellWidthPerDim.find(level, dim, dim).associatedField
-    val baseAccess = IR_FieldAccess(field, 0, Duplicate(baseIndex))
+    val baseAccess = IR_FieldLikeAccess(field, 0, Duplicate(baseIndex))
     val npField = IR_VF_NodePositionPerDim.find(level, dim).associatedField
-    val npBaseAccess = IR_FieldAccess(npField, 0, Duplicate(baseIndex))
+    val npBaseAccess = IR_FieldLikeAccess(npField, 0, Duplicate(baseIndex))
 
     // fix the inner iterator -> used for zone checks
     def innerIt =
@@ -77,7 +77,7 @@ object IR_SetupStagCellWidth {
 
     val leftGhostIndex = IR_ExpressionIndex(Array.fill(numDims)(0))
     leftGhostIndex(dim) = -2
-    val leftGhostAccess = IR_FieldAccess(field, 0, leftGhostIndex)
+    val leftGhostAccess = IR_FieldLikeAccess(field, 0, leftGhostIndex)
 
     val leftBoundaryUpdate = IR_IfCondition(
       IR_Negation(IR_IV_NeighborIsValid(field.domain.index, leftNeighIndex)),
@@ -91,7 +91,7 @@ object IR_SetupStagCellWidth {
 
     val rightGhostIndex = IR_ExpressionIndex(Array.fill(numDims)(0))
     rightGhostIndex(dim) = numCellsPerFrag + 2
-    val rightGhostAccess = IR_FieldAccess(field, 0, rightGhostIndex)
+    val rightGhostAccess = IR_FieldLikeAccess(field, 0, rightGhostIndex)
 
     val rightBoundaryUpdate = IR_IfCondition(
       IR_Negation(IR_IV_NeighborIsValid(field.domain.index, rightNeighIndex)),

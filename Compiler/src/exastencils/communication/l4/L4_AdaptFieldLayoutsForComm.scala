@@ -22,13 +22,15 @@ import scala.collection.mutable._
 
 import exastencils.base.l4._
 import exastencils.boundary.l4._
-import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.field.l4._
+import exastencils.fieldlike.l4.L4_FieldLike
 import exastencils.grid.l4._
 import exastencils.logger.Logger
 
 /// L4_AdaptFieldLayoutsForComm
+
+// TODO: Use FieldLikeCollections instead or FieldCollection
 
 object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts to take communication patterns into account") {
   var collector = new L4_FieldAccessRangeCollector()
@@ -54,10 +56,10 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
   }
 
   def actuallyAdapt() = {
-    var unreferencedFields = ListBuffer[L4_Field]()
+    var unreferencedFields = ListBuffer[L4_FieldLike[_, _]]()
 
     // re-map read and write extent maps, ie ignore slots
-    val readExtentMin = HashMap[L4_Field, Array[Int]]()
+    val readExtentMin = HashMap[L4_FieldLike[_, _], Array[Int]]()
     collector.readExtentMin.foreach(e => {
       if (readExtentMin.contains(e._1.field))
         readExtentMin(e._1.field) = (readExtentMin(e._1.field), e._2).zipped.map(math.min)
@@ -65,7 +67,7 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
         readExtentMin.put(e._1.field, e._2)
     })
 
-    val readExtentMax = HashMap[L4_Field, Array[Int]]()
+    val readExtentMax = HashMap[L4_FieldLike[_, _], Array[Int]]()
     collector.readExtentMax.foreach(e => {
       if (readExtentMax.contains(e._1.field))
         readExtentMax(e._1.field) = (readExtentMax(e._1.field), e._2).zipped.map(math.max)
@@ -73,7 +75,7 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
         readExtentMax.put(e._1.field, e._2)
     })
 
-    val writeExtentMin = HashMap[L4_Field, Array[Int]]()
+    val writeExtentMin = HashMap[L4_FieldLike[_, _], Array[Int]]()
     collector.writeExtentMin.foreach(e => {
       if (writeExtentMin.contains(e._1.field))
         writeExtentMin(e._1.field) = (writeExtentMin(e._1.field), e._2).zipped.map(math.min)
@@ -81,7 +83,7 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
         writeExtentMin.put(e._1.field, e._2)
     })
 
-    val writeExtentMax = HashMap[L4_Field, Array[Int]]()
+    val writeExtentMax = HashMap[L4_FieldLike[_, _], Array[Int]]()
     collector.writeExtentMax.foreach(e => {
       if (writeExtentMax.contains(e._1.field))
         writeExtentMax(e._1.field) = (writeExtentMax(e._1.field), e._2).zipped.map(math.max)

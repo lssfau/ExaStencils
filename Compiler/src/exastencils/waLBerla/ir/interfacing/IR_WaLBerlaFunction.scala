@@ -3,10 +3,12 @@ package exastencils.waLBerla.ir.interfacing
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.config.Knowledge
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
 import exastencils.field.ir.IR_FieldAccessLike
+import exastencils.parallelization.api.cuda.CUDA_KernelFunctions
 import exastencils.prettyprinting.PpStream
 import exastencils.prettyprinting.PrettyPrintable
 import exastencils.util.ir.IR_StackCollector
@@ -15,7 +17,6 @@ import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.ir.field._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
-
 
 trait IR_WaLBerlaFunction extends IR_Function with PrettyPrintable {
   def name : String
@@ -47,7 +48,7 @@ trait IR_WaLBerlaFunction extends IR_Function with PrettyPrintable {
 case class IR_WaLBerlaLeveledFunction(
     var baseName : String,
     var level : Int,
-    var datatype: IR_Datatype,
+    var datatype : IR_Datatype,
     var parameters : ListBuffer[IR_FunctionArgument],
     var body : ListBuffer[IR_Statement]) extends IR_WaLBerlaFunction with IR_LeveledFunctionLike {
 
@@ -56,10 +57,9 @@ case class IR_WaLBerlaLeveledFunction(
 
 case class IR_WaLBerlaPlainFunction(
     var name : String,
-    var datatype: IR_Datatype,
+    var datatype : IR_Datatype,
     var parameters : ListBuffer[IR_FunctionArgument],
     var body : ListBuffer[IR_Statement]) extends IR_WaLBerlaFunction with IR_PlainFunctionLike
-
 
 object IR_WaLBerlaSetupFunctions extends DefaultStrategy("Transform functions accessing wb data structures to wb functions.") {
   var stackCollector = new IR_StackCollector
@@ -76,7 +76,9 @@ object IR_WaLBerlaSetupFunctions extends DefaultStrategy("Transform functions ac
   }
 
   def findEnclosingFunction(stack : List[IR_Node]) : Unit = {
-    val enclosingFunction = stack.collectFirst { case f : IR_Function => f }
+    // don't transform generated CUDA kernel functions
+    def isKernelFunction(f : IR_Function) = Knowledge.cuda_enabled && CUDA_KernelFunctions.get.functions.contains(f)
+    val enclosingFunction = stack.collectFirst { case f : IR_Function if !isKernelFunction(f) => f }
     if (enclosingFunction.isDefined) {
       enclosingFunction.get match {
         case plain : IR_PlainFunction     => plainFunctions += plain
@@ -94,16 +96,19 @@ object IR_WaLBerlaSetupFunctions extends DefaultStrategy("Transform functions ac
     case fAcc : IR_WaLBerlaFieldAccess                                          =>
       findEnclosingFunction(stackCollector.stack)
       fAcc
-    case acc : IR_Access if acc == IR_WaLBerlaBlockForest().resolveAccess() =>
+    case acc : IR_Access if acc == IR_WaLBerlaBlockForest().resolveAccess()     =>
       findEnclosingFunction(stackCollector.stack)
       acc
-    case loop : IR_WaLBerlaLoopOverBlocks =>
+    case loop : IR_WaLBerlaLoopOverBlocks                                       =>
       findEnclosingFunction(stackCollector.stack)
       loop
-    case bf : IR_WaLBerlaBlockForest     =>
+    case bf : IR_WaLBerlaBlockForest                                            =>
       findEnclosingFunction(stackCollector.stack)
       bf
-    case iv : IR_IV_WaLBerlaGetFieldData =>
+    case iv : IR_IV_WaLBerlaGetField                                            =>
+      findEnclosingFunction(stackCollector.stack)
+      iv
+    case iv : IR_IV_WaLBerlaFieldData                                           =>
       findEnclosingFunction(stackCollector.stack)
       iv
   })

@@ -14,7 +14,6 @@ import exastencils.knowledge.l3.L3_KnowledgeContainer._
 import exastencils.knowledge.l3.L3_LeveledKnowledgeCollection
 import exastencils.logger.Logger
 import exastencils.util.l3.L3_LevelCollector
-import exastencils.waLBerla.l3.field._
 
 object L3_FieldLikeCollections {
   val collections = ListBuffer[L3_FieldLikeCollection[_ <: L3_FieldLike[_], _ <: L4_FieldLike[_, _]]]()
@@ -35,11 +34,11 @@ object L3_FieldLikeCollections {
 
 abstract class L3_FieldLikeCollection[L3_Type <: L3_FieldLike[L4_Type] : TypeTag, L4_Type <: L4_FieldLike[_, _]] extends L3_LeveledKnowledgeCollection[L3_Type, L4_Type] {
 
-  L3_PrepareDeclarations.strategies += L3_PrepareFieldDeclarations
-  L3_ProcessDeclarations.strategies += L3_ProcessFieldDeclarations
+  L3_PrepareDeclarations.strategies += L3_PrepareFieldLikeDeclarations
+  L3_ProcessDeclarations.strategies += L3_ProcessFieldLikeDeclarations
 
-  L3_PrepareAccesses.strategies += L3_PrepareFieldAccesses
-  L3_ResolveAccesses.strategies += L3_ResolveFieldAccesses
+  L3_PrepareAccesses.strategies += L3_PrepareFieldLikeAccesses
+  L3_ResolveAccesses.strategies += L3_ResolveFieldLikeAccesses
 
   // generate field layouts and add to L4 layout collection
   def prepareFieldLayouts() : Unit
@@ -53,16 +52,11 @@ abstract class L3_FieldLikeCollection[L3_Type <: L3_FieldLike[L4_Type] : TypeTag
     ExaRootNode.l3_root.nodes += fct
   }
 
-  // TODO: make strategies more generic
-
   /// L3_PrepareFieldDeclarations
 
-  object L3_PrepareFieldDeclarations extends DefaultStrategy("Prepare knowledge for L3 fields") {
+  object L3_PrepareFieldLikeDeclarations extends DefaultStrategy("Prepare knowledge for L3 fields") {
     this += Transformation("Process new fields", {
-      case decl : L3_FieldDecl if L3_FieldLikeCollection.this == L3_FieldCollection =>
-        addDeclared(decl.name, decl.levels)
-        decl // preserve declaration statement
-      case decl : L3_WaLBerlaFieldDecl if L3_FieldLikeCollection.this == L3_WaLBerlaFieldCollection =>
+      case decl : L3_FieldLikeDecl[_, _] if L3_FieldLikeCollection.this == decl.associatedCollection =>
         addDeclared(decl.name, decl.levels)
         decl // preserve declaration statement
     })
@@ -70,12 +64,9 @@ abstract class L3_FieldLikeCollection[L3_Type <: L3_FieldLike[L4_Type] : TypeTag
 
   /// L3_ProcessFieldDeclarations
 
-  object L3_ProcessFieldDeclarations extends DefaultStrategy("Integrate L3 field declarations with knowledge") {
+  object L3_ProcessFieldLikeDeclarations extends DefaultStrategy("Integrate L3 field declarations with knowledge") {
     this += Transformation("Process field declarations", {
-      case decl : L3_FieldDecl if L3_FieldLikeCollection.this == L3_FieldCollection && L3_MayBlockResolution.isDone(decl) =>
-        decl.addToKnowledge()
-        None // consume declaration statement
-      case decl : L3_WaLBerlaFieldDecl if L3_FieldLikeCollection.this == L3_WaLBerlaFieldCollection && L3_MayBlockResolution.isDone(decl) =>
+      case decl : L3_FieldLikeDecl[_, _] if L3_FieldLikeCollection.this == decl.associatedCollection && L3_MayBlockResolution.isDone(decl) =>
         decl.addToKnowledge()
         None // consume declaration statement
     })
@@ -83,7 +74,7 @@ abstract class L3_FieldLikeCollection[L3_Type <: L3_FieldLike[L4_Type] : TypeTag
 
   /// L3_PrepareFieldAccesses
 
-  object L3_PrepareFieldAccesses extends DefaultStrategy("Prepare accesses to fields") {
+  object L3_PrepareFieldLikeAccesses extends DefaultStrategy("Prepare accesses to fields") {
     val collector = new L3_LevelCollector
     this.register(collector)
     this.onBefore = () => this.resetCollectors()
@@ -108,7 +99,7 @@ abstract class L3_FieldLikeCollection[L3_Type <: L3_FieldLike[L4_Type] : TypeTag
 
   /// L3_ResolveFieldAccesses
 
-  object L3_ResolveFieldAccesses extends DefaultStrategy("Resolve accesses to fields") {
+  object L3_ResolveFieldLikeAccesses extends DefaultStrategy("Resolve accesses to fields") {
     this += new Transformation("Resolve applicable future accesses", {
       // check if declaration has already been processed and promote access if possible
       case access : L3_FutureFieldAccess if exists(access.name, access.level) =>

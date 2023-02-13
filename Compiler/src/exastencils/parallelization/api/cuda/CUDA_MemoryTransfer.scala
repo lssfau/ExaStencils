@@ -26,7 +26,8 @@ import exastencils.communication.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
-import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
+import exastencils.fieldlike.ir.IR_MultiDimFieldLikeAccess
 
 /// CUDA_TransferUtil
 
@@ -52,11 +53,11 @@ object CUDA_TransferUtil {
 /// CUDA_UpdateHostData
 
 object CUDA_UpdateHostData {
-  def apply(access : IR_MultiDimFieldAccess) =
-    new CUDA_UpdateHostData(IR_IV_FieldData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx)))
+  def apply(access : IR_MultiDimFieldLikeAccess) =
+    new CUDA_UpdateHostData(IR_IV_AbstractFieldLikeData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx)))
 }
 
-case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData) extends CUDA_HostStatement with IR_Expandable {
+case class CUDA_UpdateHostData(var fieldData : IR_IV_AbstractFieldLikeData) extends CUDA_HostStatement with IR_Expandable {
   // TODO: allow targeting of specific index ranges
 
   override def expand() : Output[IR_Statement] = {
@@ -69,7 +70,8 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData) extends CUDA_Hos
       CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
-          IR_IV_FieldData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
+          // TODO: more clear separation between host and device field data
+          IR_IV_AbstractFieldLikeData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
           CUDA_FieldDeviceData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
           (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _) * IR_SizeOf(field.resolveBaseDatatype),
           "D2H"),
@@ -80,11 +82,11 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData) extends CUDA_Hos
 /// CUDA_UpdateDeviceData
 
 object CUDA_UpdateDeviceData {
-  def apply(access : IR_MultiDimFieldAccess) =
-    new CUDA_UpdateDeviceData(IR_IV_FieldData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx)))
+  def apply(access : IR_MultiDimFieldLikeAccess) =
+    new CUDA_UpdateDeviceData(IR_IV_AbstractFieldLikeData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx)))
 }
 
-case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData) extends CUDA_HostStatement with IR_Expandable {
+case class CUDA_UpdateDeviceData(var fieldData : IR_IV_AbstractFieldLikeData) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
       return IR_NullStatement
@@ -95,7 +97,8 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData) extends CUDA_H
       CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
-          IR_IV_FieldData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
+          // TODO: more clear separation between host and device field data
+          IR_IV_AbstractFieldLikeData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
           CUDA_FieldDeviceData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
           (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _) * IR_SizeOf(field.resolveBaseDatatype),
           "H2D"),

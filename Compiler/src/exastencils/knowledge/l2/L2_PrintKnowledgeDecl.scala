@@ -20,6 +20,7 @@ package exastencils.knowledge.l2
 
 import exastencils.domain.l2.L2_DomainCollection
 import exastencils.field.l2._
+import exastencils.fieldlike.l2.L2_FieldLikeCollections
 import exastencils.operator.l2._
 import exastencils.prettyprinting.PpStream
 import exastencils.solver.l2.L2_EquationCollection
@@ -33,9 +34,11 @@ object L2_PrintKnowledgeDecl {
     }
 
     out << "// field declarations\n\n"
-    L2_FieldCollection.objects.foreach { obj =>
-      obj.prettyprintDecl(out)
-      out << "\n\n"
+    for (fieldCollection <- L2_FieldLikeCollections.collections) {
+      fieldCollection.objects.foreach { obj =>
+        obj.prettyprintDecl(out)
+        out << "\n\n"
+      }
     }
 
     out << "// field combinations\n\n"

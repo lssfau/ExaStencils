@@ -21,13 +21,13 @@ package exastencils.communication.ir
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.prettyprinting._
 
 /// IR_IV_RemoteReqOutstanding
 
 case class IR_IV_RemoteReqOutstanding(
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var direction : String,
     var neighIdx : IR_Expression,
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable {

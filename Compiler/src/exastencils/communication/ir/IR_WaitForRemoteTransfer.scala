@@ -24,14 +24,14 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.datastructures.Transformation._
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.parallelization.api.mpi._
 
 /// local communication operations
 
 /// remote communication operations
 
-case class IR_WaitForRemoteTransfer(var field : IR_Field, var neighbor : NeighborInfo, var direction : String) extends IR_Statement with IR_Expandable {
+case class IR_WaitForRemoteTransfer(var field : IR_FieldLike, var neighbor : NeighborInfo, var direction : String) extends IR_Statement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     IR_IfCondition(
       IR_IV_RemoteReqOutstanding(field, direction, neighbor.index),

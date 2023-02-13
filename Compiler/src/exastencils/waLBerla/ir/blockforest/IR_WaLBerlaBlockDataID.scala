@@ -13,9 +13,9 @@ import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceParameter
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_BlockDataID
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil.getGeneratedName
 
-case class IR_WaLBerlaBlockDataID(var wbField : IR_WaLBerlaField, var slot : IR_Expression) extends IR_WaLBerlaInterfaceParameter {
+case class IR_WaLBerlaBlockDataID(var wbField : IR_WaLBerlaField, var slot : IR_Expression, var onGPU : Boolean) extends IR_WaLBerlaInterfaceParameter {
 
-  def name = wbField.name + "_ID"
+  def name = wbField.name + "_ID" + (if (onGPU) "_GPU" else "")
 
   override def datatype : IR_Datatype = {
     var dt : IR_Datatype = WB_BlockDataID
@@ -30,7 +30,7 @@ case class IR_WaLBerlaBlockDataID(var wbField : IR_WaLBerlaField, var slot : IR_
 
   var level : IR_Expression = wbField.level
   val numSlots : Int = wbField.numSlots
-  val levels : ListBuffer[Int] = IR_WaLBerlaFieldCollection.getAllByIdentifier(wbField.name).map(_.level)
+  val levels : ListBuffer[Int] = IR_WaLBerlaFieldCollection.getAllByIdentifier(wbField.name, suppressError = true).map(_.level)
 
   override def resolveAccess() = {
     var access : IR_Access = member

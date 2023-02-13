@@ -4,7 +4,7 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.datastructures.Node
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
-import exastencils.field.ir.IR_FieldAccessLike
+import exastencils.fieldlike.ir.IR_FieldLikeAccessLike
 import exastencils.util.ir.IR_StackCollector
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.ir.field._
@@ -28,25 +28,20 @@ object IR_WaLBerlaReplaceFragmentLoops extends QuietDefaultStrategy("Replace fra
     }
 
     this += Transformation("Find", {
-      case fAcc : IR_FieldAccessLike if IR_WaLBerlaFieldCollection.contains(fAcc) =>
+      case fAcc : IR_FieldLikeAccessLike if IR_WaLBerlaFieldCollection.contains(fAcc) =>
         found = true
         fAcc
       case fAcc : IR_WaLBerlaFieldAccess if IR_WaLBerlaFieldCollection.contains(fAcc) =>
         found = true
         fAcc
-      case fAcc : IR_IV_WaLBerlaGetFieldData                                          =>
+      case fAcc : IR_IV_WaLBerlaGetField                                              =>
         found = true
         fAcc
-      case fAcc : IR_IV_WaLBerlaFieldDataAt                                           =>
+      case fAcc : IR_IV_WaLBerlaFieldData                                             =>
         found = true
         fAcc
     })
   }
-
-  this += Transformation("Omit fragment loops within block loops", {
-    case loopOverFrags : IR_LoopOverFragments if collector.stack.exists(_.isInstanceOf[IR_WaLBerlaLoopOverBlocks]) =>
-      loopOverFrags.body
-  })
 
   this += Transformation("Replace", {
     case loopOverFrags : IR_LoopOverFragments =>

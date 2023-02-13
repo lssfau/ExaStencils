@@ -14,8 +14,6 @@ object IR_WaLBerlaUtil {
   def make_unique(templateDt : String, args : IR_Expression*) =
     IR_FunctionCall(IR_ExternalFunctionReference(s"std::make_unique< $templateDt >"), args : _*)
 
-  def initCommSchemes = true // TODO: adapt condition
-
   def memberSuffix = "_gen"
   def getGeneratedName(s : String) : String = s + memberSuffix
 

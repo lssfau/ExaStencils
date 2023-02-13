@@ -58,6 +58,7 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
     // activate default knowledge collections
 
     L2_DomainCollection
+    // TODO: can we make the field collection instantiation generic?
     L2_WaLBerlaFieldCollection
     L2_FieldCollection
     L2_StencilCollection

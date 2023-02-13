@@ -24,7 +24,8 @@ import exastencils.base.ir._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.domain.ir.IR_IV_NeighborFragmentIdx
-import exastencils.field.ir._
+import exastencils.field.ir.IR_SlotAccess
+import exastencils.fieldlike.ir.IR_MultiDimFieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.util.ir.IR_Read
 
@@ -39,7 +40,7 @@ class CUDA_GatherFieldAccess extends Collector {
     exastencils.core.Duplicate.registerConstant(this)
   }
 
-  val fieldAccesses = HashMap[String, IR_MultiDimFieldAccess]()
+  val fieldAccesses = HashMap[String, IR_MultiDimFieldLikeAccess]()
   private var isRead : Boolean = true
   private var isWrite : Boolean = false
 
@@ -66,7 +67,7 @@ class CUDA_GatherFieldAccess extends Collector {
 
     }
 
-    def getFieldIdentifier(access : IR_MultiDimFieldAccess) = {
+    def getFieldIdentifier(access : IR_MultiDimFieldLikeAccess) = {
       val field = access.field
       var identifier = field.codeName
 
@@ -103,7 +104,7 @@ class CUDA_GatherFieldAccess extends Collector {
           case _ =>
         }
 
-      case access : IR_MultiDimFieldAccess if access.field.gpuCompatible =>
+      case access : IR_MultiDimFieldLikeAccess if access.field.gpuCompatible =>
         val identifier = getFieldIdentifier(access)
 
         if (isRead)

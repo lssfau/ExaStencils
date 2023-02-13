@@ -26,11 +26,12 @@ import exastencils.baseExt.l4.L4_LoopOverField
 import exastencils.communication.l4.L4_Communicate
 import exastencils.core._
 import exastencils.datastructures._
+import exastencils.fieldlike.l4.L4_FieldLikeAccess
 import exastencils.prettyprinting.PpStream
 
 /// L4_FieldFieldConvolution
 
-case class L4_FieldFieldConvolution(var lhs : L4_FieldAccess, var rhs : L4_FieldAccess, var sumAlgo : Option[L4_StringConstant] = None) extends L4_Expression {
+case class L4_FieldFieldConvolution(var lhs : L4_FieldLikeAccess, var rhs : L4_FieldLikeAccess, var sumAlgo : Option[L4_StringConstant] = None) extends L4_Expression {
   override def prettyprint(out : PpStream) = out << lhs << " * " << rhs
   override def progress : IR_Expression = ???
 }

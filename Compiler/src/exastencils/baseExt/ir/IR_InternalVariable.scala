@@ -26,6 +26,7 @@ import exastencils.communication.DefaultNeighbors
 import exastencils.config._
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.field.ir.IR_FieldCollection
+import exastencils.fieldlike.ir.IR_FieldLikeCollections
 import exastencils.prettyprinting._
 
 /// IR_InternalVariable
@@ -57,7 +58,7 @@ abstract class IR_InternalVariable(
       datatype = IR_ArrayDatatype(datatype, Knowledge.domain_numFragmentsPerBlock)
     if (canBePerDomain && usesDomainArrays && IR_DomainCollection.objects.size > 1)
       datatype = IR_ArrayDatatype(datatype, IR_DomainCollection.objects.size)
-    if (canBePerField && usesFieldArrays && IR_FieldCollection.objects.size > 1)
+    if (canBePerField && usesFieldArrays && IR_FieldCollection.objects.size > 1) // TODO: fieldlike
       datatype = IR_ArrayDatatype(datatype, IR_FieldCollection.objects.size)
     if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1)
       datatype = IR_ArrayDatatype(datatype, Knowledge.numLevels)
@@ -74,7 +75,7 @@ abstract class IR_InternalVariable(
       wrappedBody = IR_LoopOverFragments(wrappedBody)
     if (canBePerDomain && usesDomainArrays && IR_DomainCollection.objects.size > 1)
       wrappedBody = IR_LoopOverDomains(wrappedBody)
-    if (canBePerField && usesFieldArrays && IR_FieldCollection.objects.size > 1)
+    if (canBePerField && usesFieldArrays && IR_FieldCollection.objects.size > 1) // TODO: fieldlike
       wrappedBody = IR_LoopOverFields(wrappedBody)
     if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1)
       wrappedBody = IR_LoopOverLevels(wrappedBody)
@@ -100,7 +101,7 @@ abstract class IR_InternalVariable(
       postfix += "_" + fragment
     if (canBePerDomain && !usesDomainArrays && IR_DomainCollection.objects.size > 1)
       postfix += "_" + domain
-    if (canBePerField && !usesFieldArrays && IR_FieldCollection.objects.size > 1)
+    if (canBePerField && !usesFieldArrays && IR_FieldLikeCollections.collections.map(_.objects.size).sum > 1)
       postfix += "_" + field
     if (canBePerLevel && !usesLevelArrays && Knowledge.numLevels > 1)
       postfix += "_" + level
@@ -124,7 +125,7 @@ abstract class IR_InternalVariable(
         }
       access = IR_ArrayAccess(access, simplifiedLevel)
     }
-    if (canBePerField && usesFieldArrays && IR_FieldCollection.objects.size > 1)
+    if (canBePerField && usesFieldArrays && IR_FieldCollection.objects.size > 1) // TODO: fieldlike
       access = IR_ArrayAccess(access, field)
     if (canBePerDomain && usesDomainArrays && IR_DomainCollection.objects.size > 1)
       access = IR_ArrayAccess(access, domain)

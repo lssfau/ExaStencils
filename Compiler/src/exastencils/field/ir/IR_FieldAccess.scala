@@ -21,7 +21,6 @@ package exastencils.field.ir
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
-import exastencils.datastructures._
 import exastencils.fieldlike.ir._
 
 /// IR_FieldAccessLike
@@ -33,7 +32,7 @@ trait IR_FieldAccessLike extends IR_FieldLikeAccessLike {
 
 /// IR_MultiDimFieldAccess
 
-trait IR_MultiDimFieldAccess extends IR_FieldAccessLike with IR_MultiDimFieldLikeAccess with IR_SpecialExpandable
+trait IR_MultiDimFieldAccess extends IR_FieldAccessLike with IR_MultiDimFieldLikeAccess
 
 /// IR_DirectFieldAccess
 
@@ -92,13 +91,6 @@ case class IR_FieldAccess(
   override def offsetWith(newOffset : IR_ConstIndex) = index += newOffset
 }
 
-/// IR_ResolveFieldAccess
-
-object IR_ResolveFieldAccess extends DefaultStrategy("Resolve FieldAccess nodes") {
-  this += new Transformation("Resolve", {
-    case access : IR_FieldAccess => access.expandSpecial
-  })
-}
 
 /// IR_LinearizedFieldAccess
 

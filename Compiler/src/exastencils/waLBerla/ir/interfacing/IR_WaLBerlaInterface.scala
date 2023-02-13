@@ -126,7 +126,14 @@ object IR_WaLBerlaCreateInterface extends DefaultStrategy("Find functions and cr
     case collection : IR_WaLBerlaCollection =>
       // transform collected wb functions into the wb <-> exa interface class
       val wbFunctions = collection.functions.collect { case f : IR_WaLBerlaFunction if f.isInterfaceFunction => f }
-      if (Knowledge.waLBerla_generateInterface || wbFunctions.exists(_.isUserFunction) || IR_WaLBerlaFieldCollection.objects.nonEmpty) {
+      val waLBerlaUsed = wbFunctions.exists(_.isUserFunction) || IR_WaLBerlaFieldCollection.objects.nonEmpty
+
+      // check if knowledge flag is set when waLBerla data structures are used
+      if (waLBerlaUsed && !Knowledge.waLBerla_generateInterface)
+        Logger.error("Knowledge flag 'waLBerla_generateInterface' must be enabled when using waLBerla data structures")
+
+      // create interface object
+      if (Knowledge.waLBerla_generateInterface) {
         collection.interfaceInstance = Some(IR_WaLBerlaInterface(Duplicate(wbFunctions)))
         collection.functions = collection.functions diff wbFunctions
       }

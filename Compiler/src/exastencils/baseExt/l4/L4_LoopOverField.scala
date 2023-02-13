@@ -25,8 +25,8 @@ import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.communication.l4.L4_Communicate
-import exastencils.field.l4.L4_FieldAccess
 import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.l4.L4_FieldLikeAccess
 import exastencils.fieldlike.l4.L4_FieldLikeCollections
 import exastencils.logger.Logger
 import exastencils.operator.l4.L4_StencilFieldAccess
@@ -116,7 +116,7 @@ case class L4_LoopOverField(
 
   override def progress : IR_LoopOverPoints = ProgressLocation {
     val resolvedField = field match {
-      case access : L4_FieldAccess        =>
+      case access : L4_FieldLikeAccess        =>
         // lookup fieldlike collections for (original) field type
         L4_FieldLikeCollections.getByIdentifier(access.name, access.level).get.progress().asInstanceOf[IR_FieldLike]
       case access : L4_StencilFieldAccess =>

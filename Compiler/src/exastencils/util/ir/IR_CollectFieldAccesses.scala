@@ -23,13 +23,13 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.grid.ir.IR_VirtualFieldAccess
 
 /// IR_CollectFieldAccesses
 
 object IR_CollectFieldAccesses extends QuietDefaultStrategy("Collect field accesses") {
-  var fieldAccesses : ListBuffer[IR_FieldAccess] = ListBuffer()
+  var fieldAccesses : ListBuffer[IR_FieldLikeAccess] = ListBuffer()
   var vFieldAccesses : ListBuffer[IR_VirtualFieldAccess] = ListBuffer()
 
   override def apply(node : Option[Node] = None) = {
@@ -49,7 +49,7 @@ object IR_CollectFieldAccesses extends QuietDefaultStrategy("Collect field acces
   }
 
   this += new Transformation("Collect", {
-    case fieldAccess : IR_FieldAccess =>
+    case fieldAccess : IR_FieldLikeAccess =>
       fieldAccesses += fieldAccess
       fieldAccess
 

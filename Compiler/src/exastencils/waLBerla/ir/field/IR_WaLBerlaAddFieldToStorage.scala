@@ -16,6 +16,9 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR
   def blocks = blockForest.ctorParameter
   def initValue = IR_FunctionArgument("initVal", IR_RealDatatype)
 
+  if (!wbFields.forall(_.name == wbFields.head.name))
+    Logger.error("\"IR_WaLBerlaAddGPUFieldToStorage\" used incorrectly. Assumes fields with identical name but potentially different slots and levels.")
+
   override def isInterfaceFunction : Boolean = false
   override def inlineImplementation : Boolean = false
 
@@ -31,7 +34,7 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR
       if (layout.layoutsPerDim.forall(layoutPerDim => layoutPerDim.numGhostLayersLeft != numGhosts || layoutPerDim.numGhostLayersRight != numGhosts))
         Logger.error("IR_AddFieldToStorage: Number of ghost layers (left & right) must be identical for all dimensions.")
 
-      val wbFieldTemplate = IR_WaLBerlaDatatypes.WB_FieldDatatype(leveledField).prettyprint()
+      val wbFieldTemplate = IR_WaLBerlaDatatypes.WB_FieldDatatype(leveledField, onGPU = false).prettyprint()
 
       (0 until leveledField.numSlots).map(slot =>
         IR_FunctionCall(s"${IR_WaLBerlaAddFieldToStorageWrapper().name} < $wbFieldTemplate >",
@@ -49,7 +52,7 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR
 
     body += IR_Return(IR_InitializerList(init : _*))
 
-    val returnType = IR_WaLBerlaBlockDataID(wbFields.head, slot = 0).datatype
+    val returnType = IR_WaLBerlaBlockDataID(wbFields.head, slot = 0, onGPU = false).datatype
 
     IR_WaLBerlaPlainFunction(name, returnType, params, body)
   }

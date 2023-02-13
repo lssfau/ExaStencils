@@ -20,7 +20,7 @@ package exastencils.field.ir
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.config._
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.fieldlike.ir.IR_FieldLikeLayout
 import exastencils.grid.ir.IR_Localization
@@ -43,10 +43,10 @@ case class IR_FieldLayout(
     IR_FieldLayout.tupled(Duplicate(IR_FieldLayout.unapply(this).get))
   }
 
+  override def useFixedLayoutSizes : Boolean = !Knowledge.data_genVariableFieldSizes
+
   // dimensionality of the stored data; numDimsGrid for scalar fields, numDimsGrid + 1 for vector fields, numDimsGrid + 2 for matrix fields, etc.
   def numDimsData : Int = layoutsPerDim.length
-
-  def apply(dim : Int) = layoutsPerDim(dim)
 
   def defIdxPadLeftBegin(dim : Int) = { 0 }
   def defIdxPadLeftEnd(dim : Int) = { defIdxPadLeftBegin(dim) + layoutsPerDim(dim).numPadLayersLeft }
@@ -69,17 +69,10 @@ case class IR_FieldLayout(
   def defIdxPadRightBegin(dim : Int) = { defIdxGhostRightBegin(dim) + layoutsPerDim(dim).numGhostLayersRight }
   def defIdxPadRightEnd(dim : Int) = { defIdxPadRightBegin(dim) + layoutsPerDim(dim).numPadLayersRight }
 
-  def defTotal(dim : Int) = { defIdxPadRightEnd(dim) }
+  def defTotalFixed(dim : Int) = { defIdxPadRightEnd(dim) }
+  def defTotalExpr(dim : Int) = defTotalFixed(dim)
 
-  def idxById(id : String, dim : Int) : IR_Expression = {
-    if (Knowledge.data_genVariableFieldSizes && dim < Knowledge.dimensionality)
-    // TODO : total
-      IR_IV_IndexFromField(name, level, id, dim)
-    else
-      defIdxById(id, dim)
-  }
-
-  def defIdxById(id : String, dim : Int) : IR_Expression = {
+  def defIdxByIdFixed(id : String, dim : Int) : Int = {
     id match {
       case "PLB"                => defIdxPadLeftBegin(dim)
       case "PLE"                => defIdxPadLeftEnd(dim)
@@ -95,15 +88,14 @@ case class IR_FieldLayout(
       case "GRE"                => defIdxGhostRightEnd(dim)
       case "PRB"                => defIdxPadRightBegin(dim)
       case "PRE"                => defIdxPadRightEnd(dim)
-      case "TOT"                => defTotal(dim)
+      case "TOT"                => defTotalFixed(dim)
     }
   }
 
-  def updateDefReferenceOffset() = {
-    // TODO: this should work for now but may be adapted in the future
-    referenceOffset = IR_ExpressionIndex(Array.fill(layoutsPerDim.length)(0))
-    for (dim <- 0 until layoutsPerDim.length)
-      referenceOffset(dim) = IR_IntegerConstant(layoutsPerDim(dim).numPadLayersLeft + layoutsPerDim(dim).numGhostLayersLeft)
+  def defIdxByIdExpr(id : String, dim : Int) : IR_Expression = if (!useFixedLayoutSizes && dim < Knowledge.dimensionality) {
+    IR_IV_IndexFromField(name, level, id, dim)
+  } else {
+    defIdxByIdFixed(id, dim)
   }
 }
 

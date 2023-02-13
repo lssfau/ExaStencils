@@ -24,6 +24,7 @@ import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.l4._
 import exastencils.datastructures._
 import exastencils.field.l4._
+import exastencils.fieldlike.l4.L4_FieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.operator.ir.IR_StencilFieldAccess
 import exastencils.prettyprinting.PpStream
@@ -67,7 +68,7 @@ case class L4_StencilFieldAccess(
     val numDims = target.field.fieldLayout.numDimsGrid
     val index = IR_LoopOverDimensions.defIt(numDims)
 
-    IR_StencilFieldAccess(target.getProgressedObj(), L4_FieldAccess.resolveSlot(target.field.getProgressedObj(), slot), index, progressOffset(index.length))
+    IR_StencilFieldAccess(target.getProgressedObj(), L4_FieldLikeAccess.resolveSlot(target.field.getProgressedObj(), slot), index, progressOffset(index.length))
   }
 
   override def assembleOffsetMap() = target.stencil.assembleOffsetMap()
@@ -92,11 +93,11 @@ object L4_ResolveStencilFieldComponentAccesses extends DefaultStrategy("Resolve 
         Logger.warn(s"Access to stencil field ${ access.target.name } on level ${ access.target.level } has dirAccess and array subscript modifiers; " +
           "array index will be given precedence, dirAccess will be ignored")
 
-      L4_FieldAccess(access.target.field, access.slot, access.offset, false, access.matIndex)
+      L4_FieldLikeAccess(access.target.field, access.slot, access.offset, false, access.matIndex)
 
     case access : L4_StencilFieldAccess if access.dirAccess.isDefined =>
       val arrayIdx = access.target.stencil.findStencilEntryIndex(access.dirAccess.get)
-      L4_FieldAccess(access.target.field, access.slot, access.offset, false, if(arrayIdx.isDefined) Some(L4_MatIndex(Array(L4_ConstIndex(arrayIdx.get)))) else None)
+      L4_FieldLikeAccess(access.target.field, access.slot, access.offset, false, if(arrayIdx.isDefined) Some(L4_MatIndex(Array(L4_ConstIndex(arrayIdx.get)))) else None)
   })
 }
 

@@ -29,8 +29,10 @@ import exastencils.config._
 import exastencils.datastructures.StrategyTimer
 import exastencils.domain.l4.L4_DomainCollection
 import exastencils.field.ir.IR_AddPaddingToFieldLayouts
+import exastencils.field.l4.L4_ResolveFrozenFields
 import exastencils.field.l4._
 import exastencils.fieldlike.l4.L4_FieldLikeCollections
+import exastencils.fieldlike.l4.L4_UnresolveFieldLikeAccesses
 import exastencils.grid.l4._
 import exastencils.interfacing.l4.L4_ExternalFieldCollection
 import exastencils.knowledge.l4.L4_KnowledgeContainer._
@@ -45,7 +47,8 @@ import exastencils.solver.l4._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util.l4._
 import exastencils.waLBerla.l4.L4_UnifyWaLBerlaVarsSections
-import exastencils.waLBerla.l4.field._
+import exastencils.waLBerla.l4.field.L4_WaLBerlaFieldCollection
+import exastencils.waLBerla.l4.field.L4_WaLBerlaFieldLayoutCollection
 import exastencils.waLBerla.l4.grid._
 
 /// L4_LayerHandler
@@ -68,10 +71,11 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     // activate default knowledge collections
 
     L4_DomainCollection
-    L4_WaLBerlaFieldLayoutCollection
-    L4_FieldLayoutCollection
+    // TODO: can we make the field (layout) collection instantiation generic?
     L4_WaLBerlaFieldCollection
     L4_FieldCollection
+    L4_WaLBerlaFieldLayoutCollection
+    L4_FieldLayoutCollection
     L4_StencilCollection
     L4_StencilFieldCollection
     L4_VirtualFieldCollection
@@ -119,7 +123,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
       L4_UnresolveFieldFieldConvolutions.apply()
       L4_UnresolveStencilAccesses.apply()
       L4_UnresolveStencilFieldAccesses.apply()
-      L4_UnresolveFieldAccesses.apply()
+      L4_UnresolveFieldLikeAccesses.apply()
       // FIXME: transform back to declarations and re-fold
       L4_ReplaceLevelsInFunctionDecls.apply()
       L4_CombineLeveledFunctionDecls.apply()

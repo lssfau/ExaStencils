@@ -74,6 +74,7 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   functions ++= IR_WaLBerlaInitFunctionCollection.functions
   functions ++= IR_WaLBerlaDeInitFunctionCollection.functions
   functions ++= IR_WaLBerlaHelperFunctionCollection.functions
+  functions ++= IR_WaLBerlaGetterFunctionCollection.functions
 
   // collect future function names
   val futureFunctionIds : ListBuffer[String] = Duplicate(functions).collect { case f : IR_WaLBerlaFutureFunction => f }.map(_.name)

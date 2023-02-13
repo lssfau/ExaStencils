@@ -29,12 +29,12 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.domain.ir._
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 
 /// IR_LocalCommunicationStart
 
 case class IR_LocalCommunicationStart(
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var sendNeighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)],
     var recvNeighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)],

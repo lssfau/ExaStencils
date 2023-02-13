@@ -17,7 +17,7 @@ import exastencils.base.ir.IR_VariableDeclaration
 import exastencils.base.ir.IR_WhileLoop
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
 
 
@@ -42,7 +42,7 @@ class IR_MatrixVarCollector extends Collector {
       case va : IR_VariableAccess => writes.last += va.name
         //TODO add h
       //case hda : IR_HighDimAccess => writes+=matWriteAccess(hda.uniqueID,hda.index.asInstanceOf)
-      case fa : IR_FieldAccess => writes.last += fa.name
+      case fa : IR_FieldLikeAccess => writes.last += fa.name
       case _                                                                       => Logger.error(s"unexpected type ${dest}")
     }
   }

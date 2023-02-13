@@ -3,10 +3,12 @@ package exastencils.fieldlike.ir
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FieldIteratorAccess
+import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
+import exastencils.datastructures.Transformation.Output
 import exastencils.field.ir.IR_SlotAccess
 import exastencils.knowledge.ir.IR_LeveledKnowledgeAccess
 import exastencils.logger.Logger
@@ -32,13 +34,37 @@ trait IR_MultiDimFieldLikeAccess extends IR_FieldLikeAccessLike with IR_SpecialE
 
 /// IR_FieldLikeAccess
 
-trait IR_FieldLikeAccess extends IR_MultiDimFieldLikeAccess with IR_CanBeOffset {
+object IR_FieldLikeAccess {
+  def apply(field : IR_FieldLike, slot : IR_Expression, index : IR_ExpressionIndex) =
+    field.getFieldAccess(slot, IR_LoopOverFragments.defIt, index)
+
+  def apply(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, index : IR_ExpressionIndex,
+      offset : Option[IR_ConstIndex] = None, frozen : Boolean = false, matIndex : Option[IR_MatIndex] = None) =
+    field.getFieldAccess(slot, fragIdx, index, offset, frozen, matIndex)
+
+  def applySpecial(field : IR_FieldLike, slot : IR_Expression, index : IR_ExpressionIndex, matIndex : Option[IR_MatIndex]): IR_FieldLikeAccess = {
+    val fa = field.getFieldAccess(slot, IR_LoopOverFragments.defIt, index)
+    fa.matIndex = matIndex
+    fa
+  }
+
+  def apply(field : IR_FieldLike, slot : IR_Expression, index : IR_ExpressionIndex, offset : Option[IR_ConstIndex]) =
+    field.getFieldAccess(slot, IR_LoopOverFragments.defIt, index, offset)
+
+  def apply(field : IR_FieldLike, slot : IR_Expression, index : IR_ExpressionIndex, offset : Option[IR_ConstIndex], frozen : Boolean) =
+    field.getFieldAccess(slot, IR_LoopOverFragments.defIt, index, offset, frozen)
+
+  def apply(field : IR_FieldLike, slot : IR_Expression, index : IR_ExpressionIndex, offset : Option[IR_ConstIndex], frozen : Boolean, matIndex : Option[IR_MatIndex]) =
+    field.getFieldAccess(slot, IR_LoopOverFragments.defIt, index, offset, frozen, matIndex)
+}
+
+trait IR_FieldLikeAccess extends IR_MultiDimFieldLikeAccess with IR_CanBeOffset with IR_SpecialExpandable {
   def field : IR_FieldLike
-  def slot : IR_Expression
+  var slot : IR_Expression
   def fragIdx : IR_Expression
   def index : IR_ExpressionIndex
   def frozen : Boolean
-  def matIndex : Option[IR_MatIndex]
+  var matIndex : Option[IR_MatIndex]
 
   override def datatype = {
     val layout = field.layout
@@ -71,6 +97,16 @@ trait IR_FieldLikeAccess extends IR_MultiDimFieldLikeAccess with IR_CanBeOffset 
     dupIndex.indices = dupIndex.indices.zipWithIndex.map { case (e, i) => e - IR_FieldIteratorAccess(i) }
     dupIndex.toConstIndex
   }
+
+  def expandSpecial() : IR_Expression
+}
+
+/// IR_FieldLikeAccess
+
+object IR_ResolveFieldLikeAccess extends DefaultStrategy("Resolve FieldAccess nodes") {
+  this += new Transformation("Resolve", {
+    case access : IR_FieldLikeAccess => access.expandSpecial()
+  })
 }
 
 /// IR_ApplyOffsetToFieldLikeAccess
@@ -87,9 +123,17 @@ object IR_ApplyOffsetToFieldLikeAccess extends DefaultStrategy("Apply offsets to
 
 /// IR_DirectFieldLikeAccess
 
+object IR_DirectFieldLikeAccess {
+  def apply(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, index : IR_ExpressionIndex) = field.getDirectFieldAccess(slot, fragIdx, index)
+
+  def apply(field : IR_FieldLike, slot : IR_Expression, index : IR_ExpressionIndex) = field.getDirectFieldAccess(slot, IR_LoopOverFragments.defIt, index)
+}
+
+// TODO: try to remove "IR_DirectFieldAccess" occurrences
+
 trait IR_DirectFieldLikeAccess extends IR_MultiDimFieldLikeAccess with IR_PolyArrayAccessLike {
   def field : IR_FieldLike
-  def slot : IR_Expression
+  var slot : IR_Expression
   def fragIdx : IR_Expression
   def index : IR_ExpressionIndex
 
@@ -133,6 +177,12 @@ object IR_LinearizeDirectFieldLikeAccess extends DefaultStrategy("Linearize Dire
 
 /// IR_LinearizedFieldLikeAccess
 
+object IR_LinearizedFieldLikeAccess {
+  def apply(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, index : IR_Expression) = field.getLinearizedFieldAccess(slot, fragIdx, index)
+}
+
+// TODO: try to remove "IR_LinearizedFieldAccess" occurrences
+
 trait IR_LinearizedFieldLikeAccess extends IR_FieldLikeAccessLike with IR_Expandable {
   def field : IR_FieldLike
   var slot : IR_Expression
@@ -140,4 +190,6 @@ trait IR_LinearizedFieldLikeAccess extends IR_FieldLikeAccessLike with IR_Expand
   var index : IR_Expression
 
   override def datatype = field.layout.datatype
+
+  def expand() : Output[IR_ArrayAccess]
 }

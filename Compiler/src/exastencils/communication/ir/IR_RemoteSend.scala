@@ -29,12 +29,13 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.domain.ir._
-import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.ir.IR_PotentiallyCritical
 
 case class IR_RemoteSend(
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var neighbor : NeighborInfo,
     var src : IR_Expression,
@@ -54,7 +55,7 @@ case class IR_RemoteSend(
 /// IR_CopyToSendBuffer
 
 case class IR_CopyToSendBuffer(
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var neighbor : NeighborInfo,
     var indices : IR_ExpressionIndexRange,
@@ -72,7 +73,7 @@ case class IR_CopyToSendBuffer(
 
       val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
-      val fieldAccess = IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
+      val fieldAccess = IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
 
       ret += IR_Assignment(it, 0)
       ret += IR_LoopOverDimensions(numDims, indices, IR_IfCondition(
@@ -83,7 +84,7 @@ case class IR_CopyToSendBuffer(
       val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
         IR_ExpressionIndex(indices.end, indices.begin, _ - _))
-      val fieldAccess = IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
+      val fieldAccess = IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
 
       val loop = new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(tmpBufAccess, fieldAccess)))
       loop.polyOptLevel = 1

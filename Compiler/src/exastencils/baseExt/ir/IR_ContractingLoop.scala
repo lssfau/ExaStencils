@@ -28,7 +28,9 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.domain.ir._
 import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
 import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 
@@ -96,12 +98,20 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
   private def updateSlots(stmts : ListBuffer[IR_Statement], fieldOffset : HashMap[FieldKey, Int]) : Unit = {
     object AdaptFieldSlots extends QuietDefaultStrategy("Adapt field slots") {
       this += new Transformation("now", {
-        case fa @ IR_FieldAccess(field, IR_SlotAccess(slot, offset), _, _, _, _, _) =>
-          fa.slot = IR_SlotAccess(slot, offset + fieldOffset.getOrElse(FieldKey(field), 0))
+        case fa : IR_FieldLikeAccess =>
+          fa.slot match {
+            case _ @ IR_SlotAccess(slot, offset) =>
+              fa.slot = IR_SlotAccess(slot, offset + fieldOffset.getOrElse(FieldKey(fa.field), 0))
+            case _                               =>
+          }
           fa
 
-        case fa @ IR_DirectFieldAccess(field, IR_SlotAccess(slot, offset), _, _) =>
-          fa.slot = IR_SlotAccess(slot, offset + fieldOffset.getOrElse(FieldKey(field), 0))
+        case fa : IR_DirectFieldLikeAccess =>
+          fa.slot match {
+            case _ @ IR_SlotAccess(slot, offset) =>
+              fa.slot = IR_SlotAccess(slot, offset + fieldOffset.getOrElse(FieldKey(fa.field), 0))
+            case _                               =>
+          }
           fa
       })
     }
