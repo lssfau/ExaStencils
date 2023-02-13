@@ -22,11 +22,13 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.baseExt.ir.IR_UnduplicatedVariable
 import exastencils.communication.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
+import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir._
 
 /// CUDA_TransferUtil
@@ -79,23 +81,28 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData, stream : CUDA_Tr
 
   override def expand() : Output[IR_Statement] = {
     val field = fieldData.field
-    val isDirty = CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx))
+    val fragIdx = fieldData.fragmentIdx
+    val isDirty = CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fragIdx))
+    val isValid = if (fragIdx != IR_LoopOverFragments.defIt)
+      fragIdx >= 0 AndAnd fragIdx < Knowledge.domain_numFragmentsPerBlock AndAnd IR_IV_IsValidForDomain(field.domain.index, fragIdx)
+    else
+      IR_IV_IsValidForDomain(field.domain.index, fragIdx)
 
     if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
-      return IR_IfCondition(IR_AndAnd(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()), isDirty),
+      return IR_IfCondition(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()) AndAnd isValid AndAnd isDirty,
         ListBuffer[IR_Statement](
           CUDA_DeviceSynchronize(),
           IR_Assignment(CUDA_IssuedSyncForEliminatedTransfer(), true)))
 
-    IR_IfCondition(isDirty,
+    IR_IfCondition(isValid AndAnd isDirty,
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
-          IR_IV_FieldData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
-          CUDA_FieldDeviceData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
+          IR_IV_FieldData(field, Duplicate(fieldData.slot), Duplicate(fragIdx)),
+          CUDA_FieldDeviceData(field, Duplicate(fieldData.slot), Duplicate(fragIdx)),
           (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _) * IR_SizeOf(field.resolveBaseDatatype),
           "D2H",
           stream),
-        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, fieldData.fragmentIdx), stream)))
+        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, fragIdx), stream)))
   }
 }
 
@@ -109,23 +116,28 @@ object CUDA_UpdateDeviceData {
 case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     val field = fieldData.field
-    val isDirty = CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx))
+    val fragIdx = fieldData.fragmentIdx
+    val isDirty = CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fragIdx))
+    val isValid = if (fragIdx != IR_LoopOverFragments.defIt)
+      fragIdx >= 0 AndAnd fragIdx < Knowledge.domain_numFragmentsPerBlock AndAnd IR_IV_IsValidForDomain(field.domain.index, fragIdx)
+    else
+      IR_IV_IsValidForDomain(field.domain.index, fragIdx)
 
     if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
-      return IR_IfCondition(IR_AndAnd(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()), isDirty),
+      return IR_IfCondition(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()) AndAnd isValid AndAnd isDirty,
         ListBuffer[IR_Statement](
           CUDA_DeviceSynchronize(),
           IR_Assignment(CUDA_IssuedSyncForEliminatedTransfer(), true)))
 
-    IR_IfCondition(isDirty,
+    IR_IfCondition(isValid AndAnd isDirty,
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
-          IR_IV_FieldData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
-          CUDA_FieldDeviceData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
+          IR_IV_FieldData(field, Duplicate(fieldData.slot), Duplicate(fragIdx)),
+          CUDA_FieldDeviceData(field, Duplicate(fieldData.slot), Duplicate(fragIdx)),
           (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _) * IR_SizeOf(field.resolveBaseDatatype),
           "H2D",
           stream),
-        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, fieldData.fragmentIdx), stream)))
+        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, fragIdx), stream)))
   }
 }
 
