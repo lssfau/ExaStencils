@@ -34,6 +34,16 @@ bench_gen:3D_FD_Poisson:
         EXASLANG_FILES: "3D_FD_Poisson_fromL4.exa4"
         KNOWLEDGE_FILE: "3D_FD_Poisson_fromL4.knowledge"
 
+# 2D FD OptFlow
+
+bench_gen:2D_FD_OptFlow:
+    extends: .gen_bench_job_template
+    variables:
+        EXA_PROBLEM_NAME: "2D_FD_OptFlow"
+        EXA_PROBLEM_PATH: "OptFlow2D"
+        EXASLANG_FILES: "2D_FD_OptFlow.exa4"
+        KNOWLEDGE_FILE: "2D_FD_OptFlow.knowledge"
+
 #######################################
 ##                                   ##
 ##       Benchmark Execution         ##
@@ -77,4 +87,25 @@ bench_pipe:3D_FD_Poisson_CUDA:
         EXA_PROBLEM_PATH: "Poisson3D"
         EXASLANG_FILES: "3D_FD_Poisson_fromL4.exa4"
         KNOWLEDGE_FILE: "3D_FD_Poisson_fromL4_CUDA.knowledge"
+        PLATFORM_FILE: "Platform/medusa_QuadroRTX6000.platform"
+
+
+# 2D FD OptFlow
+
+bench_pipe:2D_FD_OptFlow:
+    extends: .pipe_bench_job_template
+    variables:
+        EXA_PROBLEM_NAME: "2D_FD_OptFlow"
+        EXA_PROBLEM_PATH: "OptFlow2D"
+        EXASLANG_FILES: "2D_FD_OptFlow.exa4"
+        KNOWLEDGE_FILE: "2D_FD_OptFlow.knowledge"
+
+bench_pipe:2D_FD_OptFlow_CUDA:
+    extends: .cuda_job_template
+    variables:
+        SLURM_NODELIST: "medusa"
+        EXA_PROBLEM_NAME: "2D_FD_OptFlow_CUDA"
+        EXA_PROBLEM_PATH: "OptFlow2D"
+        EXASLANG_FILES: "2D_FD_OptFlow.exa4"
+        KNOWLEDGE_FILE: "2D_FD_OptFlow_CUDA.knowledge"
         PLATFORM_FILE: "Platform/medusa_QuadroRTX6000.platform"
