@@ -2,7 +2,7 @@ testing_enabled       = true
 
 dimensionality				= 2
 
-minLevel					= 11
+minLevel					= 2
 maxLevel					= 11
 
 domain_onlyRectangular		= true
