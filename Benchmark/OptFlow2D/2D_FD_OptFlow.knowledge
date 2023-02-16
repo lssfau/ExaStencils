@@ -3,7 +3,7 @@ testing_enabled       = true
 dimensionality                 = 2
 
 minLevel                       = 2
-maxLevel                       = 10
+maxLevel                       = 11
 
 discr_type                     = "FiniteDifferences"
 
