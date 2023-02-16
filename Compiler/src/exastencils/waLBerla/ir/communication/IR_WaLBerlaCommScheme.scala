@@ -18,14 +18,14 @@ trait IR_WaLBerlaCommScheme extends IR_WaLBerlaInterfaceMember {
 
   def blockDataID : IR_WaLBerlaBlockDataID
   def blockForest : IR_WaLBerlaBlockForest
-  def name : String
 
   def level = wbField.level
   def numSlots = wbField.numSlots
   def levels = blockDataID.levels
 
   def basetype : IR_Datatype
-  def datatype : IR_Datatype = {
+
+  def resolveDatatype() : IR_Datatype = {
     var dt : IR_Datatype = basetype
 
     if (numSlots > 1)

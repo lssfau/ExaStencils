@@ -12,15 +12,15 @@ import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
 case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter {
 
-  override def name = "blocks"
-  override def datatype = IR_SharedPointerDatatype(WB_StructuredBlockForest)
+  override var name : String = "blocks"
 
-  override def ctorParameter : IR_FunctionArgument = IR_FunctionArgument(name, IR_ConstReferenceDatatype(datatype))
-  override def resolveMemberBaseAccess() : IR_VariableAccess = IR_VariableAccess(IR_WaLBerlaUtil.getGeneratedName(name), datatype)
+  override def ctorParameter : IR_FunctionArgument = IR_FunctionArgument(resolveName(), IR_ConstReferenceDatatype(datatype))
+  override def resolveMemberBaseAccess() : IR_VariableAccess = IR_VariableAccess(IR_WaLBerlaUtil.getGeneratedName(resolveName()), datatype)
 
   override def isPrivate : Boolean = true
 
   override def resolveAccess() : IR_Access = resolveMemberBaseAccess()
+  override def resolveDatatype() = IR_SharedPointerDatatype(WB_StructuredBlockForest)
 
   override def getCtor() : Option[IR_Statement] = Some(IR_Assignment(resolveMemberBaseAccess(), IR_FunctionCall(IR_WaLBerlaInitBlockForest().name)))
 

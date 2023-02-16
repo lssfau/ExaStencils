@@ -18,7 +18,7 @@ case class CUDA_WaLBerlaGPUCommScheme(var wbField : IR_WaLBerlaField, var slot :
   def createUniformPackInfo() =
     make_shared(s"cuda::communication::MemcpyPackInfo< ${ WB_FieldDatatype(wbField, onGPU = true).prettyprint() } >", blockDataID)
 
-  def name = s"gpuCommScheme_${ wbField.name }"
+  override var name = s"gpuCommScheme_${ wbField.name }"
 
   def blockDataID = IR_WaLBerlaBlockDataID(wbField, slot, onGPU = true)
   def blockForest = IR_WaLBerlaBlockForest()

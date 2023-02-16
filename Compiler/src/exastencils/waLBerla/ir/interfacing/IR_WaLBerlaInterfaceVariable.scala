@@ -43,10 +43,12 @@ object IR_WaLBerlaInterfaceMember {
 
 // IV-like datastructure for interface members
 trait IR_WaLBerlaInterfaceMember extends IR_Access {
-  def name : String
-  def datatype : IR_Datatype
+  var name : String
 
-  def isPrivate : Boolean
+  def resolveName() : String = name
+  def resolveDatatype() : IR_Datatype
+
+  override def datatype = resolveDatatype()
 
   def resolveAccess() : IR_Access
   def resolveMemberBaseAccess() : IR_Access = IR_VariableAccess(IR_WaLBerlaUtil.getGeneratedName(name), datatype)
@@ -54,6 +56,8 @@ trait IR_WaLBerlaInterfaceMember extends IR_Access {
   def getDeclaration() : IR_VariableDeclaration = IR_VariableDeclaration(datatype, IR_WaLBerlaUtil.getGeneratedName(name))
   def getCtor() : Option[IR_Statement] = None
   def getDtor() : Option[IR_Statement] = None
+
+  def isPrivate : Boolean
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess()
 }

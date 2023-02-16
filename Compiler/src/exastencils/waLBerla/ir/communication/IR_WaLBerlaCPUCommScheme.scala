@@ -16,7 +16,7 @@ case class IR_WaLBerlaCPUCommScheme(var wbField : IR_WaLBerlaField, var slot : I
   def createUniformPackInfo() =
     make_shared(s"field::communication::PackInfo< ${ WB_FieldDatatype(wbField, onGPU = false).prettyprint() } >", blockDataID)
 
-  def name = s"cpuCommScheme_${ wbField.name }"
+  override var name = s"cpuCommScheme_${ wbField.name }"
 
   def blockDataID = IR_WaLBerlaBlockDataID(wbField, slot, onGPU = false)
   def blockForest = IR_WaLBerlaBlockForest()
