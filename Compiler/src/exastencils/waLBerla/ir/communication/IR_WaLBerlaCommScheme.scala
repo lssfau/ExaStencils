@@ -1,23 +1,24 @@
 package exastencils.waLBerla.ir.communication
 
-import exastencils.base.ir._
+import scala.collection.mutable.ListBuffer
+
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_StdArrayDatatype
 import exastencils.config.Knowledge
-import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
+import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceMember
+import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
-trait IR_WaLBerlaCommScheme extends IR_Access{
+trait IR_WaLBerlaCommScheme extends IR_WaLBerlaInterfaceMember {
   def wbField : IR_WaLBerlaField
   def slot : IR_Expression
 
   def blockDataID : IR_WaLBerlaBlockDataID
   def blockForest : IR_WaLBerlaBlockForest
   def name : String
-
-  def baseAccess() = IR_VariableAccess(name, datatype)
 
   def level = wbField.level
   def numSlots = wbField.numSlots
@@ -39,8 +40,8 @@ trait IR_WaLBerlaCommScheme extends IR_Access{
 
   def addPackInfo() = IR_MemberFunctionCallArrow(resolveAccess(), "addPackInfo", createUniformPackInfo())
 
-  def resolveAccess() = {
-    var access : IR_Access = baseAccess()
+  override def resolveAccess() = {
+    var access : IR_Access = IR_VariableAccess(IR_WaLBerlaUtil.getGeneratedName(name), datatype)
 
     if (levels.size > 1)
       access = IR_ArrayAccess(access, level - levels.min)
@@ -50,13 +51,14 @@ trait IR_WaLBerlaCommScheme extends IR_Access{
     access
   }
 
-  def communicate : IR_Statement = {
-    val comm = IR_MemberFunctionCallArrow(resolveAccess(), "communicate")
+  def comnSchemeNecessaryWrapper(stmts : ListBuffer[IR_Statement]) : IR_IfCondition =
     if (Knowledge.waLBerla_useGridFromExa)
-      IR_IfCondition(Knowledge.domain_numFragmentsTotal > 1, comm)
+      IR_IfCondition(Knowledge.domain_numFragmentsTotal > 1, stmts)
     else
-      IR_IfCondition(blockForest.getNumberOfAllRootBlocks() > 1, comm)
-  }
+      IR_IfCondition(blockForest.getNumberOfAllRootBlocks() > 1, stmts)
 
-  override def prettyprint(out : PpStream) : Unit = out << baseAccess()
+  def communicate() : IR_Statement = {
+    val comm = IR_MemberFunctionCallArrow(resolveAccess(), "communicate")
+    comnSchemeNecessaryWrapper(ListBuffer(comm))
+  }
 }

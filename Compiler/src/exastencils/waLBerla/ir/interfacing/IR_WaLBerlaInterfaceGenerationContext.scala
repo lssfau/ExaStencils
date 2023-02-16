@@ -1,93 +1,89 @@
 package exastencils.waLBerla.ir.interfacing
 
+import scala.collection.mutable.LinkedHashMap
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.config.Knowledge
+import exastencils.base.ir._
 import exastencils.core.Duplicate
-import exastencils.waLBerla.ir.blockforest._
-import exastencils.waLBerla.ir.communication._
-import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaAddGPUFieldToStorage
-import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaGPUCommScheme
 import exastencils.waLBerla.ir.field._
-import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
 case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_WaLBerlaFunction]) {
 
   val uniqueWbFields = IR_WaLBerlaFieldCollection.objects.groupBy(_.name).map(_._2.head).to[ListBuffer] // find unique wb fields
     .sortBy(_.name)
 
-  // members
-  var publicMembers : ListBuffer[IR_VariableAccess] = ListBuffer()
-  var privateMembers : ListBuffer[IR_VariableAccess] = ListBuffer()
+  var publicMemberDeclarationMap : LinkedHashMap[String, IR_VariableDeclaration] = LinkedHashMap()
+  var privateMemberDeclarationMap : LinkedHashMap[String, IR_VariableDeclaration] = LinkedHashMap()
 
-  // block data IDs and params of waLBerla function
-  val blockDataIDs = uniqueWbFields.map(wbf => IR_WaLBerlaBlockDataID(wbf, slot = 0, onGPU = false) -> IR_WaLBerlaBlockDataID(wbf, slot = 0, onGPU = true))
-  publicMembers ++= blockDataIDs.map(_._1.member)
-  if (Knowledge.cuda_enabled)
-    publicMembers ++= blockDataIDs.map(_._2.member)
+  var memberCtorMap : LinkedHashMap[String, IR_Statement] = LinkedHashMap()
+  var memberDtorMap : LinkedHashMap[String, IR_Statement] = LinkedHashMap()
 
-  // block storage shared_ptr
-  val blockForest = IR_WaLBerlaBlockForest()
-  privateMembers += blockForest.member
+  var ifaceParamMap : LinkedHashMap[String, IR_FunctionArgument] = LinkedHashMap()
+  var ifaceInitializerListEntryMap : LinkedHashMap[String, (IR_Access, IR_Expression)] = LinkedHashMap()
 
-  // comm scheme for each field. packed with a uniform pack info
-  if (Knowledge.waLBerla_generateCommSchemes) {
-    for (wbf <- uniqueWbFields) {
-      val commSchemes : ListBuffer[IR_WaLBerlaCommScheme] = ListBuffer(IR_WaLBerlaCPUCommScheme(wbf, slot = 0))
-      if (Knowledge.cuda_enabled)
-        commSchemes += CUDA_WaLBerlaGPUCommScheme(wbf, slot = 0)
+  // get interface members and setup decls, ctors/dtors
+  CollectWaLBerlaInterfaceMembers.applyStandalone(functions)
+  for (member <- CollectWaLBerlaInterfaceMembers.collectedMembers.sorted) {
+    // get member declarations
+    val decl = member.getDeclaration()
+    if (member.isPrivate)
+      privateMemberDeclarationMap += (member.name -> decl)
+    else
+      publicMemberDeclarationMap += (member.name -> decl)
 
-      privateMembers ++= commSchemes.map(_.baseAccess())
+    // get member ctors/dtors
+    for (ctor <- member.getCtor())
+      memberCtorMap += (member.name -> ctor)
+    for (dtor <- member.getDtor())
+      memberDtorMap += (member.name -> dtor)
+
+    // get iface ctor params and corresponding initializer list entries
+    member match {
+      case ifaceParam : IR_WaLBerlaInterfaceParameter =>
+        ifaceParamMap += (ifaceParam.name -> ifaceParam.ctorParameter)
+        ifaceInitializerListEntryMap += (ifaceParam.name -> ifaceParam.initializerListEntry)
+      case _                                          =>
     }
   }
 
-  var constructors : ListBuffer[IR_Constructor] = ListBuffer()
-  var destructors : ListBuffer[IR_Destructor] = ListBuffer()
-
-  // prevent duplicate/unnecessary calls
-  var initFunctions : ListBuffer[IR_PlainInternalFunctionReference] = Duplicate(IR_WaLBerlaInitFunctionCollection.functions)
+  // call init functions responsible for setting up exa data structures
+  val initFunctions : ListBuffer[IR_PlainInternalFunctionReference] = Duplicate(IR_WaLBerlaInitExaWrapperFunctions.functions)
     .map(f => IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype))
+
+  // call init functions responsible for setting up coupling
+  val couplingFunctions : ListBuffer[IR_PlainInternalFunctionReference] = Duplicate(IR_WaLBerlaInitCouplingWrapperFunctions.functions)
+    .map(f => IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype))
+
+  var ifaceConstructors : ListBuffer[IR_Constructor] = ListBuffer()
+  var ifaceDestructors : ListBuffer[IR_Destructor] = ListBuffer()
 
   // ctor #1: empty parameter & initializer list, execute static convenience functions to obtain blockDataIDs and blockForest
   {
     // body
     val ctorBody : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
 
-    // assign members to return values of init functions
-    ctorBody += IR_Assignment(blockForest.member, IR_FunctionCall(IR_WaLBerlaInitBlockForest().name))
-    initFunctions = initFunctions.filterNot(f => f.name == IR_WaLBerlaInitBlockForest().name)
-    for ((dataIdCPU, _) <- blockDataIDs) {
-      ctorBody += IR_Assignment(dataIdCPU.member, IR_FunctionCall(IR_WaLBerlaAddFieldToStorage(dataIdCPU.wbField).name, blockForest, 0.0))
-      initFunctions = initFunctions.filterNot(f => f.name == IR_WaLBerlaAddFieldToStorage(dataIdCPU.wbField).name)
-    }
-
-    if (Knowledge.cuda_enabled) {
-      for ((dataIDCPU, dataIDGPU) <- blockDataIDs) {
-        ctorBody += IR_Assignment(dataIDGPU.member, IR_FunctionCall(CUDA_WaLBerlaAddGPUFieldToStorage(dataIDGPU.wbField).name, blockForest, dataIDCPU.member))
-        initFunctions = initFunctions.filterNot(f => f.name == CUDA_WaLBerlaAddGPUFieldToStorage(dataIDGPU.wbField).name)
-      }
-    }
-
-    // initialization in ctor body
+    // exa data initialization in ctor body
     initFunctions foreach (f => ctorBody += IR_FunctionCall(f))
 
-    constructors += IR_Constructor(IR_WaLBerlaInterface.interfaceName, ListBuffer(), IR_MemberInitializerList(), ctorBody)
+    // call ctors of collected members
+    ctorBody ++= memberCtorMap.values
+
+    // exa & waLBerla data structures initialized -> setup coupling
+    couplingFunctions foreach (f => ctorBody += IR_FunctionCall(f))
+
+    ifaceConstructors += IR_Constructor(IR_WaLBerlaInterface.interfaceName, ListBuffer(), IR_MemberInitializerList(), ctorBody)
   }
 
-  // ctor #2: user passes blockDataIDs, blockforest
+  // ctor #2: user provides pointers to existing data structures
   {
     // params
-    var ctorParams : ListBuffer[IR_FunctionArgument] = ListBuffer()
-    ctorParams ++= (blockDataIDs.map(_._1) ++ (if (Knowledge.cuda_enabled) blockDataIDs.map(_._2) else Nil)).map(_.ctorParameter)
-    ctorParams += blockForest.ctorParameter
+    var ctorParams = ListBuffer[IR_FunctionArgument]()
+    ctorParams ++= ifaceParamMap.values
 
     // initializer list
-    var ctorInitializerList : IR_MemberInitializerList = IR_MemberInitializerList()
-    for (dataId <- (blockDataIDs.map(_._1) ++ (if (Knowledge.cuda_enabled) blockDataIDs.map(_._2) else Nil)))
-      ctorInitializerList.addEntry(dataId.initializerListEntry)
-    ctorInitializerList.addEntry(blockForest.initializerListEntry)
+    var ctorInitializerList = IR_MemberInitializerList()
+    ctorInitializerList.arguments ++= ifaceInitializerListEntryMap.values
 
     // body
     val ctorBody : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
@@ -95,16 +91,19 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
     // initialization in ctor body
     initFunctions foreach (f => ctorBody += IR_FunctionCall(f))
 
-    constructors += IR_Constructor(IR_WaLBerlaInterface.interfaceName, ctorParams, ctorInitializerList, ctorBody)
+    // exa & waLBerla data structures initialized -> setup coupling
+    couplingFunctions foreach (f => ctorBody += IR_FunctionCall(f))
+
+    ifaceConstructors += IR_Constructor(IR_WaLBerlaInterface.interfaceName, ctorParams, ctorInitializerList, ctorBody)
   }
 
   // dtor body
   {
     val dtorBody : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
 
-    IR_WaLBerlaDeInitFunctionCollection.functions foreach (f =>
-      dtorBody += IR_FunctionCall(IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype)))
+    IR_WaLBerlaDeInitWrapperFunctions.functions foreach (f => dtorBody += IR_FunctionCall(IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype)))
+    IR_WaLBerlaDeInitExaWrapperFunctions.functions foreach (f => dtorBody += IR_FunctionCall(IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype)))
 
-    destructors += IR_Destructor(IR_WaLBerlaInterface.interfaceName, dtorBody)
+    ifaceDestructors += IR_Destructor(IR_WaLBerlaInterface.interfaceName, dtorBody)
   }
 }

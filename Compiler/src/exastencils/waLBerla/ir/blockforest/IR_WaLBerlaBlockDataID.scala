@@ -7,6 +7,8 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_StdArrayDatatype
 import exastencils.optimization.ir.EvaluationException
 import exastencils.optimization.ir.IR_SimplifyExpression
+import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaAddGPUFieldToStorage
+import exastencils.waLBerla.ir.field.IR_WaLBerlaAddFieldToStorage
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceParameter
@@ -33,7 +35,7 @@ case class IR_WaLBerlaBlockDataID(var wbField : IR_WaLBerlaField, var slot : IR_
   val levels : ListBuffer[Int] = IR_WaLBerlaFieldCollection.getAllByIdentifier(wbField.name, suppressError = true).map(_.level)
 
   override def resolveAccess() = {
-    var access : IR_Access = member
+    var access : IR_Access = resolveMemberBaseAccess()
 
     if (levels.size > 1) {
       val simplifiedLvlIdx = try {
@@ -50,6 +52,18 @@ case class IR_WaLBerlaBlockDataID(var wbField : IR_WaLBerlaField, var slot : IR_
     access
   }
 
+  private val blockforest = IR_WaLBerlaBlockForest()
+
+  override def isPrivate : Boolean = true
+
+  override def getCtor() : Option[IR_Statement] = Some(
+    if (onGPU) {
+      val cpuID = IR_WaLBerlaBlockDataID(wbField, slot, onGPU = false)
+      IR_Assignment(resolveMemberBaseAccess(), IR_FunctionCall(CUDA_WaLBerlaAddGPUFieldToStorage(wbField).name, blockforest, cpuID.resolveMemberBaseAccess()))
+    } else {
+      IR_Assignment(resolveMemberBaseAccess(), IR_FunctionCall(IR_WaLBerlaAddFieldToStorage(wbField).name, blockforest, 0.0))
+    })
+
   override def ctorParameter : IR_FunctionArgument = IR_FunctionArgument(name, datatype)
-  override def member : IR_VariableAccess = IR_VariableAccess(getGeneratedName(name), datatype)
+  override def resolveMemberBaseAccess() : IR_VariableAccess = IR_VariableAccess(getGeneratedName(name), datatype)
 }

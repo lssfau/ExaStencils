@@ -56,8 +56,8 @@ object IR_WaLBerlaSetupCommunication extends DefaultStrategy("Communication hand
         case "Condition"   => Knowledge.cuda_executionCondition
       }
       val body = ListBuffer[IR_Statement](IR_IfCondition(cond,
-        commSchemeCPU.communicate,
-        commSchemeGPU.communicate))
+        commSchemeCPU.communicate(),
+        commSchemeGPU.communicate()))
 
       if (comm.timer.isDefined) {
         body.prepend(IR_FunctionCall(IR_StartTimer().name, comm.timer.get))

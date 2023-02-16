@@ -16,9 +16,13 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter {
   override def datatype = IR_SharedPointerDatatype(WB_StructuredBlockForest)
 
   override def ctorParameter : IR_FunctionArgument = IR_FunctionArgument(name, IR_ConstReferenceDatatype(datatype))
-  override def member : IR_VariableAccess = IR_VariableAccess(IR_WaLBerlaUtil.getGeneratedName(name), datatype)
+  override def resolveMemberBaseAccess() : IR_VariableAccess = IR_VariableAccess(IR_WaLBerlaUtil.getGeneratedName(name), datatype)
 
-  override def resolveAccess() : IR_Access = member
+  override def isPrivate : Boolean = true
+
+  override def resolveAccess() : IR_Access = resolveMemberBaseAccess()
+
+  override def getCtor() : Option[IR_Statement] = Some(IR_Assignment(resolveMemberBaseAccess(), IR_FunctionCall(IR_WaLBerlaInitBlockForest().name)))
 
   def maxLevelWaLBerlaField = {
     if (IR_WaLBerlaFieldCollection.objects.nonEmpty)
