@@ -29,17 +29,14 @@ import exastencils.field.ir.IR_FieldCollection
 import exastencils.fieldlike.ir.IR_FieldLikeCollections
 import exastencils.prettyprinting._
 
-/// IR_InternalVariable
+/// IR_InternalVariableLike
 
-abstract class IR_InternalVariable(
-    var canBePerFragment : Boolean,
-    var canBePerDomain : Boolean,
-    var canBePerField : Boolean,
-    var canBePerLevel : Boolean,
-    var canBePerNeighbor : Boolean) extends IR_Expression {
-
-  override def datatype = resolveDatatype()
-  override def prettyprint(out : PpStream) : Unit = out << resolveName
+trait IR_InternalVariableLike {
+  def canBePerFragment : Boolean
+  def canBePerDomain : Boolean
+  def canBePerField : Boolean
+  def canBePerLevel : Boolean
+  def canBePerNeighbor : Boolean
 
   def usesFragmentArrays : Boolean = true
   def usesDomainArrays : Boolean = true
@@ -134,6 +131,19 @@ abstract class IR_InternalVariable(
 
     access
   }
+}
+
+/// IR_InternalVariable
+
+abstract class IR_InternalVariable(
+    var canBePerFragment : Boolean,
+    var canBePerDomain : Boolean,
+    var canBePerField : Boolean,
+    var canBePerLevel : Boolean,
+    var canBePerNeighbor : Boolean) extends IR_Expression with IR_InternalVariableLike {
+
+  override def datatype = resolveDatatype()
+  override def prettyprint(out : PpStream) : Unit = out << resolveName
 
   def registerIV(declarations : HashMap[String, IR_VariableDeclaration], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
     declarations += (resolveName -> getDeclaration)
