@@ -8,7 +8,7 @@ import exastencils.base.ir._
 import exastencils.core.Duplicate
 import exastencils.waLBerla.ir.field._
 
-case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_WaLBerlaFunction]) extends IR_Node {
+case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_WaLBerlaFunction]) {
 
   val uniqueWbFields = IR_WaLBerlaFieldCollection.objects.groupBy(_.name).map(_._2.head).to[ListBuffer] // find unique wb fields
     .sortBy(_.name)
