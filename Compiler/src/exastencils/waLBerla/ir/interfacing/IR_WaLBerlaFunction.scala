@@ -96,7 +96,7 @@ object IR_WaLBerlaSetupFunctions extends DefaultStrategy("Transform functions ac
     case fAcc : IR_WaLBerlaFieldAccess                                          =>
       findEnclosingFunction(stackCollector.stack)
       fAcc
-    case acc : IR_Access if acc == IR_WaLBerlaBlockForest().resolveAccess()     =>
+    case acc : IR_Access if acc == IR_WaLBerlaBlockForest()                     =>
       findEnclosingFunction(stackCollector.stack)
       acc
     case loop : IR_WaLBerlaLoopOverBlocks                                       =>

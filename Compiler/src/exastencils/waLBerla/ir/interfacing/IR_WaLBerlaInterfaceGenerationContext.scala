@@ -25,18 +25,11 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
   // get interface members and setup decls, ctors/dtors
   CollectWaLBerlaInterfaceMembers.applyStandalone(functions)
   for (member <- CollectWaLBerlaInterfaceMembers.collectedMembers.sorted) {
-    // get member declarations
-    val decl = member.getDeclaration()
+    // register member decls, ctors and dtors
     if (member.isPrivate)
-      privateMemberDeclarationMap += (member.name -> decl)
+      member.registerIV(privateMemberDeclarationMap, memberCtorMap, memberDtorMap)
     else
-      publicMemberDeclarationMap += (member.name -> decl)
-
-    // get member ctors/dtors
-    for (ctor <- member.getCtor())
-      memberCtorMap += (member.name -> ctor)
-    for (dtor <- member.getDtor())
-      memberDtorMap += (member.name -> dtor)
+      member.registerIV(publicMemberDeclarationMap, memberCtorMap, memberDtorMap)
 
     // get iface ctor params and corresponding initializer list entries
     member match {

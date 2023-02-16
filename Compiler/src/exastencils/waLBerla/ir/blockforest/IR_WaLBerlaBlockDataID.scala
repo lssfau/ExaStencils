@@ -5,46 +5,52 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_StdArrayDatatype
-import exastencils.optimization.ir.EvaluationException
-import exastencils.optimization.ir.IR_SimplifyExpression
+import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaAddGPUFieldToStorage
 import exastencils.waLBerla.ir.field.IR_WaLBerlaAddFieldToStorage
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceParameter
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_BlockDataID
-import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil.getGeneratedName
 
-case class IR_WaLBerlaBlockDataID(var wbField : IR_WaLBerlaField, var slot : IR_Expression, var onGPU : Boolean) extends IR_WaLBerlaInterfaceParameter {
+case class IR_WaLBerlaBlockDataID(
+    var wbField : IR_WaLBerlaField,
+    var slot : IR_Expression,
+    var onGPU : Boolean
+) extends IR_WaLBerlaInterfaceParameter(false, true, false) {
 
-  override var name = wbField.name + "_ID" + (if (onGPU) "_GPU" else "")
+  def name = wbField.name + "_ID" + (if (onGPU) "_GPU" else "")
 
   override def resolveDatatype() : IR_Datatype = {
     var dt : IR_Datatype = WB_BlockDataID
 
     if (numSlots > 1)
       dt = IR_StdArrayDatatype(dt, numSlots)
-    if (levels.size > 1)
-      dt = IR_StdArrayDatatype(dt, levels.size)
 
     dt
+  }
+
+  override def getDeclaration() : IR_VariableDeclaration = IR_VariableDeclaration(datatype, resolveName())
+
+  // IR_WaLBerlaAddFieldToStorage initializes all slots -> rewire access to be non-slotted
+  override def getCtor() : Option[IR_Statement] = {
+    var baseAccess : IR_Access = resolveMemberBaseAccess()
+    Some(wrapInLoops(
+      IR_Assignment(super.resolveAccess(baseAccess, IR_NullExpression, level, IR_NullExpression), resolveDefValue().get)))
   }
 
   var level : IR_Expression = wbField.level
   val numSlots : Int = wbField.numSlots
   val levels : ListBuffer[Int] = IR_WaLBerlaFieldCollection.getAllByIdentifier(wbField.name, suppressError = true).map(_.level)
 
-  override def resolveAccess() = {
-    var access : IR_Access = resolveMemberBaseAccess()
+  override def numLevels : Int = levels.size
 
-    if (levels.size > 1) {
-      val simplifiedLvlIdx = try {
-        IR_SimplifyExpression.simplifyIntegralExpr(level - levels.min)
-      } catch {
-        case _ : EvaluationException => level - levels.min
-      }
-      access = IR_ArrayAccess(access, simplifiedLvlIdx)
-    }
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveMemberBaseAccess(), IR_NullExpression, level, IR_NullExpression)
+
+  override def resolveAccess(baseAccess : IR_Expression, block : IR_Expression, level : IR_Expression, neigh : IR_Expression) = {
+    var baseAccess : IR_Access = resolveMemberBaseAccess()
+    var access = super.resolveAccess(baseAccess, block, level, level)
+
     if (numSlots > 1) {
       access = IR_ArrayAccess(access, slot)
     }
@@ -56,14 +62,14 @@ case class IR_WaLBerlaBlockDataID(var wbField : IR_WaLBerlaField, var slot : IR_
 
   override def isPrivate : Boolean = true
 
-  override def getCtor() : Option[IR_Statement] = Some(
+  override def resolveDefValue() = Some(
     if (onGPU) {
       val cpuID = IR_WaLBerlaBlockDataID(wbField, slot, onGPU = false)
-      IR_Assignment(resolveMemberBaseAccess(), IR_FunctionCall(CUDA_WaLBerlaAddGPUFieldToStorage(wbField).name, blockforest, cpuID.resolveMemberBaseAccess()))
+      IR_FunctionCall(CUDA_WaLBerlaAddGPUFieldToStorage(wbField).name, blockforest, cpuID.resolveMemberBaseAccess())
     } else {
-      IR_Assignment(resolveMemberBaseAccess(), IR_FunctionCall(IR_WaLBerlaAddFieldToStorage(wbField).name, blockforest, 0.0))
+      IR_FunctionCall(IR_WaLBerlaAddFieldToStorage(wbField).name, blockforest, 0.0)
     })
 
   override def ctorParameter : IR_FunctionArgument = IR_FunctionArgument(name, datatype)
-  override def resolveMemberBaseAccess() : IR_VariableAccess = IR_VariableAccess(getGeneratedName(name), datatype)
+  override def resolveMemberBaseAccess() : IR_VariableAccess = IR_VariableAccess(resolveName(), datatype)
 }

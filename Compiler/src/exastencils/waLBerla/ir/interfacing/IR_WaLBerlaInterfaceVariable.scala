@@ -3,7 +3,11 @@ package exastencils.waLBerla.ir.interfacing
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir._
+import exastencils.communication.DefaultNeighbors
+import exastencils.config.Knowledge
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.prettyprinting.PpStream
@@ -42,28 +46,105 @@ object IR_WaLBerlaInterfaceMember {
 }
 
 // IV-like datastructure for interface members
-trait IR_WaLBerlaInterfaceMember extends IR_Access {
-  var name : String
+abstract class IR_WaLBerlaInterfaceMember(
+    var canBePerBlock : Boolean,
+    var canBePerLevel : Boolean,
+    var canBePerNeighbor : Boolean) extends IR_Access with IR_InternalVariableLike {
 
-  def resolveName() : String = name
+  def name : String
+
+  def resolveMemberBaseAccess() : IR_Access = IR_VariableAccess(IR_WaLBerlaUtil.getGeneratedName(name), datatype)
+
+  def isPrivate : Boolean
+
+  def numBlocks : Int = Knowledge.domain_numFragmentsPerBlock
+  def numLevels : Int = Knowledge.numLevels
+  def numNeighbors : Int = DefaultNeighbors.neighbors.size
+
+  def hasMultipleBlocks : Boolean = numBlocks > 1
+  def hasMultipleLevels : Boolean = numLevels > 1
+  def hasMultipleNeighbors : Boolean =  DefaultNeighbors.neighbors.size > 1
+
+  override def getDeclaration() : IR_VariableDeclaration = {
+    var datatype : IR_Datatype = resolveDatatype()
+
+    if (canBePerBlock && hasMultipleBlocks)
+      datatype = IR_StdArrayDatatype(datatype, numBlocks)
+    if (canBePerLevel && hasMultipleLevels)
+      datatype = IR_StdArrayDatatype(datatype, numLevels)
+    if (canBePerNeighbor && hasMultipleNeighbors)
+      datatype = IR_StdArrayDatatype(datatype, numNeighbors)
+
+    new IR_VariableDeclaration(datatype, resolveName())
+  }
+
+  override def wrapInLoops(body : IR_Statement) : IR_Statement = {
+    var wrappedBody = body
+
+    // TODO: loops currently manually expanded
+    if (canBePerBlock && hasMultipleBlocks)
+      wrappedBody = IR_LoopOverFragments(wrappedBody).expandSpecial().inner
+    if (canBePerLevel && hasMultipleLevels)
+      wrappedBody = IR_LoopOverLevels(wrappedBody).expand().inner
+    if (canBePerNeighbor && hasMultipleNeighbors)
+      wrappedBody = IR_LoopOverNeighbors(wrappedBody).expand().inner
+
+    wrappedBody
+  }
+
+  def resolveName() : String = IR_WaLBerlaUtil.getGeneratedName(name)
   def resolveDatatype() : IR_Datatype
 
   override def datatype = resolveDatatype()
 
-  def resolveAccess() : IR_Access
-  def resolveMemberBaseAccess() : IR_Access = IR_VariableAccess(IR_WaLBerlaUtil.getGeneratedName(name), datatype)
+  def resolveAccess(baseAccess : IR_Expression, block : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
+    var access = baseAccess
 
-  def getDeclaration() : IR_VariableDeclaration = IR_VariableDeclaration(datatype, IR_WaLBerlaUtil.getGeneratedName(name))
-  def getCtor() : Option[IR_Statement] = None
-  def getDtor() : Option[IR_Statement] = None
+    // reverse compared to datatype wrapping, since we need to unwrap it "from outer to inner"
+    if (canBePerNeighbor && hasMultipleNeighbors)
+      access = IR_ArrayAccess(access, neigh)
+    if (canBePerLevel && hasMultipleLevels) {
+      val simplifiedLevel : IR_Expression =
+        level match {
+          case IR_IntegerConstant(v) => v - Knowledge.minLevel
+          case _                     => level - Knowledge.minLevel
+        }
+      access = IR_ArrayAccess(access, simplifiedLevel)
+    }
+    if (canBePerBlock && hasMultipleBlocks)
+      access = IR_ArrayAccess(access, block)
 
-  def isPrivate : Boolean
+    access
+  }
 
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess()
+  def resolvePostfix(block : String, level : String, neigh : String) : String = {
+    var postfix : String = ""
+
+    if (canBePerBlock && hasMultipleBlocks)
+      postfix += "_" + block
+    if (canBePerLevel && hasMultipleLevels)
+      postfix += "_" + level
+    if (canBePerNeighbor && hasMultipleNeighbors)
+      postfix += "_" + neigh
+
+    postfix
+  }
+
+  override def resolvePostfix(fragment : String, domain : String, field : String, level : String, neigh : String) : String =
+    resolvePostfix(fragment, level, neigh)
+
+  override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression =
+    resolveAccess(baseAccess, fragment, level, neigh)
+
+  override def prettyprint(out : PpStream) : Unit = out << resolveName
 }
 
 // for interface members which can be initialized with a non-default constructor via initializer lists
-trait IR_WaLBerlaInterfaceParameter extends IR_WaLBerlaInterfaceMember {
+abstract class IR_WaLBerlaInterfaceParameter(
+    canBePerBlock : Boolean,
+    canBePerLevel : Boolean,
+    canBePerNeighbor : Boolean) extends IR_WaLBerlaInterfaceMember(canBePerBlock, canBePerLevel, canBePerNeighbor) {
+
   def initializerListEntry : (IR_Access, IR_Expression) = (resolveMemberBaseAccess(), ctorParameter.access)
   def ctorParameter : IR_FunctionArgument
 }

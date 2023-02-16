@@ -25,9 +25,9 @@ case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction])
 
   import IR_WaLBerlaInterface._
 
-  def printHeader() : Unit = {
-    val context = IR_WaLBerlaInterfaceGenerationContext(functions)
+  val context = IR_WaLBerlaInterfaceGenerationContext(functions)
 
+  def printHeader() : Unit = {
     val writerHeader = PrettyprintingManager.getPrinter(defHeader(interfaceName))
 
     /* dependencies */
