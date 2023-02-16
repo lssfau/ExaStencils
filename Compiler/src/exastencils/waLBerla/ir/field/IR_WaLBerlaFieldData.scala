@@ -1,7 +1,7 @@
 package exastencils.waLBerla.ir.field
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.AbstractMap
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
@@ -28,7 +28,7 @@ sealed trait IR_IV_GetWaLBerlaFieldFromScope extends IR_InternalVariable {
   // don't use as global variables
   override def getCtor() : Option[IR_Statement] = None
   override def getDtor() : Option[IR_Statement] = None
-  override def registerIV(declarations : mutable.HashMap[String, IR_VariableDeclaration], ctors : mutable.HashMap[String, IR_Statement], dtors : mutable.HashMap[String, IR_Statement]) : Unit = {}
+  override def registerIV(declarations : AbstractMap[String, IR_VariableDeclaration], ctors : AbstractMap[String, IR_Statement], dtors : AbstractMap[String, IR_Statement]) : Unit = {}
 }
 
 /// IR_IV_WaLBerlaGetField

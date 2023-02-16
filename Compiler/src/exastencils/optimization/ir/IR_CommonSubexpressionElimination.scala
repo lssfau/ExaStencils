@@ -18,6 +18,7 @@
 
 package exastencils.optimization.ir
 
+import scala.collection.mutable.AbstractMap
 import scala.collection.mutable.{ ArrayBuffer, BitSet, Buffer, HashMap, ListBuffer, Map }
 import scala.reflect.ClassTag
 import scala.util.Sorting
@@ -770,7 +771,7 @@ case class IR_IV_LoopCarriedCSBuffer(var identifier : Int, var baseDatatype : IR
 
   lazy val basePtr = IR_IV_LoopCarriedCSBufferBasePtr(identifier, baseDatatype)
 
-  override def registerIV(declarations : HashMap[String, IR_VariableDeclaration], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
+  override def registerIV(declarations : AbstractMap[String, IR_VariableDeclaration], ctors : AbstractMap[String, IR_Statement], dtors : AbstractMap[String, IR_Statement]) = {
     super.registerIV(declarations, ctors, dtors)
     if (Knowledge.data_alignFieldPointers) // align this buffer iff field pointers are aligned -> register corresponding base pointer
     basePtr.registerIV(declarations, ctors, dtors)
