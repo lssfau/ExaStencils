@@ -39,8 +39,6 @@ abstract class IR_WaLBerlaCommScheme extends IR_WaLBerlaInterfaceMember(false, t
 
   private def resolveAccess() : IR_Expression = resolveAccess(resolveMemberBaseAccess(), IR_NullExpression, level, IR_NullExpression)
 
-  override def getDeclaration() : IR_VariableDeclaration = IR_VariableDeclaration(datatype, resolveName())
-
   def createUniformPackInfo() : IR_Expression
 
   def addPackInfo() = IR_MemberFunctionCallArrow(resolveAccess(), "addPackInfo", createUniformPackInfo())

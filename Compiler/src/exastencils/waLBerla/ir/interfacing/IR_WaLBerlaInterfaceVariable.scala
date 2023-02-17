@@ -53,7 +53,7 @@ abstract class IR_WaLBerlaInterfaceMember(
 
   def name : String
 
-  def resolveMemberBaseAccess() : IR_Access = IR_VariableAccess(IR_WaLBerlaUtil.getGeneratedName(name), datatype)
+  def resolveMemberBaseAccess() : IR_Access = IR_VariableAccess(IR_WaLBerlaUtil.getGeneratedName(name), getWrappedDatatype())
 
   def isPrivate : Boolean
 
@@ -65,7 +65,7 @@ abstract class IR_WaLBerlaInterfaceMember(
   def hasMultipleLevels : Boolean = numLevels > 1
   def hasMultipleNeighbors : Boolean =  DefaultNeighbors.neighbors.size > 1
 
-  override def getDeclaration() : IR_VariableDeclaration = {
+  def getWrappedDatatype() : IR_Datatype = {
     var datatype : IR_Datatype = resolveDatatype()
 
     if (canBePerBlock && hasMultipleBlocks)
@@ -75,8 +75,11 @@ abstract class IR_WaLBerlaInterfaceMember(
     if (canBePerNeighbor && hasMultipleNeighbors)
       datatype = IR_StdArrayDatatype(datatype, numNeighbors)
 
-    new IR_VariableDeclaration(datatype, resolveName())
+    datatype
   }
+
+  override def getDeclaration() : IR_VariableDeclaration =
+    new IR_VariableDeclaration(getWrappedDatatype(), resolveName())
 
   override def wrapInLoops(body : IR_Statement) : IR_Statement = {
     var wrappedBody = body
@@ -146,5 +149,5 @@ abstract class IR_WaLBerlaInterfaceParameter(
     canBePerNeighbor : Boolean) extends IR_WaLBerlaInterfaceMember(canBePerBlock, canBePerLevel, canBePerNeighbor) {
 
   def initializerListEntry : (IR_Access, IR_Expression) = (resolveMemberBaseAccess(), ctorParameter.access)
-  def ctorParameter : IR_FunctionArgument
+  def ctorParameter : IR_FunctionArgument = IR_FunctionArgument(name, getWrappedDatatype())
 }

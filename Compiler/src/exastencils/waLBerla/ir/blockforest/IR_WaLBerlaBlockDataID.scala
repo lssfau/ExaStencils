@@ -30,13 +30,9 @@ case class IR_WaLBerlaBlockDataID(
     dt
   }
 
-  override def getDeclaration() : IR_VariableDeclaration = IR_VariableDeclaration(datatype, resolveName())
-
-  // IR_WaLBerlaAddFieldToStorage initializes all slots -> rewire access to be non-slotted
+  // IR_WaLBerlaAdd(GPU)FieldToStorage initializes all slots and levels -> use base access
   override def getCtor() : Option[IR_Statement] = {
-    var baseAccess : IR_Access = resolveMemberBaseAccess()
-    Some(wrapInLoops(
-      IR_Assignment(super.resolveAccess(baseAccess, IR_NullExpression, level, IR_NullExpression), resolveDefValue().get)))
+    Some(IR_Assignment(resolveMemberBaseAccess(), resolveDefValue().get))
   }
 
   var level : IR_Expression = wbField.level
@@ -69,7 +65,4 @@ case class IR_WaLBerlaBlockDataID(
     } else {
       IR_FunctionCall(IR_WaLBerlaAddFieldToStorage(wbField).name, blockforest, 0.0)
     })
-
-  override def ctorParameter : IR_FunctionArgument = IR_FunctionArgument(name, datatype)
-  override def resolveMemberBaseAccess() : IR_VariableAccess = IR_VariableAccess(resolveName(), datatype)
 }

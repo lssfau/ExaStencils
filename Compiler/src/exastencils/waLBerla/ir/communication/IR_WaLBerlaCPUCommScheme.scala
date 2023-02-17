@@ -23,6 +23,7 @@ case class IR_WaLBerlaCPUCommScheme(var wbField : IR_WaLBerlaField, var slot : I
 
   override def isPrivate : Boolean = true
 
+  // init comm scheme function sets up comm scheme for all levels and slots
   override def getCtor() : Option[IR_Statement] = Some(
     IR_FunctionCall(IR_WaLBerlaInitCommSchemes(onGPU = false, wbField).name)
   )

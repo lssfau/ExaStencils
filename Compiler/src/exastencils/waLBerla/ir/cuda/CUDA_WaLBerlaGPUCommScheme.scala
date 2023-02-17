@@ -25,6 +25,7 @@ case class CUDA_WaLBerlaGPUCommScheme(var wbField : IR_WaLBerlaField, var slot :
 
   override def isPrivate : Boolean = true
 
+  // init comm scheme function sets up comm scheme for all levels and slots
   override def getCtor() : Option[IR_Statement] = Some(
     IR_FunctionCall(IR_WaLBerlaInitCommSchemes(onGPU = false, wbField).name)
   )
