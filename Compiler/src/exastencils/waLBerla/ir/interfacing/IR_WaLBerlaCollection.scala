@@ -68,6 +68,7 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   if (Knowledge.opt_vectorize)
     if (Platform.simd_header != null) addExternalDependency(Platform.simd_header)
 
+  var interfaceContext : Option[IR_WaLBerlaInterfaceGenerationContext] = None
   var interfaceInstance : Option[IR_WaLBerlaInterface] = None
 
   // add future functions

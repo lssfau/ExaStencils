@@ -1,33 +1,14 @@
 package exastencils.waLBerla.ir.interfacing
 
-import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
-
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.DefaultNeighbors
 import exastencils.config.Knowledge
-import exastencils.datastructures.QuietDefaultStrategy
-import exastencils.datastructures.Transformation
 import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
-
-object CollectWaLBerlaInterfaceMembers extends QuietDefaultStrategy("Collect waLBerla iface members") {
-  override def applyStandalone[T](nodes : mutable.Buffer[T]) : Unit = {
-    collectedMembers.clear()
-    super.applyStandalone(nodes)
-  }
-
-  var collectedMembers = ListBuffer[IR_WaLBerlaInterfaceMember]()
-  this += Transformation("..", {
-    case iv : IR_WaLBerlaInterfaceMember =>
-      collectedMembers += iv
-      iv
-  })
-}
 
 // implicit ordering for interface member classes
 object IR_WaLBerlaInterfaceMember {

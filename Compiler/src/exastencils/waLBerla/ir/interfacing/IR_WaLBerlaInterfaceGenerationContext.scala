@@ -6,9 +6,11 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.core.Duplicate
+import exastencils.datastructures.QuietDefaultStrategy
+import exastencils.datastructures.Transformation
 import exastencils.waLBerla.ir.field._
 
-case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_WaLBerlaFunction]) {
+case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaLBerlaInterfaceMember]) {
 
   val uniqueWbFields = IR_WaLBerlaFieldCollection.objects.groupBy(_.name).map(_._2.head).to[ListBuffer] // find unique wb fields
     .sortBy(_.name)
@@ -23,8 +25,7 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
   var ifaceInitializerListEntryMap : LinkedHashMap[String, (IR_Access, IR_Expression)] = LinkedHashMap()
 
   // get interface members and setup decls, ctors/dtors
-  CollectWaLBerlaInterfaceMembers.applyStandalone(functions)
-  for (member <- CollectWaLBerlaInterfaceMembers.collectedMembers.sorted) {
+  for (member <- members.sorted) {
     // register member decls, ctors and dtors
     if (member.isPrivate)
       member.registerIV(privateMemberDeclarationMap, memberCtorMap, memberDtorMap)
@@ -99,4 +100,19 @@ case class IR_WaLBerlaInterfaceGenerationContext(var functions : ListBuffer[IR_W
 
     ifaceDestructors += IR_Destructor(IR_WaLBerlaInterface.interfaceName, dtorBody)
   }
+}
+
+object IR_WaLBerlaAddInterfaceMembers extends QuietDefaultStrategy("Add waLBerla iface members") {
+  var collectedMembers = ListBuffer[IR_WaLBerlaInterfaceMember]()
+  this += Transformation("..", {
+    case iv : IR_WaLBerlaInterfaceMember =>
+      collectedMembers += iv
+      iv
+  })
+
+  this += Transformation("..", {
+    case wbColl : IR_WaLBerlaCollection =>
+      wbColl.interfaceContext = Some(IR_WaLBerlaInterfaceGenerationContext(collectedMembers.sorted))
+      wbColl
+  })
 }

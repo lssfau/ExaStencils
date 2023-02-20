@@ -21,11 +21,9 @@ object IR_WaLBerlaInterface {
   def interfaceName = "ExaInterface"
 }
 
-case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction]) extends IR_Node with FilePrettyPrintable {
+case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction], context : IR_WaLBerlaInterfaceGenerationContext) extends IR_Node with FilePrettyPrintable {
 
   import IR_WaLBerlaInterface._
-
-  val context = IR_WaLBerlaInterfaceGenerationContext(functions)
 
   def printHeader() : Unit = {
     val writerHeader = PrettyprintingManager.getPrinter(defHeader(interfaceName))
@@ -118,7 +116,8 @@ object IR_WaLBerlaCreateInterface extends DefaultStrategy("Find functions and cr
 
       // create interface object
       if (Knowledge.waLBerla_generateInterface) {
-        collection.interfaceInstance = Some(IR_WaLBerlaInterface(Duplicate(wbFunctions)))
+        val ctx = collection.interfaceContext.get
+        collection.interfaceInstance = Some(IR_WaLBerlaInterface(Duplicate(wbFunctions), ctx))
         collection.functions = collection.functions diff wbFunctions
       }
 
