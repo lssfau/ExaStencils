@@ -41,7 +41,8 @@ object IR_WaLBerlaLoopOverBlocks {
 // iterates through process-local blocks
 case class IR_WaLBerlaLoopOverBlocks(
     var body : ListBuffer[IR_Statement],
-    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_ScopedStatement with IR_SpecialExpandable with IR_HasParallelizationInfo {
+    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo(),
+    var setupWaLBerlaFieldPointers : Boolean = true) extends IR_ScopedStatement with IR_SpecialExpandable with IR_HasParallelizationInfo {
 
   def expandSpecial() : Output[IR_ForLoop] = {
     // TODO: separate omp and potentiallyParallel
@@ -63,27 +64,14 @@ case class IR_WaLBerlaLoopOverBlocks(
     else
       cpuExecution
 
-    def getField(fAcc : IR_MultiDimWaLBerlaFieldAccess, onGPU : Boolean) = IR_IV_WaLBerlaGetField(fAcc.field, fAcc.slot, onGPU, fAcc.fragIdx)
-
     def getFieldPointer(fAcc : IR_MultiDimWaLBerlaFieldAccess) = IR_IV_WaLBerlaFieldData(fAcc.field, fAcc.slot, fAcc.fragIdx)
 
     // get data pointer to CPU/GPU memory and (additionally) fetch CPU field instance (used e.g. for variable-sized layouts)
     def getWaLBerlaFieldData(accesses : IR_MultiDimWaLBerlaFieldAccess*) : ListBuffer[IR_Statement] = {
       accesses.to[mutable.ListBuffer].flatMap(fAcc => {
-        val cpuField = getField(fAcc, onGPU = false)
-        val gpuField = getField(fAcc, onGPU = true)
         val fieldPointer = getFieldPointer(fAcc)
 
         val stmts = ListBuffer[IR_Statement]()
-        // declare field instances
-        stmts += cpuField.getDeclaration()
-        if (Knowledge.cuda_enabled)
-          stmts += gpuField.getDeclaration()
-        // init field instances conditionally
-        if (Knowledge.cuda_enabled)
-          stmts ++= annotateBranch(condWrapper, cpuField.initInBlockLoop(), gpuField.initInBlockLoop())
-        else
-          stmts ++= cpuField.initInBlockLoop()
 
         // declare field data pointer
         stmts += fieldPointer.getDeclaration()
@@ -91,6 +79,8 @@ case class IR_WaLBerlaLoopOverBlocks(
           stmts ++= annotateBranch(condWrapper, fieldPointer.initInBlockLoop(onGPU = false), fieldPointer.initInBlockLoop(onGPU = true))
         else
           stmts ++= fieldPointer.initInBlockLoop(onGPU = false)
+
+        stmts
       })
     }
 
@@ -102,7 +92,10 @@ case class IR_WaLBerlaLoopOverBlocks(
       IR_VariableDeclaration(defIt, blockForest.begin()),
       IR_Neq(defIt, blockForest.end()),
       IR_PreIncrement(defIt),
-      getWaLBerlaFieldData(fieldsAccessed : _*) ++ body,
+      if (setupWaLBerlaFieldPointers)
+        getWaLBerlaFieldData(fieldsAccessed : _*) ++ body
+      else
+        body,
       parallelization)
   }
 }

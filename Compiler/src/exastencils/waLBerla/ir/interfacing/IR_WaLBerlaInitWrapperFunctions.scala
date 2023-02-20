@@ -15,14 +15,27 @@ object IR_WaLBerlaInitWrapperFunctions {
   functions += IR_WaLBerlaInitBlockForest()
   for (field <- IR_WaLBerlaFieldCollection.objects.groupBy(_.name)) {
     val leveledFields = field._2.groupBy(_.level).map(_._2.head).to[ListBuffer]
-    functions += IR_WaLBerlaAddFieldToStorage(leveledFields : _*)
 
+    // add fields to block storage
+    functions += IR_WaLBerlaAddFieldToStorage(leveledFields : _*)
     if (Knowledge.cuda_enabled)
       functions += CUDA_WaLBerlaAddGPUFieldToStorage(leveledFields : _*)
 
+    // init field instance pointers
+    functions += IR_WaLBerlaInitFieldInstances(onGPU = false, leveledFields : _*)
+    if (Knowledge.cuda_enabled)
+      functions += IR_WaLBerlaInitFieldInstances(onGPU = true, leveledFields : _*)
+
+    // store and init pointers to internal waLBerla field data
+    if (Knowledge.waLBerla_useInternalMemoryPointers) {
+      functions += IR_WaLBerlaInitFieldDataPtrs(onGPU = false, leveledFields : _*)
+      if (Knowledge.cuda_enabled)
+        functions += IR_WaLBerlaInitFieldDataPtrs(onGPU = true, leveledFields : _*)
+    }
+
+    // init comm scheme objects
     if (Knowledge.waLBerla_generateCommSchemes) {
       functions += IR_WaLBerlaInitCommSchemes(onGPU = false, leveledFields : _*)
-
       if (Knowledge.cuda_enabled)
         functions += IR_WaLBerlaInitCommSchemes(onGPU = true, leveledFields : _*)
     }
