@@ -35,8 +35,8 @@ case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaL
     // get iface ctor params and corresponding initializer list entries
     member match {
       case ifaceParam : IR_WaLBerlaInterfaceParameter =>
-        ifaceParamMap += (ifaceParam.name -> ifaceParam.ctorParameter)
-        ifaceInitializerListEntryMap += (ifaceParam.name -> ifaceParam.initializerListEntry)
+        ifaceParamMap += (ifaceParam.resolveName() -> ifaceParam.ctorParameter)
+        ifaceInitializerListEntryMap += (ifaceParam.resolveName() -> ifaceParam.initializerListEntry)
       case _                                          =>
     }
   }
@@ -84,6 +84,9 @@ case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaL
 
     // initialization in ctor body
     initFunctions foreach (f => ctorBody += IR_FunctionCall(f))
+
+    // call ctors of collected members (except those in iface ctor initializer list)
+    ctorBody ++= memberCtorMap.filter { case (name, _) => !ifaceParamMap.keys.exists(_ == name) }.values
 
     // exa & waLBerla data structures initialized -> setup coupling
     couplingFunctions foreach (f => ctorBody += IR_FunctionCall(f))
