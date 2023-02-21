@@ -73,7 +73,7 @@ case class IR_IV_WaLBerlaGetField(
 
   // init function sets up field instances for all levels and slots
   override def getCtor() : Option[IR_Statement] = Some(
-    IR_FunctionCall(IR_WaLBerlaInitFieldInstances(onGPU = false, field).name)
+    IR_FunctionCall(IR_WaLBerlaInitFieldInstances(onGPU, field).name)
   )
 
   def name : String = field.name + (if (onGPU) "_onGPU" else "")
@@ -93,7 +93,7 @@ case class IR_IV_WaLBerlaGetFieldData(
 
   // init function sets up field data pointers for all levels and slots
   override def getCtor() : Option[IR_Statement] = Some(
-    IR_FunctionCall(IR_WaLBerlaInitFieldDataPtrs(onGPU = false, field).name)
+    IR_FunctionCall(IR_WaLBerlaInitFieldDataPtrs(onGPU, field).name)
   )
 
   def name : String = field.name + "dataPtr" + (if (onGPU) "_onGPU" else "")
