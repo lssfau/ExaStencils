@@ -88,6 +88,7 @@ object L4_Parser extends ExaParser with PackratParsers {
     import_
       ||| inlineKnowledge
       ||| domain
+      ||| latticeDomain
       ||| layout
       ||| field
       ||| fieldCombinationDeclaration
@@ -390,6 +391,8 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val realIndex = /*locationize*/ "[" ~> repsep(realLit, ",") <~ "]" ^^ { l => l.toArray }
   lazy val domain = locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l ~ u => L4_DomainFromAABBDecl(id, l, u) })
+
+  lazy val latticeDomain = locationize(("LatticeDomain" ~> ident) ^^ { case id => L4_LatticeDomainFromAABBDecl(id) })
 
   lazy val layout = locationize(("Layout" ~> ident) ~ ("<" ~> datatype <~ ",") ~ (localization <~ ">") ~ levelDecl.? ~ ("{" ~> repsep(layoutOption, ",".?) <~ "}")
     ^^ { case id ~ dt ~ disc ~ level ~ opts => L4_FieldLayoutDecl(id, level, dt, disc.toLowerCase, opts) })

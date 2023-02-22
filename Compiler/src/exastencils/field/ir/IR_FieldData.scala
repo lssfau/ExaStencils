@@ -87,7 +87,7 @@ case class IR_IV_FieldData(override var field : IR_Field, override var slot : IR
     }
   }
 
-  override def registerIV(declarations : HashMap[String, IR_VariableDeclaration], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
+  override def registerIV(declarations : AbstractMap[String, IR_VariableDeclaration], ctors : AbstractMap[String, IR_Statement], dtors : AbstractMap[String, IR_Statement]) = {
     declarations += (resolveName -> getDeclaration)
     ctors += (resolveName -> getCtor().get)
     dtors += (resolveName -> getDtor().get)

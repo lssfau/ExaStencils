@@ -1,62 +1,67 @@
 package exastencils.waLBerla.ir.communication
 
-import exastencils.base.ir._
+import scala.collection.mutable.ListBuffer
+
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_StdArrayDatatype
 import exastencils.config.Knowledge
 import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
+import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceMember
 
-trait IR_WaLBerlaCommScheme extends IR_Access{
+abstract class IR_WaLBerlaCommScheme extends IR_WaLBerlaInterfaceMember(false, true, false) {
   def wbField : IR_WaLBerlaField
   def slot : IR_Expression
 
   def blockDataID : IR_WaLBerlaBlockDataID
   def blockForest : IR_WaLBerlaBlockForest
-  def name : String
-
-  def baseAccess() = IR_VariableAccess(name, datatype)
 
   def level = wbField.level
   def numSlots = wbField.numSlots
   def levels = blockDataID.levels
+  override def numLevels = blockDataID.numLevels
 
   def basetype : IR_Datatype
-  def datatype : IR_Datatype = {
+
+  override def resolveDatatype() : IR_Datatype = {
     var dt : IR_Datatype = basetype
 
     if (numSlots > 1)
       dt = IR_StdArrayDatatype(dt, numSlots)
-    if (levels.size > 1)
-      dt = IR_StdArrayDatatype(dt, levels.size)
 
     dt
   }
+
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess()
+
+  private def resolveAccess() : IR_Expression = resolveAccess(resolveMemberBaseAccess(), IR_NullExpression, level, IR_NullExpression)
 
   def createUniformPackInfo() : IR_Expression
 
   def addPackInfo() = IR_MemberFunctionCallArrow(resolveAccess(), "addPackInfo", createUniformPackInfo())
 
-  def resolveAccess() = {
-    var access : IR_Access = baseAccess()
+  override def resolveAccess(baseAccess : IR_Expression, block : IR_Expression, level : IR_Expression, neigh : IR_Expression) = {
+    var baseAccess : IR_Access = IR_VariableAccess(resolveName(), datatype)
+    var access = super.resolveAccess(baseAccess, IR_NullExpression, level, IR_NullExpression)
 
-    if (levels.size > 1)
-      access = IR_ArrayAccess(access, level - levels.min)
     if (numSlots > 1)
       access = IR_ArrayAccess(access, slot)
 
     access
   }
 
-  def communicate : IR_Statement = {
-    val comm = IR_MemberFunctionCallArrow(resolveAccess(), "communicate")
+  def comnSchemeNecessaryWrapper(stmts : ListBuffer[IR_Statement]) : IR_IfCondition = {
     if (Knowledge.waLBerla_useGridFromExa)
-      IR_IfCondition(Knowledge.domain_numFragmentsTotal > 1, comm)
+      IR_IfCondition(Knowledge.domain_numFragmentsTotal > 1, stmts)
     else
-      IR_IfCondition(blockForest.getNumberOfAllRootBlocks() > 1, comm)
+      IR_IfCondition(blockForest.getNumberOfAllRootBlocks() > 1, stmts)
   }
 
-  override def prettyprint(out : PpStream) : Unit = out << baseAccess()
+  def communicate() : IR_Statement = {
+    val comm = IR_MemberFunctionCallArrow(resolveAccess(), "communicate")
+    comnSchemeNecessaryWrapper(ListBuffer(comm))
+  }
 }

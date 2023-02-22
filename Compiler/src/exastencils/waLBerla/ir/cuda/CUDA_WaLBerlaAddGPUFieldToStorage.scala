@@ -43,7 +43,7 @@ case class CUDA_WaLBerlaAddGPUFieldToStorage(wbFields : IR_WaLBerlaField*) exten
 
     body += IR_Return(IR_InitializerList(init : _*))
 
-    val returnType = cpuBlockDataIDParam.datatype
+    val returnType = cpuBlockDataIDParam.getWrappedDatatype()
 
     IR_WaLBerlaPlainFunction(name, returnType, params, body)
   }

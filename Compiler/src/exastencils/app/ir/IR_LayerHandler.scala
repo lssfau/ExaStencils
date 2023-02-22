@@ -371,6 +371,8 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     if (Knowledge.cuda_enabled && Knowledge.cuda_useManagedMemory)
       CUDA_AdaptDeviceAccessesForMM.apply()
 
+    if (Knowledge.waLBerla_generateInterface)
+      IR_WaLBerlaAddInterfaceMembers.apply()
     IR_AddInternalVariables.apply()
     // resolve possibly newly added constant IVs
     IR_ResolveConstIVs.apply()

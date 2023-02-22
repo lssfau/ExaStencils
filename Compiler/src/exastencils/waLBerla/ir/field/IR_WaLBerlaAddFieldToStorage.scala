@@ -17,7 +17,7 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR
   def initValue = IR_FunctionArgument("initVal", IR_RealDatatype)
 
   if (!wbFields.forall(_.name == wbFields.head.name))
-    Logger.error("\"IR_WaLBerlaAddGPUFieldToStorage\" used incorrectly. Assumes fields with identical name but potentially different slots and levels.")
+    Logger.error("\"IR_WaLBerlaAddFieldToStorage\" used incorrectly. Assumes fields with identical name but potentially different slots and levels.")
 
   override def isInterfaceFunction : Boolean = false
   override def inlineImplementation : Boolean = false
@@ -52,7 +52,7 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR
 
     body += IR_Return(IR_InitializerList(init : _*))
 
-    val returnType = IR_WaLBerlaBlockDataID(wbFields.head, slot = 0, onGPU = false).datatype
+    val returnType = IR_WaLBerlaBlockDataID(wbFields.head, slot = 0, onGPU = false).getWrappedDatatype()
 
     IR_WaLBerlaPlainFunction(name, returnType, params, body)
   }

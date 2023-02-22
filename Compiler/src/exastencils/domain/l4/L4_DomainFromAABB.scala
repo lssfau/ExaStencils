@@ -53,3 +53,21 @@ case class L4_DomainFromAABBDecl(var name : String, lower : Array[Double], upper
     L4_DomainCollection.add(L4_DomainFromAABB(name, L4_AABB(lower, upper)))
   }
 }
+
+/// L4_LatticeDomainFromAABBDecl
+
+case class L4_LatticeDomainFromAABBDecl(var name : String) extends L4_DomainDecl {
+  override def prettyprint(out : PpStream) = out << "LatticeDomain " << name
+
+  override def addToKnowledge() = {
+    val lower = Array.fill(3)(0.0)
+
+    val upper = Array[Double](
+      Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * (1 << Knowledge.maxLevel),
+      Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_fragmentLength_y * (1 << Knowledge.maxLevel),
+      Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << Knowledge.maxLevel)
+    )
+
+    L4_DomainCollection.add(L4_DomainFromAABB(name, L4_AABB(lower.take(Knowledge.dimensionality), upper.take(Knowledge.dimensionality))))
+  }
+}

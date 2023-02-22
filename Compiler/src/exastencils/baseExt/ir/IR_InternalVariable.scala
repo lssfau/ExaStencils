@@ -18,7 +18,7 @@
 
 package exastencils.baseExt.ir
 
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.AbstractMap
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
@@ -29,6 +29,40 @@ import exastencils.field.ir.IR_FieldCollection
 import exastencils.fieldlike.ir.IR_FieldLikeCollections
 import exastencils.prettyprinting._
 
+/// IR_InternalVariableLike
+
+trait IR_InternalVariableLike {
+  def resolveName() : String
+  def resolveDatatype() : IR_Datatype
+
+  def getDeclaration() : IR_VariableDeclaration
+
+  def wrapInLoops(body : IR_Statement) : IR_Statement
+
+  def resolvePostfix(fragment : String, domain : String, field : String, level : String, neigh : String) : String
+
+  def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression
+
+  def resolveDefValue() : Option[IR_Expression] = None
+
+  def getCtor() : Option[IR_Statement] = {
+    if (resolveDefValue().isDefined)
+      Some(wrapInLoops(IR_Assignment(resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt), resolveDefValue().get)))
+    else
+      None
+  }
+
+  def getDtor() : Option[IR_Statement] = None
+
+  def registerIV(declarations : AbstractMap[String, IR_VariableDeclaration], ctors : AbstractMap[String, IR_Statement], dtors : AbstractMap[String, IR_Statement]) = {
+    declarations += (resolveName -> getDeclaration)
+    for (ctor <- getCtor())
+      ctors += (resolveName -> ctor)
+    for (dtor <- getDtor())
+      dtors += (resolveName -> dtor)
+  }
+}
+
 /// IR_InternalVariable
 
 abstract class IR_InternalVariable(
@@ -36,7 +70,7 @@ abstract class IR_InternalVariable(
     var canBePerDomain : Boolean,
     var canBePerField : Boolean,
     var canBePerLevel : Boolean,
-    var canBePerNeighbor : Boolean) extends IR_Expression {
+    var canBePerNeighbor : Boolean) extends IR_InternalVariableLike with IR_Expression {
 
   override def datatype = resolveDatatype()
   override def prettyprint(out : PpStream) : Unit = out << resolveName
@@ -49,7 +83,6 @@ abstract class IR_InternalVariable(
 
   def resolveName() : String
   def resolveDatatype() : IR_Datatype
-  def resolveDefValue() : Option[IR_Expression] = None
 
   def getDeclaration() : IR_VariableDeclaration = {
     var datatype : IR_Datatype = resolveDatatype()
@@ -84,15 +117,6 @@ abstract class IR_InternalVariable(
 
     wrappedBody
   }
-
-  def getCtor() : Option[IR_Statement] = {
-    if (resolveDefValue().isDefined)
-      Some(wrapInLoops(IR_Assignment(resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt), resolveDefValue().get)))
-    else
-      None
-  }
-
-  def getDtor() : Option[IR_Statement] = None
 
   def resolvePostfix(fragment : String, domain : String, field : String, level : String, neigh : String) : String = {
     var postfix : String = ""
@@ -133,14 +157,6 @@ abstract class IR_InternalVariable(
       access = IR_ArrayAccess(access, fragment)
 
     access
-  }
-
-  def registerIV(declarations : HashMap[String, IR_VariableDeclaration], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
-    declarations += (resolveName -> getDeclaration)
-    for (ctor <- getCtor())
-      ctors += (resolveName -> ctor)
-    for (dtor <- getDtor())
-      dtors += (resolveName -> dtor)
   }
 }
 

@@ -13,19 +13,6 @@ import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaPreprocessorDirectives
 
-trait IR_WaLBerlaInterfaceParameter extends IR_Access {
-  def name : String
-  def datatype : IR_Datatype
-
-  def resolveAccess() : IR_Access
-
-  def initializerListEntry : (IR_Access, IR_Expression) = (member, ctorParameter.access)
-  def ctorParameter : IR_FunctionArgument
-  def member : IR_VariableAccess
-
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess()
-}
-
 object IR_WaLBerlaInterface {
   def defHeader(className : String) : String = IR_WaLBerlaCollection.defBasePath + "_" + className + ".h"
   def defSource(className : String): String = IR_WaLBerlaCollection.defBasePath + "_" + className + ".impl.h"
@@ -34,14 +21,9 @@ object IR_WaLBerlaInterface {
   def interfaceName = "ExaInterface"
 }
 
-case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction]) extends IR_Node with FilePrettyPrintable {
+case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction], context : IR_WaLBerlaInterfaceGenerationContext) extends IR_Node with FilePrettyPrintable {
 
   import IR_WaLBerlaInterface._
-
-  if (!functions.forall(_.inlineImplementation))
-    Logger.warn("All interface function implementations are (implicitly) expected to be inlined.")
-
-  val context = IR_WaLBerlaInterfaceGenerationContext(functions)
 
   def printHeader() : Unit = {
     val writerHeader = PrettyprintingManager.getPrinter(defHeader(interfaceName))
@@ -64,20 +46,20 @@ case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction])
     functions foreach { f => writerHeader << "\t" + f.prettyprint_decl() }
 
     /* ctors */
-    for (ctor <- context.constructors)
+    for (ctor <- context.ifaceConstructors)
       writerHeader << ctor.prettyprint()
 
     /* dtors */
-    for (dtor <- context.destructors)
+    for (dtor <- context.ifaceDestructors)
       writerHeader << dtor.prettyprint()
 
     /* members */
     writerHeader <<< "public:"
-    for (member <- context.publicMembers)
-      writerHeader <<< "\t" + IR_VariableDeclaration(member).prettyprint()
+    for (pubDecl <- context.publicMemberDeclarationMap.values)
+      writerHeader <<< "\t" + pubDecl.prettyprint()
     writerHeader <<< "private:"
-    for (member <- context.privateMembers)
-      writerHeader <<< "\t" + IR_VariableDeclaration(member).prettyprint()
+    for (privDecl <- context.privateMemberDeclarationMap.values)
+      writerHeader <<< "\t" + privDecl.prettyprint()
 
     writerHeader <<< "};" // end class
     writerHeader <<< "}\n}" // end namespaces
@@ -134,7 +116,8 @@ object IR_WaLBerlaCreateInterface extends DefaultStrategy("Find functions and cr
 
       // create interface object
       if (Knowledge.waLBerla_generateInterface) {
-        collection.interfaceInstance = Some(IR_WaLBerlaInterface(Duplicate(wbFunctions)))
+        val ctx = collection.interfaceContext.get
+        collection.interfaceInstance = Some(IR_WaLBerlaInterface(Duplicate(wbFunctions), ctx))
         collection.functions = collection.functions diff wbFunctions
       }
 

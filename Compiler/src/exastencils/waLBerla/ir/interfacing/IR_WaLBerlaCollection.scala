@@ -68,11 +68,15 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   if (Knowledge.opt_vectorize)
     if (Platform.simd_header != null) addExternalDependency(Platform.simd_header)
 
+  var interfaceContext : Option[IR_WaLBerlaInterfaceGenerationContext] = None
   var interfaceInstance : Option[IR_WaLBerlaInterface] = None
 
   // add future functions
-  functions ++= IR_WaLBerlaInitFunctionCollection.functions
-  functions ++= IR_WaLBerlaDeInitFunctionCollection.functions
+  functions ++= IR_WaLBerlaInitWrapperFunctions.functions
+  functions ++= IR_WaLBerlaInitExaWrapperFunctions.functions
+  functions ++= IR_WaLBerlaDeInitWrapperFunctions.functions
+  functions ++= IR_WaLBerlaDeInitExaWrapperFunctions.functions
+  functions ++= IR_WaLBerlaInitCouplingWrapperFunctions.functions
   functions ++= IR_WaLBerlaHelperFunctionCollection.functions
   functions ++= IR_WaLBerlaGetterFunctionCollection.functions
 

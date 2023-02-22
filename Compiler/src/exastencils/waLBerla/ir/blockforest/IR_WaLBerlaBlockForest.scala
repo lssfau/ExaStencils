@@ -8,17 +8,21 @@ import exastencils.waLBerla.ir.grid.IR_WaLBerlaCellAABB
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceParameter
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDirection
-import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
-case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter {
+case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false, false, false) {
 
-  override def name = "blocks"
-  override def datatype = IR_SharedPointerDatatype(WB_StructuredBlockForest)
+  def name : String = "blocks"
 
   override def ctorParameter : IR_FunctionArgument = IR_FunctionArgument(name, IR_ConstReferenceDatatype(datatype))
-  override def member : IR_VariableAccess = IR_VariableAccess(IR_WaLBerlaUtil.getGeneratedName(name), datatype)
+  override def resolveMemberBaseAccess() : IR_VariableAccess = IR_VariableAccess(resolveName(), datatype)
+  private def resolveAccess() = resolveMemberBaseAccess()
 
-  override def resolveAccess() : IR_Access = member
+  override def isPrivate : Boolean = true
+
+  override def resolveAccess(baseAccess : IR_Expression, block : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Access = resolveMemberBaseAccess()
+  override def resolveDatatype() = IR_SharedPointerDatatype(WB_StructuredBlockForest)
+
+  override def resolveDefValue() : Option[IR_Expression] = Some(IR_FunctionCall(IR_WaLBerlaInitBlockForest().name))
 
   def maxLevelWaLBerlaField = {
     if (IR_WaLBerlaFieldCollection.objects.nonEmpty)
