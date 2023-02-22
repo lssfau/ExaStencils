@@ -12,8 +12,7 @@ import exastencils.domain.ir._
 import exastencils.parallelization.api.mpi.MPI_IV_MpiComm
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlock
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaBlockAABB
 
 // TODO refactor
@@ -36,8 +35,8 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
 
   // fragment info
 
-  def blocks = IR_VariableAccess("blocks_", IR_SpecialDatatype("std::vector< const Block* >"))
-  def block = new IR_WaLBerlaBlock("block_", IR_SpecialDatatype("auto"))
+  def block = IR_WaLBerlaLoopOverBlocks.block
+  def defIt = IR_WaLBerlaLoopOverBlocks.defIt
   def getBlockAABB = IR_WaLBerlaBlockAABB(block)
 
   def setupFragmentPosition() = {
@@ -104,7 +103,6 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
     /* set basic fragment info */
     var fragStatements = ListBuffer[IR_Statement]()
 
-    fragStatements += IR_VariableDeclaration(block, IR_ArrayAccess(blocks, IR_LoopOverFragments.defIt)) // TODO: check if order of block <-> frag association is right
     fragStatements ++= setupFragmentPosition()
     fragStatements ++= IR_InitGeneratedDomain().setupFragmentIndex()
     fragStatements += setupCommId()
@@ -125,9 +123,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
         IR_MemberFunctionCallArrowWithDt(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "comm", MPI_IV_MpiComm.datatype))
     }
 
-    init += IR_VariableDeclaration(blocks)
-    init += IR_WaLBerlaBlockForest().getBlocks(blocks)
-    init += IR_LoopOverFragments(fragStatements, IR_ParallelizationInfo(potentiallyParallel = true))
+    init += IR_WaLBerlaLoopOverBlocks(fragStatements, IR_ParallelizationInfo(potentiallyParallel = true))
 
     /* set fragment connection */
 
@@ -154,10 +150,10 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
         }
 
         // compile connect calls
-        def localConnect(domainIdx : Int) = IR_ConnectFragments().connectLocalElement(IR_LoopOverFragments.defIt,
+        def localConnect(domainIdx : Int) = IR_ConnectFragments().connectLocalElement(defIt,
           localFragmentIdxForPoint(offsetPos), neigh.index, domainIdx)
 
-        def remoteConnect(domainIdx : Int) = IR_ConnectFragments().connectRemoteElement(IR_LoopOverFragments.defIt,
+        def remoteConnect(domainIdx : Int) = IR_ConnectFragments().connectRemoteElement(defIt,
           localFragmentIdxForPoint(offsetPos), owningRankForPoint(offsetPos, domains(domainIdx)), neigh.index, domainIdx)
 
         for (d <- domains.indices) {
@@ -176,7 +172,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
         }
 
         // wrap in scope due to local variable declarations
-        connect += IR_Scope(statements)
+        connect += IR_WaLBerlaLoopOverBlocks(IR_Scope(statements), IR_ParallelizationInfo(potentiallyParallel = true))
       }
     }
 

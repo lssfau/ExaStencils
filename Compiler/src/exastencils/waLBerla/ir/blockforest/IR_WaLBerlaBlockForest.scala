@@ -36,11 +36,6 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
   def begin() = IR_MemberFunctionCallArrowWithDt(resolveAccess(), "begin", datatype)
   def end() = IR_MemberFunctionCallArrowWithDt(resolveAccess(), "end", datatype)
 
-  // blocks
-  def getBlocks(targetVector : IR_VariableAccess) = {
-    IR_MemberFunctionCallArrow(resolveAccess(), "getBlocks", targetVector, /* level */ 0) // TODO: adjust when refinement is supported
-  }
-
   def getNumberOfRootBlocks(d : Int) = IR_MemberFunctionCallArrow(resolveAccess(), "getSize", d)
 
   def getNumberOfAllRootBlocks() : IR_Expression = (0 until 3).map(d => getNumberOfRootBlocks(d) : IR_Expression).reduce(_ * _)
@@ -67,7 +62,7 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
         case "T" => "ZMax"
         case "B" => "ZMin"
       }
-      IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"atDomain${ borderName }Border", IR_BooleanDatatype, IR_DerefAccess(IR_WaLBerlaLoopOverBlocks.defIt))
+      IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"atDomain${ borderName }Border", IR_BooleanDatatype, IR_DerefAccess(IR_WaLBerlaLoopOverBlocks.block))
     } else {
       Logger.error("Unsupported direction for \"isAtDomainBorder\"")
     }

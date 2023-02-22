@@ -6,6 +6,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
+import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
@@ -35,7 +36,11 @@ object FindLoopOverDimensions extends QuietDefaultStrategy("Find loop over dimen
 /// IR_WaLBerlaLoopOverBlocks
 
 object IR_WaLBerlaLoopOverBlocks {
-  def defIt = IR_WaLBerlaBlockForest().iterator
+  def apply(body : IR_Statement*) = new IR_WaLBerlaLoopOverBlocks(body.to[ListBuffer])
+  def apply(body : IR_Statement, parallelization : IR_ParallelizationInfo) = new IR_WaLBerlaLoopOverBlocks(ListBuffer(body), parallelization)
+
+  def defIt = IR_LoopOverFragments.defIt
+  def block = IR_WaLBerlaBlockForest().iterator
 }
 
 // iterates through process-local blocks
@@ -52,8 +57,6 @@ case class IR_WaLBerlaLoopOverBlocks(
     var fieldsAccessed = ListBuffer[IR_MultiDimWaLBerlaFieldAccess]()
     IR_WaLBerlaCollectAccessedFields.applyStandalone(body)
     fieldsAccessed ++= Duplicate(IR_WaLBerlaCollectAccessedFields.wbFieldAccesses).groupBy(_.name).flatMap(_._2.groupBy(_.level).map(_._2.head))
-
-    import IR_WaLBerlaLoopOverBlocks._
 
     // find out if block loop contains loop over dimensions and if it is executed (in parallel) on CPU/GPU
     FindLoopOverDimensions.applyStandalone(IR_Scope(body))
@@ -84,19 +87,13 @@ case class IR_WaLBerlaLoopOverBlocks(
       })
     }
 
-    val blockForest = IR_WaLBerlaBlockForest()
+    import IR_WaLBerlaLoopOverBlocks.defIt
+    import IR_WaLBerlaLoopOverBlocks.block
 
-    // TODO for multiple waLBerla blocks and exa fragments: association between them
-
-    new IR_ForLoop(
-      IR_VariableDeclaration(defIt, blockForest.begin()),
-      IR_Neq(defIt, blockForest.end()),
-      IR_PreIncrement(defIt),
-      if (setupWaLBerlaFieldPointers)
-        getWaLBerlaFieldData(fieldsAccessed : _*) ++ body
-      else
-        body,
-      parallelization)
+    IR_LoopOverFragments(
+      (IR_VariableDeclaration(block, IR_ArrayAccess(IR_WaLBerlaGetBlocks(), defIt)) +:
+        (if (setupWaLBerlaFieldPointers) getWaLBerlaFieldData(fieldsAccessed : _*) else ListBuffer())) ++ body,
+      parallelization).expandSpecial()
   }
 }
 
