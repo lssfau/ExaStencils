@@ -1,5 +1,6 @@
 package exastencils.waLBerla.ir
 
+import exastencils.base.ir.IR_Assignment
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
@@ -34,11 +35,19 @@ object IR_WaLBerlaReplaceFragmentIVs extends DefaultStrategy("Replace frag info 
     */
 
     // TODO: fragment connection
+    case assign @ IR_Assignment(fragPos, _, "=") if inWaLBerlaBlockLoop(collector) =>
+      fragPos match {
+        case _ @ IR_IV_FragmentPosition(dim, _)      => assign.src = getBlockAABB.center(dim)
+        case _ @ IR_IV_FragmentPositionBegin(dim, _) => assign.src = getBlockAABB.min(dim)
+        case _ @ IR_IV_FragmentPositionEnd(dim, _)   => assign.src = getBlockAABB.max(dim)
+        case _                                       =>
+      }
+      assign
 
     case _ @ IR_IV_FragmentPosition(dim, _) if inWaLBerlaBlockLoop(collector) => getBlockAABB.center(dim)
 
     case _ @ IR_IV_FragmentPositionBegin(dim, _) if inWaLBerlaBlockLoop(collector) => getBlockAABB.min(dim)
 
     case _ @ IR_IV_FragmentPositionEnd(dim, _) if inWaLBerlaBlockLoop(collector)  => getBlockAABB.max(dim)
-  })
+  }, recursive = false)
 }
