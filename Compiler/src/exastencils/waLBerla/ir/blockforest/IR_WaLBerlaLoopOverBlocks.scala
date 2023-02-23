@@ -3,7 +3,6 @@ package exastencils.waLBerla.ir.blockforest
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
@@ -56,7 +55,8 @@ case class IR_WaLBerlaLoopOverBlocks(
     // collect fields accessed per level in loop
     var fieldsAccessed = ListBuffer[IR_MultiDimWaLBerlaFieldAccess]()
     IR_WaLBerlaCollectAccessedFields.applyStandalone(body)
-    fieldsAccessed ++= Duplicate(IR_WaLBerlaCollectAccessedFields.wbFieldAccesses).groupBy(_.name).flatMap(_._2.groupBy(_.level).map(_._2.head))
+    fieldsAccessed ++= Duplicate(IR_WaLBerlaCollectAccessedFields.wbFieldAccesses)
+      .groupBy(wbf => (wbf.name, wbf.fragIdx, wbf.level)).map(_._2.head) // distinctBy name, fragIdx and level
 
     // find out if block loop contains loop over dimensions and if it is executed (in parallel) on CPU/GPU
     FindLoopOverDimensions.applyStandalone(IR_Scope(body))
@@ -87,8 +87,8 @@ case class IR_WaLBerlaLoopOverBlocks(
       })
     }
 
-    import IR_WaLBerlaLoopOverBlocks.defIt
     import IR_WaLBerlaLoopOverBlocks.block
+    import IR_WaLBerlaLoopOverBlocks.defIt
 
     IR_LoopOverFragments(
       (IR_VariableDeclaration(block, IR_ArrayAccess(IR_WaLBerlaGetBlocks(), defIt)) +:
