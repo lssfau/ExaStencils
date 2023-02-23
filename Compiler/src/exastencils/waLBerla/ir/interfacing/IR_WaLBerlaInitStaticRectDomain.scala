@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.communication.DefaultNeighbors
 import exastencils.communication.ir.IR_IV_CommunicationId
 import exastencils.config.Knowledge
@@ -74,8 +75,6 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
 
   // fragment connection
 
-  // mpi ranks are ordered as: z ["fastest" dim] -> y -> x ["slowest" dim]
-  // -> adapt mapping from exastencils
   def owningRankForPoint(position : (Int => IR_Expression), domain : IR_Domain) = {
     IR_TernaryCondition(IR_Negation(IR_ConnectFragments().isPointInsideDomain(position, domain)),
       s"MPI_PROC_NULL",
@@ -86,9 +85,13 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
       }).reduce(_ + _))
   }
 
-  // process-local blocks are ordered as: x ["fastest" dim] -> y -> z ["slowest" dim]
-  // -> identical to exastencils
-  def localFragmentIdxForPoint(position : (Int => IR_Expression)) = IR_ConnectFragments().localFragmentIdxForPoint(position)
+  def localFragmentIdxForPoint(position : (Int => IR_Expression)) = {
+      Knowledge.dimensions.map(dim => {
+        val revertedDims = (Knowledge.dimensionality-1) until dim by -1
+        (IR_ToInt((position(dim) - globalSize.lower(dim)) / fragWidth(dim)) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(dim)) *
+          (if (revertedDims.isEmpty) 1 else revertedDims.map(Knowledge.domain_rect_numFragsPerBlockAsVec(_)).product) : IR_Expression
+      }).reduce(_ + _)
+  }
 
   override def isInterfaceFunction : Boolean = true
   override def inlineImplementation : Boolean = true
