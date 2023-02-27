@@ -14,6 +14,7 @@ import exastencils.parallelization.api.cuda.CUDA_PrepareHostCode.annotateBranch
 import exastencils.parallelization.api.cuda.CUDA_PrepareHostCode.getCondWrapperValue
 import exastencils.parallelization.ir._
 import exastencils.util.NoDuplicateWrapper
+import exastencils.util.ir.IR_StackCollector
 import exastencils.waLBerla.ir.field.IR_MultiDimWaLBerlaFieldAccess
 import exastencils.waLBerla.ir.field._
 
@@ -48,7 +49,7 @@ case class IR_WaLBerlaLoopOverBlocks(
     var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo(),
     var setupWaLBerlaFieldPointers : Boolean = true) extends IR_ScopedStatement with IR_SpecialExpandable with IR_HasParallelizationInfo {
 
-  def expandSpecial() : Output[IR_ForLoop] = {
+  def expandSpecial(collector : IR_StackCollector) : Output[IR_Scope] = {
     // TODO: separate omp and potentiallyParallel
     parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && parallelization.potentiallyParallel
 
@@ -90,15 +91,37 @@ case class IR_WaLBerlaLoopOverBlocks(
     import IR_WaLBerlaLoopOverBlocks.block
     import IR_WaLBerlaLoopOverBlocks.defIt
 
-    IR_LoopOverFragments(
-      (IR_VariableDeclaration(block, IR_ArrayAccess(IR_WaLBerlaGetBlocks(), defIt)) +:
-        (if (setupWaLBerlaFieldPointers) getWaLBerlaFieldData(fieldsAccessed : _*) else ListBuffer())) ++ body,
-      parallelization).expandSpecial()
+    var compiledBody = ListBuffer[IR_Statement]()
+
+    // init block pointer in loop
+    compiledBody += IR_VariableDeclaration(block, IR_ArrayAccess(IR_WaLBerlaGetBlocks(), defIt))
+
+    // get field data if necessary
+    if (setupWaLBerlaFieldPointers)
+      compiledBody ++= getWaLBerlaFieldData(fieldsAccessed : _*)
+
+    compiledBody ++= body
+
+    // check if contained within a fragment loop (resolved or unresolved)
+    val insideFragLoop = collector.stack.exists {
+      case _ : IR_LoopOverFragments                                                                                     => true
+      case _ @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name => true
+      case _                                                                                                            => false
+    }
+
+    if (!insideFragLoop)
+      IR_Scope(IR_LoopOverFragments(compiledBody, parallelization).expandSpecial().inner) // wrap around fragment loop, if not already done
+    else
+      IR_Scope(compiledBody)
   }
 }
 
 object IR_WaLBerlaResolveLoopOverBlocks extends DefaultStrategy("Resolve waLBerla LoopOverBlocks") {
+  val collector = new IR_StackCollector
+  this.register(collector)
+  this.onBefore = () => this.resetCollectors()
+
   this += Transformation("Resolve", {
-    case loop : IR_WaLBerlaLoopOverBlocks => loop.expandSpecial()
+    case loop : IR_WaLBerlaLoopOverBlocks => loop.expandSpecial(collector)
   })
 }
