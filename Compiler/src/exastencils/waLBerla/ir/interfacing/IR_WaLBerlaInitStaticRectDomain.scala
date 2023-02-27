@@ -54,15 +54,6 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
       }).reduce(_ + _))
   }
 
-  def setupCommId() = {
-    IR_Assignment(IR_IV_CommunicationId(),
-      Knowledge.dimensions.map(dim => {
-        val revertedDims = (Knowledge.dimensionality-1) until dim by -1
-        (IR_ToInt((IR_IV_FragmentPosition(dim) - globalSize.lower(dim)) / fragWidth(dim)) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(dim)) *
-          (if (revertedDims.isEmpty) 1 else revertedDims.map(Knowledge.domain_rect_numFragsPerBlockAsVec(_)).product) : IR_Expression
-      }).reduce(_ + _))
-  }
-
   def setupFragmentPosBeginAndEnd() = {
     val begin = Knowledge.dimensions.map(dim =>
       IR_Assignment(IR_IV_FragmentPositionBegin(dim),
@@ -85,14 +76,6 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
       }).reduce(_ + _))
   }
 
-  def localFragmentIdxForPoint(position : (Int => IR_Expression)) = {
-      Knowledge.dimensions.map(dim => {
-        val revertedDims = (Knowledge.dimensionality-1) until dim by -1
-        (IR_ToInt((position(dim) - globalSize.lower(dim)) / fragWidth(dim)) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(dim)) *
-          (if (revertedDims.isEmpty) 1 else revertedDims.map(Knowledge.domain_rect_numFragsPerBlockAsVec(_)).product) : IR_Expression
-      }).reduce(_ + _)
-  }
-
   override def isInterfaceFunction : Boolean = true
   override def inlineImplementation : Boolean = true
 
@@ -105,7 +88,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
 
     fragStatements ++= setupFragmentPosition()
     fragStatements ++= IR_InitGeneratedDomain().setupFragmentIndex()
-    fragStatements += setupCommId()
+    fragStatements += IR_InitGeneratedDomain().setupCommId()
     fragStatements += setupFragmentId()
     fragStatements ++= setupFragmentPosBeginAndEnd()
 
@@ -151,10 +134,10 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
 
         // compile connect calls
         def localConnect(domainIdx : Int) = IR_ConnectFragments().connectLocalElement(defIt,
-          localFragmentIdxForPoint(offsetPos), neigh.index, domainIdx)
+          IR_ConnectFragments().localFragmentIdxForPoint(offsetPos), neigh.index, domainIdx)
 
         def remoteConnect(domainIdx : Int) = IR_ConnectFragments().connectRemoteElement(defIt,
-          localFragmentIdxForPoint(offsetPos), owningRankForPoint(offsetPos, domains(domainIdx)), neigh.index, domainIdx)
+          IR_ConnectFragments().localFragmentIdxForPoint(offsetPos), owningRankForPoint(offsetPos, domains(domainIdx)), neigh.index, domainIdx)
 
         for (d <- domains.indices) {
           // check if original point and neighbor point are valid and connect according to possible configurations
