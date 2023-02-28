@@ -59,9 +59,6 @@ object CUDA_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kern
   def getFunctionArgForWaLBerlaField(waLBerlaField : IR_WaLBerlaField, slot : IR_Expression) =
     IR_FunctionArgument(getSlottedName(waLBerlaField, slot), IR_PointerDatatype(waLBerlaField.resolveDeclType))
 
-  def isFragmentIdxParameter(param : IR_FunctionArgument) = param.name == IR_LoopOverFragments.defIt.name
-  def isFragmentIdxArgument(arg : IR_Expression) = arg == IR_LoopOverFragments.defIt
-
   this += Transformation("Prepare wrapper function", {
     case func : IR_Function if CUDA_KernelFunctions.get.functions.contains(func) && isWrapperFunction(func) =>
       val kernelCall = FindKernelCall.kernelCall.get
@@ -75,7 +72,6 @@ object CUDA_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kern
         // extend wrapper parameters
         val wbFieldDataParams = wbFieldData.map(fieldData => getFunctionArgForWaLBerlaField(getWaLBerlaField(fieldData), fieldData.slot))
         func.parameters ++= wbFieldDataParams
-        func.parameters = func.parameters.filterNot(isFragmentIdxParameter)
 
         // save employed wb field data for further processing
         waLBerlaFieldPointersForKernel += (func.name -> wbFieldData.map(fieldData => IR_IV_WaLBerlaFieldData(getWaLBerlaField(fieldData), fieldData.slot, fieldData.fragmentIdx)))
@@ -86,27 +82,15 @@ object CUDA_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kern
 
   this += Transformation("Adapt call to kernel wrapper function", {
     case funcCall @ IR_FunctionCall(func, _) if waLBerlaFieldPointersForKernel.contains(func.name) =>
-      val newArgs = Duplicate(funcCall.arguments)
-        .filterNot(isFragmentIdxArgument) // omit fragmentIdx arg
-      newArgs ++= waLBerlaFieldPointersForKernel(func.name) // use wb field data pointers
-      funcCall.arguments = newArgs
+      funcCall.arguments = Duplicate(funcCall.arguments) ++ waLBerlaFieldPointersForKernel(func.name) // use wb field data pointers
 
       funcCall
-  })
-
-  this += Transformation("Prepare kernel function", {
-    case func : IR_Function if adaptedKernelCalls.exists(_.name == func.name) =>
-      val newParams = Duplicate(func.parameters).filterNot(isFragmentIdxParameter) // omit fragmentIdx arg
-      func.parameters = newParams
-
-      func
   })
 
   this += Transformation("Change signature of kernel call", {
     case fc : CUDA_FunctionCall if adaptedKernelCalls.contains(fc) =>
       // use waLBerla fieldData in kernel call
       val newArgs = Duplicate(fc.arguments)
-        .filterNot(isFragmentIdxArgument) // omit fragmentIdx arg
         .map { // re-map pointers to waLBerla data
           case deviceData : CUDA_FieldDeviceData if IR_WaLBerlaFieldCollection.exists(deviceData.field.name, deviceData.field.level) =>
             getFunctionArgForWaLBerlaField(getWaLBerlaField(deviceData), deviceData.slot).access
