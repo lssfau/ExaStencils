@@ -44,8 +44,8 @@ object CUDA_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kern
     FindKernelCall.kernelCall.isDefined && func.functionQualifiers == "extern \"C\""
   }
 
-  def getSlottedName(field : IR_FieldLike, slot : IR_Expression) = {
-    var identifier = field.codeName + "_deviceData"
+  def getSlottedName(field : IR_WaLBerlaField, slot : IR_Expression, fragmentIdx : IR_Expression) = {
+    var identifier = s"${IR_IV_WaLBerlaFieldData(field, slot, fragmentIdx).resolveName()}_deviceData"
     if (field.numSlots > 1) {
       slot match {
         case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
@@ -56,8 +56,8 @@ object CUDA_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kern
     identifier
   }
   def getWaLBerlaField(fieldData : IR_IV_AbstractFieldLikeData) = IR_WaLBerlaFieldCollection.getByIdentifier(fieldData.field.name, fieldData.field.level).get
-  def getFunctionArgForWaLBerlaField(waLBerlaField : IR_WaLBerlaField, slot : IR_Expression) =
-    IR_FunctionArgument(getSlottedName(waLBerlaField, slot), IR_PointerDatatype(waLBerlaField.resolveDeclType))
+  def getFunctionArgForWaLBerlaField(waLBerlaField : IR_WaLBerlaField, slot : IR_Expression, fragmentIdx : IR_Expression) =
+    IR_FunctionArgument(getSlottedName(waLBerlaField, slot, fragmentIdx), IR_PointerDatatype(waLBerlaField.resolveDeclType))
 
   this += Transformation("Prepare wrapper function", {
     case func : IR_Function if CUDA_KernelFunctions.get.functions.contains(func) && isWrapperFunction(func) =>
@@ -70,7 +70,7 @@ object CUDA_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kern
         adaptedKernelCalls += kernelCall
 
         // extend wrapper parameters
-        val wbFieldDataParams = wbFieldData.map(fieldData => getFunctionArgForWaLBerlaField(getWaLBerlaField(fieldData), fieldData.slot))
+        val wbFieldDataParams = wbFieldData.map(fieldData => getFunctionArgForWaLBerlaField(getWaLBerlaField(fieldData), fieldData.slot, fieldData.fragmentIdx))
         func.parameters ++= wbFieldDataParams
 
         // save employed wb field data for further processing
@@ -93,7 +93,7 @@ object CUDA_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kern
       val newArgs = Duplicate(fc.arguments)
         .map { // re-map pointers to waLBerla data
           case deviceData : CUDA_FieldDeviceData if IR_WaLBerlaFieldCollection.exists(deviceData.field.name, deviceData.field.level) =>
-            getFunctionArgForWaLBerlaField(getWaLBerlaField(deviceData), deviceData.slot).access
+            getFunctionArgForWaLBerlaField(getWaLBerlaField(deviceData), deviceData.slot, deviceData.fragmentIdx).access
           case arg                                                                                                                   =>
             arg
         }
