@@ -8,6 +8,7 @@ import exastencils.config.Knowledge
 import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaGetBlocks
 import exastencils.waLBerla.ir.field.IR_IV_WaLBerlaGetField
 import exastencils.waLBerla.ir.field.IR_IV_WaLBerlaGetFieldData
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
@@ -17,11 +18,12 @@ object IR_WaLBerlaInterfaceMember {
   // order by type
   val byTypeOrd : Ordering[IR_WaLBerlaInterfaceMember] = Ordering.by {
     // it is necessary to specify the initialization order in the constructor -> done here via implicit sorting
-    case _ : IR_WaLBerlaBlockForest     => 0
-    case _ : IR_WaLBerlaBlockDataID     => 1
-    case _ : IR_IV_WaLBerlaGetField     => 2
-    case _ : IR_IV_WaLBerlaGetFieldData => 3
-    case _                              => 4
+    case _ : IR_WaLBerlaBlockForest => 0
+    case _ : IR_WaLBerlaGetBlocks   => 1
+    case _ : IR_WaLBerlaBlockDataID => 2
+    case _ : IR_IV_WaLBerlaGetField     => 3
+    case _ : IR_IV_WaLBerlaGetFieldData => 4
+    case _                              => 5
   }
   // order by name
   val byNameOrd : Ordering[IR_WaLBerlaInterfaceMember] = Ordering.by { member : IR_WaLBerlaInterfaceMember => member.name }

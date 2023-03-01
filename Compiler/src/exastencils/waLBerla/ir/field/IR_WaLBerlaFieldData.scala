@@ -8,12 +8,13 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 import exastencils.prettyprinting.PpStream
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceMember
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_FieldDatatype
 
 /// IR_IV_AbstractWaLBerlaFieldData
 
-abstract class IR_IV_AbstractWaLBerlaFieldData extends IR_IV_AbstractFieldLikeData(true, false, true, false, false) {
+abstract class IR_IV_AbstractWaLBerlaFieldData extends IR_IV_AbstractFieldLikeData(false, false, true, false, false) {
   var field : IR_WaLBerlaField
 }
 
@@ -64,7 +65,7 @@ case class IR_IV_WaLBerlaGetField(
     var field : IR_WaLBerlaField,
     var slot : IR_Expression,
     var onGPU : Boolean,
-    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
+    var fragmentIdx : IR_Expression = IR_WaLBerlaLoopOverBlocks.defIt
 ) extends IR_IV_WaLBerlaGetFieldPointer {
 
   override def baseDatatype() : IR_Datatype = WB_FieldDatatype(field, onGPU)
@@ -86,7 +87,7 @@ case class IR_IV_WaLBerlaGetFieldData(
     var field : IR_WaLBerlaField,
     var slot : IR_Expression,
     var onGPU : Boolean,
-    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
+    var fragmentIdx : IR_Expression = IR_WaLBerlaLoopOverBlocks.defIt
 ) extends IR_IV_WaLBerlaGetFieldPointer {
 
   var level : IR_Expression = field.level
@@ -113,12 +114,13 @@ object IR_IV_WaLBerlaFieldData {
 case class IR_IV_WaLBerlaFieldData(
     var field : IR_WaLBerlaField,
     var slot : IR_Expression,
-    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
+    var fragmentIdx : IR_Expression = IR_WaLBerlaLoopOverBlocks.defIt
 ) extends IR_IV_AbstractWaLBerlaFieldData with IR_IV_GetWaLBerlaFieldFromScope {
 
   override var level : IR_Expression = field.level
 
-  override def resolveName() : String = s"data_${ field.codeName }_"
+  private def fragmentIdxName = fragmentIdx.prettyprint().replaceAll("[\\[\\](){}]", "") // remove brackets
+  override def resolveName() : String = s"data_${ field.codeName }_$fragmentIdxName" // get unique name per field name, level and fragmentIdx
 
   private val acc = IR_VariableAccess(resolveName(), resolveDatatype())
 

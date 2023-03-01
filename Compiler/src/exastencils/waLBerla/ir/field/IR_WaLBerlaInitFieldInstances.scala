@@ -22,11 +22,12 @@ case class IR_WaLBerlaInitFieldInstances(onGPU : Boolean, wbFields : IR_WaLBerla
     // init pointers to waLBerla field datastructures in block loop via "getData" function
     for (wbf <- wbFields) {
       val slotIt = IR_VariableAccess("slotIt", IR_IntegerDatatype)
-      var defIt = IR_WaLBerlaLoopOverBlocks.defIt
-      val getField = IR_IV_WaLBerlaGetField(wbf, slotIt, onGPU, defIt)
+      var block = IR_WaLBerlaLoopOverBlocks.block
+      var blockIdx = IR_WaLBerlaLoopOverBlocks.defIt
+      val getField = IR_IV_WaLBerlaGetField(wbf, slotIt, onGPU, blockIdx)
 
       body += IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
-        IR_Assignment(getField, defIt.getData(IR_WaLBerlaBlockDataID(wbf, slotIt, onGPU))))
+        IR_Assignment(getField, block.getData(IR_WaLBerlaBlockDataID(wbf, slotIt, onGPU))))
     }
 
     body = ListBuffer(IR_WaLBerlaLoopOverBlocks(body, setupWaLBerlaFieldPointers = false))
