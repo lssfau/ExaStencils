@@ -144,11 +144,8 @@ Function Application {
 
     // json
 	printJSON ("results.json",
-	    'timePerSolve', getMeanTime ( 'solve' ),
-	    'timePerKernel', getMeanTime ( 'kernel' ),
-	    'timePerCommunication', getMeanTime ( 'communication' ),
-	    'totalSetupTime', getTotalTime ( 'setup' ),
-	    'totalApplyBCTime', getTotalTime ( 'applyBC' )
+	    'totalTimeSolve', getTotalTime ( 'solve' ),
+	    'totalSetupTime', getTotalTime ( 'setup' )
 	)
 
 	printAllTimers (  )

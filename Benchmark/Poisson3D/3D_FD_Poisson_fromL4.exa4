@@ -271,7 +271,7 @@ Function Application {
 
   // json
   printJSON ("results.json",
-    'timePerSolve', getMeanTime ( 'solve' ),
+    'totalTimeSolve', getTotalTime ( 'solve' ),
     'totalSetupTime', getTotalTime ( 'setup' )
   )
 }

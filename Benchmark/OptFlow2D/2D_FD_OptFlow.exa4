@@ -418,11 +418,8 @@ Function Application {
 
     // json
     printJSON ("results.json",
-        'meanTimeSolve', getMeanTime ( 'solve' ),
-        'timePerSmooth', getMeanTime ( 'smooth' ),
         'totalTimeSolve', getTotalTime ( 'solve' ),
-        'totalSetupTime', getTotalTime ( 'setup' ),
-        'totalTimeCGS', getTotalTime ( 'cgs' )
+        'totalSetupTime', getTotalTime ( 'setup' )
     )
 
     // de-init
