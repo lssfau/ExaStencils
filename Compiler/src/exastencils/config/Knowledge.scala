@@ -480,6 +480,9 @@ object Knowledge {
   // [true|false]
   var waLBerla_createCartComm : Boolean = false
 
+  // [true|false]: use mesh refinement from waLBerla
+  var waLBerla_useRefinement : Boolean = false
+
   // [true|false]: generate comm schemes for waLBerla or use our internal communication
   var waLBerla_generateCommSchemes : Boolean = false
 
@@ -971,5 +974,6 @@ object Knowledge {
     Constraints.condEnsureValue(waLBerla_useFixedLayoutsFromExa, true, !waLBerla_generateCommSchemes, "When waLBerla communication schemes are not generated, fixed field layouts (waLBerla_useFixedLayoutsFromExa = true) are required.")
     Constraints.condEnsureValue(waLBerla_useFixedLayoutsFromExa, true, cuda_enabled && waLBerla_generateInterface, "CUDA support for waLBerla codegen is only applicable with fixed field layouts (waLBerla_useFixedLayoutsFromExa = true).")
     Constraints.condEnsureValue(waLBerla_generateCommSchemes, true, data_genVariableFieldSizes && waLBerla_generateInterface, "waLBerla Fields with variable field sizes currently require the usage of waLBerla comm schemes.")
+    Constraints.condError(waLBerla_useRefinement && waLBerla_useGridFromExa, "Flags 'waLBerla_useRefinement' and 'waLBerla_useGridFromExa' are mutually exclusive.")
   }
 }
