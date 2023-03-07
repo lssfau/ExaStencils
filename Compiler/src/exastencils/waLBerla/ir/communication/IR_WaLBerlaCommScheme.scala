@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_StdArrayDatatype
 import exastencils.config.Knowledge
+import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
@@ -61,6 +62,13 @@ abstract class IR_WaLBerlaCommScheme extends IR_WaLBerlaInterfaceMember(false, t
   }
 
   def communicate() : IR_Statement = {
+    if (Knowledge.waLBerla_useRefinement && wbField.layout.communicatesGhosts) {
+      // requires two ghost layers per side
+      val expectedNrOfGhosts = wbField.layout.layoutsPerDim.forall(e => e.numGhostLayersLeft == 2 && e.numGhostLayersRight == 2)
+      if (!expectedNrOfGhosts)
+        Logger.error("Generated CPU comm schemes with refinement enabled require two ghost layers. Error in layout: " + wbField.layout.name)
+    }
+
     val comm = IR_MemberFunctionCallArrow(resolveAccess(), "communicate")
     comnSchemeNecessaryWrapper(ListBuffer(comm))
   }
