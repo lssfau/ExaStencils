@@ -100,6 +100,14 @@ case class IR_WaLBerlaLoopOverBlocks(
     if (setupWaLBerlaFieldPointers)
       compiledBody ++= getWaLBerlaFieldData(fieldsAccessed : _*)
 
+    // check if refinement level should be fetched for block
+    IR_WaLBerlaFindAccessWithRefinement.applyStandalone(IR_Scope(body))
+    val refinementIV = IR_WaLBerlaFindAccessWithRefinement.refinementAccess
+    if (refinementIV.isDefined) {
+      compiledBody += refinementIV.get.getDeclaration()
+      compiledBody += IR_Assignment(refinementIV.get, IR_WaLBerlaBlockForest().getRefinementLvlForIterator())
+    }
+
     compiledBody ++= body
 
     // check if contained within a fragment loop (resolved or unresolved)

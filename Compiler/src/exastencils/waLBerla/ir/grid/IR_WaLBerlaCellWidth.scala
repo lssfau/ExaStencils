@@ -2,10 +2,12 @@ package exastencils.waLBerla.ir.grid
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_Domain
 import exastencils.grid.ir.IR_VF_CellWidthAsVec
 import exastencils.grid.ir.IR_VF_CellWidthPerDim
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaRefinementLevel
 
 case class IR_WaLBerlaCellWidthAsVec(
     var level : Int,
@@ -27,5 +29,12 @@ case class IR_WaLBerlaCellWidthPerDim(
 
   override def createDuplicate() = IR_WaLBerlaCellWidthPerDim(level, domain, dim)
 
-  override def resolve(index : IR_ExpressionIndex) = IR_WaLBerlaBlockForest().getStepSize(dim)
+  override def resolve(index : IR_ExpressionIndex) = {
+    val refinementLvl = if (Knowledge.waLBerla_useRefinement)
+      Some(IR_WaLBerlaRefinementLevel())
+    else
+      None
+
+    IR_WaLBerlaBlockForest().getStepSize(dim, refinementLvl)
+  }
 }
