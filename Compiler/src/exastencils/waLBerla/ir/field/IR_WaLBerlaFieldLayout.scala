@@ -73,7 +73,12 @@ case class IR_WaLBerlaFieldLayout(
 
   private def numPad(d : Int) = IR_Cast(IR_IntegerDatatype, callMemberFuncForDim("AllocSize", d) - numInner(d) - numDup(d) - numGhost(d))
 
-  def useFixedLayoutSizes = Knowledge.waLBerla_useGridFromExa && layoutName == "fzyx"
+  def useFixedLayoutSizes = {
+    if (Knowledge.waLBerla_useFixedLayoutsFromExa && layoutName != "fzyx")
+      Logger.error("Cannot use fixed layout sizes (cf. waLBerla_useFixedLayoutsFromExa) for AoS memory layouts (\"zyxf\"). This must be done with layout transformations.")
+
+    Knowledge.waLBerla_useFixedLayoutsFromExa && layoutName == "fzyx"
+  }
 
   // fixed iteration spaces handled by a regular exastencils field layout proxy
   private val regularLayout = IR_FieldLayout(name, level, datatype, localization, layoutsPerDim, numDimsGrid, referenceOffset, communicatesDuplicated, communicatesGhosts)

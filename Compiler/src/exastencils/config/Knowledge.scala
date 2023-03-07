@@ -486,6 +486,9 @@ object Knowledge {
   // [true|false]: use grid from exastencils directly, including virtual fields
   var waLBerla_useGridFromExa : Boolean = false
 
+  // [true|false]: use fixed layout sizes for waLBerla fields, required for optimizations and CUDA parallelization
+  var waLBerla_useFixedLayoutsFromExa : Boolean = false
+
   // [true|false]: use internal waLBerla memory pointers for array accesses instead of using the get(x, y, z, f) accessors
   // enables optimizations (address precalc, vect, ...) when enabled
   var waLBerla_useInternalMemoryPointers : Boolean = true
@@ -965,8 +968,8 @@ object Knowledge {
     Constraints.condEnsureValue(experimental_useStefanOffsets, false, domain_numFragmentsTotal > 1, "experimental_useStefanOffsets requires a single fragment")
 
     // waLBerla
-    Constraints.condEnsureValue(waLBerla_useGridFromExa, true, !waLBerla_generateCommSchemes, "When waLBerla communication schemes are not generated, fixed field layouts (waLBerla_useGridFromExa = true) are required.")
-    Constraints.condEnsureValue(waLBerla_useGridFromExa, true, cuda_enabled && waLBerla_generateInterface, "CUDA support for waLBerla codegen is only applicable with fixed field layouts (waLBerla_useGridFromExa = true).")
+    Constraints.condEnsureValue(waLBerla_useFixedLayoutsFromExa, true, !waLBerla_generateCommSchemes, "When waLBerla communication schemes are not generated, fixed field layouts (waLBerla_useFixedLayoutsFromExa = true) are required.")
+    Constraints.condEnsureValue(waLBerla_useFixedLayoutsFromExa, true, cuda_enabled && waLBerla_generateInterface, "CUDA support for waLBerla codegen is only applicable with fixed field layouts (waLBerla_useFixedLayoutsFromExa = true).")
     Constraints.condEnsureValue(waLBerla_generateCommSchemes, true, data_genVariableFieldSizes && waLBerla_generateInterface, "waLBerla Fields with variable field sizes currently require the usage of waLBerla comm schemes.")
   }
 }

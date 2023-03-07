@@ -264,7 +264,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       CUDA_PrepareMPICode.apply()
     }
 
-    if (Knowledge.cuda_enabled && Knowledge.waLBerla_useGridFromExa)
+    if (Knowledge.cuda_enabled && Knowledge.waLBerla_useFixedLayoutsFromExa)
       CUDA_WaLBerlaHandleGPUMemory.apply()
 
     IR_ResolveContractingLoop.apply()
@@ -332,7 +332,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     if (Knowledge.cuda_enabled)
       CUDA_KernelFunctions.get.convertToFunctions()
 
-    if (Knowledge.cuda_enabled && Knowledge.waLBerla_useGridFromExa)
+    if (Knowledge.cuda_enabled && Knowledge.waLBerla_useFixedLayoutsFromExa)
       CUDA_WaLBerlaAdaptKernels.apply()
 
     IR_SimplifyIndexExpressions.apply()

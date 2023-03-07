@@ -82,10 +82,7 @@ case class IR_WaLBerlaField(
     val funcRefName = s"cuda::addGPUFieldToStorage<${ IR_WaLBerlaDatatypes.WB_FieldDatatype(this, onGPU = false).prettyprint() }>"
 
     // TODO: mapping pitched <-> non-pitched fields? maybe possible with help of IVs
-    val usePitchedMemory = if (Knowledge.waLBerla_useGridFromExa)
-      false // exa fields do not employ pitched memory -> can lead to inconsistent indexing
-    else
-      true
+    val usePitchedMemory = false // exa fields do not employ pitched memory -> can lead to inconsistent indexing
 
     val args = ListBuffer[IR_Expression](
       blockForestAcc,

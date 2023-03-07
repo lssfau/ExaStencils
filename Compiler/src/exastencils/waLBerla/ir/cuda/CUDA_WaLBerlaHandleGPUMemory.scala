@@ -38,6 +38,4 @@ object CUDA_WaLBerlaHandleGPUMemory extends DefaultStrategy("GPU memory handling
 
       CUDA_WaLBerlaFieldCpy(dstID, srcID)
   })
-
-  // TODO: omit duplicate allocations
 }
