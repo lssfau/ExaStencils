@@ -31,6 +31,12 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
       None
   }
 
+  // stepsize (potentially for a refinement level)
+  def getStepSize(dim : Int, refinementLevel : Option[IR_Expression] = None) = IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"d${ ('x' + dim).toChar.toString }", IR_RealDatatype, refinementLevel.toList : _*)
+  def dx(refinementLevel : Option[IR_Expression] = None) = getStepSize(0, refinementLevel)
+  def dy(refinementLevel : Option[IR_Expression] = None) = getStepSize(1, refinementLevel)
+  def dz(refinementLevel : Option[IR_Expression] = None) = getStepSize(2, refinementLevel)
+
   // iterators
   def iterator = new IR_WaLBerlaBlock("block", IR_SpecialDatatype("auto"))
   def begin() = IR_MemberFunctionCallArrowWithDt(resolveAccess(), "begin", datatype)
