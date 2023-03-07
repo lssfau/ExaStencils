@@ -1,6 +1,8 @@
 package exastencils.waLBerla.ir.util
 
 import exastencils.base.ir.IR_SpecialDatatype
+import exastencils.config.Knowledge
+import exastencils.logger.Logger
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 
 object IR_WaLBerlaDatatypes {
@@ -10,11 +12,21 @@ object IR_WaLBerlaDatatypes {
   def WB_StructuredBlockStorage = IR_SpecialDatatype("StructuredBlockStorage")
   def WB_StructuredBlockForest = IR_SpecialDatatype("StructuredBlockForest")
 
-  def WB_CommScheme(onGPU : Boolean) =
-    if (onGPU)
-      IR_SpecialDatatype(s"cuda::communication::UniformGPUScheme< $WB_StencilTemplate >")
-    else
-      IR_SpecialDatatype(s"blockforest::communication::UniformBufferedScheme<$WB_StencilTemplate>")
+  def WB_CommScheme(onGPU : Boolean) = {
+    if (!Knowledge.waLBerla_useRefinement) {
+      // uniform comm scheme
+      if (onGPU)
+        IR_SpecialDatatype(s"cuda::communication::UniformGPUScheme< $WB_StencilTemplate >")
+      else
+        IR_SpecialDatatype(s"blockforest::communication::UniformBufferedScheme<$WB_StencilTemplate>")
+    } else {
+      // non-uniform comm scheme
+      if (onGPU)
+        Logger.error("Non-uniform comm schemes for CUDA are not natively implemented in waLBerla.")
+      else
+        IR_SpecialDatatype(s"blockforest::communication::NonUniformBufferedScheme<$WB_StencilTemplate>")
+    }
+  }
 
   def WB_StencilTemplate = "Stencil_T"
 
