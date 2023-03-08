@@ -8,7 +8,7 @@ import exastencils.datastructures.Transformation
 
 case class IR_WaLBerlaRefinementLevel() extends IR_UnduplicatedVariable {
   override def resolveName() : String = "refinementLvl"
-  override def resolveDatatype() : IR_Datatype = IR_SpecialDatatype("uint_t")
+  override def resolveDatatype() : IR_Datatype = IR_SpecialDatatype("size_t")
 }
 
 object IR_WaLBerlaFindAccessWithRefinement extends QuietDefaultStrategy("Find accesses with refinement") {
