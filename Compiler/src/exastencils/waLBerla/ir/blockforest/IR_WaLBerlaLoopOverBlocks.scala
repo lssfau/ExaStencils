@@ -6,6 +6,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.baseExt.ir.IR_LoopOverProcessLocalBlocks
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
@@ -47,7 +48,7 @@ object IR_WaLBerlaLoopOverBlocks {
 case class IR_WaLBerlaLoopOverBlocks(
     var body : ListBuffer[IR_Statement],
     var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo(),
-    var setupWaLBerlaFieldPointers : Boolean = true) extends IR_ScopedStatement with IR_SpecialExpandable with IR_HasParallelizationInfo {
+    var setupWaLBerlaFieldPointers : Boolean = true) extends IR_LoopOverProcessLocalBlocks {
 
   def expandSpecial(collector : IR_StackCollector) : Output[IR_Scope] = {
     // TODO: separate omp and potentiallyParallel
