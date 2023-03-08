@@ -976,8 +976,8 @@ object Knowledge {
     Constraints.condEnsureValue(waLBerla_generateCommSchemes, true, data_genVariableFieldSizes && waLBerla_generateInterface, "waLBerla Fields with variable field sizes currently require the usage of waLBerla comm schemes.")
     Constraints.condError(waLBerla_useRefinement && waLBerla_useGridFromExa, "Flags 'waLBerla_useRefinement' and 'waLBerla_useGridFromExa' are mutually exclusive.")
 
-    Constraints.condEnsureValue(experimental_l4_resolveVirtualFields, false, !waLBerla_useGridFromExa, "Resolving virtual fields on L4 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
-    Constraints.condEnsureValue(experimental_l3_resolveVirtualFields, false, !waLBerla_useGridFromExa, "Resolving virtual fields on L3 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
-    Constraints.condEnsureValue(experimental_l2_resolveVirtualFields, false, !waLBerla_useGridFromExa, "Resolving virtual fields on L2 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
+    Constraints.condEnsureValue(experimental_l4_resolveVirtualFields, false, !waLBerla_useGridFromExa && waLBerla_generateInterface, "Resolving virtual fields on L4 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
+    Constraints.condEnsureValue(experimental_l3_resolveVirtualFields, false, !waLBerla_useGridFromExa && waLBerla_generateInterface, "Resolving virtual fields on L3 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
+    Constraints.condEnsureValue(experimental_l2_resolveVirtualFields, false, !waLBerla_useGridFromExa && waLBerla_generateInterface, "Resolving virtual fields on L2 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
   }
 }
