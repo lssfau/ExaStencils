@@ -125,15 +125,24 @@ case class IR_WaLBerlaLoopOverBlocks(
     compiledBody ++= body
 
     if (!insideBlockLoop) {
+      val upperBoundKnown = Knowledge.waLBerla_useGridFromExa
+      val upperBound : IR_Expression = if (upperBoundKnown)
+        Knowledge.domain_numFragmentsPerBlock
+      else
+        IR_Cast(IR_IntegerDatatype, IR_MemberFunctionCall(blockArray, "size"))
+
       // wrap around explicit block loop, if not already done
-      IR_Scope(
-        IR_ForLoop(
-          IR_VariableDeclaration(defIt, 0),
-          IR_Neq(defIt, IR_MemberFunctionCall(blockArray, "size")),
-          IR_PreIncrement(defIt),
-          compiledBody,
-          parallelization)
-      )
+      val loop = IR_ForLoop(
+        IR_VariableDeclaration(defIt, 0),
+        IR_Lower(defIt, upperBound),
+        IR_PreIncrement(defIt),
+        compiledBody,
+        parallelization)
+
+      if (upperBoundKnown)
+        loop.annotate("numLoopIterations", Knowledge.domain_numFragmentsPerBlock)
+
+      IR_Scope(loop)
     } else {
       IR_Scope(compiledBody)
     }
