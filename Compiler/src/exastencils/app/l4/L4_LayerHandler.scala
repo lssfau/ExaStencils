@@ -47,9 +47,7 @@ import exastencils.solver.l4._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util.l4._
 import exastencils.waLBerla.l4.L4_UnifyWaLBerlaVarsSections
-import exastencils.waLBerla.l4.field.L4_WaLBerlaFieldCollection
-import exastencils.waLBerla.l4.field.L4_WaLBerlaFieldLayoutCollection
-import exastencils.waLBerla.l4.grid._
+import exastencils.waLBerla.l4.field._
 
 /// L4_LayerHandler
 
@@ -198,10 +196,6 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
       do {
         matches = 0
         matches += L4_ProcessDeclarations.applyAndCountMatches()
-
-        // replace wb vf accesses before they are resolved
-        if (!Knowledge.waLBerla_useGridFromExa)
-          L4_WaLBerlaResolveVirtualFieldAccesses.apply()
 
         matches += L4_ResolveAccesses.applyAndCountMatches()
 
