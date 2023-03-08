@@ -39,8 +39,6 @@ case class IR_LoopOverFragments(
     var body : ListBuffer[IR_Statement],
     var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_LoopOverProcessLocalBlocks {
 
-  import IR_LoopOverFragments.defIt
-
   def expandSpecial() : Output[IR_ForLoop] = {
     // TODO: separate omp and potentiallyParallel
     parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && parallelization.potentiallyParallel

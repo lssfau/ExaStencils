@@ -53,33 +53,33 @@ class IR_MatrixVarCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      case _ : IR_LoopOverFragments                                                          => openNewScope()
-      case _ : IR_ForLoop                                                                    => openNewScope()
-      case _ : IR_WhileLoop                                                                  => openNewScope()
-      case _ : IR_IfCondition                                                                => openNewScope()
-      case _ : IR_Scope                                                                      => openNewScope()
-      case _ : IR_Function                                                                   => openNewScope()
+      case _ : IR_LoopOverProcessLocalBlocks                                            => openNewScope()
+      case _ : IR_ForLoop                                                               => openNewScope()
+      case _ : IR_WhileLoop                                                             => openNewScope()
+      case _ : IR_IfCondition                                                           => openNewScope()
+      case _ : IR_Scope                                                                 => openNewScope()
+      case _ : IR_Function                                                              => openNewScope()
       case _ @ IR_Assignment(dest @ IR_VariableAccess(_, _), _, _)                      => addWrite(dest)
       case _ @ IR_Assignment(IR_HighDimAccess(dest @ IR_VariableAccess(_, _), _), _, _) => addWrite(dest)
-      case _ @ IR_FunctionCall(_, args)                                                      =>
+      case _ @ IR_FunctionCall(_, args)                                                 =>
         args.foreach(a => a match {
           case va @ IR_VariableAccess(_, _) => addWrite(va)
           case _                            =>
         })
-      case d : IR_VariableDeclaration                                                        => addDecl(d)
-      case _                                                                                 =>
+      case d : IR_VariableDeclaration                                                   => addDecl(d)
+      case _                                                                            =>
     }
   }
 
   override def leave(node : Node) : Unit = {
     node match {
-      case _ : IR_Scope             => closeScope()
-      case _ : IR_Function          => closeScope()
-      case _ : IR_LoopOverFragments => closeScope()
-      case _ : IR_ForLoop           => closeScope()
-      case _ : IR_WhileLoop         => closeScope()
-      case _ : IR_IfCondition       => closeScope()
-      case _                        =>
+      case _ : IR_Scope                      => closeScope()
+      case _ : IR_Function                   => closeScope()
+      case _ : IR_LoopOverProcessLocalBlocks => closeScope()
+      case _ : IR_ForLoop                    => closeScope()
+      case _ : IR_WhileLoop                  => closeScope()
+      case _ : IR_IfCondition                => closeScope()
+      case _                                 =>
     }
   }
 
