@@ -4,6 +4,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.baseExt.ir.IR_LoopOverProcessLocalBlocks
@@ -90,38 +91,52 @@ case class IR_WaLBerlaLoopOverBlocks(
     }
 
     import IR_WaLBerlaLoopOverBlocks.block
-    import IR_WaLBerlaLoopOverBlocks.defIt
+
+    // check if contained within a block loop (resolved or unresolved)
+    val insideBlockLoop = collector.stack.exists {
+      case _ : IR_LoopOverProcessLocalBlocks                                                       => true
+      case _ @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == defIt.name => true
+      case _                                                                                       => false
+    }
+
+    // array of process-local blocks
+    val blockArray = IR_WaLBerlaGetBlocks()
 
     var compiledBody = ListBuffer[IR_Statement]()
 
-    // init block pointer in loop
-    compiledBody += IR_VariableDeclaration(block, IR_ArrayAccess(IR_WaLBerlaGetBlocks(), defIt))
+    // setup loop body to support accesses to waLBerla data structures
+    if (!insideBlockLoop) {
+      // init block pointer in loop
+      compiledBody += IR_VariableDeclaration(block, IR_ArrayAccess(blockArray, defIt))
 
-    // get field data if necessary
-    if (setupWaLBerlaFieldPointers)
-      compiledBody ++= getWaLBerlaFieldData(fieldsAccessed : _*)
+      // get field data if necessary
+      if (setupWaLBerlaFieldPointers)
+        compiledBody ++= getWaLBerlaFieldData(fieldsAccessed : _*)
 
-    // check if refinement level should be fetched for block
-    IR_WaLBerlaFindAccessWithRefinement.applyStandalone(IR_Scope(body))
-    val refinementIV = IR_WaLBerlaFindAccessWithRefinement.refinementAccess
-    if (refinementIV.isDefined) {
-      compiledBody += refinementIV.get.getDeclaration()
-      compiledBody += IR_Assignment(refinementIV.get, IR_WaLBerlaBlockForest().getRefinementLvlForIterator())
+      // check if refinement level should be fetched for block
+      IR_WaLBerlaFindAccessWithRefinement.applyStandalone(IR_Scope(body))
+      val refinementIV = IR_WaLBerlaFindAccessWithRefinement.refinementAccess
+      if (refinementIV.isDefined) {
+        compiledBody += refinementIV.get.getDeclaration()
+        compiledBody += IR_Assignment(refinementIV.get, IR_WaLBerlaBlockForest().getRefinementLvlForIterator())
+      }
     }
 
     compiledBody ++= body
 
-    // check if contained within a fragment loop (resolved or unresolved)
-    val insideFragLoop = collector.stack.exists {
-      case _ : IR_LoopOverFragments                                                                                     => true
-      case _ @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name => true
-      case _                                                                                                            => false
-    }
-
-    if (!insideFragLoop)
-      IR_Scope(IR_LoopOverFragments(compiledBody, parallelization).expandSpecial().inner) // wrap around fragment loop, if not already done
-    else
+    if (!insideBlockLoop) {
+      // wrap around explicit block loop, if not already done
+      IR_Scope(
+        IR_ForLoop(
+          IR_VariableDeclaration(defIt, 0),
+          IR_Neq(defIt, IR_MemberFunctionCall(blockArray, "size")),
+          IR_PreIncrement(defIt),
+          compiledBody,
+          parallelization)
+      )
+    } else {
       IR_Scope(compiledBody)
+    }
   }
 }
 
