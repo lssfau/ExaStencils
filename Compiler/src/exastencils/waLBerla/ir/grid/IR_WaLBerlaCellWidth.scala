@@ -35,6 +35,12 @@ case class IR_WaLBerlaCellWidthPerDim(
     else
       None
 
-    IR_WaLBerlaBlockForest().getStepSize(dim, refinementLvl)
+    val blockForest = IR_WaLBerlaBlockForest()
+    val maxLevel = if (blockForest.maxLevelWaLBerlaField.isDefined)
+      blockForest.maxLevelWaLBerlaField.get.level
+    else
+      Knowledge.maxLevel
+
+    math.pow(2.0, maxLevel - level) * IR_WaLBerlaBlockForest().getStepSize(dim, refinementLvl)
   }
 }

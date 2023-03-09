@@ -2,11 +2,11 @@ package exastencils.waLBerla.ir.grid
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.core.Duplicate
 import exastencils.domain.ir._
+import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.grid.ir._
 import exastencils.knowledge.ir.IR_KnowledgeObject
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
-
 
 case class IR_WaLBerlaCellCenterAsVec(
     var level : Int,
@@ -28,5 +28,6 @@ case class IR_WaLBerlaCellCenterPerDim(
 
   override def createDuplicate() : IR_KnowledgeObject = IR_WaLBerlaCellCenterPerDim(level, domain, dim)
 
-  override def resolve(index : IR_ExpressionIndex) = IR_WaLBerlaBlockForest().getCellAABB(index).center(dim)
+  override def resolve(index : IR_ExpressionIndex) =
+    IR_VirtualFieldAccess(IR_WaLBerlaNodePositionPerDim(level, domain, dim), Duplicate(index)) + 0.5 * IR_VirtualFieldAccess(IR_WaLBerlaCellWidthPerDim(level, domain, dim), Duplicate(index))
 }
