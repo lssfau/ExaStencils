@@ -413,7 +413,9 @@ Function Application {
 
     // solve
     startTimer("solve")
+    benchmarkStart ( "solvePhase" )
     doSolve@finest ( )
+    benchmarkStop ( "solvePhase" )
     stopTimer("solve")
 
     // json
