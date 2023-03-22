@@ -455,7 +455,7 @@ object IR_SetupNodePositions {
       stmts += innerLoop
 
       // communication
-      stmts += IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("all", None, None)), None)
+      stmts += IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("all", None, None)), None, "")
     } else {
       val finerField = IR_VF_NodePositionAsVec.find(level + 1).associatedField
 
@@ -543,6 +543,6 @@ object IR_SetupNodePositions {
         innerLoop,
         leftBoundaryUpdate,
         rightBoundaryUpdate)),
-      IR_Communicate(coarseField, 0, "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None))
+      IR_Communicate(coarseField, 0, "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None, ""))
   }
 }

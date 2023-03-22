@@ -448,20 +448,30 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
       // tangent
       def tx = IR_FloatConstant(0.5) * (nodePosition(next(boundaryIdx), 0) - nodePosition(prev(boundaryIdx), 0))
+
       def ty = IR_FloatConstant(0.5) * (nodePosition(next(boundaryIdx), 1) - nodePosition(prev(boundaryIdx), 1))
+
       // normal
       def nx = ty
+
       def ny = IR_Negative(tx)
+
       // corners
       def txCornerBeg = IR_FloatConstant(0.5) * (nodePosition(next(next(beginIdx)), 0) - nodePosition(beginIdx, 0))
-      def tyCornerBeg = IR_FloatConstant(0.5) * (nodePosition(next(next(beginIdx)), 1) - nodePosition(beginIdx, 1))
-      def nxCornerBeg = tyCornerBeg
-      def nyCornerBeg = IR_Negative(txCornerBeg)
-      def txCornerEnd = IR_FloatConstant(0.5) * (nodePosition(endIdx, 0) - nodePosition(prev(prev(endIdx)), 0))
-      def tyCornerEnd = IR_FloatConstant(0.5) * (nodePosition(endIdx, 1) - nodePosition(prev(prev(endIdx)), 1))
-      def nxCornerEnd = tyCornerEnd
-      def nyCornerEnd = IR_Negative(txCornerEnd)
 
+      def tyCornerBeg = IR_FloatConstant(0.5) * (nodePosition(next(next(beginIdx)), 1) - nodePosition(beginIdx, 1))
+
+      def nxCornerBeg = tyCornerBeg
+
+      def nyCornerBeg = IR_Negative(txCornerBeg)
+
+      def txCornerEnd = IR_FloatConstant(0.5) * (nodePosition(endIdx, 0) - nodePosition(prev(prev(endIdx)), 0))
+
+      def tyCornerEnd = IR_FloatConstant(0.5) * (nodePosition(endIdx, 1) - nodePosition(prev(prev(endIdx)), 1))
+
+      def nxCornerEnd = tyCornerEnd
+
+      def nyCornerEnd = IR_Negative(txCornerEnd)
 
       body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh.index)), ListBuffer[IR_Statement](
         IR_Comment(neigh.index.toString()),
@@ -704,7 +714,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     body += IR_MemberFunctionCall(file, "close")
 
     // communicate (updated interior ghost layers)
-    body += IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None)
+    body += IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None, "")
     // deal with ghost layers on boundary
     //body += loopOverNumFragments(fillBoundaryGhostLayers(field))
     body += loopOverNumFragments(fillBoundaryGhostLayers2(field))
