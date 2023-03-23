@@ -24,10 +24,12 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_Native
 import exastencils.base.ir._
 import exastencils.config.Knowledge
+import exastencils.core.StateManager
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp.OMP_Parallel
+import exastencils.timing.ir.IR_CollectUnresolvedBenchmarkFunctions
 
 /// IR_HandleMainApplication
 
@@ -44,8 +46,23 @@ object IR_HandleMainApplication extends DefaultStrategy("HandleMainApplication")
       func.allowFortranInterface = false
       func.allowInlining = false
 
+      def wrapAroundParallelRegion(body : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
+        if (Knowledge.omp_enabled)
+          ListBuffer(OMP_Parallel(body))
+        else
+          body
+      }
+
       if ("likwid" == Knowledge.benchmark_backend) {
-        func.body.prepend(OMP_Parallel(ListBuffer(IR_Native("LIKWID_MARKER_THREADINIT"))))
+        // register timers
+        var registerMarkers = ListBuffer[IR_Statement]()
+        IR_CollectUnresolvedBenchmarkFunctions.applyStandalone(StateManager.root)
+        IR_CollectUnresolvedBenchmarkFunctions.benchmarkNames foreach { name =>
+          registerMarkers += IR_Native("LIKWID_MARKER_REGISTER(\"" + name + "\")")
+        }
+        func.body.prependAll(wrapAroundParallelRegion(registerMarkers))
+
+        func.body.prependAll(wrapAroundParallelRegion(ListBuffer[IR_Statement](IR_Native("LIKWID_MARKER_THREADINIT"))))
         func.body.prepend(IR_Native("LIKWID_MARKER_INIT"))
         func.body.append(IR_Native("LIKWID_MARKER_CLOSE"))
       }

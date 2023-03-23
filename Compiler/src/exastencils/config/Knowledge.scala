@@ -300,6 +300,9 @@ object Knowledge {
   var timer_printTimersToFileForEachRank : Boolean = false
   // prints separate timer values for each rank -> requires some additional memory for the gather op
 
+  // add benchmarking markers for each timer
+  var timer_addBenchmarkMarkers : Boolean = false
+
   // library/tool to use for benchmarking
   // may be one of the following: 'None', 'likwid'
   var benchmark_backend = "None"
@@ -944,6 +947,7 @@ object Knowledge {
     // benchmarking and performance estimation
 
     Constraints.condWarn(!List("None", "likwid").contains(benchmark_backend), "Unknown value for benchmark_backend")
+    Constraints.condWarn(benchmark_backend == "None" && timer_addBenchmarkMarkers, "Enabled timer_addBenchmarkMarkers without having set benchmark_backend")
     Constraints.condError(benchmark_backend == "likwid" && Platform.targetOS != "Linux", "likwid is currently only available for Linux")
 
     Constraints.condEnsureValue(performance_addEstimation, true, performance_printEstimation, "printing performance estimations requires actually estimating them")
