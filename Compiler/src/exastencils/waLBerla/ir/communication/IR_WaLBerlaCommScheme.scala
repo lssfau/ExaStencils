@@ -22,8 +22,9 @@ abstract class IR_WaLBerlaCommScheme extends IR_WaLBerlaInterfaceMember(false, t
 
   def level = wbField.level
   def numSlots = wbField.numSlots
-  def levels = blockDataID.levels
-  override def numLevels = blockDataID.numLevels
+
+  override def minLevel : Int = blockDataID.minLevel
+  override def maxLevel : Int = blockDataID.maxLevel
 
   def basetype : IR_Datatype
 

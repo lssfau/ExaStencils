@@ -34,6 +34,10 @@ abstract class IR_IV_WaLBerlaGetFieldPointer extends IR_WaLBerlaInterfaceMember(
   def fragmentIdx : IR_Expression
   def slot : IR_Expression
 
+  private val levels = IR_WaLBerlaFieldCollection.getAllByIdentifier(field.name, suppressError = true).map(_.level)
+  override def minLevel : Int = levels.min
+  override def maxLevel : Int = levels.max
+
   def baseDatatype() : IR_Datatype
   override def resolveDatatype() : IR_Datatype = {
     var dt : IR_Datatype = IR_PointerDatatype(baseDatatype())

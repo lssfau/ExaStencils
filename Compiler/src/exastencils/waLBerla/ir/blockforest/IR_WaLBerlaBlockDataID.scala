@@ -39,7 +39,8 @@ case class IR_WaLBerlaBlockDataID(
   val numSlots : Int = wbField.numSlots
   val levels : ListBuffer[Int] = IR_WaLBerlaFieldCollection.getAllByIdentifier(wbField.name, suppressError = true).map(_.level)
 
-  override def numLevels : Int = levels.size
+  override def minLevel : Int = levels.min
+  override def maxLevel : Int = levels.max
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveMemberBaseAccess(), IR_NullExpression, level, IR_NullExpression)
 

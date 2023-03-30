@@ -45,7 +45,9 @@ abstract class IR_WaLBerlaInterfaceMember(
   def isPrivate : Boolean
 
   def numBlocks : Int = Knowledge.domain_numFragmentsPerBlock
-  def numLevels : Int = Knowledge.numLevels
+  def minLevel : Int = Knowledge.minLevel
+  def maxLevel : Int = Knowledge.maxLevel
+  def numLevels : Int = maxLevel - minLevel + 1
   def numNeighbors : Int = DefaultNeighbors.neighbors.size
 
   def hasMultipleBlocks : Boolean = numBlocks > 1
@@ -96,8 +98,8 @@ abstract class IR_WaLBerlaInterfaceMember(
     if (canBePerLevel && hasMultipleLevels) {
       val simplifiedLevel : IR_Expression =
         level match {
-          case IR_IntegerConstant(v) => v - Knowledge.minLevel
-          case _                     => level - Knowledge.minLevel
+          case IR_IntegerConstant(v) => v - minLevel
+          case _                     => level - minLevel
         }
       access = IR_ArrayAccess(access, simplifiedLevel)
     }
