@@ -7,7 +7,10 @@ import exastencils.domain.ir.IR_Domain
 import exastencils.grid.ir.IR_VF_CellWidthAsVec
 import exastencils.grid.ir.IR_VF_CellWidthPerDim
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockLoopVariable
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaRefinementLevel
+
+/// IR_WaLBerlaCellWidthAsVec
 
 case class IR_WaLBerlaCellWidthAsVec(
     var level : Int,
@@ -18,6 +21,18 @@ case class IR_WaLBerlaCellWidthAsVec(
 
   override def createDuplicate() = IR_WaLBerlaCellWidthAsVec(level, domain)
 }
+
+/// IR_WaLBerlaCellWidthBlockPerDim
+// block-loop variable for better readability
+
+case class IR_WaLBerlaCellWidthBlockPerDim(dim : Int, refinementLevel : Option[IR_Expression] = None) extends IR_WaLBerlaBlockLoopVariable {
+  override def resolveName() : String = s"d${ ('x' + dim).toChar.toString }_"
+  override def resolveDatatype() : IR_Datatype = IR_SpecialDatatype("real_t")
+
+  override def getDeclaration() : IR_VariableDeclaration = IR_VariableDeclaration(resolveDatatype(), resolveName(), IR_WaLBerlaBlockForest().getStepSize(dim, refinementLevel))
+}
+
+/// IR_WaLBerlaCellWidthPerDim
 
 case class IR_WaLBerlaCellWidthPerDim(
     var level : Int,
@@ -41,6 +56,6 @@ case class IR_WaLBerlaCellWidthPerDim(
     else
       Knowledge.maxLevel
 
-    math.pow(2.0, maxLevel - level) * IR_WaLBerlaBlockForest().getStepSize(dim, refinementLvl)
+    math.pow(2.0, maxLevel - level) * IR_WaLBerlaCellWidthBlockPerDim(dim, refinementLvl)
   }
 }
