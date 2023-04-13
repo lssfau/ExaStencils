@@ -59,6 +59,11 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   addExternalDependency("domain_decomposition/StructuredBlockStorage.h")
   addExternalDependency("set")
 
+  if (Knowledge.waLBerla_useRefinement) {
+    addExternalDependency("blockforest/communication/NonUniformBufferedScheme.h")
+    addExternalDependency("field/refinement/PackInfo.h")
+  }
+
   if (Knowledge.omp_enabled)
     addExternalDependency("omp.h")
 
