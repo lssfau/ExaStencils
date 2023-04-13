@@ -115,7 +115,7 @@ case class IR_WaLBerlaLoopOverBlocks(
 
       // check if there are block loop variables to be added (i.e. declared and set)
       IR_WaLBerlaFindBlockLoopVariables.applyStandalone(IR_Scope(body))
-      for (blockVar <- IR_WaLBerlaFindBlockLoopVariables.blockLoopVariables)
+      for (blockVar <- IR_WaLBerlaFindBlockLoopVariables.blockLoopVariables.distinct.sorted)
         compiledBody += blockVar.getDeclaration()
     }
 
