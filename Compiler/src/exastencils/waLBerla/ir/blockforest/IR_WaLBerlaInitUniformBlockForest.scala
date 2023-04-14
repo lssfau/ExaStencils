@@ -14,41 +14,14 @@ import exastencils.waLBerla.ir.interfacing._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_UintType
 
-case class IR_WaLBerlaInitUniformBlockForest() extends IR_WaLBerlaWrapperFunction {
-  def domain = IR_DomainCollection.getByIdentifier("global").get
-  def domainBounds = domain.asInstanceOf[IR_DomainFromAABB].aabb
+trait IR_WaLBerlaInitBlockForest extends IR_WaLBerlaWrapperFunction {
+
+  // helper functions
   def datatype = IR_SharedPointerDatatype(WB_StructuredBlockForest)
-
-  def someWaLBerlaField = IR_WaLBerlaBlockForest().maxLevelWaLBerlaField
-
-  val maxDims = 3
-  val numDims = Knowledge.dimensionality
-  val level = if (someWaLBerlaField.isDefined) someWaLBerlaField.get.level else Knowledge.maxLevel
-
   def toUnsignedInt(value : Int) = IR_Cast(WB_UintType, value)
 
-  // dimensionality < 3 -> use one cell with random width for other dims
-  val arbitraryThickness = 0.01
-
-  def numCellsBlock(d : Int) = if (d < numDims) {
-    if (someWaLBerlaField.isDefined) someWaLBerlaField.get.layout.layoutsPerDim(d).numInnerLayers else Knowledge.domain_fragmentLengthAsVec(d) * (1 << level)
-  } else
-    1
-  def cellWidth(d : Int) = if (d < numDims) (domainBounds.upper(d) - domainBounds.lower(d)) / (Knowledge.domain_rect_numFragsTotalAsVec(d) * numCellsBlock(d)) else arbitraryThickness
-
-  val wbBlocks = List(Knowledge.domain_rect_numFragsTotal_x, Knowledge.domain_rect_numFragsTotal_y, Knowledge.domain_rect_numFragsTotal_z).map(toUnsignedInt)
-  val numProcesses = List(Knowledge.domain_rect_numBlocks_x, Knowledge.domain_rect_numBlocks_y, Knowledge.domain_rect_numBlocks_z).map(toUnsignedInt)
-  val periodicity = List(Knowledge.domain_rect_periodic_x, Knowledge.domain_rect_periodic_y, Knowledge.domain_rect_periodic_z)
-
-  val aabbLower = (0 until maxDims).map(d => IR_RealConstant(if (d < numDims) domainBounds.lower(d) else 0.0))
-  val aabbUpper = (0 until maxDims).map(d => IR_RealConstant(if (d < numDims) domainBounds.upper(d) else cellWidth(d)))
-  val aabb = IR_VariableAccess("aabb", IR_SpecialDatatype("auto"))
-
-  override def isInterfaceFunction : Boolean = false
-  override def inlineIncludeImplementation : Boolean = false
-
-  override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
-    // error checks
+  // error checks
+  def checkErrors() = {
     if (IR_WaLBerlaFieldCollection.objects.nonEmpty) {
       // assumes all top level fields have the same number of cells
       if (IR_WaLBerlaFieldCollection.objects.filter(_.level == level).forall(f => (0 until numDims).map(d => f.layout.layoutsPerDim(d).numInnerLayers != numCellsBlock(d)).reduce(_ || _)))
@@ -58,11 +31,55 @@ case class IR_WaLBerlaInitUniformBlockForest() extends IR_WaLBerlaWrapperFunctio
         Logger.error("Invalid dimensionality for waLBerla coupling: " + numDims)
       }
     }
+  }
+
+  // domain
+  def domain = IR_DomainCollection.getByIdentifier("global").get
+  def domainBounds = domain.asInstanceOf[IR_DomainFromAABB].aabb
+
+  // helper field (proxy)
+  def someWaLBerlaField = IR_WaLBerlaBlockForest().maxLevelWaLBerlaField
+
+  // config
+  def maxDims = 3
+  def numDims = Knowledge.dimensionality
+  def level = if (someWaLBerlaField.isDefined) someWaLBerlaField.get.level else Knowledge.maxLevel
+  def arbitraryThickness = 0.01 // dimensionality < 3 -> use one cell with random width for other dims
+
+  // cells (and their width) per block
+  def numCellsBlock(d : Int) = if (d < numDims) {
+    if (someWaLBerlaField.isDefined) someWaLBerlaField.get.layout.layoutsPerDim(d).numInnerLayers else Knowledge.domain_fragmentLengthAsVec(d) * (1 << level)
+  } else
+    1
+  def cellWidth(d : Int) = if (d < numDims) (domainBounds.upper(d) - domainBounds.lower(d)) / (Knowledge.domain_rect_numFragsTotalAsVec(d) * numCellsBlock(d)) else arbitraryThickness
+
+  // partitioning
+  def wbBlocks = List(Knowledge.domain_rect_numFragsTotal_x, Knowledge.domain_rect_numFragsTotal_y, Knowledge.domain_rect_numFragsTotal_z).map(toUnsignedInt)
+  def numProcesses = List(Knowledge.domain_rect_numBlocks_x, Knowledge.domain_rect_numBlocks_y, Knowledge.domain_rect_numBlocks_z).map(toUnsignedInt)
+  def periodicity = List(Knowledge.domain_rect_periodic_x, Knowledge.domain_rect_periodic_y, Knowledge.domain_rect_periodic_z)
+
+  // aabb
+  def aabbLower = (0 until maxDims).map(d => IR_RealConstant(if (d < numDims) domainBounds.lower(d) else 0.0))
+  def aabbUpper = (0 until maxDims).map(d => IR_RealConstant(if (d < numDims) domainBounds.upper(d) else cellWidth(d)))
+  def aabb = IR_VariableAccess("aabb", IR_SpecialDatatype("auto"))
+
+  // function modifiers
+  override def isInterfaceFunction : Boolean = false
+  override def inlineIncludeImplementation : Boolean = false
+}
+
+case class IR_WaLBerlaInitUniformBlockForest() extends IR_WaLBerlaInitBlockForest {
+
+  override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
+
+    // check for errors
+    checkErrors()
 
     // add deps
     IR_WaLBerlaCollection.get.addExternalDependency("blockforest/Initialization.h")
     IR_WaLBerlaCollection.get.addExternalDependency("core/math/all.h")
 
+    // compile body
     var body : ListBuffer[IR_Statement] = ListBuffer()
     body += IR_VariableDeclaration(aabb, IR_FunctionCall(IR_ExternalFunctionReference("math::AABB"), aabbLower ++ aabbUpper : _*))
     body += IR_Return(
