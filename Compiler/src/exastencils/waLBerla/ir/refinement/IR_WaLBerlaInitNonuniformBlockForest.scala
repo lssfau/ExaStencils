@@ -19,18 +19,19 @@ case class IR_WaLBerlaInitNonuniformBlockForest() extends IR_WaLBerlaInitBlockFo
     var body : ListBuffer[IR_Statement] = ListBuffer()
 
     // init domain aabb
-
-    val domainAABB = IR_VariableAccess("domainAABB", IR_WaLBerlaAABB.datatype)
-    body += IR_VariableDeclaration(domainAABB, IR_FunctionCall(IR_ExternalFunctionReference("math::AABB"), aabbLower ++ aabbUpper : _*))
+    body += IR_VariableDeclaration(domainAABB, IR_FunctionCall(IR_ExternalFunctionReference("math::AABB"), domainAABBLower ++ domainAABBUpper : _*))
 
     // get user-defined aabb refinement selection from L4 and add to 'AABBRefinementSelection' object
     val aabbRefinementSelection = IR_VariableAccess("aabbRefinementSelection", IR_SpecialDatatype("blockforest::AABBRefinementSelection"))
     body += IR_VariableDeclaration(aabbRefinementSelection)
 
     for (refinementSelection <- IR_WaLBerlaRefinementSelectionCollection.objects) {
-      val aabb = IR_VariableAccess("aabb_" + refinementSelection.name, IR_WaLBerlaAABB.datatype)
+      val refinementAABB = refinementSelection.aabb
+      val lower = getLowerBoundsAABB(refinementAABB)
+      val upper = getUpperBoundsAABB(refinementAABB)
 
-      body += IR_VariableDeclaration(aabb, IR_FunctionCall(IR_ExternalFunctionReference("math::AABB"), aabbLower ++ aabbUpper : _*))
+      val aabb = IR_VariableAccess(s"aabb_${refinementSelection.name}", IR_WaLBerlaAABB.datatype)
+      body += IR_VariableDeclaration(aabb, IR_FunctionCall(IR_ExternalFunctionReference("math::AABB"), lower ++ upper : _*))
       body += IR_MemberFunctionCall(aabbRefinementSelection, "addAABB", aabb, refinementSelection.refinementTargetLevel)
     }
 

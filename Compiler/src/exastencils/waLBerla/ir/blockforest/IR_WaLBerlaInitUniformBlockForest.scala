@@ -8,6 +8,7 @@ import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.domain.ir.IR_DomainFromAABB
 import exastencils.logger.Logger
+import exastencils.util.ir.IR_AABB
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaAABB
 import exastencils.waLBerla.ir.interfacing._
@@ -59,8 +60,11 @@ trait IR_WaLBerlaInitBlockForest extends IR_WaLBerlaWrapperFunction {
   def periodicity = List(Knowledge.domain_rect_periodic_x, Knowledge.domain_rect_periodic_y, Knowledge.domain_rect_periodic_z)
 
   // aabb
-  def aabbLower = (0 until maxDims).map(d => IR_RealConstant(if (d < numDims) domainBounds.lower(d) else 0.0))
-  def aabbUpper = (0 until maxDims).map(d => IR_RealConstant(if (d < numDims) domainBounds.upper(d) else cellWidth(d)))
+  def domainAABB = IR_VariableAccess("domainAABB", IR_WaLBerlaAABB.datatype)
+  def getLowerBoundsAABB(aabb : IR_AABB) = (0 until maxDims).map(d => IR_RealConstant(if (d < numDims) aabb.lower(d) else 0.0))
+  def getUpperBoundsAABB(aabb : IR_AABB) = (0 until maxDims).map(d => IR_RealConstant(if (d < numDims) aabb.upper(d) else cellWidth(d)))
+  def domainAABBLower = getLowerBoundsAABB(domainBounds)
+  def domainAABBUpper = getUpperBoundsAABB(domainBounds)
 
   // function modifiers
   override def isInterfaceFunction : Boolean = false
@@ -77,13 +81,12 @@ case class IR_WaLBerlaInitUniformBlockForest() extends IR_WaLBerlaInitBlockFores
     // compile body
     var body : ListBuffer[IR_Statement] = ListBuffer()
 
-    val aabb = IR_VariableAccess("aabb", IR_WaLBerlaAABB.datatype)
-    body += IR_VariableDeclaration(aabb, IR_FunctionCall(IR_ExternalFunctionReference("math::AABB"), aabbLower ++ aabbUpper : _*))
+    body += IR_VariableDeclaration(domainAABB, IR_FunctionCall(IR_ExternalFunctionReference("math::AABB"), domainAABBLower ++ domainAABBUpper : _*))
 
     body += IR_Return(
       new IR_FunctionCall(IR_ExternalFunctionReference("blockforest::createUniformBlockGrid"),
         ListBuffer(
-          aabb,
+          domainAABB,
           wbBlocks(0), wbBlocks(1), wbBlocks(2),
           numCellsBlock(0), numCellsBlock(1), numCellsBlock(2),
           numProcesses(0), numProcesses(1), numProcesses(2),
