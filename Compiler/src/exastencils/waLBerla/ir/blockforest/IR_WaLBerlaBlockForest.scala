@@ -23,7 +23,7 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
   override def resolveAccess(baseAccess : IR_Expression, block : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Access = resolveMemberBaseAccess()
   override def resolveDatatype() = IR_SharedPointerDatatype(WB_StructuredBlockForest)
 
-  override def resolveDefValue() : Option[IR_Expression] = Some(IR_FunctionCall(IR_WaLBerlaInitBlockForest().name))
+  override def resolveDefValue() : Option[IR_Expression] = Some(IR_FunctionCall(IR_WaLBerlaInitUniformBlockForest().name))
 
   def maxLevelWaLBerlaField = {
     if (IR_WaLBerlaFieldCollection.objects.nonEmpty)

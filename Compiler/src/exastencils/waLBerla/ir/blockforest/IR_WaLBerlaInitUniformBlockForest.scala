@@ -14,7 +14,7 @@ import exastencils.waLBerla.ir.interfacing._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_UintType
 
-case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
+case class IR_WaLBerlaInitUniformBlockForest() extends IR_WaLBerlaWrapperFunction {
   def domain = IR_DomainCollection.getByIdentifier("global").get
   def domainBounds = domain.asInstanceOf[IR_DomainFromAABB].aabb
   def datatype = IR_SharedPointerDatatype(WB_StructuredBlockForest)
@@ -77,7 +77,5 @@ case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
     IR_WaLBerlaPlainFunction(name, datatype, ListBuffer(), body)
   }
 
-  override def prettyprint_decl() : String = prettyprint()
-  override def name : String = "initBlockForest"
-  override def name_=(newName : String) : Unit = name = newName
+  override def name : String = "initUniformBlockForest"
 }
