@@ -2,10 +2,12 @@ package exastencils.waLBerla.ir.blockforest
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.config.Knowledge
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaCellAABB
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceParameter
+import exastencils.waLBerla.ir.refinement.IR_WaLBerlaInitNonuniformBlockForest
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_UintType
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDirection
@@ -23,7 +25,14 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
   override def resolveAccess(baseAccess : IR_Expression, block : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Access = resolveMemberBaseAccess()
   override def resolveDatatype() = IR_SharedPointerDatatype(WB_StructuredBlockForest)
 
-  override def resolveDefValue() : Option[IR_Expression] = Some(IR_FunctionCall(IR_WaLBerlaInitUniformBlockForest().name))
+  override def resolveDefValue() : Option[IR_Expression] = {
+    val initFunc = if (Knowledge.waLBerla_useRefinement)
+      IR_WaLBerlaInitNonuniformBlockForest()
+    else
+      IR_WaLBerlaInitUniformBlockForest()
+
+    Some(IR_FunctionCall(initFunc.name))
+  }
 
   def maxLevelWaLBerlaField = {
     if (IR_WaLBerlaFieldCollection.objects.nonEmpty)
