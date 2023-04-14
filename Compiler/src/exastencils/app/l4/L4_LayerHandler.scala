@@ -46,8 +46,8 @@ import exastencils.prettyprinting.Indenter
 import exastencils.solver.l4._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util.l4._
-import exastencils.waLBerla.l4.L4_UnifyWaLBerlaVarsSections
 import exastencils.waLBerla.l4.field._
+import exastencils.waLBerla.l4.interfacing.L4_UnifyWaLBerlaVarsSections
 
 /// L4_LayerHandler
 

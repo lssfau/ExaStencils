@@ -1,4 +1,4 @@
-package exastencils.waLBerla.l4
+package exastencils.waLBerla.l4.blockforest
 
 import scala.collection.mutable.ListBuffer
 

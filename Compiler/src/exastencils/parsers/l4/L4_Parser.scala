@@ -40,9 +40,9 @@ import exastencils.operator.l4._
 import exastencils.parsers._
 import exastencils.solver.l4._
 import exastencils.util.l4.L4_OffsetAlias
-import exastencils.waLBerla.l4.L4_WaLBerlaLoopOverBlocks
-import exastencils.waLBerla.l4.L4_WaLBerlaVarsSection
+import exastencils.waLBerla.l4.blockforest.L4_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.l4.field._
+import exastencils.waLBerla.l4.interfacing.L4_WaLBerlaVarsSection
 
 /// L4_Parser
 
