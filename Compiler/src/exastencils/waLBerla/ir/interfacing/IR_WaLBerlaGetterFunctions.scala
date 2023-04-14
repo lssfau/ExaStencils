@@ -33,7 +33,7 @@ case class IR_WaLBerlaGetBlockForest() extends IR_WaLBerlaWrapperFunction {
   override def name : String = "getBlockForest"
 
   override def isInterfaceFunction : Boolean = true
-  override def inlineImplementation : Boolean = true
+  override def inlineIncludeImplementation : Boolean = true
 }
 
 case class IR_WaLBerlaGetMaxLevel() extends IR_WaLBerlaWrapperFunction {
@@ -43,7 +43,7 @@ case class IR_WaLBerlaGetMaxLevel() extends IR_WaLBerlaWrapperFunction {
   override def name : String = "getMaxMGLevel"
 
   override def isInterfaceFunction : Boolean = true
-  override def inlineImplementation : Boolean = true
+  override def inlineIncludeImplementation : Boolean = true
 }
 
 case class IR_WaLBerlaGetMinLevel() extends IR_WaLBerlaWrapperFunction {
@@ -53,7 +53,7 @@ case class IR_WaLBerlaGetMinLevel() extends IR_WaLBerlaWrapperFunction {
   override def name : String = "getMinMGLevel"
 
   override def isInterfaceFunction : Boolean = true
-  override def inlineImplementation : Boolean = true
+  override def inlineIncludeImplementation : Boolean = true
 }
 
 case class IR_WaLBerlaGetNumLevels() extends IR_WaLBerlaWrapperFunction {
@@ -63,7 +63,7 @@ case class IR_WaLBerlaGetNumLevels() extends IR_WaLBerlaWrapperFunction {
   override def name : String = "getNumberOfMGLevels"
 
   override def isInterfaceFunction : Boolean = true
-  override def inlineImplementation : Boolean = true
+  override def inlineIncludeImplementation : Boolean = true
 }
 
 case class IR_WaLBerlaGetBlockDataID(field : IR_WaLBerlaField) extends IR_WaLBerlaWrapperFunction {
@@ -89,5 +89,5 @@ case class IR_WaLBerlaGetBlockDataID(field : IR_WaLBerlaField) extends IR_WaLBer
 
   override def name : String = s"getBlockDataID_${field.name}"
   override def isInterfaceFunction : Boolean = true
-  override def inlineImplementation : Boolean = true
+  override def inlineIncludeImplementation : Boolean = true
 }

@@ -17,7 +17,7 @@ case class IR_WaLBerlaInitFieldDataPtrs(onGPU : Boolean, wbFields : IR_WaLBerlaF
   override def prettyprint_decl() : String = prettyprint
 
   override def isInterfaceFunction : Boolean = true
-  override def inlineImplementation : Boolean = true
+  override def inlineIncludeImplementation : Boolean = true
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
     var body = ListBuffer[IR_Statement]()

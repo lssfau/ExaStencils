@@ -24,5 +24,5 @@ private case class IR_WaLBerlaInitExaGlobalsWrapper() extends IR_WaLBerlaWrapper
       ListBuffer[IR_Statement](IR_FunctionCall("initGlobals")))
 
   override def isInterfaceFunction : Boolean = true
-  override def inlineImplementation : Boolean = true
+  override def inlineIncludeImplementation : Boolean = true
 }

@@ -22,7 +22,7 @@ case class IR_WaLBerlaInitCommSchemes(onGPU :  Boolean, wbFields : IR_WaLBerlaFi
     Logger.error("\"IR_WaLBerlaAddGPUFieldToStorage\" used incorrectly. Assumes fields with identical name but potentially different slots and levels.")
 
   override def isInterfaceFunction : Boolean = true
-  override def inlineImplementation : Boolean = true
+  override def inlineIncludeImplementation : Boolean = true
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
 

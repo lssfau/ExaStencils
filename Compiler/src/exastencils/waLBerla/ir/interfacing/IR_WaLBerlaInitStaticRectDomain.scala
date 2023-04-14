@@ -75,7 +75,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
   }
 
   override def isInterfaceFunction : Boolean = true
-  override def inlineImplementation : Boolean = true
+  override def inlineIncludeImplementation : Boolean = true
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
     var init = ListBuffer[IR_Statement]()

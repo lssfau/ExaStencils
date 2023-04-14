@@ -116,7 +116,7 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
 
     // handle inlined implementations
     for (func <- functions.filter(_.isInstanceOf[IR_WaLBerlaFunction])) {
-      if (func.asInstanceOf[IR_WaLBerlaFunction].inlineImplementation && !func.isHeaderOnly) {
+      if (func.asInstanceOf[IR_WaLBerlaFunction].inlineIncludeImplementation && !func.isHeaderOnly) {
         val source = s"${ baseName }_${ func.name }.impl.h"
         val writerImpl = PrettyprintingManager.getPrinter(source)
 
@@ -132,7 +132,7 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   override def printSources() = {
     // filter out already handled inline implementations
     val separatedFuncImpls = functions.filter {
-      case f : IR_WaLBerlaFunction => !f.inlineImplementation
+      case f : IR_WaLBerlaFunction => !f.inlineIncludeImplementation
       case _                       => true
     }
 

@@ -16,7 +16,7 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
   def getReference = IR_AddressOf(IR_VariableAccess(name + "_" + level, returnType))
 
   override def isInterfaceFunction : Boolean = false
-  override def inlineImplementation : Boolean = false
+  override def inlineIncludeImplementation : Boolean = false
 
   override def generateWaLBerlaFct() : IR_WaLBerlaLeveledFunction = {
 

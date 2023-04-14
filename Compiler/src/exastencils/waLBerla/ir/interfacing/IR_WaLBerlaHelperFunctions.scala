@@ -36,7 +36,7 @@ case class IR_WaLBerlaAddFieldToStorageWrapper() extends IR_WaLBerlaWrapperFunct
   // templated, non-interface function
   val fieldTemplate = "Field_T"
   functionQualifiers += s"template < typename $fieldTemplate >"
-  override def inlineImplementation : Boolean = true
+  override def inlineIncludeImplementation : Boolean = true
   override def isInterfaceFunction : Boolean = false
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
