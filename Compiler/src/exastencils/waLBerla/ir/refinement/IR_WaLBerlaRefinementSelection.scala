@@ -4,10 +4,21 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.knowledge.ir.IR_KnowledgeObject
+import exastencils.logger.Logger
+import exastencils.util.ir.IR_AABB
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaAABB
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaPlainFunction
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaWrapperFunction
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes._
+
+/// IR_WaLBerlaRefinementSelection
+
+case class IR_WaLBerlaRefinementSelection(name : String, aabb : IR_AABB) extends IR_KnowledgeObject {
+  override def createDuplicate() : IR_KnowledgeObject = Logger.error("Trying to duplicate an ir refinement selection. This is currently unsupported.")
+
+  def numDims = aabb.numDims
+}
 
 /// IR_WaLBerlaRefinementExclusion2D
 // waLBerla always refines in an octree-fashion -> in 2D, we exclude child blocks spawned in z-direction to emulate quadtrees

@@ -43,6 +43,7 @@ import exastencils.util.l4.L4_OffsetAlias
 import exastencils.waLBerla.l4.blockforest.L4_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.l4.field._
 import exastencils.waLBerla.l4.interfacing.L4_WaLBerlaVarsSection
+import exastencils.waLBerla.l4.refinement.L4_WaLBerlaRefinementSelectionDecl
 
 /// L4_Parser
 
@@ -96,6 +97,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| externalField
       ||| waLBerlaField
       ||| waLBerlaFieldLayout
+      ||| waLBerlaRefinementSelection
       ||| stencilDeclaration
       ||| stencilFromDefault
       ||| equationDeclaration
@@ -411,6 +413,9 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val waLBerlaFieldLayout = locationize(("waLBerla" ~ "Layout" ~> ident) ~ ("<" ~> datatype <~ ",") ~ (stringLit <~ ">") ~ levelDecl.? ~ ("{" ~> repsep(layoutOption, ",".?) <~ "}")
     ^^ { case id ~ dt ~ layoutLit ~ levels ~ opts => L4_WaLBerlaFieldLayoutDecl(id, levels, dt, layoutLit, opts.to[ListBuffer]) })
+
+  lazy val waLBerlaRefinementSelection = locationize(("waLBerla" ~ "RefinementSelection" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">")
+    ^^ { case id ~ l ~ u => L4_WaLBerlaRefinementSelectionDecl(id, l, u) })
 
   lazy val fieldBoundary = (
     "Neumann" ~> ("(" ~> integerLit <~ ")").? ^^ { L4_NeumannBC(_) }

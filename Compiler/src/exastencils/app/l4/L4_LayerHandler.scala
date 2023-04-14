@@ -48,6 +48,7 @@ import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util.l4._
 import exastencils.waLBerla.l4.field._
 import exastencils.waLBerla.l4.interfacing.L4_UnifyWaLBerlaVarsSections
+import exastencils.waLBerla.l4.refinement.L4_WaLBerlaRefinementSelectionCollection
 
 /// L4_LayerHandler
 
@@ -73,6 +74,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     L4_WaLBerlaFieldCollection
     L4_FieldCollection
     L4_WaLBerlaFieldLayoutCollection
+    L4_WaLBerlaRefinementSelectionCollection
     L4_FieldLayoutCollection
     L4_StencilCollection
     L4_StencilFieldCollection
