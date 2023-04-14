@@ -16,7 +16,8 @@ import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementSelection
 case class L4_WaLBerlaRefinementSelection(name : String, aabb : L4_AABB, refinementTargetLevel : Int) extends L4_KnowledgeObject[IR_WaLBerlaRefinementSelection] {
   override def progressImpl() : IR_WaLBerlaRefinementSelection = IR_WaLBerlaRefinementSelection(name, aabb.progress, refinementTargetLevel)
 
-  override def prettyprintDecl(out : PpStream) : Unit = out << "waLBerla RefinementSelection " << name << "< " << aabb << " >"
+  override def prettyprintDecl(out : PpStream) : Unit =
+    out << "waLBerla RefinementSelection " << name << "< " << aabb << " >" << " with level " << refinementTargetLevel
 }
 
 /// L4_WaLBerlaRefinementSelectionDecl
@@ -26,7 +27,8 @@ case class L4_WaLBerlaRefinementSelectionDecl(name : String, lower : Array[Doubl
   if (refinementTargetLevel >= Knowledge.waLBerla_refinementLevels)
     Logger.error(s"Target refinement level of selection $name exceeds 'Knowledge.waLBerla_refinementLevels'")
 
-  override def prettyprint(out : PpStream) = out << "waLBerla RefinementSelection " << name << "< [" << lower.mkString(", ") << "] to [" << upper.mkString(", ") << "] >"
+  override def prettyprint(out : PpStream) =
+    out << "waLBerla RefinementSelection " << name << "< [" << lower.mkString(", ") << "] to [" << upper.mkString(", ") << "] >" << " with level " << refinementTargetLevel
   override def addToKnowledge() : Unit = L4_WaLBerlaRefinementSelectionCollection.add(L4_WaLBerlaRefinementSelection(name, L4_AABB(lower, upper), refinementTargetLevel))
 
   override def progress : IR_Statement = Logger.error(s"Trying to progress L4 refinement selection declaration for $name; this is not supported")
