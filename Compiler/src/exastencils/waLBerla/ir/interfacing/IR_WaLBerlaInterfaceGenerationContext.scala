@@ -8,6 +8,7 @@ import exastencils.base.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.field._
 
 case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaLBerlaInterfaceMember]) {
@@ -50,7 +51,6 @@ case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaL
     .map(f => IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype))
 
   var ifaceConstructors : ListBuffer[IR_Constructor] = ListBuffer()
-  var ifaceDestructors : ListBuffer[IR_Destructor] = ListBuffer()
 
   // ctor #1: empty parameter & initializer list, execute static convenience functions to obtain blockDataIDs and blockForest
   {
@@ -87,6 +87,33 @@ case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaL
 
     // call ctors of collected members (except those in iface ctor initializer list)
     ctorBody ++= memberCtorMap.filter { case (name, _) => !ifaceParamMap.keys.exists(_ == name) }.values
+
+    // exa & waLBerla data structures initialized -> setup coupling
+    couplingFunctions foreach (f => ctorBody += IR_FunctionCall(f))
+
+    ifaceConstructors += IR_Constructor(IR_WaLBerlaInterface.interfaceName, ctorParams, ctorInitializerList, ctorBody)
+  }
+
+  // ctor #3: user provides pointer to existing blockforest
+  {
+    val blockForest = IR_WaLBerlaBlockForest()
+
+    // params
+    var ctorParams = ListBuffer[IR_FunctionArgument]()
+    ctorParams += blockForest.ctorParameter
+
+    // initializer list
+    var ctorInitializerList = IR_MemberInitializerList()
+    ctorInitializerList.arguments += blockForest.initializerListEntry
+
+    // body
+    val ctorBody : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
+
+    // initialization in ctor body
+    initFunctions foreach (f => ctorBody += IR_FunctionCall(f))
+
+    // call ctors of collected members (except the one for the blockforest)
+    ctorBody ++= memberCtorMap.filter { case (name, _) => name != blockForest.name }.values
 
     // exa & waLBerla data structures initialized -> setup coupling
     couplingFunctions foreach (f => ctorBody += IR_FunctionCall(f))
