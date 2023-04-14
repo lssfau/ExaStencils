@@ -9,6 +9,7 @@ import exastencils.grid.ir.IR_VF_CellWidthPerDim
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockLoopVariable
 import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementLevel
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_RealType
 
 /// IR_WaLBerlaCellWidthAsVec
 
@@ -27,7 +28,7 @@ case class IR_WaLBerlaCellWidthAsVec(
 
 case class IR_WaLBerlaCellWidthBlockPerDim(dim : Int, refinementLevel : Option[IR_Expression] = None) extends IR_WaLBerlaBlockLoopVariable {
   override def resolveName() : String = s"d${ ('x' + dim).toChar.toString }_"
-  override def resolveDatatype() : IR_Datatype = IR_SpecialDatatype("real_t")
+  override def resolveDatatype() : IR_Datatype = WB_RealType
 
   override def getDeclaration() : IR_VariableDeclaration = IR_VariableDeclaration(resolveDatatype(), resolveName(), IR_WaLBerlaBlockForest().getStepSize(dim, refinementLevel))
 }

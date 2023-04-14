@@ -7,6 +7,7 @@ import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaCellAABB
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceParameter
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_UintType
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDirection
 
 case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false, false, false) {
@@ -51,10 +52,10 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
 
   // cells
   def getNumberOfCells(dim : Int) : IR_Expression =
-    IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", IR_SpecialDatatype("uint_t"))
+    IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", WB_UintType)
 
   def getNumberOfCells(dim : Int, block : IR_WaLBerlaBlock) : IR_Expression =
-    IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", IR_SpecialDatatype("uint_t"), IR_DerefAccess(block))
+    IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", WB_UintType, IR_DerefAccess(block))
 
   // aabb
   def getCellAABB(idx : IR_ExpressionIndex) = IR_WaLBerlaCellAABB(this, idx)

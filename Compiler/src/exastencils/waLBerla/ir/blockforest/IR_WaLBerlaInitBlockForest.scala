@@ -12,6 +12,7 @@ import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaCollection
 import exastencils.waLBerla.ir.interfacing._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_UintType
 
 case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
   def domain = IR_DomainCollection.getByIdentifier("global").get
@@ -24,7 +25,7 @@ case class IR_WaLBerlaInitBlockForest() extends IR_WaLBerlaFuturePlainFunction {
   val numDims = Knowledge.dimensionality
   val level = if (someWaLBerlaField.isDefined) someWaLBerlaField.get.level else Knowledge.maxLevel
 
-  def toUnsignedInt(value : Int) = IR_Cast(IR_SpecialDatatype("uint_t"), value)
+  def toUnsignedInt(value : Int) = IR_Cast(WB_UintType, value)
 
   // dimensionality < 3 -> use one cell with random width for other dims
   val arbitraryThickness = 0.01
