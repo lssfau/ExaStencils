@@ -1,10 +1,8 @@
-package exastencils.waLBerla.ir.blockforest
+package exastencils.waLBerla.ir.refinement
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_UnduplicatedVariable
-import exastencils.datastructures.Node
-import exastencils.datastructures.QuietDefaultStrategy
-import exastencils.datastructures.Transformation
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockLoopVariable
 
 case class IR_WaLBerlaRefinementLevel() extends IR_WaLBerlaBlockLoopVariable {
   override def resolveName() : String = "refinementLvl"

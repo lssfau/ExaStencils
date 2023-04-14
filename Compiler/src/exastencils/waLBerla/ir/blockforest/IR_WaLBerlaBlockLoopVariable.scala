@@ -9,6 +9,7 @@ import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaCellWidthBlockPerDim
+import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementLevel
 
 // implicit ordering for block-loop variables
 object IR_WaLBerlaBlockLoopVariable {

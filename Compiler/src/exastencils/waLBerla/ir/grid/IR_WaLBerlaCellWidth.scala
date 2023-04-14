@@ -8,7 +8,7 @@ import exastencils.grid.ir.IR_VF_CellWidthAsVec
 import exastencils.grid.ir.IR_VF_CellWidthPerDim
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockLoopVariable
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaRefinementLevel
+import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementLevel
 
 /// IR_WaLBerlaCellWidthAsVec
 
