@@ -40,42 +40,80 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   ListBuffer(), // external deps
   ListBuffer(IR_GlobalCollection.defHeader)) {
 
-  if (Knowledge.mpi_enabled) {
-    addExternalDependency("mpi.h")
-    addExternalDependency("core/mpi/MPIManager.h")
-  }
-
-  if (Knowledge.cuda_enabled)
-    addExternalDependency("cuda/GPUField.h")
-  else if (Platform.targetHardware == "CPU")
-    addExternalDependency("field/GhostLayerField.h")
-  addExternalDependency("core/DataTypes.h")
-  addExternalDependency("stencil/all.h")
-  addExternalDependency("blockforest/communication/UniformBufferedScheme.h")
-  addExternalDependency("field/SwapableCompare.h")
-  addExternalDependency("core/cell/Cell.h")
-  addExternalDependency("field/communication/PackInfo.h")
-  addExternalDependency("domain_decomposition/BlockDataID.h")
-  addExternalDependency("domain_decomposition/IBlock.h")
-  addExternalDependency("domain_decomposition/StructuredBlockStorage.h")
-  addExternalDependency("set")
-
-  if (Knowledge.waLBerla_useRefinement) {
-    addExternalDependency("blockforest/communication/NonUniformBufferedScheme.h")
-    addExternalDependency("blockforest/SetupBlockForest.h")
-    addExternalDependency("blockforest/loadbalancing/StaticCurve.h")
-    addExternalDependency("blockforest/loadbalancing/Cartesian.h")
-    addExternalDependency("field/refinement/PackInfo.h")
-  }
+  // dependencies outside waLBerla
 
   if (Knowledge.omp_enabled)
     addExternalDependency("omp.h")
+
+  if (Knowledge.mpi_enabled)
+    addExternalDependency("mpi.h")
 
   if (Knowledge.cuda_enabled)
     internalDependencies += CUDA_KernelFunctions.defHeader
 
   if (Knowledge.opt_vectorize)
     if (Platform.simd_header != null) addExternalDependency(Platform.simd_header)
+
+  addExternalDependency("set")
+
+  // core
+
+  if (Knowledge.mpi_enabled)
+    addExternalDependency("core/mpi/MPIManager.h")
+
+  addExternalDependency("core/DataTypes.h")
+  addExternalDependency("core/cell/Cell.h")
+  addExternalDependency("core/math/all.h")
+
+  // domain decomp
+
+  addExternalDependency("domain_decomposition/BlockDataID.h")
+  addExternalDependency("domain_decomposition/IBlock.h")
+  addExternalDependency("domain_decomposition/StructuredBlockStorage.h")
+
+  addExternalDependency("blockforest/Initialization.h")
+
+  // fields
+
+  if (Knowledge.cuda_enabled) {
+    addExternalDependency("cuda/GPUField.h")
+    addExternalDependency("cuda/AddGPUFieldToStorage.h")
+    addExternalDependency("cuda/FieldCopy.h")
+  }
+  addExternalDependency("field/GhostLayerField.h")
+  addExternalDependency("field/SwapableCompare.h")
+  addExternalDependency("field/Field.h")
+  addExternalDependency("field/AddToStorage.h")
+
+  // stencil
+
+  addExternalDependency("stencil/all.h")
+
+  // communication
+
+  if (Knowledge.waLBerla_generateCommSchemes) {
+    addExternalDependency("blockforest/communication/UniformBufferedScheme.h")
+    addExternalDependency("field/communication/PackInfo.h")
+
+    if (Knowledge.cuda_enabled) {
+      addExternalDependency("cuda/communication/GPUPackInfo.h")
+      addExternalDependency("cuda/communication/MemcpyPackInfo.h")
+      addExternalDependency("cuda/communication/UniformGPUScheme.h")
+    }
+  }
+
+  // refinement
+
+  if (Knowledge.waLBerla_useRefinement) {
+    addExternalDependency("blockforest/SetupBlockForest.h")
+    addExternalDependency("blockforest/loadbalancing/StaticCurve.h")
+    addExternalDependency("blockforest/loadbalancing/Cartesian.h")
+
+    if (Knowledge.waLBerla_generateCommSchemes) {
+      addExternalDependency("blockforest/communication/NonUniformBufferedScheme.h")
+      addExternalDependency("field/refinement/PackInfo.h")
+    }
+  }
 
   var interfaceContext : Option[IR_WaLBerlaInterfaceGenerationContext] = None
   var interfaceInstance : Option[IR_WaLBerlaInterface] = None

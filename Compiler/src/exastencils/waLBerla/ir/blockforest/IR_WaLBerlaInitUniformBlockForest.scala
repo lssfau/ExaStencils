@@ -75,10 +75,6 @@ case class IR_WaLBerlaInitUniformBlockForest() extends IR_WaLBerlaInitBlockFores
     // check for errors
     checkErrors()
 
-    // add deps
-    IR_WaLBerlaCollection.get.addExternalDependency("blockforest/Initialization.h")
-    IR_WaLBerlaCollection.get.addExternalDependency("core/math/all.h")
-
     // compile body
     var body : ListBuffer[IR_Statement] = ListBuffer()
     body += IR_VariableDeclaration(aabb, IR_FunctionCall(IR_ExternalFunctionReference("math::AABB"), aabbLower ++ aabbUpper : _*))

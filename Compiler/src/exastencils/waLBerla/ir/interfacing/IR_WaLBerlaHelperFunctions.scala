@@ -42,10 +42,6 @@ case class IR_WaLBerlaAddFieldToStorageWrapper() extends IR_WaLBerlaWrapperFunct
   override def isInterfaceFunction : Boolean = false
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
-    // add deps
-    IR_WaLBerlaCollection.get.addExternalDependency("field/Field.h")
-    IR_WaLBerlaCollection.get.addExternalDependency("field/AddToStorage.h")
-
     var params : ListBuffer[IR_FunctionArgument] = ListBuffer()
     params += blocks
     params += identifier

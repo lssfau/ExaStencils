@@ -25,14 +25,6 @@ case class IR_WaLBerlaInitCommSchemes(onGPU :  Boolean, wbFields : IR_WaLBerlaFi
   override def inlineIncludeImplementation : Boolean = true
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
-
-    // add deps
-    if (Knowledge.cuda_enabled) {
-      IR_WaLBerlaCollection.get.addExternalDependency("cuda/communication/GPUPackInfo.h")
-      IR_WaLBerlaCollection.get.addExternalDependency("cuda/communication/MemcpyPackInfo.h")
-      IR_WaLBerlaCollection.get.addExternalDependency("cuda/communication/UniformGPUScheme.h")
-    }
-
     val blockForest = IR_WaLBerlaBlockForest()
 
     var body = ListBuffer[IR_Statement]()
