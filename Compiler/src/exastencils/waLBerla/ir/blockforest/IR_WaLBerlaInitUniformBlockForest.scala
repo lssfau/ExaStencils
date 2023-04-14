@@ -9,7 +9,7 @@ import exastencils.domain.ir.IR_DomainCollection
 import exastencils.domain.ir.IR_DomainFromAABB
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
-import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaCollection
+import exastencils.waLBerla.ir.grid.IR_WaLBerlaAABB
 import exastencils.waLBerla.ir.interfacing._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_UintType
@@ -61,7 +61,6 @@ trait IR_WaLBerlaInitBlockForest extends IR_WaLBerlaWrapperFunction {
   // aabb
   def aabbLower = (0 until maxDims).map(d => IR_RealConstant(if (d < numDims) domainBounds.lower(d) else 0.0))
   def aabbUpper = (0 until maxDims).map(d => IR_RealConstant(if (d < numDims) domainBounds.upper(d) else cellWidth(d)))
-  def aabb = IR_VariableAccess("aabb", IR_SpecialDatatype("auto"))
 
   // function modifiers
   override def isInterfaceFunction : Boolean = false
@@ -77,7 +76,10 @@ case class IR_WaLBerlaInitUniformBlockForest() extends IR_WaLBerlaInitBlockFores
 
     // compile body
     var body : ListBuffer[IR_Statement] = ListBuffer()
+
+    val aabb = IR_VariableAccess("aabb", IR_WaLBerlaAABB.datatype)
     body += IR_VariableDeclaration(aabb, IR_FunctionCall(IR_ExternalFunctionReference("math::AABB"), aabbLower ++ aabbUpper : _*))
+
     body += IR_Return(
       new IR_FunctionCall(IR_ExternalFunctionReference("blockforest::createUniformBlockGrid"),
         ListBuffer(
@@ -90,5 +92,5 @@ case class IR_WaLBerlaInitUniformBlockForest() extends IR_WaLBerlaInitBlockFores
     IR_WaLBerlaPlainFunction(name, datatype, ListBuffer(), body)
   }
 
-  override def name : String = "initUniformBlockForest"
+  override def name : String = "createUniformBlockForest"
 }
