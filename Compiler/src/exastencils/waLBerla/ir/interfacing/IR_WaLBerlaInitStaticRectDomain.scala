@@ -21,14 +21,12 @@ object IR_WaLBerlaInitStaticRectDomain {
   var fctName : String = "initStaticRectDomain"
 }
 
-case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunction {
+case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction {
 
   // TODO: only meant for static and regular domain partitioning
   // TODO: assumes totalNumFrags = totalNumWbBlocks
 
   override def name : String = IR_WaLBerlaInitStaticRectDomain.fctName
-  override def name_=(newName : String) : Unit = name = newName
-  override def prettyprint_decl() : String = prettyprint
 
   def globalSize = IR_DomainCollection.getByIdentifier("global").get.asInstanceOf[IR_DomainFromAABB].aabb
   def fragWidth(dim : Int) = globalSize.width(dim) / Knowledge.domain_rect_numFragsTotalAsVec(dim)
