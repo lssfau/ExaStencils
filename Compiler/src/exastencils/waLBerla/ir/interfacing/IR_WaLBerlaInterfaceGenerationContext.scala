@@ -95,14 +95,12 @@ case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaL
   }
 
   // dtor body
-  {
-    val dtorBody : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
+  val dtorBody : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
 
-    IR_WaLBerlaDeInitWrapperFunctions.functions foreach (f => dtorBody += IR_FunctionCall(IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype)))
-    IR_WaLBerlaDeInitExaWrapperFunctions.functions foreach (f => dtorBody += IR_FunctionCall(IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype)))
+  IR_WaLBerlaDeInitWrapperFunctions.functions foreach (f => dtorBody += IR_FunctionCall(IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype)))
+  IR_WaLBerlaDeInitExaWrapperFunctions.functions foreach (f => dtorBody += IR_FunctionCall(IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype)))
 
-    ifaceDestructors += IR_Destructor(IR_WaLBerlaInterface.interfaceName, dtorBody)
-  }
+  var ifaceDestructor : IR_Destructor = IR_Destructor(IR_WaLBerlaInterface.interfaceName, dtorBody)
 }
 
 object IR_WaLBerlaAddInterfaceMembers extends QuietDefaultStrategy("Add waLBerla iface members") {
