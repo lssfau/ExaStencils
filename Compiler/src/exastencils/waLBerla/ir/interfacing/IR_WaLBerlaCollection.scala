@@ -106,6 +106,7 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
 
   if (Knowledge.waLBerla_useRefinement) {
     addExternalDependency("blockforest/SetupBlockForest.h")
+    addExternalDependency("blockforest/AABBRefinementSelection.h")
     addExternalDependency("blockforest/loadbalancing/StaticCurve.h")
     addExternalDependency("blockforest/loadbalancing/Cartesian.h")
 
