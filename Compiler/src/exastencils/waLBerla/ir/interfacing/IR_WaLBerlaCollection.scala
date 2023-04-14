@@ -11,6 +11,7 @@ import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.parallelization.api.cuda.CUDA_KernelFunctions
 import exastencils.prettyprinting.PrettyprintingManager
 import exastencils.util.ir.IR_StackCollector
+import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementHelperFunctions
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
 /// IR_WaLBerlaCollection
@@ -87,6 +88,9 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   functions ++= IR_WaLBerlaInitCouplingWrapperFunctions.functions
   functions ++= IR_WaLBerlaHelperFunctionCollection.functions
   functions ++= IR_WaLBerlaGetterFunctionCollection.functions
+
+  if (Knowledge.waLBerla_useRefinement)
+    functions ++= IR_WaLBerlaRefinementHelperFunctions.functions
 
   // collect future function names
   val futureFunctionIds : ListBuffer[String] = Duplicate(functions).collect { case f : IR_WaLBerlaFutureFunction => f }.map(_.name)
