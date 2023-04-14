@@ -414,8 +414,8 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val waLBerlaFieldLayout = locationize(("waLBerla" ~ "Layout" ~> ident) ~ ("<" ~> datatype <~ ",") ~ (stringLit <~ ">") ~ levelDecl.? ~ ("{" ~> repsep(layoutOption, ",".?) <~ "}")
     ^^ { case id ~ dt ~ layoutLit ~ levels ~ opts => L4_WaLBerlaFieldLayoutDecl(id, levels, dt, layoutLit, opts.to[ListBuffer]) })
 
-  lazy val waLBerlaRefinementSelection = locationize(("waLBerla" ~ "RefinementSelection" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">")
-    ^^ { case id ~ l ~ u => L4_WaLBerlaRefinementSelectionDecl(id, l, u) })
+  lazy val waLBerlaRefinementSelection = locationize(("waLBerla" ~ "RefinementSelection" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">") ~ ("with" ~ "level" ~> integerLit)
+    ^^ { case id ~ l ~ u ~ lvl => L4_WaLBerlaRefinementSelectionDecl(id, l, u, lvl) })
 
   lazy val fieldBoundary = (
     "Neumann" ~> ("(" ~> integerLit <~ ")").? ^^ { L4_NeumannBC(_) }

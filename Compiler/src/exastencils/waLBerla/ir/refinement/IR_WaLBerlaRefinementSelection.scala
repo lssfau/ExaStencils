@@ -14,7 +14,7 @@ import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes._
 
 /// IR_WaLBerlaRefinementSelection
 
-case class IR_WaLBerlaRefinementSelection(name : String, aabb : IR_AABB) extends IR_KnowledgeObject {
+case class IR_WaLBerlaRefinementSelection(name : String, aabb : IR_AABB, refinementTargetLevel : Int) extends IR_KnowledgeObject {
   override def createDuplicate() : IR_KnowledgeObject = Logger.error("Trying to duplicate an ir refinement selection. This is currently unsupported.")
 
   def numDims = aabb.numDims
