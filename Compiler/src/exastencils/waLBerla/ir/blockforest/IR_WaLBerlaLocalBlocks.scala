@@ -1,8 +1,11 @@
 package exastencils.waLBerla.ir.blockforest
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceMember
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_Block
 
 case class IR_WaLBerlaLocalBlocks() extends IR_WaLBerlaInterfaceMember(false, false, false) {
 
@@ -15,8 +18,17 @@ case class IR_WaLBerlaLocalBlocks() extends IR_WaLBerlaInterfaceMember(false, fa
 
   override def isPrivate : Boolean = true
 
-  // blocks
-  private def getBlocks() = IR_MemberFunctionCallArrow(IR_WaLBerlaBlockForest(), "getBlocks", resolveAccess(), /* level */ 0) // TODO: adjust when refinement is supported
+  override def getCtor() : Option[IR_Statement] = {
+    val block = IR_VariableAccess("block", IR_SpecialDatatype("auto"))
+    val blockforest = IR_WaLBerlaBlockForest()
 
-  override def getCtor() : Option[IR_Statement] = Some(getBlocks())
+    Some(
+      IR_ForLoop(
+        IR_VariableDeclaration(block, blockforest.begin()),
+        IR_Neq(block, blockforest.end()),
+        IR_PreIncrement(block),
+        ListBuffer[IR_Statement](
+          IR_MemberFunctionCall(resolveAccess(), "push_back",
+            IR_DynamicCast(IR_PointerDatatype(WB_Block), IR_AddressOf(IR_DerefAccess(block)))))))
+  }
 }
