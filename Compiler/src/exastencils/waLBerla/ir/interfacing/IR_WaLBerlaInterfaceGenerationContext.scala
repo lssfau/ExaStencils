@@ -13,6 +13,8 @@ import exastencils.waLBerla.ir.field._
 
 case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaLBerlaInterfaceMember]) {
 
+  val blockForest = IR_WaLBerlaBlockForest()
+
   val uniqueWbFields = IR_WaLBerlaFieldCollection.objects.groupBy(_.name).map(_._2.head).to[ListBuffer] // find unique wb fields
     .sortBy(_.name)
 
@@ -94,10 +96,9 @@ case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaL
     ifaceConstructors += IR_Constructor(IR_WaLBerlaInterface.interfaceName, ctorParams, ctorInitializerList, ctorBody)
   }
 
-  // ctor #3: user provides pointer to existing blockforest
-  {
-    val blockForest = IR_WaLBerlaBlockForest()
-
+  // ctor #3: user provides pointer to existing blockforest (only generated if paramMap not only contains blockforest)
+  val blockForestIsOnlyCtorParam = ifaceParamMap.size == 1 && ifaceParamMap.head._2 == blockForest.ctorParameter
+  if (!blockForestIsOnlyCtorParam) { // prevent duplicate ctors
     // params
     var ctorParams = ListBuffer[IR_FunctionArgument]()
     ctorParams += blockForest.ctorParameter
