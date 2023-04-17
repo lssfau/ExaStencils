@@ -982,8 +982,11 @@ object Knowledge {
     Constraints.condEnsureValue(waLBerla_useFixedLayoutsFromExa, true, !waLBerla_generateCommSchemes, "When waLBerla communication schemes are not generated, fixed field layouts (waLBerla_useFixedLayoutsFromExa = true) are required.")
     Constraints.condEnsureValue(waLBerla_useFixedLayoutsFromExa, true, cuda_enabled && waLBerla_generateInterface, "CUDA support for waLBerla codegen is only applicable with fixed field layouts (waLBerla_useFixedLayoutsFromExa = true).")
     Constraints.condEnsureValue(waLBerla_generateCommSchemes, true, data_genVariableFieldSizes && waLBerla_generateInterface, "waLBerla Fields with variable field sizes currently require the usage of waLBerla comm schemes.")
+
     Constraints.condEnsureValue(waLBerla_useRefinement, true, waLBerla_refinementLevels > 0, "Flag 'waLBerla_useRefinement' must be enabled when 'waLBerla_refinementLevels' > 0")
     Constraints.condError(waLBerla_useRefinement && waLBerla_useGridFromExa, "Flags 'waLBerla_useRefinement' and 'waLBerla_useGridFromExa' are mutually exclusive.")
+    Constraints.condError(waLBerla_useRefinement && !waLBerla_generateCommSchemes, "waLBerla refinement works only with generated CPU comm schemes at the moment -> 'waLBerla_generateCommSchemes' must be true.")
+    Constraints.condError(waLBerla_useRefinement && cuda_enabled, "waLBerla refinement works only for CPU codes at the moment.")
 
     Constraints.condEnsureValue(experimental_l4_resolveVirtualFields, false, !waLBerla_useGridFromExa && waLBerla_generateInterface, "Resolving virtual fields on L4 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
     Constraints.condEnsureValue(experimental_l3_resolveVirtualFields, false, !waLBerla_useGridFromExa && waLBerla_generateInterface, "Resolving virtual fields on L3 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
