@@ -11,6 +11,9 @@ import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaPlainFunction
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_SetupBlockForest
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
+/// IR_WaLBerlaInitNonuniformBlockForest
+// TODO: natives
+
 case class IR_WaLBerlaInitNonuniformBlockForest() extends IR_WaLBerlaInitBlockForest {
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
     // check for errors
@@ -56,8 +59,16 @@ case class IR_WaLBerlaInitNonuniformBlockForest() extends IR_WaLBerlaInitBlockFo
       wbBlocks(0), wbBlocks(1), wbBlocks(2),
       periodicity(0), periodicity(1), periodicity(2))
 
-    // distribute blocks to processes
-    // TODO: integrate...
+    // use world comm
+    body += IR_Native("MPIManager::instance()->useWorldComm()")
+
+    // distribute blocks to processes and print setup
+    // TODO: other distributions?
+    body += IR_Native("auto lvlwiseDistribution = blockforest::StaticLevelwiseCurveBalance(true)")
+    body += IR_Native("const memory_t memoryLimit = math::Limits<memory_t>::inf()")
+    body += IR_Native("const bool useBfs = true")
+    body += IR_Native("setupForest.balanceLoad(lvlwiseDistribution, uint_c(MPIManager::instance()->numProcesses()), real_t(0), memoryLimit, useBfs)")
+    body += IR_Native("WALBERLA_LOG_INFO_ON_ROOT(setupForest)")
 
     // init BlockForest
     val blockForest = IR_VariableAccess("blockForest", IR_SpecialDatatype("auto"))
@@ -75,8 +86,9 @@ case class IR_WaLBerlaInitNonuniformBlockForest() extends IR_WaLBerlaInitBlockFo
       IR_WaLBerlaUtil.make_shared("StructuredBlockForest",
         blockForest, numCellsBlock(0), numCellsBlock(1), numCellsBlock(2)))
 
-    // create cell bounding boxes
+    // create cell bounding boxes and return
     body += IR_MemberFunctionCallArrow(structuredBlockForest, "createCellBoundingBoxes")
+    body += IR_Return(structuredBlockForest)
 
     IR_WaLBerlaPlainFunction(name, datatype, ListBuffer(), body)
   }
