@@ -45,8 +45,8 @@ stages:
     extends: .test_template
     tags:
         - docker
-        - cuda
-        - i10swarm5
+        - cuda11
+        - cudaComputeCapability6.1
     before_script:
         - java -version
         - python3 --version
