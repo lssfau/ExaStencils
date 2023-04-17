@@ -55,7 +55,7 @@ abstract class IR_WaLBerlaCommScheme extends IR_WaLBerlaInterfaceMember(false, t
     access
   }
 
-  def comnSchemeNecessaryWrapper(stmts : ListBuffer[IR_Statement]) : IR_IfCondition = {
+  def commSchemeNecessaryWrapper(stmts : ListBuffer[IR_Statement]) : IR_IfCondition = {
     if (Knowledge.waLBerla_useGridFromExa)
       IR_IfCondition(Knowledge.domain_numFragmentsTotal > 1, stmts)
     else
@@ -71,6 +71,6 @@ abstract class IR_WaLBerlaCommScheme extends IR_WaLBerlaInterfaceMember(false, t
     }
 
     val comm = IR_MemberFunctionCallArrow(resolveAccess(), "communicate")
-    comnSchemeNecessaryWrapper(ListBuffer(comm))
+    commSchemeNecessaryWrapper(ListBuffer(comm))
   }
 }

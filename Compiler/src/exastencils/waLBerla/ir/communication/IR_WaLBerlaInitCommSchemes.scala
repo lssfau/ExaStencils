@@ -31,7 +31,7 @@ case class IR_WaLBerlaInitCommSchemes(onGPU :  Boolean, wbFields : IR_WaLBerlaFi
 
     // wrap comm scheme setup with guard
     def setupCommScheme(commScheme: IR_WaLBerlaCommScheme, setupBody : ListBuffer[IR_Statement]) =
-      commScheme.comnSchemeNecessaryWrapper(setupBody)
+      commScheme.commSchemeNecessaryWrapper(setupBody)
 
     // comm scheme wrapper
     def getCommScheme(wbf : IR_WaLBerlaField, slotIt : IR_Expression) : IR_WaLBerlaCommScheme = if (onGPU)
