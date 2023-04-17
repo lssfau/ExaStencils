@@ -100,7 +100,7 @@ case class IR_WaLBerlaLoopOverBlocks(
     }
 
     // array of process-local blocks
-    val blockArray = IR_WaLBerlaGetBlocks()
+    val blockArray = IR_WaLBerlaLocalBlocks()
 
     var compiledBody = ListBuffer[IR_Statement]()
 

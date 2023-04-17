@@ -4,7 +4,7 @@ import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceMember
 
-case class IR_WaLBerlaGetBlocks() extends IR_WaLBerlaInterfaceMember(false, false, false) {
+case class IR_WaLBerlaLocalBlocks() extends IR_WaLBerlaInterfaceMember(false, false, false) {
 
   override def name : String = "localBlocks"
 
@@ -16,7 +16,7 @@ case class IR_WaLBerlaGetBlocks() extends IR_WaLBerlaInterfaceMember(false, fals
   override def isPrivate : Boolean = true
 
   // blocks
-  def getBlocks() = IR_MemberFunctionCallArrow(IR_WaLBerlaBlockForest(), "getBlocks", resolveAccess(), /* level */ 0) // TODO: adjust when refinement is supported
+  private def getBlocks() = IR_MemberFunctionCallArrow(IR_WaLBerlaBlockForest(), "getBlocks", resolveAccess(), /* level */ 0) // TODO: adjust when refinement is supported
 
   override def getCtor() : Option[IR_Statement] = Some(getBlocks())
 }
