@@ -10,6 +10,7 @@ import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLocalBlocks
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceMember
 
@@ -70,7 +71,13 @@ abstract class IR_WaLBerlaCommScheme extends IR_WaLBerlaInterfaceMember(false, t
         Logger.error("Generated CPU comm schemes with refinement enabled require two ghost layers. Error in layout: " + wbField.layout.name)
     }
 
-    val comm = IR_MemberFunctionCallArrow(resolveAccess(), "communicate")
+    // deref and call functor
+    val deref = IR_DerefAccess(resolveAccess() match {
+      case base : IR_Access => base
+      case _                => Logger.error("Invalid access used for de-referencing a IR_WaLBerlaCommScheme instance.")
+    })
+    val comm = IR_FunctionCall(deref.prettyprint())
+
     commSchemeNecessaryWrapper(ListBuffer(comm))
   }
 }
