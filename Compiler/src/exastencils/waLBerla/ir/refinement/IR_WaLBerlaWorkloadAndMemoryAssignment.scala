@@ -32,6 +32,6 @@ case class IR_WaLBerlaWorkloadAndMemoryAssignment() extends IR_WaLBerlaWrapperFu
     IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(IR_FunctionArgument(sForest)), body)
   }
   override def isInterfaceFunction : Boolean = false
-  override def inlineIncludeImplementation : Boolean = true
+  override def inlineIncludeImplementation : Boolean = false
   override def name : String = "workloadAndMemoryAssignment"
 }
