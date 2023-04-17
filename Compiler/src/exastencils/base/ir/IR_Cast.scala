@@ -20,11 +20,26 @@ package exastencils.base.ir
 
 import exastencils.prettyprinting.PpStream
 
+/// IR_CastLike
+
+trait IR_CastLike extends IR_Expression {
+  def toCast : IR_Expression
+  def datatype : IR_Datatype
+}
+
 /// IR_Cast
 
-case class IR_Cast(var datatype : IR_Datatype, var toCast : IR_Expression) extends IR_Expression {
+case class IR_Cast(var datatype : IR_Datatype, var toCast : IR_Expression) extends IR_CastLike {
   override def prettyprint(out : PpStream) : Unit = out << "((" << datatype << ")" << toCast << ")"
 }
+
+/// IR_DynamicCast
+
+case class IR_DynamicCast(var datatype : IR_Datatype, var toCast : IR_Expression) extends IR_CastLike {
+  override def prettyprint(out : PpStream) : Unit = out << "dynamic_cast <" << datatype << "> (" << toCast << ")"
+}
+
+/// IR_ToInt
 
 case class IR_ToInt(var toCase : IR_Expression) extends IR_Expression with IR_Expandable {
   override def datatype = IR_IntegerDatatype

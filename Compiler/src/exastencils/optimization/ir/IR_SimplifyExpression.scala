@@ -201,7 +201,7 @@ object IR_SimplifyExpression {
         res = new HashMap[IR_Expression, Long]()
         res(IR_VariableAccess(varName, IR_IntegerDatatype)) = 1L
 
-      case c : IR_Cast =>
+      case c : IR_CastLike =>
         res = new mutable.HashMap[IR_Expression, Long]()
         res(c) = 1L
 
