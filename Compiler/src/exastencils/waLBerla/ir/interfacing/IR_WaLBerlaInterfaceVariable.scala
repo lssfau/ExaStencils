@@ -44,7 +44,7 @@ abstract class IR_WaLBerlaInterfaceMember(
 
   def isPrivate : Boolean
 
-  def numBlocks : Int = Knowledge.domain_numFragmentsPerBlock
+  def numBlocks : Int = Knowledge.domain_numFragmentsPerBlock // TODO
   def minLevel : Int = Knowledge.minLevel
   def maxLevel : Int = Knowledge.maxLevel
   def numLevels : Int = maxLevel - minLevel + 1

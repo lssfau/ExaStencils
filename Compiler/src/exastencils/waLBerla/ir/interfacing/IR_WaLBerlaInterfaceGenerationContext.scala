@@ -114,7 +114,7 @@ case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaL
     initFunctions foreach (f => ctorBody += IR_FunctionCall(f))
 
     // call ctors of collected members (except the one for the blockforest)
-    ctorBody ++= memberCtorMap.filter { case (name, _) => name != blockForest.name }.values
+    ctorBody ++= memberCtorMap.filter { case (name, _) => name != blockForest.resolveName() }.values
 
     // exa & waLBerla data structures initialized -> setup coupling
     couplingFunctions foreach (f => ctorBody += IR_FunctionCall(f))
