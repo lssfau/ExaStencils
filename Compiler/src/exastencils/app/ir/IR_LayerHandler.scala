@@ -56,6 +56,7 @@ import exastencils.util.ir._
 import exastencils.visualization.ir.interactive.cimg.IR_ResolveCImgFunctions
 import exastencils.visualization.ir.interactive.visit.IR_SetupVisit
 import exastencils.visualization.ir.postprocessing.IR_ResolveVisualizationPrinters
+import exastencils.waLBerla.IR_WaLBerlaReplaceDomainBoundaryConditions
 import exastencils.waLBerla.ir._
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaResolveLoopOverBlocks
 import exastencils.waLBerla.ir.communication._
@@ -155,6 +156,10 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       IR_ExpandInOnePass.apply()
     else
       IR_Expand.doUntilDone()
+
+    // replace checks for domain boundaries with waLBerla equivalents
+    if (!Knowledge.waLBerla_useGridFromExa)
+      IR_WaLBerlaReplaceDomainBoundaryConditions.apply()
 
     if (Knowledge.experimental_compactBufferAllocation)
       IR_AdaptAllocateDataFunction.apply()
@@ -283,6 +288,10 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       IR_ExpandInOnePass.apply()
     else
       IR_Expand.doUntilDone()
+
+    // replace checks for domain boundaries with waLBerla equivalents
+    if (!Knowledge.waLBerla_useGridFromExa)
+      IR_WaLBerlaReplaceDomainBoundaryConditions.apply()
 
     // resolve newly added fragment/block loops
     IR_WaLBerlaReplaceFragmentLoops.apply()
