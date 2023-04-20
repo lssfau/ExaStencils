@@ -1,4 +1,4 @@
-package exastencils.waLBerla.ir
+package exastencils.waLBerla.ir.replacements
 
 import exastencils.baseExt.ir.IR_LoopOverPoints
 import exastencils.baseExt.ir.IR_LoopOverPointsInOneFragment

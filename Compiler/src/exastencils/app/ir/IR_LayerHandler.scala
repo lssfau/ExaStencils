@@ -56,13 +56,11 @@ import exastencils.util.ir._
 import exastencils.visualization.ir.interactive.cimg.IR_ResolveCImgFunctions
 import exastencils.visualization.ir.interactive.visit.IR_SetupVisit
 import exastencils.visualization.ir.postprocessing.IR_ResolveVisualizationPrinters
-import exastencils.waLBerla.ir.IR_WaLBerlaReplaceDomainBoundaryConditions
-import exastencils.waLBerla.ir._
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaResolveLoopOverBlocks
 import exastencils.waLBerla.ir.communication._
 import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaAdaptKernels
 import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaHandleGPUMemory
-import exastencils.waLBerla.ir.grid._
+import exastencils.waLBerla.ir.replacements._
 import exastencils.waLBerla.ir.interfacing._
 
 /// IR_LayerHandler
