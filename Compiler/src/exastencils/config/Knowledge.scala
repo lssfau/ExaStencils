@@ -486,25 +486,33 @@ object Knowledge {
   // [true|false]: use mesh refinement from waLBerla
   var waLBerla_useRefinement : Boolean = false
 
-  // max mesh refinement levels, 0 = off
+  // [0~inf] max mesh refinement levels, 0 = no refinement
   var waLBerla_refinementLevels : Int = 0
-
-  // [true|false]: generate comm schemes for waLBerla or use our internal communication
-  var waLBerla_generateCommSchemes : Boolean = false
-
-  // [true|false]: use grid from exastencils directly, including virtual fields
-  var waLBerla_useGridFromExa : Boolean = false
-
-  // [true|false]: use fixed layout sizes for waLBerla fields, required for optimizations and CUDA parallelization
-  var waLBerla_useFixedLayoutsFromExa : Boolean = false
-
-  // [true|false]: use internal waLBerla memory pointers for array accesses instead of using the get(x, y, z, f) accessors
-  // enables optimizations (address precalc, vect, ...) when enabled
-  var waLBerla_useInternalMemoryPointers : Boolean = true
 
   // [true|false]: enforce generation of interface class
   // needs to be enabled if waLBerla data structures are used
   var waLBerla_generateInterface : Boolean = false
+
+  // [true|false]: optimization.
+  // generate comm schemes for waLBerla or use our internal communication
+  var waLBerla_generateCommSchemes : Boolean = false
+
+  // [true|false]: optimization.
+  // use grid from exastencils directly, including virtual fields
+  var waLBerla_useGridFromExa : Boolean = false
+
+  // [true|false]: optimization.
+  // cache field pointers as members in interface
+  var waLBerla_cacheFieldPointers : Boolean = true
+
+  // [true|false]: optimization.
+  // use fixed layout sizes for waLBerla fields, required for optimizations and CUDA parallelization
+  var waLBerla_useFixedLayoutsFromExa : Boolean = false
+
+  // [true|false]: optimization.
+  // use internal waLBerla memory pointers for array accesses instead of using the get(x, y, z, f) accessors
+  // enables optimizations (address precalc, vect, ...) when enabled
+  var waLBerla_useInternalMemoryPointers : Boolean = true
 
   // --- Parallel I/O ---
 
@@ -987,6 +995,7 @@ object Knowledge {
     Constraints.condError(waLBerla_useRefinement && waLBerla_useGridFromExa, "Flags 'waLBerla_useRefinement' and 'waLBerla_useGridFromExa' are mutually exclusive.")
     Constraints.condError(waLBerla_useRefinement && !waLBerla_generateCommSchemes, "waLBerla refinement works only with generated CPU comm schemes at the moment -> 'waLBerla_generateCommSchemes' must be true.")
     Constraints.condError(waLBerla_useRefinement && cuda_enabled, "waLBerla refinement works only for CPU codes at the moment.")
+    Constraints.condEnsureValue(waLBerla_cacheFieldPointers, false, waLBerla_useRefinement, "Cannot cache waLBerla field pointers with 'waLBerla_useRefinement' enabled yet.")
 
     Constraints.condEnsureValue(experimental_l4_resolveVirtualFields, false, !waLBerla_useGridFromExa && waLBerla_generateInterface, "Resolving virtual fields on L4 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
     Constraints.condEnsureValue(experimental_l3_resolveVirtualFields, false, !waLBerla_useGridFromExa && waLBerla_generateInterface, "Resolving virtual fields on L3 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")

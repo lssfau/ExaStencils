@@ -21,16 +21,18 @@ object IR_WaLBerlaInitWrapperFunctions {
     if (Knowledge.cuda_enabled)
       functions += CUDA_WaLBerlaAddGPUFieldToStorage(leveledFields : _*)
 
-    // init field instance pointers
-    functions += IR_WaLBerlaInitFieldInstances(onGPU = false, leveledFields : _*)
-    if (Knowledge.cuda_enabled)
-      functions += IR_WaLBerlaInitFieldInstances(onGPU = true, leveledFields : _*)
-
-    // store and init pointers to internal waLBerla field data
-    if (Knowledge.waLBerla_useInternalMemoryPointers) {
-      functions += IR_WaLBerlaInitFieldDataPtrs(onGPU = false, leveledFields : _*)
+    if (Knowledge.waLBerla_cacheFieldPointers) {
+      // init field instance pointers
+      functions += IR_WaLBerlaInitFieldInstances(onGPU = false, leveledFields : _*)
       if (Knowledge.cuda_enabled)
-        functions += IR_WaLBerlaInitFieldDataPtrs(onGPU = true, leveledFields : _*)
+        functions += IR_WaLBerlaInitFieldInstances(onGPU = true, leveledFields : _*)
+
+      // store and init pointers to internal waLBerla field data
+      if (Knowledge.waLBerla_useInternalMemoryPointers) {
+        functions += IR_WaLBerlaInitFieldDataPtrs(onGPU = false, leveledFields : _*)
+        if (Knowledge.cuda_enabled)
+          functions += IR_WaLBerlaInitFieldDataPtrs(onGPU = true, leveledFields : _*)
+      }
     }
 
     // init comm scheme objects

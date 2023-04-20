@@ -8,6 +8,18 @@ import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.ir.interfacing._
 
+object IR_WaLBerlaInitFieldInstances {
+  def initRoutine(onGPU : Boolean, wbf : IR_WaLBerlaField) : IR_ForLoop = {
+    val slotIt = IR_VariableAccess("slotIt", IR_IntegerDatatype)
+    var block = IR_WaLBerlaLoopOverBlocks.block
+    var blockIdx = IR_WaLBerlaLoopOverBlocks.defIt
+    val getField = IR_IV_WaLBerlaGetField(wbf, slotIt, onGPU, blockIdx)
+
+    IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
+      IR_Assignment(getField, block.getData(IR_WaLBerlaBlockDataID(wbf, slotIt, onGPU))))
+  }
+}
+
 case class IR_WaLBerlaInitFieldInstances(onGPU : Boolean, wbFields : IR_WaLBerlaField*) extends IR_WaLBerlaFuturePlainFunction {
   override def name : String = s"initFieldInstances_${ wbFields.head.name }" + (if (onGPU) "_onGPU" else "")
   override def name_=(newName : String) : Unit = name = newName
@@ -20,15 +32,8 @@ case class IR_WaLBerlaInitFieldInstances(onGPU : Boolean, wbFields : IR_WaLBerla
     var body = ListBuffer[IR_Statement]()
 
     // init pointers to waLBerla field datastructures in block loop via "getData" function
-    for (wbf <- wbFields) {
-      val slotIt = IR_VariableAccess("slotIt", IR_IntegerDatatype)
-      var block = IR_WaLBerlaLoopOverBlocks.block
-      var blockIdx = IR_WaLBerlaLoopOverBlocks.defIt
-      val getField = IR_IV_WaLBerlaGetField(wbf, slotIt, onGPU, blockIdx)
-
-      body += IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
-        IR_Assignment(getField, block.getData(IR_WaLBerlaBlockDataID(wbf, slotIt, onGPU))))
-    }
+    for (wbf <- wbFields)
+      body += IR_WaLBerlaInitFieldInstances.initRoutine(onGPU, wbf)
 
     body = ListBuffer(IR_WaLBerlaLoopOverBlocks(body, setupWaLBerlaFieldPointers = false))
 
