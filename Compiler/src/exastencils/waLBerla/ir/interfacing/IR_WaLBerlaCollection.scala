@@ -6,13 +6,10 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.core._
-import exastencils.datastructures._
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.parallelization.api.cuda.CUDA_KernelFunctions
 import exastencils.prettyprinting.PrettyprintingManager
-import exastencils.util.ir.IR_StackCollector
 import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementHelperFunctions
-import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
 /// IR_WaLBerlaCollection
 
@@ -204,28 +201,4 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
     if (foundUserFunction || interfaceInstance.isDefined)
       super.printToFile()
   }
-}
-
-object IR_WaLBerlaReplaceVariableAccesses extends DefaultStrategy("Find and append suffix") {
-
-  var collector = new IR_StackCollector
-  this.register(collector)
-  this.onBefore = () => this.resetCollectors()
-
-  this += Transformation("Replace", {
-    case acc : IR_VariableAccess =>
-      val isWaLBerlaVar = IR_WaLBerlaCollection.get.variables.contains(IR_VariableDeclaration(acc))
-      val isWaLBerlaFuncionParam = {
-        val enclosingWbFunc = collector.stack.collectFirst { case e : IR_WaLBerlaFunction => e }
-        if (enclosingWbFunc.isDefined)
-          enclosingWbFunc.get.parameters.exists(p => p.name == acc.name && p.datatype == acc.datatype)
-        else
-          false
-      }
-
-      if ( isWaLBerlaVar || isWaLBerlaFuncionParam )
-        IR_VariableAccess(IR_WaLBerlaUtil.getGeneratedName(acc.name), acc.datatype)
-      else
-        acc
-  })
 }

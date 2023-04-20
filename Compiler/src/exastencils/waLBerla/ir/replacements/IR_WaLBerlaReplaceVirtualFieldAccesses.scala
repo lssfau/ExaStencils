@@ -10,20 +10,7 @@ import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 import exastencils.waLBerla.ir.grid._
 
-object IR_WaLBerlaReplaceVirtualFieldAccesses extends DefaultStrategy("Replace vf accesses with waLBerla function calls") {
-  var collector = new IR_StackCollector
-  this.register(collector)
-  this.onBefore = () => this.resetCollectors()
-
-  def inWaLBerlaBlockLoop(collector : IR_StackCollector) = {
-    collector.stack.exists {
-      case _ : IR_WaLBerlaLoopOverBlocks                                                      => true
-      case loop : IR_LoopOverPoints if loop.field.isInstanceOf[IR_WaLBerlaField]              => true
-      case loop : IR_LoopOverPointsInOneFragment if loop.field.isInstanceOf[IR_WaLBerlaField] => true
-      case _                                                                                  => false
-    }
-  }
-
+object IR_WaLBerlaReplaceVirtualFieldAccesses extends IR_WaLBerlaReplacementStrategy("Replace vf accesses with waLBerla function calls") {
   // replace vf accesses
   this += Transformation("Replace", {
     case _ @ IR_VirtualFieldAccess(IR_VF_CellCenterPerDim(lvl, domain, dim), idx, fragIdx) if inWaLBerlaBlockLoop(collector) =>

@@ -9,20 +9,8 @@ import exastencils.util.ir.IR_StackCollector
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaBlockAABB
 
-object IR_WaLBerlaReplaceFragmentIVs extends DefaultStrategy("Replace frag info accesses with accesses to waLBerla block info") {
-
-  var collector = new IR_StackCollector
-  this.register(collector)
-  this.onBefore = () => this.resetCollectors()
-
+object IR_WaLBerlaReplaceFragmentIVs extends IR_WaLBerlaReplacementStrategy("Replace frag info accesses with accesses to waLBerla block info") {
   def block = IR_WaLBerlaLoopOverBlocks.block
-
-  def inWaLBerlaBlockLoop(collector : IR_StackCollector) =
-    collector.stack.exists {
-      case _ : IR_WaLBerlaLoopOverBlocks              => true
-      case _                                          => false
-    }
-
 
   def getBlockAABB = IR_WaLBerlaBlockAABB(block)
 
