@@ -54,9 +54,9 @@ abstract class IR_IV_WaLBerlaGetFieldPointer extends IR_WaLBerlaInterfaceMember(
 
   protected def resolveAccess() : IR_Expression = resolveAccess(resolveMemberBaseAccess(), fragmentIdx, level, IR_NullExpression)
 
-  override def resolveAccess(baseAccess : IR_Expression, block : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
+  override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
     var baseAccess : IR_Access = resolveMemberBaseAccess()
-    var access = super.resolveAccess(baseAccess, block, level, neigh)
+    var access = super.resolveAccess(baseAccess, fragment, level, neigh)
 
     if (this.field.numSlots > 1)
       access = IR_ArrayAccess(access, slot)

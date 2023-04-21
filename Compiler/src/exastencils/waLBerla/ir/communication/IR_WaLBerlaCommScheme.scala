@@ -10,7 +10,6 @@ import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLocalBlocks
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceMember
 
@@ -46,7 +45,7 @@ abstract class IR_WaLBerlaCommScheme extends IR_WaLBerlaInterfaceMember(false, t
 
   def addPackInfo() = IR_MemberFunctionCallArrow(resolveAccess(), "addPackInfo", createUniformPackInfo())
 
-  override def resolveAccess(baseAccess : IR_Expression, block : IR_Expression, level : IR_Expression, neigh : IR_Expression) = {
+  override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, level : IR_Expression, neigh : IR_Expression) = {
     var baseAccess : IR_Access = IR_VariableAccess(resolveName(), datatype)
     var access = super.resolveAccess(baseAccess, IR_NullExpression, level, IR_NullExpression)
 

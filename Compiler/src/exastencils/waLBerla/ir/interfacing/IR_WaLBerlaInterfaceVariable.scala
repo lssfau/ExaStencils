@@ -34,7 +34,7 @@ object IR_WaLBerlaInterfaceMember {
 
 // IV-like datastructure for interface members
 abstract class IR_WaLBerlaInterfaceMember(
-    var canBePerBlock : Boolean,
+    var canBePerFragment : Boolean,
     var canBePerLevel : Boolean,
     var canBePerNeighbor : Boolean) extends IR_Access with IR_InternalVariableLike {
 
@@ -44,21 +44,21 @@ abstract class IR_WaLBerlaInterfaceMember(
 
   def isPrivate : Boolean
 
-  def numBlocks : Int = Knowledge.domain_numFragmentsPerBlock // TODO
+  def numFragments : Int = Knowledge.domain_numFragmentsPerBlock
   def minLevel : Int = Knowledge.minLevel
   def maxLevel : Int = Knowledge.maxLevel
   def numLevels : Int = maxLevel - minLevel + 1
   def numNeighbors : Int = DefaultNeighbors.neighbors.size
 
-  def hasMultipleBlocks : Boolean = numBlocks > 1
+  def hasMultipleFragments : Boolean = numFragments > 1
   def hasMultipleLevels : Boolean = numLevels > 1
   def hasMultipleNeighbors : Boolean =  DefaultNeighbors.neighbors.size > 1
 
   def getWrappedDatatype() : IR_Datatype = {
     var datatype : IR_Datatype = resolveDatatype()
 
-    if (canBePerBlock && hasMultipleBlocks)
-      datatype = IR_StdArrayDatatype(datatype, numBlocks)
+    if (canBePerFragment && hasMultipleFragments)
+      datatype = IR_StdArrayDatatype(datatype, numFragments)
     if (canBePerLevel && hasMultipleLevels)
       datatype = IR_StdArrayDatatype(datatype, numLevels)
     if (canBePerNeighbor && hasMultipleNeighbors)
@@ -73,9 +73,8 @@ abstract class IR_WaLBerlaInterfaceMember(
   override def wrapInLoops(body : IR_Statement) : IR_Statement = {
     var wrappedBody = body
 
-    // TODO: loops currently manually expanded
-    if (canBePerBlock && hasMultipleBlocks)
-      wrappedBody = IR_LoopOverFragments(wrappedBody).expandSpecial().inner
+    if (canBePerFragment && hasMultipleFragments)
+      wrappedBody = IR_LoopOverFragments(wrappedBody).expandSpecial().inner // TODO: loops currently manually expanded
     if (canBePerLevel && hasMultipleLevels)
       wrappedBody = IR_LoopOverLevels(wrappedBody).expand().inner
     if (canBePerNeighbor && hasMultipleNeighbors)
@@ -89,7 +88,7 @@ abstract class IR_WaLBerlaInterfaceMember(
 
   override def datatype = resolveDatatype()
 
-  def resolveAccess(baseAccess : IR_Expression, block : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
+  def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
     var access = baseAccess
 
     // reverse compared to datatype wrapping, since we need to unwrap it "from outer to inner"
@@ -103,17 +102,17 @@ abstract class IR_WaLBerlaInterfaceMember(
         }
       access = IR_ArrayAccess(access, simplifiedLevel)
     }
-    if (canBePerBlock && hasMultipleBlocks)
-      access = IR_ArrayAccess(access, block)
+    if (canBePerFragment && hasMultipleFragments)
+      access = IR_ArrayAccess(access, fragment)
 
     access
   }
 
-  def resolvePostfix(block : String, level : String, neigh : String) : String = {
+  def resolvePostfix(fragment : String, level : String, neigh : String) : String = {
     var postfix : String = ""
 
-    if (canBePerBlock && hasMultipleBlocks)
-      postfix += "_" + block
+    if (canBePerFragment && hasMultipleFragments)
+      postfix += "_" + fragment
     if (canBePerLevel && hasMultipleLevels)
       postfix += "_" + level
     if (canBePerNeighbor && hasMultipleNeighbors)
@@ -133,9 +132,9 @@ abstract class IR_WaLBerlaInterfaceMember(
 
 // for interface members which can be initialized with a non-default constructor via initializer lists
 abstract class IR_WaLBerlaInterfaceParameter(
-    canBePerBlock : Boolean,
+    canBePerFragment : Boolean,
     canBePerLevel : Boolean,
-    canBePerNeighbor : Boolean) extends IR_WaLBerlaInterfaceMember(canBePerBlock, canBePerLevel, canBePerNeighbor) {
+    canBePerNeighbor : Boolean) extends IR_WaLBerlaInterfaceMember(canBePerFragment, canBePerLevel, canBePerNeighbor) {
 
   def initializerListEntry : (IR_Access, IR_Expression) = (resolveMemberBaseAccess(), ctorParameter.access)
   def ctorParameter : IR_FunctionArgument = IR_FunctionArgument(name, getWrappedDatatype())

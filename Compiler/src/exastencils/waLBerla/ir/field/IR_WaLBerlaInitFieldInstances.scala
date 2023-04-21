@@ -12,8 +12,8 @@ object IR_WaLBerlaInitFieldInstances {
   def initRoutine(onGPU : Boolean, wbf : IR_WaLBerlaField) : IR_ForLoop = {
     val slotIt = IR_VariableAccess("slotIt", IR_IntegerDatatype)
     var block = IR_WaLBerlaLoopOverBlocks.block
-    var blockIdx = IR_WaLBerlaLoopOverBlocks.defIt
-    val getField = IR_IV_WaLBerlaGetField(wbf, slotIt, onGPU, blockIdx)
+    var fragIdx = IR_WaLBerlaLoopOverBlocks.defIt
+    val getField = IR_IV_WaLBerlaGetField(wbf, slotIt, onGPU, fragIdx)
 
     IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
       IR_Assignment(getField, block.getData(IR_WaLBerlaBlockDataID(wbf, slotIt, onGPU))))

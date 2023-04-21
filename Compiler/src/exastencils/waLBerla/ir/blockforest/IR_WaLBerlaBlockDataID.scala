@@ -44,9 +44,9 @@ case class IR_WaLBerlaBlockDataID(
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveMemberBaseAccess(), IR_NullExpression, level, IR_NullExpression)
 
-  override def resolveAccess(baseAccess : IR_Expression, block : IR_Expression, level : IR_Expression, neigh : IR_Expression) = {
+  override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, level : IR_Expression, neigh : IR_Expression) = {
     var baseAccess : IR_Access = resolveMemberBaseAccess()
-    var access = super.resolveAccess(baseAccess, block, level, level)
+    var access = super.resolveAccess(baseAccess, fragment, level, level)
 
     if (numSlots > 1) {
       access = IR_ArrayAccess(access, slot)

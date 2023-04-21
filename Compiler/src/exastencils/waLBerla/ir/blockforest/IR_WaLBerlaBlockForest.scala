@@ -22,7 +22,7 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
 
   override def isPrivate : Boolean = true
 
-  override def resolveAccess(baseAccess : IR_Expression, block : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Access = resolveMemberBaseAccess()
+  override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Access = resolveMemberBaseAccess()
   override def resolveDatatype() = IR_SharedPointerDatatype(WB_StructuredBlockForest)
 
   override def resolveDefValue() : Option[IR_Expression] = {
