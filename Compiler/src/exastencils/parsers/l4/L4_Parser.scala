@@ -249,9 +249,8 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| repeatWithStatement
       ||| solveLinearSystemStatement
       ||| waLBerlaSwapFieldPointers
+      ||| breakStatement
     )
-
-  lazy val statementInsideRepeat = statement ||| breakStatement
 
   lazy val variableDeclaration = locationize((("Var" ||| "Variable") ~> ident) ~ levelDecl.? ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
     ^^ { case id ~ levels ~ dt ~ exp => L4_VariableDeclaration(id, levels, dt, exp, false) })
@@ -259,12 +258,12 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val valueDeclaration = locationize((("Val" ||| "Value") ~> ident) ~ levelDecl.? ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression))
     ^^ { case id ~ levels ~ dt ~ exp => L4_VariableDeclaration(id, levels, dt, Some(exp), true) })
 
-  lazy val repeatNTimes = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ ("{" ~> statementInsideRepeat.* <~ "}") ^^ { case n ~ i ~ s => L4_ForLoop(n.toInt, i, s) })
-  lazy val contractionLoop = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ contractionClause ~ ("{" ~> statementInsideRepeat.* <~ "}") ^^ { case n ~ i ~ c ~ s => L4_ContractingLoop(n.toInt, i, c, s) })
+  lazy val repeatNTimes = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ ("{" ~> statement.* <~ "}") ^^ { case n ~ i ~ s => L4_ForLoop(n.toInt, i, s) })
+  lazy val contractionLoop = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ contractionClause ~ ("{" ~> statement.* <~ "}") ^^ { case n ~ i ~ c ~ s => L4_ContractingLoop(n.toInt, i, c, s) })
   lazy val contractionClause = locationize("with" ~ "contraction" ~> constIndex ~ ("," ~> constIndex).? ^^ { case l ~ r => L4_ContractionSpecification(l, r) })
 
-  lazy val repeatUntil = locationize((("repeat" ~ "until") ~> booleanexpression) ~ (("{" ~> statementInsideRepeat.*) <~ "}") ^^ { case c ~ s => L4_UntilLoop(c, s.to[ListBuffer]) })
-  lazy val repeatWhile = locationize((("repeat" ~ "while") ~> booleanexpression) ~ (("{" ~> statementInsideRepeat.*) <~ "}") ^^ { case c ~ s => L4_WhileLoop(c, s.to[ListBuffer]) })
+  lazy val repeatUntil = locationize((("repeat" ~ "until") ~> booleanexpression) ~ (("{" ~> statement.*) <~ "}") ^^ { case c ~ s => L4_UntilLoop(c, s.to[ListBuffer]) })
+  lazy val repeatWhile = locationize((("repeat" ~ "while") ~> booleanexpression) ~ (("{" ~> statement.*) <~ "}") ^^ { case c ~ s => L4_WhileLoop(c, s.to[ListBuffer]) })
 
   lazy val breakStatement = locationize("break" ^^ (_ => L4_Break()))
 
