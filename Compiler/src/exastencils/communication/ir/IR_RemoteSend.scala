@@ -29,6 +29,7 @@ import exastencils.domain.ir._
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.ir.IR_PotentiallyCritical
+import exastencils.timing.ir._
 
 /// IR_RemoteSend
 
@@ -81,6 +82,15 @@ case class IR_CopyToSendBuffer(
     var ret = ListBuffer[IR_Statement]()
 
     ret += getCopyLoop(packInfo.refinementCase)
+
+    // add automatic timers for packing
+    val timingCategory = IR_AutomaticTimingCategory.PACK
+    if (IR_AutomaticTimingCategory.categoryEnabled(timingCategory)) {
+      val timer = IR_IV_AutomaticTimer(s"autoTime_${ timingCategory.toString }", timingCategory)
+
+      ret.prepend(IR_FunctionCall(IR_StartTimer().name, timer))
+      ret.append(IR_FunctionCall(IR_StopTimer().name, timer))
+    }
 
     ret
   }

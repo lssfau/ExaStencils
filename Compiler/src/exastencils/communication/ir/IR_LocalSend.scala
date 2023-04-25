@@ -27,6 +27,7 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.domain.ir._
 import exastencils.fieldlike.ir._
 import exastencils.parallelization.api.omp.OMP_WaitForFlag
+import exastencils.timing.ir._
 
 /// IR_LocalSend
 
@@ -56,18 +57,29 @@ case class IR_LocalSend(
     val domainIdx = field.domain.index
     val neighborIdx = neighbor.index
 
+    val ifCondStmts = ListBuffer[IR_Statement](
+      // wait until the fragment to be written to is ready for communication
+      IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(),
+        IR_AddressOf(IR_IV_LocalCommReady(field,
+          DefaultNeighbors.getOpposingNeigh(neighborIdx).index,
+          IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor)))),
+      getCopyLoop(packInfo.refinementCase),
+      // signal other threads that the data reading step is completed
+      IR_Assignment(IR_IV_LocalCommDone(field, neighborIdx), IR_BooleanConstant(true)))
+
+    // add automatic timers for packing
+    val timingCategory = IR_AutomaticTimingCategory.PACK
+    if (IR_AutomaticTimingCategory.categoryEnabled(timingCategory)) {
+      val timer = IR_IV_AutomaticTimer(s"autoTime_${ timingCategory.toString }", timingCategory)
+
+      ifCondStmts.prepend(IR_FunctionCall(IR_StartTimer().name, timer))
+      ifCondStmts.append(IR_FunctionCall(IR_StopTimer().name, timer))
+    }
+
     IR_IfCondition(
       IR_AndAnd(
         isCurrentFineNeighbor(refinementCase, field.domain.index, neighbor, indexOfRefinedNeighbor),
         isLocalNeighbor(refinementCase, domainIdx, neighborIdx, indexOfRefinedNeighbor)),
-      ListBuffer[IR_Statement](
-        // wait until the fragment to be written to is ready for communication
-        IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(),
-          IR_AddressOf(IR_IV_LocalCommReady(field,
-            DefaultNeighbors.getOpposingNeigh(neighborIdx).index,
-            IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor)))),
-        getCopyLoop(packInfo.refinementCase),
-        // signal other threads that the data reading step is completed
-        IR_Assignment(IR_IV_LocalCommDone(field, neighborIdx), IR_BooleanConstant(true))))
+      ifCondStmts)
   }
 }

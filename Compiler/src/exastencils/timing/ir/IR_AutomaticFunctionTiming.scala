@@ -14,12 +14,14 @@ import exastencils.util.ir.IR_RawPrint
 object IR_AutomaticTimingCategory extends Enumeration {
   type Access = Value
   final val ANNOT : String = "TimingCategory"
-  final val COMM, APPLYBC, IO = Value
+  final val COMM, PACK, UNPACK, APPLYBC, IO = Value
 
   def categoryEnabled(category : Access) = {
     if (Knowledge.timer_automaticTiming) {
       category match {
         case COMM    => Knowledge.timer_automaticCommTiming
+        case PACK    => Knowledge.timer_automaticPackingTiming
+        case UNPACK  => Knowledge.timer_automaticUnpackingTiming
         case APPLYBC => Knowledge.timer_automaticBCsTiming
         case IO      => Knowledge.timer_automaticIOTiming
         case _       => false
@@ -48,12 +50,13 @@ case class IR_IV_AutomaticTimer(
 /// IR_PrintAllAutomaticTimers
 
 case class IR_PrintAllAutomaticTimers() extends IR_TimerFunction {
+
   import IR_AutomaticTimingCategory._
 
   override var name = "printAllAutomaticTimers"
   override def prettyprint_decl() : String = prettyprint
 
-  private val accumulators : Map[Access, IR_VariableAccess] = values.map(enum => enum -> IR_VariableAccess(s"accum_${enum.toString}", IR_DoubleDatatype)).toMap
+  private val accumulators : Map[Access, IR_VariableAccess] = values.map(enum => enum -> IR_VariableAccess(s"accum_${ enum.toString }", IR_DoubleDatatype)).toMap
 
   def genPrintTimerCode(timer : IR_IV_AutomaticTimer) : IR_Statement = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
@@ -93,9 +96,10 @@ case class IR_PrintAllAutomaticTimers() extends IR_TimerFunction {
 
     // print out mean total timers for automatic function timers
     def rawPrint(msg : String, expr : IR_Expression) = IR_RawPrint(ListBuffer[IR_Expression](IR_StringConstant(msg), expr))
+
     for ((catergory, vAcc) <- accumulators)
       if (categoryEnabled(catergory))
-        body += rawPrint(s"Mean mean total time for all automatic ${vAcc.name} timers: ", vAcc)
+        body += rawPrint(s"Mean mean total time for all automatic ${ vAcc.name } timers: ", vAcc)
     body += rawPrint("Mean mean total time for all automatic timers: ", accumulators.map(_._2 : IR_Expression).reduce(_ + _))
 
     val fct = IR_PlainFunction(name, IR_UnitDatatype, body)

@@ -318,6 +318,8 @@ object Knowledge {
   var timer_automaticTiming : Boolean = false
   var timer_automaticBCsTiming : Boolean = false
   var timer_automaticCommTiming : Boolean = false
+  var timer_automaticPackingTiming : Boolean = false
+  var timer_automaticUnpackingTiming : Boolean = false
   var timer_automaticIOTiming : Boolean = false
 
   // library/tool to use for benchmarking
@@ -1042,6 +1044,8 @@ object Knowledge {
     // experimental
     Constraints.condEnsureValue(experimental_trimBoundsForReductionLoops, false, data_genVariableFieldSizes, "experimental_trimBoundsForReductionLoops is currently not compatible with data_genVariableFieldSizes")
     Constraints.condEnsureValue(experimental_useStefanOffsets, false, domain_numFragmentsTotal > 1, "experimental_useStefanOffsets requires a single fragment")
+    Constraints.condEnsureValue(timer_automaticCommTiming, true, timer_automaticPackingTiming, "timer_automaticCommTiming must be enabled for timer_automaticPackingTiming.")
+    Constraints.condEnsureValue(timer_automaticCommTiming, true, timer_automaticUnpackingTiming, "timer_automaticCommTiming must be enabled for timer_automaticUnpackingTiming.")
 
     // waLBerla
     Constraints.condError(waLBerla_generateInterface && dimensionality < 2, "waLBerla coupling is only supported for 2D/3D simulations.")
