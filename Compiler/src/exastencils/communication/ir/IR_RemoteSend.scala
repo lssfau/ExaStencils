@@ -32,6 +32,7 @@ import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.ir.IR_PotentiallyCritical
+import exastencils.timing.ir._
 
 case class IR_RemoteSend(
     var field : IR_Field,
@@ -89,6 +90,15 @@ case class IR_CopyToSendBuffer(
       loop.polyOptLevel = 1
       loop.parallelization.potentiallyParallel = true
       ret += loop
+    }
+
+    // add automatic timers for packing
+    val timingCategory = IR_AutomaticTimingCategory.PACK
+    if (IR_AutomaticTimingCategory.categoryEnabled(timingCategory)) {
+      val timer = IR_IV_AutomaticTimer(s"autoTime_${ timingCategory.toString }", timingCategory)
+
+      ret.prepend(IR_FunctionCall(IR_StartTimer().name, timer))
+      ret.append(IR_FunctionCall(IR_StopTimer().name, timer))
     }
 
     ret
