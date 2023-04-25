@@ -303,6 +303,9 @@ object Knowledge {
   // add benchmarking markers for each timer
   var timer_addBenchmarkMarkers : Boolean = false
 
+  // [true|false]: measure time spent in communication buffer packing
+  var experimental_measurePackingTimes : Boolean = false
+
   // library/tool to use for benchmarking
   // may be one of the following: 'None', 'likwid'
   var benchmark_backend = "None"
@@ -984,6 +987,7 @@ object Knowledge {
     // experimental
     Constraints.condEnsureValue(experimental_trimBoundsForReductionLoops, false, data_genVariableFieldSizes, "experimental_trimBoundsForReductionLoops is currently not compatible with data_genVariableFieldSizes")
     Constraints.condEnsureValue(experimental_useStefanOffsets, false, domain_numFragmentsTotal > 1, "experimental_useStefanOffsets requires a single fragment")
+    Constraints.condEnsureValue(timer_measureCommunicationTime, true, experimental_measurePackingTimes, "timer_measureCommunicationTime must be enabled for experimental_measurePackingTimes.")
 
     // waLBerla
     Constraints.condError(waLBerla_generateInterface && dimensionality < 2, "waLBerla coupling is only supported for 2D/3D simulations.")
