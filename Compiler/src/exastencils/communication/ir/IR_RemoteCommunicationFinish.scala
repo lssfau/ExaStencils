@@ -33,6 +33,9 @@ import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.api.mpi.MPI_DataType
+import exastencils.timing.ir.IR_IV_Timer
+import exastencils.timing.ir.IR_StartTimer
+import exastencils.timing.ir.IR_StopTimer
 
 /// IR_RemoteCommunicationFinish
 
@@ -76,7 +79,22 @@ case class IR_RemoteCommunicationFinish(
   }
 
   def genWait(neighbor : NeighborInfo) : IR_Statement = {
-    IR_WaitForRemoteTransfer(field, Duplicate(neighbor), s"Recv_${ concurrencyId }")
+    val ret = IR_WaitForRemoteTransfer(field, Duplicate(neighbor), s"Recv_${ concurrencyId }")
+    if (Knowledge.experimental_measurePackingTimes) {
+      val t = IR_IV_Timer("wait_recv")
+      val t2 = IR_IV_Timer(s"wait_recv ${ field.codeName }")
+
+      IR_Scope(
+        IR_FunctionCall(IR_StartTimer().name, t),
+        IR_FunctionCall(IR_StartTimer().name, t2),
+        ret,
+        IR_FunctionCall(IR_StopTimer().name, t),
+        IR_FunctionCall(IR_StopTimer().name, t2)
+      )
+
+    } else {
+      ret
+    }
   }
 
   override def expand() : Output[StatementList] = {
