@@ -205,23 +205,15 @@ object IR_SimplifyExpression {
         res = new mutable.HashMap[IR_Expression, Long]()
         res(c) = 1L
 
-      case m : IR_MemberAccess =>
+      case m : IR_MemberAccessLike =>
         res = new mutable.HashMap[IR_Expression, Long]()
         res(m) = 1L
 
-      case m : IR_MemberFunctionCall =>
+      case m : IR_MemberFunctionCallLike =>
         res = new mutable.HashMap[IR_Expression, Long]()
         res(m) = 1L
 
-      case m : IR_MemberFunctionCallWithDt =>
-        res = new mutable.HashMap[IR_Expression, Long]()
-        res(m) = 1L
-
-      case m : IR_MemberFunctionCallArrow =>
-        res = new mutable.HashMap[IR_Expression, Long]()
-        res(m) = 1L
-
-      case m : IR_MemberFunctionCallArrowWithDt =>
+      case m : IR_ClassOperatorCallLike =>
         res = new mutable.HashMap[IR_Expression, Long]()
         res(m) = 1L
 

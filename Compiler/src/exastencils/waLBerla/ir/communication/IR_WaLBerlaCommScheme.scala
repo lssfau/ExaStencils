@@ -46,7 +46,6 @@ abstract class IR_WaLBerlaCommScheme extends IR_WaLBerlaInterfaceMember(false, t
   def addPackInfo() = IR_MemberFunctionCallArrow(resolveAccess(), "addPackInfo", createUniformPackInfo())
 
   override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, level : IR_Expression, neigh : IR_Expression) = {
-    var baseAccess : IR_Access = IR_VariableAccess(resolveName(), datatype)
     var access = super.resolveAccess(baseAccess, IR_NullExpression, level, IR_NullExpression)
 
     if (numSlots > 1)
@@ -75,7 +74,7 @@ abstract class IR_WaLBerlaCommScheme extends IR_WaLBerlaInterfaceMember(false, t
       case base : IR_Access => base
       case _                => Logger.error("Invalid access used for de-referencing a IR_WaLBerlaCommScheme instance.")
     })
-    val comm = IR_FunctionCall(deref.prettyprint())
+    val comm = IR_FunctorCall(deref)
 
     commSchemeNecessaryWrapper(ListBuffer(comm))
   }
