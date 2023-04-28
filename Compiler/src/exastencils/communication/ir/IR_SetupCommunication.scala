@@ -84,6 +84,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
       var ghostEnd = IR_ExpressionIndex(Array.fill(numDims)(0))
 
       val cond = communicateStatement.condition
+      val direction = communicateStatement.direction
 
       var insideFragLoop = collector.stack.map(_.isInstanceOf[IR_LoopOverFragments]).reduce(_ || _)
       if (insideFragLoop && !Knowledge.experimental_allowCommInFragLoops) {
@@ -127,8 +128,13 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
           val end : IR_ExpressionIndex = t.end.getOrElse(IR_ExpressionIndex(Array.fill(numDims)("a" : IR_Expression)))
           (0 until numDims).toArray.map(dim => end(dim).prettyprint).mkString("_")
         }").mkString("_")
+
+      if (direction != "")
+        functionName += s"_$direction"
+
       if (insideFragLoop)
         functionName += "_ifl"
+
       if (cond.isDefined) {
         // TODO: summarize communicate statements with identical conditions (and targets ofc)
         functionName += s"_c$condCounter"
@@ -144,7 +150,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
           commDup, dupBegin, dupEnd,
           commGhost, ghostBegin, ghostEnd,
           insideFragLoop,
-          cond)
+          cond, direction)
       }
 
       communicateStatement.slot match {

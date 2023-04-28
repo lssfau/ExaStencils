@@ -8,7 +8,7 @@ ARG LIKWID_VERSION=5.2.0
 # basic stuff
 RUN \
   apt-get update && apt-get install -y build-essential curl git openjdk-11-jdk python3 python3-pip openmpi-bin openmpi-common libopenmpi-dev libopenmpi3 ant mlocate time wget gfortran libjpeg-dev libpng-dev && \
-  python3 -m pip install sympy numpy
+  python3 -m pip install sympy numpy influxdb GitPython
 
 # sbt
 RUN \
@@ -27,8 +27,8 @@ RUN \
   sed -i 's/\/usr\/local/\/usr\/local\/likwid/g' config.mk && \
   make && \
   make install && \
-  cd .. && \
-  export PATH="/usr/local/likwid/bin/:${PATH}" && \
-  export PATH="/usr/local/likwid/sbin/:${PATH}" && \
-  export LIKWID_INCLUDE="-I/usr/local/likwid/include" && \
-  export LIKWID_LIB="-L/usr/local/likwid/lib"
+  cd ..
+ENV PATH "/usr/local/likwid/bin/:${PATH}"
+ENV PATH "/usr/local/likwid/sbin/:${PATH}"
+ENV LIKWID_INCLUDE "-I/usr/local/likwid/include"
+ENV LIKWID_LIB "-L/usr/local/likwid/lib"

@@ -1,0 +1,36 @@
+testing_enabled       = true
+
+dimensionality                 = 2
+
+minLevel                       = 2
+maxLevel                       = 11
+
+discr_type                     = "FiniteDifferences"
+
+domain_onlyRectangular		= true
+domain_numBlocks			= 1
+domain_numFragmentsPerBlock	= 1
+
+domain_rect_generate			= true
+domain_rect_numBlocks_x			= 1
+domain_rect_numBlocks_y			= 1
+domain_rect_numBlocks_z			= 1
+domain_rect_numFragsPerBlock_x	= 1
+domain_rect_numFragsPerBlock_y	= 1
+domain_rect_numFragsPerBlock_z	= 1
+
+mpi_enabled					= false
+mpi_numThreads				= 1
+
+omp_parallelizeLoopOverFragments	= false
+omp_parallelizeLoopOverDimensions	= true
+
+mpi_useCustomDatatypes		= true
+poly_optLevel_fine			= 3
+opt_useAddressPrecalc		= true
+opt_vectorize				= true
+
+opt_conventionalCSE         = true
+opt_loopCarriedCSE          = true
+
+benchmark_backend = "likwid"

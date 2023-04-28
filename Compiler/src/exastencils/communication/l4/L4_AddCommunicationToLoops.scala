@@ -78,6 +78,7 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
           L4_FieldAccess(field.field, field.slot),
           "both",
           targets.toList,
+          None,
           None)
         // TODO: append potential assignment condition to communicate statement
       }

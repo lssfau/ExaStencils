@@ -102,50 +102,63 @@ case class IR_LocalSolve(
         // split into known and unknown
         var localFactors = ListBuffer[IR_Expression]()
         var localUnknowns = ListBuffer[IR_FieldAccess]()
-        for (ex <- mult.factors) {
+        var localSwitchSign = switchSign
+
+        def handleFactor(ex : IR_Expression) {
           ex match {
             case const : IR_Expression if !IR_ContainsUnknownAccesses.hasSome(IR_ExpressionStatement(const)) =>
               // generic expression not relying on field accesses to unknown values => handle as const
               localFactors += const
 
-            case access : IR_FieldAccess                         =>
+            case access : IR_FieldAccess =>
               if (matchUnknowns(access) < 0)
                 localFactors += access
-              else localUnknowns += access
+              else
+                localUnknowns += access
+
+            case neg : IR_Negative =>
+              localSwitchSign = !localSwitchSign
+              handleFactor(neg.left)
+
             case e @ IR_Division(access : IR_FieldAccess, right) =>
               if (!IR_ContainsUnknownAccesses.hasSome(IR_ExpressionStatement(right))) {
                 localUnknowns += access
                 localFactors += IR_Division(1, right)
               } else {
-                Logger.warn(s"Nested division expressions are currently unsupported: $e")
-                localFactors += e
+                Logger.error(s"Nested division expressions are currently unsupported: $e")
               }
-            case e : IR_Multiplication                           =>
-              Logger.warn(s"Nested multiplication expressions are currently unsupported: $e")
-              localFactors += e
-            case e : IR_Addition                                 =>
-              Logger.warn(s"Nested addition expressions are currently unsupported: $e")
-              localFactors += e
-            case e : IR_Subtraction                              =>
-              Logger.warn(s"Nested subtraction expressions are currently unsupported: $e")
-              localFactors += e
-            case e : IR_Expression                               =>
-              Logger.warn(s"Unknown, currently unsupported nested expression found: $e")
-              localFactors += e
+
+            case e : IR_Multiplication =>
+              for (ex <- mult.factors)
+                handleFactor(ex)
+
+            case e : IR_Addition    => Logger.error(s"Nested addition expressions are currently unsupported: $e")
+            case e : IR_Subtraction => Logger.error(s"Nested subtraction expressions are currently unsupported: $e")
+            case e : IR_Expression  => Logger.error(s"Unknown, currently unsupported nested expression found: $e")
           }
         }
+
+        for (ex <- mult.factors)
+          handleFactor(ex)
+
         if (localUnknowns.size > 1)
-          Logger.warn("Non-linear equations are currently unsupported")
+          Logger.error("Non-linear equations are currently unsupported")
         if (localUnknowns.isEmpty) // no unknowns -> add to rhs
-          fVals(pos).summands += (if (switchSign) mult else IR_Negative(mult))
+          fVals(pos).summands += (if (localSwitchSign) mult else IR_Negative(mult))
         else // unknowns detected -> add to matrix
           AVals(pos)(matchUnknowns(localUnknowns.head)).summands += (
-            if (switchSign)
+            if (localSwitchSign)
               IR_Negative(IR_Multiplication(localFactors))
             else
               IR_Multiplication(localFactors))
 
-      case _ => Logger.warn(s"Found unsupported node type ${ ex.getClass.getName }: $ex")
+      case div : IR_Division =>
+        if (IR_ContainsUnknownAccesses.hasSome(IR_ExpressionStatement(div.right)))
+          Logger.error("Divisions with unknowns in the divisor are not supported")
+
+        processExpression(pos, IR_Multiplication(div.left, IR_Division(1, div.right)), switchSign)
+
+      case _ => Logger.error(s"Found unsupported node type ${ ex.getClass.getName }: $ex")
     }
   }
 
@@ -191,19 +204,19 @@ case class IR_LocalSolve(
       Duplicate(AVals.map(_.map(mapToExp))))
   }
 
-  def isSolvableWithoutInverse(msi : IR_MatShape): Boolean = {
-      msi.shape match {
-        case "schur" => true
-        //case "Diagonal" =>
-        case _ => false
-      }
+  def isSolvableWithoutInverse(msi : IR_MatShape) : Boolean = {
+    msi.shape match {
+      case "schur" => true
+      //case "Diagonal" =>
+      case _ => false
+    }
   }
 
   def findMatShape(faccs : ListBuffer[IR_FieldAccess]) : Option[IR_MatShape] = {
     //TODO shapes can differ for different fields
     // just use first shape found for now
-    for(f <- faccs) {
-      if(f.field.matShape.isDefined)
+    for (f <- faccs) {
+      if (f.field.matShape.isDefined)
         return Some(f.field.matShape.get)
     }
     None
@@ -222,26 +235,26 @@ case class IR_LocalSolve(
     val shapeFromField = findMatShape(unknowns)
 
     val msi : IR_MatShape =
-    if(shapeFromField.isDefined) {
-      // structure given in field declaration
-      shapeFromField.get
-    } else if(Knowledge.experimental_classifyLocMat || Knowledge.experimental_applySchurCompl) {
-      // structure to specify (blocksize to specify for apply schur compl, for backwards compatibility)
-      // TODO: if all local matrices have the same structure: classify only once
-      val shape = IR_ClassifyMatShape(AVals)
-      if(Knowledge.experimental_matrixDebugConfig)
-        Logger.warn(shape.toStringList())
-      shape
-    } else if(Knowledge.experimental_locMatShape != "filled") {
-      // structure for all local matrices given in knowledge
-      IR_MatShape(Knowledge.experimental_locMatShape)
-          .addInfo("block",Knowledge.experimental_locMatBlocksize)
-          .addInfo("A",Knowledge.experimental_locMatShapeA)
-          .addInfo("Ablock",Knowledge.experimental_locMatBlocksizeA)
-    } else IR_MatShape("filled")
+      if (shapeFromField.isDefined) {
+        // structure given in field declaration
+        shapeFromField.get
+      } else if (Knowledge.experimental_classifyLocMat || Knowledge.experimental_applySchurCompl) {
+        // structure to specify (blocksize to specify for apply schur compl, for backwards compatibility)
+        // TODO: if all local matrices have the same structure: classify only once
+        val shape = IR_ClassifyMatShape(AVals)
+        if (Knowledge.experimental_matrixDebugConfig)
+          Logger.warn(shape.toStringList())
+        shape
+      } else if (Knowledge.experimental_locMatShape != "filled") {
+        // structure for all local matrices given in knowledge
+        IR_MatShape(Knowledge.experimental_locMatShape)
+          .addInfo("block", Knowledge.experimental_locMatBlocksize)
+          .addInfo("A", Knowledge.experimental_locMatShapeA)
+          .addInfo("Ablock", Knowledge.experimental_locMatBlocksizeA)
+      } else IR_MatShape("filled")
 
-    if(Knowledge.experimental_matrixDebugConfig)
-      Logger.warn(s"Local matrix is of shape ${msi.toStringList()}")
+    if (Knowledge.experimental_matrixDebugConfig)
+      Logger.warn(s"Local matrix is of shape ${ msi.toStringList() }")
 
     // choose strategy used for inverting local matrix
     // inverse precalculated
@@ -252,9 +265,9 @@ case class IR_LocalSolve(
         case _                        => Logger.error(s"Unsupported AInv: $AInv")
       }
     }
-      // if matrix has schur structure and blocksize of D block is 1 -> solvable without inverse
+    // if matrix has schur structure and blocksize of D block is 1 -> solvable without inverse
     //else if (isSolvableWithoutInverse(msi) && AVals.length - msi.size("block") == 1)
-     //   IR_Scope(IR_LocalSchurComplGeneralized(AExp, fExp, unknowns, jacobiType, relax, omitConditions, msi))
+    //   IR_Scope(IR_LocalSchurComplGeneralized(AExp, fExp, unknowns, jacobiType, relax, omitConditions, msi))
     else {
       // invert matrix with given structure information
       IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax, omitConditions, msi))

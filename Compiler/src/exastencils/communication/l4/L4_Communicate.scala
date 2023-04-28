@@ -31,20 +31,22 @@ import exastencils.prettyprinting._
 /// L4_Communicate
 
 object L4_Communicate {
-  def apply(field : L4_Access, op : String, targets : List[L4_CommunicateTarget], condition : Option[L4_Expression]) =
-    new L4_Communicate(field, op, targets.to[ListBuffer], condition)
+  def apply(field : L4_Access, op : String, targets : List[L4_CommunicateTarget], condition : Option[L4_Expression], direction : Option[String]) =
+    new L4_Communicate(field, op, targets.to[ListBuffer], condition, direction)
 }
 
 case class L4_Communicate(
     var field : L4_Access,
     var op : String,
     var targets : ListBuffer[L4_CommunicateTarget],
-    var condition : Option[L4_Expression]) extends L4_Statement {
+    var condition : Option[L4_Expression],
+    var direction : Option[String]) extends L4_Statement {
 
   override def prettyprint(out : PpStream) = {
     if ("both" != op) out << op + ' '
     out << "communicate " <<< (targets, " ") << (if (targets.isEmpty) "" else " of ") << field
     if (condition.isDefined) out << " where " << condition.get
+    if (direction.isDefined) out << " " << direction.get
   }
 
   override def progress : IR_Communicate = ProgressLocation {
@@ -61,7 +63,7 @@ case class L4_Communicate(
     else
       for (t <- targets) progressedTargets += t.progress
 
-    IR_Communicate(progressedField, progressedSlot, op, progressedTargets, L4_ProgressOption(condition)(_.progress))
+    IR_Communicate(progressedField, progressedSlot, op, progressedTargets, L4_ProgressOption(condition)(_.progress), direction.getOrElse(""))
   }
 }
 

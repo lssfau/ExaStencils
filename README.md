@@ -108,6 +108,11 @@ For CImg support, the corresponding CImg.h header file needs to be downloaded su
     * Name: downloadCImg; Tasks: downloadCImg; Run
 * for all users: directly download the required file from [here](https://github.com/dtschump/CImg) and place it in Compiler/res/
 Updating the file works the same way.
+
+CImg itself requires libjpeg and libpng support which can be installed (linux or wsl) via
+```
+sudo apt update && sudo apt install libjpeg-dev libpng-dev
+```
   
 ### VisIt support
 

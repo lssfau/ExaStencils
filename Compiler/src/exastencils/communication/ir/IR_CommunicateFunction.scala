@@ -28,6 +28,7 @@ import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_Field
+import exastencils.logger.Logger
 
 /// IR_CommunicateFunction
 
@@ -43,7 +44,8 @@ case class IR_CommunicateFunction(
     var dupLayerExch : Boolean, var dupLayerBegin : IR_ExpressionIndex, var dupLayerEnd : IR_ExpressionIndex,
     var ghostLayerExch : Boolean, var ghostLayerBegin : IR_ExpressionIndex, var ghostLayerEnd : IR_ExpressionIndex,
     var insideFragLoop : Boolean,
-    var condition : Option[IR_Expression]) extends IR_FutureLeveledFunction {
+    var condition : Option[IR_Expression],
+    var direction : String) extends IR_FutureLeveledFunction {
 
   override def prettyprint_decl() = prettyprint
 
@@ -389,8 +391,16 @@ case class IR_CommunicateFunction(
       if (field.layout.layoutsPerDim.foldLeft(0)((old : Int, l) => old max l.numDupLayersLeft max l.numDupLayersRight) > 0) {
         if (Knowledge.comm_batchCommunication) {
           for (dim <- 0 until field.layout.numDimsGrid) {
-            val recvNeighbors = ListBuffer(neighbors(2 * dim + 0))
-            val sendNeighbors = ListBuffer(neighbors(2 * dim + 1))
+            val sendNeighbors = direction match {
+              case "" | "upstream" => ListBuffer(neighbors(2 * dim + 1))
+              case "downstream"    => ListBuffer(neighbors(2 * dim + 0))
+              case _               => Logger.error(s"Unsupported communication direction $direction")
+            }
+            val recvNeighbors = direction match {
+              case "" | "upstream" => ListBuffer(neighbors(2 * dim + 0))
+              case "downstream"    => ListBuffer(neighbors(2 * dim + 1))
+              case _               => Logger.error(s"Unsupported communication direction $direction")
+            }
 
             if (begin) {
               body += IR_RemoteCommunicationStart(field, Duplicate(slot), genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop, condition)
@@ -404,8 +414,16 @@ case class IR_CommunicateFunction(
             }
           }
         } else {
-          val sendNeighbors = neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0)
-          val recvNeighbors = neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0)
+          val sendNeighbors = direction match {
+            case "" | "upstream" => neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0)
+            case "downstream"    => neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0)
+            case _               => Logger.error(s"Unsupported communication direction $direction")
+          }
+          val recvNeighbors = direction match {
+            case "" | "upstream" => neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0)
+            case "downstream"    => neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0)
+            case _               => Logger.error(s"Unsupported communication direction $direction")
+          }
 
           if (Knowledge.comm_enableCommTransformations) {
 
@@ -548,9 +566,7 @@ case class IR_CommunicateFunction(
               body += IR_RemoteCommunicationStart(field, Duplicate(slot), genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId, insideFragLoop, condition)
               body += IR_LocalCommunicationFinish(field, Duplicate(slot), genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop, condition)
             }
-
           }
-
         }
       }
     }
