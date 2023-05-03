@@ -958,6 +958,9 @@ object Knowledge {
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == Platform.targetCompiler, "IBM XL does currently not support std::chrono")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == Platform.targetCompiler, "IBM BG does currently not support std::chrono")
 
+    Constraints.condEnsureValue(timer_measureCommunicationTime, true, experimental_measurePackingTimes, "timer_measureCommunicationTime must be enabled for experimental_measurePackingTimes.")
+    Constraints.condError(timer_syncMpi && timer_measureCommunicationTime, "Flags timer_syncMpi and timer_measureCommunicationTime are mutually exclusive")
+
     // benchmarking and performance estimation
 
     Constraints.condWarn(!List("None", "likwid").contains(benchmark_backend), "Unknown value for benchmark_backend")
@@ -987,7 +990,6 @@ object Knowledge {
     // experimental
     Constraints.condEnsureValue(experimental_trimBoundsForReductionLoops, false, data_genVariableFieldSizes, "experimental_trimBoundsForReductionLoops is currently not compatible with data_genVariableFieldSizes")
     Constraints.condEnsureValue(experimental_useStefanOffsets, false, domain_numFragmentsTotal > 1, "experimental_useStefanOffsets requires a single fragment")
-    Constraints.condEnsureValue(timer_measureCommunicationTime, true, experimental_measurePackingTimes, "timer_measureCommunicationTime must be enabled for experimental_measurePackingTimes.")
 
     // waLBerla
     Constraints.condError(waLBerla_generateInterface && dimensionality < 2, "waLBerla coupling is only supported for 2D/3D simulations.")
