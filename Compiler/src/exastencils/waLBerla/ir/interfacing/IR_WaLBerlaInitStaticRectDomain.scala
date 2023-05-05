@@ -102,6 +102,8 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
       // assign exas MPI comm IV to waLBerla's communicator
       init += IR_Assignment(MPI_IV_MpiComm,
         IR_MemberFunctionCallArrowWithDt(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "comm", MPI_IV_MpiComm.datatype))
+      init += IR_Assignment(MPI_IV_MpiRank,
+        IR_MemberFunctionCallArrowWithDt(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "rank", MPI_IV_MpiRank.datatype))
     }
 
     init += IR_WaLBerlaLoopOverBlocks(fragStatements, IR_ParallelizationInfo(potentiallyParallel = true))
