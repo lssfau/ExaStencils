@@ -31,10 +31,6 @@ import exastencils.domain.ir._
 import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.parallelization.api.omp.OMP_WaitForFlag
-import exastencils.timing.ir.CommTimerAnnot
-import exastencils.timing.ir.IR_IV_Timer
-import exastencils.timing.ir.IR_StartTimer
-import exastencils.timing.ir.IR_StopTimer
 
 /// IR_LocalRecv
 
@@ -89,19 +85,6 @@ case class IR_LocalRecv(
     }
     // signal other threads that the data reading step is completed
     ifCondStmts += IR_Assignment(IR_IV_LocalCommDone(field, neighbor.index), IR_BooleanConstant(true)) // TODO here too
-
-    if (Knowledge.experimental_measurePackingTimes) {
-      val t = IR_IV_Timer("local unpacking")
-      val t2 = IR_IV_Timer(s"local unpacking ${ field.codeName }")
-      t.annotate(CommTimerAnnot.ANNOT, CommTimerAnnot.COMM)
-      t2.annotate(CommTimerAnnot.ANNOT, CommTimerAnnot.COMM)
-
-      ifCondStmts.prepend(IR_FunctionCall(IR_StartTimer().name, t))
-      ifCondStmts.prepend(IR_FunctionCall(IR_StartTimer().name, t2))
-
-      ifCondStmts.append(IR_FunctionCall(IR_StopTimer().name, t))
-      ifCondStmts.append(IR_FunctionCall(IR_StopTimer().name, t2))
-    }
 
     IR_IfCondition(IR_IV_NeighborIsValid(field.domain.index, neighbor.index) AndAnd IR_Negation(IR_IV_NeighborIsRemote(field.domain.index, neighbor.index)),
       ifCondStmts)

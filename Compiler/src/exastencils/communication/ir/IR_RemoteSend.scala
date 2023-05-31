@@ -33,10 +33,6 @@ import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.ir.IR_PotentiallyCritical
-import exastencils.timing.ir.CommTimerAnnot
-import exastencils.timing.ir.IR_IV_Timer
-import exastencils.timing.ir.IR_StartTimer
-import exastencils.timing.ir.IR_StopTimer
 
 case class IR_RemoteSend(
     var field : IR_FieldLike,
@@ -94,19 +90,6 @@ case class IR_CopyToSendBuffer(
       loop.polyOptLevel = 1
       loop.parallelization.potentiallyParallel = true
       ret += loop
-    }
-
-    if (Knowledge.experimental_measurePackingTimes) {
-      val t = IR_IV_Timer("packing")
-      val t2 = IR_IV_Timer(s"packing ${ field.codeName }")
-      t.annotate(CommTimerAnnot.ANNOT, CommTimerAnnot.COMM)
-      t2.annotate(CommTimerAnnot.ANNOT, CommTimerAnnot.COMM)
-
-      ret.prepend(IR_FunctionCall(IR_StartTimer().name, t))
-      ret.prepend(IR_FunctionCall(IR_StartTimer().name, t2))
-
-      ret.append(IR_FunctionCall(IR_StopTimer().name, t))
-      ret.append(IR_FunctionCall(IR_StopTimer().name, t2))
     }
 
     ret

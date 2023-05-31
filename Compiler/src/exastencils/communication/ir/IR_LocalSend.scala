@@ -24,17 +24,12 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication._
-import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.domain.ir._
 import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.parallelization.api.omp.OMP_WaitForFlag
-import exastencils.timing.ir.CommTimerAnnot
-import exastencils.timing.ir.IR_IV_Timer
-import exastencils.timing.ir.IR_StartTimer
-import exastencils.timing.ir.IR_StopTimer
 
 /// IR_LocalSend
 
@@ -62,28 +57,13 @@ case class IR_LocalSend(
     loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
 
-    var ifCondStmts = ListBuffer[IR_Statement](
-      // wait until the fragment to be written to is ready for communication
-      IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(), IR_AddressOf(IR_IV_LocalCommReady(
-        field, DefaultNeighbors.getOpposingNeigh(neighbor.index).index, IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index)))),
-      loop,
-      // signal other threads that the data reading step is completed
-      IR_Assignment(IR_IV_LocalCommDone(field, neighbor.index), IR_BooleanConstant(true)))
-
-    if (Knowledge.experimental_measurePackingTimes) {
-      val t = IR_IV_Timer("local packing")
-      val t2 = IR_IV_Timer(s"local packing ${ field.codeName }")
-      t.annotate(CommTimerAnnot.ANNOT, CommTimerAnnot.COMM)
-      t2.annotate(CommTimerAnnot.ANNOT, CommTimerAnnot.COMM)
-
-      ifCondStmts.prepend(IR_FunctionCall(IR_StartTimer().name, t))
-      ifCondStmts.prepend(IR_FunctionCall(IR_StartTimer().name, t2))
-
-      ifCondStmts.append(IR_FunctionCall(IR_StopTimer().name, t))
-      ifCondStmts.append(IR_FunctionCall(IR_StopTimer().name, t2))
-    }
-
     IR_IfCondition(IR_IV_NeighborIsValid(field.domain.index, neighbor.index) AndAnd IR_Negation(IR_IV_NeighborIsRemote(field.domain.index, neighbor.index)),
-      ifCondStmts)
+      ListBuffer[IR_Statement](
+        // wait until the fragment to be written to is ready for communication
+        IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(), IR_AddressOf(IR_IV_LocalCommReady(
+          field, DefaultNeighbors.getOpposingNeigh(neighbor.index).index, IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index)))),
+        loop,
+        // signal other threads that the data reading step is completed
+        IR_Assignment(IR_IV_LocalCommDone(field, neighbor.index), IR_BooleanConstant(true))))
   }
 }

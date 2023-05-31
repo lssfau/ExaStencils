@@ -303,9 +303,6 @@ object Knowledge {
   // add benchmarking markers for each timer
   var timer_addBenchmarkMarkers : Boolean = false
 
-  // [true|false]: measure time spent in communication buffer packing
-  var experimental_measurePackingTimes : Boolean = false
-
   // library/tool to use for benchmarking
   // may be one of the following: 'None', 'likwid'
   var benchmark_backend = "None"
