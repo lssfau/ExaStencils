@@ -1,9 +1,9 @@
-package exastencils.waLBerla.ir.communication
+package exastencils.waLBerla.ir.replacements
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.communication.ir.IR_CommunicateFunction
 import exastencils.communication.ir.IR_CommunicationFunctions
 import exastencils.config.Knowledge
@@ -12,12 +12,13 @@ import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
 import exastencils.timing.ir.IR_StartTimer
 import exastencils.timing.ir.IR_StopTimer
+import exastencils.waLBerla.ir.communication.IR_WaLBerlaCPUCommScheme
 import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaGPUCommScheme
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaCollection
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaLeveledFunction
 
-object IR_WaLBerlaSetupCommunication extends DefaultStrategy("Communication handling for waLBerla fields") {
+object IR_WaLBerlaReplaceCommunication extends DefaultStrategy("Communication handling for waLBerla fields") {
   var funcsToMove : ListBuffer[IR_FutureFunction] = ListBuffer()
 
   override def apply(applyAtNode : Option[Node]) : Unit = {
