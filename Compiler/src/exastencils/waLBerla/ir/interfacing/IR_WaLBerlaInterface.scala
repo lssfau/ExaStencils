@@ -49,9 +49,8 @@ case class IR_WaLBerlaInterface(var functions : ListBuffer[IR_WaLBerlaFunction],
     for (ctor <- context.ifaceConstructors)
       writerHeader << ctor.prettyprint()
 
-    /* dtors */
-    for (dtor <- context.ifaceDestructors)
-      writerHeader << dtor.prettyprint()
+    /* dtor */
+    writerHeader << context.ifaceDestructor.prettyprint()
 
     /* members */
     writerHeader <<< "public:"

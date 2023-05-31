@@ -22,24 +22,16 @@ case class IR_WaLBerlaInitCommSchemes(onGPU :  Boolean, wbFields : IR_WaLBerlaFi
     Logger.error("\"IR_WaLBerlaAddGPUFieldToStorage\" used incorrectly. Assumes fields with identical name but potentially different slots and levels.")
 
   override def isInterfaceFunction : Boolean = true
-  override def inlineImplementation : Boolean = true
+  override def inlineIncludeImplementation : Boolean = true
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
-
-    // add deps
-    if (Knowledge.cuda_enabled) {
-      IR_WaLBerlaCollection.get.addExternalDependency("cuda/communication/GPUPackInfo.h")
-      IR_WaLBerlaCollection.get.addExternalDependency("cuda/communication/MemcpyPackInfo.h")
-      IR_WaLBerlaCollection.get.addExternalDependency("cuda/communication/UniformGPUScheme.h")
-    }
-
     val blockForest = IR_WaLBerlaBlockForest()
 
     var body = ListBuffer[IR_Statement]()
 
     // wrap comm scheme setup with guard
     def setupCommScheme(commScheme: IR_WaLBerlaCommScheme, setupBody : ListBuffer[IR_Statement]) =
-      commScheme.comnSchemeNecessaryWrapper(setupBody)
+      commScheme.commSchemeNecessaryWrapper(setupBody)
 
     // comm scheme wrapper
     def getCommScheme(wbf : IR_WaLBerlaField, slotIt : IR_Expression) : IR_WaLBerlaCommScheme = if (onGPU)

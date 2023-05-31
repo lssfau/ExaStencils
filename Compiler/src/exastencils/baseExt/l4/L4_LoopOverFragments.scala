@@ -37,7 +37,7 @@ object L4_LoopOverFragments {
 
 case class L4_LoopOverFragments(
     var body : ListBuffer[L4_Statement],
-    var reduction : Option[L4_Reduction]) extends L4_Statement {
+    var reduction : Option[L4_Reduction]) extends L4_LoopOverProcessLocalBlocks {
 
   override def prettyprint(out : PpStream) = {
     out << "loop over fragments "

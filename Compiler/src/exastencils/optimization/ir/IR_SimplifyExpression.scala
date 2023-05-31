@@ -22,7 +22,7 @@ import scala.collection._
 import scala.collection.mutable.{ HashMap, ListBuffer }
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_InternalVariable
+import exastencils.baseExt.ir.IR_InternalVariableLike
 import exastencils.communication.ir.IR_TempBufferAccess
 import exastencils.core._
 import exastencils.datastructures.Transformation._
@@ -201,27 +201,19 @@ object IR_SimplifyExpression {
         res = new HashMap[IR_Expression, Long]()
         res(IR_VariableAccess(varName, IR_IntegerDatatype)) = 1L
 
-      case c : IR_Cast =>
+      case c : IR_CastLike =>
         res = new mutable.HashMap[IR_Expression, Long]()
         res(c) = 1L
 
-      case m : IR_MemberAccess =>
+      case m : IR_MemberAccessLike =>
         res = new mutable.HashMap[IR_Expression, Long]()
         res(m) = 1L
 
-      case m : IR_MemberFunctionCall =>
+      case m : IR_MemberFunctionCallLike =>
         res = new mutable.HashMap[IR_Expression, Long]()
         res(m) = 1L
 
-      case m : IR_MemberFunctionCallWithDt =>
-        res = new mutable.HashMap[IR_Expression, Long]()
-        res(m) = 1L
-
-      case m : IR_MemberFunctionCallArrow =>
-        res = new mutable.HashMap[IR_Expression, Long]()
-        res(m) = 1L
-
-      case m : IR_MemberFunctionCallArrowWithDt =>
+      case m : IR_ClassOperatorCallLike =>
         res = new mutable.HashMap[IR_Expression, Long]()
         res(m) = 1L
 
@@ -351,11 +343,11 @@ object IR_SimplifyExpression {
           res(IR_Maximum(exprs)) = 1L
         }
 
-      case scalarIV : IR_InternalVariable if scalarIV.resolveDatatype().isInstanceOf[IR_ScalarDatatype] =>
+      case scalarIV : IR_InternalVariableLike if scalarIV.resolveDatatype().isInstanceOf[IR_ScalarDatatype] =>
         res = new HashMap[IR_Expression, Long]()
         res(scalarIV) = 1L
 
-      case anyIV : IR_InternalVariable =>
+      case anyIV : IR_InternalVariableLike =>
         Logger.warn(s"Found non-scalar iv ${ anyIV.prettyprint() } in extractIntegralSumRec")
         res = new HashMap[IR_Expression, Long]()
         res(anyIV) = 1L

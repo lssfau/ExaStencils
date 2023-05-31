@@ -21,14 +21,12 @@ object IR_WaLBerlaInitStaticRectDomain {
   var fctName : String = "initStaticRectDomain"
 }
 
-case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunction {
+case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction {
 
   // TODO: only meant for static and regular domain partitioning
   // TODO: assumes totalNumFrags = totalNumWbBlocks
 
   override def name : String = IR_WaLBerlaInitStaticRectDomain.fctName
-  override def name_=(newName : String) : Unit = name = newName
-  override def prettyprint_decl() : String = prettyprint
 
   def globalSize = IR_DomainCollection.getByIdentifier("global").get.asInstanceOf[IR_DomainFromAABB].aabb
   def fragWidth(dim : Int) = globalSize.width(dim) / Knowledge.domain_rect_numFragsTotalAsVec(dim)
@@ -77,7 +75,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
   }
 
   override def isInterfaceFunction : Boolean = true
-  override def inlineImplementation : Boolean = true
+  override def inlineIncludeImplementation : Boolean = true
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
     var init = ListBuffer[IR_Statement]()
@@ -104,6 +102,8 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaFuturePlainFunct
       // assign exas MPI comm IV to waLBerla's communicator
       init += IR_Assignment(MPI_IV_MpiComm,
         IR_MemberFunctionCallArrowWithDt(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "comm", MPI_IV_MpiComm.datatype))
+      init += IR_Assignment(MPI_IV_MpiRank,
+        IR_MemberFunctionCallArrowWithDt(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "rank", MPI_IV_MpiRank.datatype))
     }
 
     init += IR_WaLBerlaLoopOverBlocks(fragStatements, IR_ParallelizationInfo(potentiallyParallel = true))

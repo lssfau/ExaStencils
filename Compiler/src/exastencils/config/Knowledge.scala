@@ -483,19 +483,36 @@ object Knowledge {
   // [true|false]
   var waLBerla_createCartComm : Boolean = false
 
-  // [true|false]: generate comm schemes for waLBerla or use our internal communication
-  var waLBerla_generateCommSchemes : Boolean = false
+  // [true|false]: use mesh refinement from waLBerla
+  var waLBerla_useRefinement : Boolean = false
 
-  // [true|false]: use grid from exastencils directly, including virtual fields
-  var waLBerla_useGridFromExa : Boolean = false
-
-  // [true|false]: use internal waLBerla memory pointers for array accesses instead of using the get(x, y, z, f) accessors
-  // enables optimizations (address precalc, vect, ...) when enabled
-  var waLBerla_useInternalMemoryPointers : Boolean = true
+  // [0~inf] max mesh refinement levels, 0 = no refinement
+  var waLBerla_refinementLevels : Int = 0
 
   // [true|false]: enforce generation of interface class
   // needs to be enabled if waLBerla data structures are used
   var waLBerla_generateInterface : Boolean = false
+
+  // [true|false]: optimization.
+  // generate comm schemes for waLBerla or use our internal communication
+  var waLBerla_generateCommSchemes : Boolean = false
+
+  // [true|false]: optimization.
+  // use grid from exastencils directly, including virtual fields
+  var waLBerla_useGridFromExa : Boolean = false
+
+  // [true|false]: optimization.
+  // cache field pointers as members in interface
+  var waLBerla_cacheFieldPointers : Boolean = true
+
+  // [true|false]: optimization.
+  // use fixed layout sizes for waLBerla fields, required for optimizations and CUDA parallelization
+  var waLBerla_useFixedLayoutsFromExa : Boolean = false
+
+  // [true|false]: optimization.
+  // use internal waLBerla memory pointers for array accesses instead of using the get(x, y, z, f) accessors
+  // enables optimizations (address precalc, vect, ...) when enabled
+  var waLBerla_useInternalMemoryPointers : Boolean = true
 
   // --- Parallel I/O ---
 
@@ -938,6 +955,8 @@ object Knowledge {
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == Platform.targetCompiler, "IBM XL does currently not support std::chrono")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == Platform.targetCompiler, "IBM BG does currently not support std::chrono")
 
+    Constraints.condError(timer_syncMpi && timer_measureCommunicationTime, "Flags timer_syncMpi and timer_measureCommunicationTime are mutually exclusive")
+
     // benchmarking and performance estimation
 
     Constraints.condWarn(!List("None", "likwid").contains(benchmark_backend), "Unknown value for benchmark_backend")
@@ -969,8 +988,19 @@ object Knowledge {
     Constraints.condEnsureValue(experimental_useStefanOffsets, false, domain_numFragmentsTotal > 1, "experimental_useStefanOffsets requires a single fragment")
 
     // waLBerla
-    Constraints.condEnsureValue(waLBerla_useGridFromExa, true, !waLBerla_generateCommSchemes, "When waLBerla communication schemes are not generated, fixed field layouts (waLBerla_useGridFromExa = true) are required.")
-    Constraints.condEnsureValue(waLBerla_useGridFromExa, true, cuda_enabled && waLBerla_generateInterface, "CUDA support for waLBerla codegen is only applicable with fixed field layouts (waLBerla_useGridFromExa = true).")
+    Constraints.condError(waLBerla_generateInterface && dimensionality < 2, "waLBerla coupling is only supported for 2D/3D simulations.")
+    Constraints.condEnsureValue(waLBerla_useFixedLayoutsFromExa, true, !waLBerla_generateCommSchemes, "When waLBerla communication schemes are not generated, fixed field layouts (waLBerla_useFixedLayoutsFromExa = true) are required.")
+    Constraints.condEnsureValue(waLBerla_useFixedLayoutsFromExa, true, cuda_enabled && waLBerla_generateInterface, "CUDA support for waLBerla codegen is only applicable with fixed field layouts (waLBerla_useFixedLayoutsFromExa = true).")
     Constraints.condEnsureValue(waLBerla_generateCommSchemes, true, data_genVariableFieldSizes && waLBerla_generateInterface, "waLBerla Fields with variable field sizes currently require the usage of waLBerla comm schemes.")
+
+    Constraints.condEnsureValue(waLBerla_useRefinement, true, waLBerla_refinementLevels > 0, "Flag 'waLBerla_useRefinement' must be enabled when 'waLBerla_refinementLevels' > 0")
+    Constraints.condError(waLBerla_useRefinement && waLBerla_useGridFromExa, "Flags 'waLBerla_useRefinement' and 'waLBerla_useGridFromExa' are mutually exclusive.")
+    Constraints.condError(waLBerla_useRefinement && !waLBerla_generateCommSchemes, "waLBerla refinement works only with generated CPU comm schemes at the moment -> 'waLBerla_generateCommSchemes' must be true.")
+    Constraints.condError(waLBerla_useRefinement && cuda_enabled, "waLBerla refinement works only for CPU codes at the moment.")
+    Constraints.condEnsureValue(waLBerla_cacheFieldPointers, false, waLBerla_useRefinement, "Cannot cache waLBerla field pointers with 'waLBerla_useRefinement' enabled yet.")
+
+    Constraints.condEnsureValue(experimental_l4_resolveVirtualFields, false, !waLBerla_useGridFromExa && waLBerla_generateInterface, "Resolving virtual fields on L4 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
+    Constraints.condEnsureValue(experimental_l3_resolveVirtualFields, false, !waLBerla_useGridFromExa && waLBerla_generateInterface, "Resolving virtual fields on L3 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
+    Constraints.condEnsureValue(experimental_l2_resolveVirtualFields, false, !waLBerla_useGridFromExa && waLBerla_generateInterface, "Resolving virtual fields on L2 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
   }
 }

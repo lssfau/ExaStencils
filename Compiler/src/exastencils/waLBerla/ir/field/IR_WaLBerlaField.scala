@@ -15,6 +15,8 @@ import exastencils.fieldlike.ir._
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_RealType
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_UintType
 
 /// IR_WaLBerlaField
 
@@ -57,12 +59,12 @@ case class IR_WaLBerlaField(
       Logger.error("IR_AddFieldToStorage: Number of ghost layers (left & right) must be identical for all dimensions.")
 
     val args = ListBuffer[IR_Expression]()
-    args += blockForestAcc                                                                            // blockstorage
-    args += IR_StringConstant(stringIdentifier(slot))                                                 // identifier
-    args += calculateSize                                                                             // calculateSize
-    args += IR_Cast(IR_SpecialDatatype("real_t"), initVal.access)                                     // initValue
-    args += IR_VariableAccess(s"field::${layout.layoutName}", IR_IntegerDatatype)                     // layout
-    args += IR_Cast(IR_SpecialDatatype("uint_t"), numGhosts)                                          // nrOfGhostLayers
+    args += blockForestAcc                                                           // blockstorage
+    args += IR_StringConstant(stringIdentifier(slot))                                // identifier
+    args += calculateSize                                                            // calculateSize
+    args += IR_Cast(WB_RealType, initVal.access)                                     // initValue
+    args += IR_VariableAccess(s"field::${layout.layoutName}", IR_IntegerDatatype)    // layout
+    args += IR_Cast(WB_UintType, numGhosts)                                          // nrOfGhostLayers
 
     // use constructor with StdFieldAlloc allocator to avoid inconsistencies between waLBerla's automatic padding and exa's padding
     if (layout.useFixedLayoutSizes) {
@@ -82,10 +84,7 @@ case class IR_WaLBerlaField(
     val funcRefName = s"cuda::addGPUFieldToStorage<${ IR_WaLBerlaDatatypes.WB_FieldDatatype(this, onGPU = false).prettyprint() }>"
 
     // TODO: mapping pitched <-> non-pitched fields? maybe possible with help of IVs
-    val usePitchedMemory = if (Knowledge.waLBerla_useGridFromExa)
-      false // exa fields do not employ pitched memory -> can lead to inconsistent indexing
-    else
-      true
+    val usePitchedMemory = false // exa fields do not employ pitched memory -> can lead to inconsistent indexing
 
     val args = ListBuffer[IR_Expression](
       blockForestAcc,

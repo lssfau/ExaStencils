@@ -8,9 +8,12 @@ import exastencils.base.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.field._
 
 case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaLBerlaInterfaceMember]) {
+
+  val blockForest = IR_WaLBerlaBlockForest()
 
   val uniqueWbFields = IR_WaLBerlaFieldCollection.objects.groupBy(_.name).map(_._2.head).to[ListBuffer] // find unique wb fields
     .sortBy(_.name)
@@ -50,7 +53,6 @@ case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaL
     .map(f => IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype))
 
   var ifaceConstructors : ListBuffer[IR_Constructor] = ListBuffer()
-  var ifaceDestructors : ListBuffer[IR_Destructor] = ListBuffer()
 
   // ctor #1: empty parameter & initializer list, execute static convenience functions to obtain blockDataIDs and blockForest
   {
@@ -94,15 +96,39 @@ case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaL
     ifaceConstructors += IR_Constructor(IR_WaLBerlaInterface.interfaceName, ctorParams, ctorInitializerList, ctorBody)
   }
 
-  // dtor body
-  {
-    val dtorBody : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
+  // ctor #3: user provides pointer to existing blockforest (only generated if paramMap not only contains blockforest)
+  val blockForestIsOnlyCtorParam = ifaceParamMap.size == 1 && ifaceParamMap.head._2 == blockForest.ctorParameter
+  if (!blockForestIsOnlyCtorParam) { // prevent duplicate ctors
+    // params
+    var ctorParams = ListBuffer[IR_FunctionArgument]()
+    ctorParams += blockForest.ctorParameter
 
-    IR_WaLBerlaDeInitWrapperFunctions.functions foreach (f => dtorBody += IR_FunctionCall(IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype)))
-    IR_WaLBerlaDeInitExaWrapperFunctions.functions foreach (f => dtorBody += IR_FunctionCall(IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype)))
+    // initializer list
+    var ctorInitializerList = IR_MemberInitializerList()
+    ctorInitializerList.arguments += blockForest.initializerListEntry
 
-    ifaceDestructors += IR_Destructor(IR_WaLBerlaInterface.interfaceName, dtorBody)
+    // body
+    val ctorBody : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
+
+    // initialization in ctor body
+    initFunctions foreach (f => ctorBody += IR_FunctionCall(f))
+
+    // call ctors of collected members (except the one for the blockforest)
+    ctorBody ++= memberCtorMap.filter { case (name, _) => name != blockForest.resolveName() }.values
+
+    // exa & waLBerla data structures initialized -> setup coupling
+    couplingFunctions foreach (f => ctorBody += IR_FunctionCall(f))
+
+    ifaceConstructors += IR_Constructor(IR_WaLBerlaInterface.interfaceName, ctorParams, ctorInitializerList, ctorBody)
   }
+
+  // dtor body
+  val dtorBody : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
+
+  IR_WaLBerlaDeInitWrapperFunctions.functions foreach (f => dtorBody += IR_FunctionCall(IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype)))
+  IR_WaLBerlaDeInitExaWrapperFunctions.functions foreach (f => dtorBody += IR_FunctionCall(IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype)))
+
+  var ifaceDestructor : IR_Destructor = IR_Destructor(IR_WaLBerlaInterface.interfaceName, dtorBody)
 }
 
 object IR_WaLBerlaAddInterfaceMembers extends QuietDefaultStrategy("Add waLBerla iface members") {

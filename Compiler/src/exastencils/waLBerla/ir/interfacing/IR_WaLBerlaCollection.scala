@@ -6,12 +6,10 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.core._
-import exastencils.datastructures._
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.parallelization.api.cuda.CUDA_KernelFunctions
 import exastencils.prettyprinting.PrettyprintingManager
-import exastencils.util.ir.IR_StackCollector
-import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
+import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementHelperFunctions
 
 /// IR_WaLBerlaCollection
 
@@ -39,34 +37,81 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   ListBuffer(), // external deps
   ListBuffer(IR_GlobalCollection.defHeader)) {
 
-  if (Knowledge.mpi_enabled) {
-    addExternalDependency("mpi.h")
-    addExternalDependency("core/mpi/MPIManager.h")
-  }
-
-  if (Knowledge.cuda_enabled)
-    addExternalDependency("cuda/GPUField.h")
-  else if (Platform.targetHardware == "CPU")
-    addExternalDependency("field/GhostLayerField.h")
-  addExternalDependency("core/DataTypes.h")
-  addExternalDependency("stencil/all.h")
-  addExternalDependency("blockforest/communication/UniformBufferedScheme.h")
-  addExternalDependency("field/SwapableCompare.h")
-  addExternalDependency("core/cell/Cell.h")
-  addExternalDependency("field/communication/PackInfo.h")
-  addExternalDependency("domain_decomposition/BlockDataID.h")
-  addExternalDependency("domain_decomposition/IBlock.h")
-  addExternalDependency("domain_decomposition/StructuredBlockStorage.h")
-  addExternalDependency("set")
+  // dependencies outside waLBerla
 
   if (Knowledge.omp_enabled)
     addExternalDependency("omp.h")
+
+  if (Knowledge.mpi_enabled)
+    addExternalDependency("mpi.h")
 
   if (Knowledge.cuda_enabled)
     internalDependencies += CUDA_KernelFunctions.defHeader
 
   if (Knowledge.opt_vectorize)
     if (Platform.simd_header != null) addExternalDependency(Platform.simd_header)
+
+  addExternalDependency("set")
+
+  // core
+
+  if (Knowledge.mpi_enabled)
+    addExternalDependency("core/mpi/MPIManager.h")
+
+  addExternalDependency("core/DataTypes.h")
+  addExternalDependency("core/cell/Cell.h")
+  addExternalDependency("core/math/all.h")
+
+  // domain decomp
+
+  addExternalDependency("domain_decomposition/BlockDataID.h")
+  addExternalDependency("domain_decomposition/IBlock.h")
+  addExternalDependency("domain_decomposition/StructuredBlockStorage.h")
+
+  addExternalDependency("blockforest/Initialization.h")
+
+  // fields
+
+  if (Knowledge.cuda_enabled) {
+    addExternalDependency("cuda/GPUField.h")
+    addExternalDependency("cuda/AddGPUFieldToStorage.h")
+    addExternalDependency("cuda/FieldCopy.h")
+  }
+  addExternalDependency("field/GhostLayerField.h")
+  addExternalDependency("field/SwapableCompare.h")
+  addExternalDependency("field/Field.h")
+  addExternalDependency("field/AddToStorage.h")
+
+  // stencil
+
+  addExternalDependency("stencil/all.h")
+
+  // communication
+
+  if (Knowledge.waLBerla_generateCommSchemes) {
+    addExternalDependency("blockforest/communication/UniformBufferedScheme.h")
+    addExternalDependency("field/communication/PackInfo.h")
+
+    if (Knowledge.cuda_enabled) {
+      addExternalDependency("cuda/communication/GPUPackInfo.h")
+      addExternalDependency("cuda/communication/MemcpyPackInfo.h")
+      addExternalDependency("cuda/communication/UniformGPUScheme.h")
+    }
+  }
+
+  // refinement
+
+  if (Knowledge.waLBerla_useRefinement) {
+    addExternalDependency("blockforest/SetupBlockForest.h")
+    addExternalDependency("blockforest/AABBRefinementSelection.h")
+    addExternalDependency("blockforest/loadbalancing/StaticCurve.h")
+    addExternalDependency("blockforest/loadbalancing/Cartesian.h")
+
+    if (Knowledge.waLBerla_generateCommSchemes) {
+      addExternalDependency("blockforest/communication/NonUniformBufferedScheme.h")
+      addExternalDependency("field/refinement/PackInfo.h")
+    }
+  }
 
   var interfaceContext : Option[IR_WaLBerlaInterfaceGenerationContext] = None
   var interfaceInstance : Option[IR_WaLBerlaInterface] = None
@@ -79,6 +124,9 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   functions ++= IR_WaLBerlaInitCouplingWrapperFunctions.functions
   functions ++= IR_WaLBerlaHelperFunctionCollection.functions
   functions ++= IR_WaLBerlaGetterFunctionCollection.functions
+
+  if (Knowledge.waLBerla_useRefinement)
+    functions ++= IR_WaLBerlaRefinementHelperFunctions.functions
 
   // collect future function names
   val futureFunctionIds : ListBuffer[String] = Duplicate(functions).collect { case f : IR_WaLBerlaFutureFunction => f }.map(_.name)
@@ -111,7 +159,7 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
 
     // handle inlined implementations
     for (func <- functions.filter(_.isInstanceOf[IR_WaLBerlaFunction])) {
-      if (func.asInstanceOf[IR_WaLBerlaFunction].inlineImplementation && !func.isHeaderOnly) {
+      if (func.asInstanceOf[IR_WaLBerlaFunction].inlineIncludeImplementation && !func.isHeaderOnly) {
         val source = s"${ baseName }_${ func.name }.impl.h"
         val writerImpl = PrettyprintingManager.getPrinter(source)
 
@@ -127,7 +175,7 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   override def printSources() = {
     // filter out already handled inline implementations
     val separatedFuncImpls = functions.filter {
-      case f : IR_WaLBerlaFunction => !f.inlineImplementation
+      case f : IR_WaLBerlaFunction => !f.inlineIncludeImplementation
       case _                       => true
     }
 
@@ -153,28 +201,4 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
     if (foundUserFunction || interfaceInstance.isDefined)
       super.printToFile()
   }
-}
-
-object IR_WaLBerlaReplaceVariableAccesses extends DefaultStrategy("Find and append suffix") {
-
-  var collector = new IR_StackCollector
-  this.register(collector)
-  this.onBefore = () => this.resetCollectors()
-
-  this += Transformation("Replace", {
-    case acc : IR_VariableAccess =>
-      val isWaLBerlaVar = IR_WaLBerlaCollection.get.variables.contains(IR_VariableDeclaration(acc))
-      val isWaLBerlaFuncionParam = {
-        val enclosingWbFunc = collector.stack.collectFirst { case e : IR_WaLBerlaFunction => e }
-        if (enclosingWbFunc.isDefined)
-          enclosingWbFunc.get.parameters.exists(p => p.name == acc.name && p.datatype == acc.datatype)
-        else
-          false
-      }
-
-      if ( isWaLBerlaVar || isWaLBerlaFuncionParam )
-        IR_VariableAccess(IR_WaLBerlaUtil.getGeneratedName(acc.name), acc.datatype)
-      else
-        acc
-  })
 }

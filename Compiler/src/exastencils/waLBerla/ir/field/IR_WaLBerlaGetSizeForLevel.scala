@@ -11,12 +11,12 @@ import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes._
 
 case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFutureLeveledFunction {
 
-  private val returnType = IR_SpecialDatatype("Vector3< uint_t >")
+  private val returnType = IR_SpecialDatatype(s"Vector3< ${WB_UintType.typeName} >")
 
   def getReference = IR_AddressOf(IR_VariableAccess(name + "_" + level, returnType))
 
   override def isInterfaceFunction : Boolean = false
-  override def inlineImplementation : Boolean = false
+  override def inlineIncludeImplementation : Boolean = false
 
   override def generateWaLBerlaFct() : IR_WaLBerlaLeveledFunction = {
 

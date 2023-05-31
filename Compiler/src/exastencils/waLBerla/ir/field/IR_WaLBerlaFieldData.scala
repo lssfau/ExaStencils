@@ -6,6 +6,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.config.Knowledge
 import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
@@ -34,6 +35,10 @@ abstract class IR_IV_WaLBerlaGetFieldPointer extends IR_WaLBerlaInterfaceMember(
   def fragmentIdx : IR_Expression
   def slot : IR_Expression
 
+  private val levels = IR_WaLBerlaFieldCollection.getAllByIdentifier(field.name, suppressError = true).map(_.level)
+  override def minLevel : Int = levels.min
+  override def maxLevel : Int = levels.max
+
   def baseDatatype() : IR_Datatype
   override def resolveDatatype() : IR_Datatype = {
     var dt : IR_Datatype = IR_PointerDatatype(baseDatatype())
@@ -49,9 +54,9 @@ abstract class IR_IV_WaLBerlaGetFieldPointer extends IR_WaLBerlaInterfaceMember(
 
   protected def resolveAccess() : IR_Expression = resolveAccess(resolveMemberBaseAccess(), fragmentIdx, level, IR_NullExpression)
 
-  override def resolveAccess(baseAccess : IR_Expression, block : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
+  override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
     var baseAccess : IR_Access = resolveMemberBaseAccess()
-    var access = super.resolveAccess(baseAccess, block, level, neigh)
+    var access = super.resolveAccess(baseAccess, fragment, level, neigh)
 
     if (this.field.numSlots > 1)
       access = IR_ArrayAccess(access, slot)
@@ -73,9 +78,12 @@ case class IR_IV_WaLBerlaGetField(
   var level : IR_Expression = field.level
 
   // init function sets up field instances for all levels and slots
-  override def getCtor() : Option[IR_Statement] = Some(
-    IR_FunctionCall(IR_WaLBerlaInitFieldInstances(onGPU, field).name)
-  )
+  override def getCtor() : Option[IR_Statement] = {
+    if (!Knowledge.waLBerla_cacheFieldPointers)
+      None
+    else
+      Some(IR_FunctionCall(IR_WaLBerlaInitFieldInstances(onGPU, field).name))
+  }
 
   def name : String = field.name + (if (onGPU) "_onGPU" else "")
   override def isPrivate : Boolean = true
@@ -93,9 +101,12 @@ case class IR_IV_WaLBerlaGetFieldData(
   var level : IR_Expression = field.level
 
   // init function sets up field data pointers for all levels and slots
-  override def getCtor() : Option[IR_Statement] = Some(
-    IR_FunctionCall(IR_WaLBerlaInitFieldDataPtrs(onGPU, field).name)
-  )
+  override def getCtor() : Option[IR_Statement] = {
+    if (!Knowledge.waLBerla_cacheFieldPointers)
+      None
+    else
+      Some(IR_FunctionCall(IR_WaLBerlaInitFieldDataPtrs(onGPU, field).name))
+  }
 
   def name : String = field.name + "dataPtr" + (if (onGPU) "_onGPU" else "")
   override def isPrivate : Boolean = true
@@ -129,9 +140,20 @@ case class IR_IV_WaLBerlaFieldData(
   // CPU/GPU execution information not incorporated in class -> we need to make sure it is initialized in the correct mode (see IR_WaLBerlaLoopOverBlocks)
   def initInBlockLoop(onGPU : Boolean) : ListBuffer[IR_Statement] = {
     def getFieldDataPtr(slotIt : IR_Expression) = IR_IV_WaLBerlaGetFieldData(field, slotIt, onGPU, fragmentIdx)
+
+    var body : ListBuffer[IR_Statement] = ListBuffer()
+
+    // if not already cached in interface: fetch field instances and data pointers in loop
+    if (!Knowledge.waLBerla_cacheFieldPointers) {
+      body += IR_WaLBerlaInitFieldInstances.initRoutine(onGPU, field)
+      body += IR_WaLBerlaInitFieldDataPtrs.initRoutine(onGPU, field)
+    }
+
     if (field.numSlots > 1)
-      (0 until field.numSlots).map(s => IR_Assignment(IR_ArrayAccess(acc, s), getFieldDataPtr(s)) : IR_Statement).to[ListBuffer]
+      body ++= (0 until field.numSlots).map(s => IR_Assignment(IR_ArrayAccess(acc, s), getFieldDataPtr(s)) : IR_Statement)
     else
-      ListBuffer[IR_Statement](IR_Assignment(acc, getFieldDataPtr(0)))
+      body += IR_Assignment(acc, getFieldDataPtr(0))
+
+    body
   }
 }

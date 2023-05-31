@@ -21,12 +21,9 @@ case class CUDA_WaLBerlaAddGPUFieldToStorage(wbFields : IR_WaLBerlaField*) exten
     Logger.error("\"IR_WaLBerlaAddGPUFieldToStorage\" used incorrectly. Assumes fields with identical name but potentially different slots and levels.")
 
   override def isInterfaceFunction : Boolean = false
-  override def inlineImplementation : Boolean = false
+  override def inlineIncludeImplementation : Boolean = false
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
-    // add deps
-    IR_WaLBerlaCollection.get.addExternalDependency("cuda/AddGPUFieldToStorage.h")
-    IR_WaLBerlaCollection.get.addExternalDependency("cuda/FieldCopy.h")
 
     var cpuBlockDataIDParam = IR_WaLBerlaBlockDataID(wbFields.head, slot = 0, onGPU = false)
 

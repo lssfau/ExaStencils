@@ -40,7 +40,7 @@ private case class IR_WaLBerlaResizeExaBuffersWrapper() extends IR_WaLBerlaWrapp
   }
 
   override def isInterfaceFunction : Boolean = true
-  override def inlineImplementation : Boolean = true
+  override def inlineIncludeImplementation : Boolean = true
 }
 
 private case class IR_WaLBerlaInitExaBuffersWrapper() extends IR_WaLBerlaWrapperFunction {
@@ -61,5 +61,5 @@ private case class IR_WaLBerlaInitExaBuffersWrapper() extends IR_WaLBerlaWrapper
   }
 
   override def isInterfaceFunction : Boolean = true
-  override def inlineImplementation : Boolean = true
+  override def inlineIncludeImplementation : Boolean = true
 }

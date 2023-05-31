@@ -7,8 +7,11 @@ import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.datastructures.Transformation.OutputType
 import exastencils.waLBerla.ir.blockforest._
 
-trait IR_WaLBerlaAABB extends IR_Expression with IR_Expandable {
-  def aabbDatatype : IR_Datatype = IR_SpecialDatatype("math::AABB")
+object IR_WaLBerlaAABB {
+  def datatype : IR_Datatype = IR_SpecialDatatype("math::AABB")
+}
+
+trait IR_WaLBerlaAABB extends IR_WaLBerlaBlockLoopVariable {
 
   def center(dim : IR_Expression) : IR_Expression = IR_ArrayAccess(IR_MemberFunctionCallWithDt(this, "center", IR_ArrayDatatype(IR_RealDatatype, 3)), dim)
 
@@ -20,16 +23,20 @@ trait IR_WaLBerlaAABB extends IR_Expression with IR_Expandable {
 }
 
 case class IR_WaLBerlaBlockAABB(block : IR_WaLBerlaBlock) extends IR_WaLBerlaAABB {
-  override def datatype : IR_Datatype = aabbDatatype
-  override def expand() : OutputType = {
-    IR_MemberFunctionCallArrowWithDt(block, "getAABB", datatype)
-  }
+  override def resolveName() : String = "blockAABB"
+  override def resolveDatatype() : IR_Datatype = IR_WaLBerlaAABB.datatype
+
+  override def getDeclaration() = IR_VariableDeclaration(resolveDatatype(), resolveName(),
+    IR_MemberFunctionCallArrowWithDt(block, "getAABB", datatype))
 }
 
 case class IR_WaLBerlaCellAABB(blockforest : IR_WaLBerlaBlockForest, idx : IR_Index) extends IR_WaLBerlaAABB {
-  override def datatype : IR_Datatype = aabbDatatype
-  override def expand() : OutputType = {
-    IR_MemberFunctionCallArrowWithDt(blockforest, "getBlockLocalCellAABB", datatype,
-      IR_DerefAccess(IR_WaLBerlaLoopOverBlocks.block), IR_FunctionCall(IR_ExternalFunctionReference("Cell"), idx.toExpressionIndex.indices.padTo(3, 0 : IR_Expression) : _*))
+  override def resolveName() : String = "cellAABB"
+  override def resolveDatatype() : IR_Datatype = IR_WaLBerlaAABB.datatype
+
+  override def getDeclaration() = {
+    IR_VariableDeclaration(resolveDatatype(), resolveName(),
+      IR_MemberFunctionCallArrowWithDt(blockforest, "getBlockLocalCellAABB", datatype,
+        IR_DerefAccess(IR_WaLBerlaLoopOverBlocks.block), IR_FunctionCall(IR_ExternalFunctionReference("Cell"), idx.toExpressionIndex.indices.padTo(3, 0 : IR_Expression) : _*)))
   }
 }

@@ -9,6 +9,8 @@ import exastencils.core.Duplicate
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.field.IR_WaLBerlaGetSizeForLevel
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_BlockDataID
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_RealType
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_UintType
 
 object IR_WaLBerlaHelperFunctionCollection {
   var functions : ListBuffer[IR_FunctionLike] = ListBuffer()
@@ -28,22 +30,18 @@ case class IR_WaLBerlaAddFieldToStorageWrapper() extends IR_WaLBerlaWrapperFunct
   def blocks = blockForest.ctorParameter
   def identifier = IR_FunctionArgument("identifier", IR_StringDatatype)
   def level = IR_FunctionArgument("level", IR_IntegerDatatype)
-  def initVal = IR_FunctionArgument("initVal", IR_SpecialDatatype("real_t"))
+  def initVal = IR_FunctionArgument("initVal", WB_RealType)
   def fieldLayout = IR_FunctionArgument("layout", IR_SpecialDatatype("field::Layout"))
-  def nrOfGhostLayers = IR_FunctionArgument("nrOfGhostLayers", IR_SpecialDatatype("uint_t"))
+  def nrOfGhostLayers = IR_FunctionArgument("nrOfGhostLayers", WB_UintType)
   def useStdFieldAlloc = IR_FunctionArgument("useStdFieldAlloc", IR_BooleanDatatype)
 
   // templated, non-interface function
   val fieldTemplate = "Field_T"
   functionQualifiers += s"template < typename $fieldTemplate >"
-  override def inlineImplementation : Boolean = true
+  override def inlineIncludeImplementation : Boolean = true
   override def isInterfaceFunction : Boolean = false
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
-    // add deps
-    IR_WaLBerlaCollection.get.addExternalDependency("field/Field.h")
-    IR_WaLBerlaCollection.get.addExternalDependency("field/AddToStorage.h")
-
     var params : ListBuffer[IR_FunctionArgument] = ListBuffer()
     params += blocks
     params += identifier

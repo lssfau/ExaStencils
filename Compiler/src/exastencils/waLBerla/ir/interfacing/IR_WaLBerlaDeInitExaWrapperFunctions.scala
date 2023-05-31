@@ -21,5 +21,5 @@ private case class IR_WaLBerlaDestroyExaBuffersWrapper() extends IR_WaLBerlaWrap
       ListBuffer[IR_Statement](IR_FunctionCall("destroyGlobals")))
 
   override def isInterfaceFunction : Boolean = true
-  override def inlineImplementation : Boolean = true
+  override def inlineIncludeImplementation : Boolean = true
 }

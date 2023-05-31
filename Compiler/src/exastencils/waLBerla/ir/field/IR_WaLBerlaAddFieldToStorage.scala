@@ -20,7 +20,7 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR
     Logger.error("\"IR_WaLBerlaAddFieldToStorage\" used incorrectly. Assumes fields with identical name but potentially different slots and levels.")
 
   override def isInterfaceFunction : Boolean = false
-  override def inlineImplementation : Boolean = false
+  override def inlineIncludeImplementation : Boolean = false
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
     var params : ListBuffer[IR_FunctionArgument] = ListBuffer()

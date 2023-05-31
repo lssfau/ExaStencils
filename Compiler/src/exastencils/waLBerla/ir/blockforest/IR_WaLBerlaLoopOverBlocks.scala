@@ -4,8 +4,10 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.baseExt.ir.IR_LoopOverProcessLocalBlocks
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
@@ -47,7 +49,7 @@ object IR_WaLBerlaLoopOverBlocks {
 case class IR_WaLBerlaLoopOverBlocks(
     var body : ListBuffer[IR_Statement],
     var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo(),
-    var setupWaLBerlaFieldPointers : Boolean = true) extends IR_ScopedStatement with IR_SpecialExpandable with IR_HasParallelizationInfo {
+    var setupWaLBerlaFieldPointers : Boolean = true) extends IR_LoopOverProcessLocalBlocks {
 
   def expandSpecial(collector : IR_StackCollector) : Output[IR_Scope] = {
     // TODO: separate omp and potentiallyParallel
@@ -89,30 +91,58 @@ case class IR_WaLBerlaLoopOverBlocks(
     }
 
     import IR_WaLBerlaLoopOverBlocks.block
-    import IR_WaLBerlaLoopOverBlocks.defIt
+
+    // check if contained within a block loop (resolved or unresolved)
+    val insideBlockLoop = collector.stack.exists {
+      case _ : IR_LoopOverProcessLocalBlocks                                                       => true
+      case _ @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == defIt.name => true
+      case _                                                                                       => false
+    }
+
+    // array of process-local blocks
+    val blockArray = IR_WaLBerlaLocalBlocks()
 
     var compiledBody = ListBuffer[IR_Statement]()
 
-    // init block pointer in loop
-    compiledBody += IR_VariableDeclaration(block, IR_ArrayAccess(IR_WaLBerlaGetBlocks(), defIt))
+    // setup loop body to support accesses to waLBerla data structures
+    if (!insideBlockLoop) {
+      // init block pointer in loop
+      compiledBody += IR_VariableDeclaration(block, IR_ArrayAccess(blockArray, defIt))
 
-    // get field data if necessary
-    if (setupWaLBerlaFieldPointers)
-      compiledBody ++= getWaLBerlaFieldData(fieldsAccessed : _*)
+      // get field data if necessary
+      if (setupWaLBerlaFieldPointers)
+        compiledBody ++= getWaLBerlaFieldData(fieldsAccessed : _*)
+
+      // check if there are block loop variables to be added (i.e. declared and set)
+      IR_WaLBerlaFindBlockLoopVariables.applyStandalone(IR_Scope(body))
+      for (blockVar <- IR_WaLBerlaFindBlockLoopVariables.blockLoopVariables.distinct.sorted)
+        compiledBody += blockVar.getDeclaration()
+    }
 
     compiledBody ++= body
 
-    // check if contained within a fragment loop (resolved or unresolved)
-    val insideFragLoop = collector.stack.exists {
-      case _ : IR_LoopOverFragments                                                                                     => true
-      case _ @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name => true
-      case _                                                                                                            => false
-    }
+    if (!insideBlockLoop) {
+      val upperBoundKnown = Knowledge.waLBerla_useGridFromExa
+      val upperBound : IR_Expression = if (upperBoundKnown)
+        Knowledge.domain_numFragmentsPerBlock
+      else
+        IR_Cast(IR_IntegerDatatype, IR_MemberFunctionCall(blockArray, "size"))
 
-    if (!insideFragLoop)
-      IR_Scope(IR_LoopOverFragments(compiledBody, parallelization).expandSpecial().inner) // wrap around fragment loop, if not already done
-    else
+      // wrap around explicit block loop, if not already done
+      val loop = IR_ForLoop(
+        IR_VariableDeclaration(defIt, 0),
+        IR_Lower(defIt, upperBound),
+        IR_PreIncrement(defIt),
+        compiledBody,
+        parallelization)
+
+      if (upperBoundKnown)
+        loop.annotate("numLoopIterations", Knowledge.domain_numFragmentsPerBlock)
+
+      IR_Scope(loop)
+    } else {
       IR_Scope(compiledBody)
+    }
   }
 }
 

@@ -2,11 +2,14 @@ package exastencils.waLBerla.ir.blockforest
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.config.Knowledge
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaCellAABB
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceParameter
+import exastencils.waLBerla.ir.refinement.IR_WaLBerlaInitNonuniformBlockForest
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_UintType
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDirection
 
 case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false, false, false) {
@@ -19,10 +22,17 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
 
   override def isPrivate : Boolean = true
 
-  override def resolveAccess(baseAccess : IR_Expression, block : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Access = resolveMemberBaseAccess()
+  override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Access = resolveMemberBaseAccess()
   override def resolveDatatype() = IR_SharedPointerDatatype(WB_StructuredBlockForest)
 
-  override def resolveDefValue() : Option[IR_Expression] = Some(IR_FunctionCall(IR_WaLBerlaInitBlockForest().name))
+  override def resolveDefValue() : Option[IR_Expression] = {
+    val initFunc = if (Knowledge.waLBerla_useRefinement)
+      IR_WaLBerlaInitNonuniformBlockForest()
+    else
+      IR_WaLBerlaInitUniformBlockForest()
+
+    Some(IR_FunctionCall(initFunc.name))
+  }
 
   def maxLevelWaLBerlaField = {
     if (IR_WaLBerlaFieldCollection.objects.nonEmpty)
@@ -31,21 +41,32 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
       None
   }
 
+  // refinement level
+  def getRefinementLvlForIterator() = IR_MemberFunctionCallArrow(resolveAccess(), "getLevel", IR_DerefAccess(iterator))
+
+  // stepsize (potentially for a refinement level)
+  def getStepSize(dim : Int, refinementLevel : Option[IR_Expression] = None) = IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"d${ ('x' + dim).toChar.toString }", IR_RealDatatype, refinementLevel.toList : _*)
+  def dx(refinementLevel : Option[IR_Expression] = None) = getStepSize(0, refinementLevel)
+  def dy(refinementLevel : Option[IR_Expression] = None) = getStepSize(1, refinementLevel)
+  def dz(refinementLevel : Option[IR_Expression] = None) = getStepSize(2, refinementLevel)
+
   // iterators
   def iterator = new IR_WaLBerlaBlock("block", IR_SpecialDatatype("auto"))
   def begin() = IR_MemberFunctionCallArrowWithDt(resolveAccess(), "begin", datatype)
   def end() = IR_MemberFunctionCallArrowWithDt(resolveAccess(), "end", datatype)
 
-  def getNumberOfRootBlocks(d : Int) = IR_MemberFunctionCallArrow(resolveAccess(), "getSize", d)
+  def getNumberOfRootBlocksPerDim(d : Int) = IR_MemberFunctionCallArrow(resolveAccess(), "getSize", d)
 
-  def getNumberOfAllRootBlocks() : IR_Expression = (0 until 3).map(d => getNumberOfRootBlocks(d) : IR_Expression).reduce(_ * _)
+  def getNumberOfAllRootBlocks() : IR_Expression = (0 until 3).map(d => getNumberOfRootBlocksPerDim(d) : IR_Expression).reduce(_ * _)
+
+  def getNumberOfAllBlocks() : IR_Expression = IR_MemberFunctionCallArrow(resolveAccess(), "getNumberOfBlocks")
 
   // cells
   def getNumberOfCells(dim : Int) : IR_Expression =
-    IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", IR_SpecialDatatype("uint_t"))
+    IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", WB_UintType)
 
   def getNumberOfCells(dim : Int, block : IR_WaLBerlaBlock) : IR_Expression =
-    IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", IR_SpecialDatatype("uint_t"), IR_DerefAccess(block))
+    IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", WB_UintType, IR_DerefAccess(block))
 
   // aabb
   def getCellAABB(idx : IR_ExpressionIndex) = IR_WaLBerlaCellAABB(this, idx)
