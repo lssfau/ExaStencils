@@ -10,7 +10,7 @@ RUN \
   apt-get update && \
   apt-get install sbt && \
   sbt sbtVersion && \
-  python3 -m pip install sympy numpy && \
+  python3 -m pip install sympy numpy influxdb GitPython && \
   wget http://ftp.fau.de/pub/likwid/likwid-4.3.4.tar.gz && \
   tar -xf likwid-4.3.4.tar.gz && \
   cd likwid-4.3.4 && \

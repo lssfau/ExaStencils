@@ -447,7 +447,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       }
 
       // tangent
-      def tx = 0.5 * (nodePosition(next(boundaryIdx), 0) - nodePosition(prev(boundaryIdx), 0))
+      def tx = IR_FloatConstant(0.5) * (nodePosition(next(boundaryIdx), 0) - nodePosition(prev(boundaryIdx), 0))
 
       def ty = IR_FloatConstant(0.5) * (nodePosition(next(boundaryIdx), 1) - nodePosition(prev(boundaryIdx), 1))
 

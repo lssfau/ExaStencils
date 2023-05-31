@@ -1,0 +1,215 @@
+#######################################
+##                                   ##
+##            Templates              ##
+##                                   ##
+#######################################
+
+.module_tree_build:
+    variables:
+        - PYTHON_PACKAGES: sympy numpy influxdb machinestate argparse
+    before_script:
+        - JAVA_HOME=$HOME/jdk-11.0.14 ; export JAVA_HOME
+        - SBT_HOME=$HOME/sbt ; export SBT_HOME
+        - PATH=$JAVA_HOME/bin:$SBT_HOME/bin:$PATH ; export PATH
+        - module load python/3.8-anaconda
+        - |
+            for PACKAGE in $PYTHON_PACKAGES
+            do
+                python3 -m pip install --user $PACKAGE
+            done
+    after_script:
+        - |
+            for PACKAGE in $PYTHON_PACKAGES
+            do
+                python3 -m pip uninstall $PACKAGE # cleanup
+            done
+
+.build_generator: &build_generator
+    - sbt sbtVersion
+    - java -version
+    - sbt assembly
+
+.module_gcc: &module_load_gcc
+    #- module load gcc/10.2.0
+    - gcc --version
+
+.module_icc: &module_load_icc
+    - module load intel/2020.2
+    - icc --version
+
+.module_openmpi: &module_load_openmpi
+    - module load openmpi/4.1.1-gcc
+    - mpirun --version
+
+.module_likwid: &module_load_likwid
+    - module load likwid/5.2.1
+    - likwid-features --version
+
+.module_cuda: &module_load_cuda
+    - module load cuda
+    - nvcc --version
+    - nvidia-smi
+    - locate cuda.h
+    - locate libcudart
+    - export CPATH=$CPATH:/usr/local/cuda-11.7/targets/x86_64-linux/include
+    - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+    - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-11.7/targets/x86_64-linux/lib
+    - echo $LD_LIBRARY_PATH
+
+.set_cpu_freq: &set_cpu_freq
+    - echo "Execute command $GET_CLOCK_CMD with method $METHOD and convert factor $CONVERT_FACTOR"
+    - eval "$GET_CLOCK_CMD" || exit_code=$?
+    - |
+        if [[ $exit_code -ne 0 ]]; then
+            echo "Previous command failed with exit code $exit_code"
+        else
+            echo "Previous command was successful with exit code $exit_code"
+            clock=$(eval "$GET_CLOCK_CMD")
+            echo "Setting freq to base extracted from $METHOD"
+            targetFreq=$(bc <<<"scale=2; $clock / $CONVERT_FACTOR")
+            likwid-setFrequencies -f $targetFreq || exit_code=$?
+            echo "likwid-setFrequencies -f $targetFreq exited with code $exit_code"
+        fi
+
+.set_base_clock: &set_base_clock
+    # set cpu freq via bios_limit file
+    - GET_CLOCK_CMD="cat /sys/devices/system/cpu/cpu0/cpufreq/bios_limit 2>/dev/null" # in KHz
+    - CONVERT_FACTOR=1000000.00 # KHz to GHz
+    - METHOD="bios_limit file"
+    - *set_cpu_freq
+    # set cpu freq via base_frequency file
+    - GET_CLOCK_CMD="cat /sys/devices/system/cpu/cpu0/cpufreq/base_frequency 2>/dev/null" # in KHz
+    - CONVERT_FACTOR=1000000.00 # KHz to GHz
+    - METHOD="base_frequency file"
+    - *set_cpu_freq
+    # set cpu freq via likwid-powermeter
+    - GET_CLOCK_CMD="likwid-powermeter -i | grep \"Base clock:\" | grep -Eo '[+-]?[0-9]+([.][0-9]+)?'" # in MHz
+    - CONVERT_FACTOR=1000.00 # MHz to GHz
+    - METHOD="likwid-powermeter"
+    - *set_cpu_freq
+    - likwid-setFrequencies -p # show freq
+
+.compiler_versions: &get_compiler_versions
+    - gccVersion=$(gcc --version | grep ^gcc | sed 's/^.* //g' | cut -d "." -f 1-2 | tr -d '.')
+    - iccVersion=$(echo "$(icc --version 2>&1)" | sed -e "s/^icc (ICC) //" | cut -d " " -f 1 | cut -d "." -f 1-2 | tr -d '.' | head -n 1)
+
+.cuda_job_template:
+    stage: bench_pipe
+    tags:
+        - testcluster
+    before_script:
+        - !reference [ .module_tree_build, before_script ]
+        - *build_generator
+        - cd Benchmark
+        - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
+        - python3 unzip.py artifacts.zip Platform
+        - echo $(hostname)
+        - *module_load_gcc
+        - *module_load_icc
+        #- *module_load_openmpi
+        - *module_load_likwid
+        - *module_load_cuda
+        - *set_base_clock
+    script:
+        - echo $EXA_PROBLEM_NAME
+        - echo $EXA_PROBLEM_PATH
+        - echo $EXASLANG_FILES
+        - echo $KNOWLEDGE_FILE
+        - echo $PLATFORM_FILE
+        - echo $OUTPUT_PATH
+        - python3 -u run_benchmark.py "$EXA_PROBLEM_NAME" "$EXA_PROBLEM_PATH" "$EXASLANG_FILES" "$KNOWLEDGE_FILE" "$PLATFORM_FILE" "$OUTPUT_PATH" "--use_likwid" "--use_likwid_perfctr" "--use_likwid_pin" "--all"
+    after_script:
+        - !reference [ .module_tree_build, after_script ]
+    artifacts:
+        when: on_failure
+        paths:
+            - Benchmark/$OUTPUT_PATH/Debug/*
+            - Benchmark/$OUTPUT_PATH/generated/*
+        expire_in: 1 weeks
+    variables:
+        SLURM_NODELIST: "TO_BE_REPLACED"
+        SLURM_CONSTRAINT: "hwperf"
+        EXA_PROBLEM_NAME: "TO_BE_REPLACED"
+        EXA_PROBLEM_PATH: "TO_BE_REPLACED"
+        EXASLANG_FILES: "TO_BE_REPLACED"
+        KNOWLEDGE_FILE: "TO_BE_REPLACED"
+        PLATFORM_FILE: "TO_BE_REPLACED"
+        OUTPUT_PATH: "output"
+
+.gen_bench_job_template:
+    stage: bench_gen
+    tags:
+        - testcluster
+    before_script:
+        - cd Benchmark
+        - !reference [ .module_tree_build, before_script ]
+    script:
+        - chmod +x generate_bench_jobs_for_hosts.sh
+        - ./generate_bench_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH > $EXA_PROBLEM_NAME-pipe.yml
+    after_script:
+        - !reference [ .module_tree_build, after_script ]
+    artifacts:
+        when: always
+        paths:
+            - Benchmark/$EXA_PROBLEM_NAME-pipe.yml
+        expire_in: 1 weeks
+    variables:
+        NO_SLURM_SUBMIT: 1
+        EXA_PROBLEM_NAME: "TO_BE_REPLACED"
+        EXA_PROBLEM_PATH: "TO_BE_REPLACED"
+        EXASLANG_FILES: "TO_BE_REPLACED"
+        KNOWLEDGE_FILE: "TO_BE_REPLACED"
+        OUTPUT_PATH: "output"
+        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
+
+.pipe_bench_job_template:
+    stage: bench_pipe
+    trigger:
+        include:
+            artifact: Benchmark/$EXA_PROBLEM_NAME-pipe.yml
+            job: bench_gen:$EXA_PROBLEM_NAME
+        strategy: depend
+    variables:
+        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
+        EXA_PROBLEM_NAME: "TO_BE_REPLACED"
+        EXA_PROBLEM_PATH: "TO_BE_REPLACED"
+
+.bench_pipe_template:
+    tags:
+        - testcluster
+    variables:
+        SLURM_NODELIST: "TO_BE_REPLACED"
+        SLURM_CONSTRAINT: "hwperf"
+        EXA_PROBLEM_NAME: "TO_BE_REPLACED"
+        EXA_PROBLEM_PATH: "TO_BE_REPLACED"
+        EXASLANG_FILES: "TO_BE_REPLACED"
+        KNOWLEDGE_FILE: "TO_BE_REPLACED"
+        OUTPUT_PATH: "output"
+    before_script:
+        - !reference [ .module_tree_build, before_script ]
+        - *build_generator
+        - cd Benchmark
+        - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
+        - python3 unzip.py artifacts.zip Platform
+    script:
+        - echo $(hostname)
+        - *module_load_gcc
+        - *module_load_icc
+        #- *module_load_openmpi
+        - *module_load_likwid
+        - *get_compiler_versions
+        - *set_base_clock
+        - |
+            for compilerSuffix in "GCC$gccVersion" "ICC$iccVersion";
+            do
+                pf="Platform/$(hostname)_$compilerSuffix.platform"
+                echo $EXA_PROBLEM_NAME
+                echo $EXA_PROBLEM_PATH
+                echo $EXASLANG_FILES
+                echo $KNOWLEDGE_FILE
+                echo $pf
+                echo $OUTPUT_PATH
+                python3 -u run_benchmark.py "$EXA_PROBLEM_NAME" "$EXA_PROBLEM_PATH" "$EXASLANG_FILES" "$KNOWLEDGE_FILE" "$pf" "$OUTPUT_PATH" "--use_likwid" "--use_likwid_perfctr" "--use_likwid_pin" "--all"
+            done
+    after_script:
+        - !reference [ .module_tree_build, after_script ]
