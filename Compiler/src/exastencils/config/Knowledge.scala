@@ -955,7 +955,6 @@ object Knowledge {
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == Platform.targetCompiler, "IBM XL does currently not support std::chrono")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == Platform.targetCompiler, "IBM BG does currently not support std::chrono")
 
-    Constraints.condEnsureValue(timer_measureCommunicationTime, true, experimental_measurePackingTimes, "timer_measureCommunicationTime must be enabled for experimental_measurePackingTimes.")
     Constraints.condError(timer_syncMpi && timer_measureCommunicationTime, "Flags timer_syncMpi and timer_measureCommunicationTime are mutually exclusive")
 
     // benchmarking and performance estimation
