@@ -24,15 +24,16 @@ object IR_ResolveJSONFunctions extends DefaultStrategy("ResolveJSONFunctions") {
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("printJSON", _), args)) =>
 
       def handleStringArg(arg : IR_Expression) : IR_Expression = arg match {
-        case vAcc : IR_VariableAccess                                       =>
-          IR_StringConstant(vAcc.name)
-        case strConst : IR_StringConstant                                   =>
+        case vAcc : IR_VariableAccess     =>
+          if (vAcc.datatype == IR_StringDatatype)
+            vAcc
+          else
+            IR_StringConstant(vAcc.name)
+        case strConst : IR_StringConstant =>
           strConst
-        case strLit : IR_StringLiteral                                      =>
+        case strLit : IR_StringLiteral    =>
           IR_StringConstant(strLit.value)
-        case vAcc : IR_VariableAccess if vAcc.datatype == IR_StringDatatype =>
-          vAcc
-        case arg                                                            =>
+        case arg                          =>
           Logger.error("Unknown argument type for printJSON function: "
             + arg.prettyprint() + ". Signature is printJSON(\"filename\", \"key\", expr, \"key\", expr, ...")
       }
