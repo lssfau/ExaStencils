@@ -13,4 +13,6 @@ class IR_WaLBerlaBlock(name : String, dt : IR_Datatype) extends IR_VariableAcces
     val fieldDt = WB_FieldDatatype(wbField, blockDataID.onGPU)
     new IR_MemberFunctionCallArrowWithDt(this, s"getData< ${ fieldDt.typeName } >", ListBuffer(blockDataID), fieldDt)
   }
+
+  def getId() = IR_MemberFunctionCallArrow(this, "getId")
 }

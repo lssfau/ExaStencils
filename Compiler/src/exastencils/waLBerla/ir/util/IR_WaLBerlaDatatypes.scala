@@ -17,6 +17,7 @@ object IR_WaLBerlaDatatypes {
   def WB_IBlock = IR_SpecialDatatype("IBlock")
   def WB_Block = IR_SpecialDatatype("Block")
   def WB_SetupBlock = IR_SpecialDatatype("SetupBlock")
+  def WB_BlockID = IR_SpecialDatatype("BlockID")
   def WB_BlockDataID = IR_SpecialDatatype("BlockDataID")
   def WB_StructuredBlockStorage = IR_SpecialDatatype("StructuredBlockStorage")
   def WB_StructuredBlockForest = IR_SpecialDatatype("StructuredBlockForest")
