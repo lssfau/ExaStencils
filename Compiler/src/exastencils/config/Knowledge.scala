@@ -493,6 +493,9 @@ object Knowledge {
   // needs to be enabled if waLBerla data structures are used
   var waLBerla_generateInterface : Boolean = false
 
+  // [true|false]: interpolation order: true -> quadratic, false -> constant
+  var waLBerla_useQuadraticF2CInterpolation : Boolean = true
+
   // [true|false]: optimization.
   // generate comm schemes for waLBerla or use our internal communication
   var waLBerla_generateCommSchemes : Boolean = false

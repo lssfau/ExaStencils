@@ -54,7 +54,16 @@ case class IR_WaLBerlaInitCommSchemes(onGPU :  Boolean, wbFields : IR_WaLBerlaFi
           List(blockForest, tag) // CPU params
 
         val initCommScheme = IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
-          IR_Assignment(commScheme, make_unique(commScheme.basetype.resolveBaseDatatype.prettyprint, args : _*)))
+          ListBuffer[IR_Statement](
+            IR_Assignment(commScheme, make_unique(commScheme.basetype.resolveBaseDatatype.prettyprint, args : _*)),
+            // TODO: temporary solution. remove after local communication is implemented
+            // use buffer mode for local communication
+            if (Knowledge.waLBerla_useRefinement && Knowledge.waLBerla_useQuadraticF2CInterpolation)
+              IR_MemberFunctionCallArrow(commScheme, "setLocalMode", IR_Native("blockforest::BUFFER"))
+            else
+              IR_NullStatement
+          )
+        )
 
         body += setupCommScheme(commScheme, ListBuffer(initCommScheme))
       }

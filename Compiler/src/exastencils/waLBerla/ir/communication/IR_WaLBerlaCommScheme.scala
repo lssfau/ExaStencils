@@ -63,10 +63,17 @@ abstract class IR_WaLBerlaCommScheme extends IR_WaLBerlaInterfaceMember(false, t
 
   def communicate() : IR_Statement = {
     if (Knowledge.waLBerla_useRefinement && wbField.layout.communicatesGhosts) {
-      // requires two ghost layers per side
-      val expectedNrOfGhosts = wbField.layout.layoutsPerDim.forall(e => e.numGhostLayersLeft == 2 && e.numGhostLayersRight == 2)
-      if (!expectedNrOfGhosts)
-        Logger.error("Generated CPU comm schemes with refinement enabled require two ghost layers. Error in layout: " + wbField.layout.name)
+        if (Knowledge.waLBerla_useQuadraticF2CInterpolation) {
+          // quadratic extrapolation/interpolation scheme requires at least one ghost layer
+          val expectedNrOfGhosts = wbField.layout.layoutsPerDim.forall(e => e.numGhostLayersLeft >= 1 && e.numGhostLayersRight >= 1)
+          if (!expectedNrOfGhosts)
+            Logger.error("Generated CPU comm schemes with refinement enabled requires at least ghost layers for quadratic interp schemes. Error in layout: " + wbField.layout.name)
+        } else {
+          // linear interpolation scheme requires two ghost layers per side
+          val expectedNrOfGhosts = wbField.layout.layoutsPerDim.forall(e => e.numGhostLayersLeft == 2 && e.numGhostLayersRight == 2)
+          if (!expectedNrOfGhosts)
+            Logger.error("Generated CPU comm schemes with refinement enabled require two ghost layers for linear interp schemes. Error in layout: " + wbField.layout.name)
+        }
     }
 
     // deref and call functor
