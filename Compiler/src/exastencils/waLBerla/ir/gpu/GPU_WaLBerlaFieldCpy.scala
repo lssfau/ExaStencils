@@ -1,4 +1,4 @@
-package exastencils.waLBerla.ir.cuda
+package exastencils.waLBerla.ir.gpu
 
 import exastencils.base.ir._
 import exastencils.datastructures.Transformation.OutputType
@@ -7,7 +7,7 @@ import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes
 
-case class CUDA_WaLBerlaFieldCpy(var dstID : IR_WaLBerlaBlockDataID, var srcID : IR_WaLBerlaBlockDataID) extends IR_Statement with IR_Expandable {
+case class GPU_WaLBerlaFieldCpy(var dstID : IR_WaLBerlaBlockDataID, var srcID : IR_WaLBerlaBlockDataID) extends IR_Statement with IR_Expandable {
 
   override def expand() : OutputType = {
     val dstType = IR_WaLBerlaDatatypes.WB_FieldDatatype(dstID.wbField, dstID.onGPU)

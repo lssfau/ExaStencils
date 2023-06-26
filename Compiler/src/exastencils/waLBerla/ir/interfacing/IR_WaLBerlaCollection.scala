@@ -54,6 +54,8 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   addExternalDependency("set")
 
   // core
+  if (Knowledge.cuda_enabled)
+    addExternalDependency("gpu/DeviceWrapper.h")
 
   if (Knowledge.mpi_enabled)
     addExternalDependency("core/mpi/MPIManager.h")
@@ -73,9 +75,9 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   // fields
 
   if (Knowledge.cuda_enabled) {
-    addExternalDependency("cuda/GPUField.h")
-    addExternalDependency("cuda/AddGPUFieldToStorage.h")
-    addExternalDependency("cuda/FieldCopy.h")
+    addExternalDependency("gpu/GPUField.h")
+    addExternalDependency("gpu/AddGPUFieldToStorage.h")
+    addExternalDependency("gpu/FieldCopy.h")
   }
   addExternalDependency("field/GhostLayerField.h")
   addExternalDependency("field/SwapableCompare.h")
@@ -93,9 +95,9 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
     addExternalDependency("field/communication/PackInfo.h")
 
     if (Knowledge.cuda_enabled) {
-      addExternalDependency("cuda/communication/GPUPackInfo.h")
-      addExternalDependency("cuda/communication/MemcpyPackInfo.h")
-      addExternalDependency("cuda/communication/UniformGPUScheme.h")
+      addExternalDependency("gpu/communication/GPUPackInfo.h")
+      addExternalDependency("gpu/communication/MemcpyPackInfo.h")
+      addExternalDependency("gpu/communication/UniformGPUScheme.h")
     }
   }
 

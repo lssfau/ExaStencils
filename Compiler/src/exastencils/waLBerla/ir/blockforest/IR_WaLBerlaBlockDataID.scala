@@ -6,7 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_StdArrayDatatype
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaAddGPUFieldToStorage
+import exastencils.waLBerla.ir.gpu.GPU_WaLBerlaAddGPUFieldToStorage
 import exastencils.waLBerla.ir.field.IR_WaLBerlaAddFieldToStorage
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
@@ -62,7 +62,7 @@ case class IR_WaLBerlaBlockDataID(
   override def resolveDefValue() = Some(
     if (onGPU) {
       val cpuID = IR_WaLBerlaBlockDataID(wbField, slot, onGPU = false)
-      IR_FunctionCall(CUDA_WaLBerlaAddGPUFieldToStorage(wbField).name, blockforest, cpuID.resolveMemberBaseAccess())
+      IR_FunctionCall(GPU_WaLBerlaAddGPUFieldToStorage(wbField).name, blockforest, cpuID.resolveMemberBaseAccess())
     } else {
       IR_FunctionCall(IR_WaLBerlaAddFieldToStorage(wbField).name, blockforest, 0.0)
     })

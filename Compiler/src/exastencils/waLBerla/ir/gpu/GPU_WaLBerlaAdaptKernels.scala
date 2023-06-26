@@ -1,4 +1,4 @@
-package exastencils.waLBerla.ir.cuda
+package exastencils.waLBerla.ir.gpu
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -19,7 +19,7 @@ import exastencils.waLBerla.ir.field.IR_IV_WaLBerlaFieldData
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 
-object CUDA_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kernels with waLBerla fields") {
+object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kernels with waLBerla fields") {
 
   var waLBerlaFieldPointersForKernel : mutable.HashMap[String, ListBuffer[IR_IV_WaLBerlaFieldData]] = mutable.HashMap()
   var adaptedKernelCalls : mutable.HashSet[CUDA_FunctionCall] = mutable.HashSet()

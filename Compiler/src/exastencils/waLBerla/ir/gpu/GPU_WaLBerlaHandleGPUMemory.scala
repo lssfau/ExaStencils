@@ -1,4 +1,4 @@
-package exastencils.waLBerla.ir.cuda
+package exastencils.waLBerla.ir.gpu
 
 import exastencils.config.Knowledge
 import exastencils.datastructures.DefaultStrategy
@@ -9,7 +9,7 @@ import exastencils.parallelization.api.cuda._
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 
-object CUDA_WaLBerlaHandleGPUMemory extends DefaultStrategy("GPU memory handling for waLBerla fields") {
+object GPU_WaLBerlaHandleGPUMemory extends DefaultStrategy("GPU memory handling for waLBerla fields") {
 
   def getWaLBerlaFieldOption(fieldData : IR_IV_AbstractFieldLikeData) = IR_WaLBerlaFieldCollection.getByIdentifier(fieldData.field.name, fieldData.field.level)
 
@@ -19,8 +19,8 @@ object CUDA_WaLBerlaHandleGPUMemory extends DefaultStrategy("GPU memory handling
       val cpuID = IR_WaLBerlaBlockDataID(wbField, pointer.slot, onGPU = false)
       val gpuID = IR_WaLBerlaBlockDataID(wbField, pointer.slot, onGPU = true)
       direction match {
-        case id if id == Knowledge.cuda_deviceId => CUDA_WaLBerlaFieldCpy(gpuID, cpuID) // H2D
-        case "cudaCpuDeviceId"                   => CUDA_WaLBerlaFieldCpy(cpuID, gpuID) // D2H
+        case id if id == Knowledge.cuda_deviceId => GPU_WaLBerlaFieldCpy(gpuID, cpuID) // H2D
+        case "cudaCpuDeviceId"                   => GPU_WaLBerlaFieldCpy(cpuID, gpuID) // D2H
         case _                                   => Logger.error("Unknown direction for CUDA_MemoryPrefetch!")
       }
 
@@ -36,6 +36,6 @@ object CUDA_WaLBerlaHandleGPUMemory extends DefaultStrategy("GPU memory handling
       val srcID = IR_WaLBerlaBlockDataID(wbFieldSrc, src.slot, srcOnGPU)
       val dstID = IR_WaLBerlaBlockDataID(wbFieldDst, dst.slot, dstOnGPU)
 
-      CUDA_WaLBerlaFieldCpy(dstID, srcID)
+      GPU_WaLBerlaFieldCpy(dstID, srcID)
   })
 }

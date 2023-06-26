@@ -8,7 +8,7 @@ import exastencils.config.Knowledge
 import exastencils.config.Platform
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
-import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaGPUCommScheme
+import exastencils.waLBerla.ir.gpu.GPU_WaLBerlaGPUCommScheme
 import exastencils.waLBerla.ir.field._
 import exastencils.waLBerla.ir.interfacing._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil._
@@ -35,7 +35,7 @@ case class IR_WaLBerlaInitCommSchemes(onGPU :  Boolean, wbFields : IR_WaLBerlaFi
 
     // comm scheme wrapper
     def getCommScheme(wbf : IR_WaLBerlaField, slotIt : IR_Expression) : IR_WaLBerlaCommScheme = if (onGPU)
-      CUDA_WaLBerlaGPUCommScheme(wbf, slotIt)
+      GPU_WaLBerlaGPUCommScheme(wbf, slotIt)
     else
       IR_WaLBerlaCPUCommScheme(wbf, slotIt)
 

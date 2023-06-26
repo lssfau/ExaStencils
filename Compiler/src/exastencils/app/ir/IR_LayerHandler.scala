@@ -58,8 +58,8 @@ import exastencils.visualization.ir.interactive.visit.IR_SetupVisit
 import exastencils.visualization.ir.postprocessing.IR_ResolveVisualizationPrinters
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaResolveLoopOverBlocks
 import exastencils.waLBerla.ir.communication._
-import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaAdaptKernels
-import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaHandleGPUMemory
+import exastencils.waLBerla.ir.gpu.GPU_WaLBerlaAdaptKernels
+import exastencils.waLBerla.ir.gpu.GPU_WaLBerlaHandleGPUMemory
 import exastencils.waLBerla.ir.replacements._
 import exastencils.waLBerla.ir.interfacing._
 
@@ -268,7 +268,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     }
 
     if (Knowledge.cuda_enabled && Knowledge.waLBerla_useFixedLayoutsFromExa)
-      CUDA_WaLBerlaHandleGPUMemory.apply()
+      GPU_WaLBerlaHandleGPUMemory.apply()
 
     IR_ResolveContractingLoop.apply()
 
@@ -340,7 +340,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       CUDA_KernelFunctions.get.convertToFunctions()
 
     if (Knowledge.cuda_enabled && Knowledge.waLBerla_useFixedLayoutsFromExa)
-      CUDA_WaLBerlaAdaptKernels.apply()
+      GPU_WaLBerlaAdaptKernels.apply()
 
     IR_SimplifyIndexExpressions.apply()
 

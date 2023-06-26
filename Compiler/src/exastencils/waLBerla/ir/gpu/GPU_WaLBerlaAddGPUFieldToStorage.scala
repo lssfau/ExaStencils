@@ -1,4 +1,4 @@
-package exastencils.waLBerla.ir.cuda
+package exastencils.waLBerla.ir.gpu
 
 import scala.collection.mutable.ListBuffer
 
@@ -12,7 +12,7 @@ import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaCollection
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaFuturePlainFunction
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaPlainFunction
 
-case class CUDA_WaLBerlaAddGPUFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR_WaLBerlaFuturePlainFunction {
+case class GPU_WaLBerlaAddGPUFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR_WaLBerlaFuturePlainFunction {
 
   def blockForest = IR_WaLBerlaBlockForest()
   def blocks = blockForest.ctorParameter
