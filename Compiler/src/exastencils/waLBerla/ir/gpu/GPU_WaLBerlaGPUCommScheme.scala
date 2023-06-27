@@ -19,7 +19,7 @@ case class GPU_WaLBerlaGPUCommScheme(var wbField : IR_WaLBerlaField, var slot : 
 
   def createUniformPackInfo() = {
     Logger.warn("The 'MemcpyPackInfo' classes for waLBerla's GPU communication schemes may not yield correct results.")
-    make_shared(s"cuda::communication::MemcpyPackInfo< ${ WB_FieldDatatype(wbField, onGPU = true).prettyprint() } >", blockDataID)
+    make_shared(s"gpu::communication::MemcpyPackInfo< ${ WB_FieldDatatype(wbField, onGPU = true).prettyprint() } >", blockDataID)
   }
 
   def name = s"gpuCommScheme_${ wbField.name }"

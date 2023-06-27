@@ -14,6 +14,6 @@ case class GPU_WaLBerlaFieldCpy(var dstID : IR_WaLBerlaBlockDataID, var srcID : 
     val srcType = IR_WaLBerlaDatatypes.WB_FieldDatatype(srcID.wbField, srcID.onGPU)
     val blocks = IR_WaLBerlaBlockForest()
 
-    IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference(s"cuda::fieldCpySweepFunction< ${dstType.prettyprint()}, ${srcType.prettyprint()} >"), dstID, srcID, IR_WaLBerlaLoopOverBlocks.block))
+    IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference(s"gpu::fieldCpySweepFunction< ${dstType.prettyprint()}, ${srcType.prettyprint()} >"), dstID, srcID, IR_WaLBerlaLoopOverBlocks.block))
   }
 }

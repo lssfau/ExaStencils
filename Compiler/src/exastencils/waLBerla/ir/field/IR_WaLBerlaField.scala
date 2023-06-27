@@ -81,7 +81,7 @@ case class IR_WaLBerlaField(
   }
 
   def addToStorageGPU(blockForestAcc : IR_VariableAccess, slot : Int, cpuFieldID : IR_WaLBerlaBlockDataID) = {
-    val funcRefName = s"cuda::addGPUFieldToStorage<${ IR_WaLBerlaDatatypes.WB_FieldDatatype(this, onGPU = false).prettyprint() }>"
+    val funcRefName = s"gpu::addGPUFieldToStorage<${ IR_WaLBerlaDatatypes.WB_FieldDatatype(this, onGPU = false).prettyprint() }>"
 
     // TODO: mapping pitched <-> non-pitched fields? maybe possible with help of IVs
     val usePitchedMemory = false // exa fields do not employ pitched memory -> can lead to inconsistent indexing
