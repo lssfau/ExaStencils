@@ -57,8 +57,10 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   if (Knowledge.cuda_enabled)
     addExternalDependency("gpu/DeviceWrapper.h")
 
-  if (Knowledge.mpi_enabled)
+  if (Knowledge.mpi_enabled) {
+    addExternalDependency("core/mpi/BufferSystem.h")
     addExternalDependency("core/mpi/MPIManager.h")
+  }
 
   addExternalDependency("core/DataTypes.h")
   addExternalDependency("core/cell/Cell.h")
