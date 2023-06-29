@@ -14,5 +14,11 @@ class IR_WaLBerlaBlock(name : String, dt : IR_Datatype) extends IR_VariableAcces
     new IR_MemberFunctionCallArrowWithDt(this, s"getData< ${ fieldDt.typeName } >", ListBuffer(blockDataID), fieldDt)
   }
 
+  def getNeighborId(neighborHoodSectionIdx : IR_Expression, neighborIdx : IR_Expression) =
+    IR_MemberFunctionCallArrow(this, "getNeighborId", neighborHoodSectionIdx, neighborIdx)
+
+  def getNeighborProcess(neighborHoodSectionIdx : IR_Expression, neighborIdx : IR_Expression) =
+    IR_MemberFunctionCallArrow(this, "getNeighborProcess", neighborHoodSectionIdx, neighborIdx)
+
   def getId() = IR_MemberFunctionCallArrow(this, "getId")
 }
