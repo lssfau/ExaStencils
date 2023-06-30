@@ -1,13 +1,20 @@
 package exastencils.waLBerla.ir.replacements
 
 import exastencils.base.ir.IR_Assignment
+import exastencils.base.ir.IR_IfCondition
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir.IR_IntegerConstant
+import exastencils.base.ir.IR_Negation
+import exastencils.communication.DefaultNeighbors
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.domain.ir._
 import exastencils.util.ir.IR_StackCollector
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaBlockAABB
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDirection
+import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
 object IR_WaLBerlaReplaceFragmentIVs extends IR_WaLBerlaReplacementStrategy("Replace frag info accesses with accesses to waLBerla block info") {
   def block = IR_WaLBerlaLoopOverBlocks.block
@@ -31,6 +38,10 @@ object IR_WaLBerlaReplaceFragmentIVs extends IR_WaLBerlaReplacementStrategy("Rep
         case _                                       =>
       }
       assign
+
+    case _ @ IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(_, neighIdx : IR_IntegerConstant, _)), _, _) =>
+      val neigh = DefaultNeighbors.neighbors(neighIdx.v.toInt)
+      IR_WaLBerlaBlockForest().isAtDomainBorder(neigh.dir)
 
     case _ @ IR_IV_FragmentPosition(dim, _) if inWaLBerlaBlockLoop(collector) => getBlockAABB.center(dim)
 
