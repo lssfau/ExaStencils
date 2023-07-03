@@ -73,7 +73,7 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
 
   // domain border
   def isAtDomainBorder(dirArr : Array[Int]) = {
-    val dir = IR_WaLBerlaDirection.getDirnameFromArray(dirArr)
+    val dir = IR_WaLBerlaDirection.getDirIndexFromArray(dirArr)
     if (IR_WaLBerlaDirection.isAxisDirection(dir)) {
       val borderName = IR_WaLBerlaDirection.stringFromDirection(dir) match {
         case "N" => "YMax"

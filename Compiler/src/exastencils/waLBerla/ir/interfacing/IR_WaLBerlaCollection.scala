@@ -57,8 +57,10 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   if (Knowledge.cuda_enabled)
     addExternalDependency("gpu/DeviceWrapper.h")
 
-  if (Knowledge.mpi_enabled)
+  if (Knowledge.mpi_enabled) {
+    addExternalDependency("core/mpi/BufferSystem.h")
     addExternalDependency("core/mpi/MPIManager.h")
+  }
 
   addExternalDependency("core/DataTypes.h")
   addExternalDependency("core/cell/Cell.h")
@@ -123,16 +125,18 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   var interfaceInstance : Option[IR_WaLBerlaInterface] = None
 
   // add future functions
-  functions ++= IR_WaLBerlaInitWrapperFunctions.functions
-  functions ++= IR_WaLBerlaInitExaWrapperFunctions.functions
-  functions ++= IR_WaLBerlaDeInitWrapperFunctions.functions
-  functions ++= IR_WaLBerlaDeInitExaWrapperFunctions.functions
-  functions ++= IR_WaLBerlaInitCouplingWrapperFunctions.functions
-  functions ++= IR_WaLBerlaHelperFunctionCollection.functions
-  functions ++= IR_WaLBerlaGetterFunctionCollection.functions
+  if (Knowledge.waLBerla_generateInterface) {
+    functions ++= IR_WaLBerlaInitWrapperFunctions.functions
+    functions ++= IR_WaLBerlaInitExaWrapperFunctions.functions
+    functions ++= IR_WaLBerlaDeInitWrapperFunctions.functions
+    functions ++= IR_WaLBerlaDeInitExaWrapperFunctions.functions
+    functions ++= IR_WaLBerlaInitCouplingWrapperFunctions.functions
+    functions ++= IR_WaLBerlaHelperFunctionCollection.functions
+    functions ++= IR_WaLBerlaGetterFunctionCollection.functions
 
-  if (Knowledge.waLBerla_useRefinement)
-    functions ++= IR_WaLBerlaRefinementHelperFunctions.functions
+    if (Knowledge.waLBerla_useRefinement)
+      functions ++= IR_WaLBerlaRefinementHelperFunctions.functions
+  }
 
   // collect future function names
   val futureFunctionIds : ListBuffer[String] = Duplicate(functions).collect { case f : IR_WaLBerlaFutureFunction => f }.map(_.name)

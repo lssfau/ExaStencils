@@ -3,7 +3,7 @@ package exastencils.waLBerla.ir.util
 object IR_WaLBerlaDirection extends Enumeration {
 
   // TODO: find more elegant solution
-  def getDirnameFromArray(arr : Array[Int]) = arr match {
+  def getDirIndexFromArray(arr : Array[Int]) = arr match {
     case Array(0) | Array(0, 0) | Array(0, 0, 0)    => C
     case Array(-1) | Array(-1, 0) | Array(-1, 0, 0) => W
     case Array(1) | Array(1, 0) | Array(1, 0, 0)    => E

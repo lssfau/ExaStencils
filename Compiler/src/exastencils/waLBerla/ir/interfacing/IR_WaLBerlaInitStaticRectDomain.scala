@@ -4,54 +4,99 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.communication.DefaultNeighbors
 import exastencils.communication.ir.IR_IV_CommunicationId
 import exastencils.config.Knowledge
 import exastencils.domain.ir._
+import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_IV_MpiComm
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
+import exastencils.util.ir.IR_Print
+import exastencils.util.ir.IR_Read
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockID
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLocalBlockIndicesFromRemote
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLocalBlocks
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaBlockAABB
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_UintType
+import exastencils.waLBerla.ir.util.IR_WaLBerlaDirection
 
-// TODO refactor
+/// IR_WaLBerlaInitStaticRectDomain
+// only meant for static and regular domain partitioning
+// TODO: refactor for refinement
 
 object IR_WaLBerlaInitStaticRectDomain {
   var fctName : String = "initStaticRectDomain"
 }
 
 case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction {
-
-  // TODO: only meant for static and regular domain partitioning
-  // TODO: assumes totalNumFrags = totalNumWbBlocks
-
   override def name : String = IR_WaLBerlaInitStaticRectDomain.fctName
 
-  def globalSize = IR_DomainCollection.getByIdentifier("global").get.asInstanceOf[IR_DomainFromAABB].aabb
+  // iterate over neighborhood section and connect fragments
+  val neighbors = DefaultNeighbors.neighbors
+  val domain = IR_DomainCollection.getByIdentifier("global").get
+  val domainIdx = domain.index
+  val globalSize = domain.asInstanceOf[IR_DomainFromAABB].aabb
+
   def fragWidth(dim : Int) = globalSize.width(dim) / Knowledge.domain_rect_numFragsTotalAsVec(dim)
 
   // fragment info
+  val invalidIndex = -10000
 
   def block = IR_WaLBerlaLoopOverBlocks.block
+  def blockID = IR_WaLBerlaBlockID("blockID", block)
   def defIt = IR_WaLBerlaLoopOverBlocks.defIt
   def getBlockAABB = IR_WaLBerlaBlockAABB(block)
 
+  // wb block info
+  def wbNeighDir(neighDir : Array[Int]) = IR_WaLBerlaDirection.getDirIndexFromArray(neighDir)
+  def wbNeighborHoodSectionIdx = IR_VariableAccess("neighborHoodSectionIdx", IR_SpecialDatatype("const auto"))
+  def wbNeighborHoodSectionSize = IR_VariableAccess("neighborHoodSectionSize", IR_SpecialDatatype("const auto"))
+  def wbNeighborIdx = IR_VariableAccess("neighIdx", WB_UintType)
+  def wbNeighborBlockId = IR_VariableAccess("neighBlockID", IR_SpecialDatatype("const auto"))
+  def wbNeighborProcess = block.getNeighborProcess(wbNeighborHoodSectionIdx, wbNeighborIdx)
+
+  def hasLocalNeighbor() = IR_MemberFunctionCallArrow(block, "neighborExistsLocally", wbNeighborHoodSectionIdx, wbNeighborIdx)
+  def hasRemoteNeighbor() = IR_MemberFunctionCallArrow(block, "neighborExistsRemotely", wbNeighborHoodSectionIdx, wbNeighborIdx)
+
+  def loopOverNeighborHood(neighDir : Array[Int], body : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] =
+    loopOverNeighborHood(wbNeighDir(neighDir), body)
+  def loopOverNeighborHood(wbNeighDir : IR_Expression, body : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
+    var result = ListBuffer[IR_Statement]()
+
+    // fetch neighborhood section and its size
+    result += IR_VariableDeclaration(wbNeighborHoodSectionIdx,
+      IR_FunctionCall("blockforest::getBlockNeighborhoodSectionIndex", IR_Cast(IR_SpecialDatatype("const stencil::Direction"), wbNeighDir)))
+    result += IR_VariableDeclaration(wbNeighborHoodSectionSize,
+      IR_MemberFunctionCallArrow(block, "getNeighborhoodSectionSize", wbNeighborHoodSectionIdx))
+
+    result += IR_ForLoop(
+      IR_VariableDeclaration(wbNeighborIdx, 0),
+      IR_Lower(wbNeighborIdx, wbNeighborHoodSectionSize),
+      IR_PreIncrement(wbNeighborIdx),
+      body)
+
+    result
+  }
+
+  // setup functions
   def setupFragmentPosition() = {
     Knowledge.dimensions.map(dim =>
       IR_Assignment(IR_IV_FragmentPosition(dim),
         getBlockAABB.center(dim)))
   }
-
-  def setupFragmentId() = {
-    IR_Assignment(IR_IV_FragmentId(),
-      Knowledge.dimensions.map(dim => {
-        val revertedDims = (Knowledge.dimensionality-1) until dim by -1
-        IR_ToInt((IR_IV_FragmentPosition(dim) - globalSize.lower(dim)) / fragWidth(dim)) *
-          (if (revertedDims.isEmpty) 1 else revertedDims.map(Knowledge.domain_rect_numFragsTotalAsVec(_)).product) : IR_Expression
-      }).reduce(_ + _))
+  def setupFragmentIndex() = {
+    Logger.warning("IR_IV_FragmentIndex currently not properly set up in waLBerla coupling.")
+    for (d <- Knowledge.dimensions) yield IR_Assignment(IR_IV_FragmentIndex(d), invalidIndex)
   }
-
+  def setupFragmentId() = {
+    Logger.warning("IR_IV_FragmentId currently set to a waLBerla block's ID.")
+    IR_Assignment(IR_IV_FragmentId(), blockID.getTreeId())
+  }
+  def setupCommId() = {
+    IR_Assignment(IR_IV_CommunicationId(defIt), defIt)
+  }
   def setupFragmentPosBeginAndEnd() = {
     val begin = Knowledge.dimensions.map(dim =>
       IR_Assignment(IR_IV_FragmentPositionBegin(dim),
@@ -62,31 +107,20 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
     begin ++ end
   }
 
-  // fragment connection
-
-  def owningRankForPoint(position : (Int => IR_Expression), domain : IR_Domain) = {
-    IR_TernaryCondition(IR_Negation(IR_ConnectFragments().isPointInsideDomain(position, domain)),
-      s"MPI_PROC_NULL",
-      Knowledge.dimensions.map(dim => {
-        val revertedDims = (Knowledge.dimensionality-1) until dim by -1
-        IR_ToInt(((position(dim) - globalSize.lower(dim)) / fragWidth(dim)) / Knowledge.domain_rect_numFragsPerBlockAsVec(dim)) *
-          (if (revertedDims.isEmpty) 1 else revertedDims.map(Knowledge.domain_rect_numBlocksAsVec(_)).product) : IR_Expression
-      }).reduce(_ + _))
-  }
-
   override def isInterfaceFunction : Boolean = true
   override def inlineIncludeImplementation : Boolean = true
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
     var init = ListBuffer[IR_Statement]()
+    var communicate = ListBuffer[IR_Statement]()
     var connect = ListBuffer[IR_Statement]()
 
     /* set basic fragment info */
     var fragStatements = ListBuffer[IR_Statement]()
 
     fragStatements ++= setupFragmentPosition()
-    fragStatements ++= IR_InitGeneratedDomain().setupFragmentIndex()
-    fragStatements += IR_InitGeneratedDomain().setupCommId()
+    fragStatements ++= setupFragmentIndex()
+    fragStatements += setupCommId()
     fragStatements += setupFragmentId()
     fragStatements ++= setupFragmentPosBeginAndEnd()
 
@@ -108,57 +142,124 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
 
     init += IR_WaLBerlaLoopOverBlocks(fragStatements, IR_ParallelizationInfo(potentiallyParallel = true))
 
+    /* get local block list indices from remote neighbors via wb communication */
+    if (Knowledge.mpi_enabled) {
+      val ranksToComm = IR_VariableAccess("ranksToComm", IR_SpecialDatatype("std::set<int>"))
+      val bufferSystem = IR_VariableAccess("bufferSystem", IR_SpecialDatatype("mpi::BufferSystem"))
+      val bufferSystemTag = "commLocalBlockIdx".toCharArray.sum
+
+      communicate += IR_ObjectInstantiation(bufferSystem, MPI_IV_MpiComm, bufferSystemTag)
+      communicate += IR_VariableDeclaration(ranksToComm)
+
+      // pack map entries (i.e. BlockID and local block list index) into buffer
+      if (Knowledge.domain_canHaveLocalNeighs || Knowledge.domain_canHaveRemoteNeighs || Knowledge.domain_rect_hasPeriodicity) {
+          val packBufferStream = IR_VariableAccess("packBufferStream", IR_SpecialDatatype("auto &"))
+          val commStencil = Knowledge.dimensionality match {
+            case 3 => "stencil::D3Q6"
+            case 2 => "stencil::D2Q4"
+          }
+          val stencilDir = IR_VariableAccess("dir", IR_SpecialDatatype("auto"))
+
+          var fillSendBuffer = ListBuffer[IR_Statement]()
+          fillSendBuffer += IR_IfCondition(hasRemoteNeighbor(),
+            ListBuffer[IR_Statement](
+              IR_VariableDeclaration(packBufferStream, IR_MemberFunctionCall(bufferSystem, "sendBuffer", wbNeighborProcess)),
+              IR_MemberFunctionCall(ranksToComm, "insert", wbNeighborProcess), // insert neigh process to list of comm participants
+              IR_Print(packBufferStream, block.getId(), defIt)))
+
+          val fillBufferForNeigh = IR_ForLoop(
+            IR_VariableDeclaration(stencilDir, IR_FunctionCall(s"$commStencil::begin")),
+            stencilDir Neq IR_FunctionCall(s"$commStencil::end"),
+            IR_PreIncrement(stencilDir),
+            loopOverNeighborHood(IR_DerefAccess(stencilDir), fillSendBuffer))
+          communicate += IR_WaLBerlaLoopOverBlocks(IR_Scope(fillBufferForNeigh), IR_ParallelizationInfo(potentiallyParallel = true))
+      }
+
+      // transmit list of comm participants and communicate
+      communicate += IR_MemberFunctionCall(bufferSystem, "setReceiverInfo", ranksToComm, false)
+      communicate += IR_MemberFunctionCall(bufferSystem, "sendAll")
+
+      // unpack values and insert into map
+      val unpackIt = IR_VariableAccess("recvIt", IR_SpecialDatatype("auto"))
+      val unpackBufferStream = IR_VariableAccess("unpackBufferStream", IR_SpecialDatatype("auto"))
+      val unpackedBlockID = IR_VariableAccess("bId", IR_SpecialDatatype("BlockID"))
+      val unpackedLocalIdx = IR_VariableAccess("localBlockIndex", IR_IntegerDatatype)
+
+      communicate += IR_ForLoop(IR_VariableDeclaration(unpackIt, IR_MemberFunctionCall(bufferSystem, "begin")),
+        unpackIt Neq IR_MemberFunctionCall(bufferSystem, "end"),
+        IR_PreIncrement(unpackIt),
+        ListBuffer[IR_Statement](
+          IR_VariableDeclaration(unpackBufferStream, IR_MemberFunctionCall(unpackIt, "buffer")),
+          IR_WhileLoop(
+            IR_Negation(IR_MemberFunctionCall(unpackBufferStream, "isEmpty")),
+            ListBuffer[IR_Statement](
+              IR_VariableDeclaration(unpackedBlockID),
+              IR_VariableDeclaration(unpackedLocalIdx),
+              IR_Read(unpackBufferStream, unpackedBlockID, unpackedLocalIdx),
+              IR_Assignment(
+                IR_ArrayAccess(IR_WaLBerlaLocalBlockIndicesFromRemote(), unpackedBlockID),
+                unpackedLocalIdx)))))
+    }
+
     /* set fragment connection */
 
-    val neighbors = DefaultNeighbors.neighbors
-    val domains = IR_DomainCollection.objects
-    for (d <- domains.indices)
-      connect += IR_Assignment(IR_IV_IsValidForDomain(d), IR_ConnectFragments().isPointInsideDomain(IR_IV_FragmentPosition(_), domains(d)))
+    // TODO: masked blocks (or fragments)
+    connect += IR_Assignment(IR_IV_IsValidForDomain(domainIdx), IR_ConnectFragments().isPointInsideDomain(IR_IV_FragmentPosition(_), domain))
 
     if (Knowledge.domain_canHaveLocalNeighs || Knowledge.domain_canHaveRemoteNeighs || Knowledge.domain_rect_hasPeriodicity) {
       for (neigh <- neighbors) {
         var statements = ListBuffer[IR_Statement]()
 
-        // store offset position to allow for implementation of periodic domains
-        def offsetPos(dim : Int) = IR_VariableAccess(s"offsetPos_$dim", IR_RealDatatype)
-        for (dim <- Knowledge.dimensions) {
-          statements += IR_VariableDeclaration(offsetPos(dim), IR_IV_FragmentPosition(dim) + neigh.dir(dim) * fragWidth(dim))
-          if (Knowledge.domain_rect_periodicAsVec(dim)) {
-            // implement simple wrap-around for periodic domains
-            statements += IR_IfCondition(IR_Greater(offsetPos(dim), globalSize.upper(dim)),
-              IR_Assignment(offsetPos(dim), globalSize.upper(dim) - globalSize.lower(dim), "-="))
-            statements += IR_IfCondition(IR_Lower(offsetPos(dim), globalSize.lower(dim)),
-              IR_Assignment(offsetPos(dim), globalSize.upper(dim) - globalSize.lower(dim), "+="))
-          }
+        // find array index of neighbor block in local block vector
+        val wbLocalNeighborBlockIdx = IR_VariableAccess("localNeighborBlockIdx", IR_IntegerDatatype)
+        val compareBlockIDs = IR_Native(s"[&${ wbNeighborBlockId.name }](Block* b) { return b->getId().getID() == ${ wbNeighborBlockId.name }.getID(); }")
+        def findLocalNeighborBlockIndex() = {
+          val findEntry = IR_FunctionCall("std::find_if",
+            IR_MemberFunctionCall(IR_WaLBerlaLocalBlocks(), "begin"), IR_MemberFunctionCall(IR_WaLBerlaLocalBlocks(), "end"),
+            compareBlockIDs)
+
+          IR_TernaryCondition(findEntry Neq IR_MemberFunctionCall(IR_WaLBerlaLocalBlocks(), "end"),
+            IR_FunctionCall("std::distance", IR_MemberFunctionCall(IR_WaLBerlaLocalBlocks(), "begin"), findEntry),
+            invalidIndex)
         }
+
+        // find array index of neighbor block in remote block vector
+        val wbRemoteNeighborBlockIdx = IR_VariableAccess("remoteNeighborBlockIdx", IR_IntegerDatatype)
+        def findRemoteNeighborBlockIndex() = IR_ArrayAccess(IR_WaLBerlaLocalBlockIndicesFromRemote(), wbNeighborBlockId)
 
         // compile connect calls
-        def localConnect(domainIdx : Int) = IR_ConnectFragments().connectLocalElement(defIt,
-          IR_ConnectFragments().localFragmentIdxForPoint(offsetPos), neigh.index, domainIdx)
+        def localConnect() = IR_ConnectFragments().connectLocalElement(
+          defIt, wbLocalNeighborBlockIdx, neigh.index, domainIdx)
 
-        def remoteConnect(domainIdx : Int) = IR_ConnectFragments().connectRemoteElement(defIt,
-          IR_ConnectFragments().localFragmentIdxForPoint(offsetPos), owningRankForPoint(offsetPos, domains(domainIdx)), neigh.index, domainIdx)
+        def remoteConnect() = IR_ConnectFragments().connectRemoteElement(
+          defIt, wbRemoteNeighborBlockIdx, wbNeighborProcess, neigh.index, domainIdx)
 
-        for (d <- domains.indices) {
-          // check if original point and neighbor point are valid and connect according to possible configurations
-          statements += IR_IfCondition(IR_IV_IsValidForDomain(d) AndAnd IR_ConnectFragments().isPointInsideDomain(offsetPos, domains(d)),
-            if (Knowledge.domain_canHaveRemoteNeighs && Knowledge.domain_canHaveLocalNeighs)
-              ListBuffer[IR_Statement](
-                IR_IfCondition(IR_EqEq(MPI_IV_MpiRank, owningRankForPoint(offsetPos, domains(d))),
-                  localConnect(d), remoteConnect(d)))
-            else if (Knowledge.domain_canHaveRemoteNeighs)
-              remoteConnect(d)
-            else if (Knowledge.domain_canHaveLocalNeighs)
-              localConnect(d)
-            else
-              ListBuffer[IR_Statement]())
+        // assemble loop over neighbors and connect frags
+        var bodyNeighborHoodLoop = ListBuffer[IR_Statement]()
+        if (Knowledge.domain_canHaveRemoteNeighs || Knowledge.domain_canHaveLocalNeighs) {
+          // get neighbor block id
+          bodyNeighborHoodLoop += IR_VariableDeclaration(wbNeighborBlockId, block.getNeighborId(wbNeighborHoodSectionIdx, wbNeighborIdx))
+          // find local neighbor index in block vector
+          bodyNeighborHoodLoop += IR_VariableDeclaration(wbLocalNeighborBlockIdx, findLocalNeighborBlockIndex())
+          bodyNeighborHoodLoop += IR_VariableDeclaration(wbRemoteNeighborBlockIdx, findRemoteNeighborBlockIndex())
+
+          // connect local/remote fragments
+          if (Knowledge.domain_canHaveRemoteNeighs && Knowledge.domain_canHaveLocalNeighs)
+            bodyNeighborHoodLoop ++= ListBuffer[IR_Statement](
+              IR_IfCondition(hasLocalNeighbor(), localConnect(),
+              IR_IfCondition(hasRemoteNeighbor(), remoteConnect())))
+          else if (Knowledge.domain_canHaveRemoteNeighs)
+            bodyNeighborHoodLoop += IR_IfCondition(hasRemoteNeighbor(), remoteConnect())
+          else if (Knowledge.domain_canHaveLocalNeighs)
+            bodyNeighborHoodLoop += IR_IfCondition(hasLocalNeighbor(), localConnect())
         }
+        statements ++= loopOverNeighborHood(neigh.dir, bodyNeighborHoodLoop)
 
         // wrap in scope due to local variable declarations
         connect += IR_WaLBerlaLoopOverBlocks(IR_Scope(statements), IR_ParallelizationInfo(potentiallyParallel = true))
       }
     }
 
-    IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(), init ++ connect)
+    IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(), init ++ communicate ++ connect)
   }
 }
