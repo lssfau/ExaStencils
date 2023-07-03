@@ -351,6 +351,6 @@ The ExaStencils code generation framework is licensed under [GPLv3](https://gith
 
 This project depends on the [cloning](https://github.com/kostaskougios/cloning) and [objenesis](http://objenesis.org/) libraries which are both licensed under the Apache license version 2.0. When the CImg visualization module is used, it depends on the [CImg](https://framagit.org/dtschump/CImg) header licensed under the CeCILL-C licence.
 
-This project depends on and deploys the [isl](https://repo.or.cz/w/isl.git) library with added [scala bindings](https://xxx.de) as well as the [Chernikova](https://xxx.de) library. All of them are licensed under the MIT license.
+This project depends on and deploys the [isl](https://repo.or.cz/w/isl.git) library with added scala bindings as well as the Chernikova library. All of them are licensed under the MIT license.
 
 All dependencies are managed automatically via sbt, with the exception of CImg which has to be taken care of [manually](#CImg-support).
