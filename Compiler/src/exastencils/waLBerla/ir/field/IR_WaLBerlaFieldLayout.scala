@@ -104,7 +104,7 @@ case class IR_WaLBerlaFieldLayout(
   def defIdxPadRightBegin(dim : Int) : IR_Expression = defIdxGhostRightEnd(dim)
   def defIdxPadRightEnd(dim : Int) : IR_Expression = defIdxPadRightBegin(dim) + numPadLayersRight(dim)
 
-  def defTotalFixed(dim : Int) : Int = if (!useFixedLayoutSizes)
+  def defTotalFixed(dim : Int) : Int = if (!useFixedLayoutSizes && dim < Knowledge.dimensionality)
     Logger.error("Using fixed-size indexing for field with variable size")
   else
     regularLayout.defTotalFixed(dim)
@@ -112,7 +112,7 @@ case class IR_WaLBerlaFieldLayout(
   def defTotalExpr(dim : Int) : IR_Expression = IR_Cast(IR_IntegerDatatype, callMemberFuncForDim("AllocSize", dim))
 
   def defIdxByIdFixed(id : String, dim : Int) : Int = {
-    if (!useFixedLayoutSizes)
+    if (!useFixedLayoutSizes && dim < Knowledge.dimensionality)
       Logger.error("Using fixed-size indexing for field layouts with variable sizes")
 
     id match {
@@ -135,7 +135,7 @@ case class IR_WaLBerlaFieldLayout(
   }
 
   def defIdxByIdExpr(id : String, dim : Int) : IR_Expression = {
-    if (useFixedLayoutSizes)
+    if (useFixedLayoutSizes && dim < Knowledge.dimensionality)
       Logger.error("Using variable-size indexing for field layouts with fixed sizes")
 
     id match {
