@@ -55,10 +55,10 @@ abstract class IR_WaLBerlaCommScheme extends IR_WaLBerlaInterfaceMember(false, t
   }
 
   def commSchemeNecessaryWrapper(stmts : ListBuffer[IR_Statement]) : IR_IfCondition = {
-    if (Knowledge.waLBerla_useGridFromExa)
+    if (Knowledge.waLBerla_useGridPartFromExa)
       IR_IfCondition(Knowledge.domain_numFragmentsTotal > 1, stmts)
     else
-      IR_IfCondition(blockForest.getNumberOfAllRootBlocks() > 1 OrOr blockForest.getNumberOfAllBlocks() > 1, stmts)
+      IR_IfCondition(blockForest.getNumberOfAllRootBlocks() > 1 OrOr blockForest.getNumberOfAllLocalBlocks() > 1, stmts)
   }
 
   def communicate() : IR_Statement = {

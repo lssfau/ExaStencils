@@ -11,13 +11,11 @@ import exastencils.domain.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi.MPI_IV_MpiComm
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
+import exastencils.parallelization.api.mpi.MPI_IV_MpiSize
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.ir.IR_Print
 import exastencils.util.ir.IR_Read
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockID
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLocalBlockIndicesFromRemote
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLocalBlocks
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
+import exastencils.waLBerla.ir.blockforest._
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaBlockAABB
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_UintType
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDirection
@@ -44,6 +42,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
   // fragment info
   val invalidIndex = -10000
 
+  def blockForest = IR_WaLBerlaBlockForest()
   def block = IR_WaLBerlaLoopOverBlocks.block
   def blockID = IR_WaLBerlaBlockID("blockID", block)
   def defIt = IR_WaLBerlaLoopOverBlocks.defIt
@@ -111,9 +110,25 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
   override def inlineIncludeImplementation : Boolean = true
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
+    var checks = ListBuffer[IR_Statement]()
     var init = ListBuffer[IR_Statement]()
     var communicate = ListBuffer[IR_Statement]()
     var connect = ListBuffer[IR_Statement]()
+
+    /* error checks to ensure consistency */
+
+    if (Knowledge.waLBerla_useGridPartFromExa) {
+      def checkError(cond : IR_Expression, msg : String) = IR_Assert(cond, ListBuffer(IR_StringConstant(msg)), IR_FunctionCall("exit", 1))
+
+      // check if number of fragments, blocks and processes coincide
+      checks += checkError(blockForest.getNumberOfAllLocalBlocks() EqEq Knowledge.domain_numFragmentsPerBlock,
+        "Number of local waLBerla blocks does not match with number of fragments.")
+      checks += checkError(blockForest.getNumberOfAllRootBlocks() EqEq Knowledge.domain_numFragmentsTotal,
+        "Number of total waLBerla blocks does not match with total number of fragments.")
+      checks += checkError(
+        IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "numProcesses") EqEq Knowledge.domain_numBlocks,
+        "Number of processes does not match with knowledge specification.")
+    }
 
     /* set basic fragment info */
     var fragStatements = ListBuffer[IR_Statement]()
@@ -138,6 +153,8 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
         IR_MemberFunctionCallArrowWithDt(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "comm", MPI_IV_MpiComm.datatype))
       init += IR_Assignment(MPI_IV_MpiRank,
         IR_MemberFunctionCallArrowWithDt(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "rank", MPI_IV_MpiRank.datatype))
+      init += IR_Assignment(MPI_IV_MpiSize,
+        IR_MemberFunctionCallArrowWithDt(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "numProcesses", MPI_IV_MpiSize.datatype))
     }
 
     init += IR_WaLBerlaLoopOverBlocks(fragStatements, IR_ParallelizationInfo(potentiallyParallel = true))
@@ -260,6 +277,6 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
       }
     }
 
-    IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(), init ++ communicate ++ connect)
+    IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(), checks ++ init ++ communicate ++ connect)
   }
 }

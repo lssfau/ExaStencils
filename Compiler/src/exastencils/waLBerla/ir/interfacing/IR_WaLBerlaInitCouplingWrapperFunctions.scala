@@ -9,13 +9,17 @@ import exastencils.config.Knowledge
 import exastencils.field.ir.IR_FieldCollection
 import exastencils.field.ir.IR_InitFieldsWithZero
 import exastencils.globals.ir.IR_AllocateDataFunction
+import exastencils.logger.Logger
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 
 // collection with setup functions for coupling
 object IR_WaLBerlaInitCouplingWrapperFunctions {
   var functions : ListBuffer[IR_FunctionLike] = ListBuffer()
 
-  functions += IR_WaLBerlaInitStaticRectDomain()
+  if (Knowledge.domain_rect_generate)
+    functions += IR_WaLBerlaInitStaticRectDomain()
+  else
+    Logger.error("waLBerla coupling is currently only available for rectilinear domains (i.e. domain_rect_generate = true)")
 
   functions += IR_WaLBerlaResizeExaBuffersWrapper()
   functions += IR_WaLBerlaInitExaBuffersWrapper()
