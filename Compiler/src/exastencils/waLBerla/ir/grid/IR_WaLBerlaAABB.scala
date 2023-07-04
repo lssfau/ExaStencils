@@ -37,6 +37,6 @@ case class IR_WaLBerlaCellAABB(blockforest : IR_WaLBerlaBlockForest, idx : IR_In
   override def getDeclaration() = {
     IR_VariableDeclaration(resolveDatatype(), resolveName(),
       IR_MemberFunctionCallArrowWithDt(blockforest, "getBlockLocalCellAABB", datatype,
-        IR_DerefAccess(IR_WaLBerlaLoopOverBlocks.block), IR_FunctionCall(IR_ExternalFunctionReference("Cell"), idx.toExpressionIndex.indices.padTo(3, 0 : IR_Expression) : _*)))
+        IR_DerefAccess(IR_WaLBerlaLoopOverLocalBlocks.block), IR_FunctionCall(IR_ExternalFunctionReference("Cell"), idx.toExpressionIndex.indices.padTo(3, 0 : IR_Expression) : _*)))
   }
 }

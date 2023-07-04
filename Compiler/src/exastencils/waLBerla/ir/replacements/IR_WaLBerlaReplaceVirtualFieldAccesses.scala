@@ -1,13 +1,7 @@
 package exastencils.waLBerla.ir.replacements
 
-import exastencils.baseExt.ir.IR_LoopOverPoints
-import exastencils.baseExt.ir.IR_LoopOverPointsInOneFragment
-import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.grid.ir._
-import exastencils.util.ir.IR_StackCollector
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
-import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 import exastencils.waLBerla.ir.grid._
 
 object IR_WaLBerlaReplaceVirtualFieldAccesses extends IR_WaLBerlaReplacementStrategy("Replace vf accesses with waLBerla function calls") {

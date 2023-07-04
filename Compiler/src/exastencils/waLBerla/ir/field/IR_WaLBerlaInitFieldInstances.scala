@@ -5,14 +5,15 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlocks
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlockArray
 import exastencils.waLBerla.ir.interfacing._
 
 object IR_WaLBerlaInitFieldInstances {
   def initRoutine(onGPU : Boolean, wbf : IR_WaLBerlaField) : IR_ForLoop = {
     val slotIt = IR_VariableAccess("slotIt", IR_IntegerDatatype)
-    var block = IR_WaLBerlaLoopOverBlocks.block
-    var fragIdx = IR_WaLBerlaLoopOverBlocks.defIt
+    var block = IR_WaLBerlaLoopOverLocalBlocks.block
+    var fragIdx = IR_WaLBerlaLoopOverLocalBlocks.defIt
     val getField = IR_IV_WaLBerlaGetField(wbf, slotIt, onGPU, fragIdx)
 
     IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
@@ -35,7 +36,7 @@ case class IR_WaLBerlaInitFieldInstances(onGPU : Boolean, wbFields : IR_WaLBerla
     for (wbf <- wbFields)
       body += IR_WaLBerlaInitFieldInstances.initRoutine(onGPU, wbf)
 
-    body = ListBuffer(IR_WaLBerlaLoopOverBlocks(body, setupWaLBerlaFieldPointers = false))
+    body = ListBuffer(IR_WaLBerlaLoopOverLocalBlockArray(body))
 
     IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(), body)
   }

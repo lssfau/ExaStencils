@@ -13,7 +13,8 @@ import exastencils.prettyprinting.PpStream
 import exastencils.prettyprinting.PrettyPrintable
 import exastencils.util.ir.IR_StackCollector
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlockArray
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlocks
 import exastencils.waLBerla.ir.field._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
@@ -78,6 +79,7 @@ object IR_WaLBerlaSetupFunctions extends DefaultStrategy("Transform functions ac
   def findEnclosingFunction(stack : List[IR_Node]) : Unit = {
     // don't transform generated CUDA kernel functions
     def isKernelFunction(f : IR_Function) = Knowledge.cuda_enabled && CUDA_KernelFunctions.get.functions.contains(f)
+
     val enclosingFunction = stack.collectFirst { case f : IR_Function if !isKernelFunction(f) => f }
     if (enclosingFunction.isDefined) {
       enclosingFunction.get match {
@@ -99,7 +101,7 @@ object IR_WaLBerlaSetupFunctions extends DefaultStrategy("Transform functions ac
     case acc : IR_Access if acc == IR_WaLBerlaBlockForest()                     =>
       findEnclosingFunction(stackCollector.stack)
       acc
-    case loop : IR_WaLBerlaLoopOverBlocks                                       =>
+    case loop : IR_WaLBerlaLoopOverLocalBlocks                                  =>
       findEnclosingFunction(stackCollector.stack)
       loop
     case bf : IR_WaLBerlaBlockForest                                            =>

@@ -10,5 +10,5 @@ trait IR_LoopOverProcessLocalBlocks extends IR_ScopedStatement with IR_SpecialEx
   def body : ListBuffer[IR_Statement]
   def parallelization : IR_ParallelizationInfo
 
-  def defIt = IR_LoopOverFragments.defIt
+  final def defIt = IR_LoopOverFragments.defIt
 }
