@@ -66,7 +66,7 @@ case class IR_WaLBerlaLoopOverLocalBlocks(
     if (!Knowledge.waLBerla_useGridPartFromExa) {
       IR_CollectFieldAccesses.applyStandalone(body)
 
-      if (IR_CollectFieldAccesses.fieldAccesses.nonEmpty)
+      if (IR_CollectFieldAccesses.fieldAccesses.exists(!_.field.isInstanceOf[IR_WaLBerlaField]))
         Logger.error("Exchange between ExaStencils and waLBerla fields is currently only available when both grids are identical (i.e. waLBerla_useGridPartFromExa = true).")
     }
 
