@@ -7,14 +7,15 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.logger.Logger
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlocks
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlockArray
 import exastencils.waLBerla.ir.interfacing._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
 object IR_WaLBerlaInitFieldDataPtrs {
   def initRoutine(onGPU : Boolean, wbf : IR_WaLBerlaField) : IR_ForLoop = {
     val slotIt = IR_VariableAccess("slotIt", IR_IntegerDatatype)
-    var defIt = IR_WaLBerlaLoopOverBlocks.defIt
+    var defIt = IR_WaLBerlaLoopOverLocalBlocks.defIt
 
     def getFieldData = IR_IV_WaLBerlaGetFieldData(wbf, slotIt, onGPU, defIt)
 
@@ -67,7 +68,7 @@ case class IR_WaLBerlaInitFieldDataPtrs(onGPU : Boolean, wbFields : IR_WaLBerlaF
       for (wbf <- wbFields)
         body += IR_WaLBerlaInitFieldDataPtrs.initRoutine(onGPU, wbf)
 
-      body = ListBuffer(IR_WaLBerlaLoopOverBlocks(body, setupWaLBerlaFieldPointers = false))
+      body = ListBuffer(IR_WaLBerlaLoopOverLocalBlockArray(body))
     }
 
     IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(), body)

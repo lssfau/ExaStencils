@@ -39,19 +39,18 @@ object FindLoopOverDimensions extends QuietDefaultStrategy("Find loop over dimen
 
 /// IR_WaLBerlaLoopOverBlocks
 
-object IR_WaLBerlaLoopOverBlocks {
-  def apply(body : IR_Statement*) = new IR_WaLBerlaLoopOverBlocks(body.to[ListBuffer])
-  def apply(body : IR_Statement, parallelization : IR_ParallelizationInfo) = new IR_WaLBerlaLoopOverBlocks(ListBuffer(body), parallelization)
+object IR_WaLBerlaLoopOverLocalBlocks {
+  def apply(body : IR_Statement*) = new IR_WaLBerlaLoopOverLocalBlocks(body.to[ListBuffer])
+  def apply(body : IR_Statement, parallelization : IR_ParallelizationInfo) = new IR_WaLBerlaLoopOverLocalBlocks(ListBuffer(body), parallelization)
 
   def defIt = IR_LoopOverFragments.defIt
   def block = IR_WaLBerlaBlockForest().iterator
 }
 
 // iterates through process-local blocks
-case class IR_WaLBerlaLoopOverBlocks(
+case class IR_WaLBerlaLoopOverLocalBlocks(
     var body : ListBuffer[IR_Statement],
-    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo(),
-    var setupWaLBerlaFieldPointers : Boolean = true) extends IR_LoopOverProcessLocalBlocks {
+    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_LoopOverProcessLocalBlocks {
 
   def expandSpecial(collector : IR_StackCollector) : Output[IR_Scope] = {
     // TODO: separate omp and potentiallyParallel
@@ -100,8 +99,6 @@ case class IR_WaLBerlaLoopOverBlocks(
       })
     }
 
-    import IR_WaLBerlaLoopOverBlocks.block
-
     // check if contained within a block loop (resolved or unresolved)
     val insideBlockLoop = collector.stack.exists {
       case _ : IR_LoopOverProcessLocalBlocks                                                       => true
@@ -109,50 +106,18 @@ case class IR_WaLBerlaLoopOverBlocks(
       case _                                                                                       => false
     }
 
-    // array of process-local blocks
-    val blockArray = IR_WaLBerlaLocalBlocks()
-
     var compiledBody = ListBuffer[IR_Statement]()
 
-    // setup loop body to support accesses to waLBerla data structures
-    if (!insideBlockLoop) {
-      // init block pointer in loop
-      compiledBody += IR_VariableDeclaration(block, IR_ArrayAccess(blockArray, defIt))
-
-      // get field data if necessary
-      if (setupWaLBerlaFieldPointers)
-        compiledBody ++= getWaLBerlaFieldData(fieldsAccessed : _*)
-
-      // check if there are block loop variables to be added (i.e. declared and set)
-      IR_WaLBerlaFindBlockLoopVariables.applyStandalone(IR_Scope(body))
-      for (blockVar <- IR_WaLBerlaFindBlockLoopVariables.blockLoopVariables.distinct.sorted)
-        compiledBody += blockVar.getDeclaration()
-    }
+    // setup loop body to access field data from waLBerla data structures
+    if (!insideBlockLoop)
+      compiledBody ++= getWaLBerlaFieldData(fieldsAccessed : _*)
 
     compiledBody ++= body
 
-    if (!insideBlockLoop) {
-      val upperBoundKnown = Knowledge.waLBerla_useGridPartFromExa
-      val upperBound : IR_Expression = if (upperBoundKnown)
-        Knowledge.domain_numFragmentsPerBlock
-      else
-        IR_Cast(IR_IntegerDatatype, IR_MemberFunctionCall(blockArray, "size"))
-
-      // wrap around explicit block loop, if not already done
-      val loop = IR_ForLoop(
-        IR_VariableDeclaration(defIt, 0),
-        IR_Lower(defIt, upperBound),
-        IR_PreIncrement(defIt),
-        compiledBody,
-        parallelization)
-
-      if (upperBoundKnown)
-        loop.annotate("numLoopIterations", Knowledge.domain_numFragmentsPerBlock)
-
-      IR_Scope(loop)
-    } else {
+    if (!insideBlockLoop)
+      IR_Scope(IR_WaLBerlaLoopOverLocalBlockArray(compiledBody, parallelization))
+    else
       IR_Scope(compiledBody)
-    }
   }
 }
 
@@ -162,6 +127,7 @@ object IR_WaLBerlaResolveLoopOverBlocks extends DefaultStrategy("Resolve waLBerl
   this.onBefore = () => this.resetCollectors()
 
   this += Transformation("Resolve", {
-    case loop : IR_WaLBerlaLoopOverBlocks => loop.expandSpecial(collector)
+    case loop : IR_WaLBerlaLoopOverLocalBlocks => loop.expandSpecial(collector)
+    case loop : IR_WaLBerlaLoopOverLocalBlockArray => loop.expandSpecial()
   })
 }

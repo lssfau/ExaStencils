@@ -8,7 +8,7 @@ import exastencils.base.l4.L4_Statement
 import exastencils.baseExt.l4.L4_LoopOverProcessLocalBlocks
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlocks
 
 case class L4_WaLBerlaLoopOverBlocks(
     var body : ListBuffer[L4_Statement],
@@ -27,6 +27,6 @@ case class L4_WaLBerlaLoopOverBlocks(
     parallelization.potentiallyParallel = true
     parallelization.reduction = reduction.map(_.progress)
 
-    IR_WaLBerlaLoopOverBlocks(body.map(_.progress), parallelization)
+    IR_WaLBerlaLoopOverLocalBlocks(body.map(_.progress), parallelization)
   }
 }

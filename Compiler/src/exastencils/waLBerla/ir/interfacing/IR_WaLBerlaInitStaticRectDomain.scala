@@ -41,9 +41,9 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
   val invalidIndex = -10000
 
   def blockForest = IR_WaLBerlaBlockForest()
-  def block = IR_WaLBerlaLoopOverBlocks.block
+  def block = IR_WaLBerlaLoopOverLocalBlocks.block
   def blockID = IR_WaLBerlaBlockID("blockID", block)
-  def defIt = IR_WaLBerlaLoopOverBlocks.defIt
+  def defIt = IR_WaLBerlaLoopOverLocalBlockArray.defIt
   def getBlockAABB = IR_WaLBerlaBlockAABB(block)
 
   // flags signaling potential neighbors
@@ -154,7 +154,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
         IR_MemberFunctionCallArrowWithDt(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "numProcesses", MPI_IV_MpiSize.datatype))
     }
 
-    init += IR_WaLBerlaLoopOverBlocks(fragStatements, IR_ParallelizationInfo(potentiallyParallel = true))
+    init += IR_WaLBerlaLoopOverLocalBlockArray(fragStatements, IR_ParallelizationInfo(potentiallyParallel = true))
 
     /* get local block list indices from remote neighbors via wb communication */
     if (Knowledge.mpi_enabled) {
@@ -186,7 +186,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
             stencilDir Neq IR_FunctionCall(s"$commStencil::end"),
             IR_PreIncrement(stencilDir),
             loopOverNeighborHood(IR_DerefAccess(stencilDir), fillSendBuffer))
-          communicate += IR_WaLBerlaLoopOverBlocks(IR_Scope(fillBufferForNeigh), IR_ParallelizationInfo(potentiallyParallel = true))
+          communicate += IR_WaLBerlaLoopOverLocalBlockArray(IR_Scope(fillBufferForNeigh), IR_ParallelizationInfo(potentiallyParallel = true))
       }
 
       // transmit list of comm participants and communicate
@@ -270,7 +270,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
         statements ++= loopOverNeighborHood(neigh.dir, bodyNeighborHoodLoop)
 
         // wrap in scope due to local variable declarations
-        connect += IR_WaLBerlaLoopOverBlocks(IR_Scope(statements), IR_ParallelizationInfo(potentiallyParallel = true))
+        connect += IR_WaLBerlaLoopOverLocalBlockArray(IR_Scope(statements), IR_ParallelizationInfo(potentiallyParallel = true))
       }
     }
 
