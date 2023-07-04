@@ -64,11 +64,11 @@ case class IR_WaLBerlaLoopOverBlocks(
       .groupBy(wbf => (wbf.name, wbf.fragIdx, wbf.level)).map(_._2.head) // distinctBy name, fragIdx and level
 
     // ensure consistency of data flow between wb and exa fields
-    if (!Knowledge.waLBerla_useGridFromExa) {
+    if (!Knowledge.waLBerla_useGridPartFromExa) {
       IR_CollectFieldAccesses.applyStandalone(body)
 
       if (IR_CollectFieldAccesses.fieldAccesses.nonEmpty)
-        Logger.error("Exchange between ExaStencils and waLBerla fields is currently only available when both grids are identical.")
+        Logger.error("Exchange between ExaStencils and waLBerla fields is currently only available when both grids are identical (i.e. waLBerla_useGridPartFromExa = true).")
     }
 
     // find out if block loop contains loop over dimensions and if it is executed (in parallel) on CPU/GPU
@@ -132,7 +132,7 @@ case class IR_WaLBerlaLoopOverBlocks(
     compiledBody ++= body
 
     if (!insideBlockLoop) {
-      val upperBoundKnown = Knowledge.waLBerla_useGridFromExa
+      val upperBoundKnown = Knowledge.waLBerla_useGridPartFromExa
       val upperBound : IR_Expression = if (upperBoundKnown)
         Knowledge.domain_numFragmentsPerBlock
       else
