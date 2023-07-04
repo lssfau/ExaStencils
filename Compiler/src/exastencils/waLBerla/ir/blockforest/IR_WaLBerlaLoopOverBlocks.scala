@@ -12,10 +12,12 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
+import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda.CUDA_PrepareHostCode.annotateBranch
 import exastencils.parallelization.api.cuda.CUDA_PrepareHostCode.getCondWrapperValue
 import exastencils.parallelization.ir._
 import exastencils.util.NoDuplicateWrapper
+import exastencils.util.ir.IR_CollectFieldAccesses
 import exastencils.util.ir.IR_StackCollector
 import exastencils.waLBerla.ir.field.IR_MultiDimWaLBerlaFieldAccess
 import exastencils.waLBerla.ir.field._
@@ -60,6 +62,14 @@ case class IR_WaLBerlaLoopOverBlocks(
     IR_WaLBerlaCollectAccessedFields.applyStandalone(body)
     fieldsAccessed ++= Duplicate(IR_WaLBerlaCollectAccessedFields.wbFieldAccesses)
       .groupBy(wbf => (wbf.name, wbf.fragIdx, wbf.level)).map(_._2.head) // distinctBy name, fragIdx and level
+
+    // ensure consistency of data flow between wb and exa fields
+    if (!Knowledge.waLBerla_useGridFromExa) {
+      IR_CollectFieldAccesses.applyStandalone(body)
+
+      if (IR_CollectFieldAccesses.fieldAccesses.nonEmpty)
+        Logger.error("Exchange between ExaStencils and waLBerla fields is currently only available when both grids are identical.")
+    }
 
     // find out if block loop contains loop over dimensions and if it is executed (in parallel) on CPU/GPU
     FindLoopOverDimensions.applyStandalone(IR_Scope(body))
