@@ -47,9 +47,6 @@ object IR_WaLBerlaReplaceFragmentIVs extends IR_WaLBerlaReplacementStrategy("Rep
     case _ @ IR_IV_FragmentPositionEnd(dim, _) if inWaLBerlaBlockLoop(collector)  => getBlockAABB.max(dim)
 
     /* conditions */
-    case _ @ IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(_, neighIdx : IR_IntegerConstant, _)), trueBody, falseBody) if inWaLBerlaBlockLoop(collector) =>
-      val neigh = DefaultNeighbors.neighbors(neighIdx.v.toInt)
-      IR_IfCondition(IR_WaLBerlaBlockForest().isAtDomainBorder(neigh.dir), trueBody, falseBody)
 
   }, recursive = false)
 }
