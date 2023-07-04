@@ -155,10 +155,6 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     else
       IR_Expand.doUntilDone()
 
-    // replace checks for domain boundaries with waLBerla equivalents
-    if (Knowledge.waLBerla_generateInterface && !Knowledge.waLBerla_useGridFromExa)
-      IR_WaLBerlaReplaceDomainBoundaryConditions.apply()
-
     if (Knowledge.experimental_compactBufferAllocation)
       IR_AdaptAllocateDataFunction.apply()
 
@@ -286,10 +282,6 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       IR_ExpandInOnePass.apply()
     else
       IR_Expand.doUntilDone()
-
-    // replace checks for domain boundaries with waLBerla equivalents
-    if (Knowledge.waLBerla_generateInterface && !Knowledge.waLBerla_useGridFromExa)
-      IR_WaLBerlaReplaceDomainBoundaryConditions.apply()
 
     // resolve newly added fragment/block loops
     IR_WaLBerlaReplaceFragmentLoops.apply()
