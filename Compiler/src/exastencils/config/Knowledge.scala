@@ -1000,7 +1000,6 @@ object Knowledge {
     Constraints.condError(waLBerla_useRefinement && waLBerla_useGridPartFromExa, "Flags 'waLBerla_useRefinement' and 'waLBerla_useGridFromExa' are mutually exclusive.")
     Constraints.condError(waLBerla_useRefinement && !waLBerla_generateCommSchemes, "waLBerla refinement works only with generated CPU comm schemes at the moment -> 'waLBerla_generateCommSchemes' must be true.")
     Constraints.condError(waLBerla_useRefinement && cuda_enabled, "waLBerla refinement works only for CPU codes at the moment.")
-    Constraints.condEnsureValue(waLBerla_cacheFieldPointers, false, waLBerla_useRefinement, "Cannot cache waLBerla field pointers with 'waLBerla_useRefinement' enabled yet.")
 
     Constraints.condEnsureValue(experimental_l4_resolveVirtualFields, false, !waLBerla_useGridPartFromExa && waLBerla_generateInterface, "Resolving virtual fields on L4 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
     Constraints.condEnsureValue(experimental_l3_resolveVirtualFields, false, !waLBerla_useGridPartFromExa && waLBerla_generateInterface, "Resolving virtual fields on L3 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
