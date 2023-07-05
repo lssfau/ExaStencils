@@ -13,7 +13,7 @@ import exastencils.waLBerla.ir.interfacing._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
 object IR_WaLBerlaInitFieldDataPtrs {
-  def initRoutine(onGPU : Boolean, wbf : IR_WaLBerlaField) : IR_ForLoop = {
+  def initRoutine(onGPU : Boolean, wbf : IR_WaLBerlaField) : IR_Statement = {
     val slotIt = IR_VariableAccess("slotIt", IR_IntegerDatatype)
     var defIt = IR_WaLBerlaLoopOverLocalBlocks.defIt
 
@@ -47,8 +47,12 @@ object IR_WaLBerlaInitFieldDataPtrs {
       new IR_MemberFunctionCallArrowWithDt(getField, "dataAt", newIndex.toExpressionIndex.indices.to[ListBuffer])
     }
 
-    IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
-      IR_Assignment(getFieldData, initVal))
+    val assign = IR_Assignment(getFieldData, initVal)
+
+    def wrapAroundSlotLoop(stmts : IR_Statement*) =
+      IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt), stmts.to[ListBuffer])
+
+    if (wbf.numSlots > 1) wrapAroundSlotLoop(assign) else assign
   }
 }
 
