@@ -137,7 +137,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
     fragStatements ++= setupFragmentPosBeginAndEnd()
 
     if (Knowledge.mpi_enabled) {
-      if (Knowledge.waLBerla_createCartComm) {
+      if (Knowledge.waLBerla_useGridPartFromExa && Knowledge.waLBerla_createCartComm) {
         init += IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "resetMPI")
         init += IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "createCartesianComm",
           ListBuffer[IR_Expression](
