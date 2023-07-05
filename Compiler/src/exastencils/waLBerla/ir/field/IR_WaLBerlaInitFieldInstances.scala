@@ -10,14 +10,18 @@ import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlockArray
 import exastencils.waLBerla.ir.interfacing._
 
 object IR_WaLBerlaInitFieldInstances {
-  def initRoutine(onGPU : Boolean, wbf : IR_WaLBerlaField) : IR_ForLoop = {
+  def initRoutine(onGPU : Boolean, wbf : IR_WaLBerlaField) : IR_Statement = {
     val slotIt = IR_VariableAccess("slotIt", IR_IntegerDatatype)
     var block = IR_WaLBerlaLoopOverLocalBlocks.block
     var fragIdx = IR_WaLBerlaLoopOverLocalBlocks.defIt
     val getField = IR_IV_WaLBerlaGetField(wbf, slotIt, onGPU, fragIdx)
 
-    IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
-      IR_Assignment(getField, block.getData(IR_WaLBerlaBlockDataID(wbf, slotIt, onGPU))))
+    val assign = IR_Assignment(getField, block.getData(IR_WaLBerlaBlockDataID(wbf, slotIt, onGPU)))
+
+    def wrapAroundSlotLoop(stmts : IR_Statement*) =
+      IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt), stmts.to[ListBuffer])
+
+    if (wbf.numSlots > 1) wrapAroundSlotLoop(assign) else assign
   }
 }
 
