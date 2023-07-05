@@ -55,6 +55,7 @@ abstract class IR_WaLBerlaInterfaceMember(
   def numLevels : Int = maxLevel - minLevel + 1
   def numNeighbors : Int = DefaultNeighbors.neighbors.size
 
+  def usesStdVectorForBlocks = canBePerBlock && hasMultipleBlocks && !numBlocksKnown
   def numBlocksKnown : Boolean = Knowledge.waLBerla_useGridPartFromExa
   def hasMultipleBlocks : Boolean = if (numBlocksKnown) numFragments > 1 else true
   def hasMultipleLevels : Boolean = numLevels > 1
@@ -64,24 +65,38 @@ abstract class IR_WaLBerlaInterfaceMember(
     var datatype : IR_Datatype = resolveDatatype()
 
     if (canBePerBlock && hasMultipleBlocks)
-      datatype = if (numBlocksKnown) IR_StdArrayDatatype(datatype, numFragments) else IR_StdVectorDatatype(datatype) // TODO: resize std::vec?
-    if (canBePerLevel && hasMultipleLevels)
-      datatype = IR_StdArrayDatatype(datatype, numLevels)
-    if (canBePerNeighbor && hasMultipleNeighbors)
-      datatype = IR_StdArrayDatatype(datatype, numNeighbors)
+      datatype = if (usesStdVectorForBlocks) IR_StdVectorDatatype(datatype) else IR_StdArrayDatatype(datatype, numFragments)
 
-    datatype
+    getWrappedDatatypePerBlock(datatype)
+  }
+
+  def getWrappedDatatypePerBlock(datatype: IR_Datatype) : IR_Datatype = {
+    var dt = datatype
+
+    if (canBePerLevel && hasMultipleLevels)
+      dt = IR_StdArrayDatatype(dt, numLevels)
+    if (canBePerNeighbor && hasMultipleNeighbors)
+      dt = IR_StdArrayDatatype(dt, numNeighbors)
+
+    dt
   }
 
   override def getDeclaration() : IR_VariableDeclaration =
     new IR_VariableDeclaration(getWrappedDatatype(), resolveName())
 
+  // TODO: interface instantiated after last expand pass -> manually expanded loops
   override def wrapInLoops(body : IR_Statement) : IR_Statement = {
     var wrappedBody = body
 
-    // TODO: loops currently manually expanded
     if (canBePerBlock && hasMultipleBlocks)
       wrappedBody = IR_WaLBerlaLoopOverLocalBlockArray(wrappedBody).expandSpecial().inner
+
+    wrapInLoopsPerBlock(wrappedBody)
+  }
+
+  def wrapInLoopsPerBlock(body : IR_Statement) = {
+    var wrappedBody = body
+
     if (canBePerLevel && hasMultipleLevels)
       wrappedBody = IR_LoopOverLevels(wrappedBody).expand().inner
     if (canBePerNeighbor && hasMultipleNeighbors)
@@ -95,24 +110,19 @@ abstract class IR_WaLBerlaInterfaceMember(
 
     // extend ctor: reserve memory for std::vector
     val k = resolveName()
-    if (ctors.contains(k)) {
-      if (canBePerBlock && hasMultipleBlocks && !numBlocksKnown) {
-        val origCtor = Duplicate(ctors(k))
+    if (usesStdVectorForBlocks) {
+      val acc = resolveAccessPerBlock(resolveMemberBaseAccess(), IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
+      val reserveCall = wrapInLoopsPerBlock(IR_MemberFunctionCall(acc, "reserve", IR_WaLBerlaLocalBlocks().size()))
 
-        // make temporary copy of IV without block dimensionality for memory reserving in ctor
-        val proxyWithoutBlockIdx = {
-          val p = Duplicate(this)
-          p.canBePerBlock = !p.canBePerBlock
-          p
-        }
-        val acc = proxyWithoutBlockIdx.resolveAccess(proxyWithoutBlockIdx.resolveMemberBaseAccess(),
-          IR_WaLBerlaLoopOverLocalBlockArray.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
-        ctors(k) = IR_Scope(proxyWithoutBlockIdx.wrapInLoops(IR_MemberFunctionCall(acc, "reserve", IR_WaLBerlaLocalBlocks().size())), origCtor)
-      }
+      // adapt ctor
+      if (getCtor().isDefined && ctors.contains(k))
+        ctors(k) = IR_Scope(reserveCall, ctors(k))
+      else
+        ctors(k) = reserveCall
     }
   }
 
-  def resolveAccess(baseAccess : IR_Expression, block : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
+  def resolveAccessPerBlock(baseAccess : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
     var access = baseAccess
 
     // reverse compared to datatype wrapping, since we need to unwrap it "from outer to inner"
@@ -126,6 +136,13 @@ abstract class IR_WaLBerlaInterfaceMember(
         }
       access = IR_ArrayAccess(access, simplifiedLevel)
     }
+
+    access
+  }
+
+  def resolveAccess(baseAccess : IR_Expression, block : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
+    var access = resolveAccessPerBlock(baseAccess, level, neigh)
+
     if (canBePerBlock && hasMultipleBlocks)
       access = IR_ArrayAccess(access, block)
 
