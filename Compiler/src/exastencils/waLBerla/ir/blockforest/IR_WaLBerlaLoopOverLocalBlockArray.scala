@@ -34,7 +34,7 @@ case class IR_WaLBerlaLoopOverLocalBlockArray(
     val upperBound : IR_Expression = if (upperBoundKnown)
       Knowledge.domain_numFragmentsPerBlock
     else
-      IR_Cast(IR_IntegerDatatype, IR_MemberFunctionCall(blockArray, "size"))
+      IR_Cast(IR_IntegerDatatype, blockArray.size())
 
     /* assemble loop that facilitates access to wb data structures */
     var compiledBody = ListBuffer[IR_Statement]()
