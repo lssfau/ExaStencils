@@ -52,7 +52,12 @@ bench_gen:2D_FD_OptFlow:
 
 # 5-pt stencil
 bench_pipe:5pt_Jac_2D:
-    extends: .pipe_bench_job_template
+    stage: bench_pipe
+    trigger:
+        include:
+            artifact: Benchmark/5pt_Jac_2D-pipe.yml
+            job: bench_gen:5pt_Jac_2D
+        strategy: depend
     variables:
         EXA_PROBLEM_NAME: "5pt_Jac_2D"
         EXA_PROBLEM_PATH: "FivePointStencil"
@@ -72,7 +77,12 @@ bench_pipe:5pt_Jac_2D_CUDA:
 # 3D FD Poisson
 
 bench_pipe:3D_FD_Poisson:
-    extends: .pipe_bench_job_template
+    stage: bench_pipe
+    trigger:
+        include:
+            artifact: Benchmark/3D_FD_Poisson-pipe.yml
+            job: bench_gen:3D_FD_Poisson
+        strategy: depend
     variables:
         EXA_PROBLEM_NAME: "3D_FD_Poisson"
         EXA_PROBLEM_PATH: "Poisson3D"
@@ -93,7 +103,12 @@ bench_pipe:3D_FD_Poisson_CUDA:
 # 2D FD OptFlow
 
 bench_pipe:2D_FD_OptFlow:
-    extends: .pipe_bench_job_template
+    stage: bench_pipe
+    trigger:
+        include:
+            artifact: Benchmark/2D_FD_OptFlow-pipe.yml
+            job: bench_gen:2D_FD_OptFlow
+        strategy: depend
     variables:
         EXA_PROBLEM_NAME: "2D_FD_OptFlow"
         EXA_PROBLEM_PATH: "OptFlow2D"

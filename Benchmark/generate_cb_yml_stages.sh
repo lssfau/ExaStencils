@@ -24,7 +24,11 @@ echo
 
 echo -e "bench_pipe:$PROBLEM_NAME:"
 echo -e "    stage: bench_pipe"
-echo -e "    extends: .pipe_bench_job_template"
+echo -e "    trigger:"
+echo -e "        include:"
+echo -e "            artifact: Benchmark/$PROBLEM_NAME-pipe.yml"
+echo -e "            job: bench_gen:$PROBLEM_NAME"
+echo -e "        strategy: depend"
 echo -e "    variables:"
 echo -e "        EXA_PROBLEM_NAME: \"$PROBLEM_NAME\""
 echo -e "        EXA_PROBLEM_PATH: \"$PROBLEM_PATH\""

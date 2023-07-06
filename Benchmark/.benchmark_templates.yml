@@ -162,18 +162,6 @@
         OUTPUT_PATH: "output"
         PARENT_PIPELINE_ID: $CI_PIPELINE_ID
 
-.pipe_bench_job_template:
-    stage: bench_pipe
-    trigger:
-        include:
-            artifact: Benchmark/$EXA_PROBLEM_NAME-pipe.yml
-            job: bench_gen:$EXA_PROBLEM_NAME
-        strategy: depend
-    variables:
-        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
-        EXA_PROBLEM_NAME: "TO_BE_REPLACED"
-        EXA_PROBLEM_PATH: "TO_BE_REPLACED"
-
 .bench_pipe_template:
     tags:
         - testcluster
