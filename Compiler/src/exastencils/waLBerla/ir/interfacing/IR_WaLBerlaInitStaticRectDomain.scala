@@ -37,9 +37,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
   val domainIdx = domain.index
   val globalSize = domain.asInstanceOf[IR_DomainFromAABB].aabb
 
-  def fragWidth(dim : Int) = globalSize.width(dim) / Knowledge.domain_rect_numFragsTotalAsVec(dim)
-
-  // fragment info
+  // block info
   val invalidIndex = -10000
 
   def blockForest = IR_WaLBerlaBlockForest()
@@ -47,6 +45,11 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
   def blockID = IR_WaLBerlaBlockID("blockID", block)
   def defIt = IR_WaLBerlaLoopOverBlocks.defIt
   def getBlockAABB = IR_WaLBerlaBlockAABB(block)
+
+  // flags signaling potential neighbors
+  def canHaveLocalNeighs = !Knowledge.waLBerla_useGridPartFromExa || Knowledge.domain_canHaveLocalNeighs
+  def canHaveRemoteNeighs = !Knowledge.waLBerla_useGridPartFromExa || Knowledge.domain_canHaveRemoteNeighs
+  def canHavePeriodicity = !Knowledge.waLBerla_useGridPartFromExa || Knowledge.domain_rect_hasPeriodicity
 
   // wb block info
   def wbNeighDir(neighDir : Array[Int]) = IR_WaLBerlaDirection.getDirIndexFromArray(neighDir)
@@ -81,9 +84,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
 
   // setup functions
   def setupFragmentPosition() = {
-    Knowledge.dimensions.map(dim =>
-      IR_Assignment(IR_IV_FragmentPosition(dim),
-        getBlockAABB.center(dim)))
+    Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPosition(dim), getBlockAABB.center(dim)))
   }
   def setupFragmentIndex() = {
     Logger.warning("IR_IV_FragmentIndex currently not properly set up in waLBerla coupling.")
@@ -97,12 +98,8 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
     IR_Assignment(IR_IV_CommunicationId(defIt), defIt)
   }
   def setupFragmentPosBeginAndEnd() = {
-    val begin = Knowledge.dimensions.map(dim =>
-      IR_Assignment(IR_IV_FragmentPositionBegin(dim),
-        getBlockAABB.min(dim)))
-    val end = Knowledge.dimensions.map(dim =>
-      IR_Assignment(IR_IV_FragmentPositionEnd(dim),
-        getBlockAABB.max(dim)))
+    val begin = Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPositionBegin(dim), getBlockAABB.min(dim)))
+    val end = Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPositionEnd(dim), getBlockAABB.max(dim)))
     begin ++ end
   }
 
@@ -169,7 +166,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
       communicate += IR_VariableDeclaration(ranksToComm)
 
       // pack map entries (i.e. BlockID and local block list index) into buffer
-      if (Knowledge.domain_canHaveLocalNeighs || Knowledge.domain_canHaveRemoteNeighs || Knowledge.domain_rect_hasPeriodicity) {
+      if (canHaveLocalNeighs || canHaveRemoteNeighs || canHavePeriodicity) {
           val packBufferStream = IR_VariableAccess("packBufferStream", IR_SpecialDatatype("auto &"))
           val commStencil = Knowledge.dimensionality match {
             case 3 => "stencil::D3Q6"
@@ -223,7 +220,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
     // TODO: masked blocks (or fragments)
     connect += IR_Assignment(IR_IV_IsValidForDomain(domainIdx), IR_ConnectFragments().isPointInsideDomain(IR_IV_FragmentPosition(_), domain))
 
-    if (Knowledge.domain_canHaveLocalNeighs || Knowledge.domain_canHaveRemoteNeighs || Knowledge.domain_rect_hasPeriodicity) {
+    if (canHaveLocalNeighs || canHaveRemoteNeighs || canHavePeriodicity) {
       for (neigh <- neighbors) {
         var statements = ListBuffer[IR_Statement]()
 
@@ -253,7 +250,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
 
         // assemble loop over neighbors and connect frags
         var bodyNeighborHoodLoop = ListBuffer[IR_Statement]()
-        if (Knowledge.domain_canHaveRemoteNeighs || Knowledge.domain_canHaveLocalNeighs) {
+        if (canHaveRemoteNeighs || canHaveLocalNeighs) {
           // get neighbor block id
           bodyNeighborHoodLoop += IR_VariableDeclaration(wbNeighborBlockId, block.getNeighborId(wbNeighborHoodSectionIdx, wbNeighborIdx))
           // find local neighbor index in block vector
@@ -261,13 +258,13 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
           bodyNeighborHoodLoop += IR_VariableDeclaration(wbRemoteNeighborBlockIdx, findRemoteNeighborBlockIndex())
 
           // connect local/remote fragments
-          if (Knowledge.domain_canHaveRemoteNeighs && Knowledge.domain_canHaveLocalNeighs)
+          if (canHaveRemoteNeighs && canHaveLocalNeighs)
             bodyNeighborHoodLoop ++= ListBuffer[IR_Statement](
               IR_IfCondition(hasLocalNeighbor(), localConnect(),
               IR_IfCondition(hasRemoteNeighbor(), remoteConnect())))
-          else if (Knowledge.domain_canHaveRemoteNeighs)
+          else if (canHaveRemoteNeighs)
             bodyNeighborHoodLoop += IR_IfCondition(hasRemoteNeighbor(), remoteConnect())
-          else if (Knowledge.domain_canHaveLocalNeighs)
+          else if (canHaveLocalNeighs)
             bodyNeighborHoodLoop += IR_IfCondition(hasLocalNeighbor(), localConnect())
         }
         statements ++= loopOverNeighborHood(neigh.dir, bodyNeighborHoodLoop)
