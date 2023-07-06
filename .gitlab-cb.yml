@@ -1,8 +1,4 @@
-variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-
 stages:
-    - build
     - bench_gen
     - bench_pipe
 
