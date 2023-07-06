@@ -55,8 +55,8 @@ bench_pipe:5pt_Jac_2D:
     stage: bench_pipe
     trigger:
         include:
-            artifact: Benchmark/5pt_Jac_2D-pipe.yml
-            job: bench_gen:5pt_Jac_2D
+            - artifact: Benchmark/5pt_Jac_2D-pipe.yml
+              job: bench_gen:5pt_Jac_2D
         strategy: depend
     variables:
         EXA_PROBLEM_NAME: "5pt_Jac_2D"
@@ -80,8 +80,8 @@ bench_pipe:3D_FD_Poisson:
     stage: bench_pipe
     trigger:
         include:
-            artifact: Benchmark/3D_FD_Poisson-pipe.yml
-            job: bench_gen:3D_FD_Poisson
+            - artifact: Benchmark/3D_FD_Poisson-pipe.yml
+              job: bench_gen:3D_FD_Poisson
         strategy: depend
     variables:
         EXA_PROBLEM_NAME: "3D_FD_Poisson"
@@ -106,8 +106,8 @@ bench_pipe:2D_FD_OptFlow:
     stage: bench_pipe
     trigger:
         include:
-            artifact: Benchmark/2D_FD_OptFlow-pipe.yml
-            job: bench_gen:2D_FD_OptFlow
+            - artifact: Benchmark/2D_FD_OptFlow-pipe.yml
+              job: bench_gen:2D_FD_OptFlow
         strategy: depend
     variables:
         EXA_PROBLEM_NAME: "2D_FD_OptFlow"
