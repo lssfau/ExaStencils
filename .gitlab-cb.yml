@@ -1,6 +1,5 @@
 variables:
     GIT_STRATEGY: clone
-    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_CONCURRENT_ID/$CI_PROJECT_NAME
     GIT_SUBMODULE_STRATEGY: recursive
 
 stages:
