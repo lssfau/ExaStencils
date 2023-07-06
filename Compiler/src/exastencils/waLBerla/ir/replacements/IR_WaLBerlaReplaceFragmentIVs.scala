@@ -16,24 +16,18 @@ object IR_WaLBerlaReplaceFragmentIVs extends IR_WaLBerlaReplacementStrategy("Rep
 
     /* assignments */
 
-    // fragment positions
-    case assign @ IR_Assignment(fragPos, _, "=") if inWaLBerlaBlockLoop(collector) =>
-      fragPos match {
+    case assign @ IR_Assignment(fragIV, _, "=") if inWaLBerlaBlockLoop(collector) =>
+      fragIV match {
+        // fragment positions
         case _ @ IR_IV_FragmentPosition(dim, _)      => assign.src = getBlockAABB.center(dim)
         case _ @ IR_IV_FragmentPositionBegin(dim, _) => assign.src = getBlockAABB.min(dim)
         case _ @ IR_IV_FragmentPositionEnd(dim, _)   => assign.src = getBlockAABB.max(dim)
-        case _                                       =>
-      }
-      assign
-
-
-    // fragment connectivity
-    case assign @ IR_Assignment(fragCon, _, "=") if inWaLBerlaBlockLoop(collector) =>
-      fragCon match {
-        case _ @ IR_IV_NeighborIsValid(_, neighIdx, fragmentIdx)     => assign.src = IR_WaLBerlaNeighborIsValid(neighIdx, fragmentIdx)
-        case _ @ IR_IV_NeighborIsRemote(_, neighIdx, fragmentIdx)    => assign.src = IR_WaLBerlaNeighborIsRemote(neighIdx, fragmentIdx)
-        case _ @ IR_IV_NeighborFragmentIdx(_, neighIdx, fragmentIdx) => assign.src = IR_WaLBerlaNeighborFragmentIdx(neighIdx, fragmentIdx)
-        case _ @ IR_IV_NeighborRemoteRank(_, neighIdx, fragmentIdx)  => assign.src = IR_WaLBerlaNeighborRemoteRank(neighIdx, fragmentIdx)
+        // fragment connectivity
+        case _ @ IR_IV_NeighborIsValid(_, neighIdx, fragmentIdx)     => assign.dest = IR_WaLBerlaNeighborIsValid(neighIdx, fragmentIdx)
+        case _ @ IR_IV_NeighborIsRemote(_, neighIdx, fragmentIdx)    => assign.dest = IR_WaLBerlaNeighborIsRemote(neighIdx, fragmentIdx)
+        case _ @ IR_IV_NeighborFragmentIdx(_, neighIdx, fragmentIdx) => assign.dest = IR_WaLBerlaNeighborFragmentIdx(neighIdx, fragmentIdx)
+        case _ @ IR_IV_NeighborRemoteRank(_, neighIdx, fragmentIdx)  => assign.dest = IR_WaLBerlaNeighborRemoteRank(neighIdx, fragmentIdx)
+        case _                                                       =>
       }
       assign
 
