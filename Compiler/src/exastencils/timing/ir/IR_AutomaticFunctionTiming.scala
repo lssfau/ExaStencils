@@ -19,6 +19,7 @@ object IR_AutomaticFunctionTimingCategory extends Enumeration {
       category match {
         case COMM    => Knowledge.timer_automaticCommTiming
         case APPLYBC => Knowledge.timer_automaticBCsTiming
+        case IO      => Knowledge.timer_automaticIOTiming
         case _       => false
       }
     } else {

@@ -304,6 +304,7 @@ object Knowledge {
   var timer_automaticFunctionTiming : Boolean = false
   var timer_automaticBCsTiming : Boolean = false
   var timer_automaticCommTiming : Boolean = false
+  var timer_automaticIOTiming : Boolean = false
 
   // library/tool to use for benchmarking
   // may be one of the following: 'None', 'likwid'
@@ -923,6 +924,7 @@ object Knowledge {
 
     Constraints.condEnsureValue(timer_automaticFunctionTiming, true, timer_automaticBCsTiming, "Timer flag 'timer_automaticFunctionTiming' required for 'timer_automaticBCsTiming = true'")
     Constraints.condEnsureValue(timer_automaticFunctionTiming, true, timer_automaticCommTiming, "Timer flag 'timer_automaticFunctionTiming' required for 'timer_automaticCommTiming = true'")
+    Constraints.condEnsureValue(timer_automaticFunctionTiming, true, timer_automaticIOTiming, "Timer flag 'timer_automaticFunctionTiming' required for 'timer_automaticIOTiming = true'")
 
     // benchmarking and performance estimation
 
