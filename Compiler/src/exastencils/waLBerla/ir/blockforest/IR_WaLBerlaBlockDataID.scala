@@ -33,14 +33,15 @@ case class IR_WaLBerlaBlockDataID(
   // IR_WaLBerlaAdd(GPU)FieldToStorage initializes all slots and levels
   override def getCtor() : Option[IR_Statement] = Some(
     if (onGPU)
-      GPU_WaLBerlaAddGPUFieldToStorage(wbField).expandSpecial()
+      GPU_WaLBerlaAddGPUFieldToStorage(leveledFields : _*).expandSpecial()
     else
-      IR_WaLBerlaAddFieldToStorage(wbField).expandSpecial()
+      IR_WaLBerlaAddFieldToStorage(leveledFields : _*).expandSpecial()
   )
 
+  private val leveledFields = IR_WaLBerlaFieldCollection.getAllByIdentifier(wbField.name, suppressError = true)
   var level : IR_Expression = wbField.level
   val numSlots : Int = wbField.numSlots
-  val levels : ListBuffer[Int] = IR_WaLBerlaFieldCollection.getAllByIdentifier(wbField.name, suppressError = true).map(_.level)
+  val levels : ListBuffer[Int] = leveledFields.map(_.level)
 
   override def minLevel : Int = levels.min
   override def maxLevel : Int = levels.max
