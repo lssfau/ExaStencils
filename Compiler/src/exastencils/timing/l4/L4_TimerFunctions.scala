@@ -41,6 +41,7 @@ object L4_TimerFunctions {
     "getLastTime" -> L4_DoubleDatatype,
     "printAllTimers" -> L4_UnitDatatype,
     "printAllTimersToFile" -> L4_UnitDatatype,
+    "printAllAutomaticFunctionTimers" -> L4_UnitDatatype,
     "reduceTimers" -> L4_UnitDatatype
   )
 
