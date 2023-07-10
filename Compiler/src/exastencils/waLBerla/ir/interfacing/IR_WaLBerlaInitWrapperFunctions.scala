@@ -16,11 +16,6 @@ object IR_WaLBerlaInitWrapperFunctions {
   for (field <- IR_WaLBerlaFieldCollection.objects.groupBy(_.name)) {
     val leveledFields = field._2.groupBy(_.level).map(_._2.head).to[ListBuffer]
 
-    // add fields to block storage
-    functions += IR_WaLBerlaAddFieldToStorage(leveledFields : _*)
-    if (Knowledge.cuda_enabled)
-      functions += GPU_WaLBerlaAddGPUFieldToStorage(leveledFields : _*)
-
     if (Knowledge.waLBerla_cacheFieldPointers) {
       // init field instance pointers
       functions += IR_WaLBerlaInitFieldInstances(onGPU = false, leveledFields : _*)
