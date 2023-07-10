@@ -27,6 +27,7 @@ import exastencils.communication.NeighborInfo
 import exastencils.core.Duplicate
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.grid.ir._
+import exastencils.timing.ir.IR_AutomaticFunctionTimingCategory.Access
 import exastencils.timing.ir._
 
 /// IR_ApplyBCFunction
@@ -37,8 +38,9 @@ case class IR_ApplyBCFunction(
     var slot : IR_Expression,
     var fragIdx : IR_Expression,
     var neighbors : ListBuffer[NeighborInfo],
-    var insideFragLoop : Boolean,
-    var timer : Option[IR_IV_Timer]) extends IR_FutureLeveledFunction {
+    var insideFragLoop : Boolean) extends IR_FutureLeveledFunctionWithTiming {
+
+  override def automaticTimingCategory : Access = IR_AutomaticFunctionTimingCategory.APPLYBC
 
   override def level = field.level
 
@@ -97,13 +99,7 @@ case class IR_ApplyBCFunction(
     if (insideFragLoop)
       fctArgs += IR_FunctionArgument(IR_LoopOverFragments.defIt)
 
-    var body = compileBody
-    if (timer.isDefined) {
-      body.prepend(IR_FunctionCall(IR_StartTimer().name, timer.get))
-      body.append(IR_FunctionCall(IR_StopTimer().name, timer.get))
-    }
-
     // emit compiled function
-    IR_LeveledFunction(name, level, IR_UnitDatatype, fctArgs, body)
+    IR_LeveledFunction(name, level, IR_UnitDatatype, fctArgs, compileBody)
   }
 }

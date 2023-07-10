@@ -10,6 +10,8 @@ import exastencils.config.Knowledge
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
+import exastencils.timing.ir.IR_AutomaticFunctionTimingCategory
+import exastencils.timing.ir.IR_IV_Timer
 import exastencils.timing.ir.IR_StartTimer
 import exastencils.timing.ir.IR_StopTimer
 import exastencils.waLBerla.ir.communication.IR_WaLBerlaCPUCommScheme
@@ -66,9 +68,14 @@ object IR_WaLBerlaReplaceCommunication extends DefaultStrategy("Communication ha
         body += commSchemeCPU.communicate()
       }
 
-      if (comm.timer.isDefined) {
-        body.prepend(IR_FunctionCall(IR_StartTimer().name, comm.timer.get))
-        body.append(IR_FunctionCall(IR_StopTimer().name, comm.timer.get))
+      // add automatic timers for waLBerla comm
+      val timingCategory = IR_AutomaticFunctionTimingCategory.COMM
+      if (IR_AutomaticFunctionTimingCategory.categoryEnabled(timingCategory)) {
+        val timer = IR_IV_Timer(s"autoTime_${ timingCategory.toString }_${comm.name}")
+        timer.annotate(IR_AutomaticFunctionTimingCategory.ANNOT, timingCategory)
+
+        body.prepend(IR_FunctionCall(IR_StartTimer().name, timer))
+        body.append(IR_FunctionCall(IR_StopTimer().name, timer))
       }
 
       IR_WaLBerlaCollection.get.functions += IR_WaLBerlaLeveledFunction(comm.name, comm.level, genFct.datatype, genFct.parameters, body)

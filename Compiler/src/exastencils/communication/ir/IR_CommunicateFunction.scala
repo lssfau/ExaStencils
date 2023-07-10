@@ -46,8 +46,9 @@ case class IR_CommunicateFunction(
     var ghostLayerExch : Boolean, var ghostLayerBegin : IR_ExpressionIndex, var ghostLayerEnd : IR_ExpressionIndex,
     var insideFragLoop : Boolean,
     var condition : Option[IR_Expression],
-    var direction : String,
-    var timer : Option[IR_IV_Timer] = None) extends IR_FutureLeveledFunction {
+    var direction : String) extends IR_FutureLeveledFunctionWithTiming {
+
+  override def automaticTimingCategory = IR_AutomaticFunctionTimingCategory.COMM
 
   override def prettyprint_decl() = prettyprint
 
@@ -616,12 +617,6 @@ case class IR_CommunicateFunction(
     if (insideFragLoop)
       fctArgs += IR_FunctionArgument(IR_LoopOverFragments.defIt)
 
-    var body = compileBody()
-    if (timer.isDefined) {
-      body.prepend(IR_FunctionCall(IR_StartTimer().name, timer.get))
-      body.append(IR_FunctionCall(IR_StopTimer().name, timer.get))
-    }
-
-    IR_LeveledFunction(name, level, IR_UnitDatatype, fctArgs, body)
+    IR_LeveledFunction(name, level, IR_UnitDatatype, fctArgs, compileBody())
   }
 }

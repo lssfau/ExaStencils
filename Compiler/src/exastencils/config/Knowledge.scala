@@ -294,14 +294,17 @@ object Knowledge {
   // synchronizes all mpi ranks when a (potentially nested) timer is started for the first time or stopped for the last time
   var timer_syncMpi : Boolean = false
 
-  // [true|false]: measure time spent in all communication function and print summary in main application
-  var timer_measureCommunicationTime : Boolean = false
-
   var timer_printTimersToFileForEachRank : Boolean = false
   // prints separate timer values for each rank -> requires some additional memory for the gather op
 
   // add benchmarking markers for each timer
   var timer_addBenchmarkMarkers : Boolean = false
+
+  // [true|false]: enables automated timing of specific function categories
+  var timer_automaticFunctionTiming : Boolean = false
+  var timer_automaticBCsTiming : Boolean = false
+  var timer_automaticCommTiming : Boolean = false
+  var timer_automaticIOTiming : Boolean = false
 
   // library/tool to use for benchmarking
   // may be one of the following: 'None', 'likwid'
@@ -958,7 +961,11 @@ object Knowledge {
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == Platform.targetCompiler, "IBM XL does currently not support std::chrono")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == Platform.targetCompiler, "IBM BG does currently not support std::chrono")
 
-    Constraints.condError(timer_syncMpi && timer_measureCommunicationTime, "Flags timer_syncMpi and timer_measureCommunicationTime are mutually exclusive")
+    Constraints.condEnsureValue(timer_automaticFunctionTiming, true, timer_automaticBCsTiming, "Timer flag 'timer_automaticFunctionTiming' required for 'timer_automaticBCsTiming = true'")
+    Constraints.condEnsureValue(timer_automaticFunctionTiming, true, timer_automaticCommTiming, "Timer flag 'timer_automaticFunctionTiming' required for 'timer_automaticCommTiming = true'")
+    Constraints.condEnsureValue(timer_automaticFunctionTiming, true, timer_automaticIOTiming, "Timer flag 'timer_automaticFunctionTiming' required for 'timer_automaticIOTiming = true'")
+
+    Constraints.condError(timer_syncMpi && timer_automaticCommTiming, "Flags timer_syncMpi and timer_automaticCommTiming are mutually exclusive")
 
     // benchmarking and performance estimation
 

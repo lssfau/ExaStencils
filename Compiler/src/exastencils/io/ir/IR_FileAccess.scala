@@ -14,6 +14,7 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.StatementList
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
+import exastencils.timing.ir._
 
 // IR_FileAccess
 // Used to read/write field data from/to files
@@ -244,6 +245,16 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
 
     // reset lookup tables
     IR_DataBuffer.resetDimensionalityMap()
+
+    // add automatic timers for I/O
+    val timingCategory = IR_AutomaticFunctionTimingCategory.IO
+    if (IR_AutomaticFunctionTimingCategory.categoryEnabled(timingCategory)) {
+      val timer = IR_IV_Timer(s"autoTime_${ timingCategory.toString }_${interfaceName}_${if (writeAccess) "w" else "r"}")
+      timer.annotate(IR_AutomaticFunctionTimingCategory.ANNOT, timingCategory)
+
+      stmts.prepend(IR_FunctionCall(IR_StartTimer().name, timer))
+      stmts.append(IR_FunctionCall(IR_StopTimer().name, timer))
+    }
 
     stmts
   }
