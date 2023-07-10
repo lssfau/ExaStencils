@@ -4,48 +4,23 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.logger.Logger
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
-import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaCollection
-import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaFuturePlainFunction
-import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaPlainFunction
 
-case class GPU_WaLBerlaAddGPUFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR_WaLBerlaFuturePlainFunction {
+case class GPU_WaLBerlaAddGPUFieldToStorage(wbField : IR_WaLBerlaField) extends IR_Statement with IR_SpecialExpandable {
 
   def blockForest = IR_WaLBerlaBlockForest()
-  def blocks = blockForest.ctorParameter
 
-  if (!wbFields.forall(_.name == wbFields.head.name))
-    Logger.error("\"IR_WaLBerlaAddGPUFieldToStorage\" used incorrectly. Assumes fields with identical name but potentially different slots and levels.")
-
-  override def isInterfaceFunction : Boolean = false
-  override def inlineIncludeImplementation : Boolean = false
-
-  override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
-
-    var cpuBlockDataIDParam = IR_WaLBerlaBlockDataID(wbFields.head, slot = 0, onGPU = false)
-
-    var params : ListBuffer[IR_FunctionArgument] = ListBuffer()
-    params += blocks
-    params += cpuBlockDataIDParam.ctorParameter
-
-    val init = wbFields.sortBy(_.level).flatMap(leveledField => {
-      (0 until leveledField.numSlots).map(slot =>
-        leveledField.addToStorageGPU(blocks.access, slot, IR_WaLBerlaBlockDataID(leveledField, slot, onGPU = false)))
-    })
+  def expandSpecial() = {
+    def refArrayToInit(slot : IR_Expression) = IR_WaLBerlaBlockDataID(wbField, slot, onGPU = true)
 
     var body : ListBuffer[IR_Statement] = ListBuffer()
+    (0 until wbField.numSlots).map(slot =>
+      body += IR_Assignment(
+        refArrayToInit(slot),
+        wbField.addToStorageGPU(blockForest.resolveMemberBaseAccess(), slot, IR_WaLBerlaBlockDataID(wbField, slot, onGPU = false))))
 
-    body += IR_Return(IR_InitializerList(init : _*))
-
-    val returnType = cpuBlockDataIDParam.getWrappedDatatype()
-
-    IR_WaLBerlaPlainFunction(name, returnType, params, body)
+    IR_Scope(body)
   }
-
-  override def prettyprint_decl() : String = prettyprint()
-  override def name : String = s"addToStorage_${ wbFields.head.name }_GPU"
-  override def name_=(newName : String) : Unit = name = newName
 }

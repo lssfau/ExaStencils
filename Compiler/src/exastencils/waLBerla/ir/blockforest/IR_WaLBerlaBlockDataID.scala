@@ -30,10 +30,13 @@ case class IR_WaLBerlaBlockDataID(
     dt
   }
 
-  // IR_WaLBerlaAdd(GPU)FieldToStorage initializes all slots and levels -> use base access
-  override def getCtor() : Option[IR_Statement] = {
-    Some(IR_Assignment(resolveMemberBaseAccess(), resolveDefValue().get))
-  }
+  // IR_WaLBerlaAdd(GPU)FieldToStorage initializes all slots and levels
+  override def getCtor() : Option[IR_Statement] = Some(
+    if (onGPU)
+      GPU_WaLBerlaAddGPUFieldToStorage(wbField).expandSpecial()
+    else
+      IR_WaLBerlaAddFieldToStorage(wbField).expandSpecial()
+  )
 
   var level : IR_Expression = wbField.level
   val numSlots : Int = wbField.numSlots
@@ -59,11 +62,5 @@ case class IR_WaLBerlaBlockDataID(
 
   override def isPrivate : Boolean = true
 
-  override def resolveDefValue() = Some(
-    if (onGPU) {
-      val cpuID = IR_WaLBerlaBlockDataID(wbField, slot, onGPU = false)
-      IR_FunctionCall(GPU_WaLBerlaAddGPUFieldToStorage(wbField).name, blockforest, cpuID.resolveMemberBaseAccess())
-    } else {
-      IR_FunctionCall(IR_WaLBerlaAddFieldToStorage(wbField).name, blockforest, 0.0)
-    })
+  override def resolveDefValue() = None
 }
