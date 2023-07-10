@@ -27,6 +27,7 @@ import exastencils.communication.NeighborInfo
 import exastencils.core.Duplicate
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.grid.ir._
+import exastencils.timing.ir.IR_AutomaticFunctionTimingCategory.Access
 import exastencils.timing.ir._
 
 /// IR_ApplyBCFunction
