@@ -29,7 +29,7 @@ import exastencils.core.Duplicate
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_Field
 import exastencils.logger.Logger
-import exastencils.timing.ir.IR_AutomaticFunctionTimingCategory
+import exastencils.timing.ir.IR_AutomaticTimingCategory
 
 /// IR_CommunicateFunction
 
@@ -48,7 +48,7 @@ case class IR_CommunicateFunction(
     var condition : Option[IR_Expression],
     var direction : String) extends IR_FutureLeveledFunctionWithTiming {
 
-  override def automaticTimingCategory = IR_AutomaticFunctionTimingCategory.COMM
+  override def automaticTimingCategory = IR_AutomaticTimingCategory.COMM
 
   override def prettyprint_decl() = prettyprint
 

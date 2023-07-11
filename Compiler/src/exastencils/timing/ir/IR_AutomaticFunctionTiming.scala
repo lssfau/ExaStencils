@@ -9,7 +9,7 @@ import exastencils.core.StateManager
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_RawPrint
 
-object IR_AutomaticFunctionTimingCategory extends Enumeration {
+object IR_AutomaticTimingCategory extends Enumeration {
   type Access = Value
   final val ANNOT : String = "TimingCategory"
   final val COMM, APPLYBC, IO = Value
@@ -31,7 +31,7 @@ object IR_AutomaticFunctionTimingCategory extends Enumeration {
 }
 
 case class IR_PrintAllAutomaticFunctionTimers() extends IR_TimerFunction {
-  import IR_AutomaticFunctionTimingCategory._
+  import IR_AutomaticTimingCategory._
 
   override var name = "printAllAutomaticFunctionTimers"
   override def prettyprint_decl() : String = prettyprint
