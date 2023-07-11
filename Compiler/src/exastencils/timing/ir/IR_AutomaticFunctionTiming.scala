@@ -84,9 +84,11 @@ case class IR_PrintAllAutomaticFunctionTimers() extends IR_TimerFunction {
     val timers = IR_CollectTimers.timers
 
     val body = ListBuffer[IR_Statement]()
-    body ++= accumulators.map{ case (_, vAcc) => IR_VariableDeclaration(vAcc) }
-    timers.values.foreach { case timer : IR_IV_AutomaticTimer =>
-      body += genPrintTimerCode(timer)
+    body ++= accumulators.map { case (_, vAcc) => IR_VariableDeclaration(vAcc) }
+    timers.values.foreach {
+      case timer : IR_IV_AutomaticTimer =>
+        body += genPrintTimerCode(timer)
+      case _                            =>
     }
 
     // print out mean total timers for automatic function timers
