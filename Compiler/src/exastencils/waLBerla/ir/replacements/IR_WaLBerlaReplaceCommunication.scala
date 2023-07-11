@@ -10,10 +10,7 @@ import exastencils.config.Knowledge
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
-import exastencils.timing.ir.IR_AutomaticFunctionTimingCategory
-import exastencils.timing.ir.IR_IV_Timer
-import exastencils.timing.ir.IR_StartTimer
-import exastencils.timing.ir.IR_StopTimer
+import exastencils.timing.ir._
 import exastencils.waLBerla.ir.communication.IR_WaLBerlaCPUCommScheme
 import exastencils.waLBerla.ir.gpu.GPU_WaLBerlaGPUCommScheme
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
@@ -69,10 +66,9 @@ object IR_WaLBerlaReplaceCommunication extends DefaultStrategy("Communication ha
       }
 
       // add automatic timers for waLBerla comm
-      val timingCategory = IR_AutomaticFunctionTimingCategory.COMM
-      if (IR_AutomaticFunctionTimingCategory.categoryEnabled(timingCategory)) {
-        val timer = IR_IV_Timer(s"autoTime_${ timingCategory.toString }_${comm.name}")
-        timer.annotate(IR_AutomaticFunctionTimingCategory.ANNOT, timingCategory)
+      val timingCategory = IR_AutomaticTimingCategory.COMM
+      if (IR_AutomaticTimingCategory.categoryEnabled(timingCategory)) {
+        val timer = IR_IV_AutomaticTimer(s"autoTime_${ timingCategory.toString }_${comm.name}", timingCategory)
 
         body.prepend(IR_FunctionCall(IR_StartTimer().name, timer))
         body.append(IR_FunctionCall(IR_StopTimer().name, timer))

@@ -44,15 +44,13 @@ trait IR_FutureFunction extends IR_FunctionLike with IR_Expandable {
 
 trait IR_FutureFunctionWithTiming extends IR_FutureFunction {
 
-  def automaticTimingCategory : IR_AutomaticFunctionTimingCategory.Access
+  def automaticTimingCategory : IR_AutomaticTimingCategory.Access
 
   override def expand() : Output[IR_Function] = {
     var genFct = generateFct()
 
-    if (IR_AutomaticFunctionTimingCategory.categoryEnabled(automaticTimingCategory)) {
-      val timer = IR_IV_Timer(s"autoTime_${automaticTimingCategory.toString}_$name")
-
-      timer.annotate(IR_AutomaticFunctionTimingCategory.ANNOT, automaticTimingCategory)
+    if (IR_AutomaticTimingCategory.categoryEnabled(automaticTimingCategory)) {
+      val timer = IR_IV_AutomaticTimer(s"autoTime_${automaticTimingCategory.toString}_$name", automaticTimingCategory)
 
       genFct.body.prepend(IR_FunctionCall(IR_StartTimer().name, timer))
       genFct.body.append(IR_FunctionCall(IR_StopTimer().name, timer))

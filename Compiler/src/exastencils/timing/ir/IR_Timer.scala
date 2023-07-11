@@ -34,7 +34,9 @@ object IR_IV_Timer {
   })
 }
 
-case class IR_IV_Timer(var name : String) extends IR_UnduplicatedVariable with IR_Access {
+trait IR_TimingIV extends IR_UnduplicatedVariable with IR_Access {
+  def name : String
+
   override def resolveName() = s"timer_" + stripName
   override def resolveDatatype() = IR_SpecialDatatype("StopWatch")
 
@@ -46,3 +48,5 @@ case class IR_IV_Timer(var name : String) extends IR_UnduplicatedVariable with I
       IR_StringConstant(stripName)))
   }
 }
+
+case class IR_IV_Timer(var name : String) extends IR_TimingIV

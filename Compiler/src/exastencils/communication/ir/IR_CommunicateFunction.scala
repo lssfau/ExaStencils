@@ -48,7 +48,7 @@ case class IR_CommunicateFunction(
     var condition : Option[IR_Expression],
     var direction : String) extends IR_FutureLeveledFunctionWithTiming {
 
-  override def automaticTimingCategory = IR_AutomaticFunctionTimingCategory.COMM
+  override def automaticTimingCategory = IR_AutomaticTimingCategory.COMM
 
   override def prettyprint_decl() = prettyprint
 
