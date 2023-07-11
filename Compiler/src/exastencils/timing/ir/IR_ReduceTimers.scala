@@ -32,7 +32,7 @@ case class IR_ReduceTimers() extends IR_TimerFunction {
   override var name = "reduceTimers"
   override def prettyprint_decl() : String = prettyprint
 
-  def genReduceTimerCode(timer : IR_IV_Timer) : IR_Statement = {
+  def genReduceTimerCode(timer : IR_TimingIV) : IR_Statement = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     statements += IR_Assignment(IR_MemberAccess(timer, "totalTimeAveraged"), IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype), timer))

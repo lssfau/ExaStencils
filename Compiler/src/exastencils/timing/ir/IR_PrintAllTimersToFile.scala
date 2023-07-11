@@ -34,7 +34,7 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
   override var name = "printAllTimersToFile"
   override def prettyprint_decl() : String = prettyprint
 
-  def genDataCollect(timers : HashMap[String, IR_IV_Timer]) : ListBuffer[IR_Statement] = {
+  def genDataCollect(timers : HashMap[String, IR_TimingIV]) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     var it = 0
@@ -48,7 +48,7 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
     statements
   }
 
-  def genPrint(timers : HashMap[String, IR_IV_Timer]) : ListBuffer[IR_Statement] = {
+  def genPrint(timers : HashMap[String, IR_TimingIV]) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     def stride : IR_Expression = if (Knowledge.mpi_enabled && Knowledge.timer_printTimersToFileForEachRank) "mpiIt" else 0
