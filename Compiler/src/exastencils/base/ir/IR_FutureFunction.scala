@@ -50,9 +50,7 @@ trait IR_FutureFunctionWithTiming extends IR_FutureFunction {
     var genFct = generateFct()
 
     if (IR_AutomaticTimingCategory.categoryEnabled(automaticTimingCategory)) {
-      val timer = IR_IV_Timer(s"autoTime_${automaticTimingCategory.toString}_$name")
-
-      timer.annotate(IR_AutomaticTimingCategory.ANNOT, automaticTimingCategory)
+      val timer = IR_IV_AutomaticTimer(s"autoTime_${automaticTimingCategory.toString}_$name", automaticTimingCategory)
 
       genFct.body.prepend(IR_FunctionCall(IR_StartTimer().name, timer))
       genFct.body.append(IR_FunctionCall(IR_StopTimer().name, timer))
