@@ -34,7 +34,7 @@ case class IR_PrintAllTimers() extends IR_TimerFunction {
   override var name = "printAllTimers"
   override def prettyprint_decl() : String = prettyprint
 
-  def genPrintTimerCode(timer : IR_IV_Timer) : IR_Statement = {
+  def genPrintTimerCode(timer : IR_TimingIV) : IR_Statement = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     val timeToPrint = "getTotalTime"
