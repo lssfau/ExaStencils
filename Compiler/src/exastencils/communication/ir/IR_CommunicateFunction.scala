@@ -58,24 +58,24 @@ case class IR_CommunicateFunction(
   // generate iteration spaces
 
   def genIndicesDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
-    curNeighbors.map(IR_PackInfoDuplicateRemoteSend(_, field, dupLayerBegin, dupLayerEnd))
+    curNeighbors.map(neigh => IR_PackInfoDuplicateRemoteSend(Duplicate(neigh), field, dupLayerBegin, dupLayerEnd))
   def genIndicesDuplicateRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
-    curNeighbors.map(IR_PackInfoDuplicateRemoteRecv(_, field, dupLayerBegin, dupLayerEnd))
+    curNeighbors.map(neigh => IR_PackInfoDuplicateRemoteRecv(Duplicate(neigh), field, dupLayerBegin, dupLayerEnd))
 
   def genIndicesDuplicateLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
-    curNeighbors.map(IR_PackInfoDuplicateLocalSend(_, field, dupLayerBegin, dupLayerEnd))
+    curNeighbors.map(neigh => IR_PackInfoDuplicateLocalSend(Duplicate(neigh), field, dupLayerBegin, dupLayerEnd))
   def genIndicesDuplicateLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
-    curNeighbors.map(IR_PackInfoDuplicateLocalRecv(_, field, dupLayerBegin, dupLayerEnd))
+    curNeighbors.map(neigh => IR_PackInfoDuplicateLocalRecv(Duplicate(neigh), field, dupLayerBegin, dupLayerEnd))
 
   def genIndicesGhostRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
-    curNeighbors.map(IR_PackInfoGhostRemoteSend(_, field, ghostLayerBegin, ghostLayerEnd))
+    curNeighbors.map(neigh => IR_PackInfoGhostRemoteSend(Duplicate(neigh), field, ghostLayerBegin, ghostLayerEnd))
   def genIndicesGhostRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
-    curNeighbors.map(IR_PackInfoGhostRemoteRecv(_, field, ghostLayerBegin, ghostLayerEnd))
+    curNeighbors.map(neigh => IR_PackInfoGhostRemoteRecv(Duplicate(neigh), field, ghostLayerBegin, ghostLayerEnd))
 
   def genIndicesGhostLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
-    curNeighbors.map(IR_PackInfoGhostLocalSend(_, field, dupLayerBegin, dupLayerEnd))
+    curNeighbors.map(neigh => IR_PackInfoGhostLocalSend(Duplicate(neigh), field, ghostLayerBegin, ghostLayerEnd))
   def genIndicesGhostLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
-    curNeighbors.map(IR_PackInfoGhostLocalRecv(_, field, dupLayerBegin, dupLayerEnd))
+    curNeighbors.map(neigh => IR_PackInfoGhostLocalRecv(Duplicate(neigh), field, ghostLayerBegin, ghostLayerEnd))
 
   // generate communication statements
 
