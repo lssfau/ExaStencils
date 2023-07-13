@@ -56,8 +56,7 @@ case class IR_RemoteSend(
 case class IR_CopyToSendBuffer(
     var field : IR_Field,
     var slot : IR_Expression,
-    var neighbor : NeighborInfo,
-    var indices : IR_ExpressionIndexRange,
+    var packInfo : IR_RemotePackInfo,
     var concurrencyId : Int,
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
@@ -65,6 +64,9 @@ case class IR_CopyToSendBuffer(
 
   override def expand() : Output[StatementList] = {
     var ret = ListBuffer[IR_Statement]()
+
+    val neighbor = packInfo.neighbor
+    val indices = packInfo.getPackInterval()
 
     if (condition.isDefined && Knowledge.comm_compactPackingForConditions) {
       // switch to iterator based copy operation if condition is defined -> number of elements and index mapping is unknown

@@ -29,6 +29,10 @@ import exastencils.config.Knowledge
 abstract class IR_LocalCommunication extends IR_Statement with IR_Expandable {
   def insideFragLoop : Boolean
 
+  def sendPackInfos : ListBuffer[IR_LocalPackInfo]
+
+  def recvPackInfos : ListBuffer[IR_LocalPackInfo]
+
   def wrapFragLoop(toWrap : IR_Statement) : IR_Statement = {
     if (insideFragLoop) {
       toWrap

@@ -35,34 +35,39 @@ import exastencils.parallelization.api.omp.OMP_WaitForFlag
 case class IR_LocalSend(
     var field : IR_Field,
     var slot : IR_Expression,
-    var neighbor : NeighborInfo,
-    var dest : IR_ExpressionIndexRange,
-    var src : IR_ExpressionIndexRange,
+    var packInfo : IR_LocalPackInfo,
     var insideFragLoop : Boolean,
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
   def numDims = field.layout.numDimsData
 
   override def expand() : Output[IR_Statement] = {
+    val packIntervalDest = packInfo.getPackIntervalDest()
+    val packIntervalSrc = packInfo.getPackIntervalSrc()
+
+    val neighbor = packInfo.neighbor
+    val domainIdx = field.domain.index
+    val neighborIdx = neighbor.index
+
     var innerStmt : IR_Statement = IR_Assignment(
-      IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index), IR_ExpressionIndex(
-        IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)),
+      IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx), IR_ExpressionIndex(
+        IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _)),
       IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims)))
 
     if (condition.isDefined)
       innerStmt = IR_IfCondition(condition.get, innerStmt)
 
-    val loop = new IR_LoopOverDimensions(numDims, dest, ListBuffer[IR_Statement](innerStmt))
+    val loop = new IR_LoopOverDimensions(numDims, packIntervalDest, ListBuffer[IR_Statement](innerStmt))
     loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
 
-    IR_IfCondition(IR_IV_NeighborIsValid(field.domain.index, neighbor.index) AndAnd IR_Negation(IR_IV_NeighborIsRemote(field.domain.index, neighbor.index)),
+    IR_IfCondition(IR_IV_NeighborIsValid(domainIdx, neighborIdx) AndAnd IR_Negation(IR_IV_NeighborIsRemote(domainIdx, neighborIdx)),
       ListBuffer[IR_Statement](
         // wait until the fragment to be written to is ready for communication
         IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(), IR_AddressOf(IR_IV_LocalCommReady(
-          field, DefaultNeighbors.getOpposingNeigh(neighbor.index).index, IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index)))),
+          field, DefaultNeighbors.getOpposingNeigh(neighborIdx).index, IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx)))),
         loop,
         // signal other threads that the data reading step is completed
-        IR_Assignment(IR_IV_LocalCommDone(field, neighbor.index), IR_BooleanConstant(true))))
+        IR_Assignment(IR_IV_LocalCommDone(field, neighborIdx), IR_BooleanConstant(true))))
   }
 }

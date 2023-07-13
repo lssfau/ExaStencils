@@ -36,17 +36,21 @@ import exastencils.field.ir.IR_Field
 case class IR_LocalCommunicationStart(
     var field : IR_Field,
     var slot : IR_Expression,
-    var sendNeighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)],
-    var recvNeighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)],
+    var sendPackInfos : ListBuffer[IR_LocalPackInfo],
+    var recvPackInfos : ListBuffer[IR_LocalPackInfo],
     var insideFragLoop : Boolean,
     var cond : Option[IR_Expression]) extends IR_LocalCommunication {
 
-  def setLocalCommReady(neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)]) : ListBuffer[IR_Statement] = {
+  def setLocalCommReady(packInfos : ListBuffer[IR_LocalPackInfo]) : ListBuffer[IR_Statement] = {
     wrapFragLoop(
-      neighbors.map(neighbor =>
-        IR_IfCondition(IR_IV_NeighborIsValid(field.domain.index, neighbor._1.index)
-          AndAnd IR_Negation(IR_IV_NeighborIsRemote(field.domain.index, neighbor._1.index)),
-          IR_Assignment(IR_IV_LocalCommReady(field, neighbor._1.index), IR_BooleanConstant(true)))))
+      packInfos.map(packInfo => {
+        val neighbor = packInfo.neighbor
+        val neighborIdx = neighbor.index
+        val domainIdx = field.domain.index
+
+        IR_IfCondition(IR_IV_NeighborIsValid(domainIdx, neighborIdx) AndAnd IR_Negation(IR_IV_NeighborIsRemote(domainIdx, neighborIdx)),
+          IR_Assignment(IR_IV_LocalCommReady(field, neighborIdx), IR_BooleanConstant(true)))
+      }))
   }
 
   override def expand() : Output[StatementList] = {
@@ -56,22 +60,22 @@ case class IR_LocalCommunicationStart(
 
     // set LocalCommReady to signal neighbors readiness for communication
     if (!Knowledge.comm_pushLocalData)
-      output ++= setLocalCommReady(sendNeighbors)
+      output ++= setLocalCommReady(sendPackInfos)
     else
-      output ++= setLocalCommReady(recvNeighbors)
+      output ++= setLocalCommReady(recvPackInfos)
 
     if (Knowledge.comm_pushLocalData) {
       // distribute this fragment's data - if enabled
       output += wrapFragLoop(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-          sendNeighbors.map(neigh =>
-            IR_LocalSend(field, Duplicate(slot), Duplicate(neigh._1), Duplicate(neigh._2), Duplicate(neigh._3), insideFragLoop, Duplicate(cond)) : IR_Statement)))
+          sendPackInfos.map(packInfo =>
+            IR_LocalSend(field, Duplicate(slot), packInfo, insideFragLoop, Duplicate(cond)) : IR_Statement)))
     } else {
       // pull data for this fragment - otherwise
       output += wrapFragLoop(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-          recvNeighbors.map(neigh =>
-            IR_LocalRecv(field, Duplicate(slot), Duplicate(neigh._1), Duplicate(neigh._2), Duplicate(neigh._3), insideFragLoop, Duplicate(cond)) : IR_Statement)))
+          recvPackInfos.map(packInfo =>
+            IR_LocalRecv(field, Duplicate(slot), packInfo, insideFragLoop, Duplicate(cond)) : IR_Statement)))
     }
 
     output

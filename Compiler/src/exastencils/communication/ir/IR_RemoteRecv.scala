@@ -64,8 +64,7 @@ case class IR_RemoteRecv(
 case class IR_CopyFromRecvBuffer(
     var field : IR_Field,
     var slot : IR_Expression,
-    var neighbor : NeighborInfo,
-    var indices : IR_ExpressionIndexRange,
+    var packInfo : IR_RemotePackInfo,
     var concurrencyId : Int,
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
@@ -74,11 +73,15 @@ case class IR_CopyFromRecvBuffer(
   override def expand() : Output[StatementList] = {
     var ret = ListBuffer[IR_Statement]()
 
+    val neighbor = packInfo.neighbor
+    val neighborIdx = neighbor.index
+    val indices = packInfo.getPackInterval()
+
     if (condition.isDefined && Knowledge.comm_compactPackingForConditions) {
       // switch to iterator based copy operation if condition is defined -> number of elements and index mapping is unknown
-      def it = IR_IV_CommBufferIterator(field, s"Recv_${ concurrencyId }", neighbor.index)
+      def it = IR_IV_CommBufferIterator(field, s"Recv_${ concurrencyId }", neighborIdx)
 
-      val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighbor.index),
+      val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighborIdx),
         IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
       val fieldAccess = IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
 
@@ -88,14 +91,14 @@ case class IR_CopyFromRecvBuffer(
           IR_Assignment(fieldAccess, tmpBufAccess),
           IR_Assignment(it, 1, "+="))))
     } else {
-      val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighbor.index),
+      val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighborIdx),
         IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
         IR_ExpressionIndex(indices.end, indices.begin, _ - _))
 
       def fieldAccess = IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
 
       if (Knowledge.comm_enableCommTransformations) {
-        val trafoId = IR_IV_CommTrafoId(field.domain.index, neighbor.index)
+        val trafoId = IR_IV_CommTrafoId(field.domain.index, neighborIdx)
 
         def loop(trafo : IR_CommTransformation) = {
           val ret = new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(trafo.applyRemoteTrafo(fieldAccess, indices, neighbor), trafo.applyBufferTrafo(tmpBufAccess))))

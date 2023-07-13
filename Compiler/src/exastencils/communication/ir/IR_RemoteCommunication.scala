@@ -32,12 +32,12 @@ import exastencils.field.ir.IR_Field
 
 abstract class IR_RemoteCommunication extends IR_Statement with IR_Expandable {
   def field : IR_Field
-  def neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)]
+  def packInfos : ListBuffer[IR_RemotePackInfo]
 
   def insideFragLoop : Boolean
 
-  def genCopy(neighbor : NeighborInfo, indices : IR_ExpressionIndexRange, addCondition : Boolean) : IR_Statement
-  def genTransfer(neighbor : NeighborInfo, indices : IR_ExpressionIndexRange, addCondition : Boolean) : IR_Statement
+  def genCopy(packInfo : IR_RemotePackInfo, addCondition : Boolean) : IR_Statement
+  def genTransfer(packInfo : IR_RemotePackInfo, addCondition : Boolean) : IR_Statement
 
   def wrapCond(neighbor : NeighborInfo, body : ListBuffer[IR_Statement]) : IR_Statement = {
     IR_IfCondition(IR_IV_NeighborIsValid(field.domain.index, neighbor.index) AndAnd IR_IV_NeighborIsRemote(field.domain.index, neighbor.index),
