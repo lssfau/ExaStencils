@@ -77,6 +77,134 @@ case class IR_CommunicateFunction(
   def genIndicesGhostLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
     curNeighbors.map(IR_PackInfoGhostLocalRecv(_, field, dupLayerBegin, dupLayerEnd))
 
+  def compileTransformedDuplicateComm(sendNeighbors : ListBuffer[NeighborInfo], recvNeighbors : ListBuffer[NeighborInfo], concurrencyId : Int) : ListBuffer[IR_Statement] = {
+    var commStmts = ListBuffer[IR_Statement]()
+
+    val domains = IR_DomainCollection.objects
+
+    def fragId = IR_IV_FragmentId()
+
+    if (begin) {
+      for (d <- domains.indices) {
+        for (neigh <- neighbors) {
+          commStmts += IR_IfCondition(
+            if (sendNeighbors.contains(neigh))
+              IR_GreaterEqual(fragId, IR_IV_NeighFragId(d, neigh.index))
+            else
+              IR_Greater(fragId, IR_IV_NeighFragId(d, neigh.index)),
+            IR_RemoteCommunicationStart(field, Duplicate(slot), genIndicesDuplicateRemoteSend(ListBuffer(neigh)), true, false, concurrencyId, true, condition)
+          )
+        }
+      }
+
+      for (d <- domains.indices) {
+        for (neigh <- neighbors) {
+          commStmts += IR_IfCondition(
+            if (sendNeighbors.contains(neigh))
+              IR_LowerEqual(fragId, IR_IV_NeighFragId(d, neigh.index))
+            else
+              IR_Lower(fragId, IR_IV_NeighFragId(d, neigh.index)),
+            IR_RemoteCommunicationFinish(field, Duplicate(slot), genIndicesDuplicateRemoteRecv(ListBuffer(neigh)), true, false, concurrencyId, true, condition)
+          )
+        }
+      }
+
+      // generate all possible combinations of neighbors
+      def recursiveLoop(start : Int, sendNeighs : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
+        var localStmts = ListBuffer[IR_Statement]()
+        // case this one does not exist
+        val recvNeighs = neighbors filterNot (sendNeighs contains _)
+
+        var andStmts = ListBuffer[IR_Expression]()
+        for (n <- sendNeighs) {
+          if (sendNeighbors contains n)
+            andStmts += IR_LowerEqual(fragId, IR_IV_NeighFragId(0, n.index))
+          else
+            andStmts += IR_Lower(fragId, IR_IV_NeighFragId(0, n.index))
+        }
+        for (n <- recvNeighs) {
+          if (recvNeighbors contains n)
+            andStmts += IR_GreaterEqual(fragId, IR_IV_NeighFragId(0, n.index))
+          else
+            andStmts += IR_Greater(fragId, IR_IV_NeighFragId(0, n.index))
+        }
+
+        localStmts += IR_IfCondition(andStmts.reduce(IR_OrOr),
+          IR_LocalCommunicationStart(field, Duplicate(slot), genIndicesDuplicateLocalSend(sendNeighs), genIndicesDuplicateLocalRecv(recvNeighs), true, condition)
+        )
+
+        for (idx <- start until neighbors.length) {
+          // case this exists and maybe also others
+          localStmts ++= recursiveLoop(idx + 1, sendNeighs :+ neighbors(idx))
+        }
+
+        localStmts
+      }
+
+      commStmts ++= recursiveLoop(0, ListBuffer())
+    }
+    if (finish) {
+      for (d <- domains.indices) {
+        for (neigh <- neighbors) {
+          commStmts += IR_IfCondition(
+            if (recvNeighbors.contains(neigh))
+              IR_LowerEqual(fragId, IR_IV_NeighFragId(d, neigh.index))
+            else
+              IR_Lower(fragId, IR_IV_NeighFragId(d, neigh.index)),
+            IR_RemoteCommunicationFinish(field, Duplicate(slot), genIndicesDuplicateRemoteRecv(ListBuffer(neigh)), false, true, concurrencyId, true, condition)
+          )
+        }
+      }
+
+      for (d <- domains.indices) {
+        for (neigh <- neighbors) {
+          commStmts += IR_IfCondition(
+            if (sendNeighbors.contains(neigh))
+              IR_GreaterEqual(fragId, IR_IV_NeighFragId(d, neigh.index))
+            else
+              IR_Greater(fragId, IR_IV_NeighFragId(d, neigh.index)),
+            IR_RemoteCommunicationStart(field, Duplicate(slot), genIndicesDuplicateRemoteSend(ListBuffer(neigh)), false, true, concurrencyId, true, condition)
+          )
+        }
+      }
+
+      // generate all possible combinations of neighbors
+      def recursiveLoop(start : Int, sendNeighs : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
+        var localStmts = ListBuffer[IR_Statement]()
+        // case this one does not exist
+        val recvNeighs = neighbors filterNot (sendNeighs contains _)
+
+        var andStmts = ListBuffer[IR_Expression]()
+        for (n <- sendNeighs) {
+          if (sendNeighbors contains n)
+            andStmts += IR_LowerEqual(fragId, IR_IV_NeighFragId(0, n.index))
+          else
+            andStmts += IR_Lower(fragId, IR_IV_NeighFragId(0, n.index))
+        }
+        for (n <- recvNeighs) {
+          if (recvNeighbors contains n)
+            andStmts += IR_GreaterEqual(fragId, IR_IV_NeighFragId(0, n.index))
+          else
+            andStmts += IR_Greater(fragId, IR_IV_NeighFragId(0, n.index))
+        }
+
+        localStmts += IR_IfCondition(andStmts.reduce(IR_OrOr),
+          IR_LocalCommunicationFinish(field, Duplicate(slot), genIndicesDuplicateLocalSend(sendNeighs), genIndicesDuplicateLocalRecv(recvNeighs), true, condition)
+        )
+
+        for (idx <- start until neighbors.length) {
+          // case this exists and maybe also others
+          localStmts ++= recursiveLoop(idx + 1, sendNeighs :+ neighbors(idx))
+        }
+
+        localStmts
+      }
+
+      commStmts ++= recursiveLoop(0, ListBuffer())
+    }
+    commStmts
+  }
+
   def compileBody() : ListBuffer[IR_Statement] = {
     var body = new ListBuffer[IR_Statement]
 
@@ -121,136 +249,8 @@ case class IR_CommunicateFunction(
           }
 
           if (Knowledge.comm_enableCommTransformations) {
-
-            var commStmts = ListBuffer[IR_Statement]()
-
-            val domains = IR_DomainCollection.objects
-
-            def fragId = IR_IV_FragmentId()
-
-            if (begin) {
-              for (d <- domains.indices) {
-                for (neigh <- neighbors) {
-                  commStmts += IR_IfCondition(
-                    if (sendNeighbors.contains(neigh))
-                      IR_GreaterEqual(fragId, IR_IV_NeighFragId(d, neigh.index))
-                    else
-                      IR_Greater(fragId, IR_IV_NeighFragId(d, neigh.index)),
-                    IR_RemoteCommunicationStart(field, Duplicate(slot), genIndicesDuplicateRemoteSend(ListBuffer(neigh)), true, false, concurrencyId, true, condition)
-                  )
-                }
-              }
-
-              for (d <- domains.indices) {
-                for (neigh <- neighbors) {
-                  commStmts += IR_IfCondition(
-                    if (sendNeighbors.contains(neigh))
-                      IR_LowerEqual(fragId, IR_IV_NeighFragId(d, neigh.index))
-                    else
-                      IR_Lower(fragId, IR_IV_NeighFragId(d, neigh.index)),
-                    IR_RemoteCommunicationFinish(field, Duplicate(slot), genIndicesDuplicateRemoteRecv(ListBuffer(neigh)), true, false, concurrencyId, true, condition)
-                  )
-                }
-              }
-
-              // generate all possible combinations of neighbors
-              def recursiveLoop(start : Int, sendNeighs : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
-                var localStmts = ListBuffer[IR_Statement]()
-                // case this one does not exist
-                val recvNeighs = neighbors filterNot (sendNeighs contains _)
-
-                var andStmts = ListBuffer[IR_Expression]()
-                for (n <- sendNeighs) {
-                  if (sendNeighbors contains n)
-                    andStmts += IR_LowerEqual(fragId, IR_IV_NeighFragId(0, n.index))
-                  else
-                    andStmts += IR_Lower(fragId, IR_IV_NeighFragId(0, n.index))
-                }
-                for (n <- recvNeighs) {
-                  if (recvNeighbors contains n)
-                    andStmts += IR_GreaterEqual(fragId, IR_IV_NeighFragId(0, n.index))
-                  else
-                    andStmts += IR_Greater(fragId, IR_IV_NeighFragId(0, n.index))
-                }
-
-                localStmts += IR_IfCondition(andStmts.reduce(IR_OrOr),
-                  IR_LocalCommunicationStart(field, Duplicate(slot), genIndicesDuplicateLocalSend(sendNeighs), genIndicesDuplicateLocalRecv(recvNeighs), true, condition)
-                )
-
-                for (idx <- start until neighbors.length) {
-                  // case this exists and maybe also others
-                  localStmts ++= recursiveLoop(idx + 1, sendNeighs :+ neighbors(idx))
-                }
-
-                localStmts
-              }
-
-              commStmts ++= recursiveLoop(0, ListBuffer())
-            }
-            if (finish) {
-              for (d <- domains.indices) {
-                for (neigh <- neighbors) {
-                  commStmts += IR_IfCondition(
-                    if (recvNeighbors.contains(neigh))
-                      IR_LowerEqual(fragId, IR_IV_NeighFragId(d, neigh.index))
-                    else
-                      IR_Lower(fragId, IR_IV_NeighFragId(d, neigh.index)),
-                    IR_RemoteCommunicationFinish(field, Duplicate(slot), genIndicesDuplicateRemoteRecv(ListBuffer(neigh)), false, true, concurrencyId, true, condition)
-                  )
-                }
-              }
-
-              for (d <- domains.indices) {
-                for (neigh <- neighbors) {
-                  commStmts += IR_IfCondition(
-                    if (sendNeighbors.contains(neigh))
-                      IR_GreaterEqual(fragId, IR_IV_NeighFragId(d, neigh.index))
-                    else
-                      IR_Greater(fragId, IR_IV_NeighFragId(d, neigh.index)),
-                    IR_RemoteCommunicationStart(field, Duplicate(slot), genIndicesDuplicateRemoteSend(ListBuffer(neigh)), false, true, concurrencyId, true, condition)
-                  )
-                }
-              }
-
-              // generate all possible combinations of neighbors
-              def recursiveLoop(start : Int, sendNeighs : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
-                var localStmts = ListBuffer[IR_Statement]()
-                // case this one does not exist
-                val recvNeighs = neighbors filterNot (sendNeighs contains _)
-
-                var andStmts = ListBuffer[IR_Expression]()
-                for (n <- sendNeighs) {
-                  if (sendNeighbors contains n)
-                    andStmts += IR_LowerEqual(fragId, IR_IV_NeighFragId(0, n.index))
-                  else
-                    andStmts += IR_Lower(fragId, IR_IV_NeighFragId(0, n.index))
-                }
-                for (n <- recvNeighs) {
-                  if (recvNeighbors contains n)
-                    andStmts += IR_GreaterEqual(fragId, IR_IV_NeighFragId(0, n.index))
-                  else
-                    andStmts += IR_Greater(fragId, IR_IV_NeighFragId(0, n.index))
-                }
-
-                localStmts += IR_IfCondition(andStmts.reduce(IR_OrOr),
-                  IR_LocalCommunicationFinish(field, Duplicate(slot), genIndicesDuplicateLocalSend(sendNeighs), genIndicesDuplicateLocalRecv(recvNeighs), true, condition)
-                )
-
-                for (idx <- start until neighbors.length) {
-                  // case this exists and maybe also others
-                  localStmts ++= recursiveLoop(idx + 1, sendNeighs :+ neighbors(idx))
-                }
-
-                localStmts
-              }
-
-              commStmts ++= recursiveLoop(0, ListBuffer())
-            }
-
-            body += IR_LoopOverFragments(commStmts)
-
-          }
-          else {
+            body += IR_LoopOverFragments(compileTransformedDuplicateComm(sendNeighbors, recvNeighbors, concurrencyId))
+          } else {
             if (begin) {
               body += IR_RemoteCommunicationStart(field, Duplicate(slot), genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop, condition)
               body += IR_RemoteCommunicationFinish(field, Duplicate(slot), genIndicesDuplicateRemoteRecv(recvNeighbors), true, false, concurrencyId, insideFragLoop, condition)
