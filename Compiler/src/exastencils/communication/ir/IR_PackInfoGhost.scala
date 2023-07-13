@@ -36,6 +36,7 @@ trait IR_PackInfoGhost extends IR_PackInfo {
 
   def getGridPackingStartAndEndForRecv(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = {
     (
+      // start
       (0 until numDimsGrid).toArray.map {
         case i if neighDir(i) == 0 =>
           if (Knowledge.comm_syncGhostData)
@@ -45,6 +46,7 @@ trait IR_PackInfoGhost extends IR_PackInfo {
         case i if neighDir(i) < 0  => resolveIndex("GLE", i) - ghostLayerEnd(i)
         case i if neighDir(i) > 0  => resolveIndex("GRB", i) + ghostLayerBegin(i)
       },
+      // end
       (0 until numDimsGrid).toArray.map {
         case i if neighDir(i) == 0 =>
           if (Knowledge.comm_syncGhostData)

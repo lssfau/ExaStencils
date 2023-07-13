@@ -25,7 +25,7 @@ trait IR_PackInfoDuplicate extends IR_PackInfo {
         case i if neighDir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
         case i if neighDir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
       },
-      //end
+      // end
       (0 until numDimsGrid).toArray.map {
         case i if neighDir(i) == 0 =>
           if (Knowledge.comm_onlyAxisNeighbors)
