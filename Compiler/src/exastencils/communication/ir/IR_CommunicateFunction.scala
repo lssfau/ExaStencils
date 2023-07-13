@@ -87,13 +87,13 @@ case class IR_CommunicateFunction(
     var body = ListBuffer[IR_Statement]()
 
     if (begin) {
-      body += IR_RemoteCommunicationStart(field, Duplicate(slot), remoteSendPackInfos, start = true, end = false, concurrencyId, insideFragLoop = insideFragLoop, condition)
-      body += IR_RemoteCommunicationFinish(field, Duplicate(slot), remoteRecvPackInfos, start = true, end = false, concurrencyId, insideFragLoop = insideFragLoop, condition)
+      body += IR_RemoteCommunicationStart(field, Duplicate(slot), remoteSendPackInfos, start = true, end = false, concurrencyId, insideFragLoop, condition)
+      body += IR_RemoteCommunicationFinish(field, Duplicate(slot), remoteRecvPackInfos, start = true, end = false, concurrencyId, insideFragLoop, condition)
       body += IR_LocalCommunicationStart(field, Duplicate(slot), localSendPackInfos, localRecvPackInfos, insideFragLoop, condition)
     }
     if (finish) {
-      body += IR_RemoteCommunicationFinish(field, Duplicate(slot), remoteRecvPackInfos, start = false, end = true, concurrencyId, insideFragLoop = insideFragLoop, condition)
-      body += IR_RemoteCommunicationStart(field, Duplicate(slot), remoteSendPackInfos, start = false, end = true, concurrencyId, insideFragLoop = insideFragLoop, condition)
+      body += IR_RemoteCommunicationFinish(field, Duplicate(slot), remoteRecvPackInfos, start = false, end = true, concurrencyId, insideFragLoop, condition)
+      body += IR_RemoteCommunicationStart(field, Duplicate(slot), remoteSendPackInfos, start = false, end = true, concurrencyId, insideFragLoop, condition)
       body += IR_LocalCommunicationFinish(field, Duplicate(slot), localSendPackInfos, localRecvPackInfos, insideFragLoop, condition)
     }
 
