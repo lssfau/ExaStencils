@@ -46,7 +46,6 @@ trait IR_RemotePackInfoDuplicate extends IR_RemotePackInfo with IR_PackInfoDupli
 /// IR_LocalPackingIntervalDuplicate
 
 trait IR_LocalPackInfoDuplicate extends IR_LocalPackInfo with IR_PackInfoDuplicate {
-
   private def inverseNeighDir : Array[Int] = neighbor.dir.map(-1 * _)
 
   // local packing of dest and src fields is almost identical. only difference is the neighbor direction

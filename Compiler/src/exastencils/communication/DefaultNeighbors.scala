@@ -18,6 +18,7 @@
 
 package exastencils.communication
 
+import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 
 import exastencils.config.Knowledge
@@ -46,15 +47,28 @@ object DefaultNeighbors {
   def setup() : Unit = {
     neighbors.clear
 
+    val equalLevelNeighbors = HashMap(/* levelDiff */ 0 -> /* numNeighbors */ 1)
+
     if (Knowledge.comm_onlyAxisNeighbors) {
       var neighIndex = 0
       for (dim <- 0 until Knowledge.dimensionality) {
-        neighbors += NeighborInfo(Array.fill(dim)(0) ++ Array(-1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0), neighIndex)
+        val downwindDir = Array.fill(dim)(0) ++ Array(-1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0)
+        val upwindDir   = Array.fill(dim)(0) ++ Array(+1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0)
+
+        val neighborsPerRefinementCase = if (Knowledge.refinement_enabled)
+          // equal level + fine-to-coarse (1 neighbor) + coarse-to-fine (multiple neighbors)
+          equalLevelNeighbors + (-1 -> 1) + (1 -> Knowledge.refinement_maxCommNeighborsPerDir)
+        else
+          // no refinement -> equal level
+          equalLevelNeighbors
+
+        neighbors += NeighborInfo(downwindDir, neighborsPerRefinementCase, neighIndex)
         neighIndex += 1
-        neighbors += NeighborInfo(Array.fill(dim)(0) ++ Array(+1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0), neighIndex)
+        neighbors += NeighborInfo(upwindDir, neighborsPerRefinementCase, neighIndex)
         neighIndex += 1
       }
     } else {
+      // TODO: only equal-level communication supported
       val unitDirections = Array(-1, 0, 1)
       var directions = ListBuffer(ListBuffer(-1), ListBuffer(0), ListBuffer(1))
       for (dim <- 1 until Knowledge.dimensionality)
@@ -62,7 +76,7 @@ object DefaultNeighbors {
 
       var neighIndex = 0
       for (dir <- directions; if dir.map(i => if (0 == i) 0 else 1).sum > 0) {
-        neighbors += NeighborInfo(dir.toArray, neighIndex)
+        neighbors += NeighborInfo(dir.toArray, equalLevelNeighbors, neighIndex)
         neighIndex += 1
       }
     }
@@ -76,7 +90,7 @@ object DefaultNeighbors {
 
 /// NeighborInfo
 
-case class NeighborInfo(var dir : Array[Int], var index : Int) {
+case class NeighborInfo(var dir : Array[Int], numNeighborsForRefinementCase : HashMap[Int, Int], var index : Int) {
   def dirToString(dir : Int) : String = {
     if (dir < 0)
       Array.fill(dir)("N").mkString

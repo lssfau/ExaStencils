@@ -19,6 +19,7 @@
 package exastencils.config
 
 import scala.collection.mutable.ListBuffer
+import scala.math.pow
 
 import exastencils.constraints._
 
@@ -127,6 +128,13 @@ object Knowledge {
   def domain_rect_numFragsTotal : Int = domain_rect_numFragsTotal_x * domain_rect_numFragsTotal_y * domain_rect_numFragsTotal_z
   // shortcut to an array containing the values of domain_rect_numFragsTotal_*
   def domain_rect_numFragsTotalAsVec : Array[Int] = Array(domain_rect_numFragsTotal_x, domain_rect_numFragsTotal_y, domain_rect_numFragsTotal_z)
+
+  /// --- Mesh refinement ---
+
+  var refinement_enabled : Boolean = false
+
+  // 1D: 1 neighbor, 2D: 2 neighbors, 3D: 4 neighbors
+  def refinement_maxCommNeighborsPerDir : Int = 2 << (-2 + Knowledge.dimensionality)
 
   //// specifications for field
 
@@ -826,6 +834,9 @@ object Knowledge {
     Constraints.condWarn("diego2" == grid_spacingModel, "diego2 spacing model currently ignores domain bounds set in the DSL")
     Constraints.condWarn("blockstructured" == grid_spacingModel && grid_isUniform, "grid_isUniform should be false for block-structured grids")
     Constraints.condWarn(grid_halveStagBoundaryVolumes && "uniform" == grid_spacingModel, "halving staggered volumes at the boundary is not supported for uniform grids")
+
+    // refinement
+    Constraints.condError(refinement_enabled && !comm_onlyAxisNeighbors, "Mesh refinement currently only supports communication with axis neighbors.")
 
     // backwards compatibility for comm_strategyFragment
     Constraints.condWarn(comm_strategyFragment != 0, "comm_strategyFragment is deprecated and will be removed in the future")
