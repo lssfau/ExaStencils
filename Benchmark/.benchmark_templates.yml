@@ -145,7 +145,7 @@
         - !reference [ .module_tree_build, before_script ]
     script:
         - chmod +x generate_bench_jobs_for_hosts.sh
-        - ./generate_bench_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH > $EXA_PROBLEM_NAME-pipe.yml
+        - ./generate_bench_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH > $EXA_PROBLEM_NAME-child-pipe.yml
     after_script:
         - !reference [ .module_tree_build, after_script ]
     artifacts:

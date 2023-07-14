@@ -3,125 +3,35 @@ variables:
     GIT_SUBMODULE_STRATEGY: recursive
 
 stages:
-    - build
-    - bench_gen
-    - bench_pipe
+    - pipeline
 
 include: 'Benchmark/.benchmark_templates.yml'
 
-#######################################
-##                                   ##
-##       Benchmark Generation        ##
-##                                   ##
-#######################################
-
-# 5-pt stencil
-
-bench_gen:5pt_Jac_2D:
-    extends: .gen_bench_job_template
+pipeline_gen:
+    stage: pipeline
+    tags:
+        - testcluster
+    before_script:
+        - cd Benchmark
+    script:
+        - generate_cb_yml_stages.sh > pipeline.yml
+    artifacts:
+        when: always
+        paths:
+            - pipeline.yml
+        expire_in: 1 weeks
     variables:
-        EXA_PROBLEM_NAME: "5pt_Jac_2D"
-        EXA_PROBLEM_PATH: "FivePointStencil"
-        EXASLANG_FILES: "5pt_Jac_Cell.exa4"
-        KNOWLEDGE_FILE: "5pt_Jac_Cell.knowledge"
+        NO_SLURM_SUBMIT: 1
+        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
 
-# 3D FD Poisson
-
-bench_gen:3D_FD_Poisson:
-    extends: .gen_bench_job_template
-    variables:
-        EXA_PROBLEM_NAME: "3D_FD_Poisson"
-        EXA_PROBLEM_PATH: "Poisson3D"
-        EXASLANG_FILES: "3D_FD_Poisson_fromL4.exa4"
-        KNOWLEDGE_FILE: "3D_FD_Poisson_fromL4.knowledge"
-
-# 2D FD OptFlow
-
-bench_gen:2D_FD_OptFlow:
-    extends: .gen_bench_job_template
-    variables:
-        EXA_PROBLEM_NAME: "2D_FD_OptFlow"
-        EXA_PROBLEM_PATH: "OptFlow2D"
-        EXASLANG_FILES: "2D_FD_OptFlow.exa4"
-        KNOWLEDGE_FILE: "2D_FD_OptFlow.knowledge"
-
-#######################################
-##                                   ##
-##       Benchmark Execution         ##
-##                                   ##
-#######################################
-
-# 5-pt stencil
-bench_pipe:5pt_Jac_2D:
-    stage: bench_pipe
+pipeline_exec:
+    stage: pipeline
     trigger:
         include:
-            - artifact: Benchmark/5pt_Jac_2D-pipe.yml
-              job: bench_gen:5pt_Jac_2D
+            - artifact: pipeline.yml
+              job: pipeline_gen
         strategy: depend
     variables:
-        EXA_PROBLEM_NAME: "5pt_Jac_2D"
-        EXA_PROBLEM_PATH: "FivePointStencil"
-        EXASLANG_FILES: "5pt_Jac_Cell.exa4"
-        KNOWLEDGE_FILE: "5pt_Jac_Cell.knowledge"
-
-bench_pipe:5pt_Jac_2D_CUDA:
-    extends: .cuda_job_template
-    variables:
-        SLURM_NODELIST: "medusa"
-        EXA_PROBLEM_NAME: "5pt_Jac_2D_CUDA"
-        EXA_PROBLEM_PATH: "FivePointStencil"
-        EXASLANG_FILES: "5pt_Jac_Cell.exa4"
-        KNOWLEDGE_FILE: "5pt_Jac_Cell_CUDA.knowledge"
-        PLATFORM_FILE: "Platform/medusa_QuadroRTX6000.platform"
-
-# 3D FD Poisson
-
-bench_pipe:3D_FD_Poisson:
-    stage: bench_pipe
-    trigger:
-        include:
-            - artifact: Benchmark/3D_FD_Poisson-pipe.yml
-              job: bench_gen:3D_FD_Poisson
-        strategy: depend
-    variables:
-        EXA_PROBLEM_NAME: "3D_FD_Poisson"
-        EXA_PROBLEM_PATH: "Poisson3D"
-        EXASLANG_FILES: "3D_FD_Poisson_fromL4.exa4"
-        KNOWLEDGE_FILE: "3D_FD_Poisson_fromL4.knowledge"
-
-bench_pipe:3D_FD_Poisson_CUDA:
-    extends: .cuda_job_template
-    variables:
-        SLURM_NODELIST: "medusa"
-        EXA_PROBLEM_NAME: "3D_FD_Poisson_CUDA"
-        EXA_PROBLEM_PATH: "Poisson3D"
-        EXASLANG_FILES: "3D_FD_Poisson_fromL4.exa4"
-        KNOWLEDGE_FILE: "3D_FD_Poisson_fromL4_CUDA.knowledge"
-        PLATFORM_FILE: "Platform/medusa_QuadroRTX6000.platform"
-
-
-# 2D FD OptFlow
-
-bench_pipe:2D_FD_OptFlow:
-    stage: bench_pipe
-    trigger:
-        include:
-            - artifact: Benchmark/2D_FD_OptFlow-pipe.yml
-              job: bench_gen:2D_FD_OptFlow
-        strategy: depend
-    variables:
-        EXA_PROBLEM_NAME: "2D_FD_OptFlow"
-        EXA_PROBLEM_PATH: "OptFlow2D"
-        EXASLANG_FILES: "2D_FD_OptFlow.exa4"
-        KNOWLEDGE_FILE: "2D_FD_OptFlow.knowledge"
-
-bench_pipe:2D_FD_OptFlow_CUDA:
-    extends: .cuda_job_template
-    variables:
-        SLURM_NODELIST: "medusa"
-        EXA_PROBLEM_NAME: "2D_FD_OptFlow_CUDA"
-        EXA_PROBLEM_PATH: "OptFlow2D"
-        EXASLANG_FILES: "2D_FD_OptFlow.exa4"
-        KNOWLEDGE_FILE: "2D_FD_OptFlow_CUDA.knowledge"
-        PLATFORM_FILE: "Platform/medusa_QuadroRTX6000.platform"
+        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
+    needs:
+        - pipeline_gen
