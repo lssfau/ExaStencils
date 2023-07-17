@@ -12,11 +12,11 @@ trait IR_RefinementPackInfoGhost extends IR_RefinementPackInfo with IR_PackInfoG
 
 /// IR_F2CPackInfoGhost
 
-trait IR_F2CPackInfoGhost extends IR_F2CPackInfo with IR_PackInfoGhost
+trait IR_F2CPackInfoGhost extends IR_F2CPackInfo with IR_RefinementPackInfoGhost
 
 /// IR_C2FPackInfoGhost
 
-trait IR_C2FPackInfoGhost extends IR_C2FPackInfo with IR_PackInfoGhost
+trait IR_C2FPackInfoGhost extends IR_C2FPackInfo with IR_RefinementPackInfoGhost
 
 /* fine-to-coarse */
 
@@ -68,6 +68,61 @@ case class IR_F2CPackInfoGhostLocalRecv(
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_LocalPackInfoGhost with IR_F2CPackInfoGhost {
+
+  override protected def getGridPackingStartAndEndDest(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = ???
+  override protected def getGridPackingStartAndEndSrc(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = ???
+}
+
+/* coarse-to-fine */
+
+/// IR_C2FPackInfoGhostRemoteSend
+case class IR_C2FPackInfoGhostRemoteSend(
+    var neighbor : NeighborInfo,
+    var refinementNeighborIndex : Int,
+    var field : IR_Field,
+    var ghostLayerBegin : IR_ExpressionIndex,
+    var ghostLayerEnd : IR_ExpressionIndex
+) extends IR_RemotePackInfoGhost with IR_C2FPackInfoGhost {
+
+  override protected def getGridPackingStartAndEnd(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = ???
+}
+
+/// IR_C2FPackInfoGhostRemoteRecv
+
+case class IR_C2FPackInfoGhostRemoteRecv(
+    var neighbor : NeighborInfo,
+    var refinementNeighborIndex : Int,
+    var field : IR_Field,
+    var ghostLayerBegin : IR_ExpressionIndex,
+    var ghostLayerEnd : IR_ExpressionIndex
+) extends IR_RemotePackInfoGhost with IR_C2FPackInfoGhost {
+
+  override protected def getGridPackingStartAndEnd(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = ???
+}
+
+/// IR_C2FPackInfoGhostLocalSend
+
+case class IR_C2FPackInfoGhostLocalSend(
+    var neighbor : NeighborInfo,
+    var refinementNeighborIndex : Int,
+    var field : IR_Field,
+    var ghostLayerBegin : IR_ExpressionIndex,
+    var ghostLayerEnd : IR_ExpressionIndex
+) extends IR_LocalPackInfoGhost with IR_C2FPackInfoGhost {
+
+  override protected def getGridPackingStartAndEndDest(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = ???
+  override protected def getGridPackingStartAndEndSrc(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = ???
+}
+
+/// IR_C2FPackInfoGhostLocalRecv
+
+case class IR_C2FPackInfoGhostLocalRecv(
+    var neighbor : NeighborInfo,
+    var refinementNeighborIndex : Int,
+    var field : IR_Field,
+    var ghostLayerBegin : IR_ExpressionIndex,
+    var ghostLayerEnd : IR_ExpressionIndex
+) extends IR_LocalPackInfoGhost with IR_C2FPackInfoGhost {
 
   override protected def getGridPackingStartAndEndDest(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = ???
   override protected def getGridPackingStartAndEndSrc(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = ???

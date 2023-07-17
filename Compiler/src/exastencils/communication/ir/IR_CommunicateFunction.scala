@@ -129,24 +129,24 @@ case class IR_CommunicateFunction(
   }
 
   def genC2FIndicesDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
-    genC2FIndicesWrapper(curNeighbors, IR_F2CPackInfoDuplicateRemoteSend)
+    genC2FIndicesWrapper(curNeighbors, IR_C2FPackInfoDuplicateRemoteSend)
   def genC2FIndicesDuplicateRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
-    genC2FIndicesWrapper(curNeighbors, IR_F2CPackInfoDuplicateRemoteRecv)
+    genC2FIndicesWrapper(curNeighbors, IR_C2FPackInfoDuplicateRemoteRecv)
 
   def genC2FIndicesDuplicateLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
-    genC2FIndicesWrapper(curNeighbors, IR_F2CPackInfoDuplicateLocalSend)
+    genC2FIndicesWrapper(curNeighbors, IR_C2FPackInfoDuplicateLocalSend)
   def genC2FIndicesDuplicateLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
-    genC2FIndicesWrapper(curNeighbors, IR_F2CPackInfoDuplicateLocalRecv)
+    genC2FIndicesWrapper(curNeighbors, IR_C2FPackInfoDuplicateLocalRecv)
 
   def genC2FIndicesGhostRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
-    genC2FIndicesWrapper(curNeighbors, IR_F2CPackInfoGhostRemoteSend)
+    genC2FIndicesWrapper(curNeighbors, IR_C2FPackInfoGhostRemoteSend)
   def genC2FIndicesGhostRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
-    genC2FIndicesWrapper(curNeighbors, IR_F2CPackInfoGhostRemoteRecv)
+    genC2FIndicesWrapper(curNeighbors, IR_C2FPackInfoGhostRemoteRecv)
 
   def genC2FIndicesGhostLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
-    genC2FIndicesWrapper(curNeighbors, IR_F2CPackInfoGhostLocalSend)
+    genC2FIndicesWrapper(curNeighbors, IR_C2FPackInfoGhostLocalSend)
   def genC2FIndicesGhostLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
-    genC2FIndicesWrapper(curNeighbors, IR_F2CPackInfoGhostLocalRecv)
+    genC2FIndicesWrapper(curNeighbors, IR_C2FPackInfoGhostLocalRecv)
 
   /* generate communication statements */
 
