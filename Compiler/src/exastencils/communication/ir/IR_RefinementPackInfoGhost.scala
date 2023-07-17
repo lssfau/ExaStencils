@@ -8,7 +8,30 @@ import exastencils.field.ir.IR_Field
 
 /// IR_RefinementPackInfoGhost
 
-trait IR_RefinementPackInfoGhost extends IR_RefinementPackInfo with IR_PackInfoGhost
+trait IR_RefinementPackInfoGhost extends IR_RefinementPackInfo with IR_PackInfoGhost {
+  def getRefinedGridPackingStartAndEndForRecv(neighDir : Array[Int], refinedNeighborIndexFromFine : IR_Expression) : (Array[IR_Expression], Array[IR_Expression]) = {
+    val (start, end) = getGridPackingStartAndEndForRecv(neighDir)
+
+    // receiver fragment is coarse:
+    // - split coarse iteration space of coarse neighbor into equally spaced sections
+    // - splitting is done in non-commAxis direction
+    val sectionsPerDim = Knowledge.refinement_maxFineNeighborsPerDim
+    val (coarseNeighborStart, coarseNeighborEnd) = (0 until numDimsGrid).map {
+      case i if neighDir(i) == 0 =>
+        val fullInterval = end(i) - start(i)
+
+        // go over grid dimensions in x -> y -> z order and assign each fine neighbor a section of the coarse iteration space
+        val s = start(i) + (refinedNeighborIndexFromFine Mod sectionsPerDim) * (fullInterval / sectionsPerDim)
+        val e = end(i)   - ((refinedNeighborIndexFromFine + 1) Mod sectionsPerDim) * (fullInterval / sectionsPerDim)
+
+        (s, e)
+      case i                     =>
+        (start(i), end(i))
+    }.unzip
+
+    (coarseNeighborStart.toArray, coarseNeighborEnd.toArray)
+  }
+}
 
 /// IR_F2CPackInfoGhost
 
@@ -29,7 +52,9 @@ case class IR_F2CPackInfoGhostRemoteSend(
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_RemotePackInfoGhost with IR_F2CPackInfoGhost {
 
-  override protected def getGridPackingStartAndEnd(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = ???
+  // pack interval for sending fine fragments can be reused from equal-level comm
+  override protected def getGridPackingStartAndEnd(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
+    getGridPackingStartAndEndForSend(neighDir)
 }
 
 /// IR_F2CPackInfoGhostRemoteRecv
@@ -42,7 +67,11 @@ case class IR_F2CPackInfoGhostRemoteRecv(
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_RemotePackInfoGhost with IR_F2CPackInfoGhost {
 
-  override protected def getGridPackingStartAndEnd(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = ???
+  private val refinedNeighborIndexFromFine = IR_NullExpression // FIXME: need info from remote fragment -> IV
+
+  // unpacking interval for receiving from fine to coarse requires adaptations
+  override protected def getGridPackingStartAndEnd(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
+    getRefinedGridPackingStartAndEndForRecv(neighDir, refinedNeighborIndexFromFine)
 }
 
 /// IR_F2CPackInfoGhostLocalSend
