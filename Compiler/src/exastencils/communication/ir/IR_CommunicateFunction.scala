@@ -56,7 +56,19 @@ case class IR_CommunicateFunction(
 
   def resolveIndex(indexId : String, dim : Int) = field.layout.idxById(indexId, dim)
 
-  // generate iteration spaces
+  /* generate iteration spaces */
+
+  def genRefinedIndicesWrapper[T <: IR_PackInfo](
+      refinementCase : RefinementCases.Access,
+      curNeighbors : ListBuffer[NeighborInfo],
+      genPackInfo : (NeighborInfo, Int, IR_Field, IR_ExpressionIndex, IR_ExpressionIndex) => T) = {
+
+    curNeighbors.flatMap(neigh =>
+      neigh.refinementNeighborsForCase(refinementCase).map(refIdx =>
+        genPackInfo(Duplicate(neigh), refIdx, field, dupLayerBegin, dupLayerEnd)))
+  }
+
+  // equal level
 
   def genIndicesDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
     curNeighbors.map(neigh => IR_PackInfoDuplicateRemoteSend(Duplicate(neigh), field, dupLayerBegin, dupLayerEnd))
@@ -78,7 +90,65 @@ case class IR_CommunicateFunction(
   def genIndicesGhostLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
     curNeighbors.map(neigh => IR_PackInfoGhostLocalRecv(Duplicate(neigh), field, ghostLayerBegin, ghostLayerEnd))
 
-  // generate communication statements
+  // fine-to-coarse
+
+  def genF2CIndicesWrapper[T <: IR_PackInfo](
+      curNeighbors : ListBuffer[NeighborInfo],
+      genPackInfo : (NeighborInfo, Int, IR_Field, IR_ExpressionIndex, IR_ExpressionIndex) => T) = {
+
+    genRefinedIndicesWrapper(RefinementCases.F2C, curNeighbors, genPackInfo)
+  }
+
+  def genF2CIndicesDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    genF2CIndicesWrapper(curNeighbors, IR_F2CPackInfoDuplicateRemoteSend)
+  def genF2CIndicesDuplicateRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    genF2CIndicesWrapper(curNeighbors, IR_F2CPackInfoDuplicateRemoteRecv)
+
+  def genF2CIndicesDuplicateLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    genF2CIndicesWrapper(curNeighbors, IR_F2CPackInfoDuplicateLocalSend)
+  def genF2CIndicesDuplicateLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    genF2CIndicesWrapper(curNeighbors, IR_F2CPackInfoDuplicateLocalRecv)
+
+  def genF2CIndicesGhostRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    genF2CIndicesWrapper(curNeighbors, IR_F2CPackInfoGhostRemoteSend)
+  def genF2CIndicesGhostRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    genF2CIndicesWrapper(curNeighbors, IR_F2CPackInfoGhostRemoteRecv)
+
+  def genF2CIndicesGhostLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    genF2CIndicesWrapper(curNeighbors, IR_F2CPackInfoGhostLocalSend)
+  def genF2CIndicesGhostLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    genF2CIndicesWrapper(curNeighbors, IR_F2CPackInfoGhostLocalRecv)
+
+  // coarse-to-fine
+
+  def genC2FIndicesWrapper[T <: IR_PackInfo](
+      curNeighbors : ListBuffer[NeighborInfo],
+      genPackInfo : (NeighborInfo, Int, IR_Field, IR_ExpressionIndex, IR_ExpressionIndex) => T) = {
+
+    genRefinedIndicesWrapper(RefinementCases.C2F, curNeighbors, genPackInfo)
+  }
+
+  def genC2FIndicesDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    genC2FIndicesWrapper(curNeighbors, IR_F2CPackInfoDuplicateRemoteSend)
+  def genC2FIndicesDuplicateRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    genC2FIndicesWrapper(curNeighbors, IR_F2CPackInfoDuplicateRemoteRecv)
+
+  def genC2FIndicesDuplicateLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    genC2FIndicesWrapper(curNeighbors, IR_F2CPackInfoDuplicateLocalSend)
+  def genC2FIndicesDuplicateLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    genC2FIndicesWrapper(curNeighbors, IR_F2CPackInfoDuplicateLocalRecv)
+
+  def genC2FIndicesGhostRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    genC2FIndicesWrapper(curNeighbors, IR_F2CPackInfoGhostRemoteSend)
+  def genC2FIndicesGhostRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    genC2FIndicesWrapper(curNeighbors, IR_F2CPackInfoGhostRemoteRecv)
+
+  def genC2FIndicesGhostLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    genC2FIndicesWrapper(curNeighbors, IR_F2CPackInfoGhostLocalSend)
+  def genC2FIndicesGhostLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    genC2FIndicesWrapper(curNeighbors, IR_F2CPackInfoGhostLocalRecv)
+
+  /* generate communication statements */
 
   def genCommStatements(
       concurrencyId : Int,
@@ -108,16 +178,59 @@ case class IR_CommunicateFunction(
     body
   }
 
+  // equal level
+
   def genDuplicateCommStatements(concurrencyId : Int, sendNeighbors : ListBuffer[NeighborInfo], recvNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
-    genCommStatements(concurrencyId, RefinementCases.EQUAL,
+    val ret = genCommStatements(concurrencyId, RefinementCases.EQUAL,
       genIndicesDuplicateRemoteSend(sendNeighbors), genIndicesDuplicateRemoteRecv(recvNeighbors),
       genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors))
+
+    if (Knowledge.refinement_enabled) {
+      ret ++= genF2CDuplicateCommStatements(concurrencyId, sendNeighbors, recvNeighbors)
+      ret ++= genC2FDuplicateCommStatements(concurrencyId, sendNeighbors, recvNeighbors)
+    }
+
+    ret
   }
 
   def genGhostCommStatements(concurrencyId : Int, curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
-    genCommStatements(concurrencyId, RefinementCases.EQUAL,
+    val ret = genCommStatements(concurrencyId, RefinementCases.EQUAL,
       genIndicesGhostRemoteSend(curNeighbors), genIndicesGhostRemoteRecv(curNeighbors),
       genIndicesGhostLocalSend(curNeighbors), genIndicesGhostLocalRecv(curNeighbors))
+
+    if (Knowledge.refinement_enabled) {
+      ret ++= genF2CGhostCommStatements(concurrencyId, curNeighbors)
+      ret ++= genC2FGhostCommStatements(concurrencyId, curNeighbors)
+    }
+
+    ret
+  }
+
+  // fine-to-coarse
+
+  def genF2CDuplicateCommStatements(concurrencyId : Int, sendNeighbors : ListBuffer[NeighborInfo], recvNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
+    genCommStatements(concurrencyId, RefinementCases.F2C,
+      genF2CIndicesDuplicateRemoteSend(sendNeighbors), genF2CIndicesDuplicateRemoteRecv(recvNeighbors),
+      genF2CIndicesDuplicateLocalSend(sendNeighbors), genF2CIndicesDuplicateLocalRecv(recvNeighbors))
+  }
+
+  def genF2CGhostCommStatements(concurrencyId : Int, curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
+    genCommStatements(concurrencyId, RefinementCases.F2C,
+      genF2CIndicesGhostRemoteSend(curNeighbors), genF2CIndicesGhostRemoteRecv(curNeighbors),
+      genF2CIndicesGhostLocalSend(curNeighbors), genF2CIndicesGhostLocalRecv(curNeighbors))
+  }
+
+  // coarse-to-fine
+  def genC2FDuplicateCommStatements(concurrencyId : Int, sendNeighbors : ListBuffer[NeighborInfo], recvNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
+    genCommStatements(concurrencyId, RefinementCases.C2F,
+      genC2FIndicesDuplicateRemoteSend(sendNeighbors), genC2FIndicesDuplicateRemoteRecv(recvNeighbors),
+      genC2FIndicesDuplicateLocalSend(sendNeighbors), genC2FIndicesDuplicateLocalRecv(recvNeighbors))
+  }
+
+  def genC2FGhostCommStatements(concurrencyId : Int, curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
+    genCommStatements(concurrencyId, RefinementCases.C2F,
+      genC2FIndicesGhostRemoteSend(curNeighbors), genC2FIndicesGhostRemoteRecv(curNeighbors),
+      genC2FIndicesGhostLocalSend(curNeighbors), genC2FIndicesGhostLocalRecv(curNeighbors))
   }
 
   def compileTransformedDuplicateComm(sendNeighbors : ListBuffer[NeighborInfo], recvNeighbors : ListBuffer[NeighborInfo], concurrencyId : Int) : ListBuffer[IR_Statement] = {
