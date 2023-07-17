@@ -14,7 +14,7 @@ trait IR_RefinementPackInfo extends IR_PackInfo {
 
   def refinementCase : RefinementCases.Access
 
-  def refinementNeighborIndex : Int
+  def indexOfRefinedRecvNeighbor : Int
 }
 
 /// IR_F2CPackInfo

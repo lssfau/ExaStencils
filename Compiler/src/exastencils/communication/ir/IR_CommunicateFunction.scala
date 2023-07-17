@@ -64,7 +64,7 @@ case class IR_CommunicateFunction(
       genPackInfo : (NeighborInfo, Int, IR_Field, IR_ExpressionIndex, IR_ExpressionIndex) => T) = {
 
     curNeighbors.flatMap(neigh =>
-      neigh.refinementNeighborsForCase(refinementCase).map(refIdx =>
+      neigh.recvNeighborsForRefinementCase(refinementCase).map(refIdx =>
         genPackInfo(Duplicate(neigh), refIdx, field, dupLayerBegin, dupLayerEnd)))
   }
 

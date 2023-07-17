@@ -29,6 +29,10 @@ import exastencils.logger.Logger
 object RefinementCases extends Enumeration {
   type Access = Value
   final val ANNOT : String = "RefinementCase"
+
+  // EQUAL: send message to one neighbor (per fragment, per commAxis)
+  // F2C  : send message to one (coarse) neighbor (per fragment, per commAxis)
+  // C2F  : send messages to N (fine) neighbors (per fragment, per commAxis)
   final val EQUAL, F2C, C2F = Value
 }
 
@@ -57,7 +61,7 @@ object DefaultNeighbors {
   def setup() : Unit = {
     neighbors.clear
 
-    val equalLevelNeighbors = HashMap(/* levelDiff */ EQUAL -> /* numNeighbors */ 1)
+    val recvNeighborsForEqualLevel = HashMap(/* levelDiff */ EQUAL -> /* numNeighbors */ 1)
 
     if (Knowledge.comm_onlyAxisNeighbors) {
       var neighIndex = 0
@@ -65,16 +69,16 @@ object DefaultNeighbors {
         val downwindDir = Array.fill(dim)(0) ++ Array(-1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0)
         val upwindDir   = Array.fill(dim)(0) ++ Array(+1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0)
 
-        val neighborsPerRefinementCase = if (Knowledge.refinement_enabled)
+        val recvNeighborsPerRefinementCase = if (Knowledge.refinement_enabled)
           // equal level + fine-to-coarse (1 neighbor) + coarse-to-fine (multiple neighbors)
-          equalLevelNeighbors + (F2C -> 1) + (C2F -> Knowledge.refinement_maxFineNeighborsForCommAxis)
+          recvNeighborsForEqualLevel + (F2C -> 1) + (C2F -> Knowledge.refinement_maxFineNeighborsForCommAxis)
         else
           // no refinement -> equal level
-          equalLevelNeighbors
+          recvNeighborsForEqualLevel
 
-        neighbors += NeighborInfo(downwindDir, neighborsPerRefinementCase, neighIndex)
+        neighbors += NeighborInfo(downwindDir, recvNeighborsPerRefinementCase, neighIndex)
         neighIndex += 1
-        neighbors += NeighborInfo(upwindDir, neighborsPerRefinementCase, neighIndex)
+        neighbors += NeighborInfo(upwindDir, recvNeighborsPerRefinementCase, neighIndex)
         neighIndex += 1
       }
     } else {
@@ -86,7 +90,7 @@ object DefaultNeighbors {
 
       var neighIndex = 0
       for (dir <- directions; if dir.map(i => if (0 == i) 0 else 1).sum > 0) {
-        neighbors += NeighborInfo(dir.toArray, equalLevelNeighbors, neighIndex)
+        neighbors += NeighborInfo(dir.toArray, recvNeighborsForEqualLevel, neighIndex)
         neighIndex += 1
       }
     }
@@ -100,7 +104,7 @@ object DefaultNeighbors {
 
 /// NeighborInfo
 
-case class NeighborInfo(var dir : Array[Int], numNeighborsForRefinementCase : HashMap[RefinementCases.Access, Int], var index : Int) {
+case class NeighborInfo(var dir : Array[Int], numRecvNeighborsForRefinementCase : HashMap[RefinementCases.Access, Int], var index : Int) {
   def dirToString(dir : Int) : String = {
     if (dir < 0)
       Array.fill(dir)("N").mkString
@@ -110,7 +114,7 @@ case class NeighborInfo(var dir : Array[Int], numNeighborsForRefinementCase : Ha
       "0"
   }
 
-  def refinementNeighborsForCase(refCase : RefinementCases.Access) = 0 until numNeighborsForRefinementCase(refCase)
+  def recvNeighborsForRefinementCase(refCase : RefinementCases.Access) = (0 until numRecvNeighborsForRefinementCase(refCase))
 
   def label = (Knowledge.dimensionality - 1 to 0 by -1).toList.map(i => s"i$i" + dirToString(dir(i))).mkString("_")
 }
