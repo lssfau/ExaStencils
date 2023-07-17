@@ -1,10 +1,17 @@
 package exastencils.communication.ir
 
 import exastencils.communication.RefinementCases
+import exastencils.grid.ir.IR_AtCellCenter
+import exastencils.logger.Logger
 
 /// IR_RefinementPackInfo
 
 trait IR_RefinementPackInfo extends IR_PackInfo {
+  field.localization match {
+    case IR_AtCellCenter =>
+    case _               => Logger.error("Mesh refinement is currently only available for cell-centered discretizations.")
+  }
+
   def refinementCase : RefinementCases.Access
 
   def refinementNeighborIndex : Int
