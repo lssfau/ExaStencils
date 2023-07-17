@@ -36,6 +36,7 @@ import exastencils.parallelization.api.omp.OMP_WaitForFlag
 case class IR_LocalCommunicationFinish(
     var field : IR_Field,
     var slot : IR_Expression,
+    var refinementCase : RefinementCases.Access,
     var sendPackInfos : ListBuffer[IR_LocalPackInfo],
     var recvPackInfos : ListBuffer[IR_LocalPackInfo],
     var insideFragLoop : Boolean,

@@ -22,12 +22,15 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.communication.RefinementCases
 import exastencils.config.Knowledge
 
 /// IR_LocalCommunication
 
 abstract class IR_LocalCommunication extends IR_Statement with IR_Expandable {
   def insideFragLoop : Boolean
+
+  def refinementCase : RefinementCases.Access
 
   def sendPackInfos : ListBuffer[IR_LocalPackInfo]
 

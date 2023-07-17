@@ -24,9 +24,19 @@ import scala.collection.mutable.ListBuffer
 import exastencils.config.Knowledge
 import exastencils.logger.Logger
 
+/// RefinementCases
+
+object RefinementCases extends Enumeration {
+  type Access = Value
+  final val ANNOT : String = "RefinementCase"
+  final val EQUAL, F2C, C2F = Value
+}
+
 /// DefaultNeighbors
 
 object DefaultNeighbors {
+  import exastencils.communication.RefinementCases._
+
   var neighbors = ListBuffer[NeighborInfo]()
 
   // ignores array entries beyond Knowledge.dimensionality
@@ -47,7 +57,7 @@ object DefaultNeighbors {
   def setup() : Unit = {
     neighbors.clear
 
-    val equalLevelNeighbors = HashMap(/* levelDiff */ 0 -> /* numNeighbors */ 1)
+    val equalLevelNeighbors = HashMap(/* levelDiff */ EQUAL -> /* numNeighbors */ 1)
 
     if (Knowledge.comm_onlyAxisNeighbors) {
       var neighIndex = 0
@@ -57,7 +67,7 @@ object DefaultNeighbors {
 
         val neighborsPerRefinementCase = if (Knowledge.refinement_enabled)
           // equal level + fine-to-coarse (1 neighbor) + coarse-to-fine (multiple neighbors)
-          equalLevelNeighbors + (-1 -> 1) + (1 -> Knowledge.refinement_maxCommNeighborsPerDir)
+          equalLevelNeighbors + (F2C -> 1) + (C2F -> Knowledge.refinement_maxCommNeighborsPerDir)
         else
           // no refinement -> equal level
           equalLevelNeighbors
@@ -90,7 +100,7 @@ object DefaultNeighbors {
 
 /// NeighborInfo
 
-case class NeighborInfo(var dir : Array[Int], numNeighborsForRefinementCase : HashMap[Int, Int], var index : Int) {
+case class NeighborInfo(var dir : Array[Int], numNeighborsForRefinementCase : HashMap[RefinementCases.Access, Int], var index : Int) {
   def dirToString(dir : Int) : String = {
     if (dir < 0)
       Array.fill(dir)("N").mkString
@@ -99,6 +109,8 @@ case class NeighborInfo(var dir : Array[Int], numNeighborsForRefinementCase : Ha
     else
       "0"
   }
+
+  def refinementNeighborsForCase(refCase : RefinementCases.Access) = 0 until numNeighborsForRefinementCase(refCase)
 
   def label = (Knowledge.dimensionality - 1 to 0 by -1).toList.map(i => s"i$i" + dirToString(dir(i))).mkString("_")
 }

@@ -24,6 +24,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
+import exastencils.communication.RefinementCases
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
@@ -38,6 +39,7 @@ import exastencils.parallelization.api.mpi.MPI_DataType
 case class IR_RemoteCommunicationStart(
     var field : IR_Field,
     var slot : IR_Expression,
+    var refinementCase : RefinementCases.Access,
     var packInfos : ListBuffer[IR_RemotePackInfo],
     var start : Boolean, var end : Boolean,
     var concurrencyId : Int,
