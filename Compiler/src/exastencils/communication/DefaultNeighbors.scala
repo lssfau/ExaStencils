@@ -67,7 +67,7 @@ object DefaultNeighbors {
 
         val neighborsPerRefinementCase = if (Knowledge.refinement_enabled)
           // equal level + fine-to-coarse (1 neighbor) + coarse-to-fine (multiple neighbors)
-          equalLevelNeighbors + (F2C -> 1) + (C2F -> Knowledge.refinement_maxCommNeighborsPerDir)
+          equalLevelNeighbors + (F2C -> 1) + (C2F -> Knowledge.refinement_maxFineNeighborsForCommAxis)
         else
           // no refinement -> equal level
           equalLevelNeighbors

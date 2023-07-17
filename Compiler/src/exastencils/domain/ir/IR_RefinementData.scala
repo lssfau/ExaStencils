@@ -20,7 +20,7 @@ abstract class IR_RefinementData(
     var datatype : IR_Datatype = resolveDatatype()
 
     if (canBePerRefinedNeighbor && usesRefinedNeighborArrays && Knowledge.refinement_enabled)
-      datatype = IR_ArrayDatatype(datatype, Knowledge.refinement_maxCommNeighborsPerDir)
+      datatype = IR_ArrayDatatype(datatype, Knowledge.refinement_maxFineNeighborsForCommAxis)
 
     new IR_VariableDeclaration(datatype, resolveName())
   }

@@ -133,8 +133,11 @@ object Knowledge {
 
   var refinement_enabled : Boolean = false
 
+  // determines fine:coarse ratio (e.g., 2:1)
+  def refinement_maxFineNeighborsPerDim : Int = 2
+
   // 1D: 1 neighbor, 2D: 2 neighbors, 3D: 4 neighbors
-  def refinement_maxCommNeighborsPerDir : Int = 2 << (-2 + Knowledge.dimensionality)
+  def refinement_maxFineNeighborsForCommAxis : Int = refinement_maxFineNeighborsPerDim << (-2 + Knowledge.dimensionality)
 
   //// specifications for field
 

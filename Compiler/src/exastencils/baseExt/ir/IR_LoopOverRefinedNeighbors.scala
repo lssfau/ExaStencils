@@ -20,7 +20,7 @@ case class IR_LoopOverRefinedNeighbors(var body : ListBuffer[IR_Statement]) exte
   override def expand() : Output[IR_ForLoop] = {
     IR_ForLoop(
       IR_VariableDeclaration(IR_IntegerDatatype, defIt, 0),
-      IR_Lower(defIt, Knowledge.refinement_maxCommNeighborsPerDir),
+      IR_Lower(defIt, Knowledge.refinement_maxFineNeighborsForCommAxis),
       IR_PreIncrement(defIt),
       body)
   }
