@@ -60,15 +60,15 @@ trait IR_PackInfoGhost extends IR_PackInfo {
   }
 }
 
-/// IR_RemotePackingIntervalGhost
+/// IR_RemotePackInfoGhost
 
 trait IR_RemotePackInfoGhost extends IR_RemotePackInfo with IR_PackInfoGhost
 
-/// IR_LocalPackingIntervalGhost
+/// IR_LocalPackInfoGhost
 
 trait IR_LocalPackInfoGhost extends IR_LocalPackInfo with IR_PackInfoGhost
 
-/// IR_PackingIntervalGhostRemoteSend
+/// IR_PackInfoGhostRemoteSend
 // remote send pack interval for ghost layers
 
 case class IR_PackInfoGhostRemoteSend(
@@ -82,7 +82,7 @@ case class IR_PackInfoGhostRemoteSend(
     getGridPackingStartAndEndForSend(neighDir)
 }
 
-/// IR_PackingIntervalGhostRemoteRecv
+/// IR_PackInfoGhostRemoteRecv
 // remote recv pack interval for ghost layers
 
 case class IR_PackInfoGhostRemoteRecv(
@@ -96,7 +96,7 @@ case class IR_PackInfoGhostRemoteRecv(
     getGridPackingStartAndEndForRecv(neighDir)
 }
 
-/// IR_PackingIntervalGhostLocalSend
+/// IR_PackInfoGhostLocalSend
 // local send pack intervals for ghost layers
 
 case class IR_PackInfoGhostLocalSend(
@@ -134,7 +134,7 @@ case class IR_PackInfoGhostLocalSend(
   }
 }
 
-/// IR_PackingIntervalGhostLocalRecv
+/// IR_PackInfoGhostLocalRecv
 // local send pack intervals for ghost layers
 
 case class IR_PackInfoGhostLocalRecv(

@@ -6,7 +6,7 @@ import exastencils.communication.NeighborInfo
 import exastencils.config.Knowledge
 import exastencils.field.ir.IR_Field
 
-/// IR_PackingIntervalDuplicate
+/// IR_PackInfoDuplicate
 
 trait IR_PackInfoDuplicate extends IR_PackInfo {
   def dupLayerBegin : IR_ExpressionIndex
@@ -39,11 +39,11 @@ trait IR_PackInfoDuplicate extends IR_PackInfo {
   }
 }
 
-/// IR_RemotePackingIntervalDuplicate
+/// IR_RemotePackInfoDuplicate
 
 trait IR_RemotePackInfoDuplicate extends IR_RemotePackInfo with IR_PackInfoDuplicate
 
-/// IR_LocalPackingIntervalDuplicate
+/// IR_LocalPackInfoDuplicate
 
 trait IR_LocalPackInfoDuplicate extends IR_LocalPackInfo with IR_PackInfoDuplicate {
   private def inverseNeighDir : Array[Int] = neighbor.dir.map(-1 * _)
@@ -55,7 +55,7 @@ trait IR_LocalPackInfoDuplicate extends IR_LocalPackInfo with IR_PackInfoDuplica
     getGridPackingStartAndEnd(inverseNeighDir)
 }
 
-/// IR_PackingIntervalDuplicateRemoteSend
+/// IR_PackInfoDuplicateRemoteSend
 // remote send pack interval for duplicate layers
 
 case class IR_PackInfoDuplicateRemoteSend(
@@ -65,7 +65,7 @@ case class IR_PackInfoDuplicateRemoteSend(
     var dupLayerEnd : IR_ExpressionIndex,
 ) extends IR_RemotePackInfoDuplicate
 
-/// IR_PackingIntervalDuplicateRemoteRecv
+/// IR_PackInfoDuplicateRemoteRecv
 // remote recv pack interval for duplicate layers
 
 case class IR_PackInfoDuplicateRemoteRecv(
@@ -75,7 +75,7 @@ case class IR_PackInfoDuplicateRemoteRecv(
     var dupLayerEnd : IR_ExpressionIndex,
 ) extends IR_RemotePackInfoDuplicate
 
-/// IR_PackingIntervalDuplicateLocalSend
+/// IR_PackInfoDuplicateLocalSend
 // local send pack intervals for duplicate layers
 
 case class IR_PackInfoDuplicateLocalSend(
@@ -85,7 +85,7 @@ case class IR_PackInfoDuplicateLocalSend(
     var dupLayerEnd : IR_ExpressionIndex,
 ) extends IR_LocalPackInfoDuplicate
 
-/// IR_PackingIntervalDuplicateLocalRecv
+/// IR_PackInfoDuplicateLocalRecv
 // local send pack intervals for duplicate layers
 
 case class IR_PackInfoDuplicateLocalRecv(

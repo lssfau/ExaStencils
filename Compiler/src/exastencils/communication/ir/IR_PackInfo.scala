@@ -6,7 +6,7 @@ import exastencils.communication.NeighborInfo
 import exastencils.datastructures.Node
 import exastencils.field.ir.IR_Field
 
-/// IR_PackingInterval
+/// IR_PackInfo
 
 trait IR_PackInfo extends Node {
   def neighbor : NeighborInfo
@@ -32,7 +32,7 @@ trait IR_PackInfo extends Node {
   protected def resolveIndex(indexId : String, dim : Int) : IR_Expression = field.layout.idxById(indexId, dim)
 }
 
-/// IR_RemotePackingInterval
+/// IR_RemotePackInfo
 
 trait IR_RemotePackInfo extends IR_PackInfo {
   protected def getGridPackingStartAndEnd(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression])
@@ -45,7 +45,7 @@ trait IR_RemotePackInfo extends IR_PackInfo {
   def getPackInterval() : IR_ExpressionIndexRange = extendWithDataPackInterval(getGridPackingInterval(neighbor.dir))
 }
 
-/// IR_LocalPackingInterval
+/// IR_LocalPackInfo
 
 trait IR_LocalPackInfo extends IR_PackInfo {
 
