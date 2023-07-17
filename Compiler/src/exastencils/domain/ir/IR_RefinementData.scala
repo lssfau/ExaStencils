@@ -1,7 +1,7 @@
-package exastencils.communication.ir
+package exastencils.domain.ir
 
-import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 
