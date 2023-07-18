@@ -5,7 +5,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 
-abstract class IR_RefinementData(
+abstract class IR_RefinementInfo(
     canBePerFragment : Boolean,
     canBePerDomain : Boolean,
     canBePerField : Boolean,
