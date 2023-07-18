@@ -34,6 +34,12 @@ object RefinementCases extends Enumeration {
   // F2C  : send message to one (coarse) neighbor (per fragment, per commAxis)
   // C2F  : send messages to N (fine) neighbors (per fragment, per commAxis)
   final val EQUAL, F2C, C2F = Value
+
+  def getOppositeCase(access: Access) = access match {
+    case EQUAL => EQUAL
+    case F2C => C2F
+    case C2F => F2C
+  }
 }
 
 /// DefaultNeighbors
@@ -113,6 +119,8 @@ case class NeighborInfo(var dir : Array[Int], numRecvNeighborsForRefinementCase 
     else
       "0"
   }
+
+  def sendNeighborsForRefinementCase(refCase : RefinementCases.Access) = (0 until numRecvNeighborsForRefinementCase(RefinementCases.getOppositeCase(refCase)))
 
   def recvNeighborsForRefinementCase(refCase : RefinementCases.Access) = (0 until numRecvNeighborsForRefinementCase(refCase))
 

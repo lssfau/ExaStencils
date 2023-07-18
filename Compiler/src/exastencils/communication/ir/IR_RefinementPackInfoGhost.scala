@@ -46,7 +46,7 @@ trait IR_C2FPackInfoGhost extends IR_C2FPackInfo with IR_RefinementPackInfoGhost
 /// IR_F2CPackInfoGhostRemoteSend
 case class IR_F2CPackInfoGhostRemoteSend(
     var neighbor : NeighborInfo,
-    var indexOfRefinedRecvNeighbor : Int,
+    var indexOfRefinedNeighbor : Int,
     var field : IR_Field,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
@@ -61,24 +61,22 @@ case class IR_F2CPackInfoGhostRemoteSend(
 
 case class IR_F2CPackInfoGhostRemoteRecv(
     var neighbor : NeighborInfo,
-    var indexOfRefinedRecvNeighbor : Int,
+    var indexOfRefinedNeighbor : Int,
     var field : IR_Field,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_RemotePackInfoGhost with IR_F2CPackInfoGhost {
 
-  private val refinedNeighborIndexFromFine = IR_NullExpression // FIXME: need info from remote fragment -> IV
-
   // unpacking interval for receiving from fine to coarse requires adaptations
   override protected def getGridPackingStartAndEnd(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getRefinedGridPackingStartAndEndForRecv(neighDir, refinedNeighborIndexFromFine)
+    getRefinedGridPackingStartAndEndForRecv(neighDir, indexOfRefinedNeighbor)
 }
 
 /// IR_F2CPackInfoGhostLocalSend
 
 case class IR_F2CPackInfoGhostLocalSend(
     var neighbor : NeighborInfo,
-    var indexOfRefinedRecvNeighbor : Int,
+    var indexOfRefinedNeighbor : Int,
     var field : IR_Field,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
@@ -92,7 +90,7 @@ case class IR_F2CPackInfoGhostLocalSend(
 
 case class IR_F2CPackInfoGhostLocalRecv(
     var neighbor : NeighborInfo,
-    var indexOfRefinedRecvNeighbor : Int,
+    var indexOfRefinedNeighbor : Int,
     var field : IR_Field,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
@@ -107,7 +105,7 @@ case class IR_F2CPackInfoGhostLocalRecv(
 /// IR_C2FPackInfoGhostRemoteSend
 case class IR_C2FPackInfoGhostRemoteSend(
     var neighbor : NeighborInfo,
-    var indexOfRefinedRecvNeighbor : Int,
+    var indexOfRefinedNeighbor : Int,
     var field : IR_Field,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
@@ -120,7 +118,7 @@ case class IR_C2FPackInfoGhostRemoteSend(
 
 case class IR_C2FPackInfoGhostRemoteRecv(
     var neighbor : NeighborInfo,
-    var indexOfRefinedRecvNeighbor : Int,
+    var indexOfRefinedNeighbor : Int,
     var field : IR_Field,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
@@ -133,7 +131,7 @@ case class IR_C2FPackInfoGhostRemoteRecv(
 
 case class IR_C2FPackInfoGhostLocalSend(
     var neighbor : NeighborInfo,
-    var indexOfRefinedRecvNeighbor : Int,
+    var indexOfRefinedNeighbor : Int,
     var field : IR_Field,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
@@ -147,7 +145,7 @@ case class IR_C2FPackInfoGhostLocalSend(
 
 case class IR_C2FPackInfoGhostLocalRecv(
     var neighbor : NeighborInfo,
-    var indexOfRefinedRecvNeighbor : Int,
+    var indexOfRefinedNeighbor : Int,
     var field : IR_Field,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
