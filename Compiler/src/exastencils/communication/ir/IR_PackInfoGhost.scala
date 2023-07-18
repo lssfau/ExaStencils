@@ -108,30 +108,8 @@ case class IR_PackInfoGhostLocalSend(
   override protected def getGridPackingStartAndEndDest(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
     getGridPackingStartAndEndForSend(neighDir)
 
-  override protected def getGridPackingStartAndEndSrc(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = {
-    (
-      // start
-      (0 until numDimsGrid).toArray.map {
-        case i if -neighDir(i) == 0 =>
-          if (Knowledge.comm_syncGhostData)
-            resolveIndex("GLB", i)
-          else
-            resolveIndex("DLB", i)
-        case i if -neighDir(i) < 0  => resolveIndex("GLE", i) - ghostLayerEnd(i)
-        case i if -neighDir(i) > 0  => resolveIndex("GRB", i) + ghostLayerBegin(i)
-      },
-      // end
-      (0 until numDimsGrid).toArray.map {
-        case i if -neighDir(i) == 0 =>
-          if (Knowledge.comm_syncGhostData)
-            resolveIndex("GRE", i)
-          else
-            resolveIndex("DRE", i)
-        case i if -neighDir(i) < 0  => resolveIndex("GLE", i) - ghostLayerBegin(i)
-        case i if -neighDir(i) > 0  => resolveIndex("GRB", i) + ghostLayerEnd(i)
-      }
-    )
-  }
+  override protected def getGridPackingStartAndEndSrc(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
+    getGridPackingStartAndEndForRecv(inverseNeighDir)
 }
 
 /// IR_PackInfoGhostLocalRecv
@@ -147,29 +125,7 @@ case class IR_PackInfoGhostLocalRecv(
   override protected def getGridPackingStartAndEndDest(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
     getGridPackingStartAndEndForRecv(neighDir)
 
-  override protected def getGridPackingStartAndEndSrc(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = {
-    (
-      // start
-      (0 until numDimsGrid).toArray.map {
-        case i if -neighDir(i) == 0 =>
-          if (Knowledge.comm_syncGhostData)
-            resolveIndex("GLB", i)
-          else
-            resolveIndex("DLB", i)
-        case i if -neighDir(i) < 0  => resolveIndex("IB", i) + ghostLayerBegin(i)
-        case i if -neighDir(i) > 0  => resolveIndex("IE", i) - ghostLayerEnd(i)
-      },
-      // end
-      (0 until numDimsGrid).toArray.map {
-        case i if -neighDir(i) == 0 =>
-          if (Knowledge.comm_syncGhostData)
-            resolveIndex("GRE", i)
-          else
-            resolveIndex("DRE", i)
-        case i if -neighDir(i) < 0  => resolveIndex("IB", i) + ghostLayerEnd(i)
-        case i if -neighDir(i) > 0  => resolveIndex("IE", i) - ghostLayerBegin(i)
-      }
-    )
-  }
+  override protected def getGridPackingStartAndEndSrc(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
+    getGridPackingStartAndEndForSend(inverseNeighDir)
 
 }
