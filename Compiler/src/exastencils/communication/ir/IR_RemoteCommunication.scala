@@ -24,7 +24,6 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
-import exastencils.communication.RefinementCases
 import exastencils.config.Knowledge
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_Field
@@ -34,7 +33,7 @@ import exastencils.field.ir.IR_Field
 abstract class IR_RemoteCommunication extends IR_Statement with IR_Expandable {
   def field : IR_Field
 
-  def refinementCase : RefinementCases.Access
+  def refinementCase : RefinementCase.Access
   def packInfos : ListBuffer[IR_RemotePackInfo]
 
   def insideFragLoop : Boolean

@@ -1,6 +1,6 @@
 package exastencils.communication.ir
 
-import exastencils.communication.RefinementCases
+import exastencils.domain.ir.RefinementCase
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.logger.Logger
 
@@ -24,7 +24,7 @@ trait IR_RefinementPackInfo extends IR_PackInfo {
   if (field.layout.communicatesDuplicated)
     Logger.error("Communication of duplicate layers in refined meshes is not implemented.")
 
-  def refinementCase : RefinementCases.Access
+  def refinementCase : RefinementCase.Access
 
   def indexOfRefinedNeighbor : Int
 }
@@ -32,11 +32,11 @@ trait IR_RefinementPackInfo extends IR_PackInfo {
 /// IR_F2CPackInfo
 
 trait IR_F2CPackInfo extends IR_RefinementPackInfo {
-  override def refinementCase = RefinementCases.F2C
+  override def refinementCase = RefinementCase.F2C
 }
 
 /// IR_C2FPackInfo
 
 trait IR_C2FPackInfo extends IR_RefinementPackInfo {
-  override def refinementCase = RefinementCases.C2F
+  override def refinementCase = RefinementCase.C2F
 }

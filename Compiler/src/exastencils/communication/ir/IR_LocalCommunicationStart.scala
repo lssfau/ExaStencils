@@ -22,7 +22,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.communication.RefinementCases
+import exastencils.domain.ir.RefinementCase
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
@@ -35,7 +35,7 @@ import exastencils.field.ir.IR_Field
 case class IR_LocalCommunicationStart(
     var field : IR_Field,
     var slot : IR_Expression,
-    var refinementCase : RefinementCases.Access,
+    var refinementCase : RefinementCase.Access,
     var sendPackInfos : ListBuffer[IR_LocalPackInfo],
     var recvPackInfos : ListBuffer[IR_LocalPackInfo],
     var insideFragLoop : Boolean,
