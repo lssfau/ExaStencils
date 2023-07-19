@@ -38,7 +38,7 @@ case class IR_LocalRecv(
     var slot : IR_Expression,
     var packInfo : IR_LocalPackInfo,
     var insideFragLoop : Boolean,
-    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
+    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_ApplyLocalCommunication {
 
   def numDims = field.layout.numDimsData
 
@@ -90,9 +90,8 @@ case class IR_LocalRecv(
     // signal other threads that the data reading step is completed
     ifCondStmts += IR_Assignment(IR_IV_LocalCommDone(field, neighborIdx), IR_BooleanConstant(true)) // TODO here too
 
-    IR_IfCondition(IR_IV_NeighborIsValid(domainIdx, neighborIdx) AndAnd IR_Negation(IR_IV_NeighborIsRemote(domainIdx, neighborIdx)),
+    IR_IfCondition(isLocalNeighbor(domainIdx, neighborIdx),
       ifCondStmts)
-
   }
 }
 

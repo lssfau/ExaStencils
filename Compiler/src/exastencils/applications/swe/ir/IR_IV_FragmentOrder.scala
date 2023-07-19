@@ -53,7 +53,7 @@ case class IR_IV_NeighFragOrder(var neighIdx : IR_Expression, var fragmentIdx : 
 
 /// IR_CommunicateFragmentOrder
 
-case object IR_CommunicateFragmentOrder extends IR_FuturePlainFunction {
+case object IR_CommunicateFragmentOrder extends IR_FuturePlainFunction with IR_ApplyLocalCommunication with IR_ApplyRemoteCommunication {
   override var name = "commFragOrderInternal"
   def returnType : IR_Datatype = IR_UnitDatatype
 
@@ -74,7 +74,7 @@ case object IR_CommunicateFragmentOrder extends IR_FuturePlainFunction {
 
     IR_LoopOverFragments(
       DefaultNeighbors.neighbors.map(_.index).map(neighIdx =>
-        IR_IfCondition(IR_IV_NeighborIsValid(0, neighIdx) AndAnd IR_Negation(IR_IV_NeighborIsRemote(0, neighIdx)),
+        IR_IfCondition(isLocalNeighbor(0, neighIdx),
           compose(neighIdx)) : IR_Statement))
   }
 
@@ -98,7 +98,7 @@ case object IR_CommunicateFragmentOrder extends IR_FuturePlainFunction {
 
     IR_LoopOverFragments(
       DefaultNeighbors.neighbors.map(_.index).map(neighIdx =>
-        IR_IfCondition(IR_IV_NeighborIsValid(0, neighIdx) AndAnd IR_IV_NeighborIsRemote(0, neighIdx),
+        IR_IfCondition(isRemoteNeighbor(0, neighIdx),
           compose(neighIdx)) : IR_Statement))
   }
 
@@ -113,7 +113,7 @@ case object IR_CommunicateFragmentOrder extends IR_FuturePlainFunction {
 
     IR_LoopOverFragments(
       DefaultNeighbors.neighbors.map(_.index).map(neighIdx =>
-        IR_IfCondition(IR_IV_NeighborIsValid(0, neighIdx) AndAnd IR_IV_NeighborIsRemote(0, neighIdx),
+        IR_IfCondition(isRemoteNeighbor(0, neighIdx),
           compose(neighIdx)) : IR_Statement))
   }
 

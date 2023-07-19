@@ -21,38 +21,29 @@ package exastencils.communication.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir._
-import exastencils.domain.ir.RefinementCase
-import exastencils.config.Knowledge
+import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.communication.NeighborInfo
+import exastencils.domain.ir.IR_IV_NeighborIsRemote
+import exastencils.domain.ir.IR_IV_NeighborIsValid
+
+/// IR_ApplyLocalCommunication
+
+trait IR_ApplyLocalCommunication {
+  def isLocalNeighbor(domainIdx : IR_Expression, neighborIdx : IR_Expression) = IR_IV_NeighborIsValid(domainIdx, neighborIdx) AndAnd IR_Negation(IR_IV_NeighborIsRemote(domainIdx, neighborIdx))
+}
 
 /// IR_LocalCommunication
 
-abstract class IR_LocalCommunication extends IR_Statement with IR_Expandable {
-  def insideFragLoop : Boolean
-
-  def refinementCase : RefinementCase.Access
-
+abstract class IR_LocalCommunication extends IR_Communication with IR_ApplyLocalCommunication {
   def sendPackInfos : ListBuffer[IR_LocalPackInfo]
 
   def recvPackInfos : ListBuffer[IR_LocalPackInfo]
 
-  def wrapFragLoop(toWrap : IR_Statement) : IR_Statement = {
-    if (insideFragLoop) {
-      toWrap
-    } else {
-      val loop = IR_LoopOverFragments(toWrap)
-      loop.parallelization.potentiallyParallel = Knowledge.comm_parallelizeFragmentLoops
-      loop
-    }
-  }
+  def wrapCond(neighbor : NeighborInfo, stmt : IR_Statement) : IR_Statement =
+    IR_IfCondition(isLocalNeighbor(field.domain.index, neighbor.index),
+      stmt)
 
-  def wrapFragLoop(toWrap : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
-    if (insideFragLoop) {
-      toWrap
-    } else {
-      val loop = new IR_LoopOverFragments(toWrap)
-      loop.parallelization.potentiallyParallel = Knowledge.comm_parallelizeFragmentLoops
-      ListBuffer[IR_Statement](loop)
-    }
-  }
+  def wrapCond(neighbor : NeighborInfo, body : ListBuffer[IR_Statement]) : IR_Statement =
+    IR_IfCondition(isLocalNeighbor(field.domain.index, neighbor.index),
+      body)
 }

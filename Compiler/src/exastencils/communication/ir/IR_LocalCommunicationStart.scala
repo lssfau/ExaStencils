@@ -48,7 +48,7 @@ case class IR_LocalCommunicationStart(
         val neighborIdx = neighbor.index
         val domainIdx = field.domain.index
 
-        IR_IfCondition(IR_IV_NeighborIsValid(domainIdx, neighborIdx) AndAnd IR_Negation(IR_IV_NeighborIsRemote(domainIdx, neighborIdx)),
+        wrapCond(neighbor,
           IR_Assignment(IR_IV_LocalCommReady(field, neighborIdx), IR_BooleanConstant(true)))
       }))
   }

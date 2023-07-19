@@ -37,7 +37,7 @@ case class IR_LocalSend(
     var slot : IR_Expression,
     var packInfo : IR_LocalPackInfo,
     var insideFragLoop : Boolean,
-    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
+    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_ApplyLocalCommunication {
 
   def numDims = field.layout.numDimsData
 
@@ -61,7 +61,7 @@ case class IR_LocalSend(
     loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
 
-    IR_IfCondition(IR_IV_NeighborIsValid(domainIdx, neighborIdx) AndAnd IR_Negation(IR_IV_NeighborIsRemote(domainIdx, neighborIdx)),
+    IR_IfCondition(isLocalNeighbor(domainIdx, neighborIdx),
       ListBuffer[IR_Statement](
         // wait until the fragment to be written to is ready for communication
         IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(), IR_AddressOf(IR_IV_LocalCommReady(

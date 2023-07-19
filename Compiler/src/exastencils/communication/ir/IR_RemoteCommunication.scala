@@ -20,39 +20,30 @@ package exastencils.communication.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.communication.NeighborInfo
-import exastencils.config.Knowledge
 import exastencils.domain.ir._
-import exastencils.field.ir.IR_Field
+
+/// IR_ApplyRemoteCommunication
+
+trait IR_ApplyRemoteCommunication {
+  def isRemoteNeighbor(domainIdx : IR_Expression, neighborIdx : IR_Expression) = IR_IV_NeighborIsValid(domainIdx, neighborIdx) AndAnd IR_IV_NeighborIsRemote(domainIdx, neighborIdx)
+}
 
 /// IR_RemoteCommunication
 
-abstract class IR_RemoteCommunication extends IR_Statement with IR_Expandable {
-  def field : IR_Field
-
-  def refinementCase : RefinementCase.Access
+abstract class IR_RemoteCommunication extends IR_Communication with IR_ApplyRemoteCommunication {
   def packInfos : ListBuffer[IR_RemotePackInfo]
-
-  def insideFragLoop : Boolean
 
   def genCopy(packInfo : IR_RemotePackInfo, addCondition : Boolean) : IR_Statement
   def genTransfer(packInfo : IR_RemotePackInfo, addCondition : Boolean) : IR_Statement
 
-  def wrapCond(neighbor : NeighborInfo, body : ListBuffer[IR_Statement]) : IR_Statement = {
-    IR_IfCondition(IR_IV_NeighborIsValid(field.domain.index, neighbor.index) AndAnd IR_IV_NeighborIsRemote(field.domain.index, neighbor.index),
-      body)
-  }
+  def wrapCond(neighbor : NeighborInfo, stmt : IR_Statement) : IR_Statement =
+    IR_IfCondition(isRemoteNeighbor(field.domain.index, neighbor.index),
+      stmt)
 
-  def wrapFragLoop(toWrap : IR_Statement) : IR_Statement = {
-    if (insideFragLoop) {
-      toWrap
-    } else {
-      val loop = IR_LoopOverFragments(toWrap)
-      loop.parallelization.potentiallyParallel = Knowledge.comm_parallelizeFragmentLoops
-      loop
-    }
-  }
+  def wrapCond(neighbor : NeighborInfo, body : ListBuffer[IR_Statement]) : IR_Statement =
+    IR_IfCondition(isRemoteNeighbor(field.domain.index, neighbor.index),
+      body)
 }
