@@ -22,13 +22,21 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.communication.NeighborInfo
+import exastencils.config.Knowledge
 import exastencils.domain.ir._
 
 /// IR_ApplyRemoteCommunication
 
 trait IR_ApplyRemoteCommunication {
-  def isRemoteNeighbor(domainIdx : IR_Expression, neighborIdx : IR_Expression) = IR_IV_NeighborIsValid(domainIdx, neighborIdx) AndAnd IR_IV_NeighborIsRemote(domainIdx, neighborIdx)
+  def isRemoteNeighbor(refinementCase : RefinementCase.Access, domainIdx : IR_Expression, neighborIdx : IR_Expression) = {
+    val base = IR_IV_NeighborIsValid(domainIdx, neighborIdx) AndAnd IR_IV_NeighborIsRemote(domainIdx, neighborIdx)
+    if (Knowledge.refinement_enabled)
+      IR_IV_NeighborRefinementCase(IR_LoopOverFragments.defIt, domainIdx, neighborIdx) EqEq refinementCase.id AndAnd base
+    else
+      base
+  }
 }
 
 /// IR_RemoteCommunication
@@ -40,10 +48,10 @@ abstract class IR_RemoteCommunication extends IR_Communication with IR_ApplyRemo
   def genTransfer(packInfo : IR_RemotePackInfo, addCondition : Boolean) : IR_Statement
 
   def wrapCond(neighbor : NeighborInfo, stmt : IR_Statement) : IR_Statement =
-    IR_IfCondition(isRemoteNeighbor(field.domain.index, neighbor.index),
+    IR_IfCondition(isRemoteNeighbor(refinementCase, field.domain.index, neighbor.index),
       stmt)
 
   def wrapCond(neighbor : NeighborInfo, body : ListBuffer[IR_Statement]) : IR_Statement =
-    IR_IfCondition(isRemoteNeighbor(field.domain.index, neighbor.index),
+    IR_IfCondition(isRemoteNeighbor(refinementCase, field.domain.index, neighbor.index),
       body)
 }

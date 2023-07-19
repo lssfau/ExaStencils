@@ -28,6 +28,7 @@ import exastencils.communication.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.domain.ir._
+import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.ir.IR_PotentiallyCritical
 import exastencils.prettyprinting.PpStream
@@ -57,6 +58,8 @@ case object IR_CommunicateFragmentOrder extends IR_FuturePlainFunction with IR_A
   override var name = "commFragOrderInternal"
   def returnType : IR_Datatype = IR_UnitDatatype
 
+  def refinementCase : RefinementCase.Access = RefinementCase.EQUAL // TODO
+
   override def prettyprint_decl() : String = {
     returnType.prettyprint + ' ' + name + "( );\n"
   }
@@ -74,7 +77,7 @@ case object IR_CommunicateFragmentOrder extends IR_FuturePlainFunction with IR_A
 
     IR_LoopOverFragments(
       DefaultNeighbors.neighbors.map(_.index).map(neighIdx =>
-        IR_IfCondition(isLocalNeighbor(0, neighIdx),
+        IR_IfCondition(isLocalNeighbor(refinementCase, 0, neighIdx),
           compose(neighIdx)) : IR_Statement))
   }
 
@@ -98,7 +101,7 @@ case object IR_CommunicateFragmentOrder extends IR_FuturePlainFunction with IR_A
 
     IR_LoopOverFragments(
       DefaultNeighbors.neighbors.map(_.index).map(neighIdx =>
-        IR_IfCondition(isRemoteNeighbor(0, neighIdx),
+        IR_IfCondition(isRemoteNeighbor(refinementCase, 0, neighIdx),
           compose(neighIdx)) : IR_Statement))
   }
 
@@ -113,7 +116,7 @@ case object IR_CommunicateFragmentOrder extends IR_FuturePlainFunction with IR_A
 
     IR_LoopOverFragments(
       DefaultNeighbors.neighbors.map(_.index).map(neighIdx =>
-        IR_IfCondition(isRemoteNeighbor(0, neighIdx),
+        IR_IfCondition(isRemoteNeighbor(refinementCase, 0, neighIdx),
           compose(neighIdx)) : IR_Statement))
   }
 
@@ -153,6 +156,9 @@ object IR_ResolveFragmentOrder extends DefaultStrategy("ResolveFragmentOrder") {
       IR_IV_NeighborIsValid(0, args(0))
 
     case IR_ExpressionStatement(call : IR_FunctionCall) if "communicateFragOrder" == call.name =>
+      if (Knowledge.refinement_enabled)
+        Logger.error("Statement \"communicateFragOrder\" not available when mesh refinement is enabled.")
+
       if (!IR_CommunicationFunctions.get.functions.exists(_.name == IR_CommunicateFragmentOrder.name))
         IR_CommunicationFunctions.get.functions += IR_CommunicateFragmentOrder
 

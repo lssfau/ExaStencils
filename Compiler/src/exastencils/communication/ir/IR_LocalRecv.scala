@@ -36,6 +36,7 @@ import exastencils.parallelization.api.omp.OMP_WaitForFlag
 case class IR_LocalRecv(
     var field : IR_Field,
     var slot : IR_Expression,
+    var refinementCase : RefinementCase.Access,
     var packInfo : IR_LocalPackInfo,
     var insideFragLoop : Boolean,
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_ApplyLocalCommunication {
@@ -90,7 +91,7 @@ case class IR_LocalRecv(
     // signal other threads that the data reading step is completed
     ifCondStmts += IR_Assignment(IR_IV_LocalCommDone(field, neighborIdx), IR_BooleanConstant(true)) // TODO here too
 
-    IR_IfCondition(isLocalNeighbor(domainIdx, neighborIdx),
+    IR_IfCondition(isLocalNeighbor(refinementCase, domainIdx, neighborIdx),
       ifCondStmts)
   }
 }

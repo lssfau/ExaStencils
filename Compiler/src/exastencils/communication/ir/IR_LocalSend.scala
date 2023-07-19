@@ -35,6 +35,7 @@ import exastencils.parallelization.api.omp.OMP_WaitForFlag
 case class IR_LocalSend(
     var field : IR_Field,
     var slot : IR_Expression,
+    var refinementCase : RefinementCase.Access,
     var packInfo : IR_LocalPackInfo,
     var insideFragLoop : Boolean,
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_ApplyLocalCommunication {
@@ -61,7 +62,7 @@ case class IR_LocalSend(
     loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
 
-    IR_IfCondition(isLocalNeighbor(domainIdx, neighborIdx),
+    IR_IfCondition(isLocalNeighbor(refinementCase, domainIdx, neighborIdx),
       ListBuffer[IR_Statement](
         // wait until the fragment to be written to is ready for communication
         IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(), IR_AddressOf(IR_IV_LocalCommReady(

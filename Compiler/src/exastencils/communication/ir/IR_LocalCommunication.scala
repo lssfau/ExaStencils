@@ -22,14 +22,24 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.communication.NeighborInfo
+import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_IV_NeighborIsRemote
 import exastencils.domain.ir.IR_IV_NeighborIsValid
+import exastencils.domain.ir.IR_IV_NeighborRefinementCase
+import exastencils.domain.ir.RefinementCase
 
 /// IR_ApplyLocalCommunication
 
 trait IR_ApplyLocalCommunication {
-  def isLocalNeighbor(domainIdx : IR_Expression, neighborIdx : IR_Expression) = IR_IV_NeighborIsValid(domainIdx, neighborIdx) AndAnd IR_Negation(IR_IV_NeighborIsRemote(domainIdx, neighborIdx))
+  def isLocalNeighbor(refinementCase : RefinementCase.Access, domainIdx : IR_Expression, neighborIdx : IR_Expression) = {
+    val base = IR_IV_NeighborIsValid(domainIdx, neighborIdx) AndAnd IR_Negation(IR_IV_NeighborIsRemote(domainIdx, neighborIdx))
+    if (Knowledge.refinement_enabled)
+      IR_IV_NeighborRefinementCase(IR_LoopOverFragments.defIt, domainIdx, neighborIdx) EqEq refinementCase.id AndAnd base
+    else
+      base
+  }
 }
 
 /// IR_LocalCommunication
@@ -40,10 +50,10 @@ abstract class IR_LocalCommunication extends IR_Communication with IR_ApplyLocal
   def recvPackInfos : ListBuffer[IR_LocalPackInfo]
 
   def wrapCond(neighbor : NeighborInfo, stmt : IR_Statement) : IR_Statement =
-    IR_IfCondition(isLocalNeighbor(field.domain.index, neighbor.index),
+    IR_IfCondition(isLocalNeighbor(refinementCase, field.domain.index, neighbor.index),
       stmt)
 
   def wrapCond(neighbor : NeighborInfo, body : ListBuffer[IR_Statement]) : IR_Statement =
-    IR_IfCondition(isLocalNeighbor(field.domain.index, neighbor.index),
+    IR_IfCondition(isLocalNeighbor(refinementCase, field.domain.index, neighbor.index),
       body)
 }
