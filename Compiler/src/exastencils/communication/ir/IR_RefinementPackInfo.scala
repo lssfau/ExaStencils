@@ -21,7 +21,7 @@ trait IR_RefinementPackInfo extends IR_PackInfo {
    Logger.error(s"Total layout size of ${field.codeName} per dim must be divisible by two when using mesh refinement.")
 
   // no comm of duplicate layers
-  if (field.layout.communicatesDuplicated)
+  if (field.layout.communicatesDuplicated && field.layout.layoutsPerDim.exists(layoutPerDim => layoutPerDim.numDupLayersLeft > 0 || layoutPerDim.numDupLayersRight > 0))
     Logger.error("Communication of duplicate layers in refined meshes is not implemented.")
 
   def refinementCase : RefinementCase.Access
