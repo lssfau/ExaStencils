@@ -60,6 +60,7 @@ case class IR_CommunicateFunction(
 
   def genRefinedIndicesWrapper[T <: IR_PackInfo](
       send : Boolean,
+      duplicate : Boolean,
       refinementCase : RefinementCase.Access,
       curNeighbors : ListBuffer[NeighborInfo],
       genPackInfo : (NeighborInfo, Int, IR_Field, IR_ExpressionIndex, IR_ExpressionIndex) => T) = {
@@ -72,9 +73,12 @@ case class IR_CommunicateFunction(
         neighInfo.sendNeighborsForRefinementCase(refinementCase)
     }
 
+    val layerBegin = if (duplicate) dupLayerBegin else ghostLayerBegin
+    val layerEnd   = if (duplicate) dupLayerEnd   else ghostLayerEnd
+
     curNeighbors.flatMap(neigh =>
       getIndexOfRefinedNeighbor(neigh).map(refIdx =>
-        genPackInfo(Duplicate(neigh), refIdx, field, dupLayerBegin, dupLayerEnd)))
+        genPackInfo(Duplicate(neigh), refIdx, field, layerBegin, layerEnd)))
   }
 
   // equal level
@@ -103,61 +107,63 @@ case class IR_CommunicateFunction(
 
   def genF2CIndicesWrapper[T <: IR_PackInfo](
       send : Boolean,
+      duplicate : Boolean,
       curNeighbors : ListBuffer[NeighborInfo],
       genPackInfo : (NeighborInfo, Int, IR_Field, IR_ExpressionIndex, IR_ExpressionIndex) => T) = {
 
-    genRefinedIndicesWrapper(send, RefinementCase.F2C, curNeighbors, genPackInfo)
+    genRefinedIndicesWrapper(send, duplicate, RefinementCase.F2C, curNeighbors, genPackInfo)
   }
 
   def genF2CIndicesDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
-    genF2CIndicesWrapper(send = true, curNeighbors, IR_F2CPackInfoDuplicateRemoteSend)
+    genF2CIndicesWrapper(send = true, duplicate = true, curNeighbors, IR_F2CPackInfoDuplicateRemoteSend)
   def genF2CIndicesDuplicateRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
-    genF2CIndicesWrapper(send = false, curNeighbors, IR_F2CPackInfoDuplicateRemoteRecv)
+    genF2CIndicesWrapper(send = false, duplicate = true, curNeighbors, IR_F2CPackInfoDuplicateRemoteRecv)
 
   def genF2CIndicesDuplicateLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
-    genF2CIndicesWrapper(send = true, curNeighbors, IR_F2CPackInfoDuplicateLocalSend)
+    genF2CIndicesWrapper(send = true, duplicate = true, curNeighbors, IR_F2CPackInfoDuplicateLocalSend)
   def genF2CIndicesDuplicateLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
-    genF2CIndicesWrapper(send = false, curNeighbors, IR_F2CPackInfoDuplicateLocalRecv)
+    genF2CIndicesWrapper(send = false, duplicate = true, curNeighbors, IR_F2CPackInfoDuplicateLocalRecv)
 
   def genF2CIndicesGhostRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
-    genF2CIndicesWrapper(send = true, curNeighbors, IR_F2CPackInfoGhostRemoteSend)
+    genF2CIndicesWrapper(send = true, duplicate = false, curNeighbors, IR_F2CPackInfoGhostRemoteSend)
   def genF2CIndicesGhostRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
-    genF2CIndicesWrapper(send = false, curNeighbors, IR_F2CPackInfoGhostRemoteRecv)
+    genF2CIndicesWrapper(send = false, duplicate = false, curNeighbors, IR_F2CPackInfoGhostRemoteRecv)
 
   def genF2CIndicesGhostLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
-    genF2CIndicesWrapper(send = true, curNeighbors, IR_F2CPackInfoGhostLocalSend)
+    genF2CIndicesWrapper(send = true, duplicate = false, curNeighbors, IR_F2CPackInfoGhostLocalSend)
   def genF2CIndicesGhostLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
-    genF2CIndicesWrapper(send = false, curNeighbors, IR_F2CPackInfoGhostLocalRecv)
+    genF2CIndicesWrapper(send = false, duplicate = false, curNeighbors, IR_F2CPackInfoGhostLocalRecv)
 
   // coarse-to-fine
 
   def genC2FIndicesWrapper[T <: IR_PackInfo](
       send : Boolean,
+      duplicate : Boolean,
       curNeighbors : ListBuffer[NeighborInfo],
       genPackInfo : (NeighborInfo, Int, IR_Field, IR_ExpressionIndex, IR_ExpressionIndex) => T) = {
 
-    genRefinedIndicesWrapper(send, RefinementCase.C2F, curNeighbors, genPackInfo)
+    genRefinedIndicesWrapper(send, duplicate, RefinementCase.C2F, curNeighbors, genPackInfo)
   }
 
   def genC2FIndicesDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
-    genC2FIndicesWrapper(send = true, curNeighbors, IR_C2FPackInfoDuplicateRemoteSend)
+    genC2FIndicesWrapper(send = true, duplicate = true, curNeighbors, IR_C2FPackInfoDuplicateRemoteSend)
   def genC2FIndicesDuplicateRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
-    genC2FIndicesWrapper(send = false, curNeighbors, IR_C2FPackInfoDuplicateRemoteRecv)
+    genC2FIndicesWrapper(send = false, duplicate = true, curNeighbors, IR_C2FPackInfoDuplicateRemoteRecv)
 
   def genC2FIndicesDuplicateLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
-    genC2FIndicesWrapper(send = true, curNeighbors, IR_C2FPackInfoDuplicateLocalSend)
+    genC2FIndicesWrapper(send = true, duplicate = true, curNeighbors, IR_C2FPackInfoDuplicateLocalSend)
   def genC2FIndicesDuplicateLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
-    genC2FIndicesWrapper(send = false, curNeighbors, IR_C2FPackInfoDuplicateLocalRecv)
+    genC2FIndicesWrapper(send = false, duplicate = true, curNeighbors, IR_C2FPackInfoDuplicateLocalRecv)
 
   def genC2FIndicesGhostRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
-    genC2FIndicesWrapper(send = true, curNeighbors, IR_C2FPackInfoGhostRemoteSend)
+    genC2FIndicesWrapper(send = true, duplicate = false, curNeighbors, IR_C2FPackInfoGhostRemoteSend)
   def genC2FIndicesGhostRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
-    genC2FIndicesWrapper(send = false, curNeighbors, IR_C2FPackInfoGhostRemoteRecv)
+    genC2FIndicesWrapper(send = false, duplicate = false, curNeighbors, IR_C2FPackInfoGhostRemoteRecv)
 
   def genC2FIndicesGhostLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
-    genC2FIndicesWrapper(send = true, curNeighbors, IR_C2FPackInfoGhostLocalSend)
+    genC2FIndicesWrapper(send = true, duplicate = false, curNeighbors, IR_C2FPackInfoGhostLocalSend)
   def genC2FIndicesGhostLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
-    genC2FIndicesWrapper(send = false, curNeighbors, IR_C2FPackInfoGhostLocalRecv)
+    genC2FIndicesWrapper(send = false, duplicate = false, curNeighbors, IR_C2FPackInfoGhostLocalRecv)
 
   /* generate communication statements */
 
