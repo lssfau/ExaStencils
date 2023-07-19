@@ -301,7 +301,7 @@ object Knowledge {
   var timer_addBenchmarkMarkers : Boolean = false
 
   // [true|false]: enables automated timing of specific function categories
-  var timer_automaticFunctionTiming : Boolean = false
+  var timer_automaticTiming : Boolean = false
   var timer_automaticBCsTiming : Boolean = false
   var timer_automaticCommTiming : Boolean = false
   var timer_automaticIOTiming : Boolean = false
@@ -961,9 +961,9 @@ object Knowledge {
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == Platform.targetCompiler, "IBM XL does currently not support std::chrono")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == Platform.targetCompiler, "IBM BG does currently not support std::chrono")
 
-    Constraints.condEnsureValue(timer_automaticFunctionTiming, true, timer_automaticBCsTiming, "Timer flag 'timer_automaticFunctionTiming' required for 'timer_automaticBCsTiming = true'")
-    Constraints.condEnsureValue(timer_automaticFunctionTiming, true, timer_automaticCommTiming, "Timer flag 'timer_automaticFunctionTiming' required for 'timer_automaticCommTiming = true'")
-    Constraints.condEnsureValue(timer_automaticFunctionTiming, true, timer_automaticIOTiming, "Timer flag 'timer_automaticFunctionTiming' required for 'timer_automaticIOTiming = true'")
+    Constraints.condEnsureValue(timer_automaticTiming, true, timer_automaticBCsTiming, "Timer flag 'timer_automaticTiming' required for 'timer_automaticBCsTiming = true'")
+    Constraints.condEnsureValue(timer_automaticTiming, true, timer_automaticCommTiming, "Timer flag 'timer_automaticTiming' required for 'timer_automaticCommTiming = true'")
+    Constraints.condEnsureValue(timer_automaticTiming, true, timer_automaticIOTiming, "Timer flag 'timer_automaticTiming' required for 'timer_automaticIOTiming = true'")
 
     Constraints.condError(timer_syncMpi && timer_automaticCommTiming, "Flags timer_syncMpi and timer_automaticCommTiming are mutually exclusive")
 

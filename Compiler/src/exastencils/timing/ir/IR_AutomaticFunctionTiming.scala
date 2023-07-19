@@ -17,7 +17,7 @@ object IR_AutomaticTimingCategory extends Enumeration {
   final val COMM, APPLYBC, IO = Value
 
   def categoryEnabled(category : Access) = {
-    if (Knowledge.timer_automaticFunctionTiming) {
+    if (Knowledge.timer_automaticTiming) {
       category match {
         case COMM    => Knowledge.timer_automaticCommTiming
         case APPLYBC => Knowledge.timer_automaticBCsTiming
@@ -45,12 +45,12 @@ case class IR_IV_AutomaticTimer(
     var timingCategory : IR_AutomaticTimingCategory.Access
 ) extends IR_TimingIV with IR_HasAutomaticTimingCategory
 
-/// IR_PrintAllAutomaticFunctionTimers
+/// IR_PrintAllAutomaticTimers
 
-case class IR_PrintAllAutomaticFunctionTimers() extends IR_TimerFunction {
+case class IR_PrintAllAutomaticTimers() extends IR_TimerFunction {
   import IR_AutomaticTimingCategory._
 
-  override var name = "printAllAutomaticFunctionTimers"
+  override var name = "printAllAutomaticTimers"
   override def prettyprint_decl() : String = prettyprint
 
   private val accumulators : Map[Access, IR_VariableAccess] = values.map(enum => enum -> IR_VariableAccess(s"accum_${enum.toString}", IR_DoubleDatatype)).toMap
