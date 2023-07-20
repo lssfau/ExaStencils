@@ -64,6 +64,7 @@ case class IR_RemoteRecv(
 case class IR_CopyFromRecvBuffer(
     var field : IR_Field,
     var slot : IR_Expression,
+    var refinementCase : RefinementCase.Access,
     var packInfo : IR_RemotePackInfo,
     var concurrencyId : Int,
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {

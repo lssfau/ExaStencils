@@ -50,7 +50,7 @@ case class IR_RemoteCommunicationFinish(
     val indices = packInfo.getPackInterval()
 
     if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(field, indices, condition) && IR_SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)) {
-      val body = IR_CopyFromRecvBuffer(field, Duplicate(slot), packInfo, concurrencyId, Duplicate(condition))
+      val body = IR_CopyFromRecvBuffer(field, Duplicate(slot), refinementCase, packInfo, concurrencyId, Duplicate(condition))
       if (addCondition) wrapCond(Duplicate(neighbor), ListBuffer[IR_Statement](body)) else body
     } else {
       IR_NullStatement

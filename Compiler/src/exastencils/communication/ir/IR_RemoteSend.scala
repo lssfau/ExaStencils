@@ -56,6 +56,7 @@ case class IR_RemoteSend(
 case class IR_CopyToSendBuffer(
     var field : IR_Field,
     var slot : IR_Expression,
+    var refinementCase : RefinementCase.Access,
     var packInfo : IR_RemotePackInfo,
     var concurrencyId : Int,
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
