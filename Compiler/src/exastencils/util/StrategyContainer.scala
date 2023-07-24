@@ -21,13 +21,17 @@ package exastencils.util
 import scala.collection.mutable.ListBuffer
 
 import exastencils.datastructures.DefaultStrategy
+import exastencils.datastructures.Node
+import exastencils.scheduling.Schedulable
 
 /// StrategyContainer
 
-abstract class StrategyContainer {
+abstract class StrategyContainer extends Schedulable {
   var strategies = ListBuffer[DefaultStrategy]()
 
   def apply() = strategies.foreach(_.apply())
+
+  override def apply(applyAtNode : Option[Node]) : Unit = apply()
 
   def applyAndCountMatches() = {
     strategies.map(strategy => {

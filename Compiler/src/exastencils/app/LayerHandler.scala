@@ -18,11 +18,16 @@
 
 package exastencils.app
 
+import exastencils.scheduling.Scheduler
+
 /// LayerHandler
 
 trait LayerHandler {
+  def scheduler : Scheduler
+
   def initialize() : Unit
-  def handle() : Unit
+  def schedule() : Unit
+  def handle() : Unit = scheduler.invokeStrategies()
   def print() : Unit
   def shutdown() : Unit
 }

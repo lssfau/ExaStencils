@@ -48,6 +48,10 @@ object ExaLayerHandler {
     allLayers.foreach(_.initialize())
   }
 
+  def scheduleAllLayers() : Unit = {
+    allLayers.foreach(_.schedule())
+  }
+
   def handleAllLayers() : Unit = {
     allLayers.foreach(_.handle())
   }

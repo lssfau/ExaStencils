@@ -47,6 +47,7 @@ import exastencils.parallelization.api.omp._
 import exastencils.performance.ir.IR_AddPerformanceEstimates
 import exastencils.polyhedron._
 import exastencils.prettyprinting.PrintToFile
+import exastencils.scheduling.Scheduler
 import exastencils.solver.ir._
 import exastencils.stencil.ir._
 import exastencils.timing.ir._
@@ -63,8 +64,10 @@ trait IR_LayerHandler extends LayerHandler
 /// IR_DummyLayerHandler
 
 object IR_DummyLayerHandler extends IR_LayerHandler {
+  var scheduler : Scheduler = Scheduler()
+
   def initialize() : Unit = {}
-  def handle() : Unit = {}
+  def schedule() : Unit = {}
   def print() : Unit = {}
   def shutdown() : Unit = {}
 }
@@ -72,6 +75,8 @@ object IR_DummyLayerHandler extends IR_LayerHandler {
 /// IR_DefaultLayerHandler
 
 object IR_DefaultLayerHandler extends IR_LayerHandler {
+  var scheduler : Scheduler = Scheduler()
+
   override def initialize() : Unit = {
     // TODO: use KnowledgeContainer structure
   }
@@ -85,7 +90,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     PrintToFile.apply()
   }
 
-  override def handle() : Unit = {
+  override def schedule() : Unit = {
     IR_ProcessInlineKnowledge.apply()
 
     // add globals - init mpi before cuda since cuda might need mpiRank to choose device

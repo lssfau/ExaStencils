@@ -32,6 +32,7 @@ import exastencils.knowledge.l1._
 import exastencils.operator.l1.L1_OperatorCollection
 import exastencils.parsers.l1._
 import exastencils.prettyprinting.Indenter
+import exastencils.scheduling.Scheduler
 import exastencils.solver.l1._
 import exastencils.util.l1._
 
@@ -42,8 +43,10 @@ trait L1_LayerHandler extends LayerHandler
 /// L1_DummyLayerHandler
 
 object L1_DummyLayerHandler extends L1_LayerHandler {
+  var scheduler : Scheduler = Scheduler()
+
   def initialize() : Unit = {}
-  def handle() : Unit = {}
+  def schedule() : Unit = {}
   def print() : Unit = {}
   def shutdown() : Unit = {}
 }
@@ -51,6 +54,8 @@ object L1_DummyLayerHandler extends L1_LayerHandler {
 /// L1_DefaultLayerHandler
 
 object L1_DefaultLayerHandler extends L1_LayerHandler {
+  var scheduler : Scheduler = Scheduler()
+
   override def initialize() : Unit = {
     // activate default knowledge collections
 
@@ -73,7 +78,7 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
     }
   }
 
-  override def handle() : Unit = {
+  override def schedule() : Unit = {
     if (Settings.timeStrategies) StrategyTimer.startTiming("Handling Layer 1")
 
     // add L1 code here

@@ -32,6 +32,7 @@ import exastencils.knowledge.l2._
 import exastencils.operator.l2._
 import exastencils.parsers.l2._
 import exastencils.prettyprinting.Indenter
+import exastencils.scheduling.Scheduler
 import exastencils.solver.l2._
 import exastencils.util.l2._
 
@@ -42,8 +43,10 @@ trait L2_LayerHandler extends LayerHandler
 /// L2_DummyLayerHandler
 
 object L2_DummyLayerHandler extends L2_LayerHandler {
+  var scheduler : Scheduler = Scheduler()
+
   def initialize() : Unit = {}
-  def handle() : Unit = {}
+  def schedule() : Unit = {}
   def print() : Unit = {}
   def shutdown() : Unit = {}
 }
@@ -51,6 +54,8 @@ object L2_DummyLayerHandler extends L2_LayerHandler {
 /// L2_DefaultLayerHandler
 
 object L2_DefaultLayerHandler extends L2_LayerHandler {
+  var scheduler : Scheduler = Scheduler()
+
   override def initialize() : Unit = {
     // activate default knowledge collections
 
@@ -75,7 +80,7 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
     }
   }
 
-  override def handle() : Unit = {
+  override def schedule() : Unit = {
     if (Settings.timeStrategies) StrategyTimer.startTiming("Handling Layer 2")
 
     ExaRootNode.mergeL2(L2_Root(Settings.getL2file.map(L2_Parser.parseFile(_) : L2_Node)))

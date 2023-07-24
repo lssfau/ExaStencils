@@ -40,6 +40,7 @@ import exastencils.operator.l4._
 import exastencils.optimization.l4.L4_GeneralSimplify
 import exastencils.parsers.l4._
 import exastencils.prettyprinting.Indenter
+import exastencils.scheduling.Scheduler
 import exastencils.solver.l4._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util.l4._
@@ -51,8 +52,10 @@ trait L4_LayerHandler extends LayerHandler
 /// L4_DummyLayerHandler
 
 object L4_DummyLayerHandler extends L4_LayerHandler {
+  var scheduler : Scheduler = Scheduler()
+
   def initialize() : Unit = {}
-  def handle() : Unit = {}
+  def schedule() : Unit = {}
   def print() : Unit = {}
   def shutdown() : Unit = {}
 }
@@ -60,6 +63,8 @@ object L4_DummyLayerHandler extends L4_LayerHandler {
 /// L4_DefaultLayerHandler
 
 object L4_DefaultLayerHandler extends L4_LayerHandler {
+  var scheduler : Scheduler = Scheduler()
+
   override def initialize() : Unit = {
     // activate default knowledge collections
 
@@ -89,7 +94,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     }
   }
 
-  override def handle() : Unit = {
+   override def schedule() : Unit = {
     if (Settings.timeStrategies) StrategyTimer.startTiming("Handling Layer 4")
 
     if (ExaRootNode.l4_root.nodes.nonEmpty) {

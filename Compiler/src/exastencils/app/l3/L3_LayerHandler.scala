@@ -32,6 +32,7 @@ import exastencils.knowledge.l3._
 import exastencils.operator.l3._
 import exastencils.parsers.l3._
 import exastencils.prettyprinting.Indenter
+import exastencils.scheduling.Scheduler
 import exastencils.solver.l3._
 import exastencils.util.l3._
 
@@ -42,8 +43,10 @@ trait L3_LayerHandler extends LayerHandler
 /// L3_DummyLayerHandler
 
 object L3_DummyLayerHandler extends L3_LayerHandler {
+  var scheduler : Scheduler = Scheduler()
+
   def initialize() : Unit = {}
-  def handle() : Unit = {}
+  def schedule() : Unit = {}
   def print() : Unit = {}
   def shutdown() : Unit = {}
 }
@@ -51,6 +54,8 @@ object L3_DummyLayerHandler extends L3_LayerHandler {
 /// L3_DefaultLayerHandler
 
 object L3_DefaultLayerHandler extends L3_LayerHandler {
+  var scheduler : Scheduler = Scheduler()
+
   override def initialize() : Unit = {
     // activate default knowledge collections
 
@@ -75,7 +80,7 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
     }
   }
 
-  override def handle() : Unit = {
+  override def schedule() : Unit = {
     if (Settings.timeStrategies) StrategyTimer.startTiming("Handling Layer 3")
 
     ExaRootNode.mergeL3(L3_Root(Settings.getL3file.map(L3_Parser.parseFile(_) : L3_Node)))
