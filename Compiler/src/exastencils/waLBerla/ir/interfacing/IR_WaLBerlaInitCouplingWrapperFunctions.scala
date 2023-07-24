@@ -47,8 +47,12 @@ private case class IR_WaLBerlaResizeExaBuffersWrapper() extends IR_WaLBerlaWrapp
   override def inlineIncludeImplementation : Boolean = true
 }
 
-private case class IR_WaLBerlaInitExaBuffersWrapper() extends IR_WaLBerlaWrapperFunction {
-  override def name : String = "initExaBuffers"
+object IR_WaLBerlaInitExaBuffersWrapper {
+  def fctName : String = "initExaBuffers"
+}
+
+case class IR_WaLBerlaInitExaBuffersWrapper() extends IR_WaLBerlaWrapperFunction {
+  override def name : String = IR_WaLBerlaInitExaBuffersWrapper.fctName
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
     var body = ListBuffer[IR_Statement]()

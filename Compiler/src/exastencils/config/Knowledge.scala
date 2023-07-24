@@ -999,9 +999,7 @@ object Knowledge {
 
     // waLBerla
     Constraints.condError(waLBerla_generateInterface && dimensionality < 2, "waLBerla coupling is only supported for 2D/3D simulations.")
-    Constraints.condEnsureValue(waLBerla_useFixedLayoutsFromExa, true, !waLBerla_generateCommSchemes, "When waLBerla communication schemes are not generated, fixed field layouts (waLBerla_useFixedLayoutsFromExa = true) are required.")
     Constraints.condEnsureValue(waLBerla_useFixedLayoutsFromExa, true, cuda_enabled && waLBerla_generateInterface, "CUDA support for waLBerla codegen is only applicable with fixed field layouts (waLBerla_useFixedLayoutsFromExa = true).")
-    Constraints.condEnsureValue(waLBerla_generateCommSchemes, true, data_genVariableFieldSizes && waLBerla_generateInterface, "waLBerla Fields with variable field sizes currently require the usage of waLBerla comm schemes.")
     Constraints.condError(!waLBerla_useGridPartFromExa && waLBerla_createCartComm, "Knowledge flag 'waLBerla_createCartComm' is only available with Exa grid partitioning (waLBerla_useGridPartFromExa = true).")
 
     Constraints.condEnsureValue(waLBerla_useRefinement, true, waLBerla_refinementLevels > 0, "Flag 'waLBerla_useRefinement' must be enabled when 'waLBerla_refinementLevels' > 0")

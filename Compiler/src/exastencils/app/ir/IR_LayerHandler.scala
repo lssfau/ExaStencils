@@ -381,6 +381,9 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     if (Knowledge.waLBerla_generateInterface)
       IR_WaLBerlaAddInterfaceMembers.apply()
     IR_AddInternalVariables.apply()
+    IR_WaLBerlaReplaceFragmentLoops.apply()
+    IR_WaLBerlaReplaceAllocateData.apply()
+
     // resolve possibly newly added constant IVs
     IR_ResolveConstIVs.apply()
 

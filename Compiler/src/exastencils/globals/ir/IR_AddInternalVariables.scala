@@ -67,7 +67,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
   this += new Transformation("Collecting buffer sizes", {
     case buf : IR_IV_CommBuffer =>
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
-      if (Knowledge.data_genVariableFieldSizes) {
+      if (!buf.field.layout.useFixedLayoutSizes) {
         if (bufferSizes.contains(id))
           bufferSizes(id).asInstanceOf[IR_Maximum].args += Duplicate(buf.size)
         else

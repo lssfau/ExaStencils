@@ -46,7 +46,7 @@ case class IR_RemoteCommunicationFinish(
     var condition : Option[IR_Expression]) extends IR_RemoteCommunication {
 
   override def genCopy(neighbor : NeighborInfo, indices : IR_ExpressionIndexRange, addCondition : Boolean) : IR_Statement = {
-    if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(field, indices, condition) && IR_SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)) {
+    if (!field.layout.useFixedLayoutSizes || (!MPI_DataType.shouldBeUsed(field, indices, condition) && IR_SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)) {
       val body = IR_CopyFromRecvBuffer(field, Duplicate(slot), Duplicate(neighbor), Duplicate(indices), concurrencyId, Duplicate(condition))
       if (addCondition) wrapCond(Duplicate(neighbor), ListBuffer[IR_Statement](body)) else body
     } else {
@@ -58,9 +58,9 @@ case class IR_RemoteCommunicationFinish(
     val body = {
       val maxCnt = Duplicate(indices).getTotalSize
       val cnt = maxCnt // always cnt, even when condition is defined -> max count for receive
-      if (!Knowledge.data_genVariableFieldSizes && IR_SimplifyExpression.evalIntegral(cnt) <= 0) {
+      if (field.layout.useFixedLayoutSizes && IR_SimplifyExpression.evalIntegral(cnt) <= 0) {
         IR_NullStatement // nothing to do for empty data ranges
-      } else if (!Knowledge.data_genVariableFieldSizes && 1 == IR_SimplifyExpression.evalIntegral(cnt)) {
+      } else if (field.layout.useFixedLayoutSizes && 1 == IR_SimplifyExpression.evalIntegral(cnt)) {
         val arrayAccess = IR_DirectFieldLikeAccess(field, Duplicate(slot), Duplicate(indices.begin)).linearize.expand().inner
         val offsetAccess = IR_PointerOffset(arrayAccess.base, arrayAccess.index)
         IR_RemoteRecv(field, Duplicate(slot), Duplicate(neighbor), offsetAccess, 1, MPI_DataType.determineInnerMPIDatatype(field), concurrencyId)
