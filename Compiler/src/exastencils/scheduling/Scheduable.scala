@@ -11,12 +11,6 @@ trait Schedulable {
   def reset() : Unit = {}
 }
 
-/// ApplyAtNodeStrategyWrapper
-
-case class ApplyAtNodeStrategyWrapper(var strat : Schedulable, var node : Option[Node]) extends Schedulable {
-  override def apply(applyAtNode : Option[Node] = None) : Unit = strat.apply(node)
-}
-
 /// NoStrategyWrapper
 
 trait NoStrategyWrapper extends Schedulable {

@@ -202,13 +202,12 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     scheduler.register(IR_TypeInferenceWrapper(warnMissingDeclarations = true)) // second sweep for any newly introduced nodes - TODO: check if this is necessary
 
     // Apply CUDA kernel extraction after polyhedral optimizations to work on optimized ForLoopStatements
-    def kernelFunctionCollections = if (Knowledge.cuda_enabled) Some(CUDA_KernelFunctions.get) else None
     scheduler.register(ConditionedStrategyWrapper(Knowledge.cuda_enabled,
       CUDA_AnnotateLoop,
       CUDA_ExtractHostAndDeviceCode,
       CUDA_AdaptKernelDimensionality,
       CUDA_HandleReductions,
-      ApplyAtNodeStrategyWrapper(CUDA_ReplaceStdFunctionCalls, kernelFunctionCollections)))
+      CUDA_ReplaceStdFunctionCallsWrapper))
 
     scheduler.register(IR_LayoutTansformation)
 

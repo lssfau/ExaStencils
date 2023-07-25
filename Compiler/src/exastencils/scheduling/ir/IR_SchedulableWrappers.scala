@@ -202,4 +202,12 @@ object CUDA_FunctionConversionWrapper extends NoStrategyWrapper {
   }
 }
 
+/// CUDA_ReplaceStdFunctionCallsWrapper
+
+object CUDA_ReplaceStdFunctionCallsWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => {
+    if (Knowledge.cuda_enabled)
+      CUDA_ReplaceStdFunctionCalls.apply(Some(CUDA_KernelFunctions.get))
+  }
+}
 
