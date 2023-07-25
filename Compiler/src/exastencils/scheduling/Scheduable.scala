@@ -1,5 +1,7 @@
 package exastencils.scheduling
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.datastructures.Node
 
 /// Schedulable
@@ -25,7 +27,11 @@ trait NoStrategyWrapper extends Schedulable {
 
 /// ConditionedStrategyWrapper
 
-case class ConditionedStrategyWrapper(var condition : Boolean, var strats : Schedulable*) extends Schedulable {
+object ConditionedStrategyWrapper {
+  def apply(condition : Boolean, strats : Schedulable*) = new ConditionedStrategyWrapper(condition, strats.to[ListBuffer])
+}
+
+case class ConditionedStrategyWrapper(var condition : Boolean, var strats : ListBuffer[Schedulable]) extends Schedulable {
   override def apply(applyAtNode : Option[Node] = None) : Unit = {
     if (condition)
       strats.foreach(_.apply())
