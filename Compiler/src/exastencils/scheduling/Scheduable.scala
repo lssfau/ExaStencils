@@ -40,12 +40,14 @@ trait NoStrategyWrapper extends Schedulable {
 /// ConditionedStrategyWrapper
 
 object ConditionedStrategyWrapper {
-  def apply(condition : Boolean, strats : Schedulable*) = new ConditionedStrategyWrapper(condition, strats.to[ListBuffer])
+  def apply(condition : Boolean, strats : Schedulable*) = new ConditionedStrategyWrapper(() => condition, strats.to[ListBuffer])
+
+  def apply(callbackCondition : () => Boolean, strats : Schedulable*) = new ConditionedStrategyWrapper(callbackCondition, strats.to[ListBuffer])
 }
 
-case class ConditionedStrategyWrapper(var condition : Boolean, var strats : ListBuffer[Schedulable]) extends Schedulable {
+case class ConditionedStrategyWrapper(var callbackCondition : () => Boolean, var strats : ListBuffer[Schedulable]) extends Schedulable {
   override def apply(applyAtNode : Option[Node] = None) : Unit = {
-    if (condition)
+    if (callbackCondition())
       strats.foreach(_.apply())
   }
 

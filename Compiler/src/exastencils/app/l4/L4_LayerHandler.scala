@@ -94,7 +94,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
   override def schedule() : Unit = {
     scheduler.register(StrategyTimerWrapper(start = true, "Handling Layer 4"))
 
-    scheduler.register(ConditionedStrategyWrapper(ExaRootNode.l4_root.nodes.nonEmpty,
+    scheduler.register(ConditionedStrategyWrapper(() => ExaRootNode.l4_root.nodes.nonEmpty,
       L4_WrapFieldFieldConvolutions,
       L4_AddLoopsToFieldAssignments,
       L4_AddLoopsToLocalSolve,
@@ -120,7 +120,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
 
     scheduler.register(L4_SecondParseWrapper)
 
-    scheduler.register(ConditionedStrategyWrapper(ExaRootNode.l4_root.nodes.nonEmpty,
+    scheduler.register(ConditionedStrategyWrapper(() => ExaRootNode.l4_root.nodes.nonEmpty,
       L4_ProcessInlineKnowledge,
 
       ConditionedStrategyWrapper(Knowledge.l4_genDefaultApplication, L4_AddDefaultApplication),
