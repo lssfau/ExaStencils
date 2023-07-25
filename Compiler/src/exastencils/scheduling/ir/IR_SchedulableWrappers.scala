@@ -211,3 +211,12 @@ object CUDA_ReplaceStdFunctionCallsWrapper extends NoStrategyWrapper {
   }
 }
 
+/// IR_AddPaddingToFieldLayoutsWrapper
+
+object IR_AddPaddingToFieldLayoutsWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => {
+    if (Knowledge.data_alignFieldPointers)
+      IR_AddPaddingToFieldLayouts.apply()
+  }
+}
+
