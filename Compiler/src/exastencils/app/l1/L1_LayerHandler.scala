@@ -32,7 +32,8 @@ import exastencils.knowledge.l1._
 import exastencils.operator.l1.L1_OperatorCollection
 import exastencils.parsers.l1._
 import exastencils.prettyprinting.Indenter
-import exastencils.scheduling.Scheduler
+import exastencils.scheduling._
+import exastencils.scheduling.l1._
 import exastencils.solver.l1._
 import exastencils.util.l1._
 
@@ -79,72 +80,54 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
   }
 
   override def schedule() : Unit = {
-    if (Settings.timeStrategies) StrategyTimer.startTiming("Handling Layer 1")
+    scheduler.register(StrategyTimerWrapper(start = true, "Handling Layer 1"))
 
     // add L1 code here
-    ExaRootNode.l1_root = L1_Root(Settings.getL1file.map(L1_Parser.parseFile(_) : L1_Node))
-    ExaRootNode.l1_root.flatten()
-    print()
+    scheduler.register(MergeExaRootNodeWrapper(L1_Root(Settings.getL1file.map(L1_Parser.parseFile(_) : L1_Node))))
+    scheduler.register(PrintLayerWrapper(this))
 
-    if (ExaRootNode.l1_root.nodes.nonEmpty) {
-      L1_Validation.apply()
+    scheduler.register(ConditionedStrategyWrapper(() => ExaRootNode.l1_root.nodes.nonEmpty,
+      L1_Validation,
 
-      L1_ProcessInlineKnowledge.apply()
+      L1_ProcessInlineKnowledge,
 
-      L1_UnifyGlobalSections.apply()
+      L1_UnifyGlobalSections,
 
       // pre-process level specifications in declarations
-      L1_ResolveLevelSpecifications.apply()
+      L1_ResolveLevelSpecifications,
 
-      L1_UnfoldKnowledgeDeclarations.apply()
-      L1_UnfoldLeveledVariableDeclarations.apply()
+      L1_UnfoldKnowledgeDeclarations,
+      L1_UnfoldLeveledVariableDeclarations,
 
       // resolve current, etc.
-      L1_ResolveRelativeLevels.apply()
+      L1_ResolveRelativeLevels,
 
-      L1_PrepareDeclarations.apply()
+      L1_PrepareDeclarations,
 
-      L1_PrepareAccesses.apply()
-      L1_ResolveVariableAccesses.apply()
+      L1_PrepareAccesses,
+      L1_ResolveVariableAccesses,
 
-      L1_ResolveSpecialConstants.apply()
-      L1_ResolveMathFunctions.apply()
-      //      L1_ResolveEvaluateFunctions.apply()
-      //      L1_ResolveIntegrateFunctions.apply()
+      L1_ResolveSpecialConstants,
+      L1_ResolveMathFunctions,
 
-      var matches = 0
-      do {
-        matches = 0
-        matches += L1_ProcessDeclarations.applyAndCountMatches()
-        matches += L1_ResolveAccesses.applyAndCountMatches()
+      L1_ProcessDeclarationsAndResolveAccessesWrapper,
 
-        //        if (Knowledge.experimental_l1_resolveVirtualFields) {
-        //          // integrate before evaluate -> might be nested
-        //          L1_ResolveIntegrateOnGrid.apply()
-        //          matches += (if (L1_ResolveIntegrateOnGrid.results.isEmpty) 0 else L1_ResolveIntegrateOnGrid.results.last._2.matches)
-        //
-        //          L1_ResolveEvaluateOnGrid.apply()
-        //          matches += (if (L1_ResolveEvaluateOnGrid.results.isEmpty) 0 else L1_ResolveEvaluateOnGrid.results.last._2.matches)
-        //        }
-      } while (matches > 0)
-
-      L1_ProcessBoundaryDeclarations.apply()
-    }
+      L1_ProcessBoundaryDeclarations))
 
     // print before processing
-    print()
+    scheduler.register(PrintLayerWrapper(this))
 
     // resolve domain aliases
-    L1_DomainCollection.handleAliases()
+    scheduler.register(L1_HandleDomainAliasesWrapper)
 
     // process discretization
-    L1_ProcessDiscretizationHints.apply()
+    scheduler.register(L1_ProcessDiscretizationHints)
 
     // progress knowledge to L2
-    L1_KnowledgeContainer.progress()
+    scheduler.register(ProgressKnowledgeContainerWrapper(this))
 
-    ExaRootNode.progressToL2()
+    scheduler.register(ProgressExaRootNodeWrapper(this))
 
-    if (Settings.timeStrategies) StrategyTimer.stopTiming("Handling Layer 1")
+    scheduler.register(StrategyTimerWrapper(start = false, "Handling Layer 1"))
   }
 }
