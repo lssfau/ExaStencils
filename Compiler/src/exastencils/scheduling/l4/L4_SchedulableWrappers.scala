@@ -64,14 +64,14 @@ object L4_ProcessDeclarationsAndResolveAccessesWrapper extends NoStrategyWrapper
 
 /// L4_ProcessKnowledgeDeclarationsWrapper
 
-object L4_ProcessKnowledgeDeclarationsWrapper extends Schedulable {
-  override def apply(applyAtNode : Option[Node]) : Unit = L4_ProcessKnowledgeDeclarations.apply()
+object L4_ProcessKnowledgeDeclarationsWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => L4_ProcessKnowledgeDeclarations.apply()
 }
 
 /// L4_ResolveBoundaryHandlingFunctionsWrapper
 
-object L4_ResolveBoundaryHandlingFunctionsWrapper extends Schedulable {
-  override def apply(applyAtNode : Option[Node]) : Unit = L4_ResolveBoundaryHandlingFunctions.apply()
+object L4_ResolveBoundaryHandlingFunctionsWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => L4_ResolveBoundaryHandlingFunctions.apply()
 }
 
 /// L4_GeneralSimplifyUntilDoneWrapper
