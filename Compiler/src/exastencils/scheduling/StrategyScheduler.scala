@@ -4,20 +4,20 @@ import scala.collection.mutable.ListBuffer
 
 /// SchedulerEntry
 
-case class SchedulerEntry(var name : String, toSchedule : Schedulable)
+case class SchedulerEntry(var name : String, var toSchedule : Schedulable)
 
 /// StrategyScheduler
 
 trait StrategyScheduler {
-  def register(entry : SchedulerEntry) : Unit
+  def register(strat : Schedulable) : Unit
   def invokeStrategies() : Unit
 }
 
 case class Scheduler() extends StrategyScheduler {
   var queue : ListBuffer[SchedulerEntry] = ListBuffer()
 
-  override def register(entry : SchedulerEntry) : Unit = {
-    queue += entry
+  override def register(strat : Schedulable) : Unit = {
+    queue += SchedulerEntry(strat.getClass.getSimpleName, strat)
   }
 
   override def invokeStrategies() : Unit = {

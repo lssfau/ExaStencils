@@ -1,7 +1,6 @@
 package exastencils.scheduling
 
 import exastencils.datastructures.Node
-import exastencils.util.StrategyContainer
 
 /// Schedulable
 
@@ -10,42 +9,30 @@ trait Schedulable {
   def reset() : Unit = {}
 }
 
-/// StrategyWrapper
+/// ApplyAtNodeStrategyWrapper
 
-case class StrategyWrapper(wrapped : StrategyContainer*) extends Schedulable {
-  override def apply(applyAtNode : Option[Node] = None) : Unit = {
-    var matches = 0
-    do {
-      matches = 0
-      for (strat <- wrapped) {
-        matches += strat.applyAndCountMatches()
-      }
-    } while (matches > 0)
-  }
-
-  override def reset() : Unit = {
-    for (strat <- wrapped) {
-      strat.reset()
-    }
-  }
+case class ApplyAtNodeStrategyWrapper(var strat : Schedulable, var node : Option[Node]) extends Schedulable {
+  override def apply(applyAtNode : Option[Node] = None) : Unit = strat.apply(node)
 }
 
 /// NoStrategyWrapper
 
-case class NoStrategyWrapper(callback : () => Unit) extends Schedulable {
+trait NoStrategyWrapper extends Schedulable {
+  def callback : () => Unit
+
   override def apply(applyAtNode : Option[Node]) : Unit = callback()
 }
 
 /// ConditionedStrategyWrapper
 
-case class ConditionedStrategyWrapper(strat : Schedulable, condition : Boolean) extends Schedulable {
+case class ConditionedStrategyWrapper(var condition : Boolean, var strats : Schedulable*) extends Schedulable {
   override def apply(applyAtNode : Option[Node] = None) : Unit = {
-    if (condition) {
-      strat.apply()
-    }
+    if (condition)
+      strats.foreach(_.apply())
   }
 
   override def reset() : Unit = {
-    strat.reset()
+    for (strat <- strats)
+      strat.reset()
   }
 }
