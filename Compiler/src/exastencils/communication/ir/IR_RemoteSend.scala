@@ -66,50 +66,27 @@ case class IR_CopyToSendBuffer(
   override def expand() : Output[StatementList] = {
     var ret = ListBuffer[IR_Statement]()
 
-    val neighbor = packInfo.neighbor
-    val indices = packInfo.getPackInterval()
+    def equalLevelCopyLoop() : Unit =
+      ret += IR_NoInterpPackingRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, condition)
 
-    def equalLevelCopyLoop() : Unit = {
-      if (condition.isDefined && Knowledge.comm_compactPackingForConditions) {
-        // switch to iterator based copy operation if condition is defined -> number of elements and index mapping is unknown
-        def it = IR_IV_CommBufferIterator(field, s"Send_${ concurrencyId }", neighbor.index)
-
-        val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
-          IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
-        val fieldAccess = IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
-
-        ret += IR_Assignment(it, 0)
-        ret += IR_LoopOverDimensions(numDims, indices, IR_IfCondition(
-          condition.get, ListBuffer[IR_Statement](
-            IR_Assignment(tmpBufAccess, fieldAccess),
-            IR_Assignment(it, 1, "+="))))
+    def getCopyLoop() = {
+      if (Knowledge.refinement_enabled) {
+        refinementCase match {
+          case RefinementCase.EQUAL =>
+            equalLevelCopyLoop()
+          case RefinementCase.C2F   =>
+            // TODO: quadratic extrap/interp
+            equalLevelCopyLoop()
+          case RefinementCase.F2C   =>
+            // TODO: linear interp
+            equalLevelCopyLoop()
+        }
       } else {
-        val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
-          IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
-          IR_ExpressionIndex(indices.end, indices.begin, _ - _))
-        val fieldAccess = IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
-
-        val loop = new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(tmpBufAccess, fieldAccess)))
-        loop.polyOptLevel = 1
-        loop.parallelization.potentiallyParallel = true
-        ret += loop
+        equalLevelCopyLoop()
       }
     }
 
-    if (Knowledge.refinement_enabled) {
-      refinementCase match {
-        case RefinementCase.EQUAL =>
-          equalLevelCopyLoop()
-        case RefinementCase.C2F =>
-          // TODO: quadratic extrap/interp
-          equalLevelCopyLoop()
-        case RefinementCase.F2C =>
-          // TODO: linear interp
-          equalLevelCopyLoop()
-      }
-    } else {
-      equalLevelCopyLoop()
-    }
+    getCopyLoop()
 
     ret
   }

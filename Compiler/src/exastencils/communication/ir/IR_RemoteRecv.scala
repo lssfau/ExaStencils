@@ -74,69 +74,27 @@ case class IR_CopyFromRecvBuffer(
   override def expand() : Output[StatementList] = {
     var ret = ListBuffer[IR_Statement]()
 
-    val neighbor = packInfo.neighbor
-    val neighborIdx = neighbor.index
-    val indices = packInfo.getPackInterval()
+    def equalLevelCopyLoop() : Unit =
+      ret += IR_NoInterpPackingRemote(send = false, field, slot, refinementCase, packInfo, concurrencyId, condition)
 
-    def equalLevelCopyLoop() : Unit = {
-      if (condition.isDefined && Knowledge.comm_compactPackingForConditions) {
-        // switch to iterator based copy operation if condition is defined -> number of elements and index mapping is unknown
-        def it = IR_IV_CommBufferIterator(field, s"Recv_${ concurrencyId }", neighborIdx)
-
-        val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighborIdx),
-          IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
-        val fieldAccess = IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
-
-        ret += IR_Assignment(it, 0)
-        ret += IR_LoopOverDimensions(numDims, indices, IR_IfCondition(
-          condition.get, ListBuffer[IR_Statement](
-            IR_Assignment(fieldAccess, tmpBufAccess),
-            IR_Assignment(it, 1, "+="))))
-      } else {
-        val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighborIdx),
-          IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
-          IR_ExpressionIndex(indices.end, indices.begin, _ - _))
-
-        def fieldAccess = IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
-
-        if (Knowledge.comm_enableCommTransformations) {
-          val trafoId = IR_IV_CommTrafoId(field.domain.index, neighborIdx)
-
-          def loop(trafo : IR_CommTransformation) = {
-            val ret = new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(trafo.applyRemoteTrafo(fieldAccess, indices, neighbor), trafo.applyBufferTrafo(tmpBufAccess))))
-            ret.polyOptLevel = 1
-            ret.parallelization.potentiallyParallel = true
-            ret
-          }
-
-          ret += IR_Switch(trafoId, IR_CommTransformationCollection.trafos.zipWithIndex.map {
-            case (trafo, i) => IR_Case(i, ListBuffer[IR_Statement](loop(trafo)))
-          })
-        } else {
-          val ass : IR_Statement = IR_Assignment(fieldAccess, tmpBufAccess)
-
-          val loop = new IR_LoopOverDimensions(numDims, indices, ListBuffer(ass), condition = condition)
-          loop.polyOptLevel = 1
-          loop.parallelization.potentiallyParallel = true
-          ret += loop
+    def getCopyLoop() = {
+      if (Knowledge.refinement_enabled) {
+        refinementCase match {
+          case RefinementCase.EQUAL =>
+            equalLevelCopyLoop()
+          case RefinementCase.C2F   =>
+            // TODO: quadratic extrap/interp
+            equalLevelCopyLoop()
+          case RefinementCase.F2C   =>
+            // TODO: linear interp
+            equalLevelCopyLoop()
         }
+      } else {
+        equalLevelCopyLoop()
       }
     }
 
-    if (Knowledge.refinement_enabled) {
-      refinementCase match {
-        case RefinementCase.EQUAL =>
-          equalLevelCopyLoop()
-        case RefinementCase.C2F   =>
-          // TODO: quadratic extrap/interp
-          equalLevelCopyLoop()
-        case RefinementCase.F2C =>
-          // TODO: linear interp
-          equalLevelCopyLoop()
-      }
-    } else {
-      equalLevelCopyLoop()
-    }
+    getCopyLoop()
 
     ret
   }

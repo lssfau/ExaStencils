@@ -52,21 +52,8 @@ case class IR_LocalRecv(
     val domainIdx = field.domain.index
     val neighborIdx = neighbor.index
 
-    def equalLevelCopyLoop() : IR_LoopOverDimensions = {
-      var innerStmt : IR_Statement = IR_Assignment(
-        IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims)),
-        IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx),
-          IR_ExpressionIndex(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _)))
-
-      if (condition.isDefined)
-        innerStmt = IR_IfCondition(condition.get, innerStmt)
-
-      val loop = new IR_LoopOverDimensions(numDims, packIntervalDest, ListBuffer[IR_Statement](innerStmt))
-      loop.polyOptLevel = 1
-      loop.parallelization.potentiallyParallel = true
-
-      loop
-    }
+    def equalLevelCopyLoop() =
+      IR_NoInterpPackingLocal(send = false, field, slot, refinementCase, packInfo, condition)
 
     def getCopyLoop() = {
       if (Knowledge.refinement_enabled) {
