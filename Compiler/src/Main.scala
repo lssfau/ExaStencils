@@ -106,8 +106,6 @@ object Main {
       localInitialize(args)
       ExaLayerHandler.initializeAllLayers()
 
-      ExaLayerHandler.scheduleAllLayers()
-
       ExaLayerHandler.handleAllLayers()
 
       print()
