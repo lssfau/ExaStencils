@@ -23,7 +23,6 @@ import exastencils.base.ExaRootNode
 import exastencils.base.l3._
 import exastencils.baseExt.l3._
 import exastencils.config._
-import exastencils.datastructures.StrategyTimer
 import exastencils.domain.l3.L3_DomainCollection
 import exastencils.field.l3._
 import exastencils.fieldlike.l3.L3_FieldLikeCollections
@@ -34,6 +33,8 @@ import exastencils.knowledge.l3._
 import exastencils.operator.l3._
 import exastencils.parsers.l3._
 import exastencils.prettyprinting.Indenter
+import exastencils.scheduling._
+import exastencils.scheduling.l3._
 import exastencils.solver.l3._
 import exastencils.util.l3._
 import exastencils.waLBerla.l3.field.L3_WaLBerlaFieldCollection
@@ -45,8 +46,10 @@ trait L3_LayerHandler extends LayerHandler
 /// L3_DummyLayerHandler
 
 object L3_DummyLayerHandler extends L3_LayerHandler {
+  var scheduler : Scheduler = Scheduler()
+
   def initialize() : Unit = {}
-  def handle() : Unit = {}
+  def schedule() : Unit = {}
   def print() : Unit = {}
   def shutdown() : Unit = {}
 }
@@ -54,6 +57,8 @@ object L3_DummyLayerHandler extends L3_LayerHandler {
 /// L3_DefaultLayerHandler
 
 object L3_DefaultLayerHandler extends L3_LayerHandler {
+  var scheduler : Scheduler = Scheduler()
+
   override def initialize() : Unit = {
     // activate default knowledge collections
 
@@ -81,97 +86,78 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
     }
   }
 
-  override def handle() : Unit = {
-    if (Settings.timeStrategies) StrategyTimer.startTiming("Handling Layer 3")
+  override def schedule() : Unit = {
+    scheduler.register(StrategyTimerWrapper(start = true, "Handling Layer 3"))
 
-    ExaRootNode.mergeL3(L3_Root(Settings.getL3file.map(L3_Parser.parseFile(_) : L3_Node)))
-    ExaRootNode.l3_root.flatten()
-    print()
+    scheduler.register(MergeExaRootNodeWrapper(L3_Root(Settings.getL3file.map(L3_Parser.parseFile(_) : L3_Node))))
 
-    if (ExaRootNode.l3_root.nodes.nonEmpty) {
-      L3_Validation.apply()
+    scheduler.register(PrintLayerWrapper(this))
 
-      L3_ProcessInlineKnowledge.apply()
+    scheduler.register(ConditionedStrategyWrapper(() => ExaRootNode.l3_root.nodes.nonEmpty,
+      L3_Validation,
 
-      L3_UnifyGlobalSections.apply()
+      L3_ProcessInlineKnowledge,
 
-      print()
+      L3_UnifyGlobalSections,
+
+      PrintLayerWrapper(this),
 
       // pre-process level specifications in declarations
-      L3_ResolveLevelSpecifications.apply()
+      L3_ResolveLevelSpecifications,
 
-      L3_ResolveFunctionInstantiations.apply()
-      L3_UnfoldFunctionDeclarations.apply()
-      L3_ProcessFunctionDeclarations.apply()
+      L3_ResolveFunctionInstantiations,
+      L3_UnfoldFunctionDeclarations,
+      L3_ProcessFunctionDeclarations,
 
-      L3_UnfoldKnowledgeDeclarations.apply()
-      L3_UnfoldLeveledExpressionDeclarations.apply()
-      L3_UnfoldLeveledVariableDeclarations.apply()
-      L3_UnfoldSolverModifications.apply()
+      L3_UnfoldKnowledgeDeclarations,
+      L3_UnfoldLeveledExpressionDeclarations,
+      L3_UnfoldLeveledVariableDeclarations,
+      L3_UnfoldSolverModifications,
 
       // resolve current, etc.
-      L3_ResolveRelativeLevels.apply()
+      L3_ResolveRelativeLevels,
 
-      L3_ResolveLevelScopes.apply()
+      L3_ResolveLevelScopes,
 
-      L3_PrepareSolverForEquations.apply()
-      L3_PrepareDeclarations.apply()
+      L3_PrepareSolverForEquations,
+      L3_PrepareDeclarations,
 
-      L3_PrepareAccesses.apply()
-      L3_InlineDeclaredExpressions.apply()
-      L3_ResolveVariableAccesses.apply()
+      L3_PrepareAccesses,
+      L3_InlineDeclaredExpressions,
+      L3_ResolveVariableAccesses,
 
-      L3_ResolveSpecialConstants.apply()
-      L3_ResolveFrozenFields.apply()
-      L3_ResolveDslFunctionReferences.apply()
-      L3_ResolveMathFunctions.apply()
-      L3_ResolveEvaluateFunctions.apply()
-      L3_ResolveIntegrateFunctions.apply()
+      L3_ResolveSpecialConstants,
+      L3_ResolveFrozenFields,
+      L3_ResolveDslFunctionReferences,
+      L3_ResolveMathFunctions,
+      L3_ResolveEvaluateFunctions,
+      L3_ResolveIntegrateFunctions,
 
-      var matches = 0
-      do {
-        matches = 0
-        matches += L3_ProcessDeclarations.applyAndCountMatches()
+      L3_ProcessDeclarationsAndResolveAccessesWrapper,
 
-        L3_ProcessSolverForEquations.apply()
-        matches += (if (L3_ProcessSolverForEquations.results.isEmpty) 0 else L3_ProcessSolverForEquations.results.last._2.matches)
+      L3_ProcessBoundaryDeclarations,
+      L3_ProcessFieldOverrides,
 
-        matches += L3_ResolveAccesses.applyAndCountMatches()
+      L3_AddInitFieldsFunctionWrapper,
 
-        if (Knowledge.experimental_l3_resolveVirtualFields) {
-          // integrate before evaluate -> might be nested
-          L3_ResolveIntegrateOnGrid.apply()
-          matches += (if (L3_ResolveIntegrateOnGrid.results.isEmpty) 0 else L3_ResolveIntegrateOnGrid.results.last._2.matches)
+      L3_ResolveSolverForEquations,
 
-          L3_ResolveEvaluateOnGrid.apply()
-          matches += (if (L3_ResolveEvaluateOnGrid.results.isEmpty) 0 else L3_ResolveEvaluateOnGrid.results.last._2.matches)
-        }
-      } while (matches > 0)
+      L3_ResolveFieldFieldConvolutions,
+      L3_ResolveOperatorTimesField,
 
-      L3_ProcessBoundaryDeclarations.apply()
-      L3_ProcessFieldOverrides.apply()
-
-      L3_FieldCollection.addInitFieldsFunction()
-
-      L3_ResolveSolverForEquations.apply()
-
-      L3_ResolveFieldFieldConvolutions.apply()
-      L3_ResolveOperatorTimesField.apply()
-
-      L3_IntroduceSlots.apply()
-    }
+      L3_IntroduceSlots))
 
     // process application Hints
-    L3_ProcessApplicationHints.apply()
+    scheduler.register(L3_ProcessApplicationHints)
 
     // print before processing
-    print()
+    scheduler.register(PrintLayerWrapper(this))
 
     // progress knowledge to L4
-    L3_KnowledgeContainer.progress()
+    scheduler.register(ProgressKnowledgeContainerWrapper(this))
 
-    ExaRootNode.progressToL4()
+    scheduler.register(ProgressExaRootNodeWrapper(this))
 
-    if (Settings.timeStrategies) StrategyTimer.stopTiming("Handling Layer 3")
+    scheduler.register(StrategyTimerWrapper(start = false, "Handling Layer 3"))
   }
 }

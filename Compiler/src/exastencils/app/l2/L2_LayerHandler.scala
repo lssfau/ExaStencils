@@ -23,7 +23,6 @@ import exastencils.base.ExaRootNode
 import exastencils.base.l2._
 import exastencils.baseExt.l2._
 import exastencils.config._
-import exastencils.datastructures.StrategyTimer
 import exastencils.domain.l2._
 import exastencils.field.l2._
 import exastencils.fieldlike.l2.L2_FieldLikeCollections
@@ -34,6 +33,8 @@ import exastencils.knowledge.l2._
 import exastencils.operator.l2._
 import exastencils.parsers.l2._
 import exastencils.prettyprinting.Indenter
+import exastencils.scheduling._
+import exastencils.scheduling.l2._
 import exastencils.solver.l2._
 import exastencils.util.l2._
 import exastencils.waLBerla.l2.field.L2_WaLBerlaFieldCollection
@@ -45,8 +46,10 @@ trait L2_LayerHandler extends LayerHandler
 /// L2_DummyLayerHandler
 
 object L2_DummyLayerHandler extends L2_LayerHandler {
+  var scheduler : Scheduler = Scheduler()
+
   def initialize() : Unit = {}
-  def handle() : Unit = {}
+  def schedule() : Unit = {}
   def print() : Unit = {}
   def shutdown() : Unit = {}
 }
@@ -54,6 +57,8 @@ object L2_DummyLayerHandler extends L2_LayerHandler {
 /// L2_DefaultLayerHandler
 
 object L2_DefaultLayerHandler extends L2_LayerHandler {
+  var scheduler : Scheduler = Scheduler()
+
   override def initialize() : Unit = {
     // activate default knowledge collections
 
@@ -81,72 +86,56 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
     }
   }
 
-  override def handle() : Unit = {
-    if (Settings.timeStrategies) StrategyTimer.startTiming("Handling Layer 2")
+  override def schedule() : Unit = {
+    scheduler.register(StrategyTimerWrapper(start = true, "Handling Layer 2"))
 
-    ExaRootNode.mergeL2(L2_Root(Settings.getL2file.map(L2_Parser.parseFile(_) : L2_Node)))
-    ExaRootNode.l2_root.flatten()
-    print()
+    scheduler.register(MergeExaRootNodeWrapper(L2_Root(Settings.getL2file.map(L2_Parser.parseFile(_) : L2_Node))))
+    scheduler.register(PrintLayerWrapper(this))
 
-    if (ExaRootNode.l2_root.nodes.nonEmpty) {
-      L2_Validation.apply()
+    scheduler.register(ConditionedStrategyWrapper(() => ExaRootNode.l2_root.nodes.nonEmpty,
+      L2_Validation,
 
-      L2_ProcessInlineKnowledge.apply()
+      L2_ProcessInlineKnowledge,
 
-      L2_UnifyGlobalSections.apply()
+      L2_UnifyGlobalSections,
 
       // pre-process level specifications in declarations
-      L2_ResolveLevelSpecifications.apply()
+      L2_ResolveLevelSpecifications,
 
-      L2_UnfoldKnowledgeDeclarations.apply()
-      L2_UnfoldLeveledExpressionDeclarations.apply()
-      L2_UnfoldLeveledVariableDeclarations.apply()
+      L2_UnfoldKnowledgeDeclarations,
+      L2_UnfoldLeveledExpressionDeclarations,
+      L2_UnfoldLeveledVariableDeclarations,
 
       // resolve current, etc.
-      L2_ResolveRelativeLevels.apply()
+      L2_ResolveRelativeLevels,
 
-      L2_PrepareDeclarations.apply()
+      L2_PrepareDeclarations,
 
-      L2_PrepareAccesses.apply()
-      L2_InlineDeclaredExpressions.apply()
-      L2_ResolveVariableAccesses.apply()
+      L2_PrepareAccesses,
+      L2_InlineDeclaredExpressions,
+      L2_ResolveVariableAccesses,
 
-      L2_ResolveSpecialConstants.apply()
-      L2_ResolveFrozenFields.apply()
-      L2_ResolveMathFunctions.apply()
-      L2_ResolveEvaluateFunctions.apply()
-      L2_ResolveIntegrateFunctions.apply()
+      L2_ResolveSpecialConstants,
+      L2_ResolveFrozenFields,
+      L2_ResolveMathFunctions,
+      L2_ResolveEvaluateFunctions,
+      L2_ResolveIntegrateFunctions,
 
-      var matches = 0
-      do {
-        matches = 0
-        matches += L2_ProcessDeclarations.applyAndCountMatches()
-        matches += L2_ResolveAccesses.applyAndCountMatches()
+      L2_ProcessDeclarationsAndResolveAccessesWrapper,
 
-        if (Knowledge.experimental_l2_resolveVirtualFields) {
-          // integrate before evaluate -> might be nested
-          L2_ResolveIntegrateOnGrid.apply()
-          matches += (if (L2_ResolveIntegrateOnGrid.results.isEmpty) 0 else L2_ResolveIntegrateOnGrid.results.last._2.matches)
-
-          L2_ResolveEvaluateOnGrid.apply()
-          matches += (if (L2_ResolveEvaluateOnGrid.results.isEmpty) 0 else L2_ResolveEvaluateOnGrid.results.last._2.matches)
-        }
-      } while (matches > 0)
-
-      L2_ProcessBoundaryDeclarations.apply()
-    }
+      L2_ProcessBoundaryDeclarations))
 
     // print before processing
-    print()
+    scheduler.register(PrintLayerWrapper(this))
 
     // process solver
-    L2_ProcessSolverHints.apply()
+    scheduler.register(L2_ProcessSolverHints)
 
     // progress knowledge to L3
-    L2_KnowledgeContainer.progress()
+    scheduler.register(ProgressKnowledgeContainerWrapper(this))
 
-    ExaRootNode.progressToL3()
+    scheduler.register(ProgressExaRootNodeWrapper(this))
 
-    if (Settings.timeStrategies) StrategyTimer.stopTiming("Handling Layer 2")
+    scheduler.register(StrategyTimerWrapper(start = false, "Handling Layer 2"))
   }
 }

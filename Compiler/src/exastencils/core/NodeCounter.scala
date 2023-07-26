@@ -74,7 +74,7 @@ object NodeCounter extends CustomStrategy("internal::NodeCounter") {
     hits = 0
   }
 
-  def reset() = {
+  override def reset() = {
     iteration = 0
     hits = 0
   }
