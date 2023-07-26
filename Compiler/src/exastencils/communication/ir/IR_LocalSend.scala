@@ -24,6 +24,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication._
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.domain.ir._
@@ -50,24 +51,45 @@ case class IR_LocalSend(
     val domainIdx = field.domain.index
     val neighborIdx = neighbor.index
 
-    var innerStmt : IR_Statement = IR_Assignment(
-      IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx), IR_ExpressionIndex(
-        IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _)),
-      IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims)))
+    def equalLevelCopyLoop() : IR_LoopOverDimensions = {
+      var innerStmt : IR_Statement = IR_Assignment(
+        IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx), IR_ExpressionIndex(
+          IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _)),
+        IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims)))
 
-    if (condition.isDefined)
-      innerStmt = IR_IfCondition(condition.get, innerStmt)
+      if (condition.isDefined)
+        innerStmt = IR_IfCondition(condition.get, innerStmt)
 
-    val loop = new IR_LoopOverDimensions(numDims, packIntervalDest, ListBuffer[IR_Statement](innerStmt))
-    loop.polyOptLevel = 1
-    loop.parallelization.potentiallyParallel = true
+      val loop = new IR_LoopOverDimensions(numDims, packIntervalDest, ListBuffer[IR_Statement](innerStmt))
+      loop.polyOptLevel = 1
+      loop.parallelization.potentiallyParallel = true
+
+      loop
+    }
+
+    def getCopyLoop() = {
+      if (Knowledge.refinement_enabled) {
+        refinementCase match {
+          case RefinementCase.EQUAL =>
+            equalLevelCopyLoop()
+          case RefinementCase.C2F   =>
+            // TODO: quadratic extrap/interp
+            equalLevelCopyLoop()
+          case RefinementCase.F2C =>
+            // TODO: linear interp
+            equalLevelCopyLoop()
+        }
+      } else {
+        equalLevelCopyLoop()
+      }
+    }
 
     IR_IfCondition(isLocalNeighbor(refinementCase, domainIdx, neighborIdx),
       ListBuffer[IR_Statement](
         // wait until the fragment to be written to is ready for communication
         IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(), IR_AddressOf(IR_IV_LocalCommReady(
           field, DefaultNeighbors.getOpposingNeigh(neighborIdx).index, IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx)))),
-        loop,
+        getCopyLoop(),
         // signal other threads that the data reading step is completed
         IR_Assignment(IR_IV_LocalCommDone(field, neighborIdx), IR_BooleanConstant(true))))
   }
