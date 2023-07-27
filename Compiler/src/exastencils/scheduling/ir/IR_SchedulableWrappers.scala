@@ -67,7 +67,7 @@ object IR_AddRemainingNodesWrapper extends NoStrategyWrapper {
 
 /// IR_GeneralSimplifyUntilDoneWrapper
 
-object IR_GeneralSimplifyUntilDoneWrapper extends Schedulable {
+object IR_GeneralSimplifyUntilDoneWrapper extends SingleSchedulable {
   override def apply(applyAtNode : Option[Node]) : Unit = {
     IR_GeneralSimplify.doUntilDone(applyAtNode)
   }
@@ -75,7 +75,7 @@ object IR_GeneralSimplifyUntilDoneWrapper extends Schedulable {
 
 /// IR_SetupCommunicationWrapper
 
-case class IR_SetupCommunicationWrapper(firstCall : Boolean) extends Schedulable {
+case class IR_SetupCommunicationWrapper(firstCall : Boolean) extends SingleSchedulable {
   override def apply(applyAtNode : Option[Node]) : Unit = {
     if (firstCall)
       IR_SetupCommunication.firstCall = true
@@ -91,7 +91,7 @@ object IR_InferDiagAndInverseCallDataTypesWrapper extends NoStrategyWrapper {
 
 /// IR_ExpandWrapper
 
-object IR_ExpandWrapper extends Schedulable {
+object IR_ExpandWrapper extends SingleSchedulable {
   override def apply(applyAtNode : Option[Node] = None) : Unit = {
     if (Knowledge.useFasterExpand)
       IR_ExpandInOnePass.apply(applyAtNode)
@@ -171,7 +171,7 @@ object IR_ResolveMatrixOpsWrapper extends NoStrategyWrapper {
 
 /// IR_TypeInferenceWrapper
 
-case class IR_TypeInferenceWrapper(warnMissingDeclarations : Boolean) extends Schedulable {
+case class IR_TypeInferenceWrapper(warnMissingDeclarations : Boolean) extends SingleSchedulable {
   override def apply(applyAtNode : Option[Node]) : Unit = {
     if (!warnMissingDeclarations)
       IR_TypeInference.warnMissingDeclarations = false

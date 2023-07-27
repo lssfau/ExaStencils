@@ -92,7 +92,7 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
     scheduler.register(MergeExaRootNodeWrapper(L2_Root(Settings.getL2file.map(L2_Parser.parseFile(_) : L2_Node))))
     scheduler.register(PrintLayerWrapper(this))
 
-    scheduler.register(ConditionedStrategyWrapper(() => ExaRootNode.l2_root.nodes.nonEmpty,
+    scheduler.register(ConditionedStrategyContainerWrapper(() => ExaRootNode.l2_root.nodes.nonEmpty,
       L2_Validation,
 
       L2_ProcessInlineKnowledge,

@@ -22,12 +22,15 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Node
-import exastencils.scheduling.Schedulable
+import exastencils.scheduling.SchedulableContainer
+import exastencils.scheduling.SingleSchedulable
 
 /// StrategyContainer
 
-abstract class StrategyContainer extends Schedulable {
+abstract class StrategyContainer extends SchedulableContainer {
   var strategies = ListBuffer[DefaultStrategy]()
+
+  def strats = strategies.map(s => s : SingleSchedulable)
 
   def apply() = strategies.foreach(_.apply())
 
