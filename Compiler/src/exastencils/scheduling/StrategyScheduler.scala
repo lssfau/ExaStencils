@@ -45,24 +45,34 @@ case class Scheduler() extends StrategyScheduler {
     items.flatMap(convertToSchedulerEntriesWrapper).to[ListBuffer]
   }
 
-  private def entryExistsInQueue(toFind : SchedulerEntry) : Boolean = {
-    queue.contains(toFind)
+  private def entryExistsInQueue(toFind : SingleSchedulable) : Boolean = {
+    queue.map(_.toSchedule).exists {
+      case c : ConditionedSingleStrategyWrapper if c.strat == toFind => true
+      case s : SingleSchedulable if s == toFind => true
+      case _ => false
+    }
   }
 
   private def getIndexInQueue(toFind : SingleSchedulable, from : Int) : Int = {
-    val entry = convertToSchedulerEntry(toFind)
-    if (entryExistsInQueue(entry))
-      Logger.error("Trying to add to non-existing item in scheduler queue: " + entry.name)
+    if (!entryExistsInQueue(toFind))
+      Logger.error("Trying to add to non-existing item in scheduler queue: " + toFind)
 
-    queue.indexOf(entry, from)
+    queue.map(_.toSchedule).indexWhere( {
+      case c : ConditionedSingleStrategyWrapper if c.strat == toFind => true
+      case s : SingleSchedulable if s == toFind                      => true
+      case _                                                         => false
+    }, from)
   }
 
   private def getOccurrencesInQueue(toFind : SingleSchedulable) : Int = {
-    val entry = convertToSchedulerEntry(toFind)
-    if (entryExistsInQueue(entry))
-      Logger.error("Trying to add to non-existing item in scheduler queue: " + entry.name)
+    if (!entryExistsInQueue(toFind))
+      Logger.error("Trying to add to non-existing item in scheduler queue: " + toFind)
 
-    queue.count(_ == entry)
+    queue.map(_.toSchedule).count {
+      case c : ConditionedSingleStrategyWrapper if c.strat == toFind => true
+      case s : SingleSchedulable if s == toFind                      => true
+      case _                                                         => false
+    }
   }
 
   private def prependToQueue(findIdx : Int, items : ListBuffer[SchedulerEntry]) : Unit = {
