@@ -4,8 +4,7 @@ import exastencils.scheduling.Scheduler
 import exastencils.waLBerla.l2.field.L2_WaLBerlaFieldCollection
 
 object L2_WaLBerlaLayerHandler extends L2_LayerHandler {
-
-  override def scheduler : Scheduler = Scheduler()
+  var scheduler : Scheduler = Scheduler()
 
   override def initialize() : Unit = {
     // additionally init waLBerla collections

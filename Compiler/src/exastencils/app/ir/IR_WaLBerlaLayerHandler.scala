@@ -18,7 +18,7 @@ import exastencils.waLBerla.ir.replacements._
 import exastencils.waLBerla.ir.interfacing._
 
 object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
-  override def scheduler : Scheduler = Scheduler()
+  var scheduler : Scheduler = Scheduler()
 
   override def initialize() : Unit = IR_DefaultLayerHandler.initialize()
 

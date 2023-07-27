@@ -8,8 +8,7 @@ import exastencils.waLBerla.l4.interfacing.L4_UnifyWaLBerlaVarsSections
 import exastencils.waLBerla.l4.refinement.L4_WaLBerlaRefinementSelectionCollection
 
 object L4_WaLBerlaLayerHandler extends L4_LayerHandler {
-
-  override def scheduler : Scheduler = Scheduler()
+  var scheduler : Scheduler = Scheduler()
 
   override def initialize() : Unit = {
     // additionally init waLBerla collections

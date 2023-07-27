@@ -23,7 +23,6 @@ import exastencils.base.ExaRootNode
 import exastencils.base.l1._
 import exastencils.baseExt.l1.L1_UnifyGlobalSections
 import exastencils.config._
-import exastencils.datastructures.StrategyTimer
 import exastencils.discretization.l1._
 import exastencils.domain.l1.L1_DomainCollection
 import exastencils.field.l1._
