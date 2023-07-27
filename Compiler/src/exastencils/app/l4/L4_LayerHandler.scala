@@ -94,7 +94,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
   override def schedule() : Unit = {
     scheduler.register(StrategyTimerWrapper(start = true, "Handling Layer 4"))
 
-    scheduler.register(ConditionedStrategyWrapper(() => ExaRootNode.l4_root.nodes.nonEmpty,
+    scheduler.register(ConditionedStrategyContainerWrapper(() => ExaRootNode.l4_root.nodes.nonEmpty,
       L4_WrapFieldFieldConvolutions,
       L4_AddLoopsToFieldAssignments,
       L4_AddLoopsToLocalSolve,
@@ -103,7 +103,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
 
     scheduler.register(MergeExaRootNodeWrapper(L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node))))
 
-    scheduler.register(ConditionedStrategyWrapper(true,
+    scheduler.register(ConditionedStrategyContainerWrapper(true,
       L4_UnresolveOperatorTimesField,
       L4_UnresolveFieldFieldConvolutions,
       L4_UnresolveStencilAccesses,
@@ -114,16 +114,16 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
       L4_CombineLeveledFunctionDecls,
     ))
 
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.l4_genSoA2AoSTransformation, L4_AddSoAtoAoSTransformation))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.l4_genSoA2AoSTransformation, L4_AddSoAtoAoSTransformation))
 
     scheduler.register(PrintLayerWrapper(this))
 
     scheduler.register(L4_SecondParseWrapper)
 
-    scheduler.register(ConditionedStrategyWrapper(() => ExaRootNode.l4_root.nodes.nonEmpty,
+    scheduler.register(ConditionedStrategyContainerWrapper(() => ExaRootNode.l4_root.nodes.nonEmpty,
       L4_ProcessInlineKnowledge,
 
-      ConditionedStrategyWrapper(Knowledge.l4_genDefaultApplication, L4_AddDefaultApplication),
+      ConditionedSingleStrategyWrapper(Knowledge.l4_genDefaultApplication, L4_AddDefaultApplication),
 
       L4_Validation,
 

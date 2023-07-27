@@ -90,8 +90,8 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     scheduler.register(IR_ProcessInlineKnowledge)
 
     // add globals - init mpi before cuda since cuda might need mpiRank to choose device
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.mpi_enabled, MPI_AddGlobals))
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.cuda_enabled, CUDA_AddGlobals))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.mpi_enabled, MPI_AddGlobals))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.cuda_enabled, CUDA_AddGlobals))
 
     scheduler.register(IR_SetupDefaultNeighborsWrapper)
     scheduler.register(IR_SetupAllocateDataFunctionWrapper)
@@ -103,7 +103,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     // add remaining nodes
     scheduler.register(IR_AddRemainingNodesWrapper)
 
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.experimental_mergeCommIntoLoops, IR_MergeCommunicateAndLoop))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.experimental_mergeCommIntoLoops, IR_MergeCommunicateAndLoop))
     scheduler.register(IR_GeneralSimplifyUntilDoneWrapper) // removes (conditional) calls to communication functions that are not possible
     scheduler.register(IR_SetupCommunicationWrapper(firstCall = true))
 
@@ -125,7 +125,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     scheduler.register(IR_ExpandWrapper)
 
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.experimental_compactBufferAllocation, IR_AdaptAllocateDataFunction))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.experimental_compactBufferAllocation, IR_AdaptAllocateDataFunction))
 
     scheduler.register(IR_SetupStepsizesWrapper)
 
@@ -140,7 +140,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     // simplify indices modified just now, otherwise equality checks will not work later on
     scheduler.register(IR_GeneralSimplify)
 
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.visit_enable, IR_SetupVisit))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.visit_enable, IR_SetupVisit))
 
     scheduler.register(IR_StencilConvolutionWrapper)
 
@@ -175,7 +175,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     // Prepare all suitable LoopOverDimensions and ContractingLoops. This transformation is applied before resolving
     // ContractingLoops to guarantee that memory transfer statements appear only before and after a resolved
     // ContractingLoop (required for temporal blocking). Leads to better device memory occupancy.
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.cuda_enabled, CUDA_PrepareHostCode, CUDA_PrepareMPICode))
+    scheduler.register(ConditionedStrategyContainerWrapper(Knowledge.cuda_enabled, CUDA_PrepareHostCode, CUDA_PrepareMPICode))
 
     scheduler.register(IR_ResolveContractingLoop)
 
@@ -196,13 +196,13 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     scheduler.register(IR_DuplicateNodesForCSEWrapper)
 
     scheduler.register(IR_MergeConditions)
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.poly_optLevel_fine > 0, IR_PolyOpt))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.poly_optLevel_fine > 0, IR_PolyOpt))
     scheduler.register(IR_ResolveLoopOverDimensions)
 
     scheduler.register(IR_TypeInferenceWrapper(warnMissingDeclarations = true)) // second sweep for any newly introduced nodes - TODO: check if this is necessary
 
     // Apply CUDA kernel extraction after polyhedral optimizations to work on optimized ForLoopStatements
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.cuda_enabled,
+    scheduler.register(ConditionedStrategyContainerWrapper(Knowledge.cuda_enabled,
       CUDA_AnnotateLoop,
       CUDA_ExtractHostAndDeviceCode,
       CUDA_AdaptKernelDimensionality,
@@ -229,53 +229,53 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     scheduler.register(IR_ExpandWrapper)
 
-    scheduler.register(ConditionedStrategyWrapper(!Knowledge.mpi_enabled, MPI_RemoveMPI))
+    scheduler.register(ConditionedSingleStrategyWrapper(!Knowledge.mpi_enabled, MPI_RemoveMPI))
 
     scheduler.register(IR_GeneralSimplifyUntilDoneWrapper)
 
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.opt_useAddressPrecalc, IR_AddressPrecalculation))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.opt_useAddressPrecalc, IR_AddressPrecalculation))
 
     scheduler.register(IR_SimplifyFloatExpressions)
 
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.opt_vectorize, IR_Vectorization))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.opt_vectorize, IR_Vectorization))
 
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.opt_unroll > 1, IR_Unrolling))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.opt_unroll > 1, IR_Unrolling))
 
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.opt_vectorize, IR_RemoveDupSIMDLoads))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.opt_vectorize, IR_RemoveDupSIMDLoads))
 
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.data_genVariableFieldSizes, IR_GenerateIndexManipFcts))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.data_genVariableFieldSizes, IR_GenerateIndexManipFcts))
 
     // adapt accesses to device data in case of managed memory
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.cuda_enabled && Knowledge.cuda_useManagedMemory, CUDA_AdaptDeviceAccessesForMM))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.cuda_enabled && Knowledge.cuda_useManagedMemory, CUDA_AdaptDeviceAccessesForMM))
 
     scheduler.register(IR_AddInternalVariables)
     // resolve possibly newly added constant IVs
     scheduler.register(IR_ResolveConstIVs)
 
     // adapt allocations and de-allocations before expanding
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.cuda_enabled, CUDA_AdaptAllocations))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.cuda_enabled, CUDA_AdaptAllocations))
 
     scheduler.register(IR_ExpandWrapper)
 
     // resolve newly added fragment loops
     scheduler.register(IR_ResolveLoopOverFragments)
 
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.mpi_enabled, MPI_AddDatatypeSetup, MPI_AddReductions))
+    scheduler.register(ConditionedStrategyContainerWrapper(Knowledge.mpi_enabled, MPI_AddDatatypeSetup, MPI_AddReductions))
 
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.omp_enabled, OMP_AddParallelSections))
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.omp_enabled && Platform.omp_version < 4.5, OMP_ResolveMatrixReduction))
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.omp_enabled && Platform.omp_version < 3.1, OMP_ResolveMinMaxReduction))
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.omp_enabled && Knowledge.omp_fixArithmeticReductionOrder, OMP_FixArithmeticReductionOrder))
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.omp_enabled && Platform.omp_requiresCriticalSections, OMP_AddCriticalSections))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.omp_enabled, OMP_AddParallelSections))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.omp_enabled && Platform.omp_version < 4.5, OMP_ResolveMatrixReduction))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.omp_enabled && Platform.omp_version < 3.1, OMP_ResolveMinMaxReduction))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.omp_enabled && Knowledge.omp_fixArithmeticReductionOrder, OMP_FixArithmeticReductionOrder))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.omp_enabled && Platform.omp_requiresCriticalSections, OMP_AddCriticalSections))
 
     // one last time
     scheduler.register(IR_ExpandWrapper)
 
     scheduler.register(exastencils.workaround.Compiler)
 
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.opt_maxInliningSize > 0, IR_Inlining))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.opt_maxInliningSize > 0, IR_Inlining))
 
-    scheduler.register(ConditionedStrategyWrapper(Knowledge.generateFortranInterface, IR_Fortranify))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.generateFortranInterface, IR_Fortranify))
 
     scheduler.register(IR_HACK_TypeAliases)
   }

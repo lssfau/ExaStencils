@@ -87,7 +87,7 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
 
     scheduler.register(PrintLayerWrapper(this))
 
-    scheduler.register(ConditionedStrategyWrapper(() => ExaRootNode.l3_root.nodes.nonEmpty,
+    scheduler.register(ConditionedStrategyContainerWrapper(() => ExaRootNode.l3_root.nodes.nonEmpty,
       L3_Validation,
 
       L3_ProcessInlineKnowledge,

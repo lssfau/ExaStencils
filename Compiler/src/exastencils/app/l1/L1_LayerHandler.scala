@@ -86,7 +86,7 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
     scheduler.register(MergeExaRootNodeWrapper(L1_Root(Settings.getL1file.map(L1_Parser.parseFile(_) : L1_Node))))
     scheduler.register(PrintLayerWrapper(this))
 
-    scheduler.register(ConditionedStrategyWrapper(() => ExaRootNode.l1_root.nodes.nonEmpty,
+    scheduler.register(ConditionedStrategyContainerWrapper(() => ExaRootNode.l1_root.nodes.nonEmpty,
       L1_Validation,
 
       L1_ProcessInlineKnowledge,

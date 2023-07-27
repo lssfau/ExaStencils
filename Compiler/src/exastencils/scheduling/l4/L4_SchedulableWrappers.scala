@@ -13,7 +13,7 @@ import exastencils.logger.Logger
 import exastencils.optimization.l4.L4_GeneralSimplify
 import exastencils.parsers.l4.L4_Parser
 import exastencils.scheduling.NoStrategyWrapper
-import exastencils.scheduling.Schedulable
+import exastencils.scheduling.SingleSchedulable
 
 /// L4_SecondParseWrapper
 
@@ -76,7 +76,7 @@ object L4_ResolveBoundaryHandlingFunctionsWrapper extends NoStrategyWrapper {
 
 /// L4_GeneralSimplifyUntilDoneWrapper
 
-object L4_GeneralSimplifyUntilDoneWrapper extends Schedulable {
+object L4_GeneralSimplifyUntilDoneWrapper extends SingleSchedulable {
   override def apply(applyAtNode : Option[Node]) : Unit = {
     L4_GeneralSimplify.doUntilDone(applyAtNode)
   }
