@@ -113,7 +113,7 @@ case class Scheduler() extends StrategyScheduler {
   }
 
   override def register(strat : Schedulable) : Unit = {
-    convertToSchedulerEntriesWrapper(strat)
+    queue ++= convertToSchedulerEntriesWrapper(strat)
   }
 
   override def invokeStrategies() : Unit = {

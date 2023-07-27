@@ -52,16 +52,16 @@ trait NoStrategyWrapper extends SingleSchedulable {
 object ConditionedStrategyContainerWrapper {
   def apply(condition : Boolean, strats : Schedulable*) = new ConditionedStrategyContainerWrapper(() => condition,
     strats.flatMap {
-      case s : SingleSchedulable                     => List(s)
       case css : ConditionedSingleStrategyWrapper    => List(ConditionedSingleStrategyWrapper(() => condition && css.callbackCondition(), css))
+      case s : SingleSchedulable                     => List(s)
       case csc : ConditionedStrategyContainerWrapper => csc.strats.map(s => ConditionedSingleStrategyWrapper(() => condition && csc.callbackCondition(), s))
       case c : SchedulableContainer                  => c.strats.map(s => ConditionedSingleStrategyWrapper(() => condition, s))
     }.to[ListBuffer])
 
   def apply(callbackCondition : () => Boolean, strats : Schedulable*) = new ConditionedStrategyContainerWrapper(callbackCondition,
     strats.flatMap {
-      case s : SingleSchedulable                     => List(s)
       case css : ConditionedSingleStrategyWrapper    => List(ConditionedSingleStrategyWrapper(() => callbackCondition() && css.callbackCondition(), css))
+      case s : SingleSchedulable                     => List(s)
       case csc : ConditionedStrategyContainerWrapper => csc.strats.map(s => ConditionedSingleStrategyWrapper(() => callbackCondition() && csc.callbackCondition(), s))
       case c : SchedulableContainer                  => c.strats.map(s => ConditionedSingleStrategyWrapper(() => callbackCondition(), s))
     }.to[ListBuffer])
