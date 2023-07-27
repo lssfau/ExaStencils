@@ -43,9 +43,6 @@ import exastencils.scheduling.l4._
 import exastencils.solver.l4._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util.l4._
-import exastencils.waLBerla.l4.field._
-import exastencils.waLBerla.l4.interfacing.L4_UnifyWaLBerlaVarsSections
-import exastencils.waLBerla.l4.refinement.L4_WaLBerlaRefinementSelectionCollection
 
 /// L4_LayerHandler
 
@@ -71,11 +68,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     // activate default knowledge collections
 
     L4_DomainCollection
-    // TODO: can we make the field (layout) collection instantiation generic?
-    L4_WaLBerlaFieldCollection
     L4_FieldCollection
-    L4_WaLBerlaFieldLayoutCollection
-    L4_WaLBerlaRefinementSelectionCollection
     L4_FieldLayoutCollection
     L4_StencilCollection
     L4_StencilFieldCollection
@@ -83,7 +76,6 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     L4_ExternalFieldCollection
     L4_EquationCollection
     L4_FieldCombinationCollection
-
 
     L4_PrepareAccesses.strategies += L4_PrepareMatrixAccesses
   }
@@ -140,7 +132,6 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
       StrategyTimerWrapper(start = false, "Handling Layer 4"),
 
       L4_UnifyGlobalSections,
-      //L4_UnifyWaLBerlaVarsSections,
 
       // go to IR
 

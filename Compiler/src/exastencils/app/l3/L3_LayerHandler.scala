@@ -37,7 +37,6 @@ import exastencils.scheduling._
 import exastencils.scheduling.l3._
 import exastencils.solver.l3._
 import exastencils.util.l3._
-import exastencils.waLBerla.l3.field.L3_WaLBerlaFieldCollection
 
 /// L3_LayerHandler
 
@@ -63,8 +62,6 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
     // activate default knowledge collections
 
     L3_DomainCollection
-    // TODO: can we make the field collection instantiation generic?
-    L3_WaLBerlaFieldCollection
     L3_FieldCollection
     L3_StencilCollection
     L3_StencilFieldCollection
