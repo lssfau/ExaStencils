@@ -30,10 +30,19 @@ import exastencils.config.Settings
 
 object ExaLayerHandler {
   var l1_handler : L1_LayerHandler = L1_DefaultLayerHandler
-  var l2_handler : L2_LayerHandler = if (Knowledge.waLBerla_generateInterface) L2_WaLBerlaLayerHandler else L2_DefaultLayerHandler
-  var l3_handler : L3_LayerHandler = if (Knowledge.waLBerla_generateInterface) L3_WaLBerlaLayerHandler else L3_DefaultLayerHandler
-  var l4_handler : L4_LayerHandler = if (Knowledge.waLBerla_generateInterface) L4_WaLBerlaLayerHandler else L4_DefaultLayerHandler
-  var ir_handler : IR_LayerHandler = if (Knowledge.waLBerla_generateInterface) IR_WaLBerlaLayerHandler else IR_DefaultLayerHandler
+  var l2_handler : L2_LayerHandler = L2_DefaultLayerHandler
+  var l3_handler : L3_LayerHandler = L3_DefaultLayerHandler
+  var l4_handler : L4_LayerHandler = L4_DefaultLayerHandler
+  var ir_handler : IR_LayerHandler = IR_DefaultLayerHandler
+
+  def updateAllLayers() : Unit = {
+    if (Knowledge.waLBerla_generateInterface) {
+      l2_handler = L2_WaLBerlaLayerHandler
+      l3_handler = L3_WaLBerlaLayerHandler
+      l4_handler = L4_WaLBerlaLayerHandler
+      ir_handler = IR_WaLBerlaLayerHandler
+    }
+  }
 
   def allLayers = Array(l1_handler, l2_handler, l3_handler, l4_handler, ir_handler)
 
