@@ -26,11 +26,17 @@ case class Scheduler() extends StrategyScheduler {
     stratContainer.strats.map(s => SchedulerEntry(s.getClass.getSimpleName, s))
   }
 
+  private def convertToSchedulerEntriesWithCond(condStratContainer : ConditionedStrategyContainerWrapper) : ListBuffer[SchedulerEntry] = {
+    condStratContainer.strats.map(s => SchedulerEntry(s.getClass.getSimpleName, ConditionedSingleStrategyWrapper(condStratContainer.callbackCondition, s)))
+  }
+
   private def convertToSchedulerEntriesWrapper(strat : Schedulable) : ListBuffer[SchedulerEntry] = {
     strat match {
-      case s : SingleSchedulable    =>
+      case s : SingleSchedulable                     =>
         ListBuffer(convertToSchedulerEntry(s))
-      case c : SchedulableContainer =>
+      case css : ConditionedStrategyContainerWrapper =>
+        convertToSchedulerEntriesWithCond(css)
+      case c : SchedulableContainer                  =>
         convertToSchedulerEntries(c)
     }
   }
@@ -113,11 +119,13 @@ case class Scheduler() extends StrategyScheduler {
   }
 
   override def register(strat : Schedulable) : Unit = {
-    convertToSchedulerEntriesWrapper(strat)
+    queue ++= convertToSchedulerEntriesWrapper(strat)
   }
 
   override def invokeStrategies() : Unit = {
-    for (strat <- queue)
+    for (strat <- queue) {
+      println("Invoking: " + strat.name)
       strat.toSchedule.apply()
+    }
   }
 }

@@ -50,19 +50,11 @@ trait NoStrategyWrapper extends SingleSchedulable {
 /// ConditionedStrategyWrapper
 
 object ConditionedStrategyContainerWrapper {
-  def apply(condition : Boolean, strats : Schedulable*) = new ConditionedStrategyContainerWrapper(() => condition,
-    strats.flatMap {
-      case s : SingleSchedulable                   => List(s)
-      case cs : ConditionedSingleStrategyWrapper   => List(ConditionedSingleStrategyWrapper(() => condition && cs.callbackCondition(), cs))
-      case c : ConditionedStrategyContainerWrapper => c.strats.map(s => ConditionedSingleStrategyWrapper(() => condition && c.callbackCondition(), s))
-    }.to[ListBuffer])
+  def apply(condition : Boolean, strats : SingleSchedulable*) = new ConditionedStrategyContainerWrapper(() => condition,
+    strats.to[ListBuffer])
 
-  def apply(callbackCondition : () => Boolean, strats : Schedulable*) = new ConditionedStrategyContainerWrapper(callbackCondition,
-    strats.flatMap {
-      case s : SingleSchedulable                   => List(s)
-      case cs : ConditionedSingleStrategyWrapper   => List(ConditionedSingleStrategyWrapper(() => callbackCondition() && cs.callbackCondition(), cs))
-      case c : ConditionedStrategyContainerWrapper => c.strats.map(s => ConditionedSingleStrategyWrapper(() => callbackCondition() && c.callbackCondition(), s))
-    }.to[ListBuffer])
+  def apply(callbackCondition : () => Boolean, strats : SingleSchedulable*) = new ConditionedStrategyContainerWrapper(callbackCondition,
+    strats.to[ListBuffer])
 }
 
 case class ConditionedStrategyContainerWrapper(var callbackCondition : () => Boolean, var strats : ListBuffer[SingleSchedulable]) extends SchedulableContainer {
