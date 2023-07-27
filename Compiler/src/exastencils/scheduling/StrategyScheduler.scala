@@ -46,13 +46,13 @@ case class Scheduler() extends StrategyScheduler {
   }
 
   private def entryExistsInQueue(toFind : SchedulerEntry) : Boolean = {
-    queue contains toFind
+    queue.contains(toFind)
   }
 
   private def getIndexInQueue(toFind : SingleSchedulable, from : Int) : Int = {
     val entry = convertToSchedulerEntry(toFind)
     if (entryExistsInQueue(entry))
-      Logger.error("Trying to prepend to non-existing item in scheduler queue")
+      Logger.error("Trying to add to non-existing item in scheduler queue: " + entry.name)
 
     queue.indexOf(entry, from)
   }
@@ -60,7 +60,7 @@ case class Scheduler() extends StrategyScheduler {
   private def getOccurrencesInQueue(toFind : SingleSchedulable) : Int = {
     val entry = convertToSchedulerEntry(toFind)
     if (entryExistsInQueue(entry))
-      Logger.error("Trying to prepend to non-existing item in scheduler queue")
+      Logger.error("Trying to add to non-existing item in scheduler queue: " + entry.name)
 
     queue.count(_ == entry)
   }
@@ -123,9 +123,7 @@ case class Scheduler() extends StrategyScheduler {
   }
 
   override def invokeStrategies() : Unit = {
-    for (strat <- queue) {
-      println("Invoking: " + strat.name)
+    for (strat <- queue)
       strat.toSchedule.apply()
-    }
   }
 }
