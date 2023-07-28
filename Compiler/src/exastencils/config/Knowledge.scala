@@ -840,6 +840,7 @@ object Knowledge {
 
     // refinement
     Constraints.condError(refinement_enabled && !comm_onlyAxisNeighbors, "Mesh refinement currently only supports communication with axis neighbors.")
+    Constraints.condError(refinement_enabled && !grid_isAxisAligned, "Mesh refinement currently only supports aligned blocks.")
     Constraints.condError(refinement_enabled && comm_enableCommTransformations, "Communication transformations are currently not supported with mesh refinement.")
 
     // backwards compatibility for comm_strategyFragment
