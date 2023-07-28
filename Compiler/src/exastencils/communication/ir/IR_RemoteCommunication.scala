@@ -22,10 +22,12 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.config.Knowledge
 import exastencils.domain.ir._
+import exastencils.optimization.ir.IR_SimplifyExpression
+import exastencils.parallelization.api.mpi.MPI_DataType
 
 /// IR_ApplyRemoteCommunication
 
@@ -43,6 +45,11 @@ trait IR_ApplyRemoteCommunication {
 
 abstract class IR_RemoteCommunication extends IR_Communication with IR_ApplyRemoteCommunication {
   def packInfos : ListBuffer[IR_RemotePackInfo]
+
+  def requiresPacking(indices : IR_ExpressionIndexRange, condition : Option[IR_Expression]) = {
+    Knowledge.data_genVariableFieldSizes ||
+      (!MPI_DataType.shouldBeUsed(field, indices, condition) && IR_SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)
+  }
 
   def genCopy(packInfo : IR_RemotePackInfo, addCondition : Boolean) : IR_Statement
   def genTransfer(packInfo : IR_RemotePackInfo, addCondition : Boolean) : IR_Statement
