@@ -12,7 +12,9 @@ trait IR_PackInfo extends Node {
   def neighbor : NeighborInfo
   def field : IR_Field
 
-  protected def inverseNeighDir : Array[Int] = neighbor.dir.map(-1 * _)
+  def neighDir : Array[Int] = neighbor.dir
+
+  def inverseNeighDir : Array[Int] = neighbor.dir.map(-1 * _)
 
   protected def getPackingIntervalFromStartAndEnd(start : Array[IR_Expression], end : Array[IR_Expression]) =
     IR_ExpressionIndexRange(IR_ExpressionIndex(start), IR_ExpressionIndex(end))
