@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.communication.DefaultNeighbors
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation._
@@ -31,6 +32,34 @@ case class IR_QuadraticInterpPackingC2FRemote(
   def commDir : Array[Int] = packInfo.neighDir
 
   def invCommDir : Array[Int] = packInfo.inverseNeighDir
+
+  def isUpwindDir(dir : Array[Int]) = dir(getDimFromDir(dir)) > 0
+
+  def orthogonalNeighborDirs() = {
+    DefaultNeighbors.neighbors.map(_.dir).filter(dir => !(dir sameElements commDir) && !(dir sameElements invCommDir))
+  }
+
+  def isAtBlockCornersForDim(dim : Int) : IR_Expression = {
+    val ival = packInfo.getPackInterval()
+
+    // onion-peel of one layer in pack info interval
+    ival.begin(dim) != defIt(dim) || ival.end(dim) != defIt(dim)
+  }
+
+  def isAtBlockCornersForDir(dir : Array[Int]) : IR_Expression = {
+    val ival = packInfo.getPackInterval()
+
+    val dim = getDimFromDir(dir)
+
+    if (isUpwindDir(dir))
+      ival.end(dim) != defIt(dim)
+    else
+      ival.begin(dim) != defIt(dim)
+  }
+
+  def isAtBlockCorners() : IR_Expression = {
+    (0 until Knowledge.dimensionality - 1).map(d => isAtBlockCornersForDim(d)).reduce(_ OrOr _)
+  }
 
   sealed case class BaseShift(var remappable : Boolean, var i0 : Int, var i1 : Int, var i2 : Int) {
     private val toArray = Array(i0, i1, i2)
@@ -77,36 +106,34 @@ case class IR_QuadraticInterpPackingC2FRemote(
     dir.indexWhere(_ != 0)
   }
 
-  def getCellCenter(dir : Array[Int], offset : IR_ExpressionIndex = IR_ExpressionIndex(0)) : IR_VirtualFieldAccess =
-    IR_VF_CellCenterPerDim.access(field.level, getDimFromDir(dir), defIt + offset)
+  def getCellCenter(dir : Array[Int], origin : IR_ExpressionIndex, offset : IR_ExpressionIndex = IR_ExpressionIndex(0)) : IR_VirtualFieldAccess =
+    IR_VF_CellCenterPerDim.access(field.level, getDimFromDir(dir), origin + offset)
 
-  def getCellWidth(dir : Array[Int], offset : IR_ExpressionIndex = IR_ExpressionIndex(0)) : IR_VirtualFieldAccess =
-    IR_VF_CellWidthPerDim.access(field.level, getDimFromDir(dir), defIt + offset)
+  def getCellWidth(dir : Array[Int], origin : IR_ExpressionIndex, offset : IR_ExpressionIndex = IR_ExpressionIndex(0)) : IR_VirtualFieldAccess =
+    IR_VF_CellWidthPerDim.access(field.level, getDimFromDir(dir), origin + offset)
 
-  def getBasePositions(dir : Array[Int], shifts : BaseShift) : BasePositions = {
+  def getBasePositions(dir : Array[Int], origin : IR_ExpressionIndex, shifts : BaseShift) : BasePositions = {
     val offsets = shifts.toOffsetArrays(dir)
 
     field.localization match {
       case IR_AtCellCenter =>
         BasePositions(
           0, // set origin to current cell
-          getCellCenter(dir, IR_ExpressionIndex(offsets(1))) - getCellCenter(dir, IR_ExpressionIndex(offsets(0))),
-          getCellCenter(dir, IR_ExpressionIndex(offsets(2))) - getCellCenter(dir, IR_ExpressionIndex(offsets(0)))
+          getCellCenter(dir, origin, IR_ExpressionIndex(offsets(1))) - getCellCenter(dir, origin, IR_ExpressionIndex(offsets(0))),
+          getCellCenter(dir, origin, IR_ExpressionIndex(offsets(2))) - getCellCenter(dir, origin, IR_ExpressionIndex(offsets(0)))
         )
       case _               =>
         Logger.error("Unsupported localization for quadratic interp in comm for mesh refinement.")
     }
   }
 
-  def commInUpwindDir() = commDir(getDimFromDir(commDir)) > 0
-
-  def getBaseValues(dir : Array[Int], shifts : BaseShift) : BaseValues = {
+  def getBaseValues(dir : Array[Int], origin : IR_ExpressionIndex, shifts : BaseShift) : BaseValues = {
     val offsets = shifts.toOffsetArrays(dir)
 
     BaseValues(
-      IR_DirectFieldAccess(field, Duplicate(slot), defIt + IR_ExpressionIndex(offsets(0))),
-      IR_DirectFieldAccess(field, Duplicate(slot), defIt + IR_ExpressionIndex(offsets(1))),
-      IR_DirectFieldAccess(field, Duplicate(slot), defIt + IR_ExpressionIndex(offsets(2)))
+      IR_DirectFieldAccess(field, Duplicate(slot), origin + IR_ExpressionIndex(offsets(0))),
+      IR_DirectFieldAccess(field, Duplicate(slot), origin + IR_ExpressionIndex(offsets(1))),
+      IR_DirectFieldAccess(field, Duplicate(slot), origin + IR_ExpressionIndex(offsets(2)))
     )
   }
 
@@ -117,11 +144,11 @@ case class IR_QuadraticInterpPackingC2FRemote(
   // these shifts are chosen such that values are not reconstructed with values from the ghost layers
   private val RemappedBasesShifts = BaseShift(remappable = true, 0, 1, 2)
 
-  def getBasePositionsForExtrapolation(dir : Array[Int]) : BasePositions = getBasePositions(dir, RemappedBasesShifts)
+  def getBasePositionsForExtrapolation(dir : Array[Int], origin : IR_ExpressionIndex) : BasePositions =
+    getBasePositions(dir, origin, RemappedBasesShifts)
 
-  def getBasePositionsForInterpolation(dir : Array[Int]) : BasePositions = getBasePositions(dir, CenteredBasesShifts)
-
-  def getBasePositionsForInterpolationNearCorner(dir : Array[Int]) : BasePositions = getBasePositions(dir, RemappedBasesShifts)
+  def getBasePositionsForInterpolation(dir : Array[Int], origin : IR_ExpressionIndex) : BasePositions =
+    getBasePositions(dir, origin, CenteredBasesShifts)
 
   override def expand() : Output[StatementList] = {
     if (condition.isDefined)
@@ -148,12 +175,25 @@ case class IR_QuadraticInterpPackingC2FRemote(
       // TODO: add pack loop with interp kernel
 
       // Step 1 (1D interp): get value on neighboring fine ghost layer by extrapolating coarse cells in inverse comm direction
-      val basePos = getBasePositionsForExtrapolation(commDir)
-      val baseVals = getBaseValues(commDir, RemappedBasesShifts)
-      val x0 = (if (commInUpwindDir()) +1 else -1) * getCellWidth(commDir) / IR_RealConstant(4) // target location at: +/- 0.25h
+      val basePos = getBasePositionsForExtrapolation(commDir, defIt)
+      val baseVals = getBaseValues(commDir, defIt, RemappedBasesShifts)
+      val x0 = (if (isUpwindDir(commDir)) +1 else -1) * getCellWidth(commDir, defIt) / IR_RealConstant(4) // target location at: +/- 0.25h
 
       val f0_ext = IR_VariableAccess("f0_ext", IR_RealDatatype)
       innerStmt = IR_VariableDeclaration(f0_ext, interpolate(x0, basePos, baseVals))
+
+      // Step 2: also extrapolate new bases for orthogonal face directions
+      for (orthoDir <- orthogonalNeighborDirs()) {
+        val baseValsRemapped = getBaseValues(commDir, defIt + orthoDir, RemappedBasesShifts)
+        val baseValsNeigh = getBaseValues(commDir, defIt + orthoDir, CenteredBasesShifts)
+
+        IR_IfCondition(isAtBlockCornersForDir(orthoDir),
+          // true -> remap
+          IR_NullStatement, // TODO
+          // false -> regular handling
+          IR_NullStatement // TODO
+        )
+      }
 
     } else {
       // TODO: add unpack loop
