@@ -46,8 +46,9 @@ trait IR_ApplyRemoteCommunication {
 abstract class IR_RemoteCommunication extends IR_Communication with IR_ApplyRemoteCommunication {
   def packInfos : ListBuffer[IR_RemotePackInfo]
 
-  def requiresPacking(indices : IR_ExpressionIndexRange, condition : Option[IR_Expression]) = {
-    Knowledge.data_genVariableFieldSizes ||
+  def requiresPacking(refinementCase : RefinementCase.Access, indices : IR_ExpressionIndexRange, condition : Option[IR_Expression]) = {
+    refinementCase != RefinementCase.EQUAL ||
+      Knowledge.data_genVariableFieldSizes ||
       (!MPI_DataType.shouldBeUsed(field, indices, condition) && IR_SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)
   }
 

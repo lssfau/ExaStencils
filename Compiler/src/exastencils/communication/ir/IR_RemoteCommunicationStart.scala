@@ -49,7 +49,7 @@ case class IR_RemoteCommunicationStart(
     val neighbor = packInfo.neighbor
     val indices = packInfo.getPackInterval()
 
-    if (requiresPacking(indices, condition)) {
+    if (requiresPacking(refinementCase, indices, condition)) {
       val body = IR_CopyToSendBuffer(field, Duplicate(slot), refinementCase, packInfo, concurrencyId, Duplicate(condition))
       if (addCondition) wrapCond(Duplicate(neighbor), ListBuffer[IR_Statement](body)) else body
     } else {
