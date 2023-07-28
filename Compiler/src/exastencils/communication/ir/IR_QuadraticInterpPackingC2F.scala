@@ -13,6 +13,7 @@ import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.grid.ir._
 import exastencils.logger.Logger
+import exastencils.optimization.ir.IR_GeneralSimplify
 
 case class IR_QuadraticInterpPackingC2FRemote(
     var send : Boolean,
@@ -31,13 +32,13 @@ case class IR_QuadraticInterpPackingC2FRemote(
 
   def invCommDir : Array[Int] = packInfo.inverseNeighDir
 
-  sealed case class BaseShift(var remapped : Boolean, var i0 : Int, var i1 : Int, var i2 : Int) {
+  sealed case class BaseShift(var remappable : Boolean, var i0 : Int, var i1 : Int, var i2 : Int) {
     private val toArray = Array(i0, i1, i2)
 
     def scaleDir(dir : Array[Int], scale : Int) : Array[IR_Expression] = dir.map(_ * scale : IR_Expression)
 
     def toOffsetArrays(dir : Array[Int]) : Array[Array[IR_Expression]] = {
-      val offsetDir = if (remapped) dir.map(_ * -1) else dir
+      val offsetDir = if (remappable) dir.map(_ * -1) else dir
       Array(scaleDir(offsetDir, toArray(0)), scaleDir(offsetDir, toArray(1)), scaleDir(offsetDir, toArray(2)))
     }
   }
@@ -50,7 +51,11 @@ case class IR_QuadraticInterpPackingC2FRemote(
         for (k <- asArray.indices if k != j) yield (pos - asArray(k)) / (asArray(j) - asArray(k)) : IR_Expression
       }
 
-      (for (baseIdx <- asArray.indices) yield factors(baseIdx).reduce(_ * _ : IR_Expression)).toArray
+      val ret = for (baseIdx <- asArray.indices) yield factors(baseIdx).reduce(_ * _ : IR_Expression)
+      for (e <- ret)
+        IR_GeneralSimplify.doUntilDoneStandalone(e)
+
+      ret.toArray
     }
   }
 
@@ -84,14 +89,16 @@ case class IR_QuadraticInterpPackingC2FRemote(
     field.localization match {
       case IR_AtCellCenter =>
         BasePositions(
-          getCellCenter(dir, IR_ExpressionIndex(offsets(0))),
-          getCellCenter(dir, IR_ExpressionIndex(offsets(1))),
-          getCellCenter(dir, IR_ExpressionIndex(offsets(2)))
+          0, // set origin to current cell
+          getCellCenter(dir, IR_ExpressionIndex(offsets(1))) - getCellCenter(dir, IR_ExpressionIndex(offsets(0))),
+          getCellCenter(dir, IR_ExpressionIndex(offsets(2))) - getCellCenter(dir, IR_ExpressionIndex(offsets(0)))
         )
       case _               =>
         Logger.error("Unsupported localization for quadratic interp in comm for mesh refinement.")
     }
   }
+
+  def commInUpwindDir() = commDir(getDimFromDir(commDir)) > 0
 
   def getBaseValues(dir : Array[Int], shifts : BaseShift) : BaseValues = {
     val offsets = shifts.toOffsetArrays(dir)
@@ -104,11 +111,11 @@ case class IR_QuadraticInterpPackingC2FRemote(
   }
 
   // shifts for accessing cell centers for interpolation with bases at [-h, 0, h]
-  private val CenteredBasesShifts = BaseShift(remapped = false, -1, 0, 1)
+  private val CenteredBasesShifts = BaseShift(remappable = false, -1, 0, 1)
 
   // shifts for accessing cell centers for extrapolation/interpolation with bases at [0, h, 2h]
   // these shifts are chosen such that values are not reconstructed with values from the ghost layers
-  private val RemappedBasesShifts = BaseShift(remapped = true, 0, 1, 2)
+  private val RemappedBasesShifts = BaseShift(remappable = true, 0, 1, 2)
 
   def getBasePositionsForExtrapolation(dir : Array[Int]) : BasePositions = getBasePositions(dir, RemappedBasesShifts)
 
@@ -141,11 +148,12 @@ case class IR_QuadraticInterpPackingC2FRemote(
       // TODO: add pack loop with interp kernel
 
       // Step 1 (1D interp): get value on neighboring fine ghost layer by extrapolating coarse cells in inverse comm direction
-      val basePos = getBasePositionsForExtrapolation(invCommDir)
-      val baseVals = getBaseValues(invCommDir, RemappedBasesShifts)
-      val x0 = getCellWidth(invCommDir)
+      val basePos = getBasePositionsForExtrapolation(commDir)
+      val baseVals = getBaseValues(commDir, RemappedBasesShifts)
+      val x0 = (if (commInUpwindDir()) +1 else -1) * getCellWidth(commDir) / IR_RealConstant(4) // target location at: +/- 0.25h
 
-      innerStmt = interpolate(x0, basePos, baseVals)
+      val f0_ext = IR_VariableAccess("f0_ext", IR_RealDatatype)
+      innerStmt = IR_VariableDeclaration(f0_ext, interpolate(x0, basePos, baseVals))
 
     } else {
       // TODO: add unpack loop
