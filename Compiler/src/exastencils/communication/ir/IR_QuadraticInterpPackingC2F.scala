@@ -184,8 +184,8 @@ case class IR_QuadraticInterpPackingC2FRemote(
 
       // Step 2: also extrapolate new bases for orthogonal face directions
       for (orthoDir <- orthogonalNeighborDirs()) {
-        val baseValsRemapped = getBaseValues(commDir, defIt + orthoDir, RemappedBasesShifts)
-        val baseValsNeigh = getBaseValues(commDir, defIt + orthoDir, CenteredBasesShifts)
+        val baseValsRemapped = getBaseValues(commDir, defIt + IR_ExpressionIndex(orthoDir), RemappedBasesShifts)
+        val baseValsNeigh = getBaseValues(commDir, defIt + IR_ExpressionIndex(orthoDir), CenteredBasesShifts)
 
         IR_IfCondition(isAtBlockCornersForDir(orthoDir),
           // true -> remap
