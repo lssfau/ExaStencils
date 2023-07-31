@@ -35,7 +35,7 @@ case class IR_QuadraticInterpPackingC2FRemote(
 
   def isUpwindDir(dir : Array[Int]) = dir(getDimFromDir(dir)) > 0
 
-  def orthogonalNeighborDirs() = {
+  def getOrthogonalNeighborDirs() = {
     DefaultNeighbors.neighbors.map(_.dir).filter(dir => !(dir sameElements commDir) && !(dir sameElements invCommDir))
   }
 
@@ -43,7 +43,7 @@ case class IR_QuadraticInterpPackingC2FRemote(
     val ival = packInfo.getPackInterval()
 
     // onion-peel of one layer in pack info interval
-    ival.begin(dim) != defIt(dim) || ival.end(dim) != defIt(dim)
+    defIt(dim) != ival.begin(dim) || defIt(dim) != ival.end(dim)
   }
 
   def isAtBlockCornersForDir(dir : Array[Int]) : IR_Expression = {
@@ -52,9 +52,9 @@ case class IR_QuadraticInterpPackingC2FRemote(
     val dim = getDimFromDir(dir)
 
     if (isUpwindDir(dir))
-      ival.end(dim) != defIt(dim)
+      defIt(dim) != ival.end(dim)
     else
-      ival.begin(dim) != defIt(dim)
+      defIt(dim) != ival.begin(dim)
   }
 
   def isAtBlockCorners() : IR_Expression = {
@@ -170,7 +170,7 @@ case class IR_QuadraticInterpPackingC2FRemote(
       IR_ExpressionIndex(defIt, indices.begin, _ - _),
       IR_ExpressionIndex(indices.end, indices.begin, _ - _))
 
-    var innerStmt : IR_Statement = IR_NullStatement
+    var innerStmts : ListBuffer[IR_Statement] = ListBuffer()
     if (send) {
       // TODO: add pack loop with interp kernel
 
@@ -180,18 +180,21 @@ case class IR_QuadraticInterpPackingC2FRemote(
       val x0 = (if (isUpwindDir(commDir)) +1 else -1) * getCellWidth(commDir, defIt) / IR_RealConstant(4) // target location at: +/- 0.25h
 
       val f0_ext = IR_VariableAccess("f0_ext", IR_RealDatatype)
-      innerStmt = IR_VariableDeclaration(f0_ext, interpolate(x0, basePos, baseVals))
+      innerStmts += IR_VariableDeclaration(f0_ext, interpolate(x0, basePos, baseVals))
 
       // Step 2: also extrapolate new bases for orthogonal face directions
-      for (orthoDir <- orthogonalNeighborDirs()) {
-        val baseValsRemapped = getBaseValues(commDir, defIt + IR_ExpressionIndex(orthoDir), RemappedBasesShifts)
-        val baseValsNeigh = getBaseValues(commDir, defIt + IR_ExpressionIndex(orthoDir), CenteredBasesShifts)
+      val orthogonalNeighDirs = getOrthogonalNeighborDirs()
+      def fIdx_ext(idx : Int) = IR_VariableAccess(s"f${idx}_ext", IR_RealDatatype)
+      for ((orthoDir, orthoIdx) <- orthogonalNeighDirs.zipWithIndex) {
+        val orthoBaseVals = getBaseValues(commDir, defIt + IR_ExpressionIndex(orthoDir), RemappedBasesShifts)
+        val remappedOrthoBaseVals = getBaseValues(commDir, defIt + IR_ExpressionIndex(orthoDir.map(_ * -2)), RemappedBasesShifts)
 
-        IR_IfCondition(isAtBlockCornersForDir(orthoDir),
-          // true -> remap
-          IR_NullStatement, // TODO
-          // false -> regular handling
-          IR_NullStatement // TODO
+        // check if base offset in orthogonal direction is still within inner layers
+        innerStmts += IR_IfCondition(IR_Negation(isAtBlockCornersForDir(orthoDir)),
+          // true -> regular handling as before
+          IR_VariableDeclaration(fIdx_ext(orthoIdx), interpolate(x0, basePos, orthoBaseVals)),
+          // false -> remap orthogonal direction to point to farther cell in inner layers
+          IR_VariableDeclaration(fIdx_ext(orthoIdx), interpolate(x0, basePos, remappedOrthoBaseVals)),
         )
       }
 
@@ -199,7 +202,7 @@ case class IR_QuadraticInterpPackingC2FRemote(
       // TODO: add unpack loop
     }
 
-    val loop = new IR_LoopOverDimensions(numDims, indices, ListBuffer(innerStmt), condition = condition)
+    val loop = new IR_LoopOverDimensions(numDims, indices, innerStmts, condition = condition)
     loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
     ret += loop
