@@ -371,10 +371,9 @@ case class IR_QuadraticInterpPackingC2FRemote(
         case _                                                   => 2
       }
 
-      // TODO: ... and fold into a single nested if-else construct
+      // ... and fold into a single nested if-else construct
       val sortedCases = fillStmtsPerCase.toSeq.sorted(caseOrdering)
-      sortedCases.foreach(c => if (c.condition != isRegularCase()) c.trueBody += IR_Break())
-      innerStmts ++= sortedCases
+      innerStmts += sortedCases.dropRight(1).reverse.foldLeft(sortedCases.reverse.head)((c1, c2) => IR_IfCondition(c2.condition, c2.trueBody, c1))
 
       /*
       // debug output
