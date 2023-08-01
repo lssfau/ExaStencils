@@ -32,7 +32,6 @@ import exastencils.operator.l3._
 import exastencils.parsers.l3._
 import exastencils.prettyprinting.Indenter
 import exastencils.scheduling._
-import exastencils.scheduling.l3._
 import exastencils.solver.l3._
 import exastencils.util.l3._
 
