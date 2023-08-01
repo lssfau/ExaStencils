@@ -25,7 +25,7 @@ import exastencils.baseExt.l1.L1_UnifyGlobalSections
 import exastencils.config._
 import exastencils.datastructures.StrategyTimer
 import exastencils.discretization.l1._
-import exastencils.domain.l1.L1_DomainCollection
+import exastencils.domain.l1._
 import exastencils.field.l1._
 import exastencils.knowledge.l1.L1_KnowledgeContainer._
 import exastencils.knowledge.l1._
@@ -33,7 +33,6 @@ import exastencils.operator.l1.L1_OperatorCollection
 import exastencils.parsers.l1._
 import exastencils.prettyprinting.Indenter
 import exastencils.scheduling._
-import exastencils.scheduling.l1._
 import exastencils.solver.l1._
 import exastencils.util.l1._
 
