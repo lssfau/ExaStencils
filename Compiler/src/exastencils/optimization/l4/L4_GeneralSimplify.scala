@@ -27,6 +27,7 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.logger.Logger
+import exastencils.scheduling.SingleSchedulable
 
 /// L4_GeneralSimplify
 
@@ -366,5 +367,13 @@ object L4_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       base *= base
     }
     res
+  }
+}
+
+/// L4_GeneralSimplifyUntilDoneWrapper
+
+object L4_GeneralSimplifyUntilDoneWrapper extends SingleSchedulable {
+  override def apply(applyAtNode : Option[Node]) : Unit = {
+    L4_GeneralSimplify.doUntilDone(applyAtNode)
   }
 }

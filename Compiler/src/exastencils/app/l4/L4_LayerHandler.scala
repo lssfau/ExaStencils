@@ -23,6 +23,7 @@ import exastencils.applications.l4.L4_AddDefaultApplication
 import exastencils.base.ExaRootNode
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
+import exastencils.boundary.ir.L4_ResolveBoundaryHandlingFunctionsWrapper
 import exastencils.communication.l4._
 import exastencils.config._
 import exastencils.domain.l4.L4_DomainCollection
@@ -33,11 +34,12 @@ import exastencils.interfacing.l4.L4_ExternalFieldCollection
 import exastencils.knowledge.l4.L4_KnowledgeContainer._
 import exastencils.knowledge.l4._
 import exastencils.layoutTransformation.l4.L4_AddSoAtoAoSTransformation
+import exastencils.logger.Logger
 import exastencils.operator.l4._
+import exastencils.optimization.l4.L4_GeneralSimplifyUntilDoneWrapper
 import exastencils.parsers.l4._
 import exastencils.prettyprinting.Indenter
 import exastencils.scheduling._
-import exastencils.scheduling.l4._
 import exastencils.solver.l4._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util.l4._
@@ -204,5 +206,24 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     scheduler.register(ProgressExaRootNodeWrapper(this))
 
     scheduler.register(StrategyTimerWrapper(start = false, "Progressing from L4 to IR"))
+  }
+}
+
+/// L4_SecondParseWrapper
+
+object L4_SecondParseWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => {
+    val oldL4Code = ExaRootNode.l4_root.prettyprint()
+
+    // re-parse the code to check for errors - also clear knowledge collections
+    L4_KnowledgeContainer.clear()
+
+    val l4FileName = if (Settings.getDebugL4file.nonEmpty) Settings.getDebugL4file else "debugLayer4"
+    try {
+      ExaRootNode.l4_root = L4_Parser.parse(oldL4Code, l4FileName)
+    } catch {
+      case exc : Exception => Logger.error("Second parse error: " + exc.getMessage)
+    }
+    ExaRootNode.l4_root.flatten()
   }
 }
