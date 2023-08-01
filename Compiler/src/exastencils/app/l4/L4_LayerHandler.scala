@@ -26,6 +26,7 @@ import exastencils.baseExt.l4._
 import exastencils.communication.l4._
 import exastencils.config._
 import exastencils.domain.l4.L4_DomainCollection
+import exastencils.field.ir.IR_AddPaddingToFieldLayoutsWrapper
 import exastencils.field.l4._
 import exastencils.grid.l4._
 import exastencils.interfacing.l4.L4_ExternalFieldCollection
@@ -36,7 +37,6 @@ import exastencils.operator.l4._
 import exastencils.parsers.l4._
 import exastencils.prettyprinting.Indenter
 import exastencils.scheduling._
-import exastencils.scheduling.ir.IR_AddPaddingToFieldLayoutsWrapper
 import exastencils.scheduling.l4._
 import exastencils.solver.l4._
 import exastencils.timing.l4.L4_ResolveTimerFunctions

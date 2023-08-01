@@ -24,6 +24,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config._
 import exastencils.datastructures._
+import exastencils.scheduling.NoStrategyWrapper
 import exastencils.util.ir.IR_Print
 
 /// CUDA_ReplaceStdFunctionCalls
@@ -106,5 +107,14 @@ object CUDA_StdFunctionReplacements {
               IR_Assignment(right, nju))))
         }
     }
+  }
+}
+
+/// CUDA_ReplaceStdFunctionCallsWrapper
+
+object CUDA_ReplaceStdFunctionCallsWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => {
+    if (Knowledge.cuda_enabled)
+      CUDA_ReplaceStdFunctionCalls.apply(Some(CUDA_KernelFunctions.get))
   }
 }

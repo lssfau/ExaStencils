@@ -27,6 +27,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.logger._
+import exastencils.scheduling.SingleSchedulable
 import exastencils.util.ir.IR_ScopeCollector
 
 object IR_TypeInference extends CustomStrategy("Type inference") {
@@ -60,6 +61,16 @@ object IR_TypeInference extends CustomStrategy("Type inference") {
       StrategyTimer.stopTiming(name)
 
     this.commit()
+  }
+}
+
+/// IR_TypeInferenceWrapper
+
+case class IR_TypeInferenceWrapper(warnMissingDeclarations : Boolean) extends SingleSchedulable {
+  override def apply(applyAtNode : Option[Node]) : Unit = {
+    if (!warnMissingDeclarations)
+      IR_TypeInference.warnMissingDeclarations = false
+    IR_TypeInference.apply(applyAtNode)
   }
 }
 
