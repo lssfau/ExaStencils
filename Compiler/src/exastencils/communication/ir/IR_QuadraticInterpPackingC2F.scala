@@ -1,5 +1,6 @@
 package exastencils.communication.ir
 
+import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
@@ -39,26 +40,27 @@ case class IR_QuadraticInterpPackingC2FRemote(
     DefaultNeighbors.neighbors.map(_.dir).filter(dir => !(dir sameElements commDir) && !(dir sameElements invCommDir))
   }
 
-  def isAtBlockCornersForDim(dim : Int) : IR_Expression = {
+  def isRegularCase() : IR_Expression = IR_BooleanConstant(true)
+
+  def isAtBlockCornerForDir3D(commDir : Array[Int], orthoDir : Array[Int], min : Boolean) : IR_Expression = {
     val ival = packInfo.getPackInterval()
 
-    // onion-peel of one layer in pack info interval
-    defIt(dim) != ival.begin(dim) || defIt(dim) != ival.end(dim)
+    val commDirDim = getDimFromDir(commDir)
+    val orthoDirDim = getDimFromDir(orthoDir)
+    val remainingDim = ((0 until 3).toSet diff Set(commDirDim, orthoDirDim)).head
+
+    isAtBlockCornerForDir2D(orthoDir) AndAnd (defIt(remainingDim) EqEq (if (min) ival.begin(remainingDim) else (ival.end(remainingDim) - 1)))
   }
 
-  def isAtBlockCornersForDir(dir : Array[Int]) : IR_Expression = {
+  def isAtBlockCornerForDir2D(orthoDir : Array[Int]) : IR_Expression = {
     val ival = packInfo.getPackInterval()
 
-    val dim = getDimFromDir(dir)
+    val dim = getDimFromDir(orthoDir)
 
-    if (isUpwindDir(dir))
-      defIt(dim) != ival.end(dim)
+    if (isUpwindDir(orthoDir))
+      defIt(dim) EqEq (ival.end(dim) - 1)
     else
-      defIt(dim) != ival.begin(dim)
-  }
-
-  def isAtBlockCorners() : IR_Expression = {
-    (0 until Knowledge.dimensionality - 1).map(d => isAtBlockCornersForDim(d)).reduce(_ OrOr _)
+      defIt(dim) EqEq ival.begin(dim)
   }
 
   sealed case class BaseShift(var remappable : Boolean, var i0 : Int, var i1 : Int, var i2 : Int) {
@@ -137,6 +139,24 @@ case class IR_QuadraticInterpPackingC2FRemote(
     )
   }
 
+  def dirToString(dir : Array[Int]) : String = dir match {
+    case Array(-1, 0, 0) => "W"
+    case Array(1, 0, 0)  => "E"
+    case Array(0, -1, 0) => "S"
+    case Array(0, 1, 0)  => "N"
+    case Array(0, 0, -1) => "B"
+    case Array(0, 0, 1)  => "T"
+  }
+
+  def extrapVariableNeighbor(dir : Array[Int]) =
+    IR_VariableAccess(s"f_neighbor_${dirToString(dir)}_ext", IR_RealDatatype)
+
+  def isSameCondition(condA : IR_Expression, condB : IR_Expression) : Boolean = (condA, condB) match {
+    case (c1 : IR_AndAnd, c2 : IR_AndAnd) if c1.left == c2.right && c1.right == c2.left => true
+    case (c1 : IR_Expression, c2 : IR_Expression) if c1 == c2                           => true
+    case _                                                                              => false
+  }
+
   // shifts for accessing cell centers for interpolation with bases at [-h, 0, h]
   private val CenteredBasesShifts = BaseShift(remappable = false, -1, 0, 1)
 
@@ -175,27 +195,76 @@ case class IR_QuadraticInterpPackingC2FRemote(
       // TODO: add pack loop with interp kernel
 
       // Step 1 (1D interp): get value on neighboring fine ghost layer by extrapolating coarse cells in inverse comm direction
-      val basePos = getBasePositionsForExtrapolation(commDir, defIt)
-      val baseVals = getBaseValues(commDir, defIt, RemappedBasesShifts)
+      val basePosCommDir = getBasePositionsForExtrapolation(commDir, defIt)
+      val baseValsCommDir = getBaseValues(commDir, defIt, RemappedBasesShifts)
       val x0 = (if (isUpwindDir(commDir)) +1 else -1) * getCellWidth(commDir, defIt) / IR_RealConstant(4) // target location at: +/- 0.25h
 
-      val f0_ext = IR_VariableAccess("f0_ext", IR_RealDatatype)
-      innerStmts += IR_VariableDeclaration(f0_ext, interpolate(x0, basePos, baseVals))
+      val extrapVariableCenter = IR_VariableAccess("f0_center_ext", IR_RealDatatype)
+      innerStmts += IR_VariableDeclaration(extrapVariableCenter, interpolate(x0, basePosCommDir, baseValsCommDir))
 
-      // Step 2: also extrapolate new bases for orthogonal face directions
+      // Step 2: also extrapolate new bases for orthogonal axis directions (2 dirs in 2D, 4 in 4D)
+
+      // store conditions, extrapolation results and statements for each case (3 in 2D, 9 in 3D)
+      var extrapResults : HashMap[Array[Int], ListBuffer[(IR_Expression, IR_Expression)]] = HashMap()
+
       val orthogonalNeighDirs = getOrthogonalNeighborDirs()
-      def fIdx_ext(idx : Int) = IR_VariableAccess(s"f${idx}_ext", IR_RealDatatype)
-      for ((orthoDir, orthoIdx) <- orthogonalNeighDirs.zipWithIndex) {
-        val orthoBaseVals = getBaseValues(commDir, defIt + IR_ExpressionIndex(orthoDir), RemappedBasesShifts)
+      for (orthoDir <- orthogonalNeighDirs) {
         val remappedOrthoBaseVals = getBaseValues(commDir, defIt + IR_ExpressionIndex(orthoDir.map(_ * -2)), RemappedBasesShifts)
+        val remappedOrthoBasePosCommDir = getBasePositionsForExtrapolation(commDir, defIt + IR_ExpressionIndex(orthoDir.map(_ * -2)))
 
-        // check if base offset in orthogonal direction is still within inner layers
-        innerStmts += IR_IfCondition(IR_Negation(isAtBlockCornersForDir(orthoDir)),
-          // true -> regular handling as before
-          IR_VariableDeclaration(fIdx_ext(orthoIdx), interpolate(x0, basePos, orthoBaseVals)),
-          // false -> remap orthogonal direction to point to farther cell in inner layers
-          IR_VariableDeclaration(fIdx_ext(orthoIdx), interpolate(x0, basePos, remappedOrthoBaseVals)),
-        )
+        // cases where neighbor values for extrap had to be remapped
+        var casesForOrthoDir : ListBuffer[(IR_Expression, IR_Expression)] = ListBuffer()
+        Knowledge.dimensionality match {
+          case 2 =>
+            val isCorner = isAtBlockCornerForDir2D(orthoDir)
+
+            casesForOrthoDir += (isCorner -> interpolate(x0, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
+          case 3 =>
+            val isMinCorner = isAtBlockCornerForDir3D(commDir, orthoDir, min = true)
+            val isMaxCorner = isAtBlockCornerForDir3D(commDir, orthoDir, min = false)
+
+            casesForOrthoDir += (isMinCorner -> interpolate(x0, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
+            casesForOrthoDir += (isMaxCorner -> interpolate(x0, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
+
+            val isEdge = isAtBlockCornerForDir2D(orthoDir)
+
+            casesForOrthoDir += (isEdge -> interpolate(x0, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
+        }
+
+        // regular case without remap
+        val orthoBaseVals = getBaseValues(commDir, defIt + IR_ExpressionIndex(orthoDir), RemappedBasesShifts)
+        casesForOrthoDir += (isRegularCase() -> interpolate(x0, basePosCommDir, orthoBaseVals))
+
+        extrapResults += (orthoDir -> casesForOrthoDir)
+      }
+
+      // aggregate cases by condition ...
+      var cases : HashMap[IR_Expression, ListBuffer[(Array[Int], IR_Expression)]] = HashMap()
+      extrapResults foreach {
+        case (orthoDir, orthoCases) =>
+          orthoCases foreach {
+            case (cond, interp) =>
+              val key = cases.keys.find(isSameCondition(_, cond)).getOrElse(cond)
+              cases = cases.updated(key, cases.getOrElse(key, ListBuffer()) :+ (orthoDir -> interp))
+          }
+      }
+      // ... and fold in regular interp case for non-remapped orthogonal directions
+      for ((cond, interps) <- cases if cond != isRegularCase()) {
+        val regularInterp = cases(isRegularCase())
+        for ((orthoDirRegular, interpRegular) <- regularInterp if !interps.exists(e => e._1 sameElements orthoDirRegular)) {
+          cases = cases.updated(cond, cases(cond) :+ (orthoDirRegular -> interpRegular))
+        }
+      }
+
+      // debug output
+      for ((cond, interps) <- cases) {
+        innerStmts += IR_IfCondition(cond,
+          ListBuffer[IR_Statement]() ++ (interps flatMap {
+            case (orthoDir, interp) =>
+              List(
+                IR_Comment("Neighbor dir = " + dirToString(commDir) + ". Ortho dir = " + dirToString(orthoDir) + ". Cond = " + cond.prettyprint),
+                IR_VariableDeclaration(extrapVariableNeighbor(orthoDir), interp))
+          }))
       }
 
     } else {
